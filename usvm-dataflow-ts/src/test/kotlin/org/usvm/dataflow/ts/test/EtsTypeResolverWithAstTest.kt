@@ -8,6 +8,7 @@ import org.jacodb.ets.utils.loadEtsProjectAutoConvert
 import org.jacodb.ets.utils.loadEtsProjectFromIR
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.condition.EnabledIf
 import org.usvm.dataflow.ts.graph.EtsApplicationGraph
 import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EntryPointsProcessor
@@ -23,18 +24,25 @@ import org.usvm.dataflow.ts.util.MethodTypesFacts
 import org.usvm.dataflow.ts.util.TypeInferenceStatistics
 import java.nio.file.Paths
 import kotlin.io.path.Path
+import kotlin.io.path.exists
 import kotlin.test.assertTrue
 
+@EnabledIf("projectAvailable")
 class EtsTypeResolverWithAstTest {
     companion object {
+        private val yourPrefixForTestFolders = "C:/work/TestProjects"
+        private val testProjectsVersion = "TestProjects_2024_12_5"
+        private val pathToSDK: String? = null // TODO: Put your path here
+
+        @JvmStatic
+        private fun projectAvailable(): Boolean {
+            return Path(yourPrefixForTestFolders).exists()
+        }
+
         private fun load(name: String): EtsFile {
             return loadEtsFileAutoConvert(Paths.get("/ts/$name.ts"))
         }
     }
-
-    private val yourPrefixForTestFolders = "C:/work/TestProjects"
-    private val testProjectsVersion = "TestProjects_2024_11_14"
-    private val pathToSDK: String? = null // TODO: Put your path here
 
     @Test
     fun testTestHap() {

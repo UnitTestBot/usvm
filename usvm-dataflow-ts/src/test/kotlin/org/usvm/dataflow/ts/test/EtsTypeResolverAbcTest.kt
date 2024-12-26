@@ -2,6 +2,7 @@ package org.usvm.dataflow.ts.test
 
 import org.jacodb.ets.utils.loadEtsProjectFromIR
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.condition.EnabledIf
 import org.usvm.dataflow.ts.infer.EntryPointsProcessor
 import org.usvm.dataflow.ts.infer.TypeInferenceManager
 import org.usvm.dataflow.ts.infer.createApplicationGraph
@@ -9,16 +10,25 @@ import org.usvm.dataflow.ts.util.EtsTraits
 import org.usvm.dataflow.ts.util.MethodTypesFacts
 import org.usvm.dataflow.ts.util.TypeInferenceStatistics
 import kotlin.io.path.Path
+import kotlin.io.path.exists
 
+@EnabledIf("projectAvailable")
 class EtsTypeResolverAbcTest {
-    private val yourPrefixForTestFolders = "C:/work/TestProjects"
-    private val testProjectsVersion = "TestProjects_2024_12_5"
 
-    private val pathToSDK: String = TODO("Put your path here")
+    companion object {
+        private val yourPrefixForTestFolders = "C:/work/TestProjects"
+        private val testProjectsVersion = "TestProjects_2024_12_5"
+        private val pathToSDK: String? = null // TODO: Put your path here
+
+        @JvmStatic
+        private fun projectAvailable(): Boolean {
+            return Path(yourPrefixForTestFolders).exists()
+        }
+    }
 
     private fun runOnAbcProject(projectID: String, abcPath: String) {
         val projectAbc = "$yourPrefixForTestFolders/$testProjectsVersion/$abcPath"
-        val abcScene = loadEtsProjectFromIR(Path(projectAbc), Path(pathToSDK))
+        val abcScene = loadEtsProjectFromIR(Path(projectAbc), pathToSDK?.let { Path(it) })
         val graphAbc = createApplicationGraph(abcScene)
 
         val entrypoint = EntryPointsProcessor.extractEntryPoints(abcScene)
