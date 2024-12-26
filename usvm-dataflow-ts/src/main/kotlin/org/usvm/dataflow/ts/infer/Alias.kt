@@ -123,7 +123,7 @@ class AliasInfo(
             val (cur, path) = queue.removeFirst()
             // TODO: eliminate loops as in computeAliases via DFS with PATH/STACK
             // TODO: think about loop-edges
-            if (path.size > 10) continue
+            if (path.size > MAX_PATH_SIZE) continue
             if (cur in invB) {
                 for (base in invB[cur]!!) {
                     paths.add(AccessPath(base, path.reversed()))
@@ -139,6 +139,11 @@ class AliasInfo(
         }
 
         return paths
+    }
+
+    companion object {
+        // Maximum number of fields in an access path. Used to avoid infinite loops.
+        private const val MAX_PATH_SIZE = 10
     }
 }
 
