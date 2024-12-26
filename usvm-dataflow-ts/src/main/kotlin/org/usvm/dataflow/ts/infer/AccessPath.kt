@@ -78,21 +78,15 @@ fun EtsEntity.toPathOrNull(): AccessPath? = when (this) {
 
     is EtsParameterRef -> AccessPath(toBase(), emptyList())
 
-    is EtsArrayAccess -> {
-        array.toPathOrNull()?.let {
-            it + ElementAccessor
-        }
+    is EtsArrayAccess -> array.toPathOrNull()?.let {
+        it + ElementAccessor
     }
 
-    is EtsInstanceFieldRef -> {
-        instance.toPathOrNull()?.let {
-            it + FieldAccessor(field.name)
-        }
+    is EtsInstanceFieldRef -> instance.toPathOrNull()?.let {
+        it + FieldAccessor(field.name)
     }
 
-    is EtsStaticFieldRef -> {
-        AccessPath(AccessPathBase.Static, listOf(FieldAccessor(field.name)))
-    }
+    is EtsStaticFieldRef -> AccessPath(AccessPathBase.Static, listOf(FieldAccessor(field.name)))
 
     is EtsCastExpr -> arg.toPathOrNull()
 
