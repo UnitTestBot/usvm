@@ -17,6 +17,7 @@ import org.jacodb.ets.base.EtsUndefinedType
 import org.jacodb.ets.base.EtsUnionType
 import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.base.INSTANCE_INIT_METHOD_NAME
+import org.usvm.dataflow.ts.util.Globals
 
 private val logger = KotlinLogging.logger {}
 
@@ -44,7 +45,9 @@ sealed interface EtsTypeFact {
         }
     }
 
-    fun intersect(other: EtsTypeFact): EtsTypeFact? {
+    fun intersect(other: EtsTypeFact?): EtsTypeFact? {
+        if (other == null) return this
+
         if (this == other) return this
 
         if (other is UnknownEtsTypeFact) return this
@@ -151,10 +154,41 @@ sealed interface EtsTypeFact {
         override fun toString(): String = "Array<$elementType>"
     }
 
-    data class ObjectEtsTypeFact(
+    @ConsistentCopyVisibility
+    data class ObjectEtsTypeFact private constructor(
         val cls: EtsType?,
         val properties: Map<String, EtsTypeFact>,
     ) : BasicType {
+        companion object {
+            operator fun invoke(
+                cls: EtsType?,
+                properties: Map<String, EtsTypeFact>,
+            ): ObjectEtsTypeFact {
+                if (cls is EtsUnclearRefType && cls.name == "Object") {
+                    return ObjectEtsTypeFact(null, properties)
+                }
+                return ObjectEtsTypeFact(cls, properties)
+            }
+        }
+
+        fun getRealProperties(): Map<String, EtsTypeFact> {
+            val scene = Globals.scene ?: return properties
+            if (cls == null || cls !is EtsClassType) {
+                return properties
+            }
+            val clazz = scene.projectAndSdkClasses.firstOrNull { it.signature == cls.signature }
+                ?: return properties
+            val props = properties.toMutableMap()
+            clazz.methods.forEach { m ->
+                props.merge(m.name, FunctionEtsTypeFact) { old, new ->
+                    old.intersect(new).also {
+                        if (it == null) logger.warn { "Empty intersection: $old & $new" }
+                    }
+                }
+            }
+            return props
+        }
+
         override fun toString(): String {
             val clsName = cls?.typeName?.takeUnless { it.startsWith(ANONYMOUS_CLASS_PREFIX) } ?: "Object"
             val funProps = properties.entries
@@ -360,23 +394,26 @@ sealed interface EtsTypeFact {
             return mkIntersectionType(guardedType, other)
         }
 
+        private fun tryIntersect(cls1: EtsType?, cls2: EtsType?): EtsType? {
+            if (cls1 == cls2) return cls1
+            if (cls1 == null) return cls2
+            if (cls2 == null) return cls1
+            // TODO: isSubtype
+            return null
+        }
+
         private fun intersect(obj1: ObjectEtsTypeFact, obj2: ObjectEtsTypeFact): EtsTypeFact? {
-            val intersectionProperties = obj1.properties.toMutableMap()
-            for ((property, type) in obj2.properties) {
+            val intersectionProperties = obj1.getRealProperties().toMutableMap()
+            for ((property, type) in obj2.getRealProperties()) {
                 val currentType = intersectionProperties[property]
                 if (currentType == null) {
                     intersectionProperties[property] = type
-                    continue
+                } else {
+                    intersectionProperties[property] = currentType.intersect(type)
+                        ?: return null
                 }
-
-                intersectionProperties[property] = currentType.intersect(type) ?: return null
             }
-
-            val intersectionCls = if (obj1.cls != null && obj2.cls != null) {
-                obj1.cls.takeIf { it == obj2.cls }
-            } else {
-                obj1.cls ?: obj2.cls
-            }
+            val intersectionCls = tryIntersect(obj1.cls, obj2.cls)
             return ObjectEtsTypeFact(intersectionCls, intersectionProperties)
         }
 
@@ -391,7 +428,7 @@ sealed interface EtsTypeFact {
                     type
                 }
 
-            return ObjectEtsTypeFact(obj.cls, intersectionProperties)
+            return ObjectEtsTypeFact(null, intersectionProperties)
         }
 
         private fun union(unionType: UnionEtsTypeFact, other: EtsTypeFact): EtsTypeFact {
@@ -504,7 +541,7 @@ sealed interface EtsTypeFact {
                 is EtsUnclearRefType -> ObjectEtsTypeFact(type, emptyMap())
                 // is EtsGenericType -> TODO()
                 else -> {
-                    logger.error { "Unsupported type: $type" }
+                    logger.warn { "Unsupported type: $type" }
                     UnknownEtsTypeFact
                 }
             }

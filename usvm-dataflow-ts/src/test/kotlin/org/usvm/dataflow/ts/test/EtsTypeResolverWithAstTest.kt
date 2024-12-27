@@ -9,11 +9,12 @@ import org.jacodb.ets.utils.loadEtsProjectFromIR
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.condition.EnabledIf
+import org.usvm.dataflow.ts.getResourcePath
 import org.usvm.dataflow.ts.graph.EtsApplicationGraph
 import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EntryPointsProcessor
-import org.usvm.dataflow.ts.infer.EtsApplicationGraphWithExplicitEntryPoint
 import org.usvm.dataflow.ts.infer.EtsTypeFact
+import org.usvm.dataflow.ts.infer.TypeGuesser
 import org.usvm.dataflow.ts.infer.TypeInferenceManager
 import org.usvm.dataflow.ts.infer.TypeInferenceResult
 import org.usvm.dataflow.ts.infer.createApplicationGraph
@@ -22,13 +23,13 @@ import org.usvm.dataflow.ts.test.utils.ExpectedTypesExtractor
 import org.usvm.dataflow.ts.util.EtsTraits
 import org.usvm.dataflow.ts.util.MethodTypesFacts
 import org.usvm.dataflow.ts.util.TypeInferenceStatistics
-import java.nio.file.Paths
 import kotlin.io.path.Path
 import kotlin.io.path.exists
 import kotlin.test.assertTrue
 
 @EnabledIf("projectAvailable")
 class EtsTypeResolverWithAstTest {
+
     companion object {
         private val yourPrefixForTestFolders = "C:/work/TestProjects"
         private val testProjectsVersion = "TestProjects_2024_12_5"
@@ -40,38 +41,8 @@ class EtsTypeResolverWithAstTest {
         }
 
         private fun load(name: String): EtsFile {
-            return loadEtsFileAutoConvert(Paths.get("/ts/$name.ts"))
+            return loadEtsFileAutoConvert(getResourcePath("/ts/$name.ts"))
         }
-    }
-
-    @Test
-    fun testTestHap() {
-        val projectAbc = "$yourPrefixForTestFolders/$testProjectsVersion/CallUI"
-        val abcScene = loadEtsProjectFromIR(Path(projectAbc), pathToSDK?.let { Path(it) })
-        val graphAbc = createApplicationGraph(abcScene)
-
-        val entrypoint = EntryPointsProcessor.extractEntryPoints(abcScene) // TODO fix error with abc and ast methods
-
-        val manager = TypeInferenceManager(EtsTraits(), graphAbc)
-        val resultBasic = manager.analyze(
-            entrypoints = entrypoint.mainMethods,
-            allMethods = entrypoint.allMethods,
-        )
-        val result = resultBasic.withGuessedTypes(abcScene)
-
-        val classMatcherStatistics = ClassMatcherStatistics()
-
-        // TODO fix error with abc and ast methods
-        saveTypeInferenceComparison(
-            entrypoint.allMethods,
-            entrypoint.allMethods,
-            graphAbc,
-            graphAbc,
-            result,
-            classMatcherStatistics,
-            abcScene,
-        )
-        classMatcherStatistics.dumpStatistics("callkit.txt")
     }
 
     fun runOnProjectWithAstComparison(projectID: String, abcPath: String, astPath: String) {
@@ -79,10 +50,10 @@ class EtsTypeResolverWithAstTest {
         val abcScene = loadEtsProjectFromIR(Path(projectAbc), pathToSDK?.let { Path(it) })
 
         val projectAst = "$yourPrefixForTestFolders/AST/$astPath"
-        val astScene = loadEtsProjectAutoConvert(Paths.get(projectAst))
+        val astScene = loadEtsProjectAutoConvert(Path(projectAst))
 
-        val graphAbc = createApplicationGraph(abcScene) as EtsApplicationGraphWithExplicitEntryPoint
-        val graphAst = createApplicationGraph(astScene) as EtsApplicationGraphWithExplicitEntryPoint
+        val graphAbc = createApplicationGraph(abcScene)
+        val graphAst = createApplicationGraph(astScene)
 
         val entrypoint = EntryPointsProcessor.extractEntryPoints(abcScene)
         val astMethods = extractAllAstMethods(astScene, abcScene)
@@ -90,12 +61,14 @@ class EtsTypeResolverWithAstTest {
         println(entrypoint.mainMethods.map { it.signature })
         println(entrypoint.allMethods.map { it.signature })
 
+        val guesser = TypeGuesser(abcScene)
+
         val manager = TypeInferenceManager(EtsTraits(), graphAbc)
         val resultBasic = manager.analyze(
             entrypoints = entrypoint.mainMethods,
             allMethods = entrypoint.allMethods.filter { it.isPublic },
         )
-        val result = resultBasic.withGuessedTypes(abcScene)
+        val result = resultBasic.withGuessedTypes(guesser)
 
         val classMatcherStatistics = ClassMatcherStatistics()
         saveTypeInferenceComparison(
@@ -174,6 +147,7 @@ class EtsTypeResolverWithAstTest {
 
         val project = EtsScene(listOf(file))
         val graph = createApplicationGraph(project)
+        val guesser = TypeGuesser(project)
 
         val entrypoint = project.projectClasses
             .flatMap { it.methods }
@@ -181,7 +155,7 @@ class EtsTypeResolverWithAstTest {
 
         val manager = TypeInferenceManager(EtsTraits(), graph)
         val resultBasic = manager.analyze(listOf(entrypoint))
-        val result = resultBasic.withGuessedTypes(project)
+        val result = resultBasic.withGuessedTypes(guesser)
 
         checkAnObjectTypeOfSingleArgument(result.inferredTypes[entrypoint]!!) { typeFact: EtsTypeFact.ObjectEtsTypeFact ->
             typeFact.cls == null && typeFact.properties.keys.single() == "defaultA"
@@ -199,6 +173,7 @@ class EtsTypeResolverWithAstTest {
 
         val project = EtsScene(listOf(file))
         val graph = createApplicationGraph(project)
+        val guesser = TypeGuesser(project)
 
         val entrypoint = project.projectClasses
             .flatMap { it.methods }
@@ -206,7 +181,7 @@ class EtsTypeResolverWithAstTest {
 
         val manager = TypeInferenceManager(EtsTraits(), graph)
         val resultBasic = manager.analyze(listOf(entrypoint))
-        val result = resultBasic.withGuessedTypes(project)
+        val result = resultBasic.withGuessedTypes(guesser)
 
         checkAnObjectTypeOfSingleArgument(result.inferredTypes[entrypoint]!!) { fact: EtsTypeFact.ObjectEtsTypeFact ->
             fact.cls?.typeName == "FieldContainerToInfer" && fact.properties.isEmpty()
@@ -224,6 +199,7 @@ class EtsTypeResolverWithAstTest {
 
         val project = EtsScene(listOf(file))
         val graph = createApplicationGraph(project)
+        val guesser = TypeGuesser(project)
 
         val entrypoint = project.projectClasses
             .flatMap { it.methods }
@@ -233,7 +209,7 @@ class EtsTypeResolverWithAstTest {
 
         val manager = TypeInferenceManager(EtsTraits(), graph)
         val resultBasic = manager.analyze(listOf(entrypoint))
-        val result = resultBasic.withGuessedTypes(project)
+        val result = resultBasic.withGuessedTypes(guesser)
 
         checkAnObjectTypeOfSingleArgument(result.inferredTypes[entrypoint]!!) { fact: EtsTypeFact.ObjectEtsTypeFact ->
             fact.cls?.typeName == "FieldContainerToInfer" && fact.properties.isEmpty()
@@ -250,6 +226,7 @@ class EtsTypeResolverWithAstTest {
 
         val project = EtsScene(listOf(file))
         val graph = createApplicationGraph(project)
+        val guesser = TypeGuesser(project)
 
         val entrypoint = project.projectClasses
             .flatMap { it.methods }
@@ -257,7 +234,7 @@ class EtsTypeResolverWithAstTest {
 
         val manager = TypeInferenceManager(EtsTraits(), graph)
         val resultBasic = manager.analyze(listOf(entrypoint))
-        val result = resultBasic.withGuessedTypes(project)
+        val result = resultBasic.withGuessedTypes(guesser)
 
         checkAnObjectTypeOfSingleArgument(result.inferredTypes[entrypoint]!!) { typeFact: EtsTypeFact.ObjectEtsTypeFact ->
             typeFact.cls?.typeName == "MethodsContainerToInfer" && typeFact.properties.isEmpty()
@@ -275,6 +252,7 @@ class EtsTypeResolverWithAstTest {
 
         val project = EtsScene(listOf(file))
         val graph = createApplicationGraph(project)
+        val guesser = TypeGuesser(project)
 
         val entrypoint = project.projectClasses
             .flatMap { it.methods }
@@ -282,7 +260,7 @@ class EtsTypeResolverWithAstTest {
 
         val manager = TypeInferenceManager(EtsTraits(), graph)
         val resultBasic = manager.analyze(listOf(entrypoint))
-        val result = resultBasic.withGuessedTypes(project)
+        val result = resultBasic.withGuessedTypes(guesser)
 
         checkAnObjectTypeOfSingleArgument(result.inferredTypes[entrypoint]!!) { typeFact: EtsTypeFact.ObjectEtsTypeFact ->
             typeFact.cls == null && typeFact.properties.keys.single() == "notUniqueFunction"
@@ -300,6 +278,7 @@ class EtsTypeResolverWithAstTest {
 
         val project = EtsScene(listOf(file))
         val graph = createApplicationGraph(project)
+        val guesser = TypeGuesser(project)
 
         val entrypoint = project.projectClasses
             .flatMap { it.methods }
@@ -307,7 +286,7 @@ class EtsTypeResolverWithAstTest {
 
         val manager = TypeInferenceManager(EtsTraits(), graph)
         val resultBasic = manager.analyze(listOf(entrypoint))
-        val result = resultBasic.withGuessedTypes(project)
+        val result = resultBasic.withGuessedTypes(guesser)
 
         checkAnObjectTypeOfSingleArgument(result.inferredTypes[entrypoint]!!) { typeFact: EtsTypeFact.ObjectEtsTypeFact ->
             typeFact.cls?.typeName == "FieldContainerToInfer" && typeFact.properties.isEmpty()

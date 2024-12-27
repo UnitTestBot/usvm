@@ -26,6 +26,7 @@ import org.usvm.dataflow.ts.graph.EtsApplicationGraph
 import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EtsTypeFact
 import org.usvm.dataflow.ts.infer.TypeInferenceResult
+import org.usvm.dataflow.ts.infer.toBase
 import java.io.File
 
 class TypeInferenceStatistics {
@@ -53,6 +54,8 @@ class TypeInferenceStatistics {
     private var undefinedUnknownCombination = 0L
     private var unknownAnyCombination = 0L
 
+    private var knownTypeToUndefined = 0L
+
     fun compareSingleMethodFactsWithTypesInScene(
         methodTypeFacts: MethodTypesFacts,
         method: EtsMethod,
@@ -64,21 +67,22 @@ class TypeInferenceStatistics {
         methodTypeFacts.apply {
             if (combinedThisFact == null
                 && argumentsFacts.all { it == null }
-                && returnFact == null
                 && localFacts.isEmpty()
             ) {
                 noTypesInferred += method
+                // Note: no return here!
+                // Without taking into account the stats for such "empty" methods,
+                // the statistic would not be correct.
             }
         }
 
         val thisType = getEtsClassType(method.enclosingClass, graph.cp)
         val argTypes = method.parameters.map { it.type }
-        val locals = method.locals
+        val locals = method.getRealLocals().filterNot { it.name == "this" }
 
         val methodFacts = mutableListOf<InferenceResult>()
 
         thisType?.let {
-            val thisPosition = AccessPathBase.This
             val fact = methodTypeFacts.combinedThisFact
 
             val status = if (fact == null) {
@@ -109,7 +113,7 @@ class TypeInferenceStatistics {
                 }
             }
 
-            methodFacts += InferenceResult(thisPosition, it, fact, status)
+            methodFacts += InferenceResult(AccessPathBase.This, it, fact, status)
         }
 
         argTypes.forEachIndexed { index, type ->
@@ -130,15 +134,12 @@ class TypeInferenceStatistics {
             methodFacts += InferenceResult(AccessPathBase.Arg(index), type, fact, status)
         }
 
-
-
         locals.forEach {
-            val type = it.type
-            val local = AccessPathBase.Local(it.name)
-            val fact = methodTypeFacts.localFacts[local]
-
+            val realType = it.type
+            val base = it.toBase()
+            val fact = methodTypeFacts.localFacts[base]
             val status = if (fact == null) {
-                if (type is EtsUnknownType) {
+                if (realType is EtsUnknownType) {
                     noInfoInferredPreviouslyUnknown++
                     InferenceStatus.NO_INFO_PREVIOUSLY_UNKNOWN
                 } else {
@@ -146,10 +147,9 @@ class TypeInferenceStatistics {
                     InferenceStatus.NO_INFO_PREVIOUSLY_KNOWN
                 }
             } else {
-                checkForFact(fact, type)
+                checkForFact(fact, realType)
             }
-
-            methodFacts += InferenceResult(local, type, fact, status)
+            methodFacts += InferenceResult(base, realType, fact, status)
         }
 
         allTypesAndFacts[method] = methodFacts
@@ -386,8 +386,8 @@ class TypeInferenceStatistics {
                     }
 
                     else -> {
-                        exactTypeInferredIncorrectlyPreviouslyKnown++
-                        InferenceStatus.DIFFERENT_TYPE_FOUND
+                        knownTypeToUndefined++
+                        InferenceStatus.KNOWN_UNDEFINED_COMBINATION
                     }
                 }
             }
@@ -538,6 +538,7 @@ class TypeInferenceStatistics {
         Unhandled type info: $unhandled
 
         Lost info about type: $noInfoInferredPreviouslyKnown
+        Was known, became undefined: $knownTypeToUndefined
         Nothing inferred, but it was unknown previously as well: $noInfoInferredPreviouslyUnknown 
         
         Was unknown, became undefined: $undefinedUnknownCombination
@@ -683,6 +684,7 @@ private enum class InferenceStatus(val message: String) {
 
     UNKNOWN_ANY_COMBINATION("Unknown any combination"),
     UNKNOWN_UNDEFINED_COMBINATION("Unknown undefined combination"),
+    KNOWN_UNDEFINED_COMBINATION("Known type became undefined"),
 
     ARRAY_INFO_PREV_UNKNOWN("Found an array type, previously unknown"),
 

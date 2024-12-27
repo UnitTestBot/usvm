@@ -33,17 +33,20 @@ data class EtsTypeAnnotator(
     val scene: EtsScene,
     val typeInferenceResult: TypeInferenceResult,
 ) {
-    private fun selectTypesFor(method: EtsMethod) = typeInferenceResult.inferredTypes[method] ?: emptyMap()
+    private fun selectTypesFor(method: EtsMethod): Map<AccessPathBase, EtsTypeFact> =
+        typeInferenceResult.inferredTypes[method].orEmpty()
 
-    private fun combinedThisFor(method: EtsMethod) = typeInferenceResult.inferredCombinedThisType[method.enclosingClass]
+    private fun combinedThisFor(method: EtsMethod): EtsTypeFact? =
+        typeInferenceResult.inferredCombinedThisType[method.enclosingClass]
 
-    fun annotateWithTypes(scene: EtsScene) = with(scene) {
+    fun annotateWithTypes(scene: EtsScene): EtsScene = with(scene) {
         EtsScene(
-            projectFiles = projectFiles.map { annotateWithTypes(it) }
+            projectFiles = projectFiles.map { annotateWithTypes(it) },
+            sdkFiles = sdkFiles.map { annotateWithTypes(it) },
         )
     }
 
-    fun annotateWithTypes(file: EtsFile) = with(file) {
+    fun annotateWithTypes(file: EtsFile): EtsFile = with(file) {
         EtsFile(
             signature = signature,
             classes = classes.map { annotateWithTypes(it) },
@@ -51,7 +54,7 @@ data class EtsTypeAnnotator(
         )
     }
 
-    fun annotateWithTypes(clazz: EtsClass) = with(clazz) {
+    fun annotateWithTypes(clazz: EtsClass): EtsClass = with(clazz) {
         EtsClassImpl(
             signature = signature,
             fields = fields,
@@ -64,7 +67,7 @@ data class EtsTypeAnnotator(
         )
     }
 
-    fun annotateWithTypes(method: EtsMethod) = with(method) {
+    fun annotateWithTypes(method: EtsMethod): EtsMethod = with(method) {
         EtsMethodImpl(
             signature = signature,
             typeParameters = typeParameters,
@@ -80,7 +83,7 @@ data class EtsTypeAnnotator(
         cfg: EtsCfg,
         types: Map<AccessPathBase, EtsTypeFact>,
         thisType: EtsTypeFact?,
-    ) = with(cfg) {
+    ): EtsCfg = with(cfg) {
         with(StmtTypeAnnotator(types, thisType, scene)) {
             EtsCfg(
                 stmts = stmts.map { it.accept(this) },

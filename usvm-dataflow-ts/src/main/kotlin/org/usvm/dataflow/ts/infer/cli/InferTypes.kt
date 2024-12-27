@@ -35,14 +35,21 @@ import kotlinx.serialization.json.encodeToStream
 import mu.KotlinLogging
 import org.jacodb.ets.base.ANONYMOUS_CLASS_PREFIX
 import org.jacodb.ets.base.ANONYMOUS_METHOD_PREFIX
+import org.jacodb.ets.model.EtsFile
+import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsProjectFromMultipleIR
 import org.usvm.dataflow.ts.infer.EntryPointsProcessor
+import org.usvm.dataflow.ts.infer.TypeGuesser
 import org.usvm.dataflow.ts.infer.TypeInferenceManager
 import org.usvm.dataflow.ts.infer.TypeInferenceResult
 import org.usvm.dataflow.ts.infer.createApplicationGraph
 import org.usvm.dataflow.ts.infer.dto.toDto
 import org.usvm.dataflow.ts.util.EtsTraits
+import org.usvm.dataflow.ts.util.loadEtsFile
+import org.usvm.dataflow.ts.util.loadMultipleEtsFilesFromDirectory
 import java.nio.file.Path
+import kotlin.io.path.exists
+import kotlin.io.path.isRegularFile
 import kotlin.io.path.outputStream
 import kotlin.time.measureTimedValue
 
@@ -89,16 +96,22 @@ class InferTypes : CliktCommand() {
 
         val project = loadEtsProjectFromMultipleIR(input, sdkPaths)
         val graph = createApplicationGraph(project)
+        val guesser = TypeGuesser(project)
 
         val (dummyMains, allMethods) = EntryPointsProcessor.extractEntryPoints(project)
         val publicMethods = allMethods.filter { m -> m.isPublic }
 
         val manager = TypeInferenceManager(EtsTraits(), graph)
 
-        val (result, timeAnalyze) = measureTimedValue {
-            manager.analyze(dummyMains, publicMethods).withGuessedTypes(project)
+        val (resultBasic, timeAnalyze) = measureTimedValue {
+            manager.analyze(dummyMains, publicMethods)
         }
-        logger.info { "Inferred types for ${result.inferredTypes.size} methods in $timeAnalyze" }
+        logger.info { "Inferred types for ${resultBasic.inferredTypes.size} methods in $timeAnalyze" }
+
+        val (result, timeGuess) = measureTimedValue {
+            resultBasic.withGuessedTypes(guesser)
+        }
+        logger.info { "Guessed types for ${result.inferredTypes.size} methods in $timeGuess" }
 
         dumpTypeInferenceResult(result, output, skipAnonymous)
 
@@ -108,6 +121,39 @@ class InferTypes : CliktCommand() {
 
 fun main(args: Array<String>) {
     InferTypes().main(args)
+}
+
+private fun loadEtsScene(projectPaths: List<Path>, sdkIRPath: List<Path>): EtsScene {
+    logger.info { "Loading ETS scene from $projectPaths, sdkPath is $sdkIRPath" }
+
+    val projectFiles = loadIRFiles(projectPaths)
+    val sdkFiles = loadIRFiles(sdkIRPath)
+
+    return EtsScene(projectFiles, sdkFiles)
+}
+
+private fun loadIRFiles(filePaths: List<Path>): List<EtsFile> {
+    val files = filePaths.flatMap { path ->
+        check(path.exists()) { "Path does not exist: $path" }
+        if (path.isRegularFile()) {
+            logger.info { "Loading single ETS file: $path" }
+            val file = loadEtsFile(path)
+            listOf(file)
+        } else {
+            logger.info { "Loading multiple ETS files: $path/**" }
+            loadMultipleEtsFilesFromDirectory(path).asIterable()
+        }
+    }
+    logger.info {
+        "Loaded ${files.size} files with ${
+            files.sumOf { it.classes.size }
+        } classes and ${
+            // Note: +1 for constructor
+            files.sumOf { it.classes.sumOf { cls -> cls.methods.size + 1 } }
+        } methods"
+    }
+
+    return files
 }
 
 @OptIn(ExperimentalSerializationApi::class)

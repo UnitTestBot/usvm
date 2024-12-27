@@ -152,7 +152,7 @@ internal class EtsTypeAnnotationTest {
         namespaces = listOf(),
     )
 
-    private val sampleScene = EtsScene(listOf(mainFile))
+    private val sampleScene = EtsScene(listOf(mainFile), sdkFiles = emptyList())
 
     private class CfgBuilderContext(
         val method: EtsMethod,

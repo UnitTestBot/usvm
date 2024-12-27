@@ -66,7 +66,7 @@ class ValueTypeAnnotator(
         val name = value.field.name
 
         fun findInClass(signature: EtsClassSignature): EtsField? =
-            scene.projectClasses
+            scene.projectAndSdkClasses
                 .singleOrNull { it.signature == signature }
                 ?.fields
                 ?.singleOrNull { it.name == name }
