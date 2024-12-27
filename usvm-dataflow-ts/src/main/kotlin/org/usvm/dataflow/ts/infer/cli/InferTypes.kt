@@ -36,6 +36,7 @@ import mu.KotlinLogging
 import org.jacodb.ets.base.ANONYMOUS_CLASS_PREFIX
 import org.jacodb.ets.base.ANONYMOUS_METHOD_PREFIX
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.utils.loadEtsProjectFromMultipleIR
 import org.usvm.dataflow.ts.infer.EntryPointsProcessor
 import org.usvm.dataflow.ts.infer.TypeInferenceManager
 import org.usvm.dataflow.ts.infer.TypeInferenceResult
@@ -106,10 +107,6 @@ class InferTypes : CliktCommand() {
 
         logger.info { "All done in %.1f s".format((System.currentTimeMillis() - startTime) / 1000.0) }
     }
-}
-
-private fun loadEtsProjectFromMultipleIR(input: List<Path>, sdkPaths: List<Path>): EtsScene {
-    TODO()
 }
 
 fun main(args: Array<String>) {
