@@ -14,7 +14,7 @@ object EntryPointsProcessor {
             .toList()
         return ArtificialMainWithAllMethods(
             mainMethods = artificialMainMethods,
-            allMethods = scene.projectAndSdkClasses.flatMap { it.methods },
+            allMethods = scene.projectClasses.flatMap { it.methods },
         )
     }
 }
