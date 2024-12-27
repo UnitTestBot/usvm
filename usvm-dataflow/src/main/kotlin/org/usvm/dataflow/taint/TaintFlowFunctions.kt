@@ -48,9 +48,9 @@ import org.usvm.dataflow.ifds.FlowFunctions
 import org.usvm.dataflow.ifds.isOnHeap
 import org.usvm.dataflow.ifds.isStatic
 import org.usvm.dataflow.ifds.minus
-import org.usvm.dataflow.ifds.onSome
 import org.usvm.dataflow.util.Traits
 import org.usvm.dataflow.util.startsWith
+import org.usvm.util.onSome
 
 private val logger = mu.KotlinLogging.logger {}
 
@@ -462,7 +462,6 @@ class ForwardTaintFlowFunctions<Method, Statement>(
         }
     }
 }
-
 class BackwardTaintFlowFunctions<Method, Statement>(
     private val traits: Traits<Method, Statement>,
     private val graph: ApplicationGraph<Method, Statement>,

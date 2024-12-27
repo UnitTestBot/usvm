@@ -40,10 +40,10 @@ inline fun <T> LoggerWithLogMethod.bracket(
     val startNano = System.nanoTime()
     var alreadyLogged = false
 
-    var res : Maybe<T> = Maybe.empty()
+    var res: Maybe<T> = Maybe.none()
     try {
         // Note: don't replace this one with runCatching, otherwise return from lambda breaks "finished" logging.
-        res = Maybe(block())
+        res = Maybe.some(block())
         return res.getOrThrow()
     } catch (t: Throwable) {
         logMethod { "Finished (in ${elapsedSecFrom(startNano)}): $msg :: EXCEPTION :: ${closingComment(Result.failure(t))}" }
@@ -51,7 +51,7 @@ inline fun <T> LoggerWithLogMethod.bracket(
         throw t
     } finally {
         if (!alreadyLogged) {
-            if (res.hasValue)
+            if (res.isSome)
                 logMethod { "Finished (in ${elapsedSecFrom(startNano)}): $msg ${closingComment(Result.success(res.getOrThrow()))}" }
             else
                 logMethod { "Finished (in ${elapsedSecFrom(startNano)}): $msg <Nothing>" }

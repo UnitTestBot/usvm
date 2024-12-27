@@ -16,17 +16,17 @@
 
 package org.usvm.dataflow.config
 
-import org.usvm.dataflow.ifds.AccessPath
-import org.usvm.dataflow.ifds.Maybe
-import org.usvm.dataflow.ifds.fmap
-import org.usvm.dataflow.ifds.map
-import org.usvm.dataflow.taint.Tainted
 import org.jacodb.taint.configuration.AssignMark
 import org.jacodb.taint.configuration.CopyAllMarks
 import org.jacodb.taint.configuration.CopyMark
 import org.jacodb.taint.configuration.PositionResolver
 import org.jacodb.taint.configuration.RemoveAllMarks
 import org.jacodb.taint.configuration.RemoveMark
+import org.usvm.dataflow.ifds.AccessPath
+import org.usvm.dataflow.taint.Tainted
+import org.usvm.util.Maybe
+import org.usvm.util.fmap
+import org.usvm.util.map
 
 class TaintActionEvaluator(
     private val positionResolver: PositionResolver<Maybe<AccessPath>>,

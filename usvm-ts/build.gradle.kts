@@ -4,6 +4,7 @@ plugins {
 
 dependencies {
     implementation(project(":usvm-core"))
+    implementation(project(":usvm-dataflow-ts"))
 
     implementation(Libs.jacodb_core)
     implementation(Libs.jacodb_ets)

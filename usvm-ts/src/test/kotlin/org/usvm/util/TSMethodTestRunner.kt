@@ -1,5 +1,6 @@
 package org.usvm.util
 
+import org.jacodb.ets.base.DEFAULT_ARK_CLASS_NAME
 import org.jacodb.ets.base.EtsAnyType
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsNumberType
@@ -10,6 +11,7 @@ import org.jacodb.ets.dto.EtsFileDto
 import org.jacodb.ets.dto.convertToEtsFile
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.usvm.NoCoverage
 import org.usvm.PathSelectionStrategy
@@ -29,7 +31,7 @@ typealias CoverageChecker = (TSMethodCoverage) -> Boolean
 
 open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, TSMethodCoverage>() {
 
-    protected val globalClassName = "_DEFAULT_ARK_CLASS"
+    protected val globalClassName = DEFAULT_ARK_CLASS_NAME
 
     protected val doNotCheckCoverage: CoverageChecker = { _ -> true }
 
@@ -205,10 +207,11 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
                 ?: error("No such file found")
             val filePath = Paths.get(fileURL.toURI())
             val file = loadEtsFileAutoConvert(filePath)
+            val project = EtsScene(listOf(file))
 
             val method = file.getMethodByDescriptor(id)
 
-            TSMachine(file, options).use { machine ->
+            TSMachine(project, options).use { machine ->
                 val states = machine.analyze(listOf(method))
                 states.map { state ->
                     val resolver = TSTestResolver()

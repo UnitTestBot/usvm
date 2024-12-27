@@ -1,8 +1,8 @@
 package org.usvm
 
 import org.jacodb.ets.base.EtsStmt
-import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsScene
 import org.usvm.ps.createPathSelector
 import org.usvm.state.TSMethodResult
 import org.usvm.state.TSState
@@ -20,7 +20,7 @@ import org.usvm.stopstrategies.createStopStrategy
 import kotlin.time.Duration.Companion.seconds
 
 class TSMachine(
-    private val project: EtsFile,
+    private val project: EtsScene,
     private val options: UMachineOptions,
 ) : UMachine<TSState>() {
     private val typeSystem = TSTypeSystem(typeOperationsTimeout = 1.seconds, project)
