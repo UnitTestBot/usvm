@@ -3,7 +3,8 @@
 import org.gradle.plugin.use.PluginDependenciesSpec
 
 object Versions {
-    const val detekt = "1.18.1"
+    const val clikt = "5.0.0"
+    const val detekt = "1.23.7"
     const val ini4j = "0.5.4"
     const val jacodb = "ad5e1f170e"
     const val juliet = "1.3.2"
@@ -18,7 +19,7 @@ object Versions {
     const val mockk = "1.13.4"
     const val rd = "2023.2.0"
     const val sarif4k = "0.5.0"
-    const val shadow = "8.1.1"
+    const val shadow = "8.3.3"
     const val slf4j = "1.6.1"
 
     // versions for jvm samples
@@ -121,6 +122,11 @@ object Libs {
         name = "jacodb-core",
         version = Versions.jacodb
     )
+    val jacodb_api_common = dep(
+        group = jacodbPackage,
+        name = "jacodb-api-common",
+        version = Versions.jacodb
+    )
     val jacodb_api_jvm = dep(
         group = jacodbPackage,
         name = "jacodb-api-jvm",
@@ -136,16 +142,6 @@ object Libs {
         name = "jacodb-storage",
         version = Versions.jacodb
     )
-    val jacodb_ets = dep(
-        group = jacodbPackage,
-        name = "jacodb-ets",
-        version =  Versions.jacodb
-    )
-    val jacodb_api_common = dep(
-        group = jacodbPackage,
-        name = "jacodb-api-common",
-        version = Versions.jacodb
-    )
     val jacodb_approximations = dep(
         group = jacodbPackage,
         name = "jacodb-approximations",
@@ -154,6 +150,11 @@ object Libs {
     val jacodb_taint_configuration = dep(
         group = jacodbPackage,
         name = "jacodb-taint-configuration",
+        version = Versions.jacodb
+    )
+    val jacodb_ets = dep(
+        group = jacodbPackage,
+        name = "jacodb-ets",
         version = Versions.jacodb
     )
 
@@ -240,6 +241,13 @@ object Libs {
         name = "PythonTypesAPI",
         version = Versions.pythonTypesAPI
     )
+
+    // https://github.com/ajalt/clikt
+    val clikt = dep(
+        group = "com.github.ajalt.clikt",
+        name = "clikt",
+        version = Versions.clikt
+    )
 }
 
 object Plugins {
@@ -258,9 +266,9 @@ object Plugins {
         version = Versions.rd
     )
 
-    // https://github.com/johnrengelman/shadow
+    // https://github.com/GradleUp/shadow
     object Shadow : ProjectPlugin(
-        id = "com.github.johnrengelman.shadow",
+        id = "com.gradleup.shadow",
         version = Versions.shadow
     )
 }

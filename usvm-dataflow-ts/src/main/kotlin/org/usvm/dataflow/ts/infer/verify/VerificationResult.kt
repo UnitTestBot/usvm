@@ -14,16 +14,21 @@
  *  limitations under the License.
  */
 
-public class NullAssumptionAnalysisExample {
-    public void test1(String a) {
-        System.out.println("Hello from test1");
-        System.out.println(a.length());
-    }
+package org.usvm.dataflow.ts.infer.verify
 
-    public void test2(Object a) {
-        System.out.println("Hello from test2");
-        System.out.println(a.hashCode());
-        String x = (String) a;
-        System.out.println(x.length());
+import org.jacodb.ets.base.EtsType
+
+sealed interface VerificationResult {
+    data class Success(val mapping: Map<EntityId, EtsType>) : VerificationResult
+
+    data class Fail(val mapping: Map<EntityId, Set<EtsType>>) : VerificationResult
+
+    companion object {
+        fun from(mapping: Map<EntityId, Set<EtsType>>): VerificationResult =
+            if (mapping.values.all { it.size == 1 }) {
+                Success(mapping.mapValues { (_, types) -> types.single() })
+            } else {
+                Fail(mapping)
+            }
     }
 }

@@ -87,8 +87,8 @@ class TSExprResolver(
 
     fun resolveLValue(value: EtsValue): ULValue<*, *>? =
         when (value) {
-            is EtsParameterRef,
-            is EtsLocal -> simpleValueResolver.resolveLocal(value)
+            is EtsParameterRef, is EtsLocal -> simpleValueResolver.resolveLocal(value)
+
             else -> error("Unexpected value: $value")
         }
 
@@ -114,8 +114,6 @@ class TSExprResolver(
         val result1 = resolveTSExpr(dependency1) ?: return null
         return block(result0, result1)
     }
-
-
 
     override fun visit(value: EtsLocal): UExpr<out USort> {
         return simpleValueResolver.visit(value)
@@ -157,6 +155,10 @@ class TSExprResolver(
         TODO("Not yet implemented")
     }
 
+    override fun visit(expr: EtsAwaitExpr): UExpr<out USort>? {
+        TODO("Not yet implemented")
+    }
+
     override fun visit(expr: EtsBitAndExpr): UExpr<out USort> {
         TODO("Not yet implemented")
     }
@@ -182,14 +184,6 @@ class TSExprResolver(
     }
 
     override fun visit(expr: EtsDeleteExpr): UExpr<out USort> {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: EtsAwaitExpr): UExpr<out USort>? {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(expr: EtsYieldExpr): UExpr<out USort>? {
         TODO("Not yet implemented")
     }
 
@@ -334,6 +328,10 @@ class TSExprResolver(
     }
 
     override fun visit(expr: EtsVoidExpr): UExpr<out USort> {
+        TODO("Not yet implemented")
+    }
+
+    override fun visit(expr: EtsYieldExpr): UExpr<out USort>? {
         TODO("Not yet implemented")
     }
 

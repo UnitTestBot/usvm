@@ -8,6 +8,7 @@ include("usvm-jvm-instrumentation")
 include("usvm-sample-language")
 include("usvm-dataflow")
 include("usvm-jvm-dataflow")
+include("usvm-dataflow-ts")
 
 include("usvm-python")
 include("usvm-python:cpythonadapter")
@@ -20,6 +21,11 @@ include("usvm-python:usvm-python-runner")
 findProject(":usvm-python:usvm-python-runner")?.name = "usvm-python-runner"
 include("usvm-python:usvm-python-commons")
 findProject(":usvm-python:usvm-python-commons")?.name = "usvm-python-commons"
+
+// Actually, `includeBuild("../jacodb")` is enough, but there is a bug in IDEA when path is a symlink.
+// As a workaround, we convert it to a real absolute path.
+// See IDEA bug: https://youtrack.jetbrains.com/issue/IDEA-329756
+// includeBuild(file("../jacodb").toPath().toRealPath().toAbsolutePath())
 
 pluginManagement {
     resolutionStrategy {
