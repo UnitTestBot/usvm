@@ -34,7 +34,7 @@ import org.usvm.dataflow.ts.infer.verify.EntityId
 
 class StmtSummaryCollector(
     override val enclosingMethod: EtsMethodSignature,
-    override val typeSummary: MutableMap<EntityId, MutableSet<EtsType>>
+    override val typeSummary: MutableMap<EntityId, MutableSet<EtsType>>,
 ) : EtsStmt.Visitor<Unit>, MethodSummaryCollector {
     private val exprCollector = ExprSummaryCollector(enclosingMethod, typeSummary)
     private val valueCollector = ValueSummaryCollector(enclosingMethod, typeSummary)

@@ -155,7 +155,7 @@ internal class EtsTypeAnnotationTest {
     private val sampleScene = EtsScene(listOf(mainFile))
 
     private class CfgBuilderContext(
-        val method: EtsMethod
+        val method: EtsMethod,
     ) {
         private val stmts = mutableListOf<EtsStmt>()
         private val successorsMap = mutableMapOf<EtsStmt, MutableList<EtsStmt>>()

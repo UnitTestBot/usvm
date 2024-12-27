@@ -21,7 +21,7 @@ import org.jacodb.ets.model.EtsClass
 import org.usvm.dataflow.ts.infer.verify.EntityId
 
 class ClassSummaryCollector(
-    override val typeSummary: MutableMap<EntityId, MutableSet<EtsType>>
+    override val typeSummary: MutableMap<EntityId, MutableSet<EtsType>>,
 ) : SummaryCollector {
     fun collect(etsClass: EtsClass) {
         etsClass.fields.forEach { field ->

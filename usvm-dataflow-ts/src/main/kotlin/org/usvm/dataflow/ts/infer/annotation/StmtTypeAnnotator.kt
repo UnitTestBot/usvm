@@ -16,9 +16,22 @@
 
 package org.usvm.dataflow.ts.infer.annotation
 
-import org.jacodb.ets.base.*
+import org.jacodb.ets.base.EtsAssignStmt
+import org.jacodb.ets.base.EtsCallExpr
+import org.jacodb.ets.base.EtsCallStmt
+import org.jacodb.ets.base.EtsEntity
+import org.jacodb.ets.base.EtsExpr
+import org.jacodb.ets.base.EtsGotoStmt
+import org.jacodb.ets.base.EtsIfStmt
+import org.jacodb.ets.base.EtsNopStmt
+import org.jacodb.ets.base.EtsReturnStmt
+import org.jacodb.ets.base.EtsStmt
+import org.jacodb.ets.base.EtsSwitchStmt
+import org.jacodb.ets.base.EtsThrowStmt
+import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.model.EtsScene
-import org.usvm.dataflow.ts.infer.*
+import org.usvm.dataflow.ts.infer.AccessPathBase
+import org.usvm.dataflow.ts.infer.EtsTypeFact
 
 class StmtTypeAnnotator(
     types: Map<AccessPathBase, EtsTypeFact>,

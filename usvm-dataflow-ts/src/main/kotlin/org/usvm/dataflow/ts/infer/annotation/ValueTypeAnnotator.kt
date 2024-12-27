@@ -36,9 +36,9 @@ import org.usvm.dataflow.ts.infer.dto.toType
 class ValueTypeAnnotator(
     private val types: Map<AccessPathBase, EtsTypeFact>,
     private val thisType: EtsTypeFact?,
-    private val scene: EtsScene
+    private val scene: EtsScene,
 ) : EtsValue.Visitor.Default<EtsValue> {
-    private inline fun <V, reified T: EtsType> V.infer(base: AccessPathBase, apply: V.(T) -> V): V {
+    private inline fun <V, reified T : EtsType> V.infer(base: AccessPathBase, apply: V.(T) -> V): V {
         val type = types[base]?.toType() as? T ?: return this
         return apply.invoke(this, type)
     }

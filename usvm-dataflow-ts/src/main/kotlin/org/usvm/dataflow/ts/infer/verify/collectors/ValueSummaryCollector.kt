@@ -33,7 +33,7 @@ import org.usvm.dataflow.ts.infer.verify.EntityId
 
 class ValueSummaryCollector(
     override val enclosingMethod: EtsMethodSignature,
-    override val typeSummary: MutableMap<EntityId, MutableSet<EtsType>>
+    override val typeSummary: MutableMap<EntityId, MutableSet<EtsType>>,
 ) : MethodSummaryCollector, EtsValue.Visitor.Default<Unit> {
     private val exprSummaryCollector by lazy {
         ExprSummaryCollector(enclosingMethod, typeSummary)
@@ -52,6 +52,7 @@ class ValueSummaryCollector(
     override fun visit(value: EtsLocal) {
         yield(value)
     }
+
     override fun visit(value: EtsArrayLiteral) {
         value.elements.forEach { collect(it) }
     }

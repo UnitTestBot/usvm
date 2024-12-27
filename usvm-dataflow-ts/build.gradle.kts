@@ -1,4 +1,3 @@
-
 import java.io.FileNotFoundException
 import java.nio.file.Files
 import java.nio.file.attribute.FileTime
@@ -82,7 +81,7 @@ val generateTestResources by tasks.registering {
                     output.relativeTo(resources).path,
                 )
                 println("Running: '${cmd.joinToString(" ")}'")
-                val process = ProcessBuilder(cmd).directory(resources).start();
+                val process = ProcessBuilder(cmd).directory(resources).start()
                 val ok = process.waitFor(10, TimeUnit.MINUTES)
 
                 val stdout = process.inputStream.bufferedReader().readText().trim()

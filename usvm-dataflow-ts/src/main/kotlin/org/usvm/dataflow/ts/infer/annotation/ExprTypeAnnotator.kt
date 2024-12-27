@@ -16,18 +16,70 @@
 
 package org.usvm.dataflow.ts.infer.annotation
 
-import org.jacodb.ets.base.*
+import org.jacodb.ets.base.EtsAddExpr
+import org.jacodb.ets.base.EtsAndExpr
+import org.jacodb.ets.base.EtsAwaitExpr
+import org.jacodb.ets.base.EtsBitAndExpr
+import org.jacodb.ets.base.EtsBitNotExpr
+import org.jacodb.ets.base.EtsBitOrExpr
+import org.jacodb.ets.base.EtsBitXorExpr
+import org.jacodb.ets.base.EtsCastExpr
+import org.jacodb.ets.base.EtsClassType
+import org.jacodb.ets.base.EtsCommaExpr
+import org.jacodb.ets.base.EtsDeleteExpr
+import org.jacodb.ets.base.EtsDivExpr
+import org.jacodb.ets.base.EtsEntity
+import org.jacodb.ets.base.EtsEqExpr
+import org.jacodb.ets.base.EtsExpExpr
+import org.jacodb.ets.base.EtsExpr
+import org.jacodb.ets.base.EtsGtEqExpr
+import org.jacodb.ets.base.EtsGtExpr
+import org.jacodb.ets.base.EtsInExpr
+import org.jacodb.ets.base.EtsInstanceCallExpr
+import org.jacodb.ets.base.EtsInstanceOfExpr
+import org.jacodb.ets.base.EtsLeftShiftExpr
+import org.jacodb.ets.base.EtsLengthExpr
+import org.jacodb.ets.base.EtsLocal
+import org.jacodb.ets.base.EtsLtEqExpr
+import org.jacodb.ets.base.EtsLtExpr
+import org.jacodb.ets.base.EtsMulExpr
+import org.jacodb.ets.base.EtsNegExpr
+import org.jacodb.ets.base.EtsNewArrayExpr
+import org.jacodb.ets.base.EtsNewExpr
+import org.jacodb.ets.base.EtsNotEqExpr
+import org.jacodb.ets.base.EtsNotExpr
+import org.jacodb.ets.base.EtsNullishCoalescingExpr
+import org.jacodb.ets.base.EtsOrExpr
+import org.jacodb.ets.base.EtsPostDecExpr
+import org.jacodb.ets.base.EtsPostIncExpr
+import org.jacodb.ets.base.EtsPreDecExpr
+import org.jacodb.ets.base.EtsPreIncExpr
+import org.jacodb.ets.base.EtsPtrCallExpr
+import org.jacodb.ets.base.EtsRemExpr
+import org.jacodb.ets.base.EtsRightShiftExpr
+import org.jacodb.ets.base.EtsStaticCallExpr
+import org.jacodb.ets.base.EtsStrictEqExpr
+import org.jacodb.ets.base.EtsStrictNotEqExpr
+import org.jacodb.ets.base.EtsSubExpr
+import org.jacodb.ets.base.EtsTernaryExpr
+import org.jacodb.ets.base.EtsTypeOfExpr
+import org.jacodb.ets.base.EtsUnaryPlusExpr
+import org.jacodb.ets.base.EtsUnsignedRightShiftExpr
+import org.jacodb.ets.base.EtsValue
+import org.jacodb.ets.base.EtsVoidExpr
+import org.jacodb.ets.base.EtsYieldExpr
 import org.jacodb.ets.model.EtsScene
 
 class ExprTypeAnnotator(
     private val valueAnnotator: ValueTypeAnnotator,
-    private val scene: EtsScene
+    private val scene: EtsScene,
 ) : EtsExpr.Visitor<EtsExpr> {
     private fun inferEntity(entity: EtsEntity) = when (entity) {
         is EtsExpr -> entity.accept(this)
         is EtsValue -> entity.accept(valueAnnotator)
         else -> error("Unsupported entity")
     }
+
     private fun inferValue(value: EtsValue) = value.accept(valueAnnotator)
 
     override fun visit(expr: EtsNewExpr) = expr
@@ -197,6 +249,7 @@ class ExprTypeAnnotator(
                     ?: return expr.copy(instance = baseInferred, args = argsInferred)
                 callee.signature
             }
+
             else -> expr.method
         }
         return EtsInstanceCallExpr(baseInferred, methodInferred, argsInferred)

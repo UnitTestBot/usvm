@@ -40,7 +40,7 @@ inline fun <T> LoggerWithLogMethod.bracket(
     val startNano = System.nanoTime()
     var alreadyLogged = false
 
-    var res : Maybe<T> = Maybe.none()
+    var res: Maybe<T> = Maybe.none()
     try {
         // Note: don't replace this one with runCatching, otherwise return from lambda breaks "finished" logging.
         res = Maybe.some(block())

@@ -20,20 +20,20 @@ import org.jacodb.ets.base.EtsBinaryExpr
 import org.jacodb.ets.base.EtsEntity
 import org.jacodb.ets.base.EtsExpr
 import org.jacodb.ets.base.EtsInstanceCallExpr
+import org.jacodb.ets.base.EtsInstanceOfExpr
+import org.jacodb.ets.base.EtsLengthExpr
 import org.jacodb.ets.base.EtsPtrCallExpr
 import org.jacodb.ets.base.EtsStaticCallExpr
 import org.jacodb.ets.base.EtsTernaryExpr
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUnaryExpr
 import org.jacodb.ets.base.EtsValue
-import org.jacodb.ets.base.EtsInstanceOfExpr
-import org.jacodb.ets.base.EtsLengthExpr
 import org.jacodb.ets.model.EtsMethodSignature
 import org.usvm.dataflow.ts.infer.verify.EntityId
 
 class ExprSummaryCollector(
     override val enclosingMethod: EtsMethodSignature,
-    override val typeSummary: MutableMap<EntityId, MutableSet<EtsType>>
+    override val typeSummary: MutableMap<EntityId, MutableSet<EtsType>>,
 ) : MethodSummaryCollector, EtsExpr.Visitor.Default<Unit> {
     private val valueSummaryCollector by lazy {
         ValueSummaryCollector(enclosingMethod, typeSummary)

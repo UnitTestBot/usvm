@@ -35,7 +35,6 @@ import kotlinx.serialization.json.encodeToStream
 import mu.KotlinLogging
 import org.jacodb.ets.base.ANONYMOUS_CLASS_PREFIX
 import org.jacodb.ets.base.ANONYMOUS_METHOD_PREFIX
-import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsProjectFromMultipleIR
 import org.usvm.dataflow.ts.infer.EntryPointsProcessor
 import org.usvm.dataflow.ts.infer.TypeInferenceManager

@@ -379,10 +379,12 @@ class TypeInferenceStatistics {
                         undefinedUnknownCombination++
                         InferenceStatus.UNKNOWN_UNDEFINED_COMBINATION
                     }
+
                     is EtsUndefinedType -> {
                         exactTypeInferredCorrectlyPreviouslyKnown++
                         InferenceStatus.EXACT_MATCH_PREVIOUSLY_KNOWN
                     }
+
                     else -> {
                         exactTypeInferredIncorrectlyPreviouslyKnown++
                         InferenceStatus.DIFFERENT_TYPE_FOUND
@@ -468,15 +470,15 @@ class TypeInferenceStatistics {
                 .toList()
                 .sortedBy { it.first.signature.toString() }
                 .forEach { (method, types) ->
-                appendLine("${method.signature}:")
+                    appendLine("${method.signature}:")
 
-                types
-                    .sortedWith(comparator)
-                    .forEach { (path, typeInfo, typeFact, status) ->
-                        appendLine("[${status.message}]: ${path}: $typeInfo -> $typeFact ")
-                    }
-                appendLine()
-            }
+                    types
+                        .sortedWith(comparator)
+                        .forEach { (path, typeInfo, typeFact, status) ->
+                            appendLine("[${status.message}]: ${path}: $typeInfo -> $typeFact ")
+                        }
+                    appendLine()
+                }
 
             appendLine()
             appendLine("=".repeat(42))
