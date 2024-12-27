@@ -132,8 +132,8 @@ fun dumpTypeInferenceResult(
                         cls.signature.name.startsWith(ANONYMOUS_CLASS_PREFIX)
                     },
                     methods = dto.methods.filterNot { method ->
-                        method.signature.declaringClass.name.startsWith(ANONYMOUS_CLASS_PREFIX) ||
-                            method.signature.name.startsWith(ANONYMOUS_METHOD_PREFIX)
+                        method.signature.declaringClass.name.startsWith(ANONYMOUS_CLASS_PREFIX)
+                            || method.signature.name.startsWith(ANONYMOUS_METHOD_PREFIX)
                     }
                 )
             } else {
