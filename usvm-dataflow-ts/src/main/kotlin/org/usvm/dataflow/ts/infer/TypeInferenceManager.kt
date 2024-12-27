@@ -104,7 +104,7 @@ class TypeInferenceManager(
     ): Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>> {
         logger.info { "Preparing backward analysis" }
         val backwardGraph = graph.reversed
-        val backwardAnalyzer = BackwardAnalyzer(backwardGraph, savedTypes, ::methodDominators)
+        val backwardAnalyzer = BackwardAnalyzer(backwardGraph, savedTypes, ::methodDominators, doAddKnownTypes)
         val backwardRunner = UniRunner(
             traits = traits,
             manager = this@TypeInferenceManager,
