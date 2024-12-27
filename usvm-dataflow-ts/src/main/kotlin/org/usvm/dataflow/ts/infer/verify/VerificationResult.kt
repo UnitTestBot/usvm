@@ -25,8 +25,10 @@ sealed interface VerificationResult {
 
     companion object {
         fun from(mapping: Map<EntityId, Set<EtsType>>): VerificationResult =
-            if (mapping.values.all { it.size == 1 })
+            if (mapping.values.all { it.size == 1 }) {
                 Success(mapping.mapValues { (_, types) -> types.single() })
-            else Fail(mapping)
+            } else {
+                Fail(mapping)
+            }
     }
 }
