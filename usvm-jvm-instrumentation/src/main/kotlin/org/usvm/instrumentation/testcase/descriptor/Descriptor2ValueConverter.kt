@@ -96,7 +96,7 @@ class Descriptor2ValueConverter(private val workerClassLoader: ClassLoader) {
 
     private fun `enum`(descriptor: UTestEnumValueDescriptor): Any {
         val klass = descriptor.type.toJavaClass(workerClassLoader)
-        val enumValue = klass.enumConstants.find { it.toString() == descriptor.enumValueName }
+        val enumValue = klass.enumConstants.find { (it as Enum<*>).name == descriptor.enumValueName }
             ?: error("Can't build descriptor for enum")
         for ((jcField, jcFieldDescr) in descriptor.fields) {
             val jField = jcField.toJavaField(workerClassLoader) ?: continue
