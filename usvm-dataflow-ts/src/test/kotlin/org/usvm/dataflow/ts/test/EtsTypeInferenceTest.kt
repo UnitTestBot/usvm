@@ -55,6 +55,9 @@ import org.usvm.dataflow.ts.util.sortedByBase
 import java.io.File
 import kotlin.io.path.div
 import kotlin.io.path.exists
+import kotlin.io.path.isDirectory
+import kotlin.io.path.listDirectoryEntries
+import kotlin.io.path.name
 import kotlin.io.path.toPath
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -415,7 +418,7 @@ class EtsTypeInferenceTest {
             logger.warn { "No projects directory found in resources" }
             return@testFactory
         }
-        val availableProjectNames = p.toFile().listFiles { f -> f.isDirectory }!!.map { it.name }.sorted()
+        val availableProjectNames = p.listDirectoryEntries().filter { it.isDirectory() }.map { it.name }.sorted()
         logger.info {
             buildString {
                 appendLine("Found projects: ${availableProjectNames.size}")
@@ -438,7 +441,7 @@ class EtsTypeInferenceTest {
                     logger.warn { "No etsir directory found for project $projectName" }
                     return@test
                 }
-                val modules = etsirPath.toFile().listFiles { f -> f.isDirectory }!!.map { it.name }
+                val modules = etsirPath.listDirectoryEntries().filter { it.isDirectory() }.map { it.name }
                 logger.info { "Found ${modules.size} modules: $modules" }
                 if (modules.isEmpty()) {
                     logger.warn { "No modules found for project $projectName" }
