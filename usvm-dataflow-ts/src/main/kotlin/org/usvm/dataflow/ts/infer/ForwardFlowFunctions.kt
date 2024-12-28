@@ -485,11 +485,13 @@ class ForwardFlowFunctions(
 
                 val result = mutableListOf<ForwardTypeDomainFact>(Zero)
 
-                // `x := f()`
-                if (callStatement is EtsAssignStmt) {
-                    val left = callStatement.lhv.toPath()
-                    val type = EtsTypeFact.from(callExpr.method.returnType.unwrapPromise())
-                    addTypes(left, type, result)
+                if (doAddKnownTypes) {
+                    // `x := f()`
+                    if (callStatement is EtsAssignStmt) {
+                        val left = callStatement.lhv.toPath()
+                        val type = EtsTypeFact.from(callExpr.method.returnType.unwrapPromise())
+                        addTypes(left, type, result)
+                    }
                 }
 
                 result
