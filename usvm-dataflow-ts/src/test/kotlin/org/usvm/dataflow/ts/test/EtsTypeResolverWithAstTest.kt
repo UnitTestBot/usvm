@@ -55,7 +55,7 @@ class EtsTypeResolverWithAstTest {
         val graphAbc = createApplicationGraph(abcScene)
         val graphAst = createApplicationGraph(astScene)
 
-        val entrypoint = EntryPointsProcessor.extractEntryPoints(abcScene)
+        val entrypoint = EntryPointsProcessor(abcScene).extractEntryPoints()
         val astMethods = extractAllAstMethods(astScene, abcScene)
 
         println(entrypoint.mainMethods.map { it.signature })

@@ -98,7 +98,7 @@ class InferTypes : CliktCommand() {
         val graph = createApplicationGraph(project)
         val guesser = TypeGuesser(project)
 
-        val (dummyMains, allMethods) = EntryPointsProcessor.extractEntryPoints(project)
+        val (dummyMains, allMethods) = EntryPointsProcessor(project).extractEntryPoints()
         val publicMethods = allMethods.filter { m -> m.isPublic }
 
         val manager = TypeInferenceManager(EtsTraits(), graph)

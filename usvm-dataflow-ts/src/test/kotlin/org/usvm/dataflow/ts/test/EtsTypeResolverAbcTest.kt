@@ -35,7 +35,7 @@ class EtsTypeResolverAbcTest {
         val graphAbc = createApplicationGraph(abcScene) as EtsApplicationGraphWithExplicitEntryPoint
         val guesser = TypeGuesser(abcScene)
 
-        val entrypoint = EntryPointsProcessor.extractEntryPoints(abcScene)
+        val entrypoint = EntryPointsProcessor(abcScene).extractEntryPoints()
         val allMethods = entrypoint.allMethods.filter { it.isPublic }.filter { it.cfg.stmts.isNotEmpty() }
 
         val manager = TypeInferenceManager(EtsTraits(), graphAbc)
