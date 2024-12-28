@@ -98,18 +98,18 @@ class EtsTypeInferenceTest {
             val m = types.keys.first { it.name == "getMicrophoneUuid" }
 
             // arg0 = 'devices'
-            val devices = types[m]!![AccessPathBase.Arg(0)]!!
+            val devices = types.getValue(m).getValue(AccessPathBase.Arg(0))
             assertIs<EtsTypeFact.ObjectEtsTypeFact>(devices)
 
             val devicesCls = devices.cls
             assertEquals("VirtualDevices", devicesCls?.typeName)
 
             assertContains(devices.properties, "microphone")
-            val microphone = devices.properties["microphone"]!!
+            val microphone = devices.properties.getValue("microphone")
             assertIs<EtsTypeFact.ObjectEtsTypeFact>(microphone)
 
             assertContains(microphone.properties, "uuid")
-            val uuid = microphone.properties["uuid"]!!
+            val uuid = microphone.properties.getValue("uuid")
             assertIs<EtsTypeFact.StringEtsTypeFact>(uuid)
         }
     }
