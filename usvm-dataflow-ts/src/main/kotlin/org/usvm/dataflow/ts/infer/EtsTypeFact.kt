@@ -306,7 +306,7 @@ sealed interface EtsTypeFact {
                 is EtsUnclearRefType -> ObjectEtsTypeFact(type, emptyMap())
                 // is EtsGenericType -> TODO()
                 else -> {
-                    logger.warn { "Unsupported type: $type" }
+                    // logger.warn { "Unsupported type: $type" }
                     UnknownEtsTypeFact
                 }
             }

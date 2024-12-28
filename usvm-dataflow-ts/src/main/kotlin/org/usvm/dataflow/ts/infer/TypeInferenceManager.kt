@@ -552,7 +552,7 @@ class TypeInferenceManager(
 
         is EtsTypeFact.ArrayEtsTypeFact -> {
             // TODO: array types
-            logger.warn { "TODO: Array type $this" }
+            // logger.warn { "TODO: Array type $this" }
 
             val elementPath = pathFromRootObject + ElementAccessor
             val refinedElemType = typeRefinements[elementPath]?.let {

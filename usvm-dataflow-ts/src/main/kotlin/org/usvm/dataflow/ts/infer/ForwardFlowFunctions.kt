@@ -623,11 +623,11 @@ private const val DUPLICATE_FIELDS_LIMIT = 3
 
 private fun Iterable<TypedVariable>.myFilter(): List<TypedVariable> = filter {
     if (it.variable.accesses.size > ACCESSES_LIMIT) {
-        logger.warn { "Dropping too long fact: $it" }
+        // logger.warn { "Dropping too long fact: $it" }
         return@filter false
     }
     if (it.variable.accesses.hasDuplicateFields(DUPLICATE_FIELDS_LIMIT)) {
-        logger.warn { "Dropping fact with duplicate fields: $it" }
+        // logger.warn { "Dropping fact with duplicate fields: $it" }
         return@filter false
     }
     true
