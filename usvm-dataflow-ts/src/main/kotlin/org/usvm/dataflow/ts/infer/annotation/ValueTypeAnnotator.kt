@@ -34,13 +34,19 @@ import org.usvm.dataflow.ts.infer.EtsTypeFact
 import org.usvm.dataflow.ts.infer.dto.toType
 
 class ValueTypeAnnotator(
-    private val types: Map<AccessPathBase, EtsTypeFact>,
-    private val thisType: EtsTypeFact?,
     private val scene: EtsScene,
+    private val facts: Map<AccessPathBase, EtsTypeFact>,
+    private val thisType: EtsTypeFact?,
 ) : EtsValue.Visitor.Default<EtsValue> {
-    private inline fun <V, reified T : EtsType> V.infer(base: AccessPathBase, apply: V.(T) -> V): V {
-        val type = types[base]?.toType() as? T ?: return this
-        return apply.invoke(this, type)
+
+    private inline fun <V, reified T : EtsType> V.infer(
+        base: AccessPathBase,
+        transform: V.(T) -> V,
+    ): V {
+        val fact = facts[base] ?: return this
+        val type = fact.toType() ?: return this
+        if (type !is T) return this
+        return transform(type)
     }
 
     override fun visit(value: EtsLocal): EtsLocal =
@@ -84,8 +90,8 @@ class ValueTypeAnnotator(
             return EtsInstanceFieldRef(instance = instance, field = etsField.signature)
         }
 
-        // Field was not found by signature, then try infer instance type
-        val instanceTypeInfo = types[AccessPathBase.Local(instance.name)] as? EtsTypeFact.ObjectEtsTypeFact
+        // Field was not found by signature, then try to infer instance type
+        val instanceTypeInfo = facts[AccessPathBase.Local(instance.name)] as? EtsTypeFact.ObjectEtsTypeFact
             // Instance type was neither specified in signature nor inferred, so no type info can be provided
             // (Q) Should we check special properties of primitives (like `string.length`)?
             ?: return value.copy(instance = instance)
