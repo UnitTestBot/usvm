@@ -74,6 +74,11 @@ class InferTypes : CliktCommand() {
         help = "Skip anonymous classes and method"
     ).flag("--no-skip-anonymous", default = false)
 
+    val useKnownTypes by option(
+        "--use-known-types",
+        help = "Do take into account the known types in scene"
+    ).flag("--no-use-known-types", default = true)
+
     override fun run() {
         logger.info { "Running InferTypes" }
         val startTime = System.currentTimeMillis()
@@ -91,7 +96,11 @@ class InferTypes : CliktCommand() {
         val manager = TypeInferenceManager(EtsTraits(), graph)
 
         val (resultBasic, timeAnalyze) = measureTimedValue {
-            manager.analyze(dummyMains, publicMethods)
+            manager.analyze(
+                entrypoints = dummyMains,
+                allMethods = publicMethods,
+                doAddKnownTypes = useKnownTypes,
+            )
         }
         logger.info { "Inferred types for ${resultBasic.inferredTypes.size} methods in $timeAnalyze" }
 
