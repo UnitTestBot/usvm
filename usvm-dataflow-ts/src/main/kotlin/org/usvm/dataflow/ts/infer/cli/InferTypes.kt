@@ -77,11 +77,6 @@ class InferTypes : CliktCommand() {
         help = "Path to SDK directory"
     ).path().multiple()
 
-    val sdkNames by option(
-        "--sdk-names",
-        help = "Comma-separated list of SDK names"
-    ).convert { it.split(",") }.default(emptyList(), defaultForHelp = "empty")
-
     val skipAnonymous by option(
         "--skip-anonymous",
         help = "Skip anonymous classes and method"
