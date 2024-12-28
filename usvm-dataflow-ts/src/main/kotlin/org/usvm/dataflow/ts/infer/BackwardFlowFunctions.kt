@@ -26,6 +26,7 @@ import org.usvm.dataflow.ifds.FlowFunction
 import org.usvm.dataflow.ifds.FlowFunctions
 import org.usvm.dataflow.ts.infer.BackwardTypeDomainFact.TypedVariable
 import org.usvm.dataflow.ts.infer.BackwardTypeDomainFact.Zero
+import org.usvm.dataflow.ts.util.fixAnyToUnknown
 import org.usvm.util.Maybe
 
 private val logger = KotlinLogging.logger {}
@@ -205,14 +206,7 @@ class BackwardFlowFunctions(
             if (returnValue != null) {
                 val variable = returnValue.toBase()
                 val type = if (doAddKnownTypes) {
-                    EtsTypeFact.from(returnValue.type).let {
-                        // Note: convert Any to Unknown, because intersection with Any is Any
-                        if (it is EtsTypeFact.AnyEtsTypeFact) {
-                            EtsTypeFact.UnknownEtsTypeFact
-                        } else {
-                            it
-                        }
-                    }
+                    EtsTypeFact.from(returnValue.type).fixAnyToUnknown()
                 } else {
                     EtsTypeFact.UnknownEtsTypeFact
                 }

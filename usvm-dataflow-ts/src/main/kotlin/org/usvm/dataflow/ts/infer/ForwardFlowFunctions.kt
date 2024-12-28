@@ -6,7 +6,6 @@ import org.jacodb.ets.base.EtsArithmeticExpr
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsBooleanConstant
 import org.jacodb.ets.base.EtsCastExpr
-import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.base.EtsFieldRef
 import org.jacodb.ets.base.EtsInstanceCallExpr
 import org.jacodb.ets.base.EtsLValue
@@ -31,18 +30,11 @@ import org.usvm.dataflow.ifds.FlowFunctions
 import org.usvm.dataflow.ts.graph.EtsApplicationGraph
 import org.usvm.dataflow.ts.infer.ForwardTypeDomainFact.TypedVariable
 import org.usvm.dataflow.ts.infer.ForwardTypeDomainFact.Zero
+import org.usvm.dataflow.ts.util.fixAnyToUnknown
 import org.usvm.dataflow.ts.util.getRealLocals
+import org.usvm.dataflow.ts.util.unwrapPromise
 
 private val logger = KotlinLogging.logger {}
-
-fun EtsType.unwrapPromise(): EtsType {
-    if (this is EtsClassType) {
-        if (this.signature.name == "Promise" && this.typeParameters.isNotEmpty()) {
-            return this.typeParameters[0]
-        }
-    }
-    return this
-}
 
 class ForwardFlowFunctions(
     val graph: EtsApplicationGraph,
@@ -70,14 +62,7 @@ class ForwardFlowFunctions(
                     val fake = fakeLocals.find { it.toBase() == base }
                     if (fake != null) {
                         val path = AccessPath(base, emptyList())
-                        val realType = EtsTypeFact.from(fake.type).let {
-                            // Note: convert Any to Unknown, because intersection with Any is Any
-                            if (it is EtsTypeFact.AnyEtsTypeFact) {
-                                EtsTypeFact.UnknownEtsTypeFact
-                            } else {
-                                it
-                            }
-                        }
+                        val realType = EtsTypeFact.from(fake.type).fixAnyToUnknown()
                         val type2 = type.intersect(realType) ?: run {
                             logger.warn { "Empty intersection: $type & $realType" }
                             type
