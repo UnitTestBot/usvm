@@ -187,6 +187,7 @@ internal class EtsTypeAnnotationTest {
         override val cfg = CfgBuilderContext(this).apply(cfgBuilder).build()
     }
 
-    private fun parameters(n: Int) =
-        List(n) { EtsMethodParameter(it, "a$it", EtsUnknownType) }
+    private fun parameters(n: Int) = List(n) {
+        EtsMethodParameter(it, "a$it", EtsUnknownType)
+    }
 }
