@@ -35,19 +35,22 @@ import org.usvm.dataflow.ts.infer.verify.EntityId
 class StmtSummaryCollector(
     override val enclosingMethod: EtsMethodSignature,
     override val typeSummary: MutableMap<EntityId, MutableSet<EtsType>>,
-) : EtsStmt.Visitor<Unit>, MethodSummaryCollector {
-    private val exprCollector = ExprSummaryCollector(enclosingMethod, typeSummary)
+) : MethodSummaryCollector, EtsStmt.Visitor<Unit> {
+
     private val valueCollector = ValueSummaryCollector(enclosingMethod, typeSummary)
+    private val exprCollector = ExprSummaryCollector(enclosingMethod, typeSummary)
 
     private fun collect(entity: EtsEntity) {
         when (entity) {
             is EtsValue -> entity.accept(valueCollector)
             is EtsExpr -> entity.accept(exprCollector)
-            else -> error("Unsupported entity kind")
+            else -> error("Unsupported entity of type ${entity::class.java}: $entity")
         }
     }
 
-    override fun visit(stmt: EtsNopStmt) {}
+    override fun visit(stmt: EtsNopStmt) {
+        // do nothing
+    }
 
     override fun visit(stmt: EtsAssignStmt) {
         collect(stmt.lhv)
@@ -66,7 +69,9 @@ class StmtSummaryCollector(
         collect(stmt.arg)
     }
 
-    override fun visit(stmt: EtsGotoStmt) {}
+    override fun visit(stmt: EtsGotoStmt) {
+        // do nothing
+    }
 
     override fun visit(stmt: EtsIfStmt) {
         collect(stmt.condition)
@@ -76,5 +81,4 @@ class StmtSummaryCollector(
         collect(stmt.arg)
         stmt.cases.forEach { collect(it) }
     }
-
 }

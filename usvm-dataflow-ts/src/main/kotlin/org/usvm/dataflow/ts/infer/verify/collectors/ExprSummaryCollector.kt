@@ -35,6 +35,7 @@ class ExprSummaryCollector(
     override val enclosingMethod: EtsMethodSignature,
     override val typeSummary: MutableMap<EntityId, MutableSet<EtsType>>,
 ) : MethodSummaryCollector, EtsExpr.Visitor.Default<Unit> {
+
     private val valueSummaryCollector by lazy {
         ValueSummaryCollector(enclosingMethod, typeSummary)
     }
@@ -43,7 +44,7 @@ class ExprSummaryCollector(
         when (entity) {
             is EtsValue -> entity.accept(valueSummaryCollector)
             is EtsExpr -> entity.accept(this)
-            else -> error("Unsupported entity kind")
+            else -> error("Unsupported entity of type ${entity::class.java}: $entity")
         }
     }
 
