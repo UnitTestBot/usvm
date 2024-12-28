@@ -43,6 +43,8 @@ class ForwardFlowFunctions(
     val doAddKnownTypes: Boolean = true,
 ) : FlowFunctions<ForwardTypeDomainFact, EtsMethod, EtsStmt> {
 
+    private val typeProcessor = TypeFactProcessor(graph.cp)
+
     private val aliasesCache: MutableMap<EtsMethod, Map<EtsStmt, Pair<AliasInfo, AliasInfo>>> = hashMapOf()
 
     private fun getAliases(method: EtsMethod): Map<EtsStmt, Pair<AliasInfo, AliasInfo>> {
@@ -63,7 +65,7 @@ class ForwardFlowFunctions(
                     if (fake != null) {
                         val path = AccessPath(base, emptyList())
                         val realType = EtsTypeFact.from(fake.type).fixAnyToUnknown()
-                        val type2 = type.intersect(realType) ?: run {
+                        val type2 = typeProcessor.intersect(type, realType) ?: run {
                             logger.warn { "Empty intersection: $type & $realType" }
                             type
                         }

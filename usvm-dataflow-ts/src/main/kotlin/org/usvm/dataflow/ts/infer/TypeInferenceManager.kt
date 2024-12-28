@@ -43,8 +43,8 @@ private val logger = KotlinLogging.logger {}
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TypeInferenceManager(
-    val traits: EtsTraits,
-    val graph: EtsApplicationGraph,
+    private val traits: EtsTraits,
+    private val graph: EtsApplicationGraph,
 ) : Manager<Nothing, AnalyzerEvent, EtsMethod, EtsStmt>, AutoCloseable {
     private lateinit var runnerFinished: CompletableDeferred<Unit>
 
@@ -59,6 +59,8 @@ class TypeInferenceManager(
         }
 
     private val savedTypes: ConcurrentHashMap<EtsType, MutableList<EtsTypeFact>> = ConcurrentHashMap()
+
+    private val typeProcessor = TypeFactProcessor(scene = graph.cp)
 
     @OptIn(DelicateCoroutinesApi::class)
     private val analyzerDispatcher = newSingleThreadContext(
@@ -173,7 +175,7 @@ class TypeInferenceManager(
         val typeInfo: Map<EtsType, EtsTypeFact> = savedTypes.mapValues { (type, facts) ->
             val typeFact = EtsTypeFact.ObjectEtsTypeFact(type, properties = emptyMap())
             facts.fold(typeFact as EtsTypeFact) { acc, it ->
-                acc.intersect(it) ?: run {
+                typeProcessor.intersect(acc, it) ?: run {
                     logger.warn { "Empty intersection type: $acc & $it" }
                     acc
                 }
@@ -257,7 +259,7 @@ class TypeInferenceManager(
                     .asSequence()
                     .filter { (method, _) -> method in (cls.methods + cls.ctor) }
                     .mapNotNull { (_, facts) -> facts[AccessPathBase.This] }.reduceOrNull { acc, type ->
-                        acc.intersect(type) ?: run {
+                        typeProcessor.intersect(acc, type) ?: run {
                             logger.warn { "Empty intersection type: $acc & $type" }
                             acc
                         }
@@ -294,7 +296,7 @@ class TypeInferenceManager(
 
                 val propertyRefinements = typeFactsOnThis
                     .groupBy({ it.variable.accesses }, { it.type })
-                    .mapValues { (_, types) -> types.reduce { acc, t -> acc.union(t) } }
+                    .mapValues { (_, types) -> types.reduce { acc, t -> typeProcessor.union(acc, t) } }
 
                 // logger.info {
                 //     buildString {
@@ -347,7 +349,7 @@ class TypeInferenceManager(
 
                 val returnFact = typeFacts.mapValues { (_, typeRefinements) ->
                     val propertyRefinements = typeRefinements.groupBy({ it.variable.accesses }, { it.type })
-                        .mapValues { (_, types) -> types.reduce { acc, t -> acc.union(t) } }
+                        .mapValues { (_, types) -> types.reduce { acc, t -> typeProcessor.union(acc, t) } }
 
                     val rootType = propertyRefinements[emptyList()] ?: run {
                         if (propertyRefinements.keys.any { it.isNotEmpty() }) {
@@ -360,7 +362,7 @@ class TypeInferenceManager(
                     val refined = rootType.refineProperties(emptyList(), propertyRefinements)
 
                     refined
-                }.values.reduceOrNull { acc, type -> acc.union(type) }
+                }.values.reduceOrNull { acc, type -> typeProcessor.union(acc, type) }
                 if (returnFact != null) {
                     method to returnFact
                 } else {
@@ -387,7 +389,7 @@ class TypeInferenceManager(
                 val localTypes = typeFacts.mapValues { (_, typeFacts) ->
                     val propertyRefinements = typeFacts
                         .groupBy({ it.variable.accesses }, { it.type })
-                        .mapValues { (_, types) -> types.reduce { acc, t -> acc.union(t) } }
+                        .mapValues { (_, types) -> types.reduce { acc, t -> typeProcessor.union(acc, t) } }
 
                     val rootType = propertyRefinements[emptyList()] ?: run {
                         if (propertyRefinements.keys.any { it.isNotEmpty() }) {
@@ -478,7 +480,7 @@ class TypeInferenceManager(
             }
             .mapValues { (_, typeFacts) ->
                 typeFacts.reduce { acc, typeFact ->
-                    acc.intersect(typeFact) ?: run {
+                    typeProcessor.intersect(acc, typeFact) ?: run {
                         logger.warn { "Empty intersection type: $acc & $typeFact" }
                         acc
                     }
@@ -511,7 +513,7 @@ class TypeInferenceManager(
 
             val propertyRefinements = typeRefinements
                 .groupBy({ it.variable.accesses }, { it.type })
-                .mapValues { (_, types) -> types.reduce { acc, t -> acc.union(t) } }
+                .mapValues { (_, types) -> types.reduce { acc, t -> typeProcessor.union(acc, t) } }
 
             val rootType = propertyRefinements[emptyList()] ?: run {
                 if (propertyRefinements.keys.any { it.isNotEmpty() }) {
@@ -553,8 +555,9 @@ class TypeInferenceManager(
             logger.warn { "TODO: Array type $this" }
 
             val elementPath = pathFromRootObject + ElementAccessor
-            val refinedElemType =
-                typeRefinements[elementPath]?.intersect(elementType) ?: elementType // todo: mb exception???
+            val refinedElemType = typeRefinements[elementPath]?.let {
+                typeProcessor.intersect(it, elementType)
+            } ?: elementType  // TODO: consider throwing an exception
             val elemType = refinedElemType.refineProperties(elementPath, typeRefinements)
 
             EtsTypeFact.ArrayEtsTypeFact(elemType)
@@ -592,7 +595,9 @@ class TypeInferenceManager(
         val refinedProperties = properties.mapValues { (propertyName, type) ->
             val propertyAccessor = FieldAccessor(propertyName)
             val propertyPath = pathFromRootObject + propertyAccessor
-            val refinedType = typeRefinements[propertyPath]?.intersect(type) ?: type // todo: mb exception???
+            val refinedType = typeRefinements[propertyPath]?.let {
+                typeProcessor.intersect(it, type)
+            } ?: type // TODO: consider throwing an exception
             refinedType.refineProperties(propertyPath, typeRefinements)
         }
         return EtsTypeFact.ObjectEtsTypeFact(cls, refinedProperties)
@@ -633,7 +638,7 @@ class TypeInferenceManager(
             EtsTypeFact.StringEtsTypeFact,
             EtsTypeFact.NullEtsTypeFact,
             EtsTypeFact.UndefinedEtsTypeFact,
-                -> return if (property.isNotEmpty()) this else intersect(type)
+                -> return if (property.isNotEmpty()) this else typeProcessor.intersect(this, type)
 
             is EtsTypeFact.ArrayEtsTypeFact -> {
                 // TODO: the following check(property.size == 1) fails on multiple projects
@@ -641,7 +646,7 @@ class TypeInferenceManager(
                 if (property.size == 1) {
                     // val p = property.single()
                     // check(p is ElementAccessor)
-                    val t = elementType.intersect(type) ?: run {
+                    val t = typeProcessor.intersect(elementType, type) ?: run {
                         logger.warn { "Empty intersection of array element and refinement types: $elementType & $type" }
                         elementType
                     }
@@ -674,7 +679,7 @@ class TypeInferenceManager(
                     if (type is EtsTypeFact.UnionEtsTypeFact) {
                         type.types.mapNotNull {
                             refineProperty(property, it)
-                        }.reduceOrNull { acc: EtsTypeFact, t: EtsTypeFact -> acc.union(t) }
+                        }.reduceOrNull { acc: EtsTypeFact, t: EtsTypeFact -> typeProcessor.union(acc, t) }
                     }
 
                     if (type is EtsTypeFact.StringEtsTypeFact) {
