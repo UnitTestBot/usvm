@@ -22,8 +22,6 @@ import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.context
 import com.github.ajalt.clikt.core.main
 import com.github.ajalt.clikt.output.MordantHelpFormatter
-import com.github.ajalt.clikt.parameters.options.convert
-import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
@@ -35,8 +33,6 @@ import kotlinx.serialization.json.encodeToStream
 import mu.KotlinLogging
 import org.jacodb.ets.base.ANONYMOUS_CLASS_PREFIX
 import org.jacodb.ets.base.ANONYMOUS_METHOD_PREFIX
-import org.jacodb.ets.model.EtsFile
-import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsProjectFromMultipleIR
 import org.usvm.dataflow.ts.infer.EntryPointsProcessor
 import org.usvm.dataflow.ts.infer.TypeGuesser
@@ -45,11 +41,7 @@ import org.usvm.dataflow.ts.infer.TypeInferenceResult
 import org.usvm.dataflow.ts.infer.createApplicationGraph
 import org.usvm.dataflow.ts.infer.dto.toDto
 import org.usvm.dataflow.ts.util.EtsTraits
-import org.usvm.dataflow.ts.util.loadEtsFile
-import org.usvm.dataflow.ts.util.loadMultipleEtsFilesFromDirectory
 import java.nio.file.Path
-import kotlin.io.path.exists
-import kotlin.io.path.isRegularFile
 import kotlin.io.path.outputStream
 import kotlin.time.measureTimedValue
 
@@ -116,39 +108,6 @@ class InferTypes : CliktCommand() {
 
 fun main(args: Array<String>) {
     InferTypes().main(args)
-}
-
-private fun loadEtsScene(projectPaths: List<Path>, sdkIRPath: List<Path>): EtsScene {
-    logger.info { "Loading ETS scene from $projectPaths, sdkPath is $sdkIRPath" }
-
-    val projectFiles = loadIRFiles(projectPaths)
-    val sdkFiles = loadIRFiles(sdkIRPath)
-
-    return EtsScene(projectFiles, sdkFiles)
-}
-
-private fun loadIRFiles(filePaths: List<Path>): List<EtsFile> {
-    val files = filePaths.flatMap { path ->
-        check(path.exists()) { "Path does not exist: $path" }
-        if (path.isRegularFile()) {
-            logger.info { "Loading single ETS file: $path" }
-            val file = loadEtsFile(path)
-            listOf(file)
-        } else {
-            logger.info { "Loading multiple ETS files: $path/**" }
-            loadMultipleEtsFilesFromDirectory(path).asIterable()
-        }
-    }
-    logger.info {
-        "Loaded ${files.size} files with ${
-            files.sumOf { it.classes.size }
-        } classes and ${
-            // Note: +1 for constructor
-            files.sumOf { it.classes.sumOf { cls -> cls.methods.size + 1 } }
-        } methods"
-    }
-
-    return files
 }
 
 @OptIn(ExperimentalSerializationApi::class)
