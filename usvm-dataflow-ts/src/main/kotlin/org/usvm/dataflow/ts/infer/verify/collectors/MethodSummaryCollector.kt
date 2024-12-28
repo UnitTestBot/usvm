@@ -29,20 +29,23 @@ interface MethodSummaryCollector : SummaryCollector {
 
     fun yield(parameter: EtsParameterRef) {
         if (!parameter.type.isUnresolved) {
-            typeSummary.getOrPut(ParameterId(parameter, enclosingMethod), ::mutableSetOf)
+            typeSummary
+                .computeIfAbsent(ParameterId(parameter, enclosingMethod)) { hashSetOf() }
                 .add(parameter.type)
         }
     }
 
     fun yield(local: EtsLocal) {
         if (!local.type.isUnresolved) {
-            typeSummary.getOrPut(LocalId(local, enclosingMethod), ::mutableSetOf)
+            typeSummary
+                .computeIfAbsent(LocalId(local, enclosingMethod)) { hashSetOf() }
                 .add(local.type)
         }
     }
 
     fun yield(etsThis: EtsThis) {
-        typeSummary.getOrPut(ThisId(enclosingMethod), ::mutableSetOf)
+        typeSummary
+            .computeIfAbsent(ThisId(enclosingMethod)) { hashSetOf() }
             .add(etsThis.type)
     }
 }
