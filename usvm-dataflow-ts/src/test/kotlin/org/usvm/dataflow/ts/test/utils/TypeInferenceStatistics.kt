@@ -1,4 +1,20 @@
-package org.usvm.dataflow.ts.util
+/*
+ * Copyright 2022 UnitTestBot contributors (utbot.org)
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.usvm.dataflow.ts.test.utils
 
 import org.jacodb.ets.base.DEFAULT_ARK_CLASS_NAME
 import org.jacodb.ets.base.DEFAULT_ARK_METHOD_NAME
@@ -19,14 +35,13 @@ import org.jacodb.ets.base.EtsUnionType
 import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.base.INSTANCE_INIT_METHOD_NAME
 import org.jacodb.ets.base.STATIC_INIT_METHOD_NAME
-import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsMethod
-import org.jacodb.ets.model.EtsScene
 import org.usvm.dataflow.ts.graph.EtsApplicationGraph
 import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EtsTypeFact
 import org.usvm.dataflow.ts.infer.TypeInferenceResult
 import org.usvm.dataflow.ts.infer.toBase
+import org.usvm.dataflow.ts.util.getRealLocals
 import java.io.File
 
 class TypeInferenceStatistics {
@@ -76,7 +91,7 @@ class TypeInferenceStatistics {
             }
         }
 
-        val thisType = getEtsClassType(method.enclosingClass, graph.cp)
+        val thisType = graph.cp.getEtsClassType(method.enclosingClass)
         val argTypes = method.parameters.map { it.type }
         val locals = method.getRealLocals().filterNot { it.name == "this" }
 
@@ -329,7 +344,7 @@ class TypeInferenceStatistics {
                     return InferenceStatus.TYPE_INFO_FOUND_PREV_KNOWN
                 }
 
-                val typeName = fact.cls.typeName
+                val typeName = fact.cls!!.typeName
 
                 if ((type is EtsClassType || type is EtsUnclearRefType) && type.typeName == typeName) {
                     exactTypeInferredCorrectlyPreviouslyKnown++
@@ -544,17 +559,6 @@ class TypeInferenceStatistics {
         Was unknown, became undefined: $undefinedUnknownCombination
         Was unknown, became any: $unknownAnyCombination
     """.trimIndent()
-
-}
-
-private fun getEtsClassType(signature: EtsClassSignature, scene: EtsScene): EtsClassType? {
-    if (signature.name == DEFAULT_ARK_CLASS_NAME || signature.name.isBlank()) {
-        return null
-    }
-
-    val clazz = scene.projectAndSdkClasses.firstOrNull { it.signature == signature }
-        ?: error("No class found in the classpath with signature $signature")
-    return EtsClassType(clazz.signature)
 }
 
 data class MethodTypesFacts(

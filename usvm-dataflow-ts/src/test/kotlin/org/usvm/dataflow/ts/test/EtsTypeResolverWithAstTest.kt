@@ -20,9 +20,9 @@ import org.usvm.dataflow.ts.infer.TypeInferenceResult
 import org.usvm.dataflow.ts.infer.createApplicationGraph
 import org.usvm.dataflow.ts.test.utils.ClassMatcherStatistics
 import org.usvm.dataflow.ts.test.utils.ExpectedTypesExtractor
+import org.usvm.dataflow.ts.test.utils.MethodTypesFacts
+import org.usvm.dataflow.ts.test.utils.TypeInferenceStatistics
 import org.usvm.dataflow.ts.util.EtsTraits
-import org.usvm.dataflow.ts.util.MethodTypesFacts
-import org.usvm.dataflow.ts.util.TypeInferenceStatistics
 import kotlin.io.path.Path
 import kotlin.io.path.exists
 import kotlin.test.assertTrue
@@ -161,7 +161,7 @@ class EtsTypeResolverWithAstTest {
             typeFact.cls == null && typeFact.properties.keys.single() == "defaultA"
         }
 
-        val expectedTypes = ExpectedTypesExtractor(graph).extractTypes(entrypoint)
+        val expectedTypes = ExpectedTypesExtractor(project).extractTypes(entrypoint)
         val actualTypes = MethodTypesFacts.from(result, entrypoint)
 
         assertFalse(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true, project))
@@ -187,7 +187,7 @@ class EtsTypeResolverWithAstTest {
             fact.cls?.typeName == "FieldContainerToInfer" && fact.properties.isEmpty()
         }
 
-        val expectedTypes = ExpectedTypesExtractor(graph).extractTypes(entrypoint)
+        val expectedTypes = ExpectedTypesExtractor(project).extractTypes(entrypoint)
         val actualTypes = MethodTypesFacts.from(result, entrypoint)
 
         assertTrue(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true, project))
@@ -205,7 +205,7 @@ class EtsTypeResolverWithAstTest {
             .flatMap { it.methods }
             .single { it.name == "useBothA" }
 
-        val expectedTypes = ExpectedTypesExtractor(graph).extractTypes(entrypoint)
+        val expectedTypes = ExpectedTypesExtractor(project).extractTypes(entrypoint)
 
         val manager = TypeInferenceManager(EtsTraits(), graph)
         val resultBasic = manager.analyze(listOf(entrypoint))
@@ -240,7 +240,7 @@ class EtsTypeResolverWithAstTest {
             typeFact.cls?.typeName == "MethodsContainerToInfer" && typeFact.properties.isEmpty()
         }
 
-        val expectedTypes = ExpectedTypesExtractor(graph).extractTypes(entrypoint)
+        val expectedTypes = ExpectedTypesExtractor(project).extractTypes(entrypoint)
         val actualTypes = MethodTypesFacts.from(result, entrypoint)
 
         assertTrue(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true, project))
@@ -266,7 +266,7 @@ class EtsTypeResolverWithAstTest {
             typeFact.cls == null && typeFact.properties.keys.single() == "notUniqueFunction"
         }
 
-        val expectedTypes = ExpectedTypesExtractor(graph).extractTypes(entrypoint)
+        val expectedTypes = ExpectedTypesExtractor(project).extractTypes(entrypoint)
         val actualTypes = MethodTypesFacts.from(result, entrypoint)
 
         assertFalse(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true, project))
@@ -292,7 +292,7 @@ class EtsTypeResolverWithAstTest {
             typeFact.cls?.typeName == "FieldContainerToInfer" && typeFact.properties.isEmpty()
         }
 
-        val expectedTypes = ExpectedTypesExtractor(graph).extractTypes(entrypoint)
+        val expectedTypes = ExpectedTypesExtractor(project).extractTypes(entrypoint)
         val actualTypes = MethodTypesFacts.from(result, entrypoint)
 
         assertTrue(expectedTypes.matchesWithTypeFacts(actualTypes, ignoreReturnType = true, project))
@@ -318,7 +318,7 @@ class EtsTypeResolverWithAstTest {
         abcScene: EtsScene,
     ) {
         astMethods.forEach { m ->
-            val expectedTypes = ExpectedTypesExtractor(graphAst).extractTypes(m)
+            val expectedTypes = ExpectedTypesExtractor(graphAst.cp).extractTypes(m)
             val abcMethod = abcMethods.singleOrNull {
                 it.name == m.name && it.enclosingClass.name == m.enclosingClass.name
             } ?: return@forEach

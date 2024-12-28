@@ -8,9 +8,9 @@ import org.usvm.dataflow.ts.infer.EtsApplicationGraphWithExplicitEntryPoint
 import org.usvm.dataflow.ts.infer.TypeGuesser
 import org.usvm.dataflow.ts.infer.TypeInferenceManager
 import org.usvm.dataflow.ts.infer.createApplicationGraph
+import org.usvm.dataflow.ts.test.utils.MethodTypesFacts
+import org.usvm.dataflow.ts.test.utils.TypeInferenceStatistics
 import org.usvm.dataflow.ts.util.EtsTraits
-import org.usvm.dataflow.ts.util.MethodTypesFacts
-import org.usvm.dataflow.ts.util.TypeInferenceStatistics
 import kotlin.io.path.Path
 import kotlin.io.path.exists
 
