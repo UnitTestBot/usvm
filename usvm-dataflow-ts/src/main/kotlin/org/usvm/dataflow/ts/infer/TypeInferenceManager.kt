@@ -370,14 +370,14 @@ class TypeInferenceManager(
                 }
             }.toMap()
         }
-        logger.info {
-            buildString {
-                appendLine("Return types:")
-                for ((method, type) in inferredReturnTypes) {
-                    appendLine("Return type for ${method.signature.enclosingClass.file}::${method.signature.enclosingClass.name}::${method.name}: ${type.toPrettyString()}")
-                }
-            }
-        }
+        // logger.info {
+        //     buildString {
+        //         appendLine("Return types:")
+        //         for ((method, type) in inferredReturnTypes) {
+        //             appendLine("Return type for ${method.signature.enclosingClass.file}::${method.signature.enclosingClass.name}::${method.name}: ${type.toPrettyString()}")
+        //         }
+        //     }
+        // }
 
         val inferredLocalTypes: Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>>? = if (doInferAllLocals) {
             forwardSummaries.asSequence().map { (method, summaries) ->
@@ -411,17 +411,17 @@ class TypeInferenceManager(
         }
 
         if (inferredLocalTypes != null) {
-            logger.info {
-                buildString {
-                    appendLine("Local types:")
-                    for ((method, localTypes) in inferredLocalTypes) {
-                        appendLine("Local types for ${method.signature.enclosingClass.name}::${method.name} in ${method.signature.enclosingClass.file}:")
-                        for ((base, fact) in localTypes.entries.sortedBy { (it.key as AccessPathBase.Local).name }) {
-                            appendLine("$base: ${fact.toPrettyString()}")
-                        }
-                    }
-                }
-            }
+            // logger.info {
+            //     buildString {
+            //         appendLine("Local types:")
+            //         for ((method, localTypes) in inferredLocalTypes) {
+            //             appendLine("Local types for ${method.signature.enclosingClass.name}::${method.name} in ${method.signature.enclosingClass.file}:")
+            //             for ((base, fact) in localTypes.entries.sortedBy { (it.key as AccessPathBase.Local).name }) {
+            //                 appendLine("$base: ${fact.toPrettyString()}")
+            //             }
+            //         }
+            //     }
+            // }
 
             for ((method, localFacts) in inferredLocalTypes) {
                 val facts = refinedTypes[method]
