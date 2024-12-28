@@ -206,6 +206,7 @@ class BackwardFlowFunctions(
                 val variable = returnValue.toBase()
                 val type = if (doAddKnownTypes) {
                     EtsTypeFact.from(returnValue.type).let {
+                        // Note: convert Any to Unknown, because intersection with Any is Any
                         if (it is EtsTypeFact.AnyEtsTypeFact) {
                             EtsTypeFact.UnknownEtsTypeFact
                         } else {
@@ -237,7 +238,8 @@ class BackwardFlowFunctions(
                     // Case `x... := y`
                     // ∅ |= y:unknown
                     val type = if (doAddKnownTypes) {
-                        EtsTypeFact.from(current.rhv.type).let { it ->
+                        EtsTypeFact.from(current.rhv.type).let {
+                            // Note: convert Any to Unknown, because intersection with Any is Any
                             if (it is EtsTypeFact.AnyEtsTypeFact) {
                                 EtsTypeFact.UnknownEtsTypeFact
                             } else {

@@ -71,6 +71,7 @@ class ForwardFlowFunctions(
                     if (fake != null) {
                         val path = AccessPath(base, emptyList())
                         val realType = EtsTypeFact.from(fake.type).let {
+                            // Note: convert Any to Unknown, because intersection with Any is Any
                             if (it is EtsTypeFact.AnyEtsTypeFact) {
                                 EtsTypeFact.UnknownEtsTypeFact
                             } else {
