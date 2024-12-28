@@ -671,11 +671,10 @@ class TypeInferenceManager(
             is EtsTypeFact.ObjectEtsTypeFact -> {
                 val propertyAccessor = property.firstOrNull()
                 if (propertyAccessor == null) {
-                    // TODO: handle 'type=union' by exploding it into multiple ObjectFacts (later combined with union) with class names from union.
                     if (type is EtsTypeFact.UnionEtsTypeFact) {
-                        return type.types.map {
-                            refineProperty(property, it) ?: return null
-                        }.reduce { acc: EtsTypeFact, t: EtsTypeFact -> acc.union(t) }
+                        type.types.mapNotNull {
+                            refineProperty(property, it)
+                        }.reduceOrNull { acc: EtsTypeFact, t: EtsTypeFact -> acc.union(t) }
                     }
 
                     if (type is EtsTypeFact.StringEtsTypeFact) {
