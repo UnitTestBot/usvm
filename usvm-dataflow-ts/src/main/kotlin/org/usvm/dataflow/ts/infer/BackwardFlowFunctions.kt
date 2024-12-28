@@ -503,6 +503,15 @@ class BackwardFlowFunctions(
             result += TypedVariable(path, objectWithMethod)
         }
 
+        if (doAddKnownTypes) {
+            // f(x:T) |= x:T, where T is the type of the argument in f's signature
+            for ((index, arg) in callExpr.args.withIndex()) {
+                val base = arg.toBase()
+                val type = EtsTypeFact.from(callExpr.method.parameters[index].type)
+                result += TypedVariable(base, type)
+            }
+        }
+
         return result
     }
 
