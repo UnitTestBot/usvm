@@ -62,31 +62,39 @@ class ForwardFlowFunctions(
 
         val result = mutableListOf<ForwardTypeDomainFact>(Zero)
 
-        val fakeLocals = method.locals.toSet() - method.getRealLocals()
+        if (doAddKnownTypes) {
+            val fakeLocals = method.locals.toSet() - method.getRealLocals()
 
-        for ((base, type) in initialTypes) {
-            if (base is AccessPathBase.Local) {
-                val fake = fakeLocals.find { it.toBase() == base }
-                if (fake != null) {
-                    val path = AccessPath(base, emptyList())
-                    val realType = EtsTypeFact.from(fake.type).let {
-                        if (it is EtsTypeFact.AnyEtsTypeFact) {
-                            EtsTypeFact.UnknownEtsTypeFact
-                        } else {
-                            it
+            for ((base, type) in initialTypes) {
+                if (base is AccessPathBase.Local) {
+                    val fake = fakeLocals.find { it.toBase() == base }
+                    if (fake != null) {
+                        val path = AccessPath(base, emptyList())
+                        val realType = EtsTypeFact.from(fake.type).let {
+                            if (it is EtsTypeFact.AnyEtsTypeFact) {
+                                EtsTypeFact.UnknownEtsTypeFact
+                            } else {
+                                it
+                            }
                         }
+                        val type2 = type.intersect(realType) ?: run {
+                            logger.warn { "Empty intersection: $type & $realType" }
+                            type
+                        }
+                        addTypes(path, type2, result)
+                        continue
                     }
-                    val type2 = type.intersect(realType) ?: run {
-                        logger.warn { "Empty intersection: $type & $realType" }
-                        type
-                    }
-                    addTypes(path, type2, result)
-                    continue
                 }
+
+                val path = AccessPath(base, emptyList())
+                addTypes(path, type, result)
             }
 
-            val path = AccessPath(base, emptyList())
-            addTypes(path, type, result)
+        } else {
+            for ((base, type) in initialTypes) {
+                val path = AccessPath(base, emptyList())
+                addTypes(path, type, result)
+            }
         }
 
         return result
