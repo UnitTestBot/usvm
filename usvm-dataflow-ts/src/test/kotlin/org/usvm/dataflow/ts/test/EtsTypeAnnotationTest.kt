@@ -80,18 +80,17 @@ internal class EtsTypeAnnotationTest {
             .annotateWithTypes(sampleScene)
 
         val verificationResult = verify(annotatedScene)
+        assertIs<VerificationResult.Success>(verificationResult)
 
-        assert(verificationResult is VerificationResult.Success)
-
-        with(verificationResult as VerificationResult.Success) {
+        with(verificationResult) {
             val main = MethodId(mainMethodSignature)
 
-            assert(mapping[ParameterId(1, main)] == EtsStringType)
-            assert(mapping[ParameterId(2, main)] == EtsNumberType)
+            assertEquals(EtsStringType, mapping[ParameterId(1, main)])
+            assertEquals(EtsNumberType, mapping[ParameterId(2, main)])
 
-            assert(mapping[LocalId("v1", main)] == EtsStringType)
-            assert(mapping[LocalId("v2", main)] == EtsNumberType)
-            assert(mapping[LocalId("v3", main)] == EtsStringType)
+            assertEquals(EtsStringType, mapping[LocalId("v1", main)])
+            assertEquals(EtsNumberType, mapping[LocalId("v2", main)])
+            assertEquals(EtsStringType, mapping[LocalId("v3", main)])
         }
     }
 
