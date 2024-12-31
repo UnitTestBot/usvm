@@ -17,6 +17,9 @@
 package org.usvm.dataflow.ts.infer.dto
 
 import mu.KotlinLogging
+import org.jacodb.ets.base.EtsAliasType
+import org.jacodb.ets.base.EtsAnnotationNamespaceType
+import org.jacodb.ets.base.EtsAnnotationTypeQueryType
 import org.jacodb.ets.base.EtsAnyType
 import org.jacodb.ets.base.EtsArrayObjectType
 import org.jacodb.ets.base.EtsArrayType
@@ -36,6 +39,9 @@ import org.jacodb.ets.base.EtsUndefinedType
 import org.jacodb.ets.base.EtsUnionType
 import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.base.EtsVoidType
+import org.jacodb.ets.dto.AliasTypeDto
+import org.jacodb.ets.dto.AnnotationNamespaceTypeDto
+import org.jacodb.ets.dto.AnnotationTypeQueryTypeDto
 import org.jacodb.ets.dto.AnyTypeDto
 import org.jacodb.ets.dto.ArrayTypeDto
 import org.jacodb.ets.dto.BooleanTypeDto
@@ -45,6 +51,7 @@ import org.jacodb.ets.dto.FileSignatureDto
 import org.jacodb.ets.dto.FunctionTypeDto
 import org.jacodb.ets.dto.GenericTypeDto
 import org.jacodb.ets.dto.LiteralTypeDto
+import org.jacodb.ets.dto.LocalSignatureDto
 import org.jacodb.ets.dto.MethodParameterDto
 import org.jacodb.ets.dto.MethodSignatureDto
 import org.jacodb.ets.dto.NamespaceSignatureDto
@@ -154,6 +161,24 @@ fun EtsType.toDto(): TypeDto = when (this) {
         name = this.typeName,
         defaultType = this.defaultType?.toDto(),
         constraint = this.constraint?.toDto(),
+    )
+
+    is EtsAliasType -> AliasTypeDto(
+        name = this.name,
+        originalType = this.originalType.toDto(),
+        signature = LocalSignatureDto(
+            this.signature.name,
+            this.signature.method.toDto()
+        )
+    )
+
+    is EtsAnnotationNamespaceType -> AnnotationNamespaceTypeDto(
+        originType = this.originType,
+        namespaceSignature = this.namespaceSignature.toDto()
+    )
+
+    is EtsAnnotationTypeQueryType -> AnnotationTypeQueryTypeDto(
+        originType = this.originType
     )
 
     else -> error("Cannot convert ${this::class.java} to DTO: $this")
