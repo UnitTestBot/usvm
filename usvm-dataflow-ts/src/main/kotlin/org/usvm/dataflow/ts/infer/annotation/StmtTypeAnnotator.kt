@@ -29,55 +29,48 @@ import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsSwitchStmt
 import org.jacodb.ets.base.EtsThrowStmt
 import org.jacodb.ets.base.EtsValue
-import org.jacodb.ets.model.EtsScene
-import org.usvm.dataflow.ts.infer.AccessPathBase
-import org.usvm.dataflow.ts.infer.EtsTypeFact
 
 class StmtTypeAnnotator(
-    types: Map<AccessPathBase, EtsTypeFact>,
-    thisType: EtsTypeFact?,
-    scene: EtsScene,
+    private val valueAnnotator: ValueTypeAnnotator,
+    private val exprAnnotator: ExprTypeAnnotator,
 ) : EtsStmt.Visitor<EtsStmt> {
-    private val valueAnnotator = ValueTypeAnnotator(types, thisType, scene)
-    private val exprAnnotator = ExprTypeAnnotator(valueAnnotator, scene)
 
-    private fun inferValue(value: EtsValue) = value.accept(valueAnnotator)
+    private fun infer(value: EtsValue) = value.accept(valueAnnotator)
+    private fun infer(expr: EtsExpr) = expr.accept(exprAnnotator)
 
-    private fun inferExpr(expr: EtsExpr) = expr.accept(exprAnnotator)
-
-    private fun inferEntity(entity: EtsEntity) = when (entity) {
-        is EtsExpr -> entity.accept(exprAnnotator)
-        is EtsValue -> entity.accept(valueAnnotator)
-        else -> error("Unsupported entity")
+    private fun infer(entity: EtsEntity) = when (entity) {
+        is EtsValue -> infer(entity)
+        is EtsExpr -> infer(entity)
+        else -> error("Unsupported entity of type ${entity::class.java}: $entity")
     }
 
     override fun visit(stmt: EtsNopStmt) = stmt
 
     override fun visit(stmt: EtsAssignStmt) = stmt.copy(
-        lhv = inferValue(stmt.lhv),
-        rhv = inferEntity(stmt.rhv)
+        lhv = infer(stmt.lhv),
+        rhv = infer(stmt.rhv),
     )
 
     override fun visit(stmt: EtsCallStmt) = stmt.copy(
-        expr = inferExpr(stmt.expr) as EtsCallExpr
+        expr = infer(stmt.expr) as EtsCallExpr
     )
 
     override fun visit(stmt: EtsReturnStmt) = stmt.copy(
-        returnValue = stmt.returnValue?.let(this::inferValue)
+        returnValue = stmt.returnValue?.let { infer(it) }
     )
 
     override fun visit(stmt: EtsThrowStmt) = stmt.copy(
-        arg = inferEntity(stmt.arg)
+        arg = infer(stmt.arg)
     )
 
     override fun visit(stmt: EtsGotoStmt) = stmt
 
     override fun visit(stmt: EtsIfStmt) = stmt.copy(
-        condition = inferEntity(stmt.condition)
+        condition = infer(stmt.condition)
     )
 
     override fun visit(stmt: EtsSwitchStmt) = stmt.copy(
-        arg = inferEntity(stmt.arg),
-        cases = stmt.cases.map(this::inferEntity)
+        arg = infer(stmt.arg),
+        cases = stmt.cases.map { infer(it) },
     )
 }

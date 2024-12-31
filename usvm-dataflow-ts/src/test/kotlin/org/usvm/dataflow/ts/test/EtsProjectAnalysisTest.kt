@@ -125,7 +125,7 @@ class EtsProjectAnalysisTest {
         try {
             logger.info { "Processing '$filename'" }
             val file = loadFromProject(filename)
-            val project = EtsScene(listOf(file))
+            val project = EtsScene(listOf(file), sdkFiles = emptyList())
             val startTime = System.currentTimeMillis()
             runAnalysis(project)
             val endTime = System.currentTimeMillis()

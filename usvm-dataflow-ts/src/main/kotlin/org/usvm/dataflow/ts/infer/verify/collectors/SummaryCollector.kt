@@ -16,61 +16,37 @@
 
 package org.usvm.dataflow.ts.infer.verify.collectors
 
-import org.jacodb.ets.base.EtsLocal
-import org.jacodb.ets.base.EtsParameterRef
-import org.jacodb.ets.base.EtsThis
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsMethodSignature
 import org.usvm.dataflow.ts.infer.verify.EntityId
 import org.usvm.dataflow.ts.infer.verify.FieldId
-import org.usvm.dataflow.ts.infer.verify.LocalId
 import org.usvm.dataflow.ts.infer.verify.ParameterId
 import org.usvm.dataflow.ts.infer.verify.ReturnId
-import org.usvm.dataflow.ts.infer.verify.ThisId
 
 interface SummaryCollector {
     val typeSummary: MutableMap<EntityId, MutableSet<EtsType>>
 
     fun yield(field: EtsFieldSignature) {
         if (!field.type.isUnresolved) {
-            typeSummary.getOrPut(FieldId(field), ::mutableSetOf)
+            typeSummary
+                .computeIfAbsent(FieldId(field)) { hashSetOf() }
                 .add(field.type)
         }
     }
 
     fun yield(method: EtsMethodSignature) {
         if (!method.returnType.isUnresolved) {
-            typeSummary.getOrPut(ReturnId(method), ::mutableSetOf)
+            typeSummary
+                .computeIfAbsent(ReturnId(method)) { hashSetOf() }
                 .add(method.returnType)
         }
         method.parameters.forEach {
             if (!it.type.isUnresolved) {
-                typeSummary.getOrPut(ParameterId(it, method), ::mutableSetOf)
+                typeSummary
+                    .computeIfAbsent(ParameterId(it, method)) { hashSetOf() }
                     .add(it.type)
             }
         }
-    }
-}
-
-interface MethodSummaryCollector : SummaryCollector {
-    val enclosingMethod: EtsMethodSignature
-    fun yield(parameter: EtsParameterRef) {
-        if (!parameter.type.isUnresolved) {
-            typeSummary.getOrPut(ParameterId(parameter, enclosingMethod), ::mutableSetOf)
-                .add(parameter.type)
-        }
-    }
-
-    fun yield(local: EtsLocal) {
-        if (!local.type.isUnresolved) {
-            typeSummary.getOrPut(LocalId(local, enclosingMethod), ::mutableSetOf)
-                .add(local.type)
-        }
-    }
-
-    fun yield(etsThis: EtsThis) {
-        typeSummary.getOrPut(ThisId(enclosingMethod), ::mutableSetOf)
-            .add(etsThis.type)
     }
 }

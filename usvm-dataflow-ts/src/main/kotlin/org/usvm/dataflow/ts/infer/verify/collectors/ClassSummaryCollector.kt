@@ -23,12 +23,11 @@ import org.usvm.dataflow.ts.infer.verify.EntityId
 class ClassSummaryCollector(
     override val typeSummary: MutableMap<EntityId, MutableSet<EtsType>>,
 ) : SummaryCollector {
-    fun collect(etsClass: EtsClass) {
-        etsClass.fields.forEach { field ->
+    fun collect(clazz: EtsClass) {
+        clazz.fields.forEach { field ->
             yield(field.signature)
         }
-
-        etsClass.methods.forEach { method ->
+        clazz.methods.forEach { method ->
             yield(method.signature)
             val stmtCollector = StmtSummaryCollector(method.signature, typeSummary)
             method.cfg.stmts.forEach {

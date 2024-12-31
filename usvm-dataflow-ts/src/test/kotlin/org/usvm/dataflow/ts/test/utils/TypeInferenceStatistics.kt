@@ -1,4 +1,20 @@
-package org.usvm.dataflow.ts.util
+/*
+ * Copyright 2022 UnitTestBot contributors (utbot.org)
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.usvm.dataflow.ts.test.utils
 
 import org.jacodb.ets.base.DEFAULT_ARK_CLASS_NAME
 import org.jacodb.ets.base.DEFAULT_ARK_METHOD_NAME
@@ -19,13 +35,13 @@ import org.jacodb.ets.base.EtsUnionType
 import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.base.INSTANCE_INIT_METHOD_NAME
 import org.jacodb.ets.base.STATIC_INIT_METHOD_NAME
-import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsMethod
-import org.jacodb.ets.model.EtsScene
 import org.usvm.dataflow.ts.graph.EtsApplicationGraph
 import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EtsTypeFact
 import org.usvm.dataflow.ts.infer.TypeInferenceResult
+import org.usvm.dataflow.ts.infer.toBase
+import org.usvm.dataflow.ts.util.getRealLocals
 import java.io.File
 
 class TypeInferenceStatistics {
@@ -53,6 +69,8 @@ class TypeInferenceStatistics {
     private var undefinedUnknownCombination = 0L
     private var unknownAnyCombination = 0L
 
+    private var knownTypeToUndefined = 0L
+
     fun compareSingleMethodFactsWithTypesInScene(
         methodTypeFacts: MethodTypesFacts,
         method: EtsMethod,
@@ -64,21 +82,22 @@ class TypeInferenceStatistics {
         methodTypeFacts.apply {
             if (combinedThisFact == null
                 && argumentsFacts.all { it == null }
-                && returnFact == null
                 && localFacts.isEmpty()
             ) {
                 noTypesInferred += method
+                // Note: no return here!
+                // Without taking into account the stats for such "empty" methods,
+                // the statistic would not be correct.
             }
         }
 
-        val thisType = getEtsClassType(method.enclosingClass, graph.cp)
+        val thisType = graph.cp.getEtsClassType(method.enclosingClass)
         val argTypes = method.parameters.map { it.type }
-        val locals = method.locals
+        val locals = method.getRealLocals().filterNot { it.name == "this" }
 
         val methodFacts = mutableListOf<InferenceResult>()
 
         thisType?.let {
-            val thisPosition = AccessPathBase.This
             val fact = methodTypeFacts.combinedThisFact
 
             val status = if (fact == null) {
@@ -109,7 +128,7 @@ class TypeInferenceStatistics {
                 }
             }
 
-            methodFacts += InferenceResult(thisPosition, it, fact, status)
+            methodFacts += InferenceResult(AccessPathBase.This, it, fact, status)
         }
 
         argTypes.forEachIndexed { index, type ->
@@ -130,15 +149,12 @@ class TypeInferenceStatistics {
             methodFacts += InferenceResult(AccessPathBase.Arg(index), type, fact, status)
         }
 
-
-
         locals.forEach {
-            val type = it.type
-            val local = AccessPathBase.Local(it.name)
-            val fact = methodTypeFacts.localFacts[local]
-
+            val realType = it.type
+            val base = it.toBase()
+            val fact = methodTypeFacts.localFacts[base]
             val status = if (fact == null) {
-                if (type is EtsUnknownType) {
+                if (realType is EtsUnknownType) {
                     noInfoInferredPreviouslyUnknown++
                     InferenceStatus.NO_INFO_PREVIOUSLY_UNKNOWN
                 } else {
@@ -146,10 +162,9 @@ class TypeInferenceStatistics {
                     InferenceStatus.NO_INFO_PREVIOUSLY_KNOWN
                 }
             } else {
-                checkForFact(fact, type)
+                checkForFact(fact, realType)
             }
-
-            methodFacts += InferenceResult(local, type, fact, status)
+            methodFacts += InferenceResult(base, realType, fact, status)
         }
 
         allTypesAndFacts[method] = methodFacts
@@ -329,7 +344,7 @@ class TypeInferenceStatistics {
                     return InferenceStatus.TYPE_INFO_FOUND_PREV_KNOWN
                 }
 
-                val typeName = fact.cls.typeName
+                val typeName = fact.cls!!.typeName
 
                 if ((type is EtsClassType || type is EtsUnclearRefType) && type.typeName == typeName) {
                     exactTypeInferredCorrectlyPreviouslyKnown++
@@ -386,8 +401,8 @@ class TypeInferenceStatistics {
                     }
 
                     else -> {
-                        exactTypeInferredIncorrectlyPreviouslyKnown++
-                        InferenceStatus.DIFFERENT_TYPE_FOUND
+                        knownTypeToUndefined++
+                        InferenceStatus.KNOWN_UNDEFINED_COMBINATION
                     }
                 }
             }
@@ -538,22 +553,12 @@ class TypeInferenceStatistics {
         Unhandled type info: $unhandled
 
         Lost info about type: $noInfoInferredPreviouslyKnown
+        Was known, became undefined: $knownTypeToUndefined
         Nothing inferred, but it was unknown previously as well: $noInfoInferredPreviouslyUnknown 
         
         Was unknown, became undefined: $undefinedUnknownCombination
         Was unknown, became any: $unknownAnyCombination
     """.trimIndent()
-
-}
-
-private fun getEtsClassType(signature: EtsClassSignature, scene: EtsScene): EtsClassType? {
-    if (signature.name == DEFAULT_ARK_CLASS_NAME || signature.name.isBlank()) {
-        return null
-    }
-
-    val clazz = scene.projectAndSdkClasses.firstOrNull { it.signature == signature }
-        ?: error("No class found in the classpath with signature $signature")
-    return EtsClassType(clazz.signature)
 }
 
 data class MethodTypesFacts(
@@ -683,6 +688,7 @@ private enum class InferenceStatus(val message: String) {
 
     UNKNOWN_ANY_COMBINATION("Unknown any combination"),
     UNKNOWN_UNDEFINED_COMBINATION("Unknown undefined combination"),
+    KNOWN_UNDEFINED_COMBINATION("Known type became undefined"),
 
     ARRAY_INFO_PREV_UNKNOWN("Found an array type, previously unknown"),
 

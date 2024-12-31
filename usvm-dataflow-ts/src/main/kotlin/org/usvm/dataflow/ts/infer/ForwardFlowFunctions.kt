@@ -9,8 +9,10 @@ import org.jacodb.ets.base.EtsCastExpr
 import org.jacodb.ets.base.EtsFieldRef
 import org.jacodb.ets.base.EtsInstanceCallExpr
 import org.jacodb.ets.base.EtsLValue
+import org.jacodb.ets.base.EtsNegExpr
 import org.jacodb.ets.base.EtsNewArrayExpr
 import org.jacodb.ets.base.EtsNewExpr
+import org.jacodb.ets.base.EtsNotExpr
 import org.jacodb.ets.base.EtsNullConstant
 import org.jacodb.ets.base.EtsNumberConstant
 import org.jacodb.ets.base.EtsRef
@@ -28,15 +30,20 @@ import org.usvm.dataflow.ifds.FlowFunctions
 import org.usvm.dataflow.ts.graph.EtsApplicationGraph
 import org.usvm.dataflow.ts.infer.ForwardTypeDomainFact.TypedVariable
 import org.usvm.dataflow.ts.infer.ForwardTypeDomainFact.Zero
+import org.usvm.dataflow.ts.util.fixAnyToUnknown
+import org.usvm.dataflow.ts.util.getRealLocals
+import org.usvm.dataflow.ts.util.unwrapPromise
 
 private val logger = KotlinLogging.logger {}
 
 class ForwardFlowFunctions(
     val graph: EtsApplicationGraph,
-    val methodInitialTypes: Map<EtsMethod, EtsMethodTypeFacts>,
+    val methodInitialTypes: Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>>,
     val typeInfo: Map<EtsType, EtsTypeFact>,
     val doAddKnownTypes: Boolean = true,
 ) : FlowFunctions<ForwardTypeDomainFact, EtsMethod, EtsStmt> {
+
+    private val typeProcessor = TypeFactProcessor(graph.cp)
 
     private val aliasesCache: MutableMap<EtsMethod, Map<EtsStmt, Pair<AliasInfo, AliasInfo>>> = hashMapOf()
 
@@ -45,26 +52,36 @@ class ForwardFlowFunctions(
     }
 
     override fun obtainPossibleStartFacts(method: EtsMethod): Collection<ForwardTypeDomainFact> {
+        val initialTypes = methodInitialTypes[method] ?: return listOf(Zero)
+
         val result = mutableListOf<ForwardTypeDomainFact>(Zero)
 
-        val initialTypes = methodInitialTypes[method]
-        if (initialTypes != null) {
-            for ((base, type) in initialTypes.types) {
-                val path = AccessPath(base, accesses = emptyList())
-                addTypes(path, type, result)
-            }
-        }
-
         if (doAddKnownTypes) {
-            for (local in method.locals) {
-                if (local.type != EtsUnknownType && local.type != EtsAnyType) {
-                    val path = AccessPath(AccessPathBase.Local(local.name), accesses = emptyList())
-                    val type = EtsTypeFact.from(local.type)
-                    if (type != EtsTypeFact.UnknownEtsTypeFact && type != EtsTypeFact.AnyEtsTypeFact) {
-                        logger.debug { "Adding known type for $path: $type" }
-                        addTypes(path, type, result)
+            val fakeLocals = method.locals.toSet() - method.getRealLocals()
+
+            for ((base, type) in initialTypes) {
+                if (base is AccessPathBase.Local) {
+                    val fake = fakeLocals.find { it.toBase() == base }
+                    if (fake != null) {
+                        val path = AccessPath(base, emptyList())
+                        val realType = EtsTypeFact.from(fake.type).fixAnyToUnknown()
+                        val type2 = typeProcessor.intersect(type, realType) ?: run {
+                            logger.warn { "Empty intersection: $type & $realType" }
+                            type
+                        }
+                        addTypes(path, type2, result)
+                        continue
                     }
                 }
+
+                val path = AccessPath(base, emptyList())
+                addTypes(path, type, result)
+            }
+
+        } else {
+            for ((base, type) in initialTypes) {
+                val path = AccessPath(base, emptyList())
+                addTypes(path, type, result)
             }
         }
 
@@ -216,6 +233,14 @@ class ForwardFlowFunctions(
             }
 
             is EtsRelationExpr -> {
+                result += TypedVariable(lhv, EtsTypeFact.BooleanEtsTypeFact)
+            }
+
+            is EtsNegExpr -> {
+                result += TypedVariable(lhv, EtsTypeFact.NumberEtsTypeFact)
+            }
+
+            is EtsNotExpr -> {
                 result += TypedVariable(lhv, EtsTypeFact.BooleanEtsTypeFact)
             }
 
@@ -442,8 +467,23 @@ class ForwardFlowFunctions(
         returnSite: EtsStmt,
     ): FlowFunction<ForwardTypeDomainFact> = FlowFunction { fact ->
         when (fact) {
-            // TODO: add known return type of the function call
-            Zero -> listOf(Zero)
+            Zero -> {
+                val callExpr = callStatement.callExpr ?: error("No call in $callStatement")
+
+                val result = mutableListOf<ForwardTypeDomainFact>(Zero)
+
+                if (doAddKnownTypes) {
+                    // `x := f()`
+                    if (callStatement is EtsAssignStmt) {
+                        val left = callStatement.lhv.toPath()
+                        val type = EtsTypeFact.from(callExpr.method.returnType.unwrapPromise())
+                        addTypes(left, type, result)
+                    }
+                }
+
+                result
+            }
+
             is TypedVariable -> call(callStatement, fact)
         }
     }
@@ -452,28 +492,36 @@ class ForwardFlowFunctions(
         callStatement: EtsStmt,
         fact: TypedVariable,
     ): List<TypedVariable> {
-        val callResultValue = (callStatement as? EtsAssignStmt)?.lhv?.toPath()
-        if (callResultValue != null) {
-            // Drop fact on LHS as it will be overwritten by the call result
-            if (fact.variable.base == callResultValue.base) return emptyList()
+        val callExpr = callStatement.callExpr ?: error("No call in $callStatement")
+
+        if (callStatement is EtsAssignStmt) {
+            val left = callStatement.lhv.toPath()
+            if (fact.variable.base == left.base) {
+                // Fact on LHS is overwritten by the call result
+                return emptyList()
+            }
         }
 
-        val callExpr = callStatement.callExpr ?: error("No call")
-
-        // todo: hack, keep fact if call was not resolved
-        if (graph.callees(callStatement).none()) {
-            return listOf(fact)
-        }
-
-        if (callExpr is EtsInstanceCallExpr) {
-            val instance = callExpr.instance.toPath()
-            if (fact.variable.base == instance.base) return emptyList()
-        }
-
-        for (arg in callExpr.args) {
-            val argPath = arg.toPath()
-            if (fact.variable.base == argPath.base) return emptyList()
-        }
+        // // todo: hack, keep fact if call was not resolved
+        // if (graph.callees(callStatement).none()) {
+        //     return listOf(fact)
+        // }
+        //
+        // graph.callees(callStatement).singleOrNull()?.let { q ->
+        //     if (q.cfg.stmts.isEmpty()) {
+        //         return listOf(fact)
+        //     }
+        // }
+        //
+        // if (callExpr is EtsInstanceCallExpr) {
+        //     val instance = callExpr.instance.toPath()
+        //     if (fact.variable.base == instance.base) return emptyList()
+        // }
+        //
+        // for (arg in callExpr.args) {
+        //     val argPath = arg.toPath()
+        //     if (fact.variable.base == argPath.base) return emptyList()
+        // }
 
         return listOf(fact)
     }
@@ -575,11 +623,11 @@ private const val DUPLICATE_FIELDS_LIMIT = 3
 
 private fun Iterable<TypedVariable>.myFilter(): List<TypedVariable> = filter {
     if (it.variable.accesses.size > ACCESSES_LIMIT) {
-        logger.warn { "Dropping too long fact: $it" }
+        // logger.warn { "Dropping too long fact: $it" }
         return@filter false
     }
     if (it.variable.accesses.hasDuplicateFields(DUPLICATE_FIELDS_LIMIT)) {
-        logger.warn { "Dropping fact with duplicate fields: $it" }
+        // logger.warn { "Dropping fact with duplicate fields: $it" }
         return@filter false
     }
     true

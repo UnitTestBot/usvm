@@ -67,7 +67,7 @@ class EtsIfdsTest {
     @Test
     fun `test taint analysis on MethodCollision`() {
         val file = loadSample("MethodCollision")
-        val project = EtsScene(listOf(file))
+        val project = EtsScene(listOf(file), sdkFiles = emptyList())
         val graph = EtsApplicationGraphImpl(project)
         val unitResolver = UnitResolver<EtsMethod> { SingletonUnit }
         val getConfigForMethod: (EtsMethod) -> List<TaintConfigurationItem>? =
@@ -113,7 +113,7 @@ class EtsIfdsTest {
     @Test
     fun `test taint analysis on TypeMismatch`() {
         val file = loadSample("TypeMismatch")
-        val project = EtsScene(listOf(file))
+        val project = EtsScene(listOf(file), sdkFiles = emptyList())
         val graph = EtsApplicationGraphImpl(project)
         val unitResolver = UnitResolver<EtsMethod> { SingletonUnit }
         val getConfigForMethod: (EtsMethod) -> List<TaintConfigurationItem>? =
@@ -160,7 +160,7 @@ class EtsIfdsTest {
     @Test
     fun `test taint analysis on DataFlowSecurity`() {
         val file = loadSample("DataFlowSecurity")
-        val project = EtsScene(listOf(file))
+        val project = EtsScene(listOf(file), sdkFiles = emptyList())
         val graph = EtsApplicationGraphImpl(project)
         val unitResolver = UnitResolver<EtsMethod> { SingletonUnit }
         val getConfigForMethod: (EtsMethod) -> List<TaintConfigurationItem>? =
@@ -227,7 +227,7 @@ class EtsIfdsTest {
     @Test
     fun `test taint analysis on case1 - untrusted loop bound scenario`() {
         val file = loadSample("cases/case1")
-        val project = EtsScene(listOf(file))
+        val project = EtsScene(listOf(file), sdkFiles = emptyList())
         val graph = EtsApplicationGraphImpl(project)
         val unitResolver = UnitResolver<EtsMethod> { SingletonUnit }
         val getConfigForMethod: (EtsMethod) -> List<TaintConfigurationItem>? =
@@ -266,7 +266,7 @@ class EtsIfdsTest {
     @Test
     fun `test taint analysis on case2 - untrusted array buffer size scenario`() {
         val file = loadSample("cases/case2")
-        val project = EtsScene(listOf(file))
+        val project = EtsScene(listOf(file), sdkFiles = emptyList())
         val graph = EtsApplicationGraphImpl(project)
         val unitResolver = UnitResolver<EtsMethod> { SingletonUnit }
         val getConfigForMethod: (EtsMethod) -> List<TaintConfigurationItem>? =
@@ -306,7 +306,7 @@ class EtsIfdsTest {
     @Test
     fun `test taint analysis on case3 - send plain information with sensitive data`() {
         val file = loadSample("cases/case3")
-        val project = EtsScene(listOf(file))
+        val project = EtsScene(listOf(file), sdkFiles = emptyList())
         val graph = EtsApplicationGraphImpl(project)
         val unitResolver = UnitResolver<EtsMethod> { SingletonUnit }
         val getConfigForMethod: (EtsMethod) -> List<TaintConfigurationItem>? =
@@ -352,7 +352,7 @@ class EtsIfdsTest {
     @Test
     fun `test taint analysis on AccountManager`() {
         val file = loadEtsFileFromResource("/etsir/project1/entry/src/main/ets/base/account/AccountManager.ts.json")
-        val project = EtsScene(listOf(file))
+        val project = EtsScene(listOf(file), sdkFiles = emptyList())
         val graph = EtsApplicationGraphImpl(project)
         val unitResolver = UnitResolver<EtsMethod> { SingletonUnit }
         val getConfigForMethod: (EtsMethod) -> List<TaintConfigurationItem>? =

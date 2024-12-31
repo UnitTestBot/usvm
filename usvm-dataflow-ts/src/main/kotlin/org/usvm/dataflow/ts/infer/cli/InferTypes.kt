@@ -22,28 +22,18 @@ import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.context
 import com.github.ajalt.clikt.core.main
 import com.github.ajalt.clikt.output.MordantHelpFormatter
-import com.github.ajalt.clikt.parameters.options.convert
-import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.path
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.encodeToStream
 import mu.KotlinLogging
-import org.jacodb.ets.base.ANONYMOUS_CLASS_PREFIX
-import org.jacodb.ets.base.ANONYMOUS_METHOD_PREFIX
 import org.jacodb.ets.utils.loadEtsProjectFromMultipleIR
 import org.usvm.dataflow.ts.infer.EntryPointsProcessor
+import org.usvm.dataflow.ts.infer.TypeGuesser
 import org.usvm.dataflow.ts.infer.TypeInferenceManager
-import org.usvm.dataflow.ts.infer.TypeInferenceResult
 import org.usvm.dataflow.ts.infer.createApplicationGraph
-import org.usvm.dataflow.ts.infer.dto.toDto
 import org.usvm.dataflow.ts.util.EtsTraits
-import java.nio.file.Path
-import kotlin.io.path.outputStream
 import kotlin.time.measureTimedValue
 
 private val logger = KotlinLogging.logger {}
@@ -70,15 +60,15 @@ class InferTypes : CliktCommand() {
         help = "Path to SDK directory"
     ).path().multiple()
 
-    val sdkNames by option(
-        "--sdk-names",
-        help = "Comma-separated list of SDK names"
-    ).convert { it.split(",") }.default(emptyList(), defaultForHelp = "empty")
-
     val skipAnonymous by option(
         "--skip-anonymous",
         help = "Skip anonymous classes and method"
     ).flag("--no-skip-anonymous", default = false)
+
+    val useKnownTypes by option(
+        "--use-known-types",
+        help = "Do take into account the known types in scene"
+    ).flag("--no-use-known-types", default = true)
 
     override fun run() {
         logger.info { "Running InferTypes" }
@@ -89,16 +79,26 @@ class InferTypes : CliktCommand() {
 
         val project = loadEtsProjectFromMultipleIR(input, sdkPaths)
         val graph = createApplicationGraph(project)
+        val guesser = TypeGuesser(project)
 
-        val (dummyMains, allMethods) = EntryPointsProcessor.extractEntryPoints(project)
+        val (dummyMains, allMethods) = EntryPointsProcessor(project).extractEntryPoints()
         val publicMethods = allMethods.filter { m -> m.isPublic }
 
         val manager = TypeInferenceManager(EtsTraits(), graph)
 
-        val (result, timeAnalyze) = measureTimedValue {
-            manager.analyze(dummyMains, publicMethods).withGuessedTypes(project)
+        val (resultBasic, timeAnalyze) = measureTimedValue {
+            manager.analyze(
+                entrypoints = dummyMains,
+                allMethods = publicMethods,
+                doAddKnownTypes = useKnownTypes,
+            )
         }
-        logger.info { "Inferred types for ${result.inferredTypes.size} methods in $timeAnalyze" }
+        logger.info { "Inferred types for ${resultBasic.inferredTypes.size} methods in $timeAnalyze" }
+
+        val (result, timeGuess) = measureTimedValue {
+            resultBasic.withGuessedTypes(guesser)
+        }
+        logger.info { "Guessed types for ${result.inferredTypes.size} methods in $timeGuess" }
 
         dumpTypeInferenceResult(result, output, skipAnonymous)
 
@@ -108,36 +108,4 @@ class InferTypes : CliktCommand() {
 
 fun main(args: Array<String>) {
     InferTypes().main(args)
-}
-
-@OptIn(ExperimentalSerializationApi::class)
-fun dumpTypeInferenceResult(
-    result: TypeInferenceResult,
-    path: Path,
-    skipAnonymous: Boolean = true,
-) {
-    logger.info { "Dumping inferred types to '$path'" }
-    val dto = result.toDto()
-        // Filter out anonymous classes and methods
-        .let { dto ->
-            if (skipAnonymous) {
-                dto.copy(
-                    classes = dto.classes.filterNot { cls ->
-                        cls.signature.name.startsWith(ANONYMOUS_CLASS_PREFIX)
-                    },
-                    methods = dto.methods.filterNot { method ->
-                        method.signature.declaringClass.name.startsWith(ANONYMOUS_CLASS_PREFIX)
-                            || method.signature.name.startsWith(ANONYMOUS_METHOD_PREFIX)
-                    }
-                )
-            } else {
-                dto
-            }
-        }
-    path.outputStream().use { stream ->
-        val json = Json {
-            prettyPrint = true
-        }
-        json.encodeToStream(dto, stream)
-    }
 }

@@ -4,11 +4,13 @@ import org.jacodb.ets.utils.loadEtsProjectFromIR
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.condition.EnabledIf
 import org.usvm.dataflow.ts.infer.EntryPointsProcessor
+import org.usvm.dataflow.ts.infer.EtsApplicationGraphWithExplicitEntryPoint
+import org.usvm.dataflow.ts.infer.TypeGuesser
 import org.usvm.dataflow.ts.infer.TypeInferenceManager
 import org.usvm.dataflow.ts.infer.createApplicationGraph
+import org.usvm.dataflow.ts.test.utils.MethodTypesFacts
+import org.usvm.dataflow.ts.test.utils.TypeInferenceStatistics
 import org.usvm.dataflow.ts.util.EtsTraits
-import org.usvm.dataflow.ts.util.MethodTypesFacts
-import org.usvm.dataflow.ts.util.TypeInferenceStatistics
 import kotlin.io.path.Path
 import kotlin.io.path.exists
 
@@ -28,16 +30,18 @@ class EtsTypeResolverAbcTest {
 
     private fun runOnAbcProject(projectID: String, abcPath: String) {
         val projectAbc = "$yourPrefixForTestFolders/$testProjectsVersion/$abcPath"
-        val abcScene = loadEtsProjectFromIR(Path(projectAbc), pathToSDK?.let { Path(it) })
-        val graphAbc = createApplicationGraph(abcScene)
 
-        val entrypoint = EntryPointsProcessor.extractEntryPoints(abcScene)
+        val abcScene = loadEtsProjectFromIR(Path(projectAbc), pathToSDK?.let { Path(it) })
+        val graphAbc = createApplicationGraph(abcScene) as EtsApplicationGraphWithExplicitEntryPoint
+        val guesser = TypeGuesser(abcScene)
+
+        val entrypoint = EntryPointsProcessor(abcScene).extractEntryPoints()
         val allMethods = entrypoint.allMethods.filter { it.isPublic }.filter { it.cfg.stmts.isNotEmpty() }
 
         val manager = TypeInferenceManager(EtsTraits(), graphAbc)
         val result = manager
             .analyze(entrypoint.mainMethods, allMethods)
-            .withGuessedTypes(abcScene)
+            .withGuessedTypes(guesser)
 
         val sceneStatistics = TypeInferenceStatistics()
         entrypoint.allMethods

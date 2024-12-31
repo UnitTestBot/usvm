@@ -22,6 +22,8 @@ import org.jacodb.ets.base.EtsTupleType
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUnionType
 import org.jacodb.ets.base.EtsUnknownType
+import org.jacodb.ets.model.EtsScene
+import org.usvm.dataflow.ts.infer.verify.EntityId
 
 val EtsType.isUnresolved: Boolean
     get() = when (this) {
@@ -32,3 +34,11 @@ val EtsType.isUnresolved: Boolean
         is EtsArrayType -> elementType.isUnresolved
         else -> false
     }
+
+fun collectSummary(scene: EtsScene): Map<EntityId, Set<EtsType>> {
+    val collector = ClassSummaryCollector(hashMapOf())
+    scene.projectAndSdkClasses.forEach {
+        collector.collect(it)
+    }
+    return collector.typeSummary
+}

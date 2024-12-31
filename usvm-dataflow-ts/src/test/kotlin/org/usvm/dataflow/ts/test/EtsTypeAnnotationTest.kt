@@ -44,15 +44,18 @@ import org.jacodb.ets.model.EtsScene
 import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EtsTypeFact
 import org.usvm.dataflow.ts.infer.TypeInferenceResult
-import org.usvm.dataflow.ts.infer.annotation.EtsTypeAnnotator
+import org.usvm.dataflow.ts.infer.annotation.annotateWithTypes
 import org.usvm.dataflow.ts.infer.verify.LocalId
 import org.usvm.dataflow.ts.infer.verify.MethodId
 import org.usvm.dataflow.ts.infer.verify.ParameterId
 import org.usvm.dataflow.ts.infer.verify.VerificationResult
 import org.usvm.dataflow.ts.infer.verify.verify
 import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
 
-internal class EtsTypeAnnotationTest {
+class EtsTypeAnnotationTest {
+
     @Test
     fun `test EtsTypeAnnotator`() {
         val typeInferenceResult = TypeInferenceResult(
@@ -66,7 +69,7 @@ internal class EtsTypeAnnotationTest {
                 )
             ),
             inferredReturnType = mapOf(
-                mainMethod to EtsTypeFact.StringEtsTypeFact
+                mainMethod to EtsTypeFact.StringEtsTypeFact,
             ),
             inferredCombinedThisType = mapOf(
                 mainClassSignature to EtsTypeFact.ObjectEtsTypeFact(
@@ -76,22 +79,20 @@ internal class EtsTypeAnnotationTest {
             )
         )
 
-        val annotatedScene = EtsTypeAnnotator(sampleScene, typeInferenceResult)
-            .annotateWithTypes(sampleScene)
+        val annotatedScene = sampleScene.annotateWithTypes(typeInferenceResult)
 
         val verificationResult = verify(annotatedScene)
+        assertIs<VerificationResult.Success>(verificationResult)
 
-        assert(verificationResult is VerificationResult.Success)
-
-        with(verificationResult as VerificationResult.Success) {
+        with(verificationResult) {
             val main = MethodId(mainMethodSignature)
 
-            assert(mapping[ParameterId(1, main)] == EtsStringType)
-            assert(mapping[ParameterId(2, main)] == EtsNumberType)
+            assertEquals(EtsStringType, mapping[ParameterId(1, main)])
+            assertEquals(EtsNumberType, mapping[ParameterId(2, main)])
 
-            assert(mapping[LocalId("v1", main)] == EtsStringType)
-            assert(mapping[LocalId("v2", main)] == EtsNumberType)
-            assert(mapping[LocalId("v3", main)] == EtsStringType)
+            assertEquals(EtsStringType, mapping[LocalId("v1", main)])
+            assertEquals(EtsNumberType, mapping[LocalId("v2", main)])
+            assertEquals(EtsStringType, mapping[LocalId("v3", main)])
         }
     }
 
@@ -152,7 +153,7 @@ internal class EtsTypeAnnotationTest {
         namespaces = listOf(),
     )
 
-    private val sampleScene = EtsScene(listOf(mainFile))
+    private val sampleScene = EtsScene(listOf(mainFile), sdkFiles = emptyList())
 
     private class CfgBuilderContext(
         val method: EtsMethod,
@@ -188,6 +189,7 @@ internal class EtsTypeAnnotationTest {
         override val cfg = CfgBuilderContext(this).apply(cfgBuilder).build()
     }
 
-    private fun parameters(n: Int) =
-        List(n) { EtsMethodParameter(it, "a$it", EtsUnknownType) }
+    private fun parameters(n: Int) = List(n) {
+        EtsMethodParameter(it, "a$it", EtsUnknownType)
+    }
 }

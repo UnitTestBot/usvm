@@ -16,13 +16,7 @@
 
 package org.usvm.dataflow.ts.infer.verify
 
-import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.model.EtsScene
-import org.usvm.dataflow.ts.infer.verify.collectors.ClassSummaryCollector
-
-fun collectSummary(scene: EtsScene): Map<EntityId, Set<EtsType>> =
-    ClassSummaryCollector(mutableMapOf()).apply {
-        scene.projectAndSdkClasses.forEach { collect(it) }
-    }.typeSummary
+import org.usvm.dataflow.ts.infer.verify.collectors.collectSummary
 
 fun verify(scene: EtsScene) = VerificationResult.from(collectSummary(scene))

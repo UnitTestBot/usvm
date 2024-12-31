@@ -13,9 +13,10 @@ class BackwardAnalyzer(
     val graph: ApplicationGraph<EtsMethod, EtsStmt>,
     savedTypes: MutableMap<EtsType, MutableList<EtsTypeFact>>,
     dominators: (EtsMethod) -> GraphDominators<EtsStmt>,
+    doAddKnownTypes: Boolean = true,
 ) : Analyzer<BackwardTypeDomainFact, AnalyzerEvent, EtsMethod, EtsStmt> {
 
-    override val flowFunctions = BackwardFlowFunctions(graph, dominators, savedTypes)
+    override val flowFunctions = BackwardFlowFunctions(graph, dominators, savedTypes, doAddKnownTypes)
 
     override fun handleCrossUnitCall(
         caller: Vertex<BackwardTypeDomainFact, EtsStmt>,
