@@ -30,7 +30,7 @@ import org.jacodb.ets.base.EtsStringConstant
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.dto.EtsFileDto
-import org.jacodb.ets.dto.convertToEtsFile
+import org.jacodb.ets.dto.toEtsFile
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
@@ -280,7 +280,7 @@ class EtsTypeInferenceTest {
         }
 
         println("Processing ${files.size} files...")
-        val etsFiles = files.map { convertToEtsFile(EtsFileDto.loadFromJson(it.inputStream())) }
+        val etsFiles = files.map { EtsFileDto.loadFromJson(it.inputStream()).toEtsFile() }
         val project = EtsScene(etsFiles, sdkFiles = emptyList())
         val graph = createApplicationGraph(project)
 

@@ -2,7 +2,7 @@ package org.usvm.dataflow.ts
 
 import mu.KotlinLogging
 import org.jacodb.ets.dto.EtsFileDto
-import org.jacodb.ets.dto.convertToEtsFile
+import org.jacodb.ets.dto.toEtsFile
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsScene
 import java.nio.file.Path
@@ -39,7 +39,7 @@ fun loadEtsFileDtoFromResource(jsonPath: String): EtsFileDto {
  */
 fun loadEtsFileFromResource(jsonPath: String): EtsFile {
     val etsFileDto = loadEtsFileDtoFromResource(jsonPath)
-    return convertToEtsFile(etsFileDto)
+    return etsFileDto.toEtsFile()
 }
 
 /**
@@ -101,7 +101,7 @@ fun loadEtsFileDto(path: Path): EtsFileDto {
  */
 fun loadEtsFile(path: Path): EtsFile {
     val etsFileDto = loadEtsFileDto(path)
-    return convertToEtsFile(etsFileDto)
+    return etsFileDto.toEtsFile()
 }
 
 /**

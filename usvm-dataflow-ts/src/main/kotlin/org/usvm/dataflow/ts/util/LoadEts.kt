@@ -1,7 +1,7 @@
 package org.usvm.dataflow.ts.util
 
 import org.jacodb.ets.dto.EtsFileDto
-import org.jacodb.ets.dto.convertToEtsFile
+import org.jacodb.ets.dto.toEtsFile
 import org.jacodb.ets.model.EtsFile
 import java.nio.file.Path
 import kotlin.io.path.extension
@@ -33,7 +33,7 @@ fun loadEtsFileDto(path: Path): EtsFileDto {
  */
 fun loadEtsFile(path: Path): EtsFile {
     val etsFileDto = loadEtsFileDto(path)
-    return convertToEtsFile(etsFileDto)
+    return etsFileDto.toEtsFile()
 }
 
 /**

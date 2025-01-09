@@ -17,13 +17,11 @@
 package org.usvm.dataflow.ts.infer.dto
 
 import org.jacodb.ets.base.EtsArrayAccess
-import org.jacodb.ets.base.EtsArrayLiteral
 import org.jacodb.ets.base.EtsBooleanConstant
 import org.jacodb.ets.base.EtsInstanceFieldRef
 import org.jacodb.ets.base.EtsLocal
 import org.jacodb.ets.base.EtsNullConstant
 import org.jacodb.ets.base.EtsNumberConstant
-import org.jacodb.ets.base.EtsObjectLiteral
 import org.jacodb.ets.base.EtsParameterRef
 import org.jacodb.ets.base.EtsStaticFieldRef
 import org.jacodb.ets.base.EtsStringConstant
@@ -87,14 +85,6 @@ private object EtsValueToDto : EtsValue.Visitor<ValueDto> {
             value = "undefined",
             type = UndefinedTypeDto,
         )
-    }
-
-    override fun visit(value: EtsArrayLiteral): ValueDto {
-        TODO("Not yet implemented")
-    }
-
-    override fun visit(value: EtsObjectLiteral): ValueDto {
-        TODO("Not yet implemented")
     }
 
     override fun visit(value: EtsThis): ValueDto {

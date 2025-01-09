@@ -3,7 +3,6 @@ package org.usvm
 import org.jacodb.ets.base.EtsAddExpr
 import org.jacodb.ets.base.EtsAndExpr
 import org.jacodb.ets.base.EtsArrayAccess
-import org.jacodb.ets.base.EtsArrayLiteral
 import org.jacodb.ets.base.EtsAwaitExpr
 import org.jacodb.ets.base.EtsBinaryExpr
 import org.jacodb.ets.base.EtsBitAndExpr
@@ -38,7 +37,6 @@ import org.jacodb.ets.base.EtsNotExpr
 import org.jacodb.ets.base.EtsNullConstant
 import org.jacodb.ets.base.EtsNullishCoalescingExpr
 import org.jacodb.ets.base.EtsNumberConstant
-import org.jacodb.ets.base.EtsObjectLiteral
 import org.jacodb.ets.base.EtsOrExpr
 import org.jacodb.ets.base.EtsParameterRef
 import org.jacodb.ets.base.EtsPostDecExpr
@@ -119,10 +117,6 @@ class TSExprResolver(
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: EtsArrayLiteral): UExpr<out USort> {
-        TODO("Not yet implemented")
-    }
-
     override fun visit(value: EtsBooleanConstant): UExpr<out USort> {
         return simpleValueResolver.visit(value)
     }
@@ -133,10 +127,6 @@ class TSExprResolver(
 
     override fun visit(value: EtsNumberConstant): UExpr<out USort> {
         return simpleValueResolver.visit(value)
-    }
-
-    override fun visit(value: EtsObjectLiteral): UExpr<out USort> {
-        TODO("Not yet implemented")
     }
 
     override fun visit(value: EtsStringConstant): UExpr<out USort> {
@@ -367,10 +357,6 @@ class TSSimpleValueResolver(
         return scope.calcOnState { memory.read(lValue) }
     }
 
-    override fun visit(value: EtsArrayLiteral): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
-    }
-
     override fun visit(value: EtsBooleanConstant): UExpr<out USort> = with(ctx) {
         mkBool(value.value)
     }
@@ -381,10 +367,6 @@ class TSSimpleValueResolver(
 
     override fun visit(value: EtsNumberConstant): UExpr<out USort> = with(ctx) {
         mkFp64(value.value)
-    }
-
-    override fun visit(value: EtsObjectLiteral): UExpr<out USort> = with(ctx) {
-        TODO("Not yet implemented")
     }
 
     override fun visit(value: EtsStringConstant): UExpr<out USort> = with(ctx) {

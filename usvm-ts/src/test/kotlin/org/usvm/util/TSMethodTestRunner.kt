@@ -8,7 +8,7 @@ import org.jacodb.ets.base.EtsStringType
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUndefinedType
 import org.jacodb.ets.dto.EtsFileDto
-import org.jacodb.ets.dto.convertToEtsFile
+import org.jacodb.ets.dto.toEtsFile
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
@@ -185,7 +185,7 @@ open class TSMethodTestRunner : TestRunner<TSTest, MethodDescriptor, EtsType?, T
 
         val etsFileDto = EtsFileDto.loadFromJson(sampleFilePath)
 
-        return convertToEtsFile(etsFileDto)
+        return etsFileDto.toEtsFile()
     }
 
     private fun EtsFile.getMethodByDescriptor(desc: MethodDescriptor): EtsMethod {

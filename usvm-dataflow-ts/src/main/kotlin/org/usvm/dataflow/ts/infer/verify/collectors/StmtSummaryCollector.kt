@@ -17,7 +17,6 @@
 package org.usvm.dataflow.ts.infer.verify.collectors
 
 import org.jacodb.ets.base.EtsArrayAccess
-import org.jacodb.ets.base.EtsArrayLiteral
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsBinaryExpr
 import org.jacodb.ets.base.EtsCallStmt
@@ -31,7 +30,6 @@ import org.jacodb.ets.base.EtsInstanceOfExpr
 import org.jacodb.ets.base.EtsLengthExpr
 import org.jacodb.ets.base.EtsLocal
 import org.jacodb.ets.base.EtsNopStmt
-import org.jacodb.ets.base.EtsObjectLiteral
 import org.jacodb.ets.base.EtsParameterRef
 import org.jacodb.ets.base.EtsPtrCallExpr
 import org.jacodb.ets.base.EtsReturnStmt
@@ -116,14 +114,6 @@ class StmtSummaryCollector(
 
     override fun visit(value: EtsLocal) {
         yield(value)
-    }
-
-    override fun visit(value: EtsArrayLiteral) {
-        value.elements.forEach { collect(it) }
-    }
-
-    override fun visit(value: EtsObjectLiteral) {
-        value.properties.forEach { (_, it) -> collect(it) }
     }
 
     override fun visit(value: EtsThis) {
