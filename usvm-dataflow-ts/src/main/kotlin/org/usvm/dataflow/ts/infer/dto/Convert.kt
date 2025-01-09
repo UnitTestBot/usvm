@@ -78,6 +78,7 @@ private val logger = KotlinLogging.logger {}
 
 fun EtsTypeFact.toType(): EtsType? = when (this) {
     is EtsTypeFact.ObjectEtsTypeFact -> if (cls is EtsClassType) cls else null
+
     is EtsTypeFact.ArrayEtsTypeFact -> EtsArrayType(
         elementType = elementType.toType() ?: EtsUnknownType,
         dimensions = 1,
@@ -92,8 +93,6 @@ fun EtsTypeFact.toType(): EtsType? = when (this) {
     EtsTypeFact.UndefinedEtsTypeFact -> EtsUndefinedType
     EtsTypeFact.UnknownEtsTypeFact -> EtsUnknownType
 
-    is EtsTypeFact.GuardedTypeFact -> null
-    is EtsTypeFact.IntersectionEtsTypeFact -> null
     is EtsTypeFact.UnionEtsTypeFact -> {
         val types = this.types.map { it.toType() }
 
@@ -104,84 +103,143 @@ fun EtsTypeFact.toType(): EtsType? = when (this) {
             EtsUnionType(types.map { it!! })
         }
     }
+
+    is EtsTypeFact.GuardedTypeFact -> null
+    is EtsTypeFact.IntersectionEtsTypeFact -> null
 }
 
-fun EtsType.toDto(): TypeDto = when (this) {
-    is EtsAnyType -> AnyTypeDto
-    is EtsUnknownType -> UnknownTypeDto
-    is EtsUnionType -> UnionTypeDto(types = this.types.map { it.toDto() })
-    is EtsTupleType -> TupleTypeDto(types = this.types.map { it.toDto() })
-    is EtsBooleanType -> BooleanTypeDto
-    is EtsNumberType -> NumberTypeDto
-    is EtsStringType -> StringTypeDto
-    is EtsNullType -> NullTypeDto
-    is EtsUndefinedType -> UndefinedTypeDto
-    is EtsVoidType -> VoidTypeDto
-    is EtsNeverType -> NeverTypeDto
+fun EtsType.toDto(): TypeDto = accept(EtsTypeToDtoConverter)
 
-    is EtsLiteralType -> {
+object EtsTypeToDtoConverter : EtsType.Visitor<TypeDto> {
+    override fun visit(type: EtsAnyType): TypeDto {
+        return AnyTypeDto
+    }
+
+    override fun visit(type: EtsUnknownType): TypeDto {
+        return UnknownTypeDto
+    }
+
+    override fun visit(type: EtsUnionType): TypeDto {
+        return UnionTypeDto(types = type.types.map { it.accept(this) })
+    }
+
+    override fun visit(type: EtsTupleType): TypeDto {
+        return TupleTypeDto(types = type.types.map { it.accept(this) })
+    }
+
+    override fun visit(type: EtsBooleanType): TypeDto {
+        return BooleanTypeDto
+    }
+
+    override fun visit(type: EtsNumberType): TypeDto {
+        return NumberTypeDto
+    }
+
+    override fun visit(type: EtsStringType): TypeDto {
+        return StringTypeDto
+    }
+
+    override fun visit(type: EtsNullType): TypeDto {
+        return NullTypeDto
+    }
+
+    override fun visit(type: EtsUndefinedType): TypeDto {
+        return UndefinedTypeDto
+    }
+
+    override fun visit(type: EtsVoidType): TypeDto {
+        return VoidTypeDto
+    }
+
+    override fun visit(type: EtsNeverType): TypeDto {
+        return NeverTypeDto
+    }
+
+    override fun visit(type: EtsLiteralType): TypeDto {
         val literal = when {
-            this.literalTypeName.equals("true", ignoreCase = true) -> PrimitiveLiteralDto.BooleanLiteral(true)
-            this.literalTypeName.equals("false", ignoreCase = true) -> PrimitiveLiteralDto.BooleanLiteral(false)
+            type.literalTypeName.equals("true", ignoreCase = true) -> {
+                PrimitiveLiteralDto.BooleanLiteral(true)
+            }
+
+            type.literalTypeName.equals("false", ignoreCase = true) -> {
+                PrimitiveLiteralDto.BooleanLiteral(false)
+            }
+
             else -> {
-                val x = this.literalTypeName.toDoubleOrNull()
+                val x = type.literalTypeName.toDoubleOrNull()
                 if (x != null) {
                     PrimitiveLiteralDto.NumberLiteral(x)
                 } else {
-                    PrimitiveLiteralDto.StringLiteral(this.literalTypeName)
+                    PrimitiveLiteralDto.StringLiteral(type.literalTypeName)
                 }
             }
         }
-        LiteralTypeDto(literal = literal)
+        return LiteralTypeDto(literal = literal)
     }
 
-    is EtsClassType -> ClassTypeDto(
-        signature = this.signature.toDto(),
-        typeParameters = this.typeParameters.map { it.toDto() }
-    )
-
-    is EtsFunctionType -> FunctionTypeDto(
-        signature = this.method.toDto(),
-        typeParameters = this.typeParameters.map { it.toDto() }
-    )
-
-    is EtsArrayType -> ArrayTypeDto(
-        elementType = this.elementType.toDto(),
-        dimensions = this.dimensions
-    )
-
-    is EtsArrayObjectType -> TODO("EtsArrayObjectType was removed")
-
-    is EtsUnclearRefType -> UnclearReferenceTypeDto(
-        name = this.typeName,
-        typeParameters = this.typeParameters.map { it.toDto() }
-    )
-
-    is EtsGenericType -> GenericTypeDto(
-        name = this.typeName,
-        defaultType = this.defaultType?.toDto(),
-        constraint = this.constraint?.toDto(),
-    )
-
-    is EtsAliasType -> AliasTypeDto(
-        name = this.name,
-        originalType = this.originalType.toDto(),
-        signature = LocalSignatureDto(
-            this.signature.name,
-            this.signature.method.toDto()
+    override fun visit(type: EtsClassType): TypeDto {
+        return ClassTypeDto(
+            signature = type.signature.toDto(),
+            typeParameters = type.typeParameters.map { it.toDto() },
         )
-    )
+    }
 
-    is EtsAnnotationNamespaceType -> AnnotationNamespaceTypeDto(
-        originType = this.originType,
-        namespaceSignature = this.namespaceSignature.toDto()
-    )
+    override fun visit(type: EtsFunctionType): TypeDto {
+        return FunctionTypeDto(
+            signature = type.method.toDto(),
+            typeParameters = type.typeParameters.map { it.toDto() },
+        )
+    }
 
-    is EtsAnnotationTypeQueryType -> AnnotationTypeQueryTypeDto(
-        originType = this.originType
-    )
+    override fun visit(type: EtsArrayType): TypeDto {
+        return ArrayTypeDto(
+            elementType = type.elementType.toDto(),
+            dimensions = type.dimensions,
+        )
+    }
 
-    else -> error("Cannot convert ${this::class.java} to DTO: $this")
+    override fun visit(type: EtsArrayObjectType): TypeDto {
+        TODO("Not yet implemented")
+    }
+
+    override fun visit(type: EtsUnclearRefType): TypeDto {
+        return UnclearReferenceTypeDto(
+            name = type.typeName,
+            typeParameters = type.typeParameters.map { it.toDto() },
+        )
+    }
+
+    override fun visit(type: EtsGenericType): TypeDto {
+        return GenericTypeDto(
+            name = type.typeName,
+            defaultType = type.defaultType?.toDto(),
+            constraint = type.constraint?.toDto(),
+        )
+    }
+
+    override fun visit(type: EtsAliasType): TypeDto {
+        return AliasTypeDto(
+            name = type.name,
+            originalType = type.originalType.toDto(),
+            signature = LocalSignatureDto(
+                type.signature.name,
+                type.signature.method.toDto(),
+            ),
+        )
+    }
+
+    override fun visit(type: EtsAnnotationNamespaceType): TypeDto {
+        return AnnotationNamespaceTypeDto(
+            originType = type.originType,
+            namespaceSignature = type.namespaceSignature.toDto(),
+        )
+    }
+
+    override fun visit(type: EtsAnnotationTypeQueryType): TypeDto {
+        return AnnotationTypeQueryTypeDto(
+            originType = type.originType,
+        )
+    }
 }
 
 fun EtsClassSignature.toDto(): ClassSignatureDto =
