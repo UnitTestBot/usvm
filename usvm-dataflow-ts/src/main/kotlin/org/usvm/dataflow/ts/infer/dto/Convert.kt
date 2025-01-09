@@ -98,9 +98,9 @@ import org.jacodb.ets.model.EtsMethodParameter
 import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsNamespaceSignature
 
-fun EtsType.toDto(): TypeDto = accept(EtsTypeToDtoConverter)
+fun EtsType.toDto(): TypeDto = accept(EtsTypeToDto)
 
-object EtsTypeToDtoConverter : EtsType.Visitor<TypeDto> {
+private object EtsTypeToDto : EtsType.Visitor<TypeDto> {
     override fun visit(type: EtsAnyType): TypeDto {
         return AnyTypeDto
     }
@@ -281,9 +281,9 @@ fun EtsFieldSignature.toDto(): FieldSignatureDto =
         type = this.type.toDto(),
     )
 
-fun EtsValue.toDto(): ValueDto = accept(EtsValueToDtoConverter)
+fun EtsValue.toDto(): ValueDto = accept(EtsValueToDto)
 
-object EtsValueToDtoConverter : EtsValue.Visitor<ValueDto> {
+private object EtsValueToDto : EtsValue.Visitor<ValueDto> {
     override fun visit(value: EtsLocal): ValueDto {
         return LocalDto(
             name = value.name,
