@@ -18,6 +18,9 @@ package org.usvm.dataflow.ts.infer.dto
 
 import org.jacodb.ets.base.EtsArrayAccess
 import org.jacodb.ets.base.EtsBooleanConstant
+import org.jacodb.ets.base.EtsCaughtExceptionRef
+import org.jacodb.ets.base.EtsClosureFieldRef
+import org.jacodb.ets.base.EtsGlobalRef
 import org.jacodb.ets.base.EtsInstanceFieldRef
 import org.jacodb.ets.base.EtsLocal
 import org.jacodb.ets.base.EtsNullConstant
@@ -30,7 +33,10 @@ import org.jacodb.ets.base.EtsUndefinedConstant
 import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.dto.ArrayRefDto
 import org.jacodb.ets.dto.BooleanTypeDto
+import org.jacodb.ets.dto.CaughtExceptionRefDto
+import org.jacodb.ets.dto.ClosureFieldRefDto
 import org.jacodb.ets.dto.ConstantDto
+import org.jacodb.ets.dto.GlobalRefDto
 import org.jacodb.ets.dto.InstanceFieldRefDto
 import org.jacodb.ets.dto.LocalDto
 import org.jacodb.ets.dto.NullTypeDto
@@ -96,6 +102,27 @@ private object EtsValueToDto : EtsValue.Visitor<ValueDto> {
     override fun visit(value: EtsParameterRef): ValueDto {
         return ParameterRefDto(
             index = value.index,
+            type = value.type.toDto(),
+        )
+    }
+
+    override fun visit(value: EtsCaughtExceptionRef): ValueDto {
+        return CaughtExceptionRefDto(
+            type = value.type.toDto(),
+        )
+    }
+
+    override fun visit(value: EtsGlobalRef): ValueDto {
+        return GlobalRefDto(
+            name = value.name,
+            ref = value.ref?.toDto(),
+        )
+    }
+
+    override fun visit(value: EtsClosureFieldRef): ValueDto {
+        return ClosureFieldRefDto(
+            base = value.base.toDto() as LocalDto, // safe cast
+            fieldName = value.fieldName,
             type = value.type.toDto(),
         )
     }

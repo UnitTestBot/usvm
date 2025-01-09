@@ -11,12 +11,15 @@ import org.jacodb.ets.base.EtsBitOrExpr
 import org.jacodb.ets.base.EtsBitXorExpr
 import org.jacodb.ets.base.EtsBooleanConstant
 import org.jacodb.ets.base.EtsCastExpr
+import org.jacodb.ets.base.EtsCaughtExceptionRef
+import org.jacodb.ets.base.EtsClosureFieldRef
 import org.jacodb.ets.base.EtsCommaExpr
 import org.jacodb.ets.base.EtsDeleteExpr
 import org.jacodb.ets.base.EtsDivExpr
 import org.jacodb.ets.base.EtsEntity
 import org.jacodb.ets.base.EtsEqExpr
 import org.jacodb.ets.base.EtsExpExpr
+import org.jacodb.ets.base.EtsGlobalRef
 import org.jacodb.ets.base.EtsGtEqExpr
 import org.jacodb.ets.base.EtsGtExpr
 import org.jacodb.ets.base.EtsInExpr
@@ -337,6 +340,18 @@ class TSExprResolver(
         return simpleValueResolver.visit(value)
     }
 
+    override fun visit(value: EtsCaughtExceptionRef): UExpr<out USort>? {
+        TODO("Not yet implemented")
+    }
+
+    override fun visit(value: EtsGlobalRef): UExpr<out USort>? {
+        TODO("Not yet implemented")
+    }
+
+    override fun visit(value: EtsClosureFieldRef): UExpr<out USort>? {
+        TODO("Not yet implemented")
+    }
+
     override fun visit(value: EtsStaticFieldRef): UExpr<out USort> {
         TODO("Not yet implemented")
     }
@@ -388,6 +403,18 @@ class TSSimpleValueResolver(
     override fun visit(value: EtsParameterRef): UExpr<out USort> = with(ctx) {
         val lValue = resolveLocal(value)
         return scope.calcOnState { memory.read(lValue) }
+    }
+
+    override fun visit(value: EtsCaughtExceptionRef): UExpr<out USort>? {
+        TODO("Not yet implemented")
+    }
+
+    override fun visit(value: EtsGlobalRef): UExpr<out USort>? {
+        TODO("Not yet implemented")
+    }
+
+    override fun visit(value: EtsClosureFieldRef): UExpr<out USort>? {
+        TODO("Not yet implemented")
     }
 
     override fun visit(value: EtsStaticFieldRef): UExpr<out USort> = with(ctx) {
