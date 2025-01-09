@@ -277,38 +277,22 @@ sealed interface EtsTypeFact {
             return IntersectionEtsTypeFact(types)
         }
 
-        fun from(type: EtsType): EtsTypeFact {
-            return when (type) {
-                is EtsAnyType -> AnyEtsTypeFact
-                is EtsUnknownType -> UnknownEtsTypeFact
-                is EtsUnionType -> UnionEtsTypeFact(type.types.map { from(it) }.toSet())
-                is EtsBooleanType -> BooleanEtsTypeFact
-                is EtsNumberType -> NumberEtsTypeFact
-                is EtsStringType -> StringEtsTypeFact
-                is EtsNullType -> NullEtsTypeFact
-                is EtsUndefinedType -> UndefinedEtsTypeFact
-                is EtsClassType -> ObjectEtsTypeFact(type, emptyMap())
-                is EtsFunctionType -> FunctionEtsTypeFact
-                // is EtsArrayType -> ObjectEtsTypeFact(
-                //     cls = type,
-                //     properties = mapOf(
-                //         "index" to ObjectEtsTypeFact(
-                //             cls = null,
-                //             properties = mapOf(
-                //                 "name" to StringEtsTypeFact,
-                //                 "value" to from(type.elementType)
-                //             )
-                //         ),
-                //         "length" to NumberEtsTypeFact
-                //     )
-                // )
-                is EtsArrayType -> ArrayEtsTypeFact(elementType = from(type.elementType))
-                is EtsUnclearRefType -> ObjectEtsTypeFact(type, emptyMap())
-                // is EtsGenericType -> TODO()
-                else -> {
-                    // logger.warn { "Unsupported type: $type" }
-                    UnknownEtsTypeFact
-                }
+        fun from(type: EtsType): EtsTypeFact = when (type) {
+            is EtsAnyType -> AnyEtsTypeFact
+            is EtsUnknownType -> UnknownEtsTypeFact
+            is EtsUnionType -> UnionEtsTypeFact(type.types.map { from(it) }.toSet())
+            is EtsBooleanType -> BooleanEtsTypeFact
+            is EtsNumberType -> NumberEtsTypeFact
+            is EtsStringType -> StringEtsTypeFact
+            is EtsNullType -> NullEtsTypeFact
+            is EtsUndefinedType -> UndefinedEtsTypeFact
+            is EtsClassType -> ObjectEtsTypeFact(type, emptyMap())
+            is EtsFunctionType -> FunctionEtsTypeFact
+            is EtsArrayType -> ArrayEtsTypeFact(elementType = from(type.elementType))
+            is EtsUnclearRefType -> ObjectEtsTypeFact(type, emptyMap())
+            else -> {
+                logger.warn { "Could not create type fact from ${type::class.simpleName}: $type" }
+                UnknownEtsTypeFact
             }
         }
     }
