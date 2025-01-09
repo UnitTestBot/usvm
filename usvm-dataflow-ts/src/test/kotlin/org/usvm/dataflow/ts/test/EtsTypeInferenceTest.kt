@@ -520,37 +520,35 @@ class EtsTypeInferenceTest {
 
                     for (local in method.locals) {
                         val inferredType = inferredTypes[AccessPathBase.Local(local.name)]?.toType()
-
-                        logger.info {
-                            "Local ${local.name} in ${method.enclosingClass.name}::${method.name}, known type: ${local.type}, inferred type: $inferredType"
-                        }
-
-                        if (inferredType != null) {
+                        val verdict = if (inferredType != null) {
                             if (local.type.isUnknown()) {
                                 if (inferredType.isUnknown()) {
-                                    logger.info { "Matched unknown" }
                                     numMatchedUnknown++
+                                    "Matched unknown"
                                 } else {
-                                    logger.info { "Better than unknown" }
                                     numBetterThanUnknown++
+                                    "Better than unknown"
                                 }
                             } else {
                                 if (inferredType == local.type) {
-                                    logger.info { "Matched normal" }
                                     numMatchedNormal++
+                                    "Matched normal"
                                 } else {
-                                    logger.info { "Mismatched normal" }
                                     numMismatchedNormal++
+                                    "Mismatched normal"
                                 }
                             }
                         } else {
                             if (local.type.isUnknown()) {
-                                logger.info { "Matched (lost) unknown" }
                                 numMatchedUnknown++
+                                "Matched (lost) unknown"
                             } else {
-                                logger.info { "Lost normal" }
                                 numLostNormal++
+                                "Lost normal"
                             }
+                        }
+                        logger.info {
+                            "Local $local in $method, type: ${local.type}, inferred: $inferredType, verdict: $verdict"
                         }
                     }
 
