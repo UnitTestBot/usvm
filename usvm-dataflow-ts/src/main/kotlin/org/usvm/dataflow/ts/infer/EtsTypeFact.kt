@@ -319,7 +319,7 @@ private fun findDuplicateGuard(
 }
 
 fun EtsTypeFact.toType(): EtsType? = when (this) {
-    is EtsTypeFact.ObjectEtsTypeFact -> if (cls is EtsClassType) cls else null
+    is EtsTypeFact.ObjectEtsTypeFact -> cls
 
     is EtsTypeFact.ArrayEtsTypeFact -> EtsArrayType(
         elementType = elementType.toType() ?: EtsUnknownType,
