@@ -115,6 +115,7 @@ class TypeInferenceManager(
             unitResolver = { SingletonUnit },
             unit = SingletonUnit,
             zeroFact = BackwardTypeDomainFact.Zero,
+            storeReasons = false,
         )
         this@TypeInferenceManager.backwardRunner = backwardRunner
 
@@ -193,6 +194,7 @@ class TypeInferenceManager(
             unitResolver = { SingletonUnit },
             unit = SingletonUnit,
             zeroFact = ForwardTypeDomainFact.Zero,
+            storeReasons = false,
         )
         this@TypeInferenceManager.forwardRunner = forwardRunner
 

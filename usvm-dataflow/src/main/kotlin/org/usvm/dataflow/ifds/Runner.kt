@@ -49,14 +49,14 @@ class UniRunner<Fact, Event, Method, Statement>(
     private val unitResolver: UnitResolver<Method>,
     override val unit: UnitType,
     private val zeroFact: Fact,
+    private val storeReasons: Boolean = true,
 ) : Runner<Fact, Method, Statement>
     where Method : CommonMethod,
           Statement : CommonInst {
     private val flowSpace: FlowFunctions<Fact, Method, Statement> = analyzer.flowFunctions
     private val workList: Channel<Edge<Fact, Statement>> = Channel(Channel.UNLIMITED)
     val pathEdges: MutableSet<Edge<Fact, Statement>> = ConcurrentHashMap.newKeySet()
-    // private val reasons =
-    //     ConcurrentHashMap<Edge<Fact, Statement>, MutableSet<Reason<Fact, Statement>>>()
+    private val reasons: MutableMap<Edge<Fact, Statement>, MutableSet<Reason<Fact, Statement>>> = ConcurrentHashMap()
 
     private val summaryEdges: MutableMap<Vertex<Fact, Statement>, MutableSet<Vertex<Fact, Statement>>> =
         hashMapOf()
@@ -99,7 +99,10 @@ class UniRunner<Fact, Event, Method, Statement>(
             "Propagated edge must be in the same unit"
         }
 
-        // reasons.computeIfAbsent(edge) { ConcurrentHashMap.newKeySet() }.add(reason)
+        // Store reason:
+        if (storeReasons) {
+            reasons.computeIfAbsent(edge) { ConcurrentHashMap.newKeySet() }.add(reason)
+        }
 
         // Handle only NEW edges:
         if (pathEdges.add(edge)) {
@@ -255,8 +258,7 @@ class UniRunner<Fact, Event, Method, Statement>(
     }
 
     override fun getIfdsResult(): IfdsResult<Fact, Statement> {
-        // val facts = getFinalFacts()
-        // return IfdsResult(pathEdges, facts, reasons, zeroFact)
-        error("Not supported")
+        val facts = getFinalFacts()
+        return IfdsResult(pathEdges, facts, reasons, zeroFact)
     }
 }
