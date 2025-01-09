@@ -81,13 +81,6 @@ fun TypeInferenceResult.toDto(): InferredTypesDto {
     return InferredTypesDto(classTypeInferenceResult, methodTypeInferenceResult)
 }
 
-fun EtsClassSignature.toDto(): ClassSignatureDto =
-    ClassSignatureDto(
-        name = this.name,
-        declaringFile = this.file.toDto(),
-        declaringNamespace = this.namespace?.toDto(),
-    )
-
 fun EtsFileSignature.toDto(): FileSignatureDto =
     FileSignatureDto(
         projectName = this.projectName,
@@ -99,6 +92,20 @@ fun EtsNamespaceSignature.toDto(): NamespaceSignatureDto =
         name = this.name,
         declaringFile = this.file.toDto(),
         declaringNamespace = this.namespace?.toDto(),
+    )
+
+fun EtsClassSignature.toDto(): ClassSignatureDto =
+    ClassSignatureDto(
+        name = this.name,
+        declaringFile = this.file.toDto(),
+        declaringNamespace = this.namespace?.toDto(),
+    )
+
+fun EtsFieldSignature.toDto(): FieldSignatureDto =
+    FieldSignatureDto(
+        declaringClass = this.enclosingClass.toDto(),
+        name = this.name,
+        type = this.type.toDto(),
     )
 
 fun EtsMethodSignature.toDto(): MethodSignatureDto =
@@ -114,11 +121,4 @@ fun EtsMethodParameter.toDto(): MethodParameterDto =
         name = this.name,
         type = this.type.toDto(),
         isOptional = this.isOptional,
-    )
-
-fun EtsFieldSignature.toDto(): FieldSignatureDto =
-    FieldSignatureDto(
-        declaringClass = this.enclosingClass.toDto(),
-        name = this.name,
-        type = this.type.toDto(),
     )
