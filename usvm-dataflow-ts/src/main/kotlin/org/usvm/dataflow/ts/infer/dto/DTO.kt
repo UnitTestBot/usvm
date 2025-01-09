@@ -7,6 +7,7 @@ import org.jacodb.ets.dto.TypeDto
 import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EtsTypeFact
 import org.usvm.dataflow.ts.infer.TypeInferenceResult
+import org.usvm.dataflow.ts.infer.toType
 
 @Serializable
 data class InferredTypesDto(

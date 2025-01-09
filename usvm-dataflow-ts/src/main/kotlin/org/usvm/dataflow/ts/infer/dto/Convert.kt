@@ -16,7 +16,6 @@
 
 package org.usvm.dataflow.ts.infer.dto
 
-import mu.KotlinLogging
 import org.jacodb.ets.base.EtsAliasType
 import org.jacodb.ets.base.EtsAnnotationNamespaceType
 import org.jacodb.ets.base.EtsAnnotationTypeQueryType
@@ -72,41 +71,6 @@ import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsMethodParameter
 import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsNamespaceSignature
-import org.usvm.dataflow.ts.infer.EtsTypeFact
-
-private val logger = KotlinLogging.logger {}
-
-fun EtsTypeFact.toType(): EtsType? = when (this) {
-    is EtsTypeFact.ObjectEtsTypeFact -> if (cls is EtsClassType) cls else null
-
-    is EtsTypeFact.ArrayEtsTypeFact -> EtsArrayType(
-        elementType = elementType.toType() ?: EtsUnknownType,
-        dimensions = 1,
-    )
-
-    EtsTypeFact.AnyEtsTypeFact -> EtsAnyType
-    EtsTypeFact.BooleanEtsTypeFact -> EtsBooleanType
-    EtsTypeFact.FunctionEtsTypeFact -> null // TODO: function type
-    EtsTypeFact.NullEtsTypeFact -> EtsNullType
-    EtsTypeFact.NumberEtsTypeFact -> EtsNumberType
-    EtsTypeFact.StringEtsTypeFact -> EtsStringType
-    EtsTypeFact.UndefinedEtsTypeFact -> EtsUndefinedType
-    EtsTypeFact.UnknownEtsTypeFact -> EtsUnknownType
-
-    is EtsTypeFact.UnionEtsTypeFact -> {
-        val types = this.types.map { it.toType() }
-
-        if (types.any { it == null }) {
-            logger.warn { "Cannot convert union type fact to type: $this" }
-            null
-        } else {
-            EtsUnionType(types.map { it!! })
-        }
-    }
-
-    is EtsTypeFact.GuardedTypeFact -> null
-    is EtsTypeFact.IntersectionEtsTypeFact -> null
-}
 
 fun EtsType.toDto(): TypeDto = accept(EtsTypeToDtoConverter)
 

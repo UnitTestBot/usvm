@@ -31,7 +31,7 @@ import org.jacodb.ets.model.EtsField
 import org.jacodb.ets.model.EtsScene
 import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EtsTypeFact
-import org.usvm.dataflow.ts.infer.dto.toType
+import org.usvm.dataflow.ts.infer.toType
 
 class ValueTypeAnnotator(
     private val scene: EtsScene,
