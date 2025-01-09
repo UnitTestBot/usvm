@@ -291,7 +291,7 @@ sealed interface EtsTypeFact {
             is EtsArrayType -> ArrayEtsTypeFact(elementType = from(type.elementType))
             is EtsUnclearRefType -> ObjectEtsTypeFact(type, emptyMap())
             else -> {
-                logger.warn { "Could not create type fact from ${type::class.simpleName}: $type" }
+                // logger.warn { "Could not create type fact from ${type::class.simpleName}: $type" }
                 UnknownEtsTypeFact
             }
         }
