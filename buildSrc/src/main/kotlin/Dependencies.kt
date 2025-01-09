@@ -116,7 +116,8 @@ object Libs {
     )
 
     // https://github.com/UnitTestBot/jacodb
-    private const val jacodbPackage = "com.github.UnitTestBot.jacodb" // use "org.jacodb" with includeBuild
+    // private const val jacodbPackage = "com.github.UnitTestBot.jacodb" // use "org.jacodb" with includeBuild
+    private const val jacodbPackage = "org.jacodb"
     val jacodb_core = dep(
         group = jacodbPackage,
         name = "jacodb-core",
