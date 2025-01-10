@@ -29,24 +29,4 @@ data class Vertex<out Fact, out Statement : CommonInst>(
     override fun toString(): String {
         return "$fact at $statement in $method"
     }
-
-    private val cachedHashCode by lazy {
-        fact.hashCode() * 31 + statement.hashCode()
-    }
-
-    override fun hashCode(): Int {
-        return cachedHashCode
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as Vertex<*, *>
-
-        if (statement != other.statement) return false
-        if (fact != other.fact) return false
-
-        return true
-    }
 }
