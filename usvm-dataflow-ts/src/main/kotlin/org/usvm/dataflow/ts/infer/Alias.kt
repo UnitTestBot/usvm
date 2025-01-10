@@ -105,8 +105,8 @@ class AliasInfo(
         val allocToFields = hashMapOf<Allocation, MutableMap<String, MutableList<Allocation>>>()
         for ((obj1, fields) in this.allocToFields) {
             for ((field, obj2) in fields) {
-                allocToFields.computeIfAbsent(obj2) { hashMapOf() }
-                allocToFields.computeIfAbsent(obj2) { hashMapOf() }
+                allocToFields
+                    .computeIfAbsent(obj2) { hashMapOf() }
                     .computeIfAbsent(field) { mutableListOf() }
                     .add(obj1)
             }
