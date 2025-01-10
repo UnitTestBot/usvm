@@ -114,8 +114,7 @@ class AliasInfo(
 
         val allocToBases = hashMapOf<Allocation, MutableList<AccessPathBase>>()
         for ((base, alloc) in baseToAlloc) {
-            allocToBases.computeIfAbsent(alloc) { mutableListOf() }
-                .add(base)
+            allocToBases.computeIfAbsent(alloc) { mutableListOf() }.add(base)
         }
 
         val queue = ArrayDeque<Pair<Allocation, List<FieldAccessor>>>(listOf(obj to emptyList()))
