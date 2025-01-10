@@ -95,7 +95,7 @@ fun EtsValue.toBase(): AccessPathBase = when (this) {
     is EtsLocal -> if (name == "this") AccessPathBase.This else AccessPathBase.Local(name)
     is EtsThis -> AccessPathBase.This
     is EtsParameterRef -> AccessPathBase.Arg(index)
-    else -> error("$this is not access path base")
+    else -> error("Unable to build access path base for ${this::class.java.simpleName}: $this")
 }
 
 fun EtsEntity.toPathOrNull(): AccessPath? = when (this) {
@@ -126,5 +126,5 @@ fun EtsEntity.toPathOrNull(): AccessPath? = when (this) {
 }
 
 fun EtsEntity.toPath(): AccessPath {
-    return toPathOrNull() ?: error("Unable to build access path for value $this")
+    return toPathOrNull() ?: error("Unable to build access path for ${this::class.java.simpleName}: $this")
 }
