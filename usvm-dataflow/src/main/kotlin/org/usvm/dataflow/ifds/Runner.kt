@@ -146,7 +146,7 @@ class UniRunner<Fact, Event, Method, Statement>(
         val (startVertex, currentVertex) = currentEdge
         val (current, currentFact) = currentVertex
 
-        val currentIsCall = getCallExpr( current) != null
+        val currentIsCall = getCallExpr(current) != null
         val currentIsExit = current in graph.exitPoints(graph.methodOf(current))
 
         if (currentIsCall) {
