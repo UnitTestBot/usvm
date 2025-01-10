@@ -146,7 +146,6 @@ class UniRunner<Fact, Event, Method, Statement>(
         val (startVertex, currentVertex) = currentEdge
         val (current, currentFact) = currentVertex
 
-        val currentCallees = graph.callees(current).toList()
         val currentIsCall = getCallExpr( current) != null
         val currentIsExit = current in graph.exitPoints(graph.methodOf(current))
 
@@ -164,7 +163,7 @@ class UniRunner<Fact, Event, Method, Statement>(
             }
 
             // Propagate through the call:
-            for (callee in currentCallees) {
+            for (callee in graph.callees(current)) {
                 for (calleeStart in graph.entryPoints(callee)) {
                     val factsAtCalleeStart = flowSpace
                         .obtainCallToStartFlowFunction(current, calleeStart)
