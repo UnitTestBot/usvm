@@ -1,20 +1,24 @@
 package org.usvm.dataflow.ts.infer
 
 import mu.KotlinLogging
+import org.jacodb.ets.base.EtsArrayAccess
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsCastExpr
 import org.jacodb.ets.base.EtsEntity
 import org.jacodb.ets.base.EtsEqExpr
+import org.jacodb.ets.base.EtsFieldRef
 import org.jacodb.ets.base.EtsIfStmt
 import org.jacodb.ets.base.EtsInExpr
 import org.jacodb.ets.base.EtsInstanceCallExpr
 import org.jacodb.ets.base.EtsLValue
+import org.jacodb.ets.base.EtsLocal
 import org.jacodb.ets.base.EtsNewExpr
 import org.jacodb.ets.base.EtsNumberConstant
-import org.jacodb.ets.base.EtsRef
+import org.jacodb.ets.base.EtsParameterRef
 import org.jacodb.ets.base.EtsReturnStmt
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsStringConstant
+import org.jacodb.ets.base.EtsThis
 import org.jacodb.ets.base.EtsThrowStmt
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsValue
@@ -112,7 +116,7 @@ class BackwardFlowFunctions(
         val valueAssignment = findAssignment(value, stmt) ?: return null
 
         return when (val rhv = valueAssignment.rhv) {
-            is EtsRef, is EtsLValue -> {
+            is EtsLocal, is EtsThis, is EtsParameterRef, is EtsFieldRef, is EtsArrayAccess -> {
                 resolveTypeGuard(rhv, valueAssignment)
             }
 
@@ -216,8 +220,11 @@ class BackwardFlowFunctions(
 
         if (current is EtsAssignStmt) {
             val rhv = when (val r = current.rhv) {
-                is EtsRef -> r.toPath() // This, FieldRef, ArrayAccess
-                is EtsLValue -> r.toPath() // Local
+                is EtsLocal -> r.toPath()
+                is EtsThis -> r.toPath()
+                // is EtsParameterRef -> r.toPath()
+                is EtsFieldRef -> r.toPath()
+                is EtsArrayAccess -> r.toPath()
                 else -> {
                     // logger.info { "TODO backward assign zero: $current" }
                     null
@@ -276,9 +283,8 @@ class BackwardFlowFunctions(
                 }
             }
 
-            val lhv = when (val r = current.lhv) {
-                is EtsRef -> r.toPath() // This, FieldRef, ArrayAccess
-                is EtsLValue -> r.toPath() // Local
+            val lhv = when (val l = current.lhv) {
+                is EtsLValue -> l.toPath()
                 else -> {
                     logger.info { "TODO backward assign zero: $current" }
                     error("Unexpected LHV in assignment: $current")
@@ -330,9 +336,12 @@ class BackwardFlowFunctions(
         val lhv = current.lhv.toPath()
 
         val rhv = when (val r = current.rhv) {
-            is EtsRef -> r.toPath() // This, FieldRef, ArrayAccess
-            is EtsLValue -> r.toPath() // Local
-            is EtsCastExpr -> r.toPath() // Cast
+            is EtsLocal -> r.toPath()
+            is EtsThis -> r.toPath()
+            is EtsParameterRef -> r.toPath()
+            is EtsFieldRef -> r.toPath()
+            is EtsArrayAccess -> r.toPath()
+            is EtsCastExpr -> r.toPath()
             is EtsNewExpr -> {
                 // TODO: what about `x.f := new T()` ?
                 // `x := new T()` with fact `x:U` => `saved[T] += U`

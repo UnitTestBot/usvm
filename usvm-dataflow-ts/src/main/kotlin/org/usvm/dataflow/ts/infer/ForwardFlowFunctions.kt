@@ -3,23 +3,25 @@ package org.usvm.dataflow.ts.infer
 import mu.KotlinLogging
 import org.jacodb.ets.base.EtsAnyType
 import org.jacodb.ets.base.EtsArithmeticExpr
+import org.jacodb.ets.base.EtsArrayAccess
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsBooleanConstant
 import org.jacodb.ets.base.EtsCastExpr
 import org.jacodb.ets.base.EtsFieldRef
 import org.jacodb.ets.base.EtsInstanceCallExpr
-import org.jacodb.ets.base.EtsLValue
+import org.jacodb.ets.base.EtsLocal
 import org.jacodb.ets.base.EtsNegExpr
 import org.jacodb.ets.base.EtsNewArrayExpr
 import org.jacodb.ets.base.EtsNewExpr
 import org.jacodb.ets.base.EtsNotExpr
 import org.jacodb.ets.base.EtsNullConstant
 import org.jacodb.ets.base.EtsNumberConstant
-import org.jacodb.ets.base.EtsRef
+import org.jacodb.ets.base.EtsParameterRef
 import org.jacodb.ets.base.EtsRelationExpr
 import org.jacodb.ets.base.EtsReturnStmt
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsStringConstant
+import org.jacodb.ets.base.EtsThis
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUndefinedConstant
 import org.jacodb.ets.base.EtsUnknownType
@@ -258,9 +260,12 @@ class ForwardFlowFunctions(
         val lhv = current.lhv.toPath()
 
         val rhv = when (val r = current.rhv) {
-            is EtsRef -> r.toPath() // This, FieldRef, ArrayAccess
-            is EtsLValue -> r.toPath() // Local
-            is EtsCastExpr -> r.toPath() // Cast
+            is EtsLocal -> r.toPath()
+            is EtsThis -> r.toPath()
+            is EtsParameterRef -> r.toPath()
+            is EtsFieldRef -> r.toPath()
+            is EtsArrayAccess -> r.toPath()
+            is EtsCastExpr -> r.toPath()
             else -> {
                 // logger.info { "TODO forward assign: $current" }
                 null
