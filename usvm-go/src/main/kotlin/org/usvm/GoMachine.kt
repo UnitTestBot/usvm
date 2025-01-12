@@ -35,6 +35,7 @@ val logger = object : KLogging() {}.logger
 class GoMachine(
     private val pkg: GoPackage,
     private val options: UMachineOptions,
+    private val customOptions: GoMachineOptions
 ) : UMachine<GoState>() {
     private val typeSystem = GoTypeSystem(options.typeOperationsTimeout, pkg.types.values)
     private val goApplicationGraph = GoApplicationGraphImpl()
@@ -145,7 +146,7 @@ class GoMachine(
             stopStrategy = stopStrategy,
         )
 
-        if (coverageStatistics.getTotalCoverage().roundToInt() < 100) {
+        if (coverageStatistics.getTotalCoverage().roundToInt() < 100 && !customOptions.uncoveredMethods.containsAll(methods.map { it.metName })) {
             throw IllegalStateException("coverage not 100%")
         }
         println("Total coverage: ${coverageStatistics.getTotalCoverage().roundToInt()}%")

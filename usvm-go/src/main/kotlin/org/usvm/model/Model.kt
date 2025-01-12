@@ -29,6 +29,7 @@ sealed interface Member {
         val parameters: List<Value>,
         @SerialName("free_vars") val freeVars: List<Value>,
         @SerialName("return_types") val returnTypes: List<String>,
+        val recover: BasicBlock? = null,
     ) : Member
 
     @Serializable
@@ -262,6 +263,9 @@ sealed interface Instruction {
         override val name: String,
         override val block: Int,
         override val line: Int,
+        val value: Value,
+        val method: String,
+        val args: List<Value>,
     ) : Instruction
 
     @Serializable
@@ -288,6 +292,7 @@ sealed interface Instruction {
         override val line: Int,
         @SerialName("go_type") val goType: String,
         val register: String,
+        val comment: String,
     ) : Instruction
 
     @Serializable

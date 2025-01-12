@@ -4,11 +4,15 @@ import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import org.jacodb.go.api.ArrayType
 import org.jacodb.go.api.BasicType
+import org.jacodb.go.api.GoAllocExpr
+import org.jacodb.go.api.GoAssignInst
+import org.jacodb.go.api.GoFreeVar
 import org.jacodb.go.api.GoFunction
 import org.jacodb.go.api.GoInst
 import org.jacodb.go.api.GoMethod
 import org.jacodb.go.api.GoParameter
 import org.jacodb.go.api.GoType
+import org.jacodb.go.api.PointerType
 import org.usvm.GoCall
 import org.usvm.GoContext
 import org.usvm.GoTarget
@@ -158,6 +162,8 @@ class GoState(
         if (returnSite != null) {
             newInst(returnSite)
         }
+
+        data.flowStack.removeLast()
     }
 
     fun handlePanic() {
@@ -175,64 +181,39 @@ class GoState(
 
     fun panic(expr: UExpr<out USort>, type: GoType) {
         methodResult = GoMethodResult.Panic(expr.cast(), type)
+        data.flowStack.add(GoFlowStatus.PANIC)
     }
 
     fun panic(text: String) = panic(mkString(text), GoBasicTypes.STRING)
 
-    fun recover(method: GoMethod, inst: GoInst): UExpr<out USort> = with(ctx) {
+    fun recover(): UExpr<out USort> = with(ctx) {
         if (methodResult is GoMethodResult.Panic) {
             val result = (methodResult as GoMethodResult.Panic).value
             methodResult = GoMethodResult.NoCall
-            data.setRecover(method, inst)
             return result
         }
-        return voidValue
+        return nullRef
     }
 
-    fun getRecoverInst(method: GoMethod): GoInst? {
-        val methodRecover = data.getRecover(method)
-        if (methodRecover != null && data.recoverInst == null) {
-            data.recoverInst = methodRecover
-            return methodRecover
-        }
-        return null
-    }
-
-    fun getDeferInst(method: GoMethod, inst: GoInst): GoInst? {
-        val deferInst = data.getDeferInst(method)
-        if (deferInst == inst) {
-            if (addDeferredCall()) {
-                return null
-            }
-            return data.getDeferNextInst(method)
-        }
-        return null
-    }
-
-    fun runDefers(method: GoMethod, inst: GoInst?) {
-        data.setDeferInst(method, currentStatement)
-        data.setDeferNextInst(method, inst)
-        data.flowStatus = GoFlowStatus.DEFER
+    fun runDefers() {
+        data.flowStack.add(GoFlowStatus.DEFER)
     }
 
     fun addCall(call: GoCall, returnInst: GoInst? = null) = with(ctx) {
-        val currentMethod = lastEnteredMethod
         val methodInfo = getMethodInfo(call.method)
+        val freeVariables = mutableListOf<UExpr<out USort>>().also {
+            if (call.method is GoFunction) {
+                call.method.freeVars.forEach { variable -> it.add(findParam(variable)) }
+            }
+        }
 
+        data.flowStack.add(GoFlowStatus.NORMAL)
         callStack.push(call.method, returnInst)
         memory.stack.push(call.parameters, methodInfo.variablesCount)
 
-        if (call.method is GoFunction) {
-            call.method.freeVars.forEach { variable ->
-                val ref = memory.allocConcrete(variable.type)
-                val param =
-                    currentMethod.parameters.filterIsInstance<GoParameter>().find { it.name == variable.name } ?: throw IllegalStateException()
-                val rvalue = memory.read(URegisterStackLValue(typeToSort(param.type), param.index))
-                memory.write(GoPointerLValue(ref, rvalue.sort), rvalue, ctx.trueExpr)
-
-                val lvalue = URegisterStackLValue(typeToSort(variable.type), variable.index + freeVariableOffset(call.method))
-                memory.write(lvalue, ctx.mkAddressPointer(ref.address), trueExpr)
-            }
+        freeVariables.forEachIndexed { i, variable ->
+            val lvalue = URegisterStackLValue(variable.sort, i + freeVariableOffset(call.method))
+            memory.write(lvalue, variable.asExpr(variable.sort), trueExpr)
         }
 
         newInst(call.entrypoint)
@@ -282,15 +263,41 @@ class GoState(
         else -> memory.allocConcrete(type)
     }
 
-    private fun addDeferredCall(): Boolean {
-        val deferred = data.getDeferredCalls(lastEnteredMethod)
-        if (!deferred.isEmpty()) {
-            addCall(deferred.removeLast(), currentStatement)
+    private fun findParam(freeVar: GoFreeVar): UExpr<out USort> {
+        val stack = callStack.clone()
+        val registers = memory.stack.clone()
+        while (!stack.isEmpty()) {
+            val param = findParam(stack.lastMethod(), freeVar)
+            if (param != null) {
+                return registers.read(URegisterStackLValue(ctx.typeToSort(param.first), param.second))
+            }
 
-            return true
+            stack.pop()
+            registers.pop()
         }
 
-        data.flowStatus = GoFlowStatus.NORMAL
-        return false
+
+        throw IllegalStateException()
+    }
+
+    private fun findParam(method: GoMethod, freeVar: GoFreeVar): Pair<GoType, Int>? {
+        val param = method.parameters.filterIsInstance<GoParameter>().find { it.name == freeVar.name }
+        if (param != null) {
+            return Pair(PointerType(param.type), param.index + ctx.localVariableOffset(method))
+        }
+
+        val assign = method.blocks.flatMap { it.instructions }.filterIsInstance<GoAssignInst>().find {
+            it.rhv is GoAllocExpr && (it.rhv as GoAllocExpr).comment == freeVar.name
+        }
+        if (assign != null) {
+            val alloc = assign.rhv as GoAllocExpr
+            return Pair(PointerType(alloc.type), index(method, alloc.name))
+        }
+
+        return null
+    }
+
+    private fun index(method: GoMethod, name: String): Int {
+        return name.substring(1).toInt() + ctx.localVariableOffset(method)
     }
 }

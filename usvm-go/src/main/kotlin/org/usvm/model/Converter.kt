@@ -16,6 +16,7 @@ import org.jacodb.go.api.GoChangeInterfaceExpr
 import org.jacodb.go.api.GoChangeTypeExpr
 import org.jacodb.go.api.GoConditionExpr
 import org.jacodb.go.api.GoConvertExpr
+import org.jacodb.go.api.GoDeferInst
 import org.jacodb.go.api.GoDivExpr
 import org.jacodb.go.api.GoEqlExpr
 import org.jacodb.go.api.GoExtractExpr
@@ -61,6 +62,7 @@ import org.jacodb.go.api.GoParameter
 import org.jacodb.go.api.GoPhiExpr
 import org.jacodb.go.api.GoRangeExpr
 import org.jacodb.go.api.GoReturnInst
+import org.jacodb.go.api.GoRunDefersInst
 import org.jacodb.go.api.GoShlExpr
 import org.jacodb.go.api.GoShrExpr
 import org.jacodb.go.api.GoSliceExpr
@@ -113,7 +115,12 @@ object Converter {
                 pkg.name,
                 function.freeVars.map { unpack(it) as GoFreeVar },
                 function.returnTypes.map(::getType),
-            ).also { it.blocks = function.basicBlocks.map { block -> unpack(it, block) } }
+            ).also {
+                it.blocks = function.basicBlocks.map { block -> unpack(it, block) }
+                if (function.recover != null) {
+                    it.recover = unpack(it, function.recover)
+                }
+            }
         }
         val globals = pkg.members.filterIsInstance<Member.Global>().map { global ->
             GoGlobal(global.index, global.name, getType(global.goType))
@@ -132,14 +139,14 @@ object Converter {
     private fun unpack(function: GoFunction, inst: Instruction): GoInst {
         val loc = GoInstLocationImpl(function, inst.block, inst.line)
         return when (inst) {
-            is Instruction.Alloc -> GoAllocExpr(loc, getType(inst.goType), inst.register).toAssignInst()
+            is Instruction.Alloc -> GoAllocExpr(loc, getType(inst.goType), inst.register, inst.comment).toAssignInst()
             is Instruction.BinOp -> unpack(loc, inst)
             is Instruction.Call -> unpack(loc, inst)
             is Instruction.ChangeInterface -> GoChangeInterfaceExpr(loc, getType(inst.goType), unpack(inst.value), inst.register).toAssignInst()
             is Instruction.ChangeType -> GoChangeTypeExpr(loc, getType(inst.goType), unpack(inst.value), inst.register).toAssignInst()
             is Instruction.Convert -> GoConvertExpr(loc, getType(inst.goType), unpack(inst.value), inst.register).toAssignInst()
             is Instruction.DebugRef -> unsupportedInstruction("DebugRef")
-            is Instruction.Defer -> TODO()
+            is Instruction.Defer -> GoDeferInst(loc, unpack(inst.value), inst.args.map(::unpack))
             is Instruction.Extract -> unpack(loc, inst)
             is Instruction.Field -> GoFieldExpr(loc, getType(inst.goType), unpack(inst.struct), inst.field, inst.register).toAssignInst()
             is Instruction.FieldAddr -> GoFieldAddrExpr(loc, getType(inst.goType), unpack(inst.struct), inst.field, inst.register).toAssignInst()
@@ -160,7 +167,7 @@ object Converter {
             is Instruction.Phi -> GoPhiExpr(loc, getType(inst.goType), inst.edges.map(this::unpack), inst.register).toAssignInst()
             is Instruction.Range -> GoRangeExpr(loc, getType(inst.goType), unpack(inst.collection), inst.register).toAssignInst()
             is Instruction.Return -> GoReturnInst(loc, inst.results.map(this::unpack))
-            is Instruction.RunDefers -> TODO()
+            is Instruction.RunDefers -> GoRunDefersInst(loc)
             is Instruction.Select -> unsupportedInstruction("Select")
             is Instruction.Send -> unsupportedInstruction("Send")
             is Instruction.Slice -> unpack(loc, inst)
@@ -385,7 +392,7 @@ object Converter {
         is Type.Struct -> StructType(unpack(types, type.fields), null)
         is Type.Tuple -> TupleType(unpack(types, type.elems))
         is Type.TypeParam -> unpack(types, type.name)
-        is Type.Union -> UnionType(emptyList()) // TODO(buraindo) proper type list
+        is Type.Union -> UnionType(emptyList()) // TODO(buraindo) proper type list when generics are supported
     }
 
     private fun unpack(types: Map<String, Type>, type: String): GoType {

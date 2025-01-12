@@ -75,8 +75,8 @@ class GoInstVisitor(
 
     override fun visitGoRunDefersInst(inst: GoRunDefersInst): GoInst {
         return scope.calcOnState {
-            runDefers(lastEnteredMethod, inst)
-            currentStatement
+            runDefers()
+            next(inst)
         }
     }
 
@@ -85,9 +85,8 @@ class GoInstVisitor(
 
         return scope.calcOnState {
             panic(value, inst.throwable.type)
-            currentStatement
+            next(inst)
         }
-//        return GoNullInst(inst.location.method)
     }
 
     override fun visitGoGoInst(inst: GoGoInst): GoInst {

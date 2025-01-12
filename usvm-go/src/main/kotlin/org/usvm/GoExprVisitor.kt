@@ -784,7 +784,7 @@ class GoExprVisitor(
 
     private fun callBuiltin(method: GoBuiltin, args: List<GoValue>): UExpr<out USort> {
         return when (method.name) {
-            "len" -> {
+            "len", "cap" -> {
                 val arg = args[0]
                 val collection = arg.accept(this).asExpr(ctx.addressSort)
 
@@ -807,6 +807,18 @@ class GoExprVisitor(
                         ctx.mkSizeExpr(0)
                     },
                 )
+            }
+
+            "panic" -> {
+                val value = args[0].accept(this)
+                scope.calcOnState {
+                    panic(value, args[0].type)
+                    ctx.noValue
+                }
+            }
+
+            "recover" -> scope.calcOnState {
+                recover()
             }
 
             else -> ctx.nullRef

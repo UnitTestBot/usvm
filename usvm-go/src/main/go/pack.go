@@ -143,7 +143,7 @@ func (p *Package) PackMembers(membersMap map[string]ssa.Member) {
 	members := lo.Values(membersMap)
 	for _, member := range membersMap {
 		if f, ok := member.(*ssa.Function); ok {
-			members = append(members, lo.Map(f.AnonFuncs, func(f *ssa.Function, _ int) ssa.Member { return f })...)
+			members = append(members, FindFunctions(f)...)
 		}
 	}
 
@@ -181,6 +181,10 @@ func (p *Package) PackMember(in ssa.Member) Member {
 		common.Type = TypeMember
 		return common
 	case *ssa.Function:
+		var recoverBlock *BasicBlock
+		if member.Recover != nil {
+			recoverBlock = lo.ToPtr(p.PackBasicBlock(member.Recover, 0))
+		}
 		common.Type = FunctionMember
 		common.Name = p.FunctionName(member)
 		return Function{
@@ -189,6 +193,7 @@ func (p *Package) PackMember(in ssa.Member) Member {
 			Parameters:   lo.Map(member.Params, p.PackParameter),
 			FreeVars:     lo.Map(member.FreeVars, func(v *ssa.FreeVar, _ int) Value { return p.PackValue(v) }),
 			ReturnTypes:  p.PackReturnTypes(member),
+			Recover:      recoverBlock,
 		}
 	}
 
@@ -399,8 +404,15 @@ func (p *Package) PackInstruction(in ssa.Instruction, _ int) Instruction {
 		}
 	case *ssa.Defer:
 		common.Type = DeferInstruction
+		method := ""
+		if inst.Call.IsInvoke() {
+			method = inst.Call.Method.Name()
+		}
 		return Defer{
 			CommonInstruction: common,
+			Value:             p.PackValue(inst.Call.Value),
+			Method:            method,
+			Args:              lo.Map(inst.Call.Args, p.PackValueIdx),
 		}
 	case *ssa.Go:
 		common.Type = GoInstruction
@@ -420,6 +432,7 @@ func (p *Package) PackInstruction(in ssa.Instruction, _ int) Instruction {
 			CommonInstruction: common,
 			GoType:            goType.String(),
 			Register:          inst.Name(),
+			Comment:           inst.Comment,
 		}
 	case *ssa.MakeSlice:
 		common.Type = MakeSliceInstruction
@@ -665,6 +678,14 @@ func FindFreeVarIndex(in *ssa.FreeVar) int {
 		return other == in
 	})
 	return index
+}
+
+func FindFunctions(in *ssa.Function) []ssa.Member {
+	members := lo.Map(in.AnonFuncs, func(f *ssa.Function, _ int) ssa.Member { return f })
+	for _, f := range in.AnonFuncs {
+		members = append(members, FindFunctions(f)...)
+	}
+	return members
 }
 
 type Typed interface {

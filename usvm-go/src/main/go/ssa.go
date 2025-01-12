@@ -72,6 +72,7 @@ func NewSSA(packageName string, cfg Config) (*SSA, error) {
 
 	if cfg.DumpSSA {
 		if cfg.DumpSSAFileName != "" {
+			CheckError(os.MkdirAll(path.Dir(cfg.DumpSSAFileName), os.ModePerm))
 			s.output, err = os.Create(cfg.DumpSSAFileName)
 			if err != nil {
 				return nil, err
@@ -92,6 +93,7 @@ func (s *SSA) Write() {
 
 func (s *SSA) writePackage(p *ssa.Package) {
 	for _, ext := range []string{".yaml", ".json"} {
+		CheckError(os.MkdirAll(OutputDir, os.ModePerm))
 		output, err := os.Create(path.Join(OutputDir, strings.ReplaceAll(p.Pkg.Path(), "/", "_")+ext))
 		CheckError(err)
 

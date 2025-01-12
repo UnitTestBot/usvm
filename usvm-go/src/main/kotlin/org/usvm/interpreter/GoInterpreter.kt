@@ -2,6 +2,7 @@ package org.usvm.interpreter
 
 import mu.KLogging
 import org.jacodb.go.api.GoAssignInst
+import org.jacodb.go.api.GoFunction
 import org.jacodb.go.api.GoInst
 import org.jacodb.go.api.GoMethod
 import org.jacodb.go.api.GoNullInst
@@ -51,6 +52,7 @@ class GoInterpreter(
 
         state.callStack.push(method, returnSite = null)
         state.memory.stack.push(argumentsCount, localsCount)
+        state.data.flowStack.add(GoFlowStatus.NORMAL)
 
         val init = pkg.findMethod(INIT_FUNCTION)
         setMethodInfo(init)
@@ -61,31 +63,51 @@ class GoInterpreter(
 
     override fun step(state: GoState): StepResult<GoState> {
         val inst = state.currentStatement
-        val method = state.lastEnteredMethod
         val scope = GoStepScope(state, forkBlackList)
+        val exprVisitor = GoExprVisitor(ctx, pkg, scope, applicationGraph)
+        val instVisitor = GoInstVisitor(ctx, pkg, scope, exprVisitor, applicationGraph)
 
         logger.debug("State {}: Step: {}", state.id, inst)
 
-        if (state.isExceptional && state.data.flowStatus != GoFlowStatus.DEFER) {
-            if (state.data.getDeferredCalls(method).isEmpty()) {
-                state.handlePanic()
-                return scope.stepResult()
-            } else {
-                state.runDefers(method, null)
-            }
-        }
-
-        val exprVisitor = GoExprVisitor(ctx, pkg, scope, applicationGraph)
-        val instVisitor = GoInstVisitor(ctx, pkg, scope, exprVisitor, applicationGraph)
-        val nextInst: GoInst = when (state.data.flowStatus) {
-            GoFlowStatus.NORMAL -> state.getRecoverInst(method)
-            GoFlowStatus.DEFER -> state.getDeferInst(method, inst)
-        } ?: inst.accept(instVisitor)
-
+        val nextInst = next(state, inst, instVisitor)
         if (nextInst !is GoNullInst) {
             state.newInst(nextInst)
         }
         return scope.stepResult()
+    }
+
+    private fun next(state: GoState, inst: GoInst, instVisitor: GoInstVisitor): GoInst {
+        val method = state.lastEnteredMethod
+        return when (state.data.flowStatus) {
+            GoFlowStatus.NORMAL -> inst.accept(instVisitor)
+            GoFlowStatus.DEFER -> {
+                val deferred = state.data.getDeferredCalls(method)
+                if (deferred.isEmpty()) {
+                    state.data.flowStack.removeLast()
+                    return next(state, inst, instVisitor)
+                }
+
+                state.addCall(deferred.removeLast(), inst)
+                return GoNullInst(method)
+            }
+
+            GoFlowStatus.PANIC -> {
+                if (!state.isExceptional) { // recovered
+                    state.data.flowStack.removeLast()
+                    val function = method as GoFunction
+                    function.setRecover()
+                    return function.recover!!.instructions.first()
+                }
+
+                if (state.data.getDeferredCalls(method).isEmpty()) {
+                    state.handlePanic()
+                    return GoNullInst(method)
+                }
+
+                state.runDefers()
+                return next(state, inst, instVisitor)
+            }
+        }
     }
 
     companion object {

@@ -120,6 +120,7 @@ type Function struct {
 	Parameters   []Parameter  `yaml:"parameters" json:"parameters"`
 	FreeVars     []Value      `yaml:"free_vars" json:"free_vars"`
 	ReturnTypes  []string     `yaml:"return_types" json:"return_types"`
+	Recover      *BasicBlock  `yaml:"recover,omitempty" json:"recover,omitempty"`
 }
 
 type BasicBlock struct {
@@ -264,6 +265,9 @@ type Jump struct {
 
 type Defer struct {
 	CommonInstruction `yaml:",inline"`
+	Value             Value   `yaml:"value" json:"value"`
+	Method            string  `yaml:"method" json:"method"`
+	Args              []Value `yaml:"args" json:"args"`
 }
 
 type Go struct {
@@ -278,6 +282,7 @@ type Alloc struct {
 	CommonInstruction `yaml:",inline"`
 	GoType            string `yaml:"go_type" json:"go_type"`
 	Register          string `yaml:"register" json:"register"`
+	Comment           string `yaml:"comment" json:"comment"`
 }
 
 type MakeSlice struct {

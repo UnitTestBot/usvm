@@ -13,7 +13,7 @@ class JacoDbTest {
     @TestFactory
     fun jacodbTestLong(): Collection<DynamicTest> {
         val pkg = Converter.unpack(Parser().deserialize("out/usvm_examples.json"))
-        val machine = GoMachine(pkg, options)
+        val machine = GoMachine(pkg, options, customOptions)
         return methods(pkg).filter { it.metName in longMethods }.map {
             DynamicTest.dynamicTest(it.metName) {
                 println(measureTimeMillis { println(machine.analyzeAndResolve(it.metName)) })
@@ -24,7 +24,7 @@ class JacoDbTest {
     @TestFactory
     fun jacodbTestFast(): Collection<DynamicTest> {
         val pkg = Converter.unpack(Parser().deserialize("out/usvm_examples.json"))
-        val machine = GoMachine(pkg, options)
+        val machine = GoMachine(pkg, options, customOptions)
         return methods(pkg).filter { it.metName !in longMethods }.map {
             DynamicTest.dynamicTest(it.metName) {
                 println(measureTimeMillis { println(machine.analyzeAndResolve(it.metName)) })
@@ -42,6 +42,10 @@ class JacoDbTest {
         stepsFromLastCovered = 1000000L,
         solverTimeout = Duration.INFINITE, // we do not need the timeout for a solver in tests
         typeOperationsTimeout = Duration.INFINITE, // we do not need the timeout for type operations in tests
+    )
+
+    private val customOptions: GoMachineOptions = GoMachineOptions(
+        listOf("panicRecoverComplex")
     )
 
     private val longMethods = arrayOf("loopInfinite", "loopInner", "loopCollatz", "mapLoopLen", "canVisitAllRooms")
