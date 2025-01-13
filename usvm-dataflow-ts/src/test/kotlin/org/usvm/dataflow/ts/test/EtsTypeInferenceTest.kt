@@ -49,6 +49,7 @@ import org.usvm.dataflow.ts.infer.annotation.annotateWithTypes
 import org.usvm.dataflow.ts.infer.createApplicationGraph
 import org.usvm.dataflow.ts.infer.toType
 import org.usvm.dataflow.ts.loadEtsProjectFromResources
+import org.usvm.dataflow.ts.test.utils.toStringLimited
 import org.usvm.dataflow.ts.testFactory
 import org.usvm.dataflow.ts.util.EtsTraits
 import org.usvm.dataflow.ts.util.sortedBy
@@ -505,7 +506,7 @@ class EtsTypeInferenceTest {
                     buildString {
                         appendLine("Inferred combined this types: ${result.inferredCombinedThisType.size}")
                         for ((clazz, thisType) in result.inferredCombinedThisType.sortedBy { it.key.toString() }) {
-                            appendLine("${clazz.name} in ${clazz.file}: $thisType")
+                            appendLine("${clazz.name} in ${clazz.file}: ${thisType.toStringLimited()}")
                         }
                     }
                 }
@@ -553,7 +554,11 @@ class EtsTypeInferenceTest {
                             }
                         }
                         logger.info {
-                            "Local $local in $method, type: ${local.type}, inferred: $inferredType, verdict: $verdict"
+                            "Local $local in $method, type: ${
+                                local.type.toStringLimited()
+                            }, inferred: ${
+                                inferredType.toStringLimited()
+                            }, verdict: $verdict"
                         }
                     }
 

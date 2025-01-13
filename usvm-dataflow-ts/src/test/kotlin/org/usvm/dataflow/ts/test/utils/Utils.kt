@@ -30,3 +30,12 @@ fun EtsScene.getEtsClassType(signature: EtsClassSignature): EtsClassType? {
         ?: error("No class found in the classpath with signature $signature")
     return EtsClassType(clazz.signature)
 }
+
+fun <T> T.toStringLimited(): String {
+    val s = toString()
+    return if (s.length > 100) {
+        s.substring(0, 50) + "..."
+    } else {
+        s
+    }
+}
