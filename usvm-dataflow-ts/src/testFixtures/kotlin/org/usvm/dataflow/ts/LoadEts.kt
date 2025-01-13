@@ -6,6 +6,7 @@ import org.jacodb.ets.dto.toEtsFile
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsScene
 import java.nio.file.Path
+import kotlin.io.path.PathWalkOption
 import kotlin.io.path.extension
 import kotlin.io.path.inputStream
 import kotlin.io.path.relativeTo
@@ -52,9 +53,11 @@ fun loadEtsFileFromResource(jsonPath: String): EtsFile {
  */
 fun loadMultipleEtsFilesFromResourceDirectory(dirPath: String): Sequence<EtsFile> {
     val rootPath = getResourcePath(dirPath)
-    return rootPath.walk().filter { it.extension == "json" }.map { path ->
-        loadEtsFileFromResource("$dirPath/${path.relativeTo(rootPath)}")
-    }
+    return rootPath
+        .walk(PathWalkOption.BREADTH_FIRST)
+        .filter { it.extension == "json" }
+        .map { it.relativeTo(rootPath) }
+        .map { loadEtsFileFromResource("$dirPath/$it") }
 }
 
 fun loadMultipleEtsFilesFromMultipleResourceDirectories(
