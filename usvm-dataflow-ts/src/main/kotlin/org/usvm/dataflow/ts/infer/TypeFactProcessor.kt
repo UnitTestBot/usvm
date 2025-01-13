@@ -51,7 +51,7 @@ class TypeFactProcessor(
     }
 
     @JvmName("union_")
-    fun EtsTypeFact.union(other: EtsTypeFact): EtsTypeFact {
+    private fun EtsTypeFact.union(other: EtsTypeFact): EtsTypeFact {
         if (this == other) return this
 
         return when {
@@ -68,7 +68,7 @@ class TypeFactProcessor(
     }
 
     @JvmName("intersect_")
-    fun EtsTypeFact.intersect(other: EtsTypeFact?): EtsTypeFact? {
+    private fun EtsTypeFact.intersect(other: EtsTypeFact?): EtsTypeFact? {
         if (other == null) return this
 
         if (this == other) return this
