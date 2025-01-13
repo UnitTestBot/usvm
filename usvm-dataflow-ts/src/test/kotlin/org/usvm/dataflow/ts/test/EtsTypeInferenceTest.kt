@@ -457,7 +457,7 @@ class EtsTypeInferenceTest {
                             } classes and ${project.projectClasses.sumOf { it.methods.size }} methods"
                         )
                         for (cls in project.projectClasses.sortedBy { it.name }) {
-                            appendLine("Class $cls has ${cls.methods.size} methods")
+                            appendLine("Class ${cls.name} has ${cls.methods.size} methods")
                             for (method in cls.methods.sortedBy { it.name }) {
                                 appendLine("  - $method")
                             }
