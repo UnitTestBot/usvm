@@ -479,16 +479,10 @@ class EtsTypeInferenceTest {
                 logger.info {
                     buildString {
                         appendLine("Inferred types: ${result.inferredTypes.size}")
-                        for ((method, types) in result.inferredTypes.entries.sortedBy { "${it.key.enclosingClass.name}::${it.key.name}" }) {
+                        for ((method, types) in result.inferredTypes.sortedBy { it.key.toString() }) {
                             appendLine()
                             appendLine("- $method")
-                            for ((pos, type) in types.entries.sortedBy {
-                                when (val base = it.key) {
-                                    is AccessPathBase.This -> -1
-                                    is AccessPathBase.Arg -> base.index
-                                    else -> 1_000_000
-                                }
-                            }) {
+                            for ((pos, type) in types.sortedByBase()) {
                                 appendLine("$pos: $type")
                             }
                         }
