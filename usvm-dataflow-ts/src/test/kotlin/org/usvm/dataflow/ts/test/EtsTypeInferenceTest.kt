@@ -49,7 +49,7 @@ import org.usvm.dataflow.ts.infer.annotation.annotateWithTypes
 import org.usvm.dataflow.ts.infer.createApplicationGraph
 import org.usvm.dataflow.ts.infer.toType
 import org.usvm.dataflow.ts.loadEtsProjectFromResources
-import org.usvm.dataflow.ts.test.utils.toStringLimited
+import org.usvm.dataflow.ts.util.toStringLimited
 import org.usvm.dataflow.ts.testFactory
 import org.usvm.dataflow.ts.util.EtsTraits
 import org.usvm.dataflow.ts.util.sortedBy
@@ -551,7 +551,7 @@ class EtsTypeInferenceTest {
                             "Local $local in $method, type: ${
                                 local.type.toStringLimited()
                             }, inferred: ${
-                                inferredType.toStringLimited()
+                                inferredType?.toStringLimited()
                             }, verdict: $verdict"
                         }
                     }

@@ -40,16 +40,3 @@ fun EtsTypeFact.fixAnyToUnknown(): EtsTypeFact =
     } else {
         this
     }
-
-/**
- * Convert a type to a string, but limit its length.
- */
-fun <T> T.toStringLimited(): String {
-    // TODO: customize the limits
-    val s = toString()
-    return if (s.length > 100) {
-        s.substring(0, 50) + "..."
-    } else {
-        s
-    }
-}

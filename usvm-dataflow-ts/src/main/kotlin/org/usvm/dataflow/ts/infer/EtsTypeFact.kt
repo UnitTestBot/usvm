@@ -17,6 +17,7 @@ import org.jacodb.ets.base.EtsUndefinedType
 import org.jacodb.ets.base.EtsUnionType
 import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.base.INSTANCE_INIT_METHOD_NAME
+import org.usvm.dataflow.ts.util.sortedBy
 
 private val logger = KotlinLogging.logger {}
 
@@ -85,9 +86,9 @@ sealed interface EtsTypeFact {
                 properties: Map<String, EtsTypeFact>,
             ): ObjectEtsTypeFact {
                 if (cls is EtsUnclearRefType && cls.name == "Object") {
-                    return ObjectEtsTypeFact(null, properties)
+                    return ObjectEtsTypeFact(null, properties.sortedBy { it.key })
                 }
-                return ObjectEtsTypeFact(cls, properties)
+                return ObjectEtsTypeFact(cls, properties.sortedBy { it.key })
             }
         }
 

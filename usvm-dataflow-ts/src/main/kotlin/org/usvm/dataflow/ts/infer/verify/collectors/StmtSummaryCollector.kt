@@ -32,7 +32,6 @@ import org.jacodb.ets.base.EtsLocal
 import org.jacodb.ets.base.EtsNopStmt
 import org.jacodb.ets.base.EtsParameterRef
 import org.jacodb.ets.base.EtsPtrCallExpr
-import org.jacodb.ets.base.EtsRawStmt
 import org.jacodb.ets.base.EtsReturnStmt
 import org.jacodb.ets.base.EtsStaticCallExpr
 import org.jacodb.ets.base.EtsStaticFieldRef
@@ -105,10 +104,6 @@ class StmtSummaryCollector(
     override fun visit(stmt: EtsSwitchStmt) {
         collect(stmt.arg)
         stmt.cases.forEach { collect(it) }
-    }
-
-    override fun visit(stmt: EtsRawStmt) {
-        // do nothing
     }
 
     // endregion
