@@ -424,7 +424,7 @@ class EtsTypeInferenceTest {
         val availableProjectNames = p.listDirectoryEntries().filter { it.isDirectory() }.map { it.name }.sorted()
         logger.info {
             buildString {
-                appendLine("Found projects: ${availableProjectNames.size}")
+                appendLine("Found ${availableProjectNames.size} projects")
                 for (name in availableProjectNames) {
                     appendLine("  - $name")
                 }
@@ -452,16 +452,16 @@ class EtsTypeInferenceTest {
                 }
                 val project = loadEtsProjectFromResources(modules, "/projects/$projectName/etsir")
                 logger.info {
-                    buildString {
-                        appendLine(
-                            "Loaded project with ${
-                                project.projectClasses.size
-                            } classes and ${project.projectClasses.sumOf { it.methods.size }} methods"
-                        )
-                        for (cls in project.projectClasses.sortedBy { it.name }) {
+                    "Loaded project with ${
+                        project.projectClasses.size
+                    } classes and ${project.projectClasses.sumOf { it.methods.size }} methods"
+                }
+                for (cls in project.projectClasses.sortedBy { it.name }) {
+                    logger.info {
+                        buildString {
                             appendLine("Class ${cls.name} has ${cls.methods.size} methods")
                             for (method in cls.methods.sortedBy { it.name }) {
-                                appendLine("  - $method")
+                                appendLine("- $method")
                             }
                         }
                     }
@@ -483,7 +483,7 @@ class EtsTypeInferenceTest {
                             appendLine()
                             appendLine("- $method")
                             for ((pos, type) in types.sortedByBase()) {
-                                appendLine("$pos: $type")
+                                appendLine("$pos: ${type.toStringLimited()}")
                             }
                         }
                     }
@@ -492,7 +492,7 @@ class EtsTypeInferenceTest {
                     buildString {
                         appendLine("Inferred return types: ${result.inferredReturnType.size}")
                         for ((method, returnType) in result.inferredReturnType.sortedBy { it.key.toString() }) {
-                            appendLine("${method.enclosingClass.name}::${method.name}: $returnType")
+                            appendLine("${method.enclosingClass.name}::${method.name}: ${returnType.toStringLimited()}")
                         }
                     }
                 }
