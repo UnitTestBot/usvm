@@ -51,6 +51,7 @@ import org.usvm.dataflow.ts.infer.toType
 import org.usvm.dataflow.ts.loadEtsProjectFromResources
 import org.usvm.dataflow.ts.testFactory
 import org.usvm.dataflow.ts.util.EtsTraits
+import org.usvm.dataflow.ts.util.sortedBy
 import org.usvm.dataflow.ts.util.sortedByBase
 import java.io.File
 import kotlin.io.path.div
@@ -495,7 +496,7 @@ class EtsTypeInferenceTest {
                 logger.info {
                     buildString {
                         appendLine("Inferred return types: ${result.inferredReturnType.size}")
-                        for ((method, returnType) in result.inferredReturnType.entries.sortedBy { it.key.toString() }) {
+                        for ((method, returnType) in result.inferredReturnType.sortedBy { it.key.toString() }) {
                             appendLine("${method.enclosingClass.name}::${method.name}: $returnType")
                         }
                     }
@@ -503,7 +504,7 @@ class EtsTypeInferenceTest {
                 logger.info {
                     buildString {
                         appendLine("Inferred combined this types: ${result.inferredCombinedThisType.size}")
-                        for ((clazz, thisType) in result.inferredCombinedThisType.entries.sortedBy { it.key.toString() }) {
+                        for ((clazz, thisType) in result.inferredCombinedThisType.sortedBy { it.key.toString() }) {
                             appendLine("${clazz.name} in ${clazz.file}: $thisType")
                         }
                     }
