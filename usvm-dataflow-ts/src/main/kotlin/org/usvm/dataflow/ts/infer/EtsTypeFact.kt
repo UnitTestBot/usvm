@@ -87,9 +87,9 @@ sealed interface EtsTypeFact {
                 properties: Map<String, EtsTypeFact>,
             ): ObjectEtsTypeFact {
                 if (cls is EtsUnclearRefType && cls.name == "Object") {
-                    return ObjectEtsTypeFact(null, properties.sortedBy { it.key })
+                    return ObjectEtsTypeFact(null, properties)
                 }
-                return ObjectEtsTypeFact(cls, properties.sortedBy { it.key })
+                return ObjectEtsTypeFact(cls, properties)
             }
         }
 

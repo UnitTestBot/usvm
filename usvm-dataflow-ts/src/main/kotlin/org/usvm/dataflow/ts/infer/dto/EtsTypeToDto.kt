@@ -26,6 +26,7 @@ import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.base.EtsFunctionType
 import org.jacodb.ets.base.EtsGenericType
+import org.jacodb.ets.base.EtsLexicalEnvType
 import org.jacodb.ets.base.EtsLiteralType
 import org.jacodb.ets.base.EtsNeverType
 import org.jacodb.ets.base.EtsNullType
@@ -47,7 +48,9 @@ import org.jacodb.ets.dto.BooleanTypeDto
 import org.jacodb.ets.dto.ClassTypeDto
 import org.jacodb.ets.dto.FunctionTypeDto
 import org.jacodb.ets.dto.GenericTypeDto
+import org.jacodb.ets.dto.LexicalEnvTypeDto
 import org.jacodb.ets.dto.LiteralTypeDto
+import org.jacodb.ets.dto.LocalDto
 import org.jacodb.ets.dto.LocalSignatureDto
 import org.jacodb.ets.dto.NeverTypeDto
 import org.jacodb.ets.dto.NullTypeDto
@@ -192,6 +195,13 @@ private object EtsTypeToDto : EtsType.Visitor<TypeDto> {
     override fun visit(type: EtsAnnotationTypeQueryType): TypeDto {
         return AnnotationTypeQueryTypeDto(
             originType = type.originType,
+        )
+    }
+
+    override fun visit(type: EtsLexicalEnvType): TypeDto {
+        return LexicalEnvTypeDto(
+            nestedMethod = type.nestedMethod.toDto(),
+            closures = type.closures.map { it.toDto() as LocalDto }, // safe cast
         )
     }
 }

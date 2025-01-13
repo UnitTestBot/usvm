@@ -24,6 +24,7 @@ import org.jacodb.ets.base.EtsExpr
 import org.jacodb.ets.base.EtsGotoStmt
 import org.jacodb.ets.base.EtsIfStmt
 import org.jacodb.ets.base.EtsNopStmt
+import org.jacodb.ets.base.EtsRawStmt
 import org.jacodb.ets.base.EtsReturnStmt
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsSwitchStmt
@@ -73,4 +74,6 @@ class StmtTypeAnnotator(
         arg = infer(stmt.arg),
         cases = stmt.cases.map { infer(it) },
     )
+
+    override fun visit(stmt: EtsRawStmt): EtsStmt = stmt
 }

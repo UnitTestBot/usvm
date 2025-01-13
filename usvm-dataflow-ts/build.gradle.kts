@@ -31,7 +31,7 @@ dependencies {
 }
 
 tasks.withType<Test> {
-    maxHeapSize = "8G"
+    maxHeapSize = "4G"
 }
 
 val generateTestResources by tasks.registering {
