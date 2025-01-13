@@ -36,6 +36,7 @@ import org.usvm.dataflow.ts.util.EtsTraits
 import org.usvm.dataflow.ts.util.getRealLocals
 import org.usvm.dataflow.ts.util.sortedBy
 import org.usvm.dataflow.ts.util.sortedByBase
+import org.usvm.dataflow.ts.util.toStringLimited
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration.Companion.seconds
 
@@ -177,7 +178,7 @@ class TypeInferenceManager(
             val typeFact = EtsTypeFact.ObjectEtsTypeFact(type, properties = emptyMap())
             facts.fold(typeFact as EtsTypeFact) { acc, it ->
                 typeProcessor.intersect(acc, it) ?: run {
-                    logger.warn { "Empty intersection type: $acc & $it" }
+                    logger.warn { "Empty intersection type: ${acc.toStringLimited()} & ${it.toStringLimited()}" }
                     acc
                 }
             }
@@ -262,7 +263,7 @@ class TypeInferenceManager(
                     .filter { (method, _) -> method in (cls.methods + cls.ctor) }
                     .mapNotNull { (_, facts) -> facts[AccessPathBase.This] }.reduceOrNull { acc, type ->
                         typeProcessor.intersect(acc, type) ?: run {
-                            logger.warn { "Empty intersection type: $acc & $type" }
+                            logger.warn { "Empty intersection type: ${acc.toStringLimited()} & ${type.toStringLimited()}" }
                             acc
                         }
                     }
@@ -313,7 +314,7 @@ class TypeInferenceManager(
                 var refined: EtsTypeFact = combinedBackwardType
                 for ((property, propertyType) in propertyRefinements) {
                     refined = refined.refineProperty(property, propertyType) ?: this@TypeInferenceManager.run {
-                        logger.warn { "Empty intersection type: $refined & $propertyType" }
+                        logger.warn { "Empty intersection type: ${refined.toStringLimited()} & ${propertyType.toStringLimited()}" }
                         refined
                     }
                 }
@@ -483,7 +484,7 @@ class TypeInferenceManager(
             .mapValues { (_, typeFacts) ->
                 typeFacts.reduce { acc, typeFact ->
                     typeProcessor.intersect(acc, typeFact) ?: run {
-                        logger.warn { "Empty intersection type: $acc & $typeFact" }
+                        logger.warn { "Empty intersection type: ${acc.toStringLimited()} & ${typeFact.toStringLimited()}" }
                         acc
                     }
                 }
@@ -649,7 +650,13 @@ class TypeInferenceManager(
                     // val p = property.single()
                     // check(p is ElementAccessor)
                     val t = typeProcessor.intersect(elementType, type) ?: run {
-                        logger.warn { "Empty intersection of array element and refinement types: $elementType & $type" }
+                        logger.warn {
+                            "Empty intersection of array element and refinement types: ${
+                                elementType.toStringLimited()
+                            } & ${
+                                type.toStringLimited()
+                            }"
+                        }
                         elementType
                     }
                     return EtsTypeFact.ArrayEtsTypeFact(elementType = t)

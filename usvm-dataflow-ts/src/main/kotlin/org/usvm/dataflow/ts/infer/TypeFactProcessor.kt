@@ -36,6 +36,7 @@ import org.usvm.dataflow.ts.infer.EtsTypeFact.StringEtsTypeFact
 import org.usvm.dataflow.ts.infer.EtsTypeFact.UndefinedEtsTypeFact
 import org.usvm.dataflow.ts.infer.EtsTypeFact.UnionEtsTypeFact
 import org.usvm.dataflow.ts.infer.EtsTypeFact.UnknownEtsTypeFact
+import org.usvm.dataflow.ts.util.toStringLimited
 
 private val logger = KotlinLogging.logger {}
 
@@ -105,7 +106,13 @@ class TypeFactProcessor(
                 is ArrayEtsTypeFact -> {
                     val t = elementType.intersect(other.elementType)
                     if (t == null) {
-                        logger.warn { "Empty intersection of array element types: $elementType & ${other.elementType}" }
+                        logger.warn {
+                            "Empty intersection of array element types: ${
+                                elementType.toStringLimited()
+                            } & ${
+                                other.elementType.toStringLimited()
+                            }"
+                        }
                         null
                     } else {
                         ArrayEtsTypeFact(t)
@@ -278,7 +285,7 @@ class TypeFactProcessor(
         clazz.methods.forEach { m ->
             props.merge(m.name, FunctionEtsTypeFact) { old, new ->
                 old.intersect(new).also {
-                    if (it == null) logger.warn { "Empty intersection: $old & $new" }
+                    if (it == null) logger.warn { "Empty intersection: ${old.toStringLimited()} & ${new.toStringLimited()}" }
                 }
             }
         }

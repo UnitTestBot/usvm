@@ -34,6 +34,7 @@ import org.usvm.dataflow.ts.infer.ForwardTypeDomainFact.TypedVariable
 import org.usvm.dataflow.ts.infer.ForwardTypeDomainFact.Zero
 import org.usvm.dataflow.ts.util.fixAnyToUnknown
 import org.usvm.dataflow.ts.util.getRealLocals
+import org.usvm.dataflow.ts.util.toStringLimited
 import org.usvm.dataflow.ts.util.unwrapPromise
 
 private val logger = KotlinLogging.logger {}
@@ -68,7 +69,7 @@ class ForwardFlowFunctions(
                         val path = AccessPath(base, emptyList())
                         val realType = EtsTypeFact.from(fake.type).fixAnyToUnknown()
                         val type2 = typeProcessor.intersect(type, realType) ?: run {
-                            logger.warn { "Empty intersection: $type & $realType" }
+                            logger.warn { "Empty intersection: ${type.toStringLimited()} & ${realType.toStringLimited()}" }
                             type
                         }
                         addTypes(path, type2, result)

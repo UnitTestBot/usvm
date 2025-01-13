@@ -18,6 +18,7 @@ import org.jacodb.ets.base.EtsUnionType
 import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.base.INSTANCE_INIT_METHOD_NAME
 import org.usvm.dataflow.ts.util.sortedBy
+import org.usvm.dataflow.ts.util.toStringLimited
 
 private val logger = KotlinLogging.logger {}
 
@@ -340,7 +341,7 @@ fun EtsTypeFact.toType(): EtsType? = when (this) {
         val types = this.types.map { it.toType() }
 
         if (types.any { it == null }) {
-            logger.warn { "Cannot convert union type fact to type: $this" }
+            logger.warn { "Cannot convert union type fact to type: ${this.toStringLimited()}" }
             null
         } else {
             EtsUnionType(types.map { it!! })
