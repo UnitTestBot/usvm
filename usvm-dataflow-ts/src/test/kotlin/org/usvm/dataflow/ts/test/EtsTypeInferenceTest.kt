@@ -451,11 +451,15 @@ class EtsTypeInferenceTest {
                 val project = loadEtsProjectFromResources(modules, "/projects/$projectName/etsir")
                 logger.info {
                     buildString {
-                        appendLine("Loaded project with ${project.projectClasses.size} classes and ${project.projectClasses.sumOf { it.methods.size }} methods")
+                        appendLine(
+                            "Loaded project with ${
+                                project.projectClasses.size
+                            } classes and ${project.projectClasses.sumOf { it.methods.size }} methods"
+                        )
                         for (cls in project.projectClasses.sortedBy { it.name }) {
-                            appendLine("= ${cls.signature} with ${cls.methods.size} methods:")
+                            appendLine("Class $cls has ${cls.methods.size} methods")
                             for (method in cls.methods.sortedBy { it.name }) {
-                                appendLine("  - ${method.signature}")
+                                appendLine("  - $method")
                             }
                         }
                     }
