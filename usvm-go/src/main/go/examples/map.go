@@ -78,3 +78,18 @@ func mapLoopLen(m map[int]int) int {
 
 	return m[maxKey] - m[minKey]
 }
+
+func mapDeleteSimple(a map[int]int, k int) int {
+	l := len(a)
+
+	if l < 5 {
+		panic("too smol map")
+	}
+
+	delete(a, k)
+	if len(a) == l {
+		panic("not found")
+	}
+
+	return len(a)
+}

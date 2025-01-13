@@ -85,7 +85,11 @@ func (p *Package) AddType(typ types.Type) {
 		}
 		// add members after adding type to avoid stack overflow
 		for i := 0; i < t.NumMethods(); i++ {
-			p.Members = append(p.Members, p.PackMember(p.program.FuncValue(t.Method(i))))
+			f := p.program.FuncValue(t.Method(i))
+			if f == nil {
+				continue
+			}
+			p.Members = append(p.Members, p.PackMember(f))
 		}
 		p.AddType(t.Underlying())
 	case *types.Pointer:
@@ -445,11 +449,15 @@ func (p *Package) PackInstruction(in ssa.Instruction, _ int) Instruction {
 		}
 	case *ssa.MakeMap:
 		common.Type = MakeMapInstruction
+		var reserve Value
+		if inst.Reserve != nil {
+			reserve = p.PackValue(inst.Reserve)
+		}
 		return MakeMap{
 			CommonInstruction: common,
 			GoType:            inst.Type().String(),
 			Register:          inst.Name(),
-			Reserve:           p.PackValue(inst.Reserve),
+			Reserve:           reserve,
 		}
 	case *ssa.Range:
 		common.Type = RangeInstruction
@@ -552,6 +560,9 @@ func (p *Package) PackInstruction(in ssa.Instruction, _ int) Instruction {
 		return Select{
 			CommonInstruction: common,
 		}
+	case *ssa.MultiConvert:
+		common.Type = MultiConvertInstruction
+		return common
 	default:
 		log.Fatalf("unexpected instruction: %T\n", inst)
 	}

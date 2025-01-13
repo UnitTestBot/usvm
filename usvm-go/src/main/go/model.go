@@ -46,6 +46,7 @@ const (
 	MakeClosureInstruction         = "MakeClosure"
 	PhiInstruction                 = "Phi"
 	SelectInstruction              = "Select"
+	MultiConvertInstruction        = "MultiConvert"
 
 	ConstValue     = "Const"
 	GlobalValue    = "Global"

@@ -454,6 +454,14 @@ sealed interface Instruction {
         override val block: Int,
         override val line: Int,
     ) : Instruction
+
+    @Serializable
+    @SerialName("MultiConvert")
+    data class MultiConvert(
+        override val name: String,
+        override val block: Int,
+        override val line: Int,
+    ) : Instruction
 }
 
 @Serializable

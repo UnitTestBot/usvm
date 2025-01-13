@@ -107,6 +107,7 @@ import org.usvm.api.refSetContainsElement
 import org.usvm.api.setContainsElement
 import org.usvm.api.typeStreamOf
 import org.usvm.api.writeArrayIndex
+import org.usvm.api.writeArrayLength
 import org.usvm.api.writeField
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.field.UFieldLValue
@@ -147,7 +148,7 @@ class GoExprVisitor(
             return result.value
         }
 
-        val args = expr.args.let { if (expr.callee == null) it else listOf(func)+it }
+        val args = expr.args.let { if (expr.callee == null) it else listOf(func) + it }
         val method = when {
             expr.callee != null -> {
                 val instance = func.accept(this).asExpr(ctx.addressSort)
@@ -277,6 +278,7 @@ class GoExprVisitor(
         val arrayType = (expr.type as PointerType).baseType as ArrayType
         val arrayLength = ctx.mkSizeExpr(arrayType.len.toInt())
 
+        checkLength(sliceLength) ?: throw IllegalStateException()
         checkNotNull(slice) ?: throw IllegalStateException()
         checkSliceToArrayPointerLength(sliceLength, arrayLength) ?: throw IllegalStateException()
 
@@ -358,6 +360,7 @@ class GoExprVisitor(
         }
         val elementSort = ctx.typeToSort(elementType)
 
+        checkLength(length) ?: throw IllegalStateException()
         checkNotNull(collection) ?: throw IllegalStateException()
         checkNegativeIndex(low) ?: throw IllegalStateException()
         checkNegativeIndex(high) ?: throw IllegalStateException()
@@ -452,7 +455,11 @@ class GoExprVisitor(
         val rvalue = scope.calcOnState { memory.read(lvalue).asExpr(valueSort) }
 
         return scope.calcOnState {
-            rvalue.let { if (commaOk) mkTuple(TupleType(listOf(type.valueType, GoBasicTypes.BOOL)), it, contains) else it }
+            if (commaOk) {
+                mkTuple(TupleType(listOf(type.valueType, GoBasicTypes.BOOL)), rvalue, contains)
+            } else {
+                ctx.mkIte(contains, { rvalue }, { rvalue.sort.sampleUValue() })
+            }
         }
     }
 
@@ -489,6 +496,8 @@ class GoExprVisitor(
                     val char = memory.readArrayIndex(collection, index, collectionType, ctx.bv8Sort)
                     val length = memory.readArrayLength(collection, collectionType, ctx.sizeSort)
                     val ok = ctx.mkAnd(notNull, ctx.mkBvSignedLessExpr(index, length))
+
+                    checkLength(length) ?: throw IllegalStateException()
 
                     memory.writeField(iter, 1, ctx.sizeSort, ctx.mkBvAddExpr(index, ctx.mkSizeExpr(1)), ctx.trueExpr)
                     mkTuple(
@@ -724,7 +733,7 @@ class GoExprVisitor(
         val index = idx.accept(this).asExpr(ctx.sizeSort)
         val length = scope.calcOnState { memory.readArrayLength(array, type, ctx.sizeSort) }
 
-        scope.assert(ctx.mkSizeGeExpr(length, ctx.mkSizeExpr(0)))
+        checkLength(length) ?: throw IllegalStateException()
         checkNotNull(array) ?: throw IllegalStateException()
         checkNegativeIndex(index) ?: throw IllegalStateException()
         checkIndexOutOfBounds(index, length) ?: throw IllegalStateException()
@@ -768,9 +777,7 @@ class GoExprVisitor(
     }
 
     private fun checkLength(length: UExpr<USizeSort>): Unit? = with(ctx) {
-        scope.fork(mkSizeGeExpr(length, mkSizeExpr(0)), blockOnFalseState = {
-            panic("length < 0")
-        })
+        scope.assert(mkSizeGeExpr(length, mkSizeExpr(0)))
     }
 
     private fun checkSliceToArrayPointerLength(
@@ -784,6 +791,73 @@ class GoExprVisitor(
 
     private fun callBuiltin(method: GoBuiltin, args: List<GoValue>): UExpr<out USort> {
         return when (method.name) {
+            "append" -> {
+                val slice = args[0].accept(this).asExpr(ctx.addressSort)
+                val append = args[1].accept(this).asExpr(ctx.addressSort)
+                val sliceType = args[0].type as SliceType
+                val elementSort = ctx.typeToSort(sliceType.elementType)
+                val zero = ctx.mkSizeExpr(0)
+
+                return scope.calcOnState {
+                    val sliceLength = ctx.mkIte(
+                        ctx.mkHeapRefEq(slice, ctx.nullRef),
+                        { zero },
+                        { memory.readArrayLength(slice, sliceType, ctx.sizeSort) }
+                    )
+                    val appendLength = ctx.mkIte(
+                        ctx.mkHeapRefEq(append, ctx.nullRef),
+                        { zero },
+                        { memory.readArrayLength(append, sliceType, ctx.sizeSort) }
+                    )
+                    checkLength(sliceLength) ?: throw IllegalStateException()
+                    checkLength(appendLength) ?: throw IllegalStateException()
+
+                    val out = memory.allocConcrete(sliceType)
+                    val length = ctx.mkSizeAddExpr(sliceLength, appendLength)
+
+                    memory.writeArrayLength(out, length, sliceType, ctx.sizeSort)
+                    memory.memcpy(slice, out, sliceType, elementSort, zero, zero, sliceLength)
+                    memory.memcpy(append, out, sliceType, elementSort, zero, sliceLength, appendLength)
+
+                    out
+                }
+            }
+
+            "copy" -> {
+                val src = args[1].accept(this).asExpr(ctx.addressSort)
+                val dst = args[0].accept(this).asExpr(ctx.addressSort)
+                val sliceType = args[0].type as SliceType
+                val elementSort = ctx.typeToSort(sliceType.elementType)
+
+                return scope.calcOnState {
+                    val srcLength = memory.readArrayLength(src, sliceType, ctx.sizeSort)
+                    val dstLength = memory.readArrayLength(dst, sliceType, ctx.sizeSort)
+                    checkLength(srcLength) ?: throw IllegalStateException()
+                    checkLength(dstLength) ?: throw IllegalStateException()
+                    val numCopied = ctx.mkIte(ctx.mkSizeLtExpr(srcLength, dstLength), srcLength, dstLength)
+
+                    memory.memcpy(src, dst, sliceType, elementSort, ctx.mkSizeExpr(0), ctx.mkSizeExpr(0), numCopied)
+                    numCopied
+                }
+            }
+
+            "delete" -> {
+                val map = args[0].accept(this).asExpr(ctx.addressSort)
+                val key = args[1].accept(this)
+                val mapType = args[0].type as MapType
+                val keySort = ctx.typeToSort(mapType.keyType)
+
+                scope.ensureObjectMapSizeCorrect(map, mapType) ?: throw IllegalStateException()
+                scope.doWithState {
+                    if (keySort == ctx.addressSort) {
+                        symbolicObjectMapRemove(map, key.asExpr(ctx.addressSort), mapType)
+                    } else {
+                        symbolicPrimitiveMapRemove(map, key.asExpr(keySort), mapType, USizeExprKeyInfo())
+                    }
+                }
+                return ctx.voidValue
+            }
+
             "len", "cap" -> {
                 val arg = args[0]
                 val collection = arg.accept(this).asExpr(ctx.addressSort)
@@ -793,7 +867,11 @@ class GoExprVisitor(
                     trueBranch = {
                         scope.calcOnState {
                             when (val type = arg.type) {
-                                is ArrayType, is SliceType, is BasicType -> memory.readArrayLength(collection, type, ctx.sizeSort)
+                                is ArrayType, is SliceType, is BasicType -> {
+                                    val length = memory.readArrayLength(collection, type, ctx.sizeSort)
+                                    checkLength(length) ?: throw IllegalStateException()
+                                    length
+                                }
                                 is MapType -> {
                                     scope.ensureObjectMapSizeCorrect(collection, type) ?: throw IllegalStateException()
                                     symbolicObjectMapSize(collection, type)

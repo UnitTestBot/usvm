@@ -162,6 +162,7 @@ object Converter {
             is Instruction.MakeMap -> GoMakeMapExpr(loc, getType(inst.goType), unpack(inst.reserve), inst.register).toAssignInst()
             is Instruction.MakeSlice -> unpack(loc, inst)
             is Instruction.MapUpdate -> GoMapUpdateInst(loc, unpack(inst.map), unpack(inst.key), unpack(inst.value))
+            is Instruction.MultiConvert -> unsupportedInstruction("MultiConvert")
             is Instruction.Next -> GoNextExpr(loc, getType(inst.goType), unpack(inst.iter), inst.register).toAssignInst()
             is Instruction.Panic -> GoPanicInst(loc, unpack(inst.value))
             is Instruction.Phi -> GoPhiExpr(loc, getType(inst.goType), inst.edges.map(this::unpack), inst.register).toAssignInst()
@@ -369,7 +370,7 @@ object Converter {
             GoBasicTypes.FLOAT64 -> GoFloat64(string.toDouble(), type)
             GoBasicTypes.STRING -> GoStringConstant(string, type)
             GoBasicTypes.RUNE -> GoInt32(string.toInt(), type)
-            else -> GoNullConstant()
+            else -> GoNullConstant(basicType)
         }
     }
 

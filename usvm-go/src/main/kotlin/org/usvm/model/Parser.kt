@@ -1,6 +1,5 @@
 package org.usvm.model
 
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
@@ -54,6 +53,7 @@ class Parser {
                 subclass(Instruction.MakeClosure::class, Instruction.MakeClosure.serializer())
                 subclass(Instruction.Phi::class, Instruction.Phi.serializer())
                 subclass(Instruction.Select::class, Instruction.Select.serializer())
+                subclass(Instruction.MultiConvert::class, Instruction.MultiConvert.serializer())
             }
 
             polymorphic(Value::class) {

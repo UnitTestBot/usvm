@@ -102,3 +102,56 @@ func sliceToArrayPointer(nums []int) *[3]int {
 	a[1] = 1
 	return a
 }
+
+func sliceAppend(nums []int) []int {
+	nums = append(nums, 3)
+	nums = append(nums, []int{1, 2}...)
+	return append(nums, 4)
+}
+
+func sliceAppendTwo(nums1, nums2 []int) []int {
+	if len(nums1) < 5 || len(nums1) > 10 || len(nums2) < 5 || len(nums2) > 10 {
+		return nil
+	}
+
+	nums := append(nums1, nums2...)
+	return append(nums, 4)
+}
+
+func sliceAppendSimple(a []int) []int {
+	if len(a) == 0 || a == nil {
+		return []int{1, 2}
+	}
+
+	var c []int = nil
+	b := append(c, 5, 6)
+	return append(a, b...)
+}
+
+func sliceSumMatrix(matrix [][]int) int {
+	if len(matrix) < 3 {
+		panic("too small")
+	}
+	if len(matrix[0]) < 3 {
+		panic("too small")
+	}
+
+	s := 0
+	for _, m := range matrix {
+		for _, n := range m {
+			s += n
+		}
+	}
+	return s
+}
+
+func sliceCopySimple(a []int) []int {
+	if len(a) == 0 {
+		return a
+	}
+
+	a[0] = 5
+	b := make([]int, len(a))
+	copy(b, a)
+	return b
+}

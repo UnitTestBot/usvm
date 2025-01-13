@@ -119,13 +119,14 @@ class GoTestInterpreter(
                             GoBasicTypes.STRING -> resolveString(h)
                             else -> resolveBoxed(h, type)
                         }
+
                         is ArrayType -> resolveArray(h, type)
                         is SliceType -> resolveSlice(h, type)
                         is MapType -> resolveMap(h, type)
                         is TupleType -> resolveTuple(h, type)
                         is StructType -> resolveStruct(h, type)
                         is NamedType -> type.name + ": " + convertExpr(h, type.underlyingType)
-                        is InterfaceType -> convertExpr(h, memory.typeStreamOf(h).first())
+                        is InterfaceType -> resolveInterface(h)
                         is NullType -> null
                         else -> Any()
                     }
@@ -155,7 +156,7 @@ class GoTestInterpreter(
         fun resolveSize(expr: UExpr<out USort>) = (model.eval(expr) as KBitVec32Value).numberValue
 
         fun resolveString(string: UHeapRef): String = with(ctx) {
-            if (string == mkConcreteHeapRef(NULL_ADDRESS) || string == ctx.nullRef) {
+            if (string == mkConcreteHeapRef(NULL_ADDRESS) || string == nullRef) {
                 return ""
             }
 
@@ -205,7 +206,7 @@ class GoTestInterpreter(
         }
 
         fun resolveMap(map: UHeapRef, mapType: MapType): Map<Any?, Any?>? = with(ctx) {
-            if (map == mkConcreteHeapRef(NULL_ADDRESS)) {
+            if (map == mkConcreteHeapRef(NULL_ADDRESS) || map == nullRef) {
                 return null
             }
 
@@ -249,23 +250,23 @@ class GoTestInterpreter(
 
             if (length > result.size) {
                 val diff = length - result.size
-                val entries = Array(diff) {
+                val rng = RNG(keyType as BasicType)
+                for (i in 0 until diff) {
                     val key = if (isRefSet) {
                         convertExpr(state.symbolicObjectMapAnyKey(map, mapType), keyType)
                     } else {
-                        RNG(keyType as BasicType).generateUniqueMapKey(result)
+                        rng.generateUniqueMapKey(result)
                     }
                     val value = convertExpr(valueSort.sampleUValue(), valueType)
-                    key to value
+                    result[key] = value
                 }
-                result.putAll(entries)
             }
 
             return result
         }
 
         fun resolveTuple(tuple: UHeapRef, tupleType: TupleType): List<Any?>? = with(ctx) {
-            if (tuple == mkConcreteHeapRef(NULL_ADDRESS)) {
+            if (tuple == mkConcreteHeapRef(NULL_ADDRESS) || tuple == nullRef) {
                 return null
             }
 
@@ -276,13 +277,21 @@ class GoTestInterpreter(
         }
 
         fun resolveStruct(struct: UHeapRef, structType: StructType): Map<String, Any?>? = with(ctx) {
-            if (struct == mkConcreteHeapRef(NULL_ADDRESS)) {
+            if (struct == mkConcreteHeapRef(NULL_ADDRESS) || struct == nullRef) {
                 return null
             }
 
             return structType.fields?.mapIndexed { idx, type -> Pair(idx, type) }?.associate {
                 Pair("field${it.first}", convertExpr(memory.readField(struct, it.first, typeToSort(it.second)), it.second))
             }
+        }
+
+        fun resolveInterface(iface: UHeapRef): Any? = with(ctx) {
+            if (iface == mkConcreteHeapRef(NULL_ADDRESS) || iface == nullRef) {
+                return null
+            }
+
+            return convertExpr(iface, memory.typeStreamOf(iface).first())
         }
 
         fun resolvePointer(pointer: UHeapRef, pointerType: PointerType): Any? = with(ctx) {
