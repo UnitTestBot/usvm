@@ -42,7 +42,7 @@ class TSTestResolver(
         val model = state.models.first()
         when (val methodResult = state.methodResult) {
             is TSMethodResult.Success -> {
-                val valueToResolve = model.eval(methodResult.value.extractOrThis())
+                val valueToResolve = model.eval(methodResult.value.unwrapIfRequired())
                 val returnValue = resolveExpr(valueToResolve, method.returnType, model)
                 val params = resolveParams(method.parameters, this, model)
 
@@ -69,7 +69,7 @@ class TSTestResolver(
         params.map {  param ->
             val type = param.type
             val lValue = URegisterStackLValue(typeToSort(type), param.index)
-            val expr = model.read(lValue).extractOrThis()
+            val expr = model.read(lValue).unwrapIfRequired()
             if (type is EtsUnknownType) {
                 approximateParam(expr.cast(), param.index, model)
             } else {
@@ -83,7 +83,7 @@ class TSTestResolver(
             is TypesResult.SuccessfulTypesResult -> with (expr.tctx) {
                 val newType = tr.types.first()
                 val newLValue = URegisterStackLValue(typeToSort(newType), idx)
-                val transformed = model.read(newLValue).extractOrThis()
+                val transformed = model.read(newLValue).unwrapIfRequired()
                 resolveExpr(transformed, newType, model)
             }
 

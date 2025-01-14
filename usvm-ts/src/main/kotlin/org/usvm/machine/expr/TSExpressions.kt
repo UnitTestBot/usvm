@@ -10,11 +10,11 @@ import io.ksmt.expr.printer.ExpressionPrinter
 import io.ksmt.expr.transformer.KTransformerBase
 import io.ksmt.sort.KSortVisitor
 import io.ksmt.utils.cast
-import org.usvm.machine.TSContext
 import org.usvm.UExpr
 import org.usvm.UIntepretedValue
 import org.usvm.USort
 import org.usvm.USymbol
+import org.usvm.machine.TSContext
 import org.usvm.machine.interpreter.TSStepScope
 
 val KAst.tctx get() = ctx as TSContext
@@ -42,46 +42,70 @@ class TSUndefinedValue(ctx: TSContext) : UExpr<TSUndefinedSort>(ctx) {
     }
 }
 
+// TODO rename it
+class TSUnresolvedSort(ctx: TSContext) : USort(ctx) {
+    val possibleSorts: Set<USort> = mutableSetOf() // TODO ??????
+
+    override fun <T> accept(visitor: KSortVisitor<T>): T = error("Should not be called")
+
+    override fun print(builder: StringBuilder) {
+        builder.append("Unresolved sort")
+    }
+}
+
 /**
  * [UExpr] wrapper that handles type coercion.
  *
  * @param value wrapped expression.
  */
-class TSWrappedValue(
+// TODO check that can occur only in assignStmt
+class TSWrappedValue<T : USort>(
     ctx: TSContext,
-    val value: UExpr<out USort>,
-    private val scope: TSStepScope,
+    val value: UExpr<T>,
 ) : USymbol<USort>(ctx) {
     override val sort: USort
         get() = value.sort
 
-    private val transformer = TSExprTransformer(value, scope)
-
-    fun asSort(sort: USort): UExpr<out USort>? = transformer.transform(sort)
+    fun asSort(
+        sort: USort,
+        scope: TSStepScope,
+    ): UExpr<out USort>? = scope.calcOnState { exprTransformer.transform(value, sort) }
 
     private fun coerce(
         other: UExpr<out USort>,
         action: CoerceAction,
-    ): UExpr<out USort> = when (other) {
-        is UIntepretedValue -> {
-            val otherTransformer = TSExprTransformer(other, scope)
-            transformer.intersectWithTypeCoercion(otherTransformer, action)
-        }
+        scope: TSStepScope,
+    ): UExpr<out USort> = with(scope) {
+        when (other) {
+            is UIntepretedValue -> {
+                calcOnState {
+                    exprTransformer.intersectWithTypeCoercion(value, other, action, scope)
+                }
+            }
 
-        is TSWrappedValue -> {
-            transformer.intersectWithTypeCoercion(other.transformer, action)
-        }
+            is TSWrappedValue<*> -> {
+                calcOnState {
+                    exprTransformer.intersectWithTypeCoercion(value, other.value, action, scope)
+                }
+            }
 
-        else -> error("Unexpected $other in type coercion")
+            else -> error("Unexpected $other in type coercion")
+        }
     }
 
     fun coerceWithSort(
         other: UExpr<out USort>,
         action: CoerceAction,
-        sort: USort,
-    ): UExpr<out USort> {
-        transformer.transform(sort)
-        return coerce(other, action)
+        desiredSort: USort?,
+        scope: TSStepScope,
+    ): UExpr<out USort> = with(scope) {
+        desiredSort?.let {
+            doWithState {
+                exprTransformer.transform(value, it)
+            }
+        }
+
+        return coerce(other, action, scope)
     }
 
     override fun accept(transformer: KTransformerBase): KExpr<USort> {
@@ -89,10 +113,10 @@ class TSWrappedValue(
     }
 
     // TODO: draft
-    override fun internEquals(other: Any): Boolean = structurallyEqual(other)
+    override fun internEquals(other: Any): Boolean = structurallyEqual(other) { value }
 
     // TODO: draft
-    override fun internHashCode(): Int = hash()
+    override fun internHashCode(): Int = hash(value)
 
     override fun print(printer: ExpressionPrinter) {
         printer.append("wrapped(")

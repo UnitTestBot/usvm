@@ -9,45 +9,49 @@ import org.usvm.UJoinedBoolExpr
 import org.usvm.URegisterReading
 import org.usvm.USort
 import org.usvm.machine.TSContext
-import org.usvm.machine.TSTypeSystem
 import org.usvm.machine.interpreter.TSStepScope
 import org.usvm.util.boolToFpSort
 import org.usvm.util.fpToBoolSort
 
 typealias CoerceAction = (UExpr<out USort>, UExpr<out USort>) -> UExpr<out USort>?
 
+// TODO move to TsState, make a persistentMap
 class TSExprTransformer(
-    private val baseExpr: UExpr<out USort>,
-    private val scope: TSStepScope,
+    private val ctx: TSContext,
+    // private val baseExpr: UExpr<out USort>,
+    // private val scope: TSStepScope,
 ) {
+    private val cache: MutableMap<UExpr<out USort>, MutableMap<USort, UExpr<out USort>?>> = hashMapOf()
 
-    private val exprCache: MutableMap<USort, UExpr<out USort>?> = hashMapOf(baseExpr.sort to baseExpr)
-    private val ctx = baseExpr.tctx
+    // init {
+    //     if (baseExpr.sort == ctx.addressSort) {
+    //         TSTypeSystem.primitiveTypes.forEach { transform(ctx.typeToSort(it)) }
+    //     }
+    // }
 
-    init {
-        if (baseExpr.sort == ctx.addressSort) {
-            TSTypeSystem.primitiveTypes.forEach { transform(ctx.typeToSort(it)) }
-        }
-    }
-
-    fun transform(sort: USort): UExpr<out USort>? = with(ctx) {
+    // TODO generics
+    fun transform(expr: UExpr<out USort>, sort: USort): UExpr<out USort>? = with(ctx) {
         return when (sort) {
-            fp64Sort -> asFp64()
-            boolSort -> asBool()
-            addressSort -> asRef()
+            fp64Sort -> asFp64(expr)
+            boolSort -> asBool(expr)
+            addressSort -> asRef(expr)
             else -> error("Unknown sort: $sort")
         }
     }
 
     fun intersectWithTypeCoercion(
-        other: TSExprTransformer,
+        fst: UExpr<out USort>,
+        snd: UExpr<out USort>,
         action: CoerceAction,
+        scope: TSStepScope
     ): UExpr<out USort> {
-        intersect(other)
+        intersect(fst, snd)
 
-        val exprs = exprCache.keys.mapNotNull { sort ->
-            val lhv = transform(sort)
-            val rhv = other.transform(sort)
+        val fstSorts = cache.getValue(fst).keys
+        val exprs = fstSorts.mapNotNull { sort ->
+            val lhv = transform(fst, sort)
+            val rhv = transform(snd, sort)
+
             if (lhv != null && rhv != null) {
                 action(lhv, rhv)
             } else {
@@ -55,7 +59,7 @@ class TSExprTransformer(
             }
         }
 
-        ctx.generateAdditionalExprs(exprs)
+        ctx.generateAdditionalExprs(fst, exprs, scope)
 
         return if (exprs.size > 1) {
             if (!exprs.all { it.sort == ctx.boolSort }) error("All expressions must be of bool sort.")
@@ -65,12 +69,18 @@ class TSExprTransformer(
         }
     }
 
-    private fun intersect(other: TSExprTransformer) {
-        exprCache.keys.forEach { sort ->
-            other.transform(sort)
+    private fun intersect(fst: UExpr<out USort>, snd: UExpr<out USort>) {
+        val fstCache = cache.getOrPut(fst) { mutableMapOf(fst.sort to fst) }
+        val sndCache =  cache.getOrPut(snd) { mutableMapOf(snd.sort to snd) }
+
+        val fstSorts = fstCache.keys
+        fstSorts.forEach { sort ->
+            sndCache.getOrPut(sort) { transform(snd, sort) }
         }
-        other.exprCache.keys.forEach { sort ->
-            transform(sort)
+
+        val sndSorts = sndCache.keys
+        sndSorts.forEach { sort ->
+            fstCache.getOrPut(sort) { transform(fst, sort) }
         }
     }
 
@@ -84,54 +94,67 @@ class TSExprTransformer(
      * @return List of additional [UExpr].
      */
     @Suppress("UNCHECKED_CAST")
-    private fun TSContext.generateAdditionalExprs(rawExprs: List<UExpr<out USort>>) {
-        if (!rawExprs.all { it.sort == boolSort }) return
-        when (baseExpr.sort) {
+    private fun TSContext.generateAdditionalExprs(
+        expr: UExpr<out USort>,
+        rawExprs: List<UExpr<out USort>>,
+        scope: TSStepScope
+    ) {
+        // a + b // ??? ???
+        // regionReading + regionReading
+
+        if (!rawExprs.all { it.sort == boolSort }) return // TODO why???
+        when (expr.sort) {
             // Saves link in constraints between asFp64(ref) and asBool(ref) since they were instantiated separately.
             // No need to add link between ref and fp64/bool representations since refs can only be compared with refs.
             // (primitives can't be cast to ref in TypeScript type coercion)
             addressSort -> {
-                val fpToBoolLink = mkEq(fpToBoolSort(asFp64()), asBool())
-                val boolToRefLink =  mkEq(asBool(), (baseExpr as UExpr<UAddressSort>).neq(mkNullRef()))
-                if (addedExprCache.add(fpToBoolLink)) scope.calcOnState { pathConstraints.plusAssign(fpToBoolLink) }
+                val fpToBoolLink = mkEq(fpToBoolSort(asFp64(expr)), asBool(expr))
+                val boolToRefLink = mkEq(asBool(expr), (expr as UExpr<UAddressSort>).neq(mkNullRef()))
+                // TODO do not add path constraints
+                if (addedExprCache.add(fpToBoolLink)) scope.calcOnState { pathConstraints.plusAssign(fpToBoolLink) } // TODO check if we can do it
                 if (addedExprCache.add(boolToRefLink)) scope.calcOnState { pathConstraints.plusAssign(boolToRefLink) }
             }
         }
     }
 
-    fun asFp64(): UExpr<KFp64Sort> = exprCache.getOrPut(ctx.fp64Sort) {
-        when (baseExpr.sort) {
-            ctx.fp64Sort -> baseExpr
-            ctx.boolSort -> ctx.boolToFpSort(baseExpr.cast())
-            ctx.addressSort -> with(ctx) {
-                TSRefTransformer(ctx, fp64Sort).apply(baseExpr.cast()).cast()
-            }
+    private fun asFp64(expr: UExpr<out USort>): UExpr<KFp64Sort> =
+        cache.getOrPut(expr) { mutableMapOf() }
+            .getOrPut(ctx.fp64Sort) {
+                when (expr.sort) {
+                    ctx.fp64Sort -> expr
+                    ctx.boolSort -> ctx.boolToFpSort(expr.cast())
+                    ctx.addressSort -> with(ctx) {
+                        TSRefTransformer(ctx, fp64Sort).apply(expr.cast()).cast()
+                    }
 
-            else -> error("Unsupported sort: ${baseExpr.sort}")
-        }
-    }.cast()
+                    else -> error("Unsupported sort: ${expr.sort}")
+                }
+            }.cast()
 
+    private fun asBool(expr: UExpr<out USort>): UExpr<KBoolSort> =
+        cache.getOrPut(expr) { mutableMapOf() }
+            .getOrPut(ctx.boolSort) {
+                when (expr.sort) {
+                    ctx.boolSort -> expr
+                    ctx.fp64Sort -> ctx.fpToBoolSort(expr.cast())
+                    ctx.addressSort -> with(ctx) {
+                        TSRefTransformer(ctx, boolSort).apply(expr.cast()).cast()
+                    }
 
-    fun asBool(): UExpr<KBoolSort> = exprCache.getOrPut(ctx.boolSort) {
-        when (baseExpr.sort) {
-            ctx.boolSort -> baseExpr
-            ctx.fp64Sort -> ctx.fpToBoolSort(baseExpr.cast())
-            ctx.addressSort -> with(ctx) {
-                TSRefTransformer(ctx, boolSort).apply(baseExpr.cast()).cast()
-            }
+                    else -> error("Unsupported sort: ${expr.sort}")
+                }
+            }.cast()
 
-            else -> error("Unsupported sort: ${baseExpr.sort}")
-        }
-    }.cast()
-
-    fun asRef(): UExpr<UAddressSort>? = exprCache.getOrPut(ctx.addressSort) {
-        when (baseExpr.sort) {
-            ctx.addressSort -> baseExpr
-            // ctx.mkTrackedSymbol(ctx.addressSort) is possible here, but
-            // no constraint-wise benefits of using it instead of null were currently found.
-            else -> null
-        }
-    }.cast()
+    private fun asRef(expr: UExpr<out USort>): UExpr<UAddressSort>? =
+        cache.getOrPut(expr) { mutableMapOf() }
+            .getOrPut(ctx.addressSort) {
+                when (expr.sort) {
+                    ctx.addressSort -> expr
+                    // ctx.mkTrackedSymbol(ctx.addressSort) is possible here, but
+                    // no constraint-wise benefits of using it instead of null were currently found.
+                    else -> null
+                }
+            }.cast()
 }
 
 /**

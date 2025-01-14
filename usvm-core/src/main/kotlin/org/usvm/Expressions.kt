@@ -329,7 +329,7 @@ class UJoinedBoolExpr(
     override val sort: UBoolSort
         get() = ctx.boolSort
 
-    private val joinedExprs = ctx.mkAnd(exprs)
+    private val joinedExprs = ctx.mkAnd(exprs) // TODO rewrite with mkNot
 
     // Size of exprs is not big since it generates from all sorts supported by machine [n]
     // (small number even when finished)

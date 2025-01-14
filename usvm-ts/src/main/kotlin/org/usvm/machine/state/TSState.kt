@@ -4,12 +4,13 @@ import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.model.EtsMethod
 import org.usvm.PathNode
-import org.usvm.machine.TSContext
-import org.usvm.api.targets.TSTarget
 import org.usvm.UCallStack
 import org.usvm.UState
+import org.usvm.api.targets.TSTarget
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.constraints.UPathConstraints
+import org.usvm.machine.TSContext
+import org.usvm.machine.expr.TSExprTransformer
 import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase
 import org.usvm.targets.UTargetsSet
@@ -26,6 +27,7 @@ class TSState(
     forkPoints: PathNode<PathNode<EtsStmt>> = PathNode.root(),
     var methodResult: TSMethodResult = TSMethodResult.NoCall,
     targets: UTargetsSet<TSTarget, EtsStmt> = UTargetsSet.empty(),
+    val exprTransformer: TSExprTransformer
 ) : UState<EtsType, EtsMethod, EtsStmt, TSContext, TSTarget, TSState>(
     ctx,
     ownership,
@@ -57,7 +59,8 @@ class TSState(
             pathNode,
             forkPoints,
             methodResult,
-            targets.clone()
+            targets.clone(),
+            exprTransformer
         )
     }
 

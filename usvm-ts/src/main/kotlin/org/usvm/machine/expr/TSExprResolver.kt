@@ -114,7 +114,7 @@ class TSExprResolver(
         lhv: EtsEntity,
         rhv: EtsEntity,
     ): UExpr<out USort>? = resolveAfterResolved(lhv, rhv) { lhs, rhs ->
-        operator(lhs, rhs, scope)
+        operator.resolve(lhs, rhs, scope) ?: error("Something went wrong during binary operator resolution")
     }
 
     private inline fun <T> resolveAfterResolved(

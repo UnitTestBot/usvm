@@ -47,6 +47,7 @@ object WithSolverStateForker : StateForker {
         condition: UBoolExpr,
     ): ForkResult<T> {
         val unwrappedCondition: UBoolExpr = condition.unwrapJoinedExpr(state.ctx).cast()
+        // TODO false models full of shit (because if fucked up negation of unwrappedCondition)
         val (trueModels, falseModels, _) = splitModelsByCondition(state.models, unwrappedCondition)
 
         val notCondition = if (condition is UJoinedBoolExpr) condition.not() else state.ctx.mkNot(unwrappedCondition)
