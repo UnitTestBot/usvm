@@ -27,7 +27,7 @@ import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.machine.TSApplicationGraph
 import org.usvm.machine.TSContext
 import org.usvm.machine.expr.TSExprResolver
-import org.usvm.machine.expr.TSWrappedValue
+import org.usvm.machine.expr.TSExprTransformer
 import org.usvm.machine.state.TSMethodResult
 import org.usvm.machine.state.TSState
 import org.usvm.machine.state.lastStmt
@@ -133,7 +133,7 @@ class TSInterpreter(
             .getOrPut(mapLocalToIdx(stmt.method, stmt.lhv)) { expr.sort }
         val lvalue = exprResolver.resolveLValue(stmt.lhv)
 
-        val wrappedExpr = TSWrappedValue(ctx, expr, scope)
+        val wrappedExpr = ctx.mkTSWrappedValue(expr)
         scope.doWithState {
             memory.write(lvalue, wrappedExpr)
             val nextStmt = stmt.nextStmt ?: return@doWithState
@@ -196,7 +196,13 @@ class TSInterpreter(
         }
 
     fun getInitialState(method: EtsMethod, targets: List<TSTarget>): TSState {
-        val state = TSState(ctx, MutabilityOwnership(), method, targets = UTargetsSet.from(targets))
+        val state = TSState(
+            ctx = ctx,
+            ownership = MutabilityOwnership(),
+            entrypoint = method,
+            targets = UTargetsSet.from(targets),
+            exprTransformer = TSExprTransformer(ctx)
+        )
 
         val solver = ctx.solver<EtsType>()
         val model = (solver.check(state.pathConstraints) as USatResult).model
