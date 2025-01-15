@@ -498,36 +498,10 @@ class ForwardFlowFunctions(
         callStatement: EtsStmt,
         fact: TypedVariable,
     ): List<TypedVariable> {
+        @Suppress("UNUSED_VARIABLE")
         val callExpr = callStatement.callExpr ?: error("No call in $callStatement")
 
-        if (callStatement is EtsAssignStmt) {
-            val left = callStatement.lhv.toPath()
-            if (fact.variable.base == left.base) {
-                // Fact on LHS is overwritten by the call result
-                return emptyList()
-            }
-        }
-
-        // // todo: hack, keep fact if call was not resolved
-        // if (graph.callees(callStatement).none()) {
-        //     return listOf(fact)
-        // }
-        //
-        // graph.callees(callStatement).singleOrNull()?.let { q ->
-        //     if (q.cfg.stmts.isEmpty()) {
-        //         return listOf(fact)
-        //     }
-        // }
-        //
-        // if (callExpr is EtsInstanceCallExpr) {
-        //     val instance = callExpr.instance.toPath()
-        //     if (fact.variable.base == instance.base) return emptyList()
-        // }
-        //
-        // for (arg in callExpr.args) {
-        //     val argPath = arg.toPath()
-        //     if (fact.variable.base == argPath.base) return emptyList()
-        // }
+        // Note: we DO NOT drop any type facts on calls!
 
         return listOf(fact)
     }
