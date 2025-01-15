@@ -421,8 +421,9 @@ class BackwardFlowFunctions(
             when (val a = lhv.accesses.single()) {
                 // Case `x.f := y`
                 is FieldAccessor -> {
+                    val facts = mutableListOf(fact)
+
                     if (fact.type is EtsTypeFact.UnionEtsTypeFact) {
-                        val facts = mutableListOf(fact)
                         val types = fact.type.types.mapNotNull {
                             if (it is EtsTypeFact.ObjectEtsTypeFact) {
                                 it.properties[a.name]
@@ -439,7 +440,6 @@ class BackwardFlowFunctions(
                     }
 
                     if (fact.type is EtsTypeFact.IntersectionEtsTypeFact) {
-                        val facts = mutableListOf(fact)
                         for (subType in fact.type.types) {
                             if (subType is EtsTypeFact.ObjectEtsTypeFact) {
                                 val propertyType = subType.properties[a.name]
@@ -450,8 +450,6 @@ class BackwardFlowFunctions(
                         }
                         return facts
                     }
-
-                    val facts = mutableListOf(fact)
 
                     // Ignore (pass) non-object type facts:
                     // x:primitive |= x:primitive (pass)
@@ -471,24 +469,44 @@ class BackwardFlowFunctions(
 
                 // Case `x[i] := y`
                 is ElementAccessor -> {
+                    val facts = mutableListOf(fact)
+
                     if (fact.type is EtsTypeFact.UnionEtsTypeFact) {
-                        // TODO("Support union type for x[i] := y in BW-sequent")
+                        val types = fact.type.types.mapNotNull {
+                            if (it is EtsTypeFact.ArrayEtsTypeFact) {
+                                it.elementType
+                            } else {
+                                null
+                            }
+                        }
+                        if (types.isNotEmpty()) {
+                            // x:T |= x:T (keep) + y:T
+                            val newType = types.reduce { acc, type -> typeProcessor.union(acc, type) }
+                            facts += TypedVariable(rhv.base, newType).withTypeGuards(current)
+                        }
+                        return facts
                     }
 
                     if (fact.type is EtsTypeFact.IntersectionEtsTypeFact) {
-                        // TODO("Support intersection type for x[i] := y in BW-sequent")
+                        for (subType in fact.type.types) {
+                            if (subType is EtsTypeFact.ArrayEtsTypeFact) {
+                                val elementType = subType.elementType
+                                facts += TypedVariable(rhv.base, elementType).withTypeGuards(current)
+                            }
+                        }
+                        return facts
                     }
 
                     // x:Array<T> |= x:Array<T> (pass)
                     if (fact.type !is EtsTypeFact.ArrayEtsTypeFact) {
-                        return listOf(fact)
+                        return facts
                     }
 
                     // x:Array<T> |= x:Array<T> (keep) + y:T
                     val y = rhv.base
                     val type = fact.type.elementType
-                    val newFact = TypedVariable(y, type).withTypeGuards(current)
-                    return listOf(fact, newFact)
+                    facts += TypedVariable(y, type).withTypeGuards(current)
+                    return facts
                 }
             }
         } else {
