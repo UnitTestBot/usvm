@@ -422,6 +422,7 @@ class BackwardFlowFunctions(
                 // Case `x.f := y`
                 is FieldAccessor -> {
                     if (fact.type is EtsTypeFact.UnionEtsTypeFact) {
+                        val facts = mutableListOf(fact)
                         val types = fact.type.types.mapNotNull {
                             if (it is EtsTypeFact.ObjectEtsTypeFact) {
                                 it.properties[a.name]
@@ -432,11 +433,9 @@ class BackwardFlowFunctions(
                         if (types.isNotEmpty()) {
                             // x:T |= x:T (keep) + y:T
                             val newType = types.reduce { acc, type -> typeProcessor.union(acc, type) }
-                            val newFact = TypedVariable(rhv.base, newType).withTypeGuards(current)
-                            return listOf(fact, newFact)
+                            facts += TypedVariable(rhv.base, newType).withTypeGuards(current)
                         }
-                        // Note: here, we ignore union of non-object types and union of
-                        //       object types completely without the necessary properties.
+                        return facts
                     }
 
                     if (fact.type is EtsTypeFact.IntersectionEtsTypeFact) {
@@ -445,28 +444,29 @@ class BackwardFlowFunctions(
                             if (subType is EtsTypeFact.ObjectEtsTypeFact) {
                                 val propertyType = subType.properties[a.name]
                                 if (propertyType != null) {
-                                    val newFact = TypedVariable(rhv.base, propertyType).withTypeGuards(current)
-                                    facts += newFact
+                                    facts += TypedVariable(rhv.base, propertyType).withTypeGuards(current)
                                 }
                             }
                         }
                         return facts
                     }
 
+                    val facts = mutableListOf(fact)
+
                     // Ignore (pass) non-object type facts:
                     // x:primitive |= x:primitive (pass)
                     if (fact.type !is EtsTypeFact.ObjectEtsTypeFact) {
-                        return listOf(fact)
+                        return facts
                     }
 
                     // x:{f:T} |= x:{f:T} (keep) + y:T
                     // x:{no f} |= only keep x:{..}
-                    val propertyType = fact.type.properties[a.name]
-                    val y = rhv.base
-                    val newFact = propertyType?.let { type ->
-                        TypedVariable(y, type).withTypeGuards(current)
+                    val type = fact.type.properties[a.name]
+                    if (type != null) {
+                        val y = rhv.base
+                        facts += TypedVariable(y, type).withTypeGuards(current)
                     }
-                    return listOfNotNull(fact, newFact)
+                    return facts
                 }
 
                 // Case `x[i] := y`
