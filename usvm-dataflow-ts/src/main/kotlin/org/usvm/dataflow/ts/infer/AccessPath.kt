@@ -38,13 +38,13 @@ fun AccessPath?.startsWith(other: AccessPath?): Boolean {
 fun List<Accessor>.hasDuplicateFields(limit: Int = 2): Boolean {
     // val counts = this.groupingBy { it }.eachCount()
     // return counts.any { it.value >= limit }
-    val counts = mutableMapOf<Accessor, Int>()
+    val counts = hashMapOf<Accessor, Int>()
     for (accessor in this) {
         val count = counts.getOrDefault(accessor, 0)
-        counts[accessor] = count + 1
         if (count + 1 >= limit) {
             return true
         }
+        counts[accessor] = count + 1
     }
     return false
 }
