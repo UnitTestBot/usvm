@@ -432,7 +432,8 @@ class BackwardFlowFunctions(
                         if (types.isNotEmpty()) {
                             // x:T |= x:T (keep) + y:T
                             val newType = types.reduce { acc, type -> typeProcessor.union(acc, type) }
-                            return listOf(fact, TypedVariable(rhv.base, newType).withTypeGuards(current))
+                            val newFact = TypedVariable(rhv.base, newType).withTypeGuards(current)
+                            return listOf(fact, newFact)
                         }
                         // Note: here, we ignore union of non-object types and union of
                         //       object types completely without the necessary properties.
