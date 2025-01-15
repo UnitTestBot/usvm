@@ -43,44 +43,34 @@ private val logger = KotlinLogging.logger {}
 class TypeFactProcessor(
     private val scene: EtsScene,
 ) {
-    fun union(a: EtsTypeFact, b: EtsTypeFact): EtsTypeFact {
-        return a.union(b)
-    }
-
-    fun intersect(a: EtsTypeFact, b: EtsTypeFact): EtsTypeFact? {
-        return a.intersect(b)
-    }
-
-    @JvmName("union_")
-    private fun EtsTypeFact.union(other: EtsTypeFact): EtsTypeFact {
-        if (this == other) return this
+    fun union(type: EtsTypeFact, other: EtsTypeFact): EtsTypeFact {
+        if (type == other) return type
 
         return when {
-            this is ObjectEtsTypeFact && other is ObjectEtsTypeFact -> union(this, other)
-            this is ObjectEtsTypeFact && other is StringEtsTypeFact -> union(this, other)
-            this is UnionEtsTypeFact -> union(this, other)
-            this is IntersectionEtsTypeFact -> union(this, other)
-            this is GuardedTypeFact -> union(this, other)
-            other is UnionEtsTypeFact -> union(other, this)
-            other is IntersectionEtsTypeFact -> union(other, this)
-            other is GuardedTypeFact -> union(other, this)
-            else -> mkUnionType(this, other)
+            type is ObjectEtsTypeFact && other is ObjectEtsTypeFact -> union(type, other)
+            type is ObjectEtsTypeFact && other is StringEtsTypeFact -> union(type, other)
+            type is UnionEtsTypeFact -> union(type, other)
+            type is IntersectionEtsTypeFact -> union(type, other)
+            type is GuardedTypeFact -> union(type, other)
+            other is UnionEtsTypeFact -> union(other, type)
+            other is IntersectionEtsTypeFact -> union(other, type)
+            other is GuardedTypeFact -> union(other, type)
+            else -> mkUnionType(type, other)
         }
     }
 
-    @JvmName("intersect_")
-    private fun EtsTypeFact.intersect(other: EtsTypeFact?): EtsTypeFact? {
-        if (other == null) return this
+    fun intersect(type: EtsTypeFact, other: EtsTypeFact?): EtsTypeFact? {
+        if (other == null) return type
 
-        if (this == other) return this
+        if (type == other) return type
 
-        if (other is UnknownEtsTypeFact) return this
+        if (other is UnknownEtsTypeFact) return type
         if (other is AnyEtsTypeFact) return other
 
-        return when (this) {
+        return when (type) {
             is UnknownEtsTypeFact -> other
 
-            is AnyEtsTypeFact -> this
+            is AnyEtsTypeFact -> type
 
             is StringEtsTypeFact,
             is NumberEtsTypeFact,
@@ -88,27 +78,27 @@ class TypeFactProcessor(
             is NullEtsTypeFact,
             is UndefinedEtsTypeFact,
                 -> when (other) {
-                is UnionEtsTypeFact -> intersect(other, this)
-                is IntersectionEtsTypeFact -> intersect(other, this)
-                is GuardedTypeFact -> intersect(other, this)
+                is UnionEtsTypeFact -> intersect(other, type)
+                is IntersectionEtsTypeFact -> intersect(other, type)
+                is GuardedTypeFact -> intersect(other, type)
                 else -> null
             }
 
             is FunctionEtsTypeFact -> when (other) {
-                is ObjectEtsTypeFact -> mkIntersectionType(this, other)
-                is UnionEtsTypeFact -> intersect(other, this)
-                is IntersectionEtsTypeFact -> intersect(other, this)
-                is GuardedTypeFact -> intersect(other, this)
+                is ObjectEtsTypeFact -> mkIntersectionType(type, other)
+                is UnionEtsTypeFact -> intersect(other, type)
+                is IntersectionEtsTypeFact -> intersect(other, type)
+                is GuardedTypeFact -> intersect(other, type)
                 else -> null
             }
 
             is ArrayEtsTypeFact -> when (other) {
                 is ArrayEtsTypeFact -> {
-                    val t = elementType.intersect(other.elementType)
+                    val t = intersect(type.elementType, other.elementType)
                     if (t == null) {
                         logger.warn {
                             "Empty intersection of array element types: ${
-                                elementType.toStringLimited()
+                                type.elementType.toStringLimited()
                             } & ${
                                 other.elementType.toStringLimited()
                             }"
@@ -123,18 +113,18 @@ class TypeFactProcessor(
             }
 
             is ObjectEtsTypeFact -> when (other) {
-                is ObjectEtsTypeFact -> intersect(this, other)
-                is StringEtsTypeFact -> intersect(this, other)
-                is FunctionEtsTypeFact -> mkIntersectionType(this, other)
-                is UnionEtsTypeFact -> intersect(other, this)
-                is IntersectionEtsTypeFact -> intersect(other, this)
-                is GuardedTypeFact -> intersect(other, this)
+                is ObjectEtsTypeFact -> intersect(type, other)
+                is StringEtsTypeFact -> intersect(type, other)
+                is FunctionEtsTypeFact -> mkIntersectionType(type, other)
+                is UnionEtsTypeFact -> intersect(other, type)
+                is IntersectionEtsTypeFact -> intersect(other, type)
+                is GuardedTypeFact -> intersect(other, type)
                 else -> null
             }
 
-            is UnionEtsTypeFact -> intersect(this, other)
-            is IntersectionEtsTypeFact -> intersect(this, other)
-            is GuardedTypeFact -> intersect(this, other)
+            is UnionEtsTypeFact -> intersect(type, other)
+            is IntersectionEtsTypeFact -> intersect(type, other)
+            is GuardedTypeFact -> intersect(type, other)
         }
     }
 
@@ -146,7 +136,7 @@ class TypeFactProcessor(
     private fun intersect(intersectionType: IntersectionEtsTypeFact, other: EtsTypeFact): EtsTypeFact? {
         val result = hashSetOf<EtsTypeFact>()
         for (type in intersectionType.types) {
-            val intersection = type.intersect(other) ?: return null
+            val intersection = intersect(type, other) ?: return null
             if (intersection is IntersectionEtsTypeFact) {
                 result.addAll(intersection.types)
             } else {
@@ -160,9 +150,9 @@ class TypeFactProcessor(
         if (other is GuardedTypeFact) {
             if (other.guard == guardedType.guard) {
                 return if (other.guardNegated == guardedType.guardNegated) {
-                    guardedType.type.intersect(other.type)?.withGuard(guardedType.guard, guardedType.guardNegated)
+                    intersect(guardedType.type, other.type)?.withGuard(guardedType.guard, guardedType.guardNegated)
                 } else {
-                    guardedType.type.union(other.type)
+                    union(guardedType.type, other.type)
                 }
             }
         }
@@ -180,13 +170,13 @@ class TypeFactProcessor(
     }
 
     private fun intersect(obj1: ObjectEtsTypeFact, obj2: ObjectEtsTypeFact): EtsTypeFact? {
-        val intersectionProperties = obj1.getRealProperties(scene).toMutableMap()
-        for ((property, type) in obj2.getRealProperties(scene)) {
+        val intersectionProperties = obj1.getRealProperties().toMutableMap()
+        for ((property, type) in obj2.getRealProperties()) {
             val currentType = intersectionProperties[property]
             if (currentType == null) {
                 intersectionProperties[property] = type
             } else {
-                intersectionProperties[property] = currentType.intersect(type)
+                intersectionProperties[property] = intersect(currentType, type)
                     ?: return null
             }
         }
@@ -211,7 +201,7 @@ class TypeFactProcessor(
     private fun union(unionType: UnionEtsTypeFact, other: EtsTypeFact): EtsTypeFact {
         val result = hashSetOf<EtsTypeFact>()
         for (type in unionType.types) {
-            val union = type.union(other)
+            val union = union(type, other)
             if (union is UnionEtsTypeFact) {
                 result.addAll(union.types)
             } else {
@@ -239,7 +229,7 @@ class TypeFactProcessor(
         val commonProperties = obj1.properties.keys.intersect(obj2.properties.keys).associateWith { property ->
             val thisType = obj1.properties.getValue(property)
             val otherType = obj2.properties.getValue(property)
-            thisType.union(otherType)
+            union(thisType, otherType)
         }
 
         val o1OnlyProperties = obj1.properties.filter { it.key !in obj2.properties }
@@ -275,7 +265,7 @@ class TypeFactProcessor(
         return string
     }
 
-    fun ObjectEtsTypeFact.getRealProperties(scene: EtsScene): Map<String, EtsTypeFact> {
+    private fun ObjectEtsTypeFact.getRealProperties(): Map<String, EtsTypeFact> {
         if (cls == null || cls !is EtsClassType) {
             return properties
         }
@@ -284,8 +274,16 @@ class TypeFactProcessor(
         val props = properties.toMutableMap()
         clazz.methods.forEach { m ->
             props.merge(m.name, FunctionEtsTypeFact) { old, new ->
-                old.intersect(new).also {
-                    if (it == null) logger.warn { "Empty intersection: ${old.toStringLimited()} & ${new.toStringLimited()}" }
+                intersect(old, new).also {
+                    if (it == null) {
+                        logger.warn {
+                            "Empty intersection: ${
+                                old.toStringLimited()
+                            } & ${
+                                new.toStringLimited()
+                            }"
+                        }
+                    }
                 }
             }
         }
