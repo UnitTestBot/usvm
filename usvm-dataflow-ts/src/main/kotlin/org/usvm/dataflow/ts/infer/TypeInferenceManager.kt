@@ -23,7 +23,6 @@ import org.jacodb.ets.base.INSTANCE_INIT_METHOD_NAME
 import org.jacodb.ets.graph.findDominators
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.impl.cfg.graphs.GraphDominators
-import org.usvm.dataflow.graph.reversed
 import org.usvm.dataflow.ifds.ControlEvent
 import org.usvm.dataflow.ifds.Edge
 import org.usvm.dataflow.ifds.Manager
@@ -31,6 +30,7 @@ import org.usvm.dataflow.ifds.QueueEmptinessChanged
 import org.usvm.dataflow.ifds.SingletonUnit
 import org.usvm.dataflow.ifds.UniRunner
 import org.usvm.dataflow.ts.graph.EtsApplicationGraph
+import org.usvm.dataflow.ts.graph.reversed
 import org.usvm.dataflow.ts.infer.EtsTypeFact.Companion.allStringProperties
 import org.usvm.dataflow.ts.util.EtsTraits
 import org.usvm.dataflow.ts.util.getRealLocals

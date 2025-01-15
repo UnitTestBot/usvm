@@ -28,6 +28,7 @@ import org.jacodb.impl.cfg.graphs.GraphDominators
 import org.usvm.dataflow.graph.ApplicationGraph
 import org.usvm.dataflow.ifds.FlowFunction
 import org.usvm.dataflow.ifds.FlowFunctions
+import org.usvm.dataflow.ts.graph.EtsApplicationGraph
 import org.usvm.dataflow.ts.infer.BackwardTypeDomainFact.TypedVariable
 import org.usvm.dataflow.ts.infer.BackwardTypeDomainFact.Zero
 import org.usvm.dataflow.ts.util.fixAnyToUnknown
@@ -36,7 +37,7 @@ import org.usvm.util.Maybe
 private val logger = KotlinLogging.logger {}
 
 class BackwardFlowFunctions(
-    val graph: ApplicationGraph<EtsMethod, EtsStmt>,
+    val graph: EtsApplicationGraph,
     val dominators: (EtsMethod) -> GraphDominators<EtsStmt>,
     val savedTypes: MutableMap<EtsType, MutableList<EtsTypeFact>>,
     val doAddKnownTypes: Boolean = true,
