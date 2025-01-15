@@ -34,6 +34,13 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Checkout local jacodb
+        uses: actions/checkout@v4
+        with:
+          repository: UnitTestBot/jacodb
+          ref: lipen/dto
+          path: ../jacodb
+
       - name: Set up ArkAnalyzer
         run: |
           REPO_URL="https://gitee.com/Lipenx/arkanalyzer.git"
