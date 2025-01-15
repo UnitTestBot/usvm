@@ -16,18 +16,33 @@
 
 package org.usvm.dataflow.ts.infer.verify.collectors
 
+import org.jacodb.ets.base.EtsArrayAccess
 import org.jacodb.ets.base.EtsAssignStmt
+import org.jacodb.ets.base.EtsBinaryExpr
 import org.jacodb.ets.base.EtsCallStmt
 import org.jacodb.ets.base.EtsEntity
 import org.jacodb.ets.base.EtsExpr
 import org.jacodb.ets.base.EtsGotoStmt
 import org.jacodb.ets.base.EtsIfStmt
+import org.jacodb.ets.base.EtsInstanceCallExpr
+import org.jacodb.ets.base.EtsInstanceFieldRef
+import org.jacodb.ets.base.EtsInstanceOfExpr
+import org.jacodb.ets.base.EtsLengthExpr
+import org.jacodb.ets.base.EtsLocal
 import org.jacodb.ets.base.EtsNopStmt
+import org.jacodb.ets.base.EtsParameterRef
+import org.jacodb.ets.base.EtsPtrCallExpr
+import org.jacodb.ets.base.EtsRawStmt
 import org.jacodb.ets.base.EtsReturnStmt
+import org.jacodb.ets.base.EtsStaticCallExpr
+import org.jacodb.ets.base.EtsStaticFieldRef
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsSwitchStmt
+import org.jacodb.ets.base.EtsTernaryExpr
+import org.jacodb.ets.base.EtsThis
 import org.jacodb.ets.base.EtsThrowStmt
 import org.jacodb.ets.base.EtsType
+import org.jacodb.ets.base.EtsUnaryExpr
 import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.model.EtsMethodSignature
 import org.usvm.dataflow.ts.infer.verify.EntityId
@@ -35,19 +50,32 @@ import org.usvm.dataflow.ts.infer.verify.EntityId
 class StmtSummaryCollector(
     override val enclosingMethod: EtsMethodSignature,
     override val typeSummary: MutableMap<EntityId, MutableSet<EtsType>>,
-) : EtsStmt.Visitor<Unit>, MethodSummaryCollector {
-    private val exprCollector = ExprSummaryCollector(enclosingMethod, typeSummary)
-    private val valueCollector = ValueSummaryCollector(enclosingMethod, typeSummary)
+) : MethodSummaryCollector,
+    EtsStmt.Visitor<Unit>,
+    EtsValue.Visitor.Default<Unit>,
+    EtsExpr.Visitor.Default<Unit> {
+
+    private fun collect(value: EtsValue) {
+        value.accept(this)
+    }
+
+    private fun collect(expr: EtsExpr) {
+        expr.accept(this)
+    }
 
     private fun collect(entity: EtsEntity) {
         when (entity) {
-            is EtsValue -> entity.accept(valueCollector)
-            is EtsExpr -> entity.accept(exprCollector)
-            else -> error("Unsupported entity kind")
+            is EtsValue -> collect(entity)
+            is EtsExpr -> collect(entity)
+            else -> error("Unsupported entity of type ${entity::class.java}: $entity")
         }
     }
 
-    override fun visit(stmt: EtsNopStmt) {}
+    // region Stmt
+
+    override fun visit(stmt: EtsNopStmt) {
+        // do nothing
+    }
 
     override fun visit(stmt: EtsAssignStmt) {
         collect(stmt.lhv)
@@ -66,7 +94,9 @@ class StmtSummaryCollector(
         collect(stmt.arg)
     }
 
-    override fun visit(stmt: EtsGotoStmt) {}
+    override fun visit(stmt: EtsGotoStmt) {
+        // do nothing
+    }
 
     override fun visit(stmt: EtsIfStmt) {
         collect(stmt.condition)
@@ -77,4 +107,89 @@ class StmtSummaryCollector(
         stmt.cases.forEach { collect(it) }
     }
 
+    override fun visit(stmt: EtsRawStmt) {
+        // do nothing
+    }
+
+    // endregion
+
+    // region Value
+
+    override fun defaultVisit(value: EtsValue) {}
+
+    override fun visit(value: EtsLocal) {
+        yield(value)
+    }
+
+    override fun visit(value: EtsThis) {
+        yield(value)
+    }
+
+    override fun visit(value: EtsParameterRef) {
+        yield(value)
+    }
+
+    override fun visit(value: EtsArrayAccess) {
+        value.array.accept(this)
+        value.index.accept(this)
+    }
+
+    override fun visit(value: EtsInstanceFieldRef) {
+        yield(value.field)
+        value.instance.accept(this)
+    }
+
+    override fun visit(value: EtsStaticFieldRef) {
+        yield(value.field)
+    }
+
+    // endregion
+
+    // region Expr
+
+    override fun defaultVisit(expr: EtsExpr) = when (expr) {
+        is EtsUnaryExpr -> {
+            collect(expr.arg)
+        }
+
+        is EtsBinaryExpr -> {
+            collect(expr.left)
+            collect(expr.right)
+        }
+
+        is EtsTernaryExpr -> {
+            collect(expr.condition)
+            collect(expr.thenExpr)
+            collect(expr.elseExpr)
+        }
+
+        is EtsInstanceCallExpr -> {
+            yield(expr.method)
+            collect(expr.instance)
+            expr.args.forEach { collect(it) }
+        }
+
+        is EtsStaticCallExpr -> {
+            yield(expr.method)
+            expr.args.forEach { collect(it) }
+        }
+
+        is EtsPtrCallExpr -> {
+            yield(expr.method)
+            collect(expr.ptr)
+            expr.args.forEach { collect(it) }
+        }
+
+        is EtsLengthExpr -> {
+            collect(expr.arg)
+        }
+
+        is EtsInstanceOfExpr -> {
+            collect(expr.arg)
+        }
+
+        else -> {}
+    }
+
+    // endregion
 }

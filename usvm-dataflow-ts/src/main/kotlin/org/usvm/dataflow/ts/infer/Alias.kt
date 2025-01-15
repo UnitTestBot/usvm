@@ -19,16 +19,19 @@ package org.usvm.dataflow.ts.infer
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.mutate
 import kotlinx.collections.immutable.persistentHashMapOf
+import org.jacodb.ets.base.EtsArrayAccess
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsCallExpr
 import org.jacodb.ets.base.EtsCastExpr
 import org.jacodb.ets.base.EtsConstant
+import org.jacodb.ets.base.EtsFieldRef
 import org.jacodb.ets.base.EtsLocal
 import org.jacodb.ets.base.EtsNewArrayExpr
 import org.jacodb.ets.base.EtsNewExpr
 import org.jacodb.ets.base.EtsParameterRef
 import org.jacodb.ets.base.EtsRef
 import org.jacodb.ets.base.EtsStmt
+import org.jacodb.ets.base.EtsThis
 import org.jacodb.ets.model.EtsMethod
 
 sealed interface Allocation {
@@ -105,8 +108,8 @@ class AliasInfo(
         val allocToFields = hashMapOf<Allocation, MutableMap<String, MutableList<Allocation>>>()
         for ((obj1, fields) in this.allocToFields) {
             for ((field, obj2) in fields) {
-                allocToFields.computeIfAbsent(obj2) { hashMapOf() }
-                allocToFields.computeIfAbsent(obj2) { hashMapOf() }
+                allocToFields
+                    .computeIfAbsent(obj2) { hashMapOf() }
                     .computeIfAbsent(field) { mutableListOf() }
                     .add(obj1)
             }
@@ -114,8 +117,7 @@ class AliasInfo(
 
         val allocToBases = hashMapOf<Allocation, MutableList<AccessPathBase>>()
         for ((base, alloc) in baseToAlloc) {
-            allocToBases.computeIfAbsent(alloc) { mutableListOf() }
-                .add(base)
+            allocToBases.computeIfAbsent(alloc) { mutableListOf() }.add(base)
         }
 
         val queue = ArrayDeque<Pair<Allocation, List<FieldAccessor>>>(listOf(obj to emptyList()))
@@ -182,7 +184,19 @@ fun computeAliases(method: EtsMethod): Map<EtsStmt, Pair<AliasInfo, AliasInfo>> 
                     val lhv = stmt.lhv
                     val rhv = stmt.rhv
 
-                    if (rhv is EtsLocal || rhv is EtsRef || (rhv is EtsCastExpr && rhv.arg is EtsRef)) {
+                    if (rhv is EtsLocal
+                        || rhv is EtsThis
+                        || rhv is EtsParameterRef
+                        || rhv is EtsFieldRef
+                        || rhv is EtsArrayAccess
+                        || (rhv is EtsCastExpr && (
+                            // rhv.arg is EtsLocal
+                                rhv.arg is EtsThis
+                                || rhv.arg is EtsParameterRef
+                                || rhv.arg is EtsFieldRef
+                                || rhv.arg is EtsArrayAccess
+                            ))
+                    ) {
                         val lhs = lhv.toPath()
                         val rhs = rhv.toPath()
 

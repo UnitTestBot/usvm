@@ -16,254 +16,134 @@
 
 package org.usvm.dataflow.ts.infer
 
-import mu.KotlinLogging
 import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.model.EtsClass
-import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 
-private val logger = KotlinLogging.logger {}
-
-fun guessTypes(
-    scene: EtsScene,
-    facts: Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>>,
-    propertyNameToClasses: Map<String, Set<EtsClass>>,
-): Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>> {
-    return facts.mapValues { (method, types) ->
-        if (types.isEmpty()) {
-            logger.warn { "Facts are empty for method ${method.signature}" }
-            return@mapValues types
+class TypeGuesser(
+    private val scene: EtsScene,
+) {
+    private val propertyNameToClasses: Map<String, Set<EtsClass>> by lazy {
+        val result: MutableMap<String, MutableSet<EtsClass>> = hashMapOf()
+        scene.projectAndSdkClasses.forEach { clazz ->
+            clazz.methods.forEach {
+                result.computeIfAbsent(it.name) { hashSetOf() }.add(clazz)
+            }
+            clazz.fields.forEach {
+                result.computeIfAbsent(it.name) { hashSetOf() }.add(clazz)
+            }
         }
-
-        val updatedTypes = types.mapValues { (accessPath, fact) ->
-            // logger.info {
-            //     "Resolving a type for a fact \"$fact\" for access path \"$accessPath\" in the method \"$method\""
-            // }
-
-            val resultingType = fact.resolveType(scene, propertyNameToClasses)
-            // logger.info { "The result is $resultingType" }
-
-            resultingType
-        }
-
-        updatedTypes
+        result
     }
-}
 
-fun EtsTypeFact.resolveType(
-    scene: EtsScene,
-    propertyNameToClasses: Map<String, Set<EtsClass>>,
-): EtsTypeFact {
-    return when (val simplifiedFact = simplify()) {
-        is EtsTypeFact.ArrayEtsTypeFact -> simplifiedFact.resolveArrayTypeFact(scene, propertyNameToClasses)
-        is EtsTypeFact.ObjectEtsTypeFact -> simplifiedFact.resolveObjectTypeFact(scene, propertyNameToClasses)
-        is EtsTypeFact.FunctionEtsTypeFact -> simplifiedFact
-        is EtsTypeFact.GuardedTypeFact -> TODO("guarded")
-        is EtsTypeFact.IntersectionEtsTypeFact -> {
-            val updatedTypes = simplifiedFact.types.mapTo(hashSetOf()) {
-                it.resolveType(scene, propertyNameToClasses)
-            }
-            EtsTypeFact.mkIntersectionType(updatedTypes).simplify()
-        }
-
-        is EtsTypeFact.UnionEtsTypeFact -> {
-            val updatedTypes = simplifiedFact.types.mapNotNullTo(mutableSetOf()) { type ->
-                val resolvedType = type.resolveType(scene, propertyNameToClasses)
-                resolvedType.takeIf { it !is EtsTypeFact.AnyEtsTypeFact }
-            }
-
-            if (updatedTypes.isEmpty()) {
-                EtsTypeFact.AnyEtsTypeFact
-            } else {
-                EtsTypeFact.mkUnionType(updatedTypes).simplify()
-            }
-        }
-
-        else -> simplify()
+    fun guess(fact: EtsTypeFact): EtsTypeFact {
+        return fact.resolveType()
     }
-}
 
-private fun EtsTypeFact.ObjectEtsTypeFact.resolveObjectTypeFact(
-    scene: EtsScene,
-    propertyNameToClasses: Map<String, Set<EtsClass>>,
-): EtsTypeFact {
-    if (cls != null) {
+    private fun EtsTypeFact.resolveType(): EtsTypeFact =
+        when (val simplifiedFact = simplify()) {
+            is EtsTypeFact.ArrayEtsTypeFact -> simplifiedFact.resolveArrayTypeFact()
+            is EtsTypeFact.ObjectEtsTypeFact -> simplifiedFact.resolveObjectTypeFact()
+            is EtsTypeFact.FunctionEtsTypeFact -> simplifiedFact
+            is EtsTypeFact.GuardedTypeFact -> TODO("guarded")
+
+            is EtsTypeFact.IntersectionEtsTypeFact -> {
+                val updatedTypes = simplifiedFact.types.mapTo(hashSetOf()) {
+                    it.resolveType()
+                }
+                EtsTypeFact.mkIntersectionType(updatedTypes).simplify()
+            }
+
+            is EtsTypeFact.UnionEtsTypeFact -> {
+                val updatedTypes = simplifiedFact.types.mapNotNullTo(hashSetOf()) {
+                    val resolved = it.resolveType()
+                    if (resolved is EtsTypeFact.AnyEtsTypeFact) {
+                        null
+                    } else {
+                        resolved
+                    }
+                }
+
+                if (updatedTypes.isEmpty()) {
+                    EtsTypeFact.AnyEtsTypeFact
+                } else {
+                    EtsTypeFact.mkUnionType(updatedTypes).simplify()
+                }
+            }
+
+            else -> simplify()
+        }
+
+    private fun EtsTypeFact.ObjectEtsTypeFact.resolveObjectTypeFact(): EtsTypeFact {
+        if (cls != null) {
+            // TODO: inspect this.properties and maybe find more exact class-type than 'cls'
+            return this
+        }
+
+        val touchedPropertiesNames = properties.keys
+        val classesInSystem = collectSuitableClasses(touchedPropertiesNames)
+
+        if (classesInSystem.isEmpty()) {
+            return tryToDetermineSpecialObjects(touchedPropertiesNames)
+        }
+
+        val suitableTypes = resolveTypesFromClasses(classesInSystem)
+
+        // TODO process arrays here (and strings)
+
+        return when {
+            suitableTypes.isEmpty() -> error("Should be processed earlier")
+            suitableTypes.size == 1 -> suitableTypes.single()
+            suitableTypes.size in 2..5 -> EtsTypeFact.mkUnionType(suitableTypes).simplify()
+            else -> this
+        }
+    }
+
+    private fun EtsTypeFact.ObjectEtsTypeFact.resolveTypesFromClasses(
+        classes: Iterable<EtsClass>,
+    ): Set<EtsTypeFact.ObjectEtsTypeFact> =
+        classes.mapTo(hashSetOf()) { cls ->
+            EtsTypeFact.ObjectEtsTypeFact(
+                cls = EtsClassType(signature = cls.signature),
+                properties = properties.mapValues {
+                    it.value.resolveType()
+                }
+            )
+        }
+
+    private fun collectSuitableClasses(
+        touchedPropertiesNames: Set<String>,
+    ): Set<EtsClass> {
+        val classesWithProperties = touchedPropertiesNames.map { propertyNameToClasses[it] ?: emptySet() }
+        return classesWithProperties.reduceOrNull { a, b -> a intersect b } ?: emptySet()
+    }
+
+    private fun EtsTypeFact.ObjectEtsTypeFact.tryToDetermineSpecialObjects(
+        touchedPropertiesNames: Set<String>,
+    ): EtsTypeFact.BasicType {
+        val indicesProperties = properties.filter { (k, _) -> k.toIntOrNull() != null }
+        if (indicesProperties.isNotEmpty()) {
+            val elementTypeFacts = indicesProperties.mapTo(hashSetOf()) {
+                it.value.resolveType()
+            }
+
+            val typeFact = EtsTypeFact.mkUnionType(elementTypeFacts).simplify()
+
+            return EtsTypeFact.ArrayEtsTypeFact(typeFact)
+        }
+
+        if ("length" in touchedPropertiesNames && "splice" in touchedPropertiesNames) {
+            return EtsTypeFact.ArrayEtsTypeFact(EtsTypeFact.AnyEtsTypeFact)
+        }
+
         return this
     }
 
-    val touchedPropertiesNames = properties.keys
-    val classesInSystem = collectSuitableClasses(touchedPropertiesNames, propertyNameToClasses)
-
-    if (classesInSystem.isEmpty()) {
-        return tryToDetermineSpecialObjects(scene, touchedPropertiesNames, propertyNameToClasses)
-    }
-
-    val suitableTypes = resolveTypesFromClasses(classesInSystem, scene, propertyNameToClasses)
-
-    // TODO process arrays here (and strings)
-
-    return when {
-        suitableTypes.isEmpty() -> error("Should be processed earlier")
-        suitableTypes.size == 1 -> suitableTypes.single()
-        suitableTypes.size in 2..5 -> EtsTypeFact.mkUnionType(suitableTypes).simplify()
-        else -> this
-    }
-}
-
-private fun EtsTypeFact.ObjectEtsTypeFact.resolveTypesFromClasses(
-    classesInSystem: Iterable<EtsClass>,
-    scene: EtsScene,
-    propertyNameToClasses: Map<String, Set<EtsClass>>,
-) = classesInSystem
-    .mapTo(hashSetOf()) { cls ->
-        EtsTypeFact.ObjectEtsTypeFact(
-            cls = EtsClassType(signature = cls.signature),
-            properties = properties.mapValues {
-                it.value.resolveType(scene, propertyNameToClasses)
-            }
-        )
-    }
-
-private fun collectSuitableClasses(
-    touchedPropertiesNames: Set<String>,
-    propertyNameToClasses: Map<String, Set<EtsClass>>,
-): Set<EtsClass> {
-    val classesWithProperties = touchedPropertiesNames.map { propertyNameToClasses[it].orEmpty() }
-
-    return classesWithProperties.reduceOrNull { a, b -> a intersect b }.orEmpty()
-}
-
-private fun EtsTypeFact.ObjectEtsTypeFact.tryToDetermineSpecialObjects(
-    scene: EtsScene,
-    touchedPropertiesNames: Set<String>,
-    propertyNameToClasses: Map<String, Set<EtsClass>>,
-): EtsTypeFact.BasicType {
-    val indicesProperties = properties.filter { (k, _) -> k.toIntOrNull() != null }
-    if (indicesProperties.isNotEmpty()) {
-        val elementTypeFacts = indicesProperties.mapTo(hashSetOf()) {
-            it.value.resolveType(scene, propertyNameToClasses)
-        }
-
-        val typeFact = EtsTypeFact.mkUnionType(elementTypeFacts).simplify()
-
-        return EtsTypeFact.ArrayEtsTypeFact(typeFact)
-    }
-
-    if ("length" in touchedPropertiesNames && "splice" in touchedPropertiesNames) {
-        return EtsTypeFact.ArrayEtsTypeFact(EtsTypeFact.AnyEtsTypeFact)
-    }
-
-    return this
-}
-
-private fun EtsTypeFact.ArrayEtsTypeFact.resolveArrayTypeFact(
-    scene: EtsScene,
-    propertyNameToClasses: Map<String, Set<EtsClass>>,
-): EtsTypeFact.ArrayEtsTypeFact {
-    return if (elementType is EtsTypeFact.UnknownEtsTypeFact) {
-        this
-    } else {
-        val updatedElementType = elementType.resolveType(scene, propertyNameToClasses)
-
-        if (updatedElementType === elementType) this else copy(elementType = elementType)
-    }
-}
-
-fun EtsTypeFact.simplify(): EtsTypeFact {
-    return when (this) {
-        is EtsTypeFact.UnionEtsTypeFact -> simplifyUnionTypeFact()
-        is EtsTypeFact.IntersectionEtsTypeFact -> simplifyIntersectionTypeFact()
-        is EtsTypeFact.GuardedTypeFact -> TODO("Guarded type facts are unsupported in simplification")
-        is EtsTypeFact.ArrayEtsTypeFact -> {
-            val elementType = elementType.simplify()
-
-            if (elementType === this.elementType) this else copy(elementType = elementType)
-        }
-
-        is EtsTypeFact.ObjectEtsTypeFact -> {
-            if (cls != null) {
-                return this
-            }
-
-            val props = properties.mapValues { it.value.simplify() }
-            copy(properties = props)
-        }
-
-        else -> this
-    }
-}
-
-private fun EtsTypeFact.IntersectionEtsTypeFact.simplifyIntersectionTypeFact(): EtsTypeFact {
-    val simplifiedArgs = types.map { it.simplify() }
-
-    simplifiedArgs.singleOrNull()?.let { return it }
-
-    val updatedTypeFacts = hashSetOf<EtsTypeFact>()
-
-    val (objectClassFacts, otherFacts) = simplifiedArgs.partition {
-        it is EtsTypeFact.ObjectEtsTypeFact && it.cls == null
-    }
-
-    updatedTypeFacts.addAll(otherFacts)
-
-    if (objectClassFacts.isNotEmpty()) {
-        val allProperties = hashMapOf<String, MutableSet<EtsTypeFact>>().withDefault { hashSetOf() }
-
-        objectClassFacts.forEach { fact ->
-            fact as EtsTypeFact.ObjectEtsTypeFact
-
-            fact.properties.forEach { (name, propertyFact) ->
-                allProperties.getValue(name).add(propertyFact)
-            }
-        }
-
-        val mergedAllProperties = hashMapOf<String, EtsTypeFact>()
-        allProperties.forEach { (name, propertyFact) ->
-            mergedAllProperties[name] = EtsTypeFact.mkUnionType(propertyFact)
-        }
-
-        updatedTypeFacts += EtsTypeFact.ObjectEtsTypeFact(cls = null, properties = mergedAllProperties)
-    }
-
-    return EtsTypeFact.mkIntersectionType(updatedTypeFacts)
-}
-
-private fun EtsTypeFact.UnionEtsTypeFact.simplifyUnionTypeFact(): EtsTypeFact {
-    val simplifiedArgs = types.map { it.simplify() }
-
-    simplifiedArgs.singleOrNull()?.let { return it }
-
-    val updatedTypeFacts = hashSetOf<EtsTypeFact>()
-
-    var atLeastOneNonEmptyObjectFound = false
-    var emptyTypeObjectFact: EtsTypeFact? = null
-
-    simplifiedArgs.forEach {
-        if (it !is EtsTypeFact.ObjectEtsTypeFact) {
-            updatedTypeFacts += it
-            return@forEach
-        }
-
-        if (it.cls != null) {
-            atLeastOneNonEmptyObjectFound = true
-            updatedTypeFacts += it
-            return@forEach
-        }
-
-        if (it.properties.isEmpty() && emptyTypeObjectFact == null) {
-            emptyTypeObjectFact = it
+    private fun EtsTypeFact.ArrayEtsTypeFact.resolveArrayTypeFact(): EtsTypeFact.ArrayEtsTypeFact =
+        if (elementType is EtsTypeFact.UnknownEtsTypeFact) {
+            this
         } else {
-            updatedTypeFacts += it
-            atLeastOneNonEmptyObjectFound = true
+            val updatedElementType = elementType.resolveType()
+            if (updatedElementType === elementType) this else copy(elementType = elementType)
         }
-    }
-
-    // take a fact `Object {}` only if there were no other objects in the facts
-    emptyTypeObjectFact?.let {
-        if (!atLeastOneNonEmptyObjectFound) {
-            updatedTypeFacts += it
-        }
-    }
-
-    return EtsTypeFact.mkUnionType(updatedTypeFacts)
 }

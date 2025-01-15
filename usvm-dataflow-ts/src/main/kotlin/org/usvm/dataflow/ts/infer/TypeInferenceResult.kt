@@ -16,42 +16,26 @@
 
 package org.usvm.dataflow.ts.infer
 
-import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsMethod
-import org.jacodb.ets.model.EtsScene
 
 data class TypeInferenceResult(
     val inferredTypes: Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>>,
     val inferredReturnType: Map<EtsMethod, EtsTypeFact>,
     val inferredCombinedThisType: Map<EtsClassSignature, EtsTypeFact>,
 ) {
-    fun withGuessedTypes(scene: EtsScene): TypeInferenceResult {
-        val propertyNameToClasses = precalculateCaches(scene)
-
-        return TypeInferenceResult(
-            inferredTypes = guessTypes(scene, inferredTypes, propertyNameToClasses),
+    fun withGuessedTypes(guesser: TypeGuesser): TypeInferenceResult =
+        TypeInferenceResult(
+            inferredTypes = inferredTypes.mapValues { (_, facts) ->
+                facts.mapValues { (_, fact) ->
+                    guesser.guess(fact)
+                }
+            },
             inferredReturnType = inferredReturnType.mapValues { (_, fact) ->
-                fact.resolveType(scene, propertyNameToClasses)
+                guesser.guess(fact)
             },
             inferredCombinedThisType = inferredCombinedThisType.mapValues { (_, fact) ->
-                fact.resolveType(scene, propertyNameToClasses = propertyNameToClasses)
+                guesser.guess(fact)
             },
         )
-    }
-
-    private fun precalculateCaches(scene: EtsScene): Map<String, Set<EtsClass>> {
-        val result = hashMapOf<String, MutableSet<EtsClass>>()
-
-        scene.projectAndSdkClasses.forEach { clazz ->
-            clazz.methods.forEach {
-                result.computeIfAbsent(it.name) { hashSetOf() }.add(clazz)
-            }
-            clazz.fields.forEach {
-                result.computeIfAbsent(it.name) { hashSetOf() }.add(clazz)
-            }
-        }
-
-        return result
-    }
 }

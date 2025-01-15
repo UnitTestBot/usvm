@@ -1,12 +1,12 @@
 /*
  * Copyright 2022 UnitTestBot contributors (utbot.org)
- * <p>
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * <p>
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -25,66 +25,61 @@ import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodImpl
 import org.jacodb.ets.model.EtsScene
-import org.usvm.dataflow.ts.infer.AccessPathBase
-import org.usvm.dataflow.ts.infer.EtsTypeFact
 import org.usvm.dataflow.ts.infer.TypeInferenceResult
 
-data class EtsTypeAnnotator(
-    val scene: EtsScene,
-    val typeInferenceResult: TypeInferenceResult,
+fun EtsScene.annotateWithTypes(result: TypeInferenceResult): EtsScene =
+    EtsSceneAnnotator(this, result).annotate()
+
+class EtsSceneAnnotator(
+    private val scene: EtsScene,
+    private val result: TypeInferenceResult,
 ) {
-    private fun selectTypesFor(method: EtsMethod) = typeInferenceResult.inferredTypes[method] ?: emptyMap()
+    fun annotate(): EtsScene = scene.annotate()
 
-    private fun combinedThisFor(method: EtsMethod) = typeInferenceResult.inferredCombinedThisType[method.enclosingClass]
-
-    fun annotateWithTypes(scene: EtsScene) = with(scene) {
-        EtsScene(
-            projectFiles = projectFiles.map { annotateWithTypes(it) }
+    private fun EtsScene.annotate(): EtsScene {
+        return EtsScene(
+            projectFiles = projectFiles.map { it.annotateWithTypes() },
+            sdkFiles = sdkFiles.map { it.annotateWithTypes() },
         )
     }
 
-    fun annotateWithTypes(file: EtsFile) = with(file) {
-        EtsFile(
+    private fun EtsFile.annotateWithTypes(): EtsFile {
+        return EtsFile(
             signature = signature,
-            classes = classes.map { annotateWithTypes(it) },
+            classes = classes.map { it.annotateWithTypes() },
             namespaces = namespaces,
         )
     }
 
-    fun annotateWithTypes(clazz: EtsClass) = with(clazz) {
-        EtsClassImpl(
+    private fun EtsClass.annotateWithTypes(): EtsClass {
+        return EtsClassImpl(
             signature = signature,
             fields = fields,
-            methods = methods.map { annotateWithTypes(it) },
-            ctor = annotateWithTypes(ctor),
+            methods = methods.map { it.annotateWithTypes() },
+            ctor = ctor.annotateWithTypes(),
             superClass = superClass, // TODO: replace with inferred superclass
+            typeParameters = typeParameters,
             modifiers = modifiers,
             decorators = decorators,
-            typeParameters = typeParameters,
         )
     }
 
-    fun annotateWithTypes(method: EtsMethod) = with(method) {
-        EtsMethodImpl(
+    private fun EtsMethod.annotateWithTypes(): EtsMethod {
+        return EtsMethodImpl(
             signature = signature,
             typeParameters = typeParameters,
             locals = locals,
             modifiers = modifiers,
             decorators = decorators,
-        ).also {
-            it._cfg = annotateWithTypes(cfg, selectTypesFor(this), combinedThisFor(this))
-        }
-    }
-
-    fun annotateWithTypes(
-        cfg: EtsCfg,
-        types: Map<AccessPathBase, EtsTypeFact>,
-        thisType: EtsTypeFact?,
-    ) = with(cfg) {
-        with(StmtTypeAnnotator(types, thisType, scene)) {
-            EtsCfg(
-                stmts = stmts.map { it.accept(this) },
-                successorMap = stmts.associateWith { successors(it).toList() },
+        ).also { method ->
+            val types = result.inferredTypes[this].orEmpty()
+            val thisType = result.inferredCombinedThisType[enclosingClass]
+            val valueAnnotator = ValueTypeAnnotator(scene, types, thisType)
+            val exprAnnotator = ExprTypeAnnotator(scene, valueAnnotator)
+            val stmtTypeAnnotator = StmtTypeAnnotator(valueAnnotator, exprAnnotator)
+            method._cfg = EtsCfg(
+                stmts = cfg.stmts.map { it.accept(stmtTypeAnnotator) },
+                successorMap = cfg.stmts.associateWith { cfg.successors(it).toList() },
             )
         }
     }
