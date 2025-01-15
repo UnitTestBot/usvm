@@ -439,7 +439,17 @@ class BackwardFlowFunctions(
                     }
 
                     if (fact.type is EtsTypeFact.IntersectionEtsTypeFact) {
-                        TODO("Support intersection type for x.f := y in BW-sequent")
+                        val facts = mutableListOf(fact)
+                        for (subType in fact.type.types) {
+                            if (subType is EtsTypeFact.ObjectEtsTypeFact) {
+                                val propertyType = subType.properties[a.name]
+                                if (propertyType != null) {
+                                    val newFact = TypedVariable(rhv.base, propertyType).withTypeGuards(current)
+                                    facts += newFact
+                                }
+                            }
+                        }
+                        return facts
                     }
 
                     // Ignore (pass) non-object type facts:
@@ -452,10 +462,10 @@ class BackwardFlowFunctions(
                     // x:{no f} |= only keep x:{..}
                     val propertyType = fact.type.properties[a.name]
                     val y = rhv.base
-                    val newType = propertyType?.let { type ->
+                    val newFact = propertyType?.let { type ->
                         TypedVariable(y, type).withTypeGuards(current)
                     }
-                    return listOfNotNull(fact, newType)
+                    return listOfNotNull(fact, newFact)
                 }
 
                 // Case `x[i] := y`
