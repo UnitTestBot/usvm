@@ -25,7 +25,6 @@ import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.utils.callExpr
 import org.jacodb.impl.cfg.graphs.GraphDominators
-import org.usvm.dataflow.graph.ApplicationGraph
 import org.usvm.dataflow.ifds.FlowFunction
 import org.usvm.dataflow.ifds.FlowFunctions
 import org.usvm.dataflow.ts.graph.EtsApplicationGraph
@@ -42,6 +41,8 @@ class BackwardFlowFunctions(
     val savedTypes: MutableMap<EtsType, MutableList<EtsTypeFact>>,
     val doAddKnownTypes: Boolean = true,
 ) : FlowFunctions<BackwardTypeDomainFact, EtsMethod, EtsStmt> {
+
+    private val typeProcessor = TypeFactProcessor(graph.cp)
 
     // private val aliasesCache: MutableMap<EtsMethod, Map<EtsStmt, Pair<AliasInfo, AliasInfo>>> = hashMapOf()
     //
@@ -223,7 +224,7 @@ class BackwardFlowFunctions(
             val rhv = when (val r = current.rhv) {
                 is EtsLocal -> r.toPath()
                 is EtsThis -> r.toPath()
-                // is EtsParameterRef -> r.toPath()
+                is EtsParameterRef -> r.toPath()
                 is EtsFieldRef -> r.toPath()
                 is EtsArrayAccess -> r.toPath()
                 else -> {
@@ -421,27 +422,40 @@ class BackwardFlowFunctions(
                 // Case `x.f := y`
                 is FieldAccessor -> {
                     if (fact.type is EtsTypeFact.UnionEtsTypeFact) {
-                        // TODO("Support union type for x.f := y in BW-sequent")
+                        val types = fact.type.types.mapNotNull {
+                            if (it is EtsTypeFact.ObjectEtsTypeFact) {
+                                it.properties[a.name]
+                            } else {
+                                null
+                            }
+                        }
+                        if (types.isNotEmpty()) {
+                            // x:T |= x:T (keep) + y:T
+                            val newType = types.reduce { acc, type -> typeProcessor.union(acc, type) }
+                            return listOf(fact, TypedVariable(rhv.base, newType))
+                        }
+                        // Note: here, we ignore union of non-object types and union of
+                        //       object types completely without the necessary properties.
                     }
 
                     if (fact.type is EtsTypeFact.IntersectionEtsTypeFact) {
-                        // TODO("Support intersection type for x.f := y in BW-sequent")
+                        TODO("Support intersection type for x.f := y in BW-sequent")
                     }
 
+                    // Ignore (pass) non-object type facts:
                     // x:primitive |= x:primitive (pass)
                     if (fact.type !is EtsTypeFact.ObjectEtsTypeFact) {
                         return listOf(fact)
                     }
 
-                    // x:{no f} |= only keep x:{..}
-
                     // x:{f:T} |= x:{f:T} (keep) + y:T
-                    val (typeWithoutProperty, removedPropertyType) = fact.type.removePropertyType(a.name)
-                    // val updatedFact = TypedVariable(fact.variable, typeWithoutProperty)
-                    val updatedFact = fact
+                    // x:{no f} |= only keep x:{..}
+                    val propertyType = fact.type.properties[a.name]
                     val y = rhv.base
-                    val newType = removedPropertyType?.let { type -> TypedVariable(y, type).withTypeGuards(current) }
-                    return listOfNotNull(updatedFact, newType)
+                    val newType = propertyType?.let { type ->
+                        TypedVariable(y, type).withTypeGuards(current)
+                    }
+                    return listOfNotNull(fact, newType)
                 }
 
                 // Case `x[i] := y`
