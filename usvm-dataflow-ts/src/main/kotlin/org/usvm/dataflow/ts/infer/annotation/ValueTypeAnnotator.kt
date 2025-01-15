@@ -1,12 +1,12 @@
 /*
  * Copyright 2022 UnitTestBot contributors (utbot.org)
- * <p>
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * <p>
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -31,27 +31,35 @@ import org.jacodb.ets.model.EtsField
 import org.jacodb.ets.model.EtsScene
 import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EtsTypeFact
-import org.usvm.dataflow.ts.infer.dto.toType
+import org.usvm.dataflow.ts.infer.toType
 
 class ValueTypeAnnotator(
-    private val types: Map<AccessPathBase, EtsTypeFact>,
-    private val thisType: EtsTypeFact?,
     private val scene: EtsScene,
+    private val facts: Map<AccessPathBase, EtsTypeFact>,
+    private val thisType: EtsTypeFact?,
 ) : EtsValue.Visitor.Default<EtsValue> {
-    private inline fun <V, reified T : EtsType> V.infer(base: AccessPathBase, apply: V.(T) -> V): V {
-        val type = types[base]?.toType() as? T ?: return this
-        return apply.invoke(this, type)
+
+    private inline fun <V, reified T : EtsType> V.annotate(
+        base: AccessPathBase,
+        transform: V.(T) -> V,
+    ): V {
+        val fact = facts[base] ?: return this
+        val type = fact.toType() ?: return this
+        if (type !is T) return this
+        return transform(type)
     }
 
+    override fun defaultVisit(value: EtsValue): EtsValue = value
+
     override fun visit(value: EtsLocal): EtsLocal =
-        value.infer<EtsLocal, EtsType>(AccessPathBase.Local(value.name)) { copy(type = it) }
+        value.annotate<EtsLocal, EtsType>(AccessPathBase.Local(value.name)) { copy(type = it) }
 
     override fun visit(value: EtsThis): EtsValue =
         (thisType?.toType() as? EtsClassType)?.let { value.copy(type = it) }
-            ?: value.infer<EtsThis, EtsClassType>(AccessPathBase.This) { copy(type = it) }
+            ?: value.annotate<EtsThis, EtsClassType>(AccessPathBase.This) { copy(type = it) }
 
     override fun visit(value: EtsParameterRef) =
-        value.infer<EtsParameterRef, EtsType>(AccessPathBase.Arg(value.index)) { copy(type = it) }
+        value.annotate<EtsParameterRef, EtsType>(AccessPathBase.Arg(value.index)) { copy(type = it) }
 
     override fun visit(value: EtsArrayAccess): EtsArrayAccess {
         val arrayInferred = value.array.accept(this)
@@ -66,7 +74,7 @@ class ValueTypeAnnotator(
         val name = value.field.name
 
         fun findInClass(signature: EtsClassSignature): EtsField? =
-            scene.projectClasses
+            scene.projectAndSdkClasses
                 .singleOrNull { it.signature == signature }
                 ?.fields
                 ?.singleOrNull { it.name == name }
@@ -84,8 +92,8 @@ class ValueTypeAnnotator(
             return EtsInstanceFieldRef(instance = instance, field = etsField.signature)
         }
 
-        // Field was not found by signature, then try infer instance type
-        val instanceTypeInfo = types[AccessPathBase.Local(instance.name)] as? EtsTypeFact.ObjectEtsTypeFact
+        // Field was not found by signature, then try to infer instance type
+        val instanceTypeInfo = facts[AccessPathBase.Local(instance.name)] as? EtsTypeFact.ObjectEtsTypeFact
             // Instance type was neither specified in signature nor inferred, so no type info can be provided
             // (Q) Should we check special properties of primitives (like `string.length`)?
             ?: return value.copy(instance = instance)
@@ -108,6 +116,4 @@ class ValueTypeAnnotator(
     }
 
     override fun visit(value: EtsStaticFieldRef): EtsValue = value
-
-    override fun defaultVisit(value: EtsValue): EtsValue = value
 }

@@ -10,6 +10,7 @@ import org.jacodb.ets.base.EtsParameterRef
 import org.jacodb.ets.base.EtsStaticFieldRef
 import org.jacodb.ets.base.EtsThis
 import org.jacodb.ets.base.EtsValue
+import org.jacodb.ets.model.EtsClassSignature
 
 data class AccessPath(val base: AccessPathBase, val accesses: List<Accessor>) {
     operator fun plus(accessor: Accessor) = AccessPath(base, accesses + accessor)
@@ -35,8 +36,15 @@ fun AccessPath?.startsWith(other: AccessPath?): Boolean {
 }
 
 fun List<Accessor>.hasDuplicateFields(limit: Int = 2): Boolean {
-    val counts = this.groupingBy { it }.eachCount()
-    return counts.any { it.value >= limit }
+    val counts = hashMapOf<Accessor, Int>()
+    for (accessor in this) {
+        val count = counts.getOrDefault(accessor, 0)
+        if (count + 1 >= limit) {
+            return true
+        }
+        counts[accessor] = count + 1
+    }
+    return false
 }
 
 sealed interface AccessPathBase {
@@ -44,8 +52,8 @@ sealed interface AccessPathBase {
         override fun toString(): String = "<this>"
     }
 
-    object Static : AccessPathBase {
-        override fun toString(): String = "<static>"
+    data class Static(val clazz: EtsClassSignature) : AccessPathBase {
+        override fun toString(): String = "static(${clazz.name})"
     }
 
     data class Arg(val index: Int) : AccessPathBase {
@@ -54,6 +62,34 @@ sealed interface AccessPathBase {
 
     data class Local(val name: String) : AccessPathBase {
         override fun toString(): String = "local($name)"
+
+        fun tryGetOrdering(): Int? {
+            if (name.startsWith("%")) {
+                val ix = name.substring(1).toIntOrNull()
+                if (ix != null) {
+                    return ix
+                }
+            }
+            if (name.startsWith("\$v")) {
+                val ix = name.substring(2).toIntOrNull()
+                if (ix != null) {
+                    return 10_000 + ix
+                }
+            }
+            if (name.startsWith("\$temp")) {
+                val ix = name.substring(5).toIntOrNull()
+                if (ix != null) {
+                    return 20_000 + ix
+                }
+            }
+            if (name.startsWith("_tmp")) {
+                val ix = name.substring(4).toIntOrNull()
+                if (ix != null) {
+                    return 30_000 + ix
+                }
+            }
+            return null
+        }
     }
 
     data class Const(val constant: EtsConstant) : AccessPathBase {
@@ -66,7 +102,7 @@ fun EtsValue.toBase(): AccessPathBase = when (this) {
     is EtsLocal -> if (name == "this") AccessPathBase.This else AccessPathBase.Local(name)
     is EtsThis -> AccessPathBase.This
     is EtsParameterRef -> AccessPathBase.Arg(index)
-    else -> error("$this is not access path base")
+    else -> error("Unable to build access path base for ${this::class.java.simpleName}: $this")
 }
 
 fun EtsEntity.toPathOrNull(): AccessPath? = when (this) {
@@ -86,7 +122,10 @@ fun EtsEntity.toPathOrNull(): AccessPath? = when (this) {
         it + FieldAccessor(field.name)
     }
 
-    is EtsStaticFieldRef -> AccessPath(AccessPathBase.Static, listOf(FieldAccessor(field.name)))
+    is EtsStaticFieldRef -> {
+        val base = AccessPathBase.Static(field.enclosingClass)
+        AccessPath(base, listOf(FieldAccessor(field.name)))
+    }
 
     is EtsCastExpr -> arg.toPathOrNull()
 
@@ -94,5 +133,5 @@ fun EtsEntity.toPathOrNull(): AccessPath? = when (this) {
 }
 
 fun EtsEntity.toPath(): AccessPath {
-    return toPathOrNull() ?: error("Unable to build access path for value $this")
+    return toPathOrNull() ?: error("Unable to build access path for ${this::class.java.simpleName}: $this")
 }

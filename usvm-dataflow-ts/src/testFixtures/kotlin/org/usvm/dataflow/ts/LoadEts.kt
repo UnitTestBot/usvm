@@ -2,10 +2,11 @@ package org.usvm.dataflow.ts
 
 import mu.KotlinLogging
 import org.jacodb.ets.dto.EtsFileDto
-import org.jacodb.ets.dto.convertToEtsFile
+import org.jacodb.ets.dto.toEtsFile
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsScene
 import java.nio.file.Path
+import kotlin.io.path.PathWalkOption
 import kotlin.io.path.extension
 import kotlin.io.path.inputStream
 import kotlin.io.path.relativeTo
@@ -39,7 +40,7 @@ fun loadEtsFileDtoFromResource(jsonPath: String): EtsFileDto {
  */
 fun loadEtsFileFromResource(jsonPath: String): EtsFile {
     val etsFileDto = loadEtsFileDtoFromResource(jsonPath)
-    return convertToEtsFile(etsFileDto)
+    return etsFileDto.toEtsFile()
 }
 
 /**
@@ -52,9 +53,11 @@ fun loadEtsFileFromResource(jsonPath: String): EtsFile {
  */
 fun loadMultipleEtsFilesFromResourceDirectory(dirPath: String): Sequence<EtsFile> {
     val rootPath = getResourcePath(dirPath)
-    return rootPath.walk().filter { it.extension == "json" }.map { path ->
-        loadEtsFileFromResource("$dirPath/${path.relativeTo(rootPath)}")
-    }
+    return rootPath
+        .walk(PathWalkOption.BREADTH_FIRST)
+        .filter { it.extension == "json" }
+        .map { it.relativeTo(rootPath) }
+        .map { loadEtsFileFromResource("$dirPath/$it") }
 }
 
 fun loadMultipleEtsFilesFromMultipleResourceDirectories(
@@ -67,7 +70,7 @@ fun loadEtsProjectFromResources(
     modules: List<String>,
     prefix: String,
 ): EtsScene {
-    logger.info { "Loading Ets project with modules $modules from '$prefix/<module>'" }
+    logger.info { "Loading Ets project with ${modules.size} modules $modules from '$prefix/<module>'" }
     val dirPaths = modules.map { "$prefix/$it" }
     val files = loadMultipleEtsFilesFromMultipleResourceDirectories(dirPaths).toList()
     logger.info { "Loaded ${files.size} files" }
@@ -101,7 +104,7 @@ fun loadEtsFileDto(path: Path): EtsFileDto {
  */
 fun loadEtsFile(path: Path): EtsFile {
     val etsFileDto = loadEtsFileDto(path)
-    return convertToEtsFile(etsFileDto)
+    return etsFileDto.toEtsFile()
 }
 
 /**

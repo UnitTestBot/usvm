@@ -30,7 +30,7 @@ import org.jacodb.ets.base.EtsStringConstant
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.dto.EtsFileDto
-import org.jacodb.ets.dto.convertToEtsFile
+import org.jacodb.ets.dto.toEtsFile
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
@@ -42,17 +42,24 @@ import org.usvm.dataflow.ts.getResourcePath
 import org.usvm.dataflow.ts.getResourcePathOrNull
 import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EtsTypeFact
+import org.usvm.dataflow.ts.infer.TypeGuesser
 import org.usvm.dataflow.ts.infer.TypeInferenceManager
 import org.usvm.dataflow.ts.infer.TypeInferenceResult
-import org.usvm.dataflow.ts.infer.annotation.EtsTypeAnnotator
+import org.usvm.dataflow.ts.infer.annotation.annotateWithTypes
 import org.usvm.dataflow.ts.infer.createApplicationGraph
-import org.usvm.dataflow.ts.infer.dto.toType
+import org.usvm.dataflow.ts.infer.toType
 import org.usvm.dataflow.ts.loadEtsProjectFromResources
+import org.usvm.dataflow.ts.util.toStringLimited
 import org.usvm.dataflow.ts.testFactory
 import org.usvm.dataflow.ts.util.EtsTraits
+import org.usvm.dataflow.ts.util.sortedBy
+import org.usvm.dataflow.ts.util.sortedByBase
 import java.io.File
 import kotlin.io.path.div
 import kotlin.io.path.exists
+import kotlin.io.path.isDirectory
+import kotlin.io.path.listDirectoryEntries
+import kotlin.io.path.name
 import kotlin.io.path.toPath
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -74,7 +81,7 @@ class EtsTypeInferenceTest {
     fun `type inference for microphone`() {
         val name = "microphone"
         val file = load("/ts/$name.ts")
-        val project = EtsScene(listOf(file))
+        val project = EtsScene(listOf(file), sdkFiles = emptyList())
         val graph = createApplicationGraph(project)
 
         val entrypoints = project.projectClasses
@@ -93,18 +100,18 @@ class EtsTypeInferenceTest {
             val m = types.keys.first { it.name == "getMicrophoneUuid" }
 
             // arg0 = 'devices'
-            val devices = types[m]!![AccessPathBase.Arg(0)]!!
+            val devices = types.getValue(m).getValue(AccessPathBase.Arg(0))
             assertIs<EtsTypeFact.ObjectEtsTypeFact>(devices)
 
             val devicesCls = devices.cls
             assertEquals("VirtualDevices", devicesCls?.typeName)
 
             assertContains(devices.properties, "microphone")
-            val microphone = devices.properties["microphone"]!!
+            val microphone = devices.properties.getValue("microphone")
             assertIs<EtsTypeFact.ObjectEtsTypeFact>(microphone)
 
             assertContains(microphone.properties, "uuid")
-            val uuid = microphone.properties["uuid"]!!
+            val uuid = microphone.properties.getValue("uuid")
             assertIs<EtsTypeFact.StringEtsTypeFact>(uuid)
         }
     }
@@ -113,7 +120,7 @@ class EtsTypeInferenceTest {
     fun `type inference for types`() {
         val name = "types"
         val file = load("/ts/$name.ts")
-        val project = EtsScene(listOf(file))
+        val project = EtsScene(listOf(file), sdkFiles = emptyList())
         val graph = createApplicationGraph(project)
 
         val entrypoints = project.projectClasses
@@ -132,7 +139,7 @@ class EtsTypeInferenceTest {
     fun `type inference for data`() {
         val name = "data"
         val file = load("/ts/$name.ts")
-        val project = EtsScene(listOf(file))
+        val project = EtsScene(listOf(file), sdkFiles = emptyList())
         val graph = createApplicationGraph(project)
 
         val entrypoints = project.projectClasses
@@ -151,7 +158,7 @@ class EtsTypeInferenceTest {
     fun `type inference for call`() {
         val name = "call"
         val file = load("/ts/$name.ts")
-        val project = EtsScene(listOf(file))
+        val project = EtsScene(listOf(file), sdkFiles = emptyList())
         val graph = createApplicationGraph(project)
 
         val entrypoints = project.projectClasses
@@ -170,7 +177,7 @@ class EtsTypeInferenceTest {
     fun `type inference for nested_init`() {
         val name = "nested_init"
         val file = load("/ts/$name.ts")
-        val project = EtsScene(listOf(file))
+        val project = EtsScene(listOf(file), sdkFiles = emptyList())
         val graph = createApplicationGraph(project)
 
         val entrypoints = project.projectClasses
@@ -209,7 +216,8 @@ class EtsTypeInferenceTest {
         val projectDir = object {}::class.java.getResource(abcDirName)?.toURI()?.toPath()
             ?: error("Resource not found: $abcDirName")
         val (scene, result) = testHap(projectDir.toString())
-        val scene2 = EtsTypeAnnotator(scene, result).annotateWithTypes(scene)
+        val scene2 = scene.annotateWithTypes(result)
+        scene2.let {}
     }
 
     private fun processAllHAPs(haps: Collection<File>) {
@@ -274,8 +282,8 @@ class EtsTypeInferenceTest {
         }
 
         println("Processing ${files.size} files...")
-        val etsFiles = files.map { convertToEtsFile(EtsFileDto.loadFromJson(it.inputStream())) }
-        val project = EtsScene(etsFiles)
+        val etsFiles = files.map { EtsFileDto.loadFromJson(it.inputStream()).toEtsFile() }
+        val project = EtsScene(etsFiles, sdkFiles = emptyList())
         val graph = createApplicationGraph(project)
 
         val entrypoints = project.projectClasses
@@ -298,6 +306,7 @@ class EtsTypeInferenceTest {
         val file = load("/ts/$name.ts")
         val project = EtsScene(listOf(file))
         val graph = createApplicationGraph(project)
+        val guesser = TypeGuesser(project)
 
         val entrypoints = project.projectClasses
             .flatMap { it.methods }
@@ -309,7 +318,7 @@ class EtsTypeInferenceTest {
 
         val manager = TypeInferenceManager(EtsTraits(), graph)
         val resultWithoutGuessed = manager.analyze(entrypoints)
-        val resultWithGuessed = resultWithoutGuessed.withGuessedTypes(project)
+        val resultWithGuessed = resultWithoutGuessed.withGuessedTypes(guesser)
 
         assertNotEquals(resultWithoutGuessed.inferredTypes, resultWithGuessed.inferredTypes)
 
@@ -337,7 +346,7 @@ class EtsTypeInferenceTest {
     @TestFactory
     fun `type inference on testcases`() = testFactory {
         val file = load("/ts/testcases.ts")
-        val project = EtsScene(listOf(file))
+        val project = EtsScene(listOf(file), sdkFiles = emptyList())
         val graph = createApplicationGraph(project)
 
         val allCases = project.projectClasses.filter { it.name.startsWith("Case") }
@@ -383,14 +392,7 @@ class EtsTypeInferenceTest {
                 val inferredTypes = result.inferredTypes[inferMethod]
                     ?: error("No inferred types for method ${inferMethod.enclosingClass.name}::${inferMethod.name}")
 
-                for (position in expectedTypeString.keys.sortedBy {
-                    when (it) {
-                        is AccessPathBase.This -> -1
-                        is AccessPathBase.Arg -> it.index
-                        else -> 1_000_000
-                    }
-                }) {
-                    val expected = expectedTypeString[position]!!
+                for ((position, expected) in expectedTypeString.sortedByBase()) {
                     val inferred = inferredTypes[position]
                     logger.info { "Inferred type for $position: $inferred" }
                     val passed = inferred.toString() == expected
@@ -419,10 +421,10 @@ class EtsTypeInferenceTest {
             logger.warn { "No projects directory found in resources" }
             return@testFactory
         }
-        val availableProjectNames = p.toFile().listFiles { f -> f.isDirectory }!!.map { it.name }.sorted()
+        val availableProjectNames = p.listDirectoryEntries().filter { it.isDirectory() }.map { it.name }.sorted()
         logger.info {
             buildString {
-                appendLine("Found projects: ${availableProjectNames.size}")
+                appendLine("Found ${availableProjectNames.size} projects")
                 for (name in availableProjectNames) {
                     appendLine("  - $name")
                 }
@@ -433,8 +435,7 @@ class EtsTypeInferenceTest {
             return@testFactory
         }
         for (projectName in availableProjectNames) {
-            // if (projectName != "Launcher") continue
-            // if (projectName != "Demo_Calc") continue
+            // if (projectName != "...") continue
             test("infer types in $projectName") {
                 logger.info { "Loading project: $projectName" }
                 val projectPath = getResourcePath("/projects/$projectName")
@@ -443,7 +444,7 @@ class EtsTypeInferenceTest {
                     logger.warn { "No etsir directory found for project $projectName" }
                     return@test
                 }
-                val modules = etsirPath.toFile().listFiles { f -> f.isDirectory }!!.map { it.name }
+                val modules = etsirPath.listDirectoryEntries().filter { it.isDirectory() }.map { it.name }
                 logger.info { "Found ${modules.size} modules: $modules" }
                 if (modules.isEmpty()) {
                     logger.warn { "No modules found for project $projectName" }
@@ -451,19 +452,23 @@ class EtsTypeInferenceTest {
                 }
                 val project = loadEtsProjectFromResources(modules, "/projects/$projectName/etsir")
                 logger.info {
-                    buildString {
-                        appendLine("Loaded project with ${project.projectAndSdkClasses.size} classes and ${project.projectClasses.sumOf { it.methods.size }} methods")
-                        for (cls in project.projectAndSdkClasses.sortedBy { it.name }) {
-                            appendLine("= ${cls.signature} with ${cls.methods.size} methods:")
+                    "Loaded project with ${
+                        project.projectClasses.size
+                    } classes and ${project.projectClasses.sumOf { it.methods.size }} methods"
+                }
+                for (cls in project.projectClasses.sortedBy { it.name }) {
+                    logger.info {
+                        buildString {
+                            appendLine("Class ${cls.name} has ${cls.methods.size} methods")
                             for (method in cls.methods.sortedBy { it.name }) {
-                                appendLine("  - ${method.signature}")
+                                appendLine("- $method")
                             }
                         }
                     }
                 }
                 val graph = createApplicationGraph(project)
 
-                val entrypoints = project.projectAndSdkClasses
+                val entrypoints = project.projectClasses
                     .flatMap { it.methods }
                     .filter { it.isPublic }
                 logger.info { "Found ${entrypoints.size} entrypoints" }
@@ -474,17 +479,11 @@ class EtsTypeInferenceTest {
                 logger.info {
                     buildString {
                         appendLine("Inferred types: ${result.inferredTypes.size}")
-                        for ((method, types) in result.inferredTypes.entries.sortedBy { "${it.key.enclosingClass.name}::${it.key.name}" }) {
+                        for ((method, types) in result.inferredTypes.sortedBy { it.key.toString() }) {
                             appendLine()
                             appendLine("- $method")
-                            for ((pos, type) in types.entries.sortedBy {
-                                when (val base = it.key) {
-                                    is AccessPathBase.This -> -1
-                                    is AccessPathBase.Arg -> base.index
-                                    else -> 1_000_000
-                                }
-                            }) {
-                                appendLine("$pos: $type")
+                            for ((pos, type) in types.sortedByBase()) {
+                                appendLine("$pos: ${type.toStringLimited()}")
                             }
                         }
                     }
@@ -492,16 +491,16 @@ class EtsTypeInferenceTest {
                 logger.info {
                     buildString {
                         appendLine("Inferred return types: ${result.inferredReturnType.size}")
-                        for ((method, returnType) in result.inferredReturnType.entries.sortedBy { it.key.toString() }) {
-                            appendLine("${method.enclosingClass.name}::${method.name}: $returnType")
+                        for ((method, returnType) in result.inferredReturnType.sortedBy { it.key.toString() }) {
+                            appendLine("${method.enclosingClass.name}::${method.name}: ${returnType.toStringLimited()}")
                         }
                     }
                 }
                 logger.info {
                     buildString {
                         appendLine("Inferred combined this types: ${result.inferredCombinedThisType.size}")
-                        for ((clazz, thisType) in result.inferredCombinedThisType.entries.sortedBy { it.key.toString() }) {
-                            appendLine("${clazz.name} in ${clazz.file}: $thisType")
+                        for ((clazz, thisType) in result.inferredCombinedThisType.sortedBy { it.key.toString() }) {
+                            appendLine("${clazz.name} in ${clazz.file}: ${thisType.toStringLimited()}")
                         }
                     }
                 }
@@ -521,37 +520,39 @@ class EtsTypeInferenceTest {
 
                     for (local in method.locals) {
                         val inferredType = inferredTypes[AccessPathBase.Local(local.name)]?.toType()
-
-                        logger.info {
-                            "Local ${local.name} in ${method.enclosingClass.name}::${method.name}, known type: ${local.type}, inferred type: $inferredType"
-                        }
-
-                        if (inferredType != null) {
+                        val verdict = if (inferredType != null) {
                             if (local.type.isUnknown()) {
                                 if (inferredType.isUnknown()) {
-                                    logger.info { "Matched unknown" }
                                     numMatchedUnknown++
+                                    "Matched unknown"
                                 } else {
-                                    logger.info { "Better than unknown" }
                                     numBetterThanUnknown++
+                                    "Better than unknown"
                                 }
                             } else {
                                 if (inferredType == local.type) {
-                                    logger.info { "Matched normal" }
                                     numMatchedNormal++
+                                    "Matched normal"
                                 } else {
-                                    logger.info { "Mismatched normal" }
                                     numMismatchedNormal++
+                                    "Mismatched normal"
                                 }
                             }
                         } else {
                             if (local.type.isUnknown()) {
-                                logger.info { "Matched (lost) unknown" }
                                 numMatchedUnknown++
+                                "Matched (lost) unknown"
                             } else {
-                                logger.info { "Lost normal" }
                                 numLostNormal++
+                                "Lost normal"
                             }
+                        }
+                        logger.info {
+                            "Local $local in $method, type: ${
+                                local.type.toStringLimited()
+                            }, inferred: ${
+                                inferredType?.toStringLimited()
+                            }, verdict: $verdict"
                         }
                     }
 

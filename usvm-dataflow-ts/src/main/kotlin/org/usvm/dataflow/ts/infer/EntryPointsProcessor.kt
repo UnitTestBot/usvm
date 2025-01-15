@@ -3,10 +3,10 @@ package org.usvm.dataflow.ts.infer
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 
-object EntryPointsProcessor {
-    fun extractEntryPoints(
-        scene: EtsScene,
-    ): ArtificialMainWithAllMethods {
+class EntryPointsProcessor(
+    val scene: EtsScene,
+) {
+    fun extractEntryPoints(): ArtificialMainWithAllMethods {
         val artificialMainMethods = scene.projectClasses
             .asSequence()
             .flatMap { it.methods }

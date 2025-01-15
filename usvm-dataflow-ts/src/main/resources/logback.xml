@@ -5,15 +5,7 @@
         </encoder>
     </appender>
 
-    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/app.log</file>
-        <encoder>
-            <pattern>%highlight([%level]) %replace(%c{0}){'(\$Companion)?\$logger\$1',''} - %msg%n</pattern>
-        </encoder>
-    </appender>
-
     <root level="error">
         <appender-ref ref="STDOUT" />
-        <appender-ref ref="FILE" />
     </root>
 </configuration>

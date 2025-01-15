@@ -8,14 +8,16 @@ import org.usvm.dataflow.graph.ApplicationGraph
 import org.usvm.dataflow.ifds.Analyzer
 import org.usvm.dataflow.ifds.Edge
 import org.usvm.dataflow.ifds.Vertex
+import org.usvm.dataflow.ts.graph.EtsApplicationGraph
 
 class BackwardAnalyzer(
-    val graph: ApplicationGraph<EtsMethod, EtsStmt>,
+    val graph: EtsApplicationGraph,
     savedTypes: MutableMap<EtsType, MutableList<EtsTypeFact>>,
     dominators: (EtsMethod) -> GraphDominators<EtsStmt>,
+    doAddKnownTypes: Boolean = true,
 ) : Analyzer<BackwardTypeDomainFact, AnalyzerEvent, EtsMethod, EtsStmt> {
 
-    override val flowFunctions = BackwardFlowFunctions(graph, dominators, savedTypes)
+    override val flowFunctions = BackwardFlowFunctions(graph, dominators, savedTypes, doAddKnownTypes)
 
     override fun handleCrossUnitCall(
         caller: Vertex<BackwardTypeDomainFact, EtsStmt>,
