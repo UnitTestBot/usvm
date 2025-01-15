@@ -1,12 +1,12 @@
 /*
  * Copyright 2022 UnitTestBot contributors (utbot.org)
- * <p>
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * <p>
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -36,43 +36,44 @@ class StmtTypeAnnotator(
     private val exprAnnotator: ExprTypeAnnotator,
 ) : EtsStmt.Visitor<EtsStmt> {
 
-    private fun infer(value: EtsValue) = value.accept(valueAnnotator)
-    private fun infer(expr: EtsExpr) = expr.accept(exprAnnotator)
+    private fun annotate(value: EtsValue) = value.accept(valueAnnotator)
 
-    private fun infer(entity: EtsEntity) = when (entity) {
-        is EtsValue -> infer(entity)
-        is EtsExpr -> infer(entity)
+    private fun annotate(expr: EtsExpr) = expr.accept(exprAnnotator)
+
+    private fun annotate(entity: EtsEntity) = when (entity) {
+        is EtsValue -> annotate(entity)
+        is EtsExpr -> annotate(entity)
         else -> error("Unsupported entity of type ${entity::class.java}: $entity")
     }
 
     override fun visit(stmt: EtsNopStmt) = stmt
 
     override fun visit(stmt: EtsAssignStmt) = stmt.copy(
-        lhv = infer(stmt.lhv),
-        rhv = infer(stmt.rhv),
+        lhv = annotate(stmt.lhv),
+        rhv = annotate(stmt.rhv),
     )
 
     override fun visit(stmt: EtsCallStmt) = stmt.copy(
-        expr = infer(stmt.expr) as EtsCallExpr
+        expr = annotate(stmt.expr) as EtsCallExpr
     )
 
     override fun visit(stmt: EtsReturnStmt) = stmt.copy(
-        returnValue = stmt.returnValue?.let { infer(it) }
+        returnValue = stmt.returnValue?.let { annotate(it) }
     )
 
     override fun visit(stmt: EtsThrowStmt) = stmt.copy(
-        arg = infer(stmt.arg)
+        arg = annotate(stmt.arg)
     )
 
     override fun visit(stmt: EtsGotoStmt) = stmt
 
     override fun visit(stmt: EtsIfStmt) = stmt.copy(
-        condition = infer(stmt.condition)
+        condition = annotate(stmt.condition)
     )
 
     override fun visit(stmt: EtsSwitchStmt) = stmt.copy(
-        arg = infer(stmt.arg),
-        cases = stmt.cases.map { infer(it) },
+        arg = annotate(stmt.arg),
+        cases = stmt.cases.map { annotate(it) },
     )
 
     override fun visit(stmt: EtsRawStmt): EtsStmt = stmt
