@@ -255,8 +255,6 @@ class BackwardFlowFunctions(
                 } else {
                     // Case `x := y.f`  OR  `x := y[i]`
 
-                    // TODO: handle known (real) type
-
                     check(rhv.accesses.size == 1)
                     when (val accessor = rhv.accesses.single()) {
                         // Case `x := y.f`
@@ -391,11 +389,6 @@ class BackwardFlowFunctions(
                         cls = null,
                         properties = mapOf(a.name to fact.type)
                     )
-                    // val realType = EtsTypeFact.from(current.rhv.type)
-                    // val type = newType.intersect(realType) ?: run {
-                    //     logger.warn { "Empty intersection of fact and real type: $newType & $realType" }
-                    //     newType
-                    // }
                     result += TypedVariable(y, type).withTypeGuards(current)
                     // aliases: +|= z:{f:T}
                     // for (z in preAliases.getAliases(AccessPath(y, emptyList()))) {
