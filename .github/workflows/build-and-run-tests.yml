@@ -39,7 +39,10 @@ jobs:
         with:
           repository: UnitTestBot/jacodb
           ref: lipen/dto
-          path: ../jacodb
+          path: jacodb
+
+      - name: Move local jacodb
+        run: mv jacodb ../
 
       - name: Set up ArkAnalyzer
         run: |
