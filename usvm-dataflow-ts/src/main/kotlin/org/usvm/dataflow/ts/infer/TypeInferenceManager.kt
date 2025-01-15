@@ -341,6 +341,7 @@ class TypeInferenceManager(
         // Infer return types for each method
         val inferredReturnTypes = run {
             forwardSummaries.asSequence().mapNotNull { (method, summaries) ->
+                @Suppress("LABEL_NAME_CLASH")
                 val typeFacts = summaries.asSequence().map { it.exitVertex }.mapNotNull {
                     val stmt = it.statement as? EtsReturnStmt ?: return@mapNotNull null
                     val fact = it.fact as? ForwardTypeDomainFact.TypedVariable ?: return@mapNotNull null
