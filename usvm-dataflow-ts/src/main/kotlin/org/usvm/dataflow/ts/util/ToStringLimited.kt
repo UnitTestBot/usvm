@@ -25,11 +25,14 @@ fun EtsType.toStringLimited(): String {
     return accept(ToStringLimited)
 }
 
-private fun String.limit(): String {
-    return if (length > 100) {
-        substring(0, 50) + "..."
-    } else {
+private const val LIMIT_SOFT = 100
+private const val LIMIT_HARD = 50
+
+private fun String.limit(soft: Int = LIMIT_SOFT, hard: Int = LIMIT_HARD): String {
+    return if (length <= soft) {
         this
+    } else {
+        substring(0, hard) + "…"
     }
 }
 
@@ -39,16 +42,47 @@ private object ToStringLimited : EtsType.Visitor.Default<String> {
     }
 
     override fun visit(type: EtsUnionType): String {
-        return type.types.joinToString(" | ") { it.accept(this) }.limit()
+        return type.types.joinToString(" | ") {
+            it.accept(this)
+        }.limit()
     }
 
     override fun visit(type: EtsTupleType): String {
-        return type.types.joinToString(", ", prefix = "[", postfix = "]") { it.accept(this) }.limit()
+        return type.types.joinToString(", ", prefix = "[", postfix = "]") {
+            it.accept(this)
+        }.limit()
     }
 }
 
+private const val MAX_TYPES = 5
+
 fun EtsTypeFact.toStringLimited(): String = when (this) {
-    is EtsTypeFact.UnionEtsTypeFact -> types.joinToString(" | ") { it.toStringLimited() }
-    is EtsTypeFact.IntersectionEtsTypeFact -> types.joinToString(" & ") { it.toStringLimited() }
+    is EtsTypeFact.UnionEtsTypeFact -> {
+        if (types.size <= MAX_TYPES) {
+            types.joinLimitedMaybeBraced(" | ")
+        } else {
+            types.take(MAX_TYPES).joinLimitedMaybeBraced(" | ") + " | ${types.size - MAX_TYPES} more…"
+        }
+    }
+
+    is EtsTypeFact.IntersectionEtsTypeFact -> {
+        if (types.size <= MAX_TYPES) {
+            types.joinLimitedMaybeBraced(" & ")
+        } else {
+            types.take(MAX_TYPES).joinLimitedMaybeBraced(" & ") + " & ${types.size - MAX_TYPES} more…"
+        }
+    }
+
     else -> toString().limit()
+}
+
+private fun Iterable<EtsTypeFact>.joinLimitedMaybeBraced(separator: String): String {
+    return joinToString(separator) {
+        val s = it.toStringLimited()
+        if (it is EtsTypeFact.UnionEtsTypeFact || it is EtsTypeFact.IntersectionEtsTypeFact) {
+            "($s)"
+        } else {
+            s
+        }
+    }
 }
