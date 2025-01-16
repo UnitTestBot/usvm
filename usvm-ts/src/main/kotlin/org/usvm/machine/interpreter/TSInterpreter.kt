@@ -28,6 +28,7 @@ import org.usvm.machine.TSApplicationGraph
 import org.usvm.machine.TSContext
 import org.usvm.machine.expr.TSExprResolver
 import org.usvm.machine.expr.TSExprTransformer
+import org.usvm.machine.expr.TSUnresolvedSort
 import org.usvm.machine.state.TSMethodResult
 import org.usvm.machine.state.TSState
 import org.usvm.machine.state.lastStmt
@@ -92,7 +93,7 @@ class TSInterpreter(
 
         val boolExpr = exprResolver
             // Don't want to lose UJoinedBoolExpr here for further fork.
-            .resolveTSExprNoUnwrap(stmt.condition)
+            .resolveTSExpr(stmt.condition)
             ?.asExpr(ctx.boolSort)
             ?: run {
                 logger.warn { "Failed to resolve condition: $stmt" }
@@ -133,7 +134,12 @@ class TSInterpreter(
             .getOrPut(mapLocalToIdx(stmt.method, stmt.lhv)) { expr.sort }
         val lvalue = exprResolver.resolveLValue(stmt.lhv)
 
-        val wrappedExpr = ctx.mkTSWrappedValue(expr)
+        if (expr.sort is TSUnresolvedSort) {
+            scope.doWithState {
+                memory.write()
+            }
+        }
+
         scope.doWithState {
             memory.write(lvalue, wrappedExpr)
             val nextStmt = stmt.nextStmt ?: return@doWithState
