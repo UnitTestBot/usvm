@@ -73,7 +73,6 @@ import org.usvm.machine.operator.TSBinaryOperator
 import org.usvm.machine.operator.TSUnaryOperator
 import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
-import org.usvm.unwrapJoinedExpr
 
 private val logger = KotlinLogging.logger {}
 
@@ -95,7 +94,7 @@ class TSExprResolver(
     fun resolveTSExprNoUnwrap(expr: EtsEntity): UExpr<out USort>? = expr.accept(this)
 
     fun resolveTSExpr(expr: EtsEntity): UExpr<out USort>? {
-        return resolveTSExprNoUnwrap(expr)?.unwrapJoinedExpr(ctx)
+        return resolveTSExprNoUnwrap(expr)
     }
 
     fun resolveLValue(value: EtsValue): ULValue<*, USort> =
@@ -114,7 +113,7 @@ class TSExprResolver(
         lhv: EtsEntity,
         rhv: EtsEntity,
     ): UExpr<out USort>? = resolveAfterResolved(lhv, rhv) { lhs, rhs ->
-        operator.resolve(lhs, rhs, scope) ?: error("Something went wrong during binary operator resolution")
+        operator.resolve(lhs, rhs, scope)
     }
 
     private inline fun <T> resolveAfterResolved(

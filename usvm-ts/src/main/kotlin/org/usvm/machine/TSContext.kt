@@ -19,9 +19,16 @@ typealias TSSizeSort = UBv32Sort
 
 class TSContext(components: TSComponents) : UContext<TSSizeSort>(components) {
 
-    private val tsWrappedValueCache = mkAstInterner<TSWrappedValue<*>>()
-    fun <T : USort> mkTSWrappedValue(value: UExpr<T>): TSWrappedValue<T> = tsWrappedValueCache.createIfContextActive {
-        if (value is TSWrappedValue<*>) value else TSWrappedValue(this, value)
+    private val tsWrappedValueCache = mkAstInterner<TSWrappedValue>()
+    fun <T : USort> mkTSWrappedValue(value: UExpr<T>): TSWrappedValue = tsWrappedValueCache.createIfContextActive {
+        if (value is TSWrappedValue) return@createIfContextActive value
+
+        when (val valueSort = value.sort) {
+            boolSort -> TSWrappedValue(this, boolValue = value.cast())
+            fp64Sort -> TSWrappedValue(this, fpValue = value.cast())
+            addressSort -> TSWrappedValue(this, refValue = value.cast())
+            else -> error("Unsupported sort: $valueSort")
+        }
     }.cast()
 
     val undefinedSort: TSUndefinedSort by lazy { TSUndefinedSort(this) }

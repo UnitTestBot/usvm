@@ -361,7 +361,7 @@ class UJoinedBoolExpr(
 val UBoolExpr.isFalse get() = this == ctx.falseExpr
 val UBoolExpr.isTrue get() = this == ctx.trueExpr
 
-fun UExpr<*>.unwrapJoinedExpr(ctx: UContext<*>): UExpr<out USort> =
-    if (this is UJoinedBoolExpr) ctx.mkAnd(exprs) else this
+// fun UExpr<*>.unwrapJoinedExpr(ctx: UContext<*>): UExpr<out USort> =
+//     if (this is UJoinedBoolExpr) ctx.mkAnd(exprs) else this
 
 //endregion

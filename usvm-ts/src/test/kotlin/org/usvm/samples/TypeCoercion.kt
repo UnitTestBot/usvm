@@ -27,6 +27,25 @@ class TypeCoercion : TSMethodTestRunner() {
     }
 
     @Test
+    fun testDualBoolean() {
+        val method = getMethod("TypeCoercion", "dualBoolean")
+        discoverProperties<TSObject.TSNumber, TSObject.TSNumber>(
+            method,
+            { a, r -> a.number == 0.0 && r.number == -1.0 },
+            { a, r -> a.number == 1.0 && r.number == 2.0 },
+            { a, r -> a.number != 0.0 && a.number != 1.0 && r.number == 3.0 }
+        )
+    }
+
+    @Test
+    fun testDualBooleanWithoutTypes() {
+        val method = getMethod("TypeCoercion", "dualBooleanWithoutTypes")
+        discoverProperties<TSObject, TSObject.TSNumber>(
+            method,
+        )
+    }
+
+    @Test
     fun testArgWithArg() {
         val method = getMethod("TypeCoercion", "argWithArg")
         discoverProperties<TSObject.Boolean, TSObject.TSNumber, TSObject.TSNumber>(
@@ -43,8 +62,9 @@ class TypeCoercion : TSMethodTestRunner() {
             method,
             { a, b, r -> a.number != b.number && r.number == 2.0 },
             { a, b, r -> (a.number == b.number) && !(a.boolean && !b.value) && r.number == 1.0 },
-            // Unreachable branch matcher
-            { _, _, r -> r.number != 0.0 },
+            invariants = arrayOf(
+                { _, _, r -> r.number != 0.0 }
+            )
         )
     }
 
