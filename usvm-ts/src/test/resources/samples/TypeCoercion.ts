@@ -15,6 +15,40 @@ class TypeCoercion {
         }
     }
 
+    dualBoolean(a: number): number {
+        if (a) {
+            if (a == false) {
+                return 1 // unreachable code
+            }
+
+            if (a == true) {
+                return 2
+            }
+
+            return 3
+        }
+
+        // a == 0
+        return -1
+    }
+
+    dualBooleanWithoutTypes(a) {
+        if (a) {
+            if (a == false) {
+                return 1 // REACHABLE code
+            }
+
+            if (a == true) {
+                return 2
+            }
+
+            return 3
+        }
+
+        // a == 0
+        return -1
+    }
+
     unreachableByType(a: number, b: boolean): number {
         // @ts-ignore
         if (a == b) {

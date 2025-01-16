@@ -1,6 +1,5 @@
 package org.usvm.util
 
-import io.ksmt.utils.cast
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsLiteralType
 import org.jacodb.ets.base.EtsNeverType
@@ -15,22 +14,22 @@ import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.base.EtsVoidType
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodParameter
-import org.usvm.machine.TSContext
-import org.usvm.api.TSObject
-import org.usvm.machine.expr.TSRefTransformer
-import org.usvm.api.TSTest
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
+import org.usvm.api.TSObject
+import org.usvm.api.TSTest
 import org.usvm.api.typeStreamOf
+import org.usvm.machine.TSContext
+import org.usvm.machine.expr.TSRefTransformer
 import org.usvm.machine.expr.extractBool
 import org.usvm.machine.expr.extractDouble
 import org.usvm.machine.expr.extractInt
-import org.usvm.memory.URegisterStackLValue
-import org.usvm.model.UModelBase
+import org.usvm.machine.expr.tctx
 import org.usvm.machine.state.TSMethodResult
 import org.usvm.machine.state.TSState
-import org.usvm.machine.expr.tctx
+import org.usvm.memory.URegisterStackLValue
+import org.usvm.model.UModelBase
 import org.usvm.types.TypesResult
 import org.usvm.types.first
 
@@ -41,13 +40,13 @@ class TSTestResolver(
     fun resolve(method: EtsMethod): TSTest = with(state.ctx) {
         val model = state.models.first()
         when (val methodResult = state.methodResult) {
-            is TSMethodResult.Success -> {
-                val valueToResolve = model.eval(methodResult.value.unwrapIfRequired())
-                val returnValue = resolveExpr(valueToResolve, method.returnType, model)
-                val params = resolveParams(method.parameters, this, model)
-
-                return TSTest(params, returnValue)
-            }
+            // is TSMethodResult.Success -> {
+                // val valueToResolve = model.eval(methodResult.value.unwrapIfRequired())
+                // val returnValue = resolveExpr(valueToResolve, method.returnType, model)
+                // val params = resolveParams(method.parameters, this, model)
+                //
+                // return TSTest(params, returnValue)
+            // }
 
             is TSMethodResult.TSException -> {
                 TODO()
@@ -68,13 +67,14 @@ class TSTestResolver(
     ): List<TSObject> = with(ctx) {
         params.map {  param ->
             val type = param.type
-            val lValue = URegisterStackLValue(typeToSort(type), param.index)
-            val expr = model.read(lValue).unwrapIfRequired()
-            if (type is EtsUnknownType) {
-                approximateParam(expr.cast(), param.index, model)
-            } else {
-                resolveExpr(expr, type, model)
-            }
+            TODO()
+            // val lValue = URegisterStackLValue(typeToSort(type), param.index)
+            // val expr = model.read(lValue).unwrapIfRequired()
+            // if (type is EtsUnknownType) {
+            //     approximateParam(expr.cast(), param.index, model)
+            // } else {
+            //     resolveExpr(expr, type, model)
+            // }
         }
     }
 
@@ -83,8 +83,9 @@ class TSTestResolver(
             is TypesResult.SuccessfulTypesResult -> with (expr.tctx) {
                 val newType = tr.types.first()
                 val newLValue = URegisterStackLValue(typeToSort(newType), idx)
-                val transformed = model.read(newLValue).unwrapIfRequired()
-                resolveExpr(transformed, newType, model)
+                // val transformed = model.read(newLValue).unwrapIfRequired()
+                // resolveExpr(transformed, newType, model)
+                TODO()
             }
 
             else -> TSObject.Object(expr.address)

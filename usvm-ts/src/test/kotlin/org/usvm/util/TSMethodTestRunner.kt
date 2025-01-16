@@ -31,7 +31,10 @@ abstract class TSMethodTestRunner : TestRunner<TSTest, EtsMethod, EtsType?, TSMe
     protected abstract val scene: EtsScene
 
     protected fun getMethod(className: String, methodName: String): EtsMethod {
-        return scene.classes.single { it.name == className }.methods.single { it.name == methodName }
+        return scene
+            .classes.single { it.name == className }
+            .methods.singleOrNull { it.name == methodName }
+            ?: error("No such method $methodName in $className found")
     }
 
     protected val doNotCheckCoverage: CoverageChecker = { _ -> true }
@@ -39,7 +42,7 @@ abstract class TSMethodTestRunner : TestRunner<TSTest, EtsMethod, EtsType?, TSMe
     protected inline fun <reified R : TSObject> discoverProperties(
         method: EtsMethod,
         vararg analysisResultMatchers: (R) -> Boolean,
-        invariants: Array<out Function<Boolean>> = emptyArray(),
+        invariants: Array<(R) -> Boolean> = emptyArray(),
         noinline coverageChecker: CoverageChecker = doNotCheckCoverage,
     ) {
         internalCheck(
@@ -57,7 +60,7 @@ abstract class TSMethodTestRunner : TestRunner<TSTest, EtsMethod, EtsType?, TSMe
     protected inline fun <reified T : TSObject, reified R : TSObject> discoverProperties(
         method: EtsMethod,
         vararg analysisResultMatchers: (T, R) -> Boolean,
-        invariants: Array<out Function<Boolean>> = emptyArray(),
+        invariants: Array<(T, R) -> Boolean> = emptyArray(),
         noinline coverageChecker: CoverageChecker = doNotCheckCoverage,
     ) {
         internalCheck(
@@ -75,7 +78,7 @@ abstract class TSMethodTestRunner : TestRunner<TSTest, EtsMethod, EtsType?, TSMe
     protected inline fun <reified T1 : TSObject, reified T2 : TSObject, reified R : TSObject> discoverProperties(
         method: EtsMethod,
         vararg analysisResultMatchers: (T1, T2, R) -> Boolean,
-        invariants: Array<out Function<Boolean>> = emptyArray(),
+        invariants: Array<(T1, T2, R) -> Boolean> = emptyArray(),
         noinline coverageChecker: CoverageChecker = doNotCheckCoverage,
     ) {
         internalCheck(
@@ -95,7 +98,7 @@ abstract class TSMethodTestRunner : TestRunner<TSTest, EtsMethod, EtsType?, TSMe
     protected inline fun <reified T1 : TSObject, reified T2 : TSObject, reified T3 : TSObject, reified R : TSObject> discoverProperties(
         method: EtsMethod,
         vararg analysisResultMatchers: (T1, T2, T3, R) -> Boolean,
-        invariants: Array<out Function<Boolean>> = emptyArray(),
+        invariants: Array<(T1, T2, T3, R) -> Boolean> = emptyArray(),
         noinline coverageChecker: CoverageChecker = doNotCheckCoverage,
     ) {
         internalCheck(
@@ -118,7 +121,7 @@ abstract class TSMethodTestRunner : TestRunner<TSTest, EtsMethod, EtsType?, TSMe
     protected inline fun <reified T1 : TSObject, reified T2 : TSObject, reified T3 : TSObject, reified T4 : TSObject, reified R : TSObject> discoverProperties(
         method: EtsMethod,
         vararg analysisResultMatchers: (T1, T2, T3, T4, R) -> Boolean,
-        invariants: Array<out Function<Boolean>> = emptyArray(),
+        invariants: Array<(T1, T2, T3, T4, R) -> Boolean> = emptyArray(),
         noinline coverageChecker: CoverageChecker = doNotCheckCoverage,
     ) {
         internalCheck(

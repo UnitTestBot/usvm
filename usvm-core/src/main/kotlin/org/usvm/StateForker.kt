@@ -1,6 +1,5 @@
 package org.usvm
 
-import io.ksmt.utils.cast
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.model.UModelBase
 import org.usvm.solver.USatResult
@@ -46,7 +45,7 @@ object WithSolverStateForker : StateForker {
         state: T,
         condition: UBoolExpr,
     ): ForkResult<T> {
-        val unwrappedCondition: UBoolExpr = condition.unwrapJoinedExpr(state.ctx).cast()
+        val unwrappedCondition: UBoolExpr = condition/*.unwrapJoinedExpr(state.ctx).cast()*/
         // TODO false models full of shit (because if fucked up negation of unwrappedCondition)
         val (trueModels, falseModels, _) = splitModelsByCondition(state.models, unwrappedCondition)
 

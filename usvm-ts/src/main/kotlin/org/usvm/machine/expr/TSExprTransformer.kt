@@ -11,7 +11,7 @@ import org.usvm.USort
 import org.usvm.machine.TSContext
 import org.usvm.machine.interpreter.TSStepScope
 import org.usvm.util.boolToFpSort
-import org.usvm.util.fpToBoolSort
+import org.usvm.util.fpToBoolForConditions
 
 typealias CoerceAction = (UExpr<out USort>, UExpr<out USort>) -> UExpr<out USort>?
 
@@ -58,6 +58,16 @@ class TSExprTransformer(
                 null
             }
         }
+        // foo(a, b) {
+        //     return a + b
+        // }
+
+        // WrappedExpr(...)
+
+        // Wrapped(fpAdd, bvAdd, intAdd)
+        // fpAdd <-> a is fp && b is fp
+        //
+        //
 
         ctx.generateAdditionalExprs(fst, exprs, scope)
 
@@ -108,7 +118,8 @@ class TSExprTransformer(
             // No need to add link between ref and fp64/bool representations since refs can only be compared with refs.
             // (primitives can't be cast to ref in TypeScript type coercion)
             addressSort -> {
-                val fpToBoolLink = mkEq(fpToBoolSort(asFp64(expr)), asBool(expr))
+                // TODO check for an error
+                val fpToBoolLink = mkEq(fpToBoolForConditions(asFp64(expr)), asBool(expr))
                 val boolToRefLink = mkEq(asBool(expr), (expr as UExpr<UAddressSort>).neq(mkNullRef()))
                 // TODO do not add path constraints
                 if (addedExprCache.add(fpToBoolLink)) scope.calcOnState { pathConstraints.plusAssign(fpToBoolLink) } // TODO check if we can do it
@@ -136,7 +147,8 @@ class TSExprTransformer(
             .getOrPut(ctx.boolSort) {
                 when (expr.sort) {
                     ctx.boolSort -> expr
-                    ctx.fp64Sort -> ctx.fpToBoolSort(expr.cast())
+                    // TODO check for an error
+                    ctx.fp64Sort -> ctx.fpToBoolForConditions(expr.cast())
                     ctx.addressSort -> with(ctx) {
                         TSRefTransformer(ctx, boolSort).apply(expr.cast()).cast()
                     }
