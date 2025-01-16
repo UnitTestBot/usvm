@@ -8,7 +8,7 @@ include("usvm-jvm-instrumentation")
 include("usvm-sample-language")
 include("usvm-dataflow")
 include("usvm-jvm-dataflow")
-include("usvm-dataflow-ts")
+include("usvm-ts-dataflow")
 
 include("usvm-python")
 include("usvm-python:cpythonadapter")
