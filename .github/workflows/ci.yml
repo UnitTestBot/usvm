@@ -23,7 +23,6 @@ jobs:
         with:
           java-version: ${{ env.JAVA }}
           distribution: ${{ env.JAVA_DISTRIBUTION }}
-          cache: gradle
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -43,7 +42,6 @@ jobs:
         with:
           java-version: ${{ env.JAVA }}
           distribution: ${{ env.JAVA_DISTRIBUTION }}
-          cache: gradle
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -65,7 +63,6 @@ jobs:
         with:
           java-version: ${{ env.JAVA }}
           distribution: ${{ env.JAVA_DISTRIBUTION }}
-          cache: gradle
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -91,7 +88,6 @@ jobs:
         with:
           java-version: ${{ env.JAVA }}
           distribution: ${{ env.JAVA_DISTRIBUTION }}
-          cache: gradle
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -142,7 +138,6 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-          cache: gradle
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
