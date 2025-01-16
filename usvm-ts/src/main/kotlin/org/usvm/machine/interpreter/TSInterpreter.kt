@@ -1,6 +1,5 @@
 package org.usvm.machine.interpreter
 
-import io.ksmt.utils.asExpr
 import mu.KotlinLogging
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsCallStmt
@@ -26,9 +25,9 @@ import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.machine.TSApplicationGraph
 import org.usvm.machine.TSContext
+import org.usvm.machine.expr.MultiExpr
 import org.usvm.machine.expr.TSExprResolver
 import org.usvm.machine.expr.TSExprTransformer
-import org.usvm.machine.expr.TSUnresolvedSort
 import org.usvm.machine.state.TSMethodResult
 import org.usvm.machine.state.TSState
 import org.usvm.machine.state.lastStmt
@@ -38,7 +37,6 @@ import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.state.returnValue
 import org.usvm.solver.USatResult
 import org.usvm.targets.UTargetsSet
-import org.usvm.util.write
 
 private val logger = KotlinLogging.logger {}
 
@@ -94,7 +92,7 @@ class TSInterpreter(
         val boolExpr = exprResolver
             // Don't want to lose UJoinedBoolExpr here for further fork.
             .resolveTSExpr(stmt.condition)
-            ?.asExpr(ctx.boolSort)
+            ?.let { it.boolValue!! }
             ?: run {
                 logger.warn { "Failed to resolve condition: $stmt" }
                 return
@@ -118,7 +116,7 @@ class TSInterpreter(
 
         val valueToReturn = stmt.returnValue
             ?.let { exprResolver.resolveTSExpr(it) ?: return }
-            ?: ctx.mkUndefinedValue()
+            ?: MultiExpr() // TODO undefined
 
         scope.doWithState {
             returnValue(valueToReturn)
@@ -129,19 +127,12 @@ class TSInterpreter(
         val exprResolver = exprResolverWithScope(scope)
 
         val expr = exprResolver.resolveTSExpr(stmt.rhv) ?: return
-        localVarToSort
-            .getOrPut(stmt.method) { hashMapOf() }
-            .getOrPut(mapLocalToIdx(stmt.method, stmt.lhv)) { expr.sort }
         val lvalue = exprResolver.resolveLValue(stmt.lhv)
 
-        if (expr.sort is TSUnresolvedSort) {
-            scope.doWithState {
-                memory.write()
-            }
-        }
-
         scope.doWithState {
-            memory.write(lvalue, wrappedExpr)
+            lvalue.boolLValue?.let { memory.write(it, expr.boolValue!!, ctx.trueExpr) }
+            lvalue.fpLValue?.let { memory.write(it, expr.fpValue!!, ctx.trueExpr) }
+            lvalue.refLValue?.let { memory.write(it, expr.refValue!!, ctx.trueExpr) }
             val nextStmt = stmt.nextStmt ?: return@doWithState
             newStmt(nextStmt)
         }
