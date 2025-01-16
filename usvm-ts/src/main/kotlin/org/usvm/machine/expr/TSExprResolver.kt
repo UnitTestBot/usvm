@@ -1,5 +1,7 @@
 package org.usvm.machine.expr
 
+import io.ksmt.sort.KFp64Sort
+import io.ksmt.utils.cast
 import mu.KotlinLogging
 import org.jacodb.ets.base.EtsAddExpr
 import org.jacodb.ets.base.EtsAndExpr
@@ -65,12 +67,13 @@ import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.base.EtsVoidExpr
 import org.jacodb.ets.base.EtsYieldExpr
 import org.jacodb.ets.model.EtsMethod
+import org.usvm.UAddressSort
+import org.usvm.UBoolSort
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.machine.TSContext
 import org.usvm.machine.interpreter.TSStepScope
 import org.usvm.machine.operator.TSBinaryOperator
-import org.usvm.machine.operator.TSUnaryOperator
 import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
 
@@ -81,7 +84,7 @@ class TSExprResolver(
     private val scope: TSStepScope,
     localToIdx: (EtsMethod, EtsValue) -> Int,
     localToSort: (EtsMethod, Int) -> USort? = { _, _ -> null },
-) : EtsEntity.Visitor<UExpr<out USort>?> {
+) : EtsEntity.Visitor<MultiExpr?> {
 
     private val simpleValueResolver: TSSimpleValueResolver =
         TSSimpleValueResolver(
@@ -91,11 +94,11 @@ class TSExprResolver(
             localToSort,
         )
 
-    fun resolveTSExpr(expr: EtsEntity): UExpr<out USort>? {
+    fun resolveTSExpr(expr: EtsEntity): MultiExpr? {
         return expr.accept(this)
     }
 
-    fun resolveLValue(value: EtsValue): ULValue<*, USort> =
+    fun resolveLValue(value: EtsValue): MultiLValue<*> =
         when (value) {
             is EtsParameterRef, is EtsLocal -> simpleValueResolver.resolveLocal(value)
             else -> error("Unexpected value: $value")
@@ -104,13 +107,13 @@ class TSExprResolver(
     private fun resolveBinaryOperator(
         operator: TSBinaryOperator,
         expr: EtsBinaryExpr,
-    ): UExpr<out USort>? = resolveBinaryOperator(operator, expr.left, expr.right)
+    ): MultiExpr?  = resolveBinaryOperator(operator, expr.left, expr.right)
 
     private fun resolveBinaryOperator(
         operator: TSBinaryOperator,
         lhv: EtsEntity,
         rhv: EtsEntity,
-    ): UExpr<out USort>? = resolveAfterResolved(lhv, rhv) { lhs, rhs ->
+    ): MultiExpr?  = resolveAfterResolved(lhv, rhv) { lhs, rhs ->
         operator.resolve(lhs, rhs, scope)
     }
 
@@ -119,306 +122,308 @@ class TSExprResolver(
         block: (UExpr<out USort>) -> T,
     ): T? {
         val result = resolveTSExpr(dependency) ?: return null
-        return block(result)
+        return TODO()
     }
 
-    private inline fun <T> resolveAfterResolved(
+    private inline fun resolveAfterResolved(
         dependency0: EtsEntity,
         dependency1: EtsEntity,
-        block: (UExpr<out USort>, UExpr<out USort>) -> T,
-    ): T? {
+        block: (MultiExpr, MultiExpr) -> MultiExpr,
+    ): MultiExpr? {
         val result0 = resolveTSExpr(dependency0) ?: return null
         val result1 = resolveTSExpr(dependency1) ?: return null
+
         return block(result0, result1)
     }
 
-    override fun visit(value: EtsLocal): UExpr<out USort> {
+    override fun visit(value: EtsLocal): MultiExpr? {
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: EtsParameterRef): UExpr<out USort> {
+    override fun visit(value: EtsParameterRef): MultiExpr? {
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: EtsThis): UExpr<out USort> {
+    override fun visit(value: EtsThis): MultiExpr? {
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: EtsBooleanConstant): UExpr<out USort> {
+    override fun visit(value: EtsBooleanConstant): MultiExpr? {
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: EtsNumberConstant): UExpr<out USort> {
+    override fun visit(value: EtsNumberConstant): MultiExpr? {
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: EtsNullConstant): UExpr<out USort> {
+    override fun visit(value: EtsNullConstant): MultiExpr? {
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(expr: EtsEqExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsEqExpr): MultiExpr?  {
         return resolveBinaryOperator(TSBinaryOperator.Eq, expr)
     }
 
-    override fun visit(expr: EtsAddExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsAddExpr): MultiExpr?  {
         return resolveBinaryOperator(TSBinaryOperator.Add, expr)
     }
 
-    override fun visit(expr: EtsAndExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsAndExpr): MultiExpr?  {
         return resolveBinaryOperator(TSBinaryOperator.And, expr)
     }
 
-    override fun visit(expr: EtsNotEqExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsNotEqExpr): MultiExpr?  {
         return resolveBinaryOperator(TSBinaryOperator.Neq, expr)
     }
 
-    override fun visit(expr: EtsNotExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsNotExpr): MultiExpr?  {
         return resolveAfterResolved(expr.arg) { arg ->
-            TSUnaryOperator.Not(arg, scope)
+            // TSUnaryOperator.Not(arg, scope)
+            error("")
         }
     }
 
-    override fun visit(value: EtsArrayLiteral): UExpr<out USort>? {
+    override fun visit(value: EtsArrayLiteral): MultiExpr?  {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(value: EtsObjectLiteral): UExpr<out USort>? {
+    override fun visit(value: EtsObjectLiteral): MultiExpr?  {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(value: EtsStringConstant): UExpr<out USort>? {
+    override fun visit(value: EtsStringConstant): MultiExpr?  {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(value: EtsUndefinedConstant): UExpr<out USort>? {
+    override fun visit(value: EtsUndefinedConstant): MultiExpr?  {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsAwaitExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsAwaitExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsBitAndExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsBitAndExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsBitNotExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsBitNotExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsBitOrExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsBitOrExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsBitXorExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsBitXorExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsCastExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsCastExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsCommaExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsCommaExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsDeleteExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsDeleteExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsDivExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsDivExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsExpExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsExpExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsGtEqExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsGtEqExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsGtExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsGtExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsInExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsInExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsInstanceCallExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsInstanceCallExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsInstanceOfExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsInstanceOfExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsLeftShiftExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsLeftShiftExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsLengthExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsLengthExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsLtEqExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsLtEqExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsLtExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsLtExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsMulExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsMulExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsNegExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsNegExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsNewArrayExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsNewArrayExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsNewExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsNewExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsNullishCoalescingExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsNullishCoalescingExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsOrExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsOrExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsPostDecExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsPostDecExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsPostIncExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsPostIncExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsPreDecExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsPreDecExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsPreIncExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsPreIncExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsRemExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsRemExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsRightShiftExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsRightShiftExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsStaticCallExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsStaticCallExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsPtrCallExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsPtrCallExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsStrictEqExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsStrictEqExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsStrictNotEqExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsStrictNotEqExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsSubExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsSubExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsTernaryExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsTernaryExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsTypeOfExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsTypeOfExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsUnaryPlusExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsUnaryPlusExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsUnsignedRightShiftExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsUnsignedRightShiftExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsVoidExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsVoidExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(expr: EtsYieldExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsYieldExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(value: EtsArrayAccess): UExpr<out USort>? {
+    override fun visit(value: EtsArrayAccess): MultiExpr?  {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(value: EtsInstanceFieldRef): UExpr<out USort>? {
+    override fun visit(value: EtsInstanceFieldRef): MultiExpr?  {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(value: EtsStaticFieldRef): UExpr<out USort>? {
+    override fun visit(value: EtsStaticFieldRef): MultiExpr?  {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         return null
     }
@@ -429,73 +434,99 @@ class TSSimpleValueResolver(
     private val scope: TSStepScope,
     private val localToIdx: (EtsMethod, EtsValue) -> Int,
     private val localToSort: (EtsMethod, Int) -> USort? = { _, _ -> null },
-) : EtsValue.Visitor<UExpr<out USort>?> {
+) : EtsValue.Visitor<MultiExpr?> {
 
-    fun resolveLocal(local: EtsValue): URegisterStackLValue<*> {
+    @Suppress("UNCHECKED_CAST")
+    fun resolveLocal(local: EtsValue): MultiLValue<*> {
         val method = requireNotNull(scope.calcOnState { lastEnteredMethod })
         val localIdx = localToIdx(method, local)
         val sort = localToSort(method, localIdx) ?: ctx.typeToSort(local.type)
-        return URegisterStackLValue(sort, localIdx)
+        return when (sort) {
+            is UBoolSort -> MultiLValue(boolLValue = URegisterStackLValue(sort, localIdx) as ULValue<*, UBoolSort>)
+            is KFp64Sort -> MultiLValue(fpLValue = URegisterStackLValue(sort, localIdx) as ULValue<*, KFp64Sort>)
+            is UAddressSort -> MultiLValue(refLValue = URegisterStackLValue(sort, localIdx) as ULValue<*, UAddressSort>)
+            is TSUnresolvedSort -> MultiLValue(
+                boolLValue = URegisterStackLValue(sort, localIdx) as ULValue<URegisterStackLValue<*>, UBoolSort>,
+                fpLValue = URegisterStackLValue(sort, localIdx) as ULValue<URegisterStackLValue<*>, KFp64Sort>,
+                refLValue = URegisterStackLValue(sort, localIdx) as ULValue<URegisterStackLValue<*>, UAddressSort>
+            )
+
+            else -> error("Unsupported sort $sort")
+        }
     }
 
-    override fun visit(value: EtsLocal): UExpr<out USort> = with(ctx) {
+    fun makeMultiExpr(lValue: MultiLValue<*>, block: ULValue<*, *>.() -> UExpr<out USort>): MultiExpr? {
+        return MultiExpr(
+            boolValue = lValue.boolLValue?.block()?.cast(),
+            fpValue = lValue.fpLValue?.block()?.cast(),
+            refValue = lValue.refLValue?.block()?.cast()
+        )
+    }
+
+    override fun visit(value: EtsLocal): MultiExpr? = with(ctx) {
         val lValue = resolveLocal(value)
-        return scope.calcOnState { memory.read(lValue) }
+        return makeMultiExpr(lValue) {
+            scope.calcOnState { memory.read(this@makeMultiExpr) }
+        }
     }
 
-    override fun visit(value: EtsParameterRef): UExpr<out USort> = with(ctx) {
+    override fun visit(value: EtsParameterRef): MultiExpr? = with(ctx) {
         val lValue = resolveLocal(value)
-        return scope.calcOnState { memory.read(lValue) }
+        return makeMultiExpr(lValue) {
+            scope.calcOnState { memory.read(this@makeMultiExpr) }
+        }
     }
 
-    override fun visit(value: EtsThis): UExpr<out USort> = with(ctx) {
+    override fun visit(value: EtsThis): MultiExpr? = with(ctx) {
         val lValue = resolveLocal(value)
-        scope.calcOnState { memory.read(lValue) }
+        makeMultiExpr(lValue) {
+            scope.calcOnState { memory.read(this@makeMultiExpr) }
+        }
     }
 
-    override fun visit(value: EtsBooleanConstant): UExpr<out USort> = with(ctx) {
-        mkBool(value.value)
+    override fun visit(value: EtsBooleanConstant): MultiExpr? = with(ctx) {
+        MultiExpr(boolValue = mkBool(value.value))
     }
 
-    override fun visit(value: EtsNumberConstant): UExpr<out USort> = with(ctx) {
-        mkFp64(value.value)
+    override fun visit(value: EtsNumberConstant): MultiExpr? = with(ctx) {
+        MultiExpr(fpValue = mkFp64(value.value))
     }
 
-    override fun visit(value: EtsStringConstant): UExpr<out USort>? = with(ctx) {
+    override fun visit(value: EtsStringConstant): MultiExpr? = with(ctx) {
+        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
+        null
+    }
+
+    override fun visit(value: EtsNullConstant): MultiExpr? = with(ctx) {
+        MultiExpr(refValue = nullRef)
+    }
+
+    override fun visit(value: EtsUndefinedConstant): MultiExpr?  = with(ctx) {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(value: EtsNullConstant): UExpr<out USort> = with(ctx) {
-        nullRef
-    }
-
-    override fun visit(value: EtsUndefinedConstant): UExpr<out USort>? = with(ctx) {
+    override fun visit(value: EtsArrayLiteral): MultiExpr?  = with(ctx) {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(value: EtsArrayLiteral): UExpr<out USort>? = with(ctx) {
+    override fun visit(value: EtsObjectLiteral): MultiExpr?  = with(ctx) {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(value: EtsObjectLiteral): UExpr<out USort>? = with(ctx) {
+    override fun visit(value: EtsArrayAccess): MultiExpr?  = with(ctx) {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(value: EtsArrayAccess): UExpr<out USort>? = with(ctx) {
+    override fun visit(value: EtsInstanceFieldRef): MultiExpr?  = with(ctx) {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         return null
     }
 
-    override fun visit(value: EtsInstanceFieldRef): UExpr<out USort>? = with(ctx) {
-        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        return null
-    }
-
-    override fun visit(value: EtsStaticFieldRef): UExpr<out USort>? = with(ctx) {
+    override fun visit(value: EtsStaticFieldRef): MultiExpr?  = with(ctx) {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         return null
     }

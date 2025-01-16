@@ -40,7 +40,7 @@ class TypeCoercion : TSMethodTestRunner() {
     @Test
     fun testDualBooleanWithoutTypes() {
         val method = getMethod("TypeCoercion", "dualBooleanWithoutTypes")
-        discoverProperties<TSObject, TSObject.TSNumber>(
+        discoverProperties<TSObject.Unknown, TSObject.TSNumber>(
             method,
         )
     }

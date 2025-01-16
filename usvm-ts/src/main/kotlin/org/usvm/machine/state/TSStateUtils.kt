@@ -2,8 +2,7 @@ package org.usvm.machine.state
 
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.model.EtsMethod
-import org.usvm.UExpr
-import org.usvm.USort
+import org.usvm.machine.expr.MultiExpr
 
 val TSState.lastStmt get() = pathNode.statement
 
@@ -11,7 +10,7 @@ fun TSState.newStmt(stmt: EtsStmt) {
     pathNode += stmt
 }
 
-fun TSState.returnValue(valueToReturn: UExpr<out USort>) {
+fun TSState.returnValue(valueToReturn: MultiExpr) {
     val returnFromMethod = callStack.lastMethod()
     val returnSite = callStack.pop()
     if (callStack.isNotEmpty()) {

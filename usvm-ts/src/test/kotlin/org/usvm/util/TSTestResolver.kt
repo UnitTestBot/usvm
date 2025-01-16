@@ -1,5 +1,6 @@
 package org.usvm.util
 
+import io.ksmt.utils.cast
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsLiteralType
 import org.jacodb.ets.base.EtsNeverType
@@ -40,13 +41,14 @@ class TSTestResolver(
     fun resolve(method: EtsMethod): TSTest = with(state.ctx) {
         val model = state.models.first()
         when (val methodResult = state.methodResult) {
-            // is TSMethodResult.Success -> {
-                // val valueToResolve = model.eval(methodResult.value.unwrapIfRequired())
-                // val returnValue = resolveExpr(valueToResolve, method.returnType, model)
-                // val params = resolveParams(method.parameters, this, model)
-                //
-                // return TSTest(params, returnValue)
-            // }
+            is TSMethodResult.Success -> {
+                val value = methodResult.value.boolValue ?: methodResult.value.fpValue ?: methodResult.value.refValue ?: mkUndefinedValue()
+                val valueToResolve = model.eval(value)
+                val returnValue = resolveExpr(valueToResolve, method.returnType, model)
+                val params = resolveParams(method.parameters, this, model)
+
+                return TSTest(params, returnValue)
+            }
 
             is TSMethodResult.TSException -> {
                 TODO()
@@ -67,14 +69,13 @@ class TSTestResolver(
     ): List<TSObject> = with(ctx) {
         params.map {  param ->
             val type = param.type
-            TODO()
-            // val lValue = URegisterStackLValue(typeToSort(type), param.index)
-            // val expr = model.read(lValue).unwrapIfRequired()
-            // if (type is EtsUnknownType) {
-            //     approximateParam(expr.cast(), param.index, model)
-            // } else {
-            //     resolveExpr(expr, type, model)
-            // }
+            val lValue = URegisterStackLValue(typeToSort(type), param.index)
+            val expr = model.read(lValue)
+            if (type is EtsUnknownType) {
+                approximateParam(expr.cast(), param.index, model)
+            } else {
+                resolveExpr(expr, type, model)
+            }
         }
     }
 
