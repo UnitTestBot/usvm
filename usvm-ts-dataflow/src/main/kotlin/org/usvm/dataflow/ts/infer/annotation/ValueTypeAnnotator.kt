@@ -34,17 +34,15 @@ import org.usvm.dataflow.ts.infer.EtsTypeFact
 import org.usvm.dataflow.ts.infer.toType
 
 class ValueTypeAnnotator(
-    private val scene: EtsScene,
-    private val facts: Map<AccessPathBase, EtsTypeFact>,
-    private val thisType: EtsTypeFact?,
+    private val scheme: MethodTypeScheme,
+    private val thisType: EtsType?,
 ) : EtsValue.Visitor.Default<EtsValue> {
 
     private inline fun <V, reified T : EtsType> V.annotate(
         base: AccessPathBase,
         transform: V.(T) -> V,
     ): V {
-        val fact = facts[base] ?: return this
-        val type = fact.toType() ?: return this
+        val type = scheme.typeOf(base) ?: return this
         if (type !is T) return this
         return transform(type)
     }
@@ -55,7 +53,7 @@ class ValueTypeAnnotator(
         value.annotate<EtsLocal, EtsType>(AccessPathBase.Local(value.name)) { copy(type = it) }
 
     override fun visit(value: EtsThis): EtsValue =
-        (thisType?.toType() as? EtsClassType)?.let { value.copy(type = it) }
+        (thisType as? EtsClassType)?.let { value.copy(type = it) }
             ?: value.annotate<EtsThis, EtsClassType>(AccessPathBase.This) { copy(type = it) }
 
     override fun visit(value: EtsParameterRef) =
@@ -71,47 +69,6 @@ class ValueTypeAnnotator(
     // TODO: discuss (labeled with (Q))
     override fun visit(value: EtsInstanceFieldRef): EtsValue {
         val instance = visit(value.instance)
-        val name = value.field.name
-
-        fun findInClass(signature: EtsClassSignature): EtsField? =
-            scene.projectAndSdkClasses
-                .singleOrNull { it.signature == signature }
-                ?.fields
-                ?.singleOrNull { it.name == name }
-
-        // Try to determine field type using the scene
-        // (Q) Do we really need this step?
-        with(value.field) {
-            val etsField = findInClass(enclosingClass) ?: return@with
-            // Field was found in the scene
-
-            // Check that inferred type is same with the declared one
-            // (Q) How should we (do we should?) handle the check violation here?
-            check(instance.type == EtsClassType(enclosingClass))
-
-            return EtsInstanceFieldRef(instance = instance, field = etsField.signature)
-        }
-
-        // Field was not found by signature, then try to infer instance type
-        val instanceTypeInfo = facts[AccessPathBase.Local(instance.name)] as? EtsTypeFact.ObjectEtsTypeFact
-            // Instance type was neither specified in signature nor inferred, so no type info can be provided
-            // (Q) Should we check special properties of primitives (like `string.length`)?
-            ?: return value.copy(instance = instance)
-
-        // Find field signature in inferred class fields
-        (instanceTypeInfo.cls as? EtsClassType)?.run {
-            val etsField = findInClass(signature) ?: return@run
-            // Field was found in the inferred class
-            return EtsInstanceFieldRef(instance = instance, field = etsField.signature)
-        }
-
-        // Find field type in inferred fields - we don't know precisely the base class, but can infer the field type
-        instanceTypeInfo.properties[name]?.toType()?.let { fieldType ->
-            val fieldSubSignature = value.field.sub.copy(type = fieldType)
-            // (Q) General: Should we use our inferred type if there is a non-trivial type in the original scene?
-            return EtsInstanceFieldRef(instance = instance, field = value.field.copy(sub = fieldSubSignature))
-        }
-
         return value.copy(instance = instance)
     }
 

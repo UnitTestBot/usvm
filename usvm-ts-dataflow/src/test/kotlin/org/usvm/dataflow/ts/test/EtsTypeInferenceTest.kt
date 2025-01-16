@@ -45,6 +45,7 @@ import org.usvm.dataflow.ts.infer.EtsTypeFact
 import org.usvm.dataflow.ts.infer.TypeGuesser
 import org.usvm.dataflow.ts.infer.TypeInferenceManager
 import org.usvm.dataflow.ts.infer.TypeInferenceResult
+import org.usvm.dataflow.ts.infer.annotation.InferredTypeScheme
 import org.usvm.dataflow.ts.infer.annotation.annotateWithTypes
 import org.usvm.dataflow.ts.infer.createApplicationGraph
 import org.usvm.dataflow.ts.infer.toType
@@ -216,7 +217,7 @@ class EtsTypeInferenceTest {
         val projectDir = object {}::class.java.getResource(abcDirName)?.toURI()?.toPath()
             ?: error("Resource not found: $abcDirName")
         val (scene, result) = testHap(projectDir.toString())
-        val scene2 = scene.annotateWithTypes(result)
+        val scene2 = scene.annotateWithTypes(InferredTypeScheme(result))
         scene2.let {}
     }
 

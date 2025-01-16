@@ -7,7 +7,10 @@ import org.usvm.dataflow.ts.infer.EntryPointsProcessor
 import org.usvm.dataflow.ts.infer.EtsApplicationGraphWithExplicitEntryPoint
 import org.usvm.dataflow.ts.infer.TypeGuesser
 import org.usvm.dataflow.ts.infer.TypeInferenceManager
+import org.usvm.dataflow.ts.infer.annotation.annotateWithTypes
 import org.usvm.dataflow.ts.infer.createApplicationGraph
+import org.usvm.dataflow.ts.infer.verify.VerificationResult
+import org.usvm.dataflow.ts.infer.verify.verify
 import org.usvm.dataflow.ts.test.utils.MethodTypesFacts
 import org.usvm.dataflow.ts.test.utils.TypeInferenceStatistics
 import org.usvm.dataflow.ts.util.EtsTraits
@@ -32,7 +35,16 @@ class EtsTypeResolverAbcTest {
         val projectAbc = "$yourPrefixForTestFolders/$testProjectsVersion/$abcPath"
 
         val abcScene = loadEtsProjectFromIR(Path(projectAbc), pathToSDK?.let { Path(it) })
-        val graphAbc = createApplicationGraph(abcScene) as EtsApplicationGraphWithExplicitEntryPoint
+            .let { scene ->
+            when (val result = verify(scene)) {
+                is VerificationResult.Success -> scene
+                is VerificationResult.Fail -> scene.annotateWithTypes(result.erasureScheme)
+            }
+        }
+
+        assert(verify(abcScene) is VerificationResult.Success)
+
+        val graphAbc = createApplicationGraph(abcScene)
         val guesser = TypeGuesser(abcScene)
 
         val entrypoint = EntryPointsProcessor(abcScene).extractEntryPoints()

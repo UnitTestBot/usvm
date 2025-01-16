@@ -41,16 +41,14 @@ import org.jacodb.ets.base.EtsSwitchStmt
 import org.jacodb.ets.base.EtsTernaryExpr
 import org.jacodb.ets.base.EtsThis
 import org.jacodb.ets.base.EtsThrowStmt
-import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUnaryExpr
 import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.model.EtsMethodSignature
-import org.usvm.dataflow.ts.infer.verify.EntityId
 
 class StmtSummaryCollector(
-    override val enclosingMethod: EtsMethodSignature,
-    override val typeSummary: MutableMap<EntityId, MutableSet<EtsType>>,
-) : MethodSummaryCollector,
+    override val method: EtsMethodSignature,
+    override val verificationSummary: MethodVerificationSummary,
+) : SummaryCollector,
     EtsStmt.Visitor<Unit>,
     EtsValue.Visitor.Default<Unit>,
     EtsExpr.Visitor.Default<Unit> {
@@ -135,12 +133,11 @@ class StmtSummaryCollector(
     }
 
     override fun visit(value: EtsInstanceFieldRef) {
-        yield(value.field)
+        requireObjectOrUnknown(value.instance, value)
         value.instance.accept(this)
     }
 
     override fun visit(value: EtsStaticFieldRef) {
-        yield(value.field)
     }
 
     // endregion
@@ -164,18 +161,16 @@ class StmtSummaryCollector(
         }
 
         is EtsInstanceCallExpr -> {
-            yield(expr.method)
             collect(expr.instance)
+            requireObjectOrUnknown(expr.instance, expr)
             expr.args.forEach { collect(it) }
         }
 
         is EtsStaticCallExpr -> {
-            yield(expr.method)
             expr.args.forEach { collect(it) }
         }
 
         is EtsPtrCallExpr -> {
-            yield(expr.method)
             collect(expr.ptr)
             expr.args.forEach { collect(it) }
         }

@@ -22,8 +22,8 @@ import org.jacodb.ets.base.EtsTupleType
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUnionType
 import org.jacodb.ets.base.EtsUnknownType
+import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
-import org.usvm.dataflow.ts.infer.verify.EntityId
 
 val EtsType.isUnresolved: Boolean
     get() = when (this) {
@@ -35,10 +35,10 @@ val EtsType.isUnresolved: Boolean
         else -> false
     }
 
-fun collectSummary(scene: EtsScene): Map<EntityId, Set<EtsType>> {
-    val collector = ClassSummaryCollector(hashMapOf())
+fun collectSummary(scene: EtsScene): Map<EtsMethod, MethodVerificationSummary> {
+    val collector = ClassSummaryCollector()
     scene.projectAndSdkClasses.forEach {
         collector.collect(it)
     }
-    return collector.typeSummary
+    return collector.methodSummaries
 }
