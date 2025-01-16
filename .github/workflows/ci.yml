@@ -147,6 +147,9 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Validate Project List
+        run: ./gradlew validateProjectList
+
       - name: Run Detekt
         run: ./gradlew detektMain detektTest
 
