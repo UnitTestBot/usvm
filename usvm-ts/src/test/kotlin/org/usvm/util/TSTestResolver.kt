@@ -42,7 +42,7 @@ class TSTestResolver(
         val model = state.models.first()
         when (val methodResult = state.methodResult) {
             is TSMethodResult.Success -> {
-                val value = methodResult.value.boolValue ?: methodResult.value.fpValue ?: methodResult.value.refValue ?: mkUndefinedValue()
+                val value = methodResult.value
                 val valueToResolve = model.eval(value)
                 val returnValue = resolveExpr(valueToResolve, method.returnType, model)
                 val params = resolveParams(method.parameters, this, model)

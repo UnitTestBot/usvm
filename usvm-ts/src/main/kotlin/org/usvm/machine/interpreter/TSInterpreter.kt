@@ -1,5 +1,6 @@
 package org.usvm.machine.interpreter
 
+import io.ksmt.utils.asExpr
 import mu.KotlinLogging
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsCallStmt
@@ -25,7 +26,6 @@ import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.machine.TSApplicationGraph
 import org.usvm.machine.TSContext
-import org.usvm.machine.expr.MultiExpr
 import org.usvm.machine.expr.TSExprResolver
 import org.usvm.machine.expr.TSExprTransformer
 import org.usvm.machine.state.TSMethodResult
@@ -92,7 +92,7 @@ class TSInterpreter(
         val boolExpr = exprResolver
             // Don't want to lose UJoinedBoolExpr here for further fork.
             .resolveTSExpr(stmt.condition)
-            ?.let { it.boolValue!! }
+            ?.asExpr(ctx.boolSort)
             ?: run {
                 logger.warn { "Failed to resolve condition: $stmt" }
                 return
@@ -116,7 +116,7 @@ class TSInterpreter(
 
         val valueToReturn = stmt.returnValue
             ?.let { exprResolver.resolveTSExpr(it) ?: return }
-            ?: MultiExpr() // TODO undefined
+            ?: ctx.mkUndefinedValue()
 
         scope.doWithState {
             returnValue(valueToReturn)
@@ -130,21 +130,7 @@ class TSInterpreter(
         val lvalue = exprResolver.resolveLValue(stmt.lhv)
 
         scope.doWithState {
-            lvalue.boolLValue?.let { boolLValue ->
-                expr.boolValue?.let { boolExpr ->
-                    memory.write(boolLValue, boolExpr, ctx.trueExpr)
-                }
-            }
-            lvalue.fpLValue?.let { fpLValue ->
-                expr.fpValue?.let { fpExpr ->
-                    memory.write(fpLValue, fpExpr, ctx.trueExpr)
-                }
-            }
-            lvalue.refLValue?.let { refLValue ->
-                expr.refValue?.let { refExpr ->
-                    memory.write(refLValue, refExpr, ctx.trueExpr)
-                }
-            }
+            memory.write(lvalue, expr.asExpr(lvalue.sort), guard = ctx.trueExpr)
 
             val nextStmt = stmt.nextStmt ?: return@doWithState
             newStmt(nextStmt)
