@@ -89,7 +89,7 @@ class TSTestResolver(
                 TODO()
             }
 
-            else -> TSObject.Object(expr.address)
+            else -> TSObject.TSObject(expr.address)
         }
 
     private fun resolveExpr(expr: UExpr<out USort>, type: EtsType, model: UModelBase<*>): TSObject {
@@ -108,7 +108,7 @@ class TSTestResolver(
         return (typeStream.first() as? EtsType)?.let { type ->
             val transformed = TSRefTransformer(ctx, ctx.typeToSort(type)).apply(expr)
             resolveExpr(transformed, type, model)
-        } ?: TSObject.Object(expr.address)
+        } ?: TSObject.TSObject(expr.address)
     }
 
     private fun resolvePrimitive(expr: UExpr<out USort>, type: EtsPrimitiveType): TSObject = when (type) {
@@ -121,7 +121,7 @@ class TSTestResolver(
         }
 
         EtsBooleanType -> {
-            TSObject.Boolean(extractBool(expr))
+            TSObject.TSBoolean(extractBool(expr))
         }
 
         EtsUndefinedType -> {

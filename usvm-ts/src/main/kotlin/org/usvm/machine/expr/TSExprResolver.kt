@@ -41,6 +41,7 @@ import org.jacodb.ets.base.EtsNotExpr
 import org.jacodb.ets.base.EtsNullConstant
 import org.jacodb.ets.base.EtsNullishCoalescingExpr
 import org.jacodb.ets.base.EtsNumberConstant
+import org.jacodb.ets.base.EtsNumberType
 import org.jacodb.ets.base.EtsObjectLiteral
 import org.jacodb.ets.base.EtsOrExpr
 import org.jacodb.ets.base.EtsParameterRef
@@ -62,6 +63,7 @@ import org.jacodb.ets.base.EtsThis
 import org.jacodb.ets.base.EtsTypeOfExpr
 import org.jacodb.ets.base.EtsUnaryPlusExpr
 import org.jacodb.ets.base.EtsUndefinedConstant
+import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.base.EtsUnsignedRightShiftExpr
 import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.base.EtsVoidExpr
@@ -185,247 +187,255 @@ class TSExprResolver(
 
     override fun visit(value: EtsArrayLiteral): MultiExpr?  {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $value")
     }
 
     override fun visit(value: EtsObjectLiteral): MultiExpr?  {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $value")
     }
 
     override fun visit(value: EtsStringConstant): MultiExpr?  {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $value")
     }
 
     override fun visit(value: EtsUndefinedConstant): MultiExpr?  {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $value")
     }
 
     override fun visit(expr: EtsAwaitExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsBitAndExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsBitNotExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsBitOrExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsBitXorExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsCastExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsCommaExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsDeleteExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsDivExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsExpExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsGtEqExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsGtExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsInExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsInstanceCallExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsInstanceOfExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsLeftShiftExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsLengthExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsLtEqExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsLtExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsMulExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsNegExpr): MultiExpr?  {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        if (expr.type is EtsNumberType) {
+            val arg = resolveTSExpr(expr.arg) ?: return null
+            return MultiExpr(fpValue = ctx.mkFpNegationExpr(arg.fpValue!!))
+        }
+
+        if (expr.type is EtsUnknownType) {
+            TODO()
+        }
+
+        error("Unsupported expr type ${expr.type} for negation")
     }
 
     override fun visit(expr: EtsNewArrayExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsNewExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsNullishCoalescingExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsOrExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsPostDecExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsPostIncExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsPreDecExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsPreIncExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsRemExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsRightShiftExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsStaticCallExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsPtrCallExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsStrictEqExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsStrictNotEqExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsSubExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsTernaryExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsTypeOfExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsUnaryPlusExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsUnsignedRightShiftExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsVoidExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(expr: EtsYieldExpr): MultiExpr?  {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $expr")
     }
 
     override fun visit(value: EtsArrayAccess): MultiExpr?  {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $value")
     }
 
     override fun visit(value: EtsInstanceFieldRef): MultiExpr?  {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $value")
     }
 
     override fun visit(value: EtsStaticFieldRef): MultiExpr?  {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $value")
     }
 }
 
@@ -503,31 +513,31 @@ class TSSimpleValueResolver(
 
     override fun visit(value: EtsUndefinedConstant): MultiExpr?  = with(ctx) {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $value")
     }
 
     override fun visit(value: EtsArrayLiteral): MultiExpr?  = with(ctx) {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $value")
     }
 
     override fun visit(value: EtsObjectLiteral): MultiExpr?  = with(ctx) {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $value")
     }
 
     override fun visit(value: EtsArrayAccess): MultiExpr?  = with(ctx) {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $value")
     }
 
     override fun visit(value: EtsInstanceFieldRef): MultiExpr?  = with(ctx) {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $value")
     }
 
     override fun visit(value: EtsStaticFieldRef): MultiExpr?  = with(ctx) {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        return null
+        error("Not supported $value")
     }
 }

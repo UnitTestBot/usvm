@@ -2,12 +2,15 @@ package org.usvm.machine.operator
 
 import io.ksmt.sort.KBoolSort
 import io.ksmt.sort.KFp64Sort
+import io.ksmt.utils.cast
 import org.usvm.UAddressSort
 import org.usvm.UBoolSort
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.machine.TSContext
 import org.usvm.machine.expr.MultiExpr
+import org.usvm.machine.expr.TSUndefinedSort
+import org.usvm.machine.expr.tctx
 import org.usvm.machine.interpreter.TSStepScope
 import org.usvm.util.boolToFpSort
 
@@ -53,7 +56,7 @@ sealed class TSBinaryOperator{
         }
 
         override fun TSContext.onRef(lhs: UExpr<UAddressSort>, rhs: UExpr<UAddressSort>, scope: TSStepScope): MultiExpr {
-            error("")
+            return MultiExpr(boolValue = mkEq(lhs, rhs))
         }
 
         override fun resolveUnresolvedSorts(lhs: MultiExpr, rhs: MultiExpr): MultiExpr {
@@ -61,30 +64,34 @@ sealed class TSBinaryOperator{
         }
 
         override fun internalResolve(
-            lhs: MultiExpr,
-            rhs: MultiExpr,
+            lhs: UExpr<out USort>,
+            rhs: UExpr<out USort>,
             scope: TSStepScope,
-        ): MultiExpr = with(scope.calcOnState { ctx }) {
-            // val unwrappedLhs = lhs.unwrapIfRequired()
-            // val unwrappedRhs = rhs.unwrapIfRequired()
+        ): MultiExpr = with(lhs.tctx) {
+            // 1. If the operands have the same type, they are compared using `onFp`, `onBool`, etc.
 
-            // when (lhs.sort) {
-            //     is UBoolSort -> when (rhs.sort) {
-            //         is KFp64Sort -> onFp(boolToFpSort(unwrappedLhs.cast()).cast(), unwrappedRhs.cast(), scope)
-            //         is UAddressSort -> TODO()
-            //         else -> TODO()
-            //     }
-            //
-            //     is KFp64Sort -> when (rhs.sort) {
-            //         is UBoolSort -> onFp(unwrappedLhs.cast(), boolToFpSort(unwrappedRhs.cast()).cast(), scope)
-            //         is UAddressSort -> TODO()
-            //         else -> TODO()
-            //     }
-            //
-            //     is UAddressSort -> TODO()
-            //     else -> TODO()
-            // }
-            TODO()
+            // 2. If one of the operands is undefined, the other must also be undefined to return true
+            if (lhs.sort is TSUndefinedSort || rhs.sort is TSUndefinedSort) {
+                TODO()
+            }
+
+            // 3. If one of the operands is an object and the other is a primitive, convert the object to a primitive.
+            if (lhs.sort is UAddressSort || rhs.sort is UAddressSort) {
+                TODO()
+            }
+
+            if (lhs.sort is UBoolSort && rhs.sort is KFp64Sort) {
+                return MultiExpr(boolValue = mkFpEqualExpr(boolToFpSort(lhs.cast()), rhs.cast()))
+            }
+            if (lhs.sort is KFp64Sort && rhs.sort is UBoolSort) {
+                return MultiExpr(boolValue = mkFpEqualExpr(lhs.cast(), boolToFpSort(rhs.cast())))
+            }
+
+            // TODO unsupported string
+
+            // TODO unsupported bigint and fp conversion
+
+            TODO("Unsupported String and bigint comparison")
         }
 
     }
@@ -152,8 +159,8 @@ sealed class TSBinaryOperator{
 
 
         override fun internalResolve(
-            lhs: MultiExpr,
-            rhs: MultiExpr,
+            lhs: UExpr<out USort>,
+            rhs: UExpr<out USort>,
             scope: TSStepScope,
         ): MultiExpr {
             TODO("Not yet implemented")
@@ -182,8 +189,8 @@ sealed class TSBinaryOperator{
 
 
         override fun internalResolve(
-            lhs: MultiExpr,
-            rhs: MultiExpr,
+            lhs: UExpr<out USort>,
+            rhs: UExpr<out USort>,
             scope: TSStepScope,
         ): MultiExpr = with(scope.calcOnState { ctx }) {
             // Resolve for known but different sorts
@@ -228,11 +235,11 @@ sealed class TSBinaryOperator{
         // desiredSort = { _, _ -> boolSort },
     ) {
         override fun TSContext.onBool(lhs: UExpr<UBoolSort>, rhs: UExpr<UBoolSort>, scope: TSStepScope): MultiExpr {
-            return internalResolve(MultiExpr(boolValue = lhs), MultiExpr(boolValue = rhs), scope)
+            return internalResolve(lhs, rhs, scope)
         }
 
         override fun TSContext.onFp(lhs: UExpr<KFp64Sort>, rhs: UExpr<KFp64Sort>, scope: TSStepScope): MultiExpr {
-            return internalResolve(MultiExpr(fpValue = lhs), MultiExpr(fpValue = rhs), scope)
+            return internalResolve(lhs, rhs, scope)
         }
 
         override fun TSContext.onRef(lhs: UExpr<UAddressSort>, rhs: UExpr<UAddressSort>, scope: TSStepScope): MultiExpr {
@@ -244,8 +251,8 @@ sealed class TSBinaryOperator{
         }
 
         override fun internalResolve(
-            lhs: MultiExpr,
-            rhs: MultiExpr,
+            lhs: UExpr<out USort>,
+            rhs: UExpr<out USort>,
             scope: TSStepScope,
         ): MultiExpr {
             TODO()
@@ -255,8 +262,8 @@ sealed class TSBinaryOperator{
     abstract fun resolveUnresolvedSorts(lhs: MultiExpr, rhs: MultiExpr): MultiExpr
 
     internal abstract fun internalResolve(
-        lhs: MultiExpr,
-        rhs: MultiExpr,
+        lhs: UExpr<out USort>,
+        rhs: UExpr<out USort>,
         scope: TSStepScope,
     ): MultiExpr
 
@@ -267,11 +274,14 @@ sealed class TSBinaryOperator{
     ): MultiExpr {
         val lhsSort = lhs.singleValueOrNull?.sort
         with(scope.calcOnState { ctx }) {
-            if (lhs.singleValueOrNull == null || rhs.singleValueOrNull == null) {
+            val lhsSingleValue = lhs.singleValueOrNull
+            val rhsSingleValue = rhs.singleValueOrNull
+
+            if (lhsSingleValue == null || rhsSingleValue == null) {
                 return resolveUnresolvedSorts(lhs, rhs)
             }
 
-            if (lhsSort != null && lhsSort == rhs.singleValueOrNull?.sort) {
+            if (lhsSort != null && lhsSort == rhsSingleValue.sort) {
                 val result = when (lhsSort) {
                     is KFp64Sort -> onFp(lhs.fpValue!!, rhs.fpValue!!, scope)
                     is KBoolSort -> onBool(lhs.boolValue!!, rhs.boolValue!!, scope)
@@ -282,7 +292,7 @@ sealed class TSBinaryOperator{
                 return result
             }
 
-            return internalResolve(lhs, rhs, scope)
+            return internalResolve(lhsSingleValue, rhsSingleValue, scope)
         }
     }
 

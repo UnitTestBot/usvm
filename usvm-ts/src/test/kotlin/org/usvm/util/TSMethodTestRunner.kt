@@ -2,11 +2,14 @@ package org.usvm.util
 
 import org.jacodb.ets.base.EtsAnyType
 import org.jacodb.ets.base.EtsBooleanType
+import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.base.EtsNumberType
 import org.jacodb.ets.base.EtsStringType
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUndefinedType
 import org.jacodb.ets.base.EtsUnknownType
+import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.TestInstance
@@ -160,19 +163,23 @@ abstract class TSMethodTestRunner : TestRunner<TSTest, EtsMethod, EtsType?, TSMe
         */
         val klass = if (it is KClass<*>) it else it::class
         when (klass) {
-            TSObject.AnyObject::class -> EtsAnyType
-            TSObject.Array::class -> TODO()
-            TSObject.Boolean::class -> EtsBooleanType
-            TSObject.Class::class -> TODO()
-            TSObject.String::class -> EtsStringType
+            TSObject.TSAny::class -> EtsAnyType
+            TSObject.TSArray::class -> TODO()
+            TSObject.TSBoolean::class -> EtsBooleanType
+            TSObject.TSClass::class -> {
+                // TODO incorrect
+                val signature = EtsClassSignature(it.toString(), EtsFileSignature.DEFAULT)
+                EtsClassType(signature)
+            }
+            TSObject.TSString::class -> EtsStringType
             TSObject.TSNumber::class -> EtsNumberType
             TSObject.TSNumber.Double::class -> EtsNumberType
             TSObject.TSNumber.Integer::class -> EtsNumberType
             TSObject.UndefinedObject::class -> EtsUndefinedType
             // TODO: EtsUnknownType is mock up here. Correct implementation required.
-            TSObject.Object::class -> EtsUnknownType
+            TSObject.TSObject::class -> EtsUnknownType
             // For untyped tests, not to limit objects serialized from models after type coercion.
-            TSObject.Unknown::class -> EtsUnknownType
+            TSObject.TSUnknown::class -> EtsUnknownType
             else -> error("Unsupported type: $klass")
         }
     }
