@@ -1,0 +1,155 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  JAVA: 11
+  JAVA_DISTRIBUTION: zulu
+
+jobs:
+  ci-core:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run core tests
+        run: |
+          ./gradlew :usvm-core:check :usvm-dataflow:check :usvm-util:check :usvm-sample-language:check
+
+  ci-jvm:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run JVM tests
+        run: ./gradlew :usvm-jvm:check :usvm-jvm-dataflow:check :usvm-jvm-instrumentation:check
+
+  ci-python:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # 'usvm-python/cpythonadapter/cpython' is a submodule
+          submodules: true
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Install CPython optional dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y -q \
+            libssl-dev \
+            libffi-dev
+
+      - name: Run Python tests
+        run: ./gradlew -PcpythonActivated=true :usvm-python:check
+
+  ci-ts:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set up ArkAnalyzer
+        run: |
+          REPO_URL="https://gitee.com/Lipenx/arkanalyzer.git"
+          DEST_DIR="arkanalyzer"
+          MAX_RETRIES=10
+          RETRY_DELAY=3  # Delay between retries in seconds  
+          BRANCH="neo/2024-12-04"
+
+          for ((i=1; i<=MAX_RETRIES; i++)); do
+              git clone --depth=1 --branch $BRANCH $REPO_URL $DEST_DIR && break
+              echo "Clone failed, retrying in $RETRY_DELAY seconds..."
+              sleep "$RETRY_DELAY"
+          done
+
+          if [[ $i -gt $MAX_RETRIES ]]; then
+              echo "Failed to clone the repository after $MAX_RETRIES attempts."
+              exit 1
+          else
+              echo "Repository cloned successfully."
+          fi
+
+          echo "ARKANALYZER_DIR=$(realpath $DEST_DIR)" >> $GITHUB_ENV
+          cd $DEST_DIR
+
+          npm install
+          npm run build
+
+      - name: Run TS tests
+        run: ./gradlew :usvm-ts:check :usvm-ts-dataflow:check
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Validate Project List
+        run: ./gradlew validateProjectList
+
+      - name: Run Detekt
+        run: ./gradlew detektMain detektTest
+
+      - name: Upload Detekt SARIF report
+        uses: github/codeql-action/upload-sarif@v3
+        if: success() || failure()
+        with:
+          sarif_file: build/reports/detekt/detekt.sarif
