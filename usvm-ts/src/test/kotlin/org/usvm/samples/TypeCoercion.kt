@@ -40,7 +40,7 @@ class TypeCoercion : TSMethodTestRunner() {
     @Test
     fun testDualBooleanWithoutTypes() {
         val method = getMethod("TypeCoercion", "dualBooleanWithoutTypes")
-        discoverProperties<TSObject.Unknown, TSObject.TSNumber>(
+        discoverProperties<TSObject.TSUnknown, TSObject.TSNumber>(
             method,
         )
     }
@@ -48,7 +48,7 @@ class TypeCoercion : TSMethodTestRunner() {
     @Test
     fun testArgWithArg() {
         val method = getMethod("TypeCoercion", "argWithArg")
-        discoverProperties<TSObject.Boolean, TSObject.TSNumber, TSObject.TSNumber>(
+        discoverProperties<TSObject.TSBoolean, TSObject.TSNumber, TSObject.TSNumber>(
             method,
             { a, b, r -> (a.number + b.number == 10.0) && r.number == 1.0 },
             { a, b, r -> (a.number + b.number != 10.0) && r.number == 0.0 },
@@ -58,7 +58,7 @@ class TypeCoercion : TSMethodTestRunner() {
     @Test
     fun testUnreachableByType() {
         val method = getMethod("TypeCoercion", "unreachableByType")
-        discoverProperties<TSObject.TSNumber, TSObject.Boolean, TSObject.TSNumber>(
+        discoverProperties<TSObject.TSNumber, TSObject.TSBoolean, TSObject.TSNumber>(
             method,
             { a, b, r -> a.number != b.number && r.number == 2.0 },
             { a, b, r -> (a.number == b.number) && !(a.boolean && !b.value) && r.number == 1.0 },
@@ -71,7 +71,7 @@ class TypeCoercion : TSMethodTestRunner() {
     @Test
     fun testTransitiveCoercion() {
         val method = getMethod("TypeCoercion", "transitiveCoercion")
-        discoverProperties<TSObject.TSNumber, TSObject.Boolean, TSObject.TSNumber, TSObject.TSNumber>(
+        discoverProperties<TSObject.TSNumber, TSObject.TSBoolean, TSObject.TSNumber, TSObject.TSNumber>(
             method,
             { a, b, c, r -> a.number == b.number && b.number == c.number && r.number == 1.0 },
             { a, b, c, r -> a.number == b.number && (b.number != c.number || !c.boolean) && r.number == 2.0 },
@@ -82,7 +82,7 @@ class TypeCoercion : TSMethodTestRunner() {
     @Test
     fun testTransitiveCoercionNoTypes() {
         val method = getMethod("TypeCoercion", "transitiveCoercionNoTypes")
-        discoverProperties<TSObject.Unknown, TSObject.Unknown, TSObject.Unknown, TSObject.TSNumber>(
+        discoverProperties<TSObject.TSUnknown, TSObject.TSUnknown, TSObject.TSUnknown, TSObject.TSNumber>(
             method,
             // Too complicated to write property matchers, examine run log to verify the test.
         )

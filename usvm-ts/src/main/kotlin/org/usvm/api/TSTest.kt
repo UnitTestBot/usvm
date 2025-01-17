@@ -13,7 +13,7 @@ open class TSMethodCoverage
 object NoCoverage : TSMethodCoverage()
 
 sealed interface TSObject {
-    sealed interface TSNumber : TSObject {
+    sealed interface TSNumber : org.usvm.api.TSObject {
         data class Integer(val value: Int) : TSNumber
 
         data class Double(val value: kotlin.Double) : TSNumber
@@ -24,26 +24,30 @@ sealed interface TSObject {
                 is Double -> value
             }
 
-        val boolean: kotlin.Boolean
+        val boolean: Boolean
             get() = number != 0.0
     }
 
-    data class String(val value: kotlin.String) : TSObject
+    data class TSString(val value: String) : org.usvm.api.TSObject
 
-    data class Boolean(val value: kotlin.Boolean) : TSObject {
+    data class TSBoolean(val value: Boolean) : org.usvm.api.TSObject {
         val number: Double
             get() = if (value) 1.0 else 0.0
     }
 
-    data class Class(val name: String, val properties: Map<String, TSObject>) : TSObject
+    data class BigInt(val value: String) : org.usvm.api.TSObject
 
-    data object AnyObject : TSObject
+    data class TSClass(val name: String, val properties: Map<String, org.usvm.api.TSObject>) :
+        org.usvm.api.TSObject
 
-    data object UndefinedObject : TSObject
+    data object TSAny : org.usvm.api.TSObject
 
-    data class Array(val values: List<TSObject>) : TSObject
+    data object UndefinedObject : org.usvm.api.TSObject
 
-    data class Object(val addr: Int) : TSObject
+    data class TSArray(val values: List<org.usvm.api.TSObject>) :
+        org.usvm.api.TSObject
 
-    data object Unknown : TSObject
+    data class TSObject(val addr: Int) : org.usvm.api.TSObject
+
+    data object TSUnknown : org.usvm.api.TSObject
 }

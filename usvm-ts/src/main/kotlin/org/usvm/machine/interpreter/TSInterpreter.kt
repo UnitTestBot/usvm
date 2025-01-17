@@ -129,6 +129,9 @@ class TSInterpreter(
         val expr = exprResolver.resolveTSExpr(stmt.rhv) ?: return
         val lvalue = exprResolver.resolveLValue(stmt.lhv)
 
+        // %0 = a + b             regionReading fpRegion (???)
+        // lvalue -> %0
+
         scope.doWithState {
             lvalue.boolLValue?.let { memory.write(it, expr.boolValue!!, ctx.trueExpr) }
             lvalue.fpLValue?.let { memory.write(it, expr.fpValue!!, ctx.trueExpr) }

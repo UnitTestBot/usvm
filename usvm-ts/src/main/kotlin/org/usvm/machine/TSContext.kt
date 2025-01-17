@@ -1,13 +1,17 @@
 package org.usvm.machine
 
+import io.ksmt.sort.KFp64Sort
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsNumberType
 import org.jacodb.ets.base.EtsRefType
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUnknownType
+import org.usvm.UAddressSort
+import org.usvm.UBoolSort
 import org.usvm.UBv32Sort
 import org.usvm.UContext
 import org.usvm.USort
+import org.usvm.collection.field.UFieldLValue
 import org.usvm.machine.expr.TSUndefinedSort
 import org.usvm.machine.expr.TSUndefinedValue
 import org.usvm.machine.expr.TSUnresolvedSort
@@ -30,4 +34,25 @@ class TSContext(components: TSComponents) : UContext<TSSizeSort>(components) {
     }
 
     fun mkUndefinedValue(): TSUndefinedValue = undefinedValue
+
+    fun getIntermediateBoolLValue(): UFieldLValue<IntermediateLValueField, UBoolSort> {
+        val addr = mkAddressCounter().freshAllocatedAddress() + MAGIC_OFFSET
+        return UFieldLValue(boolSort, mkConcreteHeapRef(addr), IntermediateLValueField.BOOL)
+    }
+
+    fun getIntermediateFpLValue(): UFieldLValue<IntermediateLValueField, KFp64Sort> {
+        val addr = mkAddressCounter().freshAllocatedAddress() + MAGIC_OFFSET
+        return UFieldLValue(fp64Sort, mkConcreteHeapRef(addr), IntermediateLValueField.FP)
+    }
+
+    fun getIntermediateRefLValue(): UFieldLValue<IntermediateLValueField, UAddressSort> {
+        val addr = mkAddressCounter().freshAllocatedAddress() + MAGIC_OFFSET
+        return UFieldLValue(addressSort, mkConcreteHeapRef(addr), IntermediateLValueField.REF)
+    }
+}
+
+private const val MAGIC_OFFSET = 1000000
+
+enum class IntermediateLValueField {
+    BOOL, FP, REF
 }

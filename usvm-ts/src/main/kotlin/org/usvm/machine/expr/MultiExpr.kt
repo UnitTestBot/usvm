@@ -12,10 +12,13 @@ import org.usvm.memory.ULValue
 data class MultiExpr(
     val boolValue: UBoolExpr? = null,
     val fpValue: KExpr<KFp64Sort>? = null,
-    val refValue: UExpr<UAddressSort>? = null
+    val refValue: UExpr<UAddressSort>? = null,
 ) {
     val singleValueOrNull: UExpr<out USort>?
         get() = listOf(boolValue, fpValue, refValue).singleOrNull { it != null }
+
+    val singularSort: USort?
+        get() = singleValueOrNull?.sort
 }
 
 data class MultiLValue<Key>(
