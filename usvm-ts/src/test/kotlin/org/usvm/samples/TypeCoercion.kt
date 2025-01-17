@@ -33,7 +33,10 @@ class TypeCoercion : TSMethodTestRunner() {
             method,
             { a, r -> a.number == 0.0 && r.number == -1.0 },
             { a, r -> a.number == 1.0 && r.number == 2.0 },
-            { a, r -> a.number != 0.0 && a.number != 1.0 && r.number == 3.0 }
+            { a, r -> a.number != 0.0 && a.number != 1.0 && r.number == 3.0 },
+            invariants = arrayOf(
+                { _, r -> r.number != 1.0 }
+            )
         )
     }
 

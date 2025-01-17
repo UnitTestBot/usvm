@@ -9,7 +9,9 @@ import org.jacodb.ets.base.EtsUnknownType
 import org.usvm.UAddressSort
 import org.usvm.UBoolSort
 import org.usvm.UBv32Sort
+import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
+import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.machine.expr.TSUndefinedSort
@@ -33,6 +35,12 @@ class TSContext(components: TSComponents) : UContext<TSSizeSort>(components) {
         else -> TODO("Support all JacoDB types")
     }
 
+    fun UExpr<out USort>.isFakeObject(): Boolean {
+        if (sort !is UAddressSort) return false
+
+        return this is UConcreteHeapRef && address > MAGIC_OFFSET
+    }
+
     fun mkUndefinedValue(): TSUndefinedValue = undefinedValue
 
     fun getIntermediateBoolLValue(): UFieldLValue<IntermediateLValueField, UBoolSort> {
@@ -51,7 +59,7 @@ class TSContext(components: TSComponents) : UContext<TSSizeSort>(components) {
     }
 }
 
-private const val MAGIC_OFFSET = 1000000
+const val MAGIC_OFFSET = 1000000
 
 enum class IntermediateLValueField {
     BOOL, FP, REF

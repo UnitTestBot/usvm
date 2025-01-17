@@ -2,8 +2,9 @@ package org.usvm.machine.state
 
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.model.EtsMethod
+import org.usvm.UExpr
 import org.usvm.UHeapRef
-import org.usvm.machine.expr.MultiExpr
+import org.usvm.USort
 
 /**
  * Represents a result of a method invocation.
@@ -19,7 +20,7 @@ interface TSMethodResult {
      */
     class Success(
         val method: EtsMethod,
-        val value: MultiExpr,
+        val value: UExpr<out USort>,
     ) : TSMethodResult
 
     /**

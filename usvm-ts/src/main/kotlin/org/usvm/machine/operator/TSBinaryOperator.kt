@@ -2,13 +2,13 @@ package org.usvm.machine.operator
 
 import io.ksmt.sort.KBoolSort
 import io.ksmt.sort.KFp64Sort
+import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import org.usvm.UAddressSort
 import org.usvm.UBoolSort
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.machine.TSContext
-import org.usvm.machine.expr.MultiExpr
 import org.usvm.machine.expr.TSUndefinedSort
 import org.usvm.machine.expr.tctx
 import org.usvm.machine.interpreter.TSStepScope
@@ -26,9 +26,9 @@ import org.usvm.util.boolToFpSort
 
 // TODO: desiredSort and banSorts achieve the same goal, although have different semantics. Possible to merge them.
 sealed interface TSBinaryOperator {
-    fun TSContext.onBool(lhs: UExpr<UBoolSort>, rhs: UExpr<UBoolSort>, scope: TSStepScope): MultiExpr
-    fun TSContext.onFp(lhs: UExpr<KFp64Sort>, rhs: UExpr<KFp64Sort>, scope: TSStepScope): MultiExpr
-    fun TSContext.onRef(lhs: UExpr<UAddressSort>, rhs: UExpr<UAddressSort>, scope: TSStepScope): MultiExpr
+    fun TSContext.onBool(lhs: UExpr<UBoolSort>, rhs: UExpr<UBoolSort>, scope: TSStepScope): UExpr<out USort>
+    fun TSContext.onFp(lhs: UExpr<KFp64Sort>, rhs: UExpr<KFp64Sort>, scope: TSStepScope): UExpr<out USort>
+    fun TSContext.onRef(lhs: UExpr<UAddressSort>, rhs: UExpr<UAddressSort>, scope: TSStepScope): UExpr<out USort>
     // Some binary operations like '==' and '!=' can operate on any pair of equal sorts.
     // However, '+' casts both operands to Number in TypeScript (no considering string currently),
     // so fp64sort is required for both sides.
@@ -42,23 +42,23 @@ sealed interface TSBinaryOperator {
     // abstract val banSorts: TSContext.(UExpr<out USort>, UExpr<out USort>) -> Set<USort> = { _, _ -> emptySet() },
 
     data object Eq : TSBinaryOperator {
-        override fun TSContext.onBool(lhs: UExpr<UBoolSort>, rhs: UExpr<UBoolSort>, scope: TSStepScope): MultiExpr {
-            return MultiExpr(boolValue = mkEq(lhs, rhs))
+        override fun TSContext.onBool(lhs: UExpr<UBoolSort>, rhs: UExpr<UBoolSort>, scope: TSStepScope): UExpr<out USort> {
+            return mkEq(lhs, rhs)
         }
 
-        override fun TSContext.onFp(lhs: UExpr<KFp64Sort>, rhs: UExpr<KFp64Sort>, scope: TSStepScope): MultiExpr {
-            return MultiExpr(boolValue = mkFpEqualExpr(lhs, rhs))
+        override fun TSContext.onFp(lhs: UExpr<KFp64Sort>, rhs: UExpr<KFp64Sort>, scope: TSStepScope): UExpr<out USort> {
+            return mkFpEqualExpr(lhs, rhs)
         }
 
         override fun TSContext.onRef(
             lhs: UExpr<UAddressSort>,
             rhs: UExpr<UAddressSort>,
             scope: TSStepScope,
-        ): MultiExpr {
-            return MultiExpr(boolValue = mkEq(lhs, rhs))
+        ): UExpr<out USort> {
+            return mkEq(lhs, rhs)
         }
 
-        override fun resolveMultiExpressions(lhs: MultiExpr, rhs: MultiExpr): MultiExpr {
+        override fun resolveFakeObject(lhs: UExpr<out USort>, rhs: UExpr<out USort>): UExpr<out USort> {
             TODO("Not yet implemented")
         }
 
@@ -66,7 +66,7 @@ sealed interface TSBinaryOperator {
             lhs: UExpr<out USort>,
             rhs: UExpr<out USort>,
             scope: TSStepScope,
-        ): MultiExpr = with(lhs.tctx) {
+        ): UExpr<out USort> = with(lhs.tctx) {
             // 1. If the operands have the same type, they are compared using `onFp`, `onBool`, etc.
 
             // 2. If one of the operands is undefined, the other must also be undefined to return true
@@ -80,10 +80,10 @@ sealed interface TSBinaryOperator {
             }
 
             if (lhs.sort is UBoolSort && rhs.sort is KFp64Sort) {
-                return MultiExpr(boolValue = mkFpEqualExpr(boolToFpSort(lhs.cast()), rhs.cast()))
+                return mkFpEqualExpr(boolToFpSort(lhs.cast()), rhs.cast())
             }
             if (lhs.sort is KFp64Sort && rhs.sort is UBoolSort) {
-                return MultiExpr(boolValue = mkFpEqualExpr(lhs.cast(), boolToFpSort(rhs.cast())))
+                return mkFpEqualExpr(lhs.cast(), boolToFpSort(rhs.cast()))
             }
 
             // TODO unsupported string
@@ -140,23 +140,23 @@ sealed interface TSBinaryOperator {
     //     }
     // }
     {
-        override fun TSContext.onBool(lhs: UExpr<UBoolSort>, rhs: UExpr<UBoolSort>, scope: TSStepScope): MultiExpr {
-            return MultiExpr(boolValue = lhs.neq(rhs))
+        override fun TSContext.onBool(lhs: UExpr<UBoolSort>, rhs: UExpr<UBoolSort>, scope: TSStepScope): UExpr<out USort> {
+            return lhs.neq(rhs)
         }
 
-        override fun TSContext.onFp(lhs: UExpr<KFp64Sort>, rhs: UExpr<KFp64Sort>, scope: TSStepScope): MultiExpr {
-            return MultiExpr(boolValue = mkFpEqualExpr(lhs, rhs).not())
+        override fun TSContext.onFp(lhs: UExpr<KFp64Sort>, rhs: UExpr<KFp64Sort>, scope: TSStepScope): UExpr<out USort> {
+            return mkFpEqualExpr(lhs, rhs).not()
         }
 
         override fun TSContext.onRef(
             lhs: UExpr<UAddressSort>,
             rhs: UExpr<UAddressSort>,
             scope: TSStepScope,
-        ): MultiExpr {
-            return MultiExpr(boolValue = mkHeapRefEq(lhs, rhs).not())
+        ): UExpr<out USort> {
+            return mkHeapRefEq(lhs, rhs).not()
         }
 
-        override fun resolveMultiExpressions(lhs: MultiExpr, rhs: MultiExpr): MultiExpr {
+        override fun resolveFakeObject(lhs: UExpr<out USort>, rhs: UExpr<out USort>): UExpr<out USort> {
             TODO("Not yet implemented")
         }
 
@@ -164,35 +164,34 @@ sealed interface TSBinaryOperator {
             lhs: UExpr<out USort>,
             rhs: UExpr<out USort>,
             scope: TSStepScope,
-        ): MultiExpr = with(lhs.tctx) {
+        ): UExpr<out USort> = with(lhs.tctx) {
             TODO()
         }
     }
 
     data object Add : TSBinaryOperator {
-        override fun TSContext.onBool(lhs: UExpr<UBoolSort>, rhs: UExpr<UBoolSort>, scope: TSStepScope): MultiExpr {
-            return MultiExpr(
-                fpValue = mkFpAddExpr(
+        override fun TSContext.onBool(lhs: UExpr<UBoolSort>, rhs: UExpr<UBoolSort>, scope: TSStepScope): UExpr<out USort> {
+            return mkFpAddExpr(
                     fpRoundingModeSortDefaultValue(),
                     boolToFpSort(lhs),
                     boolToFpSort(rhs)
                 )
-            )
+
         }
 
-        override fun TSContext.onFp(lhs: UExpr<KFp64Sort>, rhs: UExpr<KFp64Sort>, scope: TSStepScope): MultiExpr {
-            return MultiExpr(fpValue = mkFpAddExpr(fpRoundingModeSortDefaultValue(), lhs, rhs))
+        override fun TSContext.onFp(lhs: UExpr<KFp64Sort>, rhs: UExpr<KFp64Sort>, scope: TSStepScope): UExpr<out USort> {
+            return mkFpAddExpr(fpRoundingModeSortDefaultValue(), lhs, rhs)
         }
 
         override fun TSContext.onRef(
             lhs: UExpr<UAddressSort>,
             rhs: UExpr<UAddressSort>,
             scope: TSStepScope,
-        ): MultiExpr {
+        ): UExpr<out USort> {
             TODO("Not yet implemented")
         }
 
-        override fun resolveMultiExpressions(lhs: MultiExpr, rhs: MultiExpr): MultiExpr {
+        override fun resolveFakeObject(lhs: UExpr<out USort>, rhs: UExpr<out USort>): UExpr<out USort> {
             TODO("Not yet implemented")
         }
 
@@ -200,7 +199,7 @@ sealed interface TSBinaryOperator {
             lhs: UExpr<out USort>,
             rhs: UExpr<out USort>,
             scope: TSStepScope,
-        ): MultiExpr = with(lhs.tctx) {
+        ): UExpr<out USort> = with(lhs.tctx) {
             // TODO support string concatenation
             // TODO support undefined
 
@@ -216,7 +215,7 @@ sealed interface TSBinaryOperator {
                 else -> null
             }
             if (fpValue != null) {
-                return MultiExpr(fpValue = fpValue)
+                return fpValue
             }
 
             // TODO support object to primitive
@@ -226,11 +225,11 @@ sealed interface TSBinaryOperator {
     }
 
     data object And : TSBinaryOperator {
-        override fun TSContext.onBool(lhs: UExpr<UBoolSort>, rhs: UExpr<UBoolSort>, scope: TSStepScope): MultiExpr {
+        override fun TSContext.onBool(lhs: UExpr<UBoolSort>, rhs: UExpr<UBoolSort>, scope: TSStepScope): UExpr<out USort> {
             return internalResolve(lhs, rhs, scope)
         }
 
-        override fun TSContext.onFp(lhs: UExpr<KFp64Sort>, rhs: UExpr<KFp64Sort>, scope: TSStepScope): MultiExpr {
+        override fun TSContext.onFp(lhs: UExpr<KFp64Sort>, rhs: UExpr<KFp64Sort>, scope: TSStepScope): UExpr<out USort> {
             return internalResolve(lhs, rhs, scope)
         }
 
@@ -238,11 +237,11 @@ sealed interface TSBinaryOperator {
             lhs: UExpr<UAddressSort>,
             rhs: UExpr<UAddressSort>,
             scope: TSStepScope,
-        ): MultiExpr {
+        ): UExpr<out USort> {
             TODO("Not yet implemented")
         }
 
-        override fun resolveMultiExpressions(lhs: MultiExpr, rhs: MultiExpr): MultiExpr {
+        override fun resolveFakeObject(lhs: UExpr<out USort>, rhs: UExpr<out USort>): UExpr<out USort> {
             TODO("Not yet implemented")
         }
 
@@ -250,51 +249,48 @@ sealed interface TSBinaryOperator {
             lhs: UExpr<out USort>,
             rhs: UExpr<out USort>,
             scope: TSStepScope,
-        ): MultiExpr {
+        ): UExpr<out USort> {
             TODO()
         }
     }
 
-    fun resolveMultiExpressions(lhs: MultiExpr, rhs: MultiExpr): MultiExpr
+    fun resolveFakeObject(lhs: UExpr<out USort>, rhs: UExpr<out USort>): UExpr<out USort>
 
     fun internalResolve(
         lhs: UExpr<out USort>,
         rhs: UExpr<out USort>,
         scope: TSStepScope,
-    ): MultiExpr
+    ): UExpr<out USort>
 
     fun resolve(
-        lhs: MultiExpr,
-        rhs: MultiExpr,
+        lhs: UExpr<out USort>,
+        rhs: UExpr<out USort>,
         scope: TSStepScope,
-    ): MultiExpr {
-        with(scope.calcOnState { ctx }) {
-            val lhsSingleValue = lhs.singleValueOrNull
-            val rhsSingleValue = rhs.singleValueOrNull
-
-            if (lhsSingleValue == null || rhsSingleValue == null) {
-                return resolveMultiExpressions(lhs, rhs)
+    ): UExpr<out USort> {
+        with(lhs.sort.tctx) {
+            if (lhs.isFakeObject() || rhs.isFakeObject()) {
+                return resolveFakeObject(lhs, rhs)
             }
 
-            val lhsSort = lhsSingleValue.sort
-            if (lhsSort == rhsSingleValue.sort) {
+            val lhsSort = lhs.sort
+            if (lhsSort == rhs.sort) {
                 val result = when (lhsSort) {
-                    is KFp64Sort -> onFp(lhs.fpValue!!, rhs.fpValue!!, scope)
-                    is KBoolSort -> onBool(lhs.boolValue!!, rhs.boolValue!!, scope)
-                    is UAddressSort -> onRef(lhs.refValue!!, rhs.refValue!!, scope)
+                    is KFp64Sort -> onFp(lhs.asExpr(fp64Sort), rhs.asExpr(fp64Sort), scope)
+                    is KBoolSort -> onBool(lhs.asExpr(boolSort), rhs.asExpr(boolSort), scope)
+                    is UAddressSort -> onRef(lhs.asExpr(addressSort), rhs.asExpr(addressSort), scope)
                     else -> error("Should not be called")
                 }
 
                 return result
             }
 
-            return internalResolve(lhsSingleValue, rhsSingleValue, scope)
+            return internalResolve(lhs, rhs, scope)
         }
     }
 
     // val bannedSorts = lhs.tctx.banSorts(lhs, rhs)
     //
-    // fun apply(lhs: UExpr<out USort>, rhs: UExpr<out USort>): MultiExpr? {
+    // fun apply(lhs: UExpr<out USort>, rhs: UExpr<out USort>): UExpr<out USort>? {
     //     val ctx = lhs.tctx
     //     val lhsSort = lhs.sort
     //     val rhsSort = rhs.sort
