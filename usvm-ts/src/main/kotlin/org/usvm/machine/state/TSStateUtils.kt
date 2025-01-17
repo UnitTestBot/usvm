@@ -25,7 +25,7 @@ fun TSState.returnValue(valueToReturn: MultiExpr) {
 }
 
 inline val EtsMethod.parametersWithThisCount: Int
-    get() = if (isStatic) parameters.size else parameters.size + 1
+    get() = /*if (isStatic) parameters.size else*/ parameters.size + 1 // TODO hack, fix after AA fix
 
 inline val EtsMethod.localsCount: Int
     get() = locals.size
