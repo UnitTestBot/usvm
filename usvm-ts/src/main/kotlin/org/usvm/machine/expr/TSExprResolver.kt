@@ -456,9 +456,9 @@ class TSSimpleValueResolver(
             is KFp64Sort -> MultiLValue(fpLValue = URegisterStackLValue(sort, localIdx) as ULValue<*, KFp64Sort>)
             is UAddressSort -> MultiLValue(refLValue = URegisterStackLValue(sort, localIdx) as ULValue<*, UAddressSort>)
             is TSUnresolvedSort -> MultiLValue(
-                boolLValue = URegisterStackLValue(sort, localIdx) as ULValue<URegisterStackLValue<*>, UBoolSort>,
-                fpLValue = URegisterStackLValue(sort, localIdx) as ULValue<URegisterStackLValue<*>, KFp64Sort>,
-                refLValue = URegisterStackLValue(sort, localIdx) as ULValue<URegisterStackLValue<*>, UAddressSort>
+                boolLValue = URegisterStackLValue(ctx.boolSort, localIdx) as ULValue<URegisterStackLValue<*>, UBoolSort>,
+                fpLValue = URegisterStackLValue(ctx.fp64Sort, localIdx) as ULValue<URegisterStackLValue<*>, KFp64Sort>,
+                refLValue = URegisterStackLValue(ctx.addressSort, localIdx) as ULValue<URegisterStackLValue<*>, UAddressSort>
             )
 
             else -> error("Unsupported sort $sort")
