@@ -8,6 +8,7 @@ import org.jacodb.go.api.GoGlobal
 import org.jacodb.go.api.GoMethod
 import org.jacodb.go.api.GoType
 import org.jacodb.go.api.NamedType
+import org.jacodb.go.api.NullType
 import org.jacodb.go.api.PointerType
 import org.usvm.memory.ULValue
 import org.usvm.operator.GoUnaryOperator
@@ -64,6 +65,7 @@ class GoContext(
         is BasicType -> basicTypeToSort(type)
         is NamedType -> typeToSort(type.underlyingType)
         is PointerType -> pointerSort
+        is NullType -> voidSort
         else -> addressSort
     }
 

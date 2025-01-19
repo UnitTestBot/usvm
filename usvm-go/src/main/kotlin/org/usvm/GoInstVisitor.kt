@@ -36,7 +36,7 @@ import org.usvm.statistics.ApplicationGraph
 
 class GoInstVisitor(
     private val ctx: GoContext,
-    private val pkg: GoPackage,
+    private val program: GoProgram,
     private val scope: GoStepScope,
     private val exprVisitor: GoExprVisitor,
     private val applicationGraph: ApplicationGraph<GoMethod, GoInst>,
@@ -95,7 +95,7 @@ class GoInstVisitor(
 
     override fun visitGoDeferInst(inst: GoDeferInst): GoInst {
         val name = (inst.func.accept(exprVisitor) as KConst).toString()
-        val method = pkg.findMethod(name)
+        val method = program.findMethod(inst.location, name)
 
         val parameters = inst.args.map { it.accept(exprVisitor) }.toTypedArray()
         val call = GoCall(method, applicationGraph.entryPoints(method).first(), parameters)

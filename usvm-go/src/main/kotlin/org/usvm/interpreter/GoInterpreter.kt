@@ -11,7 +11,7 @@ import org.usvm.GoCall
 import org.usvm.GoContext
 import org.usvm.GoExprVisitor
 import org.usvm.GoInstVisitor
-import org.usvm.GoPackage
+import org.usvm.GoProgram
 import org.usvm.GoTarget
 import org.usvm.INIT_FUNCTION
 import org.usvm.StepResult
@@ -29,7 +29,7 @@ typealias GoStepScope = StepScope<GoState, GoType, GoInst, GoContext>
 
 class GoInterpreter(
     private val ctx: GoContext,
-    private val pkg: GoPackage,
+    private val program: GoProgram,
     private val applicationGraph: ApplicationGraph<GoMethod, GoInst>,
     private var forkBlackList: UForkBlackList<GoState, GoInst> = UForkBlackList.createDefault(),
 ) : UInterpreter<GoState>() {
@@ -46,7 +46,7 @@ class GoInterpreter(
         val argumentsCount = method.parameters.size
 
         setMethodInfo(method)
-        for (global in pkg.globals) {
+        for (global in program.globals) {
             addGlobal(global, state.mkPointer(global.type))
         }
 
@@ -54,7 +54,7 @@ class GoInterpreter(
         state.memory.stack.push(argumentsCount, localsCount)
         state.data.flowStack.add(GoFlowStatus.NORMAL)
 
-        val init = pkg.findMethod(INIT_FUNCTION)
+        val init = program.findMethod(method.packageName, INIT_FUNCTION)
         setMethodInfo(init)
 
         state.addCall(GoCall(init, applicationGraph.entryPoints(init).first(), emptyArray()), entrypoint)
@@ -64,8 +64,8 @@ class GoInterpreter(
     override fun step(state: GoState): StepResult<GoState> {
         val inst = state.currentStatement
         val scope = GoStepScope(state, forkBlackList)
-        val exprVisitor = GoExprVisitor(ctx, pkg, scope, applicationGraph)
-        val instVisitor = GoInstVisitor(ctx, pkg, scope, exprVisitor, applicationGraph)
+        val exprVisitor = GoExprVisitor(ctx, program, scope, applicationGraph)
+        val instVisitor = GoInstVisitor(ctx, program, scope, exprVisitor, applicationGraph)
 
         logger.debug("State {}: Step: {}", state.id, inst)
 

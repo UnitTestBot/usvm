@@ -281,7 +281,7 @@ class GoTestInterpreter(
                 return null
             }
 
-            return structType.fields?.mapIndexed { idx, type -> Pair(idx, type) }?.associate {
+            return structType.fields?.mapIndexed { idx, type -> idx to type }?.associate {
                 Pair("field${it.first}", convertExpr(memory.readField(struct, it.first, typeToSort(it.second)), it.second))
             }
         }

@@ -449,7 +449,7 @@ func (p *Package) PackInstruction(in ssa.Instruction, _ int) Instruction {
 		}
 	case *ssa.MakeMap:
 		common.Type = MakeMapInstruction
-		var reserve Value
+		reserve := p.PackValue(ssa.NewConst(constant.MakeUint64(0), types.Typ[types.Uint32]))
 		if inst.Reserve != nil {
 			reserve = p.PackValue(inst.Reserve)
 		}

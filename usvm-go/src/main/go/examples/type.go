@@ -52,7 +52,7 @@ func (n NamedInt) square() int {
 }
 
 func toNamedInt(i int) NamedInt {
-	return NamedInt(i)
+	return NamedInt(i + 1)
 }
 
 func callNamedInt(i int) int {
@@ -135,3 +135,10 @@ func assertIntAny() int {
 	var b any = 3
 	return a.(int) + b.(int)
 }
+
+type Node struct {
+	left  *Node
+	right *Node
+}
+
+type X *X

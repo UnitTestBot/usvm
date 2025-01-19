@@ -26,6 +26,7 @@ import org.usvm.statistics.distances.CfgStatisticsImpl
 import org.usvm.statistics.distances.PlainCallGraphStatistics
 import org.usvm.stopstrategies.createStopStrategy
 import org.usvm.type.GoTypeSystem
+import org.usvm.util.hasUnsupportedInstructions
 import kotlin.math.roundToInt
 
 internal typealias USizeSort = UBv32Sort
@@ -33,16 +34,16 @@ internal typealias USizeSort = UBv32Sort
 val logger = object : KLogging() {}.logger
 
 class GoMachine(
-    private val pkg: GoPackage,
+    private val program: GoProgram,
     private val options: UMachineOptions,
     private val customOptions: GoMachineOptions
 ) : UMachine<GoState>() {
-    private val typeSystem = GoTypeSystem(options.typeOperationsTimeout, pkg.types.values)
+    private val typeSystem = GoTypeSystem(options.typeOperationsTimeout, program.types.values)
     private val goApplicationGraph = GoApplicationGraphImpl()
     private val applicationGraph = GoApplicationGraphAdapter(goApplicationGraph)
     private val components = GoComponents(typeSystem, options)
     private val ctx = GoContext(components)
-    private val interpreter = GoInterpreter(ctx, pkg, applicationGraph)
+    private val interpreter = GoInterpreter(ctx, program, applicationGraph)
     private val cfgStatistics = CfgStatisticsImpl(applicationGraph)
     private val testInterpreter = GoTestInterpreter(ctx)
 
@@ -50,7 +51,7 @@ class GoMachine(
         ctx.close()
     }
 
-    fun analyzeAndResolve(methodName: String): Collection<ProgramExecutionResult> {
+    fun analyzeAndResolve(pkg: GoPackage, methodName: String): Collection<ProgramExecutionResult> {
         return analyzeAndResolve(pkg.findMethod(methodName))
     }
 
@@ -62,9 +63,14 @@ class GoMachine(
         return analyze(listOf(method))
     }
 
-    private fun analyze(methods: List<GoMethod>, targets: List<GoTarget> = emptyList()): List<GoState> {
+    private fun analyze(methodsList: List<GoMethod>, targets: List<GoTarget> = emptyList()): List<GoState> {
         logger.debug("{}.analyze()", this)
+        val excludedMethods = methodsList.filter { it.hasUnsupportedInstructions() }.map { it.metName }
+        if (excludedMethods.isNotEmpty()) {
+            logger.warn("The following methods will be skipped due to having unsupported instructions: {}", excludedMethods)
+        }
 
+        val methods = methodsList.filter { !it.hasUnsupportedInstructions() }
         val initialStates = hashMapOf<GoMethod, GoState>()
         methods.forEach {
             initialStates[it] = interpreter.getInitialState(it, targets)
@@ -118,7 +124,7 @@ class GoMachine(
                     initialMethods = methods,
                     methodExtractor = { state -> state.currentStatement.location.method },
                     addCoverageZone = { coverageStatistics.addCoverageZone(it) },
-                    ignoreMethod = { false }
+                    ignoreMethod = { it.metName == INIT_FUNCTION || it.hasUnsupportedInstructions() }
                 )
             )
         }
@@ -146,12 +152,12 @@ class GoMachine(
             stopStrategy = stopStrategy,
         )
 
-        if (coverageStatistics.getTotalCoverage().roundToInt() < 100 && !customOptions.uncoveredMethods.containsAll(methods.map { it.metName })) {
-            throw IllegalStateException("coverage not 100%")
-        }
         println("Total coverage: ${coverageStatistics.getTotalCoverage().roundToInt()}%")
         for (method in coverageStatistics.coverageZone) {
             println("Method ${method.metName} coverage: ${coverageStatistics.getMethodCoverage(method).roundToInt()}%")
+        }
+        if (coverageStatistics.getTotalCoverage().roundToInt() < 100 && !customOptions.uncoveredMethods.containsAll(methods.map { it.metName })) {
+            throw IllegalStateException("coverage not 100%")
         }
 
         return statesCollector.collectedStates

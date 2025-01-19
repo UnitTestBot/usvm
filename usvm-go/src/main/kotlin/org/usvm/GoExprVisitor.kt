@@ -80,7 +80,9 @@ import org.jacodb.go.api.GoValue
 import org.jacodb.go.api.GoVar
 import org.jacodb.go.api.GoXorExpr
 import org.jacodb.go.api.MapType
+import org.jacodb.go.api.NullType
 import org.jacodb.go.api.PointerType
+import org.jacodb.go.api.SignatureType
 import org.jacodb.go.api.SliceType
 import org.jacodb.go.api.TupleType
 import org.usvm.api.UnknownBinaryOperationException
@@ -126,10 +128,11 @@ import org.usvm.statistics.ApplicationGraph
 import org.usvm.type.GoBasicTypes
 import org.usvm.type.underlying
 import org.usvm.types.first
+import org.usvm.util.isInit
 
 class GoExprVisitor(
     private val ctx: GoContext,
-    private val pkg: GoPackage,
+    private val program: GoProgram,
     private val scope: GoStepScope,
     private val applicationGraph: ApplicationGraph<GoMethod, GoInst>,
 ) : GoExprVisitor<UExpr<out USort>> {
@@ -138,11 +141,31 @@ class GoExprVisitor(
         if (func is GoBuiltin) {
             return callBuiltin(func, expr.args)
         }
+        if (func is GoParameter && expr.callee == null) {
+            val signature = func.type as SignatureType
+            val returnType = when (signature.results.types.size) {
+                0 -> NullType()
+                1 -> signature.results.types[0]
+                else -> signature.results
+            }
+            val method = GoFunction(signature, emptyList(), func.name, emptyList(), "", emptyList(), emptyList())
+            val mockSort = ctx.typeToSort(returnType)
+            val mockValue = scope.calcOnState {
+                memory.mocker.call(method, expr.args.map { it.accept(this@GoExprVisitor) }.asSequence(), mockSort, memory.ownership)
+            }
+            if (mockSort == ctx.addressSort) {
+                val constraint = scope.calcOnState {
+                    memory.types.evalIsSubtype(mockValue.asExpr(ctx.addressSort), returnType)
+                }
+                scope.assert(constraint)
+            }
+            return mockValue
+        }
 
         val result = scope.calcOnState { methodResult }
         if (result is GoMethodResult.Success) {
             scope.doWithState { methodResult = GoMethodResult.NoCall }
-            if (result.method.metName == INIT_FUNCTION) {
+            if (result.method.isInit(expr.location)) {
                 return ctx.noValue
             }
             return result.value
@@ -156,12 +179,12 @@ class GoExprVisitor(
                     scope.assert(memory.types.evalIsSubtype(instance, func.type)) ?: throw IllegalStateException()
                     memory.typeStreamOf(instance).first()
                 }
-                pkg.findMethod("(${type.typeName}).${expr.callee!!.name}")
+                program.findMethod(expr.location, "(${type.typeName}).${expr.callee!!.name}")
             }
 
-            func is GoFunction -> pkg.findMethod(func.metName)
+            func is GoFunction -> program.findMethod(expr.location, func.metName)
             func is GoVar -> scope.calcOnState {
-                pkg.findMethod((memory.read(URegisterStackLValue(ctx.addressSort, index(func.name))) as KConst).decl.name)
+                program.findMethod(expr.location, (memory.read(URegisterStackLValue(ctx.addressSort, index(func.name))) as KConst).decl.name)
             }
 
             else -> throw UnknownFunctionException(func.toString())
@@ -248,13 +271,7 @@ class GoExprVisitor(
     override fun visitGoUnXorExpr(expr: GoUnXorExpr): UExpr<out USort> = visitGoUnaryExpr(expr)
 
     override fun visitGoChangeTypeExpr(expr: GoChangeTypeExpr): UExpr<out USort> {
-        val result = expr.operand.accept(this)
-        if (result.sort == ctx.addressSort) {
-            scope.doWithState {
-                scope.assert(memory.types.evalIsSubtype(result.asExpr(ctx.addressSort), expr.type)) ?: throw IllegalStateException()
-            }
-        }
-        return result
+        return expr.operand.accept(this)
     }
 
     override fun visitGoConvertExpr(expr: GoConvertExpr): UExpr<out USort> {
@@ -413,7 +430,7 @@ class GoExprVisitor(
 
     override fun visitGoIndexAddrExpr(expr: GoIndexAddrExpr): UExpr<out USort> {
         val (array, index) = visitIndexExpr(expr.instance, expr.index)
-        val arrayType = expr.instance.type.let { if (it is PointerType) it.baseType else it }
+        val arrayType = expr.instance.type.let { if (it is PointerType) it.baseType else it }.underlying()
         return scope.calcOnState {
             val elementType = (expr.type as PointerType).baseType
             val elementLValue = UArrayIndexLValue(ctx.typeToSort(elementType), array, index, arrayType)
@@ -516,12 +533,12 @@ class GoExprVisitor(
                         val k = symbolicPrimitiveMapAnyKey(collection, collectionType, ctx.typeToSort(collectionType.keyType), USizeExprKeyInfo())
                         val v = symbolicPrimitiveMapGet(collection, k, collectionType, ctx.typeToSort(collectionType.valueType), USizeExprKeyInfo())
                         symbolicPrimitiveMapRemove(collection, k, collectionType, USizeExprKeyInfo())
-                        Pair(k, v)
+                        k to v
                     } else {
                         val k = symbolicObjectMapAnyKey(collection, collectionType)
                         val v = symbolicObjectMapGet(collection, k, collectionType, ctx.typeToSort(collectionType.valueType))
                         symbolicObjectMapRemove(collection, k, collectionType)
-                        Pair(k, v)
+                        k to v
                     }
 
                     mkTuple(
@@ -695,6 +712,8 @@ class GoExprVisitor(
 
     private fun visitGoBinaryExpr(expr: GoBinaryExpr): UExpr<out USort> {
         val signed = expr.lhv.type is BasicType && !expr.lhv.type.typeName.startsWith("ui")
+        val lhs = expr.lhv.accept(this)
+        val rhs = expr.rhv.accept(this)
         return when (expr) {
             is GoAddExpr -> GoBinaryOperator.Add
             is GoSubExpr -> GoBinaryOperator.Sub
@@ -714,7 +733,7 @@ class GoExprVisitor(
             is GoLeqExpr -> GoBinaryOperator.Leq(signed)
             is GoGeqExpr -> GoBinaryOperator.Geq(signed)
             else -> throw UnknownBinaryOperationException(expr.toString())
-        }(expr.lhv.accept(this), normalize(expr.rhv.accept(this), expr, signed))
+        }(lhs, normalize(lhs, rhs, expr, signed))
     }
 
     private fun visitGoUnaryExpr(expr: GoUnaryExpr): UExpr<out USort> {
@@ -729,8 +748,8 @@ class GoExprVisitor(
 
     private fun visitIndexExpr(instance: GoValue, idx: GoValue): Pair<UHeapRef, UExpr<USizeSort>> {
         val array = instance.accept(this).let { if (it.sort == ctx.addressSort) it else deref(it, ctx.addressSort) }.asExpr(ctx.addressSort)
-        val type = instance.type.let { if (it is PointerType) it.baseType else it }
-        val index = idx.accept(this).asExpr(ctx.sizeSort)
+        val type = instance.type.let { if (it is PointerType) it.baseType else it }.underlying()
+        val index = bv(idx.accept(this)).mkNarrow(Int.SIZE_BITS, false).asExpr(ctx.sizeSort)
         val length = scope.calcOnState { memory.readArrayLength(array, type, ctx.sizeSort) }
 
         checkLength(length) ?: throw IllegalStateException()
@@ -738,13 +757,13 @@ class GoExprVisitor(
         checkNegativeIndex(index) ?: throw IllegalStateException()
         checkIndexOutOfBounds(index, length) ?: throw IllegalStateException()
 
-        return Pair(array, index)
+        return array to index
     }
 
-    private fun normalize(expr: UExpr<out USort>, goExpr: GoBinaryExpr, signed: Boolean): UExpr<out USort> = with(ctx) {
+    private fun normalize(lhs: UExpr<out USort>, rhs: UExpr<out USort>, goExpr: GoBinaryExpr, signed: Boolean): UExpr<out USort> = with(ctx) {
         when (goExpr) {
-            is GoShrExpr -> bv(expr).mkNarrow(Long.SIZE_BITS, signed).asExpr(bv64Sort)
-            else -> expr
+            is GoShrExpr -> if (bv(lhs).sort.sizeBits != bv(rhs).sort.sizeBits) bv(rhs).mkNarrow(Long.SIZE_BITS, signed).asExpr(bv64Sort) else rhs
+            else -> rhs
         }
     }
 
@@ -866,12 +885,13 @@ class GoExprVisitor(
                     ctx.mkNot(ctx.mkHeapRefEq(collection, ctx.nullRef)),
                     trueBranch = {
                         scope.calcOnState {
-                            when (val type = arg.type) {
+                            when (val type = arg.type.underlying()) {
                                 is ArrayType, is SliceType, is BasicType -> {
                                     val length = memory.readArrayLength(collection, type, ctx.sizeSort)
                                     checkLength(length) ?: throw IllegalStateException()
                                     length
                                 }
+
                                 is MapType -> {
                                     scope.ensureObjectMapSizeCorrect(collection, type) ?: throw IllegalStateException()
                                     symbolicObjectMapSize(collection, type)

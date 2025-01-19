@@ -9,6 +9,7 @@ import io.ksmt.sort.KSortVisitor
 import org.jacodb.go.api.BasicType
 import org.jacodb.go.api.GoType
 import org.jacodb.go.api.NamedType
+import org.jacodb.go.api.PointerType
 import org.usvm.GoContext
 import org.usvm.UExpr
 import org.usvm.USort
@@ -28,7 +29,17 @@ object GoTypes {
     const val FLOAT32 = "float32"
     const val FLOAT64 = "float64"
     const val STRING = "string"
+    const val BYTE = "byte"
     const val RUNE = "rune"
+
+    const val UINTPTR = "uintptr"
+    const val UNTYPED_BOOL = "untyped bool"
+    const val UNTYPED_INT = "untyped int"
+    const val UNTYPED_RUNE = "untyped rune"
+    const val UNTYPED_FLOAT = "untyped float"
+    const val UNTYPED_STRING = "untyped string"
+
+    const val UNSAFE_POINTER = "unsafe.Pointer"
 }
 
 object GoBasicTypes {
@@ -41,12 +52,13 @@ object GoBasicTypes {
     val UINT = BasicType(GoTypes.UINT)
     val UINT8 = BasicType(GoTypes.UINT8)
     val UINT16 = BasicType(GoTypes.UINT16)
-    val UINT32 = BasicType(GoTypes.UINT16)
+    val UINT32 = BasicType(GoTypes.UINT32)
     val UINT64 = BasicType(GoTypes.UINT64)
     val FLOAT32 = BasicType(GoTypes.FLOAT32)
     val FLOAT64 = BasicType(GoTypes.FLOAT64)
     val STRING = BasicType(GoTypes.STRING)
     val RUNE = BasicType(GoTypes.RUNE)
+    val UNSAFE_POINTER = PointerType(INT)
 }
 
 fun GoType.underlying(): GoType = when (this) {
