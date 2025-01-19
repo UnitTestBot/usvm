@@ -243,7 +243,7 @@ func (p *Package) PackInstruction(in ssa.Instruction, _ int) Instruction {
 	common := CommonInstruction{
 		Name:  in.String(),
 		Block: in.Block().Index,
-		Line:  FindInstructionIndex(in),
+		Line:  p.program.Fset.Position(in.Pos()).Line,
 	}
 	if typed, ok := in.(Typed); ok {
 		p.AddType(typed.Type())
@@ -665,16 +665,6 @@ func (p *Package) PackTupleTypes(in *types.Tuple) []string {
 
 func (p *Package) FunctionName(in *ssa.Function) string {
 	return strings.TrimPrefix(in.String(), p.Name+".")
-}
-
-func FindInstructionIndex(in ssa.Instruction) int {
-	instructions := lo.FlatMap(in.Parent().Blocks, func(block *ssa.BasicBlock, _ int) []ssa.Instruction {
-		return block.Instrs
-	})
-	_, index, _ := lo.FindIndexOf(instructions, func(other ssa.Instruction) bool {
-		return other == in
-	})
-	return index
 }
 
 func FindParameterIndex(in *ssa.Parameter) int {

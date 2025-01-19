@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	"golang.org/x/tools/go/packages"
 	"golang.org/x/tools/go/ssa"
@@ -87,7 +88,9 @@ func NewSSA(packageName string, cfg Config) (*SSA, error) {
 
 func (s *SSA) Write() {
 	for _, pkg := range s.packages {
+		now := time.Now()
 		s.writePackage(pkg)
+		log.Printf("%s serialized! Took %.3f seconds\n", pkg.String(), time.Since(now).Seconds())
 	}
 }
 
