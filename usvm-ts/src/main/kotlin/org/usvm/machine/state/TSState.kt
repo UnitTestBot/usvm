@@ -5,6 +5,7 @@ import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.model.EtsMethod
 import org.usvm.PathNode
 import org.usvm.UCallStack
+import org.usvm.USort
 import org.usvm.UState
 import org.usvm.api.targets.TSTarget
 import org.usvm.collections.immutable.internal.MutabilityOwnership
@@ -27,7 +28,8 @@ class TSState(
     forkPoints: PathNode<PathNode<EtsStmt>> = PathNode.root(),
     var methodResult: TSMethodResult = TSMethodResult.NoCall,
     targets: UTargetsSet<TSTarget, EtsStmt> = UTargetsSet.empty(),
-    val exprTransformer: TSExprTransformer
+    val exprTransformer: TSExprTransformer,
+    private val localToSort: MutableMap<EtsMethod, MutableMap<Int, USort>> = hashMapOf()
 ) : UState<EtsType, EtsMethod, EtsStmt, TSContext, TSTarget, TSState>(
     ctx,
     ownership,
@@ -39,6 +41,18 @@ class TSState(
     forkPoints,
     targets
 ) {
+    fun getOrPutSortForLocal(method: EtsMethod, localIdx: Int, localType: EtsType): USort {
+        return localToSort
+            .getOrPut(method) { hashMapOf() }
+            .getOrPut(localIdx) { ctx.typeToSort(localType) }
+    }
+    @Suppress("ReplacePutWithAssignment")
+    fun saveSortForLocal(method: EtsMethod, localIdx: Int, sort: USort) {
+        localToSort
+            .getOrPut(method) { hashMapOf() }
+            .put(localIdx, sort)
+    }
+
     override fun clone(newConstraints: UPathConstraints<EtsType>?): TSState {
         val newThisOwnership = MutabilityOwnership()
         val cloneOwnership = MutabilityOwnership()
@@ -60,7 +74,8 @@ class TSState(
             forkPoints,
             methodResult,
             targets.clone(),
-            exprTransformer
+            exprTransformer,
+            localToSort.mapValuesTo(hashMapOf()) { it.value.toMutableMap() }
         )
     }
 

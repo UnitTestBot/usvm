@@ -71,6 +71,7 @@ import org.jacodb.ets.base.EtsYieldExpr
 import org.jacodb.ets.model.EtsMethod
 import org.usvm.UAddressSort
 import org.usvm.UBoolSort
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.machine.TSContext
@@ -85,7 +86,6 @@ class TSExprResolver(
     private val ctx: TSContext,
     private val scope: TSStepScope,
     localToIdx: (EtsMethod, EtsValue) -> Int,
-    localToSort: (EtsMethod, Int) -> USort? = { _, _ -> null },
 ) : EtsEntity.Visitor<UExpr<out USort>?> {
 
     private val simpleValueResolver: TSSimpleValueResolver =
@@ -93,7 +93,6 @@ class TSExprResolver(
             ctx,
             scope,
             localToIdx,
-            localToSort,
         )
 
     fun resolveTSExpr(expr: EtsEntity): UExpr<out USort>? {
@@ -443,13 +442,15 @@ class TSSimpleValueResolver(
     private val ctx: TSContext,
     private val scope: TSStepScope,
     private val localToIdx: (EtsMethod, EtsValue) -> Int,
-    private val localToSort: (EtsMethod, Int) -> USort? = { _, _ -> null },
 ) : EtsValue.Visitor<UExpr<out USort>?> {
 
     fun resolveLocal(local: EtsValue): ULValue<*, USort> {
         val method = requireNotNull(scope.calcOnState { lastEnteredMethod })
         val localIdx = localToIdx(method, local)
-        val sort = localToSort(method, localIdx) ?: ctx.typeToSort(local.type)
+        val sort = scope.calcOnState {
+            getOrPutSortForLocal(method, localIdx, local.type)
+        }
+
         return when (sort) {
             is UBoolSort -> URegisterStackLValue(sort, localIdx)
             is KFp64Sort -> URegisterStackLValue(sort, localIdx)
