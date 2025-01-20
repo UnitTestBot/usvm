@@ -74,6 +74,7 @@ import org.usvm.UBoolSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
+import org.usvm.machine.MAGIC_OFFSET
 import org.usvm.machine.TSContext
 import org.usvm.machine.interpreter.TSStepScope
 import org.usvm.machine.operator.TSBinaryOperator
@@ -95,15 +96,13 @@ class TSExprResolver(
             localToIdx,
         )
 
+    fun resolveFakeObject(expr: UConcreteHeapRef): UConcreteHeapRef {
+        TODO()
+    }
+
     fun resolveTSExpr(expr: EtsEntity): UExpr<out USort>? {
         return expr.accept(this)
     }
-
-    fun resolveLValue(value: EtsValue): ULValue<*, USort> =
-        when (value) {
-            is EtsParameterRef, is EtsLocal -> simpleValueResolver.resolveLocal(value)
-            else -> error("Unexpected value: $value")
-        }
 
     private fun resolveBinaryOperator(
         operator: TSBinaryOperator,
@@ -445,17 +444,50 @@ class TSSimpleValueResolver(
 ) : EtsValue.Visitor<UExpr<out USort>?> {
 
     fun resolveLocal(local: EtsValue): ULValue<*, USort> {
-        val method = requireNotNull(scope.calcOnState { lastEnteredMethod })
-        val localIdx = localToIdx(method, local)
+        val (currentMethod, entrypoint) = scope.calcOnState { lastEnteredMethod to entrypoint }
+
+        val localIdx = localToIdx(currentMethod, local)
         val sort = scope.calcOnState {
-            getOrPutSortForLocal(method, localIdx, local.type)
+            getOrPutSortForLocal(currentMethod, localIdx, local.type)
         }
 
+        if (currentMethod != entrypoint) {
+            return URegisterStackLValue(sort, localIdx)
+        }
+
+        // arguments and this for the first stack frame
         return when (sort) {
             is UBoolSort -> URegisterStackLValue(sort, localIdx)
             is KFp64Sort -> URegisterStackLValue(sort, localIdx)
             is UAddressSort -> URegisterStackLValue(sort, localIdx)
-            is TSUnresolvedSort -> URegisterStackLValue(ctx.addressSort, localIdx) // fake object
+            is TSUnresolvedSort -> {
+                require(local is EtsParameterRef || local is EtsThis) { "Only this and parameters are expected" }
+
+                scope.calcOnState {
+                    // fake object
+                    val address = ctx.mkAddressCounter().freshAllocatedAddress() + MAGIC_OFFSET
+                    val fakeValue = ctx.mkConcreteHeapRef(
+                        address = address
+                    )
+
+                    val lValue = URegisterStackLValue(ctx.addressSort, localIdx)
+                    memory.write(lValue, fakeValue.asExpr(ctx.addressSort), ctx.trueExpr)
+
+                    val boolLValue = ctx.getIntermediateBoolLValue(address)
+                    val boolRValue = ctx.mkRegisterReading(localIdx, ctx.boolSort)
+                    memory.write(boolLValue, boolRValue, guard = ctx.trueExpr)
+
+                    val fpLValue = ctx.getIntermediateFpLValue(address)
+                    val fpRValue = ctx.mkRegisterReading(localIdx, ctx.fp64Sort)
+                    memory.write(fpLValue, fpRValue, guard = ctx.trueExpr)
+
+                    val refLValue = ctx.getIntermediateRefLValue(address)
+                    val refRValue = ctx.mkRegisterReading(localIdx, ctx.addressSort)
+                    memory.write(refLValue, refRValue, guard = ctx.trueExpr)
+
+                    lValue
+                }
+            }
 
             else -> error("Unsupported sort $sort")
         }

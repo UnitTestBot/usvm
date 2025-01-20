@@ -34,6 +34,7 @@ import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.state.returnValue
+import org.usvm.memory.URegisterStackLValue
 import org.usvm.solver.USatResult
 import org.usvm.targets.UTargetsSet
 
@@ -127,15 +128,15 @@ class TSInterpreter(
 
         val expr = exprResolver.resolveTSExpr(stmt.rhv) ?: return
 
-        scope.doWithState {
-            saveSortForLocal(lastEnteredMethod, mapLocalToIdx(lastEnteredMethod, stmt.lhv), expr.sort)
+        check (expr.sort != ctx.unresolvedSort) {
+            "A value of the unresolved sort should never be returned from `resolve` function"
         }
 
-        val lvalue = exprResolver.resolveLValue(stmt.lhv)
-
-
         scope.doWithState {
-            memory.write(lvalue, expr.asExpr(lvalue.sort), guard = ctx.trueExpr)
+            saveSortForLocal(lastEnteredMethod, mapLocalToIdx(lastEnteredMethod, stmt.lhv), expr.sort)
+
+            val lValue = URegisterStackLValue(expr.sort, mapLocalToIdx(lastEnteredMethod, stmt.lhv))
+            memory.write(lValue, expr.asExpr(lValue.sort), guard = ctx.trueExpr)
 
             val nextStmt = stmt.nextStmt ?: return@doWithState
             newStmt(nextStmt)
@@ -143,7 +144,7 @@ class TSInterpreter(
     }
 
     private fun visitCallStmt(scope: TSStepScope, stmt: EtsCallStmt) {
-        TODO()
+        TODO() // IMPORTANT do not forget to fill sorts of arguments map
     }
 
     private fun visitThrowStmt(scope: TSStepScope, stmt: EtsThrowStmt) {
