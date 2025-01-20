@@ -20,7 +20,6 @@ import org.jacodb.ets.model.EtsMethod
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UInterpreter
-import org.usvm.USort
 import org.usvm.api.targets.TSTarget
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.forkblacklists.UForkBlackList
@@ -127,7 +126,13 @@ class TSInterpreter(
         val exprResolver = exprResolverWithScope(scope)
 
         val expr = exprResolver.resolveTSExpr(stmt.rhv) ?: return
+
+        scope.doWithState {
+            saveSortForLocal(lastEnteredMethod, mapLocalToIdx(lastEnteredMethod, stmt.lhv), expr.sort)
+        }
+
         val lvalue = exprResolver.resolveLValue(stmt.lhv)
+
 
         scope.doWithState {
             memory.write(lvalue, expr.asExpr(lvalue.sort), guard = ctx.trueExpr)
@@ -162,15 +167,10 @@ class TSInterpreter(
             ctx,
             scope,
             ::mapLocalToIdx
-        ) { m, idx ->
-            localVarToSort[m]?.get(idx)
-        }
+        )
 
     // (method, localName) -> idx
     private val localVarToIdx: MutableMap<EtsMethod, MutableMap<String, Int>> = hashMapOf()
-
-    // (method, localIdx) -> sort
-    private val localVarToSort: MutableMap<EtsMethod, MutableMap<Int, USort>> = hashMapOf()
 
     private fun mapLocalToIdx(method: EtsMethod, local: EtsValue): Int =
         // Note: below, 'n' means the number of arguments
