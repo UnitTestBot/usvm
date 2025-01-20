@@ -7,6 +7,7 @@ import org.jacodb.ets.base.EtsRefType
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUnknownType
 import org.usvm.UAddressSort
+import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
 import org.usvm.UBv32Sort
 import org.usvm.UConcreteHeapRef
@@ -35,6 +36,10 @@ class TSContext(components: TSComponents) : UContext<TSSizeSort>(components) {
         else -> TODO("Support all JacoDB types")
     }
 
+    fun mkTruthyExpr(expr: UExpr<out USort>): UBoolExpr {
+        TODO()
+    }
+
     fun UExpr<out USort>.isFakeObject(): Boolean {
         if (sort !is UAddressSort) return false
 
@@ -43,18 +48,30 @@ class TSContext(components: TSComponents) : UContext<TSSizeSort>(components) {
 
     fun mkUndefinedValue(): TSUndefinedValue = undefinedValue
 
-    fun getIntermediateBoolLValue(): UFieldLValue<IntermediateLValueField, UBoolSort> {
+    fun mkIntermediateBoolLValue(): UFieldLValue<IntermediateLValueField, UBoolSort> {
         val addr = mkAddressCounter().freshAllocatedAddress() + MAGIC_OFFSET
+        return getIntermediateBoolLValue(addr)
+    }
+
+    fun getIntermediateBoolLValue(addr: Int): UFieldLValue<IntermediateLValueField, UBoolSort> {
         return UFieldLValue(boolSort, mkConcreteHeapRef(addr), IntermediateLValueField.BOOL)
     }
 
-    fun getIntermediateFpLValue(): UFieldLValue<IntermediateLValueField, KFp64Sort> {
+    fun mkIntermediateFpLValue(): UFieldLValue<IntermediateLValueField, KFp64Sort> {
         val addr = mkAddressCounter().freshAllocatedAddress() + MAGIC_OFFSET
-        return UFieldLValue(fp64Sort, mkConcreteHeapRef(addr), IntermediateLValueField.FP)
+        return getIntermediateFpLValue(addr)
     }
 
-    fun getIntermediateRefLValue(): UFieldLValue<IntermediateLValueField, UAddressSort> {
+    fun getIntermediateFpLValue(addr: Int): UFieldLValue<IntermediateLValueField, KFp64Sort> {
+        return UFieldLValue(mkFp64Sort(), mkConcreteHeapRef(addr), IntermediateLValueField.FP)
+    }
+
+    fun mkIntermediateRefLValue(): UFieldLValue<IntermediateLValueField, UAddressSort> {
         val addr = mkAddressCounter().freshAllocatedAddress() + MAGIC_OFFSET
+        return getIntermediateRefLValue(addr)
+    }
+
+    fun getIntermediateRefLValue(addr: Int): UFieldLValue<IntermediateLValueField, UAddressSort> {
         return UFieldLValue(addressSort, mkConcreteHeapRef(addr), IntermediateLValueField.REF)
     }
 }

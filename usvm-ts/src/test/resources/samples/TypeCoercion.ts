@@ -32,7 +32,7 @@ class TypeCoercion {
         return -1
     }
 
-    dualBooleanWithoutTypes(a) {
+    dualBooleanWithoutTypes(a: string) {
         if (a) {
             if (a == false) {
                 return 1 // REACHABLE code

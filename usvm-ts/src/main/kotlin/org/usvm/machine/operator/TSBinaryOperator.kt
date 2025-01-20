@@ -42,11 +42,19 @@ sealed interface TSBinaryOperator {
     // abstract val banSorts: TSContext.(UExpr<out USort>, UExpr<out USort>) -> Set<USort> = { _, _ -> emptySet() },
 
     data object Eq : TSBinaryOperator {
-        override fun TSContext.onBool(lhs: UExpr<UBoolSort>, rhs: UExpr<UBoolSort>, scope: TSStepScope): UExpr<out USort> {
+        override fun TSContext.onBool(
+            lhs: UExpr<UBoolSort>,
+            rhs: UExpr<UBoolSort>,
+            scope: TSStepScope,
+        ): UExpr<out USort> {
             return mkEq(lhs, rhs)
         }
 
-        override fun TSContext.onFp(lhs: UExpr<KFp64Sort>, rhs: UExpr<KFp64Sort>, scope: TSStepScope): UExpr<out USort> {
+        override fun TSContext.onFp(
+            lhs: UExpr<KFp64Sort>,
+            rhs: UExpr<KFp64Sort>,
+            scope: TSStepScope,
+        ): UExpr<out USort> {
             return mkFpEqualExpr(lhs, rhs)
         }
 
@@ -58,7 +66,11 @@ sealed interface TSBinaryOperator {
             return mkEq(lhs, rhs)
         }
 
-        override fun resolveFakeObject(lhs: UExpr<out USort>, rhs: UExpr<out USort>): UExpr<out USort> {
+        override fun resolveFakeObject(
+            lhs: UExpr<out USort>,
+            rhs: UExpr<out USort>,
+            scope: TSStepScope,
+        ): UExpr<out USort> {
             TODO("Not yet implemented")
         }
 
@@ -140,11 +152,19 @@ sealed interface TSBinaryOperator {
     //     }
     // }
     {
-        override fun TSContext.onBool(lhs: UExpr<UBoolSort>, rhs: UExpr<UBoolSort>, scope: TSStepScope): UExpr<out USort> {
+        override fun TSContext.onBool(
+            lhs: UExpr<UBoolSort>,
+            rhs: UExpr<UBoolSort>,
+            scope: TSStepScope,
+        ): UExpr<out USort> {
             return lhs.neq(rhs)
         }
 
-        override fun TSContext.onFp(lhs: UExpr<KFp64Sort>, rhs: UExpr<KFp64Sort>, scope: TSStepScope): UExpr<out USort> {
+        override fun TSContext.onFp(
+            lhs: UExpr<KFp64Sort>,
+            rhs: UExpr<KFp64Sort>,
+            scope: TSStepScope,
+        ): UExpr<out USort> {
             return mkFpEqualExpr(lhs, rhs).not()
         }
 
@@ -156,7 +176,11 @@ sealed interface TSBinaryOperator {
             return mkHeapRefEq(lhs, rhs).not()
         }
 
-        override fun resolveFakeObject(lhs: UExpr<out USort>, rhs: UExpr<out USort>): UExpr<out USort> {
+        override fun resolveFakeObject(
+            lhs: UExpr<out USort>,
+            rhs: UExpr<out USort>,
+            scope: TSStepScope,
+        ): UExpr<out USort> {
             TODO("Not yet implemented")
         }
 
@@ -170,16 +194,24 @@ sealed interface TSBinaryOperator {
     }
 
     data object Add : TSBinaryOperator {
-        override fun TSContext.onBool(lhs: UExpr<UBoolSort>, rhs: UExpr<UBoolSort>, scope: TSStepScope): UExpr<out USort> {
+        override fun TSContext.onBool(
+            lhs: UExpr<UBoolSort>,
+            rhs: UExpr<UBoolSort>,
+            scope: TSStepScope,
+        ): UExpr<out USort> {
             return mkFpAddExpr(
-                    fpRoundingModeSortDefaultValue(),
-                    boolToFpSort(lhs),
-                    boolToFpSort(rhs)
-                )
+                fpRoundingModeSortDefaultValue(),
+                boolToFpSort(lhs),
+                boolToFpSort(rhs)
+            )
 
         }
 
-        override fun TSContext.onFp(lhs: UExpr<KFp64Sort>, rhs: UExpr<KFp64Sort>, scope: TSStepScope): UExpr<out USort> {
+        override fun TSContext.onFp(
+            lhs: UExpr<KFp64Sort>,
+            rhs: UExpr<KFp64Sort>,
+            scope: TSStepScope,
+        ): UExpr<out USort> {
             return mkFpAddExpr(fpRoundingModeSortDefaultValue(), lhs, rhs)
         }
 
@@ -191,7 +223,11 @@ sealed interface TSBinaryOperator {
             TODO("Not yet implemented")
         }
 
-        override fun resolveFakeObject(lhs: UExpr<out USort>, rhs: UExpr<out USort>): UExpr<out USort> {
+        override fun resolveFakeObject(
+            lhs: UExpr<out USort>,
+            rhs: UExpr<out USort>,
+            scope: TSStepScope,
+        ): UExpr<out USort> {
             TODO("Not yet implemented")
         }
 
@@ -209,9 +245,11 @@ sealed interface TSBinaryOperator {
                 lhs.sort is UBoolSort && rhs.sort is KFp64Sort -> {
                     mkFpAddExpr(fpRoundingModeSortDefaultValue(), boolToFpSort(lhs.cast()), rhs.cast())
                 }
+
                 lhs.sort is KFp64Sort && rhs.sort is UBoolSort -> {
                     mkFpAddExpr(fpRoundingModeSortDefaultValue(), lhs.cast(), boolToFpSort(rhs.cast()))
                 }
+
                 else -> null
             }
             if (fpValue != null) {
@@ -225,11 +263,19 @@ sealed interface TSBinaryOperator {
     }
 
     data object And : TSBinaryOperator {
-        override fun TSContext.onBool(lhs: UExpr<UBoolSort>, rhs: UExpr<UBoolSort>, scope: TSStepScope): UExpr<out USort> {
-            return internalResolve(lhs, rhs, scope)
+        override fun TSContext.onBool(
+            lhs: UExpr<UBoolSort>,
+            rhs: UExpr<UBoolSort>,
+            scope: TSStepScope,
+        ): UExpr<out USort> {
+            return mkAnd(lhs, rhs)
         }
 
-        override fun TSContext.onFp(lhs: UExpr<KFp64Sort>, rhs: UExpr<KFp64Sort>, scope: TSStepScope): UExpr<out USort> {
+        override fun TSContext.onFp(
+            lhs: UExpr<KFp64Sort>,
+            rhs: UExpr<KFp64Sort>,
+            scope: TSStepScope,
+        ): UExpr<out USort> {
             return internalResolve(lhs, rhs, scope)
         }
 
@@ -241,8 +287,16 @@ sealed interface TSBinaryOperator {
             TODO("Not yet implemented")
         }
 
-        override fun resolveFakeObject(lhs: UExpr<out USort>, rhs: UExpr<out USort>): UExpr<out USort> {
-            TODO("Not yet implemented")
+        override fun resolveFakeObject(
+            lhs: UExpr<out USort>,
+            rhs: UExpr<out USort>,
+            scope: TSStepScope,
+        ): UExpr<out USort> = with(lhs.tctx) {
+            scope.calcOnState {
+                val lhsTruthyExpr = mkTruthyExpr(lhs)
+
+                TODO()
+            }
         }
 
         override fun internalResolve(
@@ -254,7 +308,7 @@ sealed interface TSBinaryOperator {
         }
     }
 
-    fun resolveFakeObject(lhs: UExpr<out USort>, rhs: UExpr<out USort>): UExpr<out USort>
+    fun resolveFakeObject(lhs: UExpr<out USort>, rhs: UExpr<out USort>, scope: TSStepScope): UExpr<out USort>
 
     fun internalResolve(
         lhs: UExpr<out USort>,
@@ -269,7 +323,7 @@ sealed interface TSBinaryOperator {
     ): UExpr<out USort> {
         with(lhs.sort.tctx) {
             if (lhs.isFakeObject() || rhs.isFakeObject()) {
-                return resolveFakeObject(lhs, rhs)
+                return resolveFakeObject(lhs, rhs, scope)
             }
 
             val lhsSort = lhs.sort
