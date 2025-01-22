@@ -71,10 +71,9 @@ import org.jacodb.ets.base.EtsYieldExpr
 import org.jacodb.ets.model.EtsMethod
 import org.usvm.UAddressSort
 import org.usvm.UBoolSort
-import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
-import org.usvm.machine.MAGIC_OFFSET
+import org.usvm.machine.FakeType
 import org.usvm.machine.TSContext
 import org.usvm.machine.interpreter.TSStepScope
 import org.usvm.machine.operator.TSBinaryOperator
@@ -95,10 +94,6 @@ class TSExprResolver(
             scope,
             localToIdx,
         )
-
-    fun resolveFakeObject(expr: UConcreteHeapRef): UConcreteHeapRef {
-        TODO()
-    }
 
     fun resolveTSExpr(expr: EtsEntity): UExpr<out USort>? {
         return expr.accept(this)
@@ -463,30 +458,19 @@ class TSSimpleValueResolver(
             is TSUnresolvedSort -> {
                 require(local is EtsParameterRef || local is EtsThis) { "Only this and parameters are expected" }
 
+                val lValue = URegisterStackLValue(ctx.addressSort, localIdx)
+
+                val boolRValue = ctx.mkRegisterReading(localIdx, ctx.boolSort)
+                val fpRValue = ctx.mkRegisterReading(localIdx, ctx.fp64Sort)
+                val refRValue = ctx.mkRegisterReading(localIdx, ctx.addressSort)
+
+                val fakeObject = ctx.mkFakeValue(scope, boolRValue, fpRValue, refRValue)
                 scope.calcOnState {
-                    // fake object
-                    val address = ctx.mkAddressCounter().freshAllocatedAddress() + MAGIC_OFFSET
-                    val fakeValue = ctx.mkConcreteHeapRef(
-                        address = address
-                    )
-
-                    val lValue = URegisterStackLValue(ctx.addressSort, localIdx)
-                    memory.write(lValue, fakeValue.asExpr(ctx.addressSort), ctx.trueExpr)
-
-                    val boolLValue = ctx.getIntermediateBoolLValue(address)
-                    val boolRValue = ctx.mkRegisterReading(localIdx, ctx.boolSort)
-                    memory.write(boolLValue, boolRValue, guard = ctx.trueExpr)
-
-                    val fpLValue = ctx.getIntermediateFpLValue(address)
-                    val fpRValue = ctx.mkRegisterReading(localIdx, ctx.fp64Sort)
-                    memory.write(fpLValue, fpRValue, guard = ctx.trueExpr)
-
-                    val refLValue = ctx.getIntermediateRefLValue(address)
-                    val refRValue = ctx.mkRegisterReading(localIdx, ctx.addressSort)
-                    memory.write(refLValue, refRValue, guard = ctx.trueExpr)
-
-                    lValue
+                    memory.types.allocate(fakeObject.address, FakeType(ctx, fakeObject.address))
+                    memory.write(lValue, fakeObject.asExpr(ctx.addressSort), ctx.trueExpr)
                 }
+
+                lValue
             }
 
             else -> error("Unsupported sort $sort")

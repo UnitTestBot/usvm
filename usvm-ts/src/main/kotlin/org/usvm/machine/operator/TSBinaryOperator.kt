@@ -5,13 +5,19 @@ import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import org.usvm.UAddressSort
+import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
+import org.usvm.api.typeStreamOf
+import org.usvm.machine.FakeType
 import org.usvm.machine.TSContext
 import org.usvm.machine.expr.TSUndefinedSort
 import org.usvm.machine.expr.tctx
 import org.usvm.machine.interpreter.TSStepScope
+import org.usvm.machine.iteWriteIntoFakeObject
+import org.usvm.types.single
 import org.usvm.util.boolToFpSort
 
 // import org.usvm.util.unwrapIfRequired
@@ -176,12 +182,203 @@ sealed interface TSBinaryOperator {
             return mkHeapRefEq(lhs, rhs).not()
         }
 
+
         override fun resolveFakeObject(
             lhs: UExpr<out USort>,
             rhs: UExpr<out USort>,
             scope: TSStepScope,
-        ): UExpr<out USort> {
-            TODO("Not yet implemented")
+        ): UExpr<out USort> = with(lhs.tctx) {
+            scope.calcOnState {
+                val conjuncts = mutableListOf<UBoolExpr>()
+
+                if (lhs.isFakeObject() && rhs.isFakeObject()) {
+                    lhs as UConcreteHeapRef
+                    rhs as UConcreteHeapRef
+
+                    val lhsType = memory.typeStreamOf(lhs).single() as FakeType
+                    val rhsType = memory.typeStreamOf(rhs).single() as FakeType
+
+                    conjuncts += lhsType.mkAtLeastOneTypeConstraint(ctx)
+                    conjuncts += rhsType.mkAtLeastOneTypeConstraint(ctx)
+
+                    conjuncts += mkImplies(
+                        mkAnd(lhsType.boolTypeExpr, rhsType.boolTypeExpr),
+                        mkEq(
+                            memory.read(getIntermediateBoolLValue(lhs.address)),
+                            memory.read(getIntermediateBoolLValue(rhs.address))
+                        ).not()
+                    )
+
+                    conjuncts += mkImplies(
+                        mkAnd(lhsType.fpTypeExpr, rhsType.fpTypeExpr),
+                        mkFpEqualExpr(
+                            memory.read(getIntermediateFpLValue(lhs.address)),
+                            memory.read(getIntermediateFpLValue(rhs.address))
+                        ).not()
+                    )
+
+                    conjuncts += mkImplies(
+                        mkAnd(lhsType.refTypeExpr, rhsType.refTypeExpr),
+                        mkHeapRefEq(
+                            memory.read(getIntermediateRefLValue(lhs.address)),
+                            memory.read(getIntermediateRefLValue(rhs.address))
+                        ).not()
+                    )
+
+                    conjuncts += mkImplies(
+                        mkAnd(lhsType.boolTypeExpr, rhsType.fpTypeExpr),
+                        mkFpEqualExpr(
+                            boolToFpSort(memory.read(getIntermediateBoolLValue(lhs.address))),
+                            memory.read(getIntermediateFpLValue(rhs.address))
+                        ).not()
+                    )
+
+                    // TODO unsupported objects
+                    // conjuncts += mkImplies(
+                    //     mkAnd(lhsType.boolTypeExpr, rhsType.refTypeExpr),
+                    //     mkFpEqual
+                    // )
+
+                    // case 7.2.13 IsLooselyEqual #10
+                    conjuncts += mkImplies(
+                        mkAnd(lhsType.fpTypeExpr, rhsType.boolTypeExpr),
+                        mkFpEqualExpr(
+                            memory.read(getIntermediateFpLValue(lhs.address)),
+                            boolToFpSort(memory.read(getIntermediateBoolLValue(rhs.address)))
+                        ).not()
+                    )
+
+                    // TODO unsupported unsupported objects
+                }
+
+                if (lhs.isFakeObject()) {
+                    lhs as UConcreteHeapRef
+                    val lhsType = memory.typeStreamOf(lhs).single() as FakeType
+
+
+                    conjuncts += lhsType.mkAtLeastOneTypeConstraint(ctx)
+
+                    when (rhs.sort) {
+                        boolSort -> {
+                            conjuncts += mkImplies(
+                                lhsType.boolTypeExpr,
+                                mkEq(
+                                    memory.read(getIntermediateBoolLValue(lhs.address)),
+                                    rhs.asExpr(boolSort)
+                                ).not()
+                            )
+
+                            conjuncts += mkImplies(
+                                lhsType.fpTypeExpr,
+                                mkFpEqualExpr(
+                                    memory.read(getIntermediateFpLValue(lhs.address)),
+                                    boolToFpSort(rhs.asExpr(boolSort))
+                                ).not()
+                            )
+
+                            // TODO unsupported objects
+                        }
+                        fp64Sort -> {
+                            conjuncts += mkImplies(
+                                lhsType.boolTypeExpr,
+                                mkFpEqualExpr(
+                                    boolToFpSort(memory.read(getIntermediateBoolLValue(lhs.address))),
+                                    rhs.asExpr(fp64Sort)
+                                ).not()
+                            )
+
+                            conjuncts += mkImplies(
+                                lhsType.fpTypeExpr,
+                                mkFpEqualExpr(
+                                    memory.read(getIntermediateFpLValue(lhs.address)),
+                                    rhs.asExpr(fp64Sort)
+                                ).not()
+                            )
+
+                            // TODO unsupported objects
+                        }
+                        addressSort -> {
+                            conjuncts += mkImplies(
+                                lhsType.refTypeExpr,
+                                mkHeapRefEq(
+                                    memory.read(getIntermediateRefLValue(lhs.address)),
+                                    rhs.asExpr(addressSort)
+                                ).not()
+                            )
+
+                            // TODO unsupported objects
+
+                        }
+                        else -> error("Unsupported sort ${rhs.sort}")
+                    }
+                }
+
+                if (rhs.isFakeObject()) {
+                    rhs as UConcreteHeapRef
+                    val rhsType = memory.typeStreamOf(rhs).single() as FakeType
+
+
+                    conjuncts += rhsType.mkAtLeastOneTypeConstraint(ctx)
+
+                    when (lhs.sort) {
+                        boolSort -> {
+                            conjuncts += mkImplies(
+                                rhsType.boolTypeExpr,
+                                mkEq(
+                                    lhs.asExpr(boolSort),
+                                    memory.read(getIntermediateBoolLValue(rhs.address))
+                                ).not()
+                            )
+
+                            conjuncts += mkImplies(
+                                rhsType.fpTypeExpr,
+                                mkFpEqualExpr(
+                                    boolToFpSort(lhs.asExpr(boolSort)),
+                                    memory.read(getIntermediateFpLValue(rhs.address))
+                                ).not()
+                            )
+
+                            // TODO unsupported objects
+                        }
+                        fp64Sort -> {
+                            conjuncts += mkImplies(
+                                rhsType.boolTypeExpr,
+                                mkFpEqualExpr(
+                                    lhs.asExpr(fp64Sort),
+                                    boolToFpSort(memory.read(getIntermediateBoolLValue(rhs.address)))
+                                ).not()
+                            )
+
+                            conjuncts += mkImplies(
+                                rhsType.fpTypeExpr,
+                                mkFpEqualExpr(
+                                    lhs.asExpr(fp64Sort),
+                                    memory.read(getIntermediateFpLValue(rhs.address))
+                                ).not()
+                            )
+
+                            // TODO unsupported objects
+                        }
+                        addressSort -> {
+                            conjuncts += mkImplies(
+                                rhsType.refTypeExpr,
+                                mkHeapRefEq(
+                                    lhs.asExpr(addressSort),
+                                    memory.read(getIntermediateRefLValue(rhs.address))
+                                ).not()
+                            )
+
+                            // TODO unsupported objects
+
+                        }
+                        else -> error("Unsupported sort ${rhs.sort}")
+                    }
+
+
+                }
+
+                mkAnd(conjuncts)
+            }
         }
 
         override fun internalResolve(
@@ -189,6 +386,8 @@ sealed interface TSBinaryOperator {
             rhs: UExpr<out USort>,
             scope: TSStepScope,
         ): UExpr<out USort> = with(lhs.tctx) {
+            val eqValue = Eq.resolve(lhs, rhs, scope)
+
             TODO()
         }
     }
@@ -293,9 +492,34 @@ sealed interface TSBinaryOperator {
             scope: TSStepScope,
         ): UExpr<out USort> = with(lhs.tctx) {
             scope.calcOnState {
-                val lhsTruthyExpr = mkTruthyExpr(lhs)
+                val lhsTruthyExpr = mkTruthyExpr(lhs, scope)
 
-                TODO()
+                check(lhs.isFakeObject() || rhs.isFakeObject())
+
+                return@calcOnState iteWriteIntoFakeObject(scope, lhsTruthyExpr, rhs, lhs)
+
+                // // if (lhs is truthy) return rhs else lhs
+                // if (lhs.sort == rhs.sort) {
+                //     // TODO unwrap ite into guarded writes
+                //     // return@calcOnState mkIte(lhsTruthyExpr, rhs.asExpr(lhs.sort), lhs.asExpr(rhs.sort))
+                // }
+                //
+                // // if lhs is fake and rhs is not
+                // if (lhs.isFakeObject()) {
+                //     return@calcOnState iteWriteIntoFakeObject(scope, lhsTruthyExpr, rhs, lhs)
+                //     // return@calcOnState mkIte(lhsTruthyExpr, rhs.toFakeObject(scope), lhs.asExpr(addressSort))
+                // }
+                //
+                // // vise-versa
+                // if (rhs.isFakeObject()) {
+                //     return@calcOnState iteWriteIntoFakeObject(scope, lhsTruthyExpr, rhs, lhs)
+                //     // return@calcOnState mkIte(lhsTruthyExpr, rhs.asExpr(addressSort), lhs.toFakeObject(scope))
+                // }
+
+
+                // error("Unreachable")
+                // just incompatible sorts
+                // return@calcOnState mkIte(lhsTruthyExpr, rhs.toFakeObject(scope), lhs.toFakeObject(scope))
             }
         }
 
@@ -322,6 +546,8 @@ sealed interface TSBinaryOperator {
         scope: TSStepScope,
     ): UExpr<out USort> {
         with(lhs.sort.tctx) {
+
+
             if (lhs.isFakeObject() || rhs.isFakeObject()) {
                 return resolveFakeObject(lhs, rhs, scope)
             }
