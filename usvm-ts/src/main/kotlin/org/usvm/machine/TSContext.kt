@@ -15,7 +15,6 @@ import org.usvm.UBv32Sort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
-import org.usvm.UFpSort
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.makeSymbolicPrimitive
@@ -91,8 +90,6 @@ class TSContext(
 
             conjuncts.foldRight(falseBranchGround) { (condition, value), acc ->
                 mkIte(condition, value, acc)
-            }.also {
-                let {}
             }
         } else {
             // TODO: simply convert `expr` to bool by implementing ToBoolean(arg):
