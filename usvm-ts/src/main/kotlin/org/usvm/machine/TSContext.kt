@@ -49,65 +49,65 @@ class TSContext(
 
     // TODO fix conjuncts
     fun mkTruthyExpr(expr: UExpr<out USort>, scope: TSStepScope): UBoolExpr = scope.calcOnState {
-            if (expr.isFakeObject()) {
-                expr as UConcreteHeapRef
+        if (expr.isFakeObject()) {
+            expr as UConcreteHeapRef
 
-                val falseBranchGround = makeSymbolicPrimitive(boolSort)
+            val falseBranchGround = makeSymbolicPrimitive(boolSort)
 
-                val conjuncts = mutableListOf<Pair<UBoolExpr, UBoolExpr>>()
-                val possibleType = scope.calcOnState {
-                    memory.types.getTypeStream(expr.asExpr(addressSort))
-                }.single() as FakeType
+            val conjuncts = mutableListOf<Pair<UBoolExpr, UBoolExpr>>()
+            val possibleType = scope.calcOnState {
+                memory.types.getTypeStream(expr.asExpr(addressSort))
+            }.single() as FakeType
 
-                scope.assert(possibleType.mkExactlyOneTypeConstraint(this@TSContext))
+            scope.assert(possibleType.mkExactlyOneTypeConstraint(this@TSContext))
 
-                if (!possibleType.boolTypeExpr.isFalse) {
-                    conjuncts += Pair(
-                        possibleType.boolTypeExpr,
-                        memory.read(getIntermediateBoolLValue(expr.address))
-                    )
-                }
+            if (!possibleType.boolTypeExpr.isFalse) {
+                conjuncts += Pair(
+                    possibleType.boolTypeExpr,
+                    memory.read(getIntermediateBoolLValue(expr.address))
+                )
+            }
 
-                if (!possibleType.fpTypeExpr.isFalse) {
-                    val value = memory.read(getIntermediateFpLValue(expr.address))
-                    val numberCondition = mkAnd(
-                        mkFpEqualExpr(value.asExpr(fp64Sort), mkFp(0.0, mkFp64Sort())).not(),
-                        mkFpIsNaNExpr(value.asExpr(fp64Sort)).not()
-                    )
-                    conjuncts += Pair(
-                        possibleType.fpTypeExpr,
-                        numberCondition
-                    )
-                }
+            if (!possibleType.fpTypeExpr.isFalse) {
+                val value = memory.read(getIntermediateFpLValue(expr.address))
+                val numberCondition = mkAnd(
+                    mkFpEqualExpr(value.asExpr(fp64Sort), mkFp(0.0, mkFp64Sort())).not(),
+                    mkFpIsNaNExpr(value.asExpr(fp64Sort)).not()
+                )
+                conjuncts += Pair(
+                    possibleType.fpTypeExpr,
+                    numberCondition
+                )
+            }
 
-                if (!possibleType.refTypeExpr.isFalse) {
-                    val value = memory.read(getIntermediateRefLValue(expr.address))
-                    conjuncts += Pair(
-                        possibleType.refTypeExpr,
-                        // TODO how to support undefined here? I guess it's not a case, and it is supposed to be inside of fake type
-                        mkHeapRefEq(value, nullRef).not()
-                    )
-                }
+            if (!possibleType.refTypeExpr.isFalse) {
+                val value = memory.read(getIntermediateRefLValue(expr.address))
+                conjuncts += Pair(
+                    possibleType.refTypeExpr,
+                    // TODO how to support undefined here? I guess it's not a case, and it is supposed to be inside of fake type
+                    mkHeapRefEq(value, nullRef).not()
+                )
+            }
 
-                conjuncts.foldRight(falseBranchGround) { (condition, value), acc ->
-                    mkIte(condition, value, acc)
-                }.also {
-                    let {}
-                }
-            } else {
-                when (expr.sort) {
-                    is UBoolSort -> expr.asExpr(boolSort)
-                    is UFpSort -> mkAnd(
-                        mkFpEqualExpr(expr.asExpr(fp64Sort), mkFp(0.0, mkFp64Sort())).not(),
-                        mkFpIsNaNExpr(expr.asExpr(fp64Sort)).not()
-                    )
+            conjuncts.foldRight(falseBranchGround) { (condition, value), acc ->
+                mkIte(condition, value, acc)
+            }.also {
+                let {}
+            }
+        } else {
+            when (expr.sort) {
+                is UBoolSort -> expr.asExpr(boolSort)
+                is UFpSort -> mkAnd(
+                    mkFpEqualExpr(expr.asExpr(fp64Sort), mkFp(0.0, mkFp64Sort())).not(),
+                    mkFpIsNaNExpr(expr.asExpr(fp64Sort)).not()
+                )
 
-                    // TODO add support for both null and undefined values
-                    is UAddressSort -> mkHeapRefEq(expr.asExpr(addressSort), nullRef).not()
-                    else -> TODO("Unsupported sort")
-                }
+                // TODO add support for both null and undefined values
+                is UAddressSort -> mkHeapRefEq(expr.asExpr(addressSort), nullRef).not()
+                else -> TODO("Unsupported sort")
             }
         }
+    }
 
     fun UExpr<out USort>.isFakeObject(): Boolean {
         if (sort !is UAddressSort) return false
