@@ -1,6 +1,5 @@
 package org.usvm.machine.operator
 
-import io.ksmt.sort.KBoolSort
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
@@ -529,7 +528,11 @@ sealed interface TSBinaryOperator {
         }
     }
 
-    fun resolveFakeObject(lhs: UExpr<out USort>, rhs: UExpr<out USort>, scope: TSStepScope): UExpr<out USort>
+    fun resolveFakeObject(
+        lhs: UExpr<out USort>,
+        rhs: UExpr<out USort>,
+        scope: TSStepScope,
+    ): UExpr<out USort>
 
     fun internalResolve(
         lhs: UExpr<out USort>,
@@ -548,10 +551,10 @@ sealed interface TSBinaryOperator {
 
         if (lhs.sort == rhs.sort) {
             return when (lhs.sort) {
-                is KFp64Sort -> onFp(lhs.asExpr(fp64Sort), rhs.asExpr(fp64Sort), scope)
-                is KBoolSort -> onBool(lhs.asExpr(boolSort), rhs.asExpr(boolSort), scope)
-                is UAddressSort -> onRef(lhs.asExpr(addressSort), rhs.asExpr(addressSort), scope)
-                else -> error("Should not be called")
+                boolSort -> onBool(lhs.asExpr(boolSort), rhs.asExpr(boolSort), scope)
+                fp64Sort -> onFp(lhs.asExpr(fp64Sort), rhs.asExpr(fp64Sort), scope)
+                addressSort -> onRef(lhs.asExpr(addressSort), rhs.asExpr(addressSort), scope)
+                else -> TODO("Unsupported sort ${lhs.sort}")
             }
         }
 

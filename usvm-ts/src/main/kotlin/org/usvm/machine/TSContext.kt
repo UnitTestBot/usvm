@@ -96,15 +96,15 @@ class TSContext(
             }
         } else {
             when (expr.sort) {
-                is UBoolSort -> expr.asExpr(boolSort)
+                boolSort -> expr.asExpr(boolSort)
 
-                is UFpSort -> mkAnd(
+                fp64Sort -> mkAnd(
                     mkFpEqualExpr(expr.asExpr(fp64Sort), mkFp(0.0, fp64Sort)).not(),
                     mkFpIsNaNExpr(expr.asExpr(fp64Sort)).not()
                 )
 
                 // TODO add support for both null and undefined values
-                is UAddressSort -> mkHeapRefEq(expr.asExpr(addressSort), nullRef).not()
+                addressSort -> mkHeapRefEq(expr.asExpr(addressSort), nullRef).not()
 
                 else -> TODO("Unsupported sort: ${expr.sort}")
             }
