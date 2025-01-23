@@ -17,7 +17,7 @@ sealed class TSUnaryOperator(
     val desiredSort: TSContext.(USort) -> USort = { _ -> error("Should not be called") },
 ) {
 
-    object Not : TSUnaryOperator(
+    data object Not : TSUnaryOperator(
         onBool = TSContext::mkNot,
         desiredSort = { boolSort },
     )

@@ -43,7 +43,7 @@ class TSExprTransformer(
         fst: UExpr<out USort>,
         snd: UExpr<out USort>,
         action: CoerceAction,
-        scope: TSStepScope
+        scope: TSStepScope,
     ): UExpr<out USort> {
         intersect(fst, snd)
 
@@ -81,7 +81,7 @@ class TSExprTransformer(
 
     private fun intersect(fst: UExpr<out USort>, snd: UExpr<out USort>) {
         val fstCache = cache.getOrPut(fst) { mutableMapOf(fst.sort to fst) }
-        val sndCache =  cache.getOrPut(snd) { mutableMapOf(snd.sort to snd) }
+        val sndCache = cache.getOrPut(snd) { mutableMapOf(snd.sort to snd) }
 
         val fstSorts = fstCache.keys
         fstSorts.forEach { sort ->
@@ -107,7 +107,7 @@ class TSExprTransformer(
     private fun TSContext.generateAdditionalExprs(
         expr: UExpr<out USort>,
         rawExprs: List<UExpr<out USort>>,
-        scope: TSStepScope
+        scope: TSStepScope,
     ) {
         // a + b // ??? ???
         // regionReading + regionReading

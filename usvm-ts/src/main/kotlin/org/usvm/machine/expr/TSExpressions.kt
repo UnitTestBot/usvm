@@ -12,7 +12,8 @@ import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.machine.TSContext
 
-val KAst.tctx get() = ctx as TSContext
+val KAst.tctx: TSContext
+    get() = ctx as TSContext
 
 class TSUndefinedSort(ctx: TSContext) : USort(ctx) {
     override fun print(builder: StringBuilder) {
@@ -46,10 +47,10 @@ class TSUnresolvedSort(ctx: TSContext) : USort(ctx) {
     }
 }
 
-fun extractBool(expr: UExpr<out USort>): Boolean = when (expr) {
-    expr.ctx.trueExpr -> true
-    expr.ctx.falseExpr -> false
-    else -> error("Expression $expr is not boolean")
+fun UExpr<out USort>.extractBool(): Boolean = when (this) {
+    ctx.trueExpr -> true
+    ctx.falseExpr -> false
+    else -> error("Cannot extract boolean from $this")
 }
 
 fun extractInt(expr: UExpr<out USort>): Int = (expr as? KBitVec32Value)?.intValue ?: 0

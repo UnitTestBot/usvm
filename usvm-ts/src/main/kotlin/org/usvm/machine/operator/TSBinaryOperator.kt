@@ -21,32 +21,24 @@ import org.usvm.machine.iteWriteIntoFakeObject
 import org.usvm.types.single
 import org.usvm.util.boolToFpSort
 
-// import org.usvm.util.unwrapIfRequired
-
-/**
- * @param[desiredSort] accepts two [USort] instances of the expression operands.
- * It defines a desired [USort] for the binary operator to cast both of its operands to.
- *
- * @param[banSorts] accepts two [UExpr] instances of the expression operands.
- * It returns a [Set] of [USort] that are restricted to be coerced to.
- */
-
-// TODO: desiredSort and banSorts achieve the same goal, although have different semantics. Possible to merge them.
 sealed interface TSBinaryOperator {
-    fun TSContext.onBool(lhs: UExpr<UBoolSort>, rhs: UExpr<UBoolSort>, scope: TSStepScope): UExpr<out USort>
-    fun TSContext.onFp(lhs: UExpr<KFp64Sort>, rhs: UExpr<KFp64Sort>, scope: TSStepScope): UExpr<out USort>
-    fun TSContext.onRef(lhs: UExpr<UAddressSort>, rhs: UExpr<UAddressSort>, scope: TSStepScope): UExpr<out USort>
-    // Some binary operations like '==' and '!=' can operate on any pair of equal sorts.
-    // However, '+' casts both operands to Number in TypeScript (no considering string currently),
-    // so fp64sort is required for both sides.
-    // This function allows to filter out excess expressions in type coercion.
+    fun TSContext.onBool(
+        lhs: UExpr<UBoolSort>,
+        rhs: UExpr<UBoolSort>,
+        scope: TSStepScope,
+    ): UExpr<out USort>
 
-    // TODO desiredSort is not the only sort
-    // val desiredSort: TSContext.(USort, USort) -> USort = { _, _ -> error("Should not be called") },
-    // This function specifies a set of banned sorts pre-coercion.
-    // Usage of it is limited and was introduced for Neq operation.
-    // Generally designed to filter out excess expressions in type coercion.
-    // abstract val banSorts: TSContext.(UExpr<out USort>, UExpr<out USort>) -> Set<USort> = { _, _ -> emptySet() },
+    fun TSContext.onFp(
+        lhs: UExpr<KFp64Sort>,
+        rhs: UExpr<KFp64Sort>,
+        scope: TSStepScope,
+    ): UExpr<out USort>
+
+    fun TSContext.onRef(
+        lhs: UExpr<UAddressSort>,
+        rhs: UExpr<UAddressSort>,
+        scope: TSStepScope,
+    ): UExpr<out USort>
 
     data object Eq : TSBinaryOperator {
         override fun TSContext.onBool(
@@ -128,7 +120,6 @@ sealed interface TSBinaryOperator {
                         )
                     )
 
-                    // case 7.2.13 IsLooselyEqual #10
                     conjuncts += Pair(
                         mkAnd(lhsType.fpTypeExpr, rhsType.boolTypeExpr),
                         mkFpEqualExpr(
@@ -227,7 +218,7 @@ sealed interface TSBinaryOperator {
                                 )
                             )
 
-                            // TODO unsupported objects
+                            // TODO: support objects
                         }
 
                         fp64Sort -> {
@@ -247,7 +238,7 @@ sealed interface TSBinaryOperator {
                                 )
                             )
 
-                            // TODO unsupported objects
+                            // TODO: support objects
                         }
 
                         addressSort -> {
@@ -259,7 +250,7 @@ sealed interface TSBinaryOperator {
                                 )
                             )
 
-                            // TODO unsupported objects
+                            // TODO: support objects
 
                         }
 
@@ -294,13 +285,14 @@ sealed interface TSBinaryOperator {
             if (lhs.sort is UBoolSort && rhs.sort is KFp64Sort) {
                 return mkFpEqualExpr(boolToFpSort(lhs.cast()), rhs.cast())
             }
+
             if (lhs.sort is KFp64Sort && rhs.sort is UBoolSort) {
                 return mkFpEqualExpr(lhs.cast(), boolToFpSort(rhs.cast()))
             }
 
-            // TODO unsupported string
+            // TODO: support string
 
-            // TODO unsupported bigint and fp conversion
+            // TODO: support bigint and fp conversion
 
             TODO("Unsupported String and bigint comparison")
         }
@@ -319,39 +311,38 @@ sealed interface TSBinaryOperator {
     // (because obviously we must be able to coerce to expression's base sort)
 
     // TODO: banSorts is still draft here, it only handles specific operands' configurations. General solution required.
-    data object Neq : TSBinaryOperator
+    data object Neq : TSBinaryOperator {
+        // desiredSort = { lhs, _ -> lhs },
+        // banSorts = { lhs, rhs ->
+        //     when {
+        //         lhs is TSWrappedValue ->
+        //             // rhs.sort == addressSort is a mock not to cause undefined
+        //             // behaviour with support of new language features.
+        //             // For example, supporting language structures could produce
+        //             // incorrect additional sort constraints here if addressSort expressions
+        //             // do not return empty set.
+        //             if (rhs is TSWrappedValue || rhs.sort == addressSort) {
+        //                 emptySet()
+        //             } else {
+        //                 org.usvm.machine.TSTypeSystem.primitiveTypes
+        //                     .map(::typeToSort).toSet()
+        //                     .minus(rhs.sort)
+        //             }
+        //
+        //         rhs is TSWrappedValue ->
+        //             // lhs.sort == addressSort explained as above.
+        //             if (lhs.sort == addressSort) {
+        //                 emptySet()
+        //             } else {
+        //                 org.usvm.machine.TSTypeSystem.primitiveTypes
+        //                     .map(::typeToSort).toSet()
+        //                     .minus(lhs.sort)
+        //             }
+        //
+        //         else -> emptySet()
+        //     }
+        // }
 
-    // desiredSort = { lhs, _ -> lhs },
-    // banSorts = { lhs, rhs ->
-    //     when {
-    //         lhs is TSWrappedValue ->
-    //             // rhs.sort == addressSort is a mock not to cause undefined
-    //             // behaviour with support of new language features.
-    //             // For example, supporting language structures could produce
-    //             // incorrect additional sort constraints here if addressSort expressions
-    //             // do not return empty set.
-    //             if (rhs is TSWrappedValue || rhs.sort == addressSort) {
-    //                 emptySet()
-    //             } else {
-    //                 org.usvm.machine.TSTypeSystem.primitiveTypes
-    //                     .map(::typeToSort).toSet()
-    //                     .minus(rhs.sort)
-    //             }
-    //
-    //         rhs is TSWrappedValue ->
-    //             // lhs.sort == addressSort explained as above.
-    //             if (lhs.sort == addressSort) {
-    //                 emptySet()
-    //             } else {
-    //                 org.usvm.machine.TSTypeSystem.primitiveTypes
-    //                     .map(::typeToSort).toSet()
-    //                     .minus(lhs.sort)
-    //             }
-    //
-    //         else -> emptySet()
-    //     }
-    // }
-    {
         override fun TSContext.onBool(
             lhs: UExpr<UBoolSort>,
             rhs: UExpr<UBoolSort>,
@@ -550,60 +541,20 @@ sealed interface TSBinaryOperator {
         lhs: UExpr<out USort>,
         rhs: UExpr<out USort>,
         scope: TSStepScope,
-    ): UExpr<out USort> {
-        with(lhs.sort.tctx) {
-
-            if (lhs.isFakeObject() || rhs.isFakeObject()) {
-                return resolveFakeObject(lhs, rhs, scope)
-            }
-
-            val lhsSort = lhs.sort
-            if (lhsSort == rhs.sort) {
-                val result = when (lhsSort) {
-                    is KFp64Sort -> onFp(lhs.asExpr(fp64Sort), rhs.asExpr(fp64Sort), scope)
-                    is KBoolSort -> onBool(lhs.asExpr(boolSort), rhs.asExpr(boolSort), scope)
-                    is UAddressSort -> onRef(lhs.asExpr(addressSort), rhs.asExpr(addressSort), scope)
-                    else -> error("Should not be called")
-                }
-                return result
-            }
-
-            return internalResolve(lhs, rhs, scope)
+    ): UExpr<out USort> = with(lhs.sort.tctx) {
+        if (lhs.isFakeObject() || rhs.isFakeObject()) {
+            return resolveFakeObject(lhs, rhs, scope)
         }
-    }
 
-    // val bannedSorts = lhs.tctx.banSorts(lhs, rhs)
-    //
-    // fun apply(lhs: UExpr<out USort>, rhs: UExpr<out USort>): UExpr<out USort>? {
-    //     val ctx = lhs.tctx
-    //     val lhsSort = lhs.sort
-    //     val rhsSort = rhs.sort
-    //     if (lhsSort != rhsSort) error("Sorts must be equal: $lhsSort != $rhsSort")
-    //
-    //     // banSorts filtering.
-    //     if (lhsSort in bannedSorts) return null
-    //     // desiredSort filtering.
-    //     // if (ctx.desiredSort(lhsSort, rhsSort) != lhsSort) return null
-    //
-    //     return when (lhs.sort) {
-    //         is UBoolSort -> ctx.onBool(lhs.cast(), rhs.cast())
-    //         is KFp64Sort -> ctx.onFp(lhs.cast(), rhs.cast())
-    //         is UAddressSort -> ctx.onRef(lhs.cast(), rhs.cast())
-    //         else -> error("Unexpected sorts: $lhsSort, $rhsSort")
-    //     }
-    // }
-    //
-    // val lhsSort = lhs.sort
-    // val rhsSort = rhs.sort
-    //
-    // val ctx = lhs.tctx
-    // // Chosen sort is only used to intersect both exprCaches and
-    // // have at least one sort to apply binary operation to.
-    // // All sorts are examined in TSExprTransformer class and not limited by this "chosen one".
-    // // val sort = ctx.desiredSort(lhsSort, rhsSort)
-    //
-    // return when {
-    //     lhs is TSWrappedValue -> lhs.coerceWithSort(rhs, ::apply, desiredSort = null, scope)
-    //     else -> TSWrappedValue(ctx, lhs).coerceWithSort(rhs, ::apply, desiredSort = null, scope)
-    // }
+        if (lhs.sort == rhs.sort) {
+            return when (lhs.sort) {
+                is KFp64Sort -> onFp(lhs.asExpr(fp64Sort), rhs.asExpr(fp64Sort), scope)
+                is KBoolSort -> onBool(lhs.asExpr(boolSort), rhs.asExpr(boolSort), scope)
+                is UAddressSort -> onRef(lhs.asExpr(addressSort), rhs.asExpr(addressSort), scope)
+                else -> error("Should not be called")
+            }
+        }
+
+        internalResolve(lhs, rhs, scope)
+    }
 }

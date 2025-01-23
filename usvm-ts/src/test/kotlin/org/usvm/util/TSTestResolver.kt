@@ -31,7 +31,6 @@ import org.usvm.machine.expr.TSUnresolvedSort
 import org.usvm.machine.expr.extractBool
 import org.usvm.machine.expr.extractDouble
 import org.usvm.machine.expr.extractInt
-import org.usvm.machine.expr.tctx
 import org.usvm.machine.state.TSMethodResult
 import org.usvm.machine.state.TSState
 import org.usvm.memory.URegisterStackLValue
@@ -89,20 +88,20 @@ class TSTestResolver(
         if (expr.address == 0) {
             return TSObject.UndefinedObject
         }
-        val type = state.memory.types.getTypeStream(expr.asExpr(expr.tctx.addressSort)).single() as FakeType
+        val type = state.memory.types.getTypeStream(expr.asExpr(ctx.addressSort)).single() as FakeType
         return when {
             model.eval(type.boolTypeExpr).isTrue -> {
-                val lValue = expr.tctx.getIntermediateBoolLValue(expr.address)
+                val lValue = ctx.getIntermediateBoolLValue(expr.address)
                 val value = state.memory.read(lValue)
                 resolveExpr(model.eval(value), EtsBooleanType, model)
             }
             model.eval(type.fpTypeExpr).isTrue -> {
-                val lValue = expr.tctx.getIntermediateFpLValue(expr.address)
+                val lValue = ctx.getIntermediateFpLValue(expr.address)
                 val value = state.memory.read(lValue)
                 resolveExpr(model.eval(value), EtsNumberType, model)
             }
             model.eval(type.refTypeExpr).isTrue -> {
-                val lValue = expr.tctx.getIntermediateRefLValue(expr.address)
+                val lValue = ctx.getIntermediateRefLValue(expr.address)
                 val value = state.memory.read(lValue)
                 resolveExpr(model.eval(value), EtsClassType(ctx.scene.classes.first().signature), model)
             }
@@ -146,7 +145,7 @@ class TSTestResolver(
         }
 
         EtsBooleanType -> {
-            TSObject.TSBoolean(extractBool(expr))
+            TSObject.TSBoolean(expr.extractBool())
         }
 
         EtsUndefinedType -> {

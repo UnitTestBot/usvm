@@ -117,6 +117,7 @@ class TSTopTypeStream(
                 val allTypes = types + remainingTypes.types
                 allTypes.toTypesResult(wasTimeoutExpired = false)
             }
+
             is TypesResult.TypesResultWithExpiredTimeout -> {
                 val allTypes = types + remainingTypes.collectedTypes
                 allTypes.toTypesResult(wasTimeoutExpired = true)

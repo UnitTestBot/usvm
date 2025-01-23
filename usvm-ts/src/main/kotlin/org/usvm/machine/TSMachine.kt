@@ -9,9 +9,9 @@ import org.usvm.UMachine
 import org.usvm.UMachineOptions
 import org.usvm.api.targets.TSTarget
 import org.usvm.machine.interpreter.TSInterpreter
-import org.usvm.ps.createPathSelector
 import org.usvm.machine.state.TSMethodResult
 import org.usvm.machine.state.TSState
+import org.usvm.ps.createPathSelector
 import org.usvm.statistics.CompositeUMachineObserver
 import org.usvm.statistics.CoverageStatistics
 import org.usvm.statistics.StepsStatistics

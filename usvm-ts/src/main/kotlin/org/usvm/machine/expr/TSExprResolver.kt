@@ -101,13 +101,13 @@ class TSExprResolver(
     private fun resolveBinaryOperator(
         operator: TSBinaryOperator,
         expr: EtsBinaryExpr,
-    ): UExpr<out USort>?  = resolveBinaryOperator(operator, expr.left, expr.right)
+    ): UExpr<out USort>? = resolveBinaryOperator(operator, expr.left, expr.right)
 
     private fun resolveBinaryOperator(
         operator: TSBinaryOperator,
         lhv: EtsEntity,
         rhv: EtsEntity,
-    ): UExpr<out USort>?  = resolveAfterResolved(lhv, rhv) { lhs, rhs ->
+    ): UExpr<out USort>? = resolveAfterResolved(lhv, rhv) { lhs, rhs ->
         operator.resolve(lhs, rhs, scope)
     }
 
@@ -138,19 +138,19 @@ class TSExprResolver(
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: EtsThis): UExpr<out USort>? {
+    override fun visit(value: EtsThis): UExpr<out USort> {
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: EtsBooleanConstant): UExpr<out USort>? {
+    override fun visit(value: EtsBooleanConstant): UExpr<out USort> {
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: EtsNumberConstant): UExpr<out USort>? {
+    override fun visit(value: EtsNumberConstant): UExpr<out USort> {
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: EtsNullConstant): UExpr<out USort>? {
+    override fun visit(value: EtsNullConstant): UExpr<out USort> {
         return simpleValueResolver.visit(value)
     }
 
@@ -512,56 +512,56 @@ class TSSimpleValueResolver(
         return scope.calcOnState { memory.read(lValue) }
     }
 
-    override fun visit(value: EtsThis): UExpr<out USort>? {
+    override fun visit(value: EtsThis): UExpr<out USort> {
         val lValue = resolveLocal(value)
         return scope.calcOnState { memory.read(lValue) }
     }
 
-    override fun visit(value: EtsBooleanConstant): UExpr<out USort>? = with(ctx) {
+    override fun visit(value: EtsBooleanConstant): UExpr<out USort> = with(ctx) {
         mkBool(value.value)
     }
 
-    override fun visit(value: EtsNumberConstant): UExpr<out USort>? = with(ctx) {
+    override fun visit(value: EtsNumberConstant): UExpr<out USort> = with(ctx) {
         mkFp64(value.value)
     }
 
-    override fun visit(value: EtsStringConstant): UExpr<out USort>? = with(ctx) {
+    override fun visit(value: EtsStringConstant): UExpr<out USort> = with(ctx) {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         error("Not supported $value")
     }
 
-    override fun visit(value: EtsNullConstant): UExpr<out USort>? = with(ctx) {
+    override fun visit(value: EtsNullConstant): UExpr<out USort> = with(ctx) {
         // TODO: replace with `ctx.nullConstant` (!= nullRef)
         nullRef
     }
 
-    override fun visit(value: EtsUndefinedConstant): UExpr<out USort>? = with(ctx) {
+    override fun visit(value: EtsUndefinedConstant): UExpr<out USort> = with(ctx) {
         // TODO: replace with `ctx.nullRef` or `ctx.undefinedConstant` (== nullRef)
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         error("Not supported $value")
     }
 
-    override fun visit(value: EtsArrayLiteral): UExpr<out USort>? = with(ctx) {
+    override fun visit(value: EtsArrayLiteral): UExpr<out USort> = with(ctx) {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         error("Not supported $value")
     }
 
-    override fun visit(value: EtsObjectLiteral): UExpr<out USort>? = with(ctx) {
+    override fun visit(value: EtsObjectLiteral): UExpr<out USort> = with(ctx) {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         error("Not supported $value")
     }
 
-    override fun visit(value: EtsArrayAccess): UExpr<out USort>? = with(ctx) {
+    override fun visit(value: EtsArrayAccess): UExpr<out USort> = with(ctx) {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         error("Not supported $value")
     }
 
-    override fun visit(value: EtsInstanceFieldRef): UExpr<out USort>? = with(ctx) {
+    override fun visit(value: EtsInstanceFieldRef): UExpr<out USort> = with(ctx) {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         error("Not supported $value")
     }
 
-    override fun visit(value: EtsStaticFieldRef): UExpr<out USort>? = with(ctx) {
+    override fun visit(value: EtsStaticFieldRef): UExpr<out USort> = with(ctx) {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         error("Not supported $value")
     }

@@ -47,6 +47,7 @@ class TSInterpreter(
     private val ctx: TSContext,
     private val applicationGraph: TSApplicationGraph,
 ) : UInterpreter<TSState>() {
+
     private val forkBlackList: UForkBlackList<TSState, EtsStmt> = UForkBlackList.createDefault()
 
     override fun step(state: TSState): StepResult<TSState> {
@@ -89,17 +90,13 @@ class TSInterpreter(
     private fun visitIfStmt(scope: TSStepScope, stmt: EtsIfStmt) {
         val exprResolver = exprResolverWithScope(scope)
 
-        val boolExpr = exprResolver
-            .resolve(stmt.condition)
-            ?.asExpr(ctx.boolSort)
+        val boolExpr = exprResolver.resolve(stmt.condition)?.asExpr(ctx.boolSort)
             ?: run {
                 logger.warn { "Failed to resolve condition: $stmt" }
                 return
             }
 
-        val succs = applicationGraph.successors(stmt).take(2).toList()
-        val negStmt = succs[0]
-        val posStmt = succs[1]
+        val (negStmt, posStmt) = applicationGraph.successors(stmt).take(2).toList()
 
         scope.forkWithBlackList(
             boolExpr,
@@ -127,7 +124,7 @@ class TSInterpreter(
 
         val expr = exprResolver.resolve(stmt.rhv) ?: return
 
-        check (expr.sort != ctx.unresolvedSort) {
+        check(expr.sort != ctx.unresolvedSort) {
             "A value of the unresolved sort should never be returned from `resolve` function"
         }
 

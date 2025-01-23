@@ -29,7 +29,7 @@ class TSState(
     var methodResult: TSMethodResult = TSMethodResult.NoCall,
     targets: UTargetsSet<TSTarget, EtsStmt> = UTargetsSet.empty(),
     val exprTransformer: TSExprTransformer,
-    private val localToSort: MutableMap<EtsMethod, MutableMap<Int, USort>> = hashMapOf()
+    private val localToSort: MutableMap<EtsMethod, MutableMap<Int, USort>> = hashMapOf(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TSContext, TSTarget, TSState>(
     ctx,
     ownership,
@@ -46,6 +46,7 @@ class TSState(
             .getOrPut(method) { hashMapOf() }
             .getOrPut(localIdx) { ctx.typeToSort(localType) }
     }
+
     @Suppress("ReplacePutWithAssignment")
     fun saveSortForLocal(method: EtsMethod, localIdx: Int, sort: USort) {
         localToSort
