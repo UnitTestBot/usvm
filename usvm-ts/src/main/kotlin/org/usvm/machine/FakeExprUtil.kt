@@ -56,12 +56,12 @@ fun TSContext.iteWriteIntoFakeObject(
 
     val (fpRValueTrueBranch, fpValueTrueBranchCondition) = extractValue(
         trueBranchValue,
-        ctx.mkFp64Sort(),
+        ctx.fp64Sort,
         ::getIntermediateFpLValue
     )
     val (fpRValueFalseBranch, fpValueFalseBranchCondition) = extractValue(
         falseBranchValue,
-        ctx.mkFp64Sort(),
+        ctx.fp64Sort,
         ::getIntermediateFpLValue
     )
 

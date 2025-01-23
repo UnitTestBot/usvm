@@ -71,7 +71,7 @@ class TSContext(
             if (!possibleType.fpTypeExpr.isFalse) {
                 val value = memory.read(getIntermediateFpLValue(expr.address))
                 val numberCondition = mkAnd(
-                    mkFpEqualExpr(value.asExpr(fp64Sort), mkFp(0.0, mkFp64Sort())).not(),
+                    mkFpEqualExpr(value.asExpr(fp64Sort), mkFp(0.0, fp64Sort)).not(),
                     mkFpIsNaNExpr(value.asExpr(fp64Sort)).not()
                 )
                 conjuncts += Pair(
@@ -97,14 +97,16 @@ class TSContext(
         } else {
             when (expr.sort) {
                 is UBoolSort -> expr.asExpr(boolSort)
+
                 is UFpSort -> mkAnd(
-                    mkFpEqualExpr(expr.asExpr(fp64Sort), mkFp(0.0, mkFp64Sort())).not(),
+                    mkFpEqualExpr(expr.asExpr(fp64Sort), mkFp(0.0, fp64Sort)).not(),
                     mkFpIsNaNExpr(expr.asExpr(fp64Sort)).not()
                 )
 
                 // TODO add support for both null and undefined values
                 is UAddressSort -> mkHeapRefEq(expr.asExpr(addressSort), nullRef).not()
-                else -> TODO("Unsupported sort")
+
+                else -> TODO("Unsupported sort: ${expr.sort}")
             }
         }
     }
@@ -157,8 +159,7 @@ class TSContext(
 
     fun createFakeObjectRef(): UConcreteHeapRef {
         val address = mkAddressCounter().freshAllocatedAddress() + MAGIC_OFFSET
-        val fakeValueRef = mkConcreteHeapRef(address)
-        return fakeValueRef
+        return mkConcreteHeapRef(address)
     }
 
     // fun UExpr<out USort>.toFakeObject(scope: TSStepScope): UConcreteHeapRef {
@@ -168,7 +169,7 @@ class TSContext(
     //
     //     return when (sort) {
     //         is UBoolSort -> mkFakeValue(scope, boolValue = this.asExpr(ctx.boolSort))
-    //         is UFpSort -> mkFakeValue(scope, fpValue = this.asExpr(ctx.mkFp64Sort()))
+    //         is UFpSort -> mkFakeValue(scope, fpValue = this.asExpr(ctx.fp64Sort))
     //         is UAddressSort -> mkFakeValue(scope, refValue = this.asExpr(tctx.addressSort))
     //         else -> TODO("Unsupported sort $sort")
     //
@@ -177,27 +178,12 @@ class TSContext(
 
     fun mkUndefinedValue(): TSUndefinedValue = undefinedValue
 
-    fun mkIntermediateBoolLValue(): UFieldLValue<IntermediateLValueField, UBoolSort> {
-        val addr = mkAddressCounter().freshAllocatedAddress() + MAGIC_OFFSET
-        return getIntermediateBoolLValue(addr)
-    }
-
     fun getIntermediateBoolLValue(addr: Int): UFieldLValue<IntermediateLValueField, UBoolSort> {
         return UFieldLValue(boolSort, mkConcreteHeapRef(addr), IntermediateLValueField.BOOL)
     }
 
-    fun mkIntermediateFpLValue(): UFieldLValue<IntermediateLValueField, KFp64Sort> {
-        val addr = mkAddressCounter().freshAllocatedAddress() + MAGIC_OFFSET
-        return getIntermediateFpLValue(addr)
-    }
-
     fun getIntermediateFpLValue(addr: Int): UFieldLValue<IntermediateLValueField, KFp64Sort> {
-        return UFieldLValue(mkFp64Sort(), mkConcreteHeapRef(addr), IntermediateLValueField.FP)
-    }
-
-    fun mkIntermediateRefLValue(): UFieldLValue<IntermediateLValueField, UAddressSort> {
-        val addr = mkAddressCounter().freshAllocatedAddress() + MAGIC_OFFSET
-        return getIntermediateRefLValue(addr)
+        return UFieldLValue(fp64Sort, mkConcreteHeapRef(addr), IntermediateLValueField.FP)
     }
 
     fun getIntermediateRefLValue(addr: Int): UFieldLValue<IntermediateLValueField, UAddressSort> {
