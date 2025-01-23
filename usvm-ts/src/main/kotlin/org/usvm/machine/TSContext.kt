@@ -166,20 +166,6 @@ class TSContext(
         return mkConcreteHeapRef(address)
     }
 
-    // fun UExpr<out USort>.toFakeObject(scope: TSStepScope): UConcreteHeapRef {
-    //     if (isFakeObject()) {
-    //         return this as UConcreteHeapRef
-    //     }
-    //
-    //     return when (sort) {
-    //         is UBoolSort -> mkFakeValue(scope, boolValue = this.asExpr(ctx.boolSort))
-    //         is UFpSort -> mkFakeValue(scope, fpValue = this.asExpr(ctx.fp64Sort))
-    //         is UAddressSort -> mkFakeValue(scope, refValue = this.asExpr(tctx.addressSort))
-    //         else -> TODO("Unsupported sort $sort")
-    //
-    //     }
-    // }
-
     fun mkUndefinedValue(): TSUndefinedValue = undefinedValue
 
     fun getIntermediateBoolLValue(addr: Int): UFieldLValue<IntermediateLValueField, UBoolSort> {

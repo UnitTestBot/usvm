@@ -33,6 +33,7 @@ fun <T : USort> TSState.extractValue(
         }
 
         value.sort == sort -> value.asExpr(sort) to trueExpr
+
         else -> null to falseExpr
     }
 }
@@ -119,6 +120,8 @@ private fun <T : USort> TSState.writeValuesWithGuard(
             memory.write(lValue, falseBranchValue, guard = trueExpr)
         }
 
-        else -> error("Neither of the values is non-null value")
+        else -> {
+            // Neither of the values is non-null value
+        }
     }
 }

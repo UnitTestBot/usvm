@@ -40,6 +40,40 @@ sealed interface TSBinaryOperator {
         scope: TSStepScope,
     ): UExpr<out USort>
 
+    fun resolveFakeObject(
+        lhs: UExpr<out USort>,
+        rhs: UExpr<out USort>,
+        scope: TSStepScope,
+    ): UExpr<out USort>
+
+    fun internalResolve(
+        lhs: UExpr<out USort>,
+        rhs: UExpr<out USort>,
+        scope: TSStepScope,
+    ): UExpr<out USort>
+
+    fun resolve(
+        lhs: UExpr<out USort>,
+        rhs: UExpr<out USort>,
+        scope: TSStepScope,
+    ): UExpr<out USort> = with(lhs.sort.tctx) {
+        if (lhs.isFakeObject() || rhs.isFakeObject()) {
+            return resolveFakeObject(lhs, rhs, scope)
+        }
+
+        val lhsSort = lhs.sort
+        if (lhsSort == rhs.sort) {
+            return when (lhsSort) {
+                boolSort -> onBool(lhs.asExpr(boolSort), rhs.asExpr(boolSort), scope)
+                fp64Sort -> onFp(lhs.asExpr(fp64Sort), rhs.asExpr(fp64Sort), scope)
+                addressSort -> onRef(lhs.asExpr(addressSort), rhs.asExpr(addressSort), scope)
+                else -> TODO("Unsupported sort $lhsSort")
+            }
+        }
+
+        internalResolve(lhs, rhs, scope)
+    }
+
     data object Eq : TSBinaryOperator {
 
         override fun TSContext.onBool(
@@ -71,6 +105,8 @@ sealed interface TSBinaryOperator {
             rhs: UExpr<out USort>,
             scope: TSStepScope,
         ): UExpr<out USort> = with(lhs.tctx) {
+            check(lhs.isFakeObject() || rhs.isFakeObject())
+
             scope.calcOnState {
                 val conjuncts = mutableListOf<Pair<UBoolExpr, UBoolExpr>>()
                 val groundFalseBranch = makeSymbolicPrimitive(boolSort)
@@ -337,6 +373,7 @@ sealed interface TSBinaryOperator {
             rhs: UExpr<out USort>,
             scope: TSStepScope,
         ): UExpr<out USort> = with(lhs.tctx) {
+            check(lhs.isFakeObject() || rhs.isFakeObject())
             Eq.resolveFakeObject(lhs, rhs, scope).asExpr(boolSort).not()
         }
 
@@ -384,7 +421,8 @@ sealed interface TSBinaryOperator {
             lhs: UExpr<out USort>,
             rhs: UExpr<out USort>,
             scope: TSStepScope,
-        ): UExpr<out USort> {
+        ): UExpr<out USort> = with(lhs.tctx) {
+            check(lhs.isFakeObject() || rhs.isFakeObject())
             TODO("Not yet implemented")
         }
 
@@ -409,6 +447,7 @@ sealed interface TSBinaryOperator {
 
                 else -> null
             }
+
             if (fpValue != null) {
                 return fpValue
             }
@@ -449,34 +488,11 @@ sealed interface TSBinaryOperator {
             rhs: UExpr<out USort>,
             scope: TSStepScope,
         ): UExpr<out USort> = with(lhs.tctx) {
+            check(lhs.isFakeObject() || rhs.isFakeObject())
+
             scope.calcOnState {
                 val lhsTruthyExpr = mkTruthyExpr(lhs, scope)
-
-                check(lhs.isFakeObject() || rhs.isFakeObject())
-
-                return@calcOnState iteWriteIntoFakeObject(scope, lhsTruthyExpr, rhs, lhs)
-
-                // // if (lhs is truthy) return rhs else lhs
-                // if (lhs.sort == rhs.sort) {
-                //     // TODO unwrap ite into guarded writes
-                //     // return@calcOnState mkIte(lhsTruthyExpr, rhs.asExpr(lhs.sort), lhs.asExpr(rhs.sort))
-                // }
-                //
-                // // if lhs is fake and rhs is not
-                // if (lhs.isFakeObject()) {
-                //     return@calcOnState iteWriteIntoFakeObject(scope, lhsTruthyExpr, rhs, lhs)
-                //     // return@calcOnState mkIte(lhsTruthyExpr, rhs.toFakeObject(scope), lhs.asExpr(addressSort))
-                // }
-                //
-                // // vise-versa
-                // if (rhs.isFakeObject()) {
-                //     return@calcOnState iteWriteIntoFakeObject(scope, lhsTruthyExpr, rhs, lhs)
-                //     // return@calcOnState mkIte(lhsTruthyExpr, rhs.asExpr(addressSort), lhs.toFakeObject(scope))
-                // }
-
-                // error("Unreachable")
-                // just incompatible sorts
-                // return@calcOnState mkIte(lhsTruthyExpr, rhs.toFakeObject(scope), lhs.toFakeObject(scope))
+                iteWriteIntoFakeObject(scope, lhsTruthyExpr, rhs, lhs)
             }
         }
 
@@ -484,42 +500,11 @@ sealed interface TSBinaryOperator {
             lhs: UExpr<out USort>,
             rhs: UExpr<out USort>,
             scope: TSStepScope,
-        ): UExpr<out USort> {
-            TODO()
-        }
-    }
-
-    fun resolveFakeObject(
-        lhs: UExpr<out USort>,
-        rhs: UExpr<out USort>,
-        scope: TSStepScope,
-    ): UExpr<out USort>
-
-    fun internalResolve(
-        lhs: UExpr<out USort>,
-        rhs: UExpr<out USort>,
-        scope: TSStepScope,
-    ): UExpr<out USort>
-
-    fun resolve(
-        lhs: UExpr<out USort>,
-        rhs: UExpr<out USort>,
-        scope: TSStepScope,
-    ): UExpr<out USort> = with(lhs.sort.tctx) {
-        if (lhs.isFakeObject() || rhs.isFakeObject()) {
-            return resolveFakeObject(lhs, rhs, scope)
-        }
-
-        val lhsSort = lhs.sort
-        if (lhsSort == rhs.sort) {
-            return when (lhsSort) {
-                boolSort -> onBool(lhs.asExpr(boolSort), rhs.asExpr(boolSort), scope)
-                fp64Sort -> onFp(lhs.asExpr(fp64Sort), rhs.asExpr(fp64Sort), scope)
-                addressSort -> onRef(lhs.asExpr(addressSort), rhs.asExpr(addressSort), scope)
-                else -> TODO("Unsupported sort $lhsSort")
+        ): UExpr<out USort> = with(lhs.tctx) {
+            val lhsTruthyExpr = mkTruthyExpr(lhs, scope)
+            scope.calcOnState {
+                iteWriteIntoFakeObject(scope, lhsTruthyExpr, rhs, lhs)
             }
         }
-
-        internalResolve(lhs, rhs, scope)
     }
 }

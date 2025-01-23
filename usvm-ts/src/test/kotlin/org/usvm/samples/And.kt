@@ -16,9 +16,21 @@ class And : TSMethodTestRunner() {
             EtsScene(listOf(file))
         }
 
+    private fun isTruthy(x: Double): Boolean {
+        return x != 0.0 && !x.isNaN()
+    }
+
+    private fun isTruthy(x: TSObject.TSNumber): Boolean {
+        return isTruthy(x.number)
+    }
+
+    private fun isTruthy(x: TSObject.TSObject): Boolean {
+        return x.addr != 0
+    }
+
     @Test
-    fun testAndForTwoBoolValues() {
-        val method = getMethod("And", "andForTwoBoolValues")
+    fun `test andOfBooleanAndBoolean`() {
+        val method = getMethod("And", "andOfBooleanAndBoolean")
         discoverProperties<TSObject.TSBoolean, TSObject.TSBoolean, TSObject.TSNumber>(
             method = method,
             { a, b, r -> a.value && b.value && r.number == 1.0 },
@@ -29,8 +41,56 @@ class And : TSMethodTestRunner() {
     }
 
     @Test
-    fun testAndForUnknownTypes() {
-        val method = getMethod("And", "andForUnknownTypes")
+    fun `test andOfNumberAndNumber`() {
+        val method = getMethod("And", "andOfNumberAndNumber")
+        discoverProperties<TSObject.TSNumber, TSObject.TSNumber, TSObject.TSNumber>(
+            method = method,
+            { a, b, r -> isTruthy(a) && isTruthy(b) && r.number == 1.0 },
+            { a, b, r -> isTruthy(a) && !isTruthy(b) && r.number == 2.0 },
+            { a, b, r -> !isTruthy(a) && isTruthy(b) && r.number == 3.0 },
+            { a, b, r -> !isTruthy(a) && !isTruthy(b) && r.number == 4.0 },
+        )
+    }
+
+    @Test
+    fun `test andOfBooleanAndNumber`() {
+        val method = getMethod("And", "andOfBooleanAndNumber")
+        discoverProperties<TSObject.TSBoolean, TSObject.TSNumber, TSObject.TSNumber>(
+            method = method,
+            { a, b, r -> a.value && isTruthy(b) && r.number == 1.0 },
+            { a, b, r -> a.value && !isTruthy(b) && r.number == 2.0 },
+            { a, b, r -> !a.value && isTruthy(b) && r.number == 3.0 },
+            { a, b, r -> !a.value && !isTruthy(b) && r.number == 4.0 },
+        )
+    }
+
+    @Test
+    fun `test andOfNumberAndBoolean`() {
+        val method = getMethod("And", "andOfNumberAndBoolean")
+        discoverProperties<TSObject.TSNumber, TSObject.TSBoolean, TSObject.TSNumber>(
+            method = method,
+            { a, b, r -> isTruthy(a) && b.value && r.number == 1.0 },
+            { a, b, r -> isTruthy(a) && !b.value && r.number == 2.0 },
+            { a, b, r -> !isTruthy(a) && b.value && r.number == 3.0 },
+            { a, b, r -> !isTruthy(a) && !b.value && r.number == 4.0 },
+        )
+    }
+
+    @Test
+    fun `test andOfObjectAndObject`() {
+        val method = getMethod("And", "andOfObjectAndObject")
+        discoverProperties<TSObject.TSObject, TSObject.TSObject, TSObject.TSNumber>(
+            method = method,
+            { a, b, r -> isTruthy(a) && isTruthy(b) && r.number == 1.0 },
+            { a, b, r -> isTruthy(a) && !isTruthy(b) && r.number == 2.0 },
+            { a, b, r -> !isTruthy(a) && isTruthy(b) && r.number == 3.0 },
+            { a, b, r -> !isTruthy(a) && !isTruthy(b) && r.number == 4.0 },
+        )
+    }
+
+    @Test
+    fun `test andOfUnknown`() {
+        val method = getMethod("And", "andOfUnknown")
         discoverProperties<TSObject, TSObject, TSObject.TSNumber>(
             method = method,
             { a, b, r ->
@@ -57,7 +117,7 @@ class And : TSMethodTestRunner() {
     }
 
     @Test
-    fun testTruthyUnknown() {
+    fun `test truthyUnknown`() {
         val method = getMethod("And", "truthyUnknown")
         discoverProperties<TSObject, TSObject, TSObject.TSNumber>(
             method = method,

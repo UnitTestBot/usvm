@@ -1,12 +1,40 @@
 class And {
-    andForTwoBoolValues(a: boolean, b: boolean): number {
+    andOfBooleanAndBoolean(a: boolean, b: boolean): number {
         if (a && b) return 1
         if (a) return 2
         if (b) return 3
         return 4
     }
 
-    andForUnknownTypes(a, b): number {
+    andOfNumberAndNumber(a: number, b: number): number {
+        if (a && b) return 1
+        if (a) return 2
+        if (b) return 3
+        return 4
+    }
+
+    andOfBooleanAndNumber(a: boolean, b: number): number {
+        if (a && b) return 1
+        if (a) return 2
+        if (b) return 3
+        return 4
+    }
+
+    andOfNumberAndBoolean(a: number, b: boolean): number {
+        if (a && b) return 1
+        if (a) return 2
+        if (b) return 3
+        return 4
+    }
+
+    andOfObjectAndObject(a: object, b: object): number {
+        if (a && b) return 1
+        if (a) return 2
+        if (b) return 3
+        return 4
+    }
+
+    andOfUnknown(a, b): number {
         if (a && b) return 1
         if (a) return 2
         if (b) return 3
