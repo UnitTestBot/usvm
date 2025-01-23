@@ -163,6 +163,7 @@ abstract class TSMethodTestRunner : TestRunner<TSTest, EtsMethod, EtsType?, TSMe
         */
         val klass = if (it is KClass<*>) it else it::class
         when (klass) {
+            TSObject::class -> EtsAnyType
             TSObject.TSAny::class -> EtsAnyType
             TSObject.TSArray::class -> TODO()
             TSObject.TSBoolean::class -> EtsBooleanType

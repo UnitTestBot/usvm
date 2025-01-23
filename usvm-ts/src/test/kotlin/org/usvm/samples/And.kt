@@ -31,12 +31,51 @@ class And : TSMethodTestRunner() {
     @Test
     fun testAndForUnknownTypes() {
         val method = getMethod("And", "andForUnknownTypes")
-        discoverProperties<TSObject.TSBoolean, TSObject.TSBoolean, TSObject.TSNumber>(
+        discoverProperties<TSObject, TSObject, TSObject.TSNumber>(
             method = method,
-            { a, b, r -> a.value && b.value && r.number == 1.0 },
-            { a, b, r -> a.value && !b.value && r.number == 2.0 },
-            { a, b, r -> !a.value && b.value && r.number == 3.0 },
-            { a, b, r -> !a.value && !b.value && r.number == 4.0 },
+            { a, b, r ->
+                if (a is TSObject.TSBoolean && b is TSObject.TSBoolean) {
+                    a.value && b.value && r.number == 1.0
+                } else true
+            },
+            { a, b, r ->
+                if (a is TSObject.TSBoolean && b is TSObject.TSBoolean) {
+                    a.value && !b.value && r.number == 2.0
+                } else true
+            },
+            { a, b, r ->
+                if (a is TSObject.TSBoolean && b is TSObject.TSBoolean) {
+                    !a.value && b.value && r.number == 3.0
+                } else true
+            },
+            { a, b, r ->
+                if (a is TSObject.TSBoolean && b is TSObject.TSBoolean) {
+                    !a.value && !b.value && r.number == 4.0
+                } else true
+            },
+        )
+    }
+
+    @Test
+    fun testTruthyUnknown() {
+        val method = getMethod("And", "truthyUnknown")
+        discoverProperties<TSObject, TSObject, TSObject.TSNumber>(
+            method = method,
+            { a, b, r ->
+                if (a is TSObject.TSBoolean && b is TSObject.TSBoolean) {
+                    a.value && !b.value && r.number == 1.0
+                } else true
+            },
+            { a, b, r ->
+                if (a is TSObject.TSBoolean && b is TSObject.TSBoolean) {
+                    !a.value && b.value && r.number == 2.0
+                } else true
+            },
+            { a, b, r ->
+                if (a is TSObject.TSBoolean && b is TSObject.TSBoolean) {
+                    !a.value && !b.value && r.number == 99.0
+                } else true
+            },
         )
     }
 }
