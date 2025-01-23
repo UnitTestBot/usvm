@@ -21,6 +21,7 @@ import org.usvm.types.single
 import org.usvm.util.boolToFpSort
 
 sealed interface TSBinaryOperator {
+
     fun TSContext.onBool(
         lhs: UExpr<UBoolSort>,
         rhs: UExpr<UBoolSort>,
@@ -40,6 +41,7 @@ sealed interface TSBinaryOperator {
     ): UExpr<out USort>
 
     data object Eq : TSBinaryOperator {
+
         override fun TSContext.onBool(
             lhs: UExpr<UBoolSort>,
             rhs: UExpr<UBoolSort>,
@@ -298,49 +300,7 @@ sealed interface TSBinaryOperator {
 
     }
 
-    // Neq must not be applied to a pair of expressions
-    // containing generated ones during coercion initialization (exprCache intersection).
-    // For example,
-    // "a (ref reg reading) != 1.0 (fp64 number)"
-    // can't yield a list of type coercion bool expressions containing:
-    // "a (bool reg reading) != true (bool)",
-    // since "1.0.toBool() = true" is a new value for TSExprTransformer(1.0) exprCache.
-    //
-    // So, that's the reason why banSorts in Neq throws out all primitive types except one of the expressions' one.
-    // (because obviously we must be able to coerce to expression's base sort)
-
-    // TODO: banSorts is still draft here, it only handles specific operands' configurations. General solution required.
     data object Neq : TSBinaryOperator {
-        // desiredSort = { lhs, _ -> lhs },
-        // banSorts = { lhs, rhs ->
-        //     when {
-        //         lhs is TSWrappedValue ->
-        //             // rhs.sort == addressSort is a mock not to cause undefined
-        //             // behaviour with support of new language features.
-        //             // For example, supporting language structures could produce
-        //             // incorrect additional sort constraints here if addressSort expressions
-        //             // do not return empty set.
-        //             if (rhs is TSWrappedValue || rhs.sort == addressSort) {
-        //                 emptySet()
-        //             } else {
-        //                 org.usvm.machine.TSTypeSystem.primitiveTypes
-        //                     .map(::typeToSort).toSet()
-        //                     .minus(rhs.sort)
-        //             }
-        //
-        //         rhs is TSWrappedValue ->
-        //             // lhs.sort == addressSort explained as above.
-        //             if (lhs.sort == addressSort) {
-        //                 emptySet()
-        //             } else {
-        //                 org.usvm.machine.TSTypeSystem.primitiveTypes
-        //                     .map(::typeToSort).toSet()
-        //                     .minus(lhs.sort)
-        //             }
-        //
-        //         else -> emptySet()
-        //     }
-        // }
 
         override fun TSContext.onBool(
             lhs: UExpr<UBoolSort>,
@@ -390,6 +350,7 @@ sealed interface TSBinaryOperator {
     }
 
     data object Add : TSBinaryOperator {
+
         override fun TSContext.onBool(
             lhs: UExpr<UBoolSort>,
             rhs: UExpr<UBoolSort>,
