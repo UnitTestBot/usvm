@@ -80,7 +80,7 @@ class TSTestResolver(
             if (param.type is EtsUnknownType) {
                 approximateParam(expr.cast(), model)
             } else {
-                resolveExpr(expr, param.type, model)
+                resolveExpr(model.eval(expr), param.type, model)
             }
         }
     }
