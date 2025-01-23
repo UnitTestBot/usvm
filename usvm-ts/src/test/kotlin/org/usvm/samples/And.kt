@@ -21,10 +21,10 @@ class And : TSMethodTestRunner() {
         val method = getMethod("And", "andForTwoBoolValues")
         discoverProperties<TSObject.TSBoolean, TSObject.TSBoolean, TSObject.TSNumber>(
             method = method,
-            { a, b, r ->  a.value && b.value && r.number == 1.0 },
-            { a, b, r ->  a.value && !b.value && r.number == 2.0 },
-            { a, b, r ->  !a.value && b.value && r.number == 3.0 },
-            { a, b, r ->  !a.value && !b.value && r.number == 4.0 },
+            { a, b, r -> a.value && b.value && r.number == 1.0 },
+            { a, b, r -> a.value && !b.value && r.number == 2.0 },
+            { a, b, r -> !a.value && b.value && r.number == 3.0 },
+            { a, b, r -> !a.value && !b.value && r.number == 4.0 },
         )
     }
 
@@ -33,10 +33,10 @@ class And : TSMethodTestRunner() {
         val method = getMethod("And", "andForUnknownTypes")
         discoverProperties<TSObject.TSBoolean, TSObject.TSBoolean, TSObject.TSNumber>(
             method = method,
-            { a, b, r ->  a.value && b.value && r.number == 1.0 },
-            { a, b, r ->  a.value && !b.value && r.number == 2.0 },
-            { a, b, r ->  !a.value && b.value && r.number == 3.0 },
-            { a, b, r ->  !a.value && !b.value && r.number == 4.0 },
+            { a, b, r -> a.value && b.value && r.number == 1.0 },
+            { a, b, r -> a.value && !b.value && r.number == 2.0 },
+            { a, b, r -> !a.value && b.value && r.number == 3.0 },
+            { a, b, r -> !a.value && !b.value && r.number == 4.0 },
         )
     }
 }
