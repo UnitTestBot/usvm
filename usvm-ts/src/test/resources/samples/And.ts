@@ -15,17 +15,15 @@ class And {
         return 4
     }
 
-    andForUnknownTypes(a, b): number {
-        if (a && b) {
-           return 1
-        }
 
+
+    andForUnknownTypes(a, b): number {
         if (a) {
            return 2
         }
 
         if (b) {
-           return 3
+            return 3
         }
 
         return 4

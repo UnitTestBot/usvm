@@ -90,7 +90,6 @@ class TSInterpreter(
         val exprResolver = exprResolverWithScope(scope)
 
         val boolExpr = exprResolver
-            // Don't want to lose UJoinedBoolExpr here for further fork.
             .resolve(stmt.condition)
             ?.asExpr(ctx.boolSort)
             ?: run {

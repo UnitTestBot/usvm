@@ -15,6 +15,7 @@ import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUndefinedType
 import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.base.EtsVoidType
+import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodParameter
 import org.usvm.UConcreteHeapRef
@@ -22,10 +23,13 @@ import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.api.TSObject
 import org.usvm.api.TSTest
+import org.usvm.isTrue
+import org.usvm.machine.FakeType
 import org.usvm.api.typeStreamOf
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.machine.TSContext
 import org.usvm.machine.expr.TSRefTransformer
+import org.usvm.machine.expr.TSUnresolvedSort
 import org.usvm.machine.expr.extractBool
 import org.usvm.machine.expr.extractDouble
 import org.usvm.machine.expr.extractInt
@@ -34,8 +38,8 @@ import org.usvm.machine.state.TSMethodResult
 import org.usvm.machine.state.TSState
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.model.UModelBase
-import org.usvm.types.TypesResult
 import org.usvm.types.first
+import org.usvm.types.single
 
 class TSTestResolver(
     private val state: TSState,
@@ -72,30 +76,41 @@ class TSTestResolver(
         model: UModelBase<EtsType>,
     ): List<TSObject> = with(ctx) {
         params.map {  param ->
-            val type = param.type
-            val lValue = URegisterStackLValue(typeToSort(type), param.index)
-            val expr = model.read(lValue)
-            if (type is EtsUnknownType) {
-                approximateParam(expr.cast(), param.index, model)
+            val sort = typeToSort(param.type).takeUnless { it is TSUnresolvedSort } ?: addressSort
+            val lValue = URegisterStackLValue(sort, param.index)
+            val expr = state.memory.read(lValue) // TODO error
+            if (param.type is EtsUnknownType) {
+                approximateParam(expr.cast(), model)
             } else {
-                resolveExpr(expr, type, model)
+                resolveExpr(expr, param.type, model)
             }
         }
     }
 
-    private fun approximateParam(expr: UConcreteHeapRef, idx: Int, model: UModelBase<EtsType>): TSObject =
-        when (val tr = model.typeStreamOf(expr).take(1)) {
-            is TypesResult.SuccessfulTypesResult -> with (expr.tctx) {
-                val newType = tr.types.first()
-                val newLValue = URegisterStackLValue(typeToSort(newType), idx)
-                // val transformed = model.read(newLValue).unwrapIfRequired()
-                // resolveExpr(transformed, newType, model)
-                TODO()
-            }
-
-            else -> TSObject.TSObject(expr.address)
+    private fun approximateParam(expr: UConcreteHeapRef, model: UModelBase<EtsType>): TSObject {
+        if (expr.address == 0) {
+            return TSObject.UndefinedObject
         }
-
+        val type = state.memory.types.getTypeStream(expr.asExpr(expr.tctx.addressSort)).single() as FakeType
+        return when {
+            model.eval(type.boolTypeExpr).isTrue -> {
+                val lValue = expr.tctx.getIntermediateBoolLValue(expr.address)
+                val value = state.memory.read(lValue)
+                resolveExpr(value, EtsBooleanType, model)
+            }
+            model.eval(type.fpTypeExpr).isTrue -> {
+                val lValue = expr.tctx.getIntermediateFpLValue(expr.address)
+                val value = state.memory.read(lValue)
+                resolveExpr(value, EtsNumberType, model)
+            }
+            model.eval(type.refTypeExpr).isTrue -> {
+                val lValue = expr.tctx.getIntermediateRefLValue(expr.address)
+                val value = state.memory.read(lValue)
+                resolveExpr(value, EtsClassType(EtsClassSignature.DEFAULT), model)
+            }
+            else -> error("Unsupported")
+        }
+    }
     private fun resolveExpr(
         expr: UExpr<out USort>,
         type: EtsType,

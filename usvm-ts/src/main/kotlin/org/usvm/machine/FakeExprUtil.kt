@@ -87,8 +87,6 @@ fun TSContext.iteWriteIntoFakeObject(
     writeValuesWithGuard(refRValueTrueBranch, refRValueFalseBranch, refLValue, condition)
 
     val fakeType = FakeType(
-        ctx,
-        fakeObject.address,
         boolTypeExpr = mkIte(condition, boolTrueBranchCondition, boolFalseBranchCondition),
         fpTypeExpr = mkIte(condition, fpValueTrueBranchCondition, fpValueFalseBranchCondition),
         refTypeExpr = mkIte(condition, refValueTrueBranchCondition, refValueFalseBranchCondition)

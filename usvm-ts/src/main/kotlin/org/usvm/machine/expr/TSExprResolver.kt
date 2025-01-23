@@ -75,6 +75,7 @@ import org.usvm.UBoolSort
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.collection.field.UFieldLValue
+import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.machine.FakeType
 import org.usvm.machine.TSContext
 import org.usvm.machine.interpreter.TSStepScope
@@ -483,7 +484,12 @@ class TSSimpleValueResolver(
 
                 val fakeObject = ctx.mkFakeValue(scope, boolRValue, fpRValue, refRValue)
                 scope.calcOnState {
-                    memory.types.allocate(fakeObject.address, FakeType(ctx, fakeObject.address))
+                    val type = FakeType(
+                        boolTypeExpr = makeSymbolicPrimitive(ctx.boolSort),
+                        fpTypeExpr = makeSymbolicPrimitive(ctx.boolSort),
+                        refTypeExpr = makeSymbolicPrimitive(ctx.boolSort)
+                    )
+                    memory.types.allocate(fakeObject.address, type)
                     memory.write(lValue, fakeObject.asExpr(ctx.addressSort), ctx.trueExpr)
                 }
 

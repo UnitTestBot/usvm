@@ -18,6 +18,7 @@ import org.usvm.UExpr
 import org.usvm.UFpSort
 import org.usvm.UHeapRef
 import org.usvm.USort
+import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.isFalse
 import org.usvm.machine.expr.TSUndefinedSort
@@ -46,16 +47,22 @@ class TSContext(
         else -> TODO("Support all JacoDB types")
     }
 
+    // TODO fix conjuncts
     fun mkTruthyExpr(expr: UExpr<out USort>, scope: TSStepScope): UBoolExpr = scope.calcOnState {
             if (expr.isFakeObject()) {
                 expr as UConcreteHeapRef
 
-                val conjuncts = mutableListOf<UBoolExpr>()
-                val possibleType =
-                    scope.calcOnState { memory.types.getTypeStream(expr.asExpr(addressSort)) }.single() as FakeType
+                val falseBranchGround = makeSymbolicPrimitive(boolSort)
+
+                val conjuncts = mutableListOf<Pair<UBoolExpr, UBoolExpr>>()
+                val possibleType = scope.calcOnState {
+                    memory.types.getTypeStream(expr.asExpr(addressSort))
+                }.single() as FakeType
+
+                scope.assert(possibleType.mkExactlyOneTypeConstraint(expr.tctx))
 
                 if (!possibleType.boolTypeExpr.isFalse) {
-                    conjuncts += mkImplies(
+                    conjuncts += Pair(
                         possibleType.boolTypeExpr,
                         memory.read(getIntermediateBoolLValue(expr.address))
                     )
@@ -67,7 +74,7 @@ class TSContext(
                         mkFpEqualExpr(value.asExpr(fp64Sort), mkFp(0.0, mkFp64Sort())).not(),
                         mkFpIsNaNExpr(value.asExpr(fp64Sort)).not()
                     )
-                    conjuncts += mkImplies(
+                    conjuncts += Pair(
                         possibleType.fpTypeExpr,
                         numberCondition
                     )
@@ -75,16 +82,18 @@ class TSContext(
 
                 if (!possibleType.refTypeExpr.isFalse) {
                     val value = memory.read(getIntermediateRefLValue(expr.address))
-                    conjuncts += mkImplies(
+                    conjuncts += Pair(
                         possibleType.refTypeExpr,
                         // TODO how to support undefined here? I guess it's not a case, and it is supposed to be inside of fake type
                         mkHeapRefEq(value, nullRef).not()
                     )
                 }
 
-                conjuncts += mkOr(possibleType.boolTypeExpr, possibleType.fpTypeExpr, possibleType.refTypeExpr)
-
-                mkAnd(conjuncts)
+                conjuncts.foldRight(falseBranchGround) { (condition, value), acc ->
+                    mkIte(condition, value, acc)
+                }.also {
+                    let {}
+                }
             } else {
                 when (expr.sort) {
                     is UBoolSort -> expr.asExpr(boolSort)
@@ -93,6 +102,7 @@ class TSContext(
                         mkFpIsNaNExpr(expr.asExpr(fp64Sort)).not()
                     )
 
+                    // TODO add support for both null and undefined values
                     is UAddressSort -> mkHeapRefEq(expr.asExpr(addressSort), nullRef).not()
                     else -> TODO("Unsupported sort")
                 }
@@ -120,8 +130,6 @@ class TSContext(
             val address = fakeValueRef.address
 
             val type = FakeType(
-                ctx,
-                address,
                 boolTypeExpr = mkBool(boolValue != null),
                 fpTypeExpr = mkBool(fpValue != null),
                 refTypeExpr = mkBool(refValue != null),

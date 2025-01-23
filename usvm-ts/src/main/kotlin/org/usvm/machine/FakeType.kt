@@ -1,15 +1,12 @@
 package org.usvm.machine
 
-import io.ksmt.utils.mkConst
 import org.jacodb.ets.base.EtsType
 import org.usvm.UBoolExpr
 
 class FakeType(
-    ctx: TSContext,
-    val address: Int,
-    val boolTypeExpr: UBoolExpr = ctx.boolSort.mkConst("boolType$address"),
-    val fpTypeExpr: UBoolExpr = ctx.boolSort.mkConst("fpType$address"),
-    val refTypeExpr: UBoolExpr = ctx.boolSort.mkConst("refType$address")
+    val boolTypeExpr: UBoolExpr,
+    val fpTypeExpr: UBoolExpr,
+    val refTypeExpr: UBoolExpr,
     // TODO string,
 ) : EtsType {
     override val typeName: String
@@ -19,7 +16,12 @@ class FakeType(
         error("Should not be called")
     }
 
-    fun mkAtLeastOneTypeConstraint(ctx: TSContext): UBoolExpr {
-        return ctx.mkOr(boolTypeExpr, fpTypeExpr, refTypeExpr)
+    fun mkExactlyOneTypeConstraint(ctx: TSContext): UBoolExpr = with(ctx) {
+        return mkAnd(
+            mkImplies(boolTypeExpr, fpTypeExpr.not()),
+            mkImplies(boolTypeExpr, refTypeExpr.not()),
+            mkImplies(fpTypeExpr, refTypeExpr.not()),
+            mkOr(boolTypeExpr, fpTypeExpr, refTypeExpr),
+        )
     }
 }

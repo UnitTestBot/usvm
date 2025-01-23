@@ -31,12 +31,12 @@ class And : TSMethodTestRunner() {
     @Test
     fun testAndForUnknownTypes() {
         val method = getMethod("And", "andForUnknownTypes")
-        discoverProperties<TSObject.TSObject, TSObject.TSObject, TSObject.TSNumber>(
+        discoverProperties<TSObject.TSBoolean, TSObject.TSBoolean, TSObject.TSNumber>(
             method = method,
-            { _, _, r ->  r.number == 1.0 },
-            { _, _, r ->  r.number == 2.0 },
-            { _, _, r ->  r.number == 3.0 },
-            { _, _, r ->  r.number == 4.0 },
+            { a, b, r ->  a.value && b.value && r.number == 1.0 },
+            { a, b, r ->  a.value && !b.value && r.number == 2.0 },
+            { a, b, r ->  !a.value && b.value && r.number == 3.0 },
+            { a, b, r ->  !a.value && !b.value && r.number == 4.0 },
         )
     }
 }
