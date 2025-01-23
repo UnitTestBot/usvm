@@ -15,7 +15,6 @@ import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUndefinedType
 import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.base.EtsVoidType
-import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodParameter
 import org.usvm.UConcreteHeapRef
@@ -23,10 +22,9 @@ import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.api.TSObject
 import org.usvm.api.TSTest
+import org.usvm.collection.field.UFieldLValue
 import org.usvm.isTrue
 import org.usvm.machine.FakeType
-import org.usvm.api.typeStreamOf
-import org.usvm.collection.field.UFieldLValue
 import org.usvm.machine.TSContext
 import org.usvm.machine.expr.TSRefTransformer
 import org.usvm.machine.expr.TSUnresolvedSort
@@ -96,17 +94,17 @@ class TSTestResolver(
             model.eval(type.boolTypeExpr).isTrue -> {
                 val lValue = expr.tctx.getIntermediateBoolLValue(expr.address)
                 val value = state.memory.read(lValue)
-                resolveExpr(value, EtsBooleanType, model)
+                resolveExpr(model.eval(value), EtsBooleanType, model)
             }
             model.eval(type.fpTypeExpr).isTrue -> {
                 val lValue = expr.tctx.getIntermediateFpLValue(expr.address)
                 val value = state.memory.read(lValue)
-                resolveExpr(value, EtsNumberType, model)
+                resolveExpr(model.eval(value), EtsNumberType, model)
             }
             model.eval(type.refTypeExpr).isTrue -> {
                 val lValue = expr.tctx.getIntermediateRefLValue(expr.address)
                 val value = state.memory.read(lValue)
-                resolveExpr(value, EtsClassType(EtsClassSignature.DEFAULT), model)
+                resolveExpr(model.eval(value), EtsClassType(ctx.scene.classes.first().signature), model)
             }
             else -> error("Unsupported")
         }

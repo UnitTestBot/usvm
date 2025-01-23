@@ -74,8 +74,8 @@ import org.usvm.UAddressSort
 import org.usvm.UBoolSort
 import org.usvm.UExpr
 import org.usvm.USort
-import org.usvm.collection.field.UFieldLValue
 import org.usvm.api.makeSymbolicPrimitive
+import org.usvm.collection.field.UFieldLValue
 import org.usvm.machine.FakeType
 import org.usvm.machine.TSContext
 import org.usvm.machine.interpreter.TSStepScope
@@ -488,7 +488,9 @@ class TSSimpleValueResolver(
                         boolTypeExpr = makeSymbolicPrimitive(ctx.boolSort),
                         fpTypeExpr = makeSymbolicPrimitive(ctx.boolSort),
                         refTypeExpr = makeSymbolicPrimitive(ctx.boolSort)
-                    )
+                    ).also {
+                        scope.assert(it.mkExactlyOneTypeConstraint(ctx))
+                    }
                     memory.types.allocate(fakeObject.address, type)
                     memory.write(lValue, fakeObject.asExpr(ctx.addressSort), ctx.trueExpr)
                 }

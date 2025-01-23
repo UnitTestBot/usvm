@@ -90,7 +90,9 @@ fun TSContext.iteWriteIntoFakeObject(
         boolTypeExpr = mkIte(condition, boolTrueBranchCondition, boolFalseBranchCondition),
         fpTypeExpr = mkIte(condition, fpValueTrueBranchCondition, fpValueFalseBranchCondition),
         refTypeExpr = mkIte(condition, refValueTrueBranchCondition, refValueFalseBranchCondition)
-    )
+    ).also {
+        scope.assert(it.mkExactlyOneTypeConstraint(ctx))
+    }
 
     memory.types.allocate(fakeObject.address, fakeType)
 

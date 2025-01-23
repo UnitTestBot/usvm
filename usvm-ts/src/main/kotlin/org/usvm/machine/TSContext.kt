@@ -59,7 +59,7 @@ class TSContext(
                     memory.types.getTypeStream(expr.asExpr(addressSort))
                 }.single() as FakeType
 
-                scope.assert(possibleType.mkExactlyOneTypeConstraint(expr.tctx))
+                scope.assert(possibleType.mkExactlyOneTypeConstraint(this@TSContext))
 
                 if (!possibleType.boolTypeExpr.isFalse) {
                     conjuncts += Pair(
