@@ -31,7 +31,7 @@ class TSMachine(
 ) : UMachine<TSState>() {
     private val typeSystem = TSTypeSystem(typeOperationsTimeout = 1.seconds, project)
     private val components = TSComponents(typeSystem, options)
-    private val ctx = TSContext(components)
+    private val ctx = TSContext(project, components)
     private val applicationGraph = TSApplicationGraph(project)
     private val interpreter = TSInterpreter(ctx, applicationGraph)
     private val cfgStatistics = CfgStatisticsImpl(applicationGraph)

@@ -7,6 +7,7 @@ import org.jacodb.ets.base.EtsNumberType
 import org.jacodb.ets.base.EtsRefType
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUnknownType
+import org.jacodb.ets.model.EtsScene
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
@@ -22,13 +23,15 @@ import org.usvm.isFalse
 import org.usvm.machine.expr.TSUndefinedSort
 import org.usvm.machine.expr.TSUndefinedValue
 import org.usvm.machine.expr.TSUnresolvedSort
-import org.usvm.machine.expr.tctx
 import org.usvm.machine.interpreter.TSStepScope
 import org.usvm.types.single
 
 typealias TSSizeSort = UBv32Sort
 
-class TSContext(components: TSComponents) : UContext<TSSizeSort>(components) {
+class TSContext(
+    val scene: EtsScene,
+    components: TSComponents,
+) : UContext<TSSizeSort>(components) {
     val undefinedSort: TSUndefinedSort by lazy { TSUndefinedSort(this) }
 
     val unresolvedSort: TSUnresolvedSort = TSUnresolvedSort(this)

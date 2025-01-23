@@ -1,7 +1,9 @@
 package org.usvm.util
 
+import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import org.jacodb.ets.base.EtsBooleanType
+import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.base.EtsLiteralType
 import org.jacodb.ets.base.EtsNeverType
 import org.jacodb.ets.base.EtsNullType
@@ -21,6 +23,7 @@ import org.usvm.USort
 import org.usvm.api.TSObject
 import org.usvm.api.TSTest
 import org.usvm.api.typeStreamOf
+import org.usvm.collection.field.UFieldLValue
 import org.usvm.machine.TSContext
 import org.usvm.machine.expr.TSRefTransformer
 import org.usvm.machine.expr.extractBool
@@ -37,8 +40,9 @@ import org.usvm.types.first
 class TSTestResolver(
     private val state: TSState,
 ) {
+    private val ctx: TSContext get() = state.ctx
 
-    fun resolve(method: EtsMethod): TSTest = with(state.ctx) {
+    fun resolve(method: EtsMethod): TSTest = with(ctx) {
         val model = state.models.first()
         when (val methodResult = state.methodResult) {
             is TSMethodResult.Success -> {
@@ -92,30 +96,38 @@ class TSTestResolver(
             else -> TSObject.TSObject(expr.address)
         }
 
-    private fun resolveExpr(expr: UExpr<out USort>, type: EtsType, model: UModelBase<*>): TSObject {
-        return when {
-            type is EtsUnknownType && expr is UConcreteHeapRef -> resolveUnknown(expr, model)
-            type is EtsPrimitiveType -> resolvePrimitive(expr, type)
-            type is EtsRefType -> TODO()
-            else -> TODO()
-        }
+    private fun resolveExpr(
+        expr: UExpr<out USort>,
+        type: EtsType,
+        model: UModelBase<*>,
+    ): TSObject = when {
+        type is EtsUnknownType && expr is UConcreteHeapRef -> resolveUnknown(expr, model)
+        type is EtsPrimitiveType -> resolvePrimitive(expr, type)
+        type is EtsClassType -> resolveClass(expr, type, model)
+        type is EtsRefType -> TODO()
+        else -> TODO()
     }
 
-    private fun resolveUnknown(expr: UConcreteHeapRef, model: UModelBase<*>): TSObject {
+    private fun resolveUnknown(
+        expr: UConcreteHeapRef,
+        model: UModelBase<*>,
+    ): TSObject {
         val typeStream = model.types.getTypeStream(expr)
-
-        val ctx = expr.ctx as TSContext
         return (typeStream.first() as? EtsType)?.let { type ->
-            val transformed = TSRefTransformer(ctx, ctx.typeToSort(type)).apply(expr)
+            val sort = ctx.typeToSort(type)
+            val transformed = TSRefTransformer(ctx, sort).apply(expr)
             resolveExpr(transformed, type, model)
         } ?: TSObject.TSObject(expr.address)
     }
 
-    private fun resolvePrimitive(expr: UExpr<out USort>, type: EtsPrimitiveType): TSObject = when (type) {
+    private fun resolvePrimitive(
+        expr: UExpr<out USort>,
+        type: EtsPrimitiveType,
+    ): TSObject = when (type) {
         EtsNumberType -> {
             when (expr.sort) {
-                expr.ctx.fp64Sort -> TSObject.TSNumber.Double(extractDouble(expr))
-                expr.ctx.bv32Sort -> TSObject.TSNumber.Integer(extractInt(expr))
+                ctx.fp64Sort -> TSObject.TSNumber.Double(extractDouble(expr))
+                ctx.bv32Sort -> TSObject.TSNumber.Integer(extractInt(expr))
                 else -> error("Unexpected sort: ${expr.sort}")
             }
         }
@@ -149,5 +161,24 @@ class TSTestResolver(
         }
 
         else -> error("Unexpected type: $type")
+    }
+
+    private fun resolveClass(
+        expr: UExpr<out USort>,
+        classType: EtsClassType,
+        model: UModelBase<*>,
+    ): TSObject.TSClass {
+        val clazz = ctx.scene.classes.first { it.signature == classType.signature }
+        val properties = clazz.fields.associate { field ->
+            check(expr.sort == ctx.addressSort) {
+                "Expected address sort, but got ${expr.sort}"
+            }
+            val sort = ctx.typeToSort(field.type)
+            val lValue = UFieldLValue(sort, expr.asExpr(ctx.addressSort), field.name)
+            val fieldExpr = model.read(lValue)
+            val obj = resolveExpr(fieldExpr, field.type, model)
+            field.name to obj
+        }
+        return TSObject.TSClass(clazz.name, properties)
     }
 }

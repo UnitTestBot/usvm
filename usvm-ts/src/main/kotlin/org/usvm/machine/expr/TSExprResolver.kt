@@ -422,7 +422,12 @@ class TSExprResolver(
     override fun visit(value: EtsInstanceFieldRef): UExpr<out USort>? = with(ctx) {
         val instanceRef = resolve(value.instance)?.asExpr(addressSort) ?: return null
         // TODO: checkNullPointer(instanceRef)
-        val sort = typeToSort(value.type)
+        val fieldType = scene.classes
+            .first { it.signature == value.field.enclosingClass }
+            .fields
+            .single { it.name == value.field.name }
+            .type
+        val sort = typeToSort(fieldType)
         val lValue = UFieldLValue(sort, instanceRef, value.field.name)
         val expr = scope.calcOnState { memory.read(lValue) }
 
