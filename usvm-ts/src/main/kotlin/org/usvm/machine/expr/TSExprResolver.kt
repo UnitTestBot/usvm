@@ -474,7 +474,9 @@ class TSSimpleValueResolver(
             is KFp64Sort -> URegisterStackLValue(sort, localIdx)
             is UAddressSort -> URegisterStackLValue(sort, localIdx)
             is TSUnresolvedSort -> {
-                require(local is EtsParameterRef || local is EtsThis) { "Only this and parameters are expected" }
+                check(local is EtsThis || local is EtsParameterRef) {
+                    "Only This and ParameterRef are expected here"
+                }
 
                 val lValue = URegisterStackLValue(ctx.addressSort, localIdx)
 
