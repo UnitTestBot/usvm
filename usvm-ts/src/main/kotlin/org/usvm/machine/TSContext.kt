@@ -95,6 +95,13 @@ class TSContext(
                 let {}
             }
         } else {
+            // TODO: simply convert `expr` to bool by implementing ToBoolean(arg):
+            //  if arg is Boolean : return arg
+            //  if arg is undefined | null | +0f | -0f | NaN | 0 | "" : return false
+            //  else return true // non-negative numbers, any living objects, non-empty strings, etc
+            //  (https://tc39.es/ecma262/#sec-toboolean)
+            //  This conversion might be useful in other places as well, not just for truthy in ifs.
+
             when (expr.sort) {
                 boolSort -> expr.asExpr(boolSort)
 
