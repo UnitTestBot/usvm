@@ -15,11 +15,9 @@ class And {
         return 4
     }
 
-
-
     andForUnknownTypes(a, b): number {
         if (a) {
-           return 2
+            return 2
         }
 
         if (b) {
