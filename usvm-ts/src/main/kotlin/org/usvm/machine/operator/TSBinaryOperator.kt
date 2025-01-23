@@ -549,12 +549,13 @@ sealed interface TSBinaryOperator {
             return resolveFakeObject(lhs, rhs, scope)
         }
 
-        if (lhs.sort == rhs.sort) {
-            return when (lhs.sort) {
+        val lhsSort = lhs.sort
+        if (lhsSort == rhs.sort) {
+            return when (lhsSort) {
                 boolSort -> onBool(lhs.asExpr(boolSort), rhs.asExpr(boolSort), scope)
                 fp64Sort -> onFp(lhs.asExpr(fp64Sort), rhs.asExpr(fp64Sort), scope)
                 addressSort -> onRef(lhs.asExpr(addressSort), rhs.asExpr(addressSort), scope)
-                else -> TODO("Unsupported sort ${lhs.sort}")
+                else -> TODO("Unsupported sort $lhsSort")
             }
         }
 
