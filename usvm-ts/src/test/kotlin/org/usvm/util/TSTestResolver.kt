@@ -2,6 +2,7 @@ package org.usvm.util
 
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
+import org.jacodb.ets.base.CONSTRUCTOR_NAME
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.base.EtsLiteralType
@@ -15,8 +16,11 @@ import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUndefinedType
 import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.base.EtsVoidType
+import org.jacodb.ets.model.EtsClassImpl
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsMethodImpl
 import org.jacodb.ets.model.EtsMethodParameter
+import org.jacodb.ets.model.EtsMethodSignature
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
@@ -108,6 +112,7 @@ class TSTestResolver(
             else -> error("Unsupported")
         }
     }
+
     private fun resolveExpr(
         expr: UExpr<out USort>,
         type: EtsType,
@@ -180,11 +185,28 @@ class TSTestResolver(
         classType: EtsClassType,
         model: UModelBase<*>,
     ): TSObject.TSClass {
-        val clazz = ctx.scene.classes.first { it.signature == classType.signature }
-        val properties = clazz.fields.associate { field ->
-            check(expr.sort == ctx.addressSort) {
-                "Expected address sort, but got ${expr.sort}"
+        check(expr.sort == ctx.addressSort) {
+            "Expected address sort, but got ${expr.sort}"
+        }
+        val clazz = ctx.scene.classes.firstOrNull { it.signature == classType.signature }
+            ?: if (classType.signature.name == "Object") {
+                EtsClassImpl(
+                    signature = classType.signature,
+                    fields = emptyList(),
+                    methods = emptyList(),
+                    ctor = EtsMethodImpl(
+                        EtsMethodSignature(
+                            enclosingClass = classType.signature,
+                            name = CONSTRUCTOR_NAME,
+                            parameters = emptyList(),
+                            returnType = classType,
+                        )
+                    ),
+                )
+            } else {
+                error("Class not found: ${classType.signature}")
             }
+        val properties = clazz.fields.associate { field ->
             val sort = ctx.typeToSort(field.type)
             val lValue = UFieldLValue(sort, expr.asExpr(ctx.addressSort), field.name)
             val fieldExpr = model.read(lValue)

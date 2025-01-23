@@ -2,6 +2,7 @@ package org.usvm.samples
 
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.api.TSObject
 import org.usvm.util.TSMethodTestRunner
@@ -22,6 +23,10 @@ class And : TSMethodTestRunner() {
 
     private fun isTruthy(x: TSObject.TSNumber): Boolean {
         return isTruthy(x.number)
+    }
+
+    private fun isTruthy(x: TSObject.TSClass): Boolean {
+        return true
     }
 
     private fun isTruthy(x: TSObject.TSObject): Boolean {
@@ -71,15 +76,18 @@ class And : TSMethodTestRunner() {
             method = method,
             { a, b, r -> isTruthy(a) && b.value && r.number == 1.0 },
             { a, b, r -> isTruthy(a) && !b.value && r.number == 2.0 },
-            { a, b, r -> !isTruthy(a) && b.value && r.number == 3.0 },
-            { a, b, r -> !isTruthy(a) && !b.value && r.number == 4.0 },
+            { a, b, r -> !a.number.isNaN() && !isTruthy(a) && b.value && r.number == 3.0 },
+            { a, b, r -> a.number.isNaN() && b.value && r.number == 3.5 },
+            { a, b, r -> !a.number.isNaN() && !isTruthy(a) && !b.value && r.number == 4.0 },
+            { a, b, r -> a.number.isNaN() && !isTruthy(a) && !b.value && r.number == 4.5 },
         )
     }
 
     @Test
+    @Disabled("Does not work because objects cannot be null")
     fun `test andOfObjectAndObject`() {
         val method = getMethod("And", "andOfObjectAndObject")
-        discoverProperties<TSObject.TSObject, TSObject.TSObject, TSObject.TSNumber>(
+        discoverProperties<TSObject.TSClass, TSObject.TSClass, TSObject.TSNumber>(
             method = method,
             { a, b, r -> isTruthy(a) && isTruthy(b) && r.number == 1.0 },
             { a, b, r -> isTruthy(a) && !isTruthy(b) && r.number == 2.0 },

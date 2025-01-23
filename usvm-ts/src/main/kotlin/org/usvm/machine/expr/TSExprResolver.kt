@@ -116,7 +116,7 @@ class TSExprResolver(
         block: (UExpr<out USort>) -> T,
     ): T? {
         val result = resolve(dependency) ?: return null
-        TODO()
+        return block(result)
     }
 
     private inline fun resolveAfterResolved(
@@ -126,7 +126,6 @@ class TSExprResolver(
     ): UExpr<out USort>? {
         val result0 = resolve(dependency0) ?: return null
         val result1 = resolve(dependency1) ?: return null
-
         return block(result0, result1)
     }
 
@@ -154,6 +153,10 @@ class TSExprResolver(
         return simpleValueResolver.visit(value)
     }
 
+    override fun visit(value: EtsUndefinedConstant): UExpr<out USort> {
+        return simpleValueResolver.visit(value)
+    }
+
     override fun visit(expr: EtsEqExpr): UExpr<out USort>? {
         return resolveBinaryOperator(TSBinaryOperator.Eq, expr)
     }
@@ -170,10 +173,14 @@ class TSExprResolver(
         return resolveBinaryOperator(TSBinaryOperator.Neq, expr)
     }
 
-    override fun visit(expr: EtsNotExpr): UExpr<out USort>? {
-        return resolveAfterResolved(expr.arg) { arg ->
+    override fun visit(expr: EtsNotExpr): UExpr<out USort>? = with(ctx) {
+        resolveAfterResolved(expr.arg) { arg ->
             // TSUnaryOperator.Not(arg, scope)
-            TODO()
+            if (arg.sort == boolSort) {
+                arg.asExpr(boolSort).not()
+            } else {
+                TODO()
+            }
         }
     }
 
@@ -188,11 +195,6 @@ class TSExprResolver(
     }
 
     override fun visit(value: EtsStringConstant): UExpr<out USort>? {
-        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        error("Not supported $value")
-    }
-
-    override fun visit(value: EtsUndefinedConstant): UExpr<out USort>? {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         error("Not supported $value")
     }
@@ -539,8 +541,7 @@ class TSSimpleValueResolver(
 
     override fun visit(value: EtsUndefinedConstant): UExpr<out USort> = with(ctx) {
         // TODO: replace with `ctx.nullRef` or `ctx.undefinedConstant` (== nullRef)
-        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        error("Not supported $value")
+        nullRef
     }
 
     override fun visit(value: EtsArrayLiteral): UExpr<out USort> = with(ctx) {

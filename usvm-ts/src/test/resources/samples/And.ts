@@ -23,7 +23,9 @@ class And {
     andOfNumberAndBoolean(a: number, b: boolean): number {
         if (a && b) return 1
         if (a) return 2
+        if ((a != a) && b) return 3.5
         if (b) return 3
+        if ((a != a) && !b) return 4.5
         return 4
     }
 

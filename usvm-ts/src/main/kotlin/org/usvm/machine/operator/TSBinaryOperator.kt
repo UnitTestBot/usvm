@@ -307,6 +307,8 @@ sealed interface TSBinaryOperator {
             rhs: UExpr<out USort>,
             scope: TSStepScope,
         ): UExpr<out USort> = with(lhs.tctx) {
+            check(!lhs.isFakeObject() && !rhs.isFakeObject())
+
             // 1. If the operands have the same type, they are compared using `onFp`, `onBool`, etc.
 
             // 2. If one of the operands is undefined, the other must also be undefined to return true
@@ -373,7 +375,6 @@ sealed interface TSBinaryOperator {
             rhs: UExpr<out USort>,
             scope: TSStepScope,
         ): UExpr<out USort> = with(lhs.tctx) {
-            check(lhs.isFakeObject() || rhs.isFakeObject())
             Eq.resolveFakeObject(lhs, rhs, scope).asExpr(boolSort).not()
         }
 
@@ -431,6 +432,8 @@ sealed interface TSBinaryOperator {
             rhs: UExpr<out USort>,
             scope: TSStepScope,
         ): UExpr<out USort> = with(lhs.tctx) {
+            check(!lhs.isFakeObject() && !rhs.isFakeObject())
+
             // TODO support string concatenation
             // TODO support undefined
 
@@ -480,7 +483,7 @@ sealed interface TSBinaryOperator {
             rhs: UExpr<UAddressSort>,
             scope: TSStepScope,
         ): UExpr<out USort> {
-            TODO("Not yet implemented")
+            return internalResolve(lhs, rhs, scope)
         }
 
         override fun resolveFakeObject(
@@ -501,6 +504,8 @@ sealed interface TSBinaryOperator {
             rhs: UExpr<out USort>,
             scope: TSStepScope,
         ): UExpr<out USort> = with(lhs.tctx) {
+            check(!lhs.isFakeObject() && !rhs.isFakeObject())
+
             val lhsTruthyExpr = mkTruthyExpr(lhs, scope)
             scope.calcOnState {
                 iteWriteIntoFakeObject(scope, lhsTruthyExpr, rhs, lhs)
