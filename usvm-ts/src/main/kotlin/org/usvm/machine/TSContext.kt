@@ -43,8 +43,7 @@ class TSContext(components: TSComponents) : UContext<TSSizeSort>(components) {
         else -> TODO("Support all JacoDB types")
     }
 
-    fun mkTruthyExpr(expr: UExpr<out USort>, scope: TSStepScope): UBoolExpr = with(expr.tctx) {
-        scope.calcOnState {
+    fun mkTruthyExpr(expr: UExpr<out USort>, scope: TSStepScope): UBoolExpr = scope.calcOnState {
             if (expr.isFakeObject()) {
                 expr as UConcreteHeapRef
 
@@ -96,7 +95,6 @@ class TSContext(components: TSComponents) : UContext<TSSizeSort>(components) {
                 }
             }
         }
-    }
 
     fun UExpr<out USort>.isFakeObject(): Boolean {
         if (sort !is UAddressSort) return false

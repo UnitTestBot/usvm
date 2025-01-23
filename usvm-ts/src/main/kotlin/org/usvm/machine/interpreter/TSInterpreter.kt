@@ -91,7 +91,7 @@ class TSInterpreter(
 
         val boolExpr = exprResolver
             // Don't want to lose UJoinedBoolExpr here for further fork.
-            .resolveTSExpr(stmt.condition)
+            .resolve(stmt.condition)
             ?.asExpr(ctx.boolSort)
             ?: run {
                 logger.warn { "Failed to resolve condition: $stmt" }
@@ -115,7 +115,7 @@ class TSInterpreter(
         val exprResolver = exprResolverWithScope(scope)
 
         val valueToReturn = stmt.returnValue
-            ?.let { exprResolver.resolveTSExpr(it) ?: return }
+            ?.let { exprResolver.resolve(it) ?: return }
             ?: ctx.mkUndefinedValue()
 
         scope.doWithState {
@@ -126,7 +126,7 @@ class TSInterpreter(
     private fun visitAssignStmt(scope: TSStepScope, stmt: EtsAssignStmt) {
         val exprResolver = exprResolverWithScope(scope)
 
-        val expr = exprResolver.resolveTSExpr(stmt.rhv) ?: return
+        val expr = exprResolver.resolve(stmt.rhv) ?: return
 
         check (expr.sort != ctx.unresolvedSort) {
             "A value of the unresolved sort should never be returned from `resolve` function"
@@ -164,11 +164,7 @@ class TSInterpreter(
     }
 
     private fun exprResolverWithScope(scope: TSStepScope): TSExprResolver =
-        TSExprResolver(
-            ctx,
-            scope,
-            ::mapLocalToIdx
-        )
+        TSExprResolver(ctx, scope, ::mapLocalToIdx)
 
     // (method, localName) -> idx
     private val localVarToIdx: MutableMap<EtsMethod, MutableMap<String, Int>> = hashMapOf()

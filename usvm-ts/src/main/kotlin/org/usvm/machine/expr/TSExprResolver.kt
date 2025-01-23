@@ -60,6 +60,7 @@ import org.jacodb.ets.base.EtsStringConstant
 import org.jacodb.ets.base.EtsSubExpr
 import org.jacodb.ets.base.EtsTernaryExpr
 import org.jacodb.ets.base.EtsThis
+import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsTypeOfExpr
 import org.jacodb.ets.base.EtsUnaryPlusExpr
 import org.jacodb.ets.base.EtsUndefinedConstant
@@ -73,6 +74,7 @@ import org.usvm.UAddressSort
 import org.usvm.UBoolSort
 import org.usvm.UExpr
 import org.usvm.USort
+import org.usvm.collection.field.UFieldLValue
 import org.usvm.machine.FakeType
 import org.usvm.machine.TSContext
 import org.usvm.machine.interpreter.TSStepScope
@@ -89,13 +91,9 @@ class TSExprResolver(
 ) : EtsEntity.Visitor<UExpr<out USort>?> {
 
     private val simpleValueResolver: TSSimpleValueResolver =
-        TSSimpleValueResolver(
-            ctx,
-            scope,
-            localToIdx,
-        )
+        TSSimpleValueResolver(ctx, scope, localToIdx)
 
-    fun resolveTSExpr(expr: EtsEntity): UExpr<out USort>? {
+    fun resolve(expr: EtsEntity): UExpr<out USort>? {
         return expr.accept(this)
     }
 
@@ -116,8 +114,8 @@ class TSExprResolver(
         dependency: EtsEntity,
         block: (UExpr<out USort>) -> T,
     ): T? {
-        val result = resolveTSExpr(dependency) ?: return null
-        return TODO()
+        val result = resolve(dependency) ?: return null
+        TODO()
     }
 
     private inline fun resolveAfterResolved(
@@ -125,17 +123,17 @@ class TSExprResolver(
         dependency1: EtsEntity,
         block: (UExpr<out USort>, UExpr<out USort>) -> UExpr<out USort>,
     ): UExpr<out USort>? {
-        val result0 = resolveTSExpr(dependency0) ?: return null
-        val result1 = resolveTSExpr(dependency1) ?: return null
+        val result0 = resolve(dependency0) ?: return null
+        val result1 = resolve(dependency1) ?: return null
 
         return block(result0, result1)
     }
 
-    override fun visit(value: EtsLocal): UExpr<out USort>? {
+    override fun visit(value: EtsLocal): UExpr<out USort> {
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: EtsParameterRef): UExpr<out USort>? {
+    override fun visit(value: EtsParameterRef): UExpr<out USort> {
         return simpleValueResolver.visit(value)
     }
 
@@ -174,7 +172,7 @@ class TSExprResolver(
     override fun visit(expr: EtsNotExpr): UExpr<out USort>? {
         return resolveAfterResolved(expr.arg) { arg ->
             // TSUnaryOperator.Not(arg, scope)
-            error("")
+            TODO()
         }
     }
 
@@ -300,7 +298,7 @@ class TSExprResolver(
 
     override fun visit(expr: EtsNegExpr): UExpr<out USort>? {
         if (expr.type is EtsNumberType) {
-            val arg = resolveTSExpr(expr.arg)?.asExpr(ctx.fp64Sort) ?: return null
+            val arg = resolve(expr.arg)?.asExpr(ctx.fp64Sort) ?: return null
             return ctx.mkFpNegationExpr(arg)
         }
 
@@ -421,14 +419,27 @@ class TSExprResolver(
         error("Not supported $value")
     }
 
-    override fun visit(value: EtsInstanceFieldRef): UExpr<out USort>? {
-        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        error("Not supported $value")
+    override fun visit(value: EtsInstanceFieldRef): UExpr<out USort>? = with(ctx) {
+        val instanceRef = resolve(value.instance)?.asExpr(addressSort) ?: return null
+        // TODO: checkNullPointer(instanceRef)
+        val sort = typeToSort(value.type)
+        val lValue = UFieldLValue(sort, instanceRef, value.field.name)
+        val expr = scope.calcOnState { memory.read(lValue) }
+
+        if (assertIsSubtype(expr, value.type)) {
+            return expr
+        } else {
+            return null
+        }
     }
 
     override fun visit(value: EtsStaticFieldRef): UExpr<out USort>? {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         error("Not supported $value")
+    }
+
+    private fun assertIsSubtype(expr: UExpr<out USort>, type: EtsType): Boolean {
+        return true
     }
 }
 
@@ -439,7 +450,8 @@ class TSSimpleValueResolver(
 ) : EtsValue.Visitor<UExpr<out USort>?> {
 
     fun resolveLocal(local: EtsValue): ULValue<*, USort> {
-        val (currentMethod, entrypoint) = scope.calcOnState { lastEnteredMethod to entrypoint }
+        val currentMethod = scope.calcOnState { lastEnteredMethod }
+        val entrypoint = scope.calcOnState { entrypoint }
 
         val localIdx = localToIdx(currentMethod, local)
         val sort = scope.calcOnState {
@@ -506,10 +518,12 @@ class TSSimpleValueResolver(
     }
 
     override fun visit(value: EtsNullConstant): UExpr<out USort>? = with(ctx) {
+        // TODO: replace with `ctx.nullConstant` (!= nullRef)
         nullRef
     }
 
     override fun visit(value: EtsUndefinedConstant): UExpr<out USort>? = with(ctx) {
+        // TODO: replace with `ctx.nullRef` or `ctx.undefinedConstant` (== nullRef)
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         error("Not supported $value")
     }

@@ -21,7 +21,7 @@ class StaticMethods : TSMethodTestRunner() {
         val method = getMethod("StaticMethods", "noArguments")
         discoverProperties<TSObject.TSNumber>(
             method,
-            { r -> r.number == 42.0 }
+            { r -> r.number == 42.0 },
         )
     }
 

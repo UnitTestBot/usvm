@@ -233,13 +233,6 @@ sealed interface TSBinaryOperator {
                         ).not()
                     )
 
-                    // TODO unsupported objects
-                    // conjuncts += mkImplies(
-                    //     mkAnd(lhsType.boolTypeExpr, rhsType.refTypeExpr),
-                    //     mkFpEqual
-                    // )
-
-                    // case 7.2.13 IsLooselyEqual #10
                     conjuncts += mkImplies(
                         mkAnd(lhsType.fpTypeExpr, rhsType.boolTypeExpr),
                         mkFpEqualExpr(
@@ -248,7 +241,7 @@ sealed interface TSBinaryOperator {
                         ).not()
                     )
 
-                    // TODO unsupported unsupported objects
+                    // TODO: support objects
                 }
 
                 if (lhs.isFakeObject()) {
@@ -276,8 +269,9 @@ sealed interface TSBinaryOperator {
                                 ).not()
                             )
 
-                            // TODO unsupported objects
+                            // TODO: support objects
                         }
+
                         fp64Sort -> {
                             conjuncts += mkImplies(
                                 lhsType.boolTypeExpr,
@@ -295,8 +289,9 @@ sealed interface TSBinaryOperator {
                                 ).not()
                             )
 
-                            // TODO unsupported objects
+                            // TODO: support objects
                         }
+
                         addressSort -> {
                             conjuncts += mkImplies(
                                 lhsType.refTypeExpr,
@@ -306,9 +301,9 @@ sealed interface TSBinaryOperator {
                                 ).not()
                             )
 
-                            // TODO unsupported objects
-
+                            // TODO: support objects
                         }
+
                         else -> error("Unsupported sort ${rhs.sort}")
                     }
                 }
@@ -340,6 +335,7 @@ sealed interface TSBinaryOperator {
 
                             // TODO unsupported objects
                         }
+
                         fp64Sort -> {
                             conjuncts += mkImplies(
                                 rhsType.boolTypeExpr,
@@ -359,6 +355,7 @@ sealed interface TSBinaryOperator {
 
                             // TODO unsupported objects
                         }
+
                         addressSort -> {
                             conjuncts += mkImplies(
                                 rhsType.refTypeExpr,
@@ -371,10 +368,9 @@ sealed interface TSBinaryOperator {
                             // TODO unsupported objects
 
                         }
+
                         else -> error("Unsupported sort ${rhs.sort}")
                     }
-
-
                 }
 
                 mkAnd(conjuncts)
@@ -455,7 +451,7 @@ sealed interface TSBinaryOperator {
                 return fpValue
             }
 
-            // TODO support object to primitive
+            // TODO: support object to primitive
 
             TODO()
         }
@@ -546,8 +542,6 @@ sealed interface TSBinaryOperator {
         scope: TSStepScope,
     ): UExpr<out USort> {
         with(lhs.sort.tctx) {
-
-
             if (lhs.isFakeObject() || rhs.isFakeObject()) {
                 return resolveFakeObject(lhs, rhs, scope)
             }
@@ -560,7 +554,6 @@ sealed interface TSBinaryOperator {
                     is UAddressSort -> onRef(lhs.asExpr(addressSort), rhs.asExpr(addressSort), scope)
                     else -> error("Should not be called")
                 }
-
                 return result
             }
 

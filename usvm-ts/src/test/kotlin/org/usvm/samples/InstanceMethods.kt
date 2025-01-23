@@ -21,7 +21,7 @@ class InstanceMethods : TSMethodTestRunner() {
         val method = getMethod("InstanceMethods", "noArguments")
         discoverProperties<TSObject.TSNumber>(
             method,
-            { r -> r.number == 42.0 }
+            { r -> r.number == 42.0 },
         )
     }
 

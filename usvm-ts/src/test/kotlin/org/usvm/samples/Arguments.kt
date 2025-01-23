@@ -22,7 +22,7 @@ class Arguments : TSMethodTestRunner() {
         val method = getMethod("SimpleClass", "noArguments")
         discoverProperties<TSObject.TSNumber>(
             method,
-            { r -> r.number == 42.0 }
+            { r -> r.number == 42.0 },
         )
     }
 
@@ -31,7 +31,7 @@ class Arguments : TSMethodTestRunner() {
         val method = getMethod("SimpleClass", "singleArgument")
         discoverProperties<TSObject.TSNumber, TSObject.TSNumber>(
             method,
-            { a, r -> a == r }
+            { a, r -> a == r },
         )
     }
 
