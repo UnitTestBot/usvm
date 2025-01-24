@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
 plugins {
     id("usvm.kotlin-conventions")
 }
@@ -23,10 +21,4 @@ dependencies {
     // https://mvnrepository.com/artifact/org.burningwave/core
     // Use it to export all modules to all
     testImplementation("org.burningwave:core:12.62.7")
-}
-
-tasks.withType<KotlinCompile> {
-    kotlinOptions {
-        allWarningsAsErrors = false
-    }
 }

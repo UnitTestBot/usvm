@@ -8,6 +8,7 @@ import org.usvm.samples.JavaMethodTestRunner
 import org.usvm.test.util.checkers.eq
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 
+
 @Suppress("SimplifyNegatedBinaryExpression")
 internal class DoubleExamplesTest : JavaMethodTestRunner() {
     @Test

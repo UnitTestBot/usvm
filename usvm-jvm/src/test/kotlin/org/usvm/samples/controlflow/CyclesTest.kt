@@ -14,6 +14,7 @@ import org.usvm.util.Options
 import org.usvm.util.UsvmTest
 import org.usvm.util.isException
 
+
 internal class CyclesTest : JavaMethodTestRunner() {
     @Test
     fun testForCycle() {
