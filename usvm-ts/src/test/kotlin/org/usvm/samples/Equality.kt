@@ -82,4 +82,14 @@ class Equality : TSMethodTestRunner() {
             )
         )
     }
+
+    @Test
+    fun testEqWithItself() {
+        val method = getMethod("Equality", "eqWithItself")
+        discoverProperties<TSObject.TSNumber, TSObject.TSNumber>(
+            method,
+            { a, r -> a.number.isNaN() && r.number == 1.0 },
+            { a, r -> !a.number.isNaN() && r.number == 2.0 },
+        )
+    }
 }

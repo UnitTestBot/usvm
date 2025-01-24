@@ -64,4 +64,12 @@ class Equality {
 
         return -1 // unreachable
     }
+
+    eqWithItself(a: number): number {
+        if (a != a) {
+            return 1
+        }
+
+        return 2
+    }
 }
