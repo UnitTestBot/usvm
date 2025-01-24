@@ -70,6 +70,7 @@ class And : TSMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Incorrect IR representation of If instruction in IR")
     fun `test andOfNumberAndBoolean`() {
         val method = getMethod("And", "andOfNumberAndBoolean")
         discoverProperties<TSObject.TSNumber, TSObject.TSBoolean, TSObject.TSNumber>(
