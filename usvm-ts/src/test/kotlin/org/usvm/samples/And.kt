@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test
 import org.usvm.api.TSObject
 import org.usvm.util.TSMethodTestRunner
 import org.usvm.util.getResourcePath
+import org.usvm.util.isTruthy
 
 class And : TSMethodTestRunner() {
     override val scene: EtsScene
@@ -16,22 +17,6 @@ class And : TSMethodTestRunner() {
             val file = loadEtsFileAutoConvert(path)
             EtsScene(listOf(file))
         }
-
-    private fun isTruthy(x: Double): Boolean {
-        return x != 0.0 && !x.isNaN()
-    }
-
-    private fun isTruthy(x: TSObject.TSNumber): Boolean {
-        return isTruthy(x.number)
-    }
-
-    private fun isTruthy(x: TSObject.TSClass): Boolean {
-        return true
-    }
-
-    private fun isTruthy(x: TSObject.TSObject): Boolean {
-        return x.addr != 0
-    }
 
     @Test
     fun `test andOfBooleanAndBoolean`() {
