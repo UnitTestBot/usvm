@@ -45,11 +45,9 @@ object WithSolverStateForker : StateForker {
         state: T,
         condition: UBoolExpr,
     ): ForkResult<T> {
-        val unwrappedCondition: UBoolExpr = condition/*.unwrapJoinedExpr(state.ctx).cast()*/
-        // TODO false models full of shit (because if fucked up negation of unwrappedCondition)
-        val (trueModels, falseModels, _) = splitModelsByCondition(state.models, unwrappedCondition)
+        val (trueModels, falseModels, _) = splitModelsByCondition(state.models, condition)
 
-        val notCondition = if (condition is UJoinedBoolExpr) condition.not() else state.ctx.mkNot(unwrappedCondition)
+        val notCondition = state.ctx.mkNot(condition)
         val (posState, negState) = when {
 
             trueModels.isNotEmpty() && falseModels.isNotEmpty() -> {
@@ -58,7 +56,7 @@ object WithSolverStateForker : StateForker {
 
                 posState.models = trueModels
                 negState.models = falseModels
-                posState.pathConstraints += unwrappedCondition
+                posState.pathConstraints += condition
                 negState.pathConstraints += notCondition
 
                 posState to negState
@@ -66,7 +64,7 @@ object WithSolverStateForker : StateForker {
 
             trueModels.isNotEmpty() -> state to forkIfSat(
                 state,
-                newConstraintToOriginalState = unwrappedCondition,
+                newConstraintToOriginalState = condition,
                 newConstraintToForkedState = notCondition,
                 stateToCheck = ForkedState
             )
@@ -74,7 +72,7 @@ object WithSolverStateForker : StateForker {
             falseModels.isNotEmpty() -> {
                 val forkedState = forkIfSat(
                     state,
-                    newConstraintToOriginalState = unwrappedCondition,
+                    newConstraintToOriginalState = condition,
                     newConstraintToForkedState = notCondition,
                     stateToCheck = OriginalState
                 )

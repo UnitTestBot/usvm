@@ -30,7 +30,6 @@ import org.usvm.collection.field.UFieldLValue
 import org.usvm.isTrue
 import org.usvm.machine.types.FakeType
 import org.usvm.machine.TSContext
-import org.usvm.machine.expr.TSRefTransformer
 import org.usvm.machine.expr.TSUnresolvedSort
 import org.usvm.machine.expr.extractBool
 import org.usvm.machine.expr.extractDouble
@@ -131,9 +130,7 @@ class TSTestResolver(
     ): TSObject {
         val typeStream = model.types.getTypeStream(expr)
         return (typeStream.first() as? EtsType)?.let { type ->
-            val sort = ctx.typeToSort(type)
-            val transformed = TSRefTransformer(ctx, sort).apply(expr)
-            resolveExpr(transformed, type, model)
+            resolveExpr(expr, type, model)
         } ?: TSObject.TSObject(expr.address)
     }
 

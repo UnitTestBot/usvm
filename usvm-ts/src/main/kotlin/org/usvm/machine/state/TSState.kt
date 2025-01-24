@@ -11,7 +11,6 @@ import org.usvm.api.targets.TSTarget
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.constraints.UPathConstraints
 import org.usvm.machine.TSContext
-import org.usvm.machine.expr.TSExprTransformer
 import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase
 import org.usvm.targets.UTargetsSet
@@ -28,7 +27,6 @@ class TSState(
     forkPoints: PathNode<PathNode<EtsStmt>> = PathNode.root(),
     var methodResult: TSMethodResult = TSMethodResult.NoCall,
     targets: UTargetsSet<TSTarget, EtsStmt> = UTargetsSet.empty(),
-    val exprTransformer: TSExprTransformer,
     private val localToSort: MutableMap<EtsMethod, MutableMap<Int, USort>> = hashMapOf(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TSContext, TSTarget, TSState>(
     ctx,
@@ -75,7 +73,6 @@ class TSState(
             forkPoints,
             methodResult,
             targets.clone(),
-            exprTransformer,
             localToSort.mapValuesTo(hashMapOf()) { it.value.toMutableMap() }
         )
     }

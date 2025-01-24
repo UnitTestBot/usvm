@@ -315,53 +315,9 @@ class UIsSupertypeExpr<Type> internal constructor(
 
 //endregion
 
-//region Utility Expressions
-
-/**
- * Utility class for merging expressions with [UBoolSort] sort.
- *
- * Mainly created for [not] function used in StateForker.
- */
-class UJoinedBoolExpr(
-    ctx: UContext<*>,
-    val exprs: List<UBoolExpr>,
-) : UBoolExpr(ctx) {
-    override val sort: UBoolSort
-        get() = ctx.boolSort
-
-    private val joinedExprs = ctx.mkAnd(exprs) // TODO rewrite with mkNot
-
-    // Size of exprs is not big since it generates from all sorts supported by machine [n]
-    // (small number even when finished)
-    // plus possible additional constraints which are C(n - 1, 2) in size,
-    // so no need to cache this value as its use is also limited.
-    fun not(): UBoolExpr = ctx.mkAnd(exprs.map(ctx::mkNot))
-
-    override fun accept(transformer: KTransformerBase): KExpr<UBoolSort> {
-        return transformer.apply(joinedExprs)
-    }
-
-    // TODO: draft
-    override fun internEquals(other: Any): Boolean = structurallyEqual(other)
-
-    // TODO: draft
-    override fun internHashCode(): Int = hash()
-
-    override fun print(printer: ExpressionPrinter) {
-        printer.append("joined(")
-        joinedExprs.print(printer)
-        printer.append(")")
-    }
-}
-
-//endregion
-
 //region Utils
 
 val UBoolExpr.isFalse get() = this == ctx.falseExpr
 val UBoolExpr.isTrue get() = this == ctx.trueExpr
-
-// fun UExpr<*>.unwrapJoinedExpr(ctx: UContext<*>): UExpr<out USort> =
-//     if (this is UJoinedBoolExpr) ctx.mkAnd(exprs) else this
 
 //endregion

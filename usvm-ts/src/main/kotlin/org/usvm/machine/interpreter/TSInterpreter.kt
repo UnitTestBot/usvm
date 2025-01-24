@@ -26,7 +26,6 @@ import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.machine.TSApplicationGraph
 import org.usvm.machine.TSContext
 import org.usvm.machine.expr.TSExprResolver
-import org.usvm.machine.expr.TSExprTransformer
 import org.usvm.machine.state.TSMethodResult
 import org.usvm.machine.state.TSState
 import org.usvm.machine.state.lastStmt
@@ -190,7 +189,6 @@ class TSInterpreter(
             ownership = MutabilityOwnership(),
             entrypoint = method,
             targets = UTargetsSet.from(targets),
-            exprTransformer = TSExprTransformer(ctx)
         )
 
         val solver = ctx.solver<EtsType>()
