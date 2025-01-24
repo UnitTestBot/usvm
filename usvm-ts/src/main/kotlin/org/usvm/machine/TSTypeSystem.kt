@@ -15,6 +15,7 @@ import org.usvm.types.UTypeSystem
 import org.usvm.types.emptyTypeStream
 import kotlin.time.Duration
 
+// TODO this is draft, should be replaced with real implementation
 class TSTypeSystem(
     override val typeOperationsTimeout: Duration,
     val project: EtsScene,
