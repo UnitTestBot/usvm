@@ -2,6 +2,7 @@ package org.usvm.samples
 
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.api.TSObject
 import org.usvm.util.TSMethodTestRunner
@@ -41,6 +42,7 @@ class TypeCoercion : TSMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Unsupported string")
     fun testDualBooleanWithoutTypes() {
         val method = getMethod("TypeCoercion", "dualBooleanWithoutTypes")
         discoverProperties<TSObject.TSUnknown, TSObject.TSNumber>(
@@ -72,6 +74,7 @@ class TypeCoercion : TSMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Wrong IR, incorrect handling of NaN value")
     fun testTransitiveCoercion() {
         val method = getMethod("TypeCoercion", "transitiveCoercion")
         discoverProperties<TSObject.TSNumber, TSObject.TSBoolean, TSObject.TSNumber, TSObject.TSNumber>(

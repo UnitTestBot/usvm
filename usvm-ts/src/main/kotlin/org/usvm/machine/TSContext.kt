@@ -46,7 +46,7 @@ class TSContext(
         is EtsNumberType -> fp64Sort
         is EtsRefType -> addressSort
         is EtsUnknownType -> unresolvedSort
-        else -> TODO("Support all JacoDB types")
+        else -> TODO("Support all JacoDB types, encountered $type")
     }
 
     // TODO fix conjuncts
