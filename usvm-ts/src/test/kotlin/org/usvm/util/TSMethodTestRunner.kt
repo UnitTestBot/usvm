@@ -176,7 +176,7 @@ abstract class TSMethodTestRunner : TestRunner<TSTest, EtsMethod, EtsType?, TSMe
             TSObject.TSNumber::class -> EtsNumberType
             TSObject.TSNumber.Double::class -> EtsNumberType
             TSObject.TSNumber.Integer::class -> EtsNumberType
-            TSObject.UndefinedObject::class -> EtsUndefinedType
+            TSObject.TSUndefinedObject::class -> EtsUndefinedType
             // TODO: EtsUnknownType is mock up here. Correct implementation required.
             TSObject.TSObject::class -> EtsUnknownType
             // For untyped tests, not to limit objects serialized from models after type coercion.

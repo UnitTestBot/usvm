@@ -66,7 +66,7 @@ class TypeCoercion : TSMethodTestRunner() {
         discoverProperties<TSObject.TSNumber, TSObject.TSBoolean, TSObject.TSNumber>(
             method,
             { a, b, r -> a.number != b.number && r.number == 2.0 },
-            { a, b, r -> (a.number == b.number) && !(a.boolean && !b.value) && r.number == 1.0 },
+            { a, b, r -> (a.number == b.number) && !(a.truthyValue && !b.value) && r.number == 1.0 },
             invariants = arrayOf(
                 { _, _, r -> r.number != 0.0 },
             )
@@ -80,7 +80,7 @@ class TypeCoercion : TSMethodTestRunner() {
         discoverProperties<TSObject.TSNumber, TSObject.TSBoolean, TSObject.TSNumber, TSObject.TSNumber>(
             method,
             { a, b, c, r -> a.number == b.number && b.number == c.number && r.number == 1.0 },
-            { a, b, c, r -> a.number == b.number && (b.number != c.number || !c.boolean) && r.number == 2.0 },
+            { a, b, c, r -> a.number == b.number && (b.number != c.number || !c.truthyValue) && r.number == 2.0 },
             { a, b, _, r -> a.number != b.number && r.number == 3.0 },
         )
     }

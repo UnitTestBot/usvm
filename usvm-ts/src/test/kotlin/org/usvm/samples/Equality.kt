@@ -61,7 +61,7 @@ class Equality : TSMethodTestRunner() {
     @Disabled("Unsupported bigint")
     fun testEqBigintWithBigint() {
         val method = getMethod("Equality", "eqBigintWithBigint")
-        discoverProperties<TSObject.BigInt, TSObject.TSNumber>(
+        discoverProperties<TSObject.TSBigInt, TSObject.TSNumber>(
             method,
             { a, r -> a.value == "42" && r.number == 1.0 },
             { a, r -> a.value == "9999999999999999999999999999999999999" && r.number == 2.0 },

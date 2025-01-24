@@ -24,8 +24,8 @@ sealed interface TSObject {
                 is Double -> value
             }
 
-        val boolean: Boolean
-            get() = number != 0.0
+        val truthyValue: Boolean
+            get() = number != 0.0 && !number.isNaN()
     }
 
     data class TSString(val value: String) : org.usvm.api.TSObject
@@ -35,14 +35,14 @@ sealed interface TSObject {
             get() = if (value) 1.0 else 0.0
     }
 
-    data class BigInt(val value: String) : org.usvm.api.TSObject
+    data class TSBigInt(val value: String) : org.usvm.api.TSObject
 
     data class TSClass(val name: String, val properties: Map<String, org.usvm.api.TSObject>) :
         org.usvm.api.TSObject
 
     data object TSAny : org.usvm.api.TSObject
 
-    data object UndefinedObject : org.usvm.api.TSObject
+    data object TSUndefinedObject : org.usvm.api.TSObject
 
     data class TSArray(val values: List<org.usvm.api.TSObject>) :
         org.usvm.api.TSObject

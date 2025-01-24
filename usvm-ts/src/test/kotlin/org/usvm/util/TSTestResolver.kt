@@ -89,7 +89,7 @@ class TSTestResolver(
 
     private fun approximateParam(expr: UConcreteHeapRef, model: UModelBase<EtsType>): TSObject {
         if (expr.address == 0) {
-            return TSObject.UndefinedObject
+            return TSObject.TSUndefinedObject
         }
         val type = state.memory.types.getTypeStream(expr.asExpr(ctx.addressSort)).single() as FakeType
         return when {
@@ -151,7 +151,7 @@ class TSTestResolver(
         }
 
         EtsUndefinedType -> {
-            TSObject.UndefinedObject
+            TSObject.TSUndefinedObject
         }
 
         is EtsLiteralType -> {
