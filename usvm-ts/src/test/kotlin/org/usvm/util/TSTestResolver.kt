@@ -106,7 +106,7 @@ class TSTestResolver(
             model.eval(type.refTypeExpr).isTrue -> {
                 val lValue = ctx.getIntermediateRefLValue(expr.address)
                 val value = state.memory.read(lValue)
-                resolveExpr(model.eval(value), EtsClassType(ctx.scene.classes.first().signature), model)
+                resolveExpr(model.eval(value), EtsClassType(ctx.scene.projectAndSdkClasses.first().signature), model)
             }
             else -> error("Unsupported")
         }
@@ -185,7 +185,7 @@ class TSTestResolver(
         check(expr.sort == ctx.addressSort) {
             "Expected address sort, but got ${expr.sort}"
         }
-        val clazz = ctx.scene.classes.firstOrNull { it.signature == classType.signature }
+        val clazz = ctx.scene.projectAndSdkClasses.firstOrNull { it.signature == classType.signature }
             ?: if (classType.signature.name == "Object") {
                 EtsClassImpl(
                     signature = classType.signature,

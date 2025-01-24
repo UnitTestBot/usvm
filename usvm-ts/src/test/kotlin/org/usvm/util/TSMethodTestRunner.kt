@@ -35,7 +35,7 @@ abstract class TSMethodTestRunner : TestRunner<TSTest, EtsMethod, EtsType?, TSMe
 
     protected fun getMethod(className: String, methodName: String): EtsMethod {
         return scene
-            .classes.single { it.name == className }
+            .projectAndSdkClasses.single { it.name == className }
             .methods.singleOrNull { it.name == methodName }
             ?: error("No such method $methodName in $className found")
     }

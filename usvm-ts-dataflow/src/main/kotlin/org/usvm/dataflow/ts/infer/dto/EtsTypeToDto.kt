@@ -17,16 +17,12 @@
 package org.usvm.dataflow.ts.infer.dto
 
 import org.jacodb.ets.base.EtsAliasType
-import org.jacodb.ets.base.EtsAnnotationNamespaceType
-import org.jacodb.ets.base.EtsAnnotationTypeQueryType
 import org.jacodb.ets.base.EtsAnyType
-import org.jacodb.ets.base.EtsArrayObjectType
 import org.jacodb.ets.base.EtsArrayType
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.base.EtsFunctionType
 import org.jacodb.ets.base.EtsGenericType
-import org.jacodb.ets.base.EtsLexicalEnvType
 import org.jacodb.ets.base.EtsLiteralType
 import org.jacodb.ets.base.EtsNeverType
 import org.jacodb.ets.base.EtsNullType
@@ -40,15 +36,12 @@ import org.jacodb.ets.base.EtsUnionType
 import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.base.EtsVoidType
 import org.jacodb.ets.dto.AliasTypeDto
-import org.jacodb.ets.dto.AnnotationNamespaceTypeDto
-import org.jacodb.ets.dto.AnnotationTypeQueryTypeDto
 import org.jacodb.ets.dto.AnyTypeDto
 import org.jacodb.ets.dto.ArrayTypeDto
 import org.jacodb.ets.dto.BooleanTypeDto
 import org.jacodb.ets.dto.ClassTypeDto
 import org.jacodb.ets.dto.FunctionTypeDto
 import org.jacodb.ets.dto.GenericTypeDto
-import org.jacodb.ets.dto.LexicalEnvTypeDto
 import org.jacodb.ets.dto.LiteralTypeDto
 import org.jacodb.ets.dto.LocalDto
 import org.jacodb.ets.dto.LocalSignatureDto
@@ -155,10 +148,6 @@ private object EtsTypeToDto : EtsType.Visitor<TypeDto> {
         )
     }
 
-    override fun visit(type: EtsArrayObjectType): TypeDto {
-        TODO("Not yet implemented")
-    }
-
     override fun visit(type: EtsUnclearRefType): TypeDto {
         return UnclearReferenceTypeDto(
             name = type.typeName,
@@ -182,26 +171,6 @@ private object EtsTypeToDto : EtsType.Visitor<TypeDto> {
                 type.signature.name,
                 type.signature.method.toDto(),
             ),
-        )
-    }
-
-    override fun visit(type: EtsAnnotationNamespaceType): TypeDto {
-        return AnnotationNamespaceTypeDto(
-            originType = type.originType,
-            namespaceSignature = type.namespaceSignature.toDto(),
-        )
-    }
-
-    override fun visit(type: EtsAnnotationTypeQueryType): TypeDto {
-        return AnnotationTypeQueryTypeDto(
-            originType = type.originType,
-        )
-    }
-
-    override fun visit(type: EtsLexicalEnvType): TypeDto {
-        return LexicalEnvTypeDto(
-            nestedMethod = type.nestedMethod.toDto(),
-            closures = type.closures.map { it.toDto() as LocalDto }, // safe cast
         )
     }
 }
