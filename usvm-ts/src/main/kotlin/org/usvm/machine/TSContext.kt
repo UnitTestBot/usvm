@@ -1,6 +1,5 @@
 package org.usvm.machine
 
-import com.microsoft.z3.Expr
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.base.EtsBooleanType

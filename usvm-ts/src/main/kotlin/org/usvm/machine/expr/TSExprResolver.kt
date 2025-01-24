@@ -434,6 +434,7 @@ class TSExprResolver(
         error("Not supported $value")
     }
 
+    // TODO incorrect implementation
     private fun assertIsSubtype(expr: UExpr<out USort>, type: EtsType): Boolean {
         return true
     }
@@ -445,7 +446,7 @@ class TSSimpleValueResolver(
     private val localToIdx: (EtsMethod, EtsValue) -> Int,
 ) : EtsValue.Visitor<UExpr<out USort>?> {
 
-    fun resolveLocal(local: EtsValue): ULValue<*, USort> {
+    private fun resolveLocal(local: EtsValue): ULValue<*, USort> {
         val currentMethod = scope.calcOnState { lastEnteredMethod }
         val entrypoint = scope.calcOnState { entrypoint }
 
@@ -454,6 +455,8 @@ class TSSimpleValueResolver(
             getOrPutSortForLocal(currentMethod, localIdx, local.type)
         }
 
+        // If we are not in the entrypoint, all correct values are already resolved and we can just return
+        // a registerStackLValue for the local
         if (currentMethod != entrypoint) {
             return URegisterStackLValue(sort, localIdx)
         }
@@ -476,15 +479,18 @@ class TSSimpleValueResolver(
 
                 val fakeObject = ctx.mkFakeValue(scope, boolRValue, fpRValue, refRValue)
                 scope.calcOnState {
-                    val type = FakeType(
-                        boolTypeExpr = makeSymbolicPrimitive(ctx.boolSort),
-                        fpTypeExpr = makeSymbolicPrimitive(ctx.boolSort),
-                        refTypeExpr = makeSymbolicPrimitive(ctx.boolSort)
-                    ).also {
-                        scope.assert(it.mkExactlyOneTypeConstraint(ctx))
+                    with(ctx) {
+                        val type = FakeType(
+                            boolTypeExpr = makeSymbolicPrimitive(boolSort),
+                            fpTypeExpr = makeSymbolicPrimitive(boolSort),
+                            refTypeExpr = makeSymbolicPrimitive(boolSort)
+                        )
+
+                        scope.assert(type.mkExactlyOneTypeConstraint(ctx))
+
+                        memory.types.allocate(fakeObject.address, type)
+                        memory.write(lValue, fakeObject.asExpr(addressSort), guard = trueExpr)
                     }
-                    memory.types.allocate(fakeObject.address, type)
-                    memory.write(lValue, fakeObject.asExpr(ctx.addressSort), ctx.trueExpr)
                 }
 
                 lValue

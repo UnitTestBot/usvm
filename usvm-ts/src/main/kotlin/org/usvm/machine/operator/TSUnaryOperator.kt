@@ -24,20 +24,6 @@ sealed class TSUnaryOperator(
 
     internal operator fun invoke(operand: UExpr<out USort>, scope: TSStepScope): UExpr<out USort> = with(operand.tctx) {
         TODO()
-        // val sort = this.desiredSort(operand.sort)
-        // val expr = if (operand is TSWrappedValue) {
-        //     // operand.asSort(sort, scope)
-        // } else {
-        //     scope.calcOnState { exprTransformer.transform(operand, sort) }
-        // }
-
-        // when (expr?.sort) {
-        //     is UBoolSort -> onBool(expr.cast())
-        //     is UBvSort -> onBv(expr.cast())
-        //     is UFpSort -> onFp(expr.cast())
-        //     null -> error("Expression is null")
-        //     else -> error("Expressions mismatch: $expr")
-        // }
     }
 
     companion object {

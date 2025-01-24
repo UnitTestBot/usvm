@@ -128,9 +128,10 @@ class TSInterpreter(
         }
 
         scope.doWithState {
-            saveSortForLocal(lastEnteredMethod, mapLocalToIdx(lastEnteredMethod, stmt.lhv), expr.sort)
+            val idx = mapLocalToIdx(lastEnteredMethod, stmt.lhv)
+            saveSortForLocal(lastEnteredMethod, idx, expr.sort)
 
-            val lValue = URegisterStackLValue(expr.sort, mapLocalToIdx(lastEnteredMethod, stmt.lhv))
+            val lValue = URegisterStackLValue(expr.sort, idx)
             memory.write(lValue, expr.asExpr(lValue.sort), guard = ctx.trueExpr)
 
             val nextStmt = stmt.nextStmt ?: return@doWithState
