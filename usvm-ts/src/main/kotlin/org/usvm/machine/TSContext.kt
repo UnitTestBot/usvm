@@ -142,7 +142,9 @@ class TSContext(
                 boolTypeExpr = mkBool(boolValue != null),
                 fpTypeExpr = mkBool(fpValue != null),
                 refTypeExpr = mkBool(refValue != null),
-            )
+            ).also {
+                scope.assert(it.mkExactlyOneTypeConstraint(this@TSContext))
+            }
             memory.types.allocate(address, type)
 
             if (boolValue != null) {
