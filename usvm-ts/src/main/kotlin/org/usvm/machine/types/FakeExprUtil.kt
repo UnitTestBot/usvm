@@ -115,6 +115,8 @@ private fun <T : USort> TSState.writeValuesWithGuard(
         }
 
         trueBranchValue != null -> {
+            // We can omit using the condition here, because if the condition is false,
+            // there will be no reading from this value.
             memory.write(lValue, trueBranchValue, guard = trueExpr)
         }
 
