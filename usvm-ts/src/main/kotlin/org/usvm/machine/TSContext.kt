@@ -1,5 +1,6 @@
 package org.usvm.machine
 
+import com.microsoft.z3.Expr
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.base.EtsBooleanType
@@ -24,6 +25,8 @@ import org.usvm.machine.expr.TSUndefinedSort
 import org.usvm.machine.expr.TSUndefinedValue
 import org.usvm.machine.expr.TSUnresolvedSort
 import org.usvm.machine.interpreter.TSStepScope
+import org.usvm.machine.types.ExprWithTypeConstraint
+import org.usvm.machine.types.FakeType
 import org.usvm.types.single
 
 typealias TSSizeSort = UBv32Sort
@@ -53,7 +56,7 @@ class TSContext(
 
             val falseBranchGround = makeSymbolicPrimitive(boolSort)
 
-            val conjuncts = mutableListOf<Pair<UBoolExpr, UBoolExpr>>()
+            val conjuncts = mutableListOf<ExprWithTypeConstraint<UBoolSort>>()
             val possibleType = scope.calcOnState {
                 memory.types.getTypeStream(expr.asExpr(addressSort))
             }.single() as FakeType
@@ -61,9 +64,9 @@ class TSContext(
             scope.assert(possibleType.mkExactlyOneTypeConstraint(this@TSContext))
 
             if (!possibleType.boolTypeExpr.isFalse) {
-                conjuncts += Pair(
-                    possibleType.boolTypeExpr,
-                    memory.read(getIntermediateBoolLValue(expr.address))
+                conjuncts += ExprWithTypeConstraint(
+                    constraint = possibleType.boolTypeExpr,
+                    expr = memory.read(getIntermediateBoolLValue(expr.address))
                 )
             }
 
@@ -73,18 +76,18 @@ class TSContext(
                     mkFpEqualExpr(value.asExpr(fp64Sort), mkFp(0.0, fp64Sort)).not(),
                     mkFpIsNaNExpr(value.asExpr(fp64Sort)).not()
                 )
-                conjuncts += Pair(
-                    possibleType.fpTypeExpr,
-                    numberCondition
+                conjuncts += ExprWithTypeConstraint(
+                    constraint = possibleType.fpTypeExpr,
+                    expr = numberCondition
                 )
             }
 
             if (!possibleType.refTypeExpr.isFalse) {
                 val value = memory.read(getIntermediateRefLValue(expr.address))
-                conjuncts += Pair(
-                    possibleType.refTypeExpr,
+                conjuncts += ExprWithTypeConstraint(
+                    constraint = possibleType.refTypeExpr,
                     // TODO how to support undefined here? I guess it's not a case, and it is supposed to be inside of fake type
-                    mkHeapRefEq(value, nullRef).not()
+                    expr = mkHeapRefEq(value, nullRef).not()
                 )
             }
 

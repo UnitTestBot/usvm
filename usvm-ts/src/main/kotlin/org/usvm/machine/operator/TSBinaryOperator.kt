@@ -11,12 +11,13 @@ import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.api.typeStreamOf
-import org.usvm.machine.FakeType
+import org.usvm.machine.types.FakeType
 import org.usvm.machine.TSContext
 import org.usvm.machine.expr.TSUndefinedSort
 import org.usvm.machine.expr.tctx
 import org.usvm.machine.interpreter.TSStepScope
-import org.usvm.machine.iteWriteIntoFakeObject
+import org.usvm.machine.types.ExprWithTypeConstraint
+import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.types.single
 import org.usvm.util.boolToFpSort
 
@@ -108,7 +109,7 @@ sealed interface TSBinaryOperator {
             check(lhs.isFakeObject() || rhs.isFakeObject())
 
             scope.calcOnState {
-                val conjuncts = mutableListOf<Pair<UBoolExpr, UBoolExpr>>()
+                val conjuncts = mutableListOf<ExprWithTypeConstraint<UBoolSort>>()
                 val groundFalseBranch = makeSymbolicPrimitive(boolSort)
 
                 if (lhs.isFakeObject() && rhs.isFakeObject()) {
@@ -125,41 +126,41 @@ sealed interface TSBinaryOperator {
                         )
                     )
 
-                    conjuncts += Pair(
-                        mkAnd(lhsType.boolTypeExpr, rhsType.boolTypeExpr),
-                        mkEq(
+                    conjuncts += ExprWithTypeConstraint(
+                        constraint = mkAnd(lhsType.boolTypeExpr, rhsType.boolTypeExpr),
+                        expr = mkEq(
                             memory.read(getIntermediateBoolLValue(lhs.address)),
                             memory.read(getIntermediateBoolLValue(rhs.address))
                         )
                     )
 
-                    conjuncts += Pair(
-                        mkAnd(lhsType.fpTypeExpr, rhsType.fpTypeExpr),
-                        mkFpEqualExpr(
+                    conjuncts += ExprWithTypeConstraint(
+                        constraint = mkAnd(lhsType.fpTypeExpr, rhsType.fpTypeExpr),
+                        expr = mkFpEqualExpr(
                             memory.read(getIntermediateFpLValue(lhs.address)),
                             memory.read(getIntermediateFpLValue(rhs.address))
                         )
                     )
 
-                    conjuncts += Pair(
-                        mkAnd(lhsType.refTypeExpr, rhsType.refTypeExpr),
-                        mkHeapRefEq(
+                    conjuncts += ExprWithTypeConstraint(
+                        constraint = mkAnd(lhsType.refTypeExpr, rhsType.refTypeExpr),
+                        expr = mkHeapRefEq(
                             memory.read(getIntermediateRefLValue(lhs.address)),
                             memory.read(getIntermediateRefLValue(rhs.address))
                         )
                     )
 
-                    conjuncts += Pair(
-                        mkAnd(lhsType.boolTypeExpr, rhsType.fpTypeExpr),
-                        mkFpEqualExpr(
+                    conjuncts += ExprWithTypeConstraint(
+                        constraint = mkAnd(lhsType.boolTypeExpr, rhsType.fpTypeExpr),
+                        expr = mkFpEqualExpr(
                             boolToFpSort(memory.read(getIntermediateBoolLValue(lhs.address))),
                             memory.read(getIntermediateFpLValue(rhs.address))
                         )
                     )
 
-                    conjuncts += Pair(
-                        mkAnd(lhsType.fpTypeExpr, rhsType.boolTypeExpr),
-                        mkFpEqualExpr(
+                    conjuncts += ExprWithTypeConstraint(
+                        constraint = mkAnd(lhsType.fpTypeExpr, rhsType.boolTypeExpr),
+                        expr = mkFpEqualExpr(
                             memory.read(getIntermediateFpLValue(lhs.address)),
                             boolToFpSort(memory.read(getIntermediateBoolLValue(rhs.address)))
                         )
@@ -176,17 +177,17 @@ sealed interface TSBinaryOperator {
 
                     when (rhs.sort) {
                         boolSort -> {
-                            conjuncts += Pair(
-                                lhsType.boolTypeExpr,
-                                mkEq(
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = lhsType.boolTypeExpr,
+                                expr = mkEq(
                                     memory.read(getIntermediateBoolLValue(lhs.address)),
                                     rhs.asExpr(boolSort)
                                 )
                             )
 
-                            conjuncts += Pair(
-                                lhsType.fpTypeExpr,
-                                mkFpEqualExpr(
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = lhsType.fpTypeExpr,
+                                expr = mkFpEqualExpr(
                                     memory.read(getIntermediateFpLValue(lhs.address)),
                                     boolToFpSort(rhs.asExpr(boolSort))
                                 )
@@ -196,17 +197,17 @@ sealed interface TSBinaryOperator {
                         }
 
                         fp64Sort -> {
-                            conjuncts += Pair(
-                                lhsType.boolTypeExpr,
-                                mkFpEqualExpr(
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = lhsType.boolTypeExpr,
+                                expr = mkFpEqualExpr(
                                     boolToFpSort(memory.read(getIntermediateBoolLValue(lhs.address))),
                                     rhs.asExpr(fp64Sort)
                                 )
                             )
 
-                            conjuncts += Pair(
-                                lhsType.fpTypeExpr,
-                                mkFpEqualExpr(
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = lhsType.fpTypeExpr,
+                                expr = mkFpEqualExpr(
                                     memory.read(getIntermediateFpLValue(lhs.address)),
                                     rhs.asExpr(fp64Sort)
                                 )
@@ -216,9 +217,9 @@ sealed interface TSBinaryOperator {
                         }
 
                         addressSort -> {
-                            conjuncts += Pair(
-                                lhsType.refTypeExpr,
-                                mkHeapRefEq(
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = lhsType.refTypeExpr,
+                                expr = mkHeapRefEq(
                                     memory.read(getIntermediateRefLValue(lhs.address)),
                                     rhs.asExpr(addressSort)
                                 )
@@ -227,7 +228,9 @@ sealed interface TSBinaryOperator {
                             // TODO: support objects
                         }
 
-                        else -> error("Unsupported sort ${rhs.sort}")
+                        else -> {
+                            error("Unsupported sort ${rhs.sort}")
+                        }
                     }
                 }
 
@@ -239,17 +242,17 @@ sealed interface TSBinaryOperator {
 
                     when (lhs.sort) {
                         boolSort -> {
-                            conjuncts += Pair(
-                                rhsType.boolTypeExpr,
-                                mkEq(
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = rhsType.boolTypeExpr,
+                                expr = mkEq(
                                     lhs.asExpr(boolSort),
                                     memory.read(getIntermediateBoolLValue(rhs.address))
                                 )
                             )
 
-                            conjuncts += Pair(
-                                rhsType.fpTypeExpr,
-                                mkFpEqualExpr(
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = rhsType.fpTypeExpr,
+                                expr = mkFpEqualExpr(
                                     boolToFpSort(lhs.asExpr(boolSort)),
                                     memory.read(getIntermediateFpLValue(rhs.address))
                                 )
@@ -259,17 +262,17 @@ sealed interface TSBinaryOperator {
                         }
 
                         fp64Sort -> {
-                            conjuncts += Pair(
-                                rhsType.boolTypeExpr,
-                                mkFpEqualExpr(
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = rhsType.boolTypeExpr,
+                                expr = mkFpEqualExpr(
                                     lhs.asExpr(fp64Sort),
                                     boolToFpSort(memory.read(getIntermediateBoolLValue(rhs.address)))
                                 )
                             )
 
-                            conjuncts += Pair(
-                                rhsType.fpTypeExpr,
-                                mkFpEqualExpr(
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = rhsType.fpTypeExpr,
+                                expr = mkFpEqualExpr(
                                     lhs.asExpr(fp64Sort),
                                     memory.read(getIntermediateFpLValue(rhs.address))
                                 )
@@ -279,9 +282,9 @@ sealed interface TSBinaryOperator {
                         }
 
                         addressSort -> {
-                            conjuncts += Pair(
-                                rhsType.refTypeExpr,
-                                mkHeapRefEq(
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = rhsType.refTypeExpr,
+                                expr = mkHeapRefEq(
                                     lhs.asExpr(addressSort),
                                     memory.read(getIntermediateRefLValue(rhs.address))
                                 )

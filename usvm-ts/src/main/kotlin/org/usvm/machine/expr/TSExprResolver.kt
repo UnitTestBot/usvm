@@ -76,7 +76,7 @@ import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.collection.field.UFieldLValue
-import org.usvm.machine.FakeType
+import org.usvm.machine.types.FakeType
 import org.usvm.machine.TSContext
 import org.usvm.machine.interpreter.TSStepScope
 import org.usvm.machine.operator.TSBinaryOperator

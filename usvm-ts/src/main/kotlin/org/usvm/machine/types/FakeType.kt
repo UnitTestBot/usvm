@@ -1,7 +1,10 @@
-package org.usvm.machine
+package org.usvm.machine.types
 
 import org.jacodb.ets.base.EtsType
 import org.usvm.UBoolExpr
+import org.usvm.UExpr
+import org.usvm.USort
+import org.usvm.machine.TSContext
 
 class FakeType(
     val boolTypeExpr: UBoolExpr,
@@ -25,3 +28,5 @@ class FakeType(
         )
     }
 }
+
+data class ExprWithTypeConstraint<T : USort>(val constraint: UBoolExpr, val expr: UExpr<T>)

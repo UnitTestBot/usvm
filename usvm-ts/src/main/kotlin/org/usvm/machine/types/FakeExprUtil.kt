@@ -1,4 +1,4 @@
-package org.usvm.machine
+package org.usvm.machine.types
 
 import io.ksmt.utils.asExpr
 import org.usvm.UBoolExpr
@@ -7,6 +7,8 @@ import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.api.typeStreamOf
 import org.usvm.collection.field.UFieldLValue
+import org.usvm.machine.IntermediateLValueField
+import org.usvm.machine.TSContext
 import org.usvm.machine.interpreter.TSStepScope
 import org.usvm.machine.state.TSState
 import org.usvm.memory.ULValue

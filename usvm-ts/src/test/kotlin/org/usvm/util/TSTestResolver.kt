@@ -28,7 +28,7 @@ import org.usvm.api.TSObject
 import org.usvm.api.TSTest
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.isTrue
-import org.usvm.machine.FakeType
+import org.usvm.machine.types.FakeType
 import org.usvm.machine.TSContext
 import org.usvm.machine.expr.TSRefTransformer
 import org.usvm.machine.expr.TSUnresolvedSort
