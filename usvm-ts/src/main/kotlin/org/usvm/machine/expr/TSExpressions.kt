@@ -38,7 +38,9 @@ class TSUndefinedValue(ctx: TSContext) : UExpr<TSUndefinedSort>(ctx) {
     }
 }
 
-// TODO rename it
+/**
+ * Represents a sort for objects with unknown type.
+ */
 class TSUnresolvedSort(ctx: TSContext) : USort(ctx) {
     override fun <T> accept(visitor: KSortVisitor<T>): T = error("Should not be called")
 
@@ -53,5 +55,8 @@ fun UExpr<out USort>.extractBool(): Boolean = when (this) {
     else -> error("Cannot extract boolean from $this")
 }
 
-fun extractInt(expr: UExpr<out USort>): Int = (expr as? KBitVec32Value)?.intValue ?: 0
-fun extractDouble(expr: UExpr<out USort>): Double = (expr as? KFp64Value)?.value ?: 0.0
+fun extractInt(expr: UExpr<out USort>): Int =
+    (expr as? KBitVec32Value)?.intValue ?: error("Cannot extract int from $expr")
+
+fun extractDouble(expr: UExpr<out USort>): Double =
+    (expr as? KFp64Value)?.value ?: error("Cannot extract double from $expr")
