@@ -90,9 +90,9 @@ class TSInterpreter(
         val exprResolver = exprResolverWithScope(scope)
 
         val conditionExpr = exprResolver.resolve(stmt.condition) ?: run {
-                logger.warn { "Failed to resolve condition: $stmt" }
-                return
-            }
+            logger.warn { "Failed to resolve condition: $stmt" }
+            return
+        }
 
         val boolExpr = if (conditionExpr.sort == ctx.boolSort) {
             conditionExpr.asExpr(ctx.boolSort)
