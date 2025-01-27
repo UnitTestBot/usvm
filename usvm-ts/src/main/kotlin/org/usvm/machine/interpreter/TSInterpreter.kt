@@ -89,11 +89,16 @@ class TSInterpreter(
     private fun visitIfStmt(scope: TSStepScope, stmt: EtsIfStmt) {
         val exprResolver = exprResolverWithScope(scope)
 
-        val boolExpr = exprResolver.resolve(stmt.condition)?.asExpr(ctx.boolSort)
-            ?: run {
+        val conditionExpr = exprResolver.resolve(stmt.condition) ?: run {
                 logger.warn { "Failed to resolve condition: $stmt" }
                 return
             }
+
+        val boolExpr = if (conditionExpr.sort == ctx.boolSort) {
+            conditionExpr.asExpr(ctx.boolSort)
+        } else {
+            ctx.mkTruthyExpr(conditionExpr, scope)
+        }
 
         val (negStmt, posStmt) = applicationGraph.successors(stmt).take(2).toList()
 
@@ -102,7 +107,7 @@ class TSInterpreter(
             posStmt,
             negStmt,
             blockOnTrueState = { newStmt(posStmt) },
-            blockOnFalseState = { newStmt(negStmt) }
+            blockOnFalseState = { newStmt(negStmt) },
         )
     }
 
