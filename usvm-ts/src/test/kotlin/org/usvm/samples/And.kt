@@ -8,7 +8,6 @@ import org.jacodb.ets.base.EtsIfStmt
 import org.jacodb.ets.base.EtsInstLocation
 import org.jacodb.ets.base.EtsLocal
 import org.jacodb.ets.base.EtsNotEqExpr
-import org.jacodb.ets.base.EtsNotExpr
 import org.jacodb.ets.base.EtsNumberConstant
 import org.jacodb.ets.base.EtsNumberType
 import org.jacodb.ets.base.EtsParameterRef
@@ -181,12 +180,12 @@ class And : TSMethodTestRunner() {
             method = method,
             { a, b, r -> isTruthy(a) && isTruthy(b) && r.number == 1.0 },
             { a, b, r -> isTruthy(a) && b.number.isNaN() && r.number == 2.0 },
-            { a, b, r -> isTruthy(a) && b.number==0.0 && r.number == 3.0 },
+            { a, b, r -> isTruthy(a) && b.number == 0.0 && r.number == 3.0 },
             { a, b, r -> a.number.isNaN() && isTruthy(b) && r.number == 4.0 },
             { a, b, r -> a.number.isNaN() && b.number.isNaN() && r.number == 5.0 },
-            { a, b, r -> a.number.isNaN() && b.number==0.0 && r.number == 6.0 },
-            { a, b, r -> a.number==0.0 && isTruthy(b) && r.number == 7.0 },
-            { a, b, r -> a.number==0.0 && b.number.isNaN() && r.number == 8.0 },
+            { a, b, r -> a.number.isNaN() && b.number == 0.0 && r.number == 6.0 },
+            { a, b, r -> a.number == 0.0 && isTruthy(b) && r.number == 7.0 },
+            { a, b, r -> a.number == 0.0 && b.number.isNaN() && r.number == 8.0 },
             { a, b, r -> a.number == 0.0 && b.number == 0.0 && r.number == 9.0 },
         )
     }
