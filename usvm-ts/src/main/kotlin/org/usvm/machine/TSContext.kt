@@ -27,6 +27,8 @@ import org.usvm.machine.interpreter.TSStepScope
 import org.usvm.machine.types.ExprWithTypeConstraint
 import org.usvm.machine.types.FakeType
 import org.usvm.types.single
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
 
 typealias TSSizeSort = UBv32Sort
 
@@ -51,8 +53,6 @@ class TSContext(
     // TODO fix conjuncts
     fun mkTruthyExpr(expr: UExpr<out USort>, scope: TSStepScope): UBoolExpr = scope.calcOnState {
         if (expr.isFakeObject()) {
-            expr as UConcreteHeapRef
-
             val falseBranchGround = makeSymbolicPrimitive(boolSort)
 
             val conjuncts = mutableListOf<ExprWithTypeConstraint<UBoolSort>>()
@@ -117,10 +117,13 @@ class TSContext(
         }
     }
 
+    @OptIn(ExperimentalContracts::class)
     fun UExpr<out USort>.isFakeObject(): Boolean {
-        if (sort !is UAddressSort) return false
+        contract {
+            returns(true) implies (this@isFakeObject is UConcreteHeapRef)
+        }
 
-        return this is UConcreteHeapRef && address > MAGIC_OFFSET
+        return sort == addressSort && this is UConcreteHeapRef && address > MAGIC_OFFSET
     }
 
     fun mkFakeValue(

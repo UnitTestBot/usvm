@@ -113,9 +113,6 @@ sealed interface TSBinaryOperator {
                 val groundFalseBranch = makeSymbolicPrimitive(boolSort)
 
                 if (lhs.isFakeObject() && rhs.isFakeObject()) {
-                    lhs as UConcreteHeapRef
-                    rhs as UConcreteHeapRef
-
                     val lhsType = memory.typeStreamOf(lhs).single() as FakeType
                     val rhsType = memory.typeStreamOf(rhs).single() as FakeType
 
@@ -170,7 +167,6 @@ sealed interface TSBinaryOperator {
                 }
 
                 if (lhs.isFakeObject()) {
-                    lhs as UConcreteHeapRef
                     val lhsType = memory.typeStreamOf(lhs).single() as FakeType
 
                     scope.assert(lhsType.mkExactlyOneTypeConstraint(ctx))
@@ -235,7 +231,6 @@ sealed interface TSBinaryOperator {
                 }
 
                 if (rhs.isFakeObject()) {
-                    rhs as UConcreteHeapRef
                     val rhsType = memory.typeStreamOf(rhs).single() as FakeType
 
                     scope.assert(rhsType.mkExactlyOneTypeConstraint(ctx))
