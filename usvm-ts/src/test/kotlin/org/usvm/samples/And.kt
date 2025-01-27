@@ -70,13 +70,104 @@ class And : TSMethodTestRunner() {
 
     @Test
     fun `test andOfBooleanAndNumber`() {
-        val method = getMethod("And", "andOfBooleanAndNumber")
+        // val method = getMethod("And", "andOfBooleanAndNumber")
+        //
+        //   andOfBooleanAndNumber(a: boolean, b: number): number {
+        //         if (a && b) return 1
+        //         if (a && (b != b)) return 2
+        //         if (a) return 3
+        //         if (b) return 4
+        //         if (b != b) return 5
+        //         return 6
+        //
+        val classSignature = EtsClassSignature(
+            name = "And",
+            file = EtsFileSignature(
+                projectName = "test",
+                fileName = "And.ts",
+            ),
+        )
+        val methodParameters = listOf(
+            EtsMethodParameter(0, "a", EtsBooleanType),
+            EtsMethodParameter(1, "b", EtsNumberType),
+        )
+        val localA = methodParameters[0].let { param ->
+            EtsLocal(param.name, param.type)
+        }
+        val localB = methodParameters[1].let { param ->
+            EtsLocal(param.name, param.type)
+        }
+        val localThis = EtsLocal("this", EtsClassType(classSignature))
+        val locals = mutableListOf(localA, localB, localThis)
+
+        val method = EtsMethodImpl(
+            signature = EtsMethodSignature(
+                enclosingClass = classSignature,
+                name = "andOfNumberAndBoolean",
+                parameters = methodParameters,
+                returnType = EtsNumberType,
+            ),
+            locals = locals,
+        )
+        val statements = mutableListOf<EtsStmt>()
+        val successorMap = mutableMapOf<EtsStmt, List<EtsStmt>>()
+        val loc = { EtsInstLocation(method, statements.size) }
+
+        val assA = EtsAssignStmt(loc(), localA, methodParameters[0].toRef()).also { statements += it }
+        val assB = EtsAssignStmt(loc(), localB, methodParameters[1].toRef()).also { statements += it }
+        val assThis = EtsAssignStmt(loc(), localThis, EtsThis(EtsClassType(classSignature))).also { statements += it }
+
+        // %0 := a && b
+        val local0 = EtsLocal("%0", EtsUnknownType).also { locals += it }
+        val ass0 = EtsAssignStmt(loc(), local0, EtsAndExpr(EtsUnknownType, localA, localB)).also { statements += it }
+        val if0 = EtsIfStmt(loc(), local0).also { statements += it }
+        val ret1 = EtsReturnStmt(loc(), EtsNumberConstant(1.0)).also { statements += it }
+        // %1 := (b != b)
+        val local1 = EtsLocal("%1", EtsUnknownType).also { locals += it }
+        val ass1 = EtsAssignStmt(loc(), local1, EtsNotEqExpr(localB, localB)).also { statements += it }
+        // %2 := a && %1 == a && (b != b)
+        val local2 = EtsLocal("%2", EtsUnknownType).also { locals += it }
+        val ass2 = EtsAssignStmt(loc(), local2, EtsAndExpr(EtsUnknownType, localA, local1)).also { statements += it }
+        val if2 = EtsIfStmt(loc(), local2).also { statements += it }
+        val ret2 = EtsReturnStmt(loc(), EtsNumberConstant(2.0)).also { statements += it }
+        val ifA = EtsIfStmt(loc(), localA).also { statements += it }
+        val ret3 = EtsReturnStmt(loc(), EtsNumberConstant(3.0)).also { statements += it }
+        val ifB = EtsIfStmt(loc(), localB).also { statements += it }
+        val ret4 = EtsReturnStmt(loc(), EtsNumberConstant(4.0)).also { statements += it }
+        val if1 = EtsIfStmt(loc(), local1).also { statements += it }
+        val ret5 = EtsReturnStmt(loc(), EtsNumberConstant(5.0)).also { statements += it }
+        val ret6 = EtsReturnStmt(loc(), EtsNumberConstant(6.0)).also { statements += it }
+
+        // Note: for if-statements, successors must be (falseBranch, trueBranch) !!!
+        successorMap[assA] = listOf(assB)
+        successorMap[assB] = listOf(assThis)
+        successorMap[assThis] = listOf(ass0)
+        successorMap[ass0] = listOf(if0)
+        successorMap[if0] = listOf(ass1, ret1)
+        successorMap[ass1] = listOf(ass2)
+        successorMap[ass2] = listOf(if2)
+        successorMap[if2] = listOf(ifA, ret2)
+        successorMap[ifA] = listOf(ifB, ret3)
+        successorMap[ifB] = listOf(if1, ret4)
+        successorMap[if1] = listOf(ret6, ret5)
+
+        successorMap[ret1] = emptyList()
+        successorMap[ret2] = emptyList()
+        successorMap[ret3] = emptyList()
+        successorMap[ret4] = emptyList()
+        successorMap[ret5] = emptyList()
+        successorMap[ret6] = emptyList()
+
+        method._cfg = EtsCfg(statements, successorMap)
+
         discoverProperties<TSObject.TSBoolean, TSObject.TSNumber, TSObject.TSNumber>(
             method = method,
             { a, b, r -> a.value && isTruthy(b) && r.number == 1.0 },
-            { a, b, r -> a.value && !isTruthy(b) && r.number == 2.0 },
-            { a, b, r -> !a.value && isTruthy(b) && r.number == 3.0 },
-            { a, b, r -> !a.value && !isTruthy(b) && r.number == 4.0 },
+            { a, b, r -> a.value && b.number.isNaN() && r.number == 2.0 },
+            { a, b, r -> a.value && b.number == 0.0 && r.number == 3.0 },
+            { a, b, r -> !a.value && isTruthy(b) && r.number == 4.0 },
+            { a, b, r -> !a.value && b.number.isNaN() && r.number == 5.0 },
+            { a, b, r -> !a.value && b.number == 0.0 && r.number == 6.0 },
         )
     }
 
@@ -87,9 +178,9 @@ class And : TSMethodTestRunner() {
         //    andOfNumberAndBoolean(a: number, b: boolean): number {
         //         if (a && b) return 1
         //         if (a) return 2
-        //         if ((a != a) && b) return 3.5
+        //         if ((a != a) && b) return 3.0
+        //         if ((a != a) && !b) return 4.0
         //         if (b) return 3
-        //         if ((a != a) && !b) return 4.5
         //         return 4
         //     }
         //
@@ -124,7 +215,7 @@ class And : TSMethodTestRunner() {
         )
         val statements = mutableListOf<EtsStmt>()
         val successorMap = mutableMapOf<EtsStmt, List<EtsStmt>>()
-        val loc: () -> EtsInstLocation = { EtsInstLocation(method, statements.size) }
+        val loc = { EtsInstLocation(method, statements.size) }
 
         val assA = EtsAssignStmt(loc(), localA, methodParameters[0].toRef()).also { statements += it }
         val assB = EtsAssignStmt(loc(), localB, methodParameters[1].toRef()).also { statements += it }
@@ -133,56 +224,43 @@ class And : TSMethodTestRunner() {
         // %0 := a && b
         val local0 = EtsLocal("%0", EtsUnknownType).also { locals += it }
         val ass0 = EtsAssignStmt(loc(), local0, EtsAndExpr(EtsUnknownType, localA, localB)).also { statements += it }
-        val if1 = EtsIfStmt(loc(), local0).also { statements += it }
+        val if0 = EtsIfStmt(loc(), local0).also { statements += it }
         val ret1 = EtsReturnStmt(loc(), EtsNumberConstant(1.0)).also { statements += it }
-        val if2 = EtsIfStmt(loc(), localA).also { statements += it }
+        val ifA = EtsIfStmt(loc(), localA).also { statements += it }
         val ret2 = EtsReturnStmt(loc(), EtsNumberConstant(2.0)).also { statements += it }
         // %1 := (a != a)
         val local1 = EtsLocal("%1", EtsUnknownType).also { locals += it }
         val ass1 = EtsAssignStmt(loc(), local1, EtsNotEqExpr(localA, localA)).also { statements += it }
-        // %2 := %1 && b
+        // %2 := %1 && b == (a != a) && b
         val local2 = EtsLocal("%2", EtsUnknownType).also { locals += it }
         val ass2 = EtsAssignStmt(loc(), local2, EtsAndExpr(EtsUnknownType, local1, localB)).also { statements += it }
-        val if3 = EtsIfStmt(loc(), local2).also { statements += it }
-        val ret35 = EtsReturnStmt(loc(), EtsNumberConstant(3.5)).also { statements += it }
-        val if4 = EtsIfStmt(loc(), localB).also { statements += it }
+        val if2 = EtsIfStmt(loc(), local2).also { statements += it }
         val ret3 = EtsReturnStmt(loc(), EtsNumberConstant(3.0)).also { statements += it }
-        // %3 := (a != a)
-        // Note: we could reuse %1 for (a != a), but here we create a fresh local.
-        val local3 = EtsLocal("%3", EtsUnknownType).also { locals += it }
-        val ass3 = EtsAssignStmt(loc(), local3, EtsNotEqExpr(localA, localA)).also { statements += it }
-        // %4 := !b
-        val local4 = EtsLocal("%4", EtsUnknownType).also { locals += it }
-        val ass4 = EtsAssignStmt(loc(), local4, EtsNotExpr(localB)).also { statements += it }
-        // %5 := %3 && %4
-        val local5 = EtsLocal("%5", EtsUnknownType).also { locals += it }
-        val ass5 = EtsAssignStmt(loc(), local5, EtsAndExpr(EtsUnknownType, local3, local4)).also { statements += it }
-        val if5 = EtsIfStmt(loc(), local5).also { statements += it }
-        val ret45 = EtsReturnStmt(loc(), EtsNumberConstant(4.5)).also { statements += it }
+        val if1 = EtsIfStmt(loc(), local1).also { statements += it }
         val ret4 = EtsReturnStmt(loc(), EtsNumberConstant(4.0)).also { statements += it }
+        val ifB = EtsIfStmt(loc(), localB).also { statements += it }
+        val ret5 = EtsReturnStmt(loc(), EtsNumberConstant(5.0)).also { statements += it }
+        val ret6 = EtsReturnStmt(loc(), EtsNumberConstant(6.0)).also { statements += it }
 
         // Note: for if-statements, successors must be (falseBranch, trueBranch) !!!
         successorMap[assA] = listOf(assB)
         successorMap[assB] = listOf(assThis)
         successorMap[assThis] = listOf(ass0)
-        successorMap[ass0] = listOf(if1)
-        successorMap[if1] = listOf(if2, ret1)
-        successorMap[if2] = listOf(ass1, ret2)
+        successorMap[ass0] = listOf(if0)
+        successorMap[if0] = listOf(ifA, ret1)
+        successorMap[ifA] = listOf(ass1, ret2)
         successorMap[ass1] = listOf(ass2)
-        successorMap[ass2] = listOf(if3)
-        successorMap[if3] = listOf(if4, ret35)
-        successorMap[if4] = listOf(ass3, ret3)
-        successorMap[ass3] = listOf(ass4)
-        successorMap[ass4] = listOf(ass5)
-        successorMap[ass5] = listOf(if5)
-        successorMap[if5] = listOf(ret4, ret45)
+        successorMap[ass2] = listOf(if2)
+        successorMap[if2] = listOf(if1, ret3)
+        successorMap[if1] = listOf(ifB, ret4)
+        successorMap[ifB] = listOf(ret6, ret5)
 
         successorMap[ret1] = emptyList()
         successorMap[ret2] = emptyList()
-        successorMap[ret35] = emptyList()
         successorMap[ret3] = emptyList()
-        successorMap[ret45] = emptyList()
         successorMap[ret4] = emptyList()
+        successorMap[ret5] = emptyList()
+        successorMap[ret6] = emptyList()
 
         method._cfg = EtsCfg(statements, successorMap)
 
@@ -190,10 +268,10 @@ class And : TSMethodTestRunner() {
             method = method,
             { a, b, r -> isTruthy(a) && b.value && r.number == 1.0 },
             { a, b, r -> isTruthy(a) && !b.value && r.number == 2.0 },
-            { a, b, r -> !a.number.isNaN() && !isTruthy(a) && b.value && r.number == 3.0 },
-            { a, b, r -> a.number.isNaN() && b.value && r.number == 3.5 },
-            { a, b, r -> !a.number.isNaN() && !isTruthy(a) && !b.value && r.number == 4.0 },
-            { a, b, r -> a.number.isNaN() && !isTruthy(a) && !b.value && r.number == 4.5 },
+            { a, b, r -> a.number.isNaN() && b.value && r.number == 3.0 },
+            { a, b, r -> a.number.isNaN() && !b.value && r.number == 4.0 },
+            { a, b, r -> a.number == 0.0 && b.value && r.number == 5.0 },
+            { a, b, r -> a.number == 0.0 && !b.value && r.number == 6.0 },
         )
     }
 
