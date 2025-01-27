@@ -19,7 +19,7 @@ import org.usvm.machine.interpreter.TSStepScope
 import org.usvm.machine.types.ExprWithTypeConstraint
 import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.types.single
-import org.usvm.util.boolToFpSort
+import org.usvm.util.boolToFp
 
 sealed interface TSBinaryOperator {
 
@@ -150,7 +150,7 @@ sealed interface TSBinaryOperator {
                     conjuncts += ExprWithTypeConstraint(
                         constraint = mkAnd(lhsType.boolTypeExpr, rhsType.fpTypeExpr),
                         expr = mkFpEqualExpr(
-                            boolToFpSort(memory.read(getIntermediateBoolLValue(lhs.address))),
+                            boolToFp(memory.read(getIntermediateBoolLValue(lhs.address))),
                             memory.read(getIntermediateFpLValue(rhs.address))
                         )
                     )
@@ -159,7 +159,7 @@ sealed interface TSBinaryOperator {
                         constraint = mkAnd(lhsType.fpTypeExpr, rhsType.boolTypeExpr),
                         expr = mkFpEqualExpr(
                             memory.read(getIntermediateFpLValue(lhs.address)),
-                            boolToFpSort(memory.read(getIntermediateBoolLValue(rhs.address)))
+                            boolToFp(memory.read(getIntermediateBoolLValue(rhs.address)))
                         )
                     )
 
@@ -185,7 +185,7 @@ sealed interface TSBinaryOperator {
                                 constraint = lhsType.fpTypeExpr,
                                 expr = mkFpEqualExpr(
                                     memory.read(getIntermediateFpLValue(lhs.address)),
-                                    boolToFpSort(rhs.asExpr(boolSort))
+                                    boolToFp(rhs.asExpr(boolSort))
                                 )
                             )
 
@@ -196,7 +196,7 @@ sealed interface TSBinaryOperator {
                             conjuncts += ExprWithTypeConstraint(
                                 constraint = lhsType.boolTypeExpr,
                                 expr = mkFpEqualExpr(
-                                    boolToFpSort(memory.read(getIntermediateBoolLValue(lhs.address))),
+                                    boolToFp(memory.read(getIntermediateBoolLValue(lhs.address))),
                                     rhs.asExpr(fp64Sort)
                                 )
                             )
@@ -248,7 +248,7 @@ sealed interface TSBinaryOperator {
                             conjuncts += ExprWithTypeConstraint(
                                 constraint = rhsType.fpTypeExpr,
                                 expr = mkFpEqualExpr(
-                                    boolToFpSort(lhs.asExpr(boolSort)),
+                                    boolToFp(lhs.asExpr(boolSort)),
                                     memory.read(getIntermediateFpLValue(rhs.address))
                                 )
                             )
@@ -261,7 +261,7 @@ sealed interface TSBinaryOperator {
                                 constraint = rhsType.boolTypeExpr,
                                 expr = mkFpEqualExpr(
                                     lhs.asExpr(fp64Sort),
-                                    boolToFpSort(memory.read(getIntermediateBoolLValue(rhs.address)))
+                                    boolToFp(memory.read(getIntermediateBoolLValue(rhs.address)))
                                 )
                             )
 
@@ -320,11 +320,11 @@ sealed interface TSBinaryOperator {
             }
 
             if (lhs.sort is UBoolSort && rhs.sort is KFp64Sort) {
-                return mkFpEqualExpr(boolToFpSort(lhs.cast()), rhs.cast())
+                return mkFpEqualExpr(boolToFp(lhs.cast()), rhs.cast())
             }
 
             if (lhs.sort is KFp64Sort && rhs.sort is UBoolSort) {
-                return mkFpEqualExpr(lhs.cast(), boolToFpSort(rhs.cast()))
+                return mkFpEqualExpr(lhs.cast(), boolToFp(rhs.cast()))
             }
 
             // TODO: support string
@@ -394,8 +394,8 @@ sealed interface TSBinaryOperator {
         ): UExpr<out USort> {
             return mkFpAddExpr(
                 fpRoundingModeSortDefaultValue(),
-                boolToFpSort(lhs),
-                boolToFpSort(rhs)
+                boolToFp(lhs),
+                boolToFp(rhs)
             )
 
         }
@@ -439,11 +439,11 @@ sealed interface TSBinaryOperator {
 
             val fpValue = when {
                 lhs.sort is UBoolSort && rhs.sort is KFp64Sort -> {
-                    mkFpAddExpr(fpRoundingModeSortDefaultValue(), boolToFpSort(lhs.cast()), rhs.cast())
+                    mkFpAddExpr(fpRoundingModeSortDefaultValue(), boolToFp(lhs.cast()), rhs.cast())
                 }
 
                 lhs.sort is KFp64Sort && rhs.sort is UBoolSort -> {
-                    mkFpAddExpr(fpRoundingModeSortDefaultValue(), lhs.cast(), boolToFpSort(rhs.cast()))
+                    mkFpAddExpr(fpRoundingModeSortDefaultValue(), lhs.cast(), boolToFp(rhs.cast()))
                 }
 
                 else -> null
