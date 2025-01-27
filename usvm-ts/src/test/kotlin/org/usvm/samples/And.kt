@@ -135,7 +135,7 @@ class And : TSMethodTestRunner() {
         val ass0 = EtsAssignStmt(loc(), local0, EtsAndExpr(EtsUnknownType, localA, localB)).also { statements += it }
         val if1 = EtsIfStmt(loc(), local0).also { statements += it }
         val ret1 = EtsReturnStmt(loc(), EtsNumberConstant(1.0)).also { statements += it }
-        val if2 = EtsIfStmt(loc(), localB).also { statements += it }
+        val if2 = EtsIfStmt(loc(), localA).also { statements += it }
         val ret2 = EtsReturnStmt(loc(), EtsNumberConstant(2.0)).also { statements += it }
         // %1 := (a != a)
         val local1 = EtsLocal("%1", EtsUnknownType).also { locals += it }
