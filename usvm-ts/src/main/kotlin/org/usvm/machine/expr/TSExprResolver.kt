@@ -79,6 +79,7 @@ import org.usvm.machine.interpreter.TSStepScope
 import org.usvm.machine.operator.TSBinaryOperator
 import org.usvm.machine.operator.TSUnaryOperator
 import org.usvm.machine.types.FakeType
+import org.usvm.machine.types.mkFakeValue
 import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.util.fieldLookUp

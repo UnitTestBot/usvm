@@ -1,9 +1,11 @@
 package org.usvm.machine.types
 
+import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.typeStreamOf
 import org.usvm.collection.field.UFieldLValue
@@ -13,6 +15,46 @@ import org.usvm.machine.interpreter.TSStepScope
 import org.usvm.machine.state.TSState
 import org.usvm.memory.ULValue
 import org.usvm.types.single
+
+fun TSContext.mkFakeValue(
+    scope: TSStepScope,
+    boolValue: UBoolExpr? = null,
+    fpValue: UExpr<KFp64Sort>? = null,
+    refValue: UHeapRef? = null,
+): UConcreteHeapRef {
+    require(boolValue != null || fpValue != null || refValue != null) {
+        "Fake object should contain at least one value"
+    }
+
+    return scope.calcOnState {
+        val fakeValueRef = createFakeObjectRef()
+        val address = fakeValueRef.address
+
+        val type = FakeType(
+            boolTypeExpr = mkBool(boolValue != null),
+            fpTypeExpr = mkBool(fpValue != null),
+            refTypeExpr = mkBool(refValue != null),
+        )
+        memory.types.allocate(address, type)
+
+        if (boolValue != null) {
+            val boolLValue = ctx.getIntermediateBoolLValue(address)
+            memory.write(boolLValue, boolValue, guard = ctx.trueExpr)
+        }
+
+        if (fpValue != null) {
+            val fpLValue = ctx.getIntermediateFpLValue(address)
+            memory.write(fpLValue, fpValue, guard = ctx.trueExpr)
+        }
+
+        if (refValue != null) {
+            val refLValue = ctx.getIntermediateRefLValue(address)
+            memory.write(refLValue, refValue, guard = ctx.trueExpr)
+        }
+
+        fakeValueRef
+    }
+}
 
 fun <T : USort> TSState.extractValue(
     value: UExpr<out USort>,
