@@ -111,186 +111,185 @@ sealed interface TSBinaryOperator {
                 val conjuncts = mutableListOf<ExprWithTypeConstraint<UBoolSort>>()
                 val groundFalseBranch = makeSymbolicPrimitive(boolSort)
 
-                if (lhs.isFakeObject() && rhs.isFakeObject()) {
-                    val lhsType = memory.typeStreamOf(lhs).single() as FakeType
-                    val rhsType = memory.typeStreamOf(rhs).single() as FakeType
+                when {
+                    lhs.isFakeObject() && rhs.isFakeObject() -> {
+                        val lhsType = memory.typeStreamOf(lhs).single() as FakeType
+                        val rhsType = memory.typeStreamOf(rhs).single() as FakeType
 
-                    scope.assert(
-                        mkAnd(
-                            lhsType.mkExactlyOneTypeConstraint(ctx),
-                            rhsType.mkExactlyOneTypeConstraint(ctx)
-                        )
-                    )
-
-                    conjuncts += ExprWithTypeConstraint(
-                        constraint = mkAnd(lhsType.boolTypeExpr, rhsType.boolTypeExpr),
-                        expr = mkEq(
-                            memory.read(getIntermediateBoolLValue(lhs.address)),
-                            memory.read(getIntermediateBoolLValue(rhs.address))
-                        )
-                    )
-
-                    conjuncts += ExprWithTypeConstraint(
-                        constraint = mkAnd(lhsType.fpTypeExpr, rhsType.fpTypeExpr),
-                        expr = mkFpEqualExpr(
-                            memory.read(getIntermediateFpLValue(lhs.address)),
-                            memory.read(getIntermediateFpLValue(rhs.address))
-                        )
-                    )
-
-                    conjuncts += ExprWithTypeConstraint(
-                        constraint = mkAnd(lhsType.refTypeExpr, rhsType.refTypeExpr),
-                        expr = mkHeapRefEq(
-                            memory.read(getIntermediateRefLValue(lhs.address)),
-                            memory.read(getIntermediateRefLValue(rhs.address))
-                        )
-                    )
-
-                    conjuncts += ExprWithTypeConstraint(
-                        constraint = mkAnd(lhsType.boolTypeExpr, rhsType.fpTypeExpr),
-                        expr = mkFpEqualExpr(
-                            boolToFp(memory.read(getIntermediateBoolLValue(lhs.address))),
-                            memory.read(getIntermediateFpLValue(rhs.address))
-                        )
-                    )
-
-                    conjuncts += ExprWithTypeConstraint(
-                        constraint = mkAnd(lhsType.fpTypeExpr, rhsType.boolTypeExpr),
-                        expr = mkFpEqualExpr(
-                            memory.read(getIntermediateFpLValue(lhs.address)),
-                            boolToFp(memory.read(getIntermediateBoolLValue(rhs.address)))
-                        )
-                    )
-
-                    // TODO: support objects
-                }
-
-                if (lhs.isFakeObject()) {
-                    val lhsType = memory.typeStreamOf(lhs).single() as FakeType
-
-                    scope.assert(lhsType.mkExactlyOneTypeConstraint(ctx))
-
-                    when (rhs.sort) {
-                        boolSort -> {
-                            conjuncts += ExprWithTypeConstraint(
-                                constraint = lhsType.boolTypeExpr,
-                                expr = mkEq(
-                                    memory.read(getIntermediateBoolLValue(lhs.address)),
-                                    rhs.asExpr(boolSort)
-                                )
+                        scope.assert(
+                            mkAnd(
+                                lhsType.mkExactlyOneTypeConstraint(ctx),
+                                rhsType.mkExactlyOneTypeConstraint(ctx)
                             )
+                        )
 
-                            conjuncts += ExprWithTypeConstraint(
-                                constraint = lhsType.fpTypeExpr,
-                                expr = mkFpEqualExpr(
-                                    memory.read(getIntermediateFpLValue(lhs.address)),
-                                    boolToFp(rhs.asExpr(boolSort))
-                                )
+                        conjuncts += ExprWithTypeConstraint(
+                            constraint = mkAnd(lhsType.boolTypeExpr, rhsType.boolTypeExpr),
+                            expr = mkEq(
+                                memory.read(getIntermediateBoolLValue(lhs.address)),
+                                memory.read(getIntermediateBoolLValue(rhs.address))
                             )
+                        )
 
-                            // TODO: support objects
-                        }
-
-                        fp64Sort -> {
-                            conjuncts += ExprWithTypeConstraint(
-                                constraint = lhsType.boolTypeExpr,
-                                expr = mkFpEqualExpr(
-                                    boolToFp(memory.read(getIntermediateBoolLValue(lhs.address))),
-                                    rhs.asExpr(fp64Sort)
-                                )
+                        conjuncts += ExprWithTypeConstraint(
+                            constraint = mkAnd(lhsType.fpTypeExpr, rhsType.fpTypeExpr),
+                            expr = mkFpEqualExpr(
+                                memory.read(getIntermediateFpLValue(lhs.address)),
+                                memory.read(getIntermediateFpLValue(rhs.address))
                             )
+                        )
 
-                            conjuncts += ExprWithTypeConstraint(
-                                constraint = lhsType.fpTypeExpr,
-                                expr = mkFpEqualExpr(
-                                    memory.read(getIntermediateFpLValue(lhs.address)),
-                                    rhs.asExpr(fp64Sort)
-                                )
+                        conjuncts += ExprWithTypeConstraint(
+                            constraint = mkAnd(lhsType.refTypeExpr, rhsType.refTypeExpr),
+                            expr = mkHeapRefEq(
+                                memory.read(getIntermediateRefLValue(lhs.address)),
+                                memory.read(getIntermediateRefLValue(rhs.address))
                             )
+                        )
 
-                            // TODO: support objects
-                        }
-
-                        addressSort -> {
-                            conjuncts += ExprWithTypeConstraint(
-                                constraint = lhsType.refTypeExpr,
-                                expr = mkHeapRefEq(
-                                    memory.read(getIntermediateRefLValue(lhs.address)),
-                                    rhs.asExpr(addressSort)
-                                )
+                        conjuncts += ExprWithTypeConstraint(
+                            constraint = mkAnd(lhsType.boolTypeExpr, rhsType.fpTypeExpr),
+                            expr = mkFpEqualExpr(
+                                boolToFp(memory.read(getIntermediateBoolLValue(lhs.address))),
+                                memory.read(getIntermediateFpLValue(rhs.address))
                             )
+                        )
 
-                            // TODO: support objects
-                        }
+                        conjuncts += ExprWithTypeConstraint(
+                            constraint = mkAnd(lhsType.fpTypeExpr, rhsType.boolTypeExpr),
+                            expr = mkFpEqualExpr(
+                                memory.read(getIntermediateFpLValue(lhs.address)),
+                                boolToFp(memory.read(getIntermediateBoolLValue(rhs.address)))
+                            )
+                        )
 
-                        else -> {
-                            error("Unsupported sort ${rhs.sort}")
+                        // TODO: support objects
+                    }
+                    lhs.isFakeObject() -> {
+                        val lhsType = memory.typeStreamOf(lhs).single() as FakeType
+
+                        scope.assert(lhsType.mkExactlyOneTypeConstraint(ctx))
+
+                        when (rhs.sort) {
+                            boolSort -> {
+                                conjuncts += ExprWithTypeConstraint(
+                                    constraint = lhsType.boolTypeExpr,
+                                    expr = mkEq(
+                                        memory.read(getIntermediateBoolLValue(lhs.address)),
+                                        rhs.asExpr(boolSort)
+                                    )
+                                )
+
+                                conjuncts += ExprWithTypeConstraint(
+                                    constraint = lhsType.fpTypeExpr,
+                                    expr = mkFpEqualExpr(
+                                        memory.read(getIntermediateFpLValue(lhs.address)),
+                                        boolToFp(rhs.asExpr(boolSort))
+                                    )
+                                )
+
+                                // TODO: support objects
+                            }
+
+                            fp64Sort -> {
+                                conjuncts += ExprWithTypeConstraint(
+                                    constraint = lhsType.boolTypeExpr,
+                                    expr = mkFpEqualExpr(
+                                        boolToFp(memory.read(getIntermediateBoolLValue(lhs.address))),
+                                        rhs.asExpr(fp64Sort)
+                                    )
+                                )
+
+                                conjuncts += ExprWithTypeConstraint(
+                                    constraint = lhsType.fpTypeExpr,
+                                    expr = mkFpEqualExpr(
+                                        memory.read(getIntermediateFpLValue(lhs.address)),
+                                        rhs.asExpr(fp64Sort)
+                                    )
+                                )
+
+                                // TODO: support objects
+                            }
+
+                            addressSort -> {
+                                conjuncts += ExprWithTypeConstraint(
+                                    constraint = lhsType.refTypeExpr,
+                                    expr = mkHeapRefEq(
+                                        memory.read(getIntermediateRefLValue(lhs.address)),
+                                        rhs.asExpr(addressSort)
+                                    )
+                                )
+
+                                // TODO: support objects
+                            }
+
+                            else -> {
+                                error("Unsupported sort ${rhs.sort}")
+                            }
                         }
                     }
-                }
+                    rhs.isFakeObject() -> {
+                        val rhsType = memory.typeStreamOf(rhs).single() as FakeType
 
-                if (rhs.isFakeObject()) {
-                    val rhsType = memory.typeStreamOf(rhs).single() as FakeType
+                        scope.assert(rhsType.mkExactlyOneTypeConstraint(ctx))
 
-                    scope.assert(rhsType.mkExactlyOneTypeConstraint(ctx))
-
-                    when (lhs.sort) {
-                        boolSort -> {
-                            conjuncts += ExprWithTypeConstraint(
-                                constraint = rhsType.boolTypeExpr,
-                                expr = mkEq(
-                                    lhs.asExpr(boolSort),
-                                    memory.read(getIntermediateBoolLValue(rhs.address))
+                        when (lhs.sort) {
+                            boolSort -> {
+                                conjuncts += ExprWithTypeConstraint(
+                                    constraint = rhsType.boolTypeExpr,
+                                    expr = mkEq(
+                                        lhs.asExpr(boolSort),
+                                        memory.read(getIntermediateBoolLValue(rhs.address))
+                                    )
                                 )
-                            )
 
-                            conjuncts += ExprWithTypeConstraint(
-                                constraint = rhsType.fpTypeExpr,
-                                expr = mkFpEqualExpr(
-                                    boolToFp(lhs.asExpr(boolSort)),
-                                    memory.read(getIntermediateFpLValue(rhs.address))
+                                conjuncts += ExprWithTypeConstraint(
+                                    constraint = rhsType.fpTypeExpr,
+                                    expr = mkFpEqualExpr(
+                                        boolToFp(lhs.asExpr(boolSort)),
+                                        memory.read(getIntermediateFpLValue(rhs.address))
+                                    )
                                 )
-                            )
 
-                            // TODO: support objects
+                                // TODO: support objects
+                            }
+
+                            fp64Sort -> {
+                                conjuncts += ExprWithTypeConstraint(
+                                    constraint = rhsType.boolTypeExpr,
+                                    expr = mkFpEqualExpr(
+                                        lhs.asExpr(fp64Sort),
+                                        boolToFp(memory.read(getIntermediateBoolLValue(rhs.address)))
+                                    )
+                                )
+
+                                conjuncts += ExprWithTypeConstraint(
+                                    constraint = rhsType.fpTypeExpr,
+                                    expr = mkFpEqualExpr(
+                                        lhs.asExpr(fp64Sort),
+                                        memory.read(getIntermediateFpLValue(rhs.address))
+                                    )
+                                )
+
+                                // TODO: support objects
+                            }
+
+                            addressSort -> {
+                                conjuncts += ExprWithTypeConstraint(
+                                    constraint = rhsType.refTypeExpr,
+                                    expr = mkHeapRefEq(
+                                        lhs.asExpr(addressSort),
+                                        memory.read(getIntermediateRefLValue(rhs.address))
+                                    )
+                                )
+
+                                // TODO: support objects
+
+                            }
+
+                            else -> error("Unsupported sort ${rhs.sort}")
                         }
-
-                        fp64Sort -> {
-                            conjuncts += ExprWithTypeConstraint(
-                                constraint = rhsType.boolTypeExpr,
-                                expr = mkFpEqualExpr(
-                                    lhs.asExpr(fp64Sort),
-                                    boolToFp(memory.read(getIntermediateBoolLValue(rhs.address)))
-                                )
-                            )
-
-                            conjuncts += ExprWithTypeConstraint(
-                                constraint = rhsType.fpTypeExpr,
-                                expr = mkFpEqualExpr(
-                                    lhs.asExpr(fp64Sort),
-                                    memory.read(getIntermediateFpLValue(rhs.address))
-                                )
-                            )
-
-                            // TODO: support objects
-                        }
-
-                        addressSort -> {
-                            conjuncts += ExprWithTypeConstraint(
-                                constraint = rhsType.refTypeExpr,
-                                expr = mkHeapRefEq(
-                                    lhs.asExpr(addressSort),
-                                    memory.read(getIntermediateRefLValue(rhs.address))
-                                )
-                            )
-
-                            // TODO: support objects
-
-                        }
-
-                        else -> error("Unsupported sort ${rhs.sort}")
                     }
-
                 }
 
                 conjuncts.foldRight(groundFalseBranch) { (condition, value), acc ->
