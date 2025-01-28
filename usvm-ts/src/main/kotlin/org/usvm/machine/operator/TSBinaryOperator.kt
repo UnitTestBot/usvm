@@ -11,6 +11,7 @@ import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.api.typeStreamOf
 import org.usvm.machine.TSContext
 import org.usvm.machine.expr.TSUndefinedSort
+import org.usvm.machine.expr.mkTruthyExpr
 import org.usvm.machine.expr.tctx
 import org.usvm.machine.interpreter.TSStepScope
 import org.usvm.machine.types.ExprWithTypeConstraint

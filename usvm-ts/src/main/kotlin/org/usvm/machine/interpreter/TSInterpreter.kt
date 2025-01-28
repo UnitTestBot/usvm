@@ -26,6 +26,7 @@ import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.machine.TSApplicationGraph
 import org.usvm.machine.TSContext
 import org.usvm.machine.expr.TSExprResolver
+import org.usvm.machine.expr.mkTruthyExpr
 import org.usvm.machine.state.TSMethodResult
 import org.usvm.machine.state.TSState
 import org.usvm.machine.state.lastStmt
