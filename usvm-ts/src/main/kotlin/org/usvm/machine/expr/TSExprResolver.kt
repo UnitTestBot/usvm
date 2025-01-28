@@ -254,6 +254,7 @@ class TSExprResolver(
     }
 
     override fun visit(expr: EtsInstanceCallExpr): UExpr<out USort>? {
+        // IMPORTANT do not forget to fill sorts of arguments map
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
     }
@@ -353,11 +354,13 @@ class TSExprResolver(
     }
 
     override fun visit(expr: EtsStaticCallExpr): UExpr<out USort>? {
+        // IMPORTANT do not forget to fill sorts of arguments map
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
     }
 
     override fun visit(expr: EtsPtrCallExpr): UExpr<out USort>? {
+        // IMPORTANT do not forget to fill sorts of arguments map
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
     }
