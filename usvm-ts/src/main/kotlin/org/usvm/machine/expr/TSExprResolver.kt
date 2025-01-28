@@ -77,6 +77,7 @@ import org.usvm.collection.field.UFieldLValue
 import org.usvm.machine.TSContext
 import org.usvm.machine.interpreter.TSStepScope
 import org.usvm.machine.operator.TSBinaryOperator
+import org.usvm.machine.operator.TSUnaryOperator
 import org.usvm.machine.types.FakeType
 import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
@@ -173,11 +174,10 @@ class TSExprResolver(
 
     override fun visit(expr: EtsNotExpr): UExpr<out USort>? = with(ctx) {
         resolveAfterResolved(expr.arg) { arg ->
-            // TSUnaryOperator.Not(arg, scope)
             if (arg.sort == boolSort) {
                 arg.asExpr(boolSort).not()
             } else {
-                TODO()
+                 TSUnaryOperator.Not(arg, scope)
             }
         }
     }
