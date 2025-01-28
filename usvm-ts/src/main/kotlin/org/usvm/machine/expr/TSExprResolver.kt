@@ -81,6 +81,7 @@ import org.usvm.machine.operator.TSUnaryOperator
 import org.usvm.machine.types.FakeType
 import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
+import org.usvm.util.fieldLookUp
 
 private val logger = KotlinLogging.logger {}
 
@@ -287,6 +288,7 @@ class TSExprResolver(
         error("Not supported $expr")
     }
 
+    // TODO move into TSUnaryOperator
     override fun visit(expr: EtsNegExpr): UExpr<out USort>? {
         if (expr.type is EtsNumberType) {
             val arg = resolve(expr.arg)?.asExpr(ctx.fp64Sort) ?: return null
@@ -413,11 +415,7 @@ class TSExprResolver(
     override fun visit(value: EtsInstanceFieldRef): UExpr<out USort>? = with(ctx) {
         val instanceRef = resolve(value.instance)?.asExpr(addressSort) ?: return null
         // TODO: checkNullPointer(instanceRef)
-        val fieldType = scene.projectAndSdkClasses
-            .first { it.signature == value.field.enclosingClass }
-            .fields
-            .single { it.name == value.field.name }
-            .type
+        val fieldType = scene.fieldLookUp(value.field).type
         val sort = typeToSort(fieldType)
         val lValue = UFieldLValue(sort, instanceRef, value.field.name)
         val expr = scope.calcOnState { memory.read(lValue) }
