@@ -8,12 +8,15 @@ import org.usvm.UCallStack
 import org.usvm.USort
 import org.usvm.UState
 import org.usvm.api.targets.TSTarget
+import org.usvm.collections.immutable.getOrPut
+import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHashMap
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.constraints.UPathConstraints
 import org.usvm.machine.TSContext
 import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase
 import org.usvm.targets.UTargetsSet
+import org.usvm.collections.immutable.persistentHashMapOf
 
 class TSState(
     ctx: TSContext,
@@ -27,7 +30,7 @@ class TSState(
     forkPoints: PathNode<PathNode<EtsStmt>> = PathNode.root(),
     var methodResult: TSMethodResult = TSMethodResult.NoCall,
     targets: UTargetsSet<TSTarget, EtsStmt> = UTargetsSet.empty(),
-    private val localToSort: MutableMap<EtsMethod, MutableMap<Int, USort>> = hashMapOf(),
+    private var localToSort: UPersistentHashMap<EtsMethod, UPersistentHashMap<Int, USort>> = persistentHashMapOf(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TSContext, TSTarget, TSState>(
     ctx,
     ownership,
@@ -40,16 +43,16 @@ class TSState(
     targets
 ) {
     fun getOrPutSortForLocal(method: EtsMethod, localIdx: Int, localType: EtsType): USort {
-        return localToSort
-            .getOrPut(method) { hashMapOf() }
-            .getOrPut(localIdx) { ctx.typeToSort(localType) }
+        val (updatedMap, value) = localToSort.getOrPut(method, ownership) { persistentHashMapOf() }
+        val (updatedIndices, result) = value.getOrPut(localIdx, ownership) { ctx.typeToSort(localType) }
+        localToSort = updatedMap.put(method, updatedIndices, ownership)
+        return result
     }
 
-    @Suppress("ReplacePutWithAssignment")
     fun saveSortForLocal(method: EtsMethod, localIdx: Int, sort: USort) {
-        localToSort
-            .getOrPut(method) { hashMapOf() }
-            .put(localIdx, sort)
+        val (updatedMap, sorts) = localToSort.getOrPut(method, ownership) { persistentHashMapOf() }
+        val updatedSorts = sorts.put(localIdx, sort, ownership)
+        localToSort = updatedMap.put(method, updatedSorts, ownership)
     }
 
     override fun clone(newConstraints: UPathConstraints<EtsType>?): TSState {
@@ -73,7 +76,7 @@ class TSState(
             forkPoints,
             methodResult,
             targets.clone(),
-            localToSort.mapValuesTo(hashMapOf()) { it.value.toMutableMap() }
+            localToSort
         )
     }
 
