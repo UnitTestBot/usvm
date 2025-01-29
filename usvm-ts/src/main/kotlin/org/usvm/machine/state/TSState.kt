@@ -1,18 +1,22 @@
-package org.usvm.state
+package org.usvm.machine.state
 
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.model.EtsMethod
 import org.usvm.PathNode
-import org.usvm.TSContext
-import org.usvm.TSTarget
 import org.usvm.UCallStack
+import org.usvm.USort
 import org.usvm.UState
+import org.usvm.api.targets.TSTarget
+import org.usvm.collections.immutable.getOrPut
+import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHashMap
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.constraints.UPathConstraints
+import org.usvm.machine.TSContext
 import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase
 import org.usvm.targets.UTargetsSet
+import org.usvm.collections.immutable.persistentHashMapOf
 
 class TSState(
     ctx: TSContext,
@@ -26,6 +30,7 @@ class TSState(
     forkPoints: PathNode<PathNode<EtsStmt>> = PathNode.root(),
     var methodResult: TSMethodResult = TSMethodResult.NoCall,
     targets: UTargetsSet<TSTarget, EtsStmt> = UTargetsSet.empty(),
+    private var localToSort: UPersistentHashMap<EtsMethod, UPersistentHashMap<Int, USort>> = persistentHashMapOf(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TSContext, TSTarget, TSState>(
     ctx,
     ownership,
@@ -37,6 +42,19 @@ class TSState(
     forkPoints,
     targets
 ) {
+    fun getOrPutSortForLocal(method: EtsMethod, localIdx: Int, localType: EtsType): USort {
+        val (updatedMap, value) = localToSort.getOrPut(method, ownership) { persistentHashMapOf() }
+        val (updatedIndices, result) = value.getOrPut(localIdx, ownership) { ctx.typeToSort(localType) }
+        localToSort = updatedMap.put(method, updatedIndices, ownership)
+        return result
+    }
+
+    fun saveSortForLocal(method: EtsMethod, localIdx: Int, sort: USort) {
+        val (updatedMap, sorts) = localToSort.getOrPut(method, ownership) { persistentHashMapOf() }
+        val updatedSorts = sorts.put(localIdx, sort, ownership)
+        localToSort = updatedMap.put(method, updatedSorts, ownership)
+    }
+
     override fun clone(newConstraints: UPathConstraints<EtsType>?): TSState {
         val newThisOwnership = MutabilityOwnership()
         val cloneOwnership = MutabilityOwnership()
@@ -58,6 +76,7 @@ class TSState(
             forkPoints,
             methodResult,
             targets.clone(),
+            localToSort
         )
     }
 

@@ -5,6 +5,9 @@ import org.usvm.StepScope.StepScopeState.CAN_BE_PROCESSED
 import org.usvm.StepScope.StepScopeState.DEAD
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.utils.checkSat
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.InvocationKind
+import kotlin.contracts.contract
 
 /**
  * An auxiliary class, which carefully maintains forks and asserts via [forkWithBlackList] and [assert].
@@ -48,7 +51,11 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
      *
      * @return `null` if the underlying state is `null`.
      */
+    @OptIn(ExperimentalContracts::class)
     fun doWithState(block: T.() -> Unit) {
+        contract {
+            callsInPlace(block, InvocationKind.EXACTLY_ONCE)
+        }
         check(canProcessFurtherOnCurrentStep) { "Caller should check before processing the current hop further" }
         return originalState.block()
     }
@@ -58,7 +65,11 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
      *
      * @return `null` if the underlying state is `null`, otherwise returns result of calling [block].
      */
+    @OptIn(ExperimentalContracts::class)
     fun <R> calcOnState(block: T.() -> R): R {
+        contract {
+            callsInPlace(block, InvocationKind.EXACTLY_ONCE)
+        }
         check(canProcessFurtherOnCurrentStep) { "Caller should check before processing the current hop further" }
         return originalState.block()
     }

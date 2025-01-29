@@ -1,4 +1,4 @@
-package org.usvm
+package org.usvm.machine.expr
 
 import io.ksmt.KAst
 import io.ksmt.cache.hash
@@ -8,8 +8,12 @@ import io.ksmt.expr.KFp64Value
 import io.ksmt.expr.printer.ExpressionPrinter
 import io.ksmt.expr.transformer.KTransformerBase
 import io.ksmt.sort.KSortVisitor
+import org.usvm.UExpr
+import org.usvm.USort
+import org.usvm.machine.TSContext
 
-val KAst.tctx get() = ctx as TSContext
+val KAst.tctx: TSContext
+    get() = ctx as TSContext
 
 class TSUndefinedSort(ctx: TSContext) : USort(ctx) {
     override fun print(builder: StringBuilder) {
@@ -34,11 +38,25 @@ class TSUndefinedValue(ctx: TSContext) : UExpr<TSUndefinedSort>(ctx) {
     }
 }
 
-fun extractBool(expr: UExpr<out USort>): Boolean = when (expr) {
-    expr.ctx.trueExpr -> true
-    expr.ctx.falseExpr -> false
-    else -> error("Expression $expr is not boolean")
+/**
+ * Represents a sort for objects with unknown type.
+ */
+class TSUnresolvedSort(ctx: TSContext) : USort(ctx) {
+    override fun <T> accept(visitor: KSortVisitor<T>): T = error("Should not be called")
+
+    override fun print(builder: StringBuilder) {
+        builder.append("Unresolved sort")
+    }
 }
 
-fun extractInt(expr: UExpr<out USort>): Int = (expr as? KBitVec32Value)?.intValue ?: 0
-fun extractDouble(expr: UExpr<out USort>): Double = (expr as? KFp64Value)?.value ?: 0.0
+fun UExpr<out USort>.extractBool(): Boolean = when (this) {
+    ctx.trueExpr -> true
+    ctx.falseExpr -> false
+    else -> error("Cannot extract boolean from $this")
+}
+
+fun extractInt(expr: UExpr<out USort>): Int =
+    (expr as? KBitVec32Value)?.intValue ?: error("Cannot extract int from $expr")
+
+fun extractDouble(expr: UExpr<out USort>): Double =
+    (expr as? KFp64Value)?.value ?: error("Cannot extract double from $expr")
