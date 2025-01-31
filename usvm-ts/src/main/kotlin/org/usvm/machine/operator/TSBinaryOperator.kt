@@ -5,6 +5,7 @@ import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import org.usvm.UAddressSort
 import org.usvm.UBoolSort
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.api.makeSymbolicPrimitive
@@ -113,6 +114,8 @@ sealed interface TSBinaryOperator {
 
                 when {
                     lhs.isFakeObject() && rhs.isFakeObject() -> {
+                        lhs as UConcreteHeapRef
+                        rhs as UConcreteHeapRef
                         val lhsType = memory.typeStreamOf(lhs).single() as FakeType
                         val rhsType = memory.typeStreamOf(rhs).single() as FakeType
 
@@ -166,6 +169,7 @@ sealed interface TSBinaryOperator {
                         // TODO: support objects
                     }
                     lhs.isFakeObject() -> {
+                        lhs as UConcreteHeapRef
                         val lhsType = memory.typeStreamOf(lhs).single() as FakeType
 
                         scope.assert(lhsType.mkExactlyOneTypeConstraint(ctx))
@@ -229,6 +233,7 @@ sealed interface TSBinaryOperator {
                         }
                     }
                     rhs.isFakeObject() -> {
+                        rhs as UConcreteHeapRef
                         val rhsType = memory.typeStreamOf(rhs).single() as FakeType
 
                         scope.assert(rhsType.mkExactlyOneTypeConstraint(ctx))

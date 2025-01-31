@@ -10,6 +10,7 @@ fun isTruthy(x: TSObject.TSNumber): Boolean {
     return isTruthy(x.number)
 }
 
+@Suppress("UNUSED_PARAMETER")
 fun isTruthy(x: TSObject.TSClass): Boolean {
     return true
 }

@@ -437,6 +437,7 @@ class TSExprResolver(
     }
 
     // TODO incorrect implementation
+    @Suppress("UNUSED_PARAMETER")
     private fun assertIsSubtype(expr: UExpr<out USort>, type: EtsType): Boolean {
         return true
     }

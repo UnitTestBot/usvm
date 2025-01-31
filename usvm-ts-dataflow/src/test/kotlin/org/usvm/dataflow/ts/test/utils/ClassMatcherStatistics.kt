@@ -76,6 +76,7 @@ class ClassMatcherStatistics {
         methodTypes[position] = type to fact
     }
 
+    @Suppress("UNUSED_PARAMETER")
     fun calculateStats(
         methodResults: MethodTypesFacts,
         types: MethodTypes?,
@@ -100,6 +101,7 @@ class ClassMatcherStatistics {
         )
     }
 
+    @Suppress("UNUSED_PARAMETER")
     private fun compareTypesWithExpected(
         facts: MethodTypesFacts,
         types: MethodTypes,
@@ -259,6 +261,7 @@ data class MethodTypes(
     val argumentsTypes: List<EtsType>,
     val returnType: EtsType,
 ) {
+    @Suppress("UNUSED_PARAMETER")
     fun matchesWithTypeFacts(other: MethodTypesFacts, ignoreReturnType: Boolean, scene: EtsScene): Boolean {
         if (thisType == null && other.combinedThisFact != null) return false
 

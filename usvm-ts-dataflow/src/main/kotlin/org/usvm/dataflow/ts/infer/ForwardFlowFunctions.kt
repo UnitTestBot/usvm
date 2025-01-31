@@ -359,7 +359,7 @@ class ForwardFlowFunctions(
             }
 
             check(rhv.accesses.size == 1)
-            when (val a = rhv.accesses.single()) {
+            when (rhv.accesses.single()) {
                 // x := y.f
                 is FieldAccessor -> {
                     // y.f.*:T |= y.f.*:T (keep) + x.*:T (same tail after .f)

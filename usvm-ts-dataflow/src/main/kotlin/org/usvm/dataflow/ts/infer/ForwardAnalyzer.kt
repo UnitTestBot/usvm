@@ -27,7 +27,7 @@ class ForwardAnalyzer(
 
     override fun handleNewEdge(edge: Edge<ForwardTypeDomainFact, EtsStmt>): List<AnalyzerEvent> {
         val (startVertex, currentVertex) = edge
-        val (current, currentFact) = currentVertex
+        val (current, _) = currentVertex
         val method = graph.methodOf(current)
         val currentIsExit = current in graph.exitPoints(method) ||
             (current is EtsNopStmt && graph.successors(current).none())

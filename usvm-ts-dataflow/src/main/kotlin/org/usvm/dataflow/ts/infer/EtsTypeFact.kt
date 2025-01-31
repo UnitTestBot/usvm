@@ -76,7 +76,7 @@ sealed interface EtsTypeFact {
         override fun toString(): String = "Array<$elementType>"
     }
 
-    @ConsistentCopyVisibility
+//    @ConsistentCopyVisibility
     data class ObjectEtsTypeFact private constructor(
         val cls: EtsType?,
         val properties: Map<String, EtsTypeFact>,

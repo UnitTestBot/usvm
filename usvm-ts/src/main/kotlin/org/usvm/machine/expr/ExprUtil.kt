@@ -3,6 +3,7 @@ package org.usvm.machine.expr
 import io.ksmt.utils.asExpr
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.api.makeSymbolicPrimitive
@@ -15,6 +16,7 @@ import org.usvm.types.single
 
 fun TSContext.mkTruthyExpr(expr: UExpr<out USort>, scope: TSStepScope): UBoolExpr = scope.calcOnState {
     if (expr.isFakeObject()) {
+        expr as UConcreteHeapRef
         val falseBranchGround = makeSymbolicPrimitive(boolSort)
 
         val conjuncts = mutableListOf<ExprWithTypeConstraint<UBoolSort>>()

@@ -4,6 +4,7 @@ import org.jacodb.ets.dto.EtsFileDto
 import org.jacodb.ets.dto.toEtsFile
 import org.jacodb.ets.model.EtsFile
 import java.nio.file.Path
+import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.extension
 import kotlin.io.path.inputStream
 import kotlin.io.path.walk
@@ -44,6 +45,7 @@ fun loadEtsFile(path: Path): EtsFile {
  * val files: Sequence<EtsFile> = loadMultipleEtsFilesFromDirectory(Path("data"))
  * ```
  */
+@OptIn(ExperimentalPathApi::class)
 fun loadMultipleEtsFilesFromDirectory(dirPath: Path): Sequence<EtsFile> {
     return dirPath.walk().filter { it.extension == "json" }.map { loadEtsFile(it) }
 }

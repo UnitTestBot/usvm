@@ -16,6 +16,7 @@
 
 package org.usvm.dataflow.ts.test.utils
 
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
 import org.jacodb.api.common.CommonMethod

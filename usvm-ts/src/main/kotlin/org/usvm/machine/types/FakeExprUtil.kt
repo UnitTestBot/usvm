@@ -63,6 +63,7 @@ fun <T : USort> TSState.extractValue(
 ): Pair<UExpr<T>?, UBoolExpr> = with(ctx) {
     when {
         value.isFakeObject() -> {
+            value as UConcreteHeapRef
             val lValue = extractIntermediateLValue(value.address)
 
             val type = memory.typeStreamOf(value).single() as FakeType

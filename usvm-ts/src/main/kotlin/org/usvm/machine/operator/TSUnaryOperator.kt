@@ -22,6 +22,7 @@ sealed class TSUnaryOperator(
         desiredSort = { boolSort },
     )
 
+    @Suppress("UNUSED_PARAMETER")
     internal operator fun invoke(operand: UExpr<out USort>, scope: TSStepScope): UExpr<out USort> = with(operand.tctx) {
         TODO()
     }

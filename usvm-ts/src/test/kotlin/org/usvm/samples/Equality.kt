@@ -75,7 +75,7 @@ class Equality : TSMethodTestRunner() {
         val method = getMethod("Equality", "eqObjectWithObject")
         discoverProperties<TSObject.TSClass, TSObject.TSNumber>(
             method,
-            { a, r -> r.number == 1.0 },
+            { _, r -> r.number == 1.0 },
             invariants = arrayOf(
                 { _, r -> r.number != -1.0 },
                 { _, r -> r.number != 2.0 },
