@@ -23,9 +23,9 @@ import org.jacodb.ets.dsl.param
 import org.jacodb.ets.dsl.program
 import org.jacodb.ets.dsl.thisRef
 import org.jacodb.ets.dsl.toBlockCfg
-import org.jacodb.ets.graph.EtsBlockCfgBuilder
 import org.jacodb.ets.graph.EtsCfg
 import org.jacodb.ets.graph.linearize
+import org.jacodb.ets.graph.toEtsBlockCfg
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsMethodImpl
 import org.jacodb.ets.model.EtsMethodParameter
@@ -89,13 +89,7 @@ class And : TSMethodTestRunner() {
         val locals = mutableListOf<EtsLocal>()
         val method = EtsMethodImpl(
             signature = EtsMethodSignature(
-                enclosingClass = EtsClassSignature(
-                    name = "And",
-                    file = EtsFileSignature(
-                        projectName = "test",
-                        fileName = "And.ts",
-                    ),
-                ),
+                enclosingClass = classSignature,
                 name = "andOfBooleanAndBoolean",
                 parameters = listOf(
                     EtsMethodParameter(0, "a", EtsBooleanType),
@@ -106,7 +100,7 @@ class And : TSMethodTestRunner() {
             locals = locals,
         )
 
-        val etsBlockCfg = EtsBlockCfgBuilder(method).build(blockCfg)
+        val etsBlockCfg = blockCfg.toEtsBlockCfg(method)
         val etsCfg = etsBlockCfg.linearize()
         method._cfg = etsCfg
         locals += etsCfg.stmts
