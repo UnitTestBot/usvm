@@ -31,6 +31,14 @@ jobs:
         run: |
           ./gradlew :usvm-core:check :usvm-dataflow:check :usvm-util:check :usvm-sample-language:check
 
+      - name: Upload Gradle reports
+        if: (!cancelled())
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-reports-core
+          path: '**/build/reports/'
+          retention-days: 1
+
   ci-jvm:
     runs-on: ubuntu-24.04
     steps:
@@ -48,6 +56,14 @@ jobs:
 
       - name: Run JVM tests
         run: ./gradlew :usvm-jvm:check :usvm-jvm-dataflow:check :usvm-jvm-instrumentation:check
+
+      - name: Upload Gradle reports
+        if: (!cancelled())
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-reports-jvm
+          path: '**/build/reports/'
+          retention-days: 1
 
   ci-python:
     runs-on: ubuntu-24.04
@@ -76,6 +92,14 @@ jobs:
 
       - name: Run Python tests
         run: ./gradlew -PcpythonActivated=true :usvm-python:check
+
+      - name: Upload Gradle reports
+        if: (!cancelled())
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-reports-python
+          path: '**/build/reports/'
+          retention-days: 1
 
   ci-ts:
     runs-on: ubuntu-24.04
@@ -126,6 +150,14 @@ jobs:
 
       - name: Run TS tests
         run: ./gradlew :usvm-ts:check :usvm-ts-dataflow:check
+
+      - name: Upload Gradle reports
+        if: (!cancelled())
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-reports-ts
+          path: '**/build/reports/'
+          retention-days: 1
 
   lint:
     runs-on: ubuntu-latest
