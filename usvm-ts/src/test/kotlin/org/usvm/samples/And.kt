@@ -1,5 +1,6 @@
 package org.usvm.samples
 
+import org.jacodb.ets.base.DEFAULT_ARK_CLASS_NAME
 import org.jacodb.ets.base.EtsAndExpr
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsBooleanType
@@ -17,7 +18,6 @@ import org.jacodb.ets.base.EtsThis
 import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.graph.EtsCfg
 import org.jacodb.ets.model.EtsClassSignature
-import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsMethodImpl
 import org.jacodb.ets.model.EtsMethodParameter
 import org.jacodb.ets.model.EtsMethodSignature
@@ -35,13 +35,16 @@ fun EtsMethodParameter.toRef(): EtsParameterRef {
 }
 
 class And : TSMethodTestRunner() {
-    override val scene: EtsScene
-        get() = run {
-            val name = "And.ts"
-            val path = getResourcePath("/samples/$name")
-            val file = loadEtsFileAutoConvert(path)
-            EtsScene(listOf(file))
-        }
+
+    override val scene: EtsScene = run {
+        val name = "And.ts"
+        val path = getResourcePath("/samples/$name")
+        val file = loadEtsFileAutoConvert(path)
+        EtsScene(listOf(file))
+    }
+
+    private val classSignature: EtsClassSignature =
+        scene.projectFiles[0].classes.single { it.name != DEFAULT_ARK_CLASS_NAME }.signature
 
     @Test
     fun `test andOfBooleanAndBoolean`() {
@@ -72,25 +75,11 @@ class And : TSMethodTestRunner() {
         //   }
         //
 
-        val classSignature = EtsClassSignature(
-            name = "And",
-            file = EtsFileSignature(
-                projectName = "test",
-                fileName = "And.ts",
-            ),
-        )
         val methodParameters = listOf(
             EtsMethodParameter(0, "a", EtsNumberType),
             EtsMethodParameter(1, "b", EtsNumberType),
         )
-        val localA = methodParameters[0].let { param ->
-            EtsLocal(param.name, param.type)
-        }
-        val localB = methodParameters[1].let { param ->
-            EtsLocal(param.name, param.type)
-        }
-        val localThis = EtsLocal("this", EtsClassType(classSignature))
-        val locals = mutableListOf(localA, localB, localThis)
+        val locals = mutableListOf<EtsLocal>()
 
         val method = EtsMethodImpl(
             signature = EtsMethodSignature(
@@ -104,6 +93,14 @@ class And : TSMethodTestRunner() {
         val statements = mutableListOf<EtsStmt>()
         val successorMap = mutableMapOf<EtsStmt, List<EtsStmt>>()
         val loc = { EtsInstLocation(method, statements.size) }
+
+        val localA = methodParameters[0].let { param ->
+            EtsLocal(param.name, param.type)
+        }
+        val localB = methodParameters[1].let { param ->
+            EtsLocal(param.name, param.type)
+        }
+        val localThis = EtsLocal("this", EtsClassType(classSignature))
 
         val assA = EtsAssignStmt(loc(), localA, methodParameters[0].toRef()).also { statements += it }
         val assB = EtsAssignStmt(loc(), localB, methodParameters[1].toRef()).also { statements += it }
@@ -175,6 +172,10 @@ class And : TSMethodTestRunner() {
         successorMap[ret9] = emptyList()
 
         method._cfg = EtsCfg(statements, successorMap)
+        locals += method.cfg.stmts.filterIsInstance<EtsAssignStmt>().mapNotNull {
+            val left = it.lhv
+            if (left is EtsLocal) left else null
+        }
 
         discoverProperties<TSObject.TSNumber, TSObject.TSNumber, TSObject.TSNumber>(
             method = method,
@@ -204,25 +205,11 @@ class And : TSMethodTestRunner() {
         //   }
         //
 
-        val classSignature = EtsClassSignature(
-            name = "And",
-            file = EtsFileSignature(
-                projectName = "test",
-                fileName = "And.ts",
-            ),
-        )
         val methodParameters = listOf(
             EtsMethodParameter(0, "a", EtsBooleanType),
             EtsMethodParameter(1, "b", EtsNumberType),
         )
-        val localA = methodParameters[0].let { param ->
-            EtsLocal(param.name, param.type)
-        }
-        val localB = methodParameters[1].let { param ->
-            EtsLocal(param.name, param.type)
-        }
-        val localThis = EtsLocal("this", EtsClassType(classSignature))
-        val locals = mutableListOf(localA, localB, localThis)
+        val locals = mutableListOf<EtsLocal>()
 
         val method = EtsMethodImpl(
             signature = EtsMethodSignature(
@@ -236,6 +223,14 @@ class And : TSMethodTestRunner() {
         val statements = mutableListOf<EtsStmt>()
         val successorMap = mutableMapOf<EtsStmt, List<EtsStmt>>()
         val loc = { EtsInstLocation(method, statements.size) }
+
+        val localA = methodParameters[0].let { param ->
+            EtsLocal(param.name, param.type)
+        }
+        val localB = methodParameters[1].let { param ->
+            EtsLocal(param.name, param.type)
+        }
+        val localThis = EtsLocal("this", EtsClassType(classSignature))
 
         val assA = EtsAssignStmt(loc(), localA, methodParameters[0].toRef()).also { statements += it }
         val assB = EtsAssignStmt(loc(), localB, methodParameters[1].toRef()).also { statements += it }
@@ -283,6 +278,10 @@ class And : TSMethodTestRunner() {
         successorMap[ret6] = emptyList()
 
         method._cfg = EtsCfg(statements, successorMap)
+        locals += method.cfg.stmts.filterIsInstance<EtsAssignStmt>().mapNotNull {
+            val left = it.lhv
+            if (left is EtsLocal) left else null
+        }
 
         discoverProperties<TSObject.TSBoolean, TSObject.TSNumber, TSObject.TSNumber>(
             method = method,
@@ -309,25 +308,11 @@ class And : TSMethodTestRunner() {
         //   }
         //
 
-        val classSignature = EtsClassSignature(
-            name = "And",
-            file = EtsFileSignature(
-                projectName = "test",
-                fileName = "And.ts",
-            ),
-        )
         val methodParameters = listOf(
             EtsMethodParameter(0, "a", EtsNumberType),
             EtsMethodParameter(1, "b", EtsBooleanType),
         )
-        val localA = methodParameters[0].let { param ->
-            EtsLocal(param.name, param.type)
-        }
-        val localB = methodParameters[1].let { param ->
-            EtsLocal(param.name, param.type)
-        }
-        val localThis = EtsLocal("this", EtsClassType(classSignature))
-        val locals = mutableListOf(localA, localB, localThis)
+        val locals = mutableListOf<EtsLocal>()
 
         val method = EtsMethodImpl(
             signature = EtsMethodSignature(
@@ -341,6 +326,14 @@ class And : TSMethodTestRunner() {
         val statements = mutableListOf<EtsStmt>()
         val successorMap = mutableMapOf<EtsStmt, List<EtsStmt>>()
         val loc = { EtsInstLocation(method, statements.size) }
+
+        val localA = methodParameters[0].let { param ->
+            EtsLocal(param.name, param.type)
+        }
+        val localB = methodParameters[1].let { param ->
+            EtsLocal(param.name, param.type)
+        }
+        val localThis = EtsLocal("this", EtsClassType(classSignature))
 
         val assA = EtsAssignStmt(loc(), localA, methodParameters[0].toRef()).also { statements += it }
         val assB = EtsAssignStmt(loc(), localB, methodParameters[1].toRef()).also { statements += it }
@@ -388,6 +381,10 @@ class And : TSMethodTestRunner() {
         successorMap[ret6] = emptyList()
 
         method._cfg = EtsCfg(statements, successorMap)
+        locals += method.cfg.stmts.filterIsInstance<EtsAssignStmt>().mapNotNull {
+            val left = it.lhv
+            if (left is EtsLocal) left else null
+        }
 
         discoverProperties<TSObject.TSNumber, TSObject.TSBoolean, TSObject.TSNumber>(
             method = method,
