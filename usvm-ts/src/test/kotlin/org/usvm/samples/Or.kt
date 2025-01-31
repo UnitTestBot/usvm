@@ -21,8 +21,6 @@ import org.jacodb.ets.model.EtsMethodParameter
 import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
-import org.jacodb.ets.utils.toDot
-import org.jacodb.ets.utils.view
 import org.junit.jupiter.api.Test
 import org.usvm.api.TSObject
 import org.usvm.util.TSMethodTestRunner
@@ -116,7 +114,6 @@ class Or : TSMethodTestRunner() {
         }
         println("Program:\n${prog.toText()}")
         val blockCfg = prog.toBlockCfg()
-        // view(blockCfg.toDot())
 
         val locals = mutableListOf<EtsLocal>()
         val method = EtsMethodImpl(
@@ -134,7 +131,7 @@ class Or : TSMethodTestRunner() {
 
         val etsBlockCfg = blockCfg.toEtsBlockCfg(method)
         val etsCfg = etsBlockCfg.linearize()
-        view(etsCfg.toDot())
+
         method._cfg = etsCfg
         locals += etsCfg.stmts
             .filterIsInstance<EtsAssignStmt>()
