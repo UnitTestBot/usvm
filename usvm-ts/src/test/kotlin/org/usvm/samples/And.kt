@@ -16,7 +16,16 @@ import org.jacodb.ets.base.EtsReturnStmt
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsThis
 import org.jacodb.ets.base.EtsUnknownType
+import org.jacodb.ets.dsl.and
+import org.jacodb.ets.dsl.const
+import org.jacodb.ets.dsl.local
+import org.jacodb.ets.dsl.param
+import org.jacodb.ets.dsl.program
+import org.jacodb.ets.dsl.thisRef
+import org.jacodb.ets.dsl.toBlockCfg
+import org.jacodb.ets.graph.EtsBlockCfgBuilder
 import org.jacodb.ets.graph.EtsCfg
+import org.jacodb.ets.graph.linearize
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsMethodImpl
 import org.jacodb.ets.model.EtsMethodParameter
@@ -49,6 +58,68 @@ class And : TSMethodTestRunner() {
     @Test
     fun `test andOfBooleanAndBoolean`() {
         val method = getMethod("And", "andOfBooleanAndBoolean")
+        discoverProperties<TSObject.TSBoolean, TSObject.TSBoolean, TSObject.TSNumber>(
+            method = method,
+            { a, b, r -> a.value && b.value && r.number == 1.0 },
+            { a, b, r -> a.value && !b.value && r.number == 2.0 },
+            { a, b, r -> !a.value && b.value && r.number == 3.0 },
+            { a, b, r -> !a.value && !b.value && r.number == 4.0 },
+        )
+    }
+
+    @Test
+    fun `test andOfBooleanAndBoolean DSL`() {
+        val prog = program {
+            assign(local("a"), param(0))
+            assign(local("b"), param(1))
+            assign(local("this"), thisRef())
+            ifStmt(and(local("a"), local("b"))) {
+                ret(const(1.0))
+            }
+            ifStmt(local("a")) {
+                ret(const(2.0))
+            }
+            ifStmt(local("b")) {
+                ret(const(3.0))
+            }
+            ret(const(4.0))
+        }
+        val blockCfg = prog.toBlockCfg()
+
+        val locals = mutableListOf<EtsLocal>()
+        val method = EtsMethodImpl(
+            signature = EtsMethodSignature(
+                enclosingClass = EtsClassSignature(
+                    name = "And",
+                    file = EtsFileSignature(
+                        projectName = "test",
+                        fileName = "And.ts",
+                    ),
+                ),
+                name = "andOfBooleanAndBoolean",
+                parameters = listOf(
+                    EtsMethodParameter(0, "a", EtsBooleanType),
+                    EtsMethodParameter(1, "b", EtsBooleanType),
+                ),
+                returnType = EtsNumberType,
+            ),
+            locals = locals,
+        )
+
+        val etsBlockCfg = EtsBlockCfgBuilder(method).build(blockCfg)
+        val etsCfg = etsBlockCfg.linearize()
+        method._cfg = etsCfg
+        locals += etsCfg.stmts
+            .filterIsInstance<EtsAssignStmt>()
+            .mapNotNull {
+                val left = it.lhv
+                if (left is EtsLocal) {
+                    left
+                } else {
+                    null
+                }
+            }
+
         discoverProperties<TSObject.TSBoolean, TSObject.TSBoolean, TSObject.TSNumber>(
             method = method,
             { a, b, r -> a.value && b.value && r.number == 1.0 },
