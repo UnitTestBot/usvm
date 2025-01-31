@@ -30,7 +30,7 @@ import org.usvm.util.TSMethodTestRunner
 import org.usvm.util.getResourcePath
 import org.usvm.util.isTruthy
 
-fun EtsMethodParameter.toRef(): EtsParameterRef {
+private fun EtsMethodParameter.toRef(): EtsParameterRef {
     return EtsParameterRef(index, type)
 }
 
