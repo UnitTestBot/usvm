@@ -12,7 +12,6 @@ import kotlin.io.path.extension
 import kotlin.io.path.pathString
 import kotlin.system.measureTimeMillis
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
 
 class JacoDbTest {
     @TestFactory
@@ -55,20 +54,38 @@ class JacoDbTest {
         }
     }
 
+    @TestFactory
+    fun jacodbTestStdStrings(): Collection<DynamicTest> {
+        val packages = Files.list(Paths.get("out"))
+            .filter { p -> p.extension != "yaml" }
+            .map { Converter.unpack(Parser().deserialize(it.pathString)) }
+            .collect(Collectors.toList())
+        val program = GoProgram(packages)
+        val machine = GoMachine(program, options, customOptions)
+        val pkg = program.findPackage("strings")
+        return methods(pkg).filter { it.metName !in longMethods }.map {
+            DynamicTest.dynamicTest(it.metName) {
+                println(measureTimeMillis { println(machine.analyzeAndResolve(pkg, it.metName)) })
+            }
+        }
+    }
+
     private fun methods(pkg: GoPackage): List<GoMethod> = pkg.methods.filter { !it.metName.contains('$') }
 
     private val options: UMachineOptions = UMachineOptions(
         pathSelectionStrategies = listOf(PathSelectionStrategy.FORK_DEPTH),
         coverageZone = CoverageZone.TRANSITIVE,
         exceptionsPropagation = true,
-        timeout = 60_000.milliseconds,
+//        timeout = 5_000.milliseconds,
+        timeout = Duration.INFINITE, // for debug
         stepsFromLastCovered = 1000000L,
         solverTimeout = Duration.INFINITE, // we do not need the timeout for a solver in tests
         typeOperationsTimeout = Duration.INFINITE, // we do not need the timeout for type operations in tests
     )
 
     private val customOptions: GoMachineOptions = GoMachineOptions(
-        listOf("panicRecoverComplex")
+        failOnNotFullCoverage = false,
+        uncoveredMethods = listOf("panicRecoverComplex")
     )
 
     private val longMethods = arrayOf("loopInfinite", "loopInner", "loopCollatz", "mapLoopLen", "canVisitAllRooms")

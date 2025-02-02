@@ -191,9 +191,15 @@ func (p *Package) PackMember(in ssa.Member) Member {
 		}
 		common.Type = FunctionMember
 		common.Name = p.FunctionName(member)
+		start := 0
+		basicBlocks := make([]BasicBlock, len(member.Blocks))
+		for i, b := range member.Blocks {
+			basicBlocks[i] = p.PackBasicBlock(b, start)
+			start += len(b.Instrs)
+		}
 		return Function{
 			CommonMember: common,
-			BasicBlocks:  lo.Map(member.Blocks, p.PackBasicBlock),
+			BasicBlocks:  basicBlocks,
 			Parameters:   lo.Map(member.Params, p.PackParameter),
 			FreeVars:     lo.Map(member.FreeVars, func(v *ssa.FreeVar, _ int) Value { return p.PackValue(v) }),
 			ReturnTypes:  p.PackReturnTypes(member),
@@ -204,10 +210,14 @@ func (p *Package) PackMember(in ssa.Member) Member {
 	return nil
 }
 
-func (p *Package) PackBasicBlock(in *ssa.BasicBlock, _ int) BasicBlock {
+func (p *Package) PackBasicBlock(in *ssa.BasicBlock, start int) BasicBlock {
+	instructions := make([]Instruction, len(in.Instrs))
+	for i, inst := range in.Instrs {
+		instructions[i] = p.PackInstruction(inst, start+i)
+	}
 	return BasicBlock{
 		Index:        in.Index,
-		Instructions: lo.Map(in.Instrs, p.PackInstruction),
+		Instructions: instructions,
 		Prev:         lo.Map(in.Preds, func(b *ssa.BasicBlock, _ int) int { return b.Index }),
 		Next:         lo.Map(in.Succs, func(b *ssa.BasicBlock, _ int) int { return b.Index }),
 	}
@@ -239,11 +249,11 @@ func (p *Package) PackTypeTuple(in *types.Tuple) []string {
 	return returnTypes
 }
 
-func (p *Package) PackInstruction(in ssa.Instruction, _ int) Instruction {
+func (p *Package) PackInstruction(in ssa.Instruction, index int) Instruction {
 	common := CommonInstruction{
 		Name:  in.String(),
 		Block: in.Block().Index,
-		Line:  p.program.Fset.Position(in.Pos()).Line,
+		Line:  index,
 	}
 	if typed, ok := in.(Typed); ok {
 		p.AddType(typed.Type())

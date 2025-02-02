@@ -157,7 +157,11 @@ class GoMachine(
             println("Method ${method.metName} coverage: ${coverageStatistics.getMethodCoverage(method).roundToInt()}%")
         }
         if (coverageStatistics.getTotalCoverage().roundToInt() < 100 && !customOptions.uncoveredMethods.containsAll(methods.map { it.metName })) {
-            throw IllegalStateException("coverage not 100%")
+            if (customOptions.failOnNotFullCoverage) {
+                throw IllegalStateException("coverage not 100%")
+            } else {
+                logger.warn("analysis of methods ${methods.map { it.metName }} lead to coverage < 100%")
+            }
         }
 
         return statesCollector.collectedStates

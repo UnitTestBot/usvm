@@ -22,7 +22,6 @@ class GoMethodInfo(
 class GoCall(
     val method: GoMethod,
     val entrypoint: GoInst,
-    val parameters: Array<UExpr<out USort>>
 )
 
 class GoPackage(

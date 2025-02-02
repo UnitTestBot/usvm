@@ -26,6 +26,7 @@ import org.usvm.USort
 import org.usvm.UState
 import org.usvm.api.allocateArray
 import org.usvm.api.allocateArrayInitialized
+import org.usvm.api.writeArrayLength
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.constraints.UPathConstraints
@@ -206,10 +207,29 @@ class GoState(
                 call.method.freeVars.forEach { variable -> it.add(findParam(variable)) }
             }
         }
+        val parameters = mutableListOf<GoParameter>().also {
+            if (call.method is GoFunction) {
+                it.addAll(call.method.parameters)
+            }
+        }
 
         data.flowStack.add(GoFlowStatus.NORMAL)
         callStack.push(call.method, returnInst)
-        memory.stack.push(call.parameters, methodInfo.variablesCount)
+        memory.stack.push(methodInfo.argumentsCount, methodInfo.variablesCount)
+
+        parameters.forEachIndexed { i, parameter ->
+            when(val type = parameter.type) {
+                is ArrayType -> {
+                    val ref = memory.read(URegisterStackLValue(addressSort, i)).asExpr(addressSort)
+                    memory.writeArrayLength(ref, mkSizeExpr(type.len.toInt()), type, sizeSort)
+                }
+                is PointerType -> {
+                    val baseType = type.baseType
+                    val lvalue = URegisterStackLValue(pointerSort, i)
+                    memory.write(lvalue, mkPointer(baseType).asExpr(pointerSort), trueExpr)
+                }
+            }
+        }
 
         freeVariables.forEachIndexed { i, variable ->
             val lvalue = URegisterStackLValue(variable.sort, i + freeVariableOffset(call.method))
@@ -257,7 +277,7 @@ class GoState(
         }
     }
 
-    private fun sampleValue(type: GoType): UExpr<out USort> = when (type) {
+    fun sampleValue(type: GoType): UExpr<out USort> = when (type) {
         is ArrayType -> memory.allocateArray(type, ctx.sizeSort, ctx.mkSizeExpr(type.len.toInt()))
         is BasicType -> ctx.typeToSort(type).sampleUValue()
         else -> memory.allocConcrete(type)

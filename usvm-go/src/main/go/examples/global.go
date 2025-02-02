@@ -12,3 +12,14 @@ func globalSimple(a int) int {
 	}
 	return globalIntVar
 }
+
+var globalArray [256]int
+
+func globalArraySimple(i int) int {
+	if i > 255 || i < 0 {
+		return -1
+	}
+
+	globalArray[i] = 5
+	return globalArray[i]
+}

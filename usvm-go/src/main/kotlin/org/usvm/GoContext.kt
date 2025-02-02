@@ -25,6 +25,8 @@ class GoContext(
 
     val noValue = mkConst("nothing", voidSort)
 
+    val nullPointer = UAddressPointer(this, NULL_ADDRESS)
+
     private val methodInfo: MutableMap<GoMethod, GoMethodInfo> = hashMapOf()
     private val globals: MutableMap<GoGlobal, UExpr<out USort>> = hashMapOf()
 

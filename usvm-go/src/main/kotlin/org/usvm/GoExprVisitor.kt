@@ -190,7 +190,7 @@ class GoExprVisitor(
             else -> throw UnknownFunctionException(func.toString())
         }
         val parameters = args.map { it.accept(this) }.toTypedArray()
-        val call = GoCall(method, applicationGraph.entryPoints(method).first(), parameters)
+        val call = GoCall(method, applicationGraph.entryPoints(method).first())
         ctx.setMethodInfo(method, parameters)
 
         scope.doWithState {
@@ -773,7 +773,6 @@ class GoExprVisitor(
 
     private fun <Sort : USort> deref(expr: UExpr<out USort>, sort: Sort): UExpr<Sort> = with(ctx) {
         val pointer = expr.asExpr(pointerSort) as UAddressPointer
-
         return scope.calcOnState {
             memory.read(pointerLValue(pointer, sort))
         }

@@ -1,12 +1,13 @@
 package org.usvm.interpreter
 
 import mu.KLogging
-import org.jacodb.go.api.GoAssignInst
+import org.jacodb.go.api.ArrayType
 import org.jacodb.go.api.GoFunction
 import org.jacodb.go.api.GoInst
 import org.jacodb.go.api.GoMethod
 import org.jacodb.go.api.GoNullInst
 import org.jacodb.go.api.GoType
+import org.jacodb.go.api.PointerType
 import org.usvm.GoCall
 import org.usvm.GoContext
 import org.usvm.GoExprVisitor
@@ -17,8 +18,11 @@ import org.usvm.INIT_FUNCTION
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UInterpreter
+import org.usvm.api.allocateArray
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.forkblacklists.UForkBlackList
+import org.usvm.mkSizeExpr
+import org.usvm.sizeSort
 import org.usvm.solver.USatResult
 import org.usvm.state.GoFlowStatus
 import org.usvm.state.GoState
@@ -41,23 +45,22 @@ class GoInterpreter(
         val model = (solver.check(state.pathConstraints) as USatResult).model
         state.models = listOf(model)
 
-        val entrypoint = method.blocks[0].instructions[0]
-        val localsCount = method.blocks.flatMap { it.instructions }.filterIsInstance<GoAssignInst>().size
-        val argumentsCount = method.parameters.size
-
-        setMethodInfo(method)
         for (global in program.globals) {
-            addGlobal(global, state.mkPointer(global.type))
+            val type = (global.type as PointerType).baseType
+            val expr = when (type) {
+                is ArrayType -> state.memory.allocateArray(type, sizeSort, mkSizeExpr(type.len.toInt()))
+                else -> state.sampleValue(type)
+            }
+            addGlobal(global, state.mkPointer(type, expr))
         }
 
-        state.callStack.push(method, returnSite = null)
-        state.memory.stack.push(argumentsCount, localsCount)
-        state.data.flowStack.add(GoFlowStatus.NORMAL)
-
+        val entrypoint = method.blocks[0].instructions[0]
         val init = program.findMethod(method.packageName, INIT_FUNCTION)
+        setMethodInfo(method)
         setMethodInfo(init)
 
-        state.addCall(GoCall(init, applicationGraph.entryPoints(init).first(), emptyArray()), entrypoint)
+        state.addCall(GoCall(method, entrypoint))
+        state.addCall(GoCall(init, applicationGraph.entryPoints(init).first()), entrypoint)
         return state
     }
 

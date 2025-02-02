@@ -98,7 +98,7 @@ class GoInstVisitor(
         val method = program.findMethod(inst.location, name)
 
         val parameters = inst.args.map { it.accept(exprVisitor) }.toTypedArray()
-        val call = GoCall(method, applicationGraph.entryPoints(method).first(), parameters)
+        val call = GoCall(method, applicationGraph.entryPoints(method).first())
         ctx.setMethodInfo(method, parameters)
 
         scope.doWithState {
