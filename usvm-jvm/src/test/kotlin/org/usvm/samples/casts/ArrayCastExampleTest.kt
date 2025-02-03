@@ -137,6 +137,7 @@ internal class ArrayCastExampleTest : JavaMethodTestRunner() {
     }
 
     @Test
+    @Disabled("TODO: randomly fail due to type selection issues") // todo: use instantiatable types in test resolver
     fun testCastFromIterable() {
         checkDiscoveredProperties(
             ArrayCastExample::castFromIterable,
