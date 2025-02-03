@@ -1,7 +1,6 @@
 package org.usvm.samples
 
 import org.jacodb.ets.base.DEFAULT_ARK_CLASS_NAME
-import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsLocal
 import org.jacodb.ets.base.EtsNumberType
 import org.jacodb.ets.dsl.const
@@ -20,6 +19,7 @@ import org.jacodb.ets.model.EtsMethodImpl
 import org.jacodb.ets.model.EtsMethodParameter
 import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.utils.getLocals
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Test
 import org.usvm.api.TSObject
@@ -133,16 +133,8 @@ class Or : TSMethodTestRunner() {
         val etsCfg = etsBlockCfg.linearize()
 
         method._cfg = etsCfg
-        locals += etsCfg.stmts
-            .filterIsInstance<EtsAssignStmt>()
-            .mapNotNull {
-                val left = it.lhv
-                if (left is EtsLocal) {
-                    left
-                } else {
-                    null
-                }
-            }
+        locals.clear()
+        locals += method.getLocals()
 
         discoverProperties<TSObject.TSNumber, TSObject.TSNumber, TSObject.TSNumber>(
             method = method,
