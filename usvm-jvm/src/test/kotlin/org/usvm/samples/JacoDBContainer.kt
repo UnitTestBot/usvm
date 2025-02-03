@@ -3,8 +3,8 @@ package org.usvm.samples
 import kotlinx.coroutines.runBlocking
 import org.jacodb.api.jvm.JcClasspath
 import org.jacodb.api.jvm.JcDatabase
+import org.jacodb.api.jvm.JcSettings
 import org.jacodb.approximation.Approximations
-import org.jacodb.impl.JcSettings
 import org.jacodb.impl.features.InMemoryHierarchy
 import org.jacodb.impl.jacodb
 import org.usvm.machine.interpreter.transformers.JcMultiDimArrayAllocationTransformer

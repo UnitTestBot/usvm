@@ -24,6 +24,7 @@ import org.jacodb.api.jvm.JcMethod
 import org.jacodb.api.jvm.cfg.JcInst
 import org.jacodb.api.jvm.ext.findClass
 import org.jacodb.api.jvm.ext.methods
+import org.jacodb.impl.JcRamErsSettings
 import org.jacodb.impl.features.Builders
 import org.jacodb.impl.features.InMemoryHierarchy
 import org.jacodb.impl.features.Usages
@@ -57,6 +58,7 @@ abstract class BaseAnalysisTest(
 
     val db: JcDatabase = runBlocking {
         jacodb {
+            persistenceImpl(JcRamErsSettings)
             loadByteCode(allClasspath)
             useProcessJavaRuntime()
             keepLocalVariableNames()
