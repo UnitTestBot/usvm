@@ -36,7 +36,7 @@ import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.state.returnValue
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.targets.UTargetsSet
-import org.usvm.utils.assertSat
+import org.usvm.utils.ensureSat
 
 private val logger = KotlinLogging.logger {}
 
@@ -199,7 +199,7 @@ class TSInterpreter(
         )
 
         val solver = ctx.solver<EtsType>()
-        val model = solver.check(state.pathConstraints).assertSat().model
+        val model = solver.check(state.pathConstraints).ensureSat().model
         state.models = listOf(model)
 
         state.callStack.push(method, returnSite = null)

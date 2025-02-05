@@ -21,7 +21,7 @@ import org.usvm.memory.UReadOnlyMemory
 import org.usvm.model.ULazyModelDecoder
 import org.usvm.sizeSort
 import org.usvm.types.single.SingleTypeSystem
-import org.usvm.utils.assertSat
+import org.usvm.utils.ensureSat
 import kotlin.test.assertSame
 import kotlin.time.Duration.Companion.INFINITE
 
@@ -66,7 +66,7 @@ open class SoftConstraintsTest {
         pc += expr
 
         val softConstraints = softConstraintsProvider.makeSoftConstraints(pc)
-        val result = solver.checkWithSoftConstraints(pc, softConstraints).assertSat()
+        val result = solver.checkWithSoftConstraints(pc, softConstraints).ensureSat()
         val model = result.model
 
         val fstRegisterValue = model.eval(fstRegister)
@@ -100,7 +100,7 @@ open class SoftConstraintsTest {
             USolverBase(ctx, KZ3Solver(ctx), typeSolver, translator, decoder, timeout = INFINITE)
 
         val softConstraints = softConstraintsProvider.makeSoftConstraints(pc)
-        val result = solver.checkWithSoftConstraints(pc, softConstraints).assertSat()
+        val result = solver.checkWithSoftConstraints(pc, softConstraints).ensureSat()
         val model = result.model
 
         verify(exactly = 1) {
@@ -145,7 +145,7 @@ open class SoftConstraintsTest {
         pc += (inputRef eq nullRef).not()
 
         val softConstraints = softConstraintsProvider.makeSoftConstraints(pc)
-        val result = solver.checkWithSoftConstraints(pc, softConstraints).assertSat()
+        val result = solver.checkWithSoftConstraints(pc, softConstraints).ensureSat()
 
         val model = result.model
         val value = model.eval(mkInputArrayLengthReading(region, inputRef))
@@ -165,7 +165,7 @@ open class SoftConstraintsTest {
         pc += (inputRef eq nullRef).not()
 
         val softConstraints = softConstraintsProvider.makeSoftConstraints(pc)
-        val result = solver.checkWithSoftConstraints(pc, softConstraints).assertSat()
+        val result = solver.checkWithSoftConstraints(pc, softConstraints).ensureSat()
 
         val model = result.model
         val value = model.eval(mkInputArrayLengthReading(region, inputRef))
@@ -183,7 +183,7 @@ open class SoftConstraintsTest {
         pc += expression
 
         val softConstraints = softConstraintsProvider.makeSoftConstraints(pc)
-        val result = solver.checkWithSoftConstraints(pc, softConstraints).assertSat()
+        val result = solver.checkWithSoftConstraints(pc, softConstraints).ensureSat()
 
         val model = result.model
         model.eval(expression)

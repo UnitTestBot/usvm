@@ -79,7 +79,7 @@ import org.usvm.types.singleOrNull
 import org.usvm.util.name
 import org.usvm.util.outerClassInstanceField
 import org.usvm.util.write
-import org.usvm.utils.assertSat
+import org.usvm.utils.ensureSat
 import org.usvm.utils.logAssertFailure
 import org.usvm.utils.onStateDeath
 
@@ -140,7 +140,7 @@ class JcInterpreter(
 
         val solver = ctx.solver<JcType>()
 
-        val model = solver.check(state.pathConstraints).assertSat().model
+        val model = solver.check(state.pathConstraints).ensureSat().model
         state.models = listOf(model)
 
         val entrypointInst = JcMethodEntrypointInst(method, entrypointArguments)
