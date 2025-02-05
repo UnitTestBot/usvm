@@ -11,6 +11,7 @@ import org.usvm.isFalse
 import org.usvm.isTrue
 import org.usvm.model.UModelBase
 import org.usvm.model.UModelDecoder
+import org.usvm.utils.assertSat
 import kotlin.time.Duration
 
 sealed interface USolverResult<out T>
@@ -149,7 +150,7 @@ open class USolverBase<Type>(
     }
 
     fun emptyModel(): UModelBase<Type> =
-        (check(UPathConstraints(ctx, ctx.defaultOwnership)) as USatResult<UModelBase<Type>>).model
+        check(UPathConstraints(ctx, ctx.defaultOwnership)).assertSat().model
 
     override fun close() {
         smtSolver.close()

@@ -74,12 +74,12 @@ import org.usvm.machine.state.throwExceptionAndDropStackFrame
 import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
 import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
-import org.usvm.solver.USatResult
 import org.usvm.targets.UTargetsSet
 import org.usvm.types.singleOrNull
 import org.usvm.util.name
 import org.usvm.util.outerClassInstanceField
 import org.usvm.util.write
+import org.usvm.utils.assertSat
 import org.usvm.utils.logAssertFailure
 import org.usvm.utils.onStateDeath
 
@@ -140,7 +140,7 @@ class JcInterpreter(
 
         val solver = ctx.solver<JcType>()
 
-        val model = (solver.check(state.pathConstraints) as USatResult).model
+        val model = solver.check(state.pathConstraints).assertSat().model
         state.models = listOf(model)
 
         val entrypointInst = JcMethodEntrypointInst(method, entrypointArguments)
