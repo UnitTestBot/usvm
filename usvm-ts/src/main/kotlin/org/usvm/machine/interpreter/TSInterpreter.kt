@@ -89,16 +89,12 @@ class TSInterpreter(
 
     private fun visitIfStmt(scope: TSStepScope, stmt: EtsIfStmt) {
         val exprResolver = exprResolverWithScope(scope)
+        val expr = exprResolver.resolve(stmt.condition) ?: return
 
-        val conditionExpr = exprResolver.resolve(stmt.condition) ?: run {
-            logger.warn { "Failed to resolve condition: $stmt" }
-            return
-        }
-
-        val boolExpr = if (conditionExpr.sort == ctx.boolSort) {
-            conditionExpr.asExpr(ctx.boolSort)
+        val boolExpr = if (expr.sort == ctx.boolSort) {
+            expr.asExpr(ctx.boolSort)
         } else {
-            ctx.mkTruthyExpr(conditionExpr, scope)
+            ctx.mkTruthyExpr(expr, scope)
         }
 
         val (negStmt, posStmt) = applicationGraph.successors(stmt).take(2).toList()
@@ -126,12 +122,7 @@ class TSInterpreter(
 
     private fun visitAssignStmt(scope: TSStepScope, stmt: EtsAssignStmt) {
         val exprResolver = exprResolverWithScope(scope)
-        val expr = exprResolver.resolve(stmt.rhv)
-
-        if (expr == null) {
-            logger.warn { "Failed to resolve expression: $stmt" }
-            return
-        }
+        val expr = exprResolver.resolve(stmt.rhv) ?: return
 
         check(expr.sort != ctx.unresolvedSort) {
             "A value of the unresolved sort should never be returned from `resolve` function"
@@ -154,22 +145,6 @@ class TSInterpreter(
 
         val exprResolver = exprResolverWithScope(scope)
         exprResolver.resolve(stmt.expr) ?: return
-
-        val methodResult = scope.calcOnState { methodResult }
-        when (methodResult) {
-            TSMethodResult.NoCall -> {
-                // TODO: observer...
-            }
-
-            is TSMethodResult.Success -> {
-                // TODO: observer.onCallStatement
-            }
-
-            is TSMethodResult.TSException -> {
-                error("Exceptions must be processed earlier: $methodResult")
-            }
-        }
-
 
         scope.doWithState {
             val nextStmt = stmt.nextStmt ?: return@doWithState

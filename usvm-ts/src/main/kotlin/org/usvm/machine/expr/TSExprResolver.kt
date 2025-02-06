@@ -240,19 +240,14 @@ class TSExprResolver(
         argumentTypes: () -> List<EtsType>,
         onNoCallPresent: TSStepScope.(List<UExpr<out USort>>) -> Unit,
     ): UExpr<out USort>? {
-        val instanceRef = if (instance != null) {
-            val resolved = resolve(instance)
-            if (resolved == null) {
-                logger.warn { "Failed to resolve instance: $instance" }
-                return null
-            }
+        val instanceExpr = if (instance != null) {
+            val resolved = resolve(instance) ?: return null
             resolved.asExpr(ctx.addressSort)
         } else {
             null
         }
 
         val args = mutableListOf<UExpr<out USort>>()
-
 
         for (arg in arguments()) {
             val resolved = resolve(arg)
@@ -263,13 +258,13 @@ class TSExprResolver(
             args += resolved
         }
 
-        if (instanceRef != null) {
+        // Note: currently, 'this' has index 'n', so we must add it LAST.
+        // See `TSInterpreter::mapLocalToIdx`.
+        if (instanceExpr != null) {
             // TODO: checkNullPointer(instanceRef) ?: return null
-
-            // Ensure instance is subtype of method class
             // TODO: if (!assertIsSubtype(instanceRef, method.enclosingType)) return null
 
-            args += instanceRef
+            args += instanceExpr
         }
 
         return resolveInvokeNoStaticInitializationCheck { onNoCallPresent(args) }
