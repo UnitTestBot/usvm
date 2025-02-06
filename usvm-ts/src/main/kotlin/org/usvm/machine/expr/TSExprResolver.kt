@@ -80,6 +80,8 @@ import org.usvm.machine.interpreter.TSStepScope
 import org.usvm.machine.operator.TSBinaryOperator
 import org.usvm.machine.operator.TSUnaryOperator
 import org.usvm.machine.state.TSMethodResult
+import org.usvm.machine.state.localsCount
+import org.usvm.machine.state.newStmt
 import org.usvm.machine.types.FakeType
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.memory.ULValue
@@ -200,7 +202,17 @@ class TSExprResolver(
             arguments = { expr.args },
             argumentTypes = { expr.method.parameters.map { it.type } },
         ) { args ->
-            // TODO
+            doWithState {
+                val method = ctx.scene
+                    .projectAndSdkClasses
+                    .flatMap { it.methods }
+                    .singleOrNull { it.signature == expr.method }
+                    ?: error("Couldn't find a unique method with the signature ${expr.method}")
+                callStack.push(method, currentStatement)
+                memory.stack.push(args.toTypedArray(), method.localsCount)
+                newStmt(method.cfg.stmts.first())
+                let {}
+            }
         }
     }
 
