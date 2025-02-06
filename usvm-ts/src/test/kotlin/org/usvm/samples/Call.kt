@@ -32,4 +32,24 @@ class Call : TSMethodTestRunner() {
             )
         )
     }
+
+    @Test
+    fun `test fib`() {
+        val method = getMethod("Call", "fib")
+        discoverProperties<TSObject.TSNumber, TSObject.TSNumber>(
+            method = method,
+            { n, r -> n.number < 0.0 && r.number == -1.0 },
+            { n, r -> n.number == 0.0 && r.number == 1.0 },
+            { n, r -> n.number == 1.0 && r.number == 1.0 },
+            { n, r -> n.number != 0.0 && n.number != 1.0 && fib(n.number) == r.number },
+        )
+    }
+}
+
+fun fib(n: Double): Double {
+    if (n < 0) return -1.0
+    if (n == 0.0) return 1.0
+    if (n == 1.0) return 1.0
+
+    return fib(n - 1.0) + fib(n - 2.0)
 }

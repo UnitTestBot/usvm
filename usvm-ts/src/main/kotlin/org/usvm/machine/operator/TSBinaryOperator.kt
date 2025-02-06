@@ -561,4 +561,88 @@ sealed interface TSBinaryOperator {
         }
     }
 
+    data object Lt : TSBinaryOperator {
+        override fun TSContext.onBool(
+            lhs: UExpr<UBoolSort>,
+            rhs: UExpr<UBoolSort>,
+            scope: TSStepScope,
+        ): UExpr<out USort> = with(lhs.tctx) {
+            return mkAnd(lhs.not(), rhs)
+        }
+
+        override fun TSContext.onFp(
+            lhs: UExpr<KFp64Sort>,
+            rhs: UExpr<KFp64Sort>,
+            scope: TSStepScope,
+        ): UExpr<out USort> {
+            return mkFpLessExpr(lhs.asExpr(fp64Sort), rhs.asExpr(fp64Sort))
+        }
+
+        override fun TSContext.onRef(
+            lhs: UExpr<UAddressSort>,
+            rhs: UExpr<UAddressSort>,
+            scope: TSStepScope,
+        ): UExpr<out USort> {
+            TODO("Not yet implemented")
+        }
+
+        override fun resolveFakeObject(
+            lhs: UExpr<out USort>,
+            rhs: UExpr<out USort>,
+            scope: TSStepScope,
+        ): UExpr<out USort> {
+            TODO("Not yet implemented")
+        }
+
+        override fun internalResolve(
+            lhs: UExpr<out USort>,
+            rhs: UExpr<out USort>,
+            scope: TSStepScope,
+        ): UExpr<out USort> {
+            TODO("Not yet implemented")
+        }
+    }
+
+    data object Sub : TSBinaryOperator {
+        override fun TSContext.onBool(
+            lhs: UExpr<UBoolSort>,
+            rhs: UExpr<UBoolSort>,
+            scope: TSStepScope,
+        ): UExpr<out USort> {
+            return mkFpSubExpr(fpRoundingModeSortDefaultValue(), boolToFp(lhs), boolToFp(rhs))
+        }
+
+        override fun TSContext.onFp(
+            lhs: UExpr<KFp64Sort>,
+            rhs: UExpr<KFp64Sort>,
+            scope: TSStepScope,
+        ): UExpr<out USort> {
+            return mkFpSubExpr(fpRoundingModeSortDefaultValue(), lhs, rhs)
+        }
+
+        override fun TSContext.onRef(
+            lhs: UExpr<UAddressSort>,
+            rhs: UExpr<UAddressSort>,
+            scope: TSStepScope,
+        ): UExpr<out USort> {
+            TODO("Not yet implemented")
+        }
+
+        override fun resolveFakeObject(
+            lhs: UExpr<out USort>,
+            rhs: UExpr<out USort>,
+            scope: TSStepScope,
+        ): UExpr<out USort> {
+            TODO("Not yet implemented")
+        }
+
+        override fun internalResolve(
+            lhs: UExpr<out USort>,
+            rhs: UExpr<out USort>,
+            scope: TSStepScope,
+        ): UExpr<out USort> {
+            TODO("Not yet implemented")
+        }
+
+    }
 }

@@ -223,6 +223,7 @@ class TSExprResolver(
             arguments = { expr.args },
             argumentTypes = { expr.method.parameters.map { it.type } },
         ) { args ->
+            error("Unsupported static methods")
             // TODO
         }
     }
@@ -252,14 +253,6 @@ class TSExprResolver(
 
         val args = mutableListOf<UExpr<out USort>>()
 
-        if (instanceRef != null) {
-            // TODO: checkNullPointer(instanceRef) ?: return null
-
-            // Ensure instance is subtype of method class
-            // TODO: if (!assertIsSubtype(instanceRef, method.enclosingType)) return null
-
-            args += instanceRef
-        }
 
         for (arg in arguments()) {
             val resolved = resolve(arg)
@@ -268,6 +261,15 @@ class TSExprResolver(
                 return null
             }
             args += resolved
+        }
+
+        if (instanceRef != null) {
+            // TODO: checkNullPointer(instanceRef) ?: return null
+
+            // Ensure instance is subtype of method class
+            // TODO: if (!assertIsSubtype(instanceRef, method.enclosingType)) return null
+
+            args += instanceRef
         }
 
         return resolveInvokeNoStaticInitializationCheck { onNoCallPresent(args) }
@@ -388,8 +390,7 @@ class TSExprResolver(
     }
 
     override fun visit(expr: EtsLtExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+        return resolveBinaryOperator(TSBinaryOperator.Lt, expr)
     }
 
     override fun visit(expr: EtsMulExpr): UExpr<out USort>? {
@@ -416,9 +417,8 @@ class TSExprResolver(
         error("Not supported $expr")
     }
 
-    override fun visit(expr: EtsNewExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsNewExpr): UExpr<out USort>? = scope.calcOnState {
+        memory.allocConcrete(expr.type)
     }
 
     override fun visit(expr: EtsNullishCoalescingExpr): UExpr<out USort>? {
@@ -467,8 +467,7 @@ class TSExprResolver(
     }
 
     override fun visit(expr: EtsSubExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+        return resolveBinaryOperator(TSBinaryOperator.Sub, expr)
     }
 
     override fun visit(expr: EtsTernaryExpr): UExpr<out USort>? {
