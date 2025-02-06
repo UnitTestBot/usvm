@@ -126,8 +126,12 @@ class TSInterpreter(
 
     private fun visitAssignStmt(scope: TSStepScope, stmt: EtsAssignStmt) {
         val exprResolver = exprResolverWithScope(scope)
+        val expr = exprResolver.resolve(stmt.rhv)
 
-        val expr = exprResolver.resolve(stmt.rhv) ?: return
+        if (expr == null) {
+            logger.warn { "Failed to resolve expression: $stmt" }
+            return
+        }
 
         check(expr.sort != ctx.unresolvedSort) {
             "A value of the unresolved sort should never be returned from `resolve` function"
@@ -146,7 +150,31 @@ class TSInterpreter(
     }
 
     private fun visitCallStmt(scope: TSStepScope, stmt: EtsCallStmt) {
-        TODO() // IMPORTANT do not forget to fill sorts of arguments map
+        // IMPORTANT do not forget to fill sorts of arguments map
+
+        val exprResolver = exprResolverWithScope(scope)
+        exprResolver.resolve(stmt.expr) ?: return
+
+        val methodResult = scope.calcOnState { methodResult }
+        when (methodResult) {
+            TSMethodResult.NoCall -> {
+                // TODO: observer...
+            }
+
+            is TSMethodResult.Success -> {
+                // TODO: observer.onCallStatement
+            }
+
+            is TSMethodResult.TSException -> {
+                error("Exceptions must be processed earlier: $methodResult")
+            }
+        }
+
+
+        scope.doWithState {
+            val nextStmt = stmt.nextStmt ?: return@doWithState
+            newStmt(nextStmt)
+        }
     }
 
     private fun visitThrowStmt(scope: TSStepScope, stmt: EtsThrowStmt) {

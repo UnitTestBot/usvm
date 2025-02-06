@@ -9,7 +9,7 @@ import org.usvm.USort
 /**
  * Represents a result of a method invocation.
  */
-interface TSMethodResult {
+sealed interface TSMethodResult {
     /**
      * No call was performed.
      */
