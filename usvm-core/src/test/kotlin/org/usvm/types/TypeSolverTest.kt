@@ -51,6 +51,7 @@ import org.usvm.types.system.interfaceBC1
 import org.usvm.types.system.interfaceBC2
 import org.usvm.types.system.testTypeSystem
 import org.usvm.types.system.top
+import org.usvm.utils.ensureSat
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
@@ -92,7 +93,7 @@ class TypeSolverTest {
         val ref = mkRegisterReading(0, addressSort)
         pc += mkIsSubtypeExpr(ref, base1)
         pc += mkHeapRefEq(ref, nullRef).not()
-        val model = (solver.check(pc) as USatResult<UModelBase<TestType>>).model
+        val model = solver.check(pc).ensureSat().model
         val concreteRef = assertIs<UConcreteHeapRef>(model.eval(ref))
         val types = model.typeStreamOf(concreteRef)
         types.take100AndAssertEqualsToSetOf(base1, derived1A, derived1B)
@@ -103,7 +104,7 @@ class TypeSolverTest {
         val ref = mkRegisterReading(0, addressSort)
         pc += mkIsSubtypeExpr(ref, interface1)
         pc += mkHeapRefEq(ref, nullRef).not()
-        val model = (solver.check(pc) as USatResult<UModelBase<TestType>>).model
+        val model = solver.check(pc).ensureSat().model
         val concreteRef = assertIs<UConcreteHeapRef>(model.eval(ref))
         val types = model.typeStreamOf(concreteRef)
         types.take100AndAssertEqualsToSetOf(derived1A, derivedMulti, derivedMultiInterfaces)
