@@ -211,7 +211,6 @@ class TSExprResolver(
                 callStack.push(method, currentStatement)
                 memory.stack.push(args.toTypedArray(), method.localsCount)
                 newStmt(method.cfg.stmts.first())
-                let {}
             }
         }
     }
