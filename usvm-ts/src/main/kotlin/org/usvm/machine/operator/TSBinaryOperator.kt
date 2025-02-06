@@ -560,5 +560,4 @@ sealed interface TSBinaryOperator {
             }
         }
     }
-
 }
