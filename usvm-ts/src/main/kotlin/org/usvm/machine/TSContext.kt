@@ -5,6 +5,7 @@ import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsNumberType
 import org.jacodb.ets.base.EtsRefType
 import org.jacodb.ets.base.EtsType
+import org.jacodb.ets.base.EtsUndefinedType
 import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.model.EtsScene
 import org.usvm.UAddressSort
@@ -40,6 +41,7 @@ class TSContext(
         is EtsBooleanType -> boolSort
         is EtsNumberType -> fp64Sort
         is EtsRefType -> addressSort
+        is EtsUndefinedType -> addressSort
         is EtsUnknownType -> unresolvedSort
         else -> TODO("Support all JacoDB types, encountered $type")
     }
