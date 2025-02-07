@@ -170,6 +170,10 @@ class TSExprResolver(
         return resolveBinaryOperator(TSBinaryOperator.And, expr)
     }
 
+    override fun visit(expr: EtsOrExpr): UExpr<out USort>? {
+        return resolveBinaryOperator(TSBinaryOperator.Or, expr)
+    }
+
     override fun visit(expr: EtsNotEqExpr): UExpr<out USort>? {
         return resolveBinaryOperator(TSBinaryOperator.Neq, expr)
     }
@@ -315,11 +319,6 @@ class TSExprResolver(
     }
 
     override fun visit(expr: EtsNullishCoalescingExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
-    }
-
-    override fun visit(expr: EtsOrExpr): UExpr<out USort>? {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
     }
