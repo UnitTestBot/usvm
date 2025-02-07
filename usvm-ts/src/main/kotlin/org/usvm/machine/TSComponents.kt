@@ -7,9 +7,14 @@ import org.jacodb.ets.base.EtsType
 import org.usvm.SolverType
 import org.usvm.UBv32SizeExprProvider
 import org.usvm.UComponents
+import org.usvm.UComposer
 import org.usvm.UContext
 import org.usvm.UMachineOptions
 import org.usvm.USizeExprProvider
+import org.usvm.collections.immutable.internal.MutabilityOwnership
+import org.usvm.memory.UReadOnlyMemory
+import org.usvm.model.ULazyModelDecoder
+import org.usvm.solver.UExprTranslator
 import org.usvm.solver.USolverBase
 import org.usvm.solver.UTypeSolver
 import org.usvm.types.UTypeSystem
@@ -23,9 +28,25 @@ class TSComponents(
     override val useSolverForForks: Boolean
         get() = options.useSolverForForks
 
+    override fun <Context : UContext<TSSizeSort>> buildTranslatorAndLazyDecoder(
+        ctx: Context
+    ): Pair<UExprTranslator<EtsType, TSSizeSort>, ULazyModelDecoder<EtsType>> {
+        val translator = TSExprTranslator(ctx)
+        val decoder = ULazyModelDecoder(translator)
+
+        return translator to decoder
+    }
+
     override fun <Context : UContext<TSSizeSort>> mkSizeExprProvider(ctx: Context): USizeExprProvider<TSSizeSort> {
         return UBv32SizeExprProvider(ctx)
     }
+
+    override fun <Context : UContext<TSSizeSort>> mkComposer(
+        ctx: Context
+    ): (UReadOnlyMemory<EtsType>, MutabilityOwnership) -> UComposer<EtsType, TSSizeSort> =
+        { memory: UReadOnlyMemory<EtsType>, ownership: MutabilityOwnership ->
+            TSComposer(ctx, memory, ownership)
+        }
 
     override fun mkTypeSystem(
         ctx: UContext<TSSizeSort>,
