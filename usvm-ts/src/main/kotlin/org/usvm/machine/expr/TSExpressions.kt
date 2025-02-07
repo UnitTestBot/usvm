@@ -8,33 +8,31 @@ import io.ksmt.expr.KFp64Value
 import io.ksmt.expr.printer.ExpressionPrinter
 import io.ksmt.expr.transformer.KTransformerBase
 import io.ksmt.sort.KSortVisitor
+import org.usvm.UAddressSort
 import org.usvm.UExpr
 import org.usvm.USort
+import org.usvm.USymbolicHeapRef
 import org.usvm.machine.TSContext
+import org.usvm.machine.TSExprTranslator
 
 val KAst.tctx: TSContext
     get() = ctx as TSContext
 
-class TSUndefinedSort(ctx: TSContext) : USort(ctx) {
-    override fun print(builder: StringBuilder) {
-        builder.append("undefined sort")
+class TSNullRefExpr(ctx: TSContext) : USymbolicHeapRef(ctx) {
+    override val sort: UAddressSort
+        get() = tctx.addressSort
+
+    override fun accept(transformer: KTransformerBase): UExpr<UAddressSort> {
+        require(transformer is TSExprTranslator) { "Expected TSExprTranslator" }
+        return transformer.transform(this)
     }
-
-    override fun <T> accept(visitor: KSortVisitor<T>): T = error("Should not be called")
-}
-
-class TSUndefinedValue(ctx: TSContext) : UExpr<TSUndefinedSort>(ctx) {
-    override val sort: TSUndefinedSort
-        get() = tctx.undefinedSort
-
-    override fun accept(transformer: KTransformerBase): TSUndefinedValue = this
 
     override fun internEquals(other: Any): Boolean = structurallyEqual(other)
 
     override fun internHashCode(): Int = hash()
 
     override fun print(printer: ExpressionPrinter) {
-        printer.append("undefined")
+        printer.append("null")
     }
 }
 
