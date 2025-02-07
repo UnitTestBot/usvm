@@ -89,16 +89,12 @@ class TSInterpreter(
 
     private fun visitIfStmt(scope: TSStepScope, stmt: EtsIfStmt) {
         val exprResolver = exprResolverWithScope(scope)
+        val expr = exprResolver.resolve(stmt.condition) ?: return
 
-        val conditionExpr = exprResolver.resolve(stmt.condition) ?: run {
-            logger.warn { "Failed to resolve condition: $stmt" }
-            return
-        }
-
-        val boolExpr = if (conditionExpr.sort == ctx.boolSort) {
-            conditionExpr.asExpr(ctx.boolSort)
+        val boolExpr = if (expr.sort == ctx.boolSort) {
+            expr.asExpr(ctx.boolSort)
         } else {
-            ctx.mkTruthyExpr(conditionExpr, scope)
+            ctx.mkTruthyExpr(expr, scope)
         }
 
         val (negStmt, posStmt) = applicationGraph.successors(stmt).take(2).toList()
@@ -126,7 +122,6 @@ class TSInterpreter(
 
     private fun visitAssignStmt(scope: TSStepScope, stmt: EtsAssignStmt) {
         val exprResolver = exprResolverWithScope(scope)
-
         val expr = exprResolver.resolve(stmt.rhv) ?: return
 
         check(expr.sort != ctx.unresolvedSort) {
@@ -146,7 +141,15 @@ class TSInterpreter(
     }
 
     private fun visitCallStmt(scope: TSStepScope, stmt: EtsCallStmt) {
-        TODO() // IMPORTANT do not forget to fill sorts of arguments map
+        // IMPORTANT do not forget to fill sorts of arguments map
+
+        val exprResolver = exprResolverWithScope(scope)
+        exprResolver.resolve(stmt.expr) ?: return
+
+        scope.doWithState {
+            val nextStmt = stmt.nextStmt ?: return@doWithState
+            newStmt(nextStmt)
+        }
     }
 
     private fun visitThrowStmt(scope: TSStepScope, stmt: EtsThrowStmt) {
