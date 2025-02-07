@@ -104,7 +104,6 @@ sealed interface TSBinaryOperator {
             scope: TSStepScope,
         ): UExpr<out USort> {
             check(lhs.isFakeObject() || rhs.isFakeObject())
-
             return scope.calcOnState {
                 val conjuncts = mutableListOf<ExprWithTypeConstraint<UBoolSort>>()
                 val groundFalseBranch = makeSymbolicPrimitive(boolSort)
