@@ -93,7 +93,7 @@ private val logger = KotlinLogging.logger {}
 class TSExprResolver(
     private val ctx: TSContext,
     private val scope: TSStepScope,
-    localToIdx: (EtsMethod, EtsValue) -> Int,
+    private val localToIdx: (EtsMethod, EtsValue) -> Int,
 ) : EtsEntity.Visitor<UExpr<out USort>?> {
 
     private val simpleValueResolver: TSSimpleValueResolver =
@@ -409,21 +409,25 @@ class TSExprResolver(
                     .flatMap { it.methods }
                     .singleOrNull { it.signature == expr.method }
                     ?: error("Couldn't find a unique method with the signature ${expr.method}")
+
+                pushSortsForArguments(expr.instance, expr.args, localToIdx)
+
                 callStack.push(method, currentStatement)
                 memory.stack.push(args.toTypedArray(), method.localsCount)
+
                 newStmt(method.cfg.stmts.first())
             }
         }
     }
 
     override fun visit(expr: EtsStaticCallExpr): UExpr<out USort>? {
-        // TODO: IMPORTANT do not forget to fill sorts of arguments map
         return resolveInvoke(
             method = expr.method,
             instance = null,
             arguments = { expr.args },
             argumentTypes = { expr.method.parameters.map { it.type } },
         ) { args ->
+            // TODO: IMPORTANT do not forget to fill sorts of arguments map
             TODO("Unsupported static methods")
         }
     }
@@ -559,7 +563,7 @@ class TSSimpleValueResolver(
 
         val localIdx = localToIdx(currentMethod, local)
         val sort = scope.calcOnState {
-            getOrPutSortForLocal(currentMethod, localIdx, local.type)
+            getOrPutSortForLocal(localIdx, local.type)
         }
 
         // If we are not in the entrypoint, all correct values are already resolved and we can just return

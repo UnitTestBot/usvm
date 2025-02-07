@@ -1,7 +1,9 @@
 package org.usvm.machine.state
 
+import org.jacodb.ets.base.EtsLocal
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsType
+import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.model.EtsMethod
 import org.usvm.PathNode
 import org.usvm.UCallStack
@@ -30,7 +32,7 @@ class TSState(
     forkPoints: PathNode<PathNode<EtsStmt>> = PathNode.root(),
     var methodResult: TSMethodResult = TSMethodResult.NoCall,
     targets: UTargetsSet<TSTarget, EtsStmt> = UTargetsSet.empty(),
-    private var localToSort: UPersistentHashMap<EtsMethod, UPersistentHashMap<Int, USort>> = persistentHashMapOf(),
+    private var localToSortStack: MutableList<UPersistentHashMap<Int, USort>> = mutableListOf(persistentHashMapOf()),
 ) : UState<EtsType, EtsMethod, EtsStmt, TSContext, TSTarget, TSState>(
     ctx,
     ownership,
@@ -42,17 +44,41 @@ class TSState(
     forkPoints,
     targets
 ) {
-    fun getOrPutSortForLocal(method: EtsMethod, localIdx: Int, localType: EtsType): USort {
-        val (updatedMap, value) = localToSort.getOrPut(method, ownership) { persistentHashMapOf() }
-        val (updatedIndices, result) = value.getOrPut(localIdx, ownership) { ctx.typeToSort(localType) }
-        localToSort = updatedMap.put(method, updatedIndices, ownership)
+    fun getOrPutSortForLocal(localIdx: Int, localType: EtsType): USort {
+        val localToSort = localToSortStack.last()
+        val (updatedIndices, result) = localToSort.getOrPut(localIdx, ownership) { ctx.typeToSort(localType) }
+        localToSortStack[localToSortStack.lastIndex] = updatedIndices
         return result
     }
 
-    fun saveSortForLocal(method: EtsMethod, localIdx: Int, sort: USort) {
-        val (updatedMap, sorts) = localToSort.getOrPut(method, ownership) { persistentHashMapOf() }
-        val updatedSorts = sorts.put(localIdx, sort, ownership)
-        localToSort = updatedMap.put(method, updatedSorts, ownership)
+    fun saveSortForLocal(localIdx: Int, sort: USort) {
+        val localToSort = localToSortStack.last()
+        val updatedSorts = localToSort.put(localIdx, sort, ownership)
+        localToSortStack[localToSortStack.lastIndex] = updatedSorts
+    }
+
+    fun pushLocalToSortStack() {
+        localToSortStack.add(persistentHashMapOf())
+    }
+
+    fun popLocalToSortStack() {
+        localToSortStack.removeLast()
+    }
+
+    fun pushSortsForArguments(instance: EtsLocal?, args: List<EtsValue>, localToIdx: (EtsMethod, EtsValue) -> Int) {
+        val argSorts = args.map { arg ->
+            val localIdx = localToIdx(lastEnteredMethod, arg)
+            getOrPutSortForLocal(localIdx, arg.type)
+        }
+
+        val instanceIdx = instance?.let { localToIdx(lastEnteredMethod, it) }
+        val instanceSort = instanceIdx?.let { getOrPutSortForLocal(it, instance.type) }
+
+        pushLocalToSortStack()
+        argSorts.forEachIndexed { index, sort ->
+            saveSortForLocal(index, sort)
+        }
+        instanceSort?.let { saveSortForLocal(args.size, it) }
     }
 
     override fun clone(newConstraints: UPathConstraints<EtsType>?): TSState {
@@ -76,7 +102,7 @@ class TSState(
             forkPoints,
             methodResult,
             targets.clone(),
-            localToSort
+            localToSortStack.toMutableList(),
         )
     }
 

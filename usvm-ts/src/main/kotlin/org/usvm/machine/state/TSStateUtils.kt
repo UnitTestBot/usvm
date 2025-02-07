@@ -16,6 +16,7 @@ fun TSState.returnValue(valueToReturn: UExpr<out USort>) {
     val returnSite = callStack.pop()
     if (callStack.isNotEmpty()) {
         memory.stack.pop()
+        popLocalToSortStack()
     }
 
     methodResult = TSMethodResult.Success(returnFromMethod, valueToReturn)

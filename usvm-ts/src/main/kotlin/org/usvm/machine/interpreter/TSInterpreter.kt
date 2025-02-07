@@ -130,7 +130,7 @@ class TSInterpreter(
 
         scope.doWithState {
             val idx = mapLocalToIdx(lastEnteredMethod, stmt.lhv)
-            saveSortForLocal(lastEnteredMethod, idx, expr.sort)
+            saveSortForLocal(idx, expr.sort)
 
             val lValue = URegisterStackLValue(expr.sort, idx)
             memory.write(lValue, expr.asExpr(lValue.sort), guard = ctx.trueExpr)
@@ -141,8 +141,6 @@ class TSInterpreter(
     }
 
     private fun visitCallStmt(scope: TSStepScope, stmt: EtsCallStmt) {
-        // IMPORTANT do not forget to fill sorts of arguments map
-
         val exprResolver = exprResolverWithScope(scope)
         exprResolver.resolve(stmt.expr) ?: return
 
@@ -153,6 +151,7 @@ class TSInterpreter(
     }
 
     private fun visitThrowStmt(scope: TSStepScope, stmt: EtsThrowStmt) {
+        // TODO do not forget to pop the sorts call stack in the state
         TODO()
     }
 
