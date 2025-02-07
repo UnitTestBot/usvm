@@ -16,6 +16,7 @@ fun TSState.returnValue(valueToReturn: UExpr<out USort>) {
     val returnSite = callStack.pop()
     if (callStack.isNotEmpty()) {
         memory.stack.pop()
+        popLocalToSortStack()
     }
 
     methodResult = TSMethodResult.Success(returnFromMethod, valueToReturn)
@@ -26,7 +27,7 @@ fun TSState.returnValue(valueToReturn: UExpr<out USort>) {
 }
 
 inline val EtsMethod.parametersWithThisCount: Int
-    get() = /*if (isStatic) parameters.size else*/ parameters.size + 1 // TODO hack, fix after AA fix
+    get() = parameters.size + 1
 
 inline val EtsMethod.localsCount: Int
     get() = locals.size
