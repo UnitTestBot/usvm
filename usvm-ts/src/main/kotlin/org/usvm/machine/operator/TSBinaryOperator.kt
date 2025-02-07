@@ -329,7 +329,6 @@ sealed interface TSBinaryOperator {
 
             TODO("Unsupported String and bigint comparison")
         }
-
     }
 
     data object Neq : TSBinaryOperator {
@@ -381,6 +380,48 @@ sealed interface TSBinaryOperator {
             return with(Eq) {
                 internalResolve(lhs, rhs, scope).asExpr(boolSort).not()
             }
+        }
+    }
+
+    data object StrictEq : TSBinaryOperator {
+        override fun TSContext.onBool(
+            lhs: UExpr<UBoolSort>,
+            rhs: UExpr<UBoolSort>,
+            scope: TSStepScope,
+        ): UExpr<out USort> {
+            return mkEq(lhs, rhs)
+        }
+
+        override fun TSContext.onFp(
+            lhs: UExpr<KFp64Sort>,
+            rhs: UExpr<KFp64Sort>,
+            scope: TSStepScope,
+        ): UExpr<out USort> {
+            return mkFpEqualExpr(lhs, rhs)
+        }
+
+        override fun TSContext.onRef(
+            lhs: UExpr<UAddressSort>,
+            rhs: UExpr<UAddressSort>,
+            scope: TSStepScope,
+        ): UExpr<out USort> {
+            TODO("Not yet implemented")
+        }
+
+        override fun TSContext.resolveFakeObject(
+            lhs: UExpr<out USort>,
+            rhs: UExpr<out USort>,
+            scope: TSStepScope,
+        ): UExpr<out USort> {
+            TODO("Not yet implemented")
+        }
+
+        override fun TSContext.internalResolve(
+            lhs: UExpr<out USort>,
+            rhs: UExpr<out USort>,
+            scope: TSStepScope,
+        ): UExpr<out USort> {
+            TODO("Not yet implemented")
         }
     }
 
