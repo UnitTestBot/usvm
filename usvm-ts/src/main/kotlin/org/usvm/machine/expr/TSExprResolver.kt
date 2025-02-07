@@ -396,7 +396,6 @@ class TSExprResolver(
     // region CALL
 
     override fun visit(expr: EtsInstanceCallExpr): UExpr<out USort>? {
-        // TODO: IMPORTANT do not forget to fill sorts of arguments map
         return resolveInvoke(
             method = expr.method,
             instance = expr.instance,
