@@ -29,7 +29,7 @@ class TSComponents(
         get() = options.useSolverForForks
 
     override fun <Context : UContext<TSSizeSort>> buildTranslatorAndLazyDecoder(
-        ctx: Context
+        ctx: Context,
     ): Pair<UExprTranslator<EtsType, TSSizeSort>, ULazyModelDecoder<EtsType>> {
         val translator = TSExprTranslator(ctx)
         val decoder = ULazyModelDecoder(translator)
@@ -42,7 +42,7 @@ class TSComponents(
     }
 
     override fun <Context : UContext<TSSizeSort>> mkComposer(
-        ctx: Context
+        ctx: Context,
     ): (UReadOnlyMemory<EtsType>, MutabilityOwnership) -> UComposer<EtsType, TSSizeSort> =
         { memory: UReadOnlyMemory<EtsType>, ownership: MutabilityOwnership ->
             TSComposer(ctx, memory, ownership)
