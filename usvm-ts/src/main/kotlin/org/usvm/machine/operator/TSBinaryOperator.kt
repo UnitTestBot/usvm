@@ -413,7 +413,11 @@ sealed interface TSBinaryOperator {
             rhs: UExpr<out USort>,
             scope: TSStepScope,
         ): UExpr<out USort> {
-            TODO("Not yet implemented")
+            check(lhs.isFakeObject() || rhs.isFakeObject())
+            // TODO: delegating to '==' is not correct in general case
+            return with(Eq) {
+                resolveFakeObject(lhs, rhs, scope)
+            }
         }
 
         override fun TSContext.internalResolve(
