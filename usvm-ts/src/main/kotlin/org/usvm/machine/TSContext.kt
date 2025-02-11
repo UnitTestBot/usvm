@@ -2,11 +2,13 @@ package org.usvm.machine
 
 import io.ksmt.sort.KFp64Sort
 import org.jacodb.ets.base.EtsBooleanType
+import org.jacodb.ets.base.EtsNullType
 import org.jacodb.ets.base.EtsNumberType
 import org.jacodb.ets.base.EtsRefType
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUndefinedType
 import org.jacodb.ets.base.EtsUnknownType
+import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.usvm.UAddressSort
 import org.usvm.UBoolSort
@@ -18,6 +20,7 @@ import org.usvm.USort
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.machine.expr.TSUndefinedSort
 import org.usvm.machine.expr.TSUnresolvedSort
+import org.usvm.memory.UMemory
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 
@@ -62,6 +65,15 @@ class TSContext(
     }
 
     fun mkUndefinedValue(): UExpr<UAddressSort> = undefinedValue
+
+    fun mkTSNullValue(memory: UMemory<EtsType, EtsMethod>): UExpr<UAddressSort> {
+        if (nullValue == null) {
+            nullValue = memory.allocStatic(EtsNullType)
+        }
+
+        return nullValue!!
+    }
+    var nullValue: UConcreteHeapRef? = null
 
     fun getIntermediateBoolLValue(addr: Int): UFieldLValue<IntermediateLValueField, UBoolSort> {
         return UFieldLValue(boolSort, mkConcreteHeapRef(addr), IntermediateLValueField.BOOL)

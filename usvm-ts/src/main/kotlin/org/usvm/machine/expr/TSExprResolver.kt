@@ -638,13 +638,11 @@ class TSSimpleValueResolver(
     }
 
     override fun visit(value: EtsNullConstant): UExpr<out USort> = with(ctx) {
-        // TODO: replace with `ctx.nullConstant` (!= nullRef)
-        nullRef
+        scope.calcOnState { mkTSNullValue(memory) }
     }
 
     override fun visit(value: EtsUndefinedConstant): UExpr<out USort> = with(ctx) {
-        // TODO: replace with `ctx.nullRef` or `ctx.undefinedConstant` (== nullRef)
-        nullRef
+        mkUndefinedValue()
     }
 
     override fun visit(value: EtsArrayAccess): UExpr<out USort> = with(ctx) {
