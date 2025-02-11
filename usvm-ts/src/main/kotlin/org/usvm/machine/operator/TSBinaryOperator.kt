@@ -186,6 +186,7 @@ sealed interface TSBinaryOperator {
                                     )
                                 )
 
+                                scope.assert(lhsType.fpTypeExpr or lhsType.boolTypeExpr)
                                 // TODO: support objects
                             }
 
@@ -206,6 +207,7 @@ sealed interface TSBinaryOperator {
                                     )
                                 )
 
+                                scope.assert(lhsType.fpTypeExpr or lhsType.boolTypeExpr)
                                 // TODO: support objects
                             }
 
@@ -218,6 +220,7 @@ sealed interface TSBinaryOperator {
                                     )
                                 )
 
+                                scope.assert(lhsType.refTypeExpr)
                                 // TODO: support objects
                             }
 
@@ -250,6 +253,7 @@ sealed interface TSBinaryOperator {
                                     )
                                 )
 
+                                scope.assert(rhsType.fpTypeExpr or rhsType.boolTypeExpr)
                                 // TODO: support objects
                             }
 
@@ -270,6 +274,7 @@ sealed interface TSBinaryOperator {
                                     )
                                 )
 
+                                scope.assert(rhsType.fpTypeExpr or rhsType.boolTypeExpr)
                                 // TODO: support objects
                             }
 
@@ -282,6 +287,7 @@ sealed interface TSBinaryOperator {
                                     )
                                 )
 
+                                scope.assert(rhsType.refTypeExpr)
                                 // TODO: support objects
 
                             }

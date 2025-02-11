@@ -663,7 +663,7 @@ class TSSimpleValueResolver(
     }
 
     override fun visit(value: EtsNullConstant): UExpr<out USort> = with(ctx) {
-        scope.calcOnState { mkTSNullValue() }
+        mkTSNullValue()
     }
 
     override fun visit(value: EtsUndefinedConstant): UExpr<out USort> = with(ctx) {

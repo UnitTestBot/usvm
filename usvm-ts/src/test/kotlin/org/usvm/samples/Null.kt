@@ -2,10 +2,10 @@ package org.usvm.samples
 
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
+import org.junit.jupiter.api.RepeatedTest
 import org.usvm.api.TSObject
 import org.usvm.util.TSMethodTestRunner
 import org.usvm.util.getResourcePath
-import kotlin.test.Test
 
 class Null : TSMethodTestRunner() {
 
@@ -16,7 +16,7 @@ class Null : TSMethodTestRunner() {
         EtsScene(listOf(file))
     }
 
-    @Test
+    @RepeatedTest(20)
     fun testIsNull() {
         val method = getMethod("Null", "isNull")
         discoverProperties<TSObject, TSObject.TSNumber>(
