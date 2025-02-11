@@ -66,9 +66,9 @@ class TSContext(
 
     fun mkUndefinedValue(): UExpr<UAddressSort> = undefinedValue
 
-    fun mkTSNullValue(memory: UMemory<EtsType, EtsMethod>): UExpr<UAddressSort> {
+    fun mkTSNullValue(nullCreator: () -> UConcreteHeapRef): UExpr<UAddressSort> {
         if (nullValue == null) {
-            nullValue = memory.allocStatic(EtsNullType)
+            nullValue = nullCreator()
         }
 
         return nullValue!!

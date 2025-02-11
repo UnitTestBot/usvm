@@ -75,7 +75,7 @@ class TSTestResolver(
         ctx: TSContext,
         model: UModelBase<EtsType>,
     ): List<TSObject> = with(ctx) {
-        params.map {  param ->
+        params.map { param ->
             val sort = typeToSort(param.type).takeUnless { it is TSUnresolvedSort } ?: addressSort
             val lValue = URegisterStackLValue(sort, param.index)
             val expr = state.memory.read(lValue) // TODO error
@@ -95,16 +95,19 @@ class TSTestResolver(
                 val value = state.memory.read(lValue)
                 resolveExpr(model.eval(value), EtsBooleanType, model)
             }
+
             model.eval(type.fpTypeExpr).isTrue -> {
                 val lValue = ctx.getIntermediateFpLValue(expr.address)
                 val value = state.memory.read(lValue)
                 resolveExpr(model.eval(value), EtsNumberType, model)
             }
+
             model.eval(type.refTypeExpr).isTrue -> {
                 val lValue = ctx.getIntermediateRefLValue(expr.address)
                 val value = state.memory.read(lValue)
                 resolveExpr(model.eval(value), EtsClassType(ctx.scene.projectAndSdkClasses.first().signature), model)
             }
+
             else -> error("Unsupported")
         }
     }
@@ -183,7 +186,7 @@ class TSTestResolver(
             return TSObject.TSUndefinedObject
         }
 
-        val nullRef = ctx.mkTSNullValue(state.memory)
+        val nullRef = ctx.mkTSNullValue { state.memory.allocStatic(EtsNullType) }
         if (model.eval(ctx.mkHeapRefEq(expr.asExpr(ctx.addressSort), nullRef)).isTrue) {
             return TSObject.TSNull
         }
