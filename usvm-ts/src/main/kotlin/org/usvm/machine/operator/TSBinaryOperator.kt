@@ -10,6 +10,7 @@ import org.usvm.USort
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.api.typeStreamOf
 import org.usvm.machine.TSContext
+import org.usvm.machine.expr.TSUndefinedSort
 import org.usvm.machine.expr.mkTruthyExpr
 import org.usvm.machine.interpreter.TSStepScope
 import org.usvm.machine.types.ExprWithTypeConstraint
@@ -306,9 +307,9 @@ sealed interface TSBinaryOperator {
             // 1. If the operands have the same type, they are compared using `onFp`, `onBool`, etc.
 
             // 2. If one of the operands is undefined, the other must also be undefined to return true
-            // if (lhs.sort is TSUndefinedSort || rhs.sort is TSUndefinedSort) {
-            //     TODO()
-            // }
+            if (lhs.sort is TSUndefinedSort || rhs.sort is TSUndefinedSort) {
+                TODO()
+            }
 
             // 3. If one of the operands is an object and the other is a primitive, convert the object to a primitive.
             if (lhs.sort is UAddressSort || rhs.sort is UAddressSort) {

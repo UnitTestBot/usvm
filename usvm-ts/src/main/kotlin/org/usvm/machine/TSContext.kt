@@ -15,9 +15,8 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.USort
-import org.usvm.USymbolicHeapRef
 import org.usvm.collection.field.UFieldLValue
-import org.usvm.machine.expr.TSNullRefExpr
+import org.usvm.machine.expr.TSUndefinedSort
 import org.usvm.machine.expr.TSUnresolvedSort
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
@@ -28,6 +27,8 @@ class TSContext(
     val scene: EtsScene,
     components: TSComponents,
 ) : UContext<TSSizeSort>(components) {
+    val undefinedSort: TSUndefinedSort by lazy { TSUndefinedSort(this) }
+
     val unresolvedSort: TSUnresolvedSort = TSUnresolvedSort(this)
 
     /**
@@ -61,8 +62,6 @@ class TSContext(
     }
 
     fun mkUndefinedValue(): UExpr<UAddressSort> = undefinedValue
-
-    fun mkTSNullRefValue(): USymbolicHeapRef = TSNullRefExpr(this)
 
     fun getIntermediateBoolLValue(addr: Int): UFieldLValue<IntermediateLValueField, UBoolSort> {
         return UFieldLValue(boolSort, mkConcreteHeapRef(addr), IntermediateLValueField.BOOL)
