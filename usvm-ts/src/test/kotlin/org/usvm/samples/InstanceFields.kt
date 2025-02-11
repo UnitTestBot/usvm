@@ -19,46 +19,65 @@ class InstanceFields : TSMethodTestRunner() {
     @Test
     fun testReturnSingleField() {
         val method = getMethod("InstanceFields", "returnSingleField")
-        discoverProperties<TSObject.TSClass, TSObject.TSNumber>(
+        discoverProperties<TSObject, TSObject>(
             method,
             { x, r ->
                 // Note: this is an attempt to represent `r == x["a"]`
+                if (x !is TSObject.TSClass || r !is TSObject.TSNumber) return@discoverProperties false
+
                 val xa = x.properties["a"] as TSObject.TSNumber
                 xa.number == r.number || (xa.number.isNaN() && r.number.isNaN())
             },
+            { x, r ->
+                (x is TSObject.TSUndefinedObject || x is TSObject.TSNull) && r is TSObject.TSException
+            }
         )
     }
 
     @Test
     fun testDispatchOverField() {
         val method = getMethod("InstanceFields", "dispatchOverField")
-        discoverProperties<TSObject.TSClass, TSObject.TSNumber>(
+        discoverProperties<TSObject, TSObject>(
             method,
             { x, r ->
+                if (x !is TSObject.TSClass || r !is TSObject.TSNumber) return@discoverProperties false
+
                 val xa = x.properties["a"] as TSObject.TSNumber
                 xa.number == 1.0 && r.number == 1.0
             },
             { x, r ->
+                if (x !is TSObject.TSClass || r !is TSObject.TSNumber) return@discoverProperties false
+
                 val xa = x.properties["a"] as TSObject.TSNumber
                 xa.number == 2.0 && r.number == 2.0
             },
             { x, r ->
+                if (x !is TSObject.TSClass || r !is TSObject.TSNumber) return@discoverProperties false
+
                 val xa = x.properties["a"] as TSObject.TSNumber
                 xa.number != 1.0 && xa.number != 2.0 && r.number == 100.0
             },
+            { x, r ->
+                (x is TSObject.TSUndefinedObject || x is TSObject.TSNull) && r is TSObject.TSException
+            }
         )
     }
 
     @Test
     fun testReturnSumOfTwoFields() {
         val method = getMethod("InstanceFields", "returnSumOfTwoFields")
-        discoverProperties<TSObject.TSClass, TSObject.TSNumber>(
+        discoverProperties<TSObject, TSObject>(
             method,
             { x, r ->
+                if (x !is TSObject.TSClass || r !is TSObject.TSNumber) return@discoverProperties false
+
                 val xa = x.properties["a"] as TSObject.TSNumber
                 val xb = x.properties["b"] as TSObject.TSNumber
                 xa.number + xb.number == r.number
             },
+            { x, r ->
+                (x is TSObject.TSUndefinedObject || x is TSObject.TSNull) && r is TSObject.TSException
+            }
         )
     }
 }

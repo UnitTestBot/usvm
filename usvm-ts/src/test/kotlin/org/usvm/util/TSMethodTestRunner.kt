@@ -183,6 +183,11 @@ abstract class TSMethodTestRunner : TestRunner<TSTest, EtsMethod, EtsType?, TSMe
             // For untyped tests, not to limit objects serialized from models after type coercion.
             TSObject.TSUnknown::class -> EtsUnknownType
             TSObject.TSNull::class -> EtsNullType
+            TSObject.TSException::class -> {
+                // TODO incorrect
+                val signature = EtsClassSignature("Exception", EtsFileSignature.DEFAULT)
+                EtsClassType(signature)
+            }
             else -> error("Unsupported type: $klass")
         }
     }

@@ -66,14 +66,8 @@ class TSContext(
 
     fun mkUndefinedValue(): UExpr<UAddressSort> = undefinedValue
 
-    fun mkTSNullValue(nullCreator: () -> UConcreteHeapRef): UExpr<UAddressSort> {
-        if (nullValue == null) {
-            nullValue = nullCreator()
-        }
-
-        return nullValue!!
-    }
-    var nullValue: UConcreteHeapRef? = null
+    fun mkTSNullValue(): UConcreteHeapRef = nullValue
+    private val nullValue: UConcreteHeapRef = mkConcreteHeapRef(addressCounter.freshStaticAddress())
 
     fun getIntermediateBoolLValue(addr: Int): UFieldLValue<IntermediateLValueField, UBoolSort> {
         return UFieldLValue(boolSort, mkConcreteHeapRef(addr), IntermediateLValueField.BOOL)

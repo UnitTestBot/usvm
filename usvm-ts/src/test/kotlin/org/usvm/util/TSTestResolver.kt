@@ -59,7 +59,8 @@ class TSTestResolver(
             }
 
             is TSMethodResult.TSException -> {
-                TODO()
+                val params = resolveParams(method.parameters, this, model)
+                return TSTest(params, TSObject.TSException)
             }
 
             is TSMethodResult.NoCall -> {
@@ -186,7 +187,7 @@ class TSTestResolver(
             return TSObject.TSUndefinedObject
         }
 
-        val nullRef = ctx.mkTSNullValue { state.memory.allocStatic(EtsNullType) }
+        val nullRef = ctx.mkTSNullValue()
         if (model.eval(ctx.mkHeapRefEq(expr.asExpr(ctx.addressSort), nullRef)).isTrue) {
             return TSObject.TSNull
         }
