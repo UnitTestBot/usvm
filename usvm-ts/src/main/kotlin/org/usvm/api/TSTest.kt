@@ -53,5 +53,5 @@ sealed interface TSObject {
 
     data object TSNull : org.usvm.api.TSObject
 
-    data object TSException: org.usvm.api.TSObject
+    data object TSException : org.usvm.api.TSObject
 }

@@ -8,7 +8,6 @@ import org.jacodb.ets.base.EtsRefType
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUndefinedType
 import org.jacodb.ets.base.EtsUnknownType
-import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.usvm.UAddressSort
 import org.usvm.UBoolSort
@@ -20,7 +19,6 @@ import org.usvm.USort
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.machine.expr.TSUndefinedSort
 import org.usvm.machine.expr.TSUnresolvedSort
-import org.usvm.memory.UMemory
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 
@@ -45,6 +43,7 @@ class TSContext(
         is EtsBooleanType -> boolSort
         is EtsNumberType -> fp64Sort
         is EtsRefType -> addressSort
+        is EtsNullType -> addressSort
         is EtsUndefinedType -> addressSort
         is EtsUnknownType -> unresolvedSort
         else -> TODO("Support all JacoDB types, encountered $type")
