@@ -38,6 +38,7 @@ import org.jacodb.ets.base.EtsNewExpr
 import org.jacodb.ets.base.EtsNotEqExpr
 import org.jacodb.ets.base.EtsNotExpr
 import org.jacodb.ets.base.EtsNullConstant
+import org.jacodb.ets.base.EtsNullType
 import org.jacodb.ets.base.EtsNullishCoalescingExpr
 import org.jacodb.ets.base.EtsNumberConstant
 import org.jacodb.ets.base.EtsNumberType
@@ -638,7 +639,7 @@ class TSSimpleValueResolver(
     }
 
     override fun visit(value: EtsNullConstant): UExpr<out USort> = with(ctx) {
-        scope.calcOnState { mkTSNullValue(memory) }
+        scope.calcOnState { mkTSNullValue { memory.allocStatic(EtsNullType) } }
     }
 
     override fun visit(value: EtsUndefinedConstant): UExpr<out USort> = with(ctx) {
