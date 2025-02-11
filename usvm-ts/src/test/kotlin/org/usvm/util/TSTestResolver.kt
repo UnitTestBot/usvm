@@ -183,6 +183,11 @@ class TSTestResolver(
             return TSObject.TSUndefinedObject
         }
 
+        val nullRef = ctx.mkTSNullValue(state.memory)
+        if (model.eval(ctx.mkHeapRefEq(expr.asExpr(ctx.addressSort), nullRef)).isTrue) {
+            return TSObject.TSNull
+        }
+
         check(expr.sort == ctx.addressSort) {
             "Expected address sort, but got ${expr.sort}"
         }
