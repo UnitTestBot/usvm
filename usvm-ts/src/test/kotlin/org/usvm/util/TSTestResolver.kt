@@ -80,17 +80,14 @@ class TSTestResolver(
             val lValue = URegisterStackLValue(sort, param.index)
             val expr = state.memory.read(lValue) // TODO error
             if (param.type is EtsUnknownType) {
-                approximateParam(expr.cast(), model)
+                resolveFakeObject(expr.cast(), model)
             } else {
                 resolveExpr(model.eval(expr), param.type, model)
             }
         }
     }
 
-    private fun approximateParam(expr: UConcreteHeapRef, model: UModelBase<EtsType>): TSObject {
-        if (expr.address == 0) {
-            return TSObject.TSUndefinedObject
-        }
+    private fun resolveFakeObject(expr: UConcreteHeapRef, model: UModelBase<EtsType>): TSObject {
         val type = state.memory.types.getTypeStream(expr.asExpr(ctx.addressSort)).single() as FakeType
         return when {
             model.eval(type.boolTypeExpr).isTrue -> {
@@ -181,10 +178,15 @@ class TSTestResolver(
         expr: UExpr<out USort>,
         classType: EtsClassType,
         model: UModelBase<*>,
-    ): TSObject.TSClass {
+    ): TSObject {
+        if (expr is UConcreteHeapRef && expr.address == 0) {
+            return TSObject.TSUndefinedObject
+        }
+
         check(expr.sort == ctx.addressSort) {
             "Expected address sort, but got ${expr.sort}"
         }
+
         val clazz = ctx.scene.projectAndSdkClasses.firstOrNull { it.signature == classType.signature }
             ?: if (classType.signature.name == "Object") {
                 EtsClassImpl(
@@ -203,6 +205,7 @@ class TSTestResolver(
             } else {
                 error("Class not found: ${classType.signature}")
             }
+
         val properties = clazz.fields.associate { field ->
             val sort = ctx.typeToSort(field.type)
             val lValue = UFieldLValue(sort, expr.asExpr(ctx.addressSort), field.name)
