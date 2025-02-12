@@ -1,5 +1,7 @@
 package org.usvm.machine
 
+import io.ksmt.sort.KArraySort
+import io.ksmt.sort.KBv16Sort
 import io.ksmt.sort.KFp64Sort
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsNullType
@@ -16,14 +18,14 @@ import org.usvm.UBv32Sort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.USort
+import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
-import org.usvm.machine.expr.TSConcreteString
-import org.usvm.machine.expr.TSStringReading
-import org.usvm.machine.expr.TSStringRegionId
 import org.usvm.machine.expr.TSStringSort
 import org.usvm.machine.expr.TSUndefinedSort
 import org.usvm.machine.expr.TSUnresolvedSort
+import org.usvm.sizeSort
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 
@@ -38,19 +40,6 @@ class TSContext(
     val unresolvedSort: TSUnresolvedSort = TSUnresolvedSort(this)
 
     val stringSort: TSStringSort = TSStringSort(this)
-
-    private val stringReadings = mkAstInterner<TSStringReading>()
-    fun mkTSStringReading(
-        addr: UConcreteHeapRef,
-        regionId: TSStringRegionId
-    ): TSStringReading = stringReadings.createIfContextActive {
-        TSStringReading(this, regionId, addr, stringSort)
-    }
-
-    private val concreteStrings = mkAstInterner<TSConcreteString>()
-    fun mkTSConcreteString(value: String) = concreteStrings.createIfContextActive {
-        TSConcreteString(this, value)
-    }
 
     /**
      * In TS we treat undefined value as a null reference in other objects.
@@ -100,6 +89,14 @@ class TSContext(
     fun getIntermediateRefLValue(addr: Int): UFieldLValue<IntermediateLValueField, UAddressSort> {
         return UFieldLValue(addressSort, mkConcreteHeapRef(addr), IntermediateLValueField.REF)
     }
+
+    fun getStringValueFieldLValue(ref: UHeapRef): UFieldLValue<StringField, UAddressSort> {
+        return UFieldLValue(addressSort, ref, StringField)
+    }
+
+    fun getStringLengthField(addr: Int): UArrayLengthLValue<KArraySort<TSSizeSort, KBv16Sort>, TSSizeSort> {
+        return UArrayLengthLValue(mkConcreteHeapRef(addr), mkArraySort(sizeSort, bv16Sort), sizeSort)
+    }
 }
 
 const val MAGIC_OFFSET = 1000000
@@ -107,3 +104,5 @@ const val MAGIC_OFFSET = 1000000
 enum class IntermediateLValueField {
     BOOL, FP, REF
 }
+
+object StringField

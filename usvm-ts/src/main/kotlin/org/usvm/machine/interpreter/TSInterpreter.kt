@@ -20,7 +20,9 @@ import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.model.EtsMethod
 import org.usvm.StepResult
 import org.usvm.StepScope
+import org.usvm.UConcreteHeapRef
 import org.usvm.UInterpreter
+import org.usvm.api.allocateStaticRef
 import org.usvm.api.targets.TSTarget
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.forkblacklists.UForkBlackList
@@ -169,7 +171,7 @@ class TSInterpreter(
     }
 
     private fun exprResolverWithScope(scope: TSStepScope): TSExprResolver =
-        TSExprResolver(ctx, scope, ::mapLocalToIdx)
+        TSExprResolver(ctx, scope, ::mapLocalToIdx, ::stringConstantAllocator)
 
     // (method, localName) -> idx
     private val localVarToIdx: MutableMap<EtsMethod, MutableMap<String, Int>> = hashMapOf()
@@ -217,4 +219,11 @@ class TSInterpreter(
     // TODO: expand with interpreter implementation
     private val EtsStmt.nextStmt: EtsStmt?
         get() = applicationGraph.successors(this).firstOrNull()
+
+    private val stringConstantsAllocatedRefs = mutableMapOf<String, UConcreteHeapRef>()
+
+    private fun stringConstantAllocator(value: String) : UConcreteHeapRef =
+        stringConstantsAllocatedRefs.getOrPut(value) {
+            ctx.allocateStaticRef()
+        }
 }

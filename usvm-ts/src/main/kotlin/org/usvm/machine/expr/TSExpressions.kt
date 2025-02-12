@@ -52,7 +52,7 @@ class TSUnresolvedSort(ctx: TSContext) : USort(ctx) {
 
 class TSStringSort(ctx: TSContext) : USort(ctx) {
     override fun <T> accept(visitor: KSortVisitor<T>): T {
-        return visitor.visit(this)
+        error("Should not be called")
     }
 
     override fun print(builder: StringBuilder) {

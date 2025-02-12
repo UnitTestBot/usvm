@@ -1,12 +1,14 @@
 package org.usvm.machine.expr
 
-import com.sun.org.apache.xalan.internal.xsltc.compiler.util.StringType
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
+import io.ksmt.utils.uncheckedCast
 import mu.KotlinLogging
 import org.jacodb.ets.base.EtsAddExpr
 import org.jacodb.ets.base.EtsAndExpr
+import org.jacodb.ets.base.EtsAnyType
 import org.jacodb.ets.base.EtsArrayAccess
+import org.jacodb.ets.base.EtsArrayType
 import org.jacodb.ets.base.EtsAwaitExpr
 import org.jacodb.ets.base.EtsBinaryExpr
 import org.jacodb.ets.base.EtsBitAndExpr
@@ -39,7 +41,6 @@ import org.jacodb.ets.base.EtsNewExpr
 import org.jacodb.ets.base.EtsNotEqExpr
 import org.jacodb.ets.base.EtsNotExpr
 import org.jacodb.ets.base.EtsNullConstant
-import org.jacodb.ets.base.EtsNullType
 import org.jacodb.ets.base.EtsNullishCoalescingExpr
 import org.jacodb.ets.base.EtsNumberConstant
 import org.jacodb.ets.base.EtsNumberType
@@ -74,9 +75,11 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodSignature
 import org.usvm.UAddressSort
 import org.usvm.UBoolSort
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
+import org.usvm.api.allocateArrayInitialized
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.machine.TSContext
@@ -91,6 +94,7 @@ import org.usvm.machine.types.FakeType
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
+import org.usvm.sizeSort
 import org.usvm.util.fieldLookUp
 import org.usvm.util.throwExceptionWithoutStackFrameDrop
 
@@ -100,10 +104,11 @@ class TSExprResolver(
     private val ctx: TSContext,
     private val scope: TSStepScope,
     private val localToIdx: (EtsMethod, EtsValue) -> Int,
+    mkStringConstRef: (String) -> UConcreteHeapRef
 ) : EtsEntity.Visitor<UExpr<out USort>?> {
 
     private val simpleValueResolver: TSSimpleValueResolver =
-        TSSimpleValueResolver(ctx, scope, localToIdx)
+        TSSimpleValueResolver(ctx, scope, localToIdx, mkStringConstRef)
 
     fun resolve(expr: EtsEntity): UExpr<out USort>? {
         return expr.accept(this)
@@ -166,14 +171,8 @@ class TSExprResolver(
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: EtsStringConstant): UExpr<out USort>? = with(ctx) {
-        scope.calcOnState {
-            val address = memory.allocConcrete(EtsStringType)
-            val lValue = TSStringLValue(address)
-            val rValue = mkTSConcreteString(value.value)
-            memory.write(lValue, rValue, guard = trueExpr)
-            address
-        }
+    override fun visit(value: EtsStringConstant): UExpr<out USort>? {
+        return simpleValueResolver.visit(value)
     }
 
     override fun visit(value: EtsNullConstant): UExpr<out USort> {
@@ -584,6 +583,7 @@ class TSSimpleValueResolver(
     private val ctx: TSContext,
     private val scope: TSStepScope,
     private val localToIdx: (EtsMethod, EtsValue) -> Int,
+    private val mkStringConstantRef: (String) -> UConcreteHeapRef
 ) : EtsValue.Visitor<UExpr<out USort>?> {
 
     private fun resolveLocal(local: EtsValue): ULValue<*, USort> {
@@ -664,8 +664,26 @@ class TSSimpleValueResolver(
     }
 
     override fun visit(value: EtsStringConstant): UExpr<out USort> = with(ctx) {
-        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        error("Not supported $value")
+        scope.calcOnState {
+            val ref = resolveStringConstant(value.value)
+            val stringValueLValue = ctx.getStringValueFieldLValue(ref)
+
+            val charValues = value.value.asSequence().map { mkBv(it.code, bv16Sort) }
+
+            val charArrayRef = memory.allocateArrayInitialized(
+                EtsArrayType(EtsAnyType, dimensions = 1),
+                bv16Sort,
+                sizeSort,
+                charValues.uncheckedCast()
+            )
+            memory.types.allocate(charArrayRef.address, EtsStringType)
+
+            memory.write(stringValueLValue, charArrayRef, guard = trueExpr)
+
+            memory.types.allocate(ref.address, EtsStringType)
+
+            ref
+        }
     }
 
     override fun visit(value: EtsNullConstant): UExpr<out USort> = with(ctx) {
@@ -690,4 +708,7 @@ class TSSimpleValueResolver(
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
         error("Not supported $value")
     }
+
+    fun resolveStringConstant(value: String): UConcreteHeapRef =
+        scope.calcOnState { mkStringConstantRef(value) }
 }

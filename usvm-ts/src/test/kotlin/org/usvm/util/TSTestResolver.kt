@@ -1,8 +1,12 @@
 package org.usvm.util
 
+import io.ksmt.expr.KBitVec32Value
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
+import io.mockk.InternalPlatformDsl.toArray
 import org.jacodb.ets.base.CONSTRUCTOR_NAME
+import org.jacodb.ets.base.EtsAnyType
+import org.jacodb.ets.base.EtsArrayType
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.base.EtsLiteralType
@@ -21,27 +25,30 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodImpl
 import org.jacodb.ets.model.EtsMethodParameter
 import org.jacodb.ets.model.EtsMethodSignature
-import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
-import org.usvm.UContext
 import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.TSObject
 import org.usvm.api.TSTest
+import org.usvm.api.readArrayIndex
+import org.usvm.api.readArrayLength
 import org.usvm.collection.field.UFieldLValue
+import org.usvm.isAllocated
+import org.usvm.isStatic
 import org.usvm.isTrue
-import org.usvm.machine.types.FakeType
 import org.usvm.machine.TSContext
-import org.usvm.machine.expr.TSConcreteString
-import org.usvm.machine.expr.TSStringLValue
 import org.usvm.machine.expr.TSUnresolvedSort
 import org.usvm.machine.expr.extractBool
 import org.usvm.machine.expr.extractDouble
 import org.usvm.machine.expr.extractInt
 import org.usvm.machine.state.TSMethodResult
 import org.usvm.machine.state.TSState
+import org.usvm.machine.types.FakeType
 import org.usvm.memory.URegisterStackLValue
+import org.usvm.mkSizeExpr
 import org.usvm.model.UModelBase
+import org.usvm.sizeSort
 import org.usvm.types.first
 import org.usvm.types.single
 
@@ -125,8 +132,29 @@ class TSTestResolver(
         type is EtsUnknownType && expr is UConcreteHeapRef -> resolveUnknown(expr, model)
         type is EtsPrimitiveType -> resolvePrimitive(expr, type, model)
         type is EtsClassType -> resolveClass(expr, type, model)
+        type is EtsArrayType -> resolveArray(expr.cast(), type, model)
         type is EtsRefType -> TODO()
         else -> TODO()
+    }
+
+    private fun resolveArray(expr: UHeapRef, type: EtsType, model: UModelBase<*>): TSObject {
+        require(expr is UConcreteHeapRef)
+
+        if (expr.isStatic) {
+            TODO()
+        }
+
+        if (expr.isAllocated) {
+            // TODO supports only strings
+            val arrayLength = state.memory.readArrayLength(expr, type, ctx.sizeSort)
+            val values = (0 until (arrayLength as KBitVec32Value).intValue).map {
+                state.memory.readArrayIndex(expr, ctx.mkSizeExpr(it), type, ctx.bv16Sort)
+            }
+            return TSObject.TSArray(values.map { TSObject.TSString(it.toString()) })
+        }
+
+        // array as parameter
+        TODO()
     }
 
     private fun resolveUnknown(
@@ -174,9 +202,17 @@ class TSTestResolver(
 
         EtsStringType -> {
             if (expr is UConcreteHeapRef) {
-                val lValue = TSStringLValue(expr.asExpr(ctx.addressSort))
-                val value = model.read(lValue) as TSConcreteString
-                TSObject.TSString(value.value)
+                val valueField = ctx.getStringValueFieldLValue(expr)
+
+                if (expr.isStatic) {
+                    val expr = state.memory.read(valueField)
+                    val array = resolveExpr(expr, EtsArrayType(EtsAnyType, dimensions = 1), model)
+                    TSObject.TSString((array as TSObject.TSArray).values.joinToString("") { (it as TSObject.TSString).value.drop(2).toInt(16).toChar().toString() })
+                } else {
+                    TODO()
+                }
+
+                TODO()
             } else {
                 TODO()
             }
