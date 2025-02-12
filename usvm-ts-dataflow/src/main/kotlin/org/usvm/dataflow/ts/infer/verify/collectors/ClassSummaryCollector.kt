@@ -16,20 +16,18 @@
 
 package org.usvm.dataflow.ts.infer.verify.collectors
 
-import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.model.EtsClass
-import org.usvm.dataflow.ts.infer.verify.EntityId
+import org.jacodb.ets.model.EtsMethod
 
 class ClassSummaryCollector(
-    override val typeSummary: MutableMap<EntityId, MutableSet<EtsType>>,
-) : SummaryCollector {
+    val methodSummaries: MutableMap<EtsMethod, MethodVerificationSummary> = mutableMapOf(),
+) {
     fun collect(clazz: EtsClass) {
-        clazz.fields.forEach { field ->
-            yield(field.signature)
-        }
         clazz.methods.forEach { method ->
-            yield(method.signature)
-            val stmtCollector = StmtSummaryCollector(method.signature, typeSummary)
+            val stmtCollector = StmtSummaryCollector(
+                method.signature,
+                methodSummaries.computeIfAbsent(method) { MethodVerificationSummary() }
+            )
             method.cfg.stmts.forEach {
                 it.accept(stmtCollector)
             }

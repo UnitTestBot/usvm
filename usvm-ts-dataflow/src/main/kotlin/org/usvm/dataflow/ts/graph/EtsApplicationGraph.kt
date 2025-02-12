@@ -91,6 +91,20 @@ class EtsApplicationGraphImpl(
         return successors.asSequence()
     }
 
+    private val projectClassesBySignature by lazy {
+        cp.projectAndSdkClasses.groupByTo(hashMapOf()) { it.signature }
+    }
+    private val projectClassesByName by lazy {
+        cp.projectAndSdkClasses
+            .filter { !it.signature.isUnknown() }
+            .groupByTo(hashMapOf()) { it.name }
+    }
+    private val projectMethodsByName by lazy {
+        cp.projectAndSdkClasses
+            .flatMap { it.methods }
+            .groupByTo(hashMapOf()) { it.name }
+    }
+
     private val cacheClassWithIdealSignature: MutableMap<EtsClassSignature, Maybe<EtsClass>> = hashMapOf()
     private val cacheMethodWithIdealSignature: MutableMap<EtsMethodSignature, Maybe<EtsMethod>> = hashMapOf()
     private val cachePartiallyMatchedCallees: MutableMap<EtsMethodSignature, List<EtsMethod>> = hashMapOf()
@@ -102,10 +116,7 @@ class EtsApplicationGraphImpl(
             return cacheClassWithIdealSignature.getValue(signature)
         }
 
-        val matched = cp.projectAndSdkClasses
-            .asSequence()
-            .filter { it.signature == signature }
-            .toList()
+        val matched = projectClassesBySignature[signature].orEmpty()
         if (matched.isEmpty()) {
             cacheClassWithIdealSignature[signature] = Maybe.none()
             return Maybe.none()
@@ -149,12 +160,12 @@ class EtsApplicationGraphImpl(
                             return sequenceOf(c.ctor)
                         }
                     } else {
-                        val resolved = cp.projectAndSdkClasses
-                            .asSequence()
-                            .filter { compareClassSignatures(it.signature, sig) != ComparisonResult.NotEqual }
-                            .singleOrNull()
-                        if (resolved != null) {
-                            return sequenceOf(resolved.ctor)
+                        if (!sig.isUnknown()) {
+                            val resolved = projectClassesByName[sig.name].orEmpty()
+                                .singleOrNull { compareClassSignatures(it.signature, sig) != ComparisonResult.NotEqual }
+                            if (resolved != null) {
+                                return sequenceOf(resolved.ctor)
+                            }
                         }
                     }
                 }
@@ -235,14 +246,13 @@ class EtsApplicationGraphImpl(
 
         // If the neighbour match failed,
         // try to *uniquely* resolve the callee via a partial signature match:
-        val resolved = cp.projectAndSdkClasses
+        val resolved = projectMethodsByName[callee.name].orEmpty()
             .asSequence()
-            .filter { compareClassSignatures(it.signature, callee.enclosingClass) != ComparisonResult.NotEqual }
+            .filter { compareClassSignatures(it.enclosingClass, callee.enclosingClass) != ComparisonResult.NotEqual }
             // Note: exclude current class:
-            .filterNot { compareClassSignatures(it.signature, node.method.enclosingClass) != ComparisonResult.NotEqual }
-            // Note: omit constructors!
-            .flatMap { it.methods.asSequence() }
-            .filter { it.name == callee.name }
+            .filterNot {
+                compareClassSignatures(it.enclosingClass, node.method.enclosingClass) != ComparisonResult.NotEqual
+            }
             .toList()
         if (resolved.isEmpty()) {
             cachePartiallyMatchedCallees[callee] = emptyList()
