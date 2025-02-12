@@ -59,7 +59,8 @@ class TSTestResolver(
             }
 
             is TSMethodResult.TSException -> {
-                TODO()
+                val params = resolveParams(method.parameters, this, model)
+                return TSTest(params, TSObject.TSException)
             }
 
             is TSMethodResult.NoCall -> {
@@ -75,22 +76,19 @@ class TSTestResolver(
         ctx: TSContext,
         model: UModelBase<EtsType>,
     ): List<TSObject> = with(ctx) {
-        params.map {  param ->
+        params.map { param ->
             val sort = typeToSort(param.type).takeUnless { it is TSUnresolvedSort } ?: addressSort
             val lValue = URegisterStackLValue(sort, param.index)
             val expr = state.memory.read(lValue) // TODO error
             if (param.type is EtsUnknownType) {
-                approximateParam(expr.cast(), model)
+                resolveFakeObject(expr.cast(), model)
             } else {
                 resolveExpr(model.eval(expr), param.type, model)
             }
         }
     }
 
-    private fun approximateParam(expr: UConcreteHeapRef, model: UModelBase<EtsType>): TSObject {
-        if (expr.address == 0) {
-            return TSObject.TSUndefinedObject
-        }
+    private fun resolveFakeObject(expr: UConcreteHeapRef, model: UModelBase<EtsType>): TSObject {
         val type = state.memory.types.getTypeStream(expr.asExpr(ctx.addressSort)).single() as FakeType
         return when {
             model.eval(type.boolTypeExpr).isTrue -> {
@@ -98,16 +96,19 @@ class TSTestResolver(
                 val value = state.memory.read(lValue)
                 resolveExpr(model.eval(value), EtsBooleanType, model)
             }
+
             model.eval(type.fpTypeExpr).isTrue -> {
                 val lValue = ctx.getIntermediateFpLValue(expr.address)
                 val value = state.memory.read(lValue)
                 resolveExpr(model.eval(value), EtsNumberType, model)
             }
+
             model.eval(type.refTypeExpr).isTrue -> {
                 val lValue = ctx.getIntermediateRefLValue(expr.address)
                 val value = state.memory.read(lValue)
                 resolveExpr(model.eval(value), EtsClassType(ctx.scene.projectAndSdkClasses.first().signature), model)
             }
+
             else -> error("Unsupported")
         }
     }
@@ -181,10 +182,20 @@ class TSTestResolver(
         expr: UExpr<out USort>,
         classType: EtsClassType,
         model: UModelBase<*>,
-    ): TSObject.TSClass {
+    ): TSObject {
+        if (expr is UConcreteHeapRef && expr.address == 0) {
+            return TSObject.TSUndefinedObject
+        }
+
+        val nullRef = ctx.mkTSNullValue()
+        if (model.eval(ctx.mkHeapRefEq(expr.asExpr(ctx.addressSort), nullRef)).isTrue) {
+            return TSObject.TSNull
+        }
+
         check(expr.sort == ctx.addressSort) {
             "Expected address sort, but got ${expr.sort}"
         }
+
         val clazz = ctx.scene.projectAndSdkClasses.firstOrNull { it.signature == classType.signature }
             ?: if (classType.signature.name == "Object") {
                 EtsClassImpl(
@@ -203,6 +214,7 @@ class TSTestResolver(
             } else {
                 error("Class not found: ${classType.signature}")
             }
+
         val properties = clazz.fields.associate { field ->
             val sort = ctx.typeToSort(field.type)
             val lValue = UFieldLValue(sort, expr.asExpr(ctx.addressSort), field.name)

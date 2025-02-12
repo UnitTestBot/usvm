@@ -50,4 +50,8 @@ sealed interface TSObject {
     data class TSObject(val addr: Int) : org.usvm.api.TSObject
 
     data object TSUnknown : org.usvm.api.TSObject
+
+    data object TSNull : org.usvm.api.TSObject
+
+    data object TSException : org.usvm.api.TSObject
 }

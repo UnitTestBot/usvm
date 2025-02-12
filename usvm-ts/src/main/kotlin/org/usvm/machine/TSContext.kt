@@ -2,9 +2,11 @@ package org.usvm.machine
 
 import io.ksmt.sort.KFp64Sort
 import org.jacodb.ets.base.EtsBooleanType
+import org.jacodb.ets.base.EtsNullType
 import org.jacodb.ets.base.EtsNumberType
 import org.jacodb.ets.base.EtsRefType
 import org.jacodb.ets.base.EtsType
+import org.jacodb.ets.base.EtsUndefinedType
 import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.model.EtsScene
 import org.usvm.UAddressSort
@@ -41,6 +43,8 @@ class TSContext(
         is EtsBooleanType -> boolSort
         is EtsNumberType -> fp64Sort
         is EtsRefType -> addressSort
+        is EtsNullType -> addressSort
+        is EtsUndefinedType -> addressSort
         is EtsUnknownType -> unresolvedSort
         else -> TODO("Support all JacoDB types, encountered $type")
     }
@@ -60,6 +64,9 @@ class TSContext(
     }
 
     fun mkUndefinedValue(): UExpr<UAddressSort> = undefinedValue
+
+    fun mkTSNullValue(): UConcreteHeapRef = nullValue
+    private val nullValue: UConcreteHeapRef = mkConcreteHeapRef(addressCounter.freshStaticAddress())
 
     fun getIntermediateBoolLValue(addr: Int): UFieldLValue<IntermediateLValueField, UBoolSort> {
         return UFieldLValue(boolSort, mkConcreteHeapRef(addr), IntermediateLValueField.BOOL)
