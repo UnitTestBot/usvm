@@ -3,6 +3,7 @@ package org.usvm.util
 import org.jacodb.ets.base.EtsAnyType
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsClassType
+import org.jacodb.ets.base.EtsNullType
 import org.jacodb.ets.base.EtsNumberType
 import org.jacodb.ets.base.EtsStringType
 import org.jacodb.ets.base.EtsType
@@ -181,6 +182,12 @@ abstract class TSMethodTestRunner : TestRunner<TSTest, EtsMethod, EtsType?, TSMe
             TSObject.TSObject::class -> EtsUnknownType
             // For untyped tests, not to limit objects serialized from models after type coercion.
             TSObject.TSUnknown::class -> EtsUnknownType
+            TSObject.TSNull::class -> EtsNullType
+            TSObject.TSException::class -> {
+                // TODO incorrect
+                val signature = EtsClassSignature("Exception", EtsFileSignature.DEFAULT)
+                EtsClassType(signature)
+            }
             else -> error("Unsupported type: $klass")
         }
     }

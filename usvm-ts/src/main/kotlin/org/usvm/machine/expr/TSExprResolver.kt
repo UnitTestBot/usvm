@@ -38,6 +38,7 @@ import org.jacodb.ets.base.EtsNewExpr
 import org.jacodb.ets.base.EtsNotEqExpr
 import org.jacodb.ets.base.EtsNotExpr
 import org.jacodb.ets.base.EtsNullConstant
+import org.jacodb.ets.base.EtsNullType
 import org.jacodb.ets.base.EtsNullishCoalescingExpr
 import org.jacodb.ets.base.EtsNumberConstant
 import org.jacodb.ets.base.EtsNumberType
@@ -55,6 +56,7 @@ import org.jacodb.ets.base.EtsStaticFieldRef
 import org.jacodb.ets.base.EtsStrictEqExpr
 import org.jacodb.ets.base.EtsStrictNotEqExpr
 import org.jacodb.ets.base.EtsStringConstant
+import org.jacodb.ets.base.EtsStringType
 import org.jacodb.ets.base.EtsSubExpr
 import org.jacodb.ets.base.EtsTernaryExpr
 import org.jacodb.ets.base.EtsThis
@@ -72,6 +74,7 @@ import org.jacodb.ets.model.EtsMethodSignature
 import org.usvm.UAddressSort
 import org.usvm.UBoolSort
 import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.collection.field.UFieldLValue
@@ -80,6 +83,7 @@ import org.usvm.machine.interpreter.TSStepScope
 import org.usvm.machine.operator.TSBinaryOperator
 import org.usvm.machine.operator.TSUnaryOperator
 import org.usvm.machine.state.TSMethodResult
+import org.usvm.machine.state.TSState
 import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.types.FakeType
@@ -87,6 +91,7 @@ import org.usvm.machine.types.mkFakeValue
 import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.util.fieldLookUp
+import org.usvm.util.throwExceptionWithoutStackFrameDrop
 
 private val logger = KotlinLogging.logger {}
 
@@ -354,8 +359,7 @@ class TSExprResolver(
     }
 
     override fun visit(expr: EtsStrictEqExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+        return resolveBinaryOperator(TSBinaryOperator.StrictEq, expr)
     }
 
     override fun visit(expr: EtsStrictNotEqExpr): UExpr<out USort>? {
@@ -499,8 +503,28 @@ class TSExprResolver(
         error("Not supported $value")
     }
 
+    private fun checkUndefinedOrNullPropertyRead(instance: UHeapRef) = with(ctx) {
+        val neqNull = mkAnd(
+            mkHeapRefEq(instance, ctx.mkUndefinedValue()).not(),
+            mkHeapRefEq(instance, ctx.mkTSNullValue()).not()
+        )
+
+        scope.fork(
+            neqNull,
+            blockOnFalseState = allocateException(EtsStringType) // TODO incorrect exception type
+        )
+    }
+
+    private fun allocateException(type: EtsType): (TSState) -> Unit = { state ->
+        val address = state.memory.allocConcrete(type)
+        state.throwExceptionWithoutStackFrameDrop(address, type)
+    }
+
     override fun visit(value: EtsInstanceFieldRef): UExpr<out USort>? = with(ctx) {
         val instanceRef = resolve(value.instance)?.asExpr(addressSort) ?: return null
+
+        checkUndefinedOrNullPropertyRead(instanceRef) ?: return null
+
         // TODO: checkNullPointer(instanceRef)
         val fieldType = scene.fieldLookUp(value.field).type
         val sort = typeToSort(fieldType)
@@ -639,13 +663,11 @@ class TSSimpleValueResolver(
     }
 
     override fun visit(value: EtsNullConstant): UExpr<out USort> = with(ctx) {
-        // TODO: replace with `ctx.nullConstant` (!= nullRef)
-        nullRef
+        mkTSNullValue()
     }
 
     override fun visit(value: EtsUndefinedConstant): UExpr<out USort> = with(ctx) {
-        // TODO: replace with `ctx.nullRef` or `ctx.undefinedConstant` (== nullRef)
-        nullRef
+        mkUndefinedValue()
     }
 
     override fun visit(value: EtsArrayAccess): UExpr<out USort> = with(ctx) {

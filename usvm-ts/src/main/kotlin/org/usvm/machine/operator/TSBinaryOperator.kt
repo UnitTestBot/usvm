@@ -186,6 +186,7 @@ sealed interface TSBinaryOperator {
                                     )
                                 )
 
+                                scope.assert(lhsType.fpTypeExpr or lhsType.boolTypeExpr)
                                 // TODO: support objects
                             }
 
@@ -206,6 +207,7 @@ sealed interface TSBinaryOperator {
                                     )
                                 )
 
+                                scope.assert(lhsType.fpTypeExpr or lhsType.boolTypeExpr)
                                 // TODO: support objects
                             }
 
@@ -218,6 +220,7 @@ sealed interface TSBinaryOperator {
                                     )
                                 )
 
+                                scope.assert(lhsType.refTypeExpr)
                                 // TODO: support objects
                             }
 
@@ -250,6 +253,7 @@ sealed interface TSBinaryOperator {
                                     )
                                 )
 
+                                scope.assert(rhsType.fpTypeExpr or rhsType.boolTypeExpr)
                                 // TODO: support objects
                             }
 
@@ -270,6 +274,7 @@ sealed interface TSBinaryOperator {
                                     )
                                 )
 
+                                scope.assert(rhsType.fpTypeExpr or rhsType.boolTypeExpr)
                                 // TODO: support objects
                             }
 
@@ -282,6 +287,7 @@ sealed interface TSBinaryOperator {
                                     )
                                 )
 
+                                scope.assert(rhsType.refTypeExpr)
                                 // TODO: support objects
 
                             }
@@ -330,7 +336,6 @@ sealed interface TSBinaryOperator {
 
             TODO("Unsupported String and bigint comparison")
         }
-
     }
 
     data object Neq : TSBinaryOperator {
@@ -382,6 +387,52 @@ sealed interface TSBinaryOperator {
             return with(Eq) {
                 internalResolve(lhs, rhs, scope).asExpr(boolSort).not()
             }
+        }
+    }
+
+    data object StrictEq : TSBinaryOperator {
+        override fun TSContext.onBool(
+            lhs: UExpr<UBoolSort>,
+            rhs: UExpr<UBoolSort>,
+            scope: TSStepScope,
+        ): UExpr<out USort> {
+            return mkEq(lhs, rhs)
+        }
+
+        override fun TSContext.onFp(
+            lhs: UExpr<KFp64Sort>,
+            rhs: UExpr<KFp64Sort>,
+            scope: TSStepScope,
+        ): UExpr<out USort> {
+            return mkFpEqualExpr(lhs, rhs)
+        }
+
+        override fun TSContext.onRef(
+            lhs: UExpr<UAddressSort>,
+            rhs: UExpr<UAddressSort>,
+            scope: TSStepScope,
+        ): UExpr<out USort> {
+            TODO("Not yet implemented")
+        }
+
+        override fun TSContext.resolveFakeObject(
+            lhs: UExpr<out USort>,
+            rhs: UExpr<out USort>,
+            scope: TSStepScope,
+        ): UExpr<out USort> {
+            check(lhs.isFakeObject() || rhs.isFakeObject())
+            // TODO: delegating to '==' is not correct in general case
+            return with(Eq) {
+                resolveFakeObject(lhs, rhs, scope)
+            }
+        }
+
+        override fun TSContext.internalResolve(
+            lhs: UExpr<out USort>,
+            rhs: UExpr<out USort>,
+            scope: TSStepScope,
+        ): UExpr<out USort> {
+            TODO("Not yet implemented")
         }
     }
 

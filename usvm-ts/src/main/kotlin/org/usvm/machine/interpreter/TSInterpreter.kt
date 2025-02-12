@@ -8,6 +8,7 @@ import org.jacodb.ets.base.EtsGotoStmt
 import org.jacodb.ets.base.EtsIfStmt
 import org.jacodb.ets.base.EtsLocal
 import org.jacodb.ets.base.EtsNopStmt
+import org.jacodb.ets.base.EtsNullType
 import org.jacodb.ets.base.EtsParameterRef
 import org.jacodb.ets.base.EtsReturnStmt
 import org.jacodb.ets.base.EtsStmt
@@ -207,6 +208,8 @@ class TSInterpreter(
         state.callStack.push(method, returnSite = null)
         state.memory.stack.push(method.parametersWithThisCount, method.localsCount)
         state.newStmt(method.cfg.instructions.first())
+
+        state.memory.types.allocate(ctx.mkTSNullValue().address, EtsNullType)
 
         return state
     }
