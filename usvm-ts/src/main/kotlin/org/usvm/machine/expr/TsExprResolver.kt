@@ -38,7 +38,6 @@ import org.jacodb.ets.base.EtsNewExpr
 import org.jacodb.ets.base.EtsNotEqExpr
 import org.jacodb.ets.base.EtsNotExpr
 import org.jacodb.ets.base.EtsNullConstant
-import org.jacodb.ets.base.EtsNullType
 import org.jacodb.ets.base.EtsNullishCoalescingExpr
 import org.jacodb.ets.base.EtsNumberConstant
 import org.jacodb.ets.base.EtsNumberType
@@ -78,12 +77,12 @@ import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.collection.field.UFieldLValue
-import org.usvm.machine.TSContext
-import org.usvm.machine.interpreter.TSStepScope
-import org.usvm.machine.operator.TSBinaryOperator
-import org.usvm.machine.operator.TSUnaryOperator
-import org.usvm.machine.state.TSMethodResult
-import org.usvm.machine.state.TSState
+import org.usvm.machine.TsContext
+import org.usvm.machine.interpreter.TsStepScope
+import org.usvm.machine.operator.TsBinaryOperator
+import org.usvm.machine.operator.TsUnaryOperator
+import org.usvm.machine.state.TsMethodResult
+import org.usvm.machine.state.TsState
 import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.types.FakeType
@@ -95,26 +94,26 @@ import org.usvm.util.throwExceptionWithoutStackFrameDrop
 
 private val logger = KotlinLogging.logger {}
 
-class TSExprResolver(
-    private val ctx: TSContext,
-    private val scope: TSStepScope,
+class TsExprResolver(
+    private val ctx: TsContext,
+    private val scope: TsStepScope,
     private val localToIdx: (EtsMethod, EtsValue) -> Int,
 ) : EtsEntity.Visitor<UExpr<out USort>?> {
 
-    private val simpleValueResolver: TSSimpleValueResolver =
-        TSSimpleValueResolver(ctx, scope, localToIdx)
+    private val simpleValueResolver: TsSimpleValueResolver =
+        TsSimpleValueResolver(ctx, scope, localToIdx)
 
     fun resolve(expr: EtsEntity): UExpr<out USort>? {
         return expr.accept(this)
     }
 
     private fun resolveBinaryOperator(
-        operator: TSBinaryOperator,
+        operator: TsBinaryOperator,
         expr: EtsBinaryExpr,
     ): UExpr<out USort>? = resolveBinaryOperator(operator, expr.left, expr.right)
 
     private fun resolveBinaryOperator(
-        operator: TSBinaryOperator,
+        operator: TsBinaryOperator,
         lhv: EtsEntity,
         rhv: EtsEntity,
     ): UExpr<out USort>? = resolveAfterResolved(lhv, rhv) { lhs, rhs ->
@@ -187,12 +186,12 @@ class TSExprResolver(
             if (arg.sort == boolSort) {
                 arg.asExpr(boolSort).not()
             } else {
-                TSUnaryOperator.Not(arg, scope)
+                TsUnaryOperator.Not(arg, scope)
             }
         }
     }
 
-    // TODO move into TSUnaryOperator
+    // TODO move into TsUnaryOperator
     override fun visit(expr: EtsNegExpr): UExpr<out USort>? = with(ctx) {
         if (expr.type is EtsNumberType) {
             val arg = resolve(expr.arg)?.asExpr(fp64Sort) ?: return null
@@ -271,11 +270,11 @@ class TSExprResolver(
     // region BINARY
 
     override fun visit(expr: EtsAddExpr): UExpr<out USort>? {
-        return resolveBinaryOperator(TSBinaryOperator.Add, expr)
+        return resolveBinaryOperator(TsBinaryOperator.Add, expr)
     }
 
     override fun visit(expr: EtsSubExpr): UExpr<out USort>? {
-        return resolveBinaryOperator(TSBinaryOperator.Sub, expr)
+        return resolveBinaryOperator(TsBinaryOperator.Sub, expr)
     }
 
     override fun visit(expr: EtsMulExpr): UExpr<out USort>? {
@@ -284,11 +283,11 @@ class TSExprResolver(
     }
 
     override fun visit(expr: EtsAndExpr): UExpr<out USort>? {
-        return resolveBinaryOperator(TSBinaryOperator.And, expr)
+        return resolveBinaryOperator(TsBinaryOperator.And, expr)
     }
 
     override fun visit(expr: EtsOrExpr): UExpr<out USort>? {
-        return resolveBinaryOperator(TSBinaryOperator.Or, expr)
+        return resolveBinaryOperator(TsBinaryOperator.Or, expr)
     }
 
     override fun visit(expr: EtsDivExpr): UExpr<out USort>? {
@@ -351,15 +350,15 @@ class TSExprResolver(
     // region RELATION
 
     override fun visit(expr: EtsEqExpr): UExpr<out USort>? {
-        return resolveBinaryOperator(TSBinaryOperator.Eq, expr)
+        return resolveBinaryOperator(TsBinaryOperator.Eq, expr)
     }
 
     override fun visit(expr: EtsNotEqExpr): UExpr<out USort>? {
-        return resolveBinaryOperator(TSBinaryOperator.Neq, expr)
+        return resolveBinaryOperator(TsBinaryOperator.Neq, expr)
     }
 
     override fun visit(expr: EtsStrictEqExpr): UExpr<out USort>? {
-        return resolveBinaryOperator(TSBinaryOperator.StrictEq, expr)
+        return resolveBinaryOperator(TsBinaryOperator.StrictEq, expr)
     }
 
     override fun visit(expr: EtsStrictNotEqExpr): UExpr<out USort>? {
@@ -368,11 +367,11 @@ class TSExprResolver(
     }
 
     override fun visit(expr: EtsLtExpr): UExpr<out USort>? {
-        return resolveBinaryOperator(TSBinaryOperator.Lt, expr)
+        return resolveBinaryOperator(TsBinaryOperator.Lt, expr)
     }
 
     override fun visit(expr: EtsGtExpr): UExpr<out USort>? {
-        return resolveBinaryOperator(TSBinaryOperator.Gt, expr)
+        return resolveBinaryOperator(TsBinaryOperator.Gt, expr)
     }
 
     override fun visit(expr: EtsLtEqExpr): UExpr<out USort>? {
@@ -445,7 +444,7 @@ class TSExprResolver(
         instance: EtsLocal?,
         arguments: () -> List<EtsValue>,
         argumentTypes: () -> List<EtsType>,
-        onNoCallPresent: TSStepScope.(List<UExpr<out USort>>) -> Unit,
+        onNoCallPresent: TsStepScope.(List<UExpr<out USort>>) -> Unit,
     ): UExpr<out USort>? {
         val instanceExpr = if (instance != null) {
             val resolved = resolve(instance) ?: return null
@@ -462,7 +461,7 @@ class TSExprResolver(
         }
 
         // Note: currently, 'this' has index 'n', so we must add it LAST, *after* all other arguments.
-        // See `TSInterpreter::mapLocalToIdx`.
+        // See `TsInterpreter::mapLocalToIdx`.
         if (instanceExpr != null) {
             // TODO: checkNullPointer(instanceRef) ?: return null
             // TODO: if (!assertIsSubtype(instanceRef, method.enclosingType)) return null
@@ -474,23 +473,23 @@ class TSExprResolver(
     }
 
     private inline fun resolveInvokeNoStaticInitializationCheck(
-        onNoCallPresent: TSStepScope.() -> Unit,
+        onNoCallPresent: TsStepScope.() -> Unit,
     ): UExpr<out USort>? {
         val result = scope.calcOnState { methodResult }
         return when (result) {
-            is TSMethodResult.NoCall -> {
+            is TsMethodResult.NoCall -> {
                 scope.onNoCallPresent()
                 null
             }
 
-            is TSMethodResult.Success -> {
+            is TsMethodResult.Success -> {
                 scope.doWithState {
-                    methodResult = TSMethodResult.NoCall
+                    methodResult = TsMethodResult.NoCall
                 }
                 result.value
             }
 
-            is TSMethodResult.TSException -> error("Exception should be handled earlier")
+            is TsMethodResult.TsException -> error("Exception should be handled earlier")
         }
     }
 
@@ -506,7 +505,7 @@ class TSExprResolver(
     private fun checkUndefinedOrNullPropertyRead(instance: UHeapRef) = with(ctx) {
         val neqNull = mkAnd(
             mkHeapRefEq(instance, ctx.mkUndefinedValue()).not(),
-            mkHeapRefEq(instance, ctx.mkTSNullValue()).not()
+            mkHeapRefEq(instance, ctx.mkTsNullValue()).not()
         )
 
         scope.fork(
@@ -515,7 +514,7 @@ class TSExprResolver(
         )
     }
 
-    private fun allocateException(type: EtsType): (TSState) -> Unit = { state ->
+    private fun allocateException(type: EtsType): (TsState) -> Unit = { state ->
         val address = state.memory.allocConcrete(type)
         state.throwExceptionWithoutStackFrameDrop(address, type)
     }
@@ -574,9 +573,9 @@ class TSExprResolver(
     }
 }
 
-class TSSimpleValueResolver(
-    private val ctx: TSContext,
-    private val scope: TSStepScope,
+class TsSimpleValueResolver(
+    private val ctx: TsContext,
+    private val scope: TsStepScope,
     private val localToIdx: (EtsMethod, EtsValue) -> Int,
 ) : EtsValue.Visitor<UExpr<out USort>?> {
 
@@ -600,7 +599,7 @@ class TSSimpleValueResolver(
             is UBoolSort -> URegisterStackLValue(sort, localIdx)
             is KFp64Sort -> URegisterStackLValue(sort, localIdx)
             is UAddressSort -> URegisterStackLValue(sort, localIdx)
-            is TSUnresolvedSort -> {
+            is TsUnresolvedSort -> {
                 check(local is EtsThis || local is EtsParameterRef) {
                     "Only This and ParameterRef are expected here"
                 }
@@ -663,7 +662,7 @@ class TSSimpleValueResolver(
     }
 
     override fun visit(value: EtsNullConstant): UExpr<out USort> = with(ctx) {
-        mkTSNullValue()
+        mkTsNullValue()
     }
 
     override fun visit(value: EtsUndefinedConstant): UExpr<out USort> = with(ctx) {

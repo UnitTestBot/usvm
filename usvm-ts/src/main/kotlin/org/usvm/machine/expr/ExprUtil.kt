@@ -7,13 +7,13 @@ import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.isFalse
-import org.usvm.machine.TSContext
-import org.usvm.machine.interpreter.TSStepScope
+import org.usvm.machine.TsContext
+import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.types.ExprWithTypeConstraint
 import org.usvm.machine.types.FakeType
 import org.usvm.types.single
 
-fun TSContext.mkTruthyExpr(expr: UExpr<out USort>, scope: TSStepScope): UBoolExpr = scope.calcOnState {
+fun TsContext.mkTruthyExpr(expr: UExpr<out USort>, scope: TsStepScope): UBoolExpr = scope.calcOnState {
     if (expr.isFakeObject()) {
         val falseBranchGround = makeSymbolicPrimitive(boolSort)
 

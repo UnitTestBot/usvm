@@ -1,15 +1,13 @@
 package org.usvm.samples
 
-import org.jacodb.ets.base.DEFAULT_ARK_CLASS_NAME
-import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Test
-import org.usvm.api.TSObject
-import org.usvm.util.TSMethodTestRunner
+import org.usvm.api.TsObject
+import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.getResourcePath
 
-class Call : TSMethodTestRunner() {
+class Call : TsMethodTestRunner() {
 
     override val scene: EtsScene = run {
         val name = "Call.ts"
@@ -21,7 +19,7 @@ class Call : TSMethodTestRunner() {
     @Test
     fun `test simpleCall`() {
         val method = getMethod("Call", "simpleCall")
-        discoverProperties<TSObject.TSNumber>(
+        discoverProperties<TsObject.TsNumber>(
             method = method,
             { r -> r.number == 42.0 },
         )
@@ -30,7 +28,7 @@ class Call : TSMethodTestRunner() {
     @Test
     fun `test fib`() {
         val method = getMethod("Call", "fib")
-        discoverProperties<TSObject.TSNumber, TSObject.TSNumber>(
+        discoverProperties<TsObject.TsNumber, TsObject.TsNumber>(
             method = method,
             { n, r -> n.number < 0.0 && r.number == -1.0 },
             { n, r -> n.number > 10.0 && r.number == -2.0 },

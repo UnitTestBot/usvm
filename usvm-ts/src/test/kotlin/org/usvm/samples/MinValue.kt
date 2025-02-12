@@ -3,12 +3,12 @@ package org.usvm.samples
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Disabled
-import org.usvm.api.TSObject
-import org.usvm.util.TSMethodTestRunner
+import org.usvm.api.TsObject
+import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.getResourcePath
 import kotlin.test.Test
 
-class MinValue : TSMethodTestRunner() {
+class MinValue : TsMethodTestRunner() {
 
     override val scene: EtsScene = run {
         val name = "MinValue.ts"
@@ -21,7 +21,7 @@ class MinValue : TSMethodTestRunner() {
     @Disabled
     fun testMinValue() {
         val method = getMethod("MinValue", "findMinValue")
-        discoverProperties<TSObject.TSArray, TSObject.TSNumber>(
+        discoverProperties<TsObject.TsArray, TsObject.TsNumber>(
             method,
         )
     }

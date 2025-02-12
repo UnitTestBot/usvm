@@ -2,12 +2,12 @@ package org.usvm.samples
 
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
-import org.usvm.api.TSObject
-import org.usvm.util.TSMethodTestRunner
+import org.usvm.api.TsObject
+import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.getResourcePath
 import kotlin.test.Test
 
-class InstanceMethods : TSMethodTestRunner() {
+class InstanceMethods : TsMethodTestRunner() {
 
     override val scene: EtsScene = run {
         val name = "InstanceMethods.ts"
@@ -19,7 +19,7 @@ class InstanceMethods : TSMethodTestRunner() {
     @Test
     fun testNoArgsInstanceMethod() {
         val method = getMethod("InstanceMethods", "noArguments")
-        discoverProperties<TSObject.TSNumber>(
+        discoverProperties<TsObject.TsNumber>(
             method,
             { r -> r.number == 42.0 },
         )
@@ -28,7 +28,7 @@ class InstanceMethods : TSMethodTestRunner() {
     @Test
     fun testSingleArgInstanceMethod() {
         val method = getMethod("InstanceMethods", "singleArgument")
-        discoverProperties<TSObject.TSNumber, TSObject.TSNumber>(
+        discoverProperties<TsObject.TsNumber, TsObject.TsNumber>(
             method,
             { a, r -> a.number == 1.0 && r.number == 100.0 },
             { a, r -> a.number != 1.0 && r.number == 0.0 },
@@ -38,7 +38,7 @@ class InstanceMethods : TSMethodTestRunner() {
     @Test
     fun testManyArgsInstanceMethod() {
         val method = getMethod("InstanceMethods", "manyArguments")
-        discoverProperties<TSObject.TSNumber, TSObject.TSNumber, TSObject.TSNumber, TSObject.TSNumber, TSObject.TSNumber>(
+        discoverProperties<TsObject.TsNumber, TsObject.TsNumber, TsObject.TsNumber, TsObject.TsNumber, TsObject.TsNumber>(
             method,
             { a, _, _, _, r -> a.number == 1.0 && r == a },
             { _, b, _, _, r -> b.number == 2.0 && r == b },

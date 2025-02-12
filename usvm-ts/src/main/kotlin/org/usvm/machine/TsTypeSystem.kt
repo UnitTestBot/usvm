@@ -16,7 +16,7 @@ import org.usvm.types.emptyTypeStream
 import kotlin.time.Duration
 
 // TODO this is draft, should be replaced with real implementation
-class TSTypeSystem(
+class TsTypeSystem(
     override val typeOperationsTimeout: Duration,
     val project: EtsScene,
 ) : UTypeSystem<EtsType> {
@@ -58,17 +58,17 @@ class TSTypeSystem(
         else -> emptySequence()
     }
 
-    private val topTypeStream by lazy { TSTopTypeStream(this) }
+    private val topTypeStream by lazy { TsTopTypeStream(this) }
 
     override fun topTypeStream(): UTypeStream<EtsType> = topTypeStream
 }
 
-class TSTopTypeStream(
-    private val typeSystem: TSTypeSystem,
-    private val primitiveTypes: List<EtsType> = TSTypeSystem.primitiveTypes.toList(),
+class TsTopTypeStream(
+    private val typeSystem: TsTypeSystem,
+    private val primitiveTypes: List<EtsType> = TsTypeSystem.primitiveTypes.toList(),
     // Currently only EtsUnknownType was encountered and viewed as any type.
     // However, there is EtsAnyType that represents any type.
-    // TODO: replace EtsUnknownType with further TSTypeSystem implementation.
+    // TODO: replace EtsUnknownType with further TsTypeSystem implementation.
     private val anyTypeStream: UTypeStream<EtsType> = USupportTypeStream.from(typeSystem, EtsUnknownType),
 ) : UTypeStream<EtsType> {
 
@@ -88,10 +88,10 @@ class TSTopTypeStream(
 
             if (updatedPrimitiveTypes.isEmpty()) return anyTypeStream
 
-            return TSTopTypeStream(typeSystem, updatedPrimitiveTypes, anyTypeStream)
+            return TsTopTypeStream(typeSystem, updatedPrimitiveTypes, anyTypeStream)
         }
 
-        return TSTopTypeStream(typeSystem, primitiveTypes, anyTypeStream.filterByNotSupertype(type))
+        return TsTopTypeStream(typeSystem, primitiveTypes, anyTypeStream.filterByNotSupertype(type))
     }
 
     override fun filterByNotSubtype(type: EtsType): UTypeStream<EtsType> {
@@ -100,10 +100,10 @@ class TSTopTypeStream(
 
             if (updatedPrimitiveTypes.isEmpty()) return anyTypeStream
 
-            return TSTopTypeStream(typeSystem, updatedPrimitiveTypes, anyTypeStream)
+            return TsTopTypeStream(typeSystem, updatedPrimitiveTypes, anyTypeStream)
         }
 
-        return TSTopTypeStream(typeSystem, primitiveTypes, anyTypeStream.filterByNotSubtype(type))
+        return TsTopTypeStream(typeSystem, primitiveTypes, anyTypeStream.filterByNotSubtype(type))
     }
 
     override fun take(n: Int): TypesResult<EtsType> {

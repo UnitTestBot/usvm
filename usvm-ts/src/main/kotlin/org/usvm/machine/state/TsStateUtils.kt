@@ -5,13 +5,13 @@ import org.jacodb.ets.model.EtsMethod
 import org.usvm.UExpr
 import org.usvm.USort
 
-val TSState.lastStmt get() = pathNode.statement
+val TsState.lastStmt get() = pathNode.statement
 
-fun TSState.newStmt(stmt: EtsStmt) {
+fun TsState.newStmt(stmt: EtsStmt) {
     pathNode += stmt
 }
 
-fun TSState.returnValue(valueToReturn: UExpr<out USort>) {
+fun TsState.returnValue(valueToReturn: UExpr<out USort>) {
     val returnFromMethod = callStack.lastMethod()
     val returnSite = callStack.pop()
     if (callStack.isNotEmpty()) {
@@ -19,7 +19,7 @@ fun TSState.returnValue(valueToReturn: UExpr<out USort>) {
         popLocalToSortStack()
     }
 
-    methodResult = TSMethodResult.Success(returnFromMethod, valueToReturn)
+    methodResult = TsMethodResult.Success(returnFromMethod, valueToReturn)
 
     if (returnSite != null) {
         newStmt(returnSite)
