@@ -21,7 +21,9 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodImpl
 import org.jacodb.ets.model.EtsMethodParameter
 import org.jacodb.ets.model.EtsMethodSignature
+import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
+import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.api.TSObject
@@ -30,6 +32,8 @@ import org.usvm.collection.field.UFieldLValue
 import org.usvm.isTrue
 import org.usvm.machine.types.FakeType
 import org.usvm.machine.TSContext
+import org.usvm.machine.expr.TSConcreteString
+import org.usvm.machine.expr.TSStringLValue
 import org.usvm.machine.expr.TSUnresolvedSort
 import org.usvm.machine.expr.extractBool
 import org.usvm.machine.expr.extractDouble
@@ -119,7 +123,7 @@ class TSTestResolver(
         model: UModelBase<*>,
     ): TSObject = when {
         type is EtsUnknownType && expr is UConcreteHeapRef -> resolveUnknown(expr, model)
-        type is EtsPrimitiveType -> resolvePrimitive(expr, type)
+        type is EtsPrimitiveType -> resolvePrimitive(expr, type, model)
         type is EtsClassType -> resolveClass(expr, type, model)
         type is EtsRefType -> TODO()
         else -> TODO()
@@ -138,6 +142,7 @@ class TSTestResolver(
     private fun resolvePrimitive(
         expr: UExpr<out USort>,
         type: EtsPrimitiveType,
+        model: UModelBase<*>
     ): TSObject = when (type) {
         EtsNumberType -> {
             when (expr.sort) {
@@ -168,7 +173,13 @@ class TSTestResolver(
         }
 
         EtsStringType -> {
-            TODO()
+            if (expr is UConcreteHeapRef) {
+                val lValue = TSStringLValue(expr.asExpr(ctx.addressSort))
+                val value = model.read(lValue) as TSConcreteString
+                TSObject.TSString(value.value)
+            } else {
+                TODO()
+            }
         }
 
         EtsVoidType -> {

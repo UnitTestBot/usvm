@@ -8,6 +8,7 @@ import io.ksmt.expr.KFp64Value
 import io.ksmt.expr.printer.ExpressionPrinter
 import io.ksmt.expr.transformer.KTransformerBase
 import io.ksmt.sort.KSortVisitor
+import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.machine.TSContext
@@ -46,6 +47,16 @@ class TSUnresolvedSort(ctx: TSContext) : USort(ctx) {
 
     override fun print(builder: StringBuilder) {
         builder.append("Unresolved sort")
+    }
+}
+
+class TSStringSort(ctx: TSContext) : USort(ctx) {
+    override fun <T> accept(visitor: KSortVisitor<T>): T {
+        return visitor.visit(this)
+    }
+
+    override fun print(builder: StringBuilder) {
+        builder.append("stringSort")
     }
 }
 

@@ -1,5 +1,6 @@
 package org.usvm.machine.expr
 
+import com.sun.org.apache.xalan.internal.xsltc.compiler.util.StringType
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import mu.KotlinLogging
@@ -165,9 +166,14 @@ class TSExprResolver(
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: EtsStringConstant): UExpr<out USort>? {
-        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        error("Not supported $value")
+    override fun visit(value: EtsStringConstant): UExpr<out USort>? = with(ctx) {
+        scope.calcOnState {
+            val address = memory.allocConcrete(EtsStringType)
+            val lValue = TSStringLValue(address)
+            val rValue = mkTSConcreteString(value.value)
+            memory.write(lValue, rValue, guard = trueExpr)
+            address
+        }
     }
 
     override fun visit(value: EtsNullConstant): UExpr<out USort> {

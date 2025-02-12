@@ -5,6 +5,7 @@ import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsNullType
 import org.jacodb.ets.base.EtsNumberType
 import org.jacodb.ets.base.EtsRefType
+import org.jacodb.ets.base.EtsStringType
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUndefinedType
 import org.jacodb.ets.base.EtsUnknownType
@@ -17,6 +18,10 @@ import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.collection.field.UFieldLValue
+import org.usvm.machine.expr.TSConcreteString
+import org.usvm.machine.expr.TSStringReading
+import org.usvm.machine.expr.TSStringRegionId
+import org.usvm.machine.expr.TSStringSort
 import org.usvm.machine.expr.TSUndefinedSort
 import org.usvm.machine.expr.TSUnresolvedSort
 import kotlin.contracts.ExperimentalContracts
@@ -32,6 +37,21 @@ class TSContext(
 
     val unresolvedSort: TSUnresolvedSort = TSUnresolvedSort(this)
 
+    val stringSort: TSStringSort = TSStringSort(this)
+
+    private val stringReadings = mkAstInterner<TSStringReading>()
+    fun mkTSStringReading(
+        addr: UConcreteHeapRef,
+        regionId: TSStringRegionId
+    ): TSStringReading = stringReadings.createIfContextActive {
+        TSStringReading(this, regionId, addr, stringSort)
+    }
+
+    private val concreteStrings = mkAstInterner<TSConcreteString>()
+    fun mkTSConcreteString(value: String) = concreteStrings.createIfContextActive {
+        TSConcreteString(this, value)
+    }
+
     /**
      * In TS we treat undefined value as a null reference in other objects.
      * For real null represented in the language we create another reference.
@@ -46,6 +66,7 @@ class TSContext(
         is EtsNullType -> addressSort
         is EtsUndefinedType -> addressSort
         is EtsUnknownType -> unresolvedSort
+        is EtsStringType -> stringSort
         else -> TODO("Support all JacoDB types, encountered $type")
     }
 
