@@ -1,5 +1,6 @@
 package org.usvm.dataflow.ts.infer
 
+import mu.KotlinLogging
 import org.jacodb.ets.base.EtsArrayAccess
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsBinaryExpr
@@ -21,6 +22,8 @@ import org.jacodb.ets.base.EtsThis
 import org.jacodb.ets.base.EtsUnaryExpr
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsMethod
+
+private val logger = KotlinLogging.logger {}
 
 @OptIn(ExperimentalUnsignedTypes::class)
 class StmtAliasInfo(
@@ -166,7 +169,7 @@ class StmtAliasInfo(
         }
     }
 
-    fun applyStmt(stmt: EtsStmt): StmtAliasInfo {
+    fun applyStmt(stmt: EtsStmt): StmtAliasInfo? {
         if (stmt !is EtsAssignStmt) {
             return this
         }
@@ -225,7 +228,8 @@ class StmtAliasInfo(
             }
 
             else -> {
-                error("Unprocessable")
+                logger.warn("Could not process rhs in stmt: $stmt")
+                return null
             }
         }
     }
@@ -494,7 +498,7 @@ class MethodAliasInfo(
             if (stmt in preAliases) return preAliases.getValue(stmt)
 
             val merged = preds[stmt]
-                ?.map { preAliases.getValue(it).applyStmt(it) }
+                ?.mapNotNull { preAliases.getValue(it).applyStmt(it) }
                 ?.reduceOrNull { a, b -> a.merge(b) }
                 ?: StmtAliasInfo(
                     baseToAlloc = IntArray(bases.size) { StmtAliasInfo.NOT_PROCESSED },
