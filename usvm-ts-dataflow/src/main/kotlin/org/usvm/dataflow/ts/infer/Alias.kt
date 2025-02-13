@@ -68,11 +68,11 @@ class StmtAliasInfo(
             val toFieldsMap = mutableMapOf<Int, Int>()
             allocToFields[i].forEach {
                 val (s, a) = unwrap(it)
-                toFieldsMap.merge(s, a, Companion::merge)
+                toFieldsMap.merge(s, a, ::merge)
             }
             other.allocToFields[i].forEach {
                 val (s, a) = unwrap(it)
-                toFieldsMap.merge(s, a, Companion::merge)
+                toFieldsMap.merge(s, a, ::merge)
             }
             merged.allocToFields[i] = toFieldsMap
                 .map { (string, alloc) -> wrap(string, alloc) }
