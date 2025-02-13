@@ -54,7 +54,7 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
             analysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
             analysisResultsMatchers = analysisResultMatchers,
             invariants = invariants,
-            extractValuesToCheck = { r -> r.parameters + r.returnValue },
+            extractValuesToCheck = { r -> r.before.parameters + r.returnValue },
             expectedTypesForExtractedValues = arrayOf(typeTransformer(R::class)),
             checkMode = CheckMode.MATCH_PROPERTIES,
             coverageChecker = coverageChecker
@@ -72,7 +72,7 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
             analysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
             analysisResultsMatchers = analysisResultMatchers,
             invariants = invariants,
-            extractValuesToCheck = { r -> r.parameters + r.returnValue },
+            extractValuesToCheck = { r -> r.before.parameters + r.returnValue },
             expectedTypesForExtractedValues = arrayOf(typeTransformer(T::class), typeTransformer(R::class)),
             checkMode = CheckMode.MATCH_PROPERTIES,
             coverageChecker = coverageChecker
@@ -90,7 +90,7 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
             analysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
             analysisResultsMatchers = analysisResultMatchers,
             invariants = invariants,
-            extractValuesToCheck = { r -> r.parameters + r.returnValue },
+            extractValuesToCheck = { r -> r.before.parameters + r.returnValue },
             expectedTypesForExtractedValues = arrayOf(
                 typeTransformer(T1::class), typeTransformer(T2::class), typeTransformer(R::class)
             ),
@@ -110,7 +110,7 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
             analysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
             analysisResultsMatchers = analysisResultMatchers,
             invariants = invariants,
-            extractValuesToCheck = { r -> r.parameters + r.returnValue },
+            extractValuesToCheck = { r -> r.before.parameters + r.returnValue },
             expectedTypesForExtractedValues = arrayOf(
                 typeTransformer(T1::class),
                 typeTransformer(T2::class),
@@ -133,7 +133,7 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
             analysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
             analysisResultsMatchers = analysisResultMatchers,
             invariants = invariants,
-            extractValuesToCheck = { r -> r.parameters + r.returnValue },
+            extractValuesToCheck = { r -> r.before.parameters + r.returnValue },
             expectedTypesForExtractedValues = arrayOf(
                 typeTransformer(T1::class),
                 typeTransformer(T2::class),
@@ -196,8 +196,8 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
         TsMachine(scene, options).use { machine ->
             val states = machine.analyze(listOf(method))
             states.map { state ->
-                val resolver = TsTestResolver(state)
-                resolver.resolve(method)
+                val resolver = TsTestResolver()
+                resolver.resolve(method, state)
             }
         }
     }

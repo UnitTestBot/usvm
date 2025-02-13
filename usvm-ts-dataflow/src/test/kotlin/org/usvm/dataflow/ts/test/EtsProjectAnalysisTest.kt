@@ -45,8 +45,8 @@ import kotlin.time.Duration.Companion.seconds
 private val logger = KotlinLogging.logger {}
 
 class EtsProjectAnalysisTest {
-    private var tsLinesSuccess = 0L
-    private var tsLinesFailed = 0L
+    private var TsLinesSuccess = 0L
+    private var TsLinesFailed = 0L
     private var analysisTime: Duration = Duration.ZERO
     private var totalPathEdges = 0
     private var totalSinks: MutableList<TaintVulnerability<EtsStmt>> = mutableListOf()
@@ -93,9 +93,9 @@ class EtsProjectAnalysisTest {
     private fun makeReport() {
         logger.info { "Analysis Report On $PROJECT_PATH" }
         logger.info { "====================" }
-        logger.info { "Total files processed: ${tsLinesSuccess + tsLinesFailed}" }
-        logger.info { "Successfully processed lines: $tsLinesSuccess" }
-        logger.info { "Failed lines: $tsLinesFailed" }
+        logger.info { "Total files processed: ${TsLinesSuccess + TsLinesFailed}" }
+        logger.info { "Successfully processed lines: $TsLinesSuccess" }
+        logger.info { "Failed lines: $TsLinesFailed" }
         logger.info { "Total analysis time: $analysisTime" }
         logger.info { "Total path edges: $totalPathEdges" }
         logger.info { "Found sinks: ${totalSinks.size}" }
@@ -130,11 +130,11 @@ class EtsProjectAnalysisTest {
             runAnalysis(project)
             val endTime = System.currentTimeMillis()
             analysisTime += (endTime - startTime).milliseconds
-            tsLinesSuccess += fileLines
+            TsLinesSuccess += fileLines
         } catch (e: Exception) {
             logger.warn { "Failed to process '$filename': $e" }
             logger.warn { e.stackTraceToString() }
-            tsLinesFailed += fileLines
+            TsLinesFailed += fileLines
         }
     }
 
