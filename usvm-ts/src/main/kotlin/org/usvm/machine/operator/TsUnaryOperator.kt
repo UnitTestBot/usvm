@@ -1,33 +1,118 @@
 package org.usvm.machine.operator
 
-import io.ksmt.expr.KExpr
+import io.ksmt.sort.KFp64Sort
+import io.ksmt.utils.asExpr
+import org.usvm.UAddressSort
 import org.usvm.UBoolSort
-import org.usvm.UBvSort
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
-import org.usvm.UFpSort
 import org.usvm.USort
 import org.usvm.machine.TsContext
-import org.usvm.machine.expr.tctx
+import org.usvm.machine.expr.mkTruthyExpr
 import org.usvm.machine.interpreter.TsStepScope
 
-sealed class TsUnaryOperator(
-    val onBool: TsContext.(UExpr<UBoolSort>) -> UExpr<out USort> = shouldNotBeCalled,
-    val onBv: TsContext.(UExpr<UBvSort>) -> UExpr<out USort> = shouldNotBeCalled,
-    val onFp: TsContext.(UExpr<UFpSort>) -> UExpr<out USort> = shouldNotBeCalled,
-    val desiredSort: TsContext.(USort) -> USort = { _ -> error("Should not be called") },
-) {
+sealed interface TsUnaryOperator {
 
-    data object Not : TsUnaryOperator(
-        onBool = TsContext::mkNot,
-        desiredSort = { boolSort },
-    )
+    fun TsContext.resolveBool(
+        arg: UExpr<UBoolSort>,
+        scope: TsStepScope,
+    ): UExpr<out USort>
 
-    internal operator fun invoke(operand: UExpr<out USort>, scope: TsStepScope): UExpr<out USort> = with(operand.tctx) {
-        TODO()
+    fun TsContext.resolveFp(
+        arg: UExpr<KFp64Sort>,
+        scope: TsStepScope,
+    ): UExpr<out USort>
+
+    fun TsContext.resolveRef(
+        arg: UExpr<UAddressSort>,
+        scope: TsStepScope,
+    ): UExpr<out USort>
+
+    fun TsContext.resolveFake(
+        arg: UConcreteHeapRef,
+        scope: TsStepScope,
+    ): UExpr<out USort>
+
+    fun TsContext.resolve(
+        arg: UExpr<out USort>,
+        scope: TsStepScope,
+    ): UExpr<out USort> {
+        if (arg.isFakeObject()) {
+            return resolveFake(arg, scope)
+        }
+        return when (arg.sort) {
+            boolSort -> resolveBool(arg.asExpr(boolSort), scope)
+            fp64Sort -> resolveFp(arg.asExpr(fp64Sort), scope)
+            addressSort -> resolveRef(arg.asExpr(addressSort), scope)
+            else -> TODO("Unsupported sort: ${arg.sort}")
+        }
     }
 
-    companion object {
-        private val shouldNotBeCalled: TsContext.(UExpr<out USort>) -> KExpr<out USort> =
-            { _ -> error("Should not be called") }
+    data object Not : TsUnaryOperator {
+        override fun TsContext.resolveBool(
+            arg: UExpr<UBoolSort>,
+            scope: TsStepScope,
+        ): UExpr<out USort> {
+            return mkNot(arg)
+        }
+
+        override fun TsContext.resolveFp(
+            arg: UExpr<KFp64Sort>,
+            scope: TsStepScope,
+        ): UExpr<out USort> {
+            return mkNot(mkTruthyExpr(arg, scope))
+        }
+
+        override fun TsContext.resolveRef(
+            arg: UExpr<UAddressSort>,
+            scope: TsStepScope,
+        ): UExpr<out USort> {
+            return mkNot(mkTruthyExpr(arg, scope))
+        }
+
+        override fun TsContext.resolveFake(
+            arg: UConcreteHeapRef,
+            scope: TsStepScope,
+        ): UExpr<out USort> {
+            TODO("Not yet implemented")
+        }
+    }
+
+    data object Neg : TsUnaryOperator {
+        override fun TsContext.resolveBool(
+            arg: UExpr<UBoolSort>,
+            scope: TsStepScope,
+        ): UExpr<out USort> {
+            // -true = -1.0
+            // -false = -0.0
+            return mkIte(arg, mkFp64(-1.0), mkFp64(-0.0))
+        }
+
+        override fun TsContext.resolveFp(
+            arg: UExpr<KFp64Sort>,
+            scope: TsStepScope,
+        ): UExpr<out USort> {
+            return mkFpNegationExpr(arg)
+        }
+
+        override fun TsContext.resolveRef(
+            arg: UExpr<UAddressSort>,
+            scope: TsStepScope,
+        ): UExpr<out USort> {
+            // -undefined = NaN
+            if (arg == mkUndefinedValue()) {
+                return mkFp64NaN()
+            }
+
+            // TODO: convert to numeric value and then negate
+            TODO("Not yet implemented")
+        }
+
+        override fun TsContext.resolveFake(
+            arg: UConcreteHeapRef,
+            scope: TsStepScope,
+        ): UExpr<out USort> {
+            TODO("Not yet implemented")
+        }
     }
 }
