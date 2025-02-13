@@ -7,7 +7,7 @@ import org.usvm.dataflow.ts.graph.EtsApplicationGraph
 import org.usvm.dataflow.ts.graph.EtsApplicationGraphImpl
 import org.usvm.statistics.ApplicationGraph
 
-class TSApplicationGraph(scene: EtsScene) : ApplicationGraph<EtsMethod, EtsStmt> {
+class TsApplicationGraph(scene: EtsScene) : ApplicationGraph<EtsMethod, EtsStmt> {
     private val applicationGraph: EtsApplicationGraph = EtsApplicationGraphImpl(scene)
 
     override fun predecessors(node: EtsStmt): Sequence<EtsStmt> =

@@ -3,12 +3,12 @@ package org.usvm.samples
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Disabled
-import org.usvm.api.TSObject
-import org.usvm.util.TSMethodTestRunner
+import org.usvm.api.TsObject
+import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.getResourcePath
 import kotlin.test.Test
 
-class Arguments : TSMethodTestRunner() {
+class Arguments : TsMethodTestRunner() {
 
     override val scene: EtsScene = run {
         val name = "Arguments.ts"
@@ -20,7 +20,7 @@ class Arguments : TSMethodTestRunner() {
     @Test
     fun testNoArgs() {
         val method = getMethod("SimpleClass", "noArguments")
-        discoverProperties<TSObject.TSNumber>(
+        discoverProperties<TsObject.TsNumber>(
             method,
             { r -> r.number == 42.0 },
         )
@@ -29,7 +29,7 @@ class Arguments : TSMethodTestRunner() {
     @Test
     fun testSingleArg() {
         val method = getMethod("SimpleClass", "singleArgument")
-        discoverProperties<TSObject.TSNumber, TSObject.TSNumber>(
+        discoverProperties<TsObject.TsNumber, TsObject.TsNumber>(
             method,
             { a, r -> a == r },
         )
@@ -38,7 +38,7 @@ class Arguments : TSMethodTestRunner() {
     @Test
     fun testManyArgs() {
         val method = getMethod("SimpleClass", "manyArguments")
-        discoverProperties<TSObject.TSNumber, TSObject.TSNumber, TSObject.TSNumber, TSObject.TSNumber>(
+        discoverProperties<TsObject.TsNumber, TsObject.TsNumber, TsObject.TsNumber, TsObject.TsNumber>(
             method,
             { a, _, _, r -> a.number == 1.0 && r == a },
             { _, b, _, r -> b.number == 2.0 && r == b },
@@ -53,7 +53,7 @@ class Arguments : TSMethodTestRunner() {
     @Disabled
     fun testThisArg() {
         val method = getMethod("SimpleClass", "thisArgument")
-        discoverProperties<TSObject.TSNumber>(
+        discoverProperties<TsObject.TsNumber>(
             method,
         )
     }

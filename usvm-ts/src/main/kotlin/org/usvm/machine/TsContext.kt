@@ -17,20 +17,20 @@ import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.collection.field.UFieldLValue
-import org.usvm.machine.expr.TSUndefinedSort
-import org.usvm.machine.expr.TSUnresolvedSort
+import org.usvm.machine.expr.TsUndefinedSort
+import org.usvm.machine.expr.TsUnresolvedSort
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 
-typealias TSSizeSort = UBv32Sort
+typealias TsSizeSort = UBv32Sort
 
-class TSContext(
+class TsContext(
     val scene: EtsScene,
-    components: TSComponents,
-) : UContext<TSSizeSort>(components) {
-    val undefinedSort: TSUndefinedSort by lazy { TSUndefinedSort(this) }
+    components: TsComponents,
+) : UContext<TsSizeSort>(components) {
+    val undefinedSort: TsUndefinedSort by lazy { TsUndefinedSort(this) }
 
-    val unresolvedSort: TSUnresolvedSort = TSUnresolvedSort(this)
+    val unresolvedSort: TsUnresolvedSort = TsUnresolvedSort(this)
 
     /**
      * In TS we treat undefined value as a null reference in other objects.
@@ -65,7 +65,7 @@ class TSContext(
 
     fun mkUndefinedValue(): UExpr<UAddressSort> = undefinedValue
 
-    fun mkTSNullValue(): UConcreteHeapRef = nullValue
+    fun mkTsNullValue(): UConcreteHeapRef = nullValue
     private val nullValue: UConcreteHeapRef = mkConcreteHeapRef(addressCounter.freshStaticAddress())
 
     fun getIntermediateBoolLValue(addr: Int): UFieldLValue<IntermediateLValueField, UBoolSort> {

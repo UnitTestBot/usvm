@@ -35,8 +35,8 @@ import org.jacodb.ets.utils.getLocals
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.usvm.api.TSObject
-import org.usvm.util.TSMethodTestRunner
+import org.usvm.api.TsObject
+import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.getResourcePath
 import org.usvm.util.isTruthy
 
@@ -44,7 +44,7 @@ private fun EtsMethodParameter.toRef(): EtsParameterRef {
     return EtsParameterRef(index, type)
 }
 
-class And : TSMethodTestRunner() {
+class And : TsMethodTestRunner() {
 
     override val scene: EtsScene = run {
         val name = "And.ts"
@@ -59,7 +59,7 @@ class And : TSMethodTestRunner() {
     @Test
     fun `test andOfBooleanAndBoolean`() {
         val method = getMethod("And", "andOfBooleanAndBoolean")
-        discoverProperties<TSObject.TSBoolean, TSObject.TSBoolean, TSObject.TSNumber>(
+        discoverProperties<TsObject.TsBoolean, TsObject.TsBoolean, TsObject.TsNumber>(
             method = method,
             { a, b, r -> a.value && b.value && r.number == 1.0 },
             { a, b, r -> a.value && !b.value && r.number == 2.0 },
@@ -107,7 +107,7 @@ class And : TSMethodTestRunner() {
         method._cfg = etsCfg
         locals += method.getLocals()
 
-        discoverProperties<TSObject.TSBoolean, TSObject.TSBoolean, TSObject.TSNumber>(
+        discoverProperties<TsObject.TsBoolean, TsObject.TsBoolean, TsObject.TsNumber>(
             method = method,
             { a, b, r -> a.value && b.value && r.number == 1.0 },
             { a, b, r -> a.value && !b.value && r.number == 2.0 },
@@ -232,7 +232,7 @@ class And : TSMethodTestRunner() {
         method._cfg = EtsCfg(statements, successorMap)
         locals += method.getLocals()
 
-        discoverProperties<TSObject.TSNumber, TSObject.TSNumber, TSObject.TSNumber>(
+        discoverProperties<TsObject.TsNumber, TsObject.TsNumber, TsObject.TsNumber>(
             method = method,
             { a, b, r -> isTruthy(a) && isTruthy(b) && r.number == 1.0 },
             { a, b, r -> isTruthy(a) && b.number.isNaN() && r.number == 2.0 },
@@ -335,7 +335,7 @@ class And : TSMethodTestRunner() {
         method._cfg = EtsCfg(statements, successorMap)
         locals += method.getLocals()
 
-        discoverProperties<TSObject.TSBoolean, TSObject.TSNumber, TSObject.TSNumber>(
+        discoverProperties<TsObject.TsBoolean, TsObject.TsNumber, TsObject.TsNumber>(
             method = method,
             { a, b, r -> a.value && isTruthy(b) && r.number == 1.0 },
             { a, b, r -> a.value && b.number.isNaN() && r.number == 2.0 },
@@ -435,7 +435,7 @@ class And : TSMethodTestRunner() {
         method._cfg = EtsCfg(statements, successorMap)
         locals += method.getLocals()
 
-        discoverProperties<TSObject.TSNumber, TSObject.TSBoolean, TSObject.TSNumber>(
+        discoverProperties<TsObject.TsNumber, TsObject.TsBoolean, TsObject.TsNumber>(
             method = method,
             { a, b, r -> isTruthy(a) && b.value && r.number == 1.0 },
             { a, b, r -> isTruthy(a) && !b.value && r.number == 2.0 },
@@ -450,7 +450,7 @@ class And : TSMethodTestRunner() {
     @Disabled("Does not work because objects cannot be null")
     fun `test andOfObjectAndObject`() {
         val method = getMethod("And", "andOfObjectAndObject")
-        discoverProperties<TSObject.TSClass, TSObject.TSClass, TSObject.TSNumber>(
+        discoverProperties<TsObject.TsClass, TsObject.TsClass, TsObject.TsNumber>(
             method = method,
             { a, b, r -> isTruthy(a) && isTruthy(b) && r.number == 1.0 },
             { a, b, r -> isTruthy(a) && !isTruthy(b) && r.number == 2.0 },
@@ -462,25 +462,25 @@ class And : TSMethodTestRunner() {
     @Test
     fun `test andOfUnknown`() {
         val method = getMethod("And", "andOfUnknown")
-        discoverProperties<TSObject, TSObject, TSObject.TSNumber>(
+        discoverProperties<TsObject, TsObject, TsObject.TsNumber>(
             method = method,
             { a, b, r ->
-                if (a is TSObject.TSBoolean && b is TSObject.TSBoolean) {
+                if (a is TsObject.TsBoolean && b is TsObject.TsBoolean) {
                     a.value && b.value && r.number == 1.0
                 } else true
             },
             { a, b, r ->
-                if (a is TSObject.TSBoolean && b is TSObject.TSBoolean) {
+                if (a is TsObject.TsBoolean && b is TsObject.TsBoolean) {
                     a.value && !b.value && r.number == 2.0
                 } else true
             },
             { a, b, r ->
-                if (a is TSObject.TSBoolean && b is TSObject.TSBoolean) {
+                if (a is TsObject.TsBoolean && b is TsObject.TsBoolean) {
                     !a.value && b.value && r.number == 3.0
                 } else true
             },
             { a, b, r ->
-                if (a is TSObject.TSBoolean && b is TSObject.TSBoolean) {
+                if (a is TsObject.TsBoolean && b is TsObject.TsBoolean) {
                     !a.value && !b.value && r.number == 4.0
                 } else true
             },
@@ -490,20 +490,20 @@ class And : TSMethodTestRunner() {
     @Test
     fun `test truthyUnknown`() {
         val method = getMethod("And", "truthyUnknown")
-        discoverProperties<TSObject, TSObject, TSObject.TSNumber>(
+        discoverProperties<TsObject, TsObject, TsObject.TsNumber>(
             method = method,
             { a, b, r ->
-                if (a is TSObject.TSBoolean && b is TSObject.TSBoolean) {
+                if (a is TsObject.TsBoolean && b is TsObject.TsBoolean) {
                     a.value && !b.value && r.number == 1.0
                 } else true
             },
             { a, b, r ->
-                if (a is TSObject.TSBoolean && b is TSObject.TSBoolean) {
+                if (a is TsObject.TsBoolean && b is TsObject.TsBoolean) {
                     !a.value && b.value && r.number == 2.0
                 } else true
             },
             { a, b, r ->
-                if (a is TSObject.TSBoolean && b is TSObject.TSBoolean) {
+                if (a is TsObject.TsBoolean && b is TsObject.TsBoolean) {
                     !a.value && !b.value && r.number == 99.0
                 } else true
             },

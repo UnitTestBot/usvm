@@ -22,12 +22,12 @@ import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.getLocals
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Test
-import org.usvm.api.TSObject
-import org.usvm.util.TSMethodTestRunner
+import org.usvm.api.TsObject
+import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.getResourcePath
 import org.usvm.util.isTruthy
 
-class Or : TSMethodTestRunner() {
+class Or : TsMethodTestRunner() {
 
     override val scene: EtsScene = run {
         val name = "Or.ts"
@@ -42,7 +42,7 @@ class Or : TSMethodTestRunner() {
     @Test
     fun `test orOfBooleanAndBoolean`() {
         val method = getMethod("Or", "orOfBooleanAndBoolean")
-        discoverProperties<TSObject.TSBoolean, TSObject.TSBoolean, TSObject.TSNumber>(
+        discoverProperties<TsObject.TsBoolean, TsObject.TsBoolean, TsObject.TsNumber>(
             method = method,
             { a, b, r -> a.value && b.value && r.number == 1.0 },
             { a, b, r -> a.value && !b.value && r.number == 2.0 },
@@ -136,7 +136,7 @@ class Or : TSMethodTestRunner() {
         locals.clear()
         locals += method.getLocals()
 
-        discoverProperties<TSObject.TSNumber, TSObject.TSNumber, TSObject.TSNumber>(
+        discoverProperties<TsObject.TsNumber, TsObject.TsNumber, TsObject.TsNumber>(
             method = method,
             { a, b, r -> isTruthy(a) && isTruthy(b) && r.number == 1.0 },
             { a, b, r -> isTruthy(a) && b.number.isNaN() && r.number == 2.0 },

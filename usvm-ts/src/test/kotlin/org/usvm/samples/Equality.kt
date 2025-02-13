@@ -4,11 +4,11 @@ import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.usvm.api.TSObject
-import org.usvm.util.TSMethodTestRunner
+import org.usvm.api.TsObject
+import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.getResourcePath
 
-class Equality : TSMethodTestRunner() {
+class Equality : TsMethodTestRunner() {
     override val scene: EtsScene = run {
         val name = "Equality.ts"
         val path = getResourcePath("/samples/$name")
@@ -20,7 +20,7 @@ class Equality : TSMethodTestRunner() {
     @Disabled("Unsupported array new")
     fun testTruthyTypes() {
         val method = getMethod("Equality", "truthyTypes")
-        discoverProperties<TSObject.TSNumber>(
+        discoverProperties<TsObject.TsNumber>(
             method,
         )
     }
@@ -28,7 +28,7 @@ class Equality : TSMethodTestRunner() {
     @Test
     fun testEqBoolWithBool() {
         val method = getMethod("Equality", "eqBoolWithBool")
-        discoverProperties<TSObject.TSBoolean, TSObject.TSNumber>(
+        discoverProperties<TsObject.TsBoolean, TsObject.TsNumber>(
             method,
             { a, r -> a.value && r.number == 1.0 },
             { a, r -> !a.value && r.number == -1.0 },
@@ -38,7 +38,7 @@ class Equality : TSMethodTestRunner() {
     @Test
     fun testEqNumberWithNumber() {
         val method = getMethod("Equality", "eqNumberWithNumber")
-        discoverProperties<TSObject.TSNumber, TSObject.TSNumber>(
+        discoverProperties<TsObject.TsNumber, TsObject.TsNumber>(
             method,
             { a, r -> a.number == 1.1 && r.number == 1.0 },
             { a, r -> a.number.isNaN() && r.number == 2.0 },
@@ -50,7 +50,7 @@ class Equality : TSMethodTestRunner() {
     @Disabled("Unsupported string")
     fun testEqStringWithString() {
         val method = getMethod("Equality", "eqStringWithString")
-        discoverProperties<TSObject.TSString, TSObject.TSNumber>(
+        discoverProperties<TsObject.TsString, TsObject.TsNumber>(
             method,
             { a, r -> a.value == "123" && r.number == 1.0 },
             { a, r -> a.value != "123" && r.number == 2.0 },
@@ -61,7 +61,7 @@ class Equality : TSMethodTestRunner() {
     @Disabled("Unsupported bigint")
     fun testEqBigintWithBigint() {
         val method = getMethod("Equality", "eqBigintWithBigint")
-        discoverProperties<TSObject.TSBigInt, TSObject.TSNumber>(
+        discoverProperties<TsObject.TsBigInt, TsObject.TsNumber>(
             method,
             { a, r -> a.value == "42" && r.number == 1.0 },
             { a, r -> a.value == "9999999999999999999999999999999999999" && r.number == 2.0 },
@@ -73,7 +73,7 @@ class Equality : TSMethodTestRunner() {
     @Disabled("Unsupported new construction")
     fun testEqObjectWithObject() {
         val method = getMethod("Equality", "eqObjectWithObject")
-        discoverProperties<TSObject.TSClass, TSObject.TSNumber>(
+        discoverProperties<TsObject.TsClass, TsObject.TsNumber>(
             method,
             { a, r -> r.number == 1.0 },
             invariants = arrayOf(
@@ -86,7 +86,7 @@ class Equality : TSMethodTestRunner() {
     @Test
     fun testEqWithItself() {
         val method = getMethod("Equality", "eqWithItself")
-        discoverProperties<TSObject.TSNumber, TSObject.TSNumber>(
+        discoverProperties<TsObject.TsNumber, TsObject.TsNumber>(
             method,
             { a, r -> a.number.isNaN() && r.number == 1.0 },
             { a, r -> !a.number.isNaN() && r.number == 2.0 },
