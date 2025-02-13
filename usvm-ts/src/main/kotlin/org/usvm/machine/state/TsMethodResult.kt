@@ -9,11 +9,11 @@ import org.usvm.USort
 /**
  * Represents a result of a method invocation.
  */
-sealed interface TSMethodResult {
+sealed interface TsMethodResult {
     /**
      * No call was performed.
      */
-    object NoCall : TSMethodResult
+    object NoCall : TsMethodResult
 
     /**
      * A [method] successfully returned a [value].
@@ -21,15 +21,15 @@ sealed interface TSMethodResult {
     class Success(
         val method: EtsMethod,
         val value: UExpr<out USort>,
-    ) : TSMethodResult
+    ) : TsMethodResult
 
     /**
      * A method threw an exception with [type] type.
      */
-    open class TSException(
+    open class TsException(
         val address: UHeapRef,
         val type: EtsType,
-    ) : TSMethodResult {
+    ) : TsMethodResult {
         override fun toString(): String = "${this::class.simpleName}: Address: $address, type: ${type.typeName}"
     }
 }

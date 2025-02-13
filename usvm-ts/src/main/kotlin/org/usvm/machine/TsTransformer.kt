@@ -8,13 +8,13 @@ import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.solver.UExprTranslator
 
-interface TSTransformer : UTransformer<EtsType, TSSizeSort>
+interface TsTransformer : UTransformer<EtsType, TsSizeSort>
 
-class TSComposer(
-    ctx: UContext<TSSizeSort>,
+class TsComposer(
+    ctx: UContext<TsSizeSort>,
     memory: UReadOnlyMemory<EtsType>,
     ownership: MutabilityOwnership,
-) : UComposer<EtsType, TSSizeSort>(ctx, memory, ownership), TSTransformer
+) : UComposer<EtsType, TsSizeSort>(ctx, memory, ownership), TsTransformer
 
-class TSExprTranslator(ctx: UContext<TSSizeSort>) : UExprTranslator<EtsType, TSSizeSort>(ctx), TSTransformer
+class TsExprTranslator(ctx: UContext<TsSizeSort>) : UExprTranslator<EtsType, TsSizeSort>(ctx), TsTransformer
 

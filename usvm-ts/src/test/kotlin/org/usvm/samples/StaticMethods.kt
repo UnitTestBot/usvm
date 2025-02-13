@@ -2,12 +2,12 @@ package org.usvm.samples
 
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
-import org.usvm.api.TSObject
-import org.usvm.util.TSMethodTestRunner
+import org.usvm.api.TsObject
+import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.getResourcePath
 import kotlin.test.Test
 
-class StaticMethods : TSMethodTestRunner() {
+class StaticMethods : TsMethodTestRunner() {
 
     override val scene: EtsScene = run {
         val name = "StaticMethods.ts"
@@ -19,7 +19,7 @@ class StaticMethods : TSMethodTestRunner() {
     @Test
     fun testNoArgsStaticMethod() {
         val method = getMethod("StaticMethods", "noArguments")
-        discoverProperties<TSObject.TSNumber>(
+        discoverProperties<TsObject.TsNumber>(
             method,
             { r -> r.number == 42.0 },
         )
@@ -28,7 +28,7 @@ class StaticMethods : TSMethodTestRunner() {
     @Test
     fun testSingleArgStaticMethod() {
         val method = getMethod("StaticMethods", "singleArgument")
-        discoverProperties<TSObject.TSNumber, TSObject.TSNumber>(
+        discoverProperties<TsObject.TsNumber, TsObject.TsNumber>(
             method,
             { a, r -> a.number == 1.0 && r.number == 100.0 },
             { a, r -> a.number != 1.0 && r.number == 0.0 },
@@ -38,7 +38,7 @@ class StaticMethods : TSMethodTestRunner() {
     @Test
     fun testManyArgsStaticMethod() {
         val method = getMethod("StaticMethods", "manyArguments")
-        discoverProperties<TSObject.TSNumber, TSObject.TSNumber, TSObject.TSNumber, TSObject.TSNumber, TSObject.TSNumber>(
+        discoverProperties<TsObject.TsNumber, TsObject.TsNumber, TsObject.TsNumber, TsObject.TsNumber, TsObject.TsNumber>(
             method,
             { a, _, _, _, r -> a.number == 1.0 && r == a },
             { _, b, _, _, r -> b.number == 2.0 && r == b },

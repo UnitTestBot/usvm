@@ -18,19 +18,19 @@ import org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS
 import org.usvm.PathSelectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.api.NoCoverage
-import org.usvm.api.TSMethodCoverage
-import org.usvm.api.TSObject
-import org.usvm.api.TSTest
-import org.usvm.machine.TSMachine
+import org.usvm.api.TsMethodCoverage
+import org.usvm.api.TsObject
+import org.usvm.api.TsTest
+import org.usvm.machine.TsMachine
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import kotlin.reflect.KClass
 import kotlin.time.Duration
 
-typealias CoverageChecker = (TSMethodCoverage) -> Boolean
+typealias CoverageChecker = (TsMethodCoverage) -> Boolean
 
 @TestInstance(PER_CLASS)
-abstract class TSMethodTestRunner : TestRunner<TSTest, EtsMethod, EtsType?, TSMethodCoverage>() {
+abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMethodCoverage>() {
 
     protected abstract val scene: EtsScene
 
@@ -43,7 +43,7 @@ abstract class TSMethodTestRunner : TestRunner<TSTest, EtsMethod, EtsType?, TSMe
 
     protected val doNotCheckCoverage: CoverageChecker = { _ -> true }
 
-    protected inline fun <reified R : TSObject> discoverProperties(
+    protected inline fun <reified R : TsObject> discoverProperties(
         method: EtsMethod,
         vararg analysisResultMatchers: (R) -> Boolean,
         invariants: Array<(R) -> Boolean> = emptyArray(),
@@ -61,7 +61,7 @@ abstract class TSMethodTestRunner : TestRunner<TSTest, EtsMethod, EtsType?, TSMe
         )
     }
 
-    protected inline fun <reified T : TSObject, reified R : TSObject> discoverProperties(
+    protected inline fun <reified T : TsObject, reified R : TsObject> discoverProperties(
         method: EtsMethod,
         vararg analysisResultMatchers: (T, R) -> Boolean,
         invariants: Array<(T, R) -> Boolean> = emptyArray(),
@@ -79,7 +79,7 @@ abstract class TSMethodTestRunner : TestRunner<TSTest, EtsMethod, EtsType?, TSMe
         )
     }
 
-    protected inline fun <reified T1 : TSObject, reified T2 : TSObject, reified R : TSObject> discoverProperties(
+    protected inline fun <reified T1 : TsObject, reified T2 : TsObject, reified R : TsObject> discoverProperties(
         method: EtsMethod,
         vararg analysisResultMatchers: (T1, T2, R) -> Boolean,
         invariants: Array<(T1, T2, R) -> Boolean> = emptyArray(),
@@ -99,7 +99,7 @@ abstract class TSMethodTestRunner : TestRunner<TSTest, EtsMethod, EtsType?, TSMe
         )
     }
 
-    protected inline fun <reified T1 : TSObject, reified T2 : TSObject, reified T3 : TSObject, reified R : TSObject> discoverProperties(
+    protected inline fun <reified T1 : TsObject, reified T2 : TsObject, reified T3 : TsObject, reified R : TsObject> discoverProperties(
         method: EtsMethod,
         vararg analysisResultMatchers: (T1, T2, T3, R) -> Boolean,
         invariants: Array<(T1, T2, T3, R) -> Boolean> = emptyArray(),
@@ -122,7 +122,7 @@ abstract class TSMethodTestRunner : TestRunner<TSTest, EtsMethod, EtsType?, TSMe
         )
     }
 
-    protected inline fun <reified T1 : TSObject, reified T2 : TSObject, reified T3 : TSObject, reified T4 : TSObject, reified R : TSObject> discoverProperties(
+    protected inline fun <reified T1 : TsObject, reified T2 : TsObject, reified T3 : TsObject, reified T4 : TsObject, reified R : TsObject> discoverProperties(
         method: EtsMethod,
         vararg analysisResultMatchers: (T1, T2, T3, T4, R) -> Boolean,
         invariants: Array<(T1, T2, T3, T4, R) -> Boolean> = emptyArray(),
@@ -157,33 +157,33 @@ abstract class TSMethodTestRunner : TestRunner<TSTest, EtsMethod, EtsType?, TSMe
         requireNotNull(it) { "Raw null value should not be passed here" }
 
         /*
-            Both KClass and TSObject instances come here because
-            only KClass<TSObject> is available to match different objects.
+            Both KClass and TsObject instances come here because
+            only KClass<TsObject> is available to match different objects.
             However, this method is also used in parent TestRunner class
-            and passes here TSObject instances. So this check on current level is required.
+            and passes here TsObject instances. So this check on current level is required.
         */
         val klass = if (it is KClass<*>) it else it::class
         when (klass) {
-            TSObject::class -> EtsAnyType
-            TSObject.TSAny::class -> EtsAnyType
-            TSObject.TSArray::class -> TODO()
-            TSObject.TSBoolean::class -> EtsBooleanType
-            TSObject.TSClass::class -> {
+            TsObject::class -> EtsAnyType
+            TsObject.TsAny::class -> EtsAnyType
+            TsObject.TsArray::class -> TODO()
+            TsObject.TsBoolean::class -> EtsBooleanType
+            TsObject.TsClass::class -> {
                 // TODO incorrect
                 val signature = EtsClassSignature(it.toString(), EtsFileSignature.DEFAULT)
                 EtsClassType(signature)
             }
-            TSObject.TSString::class -> EtsStringType
-            TSObject.TSNumber::class -> EtsNumberType
-            TSObject.TSNumber.Double::class -> EtsNumberType
-            TSObject.TSNumber.Integer::class -> EtsNumberType
-            TSObject.TSUndefinedObject::class -> EtsUndefinedType
+            TsObject.TsString::class -> EtsStringType
+            TsObject.TsNumber::class -> EtsNumberType
+            TsObject.TsNumber.Double::class -> EtsNumberType
+            TsObject.TsNumber.Integer::class -> EtsNumberType
+            TsObject.TsUndefinedObject::class -> EtsUndefinedType
             // TODO: EtsUnknownType is mock up here. Correct implementation required.
-            TSObject.TSObject::class -> EtsUnknownType
+            TsObject.TsObject::class -> EtsUnknownType
             // For untyped tests, not to limit objects serialized from models after type coercion.
-            TSObject.TSUnknown::class -> EtsUnknownType
-            TSObject.TSNull::class -> EtsNullType
-            TSObject.TSException::class -> {
+            TsObject.TsUnknown::class -> EtsUnknownType
+            TsObject.TsNull::class -> EtsNullType
+            TsObject.TsException::class -> {
                 // TODO incorrect
                 val signature = EtsClassSignature("Exception", EtsFileSignature.DEFAULT)
                 EtsClassType(signature)
@@ -192,17 +192,17 @@ abstract class TSMethodTestRunner : TestRunner<TSTest, EtsMethod, EtsType?, TSMe
         }
     }
 
-    override val runner: (EtsMethod, UMachineOptions) -> List<TSTest> = { method, options ->
-        TSMachine(scene, options).use { machine ->
+    override val runner: (EtsMethod, UMachineOptions) -> List<TsTest> = { method, options ->
+        TsMachine(scene, options).use { machine ->
             val states = machine.analyze(listOf(method))
             states.map { state ->
-                val resolver = TSTestResolver(state)
+                val resolver = TsTestResolver(state)
                 resolver.resolve(method)
             }
         }
     }
 
-    override val coverageRunner: (List<TSTest>) -> TSMethodCoverage = { _ -> NoCoverage }
+    override val coverageRunner: (List<TsTest>) -> TsMethodCoverage = { _ -> NoCoverage }
 
     override var options: UMachineOptions = UMachineOptions(
         pathSelectionStrategies = listOf(PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM),

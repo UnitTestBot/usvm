@@ -10,12 +10,12 @@ import io.ksmt.expr.transformer.KTransformerBase
 import io.ksmt.sort.KSortVisitor
 import org.usvm.UExpr
 import org.usvm.USort
-import org.usvm.machine.TSContext
+import org.usvm.machine.TsContext
 
-val KAst.tctx: TSContext
-    get() = ctx as TSContext
+val KAst.tctx: TsContext
+    get() = ctx as TsContext
 
-class TSUndefinedSort(ctx: TSContext) : USort(ctx) {
+class TsUndefinedSort(ctx: TsContext) : USort(ctx) {
     override fun print(builder: StringBuilder) {
         builder.append("undefined sort")
     }
@@ -23,11 +23,11 @@ class TSUndefinedSort(ctx: TSContext) : USort(ctx) {
     override fun <T> accept(visitor: KSortVisitor<T>): T = error("Should not be called")
 }
 
-class TSUndefinedValue(ctx: TSContext) : UExpr<TSUndefinedSort>(ctx) {
-    override val sort: TSUndefinedSort
+class TsUndefinedValue(ctx: TsContext) : UExpr<TsUndefinedSort>(ctx) {
+    override val sort: TsUndefinedSort
         get() = tctx.undefinedSort
 
-    override fun accept(transformer: KTransformerBase): TSUndefinedValue = this
+    override fun accept(transformer: KTransformerBase): TsUndefinedValue = this
 
     override fun internEquals(other: Any): Boolean = structurallyEqual(other)
 
@@ -41,7 +41,7 @@ class TSUndefinedValue(ctx: TSContext) : UExpr<TSUndefinedSort>(ctx) {
 /**
  * Represents a sort for objects with unknown type.
  */
-class TSUnresolvedSort(ctx: TSContext) : USort(ctx) {
+class TsUnresolvedSort(ctx: TsContext) : USort(ctx) {
     override fun <T> accept(visitor: KSortVisitor<T>): T = error("Should not be called")
 
     override fun print(builder: StringBuilder) {

@@ -24,46 +24,46 @@ import org.jacodb.ets.model.EtsMethodSignature
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
-import org.usvm.api.TSObject
-import org.usvm.api.TSTest
+import org.usvm.api.TsObject
+import org.usvm.api.TsTest
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.isTrue
 import org.usvm.machine.types.FakeType
-import org.usvm.machine.TSContext
-import org.usvm.machine.expr.TSUnresolvedSort
+import org.usvm.machine.TsContext
+import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.expr.extractBool
 import org.usvm.machine.expr.extractDouble
 import org.usvm.machine.expr.extractInt
-import org.usvm.machine.state.TSMethodResult
-import org.usvm.machine.state.TSState
+import org.usvm.machine.state.TsMethodResult
+import org.usvm.machine.state.TsState
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.model.UModelBase
 import org.usvm.types.first
 import org.usvm.types.single
 
-class TSTestResolver(
-    private val state: TSState,
+class TsTestResolver(
+    private val state: TsState,
 ) {
-    private val ctx: TSContext get() = state.ctx
+    private val ctx: TsContext get() = state.ctx
 
-    fun resolve(method: EtsMethod): TSTest = with(ctx) {
+    fun resolve(method: EtsMethod): TsTest = with(ctx) {
         val model = state.models.first()
         when (val methodResult = state.methodResult) {
-            is TSMethodResult.Success -> {
+            is TsMethodResult.Success -> {
                 val value = methodResult.value
                 val valueToResolve = model.eval(value)
                 val returnValue = resolveExpr(valueToResolve, method.returnType, model)
                 val params = resolveParams(method.parameters, this, model)
 
-                return TSTest(params, returnValue)
+                return TsTest(params, returnValue)
             }
 
-            is TSMethodResult.TSException -> {
+            is TsMethodResult.TsException -> {
                 val params = resolveParams(method.parameters, this, model)
-                return TSTest(params, TSObject.TSException)
+                return TsTest(params, TsObject.TsException)
             }
 
-            is TSMethodResult.NoCall -> {
+            is TsMethodResult.NoCall -> {
                 TODO()
             }
 
@@ -73,11 +73,11 @@ class TSTestResolver(
 
     private fun resolveParams(
         params: List<EtsMethodParameter>,
-        ctx: TSContext,
+        ctx: TsContext,
         model: UModelBase<EtsType>,
-    ): List<TSObject> = with(ctx) {
+    ): List<TsObject> = with(ctx) {
         params.map { param ->
-            val sort = typeToSort(param.type).takeUnless { it is TSUnresolvedSort } ?: addressSort
+            val sort = typeToSort(param.type).takeUnless { it is TsUnresolvedSort } ?: addressSort
             val lValue = URegisterStackLValue(sort, param.index)
             val expr = state.memory.read(lValue) // TODO error
             if (param.type is EtsUnknownType) {
@@ -88,7 +88,7 @@ class TSTestResolver(
         }
     }
 
-    private fun resolveFakeObject(expr: UConcreteHeapRef, model: UModelBase<EtsType>): TSObject {
+    private fun resolveFakeObject(expr: UConcreteHeapRef, model: UModelBase<EtsType>): TsObject {
         val type = state.memory.types.getTypeStream(expr.asExpr(ctx.addressSort)).single() as FakeType
         return when {
             model.eval(type.boolTypeExpr).isTrue -> {
@@ -117,7 +117,7 @@ class TSTestResolver(
         expr: UExpr<out USort>,
         type: EtsType,
         model: UModelBase<*>,
-    ): TSObject = when {
+    ): TsObject = when {
         type is EtsUnknownType && expr is UConcreteHeapRef -> resolveUnknown(expr, model)
         type is EtsPrimitiveType -> resolvePrimitive(expr, type)
         type is EtsClassType -> resolveClass(expr, type, model)
@@ -128,31 +128,31 @@ class TSTestResolver(
     private fun resolveUnknown(
         expr: UConcreteHeapRef,
         model: UModelBase<*>,
-    ): TSObject {
+    ): TsObject {
         val typeStream = model.types.getTypeStream(expr)
         return (typeStream.first() as? EtsType)?.let { type ->
             resolveExpr(expr, type, model)
-        } ?: TSObject.TSObject(expr.address)
+        } ?: TsObject.TsObject(expr.address)
     }
 
     private fun resolvePrimitive(
         expr: UExpr<out USort>,
         type: EtsPrimitiveType,
-    ): TSObject = when (type) {
+    ): TsObject = when (type) {
         EtsNumberType -> {
             when (expr.sort) {
-                ctx.fp64Sort -> TSObject.TSNumber.Double(extractDouble(expr))
-                ctx.bv32Sort -> TSObject.TSNumber.Integer(extractInt(expr))
+                ctx.fp64Sort -> TsObject.TsNumber.Double(extractDouble(expr))
+                ctx.bv32Sort -> TsObject.TsNumber.Integer(extractInt(expr))
                 else -> error("Unexpected sort: ${expr.sort}")
             }
         }
 
         EtsBooleanType -> {
-            TSObject.TSBoolean(expr.extractBool())
+            TsObject.TsBoolean(expr.extractBool())
         }
 
         EtsUndefinedType -> {
-            TSObject.TSUndefinedObject
+            TsObject.TsUndefinedObject
         }
 
         is EtsLiteralType -> {
@@ -182,14 +182,14 @@ class TSTestResolver(
         expr: UExpr<out USort>,
         classType: EtsClassType,
         model: UModelBase<*>,
-    ): TSObject {
+    ): TsObject {
         if (expr is UConcreteHeapRef && expr.address == 0) {
-            return TSObject.TSUndefinedObject
+            return TsObject.TsUndefinedObject
         }
 
-        val nullRef = ctx.mkTSNullValue()
+        val nullRef = ctx.mkTsNullValue()
         if (model.eval(ctx.mkHeapRefEq(expr.asExpr(ctx.addressSort), nullRef)).isTrue) {
-            return TSObject.TSNull
+            return TsObject.TsNull
         }
 
         check(expr.sort == ctx.addressSort) {
@@ -222,6 +222,6 @@ class TSTestResolver(
             val obj = resolveExpr(fieldExpr, field.type, model)
             field.name to obj
         }
-        return TSObject.TSClass(clazz.name, properties)
+        return TsObject.TsClass(clazz.name, properties)
     }
 }

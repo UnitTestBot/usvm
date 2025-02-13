@@ -7,12 +7,12 @@ import org.jacodb.ets.model.EtsScene
 import org.usvm.UBoolSort
 import org.usvm.UExpr
 import org.usvm.UHeapRef
-import org.usvm.machine.TSContext
-import org.usvm.machine.state.TSMethodResult
-import org.usvm.machine.state.TSState
+import org.usvm.machine.TsContext
+import org.usvm.machine.state.TsMethodResult
+import org.usvm.machine.state.TsState
 
 // Built-in KContext.bvToBool has identical implementation.
-fun TSContext.boolToFp(expr: UExpr<UBoolSort>): UExpr<KFp64Sort> =
+fun TsContext.boolToFp(expr: UExpr<UBoolSort>): UExpr<KFp64Sort> =
     mkIte(expr, mkFp64(1.0), mkFp64(0.0))
 
 
@@ -22,6 +22,6 @@ fun EtsScene.fieldLookUp(field: EtsFieldSignature) = projectAndSdkClasses
     .fields
     .single { it.name == field.name }
 
-fun TSState.throwExceptionWithoutStackFrameDrop(address: UHeapRef, type: EtsType) {
-    methodResult = TSMethodResult.TSException(address, type)
+fun TsState.throwExceptionWithoutStackFrameDrop(address: UHeapRef, type: EtsType) {
+    methodResult = TsMethodResult.TsException(address, type)
 }

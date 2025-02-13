@@ -21,15 +21,15 @@ import org.jacodb.ets.model.EtsMethod
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UInterpreter
-import org.usvm.api.targets.TSTarget
+import org.usvm.api.targets.TsTarget
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.forkblacklists.UForkBlackList
-import org.usvm.machine.TSApplicationGraph
-import org.usvm.machine.TSContext
-import org.usvm.machine.expr.TSExprResolver
+import org.usvm.machine.TsApplicationGraph
+import org.usvm.machine.TsContext
+import org.usvm.machine.expr.TsExprResolver
 import org.usvm.machine.expr.mkTruthyExpr
-import org.usvm.machine.state.TSMethodResult
-import org.usvm.machine.state.TSState
+import org.usvm.machine.state.TsMethodResult
+import org.usvm.machine.state.TsState
 import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
@@ -41,22 +41,22 @@ import org.usvm.utils.ensureSat
 
 private val logger = KotlinLogging.logger {}
 
-typealias TSStepScope = StepScope<TSState, EtsType, EtsStmt, TSContext>
+typealias TsStepScope = StepScope<TsState, EtsType, EtsStmt, TsContext>
 
 @Suppress("UNUSED_PARAMETER")
-class TSInterpreter(
-    private val ctx: TSContext,
-    private val applicationGraph: TSApplicationGraph,
-) : UInterpreter<TSState>() {
+class TsInterpreter(
+    private val ctx: TsContext,
+    private val applicationGraph: TsApplicationGraph,
+) : UInterpreter<TsState>() {
 
-    private val forkBlackList: UForkBlackList<TSState, EtsStmt> = UForkBlackList.createDefault()
+    private val forkBlackList: UForkBlackList<TsState, EtsStmt> = UForkBlackList.createDefault()
 
-    override fun step(state: TSState): StepResult<TSState> {
+    override fun step(state: TsState): StepResult<TsState> {
         val stmt = state.lastStmt
         val scope = StepScope(state, forkBlackList)
 
         val result = state.methodResult
-        if (result is TSMethodResult.TSException) {
+        if (result is TsMethodResult.TsException) {
             // TODO catch processing
             scope.doWithState {
                 val returnSite = callStack.pop()
@@ -88,7 +88,7 @@ class TSInterpreter(
         return scope.stepResult()
     }
 
-    private fun visitIfStmt(scope: TSStepScope, stmt: EtsIfStmt) {
+    private fun visitIfStmt(scope: TsStepScope, stmt: EtsIfStmt) {
         val exprResolver = exprResolverWithScope(scope)
         val expr = exprResolver.resolve(stmt.condition) ?: return
 
@@ -109,7 +109,7 @@ class TSInterpreter(
         )
     }
 
-    private fun visitReturnStmt(scope: TSStepScope, stmt: EtsReturnStmt) {
+    private fun visitReturnStmt(scope: TsStepScope, stmt: EtsReturnStmt) {
         val exprResolver = exprResolverWithScope(scope)
 
         val valueToReturn = stmt.returnValue
@@ -121,7 +121,7 @@ class TSInterpreter(
         }
     }
 
-    private fun visitAssignStmt(scope: TSStepScope, stmt: EtsAssignStmt) {
+    private fun visitAssignStmt(scope: TsStepScope, stmt: EtsAssignStmt) {
         val exprResolver = exprResolverWithScope(scope)
         val expr = exprResolver.resolve(stmt.rhv) ?: return
 
@@ -141,7 +141,7 @@ class TSInterpreter(
         }
     }
 
-    private fun visitCallStmt(scope: TSStepScope, stmt: EtsCallStmt) {
+    private fun visitCallStmt(scope: TsStepScope, stmt: EtsCallStmt) {
         val exprResolver = exprResolverWithScope(scope)
         exprResolver.resolve(stmt.expr) ?: return
 
@@ -151,25 +151,25 @@ class TSInterpreter(
         }
     }
 
-    private fun visitThrowStmt(scope: TSStepScope, stmt: EtsThrowStmt) {
+    private fun visitThrowStmt(scope: TsStepScope, stmt: EtsThrowStmt) {
         // TODO do not forget to pop the sorts call stack in the state
         TODO()
     }
 
-    private fun visitGotoStmt(scope: TSStepScope, stmt: EtsGotoStmt) {
+    private fun visitGotoStmt(scope: TsStepScope, stmt: EtsGotoStmt) {
         TODO()
     }
 
-    private fun visitNopStmt(scope: TSStepScope, stmt: EtsNopStmt) {
+    private fun visitNopStmt(scope: TsStepScope, stmt: EtsNopStmt) {
         TODO()
     }
 
-    private fun visitSwitchStmt(scope: TSStepScope, stmt: EtsSwitchStmt) {
+    private fun visitSwitchStmt(scope: TsStepScope, stmt: EtsSwitchStmt) {
         TODO()
     }
 
-    private fun exprResolverWithScope(scope: TSStepScope): TSExprResolver =
-        TSExprResolver(ctx, scope, ::mapLocalToIdx)
+    private fun exprResolverWithScope(scope: TsStepScope): TsExprResolver =
+        TsExprResolver(ctx, scope, ::mapLocalToIdx)
 
     // (method, localName) -> idx
     private val localVarToIdx: MutableMap<EtsMethod, MutableMap<String, Int>> = hashMapOf()
@@ -193,8 +193,8 @@ class TSInterpreter(
             else -> error("Unexpected local: $local")
         }
 
-    fun getInitialState(method: EtsMethod, targets: List<TSTarget>): TSState {
-        val state = TSState(
+    fun getInitialState(method: EtsMethod, targets: List<TsTarget>): TsState {
+        val state = TsState(
             ctx = ctx,
             ownership = MutabilityOwnership(),
             entrypoint = method,
@@ -209,7 +209,7 @@ class TSInterpreter(
         state.memory.stack.push(method.parametersWithThisCount, method.localsCount)
         state.newStmt(method.cfg.instructions.first())
 
-        state.memory.types.allocate(ctx.mkTSNullValue().address, EtsNullType)
+        state.memory.types.allocate(ctx.mkTsNullValue().address, EtsNullType)
 
         return state
     }

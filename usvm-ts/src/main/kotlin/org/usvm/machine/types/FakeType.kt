@@ -4,7 +4,7 @@ import org.jacodb.ets.base.EtsType
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.USort
-import org.usvm.machine.TSContext
+import org.usvm.machine.TsContext
 
 class FakeType(
     val boolTypeExpr: UBoolExpr,
@@ -19,7 +19,7 @@ class FakeType(
         error("Should not be called")
     }
 
-    fun mkExactlyOneTypeConstraint(ctx: TSContext): UBoolExpr = with(ctx) {
+    fun mkExactlyOneTypeConstraint(ctx: TsContext): UBoolExpr = with(ctx) {
         return mkAnd(
             mkImplies(boolTypeExpr, fpTypeExpr.not()),
             mkImplies(boolTypeExpr, refTypeExpr.not()),

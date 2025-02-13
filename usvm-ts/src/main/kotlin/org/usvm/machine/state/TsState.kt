@@ -9,19 +9,19 @@ import org.usvm.PathNode
 import org.usvm.UCallStack
 import org.usvm.USort
 import org.usvm.UState
-import org.usvm.api.targets.TSTarget
+import org.usvm.api.targets.TsTarget
 import org.usvm.collections.immutable.getOrPut
 import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHashMap
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.constraints.UPathConstraints
-import org.usvm.machine.TSContext
+import org.usvm.machine.TsContext
 import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase
 import org.usvm.targets.UTargetsSet
 import org.usvm.collections.immutable.persistentHashMapOf
 
-class TSState(
-    ctx: TSContext,
+class TsState(
+    ctx: TsContext,
     ownership: MutabilityOwnership,
     override val entrypoint: EtsMethod,
     callStack: UCallStack<EtsMethod, EtsStmt> = UCallStack(),
@@ -30,10 +30,10 @@ class TSState(
     models: List<UModelBase<EtsType>> = listOf(),
     pathNode: PathNode<EtsStmt> = PathNode.root(),
     forkPoints: PathNode<PathNode<EtsStmt>> = PathNode.root(),
-    var methodResult: TSMethodResult = TSMethodResult.NoCall,
-    targets: UTargetsSet<TSTarget, EtsStmt> = UTargetsSet.empty(),
+    var methodResult: TsMethodResult = TsMethodResult.NoCall,
+    targets: UTargetsSet<TsTarget, EtsStmt> = UTargetsSet.empty(),
     private var localToSortStack: MutableList<UPersistentHashMap<Int, USort>> = mutableListOf(persistentHashMapOf()),
-) : UState<EtsType, EtsMethod, EtsStmt, TSContext, TSTarget, TSState>(
+) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
     ctx,
     ownership,
     callStack,
@@ -81,7 +81,7 @@ class TSState(
         instanceSort?.let { saveSortForLocal(args.size, it) }
     }
 
-    override fun clone(newConstraints: UPathConstraints<EtsType>?): TSState {
+    override fun clone(newConstraints: UPathConstraints<EtsType>?): TsState {
         val newThisOwnership = MutabilityOwnership()
         val cloneOwnership = MutabilityOwnership()
         val clonedConstraints = newConstraints?.also {
@@ -90,7 +90,7 @@ class TSState(
         } ?: pathConstraints.clone(newThisOwnership, cloneOwnership)
         this.ownership = newThisOwnership
 
-        return TSState(
+        return TsState(
             ctx,
             cloneOwnership,
             entrypoint,
@@ -107,5 +107,5 @@ class TSState(
     }
 
     override val isExceptional: Boolean
-        get() = methodResult is TSMethodResult.TSException
+        get() = methodResult is TsMethodResult.TsException
 }

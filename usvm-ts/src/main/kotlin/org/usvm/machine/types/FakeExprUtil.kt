@@ -10,14 +10,14 @@ import org.usvm.USort
 import org.usvm.api.typeStreamOf
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.machine.IntermediateLValueField
-import org.usvm.machine.TSContext
-import org.usvm.machine.interpreter.TSStepScope
-import org.usvm.machine.state.TSState
+import org.usvm.machine.TsContext
+import org.usvm.machine.interpreter.TsStepScope
+import org.usvm.machine.state.TsState
 import org.usvm.memory.ULValue
 import org.usvm.types.single
 
-fun TSContext.mkFakeValue(
-    scope: TSStepScope,
+fun TsContext.mkFakeValue(
+    scope: TsStepScope,
     boolValue: UBoolExpr? = null,
     fpValue: UExpr<KFp64Sort>? = null,
     refValue: UHeapRef? = null,
@@ -56,7 +56,7 @@ fun TSContext.mkFakeValue(
     }
 }
 
-fun <T : USort> TSState.extractValue(
+fun <T : USort> TsState.extractValue(
     value: UExpr<out USort>,
     sort: T,
     extractIntermediateLValue: (Int) -> ULValue<*, T>,
@@ -81,8 +81,8 @@ fun <T : USort> TSState.extractValue(
     }
 }
 
-fun TSContext.iteWriteIntoFakeObject(
-    scope: TSStepScope,
+fun TsContext.iteWriteIntoFakeObject(
+    scope: TsStepScope,
     condition: UBoolExpr,
     trueBranchValue: UExpr<out USort>,
     falseBranchValue: UExpr<out USort>,
@@ -143,7 +143,7 @@ fun TSContext.iteWriteIntoFakeObject(
     fakeObject
 }
 
-private fun <T : USort> TSState.writeValuesWithGuard(
+private fun <T : USort> TsState.writeValuesWithGuard(
     trueBranchValue: UExpr<T>?,
     falseBranchValue: UExpr<T>?,
     lValue: UFieldLValue<IntermediateLValueField, T>,
