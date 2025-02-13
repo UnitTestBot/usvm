@@ -43,6 +43,10 @@ private val logger = KotlinLogging.logger {}
 class TypeFactProcessor(
     private val scene: EtsScene,
 ) {
+    private val classBySignature by lazy {
+        scene.projectAndSdkClasses.associateByTo(hashMapOf()) { it.signature }
+    }
+
     fun union(type: EtsTypeFact, other: EtsTypeFact): EtsTypeFact {
         if (type == other) return type
 
@@ -269,7 +273,7 @@ class TypeFactProcessor(
         if (cls == null || cls !is EtsClassType) {
             return properties
         }
-        val clazz = scene.projectAndSdkClasses.firstOrNull { it.signature == cls.signature }
+        val clazz = classBySignature[cls.signature]
             ?: return properties
         val props = properties.toMutableMap()
         clazz.methods.forEach { m ->

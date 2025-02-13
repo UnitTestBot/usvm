@@ -16,19 +16,48 @@
 
 package org.usvm.dataflow.ts.infer.verify
 
-import org.jacodb.ets.base.EtsType
+import org.jacodb.ets.base.EtsUnknownType
+import org.jacodb.ets.model.EtsMethod
+import org.usvm.dataflow.ts.infer.annotation.MethodTypeSchemeImpl
+import org.usvm.dataflow.ts.infer.annotation.TypeScheme
+import org.usvm.dataflow.ts.infer.annotation.TypeSchemeImpl
+import org.usvm.dataflow.ts.infer.verify.collectors.MethodVerificationSummary
 
 sealed interface VerificationResult {
-    data class Success(val mapping: Map<EntityId, EtsType>) : VerificationResult
+    data class Success(val scheme: TypeScheme) : VerificationResult
 
-    data class Fail(val mapping: Map<EntityId, Set<EtsType>>) : VerificationResult
+    data class Fail(val summary: Map<EtsMethod, MethodVerificationSummary>) : VerificationResult {
+        val erasureScheme by lazy {
+            TypeSchemeImpl(
+                summary.mapValues { (_, summary) ->
+                    MethodTypeSchemeImpl(
+                        summary.entitySummaries
+                            .filterValues { it.errors.isNotEmpty() || it.types.size != 1 }
+                            .mapValues { _ -> EtsUnknownType }
+                    )
+                }
+            )
+        }
+    }
 
     companion object {
-        fun from(mapping: Map<EntityId, Set<EtsType>>): VerificationResult =
-            if (mapping.values.all { it.size == 1 }) {
-                Success(mapping.mapValues { (_, types) -> types.single() })
-            } else {
-                Fail(mapping)
+        fun from(summary: Map<EtsMethod, MethodVerificationSummary>): VerificationResult {
+            val summaryIsValid = summary.values.all { methodSummary ->
+                methodSummary.entitySummaries.values.all { it.types.size == 1 && it.errors.isEmpty() }
             }
+
+            return if (summaryIsValid) {
+                val methodTypeSchemes = summary.mapValues { (_, summary) ->
+                    val types = summary.entitySummaries.mapValues { (_, entitySummary) ->
+                        entitySummary.types.single()
+                    }
+                    MethodTypeSchemeImpl(types)
+                }
+
+                Success(TypeSchemeImpl(methodTypeSchemes))
+            } else {
+                Fail(summary)
+            }
+        }
     }
 }

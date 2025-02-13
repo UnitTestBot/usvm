@@ -16,37 +16,71 @@
 
 package org.usvm.dataflow.ts.infer.verify.collectors
 
+import org.jacodb.ets.base.EtsEntity
+import org.jacodb.ets.base.EtsLocal
+import org.jacodb.ets.base.EtsParameterRef
+import org.jacodb.ets.base.EtsRefType
+import org.jacodb.ets.base.EtsThis
 import org.jacodb.ets.base.EtsType
-import org.jacodb.ets.model.EtsFieldSignature
+import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.model.EtsMethodSignature
-import org.usvm.dataflow.ts.infer.verify.EntityId
-import org.usvm.dataflow.ts.infer.verify.FieldId
-import org.usvm.dataflow.ts.infer.verify.ParameterId
-import org.usvm.dataflow.ts.infer.verify.ReturnId
+import org.usvm.dataflow.ts.infer.AccessPathBase
+import org.usvm.dataflow.ts.infer.toBase
+
+data class TypeError(
+    val value: EtsValue,
+    val enclosingExpr: EtsEntity,
+    val description: String,
+)
+
+data class EntityVerificationSummary(
+    val types: MutableSet<EtsType>,
+    val errors: MutableSet<TypeError>,
+) {
+    companion object {
+        fun empty(): EntityVerificationSummary = EntityVerificationSummary(types = hashSetOf(), errors = hashSetOf())
+    }
+}
+
+data class MethodVerificationSummary(
+    val entitySummaries: MutableMap<AccessPathBase, EntityVerificationSummary> = mutableMapOf(),
+)
 
 interface SummaryCollector {
-    val typeSummary: MutableMap<EntityId, MutableSet<EtsType>>
+    val method: EtsMethodSignature
+    val verificationSummary: MethodVerificationSummary
 
-    fun yield(field: EtsFieldSignature) {
-        if (!field.type.isUnresolved) {
-            typeSummary
-                .computeIfAbsent(FieldId(field)) { hashSetOf() }
-                .add(field.type)
+    fun yield(parameter: EtsParameterRef) {
+        if (!parameter.type.isUnresolved) {
+            verificationSummary.entitySummaries
+                .computeIfAbsent(AccessPathBase.Arg(parameter.index)) { EntityVerificationSummary.empty() }
+                .types
+                .add(parameter.type)
         }
     }
 
-    fun yield(method: EtsMethodSignature) {
-        if (!method.returnType.isUnresolved) {
-            typeSummary
-                .computeIfAbsent(ReturnId(method)) { hashSetOf() }
-                .add(method.returnType)
+    fun yield(local: EtsLocal) {
+        if (!local.type.isUnresolved) {
+            verificationSummary.entitySummaries
+                .computeIfAbsent(AccessPathBase.Local(local.name)) { EntityVerificationSummary.empty() }
+                .types
+                .add(local.type)
         }
-        method.parameters.forEach {
-            if (!it.type.isUnresolved) {
-                typeSummary
-                    .computeIfAbsent(ParameterId(it, method)) { hashSetOf() }
-                    .add(it.type)
-            }
+    }
+
+    fun yield(etsThis: EtsThis) {
+        verificationSummary.entitySummaries
+            .computeIfAbsent(AccessPathBase.This) { EntityVerificationSummary.empty() }
+            .types
+            .add(etsThis.type)
+    }
+
+    fun requireObjectOrUnknown(value: EtsValue, enclosingExpr: EtsEntity) {
+        if (!value.type.isUnresolved && value.type !is EtsRefType) {
+            verificationSummary.entitySummaries
+                .computeIfAbsent(value.toBase()) { EntityVerificationSummary.empty() }
+                .errors
+                .add(TypeError(value, enclosingExpr, "$value type should be a reference type, found ${value.type}"))
         }
     }
 }

@@ -48,10 +48,10 @@ class ForwardFlowFunctions(
 
     private val typeProcessor = TypeFactProcessor(graph.cp)
 
-    private val aliasesCache: MutableMap<EtsMethod, Map<EtsStmt, Pair<AliasInfo, AliasInfo>>> = hashMapOf()
+    private val aliasesCache: MutableMap<EtsMethod, List<StmtAliasInfo>> = hashMapOf()
 
-    private fun getAliases(method: EtsMethod): Map<EtsStmt, Pair<AliasInfo, AliasInfo>> {
-        return aliasesCache.computeIfAbsent(method) { computeAliases(method) }
+    private fun getAliases(method: EtsMethod): List<StmtAliasInfo> {
+        return aliasesCache.computeIfAbsent(method) { MethodAliasInfo(method).computeAliases() }
     }
 
     override fun obtainPossibleStartFacts(method: EtsMethod): Collection<ForwardTypeDomainFact> {
@@ -156,7 +156,7 @@ class ForwardFlowFunctions(
 
         val lhv = current.lhv.toPath()
         val result = mutableListOf<ForwardTypeDomainFact>(Zero)
-        val (preAliases, _) = getAliases(current.method).getValue(current)
+        val preAliases = getAliases(current.method)[current.location.index]
 
         fun addTypeFactWithAliases(path: AccessPath, type: EtsTypeFact) {
             result += TypedVariable(path, type)
@@ -231,8 +231,8 @@ class ForwardFlowFunctions(
             }
 
             is EtsArithmeticExpr -> {
-                result += TypedVariable(lhv, EtsTypeFact.StringEtsTypeFact)
                 result += TypedVariable(lhv, EtsTypeFact.NumberEtsTypeFact)
+                result += TypedVariable(lhv, EtsTypeFact.StringEtsTypeFact)
             }
 
             is EtsRelationExpr -> {
@@ -273,7 +273,7 @@ class ForwardFlowFunctions(
             }
         }
 
-        val (preAliases, _) = getAliases(current.method).getValue(current)
+        val preAliases = getAliases(current.method)[current.location.index]
 
         // Override LHS when RHS is const-like:
         if (rhv == null) {

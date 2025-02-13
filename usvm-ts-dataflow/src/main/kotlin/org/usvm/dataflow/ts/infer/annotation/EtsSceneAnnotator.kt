@@ -18,6 +18,16 @@
 
 package org.usvm.dataflow.ts.infer.annotation
 
+import org.jacodb.ets.base.EtsAssignStmt
+import org.jacodb.ets.base.EtsCallStmt
+import org.jacodb.ets.base.EtsGotoStmt
+import org.jacodb.ets.base.EtsIfStmt
+import org.jacodb.ets.base.EtsNopStmt
+import org.jacodb.ets.base.EtsRawStmt
+import org.jacodb.ets.base.EtsReturnStmt
+import org.jacodb.ets.base.EtsStmt
+import org.jacodb.ets.base.EtsSwitchStmt
+import org.jacodb.ets.base.EtsThrowStmt
 import org.jacodb.ets.graph.EtsCfg
 import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassImpl
@@ -25,14 +35,13 @@ import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodImpl
 import org.jacodb.ets.model.EtsScene
-import org.usvm.dataflow.ts.infer.TypeInferenceResult
 
-fun EtsScene.annotateWithTypes(result: TypeInferenceResult): EtsScene =
-    EtsSceneAnnotator(this, result).annotate()
+fun EtsScene.annotateWithTypes(scheme: TypeScheme): EtsScene =
+    EtsSceneAnnotator(this, scheme).annotate()
 
 class EtsSceneAnnotator(
     private val scene: EtsScene,
-    private val result: TypeInferenceResult,
+    private val scheme: TypeScheme,
 ) {
     fun annotate(): EtsScene = scene.annotate()
 
@@ -72,15 +81,47 @@ class EtsSceneAnnotator(
             modifiers = modifiers,
             decorators = decorators,
         ).also { method ->
-            val types = result.inferredTypes[this].orEmpty()
-            val thisType = result.inferredCombinedThisType[enclosingClass]
-            val valueAnnotator = ValueTypeAnnotator(scene, types, thisType)
+            val typeScheme = scheme.methodScheme(this)
+            val thisType = scheme.thisType(this)
+            val valueAnnotator = ValueTypeAnnotator(typeScheme, thisType)
             val exprAnnotator = ExprTypeAnnotator(scene, valueAnnotator)
             val stmtTypeAnnotator = StmtTypeAnnotator(valueAnnotator, exprAnnotator)
-            method._cfg = EtsCfg(
-                stmts = cfg.stmts.map { it.accept(stmtTypeAnnotator) },
-                successorMap = cfg.stmts.associateWith { cfg.successors(it).toList() },
-            )
+            val relocate = RelocateStmt(method)
+            val relocated = cfg.stmts.associateWith { it.accept(stmtTypeAnnotator).accept(relocate) }
+            val successorMap = cfg.stmts.map { stmt ->
+                val newStmt = relocated[stmt] ?: error("Unprocessed stmt")
+                newStmt to cfg.successors(stmt).map { relocated[it] ?: error("Unprocessed stmt") }.toList()
+            }
+            method._cfg = EtsCfg(relocated.values.toList(), successorMap.toMap())
         }
+    }
+
+    private class RelocateStmt(val to: EtsMethod) : EtsStmt.Visitor<EtsStmt> {
+        override fun visit(stmt: EtsNopStmt): EtsStmt =
+            stmt.copy(location = stmt.location.copy(method = to))
+
+        override fun visit(stmt: EtsAssignStmt): EtsStmt =
+            stmt.copy(location = stmt.location.copy(method = to))
+
+        override fun visit(stmt: EtsCallStmt): EtsStmt =
+            stmt.copy(location = stmt.location.copy(method = to))
+
+        override fun visit(stmt: EtsReturnStmt): EtsStmt =
+            stmt.copy(location = stmt.location.copy(method = to))
+
+        override fun visit(stmt: EtsThrowStmt): EtsStmt =
+            stmt.copy(location = stmt.location.copy(method = to))
+
+        override fun visit(stmt: EtsGotoStmt): EtsStmt =
+            EtsGotoStmt(location = stmt.location.copy(method = to))
+
+        override fun visit(stmt: EtsIfStmt): EtsStmt =
+            stmt.copy(location = stmt.location.copy(method = to))
+
+        override fun visit(stmt: EtsSwitchStmt): EtsStmt =
+            stmt.copy(location = stmt.location.copy(method = to))
+
+        override fun visit(stmt: EtsRawStmt): EtsStmt =
+            stmt.copy(location = stmt.location.copy(method = to))
     }
 }
