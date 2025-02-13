@@ -4,6 +4,7 @@ import io.ksmt.utils.asExpr
 import mu.KotlinLogging
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsCallStmt
+import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.base.EtsGotoStmt
 import org.jacodb.ets.base.EtsIfStmt
 import org.jacodb.ets.base.EtsLocal
@@ -21,6 +22,7 @@ import org.jacodb.ets.model.EtsMethod
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UInterpreter
+import org.usvm.api.evalTypeEquals
 import org.usvm.api.targets.TsTarget
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.forkblacklists.UForkBlackList
@@ -202,6 +204,23 @@ class TsInterpreter(
         )
 
         val solver = ctx.solver<EtsType>()
+
+        val thisInstanceRef = URegisterStackLValue(ctx.addressSort, method.parameters.count()) // TODO check for statics
+        val thisRef = state.memory.read(thisInstanceRef).asExpr(ctx.addressSort)
+
+        state.pathConstraints += with (ctx) {
+            mkNot(
+                mkOr(
+                    ctx.mkHeapRefEq(thisRef, ctx.mkTsNullValue()),
+                    ctx.mkHeapRefEq(thisRef, ctx.mkUndefinedValue())
+                )
+            )
+        }
+
+        // TODO fix incorrect type streams
+        // val thisTypeConstraint = state.memory.types.evalTypeEquals(thisRef, EtsClassType(method.enclosingClass))
+        // state.pathConstraints += thisTypeConstraint
+
         val model = solver.check(state.pathConstraints).ensureSat().model
         state.models = listOf(model)
 

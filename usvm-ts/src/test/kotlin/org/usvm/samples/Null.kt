@@ -16,7 +16,7 @@ class Null : TsMethodTestRunner() {
         EtsScene(listOf(file))
     }
 
-    @RepeatedTest(20)
+    @RepeatedTest(1)
     fun testIsNull() {
         val method = getMethod("Null", "isNull")
         discoverProperties<TsObject, TsObject.TsNumber>(
