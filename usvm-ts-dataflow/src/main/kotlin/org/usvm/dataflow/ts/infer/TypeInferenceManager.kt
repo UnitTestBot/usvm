@@ -21,6 +21,7 @@ import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUnclearRefType
 import org.jacodb.ets.base.INSTANCE_INIT_METHOD_NAME
 import org.jacodb.ets.graph.findDominators
+import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.impl.cfg.graphs.GraphDominators
 import org.usvm.dataflow.ifds.ControlEvent
@@ -232,201 +233,15 @@ class TypeInferenceManager(
         doInferAllLocals: Boolean,
     ): TypeInferenceResult {
         val refinedTypes = refineMethodTypes(methodTypeScheme).toMutableMap()
-        // logger.info {
-        //     buildString {
-        //         appendLine("Forward types:")
-        //         for ((method, typeFacts) in refinedTypes) {
-        //             appendLine("Forward types for ${method.signature.enclosingClass.name}::${method.name} in ${method.signature.enclosingClass.file}:")
-        //             for ((base, fact) in typeFacts.entries.sortedBy {
-        //                 when (val key = it.key) {
-        //                     is AccessPathBase.This -> 0
-        //                     is AccessPathBase.Arg -> key.index + 1
-        //                     else -> 1_000_000
-        //                 }
-        //             }) {
-        //                 appendLine("$base: ${fact.toPrettyString()}")
-        //             }
-        //         }
-        //     }
-        // }
 
-        // Infer types for 'this' in each class
-        val inferredCombinedThisTypes = run {
-            val allClasses = methodTypeScheme.keys
-                .map { it.enclosingClass }
-                .distinct()
-                .map { sig -> graph.cp.projectAndSdkClasses.first { cls -> cls.signature == sig } }
-                .filterNot { it.name.startsWith(ANONYMOUS_CLASS_PREFIX) }
-            allClasses.mapNotNull { cls ->
-                val combinedBackwardType = methodTypeScheme
-                    .asSequence()
-                    .filter { (method, _) -> method in (cls.methods + cls.ctor) }
-                    .mapNotNull { (_, facts) -> facts[AccessPathBase.This] }.reduceOrNull { acc, type ->
-                        typeProcessor.intersect(acc, type) ?: run {
-                            logger.warn { "Empty intersection type: ${acc.toStringLimited()} & ${type.toStringLimited()}" }
-                            acc
-                        }
-                    }
-                // logger.info {
-                //     buildString {
-                //         appendLine("Combined backward type for This in class '${cls.signature}': ${combinedBackwardType?.toPrettyString()}")
-                //     }
-                // }
+        val inferredCombinedThisTypes = getInferredCombinedThisTypes(methodTypeScheme)
 
-                if (combinedBackwardType == null) {
-                    return@mapNotNull null
-                }
+        val inferredReturnTypes = getInferredReturnTypes()
 
-                val typeFactsOnThisMethods = forwardSummaries.asSequence()
-                    .filter { (method, _) -> method.enclosingClass == cls.signature }
-                    .filter { (method, _) -> method.name != INSTANCE_INIT_METHOD_NAME }
-                    .flatMap { (_, summaries) -> summaries.asSequence() }
-                    .mapNotNull { it.initialFact as? ForwardTypeDomainFact.TypedVariable }
-                    .filter { it.variable.base is AccessPathBase.This }
-                    .distinct()
-                    .toList()
-
-                val typeFactsOnThisCtor = forwardSummaries.asSequence()
-                    .filter { (method, _) -> method.enclosingClass == cls.signature }
-                    .filter { (method, _) -> method.name == CONSTRUCTOR_NAME || method.name == INSTANCE_INIT_METHOD_NAME }
-                    .flatMap { (_, summaries) -> summaries.asSequence() }
-                    .mapNotNull { it.exitFact as? ForwardTypeDomainFact.TypedVariable }
-                    .filter { it.variable.base is AccessPathBase.This }
-                    .distinct()
-                    .toList()
-
-                val typeFactsOnThis = (typeFactsOnThisMethods + typeFactsOnThisCtor).distinct()
-
-                val propertyRefinements = typeFactsOnThis
-                    .groupBy({ it.variable.accesses }, { it.type })
-                    .mapValues { (_, types) -> types.reduce { acc, t -> typeProcessor.union(acc, t) } }
-
-                // logger.info {
-                //     buildString {
-                //         appendLine("Property refinements for This in class '${cls.signature}':")
-                //         for ((property, propertyType) in propertyRefinements.toList()
-                //             .sortedBy { it.first.joinToString(".") }) {
-                //             appendLine("  this.${property.joinToString(".")}: $propertyType")
-                //         }
-                //     }
-                // }
-
-                var refined: EtsTypeFact = combinedBackwardType
-                for ((property, propertyType) in propertyRefinements) {
-                    refined = refined.refineProperty(property, propertyType) ?: this@TypeInferenceManager.run {
-                        logger.warn { "Empty intersection type: ${refined.toStringLimited()} & ${propertyType.toStringLimited()}" }
-                        refined
-                    }
-                }
-
-                combinedBackwardType.let {}
-                typeFactsOnThisMethods.let {}
-                typeFactsOnThisCtor.let {}
-                typeFactsOnThis.let {}
-                propertyRefinements.let {}
-                cls.let {}
-
-                cls.signature to refined
-            }.toMap()
-        }
-        // logger.info {
-        //     buildString {
-        //         appendLine("Combined and refined types for This:")
-        //         for ((cls, type) in inferredCombinedThisTypes) {
-        //             appendLine("Combined This in class '${cls}': ${type.toPrettyString()}")
-        //         }
-        //     }
-        // }
-
-        // Infer return types for each method
-        val inferredReturnTypes = run {
-            forwardSummaries.asSequence().mapNotNull { (method, summaries) ->
-                @Suppress("LABEL_NAME_CLASH")
-                val typeFacts = summaries.asSequence().map { it.exitVertex }.mapNotNull {
-                    val stmt = it.statement as? EtsReturnStmt ?: return@mapNotNull null
-                    val fact = it.fact as? ForwardTypeDomainFact.TypedVariable ?: return@mapNotNull null
-                    val r = stmt.returnValue?.toPath() ?: return@mapNotNull null
-                    check(r.accesses.isEmpty())
-                    if (fact.variable.base != r.base) return@mapNotNull null
-                    r.base to fact
-                }.groupBy({ it.first }, { it.second })
-
-                val returnFact = typeFacts.mapValues { (_, typeRefinements) ->
-                    val propertyRefinements = typeRefinements.groupBy({ it.variable.accesses }, { it.type })
-                        .mapValues { (_, types) -> types.reduce { acc, t -> typeProcessor.union(acc, t) } }
-
-                    val rootType = propertyRefinements[emptyList()] ?: run {
-                        if (propertyRefinements.keys.any { it.isNotEmpty() }) {
-                            EtsTypeFact.ObjectEtsTypeFact(null, emptyMap())
-                        } else {
-                            EtsTypeFact.AnyEtsTypeFact
-                        }
-                    }
-
-                    val refined = rootType.refineProperties(emptyList(), propertyRefinements)
-
-                    refined
-                }.values.reduceOrNull { acc, type -> typeProcessor.union(acc, type) }
-                if (returnFact != null) {
-                    method to returnFact
-                } else {
-                    null
-                }
-            }.toMap()
-        }
-        // logger.info {
-        //     buildString {
-        //         appendLine("Return types:")
-        //         for ((method, type) in inferredReturnTypes) {
-        //             appendLine("Return type for ${method.signature.enclosingClass.file}::${method.signature.enclosingClass.name}::${method.name}: ${type.toPrettyString()}")
-        //         }
-        //     }
-        // }
-
-        val inferredLocalTypes: Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>>? = if (doInferAllLocals) {
-            forwardSummaries.asSequence().map { (method, summaries) ->
-                val typeFacts = summaries.asSequence()
-                    .mapNotNull { it.exitVertex.fact as? ForwardTypeDomainFact.TypedVariable }
-                    .filter { it.variable.base is AccessPathBase.Local }
-                    .groupBy { it.variable.base }
-
-                val localTypes = typeFacts.mapValues { (_, typeFacts) ->
-                    val propertyRefinements = typeFacts
-                        .groupBy({ it.variable.accesses }, { it.type })
-                        .mapValues { (_, types) -> types.reduce { acc, t -> typeProcessor.union(acc, t) } }
-
-                    val rootType = propertyRefinements[emptyList()] ?: run {
-                        if (propertyRefinements.keys.any { it.isNotEmpty() }) {
-                            EtsTypeFact.ObjectEtsTypeFact(null, emptyMap())
-                        } else {
-                            EtsTypeFact.AnyEtsTypeFact
-                        }
-                    }
-
-                    val refined = rootType.refineProperties(emptyList(), propertyRefinements)
-
-                    refined
-                }
-
-                method to localTypes
-            }.toMap()
-        } else {
-            null
-        }
+        val inferredLocalTypes: Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>>? =
+            getInferredLocalTypes(doInferAllLocals)
 
         if (inferredLocalTypes != null) {
-            // logger.info {
-            //     buildString {
-            //         appendLine("Local types:")
-            //         for ((method, localTypes) in inferredLocalTypes) {
-            //             appendLine("Local types for ${method.signature.enclosingClass.name}::${method.name} in ${method.signature.enclosingClass.file}:")
-            //             for ((base, fact) in localTypes.entries.sortedBy { (it.key as AccessPathBase.Local).name }) {
-            //                 appendLine("$base: ${fact.toPrettyString()}")
-            //             }
-            //         }
-            //     }
-            // }
-
             for ((method, localFacts) in inferredLocalTypes) {
                 val facts = refinedTypes[method]
                 if (facts == null) {
@@ -438,9 +253,7 @@ class TypeInferenceManager(
         }
 
         val inferredTypes = refinedTypes
-            // Sort by 'base':
             .mapValues { (_, facts) -> facts.sortedByBase() }
-            // Simplify types:
             .mapValues { (_, facts) -> facts.mapValues { (_, fact) -> fact.simplify() } }
 
         return TypeInferenceResult(
@@ -448,6 +261,139 @@ class TypeInferenceManager(
             inferredReturnType = inferredReturnTypes,
             inferredCombinedThisType = inferredCombinedThisTypes,
         )
+    }
+
+    private fun getInferredLocalTypes(doInferAllLocals: Boolean) = if (doInferAllLocals) {
+        forwardSummaries.asSequence().map { (method, summaries) ->
+            val typeFacts = summaries.asSequence()
+                .mapNotNull { it.exitVertex.fact as? ForwardTypeDomainFact.TypedVariable }
+                .filter { it.variable.base is AccessPathBase.Local }
+                .groupBy { it.variable.base }
+
+            val localTypes = typeFacts.mapValues { (_, typeFacts) ->
+                val propertyRefinements = typeFacts
+                    .groupBy({ it.variable.accesses }, { it.type })
+                    .mapValues { (_, types) -> types.reduce { acc, t -> typeProcessor.union(acc, t) } }
+
+                val rootType = propertyRefinements[emptyList()] ?: run {
+                    if (propertyRefinements.keys.any { it.isNotEmpty() }) {
+                        EtsTypeFact.ObjectEtsTypeFact(null, emptyMap())
+                    } else {
+                        EtsTypeFact.AnyEtsTypeFact
+                    }
+                }
+
+                val refined = rootType.refineProperties(emptyList(), propertyRefinements)
+
+                refined
+            }
+
+            method to localTypes
+        }.toMap()
+    } else {
+        null
+    }
+
+    private fun getInferredReturnTypes() =
+        forwardSummaries.asSequence().mapNotNull { (method, summaries) ->
+            @Suppress("LABEL_NAME_CLASH")
+            val typeFacts = summaries.asSequence().map { it.exitVertex }.mapNotNull {
+                val stmt = it.statement as? EtsReturnStmt ?: return@mapNotNull null
+                val fact = it.fact as? ForwardTypeDomainFact.TypedVariable ?: return@mapNotNull null
+                val r = stmt.returnValue?.toPath() ?: return@mapNotNull null
+                check(r.accesses.isEmpty())
+                if (fact.variable.base != r.base) return@mapNotNull null
+                r.base to fact
+            }.groupBy({ it.first }, { it.second })
+
+            val returnFact = typeFacts.mapValues { (_, typeRefinements) ->
+                val propertyRefinements = typeRefinements.groupBy({ it.variable.accesses }, { it.type })
+                    .mapValues { (_, types) -> types.reduce { acc, t -> typeProcessor.union(acc, t) } }
+
+                val rootType = propertyRefinements[emptyList()] ?: run {
+                    if (propertyRefinements.keys.any { it.isNotEmpty() }) {
+                        EtsTypeFact.ObjectEtsTypeFact(null, emptyMap())
+                    } else {
+                        EtsTypeFact.AnyEtsTypeFact
+                    }
+                }
+
+                val refined = rootType.refineProperties(emptyList(), propertyRefinements)
+
+                refined
+            }.values.reduceOrNull { acc, type -> typeProcessor.union(acc, type) }
+
+            if (returnFact != null) {
+                method to returnFact
+            } else {
+                null
+            }
+        }.toMap()
+
+    private fun getInferredCombinedThisTypes(
+        methodTypeScheme: Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>>,
+    ): Map<EtsClassSignature, EtsTypeFact> {
+        val classBySignature = graph.cp.projectAndSdkClasses
+            .groupByTo(hashMapOf()) { it.signature }
+
+        val allClasses = methodTypeScheme.keys
+            .map { it.enclosingClass }
+            .distinct()
+            .map { sig -> classBySignature[sig].orEmpty().first() }
+            .filterNot { it.name.startsWith(ANONYMOUS_CLASS_PREFIX) }
+
+        val forwardSummariesByClass = forwardSummaries
+            .entries.groupByTo(hashMapOf()) { (method, _) -> method.enclosingClass }
+
+        return allClasses.mapNotNull { cls ->
+            val clsMethods = (cls.methods + cls.ctor).toHashSet()
+            val combinedBackwardType = clsMethods
+                .mapNotNull { methodTypeScheme[it] }
+                .mapNotNull { facts -> facts[AccessPathBase.This] }.reduceOrNull { acc, type ->
+                    typeProcessor.intersect(acc, type) ?: run {
+                        logger.warn { "Empty intersection type: ${acc.toStringLimited()} & ${type.toStringLimited()}" }
+                        acc
+                    }
+                }
+
+            if (combinedBackwardType == null) {
+                return@mapNotNull null
+            }
+
+            val typeFactsOnThisMethods = forwardSummariesByClass[cls.signature].orEmpty()
+                .filter { (method, _) -> method.name != INSTANCE_INIT_METHOD_NAME }
+                .flatMap { (_, summaries) -> summaries.asSequence() }
+                .mapNotNull { it.initialFact as? ForwardTypeDomainFact.TypedVariable }
+                .filter { it.variable.base is AccessPathBase.This }
+                .distinct()
+                .toList()
+
+            val typeFactsOnThisCtor = forwardSummariesByClass[cls.signature].orEmpty()
+                .filter { (method, _) -> method.name == CONSTRUCTOR_NAME || method.name == INSTANCE_INIT_METHOD_NAME }
+                .flatMap { (_, summaries) -> summaries.asSequence() }
+                .mapNotNull { it.exitFact as? ForwardTypeDomainFact.TypedVariable }
+                .filter { it.variable.base is AccessPathBase.This }
+                .distinct()
+                .toList()
+
+            val typeFactsOnThis = (typeFactsOnThisMethods + typeFactsOnThisCtor).distinct()
+
+            val propertyRefinements = typeFactsOnThis
+                .groupBy({ it.variable.accesses }, { it.type })
+                .mapValues { (_, types) -> types.reduce { acc, t -> typeProcessor.union(acc, t) } }
+
+            var refined: EtsTypeFact = combinedBackwardType
+            for ((property, propertyType) in propertyRefinements) {
+                refined = refined.refineProperty(property, propertyType) ?: this@TypeInferenceManager.run {
+                    logger.warn {
+                        "Empty intersection type: ${refined.toStringLimited()} & ${propertyType.toStringLimited()}"
+                    }
+                    refined
+                }
+            }
+
+            cls.signature to refined
+        }.toMap()
     }
 
     private fun methodTypeScheme(): Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>> =

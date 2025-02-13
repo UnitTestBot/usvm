@@ -40,8 +40,14 @@ class TypeGuesser(
         return fact.resolveType()
     }
 
+    private val resolvedCache = hashMapOf<EtsTypeFact, EtsTypeFact>()
+
+    private fun <F : EtsTypeFact> resolve(fact: EtsTypeFact, resolved: F) =
+        resolved.also { resolvedCache[fact] = it }
+
     private fun EtsTypeFact.resolveType(): EtsTypeFact =
         when (val simplifiedFact = simplify()) {
+            in resolvedCache.keys -> resolvedCache.getValue(simplifiedFact)
             is EtsTypeFact.ArrayEtsTypeFact -> simplifiedFact.resolveArrayTypeFact()
             is EtsTypeFact.ObjectEtsTypeFact -> simplifiedFact.resolveObjectTypeFact()
             is EtsTypeFact.FunctionEtsTypeFact -> simplifiedFact
@@ -51,7 +57,7 @@ class TypeGuesser(
                 val updatedTypes = simplifiedFact.types.mapTo(hashSetOf()) {
                     it.resolveType()
                 }
-                EtsTypeFact.mkIntersectionType(updatedTypes).simplify()
+                resolve(simplifiedFact, EtsTypeFact.mkIntersectionType(updatedTypes).simplify())
             }
 
             is EtsTypeFact.UnionEtsTypeFact -> {
@@ -65,38 +71,39 @@ class TypeGuesser(
                 }
 
                 if (updatedTypes.isEmpty()) {
-                    EtsTypeFact.AnyEtsTypeFact
+                    resolve(simplifiedFact, EtsTypeFact.AnyEtsTypeFact)
                 } else {
-                    EtsTypeFact.mkUnionType(updatedTypes).simplify()
+                    resolve(simplifiedFact, EtsTypeFact.mkUnionType(updatedTypes).simplify())
                 }
             }
 
-            else -> simplify()
+            else -> resolve(simplifiedFact, simplify())
         }
 
     private fun EtsTypeFact.ObjectEtsTypeFact.resolveObjectTypeFact(): EtsTypeFact {
         if (cls != null) {
             // TODO: inspect this.properties and maybe find more exact class-type than 'cls'
-            return this
+            return resolve(this, this)
         }
 
         val touchedPropertiesNames = properties.keys
         val classesInSystem = collectSuitableClasses(touchedPropertiesNames)
 
         if (classesInSystem.isEmpty()) {
-            return tryToDetermineSpecialObjects(touchedPropertiesNames)
+            return resolve(this, tryToDetermineSpecialObjects(touchedPropertiesNames))
         }
 
         val suitableTypes = resolveTypesFromClasses(classesInSystem)
 
         // TODO process arrays here (and strings)
 
-        return when {
+        val resolved = when {
             suitableTypes.isEmpty() -> error("Should be processed earlier")
             suitableTypes.size == 1 -> suitableTypes.single()
             suitableTypes.size in 2..5 -> EtsTypeFact.mkUnionType(suitableTypes).simplify()
             else -> this
         }
+        return resolve(this, resolved)
     }
 
     private fun EtsTypeFact.ObjectEtsTypeFact.resolveTypesFromClasses(
@@ -139,11 +146,13 @@ class TypeGuesser(
         return this
     }
 
-    private fun EtsTypeFact.ArrayEtsTypeFact.resolveArrayTypeFact(): EtsTypeFact.ArrayEtsTypeFact =
-        if (elementType is EtsTypeFact.UnknownEtsTypeFact) {
+    private fun EtsTypeFact.ArrayEtsTypeFact.resolveArrayTypeFact(): EtsTypeFact.ArrayEtsTypeFact {
+        val resolved = if (elementType is EtsTypeFact.UnknownEtsTypeFact) {
             this
         } else {
             val updatedElementType = elementType.resolveType()
             if (updatedElementType === elementType) this else copy(elementType = elementType)
         }
+        return resolve(this, resolved)
+    }
 }

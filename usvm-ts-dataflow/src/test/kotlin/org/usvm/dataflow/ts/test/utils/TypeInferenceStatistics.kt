@@ -518,7 +518,7 @@ class TypeInferenceStatistics {
         file.writeText(data)
     }
 
-    private fun calculateImprovement(): Double {
+    fun calculateImprovement(): Double {
         val newExactTypes = exactTypeInferredPreviouslyUnknown +
             exactTypeInferredPreviouslyWasAny +
             exactTypeInferredIncorrectlyPreviouslyKnown +

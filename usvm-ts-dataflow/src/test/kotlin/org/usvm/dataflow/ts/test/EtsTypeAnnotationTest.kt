@@ -44,10 +44,8 @@ import org.jacodb.ets.model.EtsScene
 import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EtsTypeFact
 import org.usvm.dataflow.ts.infer.TypeInferenceResult
+import org.usvm.dataflow.ts.infer.annotation.InferredTypeScheme
 import org.usvm.dataflow.ts.infer.annotation.annotateWithTypes
-import org.usvm.dataflow.ts.infer.verify.LocalId
-import org.usvm.dataflow.ts.infer.verify.MethodId
-import org.usvm.dataflow.ts.infer.verify.ParameterId
 import org.usvm.dataflow.ts.infer.verify.VerificationResult
 import org.usvm.dataflow.ts.infer.verify.verify
 import kotlin.test.Test
@@ -79,20 +77,20 @@ class EtsTypeAnnotationTest {
             )
         )
 
-        val annotatedScene = sampleScene.annotateWithTypes(typeInferenceResult)
+        val annotatedScene = sampleScene.annotateWithTypes(InferredTypeScheme(typeInferenceResult))
 
         val verificationResult = verify(annotatedScene)
         assertIs<VerificationResult.Success>(verificationResult)
 
         with(verificationResult) {
-            val main = MethodId(mainMethodSignature)
+            val methodScheme = scheme.methodSchemes().single()
 
-            assertEquals(EtsStringType, mapping[ParameterId(1, main)])
-            assertEquals(EtsNumberType, mapping[ParameterId(2, main)])
+            assertEquals(EtsStringType, methodScheme.typeOf(AccessPathBase.Arg(1)))
+            assertEquals(EtsNumberType, methodScheme.typeOf(AccessPathBase.Arg(2)))
 
-            assertEquals(EtsStringType, mapping[LocalId("v1", main)])
-            assertEquals(EtsNumberType, mapping[LocalId("v2", main)])
-            assertEquals(EtsStringType, mapping[LocalId("v3", main)])
+            assertEquals(EtsStringType, methodScheme.typeOf(AccessPathBase.Local("v1")))
+            assertEquals(EtsNumberType, methodScheme.typeOf(AccessPathBase.Local("v2")))
+            assertEquals(EtsStringType, methodScheme.typeOf(AccessPathBase.Local("v3")))
         }
     }
 

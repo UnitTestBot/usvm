@@ -1,55 +1,37 @@
+/*
+ * Copyright 2022 UnitTestBot contributors (utbot.org)
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.usvm.dataflow.ts.test
 
-import org.jacodb.ets.utils.loadEtsProjectFromIR
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.condition.EnabledIf
-import org.usvm.dataflow.ts.infer.EntryPointsProcessor
-import org.usvm.dataflow.ts.infer.EtsApplicationGraphWithExplicitEntryPoint
-import org.usvm.dataflow.ts.infer.TypeGuesser
-import org.usvm.dataflow.ts.infer.TypeInferenceManager
-import org.usvm.dataflow.ts.infer.createApplicationGraph
-import org.usvm.dataflow.ts.test.utils.MethodTypesFacts
-import org.usvm.dataflow.ts.test.utils.TypeInferenceStatistics
-import org.usvm.dataflow.ts.util.EtsTraits
-import kotlin.io.path.Path
-import kotlin.io.path.exists
+import org.usvm.dataflow.ts.test.utils.AbcProjects
 
 @EnabledIf("projectAvailable")
 class EtsTypeResolverAbcTest {
-
     companion object {
-        private val yourPrefixForTestFolders = "C:/work/TestProjects"
-        private val testProjectsVersion = "TestProjects_2024_12_5"
-        private val pathToSDK: String? = null // TODO: Put your path here
-
         @JvmStatic
         private fun projectAvailable(): Boolean {
-            return Path(yourPrefixForTestFolders).exists()
+            return AbcProjects.projectAvailable()
         }
     }
 
     private fun runOnAbcProject(projectID: String, abcPath: String) {
-        val projectAbc = "$yourPrefixForTestFolders/$testProjectsVersion/$abcPath"
-
-        val abcScene = loadEtsProjectFromIR(Path(projectAbc), pathToSDK?.let { Path(it) })
-        val graphAbc = createApplicationGraph(abcScene) as EtsApplicationGraphWithExplicitEntryPoint
-        val guesser = TypeGuesser(abcScene)
-
-        val entrypoint = EntryPointsProcessor(abcScene).extractEntryPoints()
-        val allMethods = entrypoint.allMethods.filter { it.isPublic }.filter { it.cfg.stmts.isNotEmpty() }
-
-        val manager = TypeInferenceManager(EtsTraits(), graphAbc)
-        val result = manager
-            .analyze(entrypoint.mainMethods, allMethods)
-            .withGuessedTypes(guesser)
-
-        val sceneStatistics = TypeInferenceStatistics()
-        entrypoint.allMethods
-            .filter { it.cfg.stmts.isNotEmpty() }
-            .forEach {
-                val methodTypeFacts = MethodTypesFacts.from(result, it)
-                sceneStatistics.compareSingleMethodFactsWithTypesInScene(methodTypeFacts, it, graphAbc)
-            }
+        val scene = AbcProjects.getAbcProject(abcPath)
+        val sceneStatistics = AbcProjects.runOnAbcProject(scene).second
         sceneStatistics.dumpStatistics("${projectID}_scene_comparison.txt")
     }
 
