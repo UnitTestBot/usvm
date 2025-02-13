@@ -85,6 +85,7 @@ sealed interface TsUnaryOperator {
         ): UExpr<out USort> {
             // -true = -1.0
             // -false = -0.0
+            @Suppress("MagicNumber")
             return mkIte(arg, mkFp64(-1.0), mkFp64(-0.0))
         }
 
