@@ -451,6 +451,7 @@ class MethodAliasInfo(
                         }
 
                         is EtsCastExpr -> {}
+
                         is EtsConstant, is EtsUnaryExpr, is EtsBinaryExpr, is EtsArrayAccess, is EtsInstanceOfExpr -> {
                             newAllocation(Allocation.Expr(stmt))
                         }
