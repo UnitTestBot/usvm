@@ -468,7 +468,7 @@ class MethodAliasInfo(
         initMaps()
     }
 
-    val preAliases = mutableMapOf<EtsStmt, StmtAliasInfo>()
+    private val preAliases: MutableMap<EtsStmt, StmtAliasInfo> = hashMapOf()
 
     @OptIn(ExperimentalUnsignedTypes::class)
     @Suppress("UNCHECKED_CAST")
