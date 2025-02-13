@@ -29,6 +29,7 @@ import org.usvm.dataflow.ts.infer.verify.verify
 import org.usvm.dataflow.ts.util.EtsTraits
 import kotlin.io.path.Path
 import kotlin.io.path.exists
+import kotlin.test.assertTrue
 
 object AbcProjects {
     private const val yourPrefixForTestFolders = ""
@@ -52,7 +53,7 @@ object AbcProjects {
             is VerificationResult.Fail -> scene.annotateWithTypes(result.erasureScheme)
         }
 
-        assert(verify(abcScene) is VerificationResult.Success)
+        assertTrue(verify(abcScene) is VerificationResult.Success)
 
         val graphAbc = createApplicationGraph(abcScene)
         val guesser = TypeGuesser(abcScene)
