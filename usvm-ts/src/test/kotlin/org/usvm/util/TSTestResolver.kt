@@ -55,9 +55,6 @@ class TsTestResolver {
         val beforeMemoryScope = MemoryScope(this, model, memory, method)
         val afterMemoryScope = MemoryScope(this, model, memory, method)
 
-        val before = beforeMemoryScope.withMode(ResolveMode.MODEL) { (this as MemoryScope).resolveState() }
-        val after = afterMemoryScope.withMode(ResolveMode.CURRENT) { (this as MemoryScope).resolveState() }
-
         val result = when (val res = state.methodResult) {
             is TsMethodResult.NoCall -> error("No result found")
             is TsMethodResult.Success -> {
@@ -69,14 +66,20 @@ class TsTestResolver {
             is TsMethodResult.TsException -> resolveException(res, afterMemoryScope)
         }
 
+        val before = beforeMemoryScope.withMode(ResolveMode.MODEL) { (this as MemoryScope).resolveState() }
+        val after = afterMemoryScope.withMode(ResolveMode.CURRENT) { (this as MemoryScope).resolveState() }
+
         return TsTest(method, before, after, result, trace = emptyList())
     }
 
+
+    @Suppress("unused")
     private fun resolveException(
         res: TsMethodResult.TsException,
         afterMemoryScope: MemoryScope,
     ): TsObject.TsException {
-        TODO()
+        // TODO support exceptions
+        return TsObject.TsException
     }
 
 
@@ -160,20 +163,27 @@ open class TsTestStateResolver(
         return when {
             model.eval(type.boolTypeExpr).isTrue -> {
                 val lValue = ctx.getIntermediateBoolLValue(expr.address)
-                val value = memory.read(lValue)
+                // Note that everything about details of fake object we need to read from final state of the memory
+                // since they are allocated objects
+                val value = finalStateMemory.read(lValue)
                 resolveExpr(model.eval(value), EtsBooleanType)
             }
 
             model.eval(type.fpTypeExpr).isTrue -> {
                 val lValue = ctx.getIntermediateFpLValue(expr.address)
-                val value = memory.read(lValue)
+                // Note that everything about details of fake object we need to read from final state of the memory
+                // since they are allocated objects
+                val value = finalStateMemory.read(lValue)
                 resolveExpr(model.eval(value), EtsNumberType)
             }
 
             model.eval(type.refTypeExpr).isTrue -> {
                 val lValue = ctx.getIntermediateRefLValue(expr.address)
-                val value = memory.read(lValue)
+                // Note that everything about details of fake object we need to read from final state of the memory
+                // since they are allocated objects
+                val value = finalStateMemory.read(lValue)
                 val ref = model.eval(value)
+                // TODO mistake with signature, use TypeStream instead
                 resolveExpr(ref, EtsClassType(ctx.scene.projectAndSdkClasses.first().signature))
             }
 
@@ -273,7 +283,7 @@ open class TsTestStateResolver(
         val properties = clazz.fields.associate { field ->
             val sort = ctx.typeToSort(field.type)
             val lValue = UFieldLValue(sort, expr.asExpr(ctx.addressSort), field.name)
-            val fieldExpr = model.read(lValue)
+            val fieldExpr = memory.read(lValue)
             val obj = resolveExpr(fieldExpr, field.type)
             field.name to obj
         }
