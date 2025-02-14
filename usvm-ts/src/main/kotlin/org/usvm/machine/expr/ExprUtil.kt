@@ -47,8 +47,10 @@ fun TsContext.mkTruthyExpr(expr: UExpr<out USort>, scope: TsStepScope): UBoolExp
             val value = memory.read(getIntermediateRefLValue(expr.address))
             conjuncts += ExprWithTypeConstraint(
                 constraint = possibleType.refTypeExpr,
-                // TODO how to support undefined here? I guess it's not a case, and it is supposed to be inside of fake type
-                expr = mkHeapRefEq(value, nullRef).not()
+                expr = mkAnd(
+                    mkHeapRefEq(value, mkTsNullValue()).not(),
+                    mkHeapRefEq(value, mkUndefinedValue()).not(),
+                )
             )
         }
 
@@ -71,8 +73,10 @@ fun TsContext.mkTruthyExpr(expr: UExpr<out USort>, scope: TsStepScope): UBoolExp
                 mkFpIsNaNExpr(expr.asExpr(fp64Sort)).not()
             )
 
-            // TODO add support for both null and undefined values
-            addressSort -> mkHeapRefEq(expr.asExpr(addressSort), nullRef).not()
+            addressSort -> mkAnd(
+                mkHeapRefEq(expr.asExpr(addressSort), mkTsNullValue()).not(),
+                mkHeapRefEq(expr.asExpr(addressSort), mkUndefinedValue()).not(),
+            )
 
             else -> TODO("Unsupported sort: ${expr.sort}")
         }
