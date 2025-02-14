@@ -39,26 +39,23 @@ class Arrays : TsMethodTestRunner() {
     @Test
     fun testCreateArrayOfBooleans() {
         val method = getMethod("Arrays", "createArrayOfBooleans")
-        discoverProperties<TsValue.TsArray>(
+        discoverProperties<TsValue.TsArray<TsValue.TsBoolean>>(
             method = method,
-            { r -> r.values.map { (it as TsValue.TsBoolean).value } == listOf(true, false, true) },
+            { r -> r.values.map { it.value } == listOf(true, false, true) },
         )
     }
 
     @Test
     fun testCreateMixedArray() {
         val method = getMethod("Arrays", "createMixedArray")
-        discoverProperties<TsValue>(
+        discoverProperties<TsValue.TsArray<*>>(
             method = method,
             { r ->
-                val arrayCondition = r is TsValue.TsArray && r.values.size == 3
-                if (!arrayCondition) return@discoverProperties false
-
-                val firstElemCondition = r.values[0] is TsValue.TsNumber.TsDouble
-                val secondElemCondition = r.values[1] is TsValue.TsBoolean
-                val thirdElemCondition = r.values[2] is TsValue.TsUndefined
-
-                firstElemCondition && secondElemCondition && thirdElemCondition
+                if (r.values.size != 3) return@discoverProperties false
+                val cond0 = r.values[0] is TsValue.TsNumber.TsDouble
+                val cond1 = r.values[1] is TsValue.TsBoolean
+                val cond2 = r.values[2] is TsValue.TsUndefined
+                cond0 && cond1 && cond2
             },
         )
     }
