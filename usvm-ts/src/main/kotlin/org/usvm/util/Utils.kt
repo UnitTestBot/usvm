@@ -15,7 +15,6 @@ import org.usvm.machine.state.TsState
 fun TsContext.boolToFp(expr: UExpr<UBoolSort>): UExpr<KFp64Sort> =
     mkIte(expr, mkFp64(1.0), mkFp64(0.0))
 
-
 // TODO probably this should be written differently
 fun EtsScene.fieldLookUp(field: EtsFieldSignature) = projectAndSdkClasses
     .first { it.signature == field.enclosingClass }
