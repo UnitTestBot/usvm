@@ -12,4 +12,14 @@ class Arrays {
     createAndReturnConstantArrayOfNumbers() {
         return [1, 2, 3]
     }
+
+    createArrayOfBooleans() {
+        let x = [true, false, true]
+        return x
+    }
+
+    createMixedArray() {
+        let x = [1.1, true, undefined]
+        return x
+    }
 }

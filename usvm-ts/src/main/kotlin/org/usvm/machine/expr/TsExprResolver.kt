@@ -507,7 +507,7 @@ class TsExprResolver(
         )
 
         // TODO error with types, it might be different
-        val lValue = UArrayIndexLValue(ctx.typeToSort(value.type), instance, bvIndex, value.type)
+        val lValue = UArrayIndexLValue(ctx.typeToSort(value.type), instance, bvIndex, value.array.type)
 
         return scope.calcOnState { memory.read(lValue) }
     }

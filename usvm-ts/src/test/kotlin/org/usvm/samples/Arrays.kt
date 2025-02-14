@@ -35,4 +35,31 @@ class Arrays : TsMethodTestRunner() {
             { r -> r.values.map { (it as TsValue.TsNumber.TsDouble).number } == listOf(1.0, 2.0, 3.0) },
         )
     }
+
+    @Test
+    fun testCreateArrayOfBooleans() {
+        val method = getMethod("Arrays", "createArrayOfBooleans")
+        discoverProperties<TsValue.TsArray>(
+            method = method,
+            { r -> r.values.map { (it as TsValue.TsBoolean).value } == listOf(true, false, true) },
+        )
+    }
+
+    @Test
+    fun testCreateMixedArray() {
+        val method = getMethod("Arrays", "createMixedArray")
+        discoverProperties<TsValue>(
+            method = method,
+            { r ->
+                val arrayCondition = r is TsValue.TsArray && r.values.size == 3
+                if (!arrayCondition) return@discoverProperties false
+
+                val firstElemCondition = r.values[0] is TsValue.TsNumber.TsDouble
+                val secondElemCondition = r.values[1] is TsValue.TsBoolean
+                val thirdElemCondition = r.values[2] is TsValue.TsUndefined
+
+                firstElemCondition && secondElemCondition && thirdElemCondition
+            },
+        )
+    }
 }
