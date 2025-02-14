@@ -3,7 +3,7 @@ package org.usvm.samples
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Test
-import org.usvm.api.TsObject
+import org.usvm.api.TsValue
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.getResourcePath
 
@@ -19,10 +19,10 @@ class Undefined : TsMethodTestRunner() {
     @Test
     fun `test isUndefined`() {
         val method = getMethod("Undefined", "isUndefined")
-        discoverProperties<TsObject, TsObject.TsNumber>(
+        discoverProperties<TsValue, TsValue.TsNumber>(
             method = method,
-            { a, r -> a is TsObject.TsUndefinedObject && r.number == 1.0 },
-            { a, r -> a !is TsObject.TsUndefinedObject && r.number == 2.0 },
+            { a, r -> a is TsValue.TsUndefined && r.number == 1.0 },
+            { a, r -> a !is TsValue.TsUndefined && r.number == 2.0 },
         )
     }
 }

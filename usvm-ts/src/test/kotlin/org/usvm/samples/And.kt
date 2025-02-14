@@ -35,7 +35,7 @@ import org.jacodb.ets.utils.getLocals
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.usvm.api.TsObject
+import org.usvm.api.TsValue
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.getResourcePath
 import org.usvm.util.isTruthy
@@ -59,7 +59,7 @@ class And : TsMethodTestRunner() {
     @Test
     fun `test andOfBooleanAndBoolean`() {
         val method = getMethod("And", "andOfBooleanAndBoolean")
-        discoverProperties<TsObject.TsBoolean, TsObject.TsBoolean, TsObject.TsNumber>(
+        discoverProperties<TsValue.TsBoolean, TsValue.TsBoolean, TsValue.TsNumber>(
             method = method,
             { a, b, r -> a.value && b.value && r.number == 1.0 },
             { a, b, r -> a.value && !b.value && r.number == 2.0 },
@@ -107,7 +107,7 @@ class And : TsMethodTestRunner() {
         method._cfg = etsCfg
         locals += method.getLocals()
 
-        discoverProperties<TsObject.TsBoolean, TsObject.TsBoolean, TsObject.TsNumber>(
+        discoverProperties<TsValue.TsBoolean, TsValue.TsBoolean, TsValue.TsNumber>(
             method = method,
             { a, b, r -> a.value && b.value && r.number == 1.0 },
             { a, b, r -> a.value && !b.value && r.number == 2.0 },
@@ -232,7 +232,7 @@ class And : TsMethodTestRunner() {
         method._cfg = EtsCfg(statements, successorMap)
         locals += method.getLocals()
 
-        discoverProperties<TsObject.TsNumber, TsObject.TsNumber, TsObject.TsNumber>(
+        discoverProperties<TsValue.TsNumber, TsValue.TsNumber, TsValue.TsNumber>(
             method = method,
             { a, b, r -> isTruthy(a) && isTruthy(b) && r.number == 1.0 },
             { a, b, r -> isTruthy(a) && b.number.isNaN() && r.number == 2.0 },
@@ -335,7 +335,7 @@ class And : TsMethodTestRunner() {
         method._cfg = EtsCfg(statements, successorMap)
         locals += method.getLocals()
 
-        discoverProperties<TsObject.TsBoolean, TsObject.TsNumber, TsObject.TsNumber>(
+        discoverProperties<TsValue.TsBoolean, TsValue.TsNumber, TsValue.TsNumber>(
             method = method,
             { a, b, r -> a.value && isTruthy(b) && r.number == 1.0 },
             { a, b, r -> a.value && b.number.isNaN() && r.number == 2.0 },
@@ -435,7 +435,7 @@ class And : TsMethodTestRunner() {
         method._cfg = EtsCfg(statements, successorMap)
         locals += method.getLocals()
 
-        discoverProperties<TsObject.TsNumber, TsObject.TsBoolean, TsObject.TsNumber>(
+        discoverProperties<TsValue.TsNumber, TsValue.TsBoolean, TsValue.TsNumber>(
             method = method,
             { a, b, r -> isTruthy(a) && b.value && r.number == 1.0 },
             { a, b, r -> isTruthy(a) && !b.value && r.number == 2.0 },
@@ -450,7 +450,7 @@ class And : TsMethodTestRunner() {
     @Disabled("Does not work because objects cannot be null")
     fun `test andOfObjectAndObject`() {
         val method = getMethod("And", "andOfObjectAndObject")
-        discoverProperties<TsObject.TsClass, TsObject.TsClass, TsObject.TsNumber>(
+        discoverProperties<TsValue.TsClass, TsValue.TsClass, TsValue.TsNumber>(
             method = method,
             { a, b, r -> isTruthy(a) && isTruthy(b) && r.number == 1.0 },
             { a, b, r -> isTruthy(a) && !isTruthy(b) && r.number == 2.0 },
@@ -462,25 +462,25 @@ class And : TsMethodTestRunner() {
     @Test
     fun `test andOfUnknown`() {
         val method = getMethod("And", "andOfUnknown")
-        discoverProperties<TsObject, TsObject, TsObject.TsNumber>(
+        discoverProperties<TsValue, TsValue, TsValue.TsNumber>(
             method = method,
             { a, b, r ->
-                if (a is TsObject.TsBoolean && b is TsObject.TsBoolean) {
+                if (a is TsValue.TsBoolean && b is TsValue.TsBoolean) {
                     a.value && b.value && r.number == 1.0
                 } else true
             },
             { a, b, r ->
-                if (a is TsObject.TsBoolean && b is TsObject.TsBoolean) {
+                if (a is TsValue.TsBoolean && b is TsValue.TsBoolean) {
                     a.value && !b.value && r.number == 2.0
                 } else true
             },
             { a, b, r ->
-                if (a is TsObject.TsBoolean && b is TsObject.TsBoolean) {
+                if (a is TsValue.TsBoolean && b is TsValue.TsBoolean) {
                     !a.value && b.value && r.number == 3.0
                 } else true
             },
             { a, b, r ->
-                if (a is TsObject.TsBoolean && b is TsObject.TsBoolean) {
+                if (a is TsValue.TsBoolean && b is TsValue.TsBoolean) {
                     !a.value && !b.value && r.number == 4.0
                 } else true
             },
@@ -490,20 +490,20 @@ class And : TsMethodTestRunner() {
     @Test
     fun `test truthyUnknown`() {
         val method = getMethod("And", "truthyUnknown")
-        discoverProperties<TsObject, TsObject, TsObject.TsNumber>(
+        discoverProperties<TsValue, TsValue, TsValue.TsNumber>(
             method = method,
             { a, b, r ->
-                if (a is TsObject.TsBoolean && b is TsObject.TsBoolean) {
+                if (a is TsValue.TsBoolean && b is TsValue.TsBoolean) {
                     a.value && !b.value && r.number == 1.0
                 } else true
             },
             { a, b, r ->
-                if (a is TsObject.TsBoolean && b is TsObject.TsBoolean) {
+                if (a is TsValue.TsBoolean && b is TsValue.TsBoolean) {
                     !a.value && b.value && r.number == 2.0
                 } else true
             },
             { a, b, r ->
-                if (a is TsObject.TsBoolean && b is TsObject.TsBoolean) {
+                if (a is TsValue.TsBoolean && b is TsValue.TsBoolean) {
                     !a.value && !b.value && r.number == 99.0
                 } else true
             },

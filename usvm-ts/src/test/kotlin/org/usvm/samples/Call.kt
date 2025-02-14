@@ -3,7 +3,7 @@ package org.usvm.samples
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Test
-import org.usvm.api.TsObject
+import org.usvm.api.TsValue
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.getResourcePath
 
@@ -19,7 +19,7 @@ class Call : TsMethodTestRunner() {
     @Test
     fun `test simpleCall`() {
         val method = getMethod("Call", "simpleCall")
-        discoverProperties<TsObject.TsNumber>(
+        discoverProperties<TsValue.TsNumber>(
             method = method,
             { r -> r.number == 42.0 },
         )
@@ -28,7 +28,7 @@ class Call : TsMethodTestRunner() {
     @Test
     fun `test fib`() {
         val method = getMethod("Call", "fib")
-        discoverProperties<TsObject.TsNumber, TsObject.TsNumber>(
+        discoverProperties<TsValue.TsNumber, TsValue.TsNumber>(
             method = method,
             { n, r -> n.number < 0.0 && r.number == -1.0 },
             { n, r -> n.number > 10.0 && r.number == -2.0 },

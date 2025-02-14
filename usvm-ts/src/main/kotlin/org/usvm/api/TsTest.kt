@@ -9,62 +9,53 @@ data class TsTest(
     val method: EtsMethod,
     val before: TsParametersState,
     val after: TsParametersState,
-    val returnValue: TsObject,
+    val returnValue: TsValue,
     val trace: List<EtsStmt>? = null,
 )
 
 data class TsParametersState(
-    val thisInstance: TsObject?,
-    val parameters: List<TsObject>,
+    val thisInstance: TsValue?,
+    val parameters: List<TsValue>,
     val globals: Map<EtsClass, List<GlobalFieldValue>>,
 )
 
-data class GlobalFieldValue(val field: EtsField, val value: TsObject) // TODO is it right?????
+data class GlobalFieldValue(val field: EtsField, val value: TsValue) // TODO is it right?????
 
 open class TsMethodCoverage
 
 object NoCoverage : TsMethodCoverage()
 
-sealed interface TsObject {
-    sealed interface TsNumber : org.usvm.api.TsObject {
-        data class Integer(val value: Int) : TsNumber
+sealed interface TsValue {
+    data object TsAny : TsValue
+    data object TsUnknown : TsValue
+    data object TsNull : TsValue
+    data object TsUndefined : TsValue
+    data object TsException : TsValue
 
-        data class Double(val value: kotlin.Double) : TsNumber
+    data class TsBoolean(val value: Boolean) : TsValue
+    data class TsString(val value: String) : TsValue
+    data class TsBigInt(val value: String) : TsValue
 
-        val number: kotlin.Double
-            get() = when (this) {
-                is Integer -> value.toDouble()
-                is Double -> value
-            }
+    sealed interface TsNumber : TsValue {
+        data class TsInteger(val value: Int) : TsNumber
 
-        val truthyValue: Boolean
-            get() = number != 0.0 && !number.isNaN()
-    }
+        data class TsDouble(val value: Double) : TsNumber
 
-    data class TsString(val value: String) : org.usvm.api.TsObject
-
-    data class TsBoolean(val value: Boolean) : org.usvm.api.TsObject {
         val number: Double
-            get() = if (value) 1.0 else 0.0
+            get() = when (this) {
+                is TsInteger -> value.toDouble()
+                is TsDouble -> value
+            }
     }
 
-    data class TsBigInt(val value: String) : org.usvm.api.TsObject
+    data class TsObject(val addr: Int) : TsValue
 
-    data class TsClass(val name: String, val properties: Map<String, org.usvm.api.TsObject>) :
-        org.usvm.api.TsObject
+    data class TsClass(
+        val name: String,
+        val properties: Map<String, TsValue>,
+    ) : TsValue
 
-    data object TsAny : org.usvm.api.TsObject
-
-    data object TsUndefinedObject : org.usvm.api.TsObject
-
-    data class TsArray(val values: List<org.usvm.api.TsObject>) :
-        org.usvm.api.TsObject
-
-    data class TsObject(val addr: Int) : org.usvm.api.TsObject
-
-    data object TsUnknown : org.usvm.api.TsObject
-
-    data object TsNull : org.usvm.api.TsObject
-
-    data object TsException : org.usvm.api.TsObject
+    data class TsArray(
+        val values: List<TsValue>,
+    ) : TsValue
 }
