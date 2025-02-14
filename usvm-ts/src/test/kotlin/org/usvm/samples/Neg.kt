@@ -1,11 +1,9 @@
 package org.usvm.samples
 
-import org.jacodb.ets.base.DEFAULT_ARK_CLASS_NAME
-import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Test
-import org.usvm.api.TsObject
+import org.usvm.api.TsValue
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.getResourcePath
 
@@ -21,7 +19,7 @@ class Neg : TsMethodTestRunner() {
     @Test
     fun `test negateNumber`() {
         val method = getMethod("Neg", "negateNumber")
-        discoverProperties<TsObject.TsNumber, TsObject.TsNumber>(
+        discoverProperties<TsValue.TsNumber, TsValue.TsNumber>(
             method = method,
             { x, r -> x.number.isNaN() && r.number.isNaN() },
             { x, r -> x.number == 0.0 && r.number == 0.0 },
@@ -36,7 +34,7 @@ class Neg : TsMethodTestRunner() {
     @Test
     fun `test negateBoolean`() {
         val method = getMethod("Neg", "negateBoolean")
-        discoverProperties<TsObject.TsBoolean, TsObject.TsNumber>(
+        discoverProperties<TsValue.TsBoolean, TsValue.TsNumber>(
             method = method,
             { x, r -> x.value && r.number == -1.0 },
             { x, r -> !x.value && r.number == -0.0 },
@@ -46,7 +44,7 @@ class Neg : TsMethodTestRunner() {
     @Test
     fun `test negateUndefined`() {
         val method = getMethod("Neg", "negateUndefined")
-        discoverProperties<TsObject.TsNumber>(
+        discoverProperties<TsValue.TsNumber>(
             method = method,
             { r -> r.number.isNaN() },
         )
