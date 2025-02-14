@@ -39,7 +39,7 @@ class Equality {
     }
 
     eqObjectWithObject(a: object): number {
-        if (a == { b: 0}) {
+        if (a == {b: 0}) {
             return -1
         }
 

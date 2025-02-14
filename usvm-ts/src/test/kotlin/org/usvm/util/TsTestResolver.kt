@@ -23,9 +23,9 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.api.GlobalFieldValue
-import org.usvm.api.TsObject
 import org.usvm.api.TsParametersState
 import org.usvm.api.TsTest
+import org.usvm.api.TsValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.isTrue
 import org.usvm.machine.TsContext
@@ -76,9 +76,9 @@ class TsTestResolver {
     private fun resolveException(
         res: TsMethodResult.TsException,
         afterMemoryScope: MemoryScope,
-    ): TsObject.TsException {
+    ): TsValue.TsException {
         // TODO support exceptions
-        return TsObject.TsException
+        return TsValue.TsException
     }
 
     private class MemoryScope(
@@ -104,7 +104,7 @@ open class TsTestStateResolver(
     private val finalStateMemory: UReadOnlyMemory<EtsType>,
     val method: EtsMethod,
 ) {
-    fun resolveLValue(lValue: ULValue<*, *>, type: EtsType): TsObject {
+    fun resolveLValue(lValue: ULValue<*, *>, type: EtsType): TsValue {
         val expr = memory.read(lValue)
         return resolveExpr(expr, type)
     }
@@ -112,21 +112,21 @@ open class TsTestStateResolver(
     fun resolveExpr(
         expr: UExpr<out USort>,
         type: EtsType,
-    ): TsObject = when (type) {
+    ): TsValue = when (type) {
         is EtsPrimitiveType -> resolvePrimitive(expr, type)
         is EtsClassType -> resolveClass(expr, type)
         is EtsRefType -> TODO()
         else -> TODO()
     }
 
-    fun resolveThisInstance(): TsObject? {
+    fun resolveThisInstance(): TsValue? {
         val parametersCount = method.parameters.size
         val ref = URegisterStackLValue(ctx.addressSort, idx = parametersCount) // TODO check for statics
         val type = EtsClassType(method.enclosingClass)
         return resolveLValue(ref, type)
     }
 
-    fun resolveParameters(): List<TsObject> = with(ctx) {
+    fun resolveParameters(): List<TsValue> = with(ctx) {
         method.parameters.mapIndexed { idx, param ->
             val sort = typeToSort(param.type)
 
@@ -147,7 +147,7 @@ open class TsTestStateResolver(
         return emptyMap()
     }
 
-    private fun resolveFakeObject(expr: UConcreteHeapRef): TsObject {
+    private fun resolveFakeObject(expr: UConcreteHeapRef): TsValue {
         val type = finalStateMemory.types.getTypeStream(expr.asExpr(ctx.addressSort)).single() as FakeType
         return when {
             model.eval(type.boolTypeExpr).isTrue -> {
@@ -183,21 +183,21 @@ open class TsTestStateResolver(
     private fun resolvePrimitive(
         expr: UExpr<out USort>,
         type: EtsPrimitiveType,
-    ): TsObject = when (type) {
+    ): TsValue = when (type) {
         EtsNumberType -> {
             when (expr.sort) {
-                ctx.fp64Sort -> TsObject.TsNumber.Double(extractDouble(evaluateInModel(expr)))
-                ctx.bv32Sort -> TsObject.TsNumber.Integer(extractInt(evaluateInModel(expr)))
+                ctx.fp64Sort -> TsValue.TsNumber.TsDouble(extractDouble(evaluateInModel(expr)))
+                ctx.bv32Sort -> TsValue.TsNumber.TsInteger(extractInt(evaluateInModel(expr)))
                 else -> error("Unexpected sort: ${expr.sort}")
             }
         }
 
         EtsBooleanType -> {
-            TsObject.TsBoolean(evaluateInModel(expr).extractBool())
+            TsValue.TsBoolean(evaluateInModel(expr).extractBool())
         }
 
         EtsUndefinedType -> {
-            TsObject.TsUndefinedObject
+            TsValue.TsUndefined
         }
 
         is EtsLiteralType -> {
@@ -226,14 +226,14 @@ open class TsTestStateResolver(
     private fun resolveClass(
         expr: UExpr<out USort>,
         classType: EtsClassType,
-    ): TsObject {
+    ): TsValue {
         if (expr is UConcreteHeapRef && expr.address == 0) {
-            return TsObject.TsUndefinedObject
+            return TsValue.TsUndefined
         }
 
         val nullRef = ctx.mkTsNullValue()
         if (model.eval(ctx.mkHeapRefEq(expr.asExpr(ctx.addressSort), nullRef)).isTrue) {
-            return TsObject.TsNull
+            return TsValue.TsNull
         }
 
         check(expr.sort == ctx.addressSort) {
@@ -266,7 +266,7 @@ open class TsTestStateResolver(
             val obj = resolveExpr(fieldExpr, field.type)
             field.name to obj
         }
-        return TsObject.TsClass(clazz.name, properties)
+        return TsValue.TsClass(clazz.name, properties)
     }
 
     private var resolveMode: ResolveMode = ResolveMode.ERROR
