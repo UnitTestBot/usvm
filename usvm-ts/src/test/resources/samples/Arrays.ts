@@ -1,4 +1,4 @@
-class Array {
+class Arrays {
     createConstantArrayOfNumbers() {
         let x = [1, 2, 3]
 

@@ -17,7 +17,7 @@ class Arrays : TsMethodTestRunner() {
 
     @Test
     fun testCreateConstantArrayOfNumbers() {
-        val method = getMethod("Array", "createConstantArrayOfNumbers")
+        val method = getMethod("Arrays", "createConstantArrayOfNumbers")
         discoverProperties<TsValue.TsNumber>(
             method = method,
             { r -> r.number == 1.0 },
@@ -29,7 +29,7 @@ class Arrays : TsMethodTestRunner() {
 
     @Test
     fun testCreateAndReturnConstantArrayOfNumbers() {
-        val method = getMethod("Array", "createAndReturnConstantArrayOfNumbers")
+        val method = getMethod("Arrays", "createAndReturnConstantArrayOfNumbers")
         discoverProperties<TsValue.TsArray>(
             method = method,
             { r -> r.values == listOf(1.0, 2.0, 3.0) },
