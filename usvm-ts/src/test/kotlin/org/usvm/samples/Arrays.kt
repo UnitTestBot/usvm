@@ -32,7 +32,7 @@ class Arrays : TsMethodTestRunner() {
         val method = getMethod("Arrays", "createAndReturnConstantArrayOfNumbers")
         discoverProperties<TsValue.TsArray<TsValue.TsNumber>>(
             method = method,
-            { r -> r.values.map { (it as TsValue.TsNumber.TsDouble).number } == listOf(1.0, 2.0, 3.0) },
+            { r -> r.values.map { it.number } == listOf(1.0, 2.0, 3.0) },
         )
     }
 
