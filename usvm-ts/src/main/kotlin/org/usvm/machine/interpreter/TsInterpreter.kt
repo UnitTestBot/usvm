@@ -202,6 +202,23 @@ class TsInterpreter(
         )
 
         val solver = ctx.solver<EtsType>()
+
+        val thisInstanceRef = URegisterStackLValue(ctx.addressSort, method.parameters.count()) // TODO check for statics
+        val thisRef = state.memory.read(thisInstanceRef).asExpr(ctx.addressSort)
+
+        state.pathConstraints += with(ctx) {
+            mkNot(
+                mkOr(
+                    ctx.mkHeapRefEq(thisRef, ctx.mkTsNullValue()),
+                    ctx.mkHeapRefEq(thisRef, ctx.mkUndefinedValue())
+                )
+            )
+        }
+
+        // TODO fix incorrect type streams
+        // val thisTypeConstraint = state.memory.types.evalTypeEquals(thisRef, EtsClassType(method.enclosingClass))
+        // state.pathConstraints += thisTypeConstraint
+
         val model = solver.check(state.pathConstraints).ensureSat().model
         state.models = listOf(model)
 
