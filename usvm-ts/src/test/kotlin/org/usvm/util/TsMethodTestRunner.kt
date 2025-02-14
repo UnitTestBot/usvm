@@ -173,6 +173,7 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
                 val signature = EtsClassSignature(it.toString(), EtsFileSignature.DEFAULT)
                 EtsClassType(signature)
             }
+
             TsObject.TsString::class -> EtsStringType
             TsObject.TsNumber::class -> EtsNumberType
             TsObject.TsNumber.Double::class -> EtsNumberType
@@ -188,6 +189,7 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
                 val signature = EtsClassSignature("Exception", EtsFileSignature.DEFAULT)
                 EtsClassType(signature)
             }
+
             else -> error("Unsupported type: $klass")
         }
     }

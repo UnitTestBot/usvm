@@ -1,7 +1,6 @@
 package org.usvm.util
 
 import io.ksmt.utils.asExpr
-import io.ksmt.utils.cast
 import org.jacodb.ets.base.CONSTRUCTOR_NAME
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsClassType
@@ -21,18 +20,16 @@ import org.jacodb.ets.model.EtsClassImpl
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodImpl
-import org.jacodb.ets.model.EtsMethodParameter
 import org.jacodb.ets.model.EtsMethodSignature
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.api.GlobalFieldValue
 import org.usvm.api.TsObject
-import org.usvm.api.TsTest
 import org.usvm.api.TsParametersState
+import org.usvm.api.TsTest
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.isTrue
-import org.usvm.machine.types.FakeType
 import org.usvm.machine.TsContext
 import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.expr.extractBool
@@ -40,6 +37,7 @@ import org.usvm.machine.expr.extractDouble
 import org.usvm.machine.expr.extractInt
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
+import org.usvm.machine.types.FakeType
 import org.usvm.memory.ULValue
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.URegisterStackLValue
@@ -56,14 +54,19 @@ class TsTestResolver {
         val afterMemoryScope = MemoryScope(this, model, memory, method)
 
         val result = when (val res = state.methodResult) {
-            is TsMethodResult.NoCall -> error("No result found")
+            is TsMethodResult.NoCall -> {
+                error("No result found")
+            }
+
             is TsMethodResult.Success -> {
                 afterMemoryScope.withMode(ResolveMode.CURRENT) {
                     resolveExpr(res.value, method.returnType)
                 }
             }
 
-            is TsMethodResult.TsException -> resolveException(res, afterMemoryScope)
+            is TsMethodResult.TsException -> {
+                resolveException(res, afterMemoryScope)
+            }
         }
 
         val before = beforeMemoryScope.withMode(ResolveMode.MODEL) { (this as MemoryScope).resolveState() }
@@ -71,7 +74,6 @@ class TsTestResolver {
 
         return TsTest(method, before, after, result, trace = emptyList())
     }
-
 
     @Suppress("unused")
     private fun resolveException(
@@ -81,7 +83,6 @@ class TsTestResolver {
         // TODO support exceptions
         return TsObject.TsException
     }
-
 
     private class MemoryScope(
         ctx: TsContext,
@@ -190,7 +191,6 @@ open class TsTestStateResolver(
             else -> error("Unsupported")
         }
     }
-
 
     private fun resolveUnknown(
         expr: UConcreteHeapRef,
