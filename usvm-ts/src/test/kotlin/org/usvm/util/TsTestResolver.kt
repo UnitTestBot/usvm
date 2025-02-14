@@ -109,32 +109,23 @@ open class TsTestStateResolver(
 ) {
     fun resolveLValue(lValue: ULValue<*, *>, type: EtsType): TsObject {
         val expr = memory.read(lValue)
-
         return resolveExpr(expr, type)
     }
 
     fun resolveExpr(
         expr: UExpr<out USort>,
         type: EtsType,
-    ): TsObject = when {
-        type is EtsUnknownType && expr is UConcreteHeapRef -> resolveUnknown(expr)
-        type is EtsPrimitiveType -> resolvePrimitive(expr, type)
-        type is EtsClassType -> resolveClass(expr, type)
-        type is EtsRefType -> TODO()
+    ): TsObject = when (type) {
+        is EtsPrimitiveType -> resolvePrimitive(expr, type)
+        is EtsClassType -> resolveClass(expr, type)
+        is EtsRefType -> TODO()
         else -> TODO()
     }
 
     fun resolveThisInstance(): TsObject? {
         val parametersCount = method.parameters.size
         val ref = URegisterStackLValue(ctx.addressSort, idx = parametersCount) // TODO check for statics
-        val type = EtsClassType(
-            EtsClassSignature(
-                name = method.enclosingClass.name,
-                file = method.enclosingClass.file,
-                namespace = method.enclosingClass.namespace
-            )
-        )
-
+        val type = EtsClassType(method.enclosingClass)
         return resolveLValue(ref, type)
     }
 
