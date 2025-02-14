@@ -156,7 +156,7 @@ class TsInterpreter(
 
                     val lValue = UArrayIndexLValue(expr.sort, instance, bvIndex, lhv.array.type)
                     // TODO error with array values type
-                    memory.write(lValue, expr.asExpr(ctx.fp64Sort), guard = ctx.trueExpr)
+                    memory.write(lValue, expr.asExpr(lValue.sort), guard = ctx.trueExpr)
                 }
 
                 else -> TODO("Not yet implemented")

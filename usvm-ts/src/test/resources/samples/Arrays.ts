@@ -9,6 +9,16 @@ class Arrays {
         return [1, 2, 3]
     }
 
+    createAndAccessArrayOfBooleans() {
+        let x = [true, false, true]
+
+        if (x[0] == true) {
+            return 1
+        }
+
+        return -1
+    }
+
     createArrayOfBooleans() {
         let x = [true, false, true]
         return x

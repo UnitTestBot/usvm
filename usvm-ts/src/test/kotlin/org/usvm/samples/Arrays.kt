@@ -37,6 +37,19 @@ class Arrays : TsMethodTestRunner() {
     }
 
     @Test
+    fun testCreateAndAccessArrayOfBooleans() {
+        val method = getMethod("Arrays", "createAndAccessArrayOfBooleans")
+        discoverProperties<TsValue.TsNumber>(
+            method = method,
+            { r -> r.number == 1.0 },
+            invariants = arrayOf(
+                { r -> r.number != -1.0 }
+            )
+        )
+    }
+
+
+    @Test
     fun testCreateArrayOfBooleans() {
         val method = getMethod("Arrays", "createArrayOfBooleans")
         discoverProperties<TsValue.TsArray<TsValue.TsBoolean>>(

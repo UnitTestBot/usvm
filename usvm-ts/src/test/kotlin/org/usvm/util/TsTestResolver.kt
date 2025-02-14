@@ -167,7 +167,7 @@ open class TsTestStateResolver(
         val values = (0 until length.intValue).map {
             val index = ctx.mkSizeExpr(it)
             // TODO wrong sort
-            val lValue = UArrayIndexLValue(ctx.fp64Sort, expr, index, type)
+            val lValue = UArrayIndexLValue(ctx.typeToSort(type.elementType), expr, index, type)
             val value = memory.read(lValue) // TODO write reading???
             resolveExpr(value, type.elementType)
         }
