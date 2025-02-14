@@ -40,7 +40,6 @@ import org.jacodb.ets.base.EtsNotExpr
 import org.jacodb.ets.base.EtsNullConstant
 import org.jacodb.ets.base.EtsNullishCoalescingExpr
 import org.jacodb.ets.base.EtsNumberConstant
-import org.jacodb.ets.base.EtsNumberType
 import org.jacodb.ets.base.EtsOrExpr
 import org.jacodb.ets.base.EtsParameterRef
 import org.jacodb.ets.base.EtsPostDecExpr
@@ -61,9 +60,9 @@ import org.jacodb.ets.base.EtsTernaryExpr
 import org.jacodb.ets.base.EtsThis
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsTypeOfExpr
+import org.jacodb.ets.base.EtsUnaryExpr
 import org.jacodb.ets.base.EtsUnaryPlusExpr
 import org.jacodb.ets.base.EtsUndefinedConstant
-import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.base.EtsUnsignedRightShiftExpr
 import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.base.EtsVoidExpr
@@ -105,6 +104,18 @@ class TsExprResolver(
 
     fun resolve(expr: EtsEntity): UExpr<out USort>? {
         return expr.accept(this)
+    }
+
+    private fun resolveUnaryOperator(
+        operator: TsUnaryOperator,
+        expr: EtsUnaryExpr,
+    ): UExpr<out USort>? = resolveUnaryOperator(operator, expr.arg)
+
+    private fun resolveUnaryOperator(
+        operator: TsUnaryOperator,
+        arg: EtsEntity,
+    ): UExpr<out USort>? = resolveAfterResolved(arg) { resolved ->
+        with(operator) { ctx.resolve(resolved, scope) }
     }
 
     private fun resolveBinaryOperator(
@@ -181,28 +192,13 @@ class TsExprResolver(
 
     // region UNARY
 
-    override fun visit(expr: EtsNotExpr): UExpr<out USort>? = with(ctx) {
-        resolveAfterResolved(expr.arg) { arg ->
-            if (arg.sort == boolSort) {
-                arg.asExpr(boolSort).not()
-            } else {
-                TsUnaryOperator.Not(arg, scope)
-            }
-        }
+    override fun visit(expr: EtsNotExpr): UExpr<out USort>? {
+        return resolveUnaryOperator(TsUnaryOperator.Not, expr)
     }
 
     // TODO move into TsUnaryOperator
-    override fun visit(expr: EtsNegExpr): UExpr<out USort>? = with(ctx) {
-        if (expr.type is EtsNumberType) {
-            val arg = resolve(expr.arg)?.asExpr(fp64Sort) ?: return null
-            return mkFpNegationExpr(arg)
-        }
-
-        if (expr.type is EtsUnknownType) {
-            TODO()
-        }
-
-        error("Unsupported expr type ${expr.type} for negation")
+    override fun visit(expr: EtsNegExpr): UExpr<out USort>? {
+        return resolveUnaryOperator(TsUnaryOperator.Neg, expr)
     }
 
     override fun visit(expr: EtsUnaryPlusExpr): UExpr<out USort>? {
