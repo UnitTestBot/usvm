@@ -154,9 +154,15 @@ class TsInterpreter(
                         isSigned = true
                     )
 
-                    val lValue = UArrayIndexLValue(expr.sort, instance, bvIndex, lhv.array.type)
-                    // TODO error with array values type
-                    memory.write(lValue, expr.asExpr(lValue.sort), guard = ctx.trueExpr)
+                    if (stmt.lhv.type == stmt.rhv.type) {
+                        val lValue = UArrayIndexLValue(expr.sort, instance, bvIndex, lhv.array.type)
+                        // TODO error with array values type
+                        memory.write(lValue, expr.asExpr(lValue.sort), guard = ctx.trueExpr)
+                    } else {
+                        val lValue = UArrayIndexLValue(ctx.unresolvedSort, instance, bvIndex, lhv.array.type)
+                        // TODO create fake object, probably the type of the array should be modified as well
+                        memory.write(lValue, expr.asExpr(lValue.sort), guard = ctx.trueExpr)
+                    }
                 }
 
                 else -> TODO("Not yet implemented")
