@@ -154,7 +154,7 @@ class TsInterpreter(
                         isSigned = true
                     )
 
-                    val lValue = UArrayIndexLValue(expr.sort, instance, bvIndex, lhv.type)
+                    val lValue = UArrayIndexLValue(expr.sort, instance, bvIndex, lhv.array.type)
                     // TODO error with array values type
                     memory.write(lValue, expr.asExpr(ctx.fp64Sort), guard = ctx.trueExpr)
                 }

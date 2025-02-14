@@ -159,6 +159,7 @@ open class TsTestStateResolver(
         }
     }
 
+    // UArrayIndexLValue(sort=(FloatingPoint 11 53), ref=0x1, index=#x00000000, arrayType=number)
     private fun resolveArray(expr: UConcreteHeapRef, type: EtsArrayType): TsValue.TsArray {
         val arrayLengthLValue = UArrayLengthLValue(expr, type, ctx.sizeSort)
         val length = model.eval(memory.read(arrayLengthLValue)) as KBitVec32Value
