@@ -11,11 +11,7 @@ class Arrays {
 
     createAndAccessArrayOfBooleans() {
         let x = [true, false, true]
-
-        if (x[0] == true) {
-            return 1
-        }
-
+        if (x[0] == true) return 1
         return -1
     }
 
