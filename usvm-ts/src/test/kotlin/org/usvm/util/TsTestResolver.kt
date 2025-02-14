@@ -138,20 +138,20 @@ open class TsTestStateResolver(
         return resolveLValue(ref, type)
     }
 
-    fun resolveParameters(): List<TsObject> = method.parameters.mapIndexed { idx, param ->
-        val sort = ctx.typeToSort(param.type)
+    fun resolveParameters(): List<TsObject> = with(ctx) {
+        method.parameters.mapIndexed { idx, param ->
+            val sort = typeToSort(param.type)
 
-        if (sort is TsUnresolvedSort) {
-            // this means that a fake object was created, and we need to read it from the current memory
-            val address = finalStateMemory.read(URegisterStackLValue(ctx.addressSort, idx)).asExpr(ctx.addressSort)
+            if (sort is TsUnresolvedSort) {
+                // this means that a fake object was created, and we need to read it from the current memory
+                val address = finalStateMemory.read(URegisterStackLValue(addressSort, idx)).asExpr(addressSort)
+                check(address.isFakeObject())
+                return@mapIndexed resolveFakeObject(address)
+            }
 
-            check(address is UConcreteHeapRef)
-
-            return@mapIndexed resolveFakeObject(address)
+            val ref = URegisterStackLValue(sort, idx)
+            resolveLValue(ref, param.type)
         }
-
-        val ref = URegisterStackLValue(sort, idx)
-        resolveLValue(ref, param.type)
     }
 
     fun resolveGlobals(): Map<EtsClass, List<GlobalFieldValue>> {
