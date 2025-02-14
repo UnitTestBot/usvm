@@ -55,7 +55,7 @@ sealed interface TsValue {
         val properties: Map<String, TsValue>,
     ) : TsValue
 
-    data class TsArray(
-        val values: List<TsValue>,
+    data class TsArray<T : TsValue>(
+        val values: List<T>,
     ) : TsValue
 }
