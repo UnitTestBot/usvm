@@ -183,15 +183,6 @@ open class TsTestStateResolver(
         }
     }
 
-    private fun resolveUnknown(
-        expr: UConcreteHeapRef,
-    ): TsObject {
-        val typeStream = memory.types.getTypeStream(expr)
-        return (typeStream.first() as? EtsType)?.let { type ->
-            resolveExpr(expr, type)
-        } ?: TsObject.TsObject(expr.address)
-    }
-
     private fun resolvePrimitive(
         expr: UExpr<out USort>,
         type: EtsPrimitiveType,
