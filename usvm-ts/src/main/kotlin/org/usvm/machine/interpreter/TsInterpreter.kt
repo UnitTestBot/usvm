@@ -2,6 +2,7 @@ package org.usvm.machine.interpreter
 
 import io.ksmt.utils.asExpr
 import mu.KotlinLogging
+import org.jacodb.ets.base.EtsArrayAccess
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsCallStmt
 import org.jacodb.ets.base.EtsGotoStmt
@@ -22,6 +23,7 @@ import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UInterpreter
 import org.usvm.api.targets.TsTarget
+import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.machine.TsApplicationGraph
@@ -130,11 +132,35 @@ class TsInterpreter(
         }
 
         scope.doWithState {
-            val idx = mapLocalToIdx(lastEnteredMethod, stmt.lhv)
-            saveSortForLocal(idx, expr.sort)
+            when (val lhv = stmt.lhv) {
+                is EtsLocal -> {
+                    val idx = mapLocalToIdx(lastEnteredMethod, lhv)
+                    saveSortForLocal(idx, expr.sort)
 
-            val lValue = URegisterStackLValue(expr.sort, idx)
-            memory.write(lValue, expr.asExpr(lValue.sort), guard = ctx.trueExpr)
+                    val lValue = URegisterStackLValue(expr.sort, idx)
+                    memory.write(lValue, expr.asExpr(lValue.sort), guard = ctx.trueExpr)
+                }
+
+                is EtsArrayAccess -> {
+                    // TODO save sorts?
+                    val instance = exprResolver.resolve(lhv.array)?.asExpr(ctx.addressSort) ?: return@doWithState
+                    val index = exprResolver.resolve(lhv.index)?.asExpr(ctx.fp64Sort) ?: return@doWithState
+
+                    // TODO fork on floating point field
+                    val bvIndex = ctx.mkFpToBvExpr(
+                        roundingMode = ctx.fpRoundingModeSortDefaultValue(),
+                        value = index,
+                        bvSize = 32,
+                        isSigned = true
+                    )
+
+                    val lValue = UArrayIndexLValue(expr.sort, instance, bvIndex, lhv.type)
+                    // TODO error with array values type
+                    memory.write(lValue, expr.asExpr(ctx.fp64Sort), guard = ctx.trueExpr)
+                }
+
+                else -> TODO("Not yet implemented")
+            }
 
             val nextStmt = stmt.nextStmt ?: return@doWithState
             newStmt(nextStmt)

@@ -74,7 +74,9 @@ import org.usvm.UBoolSort
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
+import org.usvm.api.allocateArray
 import org.usvm.api.makeSymbolicPrimitive
+import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
@@ -88,6 +90,7 @@ import org.usvm.machine.types.FakeType
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
+import org.usvm.sizeSort
 import org.usvm.util.fieldLookUp
 import org.usvm.util.throwExceptionWithoutStackFrameDrop
 
@@ -494,8 +497,19 @@ class TsExprResolver(
     // region ACCESS
 
     override fun visit(value: EtsArrayAccess): UExpr<out USort>? {
-        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        error("Not supported $value")
+        val instance = resolve(value.array)?.asExpr(ctx.addressSort) ?: return null
+        val index = resolve(value.index)?.asExpr(ctx.fp64Sort) ?: return null
+        val bvIndex = ctx.mkFpToBvExpr(
+            roundingMode = ctx.fpRoundingModeSortDefaultValue(),
+            value = index,
+            bvSize = 32,
+            isSigned = true
+        )
+
+        // TODO error with types, it might be different
+        val lValue = UArrayIndexLValue(ctx.typeToSort(value.type), instance, bvIndex, value.type)
+
+        return scope.calcOnState { memory.read(lValue) }
     }
 
     private fun checkUndefinedOrNullPropertyRead(instance: UHeapRef) = with(ctx) {
@@ -546,9 +560,42 @@ class TsExprResolver(
         memory.allocConcrete(expr.type)
     }
 
-    override fun visit(expr: EtsNewArrayExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsNewArrayExpr): UExpr<out USort>? = with(ctx) {
+        scope.calcOnState {
+            val size = resolve(expr.size) ?: return@calcOnState null
+
+            if (size.sort != fp64Sort) {
+                TODO()
+            }
+
+            val bvSize = mkFpToBvExpr(
+                fpRoundingModeSortDefaultValue(),
+                size.asExpr(fp64Sort),
+                bvSize = 32,
+                isSigned = true
+            )
+
+            val condition = mkAnd(
+                mkEq(
+                    mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), bvSize, signed = true),
+                    size.asExpr(fp64Sort)
+                ),
+                mkAnd(
+                    mkBvSignedLessOrEqualExpr(0.toBv(), bvSize.asExpr(bv32Sort)),
+                    mkBvSignedLessOrEqualExpr(bvSize, Int.MAX_VALUE.toBv().asExpr(bv32Sort))
+                )
+            )
+
+            scope.fork(
+                condition,
+                blockOnFalseState = allocateException(EtsStringType) // TODO incorrect exception type
+            )
+
+            val address = memory.allocateArray(expr.type, sizeSort, bvSize)
+            memory.types.allocate(address.address, expr.type)
+
+            address
+        }
     }
 
     override fun visit(expr: EtsLengthExpr): UExpr<out USort>? {
@@ -665,9 +712,8 @@ class TsSimpleValueResolver(
         mkUndefinedValue()
     }
 
-    override fun visit(value: EtsArrayAccess): UExpr<out USort> = with(ctx) {
-        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        error("Not supported $value")
+    override fun visit(value: EtsArrayAccess): UExpr<out USort>? = with(ctx) {
+        error("Should not be called")
     }
 
     override fun visit(value: EtsInstanceFieldRef): UExpr<out USort> = with(ctx) {

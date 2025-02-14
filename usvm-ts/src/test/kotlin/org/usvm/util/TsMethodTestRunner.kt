@@ -1,6 +1,7 @@
 package org.usvm.util
 
 import org.jacodb.ets.base.EtsAnyType
+import org.jacodb.ets.base.EtsArrayType
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.base.EtsNullType
@@ -166,8 +167,9 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
         when (klass) {
             TsValue::class -> EtsAnyType
             TsValue.TsAny::class -> EtsAnyType
-            TsValue.TsArray::class -> TODO()
-            TsValue.TsBoolean::class -> EtsBooleanType
+            TsValue.TsArray::class -> {
+                EtsArrayType(EtsAnyType, dimensions = 1) // TODO incorrect
+            }            TsValue.TsBoolean::class -> EtsBooleanType
             TsValue.TsClass::class -> {
                 // TODO incorrect
                 val signature = EtsClassSignature(it.toString(), EtsFileSignature.DEFAULT)
