@@ -16,7 +16,7 @@ data class TsTest(
 data class TsParametersState(
     val thisInstance: TsObject?,
     val parameters: List<TsObject>,
-    val globals: Map<EtsClass, List<GlobalFieldValue>>
+    val globals: Map<EtsClass, List<GlobalFieldValue>>,
 )
 
 data class GlobalFieldValue(val field: EtsField, val value: TsObject) // TODO is it right?????

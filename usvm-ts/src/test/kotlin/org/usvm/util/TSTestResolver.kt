@@ -104,7 +104,7 @@ open class TsTestStateResolver(
     val ctx: TsContext,
     private val model: UModelBase<EtsType>,
     private val finalStateMemory: UReadOnlyMemory<EtsType>,
-    val method: EtsMethod
+    val method: EtsMethod,
 ) {
     fun resolveLValue(lValue: ULValue<*, *>, type: EtsType): TsObject {
         val expr = memory.read(lValue)

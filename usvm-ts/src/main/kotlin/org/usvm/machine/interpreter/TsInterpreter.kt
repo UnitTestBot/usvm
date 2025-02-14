@@ -4,7 +4,6 @@ import io.ksmt.utils.asExpr
 import mu.KotlinLogging
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsCallStmt
-import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.base.EtsGotoStmt
 import org.jacodb.ets.base.EtsIfStmt
 import org.jacodb.ets.base.EtsLocal
@@ -22,7 +21,6 @@ import org.jacodb.ets.model.EtsMethod
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UInterpreter
-import org.usvm.api.evalTypeEquals
 import org.usvm.api.targets.TsTarget
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.forkblacklists.UForkBlackList
@@ -208,7 +206,7 @@ class TsInterpreter(
         val thisInstanceRef = URegisterStackLValue(ctx.addressSort, method.parameters.count()) // TODO check for statics
         val thisRef = state.memory.read(thisInstanceRef).asExpr(ctx.addressSort)
 
-        state.pathConstraints += with (ctx) {
+        state.pathConstraints += with(ctx) {
             mkNot(
                 mkOr(
                     ctx.mkHeapRefEq(thisRef, ctx.mkTsNullValue()),
