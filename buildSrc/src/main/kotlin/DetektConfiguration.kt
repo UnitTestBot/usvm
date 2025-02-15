@@ -1,5 +1,5 @@
-import gradle.kotlin.dsl.accessors._466a692754d3da37fc853e1c7ad8ae1e.detekt
-import gradle.kotlin.dsl.accessors._466a692754d3da37fc853e1c7ad8ae1e.detektPlugins
+import gradle.kotlin.dsl.accessors._f82704f7081d2131104652c38785c0ac.detekt
+import gradle.kotlin.dsl.accessors._f82704f7081d2131104652c38785c0ac.detektPlugins
 import io.gitlab.arturbosch.detekt.Detekt
 import io.gitlab.arturbosch.detekt.DetektCreateBaselineTask
 import io.gitlab.arturbosch.detekt.report.ReportMergeTask
