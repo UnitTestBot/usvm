@@ -38,7 +38,6 @@ import org.usvm.machine.TsContext
 import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.expr.extractBool
 import org.usvm.machine.expr.extractDouble
-import org.usvm.machine.expr.extractInt
 import org.usvm.machine.expr.tctx
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
@@ -165,7 +164,6 @@ open class TsTestStateResolver(
         }
     }
 
-    // UArrayIndexLValue(sort=(FloatingPoint 11 53), ref=0x1, index=#x00000000, arrayType=number)
     private fun resolveArray(expr: UConcreteHeapRef, type: EtsArrayType): TsValue.TsArray<*> {
         val arrayLengthLValue = UArrayLengthLValue(expr, type, ctx.sizeSort)
         val length = model.eval(memory.read(arrayLengthLValue)) as KBitVec32Value
