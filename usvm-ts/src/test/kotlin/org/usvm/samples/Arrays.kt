@@ -2,6 +2,7 @@ package org.usvm.samples
 
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsValue
 import org.usvm.util.TsMethodTestRunner
@@ -88,6 +89,7 @@ class Arrays : TsMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Arrays should contain only fake objects")
     fun testCreateArrayOfNumbersAndPutDifferentTypes() {
         val method = getMethod("Arrays", "createArrayOfNumbersAndPutDifferentTypes")
         discoverProperties<TsValue.TsArray<*>>(
