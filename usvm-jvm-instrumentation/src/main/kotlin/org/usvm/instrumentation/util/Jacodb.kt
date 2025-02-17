@@ -24,13 +24,7 @@ fun JcClasspath.findFieldByFullNameOrNull(fieldFullName: String): JcField? {
 operator fun JcClasspath.get(klass: Class<*>) = this.findClassOrNull(klass.name)
 
 val JcClassOrInterface.typename
-    get() = TypeNameImpl(this.name)
-
-val JcMethod.typename
-    get() = TypeNameImpl(this.name)
-
-val JcTypedMethod.typename
-    get() = TypeNameImpl(this.name)
+    get() = TypeNameImpl.fromTypeName(this.name)
 
 fun JcType.toStringType(): String =
     when (this) {
@@ -40,7 +34,7 @@ fun JcType.toStringType(): String =
         else -> typeName
     }
 
-fun JcType.getTypename() = TypeNameImpl(this.typeName)
+fun JcType.getTypename() = TypeNameImpl.fromTypeName(this.typeName)
 
 val JcInst.enclosingClass
     get() = this.location.method.enclosingClass
