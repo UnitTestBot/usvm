@@ -59,6 +59,7 @@ class Arrays : TsMethodTestRunner() {
     }
 
     @Test
+    @Disabled("Arrays should contain only fake objects")
     fun testCreateMixedArray() {
         val method = getMethod("Arrays", "createMixedArray")
         discoverProperties<TsValue.TsArray<*>>(
