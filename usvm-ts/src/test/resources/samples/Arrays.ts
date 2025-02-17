@@ -27,29 +27,17 @@ class Arrays {
 
     createArrayOfUnknownValues(a, b, c) {
         let x = [a, b, c]
-
-        if (x[0] == 1.1) {
-            return x
-        }
-
-        if (x[1] == true) {
-            return x
-        }
-
-        if (x[2] == undefined) {
-            return x
-        }
-
+        if (x[0] == 1.1) return x
+        if (x[1] == true) return x
+        if (x[2] == undefined) return x
         return x
     }
 
     createArrayOfNumbersAndPutDifferentTypes() {
         let x = [1, 2, 3]
-
         x[1] = true
         x[2] = undefined
         x[0] = null
-
         return x
     }
 }

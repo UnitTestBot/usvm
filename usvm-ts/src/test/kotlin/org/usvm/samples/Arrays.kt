@@ -49,7 +49,6 @@ class Arrays : TsMethodTestRunner() {
         )
     }
 
-
     @Test
     fun testCreateArrayOfBooleans() {
         val method = getMethod("Arrays", "createArrayOfBooleans")
@@ -97,9 +96,9 @@ class Arrays : TsMethodTestRunner() {
             { r ->
                 val values = r.values
                 values.size == 3
-                        && (values[0] as TsValue.TsClass).properties.size == 1
-                        && (values[1] as TsValue.TsBoolean).value
-                        && values[2] is TsValue.TsUndefined
+                    && (values[0] as TsValue.TsClass).properties.size == 1
+                    && (values[1] as TsValue.TsBoolean).value
+                    && values[2] is TsValue.TsUndefined
             },
         )
     }
