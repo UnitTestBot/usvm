@@ -63,6 +63,7 @@ import org.jacodb.ets.base.EtsTypeOfExpr
 import org.jacodb.ets.base.EtsUnaryExpr
 import org.jacodb.ets.base.EtsUnaryPlusExpr
 import org.jacodb.ets.base.EtsUndefinedConstant
+import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.base.EtsUnsignedRightShiftExpr
 import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.base.EtsVoidExpr
@@ -506,8 +507,8 @@ class TsExprResolver(
             isSigned = true
         )
 
-        // TODO error with types, it might be different
-        val lValue = UArrayIndexLValue(ctx.typeToSort(value.type), instance, bvIndex, value.array.type)
+        val sort = if (value.type is EtsUnknownType) ctx.addressSort else ctx.typeToSort(value.type)
+        val lValue = UArrayIndexLValue(sort, instance, bvIndex, value.array.type)
 
         return scope.calcOnState { memory.read(lValue) }
     }

@@ -72,4 +72,18 @@ class Arrays : TsMethodTestRunner() {
             },
         )
     }
+
+    @Test
+    fun testCreateArrayOfUnknown() {
+        val method = getMethod("Arrays", "createArrayOfUnknownValues")
+        discoverProperties<TsValue, TsValue, TsValue, TsValue.TsArray<*>>(
+            method = method,
+            { a, _, _, r -> r.values[0] == a && (a as TsValue.TsNumber).number == 1.1 },
+            { _, b, _, r -> r.values[1] == b && (b as TsValue.TsBoolean).value },
+            { _, _, c, r -> r.values[2] == c && c is TsValue.TsUndefined },
+            invariants = arrayOf(
+                { a, b, c, r -> r.values == listOf(a, b, c) }
+            )
+        )
+    }
 }

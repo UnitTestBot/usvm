@@ -132,7 +132,13 @@ open class TsTestStateResolver(
         when (expr.sort) {
             fp64Sort -> resolvePrimitive(expr, EtsNumberType)
             boolSort -> resolvePrimitive(expr, EtsBooleanType)
-            addressSort -> resolveRef(expr.asExpr(ctx.addressSort), EtsUnknownType)
+            addressSort -> {
+                if (expr.isFakeObject()) {
+                    resolveFakeObject(expr)
+                } else {
+                    resolveRef(expr.asExpr(ctx.addressSort), EtsUnknownType)
+                }
+            }
             else -> TODO()
         }
     }
@@ -167,7 +173,11 @@ open class TsTestStateResolver(
         val values = (0 until length.intValue).map {
             val index = ctx.mkSizeExpr(it)
             // TODO wrong sort
-            val lValue = UArrayIndexLValue(ctx.typeToSort(type.elementType), expr, index, type)
+            val lValue = if (type.elementType is EtsUnknownType) {
+                UArrayIndexLValue(ctx.addressSort, expr, index, type)
+            } else {
+                UArrayIndexLValue(ctx.typeToSort(type.elementType), expr, index, type)
+            }
             val value = memory.read(lValue) // TODO write reading???
             resolveExpr(value, type.elementType)
         }
