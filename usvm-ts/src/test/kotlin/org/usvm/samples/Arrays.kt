@@ -86,4 +86,19 @@ class Arrays : TsMethodTestRunner() {
             )
         )
     }
+
+    @Test
+    fun testCreateArrayOfNumbersAndPutDifferentTypes() {
+        val method = getMethod("Arrays", "createArrayOfNumbersAndPutDifferentTypes")
+        discoverProperties<TsValue.TsArray<*>>(
+            method = method,
+            { r ->
+                val values = r.values
+                values.size == 3
+                        && (values[0] as TsValue.TsClass).properties.size == 1
+                        && (values[1] as TsValue.TsBoolean).value
+                        && values[2] is TsValue.TsUndefined
+            },
+        )
+    }
 }

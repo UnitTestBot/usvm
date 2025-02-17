@@ -42,4 +42,14 @@ class Arrays {
 
         return x
     }
+
+    createArrayOfNumbersAndPutDifferentTypes() {
+        let x = [1, 2, 3]
+
+        x[1] = true
+        x[2] = undefined
+        x[0] = null
+
+        return x
+    }
 }
