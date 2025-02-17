@@ -30,20 +30,24 @@ class Call : TsMethodTestRunner() {
         val method = getMethod("Call", "fib")
         discoverProperties<TsValue.TsNumber, TsValue.TsNumber>(
             method = method,
+            { n, r -> n.number.isNaN() && r.number == 0.0 },
             { n, r -> n.number < 0.0 && r.number == -1.0 },
             { n, r -> n.number > 10.0 && r.number == -2.0 },
             { n, r -> n.number == 0.0 && r.number == 1.0 },
             { n, r -> n.number == 1.0 && r.number == 1.0 },
-            { n, r -> n.number > 0 && n.number != 1.0 && fib(n.number) == r.number },
+            { n, r -> n.number > 0 && n.number != 1.0 && n.number <= 10.0 && fib(n.number) == r.number },
+            invariants = arrayOf(
+                { n, r -> fib(n.number) == r.number }
+            )
         )
     }
 }
 
 fun fib(n: Double): Double {
+    if (n.isNaN()) return 0.0
     if (n < 0) return -1.0
     if (n > 10) return -2.0
     if (n == 0.0) return 1.0
     if (n == 1.0) return 1.0
-
     return fib(n - 1.0) + fib(n - 2.0)
 }
