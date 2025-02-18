@@ -1,7 +1,9 @@
 package org.usvm.util
 
+import io.ksmt.expr.KBitVec32Value
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.base.CONSTRUCTOR_NAME
+import org.jacodb.ets.base.EtsArrayType
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.base.EtsLiteralType
@@ -13,12 +15,14 @@ import org.jacodb.ets.base.EtsRefType
 import org.jacodb.ets.base.EtsStringType
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUndefinedType
+import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.base.EtsVoidType
 import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassImpl
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodImpl
 import org.jacodb.ets.model.EtsMethodSignature
+import org.usvm.UAddressSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
@@ -26,20 +30,25 @@ import org.usvm.api.GlobalFieldValue
 import org.usvm.api.TsParametersState
 import org.usvm.api.TsTest
 import org.usvm.api.TsValue
+import org.usvm.collection.array.UArrayIndexLValue
+import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.isTrue
 import org.usvm.machine.TsContext
 import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.expr.extractBool
 import org.usvm.machine.expr.extractDouble
-import org.usvm.machine.expr.extractInt
+import org.usvm.machine.expr.tctx
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.machine.types.FakeType
 import org.usvm.memory.ULValue
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.URegisterStackLValue
+import org.usvm.mkSizeExpr
 import org.usvm.model.UModelBase
+import org.usvm.sizeSort
+import org.usvm.types.first
 import org.usvm.types.single
 
 class TsTestResolver {
@@ -114,9 +123,64 @@ open class TsTestStateResolver(
         type: EtsType,
     ): TsValue = when (type) {
         is EtsPrimitiveType -> resolvePrimitive(expr, type)
-        is EtsClassType -> resolveClass(expr, type)
-        is EtsRefType -> TODO()
-        else -> TODO()
+        is EtsRefType -> resolveRef(expr.asExpr(ctx.addressSort), type)
+        else -> resolveUnknownExpr(expr)
+    }
+
+    fun resolveUnknownExpr(expr: UExpr<out USort>): TsValue = with(expr.tctx) {
+        when (expr.sort) {
+            fp64Sort -> resolvePrimitive(expr, EtsNumberType)
+            boolSort -> resolvePrimitive(expr, EtsBooleanType)
+            addressSort -> {
+                if (expr.isFakeObject()) {
+                    resolveFakeObject(expr)
+                } else {
+                    resolveRef(expr.asExpr(ctx.addressSort), EtsUnknownType)
+                }
+            }
+            else -> TODO()
+        }
+    }
+
+    private fun resolveRef(expr: UExpr<UAddressSort>, type: EtsType): TsValue {
+        val instance = model.eval(expr) as UConcreteHeapRef
+
+        if (instance.address == 0) {
+            return TsValue.TsUndefined
+        }
+
+        if (model.eval(ctx.mkHeapRefEq(expr, ctx.mkTsNullValue())).isTrue) {
+            return TsValue.TsNull
+        }
+
+        return when (type) {
+            is EtsClassType -> resolveClass(instance, type)
+            is EtsArrayType -> resolveArray(instance, type)
+            is EtsUnknownType -> {
+                val type = finalStateMemory.types.getTypeStream(expr).first()
+                resolveRef(expr, type)
+            }
+            else -> error("Unexpected type: $type")
+        }
+    }
+
+    private fun resolveArray(expr: UConcreteHeapRef, type: EtsArrayType): TsValue.TsArray<*> {
+        val arrayLengthLValue = UArrayLengthLValue(expr, type, ctx.sizeSort)
+        val length = model.eval(memory.read(arrayLengthLValue)) as KBitVec32Value
+
+        val values = (0 until length.intValue).map {
+            val index = ctx.mkSizeExpr(it)
+            // TODO wrong sort
+            val lValue = if (type.elementType is EtsUnknownType) {
+                UArrayIndexLValue(ctx.addressSort, expr, index, type)
+            } else {
+                UArrayIndexLValue(ctx.typeToSort(type.elementType), expr, index, type)
+            }
+            val value = memory.read(lValue) // TODO write reading???
+            resolveExpr(value, type.elementType)
+        }
+
+        return TsValue.TsArray(values)
     }
 
     fun resolveThisInstance(): TsValue? {
@@ -184,42 +248,14 @@ open class TsTestStateResolver(
         expr: UExpr<out USort>,
         type: EtsPrimitiveType,
     ): TsValue = when (type) {
-        EtsNumberType -> {
-            when (expr.sort) {
-                ctx.fp64Sort -> TsValue.TsNumber.TsDouble(extractDouble(evaluateInModel(expr)))
-                ctx.bv32Sort -> TsValue.TsNumber.TsInteger(extractInt(evaluateInModel(expr)))
-                else -> error("Unexpected sort: ${expr.sort}")
-            }
-        }
-
-        EtsBooleanType -> {
-            TsValue.TsBoolean(evaluateInModel(expr).extractBool())
-        }
-
-        EtsUndefinedType -> {
-            TsValue.TsUndefined
-        }
-
-        is EtsLiteralType -> {
-            TODO()
-        }
-
-        EtsNullType -> {
-            TODO()
-        }
-
-        EtsNeverType -> {
-            TODO()
-        }
-
-        EtsStringType -> {
-            TODO()
-        }
-
-        EtsVoidType -> {
-            TODO()
-        }
-
+        EtsNumberType -> TsValue.TsNumber.TsDouble(extractDouble(evaluateInModel(expr)))
+        EtsBooleanType -> TsValue.TsBoolean(evaluateInModel(expr).extractBool())
+        EtsUndefinedType -> TsValue.TsUndefined
+        is EtsLiteralType -> TODO()
+        EtsNullType -> TODO()
+        EtsNeverType -> TODO()
+        EtsStringType -> TODO()
+        EtsVoidType -> TODO()
         else -> error("Unexpected type: $type")
     }
 
