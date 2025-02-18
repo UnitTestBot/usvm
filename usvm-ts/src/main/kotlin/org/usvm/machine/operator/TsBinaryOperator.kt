@@ -421,9 +421,57 @@ sealed interface TsBinaryOperator {
             scope: TsStepScope,
         ): UExpr<out USort> {
             check(lhs.isFakeObject() || rhs.isFakeObject())
-            // TODO: delegating to '==' is not correct in general case
-            return with(Eq) {
-                resolveFakeObject(lhs, rhs, scope)
+
+            return scope.calcOnState {
+                when {
+                    lhs.isFakeObject() && rhs.isFakeObject() -> {
+                        val lhsType = memory.typeStreamOf(lhs).single() as FakeType
+                        val rhsType = memory.typeStreamOf(rhs).single() as FakeType
+
+                        scope.assert(
+                            mkAnd(
+                                lhsType.boolTypeExpr eq rhsType.boolTypeExpr,
+                                lhsType.fpTypeExpr eq rhsType.fpTypeExpr,
+                                // TODO support type equality
+                                lhsType.refTypeExpr eq rhsType.refTypeExpr
+                            )
+                        )
+                    }
+
+                    lhs.isFakeObject() -> {
+                        val lhsType = memory.typeStreamOf(lhs).single() as FakeType
+
+                        val condition = when (rhs.sort) {
+                            boolSort -> lhsType.boolTypeExpr
+                            fp64Sort -> lhsType.fpTypeExpr
+                            // TODO support type equality
+                            addressSort -> lhsType.refTypeExpr
+                            else -> error("Unsupported sort ${rhs.sort}")
+                        }
+
+                        scope.assert(condition)
+                    }
+
+                    rhs.isFakeObject() -> {
+                        val rhsType = memory.typeStreamOf(rhs).single() as FakeType
+
+                        scope.assert(rhsType.mkExactlyOneTypeConstraint(ctx))
+
+                        val condition = when (lhs.sort) {
+                            boolSort -> rhsType.boolTypeExpr
+                            fp64Sort -> rhsType.fpTypeExpr
+                            // TODO support type equality
+                            addressSort ->  rhsType.refTypeExpr
+                            else -> error("Unsupported sort ${lhs.sort}")
+                        }
+
+                        scope.assert(condition)
+                    }
+                }
+
+                return@calcOnState with(Eq) {
+                    resolveFakeObject(lhs, rhs, scope)
+                }
             }
         }
 
