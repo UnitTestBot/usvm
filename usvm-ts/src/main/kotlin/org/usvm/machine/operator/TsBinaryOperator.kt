@@ -461,7 +461,7 @@ sealed interface TsBinaryOperator {
                             boolSort -> rhsType.boolTypeExpr
                             fp64Sort -> rhsType.fpTypeExpr
                             // TODO support type equality
-                            addressSort ->  rhsType.refTypeExpr
+                            addressSort -> rhsType.refTypeExpr
                             else -> error("Unsupported sort ${lhs.sort}")
                         }
 
