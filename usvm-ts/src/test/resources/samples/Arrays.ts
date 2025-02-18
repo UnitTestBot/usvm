@@ -40,4 +40,20 @@ class Arrays {
         x[0] = null
         return x
     }
+
+    allocatedArrayLengthExpansion() {
+        let x = [1, 2, 3]
+
+        if (x.length == 3) {
+            x[5] = 5
+
+            if (x.length == 6) {
+                return x
+            } else {
+                return -1 // unreachable
+            }
+        } else {
+            return -1 // unreachable
+        }
+    }
 }

@@ -173,6 +173,10 @@ open class TsTestStateResolver(
             val lValue = UArrayIndexLValue(ctx.addressSort, expr, index, type)
             val value = memory.read(lValue)
 
+            if (model.eval(ctx.mkHeapRefEq(value, ctx.mkUndefinedValue())).isTrue) {
+                return@map TsValue.TsUndefined
+            }
+
             with(ctx) { check(value.isFakeObject()) { "Only fake objects are allowed in arrays" } }
 
             resolveFakeObject(value as UConcreteHeapRef)

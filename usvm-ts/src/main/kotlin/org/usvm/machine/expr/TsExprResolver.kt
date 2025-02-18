@@ -6,6 +6,7 @@ import mu.KotlinLogging
 import org.jacodb.ets.base.EtsAddExpr
 import org.jacodb.ets.base.EtsAndExpr
 import org.jacodb.ets.base.EtsArrayAccess
+import org.jacodb.ets.base.EtsArrayType
 import org.jacodb.ets.base.EtsAwaitExpr
 import org.jacodb.ets.base.EtsBinaryExpr
 import org.jacodb.ets.base.EtsBitAndExpr
@@ -78,6 +79,7 @@ import org.usvm.USort
 import org.usvm.api.allocateArray
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.collection.array.UArrayIndexLValue
+import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
@@ -537,7 +539,16 @@ class TsExprResolver(
 
         checkUndefinedOrNullPropertyRead(instanceRef) ?: return null
 
-        // TODO: checkNullPointer(instanceRef)
+        // TODO It is a hack for array's length
+        if (value.instance.type is EtsArrayType && value.field.name == "length") {
+            val lValue = UArrayLengthLValue(instanceRef, value.instance.type, ctx.sizeSort)
+            val expr = scope.calcOnState { memory.read(lValue) }
+
+            check(expr.sort == ctx.sizeSort)
+
+            return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), expr.asExpr(sizeSort), signed = true)
+        }
+
         val fieldType = scene.fieldLookUp(value.field).type
         val sort = typeToSort(fieldType)
         val lValue = UFieldLValue(sort, instanceRef, value.field.name)

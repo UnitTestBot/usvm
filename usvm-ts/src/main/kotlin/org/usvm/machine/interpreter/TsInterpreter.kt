@@ -24,6 +24,7 @@ import org.usvm.StepScope
 import org.usvm.UInterpreter
 import org.usvm.api.targets.TsTarget
 import org.usvm.collection.array.UArrayIndexLValue
+import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.machine.TsApplicationGraph
@@ -38,6 +39,7 @@ import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.state.returnValue
 import org.usvm.memory.URegisterStackLValue
+import org.usvm.sizeSort
 import org.usvm.targets.UTargetsSet
 import org.usvm.utils.ensureSat
 
@@ -123,11 +125,11 @@ class TsInterpreter(
         }
     }
 
-    private fun visitAssignStmt(scope: TsStepScope, stmt: EtsAssignStmt) {
+    private fun visitAssignStmt(scope: TsStepScope, stmt: EtsAssignStmt) = with(ctx) {
         val exprResolver = exprResolverWithScope(scope)
         val expr = exprResolver.resolve(stmt.rhv) ?: return
 
-        check(expr.sort != ctx.unresolvedSort) {
+        check(expr.sort != unresolvedSort) {
             "A value of the unresolved sort should never be returned from `resolve` function"
         }
 
@@ -138,27 +140,33 @@ class TsInterpreter(
                     saveSortForLocal(idx, expr.sort)
 
                     val lValue = URegisterStackLValue(expr.sort, idx)
-                    memory.write(lValue, expr.asExpr(lValue.sort), guard = ctx.trueExpr)
+                    memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
                 }
 
                 is EtsArrayAccess -> {
-                    // TODO save sorts?
-                    val instance = exprResolver.resolve(lhv.array)?.asExpr(ctx.addressSort) ?: return@doWithState
-                    val index = exprResolver.resolve(lhv.index)?.asExpr(ctx.fp64Sort) ?: return@doWithState
+                    val instance = exprResolver.resolve(lhv.array)?.asExpr(addressSort) ?: return@doWithState
+                    val index = exprResolver.resolve(lhv.index)?.asExpr(fp64Sort) ?: return@doWithState
 
                     // TODO fork on floating point field
-                    val bvIndex = ctx.mkFpToBvExpr(
-                        roundingMode = ctx.fpRoundingModeSortDefaultValue(),
+                    val bvIndex = mkFpToBvExpr(
+                        roundingMode = fpRoundingModeSortDefaultValue(),
                         value = index,
                         bvSize = 32,
                         isSigned = true
-                    )
+                    ).asExpr(sizeSort)
 
-                    val fakeExpr = with(ctx) { expr.toFakeObject(scope) }
+                    val lengthLValue = UArrayLengthLValue(instance, lhv.array.type, sizeSort)
+                    val currentLength = memory.read(lengthLValue).asExpr(sizeSort)
 
-                    val lValue = UArrayIndexLValue(ctx.addressSort, instance, bvIndex, lhv.array.type)
-                    // TODO error with array values type
-                    memory.write(lValue, fakeExpr, guard = ctx.trueExpr)
+                    val condition = mkBvSignedGreaterExpr(bvIndex, currentLength)
+                    val newLength = mkIte(condition, mkBvAddExpr(bvIndex, mkBv(1)), currentLength)
+
+                    memory.write(lengthLValue, newLength, guard = trueExpr)
+
+                    val fakeExpr = expr.toFakeObject(scope)
+
+                    val lValue = UArrayIndexLValue(addressSort, instance, bvIndex, lhv.array.type)
+                    memory.write(lValue, fakeExpr, guard = trueExpr)
                 }
 
                 else -> TODO("Not yet implemented")
