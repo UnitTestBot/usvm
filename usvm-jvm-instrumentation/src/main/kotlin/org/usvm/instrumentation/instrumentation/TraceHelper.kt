@@ -33,13 +33,13 @@ class TraceHelper(
     private fun createJcVirtualMethod(jMethod: Method): JcVirtualMethod = JcVirtualMethodImpl(
         name = jMethod.name,
         access = jMethod.modifiers,
-        returnType = TypeNameImpl(jMethod.returnType.name),
+        returnType = TypeNameImpl.fromTypeName(jMethod.returnType.name),
         parameters = createJcVirtualMethodParams(jMethod),
         description = ""
     )
 
     private fun createJcVirtualMethodParams(jMethod: Method): List<JcVirtualParameter> =
-        jMethod.parameters.mapIndexed { i, p -> JcVirtualParameter(i, TypeNameImpl(p.type.typeName)) }
+        jMethod.parameters.mapIndexed { i, p -> JcVirtualParameter(i, TypeNameImpl.fromTypeName(p.type.typeName)) }
 
     /**
      * This method create instrumenting method call to insert it in instruction list
