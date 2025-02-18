@@ -1,6 +1,7 @@
 package org.usvm.machine
 
 import io.ksmt.sort.KFp64Sort
+import io.ksmt.utils.asExpr
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsNullType
 import org.jacodb.ets.base.EtsNumberType
@@ -20,6 +21,8 @@ import org.usvm.USort
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.machine.expr.TsUndefinedSort
 import org.usvm.machine.expr.TsUnresolvedSort
+import org.usvm.machine.interpreter.TsStepScope
+import org.usvm.machine.types.FakeType
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 
@@ -58,6 +61,37 @@ class TsContext(
         }
 
         return sort == addressSort && this is UConcreteHeapRef && address > MAGIC_OFFSET
+    }
+
+    fun UExpr<out USort>.toFakeObject(scope: TsStepScope): UConcreteHeapRef {
+        if (isFakeObject()) {
+            return this
+        }
+
+        val ref = createFakeObjectRef()
+
+        scope.calcOnState {
+            when (sort) {
+                boolSort -> {
+                    val lvalue = getIntermediateBoolLValue(ref.address)
+                    memory.write(lvalue, this@toFakeObject.asExpr(boolSort), guard = trueExpr)
+                    memory.types.allocate(ref.address, FakeType.fromBool(this@TsContext))
+                }
+                fp64Sort -> {
+                    val lValue = getIntermediateFpLValue(ref.address)
+                    memory.write(lValue, this@toFakeObject.asExpr(fp64Sort), guard = trueExpr)
+                    memory.types.allocate(ref.address, FakeType.fromFp(this@TsContext))
+                }
+                addressSort -> {
+                    val lValue = getIntermediateRefLValue(ref.address)
+                    memory.types.allocate(ref.address, FakeType.fromRef(this@TsContext))
+                    memory.write(lValue, this@toFakeObject.asExpr(addressSort), guard = trueExpr)
+                }
+                else -> TODO("Not yet supported")
+            }
+        }
+
+        return ref
     }
 
     fun createFakeObjectRef(): UConcreteHeapRef {

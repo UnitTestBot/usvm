@@ -27,6 +27,20 @@ class FakeType(
             mkOr(boolTypeExpr, fpTypeExpr, refTypeExpr),
         )
     }
+
+    companion object {
+        fun fromBool(ctx: TsContext): FakeType {
+            return FakeType(ctx.mkTrue(), ctx.mkFalse(), ctx.mkFalse())
+        }
+
+        fun fromFp(ctx: TsContext): FakeType {
+            return FakeType(ctx.mkFalse(), ctx.mkTrue(), ctx.mkFalse())
+        }
+
+        fun fromRef(ctx: TsContext): FakeType {
+            return FakeType(ctx.mkFalse(), ctx.mkFalse(), ctx.mkTrue())
+        }
+    }
 }
 
 data class ExprWithTypeConstraint<T : USort>(val constraint: UBoolExpr, val expr: UExpr<T>)

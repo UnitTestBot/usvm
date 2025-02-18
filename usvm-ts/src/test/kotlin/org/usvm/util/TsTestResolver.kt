@@ -170,14 +170,12 @@ open class TsTestStateResolver(
 
         val values = (0 until length.intValue).map {
             val index = ctx.mkSizeExpr(it)
-            // TODO wrong sort
-            val lValue = if (type.elementType is EtsUnknownType) {
-                UArrayIndexLValue(ctx.addressSort, expr, index, type)
-            } else {
-                UArrayIndexLValue(ctx.typeToSort(type.elementType), expr, index, type)
-            }
-            val value = memory.read(lValue) // TODO write reading???
-            resolveExpr(value, type.elementType)
+            val lValue = UArrayIndexLValue(ctx.addressSort, expr, index, type)
+            val value = memory.read(lValue)
+
+            with(ctx) { check(value.isFakeObject()) { "Only fake objects are allowed in arrays" } }
+
+            resolveFakeObject(value as UConcreteHeapRef)
         }
 
         return TsValue.TsArray(values)

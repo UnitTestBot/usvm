@@ -59,7 +59,6 @@ class Arrays : TsMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Arrays should contain only fake objects")
     fun testCreateMixedArray() {
         val method = getMethod("Arrays", "createMixedArray")
         discoverProperties<TsValue.TsArray<*>>(
@@ -75,7 +74,7 @@ class Arrays : TsMethodTestRunner() {
     }
 
     @Test
-    fun testCreateArrayOfUnknown() {
+    fun testCreateArrayOfUnknownValues() {
         val method = getMethod("Arrays", "createArrayOfUnknownValues")
         discoverProperties<TsValue, TsValue, TsValue, TsValue.TsArray<*>>(
             method = method,
@@ -89,7 +88,6 @@ class Arrays : TsMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Arrays should contain only fake objects")
     fun testCreateArrayOfNumbersAndPutDifferentTypes() {
         val method = getMethod("Arrays", "createArrayOfNumbersAndPutDifferentTypes")
         discoverProperties<TsValue.TsArray<*>>(
@@ -97,7 +95,7 @@ class Arrays : TsMethodTestRunner() {
             { r ->
                 val values = r.values
                 values.size == 3
-                    && (values[0] as TsValue.TsClass).properties.size == 1
+                    && values[0] is TsValue.TsNull
                     && (values[1] as TsValue.TsBoolean).value
                     && values[2] is TsValue.TsUndefined
             },

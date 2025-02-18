@@ -497,20 +497,22 @@ class TsExprResolver(
 
     // region ACCESS
 
-    override fun visit(value: EtsArrayAccess): UExpr<out USort>? {
+    override fun visit(value: EtsArrayAccess): UExpr<out USort>? = with(ctx) {
         val instance = resolve(value.array)?.asExpr(ctx.addressSort) ?: return null
         val index = resolve(value.index)?.asExpr(ctx.fp64Sort) ?: return null
-        val bvIndex = ctx.mkFpToBvExpr(
-            roundingMode = ctx.fpRoundingModeSortDefaultValue(),
+        val bvIndex = mkFpToBvExpr(
+            roundingMode = fpRoundingModeSortDefaultValue(),
             value = index,
             bvSize = 32,
             isSigned = true
         )
 
-        val sort = if (value.type is EtsUnknownType) ctx.addressSort else ctx.typeToSort(value.type)
-        val lValue = UArrayIndexLValue(sort, instance, bvIndex, value.array.type)
+        val lValue = UArrayIndexLValue(addressSort, instance, bvIndex, value.array.type)
+        val expr = scope.calcOnState { memory.read(lValue) }
 
-        return scope.calcOnState { memory.read(lValue) }
+        check(expr.isFakeObject()) { "Only fake objects are allowed in arrays" }
+
+        return expr // TODO thing about unboxing here
     }
 
     private fun checkUndefinedOrNullPropertyRead(instance: UHeapRef) = with(ctx) {
