@@ -514,7 +514,7 @@ class TsExprResolver(
 
         check(expr.isFakeObject()) { "Only fake objects are allowed in arrays" }
 
-        return expr // TODO thing about unboxing here
+        return expr
     }
 
     private fun checkUndefinedOrNullPropertyRead(instance: UHeapRef) = with(ctx) {
