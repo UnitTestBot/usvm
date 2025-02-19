@@ -1,106 +1,109 @@
 // @ts-nocheck
 // noinspection JSUnusedGlobalSymbols
 
-// Test: Basic static field access
-class StaticBasic {
-    static value: number = 42;
+// Test: Basic number static
+class StaticNumber {
+    static value = 10;
 
     getValue(): number {
-        return StaticBasic.value;
+        return StaticNumber.value;
     }
 }
 
-// Test: Static field modification
+// Test: Sequential static modifications with value persistence
 class StaticModification {
-    static count: number = 0;
+    static count = 0;
 
-    incrementAndGet(): number {
+    incrementTwice(): number {
+        StaticModification.count++;
         StaticModification.count++;
         return StaticModification.count;
     }
 }
 
-// Test: Inheritance with static fields
-class ParentStatic {
-    static family: string = "Parent";
-
-    static getFamily(): string {
-        return ParentStatic.family;
-    }
+// Test: Inheritance shadowing
+class StaticParent {
+    static id = 100;
 }
 
-class ChildStatic extends ParentStatic {
-    static family: string = "Child";
-
-    static getChildFamily(): string {
-        return ChildStatic.family;
-    }
-}
-
-// Test: Static field shadowing
-class ShadowParent {
-    static id: number = 100;
-}
-
-class ShadowChild extends ShadowParent {
-    static id: number = 200;
+class StaticChild extends StaticParent {
+    static id = 200;
 
     getParentId(): number {
-        return ShadowParent.id;
+        return StaticParent.id;
+    }
+
+    getChildId(): number {
+        return StaticChild.id;
     }
 }
 
-// Test: Complex static initializer
-class StaticInitializer {
-    static computed: number = (() => {
-        let sum = 0;
-        for (let i = 1; i <= 5; i++) sum += i;
-        return sum;
-    })();
+// Test: Boolean static toggle
+class StaticBoolean {
+    static flag = true;
 
-    getComputed(): number {
-        return StaticInitializer.computed;
+    toggleAndGet(): boolean {
+        StaticBoolean.flag = !StaticBoolean.flag;
+        return StaticBoolean.flag;
     }
 }
 
-// Test: Multiple static fields
-class MultipleStatics {
-    static count: number = 0;
-    static readonly MAX: number = 100;
-    static log: string[] = [];
+// Test: Array static manipulation
+class StaticArray {
+    static numbers = [1, 2, 3];
 
-    static addEntry(entry: string): void {
-        MultipleStatics.log.push(entry);
-    }
-
-    getLogLength(): number {
-        return MultipleStatics.log.length;
+    pushTwice(): number {
+        StaticArray.numbers.push(4);
+        StaticArray.numbers.push(5);
+        return StaticArray.numbers.length;
     }
 }
 
-// Test: Static object field
+// Test: Null initialization and update
+class StaticNull {
+    static value: number | null = null;
+
+    initialize(): number {
+        StaticNull.value = 5;
+        return StaticNull.value!;
+    }
+}
+
+// Test: Object static operations
 class StaticObject {
-    static config = {
-        enabled: true,
-        timeout: 3000
-    };
+    static config: Config = {enabled: false, count: 0};
 
-    checkEnabled(): boolean {
-        return StaticObject.config.enabled;
+    toggleAndGet(): Config {
+        StaticObject.config.flip()
+        StaticObject.config.increment();
+        return StaticObject.config;
     }
 }
 
-// Test: Static field type variations
-class StaticTypes {
-    static flag: boolean = true;
-    static names: string[] = ["Alice", "Bob"];
-    static magicNumber: number = 42;
+class Config {
+    enabled: boolean;
+    count: number;
 
-    getTypeResults(): [boolean, string, number] {
-        return [
-            StaticTypes.flag,
-            StaticTypes.names[0],
-            StaticTypes.magicNumber
-        ];
+    flip(): void {
+        this.enabled = !this.enabled;
+    }
+
+    increment(): void {
+        this.count++;
+    }
+}
+
+// Test: Field swapping
+class StaticAccess {
+    static a = 1;
+    static b = 2;
+
+    calculateSum(): number {
+        return StaticAccess.a + StaticAccess.b;
+    }
+
+    swapAndGetValues(): number[] {
+        [StaticAccess.a, StaticAccess.b] = [StaticAccess.b, StaticAccess.a];
+        return [StaticAccess.a, StaticAccess.b];
     }
 }

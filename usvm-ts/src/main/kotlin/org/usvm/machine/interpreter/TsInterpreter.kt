@@ -1,6 +1,7 @@
 package org.usvm.machine.interpreter
 
 import io.ksmt.utils.asExpr
+import io.ksmt.utils.cast
 import mu.KotlinLogging
 import org.jacodb.ets.base.EtsArrayAccess
 import org.jacodb.ets.base.EtsAssignStmt
@@ -12,6 +13,7 @@ import org.jacodb.ets.base.EtsNopStmt
 import org.jacodb.ets.base.EtsNullType
 import org.jacodb.ets.base.EtsParameterRef
 import org.jacodb.ets.base.EtsReturnStmt
+import org.jacodb.ets.base.EtsStaticFieldRef
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsSwitchStmt
 import org.jacodb.ets.base.EtsThis
@@ -167,6 +169,12 @@ class TsInterpreter(
 
                     val lValue = UArrayIndexLValue(addressSort, instance, bvIndex, lhv.array.type)
                     memory.write(lValue, fakeExpr, guard = trueExpr)
+                }
+
+                is EtsStaticFieldRef -> {
+                    val field = lhv.field
+                    val lValue = TsStaticFieldLValue(field, expr.sort)
+                    memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
                 }
 
                 else -> TODO("Not yet implemented")
