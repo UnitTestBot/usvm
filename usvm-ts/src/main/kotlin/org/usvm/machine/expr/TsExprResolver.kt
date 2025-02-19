@@ -81,6 +81,7 @@ import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.machine.TsContext
+import org.usvm.machine.interpreter.TsStaticFieldLValue
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.operator.TsBinaryOperator
 import org.usvm.machine.operator.TsUnaryOperator
@@ -567,9 +568,17 @@ class TsExprResolver(
         }
     }
 
-    override fun visit(value: EtsStaticFieldRef): UExpr<out USort>? {
-        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        error("Not supported $value")
+    override fun visit(value: EtsStaticFieldRef): UExpr<out USort>? = with(ctx) {
+        val fieldType = scene.fieldLookUp(value.field).type
+        val sort = typeToSort(fieldType)
+        val lValue = TsStaticFieldLValue(value.field, sort)
+        val expr = scope.calcOnState { memory.read(lValue) }
+
+        if (assertIsSubtype(expr, value.type)) {
+            expr
+        } else {
+            null
+        }
     }
 
     // endregion
