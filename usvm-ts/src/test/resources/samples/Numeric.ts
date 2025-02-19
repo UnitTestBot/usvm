@@ -1,3 +1,6 @@
+// @ts-nocheck
+// noinspection JSUnusedGlobalSymbols
+
 class Numeric {
     numberToNumber(x: number): number {
         if (x != x) return Number(x) // NaN

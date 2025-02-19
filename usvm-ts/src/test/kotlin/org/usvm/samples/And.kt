@@ -46,8 +46,10 @@ private fun EtsMethodParameter.toRef(): EtsParameterRef {
 
 class And : TsMethodTestRunner() {
 
+    private val className = this::class.simpleName!!
+
     override val scene: EtsScene = run {
-        val name = "And.ts"
+        val name = "$className.ts"
         val path = getResourcePath("/samples/$name")
         val file = loadEtsFileAutoConvert(path)
         EtsScene(listOf(file))
@@ -58,13 +60,13 @@ class And : TsMethodTestRunner() {
 
     @Test
     fun `test andOfBooleanAndBoolean`() {
-        val method = getMethod("And", "andOfBooleanAndBoolean")
+        val method = getMethod(className, "andOfBooleanAndBoolean")
         discoverProperties<TsValue.TsBoolean, TsValue.TsBoolean, TsValue.TsNumber>(
             method = method,
-            { a, b, r -> a.value && b.value && r.number == 1.0 },
-            { a, b, r -> a.value && !b.value && r.number == 2.0 },
-            { a, b, r -> !a.value && b.value && r.number == 3.0 },
-            { a, b, r -> !a.value && !b.value && r.number == 4.0 },
+            { a, b, r -> a.value && b.value && (r.number == 1.0) },
+            { a, b, r -> a.value && !b.value && (r.number == 2.0) },
+            { a, b, r -> !a.value && b.value && (r.number == 3.0) },
+            { a, b, r -> !a.value && !b.value && (r.number == 4.0) },
         )
     }
 
@@ -109,16 +111,16 @@ class And : TsMethodTestRunner() {
 
         discoverProperties<TsValue.TsBoolean, TsValue.TsBoolean, TsValue.TsNumber>(
             method = method,
-            { a, b, r -> a.value && b.value && r.number == 1.0 },
-            { a, b, r -> a.value && !b.value && r.number == 2.0 },
-            { a, b, r -> !a.value && b.value && r.number == 3.0 },
-            { a, b, r -> !a.value && !b.value && r.number == 4.0 },
+            { a, b, r -> a.value && b.value && (r.number == 1.0) },
+            { a, b, r -> a.value && !b.value && (r.number == 2.0) },
+            { a, b, r -> !a.value && b.value && (r.number == 3.0) },
+            { a, b, r -> !a.value && !b.value && (r.number == 4.0) },
         )
     }
 
     @Test
     fun `test andOfNumberAndNumber`() {
-        // val method = getMethod("And", "andOfNumberAndNumber")
+        // val method = getMethod(className, "andOfNumberAndNumber")
         //
         //   andOfNumberAndNumber(a: number, b: number): number {
         //       if (a && b) return 1
@@ -234,21 +236,21 @@ class And : TsMethodTestRunner() {
 
         discoverProperties<TsValue.TsNumber, TsValue.TsNumber, TsValue.TsNumber>(
             method = method,
-            { a, b, r -> isTruthy(a) && isTruthy(b) && r.number == 1.0 },
-            { a, b, r -> isTruthy(a) && b.number.isNaN() && r.number == 2.0 },
-            { a, b, r -> isTruthy(a) && b.number == 0.0 && r.number == 3.0 },
-            { a, b, r -> a.number.isNaN() && isTruthy(b) && r.number == 4.0 },
-            { a, b, r -> a.number.isNaN() && b.number.isNaN() && r.number == 5.0 },
-            { a, b, r -> a.number.isNaN() && b.number == 0.0 && r.number == 6.0 },
-            { a, b, r -> a.number == 0.0 && isTruthy(b) && r.number == 7.0 },
-            { a, b, r -> a.number == 0.0 && b.number.isNaN() && r.number == 8.0 },
-            { a, b, r -> a.number == 0.0 && b.number == 0.0 && r.number == 9.0 },
+            { a, b, r -> isTruthy(a) && isTruthy(b) && (r.number == 1.0) },
+            { a, b, r -> isTruthy(a) && b.number.isNaN() && (r.number == 2.0) },
+            { a, b, r -> isTruthy(a) && (b.number == 0.0) && (r.number == 3.0) },
+            { a, b, r -> a.number.isNaN() && isTruthy(b) && (r.number == 4.0) },
+            { a, b, r -> a.number.isNaN() && b.number.isNaN() && (r.number == 5.0) },
+            { a, b, r -> a.number.isNaN() && (b.number == 0.0) && (r.number == 6.0) },
+            { a, b, r -> (a.number == 0.0) && isTruthy(b) && (r.number == 7.0) },
+            { a, b, r -> (a.number == 0.0) && b.number.isNaN() && (r.number == 8.0) },
+            { a, b, r -> (a.number == 0.0) && (b.number == 0.0) && (r.number == 9.0) },
         )
     }
 
     @Test
     fun `test andOfBooleanAndNumber`() {
-        // val method = getMethod("And", "andOfBooleanAndNumber")
+        // val method = getMethod(className, "andOfBooleanAndNumber")
         //
         //   andOfBooleanAndNumber(a: boolean, b: number): number {
         //       if (a && b) return 1
@@ -337,18 +339,18 @@ class And : TsMethodTestRunner() {
 
         discoverProperties<TsValue.TsBoolean, TsValue.TsNumber, TsValue.TsNumber>(
             method = method,
-            { a, b, r -> a.value && isTruthy(b) && r.number == 1.0 },
-            { a, b, r -> a.value && b.number.isNaN() && r.number == 2.0 },
-            { a, b, r -> a.value && b.number == 0.0 && r.number == 3.0 },
-            { a, b, r -> !a.value && isTruthy(b) && r.number == 4.0 },
-            { a, b, r -> !a.value && b.number.isNaN() && r.number == 5.0 },
-            { a, b, r -> !a.value && b.number == 0.0 && r.number == 6.0 },
+            { a, b, r -> a.value && isTruthy(b) && (r.number == 1.0) },
+            { a, b, r -> a.value && b.number.isNaN() && (r.number == 2.0) },
+            { a, b, r -> a.value && (b.number == 0.0) && (r.number == 3.0) },
+            { a, b, r -> !a.value && isTruthy(b) && (r.number == 4.0) },
+            { a, b, r -> !a.value && b.number.isNaN() && (r.number == 5.0) },
+            { a, b, r -> !a.value && (b.number == 0.0) && (r.number == 6.0) },
         )
     }
 
     @Test
     fun `test andOfNumberAndBoolean`() {
-        // val method = getMethod("And", "andOfNumberAndBoolean")
+        // val method = getMethod(className, "andOfNumberAndBoolean")
         //
         //   andOfNumberAndBoolean(a: number, b: boolean): number {
         //       if (a && b) return 1
@@ -437,51 +439,51 @@ class And : TsMethodTestRunner() {
 
         discoverProperties<TsValue.TsNumber, TsValue.TsBoolean, TsValue.TsNumber>(
             method = method,
-            { a, b, r -> isTruthy(a) && b.value && r.number == 1.0 },
-            { a, b, r -> isTruthy(a) && !b.value && r.number == 2.0 },
-            { a, b, r -> a.number.isNaN() && b.value && r.number == 3.0 },
-            { a, b, r -> a.number.isNaN() && !b.value && r.number == 4.0 },
-            { a, b, r -> a.number == 0.0 && b.value && r.number == 5.0 },
-            { a, b, r -> a.number == 0.0 && !b.value && r.number == 6.0 },
+            { a, b, r -> isTruthy(a) && b.value && (r.number == 1.0) },
+            { a, b, r -> isTruthy(a) && !b.value && (r.number == 2.0) },
+            { a, b, r -> a.number.isNaN() && b.value && (r.number == 3.0) },
+            { a, b, r -> a.number.isNaN() && !b.value && (r.number == 4.0) },
+            { a, b, r -> (a.number == 0.0) && b.value && (r.number == 5.0) },
+            { a, b, r -> (a.number == 0.0) && !b.value && (r.number == 6.0) },
         )
     }
 
     @Test
     @Disabled("Does not work because objects cannot be null")
     fun `test andOfObjectAndObject`() {
-        val method = getMethod("And", "andOfObjectAndObject")
+        val method = getMethod(className, "andOfObjectAndObject")
         discoverProperties<TsValue.TsClass, TsValue.TsClass, TsValue.TsNumber>(
             method = method,
-            { a, b, r -> isTruthy(a) && isTruthy(b) && r.number == 1.0 },
-            { a, b, r -> isTruthy(a) && !isTruthy(b) && r.number == 2.0 },
-            { a, b, r -> !isTruthy(a) && isTruthy(b) && r.number == 3.0 },
-            { a, b, r -> !isTruthy(a) && !isTruthy(b) && r.number == 4.0 },
+            { a, b, r -> isTruthy(a) && isTruthy(b) && (r.number == 1.0) },
+            { a, b, r -> isTruthy(a) && !isTruthy(b) && (r.number == 2.0) },
+            { a, b, r -> !isTruthy(a) && isTruthy(b) && (r.number == 3.0) },
+            { a, b, r -> !isTruthy(a) && !isTruthy(b) && (r.number == 4.0) },
         )
     }
 
     @Test
     fun `test andOfUnknown`() {
-        val method = getMethod("And", "andOfUnknown")
+        val method = getMethod(className, "andOfUnknown")
         discoverProperties<TsValue, TsValue, TsValue.TsNumber>(
             method = method,
             { a, b, r ->
                 if (a is TsValue.TsBoolean && b is TsValue.TsBoolean) {
-                    a.value && b.value && r.number == 1.0
+                    a.value && b.value && (r.number == 1.0)
                 } else true
             },
             { a, b, r ->
                 if (a is TsValue.TsBoolean && b is TsValue.TsBoolean) {
-                    a.value && !b.value && r.number == 2.0
+                    a.value && !b.value && (r.number == 2.0)
                 } else true
             },
             { a, b, r ->
                 if (a is TsValue.TsBoolean && b is TsValue.TsBoolean) {
-                    !a.value && b.value && r.number == 3.0
+                    !a.value && b.value && (r.number == 3.0)
                 } else true
             },
             { a, b, r ->
                 if (a is TsValue.TsBoolean && b is TsValue.TsBoolean) {
-                    !a.value && !b.value && r.number == 4.0
+                    !a.value && !b.value && (r.number == 4.0)
                 } else true
             },
         )
@@ -489,22 +491,22 @@ class And : TsMethodTestRunner() {
 
     @Test
     fun `test truthyUnknown`() {
-        val method = getMethod("And", "truthyUnknown")
+        val method = getMethod(className, "truthyUnknown")
         discoverProperties<TsValue, TsValue, TsValue.TsNumber>(
             method = method,
             { a, b, r ->
                 if (a is TsValue.TsBoolean && b is TsValue.TsBoolean) {
-                    a.value && !b.value && r.number == 1.0
+                    a.value && !b.value && (r.number == 1.0)
                 } else true
             },
             { a, b, r ->
                 if (a is TsValue.TsBoolean && b is TsValue.TsBoolean) {
-                    !a.value && b.value && r.number == 2.0
+                    !a.value && b.value && (r.number == 2.0)
                 } else true
             },
             { a, b, r ->
                 if (a is TsValue.TsBoolean && b is TsValue.TsBoolean) {
-                    !a.value && !b.value && r.number == 99.0
+                    !a.value && !b.value && (r.number == 99.0)
                 } else true
             },
         )

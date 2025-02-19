@@ -1,3 +1,6 @@
+// @ts-nocheck
+// noinspection JSUnusedGlobalSymbols
+
 class Or {
     // (a)   (b)   (a || b) Case
     // false false   false   4

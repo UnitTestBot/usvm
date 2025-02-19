@@ -1,3 +1,6 @@
+// @ts-nocheck
+// noinspection JSUnusedGlobalSymbols
+
 class And {
     andOfBooleanAndBoolean(a: boolean, b: boolean): number {
         if (a && b) return 1

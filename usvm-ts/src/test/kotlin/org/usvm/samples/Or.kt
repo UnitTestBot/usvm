@@ -29,8 +29,10 @@ import org.usvm.util.isTruthy
 
 class Or : TsMethodTestRunner() {
 
+    private val className = this::class.simpleName!!
+
     override val scene: EtsScene = run {
-        val name = "Or.ts"
+        val name = "$className.ts"
         val path = getResourcePath("/samples/$name")
         val file = loadEtsFileAutoConvert(path)
         EtsScene(listOf(file))
@@ -41,13 +43,13 @@ class Or : TsMethodTestRunner() {
 
     @Test
     fun `test orOfBooleanAndBoolean`() {
-        val method = getMethod("Or", "orOfBooleanAndBoolean")
+        val method = getMethod(className, "orOfBooleanAndBoolean")
         discoverProperties<TsValue.TsBoolean, TsValue.TsBoolean, TsValue.TsNumber>(
             method = method,
-            { a, b, r -> a.value && b.value && r.number == 1.0 },
-            { a, b, r -> a.value && !b.value && r.number == 2.0 },
-            { a, b, r -> !a.value && b.value && r.number == 3.0 },
-            { a, b, r -> !a.value && !b.value && r.number == 4.0 },
+            { a, b, r -> a.value && b.value && (r.number == 1.0) },
+            { a, b, r -> a.value && !b.value && (r.number == 2.0) },
+            { a, b, r -> !a.value && b.value && (r.number == 3.0) },
+            { a, b, r -> !a.value && !b.value && (r.number == 4.0) },
             invariants = arrayOf(
                 { _, _, r -> r.number != 0.0 },
                 { _, _, r -> r.number in 1.0..4.0 },
@@ -138,15 +140,15 @@ class Or : TsMethodTestRunner() {
 
         discoverProperties<TsValue.TsNumber, TsValue.TsNumber, TsValue.TsNumber>(
             method = method,
-            { a, b, r -> isTruthy(a) && isTruthy(b) && r.number == 1.0 },
-            { a, b, r -> isTruthy(a) && b.number.isNaN() && r.number == 2.0 },
-            { a, b, r -> isTruthy(a) && b.number == 0.0 && r.number == 3.0 },
-            { a, b, r -> a.number.isNaN() && isTruthy(b) && r.number == 4.0 },
-            { a, b, r -> a.number.isNaN() && b.number.isNaN() && r.number == 5.0 },
-            { a, b, r -> a.number.isNaN() && b.number == 0.0 && r.number == 6.0 },
-            { a, b, r -> a.number == 0.0 && isTruthy(b) && r.number == 7.0 },
-            { a, b, r -> a.number == 0.0 && b.number.isNaN() && r.number == 8.0 },
-            { a, b, r -> a.number == 0.0 && b.number == 0.0 && r.number == 9.0 },
+            { a, b, r -> isTruthy(a) && isTruthy(b) && (r.number == 1.0) },
+            { a, b, r -> isTruthy(a) && b.number.isNaN() && (r.number == 2.0) },
+            { a, b, r -> isTruthy(a) && (b.number == 0.0) && (r.number == 3.0) },
+            { a, b, r -> a.number.isNaN() && isTruthy(b) && (r.number == 4.0) },
+            { a, b, r -> a.number.isNaN() && b.number.isNaN() && (r.number == 5.0) },
+            { a, b, r -> a.number.isNaN() && (b.number == 0.0) && (r.number == 6.0) },
+            { a, b, r -> (a.number == 0.0) && isTruthy(b) && (r.number == 7.0) },
+            { a, b, r -> (a.number == 0.0) && b.number.isNaN() && (r.number == 8.0) },
+            { a, b, r -> (a.number == 0.0) && (b.number == 0.0) && (r.number == 9.0) },
             invariants = arrayOf(
                 { _, _, r -> r.number != 0.0 },
                 { _, _, r -> r.number in 1.0..9.0 },
