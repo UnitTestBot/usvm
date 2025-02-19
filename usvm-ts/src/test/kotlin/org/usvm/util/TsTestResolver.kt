@@ -138,6 +138,7 @@ open class TsTestStateResolver(
                     resolveRef(expr.asExpr(ctx.addressSort), EtsUnknownType)
                 }
             }
+
             else -> TODO()
         }
     }
@@ -160,6 +161,7 @@ open class TsTestStateResolver(
                 val type = finalStateMemory.types.getTypeStream(expr).first()
                 resolveRef(expr, type)
             }
+
             else -> error("Unexpected type: $type")
         }
     }

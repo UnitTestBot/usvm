@@ -35,6 +35,7 @@ class Arrays {
 
     createArrayOfNumbersAndPutDifferentTypes() {
         let x = [1, 2, 3]
+        // @ts-ignore
         x[1] = true
         x[2] = undefined
         x[0] = null
@@ -43,10 +44,9 @@ class Arrays {
 
     allocatedArrayLengthExpansion() {
         let x = [1, 2, 3]
-
         if (x.length == 3) {
             x[5] = 5
-
+            // @ts-ignore
             if (x.length == 6) {
                 return x
             } else {
@@ -60,7 +60,6 @@ class Arrays {
     writeInTheIndexEqualToLength() {
         let x = [1, 2, 3]
         x[3] = 4
-
         return x
     }
 }

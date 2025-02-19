@@ -106,13 +106,14 @@ class Arrays : TsMethodTestRunner() {
         val method = getMethod("Arrays", "allocatedArrayLengthExpansion")
         discoverProperties<TsValue.TsArray<*>>(
             method = method,
-            { r -> r.values.size == 6
-                && (r.values[0] as TsValue.TsNumber).number == 1.0
-                && (r.values[1] as TsValue.TsNumber).number == 2.0
-                && (r.values[2] as TsValue.TsNumber).number == 3.0
-                && r.values[3] is TsValue.TsUndefined
-                && r.values[4] is TsValue.TsUndefined
-                && (r.values[5] as TsValue.TsNumber).number == 5.0
+            { r ->
+                r.values.size == 6
+                    && (r.values[0] as TsValue.TsNumber).number == 1.0
+                    && (r.values[1] as TsValue.TsNumber).number == 2.0
+                    && (r.values[2] as TsValue.TsNumber).number == 3.0
+                    && r.values[3] is TsValue.TsUndefined
+                    && r.values[4] is TsValue.TsUndefined
+                    && (r.values[5] as TsValue.TsNumber).number == 5.0
             }
         )
     }

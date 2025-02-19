@@ -64,7 +64,6 @@ import org.jacodb.ets.base.EtsTypeOfExpr
 import org.jacodb.ets.base.EtsUnaryExpr
 import org.jacodb.ets.base.EtsUnaryPlusExpr
 import org.jacodb.ets.base.EtsUndefinedConstant
-import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.base.EtsUnsignedRightShiftExpr
 import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.base.EtsVoidExpr

@@ -77,16 +77,19 @@ class TsContext(
                     memory.write(lvalue, this@toFakeObject.asExpr(boolSort), guard = trueExpr)
                     memory.types.allocate(ref.address, FakeType.fromBool(this@TsContext))
                 }
+
                 fp64Sort -> {
                     val lValue = getIntermediateFpLValue(ref.address)
                     memory.write(lValue, this@toFakeObject.asExpr(fp64Sort), guard = trueExpr)
                     memory.types.allocate(ref.address, FakeType.fromFp(this@TsContext))
                 }
+
                 addressSort -> {
                     val lValue = getIntermediateRefLValue(ref.address)
                     memory.types.allocate(ref.address, FakeType.fromRef(this@TsContext))
                     memory.write(lValue, this@toFakeObject.asExpr(addressSort), guard = trueExpr)
                 }
+
                 else -> TODO("Not yet supported")
             }
         }
