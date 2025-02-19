@@ -138,6 +138,7 @@ open class TsTestStateResolver(
                     resolveRef(expr.asExpr(ctx.addressSort), EtsUnknownType)
                 }
             }
+
             else -> TODO()
         }
     }
@@ -160,6 +161,7 @@ open class TsTestStateResolver(
                 val type = finalStateMemory.types.getTypeStream(expr).first()
                 resolveRef(expr, type)
             }
+
             else -> error("Unexpected type: $type")
         }
     }
@@ -170,14 +172,16 @@ open class TsTestStateResolver(
 
         val values = (0 until length.intValue).map {
             val index = ctx.mkSizeExpr(it)
-            // TODO wrong sort
-            val lValue = if (type.elementType is EtsUnknownType) {
-                UArrayIndexLValue(ctx.addressSort, expr, index, type)
-            } else {
-                UArrayIndexLValue(ctx.typeToSort(type.elementType), expr, index, type)
+            val lValue = UArrayIndexLValue(ctx.addressSort, expr, index, type)
+            val value = memory.read(lValue)
+
+            if (model.eval(ctx.mkHeapRefEq(value, ctx.mkUndefinedValue())).isTrue) {
+                return@map TsValue.TsUndefined
             }
-            val value = memory.read(lValue) // TODO write reading???
-            resolveExpr(value, type.elementType)
+
+            with(ctx) { check(value.isFakeObject()) { "Only fake objects are allowed in arrays" } }
+
+            resolveFakeObject(value as UConcreteHeapRef)
         }
 
         return TsValue.TsArray(values)

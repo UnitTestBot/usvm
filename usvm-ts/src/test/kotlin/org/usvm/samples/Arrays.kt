@@ -2,7 +2,6 @@ package org.usvm.samples
 
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsValue
 import org.usvm.util.TsMethodTestRunner
@@ -59,7 +58,6 @@ class Arrays : TsMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Arrays should contain only fake objects")
     fun testCreateMixedArray() {
         val method = getMethod("Arrays", "createMixedArray")
         discoverProperties<TsValue.TsArray<*>>(
@@ -75,7 +73,7 @@ class Arrays : TsMethodTestRunner() {
     }
 
     @Test
-    fun testCreateArrayOfUnknown() {
+    fun testCreateArrayOfUnknownValues() {
         val method = getMethod("Arrays", "createArrayOfUnknownValues")
         discoverProperties<TsValue, TsValue, TsValue, TsValue.TsArray<*>>(
             method = method,
@@ -89,7 +87,6 @@ class Arrays : TsMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Arrays should contain only fake objects")
     fun testCreateArrayOfNumbersAndPutDifferentTypes() {
         val method = getMethod("Arrays", "createArrayOfNumbersAndPutDifferentTypes")
         discoverProperties<TsValue.TsArray<*>>(
@@ -97,10 +94,36 @@ class Arrays : TsMethodTestRunner() {
             { r ->
                 val values = r.values
                 values.size == 3
-                    && (values[0] as TsValue.TsClass).properties.size == 1
+                    && values[0] is TsValue.TsNull
                     && (values[1] as TsValue.TsBoolean).value
                     && values[2] is TsValue.TsUndefined
             },
+        )
+    }
+
+    @Test
+    fun testAllocatedArrayLengthExpansion() {
+        val method = getMethod("Arrays", "allocatedArrayLengthExpansion")
+        discoverProperties<TsValue.TsArray<*>>(
+            method = method,
+            { r ->
+                r.values.size == 6
+                    && (r.values[0] as TsValue.TsNumber).number == 1.0
+                    && (r.values[1] as TsValue.TsNumber).number == 2.0
+                    && (r.values[2] as TsValue.TsNumber).number == 3.0
+                    && r.values[3] is TsValue.TsUndefined
+                    && r.values[4] is TsValue.TsUndefined
+                    && (r.values[5] as TsValue.TsNumber).number == 5.0
+            }
+        )
+    }
+
+    @Test
+    fun testWriteInTheIndexEqualToLength() {
+        val method = getMethod("Arrays", "writeInTheIndexEqualToLength")
+        discoverProperties<TsValue.TsArray<TsValue.TsNumber>>(
+            method = method,
+            { r -> r.values.map { it.number } == listOf(1.0, 2.0, 3.0, 4.0) },
         )
     }
 }
