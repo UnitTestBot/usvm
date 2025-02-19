@@ -424,6 +424,13 @@ class TsExprResolver(
     }
 
     override fun visit(expr: EtsStaticCallExpr): UExpr<out USort>? {
+        if (expr.method.name == "Number" && expr.method.enclosingClass.name == "") {
+            check(expr.args.size == 1) { "Number constructor should have exactly one argument" }
+            return resolveAfterResolved(expr.args.single()) {
+                ctx.mkNumericExpr(it, scope)
+            }
+        }
+
         return resolveInvoke(
             method = expr.method,
             instance = null,
