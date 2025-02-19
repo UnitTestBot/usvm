@@ -41,4 +41,13 @@ class Objects : TsMethodTestRunner() {
             { r -> r.properties.toList().single().second is TsValue.TsNull }
         )
     }
+
+    @Test
+    fun testCreateAnonymousClass() {
+        val method = getMethod("Example", "createAnonymousClass")
+        discoverProperties<TsValue.TsClass>(
+            method = method,
+            { r -> (r.properties.toList().single().second as TsValue.TsNumber).number == 15.0 }
+        )
+    }
 }

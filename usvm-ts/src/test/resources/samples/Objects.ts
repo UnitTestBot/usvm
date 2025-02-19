@@ -25,4 +25,8 @@ class Example {
 
         return x;
     }
+
+    createAnonymousClass() {
+        return { a : 15 };
+    }
 }
