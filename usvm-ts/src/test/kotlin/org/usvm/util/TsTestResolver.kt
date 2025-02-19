@@ -121,10 +121,16 @@ open class TsTestStateResolver(
     fun resolveExpr(
         expr: UExpr<out USort>,
         type: EtsType,
-    ): TsValue = when (type) {
-        is EtsPrimitiveType -> resolvePrimitive(expr, type)
-        is EtsRefType -> resolveRef(expr.asExpr(ctx.addressSort), type)
-        else -> resolveUnknownExpr(expr)
+    ): TsValue = with(ctx) {
+        if (expr.isFakeObject()) {
+            return resolveFakeObject(expr)
+        }
+
+        return when (type) {
+            is EtsPrimitiveType -> resolvePrimitive(expr, type)
+            is EtsRefType -> resolveRef(expr.asExpr(ctx.addressSort), type)
+            else -> resolveUnknownExpr(expr)
+        }
     }
 
     fun resolveUnknownExpr(expr: UExpr<out USort>): TsValue = with(expr.tctx) {
@@ -300,11 +306,12 @@ open class TsTestStateResolver(
             }
 
         val properties = clazz.fields.associate { field ->
-            val lValue = UFieldLValue(ctx.addressSort, expr.asExpr(ctx.addressSort), field.signature)
-            val fieldExpr = memory.read(lValue)
+            val lValue = UFieldLValue(ctx.addressSort, expr.asExpr(ctx.addressSort), field.name)
+            // read from final state memory since it is a fake object
+            val fieldExpr = finalStateMemory.read(lValue)
 
             with(ctx) {
-                if (model.eval(mkHeapRefEq(fieldExpr, mkUndefinedValue())).isTrue) {
+                if (model.eval(mkEq(fieldExpr, mkUndefinedValue())).isTrue) {
                     return@associate field.name to TsValue.TsUndefined
                 }
 

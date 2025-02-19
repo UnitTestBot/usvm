@@ -558,11 +558,18 @@ class TsExprResolver(
             return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), expr.asExpr(sizeSort), signed = true)
         }
 
-        val lValue = UFieldLValue(addressSort, instanceRef, value.field)
+        val fieldType = scene.fieldLookUp(value.field).type
+        val sort = typeToSort(fieldType)
+        val lValue = UFieldLValue(sort, instanceRef, value.field.name)
         val expr = scope.calcOnState { memory.read(lValue) }
 
+        val fakeExpr = expr.toFakeObject(scope)
+
+        val fieldLValue = UFieldLValue(addressSort, instanceRef, value.field.name)
+        scope.calcOnState { memory.write(fieldLValue, fakeExpr, guard = trueExpr) }
+
         if (assertIsSubtype(expr, value.type)) {
-            expr
+            fakeExpr
         } else {
             null
         }
