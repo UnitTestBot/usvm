@@ -116,4 +116,13 @@ class Arrays : TsMethodTestRunner() {
             }
         )
     }
+
+    @Test
+    fun testWriteInTheIndexEqualToLength() {
+        val method = getMethod("Arrays", "writeInTheIndexEqualToLength")
+        discoverProperties<TsValue.TsArray<TsValue.TsNumber>>(
+            method = method,
+            { r -> r.values.map { it.number } == listOf(1.0, 2.0, 3.0, 4.0) },
+        )
+    }
 }

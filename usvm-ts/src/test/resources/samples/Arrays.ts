@@ -56,4 +56,11 @@ class Arrays {
             return -1 // unreachable
         }
     }
+
+    writeInTheIndexEqualToLength() {
+        let x = [1, 2, 3]
+        x[3] = 4
+
+        return x
+    }
 }

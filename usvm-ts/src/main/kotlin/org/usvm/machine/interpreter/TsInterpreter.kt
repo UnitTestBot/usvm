@@ -158,7 +158,7 @@ class TsInterpreter(
                     val lengthLValue = UArrayLengthLValue(instance, lhv.array.type, sizeSort)
                     val currentLength = memory.read(lengthLValue).asExpr(sizeSort)
 
-                    val condition = mkBvSignedGreaterExpr(bvIndex, currentLength)
+                    val condition = mkBvSignedGreaterOrEqualExpr(bvIndex, currentLength)
                     val newLength = mkIte(condition, mkBvAddExpr(bvIndex, mkBv(1)), currentLength)
 
                     memory.write(lengthLValue, newLength, guard = trueExpr)
