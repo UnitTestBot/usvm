@@ -3,18 +3,19 @@ package org.usvm.machine.operator
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import org.usvm.UAddressSort
-import org.usvm.UBoolSort
+import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.machine.TsContext
+import org.usvm.machine.expr.mkNumericExpr
 import org.usvm.machine.expr.mkTruthyExpr
 import org.usvm.machine.interpreter.TsStepScope
 
 sealed interface TsUnaryOperator {
 
     fun TsContext.resolveBool(
-        arg: UExpr<UBoolSort>,
+        arg: UBoolExpr,
         scope: TsStepScope,
     ): UExpr<out USort>
 
@@ -50,70 +51,61 @@ sealed interface TsUnaryOperator {
 
     data object Not : TsUnaryOperator {
         override fun TsContext.resolveBool(
-            arg: UExpr<UBoolSort>,
+            arg: UBoolExpr,
             scope: TsStepScope,
-        ): UExpr<out USort> {
+        ): UBoolExpr {
             return mkNot(arg)
         }
 
         override fun TsContext.resolveFp(
             arg: UExpr<KFp64Sort>,
             scope: TsStepScope,
-        ): UExpr<out USort> {
+        ): UBoolExpr {
             return mkNot(mkTruthyExpr(arg, scope))
         }
 
         override fun TsContext.resolveRef(
             arg: UExpr<UAddressSort>,
             scope: TsStepScope,
-        ): UExpr<out USort> {
+        ): UBoolExpr {
             return mkNot(mkTruthyExpr(arg, scope))
         }
 
         override fun TsContext.resolveFake(
             arg: UConcreteHeapRef,
             scope: TsStepScope,
-        ): UExpr<out USort> {
-            TODO("Not yet implemented")
+        ): UBoolExpr {
+            return mkNot(mkTruthyExpr(arg, scope))
         }
     }
 
     data object Neg : TsUnaryOperator {
         override fun TsContext.resolveBool(
-            arg: UExpr<UBoolSort>,
+            arg: UBoolExpr,
             scope: TsStepScope,
-        ): UExpr<out USort> {
-            // -true = -1.0
-            // -false = -0.0
-            @Suppress("MagicNumber")
-            return mkIte(arg, mkFp64(-1.0), mkFp64(-0.0))
+        ): UExpr<KFp64Sort> {
+            return mkFpNegationExpr(mkNumericExpr(arg, scope))
         }
 
         override fun TsContext.resolveFp(
             arg: UExpr<KFp64Sort>,
             scope: TsStepScope,
-        ): UExpr<out USort> {
+        ): UExpr<KFp64Sort> {
             return mkFpNegationExpr(arg)
         }
 
         override fun TsContext.resolveRef(
             arg: UExpr<UAddressSort>,
             scope: TsStepScope,
-        ): UExpr<out USort> {
-            // -undefined = NaN
-            if (arg == mkUndefinedValue()) {
-                return mkFp64NaN()
-            }
-
-            // TODO: convert to numeric value and then negate
-            TODO("Not yet implemented")
+        ): UExpr<KFp64Sort> {
+            return mkFpNegationExpr(mkNumericExpr(arg, scope))
         }
 
         override fun TsContext.resolveFake(
             arg: UConcreteHeapRef,
             scope: TsStepScope,
-        ): UExpr<out USort> {
-            TODO("Not yet implemented")
+        ): UExpr<KFp64Sort> {
+            return mkFpNegationExpr(mkNumericExpr(arg, scope))
         }
     }
 }
