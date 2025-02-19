@@ -14,4 +14,15 @@ class Example {
 
         return x;
     }
+
+    createClassInstanceAndWriteValueOfAnotherType() {
+        let x = new SimpleClass();
+        x.x = true;
+
+        if (x.x === true) {
+            x.x = null
+        }
+
+        return x;
+    }
 }

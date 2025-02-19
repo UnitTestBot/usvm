@@ -32,4 +32,13 @@ class Objects : TsMethodTestRunner() {
             { r -> (r.properties.toList().single().second as TsValue.TsNumber).number == 14.0 }
         )
     }
+
+    @Test
+    fun testCreateClassInstanceAndWriteValueOfAnotherType() {
+        val method = getMethod("Example", "createClassInstanceAndWriteValueOfAnotherType")
+        discoverProperties<TsValue.TsClass>(
+            method = method,
+            { r -> r.properties.toList().single().second is TsValue.TsNull }
+        )
+    }
 }
