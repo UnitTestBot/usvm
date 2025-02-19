@@ -300,11 +300,18 @@ open class TsTestStateResolver(
             }
 
         val properties = clazz.fields.associate { field ->
-            val sort = ctx.typeToSort(field.type)
-            val lValue = UFieldLValue(sort, expr.asExpr(ctx.addressSort), field.name)
+            val lValue = UFieldLValue(ctx.addressSort, expr.asExpr(ctx.addressSort), field.signature)
             val fieldExpr = memory.read(lValue)
-            val obj = resolveExpr(fieldExpr, field.type)
-            field.name to obj
+
+            with(ctx) {
+                if (model.eval(mkHeapRefEq(fieldExpr, mkUndefinedValue())).isTrue) {
+                    return@associate field.name to TsValue.TsUndefined
+                }
+
+                check(fieldExpr.isFakeObject())
+                val obj = resolveFakeObject(fieldExpr)
+                field.name to obj
+            }
         }
         return TsValue.TsClass(clazz.name, properties)
     }
