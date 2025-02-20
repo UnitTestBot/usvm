@@ -82,4 +82,13 @@ class InstanceFields : TsMethodTestRunner() {
             }
         )
     }
+
+    @Test
+    fun `test assignField`() {
+        val method = getMethod("InstanceFields", "assignField")
+        discoverProperties<TsValue.TsClass, TsValue.TsNumber>(
+            method,
+            { x, r -> r.number == 10.0 },
+        )
+    }
 }

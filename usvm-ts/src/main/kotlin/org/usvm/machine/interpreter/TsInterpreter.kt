@@ -45,6 +45,7 @@ import org.usvm.machine.state.returnValue
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.sizeSort
 import org.usvm.targets.UTargetsSet
+import org.usvm.util.fieldLookUp
 import org.usvm.utils.ensureSat
 
 private val logger = KotlinLogging.logger {}
@@ -176,8 +177,9 @@ class TsInterpreter(
                 is EtsInstanceFieldRef -> {
                     val instance = exprResolver.resolve(lhv.instance)?.asExpr(addressSort) ?: return@doWithState
                     val field = lhv.field
-                    val sort = typeToSort(field.type)
-                    val lValue = UFieldLValue(sort, instance, field)
+                    val fieldType = scene.fieldLookUp(field).type
+                    val sort = typeToSort(fieldType)
+                    val lValue = UFieldLValue(sort, instance, field.name)
                     memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
                 }
 
