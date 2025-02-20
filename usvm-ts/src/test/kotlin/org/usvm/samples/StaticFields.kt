@@ -19,7 +19,7 @@ class StaticFields : TsMethodTestRunner() {
     }
 
     @Test
-    fun testStaticNumber() {
+    fun `test static access`() {
         val method = getMethod("StaticNumber", "getValue")
         discoverProperties<TsValue.TsNumber>(
             method = method,
@@ -28,7 +28,7 @@ class StaticFields : TsMethodTestRunner() {
     }
 
     @Test
-    fun testStaticModification() {
+    fun `test static modification`() {
         val method = getMethod("StaticModification", "incrementTwice")
         discoverProperties<TsValue.TsNumber>(
             method = method,
@@ -37,7 +37,7 @@ class StaticFields : TsMethodTestRunner() {
     }
 
     @Test
-    fun testStaticInheritanceParent() {
+    fun `test static inheritance parent`() {
         val method = getMethod("StaticChild", "getParentId")
         discoverProperties<TsValue.TsNumber>(
             method = method,
@@ -46,7 +46,7 @@ class StaticFields : TsMethodTestRunner() {
     }
 
     @Test
-    fun testStaticInheritanceChild() {
+    fun `test static inheritance child`() {
         val method = getMethod("StaticChild", "getChildId")
         discoverProperties<TsValue.TsNumber>(
             method = method,
@@ -55,7 +55,7 @@ class StaticFields : TsMethodTestRunner() {
     }
 
     @Test
-    fun testStaticBooleanToggle() {
+    fun `test static boolean toggle`() {
         val method = getMethod("StaticBoolean", "toggleAndGet")
         discoverProperties<TsValue.TsBoolean>(
             method = method,
@@ -64,7 +64,7 @@ class StaticFields : TsMethodTestRunner() {
     }
 
     @Test
-    fun testStaticArrayOperations() {
+    fun `test static array modification`() {
         val method = getMethod("StaticArray", "pushTwice")
         discoverProperties<TsValue.TsNumber>(
             method = method,
@@ -73,7 +73,7 @@ class StaticFields : TsMethodTestRunner() {
     }
 
     @Test
-    fun testStaticNullInitialization() {
+    fun `test static null initialization`() {
         val method = getMethod("StaticNull", "initialize")
         discoverProperties<TsValue.TsNumber>(
             method = method,
@@ -82,7 +82,7 @@ class StaticFields : TsMethodTestRunner() {
     }
 
     @Test
-    fun testStaticObjectOperations() {
+    fun `test static object manipulation`() {
         val method = getMethod("StaticObject", "toggleAndGet")
         discoverProperties<TsValue.TsClass>(
             method = method,
@@ -98,7 +98,7 @@ class StaticFields : TsMethodTestRunner() {
     }
 
     @Test
-    fun testStaticAccess() {
+    fun `test static access sum`() {
         val method = getMethod("StaticAccess", "calculateSum")
         discoverProperties<TsValue.TsNumber>(
             method = method,
@@ -107,7 +107,7 @@ class StaticFields : TsMethodTestRunner() {
     }
 
     @Test
-    fun testStaticAccessSwap() {
+    fun `test static access swap`() {
         val method = getMethod("StaticAccess", "swapAndGetValues")
         discoverProperties<TsValue.TsArray<TsValue.TsNumber>>(
             method = method,

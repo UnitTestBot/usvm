@@ -20,7 +20,7 @@ class Equality : TsMethodTestRunner() {
     }
 
     @Test
-    fun testEqBoolWithBool() {
+    fun `test eqBoolWithBool`() {
         val method = getMethod(className, "eqBoolWithBool")
         discoverProperties<TsValue.TsBoolean, TsValue.TsNumber>(
             method,
@@ -33,7 +33,7 @@ class Equality : TsMethodTestRunner() {
     }
 
     @Test
-    fun testEqNumberWithNumber() {
+    fun `test eqNumberWithNumber`() {
         val method = getMethod(className, "eqNumberWithNumber")
         discoverProperties<TsValue.TsNumber, TsValue.TsNumber>(
             method,
@@ -45,7 +45,7 @@ class Equality : TsMethodTestRunner() {
 
     @Test
     @Disabled("Unsupported string")
-    fun testEqStringWithString() {
+    fun `test eqStringWithString`() {
         val method = getMethod(className, "eqStringWithString")
         discoverProperties<TsValue.TsString, TsValue.TsNumber>(
             method,

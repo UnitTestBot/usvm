@@ -19,7 +19,7 @@ class InstanceMethods : TsMethodTestRunner() {
     }
 
     @Test
-    fun testNoArgsStaticMethod() {
+    fun `test noArguments`() {
         val method = getMethod(className, "noArguments")
         discoverProperties<TsValue.TsNumber>(
             method,
@@ -28,7 +28,7 @@ class InstanceMethods : TsMethodTestRunner() {
     }
 
     @Test
-    fun testSingleArgStaticMethod() {
+    fun `test singleArgument`() {
         val method = getMethod(className, "singleArgument")
         discoverProperties<TsValue.TsNumber, TsValue.TsNumber>(
             method,
@@ -40,7 +40,7 @@ class InstanceMethods : TsMethodTestRunner() {
     }
 
     @Test
-    fun testManyArgsStaticMethod() {
+    fun `test manyArguments`() {
         val method = getMethod(className, "manyArguments")
         discoverProperties<TsValue.TsNumber, TsValue.TsNumber, TsValue.TsNumber, TsValue.TsNumber, TsValue.TsNumber>(
             method,

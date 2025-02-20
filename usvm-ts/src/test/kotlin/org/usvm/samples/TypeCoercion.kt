@@ -24,7 +24,7 @@ class TypeCoercion : TsMethodTestRunner() {
     }
 
     @Test
-    fun testArgWithConst() {
+    fun `test argWithConst`() {
         val method = getMethod(className, "argWithConst")
         discoverProperties<TsValue.TsNumber, TsValue.TsNumber>(
             method,
@@ -34,7 +34,7 @@ class TypeCoercion : TsMethodTestRunner() {
     }
 
     @Test
-    fun testDualBoolean() {
+    fun `test dualBoolean`() {
         val method = getMethod(className, "dualBoolean")
         discoverProperties<TsValue.TsNumber, TsValue.TsNumber>(
             method,
@@ -49,7 +49,7 @@ class TypeCoercion : TsMethodTestRunner() {
 
     @Test
     @Disabled("Unsupported string")
-    fun testDualBooleanWithoutTypes() {
+    fun `test dualBooleanWithoutTypes`() {
         val method = getMethod(className, "dualBooleanWithoutTypes")
         discoverProperties<TsValue.TsUnknown, TsValue.TsNumber>(
             method,
@@ -57,7 +57,7 @@ class TypeCoercion : TsMethodTestRunner() {
     }
 
     @Test
-    fun testArgWithArg() {
+    fun `test argWithArg`() {
         val method = getMethod(className, "argWithArg")
         discoverProperties<TsValue.TsBoolean, TsValue.TsNumber, TsValue.TsNumber>(
             method,
@@ -67,7 +67,7 @@ class TypeCoercion : TsMethodTestRunner() {
     }
 
     @Test
-    fun testUnreachableByType() {
+    fun `test unreachableByType`() {
         val method = getMethod(className, "unreachableByType")
         discoverProperties<TsValue.TsNumber, TsValue.TsBoolean, TsValue.TsNumber>(
             method,
@@ -81,7 +81,7 @@ class TypeCoercion : TsMethodTestRunner() {
 
     @Test
     @Disabled("Wrong IR, incorrect handling of NaN value")
-    fun testTransitiveCoercion() {
+    fun `test transitiveCoercion`() {
         val method = getMethod(className, "transitiveCoercion")
         discoverProperties<TsValue.TsNumber, TsValue.TsBoolean, TsValue.TsNumber, TsValue.TsNumber>(
             method,
@@ -92,7 +92,7 @@ class TypeCoercion : TsMethodTestRunner() {
     }
 
     @Test
-    fun testTransitiveCoercionNoTypes() {
+    fun `test transitiveCoercionNoTypes`() {
         val method = getMethod(className, "transitiveCoercionNoTypes")
         discoverProperties<TsValue.TsUnknown, TsValue.TsUnknown, TsValue.TsUnknown, TsValue.TsNumber>(
             method,

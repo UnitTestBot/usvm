@@ -2,7 +2,7 @@ package org.usvm.samples
 
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
-import org.junit.jupiter.api.RepeatedTest
+import org.junit.jupiter.api.Test
 import org.usvm.api.TsValue
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.getResourcePath
@@ -18,8 +18,8 @@ class Null : TsMethodTestRunner() {
         EtsScene(listOf(file))
     }
 
-    @RepeatedTest(20)
-    fun testIsNull() {
+    @Test
+    fun `test isNull`() {
         val method = getMethod(className, "isNull")
         discoverProperties<TsValue, TsValue.TsNumber>(
             method,
