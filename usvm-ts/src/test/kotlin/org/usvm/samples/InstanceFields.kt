@@ -9,8 +9,10 @@ import kotlin.test.Test
 
 class InstanceFields : TsMethodTestRunner() {
 
+    private val className = this::class.simpleName!!
+
     override val scene: EtsScene = run {
-        val name = "InstanceFields.ts"
+        val name = "$className.ts"
         val path = getResourcePath("/samples/$name")
         val file = loadEtsFileAutoConvert(path)
         EtsScene(listOf(file))
@@ -18,7 +20,7 @@ class InstanceFields : TsMethodTestRunner() {
 
     @Test
     fun testReturnSingleField() {
-        val method = getMethod("InstanceFields", "returnSingleField")
+        val method = getMethod(className, "returnSingleField")
         discoverProperties<TsValue, TsValue>(
             method,
             { x, r ->
@@ -36,7 +38,7 @@ class InstanceFields : TsMethodTestRunner() {
 
     @Test
     fun testDispatchOverField() {
-        val method = getMethod("InstanceFields", "dispatchOverField")
+        val method = getMethod(className, "dispatchOverField")
         discoverProperties<TsValue, TsValue>(
             method,
             { x, r ->
@@ -65,7 +67,7 @@ class InstanceFields : TsMethodTestRunner() {
 
     @Test
     fun testReturnSumOfTwoFields() {
-        val method = getMethod("InstanceFields", "returnSumOfTwoFields")
+        val method = getMethod(className, "returnSumOfTwoFields")
         discoverProperties<TsValue, TsValue>(
             method,
             { x, r ->

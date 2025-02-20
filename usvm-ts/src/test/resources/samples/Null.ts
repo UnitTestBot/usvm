@@ -1,3 +1,6 @@
+// @ts-nocheck
+// noinspection JSUnusedGlobalSymbols
+
 class Null {
     isNull(x): number {
         if (x === null) return 1

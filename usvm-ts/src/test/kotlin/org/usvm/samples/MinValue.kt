@@ -10,8 +10,10 @@ import kotlin.test.Test
 
 class MinValue : TsMethodTestRunner() {
 
+    private val className = this::class.simpleName!!
+
     override val scene: EtsScene = run {
-        val name = "MinValue.ts"
+        val name = "$className.ts"
         val path = getResourcePath("/samples/$name")
         val file = loadEtsFileAutoConvert(path)
         EtsScene(listOf(file))
@@ -20,7 +22,7 @@ class MinValue : TsMethodTestRunner() {
     @Test
     @Disabled
     fun testMinValue() {
-        val method = getMethod("MinValue", "findMinValue")
+        val method = getMethod(className, "findMinValue")
         discoverProperties<TsValue.TsArray<*>, TsValue.TsNumber>(
             method,
         )
