@@ -166,7 +166,6 @@ class Numeric : TsMethodTestRunner() {
         )
     }
 
-    @Disabled("Could not resolve unique FortyTwo::constructor")
     @Test
     fun `test singleCustomFortyTwoObjectArrayToNumber`() {
         val method = getMethod(className, "singleCustomFortyTwoObjectArrayToNumber")

@@ -410,7 +410,7 @@ class TsExprResolver(
             doWithState {
                 val method = ctx.scene
                     .projectAndSdkClasses
-                    .flatMap { it.methods }
+                    .flatMap { it.methods + it.ctor }
                     .singleOrNull { it.signature == expr.method }
                     ?: error("Couldn't find a unique method with the signature ${expr.method}")
 
