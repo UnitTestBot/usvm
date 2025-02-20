@@ -40,7 +40,7 @@ class StaticChild extends StaticParent {
 
 // Test: Boolean static toggle
 class StaticBoolean {
-    static flag = true;
+    static flag: boolean = false;
 
     toggleAndGet(): boolean {
         StaticBoolean.flag = !StaticBoolean.flag;

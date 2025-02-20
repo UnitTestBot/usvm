@@ -19,7 +19,7 @@ class StaticFields : TsMethodTestRunner() {
     }
 
     @Test
-    fun `test static access`() {
+    fun `test static access get`() {
         val method = getMethod("StaticNumber", "getValue")
         discoverProperties<TsValue.TsNumber>(
             method = method,
@@ -59,7 +59,7 @@ class StaticFields : TsMethodTestRunner() {
         val method = getMethod("StaticBoolean", "toggleAndGet")
         discoverProperties<TsValue.TsBoolean>(
             method = method,
-            { r -> r.value == false },
+            { r -> r.value == true },
         )
     }
 

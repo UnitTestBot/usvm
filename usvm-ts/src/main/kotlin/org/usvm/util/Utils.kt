@@ -1,6 +1,7 @@
 package org.usvm.util
 
 import io.ksmt.sort.KFp64Sort
+import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsScene
@@ -8,6 +9,7 @@ import org.usvm.UBoolSort
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.machine.TsContext
+import org.usvm.machine.TsTransparentStatement
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 
@@ -24,3 +26,5 @@ fun EtsScene.fieldLookUp(field: EtsFieldSignature) = projectAndSdkClasses
 fun TsState.throwExceptionWithoutStackFrameDrop(address: UHeapRef, type: EtsType) {
     methodResult = TsMethodResult.TsException(address, type)
 }
+
+tailrec fun EtsStmt.originalStmt(): EtsStmt = if (this is TsTransparentStatement) original.originalStmt() else this

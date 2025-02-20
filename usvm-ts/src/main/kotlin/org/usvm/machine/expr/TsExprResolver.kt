@@ -15,6 +15,7 @@ import org.jacodb.ets.base.EtsBitOrExpr
 import org.jacodb.ets.base.EtsBitXorExpr
 import org.jacodb.ets.base.EtsBooleanConstant
 import org.jacodb.ets.base.EtsCastExpr
+import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.base.EtsCommaExpr
 import org.jacodb.ets.base.EtsDeleteExpr
 import org.jacodb.ets.base.EtsDivExpr
@@ -68,6 +69,7 @@ import org.jacodb.ets.base.EtsUnsignedRightShiftExpr
 import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.base.EtsVoidExpr
 import org.jacodb.ets.base.EtsYieldExpr
+import org.jacodb.ets.base.STATIC_INIT_METHOD_NAME
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodSignature
 import org.usvm.UAddressSort
@@ -80,13 +82,17 @@ import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
+import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStaticFieldLValue
 import org.usvm.machine.interpreter.TsStepScope
+import org.usvm.machine.interpreter.isInitialized
+import org.usvm.machine.interpreter.markInitialized
 import org.usvm.machine.operator.TsBinaryOperator
 import org.usvm.machine.operator.TsUnaryOperator
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
+import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.types.FakeType
@@ -105,7 +111,7 @@ class TsExprResolver(
     private val localToIdx: (EtsMethod, EtsValue) -> Int,
 ) : EtsEntity.Visitor<UExpr<out USort>?> {
 
-    private val simpleValueResolver: TsSimpleValueResolver =
+    val simpleValueResolver: TsSimpleValueResolver =
         TsSimpleValueResolver(ctx, scope, localToIdx)
 
     fun resolve(expr: EtsEntity): UExpr<out USort>? {
@@ -417,7 +423,8 @@ class TsExprResolver(
                 pushSortsForArguments(expr.instance, expr.args, localToIdx)
 
                 callStack.push(method, currentStatement)
-                memory.stack.push(args.toTypedArray(), method.localsCount)
+                val thisRef = resolve(EtsThis(EtsClassType(method.enclosingClass)))!!
+                memory.stack.push(args.toTypedArray() + thisRef, method.localsCount)
 
                 newStmt(method.cfg.stmts.first())
             }
@@ -569,6 +576,41 @@ class TsExprResolver(
     }
 
     override fun visit(value: EtsStaticFieldRef): UExpr<out USort>? = with(ctx) {
+        // TODO: ensure static initialization
+
+        val clazz = scene.projectAndSdkClasses.singleOrNull {
+            it.signature == value.field.enclosingClass
+        } ?: return null
+        val initializer = clazz.methods.singleOrNull { it.name == STATIC_INIT_METHOD_NAME }
+
+        if (initializer != null) {
+            val isInitialized = scope.calcOnState { isInitialized(clazz) }
+            if (isInitialized) {
+                scope.doWithState {
+                    // TODO: Handle static initializer result
+                    val result = methodResult
+                    if (result is TsMethodResult.Success && result.method == initializer) {
+                        methodResult = TsMethodResult.NoCall
+                        // TODO: see Jc impl.
+                        //  mutatePrimitiveFieldValuesToSymbolic
+                    }
+                }
+            } else {
+                scope.doWithState {
+                    markInitialized(clazz)
+                    newStmt(
+                        TsConcreteMethodCallStmt(
+                            location = lastStmt.location,
+                            method = initializer,
+                            arguments = emptyList(),
+                            returnSite = lastStmt,
+                        )
+                    )
+                }
+                return null
+            }
+        }
+
         val fieldType = scene.fieldLookUp(value.field).type
         val sort = typeToSort(fieldType)
         val lValue = TsStaticFieldLValue(value.field, sort)
