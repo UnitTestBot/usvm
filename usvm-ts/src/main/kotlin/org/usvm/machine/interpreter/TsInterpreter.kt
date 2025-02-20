@@ -1,7 +1,6 @@
 package org.usvm.machine.interpreter
 
 import io.ksmt.utils.asExpr
-import io.ksmt.utils.cast
 import mu.KotlinLogging
 import org.jacodb.ets.base.EtsArrayAccess
 import org.jacodb.ets.base.EtsAssignStmt
@@ -21,6 +20,7 @@ import org.jacodb.ets.base.EtsThrowStmt
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.utils.getDeclaredLocals
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UInterpreter
@@ -216,17 +216,20 @@ class TsInterpreter(
         TsExprResolver(ctx, scope, ::mapLocalToIdx)
 
     // (method, localName) -> idx
-    private val localVarToIdx: MutableMap<EtsMethod, MutableMap<String, Int>> = hashMapOf()
+    private val localVarToIdx: MutableMap<EtsMethod, Map<String, Int>> = hashMapOf()
 
     private fun mapLocalToIdx(method: EtsMethod, local: EtsValue): Int =
         // Note: below, 'n' means the number of arguments
         when (local) {
             // Note: locals have indices starting from (n+1)
-            is EtsLocal -> localVarToIdx
-                .getOrPut(method) { hashMapOf() }
-                .let {
-                    it.getOrPut(local.name) { method.parametersWithThisCount + it.size }
-                }
+            is EtsLocal -> {
+                localVarToIdx.getOrPut(method) {
+                    method.getDeclaredLocals().mapIndexed { idx, local ->
+                        local.name to idx + method.parametersWithThisCount
+                    }.toMap()
+                }[local.name]
+                    ?: error("Local not declared: $local")
+            }
 
             // Note: 'this' has index 'n'
             is EtsThis -> method.parameters.size
