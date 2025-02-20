@@ -1,3 +1,6 @@
+// @ts-nocheck
+// noinspection JSUnusedGlobalSymbols
+
 class Neg {
     negateNumber(x: number): number {
         let y = -x
@@ -17,7 +20,6 @@ class Neg {
 
     negateUndefined(): number {
         let x = undefined
-        // @ts-ignore
         return -x // -undefined == NaN
     }
 }

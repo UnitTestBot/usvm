@@ -2,29 +2,31 @@ package org.usvm.samples
 
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
-import org.junit.jupiter.api.RepeatedTest
 import org.usvm.api.TsValue
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.getResourcePath
+import kotlin.test.Test
 
-class Null : TsMethodTestRunner() {
+class Truthy : TsMethodTestRunner() {
 
     private val className = this::class.simpleName!!
 
-    override val scene = run {
+    override val scene: EtsScene = run {
         val name = "$className.ts"
         val path = getResourcePath("/samples/$name")
         val file = loadEtsFileAutoConvert(path)
         EtsScene(listOf(file))
     }
 
-    @RepeatedTest(20)
-    fun testIsNull() {
-        val method = getMethod(className, "isNull")
-        discoverProperties<TsValue, TsValue.TsNumber>(
+    @Test
+    fun `test arrayTruthy`() {
+        val method = getMethod(className, "arrayTruthy")
+        discoverProperties<TsValue.TsNumber>(
             method,
-            { a, r -> (a is TsValue.TsNull) && (r.number == 1.0) },
-            { a, r -> (a !is TsValue.TsNull) && (r.number == 2.0) },
+            { r -> r.number == 0.0 },
+            invariants = arrayOf(
+                { r -> r.number != -1.0 },
+            )
         )
     }
 }

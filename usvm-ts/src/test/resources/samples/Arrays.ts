@@ -1,3 +1,6 @@
+// @ts-nocheck
+// noinspection JSUnusedGlobalSymbols,UnnecessaryLocalVariableJS
+
 class Arrays {
     createConstantArrayOfNumbers() {
         let x = [1, 2, 3]
@@ -35,7 +38,6 @@ class Arrays {
 
     createArrayOfNumbersAndPutDifferentTypes() {
         let x = [1, 2, 3]
-        // @ts-ignore
         x[1] = true
         x[2] = undefined
         x[0] = null
@@ -46,7 +48,6 @@ class Arrays {
         let x = [1, 2, 3]
         if (x.length == 3) {
             x[5] = 5
-            // @ts-ignore
             if (x.length == 6) {
                 return x
             } else {

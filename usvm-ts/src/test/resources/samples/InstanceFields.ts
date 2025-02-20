@@ -1,3 +1,6 @@
+// @ts-nocheck
+// noinspection JSUnusedGlobalSymbols
+
 class InstanceFields {
     returnSingleField(x: { a: number }): number {
         return x.a

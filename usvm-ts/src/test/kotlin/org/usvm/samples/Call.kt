@@ -9,8 +9,10 @@ import org.usvm.util.getResourcePath
 
 class Call : TsMethodTestRunner() {
 
+    private val className = this::class.simpleName!!
+
     override val scene: EtsScene = run {
-        val name = "Call.ts"
+        val name = "$className.ts"
         val path = getResourcePath("/samples/$name")
         val file = loadEtsFileAutoConvert(path)
         EtsScene(listOf(file))
@@ -18,7 +20,7 @@ class Call : TsMethodTestRunner() {
 
     @Test
     fun `test simpleCall`() {
-        val method = getMethod("Call", "simpleCall")
+        val method = getMethod(className, "simpleCall")
         discoverProperties<TsValue.TsNumber>(
             method = method,
             { r -> r.number == 42.0 },
@@ -27,7 +29,7 @@ class Call : TsMethodTestRunner() {
 
     @Test
     fun `test fib`() {
-        val method = getMethod("Call", "fib")
+        val method = getMethod(className, "fib")
         discoverProperties<TsValue.TsNumber, TsValue.TsNumber>(
             method = method,
             { n, r -> n.number.isNaN() && r.number == 0.0 },
