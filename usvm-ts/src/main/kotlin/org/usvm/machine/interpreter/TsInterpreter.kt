@@ -7,6 +7,7 @@ import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsCallStmt
 import org.jacodb.ets.base.EtsGotoStmt
 import org.jacodb.ets.base.EtsIfStmt
+import org.jacodb.ets.base.EtsInstanceFieldRef
 import org.jacodb.ets.base.EtsLocal
 import org.jacodb.ets.base.EtsNopStmt
 import org.jacodb.ets.base.EtsNullType
@@ -27,6 +28,7 @@ import org.usvm.UInterpreter
 import org.usvm.api.targets.TsTarget
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
+import org.usvm.collection.field.UFieldLValue
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.machine.TsApplicationGraph
@@ -169,6 +171,14 @@ class TsInterpreter(
 
                     val lValue = UArrayIndexLValue(addressSort, instance, bvIndex, lhv.array.type)
                     memory.write(lValue, fakeExpr, guard = trueExpr)
+                }
+
+                is EtsInstanceFieldRef -> {
+                    val instance = exprResolver.resolve(lhv.instance)?.asExpr(addressSort) ?: return@doWithState
+                    val field = lhv.field
+                    val sort = typeToSort(field.type)
+                    val lValue = UFieldLValue(sort, instance, field)
+                    memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
                 }
 
                 is EtsStaticFieldRef -> {
