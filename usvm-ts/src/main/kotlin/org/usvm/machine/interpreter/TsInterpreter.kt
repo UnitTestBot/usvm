@@ -1,11 +1,9 @@
 package org.usvm.machine.interpreter
 
 import io.ksmt.utils.asExpr
-import mu.KotlinLogging
 import org.jacodb.ets.base.EtsArrayAccess
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsCallStmt
-import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.base.EtsGotoStmt
 import org.jacodb.ets.base.EtsIfStmt
 import org.jacodb.ets.base.EtsInstanceFieldRef
@@ -33,9 +31,7 @@ import org.usvm.collection.field.UFieldLValue
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.machine.TsApplicationGraph
-import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
-import org.usvm.machine.TsMethodCall
 import org.usvm.machine.expr.TsExprResolver
 import org.usvm.machine.expr.mkTruthyExpr
 import org.usvm.machine.state.TsMethodResult
@@ -50,9 +46,6 @@ import org.usvm.sizeSort
 import org.usvm.targets.UTargetsSet
 import org.usvm.util.fieldLookUp
 import org.usvm.utils.ensureSat
-import kotlin.math.exp
-
-private val logger = KotlinLogging.logger {}
 
 typealias TsStepScope = StepScope<TsState, EtsType, EtsStmt, TsContext>
 
@@ -87,7 +80,6 @@ class TsInterpreter(
         }
 
         when (stmt) {
-            is TsMethodCall -> visitMethodCall(scope, stmt)
             is EtsIfStmt -> visitIfStmt(scope, stmt)
             is EtsReturnStmt -> visitReturnStmt(scope, stmt)
             is EtsAssignStmt -> visitAssignStmt(scope, stmt)
@@ -100,28 +92,6 @@ class TsInterpreter(
         }
 
         return scope.stepResult()
-    }
-
-    private fun visitMethodCall(scope: TsStepScope, stmt: TsMethodCall) {
-        val exprResolver = exprResolverWithScope(scope)
-        when (stmt) {
-            is TsConcreteMethodCallStmt -> {
-                val entryPoint = applicationGraph.entryPoints(stmt.method).singleOrNull()
-
-                if (entryPoint == null) {
-                    // TODO: mock
-                    return
-                }
-
-                scope.doWithState {
-                    // addNewMethodCall(stmt, entryPoint):
-                    callStack.push(stmt.method, stmt.returnSite)
-                    val thisRef = exprResolver.resolve(EtsThis(EtsClassType(stmt.method.enclosingClass)))!!
-                    memory.stack.push(stmt.arguments.toTypedArray() + thisRef, stmt.method.localsCount)
-                    newStmt(entryPoint)
-                }
-            }
-        }
     }
 
     private fun visitIfStmt(scope: TsStepScope, stmt: EtsIfStmt) {

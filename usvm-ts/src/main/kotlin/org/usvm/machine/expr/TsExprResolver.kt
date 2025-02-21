@@ -15,7 +15,6 @@ import org.jacodb.ets.base.EtsBitOrExpr
 import org.jacodb.ets.base.EtsBitXorExpr
 import org.jacodb.ets.base.EtsBooleanConstant
 import org.jacodb.ets.base.EtsCastExpr
-import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.base.EtsCommaExpr
 import org.jacodb.ets.base.EtsDeleteExpr
 import org.jacodb.ets.base.EtsDivExpr
@@ -82,7 +81,6 @@ import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
-import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStaticFieldLValue
 import org.usvm.machine.interpreter.TsStepScope
@@ -92,9 +90,9 @@ import org.usvm.machine.operator.TsBinaryOperator
 import org.usvm.machine.operator.TsUnaryOperator
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
-import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
+import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.types.FakeType
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.memory.ULValue
@@ -420,12 +418,10 @@ class TsExprResolver(
                     .singleOrNull { it.signature == expr.method }
                     ?: error("Couldn't find a unique method with the signature ${expr.method}")
 
+                check(args.size == method.parametersWithThisCount)
                 pushSortsForArguments(expr.instance, expr.args, localToIdx)
-
                 callStack.push(method, currentStatement)
-                val thisRef = resolve(EtsThis(EtsClassType(method.enclosingClass)))!!
-                memory.stack.push(args.toTypedArray() + thisRef, method.localsCount)
-
+                memory.stack.push(args.toTypedArray(), method.localsCount)
                 newStmt(method.cfg.stmts.first())
             }
         }
@@ -598,14 +594,10 @@ class TsExprResolver(
             } else {
                 scope.doWithState {
                     markInitialized(clazz)
-                    newStmt(
-                        TsConcreteMethodCallStmt(
-                            location = lastStmt.location,
-                            method = initializer,
-                            arguments = emptyList(),
-                            returnSite = lastStmt,
-                        )
-                    )
+                    pushSortsForArguments(null, emptyList(), localToIdx)
+                    callStack.push(initializer, currentStatement)
+                    memory.stack.push(arrayOf(mkDefaultValueSampler().visit(addressSort)), initializer.localsCount)
+                    newStmt(initializer.cfg.stmts.first())
                 }
                 return null
             }

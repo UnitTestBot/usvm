@@ -46,7 +46,8 @@ internal class TsStaticFieldsMemoryRegion<Sort : USort>(
 ) : UMemoryRegion<TsStaticFieldLValue<Sort>, Sort> {
     override fun read(key: TsStaticFieldLValue<Sort>): UExpr<Sort> {
         val field = key.field
-        return sort.tctx.mkStaticFieldReading(key.memoryRegionId as TsStaticFieldRegionId, field, sort)
+        return fieldValuesByClass[field.enclosingClass]?.get(field)
+            ?: sort.tctx.mkStaticFieldReading(key.memoryRegionId as TsStaticFieldRegionId, field, sort)
     }
 
     override fun write(
