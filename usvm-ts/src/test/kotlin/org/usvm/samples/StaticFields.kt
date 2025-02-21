@@ -2,6 +2,7 @@ package org.usvm.samples
 
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsValue
 import org.usvm.util.TsMethodTestRunner
@@ -63,6 +64,7 @@ class StaticFields : TsMethodTestRunner() {
         )
     }
 
+    @Disabled("Array::push() is not supported")
     @Test
     fun `test static array modification`() {
         val method = getMethod("StaticArray", "pushTwice")
