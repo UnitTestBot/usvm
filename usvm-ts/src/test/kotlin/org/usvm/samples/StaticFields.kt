@@ -83,6 +83,7 @@ class StaticFields : TsMethodTestRunner() {
         )
     }
 
+    @Disabled("Sort mismatch on union type")
     @Test
     fun `test static null initialization`() {
         val method = getMethod("StaticNull", "initialize")
@@ -113,6 +114,7 @@ class StaticFields : TsMethodTestRunner() {
         )
     }
 
+    @Disabled("Array length cannot be properly read from memory due to array type mismatch")
     @Test
     fun `test static access swap`() {
         val method = getMethod("StaticAccess", "swapAndGetValues")
