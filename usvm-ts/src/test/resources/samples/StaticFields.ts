@@ -69,7 +69,7 @@ class StaticNull {
 
     static initialize(): number {
         this.value = 5;
-        return this.value!;
+        return this.value;
     }
 }
 
