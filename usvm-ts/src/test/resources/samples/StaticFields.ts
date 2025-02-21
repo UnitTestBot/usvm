@@ -14,10 +14,10 @@ class StaticNumber {
 class StaticModification {
     static count = 0;
 
-    incrementTwice(): number {
-        StaticModification.count++;
-        StaticModification.count++;
-        return StaticModification.count;
+    static incrementTwice(): number {
+        this.count++;
+        this.count++;
+        return this.count;
     }
 }
 
