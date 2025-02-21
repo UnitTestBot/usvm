@@ -36,15 +36,19 @@ class StaticChild extends StaticParent {
     getChildId(): number {
         return StaticChild.id;
     }
+
+    getThisId(): number {
+        return this.id;
+    }
 }
 
 // Test: Boolean static toggle
 class StaticBoolean {
     static flag: boolean = false;
 
-    toggleAndGet(): boolean {
-        StaticBoolean.flag = !StaticBoolean.flag;
-        return StaticBoolean.flag;
+    static toggleAndGet(): boolean {
+        this.flag = !this.flag;
+        return this.flag;
     }
 }
 
@@ -52,10 +56,10 @@ class StaticBoolean {
 class StaticArray {
     static numbers = [1, 2, 3];
 
-    pushTwice(): number {
-        StaticArray.numbers.push(4);
-        StaticArray.numbers.push(5);
-        return StaticArray.numbers.length;
+    static pushTwice(): number {
+        this.numbers.push(4);
+        this.numbers.push(5);
+        return this.numbers.length;
     }
 }
 
@@ -63,9 +67,9 @@ class StaticArray {
 class StaticNull {
     static value: number | null = null;
 
-    initialize(): number {
-        StaticNull.value = 5;
-        return StaticNull.value!;
+    static initialize(): number {
+        this.value = 5;
+        return this.value!;
     }
 }
 
@@ -73,10 +77,10 @@ class StaticNull {
 class StaticObject {
     static config: Config = {enabled: false, count: 0};
 
-    toggleAndGet(): Config {
-        StaticObject.config.flip()
-        StaticObject.config.increment();
-        return StaticObject.config;
+    static toggleAndGet(): Config {
+        this.config.flip()
+        this.config.increment();
+        return this.config;
     }
 }
 
@@ -98,12 +102,12 @@ class StaticAccess {
     static a = 1;
     static b = 2;
 
-    calculateSum(): number {
-        return StaticAccess.a + StaticAccess.b;
+    static calculateSum(): number {
+        return this.a + this.b;
     }
 
-    swapAndGetValues(): number[] {
-        [StaticAccess.a, StaticAccess.b] = [StaticAccess.b, StaticAccess.a];
-        return [StaticAccess.a, StaticAccess.b];
+    static swapAndGetValues(): number[] {
+        [this.a, this.b] = [this.b, this.a];
+        return [this.a, this.b];
     }
 }

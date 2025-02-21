@@ -56,6 +56,15 @@ class StaticFields : TsMethodTestRunner() {
     }
 
     @Test
+    fun `test static inheritance this`() {
+        val method = getMethod("StaticChild", "getThisId")
+        discoverProperties<TsValue.TsNumber>(
+            method = method,
+            { r -> r.number == 200.0 },
+        )
+    }
+
+    @Test
     fun `test static boolean toggle`() {
         val method = getMethod("StaticBoolean", "toggleAndGet")
         discoverProperties<TsValue.TsBoolean>(
