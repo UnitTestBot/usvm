@@ -5,8 +5,10 @@ import mu.KotlinLogging
 import org.jacodb.ets.base.EtsArrayAccess
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsCallStmt
+import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.base.EtsGotoStmt
 import org.jacodb.ets.base.EtsIfStmt
+import org.jacodb.ets.base.EtsInstanceFieldRef
 import org.jacodb.ets.base.EtsLocal
 import org.jacodb.ets.base.EtsNopStmt
 import org.jacodb.ets.base.EtsNullType
@@ -22,8 +24,10 @@ import org.jacodb.ets.model.EtsMethod
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UInterpreter
+import org.usvm.api.evalTypeEquals
 import org.usvm.api.targets.TsTarget
 import org.usvm.collection.array.UArrayIndexLValue
+import org.usvm.collection.field.UFieldLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.forkblacklists.UForkBlackList
@@ -167,6 +171,14 @@ class TsInterpreter(
 
                     val lValue = UArrayIndexLValue(addressSort, instance, bvIndex, lhv.array.type)
                     memory.write(lValue, fakeExpr, guard = trueExpr)
+                }
+
+                is EtsInstanceFieldRef -> {
+                    val instance = exprResolver.resolve(lhv.instance)?.asExpr(ctx.addressSort) ?: return@doWithState
+                    val exprValue = expr.toFakeObject(scope)
+
+                    val lValue = UFieldLValue(addressSort, instance, lhv.field.name)
+                    memory.write(lValue, exprValue, guard = ctx.trueExpr)
                 }
 
                 else -> TODO("Not yet implemented")

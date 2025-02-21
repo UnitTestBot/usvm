@@ -407,16 +407,26 @@ class TsExprResolver(
             argumentTypes = { expr.method.parameters.map { it.type } },
         ) { args ->
             doWithState {
-                val method = ctx.scene
-                    .projectAndSdkClasses
-                    .flatMap { it.methods }
-                    .singleOrNull { it.signature == expr.method }
-                    ?: error("Couldn't find a unique method with the signature ${expr.method}")
+                val method = if (expr.method.name == "constructor") {
+                    ctx.scene
+                        .projectAndSdkClasses
+                        .map { it.ctor }
+                        .singleOrNull { it.signature == expr.method }
+                        ?: error("Couldn't find a unique constructor with the signature ${expr.method}")
+                } else {
+                    ctx.scene
+                        .projectAndSdkClasses
+                        .flatMap { it.methods }
+                        .singleOrNull { it.signature == expr.method }
+                        ?: error("Couldn't find a unique method with the signature ${expr.method}")
+                }
 
                 pushSortsForArguments(expr.instance, expr.args, localToIdx)
 
                 callStack.push(method, currentStatement)
-                memory.stack.push(args.toTypedArray(), method.localsCount)
+
+                val count = if (method.name == "%instInit") method.localsCount + 1 else method.localsCount
+                memory.stack.push(args.toTypedArray(), count)
 
                 newStmt(method.cfg.stmts.first())
             }
@@ -560,8 +570,13 @@ class TsExprResolver(
         val lValue = UFieldLValue(sort, instanceRef, value.field.name)
         val expr = scope.calcOnState { memory.read(lValue) }
 
+        val fakeExpr = expr.toFakeObject(scope)
+
+        val fieldLValue = UFieldLValue(addressSort, instanceRef, value.field.name)
+        scope.calcOnState { memory.write(fieldLValue, fakeExpr, guard = trueExpr) }
+
         if (assertIsSubtype(expr, value.type)) {
-            expr
+            fakeExpr
         } else {
             null
         }
