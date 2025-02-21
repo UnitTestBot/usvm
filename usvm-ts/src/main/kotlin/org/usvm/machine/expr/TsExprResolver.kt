@@ -68,6 +68,7 @@ import org.jacodb.ets.base.EtsUnsignedRightShiftExpr
 import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.base.EtsVoidExpr
 import org.jacodb.ets.base.EtsYieldExpr
+import org.jacodb.ets.base.STATIC_INIT_METHOD_NAME
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodSignature
 import org.usvm.UAddressSort
@@ -81,13 +82,17 @@ import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.machine.TsContext
+import org.usvm.machine.interpreter.TsStaticFieldLValue
 import org.usvm.machine.interpreter.TsStepScope
+import org.usvm.machine.interpreter.isInitialized
+import org.usvm.machine.interpreter.markInitialized
 import org.usvm.machine.operator.TsBinaryOperator
 import org.usvm.machine.operator.TsUnaryOperator
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
+import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.types.FakeType
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.memory.ULValue
@@ -104,7 +109,7 @@ class TsExprResolver(
     private val localToIdx: (EtsMethod, EtsValue) -> Int,
 ) : EtsEntity.Visitor<UExpr<out USort>?> {
 
-    private val simpleValueResolver: TsSimpleValueResolver =
+    val simpleValueResolver: TsSimpleValueResolver =
         TsSimpleValueResolver(ctx, scope, localToIdx)
 
     fun resolve(expr: EtsEntity): UExpr<out USort>? {
@@ -409,15 +414,14 @@ class TsExprResolver(
             doWithState {
                 val method = ctx.scene
                     .projectAndSdkClasses
-                    .flatMap { it.methods }
+                    .flatMap { it.methods + it.ctor }
                     .singleOrNull { it.signature == expr.method }
                     ?: error("Couldn't find a unique method with the signature ${expr.method}")
 
+                check(args.size == method.parametersWithThisCount)
                 pushSortsForArguments(expr.instance, expr.args, localToIdx)
-
                 callStack.push(method, currentStatement)
                 memory.stack.push(args.toTypedArray(), method.localsCount)
-
                 newStmt(method.cfg.stmts.first())
             }
         }
@@ -567,9 +571,48 @@ class TsExprResolver(
         }
     }
 
-    override fun visit(value: EtsStaticFieldRef): UExpr<out USort>? {
-        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        error("Not supported $value")
+    override fun visit(value: EtsStaticFieldRef): UExpr<out USort>? = with(ctx) {
+        // TODO: ensure static initialization
+
+        val clazz = scene.projectAndSdkClasses.singleOrNull {
+            it.signature == value.field.enclosingClass
+        } ?: return null
+        val initializer = clazz.methods.singleOrNull { it.name == STATIC_INIT_METHOD_NAME }
+
+        if (initializer != null) {
+            val isInitialized = scope.calcOnState { isInitialized(clazz) }
+            if (isInitialized) {
+                scope.doWithState {
+                    // TODO: Handle static initializer result
+                    val result = methodResult
+                    if (result is TsMethodResult.Success && result.method == initializer) {
+                        methodResult = TsMethodResult.NoCall
+                        // TODO: see Jc impl.
+                        //  mutatePrimitiveFieldValuesToSymbolic
+                    }
+                }
+            } else {
+                scope.doWithState {
+                    markInitialized(clazz)
+                    pushSortsForArguments(null, emptyList(), localToIdx)
+                    callStack.push(initializer, currentStatement)
+                    memory.stack.push(arrayOf(mkDefaultValueSampler().visit(addressSort)), initializer.localsCount)
+                    newStmt(initializer.cfg.stmts.first())
+                }
+                return null
+            }
+        }
+
+        val fieldType = scene.fieldLookUp(value.field).type
+        val sort = typeToSort(fieldType)
+        val lValue = TsStaticFieldLValue(value.field, sort)
+        val expr = scope.calcOnState { memory.read(lValue) }
+
+        if (assertIsSubtype(expr, value.type)) {
+            expr
+        } else {
+            null
+        }
     }
 
     // endregion

@@ -2,6 +2,7 @@ package org.usvm.machine.state
 
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.utils.getDeclaredLocals
 import org.usvm.UExpr
 import org.usvm.USort
 
@@ -30,4 +31,4 @@ inline val EtsMethod.parametersWithThisCount: Int
     get() = parameters.size + 1
 
 inline val EtsMethod.localsCount: Int
-    get() = locals.size
+    get() = getDeclaredLocals().size

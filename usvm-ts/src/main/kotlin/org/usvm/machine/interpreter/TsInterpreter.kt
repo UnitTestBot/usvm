@@ -1,17 +1,18 @@
 package org.usvm.machine.interpreter
 
 import io.ksmt.utils.asExpr
-import mu.KotlinLogging
 import org.jacodb.ets.base.EtsArrayAccess
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsCallStmt
 import org.jacodb.ets.base.EtsGotoStmt
 import org.jacodb.ets.base.EtsIfStmt
+import org.jacodb.ets.base.EtsInstanceFieldRef
 import org.jacodb.ets.base.EtsLocal
 import org.jacodb.ets.base.EtsNopStmt
 import org.jacodb.ets.base.EtsNullType
 import org.jacodb.ets.base.EtsParameterRef
 import org.jacodb.ets.base.EtsReturnStmt
+import org.jacodb.ets.base.EtsStaticFieldRef
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsSwitchStmt
 import org.jacodb.ets.base.EtsThis
@@ -19,12 +20,14 @@ import org.jacodb.ets.base.EtsThrowStmt
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.utils.getDeclaredLocals
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UInterpreter
 import org.usvm.api.targets.TsTarget
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
+import org.usvm.collection.field.UFieldLValue
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.machine.TsApplicationGraph
@@ -41,9 +44,8 @@ import org.usvm.machine.state.returnValue
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.sizeSort
 import org.usvm.targets.UTargetsSet
+import org.usvm.util.fieldLookUp
 import org.usvm.utils.ensureSat
-
-private val logger = KotlinLogging.logger {}
 
 typealias TsStepScope = StepScope<TsState, EtsType, EtsStmt, TsContext>
 
@@ -169,6 +171,23 @@ class TsInterpreter(
                     memory.write(lValue, fakeExpr, guard = trueExpr)
                 }
 
+                is EtsInstanceFieldRef -> {
+                    val instance = exprResolver.resolve(lhv.instance)?.asExpr(addressSort) ?: return@doWithState
+                    val field = lhv.field
+                    val fieldType = scene.fieldLookUp(field).type
+                    val sort = typeToSort(fieldType)
+                    val lValue = UFieldLValue(sort, instance, field.name)
+                    memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
+                }
+
+                is EtsStaticFieldRef -> {
+                    val field = lhv.field
+                    val fieldType = scene.fieldLookUp(field).type
+                    val sort = typeToSort(fieldType)
+                    val lValue = TsStaticFieldLValue(field, sort)
+                    memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
+                }
+
                 else -> TODO("Not yet implemented")
             }
 
@@ -208,17 +227,20 @@ class TsInterpreter(
         TsExprResolver(ctx, scope, ::mapLocalToIdx)
 
     // (method, localName) -> idx
-    private val localVarToIdx: MutableMap<EtsMethod, MutableMap<String, Int>> = hashMapOf()
+    private val localVarToIdx: MutableMap<EtsMethod, Map<String, Int>> = hashMapOf()
 
     private fun mapLocalToIdx(method: EtsMethod, local: EtsValue): Int =
         // Note: below, 'n' means the number of arguments
         when (local) {
             // Note: locals have indices starting from (n+1)
-            is EtsLocal -> localVarToIdx
-                .getOrPut(method) { hashMapOf() }
-                .let {
-                    it.getOrPut(local.name) { method.parametersWithThisCount + it.size }
-                }
+            is EtsLocal -> {
+                localVarToIdx.getOrPut(method) {
+                    method.getDeclaredLocals().mapIndexed { idx, local ->
+                        local.name to idx + method.parametersWithThisCount
+                    }.toMap()
+                }[local.name]
+                    ?: error("Local not declared: $local")
+            }
 
             // Note: 'this' has index 'n'
             is EtsThis -> method.parameters.size
