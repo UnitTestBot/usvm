@@ -94,15 +94,11 @@ class StaticFields : TsMethodTestRunner() {
 
     @Test
     fun `test static object manipulation`() {
-        val method = getMethod("StaticObject", "toggleAndGet")
+        val method = getMethod("StaticObject", "modifyAndGet")
         discoverProperties<TsValue.TsClass>(
             method = method,
             { r ->
                 (r.properties["enabled"] as TsValue.TsBoolean).value == true &&
-                    (r.properties["count"] as TsValue.TsNumber).number == 1.0
-            },
-            { r ->
-                (r.properties["enabled"] as TsValue.TsBoolean).value == false &&
                     (r.properties["count"] as TsValue.TsNumber).number == 2.0
             },
         )

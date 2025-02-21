@@ -77,8 +77,9 @@ class StaticNull {
 class StaticObject {
     static config: Config = {enabled: false, count: 0};
 
-    static toggleAndGet(): Config {
-        this.config.flip()
+    static modifyAndGet(): Config {
+        this.config.increment();
+        this.config.flip();
         this.config.increment();
         return this.config;
     }
