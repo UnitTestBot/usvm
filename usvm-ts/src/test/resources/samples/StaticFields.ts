@@ -15,8 +15,8 @@ class StaticModification {
     static count = 0;
 
     static incrementTwice(): number {
-        this.count++;
-        this.count++;
+        this.count += 1;
+        this.count += 1;
         return this.count;
     }
 }
@@ -94,7 +94,7 @@ class Config {
     }
 
     increment(): void {
-        this.count++;
+        this.count += 1;
     }
 }
 
