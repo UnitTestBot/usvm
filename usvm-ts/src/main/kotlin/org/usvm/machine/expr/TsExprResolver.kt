@@ -518,6 +518,7 @@ class TsExprResolver(
             isSigned = true
         )
 
+        // TODO isn't here any problem with reading from array as parameter? parameter[0] == 1
         val lValue = UArrayIndexLValue(addressSort, instance, bvIndex, value.array.type)
         val expr = scope.calcOnState { memory.read(lValue) }
 
@@ -558,18 +559,29 @@ class TsExprResolver(
             return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), expr.asExpr(sizeSort), signed = true)
         }
 
-        val fieldType = scene.fieldLookUp(value.field).type
-        val sort = typeToSort(fieldType)
-        val lValue = UFieldLValue(sort, instanceRef, value.field.name)
+        val lValue = UFieldLValue(addressSort, instanceRef, value.field.name)
         val expr = scope.calcOnState { memory.read(lValue) }
 
-        val fakeExpr = expr.toFakeObject(scope)
+        // If we already wrote a fake object in a field, use it, otherwise, create it
+        // TODO probably we have to create a fake object with all possible types, ignoring the type from the scene
+        val resultExpr = if (expr.isFakeObject()) {
+            expr
+        } else {
+            val fieldType = scene.fieldLookUp(value.field).type
+            val sort = typeToSort(fieldType)
+            val lValue = UFieldLValue(sort, instanceRef, value.field.name)
+            val currentExpr = scope.calcOnState { memory.read(lValue) }
 
-        val fieldLValue = UFieldLValue(addressSort, instanceRef, value.field.name)
-        scope.calcOnState { memory.write(fieldLValue, fakeExpr, guard = trueExpr) }
+            val fakeExpr = currentExpr.toFakeObject(scope)
+
+            val fieldLValue = UFieldLValue(addressSort, instanceRef, value.field.name)
+            scope.calcOnState { memory.write(fieldLValue, fakeExpr, guard = trueExpr) }
+
+            fakeExpr
+        }
 
         if (assertIsSubtype(expr, value.type)) {
-            fakeExpr
+            resultExpr
         } else {
             null
         }

@@ -2,6 +2,7 @@ package org.usvm.machine
 
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
+import io.ksmt.utils.cast
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsNullType
 import org.jacodb.ets.base.EtsNumberType
@@ -17,12 +18,15 @@ import org.usvm.UBv32Sort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.collection.field.UFieldLValue
+import org.usvm.isTrue
 import org.usvm.machine.expr.TsUndefinedSort
 import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.types.FakeType
+import org.usvm.types.single
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 
@@ -100,6 +104,35 @@ class TsContext(
     fun createFakeObjectRef(): UConcreteHeapRef {
         val address = mkAddressCounter().freshAllocatedAddress() + MAGIC_OFFSET
         return mkConcreteHeapRef(address)
+    }
+
+    fun UHeapRef.extractSingleValueFromFakeObjectOrNull(scope: TsStepScope): UExpr<out USort>? {
+        if (!isFakeObject()) return null
+
+        val type = scope.calcOnState {
+            memory.types.getTypeStream(this@extractSingleValueFromFakeObjectOrNull).single() as FakeType
+        }
+
+        return scope.calcOnState {
+            when {
+                type.boolTypeExpr.isTrue -> {
+                    val lValue = getIntermediateBoolLValue(address)
+                    memory.read(lValue).asExpr(boolSort)
+                }
+
+                type.fpTypeExpr.isTrue -> {
+                    val lValue = getIntermediateFpLValue(address)
+                    memory.read(lValue).asExpr(fp64Sort)
+                }
+
+                type.refTypeExpr.isTrue -> {
+                    val lValue = getIntermediateRefLValue(address)
+                    memory.read(lValue).asExpr(addressSort)
+                }
+
+                else -> null
+            }
+        }
     }
 
     fun mkUndefinedValue(): UExpr<UAddressSort> = undefinedValue

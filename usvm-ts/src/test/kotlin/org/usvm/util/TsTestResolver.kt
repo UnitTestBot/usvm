@@ -25,6 +25,7 @@ import org.jacodb.ets.model.EtsMethodSignature
 import org.usvm.UAddressSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.GlobalFieldValue
 import org.usvm.api.TsParametersState
@@ -66,7 +67,7 @@ class TsTestResolver {
 
             is TsMethodResult.Success -> {
                 afterMemoryScope.withMode(ResolveMode.CURRENT) {
-                    resolveExpr(res.value, method.returnType)
+                    resolveExpr(res.value, res.value, method.returnType)
                 }
             }
 
@@ -115,11 +116,13 @@ open class TsTestStateResolver(
 ) {
     fun resolveLValue(lValue: ULValue<*, *>, type: EtsType): TsValue {
         val expr = memory.read(lValue)
-        return resolveExpr(expr, type)
+        val symbolicRef = if (lValue.sort is UAddressSort) finalStateMemory.read(lValue).asExpr(ctx.addressSort) else null
+        return resolveExpr(expr, symbolicRef, type)
     }
 
     fun resolveExpr(
         expr: UExpr<out USort>,
+        symbolicRef: UExpr<out USort>? = null,
         type: EtsType,
     ): TsValue = with(ctx) {
         if (expr.isFakeObject()) {
@@ -128,20 +131,20 @@ open class TsTestStateResolver(
 
         return when (type) {
             is EtsPrimitiveType -> resolvePrimitive(expr, type)
-            is EtsRefType -> resolveRef(expr.asExpr(ctx.addressSort), type)
-            else -> resolveUnknownExpr(expr)
+            is EtsRefType -> resolveRef(expr.asExpr(ctx.addressSort), symbolicRef?.asExpr(ctx.addressSort) ?: expr.asExpr(ctx.addressSort), type)
+            else -> resolveUnknownExpr(expr, symbolicRef)
         }
     }
 
-    fun resolveUnknownExpr(expr: UExpr<out USort>): TsValue = with(expr.tctx) {
-        when (expr.sort) {
-            fp64Sort -> resolvePrimitive(expr, EtsNumberType)
-            boolSort -> resolvePrimitive(expr, EtsBooleanType)
+    fun resolveUnknownExpr(heapRef: UExpr<out USort>, finalStateMemoryRef: UExpr<out USort>?): TsValue = with(heapRef.tctx) {
+        when (heapRef.sort) {
+            fp64Sort -> resolvePrimitive(heapRef, EtsNumberType)
+            boolSort -> resolvePrimitive(heapRef, EtsBooleanType)
             addressSort -> {
-                if (expr.isFakeObject()) {
-                    resolveFakeObject(expr)
+                if (heapRef.isFakeObject()) {
+                    resolveFakeObject(heapRef)
                 } else {
-                    resolveRef(expr.asExpr(ctx.addressSort), EtsUnknownType)
+                    resolveRef(heapRef.asExpr(ctx.addressSort), finalStateMemoryRef?.asExpr(ctx.addressSort), EtsUnknownType)
                 }
             }
 
@@ -149,36 +152,45 @@ open class TsTestStateResolver(
         }
     }
 
-    private fun resolveRef(expr: UExpr<UAddressSort>, type: EtsType): TsValue {
-        val instance = model.eval(expr) as UConcreteHeapRef
+    private fun resolveRef(
+        heapRef: UExpr<UAddressSort>,
+        finalStateMemoryRef: UExpr<UAddressSort>?,
+        type: EtsType
+    ): TsValue {
+        val concreteRef = evaluateInModel(heapRef) as UConcreteHeapRef
 
-        if (instance.address == 0) {
+        if (concreteRef.address == 0) {
             return TsValue.TsUndefined
         }
 
-        if (model.eval(ctx.mkHeapRefEq(expr, ctx.mkTsNullValue())).isTrue) {
+        if (model.eval(ctx.mkHeapRefEq(heapRef, ctx.mkTsNullValue())).isTrue) {
             return TsValue.TsNull
         }
 
         return when (type) {
-            is EtsClassType -> resolveClass(instance, type)
-            is EtsArrayType -> resolveArray(instance, type)
+            is EtsClassType -> resolveClass(concreteRef, finalStateMemoryRef ?: heapRef, type)
+            is EtsArrayType -> resolveArray(concreteRef, finalStateMemoryRef ?: heapRef, type)
             is EtsUnknownType -> {
-                val type = finalStateMemory.types.getTypeStream(expr).first()
-                resolveRef(expr, type)
+                val type = finalStateMemory.types.getTypeStream(heapRef).first()
+                resolveRef(heapRef, finalStateMemoryRef, type)
             }
 
             else -> error("Unexpected type: $type")
         }
     }
 
-    private fun resolveArray(expr: UConcreteHeapRef, type: EtsArrayType): TsValue.TsArray<*> {
-        val arrayLengthLValue = UArrayLengthLValue(expr, type, ctx.sizeSort)
+
+    private fun resolveArray(
+        concreteRef: UConcreteHeapRef,
+        heapRef: UHeapRef,
+        type: EtsArrayType
+    ): TsValue.TsArray<*> {
+        val arrayLengthLValue = UArrayLengthLValue(heapRef, type, ctx.sizeSort)
         val length = model.eval(memory.read(arrayLengthLValue)) as KBitVec32Value
 
         val values = (0 until length.intValue).map {
             val index = ctx.mkSizeExpr(it)
-            val lValue = UArrayIndexLValue(ctx.addressSort, expr, index, type)
+            val lValue = UArrayIndexLValue(ctx.addressSort, heapRef, index, type)
             val value = memory.read(lValue)
 
             if (model.eval(ctx.mkHeapRefEq(value, ctx.mkUndefinedValue())).isTrue) {
@@ -229,7 +241,7 @@ open class TsTestStateResolver(
                 // Note that everything about details of fake object we need to read from final state of the memory
                 // since they are allocated objects
                 val value = finalStateMemory.read(lValue)
-                resolveExpr(model.eval(value), EtsBooleanType)
+                resolveExpr(model.eval(value), value, EtsBooleanType)
             }
 
             model.eval(type.fpTypeExpr).isTrue -> {
@@ -237,7 +249,7 @@ open class TsTestStateResolver(
                 // Note that everything about details of fake object we need to read from final state of the memory
                 // since they are allocated objects
                 val value = finalStateMemory.read(lValue)
-                resolveExpr(model.eval(value), EtsNumberType)
+                resolveExpr(model.eval(value), value, EtsNumberType)
             }
 
             model.eval(type.refTypeExpr).isTrue -> {
@@ -247,7 +259,7 @@ open class TsTestStateResolver(
                 val value = finalStateMemory.read(lValue)
                 val ref = model.eval(value)
                 // TODO mistake with signature, use TypeStream instead
-                resolveExpr(ref, EtsClassType(ctx.scene.projectAndSdkClasses.first().signature))
+                resolveExpr(ref, value, EtsClassType(ctx.scene.projectAndSdkClasses.first().signature))
             }
 
             else -> error("Unsupported")
@@ -270,22 +282,10 @@ open class TsTestStateResolver(
     }
 
     private fun resolveClass(
-        expr: UExpr<out USort>,
+        concreteRef: UConcreteHeapRef,
+        heapRef: UHeapRef,
         classType: EtsClassType,
     ): TsValue {
-        if (expr is UConcreteHeapRef && expr.address == 0) {
-            return TsValue.TsUndefined
-        }
-
-        val nullRef = ctx.mkTsNullValue()
-        if (model.eval(ctx.mkHeapRefEq(expr.asExpr(ctx.addressSort), nullRef)).isTrue) {
-            return TsValue.TsNull
-        }
-
-        check(expr.sort == ctx.addressSort) {
-            "Expected address sort, but got ${expr.sort}"
-        }
-
         val clazz = ctx.scene.projectAndSdkClasses.firstOrNull { it.signature == classType.signature }
             ?: if (classType.signature.name == "Object") {
                 EtsClassImpl(
@@ -306,7 +306,7 @@ open class TsTestStateResolver(
             }
 
         val properties = clazz.fields.associate { field ->
-            val lValue = UFieldLValue(ctx.addressSort, expr.asExpr(ctx.addressSort), field.name)
+            val lValue = UFieldLValue(ctx.addressSort, heapRef, field.name)
             // read from final state memory since it is a fake object
             val fieldExpr = finalStateMemory.read(lValue)
 
