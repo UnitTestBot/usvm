@@ -14,6 +14,7 @@ import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS
 import org.usvm.PathSelectionStrategy
@@ -34,6 +35,19 @@ typealias CoverageChecker = (TsMethodCoverage) -> Boolean
 abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMethodCoverage>() {
 
     protected abstract val scene: EtsScene
+
+    protected fun loadSampleScene(
+        className: String,
+        useArkAnalyzerTypeInference: Boolean = true,
+    ): EtsScene {
+        val name = "$className.ts"
+        val path = getResourcePath("/samples/$name")
+        val file = loadEtsFileAutoConvert(
+            path,
+            useArkAnalyzerTypeInference = if (useArkAnalyzerTypeInference) 1 else null
+        )
+        return EtsScene(listOf(file))
+    }
 
     protected fun getMethod(className: String, methodName: String): EtsMethod {
         return scene
