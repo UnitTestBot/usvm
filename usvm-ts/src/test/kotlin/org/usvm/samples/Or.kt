@@ -20,23 +20,16 @@ import org.jacodb.ets.model.EtsMethodParameter
 import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.getLocals
-import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsValue
 import org.usvm.util.TsMethodTestRunner
-import org.usvm.util.getResourcePath
 import org.usvm.util.isTruthy
 
 class Or : TsMethodTestRunner() {
 
     private val className = this::class.simpleName!!
 
-    override val scene: EtsScene = run {
-        val name = "$className.ts"
-        val path = getResourcePath("/samples/$name")
-        val file = loadEtsFileAutoConvert(path)
-        EtsScene(listOf(file))
-    }
+    override val scene: EtsScene = loadSampleScene(className)
 
     private val classSignature: EtsClassSignature =
         scene.projectFiles[0].classes.single { it.name != DEFAULT_ARK_CLASS_NAME }.signature

@@ -1,22 +1,15 @@
 package org.usvm.samples
 
 import org.jacodb.ets.model.EtsScene
-import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.RepeatedTest
 import org.usvm.api.TsValue
 import org.usvm.util.TsMethodTestRunner
-import org.usvm.util.getResourcePath
 
 class Null : TsMethodTestRunner() {
 
     private val className = this::class.simpleName!!
 
-    override val scene = run {
-        val name = "$className.ts"
-        val path = getResourcePath("/samples/$name")
-        val file = loadEtsFileAutoConvert(path)
-        EtsScene(listOf(file))
-    }
+    override val scene: EtsScene = loadSampleScene(className)
 
     @RepeatedTest(20)
     fun testIsNull() {
