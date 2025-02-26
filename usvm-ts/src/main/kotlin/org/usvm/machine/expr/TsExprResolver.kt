@@ -595,8 +595,10 @@ class TsExprResolver(
         state.throwExceptionWithoutStackFrameDrop(address, type)
     }
 
-    private fun resolveInstanceField(instance: EtsLocal, field: EtsFieldSignature): EtsField {
-
+    private fun resolveInstanceField(
+        instance: EtsLocal,
+        field: EtsFieldSignature,
+    ): EtsField {
         // Perfect signature:
         if (field.enclosingClass.name != UNKNOWN_CLASS_NAME) {
             val clazz = ctx.scene.projectAndSdkClasses.single { it.name == field.enclosingClass.name }
