@@ -2,7 +2,6 @@ package org.usvm.util
 
 import io.ksmt.expr.KBitVec32Value
 import io.ksmt.utils.asExpr
-import org.jacodb.ets.base.CONSTRUCTOR_NAME
 import org.jacodb.ets.base.EtsArrayType
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsClassType
@@ -19,13 +18,8 @@ import org.jacodb.ets.base.EtsUndefinedType
 import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.base.EtsVoidType
 import org.jacodb.ets.base.UNKNOWN_CLASS_NAME
-import org.jacodb.ets.base.UNKNOWN_FILE_NAME
-import org.jacodb.ets.base.UNKNOWN_PROJECT_NAME
 import org.jacodb.ets.model.EtsClass
-import org.jacodb.ets.model.EtsClassImpl
 import org.jacodb.ets.model.EtsMethod
-import org.jacodb.ets.model.EtsMethodImpl
-import org.jacodb.ets.model.EtsMethodSignature
 import org.usvm.UAddressSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
@@ -130,22 +124,31 @@ open class TsTestStateResolver(
         symbolicRef: UExpr<out USort>? = null,
         type: EtsType,
     ): TsValue = when (type) {
-        is EtsPrimitiveType -> resolvePrimitive(expr, type)
+        is EtsPrimitiveType -> {
+            resolvePrimitive(expr, type)
+        }
 
-        is EtsRefType -> resolveTsValue(
-            expr.asExpr(ctx.addressSort),
-            symbolicRef?.asExpr(ctx.addressSort) ?: expr.asExpr(ctx.addressSort),
-            type
-        )
+        is EtsRefType -> {
+            val finalStateMemoryRef = symbolicRef?.asExpr(ctx.addressSort) ?: expr.asExpr(ctx.addressSort)
+            resolveTsValue(expr.asExpr(ctx.addressSort), finalStateMemoryRef, type)
+        }
 
-        else -> resolveUnknownExpr(expr, symbolicRef)
+        else -> {
+            resolveUnknownExpr(expr, symbolicRef)
+        }
     }
 
     fun resolveUnknownExpr(heapRef: UExpr<out USort>, finalStateMemoryRef: UExpr<out USort>?): TsValue =
         with(heapRef.tctx) {
             when (heapRef.sort) {
-                fp64Sort -> resolvePrimitive(heapRef, EtsNumberType)
-                boolSort -> resolvePrimitive(heapRef, EtsBooleanType)
+                fp64Sort -> {
+                    resolvePrimitive(heapRef, EtsNumberType)
+                }
+
+                boolSort -> {
+                    resolvePrimitive(heapRef, EtsBooleanType)
+                }
+
                 addressSort -> {
                     if (heapRef.isFakeObject()) {
                         resolveFakeObject(heapRef)
@@ -184,9 +187,13 @@ open class TsTestStateResolver(
                 resolveTsClass(concreteRef, finalStateMemoryRef ?: heapRef, EtsClassType(classType.signature))
             }
 
-            is EtsClassType -> resolveTsClass(concreteRef, finalStateMemoryRef ?: heapRef, type)
+            is EtsClassType -> {
+                resolveTsClass(concreteRef, finalStateMemoryRef ?: heapRef, type)
+            }
 
-            is EtsArrayType -> resolveTsArray(concreteRef, finalStateMemoryRef ?: heapRef, type)
+            is EtsArrayType -> {
+                resolveTsArray(concreteRef, finalStateMemoryRef ?: heapRef, type)
+            }
 
             is EtsUnknownType -> {
                 val type = finalStateMemory.types.getTypeStream(heapRef).first()
