@@ -123,7 +123,7 @@ jobs:
 
       - name: Set up ArkAnalyzer
         run: |
-          REPO_URL="https://gitcode.com/Lipenx/arkanalyzer.git"
+          REPO_URL="https://gitcode.com/Lipen/arkanalyzer.git"
           DEST_DIR="arkanalyzer"
           MAX_RETRIES=10
           RETRY_DELAY=3  # Delay between retries in seconds  
