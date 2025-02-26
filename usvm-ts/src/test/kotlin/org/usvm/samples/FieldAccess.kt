@@ -103,7 +103,6 @@ class FieldAccess : TsMethodTestRunner() {
         )
     }
 
-    @Disabled("Some day, we will be able to multiply by 2...")
     @Test
     fun `test multipleFieldInteraction`() {
         val method = getMethod(className, "multipleFieldInteraction")

@@ -11,6 +11,7 @@ import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.api.typeStreamOf
 import org.usvm.machine.TsContext
 import org.usvm.machine.expr.TsUndefinedSort
+import org.usvm.machine.expr.mkNumericExpr
 import org.usvm.machine.expr.mkTruthyExpr
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.types.ExprWithTypeConstraint
@@ -786,6 +787,58 @@ sealed interface TsBinaryOperator {
             scope: TsStepScope,
         ): UExpr<out USort> {
             TODO("Not yet implemented")
+        }
+    }
+
+    data object Mul : TsBinaryOperator {
+        override fun TsContext.onBool(
+            lhs: UExpr<UBoolSort>,
+            rhs: UExpr<UBoolSort>,
+            scope: TsStepScope,
+        ): UExpr<out USort> {
+            val left = mkNumericExpr(lhs, scope)
+            val right = mkNumericExpr(rhs, scope)
+            return mkFpMulExpr(fpRoundingModeSortDefaultValue(), left, right)
+        }
+
+        override fun TsContext.onFp(
+            lhs: UExpr<KFp64Sort>,
+            rhs: UExpr<KFp64Sort>,
+            scope: TsStepScope,
+        ): UExpr<out USort> {
+            return mkFpMulExpr(fpRoundingModeSortDefaultValue(), lhs, rhs)
+        }
+
+        override fun TsContext.onRef(
+            lhs: UExpr<UAddressSort>,
+            rhs: UExpr<UAddressSort>,
+            scope: TsStepScope,
+        ): UExpr<out USort> {
+            val left = mkNumericExpr(lhs, scope)
+            val right = mkNumericExpr(rhs, scope)
+            return mkFpMulExpr(fpRoundingModeSortDefaultValue(), left, right)
+        }
+
+        override fun TsContext.resolveFakeObject(
+            lhs: UExpr<out USort>,
+            rhs: UExpr<out USort>,
+            scope: TsStepScope,
+        ): UExpr<out USort> {
+            check(lhs.isFakeObject() || rhs.isFakeObject())
+            val left = mkNumericExpr(lhs, scope)
+            val right = mkNumericExpr(rhs, scope)
+            return mkFpMulExpr(fpRoundingModeSortDefaultValue(), left, right)
+        }
+
+        override fun TsContext.internalResolve(
+            lhs: UExpr<out USort>,
+            rhs: UExpr<out USort>,
+            scope: TsStepScope,
+        ): UExpr<out USort> {
+            check(!lhs.isFakeObject() && !rhs.isFakeObject())
+            val left = mkNumericExpr(lhs, scope)
+            val right = mkNumericExpr(rhs, scope)
+            return mkFpMulExpr(fpRoundingModeSortDefaultValue(), left, right)
         }
     }
 }
