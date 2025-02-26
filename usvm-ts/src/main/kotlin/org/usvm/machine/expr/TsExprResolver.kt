@@ -64,6 +64,7 @@ import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsTypeOfExpr
 import org.jacodb.ets.base.EtsUnaryExpr
 import org.jacodb.ets.base.EtsUnaryPlusExpr
+import org.jacodb.ets.base.EtsUnclearRefType
 import org.jacodb.ets.base.EtsUndefinedConstant
 import org.jacodb.ets.base.EtsUnsignedRightShiftExpr
 import org.jacodb.ets.base.EtsValue
@@ -80,6 +81,7 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.allocateArray
+import org.usvm.isTrue
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.operator.TsBinaryOperator
@@ -88,9 +90,11 @@ import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
+import org.usvm.machine.types.FakeType
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.memory.ULValue
 import org.usvm.sizeSort
+import org.usvm.types.single
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
@@ -400,8 +404,30 @@ class TsExprResolver(
 
     // region CALL
 
-    override fun visit(expr: EtsInstanceCallExpr): UExpr<out USort>? {
-        return resolveInvoke(
+    override fun visit(expr: EtsInstanceCallExpr): UExpr<out USort>? = with(ctx) {
+        if (expr.instance.name == "Number") {
+            if (expr.method.name == "isNaN") {
+                val arg = resolve(expr.args.single()) ?: return null
+                if (arg.sort == fp64Sort) {
+                    return mkFpIsNaNExpr(arg.asExpr(fp64Sort))
+                }
+                if (arg.isFakeObject()) {
+                    val fakeType = scope.calcOnState {
+                        memory.types.getTypeStream(arg).single() as FakeType
+                    }
+                    scope.calcOnState {
+                        if (fakeType.fpTypeExpr.isTrue) {
+                            val lValue = getIntermediateFpLValue(arg.address)
+                            val value = memory.read(lValue).asExpr(fp64Sort)
+                            return@calcOnState mkFpIsNaNExpr(value)
+                        }
+                        null
+                    }?.let { return it }
+                }
+            }
+        }
+
+        resolveInvoke(
             method = expr.method,
             instance = expr.instance,
             arguments = { expr.args },
@@ -420,15 +446,15 @@ class TsExprResolver(
         }
     }
 
-    override fun visit(expr: EtsStaticCallExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsStaticCallExpr): UExpr<out USort>? = with(ctx) {
         if (expr.method.name == "Number" && expr.method.enclosingClass.name == "") {
             check(expr.args.size == 1) { "Number constructor should have exactly one argument" }
             return resolveAfterResolved(expr.args.single()) {
-                ctx.mkNumericExpr(it, scope)
+                mkNumericExpr(it, scope)
             }
         }
 
-        return resolveInvoke(
+        resolveInvoke(
             method = expr.method,
             instance = null,
             arguments = { expr.args },
@@ -587,10 +613,24 @@ class TsExprResolver(
                 return clazz.fields.single { it.name == field.name }
             }
             val fields = classes.flatMap { it.fields.filter { it.name == field.name } }
-            if (fields.size == 1) return fields.single()
+            if (fields.size == 1) {
+                return fields.single()
+            }
+        } else if (instanceType is EtsUnclearRefType) {
+            val classes = ctx.scene.projectAndSdkClasses.filter { it.name == instanceType.name }
+            if (classes.size == 1) {
+                val clazz = classes.single()
+                return clazz.fields.single { it.name == field.name }
+            }
+            val fields = classes.flatMap { it.fields.filter { it.name == field.name } }
+            if (fields.size == 1) {
+                return fields.single()
+            }
         } else {
             val fields = ctx.scene.projectAndSdkClasses.flatMap { it.fields.filter { it.name == field.name } }
-            if (fields.size == 1) return fields.single()
+            if (fields.size == 1) {
+                return fields.single()
+            }
         }
         error("Cannot resolve field $field")
     }
