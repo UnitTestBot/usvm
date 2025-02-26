@@ -74,14 +74,12 @@ import org.jacodb.ets.model.EtsField
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodSignature
-import org.jacodb.ets.utils.getDeclaredLocals
 import org.usvm.UAddressSort
 import org.usvm.UBoolSort
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.allocateArray
-import org.usvm.collection.field.UFieldLValue
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.operator.TsBinaryOperator
