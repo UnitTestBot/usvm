@@ -11,7 +11,7 @@ class Objects : TsMethodTestRunner() {
     override val scene: EtsScene = loadSampleScene(className)
 
     @Test
-    fun testCreateClassInstance() {
+    fun `test createClassInstance`() {
         val method = getMethod("Example", "createClassInstance")
         discoverProperties<TsValue.TsNumber>(
             method = method,
@@ -20,7 +20,7 @@ class Objects : TsMethodTestRunner() {
     }
 
     @Test
-    fun testCreateClassInstanceAndWriteField() {
+    fun `test createClassInstanceAndWriteField`() {
         val method = getMethod("Example", "createClassInstanceAndWriteField")
         discoverProperties<TsValue.TsClass>(
             method = method,
@@ -29,7 +29,7 @@ class Objects : TsMethodTestRunner() {
     }
 
     @Test
-    fun testCreateClassInstanceAndWriteValueOfAnotherType() {
+    fun `test createClassInstanceAndWriteValueOfAnotherType`() {
         val method = getMethod("Example", "createClassInstanceAndWriteValueOfAnotherType")
         discoverProperties<TsValue.TsClass>(
             method = method,
@@ -38,7 +38,7 @@ class Objects : TsMethodTestRunner() {
     }
 
     @Test
-    fun testCreateAnonymousClass() {
+    fun `test createAnonymousClass`() {
         val method = getMethod("Example", "createAnonymousClass")
         discoverProperties<TsValue.TsClass>(
             method = method,
@@ -47,7 +47,7 @@ class Objects : TsMethodTestRunner() {
     }
 
     @Test
-    fun testReadFieldValue() {
+    fun `test readFieldValue`() {
         val method = getMethod("Example", "readFieldValue")
         discoverProperties<TsValue.TsClass, TsValue.TsNumber>(
             method = method,
