@@ -768,6 +768,13 @@ class TsSimpleValueResolver(
     }
 
     override fun visit(value: EtsLocal): UExpr<out USort> {
+        if (value.name == "NaN") {
+            return ctx.mkFp64NaN()
+        }
+        if (value.name == "Infinity") {
+            return ctx.mkFpInf(false, ctx.fp64Sort)
+        }
+
         val lValue = resolveLocal(value)
         return scope.calcOnState { memory.read(lValue) }
     }
