@@ -35,6 +35,7 @@ import org.usvm.machine.expr.mkTruthyExpr
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.machine.state.lastStmt
+import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.state.returnValue
@@ -282,7 +283,7 @@ class TsInterpreter(
         state.models = listOf(model)
 
         state.callStack.push(method, returnSite = null)
-        state.memory.stack.push(method.parametersWithThisCount, method.getDeclaredLocals().size)
+        state.memory.stack.push(method.parametersWithThisCount, method.localsCount)
         state.newStmt(method.cfg.instructions.first())
 
         state.memory.types.allocate(ctx.mkTsNullValue().address, EtsNullType)

@@ -320,13 +320,15 @@ open class TsTestStateResolver(
                 val fieldExpr = finalStateMemory.read(lValue) as? UConcreteHeapRef
                     ?: error("UnresolvedSort should be represented by a fake object instance")
 
-                // TODO check values
+                // TODO check values if fieldExpr is correct here
+                //      Probably we have to pass fieldExpr as symbolic value and something as a concrete one
                 return@associate field.name to resolveExpr(fieldExpr, fieldExpr, field.type)
             }
 
             val lValue = UFieldLValue(sort, concreteRef.asExpr(ctx.addressSort), field.name)
             val fieldExpr = memory.read(lValue)
-            // TODO check values
+            // TODO check values if fieldExpr is correct here
+            //      Probably we have to pass fieldExpr as symbolic value and something as a concrete one
             val obj = resolveExpr(fieldExpr, fieldExpr, field.type)
             field.name to obj
         }

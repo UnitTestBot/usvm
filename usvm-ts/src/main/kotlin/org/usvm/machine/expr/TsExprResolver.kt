@@ -87,6 +87,7 @@ import org.usvm.machine.operator.TsBinaryOperator
 import org.usvm.machine.operator.TsUnaryOperator
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
+import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.memory.ULValue
@@ -414,7 +415,7 @@ class TsExprResolver(
                 pushSortsForArguments(expr.instance, expr.args, localToIdx)
 
                 callStack.push(method, currentStatement)
-                memory.stack.push(args.toTypedArray(), method.getDeclaredLocals().size)
+                memory.stack.push(args.toTypedArray(), method.localsCount)
 
                 newStmt(method.cfg.stmts.first())
             }
