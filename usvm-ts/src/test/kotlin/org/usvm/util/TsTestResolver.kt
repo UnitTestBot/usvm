@@ -297,16 +297,28 @@ open class TsTestStateResolver(
     private fun resolvePrimitive(
         expr: UExpr<out USort>,
         type: EtsPrimitiveType,
-    ): TsValue = when (type) {
-        EtsNumberType -> TsValue.TsNumber.TsDouble(extractDouble(evaluateInModel(expr)))
-        EtsBooleanType -> TsValue.TsBoolean(evaluateInModel(expr).extractBool())
-        EtsUndefinedType -> TsValue.TsUndefined
-        is EtsLiteralType -> TODO()
-        EtsNullType -> TODO()
-        EtsNeverType -> TODO()
-        EtsStringType -> TODO()
-        EtsVoidType -> TODO()
-        else -> error("Unexpected type: $type")
+    ): TsValue = with(ctx) {
+        when (type) {
+            EtsNumberType -> {
+                val e = evaluateInModel(expr)
+                if (e.isFakeObject()) {
+                    val lValue = getIntermediateFpLValue(e.address)
+                    val value = finalStateMemory.read(lValue)
+                    resolveExpr(model.eval(value), value, EtsNumberType)
+                } else {
+                    TsValue.TsNumber.TsDouble(e.extractDouble())
+                }
+            }
+
+            EtsBooleanType -> TsValue.TsBoolean(evaluateInModel(expr).extractBool())
+            EtsUndefinedType -> TsValue.TsUndefined
+            is EtsLiteralType -> TODO()
+            EtsNullType -> TODO()
+            EtsNeverType -> TODO()
+            EtsStringType -> TODO()
+            EtsVoidType -> TODO()
+            else -> error("Unexpected type: $type")
+        }
     }
 
     private fun resolveClass(
