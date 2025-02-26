@@ -81,6 +81,7 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.allocateArray
+import org.usvm.collection.field.UFieldLValue
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.operator.TsBinaryOperator
@@ -92,7 +93,6 @@ import org.usvm.machine.state.newStmt
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.memory.ULValue
 import org.usvm.sizeSort
-import org.usvm.util.fieldLookUp
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
@@ -453,7 +453,7 @@ class TsExprResolver(
         // Perfect signature:
         if (method.enclosingClass.name != UNKNOWN_CLASS_NAME) {
             val clazz = ctx.scene.projectAndSdkClasses.single { it.name == method.enclosingClass.name }
-            return clazz.methods.single { it.name == method.name }
+            return (clazz.methods + clazz.ctor).single { it.name == method.name }
         }
 
         // Unknown signature:
@@ -462,12 +462,12 @@ class TsExprResolver(
             val classes = ctx.scene.projectAndSdkClasses.filter { it.name == instanceType.signature.name }
             if (classes.size == 1) {
                 val clazz = classes.single()
-                return clazz.methods.single { it.name == method.name }
+                return (clazz.methods + clazz.ctor).single { it.name == method.name }
             }
-            val methods = classes.flatMap { it.methods }.filter { it.name == method.name }
+            val methods = classes.flatMap { it.methods + it.ctor }.filter { it.name == method.name }
             if (methods.size == 1) return methods.single()
         } else {
-            val methods = ctx.scene.projectAndSdkClasses.flatMap { it.methods }.filter { it.name == method.name }
+            val methods = ctx.scene.projectAndSdkClasses.flatMap { it.methods + it.ctor }.filter { it.name == method.name }
             if (methods.size == 1) return methods.single()
         }
         error("Cannot resolve method $method")
@@ -614,8 +614,6 @@ class TsExprResolver(
 
         val field = resolveInstanceField(value.instance, value.field)
         val sort = typeToSort(field.type)
-        val lValue = UFieldLValue(sort, instanceRef, value.field.name)
-        val expr = scope.calcOnState { memory.read(lValue) }
 
         val expr = if (sort == unresolvedSort) {
             val boolLValue = mkFieldLValue(boolSort, instanceRef, value.field)

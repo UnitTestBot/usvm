@@ -14,6 +14,7 @@ import org.jacodb.ets.base.EtsPrimitiveType
 import org.jacodb.ets.base.EtsRefType
 import org.jacodb.ets.base.EtsStringType
 import org.jacodb.ets.base.EtsType
+import org.jacodb.ets.base.EtsUnclearRefType
 import org.jacodb.ets.base.EtsUndefinedType
 import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.base.EtsVoidType
@@ -174,6 +175,12 @@ open class TsTestStateResolver(
         }
 
         return when (type) {
+            // TODO add better support
+            is EtsUnclearRefType -> {
+                val classType = ctx.scene.projectAndSdkClasses.single { it.name == type.name }
+                resolveClass(concreteRef, finalStateMemoryRef ?: heapRef, EtsClassType(classType.signature))
+            }
+
             is EtsClassType -> resolveClass(concreteRef, finalStateMemoryRef ?: heapRef, type)
 
             is EtsArrayType -> resolveArray(concreteRef, finalStateMemoryRef ?: heapRef, type)
