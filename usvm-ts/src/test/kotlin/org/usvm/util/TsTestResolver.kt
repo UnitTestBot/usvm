@@ -138,7 +138,10 @@ open class TsTestStateResolver(
         }
     }
 
-    fun resolveUnknownExpr(heapRef: UExpr<out USort>, finalStateMemoryRef: UExpr<out USort>?): TsValue =
+    fun resolveUnknownExpr(
+        heapRef: UExpr<out USort>,
+        finalStateMemoryRef: UExpr<out USort>?,
+    ): TsValue =
         with(heapRef.tctx) {
             when (heapRef.sort) {
                 fp64Sort -> {
