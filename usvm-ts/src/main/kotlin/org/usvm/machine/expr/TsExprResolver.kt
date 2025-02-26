@@ -42,6 +42,7 @@ import org.jacodb.ets.base.EtsNotExpr
 import org.jacodb.ets.base.EtsNullConstant
 import org.jacodb.ets.base.EtsNullishCoalescingExpr
 import org.jacodb.ets.base.EtsNumberConstant
+import org.jacodb.ets.base.EtsNumberType
 import org.jacodb.ets.base.EtsOrExpr
 import org.jacodb.ets.base.EtsParameterRef
 import org.jacodb.ets.base.EtsPostDecExpr
@@ -66,6 +67,7 @@ import org.jacodb.ets.base.EtsUnaryExpr
 import org.jacodb.ets.base.EtsUnaryPlusExpr
 import org.jacodb.ets.base.EtsUnclearRefType
 import org.jacodb.ets.base.EtsUndefinedConstant
+import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.base.EtsUnsignedRightShiftExpr
 import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.base.EtsVoidExpr
@@ -644,12 +646,28 @@ class TsExprResolver(
 
         // TODO It is a hack for array's length
         if (value.instance.type is EtsArrayType && value.field.name == "length") {
-            val lValue = mkArrayLengthLValue(instanceRef, value.instance.type as EtsArrayType)
-            val expr = scope.calcOnState { memory.read(lValue) }
+            val lengthLValue = mkArrayLengthLValue(instanceRef, value.instance.type as EtsArrayType)
+            val length = scope.calcOnState { memory.read(lengthLValue) }
+            return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), length.asExpr(sizeSort), signed = true)
+        }
 
-            check(expr.sort == ctx.sizeSort)
-
-            return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), expr.asExpr(sizeSort), signed = true)
+        // TODO: handle "length" property for arrays inside fake objects
+        if (value.field.name == "length" && instanceRef.isFakeObject()) {
+            val fakeType = scope.calcOnState {
+                memory.types.getTypeStream(instanceRef).single() as FakeType
+            }
+            if (fakeType.refTypeExpr.isTrue) {
+                val refLValue = getIntermediateRefLValue(instanceRef.address)
+                val obj = scope.calcOnState { memory.read(refLValue) }
+                // TODO: fix array type. It should be the same as the type used when "writing" the length.
+                //  However, current value.instance typically has 'unknown' type, and the best we can do here is
+                //  to pretend that this is an array-like object (with "array length", not just "length" field),
+                //  and "cast" instance to "unknown[]". The same could be done for any length writes, making
+                //  the array type (for length) consistent (unknown everywhere), but less precise.
+                val lengthLValue = mkArrayLengthLValue(obj, EtsArrayType(EtsUnknownType, 1))
+                val length = scope.calcOnState { memory.read(lengthLValue) }
+                return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), length.asExpr(sizeSort), signed = true)
+            }
         }
 
         val field = resolveInstanceField(value.instance, value.field)

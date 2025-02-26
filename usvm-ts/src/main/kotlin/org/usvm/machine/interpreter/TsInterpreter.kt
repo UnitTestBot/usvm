@@ -156,8 +156,10 @@ class TsInterpreter(
                         isSigned = true
                     ).asExpr(sizeSort)
 
+                    // TODO: handle the case when `lhv.array.type` is NOT an array.
+                    //  In this case, it could be created manually: `EtsArrayType(EtsUnknownType, 1)`.
                     val lengthLValue = mkArrayLengthLValue(instance, lhv.array.type as EtsArrayType)
-                    val currentLength = memory.read(lengthLValue).asExpr(sizeSort)
+                    val currentLength = memory.read(lengthLValue)
 
                     val condition = mkBvSignedGreaterOrEqualExpr(bvIndex, currentLength)
                     val newLength = mkIte(condition, mkBvAddExpr(bvIndex, mkBv(1)), currentLength)

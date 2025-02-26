@@ -113,7 +113,6 @@ class FieldAccess : TsMethodTestRunner() {
         )
     }
 
-    @Disabled("Need to handle .length property specifically")
     @Test
     fun `test circularTypeChanges`() {
         val method = getMethod(className, "circularTypeChanges")
