@@ -18,6 +18,9 @@ import org.jacodb.ets.base.EtsUnclearRefType
 import org.jacodb.ets.base.EtsUndefinedType
 import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.base.EtsVoidType
+import org.jacodb.ets.base.UNKNOWN_CLASS_NAME
+import org.jacodb.ets.base.UNKNOWN_FILE_NAME
+import org.jacodb.ets.base.UNKNOWN_PROJECT_NAME
 import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassImpl
 import org.jacodb.ets.model.EtsMethod
@@ -129,7 +132,7 @@ open class TsTestStateResolver(
     ): TsValue = when (type) {
         is EtsPrimitiveType -> resolvePrimitive(expr, type)
 
-        is EtsRefType -> resolveRef(
+        is EtsRefType -> resolveTsValue(
             expr.asExpr(ctx.addressSort),
             symbolicRef?.asExpr(ctx.addressSort) ?: expr.asExpr(ctx.addressSort),
             type
@@ -147,7 +150,7 @@ open class TsTestStateResolver(
                     if (heapRef.isFakeObject()) {
                         resolveFakeObject(heapRef)
                     } else {
-                        resolveRef(
+                        resolveTsValue(
                             heapRef.asExpr(ctx.addressSort),
                             finalStateMemoryRef?.asExpr(ctx.addressSort),
                             EtsUnknownType
@@ -159,7 +162,7 @@ open class TsTestStateResolver(
             }
         }
 
-    private fun resolveRef(
+    private fun resolveTsValue(
         heapRef: UExpr<UAddressSort>,
         finalStateMemoryRef: UExpr<UAddressSort>?,
         type: EtsType,
@@ -178,23 +181,23 @@ open class TsTestStateResolver(
             // TODO add better support
             is EtsUnclearRefType -> {
                 val classType = ctx.scene.projectAndSdkClasses.single { it.name == type.name }
-                resolveClass(concreteRef, finalStateMemoryRef ?: heapRef, EtsClassType(classType.signature))
+                resolveTsClass(concreteRef, finalStateMemoryRef ?: heapRef, EtsClassType(classType.signature))
             }
 
-            is EtsClassType -> resolveClass(concreteRef, finalStateMemoryRef ?: heapRef, type)
+            is EtsClassType -> resolveTsClass(concreteRef, finalStateMemoryRef ?: heapRef, type)
 
-            is EtsArrayType -> resolveArray(concreteRef, finalStateMemoryRef ?: heapRef, type)
+            is EtsArrayType -> resolveTsArray(concreteRef, finalStateMemoryRef ?: heapRef, type)
 
             is EtsUnknownType -> {
                 val type = finalStateMemory.types.getTypeStream(heapRef).first()
-                resolveRef(heapRef, finalStateMemoryRef, type)
+                resolveTsValue(heapRef, finalStateMemoryRef, type)
             }
 
             else -> error("Unexpected type: $type")
         }
     }
 
-    private fun resolveArray(
+    private fun resolveTsArray(
         concreteRef: UConcreteHeapRef,
         heapRef: UHeapRef,
         type: EtsArrayType,
@@ -296,28 +299,36 @@ open class TsTestStateResolver(
     }
 
     private fun resolveClass(
+        classType: EtsClassType,
+    ): EtsClass {
+        // Special case for Object:
+        if (classType.signature.name == "Object") {
+            return createObjectClass()
+        }
+
+        // Perfect signature:
+        if (classType.signature.name != UNKNOWN_CLASS_NAME) {
+            val classes = ctx.scene.projectAndSdkClasses.filter { it.signature == classType.signature }
+            if (classes.size == 1) {
+                return classes.single()
+            }
+        }
+
+        // Sad signature:
+        val classes = ctx.scene.projectAndSdkClasses.filter { it.signature.name == classType.signature.name }
+        if (classes.size == 1) {
+            return classes.single()
+        }
+
+        error("Could not resolve class: ${classType.signature}")
+    }
+
+    private fun resolveTsClass(
         concreteRef: UConcreteHeapRef,
         heapRef: UHeapRef,
         classType: EtsClassType,
-    ): TsValue {
-        val clazz = ctx.scene.projectAndSdkClasses.firstOrNull { it.signature == classType.signature }
-            ?: if (classType.signature.name == "Object") {
-                EtsClassImpl(
-                    signature = classType.signature,
-                    fields = emptyList(),
-                    methods = emptyList(),
-                    ctor = EtsMethodImpl(
-                        EtsMethodSignature(
-                            enclosingClass = classType.signature,
-                            name = CONSTRUCTOR_NAME,
-                            parameters = emptyList(),
-                            returnType = classType,
-                        )
-                    ),
-                )
-            } else {
-                error("Class not found: ${classType.signature}")
-            }
+    ): TsValue.TsClass {
+        val clazz = resolveClass(classType)
 
         val properties = clazz.fields.associate { field ->
             val sort = ctx.typeToSort(field.type)
