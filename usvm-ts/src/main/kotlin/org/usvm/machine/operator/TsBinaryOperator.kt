@@ -415,7 +415,7 @@ sealed interface TsBinaryOperator {
             rhs: UExpr<UAddressSort>,
             scope: TsStepScope,
         ): UExpr<out USort> {
-            TODO("Not yet implemented")
+            return mkHeapRefEq(lhs, rhs)
         }
 
         override fun TsContext.resolveFakeObject(
