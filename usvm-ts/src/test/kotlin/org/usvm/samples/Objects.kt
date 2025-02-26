@@ -52,7 +52,7 @@ class Objects : TsMethodTestRunner() {
         discoverProperties<TsValue.TsClass, TsValue.TsNumber>(
             method = method,
             { x, r -> (x.properties.values.single() as TsValue.TsNumber).number == 1.1 && r.number == 14.0 },
-            { x, r -> (x.properties.values.single() as? TsValue.TsNumber)?.number != 1.1 && r.number == 10.0 }
+            { x, r -> (x.properties.values.single() as TsValue.TsNumber).number != 1.1 && r.number == 10.0 }
         )
     }
 }
