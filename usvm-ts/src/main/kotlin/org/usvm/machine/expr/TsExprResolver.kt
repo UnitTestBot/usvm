@@ -74,29 +74,28 @@ import org.jacodb.ets.model.EtsField
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodSignature
+import org.jacodb.ets.utils.getDeclaredLocals
 import org.usvm.UAddressSort
 import org.usvm.UBoolSort
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.allocateArray
-import org.usvm.api.makeSymbolicPrimitive
-import org.usvm.collection.array.UArrayIndexLValue
-import org.usvm.collection.array.length.UArrayLengthLValue
-import org.usvm.collection.field.UFieldLValue
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.operator.TsBinaryOperator
 import org.usvm.machine.operator.TsUnaryOperator
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
-import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
-import org.usvm.machine.types.FakeType
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.memory.ULValue
-import org.usvm.memory.URegisterStackLValue
 import org.usvm.sizeSort
+import org.usvm.util.fieldLookUp
+import org.usvm.util.mkArrayIndexLValue
+import org.usvm.util.mkArrayLengthLValue
+import org.usvm.util.mkFieldLValue
+import org.usvm.util.mkRegisterStackLValue
 import org.usvm.util.throwExceptionWithoutStackFrameDrop
 
 private val logger = KotlinLogging.logger {}
@@ -415,7 +414,7 @@ class TsExprResolver(
                 pushSortsForArguments(expr.instance, expr.args, localToIdx)
 
                 callStack.push(method, currentStatement)
-                memory.stack.push(args.toTypedArray(), method.localsCount)
+                memory.stack.push(args.toTypedArray(), method.getDeclaredLocals().size)
 
                 newStmt(method.cfg.stmts.first())
             }
@@ -541,7 +540,12 @@ class TsExprResolver(
             isSigned = true
         )
 
-        val lValue = UArrayIndexLValue(addressSort, instance, bvIndex, value.array.type)
+        val lValue = mkArrayIndexLValue(
+            addressSort,
+            instance,
+            bvIndex.asExpr(ctx.sizeSort),
+            value.array.type as EtsArrayType
+        )
         val expr = scope.calcOnState { memory.read(lValue) }
 
         check(expr.isFakeObject()) { "Only fake objects are allowed in arrays" }
@@ -599,7 +603,7 @@ class TsExprResolver(
 
         // TODO It is a hack for array's length
         if (value.instance.type is EtsArrayType && value.field.name == "length") {
-            val lValue = UArrayLengthLValue(instanceRef, value.instance.type, ctx.sizeSort)
+            val lValue = mkArrayLengthLValue(instanceRef, value.instance.type as EtsArrayType)
             val expr = scope.calcOnState { memory.read(lValue) }
 
             check(expr.sort == ctx.sizeSort)
@@ -611,6 +615,33 @@ class TsExprResolver(
         val sort = typeToSort(field.type)
         val lValue = UFieldLValue(sort, instanceRef, value.field.name)
         val expr = scope.calcOnState { memory.read(lValue) }
+
+        val expr = if (sort == unresolvedSort) {
+            val boolLValue = mkFieldLValue(boolSort, instanceRef, value.field)
+            val fpLValue = mkFieldLValue(fp64Sort, instanceRef, value.field)
+            val refLValue = mkFieldLValue(addressSort, instanceRef, value.field)
+
+            scope.calcOnState {
+                val bool = memory.read(boolLValue)
+                val fp = memory.read(fpLValue)
+                val ref = memory.read(refLValue)
+
+                // If a fake object is already created and assigned to the field,
+                // there is no need to recreate another one
+                val fakeRef = if (ref.isFakeObject()) {
+                    ref
+                } else {
+                    mkFakeValue(scope, bool, fp, ref)
+                }
+
+                memory.write(refLValue, fakeRef.asExpr(addressSort), guard = trueExpr)
+
+                fakeRef
+            }
+        } else {
+            val lValue = mkFieldLValue(sort, instanceRef, value.field)
+            scope.calcOnState { memory.read(lValue) }
+        }
 
         if (assertIsSubtype(expr, value.type)) {
             expr
@@ -706,20 +737,20 @@ class TsSimpleValueResolver(
         // If we are not in the entrypoint, all correct values are already resolved and we can just return
         // a registerStackLValue for the local
         if (currentMethod != entrypoint) {
-            return URegisterStackLValue(sort, localIdx)
+            return mkRegisterStackLValue(sort, localIdx)
         }
 
         // arguments and this for the first stack frame
         return when (sort) {
-            is UBoolSort -> URegisterStackLValue(sort, localIdx)
-            is KFp64Sort -> URegisterStackLValue(sort, localIdx)
-            is UAddressSort -> URegisterStackLValue(sort, localIdx)
+            is UBoolSort -> mkRegisterStackLValue(sort, localIdx)
+            is KFp64Sort -> mkRegisterStackLValue(sort, localIdx)
+            is UAddressSort -> mkRegisterStackLValue(sort, localIdx)
             is TsUnresolvedSort -> {
                 check(local is EtsThis || local is EtsParameterRef) {
                     "Only This and ParameterRef are expected here"
                 }
 
-                val lValue = URegisterStackLValue(ctx.addressSort, localIdx)
+                val lValue = mkRegisterStackLValue(ctx.addressSort, localIdx)
 
                 val boolRValue = ctx.mkRegisterReading(localIdx, ctx.boolSort)
                 val fpRValue = ctx.mkRegisterReading(localIdx, ctx.fp64Sort)
@@ -728,15 +759,6 @@ class TsSimpleValueResolver(
                 val fakeObject = ctx.mkFakeValue(scope, boolRValue, fpRValue, refRValue)
                 scope.calcOnState {
                     with(ctx) {
-                        val type = FakeType(
-                            boolTypeExpr = makeSymbolicPrimitive(boolSort),
-                            fpTypeExpr = makeSymbolicPrimitive(boolSort),
-                            refTypeExpr = makeSymbolicPrimitive(boolSort)
-                        )
-
-                        scope.assert(type.mkExactlyOneTypeConstraint(ctx))
-
-                        memory.types.allocate(fakeObject.address, type)
                         memory.write(lValue, fakeObject.asExpr(addressSort), guard = trueExpr)
                     }
                 }

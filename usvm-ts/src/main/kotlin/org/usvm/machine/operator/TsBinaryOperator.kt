@@ -56,21 +56,24 @@ sealed interface TsBinaryOperator {
         rhs: UExpr<out USort>,
         scope: TsStepScope,
     ): UExpr<out USort> {
-        if (lhs.isFakeObject() || rhs.isFakeObject()) {
-            return resolveFakeObject(lhs, rhs, scope)
+        val lhsValue = lhs.extractSingleValueFromFakeObjectOrNull(scope) ?: lhs
+        val rhsValue = rhs.extractSingleValueFromFakeObjectOrNull(scope) ?: rhs
+
+        if (lhsValue.isFakeObject() || rhsValue.isFakeObject()) {
+            return resolveFakeObject(lhsValue, rhsValue, scope)
         }
 
-        val lhsSort = lhs.sort
-        if (lhsSort == rhs.sort) {
+        val lhsSort = lhsValue.sort
+        if (lhsSort == rhsValue.sort) {
             return when (lhsSort) {
-                boolSort -> onBool(lhs.asExpr(boolSort), rhs.asExpr(boolSort), scope)
-                fp64Sort -> onFp(lhs.asExpr(fp64Sort), rhs.asExpr(fp64Sort), scope)
-                addressSort -> onRef(lhs.asExpr(addressSort), rhs.asExpr(addressSort), scope)
+                boolSort -> onBool(lhsValue.asExpr(boolSort), rhsValue.asExpr(boolSort), scope)
+                fp64Sort -> onFp(lhsValue.asExpr(fp64Sort), rhsValue.asExpr(fp64Sort), scope)
+                addressSort -> onRef(lhsValue.asExpr(addressSort), rhsValue.asExpr(addressSort), scope)
                 else -> TODO("Unsupported sort $lhsSort")
             }
         }
 
-        return internalResolve(lhs, rhs, scope)
+        return internalResolve(lhsValue, rhsValue, scope)
     }
 
     data object Eq : TsBinaryOperator {

@@ -7,6 +7,7 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
+import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.api.typeStreamOf
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.machine.IntermediateLValueField
@@ -30,12 +31,23 @@ fun TsContext.mkFakeValue(
         val fakeValueRef = createFakeObjectRef()
         val address = fakeValueRef.address
 
+        val boolTypeExpr = trueExpr
+            .takeIf { boolValue != null && fpValue == null && refValue == null }
+            ?: makeSymbolicPrimitive(boolSort)
+        val fpTypeExpr = trueExpr
+            .takeIf { boolValue == null && fpValue != null && refValue == null }
+            ?: makeSymbolicPrimitive(boolSort)
+        val refTypeExpr = trueExpr
+            .takeIf { boolValue == null && fpValue == null && refValue != null }
+            ?: makeSymbolicPrimitive(boolSort)
+
         val type = FakeType(
-            boolTypeExpr = mkBool(boolValue != null),
-            fpTypeExpr = mkBool(fpValue != null),
-            refTypeExpr = mkBool(refValue != null),
+            boolTypeExpr = boolTypeExpr,
+            fpTypeExpr = fpTypeExpr,
+            refTypeExpr = refTypeExpr,
         )
         memory.types.allocate(address, type)
+        scope.assert(type.mkExactlyOneTypeConstraint(ctx))
 
         if (boolValue != null) {
             val boolLValue = ctx.getIntermediateBoolLValue(address)

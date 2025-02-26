@@ -2,6 +2,7 @@ package org.usvm.machine
 
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
+import org.jacodb.ets.base.EtsAnyType
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsNullType
 import org.jacodb.ets.base.EtsNumberType
@@ -19,10 +20,13 @@ import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.collection.field.UFieldLValue
+import org.usvm.isTrue
 import org.usvm.machine.expr.TsUndefinedSort
 import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.types.FakeType
+import org.usvm.types.single
+import org.usvm.util.mkFieldLValue
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 
@@ -51,6 +55,7 @@ class TsContext(
         is EtsUndefinedType -> addressSort
         is EtsUnknownType -> unresolvedSort
         is EtsUnionType -> unresolvedSort
+        is EtsAnyType -> unresolvedSort
         else -> TODO("Support all JacoDB types, encountered $type")
     }
 
@@ -70,7 +75,7 @@ class TsContext(
 
         val ref = createFakeObjectRef()
 
-        scope.calcOnState {
+        scope.doWithState {
             when (sort) {
                 boolSort -> {
                     val lvalue = getIntermediateBoolLValue(ref.address)
@@ -86,8 +91,8 @@ class TsContext(
 
                 addressSort -> {
                     val lValue = getIntermediateRefLValue(ref.address)
-                    memory.types.allocate(ref.address, FakeType.fromRef(this@TsContext))
                     memory.write(lValue, this@toFakeObject.asExpr(addressSort), guard = trueExpr)
+                    memory.types.allocate(ref.address, FakeType.fromRef(this@TsContext))
                 }
 
                 else -> TODO("Not yet supported")
@@ -95,6 +100,35 @@ class TsContext(
         }
 
         return ref
+    }
+
+    fun UExpr<out USort>.extractSingleValueFromFakeObjectOrNull(scope: TsStepScope): UExpr<out USort>? {
+        if (!isFakeObject()) return null
+
+        val type = scope.calcOnState {
+            memory.types.getTypeStream(this@extractSingleValueFromFakeObjectOrNull).single() as FakeType
+        }
+
+        return scope.calcOnState {
+            when {
+                type.boolTypeExpr.isTrue -> {
+                    val lValue = getIntermediateBoolLValue(address)
+                    memory.read(lValue).asExpr(boolSort)
+                }
+
+                type.fpTypeExpr.isTrue -> {
+                    val lValue = getIntermediateFpLValue(address)
+                    memory.read(lValue).asExpr(fp64Sort)
+                }
+
+                type.refTypeExpr.isTrue -> {
+                    val lValue = getIntermediateRefLValue(address)
+                    memory.read(lValue).asExpr(addressSort)
+                }
+
+                else -> null
+            }
+        }
     }
 
     fun createFakeObjectRef(): UConcreteHeapRef {
@@ -108,15 +142,15 @@ class TsContext(
     private val nullValue: UConcreteHeapRef = mkConcreteHeapRef(addressCounter.freshStaticAddress())
 
     fun getIntermediateBoolLValue(addr: Int): UFieldLValue<IntermediateLValueField, UBoolSort> {
-        return UFieldLValue(boolSort, mkConcreteHeapRef(addr), IntermediateLValueField.BOOL)
+        return mkFieldLValue(boolSort, mkConcreteHeapRef(addr), IntermediateLValueField.BOOL)
     }
 
     fun getIntermediateFpLValue(addr: Int): UFieldLValue<IntermediateLValueField, KFp64Sort> {
-        return UFieldLValue(fp64Sort, mkConcreteHeapRef(addr), IntermediateLValueField.FP)
+        return mkFieldLValue(fp64Sort, mkConcreteHeapRef(addr), IntermediateLValueField.FP)
     }
 
     fun getIntermediateRefLValue(addr: Int): UFieldLValue<IntermediateLValueField, UAddressSort> {
-        return UFieldLValue(addressSort, mkConcreteHeapRef(addr), IntermediateLValueField.REF)
+        return mkFieldLValue(addressSort, mkConcreteHeapRef(addr), IntermediateLValueField.REF)
     }
 }
 
