@@ -1,7 +1,6 @@
 package org.usvm.machine.interpreter
 
 import io.ksmt.utils.asExpr
-import mu.KotlinLogging
 import org.jacodb.ets.base.EtsArrayAccess
 import org.jacodb.ets.base.EtsArrayType
 import org.jacodb.ets.base.EtsAssignStmt

@@ -42,7 +42,6 @@ import org.jacodb.ets.base.EtsNotExpr
 import org.jacodb.ets.base.EtsNullConstant
 import org.jacodb.ets.base.EtsNullishCoalescingExpr
 import org.jacodb.ets.base.EtsNumberConstant
-import org.jacodb.ets.base.EtsNumberType
 import org.jacodb.ets.base.EtsOrExpr
 import org.jacodb.ets.base.EtsParameterRef
 import org.jacodb.ets.base.EtsPostDecExpr
@@ -484,15 +483,20 @@ class TsExprResolver(
         // Unknown signature:
         val instanceType = instance.type
         if (instanceType is EtsClassType) {
-            val classes = ctx.scene.projectAndSdkClasses.filter { it.name == instanceType.signature.name }
+            val classes = ctx.scene.projectAndSdkClasses
+                .filter { it.name == instanceType.signature.name }
             if (classes.size == 1) {
                 val clazz = classes.single()
                 return (clazz.methods + clazz.ctor).single { it.name == method.name }
             }
-            val methods = classes.flatMap { it.methods + it.ctor }.filter { it.name == method.name }
+            val methods = classes
+                .flatMap { it.methods + it.ctor }
+                .filter { it.name == method.name }
             if (methods.size == 1) return methods.single()
         } else {
-            val methods = ctx.scene.projectAndSdkClasses.flatMap { it.methods + it.ctor }.filter { it.name == method.name }
+            val methods = ctx.scene.projectAndSdkClasses
+                .flatMap { it.methods + it.ctor }
+                .filter { it.name == method.name }
             if (methods.size == 1) return methods.single()
         }
         error("Cannot resolve method $method")
