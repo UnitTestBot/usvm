@@ -38,7 +38,7 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
 
     protected fun loadSampleScene(
         className: String,
-        useArkAnalyzerTypeInference: Boolean = true,
+        useArkAnalyzerTypeInference: Boolean = false,
     ): EtsScene {
         val name = "$className.ts"
         val path = getResourcePath("/samples/$name")

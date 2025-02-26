@@ -15,6 +15,7 @@ import org.jacodb.ets.base.EtsBitOrExpr
 import org.jacodb.ets.base.EtsBitXorExpr
 import org.jacodb.ets.base.EtsBooleanConstant
 import org.jacodb.ets.base.EtsCastExpr
+import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.base.EtsCommaExpr
 import org.jacodb.ets.base.EtsDeleteExpr
 import org.jacodb.ets.base.EtsDivExpr
@@ -68,6 +69,9 @@ import org.jacodb.ets.base.EtsUnsignedRightShiftExpr
 import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.base.EtsVoidExpr
 import org.jacodb.ets.base.EtsYieldExpr
+import org.jacodb.ets.base.UNKNOWN_CLASS_NAME
+import org.jacodb.ets.model.EtsField
+import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodSignature
 import org.usvm.UAddressSort
@@ -93,7 +97,6 @@ import org.usvm.machine.types.mkFakeValue
 import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.sizeSort
-import org.usvm.util.fieldLookUp
 import org.usvm.util.throwExceptionWithoutStackFrameDrop
 
 private val logger = KotlinLogging.logger {}
@@ -407,11 +410,7 @@ class TsExprResolver(
             argumentTypes = { expr.method.parameters.map { it.type } },
         ) { args ->
             doWithState {
-                val method = ctx.scene
-                    .projectAndSdkClasses
-                    .flatMap { it.methods }
-                    .singleOrNull { it.signature == expr.method }
-                    ?: error("Couldn't find a unique method with the signature ${expr.method}")
+                val method = resolveInstanceCall(expr.instance, expr.method)
 
                 pushSortsForArguments(expr.instance, expr.args, localToIdx)
 
@@ -445,6 +444,33 @@ class TsExprResolver(
     override fun visit(expr: EtsPtrCallExpr): UExpr<out USort>? {
         // TODO: IMPORTANT do not forget to fill sorts of arguments map
         TODO("Not supported ${expr::class.simpleName}: $expr")
+    }
+
+    private fun resolveInstanceCall(
+        instance: EtsLocal,
+        method: EtsMethodSignature,
+    ): EtsMethod {
+        // Perfect signature:
+        if (method.enclosingClass.name != UNKNOWN_CLASS_NAME) {
+            val clazz = ctx.scene.projectAndSdkClasses.single { it.name == method.enclosingClass.name }
+            return clazz.methods.single { it.name == method.name }
+        }
+
+        // Unknown signature:
+        val instanceType = instance.type
+        if (instanceType is EtsClassType) {
+            val classes = ctx.scene.projectAndSdkClasses.filter { it.name == instanceType.signature.name }
+            if (classes.size == 1) {
+                val clazz = classes.single()
+                return clazz.methods.single { it.name == method.name }
+            }
+            val methods = classes.flatMap { it.methods }.filter { it.name == method.name }
+            if (methods.size == 1) return methods.single()
+        } else {
+            val methods = ctx.scene.projectAndSdkClasses.flatMap { it.methods }.filter { it.name == method.name }
+            if (methods.size == 1) return methods.single()
+        }
+        error("Cannot resolve method $method")
     }
 
     private inline fun resolveInvoke(
@@ -540,6 +566,32 @@ class TsExprResolver(
         state.throwExceptionWithoutStackFrameDrop(address, type)
     }
 
+    private fun resolveInstanceField(instance: EtsLocal, field: EtsFieldSignature): EtsField {
+
+        // Perfect signature:
+        if (field.enclosingClass.name != UNKNOWN_CLASS_NAME) {
+            val clazz = ctx.scene.projectAndSdkClasses.single { it.name == field.enclosingClass.name }
+            val fields = clazz.fields.filter { it.name == field.name }
+            if (fields.size == 1) return fields.single()
+        }
+
+        // Unknown signature:
+        val instanceType = instance.type
+        if (instanceType is EtsClassType) {
+            val classes = ctx.scene.projectAndSdkClasses.filter { it.name == instanceType.signature.name }
+            if (classes.size == 1) {
+                val clazz = classes.single()
+                return clazz.fields.single { it.name == field.name }
+            }
+            val fields = classes.flatMap { it.fields.filter { it.name == field.name } }
+            if (fields.size == 1) return fields.single()
+        } else {
+            val fields = ctx.scene.projectAndSdkClasses.flatMap { it.fields.filter { it.name == field.name } }
+            if (fields.size == 1) return fields.single()
+        }
+        error("Cannot resolve field $field")
+    }
+
     override fun visit(value: EtsInstanceFieldRef): UExpr<out USort>? = with(ctx) {
         val instanceRef = resolve(value.instance)?.asExpr(addressSort) ?: return null
 
@@ -555,8 +607,8 @@ class TsExprResolver(
             return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), expr.asExpr(sizeSort), signed = true)
         }
 
-        val fieldType = scene.fieldLookUp(value.field).type
-        val sort = typeToSort(fieldType)
+        val field = resolveInstanceField(value.instance, value.field)
+        val sort = typeToSort(field.type)
         val lValue = UFieldLValue(sort, instanceRef, value.field.name)
         val expr = scope.calcOnState { memory.read(lValue) }
 
