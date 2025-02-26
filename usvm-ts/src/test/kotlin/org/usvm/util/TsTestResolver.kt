@@ -113,8 +113,11 @@ open class TsTestStateResolver(
 ) {
     fun resolveLValue(lValue: ULValue<*, *>, type: EtsType): TsValue {
         val expr = memory.read(lValue)
-        val symbolicRef =
-            if (lValue.sort is UAddressSort) finalStateMemory.read(lValue).asExpr(ctx.addressSort) else null
+        val symbolicRef = if (lValue.sort == ctx.addressSort) {
+            finalStateMemory.read(lValue).asExpr(ctx.addressSort)
+        } else {
+            null
+        }
         return resolveExpr(expr, symbolicRef, type)
     }
 
