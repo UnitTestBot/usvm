@@ -37,7 +37,6 @@ import org.usvm.machine.TsContext
 import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.expr.extractBool
 import org.usvm.machine.expr.extractDouble
-import org.usvm.machine.expr.tctx
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.machine.types.FakeType
@@ -141,32 +140,31 @@ open class TsTestStateResolver(
     fun resolveUnknownExpr(
         heapRef: UExpr<out USort>,
         finalStateMemoryRef: UExpr<out USort>?,
-    ): TsValue =
-        with(heapRef.tctx) {
-            when (heapRef.sort) {
-                fp64Sort -> {
-                    resolvePrimitive(heapRef, EtsNumberType)
-                }
-
-                boolSort -> {
-                    resolvePrimitive(heapRef, EtsBooleanType)
-                }
-
-                addressSort -> {
-                    if (heapRef.isFakeObject()) {
-                        resolveFakeObject(heapRef)
-                    } else {
-                        resolveTsValue(
-                            heapRef.asExpr(ctx.addressSort),
-                            finalStateMemoryRef?.asExpr(ctx.addressSort),
-                            EtsUnknownType
-                        )
-                    }
-                }
-
-                else -> TODO("Unsupported sort: ${heapRef.sort}")
+    ): TsValue = with(ctx) {
+        when (heapRef.sort) {
+            fp64Sort -> {
+                resolvePrimitive(heapRef, EtsNumberType)
             }
+
+            boolSort -> {
+                resolvePrimitive(heapRef, EtsBooleanType)
+            }
+
+            addressSort -> {
+                if (heapRef.isFakeObject()) {
+                    resolveFakeObject(heapRef)
+                } else {
+                    resolveTsValue(
+                        heapRef.asExpr(ctx.addressSort),
+                        finalStateMemoryRef?.asExpr(ctx.addressSort),
+                        EtsUnknownType
+                    )
+                }
+            }
+
+            else -> TODO("Unsupported sort: ${heapRef.sort}")
         }
+    }
 
     private fun resolveTsValue(
         heapRef: UExpr<UAddressSort>,
