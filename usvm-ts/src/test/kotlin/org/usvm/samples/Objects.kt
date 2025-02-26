@@ -6,6 +6,7 @@ import org.usvm.util.TsMethodTestRunner
 import kotlin.test.Test
 
 class Objects : TsMethodTestRunner() {
+
     private val className = this::class.simpleName!!
 
     override val scene: EtsScene = loadSampleScene(className)
