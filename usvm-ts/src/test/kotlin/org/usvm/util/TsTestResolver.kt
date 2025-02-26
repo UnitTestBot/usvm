@@ -200,8 +200,8 @@ open class TsTestStateResolver(
             }
 
             is EtsUnknownType -> {
-                val type = finalStateMemory.types.getTypeStream(heapRef).first()
-                resolveTsValue(heapRef, finalStateMemoryRef, type)
+                val finalType = finalStateMemory.types.getTypeStream(heapRef).first()
+                resolveTsValue(heapRef, finalStateMemoryRef, finalType)
             }
 
             else -> error("Unexpected type: $type")
