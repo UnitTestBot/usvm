@@ -180,7 +180,8 @@ class TsInterpreter(
 
                 is EtsInstanceFieldRef -> {
                     val instance = exprResolver.resolve(lhv.instance)?.asExpr(addressSort) ?: return@doWithState
-                    val sort = typeToSort(lhv.type)
+                    val field = exprResolver.resolveInstanceField(lhv.instance, lhv.field)
+                    val sort = typeToSort(field.type)
                     if (sort == unresolvedSort) {
                         val fakeObject = expr.toFakeObject(scope)
                         val lValue = mkFieldLValue(addressSort, instance, lhv.field)
