@@ -77,12 +77,12 @@ import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodSignature
 import org.usvm.UAddressSort
+import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.allocateArray
-import org.usvm.api.typeStreamOf
 import org.usvm.isTrue
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
@@ -97,6 +97,8 @@ import org.usvm.machine.types.mkFakeValue
 import org.usvm.memory.ULValue
 import org.usvm.sizeSort
 import org.usvm.types.single
+import org.usvm.util.extractFp
+import org.usvm.util.getFakeType
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
@@ -405,37 +407,34 @@ class TsExprResolver(
 
     // region CALL
 
-    private fun handleNumberIsNaN(arg: UExpr<out USort>): UExpr<out USort>? = with(ctx) {
+    private fun handleNumberIsNaN(arg: UExpr<out USort>): UBoolExpr? = with(ctx) {
         // 21.1.2.4 Number.isNaN ( number )
         // 1. If number is not a Number, return false.
         // 2. If number is NaN, return true.
         // 3. Otherwise, return false.
 
-        if (arg.isFakeObject()) {
-            val fakeType = scope.calcOnState {
-                memory.typeStreamOf(arg).single() as FakeType
-            }
-            if (fakeType.fpTypeExpr.isTrue) {
-                val fpLValue = getIntermediateFpLValue(arg.address)
-                val fp = scope.calcOnState { memory.read(fpLValue) }
-                return mkFpIsNaNExpr(fp.asExpr(fp64Sort))
+        if (!arg.isFakeObject()) {
+            return if (arg.sort == fp64Sort) {
+                mkFpIsNaNExpr(arg.asExpr(fp64Sort))
             } else {
-                return mkFalse()
+                mkFalse()
             }
         }
 
-        if (arg.sort == fp64Sort) {
-            mkFpIsNaNExpr(arg.asExpr(fp64Sort))
-        } else {
-            mkFalse()
-        }
+        val fakeType = getFakeType(arg, scope)
+        val value = extractFp(arg, scope)
+        mkIte(
+            condition = fakeType.fpTypeExpr,
+            trueBranch = mkFpIsNaNExpr(value),
+            falseBranch = mkFalse(),
+        )
     }
 
     override fun visit(expr: EtsInstanceCallExpr): UExpr<out USort>? = with(ctx) {
         if (expr.instance.name == "Number") {
             if (expr.method.name == "isNaN") {
-                return resolveAfterResolved(expr.args.single()) { arg ->
-                    handleNumberIsNaN(arg)
+                resolveAfterResolved(expr.args.single()) { arg ->
+                    return handleNumberIsNaN(arg)
                 }
             }
         }
