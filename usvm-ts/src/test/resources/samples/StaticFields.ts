@@ -10,6 +10,15 @@ class StaticNumber {
     }
 }
 
+// Test: Default value initialization
+class StaticDefault {
+    static value: number;
+
+    getValue(): number {
+        return this.value;
+    }
+}
+
 // Test: Sequential static modifications with value persistence
 class StaticModification {
     static count = 0;

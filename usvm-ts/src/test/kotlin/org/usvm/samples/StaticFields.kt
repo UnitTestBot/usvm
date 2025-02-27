@@ -22,6 +22,15 @@ class StaticFields : TsMethodTestRunner() {
     }
 
     @Test
+    fun `test static default value`() {
+        val method = getMethod("StaticDefault", "getValue")
+        discoverProperties<TsValue.TsNumber>(
+            method = method,
+            { r -> r.number == 0.0 },
+        )
+    }
+
+    @Test
     fun `test static modification`() {
         val method = getMethod("StaticModification", "incrementTwice")
         discoverProperties<TsValue.TsNumber>(
