@@ -431,8 +431,8 @@ class TsExprResolver(
     override fun visit(expr: EtsInstanceCallExpr): UExpr<out USort>? = with(ctx) {
         if (expr.instance.name == "Number") {
             if (expr.method.name == "isNaN") {
-                resolveAfterResolved(expr.args.single()) { arg ->
-                    return handleNumberIsNaN(arg)
+                return resolveAfterResolved(expr.args.single()) { arg ->
+                    handleNumberIsNaN(arg)
                 }
             }
         }
