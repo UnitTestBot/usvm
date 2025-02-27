@@ -250,12 +250,13 @@ class TsInterpreter(
         when (local) {
             // Note: locals have indices starting from (n+1)
             is EtsLocal -> {
-                localVarToIdx.getOrPut(method) {
+                val map = localVarToIdx.getOrPut(method) {
                     method.getDeclaredLocals().mapIndexed { idx, local ->
-                        local.name to idx + method.parametersWithThisCount
+                        val localIdx = idx + method.parametersWithThisCount
+                        local.name to localIdx
                     }.toMap()
-                }[local.name]
-                    ?: error("Local not declared: $local")
+                }
+                map[local.name] ?: error("Local not declared: $local")
             }
 
             // Note: 'this' has index 'n'
