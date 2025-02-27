@@ -1,12 +1,13 @@
 package org.usvm.machine.interpreter
 
 import io.ksmt.utils.asExpr
-import mu.KotlinLogging
 import org.jacodb.ets.base.EtsArrayAccess
+import org.jacodb.ets.base.EtsArrayType
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsCallStmt
 import org.jacodb.ets.base.EtsGotoStmt
 import org.jacodb.ets.base.EtsIfStmt
+import org.jacodb.ets.base.EtsInstanceFieldRef
 import org.jacodb.ets.base.EtsLocal
 import org.jacodb.ets.base.EtsNopStmt
 import org.jacodb.ets.base.EtsNullType
@@ -23,8 +24,6 @@ import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UInterpreter
 import org.usvm.api.targets.TsTarget
-import org.usvm.collection.array.UArrayIndexLValue
-import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.machine.TsApplicationGraph
@@ -38,12 +37,13 @@ import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.state.returnValue
-import org.usvm.memory.URegisterStackLValue
 import org.usvm.sizeSort
 import org.usvm.targets.UTargetsSet
+import org.usvm.util.mkArrayIndexLValue
+import org.usvm.util.mkArrayLengthLValue
+import org.usvm.util.mkFieldLValue
+import org.usvm.util.mkRegisterStackLValue
 import org.usvm.utils.ensureSat
-
-private val logger = KotlinLogging.logger {}
 
 typealias TsStepScope = StepScope<TsState, EtsType, EtsStmt, TsContext>
 
@@ -139,7 +139,7 @@ class TsInterpreter(
                     val idx = mapLocalToIdx(lastEnteredMethod, lhv)
                     saveSortForLocal(idx, expr.sort)
 
-                    val lValue = URegisterStackLValue(expr.sort, idx)
+                    val lValue = mkRegisterStackLValue(expr.sort, idx)
                     memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
                 }
 
@@ -155,8 +155,10 @@ class TsInterpreter(
                         isSigned = true
                     ).asExpr(sizeSort)
 
-                    val lengthLValue = UArrayLengthLValue(instance, lhv.array.type, sizeSort)
-                    val currentLength = memory.read(lengthLValue).asExpr(sizeSort)
+                    // TODO: handle the case when `lhv.array.type` is NOT an array.
+                    //  In this case, it could be created manually: `EtsArrayType(EtsUnknownType, 1)`.
+                    val lengthLValue = mkArrayLengthLValue(instance, lhv.array.type as EtsArrayType)
+                    val currentLength = memory.read(lengthLValue)
 
                     val condition = mkBvSignedGreaterOrEqualExpr(bvIndex, currentLength)
                     val newLength = mkIte(condition, mkBvAddExpr(bvIndex, mkBv(1)), currentLength)
@@ -165,8 +167,27 @@ class TsInterpreter(
 
                     val fakeExpr = expr.toFakeObject(scope)
 
-                    val lValue = UArrayIndexLValue(addressSort, instance, bvIndex, lhv.array.type)
+                    val lValue = mkArrayIndexLValue(
+                        addressSort,
+                        instance,
+                        bvIndex.asExpr(sizeSort),
+                        lhv.array.type as EtsArrayType
+                    )
                     memory.write(lValue, fakeExpr, guard = trueExpr)
+                }
+
+                is EtsInstanceFieldRef -> {
+                    val instance = exprResolver.resolve(lhv.instance)?.asExpr(addressSort) ?: return@doWithState
+
+                    val sort = typeToSort(lhv.type)
+                    if (sort == unresolvedSort) {
+                        val fakeObject = expr.toFakeObject(scope)
+                        val lValue = mkFieldLValue(addressSort, instance, lhv.field)
+                        memory.write(lValue, fakeObject, guard = trueExpr)
+                    } else {
+                        val lValue = mkFieldLValue(sort, instance, lhv.field)
+                        memory.write(lValue, expr.asExpr(sort), guard = trueExpr)
+                    }
                 }
 
                 else -> TODO("Not yet implemented")
@@ -239,7 +260,8 @@ class TsInterpreter(
 
         val solver = ctx.solver<EtsType>()
 
-        val thisInstanceRef = URegisterStackLValue(ctx.addressSort, method.parameters.count()) // TODO check for statics
+        // TODO check for statics
+        val thisInstanceRef = mkRegisterStackLValue(ctx.addressSort, method.parameters.count())
         val thisRef = state.memory.read(thisInstanceRef).asExpr(ctx.addressSort)
 
         state.pathConstraints += with(ctx) {

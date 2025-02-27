@@ -64,7 +64,9 @@ import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsTypeOfExpr
 import org.jacodb.ets.base.EtsUnaryExpr
 import org.jacodb.ets.base.EtsUnaryPlusExpr
+import org.jacodb.ets.base.EtsUnclearRefType
 import org.jacodb.ets.base.EtsUndefinedConstant
+import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.base.EtsUnsignedRightShiftExpr
 import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.base.EtsVoidExpr
@@ -80,10 +82,7 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.allocateArray
-import org.usvm.api.makeSymbolicPrimitive
-import org.usvm.collection.array.UArrayIndexLValue
-import org.usvm.collection.array.length.UArrayLengthLValue
-import org.usvm.collection.field.UFieldLValue
+import org.usvm.isTrue
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.operator.TsBinaryOperator
@@ -95,8 +94,12 @@ import org.usvm.machine.state.newStmt
 import org.usvm.machine.types.FakeType
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.memory.ULValue
-import org.usvm.memory.URegisterStackLValue
 import org.usvm.sizeSort
+import org.usvm.types.single
+import org.usvm.util.mkArrayIndexLValue
+import org.usvm.util.mkArrayLengthLValue
+import org.usvm.util.mkFieldLValue
+import org.usvm.util.mkRegisterStackLValue
 import org.usvm.util.throwExceptionWithoutStackFrameDrop
 
 private val logger = KotlinLogging.logger {}
@@ -282,8 +285,7 @@ class TsExprResolver(
     }
 
     override fun visit(expr: EtsMulExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+        return resolveBinaryOperator(TsBinaryOperator.Mul, expr)
     }
 
     override fun visit(expr: EtsAndExpr): UExpr<out USort>? {
@@ -402,8 +404,30 @@ class TsExprResolver(
 
     // region CALL
 
-    override fun visit(expr: EtsInstanceCallExpr): UExpr<out USort>? {
-        return resolveInvoke(
+    override fun visit(expr: EtsInstanceCallExpr): UExpr<out USort>? = with(ctx) {
+        if (expr.instance.name == "Number") {
+            if (expr.method.name == "isNaN") {
+                val arg = resolve(expr.args.single()) ?: return null
+                if (arg.sort == fp64Sort) {
+                    return mkFpIsNaNExpr(arg.asExpr(fp64Sort))
+                }
+                if (arg.isFakeObject()) {
+                    val fakeType = scope.calcOnState {
+                        memory.types.getTypeStream(arg).single() as FakeType
+                    }
+                    scope.calcOnState {
+                        if (fakeType.fpTypeExpr.isTrue) {
+                            val lValue = getIntermediateFpLValue(arg.address)
+                            val value = memory.read(lValue).asExpr(fp64Sort)
+                            return@calcOnState mkFpIsNaNExpr(value)
+                        }
+                        null
+                    }?.let { return it }
+                }
+            }
+        }
+
+        resolveInvoke(
             method = expr.method,
             instance = expr.instance,
             arguments = { expr.args },
@@ -422,15 +446,15 @@ class TsExprResolver(
         }
     }
 
-    override fun visit(expr: EtsStaticCallExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsStaticCallExpr): UExpr<out USort>? = with(ctx) {
         if (expr.method.name == "Number" && expr.method.enclosingClass.name == "") {
             check(expr.args.size == 1) { "Number constructor should have exactly one argument" }
             return resolveAfterResolved(expr.args.single()) {
-                ctx.mkNumericExpr(it, scope)
+                mkNumericExpr(it, scope)
             }
         }
 
-        return resolveInvoke(
+        resolveInvoke(
             method = expr.method,
             instance = null,
             arguments = { expr.args },
@@ -453,21 +477,26 @@ class TsExprResolver(
         // Perfect signature:
         if (method.enclosingClass.name != UNKNOWN_CLASS_NAME) {
             val clazz = ctx.scene.projectAndSdkClasses.single { it.name == method.enclosingClass.name }
-            return clazz.methods.single { it.name == method.name }
+            return (clazz.methods + clazz.ctor).single { it.name == method.name }
         }
 
         // Unknown signature:
         val instanceType = instance.type
         if (instanceType is EtsClassType) {
-            val classes = ctx.scene.projectAndSdkClasses.filter { it.name == instanceType.signature.name }
+            val classes = ctx.scene.projectAndSdkClasses
+                .filter { it.name == instanceType.signature.name }
             if (classes.size == 1) {
                 val clazz = classes.single()
-                return clazz.methods.single { it.name == method.name }
+                return (clazz.methods + clazz.ctor).single { it.name == method.name }
             }
-            val methods = classes.flatMap { it.methods }.filter { it.name == method.name }
+            val methods = classes
+                .flatMap { it.methods + it.ctor }
+                .filter { it.name == method.name }
             if (methods.size == 1) return methods.single()
         } else {
-            val methods = ctx.scene.projectAndSdkClasses.flatMap { it.methods }.filter { it.name == method.name }
+            val methods = ctx.scene.projectAndSdkClasses
+                .flatMap { it.methods + it.ctor }
+                .filter { it.name == method.name }
             if (methods.size == 1) return methods.single()
         }
         error("Cannot resolve method $method")
@@ -541,7 +570,12 @@ class TsExprResolver(
             isSigned = true
         )
 
-        val lValue = UArrayIndexLValue(addressSort, instance, bvIndex, value.array.type)
+        val lValue = mkArrayIndexLValue(
+            addressSort,
+            instance,
+            bvIndex.asExpr(ctx.sizeSort),
+            value.array.type as EtsArrayType
+        )
         val expr = scope.calcOnState { memory.read(lValue) }
 
         check(expr.isFakeObject()) { "Only fake objects are allowed in arrays" }
@@ -566,8 +600,10 @@ class TsExprResolver(
         state.throwExceptionWithoutStackFrameDrop(address, type)
     }
 
-    private fun resolveInstanceField(instance: EtsLocal, field: EtsFieldSignature): EtsField {
-
+    private fun resolveInstanceField(
+        instance: EtsLocal,
+        field: EtsFieldSignature,
+    ): EtsField {
         // Perfect signature:
         if (field.enclosingClass.name != UNKNOWN_CLASS_NAME) {
             val clazz = ctx.scene.projectAndSdkClasses.single { it.name == field.enclosingClass.name }
@@ -584,10 +620,24 @@ class TsExprResolver(
                 return clazz.fields.single { it.name == field.name }
             }
             val fields = classes.flatMap { it.fields.filter { it.name == field.name } }
-            if (fields.size == 1) return fields.single()
+            if (fields.size == 1) {
+                return fields.single()
+            }
+        } else if (instanceType is EtsUnclearRefType) {
+            val classes = ctx.scene.projectAndSdkClasses.filter { it.name == instanceType.name }
+            if (classes.size == 1) {
+                val clazz = classes.single()
+                return clazz.fields.single { it.name == field.name }
+            }
+            val fields = classes.flatMap { it.fields.filter { it.name == field.name } }
+            if (fields.size == 1) {
+                return fields.single()
+            }
         } else {
             val fields = ctx.scene.projectAndSdkClasses.flatMap { it.fields.filter { it.name == field.name } }
-            if (fields.size == 1) return fields.single()
+            if (fields.size == 1) {
+                return fields.single()
+            }
         }
         error("Cannot resolve field $field")
     }
@@ -599,18 +649,59 @@ class TsExprResolver(
 
         // TODO It is a hack for array's length
         if (value.instance.type is EtsArrayType && value.field.name == "length") {
-            val lValue = UArrayLengthLValue(instanceRef, value.instance.type, ctx.sizeSort)
-            val expr = scope.calcOnState { memory.read(lValue) }
+            val lengthLValue = mkArrayLengthLValue(instanceRef, value.instance.type as EtsArrayType)
+            val length = scope.calcOnState { memory.read(lengthLValue) }
+            return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), length.asExpr(sizeSort), signed = true)
+        }
 
-            check(expr.sort == ctx.sizeSort)
-
-            return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), expr.asExpr(sizeSort), signed = true)
+        // TODO: handle "length" property for arrays inside fake objects
+        if (value.field.name == "length" && instanceRef.isFakeObject()) {
+            val fakeType = scope.calcOnState {
+                memory.types.getTypeStream(instanceRef).single() as FakeType
+            }
+            if (fakeType.refTypeExpr.isTrue) {
+                val refLValue = getIntermediateRefLValue(instanceRef.address)
+                val obj = scope.calcOnState { memory.read(refLValue) }
+                // TODO: fix array type. It should be the same as the type used when "writing" the length.
+                //  However, current value.instance typically has 'unknown' type, and the best we can do here is
+                //  to pretend that this is an array-like object (with "array length", not just "length" field),
+                //  and "cast" instance to "unknown[]". The same could be done for any length writes, making
+                //  the array type (for length) consistent (unknown everywhere), but less precise.
+                val lengthLValue = mkArrayLengthLValue(obj, EtsArrayType(EtsUnknownType, 1))
+                val length = scope.calcOnState { memory.read(lengthLValue) }
+                return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), length.asExpr(sizeSort), signed = true)
+            }
         }
 
         val field = resolveInstanceField(value.instance, value.field)
         val sort = typeToSort(field.type)
-        val lValue = UFieldLValue(sort, instanceRef, value.field.name)
-        val expr = scope.calcOnState { memory.read(lValue) }
+
+        val expr = if (sort == unresolvedSort) {
+            val boolLValue = mkFieldLValue(boolSort, instanceRef, value.field)
+            val fpLValue = mkFieldLValue(fp64Sort, instanceRef, value.field)
+            val refLValue = mkFieldLValue(addressSort, instanceRef, value.field)
+
+            scope.calcOnState {
+                val bool = memory.read(boolLValue)
+                val fp = memory.read(fpLValue)
+                val ref = memory.read(refLValue)
+
+                // If a fake object is already created and assigned to the field,
+                // there is no need to recreate another one
+                val fakeRef = if (ref.isFakeObject()) {
+                    ref
+                } else {
+                    mkFakeValue(scope, bool, fp, ref)
+                }
+
+                memory.write(refLValue, fakeRef.asExpr(addressSort), guard = trueExpr)
+
+                fakeRef
+            }
+        } else {
+            val lValue = mkFieldLValue(sort, instanceRef, value.field)
+            scope.calcOnState { memory.read(lValue) }
+        }
 
         if (assertIsSubtype(expr, value.type)) {
             expr
@@ -706,20 +797,20 @@ class TsSimpleValueResolver(
         // If we are not in the entrypoint, all correct values are already resolved and we can just return
         // a registerStackLValue for the local
         if (currentMethod != entrypoint) {
-            return URegisterStackLValue(sort, localIdx)
+            return mkRegisterStackLValue(sort, localIdx)
         }
 
         // arguments and this for the first stack frame
         return when (sort) {
-            is UBoolSort -> URegisterStackLValue(sort, localIdx)
-            is KFp64Sort -> URegisterStackLValue(sort, localIdx)
-            is UAddressSort -> URegisterStackLValue(sort, localIdx)
+            is UBoolSort -> mkRegisterStackLValue(sort, localIdx)
+            is KFp64Sort -> mkRegisterStackLValue(sort, localIdx)
+            is UAddressSort -> mkRegisterStackLValue(sort, localIdx)
             is TsUnresolvedSort -> {
                 check(local is EtsThis || local is EtsParameterRef) {
                     "Only This and ParameterRef are expected here"
                 }
 
-                val lValue = URegisterStackLValue(ctx.addressSort, localIdx)
+                val lValue = mkRegisterStackLValue(ctx.addressSort, localIdx)
 
                 val boolRValue = ctx.mkRegisterReading(localIdx, ctx.boolSort)
                 val fpRValue = ctx.mkRegisterReading(localIdx, ctx.fp64Sort)
@@ -728,15 +819,6 @@ class TsSimpleValueResolver(
                 val fakeObject = ctx.mkFakeValue(scope, boolRValue, fpRValue, refRValue)
                 scope.calcOnState {
                     with(ctx) {
-                        val type = FakeType(
-                            boolTypeExpr = makeSymbolicPrimitive(boolSort),
-                            fpTypeExpr = makeSymbolicPrimitive(boolSort),
-                            refTypeExpr = makeSymbolicPrimitive(boolSort)
-                        )
-
-                        scope.assert(type.mkExactlyOneTypeConstraint(ctx))
-
-                        memory.types.allocate(fakeObject.address, type)
                         memory.write(lValue, fakeObject.asExpr(addressSort), guard = trueExpr)
                     }
                 }
@@ -749,6 +831,13 @@ class TsSimpleValueResolver(
     }
 
     override fun visit(value: EtsLocal): UExpr<out USort> {
+        if (value.name == "NaN") {
+            return ctx.mkFp64NaN()
+        }
+        if (value.name == "Infinity") {
+            return ctx.mkFpInf(false, ctx.fp64Sort)
+        }
+
         val lValue = resolveLocal(value)
         return scope.calcOnState { memory.read(lValue) }
     }

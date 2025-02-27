@@ -11,6 +11,7 @@ import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.api.typeStreamOf
 import org.usvm.machine.TsContext
 import org.usvm.machine.expr.TsUndefinedSort
+import org.usvm.machine.expr.mkNumericExpr
 import org.usvm.machine.expr.mkTruthyExpr
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.types.ExprWithTypeConstraint
@@ -56,21 +57,24 @@ sealed interface TsBinaryOperator {
         rhs: UExpr<out USort>,
         scope: TsStepScope,
     ): UExpr<out USort> {
-        if (lhs.isFakeObject() || rhs.isFakeObject()) {
-            return resolveFakeObject(lhs, rhs, scope)
+        val lhsValue = lhs.extractSingleValueFromFakeObjectOrNull(scope) ?: lhs
+        val rhsValue = rhs.extractSingleValueFromFakeObjectOrNull(scope) ?: rhs
+
+        if (lhsValue.isFakeObject() || rhsValue.isFakeObject()) {
+            return resolveFakeObject(lhsValue, rhsValue, scope)
         }
 
-        val lhsSort = lhs.sort
-        if (lhsSort == rhs.sort) {
+        val lhsSort = lhsValue.sort
+        if (lhsSort == rhsValue.sort) {
             return when (lhsSort) {
-                boolSort -> onBool(lhs.asExpr(boolSort), rhs.asExpr(boolSort), scope)
-                fp64Sort -> onFp(lhs.asExpr(fp64Sort), rhs.asExpr(fp64Sort), scope)
-                addressSort -> onRef(lhs.asExpr(addressSort), rhs.asExpr(addressSort), scope)
+                boolSort -> onBool(lhsValue.asExpr(boolSort), rhsValue.asExpr(boolSort), scope)
+                fp64Sort -> onFp(lhsValue.asExpr(fp64Sort), rhsValue.asExpr(fp64Sort), scope)
+                addressSort -> onRef(lhsValue.asExpr(addressSort), rhsValue.asExpr(addressSort), scope)
                 else -> TODO("Unsupported sort $lhsSort")
             }
         }
 
-        return internalResolve(lhs, rhs, scope)
+        return internalResolve(lhsValue, rhsValue, scope)
     }
 
     data object Eq : TsBinaryOperator {
@@ -412,7 +416,7 @@ sealed interface TsBinaryOperator {
             rhs: UExpr<UAddressSort>,
             scope: TsStepScope,
         ): UExpr<out USort> {
-            TODO("Not yet implemented")
+            return mkHeapRefEq(lhs, rhs)
         }
 
         override fun TsContext.resolveFakeObject(
@@ -783,6 +787,58 @@ sealed interface TsBinaryOperator {
             scope: TsStepScope,
         ): UExpr<out USort> {
             TODO("Not yet implemented")
+        }
+    }
+
+    data object Mul : TsBinaryOperator {
+        override fun TsContext.onBool(
+            lhs: UExpr<UBoolSort>,
+            rhs: UExpr<UBoolSort>,
+            scope: TsStepScope,
+        ): UExpr<out USort> {
+            val left = mkNumericExpr(lhs, scope)
+            val right = mkNumericExpr(rhs, scope)
+            return mkFpMulExpr(fpRoundingModeSortDefaultValue(), left, right)
+        }
+
+        override fun TsContext.onFp(
+            lhs: UExpr<KFp64Sort>,
+            rhs: UExpr<KFp64Sort>,
+            scope: TsStepScope,
+        ): UExpr<out USort> {
+            return mkFpMulExpr(fpRoundingModeSortDefaultValue(), lhs, rhs)
+        }
+
+        override fun TsContext.onRef(
+            lhs: UExpr<UAddressSort>,
+            rhs: UExpr<UAddressSort>,
+            scope: TsStepScope,
+        ): UExpr<out USort> {
+            val left = mkNumericExpr(lhs, scope)
+            val right = mkNumericExpr(rhs, scope)
+            return mkFpMulExpr(fpRoundingModeSortDefaultValue(), left, right)
+        }
+
+        override fun TsContext.resolveFakeObject(
+            lhs: UExpr<out USort>,
+            rhs: UExpr<out USort>,
+            scope: TsStepScope,
+        ): UExpr<out USort> {
+            check(lhs.isFakeObject() || rhs.isFakeObject())
+            val left = mkNumericExpr(lhs, scope)
+            val right = mkNumericExpr(rhs, scope)
+            return mkFpMulExpr(fpRoundingModeSortDefaultValue(), left, right)
+        }
+
+        override fun TsContext.internalResolve(
+            lhs: UExpr<out USort>,
+            rhs: UExpr<out USort>,
+            scope: TsStepScope,
+        ): UExpr<out USort> {
+            check(!lhs.isFakeObject() && !rhs.isFakeObject())
+            val left = mkNumericExpr(lhs, scope)
+            val right = mkNumericExpr(rhs, scope)
+            return mkFpMulExpr(fpRoundingModeSortDefaultValue(), left, right)
         }
     }
 }
