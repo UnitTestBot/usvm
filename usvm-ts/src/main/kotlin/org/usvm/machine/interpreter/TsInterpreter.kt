@@ -13,6 +13,7 @@ import org.jacodb.ets.base.EtsNopStmt
 import org.jacodb.ets.base.EtsNullType
 import org.jacodb.ets.base.EtsParameterRef
 import org.jacodb.ets.base.EtsReturnStmt
+import org.jacodb.ets.base.EtsStaticFieldRef
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsSwitchStmt
 import org.jacodb.ets.base.EtsThis
@@ -20,6 +21,7 @@ import org.jacodb.ets.base.EtsThrowStmt
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.utils.getDeclaredLocals
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UInterpreter
@@ -178,15 +180,28 @@ class TsInterpreter(
 
                 is EtsInstanceFieldRef -> {
                     val instance = exprResolver.resolve(lhv.instance)?.asExpr(addressSort) ?: return@doWithState
-
-                    val sort = typeToSort(lhv.type)
+                    val field = exprResolver.resolveInstanceField(lhv.instance, lhv.field)
+                    val sort = typeToSort(field.type)
                     if (sort == unresolvedSort) {
                         val fakeObject = expr.toFakeObject(scope)
                         val lValue = mkFieldLValue(addressSort, instance, lhv.field)
                         memory.write(lValue, fakeObject, guard = trueExpr)
                     } else {
                         val lValue = mkFieldLValue(sort, instance, lhv.field)
-                        memory.write(lValue, expr.asExpr(sort), guard = trueExpr)
+                        memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
+                    }
+                }
+
+                is EtsStaticFieldRef -> {
+                    val field = exprResolver.resolveInstanceField(null, lhv.field)
+                    val sort = typeToSort(field.type)
+                    if (sort == unresolvedSort) {
+                        val fakeObject = expr.toFakeObject(scope)
+                        val lValue = TsStaticFieldLValue(field.signature, addressSort)
+                        memory.write(lValue, fakeObject, guard = trueExpr)
+                    } else {
+                        val lValue = TsStaticFieldLValue(field.signature, sort)
+                        memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
                     }
                 }
 
@@ -229,17 +244,21 @@ class TsInterpreter(
         TsExprResolver(ctx, scope, ::mapLocalToIdx)
 
     // (method, localName) -> idx
-    private val localVarToIdx: MutableMap<EtsMethod, MutableMap<String, Int>> = hashMapOf()
+    private val localVarToIdx: MutableMap<EtsMethod, Map<String, Int>> = hashMapOf()
 
     private fun mapLocalToIdx(method: EtsMethod, local: EtsValue): Int =
         // Note: below, 'n' means the number of arguments
         when (local) {
             // Note: locals have indices starting from (n+1)
-            is EtsLocal -> localVarToIdx
-                .getOrPut(method) { hashMapOf() }
-                .let {
-                    it.getOrPut(local.name) { method.parametersWithThisCount + it.size }
+            is EtsLocal -> {
+                val map = localVarToIdx.getOrPut(method) {
+                    method.getDeclaredLocals().mapIndexed { idx, local ->
+                        val localIdx = idx + method.parametersWithThisCount
+                        local.name to localIdx
+                    }.toMap()
                 }
+                map[local.name] ?: error("Local not declared: $local")
+            }
 
             // Note: 'this' has index 'n'
             is EtsThis -> method.parameters.size
