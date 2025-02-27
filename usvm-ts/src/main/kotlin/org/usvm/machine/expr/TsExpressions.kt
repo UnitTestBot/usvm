@@ -58,5 +58,9 @@ fun UExpr<out USort>.extractBool(): Boolean = when (this) {
 fun extractInt(expr: UExpr<out USort>): Int =
     (expr as? KBitVec32Value)?.intValue ?: error("Cannot extract int from $expr")
 
-fun extractDouble(expr: UExpr<out USort>): Double =
-    (expr as? KFp64Value)?.value ?: error("Cannot extract double from $expr")
+fun UExpr<out USort>.extractDouble(): Double {
+    if (this@extractDouble is KFp64Value) {
+        return value
+    }
+    error("Cannot extract double from $this")
+}
