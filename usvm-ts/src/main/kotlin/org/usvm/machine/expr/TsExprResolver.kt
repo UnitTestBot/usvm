@@ -77,6 +77,7 @@ import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodSignature
 import org.usvm.UAddressSort
+import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
 import org.usvm.UExpr
 import org.usvm.UHeapRef
@@ -404,25 +405,34 @@ class TsExprResolver(
 
     // region CALL
 
+    private fun handleNumberIsNaN(arg: UExpr<out USort>): UBoolExpr? = with(ctx) {
+        // 21.1.2.4 Number.isNaN ( number )
+        // 1. If number is not a Number, return false.
+        // 2. If number is NaN, return true.
+        // 3. Otherwise, return false.
+
+        if (arg.isFakeObject()) {
+            val fakeType = arg.getFakeType(scope)
+            val value = arg.extractFp(scope)
+            return mkIte(
+                condition = fakeType.fpTypeExpr,
+                trueBranch = mkFpIsNaNExpr(value),
+                falseBranch = mkFalse(),
+            )
+        }
+
+        if (arg.sort == fp64Sort) {
+            mkFpIsNaNExpr(arg.asExpr(fp64Sort))
+        } else {
+            mkFalse()
+        }
+    }
+
     override fun visit(expr: EtsInstanceCallExpr): UExpr<out USort>? = with(ctx) {
         if (expr.instance.name == "Number") {
             if (expr.method.name == "isNaN") {
-                val arg = resolve(expr.args.single()) ?: return null
-                if (arg.sort == fp64Sort) {
-                    return mkFpIsNaNExpr(arg.asExpr(fp64Sort))
-                }
-                if (arg.isFakeObject()) {
-                    val fakeType = scope.calcOnState {
-                        memory.types.getTypeStream(arg).single() as FakeType
-                    }
-                    scope.calcOnState {
-                        if (fakeType.fpTypeExpr.isTrue) {
-                            val lValue = getIntermediateFpLValue(arg.address)
-                            val value = memory.read(lValue).asExpr(fp64Sort)
-                            return@calcOnState mkFpIsNaNExpr(value)
-                        }
-                        null
-                    }?.let { return it }
+                return resolveAfterResolved(expr.args.single()) { arg ->
+                    handleNumberIsNaN(arg)
                 }
             }
         }
