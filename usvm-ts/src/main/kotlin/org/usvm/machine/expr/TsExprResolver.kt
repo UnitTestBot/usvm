@@ -411,21 +411,21 @@ class TsExprResolver(
         // 2. If number is NaN, return true.
         // 3. Otherwise, return false.
 
-        if (!arg.isFakeObject()) {
-            return if (arg.sort == fp64Sort) {
-                mkFpIsNaNExpr(arg.asExpr(fp64Sort))
-            } else {
-                mkFalse()
-            }
+        if (arg.isFakeObject()) {
+            val fakeType = arg.getFakeType(scope)
+            val value = arg.extractFp(scope)
+            return mkIte(
+                condition = fakeType.fpTypeExpr,
+                trueBranch = mkFpIsNaNExpr(value),
+                falseBranch = mkFalse(),
+            )
         }
 
-        val fakeType = arg.getFakeType(scope)
-        val value = arg.extractFp(scope)
-        mkIte(
-            condition = fakeType.fpTypeExpr,
-            trueBranch = mkFpIsNaNExpr(value),
-            falseBranch = mkFalse(),
-        )
+        if (arg.sort == fp64Sort) {
+            mkFpIsNaNExpr(arg.asExpr(fp64Sort))
+        } else {
+            mkFalse()
+        }
     }
 
     override fun visit(expr: EtsInstanceCallExpr): UExpr<out USort>? = with(ctx) {
