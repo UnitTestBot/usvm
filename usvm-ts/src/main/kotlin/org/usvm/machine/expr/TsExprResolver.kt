@@ -97,8 +97,6 @@ import org.usvm.machine.types.mkFakeValue
 import org.usvm.memory.ULValue
 import org.usvm.sizeSort
 import org.usvm.types.single
-import org.usvm.util.extractFp
-import org.usvm.util.getFakeType
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
@@ -421,8 +419,8 @@ class TsExprResolver(
             }
         }
 
-        val fakeType = getFakeType(arg, scope)
-        val value = extractFp(arg, scope)
+        val fakeType = arg.getFakeType(scope)
+        val value = arg.extractFp(scope)
         mkIte(
             condition = fakeType.fpTypeExpr,
             trueBranch = mkFpIsNaNExpr(value),

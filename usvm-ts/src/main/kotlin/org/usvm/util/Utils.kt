@@ -23,26 +23,3 @@ fun TsContext.boolToFp(expr: UExpr<UBoolSort>): UExpr<KFp64Sort> =
 fun TsState.throwExceptionWithoutStackFrameDrop(address: UHeapRef, type: EtsType) {
     methodResult = TsMethodResult.TsException(address, type)
 }
-
-fun TsContext.typeStreamOf(ref: UHeapRef, scope: TsStepScope): UTypeStream<EtsType> =
-    scope.calcOnState {
-        memory.typeStreamOf(ref)
-    }
-
-fun TsContext.getFakeType(ref: UConcreteHeapRef, scope: TsStepScope): FakeType =
-    typeStreamOf(ref, scope).single() as FakeType
-
-fun TsContext.extractBool(expr: UConcreteHeapRef, scope: TsStepScope): UBoolExpr {
-    val lValue = getIntermediateBoolLValue(expr.address)
-    return scope.calcOnState { memory.read(lValue) }
-}
-
-fun TsContext.extractFp(expr: UConcreteHeapRef, scope: TsStepScope): UExpr<KFp64Sort> {
-    val lValue = getIntermediateFpLValue(expr.address)
-    return scope.calcOnState { memory.read(lValue) }
-}
-
-fun TsContext.extractRef(expr: UConcreteHeapRef, scope: TsStepScope): UHeapRef {
-    val lValue = getIntermediateRefLValue(expr.address)
-    return scope.calcOnState { memory.read(lValue) }
-}
