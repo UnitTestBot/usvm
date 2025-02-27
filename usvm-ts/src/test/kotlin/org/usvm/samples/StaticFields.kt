@@ -10,7 +10,7 @@ class StaticFields : TsMethodTestRunner() {
 
     private val className = this::class.simpleName!!
 
-    override val scene: EtsScene = loadSampleScene(className)
+    override val scene: EtsScene = loadSampleScene(className, useArkAnalyzerTypeInference = true)
 
     @Test
     fun `test static access get`() {
