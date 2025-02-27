@@ -1,0 +1,114 @@
+// @ts-nocheck
+// noinspection JSUnusedGlobalSymbols
+
+// Test: Basic number static
+class StaticNumber {
+    static value = 10;
+
+    getValue(): number {
+        return this.value;
+    }
+}
+
+// Test: Sequential static modifications with value persistence
+class StaticModification {
+    static count = 0;
+
+    static incrementTwice(): number {
+        this.count += 1;
+        this.count += 1;
+        return this.count;
+    }
+}
+
+// Test: Inheritance shadowing
+class StaticParent {
+    static id = 100;
+}
+
+class StaticChild extends StaticParent {
+    override static id = 200;
+
+    getParentId(): number {
+        return StaticParent.id;
+    }
+
+    getChildId(): number {
+        return StaticChild.id;
+    }
+
+    getThisId(): number {
+        return this.id;
+    }
+}
+
+// Test: Boolean static toggle
+class StaticBoolean {
+    static flag: boolean = false;
+
+    static toggleAndGet(): boolean {
+        this.flag = !this.flag;
+        return this.flag;
+    }
+}
+
+// Test: Array static manipulation
+class StaticArray {
+    static numbers = [1, 2, 3];
+
+    static pushTwice(): number {
+        this.numbers.push(4);
+        this.numbers.push(5);
+        return this.numbers.length;
+    }
+}
+
+// Test: Null initialization and update
+class StaticNull {
+    static value: number | null = null;
+
+    static initialize(): number {
+        this.value = 5;
+        return this.value;
+    }
+}
+
+// Test: Object static operations
+class StaticObject {
+    static config: Config = {enabled: false, count: 0};
+
+    static modifyAndGet(): Config {
+        this.config.increment();
+        this.config.flip();
+        this.config.increment();
+        return this.config;
+    }
+}
+
+class Config {
+    enabled: boolean;
+    count: number;
+
+    flip(): void {
+        this.enabled = !this.enabled;
+    }
+
+    increment(): void {
+        this.count += 1;
+    }
+}
+
+// Test: Field swapping
+class StaticAccess {
+    static a = 1;
+    static b = 2;
+
+    static calculateSum(): number {
+        return this.a + this.b;
+    }
+
+    static swapAndGetValues(): number[] {
+        [this.a, this.b] = [this.b, this.a];
+        return [this.a, this.b];
+    }
+}
