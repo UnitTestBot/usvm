@@ -199,15 +199,15 @@ class TsInterpreter(
                         it.signature == lhv.field.enclosingClass
                     } ?: return@doWithState
 
-        val instance = scope.calcOnState {
-            val (updated, result) = staticStorage.getOrPut(clazz, ownership) {
-                val address = memory.allocConcrete(clazz.type)
-                // TODO: memory.types.allocate(...)
-                address
-            }
-            staticStorage = updated
-            result
-        }
+                    val instance = scope.calcOnState {
+                        val (updated, result) = staticStorage.getOrPut(clazz, ownership) {
+                            val address = memory.allocConcrete(clazz.type)
+                            // TODO: memory.types.allocate(...)
+                            address
+                        }
+                        staticStorage = updated
+                        result
+                    }
 
                     // TODO: initialize the static field first
                     //  Note: Since we are assigning to a static field, we can omit its initialization,

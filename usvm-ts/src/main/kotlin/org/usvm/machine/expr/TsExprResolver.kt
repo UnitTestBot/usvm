@@ -87,7 +87,6 @@ import org.usvm.api.allocateArray
 import org.usvm.collections.immutable.getOrPut
 import org.usvm.isTrue
 import org.usvm.machine.TsContext
-import org.usvm.machine.interpreter.TsStaticFieldLValue
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.isInitialized
 import org.usvm.machine.interpreter.markInitialized
