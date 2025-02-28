@@ -159,7 +159,7 @@ class Numeric : TsMethodTestRunner() {
         )
     }
 
-    @Disabled("Could not resolve unique FortyTwo::constructor")
+    @Disabled("Unsupported sort: Address")
     @Test
     fun `test singleCustomFortyTwoObjectArrayToNumber`() {
         val method = getMethod(className, "singleCustomFortyTwoObjectArrayToNumber")

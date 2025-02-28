@@ -12,7 +12,7 @@ class InstanceFields : TsMethodTestRunner() {
     override val scene: EtsScene = loadSampleScene(className)
 
     @Test
-    fun testReturnSingleField() {
+    fun `test returnSingleField`() {
         val method = getMethod(className, "returnSingleField")
         discoverProperties<TsValue, TsValue>(
             method,
@@ -30,7 +30,7 @@ class InstanceFields : TsMethodTestRunner() {
     }
 
     @Test
-    fun testDispatchOverField() {
+    fun `test dispatchOverField`() {
         val method = getMethod(className, "dispatchOverField")
         discoverProperties<TsValue, TsValue>(
             method,
@@ -59,7 +59,7 @@ class InstanceFields : TsMethodTestRunner() {
     }
 
     @Test
-    fun testReturnSumOfTwoFields() {
+    fun `test returnSumOfTwoFields`() {
         val method = getMethod(className, "returnSumOfTwoFields")
         discoverProperties<TsValue, TsValue>(
             method,
@@ -73,6 +73,15 @@ class InstanceFields : TsMethodTestRunner() {
             { x, r ->
                 (x is TsValue.TsUndefined || x is TsValue.TsNull) && r is TsValue.TsException
             }
+        )
+    }
+
+    @Test
+    fun `test assignField`() {
+        val method = getMethod(className, "assignField")
+        discoverProperties<TsValue.TsClass, TsValue.TsNumber>(
+            method,
+            { x, r -> r.number == 10.0 },
         )
     }
 }

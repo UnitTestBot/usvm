@@ -12,7 +12,7 @@ class Arrays : TsMethodTestRunner() {
     override val scene: EtsScene = loadSampleScene(className)
 
     @Test
-    fun testCreateConstantArrayOfNumbers() {
+    fun `test createConstantArrayOfNumbers`() {
         val method = getMethod(className, "createConstantArrayOfNumbers")
         discoverProperties<TsValue.TsNumber>(
             method = method,
@@ -24,7 +24,7 @@ class Arrays : TsMethodTestRunner() {
     }
 
     @Test
-    fun testCreateAndReturnConstantArrayOfNumbers() {
+    fun `test createAndReturnConstantArrayOfNumbers`() {
         val method = getMethod(className, "createAndReturnConstantArrayOfNumbers")
         discoverProperties<TsValue.TsArray<TsValue.TsNumber>>(
             method = method,
@@ -33,7 +33,7 @@ class Arrays : TsMethodTestRunner() {
     }
 
     @Test
-    fun testCreateAndAccessArrayOfBooleans() {
+    fun `test createAndAccessArrayOfBooleans`() {
         val method = getMethod(className, "createAndAccessArrayOfBooleans")
         discoverProperties<TsValue.TsNumber>(
             method = method,
@@ -45,7 +45,7 @@ class Arrays : TsMethodTestRunner() {
     }
 
     @Test
-    fun testCreateArrayOfBooleans() {
+    fun `test createArrayOfBooleans`() {
         val method = getMethod(className, "createArrayOfBooleans")
         discoverProperties<TsValue.TsArray<TsValue.TsBoolean>>(
             method = method,
@@ -54,7 +54,7 @@ class Arrays : TsMethodTestRunner() {
     }
 
     @Test
-    fun testCreateMixedArray() {
+    fun `test createMixedArray`() {
         val method = getMethod(className, "createMixedArray")
         discoverProperties<TsValue.TsArray<*>>(
             method = method,
@@ -69,7 +69,7 @@ class Arrays : TsMethodTestRunner() {
     }
 
     @Test
-    fun testCreateArrayOfUnknownValues() {
+    fun `test createArrayOfUnknownValues`() {
         val method = getMethod(className, "createArrayOfUnknownValues")
         discoverProperties<TsValue, TsValue, TsValue, TsValue.TsArray<*>>(
             method = method,
@@ -83,7 +83,7 @@ class Arrays : TsMethodTestRunner() {
     }
 
     @Test
-    fun testCreateArrayOfNumbersAndPutDifferentTypes() {
+    fun `test createArrayOfNumbersAndPutDifferentTypes`() {
         val method = getMethod(className, "createArrayOfNumbersAndPutDifferentTypes")
         discoverProperties<TsValue.TsArray<*>>(
             method = method,
@@ -98,7 +98,7 @@ class Arrays : TsMethodTestRunner() {
     }
 
     @Test
-    fun testAllocatedArrayLengthExpansion() {
+    fun `test allocatedArrayLengthExpansion`() {
         val method = getMethod(className, "allocatedArrayLengthExpansion")
         discoverProperties<TsValue.TsArray<*>>(
             method = method,
@@ -115,7 +115,7 @@ class Arrays : TsMethodTestRunner() {
     }
 
     @Test
-    fun testWriteInTheIndexEqualToLength() {
+    fun `test writeInTheIndexEqualToLength`() {
         val method = getMethod(className, "writeInTheIndexEqualToLength")
         discoverProperties<TsValue.TsArray<TsValue.TsNumber>>(
             method = method,
