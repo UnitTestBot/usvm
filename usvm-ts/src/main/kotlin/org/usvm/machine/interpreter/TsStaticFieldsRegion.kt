@@ -8,7 +8,9 @@ import org.jacodb.ets.model.EtsFieldSubSignature
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
 import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.USort
+import org.usvm.collection.field.UFieldLValue
 import org.usvm.collections.immutable.getOrDefault
 import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHashMap
 import org.usvm.collections.immutable.internal.MutabilityOwnership
@@ -68,26 +70,27 @@ internal class TsStaticFieldsMemoryRegion<Sort : USort>(
 }
 
 internal fun TsState.isInitialized(clazz: EtsClass): Boolean {
-    val initializedFlag = ctx.staticFieldsInitializedFlag(clazz)
+    val instance = staticStorage[clazz]!!
+    val initializedFlag = ctx.staticFieldsInitializedFlag(instance, clazz.signature)
     return memory.read(initializedFlag).isTrue
 }
 
 internal fun TsState.markInitialized(clazz: EtsClass) {
-    val initializedFlag = ctx.staticFieldsInitializedFlag(clazz)
+    val instance = staticStorage[clazz]!!
+    val initializedFlag = ctx.staticFieldsInitializedFlag(instance, clazz.signature)
     memory.write(initializedFlag, ctx.trueExpr, guard = ctx.trueExpr)
 }
 
-private fun TsContext.staticFieldsInitializedFlag(clazz: EtsClass): TsStaticFieldLValue<UBoolSort> {
+private fun TsContext.staticFieldsInitializedFlag(
+    instance: UHeapRef,
+    clazz: EtsClassSignature,
+): UFieldLValue<EtsFieldSignature, UBoolSort> {
     val field = EtsFieldSignature(
-        enclosingClass = clazz.signature,
-        sub = staticFieldsInitializedFlagField,
+        enclosingClass = clazz,
+        sub = EtsFieldSubSignature(
+            name = "__initialized__",
+            type = EtsBooleanType,
+        ),
     )
-    return TsStaticFieldLValue(field, boolSort)
-}
-
-private val staticFieldsInitializedFlagField: EtsFieldSubSignature by lazy {
-    EtsFieldSubSignature(
-        name = "__initialized__",
-        type = EtsBooleanType,
-    )
+    return UFieldLValue(boolSort, instance, field)
 }

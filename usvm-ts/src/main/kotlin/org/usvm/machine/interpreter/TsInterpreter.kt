@@ -26,6 +26,7 @@ import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UInterpreter
 import org.usvm.api.targets.TsTarget
+import org.usvm.collections.immutable.getOrPut
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.machine.TsApplicationGraph
@@ -45,6 +46,7 @@ import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
+import org.usvm.util.type
 import org.usvm.utils.ensureSat
 
 typealias TsStepScope = StepScope<TsState, EtsType, EtsStmt, TsContext>
@@ -193,14 +195,32 @@ class TsInterpreter(
                 }
 
                 is EtsStaticFieldRef -> {
-                    val field = exprResolver.resolveInstanceField(null, lhv.field)
+                    val clazz = scene.projectAndSdkClasses.singleOrNull {
+                        it.signature == lhv.field.enclosingClass
+                    } ?: return@doWithState
+
+        val instance = scope.calcOnState {
+            val (updated, result) = staticStorage.getOrPut(clazz, ownership) {
+                val address = memory.allocConcrete(clazz.type)
+                // TODO: memory.types.allocate(...)
+                address
+            }
+            staticStorage = updated
+            result
+        }
+
+                    // TODO: initialize the static field first
+                    //  Note: Since we are assigning to a static field, we can omit its initialization,
+                    //        if it does not have any side effects.
+
+                    val field = clazz.fields.single { it.name == lhv.field.name }
                     val sort = typeToSort(field.type)
                     if (sort == unresolvedSort) {
+                        val lValue = mkFieldLValue(addressSort, instance, field.signature)
                         val fakeObject = expr.toFakeObject(scope)
-                        val lValue = TsStaticFieldLValue(field.signature, addressSort)
                         memory.write(lValue, fakeObject, guard = trueExpr)
                     } else {
-                        val lValue = TsStaticFieldLValue(field.signature, sort)
+                        val lValue = mkFieldLValue(sort, instance, field.signature)
                         memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
                     }
                 }

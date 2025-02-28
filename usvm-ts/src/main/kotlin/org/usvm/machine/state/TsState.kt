@@ -4,9 +4,12 @@ import org.jacodb.ets.base.EtsLocal
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsValue
+import org.jacodb.ets.model.EtsClass
+import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsMethod
 import org.usvm.PathNode
 import org.usvm.UCallStack
+import org.usvm.UConcreteHeapRef
 import org.usvm.USort
 import org.usvm.UState
 import org.usvm.api.targets.TsTarget
@@ -33,16 +36,17 @@ class TsState(
     var methodResult: TsMethodResult = TsMethodResult.NoCall,
     targets: UTargetsSet<TsTarget, EtsStmt> = UTargetsSet.empty(),
     private var localToSortStack: MutableList<UPersistentHashMap<Int, USort>> = mutableListOf(persistentHashMapOf()),
+    var staticStorage: UPersistentHashMap<EtsClass, UConcreteHeapRef> = persistentHashMapOf(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
-    ctx,
-    ownership,
-    callStack,
-    pathConstraints,
-    memory,
-    models,
-    pathNode,
-    forkPoints,
-    targets
+    ctx = ctx,
+    initOwnership = ownership,
+    callStack = callStack,
+    pathConstraints = pathConstraints,
+    memory = memory,
+    models = models,
+    pathNode = pathNode,
+    forkPoints = forkPoints,
+    targets = targets,
 ) {
     fun getOrPutSortForLocal(localIdx: Int, localType: EtsType): USort {
         val localToSort = localToSortStack.last()
@@ -91,18 +95,19 @@ class TsState(
         this.ownership = newThisOwnership
 
         return TsState(
-            ctx,
-            cloneOwnership,
-            entrypoint,
-            callStack.clone(),
-            clonedConstraints,
-            memory.clone(clonedConstraints.typeConstraints, newThisOwnership, cloneOwnership),
-            models,
-            pathNode,
-            forkPoints,
-            methodResult,
-            targets.clone(),
-            localToSortStack.toMutableList(),
+            ctx = ctx,
+            ownership = cloneOwnership,
+            entrypoint = entrypoint,
+            callStack = callStack.clone(),
+            pathConstraints = clonedConstraints,
+            memory = memory.clone(clonedConstraints.typeConstraints, newThisOwnership, cloneOwnership),
+            models = models,
+            pathNode = pathNode,
+            forkPoints = forkPoints,
+            methodResult = methodResult,
+            targets = targets.clone(),
+            localToSortStack = localToSortStack.toMutableList(),
+            staticStorage = staticStorage,
         )
     }
 

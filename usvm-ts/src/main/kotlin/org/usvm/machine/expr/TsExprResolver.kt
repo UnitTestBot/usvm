@@ -84,6 +84,7 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.allocateArray
+import org.usvm.collections.immutable.getOrPut
 import org.usvm.isTrue
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStaticFieldLValue
@@ -107,6 +108,7 @@ import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
 import org.usvm.util.throwExceptionWithoutStackFrameDrop
+import org.usvm.util.type
 
 private val logger = KotlinLogging.logger {}
 
@@ -734,8 +736,18 @@ class TsExprResolver(
         val clazz = scene.projectAndSdkClasses.singleOrNull {
             it.signature == value.field.enclosingClass
         } ?: return null
-        val initializer = clazz.methods.singleOrNull { it.name == STATIC_INIT_METHOD_NAME }
 
+        val instance = scope.calcOnState {
+            val (updated, result) = staticStorage.getOrPut(clazz, ownership) {
+                val address = memory.allocConcrete(clazz.type)
+                // TODO: memory.types.allocate(...)
+                address
+            }
+            staticStorage = updated
+            result
+        }
+
+        val initializer = clazz.methods.singleOrNull { it.name == STATIC_INIT_METHOD_NAME }
         if (initializer != null) {
             val isInitialized = scope.calcOnState { isInitialized(clazz) }
             if (isInitialized) {
@@ -760,9 +772,9 @@ class TsExprResolver(
             }
         }
 
-        val field = resolveInstanceField(null, value.field)
+        val field = clazz.fields.single { it.name == value.field.name }
         val sort = typeToSort(field.type)
-        val lValue = TsStaticFieldLValue(value.field, sort)
+        val lValue = mkFieldLValue(sort, instance, field.signature)
         val expr = scope.calcOnState { memory.read(lValue) }
 
         if (assertIsSubtype(expr, value.type)) {
