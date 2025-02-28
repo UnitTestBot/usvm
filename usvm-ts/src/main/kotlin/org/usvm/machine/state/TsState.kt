@@ -50,15 +50,15 @@ class TsState(
 ) {
     fun getOrPutSortForLocal(localIdx: Int, localType: EtsType): USort {
         val localToSort = localToSortStack.last()
-        val (updatedIndices, result) = localToSort.getOrPut(localIdx, ownership) { ctx.typeToSort(localType) }
-        localToSortStack[localToSortStack.lastIndex] = updatedIndices
+        val (updated, result) = localToSort.getOrPut(localIdx, ownership) { ctx.typeToSort(localType) }
+        localToSortStack[localToSortStack.lastIndex] = updated
         return result
     }
 
     fun saveSortForLocal(localIdx: Int, sort: USort) {
         val localToSort = localToSortStack.last()
-        val updatedSorts = localToSort.put(localIdx, sort, ownership)
-        localToSortStack[localToSortStack.lastIndex] = updatedSorts
+        val updated = localToSort.put(localIdx, sort, ownership)
+        localToSortStack[localToSortStack.lastIndex] = updated
     }
 
     fun pushLocalToSortStack() {
