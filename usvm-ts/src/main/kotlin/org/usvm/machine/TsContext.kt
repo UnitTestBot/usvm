@@ -13,18 +13,22 @@ import org.jacodb.ets.base.EtsUnionType
 import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.model.EtsScene
 import org.usvm.UAddressSort
+import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
 import org.usvm.UBv32Sort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.USort
+import org.usvm.api.typeStreamOf
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.isTrue
 import org.usvm.machine.expr.TsUndefinedSort
 import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.types.FakeType
+import org.usvm.types.UTypeStream
 import org.usvm.types.single
 import org.usvm.util.mkFieldLValue
 import kotlin.contracts.ExperimentalContracts
@@ -44,8 +48,11 @@ class TsContext(
      * In TS we treat undefined value as a null reference in other objects.
      * For real null represented in the language we create another reference.
      */
-    private val undefinedValue: UExpr<UAddressSort>
-        get() = mkNullRef()
+    private val undefinedValue: UExpr<UAddressSort> = mkNullRef()
+    fun mkUndefinedValue(): UExpr<UAddressSort> = undefinedValue
+
+    private val nullValue: UConcreteHeapRef = mkConcreteHeapRef(addressCounter.freshStaticAddress())
+    fun mkTsNullValue(): UConcreteHeapRef = nullValue
 
     fun typeToSort(type: EtsType): USort = when (type) {
         is EtsBooleanType -> boolSort
@@ -58,6 +65,14 @@ class TsContext(
         is EtsAnyType -> unresolvedSort
         else -> TODO("Support all JacoDB types, encountered $type")
     }
+
+    fun UHeapRef.getTypeStream(scope: TsStepScope): UTypeStream<EtsType> =
+        scope.calcOnState {
+            memory.typeStreamOf(this@getTypeStream)
+        }
+
+    fun UConcreteHeapRef.getFakeType(scope: TsStepScope): FakeType =
+        getTypeStream(scope).single() as FakeType
 
     @OptIn(ExperimentalContracts::class)
     fun UExpr<out USort>.isFakeObject(): Boolean {
@@ -136,21 +151,34 @@ class TsContext(
         return mkConcreteHeapRef(address)
     }
 
-    fun mkUndefinedValue(): UExpr<UAddressSort> = undefinedValue
-
-    fun mkTsNullValue(): UConcreteHeapRef = nullValue
-    private val nullValue: UConcreteHeapRef = mkConcreteHeapRef(addressCounter.freshStaticAddress())
-
     fun getIntermediateBoolLValue(addr: Int): UFieldLValue<IntermediateLValueField, UBoolSort> {
+        require(addr > MAGIC_OFFSET)
         return mkFieldLValue(boolSort, mkConcreteHeapRef(addr), IntermediateLValueField.BOOL)
     }
 
     fun getIntermediateFpLValue(addr: Int): UFieldLValue<IntermediateLValueField, KFp64Sort> {
+        require(addr > MAGIC_OFFSET)
         return mkFieldLValue(fp64Sort, mkConcreteHeapRef(addr), IntermediateLValueField.FP)
     }
 
     fun getIntermediateRefLValue(addr: Int): UFieldLValue<IntermediateLValueField, UAddressSort> {
+        require(addr > MAGIC_OFFSET)
         return mkFieldLValue(addressSort, mkConcreteHeapRef(addr), IntermediateLValueField.REF)
+    }
+
+    fun UConcreteHeapRef.extractBool(scope: TsStepScope): UBoolExpr {
+        val lValue = getIntermediateBoolLValue(address)
+        return scope.calcOnState { memory.read(lValue) }
+    }
+
+    fun UConcreteHeapRef.extractFp(scope: TsStepScope): UExpr<KFp64Sort> {
+        val lValue = getIntermediateFpLValue(address)
+        return scope.calcOnState { memory.read(lValue) }
+    }
+
+    fun UConcreteHeapRef.extractRef(scope: TsStepScope): UHeapRef {
+        val lValue = getIntermediateRefLValue(address)
+        return scope.calcOnState { memory.read(lValue) }
     }
 }
 
