@@ -3,6 +3,7 @@ package org.usvm.machine
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.base.EtsAnyType
+import io.ksmt.utils.cast
 import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsNullType
 import org.jacodb.ets.base.EtsNumberType
@@ -11,6 +12,7 @@ import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUndefinedType
 import org.jacodb.ets.base.EtsUnionType
 import org.jacodb.ets.base.EtsUnknownType
+import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsScene
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
@@ -26,6 +28,8 @@ import org.usvm.collection.field.UFieldLValue
 import org.usvm.isTrue
 import org.usvm.machine.expr.TsUndefinedSort
 import org.usvm.machine.expr.TsUnresolvedSort
+import org.usvm.machine.interpreter.TsStaticFieldReading
+import org.usvm.machine.interpreter.TsStaticFieldRegionId
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.types.FakeType
 import org.usvm.types.UTypeStream
@@ -73,6 +77,15 @@ class TsContext(
 
     fun UConcreteHeapRef.getFakeType(scope: TsStepScope): FakeType =
         getTypeStream(scope).single() as FakeType
+
+    private val staticFieldReadings = mkAstInterner<TsStaticFieldReading<*>>()
+    fun <Sort : USort> mkStaticFieldReading(
+        regionId: TsStaticFieldRegionId<Sort>,
+        field: EtsFieldSignature,
+        sort: Sort,
+    ): TsStaticFieldReading<Sort> = staticFieldReadings.createIfContextActive {
+        TsStaticFieldReading(this, regionId, field, sort)
+    }.cast()
 
     @OptIn(ExperimentalContracts::class)
     fun UExpr<out USort>.isFakeObject(): Boolean {
