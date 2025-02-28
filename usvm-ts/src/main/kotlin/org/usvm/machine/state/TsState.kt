@@ -35,7 +35,7 @@ class TsState(
     forkPoints: PathNode<PathNode<EtsStmt>> = PathNode.root(),
     var methodResult: TsMethodResult = TsMethodResult.NoCall,
     targets: UTargetsSet<TsTarget, EtsStmt> = UTargetsSet.empty(),
-    private var localToSortStack: MutableList<UPersistentHashMap<Int, USort>> = mutableListOf(persistentHashMapOf()),
+    val localToSortStack: MutableList<UPersistentHashMap<Int, USort>> = mutableListOf(persistentHashMapOf()),
     var staticStorage: UPersistentHashMap<EtsClass, UConcreteHeapRef> = persistentHashMapOf(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
     ctx = ctx,
