@@ -19,5 +19,5 @@ fun TsState.throwExceptionWithoutStackFrameDrop(address: UHeapRef, type: EtsType
     methodResult = TsMethodResult.TsException(address, type)
 }
 
-val EtsClass.type: EtsType
+val EtsClass.type: EtsClassType
     get() = EtsClassType(signature, typeParameters)
