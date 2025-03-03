@@ -29,9 +29,6 @@ import org.usvm.api.GlobalFieldValue
 import org.usvm.api.TsParametersState
 import org.usvm.api.TsTest
 import org.usvm.api.TsValue
-import org.usvm.collection.array.UArrayIndexLValue
-import org.usvm.collection.array.length.UArrayLengthLValue
-import org.usvm.collection.field.UFieldLValue
 import org.usvm.isTrue
 import org.usvm.machine.TsContext
 import org.usvm.machine.expr.TsUnresolvedSort
@@ -45,7 +42,6 @@ import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.mkSizeExpr
 import org.usvm.model.UModelBase
-import org.usvm.sizeSort
 import org.usvm.types.first
 import org.usvm.types.single
 
@@ -111,7 +107,10 @@ open class TsTestStateResolver(
     private val finalStateMemory: UReadOnlyMemory<EtsType>,
     val method: EtsMethod,
 ) {
-    fun resolveLValue(lValue: ULValue<*, *>, type: EtsType): TsValue {
+    fun resolveLValue(
+        lValue: ULValue<*, *>,
+        type: EtsType,
+    ): TsValue {
         val expr = memory.read(lValue)
         val symbolicRef = if (lValue.sort == ctx.addressSort) {
             finalStateMemory.read(lValue).asExpr(ctx.addressSort)
@@ -187,8 +186,8 @@ open class TsTestStateResolver(
         return when (type) {
             // TODO add better support
             is EtsUnclearRefType -> {
-                val classType = ctx.scene.projectAndSdkClasses.single { it.name == type.name }
-                resolveTsClass(concreteRef, finalStateMemoryRef ?: heapRef, EtsClassType(classType.signature))
+                val cls = ctx.scene.projectAndSdkClasses.single { it.name == type.name }
+                resolveTsClass(concreteRef, finalStateMemoryRef ?: heapRef, cls.type)
             }
 
             is EtsClassType -> {
@@ -212,16 +211,16 @@ open class TsTestStateResolver(
         concreteRef: UConcreteHeapRef,
         heapRef: UHeapRef,
         type: EtsArrayType,
-    ): TsValue.TsArray<*> {
-        val arrayLengthLValue = UArrayLengthLValue(heapRef, type, ctx.sizeSort)
-        val length = model.eval(memory.read(arrayLengthLValue)) as KBitVec32Value
+    ): TsValue.TsArray<*> = with(ctx) {
+        val arrayLength = mkArrayLengthLValue(heapRef, type)
+        val length = model.eval(memory.read(arrayLength)) as KBitVec32Value
 
         val values = (0 until length.intValue).map {
-            val index = ctx.mkSizeExpr(it)
-            val lValue = UArrayIndexLValue(ctx.addressSort, heapRef, index, type)
+            val index = mkSizeExpr(it)
+            val lValue = mkArrayIndexLValue(addressSort, heapRef, index, type)
             val value = memory.read(lValue)
 
-            if (model.eval(ctx.mkHeapRefEq(value, ctx.mkUndefinedValue())).isTrue) {
+            if (model.eval(mkHeapRefEq(value, mkUndefinedValue())).isTrue) {
                 return@map TsValue.TsUndefined
             }
 
@@ -235,7 +234,7 @@ open class TsTestStateResolver(
 
     fun resolveThisInstance(): TsValue? {
         val parametersCount = method.parameters.size
-        val ref = URegisterStackLValue(ctx.addressSort, idx = parametersCount) // TODO check for statics
+        val ref = mkRegisterStackLValue(ctx.addressSort, parametersCount) // TODO check for statics
         val type = EtsClassType(method.enclosingClass)
         return resolveLValue(ref, type)
     }
@@ -246,7 +245,7 @@ open class TsTestStateResolver(
 
             if (sort is TsUnresolvedSort) {
                 // this means that a fake object was created, and we need to read it from the current memory
-                val address = finalStateMemory.read(URegisterStackLValue(addressSort, idx)).asExpr(addressSort)
+                val address = finalStateMemory.read(mkRegisterStackLValue(addressSort, idx))
                 check(address.isFakeObject())
                 return@mapIndexed resolveFakeObject(address)
             }
@@ -287,7 +286,8 @@ open class TsTestStateResolver(
                 val value = finalStateMemory.read(lValue)
                 val ref = model.eval(value)
                 // TODO mistake with signature, use TypeStream instead
-                resolveExpr(ref, value, EtsClassType(ctx.scene.projectAndSdkClasses.first().signature))
+                // TODO: replace `scene.classes.first()` with something meaningful
+                resolveExpr(ref, value, ctx.scene.projectAndSdkClasses.first().type)
             }
 
             else -> error("Unsupported")
@@ -350,30 +350,28 @@ open class TsTestStateResolver(
         concreteRef: UConcreteHeapRef,
         heapRef: UHeapRef,
         classType: EtsClassType,
-    ): TsValue.TsClass {
+    ): TsValue.TsClass = with(ctx) {
         val clazz = resolveClass(classType)
-
         val properties = clazz.fields.associate { field ->
-            val sort = ctx.typeToSort(field.type)
-
-            if (sort == ctx.unresolvedSort) {
-                val lValue = UFieldLValue(ctx.addressSort, heapRef, field.name)
+            val sort = typeToSort(field.type)
+            if (sort == unresolvedSort) {
+                val lValue = mkFieldLValue(addressSort, heapRef, field.signature)
                 val fieldExpr = finalStateMemory.read(lValue) as? UConcreteHeapRef
                     ?: error("UnresolvedSort should be represented by a fake object instance")
-
                 // TODO check values if fieldExpr is correct here
                 //      Probably we have to pass fieldExpr as symbolic value and something as a concrete one
-                return@associate field.name to resolveExpr(fieldExpr, fieldExpr, field.type)
+                val obj = resolveExpr(fieldExpr, fieldExpr, field.type)
+                field.name to obj
+            } else {
+                val lValue = mkFieldLValue(sort, concreteRef.asExpr(addressSort), field.signature)
+                val fieldExpr = memory.read(lValue)
+                // TODO check values if fieldExpr is correct here
+                //      Probably we have to pass fieldExpr as symbolic value and something as a concrete one
+                val obj = resolveExpr(fieldExpr, fieldExpr, field.type)
+                field.name to obj
             }
-
-            val lValue = UFieldLValue(sort, concreteRef.asExpr(ctx.addressSort), field.name)
-            val fieldExpr = memory.read(lValue)
-            // TODO check values if fieldExpr is correct here
-            //      Probably we have to pass fieldExpr as symbolic value and something as a concrete one
-            val obj = resolveExpr(fieldExpr, fieldExpr, field.type)
-            field.name to obj
         }
-        return TsValue.TsClass(clazz.name, properties)
+        TsValue.TsClass(clazz.name, properties)
     }
 
     private var resolveMode: ResolveMode = ResolveMode.ERROR
