@@ -752,7 +752,7 @@ class TsExprResolver(
                     markInitialized(clazz)
                     pushSortsForArguments(instance = null, args = emptyList(), localToIdx)
                     callStack.push(initializer, currentStatement)
-                    memory.stack.push(arrayOf(mkDefaultValueSampler().visit(addressSort)), initializer.localsCount)
+                    memory.stack.push(arrayOf(instance), initializer.localsCount)
                     newStmt(initializer.cfg.stmts.first())
                 }
                 return null
