@@ -1,8 +1,10 @@
 package org.usvm.machine.state
 
+import org.jacodb.ets.base.EtsLocal
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.utils.getDeclaredLocals
+import org.jacodb.ets.utils.getLocals
 import org.usvm.UExpr
 import org.usvm.USort
 
@@ -30,5 +32,8 @@ fun TsState.returnValue(valueToReturn: UExpr<out USort>) {
 inline val EtsMethod.parametersWithThisCount: Int
     get() = parameters.size + 1
 
+inline val EtsMethod.allLocals: Set<EtsLocal>
+    get() = getDeclaredLocals() + getLocals()
+
 inline val EtsMethod.localsCount: Int
-    get() = getDeclaredLocals().size
+    get() = allLocals.size

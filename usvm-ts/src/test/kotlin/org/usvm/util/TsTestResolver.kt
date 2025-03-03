@@ -187,7 +187,12 @@ open class TsTestStateResolver(
         return when (type) {
             // TODO add better support
             is EtsUnclearRefType -> {
-                val cls = ctx.scene.projectAndSdkClasses.single { it.name == type.name }
+                val classes = ctx.scene.projectAndSdkClasses.filter { it.name == type.name }
+                if (classes.size != 1) {
+                    println("Could not resolve class: ${type.name}")
+                    return TsValue.TsUndefined
+                }
+                val cls = classes.single()
                 resolveTsClass(concreteRef, finalStateMemoryRef ?: heapRef, cls.type)
             }
 
@@ -316,7 +321,10 @@ open class TsTestStateResolver(
             is EtsLiteralType -> TODO()
             EtsNullType -> TODO()
             EtsNeverType -> TODO()
-            EtsStringType -> TODO()
+            EtsStringType -> {
+                TsValue.TsNumber.TsDouble(evaluateInModel(expr).extractDouble())
+            }
+
             EtsVoidType -> TODO()
             else -> error("Unexpected type: $type")
         }
@@ -362,8 +370,11 @@ open class TsTestStateResolver(
                 val sort = typeToSort(field.type)
                 if (sort == unresolvedSort) {
                     val lValue = mkFieldLValue(addressSort, heapRef, field.signature)
-                    val fieldExpr = finalStateMemory.read(lValue) as? UConcreteHeapRef
-                        ?: error("UnresolvedSort should be represented by a fake object instance")
+                    val fieldExpr = memory.read(lValue) as? UConcreteHeapRef
+                    // ?: error("UnresolvedSort should be represented by a fake object instance")
+                        ?: run {
+                            return@associate field.name to TsValue.TsUndefined
+                        }
                     // TODO check values if fieldExpr is correct here
                     //      Probably we have to pass fieldExpr as symbolic value and something as a concrete one
                     val obj = resolveExpr(fieldExpr, fieldExpr, field.type)

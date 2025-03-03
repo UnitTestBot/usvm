@@ -7,6 +7,7 @@ import org.jacodb.ets.base.EtsBooleanType
 import org.jacodb.ets.base.EtsNullType
 import org.jacodb.ets.base.EtsNumberType
 import org.jacodb.ets.base.EtsRefType
+import org.jacodb.ets.base.EtsStringType
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsUndefinedType
 import org.jacodb.ets.base.EtsUnionType
@@ -63,7 +64,11 @@ class TsContext(
         is EtsUnknownType -> unresolvedSort
         is EtsUnionType -> unresolvedSort
         is EtsAnyType -> unresolvedSort
-        else -> TODO("Support all JacoDB types, encountered $type")
+        is EtsStringType -> fp64Sort
+        else -> {
+            unresolvedSort
+            // TODO("Support all JacoDB types, encountered $type")
+        }
     }
 
     fun UHeapRef.getTypeStream(scope: TsStepScope): UTypeStream<EtsType> =

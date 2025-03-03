@@ -22,6 +22,7 @@ import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.utils.getDeclaredLocals
+import org.jacodb.ets.utils.getLocals
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UInterpreter
@@ -34,6 +35,7 @@ import org.usvm.machine.expr.TsExprResolver
 import org.usvm.machine.expr.mkTruthyExpr
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
+import org.usvm.machine.state.allLocals
 import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
@@ -45,7 +47,7 @@ import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
-import org.usvm.util.resolveEtsField
+import org.usvm.util.resolveEtsFields
 import org.usvm.utils.ensureSat
 
 typealias TsStepScope = StepScope<TsState, EtsType, EtsStmt, TsContext>
@@ -181,8 +183,11 @@ class TsInterpreter(
 
                 is EtsInstanceFieldRef -> {
                     val instance = exprResolver.resolve(lhv.instance)?.asExpr(addressSort) ?: return@doWithState
-                    val etsField = resolveEtsField(lhv.instance, lhv.field)
-                    val sort = typeToSort(etsField.type)
+                    // val etsField = resolveEtsField(lhv.instance, lhv.field)
+                    // val sort = typeToSort(etsField.type)
+                    val etsFields = resolveEtsFields(lhv.instance, lhv.field)
+                    val etsFieldType = etsFields.map { it.type }.distinct().single()
+                    val sort = typeToSort(etsFieldType)
                     if (sort == unresolvedSort) {
                         val fakeObject = expr.toFakeObject(scope)
                         val lValue = mkFieldLValue(addressSort, instance, lhv.field)
@@ -263,10 +268,13 @@ class TsInterpreter(
             // Note: locals have indices starting from (n+1)
             is EtsLocal -> {
                 val map = localVarToIdx.getOrPut(method) {
-                    method.getDeclaredLocals().mapIndexed { idx, local ->
+                    // method.getDeclaredLocals().mapIndexed { idx, local ->
+                    method.allLocals.mapIndexed { idx, local ->
                         val localIdx = idx + method.parametersWithThisCount
                         local.name to localIdx
-                    }.toMap()
+                    }.toMap().also {
+                        check(it.size == method.localsCount)
+                    }
                 }
                 map[local.name] ?: error("Local not declared: $local")
             }

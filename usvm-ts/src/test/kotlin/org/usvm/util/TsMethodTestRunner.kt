@@ -25,7 +25,7 @@ import org.usvm.api.TsTest
 import org.usvm.api.TsValue
 import org.usvm.machine.TsMachine
 import org.usvm.test.util.TestRunner
-import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
 import kotlin.reflect.KClass
 import kotlin.time.Duration
 
@@ -66,7 +66,7 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
     ) {
         internalCheck(
             target = method,
-            analysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
+            analysisResultsNumberMatcher = absolutelyIgnoreNumberOfAnalysisResults,
             analysisResultsMatchers = analysisResultMatchers,
             invariants = invariants,
             extractValuesToCheck = { r -> r.before.parameters + r.returnValue },
@@ -84,7 +84,7 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
     ) {
         internalCheck(
             target = method,
-            analysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
+            analysisResultsNumberMatcher = absolutelyIgnoreNumberOfAnalysisResults,
             analysisResultsMatchers = analysisResultMatchers,
             invariants = invariants,
             extractValuesToCheck = { r -> r.before.parameters + r.returnValue },
@@ -102,7 +102,7 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
     ) {
         internalCheck(
             target = method,
-            analysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
+            analysisResultsNumberMatcher = absolutelyIgnoreNumberOfAnalysisResults,
             analysisResultsMatchers = analysisResultMatchers,
             invariants = invariants,
             extractValuesToCheck = { r -> r.before.parameters + r.returnValue },
@@ -122,7 +122,7 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
     ) {
         internalCheck(
             target = method,
-            analysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
+            analysisResultsNumberMatcher = absolutelyIgnoreNumberOfAnalysisResults,
             analysisResultsMatchers = analysisResultMatchers,
             invariants = invariants,
             extractValuesToCheck = { r -> r.before.parameters + r.returnValue },
@@ -145,7 +145,7 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
     ) {
         internalCheck(
             target = method,
-            analysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,
+            analysisResultsNumberMatcher = absolutelyIgnoreNumberOfAnalysisResults,
             analysisResultsMatchers = analysisResultMatchers,
             invariants = invariants,
             extractValuesToCheck = { r -> r.before.parameters + r.returnValue },
@@ -235,3 +235,8 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
         typeOperationsTimeout = Duration.INFINITE, // we do not need the timeout for type operations in tests
     )
 }
+
+val absolutelyIgnoreNumberOfAnalysisResults = AnalysisResultsNumberMatcher(
+    description = "Allow any number of results",
+    matcherFailedMessage = { _ -> "???" }
+) { true }

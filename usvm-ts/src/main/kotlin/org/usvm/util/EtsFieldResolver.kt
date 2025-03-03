@@ -69,3 +69,41 @@ private fun tryGetSingleField(
     }
     return null
 }
+
+
+fun TsContext.resolveEtsFields(
+    instance: EtsLocal?,
+    field: EtsFieldSignature,
+):List< EtsField > {
+    // Perfect signature:
+    if (field.enclosingClass.name != UNKNOWN_CLASS_NAME) {
+        val clazz = scene.projectAndSdkClasses.single { cls ->
+            cls.name == field.enclosingClass.name
+        }
+        val fields = clazz.fields.filter { it.name == field.name }
+        if (fields.size == 1) {
+            return listOf( fields.single() )
+        }
+    }
+
+    // Unknown signature:
+    if (instance != null) {
+        val instanceType = instance.type
+        when (instanceType) {
+            is EtsClassType -> {
+                val field = tryGetSingleField(scene, instanceType.signature.name, field.name)
+                if (field != null) return listOf(field)
+            }
+
+            is EtsUnclearRefType -> {
+                val field = tryGetSingleField(scene, instanceType.name, field.name)
+                if (field != null) return listOf(field)
+            }
+        }
+    }
+
+    val fields = scene.projectAndSdkClasses.flatMap { cls ->
+        cls.fields.filter { it.name == field.name }
+    }
+    return fields
+}

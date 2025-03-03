@@ -42,6 +42,7 @@ import org.jacodb.ets.base.EtsNotExpr
 import org.jacodb.ets.base.EtsNullConstant
 import org.jacodb.ets.base.EtsNullishCoalescingExpr
 import org.jacodb.ets.base.EtsNumberConstant
+import org.jacodb.ets.base.EtsNumberType
 import org.jacodb.ets.base.EtsOrExpr
 import org.jacodb.ets.base.EtsParameterRef
 import org.jacodb.ets.base.EtsPostDecExpr
@@ -103,7 +104,7 @@ import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
-import org.usvm.util.resolveEtsField
+import org.usvm.util.resolveEtsFields
 import org.usvm.util.throwExceptionWithoutStackFrameDrop
 
 private val logger = KotlinLogging.logger {}
@@ -112,7 +113,7 @@ class TsExprResolver(
     private val ctx: TsContext,
     private val scope: TsStepScope,
     private val localToIdx: (EtsMethod, EtsValue) -> Int,
-) : EtsEntity.Visitor<UExpr<out USort>?> {
+) : EtsEntity.Visitor.Default<UExpr<out USort>?> {
 
     val simpleValueResolver: TsSimpleValueResolver =
         TsSimpleValueResolver(ctx, scope, localToIdx)
@@ -164,6 +165,13 @@ class TsExprResolver(
         return block(result0, result1)
     }
 
+    // region DEFAULT
+    override fun defaultVisit(value: EtsEntity): UExpr<out USort>? {
+        return null
+    }
+
+    // endregion
+
     // region SIMPLE VALUE
 
     override fun visit(value: EtsLocal): UExpr<out USort> {
@@ -191,8 +199,7 @@ class TsExprResolver(
     }
 
     override fun visit(value: EtsStringConstant): UExpr<out USort>? {
-        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        error("Not supported $value")
+        return simpleValueResolver.visit(value)
     }
 
     override fun visit(value: EtsNullConstant): UExpr<out USort> {
@@ -247,6 +254,10 @@ class TsExprResolver(
     }
 
     override fun visit(expr: EtsCastExpr): UExpr<out USort>? {
+        if (expr.type == EtsNumberType) {
+            return resolve(expr.arg)?.asExpr(ctx.fp64Sort)
+        }
+
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
     }
@@ -372,8 +383,7 @@ class TsExprResolver(
     }
 
     override fun visit(expr: EtsStrictNotEqExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+        return resolveBinaryOperator(TsBinaryOperator.StrictNeq, expr)
     }
 
     override fun visit(expr: EtsLtExpr): UExpr<out USort>? {
@@ -440,6 +450,8 @@ class TsExprResolver(
             }
         }
 
+        val method = resolveInstanceCall(expr.instance, expr.method) ?: return null
+
         resolveInvoke(
             method = expr.method,
             instance = expr.instance,
@@ -447,8 +459,6 @@ class TsExprResolver(
             argumentTypes = { expr.method.parameters.map { it.type } },
         ) { args ->
             doWithState {
-                val method = resolveInstanceCall(expr.instance, expr.method)
-
                 check(args.size == method.parametersWithThisCount)
                 pushSortsForArguments(expr.instance, expr.args, localToIdx)
                 callStack.push(method, currentStatement)
@@ -466,14 +476,21 @@ class TsExprResolver(
             }
         }
 
+        val method = resolveStaticCall(expr.method) ?: return null
+
         resolveInvoke(
             method = expr.method,
             instance = null,
             arguments = { expr.args },
             argumentTypes = { expr.method.parameters.map { it.type } },
         ) { args ->
-            // TODO: IMPORTANT do not forget to fill sorts of arguments map
-            TODO("Unsupported static methods")
+            doWithState {
+                check(args.size == method.parametersWithThisCount)
+                pushSortsForArguments(null, expr.args, localToIdx)
+                callStack.push(method, currentStatement)
+                memory.stack.push(args.toTypedArray(), method.localsCount)
+                newStmt(method.cfg.stmts.first())
+            }
         }
     }
 
@@ -485,11 +502,13 @@ class TsExprResolver(
     private fun resolveInstanceCall(
         instance: EtsLocal,
         method: EtsMethodSignature,
-    ): EtsMethod {
+    ): EtsMethod? {
         // Perfect signature:
         if (method.enclosingClass.name != UNKNOWN_CLASS_NAME) {
             val clazz = ctx.scene.projectAndSdkClasses.single { it.name == method.enclosingClass.name }
-            return (clazz.methods + clazz.ctor).single { it.name == method.name }
+            val methods = (clazz.methods + clazz.ctor).filter { it.name == method.name }
+            if (methods.size != 1) return null
+            return methods.single()
         }
 
         // Unknown signature:
@@ -499,7 +518,9 @@ class TsExprResolver(
                 .filter { it.name == instanceType.signature.name }
             if (classes.size == 1) {
                 val clazz = classes.single()
-                return (clazz.methods + clazz.ctor).single { it.name == method.name }
+                val methods = (clazz.methods + clazz.ctor).filter { it.name == method.name }
+                if (methods.size != 1) return null
+                return methods.single()
             }
             val methods = classes
                 .flatMap { it.methods + it.ctor }
@@ -511,7 +532,31 @@ class TsExprResolver(
                 .filter { it.name == method.name }
             if (methods.size == 1) return methods.single()
         }
-        error("Cannot resolve method $method")
+        // error("Cannot resolve method $method")
+        return null
+    }
+
+    private fun resolveStaticCall(
+        method: EtsMethodSignature,
+    ): EtsMethod? {
+        // Perfect signature:
+        if (method.enclosingClass.name != UNKNOWN_CLASS_NAME) {
+            val classes = ctx.scene.projectAndSdkClasses.filter { it.name == method.enclosingClass.name }
+            if (classes.size != 1) return null
+            val clazz = classes .single()
+            val methods = (clazz.methods + clazz.ctor).filter { it.name == method.name }
+            if (methods.size != 1) return null
+            return methods.single()
+        }
+
+        // Unknown signature:
+        val methods = ctx.scene.projectAndSdkClasses
+            .flatMap { it.methods + it.ctor }
+            .filter { it.name == method.name }
+        if (methods.size == 1) return methods.single()
+
+        // error("Cannot resolve method $method")
+        return null
     }
 
     private inline fun resolveInvoke(
@@ -617,8 +662,12 @@ class TsExprResolver(
         instanceRef: UHeapRef,
         field: EtsFieldSignature,
     ): UExpr<out USort>? = with(ctx) {
-        val etsField = resolveEtsField(instance, field)
-        val sort = typeToSort(etsField.type)
+        // val etsField = resolveEtsField(instance, field)
+        // val sort = typeToSort(etsField.type)
+        val etsFields = resolveEtsFields(instance, field)
+        if (etsFields.isEmpty()) return null
+        val etsFieldType = etsFields.map { it.type }.distinct().single()
+        val sort = typeToSort(etsFieldType)
 
         val expr = if (sort == unresolvedSort) {
             val boolLValue = mkFieldLValue(boolSort, instanceRef, field)
@@ -846,7 +895,7 @@ class TsSimpleValueResolver(
         }
 
         val lValue = resolveLocal(value)
-        return scope.calcOnState { memory.read(lValue) }
+        return scope.calcOnState { memory.read(lValue) }.also { value.let {  } }
     }
 
     override fun visit(value: EtsParameterRef): UExpr<out USort> {
@@ -868,8 +917,7 @@ class TsSimpleValueResolver(
     }
 
     override fun visit(value: EtsStringConstant): UExpr<out USort> = with(ctx) {
-        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        error("Not supported $value")
+        mkFp64(42.0)
     }
 
     override fun visit(value: EtsNullConstant): UExpr<out USort> = with(ctx) {
