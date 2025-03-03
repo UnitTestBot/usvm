@@ -14,9 +14,18 @@ class ForwardAnalyzer(
     methodInitialTypes: Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>>,
     typeInfo: Map<EtsType, EtsTypeFact>,
     doAddKnownTypes: Boolean = true,
+    doAliasAnalysis: Boolean = true,
+    val doLiveVariablesAnalysis: Boolean = true,
 ) : Analyzer<ForwardTypeDomainFact, AnalyzerEvent, EtsMethod, EtsStmt> {
 
-    override val flowFunctions = ForwardFlowFunctions(graph, methodInitialTypes, typeInfo, doAddKnownTypes)
+    override val flowFunctions = ForwardFlowFunctions(
+        graph = graph,
+        methodInitialTypes = methodInitialTypes,
+        typeInfo = typeInfo,
+        doAddKnownTypes = doAddKnownTypes,
+        doAliasAnalysis = doAliasAnalysis,
+        doLiveVariablesAnalysis = doLiveVariablesAnalysis,
+    )
 
     override fun handleCrossUnitCall(
         caller: Vertex<ForwardTypeDomainFact, EtsStmt>,
@@ -25,13 +34,28 @@ class ForwardAnalyzer(
         error("No cross unit calls")
     }
 
+    private val liveVariablesCache = hashMapOf<EtsMethod, LiveVariables>()
+    private fun liveVariables(method: EtsMethod) =
+        liveVariablesCache.computeIfAbsent(method) {
+            if (doLiveVariablesAnalysis)
+                LiveVariables.from(method)
+            else
+                AlwaysAlive
+        }
+
     override fun handleNewEdge(edge: Edge<ForwardTypeDomainFact, EtsStmt>): List<AnalyzerEvent> {
         val (startVertex, currentVertex) = edge
         val (current, currentFact) = currentVertex
         val method = graph.methodOf(current)
         val currentIsExit = current in graph.exitPoints(method) ||
             (current is EtsNopStmt && graph.successors(current).none())
-        if (currentIsExit) {
+
+        val variableIsDying = (currentFact as? ForwardTypeDomainFact.TypedVariable)?.let {
+            val base = it.variable.base
+            base is AccessPathBase.Local && (!liveVariables(method).isAliveAt(base.name, current))
+        } ?: false
+
+        if (currentIsExit || variableIsDying) {
             return listOf(
                 ForwardSummaryAnalyzerEvent(
                     method = method,

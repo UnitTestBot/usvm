@@ -5,8 +5,10 @@ import org.jacodb.ets.base.EtsAnyType
 import org.jacodb.ets.base.EtsArithmeticExpr
 import org.jacodb.ets.base.EtsArrayAccess
 import org.jacodb.ets.base.EtsAssignStmt
+import org.jacodb.ets.base.EtsAwaitExpr
 import org.jacodb.ets.base.EtsBooleanConstant
 import org.jacodb.ets.base.EtsCastExpr
+import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.base.EtsFieldRef
 import org.jacodb.ets.base.EtsInstanceCallExpr
 import org.jacodb.ets.base.EtsLocal
@@ -23,6 +25,7 @@ import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.base.EtsStringConstant
 import org.jacodb.ets.base.EtsThis
 import org.jacodb.ets.base.EtsType
+import org.jacodb.ets.base.EtsUnclearRefType
 import org.jacodb.ets.base.EtsUndefinedConstant
 import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.model.EtsMethod
@@ -44,15 +47,30 @@ class ForwardFlowFunctions(
     val methodInitialTypes: Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>>,
     val typeInfo: Map<EtsType, EtsTypeFact>,
     val doAddKnownTypes: Boolean = true,
+    val doAliasAnalysis: Boolean = true,
+    val doLiveVariablesAnalysis: Boolean = true,
 ) : FlowFunctions<ForwardTypeDomainFact, EtsMethod, EtsStmt> {
 
     private val typeProcessor = TypeFactProcessor(graph.cp)
 
     private val aliasesCache: MutableMap<EtsMethod, List<StmtAliasInfo>> = hashMapOf()
-
     private fun getAliases(method: EtsMethod): List<StmtAliasInfo> {
-        return aliasesCache.computeIfAbsent(method) { MethodAliasInfo(method).computeAliases() }
+        return aliasesCache.computeIfAbsent(method) {
+            if (doAliasAnalysis)
+                MethodAliasInfoImpl(method).computeAliases()
+            else
+                NoMethodAliasInfo(method).computeAliases()
+        }
     }
+
+    private val liveVariablesCache = hashMapOf<EtsMethod, LiveVariables>()
+    private fun liveVariables(method: EtsMethod) =
+        liveVariablesCache.computeIfAbsent(method) {
+            if (doLiveVariablesAnalysis)
+                LiveVariables.from(method)
+            else
+                AlwaysAlive
+        }
 
     override fun obtainPossibleStartFacts(method: EtsMethod): Collection<ForwardTypeDomainFact> {
         val initialTypes = methodInitialTypes[method] ?: return listOf(Zero)
@@ -147,7 +165,16 @@ class ForwardFlowFunctions(
         }
         when (fact) {
             Zero -> sequentZero(current)
-            is TypedVariable -> sequentFact(current, fact).myFilter()
+            is TypedVariable -> {
+                val liveVars = liveVariables(current.method)
+                sequentFact(current, fact).myFilter()
+                    .filter {
+                        when (val base = it.variable.base) {
+                            is AccessPathBase.Local -> liveVars.isAliveAt(base.name, current) //|| liveVars.isAliveAt(base.name, next)
+                            else -> true
+                        }
+                    }
+            }
         }
     }
 
@@ -163,7 +190,13 @@ class ForwardFlowFunctions(
             if (path.accesses.isNotEmpty()) {
                 check(path.accesses.size == 1)
                 val base = AccessPath(path.base, emptyList())
-                for (alias in preAliases.getAliases(base)) {
+                val aliases = preAliases.getAliases(base).filter {
+                    when (val b = it.base) {
+                        is AccessPathBase.Local -> liveVariables(current.method).isAliveAt(b.name, current)
+                        else -> true
+                    }
+                }
+                for (alias in aliases) {
                     val newPath = alias + path.accesses.single()
                     result += TypedVariable(newPath, type)
                 }
@@ -267,6 +300,7 @@ class ForwardFlowFunctions(
             is EtsFieldRef -> r.toPath()
             is EtsArrayAccess -> r.toPath()
             is EtsCastExpr -> r.toPath()
+            is EtsAwaitExpr -> r.toPath()
             else -> {
                 // logger.info { "TODO forward assign: $current" }
                 null
@@ -341,6 +375,20 @@ class ForwardFlowFunctions(
                     // val type = EtsTypeFact.from((current.rhv as EtsCastExpr).type).intersect(fact.type) ?: fact.type
                     val type = EtsTypeFact.from((current.rhv as EtsCastExpr).type)
                     return listOf(fact, TypedVariable(path, type))
+                } else if (current.rhv is EtsAwaitExpr) {
+                    val path = AccessPath(lhv.base, fact.variable.accesses)
+                    val promiseType = fact.type
+                    if (promiseType is EtsTypeFact.ObjectEtsTypeFact) {
+                        val promiseClass = promiseType.cls
+                        if (promiseClass is EtsClassType && promiseClass.signature.name == "Promise") {
+                            val type = EtsTypeFact.from(promiseClass.typeParameters.singleOrNull() ?: return listOf(fact))
+                            return listOf(fact, TypedVariable(path, type))
+                        }
+                        if (promiseClass is EtsUnclearRefType && promiseClass.name.startsWith("Promise")) {
+                            val type = EtsTypeFact.from(promiseClass.typeParameters.singleOrNull() ?: return listOf(fact))
+                            return listOf(fact, TypedVariable(path, type))
+                        }
+                    }
                 }
 
                 val path = AccessPath(lhv.base, fact.variable.accesses)
@@ -426,7 +474,15 @@ class ForwardFlowFunctions(
                             val path1 = lhv + fact.variable.accesses
                             result += TypedVariable(path1, fact.type)
                         // }
-                        for (z in preAliases.getAliases(x)) {
+
+                        val aliases = preAliases.getAliases(x).filter {
+                            when (val b = it.base) {
+                                is AccessPathBase.Local -> liveVariables(current.method).isAliveAt(b.name, current)
+                                else -> true
+                            }
+                        }
+
+                        for (z in aliases) {
                             // skip duplicate fields
                             // if (z.accesses.firstOrNull() != a) {
                                 // TODO: what about z.accesses.last == a ?
