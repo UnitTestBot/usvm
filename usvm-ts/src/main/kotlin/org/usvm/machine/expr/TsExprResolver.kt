@@ -105,6 +105,7 @@ import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
+import org.usvm.util.resolveEtsField
 import org.usvm.util.throwExceptionWithoutStackFrameDrop
 
 private val logger = KotlinLogging.logger {}
@@ -613,68 +614,6 @@ class TsExprResolver(
         state.throwExceptionWithoutStackFrameDrop(address, type)
     }
 
-    internal fun resolveInstanceField(
-        instance: EtsLocal?,
-        field: EtsFieldSignature,
-    ): EtsField {
-        // Perfect signature:
-        if (field.enclosingClass.name != UNKNOWN_CLASS_NAME) {
-            val clazz = ctx.scene.projectAndSdkClasses.single { cls ->
-                cls.name == field.enclosingClass.name
-            }
-            val fields = clazz.fields.filter { it.name == field.name }
-            if (fields.size == 1) {
-                return fields.single()
-            }
-        }
-
-        // Unknown signature:
-        if (instance != null) {
-            val instanceType = instance.type
-            when (instanceType) {
-                is EtsClassType -> {
-                    val classes = ctx.scene.projectAndSdkClasses.filter { cls ->
-                        cls.name == instanceType.signature.name
-                    }
-                    if (classes.size == 1) {
-                        val clazz = classes.single()
-                        return clazz.fields.single { it.name == field.name }
-                    }
-                    val fields = classes.flatMap { cls ->
-                        cls.fields.filter { it.name == field.name }
-                    }
-                    if (fields.size == 1) {
-                        return fields.single()
-                    }
-                }
-
-                is EtsUnclearRefType -> {
-                    val classes = ctx.scene.projectAndSdkClasses.filter { cls ->
-                        cls.name == instanceType.name
-                    }
-                    if (classes.size == 1) {
-                        val clazz = classes.single()
-                        return clazz.fields.single { it.name == field.name }
-                    }
-                    val fields = classes.flatMap { cls ->
-                        cls.fields.filter { it.name == field.name }
-                    }
-                    if (fields.size == 1) {
-                        return fields.single()
-                    }
-                }
-            }
-        }
-
-        val fields = ctx.scene.projectAndSdkClasses.flatMap { cls ->
-            cls.fields.filter { it.name == field.name }
-        }
-        if (fields.size == 1) {
-            return fields.single()
-        }
-        error("Cannot resolve field $field")
-    }
-
     override fun visit(value: EtsInstanceFieldRef): UExpr<out USort>? = with(ctx) {
         val instanceRef = resolve(value.instance)?.asExpr(addressSort) ?: return null
 
@@ -706,7 +645,7 @@ class TsExprResolver(
             }
         }
 
-        val field = resolveInstanceField(value.instance, value.field)
+        val field = resolveEtsField(value.instance, value.field)
         val sort = typeToSort(field.type)
 
         val expr = if (sort == unresolvedSort) {
@@ -773,7 +712,7 @@ class TsExprResolver(
             }
         }
 
-        val field = clazz.fields.single { it.name == value.field.name }
+        val field = resolveEtsField(instance = null, value.field)
         val sort = typeToSort(field.type)
 
         val expr = if (sort == unresolvedSort) {

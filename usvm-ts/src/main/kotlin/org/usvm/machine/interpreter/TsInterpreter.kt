@@ -45,6 +45,7 @@ import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
+import org.usvm.util.resolveEtsField
 import org.usvm.utils.ensureSat
 
 typealias TsStepScope = StepScope<TsState, EtsType, EtsStmt, TsContext>
@@ -180,8 +181,8 @@ class TsInterpreter(
 
                 is EtsInstanceFieldRef -> {
                     val instance = exprResolver.resolve(lhv.instance)?.asExpr(addressSort) ?: return@doWithState
-                    val field = exprResolver.resolveInstanceField(lhv.instance, lhv.field)
-                    val sort = typeToSort(field.type)
+                    val etsField = resolveEtsField(lhv.instance, lhv.field)
+                    val sort = typeToSort(etsField.type)
                     if (sort == unresolvedSort) {
                         val fakeObject = expr.toFakeObject(scope)
                         val lValue = mkFieldLValue(addressSort, instance, lhv.field)
