@@ -11,23 +11,24 @@ import org.usvm.collection.field.UFieldLValue
 import org.usvm.isTrue
 import org.usvm.machine.TsContext
 import org.usvm.machine.state.TsState
+import org.usvm.util.mkFieldLValue
 
 internal fun TsState.isInitialized(clazz: EtsClass): Boolean {
-    val instance = staticStorage[clazz]!!
-    val initializedFlag = ctx.staticFieldsInitializedFlag(instance, clazz.signature)
+    val instance = staticStorage[clazz] ?: error("Static instance for $clazz is not allocated")
+    val initializedFlag = ctx.mkStaticFieldsInitializedFlag(instance, clazz.signature)
     return memory.read(initializedFlag).isTrue
 }
 
 internal fun TsState.markInitialized(clazz: EtsClass) {
-    val instance = staticStorage[clazz]!!
-    val initializedFlag = ctx.staticFieldsInitializedFlag(instance, clazz.signature)
+    val instance = staticStorage[clazz] ?: error("Static instance for $clazz is not allocated")
+    val initializedFlag = ctx.mkStaticFieldsInitializedFlag(instance, clazz.signature)
     memory.write(initializedFlag, ctx.trueExpr, guard = ctx.trueExpr)
 }
 
-private fun TsContext.staticFieldsInitializedFlag(
+private fun TsContext.mkStaticFieldsInitializedFlag(
     instance: UHeapRef,
     clazz: EtsClassSignature,
-): UFieldLValue<EtsFieldSignature, UBoolSort> {
+): UFieldLValue<String, UBoolSort> {
     val field = EtsFieldSignature(
         enclosingClass = clazz,
         sub = EtsFieldSubSignature(
@@ -35,5 +36,5 @@ private fun TsContext.staticFieldsInitializedFlag(
             type = EtsBooleanType,
         ),
     )
-    return UFieldLValue(boolSort, instance, field)
+    return mkFieldLValue(boolSort, instance, field)
 }
