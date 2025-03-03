@@ -694,7 +694,7 @@ class TsExprResolver(
             it.signature == value.field.enclosingClass
         } ?: return null
 
-        val instance = scope.calcOnState { getStaticInstance(clazz) }
+        val instanceRef = scope.calcOnState { getStaticInstance(clazz) }
 
         val initializer = clazz.methods.singleOrNull { it.name == STATIC_INIT_METHOD_NAME }
         if (initializer != null) {
@@ -712,14 +712,14 @@ class TsExprResolver(
                     markInitialized(clazz)
                     pushSortsForArguments(instance = null, args = emptyList(), localToIdx)
                     callStack.push(initializer, currentStatement)
-                    memory.stack.push(arrayOf(instance), initializer.localsCount)
+                    memory.stack.push(arrayOf(instanceRef), initializer.localsCount)
                     newStmt(initializer.cfg.stmts.first())
                 }
                 return null
             }
         }
 
-        return handleFieldRef(null, instance, value.field)
+        return handleFieldRef(instance = null, instanceRef, value.field)
     }
 
     // endregion
