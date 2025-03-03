@@ -64,7 +64,6 @@ import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsTypeOfExpr
 import org.jacodb.ets.base.EtsUnaryExpr
 import org.jacodb.ets.base.EtsUnaryPlusExpr
-import org.jacodb.ets.base.EtsUnclearRefType
 import org.jacodb.ets.base.EtsUndefinedConstant
 import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.base.EtsUnsignedRightShiftExpr
@@ -73,7 +72,6 @@ import org.jacodb.ets.base.EtsVoidExpr
 import org.jacodb.ets.base.EtsYieldExpr
 import org.jacodb.ets.base.STATIC_INIT_METHOD_NAME
 import org.jacodb.ets.base.UNKNOWN_CLASS_NAME
-import org.jacodb.ets.model.EtsField
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodSignature
@@ -614,6 +612,49 @@ class TsExprResolver(
         state.throwExceptionWithoutStackFrameDrop(address, type)
     }
 
+    private fun handleFieldRef(
+        instance: EtsLocal?,
+        instanceRef: UHeapRef,
+        field: EtsFieldSignature,
+    ): UExpr<out USort>? = with(ctx) {
+        val etsField = resolveEtsField(instance, field)
+        val sort = typeToSort(etsField.type)
+
+        val expr = if (sort == unresolvedSort) {
+            val boolLValue = mkFieldLValue(boolSort, instanceRef, field)
+            val fpLValue = mkFieldLValue(fp64Sort, instanceRef, field)
+            val refLValue = mkFieldLValue(addressSort, instanceRef, field)
+
+            scope.calcOnState {
+                val bool = memory.read(boolLValue)
+                val fp = memory.read(fpLValue)
+                val ref = memory.read(refLValue)
+
+                // If a fake object is already created and assigned to the field,
+                // there is no need to recreate another one
+                val fakeRef = if (ref.isFakeObject()) {
+                    ref
+                } else {
+                    mkFakeValue(scope, bool, fp, ref)
+                }
+
+                memory.write(refLValue, fakeRef.asExpr(addressSort), guard = trueExpr)
+
+                fakeRef
+            }
+        } else {
+            val lValue = mkFieldLValue(sort, instanceRef, field)
+            scope.calcOnState { memory.read(lValue) }
+        }
+
+        // TODO: check 'field.type' vs 'etsField.type'
+        if (assertIsSubtype(expr, field.type)) {
+            expr
+        } else {
+            null
+        }
+    }
+
     override fun visit(value: EtsInstanceFieldRef): UExpr<out USort>? = with(ctx) {
         val instanceRef = resolve(value.instance)?.asExpr(addressSort) ?: return null
 
@@ -645,41 +686,7 @@ class TsExprResolver(
             }
         }
 
-        val field = resolveEtsField(value.instance, value.field)
-        val sort = typeToSort(field.type)
-
-        val expr = if (sort == unresolvedSort) {
-            val boolLValue = mkFieldLValue(boolSort, instanceRef, value.field)
-            val fpLValue = mkFieldLValue(fp64Sort, instanceRef, value.field)
-            val refLValue = mkFieldLValue(addressSort, instanceRef, value.field)
-
-            scope.calcOnState {
-                val bool = memory.read(boolLValue)
-                val fp = memory.read(fpLValue)
-                val ref = memory.read(refLValue)
-
-                // If a fake object is already created and assigned to the field,
-                // there is no need to recreate another one
-                val fakeRef = if (ref.isFakeObject()) {
-                    ref
-                } else {
-                    mkFakeValue(scope, bool, fp, ref)
-                }
-
-                memory.write(refLValue, fakeRef.asExpr(addressSort), guard = trueExpr)
-
-                fakeRef
-            }
-        } else {
-            val lValue = mkFieldLValue(sort, instanceRef, value.field)
-            scope.calcOnState { memory.read(lValue) }
-        }
-
-        if (assertIsSubtype(expr, value.type)) {
-            expr
-        } else {
-            null
-        }
+        return handleFieldRef(value.instance, instanceRef, value.field)
     }
 
     override fun visit(value: EtsStaticFieldRef): UExpr<out USort>? = with(ctx) {
@@ -712,41 +719,7 @@ class TsExprResolver(
             }
         }
 
-        val field = resolveEtsField(instance = null, value.field)
-        val sort = typeToSort(field.type)
-
-        val expr = if (sort == unresolvedSort) {
-            val boolLValue = mkFieldLValue(boolSort, instance, value.field)
-            val fpLValue = mkFieldLValue(fp64Sort, instance, value.field)
-            val refLValue = mkFieldLValue(addressSort, instance, value.field)
-
-            scope.calcOnState {
-                val bool = memory.read(boolLValue)
-                val fp = memory.read(fpLValue)
-                val ref = memory.read(refLValue)
-
-                // If a fake object is already created and assigned to the field,
-                // there is no need to recreate another one
-                val fakeRef = if (ref.isFakeObject()) {
-                    ref
-                } else {
-                    mkFakeValue(scope, bool, fp, ref)
-                }
-
-                memory.write(refLValue, fakeRef.asExpr(addressSort), guard = trueExpr)
-
-                fakeRef
-            }
-        } else {
-            val lValue = mkFieldLValue(sort, instance, field.signature)
-            scope.calcOnState { memory.read(lValue) }
-        }
-
-        if (assertIsSubtype(expr, value.type)) {
-            expr
-        } else {
-            null
-        }
+        return handleFieldRef(null, instance, value.field)
     }
 
     // endregion
