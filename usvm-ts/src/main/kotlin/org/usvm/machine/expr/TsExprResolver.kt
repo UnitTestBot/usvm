@@ -775,8 +775,33 @@ class TsExprResolver(
 
         val field = clazz.fields.single { it.name == value.field.name }
         val sort = typeToSort(field.type)
-        val lValue = mkFieldLValue(sort, instance, field.signature)
-        val expr = scope.calcOnState { memory.read(lValue) }
+
+        val expr = if (sort == unresolvedSort) {
+            val boolLValue = mkFieldLValue(boolSort, instance, value.field)
+            val fpLValue = mkFieldLValue(fp64Sort, instance, value.field)
+            val refLValue = mkFieldLValue(addressSort, instance, value.field)
+
+            scope.calcOnState {
+                val bool = memory.read(boolLValue)
+                val fp = memory.read(fpLValue)
+                val ref = memory.read(refLValue)
+
+                // If a fake object is already created and assigned to the field,
+                // there is no need to recreate another one
+                val fakeRef = if (ref.isFakeObject()) {
+                    ref
+                } else {
+                    mkFakeValue(scope, bool, fp, ref)
+                }
+
+                memory.write(refLValue, fakeRef.asExpr(addressSort), guard = trueExpr)
+
+                fakeRef
+            }
+        } else {
+            val lValue = mkFieldLValue(sort, instance, field.signature)
+            scope.calcOnState { memory.read(lValue) }
+        }
 
         if (assertIsSubtype(expr, value.type)) {
             expr
