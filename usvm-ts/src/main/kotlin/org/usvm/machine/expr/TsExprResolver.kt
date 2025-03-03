@@ -64,15 +64,14 @@ import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsTypeOfExpr
 import org.jacodb.ets.base.EtsUnaryExpr
 import org.jacodb.ets.base.EtsUnaryPlusExpr
-import org.jacodb.ets.base.EtsUnclearRefType
 import org.jacodb.ets.base.EtsUndefinedConstant
 import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.base.EtsUnsignedRightShiftExpr
 import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.base.EtsVoidExpr
 import org.jacodb.ets.base.EtsYieldExpr
+import org.jacodb.ets.base.STATIC_INIT_METHOD_NAME
 import org.jacodb.ets.base.UNKNOWN_CLASS_NAME
-import org.jacodb.ets.model.EtsField
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodSignature
@@ -86,12 +85,15 @@ import org.usvm.api.allocateArray
 import org.usvm.isTrue
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
+import org.usvm.machine.interpreter.isInitialized
+import org.usvm.machine.interpreter.markInitialized
 import org.usvm.machine.operator.TsBinaryOperator
 import org.usvm.machine.operator.TsUnaryOperator
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
+import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.types.FakeType
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.memory.ULValue
@@ -101,6 +103,7 @@ import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
+import org.usvm.util.resolveEtsField
 import org.usvm.util.throwExceptionWithoutStackFrameDrop
 
 private val logger = KotlinLogging.logger {}
@@ -111,7 +114,7 @@ class TsExprResolver(
     private val localToIdx: (EtsMethod, EtsValue) -> Int,
 ) : EtsEntity.Visitor<UExpr<out USort>?> {
 
-    private val simpleValueResolver: TsSimpleValueResolver =
+    val simpleValueResolver: TsSimpleValueResolver =
         TsSimpleValueResolver(ctx, scope, localToIdx)
 
     fun resolve(expr: EtsEntity): UExpr<out USort>? {
@@ -446,11 +449,10 @@ class TsExprResolver(
             doWithState {
                 val method = resolveInstanceCall(expr.instance, expr.method)
 
+                check(args.size == method.parametersWithThisCount)
                 pushSortsForArguments(expr.instance, expr.args, localToIdx)
-
                 callStack.push(method, currentStatement)
                 memory.stack.push(args.toTypedArray(), method.localsCount)
-
                 newStmt(method.cfg.stmts.first())
             }
         }
@@ -610,46 +612,47 @@ class TsExprResolver(
         state.throwExceptionWithoutStackFrameDrop(address, type)
     }
 
-    private fun resolveInstanceField(
-        instance: EtsLocal,
+    private fun handleFieldRef(
+        instance: EtsLocal?,
+        instanceRef: UHeapRef,
         field: EtsFieldSignature,
-    ): EtsField {
-        // Perfect signature:
-        if (field.enclosingClass.name != UNKNOWN_CLASS_NAME) {
-            val clazz = ctx.scene.projectAndSdkClasses.single { it.name == field.enclosingClass.name }
-            val fields = clazz.fields.filter { it.name == field.name }
-            if (fields.size == 1) return fields.single()
-        }
+    ): UExpr<out USort>? = with(ctx) {
+        val etsField = resolveEtsField(instance, field)
+        val sort = typeToSort(etsField.type)
 
-        // Unknown signature:
-        val instanceType = instance.type
-        if (instanceType is EtsClassType) {
-            val classes = ctx.scene.projectAndSdkClasses.filter { it.name == instanceType.signature.name }
-            if (classes.size == 1) {
-                val clazz = classes.single()
-                return clazz.fields.single { it.name == field.name }
-            }
-            val fields = classes.flatMap { it.fields.filter { it.name == field.name } }
-            if (fields.size == 1) {
-                return fields.single()
-            }
-        } else if (instanceType is EtsUnclearRefType) {
-            val classes = ctx.scene.projectAndSdkClasses.filter { it.name == instanceType.name }
-            if (classes.size == 1) {
-                val clazz = classes.single()
-                return clazz.fields.single { it.name == field.name }
-            }
-            val fields = classes.flatMap { it.fields.filter { it.name == field.name } }
-            if (fields.size == 1) {
-                return fields.single()
+        val expr = if (sort == unresolvedSort) {
+            val boolLValue = mkFieldLValue(boolSort, instanceRef, field)
+            val fpLValue = mkFieldLValue(fp64Sort, instanceRef, field)
+            val refLValue = mkFieldLValue(addressSort, instanceRef, field)
+
+            scope.calcOnState {
+                val bool = memory.read(boolLValue)
+                val fp = memory.read(fpLValue)
+                val ref = memory.read(refLValue)
+
+                // If a fake object is already created and assigned to the field,
+                // there is no need to recreate another one
+                val fakeRef = if (ref.isFakeObject()) {
+                    ref
+                } else {
+                    mkFakeValue(scope, bool, fp, ref)
+                }
+
+                memory.write(refLValue, fakeRef.asExpr(addressSort), guard = trueExpr)
+
+                fakeRef
             }
         } else {
-            val fields = ctx.scene.projectAndSdkClasses.flatMap { it.fields.filter { it.name == field.name } }
-            if (fields.size == 1) {
-                return fields.single()
-            }
+            val lValue = mkFieldLValue(sort, instanceRef, field)
+            scope.calcOnState { memory.read(lValue) }
         }
-        error("Cannot resolve field $field")
+
+        // TODO: check 'field.type' vs 'etsField.type'
+        if (assertIsSubtype(expr, field.type)) {
+            expr
+        } else {
+            null
+        }
     }
 
     override fun visit(value: EtsInstanceFieldRef): UExpr<out USort>? = with(ctx) {
@@ -683,46 +686,40 @@ class TsExprResolver(
             }
         }
 
-        val field = resolveInstanceField(value.instance, value.field)
-        val sort = typeToSort(field.type)
-
-        val expr = if (sort == unresolvedSort) {
-            val boolLValue = mkFieldLValue(boolSort, instanceRef, value.field)
-            val fpLValue = mkFieldLValue(fp64Sort, instanceRef, value.field)
-            val refLValue = mkFieldLValue(addressSort, instanceRef, value.field)
-
-            scope.calcOnState {
-                val bool = memory.read(boolLValue)
-                val fp = memory.read(fpLValue)
-                val ref = memory.read(refLValue)
-
-                // If a fake object is already created and assigned to the field,
-                // there is no need to recreate another one
-                val fakeRef = if (ref.isFakeObject()) {
-                    ref
-                } else {
-                    mkFakeValue(scope, bool, fp, ref)
-                }
-
-                memory.write(refLValue, fakeRef.asExpr(addressSort), guard = trueExpr)
-
-                fakeRef
-            }
-        } else {
-            val lValue = mkFieldLValue(sort, instanceRef, value.field)
-            scope.calcOnState { memory.read(lValue) }
-        }
-
-        if (assertIsSubtype(expr, value.type)) {
-            expr
-        } else {
-            null
-        }
+        return handleFieldRef(value.instance, instanceRef, value.field)
     }
 
-    override fun visit(value: EtsStaticFieldRef): UExpr<out USort>? {
-        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        error("Not supported $value")
+    override fun visit(value: EtsStaticFieldRef): UExpr<out USort>? = with(ctx) {
+        val clazz = scene.projectAndSdkClasses.singleOrNull {
+            it.signature == value.field.enclosingClass
+        } ?: return null
+
+        val instanceRef = scope.calcOnState { getStaticInstance(clazz) }
+
+        val initializer = clazz.methods.singleOrNull { it.name == STATIC_INIT_METHOD_NAME }
+        if (initializer != null) {
+            val isInitialized = scope.calcOnState { isInitialized(clazz) }
+            if (isInitialized) {
+                scope.doWithState {
+                    // TODO: Handle static initializer result
+                    val result = methodResult
+                    if (result is TsMethodResult.Success && result.method == initializer) {
+                        methodResult = TsMethodResult.NoCall
+                    }
+                }
+            } else {
+                scope.doWithState {
+                    markInitialized(clazz)
+                    pushSortsForArguments(instance = null, args = emptyList(), localToIdx)
+                    callStack.push(initializer, currentStatement)
+                    memory.stack.push(arrayOf(instanceRef), initializer.localsCount)
+                    newStmt(initializer.cfg.stmts.first())
+                }
+                return null
+            }
+        }
+
+        return handleFieldRef(instance = null, instanceRef, value.field)
     }
 
     // endregion
