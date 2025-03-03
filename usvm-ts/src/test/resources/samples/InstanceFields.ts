@@ -15,4 +15,9 @@ class InstanceFields {
     returnSumOfTwoFields(x: { a: number, b: number }): number {
         return x.a + x.b
     }
+
+    assignField(x: { a: number }): number {
+        x.a = 10
+        return x.a
+    }
 }

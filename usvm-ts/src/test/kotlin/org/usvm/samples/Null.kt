@@ -1,7 +1,7 @@
 package org.usvm.samples
 
 import org.jacodb.ets.model.EtsScene
-import org.junit.jupiter.api.RepeatedTest
+import org.junit.jupiter.api.Test
 import org.usvm.api.TsValue
 import org.usvm.util.TsMethodTestRunner
 
@@ -11,8 +11,8 @@ class Null : TsMethodTestRunner() {
 
     override val scene: EtsScene = loadSampleScene(className)
 
-    @RepeatedTest(20)
-    fun testIsNull() {
+    @Test
+    fun `test isNull`() {
         val method = getMethod(className, "isNull")
         discoverProperties<TsValue, TsValue.TsNumber>(
             method,

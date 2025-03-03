@@ -1,7 +1,9 @@
 package org.usvm.util
 
 import io.ksmt.sort.KFp64Sort
+import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.base.EtsType
+import org.jacodb.ets.model.EtsClass
 import org.usvm.UBoolSort
 import org.usvm.UExpr
 import org.usvm.UHeapRef
@@ -16,3 +18,6 @@ fun TsContext.boolToFp(expr: UExpr<UBoolSort>): UExpr<KFp64Sort> =
 fun TsState.throwExceptionWithoutStackFrameDrop(address: UHeapRef, type: EtsType) {
     methodResult = TsMethodResult.TsException(address, type)
 }
+
+val EtsClass.type: EtsClassType
+    get() = EtsClassType(signature, typeParameters)

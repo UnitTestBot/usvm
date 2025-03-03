@@ -16,5 +16,6 @@ class TsComposer(
     ownership: MutabilityOwnership,
 ) : UComposer<EtsType, TsSizeSort>(ctx, memory, ownership), TsTransformer
 
-class TsExprTranslator(ctx: UContext<TsSizeSort>) : UExprTranslator<EtsType, TsSizeSort>(ctx), TsTransformer
-
+class TsExprTranslator(
+    ctx: UContext<TsSizeSort>,
+) : UExprTranslator<EtsType, TsSizeSort>(ctx), TsTransformer

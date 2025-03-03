@@ -120,10 +120,7 @@ class TsContext(
     fun UExpr<out USort>.extractSingleValueFromFakeObjectOrNull(scope: TsStepScope): UExpr<out USort>? {
         if (!isFakeObject()) return null
 
-        val type = scope.calcOnState {
-            memory.types.getTypeStream(this@extractSingleValueFromFakeObjectOrNull).single() as FakeType
-        }
-
+        val type = getFakeType(scope)
         return scope.calcOnState {
             when {
                 type.boolTypeExpr.isTrue -> {
