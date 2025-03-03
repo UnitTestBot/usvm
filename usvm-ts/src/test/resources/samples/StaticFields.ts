@@ -134,3 +134,12 @@ class StaticAccess {
         return [this.a, this.b];
     }
 }
+
+// Test: Any-type static
+class StaticAny {
+    static value: any = 10;
+
+    static getNumber(): number {
+        return this.value;
+    }
+}

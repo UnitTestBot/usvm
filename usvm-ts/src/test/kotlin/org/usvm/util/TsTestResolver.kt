@@ -19,6 +19,7 @@ import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.base.EtsVoidType
 import org.jacodb.ets.base.UNKNOWN_CLASS_NAME
 import org.jacodb.ets.model.EtsClass
+import org.jacodb.ets.model.EtsFieldImpl
 import org.jacodb.ets.model.EtsMethod
 import org.usvm.UAddressSort
 import org.usvm.UConcreteHeapRef
@@ -352,25 +353,30 @@ open class TsTestStateResolver(
         classType: EtsClassType,
     ): TsValue.TsClass = with(ctx) {
         val clazz = resolveClass(classType)
-        val properties = clazz.fields.associate { field ->
-            val sort = typeToSort(field.type)
-            if (sort == unresolvedSort) {
-                val lValue = mkFieldLValue(addressSort, heapRef, field.signature)
-                val fieldExpr = finalStateMemory.read(lValue) as? UConcreteHeapRef
-                    ?: error("UnresolvedSort should be represented by a fake object instance")
-                // TODO check values if fieldExpr is correct here
-                //      Probably we have to pass fieldExpr as symbolic value and something as a concrete one
-                val obj = resolveExpr(fieldExpr, fieldExpr, field.type)
-                field.name to obj
-            } else {
-                val lValue = mkFieldLValue(sort, concreteRef.asExpr(addressSort), field.signature)
-                val fieldExpr = memory.read(lValue)
-                // TODO check values if fieldExpr is correct here
-                //      Probably we have to pass fieldExpr as symbolic value and something as a concrete one
-                val obj = resolveExpr(fieldExpr, fieldExpr, field.type)
-                field.name to obj
+        val properties = clazz.fields
+            .filterNot { field ->
+                field as EtsFieldImpl
+                field.modifiers.isStatic
             }
-        }
+            .associate { field ->
+                val sort = typeToSort(field.type)
+                if (sort == unresolvedSort) {
+                    val lValue = mkFieldLValue(addressSort, heapRef, field.signature)
+                    val fieldExpr = finalStateMemory.read(lValue) as? UConcreteHeapRef
+                        ?: error("UnresolvedSort should be represented by a fake object instance")
+                    // TODO check values if fieldExpr is correct here
+                    //      Probably we have to pass fieldExpr as symbolic value and something as a concrete one
+                    val obj = resolveExpr(fieldExpr, fieldExpr, field.type)
+                    field.name to obj
+                } else {
+                    val lValue = mkFieldLValue(sort, concreteRef.asExpr(addressSort), field.signature)
+                    val fieldExpr = memory.read(lValue)
+                    // TODO check values if fieldExpr is correct here
+                    //      Probably we have to pass fieldExpr as symbolic value and something as a concrete one
+                    val obj = resolveExpr(fieldExpr, fieldExpr, field.type)
+                    field.name to obj
+                }
+            }
         TsValue.TsClass(clazz.name, properties)
     }
 

@@ -134,4 +134,13 @@ class StaticFields : TsMethodTestRunner() {
             { r -> r.values.map { it.number } == listOf(2.0, 1.0) },
         )
     }
+
+    @Test
+    fun `test static any type`() {
+        val method = getMethod("StaticAny", "getNumber")
+        discoverProperties<TsValue.TsNumber>(
+            method = method,
+            { r -> r.number == 10.0 },
+        )
+    }
 }
