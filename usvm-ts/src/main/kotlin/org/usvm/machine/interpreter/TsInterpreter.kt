@@ -202,7 +202,6 @@ class TsInterpreter(
                     val instance = scope.calcOnState {
                         val (updated, result) = staticStorage.getOrPut(clazz, ownership) {
                             val address = memory.allocConcrete(clazz.type)
-                            // TODO: memory.types.allocate(...)
                             address
                         }
                         staticStorage = updated
