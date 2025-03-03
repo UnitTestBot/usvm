@@ -87,9 +87,7 @@ class TsState(
 
     fun getStaticInstance(clazz: EtsClass): UConcreteHeapRef {
         val (updated, result) = staticStorage.getOrPut(clazz, ownership) {
-            val address = memory.allocConcrete(clazz.type)
-            // TODO: memory.types.allocate(...)
-            address
+            memory.allocConcrete(clazz.type)
         }
         staticStorage = updated
         return result
