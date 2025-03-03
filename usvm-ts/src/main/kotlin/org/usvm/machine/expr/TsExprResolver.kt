@@ -619,9 +619,13 @@ class TsExprResolver(
     ): EtsField {
         // Perfect signature:
         if (field.enclosingClass.name != UNKNOWN_CLASS_NAME) {
-            val clazz = ctx.scene.projectAndSdkClasses.single { it.name == field.enclosingClass.name }
+            val clazz = ctx.scene.projectAndSdkClasses.single { cls ->
+                cls.name == field.enclosingClass.name
+            }
             val fields = clazz.fields.filter { it.name == field.name }
-            if (fields.size == 1) return fields.single()
+            if (fields.size == 1) {
+                return fields.single()
+            }
         }
 
         // Unknown signature:
@@ -629,24 +633,32 @@ class TsExprResolver(
             val instanceType = instance.type
             when (instanceType) {
                 is EtsClassType -> {
-                    val classes = ctx.scene.projectAndSdkClasses.filter { it.name == instanceType.signature.name }
+                    val classes = ctx.scene.projectAndSdkClasses.filter { cls ->
+                        cls.name == instanceType.signature.name
+                    }
                     if (classes.size == 1) {
                         val clazz = classes.single()
                         return clazz.fields.single { it.name == field.name }
                     }
-                    val fields = classes.flatMap { it.fields.filter { it.name == field.name } }
+                    val fields = classes.flatMap { cls ->
+                        cls.fields.filter { it.name == field.name }
+                    }
                     if (fields.size == 1) {
                         return fields.single()
                     }
                 }
 
                 is EtsUnclearRefType -> {
-                    val classes = ctx.scene.projectAndSdkClasses.filter { it.name == instanceType.name }
+                    val classes = ctx.scene.projectAndSdkClasses.filter { cls ->
+                        cls.name == instanceType.name
+                    }
                     if (classes.size == 1) {
                         val clazz = classes.single()
                         return clazz.fields.single { it.name == field.name }
                     }
-                    val fields = classes.flatMap { it.fields.filter { it.name == field.name } }
+                    val fields = classes.flatMap { cls ->
+                        cls.fields.filter { it.name == field.name }
+                    }
                     if (fields.size == 1) {
                         return fields.single()
                     }
@@ -654,7 +666,9 @@ class TsExprResolver(
             }
         }
 
-        val fields = ctx.scene.projectAndSdkClasses.flatMap { it.fields.filter { it.name == field.name } }
+        val fields = ctx.scene.projectAndSdkClasses.flatMap { cls ->
+            cls.fields.filter { it.name == field.name }
+        }
         if (fields.size == 1) {
             return fields.single()
         }
