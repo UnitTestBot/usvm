@@ -26,7 +26,6 @@ import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UInterpreter
 import org.usvm.api.targets.TsTarget
-import org.usvm.collections.immutable.getOrPut
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.machine.TsApplicationGraph
@@ -46,7 +45,6 @@ import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
-import org.usvm.util.type
 import org.usvm.utils.ensureSat
 
 typealias TsStepScope = StepScope<TsState, EtsType, EtsStmt, TsContext>
