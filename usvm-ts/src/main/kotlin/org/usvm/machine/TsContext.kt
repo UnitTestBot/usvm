@@ -28,7 +28,6 @@ import org.usvm.collection.field.UFieldLValue
 import org.usvm.isTrue
 import org.usvm.machine.expr.TsUndefinedSort
 import org.usvm.machine.expr.TsUnresolvedSort
-import org.usvm.machine.interpreter.TsStaticFieldReading
 import org.usvm.machine.interpreter.TsStaticFieldRegionId
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.types.FakeType

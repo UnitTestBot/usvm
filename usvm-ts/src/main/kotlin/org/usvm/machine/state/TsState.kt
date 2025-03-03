@@ -21,6 +21,7 @@ import org.usvm.machine.TsContext
 import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase
 import org.usvm.targets.UTargetsSet
+import org.usvm.util.type
 
 class TsState(
     ctx: TsContext,
@@ -82,6 +83,16 @@ class TsState(
             saveSortForLocal(index, sort)
         }
         instanceSort?.let { saveSortForLocal(args.size, it) }
+    }
+
+    fun getStaticInstance(clazz: EtsClass): UConcreteHeapRef {
+        val (updated, result) = staticStorage.getOrPut(clazz, ownership) {
+            val address = memory.allocConcrete(clazz.type)
+            // TODO: memory.types.allocate(...)
+            address
+        }
+        staticStorage = updated
+        return result
     }
 
     override fun clone(newConstraints: UPathConstraints<EtsType>?): TsState {

@@ -84,7 +84,6 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.allocateArray
-import org.usvm.collections.immutable.getOrPut
 import org.usvm.isTrue
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
@@ -107,7 +106,6 @@ import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
 import org.usvm.util.throwExceptionWithoutStackFrameDrop
-import org.usvm.util.type
 
 private val logger = KotlinLogging.logger {}
 
@@ -736,15 +734,7 @@ class TsExprResolver(
             it.signature == value.field.enclosingClass
         } ?: return null
 
-        val instance = scope.calcOnState {
-            val (updated, result) = staticStorage.getOrPut(clazz, ownership) {
-                val address = memory.allocConcrete(clazz.type)
-                // TODO: memory.types.allocate(...)
-                address
-            }
-            staticStorage = updated
-            result
-        }
+        val instance = scope.calcOnState { getStaticInstance(clazz) }
 
         val initializer = clazz.methods.singleOrNull { it.name == STATIC_INIT_METHOD_NAME }
         if (initializer != null) {
@@ -755,8 +745,6 @@ class TsExprResolver(
                     val result = methodResult
                     if (result is TsMethodResult.Success && result.method == initializer) {
                         methodResult = TsMethodResult.NoCall
-                        // TODO: see Jc impl.
-                        //  mutatePrimitiveFieldValuesToSymbolic
                     }
                 }
             } else {
