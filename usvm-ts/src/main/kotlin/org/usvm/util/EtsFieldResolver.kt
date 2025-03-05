@@ -1,5 +1,6 @@
 package org.usvm.util
 
+import mu.KotlinLogging
 import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.base.EtsLocal
 import org.jacodb.ets.base.EtsUnclearRefType
@@ -8,6 +9,8 @@ import org.jacodb.ets.model.EtsField
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsScene
 import org.usvm.machine.TsContext
+
+private val logger = KotlinLogging.logger {}
 
 fun TsContext.resolveEtsField(
     instance: EtsLocal?,
@@ -70,19 +73,23 @@ private fun tryGetSingleField(
     return null
 }
 
-
 fun TsContext.resolveEtsFields(
     instance: EtsLocal?,
     field: EtsFieldSignature,
 ):List< EtsField > {
     // Perfect signature:
     if (field.enclosingClass.name != UNKNOWN_CLASS_NAME) {
-        val clazz = scene.projectAndSdkClasses.single { cls ->
+        val classes = scene.projectAndSdkClasses.filter { cls ->
             cls.name == field.enclosingClass.name
         }
-        val fields = clazz.fields.filter { it.name == field.name }
-        if (fields.size == 1) {
-            return listOf( fields.single() )
+        if (classes.size == 1) {
+            val clazz = classes.single()
+            val fields = clazz.fields.filter { it.name == field.name }
+            if (fields.size == 1) {
+                return listOf(fields.single())
+            }
+        } else {
+            logger.warn { "Multiple classes with name ${field.enclosingClass.name}" }
         }
     }
 
