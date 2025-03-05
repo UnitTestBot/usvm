@@ -1,5 +1,6 @@
 package org.usvm.machine
 
+import mu.KotlinLogging
 import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
@@ -14,6 +15,7 @@ import org.usvm.machine.state.TsState
 import org.usvm.ps.createPathSelector
 import org.usvm.statistics.CompositeUMachineObserver
 import org.usvm.statistics.CoverageStatistics
+import org.usvm.statistics.StatisticsByMethodPrinter
 import org.usvm.statistics.StepsStatistics
 import org.usvm.statistics.TimeStatistics
 import org.usvm.statistics.UMachineObserver
@@ -23,7 +25,10 @@ import org.usvm.statistics.collectors.TargetsReachedStatesCollector
 import org.usvm.statistics.distances.CfgStatisticsImpl
 import org.usvm.statistics.distances.PlainCallGraphStatistics
 import org.usvm.stopstrategies.createStopStrategy
+import org.usvm.util.humanReadableSignature
 import kotlin.time.Duration.Companion.seconds
+
+private val logger = KotlinLogging.logger {}
 
 class TsMachine(
     private val project: EtsScene,
@@ -98,6 +103,19 @@ class TsMachine(
 
         observers.add(timeStatistics)
         observers.add(stepsStatistics)
+
+        if (logger.isInfoEnabled) {
+            observers.add(
+                StatisticsByMethodPrinter(
+                    { methods },
+                    logger::info,
+                    { it.humanReadableSignature },
+                    coverageStatistics,
+                    timeStatistics,
+                    stepsStatistics
+                )
+            )
+        }
 
         run(
             interpreter,
