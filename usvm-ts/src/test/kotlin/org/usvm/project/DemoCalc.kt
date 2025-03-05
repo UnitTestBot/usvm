@@ -1,11 +1,14 @@
 package org.usvm.project
 
+import org.jacodb.ets.model.EtsMethodImpl
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.getDeclaredLocals
 import org.jacodb.ets.utils.getLocals
 import org.jacodb.ets.utils.loadEtsProjectFromIR
 import org.usvm.api.TsValue
+import org.usvm.machine.TsMachine
 import org.usvm.util.TsMethodTestRunner
+import org.usvm.util.TsTestResolver
 import org.usvm.util.fixHome
 import kotlin.io.path.Path
 import kotlin.test.Test
@@ -20,7 +23,7 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
     }
 
     @Test
-    fun `test run on all methods`() {
+    fun `test run on each method`() {
         println("Total classes: ${scene.projectAndSdkClasses.size}")
         for (clazz in scene.projectAndSdkClasses) {
             println()
@@ -41,6 +44,21 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
                     continue
                 }
                 discoverProperties<TsValue>(method = method)
+            }
+        }
+    }
+
+    @Test
+    fun `test run on all methods`() {
+        val methods = scene.projectAndSdkClasses.flatMap {
+            it.methods
+                .filterNot { it.cfg.stmts.isEmpty() }
+                .filterNot { (it as EtsMethodImpl).modifiers.isStatic }
+        }
+        TsMachine(scene, options).use { machine ->
+            val states = machine.analyze(methods)
+            for (state in states) {
+                println(state)
             }
         }
     }
