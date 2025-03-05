@@ -33,7 +33,11 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
                     continue
                 }
                 if (method.getLocals() != method.getDeclaredLocals()) {
-                    println("Locals: ${method.getLocals()} != ${method.getDeclaredLocals()}")
+                    println(
+                        "Locals mismatch:\n  getLocals() = ${
+                            method.getLocals().sortedBy { it.name }
+                        }\n  getDeclaredLocals() = ${method.getDeclaredLocals().sortedBy { it.name }}"
+                    )
                     continue
                 }
                 discoverProperties<TsValue>(method = method)
