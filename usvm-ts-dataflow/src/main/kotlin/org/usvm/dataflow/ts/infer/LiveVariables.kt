@@ -20,6 +20,7 @@ import org.jacodb.ets.base.EtsThrowStmt
 import org.jacodb.ets.base.EtsUnaryExpr
 import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.model.EtsMethod
+import java.util.BitSet
 
 interface LiveVariables {
     fun isAliveAt(local: String, stmt: EtsStmt): Boolean
@@ -64,118 +65,63 @@ class LiveVariablesImpl(
             is EtsInstanceCallExpr -> listOf(instance.name) + args.flatMap { it.used() }
             else -> args.flatMap { it.used() }
         }
-
-        private fun <T> postOrder(sources: Iterable<T>, successors: (T) -> Iterable<T>): List<T> {
-            val order = mutableListOf<T>()
-            val visited = hashSetOf<T>()
-
-            fun dfs(node: T) {
-                visited.add(node)
-                for (next in successors(node)) {
-                    if (next !in visited)
-                        dfs(next)
-                }
-                order.add(node)
-            }
-
-            for (source in sources) {
-                if (source !in visited)
-                    dfs(source)
-            }
-
-            return order
-        }
     }
 
-    private fun stronglyConnectedComponents(): IntArray {
-        val rpo = postOrder(method.cfg.entries) {
-            method.cfg.successors(it)
-        }.reversed()
+    private val aliveAtStmt: Array<BitSet>
+    private val indexOfName = hashMapOf<String, Int>()
+    private val definedAtStmt = IntArray(method.cfg.stmts.size) { -1 }
 
-        val coloring = IntArray(method.cfg.stmts.size) { -1 }
-        var nextColor = 0
-        fun backwardDfs(stmt: EtsStmt) {
-            coloring[stmt.location.index] = nextColor
-            if (stmt in method.cfg.entries)
-                return
-            for (next in method.cfg.predecessors(stmt)) {
-                if (coloring[next.location.index] == -1) {
-                    backwardDfs(next)
-                }
-            }
-        }
-
-        for (stmt in rpo) {
-            if (coloring[stmt.location.index] == -1) {
-                backwardDfs(stmt)
-                nextColor++
-            }
-        }
-
-        return coloring
-    }
-
-    private fun condensation(coloring: IntArray): Map<Int, Set<Int>> {
-        val successors = hashMapOf<Int, HashSet<Int>>()
-        for (from in method.cfg.stmts) {
-            for (to in method.cfg.successors(from)) {
-                val fromColor = coloring[from.location.index]
-                val toColor = coloring[to.location.index]
-                if (fromColor != toColor) {
-                    successors.computeIfAbsent(fromColor) { hashSetOf() }
-                        .add(toColor)
-                }
-            }
-        }
-        return successors
-    }
-
-    private val lifetime = hashMapOf<String, Pair<Int, Int>>()
-    private val coloring = stronglyConnectedComponents()
-    private val colorIndex: IntArray
+    private fun emptyBitSet() = BitSet(indexOfName.size)
+    private fun BitSet.copy() = clone() as BitSet
 
     init {
-        val condensationSuccessors = condensation(coloring)
-        val entriesColors = method.cfg.entries.map {
-            coloring[it.location.index]
-        }
-        val colorOrder = postOrder(entriesColors) {
-            condensationSuccessors[it].orEmpty()
-        }.reversed()
-
-        colorIndex = IntArray(colorOrder.size) { -1 }
-        for ((index, color) in colorOrder.withIndex()) {
-            colorIndex[color] = index
-        }
-
-        val ownLocals = hashSetOf<String>()
         for (stmt in method.cfg.stmts) {
             if (stmt is EtsAssignStmt) {
                 when (val lhv = stmt.lhv) {
-                    is EtsLocal -> ownLocals.add(lhv.name)
+                    is EtsLocal -> {
+                        val lhvIndex = indexOfName.size
+                        definedAtStmt[stmt.location.index] = lhvIndex
+                        indexOfName[lhv.name] = lhvIndex
+                    }
                 }
             }
         }
 
-        for (stmt in method.cfg.stmts) {
-            val usedLocals = when (stmt) {
-                is EtsAssignStmt -> stmt.lhv.used() + stmt.rhv.used()
-                is EtsCallStmt -> stmt.expr.used()
-                is EtsReturnStmt -> stmt.returnValue?.used().orEmpty()
-                is EtsIfStmt -> stmt.condition.used()
-                is EtsSwitchStmt -> stmt.arg.used()
-                is EtsThrowStmt -> stmt.arg.used()
-                else -> emptyList()
-            }
-            val blockIndex = colorIndex[coloring[stmt.location.index]]
+        aliveAtStmt = Array(method.cfg.stmts.size) { emptyBitSet() }
 
-            for (local in usedLocals) {
-                if (local in ownLocals) {
-                    lifetime.merge(local, blockIndex to blockIndex) { (begin, end), (bb, be) ->
-                        minOf(begin, bb) to maxOf(end, be)
-                    }
-                } else {
-                    lifetime[local] = Int.MIN_VALUE to Int.MAX_VALUE
+        val queue = method.cfg.stmts.toHashSet()
+        while (queue.isNotEmpty()) {
+            val stmt = queue.first()
+            queue.remove(stmt)
+
+            val aliveHere = emptyBitSet().apply {
+                val usedLocals = when (stmt) {
+                    is EtsAssignStmt -> stmt.lhv.used() + stmt.rhv.used()
+                    is EtsCallStmt -> stmt.expr.used()
+                    is EtsReturnStmt -> stmt.returnValue?.used().orEmpty()
+                    is EtsIfStmt -> stmt.condition.used()
+                    is EtsSwitchStmt -> stmt.arg.used()
+                    is EtsThrowStmt -> stmt.arg.used()
+                    else -> emptyList()
+                }
+
+                usedLocals.mapNotNull { indexOfName[it] }.forEach { set(it) }
+            }
+
+            for (succ in method.cfg.successors(stmt)) {
+                val transferFromSucc = aliveAtStmt[succ.location.index].copy()
+                val definedAtSucc = definedAtStmt[succ.location.index]
+                if (definedAtSucc != -1) {
+                    transferFromSucc.clear(definedAtSucc)
+                }
+
+                aliveHere.or(transferFromSucc)
+            }
+
+            if (aliveHere != aliveAtStmt[stmt.location.index]) {
+                aliveAtStmt[stmt.location.index] = aliveHere
+                if (stmt !in method.cfg.entries) {
+                    queue.addAll(method.cfg.predecessors(stmt))
                 }
             }
         }
@@ -183,8 +129,7 @@ class LiveVariablesImpl(
 
     override fun isAliveAt(local: String, stmt: EtsStmt): Boolean {
         if (stmt.location.index < 0) return true
-        val block = colorIndex[coloring[stmt.location.index]]
-        val (begin, end) = lifetime[local] ?: error("Unknown local")
-        return block in begin..end
+        val index = indexOfName[local] ?: return true
+        return aliveAtStmt[stmt.location.index].get(index)
     }
 }
