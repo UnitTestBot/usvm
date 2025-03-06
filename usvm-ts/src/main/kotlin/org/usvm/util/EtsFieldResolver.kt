@@ -76,7 +76,7 @@ private fun tryGetSingleField(
 fun TsContext.resolveEtsFields(
     instance: EtsLocal?,
     field: EtsFieldSignature,
-):List< EtsField > {
+): List<EtsField> {
     // Perfect signature:
     if (field.enclosingClass.name != UNKNOWN_CLASS_NAME) {
         val classes = scene.projectAndSdkClasses.filter { cls ->
