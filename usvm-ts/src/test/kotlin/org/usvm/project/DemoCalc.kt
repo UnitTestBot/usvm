@@ -18,7 +18,7 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
     override val scene: EtsScene = run {
         loadEtsProjectFromIR(
             Path("~/dev/jacodb/jacodb-ets/src/test/resources/projects/Demo_Calc/etsir/entry").fixHome(),
-            null
+            Path("~/dev/ark/sdk/etsir/ohos/5.0.1.111/ets").fixHome(),
         )
     }
 
