@@ -50,6 +50,7 @@ import org.jacodb.ets.base.EtsPostIncExpr
 import org.jacodb.ets.base.EtsPreDecExpr
 import org.jacodb.ets.base.EtsPreIncExpr
 import org.jacodb.ets.base.EtsPtrCallExpr
+import org.jacodb.ets.base.EtsRawEntity
 import org.jacodb.ets.base.EtsRemExpr
 import org.jacodb.ets.base.EtsRightShiftExpr
 import org.jacodb.ets.base.EtsStaticCallExpr
@@ -113,7 +114,7 @@ class TsExprResolver(
     private val ctx: TsContext,
     private val scope: TsStepScope,
     private val localToIdx: (EtsMethod, EtsValue) -> Int,
-) : EtsEntity.Visitor.Default<UExpr<out USort>?> {
+) : EtsEntity.Visitor<UExpr<out USort>?> {
 
     val simpleValueResolver: TsSimpleValueResolver =
         TsSimpleValueResolver(ctx, scope, localToIdx)
@@ -166,7 +167,8 @@ class TsExprResolver(
     }
 
     // region DEFAULT
-    override fun defaultVisit(value: EtsEntity): UExpr<out USort>? {
+
+    override fun visit(value: EtsRawEntity): UExpr<out USort>? {
         return null
     }
 
@@ -198,7 +200,7 @@ class TsExprResolver(
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: EtsStringConstant): UExpr<out USort>? {
+    override fun visit(value: EtsStringConstant): UExpr<out USort> {
         return simpleValueResolver.visit(value)
     }
 
@@ -543,7 +545,7 @@ class TsExprResolver(
         if (method.enclosingClass.name != UNKNOWN_CLASS_NAME) {
             val classes = ctx.scene.projectAndSdkClasses.filter { it.name == method.enclosingClass.name }
             if (classes.size != 1) return null
-            val clazz = classes .single()
+            val clazz = classes.single()
             val methods = (clazz.methods + clazz.ctor).filter { it.name == method.name }
             if (methods.size != 1) return null
             return methods.single()
@@ -839,7 +841,7 @@ class TsSimpleValueResolver(
     private val ctx: TsContext,
     private val scope: TsStepScope,
     private val localToIdx: (EtsMethod, EtsValue) -> Int,
-) : EtsValue.Visitor<UExpr<out USort>?> {
+) : EtsValue.Visitor<UExpr<out USort>> {
 
     private fun resolveLocal(local: EtsValue): ULValue<*, USort> {
         val currentMethod = scope.calcOnState { lastEnteredMethod }
@@ -895,7 +897,7 @@ class TsSimpleValueResolver(
         }
 
         val lValue = resolveLocal(value)
-        return scope.calcOnState { memory.read(lValue) }.also { value.let {  } }
+        return scope.calcOnState { memory.read(lValue) }
     }
 
     override fun visit(value: EtsParameterRef): UExpr<out USort> {
@@ -928,7 +930,7 @@ class TsSimpleValueResolver(
         mkUndefinedValue()
     }
 
-    override fun visit(value: EtsArrayAccess): UExpr<out USort>? = with(ctx) {
+    override fun visit(value: EtsArrayAccess): UExpr<out USort> = with(ctx) {
         error("Should not be called")
     }
 
