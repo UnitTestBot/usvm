@@ -452,7 +452,10 @@ class TsExprResolver(
             }
         }
 
-        val method = resolveInstanceCall(expr.instance, expr.method) ?: return null
+        val method = resolveInstanceCall(expr.instance, expr.method) ?: run {
+            scope.assert(falseExpr)
+            return null
+        }
 
         resolveInvoke(
             method = expr.method,
@@ -478,7 +481,10 @@ class TsExprResolver(
             }
         }
 
-        val method = resolveStaticCall(expr.method) ?: return null
+        val method = resolveStaticCall(expr.method) ?: run {
+            scope.assert(falseExpr)
+            return null
+        }
 
         resolveInvoke(
             method = expr.method,
