@@ -8,7 +8,6 @@ import org.jacodb.ets.utils.loadEtsProjectFromIR
 import org.usvm.api.TsValue
 import org.usvm.machine.TsMachine
 import org.usvm.util.TsMethodTestRunner
-import org.usvm.util.TsTestResolver
 import org.usvm.util.fixHome
 import kotlin.io.path.Path
 import kotlin.test.Test
