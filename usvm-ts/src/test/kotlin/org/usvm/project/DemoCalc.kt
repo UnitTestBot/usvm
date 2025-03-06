@@ -38,7 +38,9 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
                     println(
                         "Locals mismatch:\n  getLocals() = ${
                             method.getLocals().sortedBy { it.name }
-                        }\n  getDeclaredLocals() = ${method.getDeclaredLocals().sortedBy { it.name }}"
+                        }\n  getDeclaredLocals() = ${
+                            method.getDeclaredLocals().sortedBy { it.name }
+                        }"
                     )
                     continue
                 }
