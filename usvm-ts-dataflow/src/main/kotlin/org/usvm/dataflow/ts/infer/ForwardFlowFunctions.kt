@@ -56,20 +56,22 @@ class ForwardFlowFunctions(
     private val aliasesCache: MutableMap<EtsMethod, List<StmtAliasInfo>> = hashMapOf()
     private fun getAliases(method: EtsMethod): List<StmtAliasInfo> {
         return aliasesCache.computeIfAbsent(method) {
-            if (doAliasAnalysis)
+            if (doAliasAnalysis) {
                 MethodAliasInfoImpl(method).computeAliases()
-            else
+            } else {
                 NoMethodAliasInfo(method).computeAliases()
+            }
         }
     }
 
     private val liveVariablesCache = hashMapOf<EtsMethod, LiveVariables>()
     private fun liveVariables(method: EtsMethod) =
         liveVariablesCache.computeIfAbsent(method) {
-            if (doLiveVariablesAnalysis)
+            if (doLiveVariablesAnalysis) {
                 LiveVariables.from(method)
-            else
+            } else {
                 AlwaysAlive
+            }
         }
 
     override fun obtainPossibleStartFacts(method: EtsMethod): Collection<ForwardTypeDomainFact> {
@@ -170,7 +172,7 @@ class ForwardFlowFunctions(
                 sequentFact(current, fact).myFilter()
                     .filter {
                         when (val base = it.variable.base) {
-                            is AccessPathBase.Local -> liveVars.isAliveAt(base.name, current) //|| liveVars.isAliveAt(base.name, next)
+                            is AccessPathBase.Local -> liveVars.isAliveAt(base.name, current)
                             else -> true
                         }
                     }
@@ -372,20 +374,27 @@ class ForwardFlowFunctions(
                 //       Using the cast type directly is just a temporary solution to satisfy simple tests.
                 if (current.rhv is EtsCastExpr) {
                     val path = AccessPath(lhv.base, fact.variable.accesses)
-                    // val type = EtsTypeFact.from((current.rhv as EtsCastExpr).type).intersect(fact.type) ?: fact.type
                     val type = EtsTypeFact.from((current.rhv as EtsCastExpr).type)
+
                     return listOf(fact, TypedVariable(path, type))
                 } else if (current.rhv is EtsAwaitExpr) {
                     val path = AccessPath(lhv.base, fact.variable.accesses)
                     val promiseType = fact.type
+
                     if (promiseType is EtsTypeFact.ObjectEtsTypeFact) {
                         val promiseClass = promiseType.cls
+
                         if (promiseClass is EtsClassType && promiseClass.signature.name == "Promise") {
-                            val type = EtsTypeFact.from(promiseClass.typeParameters.singleOrNull() ?: return listOf(fact))
+                            val type = EtsTypeFact.from(
+                                type = promiseClass.typeParameters.singleOrNull() ?: return listOf(fact)
+                            )
                             return listOf(fact, TypedVariable(path, type))
                         }
+
                         if (promiseClass is EtsUnclearRefType && promiseClass.name.startsWith("Promise")) {
-                            val type = EtsTypeFact.from(promiseClass.typeParameters.singleOrNull() ?: return listOf(fact))
+                            val type = EtsTypeFact.from(
+                                type = promiseClass.typeParameters.singleOrNull() ?: return listOf(fact)
+                            )
                             return listOf(fact, TypedVariable(path, type))
                         }
                     }

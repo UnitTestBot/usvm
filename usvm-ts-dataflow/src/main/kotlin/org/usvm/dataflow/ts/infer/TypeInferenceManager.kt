@@ -12,7 +12,6 @@ import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import mu.KotlinLogging
-import org.jacodb.ets.base.ANONYMOUS_CLASS_PREFIX
 import org.jacodb.ets.base.CONSTRUCTOR_NAME
 import org.jacodb.ets.base.EtsReturnStmt
 import org.jacodb.ets.base.EtsStmt
@@ -193,7 +192,8 @@ class TypeInferenceManager(
             typeInfo,
             doAddKnownTypes,
             doAliasAnalysis = true,
-            doLiveVariablesAnalysis = true)
+            doLiveVariablesAnalysis = true,
+        )
 
         val forwardRunner = UniRunner(
             traits = traits,

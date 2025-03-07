@@ -48,7 +48,7 @@ fun generateReportForProject(
     projectId: String,
     abcPath: String,
     warmupIterationsCount: Int,
-    runIterationsCount: Int
+    runIterationsCount: Int,
 ): PerformanceReport {
     val abcScene = AbcProjects.getAbcProject(abcPath)
 

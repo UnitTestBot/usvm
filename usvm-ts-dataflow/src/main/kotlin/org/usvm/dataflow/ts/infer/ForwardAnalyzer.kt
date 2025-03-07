@@ -37,10 +37,7 @@ class ForwardAnalyzer(
     private val liveVariablesCache = hashMapOf<EtsMethod, LiveVariables>()
     private fun liveVariables(method: EtsMethod) =
         liveVariablesCache.computeIfAbsent(method) {
-            if (doLiveVariablesAnalysis)
-                LiveVariables.from(method)
-            else
-                AlwaysAlive
+            if (doLiveVariablesAnalysis) LiveVariables.from(method) else AlwaysAlive
         }
 
     override fun handleNewEdge(edge: Edge<ForwardTypeDomainFact, EtsStmt>): List<AnalyzerEvent> {

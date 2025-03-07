@@ -76,13 +76,14 @@ class EtsTypeResolverPerformanceTest {
             )
         )
 
-        val file = File(OUTPUT_FILE)
-        file.writeText(buildString {
+        val reportStr = buildString {
             appendLine("|project|min time|max time|avg time|median time|%|")
             appendLine("|:--|:--|:--|:--|:--|:--|")
             reports.forEach {
                 appendLine(it.dumpToString())
             }
-        })
+        }
+        val file = File(OUTPUT_FILE)
+        file.writeText(reportStr)
     }
 }

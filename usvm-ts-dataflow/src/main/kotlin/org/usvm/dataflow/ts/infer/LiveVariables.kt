@@ -29,9 +29,7 @@ interface LiveVariables {
         private const val THRESHOLD: Int = 20
 
         fun from(method: EtsMethod): LiveVariables =
-            if (method.cfg.stmts.size > THRESHOLD)
-                LiveVariablesImpl(method)
-            else AlwaysAlive
+            if (method.cfg.stmts.size > THRESHOLD) LiveVariablesImpl(method) else AlwaysAlive
     }
 }
 
@@ -40,7 +38,7 @@ object AlwaysAlive : LiveVariables {
 }
 
 class LiveVariablesImpl(
-    val method: EtsMethod
+    val method: EtsMethod,
 ) : LiveVariables {
     companion object {
         private fun EtsEntity.used(): List<String> = when (this) {
