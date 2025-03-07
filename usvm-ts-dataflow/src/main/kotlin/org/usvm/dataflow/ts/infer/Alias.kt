@@ -1,6 +1,5 @@
 package org.usvm.dataflow.ts.infer
 
-import mu.KotlinLogging
 import org.jacodb.ets.base.EtsArrayAccess
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsBinaryExpr
@@ -22,22 +21,29 @@ import org.jacodb.ets.base.EtsThis
 import org.jacodb.ets.base.EtsUnaryExpr
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsMethod
+import kotlin.collections.ArrayDeque
 
-private val logger = KotlinLogging.logger {}
+interface StmtAliasInfo {
+    fun getAliases(path: AccessPath): Set<AccessPath>
+}
+
+interface MethodAliasInfo {
+    fun computeAliases(): List<StmtAliasInfo>
+}
 
 @OptIn(ExperimentalUnsignedTypes::class)
-class StmtAliasInfo(
+class StmtAliasInfoImpl(
     val baseToAlloc: IntArray,
     val allocToFields: Array<ULongArray>,
-    val method: MethodAliasInfo,
-) {
-    companion object {
-        const val NOT_PROCESSED = -1
-        const val MULTIPLE_EDGE = -2
+    val method: MethodAliasInfoImpl,
+) : StmtAliasInfo {
+    internal companion object {
+        internal const val NOT_PROCESSED = -1
+        internal const val MULTIPLE_EDGE = -2
 
-        const val ELEMENT_ACCESSOR = -3
+        internal const val ELEMENT_ACCESSOR = -3
 
-        fun merge(first: Int, second: Int): Int = when {
+        internal fun merge(first: Int, second: Int): Int = when {
             first == NOT_PROCESSED -> second
             second == NOT_PROCESSED -> first
             first == MULTIPLE_EDGE -> MULTIPLE_EDGE
@@ -46,19 +52,19 @@ class StmtAliasInfo(
             else -> MULTIPLE_EDGE
         }
 
-        fun wrap(string: Int, alloc: Int): ULong {
+        internal fun wrap(string: Int, alloc: Int): ULong {
             return (string.toULong() shl Int.SIZE_BITS) or alloc.toULong()
         }
 
-        fun unwrap(edge: ULong): Pair<Int, Int> {
+        internal fun unwrap(edge: ULong): Pair<Int, Int> {
             val string = (edge shr Int.SIZE_BITS).toInt()
             val allocation = (edge and UInt.MAX_VALUE.toULong()).toInt()
             return Pair(string, allocation)
         }
     }
 
-    fun merge(other: StmtAliasInfo): StmtAliasInfo {
-        val merged = StmtAliasInfo(
+    internal fun merge(other: StmtAliasInfoImpl): StmtAliasInfoImpl {
+        val merged = StmtAliasInfoImpl(
             baseToAlloc = IntArray(method.bases.size) { NOT_PROCESSED },
             allocToFields = Array(method.allocations.size) { ulongArrayOf() },
             method = method
@@ -71,11 +77,11 @@ class StmtAliasInfo(
             val toFieldsMap = mutableMapOf<Int, Int>()
             allocToFields[i].forEach {
                 val (s, a) = unwrap(it)
-                toFieldsMap.merge(s, a, ::merge)
+                toFieldsMap.merge(s, a, Companion::merge)
             }
             other.allocToFields[i].forEach {
                 val (s, a) = unwrap(it)
-                toFieldsMap.merge(s, a, ::merge)
+                toFieldsMap.merge(s, a, Companion::merge)
             }
             merged.allocToFields[i] = toFieldsMap
                 .map { (string, alloc) -> wrap(string, alloc) }
@@ -102,10 +108,9 @@ class StmtAliasInfo(
                     nodes.add(MULTIPLE_EDGE)
                     strings.add(ELEMENT_ACCESSOR)
                 }
-
                 is FieldAccessor -> {
                     val string = method.stringMap[accessor.name]
-                        ?: error("Unknown field name: ${accessor.name}")
+                        ?: error("Unknown field name")
                     strings.add(string)
 
                     node = allocToFields[node]
@@ -122,17 +127,17 @@ class StmtAliasInfo(
         return Pair(nodes, strings)
     }
 
-    fun assign(lhv: AccessPath, rhv: AccessPath): StmtAliasInfo {
+    private fun assign(lhv: AccessPath, rhv: AccessPath): StmtAliasInfoImpl {
         val (rhvNodes, _) = trace(rhv)
         val newAlloc = rhvNodes.last()
         return assign(lhv, newAlloc)
     }
 
-    fun assign(lhv: AccessPath, newAlloc: Int): StmtAliasInfo {
+    private fun assign(lhv: AccessPath, newAlloc: Int): StmtAliasInfoImpl {
         val (lhvNodes, lhvEdges) = trace(lhv)
         val from = lhvNodes.reversed().getOrNull(1)
         if (from != null) {
-            val updated = StmtAliasInfo(
+            val updated = StmtAliasInfoImpl(
                 baseToAlloc = baseToAlloc,
                 allocToFields = allocToFields.copyOf(),
                 method = method,
@@ -155,7 +160,7 @@ class StmtAliasInfo(
 
             return updated
         } else {
-            val updated = StmtAliasInfo(
+            val updated = StmtAliasInfoImpl(
                 baseToAlloc = baseToAlloc.copyOf(),
                 allocToFields = allocToFields,
                 method = method,
@@ -169,29 +174,28 @@ class StmtAliasInfo(
         }
     }
 
-    fun applyStmt(stmt: EtsStmt): StmtAliasInfo? {
+    internal fun applyStmt(stmt: EtsStmt): StmtAliasInfoImpl {
         if (stmt !is EtsAssignStmt) {
             return this
         }
         when (val rhv = stmt.rhv) {
             is EtsParameterRef -> {
-                val alloc = method.allocationMap[MethodAliasInfo.Allocation.Arg(rhv.index)]
-                    ?: error("Unknown parameter ref in stmt: $stmt")
+                val alloc = method.allocationMap[MethodAliasInfoImpl.Allocation.Arg(rhv.index)]
+                    ?: error("Unknown parameter ref")
                 return assign(stmt.lhv.toPath(), alloc)
             }
-
             is EtsThis -> {
-                val alloc = method.allocationMap[MethodAliasInfo.Allocation.This]
-                    ?: error("Unknown this in stmt: $stmt")
+                val alloc = method.allocationMap[MethodAliasInfoImpl.Allocation.This]
+                    ?: error("Uninitialized this")
                 return assign(stmt.lhv.toPath(), alloc)
             }
-
             is EtsInstanceFieldRef, is EtsStaticFieldRef -> {
                 val (rhvNodes, _) = trace(rhv.toPath())
                 val alloc = rhvNodes.last()
                 if (alloc == NOT_PROCESSED) {
-                    val fieldAlloc = method.allocationMap[MethodAliasInfo.Allocation.Imm(stmt)]
-                        ?: error("Unknown allocation in stmt: $stmt")
+                    val fieldAlloc = method.allocationMap[MethodAliasInfoImpl.Allocation.Imm(stmt)]
+                        ?: error("Unknown allocation")
+
                     return this
                         .assign(rhv.toPath(), fieldAlloc)
                         .assign(stmt.lhv.toPath(), fieldAlloc)
@@ -199,36 +203,29 @@ class StmtAliasInfo(
                     return assign(stmt.lhv.toPath(), alloc)
                 }
             }
-
             is EtsLocal -> {
                 return assign(stmt.lhv.toPath(), rhv.toPath())
             }
-
             is EtsCastExpr -> {
                 return assign(stmt.lhv.toPath(), rhv.arg.toPath())
             }
-
             is EtsConstant, is EtsUnaryExpr, is EtsBinaryExpr, is EtsArrayAccess, is EtsInstanceOfExpr -> {
-                val imm = method.allocationMap[MethodAliasInfo.Allocation.Expr(stmt)]
-                    ?: error("Unknown expr in stmt: $stmt")
+                val imm = method.allocationMap[MethodAliasInfoImpl.Allocation.Expr(stmt)]
+                    ?: error("Unknown constant")
                 return assign(stmt.lhv.toPath(), imm)
             }
-
             is EtsCallExpr -> {
-                val callResult = method.allocationMap[MethodAliasInfo.Allocation.CallResult(stmt)]
-                    ?: error("Unknown call in stmt: $stmt")
+                val callResult = method.allocationMap[MethodAliasInfoImpl.Allocation.CallResult(stmt)]
+                    ?: error("Unknown call")
                 return assign(stmt.lhv.toPath(), callResult)
             }
-
             is EtsNewExpr, is EtsNewArrayExpr -> {
-                val new = method.allocationMap[MethodAliasInfo.Allocation.New(stmt)]
-                    ?: error("Unknown new in stmt: $stmt")
+                val new = method.allocationMap[MethodAliasInfoImpl.Allocation.New(stmt)]
+                    ?: error("Unknown new")
                 return assign(stmt.lhv.toPath(), new)
             }
-
             else -> {
-                logger.warn("Could not process rhs in stmt: $stmt")
-                return null
+                error("Unprocessable")
             }
         }
     }
@@ -267,7 +264,7 @@ class StmtAliasInfo(
             get() = edge?.first
 
         fun traceContains(other: Int): Boolean =
-            alloc == other || (parent?.traceContains(other) == true)
+            alloc == other || (parent?.traceContains(other) ?: false)
     }
 
     private fun accessors(node: PathNode): List<Accessor> {
@@ -285,7 +282,7 @@ class StmtAliasInfo(
         return accessors
     }
 
-    fun getAliases(path: AccessPath): Set<AccessPath> {
+    override fun getAliases(path: AccessPath): Set<AccessPath> {
         val alloc = trace(path).first.last()
         if (alloc == NOT_PROCESSED || alloc == MULTIPLE_EDGE) {
             return setOf(path)
@@ -319,9 +316,9 @@ class StmtAliasInfo(
     }
 }
 
-class MethodAliasInfo(
+class MethodAliasInfoImpl(
     val method: EtsMethod,
-) {
+) : MethodAliasInfo {
     sealed interface Allocation {
         data class New(val stmt: EtsStmt) : Allocation
         data class CallResult(val stmt: EtsStmt) : Allocation
@@ -341,7 +338,7 @@ class MethodAliasInfo(
     val baseMap = mutableMapOf<AccessPathBase, Int>()
     val bases = mutableListOf<AccessPathBase>()
 
-    fun newString(str: String) {
+    private fun newString(str: String) {
         stringMap.computeIfAbsent(str) {
             strings.add(str)
             stringMap.size
@@ -365,22 +362,16 @@ class MethodAliasInfo(
             is AccessPathBase.Local -> {
                 newString(base.name)
             }
-
             is AccessPathBase.This -> {
                 newAllocation(Allocation.This)
             }
-
             is AccessPathBase.Arg -> {
                 newAllocation(Allocation.Arg(base.index))
             }
-
             is AccessPathBase.Static -> {
                 newAllocation(Allocation.Static(base.clazz))
             }
-
-            is AccessPathBase.Const -> {
-                // TODO ?? may be some non-trivial
-            }
+            is AccessPathBase.Const -> { /* TODO ?? may be some non-trivial */ }
         }
     }
 
@@ -390,25 +381,20 @@ class MethodAliasInfo(
                 initEntity(entity.instance)
                 newString(entity.field.name)
             }
-
             is EtsStaticFieldRef -> {
                 newBase(AccessPathBase.Static(entity.field.enclosingClass))
                 newString(entity.field.name)
             }
-
             is EtsArrayAccess -> {
                 initEntity(entity.array)
                 initEntity(entity.index)
             }
-
             is EtsLocal -> {
                 newBase(AccessPathBase.Local(entity.name))
             }
-
             is EtsParameterRef -> {
                 newBase(AccessPathBase.Arg(entity.index))
             }
-
             is EtsInstanceCallExpr -> {
                 initEntity(entity.instance)
                 newString(entity.method.name)
@@ -437,21 +423,16 @@ class MethodAliasInfo(
                         is EtsNewExpr, is EtsNewArrayExpr -> {
                             newAllocation(Allocation.New(stmt))
                         }
-
                         is EtsParameterRef -> {
                             newAllocation(Allocation.Arg(rhv.index))
                         }
-
                         is EtsCallExpr -> {
                             newAllocation(Allocation.CallResult(stmt))
                         }
-
                         is EtsInstanceFieldRef, is EtsStaticFieldRef -> {
                             newAllocation(Allocation.Imm(stmt))
                         }
-
                         is EtsCastExpr -> {}
-
                         is EtsConstant, is EtsUnaryExpr, is EtsBinaryExpr, is EtsArrayAccess, is EtsInstanceOfExpr -> {
                             newAllocation(Allocation.Expr(stmt))
                         }
@@ -469,11 +450,11 @@ class MethodAliasInfo(
         initMaps()
     }
 
-    private val preAliases: MutableMap<EtsStmt, StmtAliasInfo> = hashMapOf()
+    private val preAliases = mutableMapOf<EtsStmt, StmtAliasInfoImpl>()
 
     @OptIn(ExperimentalUnsignedTypes::class)
     @Suppress("UNCHECKED_CAST")
-    fun computeAliases(): List<StmtAliasInfo> {
+    override fun computeAliases(): List<StmtAliasInfo> {
         val visited: MutableSet<EtsStmt> = hashSetOf()
         val order: MutableList<EtsStmt> = mutableListOf()
         val preds: MutableMap<EtsStmt, MutableList<EtsStmt>> = hashMapOf()
@@ -494,14 +475,14 @@ class MethodAliasInfo(
         postOrderDfs(root)
         order.reverse()
 
-        fun computePreAliases(stmt: EtsStmt): StmtAliasInfo {
+        fun computePreAliases(stmt: EtsStmt): StmtAliasInfoImpl {
             if (stmt in preAliases) return preAliases.getValue(stmt)
 
             val merged = preds[stmt]
-                ?.mapNotNull { preAliases.getValue(it).applyStmt(it) }
+                ?.map { preAliases.getValue(it).applyStmt(it) }
                 ?.reduceOrNull { a, b -> a.merge(b) }
-                ?: StmtAliasInfo(
-                    baseToAlloc = IntArray(bases.size) { StmtAliasInfo.NOT_PROCESSED },
+                ?: StmtAliasInfoImpl(
+                    baseToAlloc = IntArray(bases.size) { StmtAliasInfoImpl.NOT_PROCESSED },
                     allocToFields = Array(allocations.size) { ulongArrayOf() },
                     method = this
                 )
@@ -510,12 +491,24 @@ class MethodAliasInfo(
             return merged
         }
 
-        val aliases = Array<StmtAliasInfo?>(method.cfg.stmts.size) { null }
+        val aliases = Array<StmtAliasInfoImpl?>(method.cfg.stmts.size) { null }
         for (stmt in order) {
             aliases[stmt.location.index] = computePreAliases(stmt)
         }
 
         assert(!aliases.contains(null))
-        return (aliases as Array<StmtAliasInfo>).toList()
+        return (aliases as Array<StmtAliasInfoImpl>).toList()
+    }
+}
+
+object NoStmtAliasInfo : StmtAliasInfo {
+    override fun getAliases(path: AccessPath): Set<AccessPath> {
+        return setOf(path)
+    }
+}
+
+class NoMethodAliasInfo(val method: EtsMethod) : MethodAliasInfo {
+    override fun computeAliases(): List<StmtAliasInfo> {
+        return method.cfg.stmts.map { NoStmtAliasInfo }
     }
 }

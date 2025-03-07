@@ -104,6 +104,11 @@ class EtsApplicationGraphImpl(
             .flatMap { it.methods }
             .groupByTo(hashMapOf()) { it.name }
     }
+    private val classMethodsByName by lazy {
+        projectClassesBySignature.mapValues { (_, clazz) ->
+            clazz.single().methods.groupBy { it.name }
+        }
+    }
 
     private val cacheClassWithIdealSignature: MutableMap<EtsClassSignature, Maybe<EtsClass>> = hashMapOf()
     private val cacheMethodWithIdealSignature: MutableMap<EtsMethodSignature, Maybe<EtsMethod>> = hashMapOf()
@@ -227,11 +232,8 @@ class EtsApplicationGraphImpl(
 
         // If the complete signature match failed,
         // try to find the unique not-the-same neighbour method in the same class:
-        val neighbors = cls.methods
-            .asSequence()
-            .filter { it.name == callee.name }
+        val neighbors = classMethodsByName[cls.signature].orEmpty()[callee.name].orEmpty()
             .filterNot { it.name == node.method.name }
-            .toList()
         if (neighbors.isNotEmpty()) {
             val s = neighbors.singleOrNull()
                 ?: error("Multiple methods with the same name: $neighbors")

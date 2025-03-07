@@ -48,6 +48,12 @@ object AbcProjects {
     }
 
     fun runOnAbcProject(scene: EtsScene): Pair<TypeInferenceResult, TypeInferenceStatistics> {
+        val result = inferTypes(scene)
+        val statistics = calculateStatistics(scene, result)
+        return result to statistics
+    }
+
+    fun inferTypes(scene: EtsScene): TypeInferenceResult {
         val abcScene = when (val result = verify(scene)) {
             is VerificationResult.Success -> scene
             is VerificationResult.Fail -> scene.annotateWithTypes(result.erasureScheme)
@@ -66,6 +72,12 @@ object AbcProjects {
             .analyze(entrypoint.mainMethods, allMethods, doAddKnownTypes = true)
             .withGuessedTypes(guesser)
 
+        return result
+    }
+
+    fun calculateStatistics(scene: EtsScene, result: TypeInferenceResult): TypeInferenceStatistics {
+        val graphAbc = createApplicationGraph(scene)
+        val entrypoint = EntryPointsProcessor(scene).extractEntryPoints()
         val sceneStatistics = TypeInferenceStatistics()
         entrypoint.allMethods
             .filter { it.cfg.stmts.isNotEmpty() }
@@ -73,6 +85,6 @@ object AbcProjects {
                 val methodTypeFacts = MethodTypesFacts.from(result, it)
                 sceneStatistics.compareSingleMethodFactsWithTypesInScene(methodTypeFacts, it, graphAbc)
             }
-        return Pair(result, sceneStatistics)
+        return sceneStatistics
     }
 }
