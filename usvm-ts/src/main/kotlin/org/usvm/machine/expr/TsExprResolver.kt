@@ -85,7 +85,9 @@ import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.allocateArray
 import org.usvm.isTrue
+import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
+import org.usvm.machine.TsVirtualMethodCallStmt
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.isInitialized
 import org.usvm.machine.interpreter.markInitialized
@@ -93,9 +95,9 @@ import org.usvm.machine.operator.TsBinaryOperator
 import org.usvm.machine.operator.TsUnaryOperator
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
+import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
-import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.types.FakeType
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.memory.ULValue
@@ -452,25 +454,36 @@ class TsExprResolver(
             }
         }
 
-        val method = resolveInstanceCall(expr.instance, expr.method) ?: run {
-            scope.assert(falseExpr)
-            return null
-        }
-
         resolveInvoke(
-            method = expr.method,
             instance = expr.instance,
-            arguments = { expr.args },
-            argumentTypes = { expr.method.parameters.map { it.type } },
+            arguments = expr.args,
         ) { args ->
             doWithState {
-                check(args.size == method.parametersWithThisCount)
                 pushSortsForArguments(expr.instance, expr.args, localToIdx)
-                callStack.push(method, currentStatement)
-                memory.stack.push(args.toTypedArray(), method.localsCount)
-                newStmt(method.cfg.stmts.first())
+                val virtualCall = TsVirtualMethodCallStmt(
+                    location = lastStmt.location,
+                    callee = expr.method,
+                    arguments = args,
+                    returnSite = lastStmt,
+                )
+                newStmt(virtualCall)
             }
         }
+
+        //     resolveInvoke(
+        //         method = expr.method,
+        //         instance = expr.instance,
+        //         arguments = { expr.args },
+        //         argumentTypes = { expr.method.parameters.map { it.type } },
+        //     ) { args ->
+        //         doWithState {
+        //             check(args.size == method.parametersWithThisCount)
+        //             pushSortsForArguments(expr.instance, expr.args, localToIdx)
+        //             callStack.push(method, currentStatement)
+        //             memory.stack.push(args.toTypedArray(), method.localsCount)
+        //             newStmt(method.cfg.stmts.first())
+        //         }
+        //     }
     }
 
     override fun visit(expr: EtsStaticCallExpr): UExpr<out USort>? = with(ctx) {
@@ -481,23 +494,24 @@ class TsExprResolver(
             }
         }
 
-        val method = resolveStaticCall(expr.method) ?: run {
-            scope.assert(falseExpr)
-            return null
-        }
-
         resolveInvoke(
-            method = expr.method,
             instance = null,
-            arguments = { expr.args },
-            argumentTypes = { expr.method.parameters.map { it.type } },
+            arguments = expr.args,
         ) { args ->
+            val method = resolveStaticCall(expr.method) ?: run {
+                logger.error { "Could not resolve static call: ${expr.method}" }
+                scope.assert(falseExpr)
+                return null
+            }
             doWithState {
-                check(args.size == method.parametersWithThisCount)
                 pushSortsForArguments(null, expr.args, localToIdx)
-                callStack.push(method, currentStatement)
-                memory.stack.push(args.toTypedArray(), method.localsCount)
-                newStmt(method.cfg.stmts.first())
+                val concreteCall = TsConcreteMethodCallStmt(
+                    location = lastStmt.location,
+                    callee = method,
+                    arguments = args,
+                    returnSite = lastStmt,
+                )
+                newStmt(concreteCall)
             }
         }
     }
@@ -568,10 +582,8 @@ class TsExprResolver(
     }
 
     private inline fun resolveInvoke(
-        method: EtsMethodSignature,
         instance: EtsLocal?,
-        arguments: () -> List<EtsValue>,
-        argumentTypes: () -> List<EtsType>,
+        arguments: List<EtsValue>,
         onNoCallPresent: TsStepScope.(List<UExpr<out USort>>) -> Unit,
     ): UExpr<out USort>? {
         val instanceExpr = if (instance != null) {
@@ -581,11 +593,11 @@ class TsExprResolver(
             null
         }
 
-        val args = mutableListOf<UExpr<out USort>>()
+        val argumentExprs = mutableListOf<UExpr<out USort>>()
 
-        for (arg in arguments()) {
+        for (arg in arguments) {
             val resolved = resolve(arg) ?: return null
-            args += resolved
+            argumentExprs += resolved
         }
 
         // Note: currently, 'this' has index 'n', so we must add it LAST, *after* all other arguments.
@@ -594,10 +606,10 @@ class TsExprResolver(
             // TODO: checkNullPointer(instanceRef) ?: return null
             // TODO: if (!assertIsSubtype(instanceRef, method.enclosingType)) return null
 
-            args += instanceExpr
+            argumentExprs += instanceExpr
         }
 
-        return resolveInvokeNoStaticInitializationCheck { onNoCallPresent(args) }
+        return resolveInvokeNoStaticInitializationCheck { onNoCallPresent(argumentExprs) }
     }
 
     private inline fun resolveInvokeNoStaticInitializationCheck(
@@ -674,7 +686,9 @@ class TsExprResolver(
         // val sort = typeToSort(etsField.type)
         val etsFields = resolveEtsFields(instance, field)
         if (etsFields.isEmpty()) return null
-        val etsFieldType = etsFields.map { it.type }.distinct().single()
+        val etsFieldTypes = etsFields.map { it.type }.distinct()
+        if (etsFieldTypes.size != 1) return null
+        val etsFieldType = etsFieldTypes.single()
         val sort = typeToSort(etsFieldType)
 
         val expr = if (sort == unresolvedSort) {
@@ -849,7 +863,7 @@ class TsSimpleValueResolver(
     private val localToIdx: (EtsMethod, EtsValue) -> Int,
 ) : EtsValue.Visitor<UExpr<out USort>> {
 
-    private fun resolveLocal(local: EtsValue): ULValue<*, USort> {
+    private fun resolveLocal(local: EtsValue): ULValue<*, USort> = with(ctx) {
         val currentMethod = scope.calcOnState { lastEnteredMethod }
         val entrypoint = scope.calcOnState { entrypoint }
 
@@ -870,21 +884,23 @@ class TsSimpleValueResolver(
             is KFp64Sort -> mkRegisterStackLValue(sort, localIdx)
             is UAddressSort -> mkRegisterStackLValue(sort, localIdx)
             is TsUnresolvedSort -> {
+                if (local is EtsLocal) {
+                    return@with mkRegisterStackLValue(addressSort, localIdx)
+                }
+
                 check(local is EtsThis || local is EtsParameterRef) {
                     "Only This and ParameterRef are expected here"
                 }
 
-                val lValue = mkRegisterStackLValue(ctx.addressSort, localIdx)
+                val lValue = mkRegisterStackLValue(addressSort, localIdx)
 
-                val boolRValue = ctx.mkRegisterReading(localIdx, ctx.boolSort)
-                val fpRValue = ctx.mkRegisterReading(localIdx, ctx.fp64Sort)
-                val refRValue = ctx.mkRegisterReading(localIdx, ctx.addressSort)
+                val boolRValue = mkRegisterReading(localIdx, boolSort)
+                val fpRValue = mkRegisterReading(localIdx, fp64Sort)
+                val refRValue = mkRegisterReading(localIdx, addressSort)
 
-                val fakeObject = ctx.mkFakeValue(scope, boolRValue, fpRValue, refRValue)
+                val fakeObject = mkFakeValue(scope, boolRValue, fpRValue, refRValue)
                 scope.calcOnState {
-                    with(ctx) {
-                        memory.write(lValue, fakeObject.asExpr(addressSort), guard = trueExpr)
-                    }
+                    memory.write(lValue, fakeObject.asExpr(addressSort), guard = trueExpr)
                 }
 
                 lValue
@@ -894,12 +910,12 @@ class TsSimpleValueResolver(
         }
     }
 
-    override fun visit(value: EtsLocal): UExpr<out USort> {
+    override fun visit(value: EtsLocal): UExpr<out USort> = with(ctx) {
         if (value.name == "NaN") {
-            return ctx.mkFp64NaN()
+            return mkFp64NaN()
         }
         if (value.name == "Infinity") {
-            return ctx.mkFpInf(false, ctx.fp64Sort)
+            return mkFpInf(false, fp64Sort)
         }
 
         val lValue = resolveLocal(value)
@@ -936,17 +952,15 @@ class TsSimpleValueResolver(
         mkUndefinedValue()
     }
 
-    override fun visit(value: EtsArrayAccess): UExpr<out USort> = with(ctx) {
+    override fun visit(value: EtsArrayAccess): UExpr<out USort> {
         error("Should not be called")
     }
 
-    override fun visit(value: EtsInstanceFieldRef): UExpr<out USort> = with(ctx) {
-        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        error("Not supported $value")
+    override fun visit(value: EtsInstanceFieldRef): UExpr<out USort> {
+        error("Should not be called")
     }
 
-    override fun visit(value: EtsStaticFieldRef): UExpr<out USort> = with(ctx) {
-        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        error("Not supported $value")
+    override fun visit(value: EtsStaticFieldRef): UExpr<out USort> {
+        error("Should not be called")
     }
 }

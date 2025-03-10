@@ -7,8 +7,8 @@ import org.jacodb.ets.utils.getLocals
 import org.jacodb.ets.utils.loadEtsProjectFromIR
 import org.usvm.api.TsValue
 import org.usvm.machine.TsMachine
-import org.usvm.samples.fixEnums
 import org.usvm.util.TsMethodTestRunner
+import org.usvm.util.fixEnums
 import org.usvm.util.fixHome
 import kotlin.io.path.Path
 import kotlin.test.Test
@@ -52,14 +52,17 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
 
     @Test
     fun `test run on all methods`() {
-        val methods = scene.projectAndSdkClasses.flatMap {
+        for (clazz in scene.projectAndSdkClasses) {
+            for (method in clazz.methods) {
+                method as EtsMethodImpl
+                method._cfg = scene.fixEnums(method.cfg)
+            }
+        }
+        val methods = scene.projectClasses.flatMap {
             it.methods
                 .filterNot { it.cfg.stmts.isEmpty() }
                 .filterNot { (it as EtsMethodImpl).modifiers.isStatic }
-                .map { method ->
-                    (method as EtsMethodImpl)._cfg = scene.fixEnums(method.cfg)
-                    method
-                }
+                .filterNot { it.name == "build" }
         }
         TsMachine(scene, options).use { machine ->
             val states = machine.analyze(methods)

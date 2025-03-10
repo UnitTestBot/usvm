@@ -21,8 +21,6 @@ import org.jacodb.ets.base.EtsThrowStmt
 import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.base.EtsValue
 import org.jacodb.ets.model.EtsMethod
-import org.jacodb.ets.utils.getDeclaredLocals
-import org.jacodb.ets.utils.getLocals
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UInterpreter
@@ -30,7 +28,10 @@ import org.usvm.api.targets.TsTarget
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.machine.TsApplicationGraph
+import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
+import org.usvm.machine.TsMethodCall
+import org.usvm.machine.TsVirtualMethodCallStmt
 import org.usvm.machine.expr.TsExprResolver
 import org.usvm.machine.expr.mkTruthyExpr
 import org.usvm.machine.state.TsMethodResult
@@ -83,6 +84,7 @@ class TsInterpreter(
         }
 
         when (stmt) {
+            is TsMethodCall -> visitMethodCall(scope, stmt)
             is EtsIfStmt -> visitIfStmt(scope, stmt)
             is EtsReturnStmt -> visitReturnStmt(scope, stmt)
             is EtsAssignStmt -> visitAssignStmt(scope, stmt)
@@ -95,6 +97,59 @@ class TsInterpreter(
         }
 
         return scope.stepResult()
+    }
+
+    private fun visitMethodCall(scope: TsStepScope, stmt: TsMethodCall) {
+        val exprResolver = exprResolverWithScope(scope)
+
+        val method = stmt.method
+
+        when (stmt) {
+            is TsVirtualMethodCallStmt -> {
+                // val methods = resolveEtsMethods(expr.instance, expr.method)
+                // if (methods.isEmpty()) {
+                //     scope.assert(falseExpr)
+                //     return null
+                // }
+                //
+                // val conditionsWithBlocks: MutableList<Pair<UBoolExpr, TsState.() -> Unit>> = mutableListOf()
+                //
+                // for (method in methods) {
+                //     val block = { newState: TsState ->
+                //         val concreteCall = TsConcreteMethodCallStmt(method)
+                //         newState.newStmt(concreteCall)
+                //     }
+                // }
+                //
+                // // TODO: fork on multiple methods
+                // scope.forkMulti(conditionsWithBlocks)
+            }
+
+            is TsConcreteMethodCallStmt -> {
+                // TODO: observer
+                // TODO: native/abstract methods without entrypoints
+
+                val entryPoint = applicationGraph.entryPoints(method).singleOrNull()
+
+                if (entryPoint == null) {
+                    // TODO: mock
+                    return
+                }
+
+                scope.doWithState {
+                    // check(args.size == method.parametersWithThisCount)
+                    // pushSortsForArguments(null, stmt.arguments, ::mapLocalToIdx)
+                    // callStack.push(method, currentStatement)
+                    // memory.stack.push(args.toTypedArray(), method.localsCount)
+                    // newStmt(method.cfg.stmts.first())
+
+                    // TODO: push sorts for arguments
+                    callStack.push(method, stmt.returnSite)
+                    memory.stack.push(stmt.arguments.toTypedArray(), method.localsCount)
+                    newStmt(entryPoint)
+                }
+            }
+        }
     }
 
     private fun visitIfStmt(scope: TsStepScope, stmt: EtsIfStmt) {

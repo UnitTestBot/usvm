@@ -78,6 +78,7 @@ class TsState(
         val instanceIdx = instance?.let { localToIdx(lastEnteredMethod, it) }
         val instanceSort = instanceIdx?.let { getOrPutSortForLocal(it, instance.type) }
 
+        // Note: first, push an empty map, then fill the arguments, and then the instance (this)
         pushLocalToSortStack()
         argSorts.forEachIndexed { index, sort ->
             saveSortForLocal(index, sort)

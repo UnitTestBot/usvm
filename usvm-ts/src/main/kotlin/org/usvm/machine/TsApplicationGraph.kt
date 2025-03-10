@@ -14,7 +14,11 @@ class TsApplicationGraph(scene: EtsScene) : ApplicationGraph<EtsMethod, EtsStmt>
         applicationGraph.predecessors(node)
 
     override fun successors(node: EtsStmt): Sequence<EtsStmt> =
-        applicationGraph.successors(node)
+        if (node is TsMethodCall) {
+            applicationGraph.successors(node.returnSite)
+        } else {
+            applicationGraph.successors(node)
+        }
 
     override fun callees(node: EtsStmt): Sequence<EtsMethod> =
         applicationGraph.callees(node)
