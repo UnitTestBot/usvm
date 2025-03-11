@@ -35,10 +35,17 @@ class ForwardAnalyzer(
     }
 
     private val liveVariablesCache = hashMapOf<EtsMethod, LiveVariables>()
-    private fun liveVariables(method: EtsMethod) =
+    private fun liveVariables(method: EtsMethod): LiveVariables =
         liveVariablesCache.computeIfAbsent(method) {
             if (doLiveVariablesAnalysis) LiveVariables.from(method) else AlwaysAlive
         }
+
+    private fun variableIsDying(fact: ForwardTypeDomainFact, stmt: EtsStmt): Boolean {
+        if (fact !is ForwardTypeDomainFact.TypedVariable) return false
+        val base = fact.variable.base
+        if (base !is AccessPathBase.Local) return false
+        return !liveVariables(stmt.method).isAliveAt(base.name, stmt)
+    }
 
     override fun handleNewEdge(edge: Edge<ForwardTypeDomainFact, EtsStmt>): List<AnalyzerEvent> {
         val (startVertex, currentVertex) = edge
@@ -47,12 +54,7 @@ class ForwardAnalyzer(
         val currentIsExit = current in graph.exitPoints(method) ||
             (current is EtsNopStmt && graph.successors(current).none())
 
-        val variableIsDying = (currentFact as? ForwardTypeDomainFact.TypedVariable)?.let {
-            val base = it.variable.base
-            base is AccessPathBase.Local && (!liveVariables(method).isAliveAt(base.name, current))
-        } ?: false
-
-        if (currentIsExit || variableIsDying) {
+        if (currentIsExit || variableIsDying(currentFact, current)) {
             return listOf(
                 ForwardSummaryAnalyzerEvent(
                     method = method,

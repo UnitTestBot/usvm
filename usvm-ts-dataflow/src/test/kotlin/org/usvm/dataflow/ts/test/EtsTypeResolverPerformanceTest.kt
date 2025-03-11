@@ -28,8 +28,8 @@ import java.io.File
 @Disabled
 class EtsTypeResolverPerformanceTest {
     companion object {
-        const val WARMUP_ITERATIONS = 0
-        const val TEST_ITERATIONS = 10
+        const val WARMUP_ITERATIONS = 5
+        const val TEST_ITERATIONS = 5
         const val OUTPUT_FILE = "performance_report.md"
 
         @JvmStatic

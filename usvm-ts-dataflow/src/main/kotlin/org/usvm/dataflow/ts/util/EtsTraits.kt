@@ -27,7 +27,6 @@ import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsBinaryExpr
 import org.jacodb.ets.base.EtsBooleanConstant
 import org.jacodb.ets.base.EtsCallExpr
-import org.jacodb.ets.base.EtsCallStmt
 import org.jacodb.ets.base.EtsCastExpr
 import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.base.EtsConstant
@@ -99,11 +98,7 @@ class EtsTraits : Traits<EtsMethod, EtsStmt> {
     }
 
     override fun getCallExpr(statement: EtsStmt): EtsCallExpr? {
-        return when (statement) {
-            is EtsAssignStmt -> statement.rhv as? EtsCallExpr
-            is EtsCallStmt -> statement.expr
-            else -> null
-        }
+        return statement.callExpr
     }
 
     override fun getValues(expr: CommonExpr): Set<CommonValue> {
