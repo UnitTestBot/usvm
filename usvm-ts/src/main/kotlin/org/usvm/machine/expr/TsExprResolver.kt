@@ -459,6 +459,7 @@ class TsExprResolver(
             arguments = expr.args,
         ) { args ->
             doWithState {
+                // TODO: fix sorts for arguments - they should be pushed not here, but when the MethodCallStmt is handled
                 pushSortsForArguments(expr.instance, expr.args, localToIdx)
                 val virtualCall = TsVirtualMethodCallStmt(
                     location = lastStmt.location,
