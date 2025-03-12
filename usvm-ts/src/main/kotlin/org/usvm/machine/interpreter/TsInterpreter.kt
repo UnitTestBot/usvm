@@ -102,7 +102,7 @@ class TsInterpreter(
     private fun visitMethodCall(scope: TsStepScope, stmt: TsMethodCall) {
         val exprResolver = exprResolverWithScope(scope)
 
-        val method = stmt.method
+        // NOTE: USE '.callee' INSTEAD OF '.method' !!!
 
         when (stmt) {
             is TsVirtualMethodCallStmt -> {
@@ -129,7 +129,7 @@ class TsInterpreter(
                 // TODO: observer
                 // TODO: native/abstract methods without entrypoints
 
-                val entryPoint = applicationGraph.entryPoints(method).singleOrNull()
+                val entryPoint = applicationGraph.entryPoints(stmt.callee).singleOrNull()
 
                 if (entryPoint == null) {
                     // TODO: mock
@@ -144,8 +144,8 @@ class TsInterpreter(
                     // newStmt(method.cfg.stmts.first())
 
                     // TODO: push sorts for arguments
-                    callStack.push(method, stmt.returnSite)
-                    memory.stack.push(stmt.arguments.toTypedArray(), method.localsCount)
+                    callStack.push(stmt.callee, stmt.returnSite)
+                    memory.stack.push(stmt.arguments.toTypedArray(), stmt.callee.localsCount)
                     newStmt(entryPoint)
                 }
             }
