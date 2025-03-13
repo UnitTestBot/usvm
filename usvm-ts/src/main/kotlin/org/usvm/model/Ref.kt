@@ -36,15 +36,15 @@ data class TsArrayAccess(
 }
 
 interface TsFieldRef : TsRef, TsLValue {
-    val field: TsFieldSignature
+    val fieldName: String
 }
 
 data class TsInstanceFieldRef(
     val instance: TsLocal,
-    override val field: TsFieldSignature,
+    override val fieldName: String,
 ) : TsFieldRef {
     override fun toString(): String {
-        return "$instance.${field.name}"
+        return "${instance}.${fieldName}"
     }
 
     override fun <R> accept(visitor: TsValue.Visitor<R>): R {
@@ -53,39 +53,14 @@ data class TsInstanceFieldRef(
 }
 
 data class TsStaticFieldRef(
-    override val field: TsFieldSignature,
+    val enclosingClass: TypeName,
+    override val fieldName: String,
 ) : TsFieldRef {
     override fun toString(): String {
-        return "${field.enclosingClass.name}.${field.name}"
+        return "${enclosingClass}.${fieldName}"
     }
 
     override fun <R> accept(visitor: TsValue.Visitor<R>): R {
         return visitor.visit(this)
-    }
-}
-
-data class TsInstancePropertyRef(
-    val instance: TsLocal,
-    val propertyName: String,
-) : TsRef, TsLValue {
-    override fun toString(): String {
-        return "${instance}.${propertyName}"
-    }
-
-    override fun <R> accept(visitor: TsValue.Visitor<R>): R {
-        error("Not implemented")
-    }
-}
-
-data class TsStaticPropertyRef(
-    val declaringClass: TypeName,
-    val propertyName: String,
-) : TsRef, TsLValue {
-    override fun toString(): String {
-        return "${declaringClass}.${propertyName}"
-    }
-
-    override fun <R> accept(visitor: TsValue.Visitor<R>): R {
-        error("Not implemented")
     }
 }
