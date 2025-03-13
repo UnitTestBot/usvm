@@ -1,11 +1,5 @@
 package org.usvm.machine.state
 
-import org.jacodb.ets.base.EtsLocal
-import org.jacodb.ets.base.EtsStmt
-import org.jacodb.ets.base.EtsType
-import org.jacodb.ets.base.EtsValue
-import org.jacodb.ets.model.EtsClass
-import org.jacodb.ets.model.EtsMethod
 import org.usvm.PathNode
 import org.usvm.UCallStack
 import org.usvm.UConcreteHeapRef
@@ -19,6 +13,13 @@ import org.usvm.collections.immutable.persistentHashMapOf
 import org.usvm.constraints.UPathConstraints
 import org.usvm.machine.TsContext
 import org.usvm.memory.UMemory
+import org.usvm.model.TsClass
+import org.usvm.model.TsLocal
+import org.usvm.model.TsMethod
+import org.usvm.model.TsStmt
+import org.usvm.model.TsType
+import org.usvm.model.TsUnknownType
+import org.usvm.model.TsValue
 import org.usvm.model.UModelBase
 import org.usvm.targets.UTargetsSet
 import org.usvm.util.type
@@ -26,18 +27,18 @@ import org.usvm.util.type
 class TsState(
     ctx: TsContext,
     ownership: MutabilityOwnership,
-    override val entrypoint: EtsMethod,
-    callStack: UCallStack<EtsMethod, EtsStmt> = UCallStack(),
-    pathConstraints: UPathConstraints<EtsType> = UPathConstraints(ctx, ownership),
-    memory: UMemory<EtsType, EtsMethod> = UMemory(ctx, ownership, pathConstraints.typeConstraints),
-    models: List<UModelBase<EtsType>> = listOf(),
-    pathNode: PathNode<EtsStmt> = PathNode.root(),
-    forkPoints: PathNode<PathNode<EtsStmt>> = PathNode.root(),
+    override val entrypoint: TsMethod,
+    callStack: UCallStack<TsMethod, TsStmt> = UCallStack(),
+    pathConstraints: UPathConstraints<TsType> = UPathConstraints(ctx, ownership),
+    memory: UMemory<TsType, TsMethod> = UMemory(ctx, ownership, pathConstraints.typeConstraints),
+    models: List<UModelBase<TsType>> = listOf(),
+    pathNode: PathNode<TsStmt> = PathNode.root(),
+    forkPoints: PathNode<PathNode<TsStmt>> = PathNode.root(),
     var methodResult: TsMethodResult = TsMethodResult.NoCall,
-    targets: UTargetsSet<TsTarget, EtsStmt> = UTargetsSet.empty(),
+    targets: UTargetsSet<TsTarget, TsStmt> = UTargetsSet.empty(),
     val localToSortStack: MutableList<UPersistentHashMap<Int, USort>> = mutableListOf(persistentHashMapOf()),
-    var staticStorage: UPersistentHashMap<EtsClass, UConcreteHeapRef> = persistentHashMapOf(),
-) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
+    var staticStorage: UPersistentHashMap<TsClass, UConcreteHeapRef> = persistentHashMapOf(),
+) : UState<TsType, TsMethod, TsStmt, TsContext, TsTarget, TsState>(
     ctx = ctx,
     initOwnership = ownership,
     callStack = callStack,
@@ -48,7 +49,7 @@ class TsState(
     forkPoints = forkPoints,
     targets = targets,
 ) {
-    fun getOrPutSortForLocal(localIdx: Int, localType: EtsType): USort {
+    fun getOrPutSortForLocal(localIdx: Int, localType: TsType): USort {
         val localToSort = localToSortStack.last()
         val (updated, result) = localToSort.getOrPut(localIdx, ownership) { ctx.typeToSort(localType) }
         localToSortStack[localToSortStack.lastIndex] = updated
@@ -69,14 +70,14 @@ class TsState(
         localToSortStack.removeLast()
     }
 
-    fun pushSortsForArguments(instance: EtsLocal?, args: List<EtsValue>, localToIdx: (EtsMethod, EtsValue) -> Int) {
+    fun pushSortsForArguments(instance: TsLocal?, args: List<TsValue>, localToIdx: (TsMethod, TsValue) -> Int) {
         val argSorts = args.map { arg ->
             val localIdx = localToIdx(lastEnteredMethod, arg)
-            getOrPutSortForLocal(localIdx, arg.type)
+            getOrPutSortForLocal(localIdx, TsUnknownType) // TODO: arg.type
         }
 
         val instanceIdx = instance?.let { localToIdx(lastEnteredMethod, it) }
-        val instanceSort = instanceIdx?.let { getOrPutSortForLocal(it, instance.type) }
+        val instanceSort = instanceIdx?.let { getOrPutSortForLocal(it, TsUnknownType) } // TODO: instance.type
 
         // Note: first, push an empty map, then fill the arguments, and then the instance (this)
         pushLocalToSortStack()
@@ -86,7 +87,7 @@ class TsState(
         instanceSort?.let { saveSortForLocal(args.size, it) }
     }
 
-    fun getStaticInstance(clazz: EtsClass): UConcreteHeapRef {
+    fun getStaticInstance(clazz: TsClass): UConcreteHeapRef {
         val (updated, result) = staticStorage.getOrPut(clazz, ownership) {
             memory.allocConcrete(clazz.type)
         }
@@ -94,7 +95,7 @@ class TsState(
         return result
     }
 
-    override fun clone(newConstraints: UPathConstraints<EtsType>?): TsState {
+    override fun clone(newConstraints: UPathConstraints<TsType>?): TsState {
         val newThisOwnership = MutabilityOwnership()
         val cloneOwnership = MutabilityOwnership()
         val clonedConstraints = newConstraints?.also {

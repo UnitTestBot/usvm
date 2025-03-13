@@ -1,7 +1,7 @@
 package org.usvm.samples
 
 import org.jacodb.ets.model.EtsScene
-import org.usvm.api.TsValue
+import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 import kotlin.test.Test
 
@@ -14,7 +14,7 @@ class Truthy : TsMethodTestRunner() {
     @Test
     fun `test arrayTruthy`() {
         val method = getMethod(className, "arrayTruthy")
-        discoverProperties<TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber>(
             method,
             { r -> r.number == 0.0 },
             invariants = arrayOf(

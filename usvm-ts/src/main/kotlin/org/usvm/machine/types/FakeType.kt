@@ -1,21 +1,21 @@
 package org.usvm.machine.types
 
-import org.jacodb.ets.base.EtsType
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.machine.TsContext
+import org.usvm.model.TsType
 
 class FakeType(
     val boolTypeExpr: UBoolExpr,
     val fpTypeExpr: UBoolExpr,
     val refTypeExpr: UBoolExpr,
     // TODO string,
-) : EtsType {
+) : TsType {
     override val typeName: String
         get() = "FakeType"
 
-    override fun <R> accept(visitor: EtsType.Visitor<R>): R {
+    override fun <R> accept(visitor: TsType.Visitor<R>): R {
         error("Should not be called")
     }
 
@@ -43,4 +43,7 @@ class FakeType(
     }
 }
 
-data class ExprWithTypeConstraint<T : USort>(val constraint: UBoolExpr, val expr: UExpr<T>)
+data class ExprWithTypeConstraint<T : USort>(
+    val constraint: UBoolExpr,
+    val expr: UExpr<T>,
+)

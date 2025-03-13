@@ -1,19 +1,19 @@
 package org.usvm.util
 
-import org.usvm.api.TsValue
+import org.usvm.api.TsTestValue
 
 fun isTruthy(x: Double): Boolean {
     return x != 0.0 && !x.isNaN()
 }
 
-fun isTruthy(x: TsValue.TsNumber): Boolean {
+fun isTruthy(x: TsTestValue.TsNumber): Boolean {
     return isTruthy(x.number)
 }
 
-fun isTruthy(x: TsValue.TsClass): Boolean {
+fun isTruthy(x: TsTestValue.TsClass): Boolean {
     return true
 }
 
-fun isTruthy(x: TsValue.TsObject): Boolean {
+fun isTruthy(x: TsTestValue.TsObject): Boolean {
     return x.addr != 0
 }

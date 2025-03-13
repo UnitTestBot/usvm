@@ -19,9 +19,9 @@ import org.jacodb.ets.model.EtsMethodImpl
 import org.jacodb.ets.model.EtsMethodParameter
 import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsScene
-import org.jacodb.ets.utils.getLocals
+import org.usvm.util.getLocals
 import org.junit.jupiter.api.Test
-import org.usvm.api.TsValue
+import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.isTruthy
 
@@ -37,7 +37,7 @@ class Or : TsMethodTestRunner() {
     @Test
     fun `test orOfBooleanAndBoolean`() {
         val method = getMethod(className, "orOfBooleanAndBoolean")
-        discoverProperties<TsValue.TsBoolean, TsValue.TsBoolean, TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method = method,
             { a, b, r -> a.value && b.value && (r.number == 1.0) },
             { a, b, r -> a.value && !b.value && (r.number == 2.0) },
@@ -131,7 +131,7 @@ class Or : TsMethodTestRunner() {
         locals.clear()
         locals += method.getLocals()
 
-        discoverProperties<TsValue.TsNumber, TsValue.TsNumber, TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
             { a, b, r -> isTruthy(a) && isTruthy(b) && (r.number == 1.0) },
             { a, b, r -> isTruthy(a) && b.number.isNaN() && (r.number == 2.0) },

@@ -2,7 +2,7 @@ package org.usvm.samples
 
 import org.jacodb.ets.model.EtsMethodImpl
 import org.jacodb.ets.model.EtsScene
-import org.usvm.api.TsValue
+import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.fixEnums
 import kotlin.test.Test
@@ -17,7 +17,7 @@ class Enums : TsMethodTestRunner() {
     fun `test enumOrdinal`() {
         val method = getMethod(className, "enumOrdinal")
         (method as EtsMethodImpl)._cfg = scene.fixEnums(method.cfg)
-        discoverProperties<TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r.number == 1.0 },
         )

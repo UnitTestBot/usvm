@@ -1,6 +1,6 @@
 package org.usvm.api.targets
 
-import org.jacodb.ets.base.EtsStmt
+import org.usvm.model.TsStmt
 import org.usvm.targets.UTarget
 
-class TsTarget : UTarget<EtsStmt, TsTarget>()
+class TsTarget : UTarget<TsStmt, TsTarget>()

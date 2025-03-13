@@ -2,12 +2,10 @@
 
 package org.usvm.model
 
-import org.jacodb.ets.graph.EtsCfg
-
 interface TsMethod : Base {
     val signature: TsMethodSignature
     val typeParameters: List<TsType>
-    val cfg: EtsCfg
+    val cfg: TsBlockCfg
 
     val enclosingClass: TsClass?
 
@@ -27,10 +25,10 @@ class TsMethodImpl(
     override val modifiers: TsModifiers = TsModifiers.EMPTY,
     override val decorators: List<TsDecorator> = emptyList(),
 ) : TsMethod {
-    var _cfg: EtsCfg? = null
+    var _cfg: TsBlockCfg? = null
 
-    override val cfg: EtsCfg
-        get() = _cfg ?: EtsCfg.EMPTY
+    override val cfg: TsBlockCfg
+        get() = _cfg ?: TsBlockCfg.EMPTY
 
     override var enclosingClass: TsClass? = null
 

@@ -2,7 +2,7 @@ package org.usvm.samples
 
 import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.Test
-import org.usvm.api.TsValue
+import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 
 class Call : TsMethodTestRunner() {
@@ -14,7 +14,7 @@ class Call : TsMethodTestRunner() {
     @Test
     fun `test simpleCall`() {
         val method = getMethod(className, "simpleCall")
-        discoverProperties<TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r.number == 42.0 },
         )
@@ -23,7 +23,7 @@ class Call : TsMethodTestRunner() {
     @Test
     fun `test fib`() {
         val method = getMethod(className, "fib")
-        discoverProperties<TsValue.TsNumber, TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
             { n, r -> n.number.isNaN() && r.number == 0.0 },
             { n, r -> n.number < 0.0 && r.number == -1.0 },

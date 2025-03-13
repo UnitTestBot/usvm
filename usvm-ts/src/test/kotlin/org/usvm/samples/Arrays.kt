@@ -2,7 +2,7 @@ package org.usvm.samples
 
 import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.Test
-import org.usvm.api.TsValue
+import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 
 class Arrays : TsMethodTestRunner() {
@@ -14,7 +14,7 @@ class Arrays : TsMethodTestRunner() {
     @Test
     fun `test createConstantArrayOfNumbers`() {
         val method = getMethod(className, "createConstantArrayOfNumbers")
-        discoverProperties<TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r.number == 1.0 },
             invariants = arrayOf(
@@ -26,7 +26,7 @@ class Arrays : TsMethodTestRunner() {
     @Test
     fun `test createAndReturnConstantArrayOfNumbers`() {
         val method = getMethod(className, "createAndReturnConstantArrayOfNumbers")
-        discoverProperties<TsValue.TsArray<TsValue.TsNumber>>(
+        discoverProperties<TsTestValue.TsArray<TsTestValue.TsNumber>>(
             method = method,
             { r -> r.values.map { it.number } == listOf(1.0, 2.0, 3.0) },
         )
@@ -35,7 +35,7 @@ class Arrays : TsMethodTestRunner() {
     @Test
     fun `test createAndAccessArrayOfBooleans`() {
         val method = getMethod(className, "createAndAccessArrayOfBooleans")
-        discoverProperties<TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r.number == 1.0 },
             invariants = arrayOf(
@@ -47,7 +47,7 @@ class Arrays : TsMethodTestRunner() {
     @Test
     fun `test createArrayOfBooleans`() {
         val method = getMethod(className, "createArrayOfBooleans")
-        discoverProperties<TsValue.TsArray<TsValue.TsBoolean>>(
+        discoverProperties<TsTestValue.TsArray<TsTestValue.TsBoolean>>(
             method = method,
             { r -> r.values.map { it.value } == listOf(true, false, true) },
         )
@@ -56,13 +56,13 @@ class Arrays : TsMethodTestRunner() {
     @Test
     fun `test createMixedArray`() {
         val method = getMethod(className, "createMixedArray")
-        discoverProperties<TsValue.TsArray<*>>(
+        discoverProperties<TsTestValue.TsArray<*>>(
             method = method,
             { r ->
                 if (r.values.size != 3) return@discoverProperties false
-                val cond0 = r.values[0] is TsValue.TsNumber.TsDouble
-                val cond1 = r.values[1] is TsValue.TsBoolean
-                val cond2 = r.values[2] is TsValue.TsUndefined
+                val cond0 = r.values[0] is TsTestValue.TsNumber.TsDouble
+                val cond1 = r.values[1] is TsTestValue.TsBoolean
+                val cond2 = r.values[2] is TsTestValue.TsUndefined
                 cond0 && cond1 && cond2
             },
         )
@@ -71,11 +71,11 @@ class Arrays : TsMethodTestRunner() {
     @Test
     fun `test createArrayOfUnknownValues`() {
         val method = getMethod(className, "createArrayOfUnknownValues")
-        discoverProperties<TsValue, TsValue, TsValue, TsValue.TsArray<*>>(
+        discoverProperties<TsTestValue, TsTestValue, TsTestValue, TsTestValue.TsArray<*>>(
             method = method,
-            { a, _, _, r -> r.values[0] == a && (a as TsValue.TsNumber).number == 1.1 },
-            { _, b, _, r -> r.values[1] == b && (b as TsValue.TsBoolean).value },
-            { _, _, c, r -> r.values[2] == c && c is TsValue.TsUndefined },
+            { a, _, _, r -> r.values[0] == a && (a as TsTestValue.TsNumber).number == 1.1 },
+            { _, b, _, r -> r.values[1] == b && (b as TsTestValue.TsBoolean).value },
+            { _, _, c, r -> r.values[2] == c && c is TsTestValue.TsUndefined },
             invariants = arrayOf(
                 { a, b, c, r -> r.values == listOf(a, b, c) }
             )
@@ -85,14 +85,14 @@ class Arrays : TsMethodTestRunner() {
     @Test
     fun `test createArrayOfNumbersAndPutDifferentTypes`() {
         val method = getMethod(className, "createArrayOfNumbersAndPutDifferentTypes")
-        discoverProperties<TsValue.TsArray<*>>(
+        discoverProperties<TsTestValue.TsArray<*>>(
             method = method,
             { r ->
                 val values = r.values
                 values.size == 3
-                    && values[0] is TsValue.TsNull
-                    && (values[1] as TsValue.TsBoolean).value
-                    && values[2] is TsValue.TsUndefined
+                    && values[0] is TsTestValue.TsNull
+                    && (values[1] as TsTestValue.TsBoolean).value
+                    && values[2] is TsTestValue.TsUndefined
             },
         )
     }
@@ -100,16 +100,16 @@ class Arrays : TsMethodTestRunner() {
     @Test
     fun `test allocatedArrayLengthExpansion`() {
         val method = getMethod(className, "allocatedArrayLengthExpansion")
-        discoverProperties<TsValue.TsArray<*>>(
+        discoverProperties<TsTestValue.TsArray<*>>(
             method = method,
             { r ->
                 r.values.size == 6
-                    && (r.values[0] as TsValue.TsNumber).number == 1.0
-                    && (r.values[1] as TsValue.TsNumber).number == 2.0
-                    && (r.values[2] as TsValue.TsNumber).number == 3.0
-                    && r.values[3] is TsValue.TsUndefined
-                    && r.values[4] is TsValue.TsUndefined
-                    && (r.values[5] as TsValue.TsNumber).number == 5.0
+                    && (r.values[0] as TsTestValue.TsNumber).number == 1.0
+                    && (r.values[1] as TsTestValue.TsNumber).number == 2.0
+                    && (r.values[2] as TsTestValue.TsNumber).number == 3.0
+                    && r.values[3] is TsTestValue.TsUndefined
+                    && r.values[4] is TsTestValue.TsUndefined
+                    && (r.values[5] as TsTestValue.TsNumber).number == 5.0
             }
         )
     }
@@ -117,7 +117,7 @@ class Arrays : TsMethodTestRunner() {
     @Test
     fun `test writeInTheIndexEqualToLength`() {
         val method = getMethod(className, "writeInTheIndexEqualToLength")
-        discoverProperties<TsValue.TsArray<TsValue.TsNumber>>(
+        discoverProperties<TsTestValue.TsArray<TsTestValue.TsNumber>>(
             method = method,
             { r -> r.values.map { it.number } == listOf(1.0, 2.0, 3.0, 4.0) },
         )

@@ -10,7 +10,6 @@ import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.graph.EtsCfg
 import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsScene
-import org.jacodb.ets.utils.getDeclaredLocals
 import java.util.IdentityHashMap
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.isAccessible

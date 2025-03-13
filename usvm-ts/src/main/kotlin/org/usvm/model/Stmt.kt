@@ -77,7 +77,7 @@ data class TsAssignStmt(
 
 data class TsReturnStmt(
     override val location: TsInstLocation,
-    val returnValue: TsValue?,
+    val returnValue: TsLocal?,
 ) : TsStmt {
     override fun toString(): String {
         return if (returnValue != null) {
@@ -94,7 +94,7 @@ data class TsReturnStmt(
 
 data class TsIfStmt(
     override val location: TsInstLocation,
-    val condition: TsEntity,
+    val condition: TsLocal,
 ) : TsStmt {
     override fun toString(): String {
         return "if ($condition)"

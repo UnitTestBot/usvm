@@ -1,19 +1,18 @@
 package org.usvm.model
 
 import org.jacodb.ets.base.CONSTRUCTOR_NAME
-import org.jacodb.ets.base.EtsType
-import org.jacodb.ets.model.EtsBaseModel
-import org.jacodb.ets.model.EtsDecorator
-import org.jacodb.ets.model.EtsModifiers
 
-interface TsClass : EtsBaseModel {
+interface TsClass : Base {
     val signature: TsClassSignature
-    val typeParameters: List<EtsType>
+    val typeParameters: List<TsType>
     val fields: List<TsField>
     val methods: List<TsMethod>
     val ctor: TsMethod
     val superClass: TsClassSignature?
     val implementedInterfaces: List<TsClassSignature>
+
+    val name: String
+        get() = signature.name
 }
 
 class TsClassImpl(
@@ -22,9 +21,9 @@ class TsClassImpl(
     override val methods: List<TsMethod>,
     override val superClass: TsClassSignature? = null,
     override val implementedInterfaces: List<TsClassSignature> = emptyList(),
-    override val typeParameters: List<EtsType> = emptyList(),
-    override val modifiers: EtsModifiers = EtsModifiers.EMPTY,
-    override val decorators: List<EtsDecorator> = emptyList(),
+    override val typeParameters: List<TsType> = emptyList(),
+    override val modifiers: TsModifiers = TsModifiers.EMPTY,
+    override val decorators: List<TsDecorator> = emptyList(),
 ) : TsClass {
 
     init {

@@ -2,17 +2,6 @@ package org.usvm.machine
 
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
-import org.jacodb.ets.base.EtsAnyType
-import org.jacodb.ets.base.EtsBooleanType
-import org.jacodb.ets.base.EtsNullType
-import org.jacodb.ets.base.EtsNumberType
-import org.jacodb.ets.base.EtsRefType
-import org.jacodb.ets.base.EtsStringType
-import org.jacodb.ets.base.EtsType
-import org.jacodb.ets.base.EtsUndefinedType
-import org.jacodb.ets.base.EtsUnionType
-import org.jacodb.ets.base.EtsUnknownType
-import org.jacodb.ets.model.EtsScene
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
@@ -29,6 +18,9 @@ import org.usvm.machine.expr.TsUndefinedSort
 import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.types.FakeType
+import org.usvm.model.TsBooleanType
+import org.usvm.model.*
+import org.usvm.model.TsType
 import org.usvm.types.UTypeStream
 import org.usvm.types.single
 import org.usvm.util.mkFieldLValue
@@ -38,7 +30,7 @@ import kotlin.contracts.contract
 typealias TsSizeSort = UBv32Sort
 
 class TsContext(
-    val scene: EtsScene,
+    val scene: TsScene,
     components: TsComponents,
 ) : UContext<TsSizeSort>(components) {
     val undefinedSort: TsUndefinedSort by lazy { TsUndefinedSort(this) }
@@ -55,23 +47,23 @@ class TsContext(
     private val nullValue: UConcreteHeapRef = mkConcreteHeapRef(addressCounter.freshStaticAddress())
     fun mkTsNullValue(): UConcreteHeapRef = nullValue
 
-    fun typeToSort(type: EtsType): USort = when (type) {
-        is EtsBooleanType -> boolSort
-        is EtsNumberType -> fp64Sort
-        is EtsRefType -> addressSort
-        is EtsNullType -> addressSort
-        is EtsUndefinedType -> addressSort
-        is EtsUnknownType -> unresolvedSort
-        is EtsUnionType -> unresolvedSort
-        is EtsAnyType -> unresolvedSort
-        is EtsStringType -> fp64Sort
+    fun typeToSort(type: TsType): USort = when (type) {
+        is TsBooleanType -> boolSort
+        is TsNumberType -> fp64Sort
+        is TsRefType -> addressSort
+        is TsNullType -> addressSort
+        is TsUndefinedType -> addressSort
+        is TsUnknownType -> unresolvedSort
+        is TsUnionType -> unresolvedSort
+        is TsAnyType -> unresolvedSort
+        is TsStringType -> fp64Sort
         else -> {
             unresolvedSort
             // TODO("Support all JacoDB types, encountered $type")
         }
     }
 
-    fun UHeapRef.getTypeStream(scope: TsStepScope): UTypeStream<EtsType> =
+    fun UHeapRef.getTypeStream(scope: TsStepScope): UTypeStream<TsType> =
         scope.calcOnState {
             memory.typeStreamOf(this@getTypeStream)
         }

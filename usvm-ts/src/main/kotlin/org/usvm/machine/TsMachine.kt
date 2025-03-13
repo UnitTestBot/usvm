@@ -1,9 +1,6 @@
 package org.usvm.machine
 
 import mu.KotlinLogging
-import org.jacodb.ets.base.EtsStmt
-import org.jacodb.ets.model.EtsMethod
-import org.jacodb.ets.model.EtsScene
 import org.usvm.CoverageZone
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachine
@@ -12,6 +9,9 @@ import org.usvm.api.targets.TsTarget
 import org.usvm.machine.interpreter.TsInterpreter
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
+import org.usvm.model.TsMethod
+import org.usvm.model.TsScene
+import org.usvm.model.TsStmt
 import org.usvm.ps.createPathSelector
 import org.usvm.statistics.CompositeUMachineObserver
 import org.usvm.statistics.CoverageStatistics
@@ -31,21 +31,21 @@ import kotlin.time.Duration.Companion.seconds
 private val logger = KotlinLogging.logger {}
 
 class TsMachine(
-    private val project: EtsScene,
+    private val scene: TsScene,
     private val options: UMachineOptions,
 ) : UMachine<TsState>() {
-    private val typeSystem = TsTypeSystem(typeOperationsTimeout = 1.seconds, project)
+    private val typeSystem = TsTypeSystem(scene, typeOperationsTimeout = 1.seconds)
     private val components = TsComponents(typeSystem, options)
-    private val ctx = TsContext(project, components)
-    private val applicationGraph = TsApplicationGraph(project)
-    private val interpreter = TsInterpreter(ctx, applicationGraph)
-    private val cfgStatistics = CfgStatisticsImpl(applicationGraph)
+    private val ctx = TsContext(scene, components)
+    private val graph = TsGraph(scene)
+    private val interpreter = TsInterpreter(ctx, graph)
+    private val cfgStatistics = CfgStatisticsImpl(graph)
 
     fun analyze(
-        methods: List<EtsMethod>,
+        methods: List<TsMethod>,
         targets: List<TsTarget> = emptyList(),
     ): List<TsState> {
-        val initialStates = mutableMapOf<EtsMethod, TsState>()
+        val initialStates = mutableMapOf<TsMethod, TsState>()
         methods.forEach { initialStates[it] = interpreter.getInitialState(it, targets) }
 
         val methodsToTrackCoverage =
@@ -54,23 +54,20 @@ class TsMachine(
                 CoverageZone.CLASS -> TODO("Unsupported yet")
             }
 
-        val coverageStatistics = CoverageStatistics<EtsMethod, EtsStmt, TsState>(
-            methodsToTrackCoverage,
-            applicationGraph
-        )
+        val coverageStatistics = CoverageStatistics<TsMethod, TsStmt, TsState>(methodsToTrackCoverage, graph)
 
-        val callGraphStatistics: PlainCallGraphStatistics<EtsMethod> =
+        val callGraphStatistics: PlainCallGraphStatistics<TsMethod> =
             when (options.targetSearchDepth) {
                 0u -> PlainCallGraphStatistics()
                 else -> TODO("Unsupported yet")
             }
 
-        val timeStatistics = TimeStatistics<EtsMethod, TsState>()
+        val timeStatistics = TimeStatistics<TsMethod, TsState>()
 
         val pathSelector = createPathSelector(
             initialStates,
             options,
-            applicationGraph,
+            graph,
             timeStatistics,
             { coverageStatistics },
             { cfgStatistics },
@@ -90,7 +87,7 @@ class TsMachine(
         val observers = mutableListOf<UMachineObserver<TsState>>(coverageStatistics)
         observers.add(statesCollector)
 
-        val stepsStatistics = StepsStatistics<EtsMethod, TsState>()
+        val stepsStatistics = StepsStatistics<TsMethod, TsState>()
 
         val stopStrategy = createStopStrategy(
             options,

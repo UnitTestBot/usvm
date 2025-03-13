@@ -2,10 +2,10 @@ package org.usvm.project
 
 import org.jacodb.ets.model.EtsMethodImpl
 import org.jacodb.ets.model.EtsScene
-import org.jacodb.ets.utils.getDeclaredLocals
-import org.jacodb.ets.utils.getLocals
+import org.usvm.util.getDeclaredLocals
+import org.usvm.util.getLocals
 import org.jacodb.ets.utils.loadEtsProjectFromIR
-import org.usvm.api.TsValue
+import org.usvm.api.TsTestValue
 import org.usvm.machine.TsMachine
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.fixEnums
@@ -45,7 +45,7 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
                     )
                     continue
                 }
-                discoverProperties<TsValue>(method = method)
+                discoverProperties<TsTestValue>(method = method)
             }
         }
     }

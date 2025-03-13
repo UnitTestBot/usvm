@@ -1,7 +1,5 @@
 package org.usvm.util
 
-import org.jacodb.ets.base.EtsArrayType
-import org.jacodb.ets.model.EtsFieldSignature
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
@@ -12,6 +10,8 @@ import org.usvm.machine.IntermediateLValueField
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.expr.tctx
 import org.usvm.memory.URegisterStackLValue
+import org.usvm.model.TsArrayType
+import org.usvm.model.TsFieldSignature
 import org.usvm.sizeSort
 
 fun <Sort : USort> mkFieldLValue(
@@ -23,20 +23,26 @@ fun <Sort : USort> mkFieldLValue(
 fun <Sort : USort> mkFieldLValue(
     sort: Sort,
     ref: UHeapRef,
-    field: EtsFieldSignature,
+    field: TsFieldSignature,
 ): UFieldLValue<String, Sort> = UFieldLValue(sort, ref, field.name)
+
+fun <Sort : USort> mkFieldLValue(
+    sort: Sort,
+    ref: UHeapRef,
+    fieldName: String,
+): UFieldLValue<String, Sort> = UFieldLValue(sort, ref, fieldName)
 
 fun <Sort : USort> mkArrayIndexLValue(
     sort: Sort,
     ref: UHeapRef,
     index: UExpr<TsSizeSort>,
-    type: EtsArrayType,
-): UArrayIndexLValue<EtsArrayType, Sort, TsSizeSort> = UArrayIndexLValue(sort, ref, index, type)
+    type: TsArrayType,
+): UArrayIndexLValue<TsArrayType, Sort, TsSizeSort> = UArrayIndexLValue(sort, ref, index, type)
 
 fun mkArrayLengthLValue(
     ref: UHeapRef,
-    type: EtsArrayType,
-): UArrayLengthLValue<EtsArrayType, TsSizeSort> = UArrayLengthLValue(ref, type, ref.tctx.sizeSort)
+    type: TsArrayType,
+): UArrayLengthLValue<TsArrayType, TsSizeSort> = UArrayLengthLValue(ref, type, ref.tctx.sizeSort)
 
 fun <Sort : USort> mkRegisterStackLValue(
     sort: Sort,

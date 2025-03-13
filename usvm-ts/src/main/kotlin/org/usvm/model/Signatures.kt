@@ -2,8 +2,8 @@ package org.usvm.model
 
 import org.jacodb.ets.base.UNKNOWN_CLASS_NAME
 import org.jacodb.ets.base.UNKNOWN_FILE_NAME
+import org.jacodb.ets.base.UNKNOWN_NAMESPACE_NAME
 import org.jacodb.ets.base.UNKNOWN_PROJECT_NAME
-import org.jacodb.ets.model.EtsNamespaceSignature
 
 data class TsFileSignature(
     val projectName: String,
@@ -28,10 +28,31 @@ data class TsFileSignature(
     }
 }
 
+data class TsNamespaceSignature(
+    val name: String,
+    val file: TsFileSignature,
+    val namespace: TsNamespaceSignature? = null,
+) {
+    override fun toString(): String {
+        return if (namespace != null) {
+            "$namespace::$name"
+        } else {
+            "$file: $name"
+        }
+    }
+
+    companion object {
+        val DEFAULT = TsNamespaceSignature(
+            name = UNKNOWN_NAMESPACE_NAME,
+            file = TsFileSignature.UNKNOWN,
+        )
+    }
+}
+
 data class TsClassSignature(
     val name: String,
     val file: TsFileSignature,
-    val namespace: EtsNamespaceSignature? = null, // TODO: TsNamespaceSignature
+    val namespace: TsNamespaceSignature? = null, // TODO: TsNamespaceSignature
 ) {
     override fun toString(): String {
         return if (namespace != null) {

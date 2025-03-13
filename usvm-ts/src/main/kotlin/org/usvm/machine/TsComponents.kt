@@ -3,7 +3,6 @@ package org.usvm.machine
 import io.ksmt.solver.yices.KYicesSolver
 import io.ksmt.solver.z3.KZ3Solver
 import io.ksmt.symfpu.solver.KSymFpuSolver
-import org.jacodb.ets.base.EtsType
 import org.usvm.SolverType
 import org.usvm.UBv32SizeExprProvider
 import org.usvm.UComponents
@@ -13,6 +12,7 @@ import org.usvm.UMachineOptions
 import org.usvm.USizeExprProvider
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.memory.UReadOnlyMemory
+import org.usvm.model.TsType
 import org.usvm.model.ULazyModelDecoder
 import org.usvm.solver.UExprTranslator
 import org.usvm.solver.USolverBase
@@ -22,7 +22,7 @@ import org.usvm.types.UTypeSystem
 class TsComponents(
     private val typeSystem: TsTypeSystem,
     private val options: UMachineOptions,
-) : UComponents<EtsType, TsSizeSort> {
+) : UComponents<TsType, TsSizeSort> {
     private val closeableResources = mutableListOf<AutoCloseable>()
 
     override val useSolverForForks: Boolean
@@ -30,7 +30,7 @@ class TsComponents(
 
     override fun <Context : UContext<TsSizeSort>> buildTranslatorAndLazyDecoder(
         ctx: Context,
-    ): Pair<UExprTranslator<EtsType, TsSizeSort>, ULazyModelDecoder<EtsType>> {
+    ): Pair<UExprTranslator<TsType, TsSizeSort>, ULazyModelDecoder<TsType>> {
         val translator = TsExprTranslator(ctx)
         val decoder = ULazyModelDecoder(translator)
 
@@ -43,16 +43,16 @@ class TsComponents(
 
     override fun <Context : UContext<TsSizeSort>> mkComposer(
         ctx: Context,
-    ): (UReadOnlyMemory<EtsType>, MutabilityOwnership) -> UComposer<EtsType, TsSizeSort> =
-        { memory: UReadOnlyMemory<EtsType>, ownership: MutabilityOwnership ->
+    ): (UReadOnlyMemory<TsType>, MutabilityOwnership) -> UComposer<TsType, TsSizeSort> =
+        { memory: UReadOnlyMemory<TsType>, ownership: MutabilityOwnership ->
             TsComposer(ctx, memory, ownership)
         }
 
     override fun mkTypeSystem(
         ctx: UContext<TsSizeSort>,
-    ): UTypeSystem<EtsType> = typeSystem
+    ): UTypeSystem<TsType> = typeSystem
 
-    override fun <Context : UContext<TsSizeSort>> mkSolver(ctx: Context): USolverBase<EtsType> {
+    override fun <Context : UContext<TsSizeSort>> mkSolver(ctx: Context): USolverBase<TsType> {
         val (translator, decoder) = buildTranslatorAndLazyDecoder(ctx)
 
         val smtSolver = when (options.solverType) {
