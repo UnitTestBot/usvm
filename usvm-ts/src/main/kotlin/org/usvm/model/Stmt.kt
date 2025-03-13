@@ -28,6 +28,7 @@ interface TsStmt {
             override fun visit(stmt: TsReturnStmt): R = defaultVisit(stmt)
             override fun visit(stmt: TsIfStmt): R = defaultVisit(stmt)
             override fun visit(stmt: TsCallStmt): R = defaultVisit(stmt)
+            override fun visit(stmt: TsRawStmt): R = defaultVisit(stmt)
 
             fun defaultVisit(stmt: TsStmt): R
         }
