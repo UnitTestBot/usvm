@@ -26,7 +26,7 @@ data class TsParameterRef(
 }
 
 data class TsArrayAccess(
-    val array: TsValue,
+    val array: TsLocal,
     val index: TsValue,
     override val type: TsType,
 ) : TsRef, TsLValue {
