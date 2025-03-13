@@ -4,7 +4,8 @@ interface Base : WithModifiers {
     val modifiers: TsModifiers
     val decorators: List<TsDecorator>
 
-    // If not specified, entity is public if not private and not protected
+    // In TS, if "public" modifier is not specified,
+    // an entity considered public if it is not private and not protected.
     override val isPublic: Boolean
         get() = super.isPublic || (!isPrivate && !isProtected)
 
