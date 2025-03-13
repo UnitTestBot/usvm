@@ -1,25 +1,24 @@
 package org.usvm.project
 
-import org.jacodb.ets.model.EtsMethodImpl
-import org.jacodb.ets.model.EtsScene
-import org.usvm.util.getDeclaredLocals
-import org.usvm.util.getLocals
 import org.jacodb.ets.utils.loadEtsProjectFromIR
 import org.usvm.api.TsTestValue
 import org.usvm.machine.TsMachine
+import org.usvm.model.TsScene
 import org.usvm.util.TsMethodTestRunner
-import org.usvm.util.fixEnums
+import org.usvm.util.convert
 import org.usvm.util.fixHome
+import org.usvm.util.getDeclaredLocals
+import org.usvm.util.getLocals
 import kotlin.io.path.Path
 import kotlin.test.Test
 
 class RunOnDemoCalcProject : TsMethodTestRunner() {
 
-    override val scene: EtsScene = run {
+    override val scene: TsScene = run {
         loadEtsProjectFromIR(
             Path("~/dev/jacodb/jacodb-ets/src/test/resources/projects/Demo_Calc/etsir/entry").fixHome(),
             Path("~/dev/ark/sdk/etsir/ohos/5.0.1.111/ets").fixHome(),
-        )
+        ).convert()
     }
 
     @Test
@@ -52,16 +51,15 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
 
     @Test
     fun `test run on all methods`() {
-        for (clazz in scene.projectAndSdkClasses) {
-            for (method in clazz.methods) {
-                method as EtsMethodImpl
-                method._cfg = scene.fixEnums(method.cfg)
-            }
-        }
+        // for (clazz in scene.projectAndSdkClasses) {
+        //     for (method in clazz.methods) {
+        //         (method as EtsMethodImpl)._cfg = scene.fixEnums(method.cfg)
+        //     }
+        // }
         val methods = scene.projectClasses.flatMap {
             it.methods
                 .filterNot { it.cfg.stmts.isEmpty() }
-                .filterNot { (it as EtsMethodImpl).modifiers.isStatic }
+                .filterNot { it.isStatic }
                 .filterNot { it.name == "build" }
         }
         TsMachine(scene, options).use { machine ->

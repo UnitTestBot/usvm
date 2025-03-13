@@ -1,27 +1,27 @@
 package org.usvm.util
 
 import org.jacodb.ets.base.CONSTRUCTOR_NAME
-import org.jacodb.ets.base.EtsClassType
-import org.jacodb.ets.model.EtsClass
-import org.jacodb.ets.model.EtsClassImpl
-import org.jacodb.ets.model.EtsClassSignature
-import org.jacodb.ets.model.EtsFileSignature
-import org.jacodb.ets.model.EtsMethodImpl
-import org.jacodb.ets.model.EtsMethodSignature
+import org.usvm.model.TsClass
+import org.usvm.model.TsClassImpl
+import org.usvm.model.TsClassSignature
+import org.usvm.model.TsClassType
+import org.usvm.model.TsFileSignature
+import org.usvm.model.TsMethodImpl
+import org.usvm.model.TsMethodSignature
 
-fun createObjectClass(): EtsClass {
-    val cls = EtsClassSignature("Object", EtsFileSignature.DEFAULT)
-    return EtsClassImpl(
+fun createObjectClass(): TsClass {
+    val cls = TsClassSignature("Object", TsFileSignature.UNKNOWN)
+    val ctor = TsMethodImpl(
+        signature = TsMethodSignature(
+            enclosingClass = cls,
+            name = CONSTRUCTOR_NAME,
+            parameters = emptyList(),
+            returnType = TsClassType(cls),
+        )
+    )
+    return TsClassImpl(
         signature = cls,
         fields = emptyList(),
-        methods = emptyList(),
-        ctor = EtsMethodImpl(
-            EtsMethodSignature(
-                enclosingClass = cls,
-                name = CONSTRUCTOR_NAME,
-                parameters = emptyList(),
-                returnType = EtsClassType(cls),
-            )
-        ),
+        methods = listOf(ctor),
     )
 }

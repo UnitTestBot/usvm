@@ -26,16 +26,15 @@ import org.jacodb.ets.dsl.toBlockCfg
 import org.jacodb.ets.graph.EtsCfg
 import org.jacodb.ets.graph.linearize
 import org.jacodb.ets.graph.toEtsBlockCfg
-import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsMethodImpl
 import org.jacodb.ets.model.EtsMethodParameter
 import org.jacodb.ets.model.EtsMethodSignature
-import org.jacodb.ets.model.EtsScene
-import org.usvm.util.getLocals
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsTestValue
+import org.usvm.model.*
 import org.usvm.util.TsMethodTestRunner
+import org.usvm.util.getLocals
 import org.usvm.util.isTruthy
 
 private fun EtsMethodParameter.toRef(): EtsParameterRef {
@@ -46,9 +45,9 @@ class And : TsMethodTestRunner() {
 
     private val className = this::class.simpleName!!
 
-    override val scene: EtsScene = loadSampleScene(className)
+    override val scene: TsScene = loadSampleScene(className)
 
-    private val classSignature: EtsClassSignature =
+    private val classSignature: TsClassSignature =
         scene.projectFiles[0].classes.single { it.name != DEFAULT_ARK_CLASS_NAME }.signature
 
     @Test

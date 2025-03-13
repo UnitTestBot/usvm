@@ -19,10 +19,10 @@ import org.jacodb.ets.model.EtsMethodImpl
 import org.jacodb.ets.model.EtsMethodParameter
 import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsScene
-import org.usvm.util.getLocals
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
+import org.usvm.util.getLocals
 import org.usvm.util.isTruthy
 
 class Or : TsMethodTestRunner() {
