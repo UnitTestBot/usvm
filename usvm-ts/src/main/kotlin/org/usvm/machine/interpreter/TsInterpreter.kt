@@ -143,6 +143,9 @@ class TsInterpreter(
                     // memory.stack.push(args.toTypedArray(), method.localsCount)
                     // newStmt(method.cfg.stmts.first())
 
+                    check(stmt.arguments.size == stmt.callee.parametersWithThisCount) {
+                        "Arguments size should be equal to the method parameters size"
+                    }
                     // TODO: push sorts for arguments
                     callStack.push(stmt.callee, stmt.returnSite)
                     memory.stack.push(stmt.arguments.toTypedArray(), stmt.callee.localsCount)
