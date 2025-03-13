@@ -2,7 +2,7 @@ package org.usvm.model
 
 interface TsRef : TsValue
 
-data object TsThis : TsRef {
+data object TsThis : TsRef, TsImmediate {
     override fun toString(): String = "this"
 
     override fun <R> accept(visitor: TsValue.Visitor<R>): R {
