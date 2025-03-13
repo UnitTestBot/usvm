@@ -70,3 +70,35 @@ data class TsStaticFieldRef(
         return visitor.visit(this)
     }
 }
+
+data class TsInstancePropertyRef(
+    val instance: TsLocal,
+    val propertyName: String,
+) : TsRef, TsLValue {
+    override val type: TsType
+        get() = TsUnknownType
+
+    override fun toString(): String {
+        return "${instance}.${propertyName}"
+    }
+
+    override fun <R> accept(visitor: TsValue.Visitor<R>): R {
+        error("Not implemented")
+    }
+}
+
+data class TsStaticPropertyRef(
+    val declaringClass: TypeName,
+    val propertyName: String,
+) : TsRef, TsLValue {
+    override val type: TsType
+        get() = TsUnknownType
+
+    override fun toString(): String {
+        return "${declaringClass}.${propertyName}"
+    }
+
+    override fun <R> accept(visitor: TsValue.Visitor<R>): R {
+        error("Not implemented")
+    }
+}
