@@ -123,10 +123,10 @@ interface TsExpr : TsEntity {
 }
 
 data class TsNewExpr(
-    override val type: TsType,
+    val type: TypeName,
 ) : TsExpr {
     override fun toString(): String {
-        return "new ${type.typeName}"
+        return "new $type"
     }
 
     override fun <R> accept(visitor: TsExpr.Visitor<R>): R {
@@ -135,14 +135,11 @@ data class TsNewExpr(
 }
 
 data class TsNewArrayExpr(
-    val elementType: TsType,
+    val elementType: TypeName,
     val size: TsEntity,
 ) : TsExpr {
-    override val type: TsType
-        get() = TsArrayType(elementType, 1)
-
     override fun toString(): String {
-        return "new Array<${elementType.typeName}>($size)"
+        return "new Array<$elementType>($size)"
     }
 
     override fun <R> accept(visitor: TsExpr.Visitor<R>): R {
@@ -153,9 +150,6 @@ data class TsNewArrayExpr(
 data class TsLengthExpr(
     val arg: TsEntity,
 ) : TsExpr {
-    override val type: TsType
-        get() = TsNumberType
-
     override fun toString(): String {
         return "${arg}.length"
     }
@@ -167,7 +161,7 @@ data class TsLengthExpr(
 
 data class TsCastExpr(
     val arg: TsEntity,
-    override val type: TsType,
+    val type: TypeName,
 ) : TsExpr {
     override fun toString(): String {
         return "$arg as $type"
@@ -182,9 +176,6 @@ data class TsInstanceOfExpr(
     val arg: TsEntity,
     val checkType: TsType,
 ) : TsExpr {
-    override val type: TsType
-        get() = TsBooleanType
-
     override fun toString(): String {
         return "$arg instanceof $checkType"
     }
@@ -201,9 +192,6 @@ interface TsUnaryExpr : TsExpr {
 data class TsDeleteExpr(
     override val arg: TsEntity,
 ) : TsUnaryExpr {
-    override val type: TsType
-        get() = TsBooleanType
-
     override fun toString(): String {
         return "delete $arg"
     }
@@ -216,9 +204,6 @@ data class TsDeleteExpr(
 data class TsAwaitExpr(
     override val arg: TsEntity,
 ) : TsUnaryExpr {
-    override val type: TsType
-        get() = arg.type
-
     override fun toString(): String {
         return "await $arg"
     }
@@ -231,9 +216,6 @@ data class TsAwaitExpr(
 data class TsYieldExpr(
     override val arg: TsEntity,
 ) : TsUnaryExpr {
-    override val type: TsType
-        get() = arg.type
-
     override fun toString(): String {
         return "yield $arg"
     }
@@ -246,9 +228,6 @@ data class TsYieldExpr(
 data class TsTypeOfExpr(
     override val arg: TsEntity,
 ) : TsUnaryExpr {
-    override val type: TsType
-        get() = TsStringType
-
     override fun toString(): String {
         return "typeof $arg"
     }
@@ -261,9 +240,6 @@ data class TsTypeOfExpr(
 data class TsVoidExpr(
     override val arg: TsEntity,
 ) : TsUnaryExpr {
-    override val type: TsType
-        get() = TsUndefinedType
-
     override fun toString(): String {
         return "void $arg"
     }
@@ -276,9 +252,6 @@ data class TsVoidExpr(
 data class TsNotExpr(
     override val arg: TsEntity,
 ) : TsUnaryExpr {
-    override val type: TsType
-        get() = TsBooleanType
-
     override fun toString(): String {
         return "!$arg"
     }
@@ -289,7 +262,6 @@ data class TsNotExpr(
 }
 
 data class TsBitNotExpr(
-    override val type: TsType,
     override val arg: TsEntity,
 ) : TsUnaryExpr {
     override fun toString(): String {
@@ -302,7 +274,6 @@ data class TsBitNotExpr(
 }
 
 data class TsNegExpr(
-    override val type: TsType,
     override val arg: TsEntity,
 ) : TsUnaryExpr {
     override fun toString(): String {
@@ -317,9 +288,6 @@ data class TsNegExpr(
 data class TsUnaryPlusExpr(
     override val arg: TsEntity,
 ) : TsUnaryExpr {
-    override val type: TsType
-        get() = TsNumberType
-
     override fun toString(): String {
         return "+$arg"
     }
@@ -330,7 +298,6 @@ data class TsUnaryPlusExpr(
 }
 
 data class TsPreIncExpr(
-    override val type: TsType,
     override val arg: TsEntity,
 ) : TsUnaryExpr {
     override fun toString(): String {
@@ -343,7 +310,6 @@ data class TsPreIncExpr(
 }
 
 data class TsPreDecExpr(
-    override val type: TsType,
     override val arg: TsEntity,
 ) : TsUnaryExpr {
     override fun toString(): String {
@@ -356,7 +322,6 @@ data class TsPreDecExpr(
 }
 
 data class TsPostIncExpr(
-    override val type: TsType,
     override val arg: TsEntity,
 ) : TsUnaryExpr {
     override fun toString(): String {
@@ -369,7 +334,6 @@ data class TsPostIncExpr(
 }
 
 data class TsPostDecExpr(
-    override val type: TsType,
     override val arg: TsEntity,
 ) : TsUnaryExpr {
     override fun toString(): String {
@@ -386,10 +350,7 @@ interface TsBinaryExpr : TsExpr {
     val right: TsEntity
 }
 
-interface TsRelationExpr : TsBinaryExpr {
-    override val type: TsType
-        get() = TsBooleanType
-}
+interface TsRelationExpr : TsBinaryExpr
 
 data class TsEqExpr(
     override val left: TsEntity,
@@ -499,9 +460,6 @@ data class TsInExpr(
     override val left: TsEntity,
     override val right: TsEntity,
 ) : TsRelationExpr {
-    override val type: TsType
-        get() = TsBooleanType
-
     override fun toString(): String {
         return "$left in $right"
     }
@@ -514,7 +472,6 @@ data class TsInExpr(
 interface TsArithmeticExpr : TsBinaryExpr
 
 data class TsAddExpr(
-    override val type: TsType,
     override val left: TsEntity,
     override val right: TsEntity,
 ) : TsArithmeticExpr {
@@ -528,7 +485,6 @@ data class TsAddExpr(
 }
 
 data class TsSubExpr(
-    override val type: TsType,
     override val left: TsEntity,
     override val right: TsEntity,
 ) : TsArithmeticExpr {
@@ -542,7 +498,6 @@ data class TsSubExpr(
 }
 
 data class TsMulExpr(
-    override val type: TsType,
     override val left: TsEntity,
     override val right: TsEntity,
 ) : TsArithmeticExpr {
@@ -556,7 +511,6 @@ data class TsMulExpr(
 }
 
 data class TsDivExpr(
-    override val type: TsType, // TsNumberType
     override val left: TsEntity,
     override val right: TsEntity,
 ) : TsArithmeticExpr {
@@ -570,7 +524,6 @@ data class TsDivExpr(
 }
 
 data class TsRemExpr(
-    override val type: TsType,
     override val left: TsEntity,
     override val right: TsEntity,
 ) : TsArithmeticExpr {
@@ -584,7 +537,6 @@ data class TsRemExpr(
 }
 
 data class TsExpExpr(
-    override val type: TsType,
     override val left: TsEntity,
     override val right: TsEntity,
 ) : TsArithmeticExpr {
@@ -600,7 +552,6 @@ data class TsExpExpr(
 interface TsBitwiseExpr : TsBinaryExpr
 
 data class TsBitAndExpr(
-    override val type: TsType,
     override val left: TsEntity,
     override val right: TsEntity,
 ) : TsBitwiseExpr {
@@ -614,7 +565,6 @@ data class TsBitAndExpr(
 }
 
 data class TsBitOrExpr(
-    override val type: TsType,
     override val left: TsEntity,
     override val right: TsEntity,
 ) : TsBitwiseExpr {
@@ -628,7 +578,6 @@ data class TsBitOrExpr(
 }
 
 data class TsBitXorExpr(
-    override val type: TsType,
     override val left: TsEntity,
     override val right: TsEntity,
 ) : TsBitwiseExpr {
@@ -642,7 +591,6 @@ data class TsBitXorExpr(
 }
 
 data class TsLeftShiftExpr(
-    override val type: TsType,
     override val left: TsEntity,
     override val right: TsEntity,
 ) : TsBitwiseExpr {
@@ -657,7 +605,6 @@ data class TsLeftShiftExpr(
 
 // Sign-propagating right shift
 data class TsRightShiftExpr(
-    override val type: TsType,
     override val left: TsEntity,
     override val right: TsEntity,
 ) : TsBitwiseExpr {
@@ -672,7 +619,6 @@ data class TsRightShiftExpr(
 
 // Zero-fill right shift
 data class TsUnsignedRightShiftExpr(
-    override val type: TsType,
     override val left: TsEntity,
     override val right: TsEntity,
 ) : TsBitwiseExpr {
@@ -688,7 +634,6 @@ data class TsUnsignedRightShiftExpr(
 interface TsLogicalExpr : TsBinaryExpr
 
 data class TsAndExpr(
-    override val type: TsType,
     override val left: TsEntity,
     override val right: TsEntity,
 ) : TsLogicalExpr {
@@ -702,7 +647,6 @@ data class TsAndExpr(
 }
 
 data class TsOrExpr(
-    override val type: TsType,
     override val left: TsEntity,
     override val right: TsEntity,
 ) : TsLogicalExpr {
@@ -718,9 +662,6 @@ data class TsOrExpr(
 interface TsCallExpr : TsExpr {
     val method: TsMethodSignature
     val args: List<TsValue>
-
-    override val type: TsType
-        get() = method.returnType
 }
 
 data class TsInstanceCallExpr(

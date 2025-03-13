@@ -2,9 +2,7 @@ package org.usvm.model
 
 interface TsRef : TsValue
 
-data class TsThis(
-    override val type: TsClassType,
-) : TsRef {
+data object TsThis : TsRef {
     override fun toString(): String = "this"
 
     override fun <R> accept(visitor: TsValue.Visitor<R>): R {
@@ -14,7 +12,6 @@ data class TsThis(
 
 data class TsParameterRef(
     val index: Int,
-    override val type: TsType,
 ) : TsRef {
     override fun toString(): String {
         return "arg$index"
@@ -28,7 +25,6 @@ data class TsParameterRef(
 data class TsArrayAccess(
     val array: TsLocal,
     val index: TsValue,
-    override val type: TsType,
 ) : TsRef, TsLValue {
     override fun toString(): String {
         return "$array[$index]"
@@ -41,9 +37,6 @@ data class TsArrayAccess(
 
 interface TsFieldRef : TsRef, TsLValue {
     val field: TsFieldSignature
-
-    override val type: TsType
-        get() = this.field.type
 }
 
 data class TsInstanceFieldRef(
@@ -75,9 +68,6 @@ data class TsInstancePropertyRef(
     val instance: TsLocal,
     val propertyName: String,
 ) : TsRef, TsLValue {
-    override val type: TsType
-        get() = TsUnknownType
-
     override fun toString(): String {
         return "${instance}.${propertyName}"
     }
@@ -91,9 +81,6 @@ data class TsStaticPropertyRef(
     val declaringClass: TypeName,
     val propertyName: String,
 ) : TsRef, TsLValue {
-    override val type: TsType
-        get() = TsUnknownType
-
     override fun toString(): String {
         return "${declaringClass}.${propertyName}"
     }

@@ -1,11 +1,6 @@
 package org.usvm.model
 
 interface TsEntity {
-    val type: TsType
-
-    // override val typeName: String
-    //     get() = type.typeName
-
     interface Visitor<out R> :
         TsValue.Visitor<R>,
         TsExpr.Visitor<R> {
@@ -34,10 +29,9 @@ interface TsEntity {
 data class TsRawEntity(
     val kind: String,
     val extra: Map<String, Any> = emptyMap(),
-    override val type: TsType,
 ) : TsEntity {
     override fun toString(): String {
-        return "$kind $extra: $type"
+        return "$kind $extra"
     }
 
     override fun <R> accept(visitor: TsEntity.Visitor<R>): R {
