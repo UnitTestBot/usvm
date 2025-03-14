@@ -36,7 +36,15 @@ class TsClassImpl(
     }
 
     override val ctor: TsMethod =
-        methods.first { method -> method.name == CONSTRUCTOR_NAME }
+        methods.firstOrNull { method -> method.name == CONSTRUCTOR_NAME }
+            ?: TsMethodImpl(
+                signature = TsMethodSignature(
+                    enclosingClass = signature,
+                    name = CONSTRUCTOR_NAME,
+                    parameters = emptyList(),
+                    returnType = TsUndefinedType,
+                ),
+            )
 
     override fun toString(): String {
         return signature.toString()

@@ -31,8 +31,8 @@ fun TsContext.resolveTsField(
                 if (field != null) return field
             }
 
-            is TsUnclearRefType -> {
-                val field = tryGetSingleField(scene, instanceType.name, field.name)
+            is TsUnclearType -> {
+                val field = tryGetSingleField(scene, instanceType.typeName, field.name)
                 if (field != null) return field
             }
         }
@@ -97,8 +97,8 @@ fun TsContext.resolveTsFields(
                 if (field != null) return listOf(field)
             }
 
-            is TsUnclearRefType -> {
-                val field = tryGetSingleField(scene, instanceType.name, field.name)
+            is TsUnclearType -> {
+                val field = tryGetSingleField(scene, instanceType.typeName, field.name)
                 if (field != null) return listOf(field)
             }
         }

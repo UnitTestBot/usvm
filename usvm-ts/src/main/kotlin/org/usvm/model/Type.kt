@@ -1,11 +1,11 @@
 package org.usvm.model
 
-interface TsType {
-    val typeName: String
-
+interface TsType : TypeName {
     interface Visitor<out R> {
         fun visit(type: TsAnyType): R
         fun visit(type: TsUnknownType): R
+        fun visit(type: TsUnclearType): R
+        fun visit(type: TsGenericType): R
 
         fun visit(type: TsUnionType): R
         fun visit(type: TsIntersectionType): R
@@ -25,8 +25,6 @@ interface TsType {
         fun visit(type: TsArrayType): R
         fun visit(type: TsTupleType): R
         fun visit(type: TsFunctionType): R
-        fun visit(type: TsGenericType): R
-        fun visit(type: TsUnclearRefType): R
 
         fun visit(type: TsRawType): R {
             if (this is Default) {
@@ -38,6 +36,8 @@ interface TsType {
         interface Default<R> : Visitor<R> {
             override fun visit(type: TsAnyType): R = defaultVisit(type)
             override fun visit(type: TsUnknownType): R = defaultVisit(type)
+            override fun visit(type: TsUnclearType): R = defaultVisit(type)
+            override fun visit(type: TsGenericType): R = defaultVisit(type)
 
             override fun visit(type: TsUnionType): R = defaultVisit(type)
             override fun visit(type: TsIntersectionType): R = defaultVisit(type)
@@ -55,8 +55,6 @@ interface TsType {
             override fun visit(type: TsArrayType): R = defaultVisit(type)
             override fun visit(type: TsTupleType): R = defaultVisit(type)
             override fun visit(type: TsFunctionType): R = defaultVisit(type)
-            override fun visit(type: TsGenericType): R = defaultVisit(type)
-            override fun visit(type: TsUnclearRefType): R = defaultVisit(type)
 
             fun defaultVisit(type: TsType): R
         }
@@ -103,11 +101,42 @@ object TsUnknownType : TsType {
     }
 }
 
+data class TsUnclearType(
+    override val typeName: String,
+    val typeParameters: List<TsType>,
+) : TsType {
+    override fun toString(): String = typeName
+
+    override fun <R> accept(visitor: TsType.Visitor<R>): R {
+        return visitor.visit(this)
+    }
+}
+
+data class TsGenericType(
+    override val typeName: String,
+    val constraint: TsType? = null,
+    val default: TsType? = null,
+) : TsType {
+    override fun toString(): String {
+        return typeName + (constraint?.let { " extends $it" } ?: "") + (default?.let { " = $it" } ?: "")
+    }
+
+    override fun <R> accept(visitor: TsType.Visitor<R>): R {
+        return visitor.visit(this)
+    }
+}
+
 data class TsUnionType(
     val types: List<TsType>,
 ) : TsType {
     override val typeName: String
-        get() = types.joinToString(separator = " | ") { it.typeName }
+        get() = types.joinToString(separator = " | ") {
+            if (it is TsUnionType || it is TsIntersectionType) {
+                "(${it.typeName})"
+            } else {
+                it.typeName
+            }
+        }
 
     override fun toString(): String = typeName
 
@@ -120,7 +149,13 @@ data class TsIntersectionType(
     val types: List<TsType>,
 ) : TsType {
     override val typeName: String
-        get() = types.joinToString(separator = " & ") { it.typeName }
+        get() = types.joinToString(separator = " & ") {
+            if (it is TsUnionType || it is TsIntersectionType) {
+                "(${it.typeName})"
+            } else {
+                it.typeName
+            }
+        }
 
     override fun toString(): String = typeName
 
@@ -229,7 +264,7 @@ data class TsClassType(
 ) : TsRefType {
     override val typeName: String
         get() = if (typeParameters.isNotEmpty()) {
-            val generics = typeParameters.joinToString()
+            val generics = typeParameters.joinToString { it.typeName }
             "${signature.name}<$generics>"
         } else {
             signature.name
@@ -270,51 +305,15 @@ data class TsTupleType(
 }
 
 data class TsFunctionType(
-    val method: TsMethodSignature,
+    val signature: TsMethodSignature,
     val typeParameters: List<TsType> = emptyList(),
 ) : TsRefType {
     override val typeName: String
         get() = if (typeParameters.isNotEmpty()) {
-            val generics = typeParameters.joinToString()
-            "${method.name}<$generics>"
+            val generics = typeParameters.joinToString { it.typeName }
+            "${signature.name}<$generics>"
         } else {
-            method.name
-        }
-
-    override fun toString(): String = typeName
-
-    override fun <R> accept(visitor: TsType.Visitor<R>): R {
-        return visitor.visit(this)
-    }
-}
-
-data class TsGenericType(
-    val name: String,
-    val defaultType: TsType? = null,
-    val constraint: TsType? = null,
-) : TsRefType {
-    override val typeName: String
-        get() = name
-
-    override fun toString(): String {
-        return name + (constraint?.let { " extends $it" } ?: "") + (defaultType?.let { " = $it" } ?: "")
-    }
-
-    override fun <R> accept(visitor: TsType.Visitor<R>): R {
-        return visitor.visit(this)
-    }
-}
-
-data class TsUnclearRefType(
-    val name: String,
-    val typeParameters: List<TsType> = emptyList(),
-) : TsRefType {
-    override val typeName: String
-        get() = if (typeParameters.isNotEmpty()) {
-            val generics = typeParameters.joinToString()
-            "$name<$generics>"
-        } else {
-            name
+            signature.name
         }
 
     override fun toString(): String = typeName

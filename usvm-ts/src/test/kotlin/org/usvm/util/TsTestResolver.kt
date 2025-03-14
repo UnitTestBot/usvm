@@ -38,7 +38,7 @@ import org.usvm.model.TsPrimitiveType
 import org.usvm.model.TsRefType
 import org.usvm.model.TsStringType
 import org.usvm.model.TsType
-import org.usvm.model.TsUnclearRefType
+import org.usvm.model.TsUnclearType
 import org.usvm.model.TsUndefinedType
 import org.usvm.model.TsUnknownType
 import org.usvm.model.TsVoidType
@@ -186,10 +186,10 @@ open class TsTestStateResolver(
 
         return when (type) {
             // TODO add better support
-            is TsUnclearRefType -> {
-                val classes = ctx.scene.projectAndSdkClasses.filter { it.name == type.name }
+            is TsUnclearType -> {
+                val classes = ctx.scene.projectAndSdkClasses.filter { it.name == type.typeName }
                 if (classes.size != 1) {
-                    println("Could not resolve class: ${type.name}")
+                    println("Could not resolve class: $type")
                     return TsTestValue.TsUndefined
                 }
                 val cls = classes.single()

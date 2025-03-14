@@ -81,6 +81,7 @@ data class TsFieldSignature(
 }
 
 data class TsMethodSignature(
+    // TODO: rename to 'declaringClass' to distinguish from 'enclosingClass' in Method
     val enclosingClass: TsClassSignature,
     val name: String,
     val parameters: List<TsMethodParameter>,
