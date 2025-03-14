@@ -212,7 +212,7 @@ data class TsLiteralType(
     val literalTypeName: String,
 ) : TsPrimitiveType {
     override val typeName: String
-        get() = "literal"
+        get() = literalTypeName
 
     override fun toString(): String = typeName
 
