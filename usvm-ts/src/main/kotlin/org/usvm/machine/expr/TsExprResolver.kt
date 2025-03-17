@@ -583,6 +583,12 @@ class TsExprResolver(
     ): UExpr<out USort>? {
         val instanceExpr = if (instance != null) {
             val resolved = resolve(instance) ?: return null
+            if (resolved.sort != ctx.addressSort) {
+                // TODO: handle "<number>.toString()" and similar calls on non-ref instances
+                logger.warn { "Calling method on non-ref instance is not yet supported" }
+                scope.assert(ctx.falseExpr)
+                return null
+            }
             resolved.asExpr(ctx.addressSort)
         } else {
             null
