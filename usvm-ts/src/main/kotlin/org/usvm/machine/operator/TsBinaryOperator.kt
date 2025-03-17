@@ -190,8 +190,8 @@ sealed interface TsBinaryOperator {
                                     )
                                 )
 
-                                scope.assert(lhsType.fpTypeExpr or lhsType.boolTypeExpr)
                                 // TODO: support objects
+                                scope.assert(lhsType.refTypeExpr.not())
                             }
 
                             fp64Sort -> {
@@ -211,11 +211,13 @@ sealed interface TsBinaryOperator {
                                     )
                                 )
 
-                                scope.assert(lhsType.fpTypeExpr or lhsType.boolTypeExpr)
                                 // TODO: support objects
+                                scope.assert(lhsType.refTypeExpr.not())
                             }
 
                             addressSort -> {
+                                scope.assert(lhsType.refTypeExpr)
+
                                 conjuncts += ExprWithTypeConstraint(
                                     constraint = lhsType.refTypeExpr,
                                     expr = mkHeapRefEq(
@@ -223,9 +225,6 @@ sealed interface TsBinaryOperator {
                                         rhs.asExpr(addressSort)
                                     )
                                 )
-
-                                scope.assert(lhsType.refTypeExpr)
-                                // TODO: support objects
                             }
 
                             else -> {
@@ -257,8 +256,8 @@ sealed interface TsBinaryOperator {
                                     )
                                 )
 
-                                scope.assert(rhsType.fpTypeExpr or rhsType.boolTypeExpr)
                                 // TODO: support objects
+                                scope.assert(rhsType.refTypeExpr.not())
                             }
 
                             fp64Sort -> {
@@ -278,11 +277,13 @@ sealed interface TsBinaryOperator {
                                     )
                                 )
 
-                                scope.assert(rhsType.fpTypeExpr or rhsType.boolTypeExpr)
                                 // TODO: support objects
+                                scope.assert(rhsType.refTypeExpr.not())
                             }
 
                             addressSort -> {
+                                scope.assert(rhsType.refTypeExpr)
+
                                 conjuncts += ExprWithTypeConstraint(
                                     constraint = rhsType.refTypeExpr,
                                     expr = mkHeapRefEq(
@@ -290,9 +291,6 @@ sealed interface TsBinaryOperator {
                                         memory.read(getIntermediateRefLValue(rhs.address))
                                     )
                                 )
-
-                                scope.assert(rhsType.refTypeExpr)
-                                // TODO: support objects
                             }
 
                             else -> error("Unsupported sort ${rhs.sort}")
