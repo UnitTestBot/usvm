@@ -306,7 +306,7 @@ class TsInterpreter(
     }
 
     private fun visitNopStmt(scope: TsStepScope, stmt: TsNopStmt) {
-        TODO()
+        // Do nothing
     }
 
     private fun exprResolverWithScope(scope: TsStepScope): TsExprResolver =
