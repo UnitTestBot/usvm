@@ -290,6 +290,7 @@ fun EtsMethod.convert(
         modifiers = modifiers.convert(),
         decorators = emptyList(), // TODO: decorators
         localType = localType,
+        etsMethod = this,
     ).also { method ->
         method._cfg = cfg.convert(this, method)
     }
