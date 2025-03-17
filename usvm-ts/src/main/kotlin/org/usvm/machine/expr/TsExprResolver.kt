@@ -247,8 +247,18 @@ class TsExprResolver(
         error("Not supported $expr")
     }
 
-    override fun visit(expr: TsCastExpr): UExpr<out USort>? {
+    override fun visit(expr: TsCastExpr): UExpr<out USort>? = with(ctx) {
         if (expr.type == TsNumberType) {
+            val arg = resolve(expr.arg) ?: return null
+
+            if (arg.isFakeObject()) {
+                val type = arg.getFakeType(scope)
+                scope.assert(type.fpTypeExpr)
+                return scope.calcOnState {
+                    memory.read(getIntermediateFpLValue(arg.address))
+                }
+            }
+
             return resolve(expr.arg)?.asExpr(ctx.fp64Sort)
         }
 
