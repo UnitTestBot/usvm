@@ -529,20 +529,17 @@ fun EtsCfg.toBlockCfg(etsMethod: EtsMethod, tsMethod: TsMethod): EtsBlockCfg {
                 block = newBlock()
             }
             currentBlock += stmt
-            queue += this.successors(stmt)
+            for (s in successors(stmt).reversed()) {
+                queue.addFirst(s)
+            }
         }
     }
 
     block.statements.forEach { stmtToBlock[it] = block.id }
 
     val successors = blocks.associate { block ->
-        block.id to pivots
-            .filter { pivot ->
-                predecessors(pivot).any { pred ->
-                    stmtToBlock[pred]!! == block.id
-                }
-            }
-            .map { stmtToBlock[it]!! }
+        val last = block.statements.last()
+        block.id to this.successors(last).map { stmtToBlock[it]!! }
     }
 
     for (block in blocks) {
