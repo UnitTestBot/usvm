@@ -241,28 +241,24 @@ class TsInterpreter(
                 is TsInstanceFieldRef -> {
                     val instance = exprResolver.resolve(lhv.instance)?.asExpr(addressSort) ?: return@doWithState
                     val etsFields = resolveTsFields(
-                        lhv.instance, TsFieldSignature(
-                            TsClassSignature.UNKNOWN, lhv.fieldName,
-                            TsUnknownType
-                        )
+                        lhv.instance,
+                        TsFieldSignature(TsClassSignature.UNKNOWN, lhv.fieldName, TsUnknownType)
                     )
-                    val etsFieldType = etsFields.map { it.type }.distinct().single()
+                    val etsFieldType = etsFields.map { it.type }.distinct().singleOrNull() ?: TsUnknownType
                     val sort = typeToSort(etsFieldType)
                     if (sort == unresolvedSort) {
                         val fakeObject = expr.toFakeObject(scope)
                         val lValue = mkFieldLValue(
-                            addressSort, instance, TsFieldSignature(
-                                TsClassSignature.UNKNOWN, lhv.fieldName,
-                                TsUnknownType
-                            )
+                            sort = addressSort,
+                            ref = instance,
+                            field = TsFieldSignature(TsClassSignature.UNKNOWN, lhv.fieldName, TsUnknownType)
                         )
                         memory.write(lValue, fakeObject, guard = trueExpr)
                     } else {
                         val lValue = mkFieldLValue(
-                            sort, instance, TsFieldSignature(
-                                TsClassSignature.UNKNOWN, lhv.fieldName,
-                                TsUnknownType
-                            )
+                            sort = sort,
+                            ref = instance,
+                            field = TsFieldSignature(TsClassSignature.UNKNOWN, lhv.fieldName, TsUnknownType)
                         )
                         memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
                     }
