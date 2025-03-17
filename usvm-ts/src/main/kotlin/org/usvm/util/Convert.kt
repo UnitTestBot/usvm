@@ -925,7 +925,7 @@ fun EtsBasicBlock.convert(method: TsMethod): TsBasicBlock {
 
             override fun visit(stmt: EtsIfStmt) {
                 val condition = ensureLocal(stmt.condition.convert())
-                TsIfStmt(stub, condition)
+                stmts += TsIfStmt(stub, condition)
             }
 
             override fun visit(stmt: EtsSwitchStmt) {
