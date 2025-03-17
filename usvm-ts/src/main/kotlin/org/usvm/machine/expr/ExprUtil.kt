@@ -7,6 +7,7 @@ import org.usvm.UBoolSort
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.api.makeSymbolicPrimitive
+import org.usvm.api.typeStreamOf
 import org.usvm.isFalse
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
@@ -23,33 +24,33 @@ fun TsContext.mkTruthyExpr(
         val falseBranchGround = makeSymbolicPrimitive(boolSort)
 
         val conjuncts = mutableListOf<ExprWithTypeConstraint<UBoolSort>>()
-        val possibleType = memory.types.getTypeStream(expr.asExpr(addressSort)).single() as FakeType
+        val type = memory.typeStreamOf(expr).single() as FakeType
 
-        scope.assert(possibleType.mkExactlyOneTypeConstraint(this@mkTruthyExpr))
+        scope.assert(type.mkExactlyOneTypeConstraint(ctx))
 
-        if (!possibleType.boolTypeExpr.isFalse) {
+        if (!type.boolTypeExpr.isFalse) {
             conjuncts += ExprWithTypeConstraint(
-                constraint = possibleType.boolTypeExpr,
+                constraint = type.boolTypeExpr,
                 expr = memory.read(getIntermediateBoolLValue(expr.address))
             )
         }
 
-        if (!possibleType.fpTypeExpr.isFalse) {
+        if (!type.fpTypeExpr.isFalse) {
             val value = memory.read(getIntermediateFpLValue(expr.address))
             val numberCondition = mkAnd(
-                mkFpEqualExpr(value.asExpr(fp64Sort), mkFp(0.0, fp64Sort)).not(),
-                mkFpIsNaNExpr(value.asExpr(fp64Sort)).not()
+                mkFpEqualExpr(value, mkFp(0.0, fp64Sort)).not(),
+                mkFpIsNaNExpr(value).not()
             )
             conjuncts += ExprWithTypeConstraint(
-                constraint = possibleType.fpTypeExpr,
+                constraint = type.fpTypeExpr,
                 expr = numberCondition
             )
         }
 
-        if (!possibleType.refTypeExpr.isFalse) {
+        if (!type.refTypeExpr.isFalse) {
             val value = memory.read(getIntermediateRefLValue(expr.address))
             conjuncts += ExprWithTypeConstraint(
-                constraint = possibleType.refTypeExpr,
+                constraint = type.refTypeExpr,
                 expr = mkAnd(
                     mkHeapRefEq(value, mkTsNullValue()).not(),
                     mkHeapRefEq(value, mkUndefinedValue()).not(),
