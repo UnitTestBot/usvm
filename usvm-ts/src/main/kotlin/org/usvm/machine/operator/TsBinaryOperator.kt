@@ -113,10 +113,9 @@ sealed interface TsBinaryOperator {
             scope: TsStepScope,
         ): UBoolExpr {
             check(lhs.isFakeObject() || rhs.isFakeObject())
+
             return scope.calcOnState {
                 val conjuncts = mutableListOf<ExprWithTypeConstraint<UBoolSort>>()
-                val groundFalseBranch = makeSymbolicPrimitive(boolSort)
-
                 when {
                     lhs.isFakeObject() && rhs.isFakeObject() -> {
                         val lhsType = memory.typeStreamOf(lhs).single() as FakeType
@@ -301,6 +300,7 @@ sealed interface TsBinaryOperator {
                     }
                 }
 
+                val groundFalseBranch = makeSymbolicPrimitive(boolSort)
                 conjuncts.foldRight(groundFalseBranch) { (condition, value), acc ->
                     mkIte(condition, value, acc)
                 }
