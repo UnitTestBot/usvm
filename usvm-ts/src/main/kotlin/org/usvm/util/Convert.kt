@@ -107,6 +107,7 @@ import org.jacodb.ets.model.EtsModifiers
 import org.jacodb.ets.model.EtsNamespace
 import org.jacodb.ets.model.EtsNamespaceSignature
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.utils.getLocals
 import org.usvm.model.TsAddExpr
 import org.usvm.model.TsAndExpr
 import org.usvm.model.TsAnyType
@@ -283,7 +284,7 @@ fun EtsMethod.convert(
 ): TsMethod {
     val methodSignature = signature.convert(classSignature)
     val typeParameters = typeParameters.map { it.convert() }
-    val localType = locals.associate { convertLocal(it) to it.type.convert() }
+    val localType = getLocals().associate { convertLocal(it) to it.type.convert() }
     return TsMethodImpl(
         signature = methodSignature,
         typeParameters = typeParameters,
