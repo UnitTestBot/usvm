@@ -148,7 +148,7 @@ class TsExprResolver(
         return block(result)
     }
 
-    private inline fun<T> resolveAfterResolved(
+    private inline fun <T> resolveAfterResolved(
         dependency0: TsEntity,
         dependency1: TsEntity,
         block: (UExpr<out USort>, UExpr<out USort>) -> T,
