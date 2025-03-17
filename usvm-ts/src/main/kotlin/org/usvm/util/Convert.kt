@@ -484,7 +484,7 @@ fun EtsCfg.toBlockCfg(etsMethod: EtsMethod, tsMethod: TsMethod): EtsBlockCfg {
     if (stmts.any { it is EtsIfStmt && successors(it).size != 2 }) {
         val badStmt = stmts.first { it is EtsIfStmt && successors(it).size != 2 }
         logger.warn {
-            "Not all if statements have two successors. For example '$badStmt' has ${
+            "Not all if statements have two successors in method '$etsMethod'. For example '$badStmt' has ${
                 successors(badStmt).size
             } successors: ${
                 successors(badStmt)
