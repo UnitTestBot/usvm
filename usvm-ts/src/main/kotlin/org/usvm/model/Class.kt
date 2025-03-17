@@ -1,6 +1,7 @@
 package org.usvm.model
 
 import org.jacodb.ets.base.CONSTRUCTOR_NAME
+import org.usvm.util.createConstructor
 
 interface TsClass : Base {
     val signature: TsClassSignature
@@ -37,14 +38,7 @@ class TsClassImpl(
 
     override val ctor: TsMethod =
         methods.firstOrNull { method -> method.name == CONSTRUCTOR_NAME }
-            ?: TsMethodImpl(
-                signature = TsMethodSignature(
-                    enclosingClass = signature,
-                    name = CONSTRUCTOR_NAME,
-                    parameters = emptyList(),
-                    returnType = TsUndefinedType,
-                ),
-            )
+            ?: createConstructor(signature)
 
     override fun toString(): String {
         return signature.toString()
