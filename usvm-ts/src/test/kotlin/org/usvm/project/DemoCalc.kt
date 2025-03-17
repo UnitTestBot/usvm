@@ -63,9 +63,7 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
         }
         TsMachine(scene, options).use { machine ->
             val states = machine.analyze(methods)
-            for (state in states) {
-                println(state)
-            }
+            states.let {}
         }
     }
 }
