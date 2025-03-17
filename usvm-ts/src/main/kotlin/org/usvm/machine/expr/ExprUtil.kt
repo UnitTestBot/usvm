@@ -124,5 +124,30 @@ fun TsContext.mkNumericExpr(
     // TODO: ToPrimitive, then ToNumber again
     // TODO: probably we need to implement Object (Ref/Fake) -> Number conversion here directly, without ToPrimitive
 
+    if (expr.isFakeObject()) {
+        val type = memory.typeStreamOf(expr).single() as FakeType
+
+        scope.assert(type.mkExactlyOneTypeConstraint(ctx))
+
+        val conjuncts = mutableListOf<ExprWithTypeConstraint<KFp64Sort>>()
+
+        conjuncts += ExprWithTypeConstraint(
+            constraint = type.boolTypeExpr,
+            expr = boolToFp(memory.read(getIntermediateBoolLValue(expr.address))),
+        )
+
+        conjuncts += ExprWithTypeConstraint(
+            constraint = type.fpTypeExpr,
+            expr = memory.read(getIntermediateFpLValue(expr.address)),
+        )
+
+        // TODO: support objects
+
+        val ground = makeSymbolicPrimitive(fp64Sort)
+        return@calcOnState conjuncts.foldRight(ground) { (condition, value), acc ->
+            mkIte(condition, value, acc)
+        }
+    }
+
     error("Unsupported sort: ${expr.sort}")
 }
