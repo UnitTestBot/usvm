@@ -218,7 +218,7 @@ private val logger = KotlinLogging.logger {}
 fun EtsScene.convert(): TsScene {
     val projectFiles = projectFiles.map { it.convert() }
     val sdkFiles = sdkFiles.map { it.convert() }
-    return TsScene(projectFiles, sdkFiles)
+    return TsScene(projectFiles, sdkFiles, this)
 }
 
 fun EtsFile.convert(): TsFile {
