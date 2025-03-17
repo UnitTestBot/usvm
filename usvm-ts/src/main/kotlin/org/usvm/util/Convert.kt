@@ -478,10 +478,6 @@ fun EtsCfg.toBlockCfg(etsMethod: EtsMethod, tsMethod: TsMethod): EtsBlockCfg {
         return EtsBlockCfg(emptyList(), emptyMap())
     }
 
-    if (!stmts.any { it is EtsIfStmt }) {
-        return EtsBlockCfg(emptyList(), emptyMap())
-    }
-
     if (stmts.any { it is EtsIfStmt && successors(it).size != 2 }) {
         val badStmt = stmts.first { it is EtsIfStmt && successors(it).size != 2 }
         logger.warn {
