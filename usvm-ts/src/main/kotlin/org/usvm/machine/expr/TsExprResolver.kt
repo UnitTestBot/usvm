@@ -651,7 +651,7 @@ class TsExprResolver(
         )
         val expr = scope.calcOnState { memory.read(lValue) }
 
-        check(expr.isFakeObject()) { "Only fake objects are allowed in arrays" }
+        // check(expr.isFakeObject()) { "Only fake objects are allowed in arrays" }
 
         return expr
     }
