@@ -3,7 +3,17 @@ package org.usvm.machine
 import org.jacodb.ets.base.CONSTRUCTOR_NAME
 import org.jacodb.ets.base.UNKNOWN_FILE_NAME
 import org.usvm.dataflow.graph.ApplicationGraph
-import org.usvm.model.*
+import org.usvm.model.TsAssignStmt
+import org.usvm.model.TsClass
+import org.usvm.model.TsClassSignature
+import org.usvm.model.TsClassType
+import org.usvm.model.TsFileSignature
+import org.usvm.model.TsMethod
+import org.usvm.model.TsMethodSignature
+import org.usvm.model.TsNewExpr
+import org.usvm.model.TsScene
+import org.usvm.model.TsStmt
+import org.usvm.model.TsTerminatingStmt
 import org.usvm.util.Maybe
 import org.usvm.util.callExpr
 import org.usvm.util.onSome
@@ -262,13 +272,11 @@ class TsApplicationGraphImpl(
     }
 
     override fun entryPoints(method: TsMethod): Sequence<TsStmt> {
-        // return method.flowGraph().entries.asSequence()
-        TODO()
+        return method.cfg.stmts.asSequence().take(1)
     }
 
     override fun exitPoints(method: TsMethod): Sequence<TsStmt> {
-        // return method.flowGraph().exits.asSequence()
-        TODO()
+        return method.cfg.stmts.asSequence().filter { it is TsTerminatingStmt }
     }
 
     override fun methodOf(node: TsStmt): TsMethod {

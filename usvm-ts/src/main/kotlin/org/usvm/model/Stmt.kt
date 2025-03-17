@@ -75,10 +75,12 @@ data class TsAssignStmt(
     }
 }
 
+interface TsTerminatingStmt : TsStmt
+
 data class TsReturnStmt(
     override val location: TsInstLocation,
     val returnValue: TsLocal?,
-) : TsStmt {
+) : TsTerminatingStmt {
     override fun toString(): String {
         return if (returnValue != null) {
             "return $returnValue"
