@@ -84,3 +84,42 @@ class TsBlockCfg(
         }
     }
 }
+
+private fun TsStmt.toDotLabel() = when (this) {
+    is TsNopStmt -> "nop"
+    is TsAssignStmt -> "$lhv := $rhv"
+    is TsReturnStmt -> "return $returnValue"
+    is TsIfStmt -> "if ($condition)"
+    is TsCallStmt -> "call $expr"
+    is TsRawStmt -> "raw $kind"
+    else -> error("Unsupported statement: $this")
+}
+
+fun TsBlockCfg.toDot(): String {
+    val lines = mutableListOf<String>()
+    lines += "digraph cfg {"
+    lines += "  node [shape=rect fontname=\"monospace\"]"
+
+    // Nodes
+    for (block in blocks) {
+        val s = block.statements.joinToString("") { it.toDotLabel() + "\\l" }
+        lines += "  ${block.id} [label=\"Block #${block.id}\\n${s}\"]"
+    }
+
+    // Edges
+    for (block in blocks) {
+        val succs = successors[block.id] ?: error("No successors for block ${block.id}")
+        if (succs.isEmpty()) continue
+        if (succs.size == 1) {
+            lines += "  ${block.id} -> ${succs.single()}"
+        } else {
+            check(succs.size == 2)
+            val (falseBranch, trueBranch) = succs // Note the order of successors: (false, true) branches
+            lines += "  ${block.id} -> $falseBranch [label=\"false\"]"
+            lines += "  ${block.id} -> $trueBranch [label=\"true\"]"
+        }
+    }
+
+    lines += "}"
+    return lines.joinToString("\n")
+}
