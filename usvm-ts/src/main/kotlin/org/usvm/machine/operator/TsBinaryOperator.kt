@@ -796,9 +796,9 @@ sealed interface TsBinaryOperator {
             rhs: UHeapRef,
             scope: TsStepScope,
         ): UBoolExpr? {
-            logger.warn { "Not implemented operator: Lt" }
-            scope.assert(falseExpr)
-            return null
+            val left = mkNumericExpr(lhs, scope)
+            val right = mkNumericExpr(rhs, scope)
+            return mkFpLessExpr(left, right)
         }
 
         override fun TsContext.resolveFakeObject(
@@ -806,9 +806,11 @@ sealed interface TsBinaryOperator {
             rhs: UExpr<out USort>,
             scope: TsStepScope,
         ): UBoolExpr? {
-            logger.warn { "Not implemented operator: Lt" }
-            scope.assert(falseExpr)
-            return null
+            check(lhs.isFakeObject() || rhs.isFakeObject())
+
+            val left = mkNumericExpr(lhs, scope)
+            val right = mkNumericExpr(rhs, scope)
+            return mkFpLessExpr(left, right)
         }
 
         override fun TsContext.internalResolve(
@@ -816,9 +818,11 @@ sealed interface TsBinaryOperator {
             rhs: UExpr<out USort>,
             scope: TsStepScope,
         ): UBoolExpr? {
-            logger.warn { "Not implemented operator: Lt" }
-            scope.assert(falseExpr)
-            return null
+            check(!lhs.isFakeObject() && !rhs.isFakeObject())
+
+            val left = mkNumericExpr(lhs, scope)
+            val right = mkNumericExpr(rhs, scope)
+            return mkFpLessExpr(left, right)
         }
     }
 
@@ -843,10 +847,10 @@ sealed interface TsBinaryOperator {
             lhs: UHeapRef,
             rhs: UHeapRef,
             scope: TsStepScope,
-        ): UExpr<out USort>? {
-            logger.warn { "Not implemented operator: Gt" }
-            scope.assert(falseExpr)
-            return null
+        ): UBoolExpr? {
+            val left = mkNumericExpr(lhs, scope)
+            val right = mkNumericExpr(rhs, scope)
+            return mkFpGreaterExpr(left, right)
         }
 
         override fun TsContext.resolveFakeObject(
@@ -854,9 +858,11 @@ sealed interface TsBinaryOperator {
             rhs: UExpr<out USort>,
             scope: TsStepScope,
         ): UBoolExpr? {
-            logger.warn { "Not implemented operator: Gt" }
-            scope.assert(falseExpr)
-            return null
+            check(lhs.isFakeObject() || rhs.isFakeObject())
+
+            val left = mkNumericExpr(lhs, scope)
+            val right = mkNumericExpr(rhs, scope)
+            return mkFpGreaterExpr(left, right)
         }
 
         override fun TsContext.internalResolve(
@@ -864,9 +870,11 @@ sealed interface TsBinaryOperator {
             rhs: UExpr<out USort>,
             scope: TsStepScope,
         ): UBoolExpr? {
-            logger.warn { "Not implemented operator: Gt" }
-            scope.assert(falseExpr)
-            return null
+            check(!lhs.isFakeObject() && !rhs.isFakeObject())
+
+            val left = mkNumericExpr(lhs, scope)
+            val right = mkNumericExpr(rhs, scope)
+            return mkFpGreaterExpr(left, right)
         }
     }
 
@@ -905,6 +913,7 @@ sealed interface TsBinaryOperator {
             scope: TsStepScope,
         ): UExpr<out USort> {
             check(lhs.isFakeObject() || rhs.isFakeObject())
+
             val left = mkNumericExpr(lhs, scope)
             val right = mkNumericExpr(rhs, scope)
             return mkFpMulExpr(fpRoundingModeSortDefaultValue(), left, right)
@@ -916,6 +925,7 @@ sealed interface TsBinaryOperator {
             scope: TsStepScope,
         ): UExpr<out USort> {
             check(!lhs.isFakeObject() && !rhs.isFakeObject())
+
             val left = mkNumericExpr(lhs, scope)
             val right = mkNumericExpr(rhs, scope)
             return mkFpMulExpr(fpRoundingModeSortDefaultValue(), left, right)
