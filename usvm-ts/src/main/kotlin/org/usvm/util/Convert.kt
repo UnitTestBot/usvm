@@ -283,13 +283,15 @@ fun EtsMethod.convert(
 ): TsMethod {
     val methodSignature = signature.convert(classSignature)
     val typeParameters = typeParameters.map { it.convert() }
+    val localType = locals.associate { convertLocal(it) to it.type.convert() }
     return TsMethodImpl(
         signature = methodSignature,
         typeParameters = typeParameters,
         modifiers = modifiers.convert(),
         decorators = emptyList(), // TODO: decorators
+        localType,
     ).also { method ->
-        method._cfg = cfg.convert(method)
+        method._cfg = cfg.convert(this, method)
     }
 }
 
@@ -464,12 +466,13 @@ private object TypeConverter : EtsType.Visitor<TsType> {
     }
 }
 
-fun EtsCfg.convert(method: TsMethod): TsBlockCfg {
-    val blockCfg = toBlockCfg()
+fun EtsCfg.convert(etsMethod: EtsMethod, method: TsMethod): TsBlockCfg {
+    logger.info("Converting CFG for method $method")
+    val blockCfg = toBlockCfg(etsMethod, method)
     return blockCfg.convert(method)
 }
 
-fun EtsCfg.toBlockCfg(): EtsBlockCfg {
+fun EtsCfg.toBlockCfg(etsMethod: EtsMethod, tsMethod: TsMethod): EtsBlockCfg {
     if (stmts.isEmpty()) {
         return EtsBlockCfg(emptyList(), emptyMap())
     }
@@ -521,7 +524,7 @@ fun EtsCfg.toBlockCfg(): EtsBlockCfg {
         val stmt = queue.removeFirst()
         if (visited.add(stmt)) {
             if (stmt in pivots) {
-                println("pivot at ${stmt.location.index}: $stmt")
+                logger.info("pivot at ${stmt.location.index}: $stmt")
                 block.statements.forEach { stmtToBlock[it] = block.id }
                 block = newBlock()
             }
@@ -543,9 +546,9 @@ fun EtsCfg.toBlockCfg(): EtsBlockCfg {
     }
 
     for (block in blocks) {
-        println("BLOCK ${block.id} with successors ${successors[block.id]} has ${block.statements.size} statements:")
+        logger.info("BLOCK ${block.id} with successors ${successors[block.id]} has ${block.statements.size} statements:")
         for (stmt in block.statements) {
-            println("  ${stmt.location.index}: $stmt")
+            logger.info("  ${stmt.location.index}: $stmt")
         }
     }
 
@@ -581,7 +584,7 @@ fun EtsBasicBlock.convert(method: TsMethod): TsBasicBlock {
         }
 
         override fun visit(value: EtsLocal): TsEntity {
-            return TsLocal(value.name)
+            return convertLocal(value)
         }
 
         override fun visit(value: EtsStringConstant): TsEntity {
@@ -613,13 +616,13 @@ fun EtsBasicBlock.convert(method: TsMethod): TsBasicBlock {
         }
 
         override fun visit(value: EtsArrayAccess): TsEntity {
-            val array = value.array.convert() as TsLocal
+            val array = convertLocal(value.array as EtsLocal)
             val index = value.index.convert() as TsValue
             return TsArrayAccess(array, index)
         }
 
         override fun visit(value: EtsInstanceFieldRef): TsEntity {
-            val instance = value.instance.convert() as TsLocal
+            val instance = convertLocal(value.instance)
             val fieldName = value.field.name
             return TsInstanceFieldRef(instance, fieldName)
         }
@@ -865,7 +868,7 @@ fun EtsBasicBlock.convert(method: TsMethod): TsBasicBlock {
         }
 
         override fun visit(expr: EtsInstanceCallExpr): TsEntity {
-            val instance = expr.instance.convert() as TsLocal
+            val instance = convertLocal(expr.instance)
             val method = expr.method.convert()
             val args = expr.args.map { ensureLocal(it.convert()) }
             return TsInstanceCallExpr(instance, method, args)
@@ -878,7 +881,7 @@ fun EtsBasicBlock.convert(method: TsMethod): TsBasicBlock {
         }
 
         override fun visit(expr: EtsPtrCallExpr): TsEntity {
-            val ptr = expr.ptr.convert() as TsLocal
+            val ptr = convertLocal(expr.ptr)
             val method = expr.method.convert()
             val args = expr.args.map { ensureLocal(it.convert()) }
             return TsPtrCallExpr(ptr, method, args)
@@ -937,4 +940,10 @@ fun EtsBasicBlock.convert(method: TsMethod): TsBasicBlock {
     this.statements.forEach { handle(it) }
 
     return TsBasicBlock(id, stmts)
+}
+
+fun convertLocal(local: EtsLocal): TsLocal {
+    return TsLocal(
+        name = local.name,
+    )
 }

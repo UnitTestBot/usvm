@@ -3,6 +3,7 @@ package org.usvm.machine.operator
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
+import mu.KotlinLogging
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
@@ -22,43 +23,45 @@ import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.types.single
 import org.usvm.util.boolToFp
 
+private val logger = KotlinLogging.logger {}
+
 sealed interface TsBinaryOperator {
 
     fun TsContext.onBool(
         lhs: UBoolExpr,
         rhs: UBoolExpr,
         scope: TsStepScope,
-    ): UExpr<out USort>
+    ): UExpr<out USort>?
 
     fun TsContext.onFp(
         lhs: UExpr<KFp64Sort>,
         rhs: UExpr<KFp64Sort>,
         scope: TsStepScope,
-    ): UExpr<out USort>
+    ): UExpr<out USort>?
 
     fun TsContext.onRef(
         lhs: UHeapRef,
         rhs: UHeapRef,
         scope: TsStepScope,
-    ): UExpr<out USort>
+    ): UExpr<out USort>?
 
     fun TsContext.resolveFakeObject(
         lhs: UExpr<out USort>,
         rhs: UExpr<out USort>,
         scope: TsStepScope,
-    ): UExpr<out USort>
+    ): UExpr<out USort>?
 
     fun TsContext.internalResolve(
         lhs: UExpr<out USort>,
         rhs: UExpr<out USort>,
         scope: TsStepScope,
-    ): UExpr<out USort>
+    ): UExpr<out USort>?
 
     fun TsContext.resolve(
         lhs: UExpr<out USort>,
         rhs: UExpr<out USort>,
         scope: TsStepScope,
-    ): UExpr<out USort> {
+    ): UExpr<out USort>? {
         val lhsValue = lhs.extractSingleValueFromFakeObjectOrNull(scope) ?: lhs
         val rhsValue = rhs.extractSingleValueFromFakeObjectOrNull(scope) ?: rhs
 
@@ -119,12 +122,8 @@ sealed interface TsBinaryOperator {
                         val lhsType = memory.typeStreamOf(lhs).single() as FakeType
                         val rhsType = memory.typeStreamOf(rhs).single() as FakeType
 
-                        scope.assert(
-                            mkAnd(
-                                lhsType.mkExactlyOneTypeConstraint(ctx),
-                                rhsType.mkExactlyOneTypeConstraint(ctx)
-                            )
-                        )
+                        scope.assert(lhsType.mkExactlyOneTypeConstraint(ctx))
+                        scope.assert(rhsType.mkExactlyOneTypeConstraint(ctx))
 
                         conjuncts += ExprWithTypeConstraint(
                             constraint = mkAnd(lhsType.boolTypeExpr, rhsType.boolTypeExpr),
@@ -295,7 +294,6 @@ sealed interface TsBinaryOperator {
 
                                 scope.assert(rhsType.refTypeExpr)
                                 // TODO: support objects
-
                             }
 
                             else -> error("Unsupported sort ${rhs.sort}")
@@ -485,8 +483,10 @@ sealed interface TsBinaryOperator {
             lhs: UExpr<out USort>,
             rhs: UExpr<out USort>,
             scope: TsStepScope,
-        ): UBoolExpr {
-            TODO("Not yet implemented")
+        ): UBoolExpr? {
+            logger.warn { "Not implemented operator: StrictEq" }
+            scope.assert(falseExpr)
+            return null
         }
     }
 
@@ -535,9 +535,9 @@ sealed interface TsBinaryOperator {
             lhs: UExpr<out USort>,
             rhs: UExpr<out USort>,
             scope: TsStepScope,
-        ): UBoolExpr {
+        ): UBoolExpr? {
             return with(StrictEq) {
-                internalResolve(lhs, rhs, scope).not()
+                internalResolve(lhs, rhs, scope)?.not()
             }
         }
     }
@@ -567,24 +567,28 @@ sealed interface TsBinaryOperator {
             lhs: UHeapRef,
             rhs: UHeapRef,
             scope: TsStepScope,
-        ): UExpr<out USort> {
-            TODO("Not yet implemented")
+        ): UExpr<out USort>? {
+            logger.warn { "Not implemented operator: Add" }
+            scope.assert(falseExpr)
+            return null
         }
 
         override fun TsContext.resolveFakeObject(
             lhs: UExpr<out USort>,
             rhs: UExpr<out USort>,
             scope: TsStepScope,
-        ): UExpr<out USort> {
+        ): UExpr<out USort>? {
             check(lhs.isFakeObject() || rhs.isFakeObject())
-            TODO("Not yet implemented")
+            logger.warn { "Not implemented operator: Add" }
+            scope.assert(falseExpr)
+            return null
         }
 
         override fun TsContext.internalResolve(
             lhs: UExpr<out USort>,
             rhs: UExpr<out USort>,
             scope: TsStepScope,
-        ): UExpr<out USort> {
+        ): UExpr<out USort>? {
             check(!lhs.isFakeObject() && !rhs.isFakeObject())
 
             // TODO support string concatenation
@@ -610,7 +614,9 @@ sealed interface TsBinaryOperator {
 
             // TODO: support object to primitive
 
-            TODO()
+            logger.warn { "Not implemented operator: Add" }
+            scope.assert(falseExpr)
+            return null
         }
     }
 
@@ -635,24 +641,30 @@ sealed interface TsBinaryOperator {
             lhs: UHeapRef,
             rhs: UHeapRef,
             scope: TsStepScope,
-        ): UExpr<out USort> {
-            TODO("Not yet implemented")
+        ): UExpr<out USort>? {
+            logger.warn { "Not implemented operator: Sub" }
+            scope.assert(falseExpr)
+            return null
         }
 
         override fun TsContext.resolveFakeObject(
             lhs: UExpr<out USort>,
             rhs: UExpr<out USort>,
             scope: TsStepScope,
-        ): UExpr<out USort> {
-            TODO("Not yet implemented")
+        ): UExpr<out USort>? {
+            logger.warn { "Not implemented operator: Sub" }
+            scope.assert(falseExpr)
+            return null
         }
 
         override fun TsContext.internalResolve(
             lhs: UExpr<out USort>,
             rhs: UExpr<out USort>,
             scope: TsStepScope,
-        ): UExpr<out USort> {
-            TODO("Not yet implemented")
+        ): UExpr<out USort>? {
+            logger.warn { "Not implemented operator: Sub" }
+            scope.assert(falseExpr)
+            return null
         }
     }
 
@@ -781,24 +793,30 @@ sealed interface TsBinaryOperator {
             lhs: UHeapRef,
             rhs: UHeapRef,
             scope: TsStepScope,
-        ): UBoolExpr {
-            TODO("Not yet implemented")
+        ): UBoolExpr? {
+            logger.warn { "Not implemented operator: Lt" }
+            scope.assert(falseExpr)
+            return null
         }
 
         override fun TsContext.resolveFakeObject(
             lhs: UExpr<out USort>,
             rhs: UExpr<out USort>,
             scope: TsStepScope,
-        ): UBoolExpr {
-            TODO("Not yet implemented")
+        ): UBoolExpr? {
+            logger.warn { "Not implemented operator: Lt" }
+            scope.assert(falseExpr)
+            return null
         }
 
         override fun TsContext.internalResolve(
             lhs: UExpr<out USort>,
             rhs: UExpr<out USort>,
             scope: TsStepScope,
-        ): UBoolExpr {
-            TODO("Not yet implemented")
+        ): UBoolExpr? {
+            logger.warn { "Not implemented operator: Lt" }
+            scope.assert(falseExpr)
+            return null
         }
     }
 
@@ -823,24 +841,30 @@ sealed interface TsBinaryOperator {
             lhs: UHeapRef,
             rhs: UHeapRef,
             scope: TsStepScope,
-        ): UExpr<out USort> {
-            TODO("Not yet implemented")
+        ): UExpr<out USort>? {
+            logger.warn { "Not implemented operator: Gt" }
+            scope.assert(falseExpr)
+            return null
         }
 
         override fun TsContext.resolveFakeObject(
             lhs: UExpr<out USort>,
             rhs: UExpr<out USort>,
             scope: TsStepScope,
-        ): UBoolExpr {
-            TODO("Not yet implemented")
+        ): UBoolExpr? {
+            logger.warn { "Not implemented operator: Gt" }
+            scope.assert(falseExpr)
+            return null
         }
 
         override fun TsContext.internalResolve(
             lhs: UExpr<out USort>,
             rhs: UExpr<out USort>,
             scope: TsStepScope,
-        ): UBoolExpr {
-            TODO("Not yet implemented")
+        ): UBoolExpr? {
+            logger.warn { "Not implemented operator: Gt" }
+            scope.assert(falseExpr)
+            return null
         }
     }
 

@@ -21,9 +21,9 @@ class FakeType(
 
     fun mkExactlyOneTypeConstraint(ctx: TsContext): UBoolExpr = with(ctx) {
         return mkAnd(
-            mkImplies(boolTypeExpr, fpTypeExpr.not()),
-            mkImplies(boolTypeExpr, refTypeExpr.not()),
-            mkImplies(fpTypeExpr, refTypeExpr.not()),
+            mkImplies(boolTypeExpr, mkNot(fpTypeExpr)),
+            mkImplies(boolTypeExpr, mkNot(refTypeExpr)),
+            mkImplies(fpTypeExpr, mkNot(refTypeExpr)),
             mkOr(boolTypeExpr, fpTypeExpr, refTypeExpr),
         )
     }

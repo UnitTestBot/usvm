@@ -9,6 +9,8 @@ interface TsMethod : Base {
 
     val enclosingClass: TsClass?
 
+    fun getLocalType(local: TsLocal): TsType
+
     val name: String
         get() = signature.name
 
@@ -24,6 +26,7 @@ class TsMethodImpl(
     override val typeParameters: List<TsType> = emptyList(),
     override val modifiers: TsModifiers = TsModifiers.EMPTY,
     override val decorators: List<TsDecorator> = emptyList(),
+    val localType: Map<TsLocal, TsType> = emptyMap(),
 ) : TsMethod {
     var _cfg: TsBlockCfg? = null
 
@@ -31,6 +34,13 @@ class TsMethodImpl(
         get() = _cfg ?: TsBlockCfg.EMPTY
 
     override var enclosingClass: TsClass? = null
+
+    override fun getLocalType(local: TsLocal): TsType {
+        if (local.name == "this") {
+            return TsClassType(signature = signature.enclosingClass)
+        }
+        return localType[local] ?: TsUnknownType
+    }
 
     override fun toString(): String {
         return signature.toString()

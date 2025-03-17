@@ -258,7 +258,10 @@ class TsExprResolver(
 
     override fun visit(expr: TsTypeOfExpr): UExpr<out USort>? {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+        // error("Not supported $expr")
+        logger.warn { "stop" }
+        scope.assert(ctx.falseExpr)
+        return null
     }
 
     override fun visit(expr: TsDeleteExpr): UExpr<out USort>? {
@@ -515,7 +518,8 @@ class TsExprResolver(
         }
 
         // Unknown signature:
-        val instanceType = TsUnknownType // TODO: instance.type
+        // val instanceType = TsUnknownType // TODO: instance.type
+        val instanceType  = scope.calcOnState { lastEnteredMethod }.getLocalType(instance)
         if (instanceType is TsClassType) {
             val classes = ctx.scene.projectAndSdkClasses
                 .filter { it.name == instanceType.signature.name }
@@ -628,12 +632,12 @@ class TsExprResolver(
             isSigned = true
         )
 
+        val elementType = scope.calcOnState { lastEnteredMethod.getLocalType(value.array) }
         val lValue = mkArrayIndexLValue(
             addressSort,
             instance,
             bvIndex.asExpr(ctx.sizeSort),
-            // value.array.type as TsArrayType
-            TsArrayType(TsUnknownType, 1), // TODO: fix array type
+            TsArrayType(elementType, 1),
         )
         val expr = scope.calcOnState { memory.read(lValue) }
 
@@ -816,7 +820,7 @@ class TsExprResolver(
                 blockOnFalseState = allocateException(TsStringType) // TODO incorrect exception type
             )
 
-            val type = TsArrayType(TsUnknownType, 1) // TODO: expr.type
+            val type = TsArrayType(TsUnknownType, 1) // TODO: fix array element type
             val address = memory.allocateArray(type, sizeSort, bvSize)
             memory.types.allocate(address.address, type)
 
@@ -844,7 +848,9 @@ class TsSimpleValueResolver(
 
         val localIdx = localToIdx(currentMethod, local)
         val sort = scope.calcOnState {
-            getOrPutSortForLocal(localIdx, TsUnknownType) // TODO: local.type
+            val method = lastEnteredMethod
+            val type = if (local is TsLocal) method.getLocalType(local) else TsUnknownType
+            getOrPutSortForLocal(localIdx, type)
         }
 
         // If we are not in the entrypoint, all correct values are already resolved and we can just return
