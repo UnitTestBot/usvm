@@ -529,7 +529,7 @@ class TsExprResolver(
 
         // Unknown signature:
         // val instanceType = TsUnknownType // TODO: instance.type
-        val instanceType  = scope.calcOnState { lastEnteredMethod }.getLocalType(instance)
+        val instanceType = scope.calcOnState { lastEnteredMethod }.getLocalType(instance)
         if (instanceType is TsClassType) {
             val classes = ctx.scene.projectAndSdkClasses
                 .filter { it.name == instanceType.signature.name }
@@ -633,20 +633,20 @@ class TsExprResolver(
     // region ACCESS
 
     override fun visit(value: TsArrayAccess): UExpr<out USort>? = with(ctx) {
-        val instance = resolve(value.array)?.asExpr(ctx.addressSort) ?: return null
-        val index = resolve(value.index)?.asExpr(ctx.fp64Sort) ?: return null
+        val instance = resolve(value.array)?.asExpr(addressSort) ?: return null
+        val index = resolve(value.index)?.asExpr(fp64Sort) ?: return null
         val bvIndex = mkFpToBvExpr(
             roundingMode = fpRoundingModeSortDefaultValue(),
             value = index,
             bvSize = 32,
             isSigned = true
-        )
+        ).asExpr(sizeSort)
 
         val elementType = scope.calcOnState { lastEnteredMethod.getLocalType(value.array) }
         val lValue = mkArrayIndexLValue(
             addressSort,
             instance,
-            bvIndex.asExpr(ctx.sizeSort),
+            bvIndex,
             TsArrayType(elementType, 1),
         )
         val expr = scope.calcOnState { memory.read(lValue) }
