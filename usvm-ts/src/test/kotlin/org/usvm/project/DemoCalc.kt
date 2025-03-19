@@ -56,11 +56,14 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
         //         (method as EtsMethodImpl)._cfg = scene.fixEnums(method.cfg)
         //     }
         // }
-        val methods = scene.projectClasses.flatMap {
-            it.methods
-                .filterNot { it.cfg.stmts.isEmpty() }
-                .filterNot { it.isStatic }
-        }
+        val methods = scene.projectClasses
+            .filterNot { it.name.startsWith("%AC") }
+            .flatMap {
+                it.methods
+                    .filterNot { it.cfg.stmts.isEmpty() }
+                    .filterNot { it.isStatic }
+                    .filterNot { it.name.startsWith("%AM") }
+            }
         TsMachine(scene, options).use { machine ->
             val states = machine.analyze(methods)
             states.let {}
