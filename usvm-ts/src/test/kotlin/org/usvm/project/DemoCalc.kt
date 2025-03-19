@@ -51,11 +51,6 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
 
     @Test
     fun `test run on all methods`() {
-        // for (clazz in scene.projectAndSdkClasses) {
-        //     for (method in clazz.methods) {
-        //         (method as EtsMethodImpl)._cfg = scene.fixEnums(method.cfg)
-        //     }
-        // }
         val methods = scene.projectClasses
             .filterNot { it.name.startsWith("%AC") }
             .flatMap {
