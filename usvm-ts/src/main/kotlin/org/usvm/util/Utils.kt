@@ -26,5 +26,5 @@ val TsClass.type: TsClassType
 val TsMethod.humanReadableSignature: String
     get() {
         val params = parameters.joinToString(",") { it.type.toString() }
-        return "${signature.enclosingClass.name}#$name($params):${returnType}"
+        return "${signature.enclosingClass.name}::$name($params):$returnType"
     }
