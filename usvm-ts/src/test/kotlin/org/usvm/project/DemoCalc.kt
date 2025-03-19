@@ -29,7 +29,7 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
             println("CLASS: ${clazz.name} in ${clazz.signature.file}")
             for (method in clazz.methods) {
                 println()
-                println("METHOD: ${clazz.name}::${method.name} (${method.parameters.joinToString()})")
+                println("METHOD: ${clazz.name}::${method.name}(${method.parameters.joinToString()})")
                 if (method.cfg.stmts.isEmpty()) {
                     println("CFG is empty")
                     continue
