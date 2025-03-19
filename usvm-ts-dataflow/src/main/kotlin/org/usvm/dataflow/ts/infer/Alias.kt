@@ -475,7 +475,7 @@ class MethodAliasInfoImpl(
         postOrderDfs(root)
         order.reverse()
 
-        fun computePreAliases(stmt: EtsStmt): StmtAliasInfoImpl {
+        fun computePreAliases(stmt: EtsStmt): StmtAliasInfo {
             if (stmt in preAliases) return preAliases.getValue(stmt)
 
             val merged = preds[stmt]
@@ -491,13 +491,13 @@ class MethodAliasInfoImpl(
             return merged
         }
 
-        val aliases = Array<StmtAliasInfoImpl?>(method.cfg.stmts.size) { null }
+        val aliases = Array<StmtAliasInfo?>(method.cfg.stmts.size) { null }
         for (stmt in order) {
             aliases[stmt.location.index] = computePreAliases(stmt)
         }
 
         assert(!aliases.contains(null))
-        return (aliases as Array<StmtAliasInfoImpl>).toList()
+        return (aliases as Array<StmtAliasInfo>).toList()
     }
 }
 
