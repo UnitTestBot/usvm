@@ -42,7 +42,7 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
                             method.getDeclaredLocals().sortedBy { it.name }
                         }"
                     )
-                    continue
+                    // continue
                 }
                 discoverProperties<TsTestValue>(method = method)
             }
