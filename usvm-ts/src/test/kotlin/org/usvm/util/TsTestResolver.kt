@@ -209,7 +209,7 @@ open class TsTestStateResolver(
                 resolveTsValue(heapRef, finalStateMemoryRef, finalType)
             }
 
-            else -> error("Unexpected type: $type")
+            else -> error("Unexpected type ${type::class.simpleName}: $type")
         }
     }
 
