@@ -98,6 +98,7 @@ data class TsMethodParameter(
     val name: String,
     val type: TsType,
     val isOptional: Boolean = false,
+    val isRest: Boolean = false,
 ) {
     override fun toString(): String {
         return "$name${if (isOptional) "?" else ""}: $type"

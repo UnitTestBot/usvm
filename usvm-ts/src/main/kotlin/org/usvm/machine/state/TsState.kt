@@ -3,6 +3,7 @@ package org.usvm.machine.state
 import org.usvm.PathNode
 import org.usvm.UCallStack
 import org.usvm.UConcreteHeapRef
+import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.UState
 import org.usvm.api.targets.TsTarget
@@ -49,16 +50,21 @@ class TsState(
     forkPoints = forkPoints,
     targets = targets,
 ) {
-    fun getOrPutSortForLocal(localIdx: Int, localType: TsType): USort {
+    fun getSortForLocal(idx: Int): USort? {
         val localToSort = localToSortStack.last()
-        val (updated, result) = localToSort.getOrPut(localIdx, ownership) { ctx.typeToSort(localType) }
+        return localToSort[idx]
+    }
+
+    fun getOrPutSortForLocal(idx: Int, localType: TsType): USort {
+        val localToSort = localToSortStack.last()
+        val (updated, result) = localToSort.getOrPut(idx, ownership) { ctx.typeToSort(localType) }
         localToSortStack[localToSortStack.lastIndex] = updated
         return result
     }
 
-    fun saveSortForLocal(localIdx: Int, sort: USort) {
+    fun saveSortForLocal(idx: Int, sort: USort) {
         val localToSort = localToSortStack.last()
-        val updated = localToSort.put(localIdx, sort, ownership)
+        val updated = localToSort.put(idx, sort, ownership)
         localToSortStack[localToSortStack.lastIndex] = updated
     }
 
@@ -70,10 +76,15 @@ class TsState(
         localToSortStack.removeLast()
     }
 
-    fun pushSortsForArguments(instance: TsLocal?, args: List<TsValue>, localToIdx: (TsMethod, TsValue) -> Int) {
+    fun pushSortsForArguments(
+        instance: TsLocal?,
+        args: List<TsLocal>,
+        localToIdx: (TsMethod, TsValue) -> Int,
+    ) {
         val argSorts = args.map { arg ->
-            val localIdx = localToIdx(lastEnteredMethod, arg)
-            getOrPutSortForLocal(localIdx, TsUnknownType) // TODO: arg.type
+            val idx = localToIdx(lastEnteredMethod, arg)
+            // getOrPutSortForLocal(idx, TsUnknownType) // TODO: arg.type
+            getSortForLocal(idx) ?: ctx.unresolvedSort
         }
 
         val instanceIdx = instance?.let { localToIdx(lastEnteredMethod, it) }
@@ -85,6 +96,16 @@ class TsState(
             saveSortForLocal(index, sort)
         }
         instanceSort?.let { saveSortForLocal(args.size, it) }
+    }
+
+    fun pushSortsForActualArguments(
+        arguments: List<UExpr<out USort>>,
+    ) {
+        pushLocalToSortStack()
+        arguments.forEachIndexed { index, arg ->
+            val idx = index
+            saveSortForLocal(idx, arg.sort)
+        }
     }
 
     fun getStaticInstance(clazz: TsClass): UConcreteHeapRef {

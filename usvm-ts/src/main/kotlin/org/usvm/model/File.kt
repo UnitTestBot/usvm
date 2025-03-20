@@ -5,6 +5,13 @@ class TsFile(
     val classes: List<TsClass>,
     val namespaces: List<TsNamespace>,
 ) {
+    init {
+        classes.forEach { (it as TsClassImpl).declaringFile = this }
+        namespaces.forEach { it.declaringFile = this }
+    }
+
+    var scene: TsScene? = null
+
     val name: String
         get() = signature.fileName
     val projectName: String

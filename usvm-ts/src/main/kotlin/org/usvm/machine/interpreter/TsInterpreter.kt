@@ -1,8 +1,10 @@
 package org.usvm.machine.interpreter
 
 import io.ksmt.utils.asExpr
+import mu.KotlinLogging
 import org.usvm.StepResult
 import org.usvm.StepScope
+import org.usvm.UBoolExpr
 import org.usvm.UInterpreter
 import org.usvm.api.targets.TsTarget
 import org.usvm.collections.immutable.internal.MutabilityOwnership
@@ -29,6 +31,7 @@ import org.usvm.model.TsCallStmt
 import org.usvm.model.TsClassSignature
 import org.usvm.model.TsFieldSignature
 import org.usvm.model.TsIfStmt
+import org.usvm.model.TsInstLocation
 import org.usvm.model.TsInstanceFieldRef
 import org.usvm.model.TsLocal
 import org.usvm.model.TsMethod
@@ -49,7 +52,10 @@ import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
 import org.usvm.util.resolveTsFields
+import org.usvm.util.resolveTsMethods
 import org.usvm.utils.ensureSat
+
+private val logger = KotlinLogging.logger {}
 
 typealias TsStepScope = StepScope<TsState, TsType, TsStmt, TsContext>
 
@@ -102,23 +108,29 @@ class TsInterpreter(
 
         when (stmt) {
             is TsVirtualMethodCallStmt -> {
-                // val methods = resolveTsMethods(expr.instance, expr.method)
-                // if (methods.isEmpty()) {
-                //     scope.assert(falseExpr)
-                //     return null
-                // }
-                //
-                // val conditionsWithBlocks: MutableList<Pair<UBoolExpr, TsState.() -> Unit>> = mutableListOf()
-                //
-                // for (method in methods) {
-                //     val block = { newState: TsState ->
-                //         val concreteCall = TsConcreteMethodCallStmt(method)
-                //         newState.newStmt(concreteCall)
-                //     }
-                // }
-                //
-                // // TODO: fork on multiple methods
-                // scope.forkMulti(conditionsWithBlocks)
+                val methods = ctx.resolveTsMethods(stmt.callee)
+                if (methods.isEmpty()) {
+                    scope.assert(ctx.falseExpr)
+                    return
+                }
+
+                val conditionsWithBlocks: MutableList<Pair<UBoolExpr, TsState.() -> Unit>> = mutableListOf()
+
+                for (method in methods) {
+                    val block = { newState: TsState ->
+                        val concreteCall = TsConcreteMethodCallStmt(
+                            location = TsInstLocation(scope.calcOnState { lastEnteredMethod }, -1),
+                            callee = method,
+                            arguments = stmt.arguments,
+                            returnSite = stmt.returnSite,
+                        )
+                        newState.newStmt(concreteCall)
+                    }
+                    conditionsWithBlocks += ctx.trueExpr to block
+                }
+
+                // TODO: fork on multiple methods
+                scope.forkMulti(conditionsWithBlocks)
             }
 
             is TsConcreteMethodCallStmt -> {
@@ -128,17 +140,11 @@ class TsInterpreter(
                 val entryPoint = graph.entryPoints(stmt.callee).singleOrNull()
 
                 if (entryPoint == null) {
-                    // TODO: mock
+                    logger.warn { "No entry point for method ${stmt.callee}" }
                     return
                 }
 
                 scope.doWithState {
-                    // check(args.size == method.parametersWithThisCount)
-                    // pushSortsForArguments(null, stmt.arguments, ::mapLocalToIdx)
-                    // callStack.push(method, currentStatement)
-                    // memory.stack.push(args.toTypedArray(), method.localsCount)
-                    // newStmt(method.cfg.stmts.first())
-
                     check(stmt.arguments.size == stmt.callee.parametersWithThisCount) {
                         "Arguments size should be equal to the method parameters size"
                     }
@@ -297,6 +303,7 @@ class TsInterpreter(
 
     private fun visitCallStmt(scope: TsStepScope, stmt: TsCallStmt) {
         val exprResolver = exprResolverWithScope(scope)
+
         exprResolver.resolve(stmt.expr) ?: return
 
         scope.doWithState {
@@ -321,10 +328,10 @@ class TsInterpreter(
             // Note: locals have indices starting from (n+1)
             is TsLocal -> {
                 val map = localVarToIdx.getOrPut(method) {
-                    // method.getDeclaredLocals().mapIndexed { idx, local ->
-                    method.allLocals.mapIndexed { idx, local ->
-                        val localIdx = idx + method.parametersWithThisCount
-                        local.name to localIdx
+                    // TODO: replace 'allLocals' with 'getDeclaredLocals()'
+                    method.allLocals.mapIndexed { i, local ->
+                        val idx = i + method.parametersWithThisCount
+                        local.name to idx
                     }.toMap().also {
                         check(it.size == method.localsCount)
                     }

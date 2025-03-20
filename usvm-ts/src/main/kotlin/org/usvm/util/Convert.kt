@@ -253,7 +253,7 @@ fun EtsClass.convert(
 ): TsClass {
     val classSignature = signature.convert(fileSignature, namespaceSignature)
     val fields = fields.map { field -> field.convert(classSignature) }
-    val methods = methods.map { method -> method.convert(classSignature) }
+    val methods = (methods + ctor).map { method -> method.convert(classSignature) }
     val typeParameters = typeParameters.map { it.convert() }
     return TsClassImpl(
         signature = classSignature,
@@ -303,6 +303,7 @@ fun EtsMethodParameter.convert(): TsMethodParameter {
         name = name,
         type = type.convert(),
         isOptional = isOptional,
+        isRest = isRest,
     )
 }
 

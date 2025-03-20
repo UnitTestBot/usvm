@@ -12,6 +12,7 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.allocateArray
+import org.usvm.api.allocateArrayInitialized
 import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsVirtualMethodCallStmt
@@ -39,12 +40,14 @@ import org.usvm.model.TsBitOrExpr
 import org.usvm.model.TsBitXorExpr
 import org.usvm.model.TsBooleanConstant
 import org.usvm.model.TsCastExpr
+import org.usvm.model.TsClassSignature
 import org.usvm.model.TsClassType
 import org.usvm.model.TsDeleteExpr
 import org.usvm.model.TsDivExpr
 import org.usvm.model.TsEntity
 import org.usvm.model.TsEqExpr
 import org.usvm.model.TsExpExpr
+import org.usvm.model.TsFileSignature
 import org.usvm.model.TsGtEqExpr
 import org.usvm.model.TsGtExpr
 import org.usvm.model.TsInExpr
@@ -440,48 +443,39 @@ class TsExprResolver(
 
     override fun visit(expr: TsInstanceCallExpr): UExpr<out USort>? = with(ctx) {
         if (expr.instance.name == "Number") {
-            if (expr.method.name == "isNaN") {
+            if (expr.callee.name == "isNaN") {
                 return resolveAfterResolved(expr.args.single()) { arg ->
                     handleNumberIsNaN(arg)
                 }
             }
         }
 
+        if (expr.callee.name == "toString") {
+            return mkFp64(42.0)
+        }
+
         resolveInvoke(
+            method = expr.callee,
             instance = expr.instance,
-            arguments = expr.args,
-        ) { args ->
+            args = expr.args,
+        ) { arguments ->
             doWithState {
                 // TODO: fix sorts for arguments - they should be pushed not here, but when the MethodCallStmt is handled
-                pushSortsForArguments(expr.instance, expr.args, localToIdx)
+                // pushSortsForArguments(expr.instance, expr.args, localToIdx)
+                pushSortsForActualArguments(arguments)
                 val virtualCall = TsVirtualMethodCallStmt(
                     location = lastStmt.location,
-                    callee = expr.method,
-                    arguments = args,
+                    callee = expr.callee,
+                    arguments = arguments,
                     returnSite = lastStmt,
                 )
                 newStmt(virtualCall)
             }
         }
-
-        //     resolveInvoke(
-        //         method = expr.method,
-        //         instance = expr.instance,
-        //         arguments = { expr.args },
-        //         argumentTypes = { expr.method.parameters.map { it.type } },
-        //     ) { args ->
-        //         doWithState {
-        //             check(args.size == method.parametersWithThisCount)
-        //             pushSortsForArguments(expr.instance, expr.args, localToIdx)
-        //             callStack.push(method, currentStatement)
-        //             memory.stack.push(args.toTypedArray(), method.localsCount)
-        //             newStmt(method.cfg.stmts.first())
-        //         }
-        //     }
     }
 
     override fun visit(expr: TsStaticCallExpr): UExpr<out USort>? = with(ctx) {
-        if (expr.method.name == "Number" && expr.method.enclosingClass.name == "") {
+        if (expr.callee.name == "Number" && expr.callee.enclosingClass.name == "") {
             check(expr.args.size == 1) { "Number constructor should have exactly one argument" }
             return resolveAfterResolved(expr.args.single()) {
                 mkNumericExpr(it, scope)
@@ -489,20 +483,22 @@ class TsExprResolver(
         }
 
         resolveInvoke(
+            method = expr.callee,
             instance = null,
-            arguments = expr.args,
-        ) { args ->
-            val method = resolveStaticCall(expr.method) ?: run {
-                logger.error { "Could not resolve static call: ${expr.method}" }
+            args = expr.args,
+        ) { arguments ->
+            val method = resolveStaticCall(expr.callee) ?: run {
+                logger.error { "Could not resolve static call: ${expr.callee}" }
                 scope.assert(falseExpr)
                 return null
             }
             doWithState {
-                pushSortsForArguments(null, expr.args, localToIdx)
+                // pushSortsForArguments(null, expr.args, localToIdx)
+                pushSortsForActualArguments(arguments)
                 val concreteCall = TsConcreteMethodCallStmt(
                     location = lastStmt.location,
                     callee = method,
-                    arguments = args,
+                    arguments = arguments,
                     returnSite = lastStmt,
                 )
                 newStmt(concreteCall)
@@ -577,29 +573,93 @@ class TsExprResolver(
     }
 
     private inline fun resolveInvoke(
+        method: TsMethodSignature,
         instance: TsLocal?,
-        arguments: List<TsValue>,
+        args: List<TsValue>,
         onNoCallPresent: TsStepScope.(List<UExpr<out USort>>) -> Unit,
     ): UExpr<out USort>? {
         val instanceExpr = if (instance != null) {
             val resolved = resolve(instance) ?: return null
             if (resolved.sort != ctx.addressSort) {
                 // TODO: handle "<number>.toString()" and similar calls on non-ref instances
-                logger.warn { "Calling method on non-ref instance is not yet supported" }
-                scope.assert(ctx.falseExpr)
-                return null
+                // logger.warn { "Calling method on non-ref instance is not yet supported" }
+                // scope.assert(ctx.falseExpr)
+                // return null
+                // ctx.mkNumericExpr(resolved, scope)
+                scope.calcOnState {
+                    val numberType = TsClassType(
+                        TsClassSignature(
+                            name = "Number",
+                            file = TsFileSignature.UNKNOWN
+                        )
+                    )
+                    val x = memory.allocConcrete(numberType)
+                    // TODO:  val lValue = "x.value"
+                    // TODO memory.write(lValue, mkNumeric)
+                    x
+                }
+            } else {
+                resolved.asExpr(ctx.addressSort)
             }
-            resolved.asExpr(ctx.addressSort)
         } else {
             null
         }
 
-        val argumentExprs = mutableListOf<UExpr<out USort>>()
+        val resolvedArgs = args.map { resolve(it) ?: return null }
 
-        for (arg in arguments) {
-            val resolved = resolve(arg) ?: return null
-            argumentExprs += resolved
+        // function f(x: any, ...args: any[]) {}
+        // f(1, 2, 3) -> f(1, [2, 3])
+        // f(1, 2) -> f(1, [2])
+        // f(1) -> f(1, [])
+        // f() -> f(undefined, [])
+
+        // function g(x: any, y: any) {}
+        // g(1, 2) -> g(1, 2)
+        // g(1) -> g(1, undefined)
+        // g() -> g(undefined, undefined)
+        // g(1, 2, 3) -> g(1, 2)
+
+        val arguments = mutableListOf<UExpr<out USort>>()
+        val numActual = resolvedArgs.size
+        val numFormal = method.parameters.size
+
+        if (method.parameters.isNotEmpty() && method.parameters.last().isRest) {
+            // vararg call
+
+            // first n-1 args are normal
+            arguments += resolvedArgs.take(numFormal - 1)
+
+            // fill with undefined
+            repeat(numFormal - 1 - numActual) {
+                arguments += ctx.mkUndefinedValue()
+            }
+
+            // wrap rest args in array
+            val content = resolvedArgs.drop(numFormal - 1).map {
+                with(ctx) { it.toFakeObject(scope) }
+            }
+            val array = scope.calcOnState {
+                memory.allocateArrayInitialized(
+                    type = TsArrayType(TsUnknownType, 1),
+                    sort = ctx.addressSort,
+                    sizeSort = ctx.sizeSort,
+                    contents = content.asSequence(),
+                )
+            }
+            arguments += array
+        } else {
+            // normal call
+
+            // ignore extra args
+            arguments += resolvedArgs.take(numFormal)
+
+            // fill with undefined
+            repeat(numFormal - numActual) {
+                arguments += ctx.mkUndefinedValue()
+            }
         }
+
+        check(arguments.size == method.parameters.size)
 
         // Note: currently, 'this' has index 'n', so we must add it LAST, *after* all other arguments.
         // See `TsInterpreter::mapLocalToIdx`.
@@ -607,19 +667,13 @@ class TsExprResolver(
             // TODO: checkNullPointer(instanceRef) ?: return null
             // TODO: if (!assertIsSubtype(instanceRef, method.enclosingType)) return null
 
-            argumentExprs += instanceExpr
+            arguments += instanceExpr
         }
 
-        return resolveInvokeNoStaticInitializationCheck { onNoCallPresent(argumentExprs) }
-    }
-
-    private inline fun resolveInvokeNoStaticInitializationCheck(
-        onNoCallPresent: TsStepScope.() -> Unit,
-    ): UExpr<out USort>? {
         val result = scope.calcOnState { methodResult }
         return when (result) {
             is TsMethodResult.NoCall -> {
-                scope.onNoCallPresent()
+                scope.onNoCallPresent(arguments)
                 null
             }
 
@@ -630,7 +684,9 @@ class TsExprResolver(
                 result.value
             }
 
-            is TsMethodResult.TsException -> error("Exception should be handled earlier")
+            is TsMethodResult.TsException -> {
+                error("Exception should be handled earlier")
+            }
         }
     }
 
@@ -862,38 +918,37 @@ class TsSimpleValueResolver(
         val currentMethod = scope.calcOnState { lastEnteredMethod }
         val entrypoint = scope.calcOnState { entrypoint }
 
-        val localIdx = localToIdx(currentMethod, local)
+        val idx = localToIdx(currentMethod, local)
         val sort = scope.calcOnState {
-            val method = lastEnteredMethod
-            val type = if (local is TsLocal) method.getLocalType(local) else TsUnknownType
-            getOrPutSortForLocal(localIdx, type)
+            val type = if (local is TsLocal) currentMethod.getLocalType(local) else TsUnknownType
+            getOrPutSortForLocal(idx, type)
         }
 
         // If we are not in the entrypoint, all correct values are already resolved and we can just return
         // a registerStackLValue for the local
         if (currentMethod != entrypoint) {
-            return mkRegisterStackLValue(sort, localIdx)
+            return mkRegisterStackLValue(sort, idx)
         }
 
         // arguments and this for the first stack frame
         return when (sort) {
-            is UBoolSort -> mkRegisterStackLValue(sort, localIdx)
-            is KFp64Sort -> mkRegisterStackLValue(sort, localIdx)
-            is UAddressSort -> mkRegisterStackLValue(sort, localIdx)
+            is UBoolSort -> mkRegisterStackLValue(sort, idx)
+            is KFp64Sort -> mkRegisterStackLValue(sort, idx)
+            is UAddressSort -> mkRegisterStackLValue(sort, idx)
             is TsUnresolvedSort -> {
                 if (local is TsLocal) {
-                    return@with mkRegisterStackLValue(addressSort, localIdx)
+                    return@with mkRegisterStackLValue(addressSort, idx)
                 }
 
                 check(local is TsThis || local is TsParameterRef) {
                     "Only This and ParameterRef are expected here"
                 }
 
-                val lValue = mkRegisterStackLValue(addressSort, localIdx)
+                val lValue = mkRegisterStackLValue(addressSort, idx)
 
-                val boolRValue = mkRegisterReading(localIdx, boolSort)
-                val fpRValue = mkRegisterReading(localIdx, fp64Sort)
-                val refRValue = mkRegisterReading(localIdx, addressSort)
+                val boolRValue = mkRegisterReading(idx, boolSort)
+                val fpRValue = mkRegisterReading(idx, fp64Sort)
+                val refRValue = mkRegisterReading(idx, addressSort)
 
                 val fakeObject = mkFakeValue(scope, boolRValue, fpRValue, refRValue)
                 scope.calcOnState {

@@ -85,14 +85,17 @@ class TsBlockCfg(
     }
 }
 
-private fun TsStmt.toDotLabel() = when (this) {
-    is TsNopStmt -> "nop"
-    is TsAssignStmt -> "$lhv := $rhv"
-    is TsReturnStmt -> "return $returnValue"
-    is TsIfStmt -> "if ($condition)"
-    is TsCallStmt -> "call $expr"
-    is TsRawStmt -> "raw $kind"
-    else -> error("Unsupported statement: $this")
+private fun TsStmt.toDotLabel(): String {
+    val label = when (this) {
+        is TsNopStmt -> "nop"
+        is TsAssignStmt -> "$lhv := $rhv"
+        is TsReturnStmt -> "return $returnValue"
+        is TsIfStmt -> "if ($condition)"
+        is TsCallStmt -> "call $expr"
+        is TsRawStmt -> "raw $kind"
+        else -> error("Unsupported statement: $this")
+    }
+    return label.replace("\"", "\\\"")
 }
 
 fun TsBlockCfg.toDot(): String {

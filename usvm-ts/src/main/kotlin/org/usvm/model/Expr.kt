@@ -646,17 +646,17 @@ data class TsOrExpr(
 }
 
 interface TsCallExpr : TsExpr {
-    val method: TsMethodSignature
+    val callee: TsMethodSignature
     val args: List<TsLocal>
 }
 
 data class TsInstanceCallExpr(
     val instance: TsLocal,
-    override val method: TsMethodSignature,
+    override val callee: TsMethodSignature,
     override val args: List<TsLocal>,
 ) : TsCallExpr {
     override fun toString(): String {
-        return "$instance.${method.name}(${args.joinToString()})"
+        return "$instance.${callee.name}(${args.joinToString()})"
     }
 
     override fun <R> accept(visitor: TsExpr.Visitor<R>): R {
@@ -665,11 +665,11 @@ data class TsInstanceCallExpr(
 }
 
 data class TsStaticCallExpr(
-    override val method: TsMethodSignature,
+    override val callee: TsMethodSignature,
     override val args: List<TsLocal>,
 ) : TsCallExpr {
     override fun toString(): String {
-        return "${method.enclosingClass.name}.${method.name}(${args.joinToString()})"
+        return "${callee.enclosingClass.name}.${callee.name}(${args.joinToString()})"
     }
 
     override fun <R> accept(visitor: TsExpr.Visitor<R>): R {
@@ -679,11 +679,11 @@ data class TsStaticCallExpr(
 
 data class TsPtrCallExpr(
     val ptr: TsLocal,
-    override val method: TsMethodSignature,
+    override val callee: TsMethodSignature,
     override val args: List<TsLocal>,
 ) : TsCallExpr {
     override fun toString(): String {
-        return "${ptr}.${method.name}(${args.joinToString()})"
+        return "${ptr}.${callee.name}(${args.joinToString()})"
     }
 
     override fun <R> accept(visitor: TsExpr.Visitor<R>): R {

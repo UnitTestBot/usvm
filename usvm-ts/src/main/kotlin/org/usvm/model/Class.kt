@@ -12,6 +12,9 @@ interface TsClass : Base {
     val superClass: TsClassSignature?
     val implementedInterfaces: List<TsClassSignature>
 
+    val declaringFile: TsFile?
+    val declaringNamespace: TsNamespace?
+
     val name: String
         get() = signature.name
 }
@@ -26,15 +29,13 @@ class TsClassImpl(
     override val modifiers: TsModifiers = TsModifiers.EMPTY,
     override val decorators: List<TsDecorator> = emptyList(),
 ) : TsClass {
-
     init {
-        fields.forEach { field ->
-            (field as TsFieldImpl).enclosingClass = this
-        }
-        methods.forEach { method ->
-            (method as TsMethodImpl).enclosingClass = this
-        }
+        fields.forEach { (it as TsFieldImpl).declaringClass = this }
+        methods.forEach { (it as TsMethodImpl).enclosingClass = this }
     }
+
+    override var declaringFile: TsFile? = null
+    override var declaringNamespace: TsNamespace? = null
 
     override val ctor: TsMethod =
         methods.firstOrNull { method -> method.name == CONSTRUCTOR_NAME }

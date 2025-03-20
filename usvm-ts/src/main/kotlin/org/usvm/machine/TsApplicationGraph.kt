@@ -116,7 +116,7 @@ class TsApplicationGraphImpl(
     override fun callees(node: TsStmt): Sequence<TsMethod> {
         val expr = node.callExpr ?: return emptySequence()
 
-        val callee = expr.method
+        val callee = expr.callee
 
         // Note: the resolving code below expects that at least the current method signature is known.
         check(node.location.method.signature.enclosingClass.isIdeal()) {

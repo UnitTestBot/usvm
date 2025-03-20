@@ -2,7 +2,8 @@ package org.usvm.model
 
 interface TsField : Base {
     val signature: TsFieldSignature
-    val enclosingClass: TsClass?
+
+    val declaringClass: TsClass?
 
     val name: String
         get() = signature.name
@@ -17,7 +18,7 @@ class TsFieldImpl(
     val isOptional: Boolean = false,  // '?'
     val isDefinitelyAssigned: Boolean = false, // '!'
 ) : TsField {
-    override var enclosingClass: TsClass? = null
+    override var declaringClass: TsClass? = null
 
     override val decorators: List<TsDecorator>
         get() = error("Fields do not have decorators")
