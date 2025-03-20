@@ -266,7 +266,23 @@ class TsInterpreter(
                             ref = instance,
                             field = TsFieldSignature(TsClassSignature.UNKNOWN, lhv.fieldName, TsUnknownType)
                         )
-                        memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
+                        if (expr.isFakeObject()) {
+                            val fakeType = expr.getFakeType(scope)
+                            if (sort == boolSort) {
+                                scope.assert(fakeType.boolTypeExpr)
+                                memory.write(lValue, expr.extractBool(scope).asExpr(sort), guard = trueExpr)
+                            } else if (sort == fp64Sort) {
+                                scope.assert(fakeType.fpTypeExpr)
+                                memory.write(lValue, expr.extractFp(scope).asExpr(sort), guard = trueExpr)
+                            } else if (sort == addressSort) {
+                                scope.assert(fakeType.refTypeExpr)
+                                memory.write(lValue, expr.extractRef(scope).asExpr(sort), guard = trueExpr)
+                            } else {
+                                let {}
+                            }
+                        } else {
+                            memory.write(lValue, expr.asExpr(sort), guard = trueExpr)
+                        }
                     }
                 }
 

@@ -926,9 +926,9 @@ class TsSimpleValueResolver(
 
         // If we are not in the entrypoint, all correct values are already resolved and we can just return
         // a registerStackLValue for the local
-        if (currentMethod != entrypoint) {
-            return mkRegisterStackLValue(sort, idx)
-        }
+        // if (currentMethod != entrypoint) {
+        //     return mkRegisterStackLValue(sort, idx)
+        // }
 
         // arguments and this for the first stack frame
         return when (sort) {
