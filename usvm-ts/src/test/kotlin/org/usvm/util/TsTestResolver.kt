@@ -13,6 +13,7 @@ import org.usvm.api.GlobalFieldValue
 import org.usvm.api.TsParametersState
 import org.usvm.api.TsTest
 import org.usvm.api.TsTestValue
+import org.usvm.api.typeStreamOf
 import org.usvm.isTrue
 import org.usvm.machine.TsContext
 import org.usvm.machine.expr.extractBool
@@ -22,7 +23,6 @@ import org.usvm.machine.state.TsState
 import org.usvm.machine.types.FakeType
 import org.usvm.memory.ULValue
 import org.usvm.memory.UReadOnlyMemory
-import org.usvm.memory.URegisterStackLValue
 import org.usvm.mkSizeExpr
 import org.usvm.model.TsArrayType
 import org.usvm.model.TsBooleanType
@@ -270,7 +270,7 @@ open class TsTestStateResolver(
     }
 
     private fun resolveFakeObject(expr: UConcreteHeapRef): TsTestValue {
-        val type = finalStateMemory.types.getTypeStream(expr.asExpr(ctx.addressSort)).single() as FakeType
+        val type = finalStateMemory.typeStreamOf(expr).single() as FakeType
         return when {
             model.eval(type.boolTypeExpr).isTrue -> {
                 val lValue = ctx.getIntermediateBoolLValue(expr.address)
