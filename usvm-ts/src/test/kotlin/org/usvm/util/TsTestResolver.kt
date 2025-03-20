@@ -15,7 +15,6 @@ import org.usvm.api.TsTest
 import org.usvm.api.TsTestValue
 import org.usvm.isTrue
 import org.usvm.machine.TsContext
-import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.expr.extractBool
 import org.usvm.machine.expr.extractDouble
 import org.usvm.machine.state.TsMethodResult
@@ -255,15 +254,13 @@ open class TsTestStateResolver(
         method.parameters.mapIndexed { idx, param ->
             val sort = typeToSort(param.type)
 
-            if (sort is TsUnresolvedSort) {
-                // this means that a fake object was created, and we need to read it from the current memory
-                val address = finalStateMemory.read(mkRegisterStackLValue(addressSort, idx))
-                check(address.isFakeObject())
-                return@mapIndexed resolveFakeObject(address)
+            val ref = finalStateMemory.read(mkRegisterStackLValue(addressSort, idx))
+            if (ref.isFakeObject()) {
+                return@mapIndexed resolveFakeObject(ref)
             }
 
-            val ref = URegisterStackLValue(sort, idx)
-            resolveLValue(ref, param.type)
+            val lValue = mkRegisterStackLValue(sort, idx)
+            resolveLValue(lValue, param.type)
         }
     }
 
