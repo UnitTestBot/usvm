@@ -2,6 +2,7 @@ package org.usvm.util
 
 import io.ksmt.expr.KBitVec32Value
 import io.ksmt.utils.asExpr
+import mu.KotlinLogging
 import org.jacodb.ets.base.UNKNOWN_CLASS_NAME
 import org.usvm.UAddressSort
 import org.usvm.UConcreteHeapRef
@@ -45,6 +46,8 @@ import org.usvm.model.TsVoidType
 import org.usvm.model.UModelBase
 import org.usvm.types.first
 import org.usvm.types.single
+
+private val logger = KotlinLogging.logger {}
 
 class TsTestResolver {
     fun resolve(method: TsMethod, state: TsState): TsTest = with(state.ctx) {
@@ -209,7 +212,10 @@ open class TsTestStateResolver(
                 resolveTsValue(heapRef, finalStateMemoryRef, finalType)
             }
 
-            else -> error("Unexpected type ${type::class.simpleName}: $type")
+            else -> {
+                logger.info { "Unexpected type ${type::class.simpleName}: $type" }
+                TsTestValue.TsUndefined
+            }
         }
     }
 
