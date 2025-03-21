@@ -9,6 +9,7 @@ interface TsClass : Base {
     val fields: List<TsField>
     val methods: List<TsMethod>
     val ctor: TsMethod
+    val category: TsClassCategory
     val superClass: TsClassSignature?
     val implementedInterfaces: List<TsClassSignature>
 
@@ -23,6 +24,7 @@ class TsClassImpl(
     override val signature: TsClassSignature,
     override val fields: List<TsField>,
     override val methods: List<TsMethod>,
+    override val category: TsClassCategory = TsClassCategory.CLASS,
     override val superClass: TsClassSignature? = null,
     override val implementedInterfaces: List<TsClassSignature> = emptyList(),
     override val typeParameters: List<TsType> = emptyList(),

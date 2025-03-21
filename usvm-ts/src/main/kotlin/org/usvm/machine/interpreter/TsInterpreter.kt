@@ -28,6 +28,7 @@ import org.usvm.model.TsArrayAccess
 import org.usvm.model.TsArrayType
 import org.usvm.model.TsAssignStmt
 import org.usvm.model.TsCallStmt
+import org.usvm.model.TsClassCategory
 import org.usvm.model.TsClassSignature
 import org.usvm.model.TsFieldSignature
 import org.usvm.model.TsIfStmt
@@ -252,7 +253,7 @@ class TsInterpreter(
                         lhv.instance,
                         TsFieldSignature(TsClassSignature.UNKNOWN, lhv.fieldName, TsUnknownType)
                     )
-                    val etsFieldType = etsFields.map { it.type }.distinct().singleOrNull() ?: TsUnknownType
+                    val etsFieldType = etsFields.filter { it.declaringClass != null && it.declaringClass!!.category != TsClassCategory.ENUM }.map { it.type }.distinct().singleOrNull() ?: TsUnknownType
                     val sort = typeToSort(etsFieldType)
                     if (sort == unresolvedSort) {
                         val fakeObject = expr.toFakeObject(scope)

@@ -94,6 +94,7 @@ import org.jacodb.ets.graph.EtsBasicBlock
 import org.jacodb.ets.graph.EtsBlockCfg
 import org.jacodb.ets.graph.EtsCfg
 import org.jacodb.ets.model.EtsClass
+import org.jacodb.ets.model.EtsClassCategory
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsField
 import org.jacodb.ets.model.EtsFieldImpl
@@ -127,6 +128,7 @@ import org.usvm.model.TsCallExpr
 import org.usvm.model.TsCallStmt
 import org.usvm.model.TsCastExpr
 import org.usvm.model.TsClass
+import org.usvm.model.TsClassCategory
 import org.usvm.model.TsClassImpl
 import org.usvm.model.TsClassSignature
 import org.usvm.model.TsClassType
@@ -255,16 +257,27 @@ fun EtsClass.convert(
     val fields = fields.map { field -> field.convert(classSignature) }
     val methods = (methods + ctor).map { method -> method.convert(classSignature) }
     val typeParameters = typeParameters.map { it.convert() }
+    val category = category.convert()
     return TsClassImpl(
         signature = classSignature,
         fields = fields,
         methods = methods,
+        category = category,
         superClass = null, // TODO: superClass
         implementedInterfaces = emptyList(), // TODO: implementedInterfaces
         typeParameters = typeParameters,
         modifiers = modifiers.convert(),
         decorators = emptyList(), // TODO: decorators
     )
+}
+
+fun EtsClassCategory.convert(): TsClassCategory = when (this) {
+    EtsClassCategory.CLASS -> TsClassCategory.CLASS
+    EtsClassCategory.STRUCT -> TsClassCategory.STRUCT
+    EtsClassCategory.INTERFACE -> TsClassCategory.INTERFACE
+    EtsClassCategory.ENUM -> TsClassCategory.ENUM
+    EtsClassCategory.TYPE_LITERAL -> TsClassCategory.TYPE_LITERAL
+    EtsClassCategory.OBJECT -> TsClassCategory.OBJECT
 }
 
 fun EtsField.convert(
