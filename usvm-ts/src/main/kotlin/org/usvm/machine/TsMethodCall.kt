@@ -21,11 +21,19 @@ class TsVirtualMethodCallStmt(
     val callee: TsMethodSignature,
     override val arguments: List<UExpr<out USort>>,
     override val returnSite: TsStmt,
-) : TsMethodCall
+) : TsMethodCall {
+    override fun toString(): String {
+        return "virtual ${callee.enclosingClass.name}::${callee.name}"
+    }
+}
 
 class TsConcreteMethodCallStmt(
     override val location: TsInstLocation,
     val callee: TsMethod,
     override val arguments: List<UExpr<out USort>>,
     override val returnSite: TsStmt,
-) : TsMethodCall
+) : TsMethodCall {
+    override fun toString(): String {
+        return "concrete ${callee.signature.enclosingClass.name}::${callee.name}"
+    }
+}
