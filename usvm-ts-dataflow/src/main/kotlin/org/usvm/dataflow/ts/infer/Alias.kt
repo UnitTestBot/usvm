@@ -91,52 +91,57 @@ class StmtAliasInfoImpl(
         return merged
     }
 
-    private fun trace(path: AccessPath): Pair<MutableList<Int>, MutableList<Int>> {
+    private class Trace(
+        val nodes: List<Int>,
+        val edges: List<Int>,
+    )
+
+    private fun trace(path: AccessPath): Trace {
         val base = method.baseMap[path.base]
             ?: error("Unknown path base: ${path.base}")
         var node = baseToAlloc[base]
 
         val nodes = mutableListOf(node)
-        val strings = mutableListOf<Int>()
+        val edges = mutableListOf<Int>()
         for (accessor in path.accesses) {
             if (node == NOT_PROCESSED || node == MULTIPLE_EDGE) {
-                return Pair(nodes, strings)
+                return Trace(nodes, edges)
             }
 
             when (accessor) {
                 is ElementAccessor -> {
                     nodes.add(MULTIPLE_EDGE)
-                    strings.add(ELEMENT_ACCESSOR)
+                    edges.add(ELEMENT_ACCESSOR)
                 }
 
                 is FieldAccessor -> {
                     val string = method.stringMap[accessor.name]
                         ?: error("Unknown field name: ${accessor.name}")
-                    strings.add(string)
+                    edges.add(string)
 
                     node = allocToFields[node]
                         .singleOrNull { e -> unwrap(e).first == string }
                         ?.let { e -> unwrap(e).second }
                         ?: run {
                             nodes.add(NOT_PROCESSED)
-                            return Pair(nodes, strings)
+                            return Trace(nodes, edges)
                         }
                     nodes.add(node)
                 }
             }
         }
-        return Pair(nodes, strings)
+        return Trace(nodes, edges)
     }
 
     private fun assign(lhv: AccessPath, rhv: AccessPath): StmtAliasInfoImpl {
-        val (rhvNodes, _) = trace(rhv)
-        val newAlloc = rhvNodes.last()
+        val trace = trace(rhv)
+        val newAlloc = trace.nodes.last()
         return assign(lhv, newAlloc)
     }
 
     private fun assign(lhv: AccessPath, newAlloc: Int): StmtAliasInfoImpl {
-        val (lhvNodes, lhvEdges) = trace(lhv)
-        val from = lhvNodes.reversed().getOrNull(1)
+        val trace = trace(lhv)
+        val from = trace.nodes.reversed().getOrNull(1)
         if (from != null) {
             val updated = StmtAliasInfoImpl(
                 baseToAlloc = baseToAlloc,
@@ -144,7 +149,7 @@ class StmtAliasInfoImpl(
                 method = method,
             )
 
-            val str = lhvEdges.last()
+            val str = trace.edges.last()
             val edgeIndex = allocToFields[from].indexOfFirst {
                 val (s, _) = unwrap(it)
                 s == str
@@ -193,8 +198,8 @@ class StmtAliasInfoImpl(
             }
 
             is EtsInstanceFieldRef, is EtsStaticFieldRef -> {
-                val (rhvNodes, _) = trace(rhv.toPath())
-                val alloc = rhvNodes.last()
+                val trace = trace(rhv.toPath())
+                val alloc = trace.nodes.last()
                 if (alloc == NOT_PROCESSED) {
                     val fieldAlloc = method.allocationMap[Allocation.Imm(stmt)]
                         ?: error("Unknown allocation in stmt: $stmt")
@@ -292,7 +297,8 @@ class StmtAliasInfoImpl(
     }
 
     override fun getAliases(path: AccessPath): Set<AccessPath> {
-        val alloc = trace(path).first.last()
+        val trace = trace(path)
+        val alloc = trace.nodes.last()
         if (alloc == NOT_PROCESSED || alloc == MULTIPLE_EDGE) {
             return setOf(path)
         }
