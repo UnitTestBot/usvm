@@ -1,5 +1,6 @@
 package org.usvm.dataflow.ts.infer
 
+import mu.KotlinLogging
 import org.jacodb.ets.base.EtsArrayAccess
 import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsBinaryExpr
@@ -22,6 +23,8 @@ import org.jacodb.ets.base.EtsUnaryExpr
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsMethod
 import org.usvm.dataflow.ts.infer.MethodAliasInfoImpl.Allocation
+
+private val logger = KotlinLogging.logger {}
 
 interface StmtAliasInfo {
     fun getAliases(path: AccessPath): Set<AccessPath>
@@ -234,7 +237,8 @@ class StmtAliasInfoImpl(
             }
 
             else -> {
-                error("Unprocessable rhs in stmt: $stmt")
+                logger.warn { "Unprocessable rhs in stmt: $stmt" }
+                this
             }
         }
     }
