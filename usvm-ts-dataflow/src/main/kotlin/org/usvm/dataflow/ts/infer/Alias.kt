@@ -22,7 +22,6 @@ import org.jacodb.ets.base.EtsUnaryExpr
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsMethod
 import org.usvm.dataflow.ts.infer.MethodAliasInfoImpl.Allocation
-import kotlin.collections.ArrayDeque
 
 interface StmtAliasInfo {
     fun getAliases(path: AccessPath): Set<AccessPath>
@@ -109,6 +108,7 @@ class StmtAliasInfoImpl(
                     nodes.add(MULTIPLE_EDGE)
                     strings.add(ELEMENT_ACCESSOR)
                 }
+
                 is FieldAccessor -> {
                     val string = method.stringMap[accessor.name]
                         ?: error("Unknown field name")
@@ -185,11 +185,13 @@ class StmtAliasInfoImpl(
                     ?: error("Unknown parameter ref")
                 return assign(stmt.lhv.toPath(), alloc)
             }
+
             is EtsThis -> {
                 val alloc = method.allocationMap[Allocation.This]
                     ?: error("Uninitialized this")
                 return assign(stmt.lhv.toPath(), alloc)
             }
+
             is EtsInstanceFieldRef, is EtsStaticFieldRef -> {
                 val (rhvNodes, _) = trace(rhv.toPath())
                 val alloc = rhvNodes.last()
@@ -204,27 +206,33 @@ class StmtAliasInfoImpl(
                     return assign(stmt.lhv.toPath(), alloc)
                 }
             }
+
             is EtsLocal -> {
                 return assign(stmt.lhv.toPath(), rhv.toPath())
             }
+
             is EtsCastExpr -> {
                 return assign(stmt.lhv.toPath(), rhv.arg.toPath())
             }
+
             is EtsConstant, is EtsUnaryExpr, is EtsBinaryExpr, is EtsArrayAccess, is EtsInstanceOfExpr -> {
                 val imm = method.allocationMap[Allocation.Expr(stmt)]
                     ?: error("Unknown constant")
                 return assign(stmt.lhv.toPath(), imm)
             }
+
             is EtsCallExpr -> {
                 val callResult = method.allocationMap[Allocation.CallResult(stmt)]
                     ?: error("Unknown call")
                 return assign(stmt.lhv.toPath(), callResult)
             }
+
             is EtsNewExpr, is EtsNewArrayExpr -> {
                 val new = method.allocationMap[Allocation.New(stmt)]
                     ?: error("Unknown new")
                 return assign(stmt.lhv.toPath(), new)
             }
+
             else -> {
                 error("Unprocessable")
             }
@@ -363,16 +371,21 @@ class MethodAliasInfoImpl(
             is AccessPathBase.Local -> {
                 newString(base.name)
             }
+
             is AccessPathBase.This -> {
                 newAllocation(Allocation.This)
             }
+
             is AccessPathBase.Arg -> {
                 newAllocation(Allocation.Arg(base.index))
             }
+
             is AccessPathBase.Static -> {
                 newAllocation(Allocation.Static(base.clazz))
             }
-            is AccessPathBase.Const -> { /* TODO ?? may be some non-trivial */ }
+
+            is AccessPathBase.Const -> { /* TODO ?? may be some non-trivial */
+            }
         }
     }
 
@@ -382,20 +395,25 @@ class MethodAliasInfoImpl(
                 initEntity(entity.instance)
                 newString(entity.field.name)
             }
+
             is EtsStaticFieldRef -> {
                 newBase(AccessPathBase.Static(entity.field.enclosingClass))
                 newString(entity.field.name)
             }
+
             is EtsArrayAccess -> {
                 initEntity(entity.array)
                 initEntity(entity.index)
             }
+
             is EtsLocal -> {
                 newBase(AccessPathBase.Local(entity.name))
             }
+
             is EtsParameterRef -> {
                 newBase(AccessPathBase.Arg(entity.index))
             }
+
             is EtsInstanceCallExpr -> {
                 initEntity(entity.instance)
                 newString(entity.method.name)
@@ -424,15 +442,19 @@ class MethodAliasInfoImpl(
                         is EtsNewExpr, is EtsNewArrayExpr -> {
                             newAllocation(Allocation.New(stmt))
                         }
+
                         is EtsParameterRef -> {
                             newAllocation(Allocation.Arg(rhv.index))
                         }
+
                         is EtsCallExpr -> {
                             newAllocation(Allocation.CallResult(stmt))
                         }
+
                         is EtsInstanceFieldRef, is EtsStaticFieldRef -> {
                             newAllocation(Allocation.Imm(stmt))
                         }
+
                         is EtsCastExpr -> {}
                         is EtsConstant, is EtsUnaryExpr, is EtsBinaryExpr, is EtsArrayAccess, is EtsInstanceOfExpr -> {
                             newAllocation(Allocation.Expr(stmt))
