@@ -154,12 +154,10 @@ class StmtAliasInfoImpl(
                 s == str
             }
             if (edgeIndex == -1) {
-                updated.allocToFields[from] = allocToFields[from].toMutableList().apply {
-                    add(wrap(str, newAlloc))
-                }.toULongArray()
+                updated.allocToFields[from] = allocToFields[from] + wrap(str, newAlloc)
             } else {
-                updated.allocToFields[from] = allocToFields[from].copyOf().apply {
-                    set(edgeIndex, wrap(str, newAlloc))
+                updated.allocToFields[from] = allocToFields[from].copyOf().also {
+                    it[edgeIndex] = wrap(str, newAlloc)
                 }
             }
 
