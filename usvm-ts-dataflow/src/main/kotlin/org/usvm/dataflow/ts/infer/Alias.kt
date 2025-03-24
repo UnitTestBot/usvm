@@ -202,12 +202,11 @@ class StmtAliasInfoImpl(
                 if (alloc == NOT_PROCESSED) {
                     val fieldAlloc = method.allocationMap[Allocation.Imm(stmt)]
                         ?: error("Unknown allocation in stmt: $stmt")
-                    this
+                    return this
                         .assign(rhv.toPath(), fieldAlloc)
                         .assign(stmt.lhv.toPath(), fieldAlloc)
-                } else {
-                    assign(stmt.lhv.toPath(), alloc)
                 }
+                assign(stmt.lhv.toPath(), alloc)
             }
 
             is EtsLocal -> {
