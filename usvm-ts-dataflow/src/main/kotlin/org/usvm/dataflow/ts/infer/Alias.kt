@@ -37,13 +37,12 @@ class StmtAliasInfoImpl(
     val allocToFields: Array<ULongArray>,
     val method: MethodAliasInfoImpl,
 ) : StmtAliasInfo {
-    internal companion object {
+    companion object {
         internal const val NOT_PROCESSED = -1
         internal const val MULTIPLE_EDGE = -2
-
         internal const val ELEMENT_ACCESSOR = -3
 
-        internal fun merge(first: Int, second: Int): Int = when {
+        private fun merge(first: Int, second: Int): Int = when {
             first == NOT_PROCESSED -> second
             second == NOT_PROCESSED -> first
             first == MULTIPLE_EDGE -> MULTIPLE_EDGE
@@ -52,11 +51,11 @@ class StmtAliasInfoImpl(
             else -> MULTIPLE_EDGE
         }
 
-        internal fun wrap(string: Int, alloc: Int): ULong {
+        private fun wrap(string: Int, alloc: Int): ULong {
             return (string.toULong() shl Int.SIZE_BITS) or alloc.toULong()
         }
 
-        internal fun unwrap(edge: ULong): Pair<Int, Int> {
+        private fun unwrap(edge: ULong): Pair<Int, Int> {
             val string = (edge shr Int.SIZE_BITS).toInt()
             val allocation = (edge and UInt.MAX_VALUE.toULong()).toInt()
             return Pair(string, allocation)
