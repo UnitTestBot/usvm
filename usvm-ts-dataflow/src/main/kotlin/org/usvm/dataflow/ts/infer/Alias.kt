@@ -334,7 +334,7 @@ class MethodAliasInfoImpl(
         data class New(val stmt: EtsStmt) : Allocation
         data class CallResult(val stmt: EtsStmt) : Allocation
         data class Arg(val index: Int) : Allocation
-        object This : Allocation
+        data object This : Allocation
         data class Imm(val stmt: EtsStmt) : Allocation
         data class Expr(val stmt: EtsStmt) : Allocation
         data class Static(val clazz: EtsClassSignature) : Allocation
