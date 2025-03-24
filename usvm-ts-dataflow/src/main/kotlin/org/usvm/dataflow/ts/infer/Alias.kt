@@ -386,7 +386,8 @@ class MethodAliasInfoImpl(
                 newAllocation(Allocation.Static(base.clazz))
             }
 
-            is AccessPathBase.Const -> { /* TODO ?? may be some non-trivial */
+            is AccessPathBase.Const -> {
+                // TODO: non-trivial
             }
         }
     }
