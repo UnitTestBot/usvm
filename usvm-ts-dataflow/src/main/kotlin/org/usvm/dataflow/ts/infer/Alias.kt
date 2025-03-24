@@ -93,7 +93,7 @@ class StmtAliasInfoImpl(
 
     private fun trace(path: AccessPath): Pair<MutableList<Int>, MutableList<Int>> {
         val base = method.baseMap[path.base]
-            ?: error("Unknown path base")
+            ?: error("Unknown path base: ${path.base}")
         var node = baseToAlloc[base]
 
         val nodes = mutableListOf(node)
@@ -111,7 +111,7 @@ class StmtAliasInfoImpl(
 
                 is FieldAccessor -> {
                     val string = method.stringMap[accessor.name]
-                        ?: error("Unknown field name")
+                        ?: error("Unknown field name: ${accessor.name}")
                     strings.add(string)
 
                     node = allocToFields[node]
@@ -168,7 +168,7 @@ class StmtAliasInfoImpl(
             )
 
             val base = method.baseMap[lhv.base]
-                ?: error("Unknown path base")
+                ?: error("Unknown path base: ${lhv.base}")
             updated.baseToAlloc[base] = newAlloc
 
             return updated
@@ -182,13 +182,13 @@ class StmtAliasInfoImpl(
         return when (val rhv = stmt.rhv) {
             is EtsParameterRef -> {
                 val alloc = method.allocationMap[Allocation.Arg(rhv.index)]
-                    ?: error("Unknown parameter ref")
+                    ?: error("Unknown parameter ref in stmt: $stmt")
                 assign(stmt.lhv.toPath(), alloc)
             }
 
             is EtsThis -> {
                 val alloc = method.allocationMap[Allocation.This]
-                    ?: error("Uninitialized this")
+                    ?: error("Uninitialized this in stmt: $stmt")
                 assign(stmt.lhv.toPath(), alloc)
             }
 
@@ -197,7 +197,7 @@ class StmtAliasInfoImpl(
                 val alloc = rhvNodes.last()
                 if (alloc == NOT_PROCESSED) {
                     val fieldAlloc = method.allocationMap[Allocation.Imm(stmt)]
-                        ?: error("Unknown allocation")
+                        ?: error("Unknown allocation in stmt: $stmt")
                     this
                         .assign(rhv.toPath(), fieldAlloc)
                         .assign(stmt.lhv.toPath(), fieldAlloc)
@@ -216,24 +216,24 @@ class StmtAliasInfoImpl(
 
             is EtsConstant, is EtsUnaryExpr, is EtsBinaryExpr, is EtsArrayAccess, is EtsInstanceOfExpr -> {
                 val imm = method.allocationMap[Allocation.Expr(stmt)]
-                    ?: error("Unknown constant")
+                    ?: error("Unknown constant in stmt: $stmt")
                 assign(stmt.lhv.toPath(), imm)
             }
 
             is EtsCallExpr -> {
                 val callResult = method.allocationMap[Allocation.CallResult(stmt)]
-                    ?: error("Unknown call")
+                    ?: error("Unknown call in stmt: $stmt")
                 assign(stmt.lhv.toPath(), callResult)
             }
 
             is EtsNewExpr, is EtsNewArrayExpr -> {
                 val new = method.allocationMap[Allocation.New(stmt)]
-                    ?: error("Unknown new")
+                    ?: error("Unknown new in stmt: $stmt")
                 assign(stmt.lhv.toPath(), new)
             }
 
             else -> {
-                error("Unprocessable")
+                error("Unprocessable rhs in stmt: $stmt")
             }
         }
     }
@@ -285,7 +285,8 @@ class StmtAliasInfoImpl(
             }
 
             accessors.add(FieldAccessor(method.strings[str]))
-            cur = cur.parent ?: error("If the property is defined, the parent should exist")
+            cur = cur.parent
+                ?: error("If the property is defined, the parent should exist")
         }
         return accessors
     }
