@@ -179,17 +179,17 @@ class StmtAliasInfoImpl(
         if (stmt !is EtsAssignStmt) {
             return this
         }
-        when (val rhv = stmt.rhv) {
+        return when (val rhv = stmt.rhv) {
             is EtsParameterRef -> {
                 val alloc = method.allocationMap[Allocation.Arg(rhv.index)]
                     ?: error("Unknown parameter ref")
-                return assign(stmt.lhv.toPath(), alloc)
+                assign(stmt.lhv.toPath(), alloc)
             }
 
             is EtsThis -> {
                 val alloc = method.allocationMap[Allocation.This]
                     ?: error("Uninitialized this")
-                return assign(stmt.lhv.toPath(), alloc)
+                assign(stmt.lhv.toPath(), alloc)
             }
 
             is EtsInstanceFieldRef, is EtsStaticFieldRef -> {
@@ -198,39 +198,38 @@ class StmtAliasInfoImpl(
                 if (alloc == NOT_PROCESSED) {
                     val fieldAlloc = method.allocationMap[Allocation.Imm(stmt)]
                         ?: error("Unknown allocation")
-
-                    return this
+                    this
                         .assign(rhv.toPath(), fieldAlloc)
                         .assign(stmt.lhv.toPath(), fieldAlloc)
                 } else {
-                    return assign(stmt.lhv.toPath(), alloc)
+                    assign(stmt.lhv.toPath(), alloc)
                 }
             }
 
             is EtsLocal -> {
-                return assign(stmt.lhv.toPath(), rhv.toPath())
+                assign(stmt.lhv.toPath(), rhv.toPath())
             }
 
             is EtsCastExpr -> {
-                return assign(stmt.lhv.toPath(), rhv.arg.toPath())
+                assign(stmt.lhv.toPath(), rhv.arg.toPath())
             }
 
             is EtsConstant, is EtsUnaryExpr, is EtsBinaryExpr, is EtsArrayAccess, is EtsInstanceOfExpr -> {
                 val imm = method.allocationMap[Allocation.Expr(stmt)]
                     ?: error("Unknown constant")
-                return assign(stmt.lhv.toPath(), imm)
+                assign(stmt.lhv.toPath(), imm)
             }
 
             is EtsCallExpr -> {
                 val callResult = method.allocationMap[Allocation.CallResult(stmt)]
                     ?: error("Unknown call")
-                return assign(stmt.lhv.toPath(), callResult)
+                assign(stmt.lhv.toPath(), callResult)
             }
 
             is EtsNewExpr, is EtsNewArrayExpr -> {
                 val new = method.allocationMap[Allocation.New(stmt)]
                     ?: error("Unknown new")
-                return assign(stmt.lhv.toPath(), new)
+                assign(stmt.lhv.toPath(), new)
             }
 
             else -> {
