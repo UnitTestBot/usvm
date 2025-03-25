@@ -70,6 +70,11 @@ class InferTypes : CliktCommand() {
         help = "Do take into account the known types in scene"
     ).flag("--no-use-known-types", default = true)
 
+    val enableAliasAnalysis by option(
+        "--alias-analysis",
+        help = "Enable alias analysis"
+    ).flag("--no-alias-analysis", default = true)
+
     override fun run() {
         logger.info { "Running InferTypes" }
         val startTime = System.currentTimeMillis()
@@ -91,6 +96,7 @@ class InferTypes : CliktCommand() {
                 entrypoints = dummyMains,
                 allMethods = publicMethods,
                 doAddKnownTypes = useKnownTypes,
+                doAliasAnalysis = enableAliasAnalysis,
             )
         }
         logger.info { "Inferred types for ${resultBasic.inferredTypes.size} methods in $timeAnalyze" }

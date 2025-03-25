@@ -79,10 +79,12 @@ class TypeInferenceManager(
         allMethods: List<EtsMethod> = entrypoints,
         doAddKnownTypes: Boolean = true,
         doInferAllLocals: Boolean = true,
+        doAliasAnalysis: Boolean = true,
     ): TypeInferenceResult = runBlocking {
         val methodTypeScheme = collectSummaries(
             startMethods = entrypoints,
             doAddKnownTypes = doAddKnownTypes,
+            doAliasAnalysis = doAliasAnalysis,
         )
         val remainingMethodsForAnalysis = allMethods.filter { it !in methodTypeScheme.keys }
 
@@ -92,6 +94,7 @@ class TypeInferenceManager(
             collectSummaries(
                 startMethods = remainingMethodsForAnalysis,
                 doAddKnownTypes = doAddKnownTypes,
+                doAliasAnalysis = doAliasAnalysis,
             )
         }
 
@@ -104,6 +107,7 @@ class TypeInferenceManager(
     private suspend fun collectSummaries(
         startMethods: List<EtsMethod>,
         doAddKnownTypes: Boolean = true,
+        doAliasAnalysis: Boolean = true,
     ): Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>> {
         logger.info { "Preparing backward analysis" }
         val backwardGraph = graph.reversed
@@ -191,7 +195,7 @@ class TypeInferenceManager(
             methodTypeScheme,
             typeInfo,
             doAddKnownTypes,
-            doAliasAnalysis = true,
+            doAliasAnalysis = doAliasAnalysis,
             doLiveVariablesAnalysis = true,
         )
 
