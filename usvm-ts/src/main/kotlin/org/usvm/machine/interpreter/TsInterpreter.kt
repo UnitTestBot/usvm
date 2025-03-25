@@ -257,6 +257,13 @@ class TsInterpreter(
     private fun visitCallStmt(scope: TsStepScope, stmt: EtsCallStmt) {
         val exprResolver = exprResolverWithScope(scope)
 
+        scope.doWithState {
+            if (methodResult is TsMethodResult.Success) {
+                newStmt(applicationGraph.successors(stmt).single())
+                methodResult = TsMethodResult.NoCall
+            }
+        }
+
         if (tsOptions.interproceduralAnalysis) {
             exprResolver.resolve(stmt.expr) ?: return
 
