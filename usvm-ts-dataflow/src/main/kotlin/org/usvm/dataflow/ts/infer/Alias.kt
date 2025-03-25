@@ -284,12 +284,13 @@ class StmtAliasInfoImpl(
         var cur = node
         val accessors = mutableListOf<Accessor>()
         while (true) {
-            val str = cur.string
-            if (str == null) {
-                break
+            val accessor = when (val str = cur.string) {
+                null -> break
+                ELEMENT_ACCESSOR -> ElementAccessor
+                else -> FieldAccessor(method.strings[str])
             }
 
-            accessors.add(FieldAccessor(method.strings[str]))
+            accessors.add(accessor)
             cur = cur.parent
                 ?: error("If the property is defined, the parent should exist")
         }
@@ -392,6 +393,7 @@ class MethodAliasInfoImpl(
 
             is AccessPathBase.Const -> {
                 // TODO: non-trivial
+                error("Unexpected base: $base")
             }
         }
     }
@@ -439,9 +441,14 @@ class MethodAliasInfoImpl(
                     initEntity(stmt.lhv)
                     initEntity(stmt.rhv)
 
-                    when (stmt.lhv) {
-                        is EtsInstanceFieldRef, is EtsStaticFieldRef -> {
+                    when (val lhv = stmt.lhv) {
+                        is EtsInstanceFieldRef -> {
                             newAllocation(Allocation.Imm(stmt))
+                        }
+
+                        is EtsStaticFieldRef -> {
+                            newAllocation(Allocation.Imm(stmt))
+                            newBase(AccessPathBase.Static(lhv.field.enclosingClass))
                         }
                     }
 
@@ -458,11 +465,18 @@ class MethodAliasInfoImpl(
                             newAllocation(Allocation.CallResult(stmt))
                         }
 
-                        is EtsInstanceFieldRef, is EtsStaticFieldRef -> {
+                        is EtsInstanceFieldRef -> {
                             newAllocation(Allocation.Imm(stmt))
                         }
 
-                        is EtsCastExpr -> {}
+                        is EtsStaticFieldRef -> {
+                            newAllocation(Allocation.Imm(stmt))
+                            newBase(AccessPathBase.Static(rhv.field.enclosingClass))
+                        }
+
+                        is EtsCastExpr -> {
+                            initEntity(rhv.arg)
+                        }
 
                         is EtsConstant, is EtsUnaryExpr, is EtsBinaryExpr, is EtsArrayAccess, is EtsInstanceOfExpr -> {
                             newAllocation(Allocation.Expr(stmt))
