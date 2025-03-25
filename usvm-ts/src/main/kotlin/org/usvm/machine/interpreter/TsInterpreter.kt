@@ -23,14 +23,19 @@ import org.jacodb.ets.model.EtsValue
 import org.jacodb.ets.utils.getDeclaredLocals
 import org.usvm.StepResult
 import org.usvm.StepScope
+import org.usvm.UAddressSort
 import org.usvm.UInterpreter
+import org.usvm.api.makeSymbolicPrimitive
+import org.usvm.api.makeSymbolicRefUntyped
 import org.usvm.api.targets.TsTarget
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.machine.TsApplicationGraph
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsInterpreterObserver
+import org.usvm.machine.TsOptions
 import org.usvm.machine.expr.TsExprResolver
+import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.expr.mkTruthyExpr
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
@@ -39,6 +44,7 @@ import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.state.returnValue
+import org.usvm.machine.types.mkFakeValue
 import org.usvm.sizeSort
 import org.usvm.targets.UTargetsSet
 import org.usvm.util.mkArrayIndexLValue
@@ -54,6 +60,7 @@ typealias TsStepScope = StepScope<TsState, EtsType, EtsStmt, TsContext>
 class TsInterpreter(
     private val ctx: TsContext,
     private val applicationGraph: TsApplicationGraph,
+    private val tsOptions: TsOptions,
     private val observer: TsInterpreterObserver? = null,
 ) : UInterpreter<TsState>() {
 
@@ -97,7 +104,8 @@ class TsInterpreter(
     private fun visitIfStmt(scope: TsStepScope, stmt: EtsIfStmt) {
         val exprResolver = exprResolverWithScope(scope)
 
-        observer?.onIfStatement(exprResolver.simpleValueResolver, stmt, scope)
+        val simpleValueResolver = exprResolver.simpleValueResolver
+        observer?.onIfStatement(simpleValueResolver, stmt, scope)
 
         val expr = exprResolver.resolve(stmt.condition) ?: return
 
@@ -106,6 +114,8 @@ class TsInterpreter(
         } else {
             ctx.mkTruthyExpr(expr, scope)
         }
+
+        observer?.onIfStatementWithResolvedCondition(simpleValueResolver, stmt, boolExpr, scope)
 
         val (posStmt, negStmt) = applicationGraph.successors(stmt).take(2).toList()
 
@@ -246,11 +256,36 @@ class TsInterpreter(
 
     private fun visitCallStmt(scope: TsStepScope, stmt: EtsCallStmt) {
         val exprResolver = exprResolverWithScope(scope)
-        exprResolver.resolve(stmt.expr) ?: return
 
+        if (tsOptions.interproceduralAnalysis) {
+            exprResolver.resolve(stmt.expr) ?: return
+
+            scope.doWithState {
+                val nextStmt = stmt.nextStmt ?: return@doWithState
+                newStmt(nextStmt)
+            }
+
+            return
+        }
+
+        // intraprocedural analysis
         scope.doWithState {
-            val nextStmt = stmt.nextStmt ?: return@doWithState
-            newStmt(nextStmt)
+            with(ctx) {
+                val resultSort = typeToSort(stmt.expr.method.returnType)
+                val resultValue = when (resultSort) {
+                    is UAddressSort -> makeSymbolicRefUntyped()
+                    is TsUnresolvedSort -> {
+                        mkFakeValue(
+                            scope,
+                            makeSymbolicPrimitive(ctx.boolSort),
+                            makeSymbolicPrimitive(ctx.fp64Sort),
+                            makeSymbolicRefUntyped()
+                        )
+                    }
+                    else -> makeSymbolicPrimitive(resultSort)
+                }
+                methodResult = TsMethodResult.Success.MockedCall(stmt.expr.method, resultValue)
+            }
         }
     }
 

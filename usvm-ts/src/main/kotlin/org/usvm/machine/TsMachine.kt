@@ -28,12 +28,15 @@ import kotlin.time.Duration.Companion.seconds
 class TsMachine(
     private val project: EtsScene,
     private val options: UMachineOptions,
+    private val tsOptions: TsOptions,
+    private val machineObserver: UMachineObserver<TsState>? = null,
+    observer: TsInterpreterObserver? = null
 ) : UMachine<TsState>() {
     private val typeSystem = TsTypeSystem(typeOperationsTimeout = 1.seconds, project)
     private val components = TsComponents(typeSystem, options)
     private val ctx = TsContext(project, components)
     private val applicationGraph = TsApplicationGraph(project)
-    private val interpreter = TsInterpreter(ctx, applicationGraph)
+    private val interpreter = TsInterpreter(ctx, applicationGraph, tsOptions, observer)
     private val cfgStatistics = CfgStatisticsImpl(applicationGraph)
 
     fun analyze(
@@ -98,6 +101,7 @@ class TsMachine(
 
         observers.add(timeStatistics)
         observers.add(stepsStatistics)
+        machineObserver?.let { observers.add(it) }
 
         run(
             interpreter,

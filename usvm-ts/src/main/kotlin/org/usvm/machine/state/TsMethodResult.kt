@@ -1,6 +1,7 @@
 package org.usvm.machine.state
 
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsType
 import org.usvm.UExpr
 import org.usvm.UHeapRef
@@ -15,13 +16,27 @@ sealed interface TsMethodResult {
      */
     object NoCall : TsMethodResult
 
-    /**
-     * A [method] successfully returned a [value].
-     */
-    class Success(
-        val method: EtsMethod,
-        val value: UExpr<out USort>,
-    ) : TsMethodResult
+
+    sealed class Success(val value: UExpr<out USort>) : TsMethodResult {
+        abstract fun methodSignature(): EtsMethodSignature
+        /**
+         * A [method] successfully returned a [value].
+         */
+        class RegularCall(
+            val method: EtsMethod,
+            value: UExpr<out USort>,
+        ) : Success(value) {
+            override fun methodSignature(): EtsMethodSignature = method.signature
+        }
+
+        class MockedCall(
+            val methodSignature: EtsMethodSignature,
+            value: UExpr<out USort>,
+        ) : Success(value) {
+            override fun methodSignature(): EtsMethodSignature = methodSignature
+        }
+    }
+
 
     /**
      * A method threw an exception with [type] type.

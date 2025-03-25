@@ -696,7 +696,7 @@ class TsExprResolver(
                 scope.doWithState {
                     // TODO: Handle static initializer result
                     val result = methodResult
-                    if (result is TsMethodResult.Success && result.method == initializer) {
+                    if (result is TsMethodResult.Success && result.methodSignature() == initializer.signature) {
                         methodResult = TsMethodResult.NoCall
                     }
                 }

@@ -24,6 +24,7 @@ import org.usvm.api.TsMethodCoverage
 import org.usvm.api.TsTest
 import org.usvm.api.TsValue
 import org.usvm.machine.TsMachine
+import org.usvm.machine.TsOptions
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import kotlin.reflect.KClass
@@ -215,7 +216,8 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
     }
 
     override val runner: (EtsMethod, UMachineOptions) -> List<TsTest> = { method, options ->
-        TsMachine(scene, options).use { machine ->
+        val tsMachineOptions = TsOptions()
+        TsMachine(scene, options, tsMachineOptions).use { machine ->
             val states = machine.analyze(listOf(method))
             states.map { state ->
                 val resolver = TsTestResolver()
