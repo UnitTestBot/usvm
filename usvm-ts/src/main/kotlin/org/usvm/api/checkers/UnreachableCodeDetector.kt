@@ -40,13 +40,13 @@ class UnreachableCodeDetector : TsInterpreterObserver, UMachineObserver<TsState>
     }
 
     override fun onMachineStopped() {
-        result = uncoveredIfSuccessors.map { (method, values) ->
-            val visitedIfs = visitedIfStmt.getValue(method)
-            val values = values.groupBy { method.cfg.predecessors(it).single() }
+        result = uncoveredIfSuccessors.mapNotNull { (method, values) ->
+            val visitedIfs = visitedIfStmt[method] ?: return@mapNotNull null
+            val grouped = values.groupBy { method.cfg.predecessors(it).single() }
                 .map { it.key as EtsIfStmt to it.value.toSet() }
                 .filter { it.first in visitedIfs }
                 .toSet()
-            method to values
+            method to grouped
         }.toMap()
     }
 }
