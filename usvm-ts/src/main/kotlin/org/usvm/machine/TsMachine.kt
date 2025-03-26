@@ -30,7 +30,7 @@ class TsMachine(
     private val options: UMachineOptions,
     private val tsOptions: TsOptions,
     private val machineObserver: UMachineObserver<TsState>? = null,
-    observer: TsInterpreterObserver? = null
+    observer: TsInterpreterObserver? = null,
 ) : UMachine<TsState>() {
     private val typeSystem = TsTypeSystem(typeOperationsTimeout = 1.seconds, project)
     private val components = TsComponents(typeSystem, options)

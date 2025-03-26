@@ -16,9 +16,9 @@ sealed interface TsMethodResult {
      */
     object NoCall : TsMethodResult
 
-
     sealed class Success(val value: UExpr<out USort>) : TsMethodResult {
         abstract fun methodSignature(): EtsMethodSignature
+
         /**
          * A [method] successfully returned a [value].
          */
@@ -36,7 +36,6 @@ sealed interface TsMethodResult {
             override fun methodSignature(): EtsMethodSignature = methodSignature
         }
     }
-
 
     /**
      * A method threw an exception with [type] type.

@@ -8,13 +8,11 @@ import org.usvm.api.checkers.UnreachableCodeDetector
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.util.getResourcePath
-import kotlin.test.assertTrue
-
 
 class UnreachableCodeDetectorTest {
     @Test
     fun testUnreachableCode() {
-        val scene =  run {
+        val scene = run {
             val name = "UnreachableCode.ts"
             val path = getResourcePath("/samples/checkers/$name")
             val file = loadEtsFileAutoConvert(

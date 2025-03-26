@@ -289,6 +289,7 @@ class TsInterpreter(
                             makeSymbolicRefUntyped()
                         )
                     }
+
                     else -> makeSymbolicPrimitive(resultSort)
                 }
                 methodResult = TsMethodResult.Success.MockedCall(stmt.expr.method, resultValue)
