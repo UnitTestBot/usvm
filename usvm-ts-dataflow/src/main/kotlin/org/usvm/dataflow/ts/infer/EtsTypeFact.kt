@@ -1,23 +1,22 @@
 package org.usvm.dataflow.ts.infer
 
 import mu.KotlinLogging
-import org.jacodb.ets.base.ANONYMOUS_CLASS_PREFIX
-import org.jacodb.ets.base.CONSTRUCTOR_NAME
-import org.jacodb.ets.base.EtsAnyType
-import org.jacodb.ets.base.EtsArrayType
-import org.jacodb.ets.base.EtsBooleanType
-import org.jacodb.ets.base.EtsClassType
-import org.jacodb.ets.base.EtsFunctionType
-import org.jacodb.ets.base.EtsNullType
-import org.jacodb.ets.base.EtsNumberType
-import org.jacodb.ets.base.EtsStringType
-import org.jacodb.ets.base.EtsType
-import org.jacodb.ets.base.EtsUnclearRefType
-import org.jacodb.ets.base.EtsUndefinedType
-import org.jacodb.ets.base.EtsUnionType
-import org.jacodb.ets.base.EtsUnknownType
-import org.jacodb.ets.base.INSTANCE_INIT_METHOD_NAME
-import org.usvm.dataflow.ts.util.sortedBy
+import org.jacodb.ets.model.EtsAnyType
+import org.jacodb.ets.model.EtsArrayType
+import org.jacodb.ets.model.EtsBooleanType
+import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsFunctionType
+import org.jacodb.ets.model.EtsNullType
+import org.jacodb.ets.model.EtsNumberType
+import org.jacodb.ets.model.EtsStringType
+import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUnclearType
+import org.jacodb.ets.model.EtsUndefinedType
+import org.jacodb.ets.model.EtsUnionType
+import org.jacodb.ets.model.EtsUnknownType
+import org.jacodb.ets.utils.ANONYMOUS_CLASS_PREFIX
+import org.jacodb.ets.utils.CONSTRUCTOR_NAME
+import org.jacodb.ets.utils.INSTANCE_INIT_METHOD_NAME
 import org.usvm.dataflow.ts.util.toStringLimited
 
 private val logger = KotlinLogging.logger {}
@@ -86,7 +85,7 @@ sealed interface EtsTypeFact {
                 cls: EtsType?,
                 properties: Map<String, EtsTypeFact>,
             ): ObjectEtsTypeFact {
-                if (cls is EtsUnclearRefType && cls.name == "Object") {
+                if (cls is EtsUnclearType && cls.typeName == "Object") {
                     return ObjectEtsTypeFact(null, properties)
                 }
                 return ObjectEtsTypeFact(cls, properties)
@@ -291,7 +290,7 @@ sealed interface EtsTypeFact {
             is EtsClassType -> ObjectEtsTypeFact(type, emptyMap())
             is EtsFunctionType -> FunctionEtsTypeFact
             is EtsArrayType -> ArrayEtsTypeFact(elementType = from(type.elementType))
-            is EtsUnclearRefType -> ObjectEtsTypeFact(type, emptyMap())
+            is EtsUnclearType -> ObjectEtsTypeFact(type, emptyMap())
             else -> {
                 // logger.warn { "Could not create type fact from ${type::class.simpleName}: $type" }
                 UnknownEtsTypeFact

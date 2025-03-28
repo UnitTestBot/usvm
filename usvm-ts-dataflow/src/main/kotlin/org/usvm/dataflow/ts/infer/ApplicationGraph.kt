@@ -16,11 +16,11 @@
 
 package org.usvm.dataflow.ts.infer
 
-import org.jacodb.ets.base.EtsInstLocation
-import org.jacodb.ets.base.EtsNopStmt
-import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsNopStmt
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.model.EtsStmtLocation
 import org.usvm.dataflow.ts.graph.EtsApplicationGraph
 import org.usvm.dataflow.ts.graph.EtsApplicationGraphImpl
 
@@ -41,8 +41,8 @@ class EtsApplicationGraphWithExplicitEntryPoint(
 
     override fun exitPoints(method: EtsMethod): Sequence<EtsStmt> = graph.exitPoints(method)
 
-    private fun methodEntryPoint(method: EtsMethod) =
-        EtsNopStmt(EtsInstLocation(method, index = -1))
+    private fun methodEntryPoint(method: EtsMethod): EtsStmt =
+        EtsNopStmt(EtsStmtLocation(method, index = -1))
 
     override fun entryPoints(method: EtsMethod): Sequence<EtsStmt> = sequenceOf(methodEntryPoint(method))
 

@@ -16,26 +16,27 @@
 
 package org.usvm.dataflow.ts.test.utils
 
-import org.jacodb.ets.base.DEFAULT_ARK_CLASS_NAME
-import org.jacodb.ets.base.DEFAULT_ARK_METHOD_NAME
-import org.jacodb.ets.base.EtsAnyType
-import org.jacodb.ets.base.EtsArrayType
-import org.jacodb.ets.base.EtsAssignStmt
-import org.jacodb.ets.base.EtsBooleanType
-import org.jacodb.ets.base.EtsClassType
-import org.jacodb.ets.base.EtsFunctionType
-import org.jacodb.ets.base.EtsNullType
-import org.jacodb.ets.base.EtsNumberType
-import org.jacodb.ets.base.EtsParameterRef
-import org.jacodb.ets.base.EtsStringType
-import org.jacodb.ets.base.EtsType
-import org.jacodb.ets.base.EtsUnclearRefType
-import org.jacodb.ets.base.EtsUndefinedType
-import org.jacodb.ets.base.EtsUnionType
-import org.jacodb.ets.base.EtsUnknownType
-import org.jacodb.ets.base.INSTANCE_INIT_METHOD_NAME
-import org.jacodb.ets.base.STATIC_INIT_METHOD_NAME
+import org.jacodb.ets.model.EtsAnyType
+import org.jacodb.ets.model.EtsArrayType
+import org.jacodb.ets.model.EtsAssignStmt
+import org.jacodb.ets.model.EtsBooleanType
+import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsFunctionType
+import org.jacodb.ets.model.EtsNullType
+import org.jacodb.ets.model.EtsNumberType
+import org.jacodb.ets.model.EtsParameterRef
+import org.jacodb.ets.model.EtsStringType
+import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUndefinedType
+import org.jacodb.ets.model.EtsUnionType
+import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsUnclearType
+import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
+import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
+import org.jacodb.ets.utils.INSTANCE_INIT_METHOD_NAME
+import org.jacodb.ets.utils.STATIC_INIT_METHOD_NAME
+import org.jacodb.ets.utils.getLocals
 import org.usvm.dataflow.ts.graph.EtsApplicationGraph
 import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EtsTypeFact
@@ -77,7 +78,7 @@ class TypeInferenceStatistics {
         graph: EtsApplicationGraph,
     ) {
         overallTypes += 1 // thisType
-        overallTypes += method.parameters.size + method.locals.size
+        overallTypes += method.parameters.size + method.getLocals().size
 
         methodTypeFacts.apply {
             if (combinedThisFact == null
@@ -91,7 +92,7 @@ class TypeInferenceStatistics {
             }
         }
 
-        val thisType = graph.cp.getEtsClassType(method.enclosingClass)
+        val thisType = graph.cp.getEtsClassType(method.signature.enclosingClass)
         val argTypes = method.parameters.map { it.type }
         val locals = method.getRealLocals().filterNot { it.name == "this" }
 
@@ -198,7 +199,7 @@ class TypeInferenceStatistics {
                         InferenceStatus.ARRAY_INFO
                     }
 
-                    is EtsUnclearRefType -> {
+                    is EtsUnclearType -> {
                         arrayInfoPreviouslyKnown++
                         InferenceStatus.ARRAY_INFO
                     }
@@ -234,7 +235,7 @@ class TypeInferenceStatistics {
                                 InferenceStatus.EXACT_MATCH_PREVIOUSLY_KNOWN
                             }
 
-                            (type as? EtsUnclearRefType)?.typeName == "Boolean" -> {
+                            (type as? EtsUnclearType)?.typeName == "Boolean" -> {
                                 exactTypeInferredCorrectlyPreviouslyKnown++
                                 InferenceStatus.EXACT_MATCH_PREVIOUSLY_KNOWN
                             }
@@ -305,7 +306,7 @@ class TypeInferenceStatistics {
                                 InferenceStatus.EXACT_MATCH_PREVIOUSLY_KNOWN
                             }
 
-                            (type as? EtsUnclearRefType)?.typeName == "Number" -> {
+                            (type as? EtsUnclearType)?.typeName == "Number" -> {
                                 exactTypeInferredCorrectlyPreviouslyKnown++
                                 InferenceStatus.EXACT_MATCH_PREVIOUSLY_KNOWN
                             }
@@ -344,9 +345,9 @@ class TypeInferenceStatistics {
                     return InferenceStatus.TYPE_INFO_FOUND_PREV_KNOWN
                 }
 
-                val typeName = fact.cls!!.typeName
+                val typeName = fact.cls.typeName
 
-                if ((type is EtsClassType || type is EtsUnclearRefType) && type.typeName == typeName) {
+                if ((type is EtsClassType || type is EtsUnclearType) && type.typeName == typeName) {
                     exactTypeInferredCorrectlyPreviouslyKnown++
                     InferenceStatus.EXACT_MATCH_PREVIOUSLY_KNOWN
                 } else {
@@ -374,7 +375,7 @@ class TypeInferenceStatistics {
                                 InferenceStatus.EXACT_MATCH_PREVIOUSLY_KNOWN
                             }
 
-                            (type as? EtsUnclearRefType)?.typeName == "String" -> {
+                            (type as? EtsUnclearType)?.typeName == "String" -> {
                                 exactTypeInferredCorrectlyPreviouslyKnown++
                                 InferenceStatus.EXACT_MATCH_PREVIOUSLY_KNOWN
                             }
@@ -501,7 +502,7 @@ class TypeInferenceStatistics {
 
             noTypesInferred
                 .filterNot { it.name == INSTANCE_INIT_METHOD_NAME || it.name == STATIC_INIT_METHOD_NAME }
-                .filterNot { it.name == DEFAULT_ARK_METHOD_NAME && it.enclosingClass.name == DEFAULT_ARK_CLASS_NAME }
+                .filterNot { it.name == DEFAULT_ARK_METHOD_NAME && it.signature.enclosingClass.name == DEFAULT_ARK_CLASS_NAME }
                 .sortedBy { it.signature.toString() }
                 .forEach {
                     appendLine(it)
@@ -573,7 +574,7 @@ data class MethodTypesFacts(
             m: EtsMethod,
         ): MethodTypesFacts {
             val combinedThisFact = result.inferredCombinedThisType.entries.firstOrNull {
-                it.key.name == m.enclosingClass.name
+                it.key.name == m.signature.enclosingClass.name
             }?.value
 
             val factsForMethod = result.inferredTypes.entries.singleOrNull {
@@ -601,7 +602,7 @@ data class MethodTypesFacts(
 
 // TODO hack because of an issue with signatures
 private val compareByMethodNameAndEnclosingClass = { fst: EtsMethod, snd: EtsMethod ->
-    fst.name === snd.name && fst.enclosingClass.name === snd.enclosingClass.name
+    fst.name === snd.name && fst.signature.enclosingClass.name === snd.signature.enclosingClass.name
 }
 
 private fun EtsTypeFact.matchesWith(type: EtsType): Boolean {
@@ -616,14 +617,14 @@ private fun EtsTypeFact.matchesWith(type: EtsType): Boolean {
             if (type is EtsUnknownType || type is EtsAnyType) {
                 this.cls != null
             } else {
-                (type is EtsClassType || type is EtsUnclearRefType) && type.typeName == typeName
+                (type is EtsClassType || type is EtsUnclearType) && type.typeName == typeName
             }
         }
 
         is EtsTypeFact.ArrayEtsTypeFact -> when (type) {
             is EtsArrayType -> this.elementType.matchesWith(type.elementType)
 
-            is EtsUnclearRefType -> {
+            is EtsUnclearType -> {
                 val elementType = this.elementType as? EtsTypeFact.ObjectEtsTypeFact
                 elementType?.cls?.typeName == type.typeName
             }
@@ -635,7 +636,7 @@ private fun EtsTypeFact.matchesWith(type: EtsType): Boolean {
             type is EtsBooleanType
                 || type is EtsUnknownType
                 || (type as? EtsClassType)?.typeName == "Boolean"
-                || (type as? EtsUnclearRefType)?.typeName == "Boolean"
+                || (type as? EtsUnclearType)?.typeName == "Boolean"
         }
 
         EtsTypeFact.FunctionEtsTypeFact -> type is EtsFunctionType || type is EtsUnknownType
@@ -644,14 +645,14 @@ private fun EtsTypeFact.matchesWith(type: EtsType): Boolean {
             type is EtsNumberType
                 || type is EtsUnknownType
                 || (type as? EtsClassType)?.typeName == "Number"
-                || (type as? EtsUnclearRefType)?.typeName == "Number"
+                || (type as? EtsUnclearType)?.typeName == "Number"
         }
 
         EtsTypeFact.StringEtsTypeFact -> {
             type is EtsStringType
                 || type is EtsUnknownType
                 || (type as? EtsClassType)?.typeName == "String"
-                || (type as? EtsUnclearRefType)?.typeName == "String"
+                || (type as? EtsUnclearType)?.typeName == "String"
         }
 
         EtsTypeFact.UndefinedEtsTypeFact -> type is EtsUndefinedType

@@ -1,7 +1,25 @@
 package org.usvm.machine.interpreter
 
 import io.ksmt.utils.asExpr
-import mu.KotlinLogging
+import org.jacodb.ets.model.EtsArrayAccess
+import org.jacodb.ets.model.EtsArrayType
+import org.jacodb.ets.model.EtsAssignStmt
+import org.jacodb.ets.model.EtsCallStmt
+import org.jacodb.ets.model.EtsIfStmt
+import org.jacodb.ets.model.EtsInstanceFieldRef
+import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsNopStmt
+import org.jacodb.ets.model.EtsNullType
+import org.jacodb.ets.model.EtsParameterRef
+import org.jacodb.ets.model.EtsReturnStmt
+import org.jacodb.ets.model.EtsStaticFieldRef
+import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.model.EtsThis
+import org.jacodb.ets.model.EtsThrowStmt
+import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsValue
+import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.utils.getDeclaredLocals
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UBoolExpr
@@ -90,12 +108,12 @@ class TsInterpreter(
         }
 
         when (stmt) {
-            is TsMethodCall -> visitMethodCall(scope, stmt)
-            is TsIfStmt -> visitIfStmt(scope, stmt)
-            is TsReturnStmt -> visitReturnStmt(scope, stmt)
-            is TsAssignStmt -> visitAssignStmt(scope, stmt)
-            is TsCallStmt -> visitCallStmt(scope, stmt)
-            is TsNopStmt -> visitNopStmt(scope, stmt)
+            is EtsIfStmt -> visitIfStmt(scope, stmt)
+            is EtsReturnStmt -> visitReturnStmt(scope, stmt)
+            is EtsAssignStmt -> visitAssignStmt(scope, stmt)
+            is EtsCallStmt -> visitCallStmt(scope, stmt)
+            is EtsThrowStmt -> visitThrowStmt(scope, stmt)
+            is EtsNopStmt -> visitNopStmt(scope, stmt)
             else -> error("Unknown stmt: $stmt")
         }
 
@@ -334,7 +352,7 @@ class TsInterpreter(
     private fun visitNopStmt(scope: TsStepScope, stmt: TsNopStmt) {
         // Do nothing
     }
-
+    
     private fun exprResolverWithScope(scope: TsStepScope): TsExprResolver =
         TsExprResolver(ctx, scope, ::mapLocalToIdx)
 

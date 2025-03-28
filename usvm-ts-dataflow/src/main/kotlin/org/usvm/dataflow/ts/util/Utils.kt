@@ -16,8 +16,8 @@
 
 package org.usvm.dataflow.ts.util
 
-import org.jacodb.ets.base.EtsClassType
-import org.jacodb.ets.base.EtsType
+import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsType
 import org.usvm.dataflow.ts.infer.EtsTypeFact
 
 fun EtsType.unwrapPromise(): EtsType {

@@ -320,7 +320,7 @@ class EtsTypeResolverWithAstTest {
         astMethods.forEach { m ->
             val expectedTypes = ExpectedTypesExtractor(graphAst.cp).extractTypes(m)
             val abcMethod = abcMethods.singleOrNull {
-                it.name == m.name && it.enclosingClass.name == m.enclosingClass.name
+                it.name == m.name && it.signature.enclosingClass.name == m.signature.enclosingClass.name
             } ?: return@forEach
             val actualTypes = MethodTypesFacts.from(result, m)
             classMatcherStatistics.calculateStats(

@@ -1,5 +1,12 @@
 package org.usvm.machine.state
 
+import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsValue
+import org.jacodb.ets.model.EtsClass
+import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsUnknownType
 import org.usvm.PathNode
 import org.usvm.UCallStack
 import org.usvm.UConcreteHeapRef
@@ -82,9 +89,8 @@ class TsState(
         localToIdx: (TsMethod, TsValue) -> Int,
     ) {
         val argSorts = args.map { arg ->
-            val idx = localToIdx(lastEnteredMethod, arg)
-            // getOrPutSortForLocal(idx, TsUnknownType) // TODO: arg.type
-            getSortForLocal(idx) ?: ctx.unresolvedSort
+            val localIdx = localToIdx(lastEnteredMethod, arg)
+            getOrPutSortForLocal(localIdx, if (arg is EtsLocal) arg.type else EtsUnknownType) // TODO: type
         }
 
         val instanceIdx = instance?.let { localToIdx(lastEnteredMethod, it) }

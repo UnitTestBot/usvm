@@ -1,5 +1,7 @@
 package org.usvm.machine.state
 
+import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsMethod
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort

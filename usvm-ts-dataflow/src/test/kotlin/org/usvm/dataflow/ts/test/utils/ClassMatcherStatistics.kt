@@ -17,18 +17,18 @@
 package org.usvm.dataflow.ts.test.utils
 
 import mu.KotlinLogging
-import org.jacodb.ets.base.EtsAnyType
-import org.jacodb.ets.base.EtsArrayType
-import org.jacodb.ets.base.EtsBooleanType
-import org.jacodb.ets.base.EtsClassType
-import org.jacodb.ets.base.EtsFunctionType
-import org.jacodb.ets.base.EtsNullType
-import org.jacodb.ets.base.EtsNumberType
-import org.jacodb.ets.base.EtsStringType
-import org.jacodb.ets.base.EtsType
-import org.jacodb.ets.base.EtsUnclearRefType
-import org.jacodb.ets.base.EtsUndefinedType
-import org.jacodb.ets.base.EtsUnknownType
+import org.jacodb.ets.model.EtsAnyType
+import org.jacodb.ets.model.EtsArrayType
+import org.jacodb.ets.model.EtsBooleanType
+import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsFunctionType
+import org.jacodb.ets.model.EtsNullType
+import org.jacodb.ets.model.EtsNumberType
+import org.jacodb.ets.model.EtsStringType
+import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUnclearType
+import org.jacodb.ets.model.EtsUndefinedType
+import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.usvm.dataflow.ts.graph.EtsApplicationGraph
@@ -290,14 +290,14 @@ private fun EtsTypeFact?.matchesWith(type: EtsType, strictMode: Boolean): Boolea
             if ((type is EtsUnknownType || type is EtsAnyType) && !strictMode) {
                 this.cls != null
             } else {
-                (type is EtsClassType || type is EtsUnclearRefType) && type.typeName == typeName
+                (type is EtsClassType || type is EtsUnclearType) && type.typeName == typeName
             }
         }
 
         is EtsTypeFact.ArrayEtsTypeFact -> when (type) {
             is EtsArrayType -> this.elementType.matchesWith(type.elementType, strictMode)
 
-            is EtsUnclearRefType -> {
+            is EtsUnclearType -> {
                 val elementType = this.elementType as? EtsTypeFact.ObjectEtsTypeFact
                 elementType?.cls?.typeName == type.typeName
             }
@@ -309,7 +309,7 @@ private fun EtsTypeFact?.matchesWith(type: EtsType, strictMode: Boolean): Boolea
             type is EtsBooleanType
                 || (type is EtsUnknownType && !strictMode)
                 || (type as? EtsClassType)?.typeName == "Boolean"
-                || (type as? EtsUnclearRefType)?.typeName == "Boolean"
+                || (type as? EtsUnclearType)?.typeName == "Boolean"
         }
 
         EtsTypeFact.FunctionEtsTypeFact -> type is EtsFunctionType || (type is EtsUnknownType && !strictMode)
@@ -318,14 +318,14 @@ private fun EtsTypeFact?.matchesWith(type: EtsType, strictMode: Boolean): Boolea
             type is EtsNumberType
                 || (type is EtsUnknownType && !strictMode)
                 || (type as? EtsClassType)?.typeName == "Number"
-                || (type as? EtsUnclearRefType)?.typeName == "Number"
+                || (type as? EtsUnclearType)?.typeName == "Number"
         }
 
         EtsTypeFact.StringEtsTypeFact -> {
             type is EtsStringType
                 || (type is EtsUnknownType && !strictMode)
                 || (type as? EtsClassType)?.typeName == "String"
-                || (type as? EtsUnclearRefType)?.typeName == "String"
+                || (type as? EtsUnclearType)?.typeName == "String"
         }
 
         EtsTypeFact.UndefinedEtsTypeFact -> type is EtsUndefinedType

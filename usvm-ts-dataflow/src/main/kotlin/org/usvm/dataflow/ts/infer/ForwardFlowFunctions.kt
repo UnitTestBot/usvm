@@ -1,32 +1,33 @@
 package org.usvm.dataflow.ts.infer
 
 import mu.KotlinLogging
-import org.jacodb.ets.base.EtsAnyType
-import org.jacodb.ets.base.EtsArithmeticExpr
-import org.jacodb.ets.base.EtsArrayAccess
-import org.jacodb.ets.base.EtsAssignStmt
-import org.jacodb.ets.base.EtsBooleanConstant
-import org.jacodb.ets.base.EtsCastExpr
-import org.jacodb.ets.base.EtsFieldRef
-import org.jacodb.ets.base.EtsInstanceCallExpr
-import org.jacodb.ets.base.EtsLocal
-import org.jacodb.ets.base.EtsNegExpr
-import org.jacodb.ets.base.EtsNewArrayExpr
-import org.jacodb.ets.base.EtsNewExpr
-import org.jacodb.ets.base.EtsNotExpr
-import org.jacodb.ets.base.EtsNullConstant
-import org.jacodb.ets.base.EtsNumberConstant
-import org.jacodb.ets.base.EtsParameterRef
-import org.jacodb.ets.base.EtsRelationExpr
-import org.jacodb.ets.base.EtsReturnStmt
-import org.jacodb.ets.base.EtsStmt
-import org.jacodb.ets.base.EtsStringConstant
-import org.jacodb.ets.base.EtsThis
-import org.jacodb.ets.base.EtsType
-import org.jacodb.ets.base.EtsUndefinedConstant
-import org.jacodb.ets.base.EtsUnknownType
+import org.jacodb.ets.model.EtsAnyType
+import org.jacodb.ets.model.EtsArithmeticExpr
+import org.jacodb.ets.model.EtsArrayAccess
+import org.jacodb.ets.model.EtsAssignStmt
+import org.jacodb.ets.model.EtsBooleanConstant
+import org.jacodb.ets.model.EtsCastExpr
+import org.jacodb.ets.model.EtsFieldRef
+import org.jacodb.ets.model.EtsInstanceCallExpr
+import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsNegExpr
+import org.jacodb.ets.model.EtsNewArrayExpr
+import org.jacodb.ets.model.EtsNewExpr
+import org.jacodb.ets.model.EtsNotExpr
+import org.jacodb.ets.model.EtsNullConstant
+import org.jacodb.ets.model.EtsNumberConstant
+import org.jacodb.ets.model.EtsParameterRef
+import org.jacodb.ets.model.EtsRelationExpr
+import org.jacodb.ets.model.EtsReturnStmt
+import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.model.EtsStringConstant
+import org.jacodb.ets.model.EtsThis
+import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUndefinedConstant
+import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.utils.callExpr
+import org.jacodb.ets.utils.getLocals
 import org.usvm.dataflow.ifds.FlowFunction
 import org.usvm.dataflow.ifds.FlowFunctions
 import org.usvm.dataflow.ts.graph.EtsApplicationGraph
@@ -60,7 +61,7 @@ class ForwardFlowFunctions(
         val result = mutableListOf<ForwardTypeDomainFact>(Zero)
 
         if (doAddKnownTypes) {
-            val fakeLocals = method.locals.toSet() - method.getRealLocals()
+            val fakeLocals = method.getLocals() - method.getRealLocals()
 
             for ((base, type) in initialTypes) {
                 if (base is AccessPathBase.Local) {
@@ -228,6 +229,10 @@ class ForwardFlowFunctions(
                     logger.debug { "Adding known type for $lhv from $rhv: $type" }
                     addTypeFactWithAliases(lhv, type)
                 }
+            }
+
+            is EtsArrayAccess -> {
+                // TODO
             }
 
             is EtsArithmeticExpr -> {
@@ -482,7 +487,7 @@ class ForwardFlowFunctions(
                     // `x := f()`
                     if (callStatement is EtsAssignStmt) {
                         val left = callStatement.lhv.toPath()
-                        val type = EtsTypeFact.from(callExpr.method.returnType.unwrapPromise())
+                        val type = EtsTypeFact.from(callExpr.callee.returnType.unwrapPromise())
                         addTypes(left, type, result)
                     }
                 }

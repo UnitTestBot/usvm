@@ -16,12 +16,12 @@
 
 package org.usvm.dataflow.ts.infer.verify.collectors
 
-import org.jacodb.ets.base.EtsAnyType
-import org.jacodb.ets.base.EtsArrayType
-import org.jacodb.ets.base.EtsTupleType
-import org.jacodb.ets.base.EtsType
-import org.jacodb.ets.base.EtsUnionType
-import org.jacodb.ets.base.EtsUnknownType
+import org.jacodb.ets.model.EtsAnyType
+import org.jacodb.ets.model.EtsArrayType
+import org.jacodb.ets.model.EtsTupleType
+import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUnionType
+import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 

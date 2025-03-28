@@ -16,18 +16,18 @@
 
 package org.usvm.dataflow.ts.infer.dto
 
-import org.jacodb.ets.base.EtsArrayAccess
-import org.jacodb.ets.base.EtsBooleanConstant
-import org.jacodb.ets.base.EtsInstanceFieldRef
-import org.jacodb.ets.base.EtsLocal
-import org.jacodb.ets.base.EtsNullConstant
-import org.jacodb.ets.base.EtsNumberConstant
-import org.jacodb.ets.base.EtsParameterRef
-import org.jacodb.ets.base.EtsStaticFieldRef
-import org.jacodb.ets.base.EtsStringConstant
-import org.jacodb.ets.base.EtsThis
-import org.jacodb.ets.base.EtsUndefinedConstant
-import org.jacodb.ets.base.EtsValue
+import org.jacodb.ets.model.EtsArrayAccess
+import org.jacodb.ets.model.EtsBooleanConstant
+import org.jacodb.ets.model.EtsInstanceFieldRef
+import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsNullConstant
+import org.jacodb.ets.model.EtsNumberConstant
+import org.jacodb.ets.model.EtsParameterRef
+import org.jacodb.ets.model.EtsStaticFieldRef
+import org.jacodb.ets.model.EtsStringConstant
+import org.jacodb.ets.model.EtsThis
+import org.jacodb.ets.model.EtsUndefinedConstant
+import org.jacodb.ets.model.EtsValue
 import org.jacodb.ets.dto.ArrayRefDto
 import org.jacodb.ets.dto.BooleanTypeDto
 import org.jacodb.ets.dto.ConstantDto
@@ -41,6 +41,7 @@ import org.jacodb.ets.dto.StringTypeDto
 import org.jacodb.ets.dto.ThisRefDto
 import org.jacodb.ets.dto.UndefinedTypeDto
 import org.jacodb.ets.dto.ValueDto
+import org.jacodb.ets.model.EtsUnknownType
 
 fun EtsValue.toDto(): ValueDto = accept(EtsValueToDto)
 
@@ -89,14 +90,16 @@ private object EtsValueToDto : EtsValue.Visitor<ValueDto> {
 
     override fun visit(value: EtsThis): ValueDto {
         return ThisRefDto(
-            type = value.type.toDto(),
+            // TODO: type = value.type.toDto(),
+            type = EtsUnknownType.toDto(),
         )
     }
 
     override fun visit(value: EtsParameterRef): ValueDto {
         return ParameterRefDto(
             index = value.index,
-            type = value.type.toDto(),
+            // TODO: type = value.type.toDto(),
+            type = EtsUnknownType.toDto(),
         )
     }
 

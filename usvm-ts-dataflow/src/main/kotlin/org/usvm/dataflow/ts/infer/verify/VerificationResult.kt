@@ -16,7 +16,7 @@
 
 package org.usvm.dataflow.ts.infer.verify
 
-import org.jacodb.ets.base.EtsUnknownType
+import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.model.EtsMethod
 import org.usvm.dataflow.ts.infer.annotation.MethodTypeSchemeImpl
 import org.usvm.dataflow.ts.infer.annotation.TypeScheme

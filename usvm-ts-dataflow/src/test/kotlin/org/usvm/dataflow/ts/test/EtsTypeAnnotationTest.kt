@@ -16,31 +16,32 @@
 
 package org.usvm.dataflow.ts.test
 
-import org.jacodb.ets.base.CONSTRUCTOR_NAME
-import org.jacodb.ets.base.EtsAddExpr
-import org.jacodb.ets.base.EtsAssignStmt
-import org.jacodb.ets.base.EtsClassType
-import org.jacodb.ets.base.EtsInstLocation
-import org.jacodb.ets.base.EtsLocal
-import org.jacodb.ets.base.EtsNumberType
-import org.jacodb.ets.base.EtsParameterRef
-import org.jacodb.ets.base.EtsReturnStmt
-import org.jacodb.ets.base.EtsStmt
-import org.jacodb.ets.base.EtsStringType
-import org.jacodb.ets.base.EtsThis
-import org.jacodb.ets.base.EtsType
-import org.jacodb.ets.base.EtsUnknownType
-import org.jacodb.ets.graph.EtsCfg
+import org.jacodb.ets.model.EtsAddExpr
+import org.jacodb.ets.model.EtsAssignStmt
+import org.jacodb.ets.model.EtsBlockCfg
+import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassImpl
 import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsDecorator
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsFileSignature
+import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodParameter
 import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsModifiers
+import org.jacodb.ets.model.EtsNumberType
+import org.jacodb.ets.model.EtsParameterRef
+import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.model.EtsStmtLocation
+import org.jacodb.ets.model.EtsStringType
+import org.jacodb.ets.model.EtsThis
+import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUnknownType
+import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EtsTypeFact
 import org.usvm.dataflow.ts.infer.TypeInferenceResult
@@ -113,15 +114,15 @@ class EtsTypeAnnotationTest {
     )
 
     private val mainMethod = buildMethod(mainMethodSignature) {
-        val arg1 = EtsParameterRef(1, EtsUnknownType)
-        val arg2 = EtsParameterRef(2, EtsUnknownType)
+        val arg1 = EtsParameterRef(1)
+        val arg2 = EtsParameterRef(2)
         val v1 = EtsLocal("v1", EtsUnknownType)
         val v2 = EtsLocal("v2", EtsUnknownType)
         val v3 = EtsLocal("v3", EtsUnknownType)
 
         push(EtsAssignStmt(location, v1, arg1))
         push(EtsAssignStmt(location, v2, arg2))
-        push(EtsAssignStmt(location, v3, EtsAddExpr(EtsUnknownType, v1, v2)))
+        push(EtsAssignStmt(location, v3, EtsAddExpr(v1, v2)))
         push(EtsReturnStmt(location, v3))
     }
 
@@ -133,15 +134,16 @@ class EtsTypeAnnotationTest {
     )
 
     private val mainClassCtor = buildMethod(mainClassCtorSignature) {
-        val etsThis = EtsThis(EtsClassType(mainClassSignature))
-        push(EtsReturnStmt(location, etsThis))
+        val local = EtsLocal("this", EtsClassType(mainClassSignature))
+        val etsThis = EtsThis
+        push(EtsAssignStmt(location, local, etsThis))
+        push(EtsReturnStmt(location, local))
     }
 
     private val mainClass = EtsClassImpl(
         signature = mainClassSignature,
         fields = listOf(),
-        methods = listOf(mainMethod),
-        ctor = mainClassCtor,
+        methods = listOf(mainClassCtor, mainMethod),
         superClass = null,
     )
 
@@ -159,7 +161,7 @@ class EtsTypeAnnotationTest {
         private val stmts = mutableListOf<EtsStmt>()
         private val successorsMap = mutableMapOf<EtsStmt, MutableList<EtsStmt>>()
 
-        fun build(): EtsCfg = EtsCfg(stmts, successorsMap)
+        fun build(): EtsBlockCfg = TODO()
 
         fun push(stmt: EtsStmt) {
             stmts.lastOrNull()?.let { link(it, stmt) }
@@ -171,8 +173,8 @@ class EtsTypeAnnotationTest {
             successorsMap.getOrPut(from, ::mutableListOf).add(to)
         }
 
-        val location: EtsInstLocation
-            get() = EtsInstLocation(method, stmts.size)
+        val location: EtsStmtLocation
+            get() = EtsStmtLocation(method, stmts.size)
     }
 
     private fun buildMethod(
@@ -183,8 +185,8 @@ class EtsTypeAnnotationTest {
         override val typeParameters: List<EtsType> = emptyList()
         override val modifiers: EtsModifiers = EtsModifiers.EMPTY
         override val decorators: List<EtsDecorator> = emptyList()
-        override val locals: List<EtsLocal> = emptyList()
         override val cfg = CfgBuilderContext(this).apply(cfgBuilder).build()
+        override val enclosingClass: EtsClass? = null
     }
 
     private fun parameters(n: Int) = List(n) {

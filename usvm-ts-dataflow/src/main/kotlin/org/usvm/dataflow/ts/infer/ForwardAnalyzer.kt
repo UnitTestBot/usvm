@@ -1,8 +1,8 @@
 package org.usvm.dataflow.ts.infer
 
-import org.jacodb.ets.base.EtsNopStmt
-import org.jacodb.ets.base.EtsStmt
-import org.jacodb.ets.base.EtsType
+import org.jacodb.ets.model.EtsNopStmt
+import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsMethod
 import org.usvm.dataflow.ifds.Analyzer
 import org.usvm.dataflow.ifds.Edge

@@ -17,7 +17,7 @@
 package org.usvm.dataflow.ts.test
 
 import mu.KotlinLogging
-import org.jacodb.ets.base.EtsStmt
+import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene

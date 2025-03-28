@@ -9,7 +9,7 @@ class ExpectedTypesExtractor(
     fun extractTypes(method: EtsMethod): MethodTypes {
         val returnType = method.returnType
         val argumentsTypes = method.parameters.map { it.type }
-        val thisType = scene.getEtsClassType(method.enclosingClass)
+        val thisType = scene.getEtsClassType(method.signature.enclosingClass)
         return MethodTypes(thisType, argumentsTypes, returnType)
     }
 }

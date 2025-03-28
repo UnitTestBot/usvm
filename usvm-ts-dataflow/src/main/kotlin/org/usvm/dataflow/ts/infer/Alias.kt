@@ -1,25 +1,25 @@
 package org.usvm.dataflow.ts.infer
 
 import mu.KotlinLogging
-import org.jacodb.ets.base.EtsArrayAccess
-import org.jacodb.ets.base.EtsAssignStmt
-import org.jacodb.ets.base.EtsBinaryExpr
-import org.jacodb.ets.base.EtsCallExpr
-import org.jacodb.ets.base.EtsCallStmt
-import org.jacodb.ets.base.EtsCastExpr
-import org.jacodb.ets.base.EtsConstant
-import org.jacodb.ets.base.EtsEntity
-import org.jacodb.ets.base.EtsInstanceCallExpr
-import org.jacodb.ets.base.EtsInstanceFieldRef
-import org.jacodb.ets.base.EtsInstanceOfExpr
-import org.jacodb.ets.base.EtsLocal
-import org.jacodb.ets.base.EtsNewArrayExpr
-import org.jacodb.ets.base.EtsNewExpr
-import org.jacodb.ets.base.EtsParameterRef
-import org.jacodb.ets.base.EtsStaticFieldRef
-import org.jacodb.ets.base.EtsStmt
-import org.jacodb.ets.base.EtsThis
-import org.jacodb.ets.base.EtsUnaryExpr
+import org.jacodb.ets.model.EtsArrayAccess
+import org.jacodb.ets.model.EtsAssignStmt
+import org.jacodb.ets.model.EtsBinaryExpr
+import org.jacodb.ets.model.EtsCallExpr
+import org.jacodb.ets.model.EtsCallStmt
+import org.jacodb.ets.model.EtsCastExpr
+import org.jacodb.ets.model.EtsConstant
+import org.jacodb.ets.model.EtsEntity
+import org.jacodb.ets.model.EtsInstanceCallExpr
+import org.jacodb.ets.model.EtsInstanceFieldRef
+import org.jacodb.ets.model.EtsInstanceOfExpr
+import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsNewArrayExpr
+import org.jacodb.ets.model.EtsNewExpr
+import org.jacodb.ets.model.EtsParameterRef
+import org.jacodb.ets.model.EtsStaticFieldRef
+import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.model.EtsThis
+import org.jacodb.ets.model.EtsUnaryExpr
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsMethod
 
@@ -411,7 +411,7 @@ class MethodAliasInfo(
 
             is EtsInstanceCallExpr -> {
                 initEntity(entity.instance)
-                newString(entity.method.name)
+                newString(entity.callee.name)
                 entity.args.forEach { initEntity(it) }
             }
         }
@@ -490,7 +490,7 @@ class MethodAliasInfo(
             }
         }
 
-        val root = method.cfg.stmts[0]
+        val root = method.cfg.stmts.first()
         postOrderDfs(root)
         order.reverse()
 

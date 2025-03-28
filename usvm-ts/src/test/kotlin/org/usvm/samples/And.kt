@@ -1,21 +1,5 @@
 package org.usvm.samples
 
-import org.jacodb.ets.base.DEFAULT_ARK_CLASS_NAME
-import org.jacodb.ets.base.EtsAndExpr
-import org.jacodb.ets.base.EtsAssignStmt
-import org.jacodb.ets.base.EtsBooleanType
-import org.jacodb.ets.base.EtsClassType
-import org.jacodb.ets.base.EtsIfStmt
-import org.jacodb.ets.base.EtsInstLocation
-import org.jacodb.ets.base.EtsLocal
-import org.jacodb.ets.base.EtsNotEqExpr
-import org.jacodb.ets.base.EtsNumberConstant
-import org.jacodb.ets.base.EtsNumberType
-import org.jacodb.ets.base.EtsParameterRef
-import org.jacodb.ets.base.EtsReturnStmt
-import org.jacodb.ets.base.EtsStmt
-import org.jacodb.ets.base.EtsThis
-import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.dsl.and
 import org.jacodb.ets.dsl.const
 import org.jacodb.ets.dsl.local
@@ -23,12 +7,29 @@ import org.jacodb.ets.dsl.param
 import org.jacodb.ets.dsl.program
 import org.jacodb.ets.dsl.thisRef
 import org.jacodb.ets.dsl.toBlockCfg
-import org.jacodb.ets.graph.EtsCfg
-import org.jacodb.ets.graph.linearize
-import org.jacodb.ets.graph.toEtsBlockCfg
+import org.jacodb.ets.model.EtsAndExpr
+import org.jacodb.ets.model.EtsAssignStmt
+import org.jacodb.ets.model.EtsBooleanType
+import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsIfStmt
+import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethodImpl
 import org.jacodb.ets.model.EtsMethodParameter
 import org.jacodb.ets.model.EtsMethodSignature
+import org.jacodb.ets.model.EtsNotEqExpr
+import org.jacodb.ets.model.EtsNumberConstant
+import org.jacodb.ets.model.EtsNumberType
+import org.jacodb.ets.model.EtsParameterRef
+import org.jacodb.ets.model.EtsReturnStmt
+import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.model.EtsStmtLocation
+import org.jacodb.ets.model.EtsThis
+import org.jacodb.ets.model.EtsUnknownType
+import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
+import org.jacodb.ets.utils.getLocals
+import org.jacodb.ets.utils.toEtsBlockCfg
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsTestValue
@@ -38,7 +39,7 @@ import org.usvm.util.getLocals
 import org.usvm.util.isTruthy
 
 private fun EtsMethodParameter.toRef(): EtsParameterRef {
-    return EtsParameterRef(index, type)
+    return EtsParameterRef(index) // TODO: type
 }
 
 class And : TsMethodTestRunner() {
@@ -92,13 +93,11 @@ class And : TsMethodTestRunner() {
                 ),
                 returnType = EtsNumberType,
             ),
-            locals = locals,
         )
 
         val etsBlockCfg = blockCfg.toEtsBlockCfg(method)
-        val etsCfg = etsBlockCfg.linearize()
 
-        method._cfg = etsCfg
+        method._cfg = etsBlockCfg
         locals += method.getLocals()
 
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
@@ -140,11 +139,10 @@ class And : TsMethodTestRunner() {
                 parameters = methodParameters,
                 returnType = EtsNumberType,
             ),
-            locals = locals,
         )
         val statements = mutableListOf<EtsStmt>()
         val successorMap = mutableMapOf<EtsStmt, List<EtsStmt>>()
-        val loc = { EtsInstLocation(method, statements.size) }
+        val loc = { EtsStmtLocation(method, statements.size) }
 
         val localA = methodParameters[0].let { param ->
             EtsLocal(param.name, param.type)
@@ -156,11 +154,11 @@ class And : TsMethodTestRunner() {
 
         val assA = EtsAssignStmt(loc(), localA, methodParameters[0].toRef()).also { statements += it }
         val assB = EtsAssignStmt(loc(), localB, methodParameters[1].toRef()).also { statements += it }
-        val assThis = EtsAssignStmt(loc(), localThis, EtsThis(EtsClassType(classSignature))).also { statements += it }
+        val assThis = EtsAssignStmt(loc(), localThis, EtsThis).also { statements += it }
 
         // %0 := a && b
         val local0 = EtsLocal("%0", EtsUnknownType)
-        val ass0 = EtsAssignStmt(loc(), local0, EtsAndExpr(EtsUnknownType, localA, localB)).also { statements += it }
+        val ass0 = EtsAssignStmt(loc(), local0, EtsAndExpr(localA, localB)).also { statements += it }
         val if0 = EtsIfStmt(loc(), local0).also { statements += it }
         val ret1 = EtsReturnStmt(loc(), EtsNumberConstant(1.0)).also { statements += it }
         // %1 := (b != b)
@@ -168,7 +166,7 @@ class And : TsMethodTestRunner() {
         val ass1 = EtsAssignStmt(loc(), local1, EtsNotEqExpr(localB, localB)).also { statements += it }
         // %2 := a && %1 == a && (b != b)
         val local2 = EtsLocal("%2", EtsUnknownType)
-        val ass2 = EtsAssignStmt(loc(), local2, EtsAndExpr(EtsUnknownType, localA, local1)).also { statements += it }
+        val ass2 = EtsAssignStmt(loc(), local2, EtsAndExpr(localA, local1)).also { statements += it }
         val if2 = EtsIfStmt(loc(), local2).also { statements += it }
         val ret2 = EtsReturnStmt(loc(), EtsNumberConstant(2.0)).also { statements += it }
         val ifA = EtsIfStmt(loc(), localA).also { statements += it }
@@ -178,12 +176,12 @@ class And : TsMethodTestRunner() {
         val ass3 = EtsAssignStmt(loc(), local3, EtsNotEqExpr(localA, localA)).also { statements += it }
         // %4 := %3 && b == (a != a) && b
         val local4 = EtsLocal("%4", EtsUnknownType)
-        val ass4 = EtsAssignStmt(loc(), local4, EtsAndExpr(EtsUnknownType, local3, localB)).also { statements += it }
+        val ass4 = EtsAssignStmt(loc(), local4, EtsAndExpr(local3, localB)).also { statements += it }
         val if4 = EtsIfStmt(loc(), local4).also { statements += it }
         val ret4 = EtsReturnStmt(loc(), EtsNumberConstant(4.0)).also { statements += it }
         // %5 := %3 && %1 == (a != a) && (b != b)
         val local5 = EtsLocal("%5", EtsUnknownType)
-        val ass5 = EtsAssignStmt(loc(), local5, EtsAndExpr(EtsUnknownType, local3, local1)).also { statements += it }
+        val ass5 = EtsAssignStmt(loc(), local5, EtsAndExpr(local3, local1)).also { statements += it }
         val if5 = EtsIfStmt(loc(), local5).also { statements += it }
         val ret5 = EtsReturnStmt(loc(), EtsNumberConstant(5.0)).also { statements += it }
         val if3 = EtsIfStmt(loc(), local3).also { statements += it }
@@ -223,7 +221,7 @@ class And : TsMethodTestRunner() {
         successorMap[ret8] = emptyList()
         successorMap[ret9] = emptyList()
 
-        method._cfg = EtsCfg(statements, successorMap)
+        method._cfg = TODO() // EtsCfg(statements, successorMap)
         locals += method.getLocals()
 
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber>(
@@ -267,11 +265,10 @@ class And : TsMethodTestRunner() {
                 parameters = methodParameters,
                 returnType = EtsNumberType,
             ),
-            locals = locals,
         )
         val statements = mutableListOf<EtsStmt>()
         val successorMap = mutableMapOf<EtsStmt, List<EtsStmt>>()
-        val loc = { EtsInstLocation(method, statements.size) }
+        val loc = { EtsStmtLocation(method, statements.size) }
 
         val localA = methodParameters[0].let { param ->
             EtsLocal(param.name, param.type)
@@ -283,11 +280,11 @@ class And : TsMethodTestRunner() {
 
         val assA = EtsAssignStmt(loc(), localA, methodParameters[0].toRef()).also { statements += it }
         val assB = EtsAssignStmt(loc(), localB, methodParameters[1].toRef()).also { statements += it }
-        val assThis = EtsAssignStmt(loc(), localThis, EtsThis(EtsClassType(classSignature))).also { statements += it }
+        val assThis = EtsAssignStmt(loc(), localThis, EtsThis).also { statements += it }
 
         // %0 := a && b
         val local0 = EtsLocal("%0", EtsUnknownType)
-        val ass0 = EtsAssignStmt(loc(), local0, EtsAndExpr(EtsUnknownType, localA, localB)).also { statements += it }
+        val ass0 = EtsAssignStmt(loc(), local0, EtsAndExpr(localA, localB)).also { statements += it }
         val if0 = EtsIfStmt(loc(), local0).also { statements += it }
         val ret1 = EtsReturnStmt(loc(), EtsNumberConstant(1.0)).also { statements += it }
         // %1 := (b != b)
@@ -295,7 +292,7 @@ class And : TsMethodTestRunner() {
         val ass1 = EtsAssignStmt(loc(), local1, EtsNotEqExpr(localB, localB)).also { statements += it }
         // %2 := a && %1 == a && (b != b)
         val local2 = EtsLocal("%2", EtsUnknownType)
-        val ass2 = EtsAssignStmt(loc(), local2, EtsAndExpr(EtsUnknownType, localA, local1)).also { statements += it }
+        val ass2 = EtsAssignStmt(loc(), local2, EtsAndExpr(localA, local1)).also { statements += it }
         val if2 = EtsIfStmt(loc(), local2).also { statements += it }
         val ret2 = EtsReturnStmt(loc(), EtsNumberConstant(2.0)).also { statements += it }
         val ifA = EtsIfStmt(loc(), localA).also { statements += it }
@@ -326,7 +323,7 @@ class And : TsMethodTestRunner() {
         successorMap[ret5] = emptyList()
         successorMap[ret6] = emptyList()
 
-        method._cfg = EtsCfg(statements, successorMap)
+        method._cfg = TODO() // EtsCfg(statements, successorMap)
         locals += method.getLocals()
 
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsNumber, TsTestValue.TsNumber>(
@@ -367,11 +364,10 @@ class And : TsMethodTestRunner() {
                 parameters = methodParameters,
                 returnType = EtsNumberType,
             ),
-            locals = locals,
         )
         val statements = mutableListOf<EtsStmt>()
         val successorMap = mutableMapOf<EtsStmt, List<EtsStmt>>()
-        val loc = { EtsInstLocation(method, statements.size) }
+        val loc = { EtsStmtLocation(method, statements.size) }
 
         val localA = methodParameters[0].let { param ->
             EtsLocal(param.name, param.type)
@@ -383,11 +379,15 @@ class And : TsMethodTestRunner() {
 
         val assA = EtsAssignStmt(loc(), localA, methodParameters[0].toRef()).also { statements += it }
         val assB = EtsAssignStmt(loc(), localB, methodParameters[1].toRef()).also { statements += it }
-        val assThis = EtsAssignStmt(loc(), localThis, EtsThis(EtsClassType(classSignature))).also { statements += it }
+        val assThis = EtsAssignStmt(
+            loc(),
+            localThis,
+            EtsThis
+        ).also { statements += it } // TODO: EtsThis(EtsClassType(classSignature))
 
         // %0 := a && b
         val local0 = EtsLocal("%0", EtsUnknownType)
-        val ass0 = EtsAssignStmt(loc(), local0, EtsAndExpr(EtsUnknownType, localA, localB)).also { statements += it }
+        val ass0 = EtsAssignStmt(loc(), local0, EtsAndExpr(localA, localB)).also { statements += it }
         val if0 = EtsIfStmt(loc(), local0).also { statements += it }
         val ret1 = EtsReturnStmt(loc(), EtsNumberConstant(1.0)).also { statements += it }
         val ifA = EtsIfStmt(loc(), localA).also { statements += it }
@@ -397,7 +397,7 @@ class And : TsMethodTestRunner() {
         val ass1 = EtsAssignStmt(loc(), local1, EtsNotEqExpr(localA, localA)).also { statements += it }
         // %2 := %1 && b == (a != a) && b
         val local2 = EtsLocal("%2", EtsUnknownType)
-        val ass2 = EtsAssignStmt(loc(), local2, EtsAndExpr(EtsUnknownType, local1, localB)).also { statements += it }
+        val ass2 = EtsAssignStmt(loc(), local2, EtsAndExpr(local1, localB)).also { statements += it }
         val if2 = EtsIfStmt(loc(), local2).also { statements += it }
         val ret3 = EtsReturnStmt(loc(), EtsNumberConstant(3.0)).also { statements += it }
         val if1 = EtsIfStmt(loc(), local1).also { statements += it }
@@ -426,7 +426,7 @@ class And : TsMethodTestRunner() {
         successorMap[ret5] = emptyList()
         successorMap[ret6] = emptyList()
 
-        method._cfg = EtsCfg(statements, successorMap)
+        method._cfg = TODO()
         locals += method.getLocals()
 
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsBoolean, TsTestValue.TsNumber>(

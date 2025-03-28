@@ -1,7 +1,7 @@
 package org.usvm.dataflow.ts.util
 
-import org.jacodb.ets.base.EtsAssignStmt
-import org.jacodb.ets.base.EtsLocal
+import org.jacodb.ets.model.EtsAssignStmt
+import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
 
 private val realLocalsCache: MutableMap<EtsMethod, Set<EtsLocal>> = hashMapOf()

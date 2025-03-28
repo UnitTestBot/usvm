@@ -20,8 +20,8 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToStream
 import mu.KotlinLogging
-import org.jacodb.ets.base.ANONYMOUS_CLASS_PREFIX
-import org.jacodb.ets.base.ANONYMOUS_METHOD_PREFIX
+import org.jacodb.ets.utils.ANONYMOUS_CLASS_PREFIX
+import org.jacodb.ets.utils.ANONYMOUS_METHOD_PREFIX
 import org.usvm.dataflow.ts.infer.TypeInferenceResult
 import org.usvm.dataflow.ts.infer.dto.toDto
 import java.nio.file.Path

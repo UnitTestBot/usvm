@@ -1,6 +1,19 @@
 package org.usvm.util
 
+import org.jacodb.ets.model.EtsAnyType
+import org.jacodb.ets.model.EtsArrayType
+import org.jacodb.ets.model.EtsBooleanType
+import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsFileSignature
+import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsNullType
+import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.model.EtsStringType
+import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUndefinedType
+import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS
@@ -190,8 +203,8 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, TsMethod, TsType?, TsMeth
 
             TsTestValue.TsClass::class -> {
                 // TODO incorrect
-                val signature = TsClassSignature(it.toString(), TsFileSignature.UNKNOWN)
-                TsClassType(signature)
+                val signature = EtsClassSignature(it.toString(), EtsFileSignature.UNKNOWN)
+                EtsClassType(signature)
             }
 
             TsTestValue.TsBoolean::class -> TsBooleanType
@@ -208,8 +221,8 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, TsMethod, TsType?, TsMeth
 
             TsTestValue.TsException::class -> {
                 // TODO incorrect
-                val signature = TsClassSignature("Exception", TsFileSignature.UNKNOWN)
-                TsClassType(signature)
+                val signature = EtsClassSignature("Exception", EtsFileSignature.UNKNOWN)
+                EtsClassType(signature)
             }
 
             else -> error("Unsupported type: $klass")

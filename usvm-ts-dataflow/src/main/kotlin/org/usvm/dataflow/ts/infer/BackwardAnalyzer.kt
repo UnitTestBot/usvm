@@ -1,7 +1,7 @@
 package org.usvm.dataflow.ts.infer
 
-import org.jacodb.ets.base.EtsStmt
-import org.jacodb.ets.base.EtsType
+import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.impl.cfg.graphs.GraphDominators
 import org.usvm.dataflow.graph.ApplicationGraph

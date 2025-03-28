@@ -16,7 +16,7 @@
 
 package org.usvm.dataflow.ts.infer.annotation
 
-import org.jacodb.ets.base.EtsType
+import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsMethod
 import org.usvm.dataflow.ts.infer.AccessPathBase
 

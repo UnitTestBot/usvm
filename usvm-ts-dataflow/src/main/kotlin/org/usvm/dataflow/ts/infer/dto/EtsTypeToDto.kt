@@ -16,25 +16,25 @@
 
 package org.usvm.dataflow.ts.infer.dto
 
-import org.jacodb.ets.base.EtsAliasType
-import org.jacodb.ets.base.EtsAnyType
-import org.jacodb.ets.base.EtsArrayType
-import org.jacodb.ets.base.EtsBooleanType
-import org.jacodb.ets.base.EtsClassType
-import org.jacodb.ets.base.EtsFunctionType
-import org.jacodb.ets.base.EtsGenericType
-import org.jacodb.ets.base.EtsLiteralType
-import org.jacodb.ets.base.EtsNeverType
-import org.jacodb.ets.base.EtsNullType
-import org.jacodb.ets.base.EtsNumberType
-import org.jacodb.ets.base.EtsStringType
-import org.jacodb.ets.base.EtsTupleType
-import org.jacodb.ets.base.EtsType
-import org.jacodb.ets.base.EtsUnclearRefType
-import org.jacodb.ets.base.EtsUndefinedType
-import org.jacodb.ets.base.EtsUnionType
-import org.jacodb.ets.base.EtsUnknownType
-import org.jacodb.ets.base.EtsVoidType
+import org.jacodb.ets.model.EtsAliasType
+import org.jacodb.ets.model.EtsAnyType
+import org.jacodb.ets.model.EtsArrayType
+import org.jacodb.ets.model.EtsBooleanType
+import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsFunctionType
+import org.jacodb.ets.model.EtsGenericType
+import org.jacodb.ets.model.EtsLiteralType
+import org.jacodb.ets.model.EtsNeverType
+import org.jacodb.ets.model.EtsNullType
+import org.jacodb.ets.model.EtsNumberType
+import org.jacodb.ets.model.EtsStringType
+import org.jacodb.ets.model.EtsTupleType
+import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUnclearType
+import org.jacodb.ets.model.EtsUndefinedType
+import org.jacodb.ets.model.EtsUnionType
+import org.jacodb.ets.model.EtsUnknownType
+import org.jacodb.ets.model.EtsVoidType
 import org.jacodb.ets.dto.AliasTypeDto
 import org.jacodb.ets.dto.AnyTypeDto
 import org.jacodb.ets.dto.ArrayTypeDto
@@ -42,6 +42,7 @@ import org.jacodb.ets.dto.BooleanTypeDto
 import org.jacodb.ets.dto.ClassTypeDto
 import org.jacodb.ets.dto.FunctionTypeDto
 import org.jacodb.ets.dto.GenericTypeDto
+import org.jacodb.ets.dto.IntersectionTypeDto
 import org.jacodb.ets.dto.LiteralTypeDto
 import org.jacodb.ets.dto.LocalDto
 import org.jacodb.ets.dto.LocalSignatureDto
@@ -57,6 +58,7 @@ import org.jacodb.ets.dto.UndefinedTypeDto
 import org.jacodb.ets.dto.UnionTypeDto
 import org.jacodb.ets.dto.UnknownTypeDto
 import org.jacodb.ets.dto.VoidTypeDto
+import org.jacodb.ets.model.EtsIntersectionType
 
 fun EtsType.toDto(): TypeDto = accept(EtsTypeToDto)
 
@@ -71,6 +73,10 @@ private object EtsTypeToDto : EtsType.Visitor<TypeDto> {
 
     override fun visit(type: EtsUnionType): TypeDto {
         return UnionTypeDto(types = type.types.map { it.accept(this) })
+    }
+
+    override fun visit(type: EtsIntersectionType): TypeDto {
+        return IntersectionTypeDto(types = type.types.map { it.accept(this) })
     }
 
     override fun visit(type: EtsTupleType): TypeDto {
@@ -136,7 +142,7 @@ private object EtsTypeToDto : EtsType.Visitor<TypeDto> {
 
     override fun visit(type: EtsFunctionType): TypeDto {
         return FunctionTypeDto(
-            signature = type.method.toDto(),
+            signature = type.signature.toDto(),
             typeParameters = type.typeParameters.map { it.toDto() },
         )
     }
@@ -148,7 +154,7 @@ private object EtsTypeToDto : EtsType.Visitor<TypeDto> {
         )
     }
 
-    override fun visit(type: EtsUnclearRefType): TypeDto {
+    override fun visit(type: EtsUnclearType): TypeDto {
         return UnclearReferenceTypeDto(
             name = type.typeName,
             typeParameters = type.typeParameters.map { it.toDto() },

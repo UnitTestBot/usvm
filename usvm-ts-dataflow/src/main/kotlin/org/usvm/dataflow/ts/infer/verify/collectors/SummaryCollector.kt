@@ -16,13 +16,13 @@
 
 package org.usvm.dataflow.ts.infer.verify.collectors
 
-import org.jacodb.ets.base.EtsEntity
-import org.jacodb.ets.base.EtsLocal
-import org.jacodb.ets.base.EtsParameterRef
-import org.jacodb.ets.base.EtsRefType
-import org.jacodb.ets.base.EtsThis
-import org.jacodb.ets.base.EtsType
-import org.jacodb.ets.base.EtsValue
+import org.jacodb.ets.model.EtsEntity
+import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsParameterRef
+import org.jacodb.ets.model.EtsRefType
+import org.jacodb.ets.model.EtsThis
+import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsValue
 import org.jacodb.ets.model.EtsMethodSignature
 import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.toBase
@@ -51,12 +51,13 @@ interface SummaryCollector {
     val verificationSummary: MethodVerificationSummary
 
     fun yield(parameter: EtsParameterRef) {
-        if (!parameter.type.isUnresolved) {
-            verificationSummary.entitySummaries
-                .computeIfAbsent(AccessPathBase.Arg(parameter.index)) { EntityVerificationSummary.empty() }
-                .types
-                .add(parameter.type)
-        }
+        // TODO:
+        //  if (!parameter.type.isUnresolved) {
+        //     verificationSummary.entitySummaries
+        //         .computeIfAbsent(AccessPathBase.Arg(parameter.index)) { EntityVerificationSummary.empty() }
+        //         .types
+        //         .add(parameter.type)
+        // }
     }
 
     fun yield(local: EtsLocal) {
@@ -69,18 +70,20 @@ interface SummaryCollector {
     }
 
     fun yield(etsThis: EtsThis) {
-        verificationSummary.entitySummaries
-            .computeIfAbsent(AccessPathBase.This) { EntityVerificationSummary.empty() }
-            .types
-            .add(etsThis.type)
+        // TODO:
+        //  verificationSummary.entitySummaries
+        //     .computeIfAbsent(AccessPathBase.This) { EntityVerificationSummary.empty() }
+        //     .types
+        //     .add(etsThis.type)
     }
 
     fun requireObjectOrUnknown(value: EtsValue, enclosingExpr: EtsEntity) {
-        if (!value.type.isUnresolved && value.type !is EtsRefType) {
-            verificationSummary.entitySummaries
-                .computeIfAbsent(value.toBase()) { EntityVerificationSummary.empty() }
-                .errors
-                .add(TypeError(value, enclosingExpr, "$value type should be a reference type, found ${value.type}"))
-        }
+        // TODO:
+        //  if (!value.type.isUnresolved && value.type !is EtsRefType) {
+        //     verificationSummary.entitySummaries
+        //         .computeIfAbsent(value.toBase()) { EntityVerificationSummary.empty() }
+        //         .errors
+        //         .add(TypeError(value, enclosingExpr, "$value type should be a reference type, found ${value.type}"))
+        // }
     }
 }

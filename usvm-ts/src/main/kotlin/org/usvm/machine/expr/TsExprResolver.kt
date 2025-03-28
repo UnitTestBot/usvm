@@ -3,8 +3,75 @@ package org.usvm.machine.expr
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import mu.KotlinLogging
-import org.jacodb.ets.base.STATIC_INIT_METHOD_NAME
-import org.jacodb.ets.base.UNKNOWN_CLASS_NAME
+import org.jacodb.ets.model.EtsAddExpr
+import org.jacodb.ets.model.EtsAndExpr
+import org.jacodb.ets.model.EtsArrayAccess
+import org.jacodb.ets.model.EtsArrayType
+import org.jacodb.ets.model.EtsAwaitExpr
+import org.jacodb.ets.model.EtsBinaryExpr
+import org.jacodb.ets.model.EtsBitAndExpr
+import org.jacodb.ets.model.EtsBitNotExpr
+import org.jacodb.ets.model.EtsBitOrExpr
+import org.jacodb.ets.model.EtsBitXorExpr
+import org.jacodb.ets.model.EtsBooleanConstant
+import org.jacodb.ets.model.EtsCastExpr
+import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsDeleteExpr
+import org.jacodb.ets.model.EtsDivExpr
+import org.jacodb.ets.model.EtsEntity
+import org.jacodb.ets.model.EtsEqExpr
+import org.jacodb.ets.model.EtsExpExpr
+import org.jacodb.ets.model.EtsFieldSignature
+import org.jacodb.ets.model.EtsGtEqExpr
+import org.jacodb.ets.model.EtsGtExpr
+import org.jacodb.ets.model.EtsInExpr
+import org.jacodb.ets.model.EtsInstanceCallExpr
+import org.jacodb.ets.model.EtsInstanceFieldRef
+import org.jacodb.ets.model.EtsInstanceOfExpr
+import org.jacodb.ets.model.EtsLeftShiftExpr
+import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsLtEqExpr
+import org.jacodb.ets.model.EtsLtExpr
+import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsMethodSignature
+import org.jacodb.ets.model.EtsMulExpr
+import org.jacodb.ets.model.EtsNegExpr
+import org.jacodb.ets.model.EtsNewArrayExpr
+import org.jacodb.ets.model.EtsNewExpr
+import org.jacodb.ets.model.EtsNotEqExpr
+import org.jacodb.ets.model.EtsNotExpr
+import org.jacodb.ets.model.EtsNullConstant
+import org.jacodb.ets.model.EtsNullishCoalescingExpr
+import org.jacodb.ets.model.EtsNumberConstant
+import org.jacodb.ets.model.EtsOrExpr
+import org.jacodb.ets.model.EtsParameterRef
+import org.jacodb.ets.model.EtsPostDecExpr
+import org.jacodb.ets.model.EtsPostIncExpr
+import org.jacodb.ets.model.EtsPreDecExpr
+import org.jacodb.ets.model.EtsPreIncExpr
+import org.jacodb.ets.model.EtsPtrCallExpr
+import org.jacodb.ets.model.EtsRemExpr
+import org.jacodb.ets.model.EtsRightShiftExpr
+import org.jacodb.ets.model.EtsStaticCallExpr
+import org.jacodb.ets.model.EtsStaticFieldRef
+import org.jacodb.ets.model.EtsStrictEqExpr
+import org.jacodb.ets.model.EtsStrictNotEqExpr
+import org.jacodb.ets.model.EtsStringConstant
+import org.jacodb.ets.model.EtsStringType
+import org.jacodb.ets.model.EtsSubExpr
+import org.jacodb.ets.model.EtsThis
+import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsTypeOfExpr
+import org.jacodb.ets.model.EtsUnaryExpr
+import org.jacodb.ets.model.EtsUnaryPlusExpr
+import org.jacodb.ets.model.EtsUndefinedConstant
+import org.jacodb.ets.model.EtsUnknownType
+import org.jacodb.ets.model.EtsUnsignedRightShiftExpr
+import org.jacodb.ets.model.EtsValue
+import org.jacodb.ets.model.EtsVoidExpr
+import org.jacodb.ets.model.EtsYieldExpr
+import org.jacodb.ets.utils.STATIC_INIT_METHOD_NAME
+import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
@@ -365,7 +432,6 @@ class TsExprResolver(
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
     }
-
     // endregion
 
     // region RELATION
@@ -474,7 +540,7 @@ class TsExprResolver(
         }
     }
 
-    override fun visit(expr: TsStaticCallExpr): UExpr<out USort>? = with(ctx) {
+    override fun visit(expr: EtsStaticCallExpr): UExpr<out USort>? = with(ctx) {
         if (expr.callee.name == "Number" && expr.callee.enclosingClass.name == "") {
             check(expr.args.size == 1) { "Number constructor should have exactly one argument" }
             return resolveAfterResolved(expr.args.single()) {
@@ -892,7 +958,7 @@ class TsExprResolver(
                 blockOnFalseState = allocateException(TsStringType) // TODO incorrect exception type
             )
 
-            val type = TsArrayType(TsUnknownType, 1) // TODO: fix array element type
+            val type = TsArrayType(EtsUnknownType, 1) // TODO: fix array element type
             val address = memory.allocateArray(type, sizeSort, bvSize)
             memory.types.allocate(address.address, type)
 
@@ -920,8 +986,8 @@ class TsSimpleValueResolver(
 
         val idx = localToIdx(currentMethod, local)
         val sort = scope.calcOnState {
-            val type = if (local is TsLocal) currentMethod.getLocalType(local) else TsUnknownType
-            getOrPutSortForLocal(idx, type)
+            val type = if (local is EtsLocal) local.type else EtsUnknownType // TODO
+            getOrPutSortForLocal(localIdx, type)
         }
 
         // If we are not in the entrypoint, all correct values are already resolved and we can just return

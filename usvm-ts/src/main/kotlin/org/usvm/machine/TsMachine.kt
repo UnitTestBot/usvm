@@ -1,6 +1,8 @@
 package org.usvm.machine
 
-import mu.KotlinLogging
+import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsScene
 import org.usvm.CoverageZone
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachine

@@ -16,7 +16,7 @@
 
 package org.usvm.dataflow.ts.infer
 
-import org.jacodb.ets.base.EtsClassType
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsScene
 

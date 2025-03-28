@@ -1,22 +1,11 @@
 package org.usvm.machine
 
-import org.jacodb.ets.base.CONSTRUCTOR_NAME
-import org.jacodb.ets.base.UNKNOWN_FILE_NAME
-import org.usvm.dataflow.graph.ApplicationGraph
-import org.usvm.model.TsAssignStmt
-import org.usvm.model.TsClass
-import org.usvm.model.TsClassSignature
-import org.usvm.model.TsClassType
-import org.usvm.model.TsFileSignature
-import org.usvm.model.TsMethod
-import org.usvm.model.TsMethodSignature
-import org.usvm.model.TsNewExpr
-import org.usvm.model.TsScene
-import org.usvm.model.TsStmt
-import org.usvm.model.TsTerminatingStmt
-import org.usvm.util.Maybe
-import org.usvm.util.callExpr
-import org.usvm.util.onSome
+import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsScene
+import org.usvm.dataflow.ts.graph.EtsApplicationGraph
+import org.usvm.dataflow.ts.graph.EtsApplicationGraphImpl
+import org.usvm.statistics.ApplicationGraph
 
 private val logger = mu.KotlinLogging.logger {}
 

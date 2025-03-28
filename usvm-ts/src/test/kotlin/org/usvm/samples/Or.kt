@@ -1,8 +1,5 @@
 package org.usvm.samples
 
-import org.jacodb.ets.base.DEFAULT_ARK_CLASS_NAME
-import org.jacodb.ets.base.EtsLocal
-import org.jacodb.ets.base.EtsNumberType
 import org.jacodb.ets.dsl.const
 import org.jacodb.ets.dsl.eq
 import org.jacodb.ets.dsl.local
@@ -12,13 +9,16 @@ import org.jacodb.ets.dsl.param
 import org.jacodb.ets.dsl.program
 import org.jacodb.ets.dsl.thisRef
 import org.jacodb.ets.dsl.toBlockCfg
-import org.jacodb.ets.graph.linearize
-import org.jacodb.ets.graph.toEtsBlockCfg
 import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethodImpl
 import org.jacodb.ets.model.EtsMethodParameter
 import org.jacodb.ets.model.EtsMethodSignature
+import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
+import org.jacodb.ets.utils.getLocals
+import org.jacodb.ets.utils.toEtsBlockCfg
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
@@ -121,13 +121,11 @@ class Or : TsMethodTestRunner() {
                 ),
                 returnType = EtsNumberType,
             ),
-            locals = locals,
         )
 
         val etsBlockCfg = blockCfg.toEtsBlockCfg(method)
-        val etsCfg = etsBlockCfg.linearize()
 
-        method._cfg = etsCfg
+        method._cfg = etsBlockCfg
         locals.clear()
         locals += method.getLocals()
 

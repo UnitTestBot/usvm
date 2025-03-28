@@ -16,10 +16,10 @@
 
 package org.usvm.dataflow.ts.test.utils
 
-import org.jacodb.ets.base.DEFAULT_ARK_CLASS_NAME
-import org.jacodb.ets.base.EtsClassType
 import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
 
 fun EtsScene.getEtsClassType(signature: EtsClassSignature): EtsClassType? {
     if (signature.name == DEFAULT_ARK_CLASS_NAME || signature.name.isBlank()) {
