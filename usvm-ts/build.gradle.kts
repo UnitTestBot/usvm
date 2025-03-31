@@ -33,6 +33,6 @@ tasks.withType<KotlinCompile> {
 
 sourceSets.test {
     kotlin {
-        exclude("**/samples/**")
+        // exclude("**/samples/**")
     }
 }

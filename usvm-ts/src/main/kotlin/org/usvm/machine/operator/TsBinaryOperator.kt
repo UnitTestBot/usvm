@@ -826,6 +826,58 @@ sealed interface TsBinaryOperator {
         }
     }
 
+    data object LtEq : TsBinaryOperator {
+        override fun TsContext.onBool(
+            lhs: UBoolExpr,
+            rhs: UBoolExpr,
+            scope: TsStepScope,
+        ): UBoolExpr {
+            return mkOr(lhs.not(), rhs)
+        }
+
+        override fun TsContext.onFp(
+            lhs: UExpr<KFp64Sort>,
+            rhs: UExpr<KFp64Sort>,
+            scope: TsStepScope,
+        ): UBoolExpr {
+            return mkFpLessOrEqualExpr(lhs, rhs)
+        }
+
+        override fun TsContext.onRef(
+            lhs: UHeapRef,
+            rhs: UHeapRef,
+            scope: TsStepScope,
+        ): UBoolExpr? {
+            val left = mkNumericExpr(lhs, scope)
+            val right = mkNumericExpr(rhs, scope)
+            return mkFpLessOrEqualExpr(left, right)
+        }
+
+        override fun TsContext.resolveFakeObject(
+            lhs: UExpr<out USort>,
+            rhs: UExpr<out USort>,
+            scope: TsStepScope,
+        ): UBoolExpr? {
+            check(lhs.isFakeObject() || rhs.isFakeObject())
+
+            val left = mkNumericExpr(lhs, scope)
+            val right = mkNumericExpr(rhs, scope)
+            return mkFpLessOrEqualExpr(left, right)
+        }
+
+        override fun TsContext.internalResolve(
+            lhs: UExpr<out USort>,
+            rhs: UExpr<out USort>,
+            scope: TsStepScope,
+        ): UBoolExpr? {
+            check(!lhs.isFakeObject() && !rhs.isFakeObject())
+
+            val left = mkNumericExpr(lhs, scope)
+            val right = mkNumericExpr(rhs, scope)
+            return mkFpLessOrEqualExpr(left, right)
+        }
+    }
+
     data object Gt : TsBinaryOperator {
         override fun TsContext.onBool(
             lhs: UBoolExpr,

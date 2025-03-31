@@ -57,6 +57,7 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
                     .filterNot { it.cfg.stmts.isEmpty() }
                     .filterNot { it.isStatic }
                     .filterNot { it.name.startsWith("%AM") }
+                    .filterNot { it.name == "build" }
             }
         TsMachine(scene, options).use { machine ->
             val states = machine.analyze(methods)

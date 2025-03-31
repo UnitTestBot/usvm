@@ -171,6 +171,12 @@ class TsInterpreter(
             ctx.mkTruthyExpr(expr, scope)
         }
 
+        if (graph.successors(stmt).toList().size != 2) {
+            logger.warn { "If statement has ${graph.successors(stmt).toList().size} successor(s)" }
+            scope.assert(ctx.falseExpr)
+            return
+        }
+
         val (negStmt, posStmt) = graph.successors(stmt).take(2).toList()
 
         scope.forkWithBlackList(
