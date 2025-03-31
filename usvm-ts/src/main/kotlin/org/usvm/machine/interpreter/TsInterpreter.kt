@@ -177,14 +177,14 @@ class TsInterpreter(
             return
         }
 
-        val (negStmt, posStmt) = graph.successors(stmt).take(2).toList()
+        val (falseBranch, trueBranch) = graph.successors(stmt).take(2).toList()
 
         scope.forkWithBlackList(
             boolExpr,
-            posStmt,
-            negStmt,
-            blockOnTrueState = { newStmt(posStmt) },
-            blockOnFalseState = { newStmt(negStmt) },
+            trueBranch,
+            falseBranch,
+            blockOnTrueState = { newStmt(trueBranch) },
+            blockOnFalseState = { newStmt(falseBranch) },
         )
     }
 
