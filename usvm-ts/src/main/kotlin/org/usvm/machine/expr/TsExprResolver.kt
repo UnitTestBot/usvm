@@ -922,7 +922,15 @@ class TsSimpleValueResolver(
 
         val idx = localToIdx(currentMethod, local)
         val sort = scope.calcOnState {
-            val type = if (local is EtsLocal) local.type else EtsUnknownType // TODO
+            val type = if (local is EtsLocal) {
+                local.type
+            } else if (local is EtsParameterRef) {
+                // TODO: check if parameter indices are actually 0-based
+                //       (they might start at 3 in ABC...)
+                currentMethod.parameters[local.index].type
+            } else {
+                EtsUnknownType // TODO
+            }
             getOrPutSortForLocal(idx, type)
         }
 
