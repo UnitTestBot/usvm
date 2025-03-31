@@ -1,25 +1,29 @@
 package org.usvm.machine.interpreter
 
 import io.ksmt.utils.asExpr
+import mu.KotlinLogging
 import org.jacodb.ets.model.EtsArrayAccess
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsCallStmt
+import org.jacodb.ets.model.EtsClassCategory
+import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsNopStmt
 import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsParameterRef
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsStaticFieldRef
 import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.model.EtsStmtLocation
 import org.jacodb.ets.model.EtsThis
-import org.jacodb.ets.model.EtsThrowStmt
 import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.model.EtsValue
-import org.jacodb.ets.model.EtsMethod
-import org.jacodb.ets.utils.getDeclaredLocals
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UBoolExpr
@@ -42,48 +46,26 @@ import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.state.returnValue
-import org.usvm.model.TsArrayAccess
-import org.usvm.model.TsArrayType
-import org.usvm.model.TsAssignStmt
-import org.usvm.model.TsCallStmt
-import org.usvm.model.TsClassCategory
-import org.usvm.model.TsClassSignature
-import org.usvm.model.TsFieldSignature
-import org.usvm.model.TsIfStmt
-import org.usvm.model.TsInstLocation
-import org.usvm.model.TsInstanceFieldRef
-import org.usvm.model.TsLocal
-import org.usvm.model.TsMethod
-import org.usvm.model.TsNopStmt
-import org.usvm.model.TsNullType
-import org.usvm.model.TsParameterRef
-import org.usvm.model.TsReturnStmt
-import org.usvm.model.TsStaticFieldRef
-import org.usvm.model.TsStmt
-import org.usvm.model.TsThis
-import org.usvm.model.TsType
-import org.usvm.model.TsUnknownType
-import org.usvm.model.TsValue
 import org.usvm.sizeSort
 import org.usvm.targets.UTargetsSet
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
-import org.usvm.util.resolveTsFields
-import org.usvm.util.resolveTsMethods
+import org.usvm.util.resolveEtsFields
+import org.usvm.util.resolveEtsMethods
 import org.usvm.utils.ensureSat
 
 private val logger = KotlinLogging.logger {}
 
-typealias TsStepScope = StepScope<TsState, TsType, TsStmt, TsContext>
+typealias TsStepScope = StepScope<TsState, EtsType, EtsStmt, TsContext>
 
 class TsInterpreter(
     private val ctx: TsContext,
     private val graph: TsGraph,
 ) : UInterpreter<TsState>() {
 
-    private val forkBlackList: UForkBlackList<TsState, TsStmt> = UForkBlackList.createDefault()
+    private val forkBlackList: UForkBlackList<TsState, EtsStmt> = UForkBlackList.createDefault()
 
     override fun step(state: TsState): StepResult<TsState> {
         val stmt = state.lastStmt
@@ -108,11 +90,12 @@ class TsInterpreter(
         }
 
         when (stmt) {
+            is TsMethodCall -> visitMethodCall(scope, stmt)
             is EtsIfStmt -> visitIfStmt(scope, stmt)
             is EtsReturnStmt -> visitReturnStmt(scope, stmt)
             is EtsAssignStmt -> visitAssignStmt(scope, stmt)
             is EtsCallStmt -> visitCallStmt(scope, stmt)
-            is EtsThrowStmt -> visitThrowStmt(scope, stmt)
+            // is EtsThrowStmt -> visitThrowStmt(scope, stmt)
             is EtsNopStmt -> visitNopStmt(scope, stmt)
             else -> error("Unknown stmt: $stmt")
         }
@@ -127,7 +110,7 @@ class TsInterpreter(
 
         when (stmt) {
             is TsVirtualMethodCallStmt -> {
-                val methods = ctx.resolveTsMethods(stmt.callee)
+                val methods = ctx.resolveEtsMethods(stmt.callee)
                 if (methods.isEmpty()) {
                     scope.assert(ctx.falseExpr)
                     return
@@ -138,7 +121,7 @@ class TsInterpreter(
                 for (method in methods) {
                     val block = { newState: TsState ->
                         val concreteCall = TsConcreteMethodCallStmt(
-                            location = TsInstLocation(scope.calcOnState { lastEnteredMethod }, -1),
+                            location = EtsStmtLocation.stub(scope.calcOnState { lastEnteredMethod }),
                             callee = method,
                             arguments = stmt.arguments,
                             returnSite = stmt.returnSite,
@@ -178,7 +161,7 @@ class TsInterpreter(
         }
     }
 
-    private fun visitIfStmt(scope: TsStepScope, stmt: TsIfStmt) {
+    private fun visitIfStmt(scope: TsStepScope, stmt: EtsIfStmt) {
         val exprResolver = exprResolverWithScope(scope)
         val expr = exprResolver.resolve(stmt.condition) ?: return
 
@@ -199,7 +182,7 @@ class TsInterpreter(
         )
     }
 
-    private fun visitReturnStmt(scope: TsStepScope, stmt: TsReturnStmt) {
+    private fun visitReturnStmt(scope: TsStepScope, stmt: EtsReturnStmt) {
         val exprResolver = exprResolverWithScope(scope)
 
         val valueToReturn = stmt.returnValue
@@ -211,7 +194,7 @@ class TsInterpreter(
         }
     }
 
-    private fun visitAssignStmt(scope: TsStepScope, stmt: TsAssignStmt) = with(ctx) {
+    private fun visitAssignStmt(scope: TsStepScope, stmt: EtsAssignStmt) = with(ctx) {
         val exprResolver = exprResolverWithScope(scope)
         val expr = exprResolver.resolve(stmt.rhv) ?: return
 
@@ -221,7 +204,7 @@ class TsInterpreter(
 
         scope.doWithState {
             when (val lhv = stmt.lhv) {
-                is TsLocal -> {
+                is EtsLocal -> {
                     val idx = mapLocalToIdx(lastEnteredMethod, lhv)
                     saveSortForLocal(idx, expr.sort)
 
@@ -229,7 +212,7 @@ class TsInterpreter(
                     memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
                 }
 
-                is TsArrayAccess -> {
+                is EtsArrayAccess -> {
                     val instance = exprResolver.resolve(lhv.array)?.asExpr(addressSort) ?: return@doWithState
                     val index = exprResolver.resolve(lhv.index)?.asExpr(fp64Sort) ?: return@doWithState
 
@@ -242,11 +225,11 @@ class TsInterpreter(
                     ).asExpr(sizeSort)
 
                     // TODO: handle the case when `lhv.array.type` is NOT an array.
-                    //  In this case, it could be created manually: `TsArrayType(TsUnknownType, 1)`.
+                    //  In this case, it could be created manually: `EtsArrayType(EtsUnknownType, 1)`.
                     val lengthLValue = mkArrayLengthLValue(
                         ref = instance,
-                        type = TsArrayType(TsUnknownType, 1)
-                    ) // TODO: lhv.array.type as TsArrayType
+                        type = EtsArrayType(EtsUnknownType, 1)
+                    ) // TODO: lhv.array.type as EtsArrayType
                     val currentLength = memory.read(lengthLValue)
 
                     val condition = mkBvSignedGreaterOrEqualExpr(bvIndex, currentLength)
@@ -260,32 +243,34 @@ class TsInterpreter(
                         sort = addressSort,
                         ref = instance,
                         index = bvIndex.asExpr(sizeSort),
-                        type = TsArrayType(TsUnknownType, 1), // TODO: lhv.array.type as TsArrayType
+                        type = EtsArrayType(EtsUnknownType, 1), // TODO: lhv.array.type as EtsArrayType
                     )
                     memory.write(lValue, fakeExpr, guard = trueExpr)
                 }
 
-                is TsInstanceFieldRef -> {
+                is EtsInstanceFieldRef -> {
                     val instance = exprResolver.resolve(lhv.instance)?.asExpr(addressSort) ?: return@doWithState
-                    val etsFields = resolveTsFields(
+                    val etsFields = resolveEtsFields(
                         lhv.instance,
-                        TsFieldSignature(TsClassSignature.UNKNOWN, lhv.fieldName, TsUnknownType)
+                        EtsFieldSignature(EtsClassSignature.UNKNOWN, lhv.field.name, EtsUnknownType)
                     )
-                    val etsFieldType = etsFields.filter { it.declaringClass != null && it.declaringClass!!.category != TsClassCategory.ENUM }.map { it.type }.distinct().singleOrNull() ?: TsUnknownType
+                    val etsFieldType =
+                        etsFields.filter { it.declaringClass != null && it.declaringClass!!.category != EtsClassCategory.ENUM }
+                            .map { it.type }.distinct().singleOrNull() ?: EtsUnknownType
                     val sort = typeToSort(etsFieldType)
                     if (sort == unresolvedSort) {
                         val fakeObject = expr.toFakeObject(scope)
                         val lValue = mkFieldLValue(
                             sort = addressSort,
                             ref = instance,
-                            field = TsFieldSignature(TsClassSignature.UNKNOWN, lhv.fieldName, TsUnknownType)
+                            field = EtsFieldSignature(EtsClassSignature.UNKNOWN, lhv.field.name, EtsUnknownType)
                         )
                         memory.write(lValue, fakeObject, guard = trueExpr)
                     } else {
                         val lValue = mkFieldLValue(
                             sort = sort,
                             ref = instance,
-                            field = TsFieldSignature(TsClassSignature.UNKNOWN, lhv.fieldName, TsUnknownType)
+                            field = EtsFieldSignature(EtsClassSignature.UNKNOWN, lhv.field.name, EtsUnknownType)
                         )
                         if (expr.isFakeObject()) {
                             val fakeType = expr.getFakeType(scope)
@@ -307,9 +292,9 @@ class TsInterpreter(
                     }
                 }
 
-                is TsStaticFieldRef -> {
+                is EtsStaticFieldRef -> {
                     val clazz = scene.projectAndSdkClasses.singleOrNull {
-                        it.name == lhv.enclosingClass.typeName
+                        it.name == lhv.field.enclosingClass.name
                     } ?: return@doWithState
 
                     val instance = scope.calcOnState { getStaticInstance(clazz) }
@@ -318,7 +303,7 @@ class TsInterpreter(
                     //  Note: Since we are assigning to a static field, we can omit its initialization,
                     //        if it does not have any side effects.
 
-                    val field = clazz.fields.single { it.name == lhv.fieldName }
+                    val field = clazz.fields.single { it.name == lhv.field.name }
                     val sort = typeToSort(field.type)
                     if (sort == unresolvedSort) {
                         val lValue = mkFieldLValue(addressSort, instance, field.signature)
@@ -338,7 +323,7 @@ class TsInterpreter(
         }
     }
 
-    private fun visitCallStmt(scope: TsStepScope, stmt: TsCallStmt) {
+    private fun visitCallStmt(scope: TsStepScope, stmt: EtsCallStmt) {
         val exprResolver = exprResolverWithScope(scope)
 
         exprResolver.resolve(stmt.expr) ?: return
@@ -349,21 +334,21 @@ class TsInterpreter(
         }
     }
 
-    private fun visitNopStmt(scope: TsStepScope, stmt: TsNopStmt) {
+    private fun visitNopStmt(scope: TsStepScope, stmt: EtsNopStmt) {
         // Do nothing
     }
-    
+
     private fun exprResolverWithScope(scope: TsStepScope): TsExprResolver =
         TsExprResolver(ctx, scope, ::mapLocalToIdx)
 
     // (method, localName) -> idx
-    private val localVarToIdx: MutableMap<TsMethod, Map<String, Int>> = hashMapOf()
+    private val localVarToIdx: MutableMap<EtsMethod, Map<String, Int>> = hashMapOf()
 
-    private fun mapLocalToIdx(method: TsMethod, local: TsValue): Int =
+    private fun mapLocalToIdx(method: EtsMethod, local: EtsValue): Int =
         // Note: below, 'n' means the number of arguments
         when (local) {
             // Note: locals have indices starting from (n+1)
-            is TsLocal -> {
+            is EtsLocal -> {
                 val map = localVarToIdx.getOrPut(method) {
                     // TODO: replace 'allLocals' with 'getDeclaredLocals()'
                     method.allLocals.mapIndexed { i, local ->
@@ -377,15 +362,15 @@ class TsInterpreter(
             }
 
             // Note: 'this' has index 'n'
-            is TsThis -> method.parameters.size
+            is EtsThis -> method.parameters.size
 
             // Note: arguments have indices from 0 to (n-1)
-            is TsParameterRef -> local.index
+            is EtsParameterRef -> local.index
 
             else -> error("Unexpected local: $local")
         }
 
-    fun getInitialState(method: TsMethod, targets: List<TsTarget>): TsState {
+    fun getInitialState(method: EtsMethod, targets: List<TsTarget>): TsState {
         val state = TsState(
             ctx = ctx,
             ownership = MutabilityOwnership(),
@@ -393,7 +378,7 @@ class TsInterpreter(
             targets = UTargetsSet.from(targets),
         )
 
-        val solver = ctx.solver<TsType>()
+        val solver = ctx.solver<EtsType>()
 
         // TODO check for statics
         val thisInstanceRef = mkRegisterStackLValue(ctx.addressSort, method.parameters.count())
@@ -419,12 +404,12 @@ class TsInterpreter(
         state.memory.stack.push(method.parametersWithThisCount, method.localsCount)
         state.newStmt(method.cfg.stmts.first())
 
-        state.memory.types.allocate(ctx.mkTsNullValue().address, TsNullType)
+        state.memory.types.allocate(ctx.mkTsNullValue().address, EtsNullType)
 
         return state
     }
 
     // TODO: expand with interpreter implementation
-    private val TsStmt.nextStmt: TsStmt?
+    private val EtsStmt.nextStmt: EtsStmt?
         get() = graph.successors(this).firstOrNull()
 }

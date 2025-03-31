@@ -1,5 +1,6 @@
 package org.usvm.util
 
+import org.usvm.machine.expr.*
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
@@ -24,20 +25,6 @@ import org.usvm.api.TsMethodCoverage
 import org.usvm.api.TsTest
 import org.usvm.api.TsTestValue
 import org.usvm.machine.TsMachine
-import org.usvm.model.TsAnyType
-import org.usvm.model.TsArrayType
-import org.usvm.model.TsBooleanType
-import org.usvm.model.TsClassSignature
-import org.usvm.model.TsClassType
-import org.usvm.model.TsFileSignature
-import org.usvm.model.TsMethod
-import org.usvm.model.TsNullType
-import org.usvm.model.TsNumberType
-import org.usvm.model.TsScene
-import org.usvm.model.TsStringType
-import org.usvm.model.TsType
-import org.usvm.model.TsUndefinedType
-import org.usvm.model.TsUnknownType
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
 import kotlin.reflect.KClass
@@ -61,7 +48,7 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, TsMethod, TsType?, TsMeth
             useArkAnalyzerTypeInference = if (useArkAnalyzerTypeInference) 1 else null
         )
         val scene = EtsScene(listOf(file))
-        return scene.convert()
+        return scene
     }
 
     protected fun getMethod(className: String, methodName: String): TsMethod {

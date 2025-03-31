@@ -1,19 +1,16 @@
 package org.usvm.machine.state
 
+import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.utils.getDeclaredLocals
+import org.jacodb.ets.utils.getLocals
 import org.usvm.UExpr
 import org.usvm.USort
-import org.usvm.model.TsLocal
-import org.usvm.model.TsMethod
-import org.usvm.model.TsStmt
-import org.usvm.util.getDeclaredLocals
-import org.usvm.util.getLocals
 
 val TsState.lastStmt get() = pathNode.statement
 
-fun TsState.newStmt(stmt: TsStmt) {
+fun TsState.newStmt(stmt: EtsStmt) {
     pathNode += stmt
 }
 
@@ -32,11 +29,11 @@ fun TsState.returnValue(valueToReturn: UExpr<out USort>) {
     }
 }
 
-inline val TsMethod.parametersWithThisCount: Int
+inline val EtsMethod.parametersWithThisCount: Int
     get() = parameters.size + 1
 
-inline val TsMethod.allLocals: Set<TsLocal>
+inline val EtsMethod.allLocals: Set<EtsLocal>
     get() = getDeclaredLocals() + getLocals()
 
-inline val TsMethod.localsCount: Int
+inline val EtsMethod.localsCount: Int
     get() = allLocals.size

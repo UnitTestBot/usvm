@@ -1,18 +1,17 @@
 package org.usvm.util
 
-import org.jacodb.ets.base.UNKNOWN_CLASS_NAME
+import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsMethodSignature
+import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUnknownType
+import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
 import org.usvm.machine.TsContext
-import org.usvm.model.TsClassType
-import org.usvm.model.TsLocal
-import org.usvm.model.TsMethod
-import org.usvm.model.TsMethodSignature
-import org.usvm.model.TsType
-import org.usvm.model.TsUnknownType
 
-fun TsContext.resolveTsMethods(
-    method: TsMethodSignature,
-    instanceType: TsType = TsUnknownType,
-): List<TsMethod> {
+fun TsContext.resolveEtsMethods(
+    method: EtsMethodSignature,
+    instanceType: EtsType = EtsUnknownType,
+): List<EtsMethod> {
     if (method.enclosingClass.name != UNKNOWN_CLASS_NAME) {
         val classes = scene.projectAndSdkClasses.filter {
             it.name == method.enclosingClass.name
@@ -25,7 +24,7 @@ fun TsContext.resolveTsMethods(
         return methods
     }
 
-    val classes = if (instanceType is TsClassType) {
+    val classes = if (instanceType is EtsClassType) {
         scene.projectAndSdkClasses.filter {
             it.name == instanceType.signature.name
         }

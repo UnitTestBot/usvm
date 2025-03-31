@@ -1,25 +1,36 @@
 package org.usvm.machine
 
-import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.model.EtsAssignStmt
+import org.jacodb.ets.model.EtsClass
+import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsMethodSignature
+import org.jacodb.ets.model.EtsNewExpr
 import org.jacodb.ets.model.EtsScene
-import org.usvm.dataflow.ts.graph.EtsApplicationGraph
-import org.usvm.dataflow.ts.graph.EtsApplicationGraphImpl
-import org.usvm.statistics.ApplicationGraph
+import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.model.EtsTerminatingStmt
+import org.jacodb.ets.utils.CONSTRUCTOR_NAME
+import org.jacodb.ets.utils.UNKNOWN_FILE_NAME
+import org.jacodb.ets.utils.callExpr
+import org.usvm.dataflow.graph.ApplicationGraph
+import org.usvm.util.Maybe
+import org.usvm.util.onSome
 
 private val logger = mu.KotlinLogging.logger {}
 
-interface TsApplicationGraph : ApplicationGraph<TsMethod, TsStmt> {
-    val cp: TsScene
+interface TsApplicationGraph : ApplicationGraph<EtsMethod, EtsStmt> {
+    val cp: EtsScene
 }
 
-private fun TsFileSignature?.isUnknown(): Boolean =
+private fun EtsFileSignature?.isUnknown(): Boolean =
     this == null || fileName.isBlank() || fileName == UNKNOWN_FILE_NAME
 
-private fun TsClassSignature.isUnknown(): Boolean =
+private fun EtsClassSignature.isUnknown(): Boolean =
     name.isBlank()
 
-private fun TsClassSignature.isIdeal(): Boolean =
+private fun EtsClassSignature.isIdeal(): Boolean =
     !isUnknown() && !file.isUnknown()
 
 enum class ComparisonResult {
@@ -29,8 +40,8 @@ enum class ComparisonResult {
 }
 
 fun compareFileSignatures(
-    sig1: TsFileSignature?,
-    sig2: TsFileSignature?,
+    sig1: EtsFileSignature?,
+    sig2: EtsFileSignature?,
 ): ComparisonResult = when {
     sig1.isUnknown() -> ComparisonResult.Unknown
     sig2.isUnknown() -> ComparisonResult.Unknown
@@ -39,8 +50,8 @@ fun compareFileSignatures(
 }
 
 fun compareClassSignatures(
-    sig1: TsClassSignature,
-    sig2: TsClassSignature,
+    sig1: EtsClassSignature,
+    sig2: EtsClassSignature,
 ): ComparisonResult = when {
     sig1.isUnknown() -> ComparisonResult.Unknown
     sig2.isUnknown() -> ComparisonResult.Unknown
@@ -49,17 +60,17 @@ fun compareClassSignatures(
 }
 
 class TsApplicationGraphImpl(
-    override val cp: TsScene,
+    override val cp: EtsScene,
 ) : TsApplicationGraph {
 
-    override fun predecessors(node: TsStmt): Sequence<TsStmt> {
+    override fun predecessors(node: EtsStmt): Sequence<EtsStmt> {
         // val graph = node.location.method.cfg
         // val predecessors = graph.predecessors(node)
         // return predecessors.asSequence()
         TODO()
     }
 
-    override fun successors(node: TsStmt): Sequence<TsStmt> {
+    override fun successors(node: EtsStmt): Sequence<EtsStmt> {
         val graph = node.location.method.cfg
         val successors = graph.successors(node)
         return successors.asSequence()
@@ -79,11 +90,11 @@ class TsApplicationGraphImpl(
             .groupByTo(hashMapOf()) { it.name }
     }
 
-    private val cacheClassWithIdealSignature: MutableMap<TsClassSignature, Maybe<TsClass>> = hashMapOf()
-    private val cacheMethodWithIdealSignature: MutableMap<TsMethodSignature, Maybe<TsMethod>> = hashMapOf()
-    private val cachePartiallyMatchedCallees: MutableMap<TsMethodSignature, List<TsMethod>> = hashMapOf()
+    private val cacheClassWithIdealSignature: MutableMap<EtsClassSignature, Maybe<EtsClass>> = hashMapOf()
+    private val cacheMethodWithIdealSignature: MutableMap<EtsMethodSignature, Maybe<EtsMethod>> = hashMapOf()
+    private val cachePartiallyMatchedCallees: MutableMap<EtsMethodSignature, List<EtsMethod>> = hashMapOf()
 
-    private fun lookupClassWithIdealSignature(signature: TsClassSignature): Maybe<TsClass> {
+    private fun lookupClassWithIdealSignature(signature: EtsClassSignature): Maybe<EtsClass> {
         require(signature.isIdeal())
 
         if (signature in cacheClassWithIdealSignature) {
@@ -102,7 +113,7 @@ class TsApplicationGraphImpl(
         }
     }
 
-    override fun callees(node: TsStmt): Sequence<TsMethod> {
+    override fun callees(node: EtsStmt): Sequence<EtsMethod> {
         val expr = node.callExpr ?: return emptySequence()
 
         val callee = expr.callee
@@ -122,9 +133,9 @@ class TsApplicationGraphImpl(
                     return emptySequence()
                 }
 
-                if (prevStmt is TsAssignStmt && prevStmt.rhv is TsNewExpr) {
-                    val cls = prevStmt.rhv.type
-                    if (cls !is TsClassType) {
+                if (prevStmt is EtsAssignStmt && prevStmt.rhv is EtsNewExpr) {
+                    val cls = (prevStmt.rhv as EtsNewExpr).type
+                    if (cls !is EtsClassType) {
                         return emptySequence()
                     }
 
@@ -249,7 +260,7 @@ class TsApplicationGraphImpl(
         return sequenceOf(r)
     }
 
-    override fun callers(method: TsMethod): Sequence<TsStmt> {
+    override fun callers(method: EtsMethod): Sequence<EtsStmt> {
         // Note: currently, nobody uses `callers`, so if is safe to disable it for now.
         // Note: comparing methods by signature may be incorrect, and comparing only by name fails for constructors.
         TODO("disabled for now, need re-design")
@@ -260,50 +271,50 @@ class TsApplicationGraphImpl(
         //     .filter { it.expr.method == method.signature }
     }
 
-    override fun entryPoints(method: TsMethod): Sequence<TsStmt> {
+    override fun entryPoints(method: EtsMethod): Sequence<EtsStmt> {
         return method.cfg.stmts.asSequence().take(1)
     }
 
-    override fun exitPoints(method: TsMethod): Sequence<TsStmt> {
-        return method.cfg.stmts.asSequence().filter { it is TsTerminatingStmt }
+    override fun exitPoints(method: EtsMethod): Sequence<EtsStmt> {
+        return method.cfg.stmts.asSequence().filter { it is EtsTerminatingStmt }
     }
 
-    override fun methodOf(node: TsStmt): TsMethod {
+    override fun methodOf(node: EtsStmt): EtsMethod {
         return node.location.method
     }
 }
 
-class TsGraph(scene: TsScene) : org.usvm.statistics.ApplicationGraph<TsMethod, TsStmt> {
+class TsGraph(scene: EtsScene) : org.usvm.statistics.ApplicationGraph<EtsMethod, EtsStmt> {
     private val graph = TsApplicationGraphImpl(scene)
 
-    /*override*/ val cp: TsScene
+    /*override*/ val cp: EtsScene
         get() = graph.cp
 
-    override fun predecessors(node: TsStmt): Sequence<TsStmt> =
+    override fun predecessors(node: EtsStmt): Sequence<EtsStmt> =
         graph.predecessors(node)
 
-    override fun successors(node: TsStmt): Sequence<TsStmt> =
+    override fun successors(node: EtsStmt): Sequence<EtsStmt> =
         if (node is TsMethodCall) {
             graph.successors(node.returnSite)
         } else {
             graph.successors(node)
         }
 
-    override fun callees(node: TsStmt): Sequence<TsMethod> =
+    override fun callees(node: EtsStmt): Sequence<EtsMethod> =
         graph.callees(node)
 
-    override fun callers(method: TsMethod): Sequence<TsStmt> =
+    override fun callers(method: EtsMethod): Sequence<EtsStmt> =
         graph.callers(method)
 
-    override fun entryPoints(method: TsMethod): Sequence<TsStmt> =
+    override fun entryPoints(method: EtsMethod): Sequence<EtsStmt> =
         graph.entryPoints(method)
 
-    override fun exitPoints(method: TsMethod): Sequence<TsStmt> =
+    override fun exitPoints(method: EtsMethod): Sequence<EtsStmt> =
         graph.exitPoints(method)
 
-    override fun methodOf(node: TsStmt): TsMethod =
+    override fun methodOf(node: EtsStmt): EtsMethod =
         graph.methodOf(node)
 
-    override fun statementsOf(method: TsMethod): Sequence<TsStmt> =
+    override fun statementsOf(method: EtsMethod): Sequence<EtsStmt> =
         method.cfg.stmts.asSequence()
 }

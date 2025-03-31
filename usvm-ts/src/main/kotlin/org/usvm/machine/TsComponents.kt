@@ -13,7 +13,6 @@ import org.usvm.UMachineOptions
 import org.usvm.USizeExprProvider
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.memory.UReadOnlyMemory
-import org.usvm.model.TsType
 import org.usvm.model.ULazyModelDecoder
 import org.usvm.solver.UExprTranslator
 import org.usvm.solver.USolverBase
@@ -23,7 +22,7 @@ import org.usvm.types.UTypeSystem
 class TsComponents(
     private val typeSystem: TsTypeSystem,
     private val options: UMachineOptions,
-) : UComponents<TsType, TsSizeSort> {
+) : UComponents<EtsType, TsSizeSort> {
     private val closeableResources = mutableListOf<AutoCloseable>()
 
     override val useSolverForForks: Boolean
@@ -31,7 +30,7 @@ class TsComponents(
 
     override fun <Context : UContext<TsSizeSort>> buildTranslatorAndLazyDecoder(
         ctx: Context,
-    ): Pair<UExprTranslator<TsType, TsSizeSort>, ULazyModelDecoder<TsType>> {
+    ): Pair<UExprTranslator<EtsType, TsSizeSort>, ULazyModelDecoder<EtsType>> {
         val translator = TsExprTranslator(ctx)
         val decoder = ULazyModelDecoder(translator)
 
@@ -44,16 +43,16 @@ class TsComponents(
 
     override fun <Context : UContext<TsSizeSort>> mkComposer(
         ctx: Context,
-    ): (UReadOnlyMemory<TsType>, MutabilityOwnership) -> UComposer<TsType, TsSizeSort> =
-        { memory: UReadOnlyMemory<TsType>, ownership: MutabilityOwnership ->
+    ): (UReadOnlyMemory<EtsType>, MutabilityOwnership) -> UComposer<EtsType, TsSizeSort> =
+        { memory: UReadOnlyMemory<EtsType>, ownership: MutabilityOwnership ->
             TsComposer(ctx, memory, ownership)
         }
 
     override fun mkTypeSystem(
         ctx: UContext<TsSizeSort>,
-    ): UTypeSystem<TsType> = typeSystem
+    ): UTypeSystem<EtsType> = typeSystem
 
-    override fun <Context : UContext<TsSizeSort>> mkSolver(ctx: Context): USolverBase<TsType> {
+    override fun <Context : UContext<TsSizeSort>> mkSolver(ctx: Context): USolverBase<EtsType> {
         val (translator, decoder) = buildTranslatorAndLazyDecoder(ctx)
 
         val smtSolver = when (options.solverType) {

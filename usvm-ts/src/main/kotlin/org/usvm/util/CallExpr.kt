@@ -1,10 +1,6 @@
 package org.usvm.util
 
-import org.usvm.model.TsAssignStmt
-import org.usvm.model.TsCallExpr
-import org.usvm.model.TsCallStmt
-import org.usvm.model.TsEntity
-import org.usvm.model.TsStmt
+import org.usvm.machine.expr.*
 
 val TsStmt.callExpr: TsCallExpr?
     get() = when (this) {

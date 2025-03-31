@@ -12,8 +12,6 @@ import org.usvm.machine.IntermediateLValueField
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.expr.tctx
 import org.usvm.memory.URegisterStackLValue
-import org.usvm.model.TsArrayType
-import org.usvm.model.TsFieldSignature
 import org.usvm.sizeSort
 
 fun <Sort : USort> mkFieldLValue(
@@ -25,7 +23,7 @@ fun <Sort : USort> mkFieldLValue(
 fun <Sort : USort> mkFieldLValue(
     sort: Sort,
     ref: UHeapRef,
-    field: TsFieldSignature,
+    field: EtsFieldSignature,
 ): UFieldLValue<String, Sort> = UFieldLValue(sort, ref, field.name)
 
 fun <Sort : USort> mkFieldLValue(
@@ -38,13 +36,13 @@ fun <Sort : USort> mkArrayIndexLValue(
     sort: Sort,
     ref: UHeapRef,
     index: UExpr<TsSizeSort>,
-    type: TsArrayType,
-): UArrayIndexLValue<TsArrayType, Sort, TsSizeSort> = UArrayIndexLValue(sort, ref, index, type)
+    type: EtsArrayType,
+): UArrayIndexLValue<EtsArrayType, Sort, TsSizeSort> = UArrayIndexLValue(sort, ref, index, type)
 
 fun mkArrayLengthLValue(
     ref: UHeapRef,
-    type: TsArrayType,
-): UArrayLengthLValue<TsArrayType, TsSizeSort> = UArrayLengthLValue(ref, type, ref.tctx.sizeSort)
+    type: EtsArrayType,
+): UArrayLengthLValue<EtsArrayType, TsSizeSort> = UArrayLengthLValue(ref, type, ref.tctx.sizeSort)
 
 fun <Sort : USort> mkRegisterStackLValue(
     sort: Sort,

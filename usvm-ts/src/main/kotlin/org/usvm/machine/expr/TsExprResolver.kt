@@ -95,75 +95,6 @@ import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.memory.ULValue
-import org.usvm.model.TsAddExpr
-import org.usvm.model.TsAndExpr
-import org.usvm.model.TsArrayAccess
-import org.usvm.model.TsArrayType
-import org.usvm.model.TsAwaitExpr
-import org.usvm.model.TsBinaryExpr
-import org.usvm.model.TsBitAndExpr
-import org.usvm.model.TsBitNotExpr
-import org.usvm.model.TsBitOrExpr
-import org.usvm.model.TsBitXorExpr
-import org.usvm.model.TsBooleanConstant
-import org.usvm.model.TsCastExpr
-import org.usvm.model.TsClassSignature
-import org.usvm.model.TsClassType
-import org.usvm.model.TsDeleteExpr
-import org.usvm.model.TsDivExpr
-import org.usvm.model.TsEntity
-import org.usvm.model.TsEqExpr
-import org.usvm.model.TsExpExpr
-import org.usvm.model.TsFileSignature
-import org.usvm.model.TsGtEqExpr
-import org.usvm.model.TsGtExpr
-import org.usvm.model.TsInExpr
-import org.usvm.model.TsInstanceCallExpr
-import org.usvm.model.TsInstanceFieldRef
-import org.usvm.model.TsInstanceOfExpr
-import org.usvm.model.TsLeftShiftExpr
-import org.usvm.model.TsLocal
-import org.usvm.model.TsLtEqExpr
-import org.usvm.model.TsLtExpr
-import org.usvm.model.TsMethod
-import org.usvm.model.TsMethodSignature
-import org.usvm.model.TsMulExpr
-import org.usvm.model.TsNegExpr
-import org.usvm.model.TsNewArrayExpr
-import org.usvm.model.TsNewExpr
-import org.usvm.model.TsNotEqExpr
-import org.usvm.model.TsNotExpr
-import org.usvm.model.TsNullConstant
-import org.usvm.model.TsNumberConstant
-import org.usvm.model.TsNumberType
-import org.usvm.model.TsOrExpr
-import org.usvm.model.TsParameterRef
-import org.usvm.model.TsPostDecExpr
-import org.usvm.model.TsPostIncExpr
-import org.usvm.model.TsPreDecExpr
-import org.usvm.model.TsPreIncExpr
-import org.usvm.model.TsPtrCallExpr
-import org.usvm.model.TsRawEntity
-import org.usvm.model.TsRemExpr
-import org.usvm.model.TsRightShiftExpr
-import org.usvm.model.TsStaticCallExpr
-import org.usvm.model.TsStaticFieldRef
-import org.usvm.model.TsStrictEqExpr
-import org.usvm.model.TsStrictNotEqExpr
-import org.usvm.model.TsStringConstant
-import org.usvm.model.TsStringType
-import org.usvm.model.TsSubExpr
-import org.usvm.model.TsThis
-import org.usvm.model.TsType
-import org.usvm.model.TsTypeOfExpr
-import org.usvm.model.TsUnaryExpr
-import org.usvm.model.TsUnaryPlusExpr
-import org.usvm.model.TsUndefinedConstant
-import org.usvm.model.TsUnknownType
-import org.usvm.model.TsUnsignedRightShiftExpr
-import org.usvm.model.TsValue
-import org.usvm.model.TsVoidExpr
-import org.usvm.model.TsYieldExpr
 import org.usvm.sizeSort
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkFieldLValue
@@ -175,8 +106,8 @@ private val logger = KotlinLogging.logger {}
 class TsExprResolver(
     private val ctx: TsContext,
     private val scope: TsStepScope,
-    private val localToIdx: (TsMethod, TsValue) -> Int,
-) : TsEntity.Visitor<UExpr<out USort>?> {
+    private val localToIdx: (EtsMethod, EtsValue) -> Int,
+) : EtsEntity.Visitor<UExpr<out USort>?> {
 
     val simpleValueResolver: TsSimpleValueResolver =
         TsSimpleValueResolver(ctx, scope, localToIdx)
@@ -238,7 +169,7 @@ class TsExprResolver(
 
     // region SIMPLE VALUE
 
-    override fun visit(value: TsLocal): UExpr<out USort> {
+    override fun visit(value: EtsLocal): UExpr<out USort> {
         return simpleValueResolver.visit(value)
     }
 
@@ -386,6 +317,11 @@ class TsExprResolver(
 
     override fun visit(expr: TsOrExpr): UExpr<out USort>? {
         return resolveBinaryOperator(TsBinaryOperator.Or, expr)
+    }
+
+    override fun visit(expr: EtsNullishCoalescingExpr): UExpr<out USort>? {
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        error("Not supported $expr")
     }
 
     override fun visit(expr: TsDivExpr): UExpr<out USort>? {
@@ -578,9 +514,9 @@ class TsExprResolver(
     }
 
     private fun resolveInstanceCall(
-        instance: TsLocal,
-        method: TsMethodSignature,
-    ): TsMethod? {
+        instance: EtsLocal,
+        method: EtsMethodSignature,
+    ): EtsMethod? {
         // Perfect signature:
         if (method.enclosingClass.name != UNKNOWN_CLASS_NAME) {
             val clazz = ctx.scene.projectAndSdkClasses.single { it.name == method.enclosingClass.name }
@@ -590,8 +526,8 @@ class TsExprResolver(
         }
 
         // Unknown signature:
-        // val instanceType = TsUnknownType // TODO: instance.type
-        val instanceType = scope.calcOnState { lastEnteredMethod }.getLocalType(instance)
+        val instanceType = TsUnknownType // TODO: instance.type
+        // val instanceType = scope.calcOnState { lastEnteredMethod }.getLocalType(instance)
         if (instanceType is TsClassType) {
             val classes = ctx.scene.projectAndSdkClasses
                 .filter { it.name == instanceType.signature.name }
@@ -616,8 +552,8 @@ class TsExprResolver(
     }
 
     private fun resolveStaticCall(
-        method: TsMethodSignature,
-    ): TsMethod? {
+        method: EtsMethodSignature,
+    ): EtsMethod? {
         // Perfect signature:
         if (method.enclosingClass.name != UNKNOWN_CLASS_NAME) {
             val classes = ctx.scene.projectAndSdkClasses.filter { it.name == method.enclosingClass.name }
@@ -639,9 +575,9 @@ class TsExprResolver(
     }
 
     private inline fun resolveInvoke(
-        method: TsMethodSignature,
-        instance: TsLocal?,
-        args: List<TsValue>,
+        method: EtsMethodSignature,
+        instance: EtsLocal?,
+        args: List<EtsValue>,
         onNoCallPresent: TsStepScope.(List<UExpr<out USort>>) -> Unit,
     ): UExpr<out USort>? {
         val instanceExpr = if (instance != null) {
@@ -706,7 +642,7 @@ class TsExprResolver(
             }
             val array = scope.calcOnState {
                 memory.allocateArrayInitialized(
-                    type = TsArrayType(TsUnknownType, 1),
+                    type = EtsArrayType(TsUnknownType, 1),
                     sort = ctx.addressSort,
                     sizeSort = ctx.sizeSort,
                     contents = content.asSequence(),
@@ -770,12 +706,13 @@ class TsExprResolver(
             isSigned = true
         ).asExpr(sizeSort)
 
-        val elementType = scope.calcOnState { lastEnteredMethod.getLocalType(value.array) }
+        // val elementType = scope.calcOnState { lastEnteredMethod }.getLocalType(value.array)
+        val elementType = TsUnknownType // TODO
         val lValue = mkArrayIndexLValue(
             addressSort,
             instance,
             bvIndex,
-            TsArrayType(elementType, 1),
+            EtsArrayType(elementType, 1),
         )
         val expr = scope.calcOnState { memory.read(lValue) }
 
@@ -792,7 +729,7 @@ class TsExprResolver(
 
         scope.fork(
             neqNull,
-            blockOnFalseState = allocateException(TsStringType) // TODO incorrect exception type
+            blockOnFalseState = allocateException(EtsStringType) // TODO incorrect exception type
         )
     }
 
@@ -802,7 +739,7 @@ class TsExprResolver(
     }
 
     private fun handleFieldRef(
-        instance: TsLocal?,
+        instance: EtsLocal?,
         instanceRef: UHeapRef,
         fieldName: String,
     ): UExpr<out USort>? = with(ctx) {
@@ -849,14 +786,14 @@ class TsExprResolver(
         }
     }
 
-    override fun visit(value: TsInstanceFieldRef): UExpr<out USort>? = with(ctx) {
+    override fun visit(value: EtsInstanceFieldRef): UExpr<out USort>? = with(ctx) {
         val instanceRef = resolve(value.instance)?.asExpr(addressSort) ?: return null
 
         checkUndefinedOrNullPropertyRead(instanceRef) ?: return null
 
         // TODO It is a hack for array's length
-        // if (value.instance.type is TsArrayType && value.field.name == "length") {
-        //     val lengthLValue = mkArrayLengthLValue(instanceRef, value.instance.type as TsArrayType)
+        // if (value.instance.type is EtsArrayType && value.field.name == "length") {
+        //     val lengthLValue = mkArrayLengthLValue(instanceRef, value.instance.type as EtsArrayType)
         //     val length = scope.calcOnState { memory.read(lengthLValue) }
         //     return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), length.asExpr(sizeSort), signed = true)
         // }
@@ -874,18 +811,18 @@ class TsExprResolver(
         //         //  to pretend that this is an array-like object (with "array length", not just "length" field),
         //         //  and "cast" instance to "unknown[]". The same could be done for any length writes, making
         //         //  the array type (for length) consistent (unknown everywhere), but less precise.
-        //         val lengthLValue = mkArrayLengthLValue(obj, TsArrayType(TsUnknownType, 1))
+        //         val lengthLValue = mkArrayLengthLValue(obj, EtsArrayType(TsUnknownType, 1))
         //         val length = scope.calcOnState { memory.read(lengthLValue) }
         //         return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), length.asExpr(sizeSort), signed = true)
         //     }
         // }
 
-        return handleFieldRef(value.instance, instanceRef, value.fieldName)
+        return handleFieldRef(value.instance, instanceRef, value.field.name)
     }
 
     override fun visit(value: TsStaticFieldRef): UExpr<out USort>? = with(ctx) {
         val clazz = scene.projectAndSdkClasses.singleOrNull {
-            it.name == value.enclosingClass.typeName
+            it.name == value.field.enclosingClass.name
         } ?: run {
             scope.assert(falseExpr)
             return null
@@ -916,7 +853,7 @@ class TsExprResolver(
             }
         }
 
-        return handleFieldRef(instance = null, instanceRef, value.fieldName)
+        return handleFieldRef(instance = null, instanceRef, value.field.name)
     }
 
     // endregion
@@ -955,10 +892,10 @@ class TsExprResolver(
 
             scope.fork(
                 condition,
-                blockOnFalseState = allocateException(TsStringType) // TODO incorrect exception type
+                blockOnFalseState = allocateException(EtsStringType) // TODO incorrect exception type
             )
 
-            val type = TsArrayType(EtsUnknownType, 1) // TODO: fix array element type
+            val type = EtsArrayType(EtsUnknownType, 1) // TODO: fix array element type
             val address = memory.allocateArray(type, sizeSort, bvSize)
             memory.types.allocate(address.address, type)
 
@@ -977,17 +914,17 @@ class TsExprResolver(
 class TsSimpleValueResolver(
     private val ctx: TsContext,
     private val scope: TsStepScope,
-    private val localToIdx: (TsMethod, TsValue) -> Int,
-) : TsValue.Visitor<UExpr<out USort>> {
+    private val localToIdx: (EtsMethod, EtsValue) -> Int,
+) : EtsValue.Visitor<UExpr<out USort>> {
 
-    private fun resolveLocal(local: TsValue): ULValue<*, USort> = with(ctx) {
+    private fun resolveLocal(local: EtsValue): ULValue<*, USort> = with(ctx) {
         val currentMethod = scope.calcOnState { lastEnteredMethod }
         val entrypoint = scope.calcOnState { entrypoint }
 
         val idx = localToIdx(currentMethod, local)
         val sort = scope.calcOnState {
             val type = if (local is EtsLocal) local.type else EtsUnknownType // TODO
-            getOrPutSortForLocal(localIdx, type)
+            getOrPutSortForLocal(idx, type)
         }
 
         // If we are not in the entrypoint, all correct values are already resolved and we can just return
@@ -1002,7 +939,7 @@ class TsSimpleValueResolver(
             is KFp64Sort -> mkRegisterStackLValue(sort, idx)
             is UAddressSort -> mkRegisterStackLValue(sort, idx)
             is TsUnresolvedSort -> {
-                if (local is TsLocal) {
+                if (local is EtsLocal) {
                     return@with mkRegisterStackLValue(addressSort, idx)
                 }
 
@@ -1028,7 +965,7 @@ class TsSimpleValueResolver(
         }
     }
 
-    override fun visit(value: TsLocal): UExpr<out USort> = with(ctx) {
+    override fun visit(value: EtsLocal): UExpr<out USort> = with(ctx) {
         if (value.name == "NaN") {
             return mkFp64NaN()
         }
@@ -1074,7 +1011,7 @@ class TsSimpleValueResolver(
         error("Should not be called")
     }
 
-    override fun visit(value: TsInstanceFieldRef): UExpr<out USort> {
+    override fun visit(value: EtsInstanceFieldRef): UExpr<out USort> {
         error("Should not be called")
     }
 

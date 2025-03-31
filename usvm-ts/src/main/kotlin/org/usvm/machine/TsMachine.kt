@@ -1,5 +1,6 @@
 package org.usvm.machine
 
+import mu.KotlinLogging
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
@@ -11,9 +12,6 @@ import org.usvm.api.targets.TsTarget
 import org.usvm.machine.interpreter.TsInterpreter
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
-import org.usvm.model.TsMethod
-import org.usvm.model.TsScene
-import org.usvm.model.TsStmt
 import org.usvm.ps.createPathSelector
 import org.usvm.statistics.CompositeUMachineObserver
 import org.usvm.statistics.CoverageStatistics
@@ -33,7 +31,7 @@ import kotlin.time.Duration.Companion.seconds
 private val logger = KotlinLogging.logger {}
 
 class TsMachine(
-    private val scene: TsScene,
+    private val scene: EtsScene,
     private val options: UMachineOptions,
 ) : UMachine<TsState>() {
     private val typeSystem = TsTypeSystem(scene, typeOperationsTimeout = 1.seconds)
@@ -44,10 +42,10 @@ class TsMachine(
     private val cfgStatistics = CfgStatisticsImpl(graph)
 
     fun analyze(
-        methods: List<TsMethod>,
+        methods: List<EtsMethod>,
         targets: List<TsTarget> = emptyList(),
     ): List<TsState> {
-        val initialStates = mutableMapOf<TsMethod, TsState>()
+        val initialStates = mutableMapOf<EtsMethod, TsState>()
         methods.forEach { initialStates[it] = interpreter.getInitialState(it, targets) }
 
         val methodsToTrackCoverage =
@@ -56,15 +54,15 @@ class TsMachine(
                 CoverageZone.CLASS -> TODO("Unsupported yet")
             }
 
-        val coverageStatistics = CoverageStatistics<TsMethod, TsStmt, TsState>(methodsToTrackCoverage, graph)
+        val coverageStatistics = CoverageStatistics<EtsMethod, EtsStmt, TsState>(methodsToTrackCoverage, graph)
 
-        val callGraphStatistics: PlainCallGraphStatistics<TsMethod> =
+        val callGraphStatistics: PlainCallGraphStatistics<EtsMethod> =
             when (options.targetSearchDepth) {
                 0u -> PlainCallGraphStatistics()
                 else -> TODO("Unsupported yet")
             }
 
-        val timeStatistics = TimeStatistics<TsMethod, TsState>()
+        val timeStatistics = TimeStatistics<EtsMethod, TsState>()
 
         val pathSelector = createPathSelector(
             initialStates,
@@ -89,7 +87,7 @@ class TsMachine(
         val observers = mutableListOf<UMachineObserver<TsState>>(coverageStatistics)
         observers.add(statesCollector)
 
-        val stepsStatistics = StepsStatistics<TsMethod, TsState>()
+        val stepsStatistics = StepsStatistics<EtsMethod, TsState>()
 
         val stopStrategy = createStopStrategy(
             options,

@@ -2,24 +2,8 @@ package org.usvm.util
 
 import io.ksmt.expr.KBitVec32Value
 import io.ksmt.utils.asExpr
-import org.jacodb.ets.model.EtsArrayType
-import org.jacodb.ets.model.EtsBooleanType
-import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassType
-import org.jacodb.ets.model.EtsFieldImpl
-import org.jacodb.ets.model.EtsLiteralType
-import org.jacodb.ets.model.EtsMethod
-import org.jacodb.ets.model.EtsNeverType
-import org.jacodb.ets.model.EtsNullType
-import org.jacodb.ets.model.EtsNumberType
-import org.jacodb.ets.model.EtsPrimitiveType
-import org.jacodb.ets.model.EtsRefType
-import org.jacodb.ets.model.EtsStringType
-import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUnclearType
-import org.jacodb.ets.model.EtsUndefinedType
-import org.jacodb.ets.model.EtsUnknownType
-import org.jacodb.ets.model.EtsVoidType
 import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
 import mu.KotlinLogging
 import org.usvm.UAddressSort
@@ -34,6 +18,7 @@ import org.usvm.api.TsTestValue
 import org.usvm.api.typeStreamOf
 import org.usvm.isTrue
 import org.usvm.machine.TsContext
+import org.usvm.machine.expr.TsMethod
 import org.usvm.machine.expr.extractBool
 import org.usvm.machine.expr.extractDouble
 import org.usvm.machine.state.TsMethodResult
@@ -42,27 +27,10 @@ import org.usvm.machine.types.FakeType
 import org.usvm.memory.ULValue
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.mkSizeExpr
-import org.usvm.model.TsArrayType
-import org.usvm.model.TsBooleanType
-import org.usvm.model.TsClass
-import org.usvm.model.TsClassType
-import org.usvm.model.TsFieldImpl
-import org.usvm.model.TsLiteralType
-import org.usvm.model.TsMethod
-import org.usvm.model.TsNeverType
-import org.usvm.model.TsNullType
-import org.usvm.model.TsNumberType
-import org.usvm.model.TsPrimitiveType
-import org.usvm.model.TsRefType
-import org.usvm.model.TsStringType
-import org.usvm.model.TsType
-import org.usvm.model.TsUnclearType
-import org.usvm.model.TsUndefinedType
-import org.usvm.model.TsUnknownType
-import org.usvm.model.TsVoidType
 import org.usvm.model.UModelBase
 import org.usvm.types.first
 import org.usvm.types.single
+import org.usvm.machine.expr.*
 
 private val logger = KotlinLogging.logger {}
 
@@ -384,7 +352,6 @@ open class TsTestStateResolver(
         val clazz = resolveClass(classType)
         val properties = clazz.fields
             .filterNot { field ->
-                field as TsFieldImpl
                 field.modifiers.isStatic
             }
             .associate { field ->

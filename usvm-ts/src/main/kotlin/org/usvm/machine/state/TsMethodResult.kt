@@ -1,12 +1,9 @@
 package org.usvm.machine.state
 
-import org.jacodb.ets.model.EtsType
-import org.jacodb.ets.model.EtsMethod
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
-import org.usvm.model.TsMethod
-import org.usvm.model.TsType
+import org.usvm.machine.expr.*
 
 /**
  * Represents a result of a method invocation.

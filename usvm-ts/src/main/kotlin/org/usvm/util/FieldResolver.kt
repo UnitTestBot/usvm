@@ -1,16 +1,21 @@
 package org.usvm.util
 
 import mu.KotlinLogging
-import org.jacodb.ets.base.UNKNOWN_CLASS_NAME
+import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsField
+import org.jacodb.ets.model.EtsFieldSignature
+import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.model.EtsUnclearType
+import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
 import org.usvm.machine.TsContext
-import org.usvm.model.*
 
 private val logger = KotlinLogging.logger {}
 
-fun TsContext.resolveTsField(
-    instance: TsLocal?,
-    field: TsFieldSignature,
-): TsField {
+fun TsContext.resolveEtsField(
+    instance: EtsLocal?,
+    field: EtsFieldSignature,
+): EtsField {
     // Perfect signature:
     if (field.enclosingClass.name != UNKNOWN_CLASS_NAME) {
         val clazz = scene.projectAndSdkClasses.single { cls ->
@@ -24,14 +29,14 @@ fun TsContext.resolveTsField(
 
     // Unknown signature:
     if (instance != null) {
-        val instanceType = TsUnknownType // TODO: instance.type
+        val instanceType = instance.type
         when (instanceType) {
-            is TsClassType -> {
+            is EtsClassType -> {
                 val field = tryGetSingleField(scene, instanceType.signature.name, field.name)
                 if (field != null) return field
             }
 
-            is TsUnclearType -> {
+            is EtsUnclearType -> {
                 val field = tryGetSingleField(scene, instanceType.typeName, field.name)
                 if (field != null) return field
             }
@@ -48,10 +53,10 @@ fun TsContext.resolveTsField(
 }
 
 private fun tryGetSingleField(
-    scene: TsScene,
+    scene: EtsScene,
     className: String,
     fieldName: String,
-): TsField? {
+): EtsField? {
     val classes = scene.projectAndSdkClasses.filter { cls ->
         cls.name == className
     }
@@ -68,10 +73,10 @@ private fun tryGetSingleField(
     return null
 }
 
-fun TsContext.resolveTsFields(
-    instance: TsLocal?,
-    field: TsFieldSignature,
-): List<TsField> {
+fun TsContext.resolveEtsFields(
+    instance: EtsLocal?,
+    field: EtsFieldSignature,
+): List<EtsField> {
     // Perfect signature:
     if (field.enclosingClass.name != UNKNOWN_CLASS_NAME) {
         val classes = scene.projectAndSdkClasses.filter { cls ->
@@ -90,14 +95,14 @@ fun TsContext.resolveTsFields(
 
     // Unknown signature:
     if (instance != null) {
-        val instanceType = TsUnknownType // TODO: instance.type
+        val instanceType = instance.type
         when (instanceType) {
-            is TsClassType -> {
+            is EtsClassType -> {
                 val field = tryGetSingleField(scene, instanceType.signature.name, field.name)
                 if (field != null) return listOf(field)
             }
 
-            is TsUnclearType -> {
+            is EtsUnclearType -> {
                 val field = tryGetSingleField(scene, instanceType.typeName, field.name)
                 if (field != null) return listOf(field)
             }

@@ -1,25 +1,25 @@
 package org.usvm.api
 
-import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsField
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsStmt
 
 data class TsTest(
-    val method: TsMethod,
+    val method: EtsMethod,
     val before: TsParametersState,
     val after: TsParametersState,
     val returnValue: TsTestValue,
-    val trace: List<TsStmt>? = null,
+    val trace: List<EtsStmt>? = null,
 )
 
 data class TsParametersState(
     val thisInstance: TsTestValue?,
     val parameters: List<TsTestValue>,
-    val globals: Map<TsClass, List<GlobalFieldValue>>,
+    val globals: Map<EtsClass, List<GlobalFieldValue>>,
 )
 
-data class GlobalFieldValue(val field: TsField, val value: TsTestValue) // TODO is it right?????
+data class GlobalFieldValue(val field: EtsField, val value: TsTestValue) // TODO is it right?????
 
 open class TsMethodCoverage
 

@@ -248,10 +248,18 @@ class EtsApplicationGraphImpl(
         // try to *uniquely* resolve the callee via a partial signature match:
         val resolved = projectMethodsByName[callee.name].orEmpty()
             .asSequence()
-            .filter { compareClassSignatures(it.signature.enclosingClass, callee.enclosingClass) != ComparisonResult.NotEqual }
+            .filter {
+                compareClassSignatures(
+                    it.signature.enclosingClass,
+                    callee.enclosingClass
+                ) != ComparisonResult.NotEqual
+            }
             // Note: exclude current class:
             .filterNot {
-                compareClassSignatures(it.signature.enclosingClass, node.method.signature.enclosingClass) != ComparisonResult.NotEqual
+                compareClassSignatures(
+                    it.signature.enclosingClass,
+                    node.method.signature.enclosingClass
+                ) != ComparisonResult.NotEqual
             }
             .toList()
         if (resolved.isEmpty()) {

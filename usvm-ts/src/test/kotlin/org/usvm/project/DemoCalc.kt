@@ -1,14 +1,13 @@
 package org.usvm.project
 
+import org.jacodb.ets.utils.getDeclaredLocals
+import org.jacodb.ets.utils.getLocals
 import org.jacodb.ets.utils.loadEtsProjectFromIR
 import org.usvm.api.TsTestValue
 import org.usvm.machine.TsMachine
-import org.usvm.model.TsScene
+import org.usvm.machine.expr.*
 import org.usvm.util.TsMethodTestRunner
-import org.usvm.util.convert
 import org.usvm.util.fixHome
-import org.usvm.util.getDeclaredLocals
-import org.usvm.util.getLocals
 import kotlin.io.path.Path
 import kotlin.test.Test
 
@@ -18,7 +17,7 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
         loadEtsProjectFromIR(
             Path("~/dev/jacodb/jacodb-ets/src/test/resources/projects/Demo_Calc/etsir/entry").fixHome(),
             Path("~/dev/ark/sdk/etsir/ohos/5.0.1.111/ets").fixHome(),
-        ).convert()
+        )
     }
 
     @Test
