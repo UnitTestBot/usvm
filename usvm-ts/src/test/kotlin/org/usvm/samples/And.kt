@@ -10,18 +10,18 @@ import org.jacodb.ets.dsl.program
 import org.jacodb.ets.dsl.thisRef
 import org.jacodb.ets.dsl.toBlockCfg
 import org.jacodb.ets.model.EtsBooleanType
+import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsMethodImpl
 import org.jacodb.ets.model.EtsMethodParameter
 import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsParameterRef
+import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
 import org.jacodb.ets.utils.toEtsBlockCfg
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsTestValue
-import org.usvm.machine.expr.TsClassSignature
-import org.usvm.machine.expr.TsScene
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.isTruthy
 
@@ -33,9 +33,9 @@ class And : TsMethodTestRunner() {
 
     private val className = this::class.simpleName!!
 
-    override val scene: TsScene = loadSampleScene(className)
+    override val scene: EtsScene = loadSampleScene(className)
 
-    private val classSignature: TsClassSignature =
+    private val classSignature: EtsClassSignature =
         scene.projectFiles[0].classes.single { it.name != DEFAULT_ARK_CLASS_NAME }.signature
 
     @Test

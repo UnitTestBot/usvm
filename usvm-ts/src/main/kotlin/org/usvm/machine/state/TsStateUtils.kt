@@ -1,8 +1,8 @@
 package org.usvm.machine.state
 
 import org.jacodb.ets.model.EtsLocal
-import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.utils.getDeclaredLocals
 import org.jacodb.ets.utils.getLocals
 import org.usvm.UExpr

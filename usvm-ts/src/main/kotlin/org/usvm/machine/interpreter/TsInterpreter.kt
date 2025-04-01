@@ -104,7 +104,7 @@ class TsInterpreter(
     }
 
     private fun visitMethodCall(scope: TsStepScope, stmt: TsMethodCall) {
-        val exprResolver = exprResolverWithScope(scope)
+        exprResolverWithScope(scope)
 
         // NOTE: USE '.callee' INSTEAD OF '.method' !!!
 

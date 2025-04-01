@@ -15,13 +15,14 @@ import org.jacodb.ets.model.EtsBitOrExpr
 import org.jacodb.ets.model.EtsBitXorExpr
 import org.jacodb.ets.model.EtsBooleanConstant
 import org.jacodb.ets.model.EtsCastExpr
+import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsDeleteExpr
 import org.jacodb.ets.model.EtsDivExpr
 import org.jacodb.ets.model.EtsEntity
 import org.jacodb.ets.model.EtsEqExpr
 import org.jacodb.ets.model.EtsExpExpr
-import org.jacodb.ets.model.EtsFieldSignature
+import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsGtEqExpr
 import org.jacodb.ets.model.EtsGtExpr
 import org.jacodb.ets.model.EtsInExpr
@@ -43,6 +44,7 @@ import org.jacodb.ets.model.EtsNotExpr
 import org.jacodb.ets.model.EtsNullConstant
 import org.jacodb.ets.model.EtsNullishCoalescingExpr
 import org.jacodb.ets.model.EtsNumberConstant
+import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsOrExpr
 import org.jacodb.ets.model.EtsParameterRef
 import org.jacodb.ets.model.EtsPostDecExpr
@@ -50,6 +52,7 @@ import org.jacodb.ets.model.EtsPostIncExpr
 import org.jacodb.ets.model.EtsPreDecExpr
 import org.jacodb.ets.model.EtsPreIncExpr
 import org.jacodb.ets.model.EtsPtrCallExpr
+import org.jacodb.ets.model.EtsRawEntity
 import org.jacodb.ets.model.EtsRemExpr
 import org.jacodb.ets.model.EtsRightShiftExpr
 import org.jacodb.ets.model.EtsStaticCallExpr
@@ -113,37 +116,37 @@ class TsExprResolver(
     val simpleValueResolver: TsSimpleValueResolver =
         TsSimpleValueResolver(ctx, scope, localToIdx)
 
-    fun resolve(expr: TsEntity): UExpr<out USort>? {
+    fun resolve(expr: EtsEntity): UExpr<out USort>? {
         return expr.accept(this)
     }
 
     private fun resolveUnaryOperator(
         operator: TsUnaryOperator,
-        expr: TsUnaryExpr,
+        expr: EtsUnaryExpr,
     ): UExpr<out USort>? = resolveUnaryOperator(operator, expr.arg)
 
     private fun resolveUnaryOperator(
         operator: TsUnaryOperator,
-        arg: TsEntity,
+        arg: EtsEntity,
     ): UExpr<out USort>? = resolveAfterResolved(arg) { resolved ->
         with(operator) { ctx.resolve(resolved, scope) }
     }
 
     private fun resolveBinaryOperator(
         operator: TsBinaryOperator,
-        expr: TsBinaryExpr,
+        expr: EtsBinaryExpr,
     ): UExpr<out USort>? = resolveBinaryOperator(operator, expr.left, expr.right)
 
     private fun resolveBinaryOperator(
         operator: TsBinaryOperator,
-        lhv: TsEntity,
-        rhv: TsEntity,
+        lhv: EtsEntity,
+        rhv: EtsEntity,
     ): UExpr<out USort>? = resolveAfterResolved(lhv, rhv) { lhs, rhs ->
         with(operator) { ctx.resolve(lhs, rhs, scope) }
     }
 
     private inline fun <T> resolveAfterResolved(
-        dependency: TsEntity,
+        dependency: EtsEntity,
         block: (UExpr<out USort>) -> T,
     ): T? {
         val result = resolve(dependency) ?: return null
@@ -151,8 +154,8 @@ class TsExprResolver(
     }
 
     private inline fun <T> resolveAfterResolved(
-        dependency0: TsEntity,
-        dependency1: TsEntity,
+        dependency0: EtsEntity,
+        dependency1: EtsEntity,
         block: (UExpr<out USort>, UExpr<out USort>) -> T,
     ): T? {
         val result0 = resolve(dependency0) ?: return null
@@ -162,7 +165,7 @@ class TsExprResolver(
 
     // region DEFAULT
 
-    override fun visit(value: TsRawEntity): UExpr<out USort>? {
+    override fun visit(value: EtsRawEntity): UExpr<out USort>? {
         return null
     }
 
@@ -174,11 +177,11 @@ class TsExprResolver(
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: TsParameterRef): UExpr<out USort> {
+    override fun visit(value: EtsParameterRef): UExpr<out USort> {
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: TsThis): UExpr<out USort> {
+    override fun visit(value: EtsThis): UExpr<out USort> {
         return simpleValueResolver.visit(value)
     }
 
@@ -186,23 +189,23 @@ class TsExprResolver(
 
     // region CONSTANT
 
-    override fun visit(value: TsBooleanConstant): UExpr<out USort> {
+    override fun visit(value: EtsBooleanConstant): UExpr<out USort> {
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: TsNumberConstant): UExpr<out USort> {
+    override fun visit(value: EtsNumberConstant): UExpr<out USort> {
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: TsStringConstant): UExpr<out USort> {
+    override fun visit(value: EtsStringConstant): UExpr<out USort> {
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: TsNullConstant): UExpr<out USort> {
+    override fun visit(value: EtsNullConstant): UExpr<out USort> {
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: TsUndefinedConstant): UExpr<out USort> {
+    override fun visit(value: EtsUndefinedConstant): UExpr<out USort> {
         return simpleValueResolver.visit(value)
     }
 
@@ -210,47 +213,47 @@ class TsExprResolver(
 
     // region UNARY
 
-    override fun visit(expr: TsNotExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsNotExpr): UExpr<out USort>? {
         return resolveUnaryOperator(TsUnaryOperator.Not, expr)
     }
 
     // TODO move into TsUnaryOperator
-    override fun visit(expr: TsNegExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsNegExpr): UExpr<out USort>? {
         return resolveUnaryOperator(TsUnaryOperator.Neg, expr)
     }
 
-    override fun visit(expr: TsUnaryPlusExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsUnaryPlusExpr): UExpr<out USort>? {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
     }
 
-    override fun visit(expr: TsPostIncExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsPostIncExpr): UExpr<out USort>? {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
     }
 
-    override fun visit(expr: TsPostDecExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsPostDecExpr): UExpr<out USort>? {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
     }
 
-    override fun visit(expr: TsPreIncExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsPreIncExpr): UExpr<out USort>? {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
     }
 
-    override fun visit(expr: TsPreDecExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsPreDecExpr): UExpr<out USort>? {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
     }
 
-    override fun visit(expr: TsBitNotExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsBitNotExpr): UExpr<out USort>? {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
     }
 
-    override fun visit(expr: TsCastExpr): UExpr<out USort>? = with(ctx) {
-        if (expr.type == TsNumberType) {
+    override fun visit(expr: EtsCastExpr): UExpr<out USort>? = with(ctx) {
+        if (expr.type == EtsNumberType) {
             val arg = resolve(expr.arg) ?: return null
 
             if (arg.isFakeObject()) {
@@ -268,7 +271,7 @@ class TsExprResolver(
         error("Not supported $expr")
     }
 
-    override fun visit(expr: TsTypeOfExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsTypeOfExpr): UExpr<out USort>? {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         // error("Not supported $expr")
         logger.warn { "stop" }
@@ -276,22 +279,22 @@ class TsExprResolver(
         return null
     }
 
-    override fun visit(expr: TsDeleteExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsDeleteExpr): UExpr<out USort>? {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
     }
 
-    override fun visit(expr: TsVoidExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsVoidExpr): UExpr<out USort>? {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
     }
 
-    override fun visit(expr: TsAwaitExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsAwaitExpr): UExpr<out USort>? {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
     }
 
-    override fun visit(expr: TsYieldExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsYieldExpr): UExpr<out USort>? {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
     }
@@ -300,23 +303,23 @@ class TsExprResolver(
 
     // region BINARY
 
-    override fun visit(expr: TsAddExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsAddExpr): UExpr<out USort>? {
         return resolveBinaryOperator(TsBinaryOperator.Add, expr)
     }
 
-    override fun visit(expr: TsSubExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsSubExpr): UExpr<out USort>? {
         return resolveBinaryOperator(TsBinaryOperator.Sub, expr)
     }
 
-    override fun visit(expr: TsMulExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsMulExpr): UExpr<out USort>? {
         return resolveBinaryOperator(TsBinaryOperator.Mul, expr)
     }
 
-    override fun visit(expr: TsAndExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsAndExpr): UExpr<out USort>? {
         return resolveBinaryOperator(TsBinaryOperator.And, expr)
     }
 
-    override fun visit(expr: TsOrExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsOrExpr): UExpr<out USort>? {
         return resolveBinaryOperator(TsBinaryOperator.Or, expr)
     }
 
@@ -325,47 +328,47 @@ class TsExprResolver(
         error("Not supported $expr")
     }
 
-    override fun visit(expr: TsDivExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsDivExpr): UExpr<out USort>? {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
     }
 
-    override fun visit(expr: TsRemExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsRemExpr): UExpr<out USort>? {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
     }
 
-    override fun visit(expr: TsExpExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsExpExpr): UExpr<out USort>? {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
     }
 
-    override fun visit(expr: TsBitAndExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsBitAndExpr): UExpr<out USort>? {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
     }
 
-    override fun visit(expr: TsBitOrExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsBitOrExpr): UExpr<out USort>? {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
     }
 
-    override fun visit(expr: TsBitXorExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsBitXorExpr): UExpr<out USort>? {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
     }
 
-    override fun visit(expr: TsLeftShiftExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsLeftShiftExpr): UExpr<out USort>? {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
     }
 
-    override fun visit(expr: TsRightShiftExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsRightShiftExpr): UExpr<out USort>? {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
     }
 
-    override fun visit(expr: TsUnsignedRightShiftExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsUnsignedRightShiftExpr): UExpr<out USort>? {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
     }
@@ -373,45 +376,45 @@ class TsExprResolver(
 
     // region RELATION
 
-    override fun visit(expr: TsEqExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsEqExpr): UExpr<out USort>? {
         return resolveBinaryOperator(TsBinaryOperator.Eq, expr)
     }
 
-    override fun visit(expr: TsNotEqExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsNotEqExpr): UExpr<out USort>? {
         return resolveBinaryOperator(TsBinaryOperator.Neq, expr)
     }
 
-    override fun visit(expr: TsStrictEqExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsStrictEqExpr): UExpr<out USort>? {
         return resolveBinaryOperator(TsBinaryOperator.StrictEq, expr)
     }
 
-    override fun visit(expr: TsStrictNotEqExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsStrictNotEqExpr): UExpr<out USort>? {
         return resolveBinaryOperator(TsBinaryOperator.StrictNeq, expr)
     }
 
-    override fun visit(expr: TsLtExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsLtExpr): UExpr<out USort>? {
         return resolveBinaryOperator(TsBinaryOperator.Lt, expr)
     }
 
-    override fun visit(expr: TsGtExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsGtExpr): UExpr<out USort>? {
         return resolveBinaryOperator(TsBinaryOperator.Gt, expr)
     }
 
-    override fun visit(expr: TsLtEqExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsLtEqExpr): UExpr<out USort>? {
         return resolveBinaryOperator(TsBinaryOperator.LtEq, expr)
     }
 
-    override fun visit(expr: TsGtEqExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsGtEqExpr): UExpr<out USort>? {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
     }
 
-    override fun visit(expr: TsInExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsInExpr): UExpr<out USort>? {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
     }
 
-    override fun visit(expr: TsInstanceOfExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsInstanceOfExpr): UExpr<out USort>? {
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
     }
@@ -443,7 +446,7 @@ class TsExprResolver(
         }
     }
 
-    override fun visit(expr: TsInstanceCallExpr): UExpr<out USort>? = with(ctx) {
+    override fun visit(expr: EtsInstanceCallExpr): UExpr<out USort>? = with(ctx) {
         if (expr.instance.name == "Number") {
             if (expr.callee.name == "isNaN") {
                 return resolveAfterResolved(expr.args.single()) { arg ->
@@ -508,7 +511,7 @@ class TsExprResolver(
         }
     }
 
-    override fun visit(expr: TsPtrCallExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsPtrCallExpr): UExpr<out USort>? {
         // TODO: IMPORTANT do not forget to fill sorts of arguments map
         TODO("Not supported ${expr::class.simpleName}: $expr")
     }
@@ -526,9 +529,9 @@ class TsExprResolver(
         }
 
         // Unknown signature:
-        val instanceType = TsUnknownType // TODO: instance.type
+        val instanceType = EtsUnknownType // TODO: instance.type
         // val instanceType = scope.calcOnState { lastEnteredMethod }.getLocalType(instance)
-        if (instanceType is TsClassType) {
+        if (instanceType is EtsClassType) {
             val classes = ctx.scene.projectAndSdkClasses
                 .filter { it.name == instanceType.signature.name }
             if (classes.size == 1) {
@@ -589,10 +592,10 @@ class TsExprResolver(
                 // return null
                 // ctx.mkNumericExpr(resolved, scope)
                 scope.calcOnState {
-                    val numberType = TsClassType(
-                        TsClassSignature(
+                    val numberType = EtsClassType(
+                        EtsClassSignature(
                             name = "Number",
-                            file = TsFileSignature.UNKNOWN
+                            file = EtsFileSignature.UNKNOWN
                         )
                     )
                     val x = memory.allocConcrete(numberType)
@@ -642,7 +645,7 @@ class TsExprResolver(
             }
             val array = scope.calcOnState {
                 memory.allocateArrayInitialized(
-                    type = EtsArrayType(TsUnknownType, 1),
+                    type = EtsArrayType(EtsUnknownType, 1),
                     sort = ctx.addressSort,
                     sizeSort = ctx.sizeSort,
                     contents = content.asSequence(),
@@ -699,7 +702,7 @@ class TsExprResolver(
 
     // region ACCESS
 
-    override fun visit(value: TsArrayAccess): UExpr<out USort>? = with(ctx) {
+    override fun visit(value: EtsArrayAccess): UExpr<out USort>? = with(ctx) {
         val instance = resolve(value.array)?.asExpr(addressSort) ?: return null
         val index = resolve(value.index)?.asExpr(fp64Sort) ?: return null
         val bvIndex = mkFpToBvExpr(
@@ -710,7 +713,7 @@ class TsExprResolver(
         ).asExpr(sizeSort)
 
         // val elementType = scope.calcOnState { lastEnteredMethod }.getLocalType(value.array)
-        val elementType = TsUnknownType // TODO
+        val elementType = EtsUnknownType // TODO
         val lValue = mkArrayIndexLValue(
             addressSort,
             instance,
@@ -736,7 +739,7 @@ class TsExprResolver(
         )
     }
 
-    private fun allocateException(type: TsType): (TsState) -> Unit = { state ->
+    private fun allocateException(type: EtsType): (TsState) -> Unit = { state ->
         val address = state.memory.allocConcrete(type)
         state.throwExceptionWithoutStackFrameDrop(address, type)
     }
@@ -751,7 +754,7 @@ class TsExprResolver(
         // val etsFieldTypes = etsFields.map { it.type }.distinct()
         // if (etsFieldTypes.size != 1) return null
         // val etsFieldType = etsFieldTypes.single()
-        val etsFieldType = TsUnknownType
+        val etsFieldType = EtsUnknownType
         val sort = typeToSort(etsFieldType)
 
         val expr = if (sort == unresolvedSort) {
@@ -823,7 +826,7 @@ class TsExprResolver(
         return handleFieldRef(value.instance, instanceRef, value.field.name)
     }
 
-    override fun visit(value: TsStaticFieldRef): UExpr<out USort>? = with(ctx) {
+    override fun visit(value: EtsStaticFieldRef): UExpr<out USort>? = with(ctx) {
         val clazz = scene.projectAndSdkClasses.singleOrNull {
             it.name == value.field.enclosingClass.name
         } ?: run {
@@ -863,11 +866,11 @@ class TsExprResolver(
 
     // region OTHER
 
-    override fun visit(expr: TsNewExpr): UExpr<out USort>? = scope.calcOnState {
-        memory.allocConcrete(TsUnknownType) // TODO: expr.type
+    override fun visit(expr: EtsNewExpr): UExpr<out USort>? = scope.calcOnState {
+        memory.allocConcrete(EtsUnknownType) // TODO: expr.type
     }
 
-    override fun visit(expr: TsNewArrayExpr): UExpr<out USort>? = with(ctx) {
+    override fun visit(expr: EtsNewArrayExpr): UExpr<out USort>? = with(ctx) {
         scope.calcOnState {
             val size = resolve(expr.size) ?: return@calcOnState null
 
@@ -909,7 +912,7 @@ class TsExprResolver(
     // endregion
 
     // TODO incorrect implementation
-    private fun assertIsSubtype(expr: UExpr<out USort>, type: TsType): Boolean {
+    private fun assertIsSubtype(expr: UExpr<out USort>, type: EtsType): Boolean {
         return true
     }
 }
@@ -922,7 +925,7 @@ class TsSimpleValueResolver(
 
     private fun resolveLocal(local: EtsValue): ULValue<*, USort> = with(ctx) {
         val currentMethod = scope.calcOnState { lastEnteredMethod }
-        val entrypoint = scope.calcOnState { entrypoint }
+        scope.calcOnState { entrypoint }
 
         val idx = localToIdx(currentMethod, local)
         val sort = scope.calcOnState {
@@ -956,7 +959,7 @@ class TsSimpleValueResolver(
                     return@with mkRegisterStackLValue(addressSort, idx)
                 }
 
-                check(local is TsThis || local is TsParameterRef) {
+                check(local is EtsThis || local is EtsParameterRef) {
                     "Only This and ParameterRef are expected here"
                 }
 
@@ -990,37 +993,37 @@ class TsSimpleValueResolver(
         return scope.calcOnState { memory.read(lValue) }
     }
 
-    override fun visit(value: TsParameterRef): UExpr<out USort> {
+    override fun visit(value: EtsParameterRef): UExpr<out USort> {
         val lValue = resolveLocal(value)
         return scope.calcOnState { memory.read(lValue) }
     }
 
-    override fun visit(value: TsThis): UExpr<out USort> {
+    override fun visit(value: EtsThis): UExpr<out USort> {
         val lValue = resolveLocal(value)
         return scope.calcOnState { memory.read(lValue) }
     }
 
-    override fun visit(value: TsBooleanConstant): UExpr<out USort> = with(ctx) {
+    override fun visit(value: EtsBooleanConstant): UExpr<out USort> = with(ctx) {
         mkBool(value.value)
     }
 
-    override fun visit(value: TsNumberConstant): UExpr<out USort> = with(ctx) {
+    override fun visit(value: EtsNumberConstant): UExpr<out USort> = with(ctx) {
         mkFp64(value.value)
     }
 
-    override fun visit(value: TsStringConstant): UExpr<out USort> = with(ctx) {
+    override fun visit(value: EtsStringConstant): UExpr<out USort> = with(ctx) {
         mkFp64(42.0)
     }
 
-    override fun visit(value: TsNullConstant): UExpr<out USort> = with(ctx) {
+    override fun visit(value: EtsNullConstant): UExpr<out USort> = with(ctx) {
         mkTsNullValue()
     }
 
-    override fun visit(value: TsUndefinedConstant): UExpr<out USort> = with(ctx) {
+    override fun visit(value: EtsUndefinedConstant): UExpr<out USort> = with(ctx) {
         mkUndefinedValue()
     }
 
-    override fun visit(value: TsArrayAccess): UExpr<out USort> {
+    override fun visit(value: EtsArrayAccess): UExpr<out USort> {
         error("Should not be called")
     }
 
@@ -1028,7 +1031,7 @@ class TsSimpleValueResolver(
         error("Should not be called")
     }
 
-    override fun visit(value: TsStaticFieldRef): UExpr<out USort> {
+    override fun visit(value: EtsStaticFieldRef): UExpr<out USort> {
         error("Should not be called")
     }
 }

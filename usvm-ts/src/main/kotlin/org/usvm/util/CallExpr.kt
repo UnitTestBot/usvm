@@ -1,16 +1,20 @@
 package org.usvm.util
 
-import org.usvm.machine.expr.*
+import org.jacodb.ets.model.EtsAssignStmt
+import org.jacodb.ets.model.EtsCallExpr
+import org.jacodb.ets.model.EtsCallStmt
+import org.jacodb.ets.model.EtsEntity
+import org.jacodb.ets.model.EtsStmt
 
-val TsStmt.callExpr: TsCallExpr?
+val EtsStmt.callExpr: EtsCallExpr?
     get() = when (this) {
-        is TsCallStmt -> expr
-        is TsAssignStmt -> rhv.callExpr
+        is EtsCallStmt -> expr
+        is EtsAssignStmt -> rhv.callExpr
         else -> null
     }
 
-val TsEntity.callExpr: TsCallExpr?
+val EtsEntity.callExpr: EtsCallExpr?
     get() = when (this) {
-        is TsCallExpr -> this
+        is EtsCallExpr -> this
         else -> null
     }

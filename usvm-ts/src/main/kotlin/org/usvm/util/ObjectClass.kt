@@ -1,11 +1,13 @@
 package org.usvm.util
 
+import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassImpl
+import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.utils.createConstructor
-import org.usvm.machine.expr.*
 
-fun createObjectClass(): TsClass {
-    val cls = TsClassSignature("Object", TsFileSignature.UNKNOWN)
+fun createObjectClass(): EtsClass {
+    val cls = EtsClassSignature("Object", EtsFileSignature.UNKNOWN)
     val ctor = createConstructor(cls)
     return EtsClassImpl(
         signature = cls,

@@ -23,7 +23,6 @@ import org.junit.jupiter.api.Test
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.isTruthy
-import org.usvm.machine.expr.*
 
 class Or : TsMethodTestRunner() {
 

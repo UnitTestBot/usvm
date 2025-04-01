@@ -1,12 +1,12 @@
 package org.usvm.machine.state
 
+import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsType
-import org.jacodb.ets.model.EtsValue
-import org.jacodb.ets.model.EtsClass
-import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsUnknownType
+import org.jacodb.ets.model.EtsValue
 import org.usvm.PathNode
 import org.usvm.UCallStack
 import org.usvm.UConcreteHeapRef

@@ -2,10 +2,25 @@ package org.usvm.util
 
 import io.ksmt.expr.KBitVec32Value
 import io.ksmt.utils.asExpr
-import org.jacodb.ets.model.EtsClassType
-import org.jacodb.ets.model.EtsUnclearType
-import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
 import mu.KotlinLogging
+import org.jacodb.ets.model.EtsArrayType
+import org.jacodb.ets.model.EtsBooleanType
+import org.jacodb.ets.model.EtsClass
+import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsLiteralType
+import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsNeverType
+import org.jacodb.ets.model.EtsNullType
+import org.jacodb.ets.model.EtsNumberType
+import org.jacodb.ets.model.EtsPrimitiveType
+import org.jacodb.ets.model.EtsRefType
+import org.jacodb.ets.model.EtsStringType
+import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUnclearType
+import org.jacodb.ets.model.EtsUndefinedType
+import org.jacodb.ets.model.EtsUnknownType
+import org.jacodb.ets.model.EtsVoidType
+import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
 import org.usvm.UAddressSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
@@ -18,7 +33,6 @@ import org.usvm.api.TsTestValue
 import org.usvm.api.typeStreamOf
 import org.usvm.isTrue
 import org.usvm.machine.TsContext
-import org.usvm.machine.expr.TsMethod
 import org.usvm.machine.expr.extractBool
 import org.usvm.machine.expr.extractDouble
 import org.usvm.machine.state.TsMethodResult
@@ -30,12 +44,11 @@ import org.usvm.mkSizeExpr
 import org.usvm.model.UModelBase
 import org.usvm.types.first
 import org.usvm.types.single
-import org.usvm.machine.expr.*
 
 private val logger = KotlinLogging.logger {}
 
 class TsTestResolver {
-    fun resolve(method: TsMethod, state: TsState): TsTest = with(state.ctx) {
+    fun resolve(method: EtsMethod, state: TsState): TsTest = with(state.ctx) {
         val model = state.models.first()
         val memory = state.memory
 
@@ -75,9 +88,9 @@ class TsTestResolver {
 
     private class MemoryScope(
         ctx: TsContext,
-        model: UModelBase<TsType>,
-        finalStateMemory: UReadOnlyMemory<TsType>,
-        method: TsMethod,
+        model: UModelBase<EtsType>,
+        finalStateMemory: UReadOnlyMemory<EtsType>,
+        method: EtsMethod,
     ) : TsTestStateResolver(ctx, model, finalStateMemory, method) {
         fun resolveState(): TsParametersState {
             val thisInstance = resolveThisInstance()
@@ -90,13 +103,13 @@ class TsTestResolver {
 
 open class TsTestStateResolver(
     val ctx: TsContext,
-    private val model: UModelBase<TsType>,
-    private val finalStateMemory: UReadOnlyMemory<TsType>,
-    val method: TsMethod,
+    private val model: UModelBase<EtsType>,
+    private val finalStateMemory: UReadOnlyMemory<EtsType>,
+    val method: EtsMethod,
 ) {
     fun resolveLValue(
         lValue: ULValue<*, *>,
-        type: TsType,
+        type: EtsType,
     ): TsTestValue {
         val expr = memory.read(lValue)
         val symbolicRef = if (lValue.sort == ctx.addressSort) {
@@ -110,13 +123,13 @@ open class TsTestStateResolver(
     fun resolveExpr(
         expr: UExpr<out USort>,
         symbolicRef: UExpr<out USort>? = null,
-        type: TsType,
+        type: EtsType,
     ): TsTestValue = when (type) {
-        is TsPrimitiveType -> {
+        is EtsPrimitiveType -> {
             resolvePrimitive(expr, type)
         }
 
-        is TsRefType -> {
+        is EtsRefType -> {
             val finalStateMemoryRef = symbolicRef?.asExpr(ctx.addressSort) ?: expr.asExpr(ctx.addressSort)
             resolveTsValue(expr.asExpr(ctx.addressSort), finalStateMemoryRef, type)
         }
@@ -132,11 +145,11 @@ open class TsTestStateResolver(
     ): TsTestValue = with(ctx) {
         when (heapRef.sort) {
             fp64Sort -> {
-                resolvePrimitive(heapRef, TsNumberType)
+                resolvePrimitive(heapRef, EtsNumberType)
             }
 
             boolSort -> {
-                resolvePrimitive(heapRef, TsBooleanType)
+                resolvePrimitive(heapRef, EtsBooleanType)
             }
 
             addressSort -> {
@@ -146,7 +159,7 @@ open class TsTestStateResolver(
                     resolveTsValue(
                         heapRef.asExpr(ctx.addressSort),
                         finalStateMemoryRef?.asExpr(ctx.addressSort),
-                        TsUnknownType
+                        EtsUnknownType
                     )
                 }
             }
@@ -158,7 +171,7 @@ open class TsTestStateResolver(
     private fun resolveTsValue(
         heapRef: UExpr<UAddressSort>,
         finalStateMemoryRef: UExpr<UAddressSort>?,
-        type: TsType,
+        type: EtsType,
     ): TsTestValue {
         val concreteRef = evaluateInModel(heapRef) as UConcreteHeapRef
 
@@ -182,15 +195,15 @@ open class TsTestStateResolver(
                 resolveTsClass(concreteRef, finalStateMemoryRef ?: heapRef, cls.type)
             }
 
-            is TsClassType -> {
+            is EtsClassType -> {
                 resolveTsClass(concreteRef, finalStateMemoryRef ?: heapRef, type)
             }
 
-            is TsArrayType -> {
+            is EtsArrayType -> {
                 resolveTsArray(concreteRef, finalStateMemoryRef ?: heapRef, type)
             }
 
-            is TsUnknownType -> {
+            is EtsUnknownType -> {
                 val finalType = finalStateMemory.types.getTypeStream(heapRef).first()
                 resolveTsValue(heapRef, finalStateMemoryRef, finalType)
             }
@@ -205,7 +218,7 @@ open class TsTestStateResolver(
     private fun resolveTsArray(
         concreteRef: UConcreteHeapRef,
         heapRef: UHeapRef,
-        type: TsArrayType,
+        type: EtsArrayType,
     ): TsTestValue.TsArray<*> = with(ctx) {
         val arrayLength = mkArrayLengthLValue(heapRef, type)
         val length = model.eval(memory.read(arrayLength)) as KBitVec32Value
@@ -248,7 +261,7 @@ open class TsTestStateResolver(
         }
     }
 
-    fun resolveGlobals(): Map<TsClass, List<GlobalFieldValue>> {
+    fun resolveGlobals(): Map<EtsClass, List<GlobalFieldValue>> {
         // TODO
         return emptyMap()
     }
@@ -261,7 +274,7 @@ open class TsTestStateResolver(
                 // Note that everything about details of fake object we need to read from final state of the memory
                 // since they are allocated objects
                 val value = finalStateMemory.read(lValue)
-                resolveExpr(model.eval(value), value, TsBooleanType)
+                resolveExpr(model.eval(value), value, EtsBooleanType)
             }
 
             model.eval(type.fpTypeExpr).isTrue -> {
@@ -269,7 +282,7 @@ open class TsTestStateResolver(
                 // Note that everything about details of fake object we need to read from final state of the memory
                 // since they are allocated objects
                 val value = finalStateMemory.read(lValue)
-                resolveExpr(model.eval(value), value, TsNumberType)
+                resolveExpr(model.eval(value), value, EtsNumberType)
             }
 
             model.eval(type.refTypeExpr).isTrue -> {
@@ -289,37 +302,37 @@ open class TsTestStateResolver(
 
     private fun resolvePrimitive(
         expr: UExpr<out USort>,
-        type: TsPrimitiveType,
+        type: EtsPrimitiveType,
     ): TsTestValue = with(ctx) {
         when (type) {
-            TsNumberType -> {
+            EtsNumberType -> {
                 val e = evaluateInModel(expr)
                 if (e.isFakeObject()) {
                     val lValue = getIntermediateFpLValue(e.address)
                     val value = finalStateMemory.read(lValue)
-                    resolveExpr(model.eval(value), value, TsNumberType)
+                    resolveExpr(model.eval(value), value, EtsNumberType)
                 } else {
                     TsTestValue.TsNumber.TsDouble(e.extractDouble())
                 }
             }
 
-            TsBooleanType -> TsTestValue.TsBoolean(evaluateInModel(expr).extractBool())
-            TsUndefinedType -> TsTestValue.TsUndefined
-            is TsLiteralType -> TODO()
-            TsNullType -> TODO()
-            TsNeverType -> TODO()
-            TsStringType -> {
+            EtsBooleanType -> TsTestValue.TsBoolean(evaluateInModel(expr).extractBool())
+            EtsUndefinedType -> TsTestValue.TsUndefined
+            is EtsLiteralType -> TODO()
+            EtsNullType -> TODO()
+            EtsNeverType -> TODO()
+            EtsStringType -> {
                 TsTestValue.TsNumber.TsDouble(evaluateInModel(expr).extractDouble())
             }
 
-            TsVoidType -> TODO()
+            EtsVoidType -> TODO()
             else -> error("Unexpected type: $type")
         }
     }
 
     private fun resolveClass(
-        classType: TsClassType,
-    ): TsClass {
+        classType: EtsClassType,
+    ): EtsClass {
         // Special case for Object:
         if (classType.signature.name == "Object") {
             return createObjectClass()
@@ -345,7 +358,7 @@ open class TsTestStateResolver(
     private fun resolveTsClass(
         concreteRef: UConcreteHeapRef,
         heapRef: UHeapRef,
-        classType: TsClassType,
+        classType: EtsClassType,
     ): TsTestValue.TsClass = with(ctx) {
         val clazz = resolveClass(classType)
         val properties = clazz.fields
@@ -393,7 +406,7 @@ open class TsTestStateResolver(
         return model.eval(expr)
     }
 
-    val memory: UReadOnlyMemory<TsType>
+    val memory: UReadOnlyMemory<EtsType>
         get() = when (resolveMode) {
             ResolveMode.MODEL -> model
             ResolveMode.CURRENT -> finalStateMemory

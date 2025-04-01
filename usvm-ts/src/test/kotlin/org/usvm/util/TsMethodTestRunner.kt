@@ -1,6 +1,5 @@
 package org.usvm.util
 
-import org.usvm.machine.expr.*
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
@@ -33,14 +32,14 @@ import kotlin.time.Duration
 typealias CoverageChecker = (TsMethodCoverage) -> Boolean
 
 @TestInstance(PER_CLASS)
-abstract class TsMethodTestRunner : TestRunner<TsTest, TsMethod, TsType?, TsMethodCoverage>() {
+abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMethodCoverage>() {
 
-    protected abstract val scene: TsScene
+    protected abstract val scene: EtsScene
 
     protected fun loadSampleScene(
         className: String,
         useArkAnalyzerTypeInference: Boolean = false,
-    ): TsScene {
+    ): EtsScene {
         val name = "$className.ts"
         val path = getResourcePath("/samples/$name")
         val file = loadEtsFileAutoConvert(
@@ -51,7 +50,7 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, TsMethod, TsType?, TsMeth
         return scene
     }
 
-    protected fun getMethod(className: String, methodName: String): TsMethod {
+    protected fun getMethod(className: String, methodName: String): EtsMethod {
         return scene
             .projectAndSdkClasses.single { it.name == className }
             .methods.singleOrNull { it.name == methodName }
@@ -61,7 +60,7 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, TsMethod, TsType?, TsMeth
     protected val doNotCheckCoverage: CoverageChecker = { _ -> true }
 
     protected inline fun <reified R : TsTestValue> discoverProperties(
-        method: TsMethod,
+        method: EtsMethod,
         vararg analysisResultMatchers: (R) -> Boolean,
         invariants: Array<(R) -> Boolean> = emptyArray(),
         noinline coverageChecker: CoverageChecker = doNotCheckCoverage,
@@ -79,7 +78,7 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, TsMethod, TsType?, TsMeth
     }
 
     protected inline fun <reified T : TsTestValue, reified R : TsTestValue> discoverProperties(
-        method: TsMethod,
+        method: EtsMethod,
         vararg analysisResultMatchers: (T, R) -> Boolean,
         invariants: Array<(T, R) -> Boolean> = emptyArray(),
         noinline coverageChecker: CoverageChecker = doNotCheckCoverage,
@@ -97,7 +96,7 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, TsMethod, TsType?, TsMeth
     }
 
     protected inline fun <reified T1 : TsTestValue, reified T2 : TsTestValue, reified R : TsTestValue> discoverProperties(
-        method: TsMethod,
+        method: EtsMethod,
         vararg analysisResultMatchers: (T1, T2, R) -> Boolean,
         invariants: Array<(T1, T2, R) -> Boolean> = emptyArray(),
         noinline coverageChecker: CoverageChecker = doNotCheckCoverage,
@@ -117,7 +116,7 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, TsMethod, TsType?, TsMeth
     }
 
     protected inline fun <reified T1 : TsTestValue, reified T2 : TsTestValue, reified T3 : TsTestValue, reified R : TsTestValue> discoverProperties(
-        method: TsMethod,
+        method: EtsMethod,
         vararg analysisResultMatchers: (T1, T2, T3, R) -> Boolean,
         invariants: Array<(T1, T2, T3, R) -> Boolean> = emptyArray(),
         noinline coverageChecker: CoverageChecker = doNotCheckCoverage,
@@ -140,7 +139,7 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, TsMethod, TsType?, TsMeth
     }
 
     protected inline fun <reified T1 : TsTestValue, reified T2 : TsTestValue, reified T3 : TsTestValue, reified T4 : TsTestValue, reified R : TsTestValue> discoverProperties(
-        method: TsMethod,
+        method: EtsMethod,
         vararg analysisResultMatchers: (T1, T2, T3, T4, R) -> Boolean,
         invariants: Array<(T1, T2, T3, T4, R) -> Boolean> = emptyArray(),
         noinline coverageChecker: CoverageChecker = doNotCheckCoverage,
@@ -168,9 +167,9 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, TsMethod, TsType?, TsMeth
 
         See https://github.com/UnitTestBot/usvm/issues/203
      */
-    override val checkType: (TsType?, TsType?) -> Boolean = { _, _ -> true }
+    override val checkType: (EtsType?, EtsType?) -> Boolean = { _, _ -> true }
 
-    override val typeTransformer: (Any?) -> TsType = {
+    override val typeTransformer: (Any?) -> EtsType = {
         requireNotNull(it) { "Raw null value should not be passed here" }
 
         /*
@@ -181,11 +180,11 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, TsMethod, TsType?, TsMeth
         */
         val klass = if (it is KClass<*>) it else it::class
         when (klass) {
-            TsTestValue::class -> TsAnyType
-            TsTestValue.TsAny::class -> TsAnyType
+            TsTestValue::class -> EtsAnyType
+            TsTestValue.TsAny::class -> EtsAnyType
 
             TsTestValue.TsArray::class -> {
-                TsArrayType(TsAnyType, dimensions = 1) // TODO incorrect
+                EtsArrayType(EtsAnyType, dimensions = 1) // TODO incorrect
             }
 
             TsTestValue.TsClass::class -> {
@@ -194,17 +193,17 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, TsMethod, TsType?, TsMeth
                 EtsClassType(signature)
             }
 
-            TsTestValue.TsBoolean::class -> TsBooleanType
-            TsTestValue.TsString::class -> TsStringType
-            TsTestValue.TsNumber::class -> TsNumberType
-            TsTestValue.TsNumber.TsDouble::class -> TsNumberType
-            TsTestValue.TsNumber.TsInteger::class -> TsNumberType
-            TsTestValue.TsUndefined::class -> TsUndefinedType
+            TsTestValue.TsBoolean::class -> EtsBooleanType
+            TsTestValue.TsString::class -> EtsStringType
+            TsTestValue.TsNumber::class -> EtsNumberType
+            TsTestValue.TsNumber.TsDouble::class -> EtsNumberType
+            TsTestValue.TsNumber.TsInteger::class -> EtsNumberType
+            TsTestValue.TsUndefined::class -> EtsUndefinedType
             // TODO: TsUnknownType is mock up here. Correct implementation required.
-            TsTestValue.TsObject::class -> TsUnknownType
+            TsTestValue.TsObject::class -> EtsUnknownType
             // For untyped tests, not to limit objects serialized from models after type coercion.
-            TsTestValue.TsUnknown::class -> TsUnknownType
-            TsTestValue.TsNull::class -> TsNullType
+            TsTestValue.TsUnknown::class -> EtsUnknownType
+            TsTestValue.TsNull::class -> EtsNullType
 
             TsTestValue.TsException::class -> {
                 // TODO incorrect
@@ -216,7 +215,7 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, TsMethod, TsType?, TsMeth
         }
     }
 
-    override val runner: (TsMethod, UMachineOptions) -> List<TsTest> = { method, options ->
+    override val runner: (EtsMethod, UMachineOptions) -> List<TsTest> = { method, options ->
         TsMachine(scene, options).use { machine ->
             val states = machine.analyze(listOf(method))
             states.map { state ->

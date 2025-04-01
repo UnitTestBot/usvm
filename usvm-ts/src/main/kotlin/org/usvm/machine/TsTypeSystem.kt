@@ -130,7 +130,7 @@ class TsTopTypeStream(
         get() = anyTypeStream.isEmpty?.let { primitiveTypes.isEmpty() }
 
     override val commonSuperType: EtsType?
-        get() = EtsUnknownType.takeIf { !(isEmpty ?: true) }
+        get() = EtsUnknownType.takeIf { isEmpty == false }
 
     private fun <T> List<T>.remove(x: T): List<T> = this.filterNot { it == x }
 }

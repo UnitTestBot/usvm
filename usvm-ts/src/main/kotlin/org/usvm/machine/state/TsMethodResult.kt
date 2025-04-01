@@ -1,9 +1,10 @@
 package org.usvm.machine.state
 
+import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsType
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
-import org.usvm.machine.expr.*
 
 /**
  * Represents a result of a method invocation.
@@ -18,7 +19,7 @@ sealed interface TsMethodResult {
      * A [method] successfully returned a [value].
      */
     class Success(
-        val method: TsMethod,
+        val method: EtsMethod,
         val value: UExpr<out USort>,
     ) : TsMethodResult
 
@@ -27,7 +28,7 @@ sealed interface TsMethodResult {
      */
     open class TsException(
         val address: UHeapRef,
-        val type: TsType,
+        val type: EtsType,
     ) : TsMethodResult {
         override fun toString(): String = "${this::class.simpleName}: Address: $address, type: ${type.typeName}"
     }
