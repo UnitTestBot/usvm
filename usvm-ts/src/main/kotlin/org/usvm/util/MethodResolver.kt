@@ -29,9 +29,7 @@ fun TsContext.resolveEtsMethods(
             it.name == instanceType.signature.name
         }
     } else {
-        scene.projectAndSdkClasses.filter {
-            it.name == method.enclosingClass.name
-        }
+        scene.projectAndSdkClasses
     }
     val methods = classes.flatMap {
         it.methods + it.ctor
