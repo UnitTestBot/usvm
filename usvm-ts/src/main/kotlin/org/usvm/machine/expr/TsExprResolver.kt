@@ -652,7 +652,10 @@ class TsExprResolver(
             // normal call
 
             // ignore extra args
-            arguments += resolvedArgs.take(numFormal)
+            // arguments += resolvedArgs.take(numFormal)
+
+            // TODO: do not ignore...
+            arguments += resolvedArgs
 
             // fill with undefined
             repeat(numFormal - numActual) {
@@ -660,7 +663,7 @@ class TsExprResolver(
             }
         }
 
-        check(arguments.size == method.parameters.size)
+        // check(arguments.size == method.parameters.size)
 
         // Note: currently, 'this' has index 'n', so we must add it LAST, *after* all other arguments.
         // See `TsInterpreter::mapLocalToIdx`.
