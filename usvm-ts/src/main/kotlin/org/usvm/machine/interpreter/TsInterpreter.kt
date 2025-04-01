@@ -339,7 +339,10 @@ class TsInterpreter(
     private fun visitCallStmt(scope: TsStepScope, stmt: EtsCallStmt) {
         val exprResolver = exprResolverWithScope(scope)
 
-        exprResolver.resolve(stmt.expr) ?: return
+        exprResolver.resolve(stmt.expr) ?: run {
+            logger.warn { "Could not resolve call expression: ${stmt.expr}" }
+            return
+        }
 
         scope.doWithState {
             val nextStmt = stmt.nextStmt ?: return@doWithState
