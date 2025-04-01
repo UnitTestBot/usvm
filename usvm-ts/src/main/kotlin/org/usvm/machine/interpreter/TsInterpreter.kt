@@ -157,7 +157,7 @@ class TsInterpreter(
 
                 scope.doWithState {
                     check(stmt.arguments.size == stmt.callee.parametersWithThisCount) {
-                        "Arguments size should be equal to the method parameters size"
+                        "Expected ${stmt.callee.parameters.size}+1 arguments, got ${stmt.arguments.size}"
                     }
                     // TODO: push sorts for arguments
                     callStack.push(stmt.callee, stmt.returnSite)
