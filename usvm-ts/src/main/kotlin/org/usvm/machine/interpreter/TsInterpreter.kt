@@ -177,7 +177,7 @@ class TsInterpreter(
             return
         }
 
-        val (falseBranch, trueBranch) = graph.successors(stmt).take(2).toList()
+        val (trueBranch, falseBranch) = graph.successors(stmt).take(2).toList()
 
         scope.forkWithBlackList(
             boolExpr,
