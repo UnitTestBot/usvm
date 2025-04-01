@@ -100,6 +100,7 @@ import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
 import org.usvm.util.throwExceptionWithoutStackFrameDrop
+import org.usvm.util.type
 
 private val logger = KotlinLogging.logger {}
 
@@ -931,6 +932,8 @@ class TsSimpleValueResolver(
                 // TODO: check if parameter indices are actually 0-based
                 //       (they might start at 3 in ABC...)
                 currentMethod.parameters[local.index].type
+            } else if (local is EtsThis && currentMethod.enclosingClass != null) {
+                currentMethod.enclosingClass!!.type
             } else {
                 EtsUnknownType // TODO
             }
