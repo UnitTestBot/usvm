@@ -117,6 +117,12 @@ class TsInterpreter(
                     return
                 }
 
+                logger.info {
+                    "Preparing to fork on ${methods.size} methods: ${
+                        methods.map { "${it.signature.enclosingClass.name}::${it.name}" }
+                    }"
+                }
+
                 val conditionsWithBlocks: MutableList<Pair<UBoolExpr, TsState.() -> Unit>> = mutableListOf()
 
                 for (method in methods) {
