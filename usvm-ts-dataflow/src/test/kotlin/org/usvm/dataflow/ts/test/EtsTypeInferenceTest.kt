@@ -22,17 +22,17 @@ import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.SerializationException
 import mu.KotlinLogging
-import org.jacodb.ets.utils.CONSTRUCTOR_NAME
+import org.jacodb.ets.dto.EtsFileDto
+import org.jacodb.ets.dto.toEtsFile
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsAssignStmt
+import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStringConstant
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUnknownType
-import org.jacodb.ets.dto.EtsFileDto
-import org.jacodb.ets.dto.toEtsFile
-import org.jacodb.ets.model.EtsFile
-import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.jacodb.ets.utils.getLocals
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Disabled
@@ -289,7 +289,7 @@ class EtsTypeInferenceTest {
         val graph = createApplicationGraph(project)
 
         val entrypoints = project.projectClasses
-            .flatMap { it.methods + it.ctor }
+            .flatMap { it.methods }
             .filter { it.isPublic || it.name == CONSTRUCTOR_NAME }
             .filter { !it.signature.enclosingClass.name.startsWith("AnonymousClass") }
         println("entrypoints: (${entrypoints.size})")

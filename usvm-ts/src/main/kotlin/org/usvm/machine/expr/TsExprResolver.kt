@@ -528,14 +528,14 @@ class TsExprResolver(
             val classes = ctx.scene.projectAndSdkClasses.filter { it.name == method.enclosingClass.name }
             if (classes.size != 1) return null
             val clazz = classes.single()
-            val methods = (clazz.methods + clazz.ctor).filter { it.name == method.name }
+            val methods = clazz.methods.filter { it.name == method.name }
             if (methods.size != 1) return null
             return methods.single()
         }
 
         // Unknown signature:
         val methods = ctx.scene.projectAndSdkClasses
-            .flatMap { it.methods + it.ctor }
+            .flatMap { it.methods }
             .filter { it.name == method.name }
         if (methods.size == 1) return methods.single()
 

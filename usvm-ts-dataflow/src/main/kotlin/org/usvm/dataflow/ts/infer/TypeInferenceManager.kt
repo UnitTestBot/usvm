@@ -346,8 +346,7 @@ class TypeInferenceManager(
             .entries.groupByTo(hashMapOf()) { (method, _) -> method.signature.enclosingClass }
 
         return allClasses.mapNotNull { cls ->
-            val clsMethods = (cls.methods + cls.ctor).toHashSet()
-            val combinedBackwardType = clsMethods
+            val combinedBackwardType = cls.methods
                 .mapNotNull { methodTypeScheme[it] }
                 .mapNotNull { facts -> facts[AccessPathBase.This] }.reduceOrNull { acc, type ->
                     typeProcessor.intersect(acc, type) ?: run {

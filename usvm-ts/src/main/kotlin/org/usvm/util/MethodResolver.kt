@@ -17,7 +17,7 @@ fun TsContext.resolveEtsMethods(
             it.name == method.enclosingClass.name
         }
         val methods = classes.flatMap {
-            it.methods + it.ctor
+            it.methods
         }.filter {
             it.name == method.name
         }
@@ -32,7 +32,7 @@ fun TsContext.resolveEtsMethods(
         scene.projectAndSdkClasses
     }
     val methods = classes.flatMap {
-        it.methods + it.ctor
+        it.methods
     }.filter {
         it.name == method.name
     }
