@@ -2,7 +2,12 @@ package org.usvm.machine
 
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
+import org.jacodb.api.jvm.JcArrayType
+import org.jacodb.api.jvm.JcType
+import org.jacodb.api.jvm.PredefinedPrimitives
+import org.jacodb.api.jvm.ext.objectType
 import org.jacodb.ets.model.EtsAnyType
+import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsNumberType
@@ -70,6 +75,8 @@ class TsContext(
             // TODO("Support all JacoDB types, encountered $type")
         }
     }
+
+    fun arrayDescriptorOf(type: EtsArrayType): EtsType = EtsUnknownType
 
     fun UHeapRef.getTypeStream(scope: TsStepScope): UTypeStream<EtsType> =
         scope.calcOnState {

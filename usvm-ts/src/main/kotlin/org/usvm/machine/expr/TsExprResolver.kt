@@ -768,8 +768,10 @@ class TsExprResolver(
 
         // TODO It is a hack for array's length
         if (value.instance.type is EtsArrayType && value.field.name == "length") {
-            val lengthLValue = mkArrayLengthLValue(instanceRef, value.instance.type as EtsArrayType)
-            val length = scope.calcOnState { memory.read(lengthLValue) }
+            val length = scope.calcOnState {
+                val lengthLValue = mkArrayLengthLValue(instanceRef, value.instance.type as EtsArrayType)
+                memory.read(lengthLValue)
+            }
             return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), length.asExpr(sizeSort), signed = true)
         }
 
@@ -871,6 +873,8 @@ class TsExprResolver(
 
             val type = EtsArrayType(EtsUnknownType, 1) // TODO: fix array element type
             val address = memory.allocateArray(type, sizeSort, bvSize)
+            // Note: overwrite array type
+            // TODO: do we really need it?
             memory.types.allocate(address.address, type)
 
             address
