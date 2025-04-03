@@ -749,7 +749,7 @@ class TsExprResolver(
                     mkFakeValue(scope, bool, fp, ref)
                 }
 
-                memory.write(refLValue, fakeRef.asExpr(addressSort), guard = trueExpr)
+                memory.write(refLValue, fakeRef, guard = trueExpr)
 
                 fakeRef
             }
