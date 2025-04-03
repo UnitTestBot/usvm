@@ -297,7 +297,7 @@ class TsInterpreter(
                                 scope.assert(fakeType.refTypeExpr)
                                 memory.write(lValue, expr.extractRef(scope).asExpr(sort), guard = trueExpr)
                             } else {
-                                let {}
+                                error("Unsupported sort: $sort")
                             }
                         } else {
                             memory.write(lValue, expr.asExpr(sort), guard = trueExpr)
