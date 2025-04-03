@@ -122,8 +122,8 @@ class Config {
 
 // Test: Field swapping
 class StaticAccess {
-    static a = 1;
-    static b = 2;
+    static a = 5;
+    static b = 10;
 
     static calculateSum(): number {
         return this.a + this.b;

@@ -121,7 +121,7 @@ class StaticFields : TsMethodTestRunner() {
         val method = getMethod("StaticAccess", "calculateSum")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 3.0 },
+            { r -> r.number == 15.0 },
         )
     }
 

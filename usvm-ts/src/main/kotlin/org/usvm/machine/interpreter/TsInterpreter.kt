@@ -273,12 +273,27 @@ class TsInterpreter(
                     val sort = typeToSort(etsFieldType)
                     if (sort == unresolvedSort) {
                         val fakeObject = expr.toFakeObject(scope)
+                        val field = EtsFieldSignature(EtsClassSignature.UNKNOWN, lhv.field.name, EtsUnknownType)
                         val lValue = mkFieldLValue(
                             sort = addressSort,
                             ref = instance,
-                            field = EtsFieldSignature(EtsClassSignature.UNKNOWN, lhv.field.name, EtsUnknownType)
+                            field = field,
                         )
                         memory.write(lValue, fakeObject, guard = trueExpr)
+
+                        // write to original fields
+                        val fpLValue = mkFieldLValue(
+                            sort = fp64Sort,
+                            ref = instance,
+                            field = field,
+                        )
+                        memory.write(fpLValue, fakeObject.extractFp(scope), guard = trueExpr)
+                        val boolLValue = mkFieldLValue(
+                            sort = boolSort,
+                            ref = instance,
+                            field = field,
+                        )
+                        memory.write(boolLValue, fakeObject.extractBool(scope), guard = trueExpr)
                     } else {
                         val lValue = mkFieldLValue(
                             sort = sort,
