@@ -121,6 +121,7 @@ sealed interface TsBinaryOperator {
                     val lhsType = lhs.getFakeType(scope)
                     val rhsType = rhs.getFakeType(scope)
 
+                    // 'bool' == 'bool'
                     conjuncts += ExprWithTypeConstraint(
                         constraint = mkAnd(lhsType.boolTypeExpr, rhsType.boolTypeExpr),
                         expr = mkEq(
@@ -129,6 +130,7 @@ sealed interface TsBinaryOperator {
                         )
                     )
 
+                    // 'fp' == 'fp'
                     conjuncts += ExprWithTypeConstraint(
                         constraint = mkAnd(lhsType.fpTypeExpr, rhsType.fpTypeExpr),
                         expr = mkFpEqualExpr(
@@ -137,6 +139,7 @@ sealed interface TsBinaryOperator {
                         )
                     )
 
+                    // 'ref' == 'ref'
                     conjuncts += ExprWithTypeConstraint(
                         constraint = mkAnd(lhsType.refTypeExpr, rhsType.refTypeExpr),
                         expr = mkHeapRefEq(
@@ -145,6 +148,7 @@ sealed interface TsBinaryOperator {
                         )
                     )
 
+                    // 'bool' == 'fp'
                     conjuncts += ExprWithTypeConstraint(
                         constraint = mkAnd(lhsType.boolTypeExpr, rhsType.fpTypeExpr),
                         expr = mkFpEqualExpr(
@@ -153,6 +157,7 @@ sealed interface TsBinaryOperator {
                         )
                     )
 
+                    // 'fp' == 'bool'
                     conjuncts += ExprWithTypeConstraint(
                         constraint = mkAnd(lhsType.fpTypeExpr, rhsType.boolTypeExpr),
                         expr = mkFpEqualExpr(
@@ -161,7 +166,17 @@ sealed interface TsBinaryOperator {
                         )
                     )
 
-                    // TODO: support objects
+                    // TODO: 'ref' == 'bool'
+                    scope.assert(mkAnd(lhsType.refTypeExpr, rhsType.boolTypeExpr).not())
+
+                    // TODO: 'ref' == 'fp'
+                    scope.assert(mkAnd(lhsType.refTypeExpr, rhsType.fpTypeExpr).not())
+
+                    // TODO: 'bool' == 'ref'
+                    scope.assert(mkAnd(lhsType.boolTypeExpr, rhsType.refTypeExpr).not())
+
+                    // TODO: 'fp' == 'ref'
+                    scope.assert(mkAnd(lhsType.fpTypeExpr, rhsType.refTypeExpr).not())
                 }
 
                 lhs.isFakeObject() -> {
@@ -169,6 +184,7 @@ sealed interface TsBinaryOperator {
 
                     when (rhs.sort) {
                         boolSort -> {
+                            // 'bool' == 'fp'
                             conjuncts += ExprWithTypeConstraint(
                                 constraint = lhsType.boolTypeExpr,
                                 expr = mkEq(
@@ -177,6 +193,7 @@ sealed interface TsBinaryOperator {
                                 )
                             )
 
+                            // 'fp' == 'bool'
                             conjuncts += ExprWithTypeConstraint(
                                 constraint = lhsType.fpTypeExpr,
                                 expr = mkFpEqualExpr(
@@ -185,11 +202,12 @@ sealed interface TsBinaryOperator {
                                 )
                             )
 
-                            // TODO: support objects
+                            // TODO: 'ref' == 'bool'
                             scope.assert(lhsType.refTypeExpr.not())
                         }
 
                         fp64Sort -> {
+                            // 'bool' == 'fp'
                             conjuncts += ExprWithTypeConstraint(
                                 constraint = lhsType.boolTypeExpr,
                                 expr = mkFpEqualExpr(
@@ -198,6 +216,7 @@ sealed interface TsBinaryOperator {
                                 )
                             )
 
+                            // 'fp' == 'fp'
                             conjuncts += ExprWithTypeConstraint(
                                 constraint = lhsType.fpTypeExpr,
                                 expr = mkFpEqualExpr(
@@ -206,13 +225,18 @@ sealed interface TsBinaryOperator {
                                 )
                             )
 
-                            // TODO: support objects
+                            // TODO: 'ref' == 'fp'
                             scope.assert(lhsType.refTypeExpr.not())
                         }
 
                         addressSort -> {
-                            scope.assert(lhsType.refTypeExpr)
+                            // TODO: 'bool' == 'ref'
+                            scope.assert(lhsType.boolTypeExpr.not())
 
+                            // TODO: 'fp' == 'ref'
+                            scope.assert(lhsType.fpTypeExpr.not())
+
+                            // 'ref' == 'ref'
                             conjuncts += ExprWithTypeConstraint(
                                 constraint = lhsType.refTypeExpr,
                                 expr = mkHeapRefEq(
@@ -233,6 +257,7 @@ sealed interface TsBinaryOperator {
 
                     when (lhs.sort) {
                         boolSort -> {
+                            // 'bool' == 'bool'
                             conjuncts += ExprWithTypeConstraint(
                                 constraint = rhsType.boolTypeExpr,
                                 expr = mkEq(
@@ -241,6 +266,7 @@ sealed interface TsBinaryOperator {
                                 )
                             )
 
+                            // 'bool' == 'fp'
                             conjuncts += ExprWithTypeConstraint(
                                 constraint = rhsType.fpTypeExpr,
                                 expr = mkFpEqualExpr(
@@ -249,11 +275,12 @@ sealed interface TsBinaryOperator {
                                 )
                             )
 
-                            // TODO: support objects
+                            // TODO: 'bool' == 'ref'
                             scope.assert(rhsType.refTypeExpr.not())
                         }
 
                         fp64Sort -> {
+                            // 'fp' == 'bool'
                             conjuncts += ExprWithTypeConstraint(
                                 constraint = rhsType.boolTypeExpr,
                                 expr = mkFpEqualExpr(
@@ -262,6 +289,7 @@ sealed interface TsBinaryOperator {
                                 )
                             )
 
+                            // 'fp' == 'fp'
                             conjuncts += ExprWithTypeConstraint(
                                 constraint = rhsType.fpTypeExpr,
                                 expr = mkFpEqualExpr(
@@ -270,13 +298,18 @@ sealed interface TsBinaryOperator {
                                 )
                             )
 
-                            // TODO: support objects
+                            // TODO: 'fp' == 'ref'
                             scope.assert(rhsType.refTypeExpr.not())
                         }
 
                         addressSort -> {
-                            scope.assert(rhsType.refTypeExpr)
+                            // TODO: 'ref' == 'bool'
+                            scope.assert(rhsType.boolTypeExpr.not())
 
+                            // TODO: 'ref' == 'fp'
+                            scope.assert(rhsType.fpTypeExpr.not())
+
+                            // 'ref' == 'ref'
                             conjuncts += ExprWithTypeConstraint(
                                 constraint = rhsType.refTypeExpr,
                                 expr = mkHeapRefEq(
