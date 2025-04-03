@@ -270,10 +270,10 @@ class TsInterpreter(
                     val etsFieldType = etsFields
                         .filter { it.declaringClass != null && it.declaringClass!!.category != EtsClassCategory.ENUM }
                         .map { it.type }.distinct().singleOrNull() ?: EtsUnknownType
+                    val field = EtsFieldSignature(EtsClassSignature.UNKNOWN, lhv.field.name, EtsUnknownType)
                     val sort = typeToSort(etsFieldType)
                     if (sort == unresolvedSort) {
                         val fakeObject = expr.toFakeObject(scope)
-                        val field = EtsFieldSignature(EtsClassSignature.UNKNOWN, lhv.field.name, EtsUnknownType)
                         val lValue = mkFieldLValue(
                             sort = addressSort,
                             ref = instance,
@@ -281,26 +281,26 @@ class TsInterpreter(
                         )
                         memory.write(lValue, fakeObject, guard = trueExpr)
 
-                        // write to original fields
-                        val fpLValue = mkFieldLValue(
-                            sort = fp64Sort,
-                            ref = instance,
-                            field = field,
-                        )
-                        memory.write(fpLValue, fakeObject.extractFp(scope), guard = trueExpr)
-                        val boolLValue = mkFieldLValue(
-                            sort = boolSort,
-                            ref = instance,
-                            field = field,
-                        )
-                        memory.write(boolLValue, fakeObject.extractBool(scope), guard = trueExpr)
+                        // TODO: write to original fields
+                        // val fpLValue = mkFieldLValue(
+                        //     sort = fp64Sort,
+                        //     ref = instance,
+                        //     field = field,
+                        // )
+                        // memory.write(fpLValue, fakeObject.extractFp(scope), guard = trueExpr)
+                        // val boolLValue = mkFieldLValue(
+                        //     sort = boolSort,
+                        //     ref = instance,
+                        //     field = field,
+                        // )
+                        // memory.write(boolLValue, fakeObject.extractBool(scope), guard = trueExpr)
                     } else {
-                        val lValue = mkFieldLValue(
-                            sort = sort,
-                            ref = instance,
-                            field = EtsFieldSignature(EtsClassSignature.UNKNOWN, lhv.field.name, EtsUnknownType)
-                        )
                         if (expr.isFakeObject()) {
+                            val lValue = mkFieldLValue(
+                                sort = sort,
+                                ref = instance,
+                                field = field,
+                            )
                             val fakeType = expr.getFakeType(scope)
                             if (sort == boolSort) {
                                 scope.assert(fakeType.boolTypeExpr)
@@ -315,7 +315,40 @@ class TsInterpreter(
                                 error("Unsupported sort: $sort")
                             }
                         } else {
+                            val lValue = mkFieldLValue(
+                                sort = sort,
+                                ref = instance,
+                                field = field,
+                            )
                             memory.write(lValue, expr.asExpr(sort), guard = trueExpr)
+
+                            // Note: here, we could simply write the value to the field,
+                            //       but we nevertheless wrap it into a fake type and add the corresponding
+                            //       type constraint in order to make correct the "unresolved readings" that
+                            //       create the fake object itself (yet, do not know about the type constraints).
+
+                            // val fakeObject = expr.toFakeObject(scope)
+                            // val lValue = mkFieldLValue(
+                            //     sort = addressSort,
+                            //     ref = instance,
+                            //     field = field,
+                            // )
+                            // memory.write(lValue, fakeObject, guard = trueExpr)
+                            // TODO: fake type constraints...
+
+                            // TODO: write to original fields
+                            // val fpLValue = mkFieldLValue(
+                            //     sort = fp64Sort,
+                            //     ref = instance,
+                            //     field = field,
+                            // )
+                            // memory.write(fpLValue, fakeObject.extractFp(scope), guard = trueExpr)
+                            // val boolLValue = mkFieldLValue(
+                            //     sort = boolSort,
+                            //     ref = instance,
+                            //     field = field,
+                            // )
+                            // memory.write(boolLValue, fakeObject.extractBool(scope), guard = trueExpr)
                         }
                     }
                 }
@@ -334,12 +367,33 @@ class TsInterpreter(
                     val field = clazz.fields.single { it.name == lhv.field.name }
                     val sort = typeToSort(field.type)
                     if (sort == unresolvedSort) {
-                        val lValue = mkFieldLValue(addressSort, instance, field.signature)
                         val fakeObject = expr.toFakeObject(scope)
+                        val lValue = mkFieldLValue(addressSort, instance, field.signature)
                         memory.write(lValue, fakeObject, guard = trueExpr)
                     } else {
-                        val lValue = mkFieldLValue(sort, instance, field.signature)
-                        memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
+                        // val lValue = mkFieldLValue(sort, instance, field.signature)
+                        // memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
+
+                        val fakeObject = expr.toFakeObject(scope)
+                        val fakeType = fakeObject.getFakeType(scope)
+                        val lValue = mkFieldLValue(
+                            sort = addressSort,
+                            ref = instance,
+                            field = field.signature,
+                        )
+                        memory.write(lValue, fakeObject, guard = trueExpr)
+                        when (sort) {
+                            boolSort -> {
+                                scope.assert(fakeType.boolTypeExpr)
+                            }
+                            fp64Sort -> {
+                                scope.assert(fakeType.fpTypeExpr)
+                            }
+                            addressSort -> {
+                                scope.assert(fakeType.refTypeExpr)
+                            }
+                            else -> error("Unsupported sort: $sort")
+                        }
                     }
                 }
 
