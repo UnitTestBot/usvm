@@ -172,11 +172,7 @@ class TsInterpreter(
         val exprResolver = exprResolverWithScope(scope)
         val expr = exprResolver.resolve(stmt.condition) ?: return
 
-        val boolExpr = if (expr.sort == ctx.boolSort) {
-            expr.asExpr(ctx.boolSort)
-        } else {
-            ctx.mkTruthyExpr(expr, scope)
-        }
+        val boolExpr = ctx.mkTruthyExpr(expr, scope)
 
         if (graph.successors(stmt).toList().size != 2) {
             logger.warn { "If statement has ${graph.successors(stmt).toList().size} successor(s)" }
