@@ -316,15 +316,26 @@ open class TsTestStateResolver(
                 }
             }
 
-            EtsBooleanType -> TsTestValue.TsBoolean(evaluateInModel(expr).extractBool())
-            EtsUndefinedType -> TsTestValue.TsUndefined
-            is EtsLiteralType -> TODO()
-            EtsNullType -> TODO()
-            EtsNeverType -> TODO()
+            EtsBooleanType -> {
+                val e = evaluateInModel(expr)
+                if (e.isFakeObject()) {
+                    val lValue = getIntermediateBoolLValue(e.address)
+                    val value = finalStateMemory.read(lValue)
+                    resolveExpr(model.eval(value), value, EtsBooleanType)
+                } else {
+                    TsTestValue.TsBoolean(e.extractBool())
+                }
+            }
+
             EtsStringType -> {
                 TsTestValue.TsNumber.TsDouble(evaluateInModel(expr).extractDouble())
             }
 
+            EtsUndefinedType -> TsTestValue.TsUndefined
+
+            is EtsLiteralType -> TODO()
+            EtsNullType -> TODO()
+            EtsNeverType -> TODO()
             EtsVoidType -> TODO()
             else -> error("Unexpected type: $type")
         }
