@@ -267,9 +267,9 @@ class TsInterpreter(
                         lhv.instance,
                         EtsFieldSignature(EtsClassSignature.UNKNOWN, lhv.field.name, EtsUnknownType)
                     )
-                    val etsFieldType =
-                        etsFields.filter { it.declaringClass != null && it.declaringClass!!.category != EtsClassCategory.ENUM }
-                            .map { it.type }.distinct().singleOrNull() ?: EtsUnknownType
+                    val etsFieldType = etsFields
+                        .filter { it.declaringClass != null && it.declaringClass!!.category != EtsClassCategory.ENUM }
+                        .map { it.type }.distinct().singleOrNull() ?: EtsUnknownType
                     val sort = typeToSort(etsFieldType)
                     if (sort == unresolvedSort) {
                         val fakeObject = expr.toFakeObject(scope)
