@@ -23,21 +23,21 @@ fun TsContext.mkTruthyExpr(
         val conjuncts = mutableListOf<ExprWithTypeConstraint<UBoolSort>>()
 
         if (!type.boolTypeExpr.isFalse) {
+            val value = expr.extractBool(scope)
             conjuncts += ExprWithTypeConstraint(
                 constraint = type.boolTypeExpr,
-                expr = expr.extractBool(scope)
+                expr = value,
             )
         }
 
         if (!type.fpTypeExpr.isFalse) {
             val value = expr.extractFp(scope)
-            val numberCondition = mkAnd(
-                mkFpEqualExpr(value, mkFp(0.0, fp64Sort)).not(),
-                mkFpIsNaNExpr(value).not()
-            )
             conjuncts += ExprWithTypeConstraint(
                 constraint = type.fpTypeExpr,
-                expr = numberCondition
+                expr = mkAnd(
+                    mkFpEqualExpr(value, mkFp(0.0, fp64Sort)).not(),
+                    mkFpIsNaNExpr(value).not(),
+                )
             )
         }
 
