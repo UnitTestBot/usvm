@@ -715,19 +715,20 @@ class TsExprResolver(
         instanceRef: UHeapRef,
         field: EtsFieldSignature,
     ): UExpr<out USort>? = with(ctx) {
-        val etsFields = resolveEtsFields(instance, field)
-        if (etsFields.isEmpty()) {
-            logger.warn { "Could not resolve field: $field" }
-            scope.assert(falseExpr)
-            return null
-        }
-        val etsFieldTypes = etsFields.map { it.type }.distinct()
-        if (etsFieldTypes.size != 1) {
-            logger.warn { "Could not determine a unique field type for '$field', found ${etsFieldTypes.size}: $etsFieldTypes" }
-            scope.assert(falseExpr)
-            return null
-        }
-        val etsFieldType = etsFieldTypes.single()
+        // val etsFields = resolveEtsFields(instance, field)
+        // if (etsFields.isEmpty()) {
+        //     logger.warn { "Could not resolve field: $field" }
+        //     scope.assert(falseExpr)
+        //     return null
+        // }
+        // val etsFieldTypes = etsFields.map { it.type }.distinct()
+        // if (etsFieldTypes.size != 1) {
+        //     logger.warn { "Could not determine a unique field type for '$field', found ${etsFieldTypes.size}: $etsFieldTypes" }
+        //     scope.assert(falseExpr)
+        //     return null
+        // }
+        // val etsFieldType = etsFieldTypes.single()
+        val etsFieldType = EtsUnknownType
         val sort = typeToSort(etsFieldType)
 
         val expr = if (sort == unresolvedSort) {
