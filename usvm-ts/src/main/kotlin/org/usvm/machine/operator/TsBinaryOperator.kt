@@ -624,13 +624,129 @@ sealed interface TsBinaryOperator {
                 lhs.isFakeObject() -> {
                     val lhsType = lhs.getFakeType(scope)
 
-                    TODO()
+                    when (rhs.sort) {
+                        boolSort -> {
+                            val rhsExpr = boolToFp(rhs.asExpr(boolSort))
+
+                            // 'bool' + 'bool'
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = lhsType.boolTypeExpr,
+                                expr = mkFpAddExpr(
+                                    fpRoundingModeSortDefaultValue(),
+                                    boolToFp(lhs.extractBool(scope)),
+                                    rhsExpr,
+                                )
+                            )
+
+                            // 'fp' + 'bool'
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = lhsType.fpTypeExpr,
+                                expr = mkFpAddExpr(
+                                    fpRoundingModeSortDefaultValue(),
+                                    lhs.extractFp(scope),
+                                    rhsExpr,
+                                )
+                            )
+
+                            // TODO: support 'ref'
+                            scope.assert(lhsType.refTypeExpr.not())
+                        }
+
+                        fp64Sort -> {
+                            val rhsExpr = rhs.asExpr(fp64Sort)
+
+                            // 'bool' + 'fp'
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = mkAnd(lhsType.boolTypeExpr),
+                                expr = mkFpAddExpr(
+                                    fpRoundingModeSortDefaultValue(),
+                                    boolToFp(lhs.extractBool(scope)),
+                                    rhsExpr,
+                                )
+                            )
+
+                            // 'fp' + 'fp'
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = lhsType.fpTypeExpr,
+                                expr = mkFpAddExpr(
+                                    fpRoundingModeSortDefaultValue(),
+                                    lhs.extractFp(scope),
+                                    rhsExpr,
+                                )
+                            )
+
+                            // TODO: support 'ref'
+                            scope.assert(lhsType.refTypeExpr.not())
+                        }
+
+                        addressSort -> TODO()
+
+                        else -> error("Unsupported sort: ${rhs.sort}")
+                    }
                 }
 
                 rhs.isFakeObject() -> {
                     val rhsType = rhs.getFakeType(scope)
 
-                    TODO()
+                    when (lhs.sort) {
+                        boolSort -> {
+                            val lhsExpr = boolToFp(lhs.asExpr(boolSort))
+
+                            // 'bool' + 'bool'
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = rhsType.boolTypeExpr,
+                                expr = mkFpAddExpr(
+                                    fpRoundingModeSortDefaultValue(),
+                                    lhsExpr,
+                                    boolToFp(rhs.extractBool(scope)),
+                                )
+                            )
+
+                            // 'bool' + 'fp'
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = rhsType.fpTypeExpr,
+                                expr = mkFpAddExpr(
+                                    fpRoundingModeSortDefaultValue(),
+                                    lhsExpr,
+                                    rhs.extractFp(scope),
+                                )
+                            )
+
+                            // TODO: support 'ref'
+                            scope.assert(rhsType.refTypeExpr.not())
+                        }
+
+                        fp64Sort -> {
+                            val lhsExpr = lhs.asExpr(fp64Sort)
+
+                            // 'fp' + 'bool'
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = mkAnd(rhsType.boolTypeExpr),
+                                expr = mkFpAddExpr(
+                                    fpRoundingModeSortDefaultValue(),
+                                    lhsExpr,
+                                    boolToFp(rhs.extractBool(scope)),
+                                )
+                            )
+
+                            // 'fp' + 'fp'
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = rhsType.fpTypeExpr,
+                                expr = mkFpAddExpr(
+                                    fpRoundingModeSortDefaultValue(),
+                                    lhsExpr,
+                                    rhs.extractFp(scope),
+                                )
+                            )
+
+                            // TODO: support 'ref'
+                            scope.assert(rhsType.refTypeExpr.not())
+                        }
+
+                        addressSort -> TODO()
+
+                        else -> error("Unsupported sort: ${lhs.sort}")
+                    }
                 }
             }
 
