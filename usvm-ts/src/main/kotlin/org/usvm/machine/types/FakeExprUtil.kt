@@ -31,15 +31,21 @@ fun TsContext.mkFakeValue(
         val fakeValueRef = createFakeObjectRef()
         val address = fakeValueRef.address
 
-        val boolTypeExpr = trueExpr
-            .takeIf { boolValue != null && fpValue == null && refValue == null }
-            ?: makeSymbolicPrimitive(boolSort)
-        val fpTypeExpr = trueExpr
-            .takeIf { boolValue == null && fpValue != null && refValue == null }
-            ?: makeSymbolicPrimitive(boolSort)
-        val refTypeExpr = trueExpr
-            .takeIf { boolValue == null && fpValue == null && refValue != null }
-            ?: makeSymbolicPrimitive(boolSort)
+        val boolTypeExpr = if (boolValue != null && fpValue == null && refValue == null) {
+            trueExpr
+        } else {
+            makeSymbolicPrimitive(boolSort)
+        }
+        val fpTypeExpr = if (boolValue == null && fpValue != null && refValue == null) {
+            trueExpr
+        } else {
+            makeSymbolicPrimitive(boolSort)
+        }
+        val refTypeExpr = if (boolValue == null && fpValue == null && refValue != null) {
+            trueExpr
+        } else {
+            makeSymbolicPrimitive(boolSort)
+        }
 
         val type = FakeType(
             boolTypeExpr = boolTypeExpr,
