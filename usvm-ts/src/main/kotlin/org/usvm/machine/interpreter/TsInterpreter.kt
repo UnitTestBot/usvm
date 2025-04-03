@@ -382,12 +382,15 @@ class TsInterpreter(
                             boolSort -> {
                                 scope.assert(fakeType.boolTypeExpr)
                             }
+
                             fp64Sort -> {
                                 scope.assert(fakeType.fpTypeExpr)
                             }
+
                             addressSort -> {
                                 scope.assert(fakeType.refTypeExpr)
                             }
+
                             else -> error("Unsupported sort: $sort")
                         }
                     }
