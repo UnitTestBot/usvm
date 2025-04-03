@@ -121,9 +121,6 @@ sealed interface TsBinaryOperator {
                         val lhsType = memory.typeStreamOf(lhs).single() as FakeType
                         val rhsType = memory.typeStreamOf(rhs).single() as FakeType
 
-                        scope.assert(lhsType.mkExactlyOneTypeConstraint(ctx))
-                        scope.assert(rhsType.mkExactlyOneTypeConstraint(ctx))
-
                         conjuncts += ExprWithTypeConstraint(
                             constraint = mkAnd(lhsType.boolTypeExpr, rhsType.boolTypeExpr),
                             expr = mkEq(
@@ -169,8 +166,6 @@ sealed interface TsBinaryOperator {
 
                     lhs.isFakeObject() -> {
                         val lhsType = memory.typeStreamOf(lhs).single() as FakeType
-
-                        scope.assert(lhsType.mkExactlyOneTypeConstraint(ctx))
 
                         when (rhs.sort) {
                             boolSort -> {
@@ -235,8 +230,6 @@ sealed interface TsBinaryOperator {
 
                     rhs.isFakeObject() -> {
                         val rhsType = memory.typeStreamOf(rhs).single() as FakeType
-
-                        scope.assert(rhsType.mkExactlyOneTypeConstraint(ctx))
 
                         when (lhs.sort) {
                             boolSort -> {
@@ -456,8 +449,6 @@ sealed interface TsBinaryOperator {
 
                     rhs.isFakeObject() -> {
                         val rhsType = memory.typeStreamOf(rhs).single() as FakeType
-
-                        scope.assert(rhsType.mkExactlyOneTypeConstraint(ctx))
 
                         val condition = when (lhs.sort) {
                             boolSort -> rhsType.boolTypeExpr
