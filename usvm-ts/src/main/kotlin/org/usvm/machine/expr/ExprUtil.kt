@@ -7,36 +7,30 @@ import org.usvm.UBoolSort
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.api.makeSymbolicPrimitive
-import org.usvm.api.typeStreamOf
 import org.usvm.isFalse
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.types.ExprWithTypeConstraint
-import org.usvm.machine.types.FakeType
-import org.usvm.types.single
 import org.usvm.util.boolToFp
 
 fun TsContext.mkTruthyExpr(
     expr: UExpr<out USort>,
     scope: TsStepScope,
-): UBoolExpr = scope.calcOnState {
+): UBoolExpr {
     if (expr.isFakeObject()) {
-        val falseBranchGround = makeSymbolicPrimitive(boolSort)
+        val type = expr.getFakeType(scope)
 
         val conjuncts = mutableListOf<ExprWithTypeConstraint<UBoolSort>>()
-        val type = memory.typeStreamOf(expr).single() as FakeType
-
-        scope.assert(type.mkExactlyOneTypeConstraint(ctx))
 
         if (!type.boolTypeExpr.isFalse) {
             conjuncts += ExprWithTypeConstraint(
                 constraint = type.boolTypeExpr,
-                expr = memory.read(getIntermediateBoolLValue(expr.address))
+                expr = expr.extractBool(scope)
             )
         }
 
         if (!type.fpTypeExpr.isFalse) {
-            val value = memory.read(getIntermediateFpLValue(expr.address))
+            val value = expr.extractFp(scope)
             val numberCondition = mkAnd(
                 mkFpEqualExpr(value, mkFp(0.0, fp64Sort)).not(),
                 mkFpIsNaNExpr(value).not()
@@ -48,7 +42,7 @@ fun TsContext.mkTruthyExpr(
         }
 
         if (!type.refTypeExpr.isFalse) {
-            val value = memory.read(getIntermediateRefLValue(expr.address))
+            val value = expr.extractRef(scope)
             conjuncts += ExprWithTypeConstraint(
                 constraint = type.refTypeExpr,
                 expr = mkAnd(
@@ -58,8 +52,11 @@ fun TsContext.mkTruthyExpr(
             )
         }
 
-        conjuncts.foldRight(falseBranchGround) { (condition, value), acc ->
-            mkIte(condition, value, acc)
+        return scope.calcOnState {
+            val ground = makeSymbolicPrimitive(boolSort)
+            conjuncts.foldRight(ground) { (condition, value), acc ->
+                mkIte(condition, value, acc)
+            }
         }
     } else {
         // TODO: simply convert `expr` to bool by implementing ToBoolean(arg):
@@ -69,7 +66,7 @@ fun TsContext.mkTruthyExpr(
         //  (https://tc39.es/ecma262/#sec-toboolean)
         //  This conversion might be useful in other places as well, not just for truthy in ifs.
 
-        when (expr.sort) {
+        return when (expr.sort) {
             boolSort -> expr.asExpr(boolSort)
 
             fp64Sort -> mkAnd(
@@ -90,7 +87,7 @@ fun TsContext.mkTruthyExpr(
 fun TsContext.mkNumericExpr(
     expr: UExpr<out USort>,
     scope: TsStepScope,
-): UExpr<KFp64Sort> = scope.calcOnState {
+): UExpr<KFp64Sort> {
 
     // 7.1.4 ToNumber ( argument )
     //
@@ -106,46 +103,48 @@ fun TsContext.mkNumericExpr(
     // 10. Return ToNumber(primValue).
 
     if (expr.sort == fp64Sort) {
-        return@calcOnState expr.asExpr(fp64Sort)
+        return expr.asExpr(fp64Sort)
     }
 
     if (expr == mkUndefinedValue()) {
-        return@calcOnState mkFp64NaN()
+        return mkFp64NaN()
     }
 
     if (expr == mkTsNullValue()) {
-        return@calcOnState mkFp64(0.0)
+        return mkFp64(0.0)
     }
 
     if (expr.sort == boolSort) {
-        return@calcOnState boolToFp(expr.asExpr(boolSort))
+        return boolToFp(expr.asExpr(boolSort))
     }
 
     // TODO: ToPrimitive, then ToNumber again
     // TODO: probably we need to implement Object (Ref/Fake) -> Number conversion here directly, without ToPrimitive
 
     if (expr.isFakeObject()) {
-        val type = memory.typeStreamOf(expr).single() as FakeType
-
-        scope.assert(type.mkExactlyOneTypeConstraint(ctx))
+        val type = expr.getFakeType(scope)
 
         val conjuncts = mutableListOf<ExprWithTypeConstraint<KFp64Sort>>()
 
+        // 'bool'
         conjuncts += ExprWithTypeConstraint(
             constraint = type.boolTypeExpr,
-            expr = boolToFp(memory.read(getIntermediateBoolLValue(expr.address))),
+            expr = boolToFp(expr.extractBool(scope)),
         )
 
+        // 'fp'
         conjuncts += ExprWithTypeConstraint(
             constraint = type.fpTypeExpr,
-            expr = memory.read(getIntermediateFpLValue(expr.address)),
+            expr = expr.extractFp(scope),
         )
 
         // TODO: support objects
 
-        val ground = makeSymbolicPrimitive(fp64Sort)
-        return@calcOnState conjuncts.foldRight(ground) { (condition, value), acc ->
-            mkIte(condition, value, acc)
+        return scope.calcOnState {
+            val ground = makeSymbolicPrimitive(fp64Sort)
+            conjuncts.foldRight(ground) { (condition, value), acc ->
+                mkIte(condition, value, acc)
+            }
         }
     }
 
