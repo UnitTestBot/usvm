@@ -106,19 +106,19 @@ class TsContext(
             when (sort) {
                 boolSort -> {
                     val lvalue = getIntermediateBoolLValue(ref.address)
-                    memory.write(lvalue, this@toFakeObject.asExpr(boolSort), guard = trueExpr)
+                    memory.write(lvalue, asExpr(boolSort), guard = trueExpr)
                     memory.types.allocate(ref.address, FakeType.fromBool(this@TsContext))
                 }
 
                 fp64Sort -> {
                     val lValue = getIntermediateFpLValue(ref.address)
-                    memory.write(lValue, this@toFakeObject.asExpr(fp64Sort), guard = trueExpr)
+                    memory.write(lValue, asExpr(fp64Sort), guard = trueExpr)
                     memory.types.allocate(ref.address, FakeType.fromFp(this@TsContext))
                 }
 
                 addressSort -> {
                     val lValue = getIntermediateRefLValue(ref.address)
-                    memory.write(lValue, this@toFakeObject.asExpr(addressSort), guard = trueExpr)
+                    memory.write(lValue, asExpr(addressSort), guard = trueExpr)
                     memory.types.allocate(ref.address, FakeType.fromRef(this@TsContext))
                 }
 
