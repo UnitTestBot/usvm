@@ -93,6 +93,8 @@ class TsTestResolver {
         method: EtsMethod,
     ) : TsTestStateResolver(ctx, model, finalStateMemory, method) {
         fun resolveState(): TsParametersState {
+            // TODO: val properties = resolveProperties()
+            //  capture Map<UHeapRef, List<String>>
             val thisInstance = resolveThisInstance()
             val parameters = resolveParameters()
             val globals = resolveGlobals()

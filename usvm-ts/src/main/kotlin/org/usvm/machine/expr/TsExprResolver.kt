@@ -79,6 +79,7 @@ import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
@@ -105,7 +106,6 @@ import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
-import org.usvm.util.resolveEtsFields
 import org.usvm.util.throwExceptionWithoutStackFrameDrop
 import org.usvm.util.type
 
@@ -770,6 +770,23 @@ class TsExprResolver(
         val instanceRef = resolve(value.instance)?.asExpr(addressSort) ?: return null
 
         checkUndefinedOrNullPropertyRead(instanceRef) ?: return null
+
+        if (instanceRef.isFakeObject()) {
+            // TODO: process fields of primitives
+            // For now, we assume that reading any field of a primitive value is 'undefined'
+
+            val ref = instanceRef.extractRef(scope)
+            checkUndefinedOrNullPropertyRead(ref) ?: return null
+            val refType = instanceRef.getFakeType(scope)
+            val expr = handleFieldRef(value.instance, ref, value.field) ?: return null
+            expr as UConcreteHeapRef
+            val exprType = expr.getFakeType(scope)
+
+            scope.assert(mkImplies(refType.boolTypeExpr, mkEq(expr.extractRef(scope), mkUndefinedValue()) and exprType.refTypeExpr))
+            scope.assert(mkImplies(refType.fpTypeExpr, mkEq(expr.extractRef(scope), mkUndefinedValue()) and exprType.refTypeExpr))
+
+            return expr
+        }
 
         // TODO It is a hack for array's length
         if (value.instance.type is EtsArrayType && value.field.name == "length") {
