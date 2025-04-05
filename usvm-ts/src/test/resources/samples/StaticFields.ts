@@ -97,12 +97,16 @@ class StaticNull {
 
 // Test: Object static operations
 class StaticObject {
-    static config: Config = {enabled: false, count: 0};
+    static config: Config = {enabled: true, count: 10};
 
     static modifyAndGet(): Config {
         this.config.increment();
+        this.config.increment();
+        this.config.increment();
         this.config.flip();
         this.config.increment();
+        this.config.increment();
+        this.config.flip();
         return this.config;
     }
 }

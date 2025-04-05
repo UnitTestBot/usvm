@@ -111,7 +111,7 @@ class StaticFields : TsMethodTestRunner() {
             method = method,
             { r ->
                 (r.properties["enabled"] as TsTestValue.TsBoolean).value == true &&
-                    (r.properties["count"] as TsTestValue.TsNumber).number == 2.0
+                    (r.properties["count"] as TsTestValue.TsNumber).number == 15.0
             },
         )
     }
