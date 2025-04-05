@@ -771,23 +771,6 @@ class TsExprResolver(
 
         checkUndefinedOrNullPropertyRead(instanceRef) ?: return null
 
-        if (instanceRef.isFakeObject()) {
-            // TODO: process fields of primitives
-            // For now, we assume that reading any field of a primitive value is 'undefined'
-
-            val ref = instanceRef.extractRef(scope)
-            checkUndefinedOrNullPropertyRead(ref) ?: return null
-            val refType = instanceRef.getFakeType(scope)
-            val expr = handleFieldRef(value.instance, ref, value.field) ?: return null
-            expr as UConcreteHeapRef
-            val exprType = expr.getFakeType(scope)
-
-            scope.assert(mkImplies(refType.boolTypeExpr, mkEq(expr.extractRef(scope), mkUndefinedValue()) and exprType.refTypeExpr))
-            scope.assert(mkImplies(refType.fpTypeExpr, mkEq(expr.extractRef(scope), mkUndefinedValue()) and exprType.refTypeExpr))
-
-            return expr
-        }
-
         // TODO It is a hack for array's length
         if (value.instance.type is EtsArrayType && value.field.name == "length") {
             val length = scope.calcOnState {
@@ -812,6 +795,23 @@ class TsExprResolver(
                 val length = scope.calcOnState { memory.read(lengthLValue) }
                 return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), length.asExpr(sizeSort), signed = true)
             }
+        }
+
+        if (instanceRef.isFakeObject()) {
+            // TODO: process fields of primitives
+            // For now, we assume that reading any field of a primitive value is 'undefined'
+
+            val ref = instanceRef.extractRef(scope)
+            checkUndefinedOrNullPropertyRead(ref) ?: return null
+            val refType = instanceRef.getFakeType(scope)
+            val expr = handleFieldRef(value.instance, ref, value.field) ?: return null
+            expr as UConcreteHeapRef
+            val exprType = expr.getFakeType(scope)
+
+            scope.assert(mkImplies(refType.boolTypeExpr, mkEq(expr.extractRef(scope), mkUndefinedValue()) and exprType.refTypeExpr))
+            scope.assert(mkImplies(refType.fpTypeExpr, mkEq(expr.extractRef(scope), mkUndefinedValue()) and exprType.refTypeExpr))
+
+            return expr
         }
 
         return handleFieldRef(value.instance, instanceRef, value.field)
