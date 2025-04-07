@@ -171,8 +171,8 @@ open class TsTestStateResolver(
     }
 
     private fun resolveTsValue(
-        heapRef: UExpr<UAddressSort>,
-        finalStateMemoryRef: UExpr<UAddressSort>?,
+        heapRef: UHeapRef,
+        finalStateMemoryRef: UHeapRef?,
         type: EtsType,
     ): TsTestValue {
         val concreteRef = evaluateInModel(heapRef) as UConcreteHeapRef
