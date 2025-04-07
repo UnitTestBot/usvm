@@ -5,7 +5,7 @@
 class StaticNumber {
     static value = 10;
 
-    getValue(): number {
+    static getValue(): number {
         return this.value;
     }
 }
@@ -14,7 +14,7 @@ class StaticNumber {
 class StaticDefault {
     static value: number;
 
-    getValue(): number {
+    static getValue(): number {
         return this.value;
     }
 }
@@ -38,7 +38,7 @@ class StaticBase {
 class StaticDerived extends StaticBase {
     static f = 42;
 
-    getId(): number {
+    static getId(): number {
         return this.id + this.f;
     }
 }
@@ -59,7 +59,7 @@ class StaticChild extends StaticParent {
         return StaticChild.id;
     }
 
-    getId(): number {
+    static getId(): number {
         return this.id;
     }
 }
