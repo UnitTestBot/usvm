@@ -1,6 +1,7 @@
 package org.usvm.util
 
 import org.jacodb.ets.model.EtsArrayType
+import org.jacodb.ets.model.EtsField
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsType
 import org.usvm.UExpr
@@ -24,14 +25,20 @@ fun <Sort : USort> mkFieldLValue(
 fun <Sort : USort> mkFieldLValue(
     sort: Sort,
     ref: UHeapRef,
-    field: EtsFieldSignature,
-): UFieldLValue<String, Sort> = UFieldLValue(sort, ref, field.name)
+    field: String,
+): UFieldLValue<String, Sort> = UFieldLValue(sort, ref, field)
 
 fun <Sort : USort> mkFieldLValue(
     sort: Sort,
     ref: UHeapRef,
-    fieldName: String,
-): UFieldLValue<String, Sort> = UFieldLValue(sort, ref, fieldName)
+    field: EtsFieldSignature,
+): UFieldLValue<String, Sort> = mkFieldLValue(sort, ref, field.name)
+
+fun <Sort : USort> mkFieldLValue(
+    sort: Sort,
+    ref: UHeapRef,
+    field: EtsField,
+): UFieldLValue<String, Sort> = mkFieldLValue(sort, ref, field.signature)
 
 fun <Sort : USort> mkArrayIndexLValue(
     sort: Sort,
