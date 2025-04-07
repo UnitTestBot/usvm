@@ -258,6 +258,9 @@ class TsInterpreter(
 
                 is EtsInstanceFieldRef -> {
                     val instance = exprResolver.resolve(lhv.instance)?.asExpr(addressSort) ?: return@doWithState
+                    // TODO: if the resolved expr is not address sort, we can just ignore this assignment,
+                    //       since it is probably something like "(42).foo = 100" which is no-op (and not an error in js!).
+
                     // val etsFields = resolveEtsFields(
                     //     lhv.instance,
                     //     EtsFieldSignature(EtsClassSignature.UNKNOWN, lhv.field.name, EtsUnknownType)
