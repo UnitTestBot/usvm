@@ -1,5 +1,6 @@
 package org.usvm.memory
 
+import io.ksmt.utils.asExpr
 import org.usvm.INITIAL_CONCRETE_ADDRESS
 import org.usvm.INITIAL_STATIC_ADDRESS
 import org.usvm.UBoolExpr
@@ -217,3 +218,6 @@ class UMemory<Type, Method>(
         return UMemory(ctx, mergedOwnership, types, mergedStack, mergedMocks, mergedRegions)
     }
 }
+
+fun <Sort : USort> UWritableMemory<*>.write(lvalue: ULValue<*, Sort>, rvalue: UExpr<out Sort>, guard: UBoolExpr) =
+    write(lvalue, rvalue.asExpr(lvalue.sort), guard)
