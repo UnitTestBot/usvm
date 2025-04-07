@@ -14,7 +14,7 @@ import org.usvm.machine.types.ExprWithTypeConstraint
 import org.usvm.util.boolToFp
 
 fun TsContext.mkTruthyExpr(
-    expr: UExpr<out USort>,
+    expr: UExpr<*>,
     scope: TsStepScope,
 ): UBoolExpr {
     if (expr.isFakeObject()) {
@@ -85,7 +85,7 @@ fun TsContext.mkTruthyExpr(
 }
 
 fun TsContext.mkNumericExpr(
-    expr: UExpr<out USort>,
+    expr: UExpr<*>,
     scope: TsStepScope,
 ): UExpr<KFp64Sort> {
 

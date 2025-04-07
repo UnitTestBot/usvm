@@ -98,7 +98,7 @@ class TsState(
     }
 
     fun pushSortsForActualArguments(
-        arguments: List<UExpr<out USort>>,
+        arguments: List<UExpr<*>>,
     ) {
         pushLocalToSortStack()
         arguments.forEachIndexed { index, arg ->

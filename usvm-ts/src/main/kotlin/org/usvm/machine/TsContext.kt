@@ -87,7 +87,7 @@ class TsContext(
         getTypeStream(scope).single() as FakeType
 
     @OptIn(ExperimentalContracts::class)
-    fun UExpr<out USort>.isFakeObject(): Boolean {
+    fun UExpr<*>.isFakeObject(): Boolean {
         contract {
             returns(true) implies (this@isFakeObject is UConcreteHeapRef)
         }
@@ -95,7 +95,7 @@ class TsContext(
         return sort == addressSort && this is UConcreteHeapRef && address > MAGIC_OFFSET
     }
 
-    fun UExpr<out USort>.toFakeObject(scope: TsStepScope): UConcreteHeapRef {
+    fun UExpr<*>.toFakeObject(scope: TsStepScope): UConcreteHeapRef {
         if (isFakeObject()) {
             return this
         }
@@ -129,7 +129,7 @@ class TsContext(
         return ref
     }
 
-    fun UExpr<out USort>.extractSingleValueFromFakeObjectOrNull(scope: TsStepScope): UExpr<out USort>? {
+    fun UExpr<*>.extractSingleValueFromFakeObjectOrNull(scope: TsStepScope): UExpr<*>? {
         if (!isFakeObject()) return null
 
         val type = getFakeType(scope)

@@ -46,6 +46,7 @@ import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.state.returnValue
+import org.usvm.memory.write
 import org.usvm.sizeSort
 import org.usvm.targets.UTargetsSet
 import org.usvm.util.mkArrayIndexLValue
@@ -218,7 +219,7 @@ class TsInterpreter(
                     saveSortForLocal(idx, rhvExpr.sort)
 
                     val lValue = mkRegisterStackLValue(rhvExpr.sort, idx)
-                    memory.write(lValue, rhvExpr.asExpr(lValue.sort), guard = trueExpr)
+                    memory.write(lValue, rhvExpr, guard = trueExpr)
                 }
 
                 is EtsArrayAccess -> {

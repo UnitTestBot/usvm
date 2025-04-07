@@ -49,16 +49,16 @@ class TsUnresolvedSort(ctx: TsContext) : USort(ctx) {
     }
 }
 
-fun UExpr<out USort>.extractBool(): Boolean = when (this) {
+fun UExpr<*>.extractBool(): Boolean = when (this) {
     ctx.trueExpr -> true
     ctx.falseExpr -> false
     else -> error("Cannot extract boolean from $this")
 }
 
-fun extractInt(expr: UExpr<out USort>): Int =
+fun extractInt(expr: UExpr<*>): Int =
     (expr as? KBitVec32Value)?.intValue ?: error("Cannot extract int from $expr")
 
-fun UExpr<out USort>.extractDouble(): Double {
+fun UExpr<*>.extractDouble(): Double {
     if (this@extractDouble is KFp64Value) {
         return value
     }

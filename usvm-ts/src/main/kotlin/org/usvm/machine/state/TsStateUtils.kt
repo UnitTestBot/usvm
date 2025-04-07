@@ -14,7 +14,7 @@ fun TsState.newStmt(stmt: EtsStmt) {
     pathNode += stmt
 }
 
-fun TsState.returnValue(valueToReturn: UExpr<out USort>) {
+fun TsState.returnValue(valueToReturn: UExpr<*>) {
     val returnFromMethod = callStack.lastMethod()
     val returnSite = callStack.pop()
     if (callStack.isNotEmpty()) {

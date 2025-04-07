@@ -75,7 +75,7 @@ fun TsContext.mkFakeValue(
 }
 
 fun <T : USort> TsState.extractValue(
-    value: UExpr<out USort>,
+    value: UExpr<*>,
     sort: T,
     extractIntermediateLValue: (Int) -> ULValue<*, T>,
 ): Pair<UExpr<T>?, UBoolExpr> = with(ctx) {
@@ -102,8 +102,8 @@ fun <T : USort> TsState.extractValue(
 fun TsContext.iteWriteIntoFakeObject(
     scope: TsStepScope,
     condition: UBoolExpr,
-    trueBranchValue: UExpr<out USort>,
-    falseBranchValue: UExpr<out USort>,
+    trueBranchValue: UExpr<*>,
+    falseBranchValue: UExpr<*>,
 ): UConcreteHeapRef = scope.calcOnState {
     val (boolRValueTrueBranch, boolTrueBranchCondition) = extractValue(
         trueBranchValue,

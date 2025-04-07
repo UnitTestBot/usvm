@@ -20,7 +20,7 @@ sealed interface TsMethodResult {
      */
     class Success(
         val method: EtsMethod,
-        val value: UExpr<out USort>,
+        val value: UExpr<*>,
     ) : TsMethodResult
 
     /**

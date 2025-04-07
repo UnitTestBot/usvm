@@ -8,7 +8,7 @@ import org.usvm.UExpr
 import org.usvm.USort
 
 sealed interface TsMethodCall : EtsStmt {
-    val arguments: List<UExpr<out USort>>
+    val arguments: List<UExpr<*>>
     val returnSite: EtsStmt
 
     override fun <R> accept(visitor: EtsStmt.Visitor<R>): R {
@@ -19,7 +19,7 @@ sealed interface TsMethodCall : EtsStmt {
 class TsVirtualMethodCallStmt(
     override val location: EtsStmtLocation,
     val callee: EtsMethodSignature,
-    override val arguments: List<UExpr<out USort>>,
+    override val arguments: List<UExpr<*>>,
     override val returnSite: EtsStmt,
 ) : TsMethodCall {
     override fun toString(): String {
@@ -30,7 +30,7 @@ class TsVirtualMethodCallStmt(
 class TsConcreteMethodCallStmt(
     override val location: EtsStmtLocation,
     val callee: EtsMethod,
-    override val arguments: List<UExpr<out USort>>,
+    override val arguments: List<UExpr<*>>,
     override val returnSite: EtsStmt,
 ) : TsMethodCall {
     override fun toString(): String {

@@ -17,27 +17,27 @@ sealed interface TsUnaryOperator {
     fun TsContext.resolveBool(
         arg: UBoolExpr,
         scope: TsStepScope,
-    ): UExpr<out USort>
+    ): UExpr<*>
 
     fun TsContext.resolveFp(
         arg: UExpr<KFp64Sort>,
         scope: TsStepScope,
-    ): UExpr<out USort>
+    ): UExpr<*>
 
     fun TsContext.resolveRef(
         arg: UExpr<UAddressSort>,
         scope: TsStepScope,
-    ): UExpr<out USort>
+    ): UExpr<*>
 
     fun TsContext.resolveFake(
         arg: UConcreteHeapRef,
         scope: TsStepScope,
-    ): UExpr<out USort>
+    ): UExpr<*>
 
     fun TsContext.resolve(
-        arg: UExpr<out USort>,
+        arg: UExpr<*>,
         scope: TsStepScope,
-    ): UExpr<out USort> {
+    ): UExpr<*> {
         if (arg.isFakeObject()) {
             return resolveFake(arg, scope)
         }
