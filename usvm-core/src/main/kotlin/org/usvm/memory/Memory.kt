@@ -117,7 +117,7 @@ class UMemory<Type, Method>(
 
     override fun <Key, Sort : USort> setRegion(
         regionId: UMemoryRegionId<Key, Sort>,
-        newRegion: UMemoryRegion<Key, Sort>
+        newRegion: UMemoryRegion<Key, Sort>,
     ) {
         if (regionId is URegisterStackId) {
             check(newRegion === stack) { "Stack is mutable" }
@@ -133,7 +133,7 @@ class UMemory<Type, Method>(
         regionId: UMemoryRegionId<Key, Sort>,
         key: Key,
         value: UExpr<Sort>,
-        guard: UBoolExpr
+        guard: UBoolExpr,
     ) {
         val region = getRegion(regionId)
         val newRegion = region.write(key, value, guard, ownership)
@@ -172,7 +172,6 @@ class UMemory<Type, Method>(
         affect this [UMemory], while write operations on this [UMemory] *can* affect the copy.
          */
         UMemory(ctx, ownership, types, stack, mocks, regions)
-
 
     /**
      * Check if this [UMemory] can be merged with [other] memory.
@@ -219,5 +218,8 @@ class UMemory<Type, Method>(
     }
 }
 
-fun <Sort : USort> UWritableMemory<*>.write(lvalue: ULValue<*, Sort>, rvalue: UExpr<out Sort>, guard: UBoolExpr) =
-    write(lvalue, rvalue.asExpr(lvalue.sort), guard)
+fun <Sort : USort> UWritableMemory<*>.write(
+    lvalue: ULValue<*, Sort>,
+    rvalue: UExpr<out Sort>,
+    guard: UBoolExpr,
+) = write(lvalue, rvalue.asExpr(lvalue.sort), guard)
