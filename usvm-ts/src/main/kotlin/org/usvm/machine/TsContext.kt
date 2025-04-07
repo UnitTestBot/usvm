@@ -5,6 +5,7 @@ import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
+import org.jacodb.ets.model.EtsIntersectionType
 import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsRefType
@@ -59,13 +60,14 @@ class TsContext(
     fun typeToSort(type: EtsType): USort = when (type) {
         is EtsBooleanType -> boolSort
         is EtsNumberType -> fp64Sort
-        is EtsRefType -> addressSort
+        is EtsStringType -> fp64Sort
         is EtsNullType -> addressSort
         is EtsUndefinedType -> addressSort
-        is EtsUnknownType -> unresolvedSort
         is EtsUnionType -> unresolvedSort
+        is EtsIntersectionType -> unresolvedSort
+        is EtsRefType -> addressSort
         is EtsAnyType -> unresolvedSort
-        is EtsStringType -> fp64Sort
+        is EtsUnknownType -> unresolvedSort
         else -> {
             unresolvedSort
             // TODO("Support all JacoDB types, encountered $type")
