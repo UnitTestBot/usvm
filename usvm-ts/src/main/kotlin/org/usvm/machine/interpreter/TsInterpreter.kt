@@ -6,7 +6,6 @@ import org.jacodb.ets.model.EtsArrayAccess
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsCallStmt
-import org.jacodb.ets.model.EtsClassCategory
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsIfStmt
@@ -52,7 +51,6 @@ import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
-import org.usvm.util.resolveEtsFields
 import org.usvm.util.resolveEtsMethods
 import org.usvm.utils.ensureSat
 
@@ -215,6 +213,7 @@ class TsInterpreter(
             when (val lhv = stmt.lhv) {
                 is EtsLocal -> {
                     val idx = mapLocalToIdx(lastEnteredMethod, lhv)
+                    // Note: this can overwrite the sort from the previous assignment to the same local
                     saveSortForLocal(idx, rhvExpr.sort)
 
                     val lValue = mkRegisterStackLValue(rhvExpr.sort, idx)
