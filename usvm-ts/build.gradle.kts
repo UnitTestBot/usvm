@@ -8,7 +8,6 @@ dependencies {
     implementation(project(":usvm-core"))
     implementation(project(":usvm-ts-dataflow"))
 
-    implementation(Libs.jacodb_core)
     implementation(Libs.jacodb_ets)
 
     implementation(Libs.ksmt_yices)
