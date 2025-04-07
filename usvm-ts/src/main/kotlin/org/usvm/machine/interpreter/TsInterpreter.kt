@@ -26,6 +26,7 @@ import org.jacodb.ets.model.EtsValue
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UBoolExpr
+import org.usvm.UHeapRef
 import org.usvm.UInterpreter
 import org.usvm.api.targets.TsTarget
 import org.usvm.collections.immutable.internal.MutabilityOwnership
@@ -257,7 +258,7 @@ class TsInterpreter(
                 }
 
                 is EtsInstanceFieldRef -> {
-                    val instance = exprResolver.resolve(lhv.instance)?.asExpr(addressSort) ?: return@doWithState
+                    val instance: UHeapRef = exprResolver.resolve(lhv.instance)?.asExpr(addressSort) ?: return@doWithState
                     // TODO: if the resolved expr is not address sort, we can just ignore this assignment,
                     //       since it is probably something like "(42).foo = 100" which is no-op (and not an error in js!).
 
