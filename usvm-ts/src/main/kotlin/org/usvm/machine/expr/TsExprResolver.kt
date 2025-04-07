@@ -185,7 +185,7 @@ class TsExprResolver(
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: EtsThis): UExpr<*> {
+    override fun visit(value: EtsThis): UExpr<*>? {
         return simpleValueResolver.visit(value)
     }
 
@@ -808,8 +808,18 @@ class TsExprResolver(
             expr as UConcreteHeapRef
             val exprType = expr.getFakeType(scope)
 
-            scope.assert(mkImplies(refType.boolTypeExpr, mkEq(expr.extractRef(scope), mkUndefinedValue()) and exprType.refTypeExpr))
-            scope.assert(mkImplies(refType.fpTypeExpr, mkEq(expr.extractRef(scope), mkUndefinedValue()) and exprType.refTypeExpr))
+            scope.assert(
+                mkImplies(
+                    refType.boolTypeExpr,
+                    mkEq(expr.extractRef(scope), mkUndefinedValue()) and exprType.refTypeExpr
+                )
+            )
+            scope.assert(
+                mkImplies(
+                    refType.fpTypeExpr,
+                    mkEq(expr.extractRef(scope), mkUndefinedValue()) and exprType.refTypeExpr
+                )
+            )
 
             return expr
         }
@@ -915,7 +925,7 @@ class TsSimpleValueResolver(
     private val ctx: TsContext,
     private val scope: TsStepScope,
     private val localToIdx: (EtsMethod, EtsValue) -> Int,
-) : EtsValue.Visitor<UExpr<*>> {
+) : EtsValue.Visitor<UExpr<*>?> {
 
     private fun resolveLocal(local: EtsValue): ULValue<*, USort> = with(ctx) {
         val currentMethod = scope.calcOnState { lastEnteredMethod }
@@ -992,7 +1002,37 @@ class TsSimpleValueResolver(
         return scope.calcOnState { memory.read(lValue) }
     }
 
-    override fun visit(value: EtsThis): UExpr<*> {
+    override fun visit(value: EtsThis): UExpr<*>? {
+        val currentMethod = scope.calcOnState { lastEnteredMethod }
+        if (currentMethod.isStatic) {
+            currentMethod.enclosingClass?.let { clazz ->
+                val instanceRef = scope.calcOnState { getStaticInstance(clazz) }
+                val initializer = clazz.methods.singleOrNull { it.name == STATIC_INIT_METHOD_NAME }
+                if (initializer != null && initializer !== currentMethod) {
+                    val isInitialized = scope.calcOnState { isInitialized(clazz) }
+                    if (isInitialized) {
+                        scope.doWithState {
+                            // TODO: Handle static initializer result
+                            val result = methodResult
+                            if (result is TsMethodResult.Success && result.method == initializer) {
+                                methodResult = TsMethodResult.NoCall
+                            }
+                        }
+                    } else {
+                        logger.info { "Initializing ${clazz.name} using ${initializer.name}" }
+                        scope.doWithState {
+                            markInitialized(clazz)
+                            pushSortsForArguments(instance = null, args = emptyList(), localToIdx)
+                            callStack.push(initializer, currentStatement)
+                            memory.stack.push(arrayOf(instanceRef), initializer.localsCount)
+                            newStmt(initializer.cfg.stmts.first())
+                        }
+                        return null
+                    }
+                }
+            }
+        }
+
         val lValue = resolveLocal(value)
         return scope.calcOnState { memory.read(lValue) }
     }
