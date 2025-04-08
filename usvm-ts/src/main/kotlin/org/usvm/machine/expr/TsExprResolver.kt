@@ -801,7 +801,7 @@ class TsExprResolver(
 
             val instanceRef = instance.extractRef(scope)
             checkUndefinedOrNullPropertyRead(instanceRef) ?: return null
-            val refType = instance.getFakeType(scope)
+            val instanceType = instance.getFakeType(scope)
             val expr = handleFieldRef(value.instance, instanceRef, value.field) ?: return null
             expr as UConcreteHeapRef
             val exprType = expr.getFakeType(scope)
@@ -811,11 +811,11 @@ class TsExprResolver(
             scope.assert(
                 mkAnd(
                     mkImplies(
-                        refType.boolTypeExpr,
+                        instanceType.boolTypeExpr,
                         mkAnd(exprType.refTypeExpr, mkEq(exprRef, undefined))
                     ),
                     mkImplies(
-                        refType.fpTypeExpr,
+                        instanceType.fpTypeExpr,
                         mkAnd(exprType.refTypeExpr, mkEq(exprRef, undefined))
                     ),
                 )
