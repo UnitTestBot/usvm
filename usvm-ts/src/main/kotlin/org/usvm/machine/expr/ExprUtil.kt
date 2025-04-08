@@ -5,7 +5,6 @@ import io.ksmt.utils.asExpr
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
 import org.usvm.UExpr
-import org.usvm.USort
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.isFalse
 import org.usvm.machine.TsContext

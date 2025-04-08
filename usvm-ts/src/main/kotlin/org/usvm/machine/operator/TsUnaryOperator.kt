@@ -6,7 +6,6 @@ import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
-import org.usvm.USort
 import org.usvm.machine.TsContext
 import org.usvm.machine.expr.mkNumericExpr
 import org.usvm.machine.expr.mkTruthyExpr

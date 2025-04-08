@@ -4,7 +4,6 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsType
 import org.usvm.UExpr
 import org.usvm.UHeapRef
-import org.usvm.USort
 
 /**
  * Represents a result of a method invocation.

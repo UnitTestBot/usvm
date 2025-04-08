@@ -5,7 +5,6 @@ import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsStmtLocation
 import org.usvm.UExpr
-import org.usvm.USort
 
 sealed interface TsMethodCall : EtsStmt {
     val arguments: List<UExpr<*>>
