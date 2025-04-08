@@ -1004,7 +1004,7 @@ class TsSimpleValueResolver(
 
     override fun visit(value: EtsThis): UExpr<*>? {
         val currentMethod = scope.calcOnState { lastEnteredMethod }
-        if (currentMethod.isStatic) {
+        if (currentMethod.isStatic || currentMethod.name == STATIC_INIT_METHOD_NAME) {
             currentMethod.enclosingClass?.let { clazz ->
                 val instanceRef = scope.calcOnState { getStaticInstance(clazz) }
                 val initializer = clazz.methods.singleOrNull { it.name == STATIC_INIT_METHOD_NAME }
