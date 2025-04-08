@@ -730,14 +730,9 @@ class TsExprResolver(
         val etsFieldType = EtsUnknownType
         val sort = typeToSort(etsFieldType)
 
-        val expr = if (sort == unresolvedSort) {
-            val boolLValue = mkFieldLValue(boolSort, instance, field)
-            val fpLValue = mkFieldLValue(fp64Sort, instance, field)
-            val refLValue = mkFieldLValue(addressSort, instance, field)
-
-            scope.calcOnState {
-                val bool = memory.read(boolLValue)
-                val fp = memory.read(fpLValue)
+        val expr = scope.calcOnState {
+            if (sort == unresolvedSort) {
+                val refLValue = mkFieldLValue(addressSort, instance, field)
                 val ref = memory.read(refLValue)
 
                 // If a fake object is already created and assigned to the field,
@@ -745,16 +740,20 @@ class TsExprResolver(
                 val fakeRef = if (ref.isFakeObject()) {
                     ref
                 } else {
+                    val boolLValue = mkFieldLValue(boolSort, instance, field)
+                    val fpLValue = mkFieldLValue(fp64Sort, instance, field)
+                    val bool = memory.read(boolLValue)
+                    val fp = memory.read(fpLValue)
                     mkFakeValue(scope, bool, fp, ref)
                 }
 
                 memory.write(refLValue, fakeRef, guard = trueExpr)
 
                 fakeRef
+            } else {
+                val lValue = mkFieldLValue(sort, instance, field)
+                memory.read(lValue)
             }
-        } else {
-            val lValue = mkFieldLValue(sort, instance, field)
-            scope.calcOnState { memory.read(lValue) }
         }
 
         // TODO: check 'field.type' vs 'etsField.type'
