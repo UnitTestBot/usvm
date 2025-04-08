@@ -801,23 +801,25 @@ class TsExprResolver(
             // TODO: process fields of primitives
             // For now, we assume that reading any field of a primitive value is 'undefined'
 
-            val ref = instance.extractRef(scope)
-            checkUndefinedOrNullPropertyRead(ref) ?: return null
+            val instanceRef = instance.extractRef(scope)
+            checkUndefinedOrNullPropertyRead(instanceRef) ?: return null
             val refType = instance.getFakeType(scope)
-            val expr = handleFieldRef(value.instance, ref, value.field) ?: return null
+            val expr = handleFieldRef(value.instance, instanceRef, value.field) ?: return null
             expr as UConcreteHeapRef
             val exprType = expr.getFakeType(scope)
+            val exprRef = expr.extractRef(scope)
+            val undefined = mkUndefinedValue()
 
             scope.assert(
-                mkImplies(
-                    refType.boolTypeExpr,
-                    mkEq(expr.extractRef(scope), mkUndefinedValue()) and exprType.refTypeExpr
-                )
-            )
-            scope.assert(
-                mkImplies(
-                    refType.fpTypeExpr,
-                    mkEq(expr.extractRef(scope), mkUndefinedValue()) and exprType.refTypeExpr
+                mkAnd(
+                    mkImplies(
+                        refType.boolTypeExpr,
+                        exprType.refTypeExpr and mkEq(exprRef, undefined)
+                    ),
+                    mkImplies(
+                        refType.fpTypeExpr,
+                        exprType.refTypeExpr and mkEq(exprRef, undefined)
+                    ),
                 )
             )
 
