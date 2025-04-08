@@ -711,8 +711,8 @@ class TsExprResolver(
     }
 
     private fun handleFieldRef(
-        instance: EtsLocal?,
-        instanceRef: UHeapRef,
+        instanceLocal: EtsLocal?,
+        instance: UHeapRef,
         field: EtsFieldSignature,
     ): UExpr<*>? = with(ctx) {
         // val etsFields = resolveEtsFields(instance, field)
@@ -732,9 +732,9 @@ class TsExprResolver(
         val sort = typeToSort(etsFieldType)
 
         val expr = if (sort == unresolvedSort) {
-            val boolLValue = mkFieldLValue(boolSort, instanceRef, field)
-            val fpLValue = mkFieldLValue(fp64Sort, instanceRef, field)
-            val refLValue = mkFieldLValue(addressSort, instanceRef, field)
+            val boolLValue = mkFieldLValue(boolSort, instance, field)
+            val fpLValue = mkFieldLValue(fp64Sort, instance, field)
+            val refLValue = mkFieldLValue(addressSort, instance, field)
 
             scope.calcOnState {
                 val bool = memory.read(boolLValue)
@@ -754,7 +754,7 @@ class TsExprResolver(
                 fakeRef
             }
         } else {
-            val lValue = mkFieldLValue(sort, instanceRef, field)
+            val lValue = mkFieldLValue(sort, instance, field)
             scope.calcOnState { memory.read(lValue) }
         }
 
@@ -767,24 +767,24 @@ class TsExprResolver(
     }
 
     override fun visit(value: EtsInstanceFieldRef): UExpr<*>? = with(ctx) {
-        val instanceRef = resolve(value.instance)?.asExpr(addressSort) ?: return null
+        val instance = resolve(value.instance)?.asExpr(addressSort) ?: return null
 
-        checkUndefinedOrNullPropertyRead(instanceRef) ?: return null
+        checkUndefinedOrNullPropertyRead(instance) ?: return null
 
         // TODO It is a hack for array's length
         if (value.instance.type is EtsArrayType && value.field.name == "length") {
             val length = scope.calcOnState {
-                val lengthLValue = mkArrayLengthLValue(instanceRef, value.instance.type as EtsArrayType)
+                val lengthLValue = mkArrayLengthLValue(instance, value.instance.type as EtsArrayType)
                 memory.read(lengthLValue)
             }
             return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), length.asExpr(sizeSort), signed = true)
         }
 
         // TODO: handle "length" property for arrays inside fake objects
-        if (value.field.name == "length" && instanceRef.isFakeObject()) {
-            val fakeType = instanceRef.getFakeType(scope)
+        if (value.field.name == "length" && instance.isFakeObject()) {
+            val fakeType = instance.getFakeType(scope)
             if (fakeType.refTypeExpr.isTrue) {
-                val refLValue = getIntermediateRefLValue(instanceRef.address)
+                val refLValue = getIntermediateRefLValue(instance.address)
                 val obj = scope.calcOnState { memory.read(refLValue) }
                 // TODO: fix array type. It should be the same as the type used when "writing" the length.
                 //  However, current value.instance typically has 'unknown' type, and the best we can do here is
@@ -797,13 +797,13 @@ class TsExprResolver(
             }
         }
 
-        if (instanceRef.isFakeObject()) {
+        if (instance.isFakeObject()) {
             // TODO: process fields of primitives
             // For now, we assume that reading any field of a primitive value is 'undefined'
 
-            val ref = instanceRef.extractRef(scope)
+            val ref = instance.extractRef(scope)
             checkUndefinedOrNullPropertyRead(ref) ?: return null
-            val refType = instanceRef.getFakeType(scope)
+            val refType = instance.getFakeType(scope)
             val expr = handleFieldRef(value.instance, ref, value.field) ?: return null
             expr as UConcreteHeapRef
             val exprType = expr.getFakeType(scope)
@@ -824,7 +824,7 @@ class TsExprResolver(
             return expr
         }
 
-        return handleFieldRef(value.instance, instanceRef, value.field)
+        return handleFieldRef(value.instance, instance, value.field)
     }
 
     override fun visit(value: EtsStaticFieldRef): UExpr<*>? = with(ctx) {
@@ -836,7 +836,7 @@ class TsExprResolver(
             return null
         }
 
-        val instanceRef = scope.calcOnState { getStaticInstance(clazz) }
+        val instance = scope.calcOnState { getStaticInstance(clazz) }
 
         val initializer = clazz.methods.singleOrNull { it.name == STATIC_INIT_METHOD_NAME }
         if (initializer != null) {
@@ -854,14 +854,14 @@ class TsExprResolver(
                     markInitialized(clazz)
                     pushSortsForArguments(instance = null, args = emptyList(), localToIdx)
                     callStack.push(initializer, currentStatement)
-                    memory.stack.push(arrayOf(instanceRef), initializer.localsCount)
+                    memory.stack.push(arrayOf(instance), initializer.localsCount)
                     newStmt(initializer.cfg.stmts.first())
                 }
                 return null
             }
         }
 
-        return handleFieldRef(instance = null, instanceRef, value.field)
+        return handleFieldRef(instanceLocal = null, instance, value.field)
     }
 
     // endregion
