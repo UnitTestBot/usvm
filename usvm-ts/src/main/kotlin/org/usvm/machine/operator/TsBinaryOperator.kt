@@ -603,7 +603,7 @@ sealed interface TsBinaryOperator {
         ): UExpr<*>? {
             check(lhs.isFakeObject() || rhs.isFakeObject())
 
-            val conjuncts = mutableListOf<ExprWithTypeConstraint<out USort>>()
+            val conjuncts = mutableListOf<ExprWithTypeConstraint<*>>()
             when {
                 lhs.isFakeObject() && rhs.isFakeObject() -> {
                     val lhsType = lhs.getFakeType(scope)
