@@ -812,11 +812,11 @@ class TsExprResolver(
                 mkAnd(
                     mkImplies(
                         refType.boolTypeExpr,
-                        exprType.refTypeExpr and mkEq(exprRef, undefined)
+                        mkAnd(exprType.refTypeExpr, mkEq(exprRef, undefined))
                     ),
                     mkImplies(
                         refType.fpTypeExpr,
-                        exprType.refTypeExpr and mkEq(exprRef, undefined)
+                        mkAnd(exprType.refTypeExpr, mkEq(exprRef, undefined))
                     ),
                 )
             )
