@@ -1018,6 +1018,7 @@ class TsSimpleValueResolver(
                                 methodResult = TsMethodResult.NoCall
                             }
                         }
+                        return instanceRef
                     } else {
                         logger.info { "Initializing ${clazz.name} using ${initializer.name}" }
                         scope.doWithState {
