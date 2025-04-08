@@ -10,7 +10,6 @@ import org.usvm.UBoolSort
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
-import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.api.typeStreamOf
 import org.usvm.machine.TsContext
 import org.usvm.machine.expr.TsUndefinedSort
@@ -325,10 +324,11 @@ sealed interface TsBinaryOperator {
             }
 
             return scope.calcOnState {
-                val ground = makeSymbolicPrimitive(boolSort)
-                conjuncts.foldRight(ground) { (condition, value), acc ->
-                    mkIte(condition, value, acc)
-                }
+                // val ground: UBoolExpr = mkFalse()
+                // conjuncts.foldRight(ground) { (condition, value), acc ->
+                //     mkIte(condition, value, acc)
+                // }
+                mkAnd(conjuncts.map { (condition, value) -> mkImplies(condition, value) })
             }
         }
 
