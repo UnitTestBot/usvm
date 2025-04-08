@@ -784,7 +784,7 @@ sealed interface TsBinaryOperator {
             }
 
             return scope.calcOnState {
-                val ground: UExpr<*> = mkUndefinedValue()
+                val ground: UExpr<out USort> = conjuncts.first().expr.sort.accept(defaultValueSampler)
                 conjuncts.foldRight(ground) { (condition, value), acc ->
                     mkIte(condition, value as UExpr<USort>, acc as UExpr<USort>)
                 }
