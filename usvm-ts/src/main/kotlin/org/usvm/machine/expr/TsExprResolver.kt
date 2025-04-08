@@ -715,7 +715,7 @@ class TsExprResolver(
         instance: UHeapRef,
         field: EtsFieldSignature,
     ): UExpr<*>? = with(ctx) {
-        // val etsFields = resolveEtsFields(instance, field)
+        // val etsFields = resolveEtsFields(instanceLocal, field)
         // if (etsFields.isEmpty()) {
         //     logger.warn { "Could not resolve field: $field" }
         //     scope.assert(falseExpr)
