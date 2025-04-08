@@ -694,13 +694,12 @@ class TsExprResolver(
     }
 
     private fun checkUndefinedOrNullPropertyRead(instance: UHeapRef) = with(ctx) {
-        val neqNull = mkAnd(
-            mkHeapRefEq(instance, ctx.mkUndefinedValue()).not(),
-            mkHeapRefEq(instance, ctx.mkTsNullValue()).not()
+        val notNull = mkAnd(
+            mkNot(mkEq(instance, mkUndefinedValue())),
+            mkNot(mkEq(instance, mkTsNullValue())),
         )
-
         scope.fork(
-            neqNull,
+            notNull,
             blockOnFalseState = allocateException(EtsStringType) // TODO incorrect exception type
         )
     }
