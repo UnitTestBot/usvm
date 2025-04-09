@@ -29,20 +29,17 @@ import org.usvm.api.GlobalFieldValue
 import org.usvm.api.TsParametersState
 import org.usvm.api.TsTest
 import org.usvm.api.TsTestValue
-import org.usvm.api.typeStreamOf
 import org.usvm.isTrue
 import org.usvm.machine.TsContext
 import org.usvm.machine.expr.extractBool
 import org.usvm.machine.expr.extractDouble
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
-import org.usvm.machine.types.FakeType
 import org.usvm.memory.ULValue
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.mkSizeExpr
 import org.usvm.model.UModelBase
 import org.usvm.types.first
-import org.usvm.types.single
 
 private val logger = KotlinLogging.logger {}
 
@@ -242,10 +239,17 @@ open class TsTestStateResolver(
     }
 
     fun resolveThisInstance(): TsTestValue {
+        // TODO: resolve "static this instance"
+        //       Probably we do not need this, since "static instance" should be placed onto the same
+        //       register index when the method is called/analyzed.
+        // if (method.isStatic || method.name == STATIC_INIT_METHOD_NAME) {
+        //     val instance = state.getStaticInstance(method.enclosingClass!!)
+        //     resolveExpr(instance, null, method.enclosingClass!!.type)
+        // }
         val parametersCount = method.parameters.size
-        val ref = mkRegisterStackLValue(ctx.addressSort, parametersCount) // TODO check for statics
-        val type = EtsClassType(method.signature.enclosingClass)
-        return resolveLValue(ref, type)
+        val lValue = mkRegisterStackLValue(ctx.addressSort, parametersCount) // TODO check for statics
+        val type = method.enclosingClass!!.type
+        return resolveLValue(lValue, type)
     }
 
     fun resolveParameters(): List<TsTestValue> = with(ctx) {
