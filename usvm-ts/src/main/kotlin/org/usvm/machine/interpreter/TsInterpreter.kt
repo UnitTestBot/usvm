@@ -407,8 +407,8 @@ class TsInterpreter(
         val solver = ctx.solver<EtsType>()
 
         // TODO check for statics
-        val thisInstanceRef = mkRegisterStackLValue(ctx.addressSort, method.parameters.count())
-        val thisRef = state.memory.read(thisInstanceRef).asExpr(ctx.addressSort)
+        val thisLValue = mkRegisterStackLValue(ctx.addressSort, method.parameters.size)
+        val thisRef = state.memory.read(thisLValue)
 
         state.pathConstraints += with(ctx) {
             mkAnd(
