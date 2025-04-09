@@ -386,25 +386,19 @@ open class TsTestStateResolver(
                         resolveExpr(fieldExpr, fieldExpr, field.type)
                     } else {
                         TsTestValue.TsUndefined
+                        // TODO: maybe resolve non-fake 'fieldExpr' here?
                     }
                     field.name to obj
                 } else {
-                    val lValue = mkFieldLValue(sort, concreteRef, field.signature)
-                    val fieldExpr = memory.read(lValue)
-
-                    // Check if the field value is a fake object, even though the type sort is known
-                    val resolvedExpr = if (fieldExpr.isFakeObject()) {
-                        val evaluatedExpr = evaluateInModel(fieldExpr)
-                        if (evaluatedExpr.isFakeObject()) {
-                            resolveFakeObject(evaluatedExpr)
-                        } else {
-                            resolveExpr(evaluatedExpr, fieldExpr, field.type)
-                        }
-                    } else {
-                        resolveExpr(fieldExpr, fieldExpr, field.type)
+                    val ref = memory.read(mkFieldLValue(addressSort, concreteRef, field))
+                    if (ref.isFakeObject()) {
+                        return@associate field.name to resolveFakeObject(ref)
                     }
 
-                    field.name to resolvedExpr
+                    val lValue = mkFieldLValue(sort, concreteRef, field)
+                    val fieldExpr = memory.read(lValue)
+                    val resolved = resolveExpr(fieldExpr, fieldExpr, field.type)
+                    field.name to resolved
                 }
             }
         TsTestValue.TsClass(clazz.name, properties)
