@@ -37,8 +37,17 @@ class InstanceFields : TsMethodTestRunner() {
             { x, r ->
                 if (x !is TsTestValue.TsClass || r !is TsTestValue.TsNumber) return@discoverProperties false
 
-                val xa = x.properties["a"] as TsTestValue.TsNumber
-                xa.number == 1.0 && r.number == 1.0
+                // TODO: after introducing proper type streams, get rid of the branches where
+                //  the property is considered to be Boolean
+                if (x.properties["a"] is TsTestValue.TsNumber) {
+                    val xa = x.properties["a"] as TsTestValue.TsNumber
+                    xa.number == 1.0 && r.number == 1.0
+                } else if (x.properties["a"] is TsTestValue.TsBoolean) {
+                    val xa = x.properties["a"] as TsTestValue.TsBoolean
+                    xa.value && r.number == 1.0
+                } else {
+                    false
+                }
             },
             { x, r ->
                 if (x !is TsTestValue.TsClass || r !is TsTestValue.TsNumber) return@discoverProperties false
@@ -49,8 +58,16 @@ class InstanceFields : TsMethodTestRunner() {
             { x, r ->
                 if (x !is TsTestValue.TsClass || r !is TsTestValue.TsNumber) return@discoverProperties false
 
-                val xa = x.properties["a"] as TsTestValue.TsNumber
-                xa.number != 1.0 && xa.number != 2.0 && r.number == 100.0
+                @Suppress("RedundantSemicolon")
+                if (x.properties["a"] is TsTestValue.TsNumber) {
+                    val xa = x.properties["a"] as TsTestValue.TsNumber
+                    xa.number != 1.0 && xa.number != 2.0 && r.number == 100.0
+                } else if (x.properties["a"] is TsTestValue.TsBoolean) {
+                    val xa = x.properties["a"] as TsTestValue.TsBoolean; // THIS SEMICOLON IS NOT REDUNDANT
+                    !xa.value && r.number == 100.0
+                } else {
+                    false
+                }
             },
             { x, r ->
                 (x is TsTestValue.TsUndefined || x is TsTestValue.TsNull) && r is TsTestValue.TsException
