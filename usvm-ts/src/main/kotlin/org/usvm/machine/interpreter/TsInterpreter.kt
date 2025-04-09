@@ -301,12 +301,12 @@ class TsInterpreter(
                     //        if it does not have any side effects.
 
                     val field = clazz.fields.single { it.name == lhv.field.name }
-                    val fieldLValue = mkFieldLValue(addressSort, instance, field)
 
                     // Note: always write fake object
                     val fakeObject = rhvExpr.toFakeObject(scope)
 
                     // Write fake object to the field:
+                    val fieldLValue = mkFieldLValue(addressSort, instance, field)
                     memory.write(fieldLValue, fakeObject, guard = trueExpr)
 
                     // Also write to original bool/fp fields the extracted "fake" bool/fp values:
