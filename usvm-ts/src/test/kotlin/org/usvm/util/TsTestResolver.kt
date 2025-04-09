@@ -241,7 +241,7 @@ open class TsTestStateResolver(
         return TsTestValue.TsArray(values)
     }
 
-    fun resolveThisInstance(): TsTestValue? {
+    fun resolveThisInstance(): TsTestValue {
         val parametersCount = method.parameters.size
         val ref = mkRegisterStackLValue(ctx.addressSort, parametersCount) // TODO check for statics
         val type = EtsClassType(method.signature.enclosingClass)

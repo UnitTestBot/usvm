@@ -14,7 +14,7 @@ data class TsTest(
 )
 
 data class TsParametersState(
-    val thisInstance: TsTestValue?,
+    val thisInstance: TsTestValue,
     val parameters: List<TsTestValue>,
     val globals: Map<EtsClass, List<GlobalFieldValue>>,
 )
