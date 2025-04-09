@@ -183,7 +183,7 @@ sealed interface TsBinaryOperator {
 
                     when (rhs.sort) {
                         boolSort -> {
-                            // 'bool' == 'fp'
+                            // 'fake(bool)' == 'fp'
                             conjuncts += ExprWithTypeConstraint(
                                 constraint = lhsType.boolTypeExpr,
                                 expr = mkEq(
@@ -192,7 +192,7 @@ sealed interface TsBinaryOperator {
                                 )
                             )
 
-                            // 'fp' == 'bool'
+                            // 'fake(fp)' == 'bool'
                             conjuncts += ExprWithTypeConstraint(
                                 constraint = lhsType.fpTypeExpr,
                                 expr = mkFpEqualExpr(
@@ -201,12 +201,12 @@ sealed interface TsBinaryOperator {
                                 )
                             )
 
-                            // TODO: 'ref' == 'bool'
+                            // TODO: 'fake(ref)' == 'bool'
                             scope.assert(lhsType.refTypeExpr.not())
                         }
 
                         fp64Sort -> {
-                            // 'bool' == 'fp'
+                            // 'fake(bool)' == 'fp'
                             conjuncts += ExprWithTypeConstraint(
                                 constraint = lhsType.boolTypeExpr,
                                 expr = mkFpEqualExpr(
@@ -215,27 +215,29 @@ sealed interface TsBinaryOperator {
                                 )
                             )
 
-                            // 'fp' == 'fp'
-                            conjuncts += ExprWithTypeConstraint(
-                                constraint = lhsType.fpTypeExpr,
-                                expr = mkFpEqualExpr(
-                                    lhs.extractFp(scope),
-                                    rhs.asExpr(fp64Sort),
-                                )
-                            )
+                            // 'fake(fp)' == 'fp'
+                            // conjuncts += ExprWithTypeConstraint(
+                            //     constraint = lhsType.fpTypeExpr,
+                            //     expr = mkFpEqualExpr(
+                            //         lhs.extractFp(scope),
+                            //         rhs.asExpr(fp64Sort),
+                            //     )
+                            // )
+                            // TODO: ADHOC FOR MANUAL TESTING
+                            scope.assert(lhsType.fpTypeExpr.not())
 
-                            // TODO: 'ref' == 'fp'
+                            // TODO: 'fake(ref)' == 'fp'
                             scope.assert(lhsType.refTypeExpr.not())
                         }
 
                         addressSort -> {
-                            // TODO: 'bool' == 'ref'
+                            // TODO: 'fake(bool)' == 'ref'
                             scope.assert(lhsType.boolTypeExpr.not())
 
-                            // TODO: 'fp' == 'ref'
+                            // TODO: 'fake(fp)' == 'ref'
                             scope.assert(lhsType.fpTypeExpr.not())
 
-                            // 'ref' == 'ref'
+                            // 'fake(ref)' == 'ref'
                             conjuncts += ExprWithTypeConstraint(
                                 constraint = lhsType.refTypeExpr,
                                 expr = mkHeapRefEq(
@@ -256,7 +258,7 @@ sealed interface TsBinaryOperator {
 
                     when (lhs.sort) {
                         boolSort -> {
-                            // 'bool' == 'bool'
+                            // 'bool' == 'fake(bool)'
                             conjuncts += ExprWithTypeConstraint(
                                 constraint = rhsType.boolTypeExpr,
                                 expr = mkEq(
@@ -265,7 +267,7 @@ sealed interface TsBinaryOperator {
                                 )
                             )
 
-                            // 'bool' == 'fp'
+                            // 'bool' == 'fake(fp)'
                             conjuncts += ExprWithTypeConstraint(
                                 constraint = rhsType.fpTypeExpr,
                                 expr = mkFpEqualExpr(
@@ -274,12 +276,12 @@ sealed interface TsBinaryOperator {
                                 )
                             )
 
-                            // TODO: 'bool' == 'ref'
+                            // TODO: 'bool' == 'fake(ref)'
                             scope.assert(rhsType.refTypeExpr.not())
                         }
 
                         fp64Sort -> {
-                            // 'fp' == 'bool'
+                            // 'fp' == 'fake(bool)'
                             conjuncts += ExprWithTypeConstraint(
                                 constraint = rhsType.boolTypeExpr,
                                 expr = mkFpEqualExpr(
@@ -288,7 +290,7 @@ sealed interface TsBinaryOperator {
                                 )
                             )
 
-                            // 'fp' == 'fp'
+                            // 'fp' == 'fake(fp)'
                             conjuncts += ExprWithTypeConstraint(
                                 constraint = rhsType.fpTypeExpr,
                                 expr = mkFpEqualExpr(
@@ -297,18 +299,18 @@ sealed interface TsBinaryOperator {
                                 )
                             )
 
-                            // TODO: 'fp' == 'ref'
+                            // TODO: 'fp' == 'fake(ref)'
                             scope.assert(rhsType.refTypeExpr.not())
                         }
 
                         addressSort -> {
-                            // TODO: 'ref' == 'bool'
+                            // TODO: 'ref' == 'fake(bool)'
                             scope.assert(rhsType.boolTypeExpr.not())
 
-                            // TODO: 'ref' == 'fp'
+                            // TODO: 'ref' == 'fake(fp)'
                             scope.assert(rhsType.fpTypeExpr.not())
 
-                            // 'ref' == 'ref'
+                            // 'ref' == 'fake(ref)'
                             conjuncts += ExprWithTypeConstraint(
                                 constraint = rhsType.refTypeExpr,
                                 expr = mkHeapRefEq(
