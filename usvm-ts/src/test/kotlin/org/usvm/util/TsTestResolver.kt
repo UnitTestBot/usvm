@@ -70,8 +70,8 @@ class TsTestResolver {
             }
         }
 
-        val before = beforeMemoryScope.withMode(ResolveMode.MODEL) { (this as MemoryScope).resolveState() }
-        val after = afterMemoryScope.withMode(ResolveMode.CURRENT) { (this as MemoryScope).resolveState() }
+        val before = beforeMemoryScope.withMode(ResolveMode.MODEL) { resolveState() }
+        val after = afterMemoryScope.withMode(ResolveMode.CURRENT) { resolveState() }
 
         return TsTest(method, before, after, result, trace = emptyList())
     }
@@ -410,17 +410,7 @@ open class TsTestStateResolver(
         TsTestValue.TsClass(clazz.name, properties)
     }
 
-    private var resolveMode: ResolveMode = ResolveMode.ERROR
-
-    fun <R> withMode(resolveMode: ResolveMode, body: TsTestStateResolver.() -> R): R {
-        val prevValue = this.resolveMode
-        try {
-            this.resolveMode = resolveMode
-            return body()
-        } finally {
-            this.resolveMode = prevValue
-        }
-    }
+    internal var resolveMode: ResolveMode = ResolveMode.ERROR
 
     fun <T : USort> evaluateInModel(expr: UExpr<T>): UExpr<T> {
         return model.eval(expr)
@@ -436,4 +426,14 @@ open class TsTestStateResolver(
 
 enum class ResolveMode {
     MODEL, CURRENT, ERROR
+}
+
+fun <S : TsTestStateResolver, R> S.withMode(resolveMode: ResolveMode, body: S.() -> R): R {
+    val prevValue = this.resolveMode
+    try {
+        this.resolveMode = resolveMode
+        return body()
+    } finally {
+        this.resolveMode = prevValue
+    }
 }
