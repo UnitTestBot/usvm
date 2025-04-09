@@ -250,13 +250,12 @@ open class TsTestStateResolver(
 
     fun resolveParameters(): List<TsTestValue> = with(ctx) {
         method.parameters.mapIndexed { idx, param ->
-            val sort = typeToSort(param.type)
-
             val ref = finalStateMemory.read(mkRegisterStackLValue(addressSort, idx))
             if (ref.isFakeObject()) {
                 return@mapIndexed resolveFakeObject(ref)
             }
 
+            val sort = typeToSort(param.type)
             val lValue = mkRegisterStackLValue(sort, idx)
             resolveLValue(lValue, param.type)
         }
