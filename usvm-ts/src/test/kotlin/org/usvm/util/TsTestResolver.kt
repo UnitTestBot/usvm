@@ -382,10 +382,11 @@ open class TsTestStateResolver(
                 if (sort == unresolvedSort) {
                     val lValue = mkFieldLValue(addressSort, heapRef, field.signature)
                     val fieldExpr = memory.read(lValue)
-                    if (!fieldExpr.isFakeObject()) {
-                        return@associate field.name to TsTestValue.TsUndefined
+                    val obj = if (fieldExpr.isFakeObject()) {
+                        resolveExpr(fieldExpr, fieldExpr, field.type)
+                    } else {
+                        TsTestValue.TsUndefined
                     }
-                    val obj = resolveExpr(fieldExpr, fieldExpr, field.type)
                     field.name to obj
                 } else {
                     val lValue = mkFieldLValue(sort, concreteRef, field.signature)
