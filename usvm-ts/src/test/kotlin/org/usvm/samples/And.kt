@@ -80,6 +80,7 @@ class And : TsMethodTestRunner() {
                 returnType = EtsNumberType,
             ),
         )
+        method.enclosingClass = scene.projectClasses.first { it.name == DEFAULT_ARK_CLASS_NAME }
 
         val etsBlockCfg = blockCfg.toEtsBlockCfg(method)
         method._cfg = etsBlockCfg
@@ -154,6 +155,7 @@ class And : TsMethodTestRunner() {
                 returnType = EtsNumberType,
             ),
         )
+        method.enclosingClass = scene.projectClasses.first { it.name == DEFAULT_ARK_CLASS_NAME }
 
         val etsBlockCfg = blockCfg.toEtsBlockCfg(method)
         method._cfg = etsBlockCfg
@@ -221,6 +223,7 @@ class And : TsMethodTestRunner() {
                 returnType = EtsNumberType,
             ),
         )
+        method.enclosingClass = scene.projectClasses.first { it.name == DEFAULT_ARK_CLASS_NAME }
 
         val etsBlockCfg = blockCfg.toEtsBlockCfg(method)
         method._cfg = etsBlockCfg
@@ -285,6 +288,7 @@ class And : TsMethodTestRunner() {
                 returnType = EtsNumberType,
             ),
         )
+        method.enclosingClass = scene.projectClasses.first { it.name == DEFAULT_ARK_CLASS_NAME }
 
         val etsBlockCfg = blockCfg.toEtsBlockCfg(method)
         method._cfg = etsBlockCfg

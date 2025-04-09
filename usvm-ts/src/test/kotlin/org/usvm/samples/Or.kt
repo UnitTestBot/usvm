@@ -109,7 +109,6 @@ class Or : TsMethodTestRunner() {
         println("Program:\n${prog.toText()}")
         val blockCfg = prog.toBlockCfg()
 
-        val locals = mutableListOf<EtsLocal>()
         val method = EtsMethodImpl(
             signature = EtsMethodSignature(
                 enclosingClass = classSignature,
@@ -121,12 +120,10 @@ class Or : TsMethodTestRunner() {
                 returnType = EtsNumberType,
             ),
         )
+        method.enclosingClass = scene.projectClasses.first { it.name == DEFAULT_ARK_CLASS_NAME }
 
         val etsBlockCfg = blockCfg.toEtsBlockCfg(method)
-
         method._cfg = etsBlockCfg
-        locals.clear()
-        locals += method.getLocals()
 
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
