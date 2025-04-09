@@ -186,7 +186,7 @@ open class TsTestStateResolver(
             is EtsUnclearType -> {
                 val classes = ctx.scene.projectAndSdkClasses.filter { it.name == type.typeName }
                 if (classes.size != 1) {
-                    println("Could not resolve class: $type")
+                    logger.warn { "Could not uniquely resolve class: $type" }
                     return TsTestValue.TsUndefined
                 }
                 val cls = classes.single()
