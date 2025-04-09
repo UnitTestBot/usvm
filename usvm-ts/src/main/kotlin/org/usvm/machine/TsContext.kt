@@ -84,7 +84,7 @@ class TsContext(
         scope.calcOnState { getTypeStream(memory) }
 
     fun UConcreteHeapRef.getFakeType(memory: UReadOnlyMemory<*>): FakeType =
-        memory.typeStreamOf(this).single() as FakeType
+        getTypeStream(memory).single() as FakeType
 
     fun UConcreteHeapRef.getFakeType(scope: TsStepScope): FakeType =
         scope.calcOnState { getFakeType(memory) }
