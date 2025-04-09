@@ -803,7 +803,7 @@ class TsExprResolver(
             checkUndefinedOrNullPropertyRead(instanceRef) ?: return null
             val instanceType = instance.getFakeType(scope)
             val expr = handleFieldRef(value.instance, instanceRef, value.field) ?: return null
-            expr as UConcreteHeapRef
+            check(expr.isFakeObject())
             val exprType = expr.getFakeType(scope)
             val exprRef = expr.extractRef(scope)
             val undefined = mkUndefinedValue()
