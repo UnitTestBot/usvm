@@ -21,9 +21,10 @@ object URegisterStackId : UMemoryRegionId<URegisterStackLValue<*>, USort> {
 class URegisterStackLValue<Sort : USort>(
     override val sort: Sort,
     val idx: Int,
-) : ULValue<URegisterStackLValue<*>, USort> {
-    override val memoryRegionId: UMemoryRegionId<URegisterStackLValue<*>, USort>
-        get() = URegisterStackId
+) : ULValue<URegisterStackLValue<*>, Sort> {
+    @Suppress("UNCHECKED_CAST")
+    override val memoryRegionId: UMemoryRegionId<URegisterStackLValue<*>, Sort>
+        get() = URegisterStackId as UMemoryRegionId<URegisterStackLValue<*>, Sort>
 
     override val key: URegisterStackLValue<Sort> = this
 }

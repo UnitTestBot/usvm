@@ -927,7 +927,7 @@ class TsSimpleValueResolver(
     private val localToIdx: (EtsMethod, EtsValue) -> Int,
 ) : EtsValue.Visitor<UExpr<*>?> {
 
-    private fun resolveLocal(local: EtsValue): ULValue<*, USort> = with(ctx) {
+    private fun resolveLocal(local: EtsValue): ULValue<*, *> = with(ctx) {
         val currentMethod = scope.calcOnState { lastEnteredMethod }
         scope.calcOnState { entrypoint }
 
