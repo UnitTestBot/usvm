@@ -21,7 +21,6 @@ import org.jacodb.ets.model.EtsUndefinedType
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.model.EtsVoidType
 import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
-import org.usvm.UAddressSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
@@ -382,22 +381,29 @@ open class TsTestStateResolver(
                 val sort = typeToSort(field.type)
                 if (sort == unresolvedSort) {
                     val lValue = mkFieldLValue(addressSort, heapRef, field.signature)
-                    val fieldExpr = memory.read(lValue) as? UConcreteHeapRef
-                    // ?: error("UnresolvedSort should be represented by a fake object instance")
-                        ?: run {
-                            return@associate field.name to TsTestValue.TsUndefined
-                        }
-                    // TODO check values if fieldExpr is correct here
-                    //      Probably we have to pass fieldExpr as symbolic value and something as a concrete one
+                    val fieldExpr = memory.read(lValue)
+                    if (!fieldExpr.isFakeObject()) {
+                        return@associate field.name to TsTestValue.TsUndefined
+                    }
                     val obj = resolveExpr(fieldExpr, fieldExpr, field.type)
                     field.name to obj
                 } else {
-                    val lValue = mkFieldLValue(sort, concreteRef.asExpr(addressSort), field.signature)
+                    val lValue = mkFieldLValue(sort, concreteRef, field.signature)
                     val fieldExpr = memory.read(lValue)
-                    // TODO check values if fieldExpr is correct here
-                    //      Probably we have to pass fieldExpr as symbolic value and something as a concrete one
-                    val obj = resolveExpr(fieldExpr, fieldExpr, field.type)
-                    field.name to obj
+
+                    // Check if the field value is a fake object, even though the type sort is known
+                    val resolvedExpr = if (fieldExpr.isFakeObject()) {
+                        val evaluatedExpr = evaluateInModel(fieldExpr)
+                        if (evaluatedExpr.isFakeObject()) {
+                            resolveFakeObject(evaluatedExpr)
+                        } else {
+                            resolveExpr(evaluatedExpr, fieldExpr, field.type)
+                        }
+                    } else {
+                        resolveExpr(fieldExpr, fieldExpr, field.type)
+                    }
+
+                    field.name to resolvedExpr
                 }
             }
         TsTestValue.TsClass(clazz.name, properties)
