@@ -233,9 +233,9 @@ open class TsTestStateResolver(
                 return@map TsTestValue.TsUndefined
             }
 
-            with(ctx) { check(value.isFakeObject()) { "Only fake objects are allowed in arrays" } }
+            check(value.isFakeObject()) { "Only fake objects are allowed in arrays" }
 
-            resolveFakeObject(value as UConcreteHeapRef)
+            resolveFakeObject(value)
         }
 
         return TsTestValue.TsArray(values)
