@@ -216,15 +216,13 @@ sealed interface TsBinaryOperator {
                             )
 
                             // 'fake(fp)' == 'fp'
-                            // conjuncts += ExprWithTypeConstraint(
-                            //     constraint = lhsType.fpTypeExpr,
-                            //     expr = mkFpEqualExpr(
-                            //         lhs.extractFp(scope),
-                            //         rhs.asExpr(fp64Sort),
-                            //     )
-                            // )
-                            // TODO: ADHOC FOR MANUAL TESTING
-                            scope.assert(lhsType.fpTypeExpr.not())
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = lhsType.fpTypeExpr,
+                                expr = mkFpEqualExpr(
+                                    lhs.extractFp(scope),
+                                    rhs.asExpr(fp64Sort),
+                                )
+                            )
 
                             // TODO: 'fake(ref)' == 'fp'
                             scope.assert(lhsType.refTypeExpr.not())
