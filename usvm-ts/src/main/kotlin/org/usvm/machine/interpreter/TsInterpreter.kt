@@ -411,11 +411,9 @@ class TsInterpreter(
         val thisRef = state.memory.read(thisInstanceRef).asExpr(ctx.addressSort)
 
         state.pathConstraints += with(ctx) {
-            mkNot(
-                mkOr(
-                    ctx.mkHeapRefEq(thisRef, ctx.mkTsNullValue()),
-                    ctx.mkHeapRefEq(thisRef, ctx.mkUndefinedValue())
-                )
+            mkAnd(
+                mkNot(mkHeapRefEq(thisRef, mkTsNullValue())),
+                mkNot(mkHeapRefEq(thisRef, mkUndefinedValue())),
             )
         }
 
