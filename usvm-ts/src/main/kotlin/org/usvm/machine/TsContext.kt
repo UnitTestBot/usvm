@@ -31,6 +31,7 @@ import org.usvm.machine.expr.TsUndefinedSort
 import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.types.FakeType
+import org.usvm.memory.UReadOnlyMemory
 import org.usvm.types.UTypeStream
 import org.usvm.types.single
 import org.usvm.util.mkFieldLValue
@@ -76,13 +77,17 @@ class TsContext(
 
     fun arrayDescriptorOf(type: EtsArrayType): EtsType = EtsUnknownType
 
+    fun <Type> UHeapRef.getTypeStream(memory: UReadOnlyMemory<Type>): UTypeStream<Type> =
+        memory.typeStreamOf(this)
+
     fun UHeapRef.getTypeStream(scope: TsStepScope): UTypeStream<EtsType> =
-        scope.calcOnState {
-            memory.typeStreamOf(this@getTypeStream)
-        }
+        scope.calcOnState { getTypeStream(memory) }
+
+    fun UConcreteHeapRef.getFakeType(memory: UReadOnlyMemory<*>): FakeType =
+        memory.typeStreamOf(this).single() as FakeType
 
     fun UConcreteHeapRef.getFakeType(scope: TsStepScope): FakeType =
-        getTypeStream(scope).single() as FakeType
+        scope.calcOnState { getFakeType(memory) }
 
     @OptIn(ExperimentalContracts::class)
     fun UExpr<*>.isFakeObject(): Boolean {
