@@ -390,7 +390,7 @@ open class TsTestStateResolver(
                     }
                     field.name to obj
                 } else {
-                    val ref = memory.read(mkFieldLValue(addressSort, concreteRef, field))
+                    val ref = finalStateMemory.read(mkFieldLValue(addressSort, heapRef, field))
                     if (ref.isFakeObject()) {
                         return@associate field.name to resolveFakeObject(ref)
                     }
