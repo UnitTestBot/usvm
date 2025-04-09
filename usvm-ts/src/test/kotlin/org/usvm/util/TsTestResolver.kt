@@ -266,34 +266,31 @@ open class TsTestStateResolver(
         return emptyMap()
     }
 
-    private fun resolveFakeObject(expr: UConcreteHeapRef): TsTestValue {
-        val type = finalStateMemory.typeStreamOf(expr).single() as FakeType
-        return when {
+    private fun resolveFakeObject(expr: UConcreteHeapRef): TsTestValue = with(ctx) {
+        check(expr.isFakeObject())
+        // Note that we need to read everything about fake objects from *final* state of memory,
+        // because they are allocated objects and their details are stored in memory.
+        val type = expr.getFakeType(finalStateMemory)
+        when {
             model.eval(type.boolTypeExpr).isTrue -> {
-                val lValue = ctx.getIntermediateBoolLValue(expr.address)
-                // Note that everything about details of fake object we need to read from final state of the memory
-                // since they are allocated objects
+                val lValue = getIntermediateBoolLValue(expr.address)
                 val value = finalStateMemory.read(lValue)
                 resolveExpr(model.eval(value), value, EtsBooleanType)
             }
 
             model.eval(type.fpTypeExpr).isTrue -> {
-                val lValue = ctx.getIntermediateFpLValue(expr.address)
-                // Note that everything about details of fake object we need to read from final state of the memory
-                // since they are allocated objects
+                val lValue = getIntermediateFpLValue(expr.address)
                 val value = finalStateMemory.read(lValue)
                 resolveExpr(model.eval(value), value, EtsNumberType)
             }
 
             model.eval(type.refTypeExpr).isTrue -> {
-                val lValue = ctx.getIntermediateRefLValue(expr.address)
-                // Note that everything about details of fake object we need to read from final state of the memory
-                // since they are allocated objects
+                val lValue = getIntermediateRefLValue(expr.address)
                 val value = finalStateMemory.read(lValue)
                 val ref = model.eval(value)
                 // TODO mistake with signature, use TypeStream instead
                 // TODO: replace `scene.classes.first()` with something meaningful
-                resolveExpr(ref, value, ctx.scene.projectAndSdkClasses.first().type)
+                resolveExpr(ref, value, scene.projectAndSdkClasses.first().type)
             }
 
             else -> error("Unsupported")
