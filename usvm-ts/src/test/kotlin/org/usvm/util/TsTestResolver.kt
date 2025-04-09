@@ -47,12 +47,12 @@ import org.usvm.types.single
 private val logger = KotlinLogging.logger {}
 
 class TsTestResolver {
-    fun resolve(method: EtsMethod, state: TsState): TsTest = with(state.ctx) {
+    fun resolve(method: EtsMethod, state: TsState): TsTest {
         val model = state.models.first()
         val memory = state.memory
 
-        val beforeMemoryScope = MemoryScope(this, model, memory, method)
-        val afterMemoryScope = MemoryScope(this, model, memory, method)
+        val beforeMemoryScope = MemoryScope(state.ctx, model, memory, method)
+        val afterMemoryScope = MemoryScope(state.ctx, model, memory, method)
 
         val result = when (val res = state.methodResult) {
             is TsMethodResult.NoCall -> {
