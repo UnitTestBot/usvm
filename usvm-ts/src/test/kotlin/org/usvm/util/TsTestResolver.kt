@@ -316,6 +316,12 @@ open class TsTestStateResolver(
 
             model.eval(fakeType.refTypeExpr).isTrue -> {
                 val value = expr.extractRef(finalStateMemory)
+                if (value == mkUndefinedValue()) {
+                    return TsTestValue.TsUndefined
+                }
+                if (value == mkTsNullValue()) {
+                    return TsTestValue.TsNull
+                }
                 val finalType = type?.takeIf { it != EtsUnknownType && it != EtsAnyType }
                     ?: finalStateMemory.typeStreamOf(value).first().let {
                         // Fix the case when type stream returns a primitive type
