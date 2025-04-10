@@ -323,40 +323,56 @@ open class TsTestStateResolver(
     private fun resolvePrimitive(
         expr: UExpr<*>,
         type: EtsPrimitiveType,
-    ): TsTestValue = when (type) {
-        EtsNumberType -> {
-            val e = evaluateInModel(expr)
-            if (e.isFakeObject()) {
-                val lValue = getIntermediateFpLValue(e.address)
-                val value = finalStateMemory.read(lValue)
-                resolveExpr(model.eval(value), value, EtsNumberType)
-            } else {
-                TsTestValue.TsNumber.TsDouble(e.extractDouble())
+    ): TsTestValue {
+        if (expr.isFakeObject()) {
+            return when (type) {
+                EtsNumberType -> {
+                    val lValue = getIntermediateFpLValue(expr.address)
+                    val value = finalStateMemory.read(lValue)
+                    TsTestValue.TsNumber.TsDouble(model.eval(value).extractDouble())
+                }
+
+                EtsBooleanType -> {
+                    val lValue = getIntermediateBoolLValue(expr.address)
+                    val value = finalStateMemory.read(lValue)
+                    TsTestValue.TsBoolean(model.eval(value).extractBool())
+                }
+
+                EtsStringType -> {
+                    // TODO: use String LValue when string sort is supported
+                    val lValue = getIntermediateFpLValue(expr.address)
+                    val value = finalStateMemory.read(lValue)
+                    TsTestValue.TsNumber.TsDouble(model.eval(value).extractDouble())
+                }
+
+                else -> error("Unsupported type: $type")
             }
         }
 
-        EtsBooleanType -> {
-            val e = evaluateInModel(expr)
-            if (e.isFakeObject()) {
-                val lValue = getIntermediateBoolLValue(e.address)
-                val value = finalStateMemory.read(lValue)
-                resolveExpr(model.eval(value), value, EtsBooleanType)
-            } else {
-                TsTestValue.TsBoolean(e.extractBool())
+        return when (type) {
+            EtsBooleanType -> {
+                TsTestValue.TsBoolean(model.eval(expr).extractBool())
             }
+
+            EtsNumberType -> {
+                TsTestValue.TsNumber.TsDouble(model.eval(expr).extractDouble())
+            }
+
+            EtsStringType -> {
+                TsTestValue.TsNumber.TsDouble(model.eval(expr).extractDouble())
+            }
+
+            EtsUndefinedType -> {
+                TsTestValue.TsUndefined
+            }
+
+            is EtsLiteralType -> TODO()
+            EtsNullType -> TODO()
+            EtsNeverType -> TODO()
+            EtsVoidType -> TODO()
+
+            else -> error("Unexpected type: $type")
         }
-
-        EtsStringType -> {
-            TsTestValue.TsNumber.TsDouble(evaluateInModel(expr).extractDouble())
-        }
-
-        EtsUndefinedType -> TsTestValue.TsUndefined
-
-        is EtsLiteralType -> TODO()
-        EtsNullType -> TODO()
-        EtsNeverType -> TODO()
-        EtsVoidType -> TODO()
-        else -> error("Unexpected type: $type")
     }
 
     context(TsContext)
