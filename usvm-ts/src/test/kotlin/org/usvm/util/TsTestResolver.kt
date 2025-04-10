@@ -5,6 +5,7 @@ package org.usvm.util
 import io.ksmt.expr.KBitVec32Value
 import io.ksmt.utils.asExpr
 import mu.KotlinLogging
+import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsClass
@@ -314,7 +315,8 @@ open class TsTestStateResolver(
 
             model.eval(fakeType.refTypeExpr).isTrue -> {
                 val value = expr.extractRef(finalStateMemory)
-                val finalType = type ?: value.getTypeStream(finalStateMemory).first()
+                val finalType = type?.takeIf { it != EtsUnknownType && it != EtsAnyType }
+                    ?: scene.projectClasses.first().type
                 resolveExpr(model.eval(value), value, finalType)
             }
 
