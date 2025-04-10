@@ -434,10 +434,6 @@ open class TsTestStateResolver(
 
     internal var resolveMode: ResolveMode = ResolveMode.ERROR
 
-    fun <T : USort> evaluateInModel(expr: UExpr<T>): UExpr<T> {
-        return model.eval(expr)
-    }
-
     val memory: UReadOnlyMemory<EtsType>
         get() = when (resolveMode) {
             ResolveMode.MODEL -> model
