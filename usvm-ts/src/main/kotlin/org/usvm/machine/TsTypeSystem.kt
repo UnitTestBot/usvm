@@ -107,12 +107,12 @@ class TsTopTypeStream(
     }
 
     override fun take(n: Int): TypesResult<EtsType> {
-        if (n <= primitiveTypes.size) {
-            return primitiveTypes.toTypesResult(wasTimeoutExpired = false)
-        }
+        // if (n <= primitiveTypes.size) {
+        //     return primitiveTypes.toTypesResult(wasTimeoutExpired = false)
+        // }
 
         val types = primitiveTypes.toMutableList()
-        return when (val remainingTypes = anyTypeStream.take(n - primitiveTypes.size)) {
+        return when (val remainingTypes = anyTypeStream.take(n)) {
             TypesResult.EmptyTypesResult -> types.toTypesResult(wasTimeoutExpired = false)
             is TypesResult.SuccessfulTypesResult -> {
                 val allTypes = types + remainingTypes.types
