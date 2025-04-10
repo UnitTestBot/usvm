@@ -24,9 +24,9 @@ class StaticFields : TsMethodTestRunner() {
     @Test
     fun `test static default value`() {
         val method = getMethod("StaticDefault", "getValue")
-        discoverProperties<TsTestValue.TsNumber>(
+        discoverProperties<TsTestValue>(
             method = method,
-            { r -> r.number == 0.0 },
+            { r -> r == TsTestValue.TsUndefined },
         )
     }
 
