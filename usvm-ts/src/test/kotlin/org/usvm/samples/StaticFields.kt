@@ -2,6 +2,7 @@ package org.usvm.samples
 
 import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.RepeatedTest
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
@@ -21,7 +22,7 @@ class StaticFields : TsMethodTestRunner() {
         )
     }
 
-    @Test
+    @RepeatedTest(10)
     fun `test static default value`() {
         val method = getMethod("StaticDefault", "getValue")
         discoverProperties<TsTestValue>(
