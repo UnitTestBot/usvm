@@ -146,7 +146,7 @@ open class TsTestStateResolver(
                 resolvePrimitive(expr, type)
             }
 
-            is EtsRefType -> {
+            is EtsRefType, is EtsUnclearType -> {
                 val finalStateMemoryRef = symbolicRef?.asExpr(addressSort) ?: expr.asExpr(addressSort)
                 resolveTsValue(expr.asExpr(addressSort), finalStateMemoryRef, type)
             }
