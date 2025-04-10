@@ -319,13 +319,11 @@ sealed interface TsBinaryOperator {
                 }
             }
 
-            return scope.calcOnState {
-                // val ground: UBoolExpr = mkFalse()
-                // conjuncts.foldRight(ground) { (condition, value), acc ->
-                //     mkIte(condition, value, acc)
-                // }
-                mkAnd(conjuncts.map { (condition, value) -> mkImplies(condition, value) })
-            }
+            // val ground: UBoolExpr = mkFalse()
+            // return conjuncts.foldRight(ground) { (condition, value), acc ->
+            //     mkIte(condition, value, acc)
+            // }
+            return mkAnd(conjuncts.map { (condition, value) -> mkImplies(condition, value) })
         }
 
         override fun TsContext.internalResolve(
@@ -771,11 +769,9 @@ sealed interface TsBinaryOperator {
                 }
             }
 
-            return scope.calcOnState {
-                val ground: UExpr<KFp64Sort> = mkFp64(0.0)
-                conjuncts.foldRight(ground) { (condition, value), acc ->
-                    mkIte(condition, value, acc)
-                }
+            val ground: UExpr<KFp64Sort> = mkFp64(0.0)
+            return conjuncts.foldRight(ground) { (condition, value), acc ->
+                mkIte(condition, value, acc)
             }
         }
 
@@ -899,10 +895,8 @@ sealed interface TsBinaryOperator {
         ): UExpr<*> {
             check(lhs.isFakeObject() || rhs.isFakeObject())
 
-            return scope.calcOnState {
-                val lhsTruthyExpr = mkTruthyExpr(lhs, scope)
-                iteWriteIntoFakeObject(scope, lhsTruthyExpr, rhs, lhs)
-            }
+            val lhsTruthyExpr = mkTruthyExpr(lhs, scope)
+            return iteWriteIntoFakeObject(scope, lhsTruthyExpr, rhs, lhs)
         }
 
         override fun TsContext.internalResolve(
@@ -913,9 +907,7 @@ sealed interface TsBinaryOperator {
             check(!lhs.isFakeObject() && !rhs.isFakeObject())
 
             val lhsTruthyExpr = mkTruthyExpr(lhs, scope)
-            return scope.calcOnState {
-                iteWriteIntoFakeObject(scope, lhsTruthyExpr, rhs, lhs)
-            }
+            return iteWriteIntoFakeObject(scope, lhsTruthyExpr, rhs, lhs)
         }
     }
 
@@ -951,10 +943,8 @@ sealed interface TsBinaryOperator {
         ): UExpr<*> {
             check(lhs.isFakeObject() || rhs.isFakeObject())
 
-            return scope.calcOnState {
-                val lhsTruthyExpr = mkTruthyExpr(lhs, scope)
-                iteWriteIntoFakeObject(scope, lhsTruthyExpr, lhs, rhs)
-            }
+            val lhsTruthyExpr = mkTruthyExpr(lhs, scope)
+            return iteWriteIntoFakeObject(scope, lhsTruthyExpr, lhs, rhs)
         }
 
         override fun TsContext.internalResolve(
@@ -965,9 +955,7 @@ sealed interface TsBinaryOperator {
             check(!lhs.isFakeObject() && !rhs.isFakeObject())
 
             val lhsTruthyExpr = mkTruthyExpr(lhs, scope)
-            return scope.calcOnState {
-                iteWriteIntoFakeObject(scope, lhsTruthyExpr, lhs, rhs)
-            }
+            return iteWriteIntoFakeObject(scope, lhsTruthyExpr, lhs, rhs)
         }
     }
 
