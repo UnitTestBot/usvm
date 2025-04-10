@@ -924,7 +924,6 @@ class TsSimpleValueResolver(
 
     private fun resolveLocal(local: EtsValue): ULValue<*, *> = with(ctx) {
         val currentMethod = scope.calcOnState { lastEnteredMethod }
-        scope.calcOnState { entrypoint }
 
         val idx = localToIdx(currentMethod, local)
         val sort = scope.calcOnState {
