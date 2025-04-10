@@ -263,9 +263,7 @@ class TsExprResolver(
             if (arg.isFakeObject()) {
                 val type = arg.getFakeType(scope)
                 scope.assert(type.fpTypeExpr)
-                return scope.calcOnState {
-                    memory.read(getIntermediateFpLValue(arg.address))
-                }
+                return arg.extractFp(scope)
             }
 
             return resolve(expr.arg)?.asExpr(ctx.fp64Sort)

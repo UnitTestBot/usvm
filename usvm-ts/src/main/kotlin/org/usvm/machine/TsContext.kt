@@ -136,25 +136,11 @@ class TsContext(
         if (!isFakeObject()) return null
 
         val type = getFakeType(scope)
-        return scope.calcOnState {
-            when {
-                type.boolTypeExpr.isTrue -> {
-                    val lValue = getIntermediateBoolLValue(address)
-                    memory.read(lValue).asExpr(boolSort)
-                }
-
-                type.fpTypeExpr.isTrue -> {
-                    val lValue = getIntermediateFpLValue(address)
-                    memory.read(lValue).asExpr(fp64Sort)
-                }
-
-                type.refTypeExpr.isTrue -> {
-                    val lValue = getIntermediateRefLValue(address)
-                    memory.read(lValue).asExpr(addressSort)
-                }
-
-                else -> null
-            }
+        return when {
+            type.boolTypeExpr.isTrue -> extractBool(scope)
+            type.fpTypeExpr.isTrue -> extractFp(scope)
+            type.refTypeExpr.isTrue -> extractRef(scope)
+            else -> null
         }
     }
 
@@ -178,19 +164,31 @@ class TsContext(
         return mkFieldLValue(addressSort, mkConcreteHeapRef(addr), IntermediateLValueField.REF)
     }
 
-    fun UConcreteHeapRef.extractBool(scope: TsStepScope): UBoolExpr {
+    fun UConcreteHeapRef.extractBool(memory: UReadOnlyMemory<*>): UBoolExpr {
         val lValue = getIntermediateBoolLValue(address)
-        return scope.calcOnState { memory.read(lValue) }
+        return memory.read(lValue)
+    }
+
+    fun UConcreteHeapRef.extractFp(memory: UReadOnlyMemory<*>): UExpr<KFp64Sort> {
+        val lValue = getIntermediateFpLValue(address)
+        return memory.read(lValue)
+    }
+
+    fun UConcreteHeapRef.extractRef(memory: UReadOnlyMemory<*>): UHeapRef {
+        val lValue = getIntermediateRefLValue(address)
+        return memory.read(lValue)
+    }
+
+    fun UConcreteHeapRef.extractBool(scope: TsStepScope): UBoolExpr {
+        return scope.calcOnState { extractBool(memory) }
     }
 
     fun UConcreteHeapRef.extractFp(scope: TsStepScope): UExpr<KFp64Sort> {
-        val lValue = getIntermediateFpLValue(address)
-        return scope.calcOnState { memory.read(lValue) }
+        return scope.calcOnState { extractFp(memory) }
     }
 
     fun UConcreteHeapRef.extractRef(scope: TsStepScope): UHeapRef {
-        val lValue = getIntermediateRefLValue(address)
-        return scope.calcOnState { memory.read(lValue) }
+        return scope.calcOnState { extractRef(memory) }
     }
 }
 

@@ -295,24 +295,20 @@ open class TsTestStateResolver(
         val type = expr.getFakeType(finalStateMemory)
         return when {
             model.eval(type.boolTypeExpr).isTrue -> {
-                val lValue = getIntermediateBoolLValue(expr.address)
-                val value = finalStateMemory.read(lValue)
+                val value = expr.extractBool(finalStateMemory)
                 resolveExpr(model.eval(value), value, EtsBooleanType)
             }
 
             model.eval(type.fpTypeExpr).isTrue -> {
-                val lValue = getIntermediateFpLValue(expr.address)
-                val value = finalStateMemory.read(lValue)
+                val value = expr.extractFp(finalStateMemory)
                 resolveExpr(model.eval(value), value, EtsNumberType)
             }
 
             model.eval(type.refTypeExpr).isTrue -> {
-                val lValue = getIntermediateRefLValue(expr.address)
-                val value = finalStateMemory.read(lValue)
-                val ref = model.eval(value)
+                val value = expr.extractRef(finalStateMemory)
                 // TODO mistake with signature, use TypeStream instead
                 // TODO: replace `scene.classes.first()` with something meaningful
-                resolveExpr(ref, value, scene.projectAndSdkClasses.first().type)
+                resolveExpr(model.eval(value), value, scene.projectAndSdkClasses.first().type)
             }
 
             else -> error("Unsupported")
@@ -326,22 +322,19 @@ open class TsTestStateResolver(
     ): TsTestValue {
         if (expr.isFakeObject()) {
             return when (type) {
-                EtsNumberType -> {
-                    val lValue = getIntermediateFpLValue(expr.address)
-                    val value = finalStateMemory.read(lValue)
-                    TsTestValue.TsNumber.TsDouble(model.eval(value).extractDouble())
-                }
-
                 EtsBooleanType -> {
-                    val lValue = getIntermediateBoolLValue(expr.address)
-                    val value = finalStateMemory.read(lValue)
+                    val value = expr.extractBool(finalStateMemory)
                     TsTestValue.TsBoolean(model.eval(value).extractBool())
                 }
 
+                EtsNumberType -> {
+                    val value = expr.extractFp(finalStateMemory)
+                    TsTestValue.TsNumber.TsDouble(model.eval(value).extractDouble())
+                }
+
                 EtsStringType -> {
-                    // TODO: use String LValue when string sort is supported
-                    val lValue = getIntermediateFpLValue(expr.address)
-                    val value = finalStateMemory.read(lValue)
+                    // TODO: support string sort
+                    val value = expr.extractFp(finalStateMemory)
                     TsTestValue.TsNumber.TsDouble(model.eval(value).extractDouble())
                 }
 
