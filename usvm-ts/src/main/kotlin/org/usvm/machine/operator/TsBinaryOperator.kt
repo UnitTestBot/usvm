@@ -9,7 +9,6 @@ import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
 import org.usvm.UExpr
 import org.usvm.UHeapRef
-import org.usvm.USort
 import org.usvm.api.typeStreamOf
 import org.usvm.machine.TsContext
 import org.usvm.machine.expr.TsUndefinedSort
@@ -570,7 +569,7 @@ sealed interface TsBinaryOperator {
             lhs: UBoolExpr,
             rhs: UBoolExpr,
             scope: TsStepScope,
-        ): UExpr<*> {
+        ): UExpr<KFp64Sort> {
             return mkFpAddExpr(
                 fpRoundingModeSortDefaultValue(),
                 boolToFp(lhs),
@@ -582,7 +581,7 @@ sealed interface TsBinaryOperator {
             lhs: UExpr<KFp64Sort>,
             rhs: UExpr<KFp64Sort>,
             scope: TsStepScope,
-        ): UExpr<*> {
+        ): UExpr<KFp64Sort> {
             return mkFpAddExpr(fpRoundingModeSortDefaultValue(), lhs, rhs)
         }
 
@@ -590,7 +589,7 @@ sealed interface TsBinaryOperator {
             lhs: UHeapRef,
             rhs: UHeapRef,
             scope: TsStepScope,
-        ): UExpr<*>? {
+        ): UExpr<KFp64Sort>? {
             logger.warn { "Not implemented operator: Add" }
             scope.assert(falseExpr)
             return null
@@ -600,10 +599,10 @@ sealed interface TsBinaryOperator {
             lhs: UExpr<*>,
             rhs: UExpr<*>,
             scope: TsStepScope,
-        ): UExpr<*>? {
+        ): UExpr<KFp64Sort>? {
             check(lhs.isFakeObject() || rhs.isFakeObject())
 
-            val conjuncts = mutableListOf<ExprWithTypeConstraint<*>>()
+            val conjuncts = mutableListOf<ExprWithTypeConstraint<KFp64Sort>>()
             when {
                 lhs.isFakeObject() && rhs.isFakeObject() -> {
                     val lhsType = lhs.getFakeType(scope)
@@ -784,9 +783,9 @@ sealed interface TsBinaryOperator {
             }
 
             return scope.calcOnState {
-                val ground: UExpr<out USort> = conjuncts.first().expr.sort.accept(defaultValueSampler)
+                val ground: UExpr<KFp64Sort> = mkFp64(0.0)
                 conjuncts.foldRight(ground) { (condition, value), acc ->
-                    mkIte(condition, value as UExpr<USort>, acc as UExpr<USort>)
+                    mkIte(condition, value, acc)
                 }
             }
         }
@@ -795,7 +794,7 @@ sealed interface TsBinaryOperator {
             lhs: UExpr<*>,
             rhs: UExpr<*>,
             scope: TsStepScope,
-        ): UExpr<*>? {
+        ): UExpr<KFp64Sort>? {
             check(!lhs.isFakeObject() && !rhs.isFakeObject())
 
             // TODO support string concatenation
