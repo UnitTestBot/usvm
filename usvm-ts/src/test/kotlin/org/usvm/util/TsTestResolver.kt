@@ -317,7 +317,14 @@ open class TsTestStateResolver(
             model.eval(fakeType.refTypeExpr).isTrue -> {
                 val value = expr.extractRef(finalStateMemory)
                 val finalType = type?.takeIf { it != EtsUnknownType && it != EtsAnyType }
-                    ?: scene.projectClasses.first().type
+                    ?: finalStateMemory.typeStreamOf(value).first().let {
+                        // Fix the case when type stream returns a primitive type
+                        if (value.sort == addressSort && it !is EtsRefType) {
+                            scene.projectClasses.first().type
+                        } else {
+                            it
+                        }
+                    }
                 resolveExpr(model.eval(value), value, finalType)
             }
 
