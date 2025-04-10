@@ -119,8 +119,8 @@ open class TsTestStateResolver(
     }
 
     fun resolveExpr(
-        expr: UExpr<out USort>,
-        symbolicRef: UExpr<out USort>? = null,
+        expr: UExpr<*>,
+        symbolicRef: UExpr<*>? = null,
         type: EtsType,
     ): TsTestValue = when (type) {
         is EtsPrimitiveType -> {
@@ -138,8 +138,8 @@ open class TsTestStateResolver(
     }
 
     fun resolveUnknownExpr(
-        heapRef: UExpr<out USort>,
-        finalStateMemoryRef: UExpr<out USort>?,
+        heapRef: UExpr<*>,
+        finalStateMemoryRef: UExpr<*>?,
     ): TsTestValue = with(ctx) {
         when (heapRef.sort) {
             fp64Sort -> {
@@ -302,7 +302,7 @@ open class TsTestStateResolver(
     }
 
     private fun resolvePrimitive(
-        expr: UExpr<out USort>,
+        expr: UExpr<*>,
         type: EtsPrimitiveType,
     ): TsTestValue = with(ctx) {
         when (type) {
