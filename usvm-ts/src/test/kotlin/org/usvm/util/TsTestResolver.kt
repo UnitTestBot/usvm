@@ -215,7 +215,7 @@ open class TsTestStateResolver(
             }
 
             is EtsUnknownType -> {
-                val finalType = finalStateMemory.types.getTypeStream(heapRef).first()
+                val finalType = heapRef.getTypeStream(finalStateMemory).first()
                 resolveTsValue(heapRef, finalStateMemoryRef, finalType)
             }
 
