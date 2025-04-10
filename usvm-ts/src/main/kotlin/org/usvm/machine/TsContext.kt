@@ -52,8 +52,8 @@ class TsContext(
      * In TS we treat undefined value as a null reference in other objects.
      * For real null represented in the language we create another reference.
      */
-    private val undefinedValue: UExpr<UAddressSort> = mkNullRef()
-    fun mkUndefinedValue(): UExpr<UAddressSort> = undefinedValue
+    private val undefinedValue: UHeapRef = mkNullRef()
+    fun mkUndefinedValue(): UHeapRef = undefinedValue
 
     private val nullValue: UConcreteHeapRef = mkConcreteHeapRef(addressCounter.freshStaticAddress())
     fun mkTsNullValue(): UConcreteHeapRef = nullValue
