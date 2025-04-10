@@ -170,21 +170,21 @@ open class TsTestStateResolver(
         heapRef: UHeapRef,
         finalStateMemoryRef: UHeapRef?,
         type: EtsType,
-    ): TsTestValue {
+    ): TsTestValue = with(ctx) {
         val concreteRef = model.eval(heapRef) as UConcreteHeapRef
 
         if (concreteRef.address == 0) {
             return TsTestValue.TsUndefined
         }
 
-        if (concreteRef == ctx.mkTsNullValue()) {
+        if (concreteRef == mkTsNullValue()) {
             return TsTestValue.TsNull
         }
 
-        return when (type) {
+        when (type) {
             // TODO add better support
             is EtsUnclearType -> {
-                val classes = ctx.scene.projectAndSdkClasses.filter { it.name == type.typeName }
+                val classes = scene.projectAndSdkClasses.filter { it.name == type.typeName }
                 if (classes.size != 1) {
                     logger.warn { "Could not uniquely resolve class: $type" }
                     return TsTestValue.TsUndefined
