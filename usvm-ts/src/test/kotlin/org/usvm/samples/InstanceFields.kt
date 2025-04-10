@@ -1,6 +1,7 @@
 package org.usvm.samples
 
 import org.jacodb.ets.model.EtsScene
+import org.junit.jupiter.api.RepeatedTest
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 import kotlin.test.Test
@@ -11,17 +12,20 @@ class InstanceFields : TsMethodTestRunner() {
 
     override val scene: EtsScene = loadSampleScene(className)
 
-    @Test
+    @RepeatedTest(20)
     fun `test returnSingleField`() {
         val method = getMethod(className, "returnSingleField")
         discoverProperties<TsTestValue, TsTestValue>(
             method,
             { x, r ->
-                // Note: this is an attempt to represent `r == x["a"]`
-                if (x !is TsTestValue.TsClass || r !is TsTestValue.TsNumber) return@discoverProperties false
+                if (x !is TsTestValue.TsClass) return@discoverProperties false
 
-                val xa = x.properties["a"] as TsTestValue.TsNumber
-                xa.number == r.number || (xa.number.isNaN() && r.number.isNaN())
+                val xa = x.properties["a"]
+                if (xa is TsTestValue.TsNumber && r is TsTestValue.TsNumber) {
+                    xa.number == r.number || (xa.number.isNaN() && r.number.isNaN())
+                } else {
+                    xa == r
+                }
             },
             { x, r ->
                 (x is TsTestValue.TsUndefined || x is TsTestValue.TsNull) && r is TsTestValue.TsException
