@@ -177,7 +177,7 @@ open class TsTestStateResolver(
             return TsTestValue.TsUndefined
         }
 
-        if (model.eval(ctx.mkHeapRefEq(heapRef, ctx.mkTsNullValue())).isTrue) {
+        if (concreteRef == ctx.mkTsNullValue()) {
             return TsTestValue.TsNull
         }
 
