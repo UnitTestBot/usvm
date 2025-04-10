@@ -171,7 +171,7 @@ open class TsTestStateResolver(
         finalStateMemoryRef: UHeapRef?,
         type: EtsType,
     ): TsTestValue {
-        val concreteRef = evaluateInModel(heapRef) as UConcreteHeapRef
+        val concreteRef = model.eval(heapRef) as UConcreteHeapRef
 
         if (concreteRef.address == 0) {
             return TsTestValue.TsUndefined
