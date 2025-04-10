@@ -87,9 +87,9 @@ class InstanceFields : TsMethodTestRunner() {
             { x, r ->
                 if (x !is TsTestValue.TsClass || r !is TsTestValue.TsNumber) return@discoverProperties false
 
-                val xa = x.properties["a"] as TsTestValue.TsNumber
-                val xb = x.properties["b"] as TsTestValue.TsNumber
-                xa.number + xb.number == r.number
+                val xa = x.properties["a"] ?: return@discoverProperties false
+                val xb = x.properties["b"] ?: return@discoverProperties false
+                xa.getDouble() + xb.getDouble() == r.number
             },
             { x, r ->
                 (x is TsTestValue.TsUndefined || x is TsTestValue.TsNull) && r is TsTestValue.TsException
@@ -106,3 +106,13 @@ class InstanceFields : TsMethodTestRunner() {
         )
     }
 }
+
+private fun TsTestValue.getDouble(): Double = when (this) {
+    is TsTestValue.TsNumber -> this.number
+    is TsTestValue.TsBoolean -> this.value.toDouble()
+    is TsTestValue.TsUndefined -> Double.NaN
+    is TsTestValue.TsNull -> 0.0
+    else -> Double.NaN
+}
+
+private fun Boolean.toDouble(): Double = if (this) 1.0 else 0.0
