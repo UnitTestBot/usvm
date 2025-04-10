@@ -426,7 +426,7 @@ open class TsTestStateResolver(
         val clazz = resolveClass(classType)
         val properties = clazz.fields
             .filterNot { field ->
-                field.modifiers.isStatic
+                field.isStatic
             }
             .associate { field ->
                 val sort = typeToSort(field.type)
