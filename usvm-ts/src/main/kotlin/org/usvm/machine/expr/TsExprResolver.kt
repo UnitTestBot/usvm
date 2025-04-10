@@ -733,7 +733,7 @@ class TsExprResolver(
 
                 // If a fake object is already created and assigned to the field,
                 // there is no need to recreate another one
-                val fakeRef = if (ref.isFakeObject()) {
+                val fakeObject = if (ref.isFakeObject()) {
                     ref
                 } else {
                     val boolLValue = mkFieldLValue(boolSort, instance, field)
@@ -743,9 +743,9 @@ class TsExprResolver(
                     mkFakeValue(scope, bool, fp, ref)
                 }
 
-                memory.write(refLValue, fakeRef, guard = trueExpr)
+                memory.write(refLValue, fakeObject, guard = trueExpr)
 
-                fakeRef
+                fakeObject
             } else {
                 val lValue = mkFieldLValue(sort, instance, field)
                 memory.read(lValue)
@@ -963,13 +963,12 @@ class TsSimpleValueResolver(
 
                 val lValue = mkRegisterStackLValue(addressSort, idx)
 
-                val boolRValue = mkRegisterReading(idx, boolSort)
-                val fpRValue = mkRegisterReading(idx, fp64Sort)
-                val refRValue = mkRegisterReading(idx, addressSort)
-
-                val fakeObject = mkFakeValue(scope, boolRValue, fpRValue, refRValue)
+                val boolValue = mkRegisterReading(idx, boolSort)
+                val fpValue = mkRegisterReading(idx, fp64Sort)
+                val refValue = mkRegisterReading(idx, addressSort)
+                val fakeObject = mkFakeValue(scope, boolValue, fpValue, refValue)
                 scope.calcOnState {
-                    memory.write(lValue, fakeObject.asExpr(addressSort), guard = trueExpr)
+                    memory.write(lValue, fakeObject, guard = trueExpr)
                 }
 
                 lValue
