@@ -431,7 +431,7 @@ open class TsTestStateResolver(
             .associate { field ->
                 val sort = typeToSort(field.type)
                 if (sort == unresolvedSort) {
-                    val lValue = mkFieldLValue(addressSort, heapRef, field)
+                    val lValue = mkFieldLValue(addressSort, concreteRef, field)
                     val fieldExpr = memory.read(lValue)
                     val obj = if (fieldExpr.isFakeObject()) {
                         resolveExpr(fieldExpr, fieldExpr, field.type)
