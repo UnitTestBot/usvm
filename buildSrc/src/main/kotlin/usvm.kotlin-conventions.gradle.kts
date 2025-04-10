@@ -39,6 +39,7 @@ tasks {
         kotlinOptions {
             jvmTarget = JavaVersion.VERSION_1_8.toString()
             freeCompilerArgs += "-Xsam-conversions=class"
+            freeCompilerArgs += "-Xcontext-receivers"
             allWarningsAsErrors = true
         }
     }
