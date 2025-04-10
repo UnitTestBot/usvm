@@ -79,10 +79,8 @@ import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
-import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
-import org.usvm.USort
 import org.usvm.api.allocateArray
 import org.usvm.api.allocateArrayInitialized
 import org.usvm.isTrue
@@ -780,8 +778,7 @@ class TsExprResolver(
         if (value.field.name == "length" && instance.isFakeObject()) {
             val fakeType = instance.getFakeType(scope)
             if (fakeType.refTypeExpr.isTrue) {
-                val refLValue = getIntermediateRefLValue(instance.address)
-                val obj = scope.calcOnState { memory.read(refLValue) }
+                val obj = instance.extractRef(scope)
                 // TODO: fix array type. It should be the same as the type used when "writing" the length.
                 //  However, current value.instance typically has 'unknown' type, and the best we can do here is
                 //  to pretend that this is an array-like object (with "array length", not just "length" field),
