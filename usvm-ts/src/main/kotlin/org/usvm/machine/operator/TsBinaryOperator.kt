@@ -119,7 +119,7 @@ sealed interface TsBinaryOperator {
                     val lhsType = lhs.getFakeType(scope)
                     val rhsType = rhs.getFakeType(scope)
 
-                    // 'bool' == 'bool'
+                    // 'fake(bool)' == 'fake(bool)'
                     conjuncts += ExprWithTypeConstraint(
                         constraint = mkAnd(lhsType.boolTypeExpr, rhsType.boolTypeExpr),
                         expr = mkEq(
@@ -128,7 +128,7 @@ sealed interface TsBinaryOperator {
                         )
                     )
 
-                    // 'fp' == 'fp'
+                    // 'fake(fp)' == 'fake(fp)'
                     conjuncts += ExprWithTypeConstraint(
                         constraint = mkAnd(lhsType.fpTypeExpr, rhsType.fpTypeExpr),
                         expr = mkFpEqualExpr(
@@ -137,7 +137,7 @@ sealed interface TsBinaryOperator {
                         )
                     )
 
-                    // 'ref' == 'ref'
+                    // 'fake(ref)' == 'fake(ref)'
                     conjuncts += ExprWithTypeConstraint(
                         constraint = mkAnd(lhsType.refTypeExpr, rhsType.refTypeExpr),
                         expr = mkHeapRefEq(
@@ -146,7 +146,7 @@ sealed interface TsBinaryOperator {
                         )
                     )
 
-                    // 'bool' == 'fp'
+                    // 'fake(bool)' == 'fake(fp)'
                     conjuncts += ExprWithTypeConstraint(
                         constraint = mkAnd(lhsType.boolTypeExpr, rhsType.fpTypeExpr),
                         expr = mkFpEqualExpr(
@@ -155,7 +155,7 @@ sealed interface TsBinaryOperator {
                         )
                     )
 
-                    // 'fp' == 'bool'
+                    // 'fake(fp)' == 'fake(bool)'
                     conjuncts += ExprWithTypeConstraint(
                         constraint = mkAnd(lhsType.fpTypeExpr, rhsType.boolTypeExpr),
                         expr = mkFpEqualExpr(
@@ -164,16 +164,16 @@ sealed interface TsBinaryOperator {
                         )
                     )
 
-                    // TODO: 'ref' == 'bool'
+                    // TODO: 'fake(ref)' == 'fake(bool)'
                     scope.assert(mkAnd(lhsType.refTypeExpr, rhsType.boolTypeExpr).not())
 
-                    // TODO: 'ref' == 'fp'
+                    // TODO: 'fake(ref)' == 'fake(fp)'
                     scope.assert(mkAnd(lhsType.refTypeExpr, rhsType.fpTypeExpr).not())
 
-                    // TODO: 'bool' == 'ref'
+                    // TODO: 'fake(bool)' == 'fake(ref)'
                     scope.assert(mkAnd(lhsType.boolTypeExpr, rhsType.refTypeExpr).not())
 
-                    // TODO: 'fp' == 'ref'
+                    // TODO: 'fake(fp)' == 'fake(ref)'
                     scope.assert(mkAnd(lhsType.fpTypeExpr, rhsType.refTypeExpr).not())
                 }
 
