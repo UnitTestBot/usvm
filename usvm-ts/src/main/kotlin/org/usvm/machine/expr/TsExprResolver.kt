@@ -784,8 +784,10 @@ class TsExprResolver(
                 //  to pretend that this is an array-like object (with "array length", not just "length" field),
                 //  and "cast" instance to "unknown[]". The same could be done for any length writes, making
                 //  the array type (for length) consistent (unknown everywhere), but less precise.
-                val lengthLValue = mkArrayLengthLValue(obj, EtsArrayType(EtsUnknownType, 1))
-                val length = scope.calcOnState { memory.read(lengthLValue) }
+                val length = scope.calcOnState {
+                    val lengthLValue = mkArrayLengthLValue(obj, EtsArrayType(EtsUnknownType, 1))
+                    memory.read(lengthLValue)
+                }
                 return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), length.asExpr(sizeSort), signed = true)
             }
         }
