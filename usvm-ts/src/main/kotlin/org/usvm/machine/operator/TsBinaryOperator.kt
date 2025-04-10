@@ -9,16 +9,13 @@ import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
 import org.usvm.UExpr
 import org.usvm.UHeapRef
-import org.usvm.api.typeStreamOf
 import org.usvm.machine.TsContext
 import org.usvm.machine.expr.TsUndefinedSort
 import org.usvm.machine.expr.mkNumericExpr
 import org.usvm.machine.expr.mkTruthyExpr
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.types.ExprWithTypeConstraint
-import org.usvm.machine.types.FakeType
 import org.usvm.machine.types.iteWriteIntoFakeObject
-import org.usvm.types.single
 import org.usvm.util.boolToFp
 
 private val logger = KotlinLogging.logger {}
@@ -450,54 +447,46 @@ sealed interface TsBinaryOperator {
         ): UBoolExpr {
             check(lhs.isFakeObject() || rhs.isFakeObject())
 
-            return scope.calcOnState {
-                when {
-                    lhs.isFakeObject() && rhs.isFakeObject() -> {
-                        val lhsType = memory.typeStreamOf(lhs).single() as FakeType
-                        val rhsType = memory.typeStreamOf(rhs).single() as FakeType
-
-                        scope.assert(
-                            mkAnd(
-                                lhsType.boolTypeExpr eq rhsType.boolTypeExpr,
-                                lhsType.fpTypeExpr eq rhsType.fpTypeExpr,
-                                // TODO support type equality
-                                lhsType.refTypeExpr eq rhsType.refTypeExpr
-                            )
-                        )
-                    }
-
-                    lhs.isFakeObject() -> {
-                        val lhsType = memory.typeStreamOf(lhs).single() as FakeType
-
-                        val condition = when (rhs.sort) {
-                            boolSort -> lhsType.boolTypeExpr
-                            fp64Sort -> lhsType.fpTypeExpr
-                            // TODO support type equality
-                            addressSort -> lhsType.refTypeExpr
-                            else -> error("Unsupported sort ${rhs.sort}")
-                        }
-
-                        scope.assert(condition)
-                    }
-
-                    rhs.isFakeObject() -> {
-                        val rhsType = memory.typeStreamOf(rhs).single() as FakeType
-
-                        val condition = when (lhs.sort) {
-                            boolSort -> rhsType.boolTypeExpr
-                            fp64Sort -> rhsType.fpTypeExpr
-                            // TODO support type equality
-                            addressSort -> rhsType.refTypeExpr
-                            else -> error("Unsupported sort ${lhs.sort}")
-                        }
-
-                        scope.assert(condition)
-                    }
+            when {
+                lhs.isFakeObject() && rhs.isFakeObject() -> {
+                    val lhsType = lhs.getFakeType(scope)
+                    val rhsType = rhs.getFakeType(scope)
+                    val condition = mkAnd(
+                        lhsType.boolTypeExpr eq rhsType.boolTypeExpr,
+                        lhsType.fpTypeExpr eq rhsType.fpTypeExpr,
+                        // TODO support type equality
+                        lhsType.refTypeExpr eq rhsType.refTypeExpr
+                    )
+                    scope.assert(condition)
                 }
 
-                return@calcOnState with(Eq) {
-                    resolveFakeObject(lhs, rhs, scope)
+                lhs.isFakeObject() -> {
+                    val lhsType = lhs.getFakeType(scope)
+                    val condition = when (rhs.sort) {
+                        boolSort -> lhsType.boolTypeExpr
+                        fp64Sort -> lhsType.fpTypeExpr
+                        // TODO support type equality
+                        addressSort -> lhsType.refTypeExpr
+                        else -> error("Unsupported sort ${rhs.sort}")
+                    }
+                    scope.assert(condition)
                 }
+
+                rhs.isFakeObject() -> {
+                    val rhsType = rhs.getFakeType(scope)
+                    val condition = when (lhs.sort) {
+                        boolSort -> rhsType.boolTypeExpr
+                        fp64Sort -> rhsType.fpTypeExpr
+                        // TODO support type equality
+                        addressSort -> rhsType.refTypeExpr
+                        else -> error("Unsupported sort ${lhs.sort}")
+                    }
+                    scope.assert(condition)
+                }
+            }
+
+            return with(Eq) {
+                resolveFakeObject(lhs, rhs, scope)
             }
         }
 
