@@ -83,8 +83,10 @@ class TsContext(
     fun UHeapRef.getTypeStream(scope: TsStepScope): UTypeStream<EtsType> =
         scope.calcOnState { getTypeStream(memory) }
 
-    fun UConcreteHeapRef.getFakeType(memory: UReadOnlyMemory<*>): FakeType =
-        getTypeStream(memory).single() as FakeType
+    fun UConcreteHeapRef.getFakeType(memory: UReadOnlyMemory<*>): FakeType {
+        check(isFakeObject())
+        return getTypeStream(memory).single() as FakeType
+    }
 
     fun UConcreteHeapRef.getFakeType(scope: TsStepScope): FakeType =
         scope.calcOnState { getFakeType(memory) }
@@ -165,16 +167,19 @@ class TsContext(
     }
 
     fun UConcreteHeapRef.extractBool(memory: UReadOnlyMemory<*>): UBoolExpr {
+        check(isFakeObject())
         val lValue = getIntermediateBoolLValue(address)
         return memory.read(lValue)
     }
 
     fun UConcreteHeapRef.extractFp(memory: UReadOnlyMemory<*>): UExpr<KFp64Sort> {
+        check(isFakeObject())
         val lValue = getIntermediateFpLValue(address)
         return memory.read(lValue)
     }
 
     fun UConcreteHeapRef.extractRef(memory: UReadOnlyMemory<*>): UHeapRef {
+        check(isFakeObject())
         val lValue = getIntermediateRefLValue(address)
         return memory.read(lValue)
     }
