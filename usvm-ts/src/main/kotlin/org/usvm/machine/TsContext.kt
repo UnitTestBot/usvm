@@ -77,15 +77,9 @@ class TsContext(
 
     fun arrayDescriptorOf(type: EtsArrayType): EtsType = EtsUnknownType
 
-    fun <Type> UHeapRef.getTypeStream(memory: UReadOnlyMemory<Type>): UTypeStream<Type> =
-        memory.typeStreamOf(this)
-
-    fun UHeapRef.getTypeStream(scope: TsStepScope): UTypeStream<EtsType> =
-        scope.calcOnState { getTypeStream(memory) }
-
     fun UConcreteHeapRef.getFakeType(memory: UReadOnlyMemory<*>): FakeType {
         check(isFakeObject())
-        return getTypeStream(memory).single() as FakeType
+        return memory.typeStreamOf(this).single() as FakeType
     }
 
     fun UConcreteHeapRef.getFakeType(scope: TsStepScope): FakeType =

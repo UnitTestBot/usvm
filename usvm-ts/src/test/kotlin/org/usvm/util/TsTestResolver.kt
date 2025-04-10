@@ -31,6 +31,7 @@ import org.usvm.api.GlobalFieldValue
 import org.usvm.api.TsParametersState
 import org.usvm.api.TsTest
 import org.usvm.api.TsTestValue
+import org.usvm.api.typeStreamOf
 import org.usvm.isTrue
 import org.usvm.machine.TsContext
 import org.usvm.machine.expr.extractBool
@@ -220,7 +221,7 @@ open class TsTestStateResolver(
             }
 
             is EtsUnknownType -> {
-                val finalType = heapRef.getTypeStream(finalStateMemory).first()
+                val finalType = finalStateMemory.typeStreamOf(heapRef).first()
                 resolveTsValue(heapRef, finalStateMemoryRef, finalType)
             }
 
