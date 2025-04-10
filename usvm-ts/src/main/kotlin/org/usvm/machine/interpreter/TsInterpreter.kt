@@ -191,9 +191,11 @@ class TsInterpreter(
     private fun visitReturnStmt(scope: TsStepScope, stmt: EtsReturnStmt) {
         val exprResolver = exprResolverWithScope(scope)
 
-        val valueToReturn = stmt.returnValue
+        val value = stmt.returnValue
             ?.let { exprResolver.resolve(it) ?: return }
             ?: ctx.mkUndefinedValue()
+        val valueToReturn = with(ctx) { value.toFakeObject(scope) }
+        // val valueToReturn = value
 
         scope.doWithState {
             returnValue(valueToReturn)
