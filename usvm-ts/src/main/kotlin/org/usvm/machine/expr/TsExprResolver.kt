@@ -728,20 +728,18 @@ class TsExprResolver(
 
         val expr = scope.calcOnState {
             if (sort == unresolvedSort) {
-                val refLValue = mkFieldLValue(addressSort, instance, field)
-                val ref = memory.read(refLValue)
+                val lValue = mkFieldLValue(addressSort, instance, field)
+                val ref = memory.read(lValue)
 
                 // If a fake object is already created and assigned to the field,
                 // there is no need to recreate another one
                 if (ref.isFakeObject()) {
                     ref
                 } else {
-                    val boolLValue = mkFieldLValue(boolSort, instance, field)
-                    val fpLValue = mkFieldLValue(fp64Sort, instance, field)
-                    val bool = memory.read(boolLValue)
-                    val fp = memory.read(fpLValue)
+                    val bool = memory.read(mkFieldLValue(boolSort, instance, field))
+                    val fp = memory.read(mkFieldLValue(fp64Sort, instance, field))
                     val fakeObject = mkFakeValue(scope, bool, fp, ref)
-                    memory.write(refLValue, fakeObject, guard = trueExpr)
+                    memory.write(lValue, fakeObject, guard = trueExpr)
                     fakeObject
                 }
             } else {
