@@ -733,19 +733,17 @@ class TsExprResolver(
 
                 // If a fake object is already created and assigned to the field,
                 // there is no need to recreate another one
-                val fakeObject = if (ref.isFakeObject()) {
+                if (ref.isFakeObject()) {
                     ref
                 } else {
                     val boolLValue = mkFieldLValue(boolSort, instance, field)
                     val fpLValue = mkFieldLValue(fp64Sort, instance, field)
                     val bool = memory.read(boolLValue)
                     val fp = memory.read(fpLValue)
-                    mkFakeValue(scope, bool, fp, ref)
+                    val fakeObject = mkFakeValue(scope, bool, fp, ref)
+                    memory.write(refLValue, fakeObject, guard = trueExpr)
+                    fakeObject
                 }
-
-                memory.write(refLValue, fakeObject, guard = trueExpr)
-
-                fakeObject
             } else {
                 val lValue = mkFieldLValue(sort, instance, field)
                 memory.read(lValue)
