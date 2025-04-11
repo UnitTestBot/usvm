@@ -717,12 +717,14 @@ class TsExprResolver(
         //     return null
         // }
         // val etsFieldTypes = etsFields.map { it.type }.distinct()
-        // if (etsFieldTypes.size != 1) {
+        // val etsFieldType = if (etsFieldTypes.size != 1) {
         //     logger.warn { "Could not determine a unique field type for '$field', found ${etsFieldTypes.size}: $etsFieldTypes" }
-        //     scope.assert(falseExpr)
-        //     return null
+        //     // scope.assert(falseExpr)
+        //     // return null
+        //     EtsUnknownType
+        // } else {
+        //     etsFieldTypes.single()
         // }
-        // val etsFieldType = etsFieldTypes.single()
         val etsFieldType = EtsUnknownType
         val sort = typeToSort(etsFieldType)
 
