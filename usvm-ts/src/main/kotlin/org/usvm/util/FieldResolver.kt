@@ -7,7 +7,6 @@ import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsUnclearType
-import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
 import org.usvm.machine.TsContext
 
@@ -96,16 +95,14 @@ fun TsContext.resolveEtsFields(
 
     // Unknown signature:
     if (instance != null) {
-        // val instanceType = instance.type
-        val instanceType = EtsUnknownType
-        when (instanceType) {
+        when (val type = instance.type) {
             is EtsClassType -> {
-                val field = tryGetSingleField(scene, instanceType.signature.name, field.name)
+                val field = tryGetSingleField(scene, type.signature.name, field.name)
                 if (field != null) return listOf(field)
             }
 
             is EtsUnclearType -> {
-                val field = tryGetSingleField(scene, instanceType.typeName, field.name)
+                val field = tryGetSingleField(scene, type.typeName, field.name)
                 if (field != null) return listOf(field)
             }
         }
