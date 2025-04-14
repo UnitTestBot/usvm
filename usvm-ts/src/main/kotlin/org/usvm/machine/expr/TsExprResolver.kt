@@ -14,6 +14,7 @@ import org.jacodb.ets.model.EtsBitNotExpr
 import org.jacodb.ets.model.EtsBitOrExpr
 import org.jacodb.ets.model.EtsBitXorExpr
 import org.jacodb.ets.model.EtsBooleanConstant
+import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsCastExpr
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsClassType
@@ -104,6 +105,7 @@ import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
+import org.usvm.util.resolveEtsFields
 import org.usvm.util.throwExceptionWithoutStackFrameDrop
 import org.usvm.util.type
 
@@ -705,6 +707,23 @@ class TsExprResolver(
         state.throwExceptionWithoutStackFrameDrop(address, type)
     }
 
+    private fun getFieldType(
+        instance: EtsLocal?,
+        field: EtsFieldSignature,
+    ): EtsType = with(ctx) {
+        val etsFields = resolveEtsFields(instance, field)
+        if (etsFields.isEmpty()) {
+            logger.warn { "Could not resolve field: $field" }
+            return EtsUnknownType
+        }
+        val etsFieldTypes = etsFields.map { it.type }.distinct()
+        if (etsFieldTypes.size != 1) {
+            logger.warn { "Could not determine a unique field type for '$field', found ${etsFieldTypes.size}: $etsFieldTypes" }
+            return EtsUnknownType
+        }
+        etsFieldTypes.single()
+    }
+
     private fun handleFieldRef(
         instanceLocal: EtsLocal?,
         instance: UHeapRef,
@@ -742,6 +761,17 @@ class TsExprResolver(
                     val fp = memory.read(mkFieldLValue(fp64Sort, instance, field))
                     val fakeObject = mkFakeValue(scope, bool, fp, ref)
                     memory.write(lValue, fakeObject, guard = trueExpr)
+
+                    run {
+                        val realType = getFieldType(instanceLocal, field)
+                        val fakeType = fakeObject.getFakeType(scope)
+                        if (realType == EtsBooleanType) {
+                            scope.assert(fakeType.boolTypeExpr)
+                        } else if (realType == EtsNumberType) {
+                            scope.assert(fakeType.fpTypeExpr)
+                        }
+                    }
+
                     fakeObject
                 }
             } else {
