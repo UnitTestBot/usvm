@@ -28,7 +28,8 @@ import java.io.File
 @Disabled
 class EtsTypeResolverPerformanceTest {
     companion object {
-        const val RUNS = 5
+        const val WARMUP_ITERATIONS = 5
+        const val TEST_ITERATIONS = 5
         const val OUTPUT_FILE = "performance_report.md"
 
         @JvmStatic
@@ -38,7 +39,7 @@ class EtsTypeResolverPerformanceTest {
     }
 
     private fun runOnAbcProject(projectID: String, abcPath: String): PerformanceReport {
-        val report = generateReportForProject(projectID, abcPath, RUNS)
+        val report = generateReportForProject(projectID, abcPath, WARMUP_ITERATIONS, TEST_ITERATIONS)
         return report
     }
 
@@ -75,15 +76,14 @@ class EtsTypeResolverPerformanceTest {
             )
         )
 
-        val file = File(OUTPUT_FILE)
-        file.writeText(
-            buildString {
-                appendLine("|project|min time|max time|%|")
-                appendLine("|:--|:--|:--|:--|")
-                reports.forEach {
-                    appendLine(it.dumpToString())
-                }
+        val reportStr = buildString {
+            appendLine("|project|min time|max time|avg time|median time|%|")
+            appendLine("|:--|:--|:--|:--|:--|:--|")
+            reports.forEach {
+                appendLine(it.dumpToString())
             }
-        )
+        }
+        val file = File(OUTPUT_FILE)
+        file.writeText(reportStr)
     }
 }

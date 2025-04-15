@@ -1,6 +1,7 @@
 package org.usvm.dataflow.ts.infer
 
 import org.jacodb.ets.base.EtsArrayAccess
+import org.jacodb.ets.base.EtsAwaitExpr
 import org.jacodb.ets.base.EtsCastExpr
 import org.jacodb.ets.base.EtsConstant
 import org.jacodb.ets.base.EtsEntity
@@ -128,6 +129,8 @@ fun EtsEntity.toPathOrNull(): AccessPath? = when (this) {
     }
 
     is EtsCastExpr -> arg.toPathOrNull()
+
+    is EtsAwaitExpr -> arg.toPathOrNull()
 
     else -> null
 }

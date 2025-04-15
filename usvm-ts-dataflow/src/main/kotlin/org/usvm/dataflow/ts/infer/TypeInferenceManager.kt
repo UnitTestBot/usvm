@@ -12,7 +12,6 @@ import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import mu.KotlinLogging
-import org.jacodb.ets.base.ANONYMOUS_CLASS_PREFIX
 import org.jacodb.ets.base.CONSTRUCTOR_NAME
 import org.jacodb.ets.base.EtsReturnStmt
 import org.jacodb.ets.base.EtsStmt
@@ -80,10 +79,12 @@ class TypeInferenceManager(
         allMethods: List<EtsMethod> = entrypoints,
         doAddKnownTypes: Boolean = true,
         doInferAllLocals: Boolean = true,
+        doAliasAnalysis: Boolean = true,
     ): TypeInferenceResult = runBlocking {
         val methodTypeScheme = collectSummaries(
             startMethods = entrypoints,
             doAddKnownTypes = doAddKnownTypes,
+            doAliasAnalysis = doAliasAnalysis,
         )
         val remainingMethodsForAnalysis = allMethods.filter { it !in methodTypeScheme.keys }
 
@@ -93,6 +94,7 @@ class TypeInferenceManager(
             collectSummaries(
                 startMethods = remainingMethodsForAnalysis,
                 doAddKnownTypes = doAddKnownTypes,
+                doAliasAnalysis = doAliasAnalysis,
             )
         }
 
@@ -105,6 +107,7 @@ class TypeInferenceManager(
     private suspend fun collectSummaries(
         startMethods: List<EtsMethod>,
         doAddKnownTypes: Boolean = true,
+        doAliasAnalysis: Boolean = true,
     ): Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>> {
         logger.info { "Preparing backward analysis" }
         val backwardGraph = graph.reversed
@@ -187,7 +190,15 @@ class TypeInferenceManager(
 
         logger.info { "Preparing forward analysis" }
         val forwardGraph = graph
-        val forwardAnalyzer = ForwardAnalyzer(forwardGraph, methodTypeScheme, typeInfo, doAddKnownTypes)
+        val forwardAnalyzer = ForwardAnalyzer(
+            forwardGraph,
+            methodTypeScheme,
+            typeInfo,
+            doAddKnownTypes,
+            doAliasAnalysis = doAliasAnalysis,
+            doLiveVariablesAnalysis = true,
+        )
+
         val forwardRunner = UniRunner(
             traits = traits,
             manager = this@TypeInferenceManager,
@@ -333,21 +344,11 @@ class TypeInferenceManager(
     private fun getInferredCombinedThisTypes(
         methodTypeScheme: Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>>,
     ): Map<EtsClassSignature, EtsTypeFact> {
-        val classBySignature = graph.cp.projectAndSdkClasses
-            .groupByTo(hashMapOf()) { it.signature }
-
-        val allClasses = methodTypeScheme.keys
-            .map { it.enclosingClass }
-            .distinct()
-            .map { sig -> classBySignature[sig].orEmpty().first() }
-            .filterNot { it.name.startsWith(ANONYMOUS_CLASS_PREFIX) }
-
         val forwardSummariesByClass = forwardSummaries
             .entries.groupByTo(hashMapOf()) { (method, _) -> method.enclosingClass }
 
-        return allClasses.mapNotNull { cls ->
-            val clsMethods = (cls.methods + cls.ctor).toHashSet()
-            val combinedBackwardType = clsMethods
+        return graph.cp.projectClasses.mapNotNull { cls ->
+            val combinedBackwardType = (cls.methods + cls.ctor)
                 .mapNotNull { methodTypeScheme[it] }
                 .mapNotNull { facts -> facts[AccessPathBase.This] }.reduceOrNull { acc, type ->
                     typeProcessor.intersect(acc, type) ?: run {
