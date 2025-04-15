@@ -16,20 +16,27 @@
 
 package org.usvm.dataflow.ts.test.utils
 
+import java.math.RoundingMode
 import kotlin.time.Duration
+import kotlin.time.DurationUnit
 import kotlin.time.measureTimedValue
+
 
 data class PerformanceReport(
     val projectId: String,
     val maxTime: Duration,
+    val avgTime: Duration,
+    val medianTime: Duration,
     val minTime: Duration,
     val improvement: Double,
 ) {
     fun dumpToString(): String = listOf<Any>(
         projectId,
-        minTime,
-        maxTime,
-        improvement
+        minTime.toString(unit = DurationUnit.SECONDS, decimals = 3),
+        maxTime.toString(unit = DurationUnit.SECONDS, decimals = 3),
+        avgTime.toString(unit = DurationUnit.SECONDS, decimals = 3),
+        medianTime.toString(unit = DurationUnit.SECONDS, decimals = 3),
+        improvement.toBigDecimal().setScale(4, RoundingMode.HALF_UP).toDouble()
     ).joinToString(
         separator = "|",
         prefix = "|",
@@ -40,24 +47,29 @@ data class PerformanceReport(
 fun generateReportForProject(
     projectId: String,
     abcPath: String,
-    runCount: Int,
+    warmupIterationsCount: Int,
+    runIterationsCount: Int,
 ): PerformanceReport {
     val abcScene = AbcProjects.getAbcProject(abcPath)
 
-    val results = List(runCount) {
-        val (statistics, time) = measureTimedValue {
-            AbcProjects.runOnAbcProject(abcScene).second
+    val results = List(warmupIterationsCount + runIterationsCount) {
+        val (result, time) = measureTimedValue {
+            AbcProjects.inferTypes(abcScene)
         }
+        val statistics = AbcProjects.calculateStatistics(abcScene, result)
         time to statistics.calculateImprovement()
-    }
+    }.drop(warmupIterationsCount)
 
     val times = results.map { it.first }
-    val improvement = results.map { it.second }.distinct().single()
+    val improvement = results.map { it.second }.distinct().first()
+    val totalTime = times.reduce { acc, duration -> acc + duration }
 
     return PerformanceReport(
         projectId = projectId,
         minTime = times.min(),
         maxTime = times.max(),
+        avgTime = totalTime / runIterationsCount,
+        medianTime = times.sorted()[runIterationsCount / 2],
         improvement = improvement
     )
 }
