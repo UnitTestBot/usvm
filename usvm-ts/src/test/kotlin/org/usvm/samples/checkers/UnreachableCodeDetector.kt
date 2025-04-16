@@ -1,5 +1,7 @@
 package org.usvm.samples.checkers
 
+import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.jacodb.ets.utils.loadEtsProjectFromIR
 import org.junit.jupiter.api.Test
 import org.usvm.UMachineOptions
@@ -11,18 +13,15 @@ import org.usvm.util.getResourcePath
 class UnreachableCodeDetectorTest {
     @Test
     fun testUnreachableCode() {
-        // val scene = run {
-        //     val name = "UnreachableCode.ts"
-        //     val path = getResourcePath("/samples/checkers/$name")
-        //     val file = loadEtsFileAutoConvert(
-        //         path,
-        //         useArkAnalyzerTypeInference = 1
-        //     )
-        //     EtsScene(listOf(file))
-        // }
-
-        val path = getResourcePath("/projects/Demo_Calc/etsir")
-        val scene = loadEtsProjectFromIR(path, null)
+        val scene = run {
+            val name = "UnreachableCode.ts"
+            val path = getResourcePath("/samples/checkers/$name")
+            val file = loadEtsFileAutoConvert(
+                path,
+                useArkAnalyzerTypeInference = 1
+            )
+            EtsScene(listOf(file))
+        }
 
         val options = UMachineOptions()
         val tsOptions = TsOptions(interproceduralAnalysis = false)
