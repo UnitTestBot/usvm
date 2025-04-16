@@ -104,6 +104,7 @@ class StaticFields : TsMethodTestRunner() {
         )
     }
 
+    @Disabled("Statics are hard... See issue 607 in AA")
     @Test
     fun `test static object manipulation`() {
         val method = getMethod("StaticObject", "modifyAndGet")
