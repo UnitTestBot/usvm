@@ -9,6 +9,7 @@ import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.utils.callExpr
 import org.jacodb.ets.model.EtsNopStmt
 import org.jacodb.ets.model.EtsNullType
@@ -160,25 +161,7 @@ class TsInterpreter(
             }
 
             if (!tsOptions.interproceduralAnalysis && methodResult == TsMethodResult.NoCall) {
-                scope.doWithState {
-                    with(ctx) {
-                        val resultSort = typeToSort(it.method.returnType)
-                        val resultValue = when (resultSort) {
-                            is UAddressSort -> makeSymbolicRefUntyped()
-                            is TsUnresolvedSort -> {
-                                mkFakeValue(
-                                    scope,
-                                    makeSymbolicPrimitive(ctx.boolSort),
-                                    makeSymbolicPrimitive(ctx.fp64Sort),
-                                    makeSymbolicRefUntyped()
-                                )
-                            }
-
-                            else -> makeSymbolicPrimitive(resultSort)
-                        }
-                        this@doWithState.methodResult = TsMethodResult.Success.MockedCall(it.method, resultValue)
-                    }
-                }
+                mockMethodCall(scope, it.method)
                 return
             }
 
@@ -301,25 +284,7 @@ class TsInterpreter(
         }
 
         // intraprocedural analysis
-        scope.doWithState {
-            with(ctx) {
-                val resultSort = typeToSort(stmt.expr.method.returnType)
-                val resultValue = when (resultSort) {
-                    is UAddressSort -> makeSymbolicRefUntyped()
-                    is TsUnresolvedSort -> {
-                        mkFakeValue(
-                            scope,
-                            makeSymbolicPrimitive(ctx.boolSort),
-                            makeSymbolicPrimitive(ctx.fp64Sort),
-                            makeSymbolicRefUntyped()
-                        )
-                    }
-
-                    else -> makeSymbolicPrimitive(resultSort)
-                }
-                methodResult = TsMethodResult.Success.MockedCall(stmt.expr.method, resultValue)
-            }
-        }
+        mockMethodCall(scope, stmt.method.signature)
     }
 
     private fun visitThrowStmt(scope: TsStepScope, stmt: EtsThrowStmt) {
@@ -399,6 +364,28 @@ class TsInterpreter(
         state.memory.types.allocate(ctx.mkTsNullValue().address, EtsNullType)
 
         return state
+    }
+
+    private fun mockMethodCall(scope: TsStepScope, method: EtsMethodSignature) {
+        scope.doWithState {
+            with(ctx) {
+                val resultSort = typeToSort(method.returnType)
+                val resultValue = when (resultSort) {
+                    is UAddressSort -> makeSymbolicRefUntyped()
+                    is TsUnresolvedSort -> {
+                        mkFakeValue(
+                            scope,
+                            makeSymbolicPrimitive(ctx.boolSort),
+                            makeSymbolicPrimitive(ctx.fp64Sort),
+                            makeSymbolicRefUntyped()
+                        )
+                    }
+
+                    else -> makeSymbolicPrimitive(resultSort)
+                }
+                methodResult = TsMethodResult.Success.MockedCall(method, resultValue)
+            }
+        }
     }
 
     // TODO: expand with interpreter implementation
