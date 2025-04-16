@@ -4,7 +4,6 @@ import org.jacodb.ets.base.EtsAssignStmt
 import org.jacodb.ets.base.EtsIfStmt
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
-import org.jacodb.ets.utils.loadEtsProjectFromIR
 import org.junit.jupiter.api.Test
 import org.usvm.UMachineOptions
 import org.usvm.api.checkers.UnreachableCodeDetector
@@ -52,7 +51,7 @@ class UnreachableCodeDetectorTest {
         machine.analyze(methods)
 
         val results = observer.result.values.singleOrNull() ?: error("No results found")
-        check(results.single().second.single() is EtsAssignStmt)
+        check(results.single().successors.single() is EtsAssignStmt)
     }
 
     @Test
@@ -73,6 +72,6 @@ class UnreachableCodeDetectorTest {
 
         val relatedBranch = results.single { it.key.name == methodName }
         val stmts = relatedBranch.value.single()
-        check(stmts.second.single() is EtsIfStmt)
+        check(stmts.successors.single() is EtsIfStmt)
     }
 }

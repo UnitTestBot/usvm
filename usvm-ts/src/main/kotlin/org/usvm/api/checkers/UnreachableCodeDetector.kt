@@ -9,44 +9,41 @@ import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsState
 import org.usvm.statistics.UMachineObserver
 
+data class UncoveredIfSuccessors(val ifStmt: EtsIfStmt, val successors: Set<EtsStmt>)
+
 class UnreachableCodeDetector : TsInterpreterObserver, UMachineObserver<TsState> {
-    private val uncoveredIfSuccessors = hashMapOf<EtsMethod, MutableSet<EtsStmt>>()
-    private val allIfSuccessors = hashMapOf<EtsMethod, MutableSet<EtsStmt>>()
-    private val visitedIfStmt = hashMapOf<EtsMethod, MutableSet<EtsIfStmt>>()
-
-    lateinit var result: Map<EtsMethod, Set<Pair<EtsIfStmt, Set<EtsStmt>>>>
-
-    override fun onStatePeeked(state: TsState) {
-        val method = state.currentStatement.method
-        if (method !in allIfSuccessors) {
-            val ifSuccessors = method.cfg.stmts
-                .filter { it is EtsIfStmt }
-                .flatMapTo(hashSetOf()) { method.cfg.successors(it) }
-            allIfSuccessors[method] = ifSuccessors
-            uncoveredIfSuccessors[method] = ifSuccessors.toHashSet()
-        }
-    }
+    private val uncoveredSuccessorsOfVisitedIfStmts = hashMapOf<EtsMethod, MutableMap<EtsIfStmt, MutableSet<EtsStmt>>>()
+    lateinit var result: Map<EtsMethod, List<UncoveredIfSuccessors>>
 
     override fun onIfStatement(simpleValueResolver: TsSimpleValueResolver, stmt: EtsIfStmt, scope: TsStepScope) {
-        visitedIfStmt.getOrPut(stmt.method) { hashSetOf() }.add(stmt)
+        val ifStmts = uncoveredSuccessorsOfVisitedIfStmts.getOrPut(stmt.method) { mutableMapOf() }
+        // We've already added its successors in the map
+        if (stmt in ifStmts) return
+
+        val successors = stmt.method.cfg.successors(stmt)
+        ifStmts[stmt] = successors.toMutableSet()
     }
 
     override fun onState(parent: TsState, forks: Sequence<TsState>) {
-        if (parent.pathNode.parent?.statement !is EtsIfStmt) return
+        val previousStatement = parent.pathNode.parent?.statement
+        if (previousStatement !is EtsIfStmt) return
 
-        val currentIfSuccessors = uncoveredIfSuccessors.getValue(parent.currentStatement.method)
-        currentIfSuccessors -= parent.currentStatement
-        forks.forEach { currentIfSuccessors -= it.currentStatement }
+        val method = parent.currentStatement.method
+        val remainingUncoveredIfSuccessors = uncoveredSuccessorsOfVisitedIfStmts.getValue(method)
+        val remainingSuccessorsForCurrentIf = remainingUncoveredIfSuccessors[previousStatement]
+            ?: return // No uncovered successors for this if statement
+
+        remainingSuccessorsForCurrentIf -= parent.currentStatement
+        forks.forEach { remainingSuccessorsForCurrentIf -= it.currentStatement }
     }
 
     override fun onMachineStopped() {
-        result = uncoveredIfSuccessors.mapNotNull { (method, values) ->
-            val visitedIfs = visitedIfStmt[method] ?: return@mapNotNull null
-            val grouped = values.groupBy { method.cfg.predecessors(it).single() }
-                .map { it.key as EtsIfStmt to it.value.toSet() }
-                .filter { it.first in visitedIfs }
-                .toSet()
-            method to grouped
-        }.toMap()
+        result = uncoveredSuccessorsOfVisitedIfStmts
+            .mapNotNull { (method, uncoveredIfSuccessors) ->
+                uncoveredIfSuccessors
+                    .filter { it.value.isNotEmpty() }
+                    .takeIf { it.isNotEmpty() }
+                    ?.let { method to it.map { UncoveredIfSuccessors(it.key, it.value) } }
+            }.toMap()
     }
 }
