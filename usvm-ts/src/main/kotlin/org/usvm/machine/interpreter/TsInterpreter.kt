@@ -158,7 +158,32 @@ class TsInterpreter(
                 is TsMethodResult.Success -> observer?.onAssignStatement(exprResolver.simpleValueResolver, stmt, scope)
                 is TsMethodResult.TsException -> error("Exceptions must be processed earlier")
             }
+
+            if (!tsOptions.interproceduralAnalysis && methodResult == TsMethodResult.NoCall) {
+                scope.doWithState {
+                    with(ctx) {
+                        val resultSort = typeToSort(it.method.returnType)
+                        val resultValue = when (resultSort) {
+                            is UAddressSort -> makeSymbolicRefUntyped()
+                            is TsUnresolvedSort -> {
+                                mkFakeValue(
+                                    scope,
+                                    makeSymbolicPrimitive(ctx.boolSort),
+                                    makeSymbolicPrimitive(ctx.fp64Sort),
+                                    makeSymbolicRefUntyped()
+                                )
+                            }
+
+                            else -> makeSymbolicPrimitive(resultSort)
+                        }
+                        this@doWithState.methodResult = TsMethodResult.Success.MockedCall(it.method, resultValue)
+                    }
+                }
+                return
+            }
+
         } ?: observer?.onAssignStatement(exprResolver.simpleValueResolver, stmt, scope)
+
 
         val expr = exprResolver.resolve(stmt.rhv) ?: return
 

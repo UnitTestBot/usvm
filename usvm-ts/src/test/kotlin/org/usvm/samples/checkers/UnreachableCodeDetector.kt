@@ -1,5 +1,7 @@
 package org.usvm.samples.checkers
 
+import org.jacodb.ets.base.EtsAssignStmt
+import org.jacodb.ets.base.EtsIfStmt
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.jacodb.ets.utils.loadEtsProjectFromIR
@@ -20,11 +22,11 @@ class UnreachableCodeDetectorTest {
         )
         EtsScene(listOf(file))
     }
+    val options = UMachineOptions()
+    val tsOptions = TsOptions(interproceduralAnalysis = false)
 
     @Test
     fun testUnreachableCode() {
-        val options = UMachineOptions()
-        val tsOptions = TsOptions(interproceduralAnalysis = false)
         val observer = UnreachableCodeDetector()
         val machine = TsMachine(scene, options, tsOptions, observer, observer)
         val methods = scene.projectClasses
@@ -37,5 +39,40 @@ class UnreachableCodeDetectorTest {
         val uncoveredStatements = uncoveredResults.singleOrNull()
 
         check(uncoveredStatements != null) { "Uncovered statements are incorrect, results are $uncoveredStatements" }
+    }
+
+    @Test
+    fun testUnreachableCodeWithMockedCallsInside() {
+        val observer = UnreachableCodeDetector()
+        val tsOptions = TsOptions(interproceduralAnalysis = false)
+        val machine = TsMachine(scene, options, tsOptions, observer, observer)
+        val methods = scene.projectClasses
+            .flatMap { it.methods }
+            .filter { it.name == "unreachableCodeWithCallsInside" }
+        machine.analyze(methods)
+
+        val results = observer.result.values.singleOrNull() ?: error("No results found")
+        check(results.single().second.single() is EtsAssignStmt)
+    }
+
+    @Test
+    fun testUnreachableCodeCallsInside() {
+        val observer = UnreachableCodeDetector()
+        val tsOptions = TsOptions(interproceduralAnalysis = true)
+        val machine = TsMachine(scene, options, tsOptions, observer, observer)
+        val methodName = "unreachableCodeWithCallsInside"
+        val methods = scene.projectClasses
+            .flatMap { it.methods }
+            .filter { it.name == methodName }
+
+        machine.analyze(methods)
+
+        val results = observer.result.entries
+
+        check(results.size == 2)
+
+        val relatedBranch = results.single { it.key.name == methodName }
+        val stmts = relatedBranch.value.single()
+        check(stmts.second.single() is EtsIfStmt)
     }
 }
