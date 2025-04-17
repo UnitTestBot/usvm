@@ -1,13 +1,15 @@
 package org.usvm.api.checkers
 
-import org.jacodb.ets.base.EtsIfStmt
-import org.jacodb.ets.base.EtsStmt
+import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsStmt
 import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.expr.TsSimpleValueResolver
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsState
 import org.usvm.statistics.UMachineObserver
+import kotlin.collections.filter
+import kotlin.collections.isNotEmpty
 
 data class UncoveredIfSuccessors(val ifStmt: EtsIfStmt, val successors: Set<EtsStmt>)
 

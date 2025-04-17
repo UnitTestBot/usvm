@@ -1,12 +1,10 @@
 package org.usvm.machine
 
-import org.jacodb.ets.base.EtsAssignStmt
-import org.jacodb.ets.base.EtsCallExpr
-import org.jacodb.ets.base.EtsGotoStmt
-import org.jacodb.ets.base.EtsIfStmt
-import org.jacodb.ets.base.EtsReturnStmt
-import org.jacodb.ets.base.EtsSwitchStmt
-import org.jacodb.ets.base.EtsThrowStmt
+import org.jacodb.ets.model.EtsAssignStmt
+import org.jacodb.ets.model.EtsCallExpr
+import org.jacodb.ets.model.EtsIfStmt
+import org.jacodb.ets.model.EtsReturnStmt
+import org.jacodb.ets.model.EtsThrowStmt
 import org.usvm.UBoolExpr
 import org.usvm.machine.expr.TsSimpleValueResolver
 import org.usvm.machine.interpreter.TsStepScope
@@ -62,22 +60,6 @@ interface TsInterpreterObserver : UInterpreterObserver {
     fun onThrowStatement(
         simpleValueResolver: TsSimpleValueResolver,
         stmt: EtsThrowStmt,
-        scope: TsStepScope,
-    ) {
-        // default empty implementation
-    }
-
-    fun onGotoStatement(
-        simpleValueResolver: TsSimpleValueResolver,
-        stmt: EtsGotoStmt,
-        scope: TsStepScope,
-    ) {
-        // default empty implementation
-    }
-
-    fun onSwitchStatement(
-        simpleValueResolver: TsSimpleValueResolver,
-        stmt: EtsSwitchStmt,
         scope: TsStepScope,
     ) {
         // default empty implementation

@@ -1,7 +1,7 @@
 package org.usvm.samples.checkers
 
-import org.jacodb.ets.base.EtsAssignStmt
-import org.jacodb.ets.base.EtsIfStmt
+import org.jacodb.ets.model.EtsAssignStmt
+import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Test
