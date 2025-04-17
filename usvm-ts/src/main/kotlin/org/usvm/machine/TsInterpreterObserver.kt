@@ -14,14 +14,72 @@ import org.usvm.statistics.UInterpreterObserver
 
 @Suppress("unused")
 interface TsInterpreterObserver : UInterpreterObserver {
-    fun onAssignStatement(simpleValueResolver: TsSimpleValueResolver, stmt: EtsAssignStmt, scope: TsStepScope) {}
+    fun onAssignStatement(
+        simpleValueResolver: TsSimpleValueResolver,
+        stmt: EtsAssignStmt,
+        scope: TsStepScope
+    ) {
+        // default empty implementation
+    }
+
     // TODO on entry point
-    fun onCallWithUnresolvedArguments(simpleValueResolver: TsSimpleValueResolver, stmt: EtsCallExpr, scope: TsStepScope) {}
+
+    fun onCallWithUnresolvedArguments(
+        simpleValueResolver: TsSimpleValueResolver,
+        stmt: EtsCallExpr,
+        scope: TsStepScope
+    ) {
+        // default empty implementation
+    }
+
     // TODO onCallWithResolvedArguments
-    fun onIfStatement(simpleValueResolver: TsSimpleValueResolver, stmt: EtsIfStmt, scope: TsStepScope) {}
-    fun onIfStatementWithResolvedCondition(simpleValueResolver: TsSimpleValueResolver, stmt: EtsIfStmt, condition: UBoolExpr, scope: TsStepScope) {}
-    fun onReturnStatement(simpleValueResolver: TsSimpleValueResolver, stmt: EtsReturnStmt, scope: TsStepScope) {}
-    fun onThrowStatement(simpleValueResolver: TsSimpleValueResolver, stmt: EtsThrowStmt, scope: TsStepScope) {}
-    fun onGotoStatement(simpleValueResolver: TsSimpleValueResolver, stmt: EtsGotoStmt, scope: TsStepScope) {}
-    fun onSwitchStatement(simpleValueResolver: TsSimpleValueResolver, stmt: EtsSwitchStmt, scope: TsStepScope) {}
+
+    fun onIfStatement(
+        simpleValueResolver: TsSimpleValueResolver,
+        stmt: EtsIfStmt,
+        scope: TsStepScope
+    ) {
+        // default empty implementation
+    }
+
+    fun onIfStatementWithResolvedCondition(
+        simpleValueResolver: TsSimpleValueResolver,
+        stmt: EtsIfStmt,
+        condition: UBoolExpr,
+        scope: TsStepScope
+    ) {
+        // default empty implementation
+    }
+
+    fun onReturnStatement(
+        simpleValueResolver: TsSimpleValueResolver,
+        stmt: EtsReturnStmt,
+        scope: TsStepScope
+    ) {
+        // default empty implementation
+    }
+
+    fun onThrowStatement(
+        simpleValueResolver: TsSimpleValueResolver,
+        stmt: EtsThrowStmt,
+        scope: TsStepScope
+    ) {
+        // default empty implementation
+    }
+
+    fun onGotoStatement(
+        simpleValueResolver: TsSimpleValueResolver,
+        stmt: EtsGotoStmt,
+        scope: TsStepScope
+    ) {
+        // default empty implementation
+    }
+
+    fun onSwitchStatement(
+        simpleValueResolver: TsSimpleValueResolver,
+        stmt: EtsSwitchStmt,
+        scope: TsStepScope
+    ) {
+        // default empty implementation
+    }
 }

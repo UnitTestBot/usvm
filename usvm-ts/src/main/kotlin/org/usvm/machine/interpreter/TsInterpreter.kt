@@ -164,7 +164,6 @@ class TsInterpreter(
                 mockMethodCall(scope, it.method)
                 return
             }
-
         } ?: observer?.onAssignStatement(exprResolver.simpleValueResolver, stmt, scope)
 
 

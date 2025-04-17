@@ -43,7 +43,7 @@ class UnreachableCodeDetector : TsInterpreterObserver, UMachineObserver<TsState>
                 uncoveredIfSuccessors
                     .filter { it.value.isNotEmpty() }
                     .takeIf { it.isNotEmpty() }
-                    ?.let { method to it.map { UncoveredIfSuccessors(it.key, it.value) } }
+                    ?.let { ifSucc -> method to ifSucc.map { UncoveredIfSuccessors(it.key, it.value) } }
             }.toMap()
     }
 }
