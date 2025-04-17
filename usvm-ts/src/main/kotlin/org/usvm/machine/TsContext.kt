@@ -9,7 +9,6 @@ import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsType
-import org.jacodb.ets.model.EtsUnclearRefType
 import org.jacodb.ets.model.EtsUndefinedType
 import org.jacodb.ets.model.EtsUnionType
 import org.jacodb.ets.model.EtsUnknownType
@@ -30,7 +29,6 @@ import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.types.FakeType
 import org.usvm.types.UTypeStream
-import org.usvm.types.single
 import org.usvm.util.mkFieldLValue
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract

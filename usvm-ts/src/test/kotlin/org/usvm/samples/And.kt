@@ -15,7 +15,6 @@ import org.jacodb.ets.model.EtsMethodImpl
 import org.jacodb.ets.model.EtsMethodParameter
 import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsNumberType
-import org.jacodb.ets.model.EtsParameterRef
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
 import org.jacodb.ets.utils.toEtsBlockCfg

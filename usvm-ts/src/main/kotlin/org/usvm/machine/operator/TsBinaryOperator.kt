@@ -17,7 +17,6 @@ import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.types.ExprWithTypeConstraint
 import org.usvm.machine.types.FakeType
 import org.usvm.machine.types.iteWriteIntoFakeObject
-import org.usvm.types.single
 import org.usvm.util.boolToFp
 
 sealed interface TsBinaryOperator {
