@@ -93,7 +93,6 @@ import org.usvm.machine.state.TsState
 import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.parametersWithThisCount
-import org.usvm.machine.types.FakeType
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.memory.ULValue
 import org.usvm.sizeSort
@@ -665,9 +664,7 @@ class TsExprResolver(
 
         // TODO: handle "length" property for arrays inside fake objects
         if (value.field.name == "length" && instanceRef.isFakeObject()) {
-            val fakeType = scope.calcOnState {
-                memory.types.getTypeStream(instanceRef).single() as FakeType
-            }
+            val fakeType = instanceRef.getFakeType(scope)
             if (fakeType.refTypeExpr.isTrue) {
                 val refLValue = getIntermediateRefLValue(instanceRef.address)
                 val obj = scope.calcOnState { memory.read(refLValue) }

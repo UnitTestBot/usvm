@@ -13,6 +13,7 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.USort
 import org.usvm.UState
 import org.usvm.api.targets.TsTarget
+import org.usvm.collections.immutable.getOrPut
 import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHashMap
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.collections.immutable.persistentHashMapOf

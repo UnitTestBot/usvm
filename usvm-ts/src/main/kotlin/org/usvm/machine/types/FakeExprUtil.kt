@@ -15,6 +15,7 @@ import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsState
 import org.usvm.memory.ULValue
+import org.usvm.types.single
 
 fun TsContext.mkFakeValue(
     scope: TsStepScope,

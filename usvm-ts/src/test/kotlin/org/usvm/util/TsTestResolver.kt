@@ -33,6 +33,7 @@ import org.usvm.api.TsValue
 import org.usvm.isTrue
 import org.usvm.machine.TsContext
 import org.usvm.machine.expr.TsUnresolvedSort
+import org.usvm.machine.expr.extractBool
 import org.usvm.machine.expr.extractDouble
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
@@ -42,6 +43,8 @@ import org.usvm.memory.UReadOnlyMemory
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.mkSizeExpr
 import org.usvm.model.UModelBase
+import org.usvm.types.first
+import org.usvm.types.single
 
 class TsTestResolver {
     fun resolve(method: EtsMethod, state: TsState): TsTest = with(state.ctx) {

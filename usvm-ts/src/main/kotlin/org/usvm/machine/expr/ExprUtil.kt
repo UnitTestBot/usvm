@@ -12,6 +12,7 @@ import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.types.ExprWithTypeConstraint
 import org.usvm.machine.types.FakeType
+import org.usvm.types.single
 import org.usvm.util.boolToFp
 
 fun TsContext.mkTruthyExpr(
