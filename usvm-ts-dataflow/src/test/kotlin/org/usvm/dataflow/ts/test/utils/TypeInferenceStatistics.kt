@@ -501,8 +501,14 @@ class TypeInferenceStatistics {
             appendLine("No types inferred for methods:")
 
             noTypesInferred
-                .filterNot { it.name == INSTANCE_INIT_METHOD_NAME || it.name == STATIC_INIT_METHOD_NAME }
-                .filterNot { it.name == DEFAULT_ARK_METHOD_NAME && it.signature.enclosingClass.name == DEFAULT_ARK_CLASS_NAME }
+                .filterNot {
+                    it.name == INSTANCE_INIT_METHOD_NAME
+                        || it.name == STATIC_INIT_METHOD_NAME
+                }
+                .filterNot {
+                    it.name == DEFAULT_ARK_METHOD_NAME
+                        && it.signature.enclosingClass.name == DEFAULT_ARK_CLASS_NAME
+                }
                 .sortedBy { it.signature.toString() }
                 .forEach {
                     appendLine(it)
