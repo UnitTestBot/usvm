@@ -1,6 +1,7 @@
 package org.usvm.samples
 
 import org.jacodb.ets.model.EtsScene
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsValue
 import org.usvm.util.TsMethodTestRunner
@@ -34,6 +35,25 @@ class Call : TsMethodTestRunner() {
             invariants = arrayOf(
                 { n, r -> fib(n.number) == r.number }
             )
+        )
+    }
+
+    @Test
+    fun `test concrete`() {
+        val method = getMethod(className, "concrete")
+        discoverProperties<TsValue.TsNumber>(
+            method = method,
+            { r -> r.number == 10.0 },
+        )
+    }
+
+    @Disabled("Requires type stream")
+    @Test
+    fun `test hidden`() {
+        val method = getMethod(className, "hidden")
+        discoverProperties<TsValue.TsNumber>(
+            method = method,
+            { r -> r.number == 20.0 },
         )
     }
 }

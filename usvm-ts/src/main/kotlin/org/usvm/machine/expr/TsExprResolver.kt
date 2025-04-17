@@ -15,6 +15,7 @@ import org.jacodb.ets.model.EtsBitOrExpr
 import org.jacodb.ets.model.EtsBitXorExpr
 import org.jacodb.ets.model.EtsBooleanConstant
 import org.jacodb.ets.model.EtsCastExpr
+import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsConstant
 import org.jacodb.ets.model.EtsDeleteExpr
@@ -23,6 +24,7 @@ import org.jacodb.ets.model.EtsEntity
 import org.jacodb.ets.model.EtsEqExpr
 import org.jacodb.ets.model.EtsExpExpr
 import org.jacodb.ets.model.EtsFieldSignature
+import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsGtEqExpr
 import org.jacodb.ets.model.EtsGtExpr
 import org.jacodb.ets.model.EtsInExpr
@@ -44,6 +46,7 @@ import org.jacodb.ets.model.EtsNotExpr
 import org.jacodb.ets.model.EtsNullConstant
 import org.jacodb.ets.model.EtsNullishCoalescingExpr
 import org.jacodb.ets.model.EtsNumberConstant
+import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsOrExpr
 import org.jacodb.ets.model.EtsParameterRef
 import org.jacodb.ets.model.EtsPostDecExpr
@@ -80,9 +83,12 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.allocateArray
+import org.usvm.api.allocateArrayInitialized
 import org.usvm.dataflow.ts.infer.tryGetKnownType
 import org.usvm.isTrue
+import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
+import org.usvm.machine.TsVirtualMethodCallStmt
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.isInitialized
 import org.usvm.machine.interpreter.markInitialized
@@ -90,9 +96,9 @@ import org.usvm.machine.operator.TsBinaryOperator
 import org.usvm.machine.operator.TsUnaryOperator
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
+import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
-import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.memory.ULValue
 import org.usvm.sizeSort
@@ -246,7 +252,19 @@ class TsExprResolver(
         error("Not supported $expr")
     }
 
-    override fun visit(expr: EtsCastExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsCastExpr): UExpr<*>? = with(ctx) {
+        if (expr.type == EtsNumberType) {
+            val arg = resolve(expr.arg) ?: return null
+
+            if (arg.isFakeObject()) {
+                val type = arg.getFakeType(scope)
+                scope.assert(type.fpTypeExpr)
+                return arg.extractFp(scope)
+            }
+
+            return resolve(expr.arg)?.asExpr(ctx.fp64Sort)
+        }
+
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
     }
@@ -426,7 +444,7 @@ class TsExprResolver(
         }
     }
 
-    override fun visit(expr: EtsInstanceCallExpr): UExpr<out USort>? = with(ctx) {
+    override fun visit(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
         if (expr.instance.name == "Number") {
             if (expr.callee.name == "isNaN") {
                 return resolveAfterResolved(expr.args.single()) { arg ->
@@ -435,25 +453,31 @@ class TsExprResolver(
             }
         }
 
+        if (expr.callee.name == "toString") {
+            return mkFp64(42.0)
+        }
+
         resolveInvoke(
             method = expr.callee,
             instance = expr.instance,
-            arguments = { expr.args },
-            argumentTypes = { expr.callee.parameters.map { it.type } },
-        ) { args ->
+            args = expr.args,
+        ) { arguments ->
             doWithState {
-                val method = resolveInstanceCall(expr.instance, expr.callee)
-
-                check(args.size == method.parametersWithThisCount)
-                pushSortsForArguments(expr.instance, expr.args, localToIdx)
-                callStack.push(method, currentStatement)
-                memory.stack.push(args.toTypedArray(), method.localsCount)
-                newStmt(method.cfg.stmts.first())
+                // TODO: fix sorts for arguments - they should be pushed not here, but when the MethodCallStmt is handled
+                // pushSortsForArguments(expr.instance, expr.args, localToIdx)
+                pushSortsForActualArguments(arguments)
+                val virtualCall = TsVirtualMethodCallStmt(
+                    location = lastStmt.location,
+                    callee = expr.callee,
+                    arguments = arguments,
+                    returnSite = lastStmt,
+                )
+                newStmt(virtualCall)
             }
         }
     }
 
-    override fun visit(expr: EtsStaticCallExpr): UExpr<out USort>? = with(ctx) {
+    override fun visit(expr: EtsStaticCallExpr): UExpr<*>? = with(ctx) {
         if (expr.callee.name == "Number" && expr.callee.enclosingClass.name == "") {
             check(expr.args.size == 1) { "Number constructor should have exactly one argument" }
             return resolveAfterResolved(expr.args.single()) {
@@ -464,11 +488,24 @@ class TsExprResolver(
         resolveInvoke(
             method = expr.callee,
             instance = null,
-            arguments = { expr.args },
-            argumentTypes = { expr.callee.parameters.map { it.type } },
-        ) { args ->
-            // TODO: IMPORTANT do not forget to fill sorts of arguments map
-            TODO("Unsupported static methods")
+            args = expr.args,
+        ) { arguments ->
+            val method = resolveStaticCall(expr.callee) ?: run {
+                logger.error { "Could not resolve static call: ${expr.callee}" }
+                scope.assert(falseExpr)
+                return null
+            }
+            doWithState {
+                // pushSortsForArguments(null, expr.args, localToIdx)
+                pushSortsForActualArguments(arguments)
+                val concreteCall = TsConcreteMethodCallStmt(
+                    location = lastStmt.location,
+                    callee = method,
+                    arguments = arguments,
+                    returnSite = lastStmt,
+                )
+                newStmt(concreteCall)
+            }
         }
     }
 
@@ -477,58 +514,120 @@ class TsExprResolver(
         TODO("Not supported ${expr::class.simpleName}: $expr")
     }
 
-    private fun resolveInstanceCall(
-        instance: EtsLocal,
+    private fun resolveStaticCall(
         method: EtsMethodSignature,
-    ): EtsMethod {
+    ): EtsMethod? {
         // Perfect signature:
         if (method.enclosingClass.name != UNKNOWN_CLASS_NAME) {
-            val clazz = ctx.scene.projectAndSdkClasses.single { it.name == method.enclosingClass.name }
-            return clazz.methods.single { it.name == method.name }
+            val classes = ctx.scene.projectAndSdkClasses.filter { it.name == method.enclosingClass.name }
+            if (classes.size != 1) return null
+            val clazz = classes.single()
+            val methods = clazz.methods.filter { it.name == method.name }
+            if (methods.size != 1) return null
+            return methods.single()
         }
 
         // Unknown signature:
-        val instanceType = instance.type
-        if (instanceType is EtsClassType) {
-            val classes = ctx.scene.projectAndSdkClasses
-                .filter { it.name == instanceType.signature.name }
-            if (classes.size == 1) {
-                val clazz = classes.single()
-                return clazz.methods.single { it.name == method.name }
-            }
-            val methods = classes
-                .flatMap { it.methods }
-                .filter { it.name == method.name }
-            if (methods.size == 1) return methods.single()
-        } else {
-            val methods = ctx.scene.projectAndSdkClasses
-                .flatMap { it.methods }
-                .filter { it.name == method.name }
-            if (methods.size == 1) return methods.single()
-        }
-        error("Cannot resolve method $method")
+        val methods = ctx.scene.projectAndSdkClasses
+            .flatMap { it.methods }
+            .filter { it.name == method.name }
+        if (methods.size == 1) return methods.single()
+
+        // error("Cannot resolve method $method")
+        return null
     }
 
     private inline fun resolveInvoke(
         method: EtsMethodSignature,
         instance: EtsLocal?,
-        arguments: () -> List<EtsValue>,
-        argumentTypes: () -> List<EtsType>,
-        onNoCallPresent: TsStepScope.(List<UExpr<out USort>>) -> Unit,
-    ): UExpr<out USort>? {
+        args: List<EtsValue>,
+        onNoCallPresent: TsStepScope.(List<UExpr<*>>) -> Unit,
+    ): UExpr<*>? {
         val instanceExpr = if (instance != null) {
             val resolved = resolve(instance) ?: return null
-            resolved.asExpr(ctx.addressSort)
+            if (resolved.sort != ctx.addressSort) {
+                // TODO: handle "<number>.toString()" and similar calls on non-ref instances
+                // logger.warn { "Calling method on non-ref instance is not yet supported" }
+                // scope.assert(ctx.falseExpr)
+                // return null
+                // ctx.mkNumericExpr(resolved, scope)
+                scope.calcOnState {
+                    val numberType = EtsClassType(
+                        EtsClassSignature(
+                            name = "Number",
+                            file = EtsFileSignature.UNKNOWN
+                        )
+                    )
+                    val x = memory.allocConcrete(numberType)
+                    // TODO:  val lValue = "x.value"
+                    // TODO memory.write(lValue, mkNumeric)
+                    x
+                }
+            } else {
+                resolved.asExpr(ctx.addressSort)
+            }
         } else {
             null
         }
 
-        val args = mutableListOf<UExpr<out USort>>()
+        val resolvedArgs = args.map { resolve(it) ?: return null }
 
-        for (arg in arguments()) {
-            val resolved = resolve(arg) ?: return null
-            args += resolved
+        // function f(x: any, ...args: any[]) {}
+        // f(1, 2, 3) -> f(1, [2, 3])
+        // f(1, 2) -> f(1, [2])
+        // f(1) -> f(1, [])
+        // f() -> f(undefined, [])
+
+        // function g(x: any, y: any) {}
+        // g(1, 2) -> g(1, 2)
+        // g(1) -> g(1, undefined)
+        // g() -> g(undefined, undefined)
+        // g(1, 2, 3) -> g(1, 2)
+
+        val arguments = mutableListOf<UExpr<*>>()
+        val numActual = resolvedArgs.size
+        val numFormal = method.parameters.size
+
+        if (method.parameters.isNotEmpty() && method.parameters.last().isRest) {
+            // vararg call
+
+            // first n-1 args are normal
+            arguments += resolvedArgs.take(numFormal - 1)
+
+            // fill with undefined
+            repeat(numFormal - 1 - numActual) {
+                arguments += ctx.mkUndefinedValue()
+            }
+
+            // wrap rest args in array
+            val content = resolvedArgs.drop(numFormal - 1).map {
+                with(ctx) { it.toFakeObject(scope) }
+            }
+            val array = scope.calcOnState {
+                memory.allocateArrayInitialized(
+                    type = EtsArrayType(EtsUnknownType, 1),
+                    sort = ctx.addressSort,
+                    sizeSort = ctx.sizeSort,
+                    contents = content.asSequence(),
+                )
+            }
+            arguments += array
+        } else {
+            // normal call
+
+            // ignore extra args
+            // arguments += resolvedArgs.take(numFormal)
+
+            // TODO: do not ignore...
+            arguments += resolvedArgs
+
+            // fill with undefined
+            repeat(numFormal - numActual) {
+                arguments += ctx.mkUndefinedValue()
+            }
         }
+
+        // check(arguments.size == method.parameters.size)
 
         // Note: currently, 'this' has index 'n', so we must add it LAST, *after* all other arguments.
         // See `TsInterpreter::mapLocalToIdx`.
@@ -536,19 +635,13 @@ class TsExprResolver(
             // TODO: checkNullPointer(instanceRef) ?: return null
             // TODO: if (!assertIsSubtype(instanceRef, method.enclosingType)) return null
 
-            args += instanceExpr
+            arguments += instanceExpr
         }
 
-        return resolveInvokeNoStaticInitializationCheck { onNoCallPresent(args) }
-    }
-
-    private inline fun resolveInvokeNoStaticInitializationCheck(
-        onNoCallPresent: TsStepScope.() -> Unit,
-    ): UExpr<out USort>? {
         val result = scope.calcOnState { methodResult }
         return when (result) {
             is TsMethodResult.NoCall -> {
-                scope.onNoCallPresent()
+                scope.onNoCallPresent(arguments)
                 null
             }
 
@@ -559,7 +652,9 @@ class TsExprResolver(
                 result.value
             }
 
-            is TsMethodResult.TsException -> error("Exception should be handled earlier")
+            is TsMethodResult.TsException -> {
+                error("Exception should be handled earlier")
+            }
         }
     }
 

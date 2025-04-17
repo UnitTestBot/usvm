@@ -32,7 +32,7 @@ class TsMachine(
     private val typeSystem = TsTypeSystem(typeOperationsTimeout = 1.seconds, project)
     private val components = TsComponents(typeSystem, options)
     private val ctx = TsContext(project, components)
-    private val applicationGraph = TsApplicationGraph(project)
+    private val applicationGraph = TsGraph(project)
     private val interpreter = TsInterpreter(ctx, applicationGraph)
     private val cfgStatistics = CfgStatisticsImpl(applicationGraph)
 
