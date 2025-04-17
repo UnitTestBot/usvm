@@ -3,6 +3,7 @@ package org.usvm.machine
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsAnyType
+import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsNumberType
@@ -28,7 +29,7 @@ import org.usvm.machine.expr.TsUndefinedSort
 import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.types.FakeType
-import org.usvm.types.UTypeStream
+import org.usvm.memory.UReadOnlyMemory
 import org.usvm.types.single
 import org.usvm.util.mkFieldLValue
 import kotlin.contracts.ExperimentalContracts
@@ -48,8 +49,8 @@ class TsContext(
      * In TS we treat undefined value as a null reference in other objects.
      * For real null represented in the language we create another reference.
      */
-    private val undefinedValue: UExpr<UAddressSort> = mkNullRef()
-    fun mkUndefinedValue(): UExpr<UAddressSort> = undefinedValue
+    private val undefinedValue: UHeapRef = mkNullRef()
+    fun mkUndefinedValue(): UHeapRef = undefinedValue
 
     private val nullValue: UConcreteHeapRef = mkConcreteHeapRef(addressCounter.freshStaticAddress())
     fun mkTsNullValue(): UConcreteHeapRef = nullValue
@@ -57,25 +58,30 @@ class TsContext(
     fun typeToSort(type: EtsType): USort = when (type) {
         is EtsBooleanType -> boolSort
         is EtsNumberType -> fp64Sort
-        is EtsRefType -> addressSort
         is EtsNullType -> addressSort
         is EtsUndefinedType -> addressSort
-        is EtsUnknownType -> unresolvedSort
         is EtsUnionType -> unresolvedSort
+        is EtsRefType -> addressSort
         is EtsAnyType -> unresolvedSort
-        else -> TODO("Support all JacoDB types, encountered $type")
+        is EtsUnknownType -> unresolvedSort
+        else -> {
+            unresolvedSort
+            // TODO("Support all JacoDB types, encountered $type")
+        }
     }
 
-    fun UHeapRef.getTypeStream(scope: TsStepScope): UTypeStream<EtsType> =
-        scope.calcOnState {
-            memory.typeStreamOf(this@getTypeStream)
-        }
+    fun arrayDescriptorOf(type: EtsArrayType): EtsType = EtsUnknownType
+
+    fun UConcreteHeapRef.getFakeType(memory: UReadOnlyMemory<*>): FakeType {
+        check(isFakeObject())
+        return memory.typeStreamOf(this).single() as FakeType
+    }
 
     fun UConcreteHeapRef.getFakeType(scope: TsStepScope): FakeType =
-        getTypeStream(scope).single() as FakeType
+        scope.calcOnState { getFakeType(memory) }
 
     @OptIn(ExperimentalContracts::class)
-    fun UExpr<out USort>.isFakeObject(): Boolean {
+    fun UExpr<*>.isFakeObject(): Boolean {
         contract {
             returns(true) implies (this@isFakeObject is UConcreteHeapRef)
         }
@@ -83,7 +89,7 @@ class TsContext(
         return sort == addressSort && this is UConcreteHeapRef && address > MAGIC_OFFSET
     }
 
-    fun UExpr<out USort>.toFakeObject(scope: TsStepScope): UConcreteHeapRef {
+    fun UExpr<*>.toFakeObject(scope: TsStepScope): UConcreteHeapRef {
         if (isFakeObject()) {
             return this
         }
@@ -94,20 +100,20 @@ class TsContext(
             when (sort) {
                 boolSort -> {
                     val lvalue = getIntermediateBoolLValue(ref.address)
-                    memory.write(lvalue, this@toFakeObject.asExpr(boolSort), guard = trueExpr)
-                    memory.types.allocate(ref.address, FakeType.fromBool(this@TsContext))
+                    memory.write(lvalue, asExpr(boolSort), guard = trueExpr)
+                    memory.types.allocate(ref.address, FakeType.mkBool(this@TsContext))
                 }
 
                 fp64Sort -> {
                     val lValue = getIntermediateFpLValue(ref.address)
-                    memory.write(lValue, this@toFakeObject.asExpr(fp64Sort), guard = trueExpr)
-                    memory.types.allocate(ref.address, FakeType.fromFp(this@TsContext))
+                    memory.write(lValue, asExpr(fp64Sort), guard = trueExpr)
+                    memory.types.allocate(ref.address, FakeType.mkFp(this@TsContext))
                 }
 
                 addressSort -> {
                     val lValue = getIntermediateRefLValue(ref.address)
-                    memory.write(lValue, this@toFakeObject.asExpr(addressSort), guard = trueExpr)
-                    memory.types.allocate(ref.address, FakeType.fromRef(this@TsContext))
+                    memory.write(lValue, asExpr(addressSort), guard = trueExpr)
+                    memory.types.allocate(ref.address, FakeType.mkRef(this@TsContext))
                 }
 
                 else -> TODO("Not yet supported")
@@ -117,29 +123,15 @@ class TsContext(
         return ref
     }
 
-    fun UExpr<out USort>.extractSingleValueFromFakeObjectOrNull(scope: TsStepScope): UExpr<out USort>? {
+    fun UExpr<*>.extractSingleValueFromFakeObjectOrNull(scope: TsStepScope): UExpr<*>? {
         if (!isFakeObject()) return null
 
         val type = getFakeType(scope)
-        return scope.calcOnState {
-            when {
-                type.boolTypeExpr.isTrue -> {
-                    val lValue = getIntermediateBoolLValue(address)
-                    memory.read(lValue).asExpr(boolSort)
-                }
-
-                type.fpTypeExpr.isTrue -> {
-                    val lValue = getIntermediateFpLValue(address)
-                    memory.read(lValue).asExpr(fp64Sort)
-                }
-
-                type.refTypeExpr.isTrue -> {
-                    val lValue = getIntermediateRefLValue(address)
-                    memory.read(lValue).asExpr(addressSort)
-                }
-
-                else -> null
-            }
+        return when {
+            type.boolTypeExpr.isTrue -> extractBool(scope)
+            type.fpTypeExpr.isTrue -> extractFp(scope)
+            type.refTypeExpr.isTrue -> extractRef(scope)
+            else -> null
         }
     }
 
@@ -163,19 +155,34 @@ class TsContext(
         return mkFieldLValue(addressSort, mkConcreteHeapRef(addr), IntermediateLValueField.REF)
     }
 
-    fun UConcreteHeapRef.extractBool(scope: TsStepScope): UBoolExpr {
+    fun UConcreteHeapRef.extractBool(memory: UReadOnlyMemory<*>): UBoolExpr {
+        check(isFakeObject())
         val lValue = getIntermediateBoolLValue(address)
-        return scope.calcOnState { memory.read(lValue) }
+        return memory.read(lValue)
+    }
+
+    fun UConcreteHeapRef.extractFp(memory: UReadOnlyMemory<*>): UExpr<KFp64Sort> {
+        check(isFakeObject())
+        val lValue = getIntermediateFpLValue(address)
+        return memory.read(lValue)
+    }
+
+    fun UConcreteHeapRef.extractRef(memory: UReadOnlyMemory<*>): UHeapRef {
+        check(isFakeObject())
+        val lValue = getIntermediateRefLValue(address)
+        return memory.read(lValue)
+    }
+
+    fun UConcreteHeapRef.extractBool(scope: TsStepScope): UBoolExpr {
+        return scope.calcOnState { extractBool(memory) }
     }
 
     fun UConcreteHeapRef.extractFp(scope: TsStepScope): UExpr<KFp64Sort> {
-        val lValue = getIntermediateFpLValue(address)
-        return scope.calcOnState { memory.read(lValue) }
+        return scope.calcOnState { extractFp(memory) }
     }
 
     fun UConcreteHeapRef.extractRef(scope: TsStepScope): UHeapRef {
-        val lValue = getIntermediateRefLValue(address)
-        return scope.calcOnState { memory.read(lValue) }
+        return scope.calcOnState { extractRef(memory) }
     }
 }
 

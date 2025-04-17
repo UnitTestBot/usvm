@@ -35,9 +35,9 @@ class TsMachine(
     private val typeSystem = TsTypeSystem(typeOperationsTimeout = 1.seconds, project)
     private val components = TsComponents(typeSystem, options)
     private val ctx = TsContext(project, components)
-    private val applicationGraph = TsApplicationGraph(project)
-    private val interpreter = TsInterpreter(ctx, applicationGraph, tsOptions, observer)
-    private val cfgStatistics = CfgStatisticsImpl(applicationGraph)
+    private val graph = TsGraph(project)
+    private val interpreter = TsInterpreter(ctx, graph, tsOptions, observer)
+    private val cfgStatistics = CfgStatisticsImpl(graph)
 
     fun analyze(
         methods: List<EtsMethod>,
@@ -53,8 +53,8 @@ class TsMachine(
             }
 
         val coverageStatistics = CoverageStatistics<EtsMethod, EtsStmt, TsState>(
-            methodsToTrackCoverage,
-            applicationGraph
+            methods = methodsToTrackCoverage,
+            applicationGraph = graph,
         )
 
         val callGraphStatistics: PlainCallGraphStatistics<EtsMethod> =
@@ -66,13 +66,13 @@ class TsMachine(
         val timeStatistics = TimeStatistics<EtsMethod, TsState>()
 
         val pathSelector = createPathSelector(
-            initialStates,
-            options,
-            applicationGraph,
-            timeStatistics,
-            { coverageStatistics },
-            { cfgStatistics },
-            { callGraphStatistics },
+            initialStates = initialStates,
+            options = options,
+            applicationGraph = graph,
+            timeStatistics = timeStatistics,
+            coverageStatisticsFactory = { coverageStatistics },
+            cfgStatisticsFactory = { cfgStatistics },
+            callGraphStatisticsFactory = { callGraphStatistics },
         )
 
         val statesCollector =

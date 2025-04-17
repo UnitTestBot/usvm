@@ -29,15 +29,15 @@ class FakeType(
     }
 
     companion object {
-        fun fromBool(ctx: TsContext): FakeType {
+        fun mkBool(ctx: TsContext): FakeType {
             return FakeType(ctx.mkTrue(), ctx.mkFalse(), ctx.mkFalse())
         }
 
-        fun fromFp(ctx: TsContext): FakeType {
+        fun mkFp(ctx: TsContext): FakeType {
             return FakeType(ctx.mkFalse(), ctx.mkTrue(), ctx.mkFalse())
         }
 
-        fun fromRef(ctx: TsContext): FakeType {
+        fun mkRef(ctx: TsContext): FakeType {
             return FakeType(ctx.mkFalse(), ctx.mkFalse(), ctx.mkTrue())
         }
     }

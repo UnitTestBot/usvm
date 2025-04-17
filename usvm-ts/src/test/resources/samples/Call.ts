@@ -2,11 +2,11 @@
 // noinspection JSUnusedGlobalSymbols
 
 class Call {
-    simpleCall(): number {
-        return this.f()
+    callSimple(): number {
+        return this.fortyTwo()
     }
 
-    f(): number {
+    fortyTwo(): number {
         return 42
     }
 
@@ -17,5 +17,90 @@ class Call {
         if (n == 0) return 1
         if (n == 1) return 1
         return this.fib(n - 1) + this.fib(n - 2)
+    }
+
+    callConcrete(): number {
+        let x = new A()
+        return x.foo()
+    }
+
+    callHidden(): number {
+        let x: any = new B();
+        return x.foo()
+    }
+
+    f(x: any, ...args: any[]): number {
+        if (x == undefined) return 0
+        return args.length + 1
+    }
+
+    callNoVararg(): number {
+        return this.f(5) // 1
+    }
+
+    callVararg1(): number {
+        return this.f(5, 10) // 2
+    }
+
+    callVararg2(): number {
+        return this.f(5, 10, 20) // 3
+    }
+
+    callVarargArray(): number {
+        return this.f(5, [10, 20]) // 2
+    }
+
+    g(x: any, y: any): number {
+        if (x == undefined) return 0
+        if (y == undefined) return 1
+        return 2
+    }
+
+    callNormal(): number {
+        return this.g(5, 10) // 2
+    }
+
+    callSingle(): number {
+        return this.g(5) // 1
+    }
+
+    callNone(): number {
+        return this.g() // 0
+    }
+
+    callUndefined(): number {
+        return this.g(undefined, 20) // 0
+    }
+
+    callExtra(): number {
+        return this.g(5, 10, 20) // 2
+    }
+}
+
+class A {
+    foo(): number {
+        return 10
+    }
+}
+
+class B {
+    foo(): number {
+        return 20
+    }
+}
+
+namespace N1 {
+    class C {
+        foo(): number {
+            return 30
+        }
+    }
+}
+
+namespace N2 {
+    class C {
+        foo(): number {
+            return 40
+        }
     }
 }
