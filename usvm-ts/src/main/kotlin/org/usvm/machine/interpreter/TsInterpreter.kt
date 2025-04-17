@@ -6,6 +6,7 @@ import org.jacodb.ets.model.EtsArrayAccess
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsCallStmt
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLocal
@@ -16,7 +17,6 @@ import org.jacodb.ets.model.EtsParameterRef
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsStaticFieldRef
 import org.jacodb.ets.model.EtsStmt
-import org.jacodb.ets.model.EtsStmtLocation
 import org.jacodb.ets.model.EtsThis
 import org.jacodb.ets.model.EtsThrowStmt
 import org.jacodb.ets.model.EtsType
@@ -24,14 +24,15 @@ import org.jacodb.ets.model.EtsValue
 import org.jacodb.ets.utils.getDeclaredLocals
 import org.usvm.StepResult
 import org.usvm.StepScope
-import org.usvm.UBoolExpr
 import org.usvm.UInterpreter
 import org.usvm.api.targets.TsTarget
+import org.usvm.api.typeStreamOf
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.forkblacklists.UForkBlackList
-import org.usvm.machine.TsGraph
+import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
+import org.usvm.machine.TsGraph
 import org.usvm.machine.TsMethodCall
 import org.usvm.machine.TsVirtualMethodCallStmt
 import org.usvm.machine.expr.TsExprResolver
@@ -45,6 +46,7 @@ import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.state.returnValue
 import org.usvm.sizeSort
 import org.usvm.targets.UTargetsSet
+import org.usvm.types.single
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
@@ -108,34 +110,52 @@ class TsInterpreter(
 
         when (stmt) {
             is TsVirtualMethodCallStmt -> {
-                val methods = ctx.resolveEtsMethods(stmt.callee)
-                if (methods.isEmpty()) {
-                    logger.warn { "Could not resolve method: ${stmt.callee}" }
-                    scope.assert(ctx.falseExpr)
-                    return
+                val instance = stmt.arguments.last().asExpr(ctx.addressSort)
+                val concreteRef = scope.calcOnState { models.first().eval(instance) }
+
+                val concreteMethods: MutableList<EtsMethod> = mutableListOf()
+
+                if (isAllocatedConcreteHeapRef(concreteRef)) {
+                    val type = scope.calcOnState { memory.typeStreamOf(concreteRef) }.single()
+                    if (type is EtsClassType) {
+                        // TODO: handle non-unique classes
+                        val cls = ctx.scene.projectAndSdkClasses.first { it.name == type.typeName }
+                        val method = cls.methods.first { it.name == stmt.callee.name }
+                        concreteMethods += method
+                    } else {
+                        logger.warn {
+                            "Could not resolve method: ${stmt.callee} on type: $type"
+                        }
+                        scope.assert(ctx.falseExpr)
+                        return
+                    }
+                } else {
+                    val methods = ctx.resolveEtsMethods(stmt.callee)
+                    if (methods.isEmpty()) {
+                        logger.warn { "Could not resolve method: ${stmt.callee}" }
+                        scope.assert(ctx.falseExpr)
+                        return
+                    }
+                    concreteMethods += methods
                 }
 
                 logger.info {
-                    "Preparing to fork on ${methods.size} methods: ${
-                        methods.map { "${it.signature.enclosingClass.name}::${it.name}" }
+                    "Preparing to fork on ${concreteMethods.size} methods: ${
+                        concreteMethods.map { "${it.signature.enclosingClass.name}::${it.name}" }
                     }"
                 }
-
-                val conditionsWithBlocks: MutableList<Pair<UBoolExpr, TsState.() -> Unit>> = mutableListOf()
-
-                for (method in methods) {
-                    val block = { newState: TsState ->
+                val conditionsWithBlocks = concreteMethods.map { method ->
+                    val block = { state: TsState ->
                         val concreteCall = TsConcreteMethodCallStmt(
-                            location = EtsStmtLocation.stub(scope.calcOnState { lastEnteredMethod }),
+                            location = stmt.location,
                             callee = method,
                             arguments = stmt.arguments,
                             returnSite = stmt.returnSite,
                         )
-                        newState.newStmt(concreteCall)
+                        state.newStmt(concreteCall)
                     }
-                    conditionsWithBlocks += ctx.trueExpr to block
+                    ctx.trueExpr to block
                 }
-
                 scope.forkMulti(conditionsWithBlocks)
             }
 

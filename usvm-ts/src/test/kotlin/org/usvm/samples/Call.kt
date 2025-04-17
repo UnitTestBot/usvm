@@ -47,7 +47,6 @@ class Call : TsMethodTestRunner() {
         )
     }
 
-    @Disabled("Requires type stream")
     @Test
     fun `test hidden`() {
         val method = getMethod(className, "hidden")
