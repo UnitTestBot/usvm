@@ -1,9 +1,9 @@
 package org.usvm.util
 
 import io.ksmt.sort.KFp64Sort
-import org.jacodb.ets.base.EtsClassType
-import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.model.EtsClass
+import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsType
 import org.usvm.UBoolSort
 import org.usvm.UExpr
 import org.usvm.UHeapRef

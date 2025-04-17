@@ -16,6 +16,7 @@ dependencies {
 
     api(Libs.jacodb_api_common)
     api(Libs.jacodb_ets)
+    implementation(Libs.jacodb_core)
     implementation(Libs.jacodb_taint_configuration)
     implementation(Libs.kotlinx_collections)
     implementation(Libs.kotlinx_serialization_json)

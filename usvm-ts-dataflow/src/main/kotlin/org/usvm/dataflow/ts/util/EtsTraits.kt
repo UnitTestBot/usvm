@@ -21,31 +21,31 @@ import org.jacodb.api.common.cfg.CommonAssignInst
 import org.jacodb.api.common.cfg.CommonCallExpr
 import org.jacodb.api.common.cfg.CommonExpr
 import org.jacodb.api.common.cfg.CommonValue
-import org.jacodb.ets.base.CONSTRUCTOR_NAME
-import org.jacodb.ets.base.EtsArrayAccess
-import org.jacodb.ets.base.EtsAssignStmt
-import org.jacodb.ets.base.EtsBinaryExpr
-import org.jacodb.ets.base.EtsBooleanConstant
-import org.jacodb.ets.base.EtsCallExpr
-import org.jacodb.ets.base.EtsCastExpr
-import org.jacodb.ets.base.EtsClassType
-import org.jacodb.ets.base.EtsConstant
-import org.jacodb.ets.base.EtsEntity
-import org.jacodb.ets.base.EtsIfStmt
-import org.jacodb.ets.base.EtsImmediate
-import org.jacodb.ets.base.EtsInstanceFieldRef
-import org.jacodb.ets.base.EtsNewArrayExpr
-import org.jacodb.ets.base.EtsNumberConstant
-import org.jacodb.ets.base.EtsParameterRef
-import org.jacodb.ets.base.EtsStaticFieldRef
-import org.jacodb.ets.base.EtsStmt
-import org.jacodb.ets.base.EtsStringConstant
-import org.jacodb.ets.base.EtsThis
-import org.jacodb.ets.base.EtsUnaryExpr
-import org.jacodb.ets.base.EtsValue
+import org.jacodb.ets.model.EtsArrayAccess
+import org.jacodb.ets.model.EtsAssignStmt
+import org.jacodb.ets.model.EtsBinaryExpr
+import org.jacodb.ets.model.EtsBooleanConstant
+import org.jacodb.ets.model.EtsCallExpr
+import org.jacodb.ets.model.EtsCastExpr
+import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsConstant
+import org.jacodb.ets.model.EtsEntity
+import org.jacodb.ets.model.EtsIfStmt
+import org.jacodb.ets.model.EtsImmediate
+import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodImpl
 import org.jacodb.ets.model.EtsMethodParameter
+import org.jacodb.ets.model.EtsNewArrayExpr
+import org.jacodb.ets.model.EtsNumberConstant
+import org.jacodb.ets.model.EtsParameterRef
+import org.jacodb.ets.model.EtsStaticFieldRef
+import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.model.EtsStringConstant
+import org.jacodb.ets.model.EtsThis
+import org.jacodb.ets.model.EtsUnaryExpr
+import org.jacodb.ets.model.EtsValue
+import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.jacodb.ets.utils.callExpr
 import org.jacodb.ets.utils.getOperands
 import org.jacodb.ets.utils.getValues
@@ -80,12 +80,17 @@ class EtsTraits : Traits<EtsMethod, EtsStmt> {
     }
 
     override fun getThisInstance(method: EtsMethod): EtsThis {
-        return EtsThis(EtsClassType(method.signature.enclosingClass))
+        return EtsThis(
+            type = EtsClassType(method.signature.enclosingClass),
+        )
     }
 
     override fun getArgument(param: CommonMethodParameter): EtsParameterRef {
         check(param is EtsMethodParameter)
-        return EtsParameterRef(index = param.index, type = param.type)
+        return EtsParameterRef(
+            index = param.index,
+            type = param.type,
+        )
     }
 
     override fun getArgumentsOf(method: EtsMethod): List<EtsParameterRef> {
@@ -94,7 +99,7 @@ class EtsTraits : Traits<EtsMethod, EtsStmt> {
 
     override fun getCallee(callExpr: CommonCallExpr): EtsMethod {
         check(callExpr is EtsCallExpr)
-        return EtsMethodImpl(callExpr.method)
+        return EtsMethodImpl(callExpr.callee)
     }
 
     override fun getCallExpr(statement: EtsStmt): EtsCallExpr? {
@@ -221,8 +226,6 @@ class EtsTraits : Traits<EtsMethod, EtsStmt> {
 
 fun EtsEntity.toPathOrNull(): AccessPath? = when (this) {
     is EtsImmediate -> AccessPath(this, emptyList())
-
-    is EtsThis -> AccessPath(this, emptyList())
 
     is EtsParameterRef -> AccessPath(this, emptyList())
 

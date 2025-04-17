@@ -1,12 +1,12 @@
 package org.usvm.util
 
-import org.jacodb.ets.base.EtsClassType
-import org.jacodb.ets.base.EtsLocal
-import org.jacodb.ets.base.EtsUnclearRefType
-import org.jacodb.ets.base.UNKNOWN_CLASS_NAME
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsField
 import org.jacodb.ets.model.EtsFieldSignature
+import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.model.EtsUnclearRefType
+import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
 import org.usvm.machine.TsContext
 
 fun TsContext.resolveEtsField(
@@ -34,7 +34,7 @@ fun TsContext.resolveEtsField(
             }
 
             is EtsUnclearRefType -> {
-                val field = tryGetSingleField(scene, instanceType.name, field.name)
+                val field = tryGetSingleField(scene, instanceType.typeName, field.name)
                 if (field != null) return field
             }
         }

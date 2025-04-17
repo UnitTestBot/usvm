@@ -16,9 +16,10 @@
 
 package org.usvm.dataflow.ts.util
 
-import org.jacodb.ets.base.EtsTupleType
-import org.jacodb.ets.base.EtsType
-import org.jacodb.ets.base.EtsUnionType
+import org.jacodb.ets.model.EtsIntersectionType
+import org.jacodb.ets.model.EtsTupleType
+import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUnionType
 import org.usvm.dataflow.ts.infer.EtsTypeFact
 
 fun EtsType.toStringLimited(): String {
@@ -42,6 +43,12 @@ private object ToStringLimited : EtsType.Visitor.Default<String> {
     }
 
     override fun visit(type: EtsUnionType): String {
+        return type.types.joinToString(" | ") {
+            it.accept(this)
+        }.limit()
+    }
+
+    override fun visit(type: EtsIntersectionType): String {
         return type.types.joinToString(" | ") {
             it.accept(this)
         }.limit()

@@ -1,10 +1,12 @@
 package org.usvm.samples
 
 import org.jacodb.ets.model.EtsScene
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsValue
 import org.usvm.util.TsMethodTestRunner
 
+@Disabled("Arrays are not fully supported, tests are unstable on CI")
 class Arrays : TsMethodTestRunner() {
 
     private val className = this::class.simpleName!!

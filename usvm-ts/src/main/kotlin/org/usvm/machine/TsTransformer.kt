@@ -1,6 +1,6 @@
 package org.usvm.machine
 
-import org.jacodb.ets.base.EtsType
+import org.jacodb.ets.model.EtsType
 import org.usvm.UComposer
 import org.usvm.UContext
 import org.usvm.UTransformer

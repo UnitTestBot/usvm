@@ -22,17 +22,18 @@ import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.SerializationException
 import mu.KotlinLogging
-import org.jacodb.ets.base.CONSTRUCTOR_NAME
-import org.jacodb.ets.base.EtsAnyType
-import org.jacodb.ets.base.EtsAssignStmt
-import org.jacodb.ets.base.EtsLocal
-import org.jacodb.ets.base.EtsStringConstant
-import org.jacodb.ets.base.EtsType
-import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.dto.EtsFileDto
 import org.jacodb.ets.dto.toEtsFile
+import org.jacodb.ets.model.EtsAnyType
+import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsFile
+import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.model.EtsStringConstant
+import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUnknownType
+import org.jacodb.ets.utils.CONSTRUCTOR_NAME
+import org.jacodb.ets.utils.getLocals
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
@@ -288,9 +289,9 @@ class EtsTypeInferenceTest {
         val graph = createApplicationGraph(project)
 
         val entrypoints = project.projectClasses
-            .flatMap { it.methods + it.ctor }
+            .flatMap { it.methods }
             .filter { it.isPublic || it.name == CONSTRUCTOR_NAME }
-            .filter { !it.enclosingClass.name.startsWith("AnonymousClass") }
+            .filter { !it.signature.enclosingClass.name.startsWith("AnonymousClass") }
         println("entrypoints: (${entrypoints.size})")
         entrypoints.forEach {
             println("  ${it.signature.enclosingClass.name}::${it.name}")
@@ -326,13 +327,13 @@ class EtsTypeInferenceTest {
         println("=".repeat(42))
         println("Inferred types WITHOUT guesser: ")
         for ((method, types) in resultWithoutGuessed.inferredTypes) {
-            println(method.enclosingClass.name to types)
+            println(method.signature.enclosingClass.name to types)
         }
 
         println("=".repeat(42))
         println("Inferred types with guesser: ")
         for ((method, types) in resultWithGuessed.inferredTypes) {
-            println(method.enclosingClass.name to types)
+            println(method.signature.enclosingClass.name to types)
         }
     }
 
@@ -391,7 +392,11 @@ class EtsTypeInferenceTest {
                 val result = manager.analyze(listOf(entrypoint), doAddKnownTypes = false)
 
                 val inferredTypes = result.inferredTypes[inferMethod]
-                    ?: error("No inferred types for method ${inferMethod.enclosingClass.name}::${inferMethod.name}")
+                    ?: error(
+                        "No inferred types for method ${
+                            inferMethod.signature.enclosingClass.name
+                        }::${inferMethod.name}"
+                    )
 
                 for ((position, expected) in expectedTypeString.sortedByBase()) {
                     val inferred = inferredTypes[position]
@@ -491,17 +496,39 @@ class EtsTypeInferenceTest {
                 }
                 logger.info {
                     buildString {
-                        appendLine("Inferred return types: ${result.inferredReturnType.size}")
-                        for ((method, returnType) in result.inferredReturnType.sortedBy { it.key.toString() }) {
-                            appendLine("${method.enclosingClass.name}::${method.name}: ${returnType.toStringLimited()}")
+                        appendLine(
+                            "Inferred return types: ${
+                                result.inferredReturnType.size
+                            }"
+                        )
+                        val res = result.inferredReturnType.sortedBy { it.key.toString() }
+                        for ((method, returnType) in res) {
+                            appendLine(
+                                "${
+                                    method.signature.enclosingClass.name
+                                }::${
+                                    method.name
+                                }: ${
+                                    returnType.toStringLimited()
+                                }"
+                            )
                         }
                     }
                 }
                 logger.info {
                     buildString {
-                        appendLine("Inferred combined this types: ${result.inferredCombinedThisType.size}")
-                        for ((clazz, thisType) in result.inferredCombinedThisType.sortedBy { it.key.toString() }) {
-                            appendLine("${clazz.name} in ${clazz.file}: ${thisType.toStringLimited()}")
+                        appendLine(
+                            "Inferred combined this types: ${
+                                result.inferredCombinedThisType.size
+                            }"
+                        )
+                        val res = result.inferredCombinedThisType.sortedBy { it.key.toString() }
+                        for ((clazz, thisType) in res) {
+                            appendLine(
+                                "${clazz.name} in ${clazz.file}: ${
+                                    thisType.toStringLimited()
+                                }"
+                            )
                         }
                     }
                 }
@@ -519,7 +546,7 @@ class EtsTypeInferenceTest {
                     var numLostNormal = 0
                     var numBetterThanUnknown = 0
 
-                    for (local in method.locals) {
+                    for (local in method.getLocals()) {
                         val inferredType = inferredTypes[AccessPathBase.Local(local.name)]?.toType()
                         val verdict = if (inferredType != null) {
                             if (local.type.isUnknown()) {
@@ -559,7 +586,11 @@ class EtsTypeInferenceTest {
 
                     logger.info {
                         buildString {
-                            appendLine("Local type matching for ${method.enclosingClass.name}::${method.name}:")
+                            appendLine(
+                                "Local type matching for ${
+                                    method.signature.enclosingClass.name
+                                }::${method.name}:"
+                            )
                             appendLine("  Matched normal: $numMatchedNormal")
                             appendLine("  Matched unknown: $numMatchedUnknown")
                             appendLine("  Mismatched normal: $numMismatchedNormal")

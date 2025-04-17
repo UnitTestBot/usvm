@@ -8,16 +8,13 @@ import org.usvm.UBoolSort
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.api.makeSymbolicPrimitive
-import org.usvm.api.typeStreamOf
 import org.usvm.machine.TsContext
 import org.usvm.machine.expr.TsUndefinedSort
 import org.usvm.machine.expr.mkNumericExpr
 import org.usvm.machine.expr.mkTruthyExpr
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.types.ExprWithTypeConstraint
-import org.usvm.machine.types.FakeType
 import org.usvm.machine.types.iteWriteIntoFakeObject
-import org.usvm.types.single
 import org.usvm.util.boolToFp
 
 sealed interface TsBinaryOperator {
@@ -114,8 +111,8 @@ sealed interface TsBinaryOperator {
 
                 when {
                     lhs.isFakeObject() && rhs.isFakeObject() -> {
-                        val lhsType = memory.typeStreamOf(lhs).single() as FakeType
-                        val rhsType = memory.typeStreamOf(rhs).single() as FakeType
+                        val lhsType = lhs.getFakeType(scope)
+                        val rhsType = rhs.getFakeType(scope)
 
                         scope.assert(
                             mkAnd(
@@ -168,7 +165,7 @@ sealed interface TsBinaryOperator {
                     }
 
                     lhs.isFakeObject() -> {
-                        val lhsType = memory.typeStreamOf(lhs).single() as FakeType
+                        val lhsType = lhs.getFakeType(scope)
 
                         scope.assert(lhsType.mkExactlyOneTypeConstraint(ctx))
 
@@ -235,7 +232,7 @@ sealed interface TsBinaryOperator {
                     }
 
                     rhs.isFakeObject() -> {
-                        val rhsType = memory.typeStreamOf(rhs).single() as FakeType
+                        val rhsType = rhs.getFakeType(scope)
 
                         scope.assert(rhsType.mkExactlyOneTypeConstraint(ctx))
 
@@ -429,8 +426,8 @@ sealed interface TsBinaryOperator {
             return scope.calcOnState {
                 when {
                     lhs.isFakeObject() && rhs.isFakeObject() -> {
-                        val lhsType = memory.typeStreamOf(lhs).single() as FakeType
-                        val rhsType = memory.typeStreamOf(rhs).single() as FakeType
+                        val lhsType = lhs.getFakeType(scope)
+                        val rhsType = rhs.getFakeType(scope)
 
                         scope.assert(
                             mkAnd(
@@ -443,7 +440,7 @@ sealed interface TsBinaryOperator {
                     }
 
                     lhs.isFakeObject() -> {
-                        val lhsType = memory.typeStreamOf(lhs).single() as FakeType
+                        val lhsType = lhs.getFakeType(scope)
 
                         val condition = when (rhs.sort) {
                             boolSort -> lhsType.boolTypeExpr
@@ -457,7 +454,7 @@ sealed interface TsBinaryOperator {
                     }
 
                     rhs.isFakeObject() -> {
-                        val rhsType = memory.typeStreamOf(rhs).single() as FakeType
+                        val rhsType = rhs.getFakeType(scope)
 
                         scope.assert(rhsType.mkExactlyOneTypeConstraint(ctx))
 

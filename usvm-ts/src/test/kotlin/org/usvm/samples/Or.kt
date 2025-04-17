@@ -1,8 +1,5 @@
 package org.usvm.samples
 
-import org.jacodb.ets.base.DEFAULT_ARK_CLASS_NAME
-import org.jacodb.ets.base.EtsLocal
-import org.jacodb.ets.base.EtsNumberType
 import org.jacodb.ets.dsl.const
 import org.jacodb.ets.dsl.eq
 import org.jacodb.ets.dsl.local
@@ -12,14 +9,14 @@ import org.jacodb.ets.dsl.param
 import org.jacodb.ets.dsl.program
 import org.jacodb.ets.dsl.thisRef
 import org.jacodb.ets.dsl.toBlockCfg
-import org.jacodb.ets.graph.linearize
-import org.jacodb.ets.graph.toEtsBlockCfg
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsMethodImpl
 import org.jacodb.ets.model.EtsMethodParameter
 import org.jacodb.ets.model.EtsMethodSignature
+import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsScene
-import org.jacodb.ets.utils.getLocals
+import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
+import org.jacodb.ets.utils.toEtsBlockCfg
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsValue
 import org.usvm.util.TsMethodTestRunner
@@ -110,7 +107,6 @@ class Or : TsMethodTestRunner() {
         println("Program:\n${prog.toText()}")
         val blockCfg = prog.toBlockCfg()
 
-        val locals = mutableListOf<EtsLocal>()
         val method = EtsMethodImpl(
             signature = EtsMethodSignature(
                 enclosingClass = classSignature,
@@ -121,15 +117,11 @@ class Or : TsMethodTestRunner() {
                 ),
                 returnType = EtsNumberType,
             ),
-            locals = locals,
         )
+        method.enclosingClass = scene.projectClasses.first { it.name == DEFAULT_ARK_CLASS_NAME }
 
         val etsBlockCfg = blockCfg.toEtsBlockCfg(method)
-        val etsCfg = etsBlockCfg.linearize()
-
-        method._cfg = etsCfg
-        locals.clear()
-        locals += method.getLocals()
+        method._cfg = etsBlockCfg
 
         discoverProperties<TsValue.TsNumber, TsValue.TsNumber, TsValue.TsNumber>(
             method = method,
