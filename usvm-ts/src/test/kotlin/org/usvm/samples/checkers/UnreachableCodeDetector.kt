@@ -1,7 +1,8 @@
 package org.usvm.samples.checkers
 
 import org.jacodb.ets.model.EtsAssignStmt
-import org.jacodb.ets.model.EtsIfStmt
+import org.jacodb.ets.model.EtsLtExpr
+import org.jacodb.ets.model.EtsNumberConstant
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Test
@@ -72,6 +73,8 @@ class UnreachableCodeDetectorTest {
 
         val relatedBranch = results.single { it.key.name == methodName }
         val stmts = relatedBranch.value.single()
-        check(stmts.successors.single() is EtsIfStmt)
+        val assignment = stmts.successors.single() as? EtsAssignStmt ?: error("Expected EtsAssignStmt")
+        val rhv = assignment.rhv as? EtsLtExpr ?: error("Expected EtsLtExpr")
+        check((rhv.right as EtsNumberConstant).value == 1.0)
     }
 }

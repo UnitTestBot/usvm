@@ -161,7 +161,7 @@ class TsInterpreter(
             }
 
             if (!tsOptions.interproceduralAnalysis && methodResult == TsMethodResult.NoCall) {
-                mockMethodCall(scope, it.method)
+                mockMethodCall(scope, it.callee)
                 return
             }
         } ?: observer?.onAssignStatement(exprResolver.simpleValueResolver, stmt, scope)
