@@ -17,7 +17,7 @@ interface TsInterpreterObserver : UInterpreterObserver {
     fun onAssignStatement(
         simpleValueResolver: TsSimpleValueResolver,
         stmt: EtsAssignStmt,
-        scope: TsStepScope
+        scope: TsStepScope,
     ) {
         // default empty implementation
     }
@@ -27,7 +27,7 @@ interface TsInterpreterObserver : UInterpreterObserver {
     fun onCallWithUnresolvedArguments(
         simpleValueResolver: TsSimpleValueResolver,
         stmt: EtsCallExpr,
-        scope: TsStepScope
+        scope: TsStepScope,
     ) {
         // default empty implementation
     }
@@ -37,7 +37,7 @@ interface TsInterpreterObserver : UInterpreterObserver {
     fun onIfStatement(
         simpleValueResolver: TsSimpleValueResolver,
         stmt: EtsIfStmt,
-        scope: TsStepScope
+        scope: TsStepScope,
     ) {
         // default empty implementation
     }
@@ -46,7 +46,7 @@ interface TsInterpreterObserver : UInterpreterObserver {
         simpleValueResolver: TsSimpleValueResolver,
         stmt: EtsIfStmt,
         condition: UBoolExpr,
-        scope: TsStepScope
+        scope: TsStepScope,
     ) {
         // default empty implementation
     }
@@ -54,7 +54,7 @@ interface TsInterpreterObserver : UInterpreterObserver {
     fun onReturnStatement(
         simpleValueResolver: TsSimpleValueResolver,
         stmt: EtsReturnStmt,
-        scope: TsStepScope
+        scope: TsStepScope,
     ) {
         // default empty implementation
     }
@@ -62,7 +62,7 @@ interface TsInterpreterObserver : UInterpreterObserver {
     fun onThrowStatement(
         simpleValueResolver: TsSimpleValueResolver,
         stmt: EtsThrowStmt,
-        scope: TsStepScope
+        scope: TsStepScope,
     ) {
         // default empty implementation
     }
@@ -70,7 +70,7 @@ interface TsInterpreterObserver : UInterpreterObserver {
     fun onGotoStatement(
         simpleValueResolver: TsSimpleValueResolver,
         stmt: EtsGotoStmt,
-        scope: TsStepScope
+        scope: TsStepScope,
     ) {
         // default empty implementation
     }
@@ -78,7 +78,7 @@ interface TsInterpreterObserver : UInterpreterObserver {
     fun onSwitchStatement(
         simpleValueResolver: TsSimpleValueResolver,
         stmt: EtsSwitchStmt,
-        scope: TsStepScope
+        scope: TsStepScope,
     ) {
         // default empty implementation
     }
