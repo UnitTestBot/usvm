@@ -5,7 +5,7 @@
 class StaticNumber {
     static value = 10;
 
-    getValue(): number {
+    static getValue(): number {
         return this.value;
     }
 }
@@ -14,7 +14,7 @@ class StaticNumber {
 class StaticDefault {
     static value: number;
 
-    getValue(): number {
+    static getValue(): number {
         return this.value;
     }
 }
@@ -38,7 +38,7 @@ class StaticBase {
 class StaticDerived extends StaticBase {
     static f = 42;
 
-    getId(): number {
+    static getId(): number {
         return this.id + this.f;
     }
 }
@@ -59,7 +59,7 @@ class StaticChild extends StaticParent {
         return StaticChild.id;
     }
 
-    getId(): number {
+    static getId(): number {
         return this.id;
     }
 }
@@ -97,12 +97,16 @@ class StaticNull {
 
 // Test: Object static operations
 class StaticObject {
-    static config: Config = {enabled: false, count: 0};
+    static config: Config = {enabled: true, count: 10};
 
     static modifyAndGet(): Config {
         this.config.increment();
+        this.config.increment();
+        this.config.increment();
         this.config.flip();
         this.config.increment();
+        this.config.increment();
+        this.config.flip();
         return this.config;
     }
 }
@@ -122,8 +126,8 @@ class Config {
 
 // Test: Field swapping
 class StaticAccess {
-    static a = 1;
-    static b = 2;
+    static a = 5;
+    static b = 10;
 
     static calculateSum(): number {
         return this.a + this.b;

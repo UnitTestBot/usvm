@@ -16,8 +16,8 @@
 
 package org.usvm.dataflow.ts.infer.annotation
 
-import org.jacodb.ets.base.EtsType
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsType
 import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.TypeInferenceResult
 import org.usvm.dataflow.ts.infer.toType
@@ -47,7 +47,7 @@ class InferredTypeScheme(
     }
 
     override fun thisType(method: EtsMethod): EtsType? =
-        typeInferenceResult.inferredCombinedThisType[method.enclosingClass]?.toType()
+        typeInferenceResult.inferredCombinedThisType[method.signature.enclosingClass]?.toType()
 }
 
 class MethodTypeSchemeImpl(

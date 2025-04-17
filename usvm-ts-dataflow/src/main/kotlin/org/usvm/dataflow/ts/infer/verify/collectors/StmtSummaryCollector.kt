@@ -16,37 +16,34 @@
 
 package org.usvm.dataflow.ts.infer.verify.collectors
 
-import org.jacodb.ets.base.EtsArrayAccess
-import org.jacodb.ets.base.EtsAssignStmt
-import org.jacodb.ets.base.EtsBinaryExpr
-import org.jacodb.ets.base.EtsCallStmt
-import org.jacodb.ets.base.EtsEntity
-import org.jacodb.ets.base.EtsExpr
-import org.jacodb.ets.base.EtsGotoStmt
-import org.jacodb.ets.base.EtsIfStmt
-import org.jacodb.ets.base.EtsInstanceCallExpr
-import org.jacodb.ets.base.EtsInstanceFieldRef
-import org.jacodb.ets.base.EtsInstanceOfExpr
-import org.jacodb.ets.base.EtsLengthExpr
-import org.jacodb.ets.base.EtsLocal
-import org.jacodb.ets.base.EtsNopStmt
-import org.jacodb.ets.base.EtsParameterRef
-import org.jacodb.ets.base.EtsPtrCallExpr
-import org.jacodb.ets.base.EtsRawStmt
-import org.jacodb.ets.base.EtsReturnStmt
-import org.jacodb.ets.base.EtsStaticCallExpr
-import org.jacodb.ets.base.EtsStaticFieldRef
-import org.jacodb.ets.base.EtsStmt
-import org.jacodb.ets.base.EtsSwitchStmt
-import org.jacodb.ets.base.EtsTernaryExpr
-import org.jacodb.ets.base.EtsThis
-import org.jacodb.ets.base.EtsThrowStmt
-import org.jacodb.ets.base.EtsUnaryExpr
-import org.jacodb.ets.base.EtsValue
+import org.jacodb.ets.model.EtsArrayAccess
+import org.jacodb.ets.model.EtsAssignStmt
+import org.jacodb.ets.model.EtsBinaryExpr
+import org.jacodb.ets.model.EtsCallStmt
+import org.jacodb.ets.model.EtsEntity
+import org.jacodb.ets.model.EtsExpr
+import org.jacodb.ets.model.EtsIfStmt
+import org.jacodb.ets.model.EtsInstanceCallExpr
+import org.jacodb.ets.model.EtsInstanceFieldRef
+import org.jacodb.ets.model.EtsInstanceOfExpr
+import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodSignature
+import org.jacodb.ets.model.EtsNopStmt
+import org.jacodb.ets.model.EtsParameterRef
+import org.jacodb.ets.model.EtsPtrCallExpr
+import org.jacodb.ets.model.EtsRawStmt
+import org.jacodb.ets.model.EtsReturnStmt
+import org.jacodb.ets.model.EtsStaticCallExpr
+import org.jacodb.ets.model.EtsStaticFieldRef
+import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.model.EtsThis
+import org.jacodb.ets.model.EtsThrowStmt
+import org.jacodb.ets.model.EtsUnaryExpr
+import org.jacodb.ets.model.EtsValue
 
 class StmtSummaryCollector(
-    override val method: EtsMethodSignature,
+    override val method: EtsMethod,
     override val verificationSummary: MethodVerificationSummary,
 ) : SummaryCollector,
     EtsStmt.Visitor<Unit>,
@@ -89,20 +86,11 @@ class StmtSummaryCollector(
     }
 
     override fun visit(stmt: EtsThrowStmt) {
-        collect(stmt.arg)
-    }
-
-    override fun visit(stmt: EtsGotoStmt) {
-        // do nothing
+        collect(stmt.exception)
     }
 
     override fun visit(stmt: EtsIfStmt) {
         collect(stmt.condition)
-    }
-
-    override fun visit(stmt: EtsSwitchStmt) {
-        collect(stmt.arg)
-        stmt.cases.forEach { collect(it) }
     }
 
     override fun visit(stmt: EtsRawStmt) {
@@ -154,12 +142,6 @@ class StmtSummaryCollector(
             collect(expr.right)
         }
 
-        is EtsTernaryExpr -> {
-            collect(expr.condition)
-            collect(expr.thenExpr)
-            collect(expr.elseExpr)
-        }
-
         is EtsInstanceCallExpr -> {
             collect(expr.instance)
             requireObjectOrUnknown(expr.instance, expr)
@@ -173,10 +155,6 @@ class StmtSummaryCollector(
         is EtsPtrCallExpr -> {
             collect(expr.ptr)
             expr.args.forEach { collect(it) }
-        }
-
-        is EtsLengthExpr -> {
-            collect(expr.arg)
         }
 
         is EtsInstanceOfExpr -> {

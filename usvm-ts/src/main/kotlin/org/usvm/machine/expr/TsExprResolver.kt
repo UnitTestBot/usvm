@@ -3,78 +3,76 @@ package org.usvm.machine.expr
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import mu.KotlinLogging
-import org.jacodb.ets.base.EtsAddExpr
-import org.jacodb.ets.base.EtsAndExpr
-import org.jacodb.ets.base.EtsArrayAccess
-import org.jacodb.ets.base.EtsArrayType
-import org.jacodb.ets.base.EtsAwaitExpr
-import org.jacodb.ets.base.EtsBinaryExpr
-import org.jacodb.ets.base.EtsBitAndExpr
-import org.jacodb.ets.base.EtsBitNotExpr
-import org.jacodb.ets.base.EtsBitOrExpr
-import org.jacodb.ets.base.EtsBitXorExpr
-import org.jacodb.ets.base.EtsBooleanConstant
-import org.jacodb.ets.base.EtsCastExpr
-import org.jacodb.ets.base.EtsClassType
-import org.jacodb.ets.base.EtsCommaExpr
-import org.jacodb.ets.base.EtsDeleteExpr
-import org.jacodb.ets.base.EtsDivExpr
-import org.jacodb.ets.base.EtsEntity
-import org.jacodb.ets.base.EtsEqExpr
-import org.jacodb.ets.base.EtsExpExpr
-import org.jacodb.ets.base.EtsGtEqExpr
-import org.jacodb.ets.base.EtsGtExpr
-import org.jacodb.ets.base.EtsInExpr
-import org.jacodb.ets.base.EtsInstanceCallExpr
-import org.jacodb.ets.base.EtsInstanceFieldRef
-import org.jacodb.ets.base.EtsInstanceOfExpr
-import org.jacodb.ets.base.EtsLeftShiftExpr
-import org.jacodb.ets.base.EtsLengthExpr
-import org.jacodb.ets.base.EtsLocal
-import org.jacodb.ets.base.EtsLtEqExpr
-import org.jacodb.ets.base.EtsLtExpr
-import org.jacodb.ets.base.EtsMulExpr
-import org.jacodb.ets.base.EtsNegExpr
-import org.jacodb.ets.base.EtsNewArrayExpr
-import org.jacodb.ets.base.EtsNewExpr
-import org.jacodb.ets.base.EtsNotEqExpr
-import org.jacodb.ets.base.EtsNotExpr
-import org.jacodb.ets.base.EtsNullConstant
-import org.jacodb.ets.base.EtsNullishCoalescingExpr
-import org.jacodb.ets.base.EtsNumberConstant
-import org.jacodb.ets.base.EtsOrExpr
-import org.jacodb.ets.base.EtsParameterRef
-import org.jacodb.ets.base.EtsPostDecExpr
-import org.jacodb.ets.base.EtsPostIncExpr
-import org.jacodb.ets.base.EtsPreDecExpr
-import org.jacodb.ets.base.EtsPreIncExpr
-import org.jacodb.ets.base.EtsPtrCallExpr
-import org.jacodb.ets.base.EtsRemExpr
-import org.jacodb.ets.base.EtsRightShiftExpr
-import org.jacodb.ets.base.EtsStaticCallExpr
-import org.jacodb.ets.base.EtsStaticFieldRef
-import org.jacodb.ets.base.EtsStrictEqExpr
-import org.jacodb.ets.base.EtsStrictNotEqExpr
-import org.jacodb.ets.base.EtsStringConstant
-import org.jacodb.ets.base.EtsStringType
-import org.jacodb.ets.base.EtsSubExpr
-import org.jacodb.ets.base.EtsTernaryExpr
-import org.jacodb.ets.base.EtsThis
-import org.jacodb.ets.base.EtsType
-import org.jacodb.ets.base.EtsTypeOfExpr
-import org.jacodb.ets.base.EtsUnaryExpr
-import org.jacodb.ets.base.EtsUnaryPlusExpr
-import org.jacodb.ets.base.EtsUndefinedConstant
-import org.jacodb.ets.base.EtsUnknownType
-import org.jacodb.ets.base.EtsUnsignedRightShiftExpr
-import org.jacodb.ets.base.EtsValue
-import org.jacodb.ets.base.EtsVoidExpr
-import org.jacodb.ets.base.EtsYieldExpr
-import org.jacodb.ets.base.STATIC_INIT_METHOD_NAME
-import org.jacodb.ets.base.UNKNOWN_CLASS_NAME
+import org.jacodb.ets.model.EtsAddExpr
+import org.jacodb.ets.model.EtsAndExpr
+import org.jacodb.ets.model.EtsArrayAccess
+import org.jacodb.ets.model.EtsArrayType
+import org.jacodb.ets.model.EtsAwaitExpr
+import org.jacodb.ets.model.EtsBinaryExpr
+import org.jacodb.ets.model.EtsBitAndExpr
+import org.jacodb.ets.model.EtsBitNotExpr
+import org.jacodb.ets.model.EtsBitOrExpr
+import org.jacodb.ets.model.EtsBitXorExpr
+import org.jacodb.ets.model.EtsBooleanConstant
+import org.jacodb.ets.model.EtsCastExpr
+import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsConstant
+import org.jacodb.ets.model.EtsDeleteExpr
+import org.jacodb.ets.model.EtsDivExpr
+import org.jacodb.ets.model.EtsEntity
+import org.jacodb.ets.model.EtsEqExpr
+import org.jacodb.ets.model.EtsExpExpr
 import org.jacodb.ets.model.EtsFieldSignature
+import org.jacodb.ets.model.EtsGtEqExpr
+import org.jacodb.ets.model.EtsGtExpr
+import org.jacodb.ets.model.EtsInExpr
+import org.jacodb.ets.model.EtsInstanceCallExpr
+import org.jacodb.ets.model.EtsInstanceFieldRef
+import org.jacodb.ets.model.EtsInstanceOfExpr
+import org.jacodb.ets.model.EtsLeftShiftExpr
+import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsLtEqExpr
+import org.jacodb.ets.model.EtsLtExpr
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodSignature
+import org.jacodb.ets.model.EtsMulExpr
+import org.jacodb.ets.model.EtsNegExpr
+import org.jacodb.ets.model.EtsNewArrayExpr
+import org.jacodb.ets.model.EtsNewExpr
+import org.jacodb.ets.model.EtsNotEqExpr
+import org.jacodb.ets.model.EtsNotExpr
+import org.jacodb.ets.model.EtsNullConstant
+import org.jacodb.ets.model.EtsNullishCoalescingExpr
+import org.jacodb.ets.model.EtsNumberConstant
+import org.jacodb.ets.model.EtsOrExpr
+import org.jacodb.ets.model.EtsParameterRef
+import org.jacodb.ets.model.EtsPostDecExpr
+import org.jacodb.ets.model.EtsPostIncExpr
+import org.jacodb.ets.model.EtsPreDecExpr
+import org.jacodb.ets.model.EtsPreIncExpr
+import org.jacodb.ets.model.EtsPtrCallExpr
+import org.jacodb.ets.model.EtsRemExpr
+import org.jacodb.ets.model.EtsRightShiftExpr
+import org.jacodb.ets.model.EtsStaticCallExpr
+import org.jacodb.ets.model.EtsStaticFieldRef
+import org.jacodb.ets.model.EtsStrictEqExpr
+import org.jacodb.ets.model.EtsStrictNotEqExpr
+import org.jacodb.ets.model.EtsStringConstant
+import org.jacodb.ets.model.EtsStringType
+import org.jacodb.ets.model.EtsSubExpr
+import org.jacodb.ets.model.EtsThis
+import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsTypeOfExpr
+import org.jacodb.ets.model.EtsUnaryExpr
+import org.jacodb.ets.model.EtsUnaryPlusExpr
+import org.jacodb.ets.model.EtsUndefinedConstant
+import org.jacodb.ets.model.EtsUnknownType
+import org.jacodb.ets.model.EtsUnsignedRightShiftExpr
+import org.jacodb.ets.model.EtsValue
+import org.jacodb.ets.model.EtsVoidExpr
+import org.jacodb.ets.model.EtsYieldExpr
+import org.jacodb.ets.utils.STATIC_INIT_METHOD_NAME
+import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
@@ -82,6 +80,7 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.allocateArray
+import org.usvm.dataflow.ts.infer.tryGetKnownType
 import org.usvm.isTrue
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
@@ -182,17 +181,20 @@ class TsExprResolver(
 
     // region CONSTANT
 
+    override fun visit(value: EtsConstant): UExpr<out USort>? {
+        return simpleValueResolver.visit(value)
+    }
+
+    override fun visit(value: EtsStringConstant): UExpr<out USort>? {
+        return simpleValueResolver.visit(value)
+    }
+
     override fun visit(value: EtsBooleanConstant): UExpr<out USort> {
         return simpleValueResolver.visit(value)
     }
 
     override fun visit(value: EtsNumberConstant): UExpr<out USort> {
         return simpleValueResolver.visit(value)
-    }
-
-    override fun visit(value: EtsStringConstant): UExpr<out USort>? {
-        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        error("Not supported $value")
     }
 
     override fun visit(value: EtsNullConstant): UExpr<out USort> {
@@ -350,11 +352,6 @@ class TsExprResolver(
         error("Not supported $expr")
     }
 
-    override fun visit(expr: EtsCommaExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
-    }
-
     // endregion
 
     // region RELATION
@@ -433,7 +430,7 @@ class TsExprResolver(
 
     override fun visit(expr: EtsInstanceCallExpr): UExpr<out USort>? = with(ctx) {
         if (expr.instance.name == "Number") {
-            if (expr.method.name == "isNaN") {
+            if (expr.callee.name == "isNaN") {
                 return resolveAfterResolved(expr.args.single()) { arg ->
                     handleNumberIsNaN(arg)
                 }
@@ -441,13 +438,13 @@ class TsExprResolver(
         }
 
         resolveInvoke(
-            method = expr.method,
+            method = expr.callee,
             instance = expr.instance,
             arguments = { expr.args },
-            argumentTypes = { expr.method.parameters.map { it.type } },
+            argumentTypes = { expr.callee.parameters.map { it.type } },
         ) { args ->
             doWithState {
-                val method = resolveInstanceCall(expr.instance, expr.method)
+                val method = resolveInstanceCall(expr.instance, expr.callee)
 
                 check(args.size == method.parametersWithThisCount)
                 pushSortsForArguments(expr.instance, expr.args, localToIdx)
@@ -459,7 +456,7 @@ class TsExprResolver(
     }
 
     override fun visit(expr: EtsStaticCallExpr): UExpr<out USort>? = with(ctx) {
-        if (expr.method.name == "Number" && expr.method.enclosingClass.name == "") {
+        if (expr.callee.name == "Number" && expr.callee.enclosingClass.name == "") {
             check(expr.args.size == 1) { "Number constructor should have exactly one argument" }
             return resolveAfterResolved(expr.args.single()) {
                 mkNumericExpr(it, scope)
@@ -467,10 +464,10 @@ class TsExprResolver(
         }
 
         resolveInvoke(
-            method = expr.method,
+            method = expr.callee,
             instance = null,
             arguments = { expr.args },
-            argumentTypes = { expr.method.parameters.map { it.type } },
+            argumentTypes = { expr.callee.parameters.map { it.type } },
         ) { args ->
             // TODO: IMPORTANT do not forget to fill sorts of arguments map
             TODO("Unsupported static methods")
@@ -489,7 +486,7 @@ class TsExprResolver(
         // Perfect signature:
         if (method.enclosingClass.name != UNKNOWN_CLASS_NAME) {
             val clazz = ctx.scene.projectAndSdkClasses.single { it.name == method.enclosingClass.name }
-            return (clazz.methods + clazz.ctor).single { it.name == method.name }
+            return clazz.methods.single { it.name == method.name }
         }
 
         // Unknown signature:
@@ -499,15 +496,15 @@ class TsExprResolver(
                 .filter { it.name == instanceType.signature.name }
             if (classes.size == 1) {
                 val clazz = classes.single()
-                return (clazz.methods + clazz.ctor).single { it.name == method.name }
+                return clazz.methods.single { it.name == method.name }
             }
             val methods = classes
-                .flatMap { it.methods + it.ctor }
+                .flatMap { it.methods }
                 .filter { it.name == method.name }
             if (methods.size == 1) return methods.single()
         } else {
             val methods = ctx.scene.projectAndSdkClasses
-                .flatMap { it.methods + it.ctor }
+                .flatMap { it.methods }
                 .filter { it.name == method.name }
             if (methods.size == 1) return methods.single()
         }
@@ -761,21 +758,11 @@ class TsExprResolver(
                 blockOnFalseState = allocateException(EtsStringType) // TODO incorrect exception type
             )
 
-            val address = memory.allocateArray(expr.type, sizeSort, bvSize)
-            memory.types.allocate(address.address, expr.type)
+            val arrayType = EtsArrayType(EtsUnknownType, 1) // TODO: expr.type
+            val address = memory.allocateArray(arrayType, sizeSort, bvSize)
 
             address
         }
-    }
-
-    override fun visit(expr: EtsLengthExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
-    }
-
-    override fun visit(expr: EtsTernaryExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
     }
 
     // endregion
@@ -798,7 +785,8 @@ class TsSimpleValueResolver(
 
         val localIdx = localToIdx(currentMethod, local)
         val sort = scope.calcOnState {
-            getOrPutSortForLocal(localIdx, local.type)
+            val type = local.tryGetKnownType(currentMethod)
+            getOrPutSortForLocal(localIdx, type)
         }
 
         // If we are not in the entrypoint, all correct values are already resolved and we can just return
@@ -859,17 +847,22 @@ class TsSimpleValueResolver(
         return scope.calcOnState { memory.read(lValue) }
     }
 
+    override fun visit(value: EtsConstant): UExpr<out USort> = with(ctx) {
+        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
+        error("Not supported $value")
+    }
+
+    override fun visit(value: EtsStringConstant): UExpr<out USort> = with(ctx) {
+        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
+        error("Not supported $value")
+    }
+
     override fun visit(value: EtsBooleanConstant): UExpr<out USort> = with(ctx) {
         mkBool(value.value)
     }
 
     override fun visit(value: EtsNumberConstant): UExpr<out USort> = with(ctx) {
         mkFp64(value.value)
-    }
-
-    override fun visit(value: EtsStringConstant): UExpr<out USort> = with(ctx) {
-        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        error("Not supported $value")
     }
 
     override fun visit(value: EtsNullConstant): UExpr<out USort> = with(ctx) {
@@ -885,12 +878,10 @@ class TsSimpleValueResolver(
     }
 
     override fun visit(value: EtsInstanceFieldRef): UExpr<out USort> = with(ctx) {
-        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        error("Not supported $value")
+        error("Should not be called")
     }
 
     override fun visit(value: EtsStaticFieldRef): UExpr<out USort> = with(ctx) {
-        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        error("Not supported $value")
+        error("Should not be called")
     }
 }

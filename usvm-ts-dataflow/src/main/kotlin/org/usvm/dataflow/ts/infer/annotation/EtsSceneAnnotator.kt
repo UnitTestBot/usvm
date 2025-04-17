@@ -18,23 +18,20 @@
 
 package org.usvm.dataflow.ts.infer.annotation
 
-import org.jacodb.ets.base.EtsAssignStmt
-import org.jacodb.ets.base.EtsCallStmt
-import org.jacodb.ets.base.EtsGotoStmt
-import org.jacodb.ets.base.EtsIfStmt
-import org.jacodb.ets.base.EtsNopStmt
-import org.jacodb.ets.base.EtsRawStmt
-import org.jacodb.ets.base.EtsReturnStmt
-import org.jacodb.ets.base.EtsStmt
-import org.jacodb.ets.base.EtsSwitchStmt
-import org.jacodb.ets.base.EtsThrowStmt
-import org.jacodb.ets.graph.EtsCfg
+import org.jacodb.ets.model.EtsAssignStmt
+import org.jacodb.ets.model.EtsCallStmt
 import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassImpl
 import org.jacodb.ets.model.EtsFile
+import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodImpl
+import org.jacodb.ets.model.EtsNopStmt
+import org.jacodb.ets.model.EtsRawStmt
+import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.model.EtsThrowStmt
 
 fun EtsScene.annotateWithTypes(scheme: TypeScheme): EtsScene =
     EtsSceneAnnotator(this, scheme).annotate()
@@ -65,7 +62,6 @@ class EtsSceneAnnotator(
             signature = signature,
             fields = fields,
             methods = methods.map { it.annotateWithTypes() },
-            ctor = ctor.annotateWithTypes(),
             superClass = superClass, // TODO: replace with inferred superclass
             typeParameters = typeParameters,
             modifiers = modifiers,
@@ -77,7 +73,6 @@ class EtsSceneAnnotator(
         return EtsMethodImpl(
             signature = signature,
             typeParameters = typeParameters,
-            locals = locals,
             modifiers = modifiers,
             decorators = decorators,
         ).also { method ->
@@ -92,7 +87,8 @@ class EtsSceneAnnotator(
                 val newStmt = relocated[stmt] ?: error("Unprocessed stmt")
                 newStmt to cfg.successors(stmt).map { relocated[it] ?: error("Unprocessed stmt") }.toList()
             }
-            method._cfg = EtsCfg(relocated.values.toList(), successorMap.toMap())
+            // TODO: method._cfg = EtsCfg(relocated.values.toList(), successorMap.toMap())
+            TODO()
         }
     }
 
@@ -112,13 +108,7 @@ class EtsSceneAnnotator(
         override fun visit(stmt: EtsThrowStmt): EtsStmt =
             stmt.copy(location = stmt.location.copy(method = to))
 
-        override fun visit(stmt: EtsGotoStmt): EtsStmt =
-            EtsGotoStmt(location = stmt.location.copy(method = to))
-
         override fun visit(stmt: EtsIfStmt): EtsStmt =
-            stmt.copy(location = stmt.location.copy(method = to))
-
-        override fun visit(stmt: EtsSwitchStmt): EtsStmt =
             stmt.copy(location = stmt.location.copy(method = to))
 
         override fun visit(stmt: EtsRawStmt): EtsStmt =

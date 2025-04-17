@@ -32,9 +32,9 @@ import kotlin.io.path.exists
 import kotlin.test.assertTrue
 
 object AbcProjects {
-    private const val yourPrefixForTestFolders = ""
-    private const val testProjectsVersion = ""
-    private const val pathToSDK = ""
+    private const val yourPrefixForTestFolders = "REPLACE_ME"
+    private const val testProjectsVersion = "REPLACE_ME"
+    private const val pathToSDK = "REPLACE_ME"
 
     @JvmStatic
     fun projectAvailable(): Boolean {

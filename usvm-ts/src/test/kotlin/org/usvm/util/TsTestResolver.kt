@@ -2,25 +2,25 @@ package org.usvm.util
 
 import io.ksmt.expr.KBitVec32Value
 import io.ksmt.utils.asExpr
-import org.jacodb.ets.base.EtsArrayType
-import org.jacodb.ets.base.EtsBooleanType
-import org.jacodb.ets.base.EtsClassType
-import org.jacodb.ets.base.EtsLiteralType
-import org.jacodb.ets.base.EtsNeverType
-import org.jacodb.ets.base.EtsNullType
-import org.jacodb.ets.base.EtsNumberType
-import org.jacodb.ets.base.EtsPrimitiveType
-import org.jacodb.ets.base.EtsRefType
-import org.jacodb.ets.base.EtsStringType
-import org.jacodb.ets.base.EtsType
-import org.jacodb.ets.base.EtsUnclearRefType
-import org.jacodb.ets.base.EtsUndefinedType
-import org.jacodb.ets.base.EtsUnknownType
-import org.jacodb.ets.base.EtsVoidType
-import org.jacodb.ets.base.UNKNOWN_CLASS_NAME
+import org.jacodb.ets.model.EtsArrayType
+import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsClass
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFieldImpl
+import org.jacodb.ets.model.EtsLiteralType
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsNeverType
+import org.jacodb.ets.model.EtsNullType
+import org.jacodb.ets.model.EtsNumberType
+import org.jacodb.ets.model.EtsPrimitiveType
+import org.jacodb.ets.model.EtsRefType
+import org.jacodb.ets.model.EtsStringType
+import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUnclearRefType
+import org.jacodb.ets.model.EtsUndefinedType
+import org.jacodb.ets.model.EtsUnknownType
+import org.jacodb.ets.model.EtsVoidType
+import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
 import org.usvm.UAddressSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
@@ -187,7 +187,7 @@ open class TsTestStateResolver(
         return when (type) {
             // TODO add better support
             is EtsUnclearRefType -> {
-                val cls = ctx.scene.projectAndSdkClasses.single { it.name == type.name }
+                val cls = ctx.scene.projectAndSdkClasses.single { it.name == type.typeName }
                 resolveTsClass(concreteRef, finalStateMemoryRef ?: heapRef, cls.type)
             }
 
@@ -236,7 +236,7 @@ open class TsTestStateResolver(
     fun resolveThisInstance(): TsValue? {
         val parametersCount = method.parameters.size
         val ref = mkRegisterStackLValue(ctx.addressSort, parametersCount) // TODO check for statics
-        val type = EtsClassType(method.enclosingClass)
+        val type = EtsClassType(method.signature.enclosingClass)
         return resolveLValue(ref, type)
     }
 

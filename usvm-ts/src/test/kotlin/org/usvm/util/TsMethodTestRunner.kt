@@ -1,19 +1,19 @@
 package org.usvm.util
 
-import org.jacodb.ets.base.EtsAnyType
-import org.jacodb.ets.base.EtsArrayType
-import org.jacodb.ets.base.EtsBooleanType
-import org.jacodb.ets.base.EtsClassType
-import org.jacodb.ets.base.EtsNullType
-import org.jacodb.ets.base.EtsNumberType
-import org.jacodb.ets.base.EtsStringType
-import org.jacodb.ets.base.EtsType
-import org.jacodb.ets.base.EtsUndefinedType
-import org.jacodb.ets.base.EtsUnknownType
+import org.jacodb.ets.model.EtsAnyType
+import org.jacodb.ets.model.EtsArrayType
+import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsNullType
+import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.model.EtsStringType
+import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUndefinedType
+import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS
@@ -188,7 +188,7 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
 
             TsValue.TsClass::class -> {
                 // TODO incorrect
-                val signature = EtsClassSignature(it.toString(), EtsFileSignature.DEFAULT)
+                val signature = EtsClassSignature(it.toString(), EtsFileSignature.UNKNOWN)
                 EtsClassType(signature)
             }
 
@@ -206,7 +206,7 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
 
             TsValue.TsException::class -> {
                 // TODO incorrect
-                val signature = EtsClassSignature("Exception", EtsFileSignature.DEFAULT)
+                val signature = EtsClassSignature("Exception", EtsFileSignature.UNKNOWN)
                 EtsClassType(signature)
             }
 

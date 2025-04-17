@@ -2,16 +2,17 @@ package org.usvm.machine
 
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
-import org.jacodb.ets.base.EtsAnyType
-import org.jacodb.ets.base.EtsBooleanType
-import org.jacodb.ets.base.EtsNullType
-import org.jacodb.ets.base.EtsNumberType
-import org.jacodb.ets.base.EtsRefType
-import org.jacodb.ets.base.EtsType
-import org.jacodb.ets.base.EtsUndefinedType
-import org.jacodb.ets.base.EtsUnionType
-import org.jacodb.ets.base.EtsUnknownType
+import org.jacodb.ets.model.EtsAnyType
+import org.jacodb.ets.model.EtsBooleanType
+import org.jacodb.ets.model.EtsNullType
+import org.jacodb.ets.model.EtsNumberType
+import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUnclearRefType
+import org.jacodb.ets.model.EtsUndefinedType
+import org.jacodb.ets.model.EtsUnionType
+import org.jacodb.ets.model.EtsUnknownType
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort

@@ -20,14 +20,12 @@ import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsMethod
 
 class ClassSummaryCollector(
-    val methodSummaries: MutableMap<EtsMethod, MethodVerificationSummary> = mutableMapOf(),
+    val methodSummaries: MutableMap<EtsMethod, MethodVerificationSummary> = hashMapOf(),
 ) {
     fun collect(clazz: EtsClass) {
         clazz.methods.forEach { method ->
-            val stmtCollector = StmtSummaryCollector(
-                method.signature,
-                methodSummaries.computeIfAbsent(method) { MethodVerificationSummary() }
-            )
+            val summary = methodSummaries.computeIfAbsent(method) { MethodVerificationSummary() }
+            val stmtCollector = StmtSummaryCollector(method, summary)
             method.cfg.stmts.forEach {
                 it.accept(stmtCollector)
             }

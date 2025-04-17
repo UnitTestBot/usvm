@@ -1,28 +1,27 @@
 package org.usvm.dataflow.ts.infer
 
 import mu.KotlinLogging
-import org.jacodb.ets.base.EtsArrayAccess
-import org.jacodb.ets.base.EtsAssignStmt
-import org.jacodb.ets.base.EtsCastExpr
-import org.jacodb.ets.base.EtsEntity
-import org.jacodb.ets.base.EtsEqExpr
-import org.jacodb.ets.base.EtsFieldRef
-import org.jacodb.ets.base.EtsIfStmt
-import org.jacodb.ets.base.EtsInExpr
-import org.jacodb.ets.base.EtsInstanceCallExpr
-import org.jacodb.ets.base.EtsLValue
-import org.jacodb.ets.base.EtsLocal
-import org.jacodb.ets.base.EtsNewExpr
-import org.jacodb.ets.base.EtsNumberConstant
-import org.jacodb.ets.base.EtsParameterRef
-import org.jacodb.ets.base.EtsReturnStmt
-import org.jacodb.ets.base.EtsStmt
-import org.jacodb.ets.base.EtsStringConstant
-import org.jacodb.ets.base.EtsThis
-import org.jacodb.ets.base.EtsThrowStmt
-import org.jacodb.ets.base.EtsType
-import org.jacodb.ets.base.EtsValue
+import org.jacodb.ets.model.EtsArrayAccess
+import org.jacodb.ets.model.EtsAssignStmt
+import org.jacodb.ets.model.EtsCastExpr
+import org.jacodb.ets.model.EtsEntity
+import org.jacodb.ets.model.EtsEqExpr
+import org.jacodb.ets.model.EtsFieldRef
+import org.jacodb.ets.model.EtsIfStmt
+import org.jacodb.ets.model.EtsInExpr
+import org.jacodb.ets.model.EtsInstanceCallExpr
+import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsNewExpr
+import org.jacodb.ets.model.EtsNumberConstant
+import org.jacodb.ets.model.EtsParameterRef
+import org.jacodb.ets.model.EtsReturnStmt
+import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.model.EtsStringConstant
+import org.jacodb.ets.model.EtsThis
+import org.jacodb.ets.model.EtsThrowStmt
+import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsValue
 import org.jacodb.ets.utils.callExpr
 import org.jacodb.impl.cfg.graphs.GraphDominators
 import org.usvm.dataflow.ifds.FlowFunction
@@ -212,7 +211,8 @@ class BackwardFlowFunctions(
             if (returnValue != null) {
                 val variable = returnValue.toBase()
                 val type = if (doAddKnownTypes) {
-                    EtsTypeFact.from(returnValue.type).fixAnyToUnknown()
+                    val knownType = returnValue.tryGetKnownType(current.method)
+                    EtsTypeFact.from(knownType).fixAnyToUnknown()
                 } else {
                     EtsTypeFact.UnknownEtsTypeFact
                 }
@@ -241,14 +241,8 @@ class BackwardFlowFunctions(
                     // Case `x... := y`
                     // ∅ |= y:unknown
                     val type = if (doAddKnownTypes) {
-                        EtsTypeFact.from(current.rhv.type).let {
-                            // Note: convert Any to Unknown, because intersection with Any is Any
-                            if (it is EtsTypeFact.AnyEtsTypeFact) {
-                                EtsTypeFact.UnknownEtsTypeFact
-                            } else {
-                                it
-                            }
-                        }
+                        val knownType = current.rhv.tryGetKnownType(current.method)
+                        EtsTypeFact.from(knownType).fixAnyToUnknown()
                     } else {
                         EtsTypeFact.UnknownEtsTypeFact
                     }
@@ -283,13 +277,7 @@ class BackwardFlowFunctions(
                 }
             }
 
-            val lhv = when (val l = current.lhv) {
-                is EtsLValue -> l.toPath()
-                else -> {
-                    logger.info { "TODO backward assign zero: $current" }
-                    error("Unexpected LHV in assignment: $current")
-                }
-            }
+            val lhv = current.lhv.toPath()
 
             // Handle new possible facts for LHS:
             if (lhv.accesses.isNotEmpty()) {
@@ -543,7 +531,7 @@ class BackwardFlowFunctions(
             val objectWithMethod = EtsTypeFact.ObjectEtsTypeFact(
                 cls = null,
                 properties = mapOf(
-                    callExpr.method.name to EtsTypeFact.FunctionEtsTypeFact
+                    callExpr.callee.name to EtsTypeFact.FunctionEtsTypeFact
                 )
             )
             result += TypedVariable(path, objectWithMethod)
@@ -552,7 +540,7 @@ class BackwardFlowFunctions(
         if (doAddKnownTypes) {
             // f(x:T) |= x:T, where T is the type of the argument in f's signature
             for ((index, arg) in callExpr.args.withIndex()) {
-                val param = callExpr.method.parameters.getOrNull(index) ?: continue
+                val param = callExpr.callee.parameters.getOrNull(index) ?: continue
                 val base = arg.toBase()
                 val type = EtsTypeFact.from(param.type)
                 result += TypedVariable(base, type)
