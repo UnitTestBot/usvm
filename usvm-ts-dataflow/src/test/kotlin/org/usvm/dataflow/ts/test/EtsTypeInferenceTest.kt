@@ -22,17 +22,17 @@ import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.SerializationException
 import mu.KotlinLogging
-import org.jacodb.ets.utils.CONSTRUCTOR_NAME
+import org.jacodb.ets.dto.EtsFileDto
+import org.jacodb.ets.dto.toEtsFile
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsAssignStmt
+import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStringConstant
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUnknownType
-import org.jacodb.ets.dto.EtsFileDto
-import org.jacodb.ets.dto.toEtsFile
-import org.jacodb.ets.model.EtsFile
-import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.jacodb.ets.utils.getLocals
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Disabled
@@ -392,7 +392,11 @@ class EtsTypeInferenceTest {
                 val result = manager.analyze(listOf(entrypoint), doAddKnownTypes = false)
 
                 val inferredTypes = result.inferredTypes[inferMethod]
-                    ?: error("No inferred types for method ${inferMethod.signature.enclosingClass.name}::${inferMethod.name}")
+                    ?: error(
+                        "No inferred types for method ${
+                            inferMethod.signature.enclosingClass.name
+                        }::${inferMethod.name}"
+                    )
 
                 for ((position, expected) in expectedTypeString.sortedByBase()) {
                     val inferred = inferredTypes[position]
@@ -493,16 +497,30 @@ class EtsTypeInferenceTest {
                 logger.info {
                     buildString {
                         appendLine("Inferred return types: ${result.inferredReturnType.size}")
-                        for ((method, returnType) in result.inferredReturnType.sortedBy { it.key.toString() }) {
-                            appendLine("${method.signature.enclosingClass.name}::${method.name}: ${returnType.toStringLimited()}")
+                        val res = result.inferredReturnType.sortedBy { it.key.toString() }
+                        for ((method, returnType) in res) {
+                            appendLine(
+                                "${
+                                    method.signature.enclosingClass.name
+                                }::${
+                                    method.name
+                                }: ${
+                                    returnType.toStringLimited()
+                                }"
+                            )
                         }
                     }
                 }
                 logger.info {
                     buildString {
                         appendLine("Inferred combined this types: ${result.inferredCombinedThisType.size}")
-                        for ((clazz, thisType) in result.inferredCombinedThisType.sortedBy { it.key.toString() }) {
-                            appendLine("${clazz.name} in ${clazz.file}: ${thisType.toStringLimited()}")
+                        val res = result.inferredCombinedThisType.sortedBy { it.key.toString() }
+                        for ((clazz, thisType) in res) {
+                            appendLine(
+                                "${clazz.name} in ${clazz.file}: ${
+                                    thisType.toStringLimited()
+                                }"
+                            )
                         }
                     }
                 }
