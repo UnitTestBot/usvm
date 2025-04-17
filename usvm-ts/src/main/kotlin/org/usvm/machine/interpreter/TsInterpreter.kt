@@ -1,6 +1,7 @@
 package org.usvm.machine.interpreter
 
 import io.ksmt.utils.asExpr
+import mu.KotlinLogging
 import org.jacodb.ets.model.EtsArrayAccess
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsAssignStmt
@@ -15,6 +16,7 @@ import org.jacodb.ets.model.EtsParameterRef
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsStaticFieldRef
 import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.model.EtsStmtLocation
 import org.jacodb.ets.model.EtsThis
 import org.jacodb.ets.model.EtsThrowStmt
 import org.jacodb.ets.model.EtsType
@@ -22,12 +24,16 @@ import org.jacodb.ets.model.EtsValue
 import org.jacodb.ets.utils.getDeclaredLocals
 import org.usvm.StepResult
 import org.usvm.StepScope
+import org.usvm.UBoolExpr
 import org.usvm.UInterpreter
 import org.usvm.api.targets.TsTarget
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.forkblacklists.UForkBlackList
-import org.usvm.machine.TsApplicationGraph
+import org.usvm.machine.TsGraph
+import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
+import org.usvm.machine.TsMethodCall
+import org.usvm.machine.TsVirtualMethodCallStmt
 import org.usvm.machine.expr.TsExprResolver
 import org.usvm.machine.expr.mkTruthyExpr
 import org.usvm.machine.state.TsMethodResult
@@ -44,14 +50,17 @@ import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
 import org.usvm.util.resolveEtsField
+import org.usvm.util.resolveEtsMethods
 import org.usvm.utils.ensureSat
+
+private val logger = KotlinLogging.logger {}
 
 typealias TsStepScope = StepScope<TsState, EtsType, EtsStmt, TsContext>
 
 @Suppress("UNUSED_PARAMETER")
 class TsInterpreter(
     private val ctx: TsContext,
-    private val applicationGraph: TsApplicationGraph,
+    private val graph: TsGraph,
 ) : UInterpreter<TsState>() {
 
     private val forkBlackList: UForkBlackList<TsState, EtsStmt> = UForkBlackList.createDefault()
@@ -79,6 +88,7 @@ class TsInterpreter(
         }
 
         when (stmt) {
+            is TsMethodCall -> visitMethodCall(scope, stmt)
             is EtsIfStmt -> visitIfStmt(scope, stmt)
             is EtsReturnStmt -> visitReturnStmt(scope, stmt)
             is EtsAssignStmt -> visitAssignStmt(scope, stmt)
@@ -91,6 +101,70 @@ class TsInterpreter(
         return scope.stepResult()
     }
 
+    private fun visitMethodCall(scope: TsStepScope, stmt: TsMethodCall) {
+        exprResolverWithScope(scope)
+
+        // NOTE: USE '.callee' INSTEAD OF '.method' !!!
+
+        when (stmt) {
+            is TsVirtualMethodCallStmt -> {
+                val methods = ctx.resolveEtsMethods(stmt.callee)
+                if (methods.isEmpty()) {
+                    logger.warn { "Could not resolve method: ${stmt.callee}" }
+                    scope.assert(ctx.falseExpr)
+                    return
+                }
+
+                logger.info {
+                    "Preparing to fork on ${methods.size} methods: ${
+                        methods.map { "${it.signature.enclosingClass.name}::${it.name}" }
+                    }"
+                }
+
+                val conditionsWithBlocks: MutableList<Pair<UBoolExpr, TsState.() -> Unit>> = mutableListOf()
+
+                for (method in methods) {
+                    val block = { newState: TsState ->
+                        val concreteCall = TsConcreteMethodCallStmt(
+                            location = EtsStmtLocation.stub(scope.calcOnState { lastEnteredMethod }),
+                            callee = method,
+                            arguments = stmt.arguments,
+                            returnSite = stmt.returnSite,
+                        )
+                        newState.newStmt(concreteCall)
+                    }
+                    conditionsWithBlocks += ctx.trueExpr to block
+                }
+
+                scope.forkMulti(conditionsWithBlocks)
+            }
+
+            is TsConcreteMethodCallStmt -> {
+                // TODO: observer
+                // TODO: native/abstract methods without entrypoints
+
+                val entryPoint = graph.entryPoints(stmt.callee).singleOrNull()
+
+                if (entryPoint == null) {
+                    if (stmt.callee.name != "\$r") {
+                        logger.warn { "No entry point for method ${stmt.callee}" }
+                    }
+                    return
+                }
+
+                scope.doWithState {
+                    check(stmt.arguments.size == stmt.callee.parametersWithThisCount) {
+                        "Expected ${stmt.callee.parameters.size}+1 arguments, got ${stmt.arguments.size}"
+                    }
+                    // TODO: push sorts for arguments
+                    callStack.push(stmt.callee, stmt.returnSite)
+                    memory.stack.push(stmt.arguments.toTypedArray(), stmt.callee.localsCount)
+                    newStmt(entryPoint)
+                }
+            }
+        }
+    }
+
     private fun visitIfStmt(scope: TsStepScope, stmt: EtsIfStmt) {
         val exprResolver = exprResolverWithScope(scope)
         val expr = exprResolver.resolve(stmt.condition) ?: return
@@ -101,7 +175,7 @@ class TsInterpreter(
             ctx.mkTruthyExpr(expr, scope)
         }
 
-        val (posStmt, negStmt) = applicationGraph.successors(stmt).take(2).toList()
+        val (posStmt, negStmt) = graph.successors(stmt).take(2).toList()
 
         scope.forkWithBlackList(
             boolExpr,
@@ -309,5 +383,5 @@ class TsInterpreter(
 
     // TODO: expand with interpreter implementation
     private val EtsStmt.nextStmt: EtsStmt?
-        get() = applicationGraph.successors(this).firstOrNull()
+        get() = graph.successors(this).firstOrNull()
 }

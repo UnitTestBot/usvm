@@ -27,10 +27,5 @@ private fun mkStaticFieldsInitializedFlag(
     instance: UHeapRef,
     clazz: EtsClassSignature,
 ): UFieldLValue<String, UBoolSort> {
-    val field = EtsFieldSignature(
-        enclosingClass = clazz,
-        name = "__initialized__",
-        type = EtsBooleanType,
-    )
-    return mkFieldLValue(instance.ctx.boolSort, instance, field)
+    return mkFieldLValue(instance.ctx.boolSort, instance, "__initialized__")
 }

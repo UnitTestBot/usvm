@@ -1,7 +1,9 @@
 package org.usvm.util
 
 import org.jacodb.ets.model.EtsArrayType
+import org.jacodb.ets.model.EtsField
 import org.jacodb.ets.model.EtsFieldSignature
+import org.jacodb.ets.model.EtsType
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
@@ -23,20 +25,38 @@ fun <Sort : USort> mkFieldLValue(
 fun <Sort : USort> mkFieldLValue(
     sort: Sort,
     ref: UHeapRef,
+    field: String,
+): UFieldLValue<String, Sort> = UFieldLValue(sort, ref, field)
+
+fun <Sort : USort> mkFieldLValue(
+    sort: Sort,
+    ref: UHeapRef,
     field: EtsFieldSignature,
-): UFieldLValue<String, Sort> = UFieldLValue(sort, ref, field.name)
+): UFieldLValue<String, Sort> = mkFieldLValue(sort, ref, field.name)
+
+fun <Sort : USort> mkFieldLValue(
+    sort: Sort,
+    ref: UHeapRef,
+    field: EtsField,
+): UFieldLValue<String, Sort> = mkFieldLValue(sort, ref, field.signature)
 
 fun <Sort : USort> mkArrayIndexLValue(
     sort: Sort,
     ref: UHeapRef,
     index: UExpr<TsSizeSort>,
     type: EtsArrayType,
-): UArrayIndexLValue<EtsArrayType, Sort, TsSizeSort> = UArrayIndexLValue(sort, ref, index, type)
+): UArrayIndexLValue<EtsType, Sort, TsSizeSort> = with(ref.tctx) {
+    val descriptor = arrayDescriptorOf(type)
+    UArrayIndexLValue(sort, ref, index, descriptor)
+}
 
 fun mkArrayLengthLValue(
     ref: UHeapRef,
     type: EtsArrayType,
-): UArrayLengthLValue<EtsArrayType, TsSizeSort> = UArrayLengthLValue(ref, type, ref.tctx.sizeSort)
+): UArrayLengthLValue<EtsType, TsSizeSort> = with(ref.tctx) {
+    val descriptor = arrayDescriptorOf(type)
+    return UArrayLengthLValue(ref, descriptor, sizeSort)
+}
 
 fun <Sort : USort> mkRegisterStackLValue(
     sort: Sort,
