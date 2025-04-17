@@ -496,7 +496,11 @@ class EtsTypeInferenceTest {
                 }
                 logger.info {
                     buildString {
-                        appendLine("Inferred return types: ${result.inferredReturnType.size}")
+                        appendLine(
+                            "Inferred return types: ${
+                                result.inferredReturnType.size
+                            }"
+                        )
                         val res = result.inferredReturnType.sortedBy { it.key.toString() }
                         for ((method, returnType) in res) {
                             appendLine(
@@ -513,7 +517,11 @@ class EtsTypeInferenceTest {
                 }
                 logger.info {
                     buildString {
-                        appendLine("Inferred combined this types: ${result.inferredCombinedThisType.size}")
+                        appendLine(
+                            "Inferred combined this types: ${
+                                result.inferredCombinedThisType.size
+                            }"
+                        )
                         val res = result.inferredCombinedThisType.sortedBy { it.key.toString() }
                         for ((clazz, thisType) in res) {
                             appendLine(
@@ -578,7 +586,11 @@ class EtsTypeInferenceTest {
 
                     logger.info {
                         buildString {
-                            appendLine("Local type matching for ${method.signature.enclosingClass.name}::${method.name}:")
+                            appendLine(
+                                "Local type matching for ${
+                                    method.signature.enclosingClass.name
+                                }::${method.name}:"
+                            )
                             appendLine("  Matched normal: $numMatchedNormal")
                             appendLine("  Matched unknown: $numMatchedUnknown")
                             appendLine("  Mismatched normal: $numMismatchedNormal")

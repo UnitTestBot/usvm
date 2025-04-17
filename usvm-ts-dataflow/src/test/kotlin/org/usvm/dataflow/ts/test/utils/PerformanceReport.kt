@@ -21,7 +21,6 @@ import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.measureTimedValue
 
-
 data class PerformanceReport(
     val projectId: String,
     val maxTime: Duration,

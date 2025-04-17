@@ -41,7 +41,6 @@ import org.jacodb.ets.model.EtsStaticFieldRef
 import org.jacodb.ets.model.EtsStringConstant
 import org.jacodb.ets.model.EtsThis
 import org.jacodb.ets.model.EtsUndefinedConstant
-import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.model.EtsValue
 
 fun EtsValue.toDto(): ValueDto = accept(EtsValueToDto)
