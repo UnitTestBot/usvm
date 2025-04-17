@@ -95,13 +95,18 @@ internal class RecursionTest : ApproximationsTestRunner() {
 
     @Test
     fun recursionWithExceptionTest() {
-        checkDiscoveredPropertiesWithExceptions(
-            Recursion::recursionWithException,
-            ge(3),
-            { _, x, r -> x < 42 && r.isException<IllegalArgumentException>() },
-            { _, x, r -> x == 42 && r.isException<IllegalArgumentException>() },
-            { _, x, r -> x > 42 && r.isException<IllegalArgumentException>() },
-        )
+        // Two goto statements are expected to not be covered
+        // The expected coverage is 15 out of 17 instructions
+        val options = options.copy(stopOnCoverage = 88)
+        withOptions(options) {
+            checkDiscoveredPropertiesWithExceptions(
+                Recursion::recursionWithException,
+                ge(3),
+                { _, x, r -> x < 42 && r.isException<IllegalArgumentException>() },
+                { _, x, r -> x == 42 && r.isException<IllegalArgumentException>() },
+                { _, x, r -> x > 42 && r.isException<IllegalArgumentException>() },
+            )
+        }
     }
 
     @UsvmTest([Options([PathSelectionStrategy.RANDOM_PATH])])
