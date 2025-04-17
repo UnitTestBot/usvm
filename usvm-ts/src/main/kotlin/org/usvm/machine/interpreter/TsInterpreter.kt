@@ -1,26 +1,24 @@
 package org.usvm.machine.interpreter
 
 import io.ksmt.utils.asExpr
-import org.jacodb.ets.base.EtsArrayAccess
-import org.jacodb.ets.base.EtsArrayType
-import org.jacodb.ets.base.EtsAssignStmt
-import org.jacodb.ets.base.EtsCallStmt
-import org.jacodb.ets.base.EtsGotoStmt
-import org.jacodb.ets.base.EtsIfStmt
-import org.jacodb.ets.base.EtsInstanceFieldRef
-import org.jacodb.ets.base.EtsLocal
-import org.jacodb.ets.base.EtsNopStmt
-import org.jacodb.ets.base.EtsNullType
-import org.jacodb.ets.base.EtsParameterRef
-import org.jacodb.ets.base.EtsReturnStmt
-import org.jacodb.ets.base.EtsStaticFieldRef
-import org.jacodb.ets.base.EtsStmt
-import org.jacodb.ets.base.EtsSwitchStmt
-import org.jacodb.ets.base.EtsThis
-import org.jacodb.ets.base.EtsThrowStmt
-import org.jacodb.ets.base.EtsType
-import org.jacodb.ets.base.EtsValue
+import org.jacodb.ets.model.EtsArrayAccess
+import org.jacodb.ets.model.EtsArrayType
+import org.jacodb.ets.model.EtsAssignStmt
+import org.jacodb.ets.model.EtsCallStmt
+import org.jacodb.ets.model.EtsIfStmt
+import org.jacodb.ets.model.EtsInstanceFieldRef
+import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsNopStmt
+import org.jacodb.ets.model.EtsNullType
+import org.jacodb.ets.model.EtsParameterRef
+import org.jacodb.ets.model.EtsReturnStmt
+import org.jacodb.ets.model.EtsStaticFieldRef
+import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.model.EtsThis
+import org.jacodb.ets.model.EtsThrowStmt
+import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsValue
 import org.jacodb.ets.utils.getDeclaredLocals
 import org.usvm.StepResult
 import org.usvm.StepScope
@@ -86,9 +84,7 @@ class TsInterpreter(
             is EtsAssignStmt -> visitAssignStmt(scope, stmt)
             is EtsCallStmt -> visitCallStmt(scope, stmt)
             is EtsThrowStmt -> visitThrowStmt(scope, stmt)
-            is EtsGotoStmt -> visitGotoStmt(scope, stmt)
             is EtsNopStmt -> visitNopStmt(scope, stmt)
-            is EtsSwitchStmt -> visitSwitchStmt(scope, stmt)
             else -> error("Unknown stmt: $stmt")
         }
 
@@ -105,7 +101,7 @@ class TsInterpreter(
             ctx.mkTruthyExpr(expr, scope)
         }
 
-        val (negStmt, posStmt) = applicationGraph.successors(stmt).take(2).toList()
+        val (posStmt, negStmt) = applicationGraph.successors(stmt).take(2).toList()
 
         scope.forkWithBlackList(
             boolExpr,
@@ -239,15 +235,7 @@ class TsInterpreter(
         TODO()
     }
 
-    private fun visitGotoStmt(scope: TsStepScope, stmt: EtsGotoStmt) {
-        TODO()
-    }
-
     private fun visitNopStmt(scope: TsStepScope, stmt: EtsNopStmt) {
-        TODO()
-    }
-
-    private fun visitSwitchStmt(scope: TsStepScope, stmt: EtsSwitchStmt) {
         TODO()
     }
 

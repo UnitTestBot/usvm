@@ -12,17 +12,18 @@ import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import mu.KotlinLogging
-import org.jacodb.ets.base.CONSTRUCTOR_NAME
-import org.jacodb.ets.base.EtsReturnStmt
-import org.jacodb.ets.base.EtsStmt
-import org.jacodb.ets.base.EtsStringType
-import org.jacodb.ets.base.EtsType
-import org.jacodb.ets.base.EtsUnclearRefType
-import org.jacodb.ets.base.INSTANCE_INIT_METHOD_NAME
-import org.jacodb.ets.graph.findDominators
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsReturnStmt
+import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.model.EtsStringType
+import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUnclearRefType
+import org.jacodb.ets.utils.ANONYMOUS_CLASS_PREFIX
+import org.jacodb.ets.utils.CONSTRUCTOR_NAME
+import org.jacodb.ets.utils.INSTANCE_INIT_METHOD_NAME
 import org.jacodb.impl.cfg.graphs.GraphDominators
+import org.jacodb.impl.cfg.graphs.findDominators
 import org.usvm.dataflow.ifds.ControlEvent
 import org.usvm.dataflow.ifds.Edge
 import org.usvm.dataflow.ifds.Manager
@@ -344,11 +345,20 @@ class TypeInferenceManager(
     private fun getInferredCombinedThisTypes(
         methodTypeScheme: Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>>,
     ): Map<EtsClassSignature, EtsTypeFact> {
-        val forwardSummariesByClass = forwardSummaries
-            .entries.groupByTo(hashMapOf()) { (method, _) -> method.enclosingClass }
+        val classBySignature = graph.cp.projectAndSdkClasses
+            .groupByTo(hashMapOf()) { it.signature }
 
-        return graph.cp.projectClasses.mapNotNull { cls ->
-            val combinedBackwardType = (cls.methods + cls.ctor)
+        val allClasses = methodTypeScheme.keys
+            .map { it.signature.enclosingClass }
+            .distinct()
+            .map { sig -> classBySignature[sig].orEmpty().first() }
+            .filterNot { it.name.startsWith(ANONYMOUS_CLASS_PREFIX) }
+
+        val forwardSummariesByClass = forwardSummaries
+            .entries.groupByTo(hashMapOf()) { (method, _) -> method.signature.enclosingClass }
+
+        return allClasses.mapNotNull { cls ->
+            val combinedBackwardType = cls.methods
                 .mapNotNull { methodTypeScheme[it] }
                 .mapNotNull { facts -> facts[AccessPathBase.This] }.reduceOrNull { acc, type ->
                     typeProcessor.intersect(acc, type) ?: run {
@@ -643,7 +653,7 @@ class TypeInferenceManager(
                         // intersect(this:object, type:string)
 
                         if (cls == EtsStringType) return type
-                        if (cls is EtsUnclearRefType && cls.name == "String") return type
+                        if (cls is EtsUnclearRefType && cls.typeName == "String") return type
                         if (cls != null) return null
 
                         val intersectionProperties = properties

@@ -1,6 +1,6 @@
 package org.usvm.machine.types
 
-import org.jacodb.ets.base.EtsType
+import org.jacodb.ets.model.EtsType
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.USort

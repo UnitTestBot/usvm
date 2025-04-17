@@ -1,12 +1,12 @@
 package org.usvm.machine
 
-import org.jacodb.ets.base.EtsAnyType
-import org.jacodb.ets.base.EtsBooleanType
-import org.jacodb.ets.base.EtsNumberType
-import org.jacodb.ets.base.EtsPrimitiveType
-import org.jacodb.ets.base.EtsType
-import org.jacodb.ets.base.EtsUnknownType
+import org.jacodb.ets.model.EtsAnyType
+import org.jacodb.ets.model.EtsBooleanType
+import org.jacodb.ets.model.EtsNumberType
+import org.jacodb.ets.model.EtsPrimitiveType
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUnknownType
 import org.usvm.types.TypesResult
 import org.usvm.types.TypesResult.Companion.toTypesResult
 import org.usvm.types.USupportTypeStream

@@ -54,7 +54,7 @@ class FieldAccess {
         return this.createObject().x;
     }
 
-    private createObject(): {x: number} {
+    private createObject(): { x: number } {
         return {x: 42};
     }
 

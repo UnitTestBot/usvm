@@ -1,17 +1,17 @@
 package org.usvm.dataflow.ts.infer
 
-import org.jacodb.ets.base.EtsArrayAccess
-import org.jacodb.ets.base.EtsAwaitExpr
-import org.jacodb.ets.base.EtsCastExpr
-import org.jacodb.ets.base.EtsConstant
-import org.jacodb.ets.base.EtsEntity
-import org.jacodb.ets.base.EtsInstanceFieldRef
-import org.jacodb.ets.base.EtsLocal
-import org.jacodb.ets.base.EtsParameterRef
-import org.jacodb.ets.base.EtsStaticFieldRef
-import org.jacodb.ets.base.EtsThis
-import org.jacodb.ets.base.EtsValue
+import org.jacodb.ets.model.EtsArrayAccess
+import org.jacodb.ets.model.EtsAwaitExpr
+import org.jacodb.ets.model.EtsCastExpr
 import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsConstant
+import org.jacodb.ets.model.EtsEntity
+import org.jacodb.ets.model.EtsInstanceFieldRef
+import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsParameterRef
+import org.jacodb.ets.model.EtsStaticFieldRef
+import org.jacodb.ets.model.EtsThis
+import org.jacodb.ets.model.EtsValue
 
 data class AccessPath(val base: AccessPathBase, val accesses: List<Accessor>) {
     operator fun plus(accessor: Accessor) = AccessPath(base, accesses + accessor)

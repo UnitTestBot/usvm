@@ -1,10 +1,9 @@
 package org.usvm.machine.interpreter
 
-import org.jacodb.ets.base.EtsBooleanType
+import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsFieldSignature
-import org.jacodb.ets.model.EtsFieldSubSignature
 import org.usvm.UBoolSort
 import org.usvm.UHeapRef
 import org.usvm.collection.field.UFieldLValue
@@ -30,10 +29,8 @@ private fun mkStaticFieldsInitializedFlag(
 ): UFieldLValue<String, UBoolSort> {
     val field = EtsFieldSignature(
         enclosingClass = clazz,
-        sub = EtsFieldSubSignature(
-            name = "__initialized__",
-            type = EtsBooleanType,
-        ),
+        name = "__initialized__",
+        type = EtsBooleanType,
     )
     return mkFieldLValue(instance.ctx.boolSort, instance, field)
 }

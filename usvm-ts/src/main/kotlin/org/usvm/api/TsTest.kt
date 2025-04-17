@@ -1,9 +1,9 @@
 package org.usvm.api
 
-import org.jacodb.ets.base.EtsStmt
 import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsField
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsStmt
 
 data class TsTest(
     val method: EtsMethod,

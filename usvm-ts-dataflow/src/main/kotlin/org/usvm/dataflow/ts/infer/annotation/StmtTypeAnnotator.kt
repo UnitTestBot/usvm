@@ -16,20 +16,20 @@
 
 package org.usvm.dataflow.ts.infer.annotation
 
-import org.jacodb.ets.base.EtsAssignStmt
-import org.jacodb.ets.base.EtsCallExpr
-import org.jacodb.ets.base.EtsCallStmt
-import org.jacodb.ets.base.EtsEntity
-import org.jacodb.ets.base.EtsExpr
-import org.jacodb.ets.base.EtsGotoStmt
-import org.jacodb.ets.base.EtsIfStmt
-import org.jacodb.ets.base.EtsNopStmt
-import org.jacodb.ets.base.EtsRawStmt
-import org.jacodb.ets.base.EtsReturnStmt
-import org.jacodb.ets.base.EtsStmt
-import org.jacodb.ets.base.EtsSwitchStmt
-import org.jacodb.ets.base.EtsThrowStmt
-import org.jacodb.ets.base.EtsValue
+import org.jacodb.ets.model.EtsAssignStmt
+import org.jacodb.ets.model.EtsCallExpr
+import org.jacodb.ets.model.EtsCallStmt
+import org.jacodb.ets.model.EtsEntity
+import org.jacodb.ets.model.EtsExpr
+import org.jacodb.ets.model.EtsIfStmt
+import org.jacodb.ets.model.EtsLValue
+import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsNopStmt
+import org.jacodb.ets.model.EtsRawStmt
+import org.jacodb.ets.model.EtsReturnStmt
+import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.model.EtsThrowStmt
+import org.jacodb.ets.model.EtsValue
 
 class StmtTypeAnnotator(
     private val valueAnnotator: ValueTypeAnnotator,
@@ -49,7 +49,7 @@ class StmtTypeAnnotator(
     override fun visit(stmt: EtsNopStmt) = stmt
 
     override fun visit(stmt: EtsAssignStmt) = stmt.copy(
-        lhv = annotate(stmt.lhv),
+        lhv = annotate(stmt.lhv) as EtsLValue, // safe cast
         rhv = annotate(stmt.rhv),
     )
 
@@ -58,22 +58,15 @@ class StmtTypeAnnotator(
     )
 
     override fun visit(stmt: EtsReturnStmt) = stmt.copy(
-        returnValue = stmt.returnValue?.let { annotate(it) }
+        returnValue = stmt.returnValue?.let { annotate(it) as EtsLocal } // safe cast
     )
 
     override fun visit(stmt: EtsThrowStmt) = stmt.copy(
-        arg = annotate(stmt.arg)
+        exception = annotate(stmt.exception) as EtsLocal // safe cast
     )
-
-    override fun visit(stmt: EtsGotoStmt) = stmt
 
     override fun visit(stmt: EtsIfStmt) = stmt.copy(
-        condition = annotate(stmt.condition)
-    )
-
-    override fun visit(stmt: EtsSwitchStmt) = stmt.copy(
-        arg = annotate(stmt.arg),
-        cases = stmt.cases.map { annotate(it) },
+        condition = annotate(stmt.condition) as EtsLocal // safe cast
     )
 
     override fun visit(stmt: EtsRawStmt): EtsStmt = stmt

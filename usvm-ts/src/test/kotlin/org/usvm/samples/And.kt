@@ -1,46 +1,28 @@
 package org.usvm.samples
 
-import org.jacodb.ets.base.DEFAULT_ARK_CLASS_NAME
-import org.jacodb.ets.base.EtsAndExpr
-import org.jacodb.ets.base.EtsAssignStmt
-import org.jacodb.ets.base.EtsBooleanType
-import org.jacodb.ets.base.EtsClassType
-import org.jacodb.ets.base.EtsIfStmt
-import org.jacodb.ets.base.EtsInstLocation
-import org.jacodb.ets.base.EtsLocal
-import org.jacodb.ets.base.EtsNotEqExpr
-import org.jacodb.ets.base.EtsNumberConstant
-import org.jacodb.ets.base.EtsNumberType
-import org.jacodb.ets.base.EtsParameterRef
-import org.jacodb.ets.base.EtsReturnStmt
-import org.jacodb.ets.base.EtsStmt
-import org.jacodb.ets.base.EtsThis
-import org.jacodb.ets.base.EtsUnknownType
 import org.jacodb.ets.dsl.and
 import org.jacodb.ets.dsl.const
 import org.jacodb.ets.dsl.local
+import org.jacodb.ets.dsl.neq
+import org.jacodb.ets.dsl.not
 import org.jacodb.ets.dsl.param
 import org.jacodb.ets.dsl.program
 import org.jacodb.ets.dsl.thisRef
 import org.jacodb.ets.dsl.toBlockCfg
-import org.jacodb.ets.graph.EtsCfg
-import org.jacodb.ets.graph.linearize
-import org.jacodb.ets.graph.toEtsBlockCfg
+import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsMethodImpl
 import org.jacodb.ets.model.EtsMethodParameter
 import org.jacodb.ets.model.EtsMethodSignature
+import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsScene
-import org.jacodb.ets.utils.getLocals
+import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
+import org.jacodb.ets.utils.toEtsBlockCfg
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsValue
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.isTruthy
-
-private fun EtsMethodParameter.toRef(): EtsParameterRef {
-    return EtsParameterRef(index, type)
-}
 
 class And : TsMethodTestRunner() {
 
@@ -82,7 +64,6 @@ class And : TsMethodTestRunner() {
         }
         val blockCfg = prog.toBlockCfg()
 
-        val locals = mutableListOf<EtsLocal>()
         val method = EtsMethodImpl(
             signature = EtsMethodSignature(
                 enclosingClass = classSignature,
@@ -93,14 +74,11 @@ class And : TsMethodTestRunner() {
                 ),
                 returnType = EtsNumberType,
             ),
-            locals = locals,
         )
+        method.enclosingClass = scene.projectClasses.first { it.name == DEFAULT_ARK_CLASS_NAME }
 
         val etsBlockCfg = blockCfg.toEtsBlockCfg(method)
-        val etsCfg = etsBlockCfg.linearize()
-
-        method._cfg = etsCfg
-        locals += method.getLocals()
+        method._cfg = etsBlockCfg
 
         discoverProperties<TsValue.TsBoolean, TsValue.TsBoolean, TsValue.TsNumber>(
             method = method,
@@ -128,12 +106,42 @@ class And : TsMethodTestRunner() {
         //   }
         //
 
+        val prog = program {
+            assign(local("a"), param(0))
+            assign(local("b"), param(1))
+            assign(local("this"), thisRef())
+            ifStmt(and(local("a"), local("b"))) {
+                ret(const(1.0))
+            }
+            ifStmt(and(local("a"), neq(local("b"), local("b")))) {
+                ret(const(2.0))
+            }
+            ifStmt(local("a")) {
+                ret(const(3.0))
+            }
+            ifStmt(and(neq(local("a"), local("a")), local("b"))) {
+                ret(const(4.0))
+            }
+            ifStmt(and(neq(local("a"), local("a")), neq(local("b"), local("b")))) {
+                ret(const(5.0))
+            }
+            ifStmt(neq(local("a"), local("a"))) {
+                ret(const(6.0))
+            }
+            ifStmt(local("b")) {
+                ret(const(7.0))
+            }
+            ifStmt(neq(local("b"), local("b"))) {
+                ret(const(8.0))
+            }
+            ret(const(9.0))
+        }
+        val blockCfg = prog.toBlockCfg()
+
         val methodParameters = listOf(
             EtsMethodParameter(0, "a", EtsNumberType),
             EtsMethodParameter(1, "b", EtsNumberType),
         )
-        val locals = mutableListOf<EtsLocal>()
-
         val method = EtsMethodImpl(
             signature = EtsMethodSignature(
                 enclosingClass = classSignature,
@@ -141,91 +149,11 @@ class And : TsMethodTestRunner() {
                 parameters = methodParameters,
                 returnType = EtsNumberType,
             ),
-            locals = locals,
         )
-        val statements = mutableListOf<EtsStmt>()
-        val successorMap = mutableMapOf<EtsStmt, List<EtsStmt>>()
-        val loc = { EtsInstLocation(method, statements.size) }
+        method.enclosingClass = scene.projectClasses.first { it.name == DEFAULT_ARK_CLASS_NAME }
 
-        val localA = methodParameters[0].let { param ->
-            EtsLocal(param.name, param.type)
-        }
-        val localB = methodParameters[1].let { param ->
-            EtsLocal(param.name, param.type)
-        }
-        val localThis = EtsLocal("this", EtsClassType(classSignature))
-
-        val assA = EtsAssignStmt(loc(), localA, methodParameters[0].toRef()).also { statements += it }
-        val assB = EtsAssignStmt(loc(), localB, methodParameters[1].toRef()).also { statements += it }
-        val assThis = EtsAssignStmt(loc(), localThis, EtsThis(EtsClassType(classSignature))).also { statements += it }
-
-        // %0 := a && b
-        val local0 = EtsLocal("%0", EtsUnknownType)
-        val ass0 = EtsAssignStmt(loc(), local0, EtsAndExpr(EtsUnknownType, localA, localB)).also { statements += it }
-        val if0 = EtsIfStmt(loc(), local0).also { statements += it }
-        val ret1 = EtsReturnStmt(loc(), EtsNumberConstant(1.0)).also { statements += it }
-        // %1 := (b != b)
-        val local1 = EtsLocal("%1", EtsUnknownType)
-        val ass1 = EtsAssignStmt(loc(), local1, EtsNotEqExpr(localB, localB)).also { statements += it }
-        // %2 := a && %1 == a && (b != b)
-        val local2 = EtsLocal("%2", EtsUnknownType)
-        val ass2 = EtsAssignStmt(loc(), local2, EtsAndExpr(EtsUnknownType, localA, local1)).also { statements += it }
-        val if2 = EtsIfStmt(loc(), local2).also { statements += it }
-        val ret2 = EtsReturnStmt(loc(), EtsNumberConstant(2.0)).also { statements += it }
-        val ifA = EtsIfStmt(loc(), localA).also { statements += it }
-        val ret3 = EtsReturnStmt(loc(), EtsNumberConstant(3.0)).also { statements += it }
-        // %3 := (a != a)
-        val local3 = EtsLocal("%3", EtsUnknownType)
-        val ass3 = EtsAssignStmt(loc(), local3, EtsNotEqExpr(localA, localA)).also { statements += it }
-        // %4 := %3 && b == (a != a) && b
-        val local4 = EtsLocal("%4", EtsUnknownType)
-        val ass4 = EtsAssignStmt(loc(), local4, EtsAndExpr(EtsUnknownType, local3, localB)).also { statements += it }
-        val if4 = EtsIfStmt(loc(), local4).also { statements += it }
-        val ret4 = EtsReturnStmt(loc(), EtsNumberConstant(4.0)).also { statements += it }
-        // %5 := %3 && %1 == (a != a) && (b != b)
-        val local5 = EtsLocal("%5", EtsUnknownType)
-        val ass5 = EtsAssignStmt(loc(), local5, EtsAndExpr(EtsUnknownType, local3, local1)).also { statements += it }
-        val if5 = EtsIfStmt(loc(), local5).also { statements += it }
-        val ret5 = EtsReturnStmt(loc(), EtsNumberConstant(5.0)).also { statements += it }
-        val if3 = EtsIfStmt(loc(), local3).also { statements += it }
-        val ret6 = EtsReturnStmt(loc(), EtsNumberConstant(6.0)).also { statements += it }
-        val ifB = EtsIfStmt(loc(), localB).also { statements += it }
-        val ret7 = EtsReturnStmt(loc(), EtsNumberConstant(7.0)).also { statements += it }
-        val if1 = EtsIfStmt(loc(), local1).also { statements += it }
-        val ret8 = EtsReturnStmt(loc(), EtsNumberConstant(8.0)).also { statements += it }
-        val ret9 = EtsReturnStmt(loc(), EtsNumberConstant(9.0)).also { statements += it }
-
-        // Note: for if-statements, successors must be (falseBranch, trueBranch) !!!
-        successorMap[assA] = listOf(assB)
-        successorMap[assB] = listOf(assThis)
-        successorMap[assThis] = listOf(ass0)
-        successorMap[ass0] = listOf(if0)
-        successorMap[if0] = listOf(ass1, ret1)
-        successorMap[ass1] = listOf(ass2)
-        successorMap[ass2] = listOf(if2)
-        successorMap[if2] = listOf(ifA, ret2)
-        successorMap[ifA] = listOf(ass3, ret3)
-        successorMap[ass3] = listOf(ass4)
-        successorMap[ass4] = listOf(if4)
-        successorMap[if4] = listOf(ass5, ret4)
-        successorMap[ass5] = listOf(if5)
-        successorMap[if5] = listOf(if3, ret5)
-        successorMap[if3] = listOf(ifB, ret6)
-        successorMap[ifB] = listOf(if1, ret7)
-        successorMap[if1] = listOf(ret9, ret8)
-
-        successorMap[ret1] = emptyList()
-        successorMap[ret2] = emptyList()
-        successorMap[ret3] = emptyList()
-        successorMap[ret4] = emptyList()
-        successorMap[ret5] = emptyList()
-        successorMap[ret6] = emptyList()
-        successorMap[ret7] = emptyList()
-        successorMap[ret8] = emptyList()
-        successorMap[ret9] = emptyList()
-
-        method._cfg = EtsCfg(statements, successorMap)
-        locals += method.getLocals()
+        val etsBlockCfg = blockCfg.toEtsBlockCfg(method)
+        method._cfg = etsBlockCfg
 
         discoverProperties<TsValue.TsNumber, TsValue.TsNumber, TsValue.TsNumber>(
             method = method,
@@ -255,12 +183,33 @@ class And : TsMethodTestRunner() {
         //   }
         //
 
+        val prog = program {
+            assign(local("a"), param(0))
+            assign(local("b"), param(1))
+            assign(local("this"), thisRef())
+            ifStmt(and(local("a"), local("b"))) {
+                ret(const(1.0))
+            }
+            ifStmt(and(local("a"), neq(local("b"), local("b")))) {
+                ret(const(2.0))
+            }
+            ifStmt(local("a")) {
+                ret(const(3.0))
+            }
+            ifStmt(local("b")) {
+                ret(const(4.0))
+            }
+            ifStmt(neq(local("b"), local("b"))) {
+                ret(const(5.0))
+            }
+            ret(const(6.0))
+        }
+        val blockCfg = prog.toBlockCfg()
+
         val methodParameters = listOf(
             EtsMethodParameter(0, "a", EtsBooleanType),
             EtsMethodParameter(1, "b", EtsNumberType),
         )
-        val locals = mutableListOf<EtsLocal>()
-
         val method = EtsMethodImpl(
             signature = EtsMethodSignature(
                 enclosingClass = classSignature,
@@ -268,67 +217,11 @@ class And : TsMethodTestRunner() {
                 parameters = methodParameters,
                 returnType = EtsNumberType,
             ),
-            locals = locals,
         )
-        val statements = mutableListOf<EtsStmt>()
-        val successorMap = mutableMapOf<EtsStmt, List<EtsStmt>>()
-        val loc = { EtsInstLocation(method, statements.size) }
+        method.enclosingClass = scene.projectClasses.first { it.name == DEFAULT_ARK_CLASS_NAME }
 
-        val localA = methodParameters[0].let { param ->
-            EtsLocal(param.name, param.type)
-        }
-        val localB = methodParameters[1].let { param ->
-            EtsLocal(param.name, param.type)
-        }
-        val localThis = EtsLocal("this", EtsClassType(classSignature))
-
-        val assA = EtsAssignStmt(loc(), localA, methodParameters[0].toRef()).also { statements += it }
-        val assB = EtsAssignStmt(loc(), localB, methodParameters[1].toRef()).also { statements += it }
-        val assThis = EtsAssignStmt(loc(), localThis, EtsThis(EtsClassType(classSignature))).also { statements += it }
-
-        // %0 := a && b
-        val local0 = EtsLocal("%0", EtsUnknownType)
-        val ass0 = EtsAssignStmt(loc(), local0, EtsAndExpr(EtsUnknownType, localA, localB)).also { statements += it }
-        val if0 = EtsIfStmt(loc(), local0).also { statements += it }
-        val ret1 = EtsReturnStmt(loc(), EtsNumberConstant(1.0)).also { statements += it }
-        // %1 := (b != b)
-        val local1 = EtsLocal("%1", EtsUnknownType)
-        val ass1 = EtsAssignStmt(loc(), local1, EtsNotEqExpr(localB, localB)).also { statements += it }
-        // %2 := a && %1 == a && (b != b)
-        val local2 = EtsLocal("%2", EtsUnknownType)
-        val ass2 = EtsAssignStmt(loc(), local2, EtsAndExpr(EtsUnknownType, localA, local1)).also { statements += it }
-        val if2 = EtsIfStmt(loc(), local2).also { statements += it }
-        val ret2 = EtsReturnStmt(loc(), EtsNumberConstant(2.0)).also { statements += it }
-        val ifA = EtsIfStmt(loc(), localA).also { statements += it }
-        val ret3 = EtsReturnStmt(loc(), EtsNumberConstant(3.0)).also { statements += it }
-        val ifB = EtsIfStmt(loc(), localB).also { statements += it }
-        val ret4 = EtsReturnStmt(loc(), EtsNumberConstant(4.0)).also { statements += it }
-        val if1 = EtsIfStmt(loc(), local1).also { statements += it }
-        val ret5 = EtsReturnStmt(loc(), EtsNumberConstant(5.0)).also { statements += it }
-        val ret6 = EtsReturnStmt(loc(), EtsNumberConstant(6.0)).also { statements += it }
-
-        // Note: for if-statements, successors must be (falseBranch, trueBranch) !!!
-        successorMap[assA] = listOf(assB)
-        successorMap[assB] = listOf(assThis)
-        successorMap[assThis] = listOf(ass0)
-        successorMap[ass0] = listOf(if0)
-        successorMap[if0] = listOf(ass1, ret1)
-        successorMap[ass1] = listOf(ass2)
-        successorMap[ass2] = listOf(if2)
-        successorMap[if2] = listOf(ifA, ret2)
-        successorMap[ifA] = listOf(ifB, ret3)
-        successorMap[ifB] = listOf(if1, ret4)
-        successorMap[if1] = listOf(ret6, ret5)
-
-        successorMap[ret1] = emptyList()
-        successorMap[ret2] = emptyList()
-        successorMap[ret3] = emptyList()
-        successorMap[ret4] = emptyList()
-        successorMap[ret5] = emptyList()
-        successorMap[ret6] = emptyList()
-
-        method._cfg = EtsCfg(statements, successorMap)
-        locals += method.getLocals()
+        val etsBlockCfg = blockCfg.toEtsBlockCfg(method)
+        method._cfg = etsBlockCfg
 
         discoverProperties<TsValue.TsBoolean, TsValue.TsNumber, TsValue.TsNumber>(
             method = method,
@@ -350,17 +243,38 @@ class And : TsMethodTestRunner() {
         //       if (a) return 2
         //       if ((a != a) && b) return 3.0
         //       if ((a != a) && !b) return 4.0
-        //       if (b) return 3
-        //       return 4
+        //       if (b) return 5
+        //       return 6
         //   }
         //
+
+        val prog = program {
+            assign(local("a"), param(0))
+            assign(local("b"), param(1))
+            assign(local("this"), thisRef())
+            ifStmt(and(local("a"), local("b"))) {
+                ret(const(1.0))
+            }
+            ifStmt(local("a")) {
+                ret(const(2.0))
+            }
+            ifStmt(and(neq(local("a"), local("a")), local("b"))) {
+                ret(const(3.0))
+            }
+            ifStmt(and(neq(local("a"), local("a")), not(local("b")))) {
+                ret(const(4.0))
+            }
+            ifStmt(local("b")) {
+                ret(const(5.0))
+            }
+            ret(const(6.0))
+        }
+        val blockCfg = prog.toBlockCfg()
 
         val methodParameters = listOf(
             EtsMethodParameter(0, "a", EtsNumberType),
             EtsMethodParameter(1, "b", EtsBooleanType),
         )
-        val locals = mutableListOf<EtsLocal>()
-
         val method = EtsMethodImpl(
             signature = EtsMethodSignature(
                 enclosingClass = classSignature,
@@ -368,67 +282,11 @@ class And : TsMethodTestRunner() {
                 parameters = methodParameters,
                 returnType = EtsNumberType,
             ),
-            locals = locals,
         )
-        val statements = mutableListOf<EtsStmt>()
-        val successorMap = mutableMapOf<EtsStmt, List<EtsStmt>>()
-        val loc = { EtsInstLocation(method, statements.size) }
+        method.enclosingClass = scene.projectClasses.first { it.name == DEFAULT_ARK_CLASS_NAME }
 
-        val localA = methodParameters[0].let { param ->
-            EtsLocal(param.name, param.type)
-        }
-        val localB = methodParameters[1].let { param ->
-            EtsLocal(param.name, param.type)
-        }
-        val localThis = EtsLocal("this", EtsClassType(classSignature))
-
-        val assA = EtsAssignStmt(loc(), localA, methodParameters[0].toRef()).also { statements += it }
-        val assB = EtsAssignStmt(loc(), localB, methodParameters[1].toRef()).also { statements += it }
-        val assThis = EtsAssignStmt(loc(), localThis, EtsThis(EtsClassType(classSignature))).also { statements += it }
-
-        // %0 := a && b
-        val local0 = EtsLocal("%0", EtsUnknownType)
-        val ass0 = EtsAssignStmt(loc(), local0, EtsAndExpr(EtsUnknownType, localA, localB)).also { statements += it }
-        val if0 = EtsIfStmt(loc(), local0).also { statements += it }
-        val ret1 = EtsReturnStmt(loc(), EtsNumberConstant(1.0)).also { statements += it }
-        val ifA = EtsIfStmt(loc(), localA).also { statements += it }
-        val ret2 = EtsReturnStmt(loc(), EtsNumberConstant(2.0)).also { statements += it }
-        // %1 := (a != a)
-        val local1 = EtsLocal("%1", EtsUnknownType)
-        val ass1 = EtsAssignStmt(loc(), local1, EtsNotEqExpr(localA, localA)).also { statements += it }
-        // %2 := %1 && b == (a != a) && b
-        val local2 = EtsLocal("%2", EtsUnknownType)
-        val ass2 = EtsAssignStmt(loc(), local2, EtsAndExpr(EtsUnknownType, local1, localB)).also { statements += it }
-        val if2 = EtsIfStmt(loc(), local2).also { statements += it }
-        val ret3 = EtsReturnStmt(loc(), EtsNumberConstant(3.0)).also { statements += it }
-        val if1 = EtsIfStmt(loc(), local1).also { statements += it }
-        val ret4 = EtsReturnStmt(loc(), EtsNumberConstant(4.0)).also { statements += it }
-        val ifB = EtsIfStmt(loc(), localB).also { statements += it }
-        val ret5 = EtsReturnStmt(loc(), EtsNumberConstant(5.0)).also { statements += it }
-        val ret6 = EtsReturnStmt(loc(), EtsNumberConstant(6.0)).also { statements += it }
-
-        // Note: for if-statements, successors must be (falseBranch, trueBranch) !!!
-        successorMap[assA] = listOf(assB)
-        successorMap[assB] = listOf(assThis)
-        successorMap[assThis] = listOf(ass0)
-        successorMap[ass0] = listOf(if0)
-        successorMap[if0] = listOf(ifA, ret1)
-        successorMap[ifA] = listOf(ass1, ret2)
-        successorMap[ass1] = listOf(ass2)
-        successorMap[ass2] = listOf(if2)
-        successorMap[if2] = listOf(if1, ret3)
-        successorMap[if1] = listOf(ifB, ret4)
-        successorMap[ifB] = listOf(ret6, ret5)
-
-        successorMap[ret1] = emptyList()
-        successorMap[ret2] = emptyList()
-        successorMap[ret3] = emptyList()
-        successorMap[ret4] = emptyList()
-        successorMap[ret5] = emptyList()
-        successorMap[ret6] = emptyList()
-
-        method._cfg = EtsCfg(statements, successorMap)
-        locals += method.getLocals()
+        val etsBlockCfg = blockCfg.toEtsBlockCfg(method)
+        method._cfg = etsBlockCfg
 
         discoverProperties<TsValue.TsNumber, TsValue.TsBoolean, TsValue.TsNumber>(
             method = method,

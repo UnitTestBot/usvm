@@ -17,19 +17,19 @@
 package org.usvm.dataflow.ts.graph
 
 import mu.KotlinLogging
-import org.jacodb.ets.base.CONSTRUCTOR_NAME
-import org.jacodb.ets.base.EtsAssignStmt
-import org.jacodb.ets.base.EtsClassType
-import org.jacodb.ets.base.EtsNewExpr
-import org.jacodb.ets.base.EtsStmt
-import org.jacodb.ets.base.UNKNOWN_FILE_NAME
+import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodSignature
+import org.jacodb.ets.model.EtsNewExpr
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.jacodb.ets.utils.Maybe
+import org.jacodb.ets.utils.UNKNOWN_FILE_NAME
 import org.jacodb.ets.utils.callExpr
 import org.jacodb.ets.utils.onSome
 import org.usvm.dataflow.graph.ApplicationGraph
@@ -136,10 +136,10 @@ class EtsApplicationGraphImpl(
     override fun callees(node: EtsStmt): Sequence<EtsMethod> {
         val expr = node.callExpr ?: return emptySequence()
 
-        val callee = expr.method
+        val callee = expr.callee
 
         // Note: the resolving code below expects that at least the current method signature is known.
-        check(node.method.enclosingClass.isIdeal()) {
+        check(node.method.signature.enclosingClass.isIdeal()) {
             "Incomplete signature in method: ${node.method}"
         }
 
@@ -154,7 +154,7 @@ class EtsApplicationGraphImpl(
                 }
 
                 if (prevStmt is EtsAssignStmt && prevStmt.rhv is EtsNewExpr) {
-                    val cls = prevStmt.rhv.type
+                    val cls = (prevStmt.rhv as EtsNewExpr).type
                     if (cls !is EtsClassType) {
                         return emptySequence()
                     }
@@ -223,7 +223,7 @@ class EtsApplicationGraphImpl(
         // If the callee signature is not ideal, resolve it via a partial match...
         check(!callee.enclosingClass.isIdeal())
 
-        val cls = lookupClassWithIdealSignature(node.method.enclosingClass).let {
+        val cls = lookupClassWithIdealSignature(node.method.signature.enclosingClass).let {
             if (it.isNone) {
                 error("Could not find the enclosing class: ${node.method.enclosingClass}")
             }
@@ -250,10 +250,18 @@ class EtsApplicationGraphImpl(
         // try to *uniquely* resolve the callee via a partial signature match:
         val resolved = projectMethodsByName[callee.name].orEmpty()
             .asSequence()
-            .filter { compareClassSignatures(it.enclosingClass, callee.enclosingClass) != ComparisonResult.NotEqual }
+            .filter {
+                compareClassSignatures(
+                    it.signature.enclosingClass,
+                    callee.enclosingClass
+                ) != ComparisonResult.NotEqual
+            }
             // Note: exclude current class:
             .filterNot {
-                compareClassSignatures(it.enclosingClass, node.method.enclosingClass) != ComparisonResult.NotEqual
+                compareClassSignatures(
+                    it.signature.enclosingClass,
+                    node.method.signature.enclosingClass
+                ) != ComparisonResult.NotEqual
             }
             .toList()
         if (resolved.isEmpty()) {

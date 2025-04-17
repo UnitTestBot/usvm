@@ -1,6 +1,6 @@
 package org.usvm.util
 
-import org.jacodb.ets.base.EtsArrayType
+import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsFieldSignature
 import org.usvm.UExpr
 import org.usvm.UHeapRef

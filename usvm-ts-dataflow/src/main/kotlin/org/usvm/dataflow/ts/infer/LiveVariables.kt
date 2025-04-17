@@ -1,25 +1,23 @@
 package org.usvm.dataflow.ts.infer
 
-import org.jacodb.ets.base.EtsArrayAccess
-import org.jacodb.ets.base.EtsAssignStmt
-import org.jacodb.ets.base.EtsBinaryExpr
-import org.jacodb.ets.base.EtsCallExpr
-import org.jacodb.ets.base.EtsCallStmt
-import org.jacodb.ets.base.EtsCastExpr
-import org.jacodb.ets.base.EtsEntity
-import org.jacodb.ets.base.EtsIfStmt
-import org.jacodb.ets.base.EtsInstanceCallExpr
-import org.jacodb.ets.base.EtsInstanceFieldRef
-import org.jacodb.ets.base.EtsInstanceOfExpr
-import org.jacodb.ets.base.EtsLocal
-import org.jacodb.ets.base.EtsReturnStmt
-import org.jacodb.ets.base.EtsStmt
-import org.jacodb.ets.base.EtsSwitchStmt
-import org.jacodb.ets.base.EtsTernaryExpr
-import org.jacodb.ets.base.EtsThrowStmt
-import org.jacodb.ets.base.EtsUnaryExpr
-import org.jacodb.ets.base.EtsValue
+import org.jacodb.ets.model.EtsArrayAccess
+import org.jacodb.ets.model.EtsAssignStmt
+import org.jacodb.ets.model.EtsBinaryExpr
+import org.jacodb.ets.model.EtsCallExpr
+import org.jacodb.ets.model.EtsCallStmt
+import org.jacodb.ets.model.EtsCastExpr
+import org.jacodb.ets.model.EtsEntity
+import org.jacodb.ets.model.EtsIfStmt
+import org.jacodb.ets.model.EtsInstanceCallExpr
+import org.jacodb.ets.model.EtsInstanceFieldRef
+import org.jacodb.ets.model.EtsInstanceOfExpr
+import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsReturnStmt
+import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.model.EtsThrowStmt
+import org.jacodb.ets.model.EtsUnaryExpr
+import org.jacodb.ets.model.EtsValue
 import java.util.BitSet
 
 interface LiveVariables {
@@ -48,7 +46,6 @@ class LiveVariablesImpl(
             is EtsCallExpr -> this.used()
             is EtsCastExpr -> arg.used()
             is EtsInstanceOfExpr -> arg.used()
-            is EtsTernaryExpr -> condition.used() + thenExpr.used() + elseExpr.used()
             else -> emptyList()
         }
 
@@ -98,8 +95,7 @@ class LiveVariablesImpl(
                     is EtsCallStmt -> stmt.expr.used()
                     is EtsReturnStmt -> stmt.returnValue?.used().orEmpty()
                     is EtsIfStmt -> stmt.condition.used()
-                    is EtsSwitchStmt -> stmt.arg.used()
-                    is EtsThrowStmt -> stmt.arg.used()
+                    is EtsThrowStmt -> stmt.exception.used()
                     else -> emptyList()
                 }
 
