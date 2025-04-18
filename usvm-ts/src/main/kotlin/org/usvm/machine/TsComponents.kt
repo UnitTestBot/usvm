@@ -12,6 +12,7 @@ import org.usvm.UContext
 import org.usvm.UMachineOptions
 import org.usvm.USizeExprProvider
 import org.usvm.collections.immutable.internal.MutabilityOwnership
+import org.usvm.machine.types.TsTypeSystem
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.model.ULazyModelDecoder
 import org.usvm.solver.UExprTranslator

@@ -1,4 +1,4 @@
-package org.usvm.machine
+package org.usvm.machine.types
 
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsBooleanType
