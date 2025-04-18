@@ -12,6 +12,7 @@ import org.usvm.api.targets.TsTarget
 import org.usvm.machine.interpreter.TsInterpreter
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
+import org.usvm.machine.types.TsTypeSystem
 import org.usvm.ps.createPathSelector
 import org.usvm.statistics.CompositeUMachineObserver
 import org.usvm.statistics.CoverageStatistics
