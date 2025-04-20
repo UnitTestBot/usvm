@@ -1,6 +1,7 @@
 package org.usvm.samples
 
 import org.jacodb.ets.model.EtsScene
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsValue
 import org.usvm.util.TsMethodTestRunner
@@ -151,6 +152,16 @@ class Call : TsMethodTestRunner() {
         discoverProperties<TsValue.TsNumber>(
             method = method,
             { r -> r.number == 2.0 }
+        )
+    }
+
+    @Disabled("Namespaces are not supported")
+    @Test
+    fun `test namespace`() {
+        val method = getMethod(className, "callNamespace")
+        discoverProperties<TsValue.TsNumber>(
+            method = method,
+            { r -> r.number == 30.0 }
         )
     }
 }

@@ -91,6 +91,10 @@ class Call {
     callOverloadedString(): number {
         return this.overloaded("test");
     }
+
+    callNamespace(): number {
+        return new N1.C().foo();
+    }
 }
 
 class A {
@@ -118,5 +122,17 @@ namespace N2 {
         foo(): number {
             return 40
         }
+    }
+}
+
+class Parent {
+    virtualMethod(): number {
+        return 1;
+    }
+}
+
+class Child extends Parent {
+    override virtualMethod(): number {
+        return 2;
     }
 }
