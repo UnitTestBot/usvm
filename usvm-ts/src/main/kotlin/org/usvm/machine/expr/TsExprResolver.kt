@@ -106,6 +106,10 @@ import org.usvm.util.throwExceptionWithoutStackFrameDrop
 
 private val logger = KotlinLogging.logger {}
 
+const val ADHOC_STRING = 777777.0 // arbitrary string
+const val ADHOC_STRING__NUMBER = 55555.0 // 'number'
+const val ADHOC_STRING__STRING = 2222.0 // 'string'
+
 class TsExprResolver(
     private val ctx: TsContext,
     private val scope: TsStepScope,
@@ -252,7 +256,16 @@ class TsExprResolver(
         error("Not supported $expr")
     }
 
-    override fun visit(expr: EtsTypeOfExpr): UExpr<out USort>? {
+    override fun visit(expr: EtsTypeOfExpr): UExpr<out USort>? = with(ctx) {
+        val arg = resolve(expr.arg) ?: return null
+
+        if (arg.sort == fp64Sort) {
+            if (arg == mkFp64(ADHOC_STRING)) {
+                return mkFp64(ADHOC_STRING__STRING)
+            }
+            return mkFp64(ADHOC_STRING__NUMBER) // 'number'
+        }
+
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
     }
@@ -834,8 +847,11 @@ class TsSimpleValueResolver(
     }
 
     override fun visit(value: EtsStringConstant): UExpr<out USort> = with(ctx) {
-        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        error("Not supported $value")
+        return when (value.value) {
+            "number" -> mkFp64(ADHOC_STRING__NUMBER)
+            "string" -> mkFp64(ADHOC_STRING__STRING)
+            else -> mkFp64(ADHOC_STRING)
+        }
     }
 
     override fun visit(value: EtsBooleanConstant): UExpr<out USort> = with(ctx) {

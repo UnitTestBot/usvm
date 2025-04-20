@@ -75,6 +75,22 @@ class Call {
     callExtra(): number {
         return this.g(5, 10, 20) // 2
     }
+
+    overloaded(a: number): number;
+    overloaded(a: string): number;
+    overloaded(a: any): number {
+        if (typeof a === 'number') return 1
+        if (typeof a === 'string') return 2
+        return -1
+    }
+
+    callOverloadedNumber(): number {
+        return this.overloaded(5);
+    }
+
+    callOverloadedString(): number {
+        return this.overloaded("test");
+    }
 }
 
 class A {

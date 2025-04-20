@@ -135,6 +135,24 @@ class Call : TsMethodTestRunner() {
             { r -> r.number == 2.0 },
         )
     }
+
+    @Test
+    fun `test overloading number`() {
+        val method = getMethod(className, "callOverloadedNumber")
+        discoverProperties<TsValue.TsNumber>(
+            method = method,
+            { r -> r.number == 1.0 }
+        )
+    }
+
+    @Test
+    fun `test overloading string`() {
+        val method = getMethod(className, "callOverloadedString")
+        discoverProperties<TsValue.TsNumber>(
+            method = method,
+            { r -> r.number == 2.0 }
+        )
+    }
 }
 
 fun fib(n: Double): Double {
