@@ -164,6 +164,65 @@ class Call : TsMethodTestRunner() {
             { r -> r.number == 30.0 }
         )
     }
+
+    @Disabled("Static calls are broken in IR")
+    @Test
+    fun `test static`() {
+        val method = getMethod(className, "callStatic")
+        discoverProperties<TsValue.TsNumber>(
+            method = method,
+            { r -> r.number == 50.0 }
+        )
+    }
+
+    @Disabled("Inheritance is broken")
+    @Test
+    fun `test virtual call`() {
+        val method = getMethod(className, "callVirtual")
+        discoverProperties<TsValue.TsClass, TsValue.TsNumber>(
+            method = method,
+            { obj, r ->
+                when (obj.name) {
+                    "Parent" -> r.number == 100.0
+                    "Child" -> r.number == 200.0
+                    else -> false
+                }
+            },
+        )
+    }
+
+    @Test
+    fun `test virtual parent`() {
+        val method = getMethod(className, "callVirtualParent")
+        discoverProperties<TsValue.TsNumber>(
+            method = method,
+            { r -> r.number == 100.0 },
+        )
+    }
+
+    @Disabled("Calls to super are broken in IR")
+    @Test
+    fun `test virtual child`() {
+        val method = getMethod(className, "callVirtualChild")
+        discoverProperties<TsValue.TsNumber>(
+            method = method,
+            { r -> r.number == 200.0 },
+        )
+    }
+
+    @Disabled("Too complex")
+    @Test
+    fun `test virtual dispatch`() {
+        val method = getMethod(className, "virtualDispatch")
+        discoverProperties<TsValue.TsClass, TsValue.TsNumber>(
+            method = method,
+            { obj, r -> obj.name == "Parent" && r.number == 100.0 },
+            { obj, r -> obj.name == "Child" && r.number == 200.0 },
+            invariants = arrayOf(
+                { _, r -> r.number != -1.0 },
+            )
+        )
+    }
 }
 
 fun fib(n: Double): Double {

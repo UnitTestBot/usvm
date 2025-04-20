@@ -95,6 +95,37 @@ class Call {
     callNamespace(): number {
         return new N1.C().foo();
     }
+
+    static fifty(): number {
+        return 50;
+    }
+
+    callStatic(): number {
+        return Call.fifty();
+    }
+
+    callVirtual(obj: Parent): number {
+        return obj.virtualMethod(); // 100 or 200
+    }
+
+    callVirtualParent(): number {
+        let obj: Parent = new Parent();
+        return obj.virtualMethod(); // 100
+    }
+
+    callVirtualChild(): number {
+        let obj: Child = new Child();
+        return obj.virtualMethod(); // 200
+    }
+
+    virtualDispatch(obj: Parent): number {
+        if (obj instanceof Child) {
+            return obj.virtualMethod(); // 200
+        } else if (obj instanceof Parent) {
+            return obj.virtualMethod(); // 100
+        }
+        return -1; // unreachable
+    }
 }
 
 class A {
@@ -126,13 +157,17 @@ namespace N2 {
 }
 
 class Parent {
+    depth = 1;
+
     virtualMethod(): number {
-        return 1;
+        return 100;
     }
 }
 
 class Child extends Parent {
+    override depth = 2;
+
     override virtualMethod(): number {
-        return 2;
+        return 200;
     }
 }
