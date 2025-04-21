@@ -108,16 +108,22 @@ class TsInterpreter(
         //  if exception, see above
         //  if no call, visit
 
-        when (stmt) {
-            is TsVirtualMethodCallStmt -> visitVirtualMethodCall(scope, stmt)
-            is TsConcreteMethodCallStmt -> visitConcreteMethodCall(scope, stmt)
-            is EtsIfStmt -> visitIfStmt(scope, stmt)
-            is EtsReturnStmt -> visitReturnStmt(scope, stmt)
-            is EtsAssignStmt -> visitAssignStmt(scope, stmt)
-            is EtsCallStmt -> visitCallStmt(scope, stmt)
-            is EtsThrowStmt -> visitThrowStmt(scope, stmt)
-            is EtsNopStmt -> visitNopStmt(scope, stmt)
-            else -> error("Unknown stmt: $stmt")
+        try {
+            when (stmt) {
+                is TsVirtualMethodCallStmt -> visitVirtualMethodCall(scope, stmt)
+                is TsConcreteMethodCallStmt -> visitConcreteMethodCall(scope, stmt)
+                is EtsIfStmt -> visitIfStmt(scope, stmt)
+                is EtsReturnStmt -> visitReturnStmt(scope, stmt)
+                is EtsAssignStmt -> visitAssignStmt(scope, stmt)
+                is EtsCallStmt -> visitCallStmt(scope, stmt)
+                is EtsThrowStmt -> visitThrowStmt(scope, stmt)
+                is EtsNopStmt -> visitNopStmt(scope, stmt)
+                else -> error("Unknown stmt: $stmt")
+            }
+        } catch (e: Exception) {
+            logger.error {
+                "Exception: " + e.stackTraceToString()
+            }
         }
 
         return scope.stepResult()
