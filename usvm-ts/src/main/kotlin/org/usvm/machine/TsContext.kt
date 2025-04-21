@@ -64,10 +64,7 @@ class TsContext(
         is EtsRefType -> addressSort
         is EtsAnyType -> unresolvedSort
         is EtsUnknownType -> unresolvedSort
-        else -> {
-            unresolvedSort
-            // TODO("Support all JacoDB types, encountered $type")
-        }
+        else -> TODO("${type::class.simpleName} is not yet supported: $type")
     }
 
     fun arrayDescriptorOf(type: EtsArrayType): EtsType = EtsUnknownType
