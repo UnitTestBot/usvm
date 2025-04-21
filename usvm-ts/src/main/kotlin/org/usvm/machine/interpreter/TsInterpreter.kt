@@ -122,7 +122,8 @@ class TsInterpreter(
             }
         } catch (e: Exception) {
             logger.error {
-                "Exception: " + e.stackTraceToString()
+                // "Exception: " + e.stackTraceToString()
+                "Exception: " + e
             }
         }
 

@@ -163,11 +163,11 @@ class TsExprResolver(
         return block(result)
     }
 
-    private inline fun resolveAfterResolved(
+    private inline fun <T> resolveAfterResolved(
         dependency0: EtsEntity,
         dependency1: EtsEntity,
-        block: (UExpr<out USort>, UExpr<out USort>) -> UExpr<out USort>,
-    ): UExpr<out USort>? {
+        block: (UExpr<out USort>, UExpr<out USort>) -> T,
+    ):T? {
         val result0 = resolve(dependency0) ?: return null
         val result1 = resolve(dependency1) ?: return null
         return block(result0, result1)
