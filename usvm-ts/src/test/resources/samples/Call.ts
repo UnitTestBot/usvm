@@ -183,16 +183,12 @@ namespace N2 {
 }
 
 class Parent {
-    depth = 1;
-
     virtualMethod(): number {
         return 100;
     }
 }
 
 class Child extends Parent {
-    override depth = 2;
-
     override virtualMethod(): number {
         return 200;
     }
