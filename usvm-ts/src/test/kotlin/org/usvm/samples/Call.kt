@@ -223,6 +223,35 @@ class Call : TsMethodTestRunner() {
             )
         )
     }
+
+    @Disabled("Default parameters are not supported in ArkIR")
+    @Test
+    fun `test default`() {
+        val method = getMethod(className, "callDefault")
+        discoverProperties<TsValue.TsNumber>(
+            method = method,
+            { r -> r.number == 5.0 },
+        )
+    }
+
+    @Test
+    fun `test default pass`() {
+        val method = getMethod(className, "callDefaultPass")
+        discoverProperties<TsValue.TsNumber>(
+            method = method,
+            { r -> r.number == 8.0 },
+        )
+    }
+
+    @Disabled("Default parameters are not supported in ArkIR")
+    @Test
+    fun `test default undefined`() {
+        val method = getMethod(className, "callDefaultUndefined")
+        discoverProperties<TsValue.TsNumber>(
+            method = method,
+            { r -> r.number == 5.0 },
+        )
+    }
 }
 
 fun fib(n: Double): Double {
