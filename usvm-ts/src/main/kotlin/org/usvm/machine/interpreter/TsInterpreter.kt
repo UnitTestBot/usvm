@@ -468,7 +468,7 @@ val field=                            fields.single()
     }
 
     private fun visitNopStmt(scope: TsStepScope, stmt: EtsNopStmt) {
-        TODO()
+        // Do nothing
     }
 
     private fun exprResolverWithScope(scope: TsStepScope): TsExprResolver =
