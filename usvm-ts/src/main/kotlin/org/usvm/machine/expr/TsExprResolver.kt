@@ -22,6 +22,7 @@ import org.jacodb.ets.model.EtsEntity
 import org.jacodb.ets.model.EtsEqExpr
 import org.jacodb.ets.model.EtsExpExpr
 import org.jacodb.ets.model.EtsFieldSignature
+import org.jacodb.ets.model.EtsFunctionType
 import org.jacodb.ets.model.EtsGtEqExpr
 import org.jacodb.ets.model.EtsGtExpr
 import org.jacodb.ets.model.EtsInExpr
@@ -72,6 +73,7 @@ import org.jacodb.ets.model.EtsVoidExpr
 import org.jacodb.ets.model.EtsYieldExpr
 import org.jacodb.ets.utils.STATIC_INIT_METHOD_NAME
 import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
+import org.jacodb.ets.utils.getDeclaredLocals
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
@@ -831,15 +833,23 @@ class TsSimpleValueResolver(
         }
     }
 
-    override fun visit(value: EtsLocal): UExpr<out USort> {
-        if (value.name == "NaN") {
+    override fun visit(local: EtsLocal): UExpr<out USort> {
+        if (local.name == "NaN") {
             return ctx.mkFp64NaN()
         }
-        if (value.name == "Infinity") {
+        if (local.name == "Infinity") {
             return ctx.mkFpInf(false, ctx.fp64Sort)
         }
 
-        val lValue = resolveLocal(value)
+        val currentMethod = scope.calcOnState { lastEnteredMethod }
+        if (local !in currentMethod.getDeclaredLocals()) {
+            if (local.type is EtsFunctionType) {
+                // TODO: function pointers should be "singletons"
+                return scope.calcOnState { memory.allocConcrete(local.type) }
+            }
+        }
+
+        val lValue = resolveLocal(local)
         return scope.calcOnState { memory.read(lValue) }
     }
 
