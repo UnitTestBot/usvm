@@ -388,8 +388,7 @@ class TsExprResolver(
     }
 
     override fun visit(expr: EtsStrictNotEqExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+        return resolveBinaryOperator(TsBinaryOperator.StrictNeq, expr)
     }
 
     override fun visit(expr: EtsLtExpr): UExpr<out USort>? {
