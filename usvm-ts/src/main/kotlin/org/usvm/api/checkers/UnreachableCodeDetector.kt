@@ -8,8 +8,6 @@ import org.usvm.machine.expr.TsSimpleValueResolver
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsState
 import org.usvm.statistics.UMachineObserver
-import kotlin.collections.filter
-import kotlin.collections.isNotEmpty
 
 data class UncoveredIfSuccessors(val ifStmt: EtsIfStmt, val successors: Set<EtsStmt>)
 

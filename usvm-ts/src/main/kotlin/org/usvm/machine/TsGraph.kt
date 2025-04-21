@@ -7,29 +7,36 @@ import org.usvm.dataflow.ts.graph.EtsApplicationGraph
 import org.usvm.dataflow.ts.graph.EtsApplicationGraphImpl
 import org.usvm.statistics.ApplicationGraph
 
-class TsApplicationGraph(scene: EtsScene) : ApplicationGraph<EtsMethod, EtsStmt> {
-    private val applicationGraph: EtsApplicationGraph = EtsApplicationGraphImpl(scene)
+class TsGraph(scene: EtsScene) : ApplicationGraph<EtsMethod, EtsStmt> {
+    private val etsGraph: EtsApplicationGraph = EtsApplicationGraphImpl(scene)
+
+    val cp: EtsScene
+        get() = etsGraph.cp
 
     override fun predecessors(node: EtsStmt): Sequence<EtsStmt> =
-        applicationGraph.predecessors(node)
+        etsGraph.predecessors(node)
 
     override fun successors(node: EtsStmt): Sequence<EtsStmt> =
-        applicationGraph.successors(node)
+        if (node is TsMethodCall) {
+            etsGraph.successors(node.returnSite)
+        } else {
+            etsGraph.successors(node)
+        }
 
     override fun callees(node: EtsStmt): Sequence<EtsMethod> =
-        applicationGraph.callees(node)
+        etsGraph.callees(node)
 
     override fun callers(method: EtsMethod): Sequence<EtsStmt> =
-        applicationGraph.callers(method)
+        etsGraph.callers(method)
 
     override fun entryPoints(method: EtsMethod): Sequence<EtsStmt> =
-        applicationGraph.entryPoints(method)
+        etsGraph.entryPoints(method)
 
     override fun exitPoints(method: EtsMethod): Sequence<EtsStmt> =
-        applicationGraph.exitPoints(method)
+        etsGraph.exitPoints(method)
 
     override fun methodOf(node: EtsStmt): EtsMethod =
-        applicationGraph.methodOf(node)
+        etsGraph.methodOf(node)
 
     override fun statementsOf(method: EtsMethod): Sequence<EtsStmt> =
         method.cfg.stmts.asSequence()
