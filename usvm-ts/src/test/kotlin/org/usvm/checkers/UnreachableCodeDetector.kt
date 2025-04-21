@@ -1,4 +1,4 @@
-package org.usvm.samples.checkers
+package org.usvm.checkers
 
 import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsLtExpr
