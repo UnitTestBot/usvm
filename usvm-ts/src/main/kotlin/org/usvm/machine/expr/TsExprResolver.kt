@@ -659,26 +659,33 @@ class TsExprResolver(
         checkUndefinedOrNullPropertyRead(instanceRef) ?: return null
 
         // TODO It is a hack for array's length
-        if (value.instance.type is EtsArrayType && value.field.name == "length") {
-            val lengthLValue = mkArrayLengthLValue(instanceRef, value.instance.type as EtsArrayType)
-            val length = scope.calcOnState { memory.read(lengthLValue) }
-            return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), length.asExpr(sizeSort), signed = true)
-        }
-
-        // TODO: handle "length" property for arrays inside fake objects
-        if (value.field.name == "length" && instanceRef.isFakeObject()) {
-            val fakeType = instanceRef.getFakeType(scope)
-            if (fakeType.refTypeExpr.isTrue) {
-                val refLValue = getIntermediateRefLValue(instanceRef.address)
-                val obj = scope.calcOnState { memory.read(refLValue) }
-                // TODO: fix array type. It should be the same as the type used when "writing" the length.
-                //  However, current value.instance typically has 'unknown' type, and the best we can do here is
-                //  to pretend that this is an array-like object (with "array length", not just "length" field),
-                //  and "cast" instance to "unknown[]". The same could be done for any length writes, making
-                //  the array type (for length) consistent (unknown everywhere), but less precise.
-                val lengthLValue = mkArrayLengthLValue(obj, EtsArrayType(EtsUnknownType, 1))
+        if (value.field.name == "length") {
+            if (value.instance.type is EtsArrayType) {
+                val lengthLValue = mkArrayLengthLValue(instanceRef, value.instance.type as EtsArrayType)
                 val length = scope.calcOnState { memory.read(lengthLValue) }
                 return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), length.asExpr(sizeSort), signed = true)
+            }
+
+            // TODO: handle "length" property for arrays inside fake objects
+            if (instanceRef.isFakeObject()) {
+                val fakeType = instanceRef.getFakeType(scope)
+                if (fakeType.refTypeExpr.isTrue) {
+                    val refLValue = getIntermediateRefLValue(instanceRef.address)
+                    val obj = scope.calcOnState { memory.read(refLValue) }
+                    // TODO: fix array type. It should be the same as the type used when "writing" the length.
+                    //  However, current value.instance typically has 'unknown' type, and the best we can do here is
+                    //  to pretend that this is an array-like object (with "array length", not just "length" field),
+                    //  and "cast" instance to "unknown[]". The same could be done for any length writes, making
+                    //  the array type (for length) consistent (unknown everywhere), but less precise.
+                    val lengthLValue = mkArrayLengthLValue(obj, EtsArrayType(EtsUnknownType, 1))
+                    val length = scope.calcOnState { memory.read(lengthLValue) }
+                    return mkBvToFpExpr(
+                        fp64Sort,
+                        fpRoundingModeSortDefaultValue(),
+                        length.asExpr(sizeSort),
+                        signed = true
+                    )
+                }
             }
         }
 

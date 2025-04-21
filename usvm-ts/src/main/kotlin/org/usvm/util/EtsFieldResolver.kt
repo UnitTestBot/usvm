@@ -15,9 +15,16 @@ fun TsContext.resolveEtsField(
 ): EtsField {
     // Perfect signature:
     if (field.enclosingClass.name != UNKNOWN_CLASS_NAME) {
-        val clazz = scene.projectAndSdkClasses.single { cls ->
+        val classes = scene.projectAndSdkClasses.filter { cls ->
             cls.name == field.enclosingClass.name
         }
+        if (classes.isEmpty()) {
+            error("Cannot resolve class ${field.enclosingClass.name}")
+        }
+        if (classes.size > 1) {
+            error("Multiple classes with name ${field.enclosingClass.name}")
+        }
+        val clazz = classes.single()
         val fields = clazz.fields.filter { it.name == field.name }
         if (fields.size == 1) {
             return fields.single()
@@ -59,7 +66,12 @@ private fun tryGetSingleField(
     }
     if (classes.size == 1) {
         val clazz = classes.single()
-        return clazz.fields.single { it.name == fieldName }
+        val fields = clazz.fields.filter { it.name == fieldName }
+        when (fields.size) {
+            0 -> error("No field with name '$fieldName' in class '${clazz.name}'")
+            1 -> return fields.single()
+            else -> error("Multiple fields with name '$fieldName' in class '${clazz.name}': $fields")
+        }
     }
     val fields = classes.flatMap { cls ->
         cls.fields.filter { it.name == fieldName }

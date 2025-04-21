@@ -143,7 +143,18 @@ class TsInterpreter(
             val type = scope.calcOnState { memory.typeStreamOf(concreteRef) }.single()
             if (type is EtsClassType) {
                 // TODO: handle non-unique classes
-                val cls = ctx.scene.projectAndSdkClasses.first { it.name == type.typeName }
+                val classes = ctx.scene.projectAndSdkClasses.filter { it.name == type.typeName }
+                if (classes.isEmpty()) {
+                    logger.warn { "Could not resolve class: ${type.typeName}" }
+                    scope.assert(ctx.falseExpr)
+                    return
+                }
+                if (classes.size > 1) {
+                    logger.warn { "Multiple classes with name: ${type.typeName}" }
+                    scope.assert(ctx.falseExpr)
+                    return
+                }
+                val cls = classes.single()
                 val method = cls.methods.first { it.name == stmt.callee.name }
                 concreteMethods += method
             } else {
@@ -376,8 +387,9 @@ class TsInterpreter(
 
                 is EtsInstanceFieldRef -> {
                     val instance = exprResolver.resolve(lhv.instance)?.asExpr(addressSort) ?: return@doWithState
-                    val etsField = resolveEtsField(lhv.instance, lhv.field)
-                    val sort = typeToSort(etsField.type)
+                    // val etsField = resolveEtsField(lhv.instance, lhv.field)
+                    // val sort = typeToSort(etsField.type)
+                    val sort = unresolvedSort
                     if (sort == unresolvedSort) {
                         val fakeObject = expr.toFakeObject(scope)
                         val lValue = mkFieldLValue(addressSort, instance, lhv.field)
@@ -399,14 +411,21 @@ class TsInterpreter(
                     //  Note: Since we are assigning to a static field, we can omit its initialization,
                     //        if it does not have any side effects.
 
-                    val field = clazz.fields.single { it.name == lhv.field.name }
-                    val sort = typeToSort(field.type)
+                    val sort = run {
+                        val fields = clazz.fields.filter { it.name == lhv.field.name }
+                        if (fields.size == 1) {
+val field=                            fields.single()
+                            val sort = typeToSort(field.type)
+                            return@run sort
+                        }
+                        unresolvedSort
+                    }
                     if (sort == unresolvedSort) {
-                        val lValue = mkFieldLValue(addressSort, instance, field.signature)
+                        val lValue = mkFieldLValue(addressSort, instance, lhv.field.name)
                         val fakeObject = expr.toFakeObject(scope)
                         memory.write(lValue, fakeObject, guard = trueExpr)
                     } else {
-                        val lValue = mkFieldLValue(sort, instance, field.signature)
+                        val lValue = mkFieldLValue(sort, instance, lhv.field.name)
                         memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
                     }
                 }
@@ -468,7 +487,9 @@ class TsInterpreter(
                         local.name to localIdx
                     }.toMap()
                 }
-                map[local.name] ?: error("Local not declared: $local")
+                map[local.name] ?: run {
+                    error("Local not declared: $local")
+                }
             }
 
             // Note: 'this' has index 'n'
