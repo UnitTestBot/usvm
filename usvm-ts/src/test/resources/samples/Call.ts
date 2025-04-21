@@ -127,20 +127,20 @@ class Call {
         return -1; // unreachable
     }
 
-    foo(x: number = 5): number {
+    methodWithDefault(x: number = 5): number {
         return x;
     }
 
     callDefault(): number {
-        return this.foo(); // 5 (default)
+        return this.methodWithDefault(); // 5 (default)
     }
 
     callDefaultPass(): number {
-        return this.foo(8); // 8 (passed)
+        return this.methodWithDefault(8); // 8 (passed)
     }
 
     callDefaultUndefined(): number {
-        return this.foo(undefined); // 5 (default)
+        return this.methodWithDefault(undefined); // 5 (default)
     }
 
     callConstructorWithParam(): number {
