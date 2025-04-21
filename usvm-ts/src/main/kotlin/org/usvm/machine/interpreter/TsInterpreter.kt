@@ -1,16 +1,17 @@
 package org.usvm.machine.interpreter
 
 import io.ksmt.utils.asExpr
+import mu.KotlinLogging
 import org.jacodb.ets.model.EtsArrayAccess
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsCallStmt
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodSignature
-import org.jacodb.ets.utils.callExpr
 import org.jacodb.ets.model.EtsNopStmt
 import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsParameterRef
@@ -20,21 +21,29 @@ import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsThis
 import org.jacodb.ets.model.EtsThrowStmt
 import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.model.EtsValue
+import org.jacodb.ets.utils.callExpr
 import org.jacodb.ets.utils.getDeclaredLocals
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UAddressSort
+import org.usvm.UExpr
 import org.usvm.UInterpreter
+import org.usvm.api.allocateArrayInitialized
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.api.makeSymbolicRefUntyped
 import org.usvm.api.targets.TsTarget
+import org.usvm.api.typeStreamOf
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.forkblacklists.UForkBlackList
-import org.usvm.machine.TsApplicationGraph
+import org.usvm.isAllocatedConcreteHeapRef
+import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
+import org.usvm.machine.TsGraph
 import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsOptions
+import org.usvm.machine.TsVirtualMethodCallStmt
 import org.usvm.machine.expr.TsExprResolver
 import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.expr.mkTruthyExpr
@@ -48,19 +57,23 @@ import org.usvm.machine.state.returnValue
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.sizeSort
 import org.usvm.targets.UTargetsSet
+import org.usvm.types.single
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
 import org.usvm.util.resolveEtsField
+import org.usvm.util.resolveEtsMethods
 import org.usvm.utils.ensureSat
+
+private val logger = KotlinLogging.logger {}
 
 typealias TsStepScope = StepScope<TsState, EtsType, EtsStmt, TsContext>
 
 @Suppress("UNUSED_PARAMETER")
 class TsInterpreter(
     private val ctx: TsContext,
-    private val applicationGraph: TsApplicationGraph,
+    private val graph: TsGraph,
     private val tsOptions: TsOptions,
     private val observer: TsInterpreterObserver? = null,
 ) : UInterpreter<TsState>() {
@@ -89,7 +102,15 @@ class TsInterpreter(
             return scope.stepResult()
         }
 
+        // TODO: rewrite the main loop (step) as follows:
+        //  check methodResult
+        //  if success, reset the call (NoCall), return the result
+        //  if exception, see above
+        //  if no call, visit
+
         when (stmt) {
+            is TsVirtualMethodCallStmt -> visitVirtualMethodCall(scope, stmt)
+            is TsConcreteMethodCallStmt -> visitConcreteMethodCall(scope, stmt)
             is EtsIfStmt -> visitIfStmt(scope, stmt)
             is EtsReturnStmt -> visitReturnStmt(scope, stmt)
             is EtsAssignStmt -> visitAssignStmt(scope, stmt)
@@ -100,6 +121,138 @@ class TsInterpreter(
         }
 
         return scope.stepResult()
+    }
+
+    private fun visitVirtualMethodCall(scope: TsStepScope, stmt: TsVirtualMethodCallStmt) {
+
+        // NOTE: USE '.callee' INSTEAD OF '.method' !!!
+
+        val instance = stmt.instance
+        checkNotNull(instance)
+        val concreteRef = scope.calcOnState { models.first().eval(instance) }
+
+        val concreteMethods: MutableList<EtsMethod> = mutableListOf()
+
+        if (isAllocatedConcreteHeapRef(concreteRef)) {
+            val type = scope.calcOnState { memory.typeStreamOf(concreteRef) }.single()
+            if (type is EtsClassType) {
+                // TODO: handle non-unique classes
+                val cls = ctx.scene.projectAndSdkClasses.first { it.name == type.typeName }
+                val method = cls.methods.first { it.name == stmt.callee.name }
+                concreteMethods += method
+            } else {
+                logger.warn {
+                    "Could not resolve method: ${stmt.callee} on type: $type"
+                }
+                scope.assert(ctx.falseExpr)
+                return
+            }
+        } else {
+            val methods = ctx.resolveEtsMethods(stmt.callee)
+            if (methods.isEmpty()) {
+                logger.warn { "Could not resolve method: ${stmt.callee}" }
+                scope.assert(ctx.falseExpr)
+                return
+            }
+            concreteMethods += methods
+        }
+
+        logger.info {
+            "Preparing to fork on ${concreteMethods.size} methods: ${
+                concreteMethods.map { "${it.signature.enclosingClass.name}::${it.name}" }
+            }"
+        }
+        val conditionsWithBlocks = concreteMethods.map { method ->
+            val concreteCall = stmt.toConcrete(method)
+            val block = { state: TsState -> state.newStmt(concreteCall) }
+            ctx.trueExpr to block
+        }
+        scope.forkMulti(conditionsWithBlocks)
+    }
+
+    private fun visitConcreteMethodCall(scope: TsStepScope, stmt: TsConcreteMethodCallStmt) {
+
+        // NOTE: USE '.callee' INSTEAD OF '.method' !!!
+
+        // TODO: observer
+        // TODO: native/abstract methods without entrypoints
+
+        val entryPoint = graph.entryPoints(stmt.callee).singleOrNull()
+
+        if (entryPoint == null) {
+            logger.warn { "No entry point for method: ${stmt.callee}" }
+            return
+        }
+
+        scope.doWithState {
+            val args = mutableListOf<UExpr<*>>()
+            val numActual = stmt.args.size
+            val numFormal = stmt.callee.parameters.size
+
+            // vararg call:
+            // function f(x: any, ...args: any[]) {}
+            //   f(1, 2, 3) -> f(1, [2, 3])
+            //   f(1, 2) -> f(1, [2])
+            //   f(1) -> f(1, [])
+            //   f() -> f(undefined, [])
+
+            // normal call:
+            // function g(x: any, y: any) {}
+            //   g(1, 2) -> g(1, 2)
+            //   g(1) -> g(1, undefined)
+            //   g() -> g(undefined, undefined)
+            //   g(1, 2, 3) -> g(1, 2)
+
+            if (stmt.callee.parameters.isNotEmpty() && stmt.callee.parameters.last().isRest) {
+                // vararg call
+
+                // first n-1 args are normal
+                val numNormal = numFormal - 1
+                args += stmt.args.take(numNormal)
+
+                // fill missing normal args with undefined
+                repeat(numNormal - numActual) {
+                    args += ctx.mkUndefinedValue()
+                }
+
+                // wrap rest args in array
+                val content = stmt.args.drop(numNormal).map {
+                    with(ctx) { it.toFakeObject(scope) }
+                }
+                val array = scope.calcOnState {
+                    val type = EtsArrayType(EtsUnknownType, 1)
+                    memory.allocateArrayInitialized(
+                        type = ctx.arrayDescriptorOf(type),
+                        sort = ctx.addressSort,
+                        sizeSort = ctx.sizeSort,
+                        contents = content.asSequence(),
+                    )
+                }
+                args += array
+            } else {
+                // normal call
+
+                // ignore extra args
+                args += stmt.args.take(numFormal)
+
+                // fill missing args with undefined
+                repeat(numFormal - numActual) {
+                    args += ctx.mkUndefinedValue()
+                }
+            }
+
+            check(args.size == numFormal) {
+                "Expected ${numFormal} arguments, got ${args.size}"
+            }
+
+            args += stmt.instance!!
+
+            // TODO: re-check push sorts for arguments
+            pushSortsForActualArguments(args)
+            callStack.push(stmt.callee, stmt.returnSite)
+            memory.stack.push(args.toTypedArray(), stmt.callee.localsCount)
+            newStmt(entryPoint)
+        }
     }
 
     private fun visitIfStmt(scope: TsStepScope, stmt: EtsIfStmt) {
@@ -118,7 +271,7 @@ class TsInterpreter(
 
         observer?.onIfStatementWithResolvedCondition(simpleValueResolver, stmt, boolExpr, scope)
 
-        val (posStmt, negStmt) = applicationGraph.successors(stmt).take(2).toList()
+        val (posStmt, negStmt) = graph.successors(stmt).take(2).toList()
 
         scope.forkWithBlackList(
             boolExpr,
@@ -165,7 +318,6 @@ class TsInterpreter(
                 return
             }
         } ?: observer?.onAssignStatement(exprResolver.simpleValueResolver, stmt, scope)
-
 
         val expr = exprResolver.resolve(stmt.rhv) ?: return
 
@@ -262,23 +414,19 @@ class TsInterpreter(
     }
 
     private fun visitCallStmt(scope: TsStepScope, stmt: EtsCallStmt) {
-        val exprResolver = exprResolverWithScope(scope)
-
-        scope.doWithState {
-            if (methodResult is TsMethodResult.Success) {
-                newStmt(applicationGraph.successors(stmt).single())
+        if (scope.calcOnState { methodResult } is TsMethodResult.Success) {
+            scope.doWithState {
                 methodResult = TsMethodResult.NoCall
+                newStmt(stmt.nextStmt!!)
             }
+            return
         }
 
         if (tsOptions.interproceduralAnalysis) {
+            val exprResolver = exprResolverWithScope(scope)
             exprResolver.resolve(stmt.expr) ?: return
-
-            scope.doWithState {
-                val nextStmt = stmt.nextStmt ?: return@doWithState
-                newStmt(nextStmt)
-            }
-
+            val nextStmt = stmt.nextStmt ?: return
+            scope.doWithState { newStmt(nextStmt) }
             return
         }
 
@@ -389,5 +537,5 @@ class TsInterpreter(
 
     // TODO: expand with interpreter implementation
     private val EtsStmt.nextStmt: EtsStmt?
-        get() = applicationGraph.successors(this).firstOrNull()
+        get() = graph.successors(this).firstOrNull()
 }

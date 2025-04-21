@@ -4,12 +4,12 @@ import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import org.usvm.UAddressSort
+import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.machine.TsContext
-import org.usvm.machine.expr.TsUndefinedSort
 import org.usvm.machine.expr.mkNumericExpr
 import org.usvm.machine.expr.mkTruthyExpr
 import org.usvm.machine.interpreter.TsStepScope
@@ -308,34 +308,79 @@ sealed interface TsBinaryOperator {
             lhs: UExpr<out USort>,
             rhs: UExpr<out USort>,
             scope: TsStepScope,
-        ): UExpr<out USort> {
+        ): UBoolExpr {
             check(!lhs.isFakeObject() && !rhs.isFakeObject())
 
-            // 1. If the operands have the same type, they are compared using `onFp`, `onBool`, etc.
-
-            // 2. If one of the operands is undefined, the other must also be undefined to return true
-            if (lhs.sort is TsUndefinedSort || rhs.sort is TsUndefinedSort) {
-                TODO()
+            // bool == bool
+            if (lhs.sort == boolSort && rhs.sort == boolSort) {
+                val lhs = lhs.asExpr(boolSort)
+                val rhs = rhs.asExpr(boolSort)
+                return mkEq(lhs, rhs)
             }
 
-            // 3. If one of the operands is an object and the other is a primitive, convert the object to a primitive.
-            if (lhs.sort is UAddressSort || rhs.sort is UAddressSort) {
-                TODO()
+            // fp == fp
+            if (lhs.sort == fp64Sort && rhs.sort == fp64Sort) {
+                val lhs = lhs.asExpr(fp64Sort)
+                val rhs = rhs.asExpr(fp64Sort)
+                return mkFpEqualExpr(lhs, rhs)
             }
 
-            if (lhs.sort is UBoolSort && rhs.sort is KFp64Sort) {
-                return mkFpEqualExpr(boolToFp(lhs.cast()), rhs.cast())
+            // bool == fp
+            if (lhs.sort == boolSort && rhs.sort == fp64Sort) {
+                val lhs = lhs.asExpr(boolSort)
+                val rhs = rhs.asExpr(fp64Sort)
+                return mkFpEqualExpr(boolToFp(lhs), rhs)
             }
 
-            if (lhs.sort is KFp64Sort && rhs.sort is UBoolSort) {
-                return mkFpEqualExpr(lhs.cast(), boolToFp(rhs.cast()))
+            // fp == bool
+            if (lhs.sort == fp64Sort && rhs.sort == boolSort) {
+                val lhs = lhs.asExpr(fp64Sort)
+                val rhs = rhs.asExpr(boolSort)
+                return mkFpEqualExpr(lhs, boolToFp(rhs))
             }
 
+            // ref == ref
+            if (lhs.sort == addressSort && rhs.sort == addressSort) {
+                // Note:
+                //  undefined == null
+                //  null == undefined
+                val lhs = lhs.asExpr(addressSort)
+                val rhs = rhs.asExpr(addressSort)
+                return mkOr(
+                    mkEq(lhs, rhs),
+                    mkEq(lhs, mkUndefinedValue()) and mkEq(rhs, mkTsNullValue()),
+                    mkEq(lhs, mkTsNullValue()) and mkEq(rhs, mkUndefinedValue()),
+                )
+            }
+
+            // bool == ref
+            if (lhs.sort == boolSort && rhs.sort == addressSort) {
+                return mkFalse()
+            }
+
+            // ref == bool
+            if (lhs.sort == addressSort && rhs.sort == boolSort) {
+                return mkFalse()
+            }
+
+            // fp == ref
+            if (lhs.sort == fp64Sort && rhs.sort == addressSort) {
+                // TODO: the correct impl is to convert ref to primitive,
+                //       and then compare fp and this primitive.
+                return mkFalse()
+            }
+
+            // ref == fp
+            if (lhs.sort == addressSort && rhs.sort == fp64Sort) {
+                // TODO: the correct impl is to convert ref to primitive,
+                //       and then compare this primitive to fp
+                return mkFalse()
+            }
+
+            // TODO: support bigint
             // TODO: support string
 
-            // TODO: support bigint and fp conversion
-
-            TODO("Unsupported String and bigint comparison")
+            TODO("Support equality for sorts: ${lhs.sort} == ${rhs.sort}")
         }
     }
 

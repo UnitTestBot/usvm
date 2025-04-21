@@ -10,6 +10,7 @@ import org.jacodb.ets.model.EtsValue
 import org.usvm.PathNode
 import org.usvm.UCallStack
 import org.usvm.UConcreteHeapRef
+import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.UState
 import org.usvm.api.targets.TsTarget
@@ -84,6 +85,16 @@ class TsState(
             saveSortForLocal(index, sort)
         }
         instanceSort?.let { saveSortForLocal(args.size, it) }
+    }
+
+    fun pushSortsForActualArguments(
+        arguments: List<UExpr<*>>,
+    ) {
+        pushLocalToSortStack()
+        arguments.forEachIndexed { index, arg ->
+            val idx = index
+            saveSortForLocal(idx, arg.sort)
+        }
     }
 
     fun getStaticInstance(clazz: EtsClass): UConcreteHeapRef {
