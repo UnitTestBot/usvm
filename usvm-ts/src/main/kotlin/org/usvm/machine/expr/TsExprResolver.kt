@@ -106,8 +106,13 @@ import org.usvm.util.throwExceptionWithoutStackFrameDrop
 
 private val logger = KotlinLogging.logger {}
 
+@Suppress("MagicNumber")
 const val ADHOC_STRING = 777777.0 // arbitrary string
+
+@Suppress("MagicNumber")
 const val ADHOC_STRING__NUMBER = 55555.0 // 'number'
+
+@Suppress("MagicNumber")
 const val ADHOC_STRING__STRING = 2222.0 // 'string'
 
 class TsExprResolver(
