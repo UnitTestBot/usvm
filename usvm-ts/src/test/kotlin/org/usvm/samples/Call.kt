@@ -252,6 +252,25 @@ class Call : TsMethodTestRunner() {
             { r -> r.number == 5.0 },
         )
     }
+
+    @Test
+    fun `test constructor with param`() {
+        val method = getMethod(className, "callConstructorWithParam")
+        discoverProperties<TsValue.TsNumber>(
+            method = method,
+            { r -> r.number == 5.0 },
+        )
+    }
+
+    @Disabled("Public parameters in constructors are not supported in ArkIR")
+    @Test
+    fun `test constructor with public param`() {
+        val method = getMethod(className, "callConstructorWithPublicParam")
+        discoverProperties<TsValue.TsNumber>(
+            method = method,
+            { r -> r.number == 5.0 },
+        )
+    }
 }
 
 fun fib(n: Double): Double {

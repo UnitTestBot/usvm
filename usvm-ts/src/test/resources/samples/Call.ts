@@ -142,6 +142,16 @@ class Call {
     callDefaultUndefined(): number {
         return this.foo(undefined); // 5 (default)
     }
+
+    callConstructorWithParam(): number {
+        let x = new ValueHolder(5);
+        return x.getValue();
+    }
+
+    callConstructorWithPublicParam(): number {
+        let x = new ValueHolderWithPublicParameter(5);
+        return x.value;
+    }
 }
 
 class A {
@@ -185,5 +195,22 @@ class Child extends Parent {
 
     override virtualMethod(): number {
         return 200;
+    }
+}
+
+class ValueHolder {
+    value: number;
+
+    constructor(value: number) {
+        this.value = value;
+    }
+
+    getValue(): number {
+        return this.value;
+    }
+}
+
+class ValueHolderWithPublicParameter {
+    constructor(public value: number) {
     }
 }
