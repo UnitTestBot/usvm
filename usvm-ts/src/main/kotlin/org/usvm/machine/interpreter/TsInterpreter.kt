@@ -180,9 +180,7 @@ class TsInterpreter(
         val entryPoint = graph.entryPoints(stmt.callee).singleOrNull()
 
         if (entryPoint == null) {
-            if (stmt.callee.name != "\$r") {
-                logger.warn { "No entry point for method ${stmt.callee}" }
-            }
+            logger.warn { "No entry point for method: ${stmt.callee}" }
             return
         }
 
