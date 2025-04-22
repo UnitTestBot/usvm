@@ -72,6 +72,7 @@ class TsTypeSystem(
      */
     override fun findSubtypes(type: EtsType): Sequence<EtsType> = when (type) {
         is EtsPrimitiveType -> emptySequence() // TODO why???
+        // TODO they should be direct inheritors, not all of them
         is EtsAnyType,
         is EtsUnknownType -> project.projectAndSdkClasses.asSequence().map { it.type }
         else -> TODO()

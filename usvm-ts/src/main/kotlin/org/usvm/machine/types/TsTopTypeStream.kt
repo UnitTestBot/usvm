@@ -1,6 +1,5 @@
 package org.usvm.machine.types
 
-import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsPrimitiveType
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUnknownType
