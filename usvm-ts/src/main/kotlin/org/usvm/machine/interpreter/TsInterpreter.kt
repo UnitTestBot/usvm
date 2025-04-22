@@ -1,5 +1,6 @@
 package org.usvm.machine.interpreter
 
+import io.ksmt.expr.rewrite.simplify.addArithTerm
 import io.ksmt.utils.asExpr
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsArrayAccess
@@ -15,6 +16,7 @@ import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsNopStmt
 import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsParameterRef
+import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsStaticFieldRef
 import org.jacodb.ets.model.EtsStmt
@@ -31,6 +33,7 @@ import org.usvm.UAddressSort
 import org.usvm.UExpr
 import org.usvm.UInterpreter
 import org.usvm.api.allocateArrayInitialized
+import org.usvm.api.evalTypeEquals
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.api.makeSymbolicRefUntyped
 import org.usvm.api.targets.TsTarget
@@ -64,6 +67,7 @@ import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
 import org.usvm.util.resolveEtsField
 import org.usvm.util.resolveEtsMethods
+import org.usvm.util.type
 import org.usvm.utils.ensureSat
 
 private val logger = KotlinLogging.logger {}
@@ -185,7 +189,12 @@ class TsInterpreter(
         val conditionsWithBlocks = concreteMethods.map { method ->
             val concreteCall = stmt.toConcrete(method)
             val block = { state: TsState -> state.newStmt(concreteCall) }
-            ctx.trueExpr to block
+            val type = method.enclosingClass!!.type
+            val constraint = scope.calcOnState {
+                val instance = stmt.instance.asExpr(ctx.addressSort)
+                memory.types.evalTypeEquals(instance, type) // TODO mistake, should be separated into several hierarchies
+            }
+            constraint to block
         }
         scope.forkMulti(conditionsWithBlocks)
     }
@@ -527,9 +536,20 @@ class TsInterpreter(
             )
         }
 
-        // TODO fix incorrect type streams
-        // val thisTypeConstraint = state.memory.types.evalTypeEquals(thisRef, EtsClassType(method.enclosingClass))
-        // state.pathConstraints += thisTypeConstraint
+        method.enclosingClass?.let { thisClass ->
+            // TODO not equal but subtype for abstract/interfaces
+            val thisTypeConstraint = state.memory.types.evalTypeEquals(thisRef, thisClass.type)
+            state.pathConstraints += thisTypeConstraint
+        }
+
+        method.parameters.forEachIndexed { i, param ->
+            val parameterType = param.type
+            if (parameterType is EtsRefType) {
+                val argLValue = mkRegisterStackLValue(ctx.addressSort, i)
+                val ref = state.memory.read(argLValue).asExpr(ctx.addressSort)
+                state.pathConstraints += state.memory.types.evalIsSubtype(ref, parameterType)
+            }
+        }
 
         val model = solver.check(state.pathConstraints).ensureSat().model
         state.models = listOf(model)

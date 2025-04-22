@@ -210,7 +210,6 @@ class Call : TsMethodTestRunner() {
         )
     }
 
-    @Disabled("Too complex")
     @Test
     fun `test virtual dispatch`() {
         val method = getMethod(className, "virtualDispatch")

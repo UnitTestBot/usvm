@@ -5,6 +5,7 @@ import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsPrimitiveType
 import org.jacodb.ets.model.EtsScene
@@ -35,11 +36,41 @@ class TsTypeSystem(
     /**
      * @return true if [type] <: [supertype].
      */
-    override fun isSupertype(supertype: EtsType, type: EtsType): Boolean = when {
-        type is AuxiliaryType -> TODO()
-        supertype == type -> true
-        supertype == EtsUnknownType || supertype == EtsAnyType -> true
-        else -> TODO()
+    override fun isSupertype(supertype: EtsType, type: EtsType): Boolean {
+        return when {
+            type is AuxiliaryType -> TODO()
+            supertype is AuxiliaryType -> TODO()
+            supertype == type -> true
+            supertype == EtsUnknownType || supertype == EtsAnyType -> true
+            supertype is EtsPrimitiveType || type is EtsPrimitiveType -> type == supertype
+            else -> {
+                // TODO isAssignable
+                if (supertype is EtsUnknownType || supertype is EtsAnyType) {
+                    return true
+                }
+
+                if (type is EtsUnknownType || type is EtsAnyType) {
+                    return false // otherwise it should be processed in the code above
+                }
+
+                // TODO wrong type resolutions because of names
+                val clazz = project.projectAndSdkClasses.singleOrNull() { it.type.typeName ==  type.typeName } ?: error("TODO")
+                val ancestors = generateSequence(clazz) { c ->
+                    // TODO mistake because of name usage
+                    project.projectAndSdkClasses.singleOrNull { it.signature.name == c.superClass?.name }
+                }.map { it.type }
+
+                if (supertype is EtsClassType) {
+                    return ancestors.any { it == supertype }
+                }
+
+                if (supertype is EtsUnclearRefType) {
+                    return ancestors.any { it.typeName == supertype.typeName }
+                }
+
+                error("TODO")
+            }
+        }
     }
 
     /**
@@ -49,8 +80,8 @@ class TsTypeSystem(
      */
     override fun hasCommonSubtype(type: EtsType, types: Collection<EtsType>): Boolean = when {
         type is EtsPrimitiveType -> types.isEmpty()
-        type is EtsClassType -> TODO()
-        type is EtsUnclearRefType -> TODO()
+        type is EtsClassType -> true
+        type is EtsUnclearRefType -> true
         type is EtsArrayType -> TODO()
         else -> error("Unsupported class type: $type")
     }
@@ -75,7 +106,14 @@ class TsTypeSystem(
         // TODO they should be direct inheritors, not all of them
         is EtsAnyType,
         is EtsUnknownType -> project.projectAndSdkClasses.asSequence().map { it.type }
-        else -> TODO()
+        is AuxiliaryType -> {
+            TODO()
+        }
+        else -> {
+            val clazz = project.projectAndSdkClasses.filter { it.type == type }
+            // TODO optimize
+            project.projectAndSdkClasses.asSequence().filter { it.superClass == clazz }.map { it.type }
+        }
     }
 
     private val topTypeStream by lazy { TsTopTypeStream(this) }

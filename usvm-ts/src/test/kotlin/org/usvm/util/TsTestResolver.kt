@@ -13,6 +13,7 @@ import org.jacodb.ets.model.EtsNeverType
 import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsPrimitiveType
+import org.jacodb.ets.model.EtsRef
 import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
@@ -29,6 +30,7 @@ import org.usvm.USort
 import org.usvm.api.GlobalFieldValue
 import org.usvm.api.TsParametersState
 import org.usvm.api.TsTest
+import org.usvm.api.typeStreamOf
 import org.usvm.api.TsTestValue
 import org.usvm.isTrue
 import org.usvm.machine.TsContext
@@ -188,11 +190,11 @@ open class TsTestStateResolver(
             // TODO add better support
             is EtsUnclearRefType -> {
                 val cls = ctx.scene.projectAndSdkClasses.single { it.name == type.typeName }
-                resolveTsClass(concreteRef, finalStateMemoryRef ?: heapRef, cls.type)
+                resolveTsClass(concreteRef, finalStateMemoryRef ?: heapRef)
             }
 
             is EtsClassType -> {
-                resolveTsClass(concreteRef, finalStateMemoryRef ?: heapRef, type)
+                resolveTsClass(concreteRef, finalStateMemoryRef ?: heapRef)
             }
 
             is EtsArrayType -> {
@@ -323,36 +325,53 @@ open class TsTestStateResolver(
     }
 
     private fun resolveClass(
-        classType: EtsClassType,
+        refType: EtsRefType,
     ): EtsClass {
+        if (refType is EtsArrayType) {
+            TODO()
+        }
+
+
         // Special case for Object:
-        if (classType.signature.name == "Object") {
+        val name = when(refType) {
+            is EtsClassType -> refType.signature.name
+            is EtsUnclearRefType -> refType.name
+            else -> error("Unsupported $refType")
+        }
+
+        if (name == "Object") {
             return createObjectClass()
         }
 
         // Perfect signature:
-        if (classType.signature.name != UNKNOWN_CLASS_NAME) {
-            val classes = ctx.scene.projectAndSdkClasses.filter { it.signature == classType.signature }
+        if (name != UNKNOWN_CLASS_NAME) {
+            val classes = ctx.scene.projectAndSdkClasses.filter {
+                when (refType) {
+                    is EtsClassType -> it.signature == refType.signature
+                    is EtsUnclearRefType -> it.name == refType.typeName
+                    else -> error("TODO")
+                }
+            }
             if (classes.size == 1) {
                 return classes.single()
             }
         }
 
         // Sad signature:
-        val classes = ctx.scene.projectAndSdkClasses.filter { it.signature.name == classType.signature.name }
+        val classes = ctx.scene.projectAndSdkClasses.filter { it.signature.name == name }
         if (classes.size == 1) {
             return classes.single()
         }
 
-        error("Could not resolve class: ${classType.signature}")
+        error("Could not resolve class: ${refType}")
     }
 
     private fun resolveTsClass(
         concreteRef: UConcreteHeapRef,
         heapRef: UHeapRef,
-        classType: EtsClassType,
     ): TsTestValue.TsClass = with(ctx) {
-        val clazz = resolveClass(classType)
+        val type = model.typeStreamOf(concreteRef).first() as EtsRefType
+        val clazz = resolveClass(type)
         val properties = clazz.fields
             .filterNot { field ->
                 field as EtsFieldImpl
