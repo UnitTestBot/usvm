@@ -3,6 +3,7 @@ package org.usvm.util
 import io.ksmt.sort.KFp64Sort
 import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsType
 import org.usvm.UBoolSort
 import org.usvm.UExpr
@@ -21,3 +22,9 @@ fun TsState.throwExceptionWithoutStackFrameDrop(address: UHeapRef, type: EtsType
 
 val EtsClass.type: EtsClassType
     get() = EtsClassType(signature, typeParameters)
+
+val EtsMethod.humanReadableSignature: String
+    get() {
+        val params = parameters.joinToString(",") { it.type.toString() }
+        return "${signature.enclosingClass.name}::$name($params):$returnType"
+    }

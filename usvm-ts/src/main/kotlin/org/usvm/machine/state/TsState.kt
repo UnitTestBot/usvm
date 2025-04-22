@@ -50,16 +50,21 @@ class TsState(
     forkPoints = forkPoints,
     targets = targets,
 ) {
-    fun getOrPutSortForLocal(localIdx: Int, localType: EtsType): USort {
+    fun getSortForLocal(idx: Int): USort? {
         val localToSort = localToSortStack.last()
-        val (updated, result) = localToSort.getOrPut(localIdx, ownership) { ctx.typeToSort(localType) }
+        return localToSort[idx]
+    }
+
+    fun getOrPutSortForLocal(idx: Int, localType: EtsType): USort {
+        val localToSort = localToSortStack.last()
+        val (updated, result) = localToSort.getOrPut(idx, ownership) { ctx.typeToSort(localType) }
         localToSortStack[localToSortStack.lastIndex] = updated
         return result
     }
 
-    fun saveSortForLocal(localIdx: Int, sort: USort) {
+    fun saveSortForLocal(idx: Int, sort: USort) {
         val localToSort = localToSortStack.last()
-        val updated = localToSort.put(localIdx, sort, ownership)
+        val updated = localToSort.put(idx, sort, ownership)
         localToSortStack[localToSortStack.lastIndex] = updated
     }
 
@@ -71,7 +76,11 @@ class TsState(
         localToSortStack.removeLast()
     }
 
-    fun pushSortsForArguments(instance: EtsLocal?, args: List<EtsValue>, localToIdx: (EtsMethod, EtsValue) -> Int) {
+    fun pushSortsForArguments(
+        instance: EtsLocal?,
+        args: List<EtsLocal>,
+        localToIdx: (EtsMethod, EtsValue) -> Int,
+    ) {
         val argSorts = args.map { arg ->
             val localIdx = localToIdx(lastEnteredMethod, arg)
             getOrPutSortForLocal(localIdx, if (arg is EtsLocal) arg.type else EtsUnknownType) // TODO: type
@@ -80,6 +89,7 @@ class TsState(
         val instanceIdx = instance?.let { localToIdx(lastEnteredMethod, it) }
         val instanceSort = instanceIdx?.let { getOrPutSortForLocal(it, instance.type) }
 
+        // Note: first, push an empty map, then fill the arguments, and then the instance (this)
         pushLocalToSortStack()
         argSorts.forEachIndexed { index, sort ->
             saveSortForLocal(index, sort)

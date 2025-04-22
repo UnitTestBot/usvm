@@ -8,14 +8,12 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.makeSymbolicPrimitive
-import org.usvm.api.typeStreamOf
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.machine.IntermediateLValueField
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsState
 import org.usvm.memory.ULValue
-import org.usvm.types.single
 
 fun TsContext.mkFakeValue(
     scope: TsStepScope,
@@ -76,8 +74,7 @@ fun <T : USort> TsState.extractValue(
     when {
         value.isFakeObject() -> {
             val lValue = extractIntermediateLValue(value.address)
-
-            val type = memory.typeStreamOf(value).single() as FakeType
+            val type = value.getFakeType(memory)
             val typeCondition = when (sort) {
                 boolSort -> type.boolTypeExpr
                 fp64Sort -> type.fpTypeExpr
@@ -87,9 +84,13 @@ fun <T : USort> TsState.extractValue(
             memory.read(lValue) to typeCondition
         }
 
-        value.sort == sort -> value.asExpr(sort) to trueExpr
+        value.sort == sort -> {
+            value.asExpr(sort) to trueExpr
+        }
 
-        else -> null to falseExpr
+        else -> {
+            null to falseExpr
+        }
     }
 }
 

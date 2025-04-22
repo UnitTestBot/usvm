@@ -1,5 +1,6 @@
 package org.usvm.machine
 
+import mu.KotlinLogging
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStmt
@@ -14,6 +15,7 @@ import org.usvm.machine.state.TsState
 import org.usvm.ps.createPathSelector
 import org.usvm.statistics.CompositeUMachineObserver
 import org.usvm.statistics.CoverageStatistics
+import org.usvm.statistics.StatisticsByMethodPrinter
 import org.usvm.statistics.StepsStatistics
 import org.usvm.statistics.TimeStatistics
 import org.usvm.statistics.UMachineObserver
@@ -23,19 +25,22 @@ import org.usvm.statistics.collectors.TargetsReachedStatesCollector
 import org.usvm.statistics.distances.CfgStatisticsImpl
 import org.usvm.statistics.distances.PlainCallGraphStatistics
 import org.usvm.stopstrategies.createStopStrategy
+import org.usvm.util.humanReadableSignature
 import kotlin.time.Duration.Companion.seconds
 
+private val logger = KotlinLogging.logger {}
+
 class TsMachine(
-    private val project: EtsScene,
+    private val scene: EtsScene,
     private val options: UMachineOptions,
     private val tsOptions: TsOptions,
     private val machineObserver: UMachineObserver<TsState>? = null,
     observer: TsInterpreterObserver? = null,
 ) : UMachine<TsState>() {
-    private val typeSystem = TsTypeSystem(typeOperationsTimeout = 1.seconds, project)
+    private val typeSystem = TsTypeSystem(scene, typeOperationsTimeout = 1.seconds)
     private val components = TsComponents(typeSystem, options)
-    private val ctx = TsContext(project, components)
-    private val graph = TsGraph(project)
+    private val ctx = TsContext(scene, components)
+    private val graph = TsGraph(scene)
     private val interpreter = TsInterpreter(ctx, graph, tsOptions, observer)
     private val cfgStatistics = CfgStatisticsImpl(graph)
 
@@ -102,6 +107,19 @@ class TsMachine(
         observers.add(timeStatistics)
         observers.add(stepsStatistics)
         machineObserver?.let { observers.add(it) }
+
+        if (logger.isInfoEnabled) {
+            observers.add(
+                StatisticsByMethodPrinter(
+                    getMethods = { methods },
+                    print = logger::info,
+                    getMethodSignature = { it.humanReadableSignature },
+                    coverageStatistics = coverageStatistics,
+                    timeStatistics = timeStatistics,
+                    stepsStatistics = stepsStatistics
+                )
+            )
+        }
 
         run(
             interpreter,
