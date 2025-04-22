@@ -4,13 +4,10 @@ import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import mu.KotlinLogging
-import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
 import org.usvm.UExpr
 import org.usvm.UHeapRef
-import org.usvm.USort
-import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.machine.TsContext
 import org.usvm.machine.expr.mkNumericExpr
 import org.usvm.machine.expr.mkTruthyExpr
@@ -414,7 +411,7 @@ sealed interface TsBinaryOperator {
             scope: TsStepScope,
         ): UExpr<*> {
             return with(Eq) {
-                onBool(lhs, rhs, scope).asExpr(boolSort).not()
+                onBool(lhs, rhs, scope).not()
             }
         }
 
@@ -424,7 +421,7 @@ sealed interface TsBinaryOperator {
             scope: TsStepScope,
         ): UExpr<*> {
             return with(Eq) {
-                onFp(lhs, rhs, scope).asExpr(boolSort).not()
+                onFp(lhs, rhs, scope).not()
             }
         }
 
@@ -434,7 +431,7 @@ sealed interface TsBinaryOperator {
             scope: TsStepScope,
         ): UExpr<*> {
             return with(Eq) {
-                onRef(lhs, rhs, scope).asExpr(boolSort).not()
+                onRef(lhs, rhs, scope).not()
             }
         }
 
@@ -444,7 +441,7 @@ sealed interface TsBinaryOperator {
             scope: TsStepScope,
         ): UExpr<*> {
             return with(Eq) {
-                resolveFakeObject(lhs, rhs, scope).asExpr(boolSort).not()
+                resolveFakeObject(lhs, rhs, scope).not()
             }
         }
 
@@ -454,7 +451,7 @@ sealed interface TsBinaryOperator {
             scope: TsStepScope,
         ): UExpr<*> {
             return with(Eq) {
-                internalResolve(lhs, rhs, scope).asExpr(boolSort).not()
+                internalResolve(lhs, rhs, scope).not()
             }
         }
     }
@@ -829,7 +826,7 @@ sealed interface TsBinaryOperator {
             rhs: UExpr<KFp64Sort>,
             scope: TsStepScope,
         ): UExpr<*> {
-            return mkFpLessExpr(lhs.asExpr(fp64Sort), rhs.asExpr(fp64Sort))
+            return mkFpLessExpr(lhs, rhs)
         }
 
         override fun TsContext.onRef(
@@ -871,7 +868,7 @@ sealed interface TsBinaryOperator {
             rhs: UExpr<KFp64Sort>,
             scope: TsStepScope,
         ): UExpr<*> {
-            return mkFpGreaterExpr(lhs.asExpr(fp64Sort), rhs.asExpr(fp64Sort))
+            return mkFpGreaterExpr(lhs, rhs)
         }
 
         override fun TsContext.onRef(
