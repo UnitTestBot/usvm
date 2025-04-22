@@ -32,6 +32,9 @@ class TsTypeSystem(
         val primitiveTypes = sequenceOf(EtsNumberType, EtsBooleanType)
     }
 
+    /**
+     * @return true if [type] <: [supertype].
+     */
     override fun isSupertype(supertype: EtsType, type: EtsType): Boolean = when {
         type is AuxiliaryType -> TODO()
         supertype == type -> true
@@ -39,7 +42,11 @@ class TsTypeSystem(
         else -> TODO()
     }
 
-    //
+    /**
+     * @return true if [types] and [type] can be supertypes for some type together.
+     * It is guaranteed that [type] is not a supertype for any type from [types]
+     * and that [types] have common subtype.
+     */
     override fun hasCommonSubtype(type: EtsType, types: Collection<EtsType>): Boolean = when {
         type is EtsPrimitiveType -> types.any { it == type }
         type is EtsClassType -> TODO()
@@ -49,11 +56,20 @@ class TsTypeSystem(
     }
 
     // TODO is it right?
+    /**
+     * @return true if there is no type u distinct from [type] and subtyping [type].
+     */
     override fun isFinal(type: EtsType): Boolean = type is EtsPrimitiveType
 
     // TODO are there any non instantiable types?
+    /**
+     * @return true if [type] is instantiable, meaning it can be created via constructor.
+     */
     override fun isInstantiable(type: EtsType): Boolean = true
 
+    /**
+     * @return a sequence of **direct** inheritors of the [type].
+     */
     override fun findSubtypes(type: EtsType): Sequence<EtsType> = when (type) {
         is EtsPrimitiveType -> emptySequence() // TODO why???
         is EtsAnyType,
