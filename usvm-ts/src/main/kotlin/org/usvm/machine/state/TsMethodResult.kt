@@ -16,12 +16,12 @@ sealed interface TsMethodResult {
      */
     object NoCall : TsMethodResult
 
-    /**
-     * A [method] successfully returned a [value].
-     */
     sealed class Success(val value: UExpr<out USort>) : TsMethodResult {
         abstract fun methodSignature(): EtsMethodSignature
 
+        /**
+         * A [method] successfully returned a [value].
+         */
         class RegularCall(
             val method: EtsMethod,
             value: UExpr<out USort>,
