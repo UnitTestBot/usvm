@@ -21,8 +21,8 @@ private val logger = KotlinLogging.logger {}
 sealed interface TsBinaryOperator {
 
     fun TsContext.onBool(
-        lhs: UExpr<UBoolSort>,
-        rhs: UExpr<UBoolSort>,
+        lhs: UBoolExpr,
+        rhs: UBoolExpr,
         scope: TsStepScope,
     ): UExpr<*>?
 
@@ -406,8 +406,8 @@ sealed interface TsBinaryOperator {
 
     data object Neq : TsBinaryOperator {
         override fun TsContext.onBool(
-            lhs: UExpr<UBoolSort>,
-            rhs: UExpr<UBoolSort>,
+            lhs: UBoolExpr,
+            rhs: UBoolExpr,
             scope: TsStepScope,
         ): UExpr<*> {
             return with(Eq) {
@@ -596,8 +596,8 @@ sealed interface TsBinaryOperator {
 
     data object Add : TsBinaryOperator {
         override fun TsContext.onBool(
-            lhs: UExpr<UBoolSort>,
-            rhs: UExpr<UBoolSort>,
+            lhs: UBoolExpr,
+            rhs: UBoolExpr,
             scope: TsStepScope,
         ): UExpr<*> {
             return mkFpAddExpr(
@@ -668,8 +668,8 @@ sealed interface TsBinaryOperator {
 
     data object Sub : TsBinaryOperator {
         override fun TsContext.onBool(
-            lhs: UExpr<UBoolSort>,
-            rhs: UExpr<UBoolSort>,
+            lhs: UBoolExpr,
+            rhs: UBoolExpr,
             scope: TsStepScope,
         ): UExpr<*> {
             return mkFpSubExpr(fpRoundingModeSortDefaultValue(), boolToFp(lhs), boolToFp(rhs))
@@ -710,8 +710,8 @@ sealed interface TsBinaryOperator {
 
     data object And : TsBinaryOperator {
         override fun TsContext.onBool(
-            lhs: UExpr<UBoolSort>,
-            rhs: UExpr<UBoolSort>,
+            lhs: UBoolExpr,
+            rhs: UBoolExpr,
             scope: TsStepScope,
         ): UExpr<*> {
             return mkAnd(lhs, rhs)
@@ -762,8 +762,8 @@ sealed interface TsBinaryOperator {
 
     data object Or : TsBinaryOperator {
         override fun TsContext.onBool(
-            lhs: UExpr<UBoolSort>,
-            rhs: UExpr<UBoolSort>,
+            lhs: UBoolExpr,
+            rhs: UBoolExpr,
             scope: TsStepScope,
         ): UExpr<*> {
             return mkOr(lhs, rhs)
@@ -814,8 +814,8 @@ sealed interface TsBinaryOperator {
 
     data object Lt : TsBinaryOperator {
         override fun TsContext.onBool(
-            lhs: UExpr<UBoolSort>,
-            rhs: UExpr<UBoolSort>,
+            lhs: UBoolExpr,
+            rhs: UBoolExpr,
             scope: TsStepScope,
         ): UExpr<*> {
             return mkAnd(lhs.not(), rhs)
@@ -856,8 +856,8 @@ sealed interface TsBinaryOperator {
 
     data object Gt : TsBinaryOperator {
         override fun TsContext.onBool(
-            lhs: UExpr<UBoolSort>,
-            rhs: UExpr<UBoolSort>,
+            lhs: UBoolExpr,
+            rhs: UBoolExpr,
             scope: TsStepScope,
         ): UExpr<*> {
             return mkAnd(lhs, rhs.not())
@@ -898,8 +898,8 @@ sealed interface TsBinaryOperator {
 
     data object Mul : TsBinaryOperator {
         override fun TsContext.onBool(
-            lhs: UExpr<UBoolSort>,
-            rhs: UExpr<UBoolSort>,
+            lhs: UBoolExpr,
+            rhs: UBoolExpr,
             scope: TsStepScope,
         ): UExpr<*> {
             val left = mkNumericExpr(lhs, scope)
