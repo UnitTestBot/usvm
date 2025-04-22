@@ -456,6 +456,10 @@ class TsExprResolver(
             }
         }
 
+        if (expr.instance.name == "Logger") {
+            return mkUndefinedValue()
+        }
+
         return when (val result = scope.calcOnState { methodResult }) {
             is TsMethodResult.Success -> {
                 scope.doWithState { methodResult = TsMethodResult.NoCall }
