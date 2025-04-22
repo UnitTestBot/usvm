@@ -3,7 +3,7 @@ package org.usvm.samples
 import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.usvm.api.TsValue
+import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 
 class Equality : TsMethodTestRunner() {
@@ -15,7 +15,7 @@ class Equality : TsMethodTestRunner() {
     @Test
     fun `test eqBoolWithBool`() {
         val method = getMethod(className, "eqBoolWithBool")
-        discoverProperties<TsValue.TsBoolean, TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method,
             { a, r -> a.value && r.number == 1.0 },
             { a, r -> !a.value && r.number == 2.0 },
@@ -28,7 +28,7 @@ class Equality : TsMethodTestRunner() {
     @Test
     fun `test eqNumberWithNumber`() {
         val method = getMethod(className, "eqNumberWithNumber")
-        discoverProperties<TsValue.TsNumber, TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method,
             { a, r -> a.number.isNaN() && (r.number == 1.0) },
             { a, r -> (a.number == 42.0) && (r.number == 2.0) },
@@ -40,7 +40,7 @@ class Equality : TsMethodTestRunner() {
     @Disabled("Unsupported string")
     fun `test eqStringWithString`() {
         val method = getMethod(className, "eqStringWithString")
-        discoverProperties<TsValue.TsString, TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsString, TsTestValue.TsNumber>(
             method,
             { a, r -> (a.value == "123") && (r.number == 1.0) },
             { a, r -> (a.value != "123") && (r.number == 2.0) },
@@ -51,7 +51,7 @@ class Equality : TsMethodTestRunner() {
     @Disabled("Unsupported bigint")
     fun `test eqBigintWithBigint`() {
         val method = getMethod(className, "eqBigintWithBigint")
-        discoverProperties<TsValue.TsBigInt, TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsBigInt, TsTestValue.TsNumber>(
             method,
             { a, r -> (a.value == "42") && (r.number == 1.0) },
             { a, r -> (a.value != "42") && (r.number == 2.0) },
@@ -62,7 +62,7 @@ class Equality : TsMethodTestRunner() {
     @Test
     fun `test eqObjectWithObject`() {
         val method = getMethod(className, "eqObjectWithObject")
-        discoverProperties<TsValue.TsClass, TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
             method,
             { a, r -> r.number == 1.0 },
             invariants = arrayOf(
@@ -75,7 +75,7 @@ class Equality : TsMethodTestRunner() {
     @Test
     fun `test eqArrayWithArray`() {
         val method = getMethod(className, "eqArrayWithArray")
-        discoverProperties<TsValue.TsArray<*>, TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsArray<*>, TsTestValue.TsNumber>(
             method,
             { a, r -> r.number == 1.0 },
             invariants = arrayOf(
@@ -88,7 +88,7 @@ class Equality : TsMethodTestRunner() {
     @Test
     fun `test eqArrayWithBoolean`() {
         val method = getMethod(className, "eqArrayWithBoolean")
-        discoverProperties<TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber>(
             method,
             { r -> r.number == 0.0 },
             invariants = arrayOf(

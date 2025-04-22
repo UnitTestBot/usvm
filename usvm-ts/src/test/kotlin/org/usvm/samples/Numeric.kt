@@ -3,7 +3,7 @@ package org.usvm.samples
 import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.usvm.api.TsValue
+import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 
 class Numeric : TsMethodTestRunner() {
@@ -21,7 +21,7 @@ class Numeric : TsMethodTestRunner() {
         // if (x > 0) return Number(x) // x (>0)
         // if (x < 0) return Number(x) // x (<0)
         // ```
-        discoverProperties<TsValue.TsNumber, TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
             { x, r -> x.number.isNaN() && r.number.isNaN() },
             { x, r -> (x.number == 0.0) && (r.number == 0.0) },
@@ -37,7 +37,7 @@ class Numeric : TsMethodTestRunner() {
         // if (x) return Number(x) // 1
         // if (!x) return Number(x) // 0
         // ```
-        discoverProperties<TsValue.TsBoolean, TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method = method,
             { x, r -> x.value && (r.number == 1.0) },
             { x, r -> !x.value && (r.number == 0.0) },
@@ -50,7 +50,7 @@ class Numeric : TsMethodTestRunner() {
         // ```ts
         // return Number(undefined) // NaN
         // ```
-        discoverProperties<TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r.number.isNaN() },
         )
@@ -62,7 +62,7 @@ class Numeric : TsMethodTestRunner() {
         // ```ts
         // return Number(null) // 0
         // ```
-        discoverProperties<TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r.number == 0.0 },
         )
@@ -75,7 +75,7 @@ class Numeric : TsMethodTestRunner() {
         // ```ts
         // return Number("") // 0
         // ```
-        discoverProperties<TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r.number == 0.0 },
         )
@@ -88,7 +88,7 @@ class Numeric : TsMethodTestRunner() {
         // ```ts
         // return Number("42") // 42
         // ```
-        discoverProperties<TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r.number == 42.0 },
         )
@@ -101,7 +101,7 @@ class Numeric : TsMethodTestRunner() {
         // ```ts
         // return Number("hello") // NaN
         // ```
-        discoverProperties<TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r.number.isNaN() },
         )
@@ -114,7 +114,7 @@ class Numeric : TsMethodTestRunner() {
         // ```ts
         // return Number([]) // 0
         // ```
-        discoverProperties<TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r.number == 0.0 },
         )
@@ -127,7 +127,7 @@ class Numeric : TsMethodTestRunner() {
         // ```ts
         // return Number([42]) // 42
         // ```
-        discoverProperties<TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r.number == 42.0 },
         )
@@ -140,7 +140,7 @@ class Numeric : TsMethodTestRunner() {
         // ```ts
         // return Number([undefined]) // 0
         // ```
-        discoverProperties<TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r.number == 0.0 },
         )
@@ -153,7 +153,7 @@ class Numeric : TsMethodTestRunner() {
         // ```ts
         // return Number([{}]) // NaN
         // ```
-        discoverProperties<TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r.number.isNaN() },
         )
@@ -166,7 +166,7 @@ class Numeric : TsMethodTestRunner() {
         // ```ts
         // return Number([new FortyTwo()]) // 42
         // ```
-        discoverProperties<TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r.number == 42.0 },
         )
@@ -179,7 +179,7 @@ class Numeric : TsMethodTestRunner() {
         // ```ts
         // return Number([5, 100]) // NaN
         // ```
-        discoverProperties<TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r.number.isNaN() },
         )
@@ -192,7 +192,7 @@ class Numeric : TsMethodTestRunner() {
         // ```ts
         // return Number({}) // NaN
         // ```
-        discoverProperties<TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r.number.isNaN() },
         )
@@ -205,7 +205,7 @@ class Numeric : TsMethodTestRunner() {
         // ```ts
         // return Number({a: 42}) // NaN
         // ```
-        discoverProperties<TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r.number.isNaN() },
         )
@@ -218,7 +218,7 @@ class Numeric : TsMethodTestRunner() {
         // ```ts
         // return Number(new FortyTwo()) // 42
         // ```
-        discoverProperties<TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r.number == 42.0 },
         )

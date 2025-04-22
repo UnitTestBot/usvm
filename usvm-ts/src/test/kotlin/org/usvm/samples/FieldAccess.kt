@@ -2,7 +2,7 @@ package org.usvm.samples
 
 import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.Disabled
-import org.usvm.api.TsValue
+import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 import kotlin.test.Test
 
@@ -15,7 +15,7 @@ class FieldAccess : TsMethodTestRunner() {
     @Test
     fun `test readDefaultField`() {
         val method = getMethod(className, "readDefaultField")
-        discoverProperties<TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r.number == 5.0 },
         )
@@ -24,7 +24,7 @@ class FieldAccess : TsMethodTestRunner() {
     @Test
     fun `test writeAndReadNumeric`() {
         val method = getMethod(className, "writeAndReadNumeric")
-        discoverProperties<TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r.number == 14.0 },
         )
@@ -33,7 +33,7 @@ class FieldAccess : TsMethodTestRunner() {
     @Test
     fun `test writeDifferentTypes`() {
         val method = getMethod(className, "writeDifferentTypes")
-        discoverProperties<TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r.number == 5.0 },
         )
@@ -42,7 +42,7 @@ class FieldAccess : TsMethodTestRunner() {
     @Test
     fun `test handleNumericEdges`() {
         val method = getMethod(className, "handleNumericEdges")
-        discoverProperties<TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r.number == 1.0 },
         )
@@ -51,7 +51,7 @@ class FieldAccess : TsMethodTestRunner() {
     @Test
     fun `test createWithField`() {
         val method = getMethod(className, "createWithField")
-        discoverProperties<TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r.number == 15.0 },
         )
@@ -61,7 +61,7 @@ class FieldAccess : TsMethodTestRunner() {
     @Test
     fun `test factoryCreatedObject`() {
         val method = getMethod(className, "factoryCreatedObject")
-        discoverProperties<TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r.number == 42.0 },
         )
@@ -70,14 +70,14 @@ class FieldAccess : TsMethodTestRunner() {
     @Test
     fun `test conditionalFieldAccess`() {
         val method = getMethod(className, "conditionalFieldAccess")
-        discoverProperties<TsValue.TsClass, TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
             method = method,
             { a, r ->
-                val x = a.properties["x"] as TsValue.TsNumber
+                val x = a.properties["x"] as TsTestValue.TsNumber
                 x.number == 1.1 && r.number == 14.0
             },
             { a, r ->
-                val x = a.properties["x"] as TsValue.TsNumber
+                val x = a.properties["x"] as TsTestValue.TsNumber
                 x.number != 1.1 && r.number == 10.0
             },
         )
@@ -87,7 +87,7 @@ class FieldAccess : TsMethodTestRunner() {
     @Test
     fun `test nestedFieldAccess`() {
         val method = getMethod(className, "nestedFieldAccess")
-        discoverProperties<TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r.number == 7.0 },
         )
@@ -97,7 +97,7 @@ class FieldAccess : TsMethodTestRunner() {
     @Test
     fun `test arrayFieldAccess`() {
         val method = getMethod(className, "arrayFieldAccess")
-        discoverProperties<TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r.number == 5.0 },
         )
@@ -106,7 +106,7 @@ class FieldAccess : TsMethodTestRunner() {
     @Test
     fun `test multipleFieldInteraction`() {
         val method = getMethod(className, "multipleFieldInteraction")
-        discoverProperties<TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r.number == 9.0 }, // (2*2=4) + (4+1=5) == 9
         )
@@ -115,7 +115,7 @@ class FieldAccess : TsMethodTestRunner() {
     @Test
     fun `test circularTypeChanges`() {
         val method = getMethod(className, "circularTypeChanges")
-        discoverProperties<TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r.number == 1.0 },
         )

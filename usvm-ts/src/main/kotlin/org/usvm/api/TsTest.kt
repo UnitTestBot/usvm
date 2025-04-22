@@ -9,34 +9,34 @@ data class TsTest(
     val method: EtsMethod,
     val before: TsParametersState,
     val after: TsParametersState,
-    val returnValue: TsValue,
+    val returnValue: TsTestValue,
     val trace: List<EtsStmt>? = null,
 )
 
 data class TsParametersState(
-    val thisInstance: TsValue?,
-    val parameters: List<TsValue>,
+    val thisInstance: TsTestValue?,
+    val parameters: List<TsTestValue>,
     val globals: Map<EtsClass, List<GlobalFieldValue>>,
 )
 
-data class GlobalFieldValue(val field: EtsField, val value: TsValue) // TODO is it right?????
+data class GlobalFieldValue(val field: EtsField, val value: TsTestValue) // TODO is it right?????
 
 open class TsMethodCoverage
 
 object NoCoverage : TsMethodCoverage()
 
-sealed interface TsValue {
-    data object TsAny : TsValue
-    data object TsUnknown : TsValue
-    data object TsNull : TsValue
-    data object TsUndefined : TsValue
-    data object TsException : TsValue
+sealed interface TsTestValue {
+    data object TsAny : TsTestValue
+    data object TsUnknown : TsTestValue
+    data object TsNull : TsTestValue
+    data object TsUndefined : TsTestValue
+    data object TsException : TsTestValue
 
-    data class TsBoolean(val value: Boolean) : TsValue
-    data class TsString(val value: String) : TsValue
-    data class TsBigInt(val value: String) : TsValue
+    data class TsBoolean(val value: Boolean) : TsTestValue
+    data class TsString(val value: String) : TsTestValue
+    data class TsBigInt(val value: String) : TsTestValue
 
-    sealed interface TsNumber : TsValue {
+    sealed interface TsNumber : TsTestValue {
         data class TsInteger(val value: Int) : TsNumber
 
         data class TsDouble(val value: Double) : TsNumber
@@ -48,14 +48,14 @@ sealed interface TsValue {
             }
     }
 
-    data class TsObject(val addr: Int) : TsValue
+    data class TsObject(val addr: Int) : TsTestValue
 
     data class TsClass(
         val name: String,
-        val properties: Map<String, TsValue>,
-    ) : TsValue
+        val properties: Map<String, TsTestValue>,
+    ) : TsTestValue
 
-    data class TsArray<T : TsValue>(
+    data class TsArray<T : TsTestValue>(
         val values: List<T>,
-    ) : TsValue
+    ) : TsTestValue
 }
