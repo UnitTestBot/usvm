@@ -48,7 +48,7 @@ class TsTypeSystem(
      * and that [types] have common subtype.
      */
     override fun hasCommonSubtype(type: EtsType, types: Collection<EtsType>): Boolean = when {
-        type is EtsPrimitiveType -> types.any { it == type }
+        type is EtsPrimitiveType -> types.isEmpty()
         type is EtsClassType -> TODO()
         type is EtsUnclearRefType -> TODO()
         type is EtsArrayType -> TODO()
