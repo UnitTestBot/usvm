@@ -12,7 +12,7 @@ class UnreachableCode {
     }
 
     unreachableCodeWithCallsInside(value: number): number {
-        anotherValue = this.simpleUnreachableBranch(value)
+        let anotherValue = this.simpleUnreachableBranch(value)
         if (anotherValue > 2) {
             if (anotherValue < 1) {
                 return -1 // Unreachable code
