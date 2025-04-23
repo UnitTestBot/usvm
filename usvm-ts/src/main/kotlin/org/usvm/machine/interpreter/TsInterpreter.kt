@@ -62,7 +62,6 @@ import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
-import org.usvm.util.resolveEtsField
 import org.usvm.util.resolveEtsMethods
 import org.usvm.utils.ensureSat
 
@@ -415,7 +414,7 @@ class TsInterpreter(
                     val sort = run {
                         val fields = clazz.fields.filter { it.name == lhv.field.name }
                         if (fields.size == 1) {
-val field=                            fields.single()
+                            val field = fields.single()
                             val sort = typeToSort(field.type)
                             return@run sort
                         }
