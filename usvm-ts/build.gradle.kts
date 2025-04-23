@@ -1,4 +1,10 @@
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.io.FileNotFoundException
+import java.io.Reader
+import kotlin.time.Duration
 
 plugins {
     id("usvm.kotlin-conventions")
@@ -61,23 +67,99 @@ val generateSdkIR by tasks.registering {
             outputDir.relativeTo(resources).path,
         )
         println("Running: '${cmd.joinToString(" ")}'")
-        val process = ProcessBuilder(cmd).directory(resources).start()
-        val ok = process.waitFor(5, TimeUnit.SECONDS)
-
-        val stdout = process.inputStream.bufferedReader().readText().trim()
-        if (stdout.isNotBlank()) {
-            println("[STDOUT]:\n--------\n$stdout\n--------")
+        val result = ProcessUtil.run(cmd) {
+            directory(resources)
         }
-        val stderr = process.errorStream.bufferedReader().readText().trim()
-        if (stderr.isNotBlank()) {
-            println("[STDERR]:\n--------\n$stderr\n--------")
+        if (result.stdout.isNotBlank()) {
+            println("[STDOUT]:\n--------\n${result.stdout}\n--------")
         }
-
-        if (!ok) {
+        if (result.stderr.isNotBlank()) {
+            println("[STDERR]:\n--------\n${result.stderr}\n--------")
+        }
+        if (result.isTimeout) {
             println("Timeout!")
-            process.destroy()
-        } else {
-            println("Done running!")
         }
+        if (result.exitCode != 0) {
+            println("Exit code: ${result.exitCode}")
+        }
+    }
+}
+
+object ProcessUtil {
+    data class Result(
+        val exitCode: Int,
+        val stdout: String,
+        val stderr: String,
+        val isTimeout: Boolean, // true if the process was terminated due to timeout
+    )
+
+    fun run(
+        command: List<String>,
+        input: String? = null,
+        timeout: Duration? = null,
+        builder: ProcessBuilder.() -> Unit = {},
+    ): Result {
+        val reader = input?.reader() ?: "".reader()
+        return run(command, reader, timeout, builder)
+    }
+
+    fun run(
+        command: List<String>,
+        input: Reader,
+        timeout: Duration? = null,
+        builder: ProcessBuilder.() -> Unit = {},
+    ): Result {
+        val process = ProcessBuilder(command).apply(builder).start()
+        return communicate(process, input, timeout)
+    }
+
+    private fun communicate(
+        process: Process,
+        input: Reader,
+        timeout: Duration? = null,
+    ): Result {
+        val stdout = StringBuilder()
+        val stderr = StringBuilder()
+
+        val scope = CoroutineScope(Dispatchers.IO)
+
+        // Handle process input
+        val stdinJob = scope.launch {
+            process.outputStream.bufferedWriter().use { writer ->
+                input.copyTo(writer)
+            }
+        }
+
+        // Launch output capture coroutines
+        val stdoutJob = scope.launch {
+            process.inputStream.bufferedReader().useLines { lines ->
+                lines.forEach { stdout.appendLine(it) }
+            }
+        }
+        val stderrJob = scope.launch {
+            process.errorStream.bufferedReader().useLines { lines ->
+                lines.forEach { stderr.appendLine(it) }
+            }
+        }
+
+        // Wait for completion
+        val isTimeout = if (timeout != null) {
+            !process.waitFor(timeout.inWholeNanoseconds, TimeUnit.NANOSECONDS)
+        } else {
+            process.waitFor()
+            false
+        }
+        runBlocking {
+            stdinJob.join()
+            stdoutJob.join()
+            stderrJob.join()
+        }
+
+        return Result(
+            exitCode = process.exitValue(),
+            stdout = stdout.toString(),
+            stderr = stderr.toString(),
+            isTimeout = isTimeout,
+        )
     }
 }
