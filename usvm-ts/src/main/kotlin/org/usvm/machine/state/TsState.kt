@@ -5,7 +5,6 @@ import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsType
-import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.model.EtsValue
 import org.usvm.PathNode
 import org.usvm.UCallStack
@@ -82,8 +81,8 @@ class TsState(
         localToIdx: (EtsMethod, EtsValue) -> Int,
     ) {
         val argSorts = args.map { arg ->
-            val localIdx = localToIdx(lastEnteredMethod, arg)
-            getOrPutSortForLocal(localIdx, if (arg is EtsLocal) arg.type else EtsUnknownType) // TODO: type
+            val argIdx = localToIdx(lastEnteredMethod, arg)
+            getOrPutSortForLocal(argIdx, arg.type)
         }
 
         val instanceIdx = instance?.let { localToIdx(lastEnteredMethod, it) }
