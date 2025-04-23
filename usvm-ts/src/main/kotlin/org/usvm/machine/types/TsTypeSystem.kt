@@ -38,8 +38,23 @@ class TsTypeSystem(
      */
     override fun isSupertype(supertype: EtsType, type: EtsType): Boolean {
         return when {
-            type is AuxiliaryType -> TODO()
-            supertype is AuxiliaryType -> TODO()
+            type is AuxiliaryType -> {
+                if (supertype is EtsUnknownType || supertype is EtsAnyType) return true
+
+                if (supertype is AuxiliaryType) {
+                    return type.properties.all { it in supertype.properties }
+                }
+                val supertypeFields =
+                    project.projectAndSdkClasses.single { it.type.typeName == supertype.typeName }.fields
+                type.properties.all { it in supertypeFields.map { it.name } }
+            }
+
+            supertype is AuxiliaryType -> {
+                if (type is EtsUnknownType || type is EtsAnyType) return supertype.properties.isEmpty()
+
+                val typeFields = project.projectAndSdkClasses.single { it.type.typeName == type.typeName }.fields
+                typeFields.mapTo(mutableSetOf()) { it.name }.containsAll(supertype.properties)
+            }
             supertype == type -> true
             supertype == EtsUnknownType || supertype == EtsAnyType -> true
             supertype is EtsPrimitiveType || type is EtsPrimitiveType -> type == supertype
@@ -54,7 +69,8 @@ class TsTypeSystem(
                 }
 
                 // TODO wrong type resolutions because of names
-                val clazz = project.projectAndSdkClasses.singleOrNull() { it.type.typeName ==  type.typeName } ?: error("TODO")
+                val clazz =
+                    project.projectAndSdkClasses.singleOrNull() { it.type.typeName == type.typeName } ?: error("TODO")
                 val ancestors = generateSequence(clazz) { c ->
                     // TODO mistake because of name usage
                     project.projectAndSdkClasses.singleOrNull { it.signature.name == c.superClass?.name }
@@ -78,11 +94,12 @@ class TsTypeSystem(
      * It is guaranteed that [type] is not a supertype for any type from [types]
      * and that [types] have common subtype.
      */
-    override fun hasCommonSubtype(type: EtsType, types: Collection<EtsType>): Boolean = when {
-        type is EtsPrimitiveType -> types.isEmpty()
-        type is EtsClassType -> true
-        type is EtsUnclearRefType -> true
-        type is EtsArrayType -> TODO()
+    override fun hasCommonSubtype(type: EtsType, types: Collection<EtsType>): Boolean = when (type) {
+        is AuxiliaryType -> true
+        is EtsPrimitiveType -> types.isEmpty()
+        is EtsClassType -> true
+        is EtsUnclearRefType -> true
+        is EtsArrayType -> TODO()
         else -> error("Unsupported class type: $type")
     }
 
@@ -106,9 +123,13 @@ class TsTypeSystem(
         // TODO they should be direct inheritors, not all of them
         is EtsAnyType,
         is EtsUnknownType -> project.projectAndSdkClasses.asSequence().map { it.type }
+
         is AuxiliaryType -> {
-            TODO()
+            project.projectAndSdkClasses.filter {
+                it.fields.mapTo(mutableSetOf()) { it.name }.containsAll(type.properties)
+            }.asSequence().map { it.type }
         }
+
         else -> {
             val clazz = project.projectAndSdkClasses.filter { it.type == type }
             // TODO optimize

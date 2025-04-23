@@ -15,6 +15,7 @@ import org.jacodb.ets.model.EtsBitOrExpr
 import org.jacodb.ets.model.EtsBitXorExpr
 import org.jacodb.ets.model.EtsBooleanConstant
 import org.jacodb.ets.model.EtsCastExpr
+import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsConstant
 import org.jacodb.ets.model.EtsDeleteExpr
 import org.jacodb.ets.model.EtsDivExpr
@@ -96,6 +97,7 @@ import org.usvm.machine.state.TsState
 import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
+import org.usvm.machine.types.AuxiliaryType
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.memory.ULValue
 import org.usvm.sizeSort
@@ -624,6 +626,15 @@ class TsExprResolver(
         instanceRef: UHeapRef,
         field: EtsFieldSignature,
     ): UExpr<out USort>? = with(ctx) {
+        val resolvedAddr = if (instanceRef.isFakeObject()) instanceRef.extractRef(scope) else instanceRef
+        scope.doWithState {
+            pathConstraints += if (field.enclosingClass == EtsClassSignature.UNKNOWN) {
+                memory.types.evalIsSubtype(resolvedAddr, AuxiliaryType(setOf(field.name)))
+            } else {
+                memory.types.evalIsSubtype(resolvedAddr, field.type) // TODO is it right?
+            }
+        }
+
         val etsField = resolveEtsField(instance, field)
         val sort = typeToSort(etsField.type)
 

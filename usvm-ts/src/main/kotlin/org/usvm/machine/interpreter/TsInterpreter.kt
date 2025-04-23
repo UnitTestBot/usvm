@@ -1,6 +1,5 @@
 package org.usvm.machine.interpreter
 
-import io.ksmt.expr.rewrite.simplify.addArithTerm
 import io.ksmt.utils.asExpr
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsArrayAccess
@@ -134,20 +133,29 @@ class TsInterpreter(
         return scope.stepResult()
     }
 
-    private fun visitVirtualMethodCall(scope: TsStepScope, stmt: TsVirtualMethodCallStmt) {
+    private fun visitVirtualMethodCall(scope: TsStepScope, stmt: TsVirtualMethodCallStmt) = with(ctx) {
 
         // NOTE: USE '.callee' INSTEAD OF '.method' !!!
 
         val instance = stmt.instance
         checkNotNull(instance)
         val concreteRef = scope.calcOnState { models.first().eval(instance) }
+        val uncoveredInstance = if (concreteRef.isFakeObject()) {
+            scope.doWithState {
+                pathConstraints += concreteRef.getFakeType(scope).refTypeExpr
+            }
+            concreteRef.extractRef(scope)
+        } else {
+            concreteRef
+        }
+        val resolvedInstance = scope.calcOnState { models.first().eval(uncoveredInstance) }
 
         val concreteMethods: MutableList<EtsMethod> = mutableListOf()
 
         // TODO: handle 'instance.isFakeObject()'
 
-        if (isAllocatedConcreteHeapRef(concreteRef)) {
-            val type = scope.calcOnState { memory.typeStreamOf(concreteRef) }.single()
+        if (isAllocatedConcreteHeapRef(resolvedInstance)) {
+            val type = scope.calcOnState { memory.typeStreamOf(resolvedInstance) }.single()
             if (type is EtsClassType) {
                 // TODO: handle non-unique classes
                 val classes = ctx.scene.projectAndSdkClasses.filter { it.name == type.typeName }
@@ -191,7 +199,7 @@ class TsInterpreter(
             val block = { state: TsState -> state.newStmt(concreteCall) }
             val type = method.enclosingClass!!.type
             val constraint = scope.calcOnState {
-                val instance = stmt.instance.asExpr(ctx.addressSort)
+                val instance = stmt.instance.asExpr(ctx.addressSort).takeIf { !it.isFakeObject() } ?: uncoveredInstance.asExpr(addressSort)
                 memory.types.evalTypeEquals(instance, type) // TODO mistake, should be separated into several hierarchies
             }
             constraint to block
