@@ -139,6 +139,8 @@ class TsInterpreter(
 
         val concreteMethods: MutableList<EtsMethod> = mutableListOf()
 
+        // TODO: handle 'instance.isFakeObject()'
+
         if (isAllocatedConcreteHeapRef(concreteRef)) {
             val type = scope.calcOnState { memory.typeStreamOf(concreteRef) }.single()
             if (type is EtsClassType) {
