@@ -4,22 +4,33 @@ import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.getDeclaredLocals
 import org.jacodb.ets.utils.getLocals
 import org.jacodb.ets.utils.loadEtsProjectFromIR
+import org.junit.jupiter.api.condition.EnabledIf
 import org.usvm.api.TsTestValue
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.getResourcePath
-import org.usvm.util.resolveHome
-import kotlin.io.path.Path
+import org.usvm.util.getResourcePathOrNull
 import kotlin.test.Test
 
+@EnabledIf("projectAvailable")
 class RunOnDemoCalcProject : TsMethodTestRunner() {
 
+    companion object {
+        private const val PROJECT_PATH = "/projects/Demo_Calc/etsir/entry"
+        private const val SDK_PATH = "/sdk/ohos/5.0.1.111/etsir"
+
+        @JvmStatic
+        private fun projectAvailable(): Boolean {
+            return getResourcePathOrNull(PROJECT_PATH) != null
+        }
+    }
+
     override val scene: EtsScene = run {
-        loadEtsProjectFromIR(
-            getResourcePath("/projects/Demo_Calc/etsir/entry"),
-            Path("~/dev/ark/sdk/etsir/ohos/5.0.1.111/ets").resolveHome(),
-        )
+        val projectPath = getResourcePath(PROJECT_PATH)
+        val sdkPath = getResourcePathOrNull(SDK_PATH)
+            ?: error("Could not load SDK from resources '$SDK_PATH'. Try running './gradlew generateSdkIR' to generate it.")
+        loadEtsProjectFromIR(projectPath, sdkPath)
     }
 
     @Test
