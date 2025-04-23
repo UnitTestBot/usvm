@@ -460,6 +460,10 @@ class TsExprResolver(
             return mkUndefinedValue()
         }
 
+        if (expr.callee.name == "toString") {
+            return mkFp64(ADHOC_STRING)
+        }
+
         return when (val result = scope.calcOnState { methodResult }) {
             is TsMethodResult.Success -> {
                 scope.doWithState { methodResult = TsMethodResult.NoCall }
