@@ -572,7 +572,9 @@ class TsExprResolver(
 
     override fun visit(expr: EtsPtrCallExpr): UExpr<out USort>? {
         // TODO: IMPORTANT do not forget to fill sorts of arguments map
-        TODO("Not supported ${expr::class.simpleName}: $expr")
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        scope.assert(ctx.falseExpr)
+        return null
     }
 
     // endregion
