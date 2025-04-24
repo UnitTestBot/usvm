@@ -38,10 +38,10 @@ class TsMachine(
     private val machineObserver: UMachineObserver<TsState>? = null,
     observer: TsInterpreterObserver? = null,
 ) : UMachine<TsState>() {
-    private val typeSystem = TsTypeSystem(scene, typeOperationsTimeout = 1.seconds)
+    private val graph = TsGraph(scene)
+    private val typeSystem = TsTypeSystem(scene, typeOperationsTimeout = 1.seconds, graph.hierarchy)
     private val components = TsComponents(typeSystem, options)
     private val ctx = TsContext(scene, components)
-    private val graph = TsGraph(scene)
     private val interpreter = TsInterpreter(ctx, graph, tsOptions, observer)
     private val cfgStatistics = CfgStatisticsImpl(graph)
 

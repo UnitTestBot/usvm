@@ -43,7 +43,6 @@ class TypeStream : TsMethodTestRunner() {
     }
 
     @Test
-    @Disabled("Parent's fields are not supported yet")
     fun `use non unique field`() {
         val method = getMethod(className, "useNonUniqueField")
         discoverProperties<TsValue.TsClass, TsValue.TsNumber>(

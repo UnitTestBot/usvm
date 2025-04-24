@@ -491,7 +491,7 @@ class TsInterpreter(
     }
 
     private fun exprResolverWithScope(scope: TsStepScope): TsExprResolver =
-        TsExprResolver(ctx, scope, ::mapLocalToIdx)
+        TsExprResolver(ctx, graph.hierarchy, scope, ::mapLocalToIdx)
 
     // (method, localName) -> idx
     private val localVarToIdx: MutableMap<EtsMethod, Map<String, Int>> = hashMapOf()

@@ -1,24 +1,18 @@
 package org.usvm.machine.types
 
-import com.jetbrains.rd.framework.util.RdCoroutineScope.Companion.override
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsClassType
-import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsPrimitiveType
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUnclearRefType
 import org.jacodb.ets.model.EtsUnknownType
-import org.usvm.machine.types.TsTypeSystem.Companion.primitiveTypes
-import org.usvm.types.TypesResult
-import org.usvm.types.TypesResult.Companion.toTypesResult
-import org.usvm.types.USupportTypeStream
 import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
-import org.usvm.types.emptyTypeStream
+import org.usvm.util.EtsHierarchy
 import org.usvm.util.type
 import kotlin.time.Duration
 
@@ -26,7 +20,9 @@ import kotlin.time.Duration
 class TsTypeSystem(
     val scene: EtsScene,
     override val typeOperationsTimeout: Duration,
-) : UTypeSystem<EtsType> {
+    val project: EtsScene,
+    val hierarchy: EtsHierarchy,
+    ) : UTypeSystem<EtsType> {
 
     companion object {
         // TODO: add more primitive types (string, etc.) once supported
@@ -44,15 +40,16 @@ class TsTypeSystem(
                 if (supertype is AuxiliaryType) {
                     return type.properties.all { it in supertype.properties }
                 }
-                val supertypeFields =
-                    project.projectAndSdkClasses.single { it.type.typeName == supertype.typeName }.fields
+                val supertypeClass = project.projectAndSdkClasses.single { it.type.typeName == supertype.typeName }
+                val supertypeFields = hierarchy.getAncestor(supertypeClass).flatMap { it.fields }
                 type.properties.all { it in supertypeFields.map { it.name } }
             }
 
             supertype is AuxiliaryType -> {
                 if (type is EtsUnknownType || type is EtsAnyType) return supertype.properties.isEmpty()
 
-                val typeFields = project.projectAndSdkClasses.single { it.type.typeName == type.typeName }.fields
+                val clazz = project.projectAndSdkClasses.single { it.type.typeName == type.typeName }
+                val typeFields = hierarchy.getAncestor(clazz).flatMap { it.fields }
                 typeFields.mapTo(mutableSetOf()) { it.name }.containsAll(supertype.properties)
             }
             supertype == type -> true
@@ -127,7 +124,7 @@ class TsTypeSystem(
         is AuxiliaryType -> {
             project.projectAndSdkClasses.filter {
                 it.fields.mapTo(mutableSetOf()) { it.name }.containsAll(type.properties)
-            }.asSequence().map { it.type }
+            }.asSequence().map { it.type } // TODO get fields of ancestors
         }
 
         else -> {
