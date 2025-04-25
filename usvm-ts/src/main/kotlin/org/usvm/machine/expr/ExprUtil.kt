@@ -25,7 +25,7 @@ fun TsContext.mkTruthyExpr(
         val conjuncts = mutableListOf<ExprWithTypeConstraint<UBoolSort>>()
         val possibleType = memory.types.getTypeStream(expr.asExpr(addressSort)).single() as FakeType
 
-        scope.assert(possibleType.mkExactlyOneTypeConstraint(this@mkTruthyExpr))
+        scope.assert(possibleType.mkExactlyOneTypeConstraint(this@mkTruthyExpr)) // TODO add to path constraints instead
 
         if (!possibleType.boolTypeExpr.isFalse) {
             conjuncts += ExprWithTypeConstraint(

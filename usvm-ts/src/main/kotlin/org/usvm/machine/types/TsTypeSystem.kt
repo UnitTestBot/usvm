@@ -10,6 +10,7 @@ import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUnclearRefType
 import org.jacodb.ets.model.EtsUnknownType
+import org.usvm.types.USupportTypeStream
 import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
 import org.usvm.util.EtsHierarchy
@@ -108,7 +109,12 @@ class TsTypeSystem(
     /**
      * @return true if [type] is instantiable, meaning it can be created via constructor.
      */
-    override fun isInstantiable(type: EtsType): Boolean = true
+    override fun isInstantiable(type: EtsType): Boolean {
+        if (type is EtsUnknownType) return false
+        if (type is EtsAnyType) return false
+
+        return true
+    }
 
     /**
      * @return a sequence of **direct** inheritors of the [type].
@@ -132,7 +138,7 @@ class TsTypeSystem(
         }
     }
 
-    private val topTypeStream by lazy { TsTopTypeStream(this) }
+    private val topTypeStream by lazy { USupportTypeStream.from(this, EtsUnknownType) }
 
     override fun topTypeStream(): UTypeStream<EtsType> = topTypeStream
 }
