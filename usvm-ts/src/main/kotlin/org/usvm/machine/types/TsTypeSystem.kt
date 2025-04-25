@@ -13,6 +13,7 @@ import org.jacodb.ets.model.EtsUnknownType
 import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
 import org.usvm.util.EtsHierarchy
+import org.usvm.util.getAllFields
 import org.usvm.util.type
 import kotlin.time.Duration
 
@@ -41,7 +42,7 @@ class TsTypeSystem(
                     return type.properties.all { it in supertype.properties }
                 }
                 val supertypeClass = project.projectAndSdkClasses.single { it.type.typeName == supertype.typeName }
-                val supertypeFields = hierarchy.getAncestor(supertypeClass).flatMap { it.fields }
+                val supertypeFields = supertypeClass.getAllFields(hierarchy)
                 type.properties.all { it in supertypeFields.map { it.name } }
             }
 
@@ -49,7 +50,7 @@ class TsTypeSystem(
                 if (type is EtsUnknownType || type is EtsAnyType) return supertype.properties.isEmpty()
 
                 val clazz = project.projectAndSdkClasses.single { it.type.typeName == type.typeName }
-                val typeFields = hierarchy.getAncestor(clazz).flatMap { it.fields }
+                val typeFields = clazz.getAllFields(hierarchy)
                 typeFields.mapTo(mutableSetOf()) { it.name }.containsAll(supertype.properties)
             }
             supertype == type -> true
@@ -68,10 +69,7 @@ class TsTypeSystem(
                 // TODO wrong type resolutions because of names
                 val clazz =
                     project.projectAndSdkClasses.singleOrNull() { it.type.typeName == type.typeName } ?: error("TODO")
-                val ancestors = generateSequence(clazz) { c ->
-                    // TODO mistake because of name usage
-                    project.projectAndSdkClasses.singleOrNull { it.signature.name == c.superClass?.name }
-                }.map { it.type }
+                val ancestors = hierarchy.getAncestor(clazz).map { it.type }
 
                 if (supertype is EtsClassType) {
                     return ancestors.any { it == supertype }
@@ -123,7 +121,7 @@ class TsTypeSystem(
 
         is AuxiliaryType -> {
             project.projectAndSdkClasses.filter {
-                it.fields.mapTo(mutableSetOf()) { it.name }.containsAll(type.properties)
+                it.getAllFields(hierarchy).mapTo(mutableSetOf()) { it.name }.containsAll(type.properties)
             }.asSequence().map { it.type } // TODO get fields of ancestors
         }
 
