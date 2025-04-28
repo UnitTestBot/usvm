@@ -22,15 +22,8 @@ import kotlin.time.Duration
 class TsTypeSystem(
     val scene: EtsScene,
     override val typeOperationsTimeout: Duration,
-    val project: EtsScene,
     val hierarchy: EtsHierarchy,
     ) : UTypeSystem<EtsType> {
-
-    companion object {
-        // TODO: add more primitive types (string, etc.) once supported
-        val primitiveTypes = sequenceOf(EtsNumberType, EtsBooleanType)
-    }
-
     /**
      * @return true if [type] <: [supertype].
      */
@@ -42,7 +35,7 @@ class TsTypeSystem(
                 if (supertype is AuxiliaryType) {
                     return type.properties.all { it in supertype.properties }
                 }
-                val supertypeClass = project.projectAndSdkClasses.single { it.type.typeName == supertype.typeName }
+                val supertypeClass = scene.projectAndSdkClasses.single { it.type.typeName == supertype.typeName }
                 val supertypeFields = supertypeClass.getAllFields(hierarchy)
                 type.properties.all { it in supertypeFields.map { it.name } }
             }
@@ -50,7 +43,7 @@ class TsTypeSystem(
             supertype is AuxiliaryType -> {
                 if (type is EtsUnknownType || type is EtsAnyType) return supertype.properties.isEmpty()
 
-                val clazz = project.projectAndSdkClasses.single { it.type.typeName == type.typeName }
+                val clazz = scene.projectAndSdkClasses.single { it.type.typeName == type.typeName }
                 val typeFields = clazz.getAllFields(hierarchy)
                 typeFields.mapTo(mutableSetOf()) { it.name }.containsAll(supertype.properties)
             }
@@ -69,7 +62,7 @@ class TsTypeSystem(
 
                 // TODO wrong type resolutions because of names
                 val clazz =
-                    project.projectAndSdkClasses.singleOrNull() { it.type.typeName == type.typeName } ?: error("TODO")
+                    scene.projectAndSdkClasses.singleOrNull() { it.type.typeName == type.typeName } ?: error("TODO")
                 val ancestors = hierarchy.getAncestor(clazz).map { it.type }
 
                 if (supertype is EtsClassType) {
@@ -123,18 +116,18 @@ class TsTypeSystem(
         is EtsPrimitiveType -> emptySequence() // TODO why???
         // TODO they should be direct inheritors, not all of them
         is EtsAnyType,
-        is EtsUnknownType -> project.projectAndSdkClasses.asSequence().map { it.type }
+        is EtsUnknownType -> scene.projectAndSdkClasses.asSequence().map { it.type }
 
         is AuxiliaryType -> {
-            project.projectAndSdkClasses.filter {
+            scene.projectAndSdkClasses.filter {
                 it.getAllFields(hierarchy).mapTo(mutableSetOf()) { it.name }.containsAll(type.properties)
             }.asSequence().map { it.type } // TODO get fields of ancestors
         }
 
         else -> {
-            val clazz = project.projectAndSdkClasses.filter { it.type == type }
+            val clazz = scene.projectAndSdkClasses.filter { it.type == type }
             // TODO optimize
-            project.projectAndSdkClasses.asSequence().filter { it.superClass == clazz }.map { it.type }
+            scene.projectAndSdkClasses.asSequence().filter { it.superClass == clazz }.map { it.type }
         }
     }
 
@@ -142,4 +135,3 @@ class TsTypeSystem(
 
     override fun topTypeStream(): UTypeStream<EtsType> = topTypeStream
 }
-
