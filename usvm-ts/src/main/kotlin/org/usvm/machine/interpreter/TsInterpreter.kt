@@ -62,6 +62,7 @@ import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
+import org.usvm.util.resolveEtsField
 import org.usvm.util.resolveEtsMethods
 import org.usvm.utils.ensureSat
 
@@ -389,9 +390,20 @@ class TsInterpreter(
 
                 is EtsInstanceFieldRef -> {
                     val instance = exprResolver.resolve(lhv.instance)?.asExpr(addressSort) ?: return@doWithState
-                    // val etsField = resolveEtsField(lhv.instance, lhv.field)
-                    // val sort = typeToSort(etsField.type)
-                    val sort = unresolvedSort
+                    // val type = run {
+                    //     val fields = scene.projectAndSdkClasses
+                    //         .flatMap { it.fields }
+                    //         .filter { it.name == lhv.field.name }
+                    //     if (fields.size == 1) {
+                    //         val field = fields.single()
+                    //         return@run field.type
+                    //     }
+                    //     logger.warn { "Could not resolve field '${lhv.field.name}'" }
+                    //     EtsUnknownType
+                    // }
+                    val etsField = resolveEtsField(lhv.instance, lhv.field)
+                    val type = etsField.type
+                    val sort = typeToSort(type)
                     if (sort == unresolvedSort) {
                         val fakeObject = expr.toFakeObject(scope)
                         val lValue = mkFieldLValue(addressSort, instance, lhv.field)
