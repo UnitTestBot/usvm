@@ -102,7 +102,6 @@ import org.usvm.machine.types.AuxiliaryType
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.memory.ULValue
 import org.usvm.sizeSort
-import org.usvm.util.EtsHierarchy
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
@@ -123,7 +122,6 @@ const val ADHOC_STRING__STRING = 2222.0 // 'string'
 
 class TsExprResolver(
     private val ctx: TsContext,
-    private val hierarchy: EtsHierarchy,
     private val scope: TsStepScope,
     private val localToIdx: (EtsMethod, EtsValue) -> Int,
 ) : EtsEntity.Visitor<UExpr<out USort>?> {
