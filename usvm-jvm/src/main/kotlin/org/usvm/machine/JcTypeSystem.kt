@@ -17,28 +17,6 @@ import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
 import kotlin.time.Duration
 
-open class A {
-    protected open fun foo() {
-        println("Hello")
-    }
-}
-
-class B : A() {
-    override fun foo() {
-        println("Hello")
-
-    }
-
-    fun getsa() {
-        val method = this.javaClass.methods
-    }
-}
-
-fun main() {
-    val a = B()
-    println(a.javaClass.declaredMethods.toList().joinToString("\n"))
-}
-
 class JcTypeSystem(
     private val cp: JcClasspath,
     override val typeOperationsTimeout: Duration
