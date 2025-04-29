@@ -139,10 +139,12 @@ class TsInterpreter(
 
         // NOTE: USE '.callee' INSTEAD OF '.method' !!!
 
-        val instance = stmt.instance
-        checkNotNull(instance)
+        val instance = requireNotNull(stmt.instance) { "Virtual code invocation with null as an instance" }
         val concreteRef = scope.calcOnState { models.first().eval(instance) }
+
         val uncoveredInstance = if (concreteRef.isFakeObject()) {
+            // We ignore the possibility of method call on primitives.
+            // Therefore, the fake object should be unwrapped.
             scope.doWithState {
                 pathConstraints += concreteRef.getFakeType(scope).refTypeExpr
             }
@@ -150,6 +152,8 @@ class TsInterpreter(
         } else {
             concreteRef
         }
+
+        // Evaluate uncoveredInstance in a model to avoid too wide type streams later
         val resolvedInstance = scope.calcOnState { models.first().eval(uncoveredInstance) }
 
         val concreteMethods: MutableList<EtsMethod> = mutableListOf()
@@ -159,7 +163,6 @@ class TsInterpreter(
         if (isAllocatedConcreteHeapRef(resolvedInstance)) {
             val type = scope.calcOnState { memory.typeStreamOf(resolvedInstance) }.single()
             if (type is EtsClassType) {
-                // TODO: handle non-unique classes
                 val classes = ctx.scene.projectAndSdkClasses.filter { it.name == type.typeName }
                 if (classes.isEmpty()) {
                     logger.warn { "Could not resolve class: ${type.typeName}" }
@@ -201,7 +204,8 @@ class TsInterpreter(
         val conditionsWithBlocks = concreteMethods.map { method ->
             val concreteCall = stmt.toConcrete(method)
             val block = { state: TsState -> state.newStmt(concreteCall) }
-            val type = method.enclosingClass!!.type
+            val type = requireNotNull(method.enclosingClass).type
+
             val constraint = scope.calcOnState {
                 val instance = stmt.instance.asExpr(ctx.addressSort)
                     .takeIf { !it.isFakeObject() }
