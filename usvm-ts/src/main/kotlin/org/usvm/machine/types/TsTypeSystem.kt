@@ -28,21 +28,31 @@ class TsTypeSystem(
     override fun isSupertype(supertype: EtsType, type: EtsType): Boolean {
         return when {
             type is AuxiliaryType -> {
+                // Unknown and Any types are top types in the system
                 if (supertype is EtsUnknownType || supertype is EtsAnyType) {
                     return true
                 }
 
+                // We think that only ref types contain fields, and ObjectClass is a top type for ref types
                 if (supertype == EtsHierarchy.OBJECT_CLASS) {
                     return true
                 }
 
+                // If we compare two auxiliary types,
+                // we should check if all fields of the first type are in the second type
                 if (supertype is AuxiliaryType) {
                     return type.properties.all { it in supertype.properties }
                 }
 
-                val supertypeClass = scene.projectAndSdkClasses.single { it.type.typeName == supertype.typeName }
+                // TODO how to process unclearTypeRefs?
+                val supertypeClass = scene
+                    .projectAndSdkClasses
+                    .singleOrNull { it.type.typeName == supertype.typeName }
+                    ?: TODO("For now we support only unique type resolution")
                 val supertypeFields = supertypeClass.getAllFields(hierarchy)
-                type.properties.all { it in supertypeFields.map { it.name } }
+                val superTypeFieldNames = supertypeFields.mapTo(hashSetOf()) { it.name }
+
+                type.properties.all { it in superTypeFieldNames }
             }
 
             supertype is AuxiliaryType -> {
@@ -54,8 +64,12 @@ class TsTypeSystem(
                     return supertype.properties.isEmpty()
                 }
 
-                val clazz = scene.projectAndSdkClasses.single { it.type.typeName == type.typeName }
+                val clazz = scene
+                    .projectAndSdkClasses
+                    .singleOrNull { it.type.typeName == type.typeName }
+                    ?: TODO("For now we support only unique type resolution")
                 val typeFields = clazz.getAllFields(hierarchy)
+
                 typeFields.mapTo(mutableSetOf()) { it.name }.containsAll(supertype.properties)
             }
 
