@@ -172,7 +172,9 @@ class TsInterpreter(
                     return
                 }
                 val cls = classes.single()
-                val method = cls.methods.first { it.name == stmt.callee.name }
+                val method = cls.methods
+                    .singleOrNull { it.name == stmt.callee.name }
+                    ?: TODO("Overloads are not supported yet")
                 concreteMethods += method
             } else {
                 logger.warn {
@@ -201,14 +203,12 @@ class TsInterpreter(
             val block = { state: TsState -> state.newStmt(concreteCall) }
             val type = method.enclosingClass!!.type
             val constraint = scope.calcOnState {
-                val instance =
-                    stmt.instance.asExpr(ctx.addressSort).takeIf { !it.isFakeObject() } ?: uncoveredInstance.asExpr(
-                        addressSort
-                    )
-                memory.types.evalTypeEquals(
-                    instance,
-                    type
-                ) // TODO mistake, should be separated into several hierarchies
+                val instance = stmt.instance.asExpr(ctx.addressSort)
+                    .takeIf { !it.isFakeObject() }
+                    ?: uncoveredInstance.asExpr(addressSort)
+                // TODO mistake, should be separated into several hierarchies
+                //      or evalTypeEqual with several concrete types
+                memory.types.evalTypeEquals(instance, type)
             }
             constraint to block
         }
