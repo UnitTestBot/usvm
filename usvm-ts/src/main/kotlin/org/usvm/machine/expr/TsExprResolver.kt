@@ -16,6 +16,7 @@ import org.jacodb.ets.model.EtsBitXorExpr
 import org.jacodb.ets.model.EtsBooleanConstant
 import org.jacodb.ets.model.EtsCastExpr
 import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsConstant
 import org.jacodb.ets.model.EtsDeleteExpr
 import org.jacodb.ets.model.EtsDivExpr
@@ -66,6 +67,7 @@ import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsTypeOfExpr
 import org.jacodb.ets.model.EtsUnaryExpr
 import org.jacodb.ets.model.EtsUnaryPlusExpr
+import org.jacodb.ets.model.EtsUnclearRefType
 import org.jacodb.ets.model.EtsUndefinedConstant
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.model.EtsUnsignedRightShiftExpr
@@ -631,11 +633,16 @@ class TsExprResolver(
     ): UExpr<out USort>? = with(ctx) {
         val resolvedAddr = if (instanceRef.isFakeObject()) instanceRef.extractRef(scope) else instanceRef
         scope.doWithState {
+            // If we don't know an enclosing class of the field,
+            // we add a type constraint that every type containing such field is fine
             pathConstraints += if (field.enclosingClass == EtsClassSignature.UNKNOWN) {
                 memory.types.evalIsSubtype(resolvedAddr, AuxiliaryType(setOf(field.name)))
             } else {
-                // TODO error, field.enclosingClass.type
-                memory.types.evalIsSubtype(resolvedAddr, field.type) // TODO is it right?
+                // Otherwise, we can add a type constraint about the instance type.
+                // Probably, it's redundant since either both class and field
+                // know exactly their types or none of them.
+                val type = EtsClassType(field.enclosingClass)
+                memory.types.evalIsSubtype(resolvedAddr, type)
             }
         }
 
@@ -756,7 +763,15 @@ class TsExprResolver(
 
     override fun visit(expr: EtsNewExpr): UExpr<out USort>? = scope.calcOnState {
         with(ctx.scene) {
-            val resolvedType = projectAndSdkClasses.singleOrNull { it.name == expr.type.typeName }?.type ?: expr.type
+            // Try to resolve the concrete type if possible.
+            // Otherwise, create an object with UnclearRefType
+            val resolvedType = if (expr.type is EtsUnclearRefType) {
+                projectAndSdkClasses
+                    .singleOrNull { it.name == expr.type.typeName }?.type
+                    ?: expr.type
+            } else {
+                expr.type
+            }
             memory.allocConcrete(resolvedType)
         }
     }
