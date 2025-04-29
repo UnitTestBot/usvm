@@ -83,6 +83,7 @@ import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.allocateArray
 import org.usvm.dataflow.ts.infer.tryGetKnownType
+import org.usvm.dataflow.ts.util.type
 import org.usvm.isTrue
 import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
@@ -418,8 +419,10 @@ class TsExprResolver(
     }
 
     override fun visit(expr: EtsInstanceOfExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+        return scope.calcOnState {
+            val instance = resolve(expr.arg)?.asExpr(ctx.addressSort) ?: return@calcOnState null
+            memory.types.evalIsSubtype(instance, expr.checkType)
+        }
     }
 
     // endregion
@@ -754,7 +757,10 @@ class TsExprResolver(
     // region OTHER
 
     override fun visit(expr: EtsNewExpr): UExpr<out USort>? = scope.calcOnState {
-        memory.allocConcrete(expr.type)
+        with(ctx.scene) {
+            val resolvedType = projectAndSdkClasses.singleOrNull { it.name == expr.type.typeName }?.type ?: expr.type
+            memory.allocConcrete(resolvedType)
+        }
     }
 
     override fun visit(expr: EtsNewArrayExpr): UExpr<out USort>? = with(ctx) {

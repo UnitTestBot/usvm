@@ -201,8 +201,14 @@ class TsInterpreter(
             val block = { state: TsState -> state.newStmt(concreteCall) }
             val type = method.enclosingClass!!.type
             val constraint = scope.calcOnState {
-                val instance = stmt.instance.asExpr(ctx.addressSort).takeIf { !it.isFakeObject() } ?: uncoveredInstance.asExpr(addressSort)
-                memory.types.evalTypeEquals(instance, type) // TODO mistake, should be separated into several hierarchies
+                val instance =
+                    stmt.instance.asExpr(ctx.addressSort).takeIf { !it.isFakeObject() } ?: uncoveredInstance.asExpr(
+                        addressSort
+                    )
+                memory.types.evalTypeEquals(
+                    instance,
+                    type
+                ) // TODO mistake, should be separated into several hierarchies
             }
             constraint to block
         }
@@ -557,6 +563,10 @@ class TsInterpreter(
             if (parameterType is EtsRefType) {
                 val argLValue = mkRegisterStackLValue(ctx.addressSort, i)
                 val ref = state.memory.read(argLValue).asExpr(ctx.addressSort)
+                val resolvedParameterType = graph.cp
+                    .projectAndSdkClasses
+                    .singleOrNull { it.name == parameterType.typeName }
+                    ?: parameterType
                 state.pathConstraints += state.memory.types.evalIsSubtype(ref, parameterType)
             }
 

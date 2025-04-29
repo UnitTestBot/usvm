@@ -166,9 +166,14 @@ class TsTypeSystem(
                 if (type == EtsHierarchy.OBJECT_CLASS) {
                     return project.projectAndSdkClasses.asSequence().map { it.type }
                 }
-                val clazz = scene.projectAndSdkClasses.filter { it.type == type }
-                // TODO optimize
-                scene.projectAndSdkClasses.asSequence().filter { it.superClass == clazz }.map { it.type }
+                // TODO wrong usage of names
+                if (type is EtsUnclearRefType) {
+                    val classes = scene.projectAndSdkClasses.filter { it.type.typeName == type.typeName }
+                    classes.asSequence().flatMap { hierarchy.getInheritors(it) }.map { it.type }
+                } else {
+                    val clazz = scene.projectAndSdkClasses.singleOrNull { it.type == type } ?: error("Cannot find class for $type")
+                    hierarchy.getInheritors(clazz).asSequence().map { it.type }
+                }
             }
         }
     }

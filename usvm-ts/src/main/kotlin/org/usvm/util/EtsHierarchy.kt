@@ -44,24 +44,29 @@ class EtsHierarchy(private val scene: EtsScene) {
                 }
             }.flatten().toSet()
         }
-        val result = ancestors.toMap()
+        ancestors.toMap()
+    }
 
+    private val inheritors: MutableMap<EtsClass, MutableSet<EtsClass>> by lazy {
+        val result = mutableMapOf<EtsClass, MutableSet<EtsClass>>()
         ancestors.forEach { (key, value) ->
             value.forEach { clazz ->
-                inheritors.computeIfAbsent(clazz) { mutableSetOf() }.add(key)
+                result.getOrPut(clazz) { hashSetOf() }.add(key)
             }
         }
         result
     }
 
-    private val inheritors: MutableMap<EtsClass, MutableSet<EtsClass>> = mutableMapOf()
-
     fun getAncestor(clazz: EtsClass): Set<EtsClass> {
-        return ancestors[clazz] ?: error("TODO")
+        return ancestors[clazz] ?: run {
+            error("TODO")
+        }
     }
 
     fun getInheritors(clazz: EtsClass): Set<EtsClass> {
-        return inheritors[clazz] ?: error("TODO")
+        return inheritors[clazz] ?: run {
+            error("TODO")
+        }
     }
 
     companion object {
