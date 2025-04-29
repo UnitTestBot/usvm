@@ -28,18 +28,31 @@ class TsTypeSystem(
     override fun isSupertype(supertype: EtsType, type: EtsType): Boolean {
         return when {
             type is AuxiliaryType -> {
-                if (supertype is EtsUnknownType || supertype is EtsAnyType) return true
+                if (supertype is EtsUnknownType || supertype is EtsAnyType) {
+                    return true
+                }
+
+                if (supertype == EtsHierarchy.OBJECT_CLASS) {
+                    return true
+                }
 
                 if (supertype is AuxiliaryType) {
                     return type.properties.all { it in supertype.properties }
                 }
+
                 val supertypeClass = scene.projectAndSdkClasses.single { it.type.typeName == supertype.typeName }
                 val supertypeFields = supertypeClass.getAllFields(hierarchy)
                 type.properties.all { it in supertypeFields.map { it.name } }
             }
 
             supertype is AuxiliaryType -> {
-                if (type is EtsUnknownType || type is EtsAnyType) return supertype.properties.isEmpty()
+                if (type is EtsUnknownType || type is EtsAnyType) {
+                    return supertype.properties.isEmpty()
+                }
+
+                if (type == EtsHierarchy.OBJECT_CLASS) {
+                    return supertype.properties.isEmpty()
+                }
 
                 val clazz = scene.projectAndSdkClasses.single { it.type.typeName == type.typeName }
                 val typeFields = clazz.getAllFields(hierarchy)
