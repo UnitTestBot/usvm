@@ -2,6 +2,7 @@ package org.usvm.util
 
 import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsScene
@@ -59,7 +60,17 @@ class EtsHierarchy(private val scene: EtsScene) {
         return ancestors[clazz] ?: error("TODO")
     }
 
-    fun getInheritors(clazz: EtsClass) : Set<EtsClass> {
+    fun getInheritors(clazz: EtsClass): Set<EtsClass> {
         return inheritors[clazz] ?: error("TODO")
+    }
+
+    companion object {
+        // TODO use real one
+        val OBJECT_CLASS = EtsClassType(
+            signature = EtsClassSignature(
+                name = "Object",
+                file = EtsFileSignature(projectName = "ES2015", fileName = "BuiltinClass")
+            ),
+        )
     }
 }

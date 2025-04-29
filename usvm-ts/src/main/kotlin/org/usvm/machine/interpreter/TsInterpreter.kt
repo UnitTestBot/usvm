@@ -9,6 +9,7 @@ import org.jacodb.ets.model.EtsCallStmt
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsInstanceFieldRef
+import org.jacodb.ets.model.EtsIntersectionType
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodSignature
@@ -22,6 +23,7 @@ import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsThis
 import org.jacodb.ets.model.EtsThrowStmt
 import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUnionType
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.model.EtsValue
 import org.jacodb.ets.utils.callExpr
@@ -556,6 +558,10 @@ class TsInterpreter(
                 val argLValue = mkRegisterStackLValue(ctx.addressSort, i)
                 val ref = state.memory.read(argLValue).asExpr(ctx.addressSort)
                 state.pathConstraints += state.memory.types.evalIsSubtype(ref, parameterType)
+            }
+
+            if (parameterType is EtsUnionType || parameterType is EtsIntersectionType) {
+                TODO("Handle union/intersection types")
             }
         }
 
