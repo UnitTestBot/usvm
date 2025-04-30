@@ -570,8 +570,10 @@ class TsInterpreter(
                 val resolvedParameterType = graph.cp
                     .projectAndSdkClasses
                     .singleOrNull { it.name == parameterType.typeName }
+                    ?.type
                     ?: parameterType
-                state.pathConstraints += state.memory.types.evalIsSubtype(ref, parameterType)
+
+                state.pathConstraints += state.memory.types.evalIsSubtype(ref, resolvedParameterType)
             }
 
             if (parameterType is EtsUnionType || parameterType is EtsIntersectionType) {
