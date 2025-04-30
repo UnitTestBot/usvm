@@ -1,7 +1,7 @@
 package org.usvm.samples
 
 import org.jacodb.ets.model.EtsScene
-import org.usvm.api.TsValue
+import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 import kotlin.test.Test
 
@@ -14,7 +14,7 @@ class StaticMethods : TsMethodTestRunner() {
     @Test
     fun `test noArguments`() {
         val method = getMethod(className, "noArguments")
-        discoverProperties<TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber>(
             method,
             { r -> r.number == 42.0 },
         )
@@ -23,7 +23,7 @@ class StaticMethods : TsMethodTestRunner() {
     @Test
     fun `test singleArgument`() {
         val method = getMethod(className, "singleArgument")
-        discoverProperties<TsValue.TsNumber, TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method,
             { a, r -> a.number.isNaN() && r.number.isNaN() },
             { a, r -> (a.number == 1.0) && (r == a) },
@@ -35,7 +35,7 @@ class StaticMethods : TsMethodTestRunner() {
     @Test
     fun `test manyArguments`() {
         val method = getMethod(className, "manyArguments")
-        discoverProperties<TsValue.TsNumber, TsValue.TsNumber, TsValue.TsNumber, TsValue.TsNumber, TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method,
             { a, _, _, _, r -> (a.number == 1.0) && (r == a) },
             { _, b, _, _, r -> (b.number == 2.0) && (r == b) },

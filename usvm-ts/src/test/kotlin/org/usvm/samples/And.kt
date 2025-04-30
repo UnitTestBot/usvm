@@ -20,7 +20,7 @@ import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
 import org.jacodb.ets.utils.toEtsBlockCfg
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.usvm.api.TsValue
+import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.isTruthy
 
@@ -36,7 +36,7 @@ class And : TsMethodTestRunner() {
     @Test
     fun `test andOfBooleanAndBoolean`() {
         val method = getMethod(className, "andOfBooleanAndBoolean")
-        discoverProperties<TsValue.TsBoolean, TsValue.TsBoolean, TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method = method,
             { a, b, r -> a.value && b.value && (r.number == 1.0) },
             { a, b, r -> a.value && !b.value && (r.number == 2.0) },
@@ -80,7 +80,7 @@ class And : TsMethodTestRunner() {
         val etsBlockCfg = blockCfg.toEtsBlockCfg(method)
         method._cfg = etsBlockCfg
 
-        discoverProperties<TsValue.TsBoolean, TsValue.TsBoolean, TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method = method,
             { a, b, r -> a.value && b.value && (r.number == 1.0) },
             { a, b, r -> a.value && !b.value && (r.number == 2.0) },
@@ -155,7 +155,7 @@ class And : TsMethodTestRunner() {
         val etsBlockCfg = blockCfg.toEtsBlockCfg(method)
         method._cfg = etsBlockCfg
 
-        discoverProperties<TsValue.TsNumber, TsValue.TsNumber, TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
             { a, b, r -> isTruthy(a) && isTruthy(b) && (r.number == 1.0) },
             { a, b, r -> isTruthy(a) && b.number.isNaN() && (r.number == 2.0) },
@@ -223,7 +223,7 @@ class And : TsMethodTestRunner() {
         val etsBlockCfg = blockCfg.toEtsBlockCfg(method)
         method._cfg = etsBlockCfg
 
-        discoverProperties<TsValue.TsBoolean, TsValue.TsNumber, TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
             { a, b, r -> a.value && isTruthy(b) && (r.number == 1.0) },
             { a, b, r -> a.value && b.number.isNaN() && (r.number == 2.0) },
@@ -288,7 +288,7 @@ class And : TsMethodTestRunner() {
         val etsBlockCfg = blockCfg.toEtsBlockCfg(method)
         method._cfg = etsBlockCfg
 
-        discoverProperties<TsValue.TsNumber, TsValue.TsBoolean, TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsNumber, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method = method,
             { a, b, r -> isTruthy(a) && b.value && (r.number == 1.0) },
             { a, b, r -> isTruthy(a) && !b.value && (r.number == 2.0) },
@@ -303,7 +303,7 @@ class And : TsMethodTestRunner() {
     @Disabled("Does not work because objects cannot be null")
     fun `test andOfObjectAndObject`() {
         val method = getMethod(className, "andOfObjectAndObject")
-        discoverProperties<TsValue.TsClass, TsValue.TsClass, TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsClass, TsTestValue.TsClass, TsTestValue.TsNumber>(
             method = method,
             { a, b, r -> isTruthy(a) && isTruthy(b) && (r.number == 1.0) },
             { a, b, r -> isTruthy(a) && !isTruthy(b) && (r.number == 2.0) },
@@ -315,25 +315,25 @@ class And : TsMethodTestRunner() {
     @Test
     fun `test andOfUnknown`() {
         val method = getMethod(className, "andOfUnknown")
-        discoverProperties<TsValue, TsValue, TsValue.TsNumber>(
+        discoverProperties<TsTestValue, TsTestValue, TsTestValue.TsNumber>(
             method = method,
             { a, b, r ->
-                if (a is TsValue.TsBoolean && b is TsValue.TsBoolean) {
+                if (a is TsTestValue.TsBoolean && b is TsTestValue.TsBoolean) {
                     a.value && b.value && (r.number == 1.0)
                 } else true
             },
             { a, b, r ->
-                if (a is TsValue.TsBoolean && b is TsValue.TsBoolean) {
+                if (a is TsTestValue.TsBoolean && b is TsTestValue.TsBoolean) {
                     a.value && !b.value && (r.number == 2.0)
                 } else true
             },
             { a, b, r ->
-                if (a is TsValue.TsBoolean && b is TsValue.TsBoolean) {
+                if (a is TsTestValue.TsBoolean && b is TsTestValue.TsBoolean) {
                     !a.value && b.value && (r.number == 3.0)
                 } else true
             },
             { a, b, r ->
-                if (a is TsValue.TsBoolean && b is TsValue.TsBoolean) {
+                if (a is TsTestValue.TsBoolean && b is TsTestValue.TsBoolean) {
                     !a.value && !b.value && (r.number == 4.0)
                 } else true
             },
@@ -343,20 +343,20 @@ class And : TsMethodTestRunner() {
     @Test
     fun `test truthyUnknown`() {
         val method = getMethod(className, "truthyUnknown")
-        discoverProperties<TsValue, TsValue, TsValue.TsNumber>(
+        discoverProperties<TsTestValue, TsTestValue, TsTestValue.TsNumber>(
             method = method,
             { a, b, r ->
-                if (a is TsValue.TsBoolean && b is TsValue.TsBoolean) {
+                if (a is TsTestValue.TsBoolean && b is TsTestValue.TsBoolean) {
                     a.value && !b.value && (r.number == 1.0)
                 } else true
             },
             { a, b, r ->
-                if (a is TsValue.TsBoolean && b is TsValue.TsBoolean) {
+                if (a is TsTestValue.TsBoolean && b is TsTestValue.TsBoolean) {
                     !a.value && b.value && (r.number == 2.0)
                 } else true
             },
             { a, b, r ->
-                if (a is TsValue.TsBoolean && b is TsValue.TsBoolean) {
+                if (a is TsTestValue.TsBoolean && b is TsTestValue.TsBoolean) {
                     !a.value && !b.value && (r.number == 99.0)
                 } else true
             },

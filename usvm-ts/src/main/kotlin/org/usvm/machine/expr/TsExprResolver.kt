@@ -22,6 +22,7 @@ import org.jacodb.ets.model.EtsEntity
 import org.jacodb.ets.model.EtsEqExpr
 import org.jacodb.ets.model.EtsExpExpr
 import org.jacodb.ets.model.EtsFieldSignature
+import org.jacodb.ets.model.EtsFunctionType
 import org.jacodb.ets.model.EtsGtEqExpr
 import org.jacodb.ets.model.EtsGtExpr
 import org.jacodb.ets.model.EtsInExpr
@@ -72,6 +73,7 @@ import org.jacodb.ets.model.EtsVoidExpr
 import org.jacodb.ets.model.EtsYieldExpr
 import org.jacodb.ets.utils.STATIC_INIT_METHOD_NAME
 import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
+import org.jacodb.ets.utils.getDeclaredLocals
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
@@ -161,11 +163,11 @@ class TsExprResolver(
         return block(result)
     }
 
-    private inline fun resolveAfterResolved(
+    private inline fun <T> resolveAfterResolved(
         dependency0: EtsEntity,
         dependency1: EtsEntity,
-        block: (UExpr<out USort>, UExpr<out USort>) -> UExpr<out USort>,
-    ): UExpr<out USort>? {
+        block: (UExpr<out USort>, UExpr<out USort>) -> T,
+    ):T? {
         val result0 = resolve(dependency0) ?: return null
         val result1 = resolve(dependency1) ?: return null
         return block(result0, result1)
@@ -221,7 +223,6 @@ class TsExprResolver(
         return resolveUnaryOperator(TsUnaryOperator.Not, expr)
     }
 
-    // TODO move into TsUnaryOperator
     override fun visit(expr: EtsNegExpr): UExpr<out USort>? {
         return resolveUnaryOperator(TsUnaryOperator.Neg, expr)
     }
@@ -386,8 +387,7 @@ class TsExprResolver(
     }
 
     override fun visit(expr: EtsStrictNotEqExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+        return resolveBinaryOperator(TsBinaryOperator.StrictNeq, expr)
     }
 
     override fun visit(expr: EtsLtExpr): UExpr<out USort>? {
@@ -453,6 +453,14 @@ class TsExprResolver(
                     handleNumberIsNaN(arg)
                 }
             }
+        }
+
+        if (expr.instance.name == "Logger") {
+            return mkUndefinedValue()
+        }
+
+        if (expr.callee.name == "toString") {
+            return mkFp64(ADHOC_STRING)
         }
 
         return when (val result = scope.calcOnState { methodResult }) {
@@ -563,7 +571,8 @@ class TsExprResolver(
 
     override fun visit(expr: EtsPtrCallExpr): UExpr<out USort>? {
         // TODO: IMPORTANT do not forget to fill sorts of arguments map
-        TODO("Not supported ${expr::class.simpleName}: $expr")
+        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        error("Not supported $expr")
     }
 
     // endregion
@@ -659,26 +668,34 @@ class TsExprResolver(
         checkUndefinedOrNullPropertyRead(instanceRef) ?: return null
 
         // TODO It is a hack for array's length
-        if (value.instance.type is EtsArrayType && value.field.name == "length") {
-            val lengthLValue = mkArrayLengthLValue(instanceRef, value.instance.type as EtsArrayType)
-            val length = scope.calcOnState { memory.read(lengthLValue) }
-            return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), length.asExpr(sizeSort), signed = true)
-        }
-
-        // TODO: handle "length" property for arrays inside fake objects
-        if (value.field.name == "length" && instanceRef.isFakeObject()) {
-            val fakeType = instanceRef.getFakeType(scope)
-            if (fakeType.refTypeExpr.isTrue) {
-                val refLValue = getIntermediateRefLValue(instanceRef.address)
-                val obj = scope.calcOnState { memory.read(refLValue) }
-                // TODO: fix array type. It should be the same as the type used when "writing" the length.
-                //  However, current value.instance typically has 'unknown' type, and the best we can do here is
-                //  to pretend that this is an array-like object (with "array length", not just "length" field),
-                //  and "cast" instance to "unknown[]". The same could be done for any length writes, making
-                //  the array type (for length) consistent (unknown everywhere), but less precise.
-                val lengthLValue = mkArrayLengthLValue(obj, EtsArrayType(EtsUnknownType, 1))
+        if (value.field.name == "length") {
+            if (value.instance.type is EtsArrayType) {
+                val lengthLValue = mkArrayLengthLValue(instanceRef, value.instance.type as EtsArrayType)
                 val length = scope.calcOnState { memory.read(lengthLValue) }
                 return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), length.asExpr(sizeSort), signed = true)
+            }
+
+            // TODO: handle "length" property for arrays inside fake objects
+            if (instanceRef.isFakeObject()) {
+                val fakeType = instanceRef.getFakeType(scope)
+                // TODO: replace '.isTrue' with fork or assert
+                if (fakeType.refTypeExpr.isTrue) {
+                    val refLValue = getIntermediateRefLValue(instanceRef.address)
+                    val obj = scope.calcOnState { memory.read(refLValue) }
+                    // TODO: fix array type. It should be the same as the type used when "writing" the length.
+                    //  However, current value.instance typically has 'unknown' type, and the best we can do here is
+                    //  to pretend that this is an array-like object (with "array length", not just "length" field),
+                    //  and "cast" instance to "unknown[]". The same could be done for any length writes, making
+                    //  the array type (for length) consistent (unknown everywhere), but less precise.
+                    val lengthLValue = mkArrayLengthLValue(obj, EtsArrayType(EtsUnknownType, 1))
+                    val length = scope.calcOnState { memory.read(lengthLValue) }
+                    return mkBvToFpExpr(
+                        fp64Sort,
+                        fpRoundingModeSortDefaultValue(),
+                        length.asExpr(sizeSort),
+                        signed = true
+                    )
+                }
             }
         }
 
@@ -824,15 +841,23 @@ class TsSimpleValueResolver(
         }
     }
 
-    override fun visit(value: EtsLocal): UExpr<out USort> {
-        if (value.name == "NaN") {
+    override fun visit(local: EtsLocal): UExpr<out USort> {
+        if (local.name == "NaN") {
             return ctx.mkFp64NaN()
         }
-        if (value.name == "Infinity") {
+        if (local.name == "Infinity") {
             return ctx.mkFpInf(false, ctx.fp64Sort)
         }
 
-        val lValue = resolveLocal(value)
+        val currentMethod = scope.calcOnState { lastEnteredMethod }
+        if (local !in currentMethod.getDeclaredLocals()) {
+            if (local.type is EtsFunctionType) {
+                // TODO: function pointers should be "singletons"
+                return scope.calcOnState { memory.allocConcrete(local.type) }
+            }
+        }
+
+        val lValue = resolveLocal(local)
         return scope.calcOnState { memory.read(lValue) }
     }
 

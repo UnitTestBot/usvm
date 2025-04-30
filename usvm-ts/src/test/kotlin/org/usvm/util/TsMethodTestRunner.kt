@@ -22,7 +22,7 @@ import org.usvm.UMachineOptions
 import org.usvm.api.NoCoverage
 import org.usvm.api.TsMethodCoverage
 import org.usvm.api.TsTest
-import org.usvm.api.TsValue
+import org.usvm.api.TsTestValue
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.test.util.TestRunner
@@ -59,7 +59,7 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
 
     protected val doNotCheckCoverage: CoverageChecker = { _ -> true }
 
-    protected inline fun <reified R : TsValue> discoverProperties(
+    protected inline fun <reified R : TsTestValue> discoverProperties(
         method: EtsMethod,
         vararg analysisResultMatchers: (R) -> Boolean,
         invariants: Array<(R) -> Boolean> = emptyArray(),
@@ -77,7 +77,7 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
         )
     }
 
-    protected inline fun <reified T : TsValue, reified R : TsValue> discoverProperties(
+    protected inline fun <reified T : TsTestValue, reified R : TsTestValue> discoverProperties(
         method: EtsMethod,
         vararg analysisResultMatchers: (T, R) -> Boolean,
         invariants: Array<(T, R) -> Boolean> = emptyArray(),
@@ -95,7 +95,7 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
         )
     }
 
-    protected inline fun <reified T1 : TsValue, reified T2 : TsValue, reified R : TsValue> discoverProperties(
+    protected inline fun <reified T1 : TsTestValue, reified T2 : TsTestValue, reified R : TsTestValue> discoverProperties(
         method: EtsMethod,
         vararg analysisResultMatchers: (T1, T2, R) -> Boolean,
         invariants: Array<(T1, T2, R) -> Boolean> = emptyArray(),
@@ -115,7 +115,7 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
         )
     }
 
-    protected inline fun <reified T1 : TsValue, reified T2 : TsValue, reified T3 : TsValue, reified R : TsValue> discoverProperties(
+    protected inline fun <reified T1 : TsTestValue, reified T2 : TsTestValue, reified T3 : TsTestValue, reified R : TsTestValue> discoverProperties(
         method: EtsMethod,
         vararg analysisResultMatchers: (T1, T2, T3, R) -> Boolean,
         invariants: Array<(T1, T2, T3, R) -> Boolean> = emptyArray(),
@@ -138,7 +138,7 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
         )
     }
 
-    protected inline fun <reified T1 : TsValue, reified T2 : TsValue, reified T3 : TsValue, reified T4 : TsValue, reified R : TsValue> discoverProperties(
+    protected inline fun <reified T1 : TsTestValue, reified T2 : TsTestValue, reified T3 : TsTestValue, reified T4 : TsTestValue, reified R : TsTestValue> discoverProperties(
         method: EtsMethod,
         vararg analysisResultMatchers: (T1, T2, T3, T4, R) -> Boolean,
         invariants: Array<(T1, T2, T3, T4, R) -> Boolean> = emptyArray(),
@@ -180,32 +180,32 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
         */
         val klass = if (it is KClass<*>) it else it::class
         when (klass) {
-            TsValue::class -> EtsAnyType
-            TsValue.TsAny::class -> EtsAnyType
+            TsTestValue::class -> EtsAnyType
+            TsTestValue.TsAny::class -> EtsAnyType
 
-            TsValue.TsArray::class -> {
+            TsTestValue.TsArray::class -> {
                 EtsArrayType(EtsAnyType, dimensions = 1) // TODO incorrect
             }
 
-            TsValue.TsClass::class -> {
+            TsTestValue.TsClass::class -> {
                 // TODO incorrect
                 val signature = EtsClassSignature(it.toString(), EtsFileSignature.UNKNOWN)
                 EtsClassType(signature)
             }
 
-            TsValue.TsBoolean::class -> EtsBooleanType
-            TsValue.TsString::class -> EtsStringType
-            TsValue.TsNumber::class -> EtsNumberType
-            TsValue.TsNumber.TsDouble::class -> EtsNumberType
-            TsValue.TsNumber.TsInteger::class -> EtsNumberType
-            TsValue.TsUndefined::class -> EtsUndefinedType
+            TsTestValue.TsBoolean::class -> EtsBooleanType
+            TsTestValue.TsString::class -> EtsStringType
+            TsTestValue.TsNumber::class -> EtsNumberType
+            TsTestValue.TsNumber.TsDouble::class -> EtsNumberType
+            TsTestValue.TsNumber.TsInteger::class -> EtsNumberType
+            TsTestValue.TsUndefined::class -> EtsUndefinedType
             // TODO: EtsUnknownType is mock up here. Correct implementation required.
-            TsValue.TsObject::class -> EtsUnknownType
+            TsTestValue.TsObject::class -> EtsUnknownType
             // For untyped tests, not to limit objects serialized from models after type coercion.
-            TsValue.TsUnknown::class -> EtsUnknownType
-            TsValue.TsNull::class -> EtsNullType
+            TsTestValue.TsUnknown::class -> EtsUnknownType
+            TsTestValue.TsNull::class -> EtsNullType
 
-            TsValue.TsException::class -> {
+            TsTestValue.TsException::class -> {
                 // TODO incorrect
                 val signature = EtsClassSignature("Exception", EtsFileSignature.UNKNOWN)
                 EtsClassType(signature)

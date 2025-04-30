@@ -17,8 +17,8 @@ import kotlin.time.Duration
 
 // TODO this is draft, should be replaced with real implementation
 class TsTypeSystem(
+    val scene: EtsScene,
     override val typeOperationsTimeout: Duration,
-    val project: EtsScene,
 ) : UTypeSystem<EtsType> {
 
     companion object {
