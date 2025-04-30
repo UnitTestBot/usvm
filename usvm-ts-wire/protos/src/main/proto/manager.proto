@@ -17,160 +17,160 @@ message SceneRequest {
 }
 
 message SceneResponse {
-  EtsScene scene = 1;
+  Scene scene = 1;
 }
 
-message EtsScene {
-  repeated EtsFile files = 1;
+message Scene {
+  repeated File files = 1;
 }
 
-message EtsFile {
-  EtsFileSignature signature = 1;
-  repeated EtsClass classes = 2;
+message File {
+  FileSignature signature = 1;
+  repeated Class classes = 2;
   // TODO: namespaces
 }
 
-message EtsFileSignature {
+message FileSignature {
   string projectName = 1;
   string fileName = 2;
 }
 
-message EtsClass {
-  EtsClassSignature signature = 1;
-  repeated EtsField fields = 2;
-  repeated EtsMethod methods = 3;
+message Class {
+  ClassSignature signature = 1;
+  repeated Field fields = 2;
+  repeated Method methods = 3;
 }
 
-message EtsClassSignature {
+message ClassSignature {
   string name = 1;
-  repeated EtsType typeParameters = 2;
+  repeated Type typeParameters = 2;
 }
 
-message EtsField {
-  EtsFieldSignature signature = 1;
+message Field {
+  FieldSignature signature = 1;
 }
 
-message EtsFieldSignature {
+message FieldSignature {
   string name = 1;
-  EtsType type = 2;
+  Type type = 2;
 }
 
-message EtsMethod {
-  EtsMethodSignature signature = 1;
-  repeated EtsType typeParameters = 2;
-  EtsBlockCfg cfg = 3;
+message Method {
+  MethodSignature signature = 1;
+  repeated Type typeParameters = 2;
+  BlockCfg cfg = 3;
 }
 
-message EtsMethodSignature {
+message MethodSignature {
   string name = 1;
-  repeated EtsMethodParameter parameters = 2;
-  EtsType returnType = 3;
+  repeated MethodParameter parameters = 2;
+  Type returnType = 3;
 }
 
-message EtsMethodParameter {
+message MethodParameter {
   string name = 1;
-  EtsType type = 2;
+  Type type = 2;
   bool isOptional = 3;
   bool isRest = 4;
 }
 
-message EtsBlockCfg {
-  repeated EtsBlock blocks = 1;
+message BlockCfg {
+  repeated Block blocks = 1;
 }
 
-message EtsBlock {
+message Block {
   int32 id = 1;
-  repeated EtsStmt statements = 2;
+  repeated Stmt statements = 2;
   repeated int32 successors = 3;
   repeated int32 predecessors = 4;
 }
 
 // ==============================================
 
-message EtsType {
+message Type {
   oneof kind {
-    EtsRawType raw_type = 1;
-    EtsAnyType any_type = 2;
-    EtsUnknownType unknown_type = 3;
-    EtsUnionType union_type = 4;
-    EtsIntersectionType intersection_type = 5;
-    EtsGenericType generic_type = 6;
-    EtsAliasType alias_type = 7;
-    EtsBooleanType boolean_type = 8;
-    EtsNumberType number_type = 9;
-    EtsStringType string_type = 10;
-    EtsNullType null_type = 11;
-    EtsUndefinedType undefined_type = 12;
-    EtsVoidType void_type = 13;
-    EtsNeverType never_type = 14;
-    EtsLiteralType literal_type = 15;
-    EtsClassType class_type = 16;
-    EtsUnclearRefType unclear_ref_type = 17;
-    EtsArrayType array_type = 18;
-    EtsTupleType tuple_type = 19;
-    EtsFunctionType function_type = 20;
+    RawType raw_type = 1;
+    AnyType any_type = 2;
+    UnknownType unknown_type = 3;
+    UnionType union_type = 4;
+    IntersectionType intersection_type = 5;
+    GenericType generic_type = 6;
+    AliasType alias_type = 7;
+    BooleanType boolean_type = 8;
+    NumberType number_type = 9;
+    StringType string_type = 10;
+    NullType null_type = 11;
+    UndefinedType undefined_type = 12;
+    VoidType void_type = 13;
+    NeverType never_type = 14;
+    LiteralType literal_type = 15;
+    ClassType class_type = 16;
+    UnclearRefType unclear_ref_type = 17;
+    ArrayType array_type = 18;
+    TupleType tuple_type = 19;
+    FunctionType function_type = 20;
   }
 }
 
-message EtsAnyType {}
-message EtsUnknownType {}
-message EtsBooleanType {}
-message EtsNumberType {}
-message EtsStringType {}
-message EtsNullType {}
-message EtsUndefinedType {}
-message EtsVoidType {}
-message EtsNeverType {}
+message AnyType {}
+message UnknownType {}
+message BooleanType {}
+message NumberType {}
+message StringType {}
+message NullType {}
+message UndefinedType {}
+message VoidType {}
+message NeverType {}
 
-message EtsUnionType {
-  repeated EtsType types = 1;
+message UnionType {
+  repeated Type types = 1;
 }
 
-message EtsIntersectionType {
-  repeated EtsType types = 1;
+message IntersectionType {
+  repeated Type types = 1;
 }
 
-message EtsGenericType {
+message GenericType {
   string type_name = 1;
-  optional EtsType constraint = 2;
-  optional EtsType default_type = 3;
+  optional Type constraint = 2;
+  optional Type default_type = 3;
 }
 
-message EtsAliasType {
+message AliasType {
   string name = 1;
-  EtsType original_type = 2;
-  // TODO: EtsLocalSignature signature = 3;
+  Type original_type = 2;
+  // TODO: LocalSignature signature = 3;
 }
 
-message EtsLiteralType {
+message LiteralType {
   string literal_name = 1;
 }
 
-message EtsClassType {
-  EtsClassSignature signature = 1;
-  repeated EtsType type_parameters = 2;
+message ClassType {
+  ClassSignature signature = 1;
+  repeated Type type_parameters = 2;
 }
 
-message EtsUnclearRefType {
+message UnclearRefType {
   string name = 1;
-  repeated EtsType type_parameters = 2;
+  repeated Type type_parameters = 2;
 }
 
-message EtsArrayType {
-  EtsType element_type = 1;
+message ArrayType {
+  Type element_type = 1;
   int32 dimensions = 2;
 }
 
-message EtsTupleType {
-  repeated EtsType types = 1;
+message TupleType {
+  repeated Type types = 1;
 }
 
-message EtsFunctionType {
-  EtsMethodSignature signature = 1;
-  repeated EtsType type_parameters = 2;
+message FunctionType {
+  MethodSignature signature = 1;
+  repeated Type type_parameters = 2;
 }
 
-message EtsRawType {
+message RawType {
   string kind = 1;
   string text = 2;
   // map<string, string> extra = 2;
@@ -179,133 +179,133 @@ message EtsRawType {
 
 // ==============================================
 
-message EtsStmt {
+message Stmt {
   oneof stmt_type {
-    EtsRawStmt raw_stmt = 1;
-    EtsNopStmt nop_stmt = 2;
-    EtsAssignStmt assign_stmt = 3;
-    EtsReturnStmt return_stmt = 4;
-    EtsThrowStmt throw_stmt = 5;
-    EtsIfStmt if_stmt = 6;
-    EtsCallStmt call_stmt = 7;
+    RawStmt raw_stmt = 1;
+    NopStmt nop_stmt = 2;
+    AssignStmt assign_stmt = 3;
+    ReturnStmt return_stmt = 4;
+    ThrowStmt throw_stmt = 5;
+    IfStmt if_stmt = 6;
+    CallStmt call_stmt = 7;
   }
 }
 
-message EtsRawStmt {
+message RawStmt {
   string kind = 1;
   string text = 2;
 }
 
-message EtsNopStmt {}
+message NopStmt {}
 
-message EtsAssignStmt {
-  EtsValue lhv = 1;
-  EtsValue rhv = 2;
+message AssignStmt {
+  Value lhv = 1;
+  Value rhv = 2;
 }
 
-message EtsReturnStmt {
-  optional EtsValue return_value = 1;
+message ReturnStmt {
+  optional Value return_value = 1;
 }
 
-message EtsThrowStmt {
-  EtsValue exception = 1;
+message ThrowStmt {
+  Value exception = 1;
 }
 
-message EtsIfStmt {
-  EtsValue condition = 1;
+message IfStmt {
+  Value condition = 1;
 }
 
-message EtsCallStmt {
-  EtsCallExpr expr = 1;
+message CallStmt {
+  CallExpr expr = 1;
 }
 
 // ==============================================
 
-message EtsValue {
+message Value {
   oneof value {
-    EtsRawValue raw_value = 1;
-    EtsLocal local = 2;
-    EtsConstant constant = 3;
-    EtsExpr expr = 4;
-    EtsRef ref = 5;
+    RawValue raw_value = 1;
+    Local local = 2;
+    Constant constant = 3;
+    Expr expr = 4;
+    Ref ref = 5;
   }
 }
 
-message EtsRawValue {
+message RawValue {
   string kind = 1;
   string text = 2;
-  EtsType type = 3;
+  Type type = 3;
 }
 
-message EtsLocal {
+message Local {
   string name = 1;
-  EtsType type = 3;
+  Type type = 3;
 }
 
-message EtsConstant {
+message Constant {
   string value = 1;
-  EtsType type = 3;
+  Type type = 3;
 }
 
-message EtsExpr {
+message Expr {
   oneof expr {
-    EtsNewExpr new_expr = 1;
-    EtsNewArrayExpr new_array_expr = 2;
-    EtsDeleteExpr delete_expr = 3;
-    EtsAwaitExpr await_expr = 4;
-    EtsYieldExpr yield_expr = 5;
-    EtsTypeOfExpr type_of_expr = 6;
-    EtsInstanceOfExpr instance_of_expr = 7;
-    EtsCastExpr cast_expr = 8;
-    EtsUnaryExpr unary_expr = 9;
-    EtsBinaryExpr binary_expr = 10;
-    EtsRelationExpr relation_expr = 11;
-    EtsCallExpr call_expr = 12;
+    NewExpr new_expr = 1;
+    NewArrayExpr new_array_expr = 2;
+    DeleteExpr delete_expr = 3;
+    AwaitExpr await_expr = 4;
+    YieldExpr yield_expr = 5;
+    TypeOfExpr type_of_expr = 6;
+    InstanceOfExpr instance_of_expr = 7;
+    CastExpr cast_expr = 8;
+    UnaryExpr unary_expr = 9;
+    BinaryExpr binary_expr = 10;
+    RelationExpr relation_expr = 11;
+    CallExpr call_expr = 12;
   }
 }
 
-message EtsNewExpr {
-  EtsType type = 1;
+message NewExpr {
+  Type type = 1;
 }
 
-message EtsNewArrayExpr {
-  EtsType element_type = 1;
-  EtsValue size = 2;
+message NewArrayExpr {
+  Type element_type = 1;
+  Value size = 2;
 }
 
-message EtsDeleteExpr {
-  EtsValue arg = 1;
+message DeleteExpr {
+  Value arg = 1;
 }
 
-message EtsAwaitExpr {
-  EtsValue arg = 1;
+message AwaitExpr {
+  Value arg = 1;
 }
 
-message EtsYieldExpr {
-  EtsValue arg = 1;
+message YieldExpr {
+  Value arg = 1;
 }
 
-message EtsTypeOfExpr {
-  EtsValue arg = 1;
+message TypeOfExpr {
+  Value arg = 1;
 }
 
-message EtsCastExpr {
-  EtsValue arg = 1;
-  EtsType type = 2;
+message CastExpr {
+  Value arg = 1;
+  Type type = 2;
 }
 
-message EtsInstanceOfExpr {
-  EtsValue arg = 1;
-  EtsType check_type = 2;
+message InstanceOfExpr {
+  Value arg = 1;
+  Type check_type = 2;
 }
 
-message EtsUnaryExpr {
-  EtsUnaryOperator op = 1;
-  EtsValue arg = 2;
-  EtsType type = 3;
+message UnaryExpr {
+  UnaryOperator op = 1;
+  Value arg = 2;
+  Type type = 3;
 }
 
-enum EtsUnaryOperator {
+enum UnaryOperator {
   UNARY_UNKNOWN = 0;
   // DELETE = 1;      // delete
   // AWAIT = 2;       // await
@@ -322,14 +322,14 @@ enum EtsUnaryOperator {
   // POST_DEC = 13;    // --
 }
 
-message EtsBinaryExpr {
-  EtsBinaryOperator op = 1;
-  EtsValue left = 2;
-  EtsValue right = 3;
-  EtsType type = 4;
+message BinaryExpr {
+  BinaryOperator op = 1;
+  Value left = 2;
+  Value right = 3;
+  Type type = 4;
 }
 
-enum EtsBinaryOperator {
+enum BinaryOperator {
   NORMAL_UNKNOWN = 0;
 
   ADDITION = 1;        // '+'
@@ -354,14 +354,14 @@ enum EtsBinaryOperator {
 }
 
 // Relation Expressions
-message EtsRelationExpr {
-  EtsRelationOperator op = 1;
-  EtsValue left = 2;
-  EtsValue right = 3;
+message RelationExpr {
+  RelationOperator op = 1;
+  Value left = 2;
+  Value right = 3;
 }
 
 // Relation Operators
-enum EtsRelationOperator {
+enum RelationOperator {
   RELATION_UNKNOWN = 0;
   EQ = 1;          // '=='
   NEQ = 2;         // '!='
@@ -375,69 +375,69 @@ enum EtsRelationOperator {
 }
 
 // Call Expressions
-message EtsCallExpr {
-  EtsMethodSignature callee = 1;
-  repeated EtsValue args = 2;
-  EtsType type = 3;
+message CallExpr {
+  MethodSignature callee = 1;
+  repeated Value args = 2;
+  Type type = 3;
 
   oneof call_type {
-    EtsInstanceCall instance_call = 4;
-    EtsStaticCall static_call = 5;
-    EtsPtrCall ptr_call = 6;
+    InstanceCall instance_call = 4;
+    StaticCall static_call = 5;
+    PtrCall ptr_call = 6;
   }
 }
 
-message EtsInstanceCall {
-  EtsLocal instance = 1;
+message InstanceCall {
+  Local instance = 1;
 }
 
-message EtsStaticCall {
+message StaticCall {
   // Note: class name is included in the callee's signature
 }
 
-message EtsPtrCall {
-  EtsValue ptr = 1;
+message PtrCall {
+  Value ptr = 1;
 }
 
 // References
-message EtsRef {
+message Ref {
   oneof ref {
-    EtsThis this = 1;
-    EtsParameterRef parameter = 2;
-    EtsArrayAccess array_access = 3;
-    EtsFieldRef field_ref = 4;
+    This this = 1;
+    ParameterRef parameter = 2;
+    ArrayAccess array_access = 3;
+    FieldRef field_ref = 4;
   }
 }
 
-message EtsThis {
-  EtsType type = 1;
+message This {
+  Type type = 1;
 }
 
-message EtsParameterRef {
+message ParameterRef {
   int32 index = 1;
-  EtsType type = 2;
+  Type type = 2;
 }
 
-message EtsArrayAccess {
-  EtsLocal array = 1;
-  EtsValue index = 2;
-  EtsType type = 3;
+message ArrayAccess {
+  Local array = 1;
+  Value index = 2;
+  Type type = 3;
 }
 
-message EtsFieldRef {
+message FieldRef {
   oneof field_type {
-    EtsInstanceFieldRef instance = 1;
-    EtsStaticFieldRef static = 2;
+    InstanceFieldRef instance = 1;
+    StaticFieldRef static = 2;
   }
 }
 
-message EtsInstanceFieldRef {
-  EtsLocal instance = 1;
-  EtsFieldSignature field = 2;
-  EtsType type = 3;
+message InstanceFieldRef {
+  Local instance = 1;
+  FieldSignature field = 2;
+  Type type = 3;
 }
 
-message EtsStaticFieldRef {
-  EtsFieldSignature field = 1;
-  EtsType type = 2;
+message StaticFieldRef {
+  FieldSignature field = 1;
+  Type type = 2;
 }
