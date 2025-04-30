@@ -24,6 +24,7 @@ import org.jacodb.ets.model.EtsEntity
 import org.jacodb.ets.model.EtsEqExpr
 import org.jacodb.ets.model.EtsExpExpr
 import org.jacodb.ets.model.EtsFieldSignature
+import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsFunctionType
 import org.jacodb.ets.model.EtsGtEqExpr
 import org.jacodb.ets.model.EtsGtExpr
@@ -104,6 +105,7 @@ import org.usvm.machine.types.AuxiliaryType
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.memory.ULValue
 import org.usvm.sizeSort
+import org.usvm.util.isResolved
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
@@ -633,16 +635,16 @@ class TsExprResolver(
     ): UExpr<out USort>? = with(ctx) {
         val resolvedAddr = if (instanceRef.isFakeObject()) instanceRef.extractRef(scope) else instanceRef
         scope.doWithState {
-            // If we don't know an enclosing class of the field,
-            // we add a type constraint that every type containing such field is fine
-            pathConstraints += if (field.enclosingClass == EtsClassSignature.UNKNOWN) {
-                memory.types.evalIsSubtype(resolvedAddr, AuxiliaryType(setOf(field.name)))
-            } else {
-                // Otherwise, we can add a type constraint about the instance type.
+            pathConstraints += if (field.type.isResolved()) {
+                // If we know an enclosing class of the field,
+                // we can add a type constraint about the instance type.
                 // Probably, it's redundant since either both class and field
                 // know exactly their types or none of them.
                 val type = EtsClassType(field.enclosingClass)
                 memory.types.evalIsSubtype(resolvedAddr, type)
+            } else {
+                // Otherwise, we add a type constraint that every type containing such field is fine
+                memory.types.evalIsSubtype(resolvedAddr, AuxiliaryType(setOf(field.name)))
             }
         }
 
@@ -677,6 +679,7 @@ class TsExprResolver(
         }
 
         // TODO: check 'field.type' vs 'etsField.type'
+        // TODO change it
         if (assertIsSubtype(expr, field.type)) {
             expr
         } else {
@@ -765,7 +768,7 @@ class TsExprResolver(
         with(ctx.scene) {
             // Try to resolve the concrete type if possible.
             // Otherwise, create an object with UnclearRefType
-            val resolvedType = if (expr.type is EtsUnclearRefType) {
+            val resolvedType = if (expr.type.isResolved()) {
                 projectAndSdkClasses
                     .singleOrNull { it.name == expr.type.typeName }?.type
                     ?: expr.type
