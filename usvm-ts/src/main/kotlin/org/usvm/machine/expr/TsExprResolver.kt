@@ -580,19 +580,19 @@ class TsExprResolver(
     // region ACCESS
 
     override fun visit(value: EtsArrayAccess): UExpr<out USort>? = with(ctx) {
-        val instance = resolve(value.array)?.asExpr(ctx.addressSort) ?: return null
-        val index = resolve(value.index)?.asExpr(ctx.fp64Sort) ?: return null
+        val instance = resolve(value.array)?.asExpr(addressSort) ?: return null
+        val index = resolve(value.index)?.asExpr(fp64Sort) ?: return null
         val bvIndex = mkFpToBvExpr(
             roundingMode = fpRoundingModeSortDefaultValue(),
             value = index,
             bvSize = 32,
             isSigned = true
-        )
+        ).asExpr(sizeSort)
 
         val lValue = mkArrayIndexLValue(
             addressSort,
             instance,
-            bvIndex.asExpr(ctx.sizeSort),
+            bvIndex,
             value.array.type as EtsArrayType
         )
         val expr = scope.calcOnState { memory.read(lValue) }
@@ -603,13 +603,12 @@ class TsExprResolver(
     }
 
     private fun checkUndefinedOrNullPropertyRead(instance: UHeapRef) = with(ctx) {
-        val neqNull = mkAnd(
+        val notNull = mkAnd(
             mkHeapRefEq(instance, ctx.mkUndefinedValue()).not(),
             mkHeapRefEq(instance, ctx.mkTsNullValue()).not()
         )
-
         scope.fork(
-            neqNull,
+            condition = notNull,
             blockOnFalseState = allocateException(EtsStringType) // TODO incorrect exception type
         )
     }
@@ -663,24 +662,24 @@ class TsExprResolver(
     }
 
     override fun visit(value: EtsInstanceFieldRef): UExpr<out USort>? = with(ctx) {
-        val instanceRef = resolve(value.instance)?.asExpr(addressSort) ?: return null
+        val instance = resolve(value.instance)?.asExpr(addressSort) ?: return null
 
-        checkUndefinedOrNullPropertyRead(instanceRef) ?: return null
+        checkUndefinedOrNullPropertyRead(instance) ?: return null
 
         // TODO It is a hack for array's length
         if (value.field.name == "length") {
             if (value.instance.type is EtsArrayType) {
-                val lengthLValue = mkArrayLengthLValue(instanceRef, value.instance.type as EtsArrayType)
+                val lengthLValue = mkArrayLengthLValue(instance, value.instance.type as EtsArrayType)
                 val length = scope.calcOnState { memory.read(lengthLValue) }
                 return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), length.asExpr(sizeSort), signed = true)
             }
 
             // TODO: handle "length" property for arrays inside fake objects
-            if (instanceRef.isFakeObject()) {
-                val fakeType = instanceRef.getFakeType(scope)
+            if (instance.isFakeObject()) {
+                val fakeType = instance.getFakeType(scope)
                 // TODO: replace '.isTrue' with fork or assert
                 if (fakeType.refTypeExpr.isTrue) {
-                    val refLValue = getIntermediateRefLValue(instanceRef.address)
+                    val refLValue = getIntermediateRefLValue(instance.address)
                     val obj = scope.calcOnState { memory.read(refLValue) }
                     // TODO: fix array type. It should be the same as the type used when "writing" the length.
                     //  However, current value.instance typically has 'unknown' type, and the best we can do here is
@@ -699,7 +698,7 @@ class TsExprResolver(
             }
         }
 
-        return handleFieldRef(value.instance, instanceRef, value.field)
+        return handleFieldRef(value.instance, instance, value.field)
     }
 
     override fun visit(value: EtsStaticFieldRef): UExpr<out USort>? = with(ctx) {
@@ -707,7 +706,7 @@ class TsExprResolver(
             it.signature == value.field.enclosingClass
         } ?: return null
 
-        val instanceRef = scope.calcOnState { getStaticInstance(clazz) }
+        val instance = scope.calcOnState { getStaticInstance(clazz) }
 
         val initializer = clazz.methods.singleOrNull { it.name == STATIC_INIT_METHOD_NAME }
         if (initializer != null) {
@@ -725,14 +724,14 @@ class TsExprResolver(
                     markInitialized(clazz)
                     pushSortsForArguments(instance = null, args = emptyList(), localToIdx)
                     callStack.push(initializer, currentStatement)
-                    memory.stack.push(arrayOf(instanceRef), initializer.localsCount)
+                    memory.stack.push(arrayOf(instance), initializer.localsCount)
                     newStmt(initializer.cfg.stmts.first())
                 }
                 return null
             }
         }
 
-        return handleFieldRef(instance = null, instanceRef, value.field)
+        return handleFieldRef(instance = null, instance, value.field)
     }
 
     // endregion
@@ -795,43 +794,41 @@ class TsSimpleValueResolver(
     private val localToIdx: (EtsMethod, EtsValue) -> Int,
 ) : EtsValue.Visitor<UExpr<out USort>?> {
 
-    private fun resolveLocal(local: EtsValue): ULValue<*, USort> {
+    private fun resolveLocal(local: EtsValue): ULValue<*, USort> = with(ctx) {
         val currentMethod = scope.calcOnState { lastEnteredMethod }
         val entrypoint = scope.calcOnState { entrypoint }
 
-        val localIdx = localToIdx(currentMethod, local)
+        val idx = localToIdx(currentMethod, local)
         val sort = scope.calcOnState {
             val type = local.tryGetKnownType(currentMethod)
-            getOrPutSortForLocal(localIdx, type)
+            getOrPutSortForLocal(idx, type)
         }
 
         // If we are not in the entrypoint, all correct values are already resolved and we can just return
         // a registerStackLValue for the local
         if (currentMethod != entrypoint) {
-            return mkRegisterStackLValue(sort, localIdx)
+            return mkRegisterStackLValue(sort, idx)
         }
 
         // arguments and this for the first stack frame
-        return when (sort) {
-            is UBoolSort -> mkRegisterStackLValue(sort, localIdx)
-            is KFp64Sort -> mkRegisterStackLValue(sort, localIdx)
-            is UAddressSort -> mkRegisterStackLValue(sort, localIdx)
+        when (sort) {
+            is UBoolSort -> mkRegisterStackLValue(sort, idx)
+            is KFp64Sort -> mkRegisterStackLValue(sort, idx)
+            is UAddressSort -> mkRegisterStackLValue(sort, idx)
             is TsUnresolvedSort -> {
                 check(local is EtsThis || local is EtsParameterRef) {
                     "Only This and ParameterRef are expected here"
                 }
 
-                val lValue = mkRegisterStackLValue(ctx.addressSort, localIdx)
+                val lValue = mkRegisterStackLValue(addressSort, idx)
 
-                val boolRValue = ctx.mkRegisterReading(localIdx, ctx.boolSort)
-                val fpRValue = ctx.mkRegisterReading(localIdx, ctx.fp64Sort)
-                val refRValue = ctx.mkRegisterReading(localIdx, ctx.addressSort)
+                val boolRValue = mkRegisterReading(idx, boolSort)
+                val fpRValue = mkRegisterReading(idx, fp64Sort)
+                val refRValue = mkRegisterReading(idx, addressSort)
 
-                val fakeObject = ctx.mkFakeValue(scope, boolRValue, fpRValue, refRValue)
+                val fakeObject = mkFakeValue(scope, boolRValue, fpRValue, refRValue)
                 scope.calcOnState {
-                    with(ctx) {
-                        memory.write(lValue, fakeObject.asExpr(addressSort), guard = trueExpr)
-                    }
+                    memory.write(lValue, fakeObject.asExpr(addressSort), guard = trueExpr)
                 }
 
                 lValue
