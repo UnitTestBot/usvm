@@ -2,7 +2,7 @@ package org.usvm.samples
 
 import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.Disabled
-import org.usvm.api.TsValue
+import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 import kotlin.test.Test
 
@@ -16,7 +16,7 @@ class MinValue : TsMethodTestRunner() {
     @Disabled
     fun `test findMinValue`() {
         val method = getMethod(className, "findMinValue")
-        discoverProperties<TsValue.TsArray<*>, TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsArray<*>, TsTestValue.TsNumber>(
             method,
         )
     }

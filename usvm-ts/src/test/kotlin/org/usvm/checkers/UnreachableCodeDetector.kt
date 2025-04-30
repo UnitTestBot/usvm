@@ -1,4 +1,4 @@
-package org.usvm.samples.checkers
+package org.usvm.checkers
 
 import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsLtExpr
@@ -6,16 +6,19 @@ import org.jacodb.ets.model.EtsNumberConstant
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS
 import org.usvm.UMachineOptions
 import org.usvm.api.checkers.UnreachableCodeDetector
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.util.getResourcePath
 
+@TestInstance(PER_CLASS)
 class UnreachableCodeDetectorTest {
     val scene = run {
         val name = "UnreachableCode.ts"
-        val path = getResourcePath("/samples/checkers/$name")
+        val path = getResourcePath("/checkers/$name")
         val file = loadEtsFileAutoConvert(
             path,
             useArkAnalyzerTypeInference = 1

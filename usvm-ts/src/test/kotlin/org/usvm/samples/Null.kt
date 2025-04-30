@@ -2,7 +2,7 @@ package org.usvm.samples
 
 import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.Test
-import org.usvm.api.TsValue
+import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 
 class Null : TsMethodTestRunner() {
@@ -14,10 +14,10 @@ class Null : TsMethodTestRunner() {
     @Test
     fun `test isNull`() {
         val method = getMethod(className, "isNull")
-        discoverProperties<TsValue, TsValue.TsNumber>(
+        discoverProperties<TsTestValue, TsTestValue.TsNumber>(
             method,
-            { a, r -> (a is TsValue.TsNull) && (r.number == 1.0) },
-            { a, r -> (a !is TsValue.TsNull) && (r.number == 2.0) },
+            { a, r -> (a is TsTestValue.TsNull) && (r.number == 1.0) },
+            { a, r -> (a !is TsTestValue.TsNull) && (r.number == 2.0) },
         )
     }
 }

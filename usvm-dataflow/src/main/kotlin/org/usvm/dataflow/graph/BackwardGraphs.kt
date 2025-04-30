@@ -18,15 +18,9 @@
 
 package org.usvm.dataflow.graph
 
-import org.jacodb.api.common.CommonMethod
-import org.jacodb.api.common.cfg.CommonInst
-
 private class BackwardApplicationGraphImpl<Method, Statement>(
     val forward: ApplicationGraph<Method, Statement>,
-) : ApplicationGraph<Method, Statement>
-    where Method : CommonMethod,
-          Statement : CommonInst {
-
+) : ApplicationGraph<Method, Statement> {
     override fun predecessors(node: Statement) = forward.successors(node)
     override fun successors(node: Statement) = forward.predecessors(node)
 
@@ -40,8 +34,6 @@ private class BackwardApplicationGraphImpl<Method, Statement>(
 }
 
 val <Method, Statement> ApplicationGraph<Method, Statement>.reversed: ApplicationGraph<Method, Statement>
-    where Method : CommonMethod,
-          Statement : CommonInst
     get() = when (this) {
         is BackwardApplicationGraphImpl -> this.forward
         else -> BackwardApplicationGraphImpl(this)

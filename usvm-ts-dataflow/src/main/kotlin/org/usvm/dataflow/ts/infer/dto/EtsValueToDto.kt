@@ -17,17 +17,12 @@
 package org.usvm.dataflow.ts.infer.dto
 
 import org.jacodb.ets.dto.ArrayRefDto
-import org.jacodb.ets.dto.BooleanTypeDto
 import org.jacodb.ets.dto.ConstantDto
 import org.jacodb.ets.dto.InstanceFieldRefDto
 import org.jacodb.ets.dto.LocalDto
-import org.jacodb.ets.dto.NullTypeDto
-import org.jacodb.ets.dto.NumberTypeDto
 import org.jacodb.ets.dto.ParameterRefDto
 import org.jacodb.ets.dto.StaticFieldRefDto
-import org.jacodb.ets.dto.StringTypeDto
 import org.jacodb.ets.dto.ThisRefDto
-import org.jacodb.ets.dto.UndefinedTypeDto
 import org.jacodb.ets.dto.ValueDto
 import org.jacodb.ets.model.EtsArrayAccess
 import org.jacodb.ets.model.EtsBooleanConstant
@@ -53,46 +48,35 @@ private object EtsValueToDto : EtsValue.Visitor<ValueDto> {
         )
     }
 
-    override fun visit(value: EtsConstant): ValueDto {
+    private fun visitConstant(value: EtsConstant): ValueDto {
         return ConstantDto(
             value = value.toString(),
             type = value.type.toDto(),
         )
     }
 
+    override fun visit(value: EtsConstant): ValueDto {
+        return visitConstant(value)
+    }
+
     override fun visit(value: EtsStringConstant): ValueDto {
-        return ConstantDto(
-            value = value.value,
-            type = StringTypeDto,
-        )
+        return visitConstant(value)
     }
 
     override fun visit(value: EtsBooleanConstant): ValueDto {
-        return ConstantDto(
-            value = value.value.toString(),
-            type = BooleanTypeDto,
-        )
+        return visitConstant(value)
     }
 
     override fun visit(value: EtsNumberConstant): ValueDto {
-        return ConstantDto(
-            value = value.value.toString(),
-            type = NumberTypeDto,
-        )
+        return visitConstant(value)
     }
 
     override fun visit(value: EtsNullConstant): ValueDto {
-        return ConstantDto(
-            value = "null",
-            type = NullTypeDto,
-        )
+        return visitConstant(value)
     }
 
     override fun visit(value: EtsUndefinedConstant): ValueDto {
-        return ConstantDto(
-            value = "undefined",
-            type = UndefinedTypeDto,
-        )
+        return visitConstant(value)
     }
 
     override fun visit(value: EtsThis): ValueDto {

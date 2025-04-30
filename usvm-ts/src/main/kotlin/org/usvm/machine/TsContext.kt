@@ -9,6 +9,7 @@ import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUndefinedType
 import org.jacodb.ets.model.EtsUnionType
@@ -58,6 +59,7 @@ class TsContext(
     fun typeToSort(type: EtsType): USort = when (type) {
         is EtsBooleanType -> boolSort
         is EtsNumberType -> fp64Sort
+        is EtsStringType -> fp64Sort
         is EtsNullType -> addressSort
         is EtsUndefinedType -> addressSort
         is EtsUnionType -> unresolvedSort
