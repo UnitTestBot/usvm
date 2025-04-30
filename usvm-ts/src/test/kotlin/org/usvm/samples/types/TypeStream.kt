@@ -2,7 +2,7 @@ package org.usvm.samples.types
 
 import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.Test
-import org.usvm.api.TsValue
+import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 
 class TypeStream : TsMethodTestRunner() {
@@ -13,7 +13,7 @@ class TypeStream : TsMethodTestRunner() {
     @Test
     fun `test an ancestor as argument`() {
         val method = getMethod(className, "ancestorId")
-        discoverProperties<TsValue.TsClass, TsValue.TsClass>(
+        discoverProperties<TsTestValue.TsClass, TsTestValue.TsClass>(
             method = method,
             { value, r -> r.name == value.name },
         )
@@ -22,7 +22,7 @@ class TypeStream : TsMethodTestRunner() {
     @Test
     fun `test virtual invoke on an ancestor`() {
         val method = getMethod(className, "virtualInvokeForAncestor")
-        discoverProperties<TsValue.TsClass, TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
             method = method,
             { value, r -> value.name == "Parent" && r.number == 1.0 },
             { value, r -> value.name == "FirstChild" && r.number == 2.0 },
@@ -33,7 +33,7 @@ class TypeStream : TsMethodTestRunner() {
     @Test
     fun `use unique field`() {
         val method = getMethod(className, "useUniqueField")
-        discoverProperties<TsValue.TsClass, TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
             method = method,
             invariants = arrayOf(
                 { value, r -> value.name == "FirstChild" && r.number == 1.0 }
@@ -44,7 +44,7 @@ class TypeStream : TsMethodTestRunner() {
     @Test
     fun `use non unique field`() {
         val method = getMethod(className, "useNonUniqueField")
-        discoverProperties<TsValue.TsClass, TsValue.TsNumber>(
+        discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
             method = method,
             { value, r -> value.name == "Parent" && r.number == 1.0 },
             { value, r -> value.name == "FirstChild" && r.number == 2.0 },

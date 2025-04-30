@@ -178,7 +178,7 @@ class TsTypeSystem(
 
             else -> {
                 if (type == EtsHierarchy.OBJECT_CLASS) {
-                    return project.projectAndSdkClasses.asSequence().map { it.type }
+                    return scene.projectAndSdkClasses.asSequence().map { it.type }
                 }
                 // TODO wrong usage of names
                 if (type is EtsUnclearRefType) {
