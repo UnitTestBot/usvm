@@ -49,7 +49,7 @@ val generateSdkIR by tasks.registering {
         }
 
         val resources = projectDir.resolve("src/test/resources")
-        val prefix = "sdk/ohos/5.0.1.111/"
+        val prefix = "sdk/ohos/"
         val inputDir = resources.resolve("${prefix}ets")
         val outputDir = resources.resolve("${prefix}etsir")
         println("Generating SDK IR into '${outputDir.relativeTo(projectDir)}'...")

@@ -18,7 +18,7 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
 
     companion object {
         private const val PROJECT_PATH = "/projects/Demo_Calc/etsir/entry"
-        private const val SDK_PATH = "/sdk/ohos/5.0.1.111/etsir"
+        private const val SDK_PATH = "/sdk/ohos/etsir"
 
         @JvmStatic
         private fun projectAvailable(): Boolean {
