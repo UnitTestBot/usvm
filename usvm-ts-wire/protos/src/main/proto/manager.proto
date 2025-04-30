@@ -1,0 +1,443 @@
+syntax = "proto3";
+package manager;
+
+// import "google/protobuf/struct.proto";
+
+service Manager {
+  rpc Ready(ReadyRequest) returns (ReadyResponse);
+  rpc GetScene(SceneRequest) returns (SceneResponse);
+}
+
+message ReadyRequest {}
+
+message ReadyResponse {}
+
+message SceneRequest {
+  string path = 1;
+}
+
+message SceneResponse {
+  EtsScene scene = 1;
+}
+
+message EtsScene {
+  repeated EtsFile files = 1;
+}
+
+message EtsFile {
+  EtsFileSignature signature = 1;
+  repeated EtsClass classes = 2;
+  // TODO: namespaces
+}
+
+message EtsFileSignature {
+  string projectName = 1;
+  string fileName = 2;
+}
+
+message EtsClass {
+  EtsClassSignature signature = 1;
+  repeated EtsField fields = 2;
+  repeated EtsMethod methods = 3;
+}
+
+message EtsClassSignature {
+  string name = 1;
+  repeated EtsType typeParameters = 2;
+}
+
+message EtsField {
+  EtsFieldSignature signature = 1;
+}
+
+message EtsFieldSignature {
+  string name = 1;
+  EtsType type = 2;
+}
+
+message EtsMethod {
+  EtsMethodSignature signature = 1;
+  repeated EtsType typeParameters = 2;
+  EtsBlockCfg cfg = 3;
+}
+
+message EtsMethodSignature {
+  string name = 1;
+  repeated EtsMethodParameter parameters = 2;
+  EtsType returnType = 3;
+}
+
+message EtsMethodParameter {
+  string name = 1;
+  EtsType type = 2;
+  bool isOptional = 3;
+  bool isRest = 4;
+}
+
+message EtsBlockCfg {
+  repeated EtsBlock blocks = 1;
+}
+
+message EtsBlock {
+  int32 id = 1;
+  repeated EtsStmt statements = 2;
+  repeated int32 successors = 3;
+  repeated int32 predecessors = 4;
+}
+
+// ==============================================
+
+message EtsType {
+  oneof kind {
+    EtsRawType raw_type = 1;
+    EtsAnyType any_type = 2;
+    EtsUnknownType unknown_type = 3;
+    EtsUnionType union_type = 4;
+    EtsIntersectionType intersection_type = 5;
+    EtsGenericType generic_type = 6;
+    EtsAliasType alias_type = 7;
+    EtsBooleanType boolean_type = 8;
+    EtsNumberType number_type = 9;
+    EtsStringType string_type = 10;
+    EtsNullType null_type = 11;
+    EtsUndefinedType undefined_type = 12;
+    EtsVoidType void_type = 13;
+    EtsNeverType never_type = 14;
+    EtsLiteralType literal_type = 15;
+    EtsClassType class_type = 16;
+    EtsUnclearRefType unclear_ref_type = 17;
+    EtsArrayType array_type = 18;
+    EtsTupleType tuple_type = 19;
+    EtsFunctionType function_type = 20;
+  }
+}
+
+message EtsAnyType {}
+message EtsUnknownType {}
+message EtsBooleanType {}
+message EtsNumberType {}
+message EtsStringType {}
+message EtsNullType {}
+message EtsUndefinedType {}
+message EtsVoidType {}
+message EtsNeverType {}
+
+message EtsUnionType {
+  repeated EtsType types = 1;
+}
+
+message EtsIntersectionType {
+  repeated EtsType types = 1;
+}
+
+message EtsGenericType {
+  string type_name = 1;
+  optional EtsType constraint = 2;
+  optional EtsType default_type = 3;
+}
+
+message EtsAliasType {
+  string name = 1;
+  EtsType original_type = 2;
+  // TODO: EtsLocalSignature signature = 3;
+}
+
+message EtsLiteralType {
+  string literal_name = 1;
+}
+
+message EtsClassType {
+  EtsClassSignature signature = 1;
+  repeated EtsType type_parameters = 2;
+}
+
+message EtsUnclearRefType {
+  string name = 1;
+  repeated EtsType type_parameters = 2;
+}
+
+message EtsArrayType {
+  EtsType element_type = 1;
+  int32 dimensions = 2;
+}
+
+message EtsTupleType {
+  repeated EtsType types = 1;
+}
+
+message EtsFunctionType {
+  EtsMethodSignature signature = 1;
+  repeated EtsType type_parameters = 2;
+}
+
+message EtsRawType {
+  string kind = 1;
+  string text = 2;
+  // map<string, string> extra = 2;
+  // map<string, google.protobuf.Any> extra = 2;
+}
+
+// ==============================================
+
+message EtsStmt {
+  oneof stmt_type {
+    EtsRawStmt raw_stmt = 1;
+    EtsNopStmt nop_stmt = 2;
+    EtsAssignStmt assign_stmt = 3;
+    EtsReturnStmt return_stmt = 4;
+    EtsThrowStmt throw_stmt = 5;
+    EtsIfStmt if_stmt = 6;
+    EtsCallStmt call_stmt = 7;
+  }
+}
+
+message EtsRawStmt {
+  string kind = 1;
+  string text = 2;
+}
+
+message EtsNopStmt {}
+
+message EtsAssignStmt {
+  EtsValue lhv = 1;
+  EtsValue rhv = 2;
+}
+
+message EtsReturnStmt {
+  optional EtsValue return_value = 1;
+}
+
+message EtsThrowStmt {
+  EtsValue exception = 1;
+}
+
+message EtsIfStmt {
+  EtsValue condition = 1;
+}
+
+message EtsCallStmt {
+  EtsCallExpr expr = 1;
+}
+
+// ==============================================
+
+message EtsValue {
+  oneof value {
+    EtsRawValue raw_value = 1;
+    EtsLocal local = 2;
+    EtsConstant constant = 3;
+    EtsExpr expr = 4;
+    EtsRef ref = 5;
+  }
+}
+
+message EtsRawValue {
+  string kind = 1;
+  string text = 2;
+  EtsType type = 3;
+}
+
+message EtsLocal {
+  string name = 1;
+  EtsType type = 3;
+}
+
+message EtsConstant {
+  string value = 1;
+  EtsType type = 3;
+}
+
+message EtsExpr {
+  oneof expr {
+    EtsNewExpr new_expr = 1;
+    EtsNewArrayExpr new_array_expr = 2;
+    EtsDeleteExpr delete_expr = 3;
+    EtsAwaitExpr await_expr = 4;
+    EtsYieldExpr yield_expr = 5;
+    EtsTypeOfExpr type_of_expr = 6;
+    EtsInstanceOfExpr instance_of_expr = 7;
+    EtsCastExpr cast_expr = 8;
+    EtsUnaryExpr unary_expr = 9;
+    EtsBinaryExpr binary_expr = 10;
+    EtsRelationExpr relation_expr = 11;
+    EtsCallExpr call_expr = 12;
+  }
+}
+
+message EtsNewExpr {
+  EtsType type = 1;
+}
+
+message EtsNewArrayExpr {
+  EtsType element_type = 1;
+  EtsValue size = 2;
+}
+
+message EtsDeleteExpr {
+  EtsValue arg = 1;
+}
+
+message EtsAwaitExpr {
+  EtsValue arg = 1;
+}
+
+message EtsYieldExpr {
+  EtsValue arg = 1;
+}
+
+message EtsTypeOfExpr {
+  EtsValue arg = 1;
+}
+
+message EtsCastExpr {
+  EtsValue arg = 1;
+  EtsType type = 2;
+}
+
+message EtsInstanceOfExpr {
+  EtsValue arg = 1;
+  EtsType check_type = 2;
+}
+
+message EtsUnaryExpr {
+  EtsUnaryOperator op = 1;
+  EtsValue arg = 2;
+  EtsType type = 3;
+}
+
+enum EtsUnaryOperator {
+  UNARY_UNKNOWN = 0;
+  // DELETE = 1;      // delete
+  // AWAIT = 2;       // await
+  // YIELD = 3;       // yield
+  // TYPEOF = 4;      // typeof
+  // VOID = 5;        // void
+  NEG = 6;          // -
+  BITWISE_NOT = 7;      // ~
+  LOGICAL_NOT = 8;  // !
+  // UNARY_PLUS = 9;   // +
+  // PRE_INC = 10;     // ++
+  // PRE_DEC = 11;     // --
+  // POST_INC = 12;    // ++
+  // POST_DEC = 13;    // --
+}
+
+message EtsBinaryExpr {
+  EtsBinaryOperator op = 1;
+  EtsValue left = 2;
+  EtsValue right = 3;
+  EtsType type = 4;
+}
+
+enum EtsBinaryOperator {
+  NORMAL_UNKNOWN = 0;
+
+  ADDITION = 1;        // '+'
+  SUBTRACTION = 2;     // '-'
+  MULTIPLICATION = 3;  // '*'
+  DIVISION = 4;        // '/'
+  REMAINDER = 5;       // '%'
+  EXPONENTIATION = 6;  // '**'
+
+  LEFT_SHIFT = 7;            // '<<'
+  RIGHT_SHIFT = 8;           // '>>'
+  UNSIGNED_RIGHT_SHIFT = 9;  // '>>>'
+
+  BITWISE_AND = 10;  // '&'
+  BITWISE_OR = 11;   // '|'
+  BITWISE_XOR = 12;  // '^'
+
+  LOGICAL_AND = 13;  // '&&'
+  LOGICAL_OR = 14;   // '||'
+
+  NULLISH_COALESCING = 20;  // ??
+}
+
+// Relation Expressions
+message EtsRelationExpr {
+  EtsRelationOperator op = 1;
+  EtsValue left = 2;
+  EtsValue right = 3;
+}
+
+// Relation Operators
+enum EtsRelationOperator {
+  RELATION_UNKNOWN = 0;
+  EQ = 1;          // '=='
+  NEQ = 2;         // '!='
+  STRICT_EQ = 3;   // '==='
+  STRICT_NEQ = 4;  // '!=='
+  LT = 5;          // '<'
+  LTE = 6;         // '<='
+  GT = 7;          // '>'
+  GTE = 8;         // '>='
+  IN = 9;          // 'in'
+}
+
+// Call Expressions
+message EtsCallExpr {
+  EtsMethodSignature callee = 1;
+  repeated EtsValue args = 2;
+  EtsType type = 3;
+
+  oneof call_type {
+    EtsInstanceCall instance_call = 4;
+    EtsStaticCall static_call = 5;
+    EtsPtrCall ptr_call = 6;
+  }
+}
+
+message EtsInstanceCall {
+  EtsLocal instance = 1;
+}
+
+message EtsStaticCall {
+  // Note: class name is included in the callee's signature
+}
+
+message EtsPtrCall {
+  EtsValue ptr = 1;
+}
+
+// References
+message EtsRef {
+  oneof ref {
+    EtsThis this = 1;
+    EtsParameterRef parameter = 2;
+    EtsArrayAccess array_access = 3;
+    EtsFieldRef field_ref = 4;
+  }
+}
+
+message EtsThis {
+  EtsType type = 1;
+}
+
+message EtsParameterRef {
+  int32 index = 1;
+  EtsType type = 2;
+}
+
+message EtsArrayAccess {
+  EtsLocal array = 1;
+  EtsValue index = 2;
+  EtsType type = 3;
+}
+
+message EtsFieldRef {
+  oneof field_type {
+    EtsInstanceFieldRef instance = 1;
+    EtsStaticFieldRef static = 2;
+  }
+}
+
+message EtsInstanceFieldRef {
+  EtsLocal instance = 1;
+  EtsFieldSignature field = 2;
+  EtsType type = 3;
+}
+
+message EtsStaticFieldRef {
+  EtsFieldSignature field = 1;
+  EtsType type = 2;
+}
