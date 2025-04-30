@@ -3,10 +3,8 @@ package org.usvm.util
 import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsClassType
-import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsScene
-import kotlin.collections.flatten
 
 private typealias ClassName = String
 
