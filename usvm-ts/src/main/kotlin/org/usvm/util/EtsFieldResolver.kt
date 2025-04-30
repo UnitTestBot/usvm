@@ -67,11 +67,13 @@ private fun tryGetSingleField(
     if (classes.size == 1) {
         val clazz = classes.single()
         val fields = clazz.fields.filter { it.name == fieldName }
-        when (fields.size) {
-            0 -> error("No field with name '$fieldName' in class '${clazz.name}'")
-            1 -> return fields.single()
-            else -> error("Multiple fields with name '$fieldName' in class '${clazz.name}': $fields")
+        if (fields.isEmpty()) {
+            error("No field with name '$fieldName' in class '${clazz.name}'")
         }
+        if (fields.size > 1) {
+            error("Multiple fields with name '$fieldName' in class '${clazz.name}': $fields")
+        }
+        return fields.single()
     }
     val fields = classes.flatMap { cls ->
         cls.fields.filter { it.name == fieldName }
