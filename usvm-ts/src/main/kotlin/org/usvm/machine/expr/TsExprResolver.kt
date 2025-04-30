@@ -680,6 +680,7 @@ class TsExprResolver(
             // TODO: handle "length" property for arrays inside fake objects
             if (instanceRef.isFakeObject()) {
                 val fakeType = instanceRef.getFakeType(scope)
+                // TODO: replace '.isTrue' with fork or assert
                 if (fakeType.refTypeExpr.isTrue) {
                     val refLValue = getIntermediateRefLValue(instanceRef.address)
                     val obj = scope.calcOnState { memory.read(refLValue) }
