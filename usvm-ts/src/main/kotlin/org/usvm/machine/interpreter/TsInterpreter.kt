@@ -390,17 +390,6 @@ class TsInterpreter(
 
                 is EtsInstanceFieldRef -> {
                     val instance = exprResolver.resolve(lhv.instance)?.asExpr(addressSort) ?: return@doWithState
-                    // val type = run {
-                    //     val fields = scene.projectAndSdkClasses
-                    //         .flatMap { it.fields }
-                    //         .filter { it.name == lhv.field.name }
-                    //     if (fields.size == 1) {
-                    //         val field = fields.single()
-                    //         return@run field.type
-                    //     }
-                    //     logger.warn { "Could not resolve field '${lhv.field.name}'" }
-                    //     EtsUnknownType
-                    // }
                     val etsField = resolveEtsField(lhv.instance, lhv.field)
                     val type = etsField.type
                     val sort = typeToSort(type)
