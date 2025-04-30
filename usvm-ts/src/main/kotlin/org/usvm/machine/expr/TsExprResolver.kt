@@ -223,7 +223,6 @@ class TsExprResolver(
         return resolveUnaryOperator(TsUnaryOperator.Not, expr)
     }
 
-    // TODO move into TsUnaryOperator
     override fun visit(expr: EtsNegExpr): UExpr<out USort>? {
         return resolveUnaryOperator(TsUnaryOperator.Neg, expr)
     }
