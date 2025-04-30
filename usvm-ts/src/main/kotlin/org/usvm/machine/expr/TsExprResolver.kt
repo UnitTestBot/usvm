@@ -651,7 +651,7 @@ class TsExprResolver(
         val etsField = resolveEtsField(instance, field)
         val sort = typeToSort(etsField.type)
 
-        val expr = if (sort == unresolvedSort) {
+        if (sort == unresolvedSort) {
             val boolLValue = mkFieldLValue(boolSort, instanceRef, field)
             val fpLValue = mkFieldLValue(fp64Sort, instanceRef, field)
             val refLValue = mkFieldLValue(addressSort, instanceRef, field)
@@ -676,14 +676,6 @@ class TsExprResolver(
         } else {
             val lValue = mkFieldLValue(sort, instanceRef, field)
             scope.calcOnState { memory.read(lValue) }
-        }
-
-        // TODO: check 'field.type' vs 'etsField.type'
-        // TODO change it
-        if (assertIsSubtype(expr, field.type)) {
-            expr
-        } else {
-            null
         }
     }
 
@@ -818,11 +810,6 @@ class TsExprResolver(
     }
 
     // endregion
-
-    // TODO incorrect implementation
-    private fun assertIsSubtype(expr: UExpr<out USort>, type: EtsType): Boolean {
-        return true
-    }
 }
 
 class TsSimpleValueResolver(
