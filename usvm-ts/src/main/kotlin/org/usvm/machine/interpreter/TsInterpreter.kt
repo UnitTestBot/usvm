@@ -122,8 +122,8 @@ class TsInterpreter(
             }
         } catch (e: Exception) {
             logger.error {
-                // "Exception: " + e.stackTraceToString()
-                "Exception: $e\n${e.stackTrace[0]}"
+                val s = e.stackTrace[0]
+                "Exception .(${s.fileName}:${s.lineNumber}): $e}"
             }
         }
 
