@@ -13,7 +13,6 @@ import org.jacodb.ets.model.EtsNeverType
 import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsPrimitiveType
-import org.jacodb.ets.model.EtsRef
 import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
@@ -189,7 +188,6 @@ open class TsTestStateResolver(
         return when (type) {
             // TODO add better support
             is EtsUnclearRefType -> {
-                val cls = ctx.scene.projectAndSdkClasses.single { it.name == type.typeName }
                 resolveTsClass(concreteRef, finalStateMemoryRef ?: heapRef)
             }
 

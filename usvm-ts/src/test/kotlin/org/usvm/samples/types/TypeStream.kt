@@ -1,7 +1,6 @@
 package org.usvm.samples.types
 
 import org.jacodb.ets.model.EtsScene
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsValue
 import org.usvm.util.TsMethodTestRunner

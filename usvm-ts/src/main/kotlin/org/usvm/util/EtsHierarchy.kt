@@ -30,7 +30,7 @@ class EtsHierarchy(private val scene: EtsScene) {
                     val classesWithTheSameSignature = classesWithTheSameName[superClassSignature]
                     val superClasses = when {
                         classesWithTheSameSignature != null -> listOf(classesWithTheSameSignature)
-                        superClassSignature.file == EtsFileSignature.UNKNOWN -> classesWithTheSameName.values
+                        superClassSignature.file == EtsFileSignature.UNKNOWN -> classesWithTheSameName.values1
                         else -> error("There is no class with name ${superClassSignature.name}")
                     }
                     val interfaces = currentClass.implementedInterfaces
