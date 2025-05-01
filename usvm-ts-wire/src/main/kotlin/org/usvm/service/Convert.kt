@@ -111,7 +111,6 @@ import org.jacodb.ets.model.EtsValue
 import org.jacodb.ets.model.EtsVoidType
 import org.jacodb.ets.model.EtsYieldExpr
 import manager.BinaryExpr as ProtoBinaryExpr
-import manager.Block as ProtoBlock
 import manager.BlockCfg as ProtoBlockCfg
 import manager.CallExpr as ProtoCallExpr
 import manager.Class as ProtoClass
@@ -411,16 +410,23 @@ class ProtoToEtsConverter {
         }
 
         fun ProtoBlockCfg.toEts(): EtsBlockCfg {
+            if (blocks.isEmpty()) {
+                return EtsBlockCfg.EMPTY
+            }
             return EtsBlockCfg(
-                blocks = blocks.map { it.toEts() },
-                successors = blocks.associate { it.id to it.successors },
-            )
-        }
-
-        fun ProtoBlock.toEts(): BasicBlock {
-            return BasicBlock(
-                id = id,
-                statements = statements.map { it.toEts() },
+                blocks = blocks.map { block ->
+                    currentStmts = mutableListOf()
+                    for (stmt in block.statements) {
+                        currentStmts += stmt.toEts()
+                    }
+                    if (currentStmts.isEmpty()) {
+                        currentStmts += EtsNopStmt(loc())
+                    }
+                    BasicBlock(block.id, currentStmts)
+                },
+                // Note: in AA, successors for IF stmts are (false, true) branches,
+                //       however in all our CFGs we use (true, false) order.
+                successors = blocks.associate { it.id to it.successors.asReversed() },
             )
         }
 
