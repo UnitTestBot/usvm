@@ -30,29 +30,15 @@ message File {
   // TODO: namespaces
 }
 
-message FileSignature {
-  string projectName = 1;
-  string fileName = 2;
-}
-
 message Class {
   ClassSignature signature = 1;
-  repeated Field fields = 2;
-  repeated Method methods = 3;
-}
-
-message ClassSignature {
-  string name = 1;
   repeated Type typeParameters = 2;
+  repeated Field fields = 3;
+  repeated Method methods = 4;
 }
 
 message Field {
   FieldSignature signature = 1;
-}
-
-message FieldSignature {
-  string name = 1;
-  Type type = 2;
 }
 
 message Method {
@@ -61,10 +47,27 @@ message Method {
   BlockCfg cfg = 3;
 }
 
+message FileSignature {
+  string projectName = 1;
+  string fileName = 2;
+}
+
+message ClassSignature {
+  optional FileSignature file = 1;
+  string name = 2;
+}
+
+message FieldSignature {
+  optional ClassSignature enclosingClass = 1;
+  string name = 2;
+  Type type = 3;
+}
+
 message MethodSignature {
-  string name = 1;
-  repeated MethodParameter parameters = 2;
-  Type returnType = 3;
+  optional   ClassSignature enclosingClass = 1;
+  string name = 2;
+  repeated MethodParameter parameters = 3;
+  Type returnType = 4;
 }
 
 message MethodParameter {
@@ -84,8 +87,6 @@ message Block {
   repeated int32 successors = 3;
   repeated int32 predecessors = 4;
 }
-
-// ==============================================
 
 message Type {
   oneof kind {
@@ -177,8 +178,6 @@ message RawType {
   // map<string, google.protobuf.Any> extra = 2;
 }
 
-// ==============================================
-
 message Stmt {
   oneof stmt_type {
     RawStmt raw_stmt = 1;
@@ -218,8 +217,6 @@ message IfStmt {
 message CallStmt {
   CallExpr expr = 1;
 }
-
-// ==============================================
 
 message Value {
   oneof value {
@@ -279,10 +276,12 @@ message DeleteExpr {
 
 message AwaitExpr {
   Value arg = 1;
+  Type type = 2;
 }
 
 message YieldExpr {
   Value arg = 1;
+  Type type = 2;
 }
 
 message TypeOfExpr {

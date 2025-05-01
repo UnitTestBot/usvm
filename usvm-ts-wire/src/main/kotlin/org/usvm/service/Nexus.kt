@@ -29,6 +29,17 @@ fun main() {
                 scene.files.flatMap { it.classes }.flatMap { it.methods }.size
             } methods".format(timeRequest.toDouble(DurationUnit.SECONDS))
         }
+        val converter = ProtoToEtsConverter()
+        val etsScene = converter.convert(scene)
+        logger.info {
+            "Converted scene has ${
+                etsScene.projectFiles.size
+            } files, ${
+                etsScene.projectAndSdkClasses.size
+            } classes, ${
+                etsScene.projectAndSdkClasses.flatMap { it.methods }.size
+            } methods"
+        }
     }
     logger.info { "All done in %.2f seconds.".format(time.toDouble(DurationUnit.SECONDS)) }
 }
