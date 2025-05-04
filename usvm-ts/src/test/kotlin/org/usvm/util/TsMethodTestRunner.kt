@@ -1,5 +1,8 @@
 package org.usvm.util
 
+import manager.ManagerClient
+import manager.SceneRequest
+import mu.KotlinLogging
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
@@ -14,7 +17,6 @@ import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUndefinedType
 import org.jacodb.ets.model.EtsUnknownType
-import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS
 import org.usvm.PathSelectionStrategy
@@ -25,10 +27,17 @@ import org.usvm.api.TsTest
 import org.usvm.api.TsTestValue
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
+import org.usvm.service.ProtoToEtsConverter
+import org.usvm.service.grpcClient
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
+import kotlin.io.path.pathString
 import kotlin.reflect.KClass
 import kotlin.time.Duration
+import kotlin.time.DurationUnit
+import kotlin.time.measureTimedValue
+
+private val logger = KotlinLogging.logger {}
 
 typealias CoverageChecker = (TsMethodCoverage) -> Boolean
 
@@ -43,11 +52,47 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
     ): EtsScene {
         val name = "$className.ts"
         val path = getResourcePath("/samples/$name")
-        val file = loadEtsFileAutoConvert(
-            path,
-            useArkAnalyzerTypeInference = if (useArkAnalyzerTypeInference) 1 else null
-        )
-        return EtsScene(listOf(file))
+        // val file = loadEtsFileAutoConvert(
+        //     path,
+        //     useArkAnalyzerTypeInference = if (useArkAnalyzerTypeInference) 1 else null
+        // )
+        // return EtsScene(listOf(file))
+
+        val client: ManagerClient = grpcClient(50051).create()
+
+        logger.info { "Requesting scene for '$path'..." }
+        val (response, timeRequest) = measureTimedValue {
+            val request = SceneRequest(
+                path = path.pathString,
+                inferTypes = useArkAnalyzerTypeInference,
+            )
+            client.GetScene().executeBlocking(request)
+        }
+
+        val scene = response.scene!!
+        logger.info {
+            "Got scene in %.1fs with ${
+                scene.files.size
+            } files, ${
+                scene.files.flatMap { it.classes }.size
+            } classes, ${
+                scene.files.flatMap { it.classes }.flatMap { it.methods }.size
+            } methods".format(timeRequest.toDouble(DurationUnit.SECONDS))
+        }
+
+        logger.info { "Converting scene from proto..." }
+        val converter = ProtoToEtsConverter()
+        val etsScene = converter.convert(scene)
+        logger.info {
+            "Converted scene has ${
+                etsScene.projectFiles.size
+            } files, ${
+                etsScene.projectAndSdkClasses.size
+            } classes, ${
+                etsScene.projectAndSdkClasses.flatMap { it.methods }.size
+            } methods"
+        }
+        return etsScene
     }
 
     protected fun getMethod(className: String, methodName: String): EtsMethod {
