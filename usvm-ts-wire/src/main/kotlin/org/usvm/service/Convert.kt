@@ -182,14 +182,16 @@ class ProtoToEtsConverter {
     fun ProtoMethod.toEts(
         classSignature: EtsClassSignature,
     ): EtsMethod {
-        return EtsMethodImpl(
+        val method = EtsMethodImpl(
             signature = signature!!.toEts(classSignature),
             typeParameters = typeParameters.map { it.toEts() },
             // TODO: modifiers
             // TODO: decorators
-        ).also {
-            it._cfg = cfg!!.toEts(it)
+        )
+        if (cfg != null) {
+            method._cfg = cfg!!.toEts(method)
         }
+        return method
     }
 
     // endregion model
