@@ -21,7 +21,7 @@ class TsTypeSystem(
     val scene: EtsScene,
     override val typeOperationsTimeout: Duration,
     val hierarchy: EtsHierarchy,
-    ) : UTypeSystem<EtsType> {
+) : UTypeSystem<EtsType> {
     /**
      * @return true if [type] <: [supertype].
      */
@@ -103,7 +103,7 @@ class TsTypeSystem(
                 // TODO wrong type resolutions because of names
                 val clazz = scene
                     .projectAndSdkClasses
-                    .singleOrNull() { it.type.typeName == type.typeName }
+                    .singleOrNull { it.type.typeName == type.typeName }
                     ?: error("TODO")
                 val ancestors = hierarchy.getAncestor(clazz).map { it.type }
 
@@ -130,19 +130,18 @@ class TsTypeSystem(
         is EtsPrimitiveType -> {
             types.isEmpty()
         }
+
         is EtsClassType -> true
         is EtsUnclearRefType -> true
         is EtsArrayType -> TODO()
         else -> error("Unsupported class type: $type")
     }
 
-    // TODO is it right?
     /**
      * @return true if there is no type u distinct from [type] and subtyping [type].
      */
     override fun isFinal(type: EtsType): Boolean = type is EtsPrimitiveType
 
-    // TODO are there any non instantiable types?
     /**
      * @return true if [type] is instantiable, meaning it can be created via constructor.
      */
@@ -162,12 +161,10 @@ class TsTypeSystem(
      */
     override fun findSubtypes(type: EtsType): Sequence<EtsType> {
         return when (type) {
-            is EtsPrimitiveType -> emptySequence() // TODO why???
-            // TODO they should be direct inheritors, not all of them
+            is EtsPrimitiveType -> emptySequence()
             is EtsAnyType,
             is EtsUnknownType -> {
-                // scene.projectAndSdkClasses.asSequence().map { it.type }
-                error("")
+                error("Should not be called")
             }
 
             is AuxiliaryType -> {
@@ -185,7 +182,9 @@ class TsTypeSystem(
                     val classes = scene.projectAndSdkClasses.filter { it.type.typeName == type.typeName }
                     classes.asSequence().flatMap { hierarchy.getInheritors(it) }.map { it.type }
                 } else {
-                    val clazz = scene.projectAndSdkClasses.singleOrNull { it.type == type } ?: error("Cannot find class for $type")
+                    val clazz = scene.projectAndSdkClasses.singleOrNull { it.type == type }
+                        ?: error("Cannot find class for $type")
+                    // TODO take only direct inheritors
                     hierarchy.getInheritors(clazz).asSequence().map { it.type }
                 }
             }

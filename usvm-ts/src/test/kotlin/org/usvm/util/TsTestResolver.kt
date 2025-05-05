@@ -368,9 +368,7 @@ open class TsTestStateResolver(
         concreteRef: UConcreteHeapRef,
         heapRef: UHeapRef,
     ): TsTestValue.TsClass = with(ctx) {
-        val type = model.typeStreamOf(concreteRef).first() as? EtsRefType ?: run {
-            TODO()
-        }
+        val type = model.typeStreamOf(concreteRef).first() as? EtsRefType ?: error("Expected EtsRefType")
         val clazz = resolveClass(type)
         val properties = clazz.fields
             .filterNot { field ->
