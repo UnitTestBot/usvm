@@ -15,7 +15,6 @@ import org.jacodb.ets.model.EtsBitOrExpr
 import org.jacodb.ets.model.EtsBitXorExpr
 import org.jacodb.ets.model.EtsBooleanConstant
 import org.jacodb.ets.model.EtsCastExpr
-import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsConstant
 import org.jacodb.ets.model.EtsDeleteExpr
@@ -24,7 +23,6 @@ import org.jacodb.ets.model.EtsEntity
 import org.jacodb.ets.model.EtsEqExpr
 import org.jacodb.ets.model.EtsExpExpr
 import org.jacodb.ets.model.EtsFieldSignature
-import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsFunctionType
 import org.jacodb.ets.model.EtsGtEqExpr
 import org.jacodb.ets.model.EtsGtExpr
@@ -68,7 +66,6 @@ import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsTypeOfExpr
 import org.jacodb.ets.model.EtsUnaryExpr
 import org.jacodb.ets.model.EtsUnaryPlusExpr
-import org.jacodb.ets.model.EtsUnclearRefType
 import org.jacodb.ets.model.EtsUndefinedConstant
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.model.EtsUnsignedRightShiftExpr
