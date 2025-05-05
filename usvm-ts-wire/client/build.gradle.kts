@@ -1,17 +1,6 @@
 plugins {
     id("usvm.kotlin-conventions")
     id("com.squareup.wire") version "5.3.1"
-    application
-}
-
-application {
-    mainClass.set("org.usvm.service.ServerKt")
-}
-
-buildscript {
-    dependencies {
-        classpath("com.squareup.wiregrpcserver:server-generator:1.0.0-alpha04")
-    }
 }
 
 dependencies {
