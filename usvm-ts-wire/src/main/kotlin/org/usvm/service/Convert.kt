@@ -122,6 +122,7 @@ import manager.File as ProtoFile
 import manager.FileSignature as ProtoFileSignature
 import manager.Local as ProtoLocal
 import manager.Method as ProtoMethod
+import manager.MethodParameter as ProtoMethodParameter
 import manager.MethodSignature as ProtoMethodSignature
 import manager.Ref as ProtoRef
 import manager.RelationExpr as ProtoRelationExpr
@@ -237,16 +238,18 @@ class ProtoToEtsConverter {
                 ?: enclosingClass?.toEts()
                 ?: EtsClassSignature.UNKNOWN,
             name = name,
-            parameters = parameters.mapIndexed { i, p ->
-                EtsMethodParameter(
-                    index = i,
-                    name = p.name,
-                    type = p.type!!.toEts(),
-                    isOptional = false, // TODO
-                    isRest = false, // TODO
-                )
-            },
+            parameters = parameters.mapIndexed { i, p -> p.toEts(i) },
             returnType = returnType!!.toEts(),
+        )
+    }
+
+    fun ProtoMethodParameter.toEts(index: Int): EtsMethodParameter {
+        return EtsMethodParameter(
+            index = index,
+            name = name,
+            type = type!!.toEts(),
+            isOptional = isOptional,
+            isRest = isRest,
         )
     }
 
