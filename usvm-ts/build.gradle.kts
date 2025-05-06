@@ -25,14 +25,6 @@ dependencies {
     testImplementation(Libs.mockk)
     testImplementation(Libs.junit_jupiter_params)
     testImplementation(Libs.logback)
-
-    testImplementation(project(":usvm-ts-wire"))
-    testImplementation(project(":usvm-ts-wire:client"))
-    testImplementation(project(":usvm-ts-wire:server"))
-
-    // https://mvnrepository.com/artifact/org.burningwave/core
-    // Use it to export all modules to all
-    testImplementation("org.burningwave:core:12.62.7")
 }
 
 val generateSdkIR by tasks.registering {

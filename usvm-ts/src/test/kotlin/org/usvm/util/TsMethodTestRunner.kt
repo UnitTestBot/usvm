@@ -3,6 +3,8 @@ package org.usvm.util
 import manager.ManagerClient
 import manager.SceneRequest
 import mu.KotlinLogging
+import org.jacodb.ets.grpc.ProtoToEtsConverter
+import org.jacodb.ets.grpc.grpcClient
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
@@ -27,8 +29,6 @@ import org.usvm.api.TsTest
 import org.usvm.api.TsTestValue
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
-import org.usvm.service.ProtoToEtsConverter
-import org.usvm.service.grpcClient
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import kotlin.io.path.pathString
