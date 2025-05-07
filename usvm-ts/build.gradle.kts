@@ -1,3 +1,4 @@
+import com.github.gradle.node.npm.task.NpmTask
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -8,6 +9,7 @@ import kotlin.time.Duration
 
 plugins {
     id("usvm.kotlin-conventions")
+    id("com.github.node-gradle.node") version "7.1.0"
 }
 
 dependencies {
@@ -25,6 +27,16 @@ dependencies {
     testImplementation(Libs.mockk)
     testImplementation(Libs.junit_jupiter_params)
     testImplementation(Libs.logback)
+}
+
+node {
+    download = true
+    nodeProjectDir.set(file("arkanalyzer"))
+}
+
+val startArkAnalyzerServer by tasks.registering(NpmTask::class) {
+    dependsOn(tasks.npmInstall)
+    args = listOf("run", "server")
 }
 
 val generateSdkIR by tasks.registering {
