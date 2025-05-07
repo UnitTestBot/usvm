@@ -3,8 +3,10 @@ package org.usvm.util
 import io.ksmt.sort.KFp64Sort
 import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUnclearRefType
 import org.usvm.UBoolSort
 import org.usvm.UExpr
 import org.usvm.UHeapRef
@@ -28,3 +30,6 @@ val EtsMethod.humanReadableSignature: String
         val params = parameters.joinToString(",") { it.type.toString() }
         return "${signature.enclosingClass.name}::$name($params):$returnType"
     }
+
+fun EtsType.isResolved(): Boolean =
+    this is EtsUnclearRefType || (this as? EtsClassType)?.signature?.file == EtsFileSignature.UNKNOWN

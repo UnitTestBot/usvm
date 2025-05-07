@@ -152,6 +152,11 @@ class Call {
         let x = new ValueHolderWithPublicParameter(5);
         return x.value;
     }
+
+    structuralEqualityTrickery(): number {
+        let x: A = makeA();
+        return x.foo(); // 20 (!!!) from B::foo
+    }
 }
 
 class A {
@@ -164,6 +169,10 @@ class B {
     foo(): number {
         return 20
     }
+}
+
+function makeA(): A {
+    return new B(); // hehe
 }
 
 namespace N1 {

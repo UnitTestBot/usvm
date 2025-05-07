@@ -1,5 +1,6 @@
 package org.usvm.util
 
+import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsField
 import org.jacodb.ets.model.EtsFieldSignature
@@ -82,4 +83,8 @@ private fun tryGetSingleField(
         return fields.single()
     }
     return null
+}
+
+fun EtsClass.getAllFields(hierarchy: EtsHierarchy): List<EtsField> {
+    return hierarchy.getAncestor(this).flatMap { it.fields }
 }

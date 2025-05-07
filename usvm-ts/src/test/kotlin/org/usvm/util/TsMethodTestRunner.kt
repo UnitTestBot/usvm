@@ -39,10 +39,11 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
 
     protected fun loadSampleScene(
         className: String,
+        folderPrefix: String = "",
         useArkAnalyzerTypeInference: Boolean = false,
     ): EtsScene {
         val name = "$className.ts"
-        val path = getResourcePath("/samples/$name")
+        val path = getResourcePath("/samples/$folderPrefix/$name")
         val file = loadEtsFileAutoConvert(
             path,
             useArkAnalyzerTypeInference = if (useArkAnalyzerTypeInference) 1 else null

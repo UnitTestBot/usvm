@@ -22,7 +22,7 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
 
         @JvmStatic
         private fun projectAvailable(): Boolean {
-            return getResourcePathOrNull(PROJECT_PATH) != null
+            return getResourcePathOrNull(PROJECT_PATH) != null && getResourcePathOrNull(SDK_PATH) != null
         }
     }
 
