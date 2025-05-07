@@ -73,7 +73,10 @@ class TsTypeSystem(
                 typeFields.mapTo(mutableSetOf()) { it.name }.containsAll(supertype.properties)
             }
 
-            supertype == type -> true
+            supertype == type -> {
+                true
+            }
+
             supertype == EtsUnknownType || supertype == EtsAnyType -> {
                 true
             }
@@ -127,10 +130,7 @@ class TsTypeSystem(
      */
     override fun hasCommonSubtype(type: EtsType, types: Collection<EtsType>): Boolean = when (type) {
         is AuxiliaryType -> true
-        is EtsPrimitiveType -> {
-            types.isEmpty()
-        }
-
+        is EtsPrimitiveType -> types.isEmpty()
         is EtsClassType -> true
         is EtsUnclearRefType -> true
         is EtsArrayType -> TODO()
@@ -152,41 +152,45 @@ class TsTypeSystem(
         if (type is EtsAnyType) {
             return false
         }
-
         return true
     }
 
     /**
      * @return a sequence of **direct** inheritors of the [type].
      */
-    override fun findSubtypes(type: EtsType): Sequence<EtsType> {
-        return when (type) {
-            is EtsPrimitiveType -> emptySequence()
-            is EtsAnyType,
-            is EtsUnknownType -> {
-                error("Should not be called")
-            }
+    override fun findSubtypes(type: EtsType): Sequence<EtsType> = when (type) {
+        is EtsPrimitiveType -> {
+            emptySequence()
+        }
 
-            is AuxiliaryType -> {
-                scene.projectAndSdkClasses.filter {
-                    it.getAllFields(hierarchy).mapTo(mutableSetOf()) { it.name }.containsAll(type.properties)
-                }.asSequence().map { it.type } // TODO get fields of ancestors
-            }
+        is EtsAnyType, is EtsUnknownType -> {
+            error("Should not be called")
+        }
 
-            else -> {
-                if (type == EtsHierarchy.OBJECT_CLASS) {
-                    return scene.projectAndSdkClasses.asSequence().map { it.type }
+        is AuxiliaryType -> {
+            scene.projectAndSdkClasses
+                .asSequence()
+                .filter {
+                    it.getAllFields(hierarchy)
+                        .mapTo(mutableSetOf()) { it.name }
+                        .containsAll(type.properties)
                 }
-                // TODO wrong usage of names
-                if (type is EtsUnclearRefType) {
-                    val classes = scene.projectAndSdkClasses.filter { it.type.typeName == type.typeName }
-                    classes.asSequence().flatMap { hierarchy.getInheritors(it) }.map { it.type }
-                } else {
-                    val clazz = scene.projectAndSdkClasses.singleOrNull { it.type == type }
-                        ?: error("Cannot find class for $type")
-                    // TODO take only direct inheritors
-                    hierarchy.getInheritors(clazz).asSequence().map { it.type }
-                }
+                .map { it.type } // TODO get fields of ancestors
+        }
+
+        else -> {
+            if (type == EtsHierarchy.OBJECT_CLASS) {
+                return scene.projectAndSdkClasses.asSequence().map { it.type }
+            }
+            // TODO wrong usage of names
+            if (type is EtsUnclearRefType) {
+                val classes = scene.projectAndSdkClasses.filter { it.type.typeName == type.typeName }
+                classes.asSequence().flatMap { hierarchy.getInheritors(it) }.map { it.type }
+            } else {
+                val clazz = scene.projectAndSdkClasses.singleOrNull { it.type == type }
+                    ?: error("Cannot find class for $type")
+                // TODO take only direct inheritors
+                hierarchy.getInheritors(clazz).asSequence().map { it.type }
             }
         }
     }
