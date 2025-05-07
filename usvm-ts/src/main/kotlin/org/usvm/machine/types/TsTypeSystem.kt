@@ -22,9 +22,6 @@ class TsTypeSystem(
     override val typeOperationsTimeout: Duration,
     val hierarchy: EtsHierarchy,
 ) : UTypeSystem<EtsType> {
-    /**
-     * @return true if [type] <: [supertype].
-     */
     override fun isSupertype(supertype: EtsType, type: EtsType): Boolean {
         return when {
             type is AuxiliaryType -> {
@@ -33,13 +30,14 @@ class TsTypeSystem(
                     return true
                 }
 
-                // We think that only ref types contain fields, and ObjectClass is a top type for ref types
+                // We think that only ref types contain fields,
+                // and ObjectClass is a top type for ref types
                 if (supertype == EtsHierarchy.OBJECT_CLASS) {
                     return true
                 }
 
-                // If we compare two auxiliary types,
-                // we should check if all fields of the first type are in the second type
+                // If we compare two auxiliary types, we should check
+                // if all fields of the first type are in the second type.
                 if (supertype is AuxiliaryType) {
                     return type.properties.all { it in supertype.properties }
                 }
@@ -123,11 +121,6 @@ class TsTypeSystem(
         }
     }
 
-    /**
-     * @return true if [types] and [type] can be supertypes for some type together.
-     * It is guaranteed that [type] is not a supertype for any type from [types]
-     * and that [types] have common subtype.
-     */
     override fun hasCommonSubtype(type: EtsType, types: Collection<EtsType>): Boolean = when (type) {
         is AuxiliaryType -> true
         is EtsPrimitiveType -> types.isEmpty()
@@ -137,14 +130,8 @@ class TsTypeSystem(
         else -> error("Unsupported class type: $type")
     }
 
-    /**
-     * @return true if there is no type u distinct from [type] and subtyping [type].
-     */
     override fun isFinal(type: EtsType): Boolean = type is EtsPrimitiveType
 
-    /**
-     * @return true if [type] is instantiable, meaning it can be created via constructor.
-     */
     override fun isInstantiable(type: EtsType): Boolean {
         if (type is EtsUnknownType) {
             return false
@@ -155,9 +142,6 @@ class TsTypeSystem(
         return true
     }
 
-    /**
-     * @return a sequence of **direct** inheritors of the [type].
-     */
     override fun findSubtypes(type: EtsType): Sequence<EtsType> {
         return when (type) {
             is EtsPrimitiveType -> {
