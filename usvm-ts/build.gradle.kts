@@ -9,7 +9,7 @@ import kotlin.time.Duration
 
 plugins {
     id("usvm.kotlin-conventions")
-    id("com.github.node-gradle.node") version "7.1.0"
+    id(Plugins.GradleNode)
 }
 
 dependencies {

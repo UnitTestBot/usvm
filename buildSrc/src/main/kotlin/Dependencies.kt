@@ -6,6 +6,7 @@ object Versions {
     const val clikt = "5.0.0"
     const val detekt = "1.23.7"
     const val ini4j = "0.5.4"
+    const val gradle_node = "7.1.0"
     const val jacodb = "3b6a17f000"
     const val juliet = "1.3.2"
     const val junit = "5.9.3"
@@ -271,6 +272,12 @@ object Plugins {
     object Shadow : ProjectPlugin(
         id = "com.gradleup.shadow",
         version = Versions.shadow
+    )
+
+    // https://github.com/node-gradle/gradle-node-plugin
+    object GradleNode : ProjectPlugin(
+        id = "com.github.node-gradle.node",
+        version = Versions.gradle_node
     )
 }
 
