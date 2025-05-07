@@ -171,7 +171,7 @@ class TsExprResolver(
         dependency0: EtsEntity,
         dependency1: EtsEntity,
         block: (UExpr<out USort>, UExpr<out USort>) -> T,
-    ):T? {
+    ): T? {
         val result0 = resolve(dependency0) ?: return null
         val result1 = resolve(dependency1) ?: return null
         return block(result0, result1)
@@ -417,10 +417,10 @@ class TsExprResolver(
         error("Not supported $expr")
     }
 
-    override fun visit(expr: EtsInstanceOfExpr): UExpr<out USort>? {
-        return scope.calcOnState {
-            val instance = resolve(expr.arg)?.asExpr(ctx.addressSort) ?: return@calcOnState null
-            memory.types.evalIsSubtype(instance, expr.checkType)
+    override fun visit(expr: EtsInstanceOfExpr): UExpr<out USort>? = with(ctx) {
+        val arg = resolve(expr.arg)?.asExpr(addressSort) ?: return null
+        scope.calcOnState {
+            memory.types.evalIsSubtype(arg, expr.checkType)
         }
     }
 
@@ -586,20 +586,20 @@ class TsExprResolver(
     // region ACCESS
 
     override fun visit(value: EtsArrayAccess): UExpr<out USort>? = with(ctx) {
-        val instance = resolve(value.array)?.asExpr(ctx.addressSort) ?: return null
-        val index = resolve(value.index)?.asExpr(ctx.fp64Sort) ?: return null
+        val array = resolve(value.array)?.asExpr(addressSort) ?: return null
+        val index = resolve(value.index)?.asExpr(fp64Sort) ?: return null
         val bvIndex = mkFpToBvExpr(
             roundingMode = fpRoundingModeSortDefaultValue(),
             value = index,
             bvSize = 32,
-            isSigned = true
-        )
+            isSigned = true,
+        ).asExpr(sizeSort)
 
         val lValue = mkArrayIndexLValue(
-            addressSort,
-            instance,
-            bvIndex.asExpr(ctx.sizeSort),
-            value.array.type as EtsArrayType
+            sort = addressSort,
+            ref = array,
+            index = bvIndex,
+            type = value.array.type as EtsArrayType
         )
         val expr = scope.calcOnState { memory.read(lValue) }
 
@@ -610,8 +610,8 @@ class TsExprResolver(
 
     private fun checkUndefinedOrNullPropertyRead(instance: UHeapRef) = with(ctx) {
         val neqNull = mkAnd(
-            mkHeapRefEq(instance, ctx.mkUndefinedValue()).not(),
-            mkHeapRefEq(instance, ctx.mkTsNullValue()).not()
+            mkHeapRefEq(instance, mkUndefinedValue()).not(),
+            mkHeapRefEq(instance, mkTsNullValue()).not()
         )
 
         scope.fork(
@@ -753,19 +753,17 @@ class TsExprResolver(
 
     // region OTHER
 
-    override fun visit(expr: EtsNewExpr): UExpr<out USort>? = scope.calcOnState {
-        with(ctx.scene) {
-            // Try to resolve the concrete type if possible.
-            // Otherwise, create an object with UnclearRefType
-            val resolvedType = if (expr.type.isResolved()) {
-                projectAndSdkClasses
-                    .singleOrNull { it.name == expr.type.typeName }?.type
-                    ?: expr.type
-            } else {
-                expr.type
-            }
-            memory.allocConcrete(resolvedType)
+    override fun visit(expr: EtsNewExpr): UExpr<out USort>? = with(ctx) {
+        // Try to resolve the concrete type if possible.
+        // Otherwise, create an object with UnclearRefType
+        val resolvedType = if (expr.type.isResolved()) {
+            scene.projectAndSdkClasses
+                .singleOrNull { it.name == expr.type.typeName }?.type
+                ?: expr.type
+        } else {
+            expr.type
         }
+        scope.calcOnState { memory.allocConcrete(resolvedType) }
     }
 
     override fun visit(expr: EtsNewArrayExpr): UExpr<out USort>? = with(ctx) {
@@ -777,10 +775,10 @@ class TsExprResolver(
             }
 
             val bvSize = mkFpToBvExpr(
-                fpRoundingModeSortDefaultValue(),
-                size.asExpr(fp64Sort),
+                roundingMode = fpRoundingModeSortDefaultValue(),
+                value = size.asExpr(fp64Sort),
                 bvSize = 32,
-                isSigned = true
+                isSigned = true,
             )
 
             val condition = mkAnd(
