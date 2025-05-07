@@ -270,6 +270,15 @@ class Call : TsMethodTestRunner() {
             { r -> r.number == 5.0 },
         )
     }
+
+    @Test
+    fun `test structural equality trickery`() {
+        val method = getMethod(className, "structuralEqualityTrickery")
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { r -> r.number == 20.0 },
+        )
+    }
 }
 
 fun fib(n: Double): Double {
