@@ -207,12 +207,12 @@ class TsInterpreter(
             val type = requireNotNull(method.enclosingClass).type
 
             val constraint = scope.calcOnState {
-                val instance = stmt.instance.asExpr(ctx.addressSort)
+                val ref = stmt.instance.asExpr(ctx.addressSort)
                     .takeIf { !it.isFakeObject() }
                     ?: uncoveredInstance.asExpr(addressSort)
                 // TODO mistake, should be separated into several hierarchies
                 //      or evalTypeEqual with several concrete types
-                memory.types.evalTypeEquals(instance, type)
+                memory.types.evalTypeEquals(ref, type)
             }
             constraint to block
         }
