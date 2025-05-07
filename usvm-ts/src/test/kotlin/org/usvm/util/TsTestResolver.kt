@@ -29,8 +29,8 @@ import org.usvm.USort
 import org.usvm.api.GlobalFieldValue
 import org.usvm.api.TsParametersState
 import org.usvm.api.TsTest
-import org.usvm.api.typeStreamOf
 import org.usvm.api.TsTestValue
+import org.usvm.api.typeStreamOf
 import org.usvm.isTrue
 import org.usvm.machine.TsContext
 import org.usvm.machine.expr.TsUnresolvedSort
@@ -329,9 +329,8 @@ open class TsTestStateResolver(
             TODO()
         }
 
-
         // Special case for Object:
-        val name = when(refType) {
+        val name = when (refType) {
             is EtsClassType -> refType.signature.name
             is EtsUnclearRefType -> refType.name
             else -> error("Unsupported $refType")
@@ -361,7 +360,7 @@ open class TsTestStateResolver(
             return classes.single()
         }
 
-        error("Could not resolve class: ${refType}")
+        error("Could not resolve class: $refType")
     }
 
     private fun resolveTsClass(
