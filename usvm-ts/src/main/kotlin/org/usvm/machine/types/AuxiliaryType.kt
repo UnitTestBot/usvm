@@ -12,5 +12,5 @@ class AuxiliaryType(val properties: Set<String>) : EtsType {
     }
 
     override val typeName: String
-        get() = "AuxiliaryType: $properties"
+        get() = "AuxiliaryType ${properties.toSortedSet()}"
 }
