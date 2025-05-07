@@ -1,10 +1,13 @@
+// @ts-nocheck
+// noinspection JSUnusedGlobalSymbols
+
 class TypeStream {
     ancestorId(ancestor: Parent): Parent {
         return ancestor
     }
 
     virtualInvokeForAncestor(ancestor: Parent): number {
-        var number = ancestor.virtualMethod();
+        const number = ancestor.virtualMethod();
         if (number == 100) {
             return 1
         } else if (number == 200) {
@@ -14,10 +17,10 @@ class TypeStream {
         }
     }
 
-    useUniqueField(value): number {
-        var number = value.firstChildField
-
-        var virtualInvokeResult = value.virtualMethod()
+    useUniqueField(value: any): number {
+        // noinspection JSUnusedLocalSymbols
+        const _ = value.firstChildField;
+        const virtualInvokeResult = value.virtualMethod();
         if (virtualInvokeResult == 100) {
             return -1 // unreachable
         } else if (virtualInvokeResult == 200) {
@@ -27,9 +30,10 @@ class TypeStream {
         }
     }
 
-    useNonUniqueField(value): number {
-        var number = value.parentField
-         var virtualInvokeResult = value.virtualMethod()
+    useNonUniqueField(value: any): number {
+        // noinspection JSUnusedLocalSymbols
+        const _ = value.parentField;
+        const virtualInvokeResult = value.virtualMethod();
         if (virtualInvokeResult == 100) {
             return 1
         } else if (virtualInvokeResult == 200) {
@@ -57,7 +61,7 @@ class FirstChild extends Parent {
 }
 
 class SecondChild extends Parent {
-    override virtualMethod(): number{
+    override virtualMethod(): number {
         return 300;
     }
 
