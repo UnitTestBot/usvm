@@ -15,8 +15,7 @@ class EtsHierarchy(private val scene: EtsScene) {
             .mapValues { (_, classes) ->
                 classes
                     .groupBy { it.signature }
-                    .map { it.key to it.value.single() }
-                    .toMap()
+                    .mapValues { it.value.single() }
             }
     }
 
