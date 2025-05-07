@@ -183,18 +183,19 @@ class TsTypeSystem(
                 if (type == EtsHierarchy.OBJECT_CLASS) {
                     return scene.projectAndSdkClasses.asSequence().map { it.type }
                 }
+
                 // TODO wrong usage of names
                 if (type is EtsUnclearRefType) {
-                    scene.projectAndSdkClasses.asSequence()
+                    return scene.projectAndSdkClasses.asSequence()
                         .filter { it.type.typeName == type.typeName }
                         .flatMap { hierarchy.getInheritors(it) }
                         .map { it.type }
-                } else {
-                    val cls = scene.projectAndSdkClasses.singleOrNull { it.type == type }
-                        ?: error("Cannot find class for $type")
-                    // TODO take only direct inheritors
-                    hierarchy.getInheritors(cls).asSequence().map { it.type }
                 }
+
+                val cls = scene.projectAndSdkClasses.singleOrNull { it.type == type }
+                    ?: error("Cannot find class for type $type")
+                // TODO take only direct inheritors
+                hierarchy.getInheritors(cls).asSequence().map { it.type }
             }
         }
     }
