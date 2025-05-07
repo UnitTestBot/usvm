@@ -62,13 +62,13 @@ class TsTypeSystem(
                     return supertype.properties.isEmpty()
                 }
 
-                val clazz = scene
+                val cls = scene
                     .projectAndSdkClasses
                     .singleOrNull { it.type.typeName == type.typeName }
                     ?: TODO("For now we support only unique type resolution")
-                val typeFields = clazz.getAllFields(hierarchy)
-
-                typeFields.mapTo(mutableSetOf()) { it.name }.containsAll(supertype.properties)
+                cls.getAllFields(hierarchy)
+                    .mapTo(hashSetOf()) { it.name }
+                    .containsAll(supertype.properties)
             }
 
             supertype == type -> {
@@ -155,9 +155,9 @@ class TsTypeSystem(
             is AuxiliaryType -> {
                 scene.projectAndSdkClasses
                     .asSequence()
-                    .filter {
-                        it.getAllFields(hierarchy)
-                            .mapTo(mutableSetOf()) { it.name }
+                    .filter { cls ->
+                        cls.getAllFields(hierarchy)
+                            .mapTo(hashSetOf()) { it.name }
                             .containsAll(type.properties)
                     }
                     .map { it.type } // TODO get fields of ancestors
@@ -176,10 +176,10 @@ class TsTypeSystem(
                         .map { it.type }
                 }
 
-                val cls = scene.projectAndSdkClasses.singleOrNull { it.type == type }
+                val clazz = scene.projectAndSdkClasses.singleOrNull { it.type == type }
                     ?: error("Cannot find class for type $type")
                 // TODO take only direct inheritors
-                hierarchy.getInheritors(cls).asSequence().map { it.type }
+                hierarchy.getInheritors(clazz).asSequence().map { it.type }
             }
         }
     }

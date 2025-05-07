@@ -20,11 +20,10 @@ class EtsHierarchy(private val scene: EtsScene) {
     }
 
     private val ancestors: Map<EtsClass, Set<EtsClass>> by lazy {
-        val classes = scene.projectAndSdkClasses
-        val ancestors = classes.map {
-            it to generateSequence(listOf(it)) { currentClasses ->
-                currentClasses.flatMap { currentClass ->
-                    val superClassSignature = currentClass.superClass ?: return@generateSequence null
+        scene.projectAndSdkClasses.associateWith { start ->
+            generateSequence(listOf(start)) { classes ->
+                classes.flatMap { current ->
+                    val superClassSignature = current.superClass ?: return@generateSequence null
                     val classesWithTheSameName = resolveMap.getValue(superClassSignature.name)
                     val classesWithTheSameSignature = classesWithTheSameName[superClassSignature]
                     val superClasses = when {
@@ -32,20 +31,19 @@ class EtsHierarchy(private val scene: EtsScene) {
                         superClassSignature.file == EtsFileSignature.UNKNOWN -> classesWithTheSameName.values
                         else -> error("There is no class with name ${superClassSignature.name}")
                     }
-                    val interfaces = currentClass.implementedInterfaces
-                    require(interfaces.isEmpty()) { TODO() }
+                    val interfaces = current.implementedInterfaces
+                    require(interfaces.isEmpty()) { "Interfaces are not supported" }
                     val resolvedInterfaces = interfaces.map { interfaceSignature ->
-                        resolveMap[currentClass.name]?.get(interfaceSignature) ?: error("Unresolved interface")
+                        resolveMap[current.name]?.get(interfaceSignature) ?: error("Unresolved interface")
                     }
                     superClasses + resolvedInterfaces
                 }
             }.flatten().toSet()
         }
-        ancestors.toMap()
     }
 
     private val inheritors: MutableMap<EtsClass, MutableSet<EtsClass>> by lazy {
-        val result = mutableMapOf<EtsClass, MutableSet<EtsClass>>()
+        val result = hashMapOf<EtsClass, MutableSet<EtsClass>>()
         ancestors.forEach { (key, value) ->
             value.forEach { clazz ->
                 result.getOrPut(clazz) { hashSetOf() }.add(key)
