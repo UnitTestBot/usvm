@@ -7,10 +7,14 @@ import org.jacodb.ets.model.EtsType
  * Can be used as a JS-like type containing set of properties.
  */
 class AuxiliaryType(val properties: Set<String>) : EtsType {
+    override val typeName: String
+        get() = "AuxiliaryType ${properties.toSortedSet()}"
+
+    override fun toString(): String {
+        return typeName
+    }
+
     override fun <R> accept(visitor: EtsType.Visitor<R>): R {
         error("Should not be called")
     }
-
-    override val typeName: String
-        get() = "AuxiliaryType ${properties.toSortedSet()}"
 }
