@@ -27,18 +27,6 @@ dependencies {
     testImplementation(Libs.logback)
 }
 
-val grpcServer = gradle.sharedServices.registerIfAbsent("grpcServer", GrpcServerService::class) {
-    parameters.workingDir.set(layout.projectDirectory.dir("arkanalyzer"))
-    parameters.port.set(50051)
-}
-
-tasks.test {
-    doFirst {
-        grpcServer.get() // trigger the server initialization
-    }
-    usesService(grpcServer)
-}
-
 val generateSdkIR by tasks.registering {
     group = "build"
     description = "Generates SDK IR using ArkAnalyzer."
