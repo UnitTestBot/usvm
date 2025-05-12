@@ -83,7 +83,7 @@ class EtsBackwardMethodRunner<Fact, Event : AnalyzerEvent>(
 
     internal data class CalleeStart<Fact>(
         val start: EtsStmt,
-        val flowFunction: FlowFunction<Fact>
+        val flowFunction: FlowFunction<Fact>,
     )
 
     internal val callToStartFlowFunctions = stmts.map { stmt ->

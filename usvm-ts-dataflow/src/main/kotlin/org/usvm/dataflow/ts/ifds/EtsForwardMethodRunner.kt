@@ -38,7 +38,7 @@ class EtsForwardMethodRunner<Fact, Event : AnalyzerEvent>(
 
     internal data class CalleeStart<Fact>(
         val start: EtsStmt,
-        val flowFunction: FlowFunction<Fact>
+        val flowFunction: FlowFunction<Fact>,
     )
 
     internal val sequentFlowFunction = stmts.map {
@@ -60,8 +60,9 @@ class EtsForwardMethodRunner<Fact, Event : AnalyzerEvent>(
     }
 
     fun addStart() {
-        if (entrypoint == mockStmt)
+        if (entrypoint == mockStmt) {
             return
+        }
 
         val startFacts = flowSpace.obtainPossibleStartFacts(method)
         for (startFact in startFacts) {
@@ -87,7 +88,7 @@ class EtsForwardMethodRunner<Fact, Event : AnalyzerEvent>(
 
     internal data class PathEdge<Fact>(
         val end: Int,
-        val fact: Fact
+        val fact: Fact,
     )
 
     private val sourceRunners = hashMapOf<Fact, EtsForwardSourceRunner<Fact>>()

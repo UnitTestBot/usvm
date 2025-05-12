@@ -55,7 +55,7 @@ class EtsForwardSourceRunner<Fact>(
     internal val summaryEdges = hashSetOf<Vertex<Fact, EtsStmt>>()
 
     private fun tabulationAlgorithmStep(
-        currentEdge: PathEdge<Fact>
+        currentEdge: PathEdge<Fact>,
     ) = with(traits) {
         val (currentIp, currentFact) = currentEdge
         val current = stmts[currentIp]

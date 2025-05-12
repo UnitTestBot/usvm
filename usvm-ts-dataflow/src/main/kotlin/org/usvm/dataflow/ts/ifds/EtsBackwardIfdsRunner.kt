@@ -28,14 +28,16 @@ class EtsBackwardIfdsRunner<Fact, Event : AnalyzerEvent>(
     private val queueIsEmpty = QueueEmptinessChanged(runner = this, isEmpty = true)
 
     private val methods = graph.cp.projectAndSdkClasses.flatMap { it.methods + it.ctor }
-    private val runners = methods.associateWith { EtsBackwardMethodRunner(
-        graph = graph,
-        method = it,
-        analyzer = analyzer,
-        traits = traits,
-        manager = manager,
-        commonRunner = this@EtsBackwardIfdsRunner
-    ) }
+    private val runners = methods.associateWith {
+        EtsBackwardMethodRunner(
+            graph = graph,
+            method = it,
+            analyzer = analyzer,
+            traits = traits,
+            manager = manager,
+            commonRunner = this@EtsBackwardIfdsRunner,
+        )
+    }
 
     fun getMethodRunner(method: EtsMethod): EtsBackwardMethodRunner<Fact, Event> {
         return runners.getValue(method)
