@@ -28,10 +28,10 @@ import org.usvm.dataflow.ifds.ControlEvent
 import org.usvm.dataflow.ifds.Edge
 import org.usvm.dataflow.ifds.Manager
 import org.usvm.dataflow.ifds.QueueEmptinessChanged
-import org.usvm.dataflow.ifds.SingletonUnit
-import org.usvm.dataflow.ifds.UniRunner
 import org.usvm.dataflow.ts.graph.EtsApplicationGraph
 import org.usvm.dataflow.ts.graph.reversed
+import org.usvm.dataflow.ts.ifds.EtsBackwardIfdsRunner
+import org.usvm.dataflow.ts.ifds.EtsForwardIfdsRunner
 import org.usvm.dataflow.ts.infer.EtsTypeFact.Companion.allStringProperties
 import org.usvm.dataflow.ts.util.EtsTraits
 import org.usvm.dataflow.ts.util.getRealLocals
@@ -102,8 +102,8 @@ class TypeInferenceManager(
         createResultsFromSummaries(updatedTypeScheme, doInferAllLocals)
     }
 
-    lateinit var backwardRunner: UniRunner<BackwardTypeDomainFact, *, EtsMethod, EtsStmt>
-    lateinit var forwardRunner: UniRunner<ForwardTypeDomainFact, *, EtsMethod, EtsStmt>
+    lateinit var backwardRunner: EtsBackwardIfdsRunner<BackwardTypeDomainFact, *>
+    lateinit var forwardRunner: EtsForwardIfdsRunner<ForwardTypeDomainFact, *>
 
     private suspend fun collectSummaries(
         startMethods: List<EtsMethod>,
@@ -113,16 +113,14 @@ class TypeInferenceManager(
         logger.info { "Preparing backward analysis" }
         val backwardGraph = graph.reversed
         val backwardAnalyzer = BackwardAnalyzer(backwardGraph, savedTypes, ::methodDominators, doAddKnownTypes)
-        val backwardRunner = UniRunner(
-            traits = traits,
-            manager = this@TypeInferenceManager,
+
+        val backwardRunner = EtsBackwardIfdsRunner(
             graph = backwardGraph,
             analyzer = backwardAnalyzer,
-            unitResolver = { SingletonUnit },
-            unit = SingletonUnit,
-            zeroFact = BackwardTypeDomainFact.Zero,
-            storeReasons = false,
+            traits = traits,
+            manager = this
         )
+
         this@TypeInferenceManager.backwardRunner = backwardRunner
 
         val exceptionHandler = CoroutineExceptionHandler { _, exception ->
@@ -200,15 +198,11 @@ class TypeInferenceManager(
             doLiveVariablesAnalysis = true,
         )
 
-        val forwardRunner = UniRunner(
-            traits = traits,
-            manager = this@TypeInferenceManager,
+        val forwardRunner = EtsForwardIfdsRunner(
             graph = forwardGraph,
             analyzer = forwardAnalyzer,
-            unitResolver = { SingletonUnit },
-            unit = SingletonUnit,
-            zeroFact = ForwardTypeDomainFact.Zero,
-            storeReasons = false,
+            traits = traits,
+            manager = this,
         )
         this@TypeInferenceManager.forwardRunner = forwardRunner
 
@@ -372,6 +366,7 @@ class TypeInferenceManager(
             }
 
             val typeFactsOnThisMethods = forwardSummariesByClass[cls.signature].orEmpty()
+                .asSequence()
                 .filter { (method, _) -> method.name != INSTANCE_INIT_METHOD_NAME }
                 .flatMap { (_, summaries) -> summaries.asSequence() }
                 .mapNotNull { it.initialFact as? ForwardTypeDomainFact.TypedVariable }
@@ -380,6 +375,7 @@ class TypeInferenceManager(
                 .toList()
 
             val typeFactsOnThisCtor = forwardSummariesByClass[cls.signature].orEmpty()
+                .asSequence()
                 .filter { (method, _) -> method.name == CONSTRUCTOR_NAME || method.name == INSTANCE_INIT_METHOD_NAME }
                 .flatMap { (_, summaries) -> summaries.asSequence() }
                 .mapNotNull { it.exitFact as? ForwardTypeDomainFact.TypedVariable }
