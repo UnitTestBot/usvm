@@ -36,9 +36,11 @@ class ForwardAnalyzer(
 
     private fun variableIsDying(fact: ForwardTypeDomainFact, stmt: EtsStmt): Boolean {
         if (fact !is ForwardTypeDomainFact.TypedVariable) return false
-        val base = fact.variable.base
-        if (base !is AccessPathBase.Local) return false
-        return !flowFunctions.liveVariables(stmt.method).isAliveAt(base.name, stmt)
+        return when (val base = fact.variable.base) {
+            is AccessPathBase.Local -> !flowFunctions.liveVariables(stmt.method).isAliveAt(base.name, stmt)
+            is AccessPathBase.Arg -> !flowFunctions.liveVariables(stmt.method).isAliveAt("arg(${base.index})", stmt)
+            else -> false
+        }
     }
 
     override fun handleNewEdge(edge: Edge<ForwardTypeDomainFact, EtsStmt>): List<AnalyzerEvent> {

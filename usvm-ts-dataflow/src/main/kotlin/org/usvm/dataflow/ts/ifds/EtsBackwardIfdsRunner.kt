@@ -28,25 +28,24 @@ class EtsBackwardIfdsRunner<Fact, Event : AnalyzerEvent>(
 
     private val queueIsEmpty = QueueEmptinessChanged(runner = this, isEmpty = true)
 
-    private val methods = graph.cp.projectAndSdkClasses.flatMap { it.methods + it.ctor }
-    private val runners = methods.associateWith {
-        EtsBackwardMethodRunner(
-            graph = graph,
-            method = it,
-            analyzer = analyzer,
-            traits = traits,
-            manager = manager,
-            commonRunner = this@EtsBackwardIfdsRunner,
-        )
-    }
+    private val runners = mutableMapOf<EtsMethod, EtsBackwardMethodRunner<Fact, Event>>()
 
     fun getMethodRunner(method: EtsMethod): EtsBackwardMethodRunner<Fact, Event> {
-        return runners.getValue(method)
+        return runners.getOrPut(method) {
+            EtsBackwardMethodRunner(
+                graph = graph,
+                method = method,
+                analyzer = analyzer,
+                traits = traits,
+                manager = manager,
+                commonRunner = this@EtsBackwardIfdsRunner,
+            )
+        }
     }
 
     override suspend fun run(startMethods: List<EtsMethod>) {
         for (method in startMethods) {
-            runners[method]?.addStart()
+            getMethodRunner(method).addStart()
         }
 
         tabulationAlgorithm()

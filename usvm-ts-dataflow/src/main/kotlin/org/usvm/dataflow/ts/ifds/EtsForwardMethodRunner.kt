@@ -94,7 +94,7 @@ class EtsForwardMethodRunner<Fact, Event : AnalyzerEvent>(
     /**
      * Remember only the sink since the source is specified by runner
      *
-     * `ip` - index of the end statement
+     * `ip` - index of the end statement (instruction pointer)
      *
      * `fact` - fact at the end statement
      */

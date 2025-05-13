@@ -33,10 +33,10 @@ data class PerformanceReport(
     fun dumpToString(): String = listOf<Any>(
         projectId,
         totalStmts,
-        minTime.toString(unit = DurationUnit.SECONDS, decimals = 2),
-        maxTime.toString(unit = DurationUnit.SECONDS, decimals = 2),
-        avgTime.toString(unit = DurationUnit.SECONDS, decimals = 2),
-        medianTime.toString(unit = DurationUnit.SECONDS, decimals = 2),
+        minTime.toString(unit = DurationUnit.SECONDS, decimals = 1),
+        maxTime.toString(unit = DurationUnit.SECONDS, decimals = 1),
+        avgTime.toString(unit = DurationUnit.SECONDS, decimals = 1),
+        medianTime.toString(unit = DurationUnit.SECONDS, decimals = 1),
         improvement.toBigDecimal().setScale(1, RoundingMode.HALF_UP).toDouble()
     ).joinToString(
         separator = "|",

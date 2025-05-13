@@ -28,25 +28,24 @@ class EtsForwardIfdsRunner<Fact, Event : AnalyzerEvent>(
 
     private val queueIsEmpty = QueueEmptinessChanged(runner = this, isEmpty = true)
 
-    private val methods = graph.cp.projectAndSdkClasses.flatMap { it.methods + it.ctor }
-    private val runners = methods.associateWith {
-        EtsForwardMethodRunner(
-            graph = graph,
-            method = it,
-            analyzer = analyzer,
-            traits = traits,
-            manager = manager,
-            commonRunner = this@EtsForwardIfdsRunner
-        )
-    }
+    private val runners = mutableMapOf<EtsMethod, EtsForwardMethodRunner<Fact, Event>>()
 
     fun getMethodRunner(method: EtsMethod): EtsForwardMethodRunner<Fact, Event> {
-        return runners.getValue(method)
+        return runners.getOrPut(method) {
+            EtsForwardMethodRunner(
+                graph = graph,
+                method = method,
+                analyzer = analyzer,
+                traits = traits,
+                manager = manager,
+                commonRunner = this@EtsForwardIfdsRunner
+            )
+        }
     }
 
     override suspend fun run(startMethods: List<EtsMethod>) {
         for (method in startMethods) {
-            val runner = runners[method] ?: continue
+            val runner = getMethodRunner(method)
             runner.addStart()
         }
 

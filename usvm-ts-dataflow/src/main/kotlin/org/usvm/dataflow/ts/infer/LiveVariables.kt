@@ -25,7 +25,7 @@ interface LiveVariables {
     fun isAliveAt(local: String, stmt: EtsStmt): Boolean
 
     companion object {
-        private const val THRESHOLD: Int = 20
+        private const val THRESHOLD: Int = 10
 
         fun from(method: EtsMethod): LiveVariables =
             if (method.cfg.stmts.size > THRESHOLD) LiveVariablesImpl(method) else AlwaysAlive
