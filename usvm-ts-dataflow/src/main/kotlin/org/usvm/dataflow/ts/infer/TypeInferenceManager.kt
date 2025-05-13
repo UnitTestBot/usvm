@@ -488,10 +488,14 @@ class TypeInferenceManager(
         return refinedTypes
     }
 
+    companion object {
+        private const val REFINEMENT_DEPTH_BOUND = 2
+    }
+
     private fun EtsTypeFact.refineProperties(
         pathFromRootObject: List<Accessor>,
         typeRefinements: Map<List<Accessor>, EtsTypeFact>,
-    ): EtsTypeFact = when (this) {
+    ): EtsTypeFact = if (pathFromRootObject.size >= REFINEMENT_DEPTH_BOUND) this else when (this) {
         is EtsTypeFact.NumberEtsTypeFact -> this
         is EtsTypeFact.StringEtsTypeFact -> this
         is EtsTypeFact.FunctionEtsTypeFact -> this
