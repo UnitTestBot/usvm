@@ -32,11 +32,9 @@ class EtsHierarchy(private val scene: EtsScene) {
                         else -> error("There is no class with name ${superClassSignature.name}")
                     }
                     val interfaces = current.implementedInterfaces
+                    // TODO support interfaces
                     require(interfaces.isEmpty()) { "Interfaces are not supported" }
-                    val resolvedInterfaces = interfaces.map { interfaceSignature ->
-                        resolveMap[current.name]?.get(interfaceSignature) ?: error("Unresolved interface")
-                    }
-                    superClasses + resolvedInterfaces
+                    superClasses
                 }
             }.flatten().toSet()
         }

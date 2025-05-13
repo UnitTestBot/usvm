@@ -143,6 +143,7 @@ class TsInterpreter(
         val concreteRef = scope.calcOnState { models.first().eval(instance) }
 
         val uncoveredInstance = if (concreteRef.isFakeObject()) {
+            // TODO support primitives calls
             // We ignore the possibility of method call on primitives.
             // Therefore, the fake object should be unwrapped.
             scope.doWithState {
