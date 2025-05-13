@@ -118,7 +118,8 @@ class TypeInferenceManager(
             graph = backwardGraph,
             analyzer = backwardAnalyzer,
             traits = traits,
-            manager = this
+            manager = this,
+            zeroFact = BackwardTypeDomainFact.Zero,
         )
 
         this@TypeInferenceManager.backwardRunner = backwardRunner
@@ -203,6 +204,7 @@ class TypeInferenceManager(
             analyzer = forwardAnalyzer,
             traits = traits,
             manager = this,
+            zeroFact = ForwardTypeDomainFact.Zero,
         )
         this@TypeInferenceManager.forwardRunner = forwardRunner
 
@@ -519,7 +521,7 @@ class TypeInferenceManager(
                 val elementPath = pathFromRootObject + ElementAccessor
                 val refinedElemType = typeRefinements[elementPath]?.let {
                     typeProcessor.intersect(it, elementType)
-                } ?: elementType  // TODO: consider throwing an exception
+                } ?: elementType // TODO: consider throwing an exception
                 val elemType = refinedElemType.refineProperties(elementPath, typeRefinements)
 
                 EtsTypeFact.ArrayEtsTypeFact(elemType)

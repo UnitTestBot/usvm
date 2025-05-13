@@ -22,6 +22,7 @@ class EtsBackwardIfdsRunner<Fact, Event : AnalyzerEvent>(
     val analyzer: Analyzer<Fact, Event, EtsMethod, EtsStmt>,
     val traits: EtsTraits,
     val manager: TypeInferenceManager,
+    private val zeroFact: Fact,
 ) : Runner<Fact, EtsMethod, EtsStmt> {
     val queue: ArrayDeque<EtsBackwardMethodRunner<Fact, Event>> = ArrayDeque()
 
@@ -65,10 +66,24 @@ class EtsBackwardIfdsRunner<Fact, Event : AnalyzerEvent>(
         get() = SingletonUnit
 
     override fun getIfdsResult(): IfdsResult<Fact, EtsStmt> {
-        TODO("Not yet implemented")
+        val sourceRunners = runners.values.flatMap { methodRunner ->
+            methodRunner.sourceRunners.values.flatMap { it.values }
+        }
+        val pathEdges = sourceRunners.flatMap { it.getPathEdges() }
+
+        val resultFacts: MutableMap<EtsStmt, MutableSet<Fact>> = hashMapOf()
+        for (edge in pathEdges) {
+            resultFacts.getOrPut(edge.to.statement) { hashSetOf() }.add(edge.to.fact)
+        }
+
+        return IfdsResult(pathEdges, resultFacts, reasons = emptyMap(), zeroFact)
     }
 
     override fun submitNewEdge(edge: Edge<Fact, EtsStmt>, reason: Reason<Fact, EtsStmt>) {
-        TODO("Not yet implemented")
+        val (startVertex, endVertex) = edge
+        val (endStmt, endFact) = endVertex
+
+        val localPathEdge = EtsBackwardMethodRunner.PathEdge(endStmt.location.index, endFact)
+        getMethodRunner(startVertex.statement.method).getSourceRunner(startVertex).propagate(localPathEdge)
     }
 }

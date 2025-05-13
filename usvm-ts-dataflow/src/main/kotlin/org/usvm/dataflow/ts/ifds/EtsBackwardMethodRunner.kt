@@ -55,7 +55,7 @@ class EtsBackwardMethodRunner<Fact, Event : AnalyzerEvent>(
         enqueued = false
     }
 
-    private val sourceRunners = hashMapOf<Fact, HashMap<EtsStmt, EtsBackwardSourceRunner<Fact>>>()
+    internal val sourceRunners = hashMapOf<Fact, HashMap<EtsStmt, EtsBackwardSourceRunner<Fact>>>()
     internal fun getSourceRunner(vertex: Vertex<Fact, EtsStmt>): EtsBackwardSourceRunner<Fact> {
         return sourceRunners
             .getOrPut(vertex.fact) { hashMapOf() }
@@ -111,7 +111,6 @@ class EtsBackwardMethodRunner<Fact, Event : AnalyzerEvent>(
     }
 
     internal val entrypoints = graph.entryPoints(method).toList()
-    internal val exitpoints = graph.exitPoints(method).toList()
 
     fun addStart() {
         val startFacts = flowSpace.obtainPossibleStartFacts(method)

@@ -22,7 +22,6 @@ class EtsForwardSourceRunner<Fact>(
         enqueued = false
     }
 
-    private val cfg = methodRunner.cfg
     private val successors = methodRunner.successors
     private val stmts = methodRunner.stmts
     private val mockStmt = methodRunner.mockStmt
@@ -124,6 +123,17 @@ class EtsForwardSourceRunner<Fact>(
                     val edge = PathEdge(next, nextFact)
                     propagate(edge)
                 }
+            }
+        }
+    }
+
+    internal fun getPathEdges(): List<Edge<Fact, EtsStmt>> {
+        val startVertex = Vertex(entrypoint, startingFact)
+        return factsAtStmt.flatMapIndexed { index, facts ->
+            val stmt = stmts[index]
+            facts.map {
+                val endVertex = Vertex(stmt, it)
+                Edge(startVertex, endVertex)
             }
         }
     }

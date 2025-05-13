@@ -103,7 +103,7 @@ class EtsForwardMethodRunner<Fact, Event : AnalyzerEvent>(
         val fact: Fact,
     )
 
-    private val sourceRunners = hashMapOf<Fact, EtsForwardSourceRunner<Fact>>()
+    internal val sourceRunners = hashMapOf<Fact, EtsForwardSourceRunner<Fact>>()
     internal fun getSourceRunner(fact: Fact): EtsForwardSourceRunner<Fact> {
         return sourceRunners.getOrPut(fact) {
             EtsForwardSourceRunner(traits, this, fact)
