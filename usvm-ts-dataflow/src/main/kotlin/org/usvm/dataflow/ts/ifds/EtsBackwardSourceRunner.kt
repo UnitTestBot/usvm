@@ -33,16 +33,19 @@ class EtsBackwardSourceRunner<Fact>(
 
     private val factsAtStmt = Array(stmts.size) { hashSetOf<Fact>() }
 
-    internal fun propagate(edge: PathEdge<Fact>) {
-        val (endIp, endFact) = edge
+    internal fun propagate(localEdge: PathEdge<Fact>) {
+        val (endIp, endFact) = localEdge
         if (factsAtStmt[endIp].add(endFact)) {
             val startVertex = Vertex(mockStmt, startingFact)
             val endVertex = Vertex(stmts[endIp], endFact)
-            for (event in methodRunner.analyzer.handleNewEdge(Edge(startVertex, endVertex))) {
+            val edge = Edge(startVertex, endVertex)
+            val events = methodRunner.analyzer.handleNewEdge(edge)
+
+            for (event in events) {
                 methodRunner.manager.handleEvent(event)
             }
 
-            internalQueue.add(edge)
+            internalQueue.add(localEdge)
             if (!enqueued) {
                 enqueued = true
                 methodRunner.enqueue(this)

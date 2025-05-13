@@ -48,9 +48,6 @@ class EtsForwardIfdsRunner<Fact, Event : AnalyzerEvent>(
         for (method in startMethods) {
             val runner = runners[method] ?: continue
             runner.addStart()
-            /*for ((stmt, fact) in backwardFacts[method].orEmpty()) {
-                runner.submitFact(stmt, fact)
-            }*/
         }
 
         tabulationAlgorithm()
