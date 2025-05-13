@@ -1,9 +1,9 @@
 package org.usvm.dataflow.ts.ifds
 
-import org.jacodb.ets.model.EtsStmtLocation
+import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsNopStmt
 import org.jacodb.ets.model.EtsStmt
-import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsStmtLocation
 import org.jacodb.ets.utils.callExpr
 import org.usvm.dataflow.ifds.Analyzer
 import org.usvm.dataflow.ifds.Edge
@@ -97,7 +97,7 @@ class EtsForwardMethodRunner<Fact, Event : AnalyzerEvent>(
      * `ip` - index of the end statement
      *
      * `fact` - fact at the end statement
-    */
+     */
     internal data class PathEdge<Fact>(
         val ip: Int,
         val fact: Fact,

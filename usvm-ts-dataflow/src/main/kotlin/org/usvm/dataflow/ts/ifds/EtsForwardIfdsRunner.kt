@@ -2,8 +2,8 @@ package org.usvm.dataflow.ts.ifds
 
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.isActive
-import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsStmt
 import org.usvm.dataflow.ifds.Analyzer
 import org.usvm.dataflow.ifds.Edge
 import org.usvm.dataflow.ifds.IfdsResult
