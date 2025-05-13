@@ -23,6 +23,7 @@ import kotlin.time.measureTimedValue
 
 data class PerformanceReport(
     val projectId: String,
+    val totalStmts: Int,
     val maxTime: Duration,
     val avgTime: Duration,
     val medianTime: Duration,
@@ -31,11 +32,12 @@ data class PerformanceReport(
 ) {
     fun dumpToString(): String = listOf<Any>(
         projectId,
-        minTime.toString(unit = DurationUnit.SECONDS, decimals = 3),
-        maxTime.toString(unit = DurationUnit.SECONDS, decimals = 3),
-        avgTime.toString(unit = DurationUnit.SECONDS, decimals = 3),
-        medianTime.toString(unit = DurationUnit.SECONDS, decimals = 3),
-        improvement.toBigDecimal().setScale(4, RoundingMode.HALF_UP).toDouble()
+        totalStmts,
+        minTime.toString(unit = DurationUnit.SECONDS, decimals = 2),
+        maxTime.toString(unit = DurationUnit.SECONDS, decimals = 2),
+        avgTime.toString(unit = DurationUnit.SECONDS, decimals = 2),
+        medianTime.toString(unit = DurationUnit.SECONDS, decimals = 2),
+        improvement.toBigDecimal().setScale(1, RoundingMode.HALF_UP).toDouble()
     ).joinToString(
         separator = "|",
         prefix = "|",
@@ -63,8 +65,13 @@ fun generateReportForProject(
     val improvement = results.map { it.second }.distinct().first()
     val totalTime = times.reduce { acc, duration -> acc + duration }
 
+    val totalStmts = abcScene.projectClasses
+        .flatMap { it.methods }
+        .sumOf { it.cfg.stmts.size }
+
     return PerformanceReport(
         projectId = projectId,
+        totalStmts = totalStmts,
         minTime = times.min(),
         maxTime = times.max(),
         avgTime = totalTime / runIterationsCount,
