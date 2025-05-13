@@ -495,56 +495,60 @@ class TypeInferenceManager(
     private fun EtsTypeFact.refineProperties(
         pathFromRootObject: List<Accessor>,
         typeRefinements: Map<List<Accessor>, EtsTypeFact>,
-    ): EtsTypeFact = if (pathFromRootObject.size >= REFINEMENT_DEPTH_BOUND) this else when (this) {
-        is EtsTypeFact.NumberEtsTypeFact -> this
-        is EtsTypeFact.StringEtsTypeFact -> this
-        is EtsTypeFact.FunctionEtsTypeFact -> this
-        is EtsTypeFact.AnyEtsTypeFact -> this
-        is EtsTypeFact.BooleanEtsTypeFact -> this
-        is EtsTypeFact.NullEtsTypeFact -> this
-        is EtsTypeFact.UndefinedEtsTypeFact -> this
+    ): EtsTypeFact {
+        if (pathFromRootObject.size >= REFINEMENT_DEPTH_BOUND) return this
 
-        is EtsTypeFact.UnknownEtsTypeFact -> {
-            // logger.warn { "Unknown type after forward analysis" }
-            EtsTypeFact.AnyEtsTypeFact
-        }
+        return when (this) {
+            is EtsTypeFact.NumberEtsTypeFact -> this
+            is EtsTypeFact.StringEtsTypeFact -> this
+            is EtsTypeFact.FunctionEtsTypeFact -> this
+            is EtsTypeFact.AnyEtsTypeFact -> this
+            is EtsTypeFact.BooleanEtsTypeFact -> this
+            is EtsTypeFact.NullEtsTypeFact -> this
+            is EtsTypeFact.UndefinedEtsTypeFact -> this
 
-        is EtsTypeFact.ArrayEtsTypeFact -> {
-            // TODO: array types
-            // logger.warn { "TODO: Array type $this" }
-
-            val elementPath = pathFromRootObject + ElementAccessor
-            val refinedElemType = typeRefinements[elementPath]?.let {
-                typeProcessor.intersect(it, elementType)
-            } ?: elementType  // TODO: consider throwing an exception
-            val elemType = refinedElemType.refineProperties(elementPath, typeRefinements)
-
-            EtsTypeFact.ArrayEtsTypeFact(elemType)
-        }
-
-        is EtsTypeFact.ObjectEtsTypeFact -> refineProperties(pathFromRootObject, typeRefinements)
-
-        is EtsTypeFact.UnionEtsTypeFact -> EtsTypeFact.mkUnionType(
-            types.mapTo(hashSetOf()) {
-                it.refineProperties(
-                    pathFromRootObject,
-                    typeRefinements,
-                )
+            is EtsTypeFact.UnknownEtsTypeFact -> {
+                // logger.warn { "Unknown type after forward analysis" }
+                EtsTypeFact.AnyEtsTypeFact
             }
-        )
 
-        is EtsTypeFact.IntersectionEtsTypeFact -> EtsTypeFact.mkIntersectionType(
-            types.mapTo(hashSetOf()) {
-                it.refineProperties(
-                    pathFromRootObject,
-                    typeRefinements,
-                )
+            is EtsTypeFact.ArrayEtsTypeFact -> {
+                // TODO: array types
+                // logger.warn { "TODO: Array type $this" }
+
+                val elementPath = pathFromRootObject + ElementAccessor
+                val refinedElemType = typeRefinements[elementPath]?.let {
+                    typeProcessor.intersect(it, elementType)
+                } ?: elementType  // TODO: consider throwing an exception
+                val elemType = refinedElemType.refineProperties(elementPath, typeRefinements)
+
+                EtsTypeFact.ArrayEtsTypeFact(elemType)
             }
-        )
 
-        is EtsTypeFact.GuardedTypeFact -> type
-            .refineProperties(pathFromRootObject, typeRefinements)
-            .withGuard(guard, guardNegated)
+            is EtsTypeFact.ObjectEtsTypeFact -> refineProperties(pathFromRootObject, typeRefinements)
+
+            is EtsTypeFact.UnionEtsTypeFact -> EtsTypeFact.mkUnionType(
+                types.mapTo(hashSetOf()) {
+                    it.refineProperties(
+                        pathFromRootObject,
+                        typeRefinements,
+                    )
+                }
+            )
+
+            is EtsTypeFact.IntersectionEtsTypeFact -> EtsTypeFact.mkIntersectionType(
+                types.mapTo(hashSetOf()) {
+                    it.refineProperties(
+                        pathFromRootObject,
+                        typeRefinements,
+                    )
+                }
+            )
+
+            is EtsTypeFact.GuardedTypeFact -> type
+                .refineProperties(pathFromRootObject, typeRefinements)
+                .withGuard(guard, guardNegated)
+        }
     }
 
     private fun EtsTypeFact.ObjectEtsTypeFact.refineProperties(
