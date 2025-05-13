@@ -61,7 +61,7 @@ class EtsBackwardSourceRunner<Fact>(
         val current = stmts[currentIp]
 
         val currentIsCall = getCallExpr(current) != null
-        val currentIsExit = current in exitpoints
+        val currentIsExit = methodRunner.isExit[currentIp]
 
         if (currentIsCall) {
             val callToReturnFlowFunction = callToReturnSiteFlowFunction[currentIp]

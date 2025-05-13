@@ -29,6 +29,11 @@ class EtsForwardMethodRunner<Fact, Event : AnalyzerEvent>(
 
     internal val cfg = method.cfg
     internal val stmts = method.cfg.stmts
+    internal val isExit = BooleanArray(stmts.size) { false }.apply {
+        for (exit in cfg.exits) {
+            set(exit.index, true)
+        }
+    }
     internal val successors = stmts.map { cfg.successors(it).map { s -> s.index } }
 
     internal val EtsStmt.index: Int
@@ -86,8 +91,15 @@ class EtsForwardMethodRunner<Fact, Event : AnalyzerEvent>(
         enqueued = false
     }
 
+    /**
+     * Remember only the sink since the source is specified by runner
+     *
+     * `ip` - index of the end statement
+     *
+     * `fact` - fact at the end statement
+    */
     internal data class PathEdge<Fact>(
-        val end: Int,
+        val ip: Int,
         val fact: Fact,
     )
 

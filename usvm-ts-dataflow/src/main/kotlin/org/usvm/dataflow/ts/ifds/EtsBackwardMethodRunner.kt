@@ -24,8 +24,15 @@ class EtsBackwardMethodRunner<Fact, Event : AnalyzerEvent>(
 ) {
     private val flowSpace = analyzer.flowFunctions
 
+    /**
+     * Remember only the sink since the source is specified by runner
+     *
+     * `ip` - index of the end statement
+     *
+     * `fact` - fact at the end statement
+     */
     internal data class PathEdge<Fact>(
-        val endIp: Int,
+        val ip: Int,
         val fact: Fact,
     )
 
@@ -67,6 +74,12 @@ class EtsBackwardMethodRunner<Fact, Event : AnalyzerEvent>(
 
     internal val mockStmt = EtsNopStmt(EtsStmtLocation(method, -1))
     internal val stmts = listOf(mockStmt) + method.cfg.stmts
+
+    internal val isExit = BooleanArray(stmts.size) { false }.apply {
+        for (exit in graph.exitPoints(method)) {
+            set(exit.index, true)
+        }
+    }
 
     internal val EtsStmt.index: Int
         get() = location.index + 1
