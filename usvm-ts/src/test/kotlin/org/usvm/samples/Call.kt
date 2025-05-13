@@ -210,7 +210,6 @@ class Call : TsMethodTestRunner() {
         )
     }
 
-    @Disabled("Too complex")
     @Test
     fun `test virtual dispatch`() {
         val method = getMethod(className, "virtualDispatch")
@@ -269,6 +268,15 @@ class Call : TsMethodTestRunner() {
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r.number == 5.0 },
+        )
+    }
+
+    @Test
+    fun `test structural equality trickery`() {
+        val method = getMethod(className, "structuralEqualityTrickery")
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { r -> r.number == 20.0 },
         )
     }
 }
