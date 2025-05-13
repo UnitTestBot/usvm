@@ -34,17 +34,11 @@ class ForwardAnalyzer(
         error("No cross unit calls")
     }
 
-    private val liveVariablesCache = hashMapOf<EtsMethod, LiveVariables>()
-    private fun liveVariables(method: EtsMethod): LiveVariables =
-        liveVariablesCache.computeIfAbsent(method) {
-            if (doLiveVariablesAnalysis) LiveVariables.from(method) else AlwaysAlive
-        }
-
     private fun variableIsDying(fact: ForwardTypeDomainFact, stmt: EtsStmt): Boolean {
         if (fact !is ForwardTypeDomainFact.TypedVariable) return false
         val base = fact.variable.base
         if (base !is AccessPathBase.Local) return false
-        return !liveVariables(stmt.method).isAliveAt(base.name, stmt)
+        return !flowFunctions.liveVariables(stmt.method).isAliveAt(base.name, stmt)
     }
 
     override fun handleNewEdge(edge: Edge<ForwardTypeDomainFact, EtsStmt>): List<AnalyzerEvent> {
