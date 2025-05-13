@@ -24,6 +24,8 @@ import org.jacodb.ets.model.EtsType
 import org.usvm.dataflow.ts.infer.EtsTypeFact.AnyEtsTypeFact
 import org.usvm.dataflow.ts.infer.EtsTypeFact.ArrayEtsTypeFact
 import org.usvm.dataflow.ts.infer.EtsTypeFact.BooleanEtsTypeFact
+import org.usvm.dataflow.ts.infer.EtsTypeFact.Companion.allArrayProperties
+import org.usvm.dataflow.ts.infer.EtsTypeFact.Companion.allStringProperties
 import org.usvm.dataflow.ts.infer.EtsTypeFact.Companion.mkIntersectionType
 import org.usvm.dataflow.ts.infer.EtsTypeFact.Companion.mkUnionType
 import org.usvm.dataflow.ts.infer.EtsTypeFact.FunctionEtsTypeFact
@@ -76,7 +78,17 @@ class TypeFactProcessor(
 
             is AnyEtsTypeFact -> type
 
-            is StringEtsTypeFact,
+            is StringEtsTypeFact -> {
+                when (other) {
+                    is ObjectEtsTypeFact -> intersect(other, type)
+                    //is ArrayEtsTypeFact -> intersect(other, type)
+                    is UnionEtsTypeFact -> intersect(other, type)
+                    is IntersectionEtsTypeFact -> intersect(other, type)
+                    is GuardedTypeFact -> intersect(other, type)
+                    else -> null
+                }
+            }
+
             is NumberEtsTypeFact,
             is BooleanEtsTypeFact,
             is NullEtsTypeFact,
@@ -113,12 +125,15 @@ class TypeFactProcessor(
                     }
                 }
 
+                is ObjectEtsTypeFact -> intersect(other, type)
+
                 else -> null
             }
 
             is ObjectEtsTypeFact -> when (other) {
                 is ObjectEtsTypeFact -> intersect(type, other)
                 is StringEtsTypeFact -> intersect(type, other)
+                is ArrayEtsTypeFact -> intersect(type, other)
                 is FunctionEtsTypeFact -> mkIntersectionType(type, other)
                 is UnionEtsTypeFact -> intersect(other, type)
                 is IntersectionEtsTypeFact -> intersect(other, type)
@@ -192,14 +207,41 @@ class TypeFactProcessor(
         if (obj.cls == EtsStringType) return string
         if (obj.cls != null) return null
 
+        // Check intersection is string
+        val intersectionIsString = obj.properties.all { (name, type) ->
+            val stringPropertyType = allStringProperties[name] ?: return@all false
+            intersect(stringPropertyType, type) == stringPropertyType
+        }
+        if (intersectionIsString) {
+            return StringEtsTypeFact
+        }
+
         val intersectionProperties = obj.properties
-            .filter { it.key in EtsTypeFact.allStringProperties }
-            .mapValues { (_, type) ->
-                // TODO: intersect with the corresponding type of String's property
-                type
+            .mapValues { (name, type) ->
+                val stringPropertyType = allStringProperties[name] ?: return@mapValues type
+                intersect(stringPropertyType, type) ?: return null
             }
 
         return ObjectEtsTypeFact(null, intersectionProperties)
+    }
+
+    private fun intersect(obj: ObjectEtsTypeFact, array: ArrayEtsTypeFact): EtsTypeFact? {
+        // Check intersection is array
+        val intersectionIsArray = obj.properties.all { (name, type) ->
+            val arrayPropertyType = allArrayProperties[name] ?: return@all false
+            intersect(arrayPropertyType, type) == arrayPropertyType
+        }
+        if (intersectionIsArray) {
+            return array
+        }
+
+        val intersectionProperties = obj.properties
+            .mapValues { (name, type) ->
+                val arrayPropertyType = allArrayProperties[name] ?: return@mapValues type
+                intersect(arrayPropertyType, type) ?: return null
+            }
+
+        return ObjectEtsTypeFact(obj.cls, intersectionProperties)
     }
 
     private fun union(unionType: UnionEtsTypeFact, other: EtsTypeFact): EtsTypeFact {
@@ -261,7 +303,7 @@ class TypeFactProcessor(
         if (obj.cls != null) return mkUnionType(obj, string)
 
         for (p in obj.properties.keys) {
-            if (p !in EtsTypeFact.allStringProperties) {
+            if (p !in allStringProperties) {
                 return mkUnionType(obj, string)
             }
         }

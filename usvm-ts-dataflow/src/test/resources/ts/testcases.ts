@@ -215,6 +215,36 @@ class CaseAssignLocalToArrayElementNumber {
 
 // ----------------------------------------
 
+// Case `y := x.length, x: any[]`
+class CaseAssignLocalToArrayLength {
+    entrypoint(x: any[]) {
+        let y = x.length; // y: number
+        x[0] = y; // x: Array<any>
+        this.infer(x);
+    }
+
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "Array<any>";
+    }
+}
+
+// ----------------------------------------
+
+// Case `y := x.length, x: string`
+class CaseAssignLocalToStringLength {
+    entrypoint(x: any) {
+        x = "abacaba"; // x: string
+        let y = x.length; // y: number
+        this.infer(x);
+    }
+
+    infer(a: any) {
+        const EXPECTED_ARG_0 = "string";
+    }
+}
+
+// ----------------------------------------
+
 interface ICustom {
     a: number;
     b: string;
@@ -596,8 +626,8 @@ class CaseReturnArgumentObject {
 
 // ----------------------------------------
 
-// // Case `x.f[0].g := y`
 // class CaseAssignToNestedObjectField {
+// Case `x.f[0].g := y`
 //     entrypoint(x: any) {
 //         let y = 134; // y: number
 //         x.f[0].g = y; // x: { f: Array<{ g: number }> }
