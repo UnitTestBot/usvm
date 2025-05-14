@@ -29,7 +29,7 @@ class EtsForwardMethodRunner<Fact, Event : AnalyzerEvent>(
 
     internal val cfg = method.cfg
     internal val stmts = method.cfg.stmts
-    internal val isExit = BooleanArray(stmts.size) { false }.apply {
+    internal val isExit = BooleanArray(stmts.size).apply {
         for (exit in cfg.exits) {
             set(exit.index, true)
         }
