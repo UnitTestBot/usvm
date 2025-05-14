@@ -27,7 +27,7 @@ class GreeterService : GreeterWireGrpc.GreeterImplBase() {
 fun main() {
     val server = ServerBuilder
         .forPort(8080)
-        .addService(AwaitingService())
+        .addService(GreeterService())
         .addService(@Suppress("DEPRECATION") ProtoReflectionService.newInstance())
         .build()
     server.start()
