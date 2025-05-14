@@ -15,7 +15,7 @@ dependencies {
     api("com.squareup.wiregrpcserver:server:1.0.0-alpha04")
     api("io.grpc:grpc-services:1.72.0")
     implementation("io.grpc:grpc-protobuf:1.72.0")
-    implementation("io.grpc:grpc-netty:1.72.0")
+    runtimeOnly("io.grpc:grpc-netty:1.72.0")
 }
 
 wire {
