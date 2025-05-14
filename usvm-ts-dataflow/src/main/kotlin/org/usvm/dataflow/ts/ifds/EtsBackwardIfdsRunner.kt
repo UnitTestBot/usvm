@@ -28,7 +28,7 @@ class EtsBackwardIfdsRunner<Fact, Event : AnalyzerEvent>(
 
     private val queueIsEmpty = QueueEmptinessChanged(runner = this, isEmpty = true)
 
-    private val runners = mutableMapOf<EtsMethod, EtsBackwardMethodRunner<Fact, Event>>()
+    private val runners = hashMapOf<EtsMethod, EtsBackwardMethodRunner<Fact, Event>>()
 
     fun getMethodRunner(method: EtsMethod): EtsBackwardMethodRunner<Fact, Event> {
         return runners.getOrPut(method) {
