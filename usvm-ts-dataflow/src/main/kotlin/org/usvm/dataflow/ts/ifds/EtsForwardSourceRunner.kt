@@ -84,8 +84,8 @@ class EtsForwardSourceRunner<Fact>(
 
                     // Save info about the call for summary edges that will be found later:
                     val calleeRunner = methodRunner.commonRunner.getMethodRunner(callee)
-                    val startingVertex = Vertex(entrypoint, startingFact)
                     val currentVertex = Vertex(current, currentFact)
+                    val startingVertex = Vertex(entrypoint, startingFact)
                     val callerEdge = Edge(startingVertex, currentVertex)
                     calleeRunner.getSourceRunner(calleeStartFact).callerPathEdges.add(callerEdge)
 
