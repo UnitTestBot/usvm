@@ -2,6 +2,7 @@ package org.usvm.machine.expr
 
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
+import io.ksmt.utils.cast
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsAddExpr
 import org.jacodb.ets.model.EtsAndExpr
@@ -126,7 +127,7 @@ const val ADHOC_STRING__STRING = 2222.0 // 'string'
 class TsExprResolver(
     private val ctx: TsContext,
     private val scope: TsStepScope,
-    private val localToIdx: (EtsMethod, EtsValue) -> Int,
+    private val localToIdx: (EtsMethod, EtsValue) -> Int?,
     private val hierarchy: EtsHierarchy,
 ) : EtsEntity.Visitor<UExpr<out USort>?> {
 
@@ -814,7 +815,7 @@ class TsExprResolver(
 class TsSimpleValueResolver(
     private val ctx: TsContext,
     private val scope: TsStepScope,
-    private val localToIdx: (EtsMethod, EtsValue) -> Int,
+    private val localToIdx: (EtsMethod, EtsValue) -> Int?,
 ) : EtsValue.Visitor<UExpr<out USort>?> {
 
     private fun resolveLocal(local: EtsValue): ULValue<*, USort> {
@@ -822,6 +823,32 @@ class TsSimpleValueResolver(
         val entrypoint = scope.calcOnState { entrypoint }
 
         val localIdx = localToIdx(currentMethod, local)
+
+        if (localIdx == null) {
+            logger.warn { "Cannot resolve local $local" }
+
+            require(local is EtsLocal)
+
+            val globalObject = scope.calcOnState { getGlobalObject() }
+
+            val lValue = mkFieldLValue(ctx.addressSort, globalObject, local.name)
+
+            val boolLValue = mkFieldLValue(ctx.boolSort, globalObject, local.name)
+            val fpLValue = mkFieldLValue(ctx.fp64Sort, globalObject, local.name)
+            val refLValue = mkFieldLValue(ctx.addressSort, globalObject, local.name)
+
+            val boolValue = scope.calcOnState { memory.read(boolLValue) }
+            val fpValue = scope.calcOnState { memory.read(fpLValue) }
+            val refValue = scope.calcOnState { memory.read(refLValue) }
+
+            val fakeObject = ctx.mkFakeValue(scope, boolValue, fpValue, refValue)
+            scope.doWithState {
+                memory.write(lValue, fakeObject.asExpr(ctx.addressSort), guard = ctx.trueExpr)
+            }
+
+            return lValue.cast()
+        }
+
         val sort = scope.calcOnState {
             val type = local.tryGetKnownType(currentMethod)
             getOrPutSortForLocal(localIdx, type)

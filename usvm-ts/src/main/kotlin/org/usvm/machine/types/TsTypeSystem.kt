@@ -13,6 +13,7 @@ import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.getAllFields
+import org.usvm.util.isResolved
 import org.usvm.util.type
 import kotlin.time.Duration
 
@@ -102,10 +103,26 @@ class TsTypeSystem(
                 }
 
                 // TODO wrong type resolutions because of names
-                val clazz = scene
-                    .projectAndSdkClasses
-                    .singleOrNull { it.type.typeName == type.typeName }
-                    ?: error("TODO")
+                val classes = if (type.isResolved()) {
+                    scene
+                        .projectAndSdkClasses
+                        .filter { it.type == type }
+                } else {
+                    scene
+                        .projectAndSdkClasses
+                        .filter { it.type.typeName == type.typeName }
+                }
+
+                if (classes.isEmpty()) {
+                    error("Cannot find class for type $type")
+                }
+
+                if (classes.size > 1) {
+                    TODO("Unsupported")
+                }
+
+                val clazz = classes.single()
+
                 val ancestors = hierarchy.getAncestor(clazz).map { it.type }
 
                 if (supertype is EtsClassType) {

@@ -26,6 +26,7 @@ import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUnionType
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.model.EtsValue
+import org.jacodb.ets.model.EtsVoidType
 import org.jacodb.ets.utils.callExpr
 import org.jacodb.ets.utils.getDeclaredLocals
 import org.usvm.StepResult
@@ -231,6 +232,10 @@ class TsInterpreter(
 
         if (entryPoint == null) {
             logger.warn { "No entry point for method: ${stmt.callee}" }
+            mockMethodCall(scope, stmt.callee.signature)
+            scope.doWithState {
+                newStmt(stmt.returnSite)
+            }
             return
         }
 
@@ -379,10 +384,17 @@ class TsInterpreter(
             when (val lhv = stmt.lhv) {
                 is EtsLocal -> {
                     val idx = mapLocalToIdx(lastEnteredMethod, lhv)
-                    saveSortForLocal(idx, expr.sort)
 
-                    val lValue = mkRegisterStackLValue(expr.sort, idx)
-                    memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
+                    if (idx != null) {
+                        saveSortForLocal(idx, expr.sort)
+
+                        val lValue = mkRegisterStackLValue(expr.sort, idx)
+                        memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
+                    } else {
+                        val lValue = mkFieldLValue(expr.sort, getGlobalObject(), lhv.name)
+
+                        memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
+                    }
                 }
 
                 is EtsArrayAccess -> {
@@ -509,7 +521,7 @@ class TsInterpreter(
     // (method, localName) -> idx
     private val localVarToIdx: MutableMap<EtsMethod, Map<String, Int>> = hashMapOf()
 
-    private fun mapLocalToIdx(method: EtsMethod, local: EtsValue): Int =
+    private fun mapLocalToIdx(method: EtsMethod, local: EtsValue): Int? =
         // Note: below, 'n' means the number of arguments
         when (local) {
             // Note: locals have indices starting from (n+1)
@@ -521,7 +533,9 @@ class TsInterpreter(
                     }.toMap()
                 }
                 map[local.name] ?: run {
-                    error("Local not declared: $local")
+                    // TODO process undeclared locals
+                    logger.error("Local not declared: $local")
+                    return null
                 }
             }
 
@@ -597,6 +611,11 @@ class TsInterpreter(
     private fun mockMethodCall(scope: TsStepScope, method: EtsMethodSignature) {
         scope.doWithState {
             with(ctx) {
+                if (method.returnType is EtsVoidType) {
+                    methodResult = TsMethodResult.Success.MockedCall(method, ctx.voidValue)
+                    return@doWithState
+                }
+
                 val resultSort = typeToSort(method.returnType)
                 val resultValue = when (resultSort) {
                     is UAddressSort -> makeSymbolicRefUntyped()
