@@ -420,7 +420,7 @@ class TsInterpreter(
 
                 is EtsInstanceFieldRef -> {
                     val instance = exprResolver.resolve(lhv.instance)?.asExpr(addressSort) ?: return@doWithState
-                    val etsField = resolveEtsField(lhv.instance, lhv.field)
+                    val etsField = resolveEtsField(lhv.instance, lhv.field, graph.hierarchy)
                     val type = etsField.type
                     val sort = typeToSort(type)
                     if (sort == unresolvedSort) {
@@ -504,7 +504,7 @@ class TsInterpreter(
     }
 
     private fun exprResolverWithScope(scope: TsStepScope): TsExprResolver =
-        TsExprResolver(ctx, scope, ::mapLocalToIdx)
+        TsExprResolver(ctx, scope, ::mapLocalToIdx, graph.hierarchy)
 
     // (method, localName) -> idx
     private val localVarToIdx: MutableMap<EtsMethod, Map<String, Int>> = hashMapOf()
