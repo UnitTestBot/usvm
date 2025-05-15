@@ -104,6 +104,7 @@ import org.usvm.machine.types.AuxiliaryType
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.memory.ULValue
 import org.usvm.sizeSort
+import org.usvm.util.EtsFieldResolutionResult
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.isResolved
 import org.usvm.util.mkArrayIndexLValue
@@ -651,7 +652,12 @@ class TsExprResolver(
         }
 
         val etsField = resolveEtsField(instance, field, hierarchy)
-        val sort = typeToSort(etsField.type)
+
+        val sort = when (etsField) {
+            is EtsFieldResolutionResult.Empty -> error("Field not found")
+            is EtsFieldResolutionResult.Unique -> typeToSort(etsField.field.type)
+            is EtsFieldResolutionResult.Ambiguous -> unresolvedSort
+        }
 
         if (sort == unresolvedSort) {
             val boolLValue = mkFieldLValue(boolSort, instanceRef, field)

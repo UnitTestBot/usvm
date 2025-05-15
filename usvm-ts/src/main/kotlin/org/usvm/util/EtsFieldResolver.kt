@@ -14,7 +14,7 @@ fun TsContext.resolveEtsField(
     instance: EtsLocal?,
     field: EtsFieldSignature,
     hierarchy: EtsHierarchy,
-): EtsField {
+): EtsFieldResolutionResult {
     // Perfect signature:
     if (field.enclosingClass.name != UNKNOWN_CLASS_NAME) {
         val classes = scene.projectAndSdkClasses.filter { cls ->
@@ -29,7 +29,7 @@ fun TsContext.resolveEtsField(
         val clazz = classes.single()
         val fields = clazz.getAllFields(hierarchy).filter { it.name == field.name }
         if (fields.size == 1) {
-            return fields.single()
+            return EtsFieldResolutionResult.create(fields.single())
         }
     }
 
@@ -39,12 +39,12 @@ fun TsContext.resolveEtsField(
         when (instanceType) {
             is EtsClassType -> {
                 val field = tryGetSingleField(scene, instanceType.signature.name, field.name, hierarchy)
-                if (field != null) return field
+                if (field != null) return EtsFieldResolutionResult.create(field)
             }
 
             is EtsUnclearRefType -> {
                 val field = tryGetSingleField(scene, instanceType.typeName, field.name, hierarchy)
-                if (field != null) return field
+                if (field != null) return EtsFieldResolutionResult.create(field)
             }
         }
     }
@@ -52,10 +52,8 @@ fun TsContext.resolveEtsField(
     val fields = scene.projectAndSdkClasses.flatMap { cls ->
         cls.getAllFields(hierarchy).filter { it.name == field.name }
     }
-    if (fields.size == 1) {
-        return fields.single()
-    }
-    error("Cannot resolve field $field")
+
+    return EtsFieldResolutionResult.create(fields)
 }
 
 private fun tryGetSingleField(
@@ -89,4 +87,22 @@ private fun tryGetSingleField(
 
 fun EtsClass.getAllFields(hierarchy: EtsHierarchy): List<EtsField> {
     return hierarchy.getAncestor(this).flatMap { it.fields }
+}
+
+sealed class EtsFieldResolutionResult {
+    data class Unique(val field: EtsField) : EtsFieldResolutionResult()
+    data class Ambiguous(val fields: List<EtsField>) : EtsFieldResolutionResult()
+    data object Empty : EtsFieldResolutionResult()
+
+    companion object {
+        fun create(field: EtsField) = Unique(field)
+
+        fun create(fields: List<EtsField>): EtsFieldResolutionResult {
+            return when {
+                fields.isEmpty() -> Empty
+                fields.size == 1 -> Unique(fields.single())
+                else -> Ambiguous(fields)
+            }
+        }
+    }
 }

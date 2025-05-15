@@ -5,6 +5,7 @@ import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUnclearRefType
 import org.usvm.UBoolSort
@@ -33,3 +34,15 @@ val EtsMethod.humanReadableSignature: String
 
 fun EtsType.isResolved(): Boolean =
     this !is EtsUnclearRefType && (this as? EtsClassType)?.signature?.file != EtsFileSignature.UNKNOWN
+
+fun EtsType.getClassesForType(
+    scene: EtsScene
+): List<EtsClass> = if (isResolved()) {
+    scene
+        .projectAndSdkClasses
+        .filter { it.type == this }
+} else {
+    scene
+        .projectAndSdkClasses
+        .filter { it.type.typeName == typeName }
+}

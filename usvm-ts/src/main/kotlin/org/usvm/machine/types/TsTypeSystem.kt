@@ -13,6 +13,7 @@ import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.getAllFields
+import org.usvm.util.getClassesForType
 import org.usvm.util.isResolved
 import org.usvm.util.type
 import kotlin.time.Duration
@@ -44,10 +45,17 @@ class TsTypeSystem(
                 }
 
                 // TODO how to process unclearTypeRefs?
-                val supertypeClass = scene
-                    .projectAndSdkClasses
-                    .singleOrNull { it.type.typeName == supertype.typeName }
-                    ?: TODO("For now we support only unique type resolution")
+                val supertypeClasses = supertype.getClassesForType(scene)
+
+                if (supertypeClasses.isEmpty()) {
+                    error("Cannot find class for type $supertype")
+                }
+
+                if (supertypeClasses.size > 1) {
+                    TODO("Unsupported")
+                }
+
+                val supertypeClass = supertypeClasses.single()
                 val supertypeFields = supertypeClass.getAllFields(hierarchy)
                 val superTypeFieldNames = supertypeFields.mapTo(hashSetOf()) { it.name }
 
@@ -63,11 +71,18 @@ class TsTypeSystem(
                     return supertype.properties.isEmpty()
                 }
 
-                val cls = scene
-                    .projectAndSdkClasses
-                    .singleOrNull { it.type.typeName == type.typeName }
-                    ?: TODO("For now we support only unique type resolution")
-                cls.getAllFields(hierarchy)
+                val classes = type.getClassesForType(scene)
+
+                if (classes.isEmpty()) {
+                    error("Cannot find class for type $type")
+                }
+
+                if (classes.size > 1) {
+                    TODO("Unsupported")
+                }
+
+                val clazz = classes.single()
+                clazz.getAllFields(hierarchy)
                     .mapTo(hashSetOf()) { it.name }
                     .containsAll(supertype.properties)
             }
@@ -103,22 +118,27 @@ class TsTypeSystem(
                 }
 
                 // TODO wrong type resolutions because of names
-                val classes = if (type.isResolved()) {
-                    scene
-                        .projectAndSdkClasses
-                        .filter { it.type == type }
-                } else {
-                    scene
-                        .projectAndSdkClasses
-                        .filter { it.type.typeName == type.typeName }
-                }
+                val classes = type.getClassesForType(scene)
 
                 if (classes.isEmpty()) {
                     error("Cannot find class for type $type")
                 }
 
                 if (classes.size > 1) {
-                    TODO("Unsupported")
+                    // TODO is it correct behaviour?
+                    return classes.any { clazz ->
+                        val ancestors = hierarchy.getAncestor(clazz).map { it.type }
+
+                        if (supertype is EtsClassType) {
+                            return@any ancestors.any { it == supertype }
+                        }
+
+                        if (supertype is EtsUnclearRefType) {
+                            return@any ancestors.any { it.typeName == supertype.typeName }
+                        }
+
+                        error("TODO")
+                    }
                 }
 
                 val clazz = classes.single()
@@ -154,6 +174,9 @@ class TsTypeSystem(
             return false
         }
         if (type is EtsAnyType) {
+            return false
+        }
+        if (type is AuxiliaryType) {
             return false
         }
         return true
@@ -207,3 +230,4 @@ class TsTypeSystem(
 
     override fun topTypeStream(): UTypeStream<EtsType> = topTypeStream
 }
+
