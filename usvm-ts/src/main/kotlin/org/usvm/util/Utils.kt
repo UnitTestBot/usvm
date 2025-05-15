@@ -42,7 +42,8 @@ fun EtsType.getClassesForType(
         .projectAndSdkClasses
         .filter { it.type == this }
 } else {
+    val name = typeName.removeTrashFromTheName()
     scene
         .projectAndSdkClasses
-        .filter { it.type.typeName == typeName }
+        .filter { it.type.typeName.removeTrashFromTheName() == name }
 }

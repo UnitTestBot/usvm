@@ -2,9 +2,12 @@ package org.usvm.machine.types
 
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
+import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsPrimitiveType
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUnclearRefType
 import org.jacodb.ets.model.EtsUnknownType
@@ -153,7 +156,12 @@ class TsTypeSystem(
                     return ancestors.any { it.typeName == supertype.typeName }
                 }
 
-                error("TODO")
+                if (supertype is EtsArrayType) {
+                    // TODO mistake, inheritance for arrays
+                    return supertype == type
+                }
+
+                error("Unsupported combination of type $type and supertype $supertype")
             }
         }
     }
@@ -163,7 +171,9 @@ class TsTypeSystem(
         is EtsPrimitiveType -> types.isEmpty()
         is EtsClassType -> true
         is EtsUnclearRefType -> true
-        is EtsArrayType -> TODO()
+        is EtsArrayType -> {
+            true // TODO is it correct?????
+        }
         else -> error("Unsupported class type: $type")
     }
 
@@ -189,7 +199,8 @@ class TsTypeSystem(
             }
 
             is EtsAnyType, is EtsUnknownType -> {
-                error("Should not be called")
+                // TODO do we need to have primitives here??????
+                scene.projectAndSdkClasses.asSequence().map { it.type } + EtsNumberType + EtsBooleanType + EtsStringType
             }
 
             is AuxiliaryType -> {
@@ -214,6 +225,16 @@ class TsTypeSystem(
                         .filter { it.type.typeName == type.typeName }
                         .flatMap { hierarchy.getInheritors(it) }
                         .map { it.type }
+                }
+
+                if (type is EtsArrayType) {
+                    return findSubtypes(type.elementType).map {
+                        if (it is EtsArrayType) {
+                            EtsArrayType(it.elementType, dimensions = it.dimensions + 1)
+                        } else {
+                            EtsArrayType(it, dimensions = 1)
+                        }
+                    }
                 }
 
                 val clazz = scene.projectAndSdkClasses.singleOrNull { it.type == type }

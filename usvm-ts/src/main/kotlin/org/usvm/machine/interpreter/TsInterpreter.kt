@@ -5,6 +5,7 @@ import mu.KotlinLogging
 import org.jacodb.ets.model.EtsArrayAccess
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsAssignStmt
+import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsCallStmt
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsField
@@ -17,14 +18,17 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsNopStmt
 import org.jacodb.ets.model.EtsNullType
+import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsParameterRef
 import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsStaticFieldRef
 import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsThis
 import org.jacodb.ets.model.EtsThrowStmt
 import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUndefinedType
 import org.jacodb.ets.model.EtsUnionType
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.model.EtsValue
@@ -603,8 +607,19 @@ class TsInterpreter(
                 state.pathConstraints += state.memory.types.evalIsSubtype(ref, resolvedParameterType)
             }
 
-            if (parameterType is EtsUnionType || parameterType is EtsIntersectionType) {
-                TODO("Handle union/intersection types")
+            if (parameterType is EtsUnionType) {
+                // val possibleRefTypes = parameterType.types.filter { it is EtsRefType }
+                // val canBeBoolean = parameterType.types.any { it is EtsBooleanType }
+                // val canBeString = parameterType.types.any { it is EtsStringType }
+                // val canBeNumber = parameterType.types.any { it is EtsNumberType }
+                // val canBeUndefined = parameterType.types.any { it is EtsUndefinedType }
+                // val canBeNull = parameterType.types.any { it is EtsNullType }
+                //
+                //
+            }
+
+            if (parameterType is EtsIntersectionType) {
+                // TODO()
             }
         }
 

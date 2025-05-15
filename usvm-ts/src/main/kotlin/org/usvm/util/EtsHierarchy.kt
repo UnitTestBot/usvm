@@ -93,10 +93,14 @@ class EtsHierarchy(private val scene: EtsScene) {
     }
 }
 
-private fun ClassName.nameWithoutGenerics(): ClassName {
+fun ClassName.nameWithoutGenerics(): ClassName {
     return substringBefore('<')
 }
 
-private fun ClassName.removePrefixWithDots(): ClassName {
+fun ClassName.removePrefixWithDots(): ClassName {
     return substringAfterLast('.')
+}
+
+fun ClassName.removeTrashFromTheName(): ClassName {
+    return nameWithoutGenerics().removePrefixWithDots()
 }
