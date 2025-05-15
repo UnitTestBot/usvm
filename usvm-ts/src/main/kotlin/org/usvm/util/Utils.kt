@@ -32,4 +32,4 @@ val EtsMethod.humanReadableSignature: String
     }
 
 fun EtsType.isResolved(): Boolean =
-    this is EtsUnclearRefType || (this as? EtsClassType)?.signature?.file == EtsFileSignature.UNKNOWN
+    this !is EtsUnclearRefType && (this as? EtsClassType)?.signature?.file != EtsFileSignature.UNKNOWN

@@ -1,6 +1,8 @@
 package org.usvm.machine.state
 
 import org.jacodb.ets.model.EtsClass
+import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsStmt
@@ -49,6 +51,15 @@ class TsState(
     forkPoints = forkPoints,
     targets = targets,
 ) {
+    private lateinit var globalObject: UConcreteHeapRef
+
+    fun getGlobalObject(): UConcreteHeapRef {
+        if (!::globalObject.isInitialized) {
+            globalObject = memory.allocStatic(EtsClassType(EtsClassSignature.UNKNOWN))
+        }
+        return globalObject
+    }
+
     fun getSortForLocal(idx: Int): USort? {
         val localToSort = localToSortStack.last()
         return localToSort[idx]
@@ -78,10 +89,11 @@ class TsState(
     fun pushSortsForArguments(
         instance: EtsLocal?,
         args: List<EtsLocal>,
-        localToIdx: (EtsMethod, EtsValue) -> Int,
+        localToIdx: (EtsMethod, EtsValue) -> Int?,
     ) {
         val argSorts = args.map { arg ->
             val argIdx = localToIdx(lastEnteredMethod, arg)
+                ?: error("Arguments must present in the locals, but $arg is absent")
             getOrPutSortForLocal(argIdx, arg.type)
         }
 

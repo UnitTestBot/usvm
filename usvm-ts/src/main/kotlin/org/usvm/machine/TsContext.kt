@@ -28,6 +28,8 @@ import org.usvm.collection.field.UFieldLValue
 import org.usvm.isTrue
 import org.usvm.machine.expr.TsUndefinedSort
 import org.usvm.machine.expr.TsUnresolvedSort
+import org.usvm.machine.expr.TsVoidSort
+import org.usvm.machine.expr.TsVoidValue
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.types.FakeType
 import org.usvm.memory.UReadOnlyMemory
@@ -45,6 +47,10 @@ class TsContext(
     val undefinedSort: TsUndefinedSort by lazy { TsUndefinedSort(this) }
 
     val unresolvedSort: TsUnresolvedSort = TsUnresolvedSort(this)
+
+    val voidSort: TsVoidSort by lazy { TsVoidSort(this) }
+    val voidValue: TsVoidValue by lazy { TsVoidValue(this) }
+
 
     /**
      * In TS we treat undefined value as a null reference in other objects.
