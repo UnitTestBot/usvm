@@ -1,7 +1,7 @@
 package org.usvm.service
 
-import manager.ManagerClient
-import manager.SceneRequest
+import manager2.ManagerClient
+import manager2.SceneRequest
 
 fun main() {
     val manager: ManagerClient = grpcClient().create()

@@ -1,9 +1,9 @@
 package org.usvm.service
 
-import greeter.GreeterBlockingServer
-import greeter.GreeterWireGrpc
-import greeter.HelloReply
-import greeter.HelloRequest
+import greeter2.GreeterBlockingServer
+import greeter2.GreeterWireGrpc
+import greeter2.HelloReply
+import greeter2.HelloRequest
 import io.grpc.ServerBuilder
 import io.grpc.protobuf.services.ProtoReflectionService
 import io.grpc.stub.StreamObserver

@@ -1,8 +1,8 @@
 package org.usvm.service
 
-import manager.BinaryOperator
-import manager.RelationOperator
-import manager.UnaryOperator
+import manager2.BinaryOperator
+import manager2.RelationOperator
+import manager2.UnaryOperator
 import org.jacodb.ets.model.BasicBlock
 import org.jacodb.ets.model.EtsAddExpr
 import org.jacodb.ets.model.EtsAliasType
@@ -110,27 +110,27 @@ import org.jacodb.ets.model.EtsUnsignedRightShiftExpr
 import org.jacodb.ets.model.EtsValue
 import org.jacodb.ets.model.EtsVoidType
 import org.jacodb.ets.model.EtsYieldExpr
-import manager.BinaryExpr as ProtoBinaryExpr
-import manager.BlockCfg as ProtoBlockCfg
-import manager.CallExpr as ProtoCallExpr
-import manager.Class as ProtoClass
-import manager.ClassSignature as ProtoClassSignature
-import manager.Expr as ProtoExpr
-import manager.Field as ProtoField
-import manager.FieldSignature as ProtoFieldSignature
-import manager.File as ProtoFile
-import manager.FileSignature as ProtoFileSignature
-import manager.Local as ProtoLocal
-import manager.Method as ProtoMethod
-import manager.MethodParameter as ProtoMethodParameter
-import manager.MethodSignature as ProtoMethodSignature
-import manager.Ref as ProtoRef
-import manager.RelationExpr as ProtoRelationExpr
-import manager.Scene as ProtoScene
-import manager.Stmt as ProtoStmt
-import manager.Type as ProtoType
-import manager.UnaryExpr as ProtoUnaryExpr
-import manager.Value as ProtoValue
+import manager2.BinaryExpr as ProtoBinaryExpr
+import manager2.BlockCfg as ProtoBlockCfg
+import manager2.CallExpr as ProtoCallExpr
+import manager2.Class as ProtoClass
+import manager2.ClassSignature as ProtoClassSignature
+import manager2.Expr as ProtoExpr
+import manager2.Field as ProtoField
+import manager2.FieldSignature as ProtoFieldSignature
+import manager2.File as ProtoFile
+import manager2.FileSignature as ProtoFileSignature
+import manager2.Local as ProtoLocal
+import manager2.Method as ProtoMethod
+import manager2.MethodParameter as ProtoMethodParameter
+import manager2.MethodSignature as ProtoMethodSignature
+import manager2.Ref as ProtoRef
+import manager2.RelationExpr as ProtoRelationExpr
+import manager2.Scene as ProtoScene
+import manager2.Stmt as ProtoStmt
+import manager2.Type as ProtoType
+import manager2.UnaryExpr as ProtoUnaryExpr
+import manager2.Value as ProtoValue
 
 class ProtoToEtsConverter {
     fun convert(scene: ProtoScene): EtsScene {

@@ -1,5 +1,5 @@
 syntax = "proto3";
-package manager;
+package manager2;
 
 // import "google/protobuf/struct.proto";
 

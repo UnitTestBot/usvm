@@ -7,6 +7,7 @@ object Versions {
     const val detekt = "1.23.7"
     const val ini4j = "0.5.4"
     const val gradle_node = "7.1.0"
+    const val grpc = "1.72.0"
     const val jacodb = "3b6a17f000"
     const val juliet = "1.3.2"
     const val junit = "5.9.3"
@@ -249,6 +250,13 @@ object Libs {
         group = "com.github.ajalt.clikt",
         name = "clikt",
         version = Versions.clikt
+    )
+
+    // https://github.com/grpc/grpc-java
+    val grpc_api = dep(
+        group = "io.grpc",
+        name = "grpc-api",
+        version = Versions.grpc
     )
 }
 

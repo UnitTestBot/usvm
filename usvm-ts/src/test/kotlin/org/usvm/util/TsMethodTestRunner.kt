@@ -1,10 +1,10 @@
 package org.usvm.util
 
-import manager.ManagerClient
-import manager.SceneRequest
+import io.grpc.ManagedChannelBuilder
+import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
+import org.jacodb.ets.grpc.ManagerClient
 import org.jacodb.ets.grpc.ProtoToEtsConverter
-import org.jacodb.ets.grpc.grpcClient
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
@@ -52,31 +52,34 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
     ): EtsScene {
         val name = "$className.ts"
         val path = getResourcePath("/samples/$name")
-        // val file = loadEtsFileAutoConvert(
-        //     path,
-        //     useArkAnalyzerTypeInference = if (useArkAnalyzerTypeInference) 1 else null
-        // )
-        // return EtsScene(listOf(file))
 
-        val client: ManagerClient = grpcClient(50051).create()
+        val port = 50051
+        val channel = ManagedChannelBuilder
+            .forAddress("localhost", port)
+            .maxInboundMessageSize(64 * 1024 * 1024) // 64 MiB
+            .usePlaintext()
+            .build()
+        val client = ManagerClient(channel)
 
         logger.info { "Requesting scene for '$path'..." }
-        val (response, timeRequest) = measureTimedValue {
-            val request = SceneRequest(
-                path = path.pathString,
-                inferTypes = useArkAnalyzerTypeInference,
-            )
-            client.GetScene().executeBlocking(request)
+        val (scene, timeRequest) = measureTimedValue {
+            runBlocking {
+                client.getScene(path.pathString)
+            }
         }
 
-        val scene = response.scene!!
+        if (scene == null) {
+            logger.info { "Scene is null" }
+            return EtsScene(listOf())
+        }
+
         logger.info {
             "Got scene in %.1fs with ${
-                scene.files.size
+                scene.filesList.size
             } files, ${
-                scene.files.flatMap { it.classes }.size
+                scene.filesList.flatMap { it.classesList }.size
             } classes, ${
-                scene.files.flatMap { it.classes }.flatMap { it.methods }.size
+                scene.filesList.flatMap { it.classesList }.flatMap { it.methodsList }.size
             } methods".format(timeRequest.toDouble(DurationUnit.SECONDS))
         }
 

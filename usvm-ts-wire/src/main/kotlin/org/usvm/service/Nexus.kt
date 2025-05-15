@@ -1,7 +1,7 @@
 package org.usvm.service
 
-import manager.ManagerClient
-import manager.SceneRequest
+import manager2.ManagerClient
+import manager2.SceneRequest
 import mu.KotlinLogging
 import kotlin.io.path.pathString
 import kotlin.time.DurationUnit

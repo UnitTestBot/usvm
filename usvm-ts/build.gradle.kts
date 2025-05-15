@@ -18,6 +18,7 @@ dependencies {
 
     implementation(Libs.jacodb_core)
     implementation(Libs.jacodb_ets)
+    implementation(Libs.grpc_api)
 
     implementation(Libs.ksmt_yices)
     implementation(Libs.ksmt_cvc5)

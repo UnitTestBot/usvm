@@ -1,7 +1,7 @@
 package org.usvm.service
 
-import greeter.GreeterClient
-import greeter.HelloRequest
+import greeter2.GreeterClient
+import greeter2.HelloRequest
 
 fun main() {
     val greeter: GreeterClient = grpcClient(50051).create()
