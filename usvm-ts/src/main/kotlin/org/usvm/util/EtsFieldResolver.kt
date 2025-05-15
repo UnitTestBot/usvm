@@ -13,6 +13,7 @@ import org.usvm.machine.TsContext
 fun TsContext.resolveEtsField(
     instance: EtsLocal?,
     field: EtsFieldSignature,
+    hierarchy: EtsHierarchy,
 ): EtsField {
     // Perfect signature:
     if (field.enclosingClass.name != UNKNOWN_CLASS_NAME) {
@@ -26,7 +27,7 @@ fun TsContext.resolveEtsField(
             error("Multiple classes with name ${field.enclosingClass.name}")
         }
         val clazz = classes.single()
-        val fields = clazz.fields.filter { it.name == field.name }
+        val fields = clazz.getAllFields(hierarchy).filter { it.name == field.name }
         if (fields.size == 1) {
             return fields.single()
         }
@@ -37,19 +38,19 @@ fun TsContext.resolveEtsField(
         val instanceType = instance.type
         when (instanceType) {
             is EtsClassType -> {
-                val field = tryGetSingleField(scene, instanceType.signature.name, field.name)
+                val field = tryGetSingleField(scene, instanceType.signature.name, field.name, hierarchy)
                 if (field != null) return field
             }
 
             is EtsUnclearRefType -> {
-                val field = tryGetSingleField(scene, instanceType.typeName, field.name)
+                val field = tryGetSingleField(scene, instanceType.typeName, field.name, hierarchy)
                 if (field != null) return field
             }
         }
     }
 
     val fields = scene.projectAndSdkClasses.flatMap { cls ->
-        cls.fields.filter { it.name == field.name }
+        cls.getAllFields(hierarchy).filter { it.name == field.name }
     }
     if (fields.size == 1) {
         return fields.single()
@@ -61,13 +62,14 @@ private fun tryGetSingleField(
     scene: EtsScene,
     className: String,
     fieldName: String,
+    hierarchy: EtsHierarchy,
 ): EtsField? {
     val classes = scene.projectAndSdkClasses.filter { cls ->
         cls.name == className
     }
     if (classes.size == 1) {
         val clazz = classes.single()
-        val fields = clazz.fields.filter { it.name == fieldName }
+        val fields = clazz.getAllFields(hierarchy).filter { it.name == fieldName }
         if (fields.isEmpty()) {
             error("No field with name '$fieldName' in class '${clazz.name}'")
         }

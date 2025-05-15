@@ -103,6 +103,7 @@ import org.usvm.machine.types.AuxiliaryType
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.memory.ULValue
 import org.usvm.sizeSort
+import org.usvm.util.EtsHierarchy
 import org.usvm.util.isResolved
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
@@ -126,6 +127,7 @@ class TsExprResolver(
     private val ctx: TsContext,
     private val scope: TsStepScope,
     private val localToIdx: (EtsMethod, EtsValue) -> Int,
+    private val hierarchy: EtsHierarchy,
 ) : EtsEntity.Visitor<UExpr<out USort>?> {
 
     val simpleValueResolver: TsSimpleValueResolver =
@@ -630,6 +632,7 @@ class TsExprResolver(
         instance: EtsLocal?,
         instanceRef: UHeapRef,
         field: EtsFieldSignature,
+        hierarchy: EtsHierarchy,
     ): UExpr<out USort>? = with(ctx) {
         val resolvedAddr = if (instanceRef.isFakeObject()) instanceRef.extractRef(scope) else instanceRef
         scope.doWithState {
@@ -646,7 +649,7 @@ class TsExprResolver(
             }
         }
 
-        val etsField = resolveEtsField(instance, field)
+        val etsField = resolveEtsField(instance, field, hierarchy)
         val sort = typeToSort(etsField.type)
 
         if (sort == unresolvedSort) {
@@ -714,7 +717,7 @@ class TsExprResolver(
             }
         }
 
-        return handleFieldRef(value.instance, instanceRef, value.field)
+        return handleFieldRef(value.instance, instanceRef, value.field, hierarchy)
     }
 
     override fun visit(value: EtsStaticFieldRef): UExpr<out USort>? = with(ctx) {
@@ -747,7 +750,7 @@ class TsExprResolver(
             }
         }
 
-        return handleFieldRef(instance = null, instanceRef, value.field)
+        return handleFieldRef(instance = null, instanceRef, value.field, hierarchy)
     }
 
     // endregion
