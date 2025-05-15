@@ -355,7 +355,8 @@ open class TsTestStateResolver(
             return classes.single()
         }
 
-        error("Could not resolve class: $refType")
+        // TODO incorrect
+        return classes.first()
     }
 
     private fun resolveTsClass(

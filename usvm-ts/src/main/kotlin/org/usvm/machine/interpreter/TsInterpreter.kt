@@ -7,6 +7,8 @@ import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsCallStmt
 import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsField
+import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsIntersectionType
@@ -59,10 +61,12 @@ import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.state.returnValue
+import org.usvm.machine.types.AuxiliaryType
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.sizeSort
 import org.usvm.targets.UTargetsSet
 import org.usvm.types.single
+import org.usvm.util.EtsFieldResolutionResult
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
@@ -433,8 +437,16 @@ class TsInterpreter(
                 is EtsInstanceFieldRef -> {
                     val instance = exprResolver.resolve(lhv.instance)?.asExpr(addressSort) ?: return@doWithState
                     val etsField = resolveEtsField(lhv.instance, lhv.field, graph.hierarchy)
-                    val type = etsField.type
-                    val sort = typeToSort(type)
+                    scope.doWithState {
+                        pathConstraints += memory.types.evalIsSubtype(instance, AuxiliaryType(setOf(lhv.field.name)))
+                    }
+
+                    val sort = when (etsField) {
+                        is EtsFieldResolutionResult.Empty -> error("Cannot resolve field: ${lhv.field}")
+                        is EtsFieldResolutionResult.Unique -> typeToSort(etsField.field.type)
+                        is EtsFieldResolutionResult.Ambiguous -> unresolvedSort
+                    }
+
                     if (sort == unresolvedSort) {
                         val fakeObject = expr.toFakeObject(scope)
                         val lValue = mkFieldLValue(addressSort, instance, lhv.field)
