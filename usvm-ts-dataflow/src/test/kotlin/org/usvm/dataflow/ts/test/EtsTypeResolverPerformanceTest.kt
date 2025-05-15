@@ -77,8 +77,8 @@ class EtsTypeResolverPerformanceTest {
         )
 
         val reportStr = buildString {
-            appendLine("|project|min time|max time|avg time|median time|%|")
-            appendLine("|:--|:--|:--|:--|:--|:--|")
+            appendLine("|project|stmts|min time|max time|avg time|median time|%|")
+            appendLine("|:--|:--|:--|:--|:--|:--|:--|")
             reports.forEach {
                 appendLine(it.dumpToString())
             }

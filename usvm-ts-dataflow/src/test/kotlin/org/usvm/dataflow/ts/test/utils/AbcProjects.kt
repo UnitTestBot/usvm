@@ -22,14 +22,10 @@ import org.usvm.dataflow.ts.infer.EntryPointsProcessor
 import org.usvm.dataflow.ts.infer.TypeGuesser
 import org.usvm.dataflow.ts.infer.TypeInferenceManager
 import org.usvm.dataflow.ts.infer.TypeInferenceResult
-import org.usvm.dataflow.ts.infer.annotation.annotateWithTypes
 import org.usvm.dataflow.ts.infer.createApplicationGraph
-import org.usvm.dataflow.ts.infer.verify.VerificationResult
-import org.usvm.dataflow.ts.infer.verify.verify
 import org.usvm.dataflow.ts.util.EtsTraits
 import kotlin.io.path.Path
 import kotlin.io.path.exists
-import kotlin.test.assertTrue
 
 object AbcProjects {
     private const val yourPrefixForTestFolders = "REPLACE_ME"
@@ -53,14 +49,7 @@ object AbcProjects {
         return result to statistics
     }
 
-    fun inferTypes(scene: EtsScene): TypeInferenceResult {
-        val abcScene = when (val result = verify(scene)) {
-            is VerificationResult.Success -> scene
-            is VerificationResult.Fail -> scene.annotateWithTypes(result.erasureScheme)
-        }
-
-        assertTrue(verify(abcScene) is VerificationResult.Success)
-
+    fun inferTypes(abcScene: EtsScene): TypeInferenceResult {
         val graphAbc = createApplicationGraph(abcScene)
         val guesser = TypeGuesser(abcScene)
 
