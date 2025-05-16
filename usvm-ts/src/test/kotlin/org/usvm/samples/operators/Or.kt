@@ -1,4 +1,4 @@
-package org.usvm.samples
+package org.usvm.samples.operators
 
 import org.jacodb.ets.dsl.const
 import org.jacodb.ets.dsl.eq
@@ -26,7 +26,7 @@ class Or : TsMethodTestRunner() {
 
     private val className = this::class.simpleName!!
 
-    override val scene: EtsScene = loadSampleScene(className)
+    override val scene: EtsScene = loadSampleScene(className, folderPrefix = "operators")
 
     private val classSignature: EtsClassSignature =
         scene.projectFiles[0].classes.single { it.name != DEFAULT_ARK_CLASS_NAME }.signature
