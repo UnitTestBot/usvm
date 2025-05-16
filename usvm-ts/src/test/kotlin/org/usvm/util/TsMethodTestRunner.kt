@@ -68,11 +68,6 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
             }
         }
 
-        if (scene == null) {
-            logger.info { "Scene is null" }
-            return EtsScene(listOf())
-        }
-
         logger.info {
             "Got scene in %.1fs with ${
                 scene.filesList.size
