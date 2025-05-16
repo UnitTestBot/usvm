@@ -834,7 +834,7 @@ sealed interface TsBinaryOperator {
             }
 
             // if (a is Bool && b is Bool) ... else if (a is Bool && b is Fp) ... else ...
-            return conjuncts.drop(2).take(1).foldRight(mkFp(0.0, fp64Sort).asExpr(fp64Sort)) { value, acc ->
+            return conjuncts.foldRight(mkFp(0.0, fp64Sort).asExpr(fp64Sort)) { value, acc ->
                 mkIte(value.constraint, value.expr, acc)
             }
         }

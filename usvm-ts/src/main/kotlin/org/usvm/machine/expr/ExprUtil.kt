@@ -2,7 +2,6 @@ package org.usvm.machine.expr
 
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
-import io.ksmt.utils.mkConst
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
 import org.usvm.UExpr
@@ -127,10 +126,14 @@ fun TsContext.mkNumericExpr(
     // TODO: probably we need to implement Object (Ref/Fake) -> Number conversion here directly, without ToPrimitive
 
     // TODO incorrect implementation, returns some number that is not equal to 0 and NaN
-    val result = fp64Sort.mkConst("${expr}_toNumber")
 
-    pathConstraints += mkFpIsNaNExpr(result).not()
-    pathConstraints += mkFpEqualExpr(result, mkFp(0.0, fp64Sort)).not()
-
-    return@calcOnState result
+    return@calcOnState mkIte(
+        condition = mkEq(expr.asExpr(addressSort), mkTsNullValue()),
+        trueBranch = mkFp(0.0, fp64Sort),
+        falseBranch = mkIte(
+            mkEq(expr.asExpr(addressSort), mkUndefinedValue()),
+            mkFp64NaN(),
+            makeSymbolicPrimitive(fp64Sort)
+        )
+    )
 }
