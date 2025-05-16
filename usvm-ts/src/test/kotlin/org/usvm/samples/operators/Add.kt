@@ -78,8 +78,19 @@ class Add : TsMethodTestRunner() {
     @Test
     fun `add unknown values`() {
         val method = getMethod(className, "addUnknownValues")
-        discoverProperties<TsTestValue, TsTestValue>(
+        discoverProperties<TsTestValue, TsTestValue, TsTestValue.TsNumber>(
             method = method,
+            { a, b, r -> a is TsTestValue.TsUndefined || b is TsTestValue.TsUndefined && r.number.isNaN() },
+            { a, b, r ->
+                (a is TsTestValue.TsClass
+                    || b is TsTestValue.TsClass
+                    || (a as? TsTestValue.TsNumber)?.number?.isNaN() == true
+                    || (b as? TsTestValue.TsNumber)?.number?.isNaN() == true)
+                    && r.number.isNaN()
+            },
+            { a, b, r -> r.number == 7.0 },
+            { a, b, r -> a is TsTestValue.TsNull && b is TsTestValue.TsNull && r.number == 0.0 },
+            { a, b, r -> r.number == 42.0 }
         )
     }
 }
