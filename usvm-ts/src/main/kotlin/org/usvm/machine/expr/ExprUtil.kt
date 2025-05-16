@@ -131,5 +131,5 @@ fun TsContext.mkNumericExpr(
     pathConstraints += mkFpIsNaNExpr(result).not()
     pathConstraints += mkFpEqualExpr(result, mkFp(0.0, fp64Sort)).not()
 
-    return@calcOnState mkFp64(0.0)
+    return@calcOnState result
 }
