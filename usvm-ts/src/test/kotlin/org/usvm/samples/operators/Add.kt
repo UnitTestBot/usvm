@@ -74,4 +74,12 @@ class Add : TsMethodTestRunner() {
             { a, r -> !a.number.isNaN() && r.number == a.number },
         )
     }
+
+    @Test
+    fun `add unknown values`() {
+        val method = getMethod(className, "addUnknownValues")
+        discoverProperties<TsTestValue, TsTestValue>(
+            method = method,
+        )
+    }
 }

@@ -34,8 +34,8 @@ import org.usvm.api.typeStreamOf
 import org.usvm.isTrue
 import org.usvm.machine.TsContext
 import org.usvm.machine.expr.TsUnresolvedSort
-import org.usvm.machine.expr.extractBool
 import org.usvm.machine.expr.extractDouble
+import org.usvm.machine.expr.toConcreteBoolValue
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.memory.ULValue
@@ -306,7 +306,7 @@ open class TsTestStateResolver(
                 }
             }
 
-            EtsBooleanType -> TsTestValue.TsBoolean(evaluateInModel(expr).extractBool())
+            EtsBooleanType -> TsTestValue.TsBoolean(evaluateInModel(expr).toConcreteBoolValue())
             EtsUndefinedType -> TsTestValue.TsUndefined
             is EtsLiteralType -> TODO()
             EtsNullType -> TODO()

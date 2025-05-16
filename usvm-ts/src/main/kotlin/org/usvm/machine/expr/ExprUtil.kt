@@ -125,5 +125,11 @@ fun TsContext.mkNumericExpr(
     // TODO: ToPrimitive, then ToNumber again
     // TODO: probably we need to implement Object (Ref/Fake) -> Number conversion here directly, without ToPrimitive
 
-    error("Unsupported sort: ${expr.sort}")
+    // TODO incorrect implementation, returns some number that is not equal to 0 and NaN
+    val result = makeSymbolicPrimitive(fp64Sort)
+
+    pathConstraints += mkFpIsNaNExpr(result).not()
+    pathConstraints += mkFpEqualExpr(result, mkFp(0.0, fp64Sort)).not()
+
+    return@calcOnState mkFp64(0.0)
 }

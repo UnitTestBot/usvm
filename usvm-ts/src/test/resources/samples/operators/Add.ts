@@ -54,4 +54,18 @@ class Add {
 
         return res
     }
+
+    addUnknownValues(a, b) {
+        res = a + b;
+
+        if (res != res) return res
+
+        if (res == 7) return res
+
+        if (a === null && b === null) return res
+
+        if (a === undefined || b === undefined) return res
+
+        return 42
+    }
 }
