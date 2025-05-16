@@ -1,0 +1,10 @@
+syntax = "proto3";
+package usvm;
+
+option java_multiple_files = true;
+
+import "type_inference.proto";
+
+service UsvmService {
+  rpc InferTypes(infer.TypeInferenceRequest) returns (infer.TypeInferenceResult);
+}

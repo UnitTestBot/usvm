@@ -1,0 +1,14 @@
+syntax = "proto3";
+package usvm.infer;
+
+option java_multiple_files = true;
+
+import "manager.proto";
+
+message TypeInferenceRequest {
+  manager.Scene scene = 1;
+}
+
+message TypeInferenceResult {
+  string payload = 1;
+}
