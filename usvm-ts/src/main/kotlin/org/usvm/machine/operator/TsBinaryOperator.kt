@@ -4,6 +4,7 @@ import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import mu.KotlinLogging
+import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
 import org.usvm.UExpr
@@ -644,25 +645,33 @@ sealed interface TsBinaryOperator {
 
             // TODO support bigint
 
-            val fpValue = when {
+            return when {
                 lhs.sort is UBoolSort && rhs.sort is KFp64Sort -> {
                     mkFpAddExpr(fpRoundingModeSortDefaultValue(), boolToFp(lhs.cast()), rhs.cast())
+                }
+
+                lhs.sort is UBoolSort && rhs.sort is UAddressSort -> {
+                    mkFpAddExpr(fpRoundingModeSortDefaultValue(), boolToFp(lhs.cast()), mkNumericExpr(rhs, scope))
                 }
 
                 lhs.sort is KFp64Sort && rhs.sort is UBoolSort -> {
                     mkFpAddExpr(fpRoundingModeSortDefaultValue(), lhs.cast(), boolToFp(rhs.cast()))
                 }
 
-                else -> null
+                lhs.sort is KFp64Sort && rhs.sort is UAddressSort -> {
+                    mkFpAddExpr(fpRoundingModeSortDefaultValue(), lhs.cast(), mkNumericExpr(rhs, scope))
+                }
+
+                lhs.sort is UAddressSort && rhs.sort is KFp64Sort -> {
+                    mkFpAddExpr(fpRoundingModeSortDefaultValue(), mkNumericExpr(lhs, scope), rhs.cast())
+                }
+
+                lhs.sort is UAddressSort && rhs.sort is UBoolSort -> {
+                    mkFpAddExpr(fpRoundingModeSortDefaultValue(), mkNumericExpr(lhs, scope), boolToFp(rhs.cast()))
+                }
+
+                else -> TODO("Unsupported combination ${lhs.sort} and ${rhs.sort}")
             }
-
-            if (fpValue != null) {
-                return fpValue
-            }
-
-            // TODO: support object to primitive
-
-            TODO()
         }
     }
 
