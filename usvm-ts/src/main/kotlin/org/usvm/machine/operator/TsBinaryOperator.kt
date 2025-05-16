@@ -161,16 +161,28 @@ sealed interface TsBinaryOperator {
                     )
 
                     // TODO: 'fake(ref)' == 'fake(bool)'
-                    scope.assert(mkAnd(lhsType.refTypeExpr, rhsType.boolTypeExpr).not())
+                    conjuncts += ExprWithTypeConstraint(
+                        constraint = mkAnd(lhsType.refTypeExpr, rhsType.boolTypeExpr),
+                        expr = mkFalse() // TODO mistake, we should coerce the ref object
+                    )
 
                     // TODO: 'fake(ref)' == 'fake(fp)'
-                    scope.assert(mkAnd(lhsType.refTypeExpr, rhsType.fpTypeExpr).not())
+                    conjuncts += ExprWithTypeConstraint(
+                        constraint = mkAnd(lhsType.refTypeExpr, rhsType.fpTypeExpr),
+                        expr = mkFalse() // TODO mistake, we should coerce the ref object
+                    )
 
                     // TODO: 'fake(bool)' == 'fake(ref)'
-                    scope.assert(mkAnd(lhsType.boolTypeExpr, rhsType.refTypeExpr).not())
+                    conjuncts += ExprWithTypeConstraint(
+                        constraint = mkAnd(lhsType.boolTypeExpr, rhsType.refTypeExpr),
+                        expr = mkFalse() // TODO mistake, we should coerce the ref object
+                    )
 
                     // TODO: 'fake(fp)' == 'fake(ref)'
-                    scope.assert(mkAnd(lhsType.fpTypeExpr, rhsType.refTypeExpr).not())
+                    conjuncts += ExprWithTypeConstraint(
+                        constraint = mkAnd(lhsType.fpTypeExpr, rhsType.refTypeExpr),
+                        expr = mkFalse() // TODO mistake, we should coerce the ref object
+                    )
                 }
 
                 lhs.isFakeObject() -> {
@@ -197,7 +209,10 @@ sealed interface TsBinaryOperator {
                             )
 
                             // TODO: 'fake(ref)' == 'bool'
-                            scope.assert(lhsType.refTypeExpr.not())
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = lhsType.refTypeExpr,
+                                expr = mkFalse() // TODO mistake, we should coerce the ref object
+                            )
                         }
 
                         fp64Sort -> {
@@ -219,16 +234,25 @@ sealed interface TsBinaryOperator {
                                 )
                             )
 
-                            // TODO: 'fake(ref)' == 'fp'
-                            scope.assert(lhsType.refTypeExpr.not())
+                            // TODO fake(ref) == 'fp'
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = lhsType.refTypeExpr,
+                                expr = mkFalse() // TODO mistake, we should coerce the ref object
+                            )
                         }
 
                         addressSort -> {
                             // TODO: 'fake(bool)' == 'ref'
-                            scope.assert(lhsType.boolTypeExpr.not())
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = lhsType.boolTypeExpr,
+                                expr = mkFalse() // TODO mistake, we should coerce the ref object
+                            )
 
                             // TODO: 'fake(fp)' == 'ref'
-                            scope.assert(lhsType.fpTypeExpr.not())
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = lhsType.fpTypeExpr,
+                                expr = mkFalse() // TODO mistake, we should coerce the ref object
+                            )
 
                             // 'fake(ref)' == 'ref'
                             conjuncts += ExprWithTypeConstraint(
@@ -270,7 +294,10 @@ sealed interface TsBinaryOperator {
                             )
 
                             // TODO: 'bool' == 'fake(ref)'
-                            scope.assert(rhsType.refTypeExpr.not())
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = rhsType.refTypeExpr,
+                                expr = mkFalse() // TODO mistake, we should coerce the ref object
+                            )
                         }
 
                         fp64Sort -> {
@@ -293,15 +320,24 @@ sealed interface TsBinaryOperator {
                             )
 
                             // TODO: 'fp' == 'fake(ref)'
-                            scope.assert(rhsType.refTypeExpr.not())
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = rhsType.refTypeExpr,
+                                expr = mkFalse() // TODO mistake, we should coerce the ref object
+                            )
                         }
 
                         addressSort -> {
                             // TODO: 'ref' == 'fake(bool)'
-                            scope.assert(rhsType.boolTypeExpr.not())
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = rhsType.boolTypeExpr,
+                                expr = mkFalse() // TODO mistake, we should coerce the ref object
+                            )
 
                             // TODO: 'ref' == 'fake(fp)'
-                            scope.assert(rhsType.fpTypeExpr.not())
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = rhsType.fpTypeExpr,
+                                expr = mkFalse() // TODO mistake, we should coerce the ref object
+                            )
 
                             // 'ref' == 'fake(ref)'
                             conjuncts += ExprWithTypeConstraint(
@@ -489,46 +525,47 @@ sealed interface TsBinaryOperator {
         ): UBoolExpr {
             check(lhs.isFakeObject() || rhs.isFakeObject())
 
-            when {
+            val typeConstraint = when {
                 lhs.isFakeObject() && rhs.isFakeObject() -> {
                     val lhsType = lhs.getFakeType(scope)
                     val rhsType = rhs.getFakeType(scope)
-                    val condition = mkAnd(
+                    mkAnd(
                         lhsType.boolTypeExpr eq rhsType.boolTypeExpr,
                         lhsType.fpTypeExpr eq rhsType.fpTypeExpr,
                         // TODO support type equality
                         lhsType.refTypeExpr eq rhsType.refTypeExpr
                     )
-                    scope.assert(condition)
                 }
 
                 lhs.isFakeObject() -> {
                     val lhsType = lhs.getFakeType(scope)
-                    val condition = when (rhs.sort) {
+                    when (rhs.sort) {
                         boolSort -> lhsType.boolTypeExpr
                         fp64Sort -> lhsType.fpTypeExpr
                         // TODO support type equality
                         addressSort -> lhsType.refTypeExpr
                         else -> error("Unsupported sort ${rhs.sort}")
                     }
-                    scope.assert(condition)
                 }
 
                 rhs.isFakeObject() -> {
                     val rhsType = rhs.getFakeType(scope)
-                    val condition = when (lhs.sort) {
+                    when (lhs.sort) {
                         boolSort -> rhsType.boolTypeExpr
                         fp64Sort -> rhsType.fpTypeExpr
                         // TODO support type equality
                         addressSort -> rhsType.refTypeExpr
                         else -> error("Unsupported sort ${lhs.sort}")
                     }
-                    scope.assert(condition)
                 }
+                else -> error("Should not be called")
             }
 
             return with(Eq) {
-                resolveFakeObject(lhs, rhs, scope)
+                mkAnd(
+                    typeConstraint,
+                    resolveFakeObject(lhs, rhs, scope)
+                )
             }
         }
 
@@ -538,8 +575,7 @@ sealed interface TsBinaryOperator {
             scope: TsStepScope,
         ): UBoolExpr? {
             logger.warn { "Not implemented operator: StrictEq" }
-            scope.assert(falseExpr)
-            return null
+            error("Not implemented strict eq")
         }
     }
 

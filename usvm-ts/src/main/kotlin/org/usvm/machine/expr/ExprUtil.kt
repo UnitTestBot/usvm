@@ -133,7 +133,7 @@ fun TsContext.mkNumericExpr(
         falseBranch = mkIte(
             mkEq(expr.asExpr(addressSort), mkUndefinedValue()),
             mkFp64NaN(),
-            makeSymbolicPrimitive(fp64Sort)
+            mkFp64NaN() // TODO we should not generalize it this way
         )
     )
 }
