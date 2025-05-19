@@ -17,6 +17,7 @@ import org.usvm.types.UTypeSystem
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.getAllFields
 import org.usvm.util.getClassesForType
+import org.usvm.util.removeTrashFromTheName
 import org.usvm.util.type
 import kotlin.time.Duration
 
@@ -123,8 +124,21 @@ class TsTypeSystem(
                     return supertype == EtsHierarchy.OBJECT_CLASS
                 }
 
+
                 if (supertype == EtsHierarchy.OBJECT_CLASS) {
                     return true // TODO not primitive
+                }
+
+                if (type is EtsArrayType) {
+                    if (supertype !is EtsArrayType) return false
+
+                    return supertype.dimensions == type.dimensions && // TODO object
+                        isSupertype(supertype.elementType, type.elementType)
+                }
+
+                if (supertype is EtsArrayType) {
+                    if (type !is EtsArrayType) return false
+                    TODO("Other $type to $supertype combinations")
                 }
 
                 // TODO wrong type resolutions because of names
@@ -147,7 +161,7 @@ class TsTypeSystem(
                             return@any ancestors.any { it.typeName == supertype.typeName }
                         }
 
-                        error("TODO")
+                        error("Is $type a supertype of $supertype?")
                     }
                 }
 
@@ -181,6 +195,7 @@ class TsTypeSystem(
         is EtsArrayType -> {
             true // TODO is it correct?????
         }
+
         else -> error("Unsupported class type: $type")
     }
 
@@ -244,7 +259,12 @@ class TsTypeSystem(
                     }
                 }
 
-                val clazz = scene.projectAndSdkClasses.singleOrNull { it.type == type }
+                val clazz = scene.projectAndSdkClasses.singleOrNull {
+                    type as EtsClassType
+                    it.type.signature.file == type.signature.file &&
+                        it.type.signature.name == type.signature.name.removeTrashFromTheName() &&
+                        it.type.signature.namespace == type.signature.namespace
+                }
                     ?: error("Cannot find class for type $type")
                 // TODO take only direct inheritors
                 hierarchy.getInheritors(clazz).asSequence().map { it.type }

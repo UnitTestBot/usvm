@@ -6,6 +6,8 @@ import org.jacodb.ets.utils.getLocals
 import org.jacodb.ets.utils.loadEtsProjectFromIR
 import org.junit.jupiter.api.condition.EnabledIf
 import org.usvm.api.TsTestValue
+import org.usvm.machine.TsMachine
+import org.usvm.machine.TsOptions
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.getResourcePath
 import org.usvm.util.getResourcePathOrNull
@@ -59,21 +61,21 @@ class RunOnPhotosProject : TsMethodTestRunner() {
         }
     }
 
-    // @Test
-    // fun `test run on all methods`() {
-    //     val methods = scene.projectClasses
-    //         .filterNot { it.name.startsWith("%AC") }
-    //         .flatMap {
-    //             it.methods
-    //                 .filterNot { it.cfg.stmts.isEmpty() }
-    //                 .filterNot { it.isStatic }
-    //                 .filterNot { it.name.startsWith("%AM") }
-    //                 .filterNot { it.name == "build" }
-    //         }
-    //     val tsOptions = TsOptions()
-    //     TsMachine(scene, options, tsOptions).use { machine ->
-    //         val states = machine.analyze(methods)
-    //         states.let {}
-    //     }
-    // }
+    @Test
+    fun `test run on all methods`() {
+        val methods = scene.projectClasses
+            .filterNot { it.name.startsWith("%AC") }
+            .flatMap {
+                it.methods
+                    .filterNot { it.cfg.stmts.isEmpty() }
+                    .filterNot { it.isStatic }
+                    .filterNot { it.name.startsWith("%AM") }
+                    .filterNot { it.name == "build" }
+            }
+        val tsOptions = TsOptions()
+        TsMachine(scene, options, tsOptions).use { machine ->
+            val states = machine.analyze(methods)
+            states.let {}
+        }
+    }
 }
