@@ -40,6 +40,8 @@ class TsState(
     targets: UTargetsSet<TsTarget, EtsStmt> = UTargetsSet.empty(),
     val localToSortStack: MutableList<UPersistentHashMap<Int, USort>> = mutableListOf(persistentHashMapOf()),
     var staticStorage: UPersistentHashMap<EtsClass, UConcreteHeapRef> = persistentHashMapOf(),
+    val globalObject: UConcreteHeapRef = memory.allocStatic(EtsClassType(EtsClassSignature.UNKNOWN)),
+    val addedArtificialLocals: MutableSet<String> = hashSetOf<String>(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
     ctx = ctx,
     initOwnership = ownership,
@@ -51,15 +53,6 @@ class TsState(
     forkPoints = forkPoints,
     targets = targets,
 ) {
-    private lateinit var globalObject: UConcreteHeapRef
-
-    fun getGlobalObject(): UConcreteHeapRef {
-        if (!::globalObject.isInitialized) {
-            globalObject = memory.allocStatic(EtsClassType(EtsClassSignature.UNKNOWN))
-        }
-        return globalObject
-    }
-
     fun getSortForLocal(idx: Int): USort? {
         val localToSort = localToSortStack.last()
         return localToSort[idx]
@@ -149,6 +142,8 @@ class TsState(
             targets = targets.clone(),
             localToSortStack = localToSortStack.toMutableList(),
             staticStorage = staticStorage,
+            globalObject = globalObject,
+            addedArtificialLocals = addedArtificialLocals,
         )
     }
 

@@ -5,11 +5,8 @@ import mu.KotlinLogging
 import org.jacodb.ets.model.EtsArrayAccess
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsAssignStmt
-import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsCallStmt
 import org.jacodb.ets.model.EtsClassType
-import org.jacodb.ets.model.EtsField
-import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsIntersectionType
@@ -18,17 +15,14 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsNopStmt
 import org.jacodb.ets.model.EtsNullType
-import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsParameterRef
 import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsStaticFieldRef
 import org.jacodb.ets.model.EtsStmt
-import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsThis
 import org.jacodb.ets.model.EtsThrowStmt
 import org.jacodb.ets.model.EtsType
-import org.jacodb.ets.model.EtsUndefinedType
 import org.jacodb.ets.model.EtsUnionType
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.model.EtsValue
@@ -139,6 +133,7 @@ class TsInterpreter(
                 val s = e.stackTrace[0]
                 "Exception .(${s.fileName}:${s.lineNumber}): $e}"
             }
+            // TODO remove state????
         }
 
         return scope.stepResult()
@@ -399,7 +394,7 @@ class TsInterpreter(
                         val lValue = mkRegisterStackLValue(expr.sort, idx)
                         memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
                     } else {
-                        val lValue = mkFieldLValue(expr.sort, getGlobalObject(), lhv.name)
+                        val lValue = mkFieldLValue(expr.sort, globalObject, lhv.name)
 
                         memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
                     }

@@ -654,7 +654,10 @@ class TsExprResolver(
         val etsField = resolveEtsField(instance, field, hierarchy)
 
         val sort = when (etsField) {
-            is EtsFieldResolutionResult.Empty -> error("Field not found")
+            is EtsFieldResolutionResult.Empty -> {
+                logger.error("Field not found")
+                return@with null // TODO fake field???
+            }
             is EtsFieldResolutionResult.Unique -> typeToSort(etsField.field.type)
             is EtsFieldResolutionResult.Ambiguous -> unresolvedSort
         }
@@ -831,13 +834,18 @@ class TsSimpleValueResolver(
         val localIdx = localToIdx(currentMethod, local)
 
         if (localIdx == null) {
-            logger.warn { "Cannot resolve local $local" }
-
             require(local is EtsLocal)
 
-            val globalObject = scope.calcOnState { getGlobalObject() }
+            val globalObject = scope.calcOnState { globalObject }
 
             val lValue = mkFieldLValue(ctx.addressSort, globalObject, local.name)
+
+            // this object was already created
+            if (local.name in scope.calcOnState { addedArtificialLocals }) {
+                return lValue.cast()
+            }
+
+            logger.warn { "Cannot resolve local $local" }
 
             val boolLValue = mkFieldLValue(ctx.boolSort, globalObject, local.name)
             val fpLValue = mkFieldLValue(ctx.fp64Sort, globalObject, local.name)
