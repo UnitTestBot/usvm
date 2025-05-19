@@ -7,6 +7,7 @@ plugins {
 
 dependencies {
     implementation(project(":usvm-ts"))
+    implementation(project(":usvm-ts-dataflow"))
 
     implementation(Libs.jacodb_ets)
     implementation(Libs.grpc_protobuf)

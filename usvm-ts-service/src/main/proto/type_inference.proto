@@ -5,10 +5,40 @@ option java_multiple_files = true;
 
 import "manager.proto";
 
-message TypeInferenceRequest {
-  manager.Scene scene = 1;
+message InferTypesRequest {
+  optional manager.Scene scene = 1;
+  optional string path = 2;
 }
 
-message TypeInferenceResult {
-  string payload = 1;
+message InferredTypes {
+  repeated ClassTypeResult classes = 1;
+  repeated MethodTypeResult methods = 2;
+}
+
+message ClassTypeResult {
+  manager.ClassSignature signature = 1;
+  repeated FieldTypeResult fields = 2;
+  repeated string methods = 3;
+}
+
+message FieldTypeResult {
+  string name = 1;
+  manager.Type type = 2;
+}
+
+message MethodTypeResult {
+  manager.MethodSignature signature = 1;
+  repeated ArgumentTypeResult args = 2;
+  manager.Type returnType = 3;
+  repeated LocalTypeResult locals = 4;
+}
+
+message ArgumentTypeResult {
+  int32 index = 1;
+  manager.Type type = 2;
+}
+
+message LocalTypeResult {
+  string name = 1;
+  manager.Type type = 2;
 }
