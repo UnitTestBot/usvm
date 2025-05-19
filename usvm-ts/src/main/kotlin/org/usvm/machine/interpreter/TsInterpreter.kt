@@ -329,15 +329,32 @@ class TsInterpreter(
 
         observer?.onIfStatementWithResolvedCondition(simpleValueResolver, stmt, boolExpr, scope)
 
-        val (posStmt, negStmt) = graph.successors(stmt).take(2).toList()
+        val (posStmt, negStmt) = graph.successors(stmt).toList().let { it.getOrNull(0) to it.getOrNull(1) }
 
-        scope.forkWithBlackList(
-            boolExpr,
-            posStmt,
-            negStmt,
-            blockOnTrueState = { newStmt(posStmt) },
-            blockOnFalseState = { newStmt(negStmt) },
-        )
+        if (posStmt != null && negStmt != null) {
+            scope.forkWithBlackList(
+                boolExpr,
+                posStmt,
+                negStmt,
+                blockOnTrueState = { newStmt(posStmt) },
+                blockOnFalseState = { newStmt(negStmt) },
+            )
+            return
+        }
+
+        if (posStmt != null) {
+            scope.assert(boolExpr)
+            scope.doWithState { newStmt(posStmt) }
+            return
+        }
+
+        if (negStmt != null) {
+            scope.assert(with(ctx) { boolExpr.not() })
+            scope.doWithState { newStmt(negStmt) }
+            return
+        }
+
+        error("Both branches of if statement are absent")
     }
 
     private fun visitReturnStmt(scope: TsStepScope, stmt: EtsReturnStmt) {

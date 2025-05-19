@@ -2,7 +2,6 @@ package org.usvm.machine.expr
 
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
-import io.ksmt.utils.cast
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsAddExpr
 import org.jacodb.ets.model.EtsAndExpr
@@ -106,6 +105,7 @@ import org.usvm.memory.ULValue
 import org.usvm.sizeSort
 import org.usvm.util.EtsFieldResolutionResult
 import org.usvm.util.EtsHierarchy
+import org.usvm.util.createFakeField
 import org.usvm.util.isResolved
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
@@ -655,9 +655,11 @@ class TsExprResolver(
 
         val sort = when (etsField) {
             is EtsFieldResolutionResult.Empty -> {
-                logger.error("Field not found")
-                return@with null // TODO fake field???
+                logger.error("Field $etsField not found, creating fake field")
+                resolvedAddr.createFakeField(field.name, scope)
+                addressSort
             }
+
             is EtsFieldResolutionResult.Unique -> typeToSort(etsField.field.type)
             is EtsFieldResolutionResult.Ambiguous -> unresolvedSort
         }
@@ -838,29 +840,20 @@ class TsSimpleValueResolver(
 
             val globalObject = scope.calcOnState { globalObject }
 
-            val lValue = mkFieldLValue(ctx.addressSort, globalObject, local.name)
-
             // this object was already created
-            if (local.name in scope.calcOnState { addedArtificialLocals }) {
-                return lValue.cast()
+            val localName = local.name
+            if (localName in scope.calcOnState { addedArtificialLocals }) {
+                return mkFieldLValue(ctx.addressSort, globalObject, local.name)
             }
 
             logger.warn { "Cannot resolve local $local" }
 
-            val boolLValue = mkFieldLValue(ctx.boolSort, globalObject, local.name)
-            val fpLValue = mkFieldLValue(ctx.fp64Sort, globalObject, local.name)
-            val refLValue = mkFieldLValue(ctx.addressSort, globalObject, local.name)
-
-            val boolValue = scope.calcOnState { memory.read(boolLValue) }
-            val fpValue = scope.calcOnState { memory.read(fpLValue) }
-            val refValue = scope.calcOnState { memory.read(refLValue) }
-
-            val fakeObject = ctx.mkFakeValue(scope, boolValue, fpValue, refValue)
+            globalObject.createFakeField(localName, scope)
             scope.doWithState {
-                memory.write(lValue, fakeObject.asExpr(ctx.addressSort), guard = ctx.trueExpr)
+                addedArtificialLocals += localName
             }
 
-            return lValue.cast()
+            return mkFieldLValue(ctx.addressSort, globalObject, local.name)
         }
 
         val sort = scope.calcOnState {

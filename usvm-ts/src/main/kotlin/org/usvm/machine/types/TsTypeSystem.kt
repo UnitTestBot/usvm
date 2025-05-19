@@ -17,7 +17,6 @@ import org.usvm.types.UTypeSystem
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.getAllFields
 import org.usvm.util.getClassesForType
-import org.usvm.util.isResolved
 import org.usvm.util.type
 import kotlin.time.Duration
 
@@ -55,7 +54,11 @@ class TsTypeSystem(
                 }
 
                 if (supertypeClasses.size > 1) {
-                    TODO("Unsupported")
+                    supertypeClasses.any {
+                        val supertypeFields = it.getAllFields(hierarchy)
+                        val superTypeFieldNames = supertypeFields.mapTo(hashSetOf()) { it.name }
+                        return type.properties.all { it in superTypeFieldNames }
+                    }
                 }
 
                 val supertypeClass = supertypeClasses.single()
@@ -81,7 +84,11 @@ class TsTypeSystem(
                 }
 
                 if (classes.size > 1) {
-                    TODO("Unsupported")
+                    classes.any {
+                        val fields = it.getAllFields(hierarchy)
+                        val fieldNames = fields.mapTo(hashSetOf()) { it.name }
+                        return supertype.properties.all { it in fieldNames }
+                    }
                 }
 
                 val clazz = classes.single()

@@ -311,7 +311,7 @@ open class TsTestStateResolver(
             is EtsLiteralType -> TODO()
             EtsNullType -> TODO()
             EtsNeverType -> TODO()
-            EtsStringType -> TODO()
+            EtsStringType -> TsTestValue.TsString("String construction is not yet implemented")
             EtsVoidType -> TODO()
             else -> error("Unexpected type: $type")
         }
