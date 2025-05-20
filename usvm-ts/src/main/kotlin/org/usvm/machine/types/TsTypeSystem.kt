@@ -189,7 +189,7 @@ class TsTypeSystem(
 
                 return classes.any { cls ->
                     superClasses.any { superClass ->
-                        superClass in hierarchy.getAncestor(superClass)
+                        superClass in hierarchy.getAncestor(cls)
                     }
                 }
             }
@@ -284,10 +284,14 @@ class TsTypeSystem(
 
             is EtsUnclearRefType,
             is EtsClassType ->
-                hierarchy.classesForType(t)
-                    .asSequence()
-                    .flatMap { hierarchy.getInheritors(it).asSequence() }
-                    .map { it.type }
+                if ((t as? EtsClassType)?.signature == EtsHierarchy.OBJECT_CLASS.signature) { // TODO change it
+                    scene.projectAndSdkClasses.asSequence().map { it.type }
+                } else {
+                    hierarchy.classesForType(t)
+                        .asSequence()
+                        .flatMap { hierarchy.getInheritors(it).asSequence() }
+                        .map { it.type }
+                }
 
             else -> emptySequence()
         }
