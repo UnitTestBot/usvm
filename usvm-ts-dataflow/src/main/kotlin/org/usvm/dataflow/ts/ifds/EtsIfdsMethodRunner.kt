@@ -60,7 +60,7 @@ internal class EtsIfdsMethodRunner<Fact, Event : AnalyzerEvent>(
     internal val mockStmt = EtsNopStmt(EtsStmtLocation(method, -1))
     internal val stmts = listOf(mockStmt) + method.cfg.stmts
 
-    internal val isExit = BooleanArray(stmts.size) { false }.apply {
+    internal val isExit = BooleanArray(stmts.size).apply {
         for (exit in graph.exitPoints(method)) {
             set(exit.index, true)
         }
