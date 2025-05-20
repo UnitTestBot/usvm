@@ -99,7 +99,7 @@ import org.usvm.machine.state.TsState
 import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
-import org.usvm.machine.types.AuxiliaryType
+import org.usvm.machine.types.EtsAuxiliaryType
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.memory.ULValue
 import org.usvm.sizeSort
@@ -647,7 +647,7 @@ class TsExprResolver(
                 memory.types.evalIsSubtype(resolvedAddr, type)
             } else {
                 // Otherwise, we add a type constraint that every type containing such field is fine
-                memory.types.evalIsSubtype(resolvedAddr, AuxiliaryType(setOf(field.name)))
+                memory.types.evalIsSubtype(resolvedAddr, EtsAuxiliaryType(setOf(field.name)))
             }
         }
 

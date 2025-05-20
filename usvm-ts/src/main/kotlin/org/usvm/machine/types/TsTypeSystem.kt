@@ -1,23 +1,32 @@
 package org.usvm.machine.types
 
+import org.jacodb.ets.model.EtsAliasType
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsFunctionType
+import org.jacodb.ets.model.EtsIntersectionType
+import org.jacodb.ets.model.EtsLiteralType
+import org.jacodb.ets.model.EtsNeverType
+import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsPrimitiveType
+import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStringType
+import org.jacodb.ets.model.EtsTupleType
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUnclearRefType
+import org.jacodb.ets.model.EtsUndefinedType
+import org.jacodb.ets.model.EtsUnionType
 import org.jacodb.ets.model.EtsUnknownType
+import org.jacodb.ets.model.EtsVoidType
 import org.usvm.types.USupportTypeStream
 import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.getAllFields
-import org.usvm.util.getClassesForType
-import org.usvm.util.removeTrashFromTheName
 import org.usvm.util.type
 import kotlin.time.Duration
 
@@ -27,248 +36,260 @@ class TsTypeSystem(
     override val typeOperationsTimeout: Duration,
     val hierarchy: EtsHierarchy,
 ) : UTypeSystem<EtsType> {
+    private fun unwrapAlias(type: EtsType): EtsType = when (type) {
+        is EtsAliasType -> unwrapAlias(type.originalType)
+        else -> type
+    }
+
     override fun isSupertype(supertype: EtsType, type: EtsType): Boolean {
-        return when {
-            type is AuxiliaryType -> {
-                // Unknown and Any types are top types in the system
-                if (supertype is EtsUnknownType || supertype is EtsAnyType) {
-                    return true
+        val unwrappedSupertype = unwrapAlias(supertype)
+        val unwrappedType = unwrapAlias(type)
+
+        // In JS/TS, any reference type inherits from Object
+        if (unwrappedSupertype is EtsClassType
+            && unwrappedSupertype.signature == EtsHierarchy.OBJECT_CLASS.signature
+            && unwrappedType is EtsRefType
+        ) {
+            return true
+        }
+
+        // "any" is the universal supertype: any value can be assigned to any.
+        if (unwrappedSupertype is EtsAnyType) return true
+        // "unknown" is the safe supertype: every value is assignable to unknown.
+        if (unwrappedSupertype is EtsUnknownType) return true
+
+        // "never" is the universal subtype: never can be assigned to any type.
+        if (unwrappedType is EtsNeverType) return true
+
+        // When "never" is in supertype position, only never <: never.
+        if (unwrappedSupertype is EtsNeverType) return type is EtsNeverType
+
+        // TODO check this behaviour
+        // Treat null/undefined as bottom-like: they can flow to any type.
+        if (unwrappedType is EtsNullType) return true // TS (non-strict) allows null to any
+        if (unwrappedType is EtsUndefinedType) return true // TS (non-strict) allows undefined to any
+
+        // As supertype, null/undefined only accept their own or any/unknown.
+        if (unwrappedSupertype is EtsNullType) {
+            // null supertype rules
+            return unwrappedType is EtsAnyType || unwrappedType is EtsUnknownType
+        }
+
+        if (unwrappedSupertype is EtsUndefinedType) {
+            // undefined supertype rules
+            return unwrappedType is EtsAnyType || unwrappedType is EtsUnknownType
+        }
+
+        // Primitive types
+
+        // Identical primitive types are mutually assignable (e.g., number to number).
+        if (unwrappedSupertype is EtsPrimitiveType && unwrappedType is EtsPrimitiveType) {
+            if (unwrappedType is EtsLiteralType) {
+                // Literal types are subtypes of their base primitive (e.g., 'foo' <: string).
+                return when (unwrappedType.literalTypeName) {
+                    "string" -> unwrappedSupertype is EtsStringType
+                    "number" -> unwrappedSupertype is EtsNumberType
+                    "boolean" -> unwrappedSupertype is EtsBooleanType
+                    else -> error("Unexpected literal type name ${unwrappedType.literalTypeName}")
                 }
-
-                // We think that only ref types contain fields,
-                // and ObjectClass is a top type for ref types
-                if (supertype == EtsHierarchy.OBJECT_CLASS) {
-                    return true
-                }
-
-                // If we compare two auxiliary types, we should check
-                // if all fields of the first type are in the second type.
-                if (supertype is AuxiliaryType) {
-                    return type.properties.all { it in supertype.properties }
-                }
-
-                // TODO how to process unclearTypeRefs?
-                val supertypeClasses = supertype.getClassesForType(scene)
-
-                if (supertypeClasses.isEmpty()) {
-                    error("Cannot find class for type $supertype")
-                }
-
-                if (supertypeClasses.size > 1) {
-                    supertypeClasses.any {
-                        val supertypeFields = it.getAllFields(hierarchy)
-                        val superTypeFieldNames = supertypeFields.mapTo(hashSetOf()) { it.name }
-                        return type.properties.all { it in superTypeFieldNames }
-                    }
-                }
-
-                val supertypeClass = supertypeClasses.single()
-                val supertypeFields = supertypeClass.getAllFields(hierarchy)
-                val superTypeFieldNames = supertypeFields.mapTo(hashSetOf()) { it.name }
-
-                type.properties.all { it in superTypeFieldNames }
             }
 
-            supertype is AuxiliaryType -> {
-                if (type is EtsUnknownType || type is EtsAnyType) {
-                    return supertype.properties.isEmpty()
-                }
+            return unwrappedSupertype == unwrappedType
+        }
 
-                if (type == EtsHierarchy.OBJECT_CLASS) {
-                    return supertype.properties.isEmpty()
-                }
+        // Union types
 
-                val classes = type.getClassesForType(scene)
+        // For S = A|B, a type T is assignable to S if it is assignable to at least one member.
+        if (unwrappedSupertype is EtsUnionType) {
+            return unwrappedSupertype.types.any { isSupertype(it, unwrappedType) }
+        }
 
-                if (classes.isEmpty()) {
-                    error("Cannot find class for type $type")
-                }
+        // For T = A|B, T is subtype of S if all branches are assignable to S.
+        if (unwrappedType is EtsUnionType) {
+            return unwrappedType.types.all { isSupertype(supertype, it) }
+        }
 
-                if (classes.size > 1) {
-                    classes.any {
-                        val fields = it.getAllFields(hierarchy)
-                        val fieldNames = fields.mapTo(hashSetOf()) { it.name }
-                        return supertype.properties.all { it in fieldNames }
-                    }
-                }
+        // Intersection types
 
-                val clazz = classes.single()
-                clazz.getAllFields(hierarchy)
+        // For S = A&B, T must be assignable to all branches.
+        if (unwrappedSupertype is EtsIntersectionType) {
+            return unwrappedSupertype.types.all { isSupertype(it, unwrappedType) }
+        }
+        // For T = A&B, all parts must be assignable to S.
+        if (unwrappedType is EtsIntersectionType) {
+            return unwrappedType.types.all { isSupertype(unwrappedSupertype, it) }
+        }
+
+        // Function types
+
+        if (unwrappedSupertype is EtsFunctionType && unwrappedType is EtsFunctionType) {
+            TODO("Unsupported")
+        }
+
+        // Array types
+
+        // Arrays are unsoundly covariant in TS: ElementType<T>[] <: ElementType<S>[] if T <: S
+        if (unwrappedSupertype is EtsArrayType && unwrappedType is EtsArrayType) {
+            // array covariance (JS unsound)
+            return isSupertype(unwrappedSupertype.elementType, unwrappedType.elementType)
+        }
+
+        // Tuple types
+
+        if (unwrappedSupertype is EtsTupleType && unwrappedType is EtsTupleType) {
+            if (unwrappedSupertype.types.size != unwrappedType.types.size) return false
+
+            return unwrappedSupertype.types.zip(unwrappedType.types).all { (supertype, type) ->
+                isSupertype(supertype, type)
+            }
+        }
+
+        // Class and structural types
+
+        require(unwrappedType !is EtsFakeType && unwrappedSupertype !is EtsFakeType) {
+            "Fake types should not occur in type constraints"
+        }
+
+        if (unwrappedSupertype is EtsAuxiliaryType && unwrappedType is EtsAuxiliaryType) {
+            return unwrappedType.properties.all { it in unwrappedSupertype.properties }
+        }
+
+        if (unwrappedSupertype is EtsAuxiliaryType) {
+            if (unwrappedType !is EtsClassType) return false // TODO arrays?
+
+            val classes = hierarchy.classesForType(unwrappedType)
+            if (classes.isEmpty()) return false // TODO log
+
+            return classes.any { cls ->
+                cls.getAllFields(hierarchy)
                     .mapTo(hashSetOf()) { it.name }
-                    .containsAll(supertype.properties)
+                    .containsAll(unwrappedSupertype.properties)
             }
+        }
 
-            supertype == type -> {
-                true
+        if (unwrappedType is EtsAuxiliaryType) {
+            if (unwrappedSupertype !is EtsClassType) return false // TODO arrays?
+
+            val superClasses = hierarchy.classesForType(unwrappedSupertype)
+            if (superClasses.isEmpty()) return false // TODO log
+
+            return superClasses.any { cls ->
+                cls.getAllFields(hierarchy)
+                    .mapTo(hashSetOf()) { it.name }
+                    .containsAll(unwrappedType.properties)
             }
+        }
 
-            supertype == EtsUnknownType || supertype == EtsAnyType -> {
-                true
-            }
+        if (unwrappedSupertype is EtsClassType || unwrappedSupertype is EtsUnclearRefType) {
+            if (unwrappedType is EtsClassType || unwrappedType is EtsUnclearRefType) {
+                val classes = hierarchy.classesForType(unwrappedType)
+                val superClasses = hierarchy.classesForType(unwrappedSupertype)
 
-            supertype is EtsPrimitiveType || type is EtsPrimitiveType -> {
-                type == supertype
-            }
+                if (classes.isEmpty() || superClasses.isEmpty()) return false // TODO log
 
-            else -> {
-                // TODO isAssignable
-                if (supertype is EtsUnknownType || supertype is EtsAnyType) {
-                    return true
-                }
-
-                if (type is EtsUnknownType || type is EtsAnyType) {
-                    return false // otherwise it should be processed in the code above
-                }
-
-                if (type == EtsHierarchy.OBJECT_CLASS) {
-                    return supertype == EtsHierarchy.OBJECT_CLASS
-                }
-
-
-                if (supertype == EtsHierarchy.OBJECT_CLASS) {
-                    return true // TODO not primitive
-                }
-
-                if (type is EtsArrayType) {
-                    if (supertype !is EtsArrayType) return false
-
-                    return supertype.dimensions == type.dimensions && // TODO object
-                        isSupertype(supertype.elementType, type.elementType)
-                }
-
-                if (supertype is EtsArrayType) {
-                    if (type !is EtsArrayType) return false
-                    TODO("Other $type to $supertype combinations")
-                }
-
-                // TODO wrong type resolutions because of names
-                val classes = type.getClassesForType(scene)
-
-                if (classes.isEmpty()) {
-                    error("Cannot find class for type $type")
-                }
-
-                if (classes.size > 1) {
-                    // TODO is it correct behaviour?
-                    return classes.any { clazz ->
-                        val ancestors = hierarchy.getAncestor(clazz).map { it.type }
-
-                        if (supertype is EtsClassType) {
-                            return@any ancestors.any { it == supertype }
-                        }
-
-                        if (supertype is EtsUnclearRefType) {
-                            return@any ancestors.any { it.typeName == supertype.typeName }
-                        }
-
-                        error("Is $type a supertype of $supertype?")
+                return classes.any { cls ->
+                    superClasses.any { superClass ->
+                        superClass in hierarchy.getAncestor(superClass)
                     }
                 }
-
-                val clazz = classes.single()
-
-                val ancestors = hierarchy.getAncestor(clazz).map { it.type }
-
-                if (supertype is EtsClassType) {
-                    return ancestors.any { it == supertype }
-                }
-
-                if (supertype is EtsUnclearRefType) {
-                    return ancestors.any { it.typeName == supertype.typeName }
-                }
-
-                if (supertype is EtsArrayType) {
-                    // TODO mistake, inheritance for arrays
-                    return supertype == type
-                }
-
-                error("Unsupported combination of type $type and supertype $supertype")
             }
         }
+
+        return false
     }
 
-    override fun hasCommonSubtype(type: EtsType, types: Collection<EtsType>): Boolean = when (type) {
-        is AuxiliaryType -> true
-        is EtsPrimitiveType -> types.isEmpty()
-        is EtsClassType -> true
-        is EtsUnclearRefType -> true
-        is EtsArrayType -> {
-            true // TODO is it correct?????
+    override fun hasCommonSubtype(type: EtsType, types: Collection<EtsType>): Boolean {
+        val t = unwrapAlias(type)
+        return when (t) {
+            is EtsAuxiliaryType -> true  // structural types can always be refined
+            is EtsPrimitiveType -> types.isEmpty() // primitive has no subtypes, so only when no other constraints
+            is EtsClassType -> true  // classes can always have subclasses
+            is EtsUnclearRefType -> true  // unknown references may get refined
+            is EtsArrayType -> true  // arrays can always be specialized (element types)
+            is EtsTupleType -> true  // tuples can always be specialized per element
+            is EtsFunctionType -> true  // function types can always be specialized
+            is EtsUnionType -> true  // unions can always drop a branch
+            is EtsIntersectionType -> true  // intersections can always add a constraint
+            is EtsAnyType,
+            is EtsUnknownType -> true  // top types can always have subtypes
+            else -> false
         }
-
-        else -> error("Unsupported class type: $type")
     }
 
-    override fun isFinal(type: EtsType): Boolean = type is EtsPrimitiveType
+    override fun isFinal(type: EtsType): Boolean {
+        val t = unwrapAlias(type)
+        return when (t) {
+            is EtsNullType,
+            is EtsUndefinedType,
+            is EtsNeverType,
+            is EtsVoidType,
+            is EtsNumberType,
+            is EtsStringType,
+            is EtsBooleanType,
+            is EtsLiteralType -> true  // primitives/literals always final
+            is EtsClassType -> false
+            else -> false  // others can always be specialized
+        }
+    }
 
     override fun isInstantiable(type: EtsType): Boolean {
-        if (type is EtsUnknownType) {
-            return false
+        val t = unwrapAlias(type)
+        return when (t) {
+            is EtsNeverType -> false  // no runtime value
+            is EtsAnyType,
+            is EtsUnknownType -> true   // may represent some value
+            is EtsLiteralType,
+            is EtsNullType,
+            is EtsUndefinedType,
+            is EtsPrimitiveType -> true   // literals/primitives have values
+            is EtsUnionType -> t.types.any { isInstantiable(it) }  // union has some branch value
+            is EtsIntersectionType -> t.types.all { isInstantiable(it) }  // intersection if all parts have values
+            is EtsArrayType -> isInstantiable(t.elementType)         // array if elements instantiable
+            is EtsTupleType -> t.types.all { isInstantiable(it) }    // tuple if each element instantiable
+            is EtsFunctionType -> true   // function literals always possible
+            is EtsClassType -> true   // class instantiation possible
+            else -> false
         }
-        if (type is EtsAnyType) {
-            return false
-        }
-        if (type is AuxiliaryType) {
-            return false
-        }
-        return true
     }
 
     override fun findSubtypes(type: EtsType): Sequence<EtsType> {
-        return when (type) {
-            is EtsPrimitiveType -> {
-                emptySequence()
-            }
+        val t = unwrapAlias(type)
+        return when (t) {
+            is EtsPrimitiveType -> emptySequence()
+            is EtsAnyType,
+            is EtsUnknownType ->
+                scene.projectAndSdkClasses
+                    .asSequence()
+                    .map { it.type }
+                    .plus(sequenceOf(EtsNumberType, EtsBooleanType, EtsStringType))
 
-            is EtsAnyType, is EtsUnknownType -> {
-                // TODO do we need to have primitives here??????
-                scene.projectAndSdkClasses.asSequence().map { it.type } + EtsNumberType + EtsBooleanType + EtsStringType
-            }
-
-            is AuxiliaryType -> {
+            is EtsAuxiliaryType ->
                 scene.projectAndSdkClasses
                     .asSequence()
                     .filter { cls ->
                         cls.getAllFields(hierarchy)
-                            .mapTo(hashSetOf()) { it.name }
-                            .containsAll(type.properties)
+                            .map { it.name }
+                            .containsAll(t.properties)
                     }
-                    .map { it.type } // TODO get fields of ancestors
-            }
+                    .map { it.type }
 
-            else -> {
-                if (type == EtsHierarchy.OBJECT_CLASS) {
-                    return scene.projectAndSdkClasses.asSequence().map { it.type }
-                }
-
-                // TODO wrong usage of names
-                if (type is EtsUnclearRefType) {
-                    return scene.projectAndSdkClasses.asSequence()
-                        .filter { it.type.typeName == type.typeName }
-                        .flatMap { hierarchy.getInheritors(it) }
-                        .map { it.type }
-                }
-
-                if (type is EtsArrayType) {
-                    return findSubtypes(type.elementType).map {
-                        if (it is EtsArrayType) {
-                            EtsArrayType(it.elementType, dimensions = it.dimensions + 1)
-                        } else {
-                            EtsArrayType(it, dimensions = 1)
-                        }
+            is EtsArrayType ->
+                findSubtypes(t.elementType).map { child ->
+                    if (child is EtsArrayType) {
+                        EtsArrayType(child.elementType, child.dimensions + 1)
+                    } else {
+                        EtsArrayType(child, dimensions = 1)
                     }
                 }
 
-                val clazz = scene.projectAndSdkClasses.singleOrNull {
-                    type as EtsClassType
-                    it.type.signature.file == type.signature.file &&
-                        it.type.signature.name == type.signature.name.removeTrashFromTheName() &&
-                        it.type.signature.namespace == type.signature.namespace
-                }
-                    ?: error("Cannot find class for type $type")
-                // TODO take only direct inheritors
-                hierarchy.getInheritors(clazz).asSequence().map { it.type }
-            }
+            is EtsUnclearRefType,
+            is EtsClassType ->
+                hierarchy.classesForType(t)
+                    .asSequence()
+                    .flatMap { hierarchy.getInheritors(it).asSequence() }
+                    .map { it.type }
+
+            else -> emptySequence()
         }
     }
 

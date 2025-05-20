@@ -59,7 +59,7 @@ import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.state.returnValue
-import org.usvm.machine.types.AuxiliaryType
+import org.usvm.machine.types.EtsAuxiliaryType
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.sizeSort
 import org.usvm.targets.UTargetsSet
@@ -454,7 +454,7 @@ class TsInterpreter(
                     val instance = exprResolver.resolve(lhv.instance)?.asExpr(addressSort) ?: return@doWithState
                     val etsField = resolveEtsField(lhv.instance, lhv.field, graph.hierarchy)
                     scope.doWithState {
-                        pathConstraints += memory.types.evalIsSubtype(instance, AuxiliaryType(setOf(lhv.field.name)))
+                        pathConstraints += memory.types.evalIsSubtype(instance, EtsAuxiliaryType(setOf(lhv.field.name)))
                     }
 
                     val sort = when (etsField) {

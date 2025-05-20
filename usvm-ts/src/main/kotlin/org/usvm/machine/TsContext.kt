@@ -31,7 +31,7 @@ import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.expr.TsVoidSort
 import org.usvm.machine.expr.TsVoidValue
 import org.usvm.machine.interpreter.TsStepScope
-import org.usvm.machine.types.FakeType
+import org.usvm.machine.types.EtsFakeType
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.types.single
 import org.usvm.util.mkFieldLValue
@@ -84,12 +84,12 @@ class TsContext(
     //  since we do not rely on array types in any way.
     fun arrayDescriptorOf(type: EtsArrayType): EtsType = EtsUnknownType
 
-    fun UConcreteHeapRef.getFakeType(memory: UReadOnlyMemory<*>): FakeType {
+    fun UConcreteHeapRef.getFakeType(memory: UReadOnlyMemory<*>): EtsFakeType {
         check(isFakeObject())
-        return memory.typeStreamOf(this).single() as FakeType
+        return memory.typeStreamOf(this).single() as EtsFakeType
     }
 
-    fun UConcreteHeapRef.getFakeType(scope: TsStepScope): FakeType =
+    fun UConcreteHeapRef.getFakeType(scope: TsStepScope): EtsFakeType =
         scope.calcOnState { getFakeType(memory) }
 
     @OptIn(ExperimentalContracts::class)
@@ -113,19 +113,19 @@ class TsContext(
                 boolSort -> {
                     val lvalue = getIntermediateBoolLValue(ref.address)
                     memory.write(lvalue, asExpr(boolSort), guard = trueExpr)
-                    memory.types.allocate(ref.address, FakeType.mkBool(this@TsContext))
+                    memory.types.allocate(ref.address, EtsFakeType.mkBool(this@TsContext))
                 }
 
                 fp64Sort -> {
                     val lValue = getIntermediateFpLValue(ref.address)
                     memory.write(lValue, asExpr(fp64Sort), guard = trueExpr)
-                    memory.types.allocate(ref.address, FakeType.mkFp(this@TsContext))
+                    memory.types.allocate(ref.address, EtsFakeType.mkFp(this@TsContext))
                 }
 
                 addressSort -> {
                     val lValue = getIntermediateRefLValue(ref.address)
                     memory.write(lValue, asExpr(addressSort), guard = trueExpr)
-                    memory.types.allocate(ref.address, FakeType.mkRef(this@TsContext))
+                    memory.types.allocate(ref.address, EtsFakeType.mkRef(this@TsContext))
                 }
 
                 else -> TODO("Not yet supported")
