@@ -30,8 +30,7 @@ import org.usvm.dataflow.ifds.Manager
 import org.usvm.dataflow.ifds.QueueEmptinessChanged
 import org.usvm.dataflow.ts.graph.EtsApplicationGraph
 import org.usvm.dataflow.ts.graph.reversed
-import org.usvm.dataflow.ts.ifds.EtsBackwardIfdsRunner
-import org.usvm.dataflow.ts.ifds.EtsForwardIfdsRunner
+import org.usvm.dataflow.ts.ifds.EtsIfdsRunner
 import org.usvm.dataflow.ts.infer.EtsTypeFact.Companion.allStringProperties
 import org.usvm.dataflow.ts.util.EtsTraits
 import org.usvm.dataflow.ts.util.getRealLocals
@@ -102,8 +101,8 @@ class TypeInferenceManager(
         createResultsFromSummaries(updatedTypeScheme, doInferAllLocals)
     }
 
-    lateinit var backwardRunner: EtsBackwardIfdsRunner<BackwardTypeDomainFact, *>
-    lateinit var forwardRunner: EtsForwardIfdsRunner<ForwardTypeDomainFact, *>
+    lateinit var backwardRunner: EtsIfdsRunner<BackwardTypeDomainFact, *>
+    lateinit var forwardRunner: EtsIfdsRunner<ForwardTypeDomainFact, *>
 
     private suspend fun collectSummaries(
         startMethods: List<EtsMethod>,
@@ -114,7 +113,7 @@ class TypeInferenceManager(
         val backwardGraph = graph.reversed
         val backwardAnalyzer = BackwardAnalyzer(backwardGraph, savedTypes, ::methodDominators, doAddKnownTypes)
 
-        val backwardRunner = EtsBackwardIfdsRunner(
+        val backwardRunner = EtsIfdsRunner(
             graph = backwardGraph,
             analyzer = backwardAnalyzer,
             traits = traits,
@@ -199,7 +198,7 @@ class TypeInferenceManager(
             doLiveVariablesAnalysis = true,
         )
 
-        val forwardRunner = EtsForwardIfdsRunner(
+        val forwardRunner = EtsIfdsRunner(
             graph = forwardGraph,
             analyzer = forwardAnalyzer,
             traits = traits,

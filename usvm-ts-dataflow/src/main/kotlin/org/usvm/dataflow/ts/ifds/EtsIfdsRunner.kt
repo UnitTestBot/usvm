@@ -17,28 +17,27 @@ import org.usvm.dataflow.ts.infer.AnalyzerEvent
 import org.usvm.dataflow.ts.infer.TypeInferenceManager
 import org.usvm.dataflow.ts.util.EtsTraits
 
-class EtsBackwardIfdsRunner<Fact, Event : AnalyzerEvent>(
+class EtsIfdsRunner<Fact, Event : AnalyzerEvent>(
     override val graph: EtsApplicationGraph,
     val analyzer: Analyzer<Fact, Event, EtsMethod, EtsStmt>,
     val traits: EtsTraits,
     val manager: TypeInferenceManager,
     private val zeroFact: Fact,
 ) : Runner<Fact, EtsMethod, EtsStmt> {
-    val queue: ArrayDeque<EtsBackwardMethodRunner<Fact, Event>> = ArrayDeque()
-
+    internal val methodRunnersQueue: ArrayDeque<EtsIfdsMethodRunner<Fact, Event>> = ArrayDeque()
     private val queueIsEmpty = QueueEmptinessChanged(runner = this, isEmpty = true)
 
-    private val runners = hashMapOf<EtsMethod, EtsBackwardMethodRunner<Fact, Event>>()
+    private val methodRunners = hashMapOf<EtsMethod, EtsIfdsMethodRunner<Fact, Event>>()
 
-    fun getMethodRunner(method: EtsMethod): EtsBackwardMethodRunner<Fact, Event> {
-        return runners.getOrPut(method) {
-            EtsBackwardMethodRunner(
+    internal fun getMethodRunner(method: EtsMethod): EtsIfdsMethodRunner<Fact, Event> {
+        return methodRunners.getOrPut(method) {
+            EtsIfdsMethodRunner(
                 graph = graph,
                 method = method,
                 analyzer = analyzer,
                 traits = traits,
                 manager = manager,
-                commonRunner = this@EtsBackwardIfdsRunner,
+                commonRunner = this@EtsIfdsRunner,
             )
         }
     }
@@ -53,7 +52,7 @@ class EtsBackwardIfdsRunner<Fact, Event : AnalyzerEvent>(
 
     private suspend fun tabulationAlgorithm() = coroutineScope {
         while (isActive) {
-            val current = queue.removeFirstOrNull() ?: run {
+            val current = methodRunnersQueue.removeFirstOrNull() ?: run {
                 manager.handleControlEvent(queueIsEmpty)
                 return@coroutineScope
             }
@@ -65,7 +64,7 @@ class EtsBackwardIfdsRunner<Fact, Event : AnalyzerEvent>(
         get() = SingletonUnit
 
     override fun getIfdsResult(): IfdsResult<Fact, EtsStmt> {
-        val sourceRunners = runners.values.flatMap { methodRunner ->
+        val sourceRunners = methodRunners.values.flatMap { methodRunner ->
             methodRunner.sourceRunners.values.flatMap { it.values }
         }
         val pathEdges = sourceRunners.flatMap { it.getPathEdges() }
@@ -82,7 +81,7 @@ class EtsBackwardIfdsRunner<Fact, Event : AnalyzerEvent>(
         val (startVertex, endVertex) = edge
         val (endStmt, endFact) = endVertex
 
-        val localPathEdge = EtsBackwardMethodRunner.PathEdge(endStmt.location.index, endFact)
+        val localPathEdge = EtsIfdsMethodRunner.PathEdge(endStmt.location.index, endFact)
         getMethodRunner(startVertex.statement.method).getSourceRunner(startVertex).propagate(localPathEdge)
     }
 }

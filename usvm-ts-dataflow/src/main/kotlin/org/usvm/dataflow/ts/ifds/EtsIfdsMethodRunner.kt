@@ -4,70 +4,55 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsNopStmt
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsStmtLocation
-import org.jacodb.ets.utils.callExpr
 import org.usvm.dataflow.ifds.Analyzer
 import org.usvm.dataflow.ifds.Edge
-import org.usvm.dataflow.ifds.FlowFunction
 import org.usvm.dataflow.ifds.Vertex
 import org.usvm.dataflow.ts.graph.EtsApplicationGraph
 import org.usvm.dataflow.ts.infer.AnalyzerEvent
 import org.usvm.dataflow.ts.infer.TypeInferenceManager
 import org.usvm.dataflow.ts.util.EtsTraits
 
-class EtsBackwardMethodRunner<Fact, Event : AnalyzerEvent>(
+internal class EtsIfdsMethodRunner<Fact, Event : AnalyzerEvent>(
     val graph: EtsApplicationGraph,
     val method: EtsMethod,
     val analyzer: Analyzer<Fact, Event, EtsMethod, EtsStmt>,
     val traits: EtsTraits,
     val manager: TypeInferenceManager,
-    val commonRunner: EtsBackwardIfdsRunner<Fact, Event>,
+    val commonRunner: EtsIfdsRunner<Fact, Event>,
 ) {
-    private val flowSpace = analyzer.flowFunctions
-
-    /**
-     * Remember only the sink since the source is specified by runner
-     *
-     * `ip` - index of the end statement (instruction pointer)
-     *
-     * `fact` - fact at the end statement
-     */
-    internal data class PathEdge<Fact>(
-        val ip: Int,
-        val fact: Fact,
-    )
-
+    internal val flowSpace = analyzer.flowFunctions
     private var enqueued: Boolean = false
-    private val queue: ArrayDeque<EtsBackwardSourceRunner<Fact>> = ArrayDeque()
+    private val sourceRunnersQueue: ArrayDeque<EtsIfdsSourceRunner<Fact>> = ArrayDeque()
 
-    internal fun enqueue(runner: EtsBackwardSourceRunner<Fact>) {
-        queue.addLast(runner)
+    internal fun enqueue(runner: EtsIfdsSourceRunner<Fact>) {
+        sourceRunnersQueue.addLast(runner)
         if (!enqueued) {
-            commonRunner.queue.addLast(this)
+            commonRunner.methodRunnersQueue.addLast(this)
             enqueued = true
         }
     }
 
     fun processFacts() {
-        while (!queue.isEmpty()) {
-            val currentSourceRunner = queue.removeFirst()
+        while (!sourceRunnersQueue.isEmpty()) {
+            val currentSourceRunner = sourceRunnersQueue.removeFirst()
             currentSourceRunner.processFacts()
         }
         enqueued = false
     }
 
-    internal val sourceRunners = hashMapOf<Fact, HashMap<EtsStmt, EtsBackwardSourceRunner<Fact>>>()
-    internal fun getSourceRunner(vertex: Vertex<Fact, EtsStmt>): EtsBackwardSourceRunner<Fact> {
+    internal val sourceRunners = hashMapOf<Fact, HashMap<EtsStmt, EtsIfdsSourceRunner<Fact>>>()
+    internal fun getSourceRunner(vertex: Vertex<Fact, EtsStmt>): EtsIfdsSourceRunner<Fact> {
         return sourceRunners
             .getOrPut(vertex.fact) { hashMapOf() }
             .getOrPut(vertex.statement) {
-                EtsBackwardSourceRunner(traits, this, vertex.statement, vertex.fact)
+                EtsIfdsSourceRunner(traits, this, vertex.statement, vertex.fact)
             }
     }
 
-    internal fun getSourceRunners(fact: Fact): Collection<EtsBackwardSourceRunner<Fact>> {
+    internal fun getSourceRunners(fact: Fact): Collection<EtsIfdsSourceRunner<Fact>> {
         return sourceRunners.getOrPut(fact) {
             entrypoints.associateWithTo(hashMapOf()) {
-                EtsBackwardSourceRunner(traits, this, it, fact)
+                EtsIfdsSourceRunner(traits, this, it, fact)
             }
         }.values
     }
@@ -85,31 +70,6 @@ class EtsBackwardMethodRunner<Fact, Event : AnalyzerEvent>(
         get() = location.index + 1
 
     internal val successors = stmts.map { graph.successors(it).map { s -> s.index } }
-
-    internal val sequentFlowFunction = stmts.map {
-        flowSpace.obtainSequentFlowFunction(it, mockStmt)
-    }
-    internal val callToReturnSiteFlowFunction = stmts.map { stmt ->
-        flowSpace.takeIf { stmt.callExpr != null }
-            ?.obtainCallToReturnSiteFlowFunction(stmt, mockStmt)
-    }
-
-    internal data class CalleeStart<Fact>(
-        val start: EtsStmt,
-        val flowFunction: FlowFunction<Fact>,
-    )
-
-    internal val callToStartFlowFunctions = stmts.map { stmt ->
-        val flowFunctions = mutableListOf<CalleeStart<Fact>>()
-        for (callee in graph.callees(stmt)) {
-            for (calleeStart in graph.entryPoints(callee)) {
-                val flowFunction = flowSpace.obtainCallToStartFlowFunction(stmt, calleeStart)
-                flowFunctions.add(CalleeStart(calleeStart, flowFunction))
-            }
-        }
-        flowFunctions
-    }
-
     internal val entrypoints = graph.entryPoints(method).toList()
 
     fun addStart() {
@@ -118,6 +78,11 @@ class EtsBackwardMethodRunner<Fact, Event : AnalyzerEvent>(
             propagateStartingFact(startFact)
         }
     }
+
+    internal data class PathEdge<Fact>(
+        val endStmtIndex: Int,
+        val fact: Fact,
+    )
 
     internal fun propagateStartingFact(fact: Fact): Set<Vertex<Fact, EtsStmt>> {
         val summaryEdges = hashSetOf<Vertex<Fact, EtsStmt>>()
