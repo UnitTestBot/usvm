@@ -1,5 +1,8 @@
 package org.usvm.service
 
+import greeter.HelloReply
+import greeter.HelloRequest
+import greeter.helloReply
 import io.grpc.ManagedChannelBuilder
 import io.grpc.protobuf.services.ProtoReflectionService
 import mu.KotlinLogging
@@ -20,6 +23,15 @@ import kotlin.time.measureTimedValue
 private val logger = KotlinLogging.logger {}
 
 class UsvmService : UsvmServiceGrpcKt.UsvmServiceCoroutineImplBase() {
+    override suspend fun sayHello(request: HelloRequest): HelloReply {
+        logger.info { "Received $request" }
+        val response = helloReply {
+            this.message = "Hello, ${request.name}"
+        }
+        logger.info { "Sending $response" }
+        return response
+    }
+
     override suspend fun inferTypes(
         request: InferTypesRequest,
     ): InferredTypes {

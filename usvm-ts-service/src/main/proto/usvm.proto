@@ -3,8 +3,10 @@ package usvm;
 
 option java_multiple_files = true;
 
+import "greeter.proto";
 import "type_inference.proto";
 
 service UsvmService {
+  rpc SayHello(greeter.HelloRequest) returns (greeter.HelloReply);
   rpc InferTypes(infer.InferTypesRequest) returns (infer.InferredTypes);
 }
