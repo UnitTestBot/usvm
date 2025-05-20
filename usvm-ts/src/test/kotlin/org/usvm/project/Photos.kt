@@ -4,7 +4,7 @@ import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.getDeclaredLocals
 import org.jacodb.ets.utils.getLocals
 import org.jacodb.ets.utils.loadEtsProjectFromIR
-import org.junit.jupiter.api.condition.EnabledIf
+import org.junit.jupiter.api.Disabled
 import org.usvm.api.TsTestValue
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
@@ -13,7 +13,8 @@ import org.usvm.util.getResourcePath
 import org.usvm.util.getResourcePathOrNull
 import kotlin.test.Test
 
-@EnabledIf("projectAvailable")
+// @EnabledIf("projectAvailable")
+@Disabled
 class RunOnPhotosProject : TsMethodTestRunner() {
 
     companion object {

@@ -64,7 +64,6 @@ class EtsHierarchy(private val scene: EtsScene) {
     }
 
     fun getAncestor(clazz: EtsClass): Set<EtsClass> {
-        logger.warn { "getAncestor for $clazz" }
         return ancestors[clazz] ?: run {
             error("TODO")
         }
@@ -79,7 +78,12 @@ class EtsHierarchy(private val scene: EtsScene) {
     fun classesForType(etsClassType: EtsRefType): Collection<EtsClass> {
         require(etsClassType is EtsClassType || etsClassType is EtsUnclearRefType)
 
-        val typeName = etsClassType.typeName.removeTrashFromTheName()
+        // We don't want to remove names like "$AC2$FieldAccess.createObject"
+        val typeName = if (etsClassType.typeName.startsWith("%AC")) {
+            etsClassType.typeName
+        } else {
+            etsClassType.typeName.removeTrashFromTheName()
+        }
         val suitableClasses = resolveMap[typeName] ?: return emptySet()
 
         if (etsClassType.isResolved()) {

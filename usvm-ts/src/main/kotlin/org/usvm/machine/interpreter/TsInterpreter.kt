@@ -151,7 +151,7 @@ class TsInterpreter(
             // We ignore the possibility of method call on primitives.
             // Therefore, the fake object should be unwrapped.
             scope.doWithState {
-                pathConstraints += concreteRef.getFakeType(scope).refTypeExpr
+                scope.assert(concreteRef.getFakeType(scope).refTypeExpr)
             }
             concreteRef.extractRef(scope)
         } else {
