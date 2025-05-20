@@ -349,7 +349,9 @@ sealed interface TsBinaryOperator {
                             )
                         }
 
-                        else -> error("Unsupported sort ${rhs.sort}")
+                        else -> {
+                            error("Unsupported sort ${rhs.sort}")
+                        }
                     }
                 }
             }
@@ -558,7 +560,10 @@ sealed interface TsBinaryOperator {
                         else -> error("Unsupported sort ${lhs.sort}")
                     }
                 }
-                else -> error("Should not be called")
+
+                else -> {
+                    error("Should not be called")
+                }
             }
 
             return with(Eq) {
@@ -797,9 +802,12 @@ sealed interface TsBinaryOperator {
                             )
                         }
 
-                        else -> error("Unsupported sort ${rhs.sort}")
+                        else -> {
+                            error("Unsupported sort ${rhs.sort}")
+                        }
                     }
                 }
+
                 rhs.isFakeObject() -> {
                     val rhsType = rhs.getFakeType(scope)
 
@@ -864,7 +872,9 @@ sealed interface TsBinaryOperator {
                             )
                         }
 
-                        else -> error("Unsupported sort ${lhs.sort}")
+                        else -> {
+                            error("Unsupported sort ${lhs.sort}")
+                        }
                     }
                 }
             }
