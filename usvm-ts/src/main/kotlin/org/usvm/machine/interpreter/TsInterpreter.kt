@@ -61,6 +61,7 @@ import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.state.returnValue
 import org.usvm.machine.types.EtsAuxiliaryType
 import org.usvm.machine.types.mkFakeValue
+import org.usvm.machine.types.toAuxiliaryType
 import org.usvm.sizeSort
 import org.usvm.targets.UTargetsSet
 import org.usvm.types.single
@@ -616,7 +617,10 @@ class TsInterpreter(
                     ?.type
                     ?: parameterType
 
-                state.pathConstraints += state.memory.types.evalIsSubtype(ref, resolvedParameterType)
+                // Because of structural equality in TS we cannot determine the exact type
+                // Therefore, we create information about the fields the type must consist
+                val auxiliaryType = (resolvedParameterType as? EtsClassType)?.toAuxiliaryType(graph.hierarchy) ?: resolvedParameterType
+                state.pathConstraints += state.memory.types.evalIsSubtype(ref, auxiliaryType)
             }
 
             if (parameterType is EtsUnionType) {

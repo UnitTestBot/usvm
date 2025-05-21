@@ -15,8 +15,6 @@ import org.jacodb.ets.model.EtsBitOrExpr
 import org.jacodb.ets.model.EtsBitXorExpr
 import org.jacodb.ets.model.EtsBooleanConstant
 import org.jacodb.ets.model.EtsCastExpr
-import org.jacodb.ets.model.EtsClassSignature
-import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsConstant
 import org.jacodb.ets.model.EtsDeleteExpr
 import org.jacodb.ets.model.EtsDivExpr
@@ -638,17 +636,8 @@ class TsExprResolver(
     ): UExpr<out USort>? = with(ctx) {
         val resolvedAddr = if (instanceRef.isFakeObject()) instanceRef.extractRef(scope) else instanceRef
         scope.doWithState {
-            pathConstraints += if (field.enclosingClass != EtsClassSignature.UNKNOWN) {
-                // If we know an enclosing class of the field,
-                // we can add a type constraint about the instance type.
-                // Probably, it's redundant since either both class and field
-                // know exactly their types or none of them.
-                val type = EtsClassType(field.enclosingClass)
-                memory.types.evalIsSubtype(resolvedAddr, type)
-            } else {
-                // Otherwise, we add a type constraint that every type containing such field is fine
-                memory.types.evalIsSubtype(resolvedAddr, EtsAuxiliaryType(setOf(field.name)))
-            }
+            val auxiliaryType = EtsAuxiliaryType(setOf(field.name))
+            pathConstraints += memory.types.evalIsSubtype(resolvedAddr, auxiliaryType)
         }
 
         val etsField = resolveEtsField(instance, field, hierarchy)

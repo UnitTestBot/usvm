@@ -304,3 +304,15 @@ class TsTypeSystem(
     override fun topTypeStream(): UTypeStream<EtsType> = topTypeStream
 }
 
+// TODO support unclear ref type
+// TODO auxuliaryClass must take into account methods as well, create an issue for it
+fun EtsClassType.toAuxiliaryType(hierarchy: EtsHierarchy): EtsAuxiliaryType {
+    val properties = hierarchy.classesForType(this)
+        .flatMap { cls ->
+            cls.getAllFields(hierarchy)
+                .map { it.name }
+        }
+        .toSet()
+
+    return EtsAuxiliaryType(properties)
+}

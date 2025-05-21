@@ -31,6 +31,7 @@ import org.usvm.api.TsParametersState
 import org.usvm.api.TsTest
 import org.usvm.api.TsTestValue
 import org.usvm.api.typeStreamOf
+import org.usvm.isAllocated
 import org.usvm.isTrue
 import org.usvm.machine.TsContext
 import org.usvm.machine.expr.TsUnresolvedSort
@@ -161,7 +162,11 @@ open class TsTestStateResolver(
             return TsTestValue.TsNull
         }
 
-        val type = model.typeStreamOf(concreteRef).first()
+        val type = if (concreteRef.isAllocated) {
+            finalStateMemory.typeStreamOf(concreteRef).first()
+        } else {
+            model.typeStreamOf(concreteRef).first()
+        }
 
         return when (type) {
             // TODO add better support
@@ -339,7 +344,11 @@ open class TsTestStateResolver(
         concreteRef: UConcreteHeapRef,
         heapRef: UHeapRef,
     ): TsTestValue.TsClass = with(ctx) {
-        val type = model.typeStreamOf(concreteRef).first()
+        val type = if (concreteRef.isAllocated) {
+            finalStateMemory.typeStreamOf(concreteRef).first()
+        } else {
+            model.typeStreamOf(concreteRef).first()
+        }
         check(type is EtsRefType) { "Expected EtsRefType, but got $type" }
         val clazz = resolveClass(type)
         val properties = clazz.fields
