@@ -81,7 +81,6 @@ class TypeFactProcessor(
             is StringEtsTypeFact -> {
                 when (other) {
                     is ObjectEtsTypeFact -> intersect(other, type)
-                    //is ArrayEtsTypeFact -> intersect(other, type)
                     is UnionEtsTypeFact -> intersect(other, type)
                     is IntersectionEtsTypeFact -> intersect(other, type)
                     is GuardedTypeFact -> intersect(other, type)
