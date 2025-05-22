@@ -321,8 +321,8 @@ fun EtsClassType.toAuxiliaryType(hierarchy: EtsHierarchy): EtsAuxiliaryType {
         methods.add(curMethods)
     }
 
-    val methodsIntersection = methods.reduce { acc, set -> acc.intersect(set) }
-    val fieldsIntersection = fields.reduce { acc, set -> acc.intersect(set) }
+    val methodsIntersection = methods.reduceOrNull { acc, set -> acc.intersect(set) } ?: emptySet()
+    val fieldsIntersection = fields.reduceOrNull { acc, set -> acc.intersect(set) } ?: emptySet()
 
     return EtsAuxiliaryType(
         properties = fieldsIntersection + methodsIntersection

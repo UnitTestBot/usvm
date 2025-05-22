@@ -619,7 +619,8 @@ class TsInterpreter(
 
                 // Because of structural equality in TS we cannot determine the exact type
                 // Therefore, we create information about the fields the type must consist
-                val auxiliaryType = (resolvedParameterType as? EtsClassType)?.toAuxiliaryType(graph.hierarchy) ?: resolvedParameterType
+                val auxiliaryType = (resolvedParameterType as? EtsClassType)?.toAuxiliaryType(graph.hierarchy)
+                    ?: resolvedParameterType
                 state.pathConstraints += state.memory.types.evalIsSubtype(ref, auxiliaryType)
             }
 
