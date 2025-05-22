@@ -13,6 +13,7 @@ import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsInstanceOfExpr
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsParameterRef
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsThrowStmt
@@ -24,7 +25,7 @@ interface LiveVariables {
     fun isAliveAt(local: String, stmt: EtsStmt): Boolean
 
     companion object {
-        private const val THRESHOLD: Int = 20
+        private const val THRESHOLD: Int = 10
 
         fun from(method: EtsMethod): LiveVariables =
             if (method.cfg.stmts.size > THRESHOLD) LiveVariablesImpl(method) else AlwaysAlive
@@ -51,6 +52,7 @@ class LiveVariablesImpl(
 
         private fun EtsValue.used(): List<String> = when (this) {
             is EtsLocal -> listOf(name)
+            is EtsParameterRef -> listOf("arg($index)")
             is EtsInstanceFieldRef -> listOf(instance.name)
             is EtsArrayAccess -> array.used() + index.used()
             else -> emptyList()
@@ -83,13 +85,9 @@ class LiveVariablesImpl(
         }
 
         aliveAtStmt = Array(method.cfg.stmts.size) { emptyBitSet() }
-
-        val queue = method.cfg.stmts.toHashSet()
-        while (queue.isNotEmpty()) {
-            val stmt = queue.first()
-            queue.remove(stmt)
-
-            val aliveHere = emptyBitSet().apply {
+        val usedAtStmt = Array(method.cfg.stmts.size) { ip ->
+            val stmt = method.cfg.stmts[ip]
+            emptyBitSet().apply {
                 val usedLocals = when (stmt) {
                     is EtsAssignStmt -> stmt.lhv.used() + stmt.rhv.used()
                     is EtsCallStmt -> stmt.expr.used()
@@ -101,6 +99,13 @@ class LiveVariablesImpl(
 
                 usedLocals.mapNotNull { indexOfName[it] }.forEach { set(it) }
             }
+        }
+
+        val queue = ArrayDeque(method.cfg.stmts)
+        while (queue.isNotEmpty()) {
+            val stmt = queue.removeFirst()
+
+            val aliveHere = usedAtStmt[stmt.location.index]
 
             for (succ in method.cfg.successors(stmt)) {
                 val transferFromSucc = aliveAtStmt[succ.location.index].copy()
