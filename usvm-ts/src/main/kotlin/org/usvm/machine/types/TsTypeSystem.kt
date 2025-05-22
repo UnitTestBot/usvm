@@ -25,8 +25,12 @@ import org.jacodb.ets.model.EtsVoidType
 import org.usvm.types.USupportTypeStream
 import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
+import org.usvm.util.EtsFieldName
 import org.usvm.util.EtsHierarchy
+import org.usvm.util.EtsMethodName
 import org.usvm.util.getAllFields
+import org.usvm.util.getAllProperties
+import org.usvm.util.getAllPropertiesCombined
 import org.usvm.util.type
 import kotlin.time.Duration
 
@@ -161,9 +165,9 @@ class TsTypeSystem(
             if (classes.isEmpty()) return false // TODO log
 
             return classes.any { cls ->
-                cls.getAllFields(hierarchy)
-                    .mapTo(hashSetOf()) { it.name }
-                    .containsAll(unwrappedSupertype.properties)
+                val properties = cls.getAllPropertiesCombined(hierarchy)
+
+                return properties.containsAll(unwrappedSupertype.properties)
             }
         }
 
@@ -174,9 +178,9 @@ class TsTypeSystem(
             if (superClasses.isEmpty()) return false // TODO log
 
             return superClasses.any { cls ->
-                cls.getAllFields(hierarchy)
-                    .mapTo(hashSetOf()) { it.name }
-                    .containsAll(unwrappedType.properties)
+                val properties = cls.getAllPropertiesCombined(hierarchy)
+
+                return properties.containsAll(unwrappedType.properties)
             }
         }
 
@@ -305,14 +309,22 @@ class TsTypeSystem(
 }
 
 // TODO support unclear ref type
-// TODO auxuliaryClass must take into account methods as well, create an issue for it
 fun EtsClassType.toAuxiliaryType(hierarchy: EtsHierarchy): EtsAuxiliaryType {
-    val properties = hierarchy.classesForType(this)
-        .flatMap { cls ->
-            cls.getAllFields(hierarchy)
-                .map { it.name }
-        }
-        .toSet()
+    val classes = hierarchy.classesForType(this)
 
-    return EtsAuxiliaryType(properties)
+    val methods = mutableListOf<Set<EtsMethodName>>()
+    val fields = mutableListOf<Set<EtsFieldName>>()
+
+    classes.forEach {
+        val (curFields, curMethods) = it.getAllProperties(hierarchy)
+        fields.add(curFields)
+        methods.add(curMethods)
+    }
+
+    val methodsIntersection = methods.reduce { acc, set -> acc.intersect(set) }
+    val fieldsIntersection = fields.reduce { acc, set -> acc.intersect(set) }
+
+    return EtsAuxiliaryType(
+        properties = fieldsIntersection + methodsIntersection
+    )
 }

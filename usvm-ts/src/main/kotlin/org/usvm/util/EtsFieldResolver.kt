@@ -5,8 +5,10 @@ import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsField
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsUnclearRefType
+import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
 import org.usvm.machine.TsContext
 
@@ -90,6 +92,33 @@ fun EtsClass.getAllFields(hierarchy: EtsHierarchy): List<EtsField> {
     return hierarchy.getAncestor(this).flatMap { it.fields }
 }
 
+fun EtsClass.getAllMethods(hierarchy: EtsHierarchy): List<EtsMethod> {
+    return hierarchy.getAncestor(this).flatMap { it.methods }
+}
+
+fun EtsClass.getAllPropertiesCombined(hierarchy: EtsHierarchy): Set<String> {
+    val (fields, methods) = getAllProperties(hierarchy)
+    return fields + methods
+}
+
+fun EtsClass.getAllProperties(hierarchy: EtsHierarchy): Pair<Set<EtsFieldName>, Set<EtsMethodName>> {
+    val allFields = hashSetOf<EtsFieldName>()
+    val allMethods = hashSetOf<EtsMethodName>()
+
+    val classes = hierarchy.getAncestor(this)
+
+    classes.forEach {
+        val fieldNames = it.fields.map<EtsField, EtsFieldName> { it.name }
+        allFields.addAll(fieldNames)
+
+        val methods = it.methods.filter { it.name != CONSTRUCTOR_NAME }
+        val methodNames = methods.map<EtsMethod, EtsFieldName> { it.name }
+        allMethods.addAll(methodNames)
+    }
+
+    return allFields to allMethods
+}
+
 sealed class EtsFieldResolutionResult {
     data class Unique(val field: EtsField) : EtsFieldResolutionResult()
     data class Ambiguous(val fields: List<EtsField>) : EtsFieldResolutionResult()
@@ -107,3 +136,6 @@ sealed class EtsFieldResolutionResult {
         }
     }
 }
+
+typealias EtsMethodName = String
+typealias EtsFieldName = String
