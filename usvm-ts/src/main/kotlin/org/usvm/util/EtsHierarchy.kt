@@ -32,8 +32,12 @@ class EtsHierarchy(private val scene: EtsScene) {
                 generateSequence(listOf(start)) { classes ->
                     classes.flatMap { current ->
                         val superClassSignature = current.superClass ?: return@generateSequence null
-                        val classesWithTheSameName = resolveMap.getValue(superClassSignature.name)
-                        val classesWithTheSameSignature = classesWithTheSameName[superClassSignature]
+
+                        val typeName = superClassSignature.name.removeTrashFromTheName()
+                        val signature = superClassSignature.copy(name = typeName)
+
+                        val classesWithTheSameName = resolveMap.getValue(typeName)
+                        val classesWithTheSameSignature = classesWithTheSameName[signature]
                         val superClasses = when {
                             classesWithTheSameSignature != null -> listOf(classesWithTheSameSignature)
                             superClassSignature.file == EtsFileSignature.UNKNOWN -> classesWithTheSameName.values
@@ -79,15 +83,11 @@ class EtsHierarchy(private val scene: EtsScene) {
         require(etsClassType is EtsClassType || etsClassType is EtsUnclearRefType)
 
         // We don't want to remove names like "$AC2$FieldAccess.createObject"
-        val typeName = if (etsClassType.typeName.startsWith("%AC")) {
-            etsClassType.typeName
-        } else {
-            etsClassType.typeName.removeTrashFromTheName()
-        }
+        val typeName = etsClassType.typeName.removeTrashFromTheName()
         val suitableClasses = resolveMap[typeName] ?: return emptySet()
 
         if (etsClassType.isResolved()) {
-            val signature = (etsClassType as EtsClassType).signature
+            val signature = (etsClassType as EtsClassType).signature.copy(name = typeName)
             return suitableClasses[signature]?.let { hashSetOf(it) } ?: emptySet()
         }
 
@@ -115,5 +115,9 @@ fun ClassName.removePrefixWithDots(): ClassName {
 }
 
 fun ClassName.removeTrashFromTheName(): ClassName {
-    return nameWithoutGenerics().removePrefixWithDots()
+    return if (this.startsWith("%AC")) {
+        this
+    } else {
+        nameWithoutGenerics().removePrefixWithDots()
+    }
 }
