@@ -209,9 +209,12 @@ sealed interface TsBinaryOperator {
                             )
 
                             // TODO: 'fake(ref)' == 'bool'
+                            // https://github.com/UnitTestBot/usvm/issues/281
                             conjuncts += ExprWithTypeConstraint(
                                 constraint = lhsType.refTypeExpr,
-                                expr = mkFalse() // TODO mistake, we should coerce the ref object
+                                // TODO mistake, we should coerce the ref object
+                                // https://github.com/UnitTestBot/usvm/issues/281
+                                expr = mkFalse()
                             )
                         }
 
@@ -566,12 +569,11 @@ sealed interface TsBinaryOperator {
                 }
             }
 
-            return with(Eq) {
-                mkAnd(
-                    typeConstraint,
-                    resolveFakeObject(lhs, rhs, scope)
-                )
+            val loosyEqualityConstraint with(Eq) {
+                resolveFakeObject(lhs, rhs, scope)
             }
+
+            return mkAnd(typeConstraint, loosyEqualityConstraint)
         }
 
         override fun TsContext.internalResolve(

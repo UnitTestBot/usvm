@@ -126,14 +126,14 @@ fun TsContext.mkNumericExpr(
     // TODO: probably we need to implement Object (Ref/Fake) -> Number conversion here directly, without ToPrimitive
 
     // TODO incorrect implementation, returns some number that is not equal to 0 and NaN
-
+    //      https://github.com/UnitTestBot/usvm/issues/280
     return@calcOnState mkIte(
         condition = mkEq(expr.asExpr(addressSort), mkTsNullValue()),
         trueBranch = mkFp(0.0, fp64Sort),
         falseBranch = mkIte(
             mkEq(expr.asExpr(addressSort), mkUndefinedValue()),
             mkFp64NaN(),
-            mkFp64NaN() // TODO we should not generalize it this way
+            mkFp64NaN()
         )
     )
 }

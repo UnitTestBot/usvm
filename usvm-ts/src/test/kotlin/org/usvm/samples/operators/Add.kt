@@ -3,7 +3,7 @@ package org.usvm.samples.operators
 import org.jacodb.ets.model.EtsScene
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
-import org.usvm.util.toFp
+import org.usvm.util.toDouble
 import kotlin.test.Test
 
 class Add : TsMethodTestRunner() {
@@ -36,7 +36,7 @@ class Add : TsMethodTestRunner() {
             { a, b, r -> r.number == 3.0 && a.value && b.number == 5.0 },
             { _, b, r -> r.number.isNaN() && b.number.isNaN() },
             { a, b, r ->
-                val result = a.value.toFp() + b.number
+                val result = a.value.toDouble() + b.number
                 r.number == 4.0 && result != 2.2 && !result.isNaN()
             }
         )
