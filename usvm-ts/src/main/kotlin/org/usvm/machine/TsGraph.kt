@@ -6,9 +6,11 @@ import org.jacodb.ets.model.EtsStmt
 import org.usvm.dataflow.ts.graph.EtsApplicationGraph
 import org.usvm.dataflow.ts.graph.EtsApplicationGraphImpl
 import org.usvm.statistics.ApplicationGraph
+import org.usvm.util.EtsHierarchy
 
 class TsGraph(scene: EtsScene) : ApplicationGraph<EtsMethod, EtsStmt> {
     private val etsGraph: EtsApplicationGraph = EtsApplicationGraphImpl(scene)
+    val hierarchy: EtsHierarchy = EtsHierarchy(scene)
 
     val cp: EtsScene
         get() = etsGraph.cp

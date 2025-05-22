@@ -25,7 +25,9 @@ fun TsContext.mkTruthyExpr(
         val conjuncts = mutableListOf<ExprWithTypeConstraint<UBoolSort>>()
         val possibleType = memory.types.getTypeStream(expr.asExpr(addressSort)).single() as FakeType
 
-        scope.assert(possibleType.mkExactlyOneTypeConstraint(this@mkTruthyExpr))
+        scope.doWithState {
+            pathConstraints += possibleType.mkExactlyOneTypeConstraint(this@mkTruthyExpr)
+        }
 
         if (!possibleType.boolTypeExpr.isFalse) {
             conjuncts += ExprWithTypeConstraint(
@@ -123,5 +125,15 @@ fun TsContext.mkNumericExpr(
     // TODO: ToPrimitive, then ToNumber again
     // TODO: probably we need to implement Object (Ref/Fake) -> Number conversion here directly, without ToPrimitive
 
-    error("Unsupported sort: ${expr.sort}")
+    // TODO incorrect implementation, returns some number that is not equal to 0 and NaN
+    //      https://github.com/UnitTestBot/usvm/issues/280
+    return@calcOnState mkIte(
+        condition = mkEq(expr.asExpr(addressSort), mkTsNullValue()),
+        trueBranch = mkFp(0.0, fp64Sort),
+        falseBranch = mkIte(
+            mkEq(expr.asExpr(addressSort), mkUndefinedValue()),
+            mkFp64NaN(),
+            mkFp64NaN()
+        )
+    )
 }

@@ -9,18 +9,21 @@ import org.jacodb.ets.model.EtsCallStmt
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsInstanceFieldRef
+import org.jacodb.ets.model.EtsIntersectionType
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsNopStmt
 import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsParameterRef
+import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsStaticFieldRef
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsThis
 import org.jacodb.ets.model.EtsThrowStmt
 import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUnionType
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.model.EtsValue
 import org.jacodb.ets.utils.callExpr
@@ -31,6 +34,7 @@ import org.usvm.UAddressSort
 import org.usvm.UExpr
 import org.usvm.UInterpreter
 import org.usvm.api.allocateArrayInitialized
+import org.usvm.api.evalTypeEquals
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.api.makeSymbolicRefUntyped
 import org.usvm.api.targets.TsTarget
@@ -64,6 +68,7 @@ import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
 import org.usvm.util.resolveEtsField
 import org.usvm.util.resolveEtsMethods
+import org.usvm.util.type
 import org.usvm.utils.ensureSat
 
 private val logger = KotlinLogging.logger {}
@@ -130,22 +135,35 @@ class TsInterpreter(
         return scope.stepResult()
     }
 
-    private fun visitVirtualMethodCall(scope: TsStepScope, stmt: TsVirtualMethodCallStmt) {
+    private fun visitVirtualMethodCall(scope: TsStepScope, stmt: TsVirtualMethodCallStmt) = with(ctx) {
 
         // NOTE: USE '.callee' INSTEAD OF '.method' !!!
 
-        val instance = stmt.instance
-        checkNotNull(instance)
+        val instance = requireNotNull(stmt.instance) { "Virtual code invocation with null as an instance" }
         val concreteRef = scope.calcOnState { models.first().eval(instance) }
+
+        val uncoveredInstance = if (concreteRef.isFakeObject()) {
+            // TODO support primitives calls
+            // We ignore the possibility of method call on primitives.
+            // Therefore, the fake object should be unwrapped.
+            scope.doWithState {
+                pathConstraints += concreteRef.getFakeType(scope).refTypeExpr
+            }
+            concreteRef.extractRef(scope)
+        } else {
+            concreteRef
+        }
+
+        // Evaluate uncoveredInstance in a model to avoid too wide type streams later
+        val resolvedInstance = scope.calcOnState { models.first().eval(uncoveredInstance) }
 
         val concreteMethods: MutableList<EtsMethod> = mutableListOf()
 
         // TODO: handle 'instance.isFakeObject()'
 
-        if (isAllocatedConcreteHeapRef(concreteRef)) {
-            val type = scope.calcOnState { memory.typeStreamOf(concreteRef) }.single()
+        if (isAllocatedConcreteHeapRef(resolvedInstance)) {
+            val type = scope.calcOnState { memory.typeStreamOf(resolvedInstance) }.single()
             if (type is EtsClassType) {
-                // TODO: handle non-unique classes
                 val classes = ctx.scene.projectAndSdkClasses.filter { it.name == type.typeName }
                 if (classes.isEmpty()) {
                     logger.warn { "Could not resolve class: ${type.typeName}" }
@@ -158,7 +176,9 @@ class TsInterpreter(
                     return
                 }
                 val cls = classes.single()
-                val method = cls.methods.first { it.name == stmt.callee.name }
+                val method = cls.methods
+                    .singleOrNull { it.name == stmt.callee.name }
+                    ?: TODO("Overloads are not supported yet")
                 concreteMethods += method
             } else {
                 logger.warn {
@@ -185,7 +205,17 @@ class TsInterpreter(
         val conditionsWithBlocks = concreteMethods.map { method ->
             val concreteCall = stmt.toConcrete(method)
             val block = { state: TsState -> state.newStmt(concreteCall) }
-            ctx.trueExpr to block
+            val type = requireNotNull(method.enclosingClass).type
+
+            val constraint = scope.calcOnState {
+                val ref = stmt.instance.asExpr(ctx.addressSort)
+                    .takeIf { !it.isFakeObject() }
+                    ?: uncoveredInstance.asExpr(addressSort)
+                // TODO mistake, should be separated into several hierarchies
+                //      or evalTypeEqual with several concrete types
+                memory.types.evalTypeEquals(ref, type)
+            }
+            constraint to block
         }
         scope.forkMulti(conditionsWithBlocks)
     }
@@ -527,9 +557,30 @@ class TsInterpreter(
             )
         }
 
-        // TODO fix incorrect type streams
-        // val thisTypeConstraint = state.memory.types.evalTypeEquals(thisRef, EtsClassType(method.enclosingClass))
-        // state.pathConstraints += thisTypeConstraint
+        method.enclosingClass?.let { thisClass ->
+            // TODO not equal but subtype for abstract/interfaces
+            val thisTypeConstraint = state.memory.types.evalTypeEquals(thisRef, thisClass.type)
+            state.pathConstraints += thisTypeConstraint
+        }
+
+        method.parameters.forEachIndexed { i, param ->
+            val parameterType = param.type
+            if (parameterType is EtsRefType) {
+                val argLValue = mkRegisterStackLValue(ctx.addressSort, i)
+                val ref = state.memory.read(argLValue).asExpr(ctx.addressSort)
+                val resolvedParameterType = graph.cp
+                    .projectAndSdkClasses
+                    .singleOrNull { it.name == parameterType.typeName }
+                    ?.type
+                    ?: parameterType
+
+                state.pathConstraints += state.memory.types.evalIsSubtype(ref, resolvedParameterType)
+            }
+
+            if (parameterType is EtsUnionType || parameterType is EtsIntersectionType) {
+                TODO("Handle union/intersection types")
+            }
+        }
 
         val model = solver.check(state.pathConstraints).ensureSat().model
         state.models = listOf(model)

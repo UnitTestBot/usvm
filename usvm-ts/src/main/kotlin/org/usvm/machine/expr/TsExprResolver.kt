@@ -15,6 +15,8 @@ import org.jacodb.ets.model.EtsBitOrExpr
 import org.jacodb.ets.model.EtsBitXorExpr
 import org.jacodb.ets.model.EtsBooleanConstant
 import org.jacodb.ets.model.EtsCastExpr
+import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsConstant
 import org.jacodb.ets.model.EtsDeleteExpr
 import org.jacodb.ets.model.EtsDivExpr
@@ -82,6 +84,7 @@ import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.allocateArray
 import org.usvm.dataflow.ts.infer.tryGetKnownType
+import org.usvm.dataflow.ts.util.type
 import org.usvm.isTrue
 import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
@@ -96,9 +99,11 @@ import org.usvm.machine.state.TsState
 import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
+import org.usvm.machine.types.AuxiliaryType
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.memory.ULValue
 import org.usvm.sizeSort
+import org.usvm.util.isResolved
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
@@ -167,7 +172,7 @@ class TsExprResolver(
         dependency0: EtsEntity,
         dependency1: EtsEntity,
         block: (UExpr<out USort>, UExpr<out USort>) -> T,
-    ):T? {
+    ): T? {
         val result0 = resolve(dependency0) ?: return null
         val result1 = resolve(dependency1) ?: return null
         return block(result0, result1)
@@ -413,9 +418,11 @@ class TsExprResolver(
         error("Not supported $expr")
     }
 
-    override fun visit(expr: EtsInstanceOfExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsInstanceOfExpr): UExpr<out USort>? = with(ctx) {
+        val arg = resolve(expr.arg)?.asExpr(addressSort) ?: return null
+        scope.calcOnState {
+            memory.types.evalIsSubtype(arg, expr.checkType)
+        }
     }
 
     // endregion
@@ -580,20 +587,20 @@ class TsExprResolver(
     // region ACCESS
 
     override fun visit(value: EtsArrayAccess): UExpr<out USort>? = with(ctx) {
-        val instance = resolve(value.array)?.asExpr(ctx.addressSort) ?: return null
-        val index = resolve(value.index)?.asExpr(ctx.fp64Sort) ?: return null
+        val array = resolve(value.array)?.asExpr(addressSort) ?: return null
+        val index = resolve(value.index)?.asExpr(fp64Sort) ?: return null
         val bvIndex = mkFpToBvExpr(
             roundingMode = fpRoundingModeSortDefaultValue(),
             value = index,
             bvSize = 32,
-            isSigned = true
-        )
+            isSigned = true,
+        ).asExpr(sizeSort)
 
         val lValue = mkArrayIndexLValue(
-            addressSort,
-            instance,
-            bvIndex.asExpr(ctx.sizeSort),
-            value.array.type as EtsArrayType
+            sort = addressSort,
+            ref = array,
+            index = bvIndex,
+            type = value.array.type as EtsArrayType
         )
         val expr = scope.calcOnState { memory.read(lValue) }
 
@@ -604,8 +611,8 @@ class TsExprResolver(
 
     private fun checkUndefinedOrNullPropertyRead(instance: UHeapRef) = with(ctx) {
         val neqNull = mkAnd(
-            mkHeapRefEq(instance, ctx.mkUndefinedValue()).not(),
-            mkHeapRefEq(instance, ctx.mkTsNullValue()).not()
+            mkHeapRefEq(instance, mkUndefinedValue()).not(),
+            mkHeapRefEq(instance, mkTsNullValue()).not()
         )
 
         scope.fork(
@@ -624,10 +631,25 @@ class TsExprResolver(
         instanceRef: UHeapRef,
         field: EtsFieldSignature,
     ): UExpr<out USort>? = with(ctx) {
+        val resolvedAddr = if (instanceRef.isFakeObject()) instanceRef.extractRef(scope) else instanceRef
+        scope.doWithState {
+            pathConstraints += if (field.enclosingClass != EtsClassSignature.UNKNOWN) {
+                // If we know an enclosing class of the field,
+                // we can add a type constraint about the instance type.
+                // Probably, it's redundant since either both class and field
+                // know exactly their types or none of them.
+                val type = EtsClassType(field.enclosingClass)
+                memory.types.evalIsSubtype(resolvedAddr, type)
+            } else {
+                // Otherwise, we add a type constraint that every type containing such field is fine
+                memory.types.evalIsSubtype(resolvedAddr, AuxiliaryType(setOf(field.name)))
+            }
+        }
+
         val etsField = resolveEtsField(instance, field)
         val sort = typeToSort(etsField.type)
 
-        val expr = if (sort == unresolvedSort) {
+        if (sort == unresolvedSort) {
             val boolLValue = mkFieldLValue(boolSort, instanceRef, field)
             val fpLValue = mkFieldLValue(fp64Sort, instanceRef, field)
             val refLValue = mkFieldLValue(addressSort, instanceRef, field)
@@ -652,13 +674,6 @@ class TsExprResolver(
         } else {
             val lValue = mkFieldLValue(sort, instanceRef, field)
             scope.calcOnState { memory.read(lValue) }
-        }
-
-        // TODO: check 'field.type' vs 'etsField.type'
-        if (assertIsSubtype(expr, field.type)) {
-            expr
-        } else {
-            null
         }
     }
 
@@ -739,8 +754,17 @@ class TsExprResolver(
 
     // region OTHER
 
-    override fun visit(expr: EtsNewExpr): UExpr<out USort>? = scope.calcOnState {
-        memory.allocConcrete(expr.type)
+    override fun visit(expr: EtsNewExpr): UExpr<out USort>? = with(ctx) {
+        // Try to resolve the concrete type if possible.
+        // Otherwise, create an object with UnclearRefType
+        val resolvedType = if (expr.type.isResolved()) {
+            scene.projectAndSdkClasses
+                .singleOrNull { it.name == expr.type.typeName }?.type
+                ?: expr.type
+        } else {
+            expr.type
+        }
+        scope.calcOnState { memory.allocConcrete(resolvedType) }
     }
 
     override fun visit(expr: EtsNewArrayExpr): UExpr<out USort>? = with(ctx) {
@@ -752,10 +776,10 @@ class TsExprResolver(
             }
 
             val bvSize = mkFpToBvExpr(
-                fpRoundingModeSortDefaultValue(),
-                size.asExpr(fp64Sort),
+                roundingMode = fpRoundingModeSortDefaultValue(),
+                value = size.asExpr(fp64Sort),
                 bvSize = 32,
-                isSigned = true
+                isSigned = true,
             )
 
             val condition = mkAnd(
@@ -782,11 +806,6 @@ class TsExprResolver(
     }
 
     // endregion
-
-    // TODO incorrect implementation
-    private fun assertIsSubtype(expr: UExpr<out USort>, type: EtsType): Boolean {
-        return true
-    }
 }
 
 class TsSimpleValueResolver(
