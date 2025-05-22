@@ -14,6 +14,7 @@ include("usvm-ts-wire:server")
 include("usvm-ts-wire:protos")
 include("usvm-ts-wire:client")
 include("usvm-ts-service")
+include("usvm-ts-server")
 
 include("usvm-python")
 include("usvm-python:cpythonadapter")

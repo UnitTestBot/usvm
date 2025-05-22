@@ -179,14 +179,14 @@ object Libs {
     )
 
     // https://github.com/Kotlin/kotlinx.serialization
-    val kotlinx_serialization_core = dep(
-        group = "org.jetbrains.kotlinx",
-        name = "kotlinx-serialization-core",
-        version = Versions.kotlinx_serialization
-    )
     val kotlinx_serialization_json = dep(
         group = "org.jetbrains.kotlinx",
         name = "kotlinx-serialization-json",
+        version = Versions.kotlinx_serialization
+    )
+    val kotlinx_serialization_protobuf = dep(
+        group = "org.jetbrains.kotlinx",
+        name = "kotlinx-serialization-protobuf",
         version = Versions.kotlinx_serialization
     )
 
