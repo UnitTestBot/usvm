@@ -49,7 +49,7 @@ class TsUnresolvedSort(ctx: TsContext) : USort(ctx) {
     }
 }
 
-fun UExpr<out USort>.extractBool(): Boolean = when (this) {
+fun UExpr<out USort>.toConcreteBoolValue(): Boolean = when (this) {
     ctx.trueExpr -> true
     ctx.falseExpr -> false
     else -> error("Cannot extract boolean from $this")

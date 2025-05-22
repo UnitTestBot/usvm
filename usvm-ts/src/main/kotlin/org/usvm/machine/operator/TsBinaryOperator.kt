@@ -4,6 +4,7 @@ import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import mu.KotlinLogging
+import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
 import org.usvm.UExpr
@@ -160,16 +161,28 @@ sealed interface TsBinaryOperator {
                     )
 
                     // TODO: 'fake(ref)' == 'fake(bool)'
-                    scope.assert(mkAnd(lhsType.refTypeExpr, rhsType.boolTypeExpr).not())
+                    conjuncts += ExprWithTypeConstraint(
+                        constraint = mkAnd(lhsType.refTypeExpr, rhsType.boolTypeExpr),
+                        expr = mkFalse() // TODO mistake, we should coerce the ref object
+                    )
 
                     // TODO: 'fake(ref)' == 'fake(fp)'
-                    scope.assert(mkAnd(lhsType.refTypeExpr, rhsType.fpTypeExpr).not())
+                    conjuncts += ExprWithTypeConstraint(
+                        constraint = mkAnd(lhsType.refTypeExpr, rhsType.fpTypeExpr),
+                        expr = mkFalse() // TODO mistake, we should coerce the ref object
+                    )
 
                     // TODO: 'fake(bool)' == 'fake(ref)'
-                    scope.assert(mkAnd(lhsType.boolTypeExpr, rhsType.refTypeExpr).not())
+                    conjuncts += ExprWithTypeConstraint(
+                        constraint = mkAnd(lhsType.boolTypeExpr, rhsType.refTypeExpr),
+                        expr = mkFalse() // TODO mistake, we should coerce the ref object
+                    )
 
                     // TODO: 'fake(fp)' == 'fake(ref)'
-                    scope.assert(mkAnd(lhsType.fpTypeExpr, rhsType.refTypeExpr).not())
+                    conjuncts += ExprWithTypeConstraint(
+                        constraint = mkAnd(lhsType.fpTypeExpr, rhsType.refTypeExpr),
+                        expr = mkFalse() // TODO mistake, we should coerce the ref object
+                    )
                 }
 
                 lhs.isFakeObject() -> {
@@ -196,7 +209,13 @@ sealed interface TsBinaryOperator {
                             )
 
                             // TODO: 'fake(ref)' == 'bool'
-                            scope.assert(lhsType.refTypeExpr.not())
+                            // https://github.com/UnitTestBot/usvm/issues/281
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = lhsType.refTypeExpr,
+                                // TODO mistake, we should coerce the ref object
+                                // https://github.com/UnitTestBot/usvm/issues/281
+                                expr = mkFalse()
+                            )
                         }
 
                         fp64Sort -> {
@@ -218,16 +237,25 @@ sealed interface TsBinaryOperator {
                                 )
                             )
 
-                            // TODO: 'fake(ref)' == 'fp'
-                            scope.assert(lhsType.refTypeExpr.not())
+                            // TODO fake(ref) == 'fp'
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = lhsType.refTypeExpr,
+                                expr = mkFalse() // TODO mistake, we should coerce the ref object
+                            )
                         }
 
                         addressSort -> {
                             // TODO: 'fake(bool)' == 'ref'
-                            scope.assert(lhsType.boolTypeExpr.not())
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = lhsType.boolTypeExpr,
+                                expr = mkFalse() // TODO mistake, we should coerce the ref object
+                            )
 
                             // TODO: 'fake(fp)' == 'ref'
-                            scope.assert(lhsType.fpTypeExpr.not())
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = lhsType.fpTypeExpr,
+                                expr = mkFalse() // TODO mistake, we should coerce the ref object
+                            )
 
                             // 'fake(ref)' == 'ref'
                             conjuncts += ExprWithTypeConstraint(
@@ -269,7 +297,10 @@ sealed interface TsBinaryOperator {
                             )
 
                             // TODO: 'bool' == 'fake(ref)'
-                            scope.assert(rhsType.refTypeExpr.not())
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = rhsType.refTypeExpr,
+                                expr = mkFalse() // TODO mistake, we should coerce the ref object
+                            )
                         }
 
                         fp64Sort -> {
@@ -292,15 +323,24 @@ sealed interface TsBinaryOperator {
                             )
 
                             // TODO: 'fp' == 'fake(ref)'
-                            scope.assert(rhsType.refTypeExpr.not())
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = rhsType.refTypeExpr,
+                                expr = mkFalse() // TODO mistake, we should coerce the ref object
+                            )
                         }
 
                         addressSort -> {
                             // TODO: 'ref' == 'fake(bool)'
-                            scope.assert(rhsType.boolTypeExpr.not())
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = rhsType.boolTypeExpr,
+                                expr = mkFalse() // TODO mistake, we should coerce the ref object
+                            )
 
                             // TODO: 'ref' == 'fake(fp)'
-                            scope.assert(rhsType.fpTypeExpr.not())
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = rhsType.fpTypeExpr,
+                                expr = mkFalse() // TODO mistake, we should coerce the ref object
+                            )
 
                             // 'ref' == 'fake(ref)'
                             conjuncts += ExprWithTypeConstraint(
@@ -312,7 +352,9 @@ sealed interface TsBinaryOperator {
                             )
                         }
 
-                        else -> error("Unsupported sort ${rhs.sort}")
+                        else -> {
+                            error("Unsupported sort ${rhs.sort}")
+                        }
                     }
                 }
             }
@@ -488,47 +530,50 @@ sealed interface TsBinaryOperator {
         ): UBoolExpr {
             check(lhs.isFakeObject() || rhs.isFakeObject())
 
-            when {
+            val typeConstraint = when {
                 lhs.isFakeObject() && rhs.isFakeObject() -> {
                     val lhsType = lhs.getFakeType(scope)
                     val rhsType = rhs.getFakeType(scope)
-                    val condition = mkAnd(
+                    mkAnd(
                         lhsType.boolTypeExpr eq rhsType.boolTypeExpr,
                         lhsType.fpTypeExpr eq rhsType.fpTypeExpr,
                         // TODO support type equality
                         lhsType.refTypeExpr eq rhsType.refTypeExpr
                     )
-                    scope.assert(condition)
                 }
 
                 lhs.isFakeObject() -> {
                     val lhsType = lhs.getFakeType(scope)
-                    val condition = when (rhs.sort) {
+                    when (rhs.sort) {
                         boolSort -> lhsType.boolTypeExpr
                         fp64Sort -> lhsType.fpTypeExpr
                         // TODO support type equality
                         addressSort -> lhsType.refTypeExpr
                         else -> error("Unsupported sort ${rhs.sort}")
                     }
-                    scope.assert(condition)
                 }
 
                 rhs.isFakeObject() -> {
                     val rhsType = rhs.getFakeType(scope)
-                    val condition = when (lhs.sort) {
+                    when (lhs.sort) {
                         boolSort -> rhsType.boolTypeExpr
                         fp64Sort -> rhsType.fpTypeExpr
                         // TODO support type equality
                         addressSort -> rhsType.refTypeExpr
                         else -> error("Unsupported sort ${lhs.sort}")
                     }
-                    scope.assert(condition)
+                }
+
+                else -> {
+                    error("Should not be called")
                 }
             }
 
-            return with(Eq) {
+            val loosyEqualityConstraint = with(Eq) {
                 resolveFakeObject(lhs, rhs, scope)
             }
+
+            return mkAnd(typeConstraint, loosyEqualityConstraint)
         }
 
         override fun TsContext.internalResolve(
@@ -537,8 +582,7 @@ sealed interface TsBinaryOperator {
             scope: TsStepScope,
         ): UBoolExpr? {
             logger.warn { "Not implemented operator: StrictEq" }
-            scope.assert(falseExpr)
-            return null
+            error("Not implemented strict eq")
         }
     }
 
@@ -599,7 +643,7 @@ sealed interface TsBinaryOperator {
             lhs: UBoolExpr,
             rhs: UBoolExpr,
             scope: TsStepScope,
-        ): UExpr<*> {
+        ): UExpr<KFp64Sort> {
             return mkFpAddExpr(
                 fpRoundingModeSortDefaultValue(),
                 boolToFp(lhs),
@@ -611,7 +655,7 @@ sealed interface TsBinaryOperator {
             lhs: UExpr<KFp64Sort>,
             rhs: UExpr<KFp64Sort>,
             scope: TsStepScope,
-        ): UExpr<*> {
+        ): UExpr<KFp64Sort> {
             return mkFpAddExpr(fpRoundingModeSortDefaultValue(), lhs, rhs)
         }
 
@@ -619,50 +663,267 @@ sealed interface TsBinaryOperator {
             lhs: UHeapRef,
             rhs: UHeapRef,
             scope: TsStepScope,
-        ): UExpr<*> {
-            TODO("Not yet implemented")
+        ): UExpr<KFp64Sort> {
+            return mkFpAddExpr(
+                fpRoundingModeSortDefaultValue(),
+                mkNumericExpr(lhs, scope),
+                mkNumericExpr(rhs, scope)
+            )
         }
 
         override fun TsContext.resolveFakeObject(
             lhs: UExpr<*>,
             rhs: UExpr<*>,
             scope: TsStepScope,
-        ): UExpr<*> {
+        ): UExpr<KFp64Sort> {
             check(lhs.isFakeObject() || rhs.isFakeObject())
-            TODO("Not yet implemented")
+
+            val conjuncts = mutableListOf<ExprWithTypeConstraint<KFp64Sort>>()
+
+            when {
+                lhs.isFakeObject() && rhs.isFakeObject() -> {
+                    val lhsType = lhs.getFakeType(scope)
+                    val rhsType = rhs.getFakeType(scope)
+
+                    // fake(bool) + fake(bool)
+                    conjuncts += ExprWithTypeConstraint(
+                        constraint = mkAnd(lhsType.boolTypeExpr, rhsType.boolTypeExpr),
+                        expr = onBool(lhs.extractBool(scope), rhs.extractBool(scope), scope)
+                    )
+
+                    // fake(bool) + fake(fp)
+                    conjuncts += ExprWithTypeConstraint(
+                        constraint = mkAnd(lhsType.boolTypeExpr, rhsType.fpTypeExpr),
+                        expr = internalResolve(lhs.extractBool(scope), rhs.extractFp(scope), scope)
+                    )
+
+                    // fake(bool) + fake(ref)
+                    conjuncts += ExprWithTypeConstraint(
+                        constraint = mkAnd(lhsType.boolTypeExpr, rhsType.refTypeExpr),
+                        expr = internalResolve(lhs.extractBool(scope), rhs.extractRef(scope), scope)
+                    )
+
+                    // fake(fp) + fake(bool)
+                    conjuncts += ExprWithTypeConstraint(
+                        constraint = mkAnd(lhsType.fpTypeExpr, rhsType.boolTypeExpr),
+                        expr = internalResolve(lhs.extractFp(scope), rhs.extractBool(scope), scope)
+                    )
+
+                    // fake(fp) + fake(fp)
+                    conjuncts += ExprWithTypeConstraint(
+                        constraint = mkAnd(lhsType.fpTypeExpr, rhsType.fpTypeExpr),
+                        expr = onFp(lhs.extractFp(scope), rhs.extractFp(scope), scope)
+                    )
+
+                    // fake(fp) + fake(ref)
+                    conjuncts += ExprWithTypeConstraint(
+                        constraint = mkAnd(lhsType.fpTypeExpr, rhsType.refTypeExpr),
+                        expr = internalResolve(lhs.extractFp(scope), rhs.extractRef(scope), scope)
+                    )
+
+                    // fake(ref) + fake(bool)
+                    conjuncts += ExprWithTypeConstraint(
+                        constraint = mkAnd(lhsType.refTypeExpr, rhsType.boolTypeExpr),
+                        expr = internalResolve(lhs.extractRef(scope), rhs.extractBool(scope), scope)
+                    )
+
+                    // fake(ref) + fake(fp)
+                    conjuncts += ExprWithTypeConstraint(
+                        constraint = mkAnd(lhsType.refTypeExpr, rhsType.fpTypeExpr),
+                        expr = internalResolve(lhs.extractRef(scope), rhs.extractFp(scope), scope)
+                    )
+
+                    // fake(ref) + fake(ref)
+                    conjuncts += ExprWithTypeConstraint(
+                        constraint = mkAnd(lhsType.refTypeExpr, rhsType.refTypeExpr),
+                        expr = onRef(lhs.extractRef(scope), rhs.extractRef(scope), scope)
+                    )
+                }
+
+                lhs.isFakeObject() -> {
+                    val lhsType = lhs.getFakeType(scope)
+
+                    when (rhs.sort) {
+                        is UBoolSort -> {
+                            // fake(bool) + bool
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = lhsType.boolTypeExpr,
+                                expr = onBool(lhs.extractBool(scope), rhs.asExpr(boolSort), scope)
+                            )
+
+                            // fake(fp) + bool
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = lhsType.fpTypeExpr,
+                                expr = internalResolve(lhs.extractFp(scope), rhs.asExpr(boolSort), scope)
+                            )
+
+                            // fake(ref) + bool
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = lhsType.refTypeExpr,
+                                expr = internalResolve(lhs.extractRef(scope), rhs.asExpr(boolSort), scope)
+                            )
+                        }
+
+                        is KFp64Sort -> {
+                            // fake(bool) + fp
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = lhsType.boolTypeExpr,
+                                expr = internalResolve(lhs.extractBool(scope), rhs.asExpr(fp64Sort), scope)
+                            )
+
+                            // fake(fp) + fp
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = lhsType.fpTypeExpr,
+                                expr = onFp(lhs.extractFp(scope), rhs.asExpr(fp64Sort), scope)
+                            )
+
+                            // fake(ref) + fp
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = lhsType.refTypeExpr,
+                                expr = internalResolve(lhs.extractRef(scope), rhs.asExpr(fp64Sort), scope)
+                            )
+                        }
+
+                        is UAddressSort -> {
+                            // fake(bool) + ref
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = lhsType.boolTypeExpr,
+                                expr = internalResolve(lhs.extractBool(scope), rhs.asExpr(addressSort), scope)
+                            )
+
+                            // fake(fp) + ref
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = lhsType.fpTypeExpr,
+                                expr = internalResolve(lhs.extractFp(scope), rhs.asExpr(addressSort), scope)
+                            )
+
+                            // fake(ref) + ref
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = lhsType.refTypeExpr,
+                                expr = onRef(lhs.extractRef(scope), rhs.asExpr(addressSort), scope)
+                            )
+                        }
+
+                        else -> {
+                            error("Unsupported sort ${rhs.sort}")
+                        }
+                    }
+                }
+
+                rhs.isFakeObject() -> {
+                    val rhsType = rhs.getFakeType(scope)
+
+                    when (lhs.sort) {
+                        is UBoolSort -> {
+                            // bool + fake(bool)
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = rhsType.boolTypeExpr,
+                                expr = onBool(lhs.asExpr(boolSort), rhs.extractBool(scope), scope)
+                            )
+
+                            // bool + fake(fp)
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = rhsType.fpTypeExpr,
+                                expr = internalResolve(lhs.asExpr(boolSort), rhs.extractFp(scope), scope)
+                            )
+
+                            // bool + fake(ref)
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = rhsType.refTypeExpr,
+                                expr = internalResolve(lhs.asExpr(boolSort), rhs.extractRef(scope), scope)
+                            )
+                        }
+
+                        is KFp64Sort -> {
+                            // fp + fake(bool)
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = rhsType.boolTypeExpr,
+                                expr = internalResolve(lhs.asExpr(fp64Sort), rhs.extractBool(scope), scope)
+                            )
+
+                            // fp + fake(fp)
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = rhsType.fpTypeExpr,
+                                expr = onFp(lhs.asExpr(fp64Sort), rhs.extractFp(scope), scope)
+                            )
+
+                            // fp + fake(ref)
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = rhsType.refTypeExpr,
+                                expr = internalResolve(lhs.asExpr(fp64Sort), rhs.extractRef(scope), scope)
+                            )
+                        }
+
+                        is UAddressSort -> {
+                            // ref + fake(bool)
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = rhsType.boolTypeExpr,
+                                expr = internalResolve(lhs.asExpr(addressSort), rhs.extractBool(scope), scope)
+                            )
+
+                            // ref + fake(fp)
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = rhsType.fpTypeExpr,
+                                expr = internalResolve(lhs.asExpr(addressSort), rhs.extractFp(scope), scope)
+                            )
+
+                            // ref + fake(ref)
+                            conjuncts += ExprWithTypeConstraint(
+                                constraint = rhsType.refTypeExpr,
+                                expr = onRef(lhs.asExpr(addressSort), rhs.extractRef(scope), scope)
+                            )
+                        }
+
+                        else -> {
+                            error("Unsupported sort ${lhs.sort}")
+                        }
+                    }
+                }
+            }
+
+            // if (a is Bool && b is Bool) ... else if (a is Bool && b is Fp) ... else ...
+            return conjuncts.foldRight(mkFp(0.0, fp64Sort).asExpr(fp64Sort)) { value, acc ->
+                mkIte(value.constraint, value.expr, acc)
+            }
         }
 
         override fun TsContext.internalResolve(
             lhs: UExpr<*>,
             rhs: UExpr<*>,
             scope: TsStepScope,
-        ): UExpr<*> {
+        ): UExpr<KFp64Sort> {
             check(!lhs.isFakeObject() && !rhs.isFakeObject())
 
             // TODO support string concatenation
-            // TODO support undefined
-
             // TODO support bigint
 
-            val fpValue = when {
+            return when {
                 lhs.sort is UBoolSort && rhs.sort is KFp64Sort -> {
                     mkFpAddExpr(fpRoundingModeSortDefaultValue(), boolToFp(lhs.cast()), rhs.cast())
+                }
+
+                lhs.sort is UBoolSort && rhs.sort is UAddressSort -> {
+                    mkFpAddExpr(fpRoundingModeSortDefaultValue(), boolToFp(lhs.cast()), mkNumericExpr(rhs, scope))
                 }
 
                 lhs.sort is KFp64Sort && rhs.sort is UBoolSort -> {
                     mkFpAddExpr(fpRoundingModeSortDefaultValue(), lhs.cast(), boolToFp(rhs.cast()))
                 }
 
-                else -> null
+                lhs.sort is KFp64Sort && rhs.sort is UAddressSort -> {
+                    mkFpAddExpr(fpRoundingModeSortDefaultValue(), lhs.cast(), mkNumericExpr(rhs, scope))
+                }
+
+                lhs.sort is UAddressSort && rhs.sort is KFp64Sort -> {
+                    mkFpAddExpr(fpRoundingModeSortDefaultValue(), mkNumericExpr(lhs, scope), rhs.cast())
+                }
+
+                lhs.sort is UAddressSort && rhs.sort is UBoolSort -> {
+                    mkFpAddExpr(fpRoundingModeSortDefaultValue(), mkNumericExpr(lhs, scope), boolToFp(rhs.cast()))
+                }
+
+                else -> TODO("Unsupported combination ${lhs.sort} and ${rhs.sort}")
             }
-
-            if (fpValue != null) {
-                return fpValue
-            }
-
-            // TODO: support object to primitive
-
-            TODO()
         }
     }
 
