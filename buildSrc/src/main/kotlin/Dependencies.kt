@@ -116,7 +116,8 @@ object Libs {
     )
 
     // https://github.com/UnitTestBot/jacodb
-    private const val jacodbPackage = "com.github.UnitTestBot.jacodb" // use "org.jacodb" with includeBuild
+    // private const val jacodbPackage = "com.github.UnitTestBot.jacodb" // use "org.jacodb" with includeBuild
+    private const val jacodbPackage = "org.jacodb"
     val jacodb_core = dep(
         group = jacodbPackage,
         name = "jacodb-core",
@@ -173,14 +174,14 @@ object Libs {
     )
 
     // https://github.com/Kotlin/kotlinx.serialization
-    val kotlinx_serialization_core = dep(
-        group = "org.jetbrains.kotlinx",
-        name = "kotlinx-serialization-core",
-        version = Versions.kotlinx_serialization
-    )
     val kotlinx_serialization_json = dep(
         group = "org.jetbrains.kotlinx",
         name = "kotlinx-serialization-json",
+        version = Versions.kotlinx_serialization
+    )
+    val kotlinx_serialization_protobuf = dep(
+        group = "org.jetbrains.kotlinx",
+        name = "kotlinx-serialization-protobuf",
         version = Versions.kotlinx_serialization
     )
 

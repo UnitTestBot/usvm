@@ -312,7 +312,7 @@ open class TsTestStateResolver(
             EtsNullType -> TODO()
             EtsNeverType -> TODO()
             EtsStringType -> TODO()
-            EtsVoidType -> TODO()
+            EtsVoidType -> TsTestValue.TsUndefined
             else -> error("Unexpected type: $type")
         }
     }
