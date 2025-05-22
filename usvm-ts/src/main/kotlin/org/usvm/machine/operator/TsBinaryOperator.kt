@@ -569,7 +569,7 @@ sealed interface TsBinaryOperator {
                 }
             }
 
-            val loosyEqualityConstraint with(Eq) {
+            val loosyEqualityConstraint = with(Eq) {
                 resolveFakeObject(lhs, rhs, scope)
             }
 
