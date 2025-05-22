@@ -66,7 +66,7 @@ class ForwardFlowFunctions(
     }
 
     private val liveVariablesCache = hashMapOf<EtsMethod, LiveVariables>()
-    private fun liveVariables(method: EtsMethod) =
+    internal fun liveVariables(method: EtsMethod) =
         liveVariablesCache.computeIfAbsent(method) {
             if (doLiveVariablesAnalysis) {
                 LiveVariables.from(method)
