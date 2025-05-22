@@ -30,7 +30,9 @@ class EtsHierarchy(private val scene: EtsScene) {
         val time = measureTimeMillis {
             result = scene.projectAndSdkClasses.associateWith { start ->
                 generateSequence(listOf(start)) { classes ->
-                    classes.flatMap { current ->
+                    if (classes.isEmpty()) return@generateSequence null
+
+                    val result = classes.flatMap { current ->
                         val superClassSignature = current.superClass ?: return@generateSequence null
 
                         val superClasses = resolveClassesBySignature(superClassSignature)
@@ -38,9 +40,12 @@ class EtsHierarchy(private val scene: EtsScene) {
                         // TODO support interfaces
 
                         val resolvedInterfaces = interfaces.flatMap { resolveClassesBySignature(it) }
-                        superClasses + classesForType(OBJECT_CLASS) + resolvedInterfaces // TODO optimize
+
+                        superClasses.toMutableSet() + resolvedInterfaces // TODO optimize
                     }
-                }.flatten().toSet()
+
+                    result.takeIf { it.isNotEmpty() }
+                }.flatten().toMutableSet() + classesForType(OBJECT_CLASS)
             }
         }
 
@@ -53,7 +58,11 @@ class EtsHierarchy(private val scene: EtsScene) {
         val typeName = superClassSignature.name.removeTrashFromTheName()
         val signature = superClassSignature.copy(name = typeName)
 
-        val classesWithTheSameName = resolveMap.getValue(typeName)
+        val classesWithTheSameName = resolveMap[typeName] ?: run {
+            logger.error("No class with $superClassSignature found in the Scene")
+            return emptyList()
+        }
+
         val classesWithTheSameSignature = classesWithTheSameName[signature]
         val superClasses = when {
             classesWithTheSameSignature != null -> listOf(classesWithTheSameSignature)
@@ -117,7 +126,8 @@ fun ClassName.nameWithoutGenerics(): ClassName {
 }
 
 fun ClassName.removePrefixWithDots(): ClassName {
-    return substringAfterLast('.')
+    // return substringAfterLast('.')
+    return this
 }
 
 fun ClassName.removeTrashFromTheName(): ClassName {
