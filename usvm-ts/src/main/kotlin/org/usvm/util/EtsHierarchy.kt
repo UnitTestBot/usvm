@@ -33,20 +33,12 @@ class EtsHierarchy(private val scene: EtsScene) {
                     classes.flatMap { current ->
                         val superClassSignature = current.superClass ?: return@generateSequence null
 
-                        val typeName = superClassSignature.name.removeTrashFromTheName()
-                        val signature = superClassSignature.copy(name = typeName)
-
-                        val classesWithTheSameName = resolveMap.getValue(typeName)
-                        val classesWithTheSameSignature = classesWithTheSameName[signature]
-                        val superClasses = when {
-                            classesWithTheSameSignature != null -> listOf(classesWithTheSameSignature)
-                            superClassSignature.file == EtsFileSignature.UNKNOWN -> classesWithTheSameName.values
-                            else -> error("There is no class with name ${superClassSignature.name}")
-                        }
+                        val superClasses = resolveClassesBySignature(superClassSignature)
                         val interfaces = current.implementedInterfaces
                         // TODO support interfaces
-                        require(interfaces.isEmpty()) { "Interfaces are not supported" }
-                        superClasses + classesForType(OBJECT_CLASS) // TODO optimize
+
+                        val resolvedInterfaces = interfaces.flatMap { resolveClassesBySignature(it) }
+                        superClasses + classesForType(OBJECT_CLASS) + resolvedInterfaces // TODO optimize
                     }
                 }.flatten().toSet()
             }
@@ -55,6 +47,20 @@ class EtsHierarchy(private val scene: EtsScene) {
         logger.warn { "Ancestors map is built in $time ms" }
 
         return@lazy result
+    }
+
+    private fun resolveClassesBySignature(superClassSignature: EtsClassSignature): Collection<EtsClass> {
+        val typeName = superClassSignature.name.removeTrashFromTheName()
+        val signature = superClassSignature.copy(name = typeName)
+
+        val classesWithTheSameName = resolveMap.getValue(typeName)
+        val classesWithTheSameSignature = classesWithTheSameName[signature]
+        val superClasses = when {
+            classesWithTheSameSignature != null -> listOf(classesWithTheSameSignature)
+            superClassSignature.file == EtsFileSignature.UNKNOWN -> classesWithTheSameName.values
+            else -> error("There is no class with name ${superClassSignature.name}")
+        }
+        return superClasses
     }
 
     private val inheritors: MutableMap<EtsClass, MutableSet<EtsClass>> by lazy {
