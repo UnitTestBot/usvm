@@ -1,4 +1,4 @@
-package org.usvm.samples
+package org.usvm.samples.operators
 
 import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.Test
@@ -9,7 +9,7 @@ class Neg : TsMethodTestRunner() {
 
     private val className = this::class.simpleName!!
 
-    override val scene: EtsScene = loadSampleScene(className)
+    override val scene: EtsScene = loadSampleScene(className, folderPrefix = "operators")
 
     @Test
     fun `test negateNumber`() {

@@ -77,8 +77,8 @@ class FieldAccess : TsMethodTestRunner() {
                 x.number == 1.1 && r.number == 14.0
             },
             { a, r ->
-                val x = a.properties["x"] as TsTestValue.TsNumber
-                x.number != 1.1 && r.number == 10.0
+                val x = a.properties["x"] as? TsTestValue.TsNumber
+                x?.number != 1.1 && r.number == 10.0
             },
         )
     }
