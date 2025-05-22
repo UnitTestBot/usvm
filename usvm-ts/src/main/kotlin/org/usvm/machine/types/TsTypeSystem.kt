@@ -309,8 +309,10 @@ class TsTypeSystem(
 }
 
 // TODO support unclear ref type
-fun EtsClassType.toAuxiliaryType(hierarchy: EtsHierarchy): EtsAuxiliaryType {
+fun EtsClassType.toAuxiliaryType(hierarchy: EtsHierarchy): EtsAuxiliaryType? {
     val classes = hierarchy.classesForType(this)
+
+    if (classes.isEmpty()) return null
 
     val methods = mutableListOf<Set<EtsMethodName>>()
     val fields = mutableListOf<Set<EtsFieldName>>()
