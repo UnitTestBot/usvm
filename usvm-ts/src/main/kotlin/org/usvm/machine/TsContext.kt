@@ -2,6 +2,7 @@ package org.usvm.machine
 
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
+import org.jacodb.ets.model.EtsAliasType
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
@@ -72,6 +73,7 @@ class TsContext(
         is EtsRefType -> addressSort
         is EtsAnyType -> unresolvedSort
         is EtsUnknownType -> unresolvedSort
+        is EtsAliasType -> typeToSort(type.originalType)
         else -> TODO("${type::class.simpleName} is not yet supported: $type")
     }
 
