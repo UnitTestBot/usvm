@@ -26,7 +26,6 @@ fun TsContext.resolveEtsField(
             error("Cannot resolve class ${field.enclosingClass.name}")
         }
         if (classes.size > 1) {
-            // TODO add support for it
             error("Multiple classes with name ${field.enclosingClass.name}")
         }
         val clazz = classes.single()

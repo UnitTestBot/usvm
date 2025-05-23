@@ -9,7 +9,6 @@ import org.jacodb.ets.model.EtsCallStmt
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsInstanceFieldRef
-import org.jacodb.ets.model.EtsIntersectionType
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodSignature
@@ -23,7 +22,6 @@ import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsThis
 import org.jacodb.ets.model.EtsThrowStmt
 import org.jacodb.ets.model.EtsType
-import org.jacodb.ets.model.EtsUnionType
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.model.EtsValue
 import org.jacodb.ets.model.EtsVoidType
@@ -134,7 +132,9 @@ class TsInterpreter(
                 val s = e.stackTrace[0]
                 "Exception .(${s.fileName}:${s.lineNumber}): $e}"
             }
-            // TODO remove state????
+
+            // Kill the state causing error
+            scope.assert(ctx.falseExpr)
         }
 
         return scope.stepResult()
@@ -230,12 +230,13 @@ class TsInterpreter(
         // NOTE: USE '.callee' INSTEAD OF '.method' !!!
 
         // TODO: observer
-        // TODO: native/abstract methods without entrypoints
 
         val entryPoint = graph.entryPoints(stmt.callee).singleOrNull()
 
         if (entryPoint == null) {
             logger.warn { "No entry point for method: ${stmt.callee}" }
+            // If the method doesn't have entry points,
+            // we go through it, we just mock the call
             mockMethodCall(scope, stmt.callee.signature)
             scope.doWithState {
                 newStmt(stmt.returnSite)
@@ -330,32 +331,27 @@ class TsInterpreter(
 
         observer?.onIfStatementWithResolvedCondition(simpleValueResolver, stmt, boolExpr, scope)
 
-        val (posStmt, negStmt) = graph.successors(stmt).toList().let { it.getOrNull(0) to it.getOrNull(1) }
+        val successors = graph.successors(stmt).take(2).toList()
 
-        if (posStmt != null && negStmt != null) {
-            scope.forkWithBlackList(
-                boolExpr,
-                posStmt,
-                negStmt,
-                blockOnTrueState = { newStmt(posStmt) },
-                blockOnFalseState = { newStmt(negStmt) },
-            )
+        // We treat situations when if stmt doesn't have exactly two successors as a bug.
+        // Kill the state with such error.
+        if (successors.size != 2) {
+            logger.error {
+                "Incorrect CFG, an If stmt has only ${successors.size} successors, but 2 were expected"
+            }
+            scope.assert(ctx.falseExpr)
             return
         }
 
-        if (posStmt != null) {
-            scope.assert(boolExpr)
-            scope.doWithState { newStmt(posStmt) }
-            return
-        }
+        val (posStmt, negStmt) = graph.successors(stmt).take(2).toList()
 
-        if (negStmt != null) {
-            scope.assert(with(ctx) { boolExpr.not() })
-            scope.doWithState { newStmt(negStmt) }
-            return
-        }
-
-        error("Both branches of if statement are absent")
+        scope.forkWithBlackList(
+            boolExpr,
+            posStmt,
+            negStmt,
+            blockOnTrueState = { newStmt(posStmt) },
+            blockOnFalseState = { newStmt(negStmt) },
+        )
     }
 
     private fun visitReturnStmt(scope: TsStepScope, stmt: EtsReturnStmt) {
@@ -406,6 +402,8 @@ class TsInterpreter(
                 is EtsLocal -> {
                     val idx = mapLocalToIdx(lastEnteredMethod, lhv)
 
+                    // If we found the corresponding index, process it as usual.
+                    // Otherwise, process it as a field of the global object.
                     if (idx != null) {
                         saveSortForLocal(idx, expr.sort)
 
@@ -413,7 +411,7 @@ class TsInterpreter(
                         memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
                     } else {
                         val lValue = mkFieldLValue(expr.sort, globalObject, lhv.name)
-
+                        addedArtificialLocals += lhv.name
                         memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
                     }
                 }
@@ -455,11 +453,15 @@ class TsInterpreter(
                     val instance = exprResolver.resolve(lhv.instance)?.asExpr(addressSort) ?: return@doWithState
                     val etsField = resolveEtsField(lhv.instance, lhv.field, graph.hierarchy)
                     scope.doWithState {
-                        pathConstraints += memory.types.evalIsSubtype(instance, EtsAuxiliaryType(setOf(lhv.field.name)))
+                        // If we access some field, we expect that the object must have this field.
+                        // It is not always true for TS, but we decided to process it so.
+                        val supertype = EtsAuxiliaryType(properties = setOf(lhv.field.name))
+                        pathConstraints += memory.types.evalIsSubtype(instance, supertype)
                     }
 
+                    // If there is no such field, we create a fake field for the expr
                     val sort = when (etsField) {
-                        is EtsFieldResolutionResult.Empty -> error("Cannot resolve field: ${lhv.field}")
+                        is EtsFieldResolutionResult.Empty -> unresolvedSort
                         is EtsFieldResolutionResult.Unique -> typeToSort(etsField.field.type)
                         is EtsFieldResolutionResult.Ambiguous -> unresolvedSort
                     }
@@ -562,7 +564,6 @@ class TsInterpreter(
                     }.toMap()
                 }
                 map[local.name] ?: run {
-                    // TODO process undeclared locals
                     logger.error("Local not declared: $local")
                     return null
                 }
@@ -622,21 +623,6 @@ class TsInterpreter(
                 val auxiliaryType = (resolvedParameterType as? EtsClassType)?.toAuxiliaryType(graph.hierarchy)
                     ?: resolvedParameterType
                 state.pathConstraints += state.memory.types.evalIsSubtype(ref, auxiliaryType)
-            }
-
-            if (parameterType is EtsUnionType) {
-                // val possibleRefTypes = parameterType.types.filter { it is EtsRefType }
-                // val canBeBoolean = parameterType.types.any { it is EtsBooleanType }
-                // val canBeString = parameterType.types.any { it is EtsStringType }
-                // val canBeNumber = parameterType.types.any { it is EtsNumberType }
-                // val canBeUndefined = parameterType.types.any { it is EtsUndefinedType }
-                // val canBeNull = parameterType.types.any { it is EtsNullType }
-                //
-                //
-            }
-
-            if (parameterType is EtsIntersectionType) {
-                // TODO()
             }
         }
 

@@ -636,7 +636,10 @@ class TsExprResolver(
     ): UExpr<out USort>? = with(ctx) {
         val resolvedAddr = if (instanceRef.isFakeObject()) instanceRef.extractRef(scope) else instanceRef
         scope.doWithState {
-            val auxiliaryType = EtsAuxiliaryType(setOf(field.name))
+            // If we accessed some field, we make an assumption that
+            // this field should present in the object.
+            // That's not true in the common case for TS, but that's the decision we made.
+            val auxiliaryType = EtsAuxiliaryType(properties = setOf(field.name))
             pathConstraints += memory.types.evalIsSubtype(resolvedAddr, auxiliaryType)
         }
 
@@ -645,6 +648,10 @@ class TsExprResolver(
         val sort = when (etsField) {
             is EtsFieldResolutionResult.Empty -> {
                 logger.error("Field $etsField not found, creating fake field")
+                // If we didn't find any real fields, let's create a fake one.
+                // It is possible due to mistakes in the IR or if the field was added explicitly
+                // in the code.
+                // Probably, the right behaviour here is to fork the state.
                 resolvedAddr.createFakeField(field.name, scope)
                 addressSort
             }
@@ -824,13 +831,16 @@ class TsSimpleValueResolver(
 
         val localIdx = localToIdx(currentMethod, local)
 
+        // If there is no local variable corresponding to the local,
+        // we treat it as a field of some global object with the corresponding name.
+        // It helps us to support global variables that are missed in the IR.
         if (localIdx == null) {
             require(local is EtsLocal)
 
             val globalObject = scope.calcOnState { globalObject }
 
-            // this object was already created
             val localName = local.name
+            // Check whether this local was already created or not
             if (localName in scope.calcOnState { addedArtificialLocals }) {
                 return mkFieldLValue(ctx.addressSort, globalObject, local.name)
             }

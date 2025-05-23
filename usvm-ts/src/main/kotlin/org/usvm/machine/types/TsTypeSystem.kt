@@ -68,7 +68,6 @@ class TsTypeSystem(
         // When "never" is in supertype position, only never <: never.
         if (unwrappedSupertype is EtsNeverType) return type is EtsNeverType
 
-        // TODO check this behaviour
         // Treat null/undefined as bottom-like: they can flow to any type.
         if (unwrappedType is EtsNullType) return true // TS (non-strict) allows null to any
         if (unwrappedType is EtsUndefinedType) return true // TS (non-strict) allows undefined to any
@@ -91,9 +90,9 @@ class TsTypeSystem(
             if (unwrappedType is EtsLiteralType) {
                 // Literal types are subtypes of their base primitive (e.g., 'foo' <: string).
                 return when (unwrappedType.literalTypeName) {
-                    "string" -> unwrappedSupertype is EtsStringType
-                    "number" -> unwrappedSupertype is EtsNumberType
-                    "boolean" -> unwrappedSupertype is EtsBooleanType
+                    "String" -> unwrappedSupertype is EtsStringType
+                    "Number" -> unwrappedSupertype is EtsNumberType
+                    "Boolean" -> unwrappedSupertype is EtsBooleanType
                     else -> error("Unexpected literal type name ${unwrappedType.literalTypeName}")
                 }
             }

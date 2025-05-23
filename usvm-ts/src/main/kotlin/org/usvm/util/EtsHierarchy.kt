@@ -37,7 +37,6 @@ class EtsHierarchy(private val scene: EtsScene) {
 
                         val superClasses = resolveClassesBySignature(superClassSignature)
                         val interfaces = current.implementedInterfaces
-                        // TODO support interfaces
 
                         val resolvedInterfaces = interfaces.flatMap { resolveClassesBySignature(it) }
 
