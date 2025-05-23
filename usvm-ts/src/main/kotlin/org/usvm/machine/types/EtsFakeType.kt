@@ -6,7 +6,7 @@ import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.machine.TsContext
 
-class FakeType(
+class EtsFakeType(
     val boolTypeExpr: UBoolExpr,
     val fpTypeExpr: UBoolExpr,
     val refTypeExpr: UBoolExpr,
@@ -29,16 +29,16 @@ class FakeType(
     }
 
     companion object {
-        fun mkBool(ctx: TsContext): FakeType {
-            return FakeType(ctx.mkTrue(), ctx.mkFalse(), ctx.mkFalse())
+        fun mkBool(ctx: TsContext): EtsFakeType {
+            return EtsFakeType(ctx.mkTrue(), ctx.mkFalse(), ctx.mkFalse())
         }
 
-        fun mkFp(ctx: TsContext): FakeType {
-            return FakeType(ctx.mkFalse(), ctx.mkTrue(), ctx.mkFalse())
+        fun mkFp(ctx: TsContext): EtsFakeType {
+            return EtsFakeType(ctx.mkFalse(), ctx.mkTrue(), ctx.mkFalse())
         }
 
-        fun mkRef(ctx: TsContext): FakeType {
-            return FakeType(ctx.mkFalse(), ctx.mkFalse(), ctx.mkTrue())
+        fun mkRef(ctx: TsContext): EtsFakeType {
+            return EtsFakeType(ctx.mkFalse(), ctx.mkFalse(), ctx.mkTrue())
         }
     }
 }

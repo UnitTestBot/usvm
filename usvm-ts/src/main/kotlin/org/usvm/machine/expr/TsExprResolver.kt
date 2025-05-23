@@ -15,8 +15,6 @@ import org.jacodb.ets.model.EtsBitOrExpr
 import org.jacodb.ets.model.EtsBitXorExpr
 import org.jacodb.ets.model.EtsBooleanConstant
 import org.jacodb.ets.model.EtsCastExpr
-import org.jacodb.ets.model.EtsClassSignature
-import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsConstant
 import org.jacodb.ets.model.EtsDeleteExpr
 import org.jacodb.ets.model.EtsDivExpr
@@ -99,10 +97,13 @@ import org.usvm.machine.state.TsState
 import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
-import org.usvm.machine.types.AuxiliaryType
+import org.usvm.machine.types.EtsAuxiliaryType
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.memory.ULValue
 import org.usvm.sizeSort
+import org.usvm.util.EtsFieldResolutionResult
+import org.usvm.util.EtsHierarchy
+import org.usvm.util.createFakeField
 import org.usvm.util.isResolved
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
@@ -125,7 +126,8 @@ const val ADHOC_STRING__STRING = 2222.0 // 'string'
 class TsExprResolver(
     private val ctx: TsContext,
     private val scope: TsStepScope,
-    private val localToIdx: (EtsMethod, EtsValue) -> Int,
+    private val localToIdx: (EtsMethod, EtsValue) -> Int?,
+    private val hierarchy: EtsHierarchy,
 ) : EtsEntity.Visitor<UExpr<out USort>?> {
 
     val simpleValueResolver: TsSimpleValueResolver =
@@ -630,24 +632,33 @@ class TsExprResolver(
         instance: EtsLocal?,
         instanceRef: UHeapRef,
         field: EtsFieldSignature,
+        hierarchy: EtsHierarchy,
     ): UExpr<out USort>? = with(ctx) {
         val resolvedAddr = if (instanceRef.isFakeObject()) instanceRef.extractRef(scope) else instanceRef
         scope.doWithState {
-            pathConstraints += if (field.enclosingClass != EtsClassSignature.UNKNOWN) {
-                // If we know an enclosing class of the field,
-                // we can add a type constraint about the instance type.
-                // Probably, it's redundant since either both class and field
-                // know exactly their types or none of them.
-                val type = EtsClassType(field.enclosingClass)
-                memory.types.evalIsSubtype(resolvedAddr, type)
-            } else {
-                // Otherwise, we add a type constraint that every type containing such field is fine
-                memory.types.evalIsSubtype(resolvedAddr, AuxiliaryType(setOf(field.name)))
-            }
+            // If we accessed some field, we make an assumption that
+            // this field should present in the object.
+            // That's not true in the common case for TS, but that's the decision we made.
+            val auxiliaryType = EtsAuxiliaryType(properties = setOf(field.name))
+            pathConstraints += memory.types.evalIsSubtype(resolvedAddr, auxiliaryType)
         }
 
-        val etsField = resolveEtsField(instance, field)
-        val sort = typeToSort(etsField.type)
+        val etsField = resolveEtsField(instance, field, hierarchy)
+
+        val sort = when (etsField) {
+            is EtsFieldResolutionResult.Empty -> {
+                logger.error("Field $etsField not found, creating fake field")
+                // If we didn't find any real fields, let's create a fake one.
+                // It is possible due to mistakes in the IR or if the field was added explicitly
+                // in the code.
+                // Probably, the right behaviour here is to fork the state.
+                resolvedAddr.createFakeField(field.name, scope)
+                addressSort
+            }
+
+            is EtsFieldResolutionResult.Unique -> typeToSort(etsField.field.type)
+            is EtsFieldResolutionResult.Ambiguous -> unresolvedSort
+        }
 
         if (sort == unresolvedSort) {
             val boolLValue = mkFieldLValue(boolSort, instanceRef, field)
@@ -714,7 +725,7 @@ class TsExprResolver(
             }
         }
 
-        return handleFieldRef(value.instance, instanceRef, value.field)
+        return handleFieldRef(value.instance, instanceRef, value.field, hierarchy)
     }
 
     override fun visit(value: EtsStaticFieldRef): UExpr<out USort>? = with(ctx) {
@@ -747,7 +758,7 @@ class TsExprResolver(
             }
         }
 
-        return handleFieldRef(instance = null, instanceRef, value.field)
+        return handleFieldRef(instance = null, instanceRef, value.field, hierarchy)
     }
 
     // endregion
@@ -811,7 +822,7 @@ class TsExprResolver(
 class TsSimpleValueResolver(
     private val ctx: TsContext,
     private val scope: TsStepScope,
-    private val localToIdx: (EtsMethod, EtsValue) -> Int,
+    private val localToIdx: (EtsMethod, EtsValue) -> Int?,
 ) : EtsValue.Visitor<UExpr<out USort>?> {
 
     private fun resolveLocal(local: EtsValue): ULValue<*, USort> {
@@ -819,6 +830,31 @@ class TsSimpleValueResolver(
         val entrypoint = scope.calcOnState { entrypoint }
 
         val localIdx = localToIdx(currentMethod, local)
+
+        // If there is no local variable corresponding to the local,
+        // we treat it as a field of some global object with the corresponding name.
+        // It helps us to support global variables that are missed in the IR.
+        if (localIdx == null) {
+            require(local is EtsLocal)
+
+            val globalObject = scope.calcOnState { globalObject }
+
+            val localName = local.name
+            // Check whether this local was already created or not
+            if (localName in scope.calcOnState { addedArtificialLocals }) {
+                return mkFieldLValue(ctx.addressSort, globalObject, local.name)
+            }
+
+            logger.warn { "Cannot resolve local $local" }
+
+            globalObject.createFakeField(localName, scope)
+            scope.doWithState {
+                addedArtificialLocals += localName
+            }
+
+            return mkFieldLValue(ctx.addressSort, globalObject, local.name)
+        }
+
         val sort = scope.calcOnState {
             val type = local.tryGetKnownType(currentMethod)
             getOrPutSortForLocal(localIdx, type)

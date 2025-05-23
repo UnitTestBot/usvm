@@ -5,15 +5,18 @@ import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsField
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsUnclearRefType
+import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
 import org.usvm.machine.TsContext
 
 fun TsContext.resolveEtsField(
     instance: EtsLocal?,
     field: EtsFieldSignature,
-): EtsField {
+    hierarchy: EtsHierarchy,
+): EtsFieldResolutionResult {
     // Perfect signature:
     if (field.enclosingClass.name != UNKNOWN_CLASS_NAME) {
         val classes = scene.projectAndSdkClasses.filter { cls ->
@@ -26,9 +29,9 @@ fun TsContext.resolveEtsField(
             error("Multiple classes with name ${field.enclosingClass.name}")
         }
         val clazz = classes.single()
-        val fields = clazz.fields.filter { it.name == field.name }
+        val fields = clazz.getAllFields(hierarchy).filter { it.name == field.name }
         if (fields.size == 1) {
-            return fields.single()
+            return EtsFieldResolutionResult.create(fields.single())
         }
     }
 
@@ -37,37 +40,36 @@ fun TsContext.resolveEtsField(
         val instanceType = instance.type
         when (instanceType) {
             is EtsClassType -> {
-                val field = tryGetSingleField(scene, instanceType.signature.name, field.name)
-                if (field != null) return field
+                val field = tryGetSingleField(scene, instanceType.signature.name, field.name, hierarchy)
+                if (field != null) return EtsFieldResolutionResult.create(field)
             }
 
             is EtsUnclearRefType -> {
-                val field = tryGetSingleField(scene, instanceType.typeName, field.name)
-                if (field != null) return field
+                val field = tryGetSingleField(scene, instanceType.typeName, field.name, hierarchy)
+                if (field != null) return EtsFieldResolutionResult.create(field)
             }
         }
     }
 
     val fields = scene.projectAndSdkClasses.flatMap { cls ->
-        cls.fields.filter { it.name == field.name }
+        cls.getAllFields(hierarchy).filter { it.name == field.name }
     }
-    if (fields.size == 1) {
-        return fields.single()
-    }
-    error("Cannot resolve field $field")
+
+    return EtsFieldResolutionResult.create(fields)
 }
 
 private fun tryGetSingleField(
     scene: EtsScene,
     className: String,
     fieldName: String,
+    hierarchy: EtsHierarchy,
 ): EtsField? {
     val classes = scene.projectAndSdkClasses.filter { cls ->
         cls.name == className
     }
     if (classes.size == 1) {
         val clazz = classes.single()
-        val fields = clazz.fields.filter { it.name == fieldName }
+        val fields = clazz.getAllFields(hierarchy).filter { it.name == fieldName }
         if (fields.isEmpty()) {
             error("No field with name '$fieldName' in class '${clazz.name}'")
         }
@@ -88,3 +90,51 @@ private fun tryGetSingleField(
 fun EtsClass.getAllFields(hierarchy: EtsHierarchy): List<EtsField> {
     return hierarchy.getAncestor(this).flatMap { it.fields }
 }
+
+fun EtsClass.getAllMethods(hierarchy: EtsHierarchy): List<EtsMethod> {
+    return hierarchy.getAncestor(this).flatMap { it.methods }
+}
+
+fun EtsClass.getAllPropertiesCombined(hierarchy: EtsHierarchy): Set<String> {
+    val (fields, methods) = getAllProperties(hierarchy)
+    return fields + methods
+}
+
+fun EtsClass.getAllProperties(hierarchy: EtsHierarchy): Pair<Set<EtsFieldName>, Set<EtsMethodName>> {
+    val allFields = hashSetOf<EtsFieldName>()
+    val allMethods = hashSetOf<EtsMethodName>()
+
+    val classes = hierarchy.getAncestor(this)
+
+    classes.forEach {
+        val fieldNames = it.fields.map<EtsField, EtsFieldName> { it.name }
+        allFields.addAll(fieldNames)
+
+        val methods = it.methods.filter { it.name != CONSTRUCTOR_NAME }
+        val methodNames = methods.map<EtsMethod, EtsFieldName> { it.name }
+        allMethods.addAll(methodNames)
+    }
+
+    return allFields to allMethods
+}
+
+sealed class EtsFieldResolutionResult {
+    data class Unique(val field: EtsField) : EtsFieldResolutionResult()
+    data class Ambiguous(val fields: List<EtsField>) : EtsFieldResolutionResult()
+    data object Empty : EtsFieldResolutionResult()
+
+    companion object {
+        fun create(field: EtsField) = Unique(field)
+
+        fun create(fields: List<EtsField>): EtsFieldResolutionResult {
+            return when {
+                fields.isEmpty() -> Empty
+                fields.size == 1 -> Unique(fields.single())
+                else -> Ambiguous(fields)
+            }
+        }
+    }
+}
+
+typealias EtsMethodName = String
+typealias EtsFieldName = String
