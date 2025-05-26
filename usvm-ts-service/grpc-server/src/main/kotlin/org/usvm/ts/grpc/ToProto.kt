@@ -14,15 +14,22 @@
  * limitations under the License.
  */
 
-package org.usvm.dataflow.ts.infer.dto
+package org.usvm.ts.grpc
 
-import org.jacodb.ets.dto.toDto
+import org.jacodb.ets.grpc.toProto
 import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EtsTypeFact
 import org.usvm.dataflow.ts.infer.TypeInferenceResult
 import org.usvm.dataflow.ts.infer.toType
+import usvm.argumentTypeResult
+import usvm.classTypeResult
+import usvm.fieldTypeResult
+import usvm.inferredTypes
+import usvm.localTypeResult
+import usvm.methodTypeResult
+import usvm.InferredTypes as ProtoInferredTypes
 
-fun TypeInferenceResult.toDto(): InferredTypesDto {
+fun TypeInferenceResult.toProto(): ProtoInferredTypes {
     val classTypeInferenceResult = inferredCombinedThisType.map { (clazz, fact) ->
         val properties = (fact as? EtsTypeFact.ObjectEtsTypeFact)?.properties ?: emptyMap()
         val methods = properties
@@ -33,11 +40,18 @@ fun TypeInferenceResult.toDto(): InferredTypesDto {
             .filterNot { it.value is EtsTypeFact.FunctionEtsTypeFact }
             .mapNotNull { (name, fact) ->
                 fact.toType()?.let {
-                    FieldTypeResultDto(name, it.toDto())
+                    fieldTypeResult {
+                        this.name = name
+                        this.type = it.toProto()
+                    }
                 }
             }
             .sortedBy { it.name }
-        ClassTypeResultDto(clazz.toDto(), fields, methods)
+        classTypeResult {
+            this.signature = clazz.toProto()
+            this.fields += fields
+            this.methods += methods
+        }
     }.sortedBy {
         it.signature.toString()
     }
@@ -47,25 +61,39 @@ fun TypeInferenceResult.toDto(): InferredTypesDto {
             if (base is AccessPathBase.Arg) {
                 val type = fact.toType()
                 if (type != null) {
-                    return@mapNotNull ArgumentTypeResultDto(base.index, type.toDto())
+                    return@mapNotNull argumentTypeResult {
+                        this.index = base.index
+                        this.type = type.toProto()
+                    }
                 }
             }
             null
         }.sortedBy { it.index }
-        val returnType = inferredReturnType[method]?.toType()?.toDto()
+        val returnType = inferredReturnType[method]?.toType()?.toProto()
         val locals = facts.mapNotNull { (base, fact) ->
             if (base is AccessPathBase.Local) {
                 val type = fact.toType()
                 if (type != null) {
-                    return@mapNotNull LocalTypeResultDto(base.name, type.toDto())
+                    return@mapNotNull localTypeResult {
+                        this.name = base.name
+                        this.type = type.toProto()
+                    }
                 }
             }
             null
         }.sortedBy { it.name }
-        MethodTypeResultDto(method.signature.toDto(), args, returnType, locals)
+        methodTypeResult {
+            this.signature = method.signature.toProto()
+            this.args += args
+            returnType?.let { this.returnType = it }
+            this.locals += locals
+        }
     }.sortedBy {
         it.signature.toString()
     }
 
-    return InferredTypesDto(classTypeInferenceResult, methodTypeInferenceResult)
+    return inferredTypes {
+        this.classes += classTypeInferenceResult
+        this.methods += methodTypeInferenceResult
+    }
 }

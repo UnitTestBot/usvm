@@ -1,3 +1,4 @@
+import com.github.gradle.node.npm.task.NpmTask
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -8,6 +9,7 @@ import kotlin.time.Duration
 
 plugins {
     id("usvm.kotlin-conventions")
+    id(Plugins.GradleNode)
 }
 
 dependencies {
@@ -16,6 +18,7 @@ dependencies {
 
     implementation(Libs.jacodb_core)
     implementation(Libs.jacodb_ets)
+    implementation(Libs.grpc_api)
 
     implementation(Libs.ksmt_yices)
     implementation(Libs.ksmt_cvc5)
@@ -25,10 +28,11 @@ dependencies {
     testImplementation(Libs.mockk)
     testImplementation(Libs.junit_jupiter_params)
     testImplementation(Libs.logback)
+}
 
-    // https://mvnrepository.com/artifact/org.burningwave/core
-    // Use it to export all modules to all
-    testImplementation("org.burningwave:core:12.62.7")
+val startArkAnalyzerServer by tasks.registering(NpmTask::class) {
+    dependsOn(tasks.npmInstall)
+    args = listOf("run", "server")
 }
 
 val generateSdkIR by tasks.registering {

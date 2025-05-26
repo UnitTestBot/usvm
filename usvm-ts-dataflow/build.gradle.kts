@@ -20,12 +20,12 @@ dependencies {
     implementation(Libs.jacodb_taint_configuration)
     implementation(Libs.kotlinx_collections)
     implementation(Libs.kotlinx_serialization_json)
+    implementation(Libs.kotlinx_serialization_protobuf)
     implementation(Libs.clikt)
 
     testImplementation(Libs.mockk)
     testImplementation(Libs.junit_jupiter_params)
     testImplementation(Libs.logback)
-    testImplementation(Libs.kotlinx_serialization_core)
 
     testFixturesImplementation(Libs.kotlin_logging)
     testFixturesImplementation(Libs.junit_jupiter_api)

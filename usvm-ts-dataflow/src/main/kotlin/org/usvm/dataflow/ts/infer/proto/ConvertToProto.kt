@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package org.usvm.dataflow.ts.infer.dto
+package org.usvm.dataflow.ts.infer.proto
 
-import org.jacodb.ets.dto.toDto
+import org.jacodb.ets.proto.toProto
 import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EtsTypeFact
 import org.usvm.dataflow.ts.infer.TypeInferenceResult
 import org.usvm.dataflow.ts.infer.toType
 
-fun TypeInferenceResult.toDto(): InferredTypesDto {
+fun TypeInferenceResult.toProto(): ProtoInferredTypes {
     val classTypeInferenceResult = inferredCombinedThisType.map { (clazz, fact) ->
         val properties = (fact as? EtsTypeFact.ObjectEtsTypeFact)?.properties ?: emptyMap()
         val methods = properties
@@ -33,11 +33,11 @@ fun TypeInferenceResult.toDto(): InferredTypesDto {
             .filterNot { it.value is EtsTypeFact.FunctionEtsTypeFact }
             .mapNotNull { (name, fact) ->
                 fact.toType()?.let {
-                    FieldTypeResultDto(name, it.toDto())
+                    ProtoFieldTypeResult(name, it.toProto())
                 }
             }
             .sortedBy { it.name }
-        ClassTypeResultDto(clazz.toDto(), fields, methods)
+        ProtoClassTypeResult(clazz.toProto(), fields, methods)
     }.sortedBy {
         it.signature.toString()
     }
@@ -47,25 +47,25 @@ fun TypeInferenceResult.toDto(): InferredTypesDto {
             if (base is AccessPathBase.Arg) {
                 val type = fact.toType()
                 if (type != null) {
-                    return@mapNotNull ArgumentTypeResultDto(base.index, type.toDto())
+                    return@mapNotNull ProtoArgumentTypeResult(base.index, type.toProto())
                 }
             }
             null
         }.sortedBy { it.index }
-        val returnType = inferredReturnType[method]?.toType()?.toDto()
+        val returnType = inferredReturnType[method]?.toType()?.toProto()
         val locals = facts.mapNotNull { (base, fact) ->
             if (base is AccessPathBase.Local) {
                 val type = fact.toType()
                 if (type != null) {
-                    return@mapNotNull LocalTypeResultDto(base.name, type.toDto())
+                    return@mapNotNull ProtoLocalTypeResult(base.name, type.toProto())
                 }
             }
             null
         }.sortedBy { it.name }
-        MethodTypeResultDto(method.signature.toDto(), args, returnType, locals)
+        ProtoMethodTypeResult(method.signature.toProto(), args, returnType, locals)
     }.sortedBy {
         it.signature.toString()
     }
 
-    return InferredTypesDto(classTypeInferenceResult, methodTypeInferenceResult)
+    return ProtoInferredTypes(classTypeInferenceResult, methodTypeInferenceResult)
 }
