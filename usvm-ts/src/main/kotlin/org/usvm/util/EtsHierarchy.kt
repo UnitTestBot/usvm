@@ -23,15 +23,10 @@ class EtsHierarchy(private val scene: EtsScene) {
         scene.projectAndSdkClasses.associateWith { start ->
             generateSequence(listOf(start)) { classes ->
                 classes.flatMap { current ->
-                    val superClassSignature = current.superClass ?: return@generateSequence null
-                    val classesWithTheSameName = resolveMap.getValue(superClassSignature.name)
-                    val classesWithTheSameSignature = classesWithTheSameName[superClassSignature]
-                    val superClasses = when {
-                        classesWithTheSameSignature != null -> listOf(classesWithTheSameSignature)
-                        superClassSignature.file == EtsFileSignature.UNKNOWN -> classesWithTheSameName.values
-                        else -> error("There is no class with name ${superClassSignature.name}")
-                    }
-                    val interfaces = current.implementedInterfaces
+                    val superClassName = current.superClassName ?: return@generateSequence null
+                    val classesWithTheSameName = resolveMap.getValue(superClassName)
+                    val superClasses = classesWithTheSameName.values
+                    val interfaces = current.implementedInterfaceNames
                     // TODO support interfaces
                     require(interfaces.isEmpty()) { "Interfaces are not supported" }
                     superClasses
