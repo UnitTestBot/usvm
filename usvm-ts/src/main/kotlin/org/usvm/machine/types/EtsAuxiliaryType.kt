@@ -6,7 +6,7 @@ import org.jacodb.ets.model.EtsType
  * An auxiliary type is a type that is not directly represented in the TS class hierarchy.
  * Can be used as a JS-like type containing set of properties.
  */
-class AuxiliaryType(val properties: Set<String>) : EtsType {
+class EtsAuxiliaryType(val properties: Set<String>) : EtsType {
     override val typeName: String
         get() = "AuxiliaryType ${properties.toSortedSet()}"
 

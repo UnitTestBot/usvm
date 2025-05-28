@@ -949,7 +949,7 @@ sealed interface TsBinaryOperator {
             rhs: UHeapRef,
             scope: TsStepScope,
         ): UExpr<*> {
-            TODO("Not yet implemented")
+            return internalResolve(lhs, rhs, scope)
         }
 
         override fun TsContext.resolveFakeObject(
@@ -957,7 +957,7 @@ sealed interface TsBinaryOperator {
             rhs: UExpr<*>,
             scope: TsStepScope,
         ): UExpr<*> {
-            TODO("Not yet implemented")
+            return internalResolve(lhs, rhs, scope)
         }
 
         override fun TsContext.internalResolve(
@@ -965,7 +965,14 @@ sealed interface TsBinaryOperator {
             rhs: UExpr<*>,
             scope: TsStepScope,
         ): UExpr<*> {
-            TODO("Not yet implemented")
+            val lhsNumeric = mkNumericExpr(lhs, scope)
+            val rhsNumeric = mkNumericExpr(rhs, scope)
+
+            return mkFpSubExpr(
+                fpRoundingModeSortDefaultValue(),
+                lhsNumeric,
+                rhsNumeric
+            )
         }
     }
 

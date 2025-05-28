@@ -1,6 +1,8 @@
 package org.usvm.machine.state
 
 import org.jacodb.ets.model.EtsClass
+import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsStmt
@@ -38,6 +40,8 @@ class TsState(
     targets: UTargetsSet<TsTarget, EtsStmt> = UTargetsSet.empty(),
     val localToSortStack: MutableList<UPersistentHashMap<Int, USort>> = mutableListOf(persistentHashMapOf()),
     var staticStorage: UPersistentHashMap<EtsClass, UConcreteHeapRef> = persistentHashMapOf(),
+    val globalObject: UConcreteHeapRef = memory.allocStatic(EtsClassType(EtsClassSignature.UNKNOWN)),
+    val addedArtificialLocals: MutableSet<String> = hashSetOf<String>(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
     ctx = ctx,
     initOwnership = ownership,
@@ -78,10 +82,11 @@ class TsState(
     fun pushSortsForArguments(
         instance: EtsLocal?,
         args: List<EtsLocal>,
-        localToIdx: (EtsMethod, EtsValue) -> Int,
+        localToIdx: (EtsMethod, EtsValue) -> Int?,
     ) {
         val argSorts = args.map { arg ->
             val argIdx = localToIdx(lastEnteredMethod, arg)
+                ?: error("Arguments must present in the locals, but $arg is absent")
             getOrPutSortForLocal(argIdx, arg.type)
         }
 
@@ -137,6 +142,8 @@ class TsState(
             targets = targets.clone(),
             localToSortStack = localToSortStack.toMutableList(),
             staticStorage = staticStorage,
+            globalObject = globalObject,
+            addedArtificialLocals = addedArtificialLocals,
         )
     }
 
