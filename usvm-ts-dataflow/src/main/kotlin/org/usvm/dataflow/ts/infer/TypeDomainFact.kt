@@ -19,3 +19,12 @@ sealed interface ForwardTypeDomainFact {
         val type: EtsTypeFact, // primitive or Object
     ) : ForwardTypeDomainFact
 }
+
+sealed interface BackwardPathTypeDomainFact {
+    data object Zero : BackwardPathTypeDomainFact
+
+    data class TypedVariable(
+        val variable: AccessPath,
+        val type: EtsTypeFact,
+    ) : BackwardPathTypeDomainFact
+}

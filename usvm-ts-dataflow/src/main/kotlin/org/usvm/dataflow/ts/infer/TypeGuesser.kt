@@ -100,7 +100,7 @@ class TypeGuesser(
         val resolved = when {
             suitableTypes.isEmpty() -> error("Should be processed earlier")
             suitableTypes.size == 1 -> suitableTypes.single()
-            suitableTypes.size in 2..5 -> EtsTypeFact.mkUnionType(suitableTypes).simplify()
+            suitableTypes.size in 2..3 -> EtsTypeFact.mkUnionType(suitableTypes).simplify()
             else -> this
         }
         return resolve(this, resolved)
