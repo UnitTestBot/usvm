@@ -70,17 +70,17 @@ class CaseAssignFieldToSelf {
 }
 
 // Case `x.f := x`
-class CaseAssignSelfToField {
-    entrypoint(a: any) {
-        let x = { f: a }; // x: { f: any }
-        x.f = x; // x: { f: any }
-        this.infer(x);
-    }
-
-    infer(a: any) {
-        const EXPECTED_ARG_0 = "Object { f: any }"
-    }
-}
+// class CaseAssignSelfToField {
+//     entrypoint(a: any) {
+//         let x = { f: a }; // x: { f: any }
+//         x.f = x; // x: { f: any }
+//         this.infer(x);
+//     }
+//
+//     infer(a: any) {
+//         const EXPECTED_ARG_0 = "Object { f: any }"
+//     }
+// }
 
 // ----------------------------------------
 

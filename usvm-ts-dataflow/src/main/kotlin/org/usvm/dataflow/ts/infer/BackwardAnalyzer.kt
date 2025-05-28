@@ -14,18 +14,18 @@ class BackwardAnalyzer(
     savedTypes: MutableMap<EtsType, MutableList<EtsTypeFact>>,
     dominators: (EtsMethod) -> GraphDominators<EtsStmt>,
     doAddKnownTypes: Boolean = true,
-) : Analyzer<BackwardTypeDomainFact, AnalyzerEvent, EtsMethod, EtsStmt> {
+) : Analyzer<BackwardPathTypeDomainFact, AnalyzerEvent, EtsMethod, EtsStmt> {
 
-    override val flowFunctions = BackwardFlowFunctions(graph, dominators, savedTypes, doAddKnownTypes)
+    override val flowFunctions = BackwardPathFlowFunctions(doAddKnownTypes)
 
     override fun handleCrossUnitCall(
-        caller: Vertex<BackwardTypeDomainFact, EtsStmt>,
-        callee: Vertex<BackwardTypeDomainFact, EtsStmt>,
+        caller: Vertex<BackwardPathTypeDomainFact, EtsStmt>,
+        callee: Vertex<BackwardPathTypeDomainFact, EtsStmt>,
     ): List<AnalyzerEvent> {
         error("No cross unit calls")
     }
 
-    override fun handleNewEdge(edge: Edge<BackwardTypeDomainFact, EtsStmt>): List<AnalyzerEvent> {
+    override fun handleNewEdge(edge: Edge<BackwardPathTypeDomainFact, EtsStmt>): List<AnalyzerEvent> {
         val (startVertex, currentVertex) = edge
         val (current, currentFact) = currentVertex
 
