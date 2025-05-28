@@ -4,6 +4,7 @@ import io.ksmt.KAst
 import io.ksmt.cache.hash
 import io.ksmt.cache.structurallyEqual
 import io.ksmt.expr.KBitVec32Value
+import io.ksmt.expr.KExpr
 import io.ksmt.expr.KFp64Value
 import io.ksmt.expr.printer.ExpressionPrinter
 import io.ksmt.expr.transformer.KTransformerBase
@@ -46,6 +47,29 @@ class TsUnresolvedSort(ctx: TsContext) : USort(ctx) {
 
     override fun print(builder: StringBuilder) {
         builder.append("Unresolved sort")
+    }
+}
+
+class TsVoidValue(ctx: TsContext) : UExpr<TsVoidSort>(ctx) {
+    override val sort: TsVoidSort
+        get() = tctx.voidSort
+
+    override fun accept(transformer: KTransformerBase): KExpr<TsVoidSort> = this
+
+    override fun print(printer: ExpressionPrinter) {
+        printer.append("void")
+    }
+
+    override fun internEquals(other: Any): Boolean = structurallyEqual(other)
+
+    override fun internHashCode(): Int = hash()
+}
+
+class TsVoidSort(ctx: TsContext) : USort(ctx) {
+    override fun <T> accept(visitor: KSortVisitor<T>): T = error("Should not be called")
+
+    override fun print(builder: StringBuilder) {
+        builder.append("void sort")
     }
 }
 

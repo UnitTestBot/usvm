@@ -39,7 +39,7 @@ fun TsContext.mkFakeValue(
             .takeIf { boolValue == null && fpValue == null && refValue != null }
             ?: makeSymbolicPrimitive(boolSort)
 
-        val type = FakeType(
+        val type = EtsFakeType(
             boolTypeExpr = boolTypeExpr,
             fpTypeExpr = fpTypeExpr,
             refTypeExpr = refTypeExpr,
@@ -143,7 +143,7 @@ fun TsContext.iteWriteIntoFakeObject(
     writeValuesWithGuard(fpRValueTrueBranch, fpRValueFalseBranch, fpLValue, condition)
     writeValuesWithGuard(refRValueTrueBranch, refRValueFalseBranch, refLValue, condition)
 
-    val fakeType = FakeType(
+    val fakeType = EtsFakeType(
         boolTypeExpr = mkIte(condition, boolTrueBranchCondition, boolFalseBranchCondition),
         fpTypeExpr = mkIte(condition, fpValueTrueBranchCondition, fpValueFalseBranchCondition),
         refTypeExpr = mkIte(condition, refValueTrueBranchCondition, refValueFalseBranchCondition)

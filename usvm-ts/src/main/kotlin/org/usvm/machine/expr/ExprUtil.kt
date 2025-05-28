@@ -10,8 +10,8 @@ import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.isFalse
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
+import org.usvm.machine.types.EtsFakeType
 import org.usvm.machine.types.ExprWithTypeConstraint
-import org.usvm.machine.types.FakeType
 import org.usvm.types.single
 import org.usvm.util.boolToFp
 
@@ -23,7 +23,7 @@ fun TsContext.mkTruthyExpr(
         val falseBranchGround = makeSymbolicPrimitive(boolSort)
 
         val conjuncts = mutableListOf<ExprWithTypeConstraint<UBoolSort>>()
-        val possibleType = memory.types.getTypeStream(expr.asExpr(addressSort)).single() as FakeType
+        val possibleType = memory.types.getTypeStream(expr.asExpr(addressSort)).single() as EtsFakeType
 
         scope.doWithState {
             pathConstraints += possibleType.mkExactlyOneTypeConstraint(this@mkTruthyExpr)
