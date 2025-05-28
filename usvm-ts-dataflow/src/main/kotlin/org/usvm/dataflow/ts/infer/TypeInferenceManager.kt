@@ -52,13 +52,6 @@ class TypeInferenceManager(
     private val backwardSummaries = ConcurrentHashMap<EtsMethod, MutableSet<BackwardSummaryAnalyzerEvent>>()
     private val forwardSummaries = ConcurrentHashMap<EtsMethod, MutableSet<ForwardSummaryAnalyzerEvent>>()
 
-    private val methodDominatorsCache = ConcurrentHashMap<EtsMethod, GraphDominators<EtsStmt>>()
-
-    private fun methodDominators(method: EtsMethod): GraphDominators<EtsStmt> =
-        methodDominatorsCache.computeIfAbsent(method) {
-            method.flowGraph().findDominators()
-        }
-
     private val savedTypes: ConcurrentHashMap<EtsType, MutableList<EtsTypeFact>> = ConcurrentHashMap()
 
     private val typeProcessor = TypeFactProcessor(scene = graph.cp)
@@ -101,7 +94,7 @@ class TypeInferenceManager(
         createResultsFromSummaries(updatedTypeScheme, doInferAllLocals)
     }
 
-    lateinit var backwardRunner: EtsIfdsRunner<BackwardPathTypeDomainFact, *>
+    lateinit var backwardRunner: EtsIfdsRunner<BackwardTypeDomainFact, *>
     lateinit var forwardRunner: EtsIfdsRunner<ForwardTypeDomainFact, *>
 
     private suspend fun collectSummaries(
@@ -111,14 +104,14 @@ class TypeInferenceManager(
     ): Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>> {
         logger.info { "Preparing backward analysis" }
         val backwardGraph = graph.reversed
-        val backwardAnalyzer = BackwardAnalyzer(backwardGraph, savedTypes, ::methodDominators, doAddKnownTypes)
+        val backwardAnalyzer = BackwardAnalyzer(backwardGraph, doAddKnownTypes)
 
         val backwardRunner = EtsIfdsRunner(
             graph = backwardGraph,
             analyzer = backwardAnalyzer,
             traits = traits,
             manager = this,
-            zeroFact = BackwardPathTypeDomainFact.Zero,
+            zeroFact = BackwardTypeDomainFact.Zero,
         )
 
         this@TypeInferenceManager.backwardRunner = backwardRunner
@@ -421,7 +414,7 @@ class TypeInferenceManager(
         summaries: Iterable<BackwardSummaryAnalyzerEvent>,
     ): Map<AccessPathBase, EtsTypeFact> {
         val types = summaries
-            .mapNotNull { it.exitFact as? BackwardPathTypeDomainFact.TypedVariable }
+            .mapNotNull { it.exitFact as? BackwardTypeDomainFact.TypedVariable }
             .groupBy({ it.variable.base }, { it.variable.accesses to it.type })
             .filter { (base, _) ->
                 base is AccessPathBase.This
