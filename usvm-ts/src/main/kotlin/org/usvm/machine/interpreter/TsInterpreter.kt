@@ -5,6 +5,7 @@ import mu.KotlinLogging
 import org.jacodb.ets.model.EtsArrayAccess
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsAssignStmt
+import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsCallStmt
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsIfStmt
@@ -14,6 +15,7 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsNopStmt
 import org.jacodb.ets.model.EtsNullType
+import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsParameterRef
 import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsReturnStmt
@@ -63,7 +65,7 @@ import org.usvm.machine.types.toAuxiliaryType
 import org.usvm.sizeSort
 import org.usvm.targets.UTargetsSet
 import org.usvm.types.single
-import org.usvm.util.EtsFieldResolutionResult
+import org.usvm.util.EtsPropertyResolution
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
@@ -169,7 +171,7 @@ class TsInterpreter(
         if (isAllocatedConcreteHeapRef(resolvedInstance)) {
             val type = scope.calcOnState { memory.typeStreamOf(resolvedInstance) }.single()
             if (type is EtsClassType) {
-                val classes = ctx.scene.projectAndSdkClasses.filter { it.name == type.typeName }
+                val classes = graph.hierarchy.classesForType(type)
                 if (classes.isEmpty()) {
                     logger.warn { "Could not resolve class: ${type.typeName}" }
                     scope.assert(ctx.falseExpr)
@@ -183,7 +185,9 @@ class TsInterpreter(
                 val cls = classes.single()
                 val method = cls.methods
                     .singleOrNull { it.name == stmt.callee.name }
-                    ?: TODO("Overloads are not supported yet")
+                    ?: run {
+                        TODO("Overloads are not supported yet")
+                    }
                 concreteMethods += method
             } else {
                 logger.warn {
@@ -345,6 +349,8 @@ class TsInterpreter(
 
         val (posStmt, negStmt) = graph.successors(stmt).take(2).toList()
 
+        logger.warn { "Forking on if stmt $stmt" }
+
         scope.forkWithBlackList(
             boolExpr,
             posStmt,
@@ -461,9 +467,9 @@ class TsInterpreter(
 
                     // If there is no such field, we create a fake field for the expr
                     val sort = when (etsField) {
-                        is EtsFieldResolutionResult.Empty -> unresolvedSort
-                        is EtsFieldResolutionResult.Unique -> typeToSort(etsField.field.type)
-                        is EtsFieldResolutionResult.Ambiguous -> unresolvedSort
+                        is EtsPropertyResolution.Empty -> unresolvedSort
+                        is EtsPropertyResolution.Unique -> typeToSort(etsField.property.type)
+                        is EtsPropertyResolution.Ambiguous -> unresolvedSort
                     }
 
                     if (sort == unresolvedSort) {
@@ -472,7 +478,37 @@ class TsInterpreter(
                         memory.write(lValue, fakeObject, guard = trueExpr)
                     } else {
                         val lValue = mkFieldLValue(sort, instance, lhv.field)
-                        memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
+                        if (lValue.sort != expr.sort) {
+                            if (expr.isFakeObject()) {
+                                val lhvType = lhv.type
+                                val value = when (lhvType) {
+                                    is EtsBooleanType -> {
+                                        scope.calcOnState {
+                                            pathConstraints += expr.getFakeType(scope).boolTypeExpr
+                                            expr.extractBool(scope)
+                                        }
+                                    }
+                                    is EtsNumberType -> {
+                                        scope.calcOnState {
+                                            pathConstraints += expr.getFakeType(scope).fpTypeExpr
+                                            expr.extractFp(scope)
+                                        }
+                                    }
+                                    else -> {
+                                        scope.calcOnState {
+                                            pathConstraints += expr.getFakeType(scope).refTypeExpr
+                                            expr.extractRef(scope)
+                                        }
+                                    }
+                                }
+
+                                memory.write(lValue, value.asExpr(lValue.sort), guard = trueExpr)
+                            } else {
+                                error("TODO")
+                            }
+                        } else {
+                            memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
+                        }
                     }
                 }
 
