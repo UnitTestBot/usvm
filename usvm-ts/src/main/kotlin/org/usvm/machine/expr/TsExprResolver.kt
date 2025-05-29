@@ -483,6 +483,36 @@ class TsExprResolver(
             return TODO()
         }
 
+        // TODO write tests
+        if (expr.callee.name == "push") {
+            let {}
+        }
+
+        if (expr.callee.name == "push" && expr.instance.type is EtsArrayType) {
+            return scope.calcOnState {
+                val resolvedInstance = resolve(expr.instance)?.asExpr(ctx.addressSort) ?: return@calcOnState null
+                val lengthLValue = mkArrayLengthLValue(
+                    resolvedInstance,
+                    EtsArrayType(EtsUnknownType, dimensions = 1)
+                )
+                val length = memory.read(lengthLValue)
+                val newLength = mkBvAddExpr(length, 1.toBv())
+                memory.write(lengthLValue, newLength, guard = ctx.trueExpr)
+                val resolvedArg = resolve(expr.args.single()) ?: return@calcOnState null
+
+                // TODO check sorts compatibility
+                val newIndexLValue = mkArrayIndexLValue(
+                    resolvedArg.sort,
+                    resolvedInstance,
+                    length,
+                    EtsArrayType(EtsUnknownType, dimensions = 1)
+                )
+                memory.write(newIndexLValue, resolvedArg.asExpr(newIndexLValue.sort), guard = ctx.trueExpr)
+
+                newLength
+            }
+        }
+
         return when (val result = scope.calcOnState { methodResult }) {
             is TsMethodResult.Success -> {
                 scope.doWithState { methodResult = TsMethodResult.NoCall }
