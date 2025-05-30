@@ -129,7 +129,12 @@ class TsInterpreter(
                 is EtsCallStmt -> visitCallStmt(scope, stmt)
                 is EtsThrowStmt -> visitThrowStmt(scope, stmt)
                 is EtsNopStmt -> visitNopStmt(scope, stmt)
-                else -> error("Unknown stmt: $stmt")
+                else -> {
+                    logger.error { "Unknown stmt: $stmt" }
+                    scope.doWithState {
+                        newStmt(graph.successors(stmt).single())
+                    }
+                }
             }
         } catch (e: Exception) {
             logger.error {
@@ -517,12 +522,14 @@ class TsInterpreter(
                                             expr.extractBool(scope)
                                         }
                                     }
+
                                     is EtsNumberType -> {
                                         scope.calcOnState {
                                             pathConstraints += expr.getFakeType(scope).fpTypeExpr
                                             expr.extractFp(scope)
                                         }
                                     }
+
                                     else -> {
                                         scope.calcOnState {
                                             pathConstraints += expr.getFakeType(scope).refTypeExpr
