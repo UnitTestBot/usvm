@@ -40,43 +40,43 @@ import org.jacodb.ets.model.EtsValue
 
 fun EtsValue.toDto(): ValueDto = accept(EtsValueToDto)
 
-private object EtsValueToDto : EtsValue.Visitor<ValueDto> {
-    override fun visit(value: EtsLocal): ValueDto {
-        return LocalDto(
-            name = value.name,
-            type = value.type.toDto(),
-        )
-    }
+fun EtsLocal.toDto(): LocalDto = LocalDto(
+    name = name,
+    type = type.toDto(),
+)
 
-    private fun visitConstant(value: EtsConstant): ValueDto {
-        return ConstantDto(
-            value = value.toString(),
-            type = value.type.toDto(),
-        )
+fun EtsConstant.toDto(): ConstantDto = ConstantDto(
+    value = toString(),
+    type = type.toDto(),
+)
+
+private object EtsValueToDto : EtsValue.Visitor<ValueDto> {
+    override fun visit(value: EtsLocal): LocalDto {
+        return value.toDto()
     }
 
     override fun visit(value: EtsConstant): ValueDto {
-        return visitConstant(value)
+        return value.toDto()
     }
 
     override fun visit(value: EtsStringConstant): ValueDto {
-        return visitConstant(value)
+        return value.toDto()
     }
 
     override fun visit(value: EtsBooleanConstant): ValueDto {
-        return visitConstant(value)
+        return value.toDto()
     }
 
     override fun visit(value: EtsNumberConstant): ValueDto {
-        return visitConstant(value)
+        return value.toDto()
     }
 
     override fun visit(value: EtsNullConstant): ValueDto {
-        return visitConstant(value)
+        return value.toDto()
     }
 
     override fun visit(value: EtsUndefinedConstant): ValueDto {
-        return visitConstant(value)
+        return value.toDto()
     }
 
     override fun visit(value: EtsThis): ValueDto {
