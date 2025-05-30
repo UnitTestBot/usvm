@@ -6,7 +6,7 @@ import org.jacodb.ets.utils.INSTANCE_INIT_METHOD_NAME
 import org.jacodb.ets.utils.STATIC_INIT_METHOD_NAME
 import org.jacodb.ets.utils.getDeclaredLocals
 import org.jacodb.ets.utils.getLocals
-import org.jacodb.ets.utils.loadEtsProjectFromIR
+import org.jacodb.ets.utils.loadEtsProjectAutoConvert
 import org.junit.jupiter.api.condition.EnabledIf
 import org.usvm.api.TsTestValue
 import org.usvm.machine.TsMachine
@@ -21,7 +21,7 @@ import kotlin.test.Test
 class RunOnPhotosProject : TsMethodTestRunner() {
 
     companion object {
-        private const val PROJECT_PATH = "/projects/Demo_Photos/etsir/entry"
+        private const val PROJECT_PATH = "/projects/Demo_Photos/source/entry"
         private const val SDK_PATH = "/sdk/ohos/etsir"
 
         @JvmStatic
@@ -34,7 +34,7 @@ class RunOnPhotosProject : TsMethodTestRunner() {
         val projectPath = getResourcePath(PROJECT_PATH)
         val sdkPath = getResourcePathOrNull(SDK_PATH)
             ?: error("Could not load SDK from resources '$SDK_PATH'. Try running './gradlew generateSdkIR' to generate it.")
-        loadEtsProjectFromIR(projectPath, sdkPath)
+        loadEtsProjectAutoConvert(projectPath, sdkPath)
     }
 
     @Test
