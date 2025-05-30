@@ -81,6 +81,7 @@ open class USoftConstraintsProvider<Type, USizeSort : USort>(
         return softConstraints
     }
 
+
     fun provide(initialExpr: UExpr<*>): Set<UBoolExpr> =
         caches.getOrElse(initialExpr) {
             apply(initialExpr)
