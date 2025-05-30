@@ -43,6 +43,7 @@ open class UModelBase<Type>(
     @Suppress("LeakingThis")
     protected open val composer = ctx.composer(this, ownership)
 
+
     /**
      * The evaluator supports only expressions with symbols inheriting [org.usvm.USymbol].
      *
