@@ -54,6 +54,7 @@ import org.jacodb.ets.model.EtsPostIncExpr
 import org.jacodb.ets.model.EtsPreDecExpr
 import org.jacodb.ets.model.EtsPreIncExpr
 import org.jacodb.ets.model.EtsPtrCallExpr
+import org.jacodb.ets.model.EtsRawType
 import org.jacodb.ets.model.EtsRemExpr
 import org.jacodb.ets.model.EtsRightShiftExpr
 import org.jacodb.ets.model.EtsStaticCallExpr
@@ -484,10 +485,6 @@ class TsExprResolver(
         }
 
         // TODO write tests
-        if (expr.callee.name == "push") {
-            let {}
-        }
-
         if (expr.callee.name == "push" && expr.instance.type is EtsArrayType) {
             return scope.calcOnState {
                 val resolvedInstance = resolve(expr.instance)?.asExpr(ctx.addressSort) ?: return@calcOnState null
@@ -813,6 +810,7 @@ class TsExprResolver(
             is EtsPropertyResolution.Ambiguous -> unresolvedSort
         }
 
+        // TODO
         // Если мы записали что-то в объект в виде bool, а потом считали это из поля bool | null, то здесь будет unresolvedSort,
         // мы проигнорируем что уже туда писали и считаем не оттуда
 
@@ -835,6 +833,26 @@ class TsExprResolver(
                         lValuesToAllocatedFakeObjects += refLValue to it
                     }
                 }
+
+                // TODO ambiguous enum fields resolution
+                if (etsField is EtsPropertyResolution.Unique) {
+                    val fieldType = etsField.property.type
+                    if (fieldType is EtsRawType && fieldType.kind == "EnumValueType") {
+                        val fakeType = fakeRef.getFakeType(scope)
+                        pathConstraints += ctx.mkOr(
+                            fakeType.fpTypeExpr,
+                            fakeType.refTypeExpr
+                        )
+
+                        // val supertype = TODO()
+                        // TODO add enum type as a constraint
+                        // pathConstraints += memory.types.evalIsSubtype(
+                        //     ref,
+                        //     TODO()
+                        // )
+                    }
+                }
+
                 memory.write(refLValue, fakeRef.asExpr(addressSort), guard = trueExpr)
 
                 fakeRef

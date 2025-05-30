@@ -136,9 +136,7 @@ class TsInterpreter(
                 val s = e.stackTrace[0]
                 "Exception .(${s.fileName}:${s.lineNumber}): $e}"
             }
-
-            // Kill the state causing error
-            scope.assert(ctx.falseExpr)
+            // todo are exceptional states properly removed?
         }
 
         return scope.stepResult()
@@ -208,12 +206,14 @@ class TsInterpreter(
             concreteMethods += methods
         }
 
+        val limitedConcreteMethods = concreteMethods.take(5)
+
         logger.info {
-            "Preparing to fork on ${concreteMethods.size} methods: ${
-                concreteMethods.map { "${it.signature.enclosingClass.name}::${it.name}" }
+            "Preparing to fork on ${limitedConcreteMethods.size} methods out of ${concreteMethods.size}: ${
+                limitedConcreteMethods.map { "${it.signature.enclosingClass.name}::${it.name}" }
             }"
         }
-        val conditionsWithBlocks = concreteMethods.map { method ->
+        val conditionsWithBlocks = limitedConcreteMethods.map { method ->
             val concreteCall = stmt.toConcrete(method)
             val block = { state: TsState -> state.newStmt(concreteCall) }
             val type = requireNotNull(method.enclosingClass).type
@@ -533,6 +533,7 @@ class TsInterpreter(
 
                                 memory.write(lValue, value.asExpr(lValue.sort), guard = trueExpr)
                             } else {
+                                // probably it is a enum, check for it
                                 error("TODO")
                             }
                         } else {

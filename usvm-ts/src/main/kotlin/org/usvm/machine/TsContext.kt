@@ -6,8 +6,10 @@ import org.jacodb.ets.model.EtsAliasType
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
+import org.jacodb.ets.model.EtsGenericType
 import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsNumberType
+import org.jacodb.ets.model.EtsRawType
 import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStringType
@@ -76,7 +78,20 @@ class TsContext(
         is EtsAnyType -> unresolvedSort
         is EtsUnknownType -> unresolvedSort
         is EtsAliasType -> typeToSort(type.originalType)
-        else -> TODO("${type::class.simpleName} is not yet supported: $type")
+        is EtsGenericType -> {
+            if (type.constraint == null && type.defaultType == null) {
+                unresolvedSort
+            } else {
+                TODO("Not yet implemented")
+            }
+        }
+        else -> {
+            if (type is EtsRawType && type.kind == "EnumValueType") {
+                unresolvedSort
+            } else {
+                TODO("${type::class.simpleName} is not yet supported: $type")
+            }
+        }
     }
 
     fun arrayDescriptorOf(type: EtsArrayType): EtsType {
