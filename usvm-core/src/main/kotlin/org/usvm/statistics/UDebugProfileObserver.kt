@@ -19,6 +19,7 @@ open class UDebugProfileObserver<Statement, Method, State : UState<*, Method, St
     private val profilerOptions: Options = Options(),
 ) : UMachineObserver<State> {
 
+
     interface StatementOperations<Statement, Method, State : UState<*, Method, Statement, *, *, *>> {
 
         // mandatory operations
