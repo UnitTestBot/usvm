@@ -663,15 +663,18 @@ class TsExprResolver(
             isSigned = true,
         ).asExpr(sizeSort)
 
+        // TODO add test for array as parameter and reading as parameter, seems like it produces not fake object
         val lValue = mkArrayIndexLValue(
             sort = addressSort,
             ref = array,
             index = bvIndex,
-            type = value.array.type as EtsArrayType
+            type = EtsArrayType(EtsUnknownType, 1)
         )
         val expr = scope.calcOnState { memory.read(lValue) }
 
-        check(expr.isFakeObject()) { "Only fake objects are allowed in arrays" }
+        check(expr.isFakeObject()) {
+            "Only fake objects are allowed in arrays"
+        }
 
         return expr
     }
