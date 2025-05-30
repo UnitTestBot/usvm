@@ -21,6 +21,7 @@ import org.jacodb.ets.dto.AnyTypeDto
 import org.jacodb.ets.dto.ArrayTypeDto
 import org.jacodb.ets.dto.BooleanTypeDto
 import org.jacodb.ets.dto.ClassTypeDto
+import org.jacodb.ets.dto.EnumValueTypeDto
 import org.jacodb.ets.dto.FunctionTypeDto
 import org.jacodb.ets.dto.GenericTypeDto
 import org.jacodb.ets.dto.IntersectionTypeDto
@@ -43,6 +44,7 @@ import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsEnumValueType
 import org.jacodb.ets.model.EtsFunctionType
 import org.jacodb.ets.model.EtsGenericType
 import org.jacodb.ets.model.EtsIntersectionType
@@ -94,6 +96,13 @@ private object EtsTypeToDto : EtsType.Visitor<TypeDto> {
                 type.signature.name,
                 type.signature.method.toDto(),
             ),
+        )
+    }
+
+    override fun visit(type: EtsEnumValueType): TypeDto {
+        return EnumValueTypeDto(
+            signature = type.signature.toDto(),
+            constant = type.constant?.toDto(),
         )
     }
 
