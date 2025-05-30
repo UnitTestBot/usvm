@@ -51,6 +51,7 @@ import org.jacodb.ets.model.EtsPostIncExpr
 import org.jacodb.ets.model.EtsPreDecExpr
 import org.jacodb.ets.model.EtsPreIncExpr
 import org.jacodb.ets.model.EtsPtrCallExpr
+import org.jacodb.ets.model.EtsRawType
 import org.jacodb.ets.model.EtsRemExpr
 import org.jacodb.ets.model.EtsRightShiftExpr
 import org.jacodb.ets.model.EtsStaticCallExpr
@@ -82,7 +83,6 @@ import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.allocateArray
 import org.usvm.dataflow.ts.infer.tryGetKnownType
-import org.usvm.dataflow.ts.util.type
 import org.usvm.isTrue
 import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
@@ -101,8 +101,8 @@ import org.usvm.machine.types.EtsAuxiliaryType
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.memory.ULValue
 import org.usvm.sizeSort
-import org.usvm.util.EtsFieldResolutionResult
 import org.usvm.util.EtsHierarchy
+import org.usvm.util.EtsPropertyResolution
 import org.usvm.util.createFakeField
 import org.usvm.util.isResolved
 import org.usvm.util.mkArrayIndexLValue
@@ -111,6 +111,7 @@ import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
 import org.usvm.util.resolveEtsField
 import org.usvm.util.throwExceptionWithoutStackFrameDrop
+import org.usvm.util.type
 
 private val logger = KotlinLogging.logger {}
 
@@ -472,6 +473,32 @@ class TsExprResolver(
             return mkFp64(ADHOC_STRING)
         }
 
+        // TODO write tests
+        if (expr.callee.name == "push" && expr.instance.type is EtsArrayType) {
+            return scope.calcOnState {
+                val resolvedInstance = resolve(expr.instance)?.asExpr(ctx.addressSort) ?: return@calcOnState null
+                val lengthLValue = mkArrayLengthLValue(
+                    resolvedInstance,
+                    EtsArrayType(EtsUnknownType, dimensions = 1)
+                )
+                val length = memory.read(lengthLValue)
+                val newLength = mkBvAddExpr(length, 1.toBv())
+                memory.write(lengthLValue, newLength, guard = ctx.trueExpr)
+                val resolvedArg = resolve(expr.args.single()) ?: return@calcOnState null
+
+                // TODO check sorts compatibility
+                val newIndexLValue = mkArrayIndexLValue(
+                    resolvedArg.sort,
+                    resolvedInstance,
+                    length,
+                    EtsArrayType(EtsUnknownType, dimensions = 1)
+                )
+                memory.write(newIndexLValue, resolvedArg.asExpr(newIndexLValue.sort), guard = ctx.trueExpr)
+
+                newLength
+            }
+        }
+
         return when (val result = scope.calcOnState { methodResult }) {
             is TsMethodResult.Success -> {
                 scope.doWithState { methodResult = TsMethodResult.NoCall }
@@ -518,6 +545,17 @@ class TsExprResolver(
             }
         }
 
+        if (expr.callee.name == "\$r") {
+            // TODO hack
+            return scope.calcOnState {
+                val mockSymbol = memory.mocker.createMockSymbol(trackedLiteral = null, addressSort, ownership)
+
+                scope.assert(mkEq(mockSymbol, ctx.mkTsNullValue()).not())
+
+                mockSymbol
+            }
+        }
+
         return when (val result = scope.calcOnState { methodResult }) {
             is TsMethodResult.Success -> {
                 scope.doWithState { methodResult = TsMethodResult.NoCall }
@@ -529,21 +567,51 @@ class TsExprResolver(
             }
 
             is TsMethodResult.NoCall -> {
-                // TODO: spawn VirtualCall when method resolution fails
-                val method = resolveStaticMethod(expr.callee)
+                val resolutionResult = resolveStaticMethod(expr.callee)
 
-                if (method == null) {
+                if (resolutionResult is EtsPropertyResolution.Empty) {
                     logger.error { "Could not resolve static call: ${expr.callee}" }
                     scope.assert(falseExpr)
                     return null
                 }
 
-                val instance = scope.calcOnState { getStaticInstance(method.enclosingClass!!) }
+                // static virtual call
+                if (resolutionResult is EtsPropertyResolution.Ambiguous) {
+                    val resolvedArgs = expr.args.map { resolve(it) ?: return null }
+
+                    val staticInstances = scope.calcOnState {
+                        resolutionResult.properties.take(1).map { getStaticInstance(it.enclosingClass!!) }
+                    }
+
+                    // TODO take 1 is an error
+                    val concreteCalls = resolutionResult.properties.take(1).mapIndexed { index, value ->
+                        TsConcreteMethodCallStmt(
+                            callee = value,
+                            instance = staticInstances[index],
+                            args = resolvedArgs,
+                            returnSite = scope.calcOnState { lastStmt }
+                        )
+                    }
+
+                    val blocks = concreteCalls.map {
+                        ctx.mkTrue() to { state: TsState -> state.newStmt(it) }
+                    } // TODO error with true Expr
+
+                    logger.warn { "Forking on ${blocks.size} branches" }
+
+                    scope.forkMulti(blocks)
+
+                    return null
+                }
+
+                require(resolutionResult is EtsPropertyResolution.Unique)
+
+                val instance = scope.calcOnState { getStaticInstance(resolutionResult.property.enclosingClass!!) }
 
                 val resolvedArgs = expr.args.map { resolve(it) ?: return null }
 
                 val concreteCall = TsConcreteMethodCallStmt(
-                    callee = method,
+                    callee = resolutionResult.property,
                     instance = instance,
                     args = resolvedArgs,
                     returnSite = scope.calcOnState { lastStmt },
@@ -557,25 +625,22 @@ class TsExprResolver(
 
     private fun resolveStaticMethod(
         method: EtsMethodSignature,
-    ): EtsMethod? {
+    ): EtsPropertyResolution<out EtsMethod> {
         // Perfect signature:
         if (method.enclosingClass.name != UNKNOWN_CLASS_NAME) {
             val classes = ctx.scene.projectAndSdkClasses.filter { it.name == method.enclosingClass.name }
-            if (classes.size != 1) return null
+            if (classes.size != 1) return EtsPropertyResolution.Empty
             val clazz = classes.single()
             val methods = clazz.methods.filter { it.name == method.name }
-            if (methods.size != 1) return null
-            return methods.single()
+            return EtsPropertyResolution.create(methods)
         }
 
         // Unknown signature:
         val methods = ctx.scene.projectAndSdkClasses
             .flatMap { it.methods }
             .filter { it.name == method.name }
-        if (methods.size == 1) return methods.single()
 
-        // error("Cannot resolve method $method")
-        return null
+        return EtsPropertyResolution.create(methods)
     }
 
     override fun visit(expr: EtsPtrCallExpr): UExpr<out USort>? {
@@ -598,15 +663,18 @@ class TsExprResolver(
             isSigned = true,
         ).asExpr(sizeSort)
 
+        // TODO add test for array as parameter and reading as parameter, seems like it produces not fake object
         val lValue = mkArrayIndexLValue(
             sort = addressSort,
             ref = array,
             index = bvIndex,
-            type = value.array.type as EtsArrayType
+            type = EtsArrayType(EtsUnknownType, 1)
         )
         val expr = scope.calcOnState { memory.read(lValue) }
 
-        check(expr.isFakeObject()) { "Only fake objects are allowed in arrays" }
+        check(expr.isFakeObject()) {
+            "Only fake objects are allowed in arrays"
+        }
 
         return expr
     }
@@ -646,7 +714,7 @@ class TsExprResolver(
         val etsField = resolveEtsField(instance, field, hierarchy)
 
         val sort = when (etsField) {
-            is EtsFieldResolutionResult.Empty -> {
+            is EtsPropertyResolution.Empty -> {
                 logger.error("Field $etsField not found, creating fake field")
                 // If we didn't find any real fields, let's create a fake one.
                 // It is possible due to mistakes in the IR or if the field was added explicitly
@@ -656,9 +724,13 @@ class TsExprResolver(
                 addressSort
             }
 
-            is EtsFieldResolutionResult.Unique -> typeToSort(etsField.field.type)
-            is EtsFieldResolutionResult.Ambiguous -> unresolvedSort
+            is EtsPropertyResolution.Unique -> typeToSort(etsField.property.type)
+            is EtsPropertyResolution.Ambiguous -> unresolvedSort
         }
+
+        // TODO
+        // Если мы записали что-то в объект в виде bool, а потом считали это из поля bool | null, то здесь будет unresolvedSort,
+        // мы проигнорируем что уже туда писали и считаем не оттуда
 
         if (sort == unresolvedSort) {
             val boolLValue = mkFieldLValue(boolSort, instanceRef, field)
@@ -676,6 +748,25 @@ class TsExprResolver(
                     ref
                 } else {
                     mkFakeValue(scope, bool, fp, ref)
+                }
+
+                // TODO ambiguous enum fields resolution
+                if (etsField is EtsPropertyResolution.Unique) {
+                    val fieldType = etsField.property.type
+                    if (fieldType is EtsRawType && fieldType.kind == "EnumValueType") {
+                        val fakeType = fakeRef.getFakeType(scope)
+                        pathConstraints += ctx.mkOr(
+                            fakeType.fpTypeExpr,
+                            fakeType.refTypeExpr
+                        )
+
+                        // val supertype = TODO()
+                        // TODO add enum type as a constraint
+                        // pathConstraints += memory.types.evalIsSubtype(
+                        //     ref,
+                        //     TODO()
+                        // )
+                    }
                 }
 
                 memory.write(refLValue, fakeRef.asExpr(addressSort), guard = trueExpr)
@@ -775,6 +866,17 @@ class TsExprResolver(
         } else {
             expr.type
         }
+
+        if (expr.type.typeName == "Boolean") {
+            val clazz = scene.sdkClasses.filter { it.name == "Boolean" }.maxBy { it.methods.size }
+            return@with scope.calcOnState { memory.allocConcrete(clazz.type) }
+        }
+
+        if (expr.type.typeName == "Number") {
+            val clazz = scene.sdkClasses.filter { it.name == "Number" }.maxBy { it.methods.size }
+            return@with scope.calcOnState { memory.allocConcrete(clazz.type) }
+        }
+
         scope.calcOnState { memory.allocConcrete(resolvedType) }
     }
 
