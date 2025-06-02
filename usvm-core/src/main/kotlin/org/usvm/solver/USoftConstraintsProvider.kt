@@ -77,7 +77,6 @@ open class USoftConstraintsProvider<Type, USizeSort : USort>(
                 .provide(it)
                 .filterNot(UBoolExpr::isFalse)
         }
-
         return softConstraints
     }
 

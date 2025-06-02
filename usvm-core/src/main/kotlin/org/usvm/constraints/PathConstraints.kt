@@ -73,6 +73,7 @@ open class UPathConstraints<Type>(
             numericConstraints.isContradicting ||
             logicalConstraints.isContradicting
 
+
     // TODO: refactor
     fun constraints(translator: UExprTranslator<Type, *>): Sequence<UBoolExpr> {
         if (isFalse) {
