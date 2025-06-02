@@ -330,6 +330,7 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
                 if (splitUpdate === null || node is URangedUpdateNode<*, *, Key, Sort>) {
                     traverseTreeWhilePredicateSatisfied(subtree)
                     if (restRecordsAreIrrelevant) break
+                    // todo
                 } else {
                     // since [splitWrite] preserves invariant that records satisfying predicate are always
                     // at the top of the tree  we can just add rest branch to splitTreeEntries
