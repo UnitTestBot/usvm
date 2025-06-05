@@ -29,7 +29,7 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
 ) {
     private val forkedStates = mutableListOf<T>()
 
-    private inline val alive: Boolean get() = stepScopeState != DEAD
+    private inline val alive: Boolean get() = stepScopeState != DEAD && !originalState.pathConstraints.isFalse
     private inline val canProcessFurtherOnCurrentStep: Boolean get() = stepScopeState == CAN_BE_PROCESSED
     private inline val ctx: Context get() = originalState.ctx
 
