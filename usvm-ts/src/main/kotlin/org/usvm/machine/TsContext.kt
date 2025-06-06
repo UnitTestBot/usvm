@@ -77,14 +77,15 @@ class TsContext(
         else -> TODO("${type::class.simpleName} is not yet supported: $type")
     }
 
-    // TODO: for now, ALL descriptors for array are UNKNOWN
-    //  in order to make ALL reading/writing, including '.length' access consistent
-    //  and possible in cases when the array type is not known.
-    //  For example, when we access '.length' of some array, we do not care about its type,
-    //  but we HAVE TO use some type consistent with the type used when this array was created.
-    //  Note: Using UnknownType everywhere does not lead to any errors yet,
-    //  since we do not rely on array types in any way.
-    fun arrayDescriptorOf(type: EtsArrayType): EtsType = EtsUnknownType
+    fun arrayDescriptorOf(type: EtsArrayType): EtsType {
+        return when (type.elementType) {
+            is EtsBooleanType -> EtsArrayType(EtsBooleanType, dimensions = 1)
+            is EtsNumberType -> EtsArrayType(EtsNumberType, dimensions = 1)
+            is EtsArrayType -> TODO("Unsupported yet: $type")
+            is EtsUnionType -> EtsArrayType(type.elementType, dimensions = 1)
+            else -> EtsArrayType(EtsUnknownType, dimensions = 1)
+        }
+    }
 
     fun UConcreteHeapRef.getFakeType(memory: UReadOnlyMemory<*>): EtsFakeType {
         check(isFakeObject())

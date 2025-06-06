@@ -1,17 +1,16 @@
-package org.usvm.samples
+package org.usvm.samples.arrays
 
 import org.jacodb.ets.model.EtsScene
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsTestValue
+import org.usvm.test.util.checkers.noResultsExpected
 import org.usvm.util.TsMethodTestRunner
 
-@Disabled("Arrays are not fully supported, tests are unstable on CI")
-class Arrays : TsMethodTestRunner() {
+class AllocatedArrays : TsMethodTestRunner() {
 
     private val className = this::class.simpleName!!
 
-    override val scene: EtsScene = loadSampleScene(className)
+    override val scene: EtsScene = loadSampleScene(className, folderPrefix = "arrays")
 
     @Test
     fun `test createConstantArrayOfNumbers`() {
@@ -87,41 +86,56 @@ class Arrays : TsMethodTestRunner() {
     @Test
     fun `test createArrayOfNumbersAndPutDifferentTypes`() {
         val method = getMethod(className, "createArrayOfNumbersAndPutDifferentTypes")
-        discoverProperties<TsTestValue.TsArray<*>>(
+        checkMatches<TsTestValue.TsArray<*>>(
             method = method,
-            { r ->
-                val values = r.values
-                values.size == 3
-                    && values[0] is TsTestValue.TsNull
-                    && (values[1] as TsTestValue.TsBoolean).value
-                    && values[2] is TsTestValue.TsUndefined
-            },
+            noResultsExpected
         )
     }
 
     @Test
     fun `test allocatedArrayLengthExpansion`() {
         val method = getMethod(className, "allocatedArrayLengthExpansion")
-        discoverProperties<TsTestValue.TsArray<*>>(
+        discoverProperties<TsTestValue>(
             method = method,
-            { r ->
-                r.values.size == 6
-                    && (r.values[0] as TsTestValue.TsNumber).number == 1.0
-                    && (r.values[1] as TsTestValue.TsNumber).number == 2.0
-                    && (r.values[2] as TsTestValue.TsNumber).number == 3.0
-                    && r.values[3] is TsTestValue.TsUndefined
-                    && r.values[4] is TsTestValue.TsUndefined
-                    && (r.values[5] as TsTestValue.TsNumber).number == 5.0
-            }
+            { r -> r is TsTestValue.TsException }
         )
     }
 
     @Test
     fun `test writeInTheIndexEqualToLength`() {
         val method = getMethod(className, "writeInTheIndexEqualToLength")
-        discoverProperties<TsTestValue.TsArray<TsTestValue.TsNumber>>(
+        discoverProperties<TsTestValue>(
             method = method,
-            { r -> r.values.map { it.number } == listOf(1.0, 2.0, 3.0, 4.0) },
+            { r -> r is TsTestValue.TsException },
+        )
+    }
+
+    @Test
+    fun `test readFakeObjectAndWriteFakeObject`() {
+        val method = getMethod(className, "readFakeObjectAndWriteFakeObject")
+        discoverProperties<TsTestValue.TsArray<TsTestValue>, TsTestValue, TsTestValue>(
+            method = method,
+            { x, y, r ->
+                val fst = x.values[0]
+                val fstCondition = fst is TsTestValue.TsNumber && fst.number == 1.0
+                val sndCondition = y is TsTestValue.TsNumber && y.number == 2.0
+                val resultCondition = r is TsTestValue.TsArray<*> && r.values[0] == y
+
+                fstCondition && sndCondition && resultCondition
+            },
+            { x, y, r ->
+                val fst = x.values[0]
+                val fstCondition = fst is TsTestValue.TsNumber && fst.number == 1.0
+                val sndCondition = y !is TsTestValue.TsNumber || y.number != 2.0
+                val resultCondition = r is TsTestValue.TsArray<*> && r.values[0] == y
+
+                fstCondition && sndCondition && resultCondition
+            },
+            { x, y, r ->
+                val fst = x.values[0]
+                val condition = fst !is TsTestValue.TsNumber || fst.number != 1.0
+                condition && r is TsTestValue.TsArray<*> && r.values == x.values
+            },
         )
     }
 }
