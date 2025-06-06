@@ -9,6 +9,7 @@ import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.UIteExpr
 import org.usvm.machine.TsContext
 import org.usvm.machine.expr.mkNumericExpr
 import org.usvm.machine.expr.mkTruthyExpr
@@ -56,6 +57,26 @@ sealed interface TsBinaryOperator {
         rhs: UExpr<*>,
         scope: TsStepScope,
     ): UExpr<*>? {
+        if (lhs is UIteExpr<*>) {
+            val trueBranch = resolve(lhs.trueBranch, rhs, scope) ?: return null
+            val falseBranch = resolve(lhs.falseBranch, rhs, scope) ?: return null
+            return lhs.ctx.mkIte(
+                lhs.condition,
+                trueBranch.asExpr(falseBranch.sort),
+                falseBranch.asExpr(trueBranch.sort)
+            )
+        }
+
+        if (rhs is UIteExpr<*>) {
+            val trueBranch = resolve(lhs, rhs.trueBranch, scope) ?: return null
+            val falseBranch = resolve(lhs, rhs.falseBranch, scope) ?: return null
+            return lhs.ctx.mkIte(
+                rhs.condition,
+                trueBranch.asExpr(falseBranch.sort),
+                falseBranch.asExpr(trueBranch.sort)
+            )
+        }
+
         val lhsValue = lhs.extractSingleValueFromFakeObjectOrNull(scope) ?: lhs
         val rhsValue = rhs.extractSingleValueFromFakeObjectOrNull(scope) ?: rhs
 
@@ -530,6 +551,9 @@ sealed interface TsBinaryOperator {
         ): UBoolExpr {
             check(lhs.isFakeObject() || rhs.isFakeObject())
 
+            var lhsValue: UExpr<*> = lhs
+            var rhsValue: UExpr<*> = rhs
+
             val typeConstraint = when {
                 lhs.isFakeObject() && rhs.isFakeObject() -> {
                     val lhsType = lhs.getFakeType(scope)
@@ -545,10 +569,19 @@ sealed interface TsBinaryOperator {
                 lhs.isFakeObject() -> {
                     val lhsType = lhs.getFakeType(scope)
                     when (rhs.sort) {
-                        boolSort -> lhsType.boolTypeExpr
-                        fp64Sort -> lhsType.fpTypeExpr
+                        boolSort -> {
+                            lhsValue = lhs.extractBool(scope)
+                            lhsType.boolTypeExpr
+                        }
+                        fp64Sort -> {
+                            lhsValue = lhs.extractFp(scope)
+                            lhsType.fpTypeExpr
+                        }
                         // TODO support type equality
-                        addressSort -> lhsType.refTypeExpr
+                        addressSort -> {
+                            lhsValue = lhs.extractRef(scope)
+                            lhsType.refTypeExpr
+                        }
                         else -> error("Unsupported sort ${rhs.sort}")
                     }
                 }
@@ -556,10 +589,19 @@ sealed interface TsBinaryOperator {
                 rhs.isFakeObject() -> {
                     val rhsType = rhs.getFakeType(scope)
                     when (lhs.sort) {
-                        boolSort -> rhsType.boolTypeExpr
-                        fp64Sort -> rhsType.fpTypeExpr
+                        boolSort -> {
+                            rhsValue = rhs.extractBool(scope)
+                            rhsType.boolTypeExpr
+                        }
+                        fp64Sort -> {
+                            rhsValue = rhs.extractFp(scope)
+                            rhsType.fpTypeExpr
+                        }
                         // TODO support type equality
-                        addressSort -> rhsType.refTypeExpr
+                        addressSort -> {
+                            rhsValue = rhs.extractRef(scope)
+                            rhsType.refTypeExpr
+                        }
                         else -> error("Unsupported sort ${lhs.sort}")
                     }
                 }
@@ -570,7 +612,7 @@ sealed interface TsBinaryOperator {
             }
 
             val loosyEqualityConstraint = with(Eq) {
-                resolveFakeObject(lhs, rhs, scope)
+                resolve(lhsValue, rhsValue, scope)?.asExpr(boolSort) ?: error("Should not be encountered")
             }
 
             return mkAnd(typeConstraint, loosyEqualityConstraint)
@@ -581,8 +623,10 @@ sealed interface TsBinaryOperator {
             rhs: UExpr<*>,
             scope: TsStepScope,
         ): UBoolExpr? {
-            logger.warn { "Not implemented operator: StrictEq" }
-            error("Not implemented strict eq")
+            // Strict equality checks that both sides are of the same type,
+            // therefore they have to be processed in the other methods.
+            // Otherwise, they would have the same sorts.
+            return lhs.ctx.mkFalse()
         }
     }
 
