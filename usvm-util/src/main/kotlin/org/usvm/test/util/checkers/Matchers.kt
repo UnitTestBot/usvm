@@ -20,6 +20,11 @@ val ignoreNumberOfAnalysisResults = AnalysisResultsNumberMatcher(
     matcherFailedMessage = { _ -> "No analysis results received" }
 ) { it > 0 }
 
+val noResultsExpected = AnalysisResultsNumberMatcher(
+    description = "No executions expected",
+    matcherFailedMessage = { it -> "Expected no analysis results, but $it executions were found" }
+) { it == 0 }
+
 class AnalysisResultsNumberMatcher(
     private val description: String,
     val matcherFailedMessage: (Int) -> String,

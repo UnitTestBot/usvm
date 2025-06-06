@@ -1,7 +1,7 @@
 // @ts-nocheck
 // noinspection JSUnusedGlobalSymbols,UnnecessaryLocalVariableJS
 
-class Arrays {
+class AllocatedArrays {
     createConstantArrayOfNumbers() {
         let x = [1, 2, 3]
         if (x[0] === 1) return 1
@@ -61,6 +61,19 @@ class Arrays {
     writeInTheIndexEqualToLength() {
         let x = [1, 2, 3]
         x[3] = 4
+        return x
+    }
+
+    readFakeObjectAndWriteFakeObject(x: any[], y) {
+        if (x[0] === 1) {
+            x[0] = y
+            if (x[0] === 2) {
+                return x
+            } else {
+                return x
+            }
+        }
+
         return x
     }
 }

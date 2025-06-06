@@ -79,12 +79,20 @@ fun UExpr<out USort>.toConcreteBoolValue(): Boolean = when (this) {
     else -> error("Cannot extract boolean from $this")
 }
 
-fun extractInt(expr: UExpr<out USort>): Int =
-    (expr as? KBitVec32Value)?.intValue ?: error("Cannot extract int from $expr")
-
 fun UExpr<out USort>.extractDouble(): Double {
     if (this@extractDouble is KFp64Value) {
         return value
     }
     error("Cannot extract double from $this")
+}
+
+/**
+ * Extracts an integer value from [this] expression if possible.
+ * Otherwise, throws an error.
+ */
+fun UExpr<out USort>.extractInt(): Int {
+    if (this@extractInt is KBitVec32Value) {
+        return intValue
+    }
+    error("Cannot extract int from $this")
 }
