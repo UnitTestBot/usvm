@@ -88,7 +88,7 @@ class TsTestResolver {
     }
 
     private fun prepareForResolve(state: TsState) {
-        state.lValuesToAllocatedFakeObjects.map { (lValue, fakeObject) ->
+        state.lValuesToAllocatedFakeObjects.forEach { (lValue, fakeObject) ->
             when (lValue) {
                 is UFieldLValue<*, *> -> {
                     val resolvedRef = state.models.first().eval(lValue.ref)
