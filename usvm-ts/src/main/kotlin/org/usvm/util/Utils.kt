@@ -41,7 +41,7 @@ fun EtsType.isResolved(): Boolean =
     this !is EtsUnclearRefType && (this as? EtsClassType)?.signature?.file != EtsFileSignature.UNKNOWN
 
 fun EtsType.getClassesForType(
-    scene: EtsScene
+    scene: EtsScene,
 ): List<EtsClass> = if (isResolved()) {
     scene
         .projectAndSdkClasses

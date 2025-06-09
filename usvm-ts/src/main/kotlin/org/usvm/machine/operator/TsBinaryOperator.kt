@@ -573,6 +573,7 @@ sealed interface TsBinaryOperator {
                             lhsValue = lhs.extractBool(scope)
                             lhsType.boolTypeExpr
                         }
+
                         fp64Sort -> {
                             lhsValue = lhs.extractFp(scope)
                             lhsType.fpTypeExpr
@@ -582,6 +583,7 @@ sealed interface TsBinaryOperator {
                             lhsValue = lhs.extractRef(scope)
                             lhsType.refTypeExpr
                         }
+
                         else -> error("Unsupported sort ${rhs.sort}")
                     }
                 }
@@ -593,6 +595,7 @@ sealed interface TsBinaryOperator {
                             rhsValue = rhs.extractBool(scope)
                             rhsType.boolTypeExpr
                         }
+
                         fp64Sort -> {
                             rhsValue = rhs.extractFp(scope)
                             rhsType.fpTypeExpr
@@ -602,6 +605,7 @@ sealed interface TsBinaryOperator {
                             rhsValue = rhs.extractRef(scope)
                             rhsType.refTypeExpr
                         }
+
                         else -> error("Unsupported sort ${lhs.sort}")
                     }
                 }
