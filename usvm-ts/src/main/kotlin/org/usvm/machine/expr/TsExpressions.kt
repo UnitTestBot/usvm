@@ -105,9 +105,9 @@ fun UExpr<*>.extractInt(): Int {
  * Extracts an integer value from [this] expression if possible.
  * Otherwise, throws an error.
  */
-fun UExpr<out USort>.extractInt(): Int {
+fun UExpr<*>.extractInt(): Int {
     if (this@extractInt is KBitVec32Value) {
         return intValue
     }
-    error("Cannot extract int from $this")
+    error("Cannot extract Int from $this")
 }
