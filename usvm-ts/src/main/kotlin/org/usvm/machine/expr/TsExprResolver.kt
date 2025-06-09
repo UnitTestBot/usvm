@@ -723,7 +723,6 @@ class TsExprResolver(
 
                     fakeObj
                 }
-
             }
         } else {
             val lValue = mkArrayIndexLValue(
@@ -824,7 +823,9 @@ class TsExprResolver(
                 val fakeRef = if (ref.isFakeObject()) {
                     ref
                 } else {
-                    mkFakeValue(scope, bool, fp, ref).also { lValuesToAllocatedFakeObjects += refLValue to it }
+                    mkFakeValue(scope, bool, fp, ref).also {
+                        lValuesToAllocatedFakeObjects += refLValue to it
+                    }
                 }
 
                 // TODO ambiguous enum fields resolution
