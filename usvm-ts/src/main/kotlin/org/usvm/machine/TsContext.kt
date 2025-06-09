@@ -52,7 +52,6 @@ class TsContext(
     val voidSort: TsVoidSort by lazy { TsVoidSort(this) }
     val voidValue: TsVoidValue by lazy { TsVoidValue(this) }
 
-
     /**
      * In TS we treat undefined value as a null reference in other objects.
      * For real null represented in the language we create another reference.

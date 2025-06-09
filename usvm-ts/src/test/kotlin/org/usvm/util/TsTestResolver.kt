@@ -92,21 +92,21 @@ class TsTestResolver {
             when (lValue) {
                 is UFieldLValue<*, *> -> {
                     val resolvedRef = state.models.first().eval(lValue.ref)
-                    resolvedLValuesToFakeObjects += UFieldLValue(lValue.sort, resolvedRef, lValue.field) to fakeObject
+                    val fieldLValue = UFieldLValue(lValue.sort, resolvedRef, lValue.field)
+                    resolvedLValuesToFakeObjects += fieldLValue to fakeObject
                 }
 
                 is UArrayIndexLValue<*, *, *> -> {
                     val model = state.models.first()
                     val resolvedRef = model.eval(lValue.ref)
                     val resolvedIndex = model.eval(lValue.index)
-
-                    val uArrayIndexLValue = UArrayIndexLValue(
+                    val arrayIndexLValue = UArrayIndexLValue(
                         lValue.sort,
                         resolvedRef,
                         resolvedIndex,
                         lValue.arrayType,
                     )
-                    resolvedLValuesToFakeObjects += uArrayIndexLValue to fakeObject
+                    resolvedLValuesToFakeObjects += arrayIndexLValue to fakeObject
                 }
 
                 else -> error("Unexpected lValue type: ${lValue::class.java.name}")
@@ -235,8 +235,8 @@ open class TsTestStateResolver(
         val arrayLength = mkArrayLengthLValue(heapRef, type)
         val length = resolveLValue(arrayLength) as TsTestValue.TsNumber
 
-        val values = (0 until length.number.toInt()).map {
-            val index = mkSizeExpr(it)
+        val values = (0 until length.number.toInt()).map { i ->
+            val index = mkSizeExpr(i)
             val sort = typeToSort(type.elementType)
 
             if (sort is TsUnresolvedSort) {

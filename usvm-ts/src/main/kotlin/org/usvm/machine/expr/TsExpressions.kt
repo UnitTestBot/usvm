@@ -73,26 +73,30 @@ class TsVoidSort(ctx: TsContext) : USort(ctx) {
     }
 }
 
-fun UExpr<out USort>.toConcreteBoolValue(): Boolean = when (this) {
+fun UExpr<*>.toConcreteBoolValue(): Boolean = when (this) {
     ctx.trueExpr -> true
     ctx.falseExpr -> false
-    else -> error("Cannot extract boolean from $this")
+    else -> error("Cannot extract Boolean from $this")
 }
 
-fun UExpr<out USort>.extractDouble(): Double {
+/**
+ * Extracts a double value from [this] expression if possible.
+ * Otherwise, throws an error.
+ */
+fun UExpr<*>.extractDouble(): Double {
     if (this@extractDouble is KFp64Value) {
         return value
     }
-    error("Cannot extract double from $this")
+    error("Cannot extract Double from $this")
 }
 
 /**
  * Extracts an integer value from [this] expression if possible.
  * Otherwise, throws an error.
  */
-fun UExpr<out USort>.extractInt(): Int {
+fun UExpr<*>.extractInt(): Int {
     if (this@extractInt is KBitVec32Value) {
         return intValue
     }
-    error("Cannot extract int from $this")
+    error("Cannot extract Int from $this")
 }
