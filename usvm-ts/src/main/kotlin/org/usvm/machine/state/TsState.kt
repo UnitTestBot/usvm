@@ -49,7 +49,6 @@ class TsState(
     val globalObject: UConcreteHeapRef = memory.allocStatic(EtsClassType(EtsClassSignature.UNKNOWN)),
     val addedArtificialLocals: MutableSet<String> = hashSetOf(),
     val lValuesToAllocatedFakeObjects: MutableList<Pair<ULValue<*, *>, UConcreteHeapRef>> = mutableListOf(),
-    val lValuesToAllocatedFakeObjects: MutableList<Pair<ULValue<*, *>, UConcreteHeapRef>> = mutableListOf(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
     ctx = ctx,
     initOwnership = ownership,
