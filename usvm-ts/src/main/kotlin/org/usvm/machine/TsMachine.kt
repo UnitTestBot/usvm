@@ -23,6 +23,7 @@ import org.usvm.statistics.UMachineObserver
 import org.usvm.statistics.collectors.AllStatesCollector
 import org.usvm.statistics.collectors.CoveredNewStatesCollector
 import org.usvm.statistics.collectors.TargetsReachedStatesCollector
+import org.usvm.statistics.constraints.SoftConstraintsObserver
 import org.usvm.statistics.distances.CfgStatisticsImpl
 import org.usvm.statistics.distances.PlainCallGraphStatistics
 import org.usvm.stopstrategies.createStopStrategy
@@ -93,6 +94,10 @@ class TsMachine(
 
         val observers = mutableListOf<UMachineObserver<TsState>>(coverageStatistics)
         observers.add(statesCollector)
+
+        if (options.useSoftConstraints) {
+            observers.add(SoftConstraintsObserver())
+        }
 
         val stepsStatistics = StepsStatistics<EtsMethod, TsState>()
 
