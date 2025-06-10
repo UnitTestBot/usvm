@@ -109,7 +109,9 @@ class TsTestResolver {
                     resolvedLValuesToFakeObjects += arrayIndexLValue to fakeObject
                 }
 
-                else -> error("Unexpected lValue type: ${lValue::class.java.name}")
+                else -> {
+                    error("Unexpected lValue type: ${lValue::class.java.name}")
+                }
             }
         }
     }
@@ -265,7 +267,9 @@ open class TsTestStateResolver(
                         resolveExpr(fakeObject.extractRef(finalStateMemory))
                     }
 
-                    else -> error("Unsupported fake object type: $fakeType")
+                    else -> {
+                        error("Unsupported fake object type: $fakeType")
+                    }
                 }
             }
 
