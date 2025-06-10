@@ -341,7 +341,7 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
         pathSelectionStrategies = listOf(PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM),
         exceptionsPropagation = true,
         timeout = Duration.INFINITE,
-        stepsFromLastCovered = 50000L,
+        stepsFromLastCovered = 3500L,
         solverType = SolverType.YICES,
         solverTimeout = Duration.INFINITE, // we do not need the timeout for a solver in tests
         typeOperationsTimeout = Duration.INFINITE, // we do not need the timeout for type operations in tests
