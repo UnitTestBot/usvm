@@ -22,7 +22,7 @@ val ignoreNumberOfAnalysisResults = AnalysisResultsNumberMatcher(
 
 val noResultsExpected = AnalysisResultsNumberMatcher(
     description = "No executions expected",
-    matcherFailedMessage = { it -> "Expected no analysis results, but $it executions were found" }
+    matcherFailedMessage = { "Expected no analysis results, but $it executions were found" }
 ) { it == 0 }
 
 class AnalysisResultsNumberMatcher(

@@ -878,7 +878,7 @@ class TsExprResolver(
                 val fakeType = instanceRef.getFakeType(scope)
 
                 // If we want to get length from a fake object, we assume that it is an array.
-                scope.assert(fakeType.refTypeExpr)
+                scope.doWithState { pathConstraints += fakeType.refTypeExpr }
 
                 val refLValue = getIntermediateRefLValue(instanceRef.address)
                 val obj = scope.calcOnState { memory.read(refLValue) }
@@ -973,6 +973,12 @@ class TsExprResolver(
     }
 
     override fun visit(expr: EtsNewArrayExpr): UExpr<out USort>? = with(ctx) {
+        val arrayType = expr.type
+
+        require(arrayType is EtsArrayType) {
+            "Expected EtsArrayType in newArrayExpr, but got ${arrayType::class.simpleName}"
+        }
+
         scope.calcOnState {
             val size = resolve(expr.size) ?: return@calcOnState null
 
@@ -1002,8 +1008,6 @@ class TsExprResolver(
                 condition,
                 blockOnFalseState = allocateException(EtsStringType) // TODO incorrect exception type
             )
-
-            val arrayType = expr.type as EtsArrayType
 
             if (arrayType.elementType is EtsArrayType) {
                 TODO("Multidimensional arrays are not supported yet, https://github.com/UnitTestBot/usvm/issues/287")
