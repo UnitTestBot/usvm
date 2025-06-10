@@ -292,8 +292,8 @@ class TsExprResolver(
             )
         }
 
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+        logger.error { "visit(${expr::class.simpleName}) is not implemented yet" }
+        return mkFp64(ADHOC_STRING)
     }
 
     override fun visit(expr: EtsDeleteExpr): UExpr<out USort>? {
