@@ -243,7 +243,7 @@ class TsInterpreter(
         val entryPoint = graph.entryPoints(stmt.callee).singleOrNull()
 
         if (entryPoint == null) {
-            logger.warn { "No entry point for method: ${stmt.callee}" }
+            logger.warn { "No entry point for method: ${stmt.callee}, mocking the call" }
             // If the method doesn't have entry points,
             // we go through it, we just mock the call
             mockMethodCall(scope, stmt.callee.signature)
@@ -354,8 +354,6 @@ class TsInterpreter(
         }
 
         val (posStmt, negStmt) = graph.successors(stmt).take(2).toList()
-
-        logger.warn { "Forking on if stmt $stmt" }
 
         scope.forkWithBlackList(
             boolExpr,
@@ -637,10 +635,7 @@ class TsInterpreter(
                         local.name to localIdx
                     }.toMap()
                 }
-                map[local.name] ?: run {
-                    logger.error("Local not declared: $local")
-                    return null
-                }
+                map[local.name]
             }
 
             // Note: 'this' has index 'n'
