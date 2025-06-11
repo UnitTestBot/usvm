@@ -6,10 +6,10 @@ import org.jacodb.ets.model.EtsAliasType
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
+import org.jacodb.ets.model.EtsEnumValueType
 import org.jacodb.ets.model.EtsGenericType
 import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsNumberType
-import org.jacodb.ets.model.EtsRawType
 import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStringType
@@ -85,12 +85,9 @@ class TsContext(
                 TODO("Not yet implemented")
             }
         }
+        is EtsEnumValueType -> unresolvedSort
         else -> {
-            if (type is EtsRawType && type.kind == "EnumValueType") {
-                unresolvedSort
-            } else {
-                TODO("${type::class.simpleName} is not yet supported: $type")
-            }
+            TODO("${type::class.simpleName} is not yet supported: $type")
         }
     }
 

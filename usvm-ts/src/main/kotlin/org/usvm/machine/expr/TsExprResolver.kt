@@ -55,6 +55,7 @@ import org.jacodb.ets.model.EtsPreDecExpr
 import org.jacodb.ets.model.EtsPreIncExpr
 import org.jacodb.ets.model.EtsPtrCallExpr
 import org.jacodb.ets.model.EtsRawType
+import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsRemExpr
 import org.jacodb.ets.model.EtsRightShiftExpr
 import org.jacodb.ets.model.EtsStaticCallExpr
@@ -262,8 +263,33 @@ class TsExprResolver(
     }
 
     override fun visit(expr: EtsCastExpr): UExpr<*>? = with(ctx) {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+        val resolvedExpr = resolve(expr.arg) ?: return@with null
+        return when (resolvedExpr.sort) {
+            fp64Sort -> {
+                TODO()
+            }
+
+            boolSort -> {
+                TODO()
+            }
+
+            addressSort -> {
+                scope.calcOnState {
+                    val instance = resolvedExpr.asExpr(addressSort)
+
+                    if (expr.type !is EtsRefType) {
+                        TODO("Not supported yet")
+                    }
+
+                    pathConstraints += memory.types.evalIsSubtype(instance, expr.type)
+                    instance
+                }
+            }
+
+            else -> {
+                error("Unsupported cast from ${expr.arg} to ${expr.type}")
+            }
+        }
     }
 
     override fun visit(expr: EtsTypeOfExpr): UExpr<out USort>? = with(ctx) {
