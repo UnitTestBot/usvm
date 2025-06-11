@@ -19,7 +19,7 @@ fun TsContext.resolveEtsField(
 ): EtsPropertyResolution<out EtsField> {
     // Perfect signature:
     if (field.enclosingClass.name != UNKNOWN_CLASS_NAME) {
-        val classes = scene.projectAndSdkClasses.filter { it.signature == field.enclosingClass }
+        val classes = hierarchy.classesForType(EtsClassType(field.enclosingClass))
         if (classes.isEmpty()) {
             error("Cannot resolve class ${field.enclosingClass.name}")
         }
