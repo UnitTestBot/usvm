@@ -1083,7 +1083,7 @@ class TsSimpleValueResolver(
                 return mkFieldLValue(ctx.addressSort, globalObject, local.name)
             }
 
-            logger.warn { "Cannot resolve local $local" }
+            logger.warn { "Cannot resolve local $local, creating a fake field of the global object" }
 
             globalObject.createFakeField(localName, scope)
             scope.doWithState {

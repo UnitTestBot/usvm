@@ -8,7 +8,6 @@ import org.usvm.CoverageZone
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachine
 import org.usvm.UMachineOptions
-import org.usvm.UPathSelector
 import org.usvm.api.targets.TsTarget
 import org.usvm.machine.interpreter.TsInterpreter
 import org.usvm.machine.state.TsMethodResult
@@ -74,39 +73,15 @@ class TsMachine(
 
         val timeStatistics = TimeStatistics<EtsMethod, TsState>()
 
-        val pathSelector = object : UPathSelector<TsState> {
-            val internalSelector = createPathSelector(
-                initialStates = initialStates,
-                options = options,
-                applicationGraph = graph,
-                timeStatistics = timeStatistics,
-                coverageStatisticsFactory = { coverageStatistics },
-                cfgStatisticsFactory = { cfgStatistics },
-                callGraphStatisticsFactory = { callGraphStatistics }
-            )
-
-            override fun isEmpty(): Boolean {
-                return internalSelector.isEmpty()
-            }
-
-            override fun peek(): TsState {
-                return internalSelector.peek()
-            }
-
-            override fun remove(state: TsState) {
-                logger.warn { "Selector size -1" }
-                return internalSelector.remove(state)
-            }
-
-            override fun add(states: Collection<TsState>) {
-                logger.warn { "Selector size +1" }
-                return internalSelector.add(states)
-            }
-
-            override fun update(state: TsState) {
-                return internalSelector.update(state)
-            }
-        }
+        val pathSelector = createPathSelector(
+            initialStates = initialStates,
+            options = options,
+            applicationGraph = graph,
+            timeStatistics = timeStatistics,
+            coverageStatisticsFactory = { coverageStatistics },
+            cfgStatisticsFactory = { cfgStatistics },
+            callGraphStatisticsFactory = { callGraphStatistics }
+        )
 
         val statesCollector =
             when (options.stateCollectionStrategy) {
@@ -168,16 +143,6 @@ class TsMachine(
                 )
             )
         }
-
-        val endReasonObserver = object : UMachineObserver<TsState> {
-            override fun onStateTerminated(state: TsState, stateReachable: Boolean) {
-                logger.warn {
-                    "State is terminated on ${state.currentStatement} in the method ${state.currentStatement.method}"
-                }
-            }
-        }
-
-        observers += endReasonObserver
 
         run(
             interpreter,
