@@ -92,6 +92,20 @@ fun TsContext.mkNumericExpr(
     expr: UExpr<out USort>,
     scope: TsStepScope,
 ): UExpr<KFp64Sort> = scope.calcOnState {
+    if (expr.isFakeObject()) {
+        return@calcOnState scope.calcOnState {
+            val type = expr.getFakeType(scope)
+            mkIte(
+                condition = type.fpTypeExpr,
+                trueBranch = expr.extractFp(scope),
+                falseBranch = mkIte(
+                    condition = type.boolTypeExpr,
+                    trueBranch = mkNumericExpr(expr.extractBool(scope), scope),
+                    falseBranch = mkNumericExpr(expr.extractRef(scope), scope)
+                )
+            )
+        }
+    }
 
     // 7.1.4 ToNumber ( argument )
     //
