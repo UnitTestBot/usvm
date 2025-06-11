@@ -538,8 +538,7 @@ class TsInterpreter(
 
                                 memory.write(lValue, value.asExpr(lValue.sort), guard = trueExpr)
                             } else {
-                                // probably it is a enum, check for it
-                                error("TODO")
+                                TODO("Support enums fields")
                             }
                         } else {
                             memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
