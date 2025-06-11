@@ -1215,4 +1215,55 @@ sealed interface TsBinaryOperator {
             return mkFpMulExpr(fpRoundingModeSortDefaultValue(), left, right)
         }
     }
+
+    data object Div: TsBinaryOperator {
+        override fun TsContext.onBool(
+            lhs: UBoolExpr,
+            rhs: UBoolExpr,
+            scope: TsStepScope
+        ): UExpr<*>? {
+            val left = mkNumericExpr(lhs, scope)
+            val right = mkNumericExpr(rhs, scope)
+            return mkFpDivExpr(fpRoundingModeSortDefaultValue(), left, right)
+        }
+
+        override fun TsContext.onFp(
+            lhs: UExpr<KFp64Sort>,
+            rhs: UExpr<KFp64Sort>,
+            scope: TsStepScope
+        ): UExpr<*>? {
+            return mkFpDivExpr(fpRoundingModeSortDefaultValue(), lhs, rhs)
+        }
+
+        override fun TsContext.onRef(
+            lhs: UHeapRef,
+            rhs: UHeapRef,
+            scope: TsStepScope
+        ): UExpr<*>? {
+            val left = mkNumericExpr(lhs, scope)
+            val right = mkNumericExpr(rhs, scope)
+            return mkFpDivExpr(fpRoundingModeSortDefaultValue(), left, right)
+        }
+
+        override fun TsContext.resolveFakeObject(
+            lhs: UExpr<*>,
+            rhs: UExpr<*>,
+            scope: TsStepScope
+        ): UExpr<*>? {
+            val left = mkNumericExpr(lhs, scope)
+            val right = mkNumericExpr(rhs, scope)
+            return mkFpDivExpr(fpRoundingModeSortDefaultValue(), left, right)
+        }
+
+        override fun TsContext.internalResolve(
+            lhs: UExpr<*>,
+            rhs: UExpr<*>,
+            scope: TsStepScope
+        ): UExpr<*>? {
+            val left = mkNumericExpr(lhs, scope)
+            val right = mkNumericExpr(rhs, scope)
+            return mkFpDivExpr(fpRoundingModeSortDefaultValue(), left, right)
+        }
+
+    }
 }
