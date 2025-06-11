@@ -18,6 +18,7 @@ import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS
 import org.usvm.PathSelectionStrategy
+import org.usvm.SolverType
 import org.usvm.UMachineOptions
 import org.usvm.api.NoCoverage
 import org.usvm.api.TsMethodCoverage
@@ -234,6 +235,7 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
         exceptionsPropagation = true,
         timeout = Duration.INFINITE,
         stepsFromLastCovered = 3500L,
+        solverType = SolverType.YICES,
         solverTimeout = Duration.INFINITE, // we do not need the timeout for a solver in tests
         typeOperationsTimeout = Duration.INFINITE, // we do not need the timeout for type operations in tests
     )

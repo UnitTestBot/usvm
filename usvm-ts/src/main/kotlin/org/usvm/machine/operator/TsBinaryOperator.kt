@@ -1264,6 +1264,49 @@ sealed interface TsBinaryOperator {
             val right = mkNumericExpr(rhs, scope)
             return mkFpDivExpr(fpRoundingModeSortDefaultValue(), left, right)
         }
+    }
 
+    data object Rem : TsBinaryOperator {
+        override fun TsContext.onBool(
+            lhs: UBoolExpr,
+            rhs: UBoolExpr,
+            scope: TsStepScope
+        ): UExpr<*>? {
+            return internalResolve(lhs, rhs, scope)
+        }
+
+        override fun TsContext.onFp(
+            lhs: UExpr<KFp64Sort>,
+            rhs: UExpr<KFp64Sort>,
+            scope: TsStepScope
+        ): UExpr<*>? {
+            return internalResolve(lhs, rhs, scope)
+        }
+
+        override fun TsContext.onRef(
+            lhs: UHeapRef,
+            rhs: UHeapRef,
+            scope: TsStepScope
+        ): UExpr<*>? {
+            return internalResolve(lhs, rhs, scope)
+        }
+
+        override fun TsContext.resolveFakeObject(
+            lhs: UExpr<*>,
+            rhs: UExpr<*>,
+            scope: TsStepScope
+        ): UExpr<*>? {
+            return internalResolve(lhs, rhs, scope)
+        }
+
+        override fun TsContext.internalResolve(
+            lhs: UExpr<*>,
+            rhs: UExpr<*>,
+            scope: TsStepScope
+        ): UExpr<*>? {
+            val lhsExpr = mkNumericExpr(lhs, scope)
+            val rhsExpr = mkNumericExpr(rhs, scope)
+            return mkFpRemExpr(lhsExpr, rhsExpr)
+        }
     }
 }
