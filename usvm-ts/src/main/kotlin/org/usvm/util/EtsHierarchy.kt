@@ -108,7 +108,6 @@ class EtsHierarchy(private val scene: EtsScene) {
         return suitableClasses.values
     }
 
-
     companion object {
         // TODO use real one
         val OBJECT_CLASS = EtsClassType(
