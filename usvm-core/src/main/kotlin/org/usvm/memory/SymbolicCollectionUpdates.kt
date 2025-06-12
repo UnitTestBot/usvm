@@ -317,44 +317,47 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         guardBuilder: GuardBuilder,
         composer: UComposer<*, *>?,
     ): UTreeUpdates<Key, Reg, Sort> {
-        var restRecordsAreIrrelevant = false
-        val symbolicSubtreesStack =
-            mutableListOf<Pair<Reg, Pair<UUpdateNode<Key, Sort>, RegionTree<Reg, UUpdateNode<Key, Sort>>>>>()
-
-        fun traverseTreeWhilePredicateSatisfied(tree: RegionTree<Reg, UUpdateNode<Key, Sort>>) {
+        // returns fully symbolic tree entries after splitting
+        fun traverseTreeWhilePredicateSatisfied(tree: RegionTree<Reg, UUpdateNode<Key, Sort>>)
+                : Map<Reg, Pair<UUpdateNode<Key, Sort>, RegionTree<Reg, UUpdateNode<Key, Sort>>>> {
+            val symbolicEntries =
+                mutableMapOf<Reg, Pair<UUpdateNode<Key, Sort>, RegionTree<Reg, UUpdateNode<Key, Sort>>>>()
             // process nodes of the same level from newest to oldest
             for ((reg, entry) in tree.entries.toList().reversed()) {
                 val (node, subtree) = entry
                 val splitUpdate = node.split(key, predicate, matchingWrites, guardBuilder, composer)
-                // range nodes are considered to belong to invariant tree since they can contain concretes
-                if (splitUpdate === null || node is URangedUpdateNode<*, *, Key, Sort>) {
-                    traverseTreeWhilePredicateSatisfied(subtree)
-                    if (restRecordsAreIrrelevant) break
-                } else {
-                    // since [splitWrite] preserves invariant that records satisfying predicate are always
-                    // at the top of the tree  we can just add rest branch to splitTreeEntries
-                    symbolicSubtreesStack += reg to entry
+                when (splitUpdate) {
+                    null -> {
+                        val restSymbolicTree = traverseTreeWhilePredicateSatisfied(subtree)
+                        symbolicEntries += restSymbolicTree
+                        if (guardBuilder.isFalse) break
+                    }
+                    // range nodes are considered to belong to concrete subtree since they can contain concretes
+                    is URangedUpdateNode<*, *, Key, Sort> -> {
+                        val restSymbolicEntries = traverseTreeWhilePredicateSatisfied(subtree)
+                        val restTree = RegionTree(restSymbolicEntries.toPersistentMap())
+                        symbolicEntries[reg] = splitUpdate to restTree
+                        if (guardBuilder.isFalse) break
+                    }
+
+                    else -> {
+                        require(splitUpdate is UPinpointUpdateNode)
+                        // since [splitWrite] preserves invariant that records satisfying predicate are always
+                        // at the top of the tree  we can just add rest branch to splitTreeEntries
+                        symbolicEntries[reg] = entry
+                        if (guardBuilder.isFalse) break
+                    }
                 }
 
-                if (guardBuilder.isFalse) {
-                    restRecordsAreIrrelevant = true
-                    break
-                }
             }
+
+            return symbolicEntries
         }
 
-        traverseTreeWhilePredicateSatisfied(updates)
+        val symbolicEntries = traverseTreeWhilePredicateSatisfied(updates)
 
-        val splitTreeEntries =
-            mutableMapOf<Reg, Pair<UUpdateNode<Key, Sort>, RegionTree<Reg, UUpdateNode<Key, Sort>>>>()
 
-        // reconstruct region tree, including all updates unsatisfying `predicate(update.value(key))` in the same order
-        while (symbolicSubtreesStack.isNotEmpty()) {
-            val (reg, entry) = symbolicSubtreesStack.removeLast()
-            splitTreeEntries[reg] = entry
-        }
-
-        return this.copy(updates = RegionTree(splitTreeEntries.toPersistentMap()))
+        return this.copy(updates = RegionTree(symbolicEntries.toPersistentMap()))
     }
 
     override fun splitWrite(
