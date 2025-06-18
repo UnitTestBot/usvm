@@ -1,49 +1,52 @@
+// @ts-nocheck
+// noinspection JSUnusedGlobalSymbols
+
 class A {
-  x: number;
+    x: number;
 
-  constructor(x: number) {
-    this.x = x;
-  }
+    constructor(x: number) {
+        this.x = x;
+    }
 
-  foo (): number {
-    return 21;
-  }
+    foo(): number {
+        return 21;
+    }
 }
 
 class B {
-  x: number;
+    x: number;
 
-  constructor(x: number) {
-    this.x = x;
-  }
+    constructor(x: number) {
+        this.x = x;
+    }
 
-  foo (): number {
-    return this.x;
-  }
+    foo(): number {
+        return this.x;
+    }
 }
 
 class C {
-  x: A;
+    x: A;
 
-  constructor(x: A) {
-    this.x = x;
-  }
+    constructor(x: A) {
+        this.x = x;
+    }
 }
 
 class D {
-  x: B;
+    x: B;
 
-  constructor(x: B) {
-    this.x = x;
-  }
+    constructor(x: B) {
+        this.x = x;
+    }
 }
 
 class Example {
-  testFunction() : C {
-    const obj: A = new B(11);
-    const number = obj.foo();
+    testFunction(): C {
+        const obj: A = new B(11);
+        const number = obj.foo();
 
-    const aaa: C = new D(new A(number));
-    return aaa
-  }
+        const aaa: C = new D(new A(number));
+        return aaa
+    }
 }

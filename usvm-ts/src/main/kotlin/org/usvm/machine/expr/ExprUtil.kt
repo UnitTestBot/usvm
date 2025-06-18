@@ -91,7 +91,19 @@ fun TsContext.mkTruthyExpr(
 fun TsContext.mkNumericExpr(
     expr: UExpr<out USort>,
     scope: TsStepScope,
-): UExpr<KFp64Sort> = scope.calcOnState {
+): UExpr<KFp64Sort> {
+    if (expr.isFakeObject()) {
+        val type = expr.getFakeType(scope)
+        return mkIte(
+            condition = type.fpTypeExpr,
+            trueBranch = expr.extractFp(scope),
+            falseBranch = mkIte(
+                condition = type.boolTypeExpr,
+                trueBranch = mkNumericExpr(expr.extractBool(scope), scope),
+                falseBranch = mkNumericExpr(expr.extractRef(scope), scope)
+            )
+        )
+    }
 
     // 7.1.4 ToNumber ( argument )
     //
@@ -107,19 +119,19 @@ fun TsContext.mkNumericExpr(
     // 10. Return ToNumber(primValue).
 
     if (expr.sort == fp64Sort) {
-        return@calcOnState expr.asExpr(fp64Sort)
+        return expr.asExpr(fp64Sort)
     }
 
     if (expr == mkUndefinedValue()) {
-        return@calcOnState mkFp64NaN()
+        return mkFp64NaN()
     }
 
     if (expr == mkTsNullValue()) {
-        return@calcOnState mkFp64(0.0)
+        return mkFp64(0.0)
     }
 
     if (expr.sort == boolSort) {
-        return@calcOnState boolToFp(expr.asExpr(boolSort))
+        return boolToFp(expr.asExpr(boolSort))
     }
 
     // TODO: ToPrimitive, then ToNumber again
@@ -127,7 +139,7 @@ fun TsContext.mkNumericExpr(
 
     // TODO incorrect implementation, returns some number that is not equal to 0 and NaN
     //      https://github.com/UnitTestBot/usvm/issues/280
-    return@calcOnState mkIte(
+    return mkIte(
         condition = mkEq(expr.asExpr(addressSort), mkTsNullValue()),
         trueBranch = mkFp(0.0, fp64Sort),
         falseBranch = mkIte(

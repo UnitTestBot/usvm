@@ -1,6 +1,9 @@
+// @ts-nocheck
+// noinspection JSUnusedGlobalSymbols
+
 class Add {
     addBoolAndBool(a: boolean, b: boolean): number {
-        res = a + b;
+        let res = a + b;
 
         if (res == 0 && (a || b)) return -1 // unreachable
         if (res < 0 || res > 2) return -1 // unreachable
@@ -16,7 +19,7 @@ class Add {
     }
 
     addBoolAndNumber(a: boolean, b: number): number {
-        res = a + b;
+        let res = a + b;
 
         if (res == 0 && a) return 1 // true -1
         if (res == 0 && !a) return 2 // false 0
@@ -29,7 +32,7 @@ class Add {
     }
 
     addNumberAndNumber(a: number, b: number): number {
-        res = a + b;
+        let res = a + b;
 
         if (a != a) return res
         if (b != b) return res
@@ -40,7 +43,7 @@ class Add {
     }
 
     addNumberAndUndefined(a: number): number {
-        res = a + undefined;
+        let res = a + undefined;
 
         if (res == 0) return -1 // unreachable
 
@@ -48,7 +51,7 @@ class Add {
     }
 
     addNumberAndNull(a: number): number {
-        res = a + null;
+        let res = a + null;
 
         if (res != a) return res
 
@@ -56,7 +59,7 @@ class Add {
     }
 
     addUnknownValues(a, b) {
-        res = a + b;
+        let res = a + b;
 
         if (a === undefined || b === undefined) return res
 
