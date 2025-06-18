@@ -53,6 +53,8 @@ fun EtsType.getClassesForType(
         .filter { it.type.typeName.removeTrashFromTheName() == name }
 }
 
+// TODO save info about this field somewhere
+//      https://github.com/UnitTestBot/usvm/issues/288
 fun UHeapRef.createFakeField(fieldName: String, scope: TsStepScope): UConcreteHeapRef {
     val ctx = this.tctx
 

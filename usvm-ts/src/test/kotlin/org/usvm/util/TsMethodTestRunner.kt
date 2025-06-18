@@ -27,6 +27,7 @@ import org.usvm.api.TsTestValue
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.test.util.TestRunner
+import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import kotlin.reflect.KClass
 import kotlin.time.Duration
@@ -79,6 +80,25 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
         )
     }
 
+    protected inline fun <reified R : TsTestValue> checkMatches(
+        method: EtsMethod,
+        analysisResultNumberMatches: AnalysisResultsNumberMatcher,
+        vararg analysisResultMatchers: (R) -> Boolean,
+        invariants: Array<(R) -> Boolean> = emptyArray(),
+        noinline coverageChecker: CoverageChecker = doNotCheckCoverage,
+    ) {
+        internalCheck(
+            target = method,
+            analysisResultsNumberMatcher = analysisResultNumberMatches,
+            analysisResultsMatchers = analysisResultMatchers,
+            invariants = invariants,
+            extractValuesToCheck = { r -> r.before.parameters + r.returnValue },
+            expectedTypesForExtractedValues = arrayOf(typeTransformer(R::class)),
+            checkMode = CheckMode.MATCH_EXECUTIONS,
+            coverageChecker = coverageChecker
+        )
+    }
+
     protected inline fun <reified T : TsTestValue, reified R : TsTestValue> discoverProperties(
         method: EtsMethod,
         vararg analysisResultMatchers: (T, R) -> Boolean,
@@ -93,6 +113,25 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
             extractValuesToCheck = { r -> r.before.parameters + r.returnValue },
             expectedTypesForExtractedValues = arrayOf(typeTransformer(T::class), typeTransformer(R::class)),
             checkMode = CheckMode.MATCH_PROPERTIES,
+            coverageChecker = coverageChecker
+        )
+    }
+
+    protected inline fun <reified T : TsTestValue, reified R : TsTestValue> checkMatches(
+        method: EtsMethod,
+        analysisResultNumberMatches: AnalysisResultsNumberMatcher,
+        vararg analysisResultMatchers: (T, R) -> Boolean,
+        invariants: Array<(T, R) -> Boolean> = emptyArray(),
+        noinline coverageChecker: CoverageChecker = doNotCheckCoverage,
+    ) {
+        internalCheck(
+            target = method,
+            analysisResultsNumberMatcher = analysisResultNumberMatches,
+            analysisResultsMatchers = analysisResultMatchers,
+            invariants = invariants,
+            extractValuesToCheck = { r -> r.before.parameters + r.returnValue },
+            expectedTypesForExtractedValues = arrayOf(typeTransformer(T::class), typeTransformer(R::class)),
+            checkMode = CheckMode.MATCH_EXECUTIONS,
             coverageChecker = coverageChecker
         )
     }
@@ -113,6 +152,27 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
                 typeTransformer(T1::class), typeTransformer(T2::class), typeTransformer(R::class)
             ),
             checkMode = CheckMode.MATCH_PROPERTIES,
+            coverageChecker = coverageChecker
+        )
+    }
+
+    protected inline fun <reified T1 : TsTestValue, reified T2 : TsTestValue, reified R : TsTestValue> checkMatches(
+        method: EtsMethod,
+        analysisResultNumberMatches: AnalysisResultsNumberMatcher,
+        vararg analysisResultMatchers: (T1, T2, R) -> Boolean,
+        invariants: Array<(T1, T2, R) -> Boolean> = emptyArray(),
+        noinline coverageChecker: CoverageChecker = doNotCheckCoverage,
+    ) {
+        internalCheck(
+            target = method,
+            analysisResultsNumberMatcher = analysisResultNumberMatches,
+            analysisResultsMatchers = analysisResultMatchers,
+            invariants = invariants,
+            extractValuesToCheck = { r -> r.before.parameters + r.returnValue },
+            expectedTypesForExtractedValues = arrayOf(
+                typeTransformer(T1::class), typeTransformer(T2::class), typeTransformer(R::class)
+            ),
+            checkMode = CheckMode.MATCH_EXECUTIONS,
             coverageChecker = coverageChecker
         )
     }
@@ -140,6 +200,30 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
         )
     }
 
+    protected inline fun <reified T1 : TsTestValue, reified T2 : TsTestValue, reified T3 : TsTestValue, reified R : TsTestValue> checkMatches(
+        method: EtsMethod,
+        analysisResultNumberMatches: AnalysisResultsNumberMatcher,
+        vararg analysisResultMatchers: (T1, T2, T3, R) -> Boolean,
+        invariants: Array<(T1, T2, T3, R) -> Boolean> = emptyArray(),
+        noinline coverageChecker: CoverageChecker = doNotCheckCoverage,
+    ) {
+        internalCheck(
+            target = method,
+            analysisResultsNumberMatcher = analysisResultNumberMatches,
+            analysisResultsMatchers = analysisResultMatchers,
+            invariants = invariants,
+            extractValuesToCheck = { r -> r.before.parameters + r.returnValue },
+            expectedTypesForExtractedValues = arrayOf(
+                typeTransformer(T1::class),
+                typeTransformer(T2::class),
+                typeTransformer(T3::class),
+                typeTransformer(R::class)
+            ),
+            checkMode = CheckMode.MATCH_EXECUTIONS,
+            coverageChecker = coverageChecker
+        )
+    }
+
     protected inline fun <reified T1 : TsTestValue, reified T2 : TsTestValue, reified T3 : TsTestValue, reified T4 : TsTestValue, reified R : TsTestValue> discoverProperties(
         method: EtsMethod,
         vararg analysisResultMatchers: (T1, T2, T3, T4, R) -> Boolean,
@@ -160,6 +244,31 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
                 typeTransformer(R::class)
             ),
             checkMode = CheckMode.MATCH_PROPERTIES,
+            coverageChecker = coverageChecker
+        )
+    }
+
+    protected inline fun <reified T1 : TsTestValue, reified T2 : TsTestValue, reified T3 : TsTestValue, reified T4 : TsTestValue, reified R : TsTestValue> checkMatches(
+        method: EtsMethod,
+        analysisResultNumberMatches: AnalysisResultsNumberMatcher,
+        vararg analysisResultMatchers: (T1, T2, T3, T4, R) -> Boolean,
+        invariants: Array<(T1, T2, T3, T4, R) -> Boolean> = emptyArray(),
+        noinline coverageChecker: CoverageChecker = doNotCheckCoverage,
+    ) {
+        internalCheck(
+            target = method,
+            analysisResultsNumberMatcher = analysisResultNumberMatches,
+            analysisResultsMatchers = analysisResultMatchers,
+            invariants = invariants,
+            extractValuesToCheck = { r -> r.before.parameters + r.returnValue },
+            expectedTypesForExtractedValues = arrayOf(
+                typeTransformer(T1::class),
+                typeTransformer(T2::class),
+                typeTransformer(T3::class),
+                typeTransformer(T4::class),
+                typeTransformer(R::class)
+            ),
+            checkMode = CheckMode.MATCH_EXECUTIONS,
             coverageChecker = coverageChecker
         )
     }

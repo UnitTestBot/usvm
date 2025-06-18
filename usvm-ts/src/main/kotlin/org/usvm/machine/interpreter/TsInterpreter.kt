@@ -280,7 +280,8 @@ class TsInterpreter(
                     with(ctx) { it.toFakeObject(scope) }
                 }
                 val array = scope.calcOnState {
-                    val type = EtsArrayType(EtsUnknownType, 1)
+                    // In a common case we cannot determine the type of the array
+                    val type = EtsArrayType(EtsUnknownType, dimensions = 1)
                     memory.allocateArrayInitialized(
                         type = ctx.arrayDescriptorOf(type),
                         sort = ctx.addressSort,
@@ -418,6 +419,8 @@ class TsInterpreter(
 
                 is EtsArrayAccess -> {
                     val instance = exprResolver.resolve(lhv.array)?.asExpr(addressSort) ?: return@doWithState
+                    exprResolver.checkUndefinedOrNullPropertyRead(instance) ?: return@doWithState
+
                     val index = exprResolver.resolve(lhv.index)?.asExpr(fp64Sort) ?: return@doWithState
 
                     // TODO fork on floating point field
@@ -428,29 +431,50 @@ class TsInterpreter(
                         isSigned = true
                     ).asExpr(sizeSort)
 
+                    // We don't allow access by negative indices and treat is as an error.
+                    exprResolver.checkNegativeIndexRead(bvIndex) ?: return@doWithState
+
                     // TODO: handle the case when `lhv.array.type` is NOT an array.
                     //  In this case, it could be created manually: `EtsArrayType(EtsUnknownType, 1)`.
-                    val lengthLValue = mkArrayLengthLValue(instance, lhv.array.type as EtsArrayType)
+                    val arrayType = lhv.array.type as? EtsArrayType
+                        ?: error("Expected EtsArrayType, got: ${lhv.array.type}")
+                    val lengthLValue = mkArrayLengthLValue(instance, arrayType)
                     val currentLength = memory.read(lengthLValue)
 
-                    val condition = mkBvSignedGreaterOrEqualExpr(bvIndex, currentLength)
-                    val newLength = mkIte(condition, mkBvAddExpr(bvIndex, mkBv(1)), currentLength)
+                    // We allow readings from the array only in the range [0, length - 1].
+                    exprResolver.checkReadingInRange(bvIndex, currentLength) ?: return@doWithState
 
-                    memory.write(lengthLValue, newLength, guard = trueExpr)
+                    val elementSort = typeToSort(arrayType.elementType)
 
-                    val fakeExpr = expr.toFakeObject(scope)
+                    if (elementSort is TsUnresolvedSort) {
+                        val fakeExpr = expr.toFakeObject(scope)
 
-                    val lValue = mkArrayIndexLValue(
-                        addressSort,
-                        instance,
-                        bvIndex.asExpr(sizeSort),
-                        lhv.array.type as EtsArrayType
-                    )
-                    memory.write(lValue, fakeExpr, guard = trueExpr)
+                        val lValue = mkArrayIndexLValue(
+                            addressSort,
+                            instance,
+                            bvIndex.asExpr(sizeSort),
+                            arrayType
+                        )
+
+                        lValuesToAllocatedFakeObjects += lValue to fakeExpr
+
+                        memory.write(lValue, fakeExpr, guard = trueExpr)
+                    } else {
+                        val lValue = mkArrayIndexLValue(
+                            elementSort,
+                            instance,
+                            bvIndex.asExpr(sizeSort),
+                            arrayType
+                        )
+
+                        memory.write(lValue, expr.asExpr(elementSort), guard = trueExpr)
+                    }
                 }
 
                 is EtsInstanceFieldRef -> {
                     val instance = exprResolver.resolve(lhv.instance)?.asExpr(addressSort) ?: return@doWithState
+                    exprResolver.checkUndefinedOrNullPropertyRead(instance) ?: return@doWithState
+
                     val etsField = resolveEtsField(lhv.instance, lhv.field, graph.hierarchy)
                     scope.doWithState {
                         // If we access some field, we expect that the object must have this field.
@@ -469,6 +493,9 @@ class TsInterpreter(
                     if (sort == unresolvedSort) {
                         val fakeObject = expr.toFakeObject(scope)
                         val lValue = mkFieldLValue(addressSort, instance, lhv.field)
+
+                        lValuesToAllocatedFakeObjects += lValue to fakeObject
+
                         memory.write(lValue, fakeObject, guard = trueExpr)
                     } else {
                         val lValue = mkFieldLValue(sort, instance, lhv.field)
@@ -499,6 +526,9 @@ class TsInterpreter(
                     if (sort == unresolvedSort) {
                         val lValue = mkFieldLValue(addressSort, instance, lhv.field.name)
                         val fakeObject = expr.toFakeObject(scope)
+
+                        lValuesToAllocatedFakeObjects += lValue to fakeObject
+
                         memory.write(lValue, fakeObject, guard = trueExpr)
                     } else {
                         val lValue = mkFieldLValue(sort, instance, lhv.field.name)

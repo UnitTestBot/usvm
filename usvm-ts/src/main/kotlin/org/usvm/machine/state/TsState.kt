@@ -21,11 +21,17 @@ import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.collections.immutable.persistentHashMapOf
 import org.usvm.constraints.UPathConstraints
 import org.usvm.machine.TsContext
+import org.usvm.memory.ULValue
 import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase
 import org.usvm.targets.UTargetsSet
 import org.usvm.util.type
 
+/**
+ * [lValuesToAllocatedFakeObjects] contains records of l-values that were allocated with newly created fake objects.
+ * It is important for result interpreters to be able to restore the order of fake objects allocation and
+ * their assignment to evaluated l-values.
+ */
 class TsState(
     ctx: TsContext,
     ownership: MutabilityOwnership,
@@ -41,7 +47,8 @@ class TsState(
     val localToSortStack: MutableList<UPersistentHashMap<Int, USort>> = mutableListOf(persistentHashMapOf()),
     var staticStorage: UPersistentHashMap<EtsClass, UConcreteHeapRef> = persistentHashMapOf(),
     val globalObject: UConcreteHeapRef = memory.allocStatic(EtsClassType(EtsClassSignature.UNKNOWN)),
-    val addedArtificialLocals: MutableSet<String> = hashSetOf<String>(),
+    val addedArtificialLocals: MutableSet<String> = hashSetOf(),
+    val lValuesToAllocatedFakeObjects: MutableList<Pair<ULValue<*, *>, UConcreteHeapRef>> = mutableListOf(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
     ctx = ctx,
     initOwnership = ownership,
@@ -144,6 +151,7 @@ class TsState(
             staticStorage = staticStorage,
             globalObject = globalObject,
             addedArtificialLocals = addedArtificialLocals,
+            lValuesToAllocatedFakeObjects = lValuesToAllocatedFakeObjects.toMutableList(),
         )
     }
 
