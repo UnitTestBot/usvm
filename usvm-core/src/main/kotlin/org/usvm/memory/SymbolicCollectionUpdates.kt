@@ -2,7 +2,11 @@ package org.usvm.memory
 
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentMapOf
-import org.usvm.*
+import org.usvm.UBoolExpr
+import org.usvm.UComposer
+import org.usvm.UExpr
+import org.usvm.USort
+import org.usvm.isFalse
 import org.usvm.regions.Region
 import org.usvm.regions.RegionTree
 import org.usvm.regions.emptyRegionTree
