@@ -119,7 +119,8 @@ class InputArrays : TsMethodTestRunner() {
             method = method,
             { x, r ->
                 val value = x.values[0]
-                value is TsTestValue.TsNumber && value.number == 1.0 && r is TsTestValue.TsNull },
+                value is TsTestValue.TsNumber && value.number == 1.0 && r is TsTestValue.TsNull
+            },
             { x, r ->
                 val value = x.values[0]
                 value !is TsTestValue.TsNumber || value.number != 1.0 && r == value

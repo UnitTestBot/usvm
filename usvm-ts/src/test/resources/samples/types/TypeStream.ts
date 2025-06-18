@@ -45,25 +45,25 @@ class TypeStream {
 }
 
 class Parent {
+    parentField: number = -10
+
     virtualMethod(): number {
         return 100;
     }
-
-    parentField: number = -10
 }
 
 class FirstChild extends Parent {
+    firstChildField: number = 10
+
     override virtualMethod(): number {
         return 200;
     }
-
-    firstChildField: number = 10
 }
 
 class SecondChild extends Parent {
+    secondChildField: number = 20
+
     override virtualMethod(): number {
         return 300;
     }
-
-    secondChildField: number = 20
 }

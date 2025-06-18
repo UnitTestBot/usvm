@@ -33,15 +33,15 @@ class Remainder {
         return res
     }
 
-     booleanRemainder(a: boolean, b: boolean): number {
-         res = a % b;
+    booleanRemainder(a: boolean, b: boolean): number {
+        res = a % b;
 
-         if (res == 0) {
-             return res
-         }
+        if (res == 0) {
+            return res
+        }
 
-         return res
-     }
+        return res
+    }
 
     mixedRemainder(a: number, b: boolean): number {
         res = a % b;

@@ -20,15 +20,15 @@ class Division {
         return res
     }
 
-     booleanDivision(a: boolean, b: boolean): number {
-         res = a / b;
+    booleanDivision(a: boolean, b: boolean): number {
+        res = a / b;
 
-         if (res == 0) {
-             return res
-         }
+        if (res == 0) {
+            return res
+        }
 
-         return res
-     }
+        return res
+    }
 
     mixedDivision(a: number, b: boolean): number {
         res = a / b;
