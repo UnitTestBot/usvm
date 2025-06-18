@@ -41,7 +41,7 @@ fun EtsType.isResolved(): Boolean =
     this !is EtsUnclearRefType && (this as? EtsClassType)?.signature?.file != EtsFileSignature.UNKNOWN
 
 fun EtsType.getClassesForType(
-    scene: EtsScene
+    scene: EtsScene,
 ): List<EtsClass> = if (isResolved()) {
     scene
         .projectAndSdkClasses
@@ -53,6 +53,8 @@ fun EtsType.getClassesForType(
         .filter { it.type.typeName.removeTrashFromTheName() == name }
 }
 
+// TODO save info about this field somewhere
+//      https://github.com/UnitTestBot/usvm/issues/288
 fun UHeapRef.createFakeField(fieldName: String, scope: TsStepScope): UConcreteHeapRef {
     val ctx = this.tctx
 
