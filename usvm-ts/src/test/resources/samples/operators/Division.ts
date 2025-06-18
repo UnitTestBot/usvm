@@ -1,6 +1,10 @@
+// @ts-nocheck
+// noinspection JSUnusedGlobalSymbols
+
 class Division {
     twoNumbersDivision(a: number, b: number): number {
-        res = a / b;
+        let res = a / b;
+
         if (res == 4) {
             return res
         }
@@ -21,7 +25,7 @@ class Division {
     }
 
     booleanDivision(a: boolean, b: boolean): number {
-        res = a / b;
+        let res = a / b;
 
         if (res == 0) {
             return res
@@ -31,7 +35,8 @@ class Division {
     }
 
     mixedDivision(a: number, b: boolean): number {
-        res = a / b;
+        let res = a / b;
+
         if (res == 4) {
             return res
         }
@@ -52,7 +57,7 @@ class Division {
     }
 
     unknownDivision(a, b): number {
-        res = a / b;
+        let res = a / b;
 
         if (a === undefined || b === undefined) {
             return res;

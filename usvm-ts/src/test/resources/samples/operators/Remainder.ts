@@ -1,6 +1,9 @@
+// @ts-nocheck
+// noinspection JSUnusedGlobalSymbols
+
 class Remainder {
     twoNumbersRemainder(a: number, b: number): number {
-        res = a % b;
+        let res = a % b;
 
         if (a != a || b != b) {
             return res // NaN
@@ -34,7 +37,7 @@ class Remainder {
     }
 
     booleanRemainder(a: boolean, b: boolean): number {
-        res = a % b;
+        let res = a % b;
 
         if (res == 0) {
             return res
@@ -44,7 +47,8 @@ class Remainder {
     }
 
     mixedRemainder(a: number, b: boolean): number {
-        res = a % b;
+        let res = a % b;
+
         if (res == 4) {
             return res
         }
@@ -57,7 +61,7 @@ class Remainder {
     }
 
     unknownRemainder(a, b): number {
-        res = a % b;
+        let res = a % b;
 
         if (res == 4) {
             return res;
