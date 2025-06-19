@@ -58,7 +58,7 @@ class EtsHierarchy(private val scene: EtsScene) {
         val signature = superClassSignature.copy(name = typeName)
 
         val classesWithTheSameName = resolveMap[typeName] ?: run {
-            logger.error("No class with $superClassSignature found in the Scene")
+            // logger.error("No class with $superClassSignature found in the Scene")
             return emptyList()
         }
 

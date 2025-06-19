@@ -141,6 +141,7 @@ class TsInterpreter(
                 val s = e.stackTrace[0]
                 "Exception .(${s.fileName}:${s.lineNumber}): $e}"
             }
+            return StepResult(forkedStates = emptySequence(), originalStateAlive = false)
             // todo are exceptional states properly removed?
         }
 
@@ -213,11 +214,11 @@ class TsInterpreter(
 
         val limitedConcreteMethods = concreteMethods.take(5)
 
-        logger.info {
-            "Preparing to fork on ${limitedConcreteMethods.size} methods out of ${concreteMethods.size}: ${
-                limitedConcreteMethods.map { "${it.signature.enclosingClass.name}::${it.name}" }
-            }"
-        }
+        // logger.info {
+            // "Preparing to fork on ${limitedConcreteMethods.size} methods out of ${concreteMethods.size}: ${
+            //     limitedConcreteMethods.map { "${it.signature.enclosingClass.name}::${it.name}" }
+            // }"
+        // }
         val conditionsWithBlocks = limitedConcreteMethods.map { method ->
             val concreteCall = stmt.toConcrete(method)
             val block = { state: TsState -> state.newStmt(concreteCall) }
@@ -229,7 +230,7 @@ class TsInterpreter(
                     ?: uncoveredInstance.asExpr(addressSort)
                 // TODO mistake, should be separated into several hierarchies
                 //      or evalTypeEqual with several concrete types
-                memory.types.evalTypeEquals(ref, type)
+                memory.types.evalIsSubtype(ref, type) // TODO error
             }
             constraint to block
         }
@@ -245,7 +246,7 @@ class TsInterpreter(
         val entryPoint = graph.entryPoints(stmt.callee).singleOrNull()
 
         if (entryPoint == null) {
-            logger.warn { "No entry point for method: ${stmt.callee}, mocking the call" }
+            // logger.warn { "No entry point for method: ${stmt.callee}, mocking the call" }
             // If the method doesn't have entry points,
             // we go through it, we just mock the call
             mockMethodCall(scope, stmt.callee.signature)

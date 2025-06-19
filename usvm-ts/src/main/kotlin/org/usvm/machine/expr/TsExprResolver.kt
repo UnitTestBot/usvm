@@ -17,6 +17,7 @@ import org.jacodb.ets.model.EtsBitXorExpr
 import org.jacodb.ets.model.EtsBooleanConstant
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsCastExpr
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsConstant
 import org.jacodb.ets.model.EtsDeleteExpr
 import org.jacodb.ets.model.EtsDivExpr
@@ -276,6 +277,14 @@ class TsExprResolver(
             addressSort -> {
                 scope.calcOnState {
                     val instance = resolvedExpr.asExpr(addressSort)
+
+                    if (instance.isFakeObject()) {
+                        val fakeType = instance.getFakeType(scope)
+                        pathConstraints += fakeType.refTypeExpr
+                        val refValue = instance.extractRef(scope)
+                        pathConstraints += memory.types.evalIsSubtype(refValue, expr.type)
+                        return@calcOnState instance
+                    }
 
                     if (expr.type !is EtsRefType) {
                         TODO("Not supported yet")
@@ -554,7 +563,11 @@ class TsExprResolver(
                     val resolved = resolve(expr.instance) ?: return null
 
                     if (resolved.sort != addressSort) {
-                        logger.warn { "Calling method on non-ref instance is not yet supported" }
+                        if (expr.callee.name == "valueOf" && expr.args.isEmpty()) {
+                            return resolve(expr.instance)
+                        }
+
+                        logger.warn { "Calling method on non-ref instance is not yet supported, instruction $expr" }
                         scope.assert(falseExpr)
                         return null
                     }
@@ -585,6 +598,13 @@ class TsExprResolver(
             }
         }
 
+        if (expr.callee.name == "Boolean") {
+            check(expr.args.size == 1) { "Boolean constructor should have exactly one argument" }
+            return resolveAfterResolved(expr.args.single()) {
+                mkTruthyExpr(it, scope)
+            }
+        }
+
         if (expr.callee.name == "\$r") {
             // TODO hack
             return scope.calcOnState {
@@ -612,6 +632,7 @@ class TsExprResolver(
                 if (resolutionResult is EtsPropertyResolution.Empty) {
                     logger.error { "Could not resolve static call: ${expr.callee}" }
                     scope.assert(falseExpr)
+                    // TODO mocks
                     return null
                 }
 
@@ -668,8 +689,14 @@ class TsExprResolver(
     ): EtsPropertyResolution<out EtsMethod> {
         // Perfect signature:
         if (method.enclosingClass.name != UNKNOWN_CLASS_NAME) {
-            val classes = ctx.scene.projectAndSdkClasses.filter { it.name == method.enclosingClass.name }
-            if (classes.size != 1) return EtsPropertyResolution.Empty
+            val classes = hierarchy.classesForType(EtsClassType(method.enclosingClass))
+            if (classes.size > 1) {
+                val methods = classes.map { it.methods.single { it.name == method.name } }
+                return EtsPropertyResolution.create(methods)
+            }
+
+            if (classes.isEmpty()) return EtsPropertyResolution.Empty
+
             val clazz = classes.single()
             val methods = clazz.methods.filter { it.name == method.name }
             return EtsPropertyResolution.create(methods)
@@ -814,13 +841,6 @@ class TsExprResolver(
         hierarchy: EtsHierarchy,
     ): UExpr<out USort>? = with(ctx) {
         val resolvedAddr = if (instanceRef.isFakeObject()) instanceRef.extractRef(scope) else instanceRef
-        scope.doWithState {
-            // If we accessed some field, we make an assumption that
-            // this field should present in the object.
-            // That's not true in the common case for TS, but that's the decision we made.
-            val auxiliaryType = EtsAuxiliaryType(properties = setOf(field.name))
-            pathConstraints += memory.types.evalIsSubtype(resolvedAddr, auxiliaryType)
-        }
 
         val etsField = resolveEtsField(instance, field, hierarchy)
 
@@ -837,6 +857,14 @@ class TsExprResolver(
 
             is EtsPropertyResolution.Unique -> typeToSort(etsField.property.type)
             is EtsPropertyResolution.Ambiguous -> unresolvedSort
+        }
+
+        scope.doWithState {
+            // If we accessed some field, we make an assumption that
+            // this field should present in the object.
+            // That's not true in the common case for TS, but that's the decision we made.
+            val auxiliaryType = EtsAuxiliaryType(properties = setOf(field.name))
+            pathConstraints += memory.types.evalIsSubtype(resolvedAddr, auxiliaryType)
         }
 
         // TODO
