@@ -87,6 +87,7 @@ open class UDebugProfileObserver<Statement, Method, State : UState<*, Method, St
          * Profile number of forks on each instruction.
          * */
         val profileForks: Boolean = true,
+        val timeFormat: TimeFormat = TimeFormat.Microseconds,
     ) {
         init {
             require(!profileTime || momentOfUpdate == MomentOfUpdate.BeforeStep) {
@@ -114,7 +115,7 @@ open class UDebugProfileObserver<Statement, Method, State : UState<*, Method, St
         processStateUpdate(state)
 
         if (profilerOptions.profileTime) {
-            lastPeekMoment = System.currentTimeMillis()
+            lastPeekMoment = System.nanoTime()
         }
     }
 
@@ -128,7 +129,7 @@ open class UDebugProfileObserver<Statement, Method, State : UState<*, Method, St
         if (profilerOptions.momentOfUpdate == MomentOfUpdate.BeforeStep && profilerOptions.profileTime) {
             val stackTrace = lastStackTrace
                 ?: error("stackTraceAfterPeek should have been memorized")
-            incrementInstructionTime(parent, stackTrace, System.currentTimeMillis() - lastPeekMoment)
+            incrementInstructionTime(parent, stackTrace, System.nanoTime() - lastPeekMoment)
         }
     }
 
@@ -194,6 +195,14 @@ open class UDebugProfileObserver<Statement, Method, State : UState<*, Method, St
         )
     }
 
+    private fun formatTime(time: Long): Long {
+        return when (profilerOptions.timeFormat) {
+            TimeFormat.Nanoseconds -> time
+            TimeFormat.Microseconds -> time / 1000L
+            TimeFormat.Milliseconds -> time / 1000000L
+        }
+    }
+
     private fun computeProfileFrame(
         slice: StateId?,
         inst: Statement,
@@ -217,8 +226,8 @@ open class UDebugProfileObserver<Statement, Method, State : UState<*, Method, St
             selfSteps = selfStat,
             totalForks = forkStats,
             selfForks = selfForks,
-            totalTime = timeStats,
-            selfTime = selfTime,
+            totalTime = formatTime(timeStats),
+            selfTime = formatTime(selfTime),
             children,
             profilerOptions,
             statementOperations,
@@ -351,5 +360,11 @@ open class UDebugProfileObserver<Statement, Method, State : UState<*, Method, St
     enum class MomentOfUpdate {
         BeforeStep,
         AfterStep,
+    }
+
+    enum class TimeFormat {
+        Milliseconds,
+        Microseconds,
+        Nanoseconds,
     }
 }
