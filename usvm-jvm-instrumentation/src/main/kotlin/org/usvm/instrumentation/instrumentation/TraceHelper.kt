@@ -12,8 +12,8 @@ import org.jacodb.impl.features.classpaths.virtual.JcVirtualMethod
 import org.jacodb.impl.features.classpaths.virtual.JcVirtualMethodImpl
 import org.jacodb.impl.features.classpaths.virtual.JcVirtualParameter
 import org.jacodb.impl.types.TypeNameImpl
-import org.usvm.instrumentation.util.getTypename
-import org.usvm.instrumentation.util.typename
+import org.usvm.jvm.util.getTypename
+import org.usvm.jvm.util.typename
 import java.lang.reflect.Method
 
 class TraceHelper(

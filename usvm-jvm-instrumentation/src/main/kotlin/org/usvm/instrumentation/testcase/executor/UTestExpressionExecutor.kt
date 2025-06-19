@@ -3,21 +3,59 @@ package org.usvm.instrumentation.testcase.executor
 
 import org.jacodb.api.jvm.JcArrayType
 import org.jacodb.api.jvm.JcField
-import org.jacodb.api.jvm.ext.*
+import org.jacodb.api.jvm.ext.boolean
+import org.jacodb.api.jvm.ext.byte
+import org.jacodb.api.jvm.ext.char
+import org.jacodb.api.jvm.ext.double
+import org.jacodb.api.jvm.ext.findClass
+import org.jacodb.api.jvm.ext.float
+import org.jacodb.api.jvm.ext.int
+import org.jacodb.api.jvm.ext.long
+import org.jacodb.api.jvm.ext.short
 import org.usvm.instrumentation.classloader.WorkerClassLoader
-import org.usvm.instrumentation.instrumentation.JcInstructionTracer.StaticFieldAccessType
-import org.usvm.instrumentation.mock.MockHelper
-import org.usvm.instrumentation.testcase.api.*
 import org.usvm.instrumentation.collector.trace.MockCollector
 import org.usvm.instrumentation.collector.trace.MockCollector.MockValueArrayWrapper
-import org.usvm.instrumentation.util.*
-import java.lang.ClassCastException
-import java.lang.IllegalArgumentException
+import org.usvm.instrumentation.instrumentation.JcInstructionTracer.StaticFieldAccessType
+import org.usvm.instrumentation.mock.MockHelper
+import org.usvm.instrumentation.util.invokeWithAccessibility
+import org.usvm.instrumentation.util.newInstanceWithAccessibility
+import org.usvm.jvm.util.JcExecutor
+import org.usvm.jvm.util.ReflectionUtils
+import org.usvm.jvm.util.getFieldValue
+import org.usvm.jvm.util.setFieldValue
+import org.usvm.jvm.util.toJavaClass
+import org.usvm.jvm.util.toJavaConstructor
+import org.usvm.jvm.util.toJavaField
+import org.usvm.jvm.util.toJavaMethod
+import org.usvm.test.api.ArithmeticOperationType
+import org.usvm.test.api.ConditionType
+import org.usvm.test.api.UTestAllocateMemoryCall
+import org.usvm.test.api.UTestArithmeticExpression
+import org.usvm.test.api.UTestArrayGetExpression
+import org.usvm.test.api.UTestArrayLengthExpression
+import org.usvm.test.api.UTestArraySetStatement
+import org.usvm.test.api.UTestBinaryConditionExpression
+import org.usvm.test.api.UTestBinaryConditionStatement
+import org.usvm.test.api.UTestCastExpression
+import org.usvm.test.api.UTestClassExpression
+import org.usvm.test.api.UTestConstExpression
+import org.usvm.test.api.UTestConstructorCall
+import org.usvm.test.api.UTestCreateArrayExpression
+import org.usvm.test.api.UTestGetFieldExpression
+import org.usvm.test.api.UTestGetStaticFieldExpression
+import org.usvm.test.api.UTestGlobalMock
+import org.usvm.test.api.UTestInst
+import org.usvm.test.api.UTestMethodCall
+import org.usvm.test.api.UTestMock
+import org.usvm.test.api.UTestSetFieldStatement
+import org.usvm.test.api.UTestSetStaticFieldStatement
+import org.usvm.test.api.UTestStaticMethodCall
 
 class UTestExpressionExecutor(
     private val workerClassLoader: WorkerClassLoader,
     private val accessedStatics: MutableSet<Pair<JcField, StaticFieldAccessType>>,
-    private val mockHelper: MockHelper
+    private val mockHelper: MockHelper,
+    private val taskExecutor: JcExecutor
 ) {
 
     private val jcClasspath = workerClassLoader.jcClasspath
@@ -292,7 +330,7 @@ class UTestExpressionExecutor(
     private fun executeUTestStaticMethodCall(uTestStaticMethodCall: UTestStaticMethodCall): Any? {
         val jMethod = uTestStaticMethodCall.method.toJavaMethod(workerClassLoader)
         val args = uTestStaticMethodCall.args.map { exec(it) }
-        return jMethod.invokeWithAccessibility(null, args)
+        return jMethod.invokeWithAccessibility(null, args, taskExecutor)
     }
 
     private fun executeUTestCastExpression(uTestCastExpression: UTestCastExpression): Any? {
@@ -311,7 +349,7 @@ class UTestExpressionExecutor(
     private fun executeConstructorCall(uConstructorCall: UTestConstructorCall): Any {
         val jConstructor = uConstructorCall.method.toJavaConstructor(workerClassLoader)
         val args = uConstructorCall.args.map { exec(it) }
-        return jConstructor.newInstanceWithAccessibility(args)
+        return jConstructor.newInstanceWithAccessibility(args, taskExecutor)
     }
 
     private fun executeMethodCall(uMethodCall: UTestMethodCall): Any? {
@@ -319,9 +357,9 @@ class UTestExpressionExecutor(
         val args = uMethodCall.args.map { exec(it) }
         return with(uMethodCall.method) {
             if (isConstructor) {
-                toJavaConstructor(workerClassLoader).newInstanceWithAccessibility(args)
+                toJavaConstructor(workerClassLoader).newInstanceWithAccessibility(args, taskExecutor)
             } else {
-                toJavaMethod(workerClassLoader).invokeWithAccessibility(instance, args)
+                toJavaMethod(workerClassLoader).invokeWithAccessibility(instance, args, taskExecutor)
             }
         }
     }

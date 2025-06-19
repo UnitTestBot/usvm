@@ -1,4 +1,4 @@
-@file:Suppress("JAVA_MODULE_DOES_NOT_EXPORT_PACKAGE")
+@file:Suppress("JAVA_MODULE_DOES_NOT_EXPORT_PACKAGE", "DEPRECATION")
 package org.usvm.instrumentation.util
 import jdk.internal.loader.URLClassPath
 import jdk.internal.loader.Resource as InternalResource
@@ -33,6 +33,9 @@ class URLClassPathLoader(classPath: List<File>) {
 
     private val urlClassPath = URLClassPath(classPath.map { it.toURI().toURL() }.toTypedArray(), AccessController.getContext())
 
-    fun getResource(name: String): Resource = InternalResourceWrapper(urlClassPath.getResource(name, false))
+    fun getResource(name: String): Resource? =
+        urlClassPath.getResource(name, false)?.let { InternalResourceWrapper(it) }
 
+    fun getResources(name: String): Sequence<Resource> =
+        urlClassPath.getResources(name, false).asSequence().map { InternalResourceWrapper(it) }
 }

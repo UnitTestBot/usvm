@@ -6,11 +6,14 @@ import org.jacodb.api.jvm.JcMethod
 import org.jacodb.api.jvm.JcType
 import org.usvm.api.StaticFieldValue
 import org.usvm.api.decoder.DecoderApi
-import org.usvm.api.util.Reflection.allocateInstance
-import org.usvm.api.util.Reflection.getFieldValue
-import org.usvm.api.util.Reflection.invoke
-import org.usvm.api.util.Reflection.setFieldValue
-import org.usvm.api.util.Reflection.toJavaClass
+import org.usvm.jvm.util.allocateInstance
+import org.usvm.jvm.util.getArrayIndex as getArrayIndexInternal
+import org.usvm.jvm.util.getArrayLength as getArrayLengthInternal
+import org.usvm.jvm.util.getFieldValue
+import org.usvm.jvm.util.invoke
+import org.usvm.jvm.util.setArrayIndex as setArrayIndexInternal
+import org.usvm.jvm.util.setFieldValue
+import org.usvm.jvm.util.toJavaClass
 import org.usvm.machine.JcContext
 
 class JcTestInterpreterDecoderApi(
@@ -60,14 +63,14 @@ class JcTestInterpreterDecoderApi(
     override fun createNullConst(type: JcType): Any? = null
 
     override fun setArrayIndex(array: Any?, index: Any?, value: Any?) {
-        Reflection.setArrayIndex(array!!, index as Int, value)
+        setArrayIndexInternal(array!!, index as Int, value)
     }
 
     override fun getArrayIndex(array: Any?, index: Any?): Any? =
-        Reflection.getArrayIndex(array!!, index as Int)
+        getArrayIndexInternal(array!!, index as Int)
 
     override fun getArrayLength(array: Any?): Any =
-        Reflection.getArrayLength(array)
+        getArrayLengthInternal(array)
 
     override fun createArray(elementType: JcType, size: Any?): Any =
         ctx.cp.arrayTypeOf(elementType).allocateInstance(classLoader, size as Int)

@@ -115,6 +115,13 @@ class UTypeConstraints<Type>(
     }
 
     /**
+     * Returns type of allocated concrete heap address [ref].
+     */
+    fun typeOf(ref: UConcreteHeapAddress): Type {
+        return concreteRefToType[ref]!!
+    }
+
+    /**
      * Checks that the static ref [staticRef] can be equal by reference to the symbolic ref [symbolicRef]
      * according to their types, i.e., does a [UTypeStream] for the [symbolicRef] `contain` a concrete type of the [staticRef].
      */
@@ -352,10 +359,13 @@ class UTypeConstraints<Type>(
     ) {
         val region = getTypeRegion(ref)
         val newRegion = regionMapper(region)
+
+        equalityConstraints.makeNonEqual(ref, ref.uctx.nullRef)
+
         if (newRegion == region) {
             return
         }
-        equalityConstraints.makeNonEqual(ref, ref.uctx.nullRef)
+
         if (newRegion.isEmpty || equalityConstraints.isContradicting) {
             contradiction()
             return
@@ -488,8 +498,7 @@ class UTypeConstraints<Type>(
     }
 
 
-    @Suppress("UNUSED_PARAMETER")
-    fun constraints(translator: UExprTranslator<Type, *>): Sequence<UBoolExpr> {
+    fun constraints(): Sequence<UBoolExpr> {
         return emptySequence()
     }
 }

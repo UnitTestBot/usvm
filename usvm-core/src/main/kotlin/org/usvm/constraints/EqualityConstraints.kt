@@ -454,54 +454,67 @@ class UEqualityConstraints private constructor(
         return clone(thisOwnership, mergedOwnership)
     }
 
-    fun constraints(translator: UExprTranslator<*, *>): Sequence<UBoolExpr> {
-        var index = 1
+    fun translateConstraints(translator: UExprTranslator<*, *>): Sequence<UBoolExpr> =
+        collectConstraints(
+            transformRefDistinct = { distinctRefs ->
+                val result = mutableListOf<UBoolExpr>()
 
-        val result = mutableListOf<UBoolExpr>()
+                val nullRepr = findRepresentative(ctx.nullRef)
+                var index = 1
+                for (ref in distinctRefs) {
+                    // Static refs are already translated as a values of an uninterpreted sort
+                    if (isStaticHeapRef(ref)) {
+                        continue
+                    }
 
-        val nullRepr = findRepresentative(ctx.nullRef)
-        for (ref in distinctReferences) {
-            // Static refs are already translated as a values of an uninterpreted sort
-            if (isStaticHeapRef(ref)) {
-                continue
+                    val refIndex = if (ref == nullRepr) 0 else index++
+                    val translatedRef = translator.translate(ref)
+                    val preInterpretedValue = ctx.mkUninterpretedSortValue(ctx.addressSort, refIndex)
+                    result += ctx.mkEqNoSimplify(translatedRef, preInterpretedValue)
+                }
+                result
+            },
+            transformOther = { constraints ->
+                for (i in constraints.indices) {
+                    constraints[i] = translator.translate(constraints[i])
+                }
             }
+        ).asSequence()
 
-            val refIndex = if (ref == nullRepr) 0 else index++
-            val translatedRef = translator.translate(ref)
-            val preInterpretedValue = ctx.mkUninterpretedSortValue(ctx.addressSort, refIndex)
-            result += ctx.mkEqNoSimplify(translatedRef, preInterpretedValue)
-        }
+    fun constraints(): Sequence<UBoolExpr> =
+        collectConstraints(
+            transformRefDistinct = { listOf(ctx.mkDistinct(it.toList())) },
+            transformOther = {}
+        ).asSequence()
 
+    private inline fun collectConstraints(
+        transformRefDistinct: (Iterable<UHeapRef>) -> List<UBoolExpr>,
+        transformOther: (MutableList<UBoolExpr>) -> Unit,
+    ): List<UBoolExpr> {
+        val result = mutableListOf<UBoolExpr>()
         for ((key, value) in equalReferences) {
-            val translatedLeft = translator.translate(key)
-            val translatedRight = translator.translate(value)
-            result += ctx.mkEqNoSimplify(translatedLeft, translatedRight)
+            result += ctx.mkEqNoSimplify(key, value)
         }
 
-        val processedConstraints = mutableSetOf<Pair<UHeapRef, UHeapRef>>()
+        val processedConstraints = hashSetOf<Pair<UHeapRef, UHeapRef>>()
 
         for ((ref1, ref2) in referenceDisequalities.multiMapIterator()) {
             if (!processedConstraints.contains(ref2 to ref1)) {
                 processedConstraints.add(ref1 to ref2)
-                val translatedRef1 = translator.translate(ref1)
-                val translatedRef2 = translator.translate(ref2)
-                result += ctx.mkNotNoSimplify(ctx.mkEqNoSimplify(translatedRef1, translatedRef2))
+                result += ctx.mkNotNoSimplify(ctx.mkEqNoSimplify(ref1, ref2))
             }
         }
 
         processedConstraints.clear()
-        val translatedNull = translator.transform(ctx.nullRef)
         for ((ref1, ref2) in nullableDisequalities.multiMapIterator()) {
             if (!processedConstraints.contains(ref2 to ref1)) {
                 processedConstraints.add(ref1 to ref2)
-                val translatedRef1 = translator.translate(ref1)
-                val translatedRef2 = translator.translate(ref2)
 
                 val disequalityConstraint = ctx.mkNotNoSimplify(
-                    ctx.mkEqNoSimplify(translatedRef1, translatedRef2)
+                    ctx.mkEqNoSimplify(ref1, ref2)
                 )
-                val nullConstraint1 = ctx.mkEqNoSimplify(translatedRef1, translatedNull)
-                val nullConstraint2 = ctx.mkEqNoSimplify(translatedRef2, translatedNull)
+                val nullConstraint1 = ctx.mkEqNoSimplify(ref1, ctx.nullRef)
+                val nullConstraint2 = ctx.mkEqNoSimplify(ref2, ctx.nullRef)
                 result += ctx.mkOrNoSimplify(
                     disequalityConstraint,
                     ctx.mkAndNoSimplify(nullConstraint1, nullConstraint2)
@@ -509,7 +522,9 @@ class UEqualityConstraints private constructor(
             }
         }
 
-        return result.asSequence()
+        transformOther(result)
+        result += transformRefDistinct(distinctReferences)
+        return result
     }
 
     /**

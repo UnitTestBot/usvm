@@ -55,7 +55,7 @@ interface USymbolicCollectionUpdates<Key, Sort : USort> : Sequence<UUpdateNode<K
      * Writes to this [USymbolicCollectionUpdates] preserving the invariant
      * that all records satisfying predicate are hierarchically older than those that do not satisfy it.
      *
-     * If [value] satisfies predicate, calls [write]. Otherwise traverses current collection from newest records to
+     * If [value] satisfies predicate, calls [write]. Otherwise traverses current collection from the newest records to
      * oldest, modifying their guard so that they are not overwritten by [key], and places current record under
      * invariant tree.
      *
@@ -161,13 +161,17 @@ class UFlatUpdates<Key, Sort : USort> private constructor(
         fromCollection: USymbolicCollection<CollectionId, SrcKey, Sort>,
         adapter: USymbolicCollectionAdapter<SrcKey, Key>,
         guard: UBoolExpr,
-    ): USymbolicCollectionUpdates<Key, Sort> = UFlatUpdates(
-        UFlatUpdatesNode(
-            URangedUpdateNode(fromCollection, adapter, guard),
-            this
-        ),
-        keyInfo
-    )
+    ): USymbolicCollectionUpdates<Key, Sort> {
+        if (adapterIsEmpty<Nothing>(adapter)) return this
+
+        return UFlatUpdates(
+            UFlatUpdatesNode(
+                URangedUpdateNode(fromCollection, adapter, guard),
+                this
+            ),
+            keyInfo
+        )
+    }
 
     override fun split(
         key: Key,
@@ -301,6 +305,8 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
         adapter: USymbolicCollectionAdapter<SrcKey, Key>,
         guard: UBoolExpr
     ): UTreeUpdates<Key, Reg, Sort> {
+        if (adapterIsEmpty<Nothing>(adapter)) return this
+
         val update = URangedUpdateNode(fromCollection, adapter, guard)
         val newUpdates = updates.write(
             adapter.region(),
@@ -381,10 +387,10 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
 
         /*
          * Traverses tree while nodes satisfy predicate, guarding them from rewriting by [key], then
-         * places [UUpdateNode] corresponding to current write operation under invariant tree.
+         * places [UUpdateNode] corresponding to the current write operation under invariant tree.
          *
-         * Adds additional nodes if needed since sum of regions of all nodes corresponding to current write operation
-         * must be equal to  region of [key]: consider series of writes: a[1] = u, a[i] = v, where u satisfies
+         * Adds additional nodes if needed since sum of regions of all nodes corresponding to the current write
+         * operation must be equal to  region of [key]: consider series of writes: a[1] = u, a[i] = v, where u satisfies
          * predicate and v does not. We need to hang a[i] = v with region 1 under a[1] = u and add node a[i] = v with
          * region Int \ 1.
          */
@@ -564,3 +570,6 @@ data class UTreeUpdates<Key, Reg : Region<Reg>, Sort : USort>(
 }
 
 //endregion
+
+private fun <Reg: Region<Reg>> adapterIsEmpty(adapter: USymbolicCollectionAdapter<*, *>): Boolean =
+    (adapter.region() as Reg).isEmpty

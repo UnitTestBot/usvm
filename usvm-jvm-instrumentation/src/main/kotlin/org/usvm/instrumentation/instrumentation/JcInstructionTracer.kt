@@ -8,9 +8,9 @@ import org.jacodb.api.jvm.cfg.JcInst
 import org.jacodb.api.jvm.cfg.JcRawFieldRef
 import org.usvm.instrumentation.collector.trace.TraceCollector
 import org.usvm.instrumentation.instrumentation.JcInstructionTracer.StaticFieldAccessType
-import org.usvm.instrumentation.util.enclosingClass
-import org.usvm.instrumentation.util.enclosingMethod
-import org.usvm.instrumentation.util.toJcClassOrInterface
+import org.usvm.jvm.util.enclosingClass
+import org.usvm.jvm.util.enclosingMethod
+import org.usvm.jvm.util.toJcClassOrInterface
 
 //Jacodb instructions tracer
 object JcInstructionTracer : Tracer<Trace> {

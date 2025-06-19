@@ -17,6 +17,7 @@ import org.usvm.UIteExpr
 import org.usvm.USizeSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.api.allocateConcreteRef
+import org.usvm.api.initializeArrayLength
 import org.usvm.api.readArrayIndex
 import org.usvm.api.readField
 import org.usvm.api.writeArrayIndex
@@ -25,7 +26,6 @@ import org.usvm.collection.field.UInputFieldReading
 import org.usvm.sizeSort
 import org.usvm.mkSizeExpr
 import org.usvm.api.memcpy
-import org.usvm.api.allocateArray
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.constraints.UEqualityConstraints
 import org.usvm.constraints.UTypeConstraints
@@ -430,13 +430,15 @@ class HeapRefSplittingTest {
 
     private fun initializeArray(): Pair<IntArray, UConcreteHeapRef> {
         val array = IntArray(10)
-        val ref = heap.allocateArray(arrayDescr.first, ctx.sizeSort, ctx.mkSizeExpr(array.size))
+        val arrayType = arrayDescr.first
+        val ref = heap.allocConcrete(arrayType)
+        heap.initializeArrayLength(ref, arrayType, ctx.sizeSort, ctx.mkSizeExpr(array.size))
 
         array.indices.forEach { idx ->
             heap.writeArrayIndex(
                 ref = ref,
                 index = ctx.mkSizeExpr(idx),
-                type = arrayDescr.first,
+                type = arrayType,
                 sort = arrayDescr.second,
                 value = ctx.allocateConcreteRef(),
                 guard = ctx.trueExpr

@@ -9,7 +9,7 @@ import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
-import org.usvm.api.allocateArray
+import org.usvm.api.initializeArrayLength
 import org.usvm.language.And
 import org.usvm.language.ArrayCreation
 import org.usvm.language.ArrayEq
@@ -102,7 +102,7 @@ class SampleExprResolver(
 
             is ArraySelect -> resolveArraySelect(expr)?.asExpr(addressSort)
             is FieldSelect -> resolveFieldSelect(expr)?.asExpr(addressSort)
-            is Register -> resolveRegister(expr)?.asExpr(addressSort)
+            is Register -> resolveRegister(expr).asExpr(addressSort)
             else -> error("Unexpected StructExpr: $expr")
         }
     }
@@ -113,7 +113,11 @@ class SampleExprResolver(
                 val size = resolveInt(expr.size) ?: return null
                 checkArrayLength(size, expr.values.size) ?: return null
 
-                val ref = scope.calcOnState { memory.allocateArray(expr.type, sizeSort, size) }
+                val ref = scope.calcOnState {
+                    val arrayRef = memory.allocConcrete(expr.type)
+                    memory.initializeArrayLength(arrayRef, expr.type, sizeSort, size)
+                    arrayRef
+                }
 
                 val cellSort = typeToSort(expr.type.elementType)
 
@@ -132,7 +136,7 @@ class SampleExprResolver(
 
             is ArraySelect -> resolveArraySelect(expr)?.asExpr(addressSort)
             is FieldSelect -> resolveFieldSelect(expr)?.asExpr(addressSort)
-            is Register -> resolveRegister(expr)?.asExpr(addressSort)
+            is Register -> resolveRegister(expr).asExpr(addressSort)
             else -> error("Unexpected ArrayExpr: $expr")
         }
     }
@@ -189,7 +193,7 @@ class SampleExprResolver(
 
             is ArraySelect -> resolveArraySelect(expr)?.asExpr(bv32Sort)
             is FieldSelect -> resolveFieldSelect(expr)?.asExpr(bv32Sort)
-            is Register -> resolveRegister(expr)?.asExpr(bv32Sort)
+            is Register -> resolveRegister(expr).asExpr(bv32Sort)
             else -> error("Unexpected IntExpr: $expr")
         }
     }
@@ -269,7 +273,7 @@ class SampleExprResolver(
 
             is ArraySelect -> resolveArraySelect(expr)?.asExpr(boolSort)
             is FieldSelect -> resolveFieldSelect(expr)?.asExpr(boolSort)
-            is Register -> resolveRegister(expr)?.asExpr(boolSort)
+            is Register -> resolveRegister(expr).asExpr(boolSort)
             else -> error("Unexpected BoolExpr: $expr")
         }
     }
@@ -281,7 +285,7 @@ class SampleExprResolver(
             is RegisterLValue -> resolveRegisterRef(value.value)
         }
 
-    private fun resolveRegister(register: Register<SampleType>): UExpr<out USort>? {
+    private fun resolveRegister(register: Register<SampleType>): UExpr<out USort> {
         val registerRef = resolveRegisterRef(register)
         return scope.calcOnState { memory.read(registerRef) }
     }

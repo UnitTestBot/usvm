@@ -79,9 +79,19 @@ open class UPathConstraints<Type>(
             return sequenceOf(ctx.falseExpr)
         }
         return logicalConstraints.asSequence().map(translator::translate) +
-            equalityConstraints.constraints(translator) +
-            numericConstraints.constraints(translator) +
-            typeConstraints.constraints(translator)
+            equalityConstraints.translateConstraints(translator) +
+            numericConstraints.constraints().map(translator::translate) +
+            typeConstraints.constraints().map(translator::translate)
+    }
+
+    fun constraintSequence(): Sequence<UBoolExpr> {
+        if (isFalse) {
+            return sequenceOf(ctx.falseExpr)
+        }
+        return logicalConstraints.asSequence() +
+                equalityConstraints.constraints() +
+                numericConstraints.constraints() +
+                typeConstraints.constraints()
     }
 
     @Suppress("UNCHECKED_CAST")

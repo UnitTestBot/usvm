@@ -2,6 +2,7 @@ package org.usvm.samples
 
 import kotlinx.coroutines.runBlocking
 import org.jacodb.api.jvm.JcClasspath
+import org.jacodb.api.jvm.JcClasspathFeature
 import org.jacodb.api.jvm.JcDatabase
 import org.jacodb.api.jvm.JcSettings
 import org.jacodb.approximation.Approximations
@@ -16,6 +17,7 @@ class JacoDBContainer(
     key: Any?,
     classpath: List<File>,
     builder: JcSettings.() -> Unit,
+    additionalFeatures: List<JcClasspathFeature> = emptyList(),
 ) {
     val db: JcDatabase
     val cp: JcClasspath
@@ -35,7 +37,7 @@ class JacoDBContainer(
             val features = listOf(
                 JcMultiDimArrayAllocationTransformer,
                 JcStringConcatTransformer,
-            )
+            ) + additionalFeatures
 
             val cp = if (samplesWithApproximationsKey == key) {
                 db.classpathWithApproximations(classpath, features)
@@ -57,9 +59,10 @@ class JacoDBContainer(
         operator fun invoke(
             key: Any?,
             classpath: List<File>,
+            features: List<JcClasspathFeature> = emptyList(),
             builder: JcSettings.() -> Unit = defaultBuilder,
         ): JacoDBContainer =
-            keyToJacoDBContainer.getOrPut(key) { JacoDBContainer(key, classpath, builder) }
+            keyToJacoDBContainer.getOrPut(key) { JacoDBContainer(key, classpath, builder, features) }
 
         private val defaultBuilder: JcSettings.() -> Unit = {
             useProcessJavaRuntime()

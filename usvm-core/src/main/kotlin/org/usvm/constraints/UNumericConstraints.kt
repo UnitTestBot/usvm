@@ -33,13 +33,16 @@ import org.usvm.algorithms.UPersistentMultiMap
 import org.usvm.algorithms.addToSet
 import org.usvm.algorithms.removeValue
 import org.usvm.algorithms.separate
-import org.usvm.collections.immutable.*
+import org.usvm.collections.immutable.getOrDefault
 import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHashMap
 import org.usvm.collections.immutable.internal.MutabilityOwnership
+import org.usvm.collections.immutable.isEmpty
+import org.usvm.collections.immutable.isNotEmpty
+import org.usvm.collections.immutable.persistentHashMapOf
+import org.usvm.collections.immutable.persistentHashSetOf
 import org.usvm.merging.MutableMergeGuard
 import org.usvm.merging.UOwnedMergeable
 import org.usvm.regions.IntIntervalsRegion
-import org.usvm.solver.UExprTranslator
 
 private typealias ConstraintTerms<Sort> = UExpr<Sort>
 
@@ -117,8 +120,6 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         return numericConstraints.asSequence()
             .flatMap { it.value.mkExpressions() }
     }
-
-    fun constraints(translator: UExprTranslator<*, *>): Sequence<UBoolExpr> = constraints().map(translator::translate)
 
     /**
      * Check if [expr] is numeric constraint over bit-vectors and can

@@ -60,7 +60,7 @@ interface UArrayRegion<ArrayType, Sort : USort, USizeSort : USort> : UMemoryRegi
         address: UConcreteHeapAddress,
         arrayType: ArrayType,
         sort: Sort,
-        content: Map<UExpr<USizeSort>, UExpr<Sort>>,
+        content: List<UExpr<Sort>>,
         operationGuard: UBoolExpr,
         ownership: MutabilityOwnership,
     ): UArrayRegion<ArrayType, Sort, USizeSort>
@@ -192,7 +192,7 @@ internal class UArrayMemoryRegion<ArrayType, Sort : USort, USizeSort : USort>(
         address: UConcreteHeapAddress,
         arrayType: ArrayType,
         sort: Sort,
-        content: Map<UExpr<USizeSort>, UExpr<Sort>>,
+        content: List<UExpr<Sort>>,
         operationGuard: UBoolExpr,
         ownership: MutabilityOwnership,
     ): UArrayMemoryRegion<ArrayType, Sort, USizeSort> {

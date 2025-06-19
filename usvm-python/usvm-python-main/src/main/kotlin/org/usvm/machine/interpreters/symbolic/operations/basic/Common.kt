@@ -3,8 +3,7 @@ package org.usvm.machine.interpreters.symbolic.operations.basic
 import io.ksmt.sort.KIntSort
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
-import org.usvm.api.allocateArrayInitialized
-import org.usvm.api.writeArrayLength
+import org.usvm.api.initializeArray
 import org.usvm.isFalse
 import org.usvm.isTrue
 import org.usvm.machine.ConcolicRunContext
@@ -124,13 +123,9 @@ fun createIterable(
     }
     val addresses = elements.map { it.address }.asSequence()
     val typeSystem = ctx.typeSystem
-    val size = elements.size
     with(ctx.ctx) {
-        val iterableAddress = ctx.extractCurState()
-            .memory
-            .allocateArrayInitialized(ArrayType, addressSort, intSort, addresses)
-        ctx.extractCurState().memory.writeArrayLength(iterableAddress, mkIntNum(size), ArrayType, intSort)
-        ctx.extractCurState().memory.types.allocate(iterableAddress.address, type)
+        val iterableAddress = ctx.extractCurState().memory.allocConcrete(type)
+        ctx.extractCurState().memory.initializeArray(iterableAddress, ArrayType, addressSort, intSort, addresses)
         val result = UninterpretedSymbolicPythonObject(iterableAddress, typeSystem)
         result.addSupertypeSoft(ctx, type)
         return result

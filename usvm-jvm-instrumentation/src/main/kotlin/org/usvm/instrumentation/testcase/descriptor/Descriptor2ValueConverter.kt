@@ -1,7 +1,18 @@
 package org.usvm.instrumentation.testcase.descriptor
 
-import org.jacodb.api.jvm.ext.*
-import org.usvm.instrumentation.util.*
+import org.jacodb.api.jvm.ext.boolean
+import org.jacodb.api.jvm.ext.byte
+import org.jacodb.api.jvm.ext.char
+import org.jacodb.api.jvm.ext.double
+import org.jacodb.api.jvm.ext.float
+import org.jacodb.api.jvm.ext.int
+import org.jacodb.api.jvm.ext.long
+import org.jacodb.api.jvm.ext.short
+import org.usvm.jvm.util.ReflectionUtils
+import org.usvm.jvm.util.allFields
+import org.usvm.jvm.util.setFieldValue
+import org.usvm.jvm.util.toJavaClass
+import org.usvm.jvm.util.toJavaField
 import java.util.*
 
 class Descriptor2ValueConverter(private val workerClassLoader: ClassLoader) {
@@ -36,10 +47,11 @@ class Descriptor2ValueConverter(private val workerClassLoader: ClassLoader) {
                     .filter { it.first is UTestRefDescriptor }
                     .find { (it.first as UTestRefDescriptor).refId == descriptor.refId }?.second
             }
+
             is UTestObjectDescriptor -> `object`(descriptor)
             is UTestEnumValueDescriptor -> `enum`(descriptor)
             is UTestClassDescriptor -> descriptor.classType.toJavaClass(workerClassLoader)
-            is UTestExceptionDescriptor -> `exception`(descriptor)
+            is UTestExceptionDescriptor -> exception(descriptor)
         }
 
     private fun array(descriptor: UTestArrayDescriptor): Any {

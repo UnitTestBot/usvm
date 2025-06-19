@@ -59,6 +59,7 @@ class JcTypeSystem(
                     when {
                         it is JcArrayType -> it.elementType
                         it == cp.objectType -> null
+                        it is JcTypeVariable -> it.bounds.first()
                         else -> return false
                     }
                 }

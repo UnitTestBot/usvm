@@ -2,11 +2,8 @@ package org.usvm.machine.interpreter
 
 import io.ksmt.utils.asExpr
 import mu.KLogging
-import org.jacodb.api.jvm.JcArrayType
-import org.jacodb.api.jvm.JcClassOrInterface
 import org.jacodb.api.jvm.JcClassType
 import org.jacodb.api.jvm.JcMethod
-import org.jacodb.api.jvm.JcPrimitiveType
 import org.jacodb.api.jvm.JcRefType
 import org.jacodb.api.jvm.JcType
 import org.jacodb.api.jvm.cfg.JcArgument
@@ -29,7 +26,6 @@ import org.jacodb.api.jvm.cfg.JcThis
 import org.jacodb.api.jvm.cfg.JcThrowInst
 import org.jacodb.api.jvm.ext.boolean
 import org.jacodb.api.jvm.ext.cfg.callExpr
-import org.jacodb.api.jvm.ext.ifArrayGetElementType
 import org.jacodb.api.jvm.ext.isEnum
 import org.jacodb.api.jvm.ext.toType
 import org.usvm.ForkCase
@@ -43,12 +39,13 @@ import org.usvm.UInterpreter
 import org.usvm.USort
 import org.usvm.api.allocateStaticRef
 import org.usvm.api.evalTypeEquals
-import org.usvm.api.mapTypeStream
 import org.usvm.api.targets.JcTarget
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.forkblacklists.UForkBlackList
+import org.usvm.jvm.util.name
+import org.usvm.jvm.util.outerClassInstanceField
 import org.usvm.machine.JcApplicationGraph
 import org.usvm.machine.JcConcreteMethodCallInst
 import org.usvm.machine.JcContext
@@ -75,9 +72,6 @@ import org.usvm.machine.state.throwExceptionWithoutStackFrameDrop
 import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.targets.UTargetsSet
-import org.usvm.types.singleOrNull
-import org.usvm.util.name
-import org.usvm.util.outerClassInstanceField
 import org.usvm.util.write
 import org.usvm.utils.ensureSat
 import org.usvm.utils.logAssertFailure
@@ -233,10 +227,12 @@ class JcInterpreter(
 
     private val typeSelector = JcFixedInheritorsNumberTypeSelector()
 
-    private fun visitMethodCall(scope: JcStepScope, stmt: JcMethodCallBaseInst) {
-        val exprResolver = exprResolverWithScope(scope)
+    private fun callMethod(
+        scope: JcStepScope,
+        stmt: JcMethodCallBaseInst,
+        exprResolver: JcExprResolver
+    ) {
         val simpleValueResolver = exprResolver.simpleValueResolver
-
         val method = stmt.method
         when (stmt) {
             is JcMethodEntrypointInst -> {
@@ -333,6 +329,10 @@ class JcInterpreter(
         }
     }
 
+    private fun visitMethodCall(scope: JcStepScope, stmt: JcMethodCallBaseInst) {
+        callMethod(scope, stmt, exprResolverWithScope(scope))
+    }
+
     private inline fun handleInnerClassMethodCall(
         scope: JcStepScope,
         enclosingType: JcClassType,
@@ -395,7 +395,6 @@ class JcInterpreter(
     private fun visitAssignInst(scope: JcStepScope, stmt: JcAssignInst) {
         val exprResolver = exprResolverWithScope(scope)
 
-
         stmt.callExpr?.let {
             val methodResult = scope.calcOnState { methodResult }
 
@@ -446,33 +445,7 @@ class JcInterpreter(
         val rvalueRef = rvalue.asExpr(ctx.addressSort)
 
         // ArrayStoreException happens if we write a value that is not a subtype of the element type
-        val isRvalueSubtypeOf = scope.calcOnState {
-            val elementTypeConstraints = mapTypeStream(lvalue.ref) { arrayRef, types ->
-                // The type stored in ULValue is array descriptor and for object arrays it equals just to Object,
-                // so we need to retrieve the real array type with another way
-                val arrayType = types.commonSuperType
-                    ?: error("No type found for array $arrayRef")
-
-                val elementType = arrayType.ifArrayGetElementType
-                // Super type is not Array type (e.g. Object).
-                // When we can't verify a type, treat this check as no exception possible
-                    ?: return@mapTypeStream ctx.trueExpr
-
-                memory.types.evalIsSubtype(rvalueRef, elementType)
-            } ?: ctx.trueExpr // We can't extract types for array ref -> treat this check as no exception possible
-
-            val arrayTypeConstraints = mapTypeStream(rvalueRef) { _, types ->
-                val elementType = types.singleOrNull()
-                    // When we can't verify a type, treat this check as no exception possible
-                    ?: return@mapTypeStream ctx.trueExpr
-
-                val arrayType = ctx.cp.arrayTypeOf(elementType)
-
-                memory.types.evalIsSupertype(lvalue.ref, arrayType)
-            } ?: ctx.trueExpr
-
-            ctx.mkAnd(elementTypeConstraints, arrayTypeConstraints)
-        }
+        val isRvalueSubtypeOf = exprResolver.checkIsArrayRvalueSubtypeOf(lvalue.ref, rvalueRef)
 
         return if (options.forkOnImplicitExceptions) {
             scope.fork(
@@ -583,7 +556,7 @@ class JcInterpreter(
         val address = exprResolver.resolveJcExpr(stmt.throwable)?.asExpr(ctx.addressSort) ?: return
 
         // Throwing `null` leads to NPE
-        exprResolver.checkNullPointer(address)
+        exprResolver.checkNullPointer(address) ?: return
 
         scope.calcOnState {
             throwExceptionWithoutStackFrameDrop(address, stmt.throwable.type)
@@ -640,8 +613,28 @@ class JcInterpreter(
         }
     }
 
+    private fun createExprResolver(
+        ctx: JcContext,
+        scope: JcStepScope,
+        options: JcMachineOptions,
+        localToIdx: (JcMethod, JcImmediate) -> Int,
+        mkTypeRef: (JcState, JcType) -> Pair<UConcreteHeapRef, Boolean>,
+        mkStringConstRef: (JcState, String, Boolean) -> Pair<UConcreteHeapRef, Boolean>,
+        classInitializerAnalysisAlwaysRequiredForType: (JcRefType) -> Boolean,
+    ): JcExprResolver {
+        return JcExprResolver(
+            ctx,
+            scope,
+            options,
+            localToIdx,
+            mkTypeRef,
+            mkStringConstRef,
+            classInitializerAnalysisAlwaysRequiredForType
+        )
+    }
+
     private fun exprResolverWithScope(scope: JcStepScope) =
-        JcExprResolver(
+        createExprResolver(
             ctx,
             scope,
             options,
@@ -670,47 +663,66 @@ class JcInterpreter(
     private val JcInst.nextStmt get() = location.method.instList[location.index + 1]
     private operator fun JcInstList<JcInst>.get(instRef: JcInstRef): JcInst = this[instRef.index]
 
-    private val stringConstantAllocatedRefs = mutableMapOf<String, UConcreteHeapRef>()
+    private fun allocateString(): UConcreteHeapRef {
+        // Allocate globally unique ref with a negative address
+        return ctx.allocateStaticRef()
+    }
+
+    // TODO: make this region! (like interningPool)
+    private val initializedRefs = hashSetOf<UConcreteHeapRef>()
 
     // Equal string constants must have equal references
-    private fun stringConstantAllocator(value: String): UConcreteHeapRef =
-        stringConstantAllocatedRefs.getOrPut(value) {
-            // Allocate globally unique ref with a negative address
-            ctx.allocateStaticRef()
+    private fun stringConstantAllocator(
+        state: JcState,
+        value: String,
+        initialize: Boolean = true
+    ): Pair<UConcreteHeapRef, Boolean> {
+        val memory = state.memory
+        val interningPool = memory.getRegion(JcStringInterningRegionId) as JcStringInterningRegion
+        var alreadyInitialized = false
+        val (address, region) = interningPool.getOrPut(value) {
+            allocateString()
         }
+        memory.setRegion(JcStringInterningRegionId, region)
 
-    private val typeInstanceAllocatedRefs = mutableMapOf<JcTypeInfo, UConcreteHeapRef>()
+        alreadyInitialized = alreadyInitialized || initializedRefs.contains(address)
 
-    private fun typeInstanceAllocator(type: JcType): UConcreteHeapRef {
-        val typeInfo = resolveTypeInfo(type)
-        return typeInstanceAllocatedRefs.getOrPut(typeInfo) {
-            // Allocate globally unique ref with a negative address
-            ctx.allocateStaticRef()
+        if (initialize)
+            initializedRefs.add(address)
+
+        return address to alreadyInitialized
+    }
+
+    private fun allocateTypeInstance(): UConcreteHeapRef {
+        // Allocate globally unique ref with a negative address
+        return ctx.allocateStaticRef()
+    }
+
+    private fun typeInstanceAllocator(
+        state: JcState,
+        type: JcType,
+        initialize: Boolean = true
+    ): Pair<UConcreteHeapRef, Boolean> {
+        val memory = state.memory
+        val interningPool = memory.getRegion(JcClassInterningRegionId) as JcClassInterningRegion
+        var alreadyInitialized = false
+        val (address, region) = interningPool.getOrPut(type) {
+            allocateTypeInstance()
         }
+        memory.setRegion(JcClassInterningRegionId, region)
+
+        alreadyInitialized = alreadyInitialized || initializedRefs.contains(address)
+
+        if (initialize)
+            initializedRefs.add(address)
+
+        return address to alreadyInitialized
     }
 
     private fun classInitializerAlwaysAnalysisRequiredForType(type: JcRefType): Boolean {
         // Always analyze a static initializer for enums
         return type.jcClass.isEnum
     }
-
-    private fun resolveTypeInfo(type: JcType): JcTypeInfo = when (type) {
-        is JcClassType -> JcClassTypeInfo(type.jcClass)
-        is JcPrimitiveType -> JcPrimitiveTypeInfo(type)
-        is JcArrayType -> JcArrayTypeInfo(resolveTypeInfo(type.elementType))
-        else -> error("Unexpected type: $type")
-    }
-
-    private sealed interface JcTypeInfo
-
-    private data class JcClassTypeInfo(val className: String) : JcTypeInfo {
-        // Don't use type.typeName here, because it contains generic parameters
-        constructor(cls: JcClassOrInterface) : this(cls.name)
-    }
-
-    private data class JcPrimitiveTypeInfo(val type: JcPrimitiveType) : JcTypeInfo
-
-    private data class JcArrayTypeInfo(val element: JcTypeInfo) : JcTypeInfo
 
     private fun resolveVirtualInvoke(
         methodCall: JcVirtualMethodCallInst,

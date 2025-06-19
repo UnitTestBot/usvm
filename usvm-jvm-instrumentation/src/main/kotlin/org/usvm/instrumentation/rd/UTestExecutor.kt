@@ -9,13 +9,20 @@ import org.usvm.instrumentation.collector.trace.MockCollector
 import org.usvm.instrumentation.collector.trace.TraceCollector
 import org.usvm.instrumentation.instrumentation.JcInstructionTracer
 import org.usvm.instrumentation.mock.MockHelper
-import org.usvm.instrumentation.testcase.UTest
-import org.usvm.instrumentation.testcase.api.*
-import org.usvm.instrumentation.testcase.descriptor.*
+import org.usvm.instrumentation.testcase.api.UTestExecutionExceptionResult
+import org.usvm.instrumentation.testcase.api.UTestExecutionInitFailedResult
+import org.usvm.instrumentation.testcase.api.UTestExecutionResult
+import org.usvm.instrumentation.testcase.api.UTestExecutionState
+import org.usvm.instrumentation.testcase.api.UTestExecutionSuccessResult
+import org.usvm.instrumentation.testcase.descriptor.StaticDescriptorsBuilder
+import org.usvm.instrumentation.testcase.descriptor.UTestExceptionDescriptor
+import org.usvm.instrumentation.testcase.descriptor.Value2DescriptorConverter
 import org.usvm.instrumentation.testcase.executor.UTestExpressionExecutor
 import org.usvm.instrumentation.util.InstrumentationModuleConstants
 import org.usvm.instrumentation.util.URLClassPathLoader
-import java.lang.Exception
+import org.usvm.jvm.util.JcExecutor
+import org.usvm.test.api.UTest
+import org.usvm.test.api.UTestCall
 
 class UTestExecutor(
     private val jcClasspath: JcClasspath,
@@ -68,10 +75,11 @@ class UTestExecutor(
             else -> {}
         }
         reset()
+        val taskExecutor = JcExecutor(workerClassLoader)
         val accessedStatics = mutableSetOf<Pair<JcField, JcInstructionTracer.StaticFieldAccessType>>()
         val callMethodExpr = uTest.callMethodExpression
 
-        val executor = UTestExpressionExecutor(workerClassLoader, accessedStatics, mockHelper)
+        val executor = UTestExpressionExecutor(workerClassLoader, accessedStatics, mockHelper, taskExecutor)
         val initStmts = (uTest.initStatements + listOf(callMethodExpr.instance) + callMethodExpr.args).filterNotNull()
         executor.executeUTestInsts(initStmts)
             ?.onFailure {
@@ -132,7 +140,7 @@ class UTestExecutor(
         if (InstrumentationModuleConstants.testExecutorStaticsRollbackStrategy == StaticsRollbackStrategy.ROLLBACK) {
             staticDescriptorsBuilder.rollBackStatics()
         } else if (InstrumentationModuleConstants.testExecutorStaticsRollbackStrategy == StaticsRollbackStrategy.REINIT) {
-            workerClassLoader.reset(accessedStaticsFields)
+            workerClassLoader.reset(accessedStaticsFields, taskExecutor)
         }
 
 
