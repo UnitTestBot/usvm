@@ -56,7 +56,9 @@ class StepScope<T : UState<Type, *, Statement, Context, *, T>, Type, Statement, 
         contract {
             callsInPlace(block, InvocationKind.EXACTLY_ONCE)
         }
-        check(canProcessFurtherOnCurrentStep) { "Caller should check before processing the current hop further" }
+        check(canProcessFurtherOnCurrentStep) {
+            "Caller should check before processing the current hop further"
+        }
         return originalState.block()
     }
 
