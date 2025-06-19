@@ -198,8 +198,8 @@ open class UDebugProfileObserver<Statement, Method, State : UState<*, Method, St
     private fun formatTime(time: Long): Long {
         return when (profilerOptions.timeFormat) {
             TimeFormat.Nanoseconds -> time
-            TimeFormat.Microseconds -> time / 1000L
-            TimeFormat.Milliseconds -> time / 1000000L
+            TimeFormat.Microseconds -> time / MICRO_IN_NANO
+            TimeFormat.Milliseconds -> time / MILLIES_IN_NANO
         }
     }
 
@@ -366,5 +366,10 @@ open class UDebugProfileObserver<Statement, Method, State : UState<*, Method, St
         Milliseconds,
         Microseconds,
         Nanoseconds,
+    }
+
+    companion object {
+        private const val MICRO_IN_NANO = 1000L
+        private const val MILLIES_IN_NANO = 1000_000L
     }
 }
