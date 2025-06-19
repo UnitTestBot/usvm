@@ -79,18 +79,42 @@ open class UDebugProfileObserver<Statement, Method, State : UState<*, Method, St
          * Add padding to instructions in profiler report.
          * */
         val padInstructionEnd: Int = 0,
-    )
+        /**
+         * Profile time spent on each instruction.
+         * */
+        val profileTime: Boolean = true,
+        /**
+         * Profile number of forks on each instruction.
+         * */
+        val profileForks: Boolean = true,
+    ) {
+        init {
+            require(!profileTime || momentOfUpdate == MomentOfUpdate.BeforeStep) {
+                "Time profiling in now supported only if momentOfUpdate in BeforeStep"
+            }
+        }
+    }
 
     protected val instructionStats = hashMapOf<Statement, MutableMap<StateId, StatsCounter>>()
     protected val methodCalls = hashMapOf<Method, MutableMap<StateId, StatsCounter>>()
 
-    private val stackTraceTracker = StackTraceTracker<Statement, Method, State>(statementOperations)
+    private val stackTraceTracker = StackTraceTracker(statementOperations)
     private val stackTraces = hashMapOf<TrieNode<Statement, *>, MutableMap<StateId, StatsCounter>>()
     private val forksCount = hashMapOf<TrieNode<Statement, *>, MutableMap<StateId, StatsCounter>>()
+    private val instructionTime = hashMapOf<TrieNode<Statement, *>, MutableMap<StateId, StatsCounter>>()
+
+    private var lastPeekMoment = 0L
+    private var lastStackTrace: TrieNode<Statement, *>? = null
 
     override fun onStatePeeked(state: State) {
-        if (profilerOptions.momentOfUpdate == MomentOfUpdate.BeforeStep) {
-            processStateUpdate(state)
+        if (profilerOptions.momentOfUpdate != MomentOfUpdate.BeforeStep) {
+            return
+        }
+
+        processStateUpdate(state)
+
+        if (profilerOptions.profileTime) {
+            lastPeekMoment = System.currentTimeMillis()
         }
     }
 
@@ -99,6 +123,20 @@ open class UDebugProfileObserver<Statement, Method, State : UState<*, Method, St
             (listOf(parent) + forks).forEach {
                 processStateUpdate(it)
             }
+        }
+
+        if (profilerOptions.momentOfUpdate == MomentOfUpdate.BeforeStep && profilerOptions.profileTime) {
+            val stackTrace = lastStackTrace
+                ?: error("stackTraceAfterPeek should have been memorized")
+            incrementInstructionTime(parent, stackTrace, System.currentTimeMillis() - lastPeekMoment)
+        }
+    }
+
+    private fun incrementInstructionTime(state: State, stackTrace: TrieNode<Statement, *>, time: Long) {
+        var st = stackTrace
+        while (true) {
+            instructionTime.increment(st, state, value = time)
+            st = st.parent() ?: break
         }
     }
 
@@ -124,6 +162,7 @@ open class UDebugProfileObserver<Statement, Method, State : UState<*, Method, St
         val fork = statementOperations.forkHappened(state, node)
 
         var st = stackTraceTracker.getStackTrace(state, node.statement)
+        lastStackTrace = st
         while (true) {
             stackTraces.increment(st, state)
             if (fork) forksCount.increment(st, state)
@@ -131,10 +170,10 @@ open class UDebugProfileObserver<Statement, Method, State : UState<*, Method, St
         }
     }
 
-    private fun <K> MutableMap<K, MutableMap<StateId, StatsCounter>>.increment(key: K, state: State) {
+    private fun <K> MutableMap<K, MutableMap<StateId, StatsCounter>>.increment(key: K, state: State, value: Long = 1L) {
         val stateStats = this.getOrPut(key) { hashMapOf() }
         val stats = stateStats.getOrPut(state.id) { StatsCounter() }
-        stats.increment()
+        stats.add(value)
     }
 
     private fun aggregateStackTraces(slice: StateId?): ProfileFrame<Statement, Method, State> {
@@ -143,10 +182,12 @@ open class UDebugProfileObserver<Statement, Method, State : UState<*, Method, St
         }
         return ProfileFrame(
             inst = null,
-            total = -1,
-            self = -1,
+            totalSteps = -1,
+            selfSteps = -1,
             totalForks = -1,
             selfForks = -1,
+            totalTime = -1,
+            selfTime = -1,
             children = children,
             profilerOptions,
             statementOperations,
@@ -160,19 +201,24 @@ open class UDebugProfileObserver<Statement, Method, State : UState<*, Method, St
     ): ProfileFrame<Statement, Method, State> {
         val allNodeStats = stackTraces[root].orEmpty()
         val allForkStats = forksCount[root].orEmpty()
+        val allTimeStats = instructionTime[root].orEmpty()
         val children = root.children.mapValues { (i, node) -> computeProfileFrame(slice, i, node) }
 
         val nodeStats = allNodeStats.sumOfSlice(slice)
         val forkStats = allForkStats.sumOfSlice(slice)
+        val timeStats = allTimeStats.sumOfSlice(slice)
 
-        val selfStat = nodeStats - children.values.sumOf { it.total }
+        val selfStat = nodeStats - children.values.sumOf { it.totalSteps }
         val selfForks = forkStats - children.values.sumOf { it.totalForks }
+        val selfTime = timeStats - children.values.sumOf { it.totalTime }
         return ProfileFrame(
             inst,
-            nodeStats,
-            selfStat,
-            forkStats,
-            selfForks,
+            totalSteps = nodeStats,
+            selfSteps = selfStat,
+            totalForks = forkStats,
+            selfForks = selfForks,
+            totalTime = timeStats,
+            selfTime = selfTime,
             children,
             profilerOptions,
             statementOperations,
@@ -181,10 +227,12 @@ open class UDebugProfileObserver<Statement, Method, State : UState<*, Method, St
 
     private class ProfileFrame<Statement, Method, State : UState<*, Method, Statement, *, *, *>>(
         val inst: Statement?,
-        val total: Long,
-        val self: Long,
+        val totalSteps: Long,
+        val selfSteps: Long,
         val totalForks: Long,
         val selfForks: Long,
+        val totalTime: Long,
+        val selfTime: Long,
         val children: Map<Statement, ProfileFrame<Statement, Method, State>>,
         private val profilerOptions: Options,
         private val statementOperations: StatementOperations<Statement, Method, State>,
@@ -192,15 +240,23 @@ open class UDebugProfileObserver<Statement, Method, State : UState<*, Method, St
         fun print(str: StringBuilder, indent: String) {
             val sortedChildren = children.entries
                 .groupBy { statementOperations.getMethodOfStatement(it.key) }.entries
-                .sortedByDescending { entry -> entry.value.sumOf { it.value.total } }
+                .sortedByDescending { entry -> entry.value.sumOf { it.value.totalSteps } }
 
             for ((method, inst) in sortedChildren) {
-                val total = inst.sumOf { it.value.total }
-                val self = inst.sumOf { it.value.self }
+                val total = inst.sumOf { it.value.totalSteps }
+                val self = inst.sumOf { it.value.selfSteps }
                 val totalForks = inst.sumOf { it.value.totalForks }
                 val selfForks = inst.sumOf { it.value.selfForks }
                 val methodRepr = statementOperations.printMethodName(method)
-                str.appendLine("$indent|__ $methodRepr | Steps $self/$total | Forks $selfForks/$totalForks")
+
+                str.append("$indent|__ $methodRepr | Steps $self/$total")
+                if (profilerOptions.profileForks) {
+                    str.append(" | Forks $selfForks/$totalForks")
+                }
+                if (profilerOptions.profileTime) {
+                    str.append(" | Time $selfTime/$totalTime")
+                }
+                str.appendLine()
 
                 val children = if (profilerOptions.printNonVisitedStatements) {
                     val allStatements = statementOperations.getAllMethodStatements(method)
@@ -212,10 +268,12 @@ open class UDebugProfileObserver<Statement, Method, State : UState<*, Method, St
                         } ?: let {
                             val emptyFrame = ProfileFrame(
                                 childStmt,
-                                total = 0L,
-                                self = 0L,
+                                totalSteps = 0L,
+                                selfSteps = 0L,
                                 totalForks = 0L,
                                 selfForks = 0L,
+                                totalTime = 0L,
+                                selfTime = 0L,
                                 emptyMap(),
                                 profilerOptions,
                                 statementOperations,
@@ -231,10 +289,16 @@ open class UDebugProfileObserver<Statement, Method, State : UState<*, Method, St
 
                 for ((i, child) in children) {
                     val instRepr = statementOperations.printStatement(i).padEnd(profilerOptions.padInstructionEnd)
-                    val line = "$indent$INDENT$instRepr" +
-                        " | Steps ${child.self}/${child.total}" +
-                        " | Forks ${child.selfForks}/${child.totalForks}"
+
+                    var line = "$indent$INDENT$instRepr | Steps ${child.selfSteps}/${child.totalSteps}"
+                    if (profilerOptions.profileForks) {
+                        line += " | Forks ${child.selfForks}/${child.totalForks}"
+                    }
+                    if (profilerOptions.profileTime) {
+                        line += " | Time ${child.selfTime}/${child.totalTime}"
+                    }
                     str.appendLine(line)
+
                     child.print(str, "$indent$INDENT$INDENT")
                 }
             }
