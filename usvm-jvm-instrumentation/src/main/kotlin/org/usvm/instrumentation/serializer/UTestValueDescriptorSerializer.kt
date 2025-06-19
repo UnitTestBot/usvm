@@ -3,7 +3,7 @@ package org.usvm.instrumentation.serializer
 import com.jetbrains.rd.framework.*
 import org.jacodb.api.jvm.JcField
 import org.jacodb.api.jvm.ext.*
-import org.usvm.instrumentation.util.stringType
+import org.usvm.jvm.util.stringType
 import org.usvm.instrumentation.testcase.descriptor.*
 
 class UTestValueDescriptorSerializer(private val ctx: SerializationContext) {
@@ -220,7 +220,7 @@ class UTestValueDescriptorSerializer(private val ctx: SerializationContext) {
         )
 
     private fun AbstractBuffer.deserializeString(): UTestValueDescriptor {
-        return UTestConstantDescriptor.String(readString(), jcClasspath.stringType())
+        return UTestConstantDescriptor.String(readString(), jcClasspath.stringType)
     }
 
     private fun AbstractBuffer.serialize(uTestValueDescriptor: UTestConstantDescriptor.Null) =

@@ -4,7 +4,7 @@ import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.BeforeEach
 import org.usvm.*
-import org.usvm.api.allocateArray
+import org.usvm.api.initializeArrayLength
 import org.usvm.api.memcpy
 import org.usvm.api.readArrayIndex
 import org.usvm.api.writeArrayIndex
@@ -95,7 +95,8 @@ class HeapMemCpyTest {
 
     private fun initializeArray(): Pair<IntArray, UConcreteHeapRef> {
         val array = IntArray(10) { it + 1 }
-        val ref = heap.allocateArray(arrayType, ctx.sizeSort, ctx.mkSizeExpr(array.size))
+        val ref = heap.allocConcrete(arrayType)
+        heap.initializeArrayLength(ref, arrayType, ctx.sizeSort, ctx.mkSizeExpr(array.size))
 
         array.indices.forEach { idx ->
             heap.writeArrayIndex(

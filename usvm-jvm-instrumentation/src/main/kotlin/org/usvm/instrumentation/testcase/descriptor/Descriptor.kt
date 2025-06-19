@@ -2,7 +2,7 @@ package org.usvm.instrumentation.testcase.descriptor
 
 import org.jacodb.api.jvm.JcField
 import org.jacodb.api.jvm.JcType
-import org.usvm.instrumentation.testcase.api.UTestInst
+import org.usvm.test.api.UTestInst
 
 sealed class UTestValueDescriptor {
     abstract val type: JcType

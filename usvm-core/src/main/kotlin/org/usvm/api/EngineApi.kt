@@ -42,6 +42,37 @@ fun <Type> UState<Type, *, *, *, *, *>.objectTypeEquals(
     )
 }
 
+fun <Type> UState<Type, *, *, *, *, *>.objectTypeSubtype(
+    lhs: UHeapRef,
+    rhs: UHeapRef
+): UBoolExpr = with(lhs.uctx) {
+    mapTypeStream(
+        ref = lhs,
+        onNull = { trueExpr },
+        operation = { lhsRef, lhsTypes ->
+            mapTypeStream(
+                rhs,
+                onNull = { falseExpr },
+                operation = { rhsRef, rhsTypes ->
+                    mkSubtypeConstraint(lhsRef, lhsTypes, rhsRef, rhsTypes)
+                }
+            )
+        }
+    )
+}
+
+fun <Type, R : USort> UState<Type, *, *, *, *, *>.mapTypeStreamNotNull(
+    ref: UHeapRef,
+    operation: (UHeapRef, UTypeStream<Type>) -> UExpr<R>?
+): UExpr<R>? = mapTypeStream(
+    ref = ref,
+    onNull = { error("unexpected null") },
+    operation = { expr, types ->
+        operation(expr, types) ?: return null
+    },
+    ignoreNullRefs = true
+)
+
 fun <Type, R : USort> UState<Type, *, *, *, *, *>.mapTypeStream(
     ref: UHeapRef,
     operation: (UHeapRef, UTypeStream<Type>) -> UExpr<R>?
@@ -78,12 +109,38 @@ private fun <Type> UState<Type, *, *, *, *, *>.mkTypeEqualsConstraint(
     makeSymbolicPrimitive(boolSort)
 }
 
+private fun <Type> UState<Type, *, *, *, *, *>.mkSubtypeConstraint(
+    lhs: UHeapRef,
+    lhsTypes: UTypeStream<Type>,
+    rhs: UHeapRef,
+    rhsTypes: UTypeStream<Type>,
+): UBoolExpr = with(lhs.uctx) {
+    val lhsType = lhsTypes.singleOrNull()
+    val rhsType = rhsTypes.singleOrNull()
+
+    if (lhsType != null) {
+        return if (lhsType == rhsType) {
+            trueExpr
+        } else {
+            memory.types.evalIsSupertype(rhs, lhsType)
+        }
+    }
+
+    if (rhsType != null) {
+        return memory.types.evalIsSubtype(lhs, rhsType)
+    }
+
+    // TODO: don't mock type equals
+    makeSymbolicPrimitive(boolSort)
+}
+
 private inline fun <Type, R : USort> UState<Type, *, *, *, *, *>.mapTypeStream(
     ref: UHeapRef,
     onNull: () -> UExpr<R>,
-    operation: (UHeapRef, UTypeStream<Type>) -> UExpr<R>
+    operation: (UHeapRef, UTypeStream<Type>) -> UExpr<R>,
+    ignoreNullRefs: Boolean = false,
 ): UExpr<R> = ref.mapWithStaticAsConcrete(
-    ignoreNullRefs = false,
+    ignoreNullRefs = ignoreNullRefs,
     concreteMapper = { concreteRef ->
         val types = memory.types.getTypeStream(concreteRef)
         operation(concreteRef, types)

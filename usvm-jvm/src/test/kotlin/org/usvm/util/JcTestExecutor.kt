@@ -1,35 +1,23 @@
 package org.usvm.util
 
 import kotlinx.coroutines.runBlocking
-import org.jacodb.api.jvm.JcClassType
 import org.jacodb.api.jvm.JcClasspath
-import org.jacodb.api.jvm.JcType
 import org.jacodb.api.jvm.JcTypedMethod
 import org.jacodb.api.jvm.LocationType
 import org.jacodb.impl.fs.BuildFolderLocation
 import org.jacodb.impl.fs.JarLocation
-import org.usvm.UExpr
 import org.usvm.api.JcCoverage
 import org.usvm.api.JcParametersState
 import org.usvm.api.JcTest
 import org.usvm.api.StaticFieldValue
+import org.usvm.api.createUTest
 import org.usvm.api.util.JcTestResolver
-import org.usvm.api.util.JcTestStateResolver
 import org.usvm.instrumentation.executor.UTestConcreteExecutor
-import org.usvm.instrumentation.testcase.UTest
-import org.usvm.instrumentation.testcase.api.UTestAllocateMemoryCall
 import org.usvm.instrumentation.testcase.api.UTestExecutionExceptionResult
 import org.usvm.instrumentation.testcase.api.UTestExecutionFailedResult
 import org.usvm.instrumentation.testcase.api.UTestExecutionSuccessResult
-import org.usvm.instrumentation.testcase.api.UTestExpression
-import org.usvm.instrumentation.testcase.api.UTestMethodCall
-import org.usvm.instrumentation.testcase.api.UTestStaticMethodCall
 import org.usvm.instrumentation.testcase.descriptor.Descriptor2ValueConverter
-import org.usvm.machine.JcContext
 import org.usvm.machine.state.JcState
-import org.usvm.memory.ULValue
-import org.usvm.memory.UReadOnlyMemory
-import org.usvm.model.UModelBase
 
 /**
  * A class, responsible for resolving a single [JcTest] for a specific method from a symbolic state.
@@ -64,16 +52,12 @@ class JcTestExecutor(
         method: JcTypedMethod,
         state: JcState,
     ): JcTest {
-        val model = state.models.first()
-
-        val ctx = state.ctx
-
-        val memoryScope = MemoryScope(ctx, model, state.memory, method)
-
         val before: JcParametersState
         val after: JcParametersState
-        val uTest = memoryScope.createUTest()
 
+        val uTest = createUTest(method, state)
+
+        // move with UTest out of instrumentation
         val execResult = runBlocking {
             runner.executeAsync(uTest)
         }
@@ -187,43 +171,4 @@ class JcTestExecutor(
     }
 
     private fun emptyJcParametersState() = JcParametersState(null, listOf(), emptyMap())
-
-    /**
-     * An actual class for resolving objects from [UExpr]s.
-     *
-     * @param model a model to which compose expressions.
-     * @param finalStateMemory a read-only memory to read [ULValue]s from.
-     */
-    private class MemoryScope(
-        ctx: JcContext,
-        model: UModelBase<JcType>,
-        finalStateMemory: UReadOnlyMemory<JcType>,
-        method: JcTypedMethod,
-    ) : JcTestStateResolver<UTestExpression>(ctx, model, finalStateMemory, method) {
-
-        override val decoderApi = JcTestExecutorDecoderApi(ctx)
-
-        fun createUTest(): UTest {
-            val thisInstance = resolveThisInstance()
-            val parameters = resolveParameters()
-
-            resolveStatics()
-
-            val initStmts = decoderApi.initializerInstructions()
-
-            val callExpr = if (method.isStatic) {
-                UTestStaticMethodCall(method.method, parameters)
-            } else {
-                UTestMethodCall(thisInstance, method.method, parameters)
-            }
-
-            return UTest(initStmts, callExpr)
-        }
-
-        override fun allocateClassInstance(type: JcClassType): UTestExpression =
-            UTestAllocateMemoryCall(type.jcClass)
-
-        // todo: looks incorrect
-        override fun allocateString(value: UTestExpression): UTestExpression = value
-    }
 }

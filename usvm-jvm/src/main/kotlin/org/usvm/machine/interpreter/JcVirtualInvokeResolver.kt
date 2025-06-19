@@ -76,7 +76,7 @@ private fun resolveVirtualInvokeWithModel(
     if (isAllocatedConcreteHeapRef(concreteRef) || isStaticHeapRef(concreteRef)) {
         val callSite = findLambdaCallSite(methodCall, scope, concreteRef)
         if (callSite != null) {
-            val lambdaCall = makeLambdaCallSiteCall(callSite)
+            val lambdaCall = makeLambdaCallSiteCall(scope, callSite)
             scope.doWithState {
                 newStmt(lambdaCall)
             }
@@ -233,7 +233,7 @@ private fun resolveVirtualInvokeWithoutModel(
     }
 
     lambdaCallSitesWithConditions.mapTo(conditionsWithBlocks) { (callSite, condition) ->
-        val concreteCall = makeLambdaCallSiteCall(callSite)
+        val concreteCall = makeLambdaCallSiteCall(scope, callSite)
         condition to { state: JcState -> state.newStmt(concreteCall) }
     }
 
@@ -313,12 +313,20 @@ private fun findLambdaCallSite(
 }
 
 private fun JcVirtualMethodCallInst.makeLambdaCallSiteCall(
+    scope: JcStepScope,
     callSite: JcLambdaCallSite,
 ): JcConcreteMethodCallInst {
-    val lambdaMethod = callSite.lambda.actualMethod.method
-
+    val lambda = callSite.lambda
+    val lambdaMethod = lambda.actualMethod.method
     // Instance was already resolved to the call site
-    val callArgsWithoutInstance = this.arguments.drop(1)
+    var callArgsWithoutInstance = this.arguments.drop(1)
+    if (lambda.isNewInvokeSpecial) {
+        check(lambdaMethod.method.isConstructor) {
+            "unexpected JcLambdaExpr: calling NEWINVOKESPECIAL for non-constructor method"
+        }
+        val thisArg = scope.calcOnState { memory.allocConcrete(lambdaMethod.enclosingType) }
+        callArgsWithoutInstance = listOf(thisArg) + callArgsWithoutInstance
+    }
     val lambdaMethodArgs = callSite.callSiteArgs + callArgsWithoutInstance
 
     return JcConcreteMethodCallInst(location, lambdaMethod.method, lambdaMethodArgs, returnSite)
