@@ -370,6 +370,6 @@ open class UDebugProfileObserver<Statement, Method, State : UState<*, Method, St
 
     companion object {
         private const val MICRO_IN_NANO = 1000L
-        private const val MILLIES_IN_NANO = 1000_000L
+        private const val MILLIES_IN_NANO = 1_000_000L
     }
 }
