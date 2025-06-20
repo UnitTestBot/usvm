@@ -1,11 +1,11 @@
 package org.usvm.project
 
 import org.jacodb.ets.model.EtsScene
-import org.jacodb.ets.utils.getDeclaredLocals
-import org.jacodb.ets.utils.getLocals
+import org.jacodb.ets.utils.CONSTRUCTOR_NAME
+import org.jacodb.ets.utils.INSTANCE_INIT_METHOD_NAME
+import org.jacodb.ets.utils.STATIC_INIT_METHOD_NAME
 import org.jacodb.ets.utils.loadEtsProjectFromIR
 import org.junit.jupiter.api.condition.EnabledIf
-import org.usvm.api.TsTestValue
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.util.TsMethodTestRunner
@@ -35,30 +35,41 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
 
     @Test
     fun `test run on each method`() {
-        println("Total classes: ${scene.projectAndSdkClasses.size}")
-        for (clazz in scene.projectAndSdkClasses) {
-            println()
-            println("CLASS: ${clazz.name} in ${clazz.signature.file}")
-            for (method in clazz.methods) {
-                println()
-                println("METHOD: ${clazz.name}::${method.name}(${method.parameters.joinToString()})")
-                if (method.cfg.stmts.isEmpty()) {
-                    println("CFG is empty")
-                    continue
+        val exceptions = mutableListOf<Throwable>()
+        val classes = scene.projectClasses.filterNot { it.name.startsWith("%AC") }
+
+        println("Total classes: ${classes.size}")
+
+        classes
+            // .filter { it.name == "NewAlbumPage" }
+            .forEach { clazz ->
+                val methods = clazz.methods
+                    .filterNot { it.cfg.stmts.isEmpty() }
+                    .filterNot { it.isStatic }
+                    .filterNot { it.name.startsWith("%AM") }
+                    .filterNot { it.name == "build" }
+                    .filterNot { it.name == INSTANCE_INIT_METHOD_NAME }
+                    .filterNot { it.name == STATIC_INIT_METHOD_NAME }
+                    .filterNot { it.name == CONSTRUCTOR_NAME }
+
+                if (methods.isEmpty()) return@forEach
+
+                runCatching {
+                    val tsOptions = TsOptions()
+                    TsMachine(scene, options, tsOptions).use { machine ->
+                        val states = machine.analyze(methods)
+                        states.let {}
+                    }
+                }.onFailure {
+                    exceptions += it
                 }
-                if (method.getLocals() != method.getDeclaredLocals()) {
-                    println(
-                        "Locals mismatch:\n  getLocals() = ${
-                            method.getLocals().sortedBy { it.name }
-                        }\n  getDeclaredLocals() = ${
-                            method.getDeclaredLocals().sortedBy { it.name }
-                        }"
-                    )
-                    // continue
-                }
-                discoverProperties<TsTestValue>(method = method)
             }
-        }
+
+        val exc = exceptions.groupBy { it }
+        println(
+            exc.values.sortedBy
+            { it.size }.asReversed().map
+            { it.first() })
     }
 
     @Test
@@ -72,6 +83,7 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
                     .filterNot { it.name.startsWith("%AM") }
                     .filterNot { it.name == "build" }
             }
+            .filter { it.name == "createKvStore" && it.enclosingClass?.name == "KvStoreModel" }
         val tsOptions = TsOptions()
         TsMachine(scene, options, tsOptions).use { machine ->
             val states = machine.analyze(methods)
