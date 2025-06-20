@@ -18,6 +18,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Checkout local jacodb
+        uses: actions/checkout@v4
+        with:
+          repository: UnitTestBot/jacodb
+          ref: lipen/grpc
+          path: jacodb
+
       - name: Setup Java JDK
         uses: actions/setup-java@v4
         with:
@@ -44,6 +51,13 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Checkout local jacodb
+        uses: actions/checkout@v4
+        with:
+          repository: UnitTestBot/jacodb
+          ref: lipen/grpc
+          path: jacodb
 
       - name: Setup Java JDK
         uses: actions/setup-java@v4
@@ -73,6 +87,13 @@ jobs:
         with:
           # 'usvm-python/cpythonadapter/cpython' is a submodule
           submodules: true
+
+      - name: Checkout local jacodb
+        uses: actions/checkout@v4
+        with:
+          repository: UnitTestBot/jacodb
+          ref: lipen/grpc
+          path: jacodb
 
       - name: Setup Java JDK
         uses: actions/setup-java@v4
@@ -106,6 +127,16 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Checkout local jacodb
+        uses: actions/checkout@v4
+        with:
+          repository: UnitTestBot/jacodb
+          ref: lipen/grpc
+          path: jacodb
+
+      - name: Enable ETS modules in jacodb
+        run: echo "enableEts=true" >> jacodb/local.properties
 
       - name: Setup Java JDK
         uses: actions/setup-java@v4
@@ -149,7 +180,7 @@ jobs:
           npm run build
 
       - name: Run TS tests
-        run: ./gradlew :usvm-ts:check :usvm-ts-dataflow:check
+        run: ./gradlew :usvm-ts:check :usvm-ts-dataflow:check :usvm-ts-service:check
 
       - name: Upload Gradle reports
         if: (!cancelled())
@@ -165,6 +196,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Checkout local jacodb
+        uses: actions/checkout@v4
+        with:
+          repository: UnitTestBot/jacodb
+          ref: lipen/grpc
+          path: jacodb
+
+      - name: Enable ETS modules in jacodb
+        run: echo "enableEts=true" >> jacodb/local.properties
+
       - name: Setup Java JDK
         uses: actions/setup-java@v4
         with:
@@ -173,6 +214,9 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+
+      - name: Show project list
+        run: ./gradlew projects
 
       - name: Validate Project List
         run: ./gradlew validateProjectList

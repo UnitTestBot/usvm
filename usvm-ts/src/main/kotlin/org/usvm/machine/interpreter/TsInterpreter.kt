@@ -191,8 +191,23 @@ class TsInterpreter(
                     return
                 }
                 val cls = classes.single()
-                val suitableMethods = cls.methods.filter { it.name == stmt.callee.name }
-                concreteMethods += suitableMethods
+                val methods = cls.methods.filter { it.name == stmt.callee.name }
+                if (methods.isEmpty()) {
+                    logger.warn {
+                        "Could not resolve method: ${stmt.callee} on type: $type"
+                    }
+                    scope.assert(ctx.falseExpr)
+                    return
+                }
+                if (methods.size > 1) {
+                    logger.warn {
+                        "Multiple methods with name: ${stmt.callee} on type: $type"
+                    }
+                    scope.assert(ctx.falseExpr)
+                    return
+                }
+                val method = methods.single()
+                concreteMethods += method
             } else {
                 logger.warn {
                     "Could not resolve method: ${stmt.callee} on type: $type"

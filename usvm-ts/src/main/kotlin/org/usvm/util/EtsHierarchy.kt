@@ -9,7 +9,8 @@ import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsUnclearRefType
-import kotlin.system.measureTimeMillis
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.measureTimedValue
 
 private val logger = KotlinLogging.logger { }
 private typealias ClassName = String
@@ -26,31 +27,41 @@ class EtsHierarchy(private val scene: EtsScene) {
     }
 
     private val ancestors: Map<EtsClass, Set<EtsClass>> by lazy {
-        val result: Map<EtsClass, Set<EtsClass>>
-
-        val time = measureTimeMillis {
-            result = scene.projectAndSdkClasses.associateWith { start ->
+        val (result, time) = measureTimedValue {
+            scene.projectAndSdkClasses.associateWith { start ->
                 generateSequence(listOf(start)) { classes ->
                     if (classes.isEmpty()) return@generateSequence null
-
-                    val result = classes.flatMap { current ->
-                        val superClassSignature = current.superClass ?: return@generateSequence null
-
+                    classes.flatMap { current ->
+                        val superClassName = current.superClassName ?: return@generateSequence null
+                        val superClassSignature = EtsClassSignature(
+                            name = superClassName,
+                            file = EtsFileSignature.UNKNOWN,
+                        )
                         val superClasses = resolveClassesBySignature(superClassSignature)
-                        val interfaces = current.implementedInterfaces
 
+                        val interfaces = current.implementedInterfaceNames.map {
+                            EtsClassSignature(
+                                name = it,
+                                file = EtsFileSignature.UNKNOWN,
+                            )
+                        }
                         val resolvedInterfaces = interfaces.flatMap { resolveClassesBySignature(it) }
 
-                        superClasses.toMutableSet() + resolvedInterfaces // TODO optimize
-                    }
+                        superClasses.toHashSet() + resolvedInterfaces
 
-                    result.takeIf { it.isNotEmpty() }
-                }.flatten().toMutableSet() + classesForType(OBJECT_CLASS)
+                        // val classesWithTheSameName = resolveMap.getValue(superClassName)
+                        // val superClasses = classesWithTheSameName.values
+                        // val interfaces = current.implementedInterfaceNames
+                        // // TODO support interfaces
+                        // require(interfaces.isEmpty()) { "Interfaces are not supported" }
+                        // superClasses
+                    }
+                }.flatten().toHashSet() + classesForType(OBJECT_CLASS)
             }
         }
 
-        if (time > 100) {
-            logger.warn { "Ancestors map is built in $time ms" }
+        if (time > 100.milliseconds) {
+            logger.warn { "Ancestors map is built in $time " }
         }
 
         return@lazy result

@@ -1,10 +1,4 @@
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import java.io.FileNotFoundException
-import java.io.Reader
-import kotlin.time.Duration
 
 plugins {
     id("usvm.kotlin-conventions")
@@ -16,6 +10,7 @@ dependencies {
 
     implementation(Libs.jacodb_core)
     implementation(Libs.jacodb_ets)
+    implementation(Libs.grpc_api)
 
     implementation(Libs.ksmt_yices)
     implementation(Libs.ksmt_cvc5)
@@ -25,16 +20,15 @@ dependencies {
     testImplementation(Libs.mockk)
     testImplementation(Libs.junit_jupiter_params)
     testImplementation(Libs.logback)
-
-    // https://mvnrepository.com/artifact/org.burningwave/core
-    // Use it to export all modules to all
-    testImplementation("org.burningwave:core:12.62.7")
 }
 
 val generateSdkIR by tasks.registering {
     group = "build"
     description = "Generates SDK IR using ArkAnalyzer."
     doLast {
+        logger.lifecycle("Generating SDK IR using ArkAnalyzer...")
+        val startTime = System.currentTimeMillis()
+
         val envVarName = "ARKANALYZER_DIR"
 
         val arkAnalyzerPath = System.getenv(envVarName) ?: run {
@@ -66,100 +60,26 @@ val generateSdkIR by tasks.registering {
             inputDir.relativeTo(resources).path,
             outputDir.relativeTo(resources).path,
         )
-        println("Running: '${cmd.joinToString(" ")}'")
+        logger.lifecycle("Running command: ${cmd.joinToString(" ")}")
         val result = ProcessUtil.run(cmd) {
             directory(resources)
         }
         if (result.stdout.isNotBlank()) {
-            println("[STDOUT]:\n--------\n${result.stdout}\n--------")
+            logger.lifecycle("[STDOUT]:\n--------\n${result.stdout}--------")
         }
         if (result.stderr.isNotBlank()) {
-            println("[STDERR]:\n--------\n${result.stderr}\n--------")
+            logger.lifecycle("[STDERR]:\n--------\n${result.stderr}--------")
         }
         if (result.isTimeout) {
-            println("Timeout!")
+            logger.warn("Timeout!")
         }
         if (result.exitCode != 0) {
-            println("Exit code: ${result.exitCode}")
-        }
-    }
-}
-
-object ProcessUtil {
-    data class Result(
-        val exitCode: Int,
-        val stdout: String,
-        val stderr: String,
-        val isTimeout: Boolean, // true if the process was terminated due to timeout
-    )
-
-    fun run(
-        command: List<String>,
-        input: String? = null,
-        timeout: Duration? = null,
-        builder: ProcessBuilder.() -> Unit = {},
-    ): Result {
-        val reader = input?.reader() ?: "".reader()
-        return run(command, reader, timeout, builder)
-    }
-
-    fun run(
-        command: List<String>,
-        input: Reader,
-        timeout: Duration? = null,
-        builder: ProcessBuilder.() -> Unit = {},
-    ): Result {
-        val process = ProcessBuilder(command).apply(builder).start()
-        return communicate(process, input, timeout)
-    }
-
-    private fun communicate(
-        process: Process,
-        input: Reader,
-        timeout: Duration? = null,
-    ): Result {
-        val stdout = StringBuilder()
-        val stderr = StringBuilder()
-
-        val scope = CoroutineScope(Dispatchers.IO)
-
-        // Handle process input
-        val stdinJob = scope.launch {
-            process.outputStream.bufferedWriter().use { writer ->
-                input.copyTo(writer)
-            }
+            logger.warn("Exit code: ${result.exitCode}")
         }
 
-        // Launch output capture coroutines
-        val stdoutJob = scope.launch {
-            process.inputStream.bufferedReader().useLines { lines ->
-                lines.forEach { stdout.appendLine(it) }
-            }
-        }
-        val stderrJob = scope.launch {
-            process.errorStream.bufferedReader().useLines { lines ->
-                lines.forEach { stderr.appendLine(it) }
-            }
-        }
-
-        // Wait for completion
-        val isTimeout = if (timeout != null) {
-            !process.waitFor(timeout.inWholeNanoseconds, TimeUnit.NANOSECONDS)
-        } else {
-            process.waitFor()
-            false
-        }
-        runBlocking {
-            stdinJob.join()
-            stdoutJob.join()
-            stderrJob.join()
-        }
-
-        return Result(
-            exitCode = process.exitValue(),
-            stdout = stdout.toString(),
-            stderr = stderr.toString(),
-            isTimeout = isTimeout,
+        logger.lifecycle(
+            "Done generating SDK IR in %.1fs"
+                .format((System.currentTimeMillis() - startTime) / 1000.0)
         )
     }
 }

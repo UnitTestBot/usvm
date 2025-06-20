@@ -19,6 +19,7 @@ package org.usvm.dataflow.ts.test.utils
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
 import org.jacodb.api.common.CommonMethod
+import org.jacodb.ets.utils.getResourceStream
 import org.jacodb.taint.configuration.NameExactMatcher
 import org.jacodb.taint.configuration.NamePatternMatcher
 import org.jacodb.taint.configuration.SerializedTaintCleaner
@@ -35,7 +36,6 @@ import org.jacodb.taint.configuration.TaintMethodSource
 import org.jacodb.taint.configuration.TaintPassThrough
 import org.jacodb.taint.configuration.actionModule
 import org.jacodb.taint.configuration.conditionModule
-import org.usvm.dataflow.ts.getResourceStream
 
 private val json = Json {
     classDiscriminator = "_"
