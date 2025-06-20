@@ -26,8 +26,8 @@ import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
-import org.usvm.api.allocateArrayInitialized
 import org.usvm.api.allocateConcreteRef
+import org.usvm.api.initializeArray
 import org.usvm.api.typeStreamOf
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.isTrue
@@ -247,13 +247,15 @@ class TsContext(
                 // Initialize char array
                 val valueType = EtsArrayType(EtsNumberType, dimensions = 1)
                 val descriptor = arrayDescriptorOf(valueType)
-                val charArray = memory.allocateArrayInitialized(
+
+                val charArray = memory.allocConcrete(valueType.elementType)
+                memory.initializeArray(
+                    arrayHeapRef = charArray,
                     type = descriptor,
                     sort = bv16Sort,
                     sizeSort = sizeSort,
                     contents = value.asSequence().map { mkBv(it.code, bv16Sort) },
                 )
-                memory.types.allocate(charArray.address, valueType.elementType)
 
                 // Write char array to `ref.value`
                 val valueLValue = mkFieldLValue(addressSort, ref, "value")
