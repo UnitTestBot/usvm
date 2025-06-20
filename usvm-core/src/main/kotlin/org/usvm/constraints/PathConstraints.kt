@@ -80,8 +80,8 @@ open class UPathConstraints<Type>(
         }
         return logicalConstraints.asSequence().map(translator::translate) +
             equalityConstraints.translateConstraints(translator) +
-            numericConstraints.constraints().map(translator::translate) +
-            typeConstraints.constraints().map(translator::translate)
+            numericConstraints.translateConstraints(translator) +
+            typeConstraints.translateConstraints(translator)
     }
 
     fun constraintSequence(): Sequence<UBoolExpr> {

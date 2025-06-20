@@ -24,7 +24,7 @@ val `sample-approximations` by sourceSets.creating {
 
 val approximations by configurations.creating
 val approximationsRepo = "com.github.UnitTestBot.java-stdlib-approximations"
-val approximationsVersion = "5f137507d6"
+val approximationsVersion = "88c6be3469"
 
 dependencies {
     implementation(project(":usvm-core"))
