@@ -722,7 +722,7 @@ class TsInterpreter(
         scope.doWithState {
             with(ctx) {
                 if (method.returnType is EtsVoidType) {
-                    methodResult = TsMethodResult.Success.MockedCall(method, ctx.voidValue)
+                    methodResult = TsMethodResult.Success.MockedCall(method, ctx.mkUndefinedValue())
                     return@doWithState
                 }
 
