@@ -595,7 +595,6 @@ sealed interface TsBinaryOperator {
                             rhsValue = rhs.extractBool(scope)
                             rhsType.boolTypeExpr
                         }
-
                         fp64Sort -> {
                             rhsValue = rhs.extractFp(scope)
                             rhsType.fpTypeExpr

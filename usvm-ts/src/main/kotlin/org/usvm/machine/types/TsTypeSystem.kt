@@ -191,8 +191,9 @@ class TsTypeSystem(
                 if (classes.isEmpty() || superClasses.isEmpty()) return false // TODO log
 
                 return classes.any { cls ->
+                    val ancestors = hierarchy.getAncestor(cls)
                     superClasses.any { superClass ->
-                        superClass in hierarchy.getAncestor(cls)
+                        superClass in ancestors
                     }
                 }
             }

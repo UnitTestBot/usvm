@@ -26,6 +26,7 @@ import org.usvm.statistics.collectors.TargetsReachedStatesCollector
 import org.usvm.statistics.constraints.SoftConstraintsObserver
 import org.usvm.statistics.distances.CfgStatisticsImpl
 import org.usvm.statistics.distances.PlainCallGraphStatistics
+import org.usvm.stopstrategies.StopStrategy
 import org.usvm.stopstrategies.createStopStrategy
 import org.usvm.util.humanReadableSignature
 import kotlin.time.Duration.Companion.seconds
@@ -79,7 +80,7 @@ class TsMachine(
             timeStatistics = timeStatistics,
             coverageStatisticsFactory = { coverageStatistics },
             cfgStatisticsFactory = { cfgStatistics },
-            callGraphStatisticsFactory = { callGraphStatistics },
+            callGraphStatisticsFactory = { callGraphStatistics }
         )
 
         val statesCollector =
@@ -101,14 +102,30 @@ class TsMachine(
 
         val stepsStatistics = StepsStatistics<EtsMethod, TsState>()
 
-        val stopStrategy = createStopStrategy(
-            options,
-            targets,
-            timeStatisticsFactory = { timeStatistics },
-            stepsStatisticsFactory = { stepsStatistics },
-            coverageStatisticsFactory = { coverageStatistics },
-            getCollectedStatesCount = { statesCollector.collectedStates.size }
-        )
+        val stopStrategy = object : StopStrategy {
+            val strategy = createStopStrategy(
+                options,
+                targets,
+                timeStatisticsFactory =
+                    { timeStatistics },
+                stepsStatisticsFactory =
+                    { stepsStatistics },
+                coverageStatisticsFactory =
+                    { coverageStatistics },
+                getCollectedStatesCount =
+                    { statesCollector.collectedStates.size }
+            )
+
+            override fun shouldStop(): Boolean {
+                val result = strategy.shouldStop()
+
+                if (result) {
+                    logger.warn { "Stop strategy finished execution $strategy" }
+                }
+
+                return result
+            }
+        }
 
         observers.add(timeStatistics)
         observers.add(stepsStatistics)
