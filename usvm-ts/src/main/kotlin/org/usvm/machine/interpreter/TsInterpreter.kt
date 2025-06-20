@@ -24,6 +24,7 @@ import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsThis
 import org.jacodb.ets.model.EtsThrowStmt
 import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUnionType
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.model.EtsValue
 import org.jacodb.ets.model.EtsVoidType
@@ -213,9 +214,9 @@ class TsInterpreter(
         val limitedConcreteMethods = concreteMethods.take(5)
 
         // logger.info {
-            // "Preparing to fork on ${limitedConcreteMethods.size} methods out of ${concreteMethods.size}: ${
-            //     limitedConcreteMethods.map { "${it.signature.enclosingClass.name}::${it.name}" }
-            // }"
+        // "Preparing to fork on ${limitedConcreteMethods.size} methods out of ${concreteMethods.size}: ${
+        //     limitedConcreteMethods.map { "${it.signature.enclosingClass.name}::${it.name}" }
+        // }"
         // }
         val conditionsWithBlocks = limitedConcreteMethods.map { method ->
             val concreteCall = stmt.toConcrete(method)
@@ -681,18 +682,19 @@ class TsInterpreter(
             if (parameterType is EtsRefType) {
                 val argLValue = mkRegisterStackLValue(ctx.addressSort, i)
                 val ref = state.memory.read(argLValue).asExpr(ctx.addressSort)
-                val resolvedParameterType = graph.cp
-                    .projectAndSdkClasses
-                    .singleOrNull { it.name == parameterType.typeName }
-                    ?.type
-                    ?: parameterType
+                val resolvedParameterType = graph.hierarchy.classesForType(parameterType)
+
+                if (resolvedParameterType.isEmpty()) {
+                    logger.error("Cannot resolve class for parameter type: $parameterType")
+                    return@forEachIndexed // TODO should be an error
+                }
 
                 // Because of structural equality in TS we cannot determine the exact type
                 // Therefore, we create information about the fields the type must consist
-                val auxiliaryType = (resolvedParameterType as? EtsClassType)?.toAuxiliaryType(graph.hierarchy)
-                    ?: resolvedParameterType
-                state.pathConstraints += state.memory.types.evalIsSubtype(ref, auxiliaryType)
+                val types = resolvedParameterType.mapNotNull { it.type.toAuxiliaryType(graph.hierarchy) }
+                val auxiliaryType = EtsUnionType(types) // TODO error
 
+                state.pathConstraints += state.memory.types.evalIsSubtype(ref, auxiliaryType)
                 state.pathConstraints += with(ctx) {
                     mkNot(
                         mkOr(
