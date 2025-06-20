@@ -22,8 +22,6 @@ import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.SerializationException
 import mu.KotlinLogging
-import org.jacodb.ets.dto.EtsFileDto
-import org.jacodb.ets.dto.toEtsFile
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsFile
@@ -34,13 +32,15 @@ import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.jacodb.ets.utils.getLocals
+import org.jacodb.ets.utils.getResourcePath
+import org.jacodb.ets.utils.getResourcePathOrNull
+import org.jacodb.ets.utils.loadEtsFile
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
+import org.jacodb.ets.utils.loadEtsProjectFromResources
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.condition.EnabledIf
-import org.usvm.dataflow.ts.getResourcePath
-import org.usvm.dataflow.ts.getResourcePathOrNull
 import org.usvm.dataflow.ts.infer.AccessPathBase
 import org.usvm.dataflow.ts.infer.EtsTypeFact
 import org.usvm.dataflow.ts.infer.TypeGuesser
@@ -50,7 +50,6 @@ import org.usvm.dataflow.ts.infer.annotation.InferredTypeScheme
 import org.usvm.dataflow.ts.infer.annotation.annotateWithTypes
 import org.usvm.dataflow.ts.infer.createApplicationGraph
 import org.usvm.dataflow.ts.infer.toType
-import org.usvm.dataflow.ts.loadEtsProjectFromResources
 import org.usvm.dataflow.ts.testFactory
 import org.usvm.dataflow.ts.util.EtsTraits
 import org.usvm.dataflow.ts.util.sortedBy
@@ -284,8 +283,10 @@ class EtsTypeInferenceTest {
         }
 
         println("Processing ${files.size} files...")
-        val etsFiles = files.map { EtsFileDto.loadFromJson(it.inputStream()).toEtsFile() }
-        val project = EtsScene(etsFiles, sdkFiles = emptyList())
+        val etsFiles = files.map {
+            loadEtsFile(it.toPath())
+        }
+        val project = EtsScene(etsFiles)
         val graph = createApplicationGraph(project)
 
         val entrypoints = project.projectClasses
