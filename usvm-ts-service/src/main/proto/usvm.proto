@@ -1,0 +1,48 @@
+syntax = "proto3";
+package usvm;
+
+option java_multiple_files = true;
+
+import "model.proto";
+
+service Usvm {
+  rpc InferTypes(InferTypesRequest) returns (InferredTypes);
+}
+
+message InferTypesRequest {
+  optional model.Scene scene = 1;
+  optional string path = 2;
+}
+
+message InferredTypes {
+  repeated ClassTypeResult classes = 1;
+  repeated MethodTypeResult methods = 2;
+}
+
+message ClassTypeResult {
+  model.ClassSignature signature = 1;
+  repeated FieldTypeResult fields = 2;
+  repeated string methods = 3;
+}
+
+message FieldTypeResult {
+  string name = 1;
+  model.Type type = 2;
+}
+
+message MethodTypeResult {
+  model.MethodSignature signature = 1;
+  repeated ArgumentTypeResult args = 2;
+  model.Type returnType = 3;
+  repeated LocalTypeResult locals = 4;
+}
+
+message ArgumentTypeResult {
+  int32 index = 1;
+  model.Type type = 2;
+}
+
+message LocalTypeResult {
+  string name = 1;
+  model.Type type = 2;
+}
