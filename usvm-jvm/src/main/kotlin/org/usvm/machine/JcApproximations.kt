@@ -76,14 +76,11 @@ import org.usvm.api.mapTypeStreamNotNull
 import org.usvm.api.memcpy
 import org.usvm.api.objectTypeEquals
 import org.usvm.api.objectTypeSubtype
-import org.usvm.api.readArrayIndex
-import org.usvm.api.readArrayLength
 import org.usvm.api.readField
 import org.usvm.api.writeField
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
-import org.usvm.getIntValue
 import org.usvm.jvm.util.allInstanceFields
 import org.usvm.jvm.util.javaName
 import org.usvm.machine.interpreter.JcExprResolver
@@ -92,8 +89,6 @@ import org.usvm.machine.mocks.mockMethod
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.skipMethodInvocationWithValue
-import org.usvm.mkSizeAddExpr
-import org.usvm.mkSizeExpr
 import org.usvm.sizeSort
 import org.usvm.types.first
 import org.usvm.types.singleOrNull
@@ -428,29 +423,39 @@ class JcMethodApproximationResolver(
     }
 
     // TODO: move to java-stdlib-appoximations
-    private fun JcExprResolver.resolveGetArrayLength(methodCall: JcMethodCall, arrayRef: UHeapRef) = scope.doWithState {
+    private fun JcExprResolver.resolveGetArrayLength(
+        methodCall: JcMethodCall,
+        arrayRef: UHeapRef,
+    ) = scope.doWithState {
         checkNullPointer(arrayRef) ?: return@doWithState
 
         val possibleElementTypes = ctx.primitiveTypes + ctx.cp.objectType
         val possibleArrayTypes = possibleElementTypes.map { ctx.cp.arrayTypeOf(it) }
-        val arrayTypeConstraints: List<Pair<UBoolExpr, (JcState) -> Unit>> = possibleArrayTypes.mapNotNull { type ->
+        val arrayTypeConstraints: List<Pair<UBoolExpr, (JcState) -> Unit>> = possibleArrayTypes.map { type ->
             val length = readArrayLength(arrayRef, type)
             memory.types.evalIsSubtype(arrayRef, type) to { state ->
-                if (addLengthBounds(length) != null)
+                if (addLengthBounds(length) != null) {
                     state.skipMethodInvocationWithValue(methodCall, length)
+                }
             }
         }
+
         val unknownArrayType = ctx.mkAnd(arrayTypeConstraints.map { ctx.mkNot(it.first) })
-        scope.forkMulti(arrayTypeConstraints + (unknownArrayType to allocateException(ctx.illegalArgumentExceptionType)))
+        val exceptionalState = unknownArrayType to allocateException(ctx.illegalArgumentExceptionType)
+        scope.forkMulti(arrayTypeConstraints + exceptionalState)
     }
 
     // TODO: move to java-stdlib-appoximations
-    private fun JcExprResolver.resolveGetArrayElem(methodCall: JcMethodCall, arrayRef: UHeapRef, index: UExpr<USizeSort>) = scope.doWithState {
+    private fun JcExprResolver.resolveGetArrayElem(
+        methodCall: JcMethodCall,
+        arrayRef: UHeapRef,
+        index: UExpr<USizeSort>,
+    ) = scope.doWithState {
         checkNullPointer(arrayRef) ?: return@doWithState
 
         val possibleElementTypes = ctx.primitiveTypes + ctx.cp.objectType
         val possibleArrayTypes = possibleElementTypes.map { ctx.cp.arrayTypeOf(it) }
-        val arrayTypeConstraints: List<Pair<UBoolExpr, (JcState) -> Unit>> = possibleArrayTypes.mapNotNull { type ->
+        val arrayTypeConstraints: List<Pair<UBoolExpr, (JcState) -> Unit>> = possibleArrayTypes.map { type ->
             val length = readArrayLength(arrayRef, type)
             memory.types.evalIsSubtype(arrayRef, type) to { state ->
                 if (addLengthBounds(length) != null) {
@@ -465,8 +470,10 @@ class JcMethodApproximationResolver(
                 }
             }
         }
+
         val unknownArrayType = ctx.mkAnd(arrayTypeConstraints.map { ctx.mkNot(it.first) })
-        scope.forkMulti(arrayTypeConstraints + (unknownArrayType to allocateException(ctx.illegalArgumentExceptionType)))
+        val exceptionalState = unknownArrayType to allocateException(ctx.illegalArgumentExceptionType)
+        scope.forkMulti(arrayTypeConstraints + exceptionalState)
     }
 
     // TODO: move to java-stdlib-appoximations
@@ -474,13 +481,13 @@ class JcMethodApproximationResolver(
         methodCall: JcMethodCall,
         arrayRef: UHeapRef,
         index: UExpr<USizeSort>,
-        value: UExpr<out USort>
+        value: UExpr<out USort>,
     ) = scope.doWithState {
         checkNullPointer(arrayRef) ?: return@doWithState
 
         val possibleElementTypes = ctx.primitiveTypes + ctx.cp.objectType
         val possibleArrayTypes = possibleElementTypes.map { ctx.cp.arrayTypeOf(it) }
-        val arrayTypeConstraints: List<Pair<UBoolExpr, (JcState) -> Unit>> = possibleArrayTypes.mapNotNull { type ->
+        val arrayTypeConstraints: List<Pair<UBoolExpr, (JcState) -> Unit>> = possibleArrayTypes.map { type ->
             val length = readArrayLength(arrayRef, type)
             memory.types.evalIsSubtype(arrayRef, type) to { state ->
                 if (addLengthBounds(length) != null) {
@@ -495,8 +502,10 @@ class JcMethodApproximationResolver(
                 }
             }
         }
+
         val unknownArrayType = ctx.mkAnd(arrayTypeConstraints.map { ctx.mkNot(it.first) })
-        scope.forkMulti(arrayTypeConstraints + (unknownArrayType to allocateException(ctx.illegalArgumentExceptionType)))
+        val exceptionalState = unknownArrayType to allocateException(ctx.illegalArgumentExceptionType)
+        scope.forkMulti(arrayTypeConstraints + exceptionalState)
     }
 
     private fun approximateUnsafeVirtualMethod(methodCall: JcMethodCall): Boolean = with(methodCall) {
@@ -614,7 +623,7 @@ class JcMethodApproximationResolver(
     private fun parseStringConcatRecipe(
         recipe: String,
         bsmArgs: List<BsmArg>,
-        callArgs: List<UExpr<*>>
+        callArgs: List<UExpr<*>>,
     ): List<StringConcatElement> {
         val elements = mutableListOf<StringConcatElement>()
 
@@ -1033,7 +1042,11 @@ class JcMethodApproximationResolver(
                     } ?: run {
                         val possibleElementTypes = ctx.primitiveTypes + ctx.cp.objectType + ctx.stringType
                         val mock = scope.makeSymbolicRef(ctx.classType) ?: error("unable to crate mock for Class type")
-                        val defaultCase = ctx.mkIte(memory.types.evalIsSubtype(ref, ctx.cp.objectType), mock, ctx.nullRef)
+                        val defaultCase = ctx.mkIte(
+                            memory.types.evalIsSubtype(ref, ctx.cp.objectType),
+                            trueBranch = mock,
+                            falseBranch = ctx.nullRef
+                        )
                         possibleElementTypes.fold(defaultCase) { acc, type ->
                             val cond = memory.types.evalTypeEquals(ref, ctx.cp.arrayTypeOf(type))
                             val classRef = exprResolver.simpleValueResolver.resolveClassRef(type)
