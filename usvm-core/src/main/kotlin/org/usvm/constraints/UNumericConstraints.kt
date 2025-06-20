@@ -43,6 +43,7 @@ import org.usvm.collections.immutable.persistentHashSetOf
 import org.usvm.merging.MutableMergeGuard
 import org.usvm.merging.UOwnedMergeable
 import org.usvm.regions.IntIntervalsRegion
+import org.usvm.solver.UExprTranslator
 
 private typealias ConstraintTerms<Sort> = UExpr<Sort>
 
@@ -120,6 +121,9 @@ class UNumericConstraints<Sort : UBvSort> private constructor(
         return numericConstraints.asSequence()
             .flatMap { it.value.mkExpressions() }
     }
+
+    fun translateConstraints(translator: UExprTranslator<*, *>): Sequence<UBoolExpr> =
+        constraints().map(translator::translate)
 
     /**
      * Check if [expr] is numeric constraint over bit-vectors and can

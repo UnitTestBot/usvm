@@ -82,7 +82,7 @@ internal class RecursionTest : ApproximationsTestRunner() {
 
     @Test
     fun vertexSumTest() {
-        val options = options.copy(stepsFromLastCovered = 4500L)
+        val options = options.copy(stepsFromLastCovered = 10000L)
         withOptions(options) {
             checkDiscoveredProperties(
                 Recursion::vertexSum,

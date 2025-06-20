@@ -5,15 +5,15 @@ import org.usvm.UConcreteHeapAddress
 import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UHeapRef
-import org.usvm.USymbolicHeapRef
 import org.usvm.UNullRef
+import org.usvm.USymbolicHeapRef
 import org.usvm.collections.immutable.getOrDefault
-import org.usvm.isStatic
-import org.usvm.isStaticHeapRef
-import org.usvm.collections.immutable.persistentHashMapOf
 import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHashMap
 import org.usvm.collections.immutable.internal.MutabilityOwnership
+import org.usvm.collections.immutable.persistentHashMapOf
 import org.usvm.collections.immutable.toMutableMap
+import org.usvm.isStatic
+import org.usvm.isStaticHeapRef
 import org.usvm.memory.mapWithStaticAsConcrete
 import org.usvm.merging.MutableMergeGuard
 import org.usvm.merging.UOwnedMergeable
@@ -497,8 +497,29 @@ class UTypeConstraints<Type>(
         return UTypeConstraints(mergedOwnership, typeSystem, equalityConstraints, mergedConcreteRefs, symbolicRefToTypeRegion)
     }
 
-
-    fun constraints(): Sequence<UBoolExpr> {
+    @Suppress("UNUSED_PARAMETER")
+    fun translateConstraints(translator: UExprTranslator<Type, *>): Sequence<UBoolExpr> {
         return emptySequence()
+    }
+
+    fun constraints(): Sequence<UBoolExpr> = with(ctx) {
+        val result = mutableListOf<UBoolExpr>()
+        concreteRefToType.mapTo(result) { (addr, type) ->
+            val ref = mkConcreteHeapRef(addr)
+            mkIsSubtypeExpr(ref, type) and mkIsSupertypeExpr(ref, type)
+        }
+
+        symbolicRefToTypeRegion.forEach { (ref, region) ->
+            region.constraints(result, ref)
+        }
+
+        return result.asSequence()
+    }
+
+    private fun UTypeRegion<Type>.constraints(dst: MutableList<UBoolExpr>, ref: UHeapRef) = with(ctx) {
+        subtypes.mapTo(dst) { mkIsSupertypeExpr(ref, it) }
+        supertypes.mapTo(dst) { mkIsSubtypeExpr(ref, it) }
+        notSubtypes.mapTo(dst) { mkIsSupertypeExpr(ref, it).not() }
+        notSupertypes.mapTo(dst) { mkIsSubtypeExpr(ref, it).not() }
     }
 }
