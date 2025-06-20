@@ -24,6 +24,8 @@ import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
+import org.usvm.api.allocateArrayInitialized
+import org.usvm.api.allocateConcreteRef
 import org.usvm.api.typeStreamOf
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.isTrue
@@ -34,6 +36,7 @@ import org.usvm.machine.expr.TsVoidValue
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.types.EtsFakeType
 import org.usvm.memory.UReadOnlyMemory
+import org.usvm.sizeSort
 import org.usvm.types.single
 import org.usvm.util.mkFieldLValue
 import kotlin.contracts.ExperimentalContracts
@@ -65,7 +68,7 @@ class TsContext(
     fun typeToSort(type: EtsType): USort = when (type) {
         is EtsBooleanType -> boolSort
         is EtsNumberType -> fp64Sort
-        is EtsStringType -> fp64Sort
+        is EtsStringType -> addressSort
         is EtsNullType -> addressSort
         is EtsUndefinedType -> addressSort
         is EtsUnionType -> unresolvedSort
@@ -197,6 +200,38 @@ class TsContext(
 
     fun UConcreteHeapRef.extractRef(scope: TsStepScope): UHeapRef {
         return scope.calcOnState { extractRef(memory) }
+    }
+
+    private val stringConstantAllocatedRefs: MutableMap<String, UConcreteHeapRef> = hashMapOf()
+    internal val heapRefToStringConstant: MutableMap<UConcreteHeapRef, String> = hashMapOf()
+
+    fun mkStringConstant(value: String, scope: TsStepScope): UConcreteHeapRef {
+        return stringConstantAllocatedRefs.getOrPut(value) {
+            val ref = allocateConcreteRef()
+            heapRefToStringConstant[ref] = value
+
+            scope.doWithState {
+                // Mark `ref` with String type
+                memory.types.allocate(ref.address, EtsStringType)
+
+                // Initialize char array
+                val valueType = EtsArrayType(EtsNumberType, dimensions = 1)
+                val descriptor = arrayDescriptorOf(valueType)
+                val charArray = memory.allocateArrayInitialized(
+                    type = descriptor,
+                    sort = bv16Sort,
+                    sizeSort = sizeSort,
+                    contents = value.asSequence().map { mkBv(it.code, bv16Sort) },
+                )
+                memory.types.allocate(charArray.address, valueType.elementType)
+
+                // Write char array to `ref.value`
+                val valueLValue = mkFieldLValue(addressSort, ref, "value")
+                memory.write(valueLValue, charArray, guard = trueExpr)
+            }
+
+            ref
+        }
     }
 }
 

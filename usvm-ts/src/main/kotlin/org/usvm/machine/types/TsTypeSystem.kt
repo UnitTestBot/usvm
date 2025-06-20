@@ -288,7 +288,7 @@ class TsTypeSystem(
             is EtsUnclearRefType,
             is EtsClassType ->
                 if ((t as? EtsClassType)?.signature == EtsHierarchy.OBJECT_CLASS.signature) { // TODO change it
-                    scene.projectAndSdkClasses.asSequence().map { it.type }
+                    scene.projectAndSdkClasses.asSequence().map { it.type } + EtsStringType
                 } else {
                     hierarchy.classesForType(t)
                         .asSequence()

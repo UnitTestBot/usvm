@@ -13,11 +13,12 @@ class ObjectUsage : TsMethodTestRunner() {
     @Test
     fun `object as parameter`() {
         val method = getMethod(className, "objectAsParameter")
-        discoverProperties<TsTestValue, TsTestValue.TsNumber>(
+        discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
             method = method,
-            { value, r -> value is TsTestValue.TsClass && value.name == "Object" && r.number == 42.0 },
-            { value, r -> value == TsTestValue.TsUndefined && r.number == -1.0 }
+            { x, r -> r.number == 42.0 },
+            invariants = arrayOf(
+                { _, r -> r.number != -1.0 }
+            )
         )
     }
-
 }

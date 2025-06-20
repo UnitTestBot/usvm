@@ -85,6 +85,7 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.allocateArray
+import org.usvm.api.evalTypeEquals
 import org.usvm.dataflow.ts.infer.tryGetKnownType
 import org.usvm.dataflow.ts.util.type
 import org.usvm.machine.TsConcreteMethodCallStmt
@@ -117,15 +118,6 @@ import org.usvm.util.resolveEtsField
 import org.usvm.util.throwExceptionWithoutStackFrameDrop
 
 private val logger = KotlinLogging.logger {}
-
-@Suppress("MagicNumber")
-const val ADHOC_STRING = 777777.0 // arbitrary string
-
-@Suppress("MagicNumber")
-const val ADHOC_STRING__NUMBER = 55555.0 // 'number'
-
-@Suppress("MagicNumber")
-const val ADHOC_STRING__STRING = 2222.0 // 'string'
 
 class TsExprResolver(
     private val ctx: TsContext,
@@ -277,10 +269,26 @@ class TsExprResolver(
         val arg = resolve(expr.arg) ?: return null
 
         if (arg.sort == fp64Sort) {
-            if (arg == mkFp64(ADHOC_STRING)) {
-                return mkFp64(ADHOC_STRING__STRING)
-            }
-            return mkFp64(ADHOC_STRING__NUMBER) // 'number'
+            return mkStringConstant("number", scope)
+        }
+        if (arg.sort == boolSort) {
+            return mkStringConstant("boolean", scope)
+        }
+        if (arg.sort == addressSort) {
+            val ref = arg.asExpr(addressSort)
+            return mkIte(
+                condition = mkHeapRefEq(ref, mkTsNullValue()),
+                trueBranch = mkStringConstant("object", scope),
+                falseBranch = mkIte(
+                    condition = mkHeapRefEq(ref, mkUndefinedValue()),
+                    trueBranch = mkStringConstant("undefined", scope),
+                    falseBranch = mkIte(
+                        condition = scope.calcOnState { memory.types.evalTypeEquals(ref, EtsStringType) },
+                        trueBranch = mkStringConstant("string", scope),
+                        falseBranch = mkStringConstant("object", scope),
+                    )
+                )
+            )
         }
 
         logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
@@ -471,7 +479,7 @@ class TsExprResolver(
         }
 
         if (expr.callee.name == "toString") {
-            return mkFp64(ADHOC_STRING)
+            return TODO()
         }
 
         return when (val result = scope.calcOnState { methodResult }) {
@@ -1032,11 +1040,7 @@ class TsSimpleValueResolver(
     }
 
     override fun visit(value: EtsStringConstant): UExpr<out USort> = with(ctx) {
-        return when (value.value) {
-            "number" -> mkFp64(ADHOC_STRING__NUMBER)
-            "string" -> mkFp64(ADHOC_STRING__STRING)
-            else -> mkFp64(ADHOC_STRING)
-        }
+        mkStringConstant(value.value, scope)
     }
 
     override fun visit(value: EtsBooleanConstant): UExpr<out USort> = with(ctx) {
