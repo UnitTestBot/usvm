@@ -21,9 +21,10 @@ import org.usvm.instrumentation.instrumentation.JcInstructionTracer
 import org.usvm.instrumentation.serializer.SerializationContext
 import org.usvm.instrumentation.serializer.UTestInstSerializer.Companion.registerUTestInstSerializer
 import org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.Companion.registerUTestValueDescriptorSerializer
-import org.usvm.instrumentation.testcase.UTest
+import org.usvm.test.api.UTest
 import org.usvm.instrumentation.testcase.api.*
 import org.usvm.instrumentation.util.*
+import org.usvm.test.api.UTestCall
 import java.io.File
 import kotlin.time.Duration
 import kotlin.time.DurationUnit

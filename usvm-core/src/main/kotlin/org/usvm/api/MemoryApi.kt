@@ -23,8 +23,8 @@ import org.usvm.regions.Region
 import org.usvm.types.UTypeStream
 import org.usvm.uctx
 import org.usvm.withSizeSort
-import org.usvm.collection.array.allocateArray as allocateArrayInternal
-import org.usvm.collection.array.allocateArrayInitialized as allocateArrayInitializedInternal
+import org.usvm.collection.array.initializeArrayLength as initializeArrayLengthInternal
+import org.usvm.collection.array.initializeArray as initializeArrayInternal
 
 fun <Type> UReadOnlyMemory<Type>.typeStreamOf(ref: UHeapRef): UTypeStream<Type> =
     types.getTypeStream(ref)
@@ -93,13 +93,20 @@ fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<ArrayType>.mems
     memsetInternal(ref, type, sort, sizeSort, contents)
 }
 
-fun <ArrayType, USizeSort : USort> UWritableMemory<ArrayType>.allocateArray(
-    type: ArrayType, sizeSort: USizeSort, count: UExpr<USizeSort>,
-): UConcreteHeapRef = allocateArrayInternal(type, sizeSort, count)
+fun <ArrayType, USizeSort : USort> UWritableMemory<ArrayType>.initializeArrayLength(
+    arrayHeapRef: UConcreteHeapRef,
+    type: ArrayType,
+    sizeSort: USizeSort,
+    count: UExpr<USizeSort>,
+) = initializeArrayLengthInternal(arrayHeapRef, type, sizeSort, count)
 
-fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<ArrayType>.allocateArrayInitialized(
-    type: ArrayType, sort: Sort, sizeSort: USizeSort, contents: Sequence<UExpr<Sort>>
-): UConcreteHeapRef = allocateArrayInitializedInternal(type, sort, sizeSort, contents)
+fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<ArrayType>.initializeArray(
+    arrayHeapRef: UConcreteHeapRef,
+    type: ArrayType,
+    sort: Sort,
+    sizeSort: USizeSort,
+    contents: Sequence<UExpr<Sort>>
+) = initializeArrayInternal(arrayHeapRef, type, sort, sizeSort, contents)
 
 fun <SetType, ElemSort : USort, Reg : Region<Reg>> UWritableMemory<SetType>.setAddElement(
     ref: UHeapRef,

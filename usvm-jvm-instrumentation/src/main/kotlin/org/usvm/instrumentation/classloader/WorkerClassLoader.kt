@@ -7,11 +7,20 @@ import org.jacodb.api.jvm.ext.findClass
 import org.objectweb.asm.tree.ClassNode
 import org.usvm.instrumentation.instrumentation.JcRuntimeTraceInstrumenter
 import org.usvm.instrumentation.testcase.descriptor.StaticDescriptorsBuilder
-import org.usvm.instrumentation.util.*
+import org.usvm.instrumentation.util.URLClassPathLoader
+import org.usvm.instrumentation.util.invokeWithAccessibility
+import org.usvm.jvm.util.JcExecutor
+import org.usvm.jvm.util.isFinal
+import org.usvm.jvm.util.isStatic
+import org.usvm.jvm.util.setFieldValue
+import org.usvm.jvm.util.toByteArray
 import java.lang.instrument.ClassDefinition
 import java.lang.instrument.Instrumentation
 import java.security.CodeSource
 import java.security.SecureClassLoader
+import java.net.URL
+import java.util.Collections
+import java.util.Enumeration
 
 /**
  * Worker classloader using as classloader in testing project
@@ -43,7 +52,7 @@ class WorkerClassLoader(
     }
 
     //Invoking clinit method for loaded classes for statics reset between executions
-    fun reset(accessedStatics: List<JcField>) {
+    fun reset(accessedStatics: List<JcField>, executor: JcExecutor) {
         val jcClassesToReinit = accessedStatics.map { it.enclosingClass }.toSet()
         val classesToReinit = foundClasses.values
             .filter { it.second in jcClassesToReinit }
@@ -64,7 +73,7 @@ class WorkerClassLoader(
             try {
                 cl.declaredMethods
                     .find { it.name == JcRuntimeTraceInstrumenter.GENERATED_CLINIT_NAME }
-                    ?.invokeWithAccessibility(null, listOf())
+                    ?.invokeWithAccessibility(null, listOf(), executor)
             } catch (e: Throwable) {
                 //cannot access some classes, for example, enums
             }
@@ -103,7 +112,7 @@ class WorkerClassLoader(
 
     override fun findClass(name: String): Class<*> {
         return foundClasses.getOrPut(name) {
-            val res = getWorkerResource(name)
+            val res = getWorkerResource(name) ?: throw ClassNotFoundException(name)
             val bb = res.getBytes()
             val cs = CodeSource(res.getCodeSourceURL(), res.getCodeSigners())
             val foundClass = defineClass(name, bb, 0, bb.size, cs)
@@ -120,10 +129,20 @@ class WorkerClassLoader(
         }
     }
 
-    private fun getWorkerResource(name: String): URLClassPathLoader.Resource = cachedClasses.getOrPut(name) {
+    private fun getWorkerResource(name: String): URLClassPathLoader.Resource? = cachedClasses.getOrPut(name) {
         val path = name.replace('.', '/') + ".class"
-        val resource = urlClassPath.getResource(path)
+        val resource = urlClassPath.getResource(path) ?: return null
         WorkerResource(resource)
+    }
+
+    override fun getResource(name: String?): URL? {
+        if (name == null) return null
+        return urlClassPath.getResource(name)?.getURL()
+    }
+
+    override fun findResources(name: String): Enumeration<URL> {
+        val resourceUrls = urlClassPath.getResources(name).map { it.getURL() }
+        return Collections.enumeration(resourceUrls.toList())
     }
 
     companion object {
@@ -135,5 +154,4 @@ class WorkerClassLoader(
         private val cachedBytes by lazy { resource.getBytes() }
         override fun getBytes(): ByteArray = cachedBytes
     }
-
 }

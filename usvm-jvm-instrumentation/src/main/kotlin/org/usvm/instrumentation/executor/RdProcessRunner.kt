@@ -11,11 +11,11 @@ import org.jacodb.api.jvm.JcClasspath
 import org.jacodb.api.jvm.cfg.JcInst
 import org.usvm.instrumentation.generated.models.*
 import org.usvm.instrumentation.rd.*
-import org.usvm.instrumentation.util.findFieldByFullNameOrNull
+import org.usvm.jvm.util.findFieldByFullNameOrNull
 import org.usvm.instrumentation.serializer.SerializationContext
 import org.usvm.instrumentation.serializer.UTestInstSerializer.Companion.registerUTestInstSerializer
 import org.usvm.instrumentation.serializer.UTestValueDescriptorSerializer.Companion.registerUTestValueDescriptorSerializer
-import org.usvm.instrumentation.testcase.UTest
+import org.usvm.test.api.UTest
 import org.usvm.instrumentation.testcase.api.*
 import org.usvm.instrumentation.testcase.descriptor.UTestExceptionDescriptor
 import java.util.concurrent.CompletableFuture

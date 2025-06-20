@@ -85,16 +85,19 @@ import org.jacodb.api.jvm.ext.objectType
 import org.jacodb.api.jvm.ext.short
 import org.jacodb.api.jvm.ext.toType
 import org.jacodb.api.jvm.ext.void
+import org.usvm.UAddressSort
 import org.usvm.UBvSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.UNullRef
 import org.usvm.USort
-import org.usvm.api.allocateArrayInitialized
+import org.usvm.api.initializeArray
+import org.usvm.api.mapTypeStream
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
+import org.usvm.jvm.util.enumValuesField
 import org.usvm.machine.JcContext
 import org.usvm.machine.JcMachineOptions
 import org.usvm.machine.USizeSort
@@ -122,8 +125,8 @@ import org.usvm.memory.URegisterStackLValue
 import org.usvm.memory.UWritableMemory
 import org.usvm.mkSizeExpr
 import org.usvm.sizeSort
+import org.usvm.types.singleOrNull
 import org.usvm.util.allocHeapRef
-import org.usvm.util.enumValuesField
 import org.usvm.util.write
 import org.usvm.utils.logAssertFailure
 
@@ -136,8 +139,8 @@ class JcExprResolver(
     private val scope: JcStepScope,
     private val options: JcMachineOptions,
     localToIdx: (JcMethod, JcImmediate) -> Int,
-    mkTypeRef: (JcType) -> UConcreteHeapRef,
-    mkStringConstRef: (String) -> UConcreteHeapRef,
+    mkTypeRef: (JcState, JcType) -> Pair<UConcreteHeapRef, Boolean>,
+    mkStringConstRef: (JcState, String, Boolean) -> Pair<UConcreteHeapRef, Boolean>,
     private val classInitializerAnalysisAlwaysRequiredForType: (JcRefType) -> Boolean,
 ) : JcExprVisitor<UExpr<out USort>?>, JcExprVisitor.Default<UExpr<out USort>?> {
     val simpleValueResolver: JcSimpleValueResolver = JcSimpleValueResolver(
@@ -333,19 +336,27 @@ class JcExprResolver(
         }
     }
 
+    internal fun addLengthBounds(length: UExpr<USizeSort>): Unit? = with(ctx) {
+        val lengthLeThanMaxLength = mkBvSignedLessOrEqualExpr(length, mkBv(options.arrayMaxSize))
+        val lengthGeThenZero = mkBvSignedLessOrEqualExpr(mkBv(0), length)
+
+        scope.assert(lengthLeThanMaxLength and lengthGeThenZero)
+            .logAssertFailure { "JcExprResolver: array length >= 0" }
+            ?: return null
+    }
+
+    internal fun readArrayLength(arrayRef: UHeapRef, type: JcArrayType): UExpr<USizeSort> = with(ctx) {
+        val arrayDescriptor = arrayDescriptorOf(type)
+        val lengthRef = UArrayLengthLValue(arrayRef, arrayDescriptor, sizeSort)
+        scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) }
+    }
+
     override fun visitJcLengthExpr(expr: JcLengthExpr): UExpr<out USort>? = with(ctx) {
         val ref = resolveJcExpr(expr.array)?.asExpr(addressSort) ?: return null
         checkNullPointer(ref) ?: return null
-        val arrayDescriptor = arrayDescriptorOf(expr.array.type as JcArrayType)
-        val lengthRef = UArrayLengthLValue(ref, arrayDescriptor, sizeSort)
-        val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) }
-        assertHardMaxArrayLength(length) ?: return null
-
-        scope.assert(mkBvSignedLessOrEqualExpr(mkBv(0), length))
-            .logAssertFailure { "JcExprResolver: array length >= 0" }
-            ?: return null
-
-        length
+        val length = readArrayLength(ref, expr.array.type as JcArrayType)
+        addLengthBounds(length) ?: return null
+        return length
     }
 
     override fun visitJcNewArrayExpr(expr: JcNewArrayExpr): UExpr<out USort>? = with(ctx) {
@@ -365,8 +376,6 @@ class JcExprResolver(
 
             val arrayDescriptor = arrayDescriptorOf(expr.type as JcArrayType)
             memory.write(UArrayLengthLValue(ref, arrayDescriptor, sizeSort), size)
-            // overwrite array type because descriptor is element type (which is Object for arrays of refs)
-            memory.types.allocate(ref.address, expr.type)
 
             ref
         }
@@ -518,9 +527,11 @@ class JcExprResolver(
         val lValue = resolveArrayAccess(value.array, value.index) ?: return null
         val expr = scope.calcOnState { memory.read(lValue) }
 
-        if (assertIsSubtype(expr, value.type)) return expr
+        if (!assertIsSubtype(expr, value.type)) return null
 
-        return null
+        ensureNoArrayStoreException(lValue.ref, expr) ?: return null
+
+        return expr
     }
 
     private fun assertIsSubtype(expr: KExpr<out USort>, type: JcType): Boolean {
@@ -554,7 +565,9 @@ class JcExprResolver(
                 if (!assertIsSubtype(instanceRef, field.enclosingType)) return null
 
                 val sort = ctx.typeToSort(field.type)
-                return UFieldLValue(sort, instanceRef, field.field)
+                return ensureStaticFieldsInitialized(field.enclosingType, classInitializerAnalysisRequired = true) {
+                    UFieldLValue(sort, instanceRef, field.field)
+                }
             }
 
             return ensureStaticFieldsInitialized(field.enclosingType, classInitializerAnalysisRequired = true) {
@@ -626,7 +639,6 @@ class JcExprResolver(
         // the enum value equal to the one of corresponding enum constants
         val invariantsConstraint = mkIteNoSimplify(isEnumNull, trueExpr, oneOfEnumInstances)
 
-
         scope.assert(invariantsConstraint)
             .logAssertFailure { "JcExprResolver: enum correctness constraint" }
     }
@@ -683,7 +695,6 @@ class JcExprResolver(
                 ?: error("Cannot assert enum correctness constraint for a constant of the enum class ${type.name}")
         }
     }
-
 
     /**
      * Run a class static initializer for [type] if it didn't run before the current state.
@@ -748,14 +759,63 @@ class JcExprResolver(
         val lengthRef = UArrayLengthLValue(arrayRef, arrayDescriptor, sizeSort)
         val length = scope.calcOnState { memory.read(lengthRef).asExpr(sizeSort) }
 
-        assertHardMaxArrayLength(length) ?: return null
+        addLengthBounds(length) ?: return null
 
         checkArrayIndex(idx, length) ?: return null
 
         val elementType = requireNotNull(array.type.ifArrayGetElementType)
         val cellSort = typeToSort(elementType)
 
-        return UArrayIndexLValue(cellSort, arrayRef, idx, arrayDescriptor)
+        UArrayIndexLValue(cellSort, arrayRef, idx, arrayDescriptor)
+    }
+
+    fun checkIsArrayRvalueSubtypeOf(
+        baseArrayRef: UHeapRef,
+        rvalueRef: KExpr<UAddressSort>
+    ) = scope.calcOnState {
+        val elementTypeConstraints = mapTypeStream(baseArrayRef) { arrayRef, types ->
+            // The type stored in ULValue is array descriptor and for object arrays it equals just to Object,
+            // so we need to retrieve the real array type with another way
+            val arrayType = types.commonSuperType
+                ?: error("No type found for array $arrayRef")
+
+            val elementType = arrayType.ifArrayGetElementType
+            // Super type is not Array type (e.g. Object).
+            // When we can't verify a type, treat this check as no exception possible
+                ?: return@mapTypeStream ctx.trueExpr
+
+            memory.types.evalIsSubtype(rvalueRef, elementType)
+        } ?: ctx.trueExpr // We can't extract types for array ref -> treat this check as no exception possible
+
+        val arrayTypeConstraints = mapTypeStream(rvalueRef) { _, types ->
+            val elementType = types.singleOrNull()
+            // When we can't verify a type, treat this check as no exception possible
+                ?: return@mapTypeStream ctx.trueExpr
+
+            val arrayType = ctx.cp.arrayTypeOf(elementType)
+
+            memory.types.evalIsSupertype(baseArrayRef, arrayType)
+        } ?: ctx.trueExpr
+
+        ctx.mkAnd(elementTypeConstraints, arrayTypeConstraints)
+    }
+
+    private fun ensureNoArrayStoreException(
+        baseArrayRef: UHeapRef,
+        value: UExpr<out USort>
+    ): Unit? {
+        // ArrayStoreException is possible only for references
+        if (value.sort != ctx.addressSort) {
+            return Unit
+        }
+
+        val rvalueRef = value.asExpr(ctx.addressSort)
+
+        // ArrayStoreException happens if we write a value that is not a subtype of the element type
+        val isRvalueSubtypeOf = checkIsArrayRvalueSubtypeOf(baseArrayRef, rvalueRef)
+
+        return scope.assert(isRvalueSubtypeOf)
+            .logAssertFailure { "Jc implicit exception in JcExprResolver: Check ArrayStoreException" }
     }
 
     // endregion
@@ -824,10 +884,10 @@ class JcExprResolver(
         }
     }
 
-    fun checkClassCast(expr: UHeapRef, type: JcType) = with(ctx) {
+    fun checkClassCast(expr: UHeapRef, type: JcType): Unit? {
         val isExpr = scope.calcOnState { memory.types.evalIsSubtype(expr, type) }
 
-        if (options.forkOnImplicitExceptions) {
+        return if (options.forkOnImplicitExceptions) {
             scope.fork(
                 isExpr,
                 blockOnFalseState = allocateException(ctx.classCastExceptionType)
@@ -1036,8 +1096,8 @@ class JcSimpleValueResolver(
     private val ctx: JcContext,
     private val scope: JcStepScope,
     private val localToIdx: (JcMethod, JcImmediate) -> Int,
-    private val mkTypeRef: (JcType) -> UConcreteHeapRef,
-    private val mkStringConstRef: (String) -> UConcreteHeapRef,
+    private val mkTypeRef: (JcState, JcType) -> Pair<UConcreteHeapRef, Boolean>,
+    private val mkStringConstRef: (JcState, String, Boolean) -> Pair<UConcreteHeapRef, Boolean>,
 ) : JcValueVisitor<UExpr<out USort>>, JcExprVisitor.Default<UExpr<out USort>> {
     override fun visitJcArgument(value: JcArgument): UExpr<out USort> = with(ctx) {
         val ref = resolveLocal(value)
@@ -1083,30 +1143,33 @@ class JcSimpleValueResolver(
     override fun visitJcStringConstant(value: JcStringConstant): UExpr<out USort> = with(ctx) {
         scope.calcOnState {
             // Equal string constants always have equal references
-            val ref = resolveStringConstant(value.value)
+            val (ref, initialized) = mkStringConstRef(this, value.value, true)
+            if (initialized)
+                return@calcOnState ref
+
             val stringValueLValue = UFieldLValue(addressSort, ref, stringValueField.field)
 
             // String.value type depends on the JVM version
-            val charValues = when (stringValueField.type.ifArrayGetElementType) {
+            val values = when (stringValueField.type.ifArrayGetElementType) {
                 cp.char -> value.value.asSequence().map { mkBv(it.code, charSort) }
                 cp.byte -> value.value.encodeToByteArray().asSequence().map { mkBv(it, byteSort) }
                 else -> error("Unexpected string values type: ${stringValueField.type}")
             }
 
-            val valuesArrayDescriptor = arrayDescriptorOf(stringValueField.type as JcArrayType)
+            val arrayType = stringValueField.type as JcArrayType
+            val valuesArrayDescriptor = arrayDescriptorOf(arrayType)
             val elementType = requireNotNull(stringValueField.type.ifArrayGetElementType)
-            val charArrayRef = memory.allocateArrayInitialized(
+            val arrayRef = memory.allocConcrete(arrayType)
+            memory.initializeArray(
+                arrayRef,
                 valuesArrayDescriptor,
                 typeToSort(elementType),
                 sizeSort,
-                charValues.uncheckedCast()
+                values.uncheckedCast()
             )
 
-            // overwrite array type because descriptor is element type
-            memory.types.allocate(charArrayRef.address, stringValueField.type)
-
             // String constants are immutable. Therefore, it is correct to overwrite value, coder and type.
-            memory.write(stringValueLValue, charArrayRef)
+            memory.write(stringValueLValue, arrayRef)
 
             // Write coder only if it is presented (depends on the JVM version)
             stringCoderField?.let {
@@ -1153,7 +1216,10 @@ class JcSimpleValueResolver(
     }
 
     fun resolveClassRef(type: JcType): UConcreteHeapRef = scope.calcOnState {
-        val ref = mkTypeRef(type)
+        val (ref, initialized) = mkTypeRef(this, type)
+        if (initialized)
+            return@calcOnState ref
+
         val classRefTypeLValue = UFieldLValue(ctx.addressSort, ref, ctx.classTypeSyntheticField)
 
         // Ref type is java.lang.Class
@@ -1169,6 +1235,6 @@ class JcSimpleValueResolver(
 
     fun resolveStringConstant(value: String): UConcreteHeapRef =
         scope.calcOnState {
-            mkStringConstRef(value)
+            mkStringConstRef(this, value, false).first
         }
 }

@@ -10,7 +10,7 @@ import org.jacodb.impl.features.classpaths.virtual.JcVirtualFieldImpl
 import org.jacodb.impl.features.classpaths.virtual.JcVirtualMethodImpl
 import org.jacodb.impl.features.classpaths.virtual.JcVirtualParameter
 import org.objectweb.asm.Opcodes
-import org.usvm.instrumentation.util.typename
+import org.usvm.jvm.util.typename
 
 class MockClassRebuilder(
     val jcClass: JcClassOrInterface,

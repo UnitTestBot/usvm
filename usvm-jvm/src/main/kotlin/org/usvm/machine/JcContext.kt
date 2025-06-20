@@ -167,4 +167,8 @@ class JcContext(
     val arrayStoreExceptionType by lazy {
         extractJcRefType(ArrayStoreException::class)
     }
+
+    val illegalArgumentExceptionType by lazy {
+        extractJcRefType(IllegalArgumentException::class)
+    }
 }

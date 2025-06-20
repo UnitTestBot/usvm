@@ -6,10 +6,16 @@ import org.jacodb.api.jvm.ext.*
 import org.usvm.instrumentation.classloader.WorkerClassLoader
 import org.usvm.instrumentation.mock.MockHelper
 import org.usvm.instrumentation.testcase.executor.UTestExpressionExecutor
-import org.usvm.instrumentation.testcase.api.UTestExpression
-import org.usvm.instrumentation.testcase.api.UTestInst
-import org.usvm.instrumentation.testcase.api.UTestMock
-import org.usvm.instrumentation.util.*
+import org.usvm.test.api.UTestExpression
+import org.usvm.test.api.UTestInst
+import org.usvm.test.api.UTestMock
+import org.usvm.jvm.util.allDeclaredFields
+import org.usvm.jvm.util.getFieldValue
+import org.usvm.jvm.util.stringType
+import org.usvm.jvm.util.toJavaField
+import org.usvm.jvm.util.toJcClass
+import org.usvm.jvm.util.toJcType
+import org.usvm.instrumentation.util.InstrumentationModuleConstants
 import java.util.*
 
 open class Value2DescriptorConverter(
@@ -62,7 +68,7 @@ open class Value2DescriptorConverter(
     }
 
     private fun buildDescriptor(any: Any?, type: JcType?, depth: Int = 0): UTestValueDescriptor {
-        if (any == null || depth > InstrumentationModuleConstants.maxDepthOfDescriptorConstruction) {
+        if (any == null || any is Unit || depth > InstrumentationModuleConstants.maxDepthOfDescriptorConstruction) {
             return `null`(type ?: jcClasspath.nullType)
         }
         return objectToDescriptor.getOrPut(any) {
@@ -101,7 +107,7 @@ open class Value2DescriptorConverter(
 
     private fun const(value: String, depth: Int) =
         try {
-            UTestConstantDescriptor.String(value, jcClasspath.stringType()).also { value.length }
+            UTestConstantDescriptor.String(value, jcClasspath.stringType).also { value.length }
         } catch (e: Throwable) {
             `object`(value, depth)
         }
@@ -220,7 +226,7 @@ open class Value2DescriptorConverter(
         val jcClass =
             if (originUTestInst is UTestMock) {
                 originUTestInst.type.toJcClass() ?: jcClasspath.findClass(
-                    value::class.java.name.substringBeforeLast(
+                    value::class.java.typeName.substringBeforeLast(
                         MockHelper.MOCKED_CLASS_POSTFIX
                     )
                 )

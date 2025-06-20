@@ -161,13 +161,27 @@ object ObjectMapCollectionApi {
         val srcMapSize = symbolicObjectMapSize(srcRef, mapType)
         val dstMapSize = symbolicObjectMapSize(dstRef, mapType)
 
+        // todo: precise map size approximation?
+        // val sizeLowerBound = mkIte(mkBvSignedGreaterExpr(srcMapSize, dstMapSize), srcMapSize, dstMapSize)
+        val sizeUpperBound = mkSizeAddExpr(srcMapSize, dstMapSize)
+
+        var currentSize = sizeUpperBound
+        val allKeys = memory.refSetEntries(srcRef, mapType)
+        for (entry in allKeys.entries) {
+            val key = entry.setElement
+            val srcContains = symbolicObjectMapContains(srcRef, key, mapType)
+            val dstContains = symbolicObjectMapContains(dstRef, key, mapType)
+            when {
+                srcContains.isTrue && dstContains.isTrue ->
+                    currentSize = ctx.mkSizeSubExpr(currentSize, ctx.mkSizeExpr(1))
+                else -> continue
+            }
+        }
+
         val containsSetId = URefSetRegionId(mapType, sort.uctx.boolSort)
         memory.refMapMerge(srcRef, dstRef, mapType, sort, containsSetId, guard = trueExpr)
         memory.refSetUnion(srcRef, dstRef, mapType, guard = trueExpr)
 
-        // todo: precise map size approximation?
-        // val sizeLowerBound = mkIte(mkBvSignedGreaterExpr(srcMapSize, dstMapSize), srcMapSize, dstMapSize)
-        val sizeUpperBound = mkSizeAddExpr(srcMapSize, dstMapSize)
-        memory.write(UMapLengthLValue(dstRef, mapType, sizeSort), sizeUpperBound, guard = trueExpr)
+        memory.write(UMapLengthLValue(dstRef, mapType, sizeSort), currentSize, guard = trueExpr)
     }
 }

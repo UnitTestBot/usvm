@@ -41,7 +41,16 @@ abstract class UMachine<State : UState<*, *, *, *, *, State>> : AutoCloseable {
                     val state = pathSelector.peek()
                     observer.onStatePeeked(state)
 
-                    val (forkedStates, stateAlive) = interpreter.step(state)
+                    val (forkedStates, stateAlive) = try {
+                        interpreter.step(state)
+                    } catch (e: Throwable) {
+                        logger.error(e) { "Step failed" }
+                        observer.onState(state, forks = emptySequence())
+                        pathSelector.remove(state)
+                        observer.onStateTerminated(state, stateReachable = false)
+                        continue
+                    }
+
                     observer.onState(state, forkedStates)
 
                     val originalStateAlive = stateAlive && !isStateTerminated(state)
@@ -76,7 +85,8 @@ abstract class UMachine<State : UState<*, *, *, *, *, State>> : AutoCloseable {
             }
 
             if (!pathSelector.isEmpty()) {
-                logger.debug { stopStrategy.stopReason() }
+                val stopReason = stopStrategy.stopReason()
+                logger.debug { stopReason }
             }
         }
     }

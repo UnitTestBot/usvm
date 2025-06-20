@@ -55,7 +55,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Run JVM tests
-        run: ./gradlew :usvm-jvm:check :usvm-jvm-dataflow:check :usvm-jvm-instrumentation:check
+        run: ./gradlew :usvm-jvm:check :usvm-jvm:usvm-jvm-api:check :usvm-jvm:usvm-jvm-test-api:check :usvm-jvm:usvm-jvm-util:check :usvm-jvm-dataflow:check :usvm-jvm-instrumentation:check
 
       - name: Upload Gradle reports
         if: (!cancelled())

@@ -8,11 +8,11 @@ import org.jacodb.api.jvm.JcClasspath
 import org.usvm.instrumentation.instrumentation.JcInstrumenter
 import org.usvm.instrumentation.instrumentation.JcInstrumenterFactory
 import org.usvm.instrumentation.rd.InstrumentedProcess
-import org.usvm.instrumentation.testcase.UTest
 import org.usvm.instrumentation.testcase.api.UTestExecutionResult
 import org.usvm.instrumentation.util.InstrumentationModuleConstants
 import org.usvm.instrumentation.util.OpenModulesContainer
 import org.usvm.instrumentation.util.osSpecificJavaExecutable
+import org.usvm.test.api.UTest
 import java.io.File
 import java.nio.file.Paths
 import kotlin.reflect.KClass
@@ -76,6 +76,4 @@ class InstrumentationProcessRunner(
     suspend fun executeUTestAsync(uTest: UTest): UTestExecutionResult = rdProcessRunner.callUTestAsync(uTest)
 
     fun destroy() = rdProcessRunner.destroy()
-
-
 }

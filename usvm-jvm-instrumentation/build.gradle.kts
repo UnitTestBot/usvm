@@ -64,6 +64,9 @@ dependencies {
     implementation("commons-cli:commons-cli:1.5.0")
 
     rdgenModelsCompileClasspath(Libs.rd_gen)
+
+    implementation(project(":usvm-jvm:usvm-jvm-test-api"))
+    implementation(project(":usvm-jvm:usvm-jvm-util"))
 }
 
 tasks.withType<KotlinCompile> {
@@ -112,7 +115,6 @@ val generateModels = tasks.register<RdGenTask>("generateProtocolModels") {
     }
 
 }
-val runtimeClasspath = configurations.runtimeClasspath
 
 val instrumentationRunnerJar = tasks.register<ShadowJar>("instrumentationJar") {
     group = "jar"
@@ -130,12 +132,10 @@ val instrumentationRunnerJar = tasks.register<ShadowJar>("instrumentationJar") {
         )
     }
 
+    configurations = listOf(project.configurations.runtimeClasspath.get())
+
     mergeServiceFiles()
 
-    val contents = runtimeClasspath.get()
-        .map { if (it.isDirectory) it else zipTree(it) }
-
-    from(contents)
     with(tasks.jar.get() as CopySpec)
 }
 

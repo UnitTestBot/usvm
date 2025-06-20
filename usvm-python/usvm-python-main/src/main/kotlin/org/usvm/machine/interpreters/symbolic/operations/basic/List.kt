@@ -2,8 +2,8 @@ package org.usvm.machine.interpreters.symbolic.operations.basic
 
 import io.ksmt.sort.KIntSort
 import org.usvm.UExpr
-import org.usvm.api.allocateArray
 import org.usvm.api.collection.ListCollectionApi.symbolicListInsert
+import org.usvm.api.initializeArrayLength
 import org.usvm.api.memcpy
 import org.usvm.api.writeArrayLength
 import org.usvm.isFalse
@@ -119,7 +119,8 @@ fun handlerListConcatKt(
         return null
     }
     with(ctx.ctx) {
-        val resultAddress = ctx.extractCurState().memory.allocateArray(ArrayType, intSort, mkIntNum(0))
+        val resultAddress = ctx.extractCurState().memory.allocConcrete(typeSystem.pythonList)
+        ctx.extractCurState().memory.initializeArrayLength(resultAddress, ArrayType, intSort, mkIntNum(0))
         ctx.extractCurState().memory.types.allocate(resultAddress.address, typeSystem.pythonList)
         val result = UninterpretedSymbolicPythonObject(resultAddress, typeSystem)
         listConcat(ctx, left, right, result)

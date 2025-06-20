@@ -3,8 +3,20 @@ package org.usvm.machine
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.uncheckedCast
 import org.jacodb.api.jvm.JcArrayType
+import org.jacodb.api.jvm.JcClassType
 import org.jacodb.api.jvm.JcMethod
 import org.jacodb.api.jvm.JcType
+import org.jacodb.api.jvm.cfg.BsmArg
+import org.jacodb.api.jvm.cfg.BsmDoubleArg
+import org.jacodb.api.jvm.cfg.BsmFloatArg
+import org.jacodb.api.jvm.cfg.BsmHandle
+import org.jacodb.api.jvm.cfg.BsmIntArg
+import org.jacodb.api.jvm.cfg.BsmLongArg
+import org.jacodb.api.jvm.cfg.BsmMethodTypeArg
+import org.jacodb.api.jvm.cfg.BsmStringArg
+import org.jacodb.api.jvm.cfg.BsmTypeArg
+import org.jacodb.api.jvm.cfg.JcFieldRef
+import org.jacodb.api.jvm.cfg.JcStringConstant
 import org.jacodb.api.jvm.ext.boolean
 import org.jacodb.api.jvm.ext.byte
 import org.jacodb.api.jvm.ext.char
@@ -19,6 +31,7 @@ import org.jacodb.api.jvm.ext.objectType
 import org.jacodb.api.jvm.ext.short
 import org.jacodb.api.jvm.ext.toType
 import org.jacodb.api.jvm.ext.void
+import org.jacodb.impl.cfg.util.isPrimitive
 import org.usvm.UBoolExpr
 import org.usvm.UBv32Sort
 import org.usvm.UBvSort
@@ -26,6 +39,7 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UFpSort
 import org.usvm.UHeapRef
+import org.usvm.USort
 import org.usvm.api.Engine
 import org.usvm.api.SymbolicIdentityMap
 import org.usvm.api.SymbolicList
@@ -47,18 +61,33 @@ import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapMergeInto
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapPut
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapRemove
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapSize
+import org.usvm.api.evalTypeEquals
+import org.usvm.api.initializeArray
+import org.usvm.api.initializeArrayLength
+import org.usvm.api.internal.SymbolicListImpl
+import org.usvm.api.internal.SymbolicMapImpl
+import org.usvm.api.makeNullableSymbolicRefSubtype
+import org.usvm.api.makeNullableSymbolicRefWithSameType
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.api.makeSymbolicRef
+import org.usvm.api.makeSymbolicRefSubtype
 import org.usvm.api.makeSymbolicRefWithSameType
-import org.usvm.api.mapTypeStream
+import org.usvm.api.mapTypeStreamNotNull
 import org.usvm.api.memcpy
 import org.usvm.api.objectTypeEquals
+import org.usvm.api.objectTypeSubtype
+import org.usvm.api.readField
+import org.usvm.api.writeField
+import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
+import org.usvm.jvm.util.allInstanceFields
+import org.usvm.jvm.util.javaName
 import org.usvm.machine.interpreter.JcExprResolver
 import org.usvm.machine.interpreter.JcStepScope
 import org.usvm.machine.mocks.mockMethod
 import org.usvm.machine.state.JcState
+import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.skipMethodInvocationWithValue
 import org.usvm.sizeSort
 import org.usvm.types.first
@@ -69,8 +98,6 @@ import kotlin.reflect.KFunction
 import kotlin.reflect.KFunction0
 import kotlin.reflect.KFunction1
 import kotlin.reflect.KFunction2
-import kotlin.reflect.jvm.javaMethod
-import org.usvm.api.makeNullableSymbolicRefWithSameType
 
 class JcMethodApproximationResolver(
     private val ctx: JcContext,
@@ -86,7 +113,9 @@ class JcMethodApproximationResolver(
 
     private val usvmApiEngine by lazy { ctx.cp.findClassOrNull<Engine>() }
     private val usvmApiSymbolicList by lazy { ctx.cp.findClassOrNull<SymbolicList<*>>() }
+    private val usvmApiSymbolicListImpl by lazy { ctx.cp.findClassOrNull<SymbolicListImpl<*>>() }
     private val usvmApiSymbolicMap by lazy { ctx.cp.findClassOrNull<SymbolicMap<*, *>>() }
+    private val usvmApiSymbolicMapImpl by lazy { ctx.cp.findClassOrNull<SymbolicMapImpl<*, *>>() }
     private val usvmApiSymbolicIdentityMap by lazy { ctx.cp.findClassOrNull<SymbolicIdentityMap<*, *>>() }
 
     fun approximate(scope: JcStepScope, exprResolver: JcExprResolver, callJcInst: JcMethodCall): Boolean = try {
@@ -101,6 +130,10 @@ class JcMethodApproximationResolver(
     private fun approximate(callJcInst: JcMethodCall): Boolean {
         if (skipMethodIfThrowable(callJcInst)) {
             return true
+        }
+
+        if (callJcInst is JcDynamicMethodCallInst) {
+            return approximateInvokeDynamic(callJcInst)
         }
 
         if (callJcInst.method.isStatic) {
@@ -142,7 +175,7 @@ class JcMethodApproximationResolver(
         }
 
         if (method.name == "clone" && enclosingClass == ctx.cp.objectClass) {
-            if (approximateArrayClone(methodCall)) return true
+            if (approximateObjectClone(methodCall)) return true
         }
 
         return approximateEmptyNativeMethod(methodCall)
@@ -151,6 +184,7 @@ class JcMethodApproximationResolver(
     private fun approximateStaticMethod(methodCall: JcMethodCall): Boolean = with(methodCall) {
         val enclosingClass = method.enclosingClass
         val className = enclosingClass.name
+
         if (enclosingClass == usvmApiEngine) {
             approximateUsvmApiEngineStaticMethod(methodCall)
             return true
@@ -176,6 +210,22 @@ class JcMethodApproximationResolver(
             if (approximateDoubleStaticMethod(methodCall)) return true
         }
 
+        if (className == "java.util.Calendar") {
+            if (approximateCalendarStaticMethod(methodCall)) return true
+        }
+
+        if (className == "java.nio.charset.Charset") {
+            if (approximateCharsetStaticMethod(methodCall)) return true
+        }
+
+        if (className == "jdk.internal.reflect.Reflection") {
+            if (approximateJavaReflectionMethod(methodCall)) return true
+        }
+
+        if (className == "java.lang.reflect.Array") {
+            if (approximateArrayReflectionMethod(methodCall)) return true
+        }
+
         return approximateEmptyNativeMethod(methodCall)
     }
 
@@ -196,6 +246,14 @@ class JcMethodApproximationResolver(
         return false
     }
 
+    private fun approximateInvokeDynamic(methodCallInst: JcDynamicMethodCallInst): Boolean = with(methodCallInst) {
+        if (dynamicCall.method.method.enclosingClass.name == "java.lang.invoke.StringConcatFactory") {
+            if (approximateStringConcat(methodCallInst)) return true
+        }
+
+        return false
+    }
+
     private fun approximateClassStaticMethod(methodCall: JcMethodCall): Boolean = with(methodCall) {
         /**
          * Approximate retrieval of class instance for primitives.
@@ -203,7 +261,8 @@ class JcMethodApproximationResolver(
         if (method.name == "getPrimitiveClass") {
             val classNameRef = arguments.single()
 
-            val predefinedTypeNames = ctx.primitiveTypes.associateBy {
+            val primitiveTypes = ctx.primitiveTypes + ctx.cp.void
+            val predefinedTypeNames = primitiveTypes.associateBy {
                 exprResolver.simpleValueResolver.resolveStringConstant(it.typeName)
             }
 
@@ -233,6 +292,21 @@ class JcMethodApproximationResolver(
             return true
         }
 
+        if (method.name == "isInstance") {
+            val classRef = arguments[0].asExpr(ctx.addressSort)
+            val objectRef = arguments[1].asExpr(ctx.addressSort)
+            scope.doWithState {
+                val classRefTypeRepresentative =
+                    memory.read(UFieldLValue(ctx.addressSort, classRef, ctx.classTypeSyntheticField))
+                classRefTypeRepresentative as UConcreteHeapRef
+                val classType = memory.types.typeOf(classRefTypeRepresentative.address)
+                val isExpr = memory.types.evalIsSubtype(objectRef, classType)
+                skipMethodInvocationWithValue(methodCall, isExpr)
+            }
+
+            return true
+        }
+
         return false
     }
 
@@ -241,7 +315,7 @@ class JcMethodApproximationResolver(
             val instance = arguments.first().asExpr(ctx.addressSort)
 
             val result = scope.calcOnState {
-                mapTypeStream(instance) { _, types ->
+                mapTypeStreamNotNull(instance) { _, types ->
                     val type = types.singleOrNull()
                     type?.let { exprResolver.simpleValueResolver.resolveClassRef(it) }
                 }
@@ -254,6 +328,184 @@ class JcMethodApproximationResolver(
         }
 
         return false
+    }
+
+    private fun approximateCalendarStaticMethod(methodCall: JcMethodCall): Boolean = with(methodCall) {
+        if (method.name == "getInstance") {
+            val normalCalendar = ctx.cp.findTypeOrNull("java.util.GregorianCalendar")
+                ?: return false
+
+            scope.doWithState {
+                val ref = memory.allocConcrete(normalCalendar)
+                skipMethodInvocationWithValue(methodCall, ref)
+            }
+
+            return true
+        }
+
+        return false
+    }
+
+    private fun approximateCharsetStaticMethod(methodCall: JcMethodCall): Boolean = with(methodCall) {
+        if (method.name == "forName" || method.name == "defaultCharset") {
+            val utf8 = ctx.cp.findTypeOrNull("sun.nio.cs.UTF_8") as? JcClassType
+                ?: return false
+
+            val utf8Instance = utf8.declaredFields.single { it.isStatic && it.name == "INSTANCE" }
+            val fieldRef = JcFieldRef(instance = null, field = utf8Instance)
+            val instanceValue = fieldRef.accept(exprResolver) ?: return true
+
+            scope.doWithState {
+                skipMethodInvocationWithValue(methodCall, instanceValue)
+            }
+
+            return true
+        }
+
+        return false
+    }
+
+    private fun approximateJavaReflectionMethod(methodCall: JcMethodCall): Boolean = with(methodCall) {
+        if (method.name == "getCallerClass") {
+            scope.doWithState {
+                val callerClass = callStack.penultimateMethod().enclosingClass.toType()
+                val classRef = exprResolver.simpleValueResolver.resolveClassRef(callerClass)
+                skipMethodInvocationWithValue(methodCall, classRef)
+            }
+
+            return true
+        }
+
+        return false
+    }
+
+    private fun approximateArrayReflectionMethod(methodCall: JcMethodCall): Boolean = with(methodCall) {
+        if (method.name == "newInstance" && method.parameters[1].type.isPrimitive) {
+            scope.doWithState {
+                val componentTypeRef = arguments[0].asExpr(ctx.addressSort)
+                val componentTypeRepresentative =
+                    memory.read(UFieldLValue(ctx.addressSort, componentTypeRef, ctx.classTypeSyntheticField))
+                componentTypeRepresentative as UConcreteHeapRef
+                val componentType = memory.types.typeOf(componentTypeRepresentative.address)
+                val arrayType = ctx.cp.arrayTypeOf(componentType)
+                val arrayRef = memory.allocConcrete(arrayType)
+                val descriptor = ctx.arrayDescriptorOf(arrayType)
+                val sizeExpr = arguments[1].asExpr(ctx.sizeSort)
+                memory.initializeArrayLength(arrayRef, descriptor, ctx.sizeSort, sizeExpr)
+                skipMethodInvocationWithValue(methodCall, arrayRef)
+            }
+
+            return true
+        }
+
+        if (method.name == "getLength") {
+            val arrayRef = arguments[0].asExpr(ctx.addressSort)
+            exprResolver.resolveGetArrayLength(methodCall, arrayRef)
+            return true
+        }
+
+        if (method.name == "get") {
+            val arrayRef = arguments[0].asExpr(ctx.addressSort)
+            val index = arguments[1].asExpr(ctx.sizeSort)
+            exprResolver.resolveGetArrayElem(methodCall, arrayRef, index)
+            return true
+        }
+
+        if (method.name == "set") {
+            val arrayRef = arguments[0].asExpr(ctx.addressSort)
+            val index = arguments[1].asExpr(ctx.sizeSort)
+            val value = arguments[2].asExpr(ctx.addressSort)
+            exprResolver.resolveSetArrayElem(methodCall, arrayRef, index, value)
+            return true
+        }
+
+        return false
+    }
+
+    // TODO: move to java-stdlib-appoximations
+    private fun JcExprResolver.resolveGetArrayLength(
+        methodCall: JcMethodCall,
+        arrayRef: UHeapRef,
+    ) = scope.doWithState {
+        checkNullPointer(arrayRef) ?: return@doWithState
+
+        val possibleElementTypes = ctx.primitiveTypes + ctx.cp.objectType
+        val possibleArrayTypes = possibleElementTypes.map { ctx.cp.arrayTypeOf(it) }
+        val arrayTypeConstraints: List<Pair<UBoolExpr, (JcState) -> Unit>> = possibleArrayTypes.map { type ->
+            val length = readArrayLength(arrayRef, type)
+            memory.types.evalIsSubtype(arrayRef, type) to { state ->
+                if (addLengthBounds(length) != null) {
+                    state.skipMethodInvocationWithValue(methodCall, length)
+                }
+            }
+        }
+
+        val unknownArrayType = ctx.mkAnd(arrayTypeConstraints.map { ctx.mkNot(it.first) })
+        val exceptionalState = unknownArrayType to allocateException(ctx.illegalArgumentExceptionType)
+        scope.forkMulti(arrayTypeConstraints + exceptionalState)
+    }
+
+    // TODO: move to java-stdlib-appoximations
+    private fun JcExprResolver.resolveGetArrayElem(
+        methodCall: JcMethodCall,
+        arrayRef: UHeapRef,
+        index: UExpr<USizeSort>,
+    ) = scope.doWithState {
+        checkNullPointer(arrayRef) ?: return@doWithState
+
+        val possibleElementTypes = ctx.primitiveTypes + ctx.cp.objectType
+        val possibleArrayTypes = possibleElementTypes.map { ctx.cp.arrayTypeOf(it) }
+        val arrayTypeConstraints: List<Pair<UBoolExpr, (JcState) -> Unit>> = possibleArrayTypes.map { type ->
+            val length = readArrayLength(arrayRef, type)
+            memory.types.evalIsSubtype(arrayRef, type) to { state ->
+                if (addLengthBounds(length) != null) {
+                    if (checkArrayIndex(index, length) != null) {
+                        val arrayDescriptor = ctx.arrayDescriptorOf(type)
+                        val elementType = requireNotNull(type.ifArrayGetElementType)
+                        val cellSort = ctx.typeToSort(elementType)
+                        val lvalue = UArrayIndexLValue(cellSort, arrayRef, index, arrayDescriptor)
+                        val elem = memory.read(lvalue)
+                        state.skipMethodInvocationWithValue(methodCall, elem)
+                    }
+                }
+            }
+        }
+
+        val unknownArrayType = ctx.mkAnd(arrayTypeConstraints.map { ctx.mkNot(it.first) })
+        val exceptionalState = unknownArrayType to allocateException(ctx.illegalArgumentExceptionType)
+        scope.forkMulti(arrayTypeConstraints + exceptionalState)
+    }
+
+    // TODO: move to java-stdlib-appoximations
+    private fun JcExprResolver.resolveSetArrayElem(
+        methodCall: JcMethodCall,
+        arrayRef: UHeapRef,
+        index: UExpr<USizeSort>,
+        value: UExpr<out USort>,
+    ) = scope.doWithState {
+        checkNullPointer(arrayRef) ?: return@doWithState
+
+        val possibleElementTypes = ctx.primitiveTypes + ctx.cp.objectType
+        val possibleArrayTypes = possibleElementTypes.map { ctx.cp.arrayTypeOf(it) }
+        val arrayTypeConstraints: List<Pair<UBoolExpr, (JcState) -> Unit>> = possibleArrayTypes.map { type ->
+            val length = readArrayLength(arrayRef, type)
+            memory.types.evalIsSubtype(arrayRef, type) to { state ->
+                if (addLengthBounds(length) != null) {
+                    if (checkArrayIndex(index, length) != null) {
+                        val arrayDescriptor = ctx.arrayDescriptorOf(type)
+                        val elementType = requireNotNull(type.ifArrayGetElementType)
+                        val cellSort = ctx.typeToSort(elementType)
+                        val lvalue = UArrayIndexLValue(cellSort, arrayRef, index, arrayDescriptor)
+                        memory.write(lvalue, value)
+                        state.skipMethodInvocationWithValue(methodCall, ctx.voidValue)
+                    }
+                }
+            }
+        }
+
+        val unknownArrayType = ctx.mkAnd(arrayTypeConstraints.map { ctx.mkNot(it.first) })
+        val exceptionalState = unknownArrayType to allocateException(ctx.illegalArgumentExceptionType)
+        scope.forkMulti(arrayTypeConstraints + exceptionalState)
     }
 
     private fun approximateUnsafeVirtualMethod(methodCall: JcMethodCall): Boolean = with(methodCall) {
@@ -319,6 +571,122 @@ class JcMethodApproximationResolver(
         return false
     }
 
+    private sealed interface StringConcatElement
+    private data class StringConcatStrElement(val str: String) : StringConcatElement
+    private data class StringConcatRefElement(val ref: UHeapRef) : StringConcatElement
+
+    private fun approximateStringConcat(methodCallInst: JcDynamicMethodCallInst): Boolean = with(methodCallInst) {
+        if (dynamicCall.method.name == "makeConcatWithConstants") {
+            val concatUtil = ctx.cp.findClassOrNull("org.usvm.api.internal.StringConcatUtil")
+                ?.declaredMethods
+                ?.single { it.name == "concat" }
+                ?: return false
+
+            val recipe = (dynamicCall.bsmArgs.firstOrNull() as? BsmStringArg)?.value
+                ?: error("Unexpected dynamic call: $methodCallInst")
+
+            val elements = parseStringConcatRecipe(recipe, dynamicCall.bsmArgs.drop(1), arguments)
+
+            val elementRefs = elements.map {
+                when (it) {
+                    is StringConcatRefElement -> it.ref
+                    is StringConcatStrElement -> JcStringConstant(it.str, ctx.stringType)
+                        .accept(exprResolver.simpleValueResolver)
+                        .asExpr(ctx.addressSort)
+                }
+            }
+
+            val elementArray = scope.calcOnState {
+                val arrayType = ctx.cp.arrayTypeOf(ctx.cp.objectType)
+                val descriptor = ctx.arrayDescriptorOf(arrayType)
+                val arrayHeapRef = memory.allocConcrete(arrayType)
+                memory.initializeArray(
+                    arrayHeapRef,
+                    descriptor,
+                    ctx.addressSort,
+                    ctx.sizeSort,
+                    elementRefs.asSequence()
+                )
+                arrayHeapRef
+            }
+
+            scope.doWithState {
+                newStmt(JcConcreteMethodCallInst(location, concatUtil, listOf(elementArray), returnSite))
+            }
+
+            return true
+        }
+
+        return false
+    }
+
+    private fun parseStringConcatRecipe(
+        recipe: String,
+        bsmArgs: List<BsmArg>,
+        callArgs: List<UExpr<*>>,
+    ): List<StringConcatElement> {
+        val elements = mutableListOf<StringConcatElement>()
+
+        val acc = StringBuilder()
+
+        var constCount = 0
+        var argsCount = 0
+
+        for (recipeCh in recipe) {
+            when (recipeCh) {
+                '\u0002' -> {
+                    // Accumulate constant args along with any constants encoded
+                    // into the recipe
+                    val constant = bsmArgs.getOrNull(constCount++)
+                        ?: error("Incorrect dynamic call")
+
+                    val constantValue = when (constant) {
+                        is BsmDoubleArg -> constant.value.toString()
+                        is BsmFloatArg -> constant.value.toString()
+                        is BsmIntArg -> constant.value.toString()
+                        is BsmLongArg -> constant.value.toString()
+                        is BsmStringArg -> constant.value
+                        is BsmHandle,
+                        is BsmMethodTypeArg,
+                        is BsmTypeArg -> error("Incorrect dynamic call constant")
+                    }
+
+                    acc.append(constantValue)
+                }
+
+                '\u0001' -> {
+                    // Flush any accumulated characters into a constant
+                    if (acc.isNotEmpty()) {
+                        elements.add(StringConcatStrElement(acc.toString()))
+                        acc.setLength(0)
+                    }
+
+                    val argRef = callArgs.getOrNull(argsCount++) ?: error("Incorrect dynamic call arg")
+
+                    if (argRef.sort != ctx.addressSort) {
+                        // todo: primitive args
+                        continue
+                    }
+
+                    elements.add(StringConcatRefElement(argRef.asExpr(ctx.addressSort)))
+                }
+
+                else -> {
+                    // Not a special character, this is a constant embedded into
+                    // the recipe itself.
+                    acc.append(recipeCh)
+                }
+            }
+        }
+
+        // Flush the remaining characters as constant:
+        if (acc.isNotEmpty()) {
+            elements.add(StringConcatStrElement(acc.toString()))
+        }
+
+        return elements
+    }
+
     private fun JcExprResolver.resolveArrayCopy(
         methodCall: JcMethodCall,
         srcRef: UHeapRef,
@@ -357,18 +725,41 @@ class JcMethodApproximationResolver(
         scope.forkMulti(arrayTypeConstraintsWithBlockOnStates)
     }
 
-    private fun approximateArrayClone(methodCall: JcMethodCall): Boolean {
+    private fun approximateObjectClone(methodCall: JcMethodCall): Boolean {
         val instance = methodCall.arguments.first().asExpr(ctx.addressSort)
-
-        val arrayType = scope.calcOnState {
-            memory.types.getTypeStream(instance).commonSuperType
-        }
-        if (arrayType !is JcArrayType) {
-            return false
+        val type = scope.calcOnState { memory.types.getTypeStream(instance).commonSuperType }
+        if (type is JcArrayType) {
+            exprResolver.resolveArrayClone(methodCall, instance, type)
+            return true
         }
 
-        exprResolver.resolveArrayClone(methodCall, instance, arrayType)
-        return true
+        if (methodCall is JcConcreteMethodCallInst) {
+            type as JcClassType
+            exprResolver.resolveObjectClone(methodCall, instance, type)
+            return true
+        }
+
+        return false
+    }
+
+    private fun JcExprResolver.resolveObjectClone(
+        methodCall: JcMethodCall,
+        instance: UHeapRef,
+        type: JcClassType,
+    ) = with(ctx) {
+        scope.doWithState {
+            checkNullPointer(instance) ?: return@doWithState
+
+            val clonedRef = memory.allocHeapRef(type, useStaticAddress = useStaticAddressForAllocation())
+            for (field in type.allInstanceFields) {
+                val fieldSort = ctx.typeToSort(field.type)
+                val jcField = field.field
+                val fieldValue = memory.readField(instance, jcField, fieldSort)
+                memory.writeField(clonedRef, jcField, fieldSort, fieldValue, ctx.trueExpr)
+            }
+
+            skipMethodInvocationWithValue(methodCall, clonedRef)
+        }
     }
 
     private fun JcExprResolver.resolveArrayClone(
@@ -543,8 +934,16 @@ class JcMethodApproximationResolver(
         checkNotNull(usvmApiSymbolicList).toType()
     }
 
+    private val symbolicListImplType: JcType by lazy {
+        checkNotNull(usvmApiSymbolicListImpl).toType()
+    }
+
     private val symbolicMapType: JcType by lazy {
         checkNotNull(usvmApiSymbolicMap).toType()
+    }
+
+    private val symbolicMapImplType: JcType by lazy {
+        checkNotNull(usvmApiSymbolicMapImpl).toType()
     }
 
     private val symbolicIdentityMapType: JcType by lazy {
@@ -616,6 +1015,46 @@ class JcMethodApproximationResolver(
                 }
                 scope.calcOnState { objectTypeEquals(ref, classRefTypeRepresentative) }
             }
+            dispatchUsvmApiMethod(Engine::typeIsArray) {
+                val ref = it.arguments[0].asExpr(ctx.addressSort)
+                scope.calcOnState {
+                    val possibleElementTypes = ctx.primitiveTypes + ctx.cp.objectType
+                    val possibleArrayTypes = possibleElementTypes.map { ctx.cp.arrayTypeOf(it) }
+                    possibleArrayTypes.map { type -> memory.types.evalIsSubtype(ref, type) }.reduce(ctx::mkOr)
+                }
+            }
+            dispatchUsvmApiMethod(Engine::typeIsSubtype) {
+                val (ref, classRef) = it.arguments.map { it.asExpr(ctx.addressSort) }
+                val classRefTypeRepresentative = scope.calcOnState {
+                    memory.read(UFieldLValue(ctx.addressSort, classRef, ctx.classTypeSyntheticField))
+                }
+                scope.calcOnState { objectTypeSubtype(ref, classRefTypeRepresentative) }
+            }
+            dispatchUsvmApiMethod(Engine::arrayElementType) {
+                val ref = it.arguments[0].asExpr(ctx.addressSort)
+                scope.calcOnState {
+                    mapTypeStreamNotNull(ref) { _, types ->
+                        val type = types.singleOrNull() ?: return@mapTypeStreamNotNull null
+                        if (type !is JcArrayType) {
+                            return@mapTypeStreamNotNull ctx.nullRef
+                        }
+                        exprResolver.simpleValueResolver.resolveClassRef(type.elementType)
+                    } ?: run {
+                        val possibleElementTypes = ctx.primitiveTypes + ctx.cp.objectType + ctx.stringType
+                        val mock = scope.makeSymbolicRef(ctx.classType) ?: error("unable to crate mock for Class type")
+                        val defaultCase = ctx.mkIte(
+                            memory.types.evalIsSubtype(ref, ctx.cp.objectType),
+                            trueBranch = mock,
+                            falseBranch = ctx.nullRef
+                        )
+                        possibleElementTypes.fold(defaultCase) { acc, type ->
+                            val cond = memory.types.evalTypeEquals(ref, ctx.cp.arrayTypeOf(type))
+                            val classRef = exprResolver.simpleValueResolver.resolveClassRef(type)
+                            ctx.mkIte(cond, classRef, acc)
+                        }
+                    }
+                }
+            }
             dispatchMkRef(Engine::makeSymbolic) {
                 val classRef = it.arguments.single().asExpr(ctx.addressSort)
                 val classRefTypeRepresentative = scope.calcOnState {
@@ -629,6 +1068,20 @@ class JcMethodApproximationResolver(
                     memory.read(UFieldLValue(ctx.addressSort, classRef, ctx.classTypeSyntheticField))
                 }
                 scope.makeNullableSymbolicRefWithSameType(classRefTypeRepresentative)
+            }
+            dispatchMkRef(Engine::makeSymbolicSubtype) {
+                val classRef = it.arguments.single().asExpr(ctx.addressSort)
+                val classRefTypeRepresentative = scope.calcOnState {
+                    memory.read(UFieldLValue(ctx.addressSort, classRef, ctx.classTypeSyntheticField))
+                }
+                scope.makeSymbolicRefSubtype(classRefTypeRepresentative)
+            }
+            dispatchMkRef(Engine::makeNullableSymbolicSubtype) {
+                val classRef = it.arguments.single().asExpr(ctx.addressSort)
+                val classRefTypeRepresentative = scope.calcOnState {
+                    memory.read(UFieldLValue(ctx.addressSort, classRef, ctx.classTypeSyntheticField))
+                }
+                scope.makeNullableSymbolicRefSubtype(classRefTypeRepresentative)
             }
             dispatchMkRef2(Engine::makeSymbolicArray) {
                 val (elementClassRefExpr, sizeExpr) = it.arguments
@@ -648,8 +1101,14 @@ class JcMethodApproximationResolver(
             dispatchMkList(Engine::makeSymbolicList) {
                 scope.calcOnState { mkSymbolicList(symbolicListType) }
             }
+            dispatchMkList(Engine::makeFullySymbolicList) {
+                scope.makeSymbolicRef(symbolicListImplType)
+            }
             dispatchMkMap(Engine::makeSymbolicMap) {
                 scope.calcOnState { mkSymbolicObjectMap(symbolicMapType) }
+            }
+            dispatchMkMap(Engine::makeFullySymbolicMap) {
+                scope.makeSymbolicRef(symbolicMapImplType)
             }
             dispatchMkIdMap(Engine::makeSymbolicIdentityMap) {
                 scope.calcOnState { mkSymbolicObjectMap(symbolicIdentityMapType) }
@@ -811,6 +1270,11 @@ class JcMethodApproximationResolver(
     }
 
     private fun approximateUsvmApiEngineStaticMethod(methodCall: JcMethodCall) {
+        if (methodCall.method.isClassInitializer) {
+            scope.doWithState { skipMethodInvocationWithValue(methodCall, ctx.voidValue) }
+            return
+        }
+
         val methodApproximation = usvmApiEngineMethods[methodCall.method.name]
             ?: error("Unexpected engine api method: ${methodCall.method.name}")
         val result = methodApproximation(methodCall) ?: return
@@ -842,8 +1306,7 @@ class JcMethodApproximationResolver(
         apiMethod: KFunction<*>,
         body: (JcMethodCall) -> UExpr<*>?,
     ) {
-        val methodName = apiMethod.javaMethod?.name
-            ?: error("No name for $apiMethod")
+        val methodName = apiMethod.javaName
         this[methodName] = body
     }
 

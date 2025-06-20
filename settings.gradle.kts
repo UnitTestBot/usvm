@@ -2,6 +2,9 @@ rootProject.name = "usvm"
 
 include("usvm-core")
 include("usvm-jvm")
+include("usvm-jvm:usvm-jvm-api")
+include("usvm-jvm:usvm-jvm-test-api")
+include("usvm-jvm:usvm-jvm-util")
 include("usvm-ts")
 include("usvm-util")
 include("usvm-jvm-instrumentation")
