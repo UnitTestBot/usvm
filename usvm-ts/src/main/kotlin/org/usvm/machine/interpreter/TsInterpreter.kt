@@ -732,7 +732,7 @@ class TsInterpreter(
     private fun mockMethodCall(scope: TsStepScope, method: EtsMethodSignature) {
         scope.doWithState {
             if (method.returnType is EtsVoidType) {
-                methodResult = TsMethodResult.Success.MockedCall(method, ctx.voidValue)
+                methodResult = TsMethodResult.Success.MockedCall(method, ctx.mkUndefinedValue())
                 return@doWithState
             }
 
