@@ -21,6 +21,7 @@ dependencies {
     implementation(Libs.kotlinx_collections)
     implementation(Libs.kotlinx_serialization_json)
     implementation(Libs.clikt)
+    implementation(Libs.logback)
 
     testImplementation(Libs.mockk)
     testImplementation(Libs.junit_jupiter_params)
