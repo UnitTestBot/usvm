@@ -52,6 +52,7 @@ import org.jacodb.ets.model.EtsLiteralType
 import org.jacodb.ets.model.EtsNeverType
 import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsNumberType
+import org.jacodb.ets.model.EtsRawType
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsTupleType
 import org.jacodb.ets.model.EtsType
@@ -64,6 +65,10 @@ import org.jacodb.ets.model.EtsVoidType
 fun EtsType.toDto(): TypeDto = accept(EtsTypeToDto)
 
 private object EtsTypeToDto : EtsType.Visitor<TypeDto> {
+    override fun visit(type: EtsRawType): TypeDto {
+        return UnknownTypeDto
+    }
+
     override fun visit(type: EtsAnyType): TypeDto {
         return AnyTypeDto
     }
