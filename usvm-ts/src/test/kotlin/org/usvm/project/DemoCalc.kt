@@ -48,11 +48,13 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
                 }
                 if (method.getLocals() != method.getDeclaredLocals()) {
                     println(
-                        "Locals mismatch:\n  getLocals() = ${
-                            method.getLocals().sortedBy { it.name }
-                        }\n  getDeclaredLocals() = ${
-                            method.getDeclaredLocals().sortedBy { it.name }
-                        }"
+                        "Locals mismatch:" +
+                            "\n  getLocals() = ${
+                                method.getLocals().sortedBy { it.name }
+                            }" +
+                            "\n  getDeclaredLocals() = ${
+                                method.getDeclaredLocals().sortedBy { it.name }
+                            }"
                     )
                     // continue
                 }

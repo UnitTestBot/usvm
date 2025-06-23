@@ -62,7 +62,9 @@ class EtsSceneAnnotator(
             signature = signature,
             fields = fields,
             methods = methods.map { it.annotateWithTypes() },
-            superClass = superClass, // TODO: replace with inferred superclass
+            category = category,
+            superClassName = superClassName, // TODO: replace with inferred superclass
+            implementedInterfaceNames = implementedInterfaceNames,
             typeParameters = typeParameters,
             modifiers = modifiers,
             decorators = decorators,
