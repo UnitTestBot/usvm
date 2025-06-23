@@ -34,6 +34,12 @@ import org.usvm.dataflow.ts.util.fixAnyToUnknown
 class BackwardFlowFunctions(
     val doAddKnownTypes: Boolean,
 ) : FlowFunctions<BackwardTypeDomainFact, EtsMethod, EtsStmt> {
+    private val liveVariablesCache = hashMapOf<EtsMethod, LiveVariables>()
+    internal fun liveVariables(method: EtsMethod) =
+        liveVariablesCache.computeIfAbsent(method) {
+            LiveVariables.from(method)
+        }
+
     override fun obtainPossibleStartFacts(method: EtsMethod): Collection<BackwardTypeDomainFact> = listOf(Zero)
 
     override fun obtainSequentFlowFunction(
@@ -47,9 +53,15 @@ class BackwardFlowFunctions(
                 return@FlowFunction listOf(fact)
             }
         }
+        val liveVars = liveVariables(current.method)
         when (fact) {
             Zero -> sequentZero(current)
-            is TypedVariable -> sequentTypedVariable(current, fact).myFilter()
+            is TypedVariable -> sequentTypedVariable(current, fact).filter {
+                when (val base = it.variable.base) {
+                    is AccessPathBase.Local -> liveVars.isAliveAt(base.name, current)
+                    else -> true
+                }
+            }.myFilter()
         }
     }
 
