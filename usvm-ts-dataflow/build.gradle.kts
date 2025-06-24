@@ -21,6 +21,7 @@ dependencies {
     implementation(Libs.kotlinx_collections)
     implementation(Libs.kotlinx_serialization_json)
     implementation(Libs.clikt)
+    runtimeOnly(Libs.logback)
 
     testImplementation(Libs.mockk)
     testImplementation(Libs.junit_jupiter_params)
@@ -129,5 +130,8 @@ tasks.shadowJar {
         // Provider com.github.ajalt.mordant.terminal.terminalinterface.jna.TerminalInterfaceProviderJna not found
         // ```
         exclude(dependency("com.github.ajalt.mordant:.*:.*"))
+
+        // Keep the logback in shadow jar:
+        exclude(dependency("ch.qos.logback:logback-classic:.*"))
     }
 }
