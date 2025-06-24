@@ -1004,23 +1004,23 @@ class TsSimpleValueResolver(
         }
     }
 
-    override fun visit(local: EtsLocal): UExpr<out USort> {
-        if (local.name == "NaN") {
+    override fun visit(value: EtsLocal): UExpr<out USort> {
+        if (value.name == "NaN") {
             return ctx.mkFp64NaN()
         }
-        if (local.name == "Infinity") {
+        if (value.name == "Infinity") {
             return ctx.mkFpInf(false, ctx.fp64Sort)
         }
 
         val currentMethod = scope.calcOnState { lastEnteredMethod }
-        if (local !in currentMethod.getDeclaredLocals()) {
-            if (local.type is EtsFunctionType) {
+        if (value !in currentMethod.getDeclaredLocals()) {
+            if (value.type is EtsFunctionType) {
                 // TODO: function pointers should be "singletons"
-                return scope.calcOnState { memory.allocConcrete(local.type) }
+                return scope.calcOnState { memory.allocConcrete(value.type) }
             }
         }
 
-        val lValue = resolveLocal(local)
+        val lValue = resolveLocal(value)
         return scope.calcOnState { memory.read(lValue) }
     }
 

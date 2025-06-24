@@ -63,8 +63,8 @@ private fun <Method, Statement, Target, State> createPathSelector(
             PathSelectionStrategy.DEPTH -> createDepthPathSelector()
             PathSelectionStrategy.DEPTH_RANDOM -> createDepthPathSelector(random)
 
-            PathSelectionStrategy.FORK_DEPTH -> createForkDepthPathSelector()
-            PathSelectionStrategy.FORK_DEPTH_RANDOM -> createForkDepthPathSelector(random)
+            PathSelectionStrategy.FORK_DEPTH -> createForkDepthPathSelector<Method, Statement, State>()
+            PathSelectionStrategy.FORK_DEPTH_RANDOM -> createForkDepthPathSelector<Method, Statement, State>(random)
 
             PathSelectionStrategy.CLOSEST_TO_UNCOVERED -> createClosestToUncoveredPathSelector(
                 requireNotNull(coverageStatisticsFactory()) { "Coverage statistics is required for closest to uncovered path selector" },
@@ -106,7 +106,8 @@ private fun <Method, Statement, Target, State> createPathSelector(
     }
 
     selectors.singleOrNull()?.let { selector ->
-        val mergingSelector = createMergingPathSelector(initialStates, selector, options, cfgStatisticsFactory)
+        @Suppress("UNCHECKED_CAST")
+        val mergingSelector = createMergingPathSelector(initialStates, selector as UPathSelector<State>, options, cfgStatisticsFactory)
         val resultSelector = mergingSelector.wrapIfRequired(options, loopStatisticFactory)
         resultSelector.add(initialStates.toList())
         return resultSelector
@@ -117,7 +118,8 @@ private fun <Method, Statement, Target, State> createPathSelector(
     val selector = when (options.pathSelectorCombinationStrategy) {
         PathSelectorCombinationStrategy.INTERLEAVED -> {
             // Since all selectors here work as one, we can wrap an interleaved selector only.
-            val selector = InterleavedPathSelector(selectors)
+            @Suppress("UNCHECKED_CAST")
+            val selector = InterleavedPathSelector(selectors as UPathSelector<State>)
 
             val mergingSelector = createMergingPathSelector(initialStates, selector, options, cfgStatisticsFactory)
             val resultSelector = mergingSelector.wrapIfRequired(options, loopStatisticFactory)
@@ -128,8 +130,9 @@ private fun <Method, Statement, Target, State> createPathSelector(
 
         PathSelectorCombinationStrategy.PARALLEL -> {
             // Here we should wrap all selectors independently since they work in parallel.
+            @Suppress("UNCHECKED_CAST")
             val wrappedSelectors = selectors.map { selector ->
-                val mergingSelector = createMergingPathSelector(initialStates, selector, options, cfgStatisticsFactory)
+                val mergingSelector = createMergingPathSelector(initialStates, selector as UPathSelector<State>, options, cfgStatisticsFactory)
                 mergingSelector.wrapIfRequired(options, loopStatisticFactory)
             }
 
