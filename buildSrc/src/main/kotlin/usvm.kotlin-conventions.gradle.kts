@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -36,10 +37,10 @@ tasks {
         options.compilerArgs.add("-Werror")
     }
     withType<KotlinCompile> {
-        kotlinOptions {
-            jvmTarget = JavaVersion.VERSION_1_8.toString()
-            freeCompilerArgs += "-Xsam-conversions=class"
+        compilerOptions {
+            jvmTarget = JvmTarget.JVM_1_8
             allWarningsAsErrors = true
+            freeCompilerArgs.add("-Xsam-conversions=class")
         }
     }
 }

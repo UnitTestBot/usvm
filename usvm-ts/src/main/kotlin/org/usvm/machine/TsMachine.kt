@@ -22,6 +22,7 @@ import org.usvm.statistics.TimeStatistics
 import org.usvm.statistics.UMachineObserver
 import org.usvm.statistics.collectors.AllStatesCollector
 import org.usvm.statistics.collectors.CoveredNewStatesCollector
+import org.usvm.statistics.collectors.StatesCollector
 import org.usvm.statistics.collectors.TargetsReachedStatesCollector
 import org.usvm.statistics.constraints.SoftConstraintsObserver
 import org.usvm.statistics.distances.CfgStatisticsImpl
@@ -82,9 +83,9 @@ class TsMachine(
             callGraphStatisticsFactory = { callGraphStatistics },
         )
 
-        val statesCollector =
+        val statesCollector: StatesCollector<TsState> =
             when (options.stateCollectionStrategy) {
-                StateCollectionStrategy.COVERED_NEW -> CoveredNewStatesCollector<TsState>(coverageStatistics) {
+                StateCollectionStrategy.COVERED_NEW -> CoveredNewStatesCollector(coverageStatistics) {
                     it.methodResult is TsMethodResult.TsException
                 }
 
