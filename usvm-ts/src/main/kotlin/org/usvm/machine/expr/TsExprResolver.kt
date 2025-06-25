@@ -846,7 +846,7 @@ class TsExprResolver(
 
         val sort = when (etsField) {
             is EtsPropertyResolution.Empty -> {
-                logger.error("Field $etsField not found, creating fake field")
+                logger.error("Field $field not found, creating fake field")
                 // If we didn't find any real fields, let's create a fake one.
                 // It is possible due to mistakes in the IR or if the field was added explicitly
                 // in the code.
@@ -1108,17 +1108,27 @@ class TsSimpleValueResolver(
             val localName = local.name
             // Check whether this local was already created or not
             if (localName in scope.calcOnState { addedArtificialLocals }) {
-                return mkFieldLValue(ctx.addressSort, globalObject, local.name)
+                val sort = ctx.typeToSort(local.type)
+                if (sort is TsUnresolvedSort) {
+                    return mkFieldLValue(ctx.addressSort, globalObject, local.name)
+                } else {
+                    return mkFieldLValue(sort, globalObject, local.name)
+                }
             }
 
-            logger.warn { "Cannot resolve local $local, creating a fake field of the global object" }
+            logger.warn { "Cannot resolve local $local, creating a field of the global object" }
 
-            globalObject.createFakeField(localName, scope)
             scope.doWithState {
                 addedArtificialLocals += localName
             }
 
-            return mkFieldLValue(ctx.addressSort, globalObject, local.name)
+            val sort =  ctx.typeToSort(local.type)
+            if (sort is TsUnresolvedSort) {
+                globalObject.createFakeField(localName, scope)
+                return mkFieldLValue(ctx.addressSort, globalObject, local.name)
+            } else {
+                return mkFieldLValue(sort, globalObject, local.name)
+            }
         }
 
         val sort = scope.calcOnState {

@@ -1,6 +1,8 @@
 package org.usvm.project
 
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.utils.ANONYMOUS_CLASS_PREFIX
+import org.jacodb.ets.utils.ANONYMOUS_METHOD_PREFIX
 import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.jacodb.ets.utils.INSTANCE_INIT_METHOD_NAME
 import org.jacodb.ets.utils.STATIC_INIT_METHOD_NAME
@@ -36,17 +38,16 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
     @Test
     fun `test run on each method`() {
         val exceptions = mutableListOf<Throwable>()
-        val classes = scene.projectClasses.filterNot { it.name.startsWith("%AC") }
+        val classes = scene.projectClasses.filterNot { it.name.startsWith(ANONYMOUS_CLASS_PREFIX) }
 
         println("Total classes: ${classes.size}")
 
         classes
-            // .filter { it.name == "NewAlbumPage" }
-            .forEach { clazz ->
-                val methods = clazz.methods
+            .forEach { cls ->
+                val methods = cls.methods
                     .filterNot { it.cfg.stmts.isEmpty() }
                     .filterNot { it.isStatic }
-                    .filterNot { it.name.startsWith("%AM") }
+                    .filterNot { it.name.startsWith(ANONYMOUS_METHOD_PREFIX) }
                     .filterNot { it.name == "build" }
                     .filterNot { it.name == INSTANCE_INIT_METHOD_NAME }
                     .filterNot { it.name == STATIC_INIT_METHOD_NAME }
@@ -75,18 +76,29 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
     @Test
     fun `test run on all methods`() {
         val methods = scene.projectClasses
-            .filterNot { it.name.startsWith("%AC") }
-            .flatMap {
-                it.methods
+            .filterNot { cls -> cls.name.startsWith(ANONYMOUS_CLASS_PREFIX) }
+            .flatMap { cls ->
+                cls.methods
                     .filterNot { it.cfg.stmts.isEmpty() }
                     .filterNot { it.isStatic }
-                    .filterNot { it.name.startsWith("%AM") }
+                    .filterNot { it.name.startsWith(ANONYMOUS_METHOD_PREFIX) }
                     .filterNot { it.name == "build" }
             }
-            .filter { it.name == "createKvStore" && it.enclosingClass?.name == "KvStoreModel" }
         val tsOptions = TsOptions()
         TsMachine(scene, options, tsOptions).use { machine ->
             val states = machine.analyze(methods)
+            states.let {}
+        }
+    }
+
+    @Test
+    fun `test on particular method`() {
+        val method = scene.projectClasses
+            .flatMap { it.methods }
+            .single { it.name == "createKvStore" && it.enclosingClass?.name == "KvStoreModel" }
+        val tsOptions = TsOptions()
+        TsMachine(scene, options, tsOptions).use { machine ->
+            val states = machine.analyze(listOf(method))
             states.let {}
         }
     }

@@ -139,8 +139,7 @@ class TsInterpreter(
             }
         } catch (e: Exception) {
             logger.error {
-                val s = e.stackTrace[0]
-                "Exception .(${s.fileName}:${s.lineNumber}): $e}"
+                "Exception: $e\n${e.stackTrace.take(3).joinToString("\n") { "    $it" }}"
             }
             return StepResult(forkedStates = emptySequence(), originalStateAlive = false)
             // todo are exceptional states properly removed?
