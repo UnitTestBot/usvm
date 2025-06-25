@@ -1,6 +1,7 @@
 package org.usvm.util
 
 import mu.KotlinLogging
+import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsClassType
@@ -94,6 +95,10 @@ class EtsHierarchy(private val scene: EtsScene) {
     }
 
     fun classesForType(etsClassType: EtsRefType): Collection<EtsClass> {
+        if (etsClassType is EtsArrayType) {
+            return scene.sdkClasses.filter { it.name == "Array" }
+        }
+
         require(etsClassType is EtsClassType || etsClassType is EtsUnclearRefType) {
             "Expected EtsClassType or EtsUnclearRefType, but got ${etsClassType::class.simpleName}"
         }
