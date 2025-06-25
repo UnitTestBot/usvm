@@ -67,10 +67,10 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
             }
 
         val exc = exceptions.groupBy { it }
-        println(
-            exc.values.sortedBy
-            { it.size }.asReversed().map
-            { it.first() })
+        println("Total exceptions: ${exc.size}")
+        for (es in exc.values.sortedBy { it.size }.asReversed()) {
+            println("${es.first()}")
+        }
     }
 
     @Test
