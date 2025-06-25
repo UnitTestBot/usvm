@@ -86,6 +86,7 @@ import org.usvm.UBoolSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.UIteExpr
 import org.usvm.USort
 import org.usvm.api.allocateArray
 import org.usvm.api.evalTypeEquals
@@ -319,7 +320,41 @@ class TsExprResolver(
                     condition = mkHeapRefEq(ref, mkUndefinedValue()),
                     trueBranch = mkStringConstant("undefined", scope),
                     falseBranch = mkIte(
-                        condition = scope.calcOnState { memory.types.evalTypeEquals(ref, EtsStringType) },
+                        condition = scope.calcOnState {
+                            val unwrappedRef = if (ref.isFakeObject()) {
+                                scope.assert(ref.getFakeType(scope).refTypeExpr)
+                                ref.extractRef(scope)
+                            } else {
+                                ref.asExpr(addressSort)
+                            }
+
+                            // TODO: adhoc: "expand" ITE
+                            if (unwrappedRef is UIteExpr<*>) {
+                                val trueBranch = unwrappedRef.trueBranch
+                                val falseBranch = unwrappedRef.falseBranch
+                                if (trueBranch.isFakeObject() || falseBranch.isFakeObject()) {
+                                    val unwrappedTrueExpr = if (trueBranch.isFakeObject()) {
+                                        scope.assert(trueBranch.getFakeType(scope).refTypeExpr)
+                                        trueBranch.extractRef(scope)
+                                    } else {
+                                        trueBranch.asExpr(addressSort)
+                                    }
+                                    val unwrappedFalseExpr = if (falseBranch.isFakeObject()) {
+                                        scope.assert(falseBranch.getFakeType(scope).refTypeExpr)
+                                        falseBranch.extractRef(scope)
+                                    } else {
+                                        falseBranch.asExpr(addressSort)
+                                    }
+                                    return@calcOnState mkIte(
+                                        condition = unwrappedRef.condition,
+                                        trueBranch = memory.types.evalTypeEquals(unwrappedTrueExpr, EtsStringType),
+                                        falseBranch = memory.types.evalTypeEquals(unwrappedFalseExpr, EtsStringType),
+                                    )
+                                }
+                            }
+
+                            memory.types.evalTypeEquals(unwrappedRef, EtsStringType)
+                        },
                         trueBranch = mkStringConstant("string", scope),
                         falseBranch = mkStringConstant("object", scope),
                     )
