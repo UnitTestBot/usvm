@@ -647,7 +647,7 @@ class TsInterpreter(
         }
 
         // intraprocedural analysis
-        mockMethodCall(scope, stmt.method.signature)
+        mockMethodCall(scope, stmt.expr.callee)
     }
 
     private fun visitThrowStmt(scope: TsStepScope, stmt: EtsThrowStmt) {
