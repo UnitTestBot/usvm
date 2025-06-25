@@ -394,7 +394,12 @@ class TsInterpreter(
                     scope
                 )
 
-                is TsMethodResult.Success -> observer?.onAssignStatement(exprResolver.simpleValueResolver, stmt, scope)
+                is TsMethodResult.Success -> observer?.onAssignStatement(
+                    exprResolver.simpleValueResolver,
+                    stmt,
+                    scope
+                )
+
                 is TsMethodResult.TsException -> error("Exceptions must be processed earlier")
             }
 
