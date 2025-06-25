@@ -161,9 +161,7 @@ class TsInterpreter(
             // TODO support primitives calls
             // We ignore the possibility of method call on primitives.
             // Therefore, the fake object should be unwrapped.
-            scope.doWithState {
-                scope.assert(concreteRef.getFakeType(scope).refTypeExpr)
-            }
+            scope.assert(concreteRef.getFakeType(scope).refTypeExpr)
             concreteRef.extractRef(scope)
         } else {
             concreteRef
