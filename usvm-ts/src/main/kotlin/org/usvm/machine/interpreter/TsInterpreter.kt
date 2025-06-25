@@ -203,7 +203,9 @@ class TsInterpreter(
         } else {
             val methods = ctx.resolveEtsMethods(stmt.callee)
             if (methods.isEmpty()) {
-                logger.warn { "Could not resolve method: ${stmt.callee}" }
+                if (stmt.callee.name !in listOf("then")) {
+                    logger.warn { "Could not resolve method: ${stmt.callee}" }
+                }
                 scope.assert(ctx.falseExpr)
                 return
             }
