@@ -94,7 +94,9 @@ class EtsHierarchy(private val scene: EtsScene) {
     }
 
     fun classesForType(etsClassType: EtsRefType): Collection<EtsClass> {
-        require(etsClassType is EtsClassType || etsClassType is EtsUnclearRefType)
+        require(etsClassType is EtsClassType || etsClassType is EtsUnclearRefType) {
+            "Expected EtsClassType or EtsUnclearRefType, but got ${etsClassType::class.simpleName}"
+        }
 
         // We don't want to remove names like "$AC2$FieldAccess.createObject"
         val typeName = etsClassType.typeName.removeTrashFromTheName()
