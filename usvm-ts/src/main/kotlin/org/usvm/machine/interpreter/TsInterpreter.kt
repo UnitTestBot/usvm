@@ -729,6 +729,8 @@ class TsInterpreter(
 
             val parameterType = param.type
             if (parameterType is EtsRefType) {
+                val argLValue = mkRegisterStackLValue(addressSort, i)
+                val ref = state.memory.read(argLValue).asExpr(addressSort)
                 val resolvedParameterType = graph.hierarchy.classesForType(parameterType)
 
                 if (resolvedParameterType.isEmpty()) {
@@ -742,6 +744,7 @@ class TsInterpreter(
                 val auxiliaryType = EtsUnionType(types) // TODO error
 
                 state.pathConstraints += state.memory.types.evalIsSubtype(ref, auxiliaryType)
+
                 state.pathConstraints += mkNot(mkHeapRefEq(ref, mkTsNullValue()))
                 state.pathConstraints += mkNot(mkHeapRefEq(ref, mkUndefinedValue()))
             }
