@@ -24,7 +24,7 @@ interface TsInterpreterObserver : UInterpreterObserver {
 
     fun onCallWithUnresolvedArguments(
         simpleValueResolver: TsSimpleValueResolver,
-        stmt: EtsCallExpr,
+        expr: EtsCallExpr,
         scope: TsStepScope,
     ) {
         // default empty implementation
