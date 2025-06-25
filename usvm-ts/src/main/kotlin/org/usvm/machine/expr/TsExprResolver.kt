@@ -1122,7 +1122,7 @@ class TsSimpleValueResolver(
                 addedArtificialLocals += localName
             }
 
-            val sort =  ctx.typeToSort(local.type)
+            val sort = ctx.typeToSort(local.type)
             if (sort is TsUnresolvedSort) {
                 globalObject.createFakeField(localName, scope)
                 return mkFieldLValue(ctx.addressSort, globalObject, local.name)
