@@ -37,6 +37,7 @@ import org.usvm.StepScope
 import org.usvm.UAddressSort
 import org.usvm.UExpr
 import org.usvm.UInterpreter
+import org.usvm.UIteExpr
 import org.usvm.api.allocateArrayInitialized
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.makeSymbolicPrimitive
@@ -228,9 +229,35 @@ class TsInterpreter(
                 val ref = stmt.instance.asExpr(addressSort)
                     .takeIf { !it.isFakeObject() }
                     ?: uncoveredInstance.asExpr(addressSort)
+
+                // TODO: adhoc: "expand" ITE
+                if (ref is UIteExpr<*>) {
+                    val trueBranch = ref.trueBranch
+                    val falseBranch = ref.falseBranch
+                    if (trueBranch.isFakeObject() || falseBranch.isFakeObject()) {
+                        val unwrappedTrueExpr = if (trueBranch.isFakeObject()) {
+                            scope.assert(trueBranch.getFakeType(scope).refTypeExpr)
+                            trueBranch.extractRef(scope)
+                        } else {
+                            trueBranch.asExpr(addressSort)
+                        }
+                        val unwrappedFalseExpr = if (falseBranch.isFakeObject()) {
+                            scope.assert(falseBranch.getFakeType(scope).refTypeExpr)
+                            falseBranch.extractRef(scope)
+                        } else {
+                            falseBranch.asExpr(addressSort)
+                        }
+                        return@calcOnState mkIte(
+                            condition = ref.condition,
+                            trueBranch = memory.types.evalIsSubtype(unwrappedTrueExpr, type),
+                            falseBranch = memory.types.evalIsSubtype(unwrappedFalseExpr, type),
+                        )
+                    }
+                }
+
                 // TODO mistake, should be separated into several hierarchies
                 //      or evalTypeEqual with several concrete types
-                memory.types.evalIsSubtype(ref, type) // TODO error
+                memory.types.evalIsSubtype(ref, type)
             }
             constraint to block
         }
