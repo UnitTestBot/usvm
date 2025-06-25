@@ -519,7 +519,7 @@ class TsExprResolver(
         }
 
         if (expr.callee.name == "toString") {
-            return TODO()
+            return mkStringConstant("I am string", scope)
         }
 
         // TODO write tests
