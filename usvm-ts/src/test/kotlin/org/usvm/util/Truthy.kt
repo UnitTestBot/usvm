@@ -13,7 +13,3 @@ fun isTruthy(x: TsTestValue.TsNumber): Boolean {
 fun isTruthy(x: TsTestValue.TsClass): Boolean {
     return true
 }
-
-fun isTruthy(x: TsTestValue.TsObject): Boolean {
-    return x.addr != 0
-}

@@ -4,7 +4,7 @@
 class InputArrays {
     inputArrayOfNumbers(x: number[]) {
         if (x[0] === 1) return 1
-        if (x[0] == undefined) return -1
+        if (x[0] === undefined) return -1
         return 2
     }
 

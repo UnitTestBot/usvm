@@ -43,10 +43,11 @@ class D {
 
 class Example {
     testFunction(): C {
-        const obj: A = new B(11);
-        const number = obj.foo();
+        const x: A = new B(11);
+        const bar = x.foo();
 
-        const aaa: C = new D(new A(number));
-        return aaa
+        // noinspection UnnecessaryLocalVariableJS
+        const y: C = new D(new A(bar));
+        return y
     }
 }

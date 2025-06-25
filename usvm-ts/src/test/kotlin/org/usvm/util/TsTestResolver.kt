@@ -36,6 +36,7 @@ import org.usvm.api.typeStreamOf
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.isAllocated
+import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isTrue
 import org.usvm.machine.TsContext
 import org.usvm.machine.expr.TsUnresolvedSort
@@ -163,25 +164,24 @@ open class TsTestStateResolver(
     ): TsTestValue = with(ctx) {
         when (expr.sort) {
             fp64Sort -> {
-                this@TsTestStateResolver.resolvePrimitive(expr, EtsNumberType)
+                resolvePrimitive(expr, EtsNumberType)
             }
 
             boolSort -> {
-                this@TsTestStateResolver.resolvePrimitive(expr, EtsBooleanType)
+                resolvePrimitive(expr, EtsBooleanType)
             }
 
             addressSort -> {
                 if (expr.isFakeObject()) {
-                    this@TsTestStateResolver.resolveFakeObject(expr)
+                    resolveFakeObject(expr)
                 } else {
-                    this@TsTestStateResolver.resolveTsValue(
-                        expr.asExpr(this@TsTestStateResolver.ctx.addressSort),
-                    )
+                    val ref = expr.asExpr(addressSort)
+                    resolveTsValue(ref)
                 }
             }
 
             sizeSort -> {
-                this@TsTestStateResolver.resolvePrimitive(expr, EtsNumberType)
+                resolvePrimitive(expr, EtsNumberType)
             }
 
             else -> TODO("Unsupported sort: ${expr.sort}")
@@ -223,6 +223,14 @@ open class TsTestStateResolver(
 
             is EtsUnknownType -> {
                 resolveTsValue(heapRef)
+            }
+
+            is EtsStringType -> {
+                if (isAllocatedConcreteHeapRef(concreteRef)) {
+                    resolveAllocatedString(concreteRef)
+                } else {
+                    TsTestValue.TsString("String construction is not yet implemented")
+                }
             }
 
             else -> error("Unexpected type: $type")
@@ -290,6 +298,15 @@ open class TsTestStateResolver(
         }
 
         return TsTestValue.TsArray(values)
+    }
+
+    private fun resolveAllocatedString(
+        ref: UConcreteHeapRef,
+    ): TsTestValue.TsString = with(ctx) {
+        val value = ctx.heapRefToStringConstant[ref] ?: run {
+            error("String constant not found for ref: $ref")
+        }
+        return TsTestValue.TsString(value)
     }
 
     fun resolveThisInstance(): TsTestValue? {

@@ -57,5 +57,7 @@ val pyDebugProfileObserver = UDebugProfileObserver(
     profilerOptions = UDebugProfileObserver.Options(
         momentOfUpdate = UDebugProfileObserver.MomentOfUpdate.AfterStep,
         printNonVisitedStatements = true,
+        profileTime = false,
+        profileForks = false,
     ),
 )

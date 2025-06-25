@@ -445,4 +445,41 @@ class HeapRefSplittingTest {
 
         return array to ref
     }
+
+    @Test
+    fun testRangedUpdateWithMixedWrite() = with(ctx) {
+        val ref = allocateConcreteRef()
+        val idx0 = mkSizeExpr(0)
+        val idx1 = mkSizeExpr(1)
+        val idx2 = mkSizeExpr(2)
+
+        val concreteValue1 = allocateConcreteRef()
+        val symbolicValue2 = mkRegisterReading(0, addressSort)
+        val concreteValue3 = allocateConcreteRef()
+
+        heap.writeArrayIndex(ref, idx0, arrayDescr.first, arrayDescr.second, concreteValue1, trueExpr)
+        heap.writeArrayIndex(ref, idx1, arrayDescr.first, arrayDescr.second, symbolicValue2, trueExpr)
+        heap.writeArrayIndex(ref, idx2, arrayDescr.first, arrayDescr.second, concreteValue3, trueExpr)
+
+        heap.memcpy(ref, ref, arrayDescr.first, arrayDescr.second, idx1, idx0, idx1)
+
+        val read = heap.readArrayIndex(ref, idx0, arrayDescr.first, arrayDescr.second)
+        assertSame(symbolicValue2, read)
+    }
+
+    @Test
+    fun testClone() = with(ctx) {
+        val ref = allocateConcreteRef()
+        val idx = mkSizeExpr(2)
+
+        val concreteValue = allocateConcreteRef()
+
+        heap.writeArrayIndex(ref, idx, arrayDescr.first, arrayDescr.second, concreteValue, trueExpr)
+
+        val copyRef = allocateConcreteRef()
+        heap.memcpy(ref, copyRef, arrayDescr.first, arrayDescr.second, mkBv(0), mkBv(0), mkBv(3))
+
+        val read = heap.readArrayIndex(copyRef, idx, arrayDescr.first, arrayDescr.second)
+        assertSame(read, concreteValue)
+    }
 }

@@ -13,21 +13,21 @@ class InputArrays : TsMethodTestRunner() {
     @Test
     fun testInputArrayOfNumbers() {
         val method = getMethod(className, "inputArrayOfNumbers")
-        discoverProperties<TsTestValue, TsTestValue>(
+        discoverProperties<TsTestValue.TsArray<*>, TsTestValue>(
             method = method,
-            { x, r -> x is TsTestValue.TsUndefined && r is TsTestValue.TsException },
+            { x, r -> r is TsTestValue.TsException },
             { x, r ->
                 r as TsTestValue.TsNumber
-
-                x is TsTestValue.TsArray<*> && (x.values[0] as? TsTestValue.TsNumber)?.number == 1.0 && r.number == 1.0
+                (x.values[0] as TsTestValue.TsNumber).number == 1.0 && r.number == 1.0
             },
             { x, r ->
                 r as TsTestValue.TsNumber
-
-                x is TsTestValue.TsArray<*> && (x.values[0] as? TsTestValue.TsNumber)?.number != 1.0 && r.number == 2.0
+                (x.values[0] as TsTestValue.TsNumber).number != 1.0 && r.number == 2.0
             },
             invariants = arrayOf(
-                { _, r -> r !is TsTestValue.TsNumber || r.number != -1.0 }
+                { _, r ->
+                    r !is TsTestValue.TsNumber || r.number != -1.0
+                }
             )
         )
     }

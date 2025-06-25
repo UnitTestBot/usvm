@@ -48,8 +48,6 @@ sealed interface TsTestValue {
             }
     }
 
-    data class TsObject(val addr: Int) : TsTestValue
-
     data class TsClass(
         val name: String,
         val properties: Map<String, TsTestValue>,
