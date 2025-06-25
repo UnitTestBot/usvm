@@ -17,6 +17,7 @@ import org.jacodb.ets.model.EtsNopStmt
 import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsParameterRef
+import org.jacodb.ets.model.EtsPtrCallExpr
 import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsStaticFieldRef
@@ -430,6 +431,11 @@ class TsInterpreter(
                 is TsMethodResult.TsException -> error("Exceptions must be processed earlier")
             }
 
+            if (it is EtsPtrCallExpr) {
+                mockMethodCall(scope, it.callee)
+                return
+            }
+
             if (!tsOptions.interproceduralAnalysis && methodResult == TsMethodResult.NoCall) {
                 mockMethodCall(scope, it.callee)
                 return
@@ -626,6 +632,11 @@ class TsInterpreter(
                 methodResult = TsMethodResult.NoCall
                 newStmt(stmt.nextStmt!!)
             }
+            return
+        }
+
+        if (stmt.expr is EtsPtrCallExpr) {
+            mockMethodCall(scope, stmt.expr.callee)
             return
         }
 
