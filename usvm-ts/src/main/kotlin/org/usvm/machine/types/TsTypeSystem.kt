@@ -158,6 +158,13 @@ class TsTypeSystem(
         }
 
         if (unwrappedSupertype is EtsAuxiliaryType) {
+            if (unwrappedType is EtsArrayType) {
+                if (unwrappedSupertype.properties == setOf("length")) {
+                    // Special case: array length is a structural property
+                    return true
+                }
+            }
+
             if (unwrappedType !is EtsClassType) return false // TODO arrays?
 
             val classes = hierarchy.classesForType(unwrappedType)
