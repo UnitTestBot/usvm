@@ -8,6 +8,8 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsValue
+import org.jacodb.ets.utils.toHighlightedDot
+import org.jacodb.ets.utils.view
 import org.usvm.PathNode
 import org.usvm.UCallStack
 import org.usvm.UConcreteHeapRef
@@ -152,6 +154,15 @@ class TsState(
             globalObject = globalObject,
             addedArtificialLocals = addedArtificialLocals,
             lValuesToAllocatedFakeObjects = lValuesToAllocatedFakeObjects.toMutableList(),
+        )
+    }
+
+    fun renderEntryPointGraph() {
+        view(
+            entrypoint.cfg.toHighlightedDot(
+                pathNode.allStatements.toSet(),
+                currentStatement,
+            )
         )
     }
 
