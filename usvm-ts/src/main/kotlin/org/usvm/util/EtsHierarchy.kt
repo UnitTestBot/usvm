@@ -82,7 +82,7 @@ class EtsHierarchy(private val scene: EtsScene) {
         result
     }
 
-    fun getAncestor(clazz: EtsClass): Set<EtsClass> {
+    fun getAncestors(clazz: EtsClass): Set<EtsClass> {
         return ancestors[clazz] ?: run {
             error("TODO")
         }
