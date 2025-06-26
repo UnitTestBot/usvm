@@ -30,6 +30,7 @@ import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
 import kotlin.reflect.KClass
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 typealias CoverageChecker = (TsMethodCoverage) -> Boolean
@@ -340,10 +341,10 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
     override var options: UMachineOptions = UMachineOptions(
         pathSelectionStrategies = listOf(PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM),
         exceptionsPropagation = true,
-        timeout = 60.seconds,
+        timeout = 1000000000.seconds,
         stepsFromLastCovered = 3500L,
         solverType = SolverType.YICES,
-        solverTimeout = 1.seconds, // we do not need the timeout for a solver in tests
-        typeOperationsTimeout = 1.seconds, // we do not need the timeout for type operations in tests
+        solverTimeout = Duration.INFINITE, // we do not need the timeout for a solver in tests
+        typeOperationsTimeout = Duration.INFINITE, // we do not need the timeout for type operations in tests
     )
 }
