@@ -86,11 +86,11 @@ private fun tryGetSingleField(
 }
 
 fun EtsClass.getAllFields(hierarchy: EtsHierarchy): List<EtsField> {
-    return hierarchy.getAncestor(this).flatMap { it.fields }
+    return hierarchy.getAncestors(this).flatMap { it.fields }
 }
 
 fun EtsClass.getAllMethods(hierarchy: EtsHierarchy): List<EtsMethod> {
-    return hierarchy.getAncestor(this).flatMap { it.methods }
+    return hierarchy.getAncestors(this).flatMap { it.methods }
 }
 
 fun EtsClass.getAllPropertiesCombined(hierarchy: EtsHierarchy): Set<String> {
@@ -102,7 +102,7 @@ fun EtsClass.getAllProperties(hierarchy: EtsHierarchy): Pair<Set<EtsFieldName>, 
     val allFields = hashSetOf<EtsFieldName>()
     val allMethods = hashSetOf<EtsMethodName>()
 
-    val classes = hierarchy.getAncestor(this)
+    val classes = hierarchy.getAncestors(this)
 
     classes.forEach {
         val fieldNames = it.fields.map<EtsField, EtsFieldName> { it.name }

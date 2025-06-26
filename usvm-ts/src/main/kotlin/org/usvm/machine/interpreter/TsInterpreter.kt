@@ -36,6 +36,7 @@ import org.jacodb.ets.utils.getDeclaredLocals
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UAddressSort
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UInterpreter
 import org.usvm.UIteExpr
@@ -69,6 +70,7 @@ import org.usvm.machine.types.mkFakeValue
 import org.usvm.machine.types.toAuxiliaryType
 import org.usvm.sizeSort
 import org.usvm.targets.UTargetsSet
+import org.usvm.types.TypesResult
 import org.usvm.types.single
 import org.usvm.util.EtsPropertyResolution
 import org.usvm.util.mkArrayIndexLValue
@@ -214,14 +216,40 @@ class TsInterpreter(
             concreteMethods += methods
         }
 
-        val limitedConcreteMethods = concreteMethods.take(5)
+
+        val possibleTypes = scope.calcOnState { models.first().typeStreamOf(resolvedInstance as UConcreteHeapRef) }
+            .take(1000)
+
+        if (possibleTypes !is TypesResult.SuccessfulTypesResult) {
+            error("TODO")// is it right?
+        }
+
+        val possibleTypesSet = possibleTypes.types.toSet()
+        val methodsDeclaringClasses = concreteMethods.mapNotNull { it.enclosingClass } // is it right?
+        val typeSystem = typeSystem<EtsType>()
+
+        // take only possible classes with a corresponding method
+        val intersectedTypes = possibleTypesSet.filter { possibleType ->
+            methodsDeclaringClasses.any { typeSystem.isSupertype(it.type, possibleType) }
+        }
+
+        //
+        val chosenMethods = intersectedTypes.flatMap {
+            graph.hierarchy.classesForType(it as EtsRefType)
+                .asSequence()
+                // TODO wrong order, ancestors are unordered
+                .map { graph.hierarchy.getAncestors(it) }
+                .map { it.first { it.methods.any { it.name == stmt.callee.name } } }
+                .map { it.methods.first { it.name == stmt.callee.name } }
+        }.toList().take(10) // TODO check it
 
         // logger.info {
         // "Preparing to fork on ${limitedConcreteMethods.size} methods out of ${concreteMethods.size}: ${
         //     limitedConcreteMethods.map { "${it.signature.enclosingClass.name}::${it.name}" }
         // }"
         // }
-        val conditionsWithBlocks = limitedConcreteMethods.map { method ->
+
+        val conditionsWithBlocks = chosenMethods.mapIndexed { i, method ->
             val concreteCall = stmt.toConcrete(method)
             val block = { state: TsState -> state.newStmt(concreteCall) }
             val type = requireNotNull(method.enclosingClass).type
