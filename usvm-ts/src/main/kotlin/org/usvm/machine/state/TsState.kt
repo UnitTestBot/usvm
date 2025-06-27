@@ -1,5 +1,6 @@
 package org.usvm.machine.state
 
+import org.jacodb.ets.model.EtsBlockCfg
 import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsClassType
@@ -8,8 +9,9 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsValue
-import org.jacodb.ets.utils.toHighlightedDot
-import org.jacodb.ets.utils.view
+import org.jacodb.ets.utils.InterproceduralCfg
+import org.jacodb.ets.utils.renderDotOverwrite
+import org.jacodb.ets.utils.toHighlightedDotWithCalls
 import org.usvm.PathNode
 import org.usvm.UCallStack
 import org.usvm.UConcreteHeapRef
@@ -22,6 +24,7 @@ import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHa
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.collections.immutable.persistentHashMapOf
 import org.usvm.constraints.UPathConstraints
+import org.usvm.dataflow.ts.util.toMap
 import org.usvm.machine.TsContext
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemory
@@ -33,6 +36,9 @@ import org.usvm.util.type
  * [lValuesToAllocatedFakeObjects] contains records of l-values that were allocated with newly created fake objects.
  * It is important for result interpreters to be able to restore the order of fake objects allocation and
  * their assignment to evaluated l-values.
+ *
+ * [discoveredCallees] is a map from each [EtsStmt] with EtsCallExpr inside and its parent block id to its
+ * analyzed callee CFG. This grows dynamically as you step through the calls.
  */
 class TsState(
     ctx: TsContext,
@@ -51,6 +57,7 @@ class TsState(
     val globalObject: UConcreteHeapRef = memory.allocStatic(EtsClassType(EtsClassSignature.UNKNOWN)),
     val addedArtificialLocals: MutableSet<String> = hashSetOf(),
     val lValuesToAllocatedFakeObjects: MutableList<Pair<ULValue<*, *>, UConcreteHeapRef>> = mutableListOf(),
+    var discoveredCallees: UPersistentHashMap<Pair<EtsStmt, Int>, EtsBlockCfg> = persistentHashMapOf(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
     ctx = ctx,
     initOwnership = ownership,
@@ -86,6 +93,16 @@ class TsState(
 
     fun popLocalToSortStack() {
         localToSortStack.removeLast()
+    }
+
+    fun registerCallee(stmt: EtsStmt, cfg: EtsBlockCfg) {
+        val parentId = stmt.location.method.cfg.blocks.indexOfFirst { it.statements.contains(stmt) }
+            .takeIf { it >= 0 } ?: error("Statement $stmt is not found in the method CFG")
+
+        val key = stmt to parentId
+        if (!discoveredCallees.containsKey(key)) {
+            discoveredCallees = discoveredCallees.put(key, cfg, ownership)
+        }
     }
 
     fun pushSortsForArguments(
@@ -154,16 +171,18 @@ class TsState(
             globalObject = globalObject,
             addedArtificialLocals = addedArtificialLocals,
             lValuesToAllocatedFakeObjects = lValuesToAllocatedFakeObjects.toMutableList(),
+            discoveredCallees = discoveredCallees,
         )
     }
 
-    fun renderEntryPointGraph() {
-        view(
-            entrypoint.cfg.toHighlightedDot(
-                pathNode.allStatements.toSet(),
-                currentStatement,
-            )
+    fun renderGraph() {
+        val graph = InterproceduralCfg(main = entrypoint.cfg, callees = discoveredCallees.toMap())
+        val dot = graph.toHighlightedDotWithCalls(
+            pathStmts = pathNode.allStatements.toSet(),
+            currentStmt = currentStatement
         )
+
+        renderDotOverwrite(dot)
     }
 
     override val isExceptional: Boolean

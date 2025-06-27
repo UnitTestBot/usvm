@@ -124,6 +124,10 @@ class TsInterpreter(
         //  if exception, see above
         //  if no call, visit
 
+        scope.doWithState {
+            renderGraph()
+        }
+
         try {
             when (stmt) {
                 is TsVirtualMethodCallStmt -> visitVirtualMethodCall(scope, stmt)
@@ -313,6 +317,8 @@ class TsInterpreter(
         }
 
         scope.doWithState {
+            registerCallee(stmt.returnSite, stmt.callee.cfg)
+
             val args = mutableListOf<UExpr<*>>()
             val numActual = stmt.args.size
             val numFormal = stmt.callee.parameters.size
