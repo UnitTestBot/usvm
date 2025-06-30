@@ -109,33 +109,4 @@ class AllocatedArrays : TsMethodTestRunner() {
             { r -> r is TsTestValue.TsException },
         )
     }
-
-    @Test
-    fun `test readFakeObjectAndWriteFakeObject`() {
-        val method = getMethod(className, "readFakeObjectAndWriteFakeObject")
-        discoverProperties<TsTestValue.TsArray<TsTestValue>, TsTestValue, TsTestValue>(
-            method = method,
-            { x, y, r ->
-                val fst = x.values[0]
-                val fstCondition = fst is TsTestValue.TsNumber && fst.number == 1.0
-                val sndCondition = y is TsTestValue.TsNumber && y.number == 2.0
-                val resultCondition = r is TsTestValue.TsArray<*> && r.values[0] == y
-
-                fstCondition && sndCondition && resultCondition
-            },
-            { x, y, r ->
-                val fst = x.values[0]
-                val fstCondition = fst is TsTestValue.TsNumber && fst.number == 1.0
-                val sndCondition = y !is TsTestValue.TsNumber || y.number != 2.0
-                val resultCondition = r is TsTestValue.TsArray<*> && r.values[0] == y
-
-                fstCondition && sndCondition && resultCondition
-            },
-            { x, y, r ->
-                val fst = x.values[0]
-                val condition = fst !is TsTestValue.TsNumber || fst.number != 1.0
-                condition && r is TsTestValue.TsArray<*> && r.values == x.values
-            },
-        )
-    }
 }

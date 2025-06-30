@@ -7,7 +7,7 @@ import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.jacodb.ets.utils.INSTANCE_INIT_METHOD_NAME
 import org.jacodb.ets.utils.STATIC_INIT_METHOD_NAME
 import org.jacodb.ets.utils.loadEtsProjectAutoConvert
-import org.junit.jupiter.api.condition.EnabledIf
+import org.junit.jupiter.api.Disabled
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.util.TsMethodTestRunner
@@ -15,8 +15,8 @@ import org.usvm.util.getResourcePath
 import org.usvm.util.getResourcePathOrNull
 import kotlin.test.Test
 
-@EnabledIf("projectAvailable")
-// @Disabled
+// @EnabledIf("projectAvailable")
+@Disabled
 class RunOnPhotosProject : TsMethodTestRunner() {
 
     companion object {

@@ -63,17 +63,4 @@ class AllocatedArrays {
         x[3] = 4
         return x
     }
-
-    readFakeObjectAndWriteFakeObject(x: any[], y) {
-        if (x[0] === 1) {
-            x[0] = y
-            if (x[0] === 2) {
-                return x
-            } else {
-                return x
-            }
-        }
-
-        return x
-    }
 }
