@@ -28,6 +28,7 @@ import org.usvm.statistics.distances.CfgStatisticsImpl
 import org.usvm.statistics.distances.PlainCallGraphStatistics
 import org.usvm.stopstrategies.StopStrategy
 import org.usvm.stopstrategies.createStopStrategy
+import org.usvm.util.TsStateVisualizer
 import org.usvm.util.humanReadableSignature
 import kotlin.time.Duration.Companion.seconds
 
@@ -95,6 +96,10 @@ class TsMachine(
 
         val observers = mutableListOf<UMachineObserver<TsState>>(coverageStatistics)
         observers.add(statesCollector)
+
+        if (tsOptions.enableVisualization) {
+            observers += TsStateVisualizer()
+        }
 
         if (options.useSoftConstraints) {
             observers.add(SoftConstraintsObserver())

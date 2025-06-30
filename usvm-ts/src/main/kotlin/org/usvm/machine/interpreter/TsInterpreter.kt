@@ -124,10 +124,6 @@ class TsInterpreter(
         //  if exception, see above
         //  if no call, visit
 
-        scope.doWithState {
-            renderGraph()
-        }
-
         try {
             when (stmt) {
                 is TsVirtualMethodCallStmt -> visitVirtualMethodCall(scope, stmt)
