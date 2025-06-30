@@ -761,6 +761,11 @@ class TsInterpreter(
             if (parameterType is EtsRefType) {
                 val argLValue = mkRegisterStackLValue(addressSort, i)
                 val ref = state.memory.read(argLValue).asExpr(addressSort)
+                if (parameterType is EtsArrayType) {
+                    state.pathConstraints += state.memory.types.evalTypeEquals(ref, parameterType)
+                    return@forEachIndexed
+                }
+
                 val resolvedParameterType = graph.hierarchy.classesForType(parameterType)
 
                 if (resolvedParameterType.isEmpty()) {
