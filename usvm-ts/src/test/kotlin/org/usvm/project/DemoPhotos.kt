@@ -87,7 +87,7 @@ class RunOnDemoPhotosProject : TsMethodTestRunner() {
                 cls.methods
                     .filterNot { it.cfg.stmts.isEmpty() }
                     .filterNot { it.isStatic }
-                    .filterNot { it.name.startsWith("%AM") }
+                    .filterNot { it.name.startsWith(ANONYMOUS_METHOD_PREFIX) }
                     .filterNot { it.name == "build" }
                     .filterNot { it.name == INSTANCE_INIT_METHOD_NAME }
                     .filterNot { it.name == STATIC_INIT_METHOD_NAME }
