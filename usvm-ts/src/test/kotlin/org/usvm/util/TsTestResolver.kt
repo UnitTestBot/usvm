@@ -136,9 +136,7 @@ class TsTestResolver {
         fun resolveState(): TsParametersState {
             val thisInstance = resolveThisInstance()
             val parameters = resolveParameters()
-
             val globals = resolveGlobals()
-
             return TsParametersState(thisInstance, parameters, globals)
         }
     }
