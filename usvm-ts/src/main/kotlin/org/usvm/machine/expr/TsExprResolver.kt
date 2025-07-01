@@ -899,7 +899,8 @@ class TsExprResolver(
             // this field should present in the object.
             // That's not true in the common case for TS, but that's the decision we made.
             val auxiliaryType = EtsAuxiliaryType(properties = setOf(field.name))
-            pathConstraints += memory.types.evalIsSubtype(resolvedAddr, auxiliaryType)
+            // assert is required to update models
+            scope.assert(memory.types.evalIsSubtype(resolvedAddr, auxiliaryType))
         }
 
         // TODO

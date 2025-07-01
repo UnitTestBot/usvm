@@ -560,7 +560,8 @@ class TsInterpreter(
                         // If we access some field, we expect that the object must have this field.
                         // It is not always true for TS, but we decided to process it so.
                         val supertype = EtsAuxiliaryType(properties = setOf(lhv.field.name))
-                        pathConstraints += memory.types.evalIsSubtype(instance, supertype)
+                        // assert is required to update models
+                        scope.assert(memory.types.evalIsSubtype(instance, supertype))
                     }
 
                     // If there is no such field, we create a fake field for the expr
