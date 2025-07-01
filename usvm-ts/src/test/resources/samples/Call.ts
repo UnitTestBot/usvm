@@ -118,6 +118,11 @@ class Call {
         return obj.virtualMethod(); // 200
     }
 
+    callBaseMethod(): number {
+        let obj: Child = new Child();
+        return obj.baseMethod(); // 42
+    }
+
     virtualDispatch(obj: Parent): number {
         if (obj instanceof Child) {
             return obj.virtualMethod(); // 200
@@ -194,6 +199,10 @@ namespace N2 {
 class Parent {
     virtualMethod(): number {
         return 100;
+    }
+
+    baseMethod(): number {
+        return 42;
     }
 }
 

@@ -191,12 +191,14 @@ class TsInterpreter(
                     return
                 }
                 val cls = classes.single()
-                val method = cls.methods
-                    .singleOrNull { it.name == stmt.callee.name }
-                    ?: run {
-                        TODO("Overloads are not supported yet")
-                    }
-                concreteMethods += method
+                // val method = cls.methods
+                //     .singleOrNull { it.name == stmt.callee.name }
+                //     ?: run {
+                //         TODO("Overloads are not supported yet")
+                //     }
+                // concreteMethods += method
+                val suitableMethods = cls.methods.filter { it.name == stmt.callee.name }
+                concreteMethods += suitableMethods
             } else {
                 logger.warn {
                     "Could not resolve method: ${stmt.callee} on type: $type"

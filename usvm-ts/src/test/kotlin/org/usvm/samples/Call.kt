@@ -209,6 +209,16 @@ class Call : TsMethodTestRunner() {
         )
     }
 
+    @Disabled("Non-overridden virtual calls are not supported yet")
+    @Test
+    fun `test base call`() {
+        val method = getMethod(className, "callBaseMethod")
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { r -> r.number == 42.0 },
+        )
+    }
+
     @Test
     fun `test virtual dispatch`() {
         val method = getMethod(className, "virtualDispatch")
