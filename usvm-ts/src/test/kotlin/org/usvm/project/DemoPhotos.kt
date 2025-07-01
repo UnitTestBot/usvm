@@ -17,7 +17,7 @@ import kotlin.test.Test
 
 // @EnabledIf("projectAvailable")
 @Disabled
-class RunOnPhotosProject : TsMethodTestRunner() {
+class RunOnDemoPhotosProject : TsMethodTestRunner() {
 
     companion object {
         private const val PROJECT_PATH = "/projects/Demo_Photos/source/entry"
@@ -25,28 +25,32 @@ class RunOnPhotosProject : TsMethodTestRunner() {
 
         @JvmStatic
         private fun projectAvailable(): Boolean {
-            return getResourcePathOrNull(PROJECT_PATH) != null && getResourcePathOrNull(SDK_PATH) != null
+            val isProjectPresent = getResourcePathOrNull(PROJECT_PATH) != null
+            val isSdkPreset = getResourcePathOrNull(SDK_PATH) != null
+            return isProjectPresent && isSdkPreset
         }
     }
 
     override val scene: EtsScene = run {
         val projectPath = getResourcePath(PROJECT_PATH)
         val sdkPath = getResourcePathOrNull(SDK_PATH)
-            ?: error("Could not load SDK from resources '$SDK_PATH'. Try running './gradlew generateSdkIR' to generate it.")
+            ?: error(
+                "Could not load SDK from resources '$SDK_PATH'. " +
+                    "Try running './gradlew generateSdkIR' to generate it."
+            )
         loadEtsProjectAutoConvert(projectPath, sdkPath)
     }
 
     @Test
     fun `test run on each method`() {
         val exceptions = mutableListOf<Throwable>()
-        val classes = scene.projectClasses.filterNot { it.name.startsWith(ANONYMOUS_CLASS_PREFIX) }
+        val classes = scene.projectClasses
+            .filterNot { it.name.startsWith(ANONYMOUS_CLASS_PREFIX) }
 
         println("Total classes: ${classes.size}")
 
-        classes
-            // .filter { it.name == "NewAlbumPage" }
-            .forEach { clazz ->
-            val methods = clazz.methods
+        classes.forEach { cls ->
+            val methods = cls.methods
                 .filterNot { it.cfg.stmts.isEmpty() }
                 .filterNot { it.isStatic }
                 .filterNot { it.name.startsWith(ANONYMOUS_METHOD_PREFIX) }
@@ -78,9 +82,9 @@ class RunOnPhotosProject : TsMethodTestRunner() {
     @Test
     fun `test run on all methods`() {
         val methods = scene.projectClasses
-            .filterNot { it.name.startsWith("%AC") }
-            .flatMap {
-                it.methods
+            .filterNot { it.name.startsWith(ANONYMOUS_CLASS_PREFIX) }
+            .flatMap { cls ->
+                cls.methods
                     .filterNot { it.cfg.stmts.isEmpty() }
                     .filterNot { it.isStatic }
                     .filterNot { it.name.startsWith("%AM") }
@@ -89,6 +93,7 @@ class RunOnPhotosProject : TsMethodTestRunner() {
                     .filterNot { it.name == STATIC_INIT_METHOD_NAME }
                     .filterNot { it.name == CONSTRUCTOR_NAME }
             }
+
         val tsOptions = TsOptions()
         TsMachine(scene, options, tsOptions).use { machine ->
             val states = machine.analyze(methods)
