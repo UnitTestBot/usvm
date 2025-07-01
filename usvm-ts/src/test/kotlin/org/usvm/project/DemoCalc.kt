@@ -89,7 +89,7 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
                     .filterNot { it.name.startsWith(ANONYMOUS_METHOD_PREFIX) }
                     .filterNot { it.name == "build" }
             }
-        
+
         val tsOptions = TsOptions()
         TsMachine(scene, options, tsOptions).use { machine ->
             val states = machine.analyze(methods)
