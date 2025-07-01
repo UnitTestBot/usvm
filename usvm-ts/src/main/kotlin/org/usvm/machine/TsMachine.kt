@@ -111,14 +111,10 @@ class TsMachine(
             val strategy = createStopStrategy(
                 options,
                 targets,
-                timeStatisticsFactory =
-                    { timeStatistics },
-                stepsStatisticsFactory =
-                    { stepsStatistics },
-                coverageStatisticsFactory =
-                    { coverageStatistics },
-                getCollectedStatesCount =
-                    { statesCollector.collectedStates.size }
+                timeStatisticsFactory = { timeStatistics },
+                stepsStatisticsFactory = { stepsStatistics },
+                coverageStatisticsFactory = { coverageStatistics },
+                getCollectedStatesCount = { statesCollector.collectedStates.size },
             )
 
             override fun shouldStop(): Boolean {

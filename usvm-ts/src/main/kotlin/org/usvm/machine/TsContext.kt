@@ -78,6 +78,8 @@ class TsContext(
         is EtsAnyType -> unresolvedSort
         is EtsUnknownType -> unresolvedSort
         is EtsAliasType -> typeToSort(type.originalType)
+        is EtsEnumValueType -> unresolvedSort
+
         is EtsGenericType -> {
             if (type.constraint == null && type.defaultType == null) {
                 unresolvedSort
@@ -85,10 +87,8 @@ class TsContext(
                 TODO("Not yet implemented")
             }
         }
-        is EtsEnumValueType -> unresolvedSort
-        else -> {
-            TODO("${type::class.simpleName} is not yet supported: $type")
-        }
+
+        else -> TODO("${type::class.simpleName} is not yet supported: $type")
     }
 
     fun arrayDescriptorOf(type: EtsArrayType): EtsType {

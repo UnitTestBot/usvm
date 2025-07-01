@@ -24,14 +24,19 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
 
         @JvmStatic
         private fun projectAvailable(): Boolean {
-            return getResourcePathOrNull(PROJECT_PATH) != null && getResourcePathOrNull(SDK_PATH) != null
+            val isProjectPresent = getResourcePathOrNull(PROJECT_PATH) != null
+            val isSdkPreset = getResourcePathOrNull(SDK_PATH) != null
+            return isProjectPresent && isSdkPreset
         }
     }
 
     override val scene: EtsScene = run {
         val projectPath = getResourcePath(PROJECT_PATH)
         val sdkPath = getResourcePathOrNull(SDK_PATH)
-            ?: error("Could not load SDK from resources '$SDK_PATH'. Try running './gradlew generateSdkIR' to generate it.")
+            ?: error(
+                "Could not load SDK from resources '$SDK_PATH'. " +
+                    "Try running './gradlew generateSdkIR' to generate it."
+            )
         loadEtsProjectFromIR(projectPath, sdkPath)
     }
 
@@ -84,6 +89,7 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
                     .filterNot { it.name.startsWith(ANONYMOUS_METHOD_PREFIX) }
                     .filterNot { it.name == "build" }
             }
+        
         val tsOptions = TsOptions()
         TsMachine(scene, options, tsOptions).use { machine ->
             val states = machine.analyze(methods)
@@ -96,6 +102,7 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "createKvStore" && it.enclosingClass?.name == "KvStoreModel" }
+
         val tsOptions = TsOptions()
         TsMachine(scene, options, tsOptions).use { machine ->
             val states = machine.analyze(listOf(method))
