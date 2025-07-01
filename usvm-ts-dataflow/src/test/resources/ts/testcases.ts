@@ -799,6 +799,18 @@ class CaseNew {
     }
 }
 
+class CaseNew2 {
+    entrypoint() {
+        let x = new Something(); // unresolved
+        console.log(x.foo);
+        this.infer(x);
+    }
+
+    infer(a: any): any {
+        const EXPECTED_ARG_0 = "Something { foo: any }"
+    }
+}
+
 // ----------------------------------------
 
 // Case `x := number | string`
