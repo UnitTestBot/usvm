@@ -125,7 +125,7 @@ class TsMachine(
                 val result = strategy.shouldStop()
 
                 if (result) {
-                    logger.warn { "Stop strategy finished execution $strategy" }
+                    logger.warn { "Stop strategy finished execution: ${strategy.stopReason()}" }
                 }
 
                 return result
