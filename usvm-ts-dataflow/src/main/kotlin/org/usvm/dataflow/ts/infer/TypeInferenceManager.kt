@@ -597,7 +597,9 @@ class TypeInferenceManager(
             val typeRefinement = typeRefinements[propertyPath]
             val refinedType = if (type != null && typeRefinement != null) {
                 typeProcessor.intersect(typeRefinement, type)
-            } else type ?: typeRefinement
+            } else {
+                type ?: typeRefinement
+            }
             refinedType?.refineProperties(propertyPath, typeRefinements)
                 ?: EtsTypeFact.AnyEtsTypeFact
         }
