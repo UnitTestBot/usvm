@@ -355,8 +355,7 @@ open class TsTestStateResolver(
             model.eval(type.refTypeExpr).isTrue -> {
                 val lValue = getIntermediateRefLValue(expr.address)
                 val value = finalStateMemory.read(lValue)
-                val ref = model.eval(value)
-                resolveExpr(ref)
+                resolveExpr(model.eval(value))
             }
 
             else -> error("Unsupported")
