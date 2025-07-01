@@ -216,7 +216,6 @@ class TsInterpreter(
             concreteMethods += methods
         }
 
-
         val possibleTypes = scope.calcOnState { models.first().typeStreamOf(resolvedInstance as UConcreteHeapRef) }
             .take(1000)
 
@@ -234,13 +233,13 @@ class TsInterpreter(
         }
 
         //
-        val chosenMethods = intersectedTypes.flatMap {
-            graph.hierarchy.classesForType(it as EtsRefType)
+        val chosenMethods = intersectedTypes.flatMap { clazz ->
+            graph.hierarchy.classesForType(clazz as EtsRefType)
                 .asSequence()
                 // TODO wrong order, ancestors are unordered
                 .map { graph.hierarchy.getAncestors(it) }
                 .map { it.first { it.methods.any { it.name == stmt.callee.name } } }
-                .map { it.methods.first { it.name == stmt.callee.name } }
+                .map { clazz to it.methods.first { it.name == stmt.callee.name } }
         }.toList().take(10) // TODO check it
 
         // logger.info {
@@ -249,7 +248,7 @@ class TsInterpreter(
         // }"
         // }
 
-        val conditionsWithBlocks = chosenMethods.mapIndexed { i, method ->
+        val conditionsWithBlocks = chosenMethods.mapIndexed { i, (clazz, method) ->
             val concreteCall = stmt.toConcrete(method)
             val block = { state: TsState -> state.newStmt(concreteCall) }
             val type = requireNotNull(method.enclosingClass).type
@@ -286,8 +285,10 @@ class TsInterpreter(
 
                 // TODO mistake, should be separated into several hierarchies
                 //      or evalTypeEqual with several concrete types
-                // memory.types.evalIsSubtype(ref, type)
-                memory.types.evalTypeEquals(ref, type)
+                mkAnd(
+                    memory.types.evalIsSubtype(ref, clazz),
+                    memory.types.evalIsSupertype(ref, type)
+                )
             }
             constraint to block
         }
