@@ -1,6 +1,7 @@
 package org.usvm.samples.types
 
 import org.jacodb.ets.model.EtsScene
+import org.junit.jupiter.api.RepeatedTest
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
@@ -30,7 +31,7 @@ class TypeStream : TsMethodTestRunner() {
         )
     }
 
-    @Test
+    @RepeatedTest(10, failureThreshold = 1)
     fun `use unique field`() {
         val method = getMethod(className, "useUniqueField")
         discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
