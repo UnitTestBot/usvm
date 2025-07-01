@@ -286,7 +286,8 @@ class TsInterpreter(
 
                 // TODO mistake, should be separated into several hierarchies
                 //      or evalTypeEqual with several concrete types
-                memory.types.evalIsSubtype(ref, type)
+                // memory.types.evalIsSubtype(ref, type)
+                memory.types.evalTypeEquals(ref, type)
             }
             constraint to block
         }
