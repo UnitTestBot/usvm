@@ -22,8 +22,6 @@ import org.jacodb.ets.model.EtsUnclearRefType
 import org.jacodb.ets.utils.ANONYMOUS_CLASS_PREFIX
 import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.jacodb.ets.utils.INSTANCE_INIT_METHOD_NAME
-import org.jacodb.impl.cfg.graphs.GraphDominators
-import org.jacodb.impl.cfg.graphs.findDominators
 import org.usvm.dataflow.ifds.ControlEvent
 import org.usvm.dataflow.ifds.Edge
 import org.usvm.dataflow.ifds.Manager
@@ -439,36 +437,21 @@ class TypeInferenceManager(
                             }
                         }
                     }
-
-                val rootType = run {
-                    if (propertyRefinements.keys.any { it.isNotEmpty() }) {
-                        propertyRefinements
-                            .filterKeys { it.isNotEmpty() }
-                            .values
-                            .reduce { acc, typeFact ->
-                                typeProcessor.intersect(acc, typeFact) ?: run {
-                                    logger.warn { "Empty intersection type: ${acc.toStringLimited()} & ${typeFact.toStringLimited()}" }
-                                    acc
+                val refined = if (propertyRefinements.keys.any { it.isNotEmpty() }) {
+                    propertyRefinements
+                        .filterKeys { it.isNotEmpty() }
+                        .values
+                        .reduce { acc, typeFact ->
+                            typeProcessor.intersect(acc, typeFact) ?: run {
+                                logger.warn { "Empty intersection type: ${acc.toStringLimited()} & ${typeFact.toStringLimited()}" }
+                                acc
                             }
                         }
-                    } else {
-                        EtsTypeFact.AnyEtsTypeFact
-                    }
+                } else {
+                    EtsTypeFact.AnyEtsTypeFact
                 }
-
-                val refined = rootType//.refineProperties(emptyList(), propertyRefinements)
-
                 refined
             }
-            /*.mapValues { (_, typeFacts) ->
-                typeFacts.reduce { acc, typeFact ->
-                    typeProcessor.intersect(acc, typeFact) ?: run {
-                        logger.warn { "Empty intersection type: ${acc.toStringLimited()} & ${typeFact.toStringLimited()}" }
-                        acc
-                    }
-                }
-            }*/
-
         return types
     }
 
@@ -492,11 +475,9 @@ class TypeInferenceManager(
         val refinedTypes = facts.mapValues { (base, type) ->
             // TODO: throw an error
             val typeRefinements = typeFacts[base] ?: return@mapValues type
-
             val propertyRefinements = typeRefinements
                 .groupBy({ it.variable.accesses }, { it.type })
                 .mapValues { (_, types) -> types.reduce { acc, t -> typeProcessor.union(acc, t) } }
-
             val rootType = propertyRefinements[emptyList()] ?: run {
                 if (propertyRefinements.keys.any { it.isNotEmpty() }) {
                     EtsTypeFact.ObjectEtsTypeFact(null, emptyMap())
@@ -504,13 +485,9 @@ class TypeInferenceManager(
                     EtsTypeFact.AnyEtsTypeFact
                 }
             }
-
             val refined = rootType.refineProperties(emptyList(), propertyRefinements)
-
             refined
         }
-
-        typeFacts.let {}
 
         return refinedTypes
     }
