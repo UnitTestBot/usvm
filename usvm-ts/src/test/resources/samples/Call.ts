@@ -198,6 +198,10 @@ class Parent {
 }
 
 class Child extends Parent {
+    constructor() {
+        // super();
+    }
+
     override virtualMethod(): number {
         return 200;
     }

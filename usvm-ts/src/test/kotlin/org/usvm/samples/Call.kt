@@ -200,7 +200,6 @@ class Call : TsMethodTestRunner() {
         )
     }
 
-    @Disabled("Calls to super are broken in IR")
     @Test
     fun `test virtual child`() {
         val method = getMethod(className, "callVirtualChild")
