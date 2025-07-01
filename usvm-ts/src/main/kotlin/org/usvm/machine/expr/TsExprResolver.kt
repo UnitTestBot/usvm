@@ -693,8 +693,6 @@ class TsExprResolver(
                         ctx.mkTrue() to { state: TsState -> state.newStmt(it) }
                     } // TODO error with true Expr
 
-                    logger.warn { "Forking on ${blocks.size} branches" }
-
                     scope.forkMulti(blocks)
 
                     return null
