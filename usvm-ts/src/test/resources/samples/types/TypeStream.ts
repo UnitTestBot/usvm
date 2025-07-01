@@ -3,17 +3,17 @@
 
 class TypeStream {
     ancestorId(ancestor: Parent): Parent {
-        return ancestor
+        return ancestor;
     }
 
     virtualInvokeForAncestor(ancestor: Parent): number {
-        const number = ancestor.virtualMethod();
-        if (number == 100) {
-            return 1
-        } else if (number == 200) {
-            return 2
+        const virtualInvokeResult = ancestor.virtualMethod();
+        if (virtualInvokeResult == 100) {
+            return 1;
+        } else if (virtualInvokeResult == 200) {
+            return 2;
         } else {
-            return 3
+            return 3;
         }
     }
 
@@ -21,12 +21,12 @@ class TypeStream {
         // noinspection JSUnusedLocalSymbols
         const _ = value.firstChildField;
         const virtualInvokeResult = value.virtualMethod();
-        if (virtualInvokeResult == 100) {
-            return -1 // unreachable
-        } else if (virtualInvokeResult == 200) {
-            return 1
+        if (virtualInvokeResult == 200) {
+            return 1;
+        } else if (virtualInvokeResult == 100) {
+            return -1; // unreachable
         } else {
-            return -2 // unreachable
+            return -1; // unreachable
         }
     }
 
@@ -35,17 +35,17 @@ class TypeStream {
         const _ = value.parentField;
         const virtualInvokeResult = value.virtualMethod();
         if (virtualInvokeResult == 100) {
-            return 1
+            return 1;
         } else if (virtualInvokeResult == 200) {
-            return 2
+            return 2;
         } else {
-            return 3
+            return 3;
         }
     }
 }
 
 class Parent {
-    parentField: number = -10
+    parentField: number = -10;
 
     virtualMethod(): number {
         return 100;
@@ -53,7 +53,7 @@ class Parent {
 }
 
 class FirstChild extends Parent {
-    firstChildField: number = 10
+    firstChildField: number = 10;
 
     override virtualMethod(): number {
         return 200;
@@ -61,7 +61,7 @@ class FirstChild extends Parent {
 }
 
 class SecondChild extends Parent {
-    secondChildField: number = 20
+    secondChildField: number = 20;
 
     override virtualMethod(): number {
         return 300;

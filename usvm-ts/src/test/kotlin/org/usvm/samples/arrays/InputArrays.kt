@@ -18,11 +18,13 @@ class InputArrays : TsMethodTestRunner() {
             { x, r -> r is TsTestValue.TsException },
             { x, r ->
                 r as TsTestValue.TsNumber
-                (x.values[0] as TsTestValue.TsNumber).number == 1.0 && r.number == 1.0
+                val x0 = x.values[0] as TsTestValue.TsNumber
+                x0.number == 1.0 && r.number == 1.0
             },
             { x, r ->
                 r as TsTestValue.TsNumber
-                (x.values[0] as TsTestValue.TsNumber).number != 1.0 && r.number == 2.0
+                val x0 = x.values[0] as TsTestValue.TsNumber
+                x0.number != 1.0 && r.number == 2.0
             },
             invariants = arrayOf(
                 { _, r ->

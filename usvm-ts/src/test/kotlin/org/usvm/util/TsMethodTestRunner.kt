@@ -329,10 +329,11 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
         val tsMachineOptions = TsOptions()
         TsMachine(scene, options, tsMachineOptions).use { machine ->
             val states = machine.analyze(listOf(method))
-            states.map { state ->
+            val resolved = states.map { state ->
                 val resolver = TsTestResolver()
                 resolver.resolve(method, state)
             }
+            resolved
         }
     }
 

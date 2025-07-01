@@ -16,7 +16,7 @@ class TypeStream : TsMethodTestRunner() {
         val method = getMethod(className, "ancestorId")
         discoverProperties<TsTestValue.TsClass, TsTestValue.TsClass>(
             method = method,
-            { value, r -> r.name == value.name },
+            { x, r -> r.name == x.name }
         )
     }
 
@@ -25,31 +25,58 @@ class TypeStream : TsMethodTestRunner() {
         val method = getMethod(className, "virtualInvokeForAncestor")
         discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
             method = method,
-            { value, r -> value.name == "Parent" && r.number == 1.0 },
-            { value, r -> value.name == "FirstChild" && r.number == 2.0 },
-            { value, r -> value.name == "SecondChild" && r.number == 3.0 },
+            { x, r -> x.name == "Parent" && r.number == 1.0 },
+            { x, r -> x.name == "FirstChild" && r.number == 2.0 },
+            { x, r -> x.name == "SecondChild" && r.number == 3.0 },
+            invariants = arrayOf(
+                { _, r -> r.number in listOf(1.0, 2.0, 3.0) }
+            )
         )
     }
 
     @RepeatedTest(10, failureThreshold = 1)
     fun `use unique field`() {
         val method = getMethod(className, "useUniqueField")
-        discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
+        discoverProperties<TsTestValue, TsTestValue>(
             method = method,
+            { x, r ->
+                x as TsTestValue.TsClass
+                r as TsTestValue.TsNumber
+                x.name == "FirstChild" && r.number == 1.0
+            },
             invariants = arrayOf(
-                { value, r -> value.name == "FirstChild" && r.number == 1.0 }
+                { _, r ->
+                    r !is TsTestValue.TsNumber || r.number == 1.0
+                }
             )
         )
     }
 
-    @Test
+    @RepeatedTest(10, failureThreshold = 1)
     fun `use non unique field`() {
         val method = getMethod(className, "useNonUniqueField")
-        discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
+        discoverProperties<TsTestValue, TsTestValue>(
             method = method,
-            { value, r -> value.name == "Parent" && r.number == 1.0 },
-            { value, r -> value.name == "FirstChild" && r.number == 2.0 },
-            { value, r -> value.name == "SecondChild" && r.number == 3.0 },
+            { x, r ->
+                x as TsTestValue.TsClass
+                r as TsTestValue.TsNumber
+                x.name == "Parent" && r.number == 1.0
+            },
+            { x, r ->
+                x as TsTestValue.TsClass
+                r as TsTestValue.TsNumber
+                x.name == "FirstChild" && r.number == 2.0
+            },
+            { x, r ->
+                x as TsTestValue.TsClass
+                r as TsTestValue.TsNumber
+                x.name == "SecondChild" && r.number == 3.0
+            },
+            invariants = arrayOf(
+                { _, r ->
+                    r !is TsTestValue.TsNumber || r.number in listOf(1.0, 2.0, 3.0)
+                }
+            )
         )
     }
 }

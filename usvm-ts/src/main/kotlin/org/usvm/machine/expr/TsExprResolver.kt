@@ -957,6 +957,11 @@ class TsExprResolver(
     override fun visit(value: EtsInstanceFieldRef): UExpr<out USort>? = with(ctx) {
         val instanceRef = resolve(value.instance)?.asExpr(addressSort) ?: return null
 
+        if (instanceRef.isFakeObject()) {
+            val ref = instanceRef.extractRef(scope)
+            checkUndefinedOrNullPropertyRead(ref) ?: return null
+        }
+
         checkUndefinedOrNullPropertyRead(instanceRef) ?: return null
 
         // TODO It is a hack for array's length
