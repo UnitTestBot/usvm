@@ -49,7 +49,9 @@ class EtsHierarchy(private val scene: EtsScene) {
             }
         }
 
-        logger.warn { "Ancestors map is built in $time ms" }
+        if (time > 100) {
+            logger.warn { "Ancestors map is built in $time ms" }
+        }
 
         return@lazy result
     }
