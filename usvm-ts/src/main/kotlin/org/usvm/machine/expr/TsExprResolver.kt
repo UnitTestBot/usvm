@@ -1035,6 +1035,7 @@ class TsExprResolver(
                 scope.doWithState {
                     markInitialized(clazz)
                     pushSortsForArguments(instance = null, args = emptyList(), localToIdx)
+                    registerCallee(currentStatement, initializer.cfg)
                     callStack.push(initializer, currentStatement)
                     memory.stack.push(arrayOf(instanceRef), initializer.localsCount)
                     newStmt(initializer.cfg.stmts.first())
