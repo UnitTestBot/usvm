@@ -833,9 +833,15 @@ class TsExprResolver(
     }
 
     fun checkUndefinedOrNullPropertyRead(instance: UHeapRef) = with(ctx) {
+        val ref = if (instance.isFakeObject()) {
+            instance.extractRef(scope)
+        } else {
+            instance
+        }
+
         val neqNull = mkAnd(
-            mkHeapRefEq(instance, mkUndefinedValue()).not(),
-            mkHeapRefEq(instance, mkTsNullValue()).not()
+            mkHeapRefEq(ref, mkUndefinedValue()).not(),
+            mkHeapRefEq(ref, mkTsNullValue()).not(),
         )
 
         scope.fork(
@@ -958,11 +964,6 @@ class TsExprResolver(
 
     override fun visit(value: EtsInstanceFieldRef): UExpr<out USort>? = with(ctx) {
         val instanceRef = resolve(value.instance)?.asExpr(addressSort) ?: return null
-
-        if (instanceRef.isFakeObject()) {
-            val ref = instanceRef.extractRef(scope)
-            checkUndefinedOrNullPropertyRead(ref) ?: return null
-        }
 
         checkUndefinedOrNullPropertyRead(instanceRef) ?: return null
 
