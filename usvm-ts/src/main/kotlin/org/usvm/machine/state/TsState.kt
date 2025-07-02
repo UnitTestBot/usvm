@@ -9,9 +9,6 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsValue
-import org.jacodb.ets.utils.InterproceduralCfg
-import org.jacodb.ets.utils.renderDotOverwrite
-import org.jacodb.ets.utils.toHighlightedDotWithCalls
 import org.usvm.PathNode
 import org.usvm.UCallStack
 import org.usvm.UConcreteHeapRef
@@ -24,7 +21,6 @@ import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHa
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.collections.immutable.persistentHashMapOf
 import org.usvm.constraints.UPathConstraints
-import org.usvm.dataflow.ts.util.toMap
 import org.usvm.machine.TsContext
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemory
@@ -173,16 +169,6 @@ class TsState(
             lValuesToAllocatedFakeObjects = lValuesToAllocatedFakeObjects.toMutableList(),
             discoveredCallees = discoveredCallees,
         )
-    }
-
-    fun renderGraph() {
-        val graph = InterproceduralCfg(main = entrypoint.cfg, callees = discoveredCallees.toMap())
-        val dot = graph.toHighlightedDotWithCalls(
-            pathStmts = pathNode.allStatements.toSet(),
-            currentStmt = currentStatement
-        )
-
-        renderDotOverwrite(dot)
     }
 
     override val isExceptional: Boolean

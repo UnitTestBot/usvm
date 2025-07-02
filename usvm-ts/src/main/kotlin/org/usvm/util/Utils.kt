@@ -9,16 +9,22 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUnclearRefType
+import org.jacodb.ets.utils.InterproceduralCfg
+import org.jacodb.ets.utils.toHighlightedDotWithCalls
 import org.usvm.UBoolSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.dataflow.ts.util.toMap
 import org.usvm.machine.TsContext
 import org.usvm.machine.expr.tctx
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.machine.types.mkFakeValue
+import java.nio.file.Path
+import kotlin.io.path.createTempDirectory
+import kotlin.io.path.writeText
 
 // Built-in KContext.bvToBool has identical implementation.
 fun TsContext.boolToFp(expr: UExpr<UBoolSort>): UExpr<KFp64Sort> =
@@ -74,4 +80,35 @@ fun UHeapRef.createFakeField(fieldName: String, scope: TsStepScope): UConcreteHe
     }
 
     return fakeObject
+}
+
+fun TsState.renderGraph() {
+    val graph = InterproceduralCfg(main = entrypoint.cfg, callees = discoveredCallees.toMap())
+    val dot = graph.toHighlightedDotWithCalls(
+        pathStmts = pathNode.allStatements.toSet(),
+        currentStmt = currentStatement,
+    )
+
+    myRenderDot(dot)
+}
+
+fun myRenderDot(
+    dot: String,
+    outDir: Path = createTempDirectory(),
+    baseName: String = "cfg",
+    dotCmd: String = "dot",
+    format: String = "svg", // "svg", "png", "pdf"
+    viewerCmd: String? = when {
+        System.getProperty("os.name").startsWith("Mac") -> "open"
+        System.getProperty("os.name").startsWith("Win") -> "cmd /c start"
+        else -> "xdg-open"
+    },
+) {
+    val dotFile = outDir.resolve("$baseName.dot")
+    val svgFile = outDir.resolveSibling("$baseName.$format")
+    dotFile.writeText(dot)
+    Runtime.getRuntime().exec("$dotCmd $dotFile -T$format -o $svgFile").waitFor()
+    if (viewerCmd != null) {
+        Runtime.getRuntime().exec("$viewerCmd $svgFile").waitFor()
+    }
 }
