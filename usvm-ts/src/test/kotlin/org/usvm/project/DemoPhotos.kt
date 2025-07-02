@@ -17,7 +17,6 @@ import kotlin.test.Test
 import kotlin.time.Duration.Companion.seconds
 
 @EnabledIf("projectAvailable")
-// @Disabled
 class RunOnDemoPhotosProject : TsMethodTestRunner() {
 
     companion object {
