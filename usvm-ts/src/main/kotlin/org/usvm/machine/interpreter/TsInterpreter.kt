@@ -143,7 +143,7 @@ class TsInterpreter(
             }
         } catch (e: Exception) {
             logger.error {
-                "Exception: $e\n${e.stackTrace.take(3).joinToString("\n") { "    $it" }}"
+                "Exception: $e\n${e.stackTrace.take(5).joinToString("\n") { "    $it" }}"
             }
             return StepResult(forkedStates = emptySequence(), originalStateAlive = false)
             // todo are exceptional states properly removed?
