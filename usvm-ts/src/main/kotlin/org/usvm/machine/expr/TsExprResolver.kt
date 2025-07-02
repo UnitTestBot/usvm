@@ -879,7 +879,9 @@ class TsExprResolver(
 
         val sort = when (etsField) {
             is EtsPropertyResolution.Empty -> {
-                logger.error("Field $field not found, creating fake field")
+                if (field.name !in listOf("i", "LogLevel")) {
+                    logger.warn { "Field $field not found, creating fake field" }
+                }
                 // If we didn't find any real fields, let's create a fake one.
                 // It is possible due to mistakes in the IR or if the field was added explicitly
                 // in the code.
