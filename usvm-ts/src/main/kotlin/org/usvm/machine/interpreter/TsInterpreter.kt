@@ -218,8 +218,9 @@ class TsInterpreter(
             concreteMethods += methods
         }
 
-        val possibleTypes = scope.calcOnState { models.first().typeStreamOf(resolvedInstance as UConcreteHeapRef) }
-            .take(1000)
+        val possibleTypes = scope.calcOnState {
+            models.first().typeStreamOf(resolvedInstance as UConcreteHeapRef).take(1000)
+        }
 
         if (possibleTypes !is TypesResult.SuccessfulTypesResult) {
             error("TODO")// is it right?
