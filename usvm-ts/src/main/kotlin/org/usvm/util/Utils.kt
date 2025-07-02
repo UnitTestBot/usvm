@@ -81,34 +81,3 @@ fun UHeapRef.createFakeField(fieldName: String, scope: TsStepScope): UConcreteHe
 
     return fakeObject
 }
-
-fun TsState.renderGraph() {
-    val graph = InterproceduralCfg(main = entrypoint.cfg, callees = discoveredCallees.toMap())
-    val dot = graph.toHighlightedDotWithCalls(
-        pathStmts = pathNode.allStatements.toSet(),
-        currentStmt = currentStatement,
-    )
-
-    myRenderDot(dot)
-}
-
-fun myRenderDot(
-    dot: String,
-    outDir: Path = createTempDirectory(),
-    baseName: String = "cfg",
-    dotCmd: String = "dot",
-    format: String = "svg", // "svg", "png", "pdf"
-    viewerCmd: String? = when {
-        System.getProperty("os.name").startsWith("Mac") -> "open"
-        System.getProperty("os.name").startsWith("Win") -> "cmd /c start"
-        else -> "xdg-open"
-    },
-) {
-    val dotFile = outDir.resolve("$baseName.dot")
-    val svgFile = outDir.resolveSibling("$baseName.$format")
-    dotFile.writeText(dot)
-    Runtime.getRuntime().exec("$dotCmd $dotFile -T$format -o $svgFile").waitFor()
-    if (viewerCmd != null) {
-        Runtime.getRuntime().exec("$viewerCmd $svgFile").waitFor()
-    }
-}
