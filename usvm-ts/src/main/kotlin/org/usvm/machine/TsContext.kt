@@ -164,6 +164,18 @@ class TsContext(
         }
     }
 
+    fun UHeapRef.extractRefOrSelf(scope: TsStepScope): UHeapRef {
+        var current = this
+        while (current.isFakeObject()) {
+            val fakeType = current.getFakeType(scope)
+            scope.doWithState {
+                pathConstraints += fakeType.refTypeExpr
+            }
+            current = current.extractRef(scope)
+        }
+        return current
+    }
+
     fun createFakeObjectRef(): UConcreteHeapRef {
         val address = mkAddressCounter().freshAllocatedAddress() + MAGIC_OFFSET
         return mkConcreteHeapRef(address)

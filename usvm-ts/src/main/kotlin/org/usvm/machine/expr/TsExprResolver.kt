@@ -879,7 +879,7 @@ class TsExprResolver(
         field: EtsFieldSignature,
         hierarchy: EtsHierarchy,
     ): UExpr<out USort>? = with(ctx) {
-        val resolvedAddr = if (instanceRef.isFakeObject()) instanceRef.extractRef(scope) else instanceRef
+        val resolvedAddr = instanceRef.extractRefOrSelf(scope)
 
         val etsField = resolveEtsField(instance, field, hierarchy)
 
