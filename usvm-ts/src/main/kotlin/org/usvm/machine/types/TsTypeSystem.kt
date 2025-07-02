@@ -62,6 +62,8 @@ class TsTypeSystem(
         // "unknown" is the safe supertype: every value is assignable to unknown.
         if (unwrappedSupertype is EtsUnknownType) return true
 
+        // "any" is the universal subtype: any can be assigned to any type.
+        if (unwrappedType is EtsAnyType) return true
         // "never" is the universal subtype: never can be assigned to any type.
         if (unwrappedType is EtsNeverType) return true
 
@@ -75,12 +77,12 @@ class TsTypeSystem(
         // As supertype, null/undefined only accept their own or any/unknown.
         if (unwrappedSupertype is EtsNullType) {
             // null supertype rules
-            return unwrappedType is EtsAnyType || unwrappedType is EtsUnknownType
+            return unwrappedType is EtsUnknownType
         }
 
         if (unwrappedSupertype is EtsUndefinedType) {
             // undefined supertype rules
-            return unwrappedType is EtsAnyType || unwrappedType is EtsUnknownType
+            return unwrappedType is EtsUnknownType
         }
 
         // Primitive types
@@ -296,7 +298,7 @@ class TsTypeSystem(
             is EtsUnclearRefType,
             is EtsClassType ->
                 if ((t as? EtsClassType)?.signature == EtsHierarchy.OBJECT_CLASS.signature) { // TODO change it
-                    scene.projectAndSdkClasses.asSequence().map { it.type } + EtsStringType
+                    scene.projectAndSdkClasses.asSequence().map { it.type } + EtsStringType + EtsAnyType
                 } else {
                     hierarchy.classesForType(t)
                         .asSequence()
