@@ -7,16 +7,17 @@ import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.jacodb.ets.utils.INSTANCE_INIT_METHOD_NAME
 import org.jacodb.ets.utils.STATIC_INIT_METHOD_NAME
 import org.jacodb.ets.utils.loadEtsProjectAutoConvert
-import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.condition.EnabledIf
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.getResourcePath
 import org.usvm.util.getResourcePathOrNull
 import kotlin.test.Test
+import kotlin.time.Duration.Companion.seconds
 
-// @EnabledIf("projectAvailable")
-@Disabled
+@EnabledIf("projectAvailable")
+// @Disabled
 class RunOnDemoPhotosProject : TsMethodTestRunner() {
 
     companion object {
@@ -63,7 +64,7 @@ class RunOnDemoPhotosProject : TsMethodTestRunner() {
 
             runCatching {
                 val tsOptions = TsOptions()
-                TsMachine(scene, options, tsOptions).use { machine ->
+                TsMachine(scene, options.copy(timeout = 120.seconds), tsOptions).use { machine ->
                     val states = machine.analyze(methods)
                     states.let {}
                 }
