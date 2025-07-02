@@ -963,7 +963,12 @@ class TsExprResolver(
     }
 
     override fun visit(value: EtsInstanceFieldRef): UExpr<out USort>? = with(ctx) {
-        val instanceRef = resolve(value.instance)?.asExpr(addressSort) ?: return null
+        val instanceRefResolved = resolve(value.instance) ?: return null
+        if (instanceRefResolved.sort != addressSort) {
+            scope.assert(falseExpr)
+            return null
+        }
+        val instanceRef = instanceRefResolved.asExpr(addressSort)
 
         checkUndefinedOrNullPropertyRead(instanceRef) ?: return null
 
