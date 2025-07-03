@@ -96,7 +96,7 @@ class TsState(
             .takeIf { it >= 0 } ?: error("Statement $stmt is not found in the method CFG")
 
         val key = stmt to parentId
-        if (!discoveredCallees.containsKey(key)) {
+        if (key !in discoveredCallees) {
             discoveredCallees = discoveredCallees.put(key, cfg, ownership)
         }
     }
