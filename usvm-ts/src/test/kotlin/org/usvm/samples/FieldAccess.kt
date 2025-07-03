@@ -120,4 +120,14 @@ class FieldAccess : TsMethodTestRunner() {
             { r -> r.number == 1.0 },
         )
     }
+
+    @Test
+    fun `test read from nested fake objects`() {
+        val method = getMethod(className, "readFromNestedFakeObjects")
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { r -> r.number == 1.0 },
+            { r -> r.number == 2.0 },
+        )
+    }
 }

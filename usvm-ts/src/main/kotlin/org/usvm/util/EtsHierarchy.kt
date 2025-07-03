@@ -1,6 +1,7 @@
 package org.usvm.util
 
 import mu.KotlinLogging
+import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsClassType
@@ -48,7 +49,9 @@ class EtsHierarchy(private val scene: EtsScene) {
             }
         }
 
-        logger.warn { "Ancestors map is built in $time ms" }
+        if (time > 100) {
+            logger.warn { "Ancestors map is built in $time ms" }
+        }
 
         return@lazy result
     }
@@ -58,7 +61,7 @@ class EtsHierarchy(private val scene: EtsScene) {
         val signature = superClassSignature.copy(name = typeName)
 
         val classesWithTheSameName = resolveMap[typeName] ?: run {
-            logger.error("No class with $superClassSignature found in the Scene")
+            // logger.error("No class with $superClassSignature found in the Scene")
             return emptyList()
         }
 
@@ -81,7 +84,7 @@ class EtsHierarchy(private val scene: EtsScene) {
         result
     }
 
-    fun getAncestor(clazz: EtsClass): Set<EtsClass> {
+    fun getAncestors(clazz: EtsClass): Set<EtsClass> {
         return ancestors[clazz] ?: run {
             error("TODO")
         }
@@ -94,7 +97,13 @@ class EtsHierarchy(private val scene: EtsScene) {
     }
 
     fun classesForType(etsClassType: EtsRefType): Collection<EtsClass> {
-        require(etsClassType is EtsClassType || etsClassType is EtsUnclearRefType)
+        if (etsClassType is EtsArrayType) {
+            return scene.sdkClasses.filter { it.name == "Array" }
+        }
+
+        require(etsClassType is EtsClassType || etsClassType is EtsUnclearRefType) {
+            "Expected EtsClassType or EtsUnclearRefType, but got ${etsClassType::class.simpleName}"
+        }
 
         // We don't want to remove names like "$AC2$FieldAccess.createObject"
         val typeName = etsClassType.typeName.removeTrashFromTheName()

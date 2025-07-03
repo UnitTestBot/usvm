@@ -68,6 +68,12 @@ fun UHeapRef.createFakeField(fieldName: String, scope: TsStepScope): UConcreteHe
     val fpValue = scope.calcOnState { memory.read(fpLValue) }
     val refValue = scope.calcOnState { memory.read(refLValue) }
 
+    with(ctx) {
+        if (refValue.isFakeObject()) {
+            return refValue
+        }
+    }
+
     val fakeObject = ctx.mkFakeValue(scope, boolValue, fpValue, refValue)
     scope.doWithState {
         memory.write(lValue, fakeObject.asExpr(ctx.addressSort), guard = ctx.trueExpr)

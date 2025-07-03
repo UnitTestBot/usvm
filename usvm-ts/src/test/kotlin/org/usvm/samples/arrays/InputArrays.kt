@@ -18,11 +18,13 @@ class InputArrays : TsMethodTestRunner() {
             { x, r -> r is TsTestValue.TsException },
             { x, r ->
                 r as TsTestValue.TsNumber
-                (x.values[0] as TsTestValue.TsNumber).number == 1.0 && r.number == 1.0
+                val x0 = x.values[0] as TsTestValue.TsNumber
+                x0.number == 1.0 && r.number == 1.0
             },
             { x, r ->
                 r as TsTestValue.TsNumber
-                (x.values[0] as TsTestValue.TsNumber).number != 1.0 && r.number == 2.0
+                val x0 = x.values[0] as TsTestValue.TsNumber
+                x0.number != 1.0 && r.number == 2.0
             },
             invariants = arrayOf(
                 { _, r ->
@@ -124,6 +126,35 @@ class InputArrays : TsMethodTestRunner() {
             { x, r ->
                 val value = x.values[0]
                 value !is TsTestValue.TsNumber || value.number != 1.0 && r == value
+            },
+        )
+    }
+
+    @Test
+    fun `test readFakeObjectAndWriteFakeObject`() {
+        val method = getMethod(className, "readFakeObjectAndWriteFakeObject")
+        discoverProperties<TsTestValue.TsArray<TsTestValue>, TsTestValue, TsTestValue>(
+            method = method,
+            { x, y, r ->
+                val fst = x.values[0]
+                val fstCondition = fst is TsTestValue.TsNumber && fst.number == 1.0
+                val sndCondition = y is TsTestValue.TsNumber && y.number == 2.0
+                val resultCondition = r is TsTestValue.TsArray<*> && r.values[0] == y
+
+                fstCondition && sndCondition && resultCondition
+            },
+            { x, y, r ->
+                val fst = x.values[0]
+                val fstCondition = fst is TsTestValue.TsNumber && fst.number == 1.0
+                val sndCondition = y !is TsTestValue.TsNumber || y.number != 2.0
+                val resultCondition = r is TsTestValue.TsArray<*> && r.values[0] == y
+
+                fstCondition && sndCondition && resultCondition
+            },
+            { x, y, r ->
+                val fst = x.values[0]
+                val condition = fst !is TsTestValue.TsNumber || fst.number != 1.0
+                condition && r is TsTestValue.TsArray<*> && r.values == x.values
             },
         )
     }

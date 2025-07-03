@@ -200,13 +200,22 @@ class Call : TsMethodTestRunner() {
         )
     }
 
-    @Disabled("Calls to super are broken in IR")
     @Test
     fun `test virtual child`() {
         val method = getMethod(className, "callVirtualChild")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r.number == 200.0 },
+        )
+    }
+
+    @Disabled("Non-overridden virtual calls are not supported yet")
+    @Test
+    fun `test base call`() {
+        val method = getMethod(className, "callBaseMethod")
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { r -> r.number == 42.0 },
         )
     }
 

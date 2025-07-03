@@ -17,6 +17,7 @@ import org.jacodb.ets.model.EtsBitXorExpr
 import org.jacodb.ets.model.EtsBooleanConstant
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsCastExpr
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsConstant
 import org.jacodb.ets.model.EtsDeleteExpr
 import org.jacodb.ets.model.EtsDivExpr
@@ -54,6 +55,8 @@ import org.jacodb.ets.model.EtsPostIncExpr
 import org.jacodb.ets.model.EtsPreDecExpr
 import org.jacodb.ets.model.EtsPreIncExpr
 import org.jacodb.ets.model.EtsPtrCallExpr
+import org.jacodb.ets.model.EtsRawType
+import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsRemExpr
 import org.jacodb.ets.model.EtsRightShiftExpr
 import org.jacodb.ets.model.EtsStaticCallExpr
@@ -83,11 +86,13 @@ import org.usvm.UBoolSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.UIteExpr
 import org.usvm.USort
 import org.usvm.api.allocateArray
 import org.usvm.api.evalTypeEquals
 import org.usvm.dataflow.ts.infer.tryGetKnownType
 import org.usvm.dataflow.ts.util.type
+import org.usvm.machine.Constants
 import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsSizeSort
@@ -106,8 +111,8 @@ import org.usvm.machine.types.EtsAuxiliaryType
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.memory.ULValue
 import org.usvm.sizeSort
-import org.usvm.util.EtsFieldResolutionResult
 import org.usvm.util.EtsHierarchy
+import org.usvm.util.EtsPropertyResolution
 import org.usvm.util.createFakeField
 import org.usvm.util.isResolved
 import org.usvm.util.mkArrayIndexLValue
@@ -261,8 +266,44 @@ class TsExprResolver(
     }
 
     override fun visit(expr: EtsCastExpr): UExpr<*>? = with(ctx) {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+        val resolvedExpr = resolve(expr.arg) ?: return@with null
+        return when (resolvedExpr.sort) {
+            fp64Sort -> {
+                logger.error("Unsupported cast from fp ${expr.arg} to ${expr.type}")
+                TODO("Not yet implemented https://github.com/UnitTestBot/usvm/issues/299")
+            }
+
+            boolSort -> {
+                logger.error("Unsupported cast from boolean ${expr.arg} to ${expr.type}")
+                TODO("Not yet implemented https://github.com/UnitTestBot/usvm/issues/299")
+            }
+
+            addressSort -> {
+                scope.calcOnState {
+                    val instance = resolvedExpr.asExpr(addressSort)
+
+                    if (instance.isFakeObject()) {
+                        val fakeType = instance.getFakeType(scope)
+                        pathConstraints += fakeType.refTypeExpr
+                        val refValue = instance.extractRef(scope)
+                        pathConstraints += memory.types.evalIsSubtype(refValue, expr.type)
+                        return@calcOnState instance
+                    }
+
+                    if (expr.type !is EtsRefType) {
+                        logger.error("Unsupported cast from non-ref ${expr.arg} to ${expr.type}")
+                        TODO("Not supported yet https://github.com/UnitTestBot/usvm/issues/299")
+                    }
+
+                    pathConstraints += memory.types.evalIsSubtype(instance, expr.type)
+                    instance
+                }
+            }
+
+            else -> {
+                error("Unsupported cast from ${expr.arg} to ${expr.type}")
+            }
+        }
     }
 
     override fun visit(expr: EtsTypeOfExpr): UExpr<out USort>? = with(ctx) {
@@ -283,7 +324,28 @@ class TsExprResolver(
                     condition = mkHeapRefEq(ref, mkUndefinedValue()),
                     trueBranch = mkStringConstant("undefined", scope),
                     falseBranch = mkIte(
-                        condition = scope.calcOnState { memory.types.evalTypeEquals(ref, EtsStringType) },
+                        condition = scope.calcOnState {
+                            val unwrappedRef = ref.unwrapRefWithPathConstraint(scope)
+
+                            // TODO: adhoc: "expand" ITE
+                            if (unwrappedRef is UIteExpr<*>) {
+                                val trueBranch = unwrappedRef.trueBranch
+                                val falseBranch = unwrappedRef.falseBranch
+                                if (trueBranch.isFakeObject() || falseBranch.isFakeObject()) {
+                                    val unwrappedTrueExpr =
+                                        trueBranch.asExpr(addressSort).unwrapRefWithPathConstraint(scope)
+                                    val unwrappedFalseExpr =
+                                        falseBranch.asExpr(addressSort).unwrapRefWithPathConstraint(scope)
+                                    return@calcOnState mkIte(
+                                        condition = unwrappedRef.condition,
+                                        trueBranch = memory.types.evalTypeEquals(unwrappedTrueExpr, EtsStringType),
+                                        falseBranch = memory.types.evalTypeEquals(unwrappedFalseExpr, EtsStringType),
+                                    )
+                                }
+                            }
+
+                            memory.types.evalTypeEquals(unwrappedRef, EtsStringType)
+                        },
                         trueBranch = mkStringConstant("string", scope),
                         falseBranch = mkStringConstant("object", scope),
                     )
@@ -291,7 +353,7 @@ class TsExprResolver(
             )
         }
 
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
+        logger.error { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
     }
 
@@ -416,13 +478,17 @@ class TsExprResolver(
     }
 
     override fun visit(expr: EtsLtEqExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+        val eq = resolve(EtsEqExpr(expr.left, expr.right)) ?: return null
+        val lt = resolve(EtsLtExpr(expr.left, expr.right)) ?: return null
+
+        return ctx.mkOr(eq.asExpr(ctx.boolSort), lt.asExpr(ctx.boolSort))
     }
 
     override fun visit(expr: EtsGtEqExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+        val eq = resolve(EtsEqExpr(expr.left, expr.right)) ?: return null
+        val gt = resolve(EtsGtExpr(expr.left, expr.right)) ?: return null
+
+        return ctx.mkOr(eq.asExpr(ctx.boolSort), gt.asExpr(ctx.boolSort))
     }
 
     override fun visit(expr: EtsInExpr): UExpr<out USort>? {
@@ -479,7 +545,33 @@ class TsExprResolver(
         }
 
         if (expr.callee.name == "toString") {
-            return TODO()
+            return mkStringConstant("I am a string", scope)
+        }
+
+        // TODO write tests https://github.com/UnitTestBot/usvm/issues/300
+        if (expr.callee.name == "push" && expr.instance.type is EtsArrayType) {
+            return scope.calcOnState {
+                val resolvedInstance = resolve(expr.instance)?.asExpr(ctx.addressSort) ?: return@calcOnState null
+                val lengthLValue = mkArrayLengthLValue(
+                    resolvedInstance,
+                    EtsArrayType(EtsUnknownType, dimensions = 1)
+                )
+                val length = memory.read(lengthLValue)
+                val newLength = mkBvAddExpr(length, 1.toBv())
+                memory.write(lengthLValue, newLength, guard = ctx.trueExpr)
+                val resolvedArg = resolve(expr.args.single()) ?: return@calcOnState null
+
+                // TODO check sorts compatibility https://github.com/UnitTestBot/usvm/issues/300
+                val newIndexLValue = mkArrayIndexLValue(
+                    resolvedArg.sort,
+                    resolvedInstance,
+                    length,
+                    EtsArrayType(EtsUnknownType, dimensions = 1)
+                )
+                memory.write(newIndexLValue, resolvedArg.asExpr(newIndexLValue.sort), guard = ctx.trueExpr)
+
+                newLength
+            }
         }
 
         return when (val result = scope.calcOnState { methodResult }) {
@@ -497,7 +589,11 @@ class TsExprResolver(
                     val resolved = resolve(expr.instance) ?: return null
 
                     if (resolved.sort != addressSort) {
-                        logger.warn { "Calling method on non-ref instance is not yet supported" }
+                        if (expr.callee.name == "valueOf" && expr.args.isEmpty()) {
+                            return resolve(expr.instance)
+                        }
+
+                        logger.warn { "Calling method on non-ref instance is not yet supported, instruction $expr" }
                         scope.assert(falseExpr)
                         return null
                     }
@@ -528,6 +624,23 @@ class TsExprResolver(
             }
         }
 
+        if (expr.callee.name == "Boolean") {
+            check(expr.args.size == 1) { "Boolean constructor should have exactly one argument" }
+            return resolveAfterResolved(expr.args.single()) {
+                mkTruthyExpr(it, scope)
+            }
+        }
+
+        if (expr.callee.name == "\$r") {
+            return scope.calcOnState {
+                val mockSymbol = memory.mocker.createMockSymbol(trackedLiteral = null, addressSort, ownership)
+
+                scope.assert(mkEq(mockSymbol, ctx.mkTsNullValue()).not())
+
+                mockSymbol
+            }
+        }
+
         return when (val result = scope.calcOnState { methodResult }) {
             is TsMethodResult.Success -> {
                 scope.doWithState { methodResult = TsMethodResult.NoCall }
@@ -539,21 +652,52 @@ class TsExprResolver(
             }
 
             is TsMethodResult.NoCall -> {
-                // TODO: spawn VirtualCall when method resolution fails
-                val method = resolveStaticMethod(expr.callee)
+                val resolutionResult = resolveStaticMethod(expr.callee)
 
-                if (method == null) {
+                if (resolutionResult is EtsPropertyResolution.Empty) {
                     logger.error { "Could not resolve static call: ${expr.callee}" }
                     scope.assert(falseExpr)
                     return null
                 }
 
-                val instance = scope.calcOnState { getStaticInstance(method.enclosingClass!!) }
+                // static virtual call
+                if (resolutionResult is EtsPropertyResolution.Ambiguous) {
+                    val resolvedArgs = expr.args.map { resolve(it) ?: return null }
+
+                    val staticProperties = resolutionResult.properties.take(
+                        Constants.STATIC_METHODS_FORK_LIMIT
+                    )
+
+                    val staticInstances = scope.calcOnState {
+                        staticProperties.map { getStaticInstance(it.enclosingClass!!) }
+                    }
+
+                    val concreteCalls = staticProperties.mapIndexed { index, value ->
+                        TsConcreteMethodCallStmt(
+                            callee = value,
+                            instance = staticInstances[index],
+                            args = resolvedArgs,
+                            returnSite = scope.calcOnState { lastStmt }
+                        )
+                    }
+
+                    val blocks = concreteCalls.map {
+                        ctx.mkTrue() to { state: TsState -> state.newStmt(it) }
+                    }
+
+                    scope.forkMulti(blocks)
+
+                    return null
+                }
+
+                require(resolutionResult is EtsPropertyResolution.Unique)
+
+                val instance = scope.calcOnState { getStaticInstance(resolutionResult.property.enclosingClass!!) }
 
                 val resolvedArgs = expr.args.map { resolve(it) ?: return null }
 
                 val concreteCall = TsConcreteMethodCallStmt(
-                    callee = method,
+                    callee = resolutionResult.property,
                     instance = instance,
                     args = resolvedArgs,
                     returnSite = scope.calcOnState { lastStmt },
@@ -567,25 +711,28 @@ class TsExprResolver(
 
     private fun resolveStaticMethod(
         method: EtsMethodSignature,
-    ): EtsMethod? {
+    ): EtsPropertyResolution<EtsMethod> {
         // Perfect signature:
         if (method.enclosingClass.name != UNKNOWN_CLASS_NAME) {
-            val classes = ctx.scene.projectAndSdkClasses.filter { it.name == method.enclosingClass.name }
-            if (classes.size != 1) return null
+            val classes = hierarchy.classesForType(EtsClassType(method.enclosingClass))
+            if (classes.size > 1) {
+                val methods = classes.map { it.methods.single { it.name == method.name } }
+                return EtsPropertyResolution.create(methods)
+            }
+
+            if (classes.isEmpty()) return EtsPropertyResolution.Empty
+
             val clazz = classes.single()
             val methods = clazz.methods.filter { it.name == method.name }
-            if (methods.size != 1) return null
-            return methods.single()
+            return EtsPropertyResolution.create(methods)
         }
 
         // Unknown signature:
         val methods = ctx.scene.projectAndSdkClasses
             .flatMap { it.methods }
             .filter { it.name == method.name }
-        if (methods.size == 1) return methods.single()
 
-        // error("Cannot resolve method $method")
-        return null
+        return EtsPropertyResolution.create(methods)
     }
 
     override fun visit(expr: EtsPtrCallExpr): UExpr<out USort>? {
@@ -678,9 +825,11 @@ class TsExprResolver(
     }
 
     fun checkUndefinedOrNullPropertyRead(instance: UHeapRef) = with(ctx) {
+        val ref = instance.unwrapRef(scope)
+
         val neqNull = mkAnd(
-            mkHeapRefEq(instance, mkUndefinedValue()).not(),
-            mkHeapRefEq(instance, mkTsNullValue()).not()
+            mkHeapRefEq(ref, mkUndefinedValue()).not(),
+            mkHeapRefEq(ref, mkTsNullValue()).not(),
         )
 
         scope.fork(
@@ -718,20 +867,15 @@ class TsExprResolver(
         field: EtsFieldSignature,
         hierarchy: EtsHierarchy,
     ): UExpr<out USort>? = with(ctx) {
-        val resolvedAddr = if (instanceRef.isFakeObject()) instanceRef.extractRef(scope) else instanceRef
-        scope.doWithState {
-            // If we accessed some field, we make an assumption that
-            // this field should present in the object.
-            // That's not true in the common case for TS, but that's the decision we made.
-            val auxiliaryType = EtsAuxiliaryType(properties = setOf(field.name))
-            pathConstraints += memory.types.evalIsSubtype(resolvedAddr, auxiliaryType)
-        }
+        val resolvedAddr = instanceRef.unwrapRef(scope)
 
         val etsField = resolveEtsField(instance, field, hierarchy)
 
         val sort = when (etsField) {
-            is EtsFieldResolutionResult.Empty -> {
-                logger.error("Field $etsField not found, creating fake field")
+            is EtsPropertyResolution.Empty -> {
+                if (field.name !in listOf("i", "LogLevel")) {
+                    logger.warn { "Field $field not found, creating fake field" }
+                }
                 // If we didn't find any real fields, let's create a fake one.
                 // It is possible due to mistakes in the IR or if the field was added explicitly
                 // in the code.
@@ -740,8 +884,17 @@ class TsExprResolver(
                 addressSort
             }
 
-            is EtsFieldResolutionResult.Unique -> typeToSort(etsField.field.type)
-            is EtsFieldResolutionResult.Ambiguous -> unresolvedSort
+            is EtsPropertyResolution.Unique -> typeToSort(etsField.property.type)
+            is EtsPropertyResolution.Ambiguous -> unresolvedSort
+        }
+
+        scope.doWithState {
+            // If we accessed some field, we make an assumption that
+            // this field should present in the object.
+            // That's not true in the common case for TS, but that's the decision we made.
+            val auxiliaryType = EtsAuxiliaryType(properties = setOf(field.name))
+            // assert is required to update models
+            scope.assert(memory.types.evalIsSubtype(resolvedAddr, auxiliaryType))
         }
 
         if (sort == unresolvedSort) {
@@ -763,18 +916,44 @@ class TsExprResolver(
                         lValuesToAllocatedFakeObjects += refLValue to it
                     }
                 }
+
+                // TODO ambiguous enum fields resolution
+                if (etsField is EtsPropertyResolution.Unique) {
+                    val fieldType = etsField.property.type
+                    if (fieldType is EtsRawType && fieldType.kind == "EnumValueType") {
+                        val fakeType = fakeRef.getFakeType(scope)
+                        pathConstraints += ctx.mkOr(
+                            fakeType.fpTypeExpr,
+                            fakeType.refTypeExpr
+                        )
+
+                        // val supertype = TODO()
+                        // TODO add enum type as a constraint
+                        // pathConstraints += memory.types.evalIsSubtype(
+                        //     ref,
+                        //     TODO()
+                        // )
+                    }
+                }
+
                 memory.write(refLValue, fakeRef.asExpr(addressSort), guard = trueExpr)
 
                 fakeRef
             }
         } else {
-            val lValue = mkFieldLValue(sort, instanceRef, field)
+            val lValue = mkFieldLValue(sort, resolvedAddr, field)
             scope.calcOnState { memory.read(lValue) }
         }
     }
 
     override fun visit(value: EtsInstanceFieldRef): UExpr<out USort>? = with(ctx) {
-        val instanceRef = resolve(value.instance)?.asExpr(addressSort) ?: return null
+        val instanceRefResolved = resolve(value.instance) ?: return null
+        if (instanceRefResolved.sort != addressSort) {
+            logger.error("InstanceFieldRef access on not address sort: $instanceRefResolved")
+            scope.assert(falseExpr)
+            return null
+        }
+        val instanceRef = instanceRefResolved.asExpr(addressSort)
 
         checkUndefinedOrNullPropertyRead(instanceRef) ?: return null
 
@@ -849,6 +1028,7 @@ class TsExprResolver(
                 scope.doWithState {
                     markInitialized(clazz)
                     pushSortsForArguments(instance = null, args = emptyList(), localToIdx)
+                    registerCallee(currentStatement, initializer.cfg)
                     callStack.push(initializer, currentStatement)
                     memory.stack.push(arrayOf(instanceRef), initializer.localsCount)
                     newStmt(initializer.cfg.stmts.first())
@@ -874,6 +1054,17 @@ class TsExprResolver(
         } else {
             expr.type
         }
+
+        if (expr.type.typeName == "Boolean") {
+            val clazz = scene.sdkClasses.filter { it.name == "Boolean" }.maxBy { it.methods.size }
+            return@with scope.calcOnState { memory.allocConcrete(clazz.type) }
+        }
+
+        if (expr.type.typeName == "Number") {
+            val clazz = scene.sdkClasses.filter { it.name == "Number" }.maxBy { it.methods.size }
+            return@with scope.calcOnState { memory.allocConcrete(clazz.type) }
+        }
+
         scope.calcOnState { memory.allocConcrete(resolvedType) }
     }
 
@@ -950,17 +1141,27 @@ class TsSimpleValueResolver(
             val localName = local.name
             // Check whether this local was already created or not
             if (localName in scope.calcOnState { addedArtificialLocals }) {
-                return mkFieldLValue(ctx.addressSort, globalObject, local.name)
+                val sort = ctx.typeToSort(local.type)
+                if (sort is TsUnresolvedSort) {
+                    return mkFieldLValue(ctx.addressSort, globalObject, local.name)
+                } else {
+                    return mkFieldLValue(sort, globalObject, local.name)
+                }
             }
 
-            logger.warn { "Cannot resolve local $local" }
+            logger.warn { "Cannot resolve local $local, creating a field of the global object" }
 
-            globalObject.createFakeField(localName, scope)
             scope.doWithState {
                 addedArtificialLocals += localName
             }
 
-            return mkFieldLValue(ctx.addressSort, globalObject, local.name)
+            val sort = ctx.typeToSort(local.type)
+            if (sort is TsUnresolvedSort) {
+                globalObject.createFakeField(localName, scope)
+                return mkFieldLValue(ctx.addressSort, globalObject, local.name)
+            } else {
+                return mkFieldLValue(sort, globalObject, local.name)
+            }
         }
 
         val sort = scope.calcOnState {

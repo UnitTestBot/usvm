@@ -48,6 +48,6 @@ class Example {
 
         // noinspection UnnecessaryLocalVariableJS
         const y: C = new D(new A(bar));
-        return y
+        return y;
     }
 }

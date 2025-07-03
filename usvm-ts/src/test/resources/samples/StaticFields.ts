@@ -51,16 +51,16 @@ class StaticParent {
 class StaticChild extends StaticParent {
     override static id = 200;
 
+    static getId(): number {
+        return this.id;
+    }
+
     getParentId(): number {
         return StaticParent.id;
     }
 
     getChildId(): number {
         return StaticChild.id;
-    }
-
-    static getId(): number {
-        return this.id;
     }
 }
 
@@ -97,7 +97,7 @@ class StaticNull {
 
 // Test: Object static operations
 class StaticObject {
-    static config: Config = {enabled: true, count: 10};
+    static config: Config = { enabled: true, count: 10 };
 
     static modifyAndGet(): Config {
         this.config.increment();

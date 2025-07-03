@@ -26,7 +26,9 @@ import org.usvm.statistics.collectors.TargetsReachedStatesCollector
 import org.usvm.statistics.constraints.SoftConstraintsObserver
 import org.usvm.statistics.distances.CfgStatisticsImpl
 import org.usvm.statistics.distances.PlainCallGraphStatistics
+import org.usvm.stopstrategies.StopStrategy
 import org.usvm.stopstrategies.createStopStrategy
+import org.usvm.util.TsStateVisualizer
 import org.usvm.util.humanReadableSignature
 import kotlin.time.Duration.Companion.seconds
 
@@ -95,20 +97,36 @@ class TsMachine(
         val observers = mutableListOf<UMachineObserver<TsState>>(coverageStatistics)
         observers.add(statesCollector)
 
+        if (tsOptions.enableVisualization) {
+            observers += TsStateVisualizer()
+        }
+
         if (options.useSoftConstraints) {
             observers.add(SoftConstraintsObserver())
         }
 
         val stepsStatistics = StepsStatistics<EtsMethod, TsState>()
 
-        val stopStrategy = createStopStrategy(
-            options,
-            targets,
-            timeStatisticsFactory = { timeStatistics },
-            stepsStatisticsFactory = { stepsStatistics },
-            coverageStatisticsFactory = { coverageStatistics },
-            getCollectedStatesCount = { statesCollector.collectedStates.size }
-        )
+        val stopStrategy = object : StopStrategy {
+            val strategy = createStopStrategy(
+                options,
+                targets,
+                timeStatisticsFactory = { timeStatistics },
+                stepsStatisticsFactory = { stepsStatistics },
+                coverageStatisticsFactory = { coverageStatistics },
+                getCollectedStatesCount = { statesCollector.collectedStates.size },
+            )
+
+            override fun shouldStop(): Boolean {
+                val result = strategy.shouldStop()
+
+                if (result) {
+                    logger.warn { "Stop strategy finished execution: ${strategy.stopReason()}" }
+                }
+
+                return result
+            }
+        }
 
         observers.add(timeStatistics)
         observers.add(stepsStatistics)

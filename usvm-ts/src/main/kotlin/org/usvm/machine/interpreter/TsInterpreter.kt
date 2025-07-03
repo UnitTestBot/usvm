@@ -2,9 +2,11 @@ package org.usvm.machine.interpreter
 
 import io.ksmt.utils.asExpr
 import mu.KotlinLogging
+import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayAccess
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsAssignStmt
+import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsCallStmt
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsIfStmt
@@ -14,7 +16,9 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsNopStmt
 import org.jacodb.ets.model.EtsNullType
+import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsParameterRef
+import org.jacodb.ets.model.EtsPtrCallExpr
 import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsStaticFieldRef
@@ -24,6 +28,7 @@ import org.jacodb.ets.model.EtsThis
 import org.jacodb.ets.model.EtsThrowStmt
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUndefinedType
+import org.jacodb.ets.model.EtsUnionType
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.model.EtsValue
 import org.jacodb.ets.model.EtsVoidType
@@ -32,8 +37,10 @@ import org.jacodb.ets.utils.getDeclaredLocals
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UAddressSort
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UInterpreter
+import org.usvm.UIteExpr
 import org.usvm.api.allocateArrayInitialized
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.makeSymbolicPrimitive
@@ -64,8 +71,9 @@ import org.usvm.machine.types.mkFakeValue
 import org.usvm.machine.types.toAuxiliaryType
 import org.usvm.sizeSort
 import org.usvm.targets.UTargetsSet
+import org.usvm.types.TypesResult
 import org.usvm.types.single
-import org.usvm.util.EtsFieldResolutionResult
+import org.usvm.util.EtsPropertyResolution
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
@@ -127,16 +135,18 @@ class TsInterpreter(
                 is EtsCallStmt -> visitCallStmt(scope, stmt)
                 is EtsThrowStmt -> visitThrowStmt(scope, stmt)
                 is EtsNopStmt -> visitNopStmt(scope, stmt)
-                else -> error("Unknown stmt: $stmt")
+                else -> {
+                    logger.error { "Unknown stmt: $stmt" }
+                    scope.doWithState {
+                        newStmt(graph.successors(stmt).single())
+                    }
+                }
             }
         } catch (e: Exception) {
             logger.error {
-                val s = e.stackTrace[0]
-                "Exception .(${s.fileName}:${s.lineNumber}): $e}"
+                "Exception: $e\n${e.stackTrace.take(5).joinToString("\n") { "    $it" }}"
             }
-
-            // Kill the state causing error
-            scope.assert(ctx.falseExpr)
+            return StepResult(forkedStates = emptySequence(), originalStateAlive = false)
         }
 
         return scope.stepResult()
@@ -153,9 +163,7 @@ class TsInterpreter(
             // TODO support primitives calls
             // We ignore the possibility of method call on primitives.
             // Therefore, the fake object should be unwrapped.
-            scope.doWithState {
-                scope.assert(concreteRef.getFakeType(scope).refTypeExpr)
-            }
+            scope.assert(concreteRef.getFakeType(scope).refTypeExpr)
             concreteRef.extractRef(scope)
         } else {
             concreteRef
@@ -171,7 +179,7 @@ class TsInterpreter(
         if (isAllocatedConcreteHeapRef(resolvedInstance)) {
             val type = scope.calcOnState { memory.typeStreamOf(resolvedInstance) }.single()
             if (type is EtsClassType) {
-                val classes = scene.projectAndSdkClasses.filter { it.name == type.typeName }
+                val classes = graph.hierarchy.classesForType(type)
                 if (classes.isEmpty()) {
                     logger.warn { "Could not resolve class: ${type.typeName}" }
                     scope.assert(falseExpr)
@@ -183,10 +191,8 @@ class TsInterpreter(
                     return
                 }
                 val cls = classes.single()
-                val method = cls.methods
-                    .singleOrNull { it.name == stmt.callee.name }
-                    ?: TODO("Overloads are not supported yet")
-                concreteMethods += method
+                val suitableMethods = cls.methods.filter { it.name == stmt.callee.name }
+                concreteMethods += suitableMethods
             } else {
                 logger.warn {
                     "Could not resolve method: ${stmt.callee} on type: $type"
@@ -197,19 +203,60 @@ class TsInterpreter(
         } else {
             val methods = resolveEtsMethods(stmt.callee)
             if (methods.isEmpty()) {
-                logger.warn { "Could not resolve method: ${stmt.callee}" }
+                if (stmt.callee.name !in listOf("then")) {
+                    logger.warn { "Could not resolve method: ${stmt.callee}" }
+                }
                 scope.assert(falseExpr)
                 return
             }
             concreteMethods += methods
         }
 
-        logger.info {
-            "Preparing to fork on ${concreteMethods.size} methods: ${
-                concreteMethods.map { "${it.signature.enclosingClass.name}::${it.name}" }
-            }"
+        val possibleTypes = scope.calcOnState {
+            models.first().typeStreamOf(resolvedInstance as UConcreteHeapRef).take(1000)
         }
-        val conditionsWithBlocks = concreteMethods.map { method ->
+
+        if (possibleTypes !is TypesResult.SuccessfulTypesResult) {
+            error("TODO")// is it right?
+        }
+
+        val possibleTypesSet = possibleTypes.types.toSet()
+
+        if (possibleTypesSet.singleOrNull() == EtsAnyType) {
+            mockMethodCall(scope, stmt.callee)
+            scope.calcOnState {
+                newStmt(stmt.returnSite)
+            }
+            return@with
+        }
+
+        val filteredPossibleTypesSet = possibleTypesSet - EtsAnyType
+
+        val methodsDeclaringClasses = concreteMethods.mapNotNull { it.enclosingClass } // is it right?
+        val typeSystem = typeSystem<EtsType>()
+
+        // take only possible classes with a corresponding method
+        val intersectedTypes = filteredPossibleTypesSet.filter { possibleType ->
+            methodsDeclaringClasses.any { typeSystem.isSupertype(it.type, possibleType) }
+        }
+
+        //
+        val chosenMethods = intersectedTypes.flatMap { clazz ->
+            graph.hierarchy.classesForType(clazz as EtsRefType)
+                .asSequence()
+                // TODO wrong order, ancestors are unordered
+                .map { graph.hierarchy.getAncestors(it) }
+                .map { it.first { it.methods.any { it.name == stmt.callee.name } } }
+                .map { clazz to it.methods.first { it.name == stmt.callee.name } }
+        }.toList().take(10) // TODO check it
+
+        // logger.info {
+        // "Preparing to fork on ${limitedConcreteMethods.size} methods out of ${concreteMethods.size}: ${
+        //     limitedConcreteMethods.map { "${it.signature.enclosingClass.name}::${it.name}" }
+        // }"
+        // }
+
+        val conditionsWithBlocks = chosenMethods.mapIndexed { i, (clazz, method) ->
             val concreteCall = stmt.toConcrete(method)
             val block = { state: TsState -> state.newStmt(concreteCall) }
             val type = requireNotNull(method.enclosingClass).type
@@ -218,9 +265,28 @@ class TsInterpreter(
                 val ref = stmt.instance.asExpr(addressSort)
                     .takeIf { !it.isFakeObject() }
                     ?: uncoveredInstance.asExpr(addressSort)
+
+                // TODO: adhoc: "expand" ITE
+                if (ref is UIteExpr<*>) {
+                    val trueBranch = ref.trueBranch
+                    val falseBranch = ref.falseBranch
+                    if (trueBranch.isFakeObject() || falseBranch.isFakeObject()) {
+                        val unwrappedTrueExpr = trueBranch.asExpr(addressSort).unwrapRefWithPathConstraint(scope)
+                        val unwrappedFalseExpr = falseBranch.asExpr(addressSort).unwrapRefWithPathConstraint(scope)
+                        return@calcOnState mkIte(
+                            condition = ref.condition,
+                            trueBranch = memory.types.evalIsSubtype(unwrappedTrueExpr, type),
+                            falseBranch = memory.types.evalIsSubtype(unwrappedFalseExpr, type),
+                        )
+                    }
+                }
+
                 // TODO mistake, should be separated into several hierarchies
                 //      or evalTypeEqual with several concrete types
-                memory.types.evalTypeEquals(ref, type)
+                mkAnd(
+                    memory.types.evalIsSubtype(ref, clazz),
+                    memory.types.evalIsSupertype(ref, type)
+                )
             }
             constraint to block
         }
@@ -236,7 +302,7 @@ class TsInterpreter(
         val entryPoint = graph.entryPoints(stmt.callee).singleOrNull()
 
         if (entryPoint == null) {
-            logger.warn { "No entry point for method: ${stmt.callee}" }
+            // logger.warn { "No entry point for method: ${stmt.callee}, mocking the call" }
             // If the method doesn't have entry points,
             // we go through it, we just mock the call
             mockMethodCall(scope, stmt.callee.signature)
@@ -247,6 +313,8 @@ class TsInterpreter(
         }
 
         scope.doWithState {
+            registerCallee(stmt.returnSite, stmt.callee.cfg)
+
             val args = mutableListOf<UExpr<*>>()
             val numActual = stmt.args.size
             val numFormal = stmt.callee.parameters.size
@@ -384,8 +452,18 @@ class TsInterpreter(
                     scope
                 )
 
-                is TsMethodResult.Success -> observer?.onAssignStatement(exprResolver.simpleValueResolver, stmt, scope)
+                is TsMethodResult.Success -> observer?.onAssignStatement(
+                    exprResolver.simpleValueResolver,
+                    stmt,
+                    scope
+                )
+
                 is TsMethodResult.TsException -> error("Exceptions must be processed earlier")
+            }
+
+            if (it is EtsPtrCallExpr) {
+                mockMethodCall(scope, it.callee)
+                return
             }
 
             if (!tsOptions.interproceduralAnalysis && methodResult == TsMethodResult.NoCall) {
@@ -482,14 +560,15 @@ class TsInterpreter(
                         // If we access some field, we expect that the object must have this field.
                         // It is not always true for TS, but we decided to process it so.
                         val supertype = EtsAuxiliaryType(properties = setOf(lhv.field.name))
-                        pathConstraints += memory.types.evalIsSubtype(instance, supertype)
+                        // assert is required to update models
+                        scope.assert(memory.types.evalIsSubtype(instance, supertype))
                     }
 
                     // If there is no such field, we create a fake field for the expr
                     val sort = when (etsField) {
-                        is EtsFieldResolutionResult.Empty -> unresolvedSort
-                        is EtsFieldResolutionResult.Unique -> typeToSort(etsField.field.type)
-                        is EtsFieldResolutionResult.Ambiguous -> unresolvedSort
+                        is EtsPropertyResolution.Empty -> unresolvedSort
+                        is EtsPropertyResolution.Unique -> typeToSort(etsField.property.type)
+                        is EtsPropertyResolution.Ambiguous -> unresolvedSort
                     }
 
                     if (sort == unresolvedSort) {
@@ -501,7 +580,39 @@ class TsInterpreter(
                         memory.write(lValue, fakeObject, guard = trueExpr)
                     } else {
                         val lValue = mkFieldLValue(sort, instance, lhv.field)
-                        memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
+                        if (lValue.sort != expr.sort) {
+                            if (expr.isFakeObject()) {
+                                val lhvType = lhv.type
+                                val value = when (lhvType) {
+                                    is EtsBooleanType -> {
+                                        scope.calcOnState {
+                                            pathConstraints += expr.getFakeType(scope).boolTypeExpr
+                                            expr.extractBool(scope)
+                                        }
+                                    }
+
+                                    is EtsNumberType -> {
+                                        scope.calcOnState {
+                                            pathConstraints += expr.getFakeType(scope).fpTypeExpr
+                                            expr.extractFp(scope)
+                                        }
+                                    }
+
+                                    else -> {
+                                        scope.calcOnState {
+                                            pathConstraints += expr.getFakeType(scope).refTypeExpr
+                                            expr.extractRef(scope)
+                                        }
+                                    }
+                                }
+
+                                memory.write(lValue, value.asExpr(lValue.sort), guard = trueExpr)
+                            } else {
+                                TODO("Support enums fields")
+                            }
+                        } else {
+                            memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
+                        }
                     }
                 }
 
@@ -555,6 +666,11 @@ class TsInterpreter(
             return
         }
 
+        if (stmt.expr is EtsPtrCallExpr) {
+            mockMethodCall(scope, stmt.expr.callee)
+            return
+        }
+
         if (tsOptions.interproceduralAnalysis) {
             val exprResolver = exprResolverWithScope(scope)
             exprResolver.resolve(stmt.expr) ?: return
@@ -564,7 +680,7 @@ class TsInterpreter(
         }
 
         // intraprocedural analysis
-        mockMethodCall(scope, stmt.method.signature)
+        mockMethodCall(scope, stmt.expr.callee)
     }
 
     private fun visitThrowStmt(scope: TsStepScope, stmt: EtsThrowStmt) {
@@ -600,10 +716,7 @@ class TsInterpreter(
                         local.name to localIdx
                     }.toMap()
                 }
-                map[local.name] ?: run {
-                    logger.error("Local not declared: $local")
-                    return null
-                }
+                map[local.name]
             }
 
             // Note: 'this' has index 'n'
@@ -647,16 +760,25 @@ class TsInterpreter(
 
             val parameterType = param.type
             if (parameterType is EtsRefType) {
-                val resolvedParameterType = graph.cp
-                    .projectAndSdkClasses
-                    .singleOrNull { it.name == parameterType.typeName }
-                    ?.type
-                    ?: parameterType
+                val argLValue = mkRegisterStackLValue(addressSort, i)
+                val ref = state.memory.read(argLValue).asExpr(addressSort)
+                if (parameterType is EtsArrayType) {
+                    state.pathConstraints += state.memory.types.evalTypeEquals(ref, parameterType)
+                    return@forEachIndexed
+                }
+
+                val resolvedParameterType = graph.hierarchy.classesForType(parameterType)
+
+                if (resolvedParameterType.isEmpty()) {
+                    logger.error("Cannot resolve class for parameter type: $parameterType")
+                    return@forEachIndexed // TODO should be an error
+                }
 
                 // Because of structural equality in TS we cannot determine the exact type
                 // Therefore, we create information about the fields the type must consist
-                val auxiliaryType = (resolvedParameterType as? EtsClassType)?.toAuxiliaryType(graph.hierarchy)
-                    ?: resolvedParameterType
+                val types = resolvedParameterType.mapNotNull { it.type.toAuxiliaryType(graph.hierarchy) }
+                val auxiliaryType = EtsUnionType(types) // TODO error
+
                 state.pathConstraints += state.memory.types.evalIsSubtype(ref, auxiliaryType)
 
                 state.pathConstraints += mkNot(mkHeapRefEq(ref, mkTsNullValue()))
@@ -691,7 +813,7 @@ class TsInterpreter(
     private fun mockMethodCall(scope: TsStepScope, method: EtsMethodSignature) {
         scope.doWithState {
             if (method.returnType is EtsVoidType) {
-                methodResult = TsMethodResult.Success.MockedCall(method, ctx.voidValue)
+                methodResult = TsMethodResult.Success.MockedCall(method, ctx.mkUndefinedValue())
                 return@doWithState
             }
 

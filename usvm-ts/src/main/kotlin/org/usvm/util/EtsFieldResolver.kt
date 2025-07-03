@@ -16,12 +16,10 @@ fun TsContext.resolveEtsField(
     instance: EtsLocal?,
     field: EtsFieldSignature,
     hierarchy: EtsHierarchy,
-): EtsFieldResolutionResult {
+): EtsPropertyResolution<EtsField> {
     // Perfect signature:
     if (field.enclosingClass.name != UNKNOWN_CLASS_NAME) {
-        val classes = scene.projectAndSdkClasses.filter { cls ->
-            cls.name == field.enclosingClass.name
-        }
+        val classes = hierarchy.classesForType(EtsClassType(field.enclosingClass))
         if (classes.isEmpty()) {
             error("Cannot resolve class ${field.enclosingClass.name}")
         }
@@ -31,7 +29,7 @@ fun TsContext.resolveEtsField(
         val clazz = classes.single()
         val fields = clazz.getAllFields(hierarchy).filter { it.name == field.name }
         if (fields.size == 1) {
-            return EtsFieldResolutionResult.create(fields.single())
+            return EtsPropertyResolution.create(fields.single())
         }
     }
 
@@ -41,12 +39,12 @@ fun TsContext.resolveEtsField(
         when (instanceType) {
             is EtsClassType -> {
                 val field = tryGetSingleField(scene, instanceType.signature.name, field.name, hierarchy)
-                if (field != null) return EtsFieldResolutionResult.create(field)
+                if (field != null) return EtsPropertyResolution.create(field)
             }
 
             is EtsUnclearRefType -> {
                 val field = tryGetSingleField(scene, instanceType.typeName, field.name, hierarchy)
-                if (field != null) return EtsFieldResolutionResult.create(field)
+                if (field != null) return EtsPropertyResolution.create(field)
             }
         }
     }
@@ -55,7 +53,7 @@ fun TsContext.resolveEtsField(
         cls.getAllFields(hierarchy).filter { it.name == field.name }
     }
 
-    return EtsFieldResolutionResult.create(fields)
+    return EtsPropertyResolution.create(fields)
 }
 
 private fun tryGetSingleField(
@@ -88,11 +86,11 @@ private fun tryGetSingleField(
 }
 
 fun EtsClass.getAllFields(hierarchy: EtsHierarchy): List<EtsField> {
-    return hierarchy.getAncestor(this).flatMap { it.fields }
+    return hierarchy.getAncestors(this).flatMap { it.fields }
 }
 
 fun EtsClass.getAllMethods(hierarchy: EtsHierarchy): List<EtsMethod> {
-    return hierarchy.getAncestor(this).flatMap { it.methods }
+    return hierarchy.getAncestors(this).flatMap { it.methods }
 }
 
 fun EtsClass.getAllPropertiesCombined(hierarchy: EtsHierarchy): Set<String> {
@@ -104,7 +102,7 @@ fun EtsClass.getAllProperties(hierarchy: EtsHierarchy): Pair<Set<EtsFieldName>, 
     val allFields = hashSetOf<EtsFieldName>()
     val allMethods = hashSetOf<EtsMethodName>()
 
-    val classes = hierarchy.getAncestor(this)
+    val classes = hierarchy.getAncestors(this)
 
     classes.forEach {
         val fieldNames = it.fields.map<EtsField, EtsFieldName> { it.name }
@@ -118,19 +116,19 @@ fun EtsClass.getAllProperties(hierarchy: EtsHierarchy): Pair<Set<EtsFieldName>, 
     return allFields to allMethods
 }
 
-sealed class EtsFieldResolutionResult {
-    data class Unique(val field: EtsField) : EtsFieldResolutionResult()
-    data class Ambiguous(val fields: List<EtsField>) : EtsFieldResolutionResult()
-    data object Empty : EtsFieldResolutionResult()
+sealed class EtsPropertyResolution<out T> {
+    data class Unique<T>(val property: T) : EtsPropertyResolution<T>()
+    data class Ambiguous<T>(val properties: List<T>) : EtsPropertyResolution<T>()
+    data object Empty : EtsPropertyResolution<Nothing>()
 
     companion object {
-        fun create(field: EtsField) = Unique(field)
+        fun <T> create(property: T) = Unique(property)
 
-        fun create(fields: List<EtsField>): EtsFieldResolutionResult {
+        fun <T> create(properties: List<T>): EtsPropertyResolution<T> {
             return when {
-                fields.isEmpty() -> Empty
-                fields.size == 1 -> Unique(fields.single())
-                else -> Ambiguous(fields)
+                properties.isEmpty() -> Empty
+                properties.size == 1 -> Unique(properties.single())
+                else -> Ambiguous(properties)
             }
         }
     }

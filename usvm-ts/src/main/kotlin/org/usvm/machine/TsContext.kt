@@ -6,6 +6,8 @@ import org.jacodb.ets.model.EtsAliasType
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
+import org.jacodb.ets.model.EtsEnumValueType
+import org.jacodb.ets.model.EtsGenericType
 import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsRefType
@@ -29,10 +31,12 @@ import org.usvm.api.allocateConcreteRef
 import org.usvm.api.typeStreamOf
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.isTrue
+import org.usvm.machine.Constants.Companion.MAGIC_OFFSET
 import org.usvm.machine.expr.TsUndefinedSort
 import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.expr.TsVoidSort
 import org.usvm.machine.expr.TsVoidValue
+import org.usvm.machine.expr.tctx
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.types.EtsFakeType
 import org.usvm.memory.UReadOnlyMemory
@@ -76,6 +80,16 @@ class TsContext(
         is EtsAnyType -> unresolvedSort
         is EtsUnknownType -> unresolvedSort
         is EtsAliasType -> typeToSort(type.originalType)
+        is EtsEnumValueType -> unresolvedSort
+
+        is EtsGenericType -> {
+            if (type.constraint == null && type.defaultType == null) {
+                unresolvedSort
+            } else {
+                TODO("Not yet implemented")
+            }
+        }
+
         else -> TODO("${type::class.simpleName} is not yet supported: $type")
     }
 
@@ -149,6 +163,22 @@ class TsContext(
             type.fpTypeExpr.isTrue -> extractFp(scope)
             type.refTypeExpr.isTrue -> extractRef(scope)
             else -> null
+        }
+    }
+
+    fun UHeapRef.unwrapRef(scope: TsStepScope): UHeapRef {
+        if (isFakeObject()) {
+            return extractRef(scope)
+        }
+        return this
+    }
+
+    fun UHeapRef.unwrapRefWithPathConstraint(scope: TsStepScope): UHeapRef = with(tctx) {
+        if (this@unwrapRefWithPathConstraint.isFakeObject()) {
+            scope.assert(getFakeType(scope).refTypeExpr)
+            extractRef(scope)
+        } else {
+            asExpr(addressSort)
         }
     }
 
@@ -235,7 +265,13 @@ class TsContext(
     }
 }
 
-const val MAGIC_OFFSET = 1000000
+class Constants {
+    companion object {
+        const val STATIC_METHODS_FORK_LIMIT = 5
+        const val MAGIC_OFFSET = 1000000
+    }
+}
+
 
 enum class IntermediateLValueField {
     BOOL, FP, REF
