@@ -47,15 +47,11 @@ class FieldAccess {
     }
 
     createWithField(): number {
-        return {a: 15}.a;
+        return { a: 15 }.a;
     }
 
     factoryCreatedObject(): number {
         return this.createObject().x;
-    }
-
-    private createObject(): { x: number } {
-        return {x: 42};
     }
 
     conditionalFieldAccess(a: SimpleClass): number {
@@ -64,13 +60,13 @@ class FieldAccess {
     }
 
     nestedFieldAccess(): number {
-        const obj = {inner: new SimpleClass()};
+        const obj = { inner: new SimpleClass() };
         obj.inner.x = 7;
         return obj.inner.x;
     }
 
     arrayFieldAccess(): number {
-        const obj = {arr: [7, 3, 6]};
+        const obj = { arr: [7, 3, 6] };
         obj.arr[1] = 5;
         return obj.arr[1];
     }
@@ -84,7 +80,7 @@ class FieldAccess {
 
     circularTypeChanges(): number {
         const obj = new SimpleClass();
-        obj.x = {value: 5};
+        obj.x = { value: 5 };
         obj.x = obj.x.value;
         obj.x = [obj.x];
         return obj.x.length;
@@ -98,5 +94,9 @@ class FieldAccess {
         } else {
             return 2;
         }
+    }
+
+    private createObject(): { x: number } {
+        return { x: 42 };
     }
 }

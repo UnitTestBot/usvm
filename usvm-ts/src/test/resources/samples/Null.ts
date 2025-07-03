@@ -3,7 +3,7 @@
 
 class Null {
     isNull(x): number {
-        if (x === null) return 1
-        return 2
+        if (x === null) return 1;
+        return 2;
     }
 }

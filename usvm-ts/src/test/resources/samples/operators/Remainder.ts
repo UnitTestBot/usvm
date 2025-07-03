@@ -6,58 +6,58 @@ class Remainder {
         let res = a % b;
 
         if (a != a || b != b) {
-            return res // NaN
+            return res; // NaN
         }
 
         if (a == Infinity || a == -Infinity) {
-            return res // NaN
+            return res; // NaN
         }
 
         if (a == 0 && b == 0) {
-            return res // NaN
+            return res; // NaN
         }
 
         if (b == 0) {
-            return res // NaN
+            return res; // NaN
         }
 
         if (b == Infinity || b == -Infinity) {
-            return res // a
+            return res; // a
         }
 
         if (a == 0) {
-            return res // a
+            return res; // a
         }
 
         if (res == 4) {
-            return res
+            return res;
         }
 
-        return res
+        return res;
     }
 
     booleanRemainder(a: boolean, b: boolean): number {
         let res = a % b;
 
         if (res == 0) {
-            return res
+            return res;
         }
 
-        return res
+        return res;
     }
 
     mixedRemainder(a: number, b: boolean): number {
         let res = a % b;
 
         if (res == 4) {
-            return res
+            return res;
         }
 
         if (res != res) {
-            return res
+            return res;
         }
 
-        return res
+        return res;
     }
 
     unknownRemainder(a, b): number {
