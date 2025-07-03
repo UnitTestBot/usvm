@@ -25,7 +25,6 @@ import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsStringConstant
 import org.jacodb.ets.model.EtsThis
-import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUnclearRefType
 import org.jacodb.ets.model.EtsUndefinedConstant
 import org.jacodb.ets.model.EtsUnknownType
@@ -46,7 +45,6 @@ private val logger = KotlinLogging.logger {}
 class ForwardFlowFunctions(
     val graph: EtsApplicationGraph,
     val methodInitialTypes: Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>>,
-    val typeInfo: Map<EtsType, EtsTypeFact>,
     val doAddKnownTypes: Boolean = true,
     val doAliasAnalysis: Boolean = true,
     val doLiveVariablesAnalysis: Boolean = true,
@@ -208,20 +206,10 @@ class ForwardFlowFunctions(
 
         when (val rhv = current.rhv) {
             is EtsNewExpr -> {
-                // val newType = rhv.type
-                // if (newType is EtsClassType) {
-                //     val cls = graph.cp.classes
-                //         .firstOrNull { it.name == newType.typeName }
-                //     if (cls != null) {
-                //         for (f in cls.fields) {
-                //             val path = lhv + FieldAccessor(f.name)
-                //             result += TypedVariable(path, EtsTypeFact.from(f.type))
-                //         }
-                //     }
-                // }
-
-                val type = typeInfo[rhv.type]
-                    ?: EtsTypeFact.ObjectEtsTypeFact(cls = rhv.type, properties = emptyMap())
+                val type = EtsTypeFact.ObjectEtsTypeFact(
+                    cls = rhv.type,
+                    properties = emptyMap(),
+                )
                 addTypeFactWithAliases(lhv, type)
             }
 

@@ -17,7 +17,6 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsStringType
-import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUnclearRefType
 import org.jacodb.ets.utils.ANONYMOUS_CLASS_PREFIX
 import org.jacodb.ets.utils.CONSTRUCTOR_NAME
@@ -49,8 +48,6 @@ class TypeInferenceManager(
 
     private val backwardSummaries = ConcurrentHashMap<EtsMethod, MutableSet<BackwardSummaryAnalyzerEvent>>()
     private val forwardSummaries = ConcurrentHashMap<EtsMethod, MutableSet<ForwardSummaryAnalyzerEvent>>()
-
-    private val savedTypes: ConcurrentHashMap<EtsType, MutableList<EtsTypeFact>> = ConcurrentHashMap()
 
     private val typeProcessor = TypeFactProcessor(scene = graph.cp)
 
@@ -168,23 +165,12 @@ class TypeInferenceManager(
         //     }
         // }
 
-        val typeInfo: Map<EtsType, EtsTypeFact> = savedTypes.mapValues { (type, facts) ->
-            val typeFact = EtsTypeFact.ObjectEtsTypeFact(type, properties = emptyMap())
-            facts.fold(typeFact as EtsTypeFact) { acc, it ->
-                typeProcessor.intersect(acc, it) ?: run {
-                    logger.warn { "Empty intersection type: ${acc.toStringLimited()} & ${it.toStringLimited()}" }
-                    acc
-                }
-            }
-        }
-
         logger.info { "Preparing forward analysis" }
         val forwardGraph = graph
         val forwardAnalyzer = ForwardAnalyzer(
-            forwardGraph,
-            methodTypeScheme,
-            typeInfo,
-            doAddKnownTypes,
+            graph = forwardGraph,
+            methodInitialTypes = methodTypeScheme,
+            doAddKnownTypes = doAddKnownTypes,
             doAliasAnalysis = doAliasAnalysis,
             doLiveVariablesAnalysis = true,
         )

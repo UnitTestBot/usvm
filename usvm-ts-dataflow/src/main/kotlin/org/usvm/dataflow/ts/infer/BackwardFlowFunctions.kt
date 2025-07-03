@@ -27,8 +27,8 @@ import org.jacodb.ets.model.EtsThrowStmt
 import org.jacodb.ets.utils.callExpr
 import org.usvm.dataflow.ifds.FlowFunction
 import org.usvm.dataflow.ifds.FlowFunctions
-import org.usvm.dataflow.ts.infer.BackwardTypeDomainFact.Zero
 import org.usvm.dataflow.ts.infer.BackwardTypeDomainFact.TypedVariable
+import org.usvm.dataflow.ts.infer.BackwardTypeDomainFact.Zero
 import org.usvm.dataflow.ts.util.fixAnyToUnknown
 
 class BackwardFlowFunctions(
@@ -67,7 +67,7 @@ class BackwardFlowFunctions(
 
     companion object {
         private fun AccessPath?.isBase(): Boolean =
-            this != null&& base !is AccessPathBase.Const && accesses.isEmpty()
+            this != null && base !is AccessPathBase.Const && accesses.isEmpty()
 
         private fun AccessPath?.isField(): Boolean =
             this != null && accesses.size == 1
@@ -118,36 +118,32 @@ class BackwardFlowFunctions(
             }
         } else {
             when (val rhv = current.rhv) {
-                // x := y + z
+                // x := y + z (addition operator can be string or numeric)
                 is EtsAddExpr -> {
-                    val numberOrString = EtsTypeFact.mkUnionType(
-                        EtsTypeFact.NumberEtsTypeFact,
-                        EtsTypeFact.StringEtsTypeFact,
-                    )
-                    val y_is_number_or_string = rhv.left.toPathOrNull()?.let {
-                        TypedVariable(it, numberOrString)
+                    val yIsNumberOrString = rhv.left.toPathOrNull()?.let {
+                        TypedVariable(it, EtsTypeFact.numberOrString)
                     }
-                    val z_is_number_or_string = rhv.right.toPathOrNull()?.let {
-                        TypedVariable(it, numberOrString)
+                    val zIsNumberOrString = rhv.right.toPathOrNull()?.let {
+                        TypedVariable(it, EtsTypeFact.numberOrString)
                     }
-                    return listOfNotNull(Zero, y_is_number_or_string, z_is_number_or_string)
+                    return listOfNotNull(Zero, yIsNumberOrString, zIsNumberOrString)
                 }
 
-                // x := y * z
+                // x := y * z (numeric operator)
                 is EtsBinaryExpr -> {
-                    val y_is_number = rhv.left.toPathOrNull()?.let {
+                    val yIsNumber = rhv.left.toPathOrNull()?.let {
                         TypedVariable(it, EtsTypeFact.NumberEtsTypeFact)
                     }
-                    val z_is_number = rhv.right.toPathOrNull()?.let {
+                    val zIsNumber = rhv.right.toPathOrNull()?.let {
                         TypedVariable(it, EtsTypeFact.NumberEtsTypeFact)
                     }
-                    return listOfNotNull(Zero, y_is_number, z_is_number)
+                    return listOfNotNull(Zero, yIsNumber, zIsNumber)
                 }
 
-                // x := y.foo(...) (call-to-return)
+                // x := y(...) (call-to-return)
                 is EtsInstanceCallExpr -> {
-                    val y_foo_is_function = TypedVariable(rhv.instance.toPath(), EtsTypeFact.FunctionEtsTypeFact)
-                    return listOf(Zero, y_foo_is_function)
+                    val rhvIsFunction = TypedVariable(rhv.toPath(), EtsTypeFact.FunctionEtsTypeFact)
+                    return listOf(Zero, rhvIsFunction)
                 }
 
                 else -> {
@@ -182,15 +178,15 @@ class BackwardFlowFunctions(
                 // x := y + z (addition operator can be string or numeric,
                 // then we can infer arguments are numeric when result is numeric)
                 is EtsAddExpr -> {
-                     // x.*: t --> none
+                    // x.*: t --> none
                     if (fact == TypedVariable(lhv, EtsTypeFact.NumberEtsTypeFact)) {
-                        val y_is_number = rhv.left.toPathOrNull()?.let {
+                        val yIsNumber = rhv.left.toPathOrNull()?.let {
                             TypedVariable(it, EtsTypeFact.NumberEtsTypeFact)
                         }
-                        val z_is_number = rhv.right.toPathOrNull()?.let {
+                        val zIsNumber = rhv.right.toPathOrNull()?.let {
                             TypedVariable(it, EtsTypeFact.NumberEtsTypeFact)
                         }
-                        result += listOfNotNull(y_is_number, z_is_number)
+                        result += listOfNotNull(yIsNumber, zIsNumber)
                     }
                 }
 
@@ -199,7 +195,7 @@ class BackwardFlowFunctions(
                     // x.*: t --> none
                 }
 
-                // x := y.foo(...) (call-to-return)
+                // x := y(...) (call-to-return)
                 is EtsInstanceCallExpr -> {
                     // x.*: t --> none
                 }
@@ -210,28 +206,27 @@ class BackwardFlowFunctions(
             }
         } else {
             val tail = fact.variable.accesses
-
             when {
                 // x := y
                 lhv.isBase() && rhv.isBase() -> {
                     // x.*: t --> y.*: t
-                    val y_is_t = TypedVariable(rhv + tail, fact.type)
-                    result += y_is_t
+                    val rhvIsT = TypedVariable(rhv + tail, fact.type)
+                    result += rhvIsT
                 }
 
                 // x := y.a
                 lhv.isBase() && rhv.isField() -> {
                     // x.*: t --> y.a.*: t
-                    val y_a_is_t = TypedVariable(rhv + tail, fact.type)
-                    result += y_a_is_t
+                    val rhvIsT = TypedVariable(rhv + tail, fact.type)
+                    result += rhvIsT
                 }
 
                 // x.a = y
                 lhv.isField() && rhv.isBase() -> {
                     // x.a.*: t --> y.*: t
                     check(tail.isNotEmpty())
-                    val y_is_t = TypedVariable(rhv + tail.drop(1), fact.type)
-                    result += y_is_t
+                    val rhvIsT = TypedVariable(rhv + tail.drop(1), fact.type)
+                    result += rhvIsT
                 }
 
                 // x.* := const
@@ -250,7 +245,7 @@ class BackwardFlowFunctions(
 
     override fun obtainCallToReturnSiteFlowFunction(
         callStatement: EtsStmt,
-        returnSite: EtsStmt
+        returnSite: EtsStmt,
     ): FlowFunction<BackwardTypeDomainFact> = FlowFunction { fact ->
         when (fact) {
             Zero -> callZero(callStatement)
@@ -331,7 +326,7 @@ class BackwardFlowFunctions(
     override fun obtainExitToReturnSiteFlowFunction(
         callStatement: EtsStmt,
         returnSite: EtsStmt,
-        exitStatement: EtsStmt
+        exitStatement: EtsStmt,
     ): FlowFunction<BackwardTypeDomainFact> = FlowFunction { fact ->
         when (fact) {
             Zero -> listOf(fact)
