@@ -2,6 +2,7 @@ package org.usvm.machine.interpreter
 
 import io.ksmt.utils.asExpr
 import mu.KotlinLogging
+import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayAccess
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsAssignStmt
@@ -227,11 +228,22 @@ class TsInterpreter(
         }
 
         val possibleTypesSet = possibleTypes.types.toSet()
+
+        if (possibleTypesSet.singleOrNull() == EtsAnyType) {
+            mockMethodCall(scope, stmt.callee)
+            scope.calcOnState {
+                newStmt(stmt.returnSite)
+            }
+            return@with
+        }
+
+        val filteredPossibleTypesSet = possibleTypesSet - EtsAnyType
+
         val methodsDeclaringClasses = concreteMethods.mapNotNull { it.enclosingClass } // is it right?
         val typeSystem = typeSystem<EtsType>()
 
         // take only possible classes with a corresponding method
-        val intersectedTypes = possibleTypesSet.filter { possibleType ->
+        val intersectedTypes = filteredPossibleTypesSet.filter { possibleType ->
             methodsDeclaringClasses.any { typeSystem.isSupertype(it.type, possibleType) }
         }
 
