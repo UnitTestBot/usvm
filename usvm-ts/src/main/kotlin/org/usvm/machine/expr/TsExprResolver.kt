@@ -825,7 +825,7 @@ class TsExprResolver(
     }
 
     fun checkUndefinedOrNullPropertyRead(instance: UHeapRef) = with(ctx) {
-        val ref = instance.unwrapRef()
+        val ref = instance.unwrapRef(scope)
 
         val neqNull = mkAnd(
             mkHeapRefEq(ref, mkUndefinedValue()).not(),
