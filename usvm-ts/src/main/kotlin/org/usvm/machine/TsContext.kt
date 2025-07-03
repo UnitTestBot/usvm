@@ -164,13 +164,13 @@ class TsContext(
         }
     }
 
-    fun UHeapRef.extractRefOrSelf(scope: TsStepScope): UHeapRef {
+    fun UHeapRef.extractRefIfRequired(scope: TsStepScope): UHeapRef {
         var current = this
-        while (current.isFakeObject()) {
-            val fakeType = current.getFakeType(scope)
-            scope.doWithState {
-                pathConstraints += fakeType.refTypeExpr
-            }
+        if (current.isFakeObject()) {
+            // val fakeType = current.getFakeType(scope)
+            // scope.doWithState {
+            //     pathConstraints += fakeType.refTypeExpr
+            // }
             current = current.extractRef(scope)
         }
         return current

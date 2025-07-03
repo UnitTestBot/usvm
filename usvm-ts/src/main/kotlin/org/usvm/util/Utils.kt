@@ -9,22 +9,16 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUnclearRefType
-import org.jacodb.ets.utils.InterproceduralCfg
-import org.jacodb.ets.utils.toHighlightedDotWithCalls
 import org.usvm.UBoolSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
-import org.usvm.dataflow.ts.util.toMap
 import org.usvm.machine.TsContext
 import org.usvm.machine.expr.tctx
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.machine.types.mkFakeValue
-import java.nio.file.Path
-import kotlin.io.path.createTempDirectory
-import kotlin.io.path.writeText
 
 // Built-in KContext.bvToBool has identical implementation.
 fun TsContext.boolToFp(expr: UExpr<UBoolSort>): UExpr<KFp64Sort> =
@@ -73,6 +67,12 @@ fun UHeapRef.createFakeField(fieldName: String, scope: TsStepScope): UConcreteHe
     val boolValue = scope.calcOnState { memory.read(boolLValue) }
     val fpValue = scope.calcOnState { memory.read(fpLValue) }
     val refValue = scope.calcOnState { memory.read(refLValue) }
+
+    with(ctx) {
+        if (refValue.isFakeObject()) {
+            return refValue
+        }
+    }
 
     val fakeObject = ctx.mkFakeValue(scope, boolValue, fpValue, refValue)
     scope.doWithState {

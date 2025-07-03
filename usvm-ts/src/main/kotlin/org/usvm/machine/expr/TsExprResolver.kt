@@ -879,7 +879,7 @@ class TsExprResolver(
         field: EtsFieldSignature,
         hierarchy: EtsHierarchy,
     ): UExpr<out USort>? = with(ctx) {
-        val resolvedAddr = instanceRef.extractRefOrSelf(scope)
+        val resolvedAddr = instanceRef.extractRefIfRequired(scope)
 
         val etsField = resolveEtsField(instance, field, hierarchy)
 
@@ -906,7 +906,14 @@ class TsExprResolver(
             // That's not true in the common case for TS, but that's the decision we made.
             val auxiliaryType = EtsAuxiliaryType(properties = setOf(field.name))
             // assert is required to update models
-            scope.assert(memory.types.evalIsSubtype(resolvedAddr, auxiliaryType))
+
+            // if (resolvedAddr.isFakeObject()) {
+            //     val extractedRef = resolvedAddr.extractRef(scope)
+            //     scope.assert(resolvedAddr.getFakeType(scope).refTypeExpr)
+            //     pathConstraints += memory.types.evalIsSubtype(extractedRef, auxiliaryType)
+            // } else {
+                scope.assert(memory.types.evalIsSubtype(resolvedAddr, auxiliaryType))
+            // }
         }
 
         // TODO
@@ -957,7 +964,7 @@ class TsExprResolver(
                 fakeRef
             }
         } else {
-            val lValue = mkFieldLValue(sort, instanceRef, field)
+            val lValue = mkFieldLValue(sort, resolvedAddr, field)
             scope.calcOnState { memory.read(lValue) }
         }
     }
@@ -965,6 +972,7 @@ class TsExprResolver(
     override fun visit(value: EtsInstanceFieldRef): UExpr<out USort>? = with(ctx) {
         val instanceRefResolved = resolve(value.instance) ?: return null
         if (instanceRefResolved.sort != addressSort) {
+            logger.error("InstanceFieldRef access on not address sort: $instanceRefResolved")
             scope.assert(falseExpr)
             return null
         }
