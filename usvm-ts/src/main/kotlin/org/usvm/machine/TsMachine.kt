@@ -81,7 +81,7 @@ class TsMachine(
             timeStatistics = timeStatistics,
             coverageStatisticsFactory = { coverageStatistics },
             cfgStatisticsFactory = { cfgStatistics },
-            callGraphStatisticsFactory = { callGraphStatistics }
+            callGraphStatisticsFactory = { callGraphStatistics },
         )
 
         val statesCollector =

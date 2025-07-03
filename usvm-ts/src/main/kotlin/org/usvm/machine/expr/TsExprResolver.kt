@@ -268,11 +268,13 @@ class TsExprResolver(
         val resolvedExpr = resolve(expr.arg) ?: return@with null
         return when (resolvedExpr.sort) {
             fp64Sort -> {
-                TODO()
+                logger.error("Unsupported cast from fp ${expr.arg} to ${expr.type}")
+                TODO("Not yet implemented https://github.com/UnitTestBot/usvm/issues/299")
             }
 
             boolSort -> {
-                TODO()
+                logger.error("Unsupported cast from boolean ${expr.arg} to ${expr.type}")
+                TODO("Not yet implemented https://github.com/UnitTestBot/usvm/issues/299")
             }
 
             addressSort -> {
@@ -288,7 +290,8 @@ class TsExprResolver(
                     }
 
                     if (expr.type !is EtsRefType) {
-                        TODO("Not supported yet")
+                        logger.error("Unsupported cast from non-ref ${expr.arg} to ${expr.type}")
+                        TODO("Not supported yet https://github.com/UnitTestBot/usvm/issues/299")
                     }
 
                     pathConstraints += memory.types.evalIsSubtype(instance, expr.type)
@@ -912,7 +915,7 @@ class TsExprResolver(
             //     scope.assert(resolvedAddr.getFakeType(scope).refTypeExpr)
             //     pathConstraints += memory.types.evalIsSubtype(extractedRef, auxiliaryType)
             // } else {
-                scope.assert(memory.types.evalIsSubtype(resolvedAddr, auxiliaryType))
+            scope.assert(memory.types.evalIsSubtype(resolvedAddr, auxiliaryType))
             // }
         }
 
