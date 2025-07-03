@@ -307,6 +307,11 @@ sealed interface EtsTypeFact {
             "with" to FunctionEtsTypeFact,
         )
 
+        internal val numberOrString: EtsTypeFact = mkUnionType(
+            NumberEtsTypeFact,
+            StringEtsTypeFact,
+        )
+
         fun mkUnionType(vararg types: EtsTypeFact): EtsTypeFact = mkUnionType(types.toHashSet())
 
         fun mkUnionType(types: Set<EtsTypeFact>): EtsTypeFact {

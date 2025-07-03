@@ -17,13 +17,10 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsStringType
-import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUnclearRefType
 import org.jacodb.ets.utils.ANONYMOUS_CLASS_PREFIX
 import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.jacodb.ets.utils.INSTANCE_INIT_METHOD_NAME
-import org.jacodb.impl.cfg.graphs.GraphDominators
-import org.jacodb.impl.cfg.graphs.findDominators
 import org.usvm.dataflow.ifds.ControlEvent
 import org.usvm.dataflow.ifds.Edge
 import org.usvm.dataflow.ifds.Manager
@@ -51,15 +48,6 @@ class TypeInferenceManager(
 
     private val backwardSummaries = ConcurrentHashMap<EtsMethod, MutableSet<BackwardSummaryAnalyzerEvent>>()
     private val forwardSummaries = ConcurrentHashMap<EtsMethod, MutableSet<ForwardSummaryAnalyzerEvent>>()
-
-    private val methodDominatorsCache = ConcurrentHashMap<EtsMethod, GraphDominators<EtsStmt>>()
-
-    private fun methodDominators(method: EtsMethod): GraphDominators<EtsStmt> =
-        methodDominatorsCache.computeIfAbsent(method) {
-            method.flowGraph().findDominators()
-        }
-
-    private val savedTypes: ConcurrentHashMap<EtsType, MutableList<EtsTypeFact>> = ConcurrentHashMap()
 
     private val typeProcessor = TypeFactProcessor(scene = graph.cp)
 
@@ -111,7 +99,7 @@ class TypeInferenceManager(
     ): Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>> {
         logger.info { "Preparing backward analysis" }
         val backwardGraph = graph.reversed
-        val backwardAnalyzer = BackwardAnalyzer(backwardGraph, savedTypes, ::methodDominators, doAddKnownTypes)
+        val backwardAnalyzer = BackwardAnalyzer(backwardGraph, doAddKnownTypes)
 
         val backwardRunner = EtsIfdsRunner(
             graph = backwardGraph,
@@ -177,23 +165,12 @@ class TypeInferenceManager(
         //     }
         // }
 
-        val typeInfo: Map<EtsType, EtsTypeFact> = savedTypes.mapValues { (type, facts) ->
-            val typeFact = EtsTypeFact.ObjectEtsTypeFact(type, properties = emptyMap())
-            facts.fold(typeFact as EtsTypeFact) { acc, it ->
-                typeProcessor.intersect(acc, it) ?: run {
-                    logger.warn { "Empty intersection type: ${acc.toStringLimited()} & ${it.toStringLimited()}" }
-                    acc
-                }
-            }
-        }
-
         logger.info { "Preparing forward analysis" }
         val forwardGraph = graph
         val forwardAnalyzer = ForwardAnalyzer(
-            forwardGraph,
-            methodTypeScheme,
-            typeInfo,
-            doAddKnownTypes,
+            graph = forwardGraph,
+            methodInitialTypes = methodTypeScheme,
+            doAddKnownTypes = doAddKnownTypes,
             doAliasAnalysis = doAliasAnalysis,
             doLiveVariablesAnalysis = true,
         )
@@ -390,12 +367,7 @@ class TypeInferenceManager(
 
             var refined: EtsTypeFact = combinedBackwardType
             for ((property, propertyType) in propertyRefinements) {
-                refined = refined.refineProperty(property, propertyType) ?: this@TypeInferenceManager.run {
-                    logger.warn {
-                        "Empty intersection type: ${refined.toStringLimited()} & ${propertyType.toStringLimited()}"
-                    }
-                    refined
-                }
+                refined = refined.refineProperty(property, propertyType)
             }
 
             cls.signature to refined
@@ -427,7 +399,7 @@ class TypeInferenceManager(
     ): Map<AccessPathBase, EtsTypeFact> {
         val types = summaries
             .mapNotNull { it.exitFact as? BackwardTypeDomainFact.TypedVariable }
-            .groupBy({ it.variable }, { it.type })
+            .groupBy({ it.variable.base }, { it.variable.accesses to it.type })
             .filter { (base, _) ->
                 base is AccessPathBase.This
                     || base is AccessPathBase.Arg
@@ -435,14 +407,37 @@ class TypeInferenceManager(
                     || (base is AccessPathBase.Local && base !in getRealLocalsBase(method))
             }
             .mapValues { (_, typeFacts) ->
-                typeFacts.reduce { acc, typeFact ->
-                    typeProcessor.intersect(acc, typeFact) ?: run {
-                        logger.warn { "Empty intersection type: ${acc.toStringLimited()} & ${typeFact.toStringLimited()}" }
-                        acc
-                    }
-                }
-            }
+                val propertyRefinements = typeFacts
+                    .groupBy({ it.first }, { it.second })
+                    .mapValues { (accesses, types) ->
+                        val propertyType = types.reduce { acc, t ->
+                            typeProcessor.intersect(acc, t) ?: EtsTypeFact.AnyEtsTypeFact
+                        }
+                        accesses.foldRight(propertyType) { accessor, acc ->
+                            when (accessor) {
+                                is FieldAccessor -> EtsTypeFact.ObjectEtsTypeFact(
+                                    cls = null, properties = mapOf(accessor.name to acc)
+                                )
 
+                                is ElementAccessor -> EtsTypeFact.ArrayEtsTypeFact(acc)
+                            }
+                        }
+                    }
+                val refined = if (propertyRefinements.keys.any { it.isNotEmpty() }) {
+                    propertyRefinements
+                        .filterKeys { it.isNotEmpty() }
+                        .values
+                        .reduce { acc, typeFact ->
+                            typeProcessor.intersect(acc, typeFact) ?: run {
+                                logger.warn { "Empty intersection type: ${acc.toStringLimited()} & ${typeFact.toStringLimited()}" }
+                                acc
+                            }
+                        }
+                } else {
+                    EtsTypeFact.AnyEtsTypeFact
+                }
+                refined
+            }
         return types
     }
 
@@ -466,11 +461,9 @@ class TypeInferenceManager(
         val refinedTypes = facts.mapValues { (base, type) ->
             // TODO: throw an error
             val typeRefinements = typeFacts[base] ?: return@mapValues type
-
             val propertyRefinements = typeRefinements
                 .groupBy({ it.variable.accesses }, { it.type })
                 .mapValues { (_, types) -> types.reduce { acc, t -> typeProcessor.union(acc, t) } }
-
             val rootType = propertyRefinements[emptyList()] ?: run {
                 if (propertyRefinements.keys.any { it.isNotEmpty() }) {
                     EtsTypeFact.ObjectEtsTypeFact(null, emptyMap())
@@ -478,13 +471,9 @@ class TypeInferenceManager(
                     EtsTypeFact.AnyEtsTypeFact
                 }
             }
-
             val refined = rootType.refineProperties(emptyList(), propertyRefinements)
-
             refined
         }
-
-        typeFacts.let {}
 
         return refinedTypes
     }
@@ -556,13 +545,26 @@ class TypeInferenceManager(
         pathFromRootObject: List<Accessor>,
         typeRefinements: Map<List<Accessor>, EtsTypeFact>,
     ): EtsTypeFact {
-        val refinedProperties = properties.mapValues { (propertyName, type) ->
+        val propertiesRefinements = typeRefinements
+            .filterKeys { it.startsWith(pathFromRootObject) && it.size > pathFromRootObject.size }
+            .mapKeys { it.key.drop(pathFromRootObject.size).first() }
+            .filterKeys { it is FieldAccessor }
+            .mapKeys { (it.key as FieldAccessor).name }
+
+        val properties = this.properties.keys + propertiesRefinements.keys
+
+        val refinedProperties = properties.associateWith { propertyName ->
             val propertyAccessor = FieldAccessor(propertyName)
             val propertyPath = pathFromRootObject + propertyAccessor
-            val refinedType = typeRefinements[propertyPath]?.let {
-                typeProcessor.intersect(it, type)
-            } ?: type // TODO: consider throwing an exception
-            refinedType.refineProperties(propertyPath, typeRefinements)
+            val type = this.properties[propertyName]
+            val typeRefinement = typeRefinements[propertyPath]
+            val refinedType = if (type != null && typeRefinement != null) {
+                typeProcessor.intersect(typeRefinement, type)
+            } else {
+                type ?: typeRefinement
+            }
+            refinedType?.refineProperties(propertyPath, typeRefinements)
+                ?: EtsTypeFact.AnyEtsTypeFact
         }
         return EtsTypeFact.ObjectEtsTypeFact(cls, refinedProperties)
     }
@@ -570,20 +572,20 @@ class TypeInferenceManager(
     private fun EtsTypeFact.refineProperty(
         property: List<Accessor>,
         type: EtsTypeFact,
-    ): EtsTypeFact? = when (this) {
-        is EtsTypeFact.BasicType -> refineProperty(property, type)
+    ): EtsTypeFact = when (this) {
+        is EtsTypeFact.BasicType -> refineProperty(property, type) ?: EtsTypeFact.AnyEtsTypeFact
 
-        is EtsTypeFact.GuardedTypeFact -> this.type.refineProperty(property, type)?.withGuard(guard, guardNegated)
+        is EtsTypeFact.GuardedTypeFact -> this.type.refineProperty(property, type)
 
         is EtsTypeFact.IntersectionEtsTypeFact -> EtsTypeFact.mkIntersectionType(
             types = types.mapTo(hashSetOf()) {
                 // Note: intersection is empty if any of the types is empty
-                it.refineProperty(property, type) ?: return null
+                it.refineProperty(property, type)
             }
         )
 
         is EtsTypeFact.UnionEtsTypeFact -> EtsTypeFact.mkUnionType(
-            types = types.mapNotNullTo(hashSetOf()) {
+            types = types.mapTo(hashSetOf()) {
                 // Note: ignore empty types in the union
                 it.refineProperty(property, type)
             }
@@ -695,7 +697,7 @@ class TypeInferenceManager(
                 when (propertyAccessor) {
                     is FieldAccessor -> {
                         val propertyType = properties[propertyAccessor.name] ?: return this
-                        val refinedProperty = propertyType.refineProperty(property.drop(1), type) ?: return null
+                        val refinedProperty = propertyType.refineProperty(property.drop(1), type)
                         val properties = this.properties + (propertyAccessor.name to refinedProperty)
                         return EtsTypeFact.ObjectEtsTypeFact(cls, properties)
                     }

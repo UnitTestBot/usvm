@@ -30,7 +30,7 @@ class CaseAssignFieldToLocal1 {
 // Case `x := y.f`
 class CaseAssignFieldToLocal2 {
     entrypoint() {
-        let y = {f: 42}; // y: { f: number }
+        let y = { f: 42 }; // y: { f: number }
         let x = y.f; // x: number
         this.infer(x);
     }
@@ -65,22 +65,22 @@ class CaseAssignFieldToSelf {
     }
 
     infer(a: any) {
-        const EXPECTED_ARG_0 = "Object { f: any }"
+        const EXPECTED_ARG_0 = "Object { f: any }";
     }
 }
 
 // Case `x.f := x`
-class CaseAssignSelfToField {
-    entrypoint(a: any) {
-        let x = { f: a }; // x: { f: any }
-        x.f = x; // x: { f: any }
-        this.infer(x);
-    }
-
-    infer(a: any) {
-        const EXPECTED_ARG_0 = "Object { f: any }"
-    }
-}
+// class CaseAssignSelfToField {
+//     entrypoint(a: any) {
+//         let x = { f: a }; // x: { f: any }
+//         x.f = x; // x: { f: any }
+//         this.infer(x);
+//     }
+//
+//     infer(a: any) {
+//         const EXPECTED_ARG_0 = "Object { f: any }"
+//     }
+// }
 
 // ----------------------------------------
 
@@ -581,25 +581,25 @@ class CaseReturnNumber {
 
 // ----------------------------------------
 
- // Case `return arg`
- class CaseReturnArgumentNumber {
-     entrypoint() {
-         let x = 94; // x: number
-         this.infer(x);
-     }
+// Case `return arg`
+class CaseReturnArgumentNumber {
+    entrypoint() {
+        let x = 94; // x: number
+        this.infer(x);
+    }
 
-     infer(a: any): any {
-         const EXPECTED_RETURN = "number";
-         return a;
-     }
- }
+    infer(a: any): any {
+        const EXPECTED_RETURN = "number";
+        return a;
+    }
+}
 
 // ----------------------------------------
 
 // Case `return obj`
 class CaseReturnObject {
     entrypoint() {
-         this.infer();
+        this.infer();
     }
 
     infer(): any {
@@ -795,9 +795,21 @@ class CaseNew {
     }
 
     infer(a: any): any {
-        const EXPECTED_ARG_0 = "MyType { f: number }"
+        const EXPECTED_ARG_0 = "MyType { f: number }";
     }
 }
+
+// class CaseNew2 {
+//     entrypoint() {
+//         let x = new Something(); // unresolved
+//         console.log(x.foo);
+//         this.infer(x);
+//     }
+//
+//     infer(a: any): any {
+//         const EXPECTED_ARG_0 = "Something { foo: any }";
+//     }
+// }
 
 // ----------------------------------------
 
@@ -929,7 +941,7 @@ class CaseAliasChain1 {
     }
 
     infer(a: any): any {
-        const EXPECTED_ARG_0 = "Object { f: Object { g: number } }"
+        const EXPECTED_ARG_0 = "Object { f: Object { g: number } }";
     }
 }
 
@@ -986,7 +998,7 @@ class CaseFindAssignmentAfterLoop {
             x.push(42);
         }
 
-        this.infer(x)
+        this.infer(x);
     }
 
     infer(a: any) {

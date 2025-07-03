@@ -3,9 +3,8 @@ package org.usvm.dataflow.ts.infer
 sealed interface BackwardTypeDomainFact {
     data object Zero : BackwardTypeDomainFact
 
-    // Requirement
     data class TypedVariable(
-        val variable: AccessPathBase,
+        val variable: AccessPath,
         val type: EtsTypeFact,
     ) : BackwardTypeDomainFact
 }

@@ -3,7 +3,6 @@ package org.usvm.dataflow.ts.infer
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsNopStmt
 import org.jacodb.ets.model.EtsStmt
-import org.jacodb.ets.model.EtsType
 import org.usvm.dataflow.ifds.Analyzer
 import org.usvm.dataflow.ifds.Edge
 import org.usvm.dataflow.ifds.Vertex
@@ -12,7 +11,6 @@ import org.usvm.dataflow.ts.graph.EtsApplicationGraph
 class ForwardAnalyzer(
     val graph: EtsApplicationGraph,
     methodInitialTypes: Map<EtsMethod, Map<AccessPathBase, EtsTypeFact>>,
-    typeInfo: Map<EtsType, EtsTypeFact>,
     doAddKnownTypes: Boolean = true,
     doAliasAnalysis: Boolean = true,
     val doLiveVariablesAnalysis: Boolean = true,
@@ -21,7 +19,6 @@ class ForwardAnalyzer(
     override val flowFunctions = ForwardFlowFunctions(
         graph = graph,
         methodInitialTypes = methodInitialTypes,
-        typeInfo = typeInfo,
         doAddKnownTypes = doAddKnownTypes,
         doAliasAnalysis = doAliasAnalysis,
         doLiveVariablesAnalysis = doLiveVariablesAnalysis,
