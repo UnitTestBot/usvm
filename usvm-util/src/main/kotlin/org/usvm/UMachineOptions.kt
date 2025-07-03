@@ -259,5 +259,4 @@ data class UMachineOptions(
      * Limit loop iterations.
      * */
     val loopIterationLimit: Int? = null,
-    // TODO fork limit
 )

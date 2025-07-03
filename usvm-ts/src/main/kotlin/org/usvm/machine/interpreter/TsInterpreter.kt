@@ -147,7 +147,6 @@ class TsInterpreter(
                 "Exception: $e\n${e.stackTrace.take(5).joinToString("\n") { "    $it" }}"
             }
             return StepResult(forkedStates = emptySequence(), originalStateAlive = false)
-            // todo are exceptional states properly removed?
         }
 
         return scope.stepResult()
@@ -192,12 +191,6 @@ class TsInterpreter(
                     return
                 }
                 val cls = classes.single()
-                // val method = cls.methods
-                //     .singleOrNull { it.name == stmt.callee.name }
-                //     ?: run {
-                //         TODO("Overloads are not supported yet")
-                //     }
-                // concreteMethods += method
                 val suitableMethods = cls.methods.filter { it.name == stmt.callee.name }
                 concreteMethods += suitableMethods
             } else {
@@ -278,18 +271,8 @@ class TsInterpreter(
                     val trueBranch = ref.trueBranch
                     val falseBranch = ref.falseBranch
                     if (trueBranch.isFakeObject() || falseBranch.isFakeObject()) {
-                        val unwrappedTrueExpr = if (trueBranch.isFakeObject()) {
-                            scope.assert(trueBranch.getFakeType(scope).refTypeExpr)
-                            trueBranch.extractRef(scope)
-                        } else {
-                            trueBranch.asExpr(addressSort)
-                        }
-                        val unwrappedFalseExpr = if (falseBranch.isFakeObject()) {
-                            scope.assert(falseBranch.getFakeType(scope).refTypeExpr)
-                            falseBranch.extractRef(scope)
-                        } else {
-                            falseBranch.asExpr(addressSort)
-                        }
+                        val unwrappedTrueExpr = trueBranch.asExpr(addressSort).unwrapRefWithPathConstraint(scope)
+                        val unwrappedFalseExpr = falseBranch.asExpr(addressSort).unwrapRefWithPathConstraint(scope)
                         return@calcOnState mkIte(
                             condition = ref.condition,
                             trueBranch = memory.types.evalIsSubtype(unwrappedTrueExpr, type),

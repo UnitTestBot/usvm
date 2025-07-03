@@ -92,6 +92,7 @@ import org.usvm.api.allocateArray
 import org.usvm.api.evalTypeEquals
 import org.usvm.dataflow.ts.infer.tryGetKnownType
 import org.usvm.dataflow.ts.util.type
+import org.usvm.machine.Constants
 import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsSizeSort
@@ -324,30 +325,17 @@ class TsExprResolver(
                     trueBranch = mkStringConstant("undefined", scope),
                     falseBranch = mkIte(
                         condition = scope.calcOnState {
-                            val unwrappedRef = if (ref.isFakeObject()) {
-                                scope.assert(ref.getFakeType(scope).refTypeExpr)
-                                ref.extractRef(scope)
-                            } else {
-                                ref.asExpr(addressSort)
-                            }
+                            val unwrappedRef = ref.unwrapRefWithPathConstraint(scope)
 
                             // TODO: adhoc: "expand" ITE
                             if (unwrappedRef is UIteExpr<*>) {
                                 val trueBranch = unwrappedRef.trueBranch
                                 val falseBranch = unwrappedRef.falseBranch
                                 if (trueBranch.isFakeObject() || falseBranch.isFakeObject()) {
-                                    val unwrappedTrueExpr = if (trueBranch.isFakeObject()) {
-                                        scope.assert(trueBranch.getFakeType(scope).refTypeExpr)
-                                        trueBranch.extractRef(scope)
-                                    } else {
-                                        trueBranch.asExpr(addressSort)
-                                    }
-                                    val unwrappedFalseExpr = if (falseBranch.isFakeObject()) {
-                                        scope.assert(falseBranch.getFakeType(scope).refTypeExpr)
-                                        falseBranch.extractRef(scope)
-                                    } else {
-                                        falseBranch.asExpr(addressSort)
-                                    }
+                                    val unwrappedTrueExpr =
+                                        trueBranch.asExpr(addressSort).unwrapRefWithPathConstraint(scope)
+                                    val unwrappedFalseExpr =
+                                        falseBranch.asExpr(addressSort).unwrapRefWithPathConstraint(scope)
                                     return@calcOnState mkIte(
                                         condition = unwrappedRef.condition,
                                         trueBranch = memory.types.evalTypeEquals(unwrappedTrueExpr, EtsStringType),
@@ -557,10 +545,10 @@ class TsExprResolver(
         }
 
         if (expr.callee.name == "toString") {
-            return mkStringConstant("I am string", scope)
+            return mkStringConstant("I am a string", scope)
         }
 
-        // TODO write tests
+        // TODO write tests https://github.com/UnitTestBot/usvm/issues/300
         if (expr.callee.name == "push" && expr.instance.type is EtsArrayType) {
             return scope.calcOnState {
                 val resolvedInstance = resolve(expr.instance)?.asExpr(ctx.addressSort) ?: return@calcOnState null
@@ -573,7 +561,7 @@ class TsExprResolver(
                 memory.write(lengthLValue, newLength, guard = ctx.trueExpr)
                 val resolvedArg = resolve(expr.args.single()) ?: return@calcOnState null
 
-                // TODO check sorts compatibility
+                // TODO check sorts compatibility https://github.com/UnitTestBot/usvm/issues/300
                 val newIndexLValue = mkArrayIndexLValue(
                     resolvedArg.sort,
                     resolvedInstance,
@@ -644,7 +632,6 @@ class TsExprResolver(
         }
 
         if (expr.callee.name == "\$r") {
-            // TODO hack
             return scope.calcOnState {
                 val mockSymbol = memory.mocker.createMockSymbol(trackedLiteral = null, addressSort, ownership)
 
@@ -670,7 +657,6 @@ class TsExprResolver(
                 if (resolutionResult is EtsPropertyResolution.Empty) {
                     logger.error { "Could not resolve static call: ${expr.callee}" }
                     scope.assert(falseExpr)
-                    // TODO mocks
                     return null
                 }
 
@@ -678,12 +664,15 @@ class TsExprResolver(
                 if (resolutionResult is EtsPropertyResolution.Ambiguous) {
                     val resolvedArgs = expr.args.map { resolve(it) ?: return null }
 
+                    val staticProperties = resolutionResult.properties.take(
+                        Constants.STATIC_METHODS_FORK_LIMIT
+                    )
+
                     val staticInstances = scope.calcOnState {
-                        resolutionResult.properties.take(1).map { getStaticInstance(it.enclosingClass!!) }
+                        staticProperties.map { getStaticInstance(it.enclosingClass!!) }
                     }
 
-                    // TODO take 1 is an error
-                    val concreteCalls = resolutionResult.properties.take(1).mapIndexed { index, value ->
+                    val concreteCalls = staticProperties.mapIndexed { index, value ->
                         TsConcreteMethodCallStmt(
                             callee = value,
                             instance = staticInstances[index],
@@ -694,7 +683,7 @@ class TsExprResolver(
 
                     val blocks = concreteCalls.map {
                         ctx.mkTrue() to { state: TsState -> state.newStmt(it) }
-                    } // TODO error with true Expr
+                    }
 
                     scope.forkMulti(blocks)
 
@@ -722,7 +711,7 @@ class TsExprResolver(
 
     private fun resolveStaticMethod(
         method: EtsMethodSignature,
-    ): EtsPropertyResolution<out EtsMethod> {
+    ): EtsPropertyResolution<EtsMethod> {
         // Perfect signature:
         if (method.enclosingClass.name != UNKNOWN_CLASS_NAME) {
             val classes = hierarchy.classesForType(EtsClassType(method.enclosingClass))
@@ -836,11 +825,7 @@ class TsExprResolver(
     }
 
     fun checkUndefinedOrNullPropertyRead(instance: UHeapRef) = with(ctx) {
-        val ref = if (instance.isFakeObject()) {
-            instance.extractRef(scope)
-        } else {
-            instance
-        }
+        val ref = instance.unwrapRef()
 
         val neqNull = mkAnd(
             mkHeapRefEq(ref, mkUndefinedValue()).not(),
@@ -882,7 +867,7 @@ class TsExprResolver(
         field: EtsFieldSignature,
         hierarchy: EtsHierarchy,
     ): UExpr<out USort>? = with(ctx) {
-        val resolvedAddr = instanceRef.extractRefIfRequired(scope)
+        val resolvedAddr = instanceRef.unwrapRef(scope)
 
         val etsField = resolveEtsField(instance, field, hierarchy)
 
@@ -909,19 +894,8 @@ class TsExprResolver(
             // That's not true in the common case for TS, but that's the decision we made.
             val auxiliaryType = EtsAuxiliaryType(properties = setOf(field.name))
             // assert is required to update models
-
-            // if (resolvedAddr.isFakeObject()) {
-            //     val extractedRef = resolvedAddr.extractRef(scope)
-            //     scope.assert(resolvedAddr.getFakeType(scope).refTypeExpr)
-            //     pathConstraints += memory.types.evalIsSubtype(extractedRef, auxiliaryType)
-            // } else {
             scope.assert(memory.types.evalIsSubtype(resolvedAddr, auxiliaryType))
-            // }
         }
-
-        // TODO
-        // Если мы записали что-то в объект в виде bool, а потом считали это из поля bool | null, то здесь будет unresolvedSort,
-        // мы проигнорируем что уже туда писали и считаем не оттуда
 
         if (sort == unresolvedSort) {
             val boolLValue = mkFieldLValue(boolSort, instanceRef, field)

@@ -16,7 +16,7 @@ fun TsContext.resolveEtsField(
     instance: EtsLocal?,
     field: EtsFieldSignature,
     hierarchy: EtsHierarchy,
-): EtsPropertyResolution<out EtsField> {
+): EtsPropertyResolution<EtsField> {
     // Perfect signature:
     if (field.enclosingClass.name != UNKNOWN_CLASS_NAME) {
         val classes = hierarchy.classesForType(EtsClassType(field.enclosingClass))
@@ -116,7 +116,7 @@ fun EtsClass.getAllProperties(hierarchy: EtsHierarchy): Pair<Set<EtsFieldName>, 
     return allFields to allMethods
 }
 
-sealed class EtsPropertyResolution<T> {
+sealed class EtsPropertyResolution<out T> {
     data class Unique<T>(val property: T) : EtsPropertyResolution<T>()
     data class Ambiguous<T>(val properties: List<T>) : EtsPropertyResolution<T>()
     data object Empty : EtsPropertyResolution<Nothing>()
@@ -124,7 +124,7 @@ sealed class EtsPropertyResolution<T> {
     companion object {
         fun <T> create(property: T) = Unique(property)
 
-        fun <T> create(properties: List<T>): EtsPropertyResolution<out T> {
+        fun <T> create(properties: List<T>): EtsPropertyResolution<T> {
             return when {
                 properties.isEmpty() -> Empty
                 properties.size == 1 -> Unique(properties.single())
