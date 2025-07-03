@@ -26,6 +26,7 @@ fun TsState.renderGraph() {
     myRenderDot(dot)
 }
 
+@Suppress("Deprecated")
 fun myRenderDot(
     dot: String,
     outDir: Path = createTempDirectory(),
