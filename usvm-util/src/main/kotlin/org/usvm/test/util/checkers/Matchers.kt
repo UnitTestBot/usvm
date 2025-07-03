@@ -18,7 +18,7 @@ fun between(bounds: IntRange) = AnalysisResultsNumberMatcher(
 val ignoreNumberOfAnalysisResults = AnalysisResultsNumberMatcher(
     description = "Allow any number of results except zero",
     matcherFailedMessage = { _ -> "No analysis results received" }
-) { it >= 0 }
+) { it > 0 }
 
 val noResultsExpected = AnalysisResultsNumberMatcher(
     description = "No executions expected",
