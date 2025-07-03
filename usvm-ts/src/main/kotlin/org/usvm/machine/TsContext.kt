@@ -165,15 +165,10 @@ class TsContext(
     }
 
     fun UHeapRef.extractRefIfRequired(scope: TsStepScope): UHeapRef {
-        var current = this
-        if (current.isFakeObject()) {
-            // val fakeType = current.getFakeType(scope)
-            // scope.doWithState {
-            //     pathConstraints += fakeType.refTypeExpr
-            // }
-            current = current.extractRef(scope)
+        if (isFakeObject()) {
+            return extractRef(scope)
         }
-        return current
+        return this
     }
 
     fun createFakeObjectRef(): UConcreteHeapRef {
