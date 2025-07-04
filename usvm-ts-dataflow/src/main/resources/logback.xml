@@ -1,7 +1,7 @@
 <configuration>
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%highlight([%level]) %replace(%c{0}){'(\$Companion)?\$logger\$1',''} - %msg%n</pattern>
+            <pattern>%highlight([%level]) %replace(%c{0}){'(\$Companion)?\$org.usvm.ts.service.logger\$1',''} - %msg%n</pattern>
         </encoder>
     </appender>
 

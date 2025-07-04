@@ -1,7 +1,7 @@
 package org.usvm.util
 
 import mu.KotlinLogging
-import org.jacodb.ets.dto.EtsFileDto
+import org.jacodb.ets.dto.FileDto
 import org.jacodb.ets.dto.toEtsFile
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsScene
@@ -15,18 +15,18 @@ import kotlin.io.path.walk
 private val logger = KotlinLogging.logger {}
 
 /**
- * Load an [EtsFileDto] from a resource file.
+ * Load an [FileDto] from a resource file.
  *
  * For example, `resources/ets/sample.json` can be loaded with:
  * ```
- * val dto: EtsFileDto = loadEtsFileDtoFromResource("/ets/sample.json")
+ * val dto: FileDto = loadFileDtoFromResource("/ets/sample.json")
  * ```
  */
-fun loadEtsFileDtoFromResource(jsonPath: String): EtsFileDto {
+fun loadFileDtoFromResource(jsonPath: String): FileDto {
     logger.debug { "Loading EtsIR from resource: '$jsonPath'" }
     require(jsonPath.endsWith(".json")) { "File must have a '.json' extension: '$jsonPath'" }
     getResourceStream(jsonPath).use { stream ->
-        return EtsFileDto.loadFromJson(stream)
+        return FileDto.loadFromJson(stream)
     }
 }
 
@@ -39,8 +39,8 @@ fun loadEtsFileDtoFromResource(jsonPath: String): EtsFileDto {
  * ```
  */
 fun loadEtsFileFromResource(jsonPath: String): EtsFile {
-    val etsFileDto = loadEtsFileDtoFromResource(jsonPath)
-    return etsFileDto.toEtsFile()
+    val fileDto = loadFileDtoFromResource(jsonPath)
+    return fileDto.toEtsFile()
 }
 
 /**
@@ -79,17 +79,17 @@ fun loadEtsProjectFromResources(
 //-----------------------------------------------------------------------------
 
 /**
- * Load an [EtsFileDto] from a file.
+ * Load an [FileDto] from a file.
  *
  * For example, `data/sample.json` can be loaded with:
  * ```
- * val dto: EtsFileDto = loadEtsFileDto(Path("data/sample.json"))
+ * val dto: FileDto = loadFileDto(Path("data/sample.json"))
  * ```
  */
-fun loadEtsFileDto(path: Path): EtsFileDto {
+fun loadFileDto(path: Path): FileDto {
     require(path.extension == "json") { "File must have a '.json' extension: $path" }
     path.inputStream().use { stream ->
-        return EtsFileDto.loadFromJson(stream)
+        return FileDto.loadFromJson(stream)
     }
 }
 
@@ -102,7 +102,7 @@ fun loadEtsFileDto(path: Path): EtsFileDto {
  * ```
  */
 fun loadEtsFile(path: Path): EtsFile {
-    val etsFileDto = loadEtsFileDto(path)
+    val etsFileDto = loadFileDto(path)
     return etsFileDto.toEtsFile()
 }
 

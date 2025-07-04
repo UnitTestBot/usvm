@@ -1,5 +1,7 @@
 package org.usvm.util
 
+import mu.KotlinLogging
+import org.jacodb.ets.grpc.loadScene
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
@@ -14,9 +16,8 @@ import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUndefinedType
 import org.jacodb.ets.model.EtsUnknownType
-import org.jacodb.ets.utils.loadEtsFileAutoConvert
-import org.junit.jupiter.api.TestInstance
-import org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS
+import org.jacodb.ets.proto.toEts
+import org.junit.jupiter.api.extension.ExtendWith
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.UMachineOptions
@@ -33,26 +34,43 @@ import kotlin.reflect.KClass
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
+private val logger = KotlinLogging.logger {}
+
 typealias CoverageChecker = (TsMethodCoverage) -> Boolean
 
-@TestInstance(PER_CLASS)
+@ExtendWith(SetupServer::class)
 abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMethodCoverage>() {
 
-    protected abstract val scene: EtsScene
+    companion object {
+        private const val PORT = SetupServer.PORT
 
-    protected fun loadSampleScene(
-        className: String,
-        folderPrefix: String = "",
-        useArkAnalyzerTypeInference: Boolean = false,
-    ): EtsScene {
-        val name = "$className.ts"
-        val path = getResourcePath("/samples/$folderPrefix/$name")
-        val file = loadEtsFileAutoConvert(
-            path,
-            useArkAnalyzerTypeInference = if (useArkAnalyzerTypeInference) 1 else null
-        )
-        return EtsScene(listOf(file))
+        fun loadSampleScene(
+            className: String,
+            folderPrefix: String = "",
+            useArkAnalyzerTypeInference: Boolean = false,
+        ): EtsScene {
+            val name = "$className.ts"
+            val path = getResourcePath("/samples/$folderPrefix/$name")
+
+            logger.info { "Loading Scene from '$path'..." }
+            val sceneProto = loadScene(PORT, path, inferTypes = useArkAnalyzerTypeInference)
+
+            logger.info { "Converting Scene from ProtoBuf to ETS..." }
+            val scene = sceneProto.toEts()
+            logger.info {
+                "Scene has ${
+                    scene.projectFiles.size
+                } files, ${
+                    scene.projectAndSdkClasses.size
+                } classes, ${
+                    scene.projectAndSdkClasses.flatMap { it.methods }.size
+                } methods"
+            }
+            return scene
+        }
     }
+
+    protected abstract val scene: EtsScene
 
     protected fun getMethod(className: String, methodName: String): EtsMethod {
         return scene

@@ -5,6 +5,9 @@ import org.gradle.plugin.use.PluginDependenciesSpec
 object Versions {
     const val clikt = "5.0.0"
     const val detekt = "1.23.7"
+    const val gradle_protobuf = "0.9.5"
+    const val grpc = "1.72.0"
+    const val grpc_kotlin = "1.4.3"
     const val ini4j = "0.5.4"
     const val jacodb = "5889d3c784"
     const val juliet = "1.3.2"
@@ -15,12 +18,16 @@ object Versions {
     const val kotlinx_coroutines = "1.10.0"
     const val kotlinx_serialization = "1.7.3"
     const val ksmt = "0.5.26"
+    const val ktor = "3.1.3"
     const val logback = "1.4.8"
     const val mockk = "1.13.4"
+    const val protobuf = "4.30.2"
     const val rd = "2023.2.0"
     const val sarif4k = "0.5.0"
     const val shadow = "8.3.3"
     const val slf4j = "1.6.1"
+    const val wire = "5.3.1"
+    const val wire_grpc_server = "1.0.0-alpha04"
 
     // versions for jvm samples
     object Samples {
@@ -116,7 +123,8 @@ object Libs {
     )
 
     // https://github.com/UnitTestBot/jacodb
-    private const val jacodbPackage = "com.github.UnitTestBot.jacodb" // use "org.jacodb" with includeBuild
+    // private const val jacodbPackage = "com.github.UnitTestBot.jacodb" // use "org.jacodb" with includeBuild
+    private const val jacodbPackage = "org.jacodb"
     val jacodb_core = dep(
         group = jacodbPackage,
         name = "jacodb-core",
@@ -173,14 +181,14 @@ object Libs {
     )
 
     // https://github.com/Kotlin/kotlinx.serialization
-    val kotlinx_serialization_core = dep(
-        group = "org.jetbrains.kotlinx",
-        name = "kotlinx-serialization-core",
-        version = Versions.kotlinx_serialization
-    )
     val kotlinx_serialization_json = dep(
         group = "org.jetbrains.kotlinx",
         name = "kotlinx-serialization-json",
+        version = Versions.kotlinx_serialization
+    )
+    val kotlinx_serialization_protobuf = dep(
+        group = "org.jetbrains.kotlinx",
+        name = "kotlinx-serialization-protobuf",
         version = Versions.kotlinx_serialization
     )
 
@@ -248,6 +256,52 @@ object Libs {
         name = "clikt",
         version = Versions.clikt
     )
+
+    // https://github.com/grpc/grpc-java
+    val grpc_api = dep(
+        group = "io.grpc",
+        name = "grpc-api",
+        version = Versions.grpc
+    )
+    val grpc_protobuf = dep(
+        group = "io.grpc",
+        name = "grpc-protobuf",
+        version = Versions.grpc
+    )
+    val grpc_stub = dep(
+        group = "io.grpc",
+        name = "grpc-stub",
+        version = Versions.grpc
+    )
+    val grpc_netty_shaded = dep(
+        group = "io.grpc",
+        name = "grpc-netty-shaded",
+        version = Versions.grpc
+    )
+
+    // https://github.com/square/wire
+    val wire_runtime = dep(
+        group = "com.squareup.wire",
+        name = "wire-runtime",
+        version = Versions.wire
+    )
+    val wire_grpc_client = dep(
+        group = "com.squareup.wire",
+        name = "wire-grpc-client",
+        version = Versions.wire
+    )
+
+    // https://github.com/square/wire-grpc-server
+    val wire_grpc_server = dep(
+        group = "com.squareup.wiregrpcserver",
+        name = "server",
+        version = Versions.wire_grpc_server
+    )
+    val wire_grpc_server_generator = dep(
+        group = "com.squareup.wiregrpcserver",
+        name = "server-generator",
+        version = Versions.wire_grpc_server
+    )
 }
 
 object Plugins {
@@ -270,6 +324,18 @@ object Plugins {
     object Shadow : ProjectPlugin(
         id = "com.gradleup.shadow",
         version = Versions.shadow
+    )
+
+    // https://github.com/google/protobuf-gradle-plugin
+    object GradleProtobuf : ProjectPlugin(
+        id = "com.google.protobuf",
+        version = Versions.gradle_protobuf
+    )
+
+    // https://github.com/square/wire
+    object Wire : ProjectPlugin(
+        version = Versions.wire,
+        id = "com.squareup.wire"
     )
 }
 

@@ -112,7 +112,9 @@ class TypeInferenceManager(
         this@TypeInferenceManager.backwardRunner = backwardRunner
 
         val exceptionHandler = CoroutineExceptionHandler { _, exception ->
-            logger.error { "Got exception from runner, stopping analysis" }
+            logger.error {
+                "Got exception from runner, stopping analysis: $exception\n${exception.stackTraceToString()}"
+            }
             runnerFinished.completeExceptionally(exception)
         }
 
