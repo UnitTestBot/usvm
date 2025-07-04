@@ -18,6 +18,7 @@ import org.usvm.statistics.TimeStatistics
 import org.usvm.statistics.UMachineObserver
 import org.usvm.statistics.collectors.AllStatesCollector
 import org.usvm.statistics.collectors.CoveredNewStatesCollector
+import org.usvm.statistics.collectors.StatesCollector
 import org.usvm.statistics.collectors.TargetsReachedStatesCollector
 import org.usvm.statistics.constraints.SoftConstraintsObserver
 import org.usvm.statistics.distances.CallGraphStatisticsImpl
@@ -77,9 +78,9 @@ class SampleMachine(
             { callGraphStatistics }
         )
 
-        val statesCollector =
+        val statesCollector: StatesCollector<SampleState> =
             when (options.stateCollectionStrategy) {
-                StateCollectionStrategy.COVERED_NEW -> CoveredNewStatesCollector<SampleState>(coverageStatistics) {
+                StateCollectionStrategy.COVERED_NEW -> CoveredNewStatesCollector(coverageStatistics) {
                     it.exceptionRegister != null
                 }
                 StateCollectionStrategy.REACHED_TARGET -> TargetsReachedStatesCollector()

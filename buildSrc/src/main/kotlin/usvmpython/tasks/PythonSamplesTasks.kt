@@ -1,7 +1,7 @@
 package usvmpython.tasks
 
-import gradle.kotlin.dsl.accessors._466a692754d3da37fc853e1c7ad8ae1e.sourceSets
-import gradle.kotlin.dsl.accessors._466a692754d3da37fc853e1c7ad8ae1e.test
+import gradle.kotlin.dsl.accessors._ed4eee7f6ae7e6c7746c5b956eb7e0be.sourceSets
+import gradle.kotlin.dsl.accessors._ed4eee7f6ae7e6c7746c5b956eb7e0be.test
 import org.gradle.api.Project
 import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.JavaExec
