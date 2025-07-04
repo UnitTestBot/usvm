@@ -20,41 +20,41 @@ import org.jacodb.api.jvm.ext.float
 import org.jacodb.api.jvm.ext.int
 import org.jacodb.api.jvm.ext.long
 import org.jacodb.api.jvm.ext.short
-import org.usvm.instrumentation.testcase.api.ArithmeticOperationType
-import org.usvm.instrumentation.testcase.api.ConditionType
-import org.usvm.instrumentation.testcase.api.UTestAllocateMemoryCall
-import org.usvm.instrumentation.testcase.api.UTestArithmeticExpression
-import org.usvm.instrumentation.testcase.api.UTestArrayGetExpression
-import org.usvm.instrumentation.testcase.api.UTestArrayLengthExpression
-import org.usvm.instrumentation.testcase.api.UTestArraySetStatement
-import org.usvm.instrumentation.testcase.api.UTestBinaryConditionExpression
-import org.usvm.instrumentation.testcase.api.UTestBinaryConditionStatement
-import org.usvm.instrumentation.testcase.api.UTestBooleanExpression
-import org.usvm.instrumentation.testcase.api.UTestByteExpression
-import org.usvm.instrumentation.testcase.api.UTestCastExpression
-import org.usvm.instrumentation.testcase.api.UTestCharExpression
-import org.usvm.instrumentation.testcase.api.UTestClassExpression
-import org.usvm.instrumentation.testcase.api.UTestConstructorCall
-import org.usvm.instrumentation.testcase.api.UTestCreateArrayExpression
-import org.usvm.instrumentation.testcase.api.UTestDoubleExpression
-import org.usvm.instrumentation.testcase.api.UTestExpression
-import org.usvm.instrumentation.testcase.api.UTestFloatExpression
-import org.usvm.instrumentation.testcase.api.UTestGetFieldExpression
-import org.usvm.instrumentation.testcase.api.UTestGetStaticFieldExpression
-import org.usvm.instrumentation.testcase.api.UTestGlobalMock
-import org.usvm.instrumentation.testcase.api.UTestInst
-import org.usvm.instrumentation.testcase.api.UTestIntExpression
-import org.usvm.instrumentation.testcase.api.UTestLongExpression
-import org.usvm.instrumentation.testcase.api.UTestMethodCall
-import org.usvm.instrumentation.testcase.api.UTestMockObject
-import org.usvm.instrumentation.testcase.api.UTestNullExpression
-import org.usvm.instrumentation.testcase.api.UTestSetFieldStatement
-import org.usvm.instrumentation.testcase.api.UTestSetStaticFieldStatement
-import org.usvm.instrumentation.testcase.api.UTestShortExpression
-import org.usvm.instrumentation.testcase.api.UTestStatement
-import org.usvm.instrumentation.testcase.api.UTestStaticMethodCall
-import org.usvm.instrumentation.testcase.api.UTestStringExpression
-import org.usvm.instrumentation.util.stringType
+import org.usvm.test.api.ArithmeticOperationType
+import org.usvm.test.api.ConditionType
+import org.usvm.test.api.UTestAllocateMemoryCall
+import org.usvm.test.api.UTestArithmeticExpression
+import org.usvm.test.api.UTestArrayGetExpression
+import org.usvm.test.api.UTestArrayLengthExpression
+import org.usvm.test.api.UTestArraySetStatement
+import org.usvm.test.api.UTestBinaryConditionExpression
+import org.usvm.test.api.UTestBinaryConditionStatement
+import org.usvm.test.api.UTestBooleanExpression
+import org.usvm.test.api.UTestByteExpression
+import org.usvm.test.api.UTestCastExpression
+import org.usvm.test.api.UTestCharExpression
+import org.usvm.test.api.UTestClassExpression
+import org.usvm.test.api.UTestConstructorCall
+import org.usvm.test.api.UTestCreateArrayExpression
+import org.usvm.test.api.UTestDoubleExpression
+import org.usvm.test.api.UTestExpression
+import org.usvm.test.api.UTestFloatExpression
+import org.usvm.test.api.UTestGetFieldExpression
+import org.usvm.test.api.UTestGetStaticFieldExpression
+import org.usvm.test.api.UTestGlobalMock
+import org.usvm.test.api.UTestInst
+import org.usvm.test.api.UTestIntExpression
+import org.usvm.test.api.UTestLongExpression
+import org.usvm.test.api.UTestMethodCall
+import org.usvm.test.api.UTestMockObject
+import org.usvm.test.api.UTestNullExpression
+import org.usvm.test.api.UTestSetFieldStatement
+import org.usvm.test.api.UTestSetStaticFieldStatement
+import org.usvm.test.api.UTestShortExpression
+import org.usvm.test.api.UTestStatement
+import org.usvm.test.api.UTestStaticMethodCall
+import org.usvm.test.api.UTestStringExpression
+import org.usvm.jvm.util.stringType
 
 class UTestInstSerializer(private val ctx: SerializationContext) {
 
@@ -381,7 +381,7 @@ class UTestInstSerializer(private val ctx: SerializationContext) {
         )
 
     private fun AbstractBuffer.deserializeUTestStringExpression() =
-        UTestStringExpression(readString(), jcClasspath.stringType())
+        UTestStringExpression(readString(), jcClasspath.stringType)
 
     private fun AbstractBuffer.serialize(uTestGetFieldExpression: UTestGetFieldExpression) =
         serialize(

@@ -8,6 +8,7 @@ import org.jacodb.api.jvm.JcField
 import org.jacodb.api.jvm.JcPrimitiveType
 import org.jacodb.api.jvm.JcRefType
 import org.jacodb.api.jvm.JcType
+import org.jacodb.api.jvm.JcTypedField
 import org.jacodb.api.jvm.JcTypedMethod
 import org.jacodb.api.jvm.ext.allSuperHierarchySequence
 import org.jacodb.api.jvm.ext.boolean
@@ -39,6 +40,7 @@ import org.usvm.api.SymbolicIdentityMap
 import org.usvm.api.SymbolicList
 import org.usvm.api.SymbolicMap
 import org.usvm.api.decoder.DecoderApi
+import org.usvm.api.decoder.DummyField
 import org.usvm.api.decoder.ObjectData
 import org.usvm.api.decoder.ObjectDecoder
 import org.usvm.api.internal.SymbolicIdentityMapImpl
@@ -53,8 +55,11 @@ import org.usvm.collection.map.length.UMapLengthLValue
 import org.usvm.collection.map.ref.URefMapEntryLValue
 import org.usvm.collection.set.ref.URefSetEntries
 import org.usvm.collection.set.ref.refSetEntries
+import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isStaticHeapRef
 import org.usvm.isTrue
+import org.usvm.jvm.util.allFields
+import org.usvm.jvm.util.cpWithoutApproximations
 import org.usvm.logger
 import org.usvm.machine.JcContext
 import org.usvm.machine.extractBool
@@ -80,15 +85,15 @@ import org.usvm.types.first
 
 abstract class JcTestStateResolver<T>(
     val ctx: JcContext,
-    private val model: UModelBase<JcType>,
+    protected val model: UModelBase<JcType>,
     private val finalStateMemory: UReadOnlyMemory<JcType>,
     val method: JcTypedMethod,
 ) {
     abstract val decoderApi: DecoderApi<T>
 
-    private var resolveMode: ResolveMode = ResolveMode.ERROR
+    protected open var resolveMode: ResolveMode = ResolveMode.ERROR
 
-    fun <R> withMode(resolveMode: ResolveMode, body: JcTestStateResolver<T>.() -> R): R {
+    open fun <R> withMode(resolveMode: ResolveMode, body: JcTestStateResolver<T>.() -> R): R {
         val prevValue = this.resolveMode
         try {
             this.resolveMode = resolveMode
@@ -188,11 +193,25 @@ abstract class JcTestStateResolver<T>(
     fun resolvePrimitiveChar(expr: UExpr<out USort>): Char =
         extractChar(evaluateInModel(expr)) ?: '\u0000'
 
+    open fun tryCreateObjectInstance(heapRef: UHeapRef): T? {
+        return null
+    }
+
     fun resolveReference(heapRef: UHeapRef, type: JcRefType): T {
         val ref = evaluateInModel(heapRef) as UConcreteHeapRef
         if (ref.address == NULL_ADDRESS) {
             return decoderApi.createNullConst(type)
         }
+
+        val obj = if (resolveMode == ResolveMode.CURRENT) {
+            tryCreateObjectInstance(heapRef)
+        } else null
+
+        if (obj != null) {
+            saveResolvedRef(ref.address, obj)
+            return obj
+        }
+
         // to find a type, we need to understand the source of the object
         val typeStream = if (ref.address <= INITIAL_INPUT_ADDRESS) {
             // input object
@@ -223,11 +242,12 @@ abstract class JcTestStateResolver<T>(
         }
     }
 
-    fun resolveArray(
+    open fun resolveArray(
         ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcArrayType
     ): T {
+        val currentRef = if (resolveMode == ResolveMode.CURRENT) heapRef else ref
         val arrayDescriptor = ctx.arrayDescriptorOf(type)
-        val lengthRef = UArrayLengthLValue(heapRef, arrayDescriptor, ctx.sizeSort)
+        val lengthRef = UArrayLengthLValue(currentRef, arrayDescriptor, ctx.sizeSort)
         val resolvedLength = resolvePrimitiveInt(memory.read(lengthRef))
 
         val length = clipArrayLength(resolvedLength)
@@ -238,7 +258,7 @@ abstract class JcTestStateResolver<T>(
         saveResolvedRef(ref.address, arrayInstance)
 
         for (idx in 0 until length) {
-            val elemRef = UArrayIndexLValue(cellSort, heapRef, ctx.mkSizeExpr(idx), arrayDescriptor)
+            val elemRef = UArrayIndexLValue(cellSort, currentRef, ctx.mkSizeExpr(idx), arrayDescriptor)
             val element = resolveLValue(elemRef, type.elementType)
             decoderApi.setArrayIndex(arrayInstance, decoderApi.createIntConst(idx), element)
         }
@@ -248,10 +268,12 @@ abstract class JcTestStateResolver<T>(
 
     abstract fun allocateClassInstance(type: JcClassType): T
 
-    fun resolveObject(ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcClassType): T {
+    open fun resolveObject(
+        ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcClassType
+    ): T {
         val decoder = decoders.findDecoder(type.jcClass)
         if (decoder != null) {
-            return decodeObject(ref, type, decoder)
+            return decodeObject(ref, heapRef, type, decoder)
         }
 
         if (type.jcClass == ctx.classType.jcClass && ref.address <= INITIAL_STATIC_ADDRESS) {
@@ -259,20 +281,30 @@ abstract class JcTestStateResolver<T>(
             return resolveAllocatedClass(ref)
         }
 
-        if (type.jcClass == ctx.stringType.jcClass && ref.address <= INITIAL_STATIC_ADDRESS) {
+        if (type.jcClass == ctx.stringType.jcClass) {
             // Note that non-negative addresses are possible only for the result value.
-            return resolveAllocatedString(ref)
+            return resolveString(ref, heapRef)
         }
 
         val anyEnumAncestor = type.getEnumAncestorOrNull()
         if (anyEnumAncestor != null) {
-            return resolveEnumValue(heapRef, anyEnumAncestor)
+            return resolveEnumValue(ref, heapRef, anyEnumAncestor)
         }
 
         return allocateAndInitializeObject(ref, heapRef, type)
     }
 
-    fun allocateAndInitializeObject(ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcClassType): T {
+    private val cpWithoutApproximations by lazy { ctx.cp.cpWithoutApproximations() }
+
+    private fun shouldIgnoreField(typedField: JcTypedField): Boolean {
+        return typedField.isStatic
+                || typedField.field.annotations.any { it.name == DummyField::class.java.name }
+                || with(cpWithoutApproximations) { !typedField.field.isOriginalField }
+    }
+
+    fun allocateAndInitializeObject(
+        ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcClassType
+    ): T {
         val instance = allocateClassInstance(type)
         saveResolvedRef(ref.address, instance)
 
@@ -282,36 +314,38 @@ abstract class JcTestStateResolver<T>(
             return instance
         }
 
+        val currentRef = if (resolveMode == ResolveMode.CURRENT) heapRef else ref
         for (cls in generateSequence(type.jcClass) { it.superClass }.map { it.toType() }) {
             // If superclass have a decoder, apply decoder and copy fields values
             val decoder = decoders.findDecoder(cls.jcClass)
             if (decoder != null) {
-                val decodedCls = decodeObject(ref, cls, decoder)
+
+                val fields = cls.allFields
+                    // Don't copy approximation-specific fields
+                    .filterNot { shouldIgnoreField(it) }
+
+                if (fields.isEmpty())
+                    continue
+
+                val decodedCls = decodeObject(ref, heapRef, cls, decoder)
 
                 // Decoder can overwrite cached instance. Restore correct instance
                 saveResolvedRef(ref.address, instance)
 
-                generateSequence(cls) { it.superType }
-                    .flatMap { it.declaredFields }
-                    .filterNot { it.isStatic }
-                    // Don't copy approximation-specific fields
-                    .filterNot { it.field is JcEnrichedVirtualField }
-                    .forEach { field ->
-                        val fieldValue = decoderApi.getField(field.field, decodedCls)
-                        decoderApi.setField(field.field, instance, fieldValue)
-                    }
+                for (field in fields) {
+                    val fieldValue = decoderApi.getField(field.field, decodedCls)
+                    decoderApi.setField(field.field, instance, fieldValue)
+                }
 
                 // No need to process other superclasses since we already decode them
                 break
             } else {
-                val fields = cls.declaredFields.filter { !it.isStatic }
-
-                for (field in fields) {
+                for (field in cls.declaredFields.filterNot { shouldIgnoreField(it) }) {
                     check(field.field !is JcEnrichedVirtualField) {
                         "Class ${cls.jcClass.name} has approximated field ${field.field} but has no decoder"
                     }
 
-                    val lvalue = UFieldLValue(ctx.typeToSort(field.type), heapRef, field.field)
+                    val lvalue = UFieldLValue(ctx.typeToSort(field.type), currentRef, field.field)
                     val fieldValue = resolveLValue(lvalue, field.type)
                     decoderApi.setField(field.field, instance, fieldValue)
                 }
@@ -321,8 +355,9 @@ abstract class JcTestStateResolver<T>(
         return instance
     }
 
-    fun resolveEnumValue(heapRef: UHeapRef, enumAncestor: JcClassOrInterface): T {
-        val ordinalLValue = UFieldLValue(ctx.sizeSort, heapRef, ctx.enumOrdinalField)
+    fun resolveEnumValue(ref: UConcreteHeapRef, heapRef: UHeapRef, enumAncestor: JcClassOrInterface): T {
+        val currentRef = if (resolveMode == ResolveMode.CURRENT) heapRef else ref
+        val ordinalLValue = UFieldLValue(ctx.sizeSort, currentRef, ctx.enumOrdinalField)
         val ordinalFieldValue = resolvePrimitiveInt(memory.read(ordinalLValue))
 
         val enumField = enumAncestor.enumValues?.get(ordinalFieldValue)
@@ -345,26 +380,58 @@ abstract class JcTestStateResolver<T>(
         return decoderApi.createClassConst(classType)
     }
 
-    abstract fun allocateString(value: T): T
-
-    fun resolveAllocatedString(ref: UConcreteHeapRef): T {
+    private fun resolveStringFromBytes(stringRef: UHeapRef): String? {
         val valueField = ctx.stringValueField
-        val strValueLValue = UFieldLValue(ctx.typeToSort(valueField.type), ref, valueField.field)
+        val strValueLValue = UFieldLValue(ctx.addressSort, stringRef, valueField.field)
+        val bytesRef = memory.read(strValueLValue).asExpr(ctx.addressSort)
+        val bytesModelRef = evaluateInModel(bytesRef) as UConcreteHeapRef
+        if (bytesModelRef.address == NULL_ADDRESS)
+            return null
 
-        val strValue = if (isStaticHeapRef(ref)) {
-            withMode(ResolveMode.CURRENT) {
-                val expr = memory.read(strValueLValue)
-                resolveExpr(expr, valueField.type)
-            }
-        } else {
-            resolveLValue(strValueLValue, valueField.type)
+        val bytesCurrentRef = if (resolveMode == ResolveMode.CURRENT) bytesRef else bytesModelRef
+        val byteArrayType = ctx.cp.arrayTypeOf(ctx.cp.byte)
+        check(valueField.type == byteArrayType)
+        val arrayDescriptor = ctx.arrayDescriptorOf(byteArrayType)
+        val lengthRef = UArrayLengthLValue(bytesCurrentRef, arrayDescriptor, ctx.sizeSort)
+        val resolvedLength = resolvePrimitiveInt(memory.read(lengthRef))
+
+        val length = clipArrayLength(resolvedLength)
+
+        val cellSort = ctx.byteSort
+        val stringBytes = ByteArray(length) { idx ->
+            val elemRef = UArrayIndexLValue(cellSort, bytesCurrentRef, ctx.mkSizeExpr(idx), arrayDescriptor)
+            val element = memory.read(elemRef)
+            resolvePrimitiveByte(element)
         }
 
-        return allocateString(strValue)
+        return String(stringBytes)
     }
 
-    fun decodeObject(ref: UConcreteHeapRef, type: JcClassType, objectDecoder: ObjectDecoder): T {
-        val refDecoder = TestObjectData(ref)
+    fun resolveString(ref: UConcreteHeapRef, heapRef: UHeapRef): T {
+        val currentRef = if (resolveMode == ResolveMode.CURRENT) heapRef else ref
+
+        val string = if (isStaticHeapRef(currentRef) || isAllocatedConcreteHeapRef(currentRef)) {
+            withMode(ResolveMode.CURRENT) {
+                resolveStringFromBytes(currentRef)
+            }
+        } else {
+            resolveStringFromBytes(currentRef)
+        }
+
+        if (string == null)
+            return decoderApi.createStringConst("")
+
+        val result = decoderApi.createStringConst(string)
+        saveResolvedRef(ref.address, result)
+
+        return result
+    }
+
+    fun decodeObject(
+        ref: UConcreteHeapRef, heapRef: UHeapRef, type: JcClassType, objectDecoder: ObjectDecoder
+    ): T {
+        val currentRef = if (resolveMode == ResolveMode.CURRENT) heapRef else ref
+        val refDecoder = TestObjectData(currentRef)
 
         val decodedObject = objectDecoder.createInstance(type.jcClass, refDecoder, decoderApi)
         requireNotNull(decodedObject) { "Object not properly decoded" }
@@ -428,11 +495,15 @@ abstract class JcTestStateResolver<T>(
         )
 
         val modelMapRef = evaluateInModel(heapRef)
-        val modelEntries = model.refSetEntries(modelMapRef, mapType)
-        resolveMapEntries(model, modelEntries, modelMapRef, mapType,
-            keyInModel = { !keysInModel.add(it) },
-            addModelEntry = { k, v -> resultMapAddEntry(k, v) }
-        )
+        val modelMapAddress = (modelMapRef as UConcreteHeapRef).address
+        if (modelMapAddress <= INITIAL_INPUT_ADDRESS) {
+            // Symbolic map came from input
+            val modelEntries = model.refSetEntries(modelMapRef, mapType)
+            resolveMapEntries(model, modelEntries, modelMapRef, mapType,
+                keyInModel = { !keysInModel.add(it) },
+                addModelEntry = { k, v -> resultMapAddEntry(k, v) }
+            )
+        }
 
         // todo: map length refinement loop in solver
         val mapSize = resultMapSize()
@@ -568,7 +639,7 @@ abstract class JcTestStateResolver<T>(
      *
      * @return a concretized expression.
      */
-    fun <T : USort> evaluateInModel(expr: UExpr<T>): UExpr<T> {
+    open fun <T : USort> evaluateInModel(expr: UExpr<T>): UExpr<T> {
         return model.eval(expr)
     }
 

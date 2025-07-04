@@ -2,15 +2,21 @@ package org.usvm.instrumentation.instrumentation
 
 import org.jacodb.api.jvm.JcClasspath
 import org.jacodb.api.jvm.JcMethod
-import org.jacodb.api.jvm.cfg.*
+import org.jacodb.api.jvm.cfg.AbstractFullRawExprSetCollector
+import org.jacodb.api.jvm.cfg.JcRawAssignInst
+import org.jacodb.api.jvm.cfg.JcRawExpr
+import org.jacodb.api.jvm.cfg.JcRawFieldRef
+import org.jacodb.api.jvm.cfg.JcRawInst
+import org.jacodb.api.jvm.cfg.JcRawLabelInst
+import org.jacodb.api.jvm.cfg.JcRawLineNumberInst
 import org.jacodb.api.jvm.ext.isEnum
 import org.jacodb.impl.cfg.MethodNodeBuilder
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.MethodNode
 import org.usvm.instrumentation.collector.trace.TraceCollector
 import org.usvm.instrumentation.instrumentation.JcInstructionTracer.StaticFieldAccessType
-import org.usvm.instrumentation.util.isSameSignature
-import org.usvm.instrumentation.util.replace
+import org.usvm.jvm.util.isSameSignature
+import org.usvm.jvm.util.replace
 
 /**
  * Class for runtime instrumentation for jcdb instructions

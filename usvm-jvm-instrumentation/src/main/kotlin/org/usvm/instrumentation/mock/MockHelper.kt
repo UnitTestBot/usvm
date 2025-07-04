@@ -18,7 +18,12 @@ import org.usvm.instrumentation.classloader.WorkerClassLoader
 import org.usvm.instrumentation.collector.trace.MockCollector
 import org.usvm.instrumentation.instrumentation.JcInstructionTracer
 import org.usvm.instrumentation.instrumentation.TraceHelper
-import org.usvm.instrumentation.util.*
+import org.usvm.jvm.util.getTypename
+import org.usvm.jvm.util.isSameSignature
+import org.usvm.jvm.util.replace
+import org.usvm.jvm.util.stringType
+import org.usvm.jvm.util.toJavaClass
+import org.usvm.jvm.util.typename
 
 class MockHelper(val jcClasspath: JcClasspath, val classLoader: WorkerClassLoader) {
 
@@ -123,7 +128,7 @@ class MockHelper(val jcClasspath: JcClasspath, val classLoader: WorkerClassLoade
         val specialCall = JcRawSpecialCallExpr(
             jcExceptionClass.typename,
             "<init>",
-            listOf(jcClasspath.stringType().getTypename()),
+            listOf(jcClasspath.stringType.getTypename()),
             jcClasspath.void.getTypename(),
             localVar,
             listOf(JcRawString("Method should be mocked!!"))
@@ -262,7 +267,7 @@ class MockHelper(val jcClasspath: JcClasspath, val classLoader: WorkerClassLoade
         val abstractMethods =
             (jcClass.declaredMethods + jcClass.allSuperHierarchy.flatMap { it.declaredMethods })
                 .filter { it.isAbstract }
-                .filterDuplicatesBy { it.jvmSignature }
+                .distinctBy { it.jvmSignature }
         for (jcMethod in abstractMethods) {
             val encodedMethodId = encodeMethod(jcMethod)
             val mockedMethod = addMockToAbstractMethod(jcMethod, encodedMethodId, classRebuilder)

@@ -1,6 +1,7 @@
 package org.usvm.samples
 
 import org.jacodb.api.jvm.JcClassOrInterface
+import org.jacodb.api.jvm.JcClasspath
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.extension.ExtendWith
 import org.usvm.CoverageZone
@@ -12,6 +13,7 @@ import org.usvm.api.JcTest
 import org.usvm.api.StaticFieldValue
 import org.usvm.api.targets.JcTarget
 import org.usvm.api.util.JcTestInterpreter
+import org.usvm.api.util.JcTestResolver
 import org.usvm.machine.JcInterpreterObserver
 import org.usvm.machine.JcMachine
 import org.usvm.test.util.TestRunner
@@ -31,10 +33,8 @@ import kotlin.reflect.KFunction3
 import kotlin.reflect.KFunction4
 import kotlin.reflect.full.instanceParameter
 import kotlin.reflect.jvm.javaConstructor
-import kotlin.reflect.jvm.javaMethod
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
-
 
 @ExtendWith(UTestRunnerController::class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -785,14 +785,14 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
     protected open val classpath: List<File>
         get() = samplesClasspath
 
-    protected val cp by lazy {
+    protected open val cp by lazy {
         JacoDBContainer(jacodbCpKey, classpath).cp
     }
 
     protected open val resolverType: JcTestResolverType = JcTestResolverType.INTERPRETER
 
-    private val testResolver =
-        when (resolverType) {
+    private val testResolver: JcTestResolver
+        get() = when (resolverType) {
             JcTestResolverType.INTERPRETER -> JcTestInterpreter()
             JcTestResolverType.CONCRETE_EXECUTOR -> JcTestExecutor(classpath = cp)
         }
@@ -812,10 +812,18 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         typeOperationsTimeout = Duration.INFINITE, // we do not need the timeout for type operations in tests
     )
 
+    open fun createMachine(
+        cp: JcClasspath,
+        options: UMachineOptions,
+        interpreterObserver: JcInterpreterObserver?
+    ): JcMachine {
+        return JcMachine(cp, options, interpreterObserver = interpreterObserver)
+    }
+
     override val runner: (KFunction<*>, UMachineOptions) -> List<JcTest> = { method, options ->
         val jcMethod = cp.getJcMethodByName(method)
 
-        JcMachine(cp, options, interpreterObserver = interpreterObserver).use { machine ->
+        createMachine(cp, options, interpreterObserver).use { machine ->
             val states = machine.analyze(jcMethod.method, targets)
             states.map { testResolver.resolve(jcMethod, it) }
         }
@@ -838,8 +846,5 @@ open class JavaMethodTestRunner : TestRunner<JcTest, KFunction<*>, KClass<*>?, J
         }
     }
 }
-
-private val KFunction<*>.declaringClass: Class<*>?
-    get() = (javaMethod ?: javaConstructor)?.declaringClass
 
 private typealias StaticsType = Map<JcClassOrInterface, List<StaticFieldValue>>

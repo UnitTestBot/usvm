@@ -41,8 +41,8 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UInterpreter
 import org.usvm.UIteExpr
-import org.usvm.api.allocateArrayInitialized
 import org.usvm.api.evalTypeEquals
+import org.usvm.api.initializeArray
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.api.makeSymbolicRefUntyped
 import org.usvm.api.targets.TsTarget
@@ -352,12 +352,17 @@ class TsInterpreter(
                 val array = scope.calcOnState {
                     // In a common case we cannot determine the type of the array
                     val type = EtsArrayType(EtsUnknownType, dimensions = 1)
-                    memory.allocateArrayInitialized(
-                        type = ctx.arrayDescriptorOf(type),
+                    val descriptor = ctx.arrayDescriptorOf(type)
+
+                    val address = memory.allocConcrete(descriptor)
+                    memory.initializeArray(
+                        arrayHeapRef = address,
+                        type = descriptor,
                         sort = ctx.addressSort,
                         sizeSort = ctx.sizeSort,
                         contents = content.asSequence(),
                     )
+                    address
                 }
                 args += array
             } else {

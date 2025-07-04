@@ -9,7 +9,7 @@ import org.usvm.api.JcParametersState
 import org.usvm.api.JcTest
 import org.usvm.api.util.JcTestStateResolver.ResolveMode.CURRENT
 import org.usvm.api.util.JcTestStateResolver.ResolveMode.MODEL
-import org.usvm.api.util.Reflection.allocateInstance
+import org.usvm.jvm.util.allocateInstance
 import org.usvm.machine.JcContext
 import org.usvm.machine.state.JcMethodResult
 import org.usvm.machine.state.JcState
@@ -97,11 +97,5 @@ class JcTestInterpreter(
 
         override fun allocateClassInstance(type: JcClassType): Any =
             type.allocateInstance(classLoader)
-
-        override fun allocateString(value: Any?): Any = when (value) {
-            is CharArray -> String(value)
-            is ByteArray -> String(value)
-            else -> String()
-        }
     }
 }

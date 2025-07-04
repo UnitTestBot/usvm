@@ -1,7 +1,12 @@
 package org.usvm.collection.array
 
 import io.ksmt.cache.hash
-import kotlinx.collections.immutable.toPersistentMap
+import kotlinx.collections.immutable.ImmutableCollection
+import kotlinx.collections.immutable.ImmutableSet
+import kotlinx.collections.immutable.PersistentMap
+import kotlinx.collections.immutable.adapters.ImmutableListAdapter
+import kotlinx.collections.immutable.adapters.ImmutableSetAdapter
+import kotlinx.collections.immutable.persistentMapOf
 import org.usvm.UBoolExpr
 import org.usvm.UComposer
 import org.usvm.UConcreteHeapAddress
@@ -19,6 +24,7 @@ import org.usvm.regions.RegionTree
 import org.usvm.regions.emptyRegionTree
 import org.usvm.sampleUValue
 import org.usvm.memory.key.USizeExprKeyInfo
+import org.usvm.mkSizeExpr
 import org.usvm.uctx
 import org.usvm.withSizeSort
 
@@ -75,19 +81,16 @@ class UAllocatedArrayId<ArrayType, Sort : USort, USizeSort : USort> internal con
     }
 
     fun initializedArray(
-        content: Map<UExpr<USizeSort>, UExpr<Sort>>,
+        content: List<UExpr<Sort>>,
         guard: UBoolExpr
     ): USymbolicCollection<UAllocatedArrayId<ArrayType, Sort, USizeSort>, UExpr<USizeSort>, Sort> {
-        val emptyRegionTree = emptyRegionTree<USizeRegion, UUpdateNode<UExpr<USizeSort>, Sort>>()
-
-        val entries = content.entries.associate { (key, value) ->
-            val region = keyInfo().keyToRegion(key)
-            val update = UPinpointUpdateNode(key, keyInfo(), value, guard)
-            region to (update to emptyRegionTree)
+        val ctx = guard.uctx.withSizeSort<USizeSort>()
+        val entries = content.mapIndexed { idx, value ->
+            UPinpointUpdateNode(ctx.mkSizeExpr(idx), keyInfo(), value, guard)
         }
 
         val updates = UTreeUpdates(
-            updates = RegionTree(entries.toPersistentMap()),
+            updates = RegionTree(UInitializedArrayRegionEntries(entries)),
             keyInfo()
         )
 
@@ -110,6 +113,97 @@ class UAllocatedArrayId<ArrayType, Sort : USort, USizeSort : USort> internal con
     override fun hashCode(): Int = address
 
     override fun toString(): String = "allocatedArray<$arrayType>($address)"
+}
+
+private typealias UInitializedArrayRegionValue<USizeSort, Sort> = Pair<UUpdateNode<UExpr<USizeSort>, Sort>, RegionTree<USizeRegion, UUpdateNode<UExpr<USizeSort>, Sort>>>
+
+private class UInitializedArrayRegionEntries<USizeSort : USort, Sort : USort>(
+    val data: List<UUpdateNode<UExpr<USizeSort>, Sort>>
+) : PersistentMap<USizeRegion, UInitializedArrayRegionValue<USizeSort, Sort>> {
+    override val size: Int get() = data.size
+    override fun isEmpty(): Boolean = data.isEmpty()
+
+    override val keys: ImmutableSet<USizeRegion> by lazy {
+        data.indices.mapTo(hashSetOf()) { USizeRegion.point(it) }
+            .let { ImmutableSetAdapter(it) }
+    }
+
+    private fun USizeRegion.getPointOrNull(): Int? {
+        val points = iterator()
+        if (!points.hasNext()) return null
+        val lhs = points.next()
+        if (!points.hasNext()) return null
+        val rhs = points.next()
+        if (points.hasNext()) return null
+        if (rhs != lhs + 1) return null
+        return lhs
+    }
+
+    override fun get(key: USizeRegion): UInitializedArrayRegionValue<USizeSort, Sort>? {
+        val point = key.getPointOrNull() ?: return null
+        val value = data.getOrNull(point) ?: return null
+        return value to emptyRegionTree()
+    }
+
+    override fun containsKey(key: USizeRegion): Boolean {
+        val point = key.getPointOrNull() ?: return false
+        return point in data.indices
+    }
+
+    override fun containsValue(value: UInitializedArrayRegionValue<USizeSort, Sort>): Boolean {
+        if (!value.second.isEmpty) return false
+        return data.contains(value.first)
+    }
+
+    private data class Entry<USizeSort : USort, Sort : USort>(
+        override val key: USizeRegion,
+        override val value: UInitializedArrayRegionValue<USizeSort, Sort>
+    ) : Map.Entry<USizeRegion, UInitializedArrayRegionValue<USizeSort, Sort>>
+
+    override val entries: ImmutableSet<Map.Entry<USizeRegion, UInitializedArrayRegionValue<USizeSort, Sort>>> by lazy {
+        data.mapIndexedTo(hashSetOf()) { idx, update ->
+            Entry(USizeRegion.point(idx), update to emptyRegionTree())
+        }.let { ImmutableSetAdapter(it) }
+    }
+
+    override val values: ImmutableCollection<UInitializedArrayRegionValue<USizeSort, Sort>> by lazy {
+        ImmutableListAdapter(data.map { it to emptyRegionTree() })
+    }
+
+    override fun clear(): PersistentMap<USizeRegion, UInitializedArrayRegionValue<USizeSort, Sort>> = persistentMapOf()
+
+    private val persistentMap: PersistentMap<USizeRegion, UInitializedArrayRegionValue<USizeSort, Sort>> by lazy {
+        val map = persistentMapOf<USizeRegion, UInitializedArrayRegionValue<USizeSort, Sort>>().builder()
+
+        data.forEachIndexed { idx, update ->
+            map[USizeRegion.point(idx)] = update to emptyRegionTree()
+        }
+
+        map.build()
+    }
+
+    override fun builder(): PersistentMap.Builder<USizeRegion, UInitializedArrayRegionValue<USizeSort, Sort>> =
+        persistentMap.builder()
+
+    override fun remove(
+        key: USizeRegion,
+        value: UInitializedArrayRegionValue<USizeSort, Sort>
+    ): PersistentMap<USizeRegion, UInitializedArrayRegionValue<USizeSort, Sort>> =
+        persistentMap.remove(key, value)
+
+    override fun remove(key: USizeRegion): PersistentMap<USizeRegion, UInitializedArrayRegionValue<USizeSort, Sort>> =
+        persistentMap.remove(key)
+
+    override fun putAll(
+        m: Map<out USizeRegion, UInitializedArrayRegionValue<USizeSort, Sort>>
+    ): PersistentMap<USizeRegion, UInitializedArrayRegionValue<USizeSort, Sort>> =
+        persistentMap.putAll(m)
+
+    override fun put(
+        key: USizeRegion,
+        value: UInitializedArrayRegionValue<USizeSort, Sort>
+    ): PersistentMap<USizeRegion, UInitializedArrayRegionValue<USizeSort, Sort>> =
+        persistentMap.put(key, value)
 }
 
 /**

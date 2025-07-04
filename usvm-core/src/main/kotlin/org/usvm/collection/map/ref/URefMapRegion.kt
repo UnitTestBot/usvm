@@ -172,7 +172,8 @@ internal class URefMapMemoryRegion<MapType, ValueSort : USort>(
                     symbolicMapper = { symbolicKey ->
                         val id = allocatedMapWithInputKeyId(concreteRef.address)
                         getAllocatedMapWithInputKeys(id).read(symbolicKey)
-                    }
+                    },
+                    ignoreNullRefs = false
                 )
             },
             symbolicMapper = { symbolicRef ->
@@ -183,7 +184,8 @@ internal class URefMapMemoryRegion<MapType, ValueSort : USort>(
                     },
                     symbolicMapper = { symbolicKey ->
                         getInputMapWithInputKeys().read(symbolicRef to symbolicKey)
-                    }
+                    },
+                    ignoreNullRefs = false
                 )
             }
         )
@@ -202,6 +204,7 @@ internal class URefMapMemoryRegion<MapType, ValueSort : USort>(
                 ref = key.mapKey,
                 initial = mapRegion,
                 initialGuard = mapGuard,
+                ignoreNullRefs = false,
                 blockOnConcrete = { region, (concreteKeyRef, guard) ->
                     val id = UAllocatedRefMapWithAllocatedKeysId(concreteMapRef.address, concreteKeyRef.address)
                     val newMap = region.allocatedMapWithAllocatedKeys.guardedWrite(id, value, guard, ownership) {
@@ -222,6 +225,7 @@ internal class URefMapMemoryRegion<MapType, ValueSort : USort>(
                 ref = key.mapKey,
                 initial = mapRegion,
                 initialGuard = mapGuard,
+                ignoreNullRefs = false,
                 blockOnConcrete = { region, (concreteKeyRef, guard) ->
                     val id = inputMapWithAllocatedKeyId(concreteKeyRef.address)
                     val newMap = region.getInputMapWithAllocatedKeys(id)
