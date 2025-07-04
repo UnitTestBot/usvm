@@ -41,7 +41,6 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UInterpreter
 import org.usvm.UIteExpr
-import org.usvm.api.allocateArrayInitialized
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArray
 import org.usvm.api.makeSymbolicPrimitive
