@@ -84,6 +84,12 @@ fun <Type, R : USort> UState<Type, *, *, *, *, *>.mapTypeStream(
     }
 )
 
+/**
+ * Utility function to assert that type of lhs ref is equal to the type of the rhs ref.
+ *
+ * Note: if both refs have no concrete type stream, the result expression will be extremely complex.
+ * So, we mock the result of this operation.
+ * */
 private fun <Type> UState<Type, *, *, *, *, *>.mkTypeEqualsConstraint(
     lhs: UHeapRef,
     lhsTypes: UTypeStream<Type>,
@@ -109,6 +115,12 @@ private fun <Type> UState<Type, *, *, *, *, *>.mkTypeEqualsConstraint(
     makeSymbolicPrimitive(boolSort)
 }
 
+/**
+ * Utility function to assert that type of lhs ref is subtype of type of the rhs ref.
+ *
+ * Note: if both refs have no concrete type stream, the result expression will be extremely complex.
+ * So, we mock the result of this operation.
+ * */
 private fun <Type> UState<Type, *, *, *, *, *>.mkSubtypeConstraint(
     lhs: UHeapRef,
     lhsTypes: UTypeStream<Type>,
