@@ -36,7 +36,6 @@ import org.usvm.machine.expr.TsUndefinedSort
 import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.expr.TsVoidSort
 import org.usvm.machine.expr.TsVoidValue
-import org.usvm.machine.expr.tctx
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.types.EtsFakeType
 import org.usvm.memory.UReadOnlyMemory
@@ -173,13 +172,12 @@ class TsContext(
         return this
     }
 
-    fun UHeapRef.unwrapRefWithPathConstraint(scope: TsStepScope): UHeapRef = with(tctx) {
-        if (this@unwrapRefWithPathConstraint.isFakeObject()) {
+    fun UHeapRef.unwrapRefWithPathConstraint(scope: TsStepScope): UHeapRef {
+        if (isFakeObject()) {
             scope.assert(getFakeType(scope).refTypeExpr)
-            extractRef(scope)
-        } else {
-            asExpr(addressSort)
+            return extractRef(scope)
         }
+        return this
     }
 
     fun createFakeObjectRef(): UConcreteHeapRef {
@@ -273,7 +271,6 @@ class Constants {
         const val MAGIC_OFFSET = 1000000
     }
 }
-
 
 enum class IntermediateLValueField {
     BOOL, FP, REF

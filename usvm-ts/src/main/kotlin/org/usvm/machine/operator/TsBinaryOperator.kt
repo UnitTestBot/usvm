@@ -1133,7 +1133,8 @@ sealed interface TsBinaryOperator {
             rhs: UHeapRef,
             scope: TsStepScope,
         ): UBoolExpr {
-            TODO("Not yet implemented")
+            // TODO: LT operator for references is not fully supported
+            return mkFalse()
         }
 
         override fun TsContext.resolveFakeObject(
@@ -1141,7 +1142,8 @@ sealed interface TsBinaryOperator {
             rhs: UExpr<*>,
             scope: TsStepScope,
         ): UBoolExpr {
-            TODO("Not yet implemented")
+            // TODO: LT operator for fake objects is not fully supported
+            return mkFalse()
         }
 
         override fun TsContext.internalResolve(
@@ -1149,7 +1151,12 @@ sealed interface TsBinaryOperator {
             rhs: UExpr<*>,
             scope: TsStepScope,
         ): UBoolExpr {
-            TODO("Not yet implemented")
+            // TODO: the immediate conversion to numbers is not correct,
+            //       we first need to try to convert arguments to primitive values,
+            //       which might become strings, for which LT has different semantics.
+            val left = mkNumericExpr(lhs, scope)
+            val right = mkNumericExpr(rhs, scope)
+            return mkFpLessExpr(left, right)
         }
     }
 

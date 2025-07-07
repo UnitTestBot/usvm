@@ -15,6 +15,7 @@ import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUndefinedType
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
+import org.jacodb.ets.utils.loadEtsProjectAutoConvert
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS
 import org.usvm.PathSelectionStrategy
@@ -44,6 +45,7 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
         className: String,
         folderPrefix: String = "",
         useArkAnalyzerTypeInference: Boolean = false,
+        sdks: List<String> = emptyList(), // resource paths to SDKs
     ): EtsScene {
         val name = "$className.ts"
         val path = getResourcePath("/samples/$folderPrefix/$name")
@@ -51,7 +53,12 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
             path,
             useArkAnalyzerTypeInference = if (useArkAnalyzerTypeInference) 1 else null
         )
-        return EtsScene(listOf(file))
+        val sdkFiles = sdks.flatMap { sdk ->
+            val sdkPath = getResourcePath(sdk)
+            val sdkProject = loadEtsProjectAutoConvert(sdkPath, useArkAnalyzerTypeInference = null)
+            sdkProject.projectFiles
+        }
+        return EtsScene(listOf(file), sdkFiles)
     }
 
     protected fun getMethod(className: String, methodName: String): EtsMethod {

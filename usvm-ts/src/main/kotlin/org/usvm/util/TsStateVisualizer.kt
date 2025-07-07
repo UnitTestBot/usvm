@@ -16,14 +16,18 @@ class TsStateVisualizer : TsInterpreterObserver, UMachineObserver<TsState> {
     }
 }
 
-fun TsState.renderGraph() {
+fun TsState.renderGraph(view: Boolean = true) {
     val graph = InterproceduralCfg(main = entrypoint.cfg, callees = discoveredCallees.toMap())
     val dot = graph.toHighlightedDotWithCalls(
         pathStmts = pathNode.allStatements.toSet(),
         currentStmt = currentStatement,
     )
 
-    myRenderDot(dot)
+    if (view ) {
+        myRenderDot(dot)
+    } else {
+        myRenderDot(dot, viewerCmd = null)
+    }
 }
 
 @Suppress("DEPRECATION")

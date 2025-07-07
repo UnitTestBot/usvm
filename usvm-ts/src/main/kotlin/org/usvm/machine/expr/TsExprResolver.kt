@@ -17,6 +17,7 @@ import org.jacodb.ets.model.EtsBitXorExpr
 import org.jacodb.ets.model.EtsBooleanConstant
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsCastExpr
+import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsConstant
 import org.jacodb.ets.model.EtsDeleteExpr
@@ -77,6 +78,7 @@ import org.jacodb.ets.model.EtsUnsignedRightShiftExpr
 import org.jacodb.ets.model.EtsValue
 import org.jacodb.ets.model.EtsVoidExpr
 import org.jacodb.ets.model.EtsYieldExpr
+import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.jacodb.ets.utils.STATIC_INIT_METHOD_NAME
 import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
 import org.jacodb.ets.utils.getDeclaredLocals
@@ -88,8 +90,8 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.UIteExpr
 import org.usvm.USort
-import org.usvm.api.initializeArrayLength
 import org.usvm.api.evalTypeEquals
+import org.usvm.api.initializeArrayLength
 import org.usvm.dataflow.ts.infer.tryGetKnownType
 import org.usvm.dataflow.ts.util.type
 import org.usvm.machine.Constants
@@ -98,8 +100,11 @@ import org.usvm.machine.TsContext
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.TsVirtualMethodCallStmt
 import org.usvm.machine.interpreter.TsStepScope
+import org.usvm.machine.interpreter.getResolvedValue
 import org.usvm.machine.interpreter.isInitialized
+import org.usvm.machine.interpreter.isResolved
 import org.usvm.machine.interpreter.markInitialized
+import org.usvm.machine.interpreter.markResolved
 import org.usvm.machine.operator.TsBinaryOperator
 import org.usvm.machine.operator.TsUnaryOperator
 import org.usvm.machine.state.TsMethodResult
@@ -120,6 +125,7 @@ import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
 import org.usvm.util.resolveEtsField
+import org.usvm.util.resolveEtsMethods
 import org.usvm.util.throwExceptionWithoutStackFrameDrop
 
 private val logger = KotlinLogging.logger {}
@@ -367,9 +373,51 @@ class TsExprResolver(
         error("Not supported $expr")
     }
 
-    override fun visit(expr: EtsAwaitExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsAwaitExpr): UExpr<out USort>? = with(ctx) {
+        val arg = resolve(expr.arg) ?: return null
+
+        // Awaiting primitives does nothing.
+        if (arg.sort != addressSort) {
+            return arg
+        }
+
+        val promise = arg.asExpr(addressSort)
+
+        val isResolved = scope.calcOnState { isResolved(promise) }
+        if (!isResolved) {
+            // If the promise is not resolved yet, we need to call the executor to resolve it.
+            val executor = scope.calcOnState {
+                promiseExecutors[expr.arg]
+                    ?: error("Await expression should have a promise executor, but it is not set for ${expr.arg}")
+            }
+            check(executor.cfg.stmts.isNotEmpty())
+            scope.doWithState {
+                markResolved(promise)
+                pushSortsForArguments(instance = null, args = emptyList(), localToIdx)
+                registerCallee(currentStatement, executor.cfg)
+                callStack.push(executor, currentStatement)
+                // TODO: pass meaningful 'instance' for the executor, e.g. some static instance
+                val instance = mkUndefinedValue() // TODO: 'this' should not be undefined!
+                memory.stack.push(arrayOf(instance), executor.localsCount)
+                newStmt(executor.cfg.stmts.first())
+            }
+            null
+        } else {
+            // If the promise is already resolved, we can return this value.
+            // val sort = typeToSort(expr.arg.type)
+            val sort = typeToSort(EtsUnknownType)
+            if (sort == unresolvedSort) {
+                val value = scope.calcOnState {
+                    getResolvedValue(promise, addressSort)
+                }
+                check(value.isFakeObject())
+                value
+            } else {
+                scope.calcOnState {
+                    getResolvedValue(promise, sort)
+                }
+            }
+        }
     }
 
     override fun visit(expr: EtsYieldExpr): UExpr<out USort>? {
@@ -559,6 +607,9 @@ class TsExprResolver(
                 val length = memory.read(lengthLValue)
                 val newLength = mkBvAddExpr(length, 1.toBv())
                 memory.write(lengthLValue, newLength, guard = ctx.trueExpr)
+                if (expr.args.size != 1) {
+                    let {}
+                }
                 val resolvedArg = resolve(expr.args.single()) ?: return@calcOnState null
 
                 // TODO check sorts compatibility https://github.com/UnitTestBot/usvm/issues/300
@@ -599,6 +650,33 @@ class TsExprResolver(
                     }
 
                     resolved.asExpr(addressSort)
+                }
+
+                // Handle Promise constructor
+                if (expr.callee.enclosingClass.name == "Promise" && expr.callee.name == CONSTRUCTOR_NAME) {
+                    val executorLocal = expr.args.single()
+                    val executors = resolveEtsMethods(
+                        EtsMethodSignature(
+                            enclosingClass = EtsClassSignature.UNKNOWN,
+                            name = executorLocal.name,
+                            parameters = emptyList(),
+                            returnType = EtsUnknownType,
+                        )
+                    )
+                    if (executors.isEmpty()) {
+                        logger.error { "Could not resolve executor method: ${executorLocal.name}" }
+                        scope.assert(falseExpr)
+                        return null
+                    }
+                    if (executors.size > 1) {
+                        logger.error { "Ambiguous executor method: ${executorLocal.name}, resolved ${executors.size} times" }
+                        scope.assert(falseExpr)
+                        return null
+                    }
+                    val executor = executors.single()
+                    scope.doWithState {
+                        setPromiseExecutor(expr.instance, executor)
+                    }
                 }
 
                 val resolvedArgs = expr.args.map { resolve(it) ?: return null }

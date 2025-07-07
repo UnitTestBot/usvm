@@ -54,6 +54,7 @@ class TsState(
     val addedArtificialLocals: MutableSet<String> = hashSetOf(),
     val lValuesToAllocatedFakeObjects: MutableList<Pair<ULValue<*, *>, UConcreteHeapRef>> = mutableListOf(),
     var discoveredCallees: UPersistentHashMap<Pair<EtsStmt, Int>, EtsBlockCfg> = persistentHashMapOf(),
+    var promiseExecutors: UPersistentHashMap<EtsLocal, EtsMethod> = persistentHashMapOf(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
     ctx = ctx,
     initOwnership = ownership,
@@ -141,6 +142,13 @@ class TsState(
         return result
     }
 
+    fun setPromiseExecutor(
+        local: EtsLocal,
+        method: EtsMethod,
+    ) {
+        promiseExecutors = promiseExecutors.put(local, method, ownership)
+    }
+
     override fun clone(newConstraints: UPathConstraints<EtsType>?): TsState {
         val newThisOwnership = MutabilityOwnership()
         val cloneOwnership = MutabilityOwnership()
@@ -168,6 +176,7 @@ class TsState(
             addedArtificialLocals = addedArtificialLocals,
             lValuesToAllocatedFakeObjects = lValuesToAllocatedFakeObjects.toMutableList(),
             discoveredCallees = discoveredCallees,
+            promiseExecutors = promiseExecutors,
         )
     }
 

@@ -72,6 +72,8 @@ class ExprTypeAnnotator(
     private val valueAnnotator: ValueTypeAnnotator,
 ) : EtsExpr.Visitor<EtsExpr> {
 
+    private fun annotate(local: EtsLocal) = valueAnnotator.visit(local)
+
     private fun annotate(value: EtsValue) = value.accept(valueAnnotator)
 
     private fun annotate(expr: EtsExpr) = expr.accept(this)
@@ -267,8 +269,8 @@ class ExprTypeAnnotator(
     )
 
     override fun visit(expr: EtsInstanceCallExpr): EtsExpr {
-        val baseInferred = annotate(expr.instance) as EtsLocal // safe cast
-        val argsInferred = expr.args.map { annotate(it) as EtsLocal } // safe cast
+        val baseInferred = annotate(expr.instance)
+        val argsInferred = expr.args.map { annotate(it) }
         val methodInferred = when (val baseType = baseInferred.type) {
             is EtsClassType -> {
                 val etsClass = scene.projectAndSdkClasses.find { it.signature == baseType.signature }
@@ -284,13 +286,13 @@ class ExprTypeAnnotator(
     }
 
     override fun visit(expr: EtsStaticCallExpr): EtsExpr {
-        val argsInferred = expr.args.map { annotate(it) as EtsLocal } // safe cast
+        val argsInferred = expr.args.map { annotate(it) }
         return expr.copy(args = argsInferred)
     }
 
     override fun visit(expr: EtsPtrCallExpr): EtsExpr {
-        val ptrInferred = annotate(expr.ptr) as EtsLocal // safe cast
-        val argsInferred = expr.args.map { annotate(it) as EtsLocal } // safe cast
+        val ptrInferred = annotate(expr.ptr)
+        val argsInferred = expr.args.map { annotate(it) }
         return expr.copy(ptr = ptrInferred, args = argsInferred)
     }
 }
