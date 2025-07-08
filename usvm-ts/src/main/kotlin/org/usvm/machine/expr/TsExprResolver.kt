@@ -26,6 +26,7 @@ import org.jacodb.ets.model.EtsEntity
 import org.jacodb.ets.model.EtsEqExpr
 import org.jacodb.ets.model.EtsExpExpr
 import org.jacodb.ets.model.EtsFieldSignature
+import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsFunctionType
 import org.jacodb.ets.model.EtsGtEqExpr
 import org.jacodb.ets.model.EtsGtExpr
@@ -105,6 +106,7 @@ import org.usvm.machine.interpreter.isInitialized
 import org.usvm.machine.interpreter.isResolved
 import org.usvm.machine.interpreter.markInitialized
 import org.usvm.machine.interpreter.markResolved
+import org.usvm.machine.interpreter.setResolvedValue
 import org.usvm.machine.operator.TsBinaryOperator
 import org.usvm.machine.operator.TsUnaryOperator
 import org.usvm.machine.state.TsMethodResult
@@ -387,18 +389,22 @@ class TsExprResolver(
         if (!isResolved) {
             // If the promise is not resolved yet, we need to call the executor to resolve it.
             val executor = scope.calcOnState {
-                promiseExecutors[expr.arg]
-                    ?: error("Await expression should have a promise executor, but it is not set for ${expr.arg}")
+                promiseExecutors[promise]
+                    ?: error("Await expression should have a promise executor, but it is not set for $promise")
             }
             check(executor.cfg.stmts.isNotEmpty())
             scope.doWithState {
                 markResolved(promise)
-                pushSortsForArguments(instance = null, args = emptyList(), localToIdx)
+                // Note: arguments for 'executor' are:
+                //   - `resolve`, if present in parameters
+                //   - `reject`, if present in parameters
+                //   - `promise` == "this", should be the last
+                val args = executor.parameters.map{mkUndefinedValue()} + promise
+                // pushSortsForArguments(instance = null, args = emptyList(), localToIdx)
+                pushSortsForActualArguments(args)
+                memory.stack.push(args.toTypedArray(), executor.localsCount)
                 registerCallee(currentStatement, executor.cfg)
                 callStack.push(executor, currentStatement)
-                // TODO: pass meaningful 'instance' for the executor, e.g. some static instance
-                val instance = mkUndefinedValue() // TODO: 'this' should not be undefined!
-                memory.stack.push(arrayOf(instance), executor.localsCount)
                 newStmt(executor.cfg.stmts.first())
             }
             null
@@ -625,6 +631,35 @@ class TsExprResolver(
             }
         }
 
+        // Handle Promise constructor
+        if (expr.callee.enclosingClass.name == "Promise" && expr.callee.name == CONSTRUCTOR_NAME) {
+            val promise = resolve(expr.instance)?.asExpr(addressSort) ?: return null
+            val executorLocal = expr.args.single()
+            val executors = resolveEtsMethods(
+                EtsMethodSignature(
+                    enclosingClass = EtsClassSignature.UNKNOWN,
+                    name = executorLocal.name,
+                    parameters = emptyList(),
+                    returnType = EtsUnknownType,
+                )
+            )
+            if (executors.isEmpty()) {
+                logger.error { "Could not resolve executor method: ${executorLocal.name}" }
+                scope.assert(falseExpr)
+                return null
+            }
+            if (executors.size > 1) {
+                logger.error { "Ambiguous executor method: ${executorLocal.name}, resolved ${executors.size} times" }
+                scope.assert(falseExpr)
+                return null
+            }
+            val executor = executors.single()
+            scope.doWithState {
+                setPromiseExecutor(promise, executor)
+            }
+            return promise
+        }
+
         return when (val result = scope.calcOnState { methodResult }) {
             is TsMethodResult.Success -> {
                 scope.doWithState { methodResult = TsMethodResult.NoCall }
@@ -650,33 +685,6 @@ class TsExprResolver(
                     }
 
                     resolved.asExpr(addressSort)
-                }
-
-                // Handle Promise constructor
-                if (expr.callee.enclosingClass.name == "Promise" && expr.callee.name == CONSTRUCTOR_NAME) {
-                    val executorLocal = expr.args.single()
-                    val executors = resolveEtsMethods(
-                        EtsMethodSignature(
-                            enclosingClass = EtsClassSignature.UNKNOWN,
-                            name = executorLocal.name,
-                            parameters = emptyList(),
-                            returnType = EtsUnknownType,
-                        )
-                    )
-                    if (executors.isEmpty()) {
-                        logger.error { "Could not resolve executor method: ${executorLocal.name}" }
-                        scope.assert(falseExpr)
-                        return null
-                    }
-                    if (executors.size > 1) {
-                        logger.error { "Ambiguous executor method: ${executorLocal.name}, resolved ${executors.size} times" }
-                        scope.assert(falseExpr)
-                        return null
-                    }
-                    val executor = executors.single()
-                    scope.doWithState {
-                        setPromiseExecutor(expr.instance, executor)
-                    }
                 }
 
                 val resolvedArgs = expr.args.map { resolve(it) ?: return null }
@@ -707,6 +715,26 @@ class TsExprResolver(
             return resolveAfterResolved(expr.args.single()) {
                 mkTruthyExpr(it, scope)
             }
+        }
+
+        if (expr.callee.name == "resolve") {
+            val promise = resolve(
+                EtsThis(
+                    EtsClassType(
+                        EtsClassSignature(
+                            "Promise",
+                            EtsFileSignature("typescript", "lib.es5.d.ts")
+                        )
+                    )
+                )
+            ) ?: return null
+            check(expr.args.size == 1) { "resolve should have exactly one argument" }
+            val value = resolve(expr.args.single()) ?: return null
+            val fakeValue = value.toFakeObject(scope)
+            scope.doWithState {
+                setResolvedValue(promise.asExpr(addressSort), fakeValue)
+            }
+            return mkUndefinedValue()
         }
 
         if (expr.callee.name == "\$r") {

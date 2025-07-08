@@ -13,6 +13,7 @@ import org.usvm.PathNode
 import org.usvm.UCallStack
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.UState
 import org.usvm.api.targets.TsTarget
@@ -54,7 +55,7 @@ class TsState(
     val addedArtificialLocals: MutableSet<String> = hashSetOf(),
     val lValuesToAllocatedFakeObjects: MutableList<Pair<ULValue<*, *>, UConcreteHeapRef>> = mutableListOf(),
     var discoveredCallees: UPersistentHashMap<Pair<EtsStmt, Int>, EtsBlockCfg> = persistentHashMapOf(),
-    var promiseExecutors: UPersistentHashMap<EtsLocal, EtsMethod> = persistentHashMapOf(),
+    var promiseExecutors: UPersistentHashMap<UHeapRef, EtsMethod> = persistentHashMapOf(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
     ctx = ctx,
     initOwnership = ownership,
@@ -143,10 +144,10 @@ class TsState(
     }
 
     fun setPromiseExecutor(
-        local: EtsLocal,
+        promise: UHeapRef,
         method: EtsMethod,
     ) {
-        promiseExecutors = promiseExecutors.put(local, method, ownership)
+        promiseExecutors = promiseExecutors.put(promise, method, ownership)
     }
 
     override fun clone(newConstraints: UPathConstraints<EtsType>?): TsState {

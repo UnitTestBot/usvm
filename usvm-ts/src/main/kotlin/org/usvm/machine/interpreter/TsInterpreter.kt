@@ -246,7 +246,7 @@ class TsInterpreter(
                 .asSequence()
                 // TODO wrong order, ancestors are unordered
                 .map { graph.hierarchy.getAncestors(it) }
-                .map { it.first { it.methods.any { it.name == stmt.callee.name } } }
+                .mapNotNull { it.firstOrNull { it.methods.any { it.name == stmt.callee.name } } }
                 .map { clazz to it.methods.first { it.name == stmt.callee.name } }
         }.toList().take(10) // TODO check it
 
