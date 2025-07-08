@@ -91,6 +91,7 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.UIteExpr
 import org.usvm.USort
+import org.usvm.api.allocateConcreteRef
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArrayLength
 import org.usvm.dataflow.ts.infer.tryGetKnownType
@@ -694,6 +695,25 @@ class TsExprResolver(
             val executor = executors.single()
             scope.doWithState {
                 setPromiseExecutor(promise, executor)
+            }
+            return promise
+        }
+
+        // Handle `Promise.resolve(value)` and `Promise.reject(reason)` calls
+        if (expr.instance.name == "Promise" && expr.callee.name in listOf("resolve", "reject")) {
+            val promise = allocateConcreteRef()
+            val newState = when (expr.callee.name) {
+                "resolve" -> PromiseState.FULFILLED
+                "reject" -> PromiseState.REJECTED
+                else -> error("Unexpected: $expr")
+            }
+            check(expr.args.size == 1) { "Promise.${expr.callee.name} should have exactly one argument" }
+            val value = resolve(expr.args.single()) ?: return null
+            val fakeValue = value.toFakeObject(scope)
+            scope.doWithState {
+                markResolved(promise)
+                setPromiseState(promise, newState)
+                setResolvedValue(promise, fakeValue)
             }
             return promise
         }
