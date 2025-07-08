@@ -30,4 +30,13 @@ class Async : TsMethodTestRunner() {
             )
         )
     }
+
+    @Test
+    fun `create and await rejecting promise`() {
+        val method = getMethod(className, "createAndAwaitRejectingPromise")
+        discoverProperties<TsTestValue>(
+            method = method,
+            { r -> r is TsTestValue.TsException },
+        )
+    }
 }

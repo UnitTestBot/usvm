@@ -13,4 +13,11 @@ class Async {
             return -1; // unreachable
         }
     }
+
+    createAndAwaitRejectingPromise(): number {
+        const promise = new Promise((resolve, reject) => {
+            reject(new Error("An error occurred"));
+        });
+        await promise;
+    }
 }

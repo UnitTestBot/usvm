@@ -391,7 +391,7 @@ class TsExprResolver(
         }
 
         val promiseState = scope.calcOnState {
-            promiseStates[promise] ?: error("Promise state is not set for $promise")
+            promiseStates[promise] ?: PromiseState.PENDING
         }
 
         val isResolved = scope.calcOnState { isResolved(promise) }
@@ -406,11 +406,13 @@ class TsExprResolver(
             }
             check(executor.cfg.stmts.isNotEmpty())
             scope.doWithState {
-                markResolved(promise)
                 // Note: arguments for 'executor' are:
                 //   - `resolve`, if present in parameters
                 //   - `reject`, if present in parameters
                 //   - `promise` == "this", should be the last
+                check(executor.parameters.size <= 2) {
+                    "Executor should have at most 2 parameters (resolve and reject), but it has ${executor.parameters.size} for $executor"
+                }
                 val args = executor.parameters.map { mkUndefinedValue() } + promise
                 // pushSortsForArguments(instance = null, args = emptyList(), localToIdx)
                 pushSortsForActualArguments(args)
@@ -758,7 +760,7 @@ class TsExprResolver(
             }
         }
 
-        if (expr.callee.name == "resolve") {
+        if (expr.callee.name == "resolve" || expr.callee.name == "reject") {
             val promise = resolve(
                 EtsThis(
                     EtsClassType(
@@ -768,11 +770,21 @@ class TsExprResolver(
                         )
                     )
                 )
-            ) ?: return null
+            )?.asExpr(addressSort) ?: return null
+            check(isAllocatedConcreteHeapRef(promise)) {
+                "Promise instance should be allocated, but it is not: $promise"
+            }
+            val newState = when (expr.callee.name) {
+                "resolve" -> PromiseState.FULFILLED
+                "reject" -> PromiseState.REJECTED
+                else -> error("Unexpected: $expr")
+            }
             check(expr.args.size == 1) { "resolve should have exactly one argument" }
             val value = resolve(expr.args.single()) ?: return null
             val fakeValue = value.toFakeObject(scope)
             scope.doWithState {
+                markResolved(promise.asExpr(addressSort))
+                setPromiseState(promise, newState)
                 setResolvedValue(promise.asExpr(addressSort), fakeValue)
             }
             return mkUndefinedValue()

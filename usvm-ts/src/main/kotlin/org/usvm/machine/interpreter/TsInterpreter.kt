@@ -181,7 +181,7 @@ class TsInterpreter(
                     return
                 }
                 if (classes.size > 1) {
-                    logger.warn { "Multiple (${classes.size}) classes with name: ${type.typeName}" }
+                    logger.warn { "Multiple (${classes.size}) classes with name '${type.typeName}'" }
                     // scope.assert(falseExpr)
                     // return
                     for (cls in classes) {
@@ -290,7 +290,17 @@ class TsInterpreter(
             }
             constraint to block
         }
-        scope.forkMulti(conditionsWithBlocks)
+        if (conditionsWithBlocks.isEmpty()) {
+            logger.warn {
+                "No suitable methods found for call: ${stmt.callee} with instance: $unwrappedInstance"
+            }
+            mockMethodCall(scope, stmt.callee)
+            scope.doWithState {
+                newStmt(stmt.returnSite)
+            }
+        } else {
+            scope.forkMulti(conditionsWithBlocks)
+        }
     }
 
     private fun visitConcreteMethodCall(scope: TsStepScope, stmt: TsConcreteMethodCallStmt) {
