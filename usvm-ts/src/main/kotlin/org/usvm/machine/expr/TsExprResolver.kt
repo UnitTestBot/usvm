@@ -100,6 +100,7 @@ import org.usvm.api.allocateConcreteRef
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArrayLength
 import org.usvm.api.mockMethodCall
+import org.usvm.api.typeStreamOf
 import org.usvm.dataflow.ts.infer.tryGetKnownType
 import org.usvm.dataflow.ts.util.type
 import org.usvm.isAllocatedConcreteHeapRef
@@ -126,6 +127,7 @@ import org.usvm.machine.state.newStmt
 import org.usvm.machine.types.EtsAuxiliaryType
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.sizeSort
+import org.usvm.types.first
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.TsResolutionResult
 import org.usvm.util.createFakeField
@@ -141,8 +143,8 @@ import org.usvm.util.throwExceptionWithoutStackFrameDrop
 private val logger = KotlinLogging.logger {}
 
 class TsExprResolver(
-    private val ctx: TsContext,
-    private val scope: TsStepScope,
+    internal val ctx: TsContext,
+    internal val scope: TsStepScope,
     private val localToIdx: (EtsMethod, EtsValue) -> Int?,
     private val hierarchy: EtsHierarchy,
 ) : EtsEntity.Visitor<UExpr<out USort>?> {
@@ -179,7 +181,7 @@ class TsExprResolver(
         with(operator) { ctx.resolve(lhs, rhs, scope) }
     }
 
-    private inline fun <T> resolveAfterResolved(
+    internal inline fun <T> resolveAfterResolved(
         dependency: EtsEntity,
         block: (UExpr<out USort>) -> T,
     ): T? {
@@ -187,7 +189,7 @@ class TsExprResolver(
         return block(result)
     }
 
-    private inline fun <T> resolveAfterResolved(
+    internal inline fun <T> resolveAfterResolved(
         dependency0: EtsEntity,
         dependency1: EtsEntity,
         block: (UExpr<out USort>, UExpr<out USort>) -> T,
@@ -622,174 +624,13 @@ class TsExprResolver(
 
     // region CALL
 
-    private fun handleValueOf(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
-        if (expr.args.isNotEmpty()) {
-            logger.warn { "valueOf() should have no arguments, but got ${expr.args.size}" }
-        }
-
-        val instance = resolve(expr.instance) ?: return null
-        instance
-    }
-
-    private fun handleNumberIsNaN(expr: EtsInstanceCallExpr): UBoolExpr? = with(ctx) {
-        check(expr.args.size == 1) { "Number.isNaN should have one argument" }
-        val arg = resolve(expr.args.single()) ?: return null
-
-        // 21.1.2.4 Number.isNaN ( number )
-        // 1. If number is not a Number, return false.
-        // 2. If number is NaN, return true.
-        // 3. Otherwise, return false.
-
-        if (arg.isFakeObject()) {
-            val fakeType = arg.getFakeType(scope)
-            val value = arg.extractFp(scope)
-            return mkIte(
-                condition = fakeType.fpTypeExpr,
-                trueBranch = mkFpIsNaNExpr(value),
-                falseBranch = mkFalse(),
-            )
-        }
-
-        if (arg.sort == fp64Sort) {
-            mkFpIsNaNExpr(arg.asExpr(fp64Sort))
-        } else {
-            mkFalse()
-        }
-    }
-
-    private fun handleArrayPush(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
-        val instance = resolve(expr.instance)?.asExpr(addressSort) ?: return null
-        check(expr.args.size == 1) {
-            "Array::push() should have exactly one argument, but got ${expr.args.size}"
-        }
-        val arg = resolve(expr.args.single()) ?: return null
-        val arrayType = EtsArrayType(EtsUnknownType, dimensions = 1)
-
-        scope.calcOnState {
-            // Update the length of the array
-            val lengthLValue = mkArrayLengthLValue(instance, arrayType)
-            val length = memory.read(lengthLValue)
-            val newLength = mkBvAddExpr(length, 1.toBv())
-            memory.write(lengthLValue, newLength, guard = trueExpr)
-
-            // Write the new element to the end of the array
-            // TODO check sorts compatibility https://github.com/UnitTestBot/usvm/issues/300
-            val newIndexLValue = mkArrayIndexLValue(
-                sort = arg.sort,
-                ref = instance,
-                index = length,
-                type = arrayType,
-            )
-            memory.write(newIndexLValue, arg.asExpr(newIndexLValue.sort), guard = ctx.trueExpr)
-
-            // Return the new length of the array (as per ECMAScript spec for Array.push)
-            newLength
-        }
-    }
-
-    private fun handlePromiseConstructor(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
-        val instance = resolve(expr.instance) ?: return null
-        val promise = instance.asExpr(addressSort)
-        check(isAllocatedConcreteHeapRef(promise)) {
-            "Promise instance should be allocated, but it is not: $promise"
-        }
-        check(expr.args.size == 1) {
-            "Promise constructor should have exactly one argument, but got ${expr.args.size}"
-        }
-        val executorLocal = expr.args.single()
-
-        // Lookup the executor method
-        val executors = resolveEtsMethods(
-            EtsMethodSignature(
-                enclosingClass = EtsClassSignature.UNKNOWN,
-                name = executorLocal.name,
-                parameters = emptyList(),
-                returnType = EtsUnknownType,
-            )
-        )
-        if (executors.isEmpty()) {
-            logger.error { "Could not resolve executor method: ${executorLocal.name}" }
-            scope.assert(falseExpr)
-            return null
-        }
-        if (executors.size > 1) {
-            logger.error { "Ambiguous executor method: ${executorLocal.name}, resolved ${executors.size} times" }
-            scope.assert(falseExpr)
-            return null
-        }
-        val executor = executors.single()
-
-        // Save the executor for the promise in the state
-        scope.doWithState {
-            setPromiseExecutor(promise, executor)
-        }
-
-        promise
-    }
-
-    private fun handlePromiseResolveReject(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
-        val promise = allocateConcreteRef()
-        val newState = when (expr.callee.name) {
-            "resolve" -> PromiseState.FULFILLED
-            "reject" -> PromiseState.REJECTED
-            else -> error("Unexpected: $expr")
-        }
-        check(expr.args.size == 1) {
-            "Promise.${expr.callee.name}() should have exactly one argument, but got ${expr.args.size}"
-        }
-        val value = resolve(expr.args.single()) ?: return null
-        val fakeValue = value.toFakeObject(scope)
-        scope.doWithState {
-            markResolved(promise)
-            setPromiseState(promise, newState)
-            setResolvedValue(promise, fakeValue)
-        }
-        promise
-    }
-
     override fun visit(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
-        // Mock all calls to `Logger` methods
-        if (expr.instance.name == "Logger") {
-            return mkUndefinedValue()
+        when (val result = tryApproximateInstanceCall(expr)) {
+            is TsExprApproximationResult.SuccessfulApproximation -> return result.expr
+            is TsExprApproximationResult.ResolveFailure -> return null
+            is TsExprApproximationResult.NoApproximation -> {}
         }
 
-        // Mock `toString()` method calls
-        if (expr.callee.name == "toString") {
-            if (expr.args.isNotEmpty()) {
-                logger.warn { "toString() should have no arguments, but got ${expr.args.size}" }
-            }
-            return mkStringConstant("I am a string", scope)
-        }
-
-        // Handle `valueOf()` method calls
-        if (expr.callee.name == "valueOf") {
-            return handleValueOf(expr)
-        }
-
-        // Handle `Number.isNaN(...)` calls
-        if (expr.instance.name == "Number") {
-            if (expr.callee.name == "isNaN") {
-                return handleNumberIsNaN(expr)
-            }
-        }
-
-        // Handle `push` method calls on arrays
-        // TODO write tests https://github.com/UnitTestBot/usvm/issues/300
-        if (expr.callee.name == "push" && expr.instance.type is EtsArrayType) {
-            return handleArrayPush(expr)
-        }
-
-        // Handle `Promise` constructor calls
-        if (expr.callee.enclosingClass.name == "Promise" && expr.callee.name == CONSTRUCTOR_NAME) {
-            return handlePromiseConstructor(expr)
-        }
-
-        // Handle `Promise.resolve(value)` and `Promise.reject(reason)` calls
-        if (expr.instance.name == "Promise") {
-            if (expr.callee.name in listOf("resolve", "reject")) {
-                return handlePromiseResolveReject(expr)
-            }
-        }
 
         return when (val result = scope.calcOnState { methodResult }) {
             is TsMethodResult.Success -> {
@@ -1057,8 +898,11 @@ class TsExprResolver(
             isSigned = true,
         ).asExpr(sizeSort)
 
-        val arrayType = value.array.type as? EtsArrayType
-            ?: error("Expected EtsArrayType, but got ${value.array.type}")
+        val arrayType = if (isAllocatedConcreteHeapRef(array)) {
+            scope.calcOnState { memory.typeStreamOf(array).first() }
+        } else {
+            value.array.type
+        } as? EtsArrayType ?: error("Expected EtsArrayType, got: ${value.array.type}")
         val sort = typeToSort(arrayType.elementType)
 
         val lengthLValue = mkArrayLengthLValue(array, arrayType)

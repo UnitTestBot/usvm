@@ -27,7 +27,7 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.allocateConcreteRef
-import org.usvm.api.initializeArray
+import org.usvm.api.allocateStaticRef
 import org.usvm.api.typeStreamOf
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.isTrue
@@ -39,7 +39,6 @@ import org.usvm.machine.expr.TsVoidValue
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.types.EtsFakeType
 import org.usvm.memory.UReadOnlyMemory
-import org.usvm.sizeSort
 import org.usvm.types.single
 import org.usvm.util.mkFieldLValue
 import kotlin.contracts.ExperimentalContracts
@@ -70,8 +69,47 @@ class TsContext(
     private val undefinedValue: UHeapRef = nullRef
     fun mkUndefinedValue(): UHeapRef = undefinedValue
 
-    private val nullValue: UConcreteHeapRef = mkConcreteHeapRef(addressCounter.freshStaticAddress())
+    private val nullValue: UConcreteHeapRef = allocateStaticRef()
     fun mkTsNullValue(): UConcreteHeapRef = nullValue
+
+    // String constant caching at context level
+    private val stringConstants: MutableMap<String, UConcreteHeapRef> = mutableMapOf()
+
+    /**
+     * Reverse mapping from heap references to their original string constant values.
+     * This is used during test resolution to retrieve the actual string content when
+     * encountering a heap reference that represents a string constant.
+     */
+    private val heapRefToStringConstant: MutableMap<UConcreteHeapRef, String> = mutableMapOf()
+
+    /**
+     * Returns a heap reference for a string constant without any initialization.
+     */
+    fun mkStringConstantRef(value: String): UConcreteHeapRef {
+        return stringConstants.getOrPut(value) {
+            val ref = allocateConcreteRef()
+            heapRefToStringConstant[ref] = value
+            ref
+        }
+    }
+
+    /**
+     * Creates a fully initialized string constant in the given state.
+     * This should be used when you need a complete string object with memory initialization.
+     */
+    fun mkStringConstant(value: String, scope: TsStepScope): UConcreteHeapRef {
+        return scope.calcOnState {
+            mkInitializedStringConstant(value)
+        }
+    }
+
+    /**
+     * Gets the original string value for a heap reference that represents a string constant.
+     * Used by test resolver to retrieve string values.
+     */
+    fun getStringConstantValue(ref: UConcreteHeapRef): String? {
+        return heapRefToStringConstant[ref]
+    }
 
     fun typeToSort(type: EtsType): USort = when (type) {
         is EtsBooleanType -> boolSort
@@ -234,41 +272,7 @@ class TsContext(
     fun UConcreteHeapRef.extractRef(scope: TsStepScope): UHeapRef {
         return scope.calcOnState { extractRef(memory) }
     }
-
-    private val stringConstantAllocatedRefs: MutableMap<String, UConcreteHeapRef> = hashMapOf()
-    internal val heapRefToStringConstant: MutableMap<UConcreteHeapRef, String> = hashMapOf()
-
-    fun mkStringConstant(value: String, scope: TsStepScope): UConcreteHeapRef {
-        return stringConstantAllocatedRefs.getOrPut(value) {
-            val ref = allocateConcreteRef()
-            heapRefToStringConstant[ref] = value
-
-            scope.doWithState {
-                // Mark `ref` with String type
-                memory.types.allocate(ref.address, EtsStringType)
-
-                // Initialize char array
-                val valueType = EtsArrayType(EtsNumberType, dimensions = 1)
-                val descriptor = arrayDescriptorOf(valueType)
-
-                val charArray = memory.allocConcrete(valueType.elementType)
-                memory.initializeArray(
-                    arrayHeapRef = charArray,
-                    type = descriptor,
-                    sort = bv16Sort,
-                    sizeSort = sizeSort,
-                    contents = value.asSequence().map { mkBv(it.code, bv16Sort) },
-                )
-
-                // Write char array to `ref.value`
-                val valueLValue = mkFieldLValue(addressSort, ref, "value")
-                memory.write(valueLValue, charArray, guard = trueExpr)
-            }
-
-            ref
-        }
-    }
-
+    
     // This is an identifier for a special function representing the 'resolve' function used in promises.
     // It is not a real function in the code, but we need it to handle promise resolution.
     val resolveFunctionRef: UConcreteHeapRef = allocateConcreteRef()

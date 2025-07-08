@@ -14,6 +14,7 @@ import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.getResourcePath
 import org.usvm.util.getResourcePathOrNull
 import kotlin.test.Test
+import kotlin.time.Duration.Companion.seconds
 
 @EnabledIf("projectAvailable")
 class RunOnDemoCalcProject : TsMethodTestRunner() {
@@ -101,10 +102,10 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
     fun `test on particular method`() {
         val method = scene.projectClasses
             .flatMap { it.methods }
-            .single { it.name == "createKvStore" && it.enclosingClass?.name == "KvStoreModel" }
+            .single { it.name == "calc" && it.enclosingClass?.name == "%dflt" }
 
         val tsOptions = TsOptions()
-        TsMachine(scene, options, tsOptions).use { machine ->
+        TsMachine(scene, options.copy(timeout = 120.seconds), tsOptions).use { machine ->
             val states = machine.analyze(listOf(method))
             states.let {}
         }

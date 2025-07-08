@@ -300,8 +300,8 @@ open class TsTestStateResolver(
 
     private fun resolveAllocatedString(
         ref: UConcreteHeapRef,
-    ): TsTestValue.TsString = with(ctx) {
-        val value = ctx.heapRefToStringConstant[ref] ?: run {
+    ): TsTestValue.TsString {
+        val value = ctx.getStringConstantValue(ref) ?: run {
             error("String constant not found for ref: $ref")
         }
         return TsTestValue.TsString(value)

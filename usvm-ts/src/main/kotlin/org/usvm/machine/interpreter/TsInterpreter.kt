@@ -66,6 +66,7 @@ import org.usvm.machine.types.toAuxiliaryType
 import org.usvm.sizeSort
 import org.usvm.targets.UTargetsSet
 import org.usvm.types.TypesResult
+import org.usvm.types.first
 import org.usvm.types.single
 import org.usvm.util.TsResolutionResult
 import org.usvm.util.mkArrayIndexLValue
@@ -532,8 +533,11 @@ class TsInterpreter(
 
                     // TODO: handle the case when `lhv.array.type` is NOT an array.
                     //  In this case, it could be created manually: `EtsArrayType(EtsUnknownType, 1)`.
-                    val arrayType = lhv.array.type as? EtsArrayType
-                        ?: error("Expected EtsArrayType, got: ${lhv.array.type}")
+                    val arrayType = if (isAllocatedConcreteHeapRef(instance)) {
+                        scope.calcOnState { (memory.typeStreamOf(instance).first()) }
+                    } else {
+                        lhv.array.type
+                    } as? EtsArrayType ?: error("Expected EtsArrayType, got: ${lhv.array.type}")
                     val lengthLValue = mkArrayLengthLValue(instance, arrayType)
                     val currentLength = memory.read(lengthLValue)
 
