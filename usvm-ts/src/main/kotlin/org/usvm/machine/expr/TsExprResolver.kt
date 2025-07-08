@@ -95,11 +95,13 @@ import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArrayLength
 import org.usvm.dataflow.ts.infer.tryGetKnownType
 import org.usvm.dataflow.ts.util.type
+import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.Constants
 import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.TsVirtualMethodCallStmt
+import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.getResolvedValue
 import org.usvm.machine.interpreter.isInitialized
@@ -384,10 +386,20 @@ class TsExprResolver(
         }
 
         val promise = arg.asExpr(addressSort)
+        check(isAllocatedConcreteHeapRef(promise)) {
+            "Promise instance should be allocated, but it is not: $promise"
+        }
+
+        val promiseState = scope.calcOnState {
+            promiseStates[promise] ?: error("Promise state is not set for $promise")
+        }
 
         val isResolved = scope.calcOnState { isResolved(promise) }
-        if (!isResolved) {
+        return if (!isResolved) {
             // If the promise is not resolved yet, we need to call the executor to resolve it.
+            check(promiseState == PromiseState.PENDING) {
+                "Promise state should be PENDING, but it is $promiseState for $promise"
+            }
             val executor = scope.calcOnState {
                 promiseExecutors[promise]
                     ?: error("Await expression should have a promise executor, but it is not set for $promise")
@@ -399,7 +411,7 @@ class TsExprResolver(
                 //   - `resolve`, if present in parameters
                 //   - `reject`, if present in parameters
                 //   - `promise` == "this", should be the last
-                val args = executor.parameters.map{mkUndefinedValue()} + promise
+                val args = executor.parameters.map { mkUndefinedValue() } + promise
                 // pushSortsForArguments(instance = null, args = emptyList(), localToIdx)
                 pushSortsForActualArguments(args)
                 memory.stack.push(args.toTypedArray(), executor.localsCount)
@@ -409,18 +421,37 @@ class TsExprResolver(
             }
             null
         } else {
-            // If the promise is already resolved, we can return this value.
-            // val sort = typeToSort(expr.arg.type)
-            val sort = typeToSort(EtsUnknownType)
-            if (sort == unresolvedSort) {
-                val value = scope.calcOnState {
-                    getResolvedValue(promise, addressSort)
+            when (promiseState) {
+                PromiseState.PENDING -> {
+                    error("Promise state should not be PENDING, but it is for $promise")
                 }
-                check(value.isFakeObject())
-                value
-            } else {
-                scope.calcOnState {
-                    getResolvedValue(promise, sort)
+
+                PromiseState.FULFILLED -> {
+                    // If the promise is already resolved, we can return this value.
+                    // val sort = typeToSort(expr.arg.type)
+                    val sort = typeToSort(EtsUnknownType)
+                    if (sort == unresolvedSort) {
+                        val value = scope.calcOnState {
+                            getResolvedValue(promise, addressSort)
+                        }
+                        check(value.isFakeObject())
+                        value
+                    } else {
+                        scope.calcOnState {
+                            getResolvedValue(promise, sort)
+                        }
+                    }
+                }
+
+                PromiseState.REJECTED -> {
+                    // If the promise is rejected, we throw an exception.
+                    val reason = scope.calcOnState {
+                        getResolvedValue(promise, addressSort)
+                    }
+                    scope.doWithState {
+                        methodResult = TsMethodResult.TsException(reason, EtsStringType)
+                    }
+                    null
                 }
             }
         }
@@ -633,7 +664,11 @@ class TsExprResolver(
 
         // Handle Promise constructor
         if (expr.callee.enclosingClass.name == "Promise" && expr.callee.name == CONSTRUCTOR_NAME) {
-            val promise = resolve(expr.instance)?.asExpr(addressSort) ?: return null
+            val instance = resolve(expr.instance) ?: return null
+            val promise = instance.asExpr(addressSort)
+            check(isAllocatedConcreteHeapRef(promise)) {
+                "Promise instance should be allocated, but it is not: $promise"
+            }
             val executorLocal = expr.args.single()
             val executors = resolveEtsMethods(
                 EtsMethodSignature(

@@ -10,6 +10,12 @@ import org.usvm.machine.TsContext
 import org.usvm.machine.state.TsState
 import org.usvm.util.mkFieldLValue
 
+enum class PromiseState {
+    PENDING,
+    FULFILLED,
+    REJECTED;
+}
+
 internal const val RESOLVED_FIELD = "__resolved__"
 
 internal fun TsContext.mkResolvedField(ref: UHeapRef): UFieldLValue<String, UBoolSort> {
