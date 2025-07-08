@@ -43,7 +43,7 @@ class EtsFakeType(
     }
 }
 
-data class ExprWithTypeConstraint<Sort : USort>(
+data class ExprWithTypeConstraint<T : USort>(
     val constraint: UBoolExpr,
-    val expr: UExpr<Sort>,
+    val expr: UExpr<T>,
 )
