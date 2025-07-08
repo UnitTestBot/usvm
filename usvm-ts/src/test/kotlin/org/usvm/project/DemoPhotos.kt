@@ -113,7 +113,7 @@ class RunOnDemoPhotosProject : TsMethodTestRunner() {
     fun `test on particular method`() {
         val method = scene.projectClasses
             .flatMap { it.methods }
-            .single { it.name == "onSelect" && it.enclosingClass?.name == "AlbumSetPage" }
+            .single { it.name == "onCreate" && it.enclosingClass?.name == "EntryAbility" }
 
         val tsOptions = TsOptions()
         TsMachine(scene, options, tsOptions).use { machine ->
