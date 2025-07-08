@@ -449,6 +449,7 @@ class TsExprResolver(
                         getResolvedValue(promise, addressSort)
                     }
                     scope.doWithState {
+                        // TODO: create proper exception
                         methodResult = TsMethodResult.TsException(reason, EtsStringType)
                     }
                     null
