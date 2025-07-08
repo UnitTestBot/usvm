@@ -128,15 +128,13 @@ sealed interface TsBinaryOperator {
                         lhs.extractBool(scope),
                         rhs.extractFp(scope),
                         scope
-                    )!!.asExpr(bottomValueSort)
+                    )?.asExpr(bottomValueSort) ?: return null
                 )
 
                 // fake(bool) + fake(ref)
                 conjuncts += ExprWithTypeConstraint(
                     constraint = mkAnd(lhsType.boolTypeExpr, rhsType.refTypeExpr),
-                    expr = internalResolve(lhs.extractBool(scope), rhs.extractRef(scope), scope)!!.asExpr(
-                        bottomValueSort
-                    )
+                    expr = internalResolve(lhs.extractBool(scope), rhs.extractRef(scope), scope)?.asExpr(bottomValueSort) ?: return null
                 )
 
                 // fake(fp) + fake(bool)
@@ -146,39 +144,37 @@ sealed interface TsBinaryOperator {
                         lhs.extractFp(scope),
                         rhs.extractBool(scope),
                         scope
-                    )!!.asExpr(bottomValueSort)
+                    )?.asExpr(bottomValueSort) ?: return null
                 )
 
                 // fake(fp) + fake(fp)
                 conjuncts += ExprWithTypeConstraint(
                     constraint = mkAnd(lhsType.fpTypeExpr, rhsType.fpTypeExpr),
-                    expr = onFp(lhs.extractFp(scope), rhs.extractFp(scope), scope)!!.asExpr(bottomValueSort)
+                    expr = onFp(lhs.extractFp(scope), rhs.extractFp(scope), scope)?.asExpr(bottomValueSort) ?: return null
                 )
 
                 // fake(fp) + fake(ref)
                 conjuncts += ExprWithTypeConstraint(
                     constraint = mkAnd(lhsType.fpTypeExpr, rhsType.refTypeExpr),
-                    expr = internalResolve(lhs.extractFp(scope), rhs.extractRef(scope), scope)!!.asExpr(bottomValueSort)
+                    expr = internalResolve(lhs.extractFp(scope), rhs.extractRef(scope), scope)?.asExpr(bottomValueSort) ?: return null
                 )
 
                 // fake(ref) + fake(bool)
                 conjuncts += ExprWithTypeConstraint(
                     constraint = mkAnd(lhsType.refTypeExpr, rhsType.boolTypeExpr),
-                    expr = internalResolve(lhs.extractRef(scope), rhs.extractBool(scope), scope)!!.asExpr(
-                        bottomValueSort
-                    )
+                    expr = internalResolve(lhs.extractRef(scope), rhs.extractBool(scope), scope)?.asExpr(bottomValueSort) ?: return null
                 )
 
                 // fake(ref) + fake(fp)
                 conjuncts += ExprWithTypeConstraint(
                     constraint = mkAnd(lhsType.refTypeExpr, rhsType.fpTypeExpr),
-                    expr = internalResolve(lhs.extractRef(scope), rhs.extractFp(scope), scope)!!.asExpr(bottomValueSort)
+                    expr = internalResolve(lhs.extractRef(scope), rhs.extractFp(scope), scope)?.asExpr(bottomValueSort) ?: return null
                 )
 
                 // fake(ref) + fake(ref)
                 conjuncts += ExprWithTypeConstraint(
                     constraint = mkAnd(lhsType.refTypeExpr, rhsType.refTypeExpr),
-                    expr = onRef(lhs.extractRef(scope), rhs.extractRef(scope), scope)!!.asExpr(bottomValueSort)
+                    expr = onRef(lhs.extractRef(scope), rhs.extractRef(scope), scope)?.asExpr(bottomValueSort) ?: return null
                 )
             }
 
@@ -190,23 +186,19 @@ sealed interface TsBinaryOperator {
                         // fake(bool) + bool
                         conjuncts += ExprWithTypeConstraint(
                             constraint = lhsType.boolTypeExpr,
-                            expr = onBool(lhs.extractBool(scope), rhs.asExpr(boolSort), scope)!!.asExpr(bottomValueSort)
+                            expr = onBool(lhs.extractBool(scope), rhs.asExpr(boolSort), scope)?.asExpr(bottomValueSort) ?: return null
                         )
 
                         // fake(fp) + bool
                         conjuncts += ExprWithTypeConstraint(
                             constraint = lhsType.fpTypeExpr,
-                            expr = internalResolve(lhs.extractFp(scope), rhs.asExpr(boolSort), scope)!!.asExpr(
-                                bottomValueSort
-                            )
+                            expr = internalResolve(lhs.extractFp(scope), rhs.asExpr(boolSort), scope)?.asExpr(bottomValueSort) ?: return null
                         )
 
                         // fake(ref) + bool
                         conjuncts += ExprWithTypeConstraint(
                             constraint = lhsType.refTypeExpr,
-                            expr = internalResolve(lhs.extractRef(scope), rhs.asExpr(boolSort), scope)!!.asExpr(
-                                bottomValueSort
-                            )
+                            expr = internalResolve(lhs.extractRef(scope), rhs.asExpr(boolSort), scope)?.asExpr(bottomValueSort) ?: return null
                         )
                     }
 
@@ -214,23 +206,19 @@ sealed interface TsBinaryOperator {
                         // fake(bool) + fp
                         conjuncts += ExprWithTypeConstraint(
                             constraint = lhsType.boolTypeExpr,
-                            expr = internalResolve(lhs.extractBool(scope), rhs.asExpr(fp64Sort), scope)!!.asExpr(
-                                bottomValueSort
-                            )
+                            expr = internalResolve(lhs.extractBool(scope), rhs.asExpr(fp64Sort), scope)?.asExpr(bottomValueSort) ?: return null
                         )
 
                         // fake(fp) + fp
                         conjuncts += ExprWithTypeConstraint(
                             constraint = lhsType.fpTypeExpr,
-                            expr = onFp(lhs.extractFp(scope), rhs.asExpr(fp64Sort), scope)!!.asExpr(bottomValueSort)
+                            expr = onFp(lhs.extractFp(scope), rhs.asExpr(fp64Sort), scope)?.asExpr(bottomValueSort) ?: return null
                         )
 
                         // fake(ref) + fp
                         conjuncts += ExprWithTypeConstraint(
                             constraint = lhsType.refTypeExpr,
-                            expr = internalResolve(lhs.extractRef(scope), rhs.asExpr(fp64Sort), scope)!!.asExpr(
-                                bottomValueSort
-                            )
+                            expr = internalResolve(lhs.extractRef(scope), rhs.asExpr(fp64Sort), scope)?.asExpr(bottomValueSort) ?: return null
                         )
                     }
 
@@ -238,17 +226,13 @@ sealed interface TsBinaryOperator {
                         // fake(bool) + ref
                         conjuncts += ExprWithTypeConstraint(
                             constraint = lhsType.boolTypeExpr,
-                            expr = internalResolve(lhs.extractBool(scope), rhs.asExpr(addressSort), scope)!!.asExpr(
-                                bottomValueSort
-                            )
+                            expr = internalResolve(lhs.extractBool(scope), rhs.asExpr(addressSort), scope)?.asExpr(bottomValueSort) ?: return null
                         )
 
                         // fake(fp) + ref
                         conjuncts += ExprWithTypeConstraint(
                             constraint = lhsType.fpTypeExpr,
-                            expr = internalResolve(lhs.extractFp(scope), rhs.asExpr(addressSort), scope)!!.asExpr(
-                                bottomValueSort
-                            )
+                            expr = internalResolve(lhs.extractFp(scope), rhs.asExpr(addressSort), scope)?.asExpr(bottomValueSort) ?: return null
                         )
 
                         // fake(ref) + ref
@@ -258,7 +242,7 @@ sealed interface TsBinaryOperator {
                                 lhs.extractRef(scope),
                                 rhs.asExpr(addressSort),
                                 scope
-                            )!!.asExpr(bottomValueSort)
+                            )?.asExpr(bottomValueSort) ?: return null
                         )
                     }
 
@@ -276,23 +260,19 @@ sealed interface TsBinaryOperator {
                         // bool + fake(bool)
                         conjuncts += ExprWithTypeConstraint(
                             constraint = rhsType.boolTypeExpr,
-                            expr = onBool(lhs.asExpr(boolSort), rhs.extractBool(scope), scope)!!.asExpr(bottomValueSort)
+                            expr = onBool(lhs.asExpr(boolSort), rhs.extractBool(scope), scope)?.asExpr(bottomValueSort) ?: return null
                         )
 
                         // bool + fake(fp)
                         conjuncts += ExprWithTypeConstraint(
                             constraint = rhsType.fpTypeExpr,
-                            expr = internalResolve(lhs.asExpr(boolSort), rhs.extractFp(scope), scope)!!.asExpr(
-                                bottomValueSort
-                            )
+                            expr = internalResolve(lhs.asExpr(boolSort), rhs.extractFp(scope), scope)?.asExpr(bottomValueSort) ?: return null
                         )
 
                         // bool + fake(ref)
                         conjuncts += ExprWithTypeConstraint(
                             constraint = rhsType.refTypeExpr,
-                            expr = internalResolve(lhs.asExpr(boolSort), rhs.extractRef(scope), scope)!!.asExpr(
-                                bottomValueSort
-                            )
+                            expr = internalResolve(lhs.asExpr(boolSort), rhs.extractRef(scope), scope)?.asExpr(bottomValueSort) ?: return null
                         )
                     }
 
@@ -300,23 +280,19 @@ sealed interface TsBinaryOperator {
                         // fp + fake(bool)
                         conjuncts += ExprWithTypeConstraint(
                             constraint = rhsType.boolTypeExpr,
-                            expr = internalResolve(lhs.asExpr(fp64Sort), rhs.extractBool(scope), scope)!!.asExpr(
-                                bottomValueSort
-                            )
+                            expr = internalResolve(lhs.asExpr(fp64Sort), rhs.extractBool(scope), scope)?.asExpr(bottomValueSort) ?: return null
                         )
 
                         // fp + fake(fp)
                         conjuncts += ExprWithTypeConstraint(
                             constraint = rhsType.fpTypeExpr,
-                            expr = onFp(lhs.asExpr(fp64Sort), rhs.extractFp(scope), scope)!!.asExpr(bottomValueSort)
+                            expr = onFp(lhs.asExpr(fp64Sort), rhs.extractFp(scope), scope)?.asExpr(bottomValueSort) ?: return null
                         )
 
                         // fp + fake(ref)
                         conjuncts += ExprWithTypeConstraint(
                             constraint = rhsType.refTypeExpr,
-                            expr = internalResolve(lhs.asExpr(fp64Sort), rhs.extractRef(scope), scope)!!.asExpr(
-                                bottomValueSort
-                            )
+                            expr = internalResolve(lhs.asExpr(fp64Sort), rhs.extractRef(scope), scope)?.asExpr(bottomValueSort) ?: return null
                         )
                     }
 
@@ -324,17 +300,13 @@ sealed interface TsBinaryOperator {
                         // ref + fake(bool)
                         conjuncts += ExprWithTypeConstraint(
                             constraint = rhsType.boolTypeExpr,
-                            expr = internalResolve(lhs.asExpr(addressSort), rhs.extractBool(scope), scope)!!.asExpr(
-                                bottomValueSort
-                            )
+                            expr = internalResolve(lhs.asExpr(addressSort), rhs.extractBool(scope), scope)?.asExpr(bottomValueSort) ?: return null
                         )
 
                         // ref + fake(fp)
                         conjuncts += ExprWithTypeConstraint(
                             constraint = rhsType.fpTypeExpr,
-                            expr = internalResolve(lhs.asExpr(addressSort), rhs.extractFp(scope), scope)!!.asExpr(
-                                bottomValueSort
-                            )
+                            expr = internalResolve(lhs.asExpr(addressSort), rhs.extractFp(scope), scope)?.asExpr(bottomValueSort) ?: return null
                         )
 
                         // ref + fake(ref)
@@ -344,7 +316,7 @@ sealed interface TsBinaryOperator {
                                 lhs.asExpr(addressSort),
                                 rhs.extractRef(scope),
                                 scope
-                            )!!.asExpr(bottomValueSort)
+                            )?.asExpr(bottomValueSort) ?: return null
                         )
                     }
 
@@ -394,7 +366,7 @@ sealed interface TsBinaryOperator {
                 rhs,
                 scope,
                 boolSort
-            ) { conjuncts -> mkAnd(conjuncts.map { (condition, value) -> mkImplies(condition, value) }) }
+            ) { conjuncts -> mkAnd(conjuncts.map { (condition, value) -> mkImplies(condition, value) }) } ?: error("Should not be null")
         }
 
         override fun TsContext.internalResolve(
@@ -743,7 +715,7 @@ sealed interface TsBinaryOperator {
                 conjuncts.foldRight(mkFp(0.0, fp64Sort).asExpr(fp64Sort)) { value, acc ->
                     mkIte(value.constraint, value.expr, acc)
                 }
-            }
+            } ?: error("Should not be null")
         }
 
         override fun TsContext.internalResolve(
@@ -963,7 +935,7 @@ sealed interface TsBinaryOperator {
                 conjuncts.foldRight(mkFalse().asExpr(boolSort)) { value, acc ->
                     mkIte(value.constraint, value.expr, acc)
                 }
-            }
+            } ?: error("Should not be null")
         }
 
         override fun TsContext.internalResolve(
@@ -1018,7 +990,7 @@ sealed interface TsBinaryOperator {
                 conjuncts.foldRight(falseExpr.asExpr(boolSort)) { value, acc ->
                     mkIte(value.constraint, value.expr, acc)
                 }
-            }
+            } ?: error("Should not be null")
         }
 
         override fun TsContext.internalResolve(
