@@ -39,4 +39,24 @@ class Async : TsMethodTestRunner() {
             { r -> r is TsTestValue.TsException },
         )
     }
+
+    @Test
+    fun `await resolved promise`() {
+        val method = getMethod(className, "awaitResolvedPromise")
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            invariants = arrayOf(
+                { r -> r.number == 50.0 },
+            )
+        )
+    }
+
+    @Test
+    fun `await rejected promise`() {
+        val method = getMethod(className, "awaitRejectedPromise")
+        discoverProperties<TsTestValue>(
+            method = method,
+            { r -> r is TsTestValue.TsException },
+        )
+    }
 }

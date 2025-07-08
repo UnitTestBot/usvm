@@ -18,6 +18,16 @@ class Async {
         const promise = new Promise((resolve, reject) => {
             reject(new Error("An error occurred"));
         });
-        await promise;
+        await promise; // exception
+    }
+
+    awaitResolvedPromise(): number {
+        const promise = Promise.resolve(50);
+        return await promise; // 50
+    }
+
+    awaitRejectedPromise(): number {
+        const promise = Promise.reject(new Error("An error occurred"));
+        await promise; // exception
     }
 }
