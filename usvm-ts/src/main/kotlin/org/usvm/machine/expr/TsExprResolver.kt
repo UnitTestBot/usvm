@@ -711,8 +711,13 @@ class TsExprResolver(
                     val resolved = resolve(expr.instance) ?: return null
 
                     if (resolved.sort != addressSort) {
-                        if (expr.callee.name == "valueOf" && expr.args.isEmpty()) {
-                            return resolve(expr.instance)
+                        if (expr.callee.name == "valueOf") {
+                            if (expr.args.isNotEmpty()) {
+                                logger.warn {
+                                    "valueOf should have no arguments, but got ${expr.args.size}"
+                                }
+                            }
+                            return resolved
                         }
 
                         logger.warn { "Calling method on non-ref instance is not yet supported, instruction $expr" }
