@@ -596,7 +596,19 @@ class TsExprResolver(
 
     // region CALL
 
-    private fun handleNumberIsNaN(arg: UExpr<out USort>): UBoolExpr? = with(ctx) {
+    private fun handleValueOf(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
+        if (expr.args.isNotEmpty()) {
+            logger.warn { "valueOf() should have no arguments, but got ${expr.args.size}" }
+        }
+
+        val instance = resolve(expr.instance) ?: return null
+        instance
+    }
+
+    private fun handleNumberIsNaN(expr: EtsInstanceCallExpr): UBoolExpr? = with(ctx) {
+        check(expr.args.size == 1) { "Number.isNaN should have one argument" }
+        val arg = resolve(expr.args.single()) ?: return null
+
         // 21.1.2.4 Number.isNaN ( number )
         // 1. If number is not a Number, return false.
         // 2. If number is NaN, return true.
@@ -619,103 +631,138 @@ class TsExprResolver(
         }
     }
 
-    override fun visit(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
-        if (expr.instance.name == "Number") {
-            if (expr.callee.name == "isNaN") {
-                check(expr.args.size == 1) { "Number.isNaN should have one argument" }
-                return resolveAfterResolved(expr.args.single()) { arg ->
-                    handleNumberIsNaN(arg)
-                }
-            }
+    private fun handleArrayPush(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
+        val instance = resolve(expr.instance)?.asExpr(addressSort) ?: return null
+        check(expr.args.size == 1) {
+            "Array::push() should have exactly one argument, but got ${expr.args.size}"
+        }
+        val arg = resolve(expr.args.single()) ?: return null
+        val arrayType = EtsArrayType(EtsUnknownType, dimensions = 1)
+
+        scope.calcOnState {
+            // Update the length of the array
+            val lengthLValue = mkArrayLengthLValue(instance, arrayType)
+            val length = memory.read(lengthLValue)
+            val newLength = mkBvAddExpr(length, 1.toBv())
+            memory.write(lengthLValue, newLength, guard = trueExpr)
+
+            // Write the new element to the end of the array
+            // TODO check sorts compatibility https://github.com/UnitTestBot/usvm/issues/300
+            val newIndexLValue = mkArrayIndexLValue(
+                sort = arg.sort,
+                ref = instance,
+                index = length,
+                type = arrayType,
+            )
+            memory.write(newIndexLValue, arg.asExpr(newIndexLValue.sort), guard = ctx.trueExpr)
+
+            // Return the new length of the array (as per ECMAScript spec for Array.push)
+            newLength
+        }
+    }
+
+    private fun handlePromiseConstructor(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
+        val instance = resolve(expr.instance) ?: return null
+        val promise = instance.asExpr(addressSort)
+        check(isAllocatedConcreteHeapRef(promise)) {
+            "Promise instance should be allocated, but it is not: $promise"
+        }
+        check(expr.args.size == 1) {
+            "Promise constructor should have exactly one argument, but got ${expr.args.size}"
+        }
+        val executorLocal = expr.args.single()
+
+        // Lookup the executor method
+        val executors = resolveEtsMethods(
+            EtsMethodSignature(
+                enclosingClass = EtsClassSignature.UNKNOWN,
+                name = executorLocal.name,
+                parameters = emptyList(),
+                returnType = EtsUnknownType,
+            )
+        )
+        if (executors.isEmpty()) {
+            logger.error { "Could not resolve executor method: ${executorLocal.name}" }
+            scope.assert(falseExpr)
+            return null
+        }
+        if (executors.size > 1) {
+            logger.error { "Ambiguous executor method: ${executorLocal.name}, resolved ${executors.size} times" }
+            scope.assert(falseExpr)
+            return null
+        }
+        val executor = executors.single()
+
+        // Save the executor for the promise in the state
+        scope.doWithState {
+            setPromiseExecutor(promise, executor)
         }
 
+        promise
+    }
+
+    private fun handlePromiseResolveReject(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
+        val promise = allocateConcreteRef()
+        val newState = when (expr.callee.name) {
+            "resolve" -> PromiseState.FULFILLED
+            "reject" -> PromiseState.REJECTED
+            else -> error("Unexpected: $expr")
+        }
+        check(expr.args.size == 1) {
+            "Promise.${expr.callee.name}() should have exactly one argument, but got ${expr.args.size}"
+        }
+        val value = resolve(expr.args.single()) ?: return null
+        val fakeValue = value.toFakeObject(scope)
+        scope.doWithState {
+            markResolved(promise)
+            setPromiseState(promise, newState)
+            setResolvedValue(promise, fakeValue)
+        }
+        promise
+    }
+
+    override fun visit(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
+        // Mock all calls to `Logger` methods
         if (expr.instance.name == "Logger") {
             return mkUndefinedValue()
         }
 
+        // Mock `toString()` method calls
         if (expr.callee.name == "toString") {
+            if (expr.args.isNotEmpty()) {
+                logger.warn { "toString() should have no arguments, but got ${expr.args.size}" }
+            }
             return mkStringConstant("I am a string", scope)
         }
 
-        // TODO write tests https://github.com/UnitTestBot/usvm/issues/300
-        if (expr.callee.name == "push" && expr.instance.type is EtsArrayType) {
-            return scope.calcOnState {
-                val resolvedInstance = resolve(expr.instance)?.asExpr(ctx.addressSort) ?: return@calcOnState null
-                val lengthLValue = mkArrayLengthLValue(
-                    resolvedInstance,
-                    EtsArrayType(EtsUnknownType, dimensions = 1)
-                )
-                val length = memory.read(lengthLValue)
-                val newLength = mkBvAddExpr(length, 1.toBv())
-                memory.write(lengthLValue, newLength, guard = ctx.trueExpr)
-                if (expr.args.size != 1) {
-                    let {}
-                }
-                val resolvedArg = resolve(expr.args.single()) ?: return@calcOnState null
+        // Handle `valueOf()` method calls
+        if (expr.callee.name == "valueOf") {
+            return handleValueOf(expr)
+        }
 
-                // TODO check sorts compatibility https://github.com/UnitTestBot/usvm/issues/300
-                val newIndexLValue = mkArrayIndexLValue(
-                    resolvedArg.sort,
-                    resolvedInstance,
-                    length,
-                    EtsArrayType(EtsUnknownType, dimensions = 1)
-                )
-                memory.write(newIndexLValue, resolvedArg.asExpr(newIndexLValue.sort), guard = ctx.trueExpr)
-
-                newLength
+        // Handle `Number.isNaN(...)` calls
+        if (expr.instance.name == "Number") {
+            if (expr.callee.name == "isNaN") {
+                return handleNumberIsNaN(expr)
             }
         }
 
-        // Handle Promise constructor
+        // Handle `push` method calls on arrays
+        // TODO write tests https://github.com/UnitTestBot/usvm/issues/300
+        if (expr.callee.name == "push" && expr.instance.type is EtsArrayType) {
+            return handleArrayPush(expr)
+        }
+
+        // Handle `Promise` constructor calls
         if (expr.callee.enclosingClass.name == "Promise" && expr.callee.name == CONSTRUCTOR_NAME) {
-            val instance = resolve(expr.instance) ?: return null
-            val promise = instance.asExpr(addressSort)
-            check(isAllocatedConcreteHeapRef(promise)) {
-                "Promise instance should be allocated, but it is not: $promise"
-            }
-            val executorLocal = expr.args.single()
-            val executors = resolveEtsMethods(
-                EtsMethodSignature(
-                    enclosingClass = EtsClassSignature.UNKNOWN,
-                    name = executorLocal.name,
-                    parameters = emptyList(),
-                    returnType = EtsUnknownType,
-                )
-            )
-            if (executors.isEmpty()) {
-                logger.error { "Could not resolve executor method: ${executorLocal.name}" }
-                scope.assert(falseExpr)
-                return null
-            }
-            if (executors.size > 1) {
-                logger.error { "Ambiguous executor method: ${executorLocal.name}, resolved ${executors.size} times" }
-                scope.assert(falseExpr)
-                return null
-            }
-            val executor = executors.single()
-            scope.doWithState {
-                setPromiseExecutor(promise, executor)
-            }
-            return promise
+            return handlePromiseConstructor(expr)
         }
 
         // Handle `Promise.resolve(value)` and `Promise.reject(reason)` calls
-        if (expr.instance.name == "Promise" && expr.callee.name in listOf("resolve", "reject")) {
-            val promise = allocateConcreteRef()
-            val newState = when (expr.callee.name) {
-                "resolve" -> PromiseState.FULFILLED
-                "reject" -> PromiseState.REJECTED
-                else -> error("Unexpected: $expr")
+        if (expr.instance.name == "Promise") {
+            if (expr.callee.name in listOf("resolve", "reject")) {
+                return handlePromiseResolveReject(expr)
             }
-            check(expr.args.size == 1) { "Promise.${expr.callee.name} should have exactly one argument" }
-            val value = resolve(expr.args.single()) ?: return null
-            val fakeValue = value.toFakeObject(scope)
-            scope.doWithState {
-                markResolved(promise)
-                setPromiseState(promise, newState)
-                setResolvedValue(promise, fakeValue)
-            }
-            return promise
         }
 
         return when (val result = scope.calcOnState { methodResult }) {
@@ -736,13 +783,13 @@ class TsExprResolver(
                         if (expr.callee.name == "valueOf") {
                             if (expr.args.isNotEmpty()) {
                                 logger.warn {
-                                    "valueOf should have no arguments, but got ${expr.args.size}"
+                                    "valueOf() should have no arguments, but got ${expr.args.size}"
                                 }
                             }
                             return resolved
                         }
 
-                        logger.warn { "Calling method on non-ref instance is not yet supported, instruction $expr" }
+                        logger.warn { "Calling method on non-ref instance is not yet supported: $expr" }
                         scope.assert(falseExpr)
                         return null
                     }
@@ -767,20 +814,22 @@ class TsExprResolver(
 
     override fun visit(expr: EtsStaticCallExpr): UExpr<*>? = with(ctx) {
         if (expr.callee.name == "Number") {
-            check(expr.args.size == 1) { "Number constructor should have exactly one argument" }
-            return resolveAfterResolved(expr.args.single()) {
-                mkNumericExpr(it, scope)
+            check(expr.args.size == 1) {
+                "Number() should have exactly one argument, but got ${expr.args.size}"
             }
+            val arg = resolve(expr.args.single()) ?: return null
+            return mkNumericExpr(arg, scope)
         }
 
         if (expr.callee.name == "Boolean") {
-            check(expr.args.size == 1) { "Boolean constructor should have exactly one argument" }
-            return resolveAfterResolved(expr.args.single()) {
-                mkTruthyExpr(it, scope)
+            check(expr.args.size == 1) {
+                "Boolean() should have exactly one argument, but got ${expr.args.size}"
             }
+            val arg = resolve(expr.args.single()) ?: return null
+            return mkTruthyExpr(arg, scope)
         }
 
-        if (expr.callee.name == "resolve" || expr.callee.name == "reject") {
+        if (expr.callee.name in listOf("resolve", "reject")) {
             val promise = resolve(
                 EtsThis(
                     EtsClassType(
@@ -799,7 +848,9 @@ class TsExprResolver(
                 "reject" -> PromiseState.REJECTED
                 else -> error("Unexpected: $expr")
             }
-            check(expr.args.size == 1) { "resolve should have exactly one argument" }
+            check(expr.args.size == 1) {
+                "${expr.callee.name}() should have exactly one argument, but got ${expr.args.size}"
+            }
             val value = resolve(expr.args.single()) ?: return null
             val fakeValue = value.toFakeObject(scope)
             scope.doWithState {
