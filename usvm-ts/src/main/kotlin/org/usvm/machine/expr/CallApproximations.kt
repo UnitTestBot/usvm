@@ -3,13 +3,14 @@ package org.usvm.machine.expr
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsInstanceCallExpr
-import org.jacodb.ets.model.EtsType
 import org.usvm.UExpr
+import org.usvm.api.initializeArray
+import org.usvm.api.initializeArrayLength
 import org.usvm.api.memcpy
 import org.usvm.api.typeStreamOf
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.sizeSort
-import org.usvm.types.TypesResult
+import org.usvm.types.firstOrNull
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 
@@ -34,27 +35,25 @@ fun TsExprResolver.tryApproximateInstanceCall(expr: EtsInstanceCallExpr): UExpr<
     }
 
     val instanceType = if (isAllocatedConcreteHeapRef(resolvedInstance)) {
-        scope.calcOnState { (memory.typeStreamOf(resolvedInstance).take(1) as? TypesResult.SuccessfulTypesResult<EtsType>)?.types?.single() ?: expr.instance.type }
+        scope.calcOnState {
+            memory.typeStreamOf(resolvedInstance).firstOrNull() ?: expr.instance.type
+        }
     } else {
         expr.instance.type
     }
 
     if (instanceType is EtsArrayType) {
-        val elementTypeSort = typeToSort(instanceType).takeIf { it !is TsUnresolvedSort } ?: ctx.addressSort
-        // TODO write tests https://github.com/UnitTestBot/usvm/issues/300
+        val elementTypeSort = typeToSort(instanceType.elementType).takeIf { it !is TsUnresolvedSort } ?: ctx.addressSort
+
+        // push
         if (expr.callee.name == "push") {
             return scope.calcOnState {
                 val resolvedInstance = resolve(expr.instance)?.asExpr(ctx.addressSort) ?: return@calcOnState null
-
                 val lengthLValue = mkArrayLengthLValue(resolvedInstance, instanceType)
                 val length = memory.read(lengthLValue)
-
                 val newLength = mkBvAddExpr(length, 1.toBv())
                 memory.write(lengthLValue, newLength, guard = ctx.trueExpr)
-
                 val resolvedArg = resolve(expr.args.single()) ?: return@calcOnState null
-
-                // TODO check sorts compatibility https://github.com/UnitTestBot/usvm/issues/300
                 val newIndexLValue = mkArrayIndexLValue(
                     resolvedArg.sort,
                     resolvedInstance,
@@ -62,7 +61,52 @@ fun TsExprResolver.tryApproximateInstanceCall(expr: EtsInstanceCallExpr): UExpr<
                     instanceType
                 )
                 memory.write(newIndexLValue, resolvedArg.asExpr(newIndexLValue.sort), guard = ctx.trueExpr)
+                newLength
+            }
+        }
 
+        // fill
+        if (expr.callee.name == "fill") {
+            return scope.calcOnState {
+                val resolvedInstance = resolve(expr.instance)?.asExpr(ctx.addressSort) ?: return@calcOnState null
+                val lengthLValue = mkArrayLengthLValue(resolvedInstance, instanceType)
+                val length = memory.read(lengthLValue)
+                val resolvedArg = resolve(expr.args.single()) ?: return@calcOnState null
+
+                val artificialArray = memory.allocConcrete(instanceType)
+                memory.initializeArrayLength(artificialArray, instanceType, sizeSort, 10_000.toBv().asExpr(sizeSort))
+                memory.initializeArray(artificialArray, instanceType, elementTypeSort, sizeSort, Array(10_000) { resolvedArg.asExpr(elementTypeSort) }.asSequence())
+                memory.memcpy(artificialArray, resolvedInstance, instanceType, elementTypeSort, 0.toBv(), 0.toBv(), length)
+
+                resolvedInstance
+            }
+        }
+
+        // unshift
+        if (expr.callee.name == "unshift") {
+            return scope.calcOnState {
+                val resolvedInstance = resolve(expr.instance)?.asExpr(ctx.addressSort) ?: return@calcOnState null
+                val lengthLValue = mkArrayLengthLValue(resolvedInstance, instanceType)
+                val length = memory.read(lengthLValue)
+                val newLength = mkBvAddExpr(length, 1.toBv())
+                memory.write(lengthLValue, newLength, guard = ctx.trueExpr)
+                val resolvedArg = resolve(expr.args.single()) ?: return@calcOnState null
+                memory.memcpy(
+                    srcRef = resolvedInstance,
+                    dstRef = resolvedInstance,
+                    type = instanceType,
+                    elementSort = elementTypeSort,
+                    fromSrc = 0.toBv().asExpr(sizeSort),
+                    fromDst = 1.toBv().asExpr(sizeSort),
+                    length = length,
+                )
+                val zeroIndexLValue = mkArrayIndexLValue(
+                    resolvedArg.sort,
+                    resolvedInstance,
+                    0.toBv().asExpr(sizeSort),
+                    instanceType
+                )
+                memory.write(zeroIndexLValue, resolvedArg.asExpr(zeroIndexLValue.sort), guard = ctx.trueExpr)
                 newLength
             }
         }
@@ -70,22 +114,16 @@ fun TsExprResolver.tryApproximateInstanceCall(expr: EtsInstanceCallExpr): UExpr<
         if (expr.callee.name == "shift") {
             return scope.calcOnState {
                 val resolvedInstance = resolve(expr.instance)?.asExpr(ctx.addressSort) ?: return@calcOnState null
-
                 val lengthLValue = mkArrayLengthLValue(resolvedInstance, instanceType)
                 val length = memory.read(lengthLValue)
                 val newLength = mkBvSubExpr(length, 1.toBv())
-
                 val indexLValue = mkArrayIndexLValue(
                     elementTypeSort,
                     resolvedInstance,
                     0.toBv().asExpr(sizeSort),
                     instanceType
                 )
-
-                // TODO add exception for empty array????
-
                 val result = memory.read(indexLValue)
-
                 memory.memcpy(
                     srcRef = resolvedInstance,
                     dstRef = resolvedInstance,
@@ -95,9 +133,7 @@ fun TsExprResolver.tryApproximateInstanceCall(expr: EtsInstanceCallExpr): UExpr<
                     fromDst = 0.toBv().asExpr(sizeSort),
                     length = newLength,
                 )
-
                 memory.write(lengthLValue, newLength, guard = ctx.trueExpr)
-
                 result
             }
         }
@@ -105,24 +141,19 @@ fun TsExprResolver.tryApproximateInstanceCall(expr: EtsInstanceCallExpr): UExpr<
         if (expr.callee.name == "pop") {
             return scope.calcOnState {
                 val resolvedInstance = resolve(expr.instance)?.asExpr(ctx.addressSort) ?: return@calcOnState null
-
                 val lengthLValue = mkArrayLengthLValue(resolvedInstance, instanceType)
                 val length = memory.read(lengthLValue)
-
                 if (length == 0.toBv().asExpr(sizeSort)) {
                     return@calcOnState null // TODO throw exception?
                 }
-
                 val newLength = mkBvSubExpr(length, 1.toBv())
                 memory.write(lengthLValue, newLength, guard = ctx.trueExpr)
-
                 val indexLValue = mkArrayIndexLValue(
                     elementTypeSort,
                     resolvedInstance,
                     newLength,
                     instanceType
                 )
-
                 memory.read(indexLValue)
             }
         }

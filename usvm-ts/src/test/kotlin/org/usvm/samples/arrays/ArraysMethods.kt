@@ -25,6 +25,20 @@ class ArraysMethods : TsMethodTestRunner() {
     }
 
     @Test
+    fun testUnshiftMethod() {
+        val method = getMethod(className, "unshiftMethod")
+        discoverProperties<TsTestValue.TsBoolean, TsTestValue>(
+            method = method,
+            { x, r -> x.value && r is TsTestValue.TsNumber && r.number == 0.0 },
+            { x, r ->
+                !x.value
+                    && r is TsTestValue.TsArray<*>
+                    && r.values.map { (it as TsTestValue.TsNumber).number } == listOf(0.0, 1.0, 2.0, 3.0)
+            },
+        )
+    }
+
+    @Test
     fun testPopMethod() {
         val method = getMethod(className, "popMethod")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue>(
@@ -37,7 +51,6 @@ class ArraysMethods : TsMethodTestRunner() {
             },
         )
     }
-
 
     @Test
     fun testPushMethod() {
@@ -53,4 +66,17 @@ class ArraysMethods : TsMethodTestRunner() {
         )
     }
 
+    @Test
+    fun testFillMethod() {
+        val method = getMethod(className, "fillMethod")
+        discoverProperties<TsTestValue.TsBoolean, TsTestValue>(
+            method = method,
+            { x, r -> x.value && r is TsTestValue.TsNumber && r.number == 7.0 },
+            { x, r ->
+                !x.value
+                    && r is TsTestValue.TsArray<*>
+                    && r.values.all { (it as TsTestValue.TsNumber).number == 7.0 }
+            },
+        )
+    }
 }

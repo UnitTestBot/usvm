@@ -90,8 +90,10 @@ import org.usvm.UIteExpr
 import org.usvm.USort
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArrayLength
+import org.usvm.api.typeStreamOf
 import org.usvm.dataflow.ts.infer.tryGetKnownType
 import org.usvm.dataflow.ts.util.type
+import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.Constants
 import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
@@ -111,6 +113,7 @@ import org.usvm.machine.types.EtsAuxiliaryType
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.memory.ULValue
 import org.usvm.sizeSort
+import org.usvm.types.first
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.EtsPropertyResolution
 import org.usvm.util.createFakeField
@@ -718,8 +721,11 @@ class TsExprResolver(
             isSigned = true,
         ).asExpr(sizeSort)
 
-        val arrayType = value.array.type as? EtsArrayType
-            ?: error("Expected EtsArrayType, but got ${value.array.type}")
+        val arrayType = if (isAllocatedConcreteHeapRef(array)) {
+            scope.calcOnState { memory.typeStreamOf(array).first() }
+        } else {
+            value.array.type
+        } as? EtsArrayType ?: error("Expected EtsArrayType, got: ${value.array.type}")
         val sort = typeToSort(arrayType.elementType)
 
         val lengthLValue = mkArrayLengthLValue(array, arrayType)

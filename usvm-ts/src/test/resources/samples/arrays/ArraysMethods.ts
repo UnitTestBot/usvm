@@ -10,6 +10,15 @@ class ArraysMethods {
         return arr;
     }
 
+    unshiftMethod(x: boolean) {
+        const arr = [1, 2, 3];
+        arr.unshift(0);
+        if (x) {
+            return arr[0];
+        }
+        return arr;
+    }
+
     popMethod(x: boolean) {
         const arr = [1, 2, 3];
         const lastElement = arr.pop();
@@ -29,6 +38,15 @@ class ArraysMethods {
             return arr[arr.length - 1]; // Return the last element after push
         }
 
+        return arr;
+    }
+
+    fillMethod(x: boolean) {
+        const arr = [1, 2, 3];
+        arr.fill(7);
+        if (x) {
+            return arr[0];
+        }
         return arr;
     }
 }
