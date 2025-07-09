@@ -125,8 +125,8 @@ import org.usvm.util.throwExceptionWithoutStackFrameDrop
 private val logger = KotlinLogging.logger {}
 
 class TsExprResolver(
-    private val ctx: TsContext,
-    private val scope: TsStepScope,
+    internal val ctx: TsContext,
+    internal val scope: TsStepScope,
     private val localToIdx: (EtsMethod, EtsValue) -> Int?,
     private val hierarchy: EtsHierarchy,
 ) : EtsEntity.Visitor<UExpr<out USort>?> {
@@ -163,7 +163,7 @@ class TsExprResolver(
         with(operator) { ctx.resolve(lhs, rhs, scope) }
     }
 
-    private inline fun <T> resolveAfterResolved(
+    internal inline fun <T> resolveAfterResolved(
         dependency: EtsEntity,
         block: (UExpr<out USort>) -> T,
     ): T? {
@@ -171,7 +171,7 @@ class TsExprResolver(
         return block(result)
     }
 
-    private inline fun <T> resolveAfterResolved(
+    internal inline fun <T> resolveAfterResolved(
         dependency0: EtsEntity,
         dependency1: EtsEntity,
         block: (UExpr<out USort>, UExpr<out USort>) -> T,
@@ -507,7 +507,7 @@ class TsExprResolver(
 
     // region CALL
 
-    private fun handleNumberIsNaN(arg: UExpr<out USort>): UBoolExpr? = with(ctx) {
+    internal fun handleNumberIsNaN(arg: UExpr<out USort>): UBoolExpr? = with(ctx) {
         // 21.1.2.4 Number.isNaN ( number )
         // 1. If number is not a Number, return false.
         // 2. If number is NaN, return true.
@@ -531,49 +531,8 @@ class TsExprResolver(
     }
 
     override fun visit(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
-        if (expr.instance.name == "Number") {
-            if (expr.callee.name == "isNaN") {
-                check(expr.args.size == 1) { "Number.isNaN should have one argument" }
-                return resolveAfterResolved(expr.args.single()) { arg ->
-                    handleNumberIsNaN(arg)
-                }
-            }
-        }
-
-        if (expr.instance.name == "Logger") {
-            return mkUndefinedValue()
-        }
-
-        if (expr.callee.name == "toString") {
-            return mkStringConstant("I am a string", scope)
-        }
-
-        // TODO write tests https://github.com/UnitTestBot/usvm/issues/300
-        if (expr.callee.name == "push" && expr.instance.type is EtsArrayType) {
-            return scope.calcOnState {
-                val arrayType = expr.instance.type as EtsArrayType
-                val resolvedInstance = resolve(expr.instance)?.asExpr(ctx.addressSort) ?: return@calcOnState null
-                val lengthLValue = mkArrayLengthLValue(
-                    resolvedInstance,
-                    arrayType
-                )
-                val length = memory.read(lengthLValue)
-                val newLength = mkBvAddExpr(length, 1.toBv())
-                memory.write(lengthLValue, newLength, guard = ctx.trueExpr)
-                val resolvedArg = resolve(expr.args.single()) ?: return@calcOnState null
-
-                // TODO check sorts compatibility https://github.com/UnitTestBot/usvm/issues/300
-                val newIndexLValue = mkArrayIndexLValue(
-                    resolvedArg.sort,
-                    resolvedInstance,
-                    length,
-                    arrayType
-                )
-                memory.write(newIndexLValue, resolvedArg.asExpr(newIndexLValue.sort), guard = ctx.trueExpr)
-
-                newLength
-            }
-        }
+        val result = tryApproximateInstanceCall(expr)
+        if (result != null) return@with result
 
         return when (val result = scope.calcOnState { methodResult }) {
             is TsMethodResult.Success -> {
