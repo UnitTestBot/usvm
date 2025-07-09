@@ -92,5 +92,32 @@ fun TsExprResolver.tryApproximateInstanceCall(expr: EtsInstanceCallExpr): UExpr<
         }
     }
 
+    if (expr.callee.name == "pop" && expr.instance.type is EtsArrayType) {
+        return scope.calcOnState {
+            val arrayType = expr.instance.type as EtsArrayType
+            val resolvedInstance = resolve(expr.instance)?.asExpr(ctx.addressSort) ?: return@calcOnState null
+
+            val lengthLValue = mkArrayLengthLValue(resolvedInstance, arrayType)
+            val length = memory.read(lengthLValue)
+
+            if (length == 0.toBv().asExpr(sizeSort)) {
+                return@calcOnState null // TODO throw exception?
+            }
+
+            val newLength = mkBvSubExpr(length, 1.toBv())
+            memory.write(lengthLValue, newLength, guard = ctx.trueExpr)
+
+            val elementSort = typeToSort(arrayType.elementType)
+            val indexLValue = mkArrayIndexLValue(
+                elementSort,
+                resolvedInstance,
+                newLength,
+                arrayType
+            )
+
+            memory.read(indexLValue)
+        }
+    }
+
     return null
 }
