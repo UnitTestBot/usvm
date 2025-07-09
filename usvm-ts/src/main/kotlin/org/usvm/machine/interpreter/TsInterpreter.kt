@@ -77,7 +77,6 @@ import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
-import org.usvm.util.renderGraph
 import org.usvm.util.resolveEtsField
 import org.usvm.util.resolveEtsMethods
 import org.usvm.util.type
@@ -126,7 +125,6 @@ class TsInterpreter(
         //  if no call, visit
 
         try {
-            state.renderGraph(view = false)
             when (stmt) {
                 is TsVirtualMethodCallStmt -> visitVirtualMethodCall(scope, stmt)
                 is TsConcreteMethodCallStmt -> visitConcreteMethodCall(scope, stmt)
