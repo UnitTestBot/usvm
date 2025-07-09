@@ -551,10 +551,11 @@ class TsExprResolver(
         // TODO write tests https://github.com/UnitTestBot/usvm/issues/300
         if (expr.callee.name == "push" && expr.instance.type is EtsArrayType) {
             return scope.calcOnState {
+                val arrayType = expr.instance.type as EtsArrayType
                 val resolvedInstance = resolve(expr.instance)?.asExpr(ctx.addressSort) ?: return@calcOnState null
                 val lengthLValue = mkArrayLengthLValue(
                     resolvedInstance,
-                    EtsArrayType(EtsUnknownType, dimensions = 1)
+                    arrayType
                 )
                 val length = memory.read(lengthLValue)
                 val newLength = mkBvAddExpr(length, 1.toBv())
@@ -566,7 +567,7 @@ class TsExprResolver(
                     resolvedArg.sort,
                     resolvedInstance,
                     length,
-                    EtsArrayType(EtsUnknownType, dimensions = 1)
+                    arrayType
                 )
                 memory.write(newIndexLValue, resolvedArg.asExpr(newIndexLValue.sort), guard = ctx.trueExpr)
 
