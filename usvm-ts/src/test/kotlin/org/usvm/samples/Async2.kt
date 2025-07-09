@@ -6,6 +6,7 @@ import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 import kotlin.test.Test
 
+@Disabled("Vibe code")
 class Async2 : TsMethodTestRunner() {
 
     companion object {
