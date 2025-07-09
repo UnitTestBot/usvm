@@ -21,8 +21,9 @@ develocity {
         termsOfUseUrl.set("https://gradle.com/help/legal-terms-of-use")
         termsOfUseAgree.set("yes")
 
-        // Publish build scans on-demand, when `--scan` option is provided:
-        publishing.onlyIf { false }
+        // In CI, publish build scans automatically.
+        // Locally, publish build scans on-demand, when `--scan` option is provided:
+        publishing.onlyIf { System.getProperty("CI") != null }
     }
 }
 
