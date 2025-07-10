@@ -125,7 +125,6 @@ sealed interface TsBinaryOperator {
 
                 // fake(bool) + fake(bool)
                 val boolBoolExpr = onBool(lhsBool, rhsBool, scope)?.asExpr(resultSort) ?: return null
-
                 conjuncts += ExprWithTypeConstraint(
                     constraint = mkAnd(lhsType.boolTypeExpr, rhsType.boolTypeExpr),
                     expr = boolBoolExpr
@@ -133,7 +132,6 @@ sealed interface TsBinaryOperator {
 
                 // fake(bool) + fake(fp)
                 val boolFpExpr = internalResolve(lhsBool, lhsFp, scope)?.asExpr(resultSort) ?: return null
-
                 conjuncts += ExprWithTypeConstraint(
                     constraint = mkAnd(lhsType.boolTypeExpr, rhsType.fpTypeExpr),
                     expr = boolFpExpr
@@ -191,7 +189,6 @@ sealed interface TsBinaryOperator {
 
             lhs.isFakeObject() -> {
                 val lhsType = lhs.getFakeType(scope)
-
                 val lhsBool = lhs.extractBool(scope)
                 val lhsFp = lhs.extractFp(scope)
                 val lhsRef = lhs.extractRef(scope)

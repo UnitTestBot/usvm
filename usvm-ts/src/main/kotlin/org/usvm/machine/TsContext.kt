@@ -274,7 +274,6 @@ class Constants {
     }
 }
 
-
 enum class IntermediateLValueField {
     BOOL, FP, REF
 }

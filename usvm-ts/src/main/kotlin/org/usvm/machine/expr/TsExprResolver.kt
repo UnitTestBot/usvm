@@ -88,8 +88,8 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.UIteExpr
 import org.usvm.USort
-import org.usvm.api.initializeArrayLength
 import org.usvm.api.evalTypeEquals
+import org.usvm.api.initializeArrayLength
 import org.usvm.dataflow.ts.infer.tryGetKnownType
 import org.usvm.dataflow.ts.util.type
 import org.usvm.machine.Constants
