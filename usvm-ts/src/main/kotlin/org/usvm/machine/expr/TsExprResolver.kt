@@ -535,7 +535,11 @@ class TsExprResolver(
 
     override fun visit(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
         val result = tryApproximateInstanceCall(expr)
-        if (result != null) return@with result
+        when (result) {
+            is TsExprApproximationResult.SuccessfulApproximation -> return result.expr
+            is TsExprApproximationResult.ResolveFailure -> return null
+            is TsExprApproximationResult.NoApproximation -> {}
+        }
 
         return when (val result = scope.calcOnState { methodResult }) {
             is TsMethodResult.Success -> {

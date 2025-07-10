@@ -127,10 +127,6 @@ class TsInterpreter(
         //  if no call, visit
 
         try {
-            if ("shift" in stmt.toString()) {
-                let{}
-            }
-
             when (stmt) {
                 is TsVirtualMethodCallStmt -> visitVirtualMethodCall(scope, stmt)
                 is TsConcreteMethodCallStmt -> visitConcreteMethodCall(scope, stmt)

@@ -30,14 +30,9 @@ class ArraysMethods {
         return arr;
     }
 
-    pushMethod(x: boolean) {
+    pushMethod() {
         const arr = [1, 2, 3];
         arr.push(4);
-
-        if (x) {
-            return arr[arr.length - 1]; // Return the last element after push
-        }
-
         return arr;
     }
 

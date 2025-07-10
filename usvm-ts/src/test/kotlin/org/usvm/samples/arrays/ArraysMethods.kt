@@ -55,14 +55,11 @@ class ArraysMethods : TsMethodTestRunner() {
     @Test
     fun testPushMethod() {
         val method = getMethod(className, "pushMethod")
-        discoverProperties<TsTestValue.TsBoolean, TsTestValue>(
+        discoverProperties<TsTestValue.TsArray<TsTestValue.TsNumber>>(
             method = method,
-            { x, r -> x.value && r is TsTestValue.TsNumber && r.number == 4.0 },
-            { x, r ->
-                !x.value
-                    && r is TsTestValue.TsArray<*>
-                    && r.values.map { (it as TsTestValue.TsNumber).number } == listOf(1.0, 2.0, 3.0, 4.0)
-            },
+            invariants = arrayOf(
+                { r -> r.values.map { it.number } == listOf(1.0, 2.0, 3.0, 4.0) },
+            )
         )
     }
 
