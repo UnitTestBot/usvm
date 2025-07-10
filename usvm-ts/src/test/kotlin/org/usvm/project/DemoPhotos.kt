@@ -49,7 +49,7 @@ class RunOnDemoPhotosProject : TsMethodTestRunner() {
         val classes = scene.projectClasses
             .filterNot { it.name.startsWith(ANONYMOUS_CLASS_PREFIX) }
 
-        logger.info {"Total classes: ${classes.size}"}
+        logger.info { "Total classes: ${classes.size}" }
 
         for (cls in classes) {
             logger.info {
@@ -81,9 +81,9 @@ class RunOnDemoPhotosProject : TsMethodTestRunner() {
         }
 
         val exc = exceptions.groupBy { it }
-        logger.error{"Total exceptions: ${exc.size}"}
+        logger.error { "Total exceptions: ${exc.size}" }
         for (es in exc.values.sortedBy { it.size }.asReversed()) {
-            logger.error{"${es.first()}"}
+            logger.error { "${es.first()}" }
         }
     }
 

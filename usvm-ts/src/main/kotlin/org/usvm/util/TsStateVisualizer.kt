@@ -26,7 +26,7 @@ fun TsState.renderGraph(view: Boolean = true) {
         currentStmt = currentStatement,
     )
 
-    if (view ) {
+    if (view) {
         myRenderDot(dot)
     } else {
         myRenderDot(dot, viewerCmd = null)
