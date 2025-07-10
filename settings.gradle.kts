@@ -23,7 +23,7 @@ develocity {
 
         // In CI, publish build scans automatically.
         // Locally, publish build scans on-demand, when `--scan` option is provided:
-        publishing.onlyIf { System.getProperty("CI") != null }
+        publishing.onlyIf { System.getenv("CI") != null }
     }
 }
 
