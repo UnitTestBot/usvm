@@ -156,7 +156,7 @@ class TsInterpreter(
 
         // NOTE: USE '.callee' INSTEAD OF '.method' !!!
 
-        val instance = requireNotNull(stmt.instance) { "Virtual code invocation with null as an instance" }
+        val instance = stmt.instance
 
         val unwrappedInstance = if (instance.isFakeObject()) {
             // TODO support primitives calls
