@@ -1,5 +1,32 @@
 rootProject.name = "usvm"
 
+pluginManagement {
+    resolutionStrategy {
+        eachPlugin {
+            if (requested.id.name == "rdgen") {
+                useModule("com.jetbrains.rd:rd-gen:${requested.version}")
+            }
+        }
+    }
+}
+
+plugins {
+    // https://plugins.gradle.org/plugin/com.gradle.develocity
+    id("com.gradle.develocity") version("4.0.2")
+}
+
+develocity {
+    buildScan {
+        // Accept the term of use for the build scan plugin:
+        termsOfUseUrl.set("https://gradle.com/help/legal-terms-of-use")
+        termsOfUseAgree.set("yes")
+
+        // In CI, publish build scans automatically.
+        // Locally, publish build scans on-demand, when `--scan` option is provided:
+        publishing.onlyIf { System.getenv("CI") != null }
+    }
+}
+
 include("usvm-core")
 include("usvm-jvm")
 include("usvm-jvm:usvm-jvm-api")
@@ -29,13 +56,3 @@ findProject(":usvm-python:usvm-python-commons")?.name = "usvm-python-commons"
 // As a workaround, we convert it to a real absolute path.
 // See IDEA bug: https://youtrack.jetbrains.com/issue/IDEA-329756
 // includeBuild(file("../jacodb").toPath().toRealPath().toAbsolutePath())
-
-pluginManagement {
-    resolutionStrategy {
-        eachPlugin {
-            if (requested.id.name == "rdgen") {
-                useModule("com.jetbrains.rd:rd-gen:${requested.version}")
-            }
-        }
-    }
-}
