@@ -121,6 +121,9 @@ jobs:
         with:
           node-version: 22
 
+      - name: Configure /etc/hosts
+        run: cat .github/extra/hosts >> /etc/hosts
+
       - name: Set up ArkAnalyzer
         run: |
           REPO_URL="https://gitcode.com/Lipen/arkanalyzer.git"
