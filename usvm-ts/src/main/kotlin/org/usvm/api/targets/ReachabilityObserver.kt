@@ -4,7 +4,6 @@ import org.usvm.machine.state.TsState
 import org.usvm.statistics.UMachineObserver
 
 class ReachabilityObserver : UMachineObserver<TsState> {
-    // TODO what if it reached in unreachable later path?
     override fun onState(parent: TsState, forks: Sequence<TsState>) {
         parent
             .targets
