@@ -32,12 +32,12 @@ import org.jacodb.ets.model.EtsUnionType
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.model.EtsValue
 import org.jacodb.ets.model.EtsVoidType
+import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.jacodb.ets.utils.callExpr
 import org.jacodb.ets.utils.getDeclaredLocals
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UAddressSort
-import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UInterpreter
 import org.usvm.UIteExpr
@@ -157,42 +157,49 @@ class TsInterpreter(
         // NOTE: USE '.callee' INSTEAD OF '.method' !!!
 
         val instance = requireNotNull(stmt.instance) { "Virtual code invocation with null as an instance" }
-        val concreteRef = scope.calcOnState { models.first().eval(instance) }
 
-        val uncoveredInstance = if (concreteRef.isFakeObject()) {
+        val unwrappedInstance = if (instance.isFakeObject()) {
             // TODO support primitives calls
             // We ignore the possibility of method call on primitives.
             // Therefore, the fake object should be unwrapped.
-            scope.assert(concreteRef.getFakeType(scope).refTypeExpr)
-            concreteRef.extractRef(scope)
+            scope.assert(instance.getFakeType(scope).refTypeExpr)
+            instance.extractRef(scope)
         } else {
-            concreteRef
+            instance.asExpr(addressSort)
         }
-
-        // Evaluate uncoveredInstance in a model to avoid too wide type streams later
-        val resolvedInstance = scope.calcOnState { models.first().eval(uncoveredInstance) }
 
         val concreteMethods: MutableList<EtsMethod> = mutableListOf()
 
-        // TODO: handle 'instance.isFakeObject()'
-
-        if (isAllocatedConcreteHeapRef(resolvedInstance)) {
-            val type = scope.calcOnState { memory.typeStreamOf(resolvedInstance) }.single()
+        if (isAllocatedConcreteHeapRef(unwrappedInstance)) {
+            val type = scope.calcOnState { memory.typeStreamOf(unwrappedInstance) }.single()
             if (type is EtsClassType) {
                 val classes = graph.hierarchy.classesForType(type)
                 if (classes.isEmpty()) {
                     logger.warn { "Could not resolve class: ${type.typeName}" }
+                    if (stmt.callee.name == CONSTRUCTOR_NAME) {
+                        // Approximate unresolved constructor:
+                        scope.doWithState {
+                            methodResult = TsMethodResult.Success.MockedCall(stmt.callee, unwrappedInstance)
+                            newStmt(stmt.returnSite)
+                        }
+                        return
+                    }
                     scope.assert(falseExpr)
                     return
                 }
                 if (classes.size > 1) {
-                    logger.warn { "Multiple classes with name: ${type.typeName}" }
-                    scope.assert(falseExpr)
-                    return
+                    logger.warn { "Multiple (${classes.size}) classes with name '${type.typeName}'" }
+                    // scope.assert(falseExpr)
+                    // return
+                    for (cls in classes) {
+                        val suitableMethods = cls.methods.filter { it.name == stmt.callee.name }
+                        concreteMethods += suitableMethods
+                    }
+                } else {
+                    val cls = classes.single()
+                    val suitableMethods = cls.methods.filter { it.name == stmt.callee.name }
+                    concreteMethods += suitableMethods
                 }
-                val cls = classes.single()
-                val suitableMethods = cls.methods.filter { it.name == stmt.callee.name }
-                concreteMethods += suitableMethods
             } else {
                 logger.warn {
                     "Could not resolve method: ${stmt.callee} on type: $type"
@@ -213,11 +220,11 @@ class TsInterpreter(
         }
 
         val possibleTypes = scope.calcOnState {
-            models.first().typeStreamOf(resolvedInstance as UConcreteHeapRef).take(1000)
+            memory.typeStreamOf(unwrappedInstance).take(scene.projectAndSdkClasses.size)
         }
 
         if (possibleTypes !is TypesResult.SuccessfulTypesResult) {
-            error("TODO")// is it right?
+            error("TODO") // is it right?
         }
 
         val possibleTypesSet = possibleTypes.types.toSet()
@@ -227,7 +234,7 @@ class TsInterpreter(
             scope.calcOnState {
                 newStmt(stmt.returnSite)
             }
-            return@with
+            return
         }
 
         val filteredPossibleTypesSet = possibleTypesSet - EtsAnyType
@@ -246,7 +253,7 @@ class TsInterpreter(
                 .asSequence()
                 // TODO wrong order, ancestors are unordered
                 .map { graph.hierarchy.getAncestors(it) }
-                .map { it.first { it.methods.any { it.name == stmt.callee.name } } }
+                .mapNotNull { it.firstOrNull { it.methods.any { it.name == stmt.callee.name } } }
                 .map { clazz to it.methods.first { it.name == stmt.callee.name } }
         }.toList().take(10) // TODO check it
 
@@ -264,7 +271,7 @@ class TsInterpreter(
             val constraint = scope.calcOnState {
                 val ref = stmt.instance.asExpr(addressSort)
                     .takeIf { !it.isFakeObject() }
-                    ?: uncoveredInstance.asExpr(addressSort)
+                    ?: unwrappedInstance.asExpr(addressSort)
 
                 // TODO: adhoc: "expand" ITE
                 if (ref is UIteExpr<*>) {
@@ -290,7 +297,17 @@ class TsInterpreter(
             }
             constraint to block
         }
-        scope.forkMulti(conditionsWithBlocks)
+        if (conditionsWithBlocks.isEmpty()) {
+            logger.warn {
+                "No suitable methods found for call: ${stmt.callee} with instance: $unwrappedInstance"
+            }
+            mockMethodCall(scope, stmt.callee)
+            scope.doWithState {
+                newStmt(stmt.returnSite)
+            }
+        } else {
+            scope.forkMulti(conditionsWithBlocks)
+        }
     }
 
     private fun visitConcreteMethodCall(scope: TsStepScope, stmt: TsConcreteMethodCallStmt) {
@@ -299,8 +316,15 @@ class TsInterpreter(
 
         // TODO: observer
 
-        val entryPoint = graph.entryPoints(stmt.callee).singleOrNull()
+        if (stmt.callee.signature.enclosingClass.name == "Log") {
+            mockMethodCall(scope, stmt.callee.signature)
+            scope.doWithState {
+                newStmt(stmt.returnSite)
+            }
+            return
+        }
 
+        val entryPoint = graph.entryPoints(stmt.callee).singleOrNull()
         if (entryPoint == null) {
             // logger.warn { "No entry point for method: ${stmt.callee}, mocking the call" }
             // If the method doesn't have entry points,
@@ -560,13 +584,15 @@ class TsInterpreter(
                     val instance = exprResolver.resolve(lhv.instance)?.asExpr(addressSort) ?: return@doWithState
                     exprResolver.checkUndefinedOrNullPropertyRead(instance) ?: return@doWithState
 
+                    val instanceRef = instance.unwrapRef(scope)
+
                     val etsField = resolveEtsField(lhv.instance, lhv.field, graph.hierarchy)
                     scope.doWithState {
                         // If we access some field, we expect that the object must have this field.
                         // It is not always true for TS, but we decided to process it so.
                         val supertype = EtsAuxiliaryType(properties = setOf(lhv.field.name))
                         // assert is required to update models
-                        scope.assert(memory.types.evalIsSubtype(instance, supertype))
+                        scope.assert(memory.types.evalIsSubtype(instanceRef, supertype))
                     }
 
                     // If there is no such field, we create a fake field for the expr
@@ -578,13 +604,13 @@ class TsInterpreter(
 
                     if (sort == unresolvedSort) {
                         val fakeObject = expr.toFakeObject(scope)
-                        val lValue = mkFieldLValue(addressSort, instance, lhv.field)
+                        val lValue = mkFieldLValue(addressSort, instanceRef, lhv.field)
 
                         lValuesToAllocatedFakeObjects += lValue to fakeObject
 
                         memory.write(lValue, fakeObject, guard = trueExpr)
                     } else {
-                        val lValue = mkFieldLValue(sort, instance, lhv.field)
+                        val lValue = mkFieldLValue(sort, instanceRef, lhv.field)
                         if (lValue.sort != expr.sort) {
                             if (expr.isFakeObject()) {
                                 val lhvType = lhv.type

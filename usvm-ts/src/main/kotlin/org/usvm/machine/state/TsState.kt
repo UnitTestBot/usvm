@@ -22,6 +22,7 @@ import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.collections.immutable.persistentHashMapOf
 import org.usvm.constraints.UPathConstraints
 import org.usvm.machine.TsContext
+import org.usvm.machine.interpreter.PromiseState
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase
@@ -54,6 +55,8 @@ class TsState(
     val addedArtificialLocals: MutableSet<String> = hashSetOf(),
     val lValuesToAllocatedFakeObjects: MutableList<Pair<ULValue<*, *>, UConcreteHeapRef>> = mutableListOf(),
     var discoveredCallees: UPersistentHashMap<Pair<EtsStmt, Int>, EtsBlockCfg> = persistentHashMapOf(),
+    var promiseStates: UPersistentHashMap<UConcreteHeapRef, PromiseState> = persistentHashMapOf(),
+    var promiseExecutors: UPersistentHashMap<UConcreteHeapRef, EtsMethod> = persistentHashMapOf(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
     ctx = ctx,
     initOwnership = ownership,
@@ -141,6 +144,20 @@ class TsState(
         return result
     }
 
+    fun setPromiseState(
+        promise: UConcreteHeapRef,
+        state: PromiseState,
+    ) {
+        promiseStates = promiseStates.put(promise, state, ownership)
+    }
+
+    fun setPromiseExecutor(
+        promise: UConcreteHeapRef,
+        method: EtsMethod,
+    ) {
+        promiseExecutors = promiseExecutors.put(promise, method, ownership)
+    }
+
     override fun clone(newConstraints: UPathConstraints<EtsType>?): TsState {
         val newThisOwnership = MutabilityOwnership()
         val cloneOwnership = MutabilityOwnership()
@@ -168,6 +185,8 @@ class TsState(
             addedArtificialLocals = addedArtificialLocals,
             lValuesToAllocatedFakeObjects = lValuesToAllocatedFakeObjects.toMutableList(),
             discoveredCallees = discoveredCallees,
+            promiseStates = promiseStates,
+            promiseExecutors = promiseExecutors,
         )
     }
 

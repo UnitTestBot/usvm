@@ -1,5 +1,6 @@
 package org.usvm.util
 
+import mu.KotlinLogging
 import org.jacodb.ets.utils.InterproceduralCfg
 import org.jacodb.ets.utils.toHighlightedDotWithCalls
 import org.usvm.dataflow.ts.util.toMap
@@ -10,20 +11,26 @@ import java.nio.file.Path
 import kotlin.io.path.createTempDirectory
 import kotlin.io.path.writeText
 
+private val logger = KotlinLogging.logger {}
+
 class TsStateVisualizer : TsInterpreterObserver, UMachineObserver<TsState> {
     override fun onStatePeeked(state: TsState) {
         state.renderGraph()
     }
 }
 
-fun TsState.renderGraph() {
+fun TsState.renderGraph(view: Boolean = true) {
     val graph = InterproceduralCfg(main = entrypoint.cfg, callees = discoveredCallees.toMap())
     val dot = graph.toHighlightedDotWithCalls(
         pathStmts = pathNode.allStatements.toSet(),
         currentStmt = currentStatement,
     )
 
-    myRenderDot(dot)
+    if (view) {
+        myRenderDot(dot)
+    } else {
+        myRenderDot(dot, viewerCmd = null)
+    }
 }
 
 @Suppress("DEPRECATION")
@@ -40,10 +47,11 @@ fun myRenderDot(
     },
 ) {
     val dotFile = outDir.resolve("$baseName.dot")
-    val svgFile = outDir.resolveSibling("$baseName.$format")
+    val outFile = outDir.resolveSibling("$baseName.$format")
     dotFile.writeText(dot)
-    Runtime.getRuntime().exec("$dotCmd $dotFile -T$format -o $svgFile").waitFor()
+    Runtime.getRuntime().exec("$dotCmd $dotFile -T$format -o $outFile").waitFor()
+    logger.debug { "Rendered DOT to ${format.uppercase()}: $outFile" }
     if (viewerCmd != null) {
-        Runtime.getRuntime().exec("$viewerCmd $svgFile").waitFor()
+        Runtime.getRuntime().exec("$viewerCmd $outFile").waitFor()
     }
 }
