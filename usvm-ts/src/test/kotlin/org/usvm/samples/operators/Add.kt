@@ -81,6 +81,8 @@ class Add : TsMethodTestRunner() {
         discoverProperties<TsTestValue, TsTestValue, TsTestValue.TsNumber>(
             method = method,
             { a, b, r -> a is TsTestValue.TsUndefined || b is TsTestValue.TsUndefined && r.number.isNaN() },
+            // This condition sometimes fails, in case `bool` + `null`
+            // TODO https://github.com/UnitTestBot/usvm/issues/310
             { a, b, r ->
                 (a is TsTestValue.TsClass
                     || b is TsTestValue.TsClass
