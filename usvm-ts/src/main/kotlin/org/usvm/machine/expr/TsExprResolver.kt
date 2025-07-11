@@ -90,8 +90,10 @@ import org.usvm.UIteExpr
 import org.usvm.USort
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArrayLength
+import org.usvm.api.typeStreamOf
 import org.usvm.dataflow.ts.infer.tryGetKnownType
 import org.usvm.dataflow.ts.util.type
+import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.Constants
 import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
@@ -111,6 +113,7 @@ import org.usvm.machine.types.EtsAuxiliaryType
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.memory.ULValue
 import org.usvm.sizeSort
+import org.usvm.types.first
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.EtsPropertyResolution
 import org.usvm.util.createFakeField
@@ -125,8 +128,8 @@ import org.usvm.util.throwExceptionWithoutStackFrameDrop
 private val logger = KotlinLogging.logger {}
 
 class TsExprResolver(
-    private val ctx: TsContext,
-    private val scope: TsStepScope,
+    internal val ctx: TsContext,
+    internal val scope: TsStepScope,
     private val localToIdx: (EtsMethod, EtsValue) -> Int?,
     private val hierarchy: EtsHierarchy,
 ) : EtsEntity.Visitor<UExpr<out USort>?> {
@@ -163,7 +166,7 @@ class TsExprResolver(
         with(operator) { ctx.resolve(lhs, rhs, scope) }
     }
 
-    private inline fun <T> resolveAfterResolved(
+    internal inline fun <T> resolveAfterResolved(
         dependency: EtsEntity,
         block: (UExpr<out USort>) -> T,
     ): T? {
@@ -171,7 +174,7 @@ class TsExprResolver(
         return block(result)
     }
 
-    private inline fun <T> resolveAfterResolved(
+    internal inline fun <T> resolveAfterResolved(
         dependency0: EtsEntity,
         dependency1: EtsEntity,
         block: (UExpr<out USort>, UExpr<out USort>) -> T,
@@ -507,7 +510,7 @@ class TsExprResolver(
 
     // region CALL
 
-    private fun handleNumberIsNaN(arg: UExpr<out USort>): UBoolExpr? = with(ctx) {
+    internal fun handleNumberIsNaN(arg: UExpr<out USort>): UBoolExpr? = with(ctx) {
         // 21.1.2.4 Number.isNaN ( number )
         // 1. If number is not a Number, return false.
         // 2. If number is NaN, return true.
@@ -531,47 +534,11 @@ class TsExprResolver(
     }
 
     override fun visit(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
-        if (expr.instance.name == "Number") {
-            if (expr.callee.name == "isNaN") {
-                check(expr.args.size == 1) { "Number.isNaN should have one argument" }
-                return resolveAfterResolved(expr.args.single()) { arg ->
-                    handleNumberIsNaN(arg)
-                }
-            }
-        }
-
-        if (expr.instance.name == "Logger") {
-            return mkUndefinedValue()
-        }
-
-        if (expr.callee.name == "toString") {
-            return mkStringConstant("I am a string", scope)
-        }
-
-        // TODO write tests https://github.com/UnitTestBot/usvm/issues/300
-        if (expr.callee.name == "push" && expr.instance.type is EtsArrayType) {
-            return scope.calcOnState {
-                val resolvedInstance = resolve(expr.instance)?.asExpr(ctx.addressSort) ?: return@calcOnState null
-                val lengthLValue = mkArrayLengthLValue(
-                    resolvedInstance,
-                    EtsArrayType(EtsUnknownType, dimensions = 1)
-                )
-                val length = memory.read(lengthLValue)
-                val newLength = mkBvAddExpr(length, 1.toBv())
-                memory.write(lengthLValue, newLength, guard = ctx.trueExpr)
-                val resolvedArg = resolve(expr.args.single()) ?: return@calcOnState null
-
-                // TODO check sorts compatibility https://github.com/UnitTestBot/usvm/issues/300
-                val newIndexLValue = mkArrayIndexLValue(
-                    resolvedArg.sort,
-                    resolvedInstance,
-                    length,
-                    EtsArrayType(EtsUnknownType, dimensions = 1)
-                )
-                memory.write(newIndexLValue, resolvedArg.asExpr(newIndexLValue.sort), guard = ctx.trueExpr)
-
-                newLength
-            }
+        val result = tryApproximateInstanceCall(expr)
+        when (result) {
+            is TsExprApproximationResult.SuccessfulApproximation -> return result.expr
+            is TsExprApproximationResult.ResolveFailure -> return null
+            is TsExprApproximationResult.NoApproximation -> {}
         }
 
         return when (val result = scope.calcOnState { methodResult }) {
@@ -758,8 +725,11 @@ class TsExprResolver(
             isSigned = true,
         ).asExpr(sizeSort)
 
-        val arrayType = value.array.type as? EtsArrayType
-            ?: error("Expected EtsArrayType, but got ${value.array.type}")
+        val arrayType = if (isAllocatedConcreteHeapRef(array)) {
+            scope.calcOnState { memory.typeStreamOf(array).first() }
+        } else {
+            value.array.type
+        } as? EtsArrayType ?: error("Expected EtsArrayType, got: ${value.array.type}")
         val sort = typeToSort(arrayType.elementType)
 
         val lengthLValue = mkArrayLengthLValue(array, arrayType)
