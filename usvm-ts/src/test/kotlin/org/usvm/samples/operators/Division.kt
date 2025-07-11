@@ -52,13 +52,15 @@ class Division : TsMethodTestRunner() {
     @Test
     fun testUnknownDivision() {
         val method = getMethod(className, "unknownDivision")
-        discoverProperties<TsTestValue, TsTestValue, TsTestValue.TsNumber>(
-            method = method,
-            { a, b, r -> (a is TsTestValue.TsUndefined || b is TsTestValue.TsUndefined) && r.number.isNaN() },
-            { _, _, r -> r.number == 4.0 },
-            { _, _, r -> r.number == Double.POSITIVE_INFINITY },
-            { _, _, r -> r.number == Double.NEGATIVE_INFINITY },
-            { _, _, r -> r.number.isNaN() },
-        )
+        withOptions(options.copy(useSoftConstraints = false)) {
+            discoverProperties<TsTestValue, TsTestValue, TsTestValue.TsNumber>(
+                method = method,
+                { a, b, r -> (a is TsTestValue.TsUndefined || b is TsTestValue.TsUndefined) && r.number.isNaN() },
+                { _, _, r -> r.number == 4.0 },
+                { _, _, r -> r.number == Double.POSITIVE_INFINITY },
+                { _, _, r -> r.number == Double.NEGATIVE_INFINITY },
+                { _, _, r -> r.number.isNaN() },
+            )
+        }
     }
 }
