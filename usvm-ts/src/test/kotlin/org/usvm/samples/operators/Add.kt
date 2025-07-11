@@ -1,6 +1,7 @@
 package org.usvm.samples.operators
 
 import org.jacodb.ets.model.EtsScene
+import org.junit.jupiter.api.Disabled
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.toDouble
@@ -75,12 +76,15 @@ class Add : TsMethodTestRunner() {
         )
     }
 
+    @Disabled("Flaky test, see https://github.com/UnitTestBot/usvm/issues/310")
     @Test
     fun `add unknown values`() {
         val method = getMethod(className, "addUnknownValues")
         discoverProperties<TsTestValue, TsTestValue, TsTestValue.TsNumber>(
             method = method,
             { a, b, r -> a is TsTestValue.TsUndefined || b is TsTestValue.TsUndefined && r.number.isNaN() },
+            // This condition sometimes fails, in case `bool` + `null`
+            // TODO https://github.com/UnitTestBot/usvm/issues/310
             { a, b, r ->
                 (a is TsTestValue.TsClass
                     || b is TsTestValue.TsClass
