@@ -48,4 +48,19 @@ class ReachabilityChecker {
         val results = machine.analyze(listOf(method), listOf(initialTarget))
         require(results.size == 1) { "Expected exactly one result, but got ${results.size}" }
     }
+
+    @Test
+    fun runReachabilityCheckForFirstInstruction() {
+        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
+        val method = scene.projectClasses
+            .flatMap { it.methods }
+            .single { it.name == "simpleFunction" }
+
+        val initialPoint = method.cfg.stmts.first()
+        val initialTarget = TsReachabilityTarget.InitialPoint(initialPoint)
+
+        val results = machine.analyze(listOf(method), listOf(initialTarget))
+        require(results.isEmpty()) { "Expected no analysis results, but got ${results.size}" }
+        require(initialTarget.isRemoved) { "Expected initial target to be removed, but it was not" }
+    }
 }
