@@ -1,6 +1,7 @@
 package org.usvm.samples.operators
 
 import org.jacodb.ets.model.EtsScene
+import org.junit.jupiter.api.Disabled
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.toDouble
@@ -75,6 +76,7 @@ class Add : TsMethodTestRunner() {
         )
     }
 
+    @Disabled("Flaky test, see https://github.com/UnitTestBot/usvm/issues/310")
     @Test
     fun `add unknown values`() {
         val method = getMethod(className, "addUnknownValues")
