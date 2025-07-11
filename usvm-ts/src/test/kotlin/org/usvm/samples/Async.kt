@@ -14,10 +14,7 @@ class Async : TsMethodTestRunner() {
 
     private val className = this::class.simpleName!!
 
-    override val scene: EtsScene = loadSampleScene(
-        className,
-        sdks = listOf(SDK_TYPESCRIPT_PATH, SDK_OHOS_PATH)
-    )
+    override val scene: EtsScene = loadSampleScene(className)
 
     @Test
     fun `create and await promise`() {

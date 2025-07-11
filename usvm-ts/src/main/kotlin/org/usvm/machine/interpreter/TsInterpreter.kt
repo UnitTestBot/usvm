@@ -32,6 +32,7 @@ import org.jacodb.ets.model.EtsUnionType
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.model.EtsValue
 import org.jacodb.ets.model.EtsVoidType
+import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.jacodb.ets.utils.callExpr
 import org.jacodb.ets.utils.getDeclaredLocals
 import org.usvm.StepResult
@@ -175,6 +176,14 @@ class TsInterpreter(
                 val classes = graph.hierarchy.classesForType(type)
                 if (classes.isEmpty()) {
                     logger.warn { "Could not resolve class: ${type.typeName}" }
+                    if (stmt.callee.name == CONSTRUCTOR_NAME) {
+                        // Approximate unresolved constructor:
+                        scope.doWithState {
+                            methodResult = TsMethodResult.Success.MockedCall(stmt.callee, unwrappedInstance)
+                            newStmt(stmt.returnSite)
+                        }
+                        return
+                    }
                     scope.assert(falseExpr)
                     return
                 }
@@ -225,7 +234,7 @@ class TsInterpreter(
             scope.calcOnState {
                 newStmt(stmt.returnSite)
             }
-            return@with
+            return
         }
 
         val filteredPossibleTypesSet = possibleTypesSet - EtsAnyType
