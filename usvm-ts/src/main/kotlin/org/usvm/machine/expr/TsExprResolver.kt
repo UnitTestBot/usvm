@@ -1176,61 +1176,89 @@ class TsExprResolver(
         }
     }
 
+    private fun handleArrayLength(
+        value: EtsInstanceFieldRef,
+        instance: UHeapRef,
+    ): UExpr<*> = with(ctx) {
+        val arrayType = value.instance.type as EtsArrayType
+        val length = scope.calcOnState {
+            val lengthLValue = mkArrayLengthLValue(instance, arrayType)
+            memory.read(lengthLValue)
+        }
+
+        scope.doWithState {
+            pathConstraints += mkBvSignedGreaterOrEqualExpr(length, mkBv(0))
+        }
+
+        return mkBvToFpExpr(
+            fp64Sort,
+            fpRoundingModeSortDefaultValue(),
+            length.asExpr(sizeSort),
+            signed = true,
+        )
+    }
+
+    private fun handleFakeLength(
+        value: EtsInstanceFieldRef,
+        instance: UConcreteHeapRef,
+    ): UExpr<*> = with(ctx) {
+        val fakeType = instance.getFakeType(scope)
+
+        // If we want to get length from a fake object, we assume that it is an array.
+        scope.doWithState {
+            pathConstraints += fakeType.refTypeExpr
+        }
+
+        val ref = instance.unwrapRef(scope)
+
+        val arrayType = when (val type = value.instance.type) {
+            is EtsArrayType -> type
+
+            is EtsAnyType, is EtsUnknownType -> {
+                // If the type is not an array, we assume it is a fake object with
+                // a length property that behaves like an array.
+                EtsArrayType(EtsUnknownType, dimensions = 1)
+            }
+
+            else -> error("Expected EtsArrayType, EtsAnyType or EtsUnknownType, but got $type")
+        }
+        val length = scope.calcOnState {
+            val lengthLValue = mkArrayLengthLValue(ref, arrayType)
+            memory.read(lengthLValue)
+        }
+
+        scope.doWithState {
+            pathConstraints += mkBvSignedGreaterOrEqualExpr(length, mkBv(0))
+        }
+
+        return mkBvToFpExpr(
+            fp64Sort,
+            fpRoundingModeSortDefaultValue(),
+            length.asExpr(sizeSort),
+            signed = true
+        )
+    }
+
     override fun visit(value: EtsInstanceFieldRef): UExpr<out USort>? = with(ctx) {
-        val instanceRefResolved = resolve(value.instance) ?: return null
-        if (instanceRefResolved.sort != addressSort) {
-            logger.error("InstanceFieldRef access on not address sort: $instanceRefResolved")
+        val instanceResolved = resolve(value.instance) ?: return null
+        if (instanceResolved.sort != addressSort) {
+            logger.error { "Instance of field ref should be a reference, but got $instanceResolved" }
             scope.assert(falseExpr)
             return null
         }
-        val instanceRef = instanceRefResolved.asExpr(addressSort)
+        val instanceRef = instanceResolved.asExpr(addressSort)
 
         checkUndefinedOrNullPropertyRead(instanceRef) ?: return null
 
-        // TODO It is a hack for array's length
-        if (value.field.name == "length") {
-            if (value.instance.type is EtsArrayType) {
-                val arrayType = value.instance.type as EtsArrayType
-                val lengthLValue = mkArrayLengthLValue(instanceRef, arrayType)
-                val length = scope.calcOnState { memory.read(lengthLValue) }
-                scope.doWithState { pathConstraints += mkBvSignedGreaterOrEqualExpr(length, mkBv(0)) }
+        // Handle array length
+        if (value.field.name == "length" && value.instance.type is EtsArrayType) {
+            return handleArrayLength(value, instanceRef)
+        }
 
-                return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), length.asExpr(sizeSort), signed = true)
-            }
-
-            // TODO: handle "length" property for arrays inside fake objects
-            if (instanceRef.isFakeObject()) {
-                val fakeType = instanceRef.getFakeType(scope)
-
-                // If we want to get length from a fake object, we assume that it is an array.
-                scope.doWithState { pathConstraints += fakeType.refTypeExpr }
-
-                val refLValue = getIntermediateRefLValue(instanceRef.address)
-                val obj = scope.calcOnState { memory.read(refLValue) }
-
-                val type = value.instance.type
-                val arrayType = type as? EtsArrayType ?: run {
-                    check(type is EtsAnyType || type is EtsUnknownType) {
-                        "Expected EtsArrayType, EtsAnyType or EtsUnknownType, but got $type"
-                    }
-
-                    // We don't know the type of the array, since it is a fake object
-                    // If we'd know the type, we would have used it instead of creating a fake object
-                    EtsArrayType(EtsUnknownType, dimensions = 1)
-                }
-                val lengthLValue = mkArrayLengthLValue(obj, arrayType)
-                val length = scope.calcOnState { memory.read(lengthLValue) }
-
-                scope.doWithState { pathConstraints += mkBvSignedGreaterOrEqualExpr(length, mkBv(0)) }
-
-                return mkBvToFpExpr(
-                    fp64Sort,
-                    fpRoundingModeSortDefaultValue(),
-                    length.asExpr(sizeSort),
-                    signed = true
-                )
-
-            }
+        // Handle length property for fake objects
+        // TODO: handle "length" property for arrays inside fake objects
+        if (value.field.name == "length" && instanceRef.isFakeObject()) {
+            return handleFakeLength(value, instanceRef)
         }
 
         return handleFieldRef(value.instance, instanceRef, value.field, hierarchy)
@@ -1250,7 +1278,7 @@ class TsExprResolver(
                 scope.doWithState {
                     // TODO: Handle static initializer result
                     val result = methodResult
-                    if (result is TsMethodResult.Success && result.methodSignature() == initializer.signature) {
+                    if (result is TsMethodResult.Success && result.methodSignature == initializer.signature) {
                         methodResult = TsMethodResult.NoCall
                     }
                 }
