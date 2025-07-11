@@ -21,7 +21,7 @@ sealed interface TsMethodCall : EtsStmt {
 
 class TsVirtualMethodCallStmt(
     val callee: EtsMethodSignature,
-    override val instance: UExpr<*>?,
+    override val instance: UExpr<*>,
     override val args: List<UExpr<*>>,
     override val returnSite: EtsStmt,
 ) : TsMethodCall {
