@@ -179,7 +179,7 @@ class TsInterpreter(
                     if (stmt.callee.name == CONSTRUCTOR_NAME) {
                         // Approximate unresolved constructor:
                         scope.doWithState {
-                            methodResult = TsMethodResult.Success.MockedCall(stmt.callee, unwrappedInstance)
+                            methodResult = TsMethodResult.Success.MockedCall(unwrappedInstance, stmt.callee)
                             newStmt(stmt.returnSite)
                         }
                         return
@@ -860,10 +860,11 @@ class TsInterpreter(
                         makeSymbolicRefUntyped()
                     )
 
-                    else -> makeSymbolicPrimitive(resultSort)
+                    else -> makeSymbolicPrimitive(sort)
                 }
             }
-            methodResult = TsMethodResult.Success.MockedCall(method, resultValue)
+
+            methodResult = TsMethodResult.Success.MockedCall(result, method)
         }
     }
 
