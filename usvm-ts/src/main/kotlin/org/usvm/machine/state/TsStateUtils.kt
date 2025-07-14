@@ -6,7 +6,8 @@ import org.jacodb.ets.utils.getDeclaredLocals
 import org.usvm.UExpr
 import org.usvm.USort
 
-val TsState.lastStmt get() = pathNode.statement
+val TsState.lastStmt: EtsStmt
+    get() = currentStatement
 
 fun TsState.newStmt(stmt: EtsStmt) {
     pathNode += stmt

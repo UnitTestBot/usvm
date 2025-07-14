@@ -79,6 +79,7 @@ import org.jacodb.ets.model.EtsUnsignedRightShiftExpr
 import org.jacodb.ets.model.EtsValue
 import org.jacodb.ets.model.EtsVoidExpr
 import org.jacodb.ets.model.EtsYieldExpr
+import org.jacodb.ets.utils.ANONYMOUS_METHOD_PREFIX
 import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.jacodb.ets.utils.STATIC_INIT_METHOD_NAME
 import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
@@ -94,6 +95,7 @@ import org.usvm.USort
 import org.usvm.api.allocateConcreteRef
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArrayLength
+import org.usvm.api.mockMethodCall
 import org.usvm.dataflow.ts.infer.tryGetKnownType
 import org.usvm.dataflow.ts.util.type
 import org.usvm.isAllocatedConcreteHeapRef
@@ -966,9 +968,39 @@ class TsExprResolver(
     }
 
     override fun visit(expr: EtsPtrCallExpr): UExpr<out USort>? {
-        // TODO: IMPORTANT do not forget to fill sorts of arguments map
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+        return when (val result = scope.calcOnState { methodResult }) {
+            is TsMethodResult.Success -> {
+                scope.doWithState { methodResult = TsMethodResult.NoCall }
+                result.value
+            }
+
+            is TsMethodResult.TsException -> {
+                error("Exception should be handled earlier")
+            }
+
+            is TsMethodResult.NoCall -> {
+                val ptr = resolve(expr.ptr) ?: return null
+
+                if (isAllocatedConcreteHeapRef(ptr)) {
+                    val callee = scope.calcOnState {
+                        associatedMethods[ptr] ?: error("No associated methods for ptr: $ptr")
+                    }
+
+                    val resolvedArgs = expr.args.map { resolve(it) ?: return null }
+                    val concreteCall = TsConcreteMethodCallStmt(
+                        callee = callee,
+                        instance = ptr,
+                        args = resolvedArgs,
+                        returnSite = scope.calcOnState { lastStmt },
+                    )
+                    scope.doWithState { newStmt(concreteCall) }
+                } else {
+                    mockMethodCall(scope, expr.callee)
+                }
+
+                null
+            }
+        }
     }
 
     // endregion
@@ -1470,6 +1502,19 @@ class TsSimpleValueResolver(
         }
         if (local.name == "Infinity") {
             return ctx.mkFpInf(false, ctx.fp64Sort)
+        }
+
+        if (local.name.startsWith(ANONYMOUS_METHOD_PREFIX)) {
+            val sig = EtsMethodSignature(
+                enclosingClass = EtsClassSignature.UNKNOWN,
+                name = local.name,
+                parameters = emptyList(),
+                returnType = EtsUnknownType,
+            )
+            val methods = ctx.resolveEtsMethods(sig)
+            val method = methods.single()
+            val ref = scope.calcOnState { getMethodRef(method) }
+            return ref
         }
 
         val currentMethod = scope.calcOnState { lastEnteredMethod }
