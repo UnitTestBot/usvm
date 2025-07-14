@@ -8,6 +8,7 @@ import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.model.EtsValue
 import org.usvm.PathNode
 import org.usvm.UCallStack
@@ -57,6 +58,9 @@ class TsState(
     var discoveredCallees: UPersistentHashMap<Pair<EtsStmt, Int>, EtsBlockCfg> = persistentHashMapOf(),
     var promiseStates: UPersistentHashMap<UConcreteHeapRef, PromiseState> = persistentHashMapOf(),
     var promiseExecutors: UPersistentHashMap<UConcreteHeapRef, EtsMethod> = persistentHashMapOf(),
+    // TODO: use normal naming
+    var method2ref: UPersistentHashMap<EtsMethod, UConcreteHeapRef> = persistentHashMapOf(),
+    var associatedMethods: UPersistentHashMap<UConcreteHeapRef, EtsMethod> = persistentHashMapOf(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
     ctx = ctx,
     initOwnership = ownership,
@@ -158,6 +162,18 @@ class TsState(
         promiseExecutors = promiseExecutors.put(promise, method, ownership)
     }
 
+    fun getMethodRef(
+        method: EtsMethod,
+    ): UConcreteHeapRef {
+        val (updated, result) = method2ref.getOrPut(method, ownership) {
+            // TODO: what type should we use here?
+            memory.allocConcrete(EtsUnknownType)
+        }
+        associatedMethods = associatedMethods.put(result, method, ownership)
+        method2ref = updated
+        return result
+    }
+
     override fun clone(newConstraints: UPathConstraints<EtsType>?): TsState {
         val newThisOwnership = MutabilityOwnership()
         val cloneOwnership = MutabilityOwnership()
@@ -187,6 +203,8 @@ class TsState(
             discoveredCallees = discoveredCallees,
             promiseStates = promiseStates,
             promiseExecutors = promiseExecutors,
+            method2ref = method2ref,
+            associatedMethods = associatedMethods,
         )
     }
 

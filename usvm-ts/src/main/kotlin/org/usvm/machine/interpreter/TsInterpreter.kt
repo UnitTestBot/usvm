@@ -13,7 +13,6 @@ import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
-import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsNopStmt
 import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsNumberType
@@ -31,20 +30,17 @@ import org.jacodb.ets.model.EtsUndefinedType
 import org.jacodb.ets.model.EtsUnionType
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.model.EtsValue
-import org.jacodb.ets.model.EtsVoidType
 import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.jacodb.ets.utils.callExpr
 import org.jacodb.ets.utils.getDeclaredLocals
 import org.usvm.StepResult
 import org.usvm.StepScope
-import org.usvm.UAddressSort
 import org.usvm.UExpr
 import org.usvm.UInterpreter
 import org.usvm.UIteExpr
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArray
-import org.usvm.api.makeSymbolicPrimitive
-import org.usvm.api.makeSymbolicRefUntyped
+import org.usvm.api.mockMethodCall
 import org.usvm.api.targets.TsTarget
 import org.usvm.api.typeStreamOf
 import org.usvm.collections.immutable.internal.MutabilityOwnership
@@ -67,7 +63,6 @@ import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.state.returnValue
 import org.usvm.machine.types.EtsAuxiliaryType
-import org.usvm.machine.types.mkFakeValue
 import org.usvm.machine.types.toAuxiliaryType
 import org.usvm.sizeSort
 import org.usvm.targets.UTargetsSet
@@ -230,7 +225,8 @@ class TsInterpreter(
         val possibleTypesSet = possibleTypes.types.toSet()
 
         if (possibleTypesSet.singleOrNull() == EtsAnyType) {
-            mockMethodCall(scope, stmt.callee, stmt.returnSite)
+            mockMethodCall(scope, stmt.callee)
+            scope.doWithState { newStmt(stmt.returnSite) }
             return
         }
 
@@ -299,7 +295,8 @@ class TsInterpreter(
             logger.warn {
                 "No suitable methods found for call: ${stmt.callee} with instance: $unwrappedInstance"
             }
-            mockMethodCall(scope, stmt.callee, stmt.returnSite)
+            mockMethodCall(scope, stmt.callee)
+            scope.doWithState { newStmt(stmt.returnSite) }
             return
         }
 
@@ -313,7 +310,8 @@ class TsInterpreter(
         // TODO: observer
 
         if (stmt.callee.signature.enclosingClass.name == "Log") {
-            mockMethodCall(scope, stmt.callee.signature, stmt.returnSite)
+            mockMethodCall(scope, stmt.callee.signature)
+            scope.doWithState { newStmt(stmt.returnSite) }
             return
         }
 
@@ -322,7 +320,8 @@ class TsInterpreter(
             // logger.warn { "No entry point for method: ${stmt.callee}, mocking the call" }
             // If the method doesn't have entry points,
             // we go through it, we just mock the call
-            mockMethodCall(scope, stmt.callee.signature, stmt.returnSite)
+            mockMethodCall(scope, stmt.callee.signature)
+            scope.doWithState { newStmt(stmt.returnSite) }
             return
         }
 
@@ -481,13 +480,9 @@ class TsInterpreter(
                 is TsMethodResult.TsException -> error("Exceptions must be processed earlier")
             }
 
-            if (callExpr is EtsPtrCallExpr) {
-                mockMethodCall(scope, callExpr.callee, stmt)
-                return
-            }
-
             if (!tsOptions.interproceduralAnalysis && methodResult == TsMethodResult.NoCall) {
-                mockMethodCall(scope, callExpr.callee, stmt)
+                mockMethodCall(scope, callExpr.callee)
+                scope.doWithState { newStmt(stmt) }
                 return
             }
         } else {
@@ -683,15 +678,16 @@ class TsInterpreter(
 
     private fun visitCallStmt(scope: TsStepScope, stmt: EtsCallStmt) {
         if (scope.calcOnState { methodResult } is TsMethodResult.Success) {
+            val nextStmt = stmt.nextStmt ?: return
             scope.doWithState {
                 methodResult = TsMethodResult.NoCall
-                newStmt(stmt.nextStmt!!)
+                newStmt(nextStmt)
             }
             return
         }
 
         if (stmt.expr is EtsPtrCallExpr) {
-            mockMethodCall(scope, stmt.expr.callee, stmt)
+            mockMethodCall(scope, stmt.expr.callee)
             return
         }
 
@@ -704,7 +700,7 @@ class TsInterpreter(
         }
 
         // intraprocedural analysis
-        mockMethodCall(scope, stmt.expr.callee, stmt)
+        mockMethodCall(scope, stmt.expr.callee)
     }
 
     private fun visitThrowStmt(scope: TsStepScope, stmt: EtsThrowStmt) {
@@ -832,37 +828,6 @@ class TsInterpreter(
         state.memory.types.allocate(mkTsNullValue().address, EtsNullType)
 
         state
-    }
-
-    private fun mockMethodCall(
-        scope: TsStepScope,
-        method: EtsMethodSignature,
-        returnSite: EtsStmt,
-    ) {
-        scope.doWithState {
-            newStmt(returnSite)
-
-            val result: UExpr<*>
-            if (method.returnType is EtsVoidType) {
-                result = ctx.mkUndefinedValue()
-            } else {
-                val sort = ctx.typeToSort(method.returnType)
-                result = when (sort) {
-                    is UAddressSort -> makeSymbolicRefUntyped()
-
-                    is TsUnresolvedSort -> ctx.mkFakeValue(
-                        scope,
-                        makeSymbolicPrimitive(ctx.boolSort),
-                        makeSymbolicPrimitive(ctx.fp64Sort),
-                        makeSymbolicRefUntyped()
-                    )
-
-                    else -> makeSymbolicPrimitive(sort)
-                }
-            }
-
-            methodResult = TsMethodResult.Success.MockedCall(result, method)
-        }
     }
 
     // TODO: expand with interpreter implementation
