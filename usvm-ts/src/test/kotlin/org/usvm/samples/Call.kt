@@ -288,6 +288,17 @@ class Call : TsMethodTestRunner() {
             { r -> r.number == 20.0 },
         )
     }
+
+    @Test
+    fun `test call local lambda`() {
+        val method = getMethod(className, "callLocalLambda")
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            invariants = arrayOf(
+                { r -> r.number == 42.0 },
+            )
+        )
+    }
 }
 
 fun fib(n: Double): Double {
