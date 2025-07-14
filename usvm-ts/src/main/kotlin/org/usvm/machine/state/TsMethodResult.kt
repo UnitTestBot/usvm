@@ -15,23 +15,24 @@ sealed interface TsMethodResult {
      */
     object NoCall : TsMethodResult
 
-    sealed class Success(val value: UExpr<*>) : TsMethodResult {
-        abstract val methodSignature: EtsMethodSignature
+    sealed interface Success : TsMethodResult {
+        val value: UExpr<*>
+        val methodSignature: EtsMethodSignature
 
         /**
          * A [method] successfully returned a [value].
          */
         class RegularCall(
+            override val value: UExpr<*>,
             val method: EtsMethod,
-            value: UExpr<*>,
-        ) : Success(value) {
+        ) : Success {
             override val methodSignature: EtsMethodSignature get() = method.signature
         }
 
         class MockedCall(
+            override val value: UExpr<*>,
             override val methodSignature: EtsMethodSignature,
-            value: UExpr<*>,
-        ) : Success(value)
+        ) : Success
     }
 
     /**

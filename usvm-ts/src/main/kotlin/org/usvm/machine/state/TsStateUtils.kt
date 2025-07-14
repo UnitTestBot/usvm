@@ -20,7 +20,7 @@ fun TsState.returnValue(valueToReturn: UExpr<out USort>) {
         popLocalToSortStack()
     }
 
-    methodResult = TsMethodResult.Success.RegularCall(returnFromMethod, valueToReturn)
+    methodResult = TsMethodResult.Success.RegularCall(valueToReturn, returnFromMethod)
 
     if (returnSite != null) {
         newStmt(returnSite)
