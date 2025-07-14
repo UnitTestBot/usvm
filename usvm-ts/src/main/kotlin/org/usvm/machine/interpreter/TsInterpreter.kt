@@ -230,10 +230,7 @@ class TsInterpreter(
         val possibleTypesSet = possibleTypes.types.toSet()
 
         if (possibleTypesSet.singleOrNull() == EtsAnyType) {
-            mockMethodCall(scope, stmt.callee)
-            scope.calcOnState {
-                newStmt(stmt.returnSite)
-            }
+            mockMethodCall(scope, stmt.callee, stmt.returnSite)
             return
         }
 
@@ -297,17 +294,16 @@ class TsInterpreter(
             }
             constraint to block
         }
+
         if (conditionsWithBlocks.isEmpty()) {
             logger.warn {
                 "No suitable methods found for call: ${stmt.callee} with instance: $unwrappedInstance"
             }
-            mockMethodCall(scope, stmt.callee)
-            scope.doWithState {
-                newStmt(stmt.returnSite)
-            }
-        } else {
-            scope.forkMulti(conditionsWithBlocks)
+            mockMethodCall(scope, stmt.callee, stmt.returnSite)
+            return
         }
+
+        scope.forkMulti(conditionsWithBlocks)
     }
 
     private fun visitConcreteMethodCall(scope: TsStepScope, stmt: TsConcreteMethodCallStmt) {
@@ -317,10 +313,7 @@ class TsInterpreter(
         // TODO: observer
 
         if (stmt.callee.signature.enclosingClass.name == "Log") {
-            mockMethodCall(scope, stmt.callee.signature)
-            scope.doWithState {
-                newStmt(stmt.returnSite)
-            }
+            mockMethodCall(scope, stmt.callee.signature, stmt.returnSite)
             return
         }
 
@@ -329,10 +322,7 @@ class TsInterpreter(
             // logger.warn { "No entry point for method: ${stmt.callee}, mocking the call" }
             // If the method doesn't have entry points,
             // we go through it, we just mock the call
-            mockMethodCall(scope, stmt.callee.signature)
-            scope.doWithState {
-                newStmt(stmt.returnSite)
-            }
+            mockMethodCall(scope, stmt.callee.signature, stmt.returnSite)
             return
         }
 
@@ -405,7 +395,7 @@ class TsInterpreter(
                 "Expected $numFormal arguments, got ${args.size}"
             }
 
-            args += stmt.instance!!
+            args += stmt.instance
 
             // TODO: re-check push sorts for arguments
             pushSortsForActualArguments(args)
@@ -471,13 +461,14 @@ class TsInterpreter(
     private fun visitAssignStmt(scope: TsStepScope, stmt: EtsAssignStmt) = with(ctx) {
         val exprResolver = exprResolverWithScope(scope)
 
-        stmt.callExpr?.let {
+        val callExpr = stmt.callExpr
+        if (callExpr != null) {
             val methodResult = scope.calcOnState { methodResult }
 
             when (methodResult) {
                 is TsMethodResult.NoCall -> observer?.onCallWithUnresolvedArguments(
                     exprResolver.simpleValueResolver,
-                    it,
+                    callExpr,
                     scope
                 )
 
@@ -490,16 +481,18 @@ class TsInterpreter(
                 is TsMethodResult.TsException -> error("Exceptions must be processed earlier")
             }
 
-            if (it is EtsPtrCallExpr) {
-                mockMethodCall(scope, it.callee)
+            if (callExpr is EtsPtrCallExpr) {
+                mockMethodCall(scope, callExpr.callee, stmt)
                 return
             }
 
             if (!tsOptions.interproceduralAnalysis && methodResult == TsMethodResult.NoCall) {
-                mockMethodCall(scope, it.callee)
+                mockMethodCall(scope, callExpr.callee, stmt)
                 return
             }
-        } ?: observer?.onAssignStatement(exprResolver.simpleValueResolver, stmt, scope)
+        } else {
+            observer?.onAssignStatement(exprResolver.simpleValueResolver, stmt, scope)
+        }
 
         val expr = exprResolver.resolve(stmt.rhv) ?: return
 
@@ -698,7 +691,7 @@ class TsInterpreter(
         }
 
         if (stmt.expr is EtsPtrCallExpr) {
-            mockMethodCall(scope, stmt.expr.callee)
+            mockMethodCall(scope, stmt.expr.callee, stmt)
             return
         }
 
@@ -711,7 +704,7 @@ class TsInterpreter(
         }
 
         // intraprocedural analysis
-        mockMethodCall(scope, stmt.expr.callee)
+        mockMethodCall(scope, stmt.expr.callee, stmt)
     }
 
     private fun visitThrowStmt(scope: TsStepScope, stmt: EtsThrowStmt) {
@@ -841,25 +834,34 @@ class TsInterpreter(
         state
     }
 
-    private fun mockMethodCall(scope: TsStepScope, method: EtsMethodSignature) {
+    private fun mockMethodCall(
+        scope: TsStepScope,
+        method: EtsMethodSignature,
+        returnSite: EtsStmt,
+    ) {
         scope.doWithState {
+            newStmt(returnSite)
+
             if (method.returnType is EtsVoidType) {
-                methodResult = TsMethodResult.Success.MockedCall(method, ctx.mkUndefinedValue())
+                val result = ctx.mkUndefinedValue()
+                methodResult = TsMethodResult.Success.MockedCall(method, result)
                 return@doWithState
             }
 
             val resultSort = ctx.typeToSort(method.returnType)
-            val resultValue = when (resultSort) {
-                is UAddressSort -> makeSymbolicRefUntyped()
+            val resultValue = scope.calcOnState {
+                when (resultSort) {
+                    is UAddressSort -> makeSymbolicRefUntyped()
 
-                is TsUnresolvedSort -> ctx.mkFakeValue(
-                    scope,
-                    makeSymbolicPrimitive(ctx.boolSort),
-                    makeSymbolicPrimitive(ctx.fp64Sort),
-                    makeSymbolicRefUntyped()
-                )
+                    is TsUnresolvedSort -> ctx.mkFakeValue(
+                        scope,
+                        makeSymbolicPrimitive(ctx.boolSort),
+                        makeSymbolicPrimitive(ctx.fp64Sort),
+                        makeSymbolicRefUntyped()
+                    )
 
-                else -> makeSymbolicPrimitive(resultSort)
+                    else -> makeSymbolicPrimitive(resultSort)
+                }
             }
             methodResult = TsMethodResult.Success.MockedCall(method, resultValue)
         }
