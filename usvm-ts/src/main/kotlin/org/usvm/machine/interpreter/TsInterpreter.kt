@@ -842,15 +842,12 @@ class TsInterpreter(
         scope.doWithState {
             newStmt(returnSite)
 
+            val result: UExpr<*>
             if (method.returnType is EtsVoidType) {
-                val result = ctx.mkUndefinedValue()
-                methodResult = TsMethodResult.Success.MockedCall(method, result)
-                return@doWithState
-            }
-
-            val resultSort = ctx.typeToSort(method.returnType)
-            val resultValue = scope.calcOnState {
-                when (resultSort) {
+                result = ctx.mkUndefinedValue()
+            } else {
+                val sort = ctx.typeToSort(method.returnType)
+                result = when (sort) {
                     is UAddressSort -> makeSymbolicRefUntyped()
 
                     is TsUnresolvedSort -> ctx.mkFakeValue(
