@@ -164,6 +164,11 @@ class Call {
         let x: A = makeA();
         return x.foo(); // 20 (!!!) from B::foo
     }
+
+    callLocalLambda(): number {
+        const f = () => 42;
+        return f();
+    }
 }
 
 class A {
