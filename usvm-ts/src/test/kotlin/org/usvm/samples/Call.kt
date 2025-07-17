@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
+import org.usvm.util.eq
 
 class Call : TsMethodTestRunner() {
 
@@ -374,6 +375,35 @@ class Call : TsMethodTestRunner() {
         )
     }
 
+    @Disabled("Capturing mutable locals is not properly supported in ArkIR")
+    // Note: This test is disabled because ArkIR cannot properly represent the mutation
+    // of a captured mutable local (`let` or `var`) inside a closure.
+    // Due to this, `x += 100` instruction has no effect, and the result is 145 (120+20) instead of 225 (120+125).
+    // A possible solution would be to represent LHS in `x += 100` with `ClosureFieldRef` instead of `Local`.
+    @Test
+    fun `test call closure capturing mutable local`() {
+        val method = getMethod(className, "callClosureCapturingMutableLocal")
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            invariants = arrayOf(
+                { r -> r.number eq 245 },
+            )
+        )
+    }
+
+    @Disabled("Capturing mutable locals is not properly supported in ArkIR")
+    // Note: See above.
+    // This test incorrectly produces 20 instead of 120.
+    @Test
+    fun `test call closure mutating captured local`() {
+        val method = getMethod(className, "callClosureMutatingCapturedLocal")
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            invariants = arrayOf(
+                { r -> r.number eq 120 },
+            )
+        )
+    }
 }
 
 fun fib(n: Double): Double {

@@ -225,6 +225,26 @@ class Call {
             return 2;
         }
     }
+
+    callClosureCapturingMutableLocal(): number {
+        let x = 42;
+        const f = () => {
+            x += 100;
+            return x + 5;
+        };
+        x = 20;
+        return f() + x; // (20+100+5) + (20+100) = 245
+    }
+
+    callClosureMutatingCapturedLocal(): number {
+        let x = 42;
+        const f= () => {
+            x += 100;
+        };
+        x = 20;
+        f();
+        return x; // 120
+    }
 }
 
 class A {
