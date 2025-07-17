@@ -2,6 +2,7 @@ package org.usvm.machine.expr
 
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
+import io.ksmt.utils.cast
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsAddExpr
 import org.jacodb.ets.model.EtsAndExpr
@@ -17,8 +18,10 @@ import org.jacodb.ets.model.EtsBitXorExpr
 import org.jacodb.ets.model.EtsBooleanConstant
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsCastExpr
+import org.jacodb.ets.model.EtsCaughtExceptionRef
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsClosureFieldRef
 import org.jacodb.ets.model.EtsConstant
 import org.jacodb.ets.model.EtsDeleteExpr
 import org.jacodb.ets.model.EtsDivExpr
@@ -28,6 +31,7 @@ import org.jacodb.ets.model.EtsExpExpr
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsFunctionType
+import org.jacodb.ets.model.EtsGlobalRef
 import org.jacodb.ets.model.EtsGtEqExpr
 import org.jacodb.ets.model.EtsGtExpr
 import org.jacodb.ets.model.EtsInExpr
@@ -35,6 +39,7 @@ import org.jacodb.ets.model.EtsInstanceCallExpr
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsInstanceOfExpr
 import org.jacodb.ets.model.EtsLeftShiftExpr
+import org.jacodb.ets.model.EtsLexicalEnvType
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsLtEqExpr
 import org.jacodb.ets.model.EtsLtExpr
@@ -121,7 +126,6 @@ import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.types.EtsAuxiliaryType
 import org.usvm.machine.types.mkFakeValue
-import org.usvm.memory.ULValue
 import org.usvm.sizeSort
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.EtsPropertyResolution
@@ -1330,6 +1334,32 @@ class TsExprResolver(
         return handleFieldRef(instance = null, instanceRef, value.field, hierarchy)
     }
 
+    override fun visit(value: EtsCaughtExceptionRef): UExpr<out USort>? {
+        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
+        error("Not supported $value")
+    }
+
+    override fun visit(value: EtsGlobalRef): UExpr<out USort>? {
+        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
+        error("Not supported $value")
+    }
+
+    override fun visit(value: EtsClosureFieldRef): UExpr<out USort>? = with(ctx) {
+        val obj = resolve(value.base) ?: return null
+        check(isAllocatedConcreteHeapRef(obj)) {
+            "Closure object should be a concrete heap reference, but got $obj"
+        }
+
+        val sort = typeToSort(value.type)
+        if (sort is TsUnresolvedSort) {
+            val lValue = mkFieldLValue(addressSort, obj, value.fieldName)
+            scope.calcOnState { memory.read(lValue) }
+        } else {
+            val lValue = mkFieldLValue(sort, obj, value.fieldName)
+            scope.calcOnState { memory.read(lValue) }
+        }
+    }
+
     // endregion
 
     // region OTHER
@@ -1415,7 +1445,7 @@ class TsSimpleValueResolver(
     private val localToIdx: (EtsMethod, EtsValue) -> Int?,
 ) : EtsValue.Visitor<UExpr<out USort>?> {
 
-    private fun resolveLocal(local: EtsValue): ULValue<*, USort> {
+    private fun resolveLocal(local: EtsValue): UExpr<*> {
         val currentMethod = scope.calcOnState { lastEnteredMethod }
         val entrypoint = scope.calcOnState { entrypoint }
 
@@ -1427,17 +1457,40 @@ class TsSimpleValueResolver(
         if (localIdx == null) {
             require(local is EtsLocal)
 
+            // Handle closures
+            if (local.name.startsWith("%closures")) {
+                val existingClosures = scope.calcOnState { closures[local.name] }
+                if (existingClosures != null) {
+                    return existingClosures
+                }
+                val type = local.type
+                check(type is EtsLexicalEnvType)
+                val obj = scope.calcOnState { memory.allocConcrete(type) }
+                for (captured in type.closures) {
+                    val resolvedCaptured = resolveLocal(captured)
+                    val lValue = mkFieldLValue(resolvedCaptured.sort, obj, captured.name)
+                    scope.doWithState {
+                        memory.write(lValue, resolvedCaptured.cast(), guard = ctx.trueExpr)
+                    }
+                }
+                scope.doWithState {
+                    setClosureObject(local.name, obj)
+                }
+                return obj
+            }
+
             val globalObject = scope.calcOnState { globalObject }
 
             val localName = local.name
             // Check whether this local was already created or not
             if (localName in scope.calcOnState { addedArtificialLocals }) {
                 val sort = ctx.typeToSort(local.type)
-                if (sort is TsUnresolvedSort) {
-                    return mkFieldLValue(ctx.addressSort, globalObject, local.name)
+                val lValue = if (sort is TsUnresolvedSort) {
+                    mkFieldLValue(ctx.addressSort, globalObject, local.name)
                 } else {
-                    return mkFieldLValue(sort, globalObject, local.name)
+                    mkFieldLValue(sort, globalObject, local.name)
                 }
+                return scope.calcOnState { memory.read(lValue) }
             }
 
             logger.warn { "Cannot resolve local $local, creating a field of the global object" }
@@ -1447,12 +1500,13 @@ class TsSimpleValueResolver(
             }
 
             val sort = ctx.typeToSort(local.type)
-            if (sort is TsUnresolvedSort) {
+            val lValue = if (sort is TsUnresolvedSort) {
                 globalObject.createFakeField(localName, scope)
-                return mkFieldLValue(ctx.addressSort, globalObject, local.name)
+                mkFieldLValue(ctx.addressSort, globalObject, local.name)
             } else {
-                return mkFieldLValue(sort, globalObject, local.name)
+                mkFieldLValue(sort, globalObject, local.name)
             }
+            return scope.calcOnState { memory.read(lValue) }
         }
 
         val sort = scope.calcOnState {
@@ -1463,33 +1517,42 @@ class TsSimpleValueResolver(
         // If we are not in the entrypoint, all correct values are already resolved and we can just return
         // a registerStackLValue for the local
         if (currentMethod != entrypoint) {
-            return mkRegisterStackLValue(sort, localIdx)
+            val lValue = mkRegisterStackLValue(sort, localIdx)
+            return scope.calcOnState { memory.read(lValue) }
         }
 
         // arguments and this for the first stack frame
         return when (sort) {
-            is UBoolSort -> mkRegisterStackLValue(sort, localIdx)
-            is KFp64Sort -> mkRegisterStackLValue(sort, localIdx)
-            is UAddressSort -> mkRegisterStackLValue(sort, localIdx)
+            is UBoolSort -> {
+                val lValue = mkRegisterStackLValue(sort, localIdx)
+                scope.calcOnState { memory.read(lValue) }
+            }
+
+            is KFp64Sort -> {
+                val lValue = mkRegisterStackLValue(sort, localIdx)
+                scope.calcOnState { memory.read(lValue) }
+            }
+
+            is UAddressSort -> {
+                val lValue = mkRegisterStackLValue(sort, localIdx)
+                scope.calcOnState { memory.read(lValue) }
+            }
+
             is TsUnresolvedSort -> {
                 check(local is EtsThis || local is EtsParameterRef) {
                     "Only This and ParameterRef are expected here"
                 }
-
-                val lValue = mkRegisterStackLValue(ctx.addressSort, localIdx)
 
                 val boolRValue = ctx.mkRegisterReading(localIdx, ctx.boolSort)
                 val fpRValue = ctx.mkRegisterReading(localIdx, ctx.fp64Sort)
                 val refRValue = ctx.mkRegisterReading(localIdx, ctx.addressSort)
 
                 val fakeObject = ctx.mkFakeValue(scope, boolRValue, fpRValue, refRValue)
+                val lValue = mkRegisterStackLValue(ctx.addressSort, localIdx)
                 scope.calcOnState {
-                    with(ctx) {
-                        memory.write(lValue, fakeObject.asExpr(addressSort), guard = trueExpr)
-                    }
+                    memory.write(lValue, fakeObject.asExpr(ctx.addressSort), guard = ctx.trueExpr)
                 }
-
-                lValue
+                fakeObject
             }
 
             else -> error("Unsupported sort $sort")
@@ -1525,18 +1588,15 @@ class TsSimpleValueResolver(
             }
         }
 
-        val lValue = resolveLocal(local)
-        return scope.calcOnState { memory.read(lValue) }
+        return resolveLocal(local)
     }
 
     override fun visit(value: EtsParameterRef): UExpr<out USort> {
-        val lValue = resolveLocal(value)
-        return scope.calcOnState { memory.read(lValue) }
+        return resolveLocal(value)
     }
 
     override fun visit(value: EtsThis): UExpr<out USort> {
-        val lValue = resolveLocal(value)
-        return scope.calcOnState { memory.read(lValue) }
+        return resolveLocal(value)
     }
 
     override fun visit(value: EtsConstant): UExpr<out USort> = with(ctx) {
@@ -1573,6 +1633,18 @@ class TsSimpleValueResolver(
     }
 
     override fun visit(value: EtsStaticFieldRef): UExpr<out USort> = with(ctx) {
+        error("Should not be called")
+    }
+
+    override fun visit(value: EtsCaughtExceptionRef): UExpr<out USort>? {
+        error("Should not be called")
+    }
+
+    override fun visit(value: EtsGlobalRef): UExpr<out USort>? {
+        error("Should not be called")
+    }
+
+    override fun visit(value: EtsClosureFieldRef): UExpr<out USort>? {
         error("Should not be called")
     }
 }

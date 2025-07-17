@@ -107,6 +107,7 @@ private object EtsTypeToDto : EtsType.Visitor<TypeDto> {
     }
 
     override fun visit(type: EtsLexicalEnvType): TypeDto {
+        @Suppress("DEPRECATION")
         return LexicalEnvTypeDto(
             method = type.nestedMethod.toDto(),
             closures = type.closures.map { it.toDto() },
