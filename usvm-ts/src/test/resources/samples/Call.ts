@@ -169,6 +169,22 @@ class Call {
         const f = () => 42;
         return f();
     }
+
+    callLocalClosureCapturingLocal(): number {
+        const x = 42;
+        const f = () => x;
+        return f();
+    }
+
+    callLocalClosureCapturingArguments(a: boolean, b: boolean): number {
+        const f = () => a && b;
+        const res = f();
+        if (res) {
+            return 1;
+        } else {
+            return 2;
+        }
+    }
 }
 
 class A {

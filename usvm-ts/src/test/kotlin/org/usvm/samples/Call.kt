@@ -299,6 +299,34 @@ class Call : TsMethodTestRunner() {
             )
         )
     }
+
+    @Test
+    fun `test call local closure capturing local`() {
+        val method = getMethod(className, "callLocalClosureCapturingLocal")
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            invariants = arrayOf(
+                { r -> r.number == 42.0 },
+            )
+        )
+    }
+
+    @Test
+    fun `test call local closure capturing arguments`() {
+        val method = getMethod(className, "callLocalClosureCapturingArguments")
+        discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
+            method = method,
+            { a, b, r ->
+                (a.value && b.value) && r.number == 1.0
+            },
+            { a, b, r ->
+                !(a.value && b.value) && r.number == 2.0
+            },
+            invariants = arrayOf(
+                { _, _, r -> r.number in listOf(1.0, 2.0) },
+            )
+        )
+    }
 }
 
 fun fib(n: Double): Double {

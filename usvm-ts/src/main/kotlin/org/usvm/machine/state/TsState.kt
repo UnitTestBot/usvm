@@ -61,6 +61,7 @@ class TsState(
     // TODO: use normal naming
     var method2ref: UPersistentHashMap<EtsMethod, UConcreteHeapRef> = persistentHashMapOf(),
     var associatedMethods: UPersistentHashMap<UConcreteHeapRef, EtsMethod> = persistentHashMapOf(),
+    var closures: UPersistentHashMap<String, UConcreteHeapRef> = persistentHashMapOf(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
     ctx = ctx,
     initOwnership = ownership,
@@ -174,6 +175,13 @@ class TsState(
         return result
     }
 
+    fun setClosureObject(
+        name: String,
+        closure: UConcreteHeapRef,
+    ) {
+        closures = closures.put(name, closure, ownership)
+    }
+
     override fun clone(newConstraints: UPathConstraints<EtsType>?): TsState {
         val newThisOwnership = MutabilityOwnership()
         val cloneOwnership = MutabilityOwnership()
@@ -205,6 +213,7 @@ class TsState(
             promiseExecutors = promiseExecutors,
             method2ref = method2ref,
             associatedMethods = associatedMethods,
+            closures = closures,
         )
     }
 
