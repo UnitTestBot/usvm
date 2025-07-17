@@ -290,8 +290,8 @@ class Call : TsMethodTestRunner() {
     }
 
     @Test
-    fun `test call local lambda`() {
-        val method = getMethod(className, "callLocalLambda")
+    fun `test call lambda`() {
+        val method = getMethod(className, "callLambda")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             invariants = arrayOf(
@@ -301,8 +301,8 @@ class Call : TsMethodTestRunner() {
     }
 
     @Test
-    fun `test call local closure capturing local`() {
-        val method = getMethod(className, "callLocalClosureCapturingLocal")
+    fun `test call closure capturing local`() {
+        val method = getMethod(className, "callClosureCapturingLocal")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             invariants = arrayOf(
@@ -312,8 +312,8 @@ class Call : TsMethodTestRunner() {
     }
 
     @Test
-    fun `test call local closure capturing arguments`() {
-        val method = getMethod(className, "callLocalClosureCapturingArguments")
+    fun `test call closure capturing arguments`() {
+        val method = getMethod(className, "callClosureCapturingArguments")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method = method,
             { a, b, r ->
@@ -327,6 +327,53 @@ class Call : TsMethodTestRunner() {
             )
         )
     }
+
+    @Test
+    fun `test call nested lambda`() {
+        val method = getMethod(className, "callNestedLambda")
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            invariants = arrayOf(
+                { r -> r.number == 42.0 },
+            )
+        )
+    }
+
+    @Test
+    fun `test call nested closure capturing outer local`() {
+        val method = getMethod(className, "callNestedClosureCapturingOuterLocal")
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            invariants = arrayOf(
+                { r -> r.number == 42.0 },
+            )
+        )
+    }
+
+    @Test
+    fun `test call nested closure capturing inner local`() {
+        val method = getMethod(className, "callNestedClosureCapturingInnerLocal")
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            invariants = arrayOf(
+                { r -> r.number == 42.0 },
+            )
+        )
+    }
+
+    @Test
+    fun `test call nested closure capturing local and argument`() {
+        val method = getMethod(className, "callNestedClosureCapturingLocalAndArgument")
+        discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsNumber>(
+            method = method,
+            { a, r -> a.value && r.number == 1.0 },
+            { a, r -> !a.value && r.number == 2.0 },
+            invariants = arrayOf(
+                { _, r -> r.number in listOf(1.0, 2.0) }
+            )
+        )
+    }
+
 }
 
 fun fib(n: Double): Double {
