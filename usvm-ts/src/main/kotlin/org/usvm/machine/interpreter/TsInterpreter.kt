@@ -332,6 +332,8 @@ class TsInterpreter(
             val numActual = stmt.args.size
             val numFormal = stmt.callee.parameters.size
 
+            args += stmt.instance
+
             // vararg call:
             // function f(x: any, ...args: any[]) {}
             //   f(1, 2, 3) -> f(1, [2, 3])
@@ -390,11 +392,9 @@ class TsInterpreter(
                 }
             }
 
-            check(args.size == numFormal) {
-                "Expected $numFormal arguments, got ${args.size}"
+            check(args.size - 1 == numFormal) {
+                "Expected $numFormal arguments, got ${args.size - 1} (not counting 'this')"
             }
-
-            args += stmt.instance
 
             // TODO: re-check push sorts for arguments
             pushSortsForActualArguments(args)
@@ -741,11 +741,11 @@ class TsInterpreter(
                 map[local.name]
             }
 
-            // Note: 'this' has index 'n'
-            is EtsThis -> method.parameters.size
+            // Note: 'this' has index 0
+            is EtsThis -> 0
 
-            // Note: arguments have indices from 0 to (n-1)
-            is EtsParameterRef -> local.index
+            // Note: arguments have indices from 1 to n
+            is EtsParameterRef -> local.index + 1
 
             else -> error("Unexpected local: $local")
         }
@@ -765,6 +765,7 @@ class TsInterpreter(
         // TODO check for statics
         val thisIdx = mapLocalToIdx(method, EtsThis(method.enclosingClass!!.type))
             ?: error("Cannot find index for 'this' in method: $method")
+        check(thisIdx == 0)
         val thisInstanceRef = mkRegisterStackLValue(addressSort, thisIdx)
         val thisRef = state.memory.read(thisInstanceRef).asExpr(addressSort)
 
@@ -775,14 +776,16 @@ class TsInterpreter(
         state.pathConstraints += state.memory.types.evalTypeEquals(thisRef, method.enclosingClass!!.type)
 
         method.parameters.forEachIndexed { i, param ->
+            val idx = i + 1 // +1 because 0 is reserved for `this`
+
             val ref by lazy {
-                val lValue = mkRegisterStackLValue(addressSort, i)
+                val lValue = mkRegisterStackLValue(addressSort, idx)
                 state.memory.read(lValue).asExpr(addressSort)
             }
 
             val parameterType = param.type
             if (parameterType is EtsRefType) {
-                val argLValue = mkRegisterStackLValue(addressSort, i)
+                val argLValue = mkRegisterStackLValue(addressSort, idx)
                 val ref = state.memory.read(argLValue).asExpr(addressSort)
                 if (parameterType is EtsArrayType) {
                     state.pathConstraints += state.memory.types.evalTypeEquals(ref, parameterType)

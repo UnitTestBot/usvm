@@ -420,7 +420,7 @@ class TsExprResolver(
                 check(executor.parameters.size <= 2) {
                     "Executor should have at most 2 parameters (resolve and reject), but it has ${executor.parameters.size} for $executor"
                 }
-                val args = executor.parameters.map { mkUndefinedValue() } + promise
+                val args = listOf(promise) + executor.parameters.map { mkUndefinedValue() }
                 // pushSortsForArguments(instance = null, args = emptyList(), localToIdx)
                 pushSortsForActualArguments(args)
                 memory.stack.push(args.toTypedArray(), executor.localsCount)
