@@ -128,7 +128,7 @@ import org.usvm.machine.types.EtsAuxiliaryType
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.sizeSort
 import org.usvm.util.EtsHierarchy
-import org.usvm.util.EtsPropertyResolution
+import org.usvm.util.TsResolutionResult
 import org.usvm.util.createFakeField
 import org.usvm.util.isResolved
 import org.usvm.util.mkArrayIndexLValue
@@ -818,21 +818,44 @@ class TsExprResolver(
         }
     }
 
+    private fun handleR(): UExpr<*>? = with(ctx) {
+        val mockSymbol = scope.calcOnState {
+            memory.mocker.createMockSymbol(trackedLiteral = null, addressSort, ownership)
+        }
+        scope.assert(mkNot(mkEq(mockSymbol, mkTsNullValue())))
+        mockSymbol
+    }
+
+    private fun handleNumberConverter(expr: EtsStaticCallExpr): UExpr<*>? = with(ctx) {
+        check(expr.args.size == 1) {
+            "Number() should have exactly one argument, but got ${expr.args.size}"
+        }
+        val arg = resolve(expr.args.single()) ?: return null
+        return mkNumericExpr(arg, scope)
+    }
+
+    private fun handleBooleanConverter(expr: EtsStaticCallExpr): UExpr<*>? = with(ctx) {
+        check(expr.args.size == 1) {
+            "Boolean() should have exactly one argument, but got ${expr.args.size}"
+        }
+        val arg = resolve(expr.args.single()) ?: return null
+        return mkTruthyExpr(arg, scope)
+    }
+
     override fun visit(expr: EtsStaticCallExpr): UExpr<*>? = with(ctx) {
-        if (expr.callee.name == "Number") {
-            check(expr.args.size == 1) {
-                "Number() should have exactly one argument, but got ${expr.args.size}"
-            }
-            val arg = resolve(expr.args.single()) ?: return null
-            return mkNumericExpr(arg, scope)
+        // Mock `$r` calls
+        if (expr.callee.name == "\$r") {
+            return handleR()
         }
 
+        // Handle `Number(...)` calls
+        if (expr.callee.name == "Number") {
+            return handleNumberConverter(expr)
+        }
+
+        // Handle `Boolean(...)` calls
         if (expr.callee.name == "Boolean") {
-            check(expr.args.size == 1) {
-                "Boolean() should have exactly one argument, but got ${expr.args.size}"
-            }
-            val arg = resolve(expr.args.single()) ?: return null
-            return mkTruthyExpr(arg, scope)
+            return handleBooleanConverter(expr)
         }
 
         if (expr.callee.name in listOf("resolve", "reject")) {
@@ -867,16 +890,6 @@ class TsExprResolver(
             return mkUndefinedValue()
         }
 
-        if (expr.callee.name == "\$r") {
-            return scope.calcOnState {
-                val mockSymbol = memory.mocker.createMockSymbol(trackedLiteral = null, addressSort, ownership)
-
-                scope.assert(mkEq(mockSymbol, ctx.mkTsNullValue()).not())
-
-                mockSymbol
-            }
-        }
-
         return when (val result = scope.calcOnState { methodResult }) {
             is TsMethodResult.Success -> {
                 scope.doWithState { methodResult = TsMethodResult.NoCall }
@@ -888,58 +901,47 @@ class TsExprResolver(
             }
 
             is TsMethodResult.NoCall -> {
-                val resolutionResult = resolveStaticMethod(expr.callee)
-
-                if (resolutionResult is EtsPropertyResolution.Empty) {
-                    logger.error { "Could not resolve static call: ${expr.callee}" }
-                    scope.assert(falseExpr)
-                    return null
-                }
-
-                // static virtual call
-                if (resolutionResult is EtsPropertyResolution.Ambiguous) {
-                    val resolvedArgs = expr.args.map { resolve(it) ?: return null }
-
-                    val staticProperties = resolutionResult.properties.take(
-                        Constants.STATIC_METHODS_FORK_LIMIT
-                    )
-
-                    val staticInstances = scope.calcOnState {
-                        staticProperties.map { getStaticInstance(it.enclosingClass!!) }
+                when (val resolved = resolveStaticMethod(expr.callee)) {
+                    TsResolutionResult.Empty -> {
+                        logger.error { "Could not resolve static call: ${expr.callee}" }
+                        scope.assert(falseExpr)
                     }
 
-                    val concreteCalls = staticProperties.mapIndexed { index, value ->
-                        TsConcreteMethodCallStmt(
-                            callee = value,
-                            instance = staticInstances[index],
-                            args = resolvedArgs,
-                            returnSite = scope.calcOnState { lastStmt }
+                    // Static virtual call
+                    is TsResolutionResult.Ambiguous -> {
+                        val resolvedArgs = expr.args.map { resolve(it) ?: return null }
+                        val staticProperties = resolved.properties.take(Constants.STATIC_METHODS_FORK_LIMIT)
+                        val staticInstances = scope.calcOnState {
+                            staticProperties.map { getStaticInstance(it.enclosingClass!!) }
+                        }
+                        val concreteCalls = staticProperties.mapIndexed { index, value ->
+                            TsConcreteMethodCallStmt(
+                                callee = value,
+                                instance = staticInstances[index],
+                                args = resolvedArgs,
+                                returnSite = scope.calcOnState { lastStmt }
+                            )
+                        }
+                        val blocks: List<Pair<UBoolExpr, TsState.() -> Unit>> = concreteCalls.map { stmt ->
+                            mkTrue() to { newStmt(stmt) }
+                        }
+                        scope.forkMulti(blocks)
+                    }
+
+                    is TsResolutionResult.Unique -> {
+                        val instance = scope.calcOnState {
+                            getStaticInstance(resolved.property.enclosingClass!!)
+                        }
+                        val args = expr.args.map { resolve(it) ?: return null }
+                        val concreteCall = TsConcreteMethodCallStmt(
+                            callee = resolved.property,
+                            instance = instance,
+                            args = args,
+                            returnSite = scope.calcOnState { lastStmt },
                         )
+                        scope.doWithState { newStmt(concreteCall) }
                     }
-
-                    val blocks = concreteCalls.map {
-                        ctx.mkTrue() to { state: TsState -> state.newStmt(it) }
-                    }
-
-                    scope.forkMulti(blocks)
-
-                    return null
                 }
-
-                require(resolutionResult is EtsPropertyResolution.Unique)
-
-                val instance = scope.calcOnState { getStaticInstance(resolutionResult.property.enclosingClass!!) }
-
-                val resolvedArgs = expr.args.map { resolve(it) ?: return null }
-
-                val concreteCall = TsConcreteMethodCallStmt(
-                    callee = resolutionResult.property,
-                    instance = instance,
-                    args = resolvedArgs,
-                    returnSite = scope.calcOnState { lastStmt },
-                )
-                scope.doWithState { newStmt(concreteCall) }
-
                 null
             }
         }
@@ -947,20 +949,20 @@ class TsExprResolver(
 
     private fun resolveStaticMethod(
         method: EtsMethodSignature,
-    ): EtsPropertyResolution<EtsMethod> {
+    ): TsResolutionResult<EtsMethod> {
         // Perfect signature:
         if (method.enclosingClass.name != UNKNOWN_CLASS_NAME) {
             val classes = hierarchy.classesForType(EtsClassType(method.enclosingClass))
             if (classes.size > 1) {
                 val methods = classes.map { it.methods.single { it.name == method.name } }
-                return EtsPropertyResolution.create(methods)
+                return TsResolutionResult.create(methods)
             }
 
-            if (classes.isEmpty()) return EtsPropertyResolution.Empty
+            if (classes.isEmpty()) return TsResolutionResult.Empty
 
             val clazz = classes.single()
             val methods = clazz.methods.filter { it.name == method.name }
-            return EtsPropertyResolution.create(methods)
+            return TsResolutionResult.create(methods)
         }
 
         // Unknown signature:
@@ -968,7 +970,7 @@ class TsExprResolver(
             .flatMap { it.methods }
             .filter { it.name == method.name }
 
-        return EtsPropertyResolution.create(methods)
+        return TsResolutionResult.create(methods)
     }
 
     override fun visit(expr: EtsPtrCallExpr): UExpr<out USort>? {
@@ -1138,7 +1140,7 @@ class TsExprResolver(
         val etsField = resolveEtsField(instance, field, hierarchy)
 
         val sort = when (etsField) {
-            is EtsPropertyResolution.Empty -> {
+            is TsResolutionResult.Empty -> {
                 if (field.name !in listOf("i", "LogLevel")) {
                     logger.warn { "Field $field not found, creating fake field" }
                 }
@@ -1150,8 +1152,8 @@ class TsExprResolver(
                 addressSort
             }
 
-            is EtsPropertyResolution.Unique -> typeToSort(etsField.property.type)
-            is EtsPropertyResolution.Ambiguous -> unresolvedSort
+            is TsResolutionResult.Unique -> typeToSort(etsField.property.type)
+            is TsResolutionResult.Ambiguous -> unresolvedSort
         }
 
         scope.doWithState {
@@ -1184,7 +1186,7 @@ class TsExprResolver(
                 }
 
                 // TODO ambiguous enum fields resolution
-                if (etsField is EtsPropertyResolution.Unique) {
+                if (etsField is TsResolutionResult.Unique) {
                     val fieldType = etsField.property.type
                     if (fieldType is EtsRawType && fieldType.kind == "EnumValueType") {
                         val fakeType = fakeRef.getFakeType(scope)

@@ -68,7 +68,7 @@ import org.usvm.sizeSort
 import org.usvm.targets.UTargetsSet
 import org.usvm.types.TypesResult
 import org.usvm.types.single
-import org.usvm.util.EtsPropertyResolution
+import org.usvm.util.TsResolutionResult
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
@@ -585,9 +585,9 @@ class TsInterpreter(
 
                     // If there is no such field, we create a fake field for the expr
                     val sort = when (etsField) {
-                        is EtsPropertyResolution.Empty -> unresolvedSort
-                        is EtsPropertyResolution.Unique -> typeToSort(etsField.property.type)
-                        is EtsPropertyResolution.Ambiguous -> unresolvedSort
+                        is TsResolutionResult.Empty -> unresolvedSort
+                        is TsResolutionResult.Unique -> typeToSort(etsField.property.type)
+                        is TsResolutionResult.Ambiguous -> unresolvedSort
                     }
 
                     if (sort == unresolvedSort) {
