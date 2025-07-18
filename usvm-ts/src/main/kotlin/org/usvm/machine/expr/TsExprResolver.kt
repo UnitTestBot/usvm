@@ -1316,6 +1316,8 @@ class TsExprResolver(
                 scope.doWithState {
                     // TODO: Handle static initializer result
                     val result = methodResult
+                    // TODO: Why this signature check is needed?
+                    // TODO: Why we need to reset methodResult here? Double-check that it is even set anywhere.
                     if (result is TsMethodResult.Success && result.methodSignature == initializer.signature) {
                         methodResult = TsMethodResult.NoCall
                     }
