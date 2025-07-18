@@ -61,7 +61,7 @@ class TsContext(
     val voidValue: TsVoidValue by lazy { TsVoidValue(this) }
 
     @Deprecated("Use mkUndefinedValue() or mkTsNullValue() instead")
-    override fun mkNullRef(): USymbolicHeapRef {
+    override fun mkNullRef(): Nothing {
         error("Use mkUndefinedValue() or mkTsNullValue() instead of mkNullRef() in TS context")
     }
 
