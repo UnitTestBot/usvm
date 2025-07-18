@@ -136,8 +136,7 @@ class TsState(
     ) {
         pushLocalToSortStack()
         arguments.forEachIndexed { index, arg ->
-            val idx = index
-            saveSortForLocal(idx, arg.sort)
+            saveSortForLocal(index, arg.sort)
         }
     }
 
