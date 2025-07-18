@@ -858,37 +858,42 @@ class TsExprResolver(
             return handleBooleanConverter(expr)
         }
 
-        if (expr.callee.name in listOf("resolve", "reject")) {
-            val promise = resolve(
-                EtsThis(
-                    EtsClassType(
-                        EtsClassSignature(
-                            "Promise",
-                            EtsFileSignature("typescript", "lib.es5.d.ts")
-                        )
-                    )
-                )
-            )?.asExpr(addressSort) ?: return null
-            check(isAllocatedConcreteHeapRef(promise)) {
-                "Promise instance should be allocated, but it is not: $promise"
-            }
-            val newState = when (expr.callee.name) {
-                "resolve" -> PromiseState.FULFILLED
-                "reject" -> PromiseState.REJECTED
-                else -> error("Unexpected: $expr")
-            }
-            check(expr.args.size == 1) {
-                "${expr.callee.name}() should have exactly one argument, but got ${expr.args.size}"
-            }
-            val value = resolve(expr.args.single()) ?: return null
-            val fakeValue = value.toFakeObject(scope)
-            scope.doWithState {
-                markResolved(promise.asExpr(addressSort))
-                setPromiseState(promise, newState)
-                setResolvedValue(promise.asExpr(addressSort), fakeValue)
-            }
-            return mkUndefinedValue()
-        }
+        // TODO: this should be handled in visit(AwaitExpr)
+        // Note: in the new IR, calls to "resolve" and "reject" methods were fixed to be PtrCall, so we
+        //  cannot handle them here. Instead, we should rely on the common handling of PtrCall, that is,
+        //  allocate new refs and associate them with SYNTHETIC "resolve" and "reject" methods.
+        //
+        // if (expr.callee.name in listOf("resolve", "reject")) {
+        //     val promise = resolve(
+        //         EtsThis(
+        //             EtsClassType(
+        //                 EtsClassSignature(
+        //                     "Promise",
+        //                     EtsFileSignature("typescript", "lib.es5.d.ts")
+        //                 )
+        //             )
+        //         )
+        //     )?.asExpr(addressSort) ?: return null
+        //     check(isAllocatedConcreteHeapRef(promise)) {
+        //         "Promise instance should be allocated, but it is not: $promise"
+        //     }
+        //     val newState = when (expr.callee.name) {
+        //         "resolve" -> PromiseState.FULFILLED
+        //         "reject" -> PromiseState.REJECTED
+        //         else -> error("Unexpected: $expr")
+        //     }
+        //     check(expr.args.size == 1) {
+        //         "${expr.callee.name}() should have exactly one argument, but got ${expr.args.size}"
+        //     }
+        //     val value = resolve(expr.args.single()) ?: return null
+        //     val fakeValue = value.toFakeObject(scope)
+        //     scope.doWithState {
+        //         markResolved(promise.asExpr(addressSort))
+        //         setPromiseState(promise, newState)
+        //         setResolvedValue(promise.asExpr(addressSort), fakeValue)
+        //     }
+        //     return mkUndefinedValue()
+        // }
 
         return when (val result = scope.calcOnState { methodResult }) {
             is TsMethodResult.Success -> {
