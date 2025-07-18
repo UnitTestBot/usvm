@@ -314,7 +314,8 @@ open class TsTestStateResolver(
     }
 
     fun resolveParameters(): List<TsTestValue> = with(ctx) {
-        method.parameters.mapIndexed { idx, param ->
+        method.parameters.mapIndexed { i, param ->
+            val idx = i + 1 // +1 because the register 0 is reserved for `this`
             val sort = typeToSort(param.type)
 
             if (sort is TsUnresolvedSort) {

@@ -125,18 +125,19 @@ class TsState(
 
         // Note: first, push an empty map, then fill the arguments, and then the instance (this)
         pushLocalToSortStack()
-        argSorts.forEachIndexed { index, sort ->
-            saveSortForLocal(index, sort)
+        instanceSort?.let { saveSortForLocal(0, it) }
+        argSorts.forEachIndexed { i, sort ->
+            val idx = i + 1 // + 1 because 0 is reserved for `this`
+            saveSortForLocal(idx, sort)
         }
-        instanceSort?.let { saveSortForLocal(args.size, it) }
     }
 
     fun pushSortsForActualArguments(
         arguments: List<UExpr<*>>,
     ) {
         pushLocalToSortStack()
-        arguments.forEachIndexed { index, arg ->
-            saveSortForLocal(index, arg.sort)
+        arguments.forEachIndexed { idx, arg ->
+            saveSortForLocal(idx, arg.sort)
         }
     }
 
