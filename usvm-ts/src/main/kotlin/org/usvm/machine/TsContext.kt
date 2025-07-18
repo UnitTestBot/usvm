@@ -25,9 +25,7 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
-import org.usvm.UNullRef
 import org.usvm.USort
-import org.usvm.USymbolicHeapRef
 import org.usvm.api.allocateConcreteRef
 import org.usvm.api.initializeArray
 import org.usvm.api.typeStreamOf
