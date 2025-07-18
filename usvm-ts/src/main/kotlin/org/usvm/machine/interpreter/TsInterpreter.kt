@@ -678,6 +678,8 @@ class TsInterpreter(
 
     private fun visitCallStmt(scope: TsStepScope, stmt: EtsCallStmt) {
         if (scope.calcOnState { methodResult } is TsMethodResult.Success) {
+            // TODO: seems like USVM will never finish going back to this state even when there is no next stmt,
+            //  since the state is not dead, and the method result is not reset...
             val nextStmt = stmt.nextStmt ?: return
             scope.doWithState {
                 methodResult = TsMethodResult.NoCall
