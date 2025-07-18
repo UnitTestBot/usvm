@@ -25,6 +25,7 @@ import org.jacodb.ets.dto.EnumValueTypeDto
 import org.jacodb.ets.dto.FunctionTypeDto
 import org.jacodb.ets.dto.GenericTypeDto
 import org.jacodb.ets.dto.IntersectionTypeDto
+import org.jacodb.ets.dto.LexicalEnvTypeDto
 import org.jacodb.ets.dto.LiteralTypeDto
 import org.jacodb.ets.dto.LocalSignatureDto
 import org.jacodb.ets.dto.NeverTypeDto
@@ -48,6 +49,7 @@ import org.jacodb.ets.model.EtsEnumValueType
 import org.jacodb.ets.model.EtsFunctionType
 import org.jacodb.ets.model.EtsGenericType
 import org.jacodb.ets.model.EtsIntersectionType
+import org.jacodb.ets.model.EtsLexicalEnvType
 import org.jacodb.ets.model.EtsLiteralType
 import org.jacodb.ets.model.EtsNeverType
 import org.jacodb.ets.model.EtsNullType
@@ -101,6 +103,14 @@ private object EtsTypeToDto : EtsType.Visitor<TypeDto> {
                 type.signature.name,
                 type.signature.method.toDto(),
             ),
+        )
+    }
+
+    override fun visit(type: EtsLexicalEnvType): TypeDto {
+        @Suppress("DEPRECATION")
+        return LexicalEnvTypeDto(
+            method = type.nestedMethod.toDto(),
+            closures = type.closures.map { it.toDto() },
         )
     }
 
