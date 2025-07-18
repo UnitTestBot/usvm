@@ -404,13 +404,13 @@ class Call : TsMethodTestRunner() {
             )
         )
     }
-}
 
-fun fib(n: Double): Double {
-    if (n.isNaN()) return 0.0
-    if (n < 0) return -1.0
-    if (n > 10) return -100.0
-    if (n == 0.0) return 1.0
-    if (n == 1.0) return 1.0
-    return fib(n - 1.0) + fib(n - 2.0)
+    private fun fib(n: Double): Double {
+        if (n.isNaN()) return 0.0
+        if (n < 0) return -1.0
+        if (n > 10) return -100.0
+        if (n == 0.0) return 1.0
+        if (n == 1.0) return 1.0
+        return fib(n - 1.0) + fib(n - 2.0)
+    }
 }
