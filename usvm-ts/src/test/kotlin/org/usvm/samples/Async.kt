@@ -7,11 +7,6 @@ import kotlin.test.Test
 
 class Async : TsMethodTestRunner() {
 
-    companion object {
-        private const val SDK_TYPESCRIPT_PATH = "/sdk/typescript"
-        private const val SDK_OHOS_PATH = "/sdk/ohos"
-    }
-
     private val className = this::class.simpleName!!
 
     override val scene: EtsScene = loadSampleScene(className)
