@@ -25,7 +25,9 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.UNullRef
 import org.usvm.USort
+import org.usvm.USymbolicHeapRef
 import org.usvm.api.allocateConcreteRef
 import org.usvm.api.initializeArray
 import org.usvm.api.typeStreamOf
@@ -58,11 +60,16 @@ class TsContext(
     val voidSort: TsVoidSort by lazy { TsVoidSort(this) }
     val voidValue: TsVoidValue by lazy { TsVoidValue(this) }
 
+    @Deprecated("Use mkUndefinedValue() or mkTsNullValue() instead")
+    override fun mkNullRef(): USymbolicHeapRef {
+        error("Use mkUndefinedValue() or mkTsNullValue() instead of mkNullRef() in TS context")
+    }
+
     /**
      * In TS we treat undefined value as a null reference in other objects.
      * For real null represented in the language we create another reference.
      */
-    private val undefinedValue: UHeapRef = mkNullRef()
+    private val undefinedValue: UHeapRef = nullRef
     fun mkUndefinedValue(): UHeapRef = undefinedValue
 
     private val nullValue: UConcreteHeapRef = mkConcreteHeapRef(addressCounter.freshStaticAddress())
@@ -181,7 +188,7 @@ class TsContext(
     }
 
     fun createFakeObjectRef(): UConcreteHeapRef {
-        val address = mkAddressCounter().freshAllocatedAddress() + MAGIC_OFFSET
+        val address = addressCounter.freshAllocatedAddress() + MAGIC_OFFSET
         return mkConcreteHeapRef(address)
     }
 
@@ -263,6 +270,14 @@ class TsContext(
             ref
         }
     }
+
+    // This is a special function that resolves promises in the interpreter.
+    // It is not a real function in the code, but we need it to handle promise resolution.
+    val resolveFunctionRef: UConcreteHeapRef = mkConcreteHeapRef(addressCounter.freshStaticAddress())
+
+    // This is a special function that rejects promises in the interpreter.
+    // It is not a real function in the code, but we need it to handle promise rejection.
+    val rejectFunctionRef: UConcreteHeapRef = mkConcreteHeapRef(addressCounter.freshStaticAddress())
 }
 
 class Constants {
