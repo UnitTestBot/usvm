@@ -56,12 +56,12 @@ class TsState(
     val addedArtificialLocals: MutableSet<String> = hashSetOf(),
     val lValuesToAllocatedFakeObjects: MutableList<Pair<ULValue<*, *>, UConcreteHeapRef>> = mutableListOf(),
     var discoveredCallees: UPersistentHashMap<Pair<EtsStmt, Int>, EtsBlockCfg> = persistentHashMapOf(),
-    var promiseStates: UPersistentHashMap<UConcreteHeapRef, PromiseState> = persistentHashMapOf(),
-    var promiseExecutors: UPersistentHashMap<UConcreteHeapRef, EtsMethod> = persistentHashMapOf(),
+    var promiseState: UPersistentHashMap<UConcreteHeapRef, PromiseState> = persistentHashMapOf(),
+    var promiseExecutor: UPersistentHashMap<UConcreteHeapRef, EtsMethod> = persistentHashMapOf(),
     // TODO: use normal naming
-    var method2ref: UPersistentHashMap<EtsMethod, UConcreteHeapRef> = persistentHashMapOf(),
-    var associatedMethods: UPersistentHashMap<UConcreteHeapRef, EtsMethod> = persistentHashMapOf(),
-    var closures: UPersistentHashMap<String, UConcreteHeapRef> = persistentHashMapOf(),
+    var methodToRef: UPersistentHashMap<EtsMethod, UConcreteHeapRef> = persistentHashMapOf(),
+    var associatedMethod: UPersistentHashMap<UConcreteHeapRef, EtsMethod> = persistentHashMapOf(),
+    var closureObject: UPersistentHashMap<String, UConcreteHeapRef> = persistentHashMapOf(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
     ctx = ctx,
     initOwnership = ownership,
@@ -153,25 +153,25 @@ class TsState(
         promise: UConcreteHeapRef,
         state: PromiseState,
     ) {
-        promiseStates = promiseStates.put(promise, state, ownership)
+        promiseState = promiseState.put(promise, state, ownership)
     }
 
     fun setPromiseExecutor(
         promise: UConcreteHeapRef,
         method: EtsMethod,
     ) {
-        promiseExecutors = promiseExecutors.put(promise, method, ownership)
+        promiseExecutor = promiseExecutor.put(promise, method, ownership)
     }
 
-    fun getMethodRef(
+    fun getAssociatedMethod(
         method: EtsMethod,
     ): UConcreteHeapRef {
-        val (updated, result) = method2ref.getOrPut(method, ownership) {
+        val (updated, result) = methodToRef.getOrPut(method, ownership) {
             // TODO: what type should we use here?
             memory.allocConcrete(EtsUnknownType)
         }
-        associatedMethods = associatedMethods.put(result, method, ownership)
-        method2ref = updated
+        associatedMethod = associatedMethod.put(result, method, ownership)
+        methodToRef = updated
         return result
     }
 
@@ -179,7 +179,7 @@ class TsState(
         name: String,
         closure: UConcreteHeapRef,
     ) {
-        closures = closures.put(name, closure, ownership)
+        closureObject = closureObject.put(name, closure, ownership)
     }
 
     override fun clone(newConstraints: UPathConstraints<EtsType>?): TsState {
@@ -209,11 +209,11 @@ class TsState(
             addedArtificialLocals = addedArtificialLocals,
             lValuesToAllocatedFakeObjects = lValuesToAllocatedFakeObjects.toMutableList(),
             discoveredCallees = discoveredCallees,
-            promiseStates = promiseStates,
-            promiseExecutors = promiseExecutors,
-            method2ref = method2ref,
-            associatedMethods = associatedMethods,
-            closures = closures,
+            promiseState = promiseState,
+            promiseExecutor = promiseExecutor,
+            methodToRef = methodToRef,
+            associatedMethod = associatedMethod,
+            closureObject = closureObject,
         )
     }
 

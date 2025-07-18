@@ -398,7 +398,7 @@ class TsExprResolver(
         }
 
         val promiseState = scope.calcOnState {
-            promiseStates[promise] ?: PromiseState.PENDING
+            promiseState[promise] ?: PromiseState.PENDING
         }
 
         val isResolved = scope.calcOnState { isResolved(promise) }
@@ -408,7 +408,7 @@ class TsExprResolver(
                 "Promise state should be PENDING, but it is $promiseState for $promise"
             }
             val executor = scope.calcOnState {
-                promiseExecutors[promise]
+                promiseExecutor[promise]
                     ?: error("Await expression should have a promise executor, but it is not set for $promise")
             }
             check(executor.cfg.stmts.isNotEmpty())
@@ -987,7 +987,7 @@ class TsExprResolver(
 
                 if (isAllocatedConcreteHeapRef(ptr)) {
                     val callee = scope.calcOnState {
-                        associatedMethods[ptr] ?: error("No associated methods for ptr: $ptr")
+                        associatedMethod[ptr] ?: error("No associated methods for ptr: $ptr")
                     }
 
                     val resolvedArgs = expr.args.map { resolve(it) ?: return null }
@@ -1459,7 +1459,7 @@ class TsSimpleValueResolver(
 
             // Handle closures
             if (local.name.startsWith("%closures")) {
-                val existingClosures = scope.calcOnState { closures[local.name] }
+                val existingClosures = scope.calcOnState { closureObject[local.name] }
                 if (existingClosures != null) {
                     return existingClosures
                 }
@@ -1576,7 +1576,7 @@ class TsSimpleValueResolver(
             )
             val methods = ctx.resolveEtsMethods(sig)
             val method = methods.single()
-            val ref = scope.calcOnState { getMethodRef(method) }
+            val ref = scope.calcOnState { getAssociatedMethod(method) }
             return ref
         }
 
