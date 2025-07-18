@@ -8,12 +8,12 @@ import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsType
-import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.model.EtsValue
 import org.usvm.PathNode
 import org.usvm.UCallStack
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.UState
 import org.usvm.api.targets.TsTarget
@@ -24,6 +24,7 @@ import org.usvm.collections.immutable.persistentHashMapOf
 import org.usvm.constraints.UPathConstraints
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.PromiseState
+import org.usvm.machine.interpreter.TsFunction
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase
@@ -58,10 +59,10 @@ class TsState(
     var discoveredCallees: UPersistentHashMap<Pair<EtsStmt, Int>, EtsBlockCfg> = persistentHashMapOf(),
     var promiseState: UPersistentHashMap<UConcreteHeapRef, PromiseState> = persistentHashMapOf(),
     var promiseExecutor: UPersistentHashMap<UConcreteHeapRef, EtsMethod> = persistentHashMapOf(),
-    // TODO: use normal naming
     var methodToRef: UPersistentHashMap<EtsMethod, UConcreteHeapRef> = persistentHashMapOf(),
-    var associatedMethod: UPersistentHashMap<UConcreteHeapRef, EtsMethod> = persistentHashMapOf(),
+    var associatedFunction: UPersistentHashMap<UConcreteHeapRef, TsFunction> = persistentHashMapOf(),
     var closureObject: UPersistentHashMap<String, UConcreteHeapRef> = persistentHashMapOf(),
+    var boundThis: UPersistentHashMap<UConcreteHeapRef, UHeapRef> = persistentHashMapOf(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
     ctx = ctx,
     initOwnership = ownership,
@@ -163,14 +164,14 @@ class TsState(
         promiseExecutor = promiseExecutor.put(promise, method, ownership)
     }
 
-    fun getAssociatedMethod(
+    fun getMethodRef(
         method: EtsMethod,
+        thisInstance: UHeapRef? = null,
     ): UConcreteHeapRef {
         val (updated, result) = methodToRef.getOrPut(method, ownership) {
-            // TODO: what type should we use here?
-            memory.allocConcrete(EtsUnknownType)
+            ctx.mkConcreteHeapRef(ctx.addressCounter.freshStaticAddress())
         }
-        associatedMethod = associatedMethod.put(result, method, ownership)
+        associatedFunction = associatedFunction.put(result, TsFunction(method, thisInstance), ownership)
         methodToRef = updated
         return result
     }
@@ -180,6 +181,13 @@ class TsState(
         closure: UConcreteHeapRef,
     ) {
         closureObject = closureObject.put(name, closure, ownership)
+    }
+
+    fun setBoundThis(
+        instance: UConcreteHeapRef,
+        thisRef: UHeapRef,
+    ) {
+        boundThis = boundThis.put(instance, thisRef, ownership)
     }
 
     override fun clone(newConstraints: UPathConstraints<EtsType>?): TsState {
@@ -212,7 +220,7 @@ class TsState(
             promiseState = promiseState,
             promiseExecutor = promiseExecutor,
             methodToRef = methodToRef,
-            associatedMethod = associatedMethod,
+            associatedFunction = associatedFunction,
             closureObject = closureObject,
         )
     }

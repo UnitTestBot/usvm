@@ -29,7 +29,6 @@ import org.jacodb.ets.model.EtsEntity
 import org.jacodb.ets.model.EtsEqExpr
 import org.jacodb.ets.model.EtsExpExpr
 import org.jacodb.ets.model.EtsFieldSignature
-import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsFunctionType
 import org.jacodb.ets.model.EtsGlobalRef
 import org.jacodb.ets.model.EtsGtEqExpr
@@ -104,6 +103,7 @@ import org.usvm.api.mockMethodCall
 import org.usvm.dataflow.ts.infer.tryGetKnownType
 import org.usvm.dataflow.ts.util.type
 import org.usvm.isAllocatedConcreteHeapRef
+import org.usvm.isStaticHeapRef
 import org.usvm.machine.Constants
 import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
@@ -412,16 +412,38 @@ class TsExprResolver(
                     ?: error("Await expression should have a promise executor, but it is not set for $promise")
             }
             check(executor.cfg.stmts.isNotEmpty())
-            scope.doWithState {
-                // Note: arguments for 'executor' are:
-                //   - `resolve`, if present in parameters
-                //   - `reject`, if present in parameters
-                //   - `promise` == "this", should be the last
-                check(executor.parameters.size <= 2) {
-                    "Executor should have at most 2 parameters (resolve and reject), but it has ${executor.parameters.size} for $executor"
+
+            val args: MutableList<UExpr<*>> = mutableListOf()
+
+            // 'this':
+            // args += mkUndefinedValue()
+            args += mkConcreteHeapRef(addressCounter.freshStaticAddress())
+
+            val params = executor.parameters.toMutableList()
+            if (params.isNotEmpty() && params[0].type is EtsLexicalEnvType) {
+                params.removeFirst()
+                // TODO: handle closures
+                args += mkUndefinedValue()
+            }
+            if (params.isNotEmpty()) {
+                args += resolveFunctionRef
+                scope.doWithState {
+                    setBoundThis(resolveFunctionRef, promise)
                 }
-                val args = listOf(promise) + executor.parameters.map { mkUndefinedValue() }
-                // pushSortsForArguments(instance = null, args = emptyList(), localToIdx)
+                if (params.size >= 2) {
+                    args += rejectFunctionRef
+                    scope.doWithState {
+                        setBoundThis(rejectFunctionRef, promise)
+                    }
+                    if (params.size >= 3) {
+                        error(
+                            "Promise executor should have at most 3 parameters" +
+                                " (closures, resolve, reject), but got ${params.size}"
+                        )
+                    }
+                }
+            }
+            scope.doWithState {
                 pushSortsForActualArguments(args)
                 memory.stack.push(args.toTypedArray(), executor.localsCount)
                 registerCallee(currentStatement, executor.cfg)
@@ -858,43 +880,6 @@ class TsExprResolver(
             return handleBooleanConverter(expr)
         }
 
-        // TODO: this should be handled in visit(AwaitExpr)
-        // Note: in the new IR, calls to "resolve" and "reject" methods were fixed to be PtrCall, so we
-        //  cannot handle them here. Instead, we should rely on the common handling of PtrCall, that is,
-        //  allocate new refs and associate them with SYNTHETIC "resolve" and "reject" methods.
-        //
-        // if (expr.callee.name in listOf("resolve", "reject")) {
-        //     val promise = resolve(
-        //         EtsThis(
-        //             EtsClassType(
-        //                 EtsClassSignature(
-        //                     "Promise",
-        //                     EtsFileSignature("typescript", "lib.es5.d.ts")
-        //                 )
-        //             )
-        //         )
-        //     )?.asExpr(addressSort) ?: return null
-        //     check(isAllocatedConcreteHeapRef(promise)) {
-        //         "Promise instance should be allocated, but it is not: $promise"
-        //     }
-        //     val newState = when (expr.callee.name) {
-        //         "resolve" -> PromiseState.FULFILLED
-        //         "reject" -> PromiseState.REJECTED
-        //         else -> error("Unexpected: $expr")
-        //     }
-        //     check(expr.args.size == 1) {
-        //         "${expr.callee.name}() should have exactly one argument, but got ${expr.args.size}"
-        //     }
-        //     val value = resolve(expr.args.single()) ?: return null
-        //     val fakeValue = value.toFakeObject(scope)
-        //     scope.doWithState {
-        //         markResolved(promise.asExpr(addressSort))
-        //         setPromiseState(promise, newState)
-        //         setResolvedValue(promise.asExpr(addressSort), fakeValue)
-        //     }
-        //     return mkUndefinedValue()
-        // }
-
         return when (val result = scope.calcOnState { methodResult }) {
             is TsMethodResult.Success -> {
                 scope.doWithState { methodResult = TsMethodResult.NoCall }
@@ -978,8 +963,8 @@ class TsExprResolver(
         return TsResolutionResult.create(methods)
     }
 
-    override fun visit(expr: EtsPtrCallExpr): UExpr<out USort>? {
-        return when (val result = scope.calcOnState { methodResult }) {
+    override fun visit(expr: EtsPtrCallExpr): UExpr<out USort>? = with(ctx) {
+        when (val result = scope.calcOnState { methodResult }) {
             is TsMethodResult.Success -> {
                 scope.doWithState { methodResult = TsMethodResult.NoCall }
                 result.value
@@ -992,15 +977,46 @@ class TsExprResolver(
             is TsMethodResult.NoCall -> {
                 val ptr = resolve(expr.ptr) ?: return null
 
-                if (isAllocatedConcreteHeapRef(ptr)) {
-                    val callee = scope.calcOnState {
-                        associatedMethod[ptr] ?: error("No associated methods for ptr: $ptr")
+                if (isStaticHeapRef(ptr)) {
+                    // Handle 'resolve' and 'reject' function call
+                    if (ptr === resolveFunctionRef || ptr === rejectFunctionRef) {
+                        val promise = scope.calcOnState {
+                            boundThis[ptr] ?: error("No bound 'this' for ptr: $ptr")
+                        }
+                        check(isAllocatedConcreteHeapRef(promise)) {
+                            "Promise instance should be allocated, but it is not: $promise"
+                        }
+                        val newState = when (ptr) {
+                            resolveFunctionRef -> PromiseState.FULFILLED
+                            rejectFunctionRef -> PromiseState.REJECTED
+                            else -> error("Unexpected ptr: $ptr")
+                        }
+                        check(expr.args.size == 1) {
+                            "${
+                                when (ptr) {
+                                    resolveFunctionRef -> "resolve"
+                                    rejectFunctionRef -> "reject"
+                                    else -> error("Unexpected ptr: $ptr")
+                                }
+                            }() should have exactly one argument, but got ${expr.args.size}"
+                        }
+                        val value = resolve(expr.args.single()) ?: return null
+                        val fakeValue = value.toFakeObject(scope)
+                        scope.doWithState {
+                            markResolved(promise.asExpr(addressSort))
+                            setPromiseState(promise, newState)
+                            setResolvedValue(promise.asExpr(addressSort), fakeValue)
+                        }
+                        return mkUndefinedValue()
                     }
 
+                    val callee = scope.calcOnState {
+                        associatedFunction[ptr] ?: error("No associated methods for ptr: $ptr")
+                    }
                     val resolvedArgs = expr.args.map { resolve(it) ?: return null }
                     val concreteCall = TsConcreteMethodCallStmt(
-                        callee = callee,
-                        instance = ptr,
+                        callee = callee.method,
+                        instance = callee.thisInstance ?: ctx.mkUndefinedValue(),
                         args = resolvedArgs,
                         returnSite = scope.calcOnState { lastStmt },
                     )
@@ -1355,7 +1371,7 @@ class TsExprResolver(
 
     override fun visit(value: EtsClosureFieldRef): UExpr<out USort>? = with(ctx) {
         val obj = resolve(value.base) ?: return null
-        check(isAllocatedConcreteHeapRef(obj)) {
+        check(isStaticHeapRef(obj)) {
             "Closure object should be a concrete heap reference, but got $obj"
         }
 
@@ -1454,7 +1470,7 @@ class TsSimpleValueResolver(
     private val localToIdx: (EtsMethod, EtsValue) -> Int?,
 ) : EtsValue.Visitor<UExpr<out USort>?> {
 
-    private fun resolveLocal(local: EtsValue): UExpr<*> {
+    private fun resolveLocal(local: EtsValue): UExpr<*> = with(ctx) {
         val currentMethod = scope.calcOnState { lastEnteredMethod }
         val entrypoint = scope.calcOnState { entrypoint }
 
@@ -1474,7 +1490,8 @@ class TsSimpleValueResolver(
                 }
                 val type = local.type
                 check(type is EtsLexicalEnvType)
-                val obj = scope.calcOnState { memory.allocConcrete(type) }
+                // val obj = scope.calcOnState { memory.allocConcrete(type) }
+                val obj = mkConcreteHeapRef(addressCounter.freshStaticAddress())
                 for (captured in type.closures) {
                     val resolvedCaptured = resolveLocal(captured)
                     val lValue = mkFieldLValue(resolvedCaptured.sort, obj, captured.name)
@@ -1531,7 +1548,7 @@ class TsSimpleValueResolver(
         }
 
         // arguments and this for the first stack frame
-        return when (sort) {
+        when (sort) {
             is UBoolSort -> {
                 val lValue = mkRegisterStackLValue(sort, localIdx)
                 scope.calcOnState { memory.read(lValue) }
@@ -1585,7 +1602,7 @@ class TsSimpleValueResolver(
             )
             val methods = ctx.resolveEtsMethods(sig)
             val method = methods.single()
-            val ref = scope.calcOnState { getAssociatedMethod(method) }
+            val ref = scope.calcOnState { getMethodRef(method) }
             return ref
         }
 
