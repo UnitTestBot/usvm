@@ -11,10 +11,9 @@ private val TsTestValue.TsBoolean.number: Double
     get() = if (value) 1.0 else 0.0
 
 class TypeCoercion : TsMethodTestRunner() {
+    private val tsPath = "/samples/TypeCoercion.ts"
 
-    private val className = this::class.simpleName!!
-
-    override val scene: EtsScene = loadSampleScene(className)
+    override val scene: EtsScene = loadScene(tsPath)
 
     @Test
     fun `test argWithConst`() {

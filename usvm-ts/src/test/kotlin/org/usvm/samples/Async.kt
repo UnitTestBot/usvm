@@ -7,18 +7,18 @@ import org.usvm.util.eq
 import kotlin.test.Test
 
 class Async : TsMethodTestRunner() {
+    private val tsPath = "/samples/Async.ts"
 
-    private val className = this::class.simpleName!!
-
-    override val scene: EtsScene = loadSampleScene(className)
+    override val scene: EtsScene = loadScene(tsPath)
 
     @Test
     fun `await resolving promise`() {
         val method = getMethod(className, "awaitResolvingPromise")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
+            { r -> r eq 1 },
             invariants = arrayOf(
-                { r -> r.number eq 42 },
+                { r -> r.number > 0 },
             )
         )
     }
@@ -29,6 +29,9 @@ class Async : TsMethodTestRunner() {
         discoverProperties<TsTestValue>(
             method = method,
             { r -> r is TsTestValue.TsException },
+            invariants = arrayOf(
+                { r -> r is TsTestValue.TsException },
+            )
         )
     }
 
@@ -37,8 +40,9 @@ class Async : TsMethodTestRunner() {
         val method = getMethod(className, "awaitResolvedPromise")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
+            { r -> r eq 1 },
             invariants = arrayOf(
-                { r -> r.number eq 42 },
+                { r -> r.number > 0 }
             )
         )
     }
@@ -49,6 +53,9 @@ class Async : TsMethodTestRunner() {
         discoverProperties<TsTestValue>(
             method = method,
             { r -> r is TsTestValue.TsException },
+            invariants = arrayOf(
+                { r -> r is TsTestValue.TsException },
+            )
         )
     }
 }

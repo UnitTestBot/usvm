@@ -6,10 +6,9 @@ import org.usvm.util.TsMethodTestRunner
 import kotlin.test.Test
 
 class StaticMethods : TsMethodTestRunner() {
+    private val tsPath = "/samples/StaticMethods.ts"
 
-    private val className = this::class.simpleName!!
-
-    override val scene: EtsScene = loadSampleScene(className)
+    override val scene: EtsScene = loadScene(tsPath)
 
     @Test
     fun `test noArguments`() {

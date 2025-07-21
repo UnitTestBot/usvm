@@ -7,10 +7,9 @@ import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 
 class Numeric : TsMethodTestRunner() {
+    private val tsPath = "/samples/Numeric.ts"
 
-    private val className = this::class.simpleName!!
-
-    override val scene: EtsScene = loadSampleScene(className)
+    override val scene: EtsScene = loadScene(tsPath)
 
     @Test
     fun `test numberToNumber`() {

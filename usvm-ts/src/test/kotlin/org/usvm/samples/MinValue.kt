@@ -7,10 +7,9 @@ import org.usvm.util.TsMethodTestRunner
 import kotlin.test.Test
 
 class MinValue : TsMethodTestRunner() {
+    private val tsPath = "/samples/MinValue.ts"
 
-    private val className = this::class.simpleName!!
-
-    override val scene: EtsScene = loadSampleScene(className)
+    override val scene: EtsScene = loadScene(tsPath)
 
     @Test
     @Disabled

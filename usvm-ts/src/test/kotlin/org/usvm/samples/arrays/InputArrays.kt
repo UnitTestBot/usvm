@@ -6,9 +6,9 @@ import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 
 class InputArrays : TsMethodTestRunner() {
-    private val className = this::class.simpleName!!
+    private val tsPath = "/samples/arrays/InputArrays.ts"
 
-    override val scene: EtsScene = loadSampleScene(className, folderPrefix = "arrays")
+    override val scene: EtsScene = loadScene(tsPath)
 
     @Test
     fun testInputArrayOfNumbers() {

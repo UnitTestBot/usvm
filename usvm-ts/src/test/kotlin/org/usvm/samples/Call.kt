@@ -8,10 +8,9 @@ import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.eq
 
 class Call : TsMethodTestRunner() {
+    private val tsPath = "/samples/Call.ts"
 
-    private val className = this::class.simpleName!!
-
-    override val scene: EtsScene = loadSampleScene(className)
+    override val scene: EtsScene = loadScene(tsPath)
 
     @Test
     fun `test simple`() {

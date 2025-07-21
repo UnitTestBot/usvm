@@ -8,9 +8,9 @@ import org.usvm.util.toDouble
 import kotlin.test.Test
 
 class Add : TsMethodTestRunner() {
-    private val className = this::class.simpleName!!
+    private val tsPath = "/samples/operators/Add.ts"
 
-    override val scene: EtsScene = loadSampleScene(className, folderPrefix = "operators")
+    override val scene: EtsScene = loadScene(tsPath)
 
     @Test
     fun `bool + bool`() {

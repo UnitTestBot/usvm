@@ -41,16 +41,13 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
 
     protected abstract val scene: EtsScene
 
-    protected fun loadSampleScene(
-        className: String,
-        folderPrefix: String = "",
+    protected fun loadScene(
+        resourcePath: String,
         useArkAnalyzerTypeInference: Boolean = false,
         sdks: List<String> = emptyList(), // resource paths to SDKs
     ): EtsScene {
-        val name = "$className.ts"
-        val path = getResourcePath("/samples/$folderPrefix/$name")
         val file = loadEtsFileAutoConvert(
-            path,
+            getResourcePath(resourcePath),
             useArkAnalyzerTypeInference = if (useArkAnalyzerTypeInference) 1 else null
         )
         val sdkFiles = sdks.flatMap { sdk ->
@@ -58,8 +55,11 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
             val sdkProject = loadEtsProjectAutoConvert(sdkPath, useArkAnalyzerTypeInference = null)
             sdkProject.projectFiles
         }
-        return EtsScene(listOf(file), sdkFiles)
+        return EtsScene(listOf(file), sdkFiles, projectName = file.projectName)
     }
+
+    protected val className: String
+        get() = this::class.simpleName ?: error("Class name is not available: ${this::class}")
 
     protected fun getMethod(className: String, methodName: String): EtsMethod {
         return scene

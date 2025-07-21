@@ -7,9 +7,9 @@ import org.usvm.util.toDouble
 import kotlin.test.Test
 
 class Less : TsMethodTestRunner() {
-    private val className = this::class.simpleName!!
+    private val tsPath = "/samples/operators/Less.ts"
 
-    override val scene: EtsScene = loadSampleScene(className, folderPrefix = "operators")
+    override val scene: EtsScene = loadScene(tsPath)
 
     @Test
     fun testLessNumbers() {

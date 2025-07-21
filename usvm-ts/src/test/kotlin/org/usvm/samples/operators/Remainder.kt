@@ -7,9 +7,9 @@ import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.toDouble
 
 class Remainder : TsMethodTestRunner() {
-    private val className = this::class.simpleName!!
+    private val tsPath = "/samples/operators/Remainder.ts"
 
-    override val scene = loadSampleScene(className, folderPrefix = "operators")
+    override val scene = loadScene(tsPath)
 
     @Test
     @Disabled("Never ends")

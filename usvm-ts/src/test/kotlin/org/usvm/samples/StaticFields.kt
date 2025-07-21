@@ -8,10 +8,9 @@ import org.usvm.util.TsMethodTestRunner
 
 @Disabled("Statics are not fully supported, yet")
 class StaticFields : TsMethodTestRunner() {
+    private val tsPath = "/samples/StaticFields.ts"
 
-    private val className = this::class.simpleName!!
-
-    override val scene: EtsScene = loadSampleScene(className)
+    override val scene: EtsScene = loadScene(tsPath)
 
     @Test
     fun `test static access get`() {

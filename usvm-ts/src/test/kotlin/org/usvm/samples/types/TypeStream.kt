@@ -7,9 +7,9 @@ import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 
 class TypeStream : TsMethodTestRunner() {
-    private val className = this::class.simpleName!!
+    private val tsPath = "/samples/types/TypeStream.ts"
 
-    override val scene: EtsScene = loadSampleScene(className, folderPrefix = "types")
+    override val scene: EtsScene = loadScene(tsPath)
 
     @Test
     fun `test ancestor instanceof`() {

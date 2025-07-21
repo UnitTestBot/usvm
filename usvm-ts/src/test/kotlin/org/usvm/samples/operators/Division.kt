@@ -8,9 +8,9 @@ import org.usvm.util.toDouble
 import kotlin.test.Test
 
 class Division : TsMethodTestRunner() {
-    private val className = this::class.simpleName!!
+    private val tsPath = "/samples/operators/Division.ts"
 
-    override val scene: EtsScene = loadSampleScene(className, folderPrefix = "operators")
+    override val scene: EtsScene = loadScene(tsPath)
 
     @Test
     fun testTwoNumbersDivision() {

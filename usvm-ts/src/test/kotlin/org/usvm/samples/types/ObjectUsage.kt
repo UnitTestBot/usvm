@@ -6,9 +6,9 @@ import org.usvm.util.TsMethodTestRunner
 import kotlin.test.Test
 
 class ObjectUsage : TsMethodTestRunner() {
-    private val className = this::class.simpleName!!
+    private val tsPath = "/samples/types/ObjectUsage.ts"
 
-    override val scene: EtsScene = loadSampleScene(className, folderPrefix = "types")
+    override val scene: EtsScene = loadScene(tsPath)
 
     @Test
     fun `object as parameter`() {

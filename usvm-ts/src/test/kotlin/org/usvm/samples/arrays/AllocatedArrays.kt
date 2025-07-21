@@ -7,10 +7,9 @@ import org.usvm.test.util.checkers.noResultsExpected
 import org.usvm.util.TsMethodTestRunner
 
 class AllocatedArrays : TsMethodTestRunner() {
+    private val tsPath = "/samples/arrays/AllocatedArrays.ts"
 
-    private val className = this::class.simpleName!!
-
-    override val scene: EtsScene = loadSampleScene(className, folderPrefix = "arrays")
+    override val scene: EtsScene = loadScene(tsPath)
 
     @Test
     fun `test createConstantArrayOfNumbers`() {

@@ -5,9 +5,9 @@ import org.usvm.util.TsMethodTestRunner
 import kotlin.test.Test
 
 class StructuralEquality : TsMethodTestRunner() {
-    private val className = this::class.simpleName!!
+    private val tsPath = "/samples/types/StructuralEquality.ts"
 
-    override val scene = loadSampleScene(className, folderPrefix = "types")
+    override val scene = loadScene(tsPath)
 
     @Test
     fun `test structural equality`() {

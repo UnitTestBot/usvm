@@ -7,10 +7,9 @@ import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 
 class Equality : TsMethodTestRunner() {
+    private val tsPath = "/samples/operators/Equality.ts"
 
-    private val className = this::class.simpleName!!
-
-    override val scene: EtsScene = loadSampleScene(className, folderPrefix = "operators")
+    override val scene: EtsScene = loadScene(tsPath)
 
     @Test
     fun `test eqBoolWithBool`() {
