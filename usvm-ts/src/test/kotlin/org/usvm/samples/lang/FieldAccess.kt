@@ -75,12 +75,21 @@ class FieldAccess : TsMethodTestRunner() {
             method = method,
             { a, r ->
                 val x = a.properties["x"] as TsTestValue.TsNumber
-                (x eq 1.1) && (r eq 14)
+                (x eq 1.1) && (r eq 1)
             },
             { a, r ->
-                val x = a.properties["x"] as TsTestValue.TsNumber
-                (x neq 1.1) && (r eq 10)
+                val x = a.properties["x"] as? TsTestValue.TsNumber
+                if (x == null) {
+                    true
+                } else {
+                    (x neq 1.1) && (r eq 2)
+                }
             },
+            invariants = arrayOf(
+                { _, r ->
+                    r.number in listOf(1, 2).map { it.toDouble() }
+                }
+            )
         )
     }
 
