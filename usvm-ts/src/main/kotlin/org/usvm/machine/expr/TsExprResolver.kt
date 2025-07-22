@@ -685,10 +685,30 @@ class TsExprResolver(
         // Check if left operand is nullish (null or undefined)
         val isNullish = if (left.sort == addressSort) {
             val leftRef = left.asExpr(addressSort)
-            mkOr(
-                mkHeapRefEq(leftRef, mkTsNullValue()),
-                mkHeapRefEq(leftRef, mkUndefinedValue())
-            )
+
+            // Handle fake objects specially
+            if (leftRef.isFakeObject()) {
+                val fakeType = leftRef.getFakeType(scope)
+                // Only check for nullish if the fake object represents a reference type
+                // If it represents a primitive type (bool/number), it's never nullish
+                mkIte(
+                    condition = fakeType.refTypeExpr,
+                    trueBranch = {
+                        val innerRef = leftRef.extractRef(scope)
+                        mkOr(
+                            mkHeapRefEq(innerRef, mkTsNullValue()),
+                            mkHeapRefEq(innerRef, mkUndefinedValue())
+                        )
+                    }(),
+                    falseBranch = mkFalse()
+                )
+            } else {
+                // Regular reference check
+                mkOr(
+                    mkHeapRefEq(leftRef, mkTsNullValue()),
+                    mkHeapRefEq(leftRef, mkUndefinedValue())
+                )
+            }
         } else {
             // Non-reference types (numbers, booleans, strings) are never nullish
             mkFalse()
