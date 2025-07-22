@@ -1,4 +1,4 @@
-package org.usvm.samples
+package org.usvm.samples.lang
 
 import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.Disabled
@@ -11,7 +11,7 @@ private val TsTestValue.TsBoolean.number: Double
     get() = if (value) 1.0 else 0.0
 
 class TypeCoercion : TsMethodTestRunner() {
-    private val tsPath = "/samples/TypeCoercion.ts"
+    private val tsPath = "/samples/lang/TypeCoercion.ts"
 
     override val scene: EtsScene = loadScene(tsPath)
 

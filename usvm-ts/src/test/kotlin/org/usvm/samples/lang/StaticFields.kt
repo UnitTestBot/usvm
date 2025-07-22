@@ -1,4 +1,4 @@
-package org.usvm.samples
+package org.usvm.samples.lang
 
 import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.Disabled
@@ -8,7 +8,7 @@ import org.usvm.util.TsMethodTestRunner
 
 @Disabled("Statics are not fully supported, yet")
 class StaticFields : TsMethodTestRunner() {
-    private val tsPath = "/samples/StaticFields.ts"
+    private val tsPath = "/samples/lang/StaticFields.ts"
 
     override val scene: EtsScene = loadScene(tsPath)
 

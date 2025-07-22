@@ -1,4 +1,4 @@
-package org.usvm.samples
+package org.usvm.samples.lang
 
 import org.jacodb.ets.model.EtsScene
 import org.usvm.api.TsTestValue
@@ -7,7 +7,7 @@ import org.usvm.util.eq
 import kotlin.test.Test
 
 class Async : TsMethodTestRunner() {
-    private val tsPath = "/samples/Async.ts"
+    private val tsPath = "/samples/lang/Async.ts"
 
     override val scene: EtsScene = loadScene(tsPath)
 

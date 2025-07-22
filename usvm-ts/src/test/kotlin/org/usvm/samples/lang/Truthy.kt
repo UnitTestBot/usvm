@@ -1,4 +1,4 @@
-package org.usvm.samples
+package org.usvm.samples.lang
 
 import org.jacodb.ets.model.EtsScene
 import org.usvm.api.TsTestValue
@@ -8,7 +8,7 @@ import org.usvm.util.isNaN
 import kotlin.test.Test
 
 class Truthy : TsMethodTestRunner() {
-    private val tsPath = "/samples/Truthy.ts"
+    private val tsPath = "/samples/lang/Truthy.ts"
 
     override val scene: EtsScene = loadScene(tsPath)
 

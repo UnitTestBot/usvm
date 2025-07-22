@@ -1,4 +1,4 @@
-package org.usvm.samples
+package org.usvm.samples.lang
 
 import org.jacodb.ets.model.EtsScene
 import org.usvm.api.TsTestValue
@@ -6,7 +6,7 @@ import org.usvm.util.TsMethodTestRunner
 import kotlin.test.Test
 
 class Exceptions : TsMethodTestRunner() {
-    private val tsPath = "/samples/Exceptions.ts"
+    private val tsPath = "/samples/lang/Exceptions.ts"
 
     override val scene: EtsScene = loadScene(tsPath)
 

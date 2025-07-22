@@ -1,4 +1,4 @@
-package org.usvm.samples
+package org.usvm.samples.lang
 
 import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.Test
@@ -6,7 +6,7 @@ import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 
 class Undefined : TsMethodTestRunner() {
-    private val tsPath = "/samples/Undefined.ts"
+    private val tsPath = "/samples/lang/Undefined.ts"
 
     override val scene: EtsScene = loadScene(tsPath)
 

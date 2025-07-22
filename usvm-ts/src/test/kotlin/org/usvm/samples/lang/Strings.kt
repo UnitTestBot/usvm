@@ -1,4 +1,4 @@
-package org.usvm.samples
+package org.usvm.samples.lang
 
 import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.Disabled
@@ -7,7 +7,7 @@ import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 
 class Strings : TsMethodTestRunner() {
-    private val tsPath = "/samples/Strings.ts"
+    private val tsPath = "/samples/lang/Strings.ts"
 
     override val scene: EtsScene = loadScene(tsPath)
 

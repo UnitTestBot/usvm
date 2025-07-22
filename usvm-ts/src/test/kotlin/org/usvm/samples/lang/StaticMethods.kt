@@ -1,4 +1,4 @@
-package org.usvm.samples
+package org.usvm.samples.lang
 
 import org.jacodb.ets.model.EtsScene
 import org.usvm.api.TsTestValue
@@ -6,7 +6,7 @@ import org.usvm.util.TsMethodTestRunner
 import kotlin.test.Test
 
 class StaticMethods : TsMethodTestRunner() {
-    private val tsPath = "/samples/StaticMethods.ts"
+    private val tsPath = "/samples/lang/StaticMethods.ts"
 
     override val scene: EtsScene = loadScene(tsPath)
 
