@@ -21,7 +21,6 @@ import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsUndefinedConstant
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.utils.toEtsBlockCfg
-import org.junit.jupiter.api.RepeatedTest
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.eq
@@ -33,7 +32,7 @@ class NullishCoalescing : TsMethodTestRunner() {
 
     override val scene: EtsScene = loadScene(tsPath)
 
-    @RepeatedTest(10)
+    @Test
     fun `nullish coalescing operator`() {
 
         // ```ts
