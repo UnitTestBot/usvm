@@ -682,50 +682,20 @@ class TsExprResolver(
         val left = resolve(expr.left) ?: return null
         val right = resolve(expr.right) ?: return null
 
-        // Check if left operand is nullish (null or undefined)
-        val isNullish = if (left.sort == addressSort) {
-            val leftRef = left.asExpr(addressSort)
-
-            // Handle fake objects specially
-            if (leftRef.isFakeObject()) {
-                val fakeType = leftRef.getFakeType(scope)
-                // Only check for nullish if the fake object represents a reference type
-                // If it represents a primitive type (bool/number), it's never nullish
-                mkIte(
-                    condition = fakeType.refTypeExpr,
-                    trueBranch = {
-                        val innerRef = leftRef.extractRef(scope)
-                        mkOr(
-                            mkHeapRefEq(innerRef, mkTsNullValue()),
-                            mkHeapRefEq(innerRef, mkUndefinedValue())
-                        )
-                    }(),
-                    falseBranch = mkFalse()
-                )
-            } else {
-                // Regular reference check
-                mkOr(
-                    mkHeapRefEq(leftRef, mkTsNullValue()),
-                    mkHeapRefEq(leftRef, mkUndefinedValue())
-                )
-            }
-        } else {
-            // Non-reference types (numbers, booleans, strings) are never nullish
-            mkFalse()
-        }
+        val leftIsNullish = mkNullishExpr(left, scope)
 
         // If both operands have the same sort, use mkIte directly
         if (left.sort == right.sort) {
             val commonSort = left.sort
             return mkIte(
-                condition = isNullish,
+                condition = leftIsNullish,
                 trueBranch = right.asExpr(commonSort),
                 falseBranch = left.asExpr(commonSort)
             )
         }
 
         // If sorts differ, create a fake object that can hold either value
-        return iteWriteIntoFakeObject(scope, isNullish, right, left)
+        return iteWriteIntoFakeObject(scope, leftIsNullish, right, left)
     }
 
     // endregion
