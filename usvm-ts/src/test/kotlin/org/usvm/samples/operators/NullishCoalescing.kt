@@ -166,7 +166,7 @@ class NullishCoalescing : TsMethodTestRunner() {
                         (a !is TsTestValue.TsNull) &&
                         (a !is TsTestValue.TsUndefined) &&
                         (a !is TsTestValue.TsBoolean || a.value) &&
-                        (a !is TsTestValue.TsNumber || a neq 0) &&
+                        (a !is TsTestValue.TsNumber || a.number != 0.0) &&
                         (a !is TsTestValue.TsString || a.value != "")
                 }
             )
