@@ -139,8 +139,6 @@ import org.usvm.util.mkRegisterStackLValue
 import org.usvm.util.resolveEtsField
 import org.usvm.util.resolveEtsMethods
 import org.usvm.util.throwExceptionWithoutStackFrameDrop
-import kotlin.contracts.ExperimentalContracts
-import kotlin.contracts.contract
 
 private val logger = KotlinLogging.logger {}
 
