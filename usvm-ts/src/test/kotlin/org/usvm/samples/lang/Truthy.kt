@@ -4,15 +4,11 @@ import org.jacodb.ets.dsl.CustomValue
 import org.jacodb.ets.dsl.const
 import org.jacodb.ets.dsl.eqq
 import org.jacodb.ets.dsl.local
-import org.jacodb.ets.dsl.not
 import org.jacodb.ets.dsl.param
 import org.jacodb.ets.dsl.program
 import org.jacodb.ets.dsl.toBlockCfg
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsClassImpl
-import org.jacodb.ets.model.EtsClassSignature
-import org.jacodb.ets.model.EtsFileSignature
-import org.jacodb.ets.model.EtsInstanceCallExpr
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethodImpl
 import org.jacodb.ets.model.EtsMethodParameter
@@ -24,6 +20,7 @@ import org.jacodb.ets.model.EtsUndefinedConstant
 import org.jacodb.ets.utils.toEtsBlockCfg
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
+import org.usvm.util.callNumberIsNaN
 import org.usvm.util.eq
 import org.usvm.util.isNaN
 import kotlin.test.Test
@@ -77,12 +74,12 @@ class Truthy : TsMethodTestRunner() {
             }
 
             // if (a === null) return 1;
-            ifStmt(eqq(a, CustomValue { EtsNullConstant })) {
+            ifStmt(eqq(a, CustomValue(EtsNullConstant))) {
                 ret(const(1))
             }
 
             // if (a === undefined) return 2;
-            ifStmt(eqq(a, CustomValue { EtsUndefinedConstant })) {
+            ifStmt(eqq(a, CustomValue(EtsUndefinedConstant))) {
                 ret(const(2))
             }
 
@@ -92,22 +89,7 @@ class Truthy : TsMethodTestRunner() {
             }
 
             // if (Number.isNaN(a)) return 4;
-            ifStmt(CustomValue {
-                EtsInstanceCallExpr(
-                    instance = EtsLocal("Number"),
-                    callee = EtsMethodSignature(
-                        enclosingClass = EtsClassSignature(
-                            name = "Number",
-                            file = EtsFileSignature.UNKNOWN,
-                        ),
-                        name = "isNaN",
-                        parameters = listOf(EtsMethodParameter(0, "value", EtsAnyType)),
-                        returnType = EtsNumberType,
-                    ),
-                    args = listOf(EtsLocal("a")),
-                    type = EtsNumberType,
-                )
-            }) {
+            ifStmt(callNumberIsNaN(EtsLocal("a"))) {
                 ret(const(4))
             }
 

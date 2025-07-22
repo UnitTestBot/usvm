@@ -1,10 +1,26 @@
 package org.usvm.samples.operators
 
+import org.jacodb.ets.dsl.and
+import org.jacodb.ets.dsl.const
+import org.jacodb.ets.dsl.eqq
+import org.jacodb.ets.dsl.local
+import org.jacodb.ets.dsl.param
+import org.jacodb.ets.dsl.program
+import org.jacodb.ets.dsl.toBlockCfg
+import org.jacodb.ets.model.EtsAnyType
+import org.jacodb.ets.model.EtsClassImpl
+import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsMethodImpl
+import org.jacodb.ets.model.EtsMethodParameter
+import org.jacodb.ets.model.EtsMethodSignature
+import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.utils.toEtsBlockCfg
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
+import org.usvm.util.callNumberIsNaN
 import org.usvm.util.eq
 import org.usvm.util.isNaN
 import org.usvm.util.isTruthy
@@ -44,7 +60,142 @@ class And : TsMethodTestRunner() {
 
     @Test
     fun `test andOfNumberAndNumber`() {
-        val method = getMethod(className, "andOfNumberAndNumber")
+
+        // ```ts
+        // andOfNumberAndNumber(a: number, b: number): number {
+        //     const res = a && b;
+        //     if (a) { // a is truthy, res is b
+        //         if (b) { // b is truthy
+        //             if (res === b) return 1; // res is also b
+        //         } else if (Number.isNaN(b)) { // b is falsy (NaN)
+        //             if (Number.isNaN(res)) return 2; // res is also NaN
+        //         } else if (b === 0) { // b is falsy (0)
+        //             if (res === 0) return 3; // res is also 0
+        //         }
+        //     } else if (Number.isNaN(a)) { // a is falsy (NaN), res is also NaN
+        //         if (b) {
+        //             if (Number.isNaN(res)) return 4;
+        //         } else if (Number.isNaN(b)) {
+        //             if (Number.isNaN(res)) return 5;
+        //         } else if (b === 0) {
+        //             if (Number.isNaN(res)) return 6;
+        //         }
+        //     } else if (a === 0) { // a is falsy (0), res is also 0
+        //         if (b) {
+        //             if (res === 0) return 7;
+        //         } else if (Number.isNaN(b)) {
+        //             if (res === 0) return 8;
+        //         } else if (b === 0) {
+        //             if (res === 0) return 9;
+        //         }
+        //     }
+        //     return 0;
+        // }
+        // ```
+
+        val prog = program {
+            // a := arg(0)
+            val a = local("a")
+            assign(a, param(0))
+
+            // b := arg(1)
+            val b = local("b")
+            assign(b, param(1))
+
+            // res := a && b
+            val res = local("res")
+            assign(res, and(a, b))
+
+            // if (a) {
+            ifStmt(a) {
+                // if (b) {
+                ifStmt(b) {
+                    // if (res === b) return 1;
+                    ifStmt(eqq(res, b)) {
+                        ret(const(1))
+                    }
+                }.elseIf(callNumberIsNaN(EtsLocal("b"))) {
+                    // } else if (Number.isNaN(b)) {
+                    // if (Number.isNaN(res)) return 2;
+                    ifStmt(callNumberIsNaN(EtsLocal("res"))) {
+                        ret(const(2))
+                    }
+                }.elseIf(eqq(b, const(0))) {
+                    // } else if (b === 0) {
+                    // if (res === 0) return 3;
+                    ifStmt(eqq(res, const(0))) {
+                        ret(const(3))
+                    }
+                }
+            }.elseIf(callNumberIsNaN(EtsLocal("a"))) {
+                // } else if (Number.isNaN(a)) {
+                // if (b) {
+                ifStmt(b) {
+                    // if (Number.isNaN(res)) return 4;
+                    ifStmt(callNumberIsNaN(EtsLocal("res"))) {
+                        ret(const(4))
+                    }
+                }.elseIf(callNumberIsNaN(EtsLocal("b"))) {
+                    // } else if (Number.isNaN(b)) {
+                    // if (Number.isNaN(res)) return 5;
+                    ifStmt(callNumberIsNaN(EtsLocal("res"))) {
+                        ret(const(5))
+                    }
+                }.elseIf(eqq(b, const(0))) {
+                    // } else if (b === 0) {
+                    // if (Number.isNaN(res)) return 6;
+                    ifStmt(callNumberIsNaN(EtsLocal("res"))) {
+                        ret(const(6))
+                    }
+                }
+            }.elseIf(eqq(a, const(0))) {
+                // } else if (a === 0) {
+                // if (b) {
+                ifStmt(b) {
+                    // if (res === 0) return 7;
+                    ifStmt(eqq(res, const(0))) {
+                        ret(const(7))
+                    }
+                }.elseIf(callNumberIsNaN(EtsLocal("b"))) {
+                    // } else if (Number.isNaN(b)) {
+                    // if (res === 0) return 8;
+                    ifStmt(eqq(res, const(0))) {
+                        ret(const(8))
+                    }
+                }.elseIf(eqq(b, const(0))) {
+                    // } else if (b === 0) {
+                    // if (res === 0) return 9;
+                    ifStmt(eqq(res, const(0))) {
+                        ret(const(9))
+                    }
+                }
+            }
+
+            // return 0;
+            ret(const(0))
+        }
+
+        val blockCfg = prog.toBlockCfg()
+
+        val clazz = scene.projectAndSdkClasses.single { it.name == className }
+        val method = EtsMethodImpl(
+            signature = EtsMethodSignature(
+                enclosingClass = clazz.signature,
+                name = "andOfNumberAndNumber",
+                parameters = listOf(
+                    EtsMethodParameter(0, "a", EtsAnyType),
+                    EtsMethodParameter(1, "b", EtsAnyType),
+                    ),
+                returnType = EtsNumberType,
+            ),
+        )
+        val etsCfg = blockCfg.toEtsBlockCfg(method)
+        method._cfg = etsCfg
+
+        method.enclosingClass = clazz
+        ((clazz as EtsClassImpl).methods as MutableList).add(method)
+
+        // val method = getMethod(className, "andOfNumberAndNumber")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
             { a, b, r ->
