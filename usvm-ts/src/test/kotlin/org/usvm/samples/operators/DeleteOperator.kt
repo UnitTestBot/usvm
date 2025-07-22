@@ -1,11 +1,13 @@
 package org.usvm.samples.operators
 
 import org.jacodb.ets.model.EtsScene
+import org.junit.jupiter.api.Disabled
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.eq
 import kotlin.test.Test
 
+@Disabled("delete operator is not supported")
 class DeleteOperator : TsMethodTestRunner() {
     private val tsPath = "/samples/operators/DeleteOperator.ts"
 

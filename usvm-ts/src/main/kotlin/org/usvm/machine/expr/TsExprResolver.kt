@@ -139,6 +139,8 @@ import org.usvm.util.mkRegisterStackLValue
 import org.usvm.util.resolveEtsField
 import org.usvm.util.resolveEtsMethods
 import org.usvm.util.throwExceptionWithoutStackFrameDrop
+import kotlin.contracts.ExperimentalContracts
+import kotlin.contracts.contract
 
 private val logger = KotlinLogging.logger {}
 
@@ -405,6 +407,10 @@ class TsExprResolver(
 
                 // For now, we simulate deletion by setting the property to undefined
                 // This is a simplification of the real semantics but sufficient for basic cases
+                // TODO: This is incorrect for cases that the existing field is not of sort Address.
+                //       In such case, the "overwriting" the field value with undefined does nothing
+                //       to the actual number/boolean/string value inside the field,
+                //       [if only we read the field using that "other" sort].
                 val fieldLValue = mkFieldLValue(addressSort, instance, operand.field)
                 scope.doWithState {
                     memory.write(fieldLValue, mkUndefinedValue(), guard = trueExpr)
@@ -416,7 +422,7 @@ class TsExprResolver(
 
             else -> {
                 // For other operands (like variables), delete typically returns true without effect
-                resolve(operand) // Evaluate for potential side effects
+                resolve(operand) ?: return null // Evaluate for potential side effects
                 mkTrue()
             }
         }
