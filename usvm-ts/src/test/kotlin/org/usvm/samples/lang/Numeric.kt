@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
+import org.usvm.util.eq
+import org.usvm.util.isNaN
 
 class Numeric : TsMethodTestRunner() {
     private val tsPath = "/samples/lang/Numeric.ts"
@@ -22,10 +24,10 @@ class Numeric : TsMethodTestRunner() {
         // ```
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
-            { x, r -> x.number.isNaN() && r.number.isNaN() },
-            { x, r -> (x.number == 0.0) && (r.number == 0.0) },
-            { x, r -> (x.number > 0) && (r.number == x.number) },
-            { x, r -> (x.number < 0) && (r.number == x.number) },
+            { x, r -> x.isNaN() && r.isNaN() },
+            { x, r -> (x eq 0) && (r eq 0) },
+            { x, r -> (x.number > 0) && (r eq x) },
+            { x, r -> (x.number < 0) && (r eq x) },
         )
     }
 
@@ -38,8 +40,8 @@ class Numeric : TsMethodTestRunner() {
         // ```
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method = method,
-            { x, r -> x.value && (r.number == 1.0) },
-            { x, r -> !x.value && (r.number == 0.0) },
+            { x, r -> x.value && (r eq 1) },
+            { x, r -> !x.value && (r eq 0) },
         )
     }
 
@@ -51,7 +53,7 @@ class Numeric : TsMethodTestRunner() {
         // ```
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number.isNaN() },
+            { r -> r.isNaN() },
         )
     }
 
@@ -63,7 +65,7 @@ class Numeric : TsMethodTestRunner() {
         // ```
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 0.0 },
+            { r -> r eq 0 },
         )
     }
 
@@ -76,7 +78,7 @@ class Numeric : TsMethodTestRunner() {
         // ```
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 0.0 },
+            { r -> r eq 0 },
         )
     }
 
@@ -89,7 +91,7 @@ class Numeric : TsMethodTestRunner() {
         // ```
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 42.0 },
+            { r -> r eq 42 },
         )
     }
 
@@ -102,7 +104,7 @@ class Numeric : TsMethodTestRunner() {
         // ```
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number.isNaN() },
+            { r -> r.isNaN() },
         )
     }
 
@@ -115,7 +117,7 @@ class Numeric : TsMethodTestRunner() {
         // ```
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 0.0 },
+            { r -> r eq 0 },
         )
     }
 
@@ -128,7 +130,7 @@ class Numeric : TsMethodTestRunner() {
         // ```
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 42.0 },
+            { r -> r eq 42 },
         )
     }
 
@@ -141,7 +143,7 @@ class Numeric : TsMethodTestRunner() {
         // ```
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 0.0 },
+            { r -> r eq 0 },
         )
     }
 
@@ -154,7 +156,7 @@ class Numeric : TsMethodTestRunner() {
         // ```
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number.isNaN() },
+            { r -> r.isNaN() },
         )
     }
 
@@ -167,7 +169,7 @@ class Numeric : TsMethodTestRunner() {
         // ```
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 42.0 },
+            { r -> r eq 42 },
         )
     }
 
@@ -180,7 +182,7 @@ class Numeric : TsMethodTestRunner() {
         // ```
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number.isNaN() },
+            { r -> r.isNaN() },
         )
     }
 
@@ -193,7 +195,7 @@ class Numeric : TsMethodTestRunner() {
         // ```
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number.isNaN() },
+            { r -> r.isNaN() },
         )
     }
 
@@ -206,7 +208,7 @@ class Numeric : TsMethodTestRunner() {
         // ```
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number.isNaN() },
+            { r -> r.isNaN() },
         )
     }
 
@@ -219,7 +221,7 @@ class Numeric : TsMethodTestRunner() {
         // ```
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 42.0 },
+            { r -> r eq 42 },
         )
     }
 }

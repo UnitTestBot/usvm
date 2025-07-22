@@ -4,6 +4,8 @@ import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
+import org.usvm.util.eq
+import org.usvm.util.neq
 
 class InputArrays : TsMethodTestRunner() {
     private val tsPath = "/samples/arrays/InputArrays.ts"
@@ -15,20 +17,20 @@ class InputArrays : TsMethodTestRunner() {
         val method = getMethod(className, "inputArrayOfNumbers")
         discoverProperties<TsTestValue.TsArray<*>, TsTestValue>(
             method = method,
-            { x, r -> r is TsTestValue.TsException },
+            { _, r -> r is TsTestValue.TsException },
             { x, r ->
                 r as TsTestValue.TsNumber
                 val x0 = x.values[0] as TsTestValue.TsNumber
-                x0.number == 1.0 && r.number == 1.0
+                (r eq 1) && (x0 eq 1)
             },
             { x, r ->
                 r as TsTestValue.TsNumber
                 val x0 = x.values[0] as TsTestValue.TsNumber
-                x0.number != 1.0 && r.number == 2.0
+                (r eq 2) && (x0 neq 1)
             },
             invariants = arrayOf(
                 { _, r ->
-                    r !is TsTestValue.TsNumber || r.number != -1.0
+                    r !is TsTestValue.TsNumber || (r neq -1)
                 }
             )
         )
@@ -39,8 +41,8 @@ class InputArrays : TsMethodTestRunner() {
         val method = getMethod(className, "writeIntoInputArray")
         discoverProperties<TsTestValue.TsArray<TsTestValue.TsNumber>, TsTestValue.TsNumber>(
             method = method,
-            { x, r -> x.values[0].number == 1.0 && r.number == 1.0 },
-            { x, r -> x.values[0].number != 1.0 && r.number == 1.0 },
+            { x, r -> (r eq 1) && (x.values[0] eq 1) },
+            { x, r -> (r eq 1) && (x.values[0] neq 1) },
         )
     }
 
@@ -58,8 +60,8 @@ class InputArrays : TsMethodTestRunner() {
         val method = getMethod(className, "arrayOfBooleans")
         discoverProperties<TsTestValue.TsArray<TsTestValue.TsBoolean>, TsTestValue.TsNumber>(
             method = method,
-            { x, r -> x.values[0].value == true && r.number == 1.0 },
-            { x, r -> x.values[0].value != true && r.number == -1.0 },
+            { x, r -> (r eq 1) && x.values[0].value },
+            { x, r -> (r eq -1) && !x.values[0].value },
         )
     }
 
@@ -71,20 +73,20 @@ class InputArrays : TsMethodTestRunner() {
             // TODO exception
             { x, r ->
                 val firstElement = x.values[0]
-                firstElement is TsTestValue.TsNumber && firstElement.number == 1.1 && x.values == r.values
+                (r.values == x.values) && firstElement is TsTestValue.TsNumber && (firstElement eq 1.1)
             },
             { x, r ->
                 val firstElement = x.values[0]
-                val firstElementCondition = firstElement !is TsTestValue.TsNumber || firstElement.number != 1.1
+                val firstElementCondition = firstElement !is TsTestValue.TsNumber || (firstElement neq 1.1)
 
                 val secondElement = x.values[1]
                 val secondElementCondition = secondElement is TsTestValue.TsBoolean && secondElement.value
 
-                firstElementCondition && secondElementCondition && x.values == r.values
+                (r.values == x.values) && firstElementCondition && secondElementCondition
             },
             { x, r ->
                 val firstElement = x.values[0]
-                val firstElementCondition = firstElement !is TsTestValue.TsNumber || firstElement.number != 1.1
+                val firstElementCondition = firstElement !is TsTestValue.TsNumber || (firstElement neq 1.1)
 
                 val secondElement = x.values[1]
                 val secondElementCondition = secondElement !is TsTestValue.TsBoolean || !secondElement.value
@@ -92,7 +94,7 @@ class InputArrays : TsMethodTestRunner() {
                 val thirdElement = x.values[2]
                 val thirdElementCondition = thirdElement is TsTestValue.TsUndefined
 
-                firstElementCondition && secondElementCondition && thirdElementCondition && x.values == r.values
+                (r.values == x.values) && firstElementCondition && secondElementCondition && thirdElementCondition
             }
         )
     }
@@ -121,11 +123,11 @@ class InputArrays : TsMethodTestRunner() {
             method = method,
             { x, r ->
                 val value = x.values[0]
-                value is TsTestValue.TsNumber && value.number == 1.0 && r is TsTestValue.TsNull
+                r is TsTestValue.TsNull && value is TsTestValue.TsNumber && (value eq 1)
             },
             { x, r ->
                 val value = x.values[0]
-                value !is TsTestValue.TsNumber || value.number != 1.0 && r == value
+                (r == value) && (value !is TsTestValue.TsNumber || (value neq 1))
             },
         )
     }
@@ -137,23 +139,23 @@ class InputArrays : TsMethodTestRunner() {
             method = method,
             { x, y, r ->
                 val fst = x.values[0]
-                val fstCondition = fst is TsTestValue.TsNumber && fst.number == 1.0
-                val sndCondition = y is TsTestValue.TsNumber && y.number == 2.0
+                val fstCondition = fst is TsTestValue.TsNumber && (fst eq 1)
+                val sndCondition = y is TsTestValue.TsNumber && (y eq 2)
                 val resultCondition = r is TsTestValue.TsArray<*> && r.values[0] == y
 
-                fstCondition && sndCondition && resultCondition
+                resultCondition && fstCondition && sndCondition
             },
             { x, y, r ->
                 val fst = x.values[0]
-                val fstCondition = fst is TsTestValue.TsNumber && fst.number == 1.0
-                val sndCondition = y !is TsTestValue.TsNumber || y.number != 2.0
+                val fstCondition = fst is TsTestValue.TsNumber && (fst eq 1)
+                val sndCondition = y !is TsTestValue.TsNumber || (y neq 2)
                 val resultCondition = r is TsTestValue.TsArray<*> && r.values[0] == y
 
-                fstCondition && sndCondition && resultCondition
+                resultCondition && fstCondition && sndCondition
             },
             { x, y, r ->
                 val fst = x.values[0]
-                val condition = fst !is TsTestValue.TsNumber || fst.number != 1.0
+                val condition = fst !is TsTestValue.TsNumber || (fst neq 1)
                 condition && r is TsTestValue.TsArray<*> && r.values == x.values
             },
         )

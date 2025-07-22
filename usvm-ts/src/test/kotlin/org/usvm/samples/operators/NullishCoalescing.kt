@@ -18,23 +18,23 @@ class NullishCoalescing : TsMethodTestRunner() {
             method = method,
             { a, r ->
                 // null ?? "default" -> "default"
-                a is TsTestValue.TsNull && r eq 1
+                (r eq 1) && a is TsTestValue.TsNull
             },
             { a, r ->
                 // undefined ?? "default" -> "default"
-                a is TsTestValue.TsUndefined && r eq 2
+                (r eq 2) && a is TsTestValue.TsUndefined
             },
             { a, r ->
                 // false ?? "default" -> false
-                a is TsTestValue.TsBoolean && !a.value && r eq 3
+                (r eq 3) && a is TsTestValue.TsBoolean && !a.value
             },
             { a, r ->
                 // 0 ?? "default" -> 0
-                a is TsTestValue.TsNumber && a.number == 0.0 && r eq 4
+                (r eq 4) && a is TsTestValue.TsNumber && (a eq 0)
             },
             { a, r ->
                 // "" ?? "default" -> ""
-                a is TsTestValue.TsString && a.value == "" && r eq 5
+                (r eq 5) && a is TsTestValue.TsString && a.value == ""
             },
             // Fallback case is also reachable:
             { _, r -> r eq 100 },

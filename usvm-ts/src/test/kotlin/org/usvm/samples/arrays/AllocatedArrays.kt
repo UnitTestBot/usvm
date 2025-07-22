@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Test
 import org.usvm.api.TsTestValue
 import org.usvm.test.util.checkers.noResultsExpected
 import org.usvm.util.TsMethodTestRunner
+import org.usvm.util.eq
+import org.usvm.util.neq
 
 class AllocatedArrays : TsMethodTestRunner() {
     private val tsPath = "/samples/arrays/AllocatedArrays.ts"
@@ -16,9 +18,9 @@ class AllocatedArrays : TsMethodTestRunner() {
         val method = getMethod(className, "createConstantArrayOfNumbers")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 1.0 },
+            { r -> r eq 1 },
             invariants = arrayOf(
-                { r -> r.number != -1.0 }
+                { r -> r neq -1 }
             )
         )
     }
@@ -37,9 +39,9 @@ class AllocatedArrays : TsMethodTestRunner() {
         val method = getMethod(className, "createAndAccessArrayOfBooleans")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 1.0 },
+            { r -> r eq 1 },
             invariants = arrayOf(
-                { r -> r.number != -1.0 }
+                { r -> r neq -1 }
             )
         )
     }
@@ -73,9 +75,9 @@ class AllocatedArrays : TsMethodTestRunner() {
         val method = getMethod(className, "createArrayOfUnknownValues")
         discoverProperties<TsTestValue, TsTestValue, TsTestValue, TsTestValue.TsArray<*>>(
             method = method,
-            { a, _, _, r -> r.values[0] == a && (a as TsTestValue.TsNumber).number == 1.1 },
-            { _, b, _, r -> r.values[1] == b && (b as TsTestValue.TsBoolean).value },
-            { _, _, c, r -> r.values[2] == c && c is TsTestValue.TsUndefined },
+            { a, _, _, r -> (a as TsTestValue.TsNumber).number == 1.1 && r.values[0] == a },
+            { _, b, _, r -> (b as TsTestValue.TsBoolean).value && r.values[1] == b },
+            { _, _, c, r -> c is TsTestValue.TsUndefined && r.values[2] == c },
             invariants = arrayOf(
                 { a, b, c, r -> r.values == listOf(a, b, c) }
             )

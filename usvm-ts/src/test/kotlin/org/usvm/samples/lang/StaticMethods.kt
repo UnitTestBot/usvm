@@ -3,6 +3,9 @@ package org.usvm.samples.lang
 import org.jacodb.ets.model.EtsScene
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
+import org.usvm.util.eq
+import org.usvm.util.isNaN
+import org.usvm.util.neq
 import kotlin.test.Test
 
 class StaticMethods : TsMethodTestRunner() {
@@ -15,7 +18,7 @@ class StaticMethods : TsMethodTestRunner() {
         val method = getMethod(className, "noArguments")
         discoverProperties<TsTestValue.TsNumber>(
             method,
-            { r -> r.number == 42.0 },
+            { r -> r eq 42 },
         )
     }
 
@@ -24,10 +27,10 @@ class StaticMethods : TsMethodTestRunner() {
         val method = getMethod(className, "singleArgument")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method,
-            { a, r -> a.number.isNaN() && r.number.isNaN() },
-            { a, r -> (a.number == 1.0) && (r == a) },
-            { a, r -> (a.number == 2.0) && (r == a) },
-            { a, r -> !(a.number.isNaN() || a.number == 1.0 || a.number == 2.0) && (r.number == 100.0) },
+            { a, r -> r.isNaN() && a.isNaN() },
+            { a, r -> (r eq a) && (a eq 1) },
+            { a, r -> (r eq a) && (a eq 2) },
+            { a, r -> (r eq 100) && !(a.isNaN() || (a eq 1) || (a eq 2)) },
         )
     }
 
@@ -36,11 +39,11 @@ class StaticMethods : TsMethodTestRunner() {
         val method = getMethod(className, "manyArguments")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method,
-            { a, _, _, _, r -> (a.number == 1.0) && (r == a) },
-            { _, b, _, _, r -> (b.number == 2.0) && (r == b) },
-            { _, _, c, _, r -> (c.number == 3.0) && (r == c) },
-            { _, _, _, d, r -> (d.number == 4.0) && (r == d) },
-            { a, b, c, d, r -> !(a.number == 1.0 || b.number == 2.0 || c.number == 3.0 || d.number == 4.0) && (r.number == 100.0) },
+            { a, _, _, _, r -> (r eq a) && (a eq 1) },
+            { _, b, _, _, r -> (r eq b) && (b eq 2) },
+            { _, _, c, _, r -> (r eq c) && (c eq 3) },
+            { _, _, _, d, r -> (r eq d) && (d eq 4) },
+            { a, b, c, d, r -> (r eq 100) && !((a eq 1) || (b eq 2) || (c eq 3) || (d eq 4)) },
         )
     }
 }

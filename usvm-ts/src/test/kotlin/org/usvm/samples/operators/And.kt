@@ -22,19 +22,19 @@ class And : TsMethodTestRunner() {
             method = method,
             { a, b, r ->
                 // false && false -> false
-                !a.value && !b.value && (r eq 1)
+                (r eq 1) && !a.value && !b.value
             },
             { a, b, r ->
                 // false && true -> false
-                !a.value && b.value && (r eq 2)
+                (r eq 2) && !a.value && b.value
             },
             { a, b, r ->
                 // true && false -> false
-                a.value && !b.value && (r eq 3)
+                (r eq 3) && a.value && !b.value
             },
             { a, b, r ->
                 // true && true -> true
-                a.value && b.value && (r eq 4)
+                (r eq 4) && a.value && b.value
             },
             invariants = arrayOf(
                 { _, _, r -> r neq 0 }
@@ -49,39 +49,39 @@ class And : TsMethodTestRunner() {
             method = method,
             { a, b, r ->
                 // truthy && truthy -> b
-                isTruthy(a) && isTruthy(b) && (r eq 1)
+                (r eq 1) && isTruthy(a) && isTruthy(b)
             },
             { a, b, r ->
                 // truthy && NaN -> NaN
-                isTruthy(a) && b.isNaN() && (r eq 2)
+                (r eq 2) && isTruthy(a) && b.isNaN()
             },
             { a, b, r ->
                 // truthy && 0 -> 0
-                isTruthy(a) && (b eq 0) && (r eq 3)
+                (r eq 3) && isTruthy(a) && (b eq 0)
             },
             { a, b, r ->
                 // NaN && truthy -> NaN
-                a.isNaN() && isTruthy(b) && (r eq 4)
+                (r eq 4) && a.isNaN() && isTruthy(b)
             },
             { a, b, r ->
                 // NaN && NaN -> NaN
-                a.isNaN() && b.isNaN() && (r eq 5)
+                (r eq 5) && a.isNaN() && b.isNaN()
             },
             { a, b, r ->
                 // NaN && 0 -> NaN
-                a.isNaN() && (b eq 0) && (r eq 6)
+                (r eq 6) && a.isNaN() && (b eq 0)
             },
             { a, b, r ->
                 // 0 && truthy -> 0
-                (a eq 0) && isTruthy(b) && (r eq 7)
+                (r eq 7) && (a eq 0) && isTruthy(b)
             },
             { a, b, r ->
                 // 0 && NaN -> 0
-                (a eq 0) && b.isNaN() && (r eq 8)
+                (r eq 8) && (a eq 0) && b.isNaN()
             },
             { a, b, r ->
                 // 0 && 0 -> 0
-                (a eq 0) && (b eq 0) && (r eq 9)
+                (r eq 9) && (a eq 0) && (b eq 0)
             },
             invariants = arrayOf(
                 { _, _, r -> r neq 0 }
@@ -96,27 +96,27 @@ class And : TsMethodTestRunner() {
             method = method,
             { a, b, r ->
                 // true && truthy -> b
-                a.value && isTruthy(b) && (r eq 1)
+                (r eq 1) && a.value && isTruthy(b)
             },
             { a, b, r ->
                 // true && NaN -> NaN
-                a.value && b.isNaN() && (r eq 2)
+                (r eq 2) && a.value && b.isNaN()
             },
             { a, b, r ->
                 // true && 0 -> 0
-                a.value && (b eq 0) && (r eq 3)
+                (r eq 3) && a.value && (b eq 0)
             },
             { a, b, r ->
                 // false && truthy -> false
-                !a.value && isTruthy(b) && (r eq 4)
+                (r eq 4) && !a.value && isTruthy(b)
             },
             { a, b, r ->
                 // false && NaN -> false
-                !a.value && b.isNaN() && (r eq 5)
+                (r eq 5) && !a.value && b.isNaN()
             },
             { a, b, r ->
                 // false && 0 -> false
-                !a.value && (b eq 0) && (r eq 6)
+                (r eq 6) && !a.value && (b eq 0)
             },
             invariants = arrayOf(
                 { _, _, r -> r neq 0 }
@@ -131,27 +131,27 @@ class And : TsMethodTestRunner() {
             method = method,
             { a, b, r ->
                 // truthy && true -> true
-                isTruthy(a) && b.value && (r eq 1)
+                (r eq 1) && isTruthy(a) && b.value
             },
             { a, b, r ->
                 // truthy && false -> false
-                isTruthy(a) && !b.value && (r eq 2)
+                (r eq 2) && isTruthy(a) && !b.value
             },
             { a, b, r ->
                 // NaN && true -> NaN
-                a.isNaN() && b.value && (r eq 3)
+                (r eq 3) && a.isNaN() && b.value
             },
             { a, b, r ->
                 // NaN && false -> NaN
-                a.isNaN() && !b.value && (r eq 4)
+                (r eq 4) && a.isNaN() && !b.value
             },
             { a, b, r ->
                 // 0 && true -> 0
-                (a eq 0) && b.value && (r eq 5)
+                (r eq 5) && (a eq 0) && b.value
             },
             { a, b, r ->
                 // 0 && false -> 0
-                (a eq 0) && !b.value && (r eq 6)
+                (r eq 6) && (a eq 0) && !b.value
             },
             invariants = arrayOf(
                 { _, _, r -> r neq 0 }
@@ -167,19 +167,19 @@ class And : TsMethodTestRunner() {
             method = method,
             { a, b, r ->
                 // truthy && truthy -> b
-                isTruthy(a) && isTruthy(b) && (r eq 1)
+                (r eq 1) && isTruthy(a) && isTruthy(b)
             },
             { a, b, r ->
                 // truthy && falsy -> b
-                isTruthy(a) && !isTruthy(b) && (r eq 2)
+                (r eq 2) && isTruthy(a) && !isTruthy(b)
             },
             { a, b, r ->
                 // falsy && truthy -> a
-                !isTruthy(a) && isTruthy(b) && (r eq 3)
+                (r eq 3) && !isTruthy(a) && isTruthy(b)
             },
             { a, b, r ->
                 // falsy && falsy -> a
-                !isTruthy(a) && !isTruthy(b) && (r eq 4)
+                (r eq 4) && !isTruthy(a) && !isTruthy(b)
             },
             invariants = arrayOf(
                 { _, _, r -> r neq 0 }

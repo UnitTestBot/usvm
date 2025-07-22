@@ -2,6 +2,7 @@ package org.usvm.samples.types
 
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
+import org.usvm.util.eq
 import kotlin.test.Test
 
 class StructuralEquality : TsMethodTestRunner() {
@@ -25,7 +26,7 @@ class StructuralEquality : TsMethodTestRunner() {
 
                 val propertyValue = property.properties["x"] as TsTestValue.TsNumber
 
-                propertyValue.number == 11.0
+                propertyValue eq 11
             }
         )
     }

@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Test
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.eq
+import org.usvm.util.isNaN
+import org.usvm.util.neq
 
 class Call : TsMethodTestRunner() {
     private val tsPath = "/samples/lang/Call.ts"
@@ -17,7 +19,7 @@ class Call : TsMethodTestRunner() {
         val method = getMethod(className, "callSimple")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 42.0 },
+            { r -> r eq 42 },
         )
     }
 
@@ -26,12 +28,12 @@ class Call : TsMethodTestRunner() {
         val method = getMethod(className, "fib")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
-            { n, r -> n.number.isNaN() && r.number == 0.0 },
-            { n, r -> n.number < 0.0 && r.number == -1.0 },
-            { n, r -> n.number > 10.0 && r.number == -100.0 },
-            { n, r -> n.number == 0.0 && r.number == 1.0 },
-            { n, r -> n.number == 1.0 && r.number == 1.0 },
-            { n, r -> n.number > 0 && n.number != 1.0 && n.number <= 10.0 && fib(n.number) == r.number },
+            { n, r -> n.isNaN() && (r eq 0) },
+            { n, r -> n.number < 0.0 && (r eq -1) },
+            { n, r -> n.number > 10.0 && (r eq -100) },
+            { n, r -> (n eq 0) && (r eq 1) },
+            { n, r -> (n eq 1) && (r eq 1) },
+            { n, r -> n.number > 0 && (n neq 1.0) && n.number <= 10.0 && fib(n.number) == r.number },
             invariants = arrayOf(
                 { n, r -> fib(n.number) == r.number }
             )
@@ -43,7 +45,7 @@ class Call : TsMethodTestRunner() {
         val method = getMethod(className, "callConcrete")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 10.0 },
+            { r -> r eq 10 },
         )
     }
 
@@ -52,7 +54,7 @@ class Call : TsMethodTestRunner() {
         val method = getMethod(className, "callHidden")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 20.0 },
+            { r -> r eq 20 },
         )
     }
 
@@ -61,7 +63,7 @@ class Call : TsMethodTestRunner() {
         val method = getMethod(className, "callNoVararg")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 1.0 },
+            { r -> r eq 1 },
         )
     }
 
@@ -70,7 +72,7 @@ class Call : TsMethodTestRunner() {
         val method = getMethod(className, "callVararg1")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 2.0 },
+            { r -> r eq 2 },
         )
     }
 
@@ -79,7 +81,7 @@ class Call : TsMethodTestRunner() {
         val method = getMethod(className, "callVararg2")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 3.0 },
+            { r -> r eq 3 },
         )
     }
 
@@ -88,7 +90,7 @@ class Call : TsMethodTestRunner() {
         val method = getMethod(className, "callVarargArray")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 2.0 },
+            { r -> r eq 2 },
         )
     }
 
@@ -97,7 +99,7 @@ class Call : TsMethodTestRunner() {
         val method = getMethod(className, "callNormal")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 2.0 },
+            { r -> r eq 2 },
         )
     }
 
@@ -106,7 +108,7 @@ class Call : TsMethodTestRunner() {
         val method = getMethod(className, "callSingle")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 1.0 },
+            { r -> r eq 1 },
         )
     }
 
@@ -115,7 +117,7 @@ class Call : TsMethodTestRunner() {
         val method = getMethod(className, "callNone")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 0.0 },
+            { r -> r eq 0 },
         )
     }
 
@@ -124,7 +126,7 @@ class Call : TsMethodTestRunner() {
         val method = getMethod(className, "callUndefined")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 0.0 },
+            { r -> r eq 0 },
         )
     }
 
@@ -133,7 +135,7 @@ class Call : TsMethodTestRunner() {
         val method = getMethod(className, "callExtra")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 2.0 },
+            { r -> r eq 2 },
         )
     }
 
@@ -142,7 +144,7 @@ class Call : TsMethodTestRunner() {
         val method = getMethod(className, "callOverloadedNumber")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 1.0 }
+            { r -> r eq 1 }
         )
     }
 
@@ -151,7 +153,7 @@ class Call : TsMethodTestRunner() {
         val method = getMethod(className, "callOverloadedString")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 2.0 }
+            { r -> r eq 2 }
         )
     }
 
@@ -161,7 +163,7 @@ class Call : TsMethodTestRunner() {
         val method = getMethod(className, "callNamespace")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 30.0 }
+            { r -> r eq 30 }
         )
     }
 
@@ -171,7 +173,7 @@ class Call : TsMethodTestRunner() {
         val method = getMethod(className, "callStatic")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 50.0 }
+            { r -> r eq 50 }
         )
     }
 
@@ -183,8 +185,8 @@ class Call : TsMethodTestRunner() {
             method = method,
             { obj, r ->
                 when (obj.name) {
-                    "Parent" -> r.number == 100.0
-                    "Child" -> r.number == 200.0
+                    "Parent" -> r eq 100
+                    "Child" -> r eq 200
                     else -> false
                 }
             },
@@ -196,7 +198,7 @@ class Call : TsMethodTestRunner() {
         val method = getMethod(className, "callVirtualParent")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 100.0 },
+            { r -> r eq 100 },
         )
     }
 
@@ -205,7 +207,7 @@ class Call : TsMethodTestRunner() {
         val method = getMethod(className, "callVirtualChild")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 200.0 },
+            { r -> r eq 200 },
         )
     }
 
@@ -215,7 +217,7 @@ class Call : TsMethodTestRunner() {
         val method = getMethod(className, "callBaseMethod")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 42.0 },
+            { r -> r eq 42 },
         )
     }
 
@@ -224,10 +226,10 @@ class Call : TsMethodTestRunner() {
         val method = getMethod(className, "virtualDispatch")
         discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
             method = method,
-            { obj, r -> obj.name == "Parent" && r.number == 100.0 },
-            { obj, r -> obj.name == "Child" && r.number == 200.0 },
+            { obj, r -> obj.name == "Parent" && (r eq 100) },
+            { obj, r -> obj.name == "Child" && (r eq 200) },
             invariants = arrayOf(
-                { _, r -> r.number != -1.0 },
+                { _, r -> r neq -1.0 },
             )
         )
     }
@@ -238,7 +240,7 @@ class Call : TsMethodTestRunner() {
         val method = getMethod(className, "callDefault")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 5.0 },
+            { r -> r eq 5 },
         )
     }
 
@@ -247,7 +249,7 @@ class Call : TsMethodTestRunner() {
         val method = getMethod(className, "callDefaultPass")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 8.0 },
+            { r -> r eq 8 },
         )
     }
 
@@ -257,7 +259,7 @@ class Call : TsMethodTestRunner() {
         val method = getMethod(className, "callDefaultUndefined")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 5.0 },
+            { r -> r eq 5 },
         )
     }
 
@@ -266,7 +268,7 @@ class Call : TsMethodTestRunner() {
         val method = getMethod(className, "callConstructorWithParam")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 5.0 },
+            { r -> r eq 5 },
         )
     }
 
@@ -276,7 +278,7 @@ class Call : TsMethodTestRunner() {
         val method = getMethod(className, "callConstructorWithPublicParam")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 5.0 },
+            { r -> r eq 5 },
         )
     }
 
@@ -285,7 +287,7 @@ class Call : TsMethodTestRunner() {
         val method = getMethod(className, "structuralEqualityTrickery")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 20.0 },
+            { r -> r eq 20 },
         )
     }
 
@@ -295,7 +297,7 @@ class Call : TsMethodTestRunner() {
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             invariants = arrayOf(
-                { r -> r.number == 42.0 },
+                { r -> r eq 42 },
             )
         )
     }
@@ -306,7 +308,7 @@ class Call : TsMethodTestRunner() {
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             invariants = arrayOf(
-                { r -> r.number == 42.0 },
+                { r -> r eq 42 },
             )
         )
     }
@@ -317,10 +319,10 @@ class Call : TsMethodTestRunner() {
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method = method,
             { a, b, r ->
-                (a.value && b.value) && r.number == 1.0
+                (a.value && b.value) && (r eq 1)
             },
             { a, b, r ->
-                !(a.value && b.value) && r.number == 2.0
+                !(a.value && b.value) && (r eq 2)
             },
             invariants = arrayOf(
                 { _, _, r -> r.number in listOf(1.0, 2.0) },
@@ -334,7 +336,7 @@ class Call : TsMethodTestRunner() {
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             invariants = arrayOf(
-                { r -> r.number == 42.0 },
+                { r -> r eq 42 },
             )
         )
     }
@@ -345,7 +347,7 @@ class Call : TsMethodTestRunner() {
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             invariants = arrayOf(
-                { r -> r.number == 42.0 },
+                { r -> r eq 42 },
             )
         )
     }
@@ -356,7 +358,7 @@ class Call : TsMethodTestRunner() {
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             invariants = arrayOf(
-                { r -> r.number == 42.0 },
+                { r -> r eq 42 },
             )
         )
     }
@@ -366,8 +368,8 @@ class Call : TsMethodTestRunner() {
         val method = getMethod(className, "callNestedClosureCapturingLocalAndArgument")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method = method,
-            { a, r -> a.value && r.number == 1.0 },
-            { a, r -> !a.value && r.number == 2.0 },
+            { a, r -> a.value && (r eq 1) },
+            { a, r -> !a.value && (r eq 2) },
             invariants = arrayOf(
                 { _, r -> r.number in listOf(1.0, 2.0) }
             )

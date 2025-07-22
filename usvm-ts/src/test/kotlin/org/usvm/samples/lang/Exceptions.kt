@@ -3,6 +3,7 @@ package org.usvm.samples.lang
 import org.jacodb.ets.model.EtsScene
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
+import org.usvm.util.eq
 import kotlin.test.Test
 
 class Exceptions : TsMethodTestRunner() {
@@ -93,7 +94,7 @@ class Exceptions : TsMethodTestRunner() {
             },
             { shouldThrow, r ->
                 // normal path
-                !shouldThrow.value && r is TsTestValue.TsNumber && r.number == 42.0
+                !shouldThrow.value && r is TsTestValue.TsNumber && (r eq 42)
             },
         )
     }

@@ -3,6 +3,7 @@ package org.usvm.samples.operators
 import org.jacodb.ets.model.EtsScene
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
+import org.usvm.util.eq
 import org.usvm.util.toDouble
 import kotlin.test.Test
 
@@ -16,9 +17,9 @@ class Less : TsMethodTestRunner() {
         val method = getMethod(className, "lessNumbers")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method,
-            { a, b, r -> a.number < b.number && r.number == a.number },
-            { a, b, r -> b.number < a.number && r.number == b.number },
-            { a, b, r -> a.number == b.number && r.number == 0.0 },
+            { a, b, r -> a.number < b.number && (r eq a) },
+            { a, b, r -> b.number < a.number && (r eq b) },
+            { a, b, r -> a.number == b.number && (r eq 0) },
         )
     }
 
@@ -38,9 +39,9 @@ class Less : TsMethodTestRunner() {
         val method = getMethod(className, "lessMixed")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method,
-            { a, b, r -> a.number < b.value.toDouble() && r.number == a.number },
-            { a, b, r -> b.value.toDouble() < a.number && r.number == b.value.toDouble() },
-            { a, b, r -> a.number == b.value.toDouble() && r.number == 0.0 },
+            { a, b, r -> a.number < b.value.toDouble() && (r eq a) },
+            { a, b, r -> b.value.toDouble() < a.number && (r.number == b.value.toDouble()) },
+            { a, b, r -> a.number == b.value.toDouble() && (r eq 0) },
         )
     }
 

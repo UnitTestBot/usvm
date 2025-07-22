@@ -34,11 +34,11 @@ class UnaryPlus : TsMethodTestRunner() {
             method = method,
             { a, r ->
                 // +true = 1
-                a.value && (r eq 1)
+                (r eq 1) && a.value
             },
             { a, r ->
                 // +false = 0
-                !a.value && (r eq 2)
+                (r eq 2) && !a.value
             },
             invariants = arrayOf(
                 { _, r -> r.number > 0 }
@@ -51,13 +51,13 @@ class UnaryPlus : TsMethodTestRunner() {
         val method = getMethod(className, "testUnaryPlusNumber")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
-            { a, r ->
+            { _, r ->
                 // +a = a
                 r eq 1
             },
             { a, r ->
                 // +NaN = NaN
-                a.isNaN() && (r eq 2)
+                (r eq 2) && a.isNaN()
             },
             invariants = arrayOf(
                 { _, r -> r.number > 0 }
@@ -102,7 +102,7 @@ class UnaryPlus : TsMethodTestRunner() {
             method = method,
             { s, r ->
                 // +"42" = 42
-                s.value == "42" && (r eq 1)
+                (r eq 1) && s.value == "42"
             },
             invariants = arrayOf(
                 { _, r -> r.number > 0 }
@@ -117,63 +117,63 @@ class UnaryPlus : TsMethodTestRunner() {
             method = method,
             { s, r ->
                 // +"42" = 42
-                s.value == "42" && (r eq 1)
+                (r eq 1) && s.value == "42"
             },
             { s, r ->
                 // +"0" = 0
-                s.value == "0" && (r eq 2)
+                (r eq 2) && s.value == "0"
             },
             { s, r ->
                 // +"" = 1
-                s.value == "" && (r eq 3)
+                (r eq 3) && s.value == ""
             },
             { s, r ->
                 // +"abc" = NaN
-                s.value == "abc" && (r eq 4)
+                (r eq 4) && s.value == "abc"
             },
             { s, r ->
                 // +"NaN" = NaN
-                s.value == "NaN" && (r eq 5)
+                (r eq 5) && s.value == "NaN"
             },
             { s, r ->
                 // +"Infinity" = Infinity
-                s.value == "Infinity" && (r eq 6)
+                (r eq 6) && s.value == "Infinity"
             },
             { s, r ->
                 // +"-Infinity" = -Infinity
-                s.value == "-Infinity" && (r eq 7)
+                (r eq 7) && s.value == "-Infinity"
             },
             { s, r ->
                 // +"1e+100" = 1e+100
-                s.value == "1e+100" && (r eq 8)
+                (r eq 8) && s.value == "1e+100"
             },
             { s, r ->
                 // +"1e-100" = 1e-100
-                s.value == "1e-100" && (r eq 9)
+                (r eq 9) && s.value == "1e-100"
             },
             { s, r ->
                 // +"1e+1000" = Infinity
-                s.value == "1e+1000" && (r eq 10)
+                (r eq 10) && s.value == "1e+1000"
             },
             { s, r ->
                 // +"1e-1000" = 0
-                s.value == "1e-1000" && (r eq 11)
+                (r eq 11) && s.value == "1e-1000"
             },
             { s, r ->
                 // +"1.7976931348623157e+308" = Infinity
-                s.value == "1.7976931348623157e+308" && (r eq 12)
+                (r eq 12) && s.value == "1.7976931348623157e+308"
             },
             { s, r ->
                 // +"2e308" = Infinity
-                s.value == "2e308" && (r eq 13)
+                (r eq 13) && s.value == "2e308"
             },
             { s, r ->
                 // +"5e-324" = 5e-324
-                s.value == "5e-324" && (r eq 14)
+                (r eq 14) && s.value == "5e-324"
             },
             { s, r ->
                 // +"1e-324" = 0
-                s.value == "1e-324" && (r eq 15)
+                (r eq 15) && s.value == "1e-324"
             },
             // Fallback case is also reachable:
             { _, r -> r eq 100 },

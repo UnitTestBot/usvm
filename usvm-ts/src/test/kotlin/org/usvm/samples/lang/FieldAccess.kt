@@ -4,6 +4,8 @@ import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.Disabled
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
+import org.usvm.util.eq
+import org.usvm.util.neq
 import kotlin.test.Test
 
 class FieldAccess : TsMethodTestRunner() {
@@ -16,7 +18,7 @@ class FieldAccess : TsMethodTestRunner() {
         val method = getMethod(className, "readDefaultField")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 5.0 },
+            { r -> r eq 5 },
         )
     }
 
@@ -25,7 +27,7 @@ class FieldAccess : TsMethodTestRunner() {
         val method = getMethod(className, "writeAndReadNumeric")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 14.0 },
+            { r -> r eq 14 },
         )
     }
 
@@ -34,7 +36,7 @@ class FieldAccess : TsMethodTestRunner() {
         val method = getMethod(className, "writeDifferentTypes")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 5.0 },
+            { r -> r eq 5 },
         )
     }
 
@@ -43,7 +45,7 @@ class FieldAccess : TsMethodTestRunner() {
         val method = getMethod(className, "handleNumericEdges")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 1.0 },
+            { r -> r eq 1 },
         )
     }
 
@@ -52,7 +54,7 @@ class FieldAccess : TsMethodTestRunner() {
         val method = getMethod(className, "createWithField")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 15.0 },
+            { r -> r eq 15 },
         )
     }
 
@@ -62,7 +64,7 @@ class FieldAccess : TsMethodTestRunner() {
         val method = getMethod(className, "factoryCreatedObject")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 42.0 },
+            { r -> r eq 42 },
         )
     }
 
@@ -73,11 +75,11 @@ class FieldAccess : TsMethodTestRunner() {
             method = method,
             { a, r ->
                 val x = a.properties["x"] as TsTestValue.TsNumber
-                x.number == 1.1 && r.number == 14.0
+                (x eq 1.1) && (r eq 14)
             },
             { a, r ->
-                val x = a.properties["x"] as? TsTestValue.TsNumber
-                x?.number != 1.1 && r.number == 10.0
+                val x = a.properties["x"] as TsTestValue.TsNumber
+                (x neq 1.1) && (r eq 10)
             },
         )
     }
@@ -88,7 +90,7 @@ class FieldAccess : TsMethodTestRunner() {
         val method = getMethod(className, "nestedFieldAccess")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 7.0 },
+            { r -> r eq 7 },
         )
     }
 
@@ -98,7 +100,7 @@ class FieldAccess : TsMethodTestRunner() {
         val method = getMethod(className, "arrayFieldAccess")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 5.0 },
+            { r -> r eq 5 },
         )
     }
 
@@ -107,7 +109,7 @@ class FieldAccess : TsMethodTestRunner() {
         val method = getMethod(className, "multipleFieldInteraction")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 9.0 }, // (2*2=4) + (4+1=5) == 9
+            { r -> r eq 9 }, // (2*2=4) + (4+1=5) == 9
         )
     }
 
@@ -116,7 +118,7 @@ class FieldAccess : TsMethodTestRunner() {
         val method = getMethod(className, "circularTypeChanges")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 1.0 },
+            { r -> r eq 1 },
         )
     }
 
@@ -125,8 +127,8 @@ class FieldAccess : TsMethodTestRunner() {
         val method = getMethod(className, "readFromNestedFakeObjects")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 1.0 },
-            { r -> r.number == 2.0 },
+            { r -> r eq 1 },
+            { r -> r eq 2 },
         )
     }
 }

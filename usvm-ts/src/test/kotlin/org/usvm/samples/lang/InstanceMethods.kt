@@ -3,6 +3,9 @@ package org.usvm.samples.lang
 import org.jacodb.ets.model.EtsScene
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
+import org.usvm.util.eq
+import org.usvm.util.isNaN
+import org.usvm.util.neq
 import kotlin.test.Test
 
 class InstanceMethods : TsMethodTestRunner() {
@@ -15,7 +18,7 @@ class InstanceMethods : TsMethodTestRunner() {
         val method = getMethod(className, "noArguments")
         discoverProperties<TsTestValue.TsNumber>(
             method,
-            { r -> r.number == 42.0 },
+            { r -> r eq 42 },
         )
     }
 
@@ -24,10 +27,14 @@ class InstanceMethods : TsMethodTestRunner() {
         val method = getMethod(className, "singleArgument")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method,
-            { a, r -> a.number.isNaN() && r.number.isNaN() },
-            { a, r -> (a.number == 1.0) && (r == a) },
-            { a, r -> (a.number == 2.0) && (r == a) },
-            { a, r -> !(a.number.isNaN() || a.number == 1.0 || a.number == 2.0) && (r.number == 100.0) },
+            { a, r -> a.isNaN() && r.isNaN() },
+            { a, r -> (a eq 1) && (r eq a) },
+            { a, r -> (a eq 2) && (r eq a) },
+            { a, r ->
+                val neq1 = a neq 1
+                val neq2 = a neq 2
+                !a.isNaN() && neq1 && neq2 && (r eq 100)
+            },
         )
     }
 
@@ -36,11 +43,11 @@ class InstanceMethods : TsMethodTestRunner() {
         val method = getMethod(className, "manyArguments")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method,
-            { a, _, _, _, r -> (a.number == 1.0) && (r == a) },
-            { _, b, _, _, r -> (b.number == 2.0) && (r == b) },
-            { _, _, c, _, r -> (c.number == 3.0) && (r == c) },
-            { _, _, _, d, r -> (d.number == 4.0) && (r == d) },
-            { a, b, c, d, r -> !(a.number == 1.0 || b.number == 2.0 || c.number == 3.0 || d.number == 4.0) && (r.number == 100.0) },
+            { a, _, _, _, r -> (a eq 1) && (r eq a) },
+            { _, b, _, _, r -> (b eq 2) && (r eq b) },
+            { _, _, c, _, r -> (c eq 3) && (r eq c) },
+            { _, _, _, d, r -> (d eq 4) && (r eq d) },
+            { a, b, c, d, r -> !((a eq 1) || (b eq 2) || (c eq 3) || (d eq 4)) && (r eq 100) },
         )
     }
 }

@@ -31,23 +31,23 @@ class Truthy : TsMethodTestRunner() {
             method,
             { a, r ->
                 // null is falsy
-                a is TsTestValue.TsNull && (r eq 1)
+                (r eq 1) && a is TsTestValue.TsNull
             },
             { a, r ->
                 // undefined is falsy
-                a is TsTestValue.TsUndefined && (r eq 2)
+                (r eq 2) && a is TsTestValue.TsUndefined
             },
             { a, r ->
                 // false is falsy
-                a is TsTestValue.TsBoolean && !a.value && (r eq 3)
+                (r eq 3) && a is TsTestValue.TsBoolean && !a.value
             },
             { a, r ->
                 // NaN is falsy
-                a is TsTestValue.TsNumber && a.isNaN() && (r eq 4)
+                (r eq 4) && a is TsTestValue.TsNumber && a.isNaN()
             },
             { a, r ->
                 // 0 is falsy
-                a is TsTestValue.TsNumber && a eq 0 && (r eq 5)
+                (r eq 5) && a is TsTestValue.TsNumber && a eq 0
             },
             // Note: case 6 is skipped because -0 is not distinguishable from 0 in JavaScript
             { a, r ->
@@ -57,7 +57,7 @@ class Truthy : TsMethodTestRunner() {
             },
             { a, r ->
                 // '' (empty string) is falsy
-                a is TsTestValue.TsString && a.value == "" && (r eq 8)
+                (r eq 8) && a is TsTestValue.TsString && a.value == ""
             },
             invariants = arrayOf(
                 { _, r -> r.number > 0 },
