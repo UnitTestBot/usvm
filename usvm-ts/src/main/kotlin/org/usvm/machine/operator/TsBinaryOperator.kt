@@ -592,6 +592,7 @@ sealed interface TsBinaryOperator {
                             lhsValue = lhs.extractFp(scope)
                             lhsType.fpTypeExpr
                         }
+
                         // TODO support type equality
                         addressSort -> {
                             lhsValue = lhs.extractRef(scope)
@@ -614,6 +615,7 @@ sealed interface TsBinaryOperator {
                             rhsValue = rhs.extractFp(scope)
                             rhsType.fpTypeExpr
                         }
+
                         // TODO support type equality
                         addressSort -> {
                             rhsValue = rhs.extractRef(scope)
