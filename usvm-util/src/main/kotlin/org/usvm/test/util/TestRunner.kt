@@ -109,12 +109,11 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
         valuesToCheck: List<List<Any?>>,
     ) {
         val violatedInvariants = mutableListOf<Pair<Int, List<Int>>>()
-        val indexedInvariants = invariants.withIndex()
 
-        valuesToCheck.withIndex().forEach { (valuesIndex, params) ->
+        valuesToCheck.forEachIndexed { valuesIndex, params ->
             val tmpViolatedInvariants = mutableListOf<Int>()
 
-            indexedInvariants.forEach { (invariantIndex, invariant) ->
+            invariants.forEachIndexed { invariantIndex, invariant ->
                 val result = invokeFunction(invariant, params)
                 if (!result) tmpViolatedInvariants += invariantIndex
             }
@@ -126,9 +125,9 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
 
         require(violatedInvariants.isEmpty()) {
             "Some executions violated invariants:" + System.lineSeparator() +
-                    violatedInvariants.joinToString(System.lineSeparator()) { (executionIndex, invariantsIndices) ->
-                        "Index: ${executionIndex}, invariants: ${invariantsIndices}}"
-                    }
+                violatedInvariants.joinToString(System.lineSeparator()) { (executionIndex, invariantsIndices) ->
+                    "Index: ${executionIndex}, invariants: ${invariantsIndices}}"
+                }
         }
     }
 
@@ -146,7 +145,7 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
 
             check(mismatchedTypes.isEmpty()) {
                 "Some types don't match at positions (from 0): ${mismatchedTypes.map { it.index }}. ${System.lineSeparator()}" +
-                        "Type pairs (index: Expected -> Found): " + mismatchedTypes.joinToString(
+                    "Type pairs (index: Expected -> Found): " + mismatchedTypes.joinToString(
                     prefix = System.lineSeparator(),
                     separator = System.lineSeparator()
                 ) { (index, value) ->
@@ -178,7 +177,7 @@ abstract class TestRunner<AnalysisResult, Target, Type, Coverage> {
     ) {
         require(valuesToCheck.size == predicates.size) {
             "Expected to find ${predicates.size} executions, but got ${valuesToCheck.size} instead. " +
-                    "They must be the same in $MATCH_EXECUTIONS mode."
+                "They must be the same in $MATCH_EXECUTIONS mode."
         }
 
         check(
