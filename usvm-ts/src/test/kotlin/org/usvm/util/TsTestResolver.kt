@@ -37,7 +37,6 @@ import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.isAllocated
 import org.usvm.isAllocatedConcreteHeapRef
-import org.usvm.isStaticHeapRef
 import org.usvm.isTrue
 import org.usvm.machine.TsContext
 import org.usvm.machine.expr.TsUnresolvedSort
@@ -227,8 +226,6 @@ open class TsTestStateResolver(
             is EtsStringType -> {
                 if (isAllocatedConcreteHeapRef(concreteRef)) {
                     resolveAllocatedString(concreteRef)
-                } else if (isStaticHeapRef(concreteRef)) {
-                    resolveAllocatedString(concreteRef)
                 } else {
                     TsTestValue.TsString("String construction is not yet implemented")
                 }
@@ -304,7 +301,7 @@ open class TsTestStateResolver(
     private fun resolveAllocatedString(
         ref: UConcreteHeapRef,
     ): TsTestValue.TsString = with(ctx) {
-        val value = heapRefToStringConstant[ref] ?: run {
+        val value = ctx.heapRefToStringConstant[ref] ?: run {
             error("String constant not found for ref: $ref")
         }
         return TsTestValue.TsString(value)

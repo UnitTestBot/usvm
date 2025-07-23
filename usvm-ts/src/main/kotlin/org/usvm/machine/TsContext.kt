@@ -27,7 +27,6 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.allocateConcreteRef
-import org.usvm.api.allocateStaticRef
 import org.usvm.api.initializeArray
 import org.usvm.api.typeStreamOf
 import org.usvm.collection.field.UFieldLValue
@@ -241,8 +240,7 @@ class TsContext(
 
     fun mkStringConstant(value: String, scope: TsStepScope): UConcreteHeapRef {
         return stringConstantAllocatedRefs.getOrPut(value) {
-            // val ref = allocateConcreteRef()
-            val ref = allocateStaticRef()
+            val ref = allocateConcreteRef()
             heapRefToStringConstant[ref] = value
 
             scope.doWithState {
