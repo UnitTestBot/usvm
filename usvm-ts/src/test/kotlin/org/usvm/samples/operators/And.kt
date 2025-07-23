@@ -7,7 +7,6 @@ import org.jacodb.ets.dsl.local
 import org.jacodb.ets.dsl.param
 import org.jacodb.ets.dsl.program
 import org.jacodb.ets.dsl.toBlockCfg
-import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsClassImpl
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethodImpl
@@ -183,9 +182,9 @@ class And : TsMethodTestRunner() {
                 enclosingClass = clazz.signature,
                 name = "andOfNumberAndNumber",
                 parameters = listOf(
-                    EtsMethodParameter(0, "a", EtsAnyType),
-                    EtsMethodParameter(1, "b", EtsAnyType),
-                    ),
+                    EtsMethodParameter(0, "a", EtsNumberType),
+                    EtsMethodParameter(1, "b", EtsNumberType),
+                ),
                 returnType = EtsNumberType,
             ),
         )
