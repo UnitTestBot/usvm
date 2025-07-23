@@ -5,11 +5,11 @@ class NullishCoalescing {
     testNullishCoalescing(a: any): number {
         let res = a ?? "default";
 
-        if (a === null && res === "default") return 1;
-        if (a === undefined && res === "default") return 2;
-        if (a === false && res === false) return 3; // false is not nullish
-        if (a === 0 && res === 0) return 4; // 0 is not nullish
-        if (a === "" && res === "") return 5; // empty string is not nullish
+        if (a === null && res === "default") return 1; // null is nullish
+        if (a === undefined && res === "default") return 2; // undefined is nullish
+        if (a === false && res === false) return 3; // false is NOT nullish
+        if (a === 0 && res === 0) return 4; // 0 is NOT nullish
+        if (a === "" && res === "") return 5; // empty string is NOT nullish
 
         return 100;
     }
