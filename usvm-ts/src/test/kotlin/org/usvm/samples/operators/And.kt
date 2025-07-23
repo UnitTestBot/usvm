@@ -239,6 +239,7 @@ class And : TsMethodTestRunner() {
         )
     }
 
+    @Disabled("CFG from AA is broken")
     @Test
     fun `test andOfBooleanAndNumber`() {
         val method = getMethod(className, "andOfBooleanAndNumber")
@@ -274,6 +275,7 @@ class And : TsMethodTestRunner() {
         )
     }
 
+    @Disabled("CFG from AA is broken")
     @Test
     fun `test andOfNumberAndBoolean`() {
         val method = getMethod(className, "andOfNumberAndBoolean")
@@ -309,8 +311,8 @@ class And : TsMethodTestRunner() {
         )
     }
 
-    @Test
     @Disabled("Does not work because objects cannot be null")
+    @Test
     fun `test andOfObjectAndObject`() {
         val method = getMethod(className, "andOfObjectAndObject")
         discoverProperties<TsTestValue.TsClass, TsTestValue.TsClass, TsTestValue.TsNumber>(
@@ -337,6 +339,7 @@ class And : TsMethodTestRunner() {
         )
     }
 
+    @Disabled("CFG from AA is broken")
     @Test
     fun `test andOfUnknown`() {
         val method = getMethod(className, "andOfUnknown")
