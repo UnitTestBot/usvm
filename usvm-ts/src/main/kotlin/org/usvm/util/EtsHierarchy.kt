@@ -111,7 +111,7 @@ class EtsHierarchy(private val scene: EtsScene) {
 
         if (etsClassType.isResolved()) {
             val signature = (etsClassType as EtsClassType).signature.copy(name = typeName)
-            return suitableClasses[signature]?.let { hashSetOf(it) } ?: emptySet()
+            return suitableClasses[signature]?.let { setOf(it) } ?: emptySet()
         }
 
         return suitableClasses.values
