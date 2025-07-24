@@ -7,6 +7,7 @@ import org.jacodb.ets.utils.ANONYMOUS_METHOD_PREFIX
 import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.jacodb.ets.utils.INSTANCE_INIT_METHOD_NAME
 import org.jacodb.ets.utils.STATIC_INIT_METHOD_NAME
+import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.jacodb.ets.utils.loadEtsProjectAutoConvert
 import org.junit.jupiter.api.condition.EnabledIf
 import org.usvm.machine.TsMachine
@@ -23,24 +24,24 @@ class RunOnDemoPhotosProject : TsMethodTestRunner() {
 
     companion object {
         private const val PROJECT_PATH = "/projects/Demo_Photos/source/entry"
-        private const val SDK_PATH = "/sdk/ohos/etsir"
+        private const val SDK_TS_PATH = "/sdk/typescript"
+        private const val SDK_OHOS_PATH = "/sdk/ohos/5.0.1.111/ets"
 
         @JvmStatic
         private fun projectAvailable(): Boolean {
             val isProjectPresent = getResourcePathOrNull(PROJECT_PATH) != null
-            val isSdkPreset = getResourcePathOrNull(SDK_PATH) != null
-            return isProjectPresent && isSdkPreset
+            return isProjectPresent
         }
     }
 
     override val scene: EtsScene = run {
-        val projectPath = getResourcePath(PROJECT_PATH)
-        val sdkPath = getResourcePathOrNull(SDK_PATH)
-            ?: error(
-                "Could not load SDK from resources '$SDK_PATH'. " +
-                    "Try running './gradlew generateSdkIR' to generate it."
-            )
-        loadEtsProjectAutoConvert(projectPath, sdkPath)
+        val project = loadEtsProjectAutoConvert(getResourcePath(PROJECT_PATH))
+        val sdkFiles = listOf(SDK_TS_PATH, SDK_OHOS_PATH).flatMap { sdk ->
+            val sdkPath = getResourcePath(sdk)
+            val sdkProject = loadEtsProjectAutoConvert(sdkPath, useArkAnalyzerTypeInference = null)
+            sdkProject.projectFiles
+        }
+        EtsScene(project.projectFiles, sdkFiles, projectName = project.projectName)
     }
 
     @Test
