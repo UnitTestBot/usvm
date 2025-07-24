@@ -222,6 +222,7 @@ class TsState(
             methodToRef = methodToRef,
             associatedFunction = associatedFunction,
             closureObject = closureObject,
+            boundThis = boundThis,
         )
     }
 
