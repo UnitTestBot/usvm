@@ -31,6 +31,8 @@ repositories {
     maven("https://jitpack.io")
 }
 
+setupJacodbGitHubPackagesRepository()
+
 dependencies {
     compileOnly(Libs.jacodb_api_jvm)
 }
