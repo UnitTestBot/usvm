@@ -7,7 +7,6 @@ import org.jacodb.ets.utils.ANONYMOUS_METHOD_PREFIX
 import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.jacodb.ets.utils.INSTANCE_INIT_METHOD_NAME
 import org.jacodb.ets.utils.STATIC_INIT_METHOD_NAME
-import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.jacodb.ets.utils.loadEtsProjectAutoConvert
 import org.junit.jupiter.api.condition.EnabledIf
 import org.usvm.machine.TsMachine
@@ -113,8 +112,9 @@ class RunOnDemoPhotosProject : TsMethodTestRunner() {
     @Test
     fun `test on particular method`() {
         val method = scene.projectClasses
+            .filter { it.toString() == "@entry/utils/ResourceUtils: %dflt" }
             .flatMap { it.methods }
-            .single { it.name == "onCreate" && it.enclosingClass?.name == "EntryAbility" }
+            .single { it.name == "getResourceString" && it.enclosingClass?.name == "%dflt" }
 
         val tsOptions = TsOptions()
         TsMachine(scene, options, tsOptions).use { machine ->
