@@ -301,7 +301,9 @@ class UTypeConstraints<Type>(
                 typeStream
             }
 
-            is UNullRef -> error("Null ref should be handled explicitly earlier")
+            is UNullRef -> {
+                error("Null ref should be handled explicitly earlier")
+            }
 
             is USymbolicHeapRef -> {
                 getTypeRegion(ref).typeStream
