@@ -167,7 +167,7 @@ class ForwardFlowFunctions(
         when (fact) {
             Zero -> sequentZero(current)
             is TypedVariable -> {
-                val liveVars = liveVariables(current.method)
+                val liveVars = liveVariables(current.location.method)
                 sequentFact(current, fact).myFilter()
                     .filter {
                         when (val base = it.variable.base) {
@@ -184,7 +184,7 @@ class ForwardFlowFunctions(
 
         val lhv = current.lhv.toPath()
         val result = mutableListOf<ForwardTypeDomainFact>(Zero)
-        val preAliases = getAliases(current.method)[current.location.index]
+        val preAliases = getAliases(current.location.method)[current.location.index]
 
         fun addTypeFactWithAliases(path: AccessPath, type: EtsTypeFact) {
             result += TypedVariable(path, type)
@@ -193,7 +193,7 @@ class ForwardFlowFunctions(
                 val base = AccessPath(path.base, emptyList())
                 val aliases = preAliases.getAliases(base).filter {
                     when (val b = it.base) {
-                        is AccessPathBase.Local -> liveVariables(current.method).isAliveAt(b.name, current)
+                        is AccessPathBase.Local -> liveVariables(current.location.method).isAliveAt(b.name, current)
                         else -> true
                     }
                 }
@@ -302,7 +302,7 @@ class ForwardFlowFunctions(
             }
         }
 
-        val preAliases = getAliases(current.method)[current.location.index]
+        val preAliases = getAliases(current.location.method)[current.location.index]
 
         // Override LHS when RHS is const-like:
         if (rhv == null) {
@@ -479,7 +479,7 @@ class ForwardFlowFunctions(
 
                         val aliases = preAliases.getAliases(x).filter {
                             when (val b = it.base) {
-                                is AccessPathBase.Local -> liveVariables(current.method).isAliveAt(b.name, current)
+                                is AccessPathBase.Local -> liveVariables(current.location.method).isAliveAt(b.name, current)
                                 else -> true
                             }
                         }

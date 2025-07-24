@@ -18,7 +18,11 @@ package org.usvm.dataflow.ts.util
 
 import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsType
+import org.usvm.dataflow.ifds.Edge
+import org.usvm.dataflow.ifds.Vertex
 import org.usvm.dataflow.ts.infer.EtsTypeFact
 
 fun EtsType.unwrapPromise(): EtsType {
@@ -57,3 +61,9 @@ fun <T> T.toStringLimited(): String {
 
 val EtsClass.type: EtsClassType
     get() = EtsClassType(signature, typeParameters)
+
+val Vertex<*, EtsStmt>.etsMethod: EtsMethod
+    get() = statement.location.method
+
+val Edge<*, EtsStmt>.etsMethod: EtsMethod
+    get() = from.etsMethod
