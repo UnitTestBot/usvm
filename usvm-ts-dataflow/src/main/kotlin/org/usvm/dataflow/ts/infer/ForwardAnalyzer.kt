@@ -34,8 +34,8 @@ class ForwardAnalyzer(
     private fun variableIsDying(fact: ForwardTypeDomainFact, stmt: EtsStmt): Boolean {
         if (fact !is ForwardTypeDomainFact.TypedVariable) return false
         return when (val base = fact.variable.base) {
-            is AccessPathBase.Local -> !flowFunctions.liveVariables(stmt.method).isAliveAt(base.name, stmt)
-            is AccessPathBase.Arg -> !flowFunctions.liveVariables(stmt.method).isAliveAt("arg(${base.index})", stmt)
+            is AccessPathBase.Local -> !flowFunctions.liveVariables(stmt.location.method).isAliveAt(base.name, stmt)
+            is AccessPathBase.Arg -> !flowFunctions.liveVariables(stmt.location.method).isAliveAt("arg(${base.index})", stmt)
             else -> false
         }
     }

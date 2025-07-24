@@ -16,11 +16,11 @@ class UnreachableCodeDetector : TsInterpreterObserver, UMachineObserver<TsState>
     lateinit var result: Map<EtsMethod, List<UncoveredIfSuccessors>>
 
     override fun onIfStatement(simpleValueResolver: TsSimpleValueResolver, stmt: EtsIfStmt, scope: TsStepScope) {
-        val ifStmts = uncoveredSuccessorsOfVisitedIfStmts.getOrPut(stmt.method) { mutableMapOf() }
+        val ifStmts = uncoveredSuccessorsOfVisitedIfStmts.getOrPut(stmt.location.method) { mutableMapOf() }
         // We've already added its successors in the map
         if (stmt in ifStmts) return
 
-        val successors = stmt.method.cfg.successors(stmt)
+        val successors = stmt.location.method.cfg.successors(stmt)
         ifStmts[stmt] = successors.toMutableSet()
     }
 
@@ -28,7 +28,7 @@ class UnreachableCodeDetector : TsInterpreterObserver, UMachineObserver<TsState>
         val previousStatement = parent.pathNode.parent?.statement
         if (previousStatement !is EtsIfStmt) return
 
-        val method = parent.currentStatement.method
+        val method = parent.currentStatement.location.method
         val remainingUncoveredIfSuccessors = uncoveredSuccessorsOfVisitedIfStmts.getValue(method)
         val remainingSuccessorsForCurrentIf = remainingUncoveredIfSuccessors[previousStatement]
             ?: return // No uncovered successors for this if statement
