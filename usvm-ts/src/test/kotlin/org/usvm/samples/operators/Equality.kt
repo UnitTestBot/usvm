@@ -60,7 +60,6 @@ class Equality : TsMethodTestRunner() {
         )
     }
 
-    @Disabled("Could not resolve unique constructor")
     @Test
     fun `test eqObjectWithObject`() {
         val method = getMethod("eqObjectWithObject")
