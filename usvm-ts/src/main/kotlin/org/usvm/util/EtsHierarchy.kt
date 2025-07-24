@@ -22,7 +22,9 @@ class EtsHierarchy(private val scene: EtsScene) {
                 classes
                     .groupBy { it.signature }
                     .mapValues { it.value.single() }
+                    .let { HashMap(it) }
             }
+            .let { HashMap(it) }
     }
 
     private val ancestors: Map<EtsClass, Set<EtsClass>> by lazy {
