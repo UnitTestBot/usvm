@@ -805,8 +805,12 @@ class TsInterpreter(
 
             val parameterType = param.type
             if (parameterType is EtsRefType) {
+                state.pathConstraints += mkNot(mkHeapRefEq(ref, mkTsNullValue()))
+                state.pathConstraints += mkNot(mkHeapRefEq(ref, mkUndefinedValue()))
+
                 val argLValue = mkRegisterStackLValue(addressSort, idx)
                 val ref = state.memory.read(argLValue).asExpr(addressSort)
+
                 if (parameterType is EtsArrayType) {
                     state.pathConstraints += state.memory.types.evalTypeEquals(ref, parameterType)
                     return@forEachIndexed
@@ -823,11 +827,7 @@ class TsInterpreter(
                 // Therefore, we create information about the fields the type must consist
                 val types = resolvedParameterType.mapNotNull { it.type.toAuxiliaryType(graph.hierarchy) }
                 val auxiliaryType = EtsUnionType(types) // TODO error
-
                 state.pathConstraints += state.memory.types.evalIsSubtype(ref, auxiliaryType)
-
-                state.pathConstraints += mkNot(mkHeapRefEq(ref, mkTsNullValue()))
-                state.pathConstraints += mkNot(mkHeapRefEq(ref, mkUndefinedValue()))
             }
             if (parameterType == EtsNullType) {
                 state.pathConstraints += mkHeapRefEq(ref, mkTsNullValue())
