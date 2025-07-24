@@ -53,7 +53,7 @@ class BackwardFlowFunctions(
                 return@FlowFunction listOf(fact)
             }
         }
-        val liveVars = liveVariables(current.method)
+        val liveVars = liveVariables(current.location.method)
         when (fact) {
             Zero -> sequentZero(current)
             is TypedVariable -> sequentTypedVariable(current, fact).filter {
@@ -82,7 +82,7 @@ class BackwardFlowFunctions(
             // ∅ |= x:unknown
             val returnValue = current.returnValue ?: return listOf(Zero)
             val type = if (doAddKnownTypes) {
-                val knownType = returnValue.tryGetKnownType(current.method)
+                val knownType = returnValue.tryGetKnownType(current.location.method)
                 EtsTypeFact.from(knownType).fixAnyToUnknown()
             } else {
                 EtsTypeFact.UnknownEtsTypeFact
@@ -103,7 +103,7 @@ class BackwardFlowFunctions(
                 // Case `x... := y`
                 // ∅ |= y:unknown
                 val type = if (doAddKnownTypes) {
-                    val knownType = current.rhv.tryGetKnownType(current.method)
+                    val knownType = current.rhv.tryGetKnownType(current.location.method)
                     EtsTypeFact.from(knownType).fixAnyToUnknown()
                 } else {
                     EtsTypeFact.UnknownEtsTypeFact

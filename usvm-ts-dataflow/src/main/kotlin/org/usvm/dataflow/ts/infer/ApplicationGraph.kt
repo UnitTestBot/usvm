@@ -53,7 +53,7 @@ class EtsApplicationGraphWithExplicitEntryPoint(
     override fun successors(node: EtsStmt): Sequence<EtsStmt> {
         if (node.location.index == -1) {
             require(node is EtsNopStmt)
-            return graph.entryPoints(node.method)
+            return graph.entryPoints(node.location.method)
         }
         return graph.successors(node)
     }
@@ -64,7 +64,7 @@ class EtsApplicationGraphWithExplicitEntryPoint(
             return emptySequence()
         }
         if (node.location.index == 0) {
-            return entryPoints(node.method)
+            return entryPoints(node.location.method)
         }
         return graph.predecessors(node)
     }
