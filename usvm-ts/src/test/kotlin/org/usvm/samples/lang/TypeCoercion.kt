@@ -17,7 +17,7 @@ class TypeCoercion : TsMethodTestRunner() {
 
     @Test
     fun `test argWithConst`() {
-        val method = getMethod(className, "argWithConst")
+        val method = getMethod("argWithConst")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method,
             { a, r -> (a.number == 1.0) && (r.number == 1.0) },
@@ -27,7 +27,7 @@ class TypeCoercion : TsMethodTestRunner() {
 
     @Test
     fun `test dualBoolean`() {
-        val method = getMethod(className, "dualBoolean")
+        val method = getMethod("dualBoolean")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method,
             { a, r -> (a.number == 0.0) && (r.number == -1.0) },
@@ -42,7 +42,7 @@ class TypeCoercion : TsMethodTestRunner() {
     @Test
     @Disabled("Unsupported string")
     fun `test dualBooleanWithoutTypes`() {
-        val method = getMethod(className, "dualBooleanWithoutTypes")
+        val method = getMethod("dualBooleanWithoutTypes")
         discoverProperties<TsTestValue.TsUnknown, TsTestValue.TsNumber>(
             method,
         )
@@ -50,7 +50,7 @@ class TypeCoercion : TsMethodTestRunner() {
 
     @Test
     fun `test argWithArg`() {
-        val method = getMethod(className, "argWithArg")
+        val method = getMethod("argWithArg")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method,
             { a, b, r -> (a.number + b.number == 10.0) && (r.number == 1.0) },
@@ -60,7 +60,7 @@ class TypeCoercion : TsMethodTestRunner() {
 
     @Test
     fun `test unreachableByType`() {
-        val method = getMethod(className, "unreachableByType")
+        val method = getMethod("unreachableByType")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method,
             { a, b, r -> (a.number != b.number) && (r.number == 2.0) },
@@ -74,7 +74,7 @@ class TypeCoercion : TsMethodTestRunner() {
     @Test
     @Disabled("Wrong IR, incorrect handling of NaN value")
     fun `test transitiveCoercion`() {
-        val method = getMethod(className, "transitiveCoercion")
+        val method = getMethod("transitiveCoercion")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsBoolean, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method,
             { a, b, c, r -> (a.number == b.number) && (b.number == c.number) && (r.number == 1.0) },
@@ -85,7 +85,7 @@ class TypeCoercion : TsMethodTestRunner() {
 
     @Test
     fun `test transitiveCoercionNoTypes`() {
-        val method = getMethod(className, "transitiveCoercionNoTypes")
+        val method = getMethod("transitiveCoercionNoTypes")
         discoverProperties<TsTestValue.TsUnknown, TsTestValue.TsUnknown, TsTestValue.TsUnknown, TsTestValue.TsNumber>(
             method,
             // Too complicated to write property matchers, examine run log to verify the test.

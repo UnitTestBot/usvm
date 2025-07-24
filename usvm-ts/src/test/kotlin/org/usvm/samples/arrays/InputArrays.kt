@@ -14,7 +14,7 @@ class InputArrays : TsMethodTestRunner() {
 
     @Test
     fun testInputArrayOfNumbers() {
-        val method = getMethod(className, "inputArrayOfNumbers")
+        val method = getMethod("inputArrayOfNumbers")
         discoverProperties<TsTestValue.TsArray<*>, TsTestValue>(
             method = method,
             { _, r -> r is TsTestValue.TsException },
@@ -38,7 +38,7 @@ class InputArrays : TsMethodTestRunner() {
 
     @Test
     fun testWriteIntoInputArray() {
-        val method = getMethod(className, "writeIntoInputArray")
+        val method = getMethod("writeIntoInputArray")
         discoverProperties<TsTestValue.TsArray<TsTestValue.TsNumber>, TsTestValue.TsNumber>(
             method = method,
             { x, r -> (r eq 1) && (x.values[0] eq 1) },
@@ -48,7 +48,7 @@ class InputArrays : TsMethodTestRunner() {
 
     @Test
     fun testIdForArrayOfNumbers() {
-        val method = getMethod(className, "idForArrayOfNumbers")
+        val method = getMethod("idForArrayOfNumbers")
         discoverProperties<TsTestValue.TsArray<TsTestValue.TsNumber>, TsTestValue.TsArray<TsTestValue.TsNumber>>(
             method = method,
             { x, r -> x.values == r.values },
@@ -57,7 +57,7 @@ class InputArrays : TsMethodTestRunner() {
 
     @Test
     fun testArrayOfBooleans() {
-        val method = getMethod(className, "arrayOfBooleans")
+        val method = getMethod("arrayOfBooleans")
         discoverProperties<TsTestValue.TsArray<TsTestValue.TsBoolean>, TsTestValue.TsNumber>(
             method = method,
             { x, r -> (r eq 1) && x.values[0].value },
@@ -67,7 +67,7 @@ class InputArrays : TsMethodTestRunner() {
 
     @Test
     fun testArrayOfUnknownValues() {
-        val method = getMethod(className, "arrayOfUnknownValues")
+        val method = getMethod("arrayOfUnknownValues")
         discoverProperties<TsTestValue.TsArray<TsTestValue>, TsTestValue.TsArray<TsTestValue>>(
             method = method,
             // TODO exception
@@ -101,7 +101,7 @@ class InputArrays : TsMethodTestRunner() {
 
     @Test
     fun testWriteIntoArrayOfUnknownValues() {
-        val method = getMethod(className, "writeIntoArrayOfUnknownValues")
+        val method = getMethod("writeIntoArrayOfUnknownValues")
         discoverProperties<TsTestValue.TsArray<TsTestValue>, TsTestValue.TsArray<TsTestValue>>(
             method = method,
             { _, r ->
@@ -118,7 +118,7 @@ class InputArrays : TsMethodTestRunner() {
 
     @Test
     fun testRewriteFakeValueInArray() {
-        val method = getMethod(className, "rewriteFakeValueInArray")
+        val method = getMethod("rewriteFakeValueInArray")
         discoverProperties<TsTestValue.TsArray<TsTestValue>, TsTestValue>(
             method = method,
             { x, r ->
@@ -134,7 +134,7 @@ class InputArrays : TsMethodTestRunner() {
 
     @Test
     fun `test readFakeObjectAndWriteFakeObject`() {
-        val method = getMethod(className, "readFakeObjectAndWriteFakeObject")
+        val method = getMethod("readFakeObjectAndWriteFakeObject")
         discoverProperties<TsTestValue.TsArray<TsTestValue>, TsTestValue, TsTestValue>(
             method = method,
             { x, y, r ->

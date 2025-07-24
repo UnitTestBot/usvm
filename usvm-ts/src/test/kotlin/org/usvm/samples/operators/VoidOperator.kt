@@ -13,7 +13,7 @@ class VoidOperator : TsMethodTestRunner() {
 
     @Test
     fun `void operator returns undefined`() {
-        val method = getMethod(className, "testVoidOperator")
+        val method = getMethod("testVoidOperator")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
             { _, r -> r eq 1 },
@@ -25,7 +25,7 @@ class VoidOperator : TsMethodTestRunner() {
 
     @Test
     fun `void operator with side effects`() {
-        val method = getMethod(className, "testVoidWithSideEffect")
+        val method = getMethod("testVoidWithSideEffect")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r eq 1 },

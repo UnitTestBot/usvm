@@ -15,7 +15,7 @@ class InstanceFields : TsMethodTestRunner() {
 
     @Test
     fun `test returnSingleField`() {
-        val method = getMethod(className, "returnSingleField")
+        val method = getMethod("returnSingleField")
         discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
             method,
             { x, r ->
@@ -27,7 +27,7 @@ class InstanceFields : TsMethodTestRunner() {
 
     @Test
     fun `test dispatchOverField`() {
-        val method = getMethod(className, "dispatchOverField")
+        val method = getMethod("dispatchOverField")
         discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
             method,
             { x, r ->
@@ -47,7 +47,7 @@ class InstanceFields : TsMethodTestRunner() {
 
     @Test
     fun `test returnSumOfTwoFields`() {
-        val method = getMethod(className, "returnSumOfTwoFields")
+        val method = getMethod("returnSumOfTwoFields")
         discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
             method,
             { x, r ->
@@ -60,7 +60,7 @@ class InstanceFields : TsMethodTestRunner() {
 
     @Test
     fun `test assignField`() {
-        val method = getMethod(className, "assignField")
+        val method = getMethod("assignField")
         discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
             method,
             { _, r -> r eq 10 },

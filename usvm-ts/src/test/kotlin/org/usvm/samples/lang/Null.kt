@@ -13,7 +13,7 @@ class Null : TsMethodTestRunner() {
 
     @Test
     fun `test isNull`() {
-        val method = getMethod(className, "isNull")
+        val method = getMethod("isNull")
         discoverProperties<TsTestValue, TsTestValue.TsNumber>(
             method,
             { a, r -> (r eq 1) && (a is TsTestValue.TsNull) },

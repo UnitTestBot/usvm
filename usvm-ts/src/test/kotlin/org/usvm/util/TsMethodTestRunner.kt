@@ -66,13 +66,13 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
         scene.projectAndSdkClasses.single { it.name == className }
     }
 
-    protected fun getMethod(className: String, methodName: String): EtsMethod {
+    protected fun getMethod(methodName: String): EtsMethod {
         val methods = etsClass.methods.filter { it.name == methodName }
         if (methods.isEmpty()) {
-            error("Method $methodName not found in class $className")
+            error("Method '$methodName' not found in class ${etsClass.name}")
         }
         if (methods.size > 1) {
-            error("Multiple methods with name $methodName found in class $className: $methods")
+            error("Multiple methods with name '$methodName' found in class ${etsClass.name}: $methods")
         }
         return methods.single()
     }

@@ -15,7 +15,7 @@ class FieldAccess : TsMethodTestRunner() {
 
     @Test
     fun `test readDefaultField`() {
-        val method = getMethod(className, "readDefaultField")
+        val method = getMethod("readDefaultField")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r eq 5 },
@@ -24,7 +24,7 @@ class FieldAccess : TsMethodTestRunner() {
 
     @Test
     fun `test writeAndReadNumeric`() {
-        val method = getMethod(className, "writeAndReadNumeric")
+        val method = getMethod("writeAndReadNumeric")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r eq 14 },
@@ -33,7 +33,7 @@ class FieldAccess : TsMethodTestRunner() {
 
     @Test
     fun `test writeDifferentTypes`() {
-        val method = getMethod(className, "writeDifferentTypes")
+        val method = getMethod("writeDifferentTypes")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r eq 5 },
@@ -42,7 +42,7 @@ class FieldAccess : TsMethodTestRunner() {
 
     @Test
     fun `test handleNumericEdges`() {
-        val method = getMethod(className, "handleNumericEdges")
+        val method = getMethod("handleNumericEdges")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r eq 1 },
@@ -51,7 +51,7 @@ class FieldAccess : TsMethodTestRunner() {
 
     @Test
     fun `test createWithField`() {
-        val method = getMethod(className, "createWithField")
+        val method = getMethod("createWithField")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r eq 15 },
@@ -61,7 +61,7 @@ class FieldAccess : TsMethodTestRunner() {
     @Disabled("Return types are not propagated to locals, need type stream")
     @Test
     fun `test factoryCreatedObject`() {
-        val method = getMethod(className, "factoryCreatedObject")
+        val method = getMethod("factoryCreatedObject")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r eq 42 },
@@ -70,7 +70,7 @@ class FieldAccess : TsMethodTestRunner() {
 
     @Test
     fun `test conditionalFieldAccess`() {
-        val method = getMethod(className, "conditionalFieldAccess")
+        val method = getMethod("conditionalFieldAccess")
         discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
             method = method,
             { a, r ->
@@ -96,7 +96,7 @@ class FieldAccess : TsMethodTestRunner() {
     @Disabled("Nested field types are not propagated to locals, need type stream")
     @Test
     fun `test nestedFieldAccess`() {
-        val method = getMethod(className, "nestedFieldAccess")
+        val method = getMethod("nestedFieldAccess")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r eq 7 },
@@ -106,7 +106,7 @@ class FieldAccess : TsMethodTestRunner() {
     @Disabled("Nested arrays inside objects are accessed via field properties ('.1') instead of indices ([1])")
     @Test
     fun `test arrayFieldAccess`() {
-        val method = getMethod(className, "arrayFieldAccess")
+        val method = getMethod("arrayFieldAccess")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r eq 5 },
@@ -115,7 +115,7 @@ class FieldAccess : TsMethodTestRunner() {
 
     @Test
     fun `test multipleFieldInteraction`() {
-        val method = getMethod(className, "multipleFieldInteraction")
+        val method = getMethod("multipleFieldInteraction")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r eq 9 }, // (2*2=4) + (4+1=5) == 9
@@ -124,7 +124,7 @@ class FieldAccess : TsMethodTestRunner() {
 
     @Test
     fun `test circularTypeChanges`() {
-        val method = getMethod(className, "circularTypeChanges")
+        val method = getMethod("circularTypeChanges")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r eq 1 },
@@ -133,7 +133,7 @@ class FieldAccess : TsMethodTestRunner() {
 
     @Test
     fun `test read from nested fake objects`() {
-        val method = getMethod(className, "readFromNestedFakeObjects")
+        val method = getMethod("readFromNestedFakeObjects")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r eq 1 },

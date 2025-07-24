@@ -16,7 +16,7 @@ class UnaryPlus : TsMethodTestRunner() {
 
     @Test
     fun `unary plus on any`() {
-        val method = getMethod(className, "testUnaryPlusAny")
+        val method = getMethod("testUnaryPlusAny")
         discoverProperties<TsTestValue, TsTestValue.TsNumber>(
             method = method,
             // The result is always a (non-negative) number, but the value depends on the input
@@ -29,7 +29,7 @@ class UnaryPlus : TsMethodTestRunner() {
 
     @Test
     fun `unary plus on boolean`() {
-        val method = getMethod(className, "testUnaryPlusBoolean")
+        val method = getMethod("testUnaryPlusBoolean")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method = method,
             { a, r ->
@@ -48,7 +48,7 @@ class UnaryPlus : TsMethodTestRunner() {
 
     @Test
     fun `unary plus on number`() {
-        val method = getMethod(className, "testUnaryPlusNumber")
+        val method = getMethod("testUnaryPlusNumber")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
             { _, r ->
@@ -67,7 +67,7 @@ class UnaryPlus : TsMethodTestRunner() {
 
     @Test
     fun `unary plus on null`() {
-        val method = getMethod(className, "testUnaryPlusNull")
+        val method = getMethod("testUnaryPlusNull")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r ->
@@ -82,7 +82,7 @@ class UnaryPlus : TsMethodTestRunner() {
 
     @Test
     fun `unary plus on undefined`() {
-        val method = getMethod(className, "testUnaryPlusUndefined")
+        val method = getMethod("testUnaryPlusUndefined")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r ->
@@ -97,7 +97,7 @@ class UnaryPlus : TsMethodTestRunner() {
 
     @Test
     fun `unary plus on string 42`() {
-        val method = getMethod(className, "testUnaryPlusString42")
+        val method = getMethod("testUnaryPlusString42")
         discoverProperties<TsTestValue.TsString, TsTestValue.TsNumber>(
             method = method,
             { s, r ->
@@ -112,7 +112,7 @@ class UnaryPlus : TsMethodTestRunner() {
 
     @Test
     fun `unary plus on string`() {
-        val method = getMethod(className, "testUnaryPlusString")
+        val method = getMethod("testUnaryPlusString")
         discoverProperties<TsTestValue.TsString, TsTestValue.TsNumber>(
             method = method,
             { s, r ->
@@ -185,7 +185,7 @@ class UnaryPlus : TsMethodTestRunner() {
 
     @Test
     fun `unary plus on object`() {
-        val method = getMethod(className, "testUnaryPlusObject")
+        val method = getMethod("testUnaryPlusObject")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r ->

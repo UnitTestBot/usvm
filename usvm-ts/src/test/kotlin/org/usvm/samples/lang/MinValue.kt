@@ -14,7 +14,7 @@ class MinValue : TsMethodTestRunner() {
     @Test
     @Disabled
     fun `test findMinValue`() {
-        val method = getMethod(className, "findMinValue")
+        val method = getMethod("findMinValue")
         discoverProperties<TsTestValue.TsArray<*>, TsTestValue.TsNumber>(
             method,
         )

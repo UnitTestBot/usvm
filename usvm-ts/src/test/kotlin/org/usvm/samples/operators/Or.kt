@@ -15,7 +15,7 @@ class Or : TsMethodTestRunner() {
 
     @Test
     fun `test orOfBooleanAndBoolean`() {
-        val method = getMethod(className, "orOfBooleanAndBoolean")
+        val method = getMethod("orOfBooleanAndBoolean")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method = method,
             { a, b, r ->
@@ -42,7 +42,7 @@ class Or : TsMethodTestRunner() {
 
     @Test
     fun `test orOfNumberAndNumber`() {
-        val method = getMethod(className, "orOfNumberAndNumber")
+        val method = getMethod("orOfNumberAndNumber")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
             { a, _, r ->

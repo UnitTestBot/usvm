@@ -13,7 +13,7 @@ class Exceptions : TsMethodTestRunner() {
 
     @Test
     fun `simple throw`() {
-        val method = getMethod(className, "simpleThrow")
+        val method = getMethod("simpleThrow")
         discoverProperties<TsTestValue>(
             method = method,
             { r -> r is TsTestValue.TsException },
@@ -25,7 +25,7 @@ class Exceptions : TsMethodTestRunner() {
 
     @Test
     fun `throw string`() {
-        val method = getMethod(className, "throwString")
+        val method = getMethod("throwString")
         discoverProperties<TsTestValue>(
             method = method,
             { r -> r is TsTestValue.TsException },
@@ -37,7 +37,7 @@ class Exceptions : TsMethodTestRunner() {
 
     @Test
     fun `throw number`() {
-        val method = getMethod(className, "throwNumber")
+        val method = getMethod("throwNumber")
         discoverProperties<TsTestValue>(
             method = method,
             { r -> r is TsTestValue.TsException },
@@ -49,7 +49,7 @@ class Exceptions : TsMethodTestRunner() {
 
     @Test
     fun `throw boolean`() {
-        val method = getMethod(className, "throwBoolean")
+        val method = getMethod("throwBoolean")
         discoverProperties<TsTestValue>(
             method = method,
             { r -> r is TsTestValue.TsException },
@@ -61,7 +61,7 @@ class Exceptions : TsMethodTestRunner() {
 
     @Test
     fun `throw null`() {
-        val method = getMethod(className, "throwNull")
+        val method = getMethod("throwNull")
         discoverProperties<TsTestValue>(
             method = method,
             { r -> r is TsTestValue.TsException },
@@ -73,7 +73,7 @@ class Exceptions : TsMethodTestRunner() {
 
     @Test
     fun `throw undefined`() {
-        val method = getMethod(className, "throwUndefined")
+        val method = getMethod("throwUndefined")
         discoverProperties<TsTestValue>(
             method = method,
             { r -> r is TsTestValue.TsException },
@@ -85,7 +85,7 @@ class Exceptions : TsMethodTestRunner() {
 
     @Test
     fun `conditional throw`() {
-        val method = getMethod(className, "conditionalThrow")
+        val method = getMethod("conditionalThrow")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue>(
             method = method,
             { shouldThrow, r ->

@@ -15,7 +15,7 @@ class TypeStream : TsMethodTestRunner() {
 
     @Test
     fun `test ancestor instanceof`() {
-        val method = getMethod(className, "instanceOf")
+        val method = getMethod("instanceOf")
         discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
             method = method,
             { x, r ->
@@ -41,7 +41,7 @@ class TypeStream : TsMethodTestRunner() {
 
     @Test
     fun `test virtual invoke on an ancestor`() {
-        val method = getMethod(className, "virtualInvokeOnAncestor")
+        val method = getMethod("virtualInvokeOnAncestor")
         discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
             method = method,
             { x, r ->
@@ -67,7 +67,7 @@ class TypeStream : TsMethodTestRunner() {
 
     @RepeatedTest(10, failureThreshold = 1)
     fun `use unique field`() {
-        val method = getMethod(className, "useUniqueField")
+        val method = getMethod("useUniqueField")
         discoverProperties<TsTestValue, TsTestValue>(
             method = method,
             { x, r ->
@@ -92,7 +92,7 @@ class TypeStream : TsMethodTestRunner() {
 
     @RepeatedTest(10, failureThreshold = 1)
     fun `use non unique field`() {
-        val method = getMethod(className, "useNonUniqueField")
+        val method = getMethod("useNonUniqueField")
         discoverProperties<TsTestValue, TsTestValue>(
             method = method,
             { x, r ->

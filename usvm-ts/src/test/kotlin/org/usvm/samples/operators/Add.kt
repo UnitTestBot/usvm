@@ -17,7 +17,7 @@ class Add : TsMethodTestRunner() {
 
     @Test
     fun `bool + bool`() {
-        val method = getMethod(className, "addBoolAndBool")
+        val method = getMethod("addBoolAndBool")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method = method,
             { a, b, r -> (r eq 1) && !a.value && !b.value },
@@ -32,7 +32,7 @@ class Add : TsMethodTestRunner() {
 
     @Test
     fun `bool + number`() {
-        val method = getMethod(className, "addBoolAndNumber")
+        val method = getMethod("addBoolAndNumber")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
             { a, b, r -> (r eq 1) && a.value && (b eq -1) },
@@ -48,7 +48,7 @@ class Add : TsMethodTestRunner() {
 
     @Test
     fun `number + number`() {
-        val method = getMethod(className, "addNumberAndNumber")
+        val method = getMethod("addNumberAndNumber")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
             { a, b, r -> a.isNaN() && r.isNaN() },
@@ -60,7 +60,7 @@ class Add : TsMethodTestRunner() {
 
     @Test
     fun `number + undefined`() {
-        val method = getMethod(className, "addNumberAndUndefined")
+        val method = getMethod("addNumberAndUndefined")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
             invariants = arrayOf(
@@ -71,7 +71,7 @@ class Add : TsMethodTestRunner() {
 
     @Test
     fun `number + null`() {
-        val method = getMethod(className, "addNumberAndNull")
+        val method = getMethod("addNumberAndNull")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
             { a, r -> a.isNaN() && r.isNaN() },
@@ -82,7 +82,7 @@ class Add : TsMethodTestRunner() {
     @Disabled("Flaky test, see https://github.com/UnitTestBot/usvm/issues/310")
     @Test
     fun `add unknown values`() {
-        val method = getMethod(className, "addUnknownValues")
+        val method = getMethod("addUnknownValues")
         discoverProperties<TsTestValue, TsTestValue, TsTestValue.TsNumber>(
             method = method,
             { a, b, r -> a is TsTestValue.TsUndefined || b is TsTestValue.TsUndefined && r.isNaN() },

@@ -14,7 +14,7 @@ class Less : TsMethodTestRunner() {
 
     @Test
     fun testLessNumbers() {
-        val method = getMethod(className, "lessNumbers")
+        val method = getMethod("lessNumbers")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method,
             { a, b, r -> a.number < b.number && (r eq a) },
@@ -25,7 +25,7 @@ class Less : TsMethodTestRunner() {
 
     @Test
     fun testLessBooleans() {
-        val method = getMethod(className, "lessBooleans")
+        val method = getMethod("lessBooleans")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsBoolean, TsTestValue.TsBoolean>(
             method,
             { a, b, r -> !a.value && b.value && !r.value },
@@ -36,7 +36,7 @@ class Less : TsMethodTestRunner() {
 
     @Test
     fun testLessMixed() {
-        val method = getMethod(className, "lessMixed")
+        val method = getMethod("lessMixed")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method,
             { a, b, r -> a.number < b.value.toDouble() && (r eq a) },
@@ -47,7 +47,7 @@ class Less : TsMethodTestRunner() {
 
     @Test
     fun testLessRefs() {
-        val method = getMethod(className, "lessRefs")
+        val method = getMethod("lessRefs")
         discoverProperties<TsTestValue.TsClass, TsTestValue.TsClass, TsTestValue.TsBoolean>(
             method,
         )
@@ -55,7 +55,7 @@ class Less : TsMethodTestRunner() {
 
     @Test
     fun testLessUnknown() {
-        val method = getMethod(className, "lessUnknown")
+        val method = getMethod("lessUnknown")
         discoverProperties<TsTestValue.TsUnknown, TsTestValue.TsUnknown, TsTestValue.TsBoolean>(
             method,
         )

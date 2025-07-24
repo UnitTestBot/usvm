@@ -15,7 +15,7 @@ class InOperator : TsMethodTestRunner() {
 
     @Test
     fun `in operator with object`() {
-        val method = getMethod(className, "testInOperatorObject")
+        val method = getMethod("testInOperatorObject")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r eq 1 },
@@ -27,7 +27,7 @@ class InOperator : TsMethodTestRunner() {
 
     @Test
     fun `in operator with object after delete`() {
-        val method = getMethod(className, "testInOperatorObjectAfterDelete")
+        val method = getMethod("testInOperatorObjectAfterDelete")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r eq 1 },
@@ -39,7 +39,7 @@ class InOperator : TsMethodTestRunner() {
 
     @Test
     fun `in operator with array`() {
-        val method = getMethod(className, "testInOperatorArray")
+        val method = getMethod("testInOperatorArray")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r eq 1 },
@@ -51,7 +51,7 @@ class InOperator : TsMethodTestRunner() {
 
     @Test
     fun `in operator with array after delete`() {
-        val method = getMethod(className, "testInOperatorArrayAfterDelete")
+        val method = getMethod("testInOperatorArrayAfterDelete")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r eq 1 },
@@ -63,7 +63,7 @@ class InOperator : TsMethodTestRunner() {
 
     @Test
     fun `in operator with string`() {
-        val method = getMethod(className, "testInOperatorString")
+        val method = getMethod("testInOperatorString")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r eq 1 },

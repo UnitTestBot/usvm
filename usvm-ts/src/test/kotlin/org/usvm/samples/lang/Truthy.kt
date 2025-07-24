@@ -32,7 +32,7 @@ class Truthy : TsMethodTestRunner() {
 
     @Test
     fun `test arrayTruthy`() {
-        val method = getMethod(className, "arrayTruthy")
+        val method = getMethod("arrayTruthy")
         discoverProperties<TsTestValue.TsNumber>(
             method,
             { r -> r eq 1 },
@@ -124,7 +124,7 @@ class Truthy : TsMethodTestRunner() {
         method.enclosingClass = etsClass
         ((etsClass as EtsClassImpl).methods as MutableList).add(method)
 
-        // val method = getMethod(className, "unknownFalsy")
+        // val method = getMethod("unknownFalsy")
         discoverProperties<TsTestValue, TsTestValue.TsNumber>(
             method,
             { a, r ->

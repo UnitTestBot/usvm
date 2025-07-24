@@ -13,7 +13,7 @@ class Bitwise : TsMethodTestRunner() {
 
     @Test
     fun `bitwise NOT`() {
-        val method = getMethod(className, "bitwiseNot")
+        val method = getMethod("bitwiseNot")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
             { a, r ->
@@ -36,7 +36,7 @@ class Bitwise : TsMethodTestRunner() {
 
     @Test
     fun `bitwise AND`() {
-        val method = getMethod(className, "bitwiseAnd")
+        val method = getMethod("bitwiseAnd")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
             { a, b, r ->
@@ -59,7 +59,7 @@ class Bitwise : TsMethodTestRunner() {
 
     @Test
     fun `bitwise OR`() {
-        val method = getMethod(className, "bitwiseOr")
+        val method = getMethod("bitwiseOr")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
             { a, b, r ->
@@ -82,7 +82,7 @@ class Bitwise : TsMethodTestRunner() {
 
     @Test
     fun `bitwise XOR`() {
-        val method = getMethod(className, "bitwiseXor")
+        val method = getMethod("bitwiseXor")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
             { a, b, r ->
@@ -105,7 +105,7 @@ class Bitwise : TsMethodTestRunner() {
 
     @Test
     fun `left shift`() {
-        val method = getMethod(className, "leftShift")
+        val method = getMethod("leftShift")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
             { a, b, r ->
@@ -128,7 +128,7 @@ class Bitwise : TsMethodTestRunner() {
 
     @Test
     fun `right shift`() {
-        val method = getMethod(className, "rightShift")
+        val method = getMethod("rightShift")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
             { a, b, r ->
@@ -151,7 +151,7 @@ class Bitwise : TsMethodTestRunner() {
 
     @Test
     fun `unsigned right shift`() {
-        val method = getMethod(className, "unsignedRightShift")
+        val method = getMethod("unsignedRightShift")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
             { a, b, r ->

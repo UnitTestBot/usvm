@@ -16,7 +16,7 @@ class Division : TsMethodTestRunner() {
 
     @Test
     fun testTwoNumbersDivision() {
-        val method = getMethod(className, "twoNumbersDivision")
+        val method = getMethod("twoNumbersDivision")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
             { a, b, r -> (r eq 4) && a.number / b.number == 4.0 },
@@ -29,7 +29,7 @@ class Division : TsMethodTestRunner() {
 
     @Test
     fun testBooleanDivision() {
-        val method = getMethod(className, "booleanDivision")
+        val method = getMethod("booleanDivision")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method = method,
             { a, b, r -> (r eq 0) && a.value.toDouble() / b.value.toDouble() == 0.0 },
@@ -41,7 +41,7 @@ class Division : TsMethodTestRunner() {
 
     @Test
     fun testMixedDivision() {
-        val method = getMethod(className, "mixedDivision")
+        val method = getMethod("mixedDivision")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method = method,
             { a, b, r -> (r eq 4) && a.number / b.value.toDouble() == 4.0 },
@@ -55,7 +55,7 @@ class Division : TsMethodTestRunner() {
     @Disabled("Long running test")
     @Test
     fun testUnknownDivision() {
-        val method = getMethod(className, "unknownDivision")
+        val method = getMethod("unknownDivision")
         withOptions(options.copy(useSoftConstraints = false)) {
             discoverProperties<TsTestValue, TsTestValue, TsTestValue.TsNumber>(
                 method = method,

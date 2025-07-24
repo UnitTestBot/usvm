@@ -132,7 +132,7 @@ class NullishCoalescing : TsMethodTestRunner() {
         method.enclosingClass = etsClass
         ((etsClass as EtsClassImpl).methods as MutableList).add(method)
 
-        // val method = getMethod(className, "testNullishCoalescing")
+        // val method = getMethod("testNullishCoalescing")
         discoverProperties<TsTestValue, TsTestValue.TsNumber>(
             method = method,
             { a, r ->
@@ -175,7 +175,7 @@ class NullishCoalescing : TsMethodTestRunner() {
 
     @Test
     fun `nullish coalescing chaining`() {
-        val method = getMethod(className, "testNullishChaining")
+        val method = getMethod("testNullishChaining")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r ->
@@ -190,7 +190,7 @@ class NullishCoalescing : TsMethodTestRunner() {
 
     @Test
     fun `nullish coalescing with objects`() {
-        val method = getMethod(className, "testNullishWithObjects")
+        val method = getMethod("testNullishWithObjects")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r ->

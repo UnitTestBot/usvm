@@ -15,7 +15,7 @@ class DeleteOperator : TsMethodTestRunner() {
 
     @Test
     fun `delete property`() {
-        val method = getMethod(className, "testDeleteProperty")
+        val method = getMethod("testDeleteProperty")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r eq 1 },
@@ -27,7 +27,7 @@ class DeleteOperator : TsMethodTestRunner() {
 
     @Test
     fun `delete non-existent property`() {
-        val method = getMethod(className, "testDeleteNonExistentProperty")
+        val method = getMethod("testDeleteNonExistentProperty")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r eq 1 },
@@ -39,7 +39,7 @@ class DeleteOperator : TsMethodTestRunner() {
 
     @Test
     fun `delete local variable`() {
-        val method = getMethod(className, "testDeleteLocalVariable")
+        val method = getMethod("testDeleteLocalVariable")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r eq 1 },
@@ -51,7 +51,7 @@ class DeleteOperator : TsMethodTestRunner() {
 
     @Test
     fun `delete non-existent variable`() {
-        val method = getMethod(className, "testDeleteNonExistentVariable")
+        val method = getMethod("testDeleteNonExistentVariable")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r eq 1 },

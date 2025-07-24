@@ -14,7 +14,7 @@ class ObjectUsage : TsMethodTestRunner() {
 
     @Test
     fun `object as parameter`() {
-        val method = getMethod(className, "objectAsParameter")
+        val method = getMethod("objectAsParameter")
         discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
             method = method,
             { _, r -> r eq 42 },

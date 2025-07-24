@@ -14,7 +14,7 @@ class Neg : TsMethodTestRunner() {
 
     @Test
     fun `test negateNumber`() {
-        val method = getMethod(className, "negateNumber")
+        val method = getMethod("negateNumber")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
             { x, r -> r.isNaN() && x.isNaN() },
@@ -29,7 +29,7 @@ class Neg : TsMethodTestRunner() {
 
     @Test
     fun `test negateBoolean`() {
-        val method = getMethod(className, "negateBoolean")
+        val method = getMethod("negateBoolean")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method = method,
             { x, r -> (r eq -1) && x.value },
@@ -39,7 +39,7 @@ class Neg : TsMethodTestRunner() {
 
     @Test
     fun `test negateUndefined`() {
-        val method = getMethod(className, "negateUndefined")
+        val method = getMethod("negateUndefined")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r.isNaN() },

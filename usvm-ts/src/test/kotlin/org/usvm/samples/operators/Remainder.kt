@@ -17,7 +17,7 @@ class Remainder : TsMethodTestRunner() {
     @Test
     @Disabled("Never ends")
     fun testTwoNumbersRemainder() {
-        val method = getMethod(className, "twoNumbersRemainder")
+        val method = getMethod("twoNumbersRemainder")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
             { a, b, r ->
@@ -46,7 +46,7 @@ class Remainder : TsMethodTestRunner() {
 
     @Test
     fun testBooleanRemainder() {
-        val method = getMethod(className, "booleanRemainder")
+        val method = getMethod("booleanRemainder")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method = method,
             { a, b, r -> (r eq 0) && a.value.toDouble() % b.value.toDouble() == 0.0 },
@@ -59,7 +59,7 @@ class Remainder : TsMethodTestRunner() {
     @Test
     @Disabled("Wrong result")
     fun testMixedRemainder() {
-        val method = getMethod(className, "mixedRemainder")
+        val method = getMethod("mixedRemainder")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method = method,
             { a, b, r -> (r eq 4) && a.number % b.value.toDouble() == 4.0 },
@@ -71,7 +71,7 @@ class Remainder : TsMethodTestRunner() {
     @Test
     @Disabled("Never ends")
     fun testUnknownRemainder() {
-        val method = getMethod(className, "unknownRemainder")
+        val method = getMethod("unknownRemainder")
         discoverProperties<TsTestValue, TsTestValue, TsTestValue.TsNumber>(
             method = method,
             { a, b, r -> r.isNaN() && (a is TsTestValue.TsUndefined || b is TsTestValue.TsUndefined) },

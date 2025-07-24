@@ -12,7 +12,7 @@ class Undefined : TsMethodTestRunner() {
 
     @Test
     fun `test isUndefined`() {
-        val method = getMethod(className, "isUndefined")
+        val method = getMethod("isUndefined")
         discoverProperties<TsTestValue, TsTestValue.TsNumber>(
             method = method,
             { a, r -> (a is TsTestValue.TsUndefined) && (r.number == 1.0) },

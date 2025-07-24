@@ -16,7 +16,7 @@ class Equality : TsMethodTestRunner() {
 
     @Test
     fun `test eqBoolWithBool`() {
-        val method = getMethod(className, "eqBoolWithBool")
+        val method = getMethod("eqBoolWithBool")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method,
             { a, r -> (r eq 1) && a.value },
@@ -29,7 +29,7 @@ class Equality : TsMethodTestRunner() {
 
     @Test
     fun `test eqNumberWithNumber`() {
-        val method = getMethod(className, "eqNumberWithNumber")
+        val method = getMethod("eqNumberWithNumber")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method,
             { a, r -> (r eq 1) && a.isNaN() },
@@ -41,7 +41,7 @@ class Equality : TsMethodTestRunner() {
     @Test
     @Disabled("Unsupported string")
     fun `test eqStringWithString`() {
-        val method = getMethod(className, "eqStringWithString")
+        val method = getMethod("eqStringWithString")
         discoverProperties<TsTestValue.TsString, TsTestValue.TsNumber>(
             method,
             { a, r -> (r eq 1) && (a.value == "123") },
@@ -52,7 +52,7 @@ class Equality : TsMethodTestRunner() {
     @Test
     @Disabled("Unsupported bigint")
     fun `test eqBigintWithBigint`() {
-        val method = getMethod(className, "eqBigintWithBigint")
+        val method = getMethod("eqBigintWithBigint")
         discoverProperties<TsTestValue.TsBigInt, TsTestValue.TsNumber>(
             method,
             { a, r -> (r eq 1) && (a.value == "42") },
@@ -63,7 +63,7 @@ class Equality : TsMethodTestRunner() {
     @Disabled("Could not resolve unique constructor")
     @Test
     fun `test eqObjectWithObject`() {
-        val method = getMethod(className, "eqObjectWithObject")
+        val method = getMethod("eqObjectWithObject")
         discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
             method,
             { _, r -> r eq 1 },
@@ -76,7 +76,7 @@ class Equality : TsMethodTestRunner() {
     @Disabled("Argument unexpectedly becomes TsUndefined")
     @Test
     fun `test eqArrayWithArray`() {
-        val method = getMethod(className, "eqArrayWithArray")
+        val method = getMethod("eqArrayWithArray")
         discoverProperties<TsTestValue.TsArray<*>, TsTestValue.TsNumber>(
             method,
             { _, r -> r eq 1 },
@@ -89,7 +89,7 @@ class Equality : TsMethodTestRunner() {
     @Disabled("Unsupported loose equality for Object and Boolean")
     @Test
     fun `test eqArrayWithBoolean`() {
-        val method = getMethod(className, "eqArrayWithBoolean")
+        val method = getMethod("eqArrayWithBoolean")
         discoverProperties<TsTestValue.TsNumber>(
             method,
             { r -> r eq 0 },

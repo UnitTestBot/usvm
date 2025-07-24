@@ -15,7 +15,7 @@ class StaticMethods : TsMethodTestRunner() {
 
     @Test
     fun `test noArguments`() {
-        val method = getMethod(className, "noArguments")
+        val method = getMethod("noArguments")
         discoverProperties<TsTestValue.TsNumber>(
             method,
             { r -> r eq 42 },
@@ -24,7 +24,7 @@ class StaticMethods : TsMethodTestRunner() {
 
     @Test
     fun `test singleArgument`() {
-        val method = getMethod(className, "singleArgument")
+        val method = getMethod("singleArgument")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method,
             { a, r -> r.isNaN() && a.isNaN() },
@@ -36,7 +36,7 @@ class StaticMethods : TsMethodTestRunner() {
 
     @Test
     fun `test manyArguments`() {
-        val method = getMethod(className, "manyArguments")
+        val method = getMethod("manyArguments")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method,
             { a, _, _, _, r -> (r eq a) && (a eq 1) },
