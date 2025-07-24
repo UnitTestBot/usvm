@@ -23,7 +23,7 @@ interface JcTransparentInstruction : JcInst {
  * Auxiliary instruction to handle method calls.
  * */
 sealed interface JcMethodCallBaseInst : JcTransparentInstruction {
-    override val method: JcMethod
+    val method: JcMethod
 
     override val operands: List<JcExpr>
         get() = emptyList()

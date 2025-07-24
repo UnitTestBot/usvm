@@ -16,6 +16,7 @@ import org.usvm.dataflow.ts.graph.EtsApplicationGraph
 import org.usvm.dataflow.ts.infer.AnalyzerEvent
 import org.usvm.dataflow.ts.infer.TypeInferenceManager
 import org.usvm.dataflow.ts.util.EtsTraits
+import org.usvm.dataflow.ts.util.etsMethod
 
 class EtsIfdsRunner<Fact, Event : AnalyzerEvent>(
     override val graph: EtsApplicationGraph,
@@ -82,6 +83,6 @@ class EtsIfdsRunner<Fact, Event : AnalyzerEvent>(
         val (endStmt, endFact) = endVertex
 
         val localPathEdge = EtsIfdsMethodRunner.PathEdge(endStmt.location.index, endFact)
-        getMethodRunner(startVertex.statement.method).getSourceRunner(startVertex).propagate(localPathEdge)
+        getMethodRunner(startVertex.etsMethod).getSourceRunner(startVertex).propagate(localPathEdge)
     }
 }

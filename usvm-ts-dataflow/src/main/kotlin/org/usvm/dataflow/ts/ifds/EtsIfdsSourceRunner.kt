@@ -5,6 +5,7 @@ import org.usvm.dataflow.ifds.Edge
 import org.usvm.dataflow.ifds.Vertex
 import org.usvm.dataflow.ts.ifds.EtsIfdsMethodRunner.PathEdge
 import org.usvm.dataflow.ts.util.EtsTraits
+import org.usvm.dataflow.ts.util.etsMethod
 
 internal class EtsIfdsSourceRunner<Fact>(
     val traits: EtsTraits,
@@ -112,7 +113,7 @@ internal class EtsIfdsSourceRunner<Fact>(
                 // Propagate through the summary edge:
                 for (callerPathEdge in callerPathEdges) {
                     val summaryEdge = Edge(startVertex, currentVertex)
-                    val caller = callerPathEdge.from.statement.method
+                    val caller = callerPathEdge.from.etsMethod
                     val callerRunner = methodRunner.commonRunner.getMethodRunner(caller)
                     callerRunner.handleSummaryEdgeInCaller(currentEdge = callerPathEdge, summaryEdge = summaryEdge)
                 }
