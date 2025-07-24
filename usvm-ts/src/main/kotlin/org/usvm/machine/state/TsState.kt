@@ -63,6 +63,7 @@ class TsState(
     var associatedFunction: UPersistentHashMap<UConcreteHeapRef, TsFunction> = persistentHashMapOf(),
     var closureObject: UPersistentHashMap<String, UConcreteHeapRef> = persistentHashMapOf(),
     var boundThis: UPersistentHashMap<UConcreteHeapRef, UHeapRef> = persistentHashMapOf(),
+    val previousState: TsState? = null,
 ) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
     ctx = ctx,
     initOwnership = ownership,
@@ -223,6 +224,7 @@ class TsState(
             associatedFunction = associatedFunction,
             closureObject = closureObject,
             boundThis = boundThis,
+            previousState = this,
         )
     }
 
