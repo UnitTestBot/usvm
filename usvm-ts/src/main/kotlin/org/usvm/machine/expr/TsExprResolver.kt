@@ -439,6 +439,10 @@ class TsExprResolver(
         if (arg.sort != addressSort) {
             return arg
         }
+        // ...including null/undefined
+        if (arg == mkTsNullValue() || arg == mkUndefinedValue()) {
+            return arg
+        }
 
         val promise = arg.asExpr(addressSort)
         check(isAllocatedConcreteHeapRef(promise)) {
