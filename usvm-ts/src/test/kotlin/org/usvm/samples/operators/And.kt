@@ -173,13 +173,11 @@ class And : TsMethodTestRunner() {
             // return 0;
             ret(const(0))
         }
-
         val blockCfg = prog.toBlockCfg()
 
-        val clazz = scene.projectAndSdkClasses.single { it.name == className }
         val method = EtsMethodImpl(
             signature = EtsMethodSignature(
-                enclosingClass = clazz.signature,
+                enclosingClass = etsClass.signature,
                 name = "andOfNumberAndNumber",
                 parameters = listOf(
                     EtsMethodParameter(0, "a", EtsNumberType),
@@ -191,8 +189,8 @@ class And : TsMethodTestRunner() {
         val etsCfg = blockCfg.toEtsBlockCfg(method)
         method._cfg = etsCfg
 
-        method.enclosingClass = clazz
-        ((clazz as EtsClassImpl).methods as MutableList).add(method)
+        method.enclosingClass = etsClass
+        ((etsClass as EtsClassImpl).methods as MutableList).add(method)
 
         // val method = getMethod(className, "andOfNumberAndNumber")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber>(
