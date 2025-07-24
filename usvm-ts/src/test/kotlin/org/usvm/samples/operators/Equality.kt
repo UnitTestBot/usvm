@@ -34,7 +34,7 @@ class Equality : TsMethodTestRunner() {
             method,
             { a, r -> (r eq 1) && a.isNaN() },
             { a, r -> (r eq 2) && (a eq 42) },
-            { a, r -> (r eq 3) && !(a.isNaN() || (a eq 42)) },
+            { a, r -> (r eq 3) && !a.isNaN() && !(a eq 42) },
         )
     }
 
