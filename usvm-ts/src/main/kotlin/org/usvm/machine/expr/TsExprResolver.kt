@@ -977,6 +977,8 @@ class TsExprResolver(
                     resolved.asExpr(addressSort)
                 }
 
+                checkUndefinedOrNullPropertyRead(instance) ?: return null
+
                 val resolvedArgs = expr.args.map { resolve(it) ?: return null }
 
                 val virtualCall = TsVirtualMethodCallStmt(
