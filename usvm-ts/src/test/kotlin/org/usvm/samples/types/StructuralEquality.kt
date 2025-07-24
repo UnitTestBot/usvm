@@ -12,7 +12,7 @@ class StructuralEquality : TsMethodTestRunner() {
 
     @Test
     fun `test structural equality`() {
-        val method = getMethod("Example", "testFunction")
+        val method = getMethod("testFunction")
         discoverProperties<TsTestValue.TsClass>(
             method = method,
             { r ->

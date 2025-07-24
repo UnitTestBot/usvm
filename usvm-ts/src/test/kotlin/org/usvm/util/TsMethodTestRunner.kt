@@ -3,7 +3,6 @@ package org.usvm.util
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
-import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFileSignature
@@ -62,17 +61,18 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
     protected val className: String
         get() = this::class.simpleName ?: error("Class name is not available: ${this::class}")
 
-    protected val etsClass: EtsClass by lazy {
-        scene.projectAndSdkClasses.single { it.name == className }
-    }
-
-    protected fun getMethod(methodName: String): EtsMethod {
-        val methods = etsClass.methods.filter { it.name == methodName }
+    protected fun getMethod(
+        methodName: String,
+        className: String = this.className,
+    ): EtsMethod {
+        val methods = scene
+            .projectAndSdkClasses.single { it.name == className }
+            .methods.filter { it.name == methodName }
         if (methods.isEmpty()) {
-            error("Method '$methodName' not found in class ${etsClass.name}")
+            error("Method '$methodName' not found in class $className")
         }
         if (methods.size > 1) {
-            error("Multiple methods with name '$methodName' found in class ${etsClass.name}: $methods")
+            error("Multiple methods with name '$methodName' found in class $className: $methods")
         }
         return methods.single()
     }

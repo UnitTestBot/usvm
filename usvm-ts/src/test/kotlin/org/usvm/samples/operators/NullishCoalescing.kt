@@ -118,9 +118,10 @@ class NullishCoalescing : TsMethodTestRunner() {
         }
         val blockCfg = prog.toBlockCfg()
 
+        val clazz = scene.projectAndSdkClasses.single { it.name == className }
         val method = EtsMethodImpl(
             signature = EtsMethodSignature(
-                enclosingClass = etsClass.signature,
+                enclosingClass = clazz.signature,
                 name = "testNullishCoalescing",
                 parameters = listOf(EtsMethodParameter(0, "a", EtsAnyType)),
                 returnType = EtsNumberType,
@@ -129,8 +130,8 @@ class NullishCoalescing : TsMethodTestRunner() {
         val etsCfg = blockCfg.toEtsBlockCfg(method)
         method._cfg = etsCfg
 
-        method.enclosingClass = etsClass
-        ((etsClass as EtsClassImpl).methods as MutableList).add(method)
+        method.enclosingClass = clazz
+        ((clazz as EtsClassImpl).methods as MutableList).add(method)
 
         // val method = getMethod("testNullishCoalescing")
         discoverProperties<TsTestValue, TsTestValue.TsNumber>(
