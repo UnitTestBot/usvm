@@ -77,70 +77,75 @@ class RunOnAllProjects {
             .map { it.name }
         logger.info { "Found ${projects.size} projects: ${projects.joinToString(", ")}" }
 
-        for (projectName in projects.take(3)) {
-            container("Project $projectName") {
-                logger.info { "Processing project: $projectName" }
-                val scene = createScene(projectName)
+        container("Prepare projects") {
+            for (projectName in projects.take(3)) {
+                test("Prepare $projectName") {
+                    logger.info { "Processing project: $projectName" }
+                    val scene = createScene(projectName)
 
-                container("Run on each class in $projectName") {
-                    logger.info { "Running tests on each class in project $projectName" }
-                    val exceptions = mutableListOf<Throwable>()
-                    val classes = scene.projectClasses
-                        .filterNot { it.name.startsWith(ANONYMOUS_CLASS_PREFIX) }
-                    logger.info { "Running on ${classes.size} classes in project $projectName" }
+                    this@testFactory.container("Project $projectName") {
+                        container("Run on each class in $projectName") {
+                            logger.info { "Running tests on each class in project $projectName" }
+                            val classes = scene.projectClasses
+                                .filterNot { it.name.startsWith(ANONYMOUS_CLASS_PREFIX) }
+                            logger.info { "Running on ${classes.size} classes in project $projectName" }
 
-                    for (cls in classes.take(3)) {
-                        test("Run on class ${cls.name} @${cls.signature.file.fileName}") {
-                            logger.info { "Running on all methods in class $cls" }
-                            val methods = cls.methods
-                                .filterNot { it.cfg.stmts.isEmpty() }
-                                .filterNot { it.isStatic }
-                                .filterNot { it.name.startsWith(ANONYMOUS_METHOD_PREFIX) }
-                                .filterNot { it.name == "build" }
-                                .filterNot { it.name == INSTANCE_INIT_METHOD_NAME }
-                                .filterNot { it.name == STATIC_INIT_METHOD_NAME }
-                                .filterNot { it.name == CONSTRUCTOR_NAME }
-                            if (methods.isEmpty()) return@test
-                            logger.info { "Running on ${methods.size} methods in class $cls" }
+                            val exceptions = mutableListOf<Throwable>()
 
-                            runCatching {
-                                val tsOptions = TsOptions()
-                                TsMachine(scene, machineOptions, tsOptions).use { machine ->
-                                    val states = machine.analyze(methods)
-                                    states.let {}
+                            for (cls in classes.take(3)) {
+                                test("Run on class ${cls.name} @${cls.signature.file.fileName}") {
+                                    logger.info { "Running on all methods in class $cls" }
+                                    val methods = cls.methods
+                                        .filterNot { it.cfg.stmts.isEmpty() }
+                                        .filterNot { it.isStatic }
+                                        .filterNot { it.name.startsWith(ANONYMOUS_METHOD_PREFIX) }
+                                        .filterNot { it.name == "build" }
+                                        .filterNot { it.name == INSTANCE_INIT_METHOD_NAME }
+                                        .filterNot { it.name == STATIC_INIT_METHOD_NAME }
+                                        .filterNot { it.name == CONSTRUCTOR_NAME }
+                                    if (methods.isEmpty()) return@test
+                                    logger.info { "Running on ${methods.size} methods in class $cls" }
+
+                                    runCatching {
+                                        val tsOptions = TsOptions()
+                                        TsMachine(scene, machineOptions, tsOptions).use { machine ->
+                                            val states = machine.analyze(methods)
+                                            states.let {}
+                                        }
+                                    }.onFailure {
+                                        exceptions += it
+                                    }
                                 }
-                            }.onFailure {
-                                exceptions += it
+                            }
+
+                            test("@afterAll") {
+                                val exc = exceptions.groupBy { it }
+                                logger.info { "Total exceptions: ${exc.size}" }
+                                for (es in exc.values.sortedBy { it.size }.asReversed()) {
+                                    logger.info { "${es.first()}" }
+                                }
                             }
                         }
-                    }
 
-                    test("@afterAll") {
-                        val exc = exceptions.groupBy { it }
-                        logger.info { "Total exceptions: ${exc.size}" }
-                        for (es in exc.values.sortedBy { it.size }.asReversed()) {
-                            logger.info { "${es.first()}" }
+                        test("Run on all methods in $projectName") {
+                            logger.info { "Running on all methods in project $projectName" }
+                            val methods = scene.projectClasses
+                                .filterNot { it.name.startsWith(ANONYMOUS_CLASS_PREFIX) }
+                                .flatMap { cls ->
+                                    cls.methods
+                                        .filterNot { it.cfg.stmts.isEmpty() }
+                                        .filterNot { it.isStatic }
+                                        .filterNot { it.name.startsWith(ANONYMOUS_METHOD_PREFIX) }
+                                        .filterNot { it.name == "build" }
+                                }
+                            logger.info { "Running on ${methods.size} methods in project $projectName" }
+
+                            val tsOptions = TsOptions()
+                            TsMachine(scene, machineOptions, tsOptions).use { machine ->
+                                val states = machine.analyze(methods)
+                                states.let {}
+                            }
                         }
-                    }
-                }
-
-                test("Run on all methods in $projectName") {
-                    logger.info { "Running on all methods in project $projectName" }
-                    val methods = scene.projectClasses
-                        .filterNot { it.name.startsWith(ANONYMOUS_CLASS_PREFIX) }
-                        .flatMap { cls ->
-                            cls.methods
-                                .filterNot { it.cfg.stmts.isEmpty() }
-                                .filterNot { it.isStatic }
-                                .filterNot { it.name.startsWith(ANONYMOUS_METHOD_PREFIX) }
-                                .filterNot { it.name == "build" }
-                        }
-                    logger.info { "Running on ${methods.size} methods in project $projectName" }
-
-                    val tsOptions = TsOptions()
-                    TsMachine(scene, machineOptions, tsOptions).use { machine ->
-                        val states = machine.analyze(methods)
-                        states.let {}
                     }
                 }
             }
