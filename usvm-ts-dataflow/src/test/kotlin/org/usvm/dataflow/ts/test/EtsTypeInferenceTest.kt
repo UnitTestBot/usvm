@@ -52,6 +52,7 @@ import org.usvm.dataflow.ts.infer.createApplicationGraph
 import org.usvm.dataflow.ts.infer.toType
 import org.usvm.dataflow.ts.loadEtsProjectFromResources
 import org.usvm.dataflow.ts.testFactory
+import org.usvm.dataflow.ts.testForEach
 import org.usvm.dataflow.ts.util.EtsTraits
 import org.usvm.dataflow.ts.util.sortedBy
 import org.usvm.dataflow.ts.util.sortedByBase
@@ -353,70 +354,67 @@ class EtsTypeInferenceTest {
 
         val allCases = project.projectClasses.filter { it.name.startsWith("Case") }
 
-        for (cls in allCases) {
-            if (cls.name in disabledTests) continue
-            test(name = cls.name) {
-                logger.info { "Analyzing testcase: ${cls.name}" }
+        testForEach(allCases.filterNot { it.name in disabledTests }, { it.name }) { cls ->
+            logger.info { "Analyzing testcase: ${cls.name}" }
 
-                val inferMethod = cls.methods.single { it.name == "infer" }
-                logger.info { "Found infer: ${inferMethod.signature}" }
+            val inferMethod = cls.methods.single { it.name == "infer" }
+            logger.info { "Found infer: ${inferMethod.signature}" }
 
-                val expectedTypeString = mutableMapOf<AccessPathBase, String>()
-                var expectedReturnTypeString = ""
-                for (inst in inferMethod.cfg.stmts) {
-                    if (inst is EtsAssignStmt) {
-                        val lhv = inst.lhv
-                        if (lhv is EtsLocal) {
-                            val rhv = inst.rhv
-                            if (lhv.name.startsWith("EXPECTED_ARG_")) {
-                                check(rhv is EtsStringConstant)
-                                val arg = lhv.name.removePrefix("EXPECTED_ARG_").toInt()
-                                val pos = AccessPathBase.Arg(arg)
-                                expectedTypeString[pos] = rhv.value
-                                logger.info { "Expected type for $pos: ${rhv.value}" }
-                            } else if (lhv.name == "EXPECTED_RETURN") {
-                                check(rhv is EtsStringConstant)
-                                expectedReturnTypeString = rhv.value
-                                logger.info { "Expected return type: ${rhv.value}" }
-                            } else if (lhv.name.startsWith("EXPECTED")) {
-                                logger.error { "Skipping unexpected local: $lhv" }
-                            }
+            val expectedTypeString = mutableMapOf<AccessPathBase, String>()
+            var expectedReturnTypeString = ""
+            for (inst in inferMethod.cfg.stmts) {
+                if (inst is EtsAssignStmt) {
+                    val lhv = inst.lhv
+                    if (lhv is EtsLocal) {
+                        val rhv = inst.rhv
+                        if (lhv.name.startsWith("EXPECTED_ARG_")) {
+                            check(rhv is EtsStringConstant)
+                            val arg = lhv.name.removePrefix("EXPECTED_ARG_").toInt()
+                            val pos = AccessPathBase.Arg(arg)
+                            expectedTypeString[pos] = rhv.value
+                            logger.info { "Expected type for $pos: ${rhv.value}" }
+                        } else if (lhv.name == "EXPECTED_RETURN") {
+                            check(rhv is EtsStringConstant)
+                            expectedReturnTypeString = rhv.value
+                            logger.info { "Expected return type: ${rhv.value}" }
+                        } else if (lhv.name.startsWith("EXPECTED")) {
+                            logger.error { "Skipping unexpected local: $lhv" }
                         }
                     }
                 }
+            }
 
-                val entrypoint = cls.methods.single { it.name == "entrypoint" }
-                logger.info { "Found entrypoint: ${entrypoint.signature}" }
+            val entrypoint = cls.methods.single { it.name == "entrypoint" }
+            logger.info { "Found entrypoint: ${entrypoint.signature}" }
 
-                val manager = TypeInferenceManager(EtsTraits(), graph)
-                val result = manager.analyze(listOf(entrypoint), doAddKnownTypes = false)
+            val manager = TypeInferenceManager(EtsTraits(), graph)
+            val result = manager.analyze(listOf(entrypoint), doAddKnownTypes = false)
 
-                val inferredTypes = result.inferredTypes[inferMethod]
-                    ?: error(
-                        "No inferred types for method ${
-                            inferMethod.signature.enclosingClass.name
-                        }::${inferMethod.name}"
-                    )
+            val inferredTypes = result.inferredTypes[inferMethod]
+                ?: error(
+                    "No inferred types for method ${
+                        inferMethod.signature.enclosingClass.name
+                    }::${inferMethod.name}"
+                )
 
-                for ((position, expected) in expectedTypeString.sortedByBase()) {
-                    val inferred = inferredTypes[position]
-                    logger.info { "Inferred type for $position: $inferred" }
-                    val passed = inferred.toString() == expected
-                    assertTrue(
-                        passed,
-                        "Inferred type for $position does not match: inferred = $inferred, expected = $expected"
-                    )
-                }
-                if (expectedReturnTypeString.isNotBlank()) {
-                    val expected = expectedReturnTypeString
-                    val inferred = result.inferredReturnType[inferMethod]
-                    logger.info { "Inferred return type: $inferred" }
-                    val passed = inferred.toString() == expected
-                    assertTrue(
-                        passed,
-                        "Inferred return type does not match: inferred = $inferred, expected = $expected"
-                    )
-                }
+            for ((position, expected) in expectedTypeString.sortedByBase()) {
+                val inferred = inferredTypes[position]
+                logger.info { "Inferred type for $position: $inferred" }
+                val passed = inferred.toString() == expected
+                assertTrue(
+                    passed,
+                    "Inferred type for $position does not match: inferred = $inferred, expected = $expected"
+                )
+            }
+            if (expectedReturnTypeString.isNotBlank()) {
+                val expected = expectedReturnTypeString
+                val inferred = result.inferredReturnType[inferMethod]
+                logger.info { "Inferred return type: $inferred" }
+                val passed = inferred.toString() == expected
+                assertTrue(
+                    passed,
+                    "Inferred return type does not match: inferred = $inferred, expected = $expected"
+                )
             }
         }
     }
@@ -440,191 +438,188 @@ class EtsTypeInferenceTest {
             logger.warn { "No projects found" }
             return@testFactory
         }
-        for (projectName in availableProjectNames) {
-            // if (projectName != "...") continue
 
+        testForEach(availableProjectNames, { it }) { projectName ->
             // skip 'PrintSpooler' project for now, it has issues with types
             if (projectName == "PrintSpooler") {
                 logger.info { "Skipping project: $projectName" }
-                continue
+                return@testForEach
             }
 
-            test("infer types in $projectName") {
-                logger.info { "Loading project: $projectName" }
-                val projectPath = getResourcePath("/projects/$projectName")
-                val etsirPath = projectPath / "etsir"
-                if (!etsirPath.exists()) {
-                    logger.warn { "No etsir directory found for project $projectName" }
-                    return@test
-                }
-                val modules = etsirPath.listDirectoryEntries().filter { it.isDirectory() }.map { it.name }
-                logger.info { "Found ${modules.size} modules: $modules" }
-                if (modules.isEmpty()) {
-                    logger.warn { "No modules found for project $projectName" }
-                    return@test
-                }
-                val project = loadEtsProjectFromResources(modules, "/projects/$projectName/etsir")
-                logger.info {
-                    "Loaded project with ${
-                        project.projectClasses.size
-                    } classes and ${project.projectClasses.sumOf { it.methods.size }} methods"
-                }
-                for (cls in project.projectClasses.sortedBy { it.name }) {
-                    logger.info {
-                        buildString {
-                            appendLine("Class ${cls.name} has ${cls.methods.size} methods")
-                            for (method in cls.methods.sortedBy { it.name }) {
-                                appendLine("- $method")
-                            }
-                        }
-                    }
-                }
-                val graph = createApplicationGraph(project)
-
-                val entrypoints = project.projectClasses
-                    .flatMap { it.methods }
-                    .filter { it.isPublic }
-                logger.info { "Found ${entrypoints.size} entrypoints" }
-
-                val manager = TypeInferenceManager(EtsTraits(), graph)
-                val result = manager.analyze(entrypoints)
-
+            logger.info { "Loading project: $projectName" }
+            val projectPath = getResourcePath("/projects/$projectName")
+            val etsirPath = projectPath / "etsir"
+            if (!etsirPath.exists()) {
+                logger.warn { "No etsir directory found for project $projectName" }
+                return@testForEach
+            }
+            val modules = etsirPath.listDirectoryEntries().filter { it.isDirectory() }.map { it.name }
+            logger.info { "Found ${modules.size} modules: $modules" }
+            if (modules.isEmpty()) {
+                logger.warn { "No modules found for project $projectName" }
+                return@testForEach
+            }
+            val project = loadEtsProjectFromResources(modules, "/projects/$projectName/etsir")
+            logger.info {
+                "Loaded project with ${
+                    project.projectClasses.size
+                } classes and ${project.projectClasses.sumOf { it.methods.size }} methods"
+            }
+            for (cls in project.projectClasses.sortedBy { it.name }) {
                 logger.info {
                     buildString {
-                        appendLine("Inferred types: ${result.inferredTypes.size}")
-                        for ((method, types) in result.inferredTypes.sortedBy { it.key.toString() }) {
-                            appendLine()
+                        appendLine("Class ${cls.name} has ${cls.methods.size} methods")
+                        for (method in cls.methods.sortedBy { it.name }) {
                             appendLine("- $method")
-                            for ((pos, type) in types.sortedByBase()) {
-                                appendLine("$pos: ${type.toStringLimited()}")
-                            }
                         }
                     }
                 }
-                logger.info {
-                    buildString {
+            }
+            val graph = createApplicationGraph(project)
+
+            val entrypoints = project.projectClasses
+                .flatMap { it.methods }
+                .filter { it.isPublic }
+            logger.info { "Found ${entrypoints.size} entrypoints" }
+
+            val manager = TypeInferenceManager(EtsTraits(), graph)
+            val result = manager.analyze(entrypoints)
+
+            logger.info {
+                buildString {
+                    appendLine("Inferred types: ${result.inferredTypes.size}")
+                    for ((method, types) in result.inferredTypes.sortedBy { it.key.toString() }) {
+                        appendLine()
+                        appendLine("- $method")
+                        for ((pos, type) in types.sortedByBase()) {
+                            appendLine("$pos: ${type.toStringLimited()}")
+                        }
+                    }
+                }
+            }
+            logger.info {
+                buildString {
+                    appendLine(
+                        "Inferred return types: ${
+                            result.inferredReturnType.size
+                        }"
+                    )
+                    val res = result.inferredReturnType.sortedBy { it.key.toString() }
+                    for ((method, returnType) in res) {
                         appendLine(
-                            "Inferred return types: ${
-                                result.inferredReturnType.size
+                            "${
+                                method.signature.enclosingClass.name
+                            }::${
+                                method.name
+                            }: ${
+                                returnType.toStringLimited()
                             }"
                         )
-                        val res = result.inferredReturnType.sortedBy { it.key.toString() }
-                        for ((method, returnType) in res) {
-                            appendLine(
-                                "${
-                                    method.signature.enclosingClass.name
-                                }::${
-                                    method.name
-                                }: ${
-                                    returnType.toStringLimited()
-                                }"
-                            )
-                        }
                     }
                 }
-                logger.info {
-                    buildString {
+            }
+            logger.info {
+                buildString {
+                    appendLine(
+                        "Inferred combined this types: ${
+                            result.inferredCombinedThisType.size
+                        }"
+                    )
+                    val res = result.inferredCombinedThisType.sortedBy { it.key.toString() }
+                    for ((clazz, thisType) in res) {
                         appendLine(
-                            "Inferred combined this types: ${
-                                result.inferredCombinedThisType.size
+                            "${clazz.name} in ${clazz.file}: ${
+                                thisType.toStringLimited()
                             }"
                         )
-                        val res = result.inferredCombinedThisType.sortedBy { it.key.toString() }
-                        for ((clazz, thisType) in res) {
-                            appendLine(
-                                "${clazz.name} in ${clazz.file}: ${
-                                    thisType.toStringLimited()
-                                }"
-                            )
-                        }
                     }
                 }
+            }
 
-                var totalNumMatchedNormal = 0
-                var totalNumMatchedUnknown = 0
-                var totalNumMismatchedNormal = 0
-                var totalNumLostNormal = 0
-                var totalNumBetterThanUnknown = 0
+            var totalNumMatchedNormal = 0
+            var totalNumMatchedUnknown = 0
+            var totalNumMismatchedNormal = 0
+            var totalNumLostNormal = 0
+            var totalNumBetterThanUnknown = 0
 
-                for ((method, inferredTypes) in result.inferredTypes) {
-                    var numMatchedNormal = 0
-                    var numMatchedUnknown = 0
-                    var numMismatchedNormal = 0
-                    var numLostNormal = 0
-                    var numBetterThanUnknown = 0
+            for ((method, inferredTypes) in result.inferredTypes) {
+                var numMatchedNormal = 0
+                var numMatchedUnknown = 0
+                var numMismatchedNormal = 0
+                var numLostNormal = 0
+                var numBetterThanUnknown = 0
 
-                    for (local in method.getLocals()) {
-                        val inferredType = inferredTypes[AccessPathBase.Local(local.name)]?.toType()
-                        val verdict = if (inferredType != null) {
-                            if (local.type.isUnknown()) {
-                                if (inferredType.isUnknown()) {
-                                    numMatchedUnknown++
-                                    "Matched unknown"
-                                } else {
-                                    numBetterThanUnknown++
-                                    "Better than unknown"
-                                }
+                for (local in method.getLocals()) {
+                    val inferredType = inferredTypes[AccessPathBase.Local(local.name)]?.toType()
+                    val verdict = if (inferredType != null) {
+                        if (local.type.isUnknown()) {
+                            if (inferredType.isUnknown()) {
+                                numMatchedUnknown++
+                                "Matched unknown"
                             } else {
-                                if (inferredType == local.type) {
-                                    numMatchedNormal++
-                                    "Matched normal"
-                                } else {
-                                    numMismatchedNormal++
-                                    "Mismatched normal"
-                                }
+                                numBetterThanUnknown++
+                                "Better than unknown"
                             }
                         } else {
-                            if (local.type.isUnknown()) {
-                                numMatchedUnknown++
-                                "Matched (lost) unknown"
+                            if (inferredType == local.type) {
+                                numMatchedNormal++
+                                "Matched normal"
                             } else {
-                                numLostNormal++
-                                "Lost normal"
+                                numMismatchedNormal++
+                                "Mismatched normal"
                             }
                         }
-                        logger.info {
-                            "Local $local in $method, type: ${
-                                local.type.toStringLimited()
-                            }, inferred: ${
-                                inferredType?.toStringLimited()
-                            }, verdict: $verdict"
+                    } else {
+                        if (local.type.isUnknown()) {
+                            numMatchedUnknown++
+                            "Matched (lost) unknown"
+                        } else {
+                            numLostNormal++
+                            "Lost normal"
                         }
                     }
-
                     logger.info {
-                        buildString {
-                            appendLine(
-                                "Local type matching for ${
-                                    method.signature.enclosingClass.name
-                                }::${method.name}:"
-                            )
-                            appendLine("  Matched normal: $numMatchedNormal")
-                            appendLine("  Matched unknown: $numMatchedUnknown")
-                            appendLine("  Mismatched normal: $numMismatchedNormal")
-                            appendLine("  Lost normal: $numLostNormal")
-                            appendLine("  Better than unknown: $numBetterThanUnknown")
-                        }
+                        "Local $local in $method, type: ${
+                            local.type.toStringLimited()
+                        }, inferred: ${
+                            inferredType?.toStringLimited()
+                        }, verdict: $verdict"
                     }
-                    totalNumMatchedNormal += numMatchedNormal
-                    totalNumMatchedUnknown += numMatchedUnknown
-                    totalNumMismatchedNormal += numMismatchedNormal
-                    totalNumLostNormal += numLostNormal
-                    totalNumBetterThanUnknown += numBetterThanUnknown
                 }
 
                 logger.info {
                     buildString {
-                        appendLine("Total local type matching statistics:")
-                        appendLine("  Matched normal: $totalNumMatchedNormal")
-                        appendLine("  Matched unknown: $totalNumMatchedUnknown")
-                        appendLine("  Mismatched normal: $totalNumMismatchedNormal")
-                        appendLine("  Lost normal: $totalNumLostNormal")
-                        appendLine("  Better than unknown: $totalNumBetterThanUnknown")
+                        appendLine(
+                            "Local type matching for ${
+                                method.signature.enclosingClass.name
+                            }::${method.name}:"
+                        )
+                        appendLine("  Matched normal: $numMatchedNormal")
+                        appendLine("  Matched unknown: $numMatchedUnknown")
+                        appendLine("  Mismatched normal: $numMismatchedNormal")
+                        appendLine("  Lost normal: $numLostNormal")
+                        appendLine("  Better than unknown: $numBetterThanUnknown")
                     }
                 }
-
-                logger.info { "Done analyzing project: $projectName" }
+                totalNumMatchedNormal += numMatchedNormal
+                totalNumMatchedUnknown += numMatchedUnknown
+                totalNumMismatchedNormal += numMismatchedNormal
+                totalNumLostNormal += numLostNormal
+                totalNumBetterThanUnknown += numBetterThanUnknown
             }
+
+            logger.info {
+                buildString {
+                    appendLine("Total local type matching statistics:")
+                    appendLine("  Matched normal: $totalNumMatchedNormal")
+                    appendLine("  Matched unknown: $totalNumMatchedUnknown")
+                    appendLine("  Mismatched normal: $totalNumMismatchedNormal")
+                    appendLine("  Lost normal: $totalNumLostNormal")
+                    appendLine("  Better than unknown: $totalNumBetterThanUnknown")
+                }
+            }
+
+            logger.info { "Done analyzing project: $projectName" }
         }
     }
 }
