@@ -47,7 +47,7 @@ class TestFactoryBuilder : TestNodeBuilder() {
     }
 }
 
-fun testFactory(init: TestFactoryBuilder.() -> Unit): Iterable<DynamicNode> =
+inline fun testFactory(init: TestFactoryBuilder.() -> Unit): Iterable<DynamicNode> =
     TestFactoryBuilder().apply(init).build()
 
 private fun dynamicTest(name: String, test: () -> Unit): DynamicTest =
