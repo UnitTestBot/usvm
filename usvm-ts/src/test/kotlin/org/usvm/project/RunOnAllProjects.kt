@@ -114,7 +114,7 @@ class RunOnAllProjects {
                         }
                     }
 
-                    afterAll {
+                    test("@afterAll") {
                         val exc = exceptions.groupBy { it }
                         logger.info { "Total exceptions: ${exc.size}" }
                         for (es in exc.values.sortedBy { it.size }.asReversed()) {
