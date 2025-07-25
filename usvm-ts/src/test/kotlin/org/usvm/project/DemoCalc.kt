@@ -1,5 +1,6 @@
 package org.usvm.project
 
+import mu.KotlinLogging
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.ANONYMOUS_CLASS_PREFIX
 import org.jacodb.ets.utils.ANONYMOUS_METHOD_PREFIX
@@ -14,6 +15,8 @@ import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.getResourcePath
 import org.usvm.util.getResourcePathOrNull
 import kotlin.test.Test
+
+private val logger = KotlinLogging.logger {}
 
 @EnabledIf("projectAvailable")
 class RunOnDemoCalcProject : TsMethodTestRunner() {
@@ -41,35 +44,39 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
     }
 
     @Test
-    fun `test run on each method`() {
+    fun `test run on each class`() {
         val exceptions = mutableListOf<Throwable>()
-        val classes = scene.projectClasses.filterNot { it.name.startsWith(ANONYMOUS_CLASS_PREFIX) }
+        val classes = scene.projectClasses
+            .filterNot { it.name.startsWith(ANONYMOUS_CLASS_PREFIX) }
 
         println("Total classes: ${classes.size}")
 
-        classes
-            .forEach { cls ->
-                val methods = cls.methods
-                    .filterNot { it.cfg.stmts.isEmpty() }
-                    .filterNot { it.isStatic }
-                    .filterNot { it.name.startsWith(ANONYMOUS_METHOD_PREFIX) }
-                    .filterNot { it.name == "build" }
-                    .filterNot { it.name == INSTANCE_INIT_METHOD_NAME }
-                    .filterNot { it.name == STATIC_INIT_METHOD_NAME }
-                    .filterNot { it.name == CONSTRUCTOR_NAME }
-
-                if (methods.isEmpty()) return@forEach
-
-                runCatching {
-                    val tsOptions = TsOptions()
-                    TsMachine(scene, options, tsOptions).use { machine ->
-                        val states = machine.analyze(methods)
-                        states.let {}
-                    }
-                }.onFailure {
-                    exceptions += it
-                }
+        for (cls in classes) {
+            logger.info {
+                "Analyzing class ${cls.name} with ${cls.methods.size} methods"
             }
+
+            val methods = cls.methods
+                .filterNot { it.cfg.stmts.isEmpty() }
+                .filterNot { it.isStatic }
+                .filterNot { it.name.startsWith(ANONYMOUS_METHOD_PREFIX) }
+                .filterNot { it.name == "build" }
+                .filterNot { it.name == INSTANCE_INIT_METHOD_NAME }
+                .filterNot { it.name == STATIC_INIT_METHOD_NAME }
+                .filterNot { it.name == CONSTRUCTOR_NAME }
+
+            if (methods.isEmpty()) continue
+
+            runCatching {
+                val tsOptions = TsOptions()
+                TsMachine(scene, options, tsOptions).use { machine ->
+                    val states = machine.analyze(methods)
+                    states.let {}
+                }
+            }.onFailure {
+                exceptions += it
+            }
+        }
 
         val exc = exceptions.groupBy { it }
         println("Total exceptions: ${exc.size}")
