@@ -49,7 +49,7 @@ class RunOnAllProjects {
         )
     }
 
-    private val sdkFiles: List<EtsFile> =
+    private val sdkFiles: List<EtsFile> by lazy {
         listOf(SDK_TS_PATH, SDK_OHOS_PATH).flatMap { sdk ->
             logger.info { "Loading SDK from path: $sdk" }
             val sdkPath = getResourcePath(sdk)
@@ -58,6 +58,7 @@ class RunOnAllProjects {
         }.also {
             logger.info { "Loaded total ${it.size} SDK files" }
         }
+    }
 
     private fun createScene(projectName: String): EtsScene {
         logger.info { "Creating scene for project: $projectName" }
