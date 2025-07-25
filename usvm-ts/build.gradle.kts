@@ -25,6 +25,7 @@ dependencies {
     testImplementation(Libs.mockk)
     testImplementation(Libs.junit_jupiter_params)
     testImplementation(Libs.logback)
+    testImplementation(testFixtures(project(":usvm-ts-dataflow")))
 
     // https://mvnrepository.com/artifact/org.burningwave/core
     // Use it to export all modules to all
