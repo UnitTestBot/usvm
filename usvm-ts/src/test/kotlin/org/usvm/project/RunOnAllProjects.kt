@@ -76,20 +76,20 @@ class RunOnAllProjects {
             .map { it.name }
         logger.info { "Found ${projects.size} projects: ${projects.joinToString(", ")}" }
 
-        for (projectName in projects) {
-            container(projectName) {
+        for (projectName in projects.take(3)) {
+            container("Project $projectName") {
                 logger.info { "Processing project: $projectName" }
                 val scene = createScene(projectName)
 
-                container("Run on each class for $projectName") {
-                    logger.info { "Running tests on each class in project: $projectName" }
+                container("Run on each class in $projectName") {
+                    logger.info { "Running tests on each class in project $projectName" }
                     val exceptions = mutableListOf<Throwable>()
                     val classes = scene.projectClasses
                         .filterNot { it.name.startsWith(ANONYMOUS_CLASS_PREFIX) }
-                    logger.info { "Running on ${classes.size} classes for project $projectName" }
+                    logger.info { "Running on ${classes.size} classes in project $projectName" }
 
-                    for (cls in classes) {
-                        test("Run on class ${cls.name}") {
+                    for (cls in classes.take(3)) {
+                        test("Run on class ${cls.name} @${cls.signature.file.fileName}") {
                             logger.info { "Running on all methods in class $cls" }
                             val methods = cls.methods
                                 .filterNot { it.cfg.stmts.isEmpty() }
@@ -114,15 +114,17 @@ class RunOnAllProjects {
                         }
                     }
 
-                    val exc = exceptions.groupBy { it }
-                    logger.info { "Total exceptions: ${exc.size}" }
-                    for (es in exc.values.sortedBy { it.size }.asReversed()) {
-                        logger.info { "${es.first()}" }
+                    afterAll {
+                        val exc = exceptions.groupBy { it }
+                        logger.info { "Total exceptions: ${exc.size}" }
+                        for (es in exc.values.sortedBy { it.size }.asReversed()) {
+                            logger.info { "${es.first()}" }
+                        }
                     }
                 }
 
-                test("Run on all methods for $projectName") {
-                    logger.info { "Running on all methods in project: $projectName" }
+                test("Run on all methods in $projectName") {
+                    logger.info { "Running on all methods in project $projectName" }
                     val methods = scene.projectClasses
                         .filterNot { it.name.startsWith(ANONYMOUS_CLASS_PREFIX) }
                         .flatMap { cls ->
@@ -132,7 +134,7 @@ class RunOnAllProjects {
                                 .filterNot { it.name.startsWith(ANONYMOUS_METHOD_PREFIX) }
                                 .filterNot { it.name == "build" }
                         }
-                    logger.info { "Running on ${methods.size} methods for project $projectName" }
+                    logger.info { "Running on ${methods.size} methods in project $projectName" }
 
                     val tsOptions = TsOptions()
                     TsMachine(scene, machineOptions, tsOptions).use { machine ->

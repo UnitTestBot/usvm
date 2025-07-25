@@ -5,54 +5,84 @@ import org.junit.jupiter.api.DynamicNode
 import org.junit.jupiter.api.DynamicTest
 import java.util.stream.Stream
 
-private fun dynamicTest(name: String, test: () -> Unit): DynamicTest =
-    DynamicTest.dynamicTest(name, test)
-
 class TestContainerBuilder(var name: String) {
     private val nodes: MutableList<DynamicNode> = mutableListOf()
-    private var built: Boolean = false
+    private val beforeAllHooks: MutableList<() -> Unit> = mutableListOf()
+    private val afterAllHooks: MutableList<() -> Unit> = mutableListOf()
+
+    fun beforeAll(hook: () -> Unit) {
+        beforeAllHooks += hook
+    }
+
+    fun afterAll(hook: () -> Unit) {
+        afterAllHooks += hook
+    }
 
     fun test(name: String, test: () -> Unit) {
-        // Note: if you see this error, you probably have a nested test,
-        //       e.g. `test("A") { test("A-nested") { ... } }`,
-        //       which is not supported.
-        check(!built) { "Container '${this.name}' has already been built and cannot be modified." }
         nodes += dynamicTest(name, test)
     }
 
-    fun container(name: String, init: TestContainerBuilder.() -> Unit) {
-        check(!built) { "Container '${this.name}' has already been built and cannot be modified." }
+      fun container(name: String, init: TestContainerBuilder.() -> Unit) {
         nodes += dynamicContainer(name, init)
     }
 
     fun build(): DynamicContainer {
-        check(!built) { "Container '$name' has already been built." }
-        built = true
-        return DynamicContainer.dynamicContainer(name, nodes)
+        val allNodes = mutableListOf<DynamicNode>()
+        processHooks(beforeAllHooks, "beforeAll")?.let { allNodes += it }
+        allNodes += nodes
+        processHooks(afterAllHooks, "afterAll")?.let { allNodes += it }
+        return DynamicContainer.dynamicContainer(name, allNodes)
     }
 }
+
+private fun dynamicTest(name: String, test: () -> Unit): DynamicTest =
+    DynamicTest.dynamicTest(name, test)
 
 private fun dynamicContainer(name: String, init: TestContainerBuilder.() -> Unit): DynamicContainer =
     TestContainerBuilder(name).apply(init).build()
 
+private fun processHooks(hooks: List<() -> Unit>, prefix: String): DynamicNode? {
+    if (hooks.isEmpty()) {
+        return null
+    }
+    if (hooks.size == 1) {
+        val hook = hooks.single()
+        return dynamicTest(prefix, hook)
+    }
+    return dynamicContainer(prefix) {
+        hooks.forEachIndexed { index, hook ->
+            test("$prefix (${index + 1})", hook)
+        }
+    }
+}
+
 class TestFactoryBuilder {
     private val nodes: MutableList<DynamicNode> = mutableListOf()
-    private var built: Boolean = false
+    private val beforeAllHooks: MutableList<() -> Unit> = mutableListOf()
+    private val afterAllHooks: MutableList<() -> Unit> = mutableListOf()
+
+    fun beforeAll(hook: () -> Unit) {
+        beforeAllHooks += hook
+    }
+
+    fun afterAll(hook: () -> Unit) {
+        afterAllHooks += hook
+    }
 
     fun test(name: String, test: () -> Unit) {
-        check(!built) { "TestFactory has already been built and cannot be modified." }
         nodes += dynamicTest(name, test)
     }
 
     fun container(name: String, init: TestContainerBuilder.() -> Unit) {
-        check(!built) { "TestFactory has already been built and cannot be modified." }
         nodes += dynamicContainer(name, init)
     }
 
     fun build(): Stream<out DynamicNode> {
-        check(!built) { "TestFactory has already been built." }
-        built = true
-        return nodes.stream()
+        val allNodes = mutableListOf<DynamicNode>()
+        processHooks(beforeAllHooks, "beforeAll")?.let { allNodes += it }
+        allNodes += nodes
+        processHooks(afterAllHooks, "afterAll")?.let { allNodes += it }
+        return allNodes.stream()
     }
 }
 
