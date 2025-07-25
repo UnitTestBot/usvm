@@ -83,7 +83,7 @@ interface USetRegion<SetType, ElementSort : USort, Reg : Region<Reg>> :
     ): USetRegion<SetType, ElementSort, Reg>
 }
 
-internal class USetMemoryRegion<SetType, ElementSort : USort, Reg : Region<Reg>>(
+class USetMemoryRegion<SetType, ElementSort : USort, Reg : Region<Reg>>(
     private val setType: SetType,
     private val elementSort: ElementSort,
     private val elementInfo: USymbolicCollectionKeyInfo<UExpr<ElementSort>, Reg>,
