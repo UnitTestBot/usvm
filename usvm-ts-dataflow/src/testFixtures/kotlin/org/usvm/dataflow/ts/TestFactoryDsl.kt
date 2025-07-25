@@ -1,24 +1,54 @@
 package org.usvm.dataflow.ts
 
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.channels.Channel
 import org.junit.jupiter.api.DynamicContainer
 import org.junit.jupiter.api.DynamicNode
 import org.junit.jupiter.api.DynamicTest
 
-class TestContainerBuilder(var name: String) {
-    private val nodes: MutableList<DynamicNode> = mutableListOf()
+@DslMarker
+annotation class TestFactoryDsl
+
+@TestFactoryDsl
+abstract class TestNodeBuilder {
+    private val nodeChannel = Channel<() -> DynamicNode>(Channel.UNLIMITED)
 
     fun test(name: String, test: () -> Unit) {
-        nodes += dynamicTest(name, test)
+        nodeChannel.trySend { dynamicTest(name, test) }
     }
 
     fun container(name: String, init: TestContainerBuilder.() -> Unit) {
-        nodes += dynamicContainer(name, init)
+        nodeChannel.trySend { dynamicContainer(name, init) }
     }
 
-    fun build(): DynamicContainer {
-        return DynamicContainer.dynamicContainer(name, nodes.trick())
+    protected fun createNodes(): Iterable<DynamicNode> =
+        Iterable { DynamicNodeIterator() }
+
+    private inner class DynamicNodeIterator : Iterator<DynamicNode> {
+        @OptIn(ExperimentalCoroutinesApi::class)
+        override fun hasNext(): Boolean = !nodeChannel.isEmpty
+
+        override fun next(): DynamicNode {
+            val node = nodeChannel.tryReceive().getOrThrow()
+            return node()
+        }
     }
 }
+
+class TestContainerBuilder(var name: String) : TestNodeBuilder() {
+    fun build(): DynamicContainer {
+        return DynamicContainer.dynamicContainer(name, createNodes())
+    }
+}
+
+class TestFactoryBuilder : TestNodeBuilder() {
+    fun build(): Iterable<DynamicNode> {
+        return createNodes()
+    }
+}
+
+fun testFactory(init: TestFactoryBuilder.() -> Unit): Iterable<DynamicNode> =
+    TestFactoryBuilder().apply(init).build()
 
 private fun dynamicTest(name: String, test: () -> Unit): DynamicTest =
     DynamicTest.dynamicTest(name, test)
@@ -26,26 +56,22 @@ private fun dynamicTest(name: String, test: () -> Unit): DynamicTest =
 private fun dynamicContainer(name: String, init: TestContainerBuilder.() -> Unit): DynamicContainer =
     TestContainerBuilder(name).apply(init).build()
 
-private fun <T> List<T>.trick(): Iterable<T> {
-    var i = 0
-    return generateSequence { getOrNull(i++) }.asIterable()
-}
-
-class TestFactoryBuilder {
-    private val nodes: MutableList<DynamicNode> = mutableListOf()
-
-    fun test(name: String, test: () -> Unit) {
-        nodes += dynamicTest(name, test)
-    }
-
-    fun container(name: String, init: TestContainerBuilder.() -> Unit) {
-        nodes += dynamicContainer(name, init)
-    }
-
-    fun build(): Iterable<DynamicNode> {
-        return nodes.trick()
+inline fun <reified T> TestNodeBuilder.testForEach(
+    data: Iterable<T>,
+    crossinline nameProvider: (T) -> String = { it.toString() },
+    crossinline test: (T) -> Unit,
+) {
+    data.forEach { item ->
+        test(nameProvider(item)) { test(item) }
     }
 }
 
-fun testFactory(init: TestFactoryBuilder.() -> Unit): Iterable<DynamicNode> =
-    TestFactoryBuilder().apply(init).build()
+inline fun <reified T> TestNodeBuilder.containerForEach(
+    data: Iterable<T>,
+    crossinline nameProvider: (T) -> String = { it.toString() },
+    crossinline init: TestContainerBuilder.(T) -> Unit,
+) {
+    data.forEach { item ->
+        container(nameProvider(item)) { init(item) }
+    }
+}

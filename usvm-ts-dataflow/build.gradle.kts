@@ -30,6 +30,7 @@ dependencies {
 
     testFixturesImplementation(Libs.kotlin_logging)
     testFixturesImplementation(Libs.junit_jupiter_api)
+    testFixturesImplementation(Libs.kotlinx_coroutines_core)
 }
 
 tasks.withType<Test> {
