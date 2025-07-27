@@ -39,6 +39,7 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UFpSort
 import org.usvm.UHeapRef
+import org.usvm.UNullRef
 import org.usvm.USort
 import org.usvm.api.Engine
 import org.usvm.api.SymbolicIdentityMap
@@ -1031,6 +1032,15 @@ class JcMethodApproximationResolver(
             dispatchUsvmApiMethod(Engine::assume) {
                 val arg = it.arguments.single().asExpr(ctx.booleanSort)
                 scope.assert(arg)?.let { ctx.voidValue }
+            }
+            dispatchUsvmApiMethod(Engine::assumeSymbolic) {
+                val instance = it.arguments[0].asExpr(ctx.addressSort)
+                if (instance is UConcreteHeapRef || instance is UNullRef) {
+                    ctx.voidValue
+                } else {
+                    val condition = it.arguments[1].asExpr(ctx.booleanSort)
+                    scope.assert(condition)?.let { ctx.voidValue }
+                }
             }
             dispatchUsvmApiMethod(Engine::makeSymbolicBoolean) {
                 scope.calcOnState { makeSymbolicPrimitive(ctx.booleanSort) }
