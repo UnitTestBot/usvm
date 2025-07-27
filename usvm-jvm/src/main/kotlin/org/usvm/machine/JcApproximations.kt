@@ -76,11 +76,14 @@ import org.usvm.api.mapTypeStreamNotNull
 import org.usvm.api.memcpy
 import org.usvm.api.objectTypeEquals
 import org.usvm.api.objectTypeSubtype
+import org.usvm.api.readArrayIndex
+import org.usvm.api.readArrayLength
 import org.usvm.api.readField
 import org.usvm.api.writeField
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
+import org.usvm.getIntValue
 import org.usvm.jvm.util.allInstanceFields
 import org.usvm.jvm.util.javaName
 import org.usvm.machine.interpreter.JcExprResolver
@@ -88,7 +91,9 @@ import org.usvm.machine.interpreter.JcStepScope
 import org.usvm.machine.mocks.mockMethod
 import org.usvm.machine.state.JcState
 import org.usvm.machine.state.newStmt
+import org.usvm.machine.state.skipMethodInvocationAndBoxIfNeeded
 import org.usvm.machine.state.skipMethodInvocationWithValue
+import org.usvm.mkSizeExpr
 import org.usvm.sizeSort
 import org.usvm.types.first
 import org.usvm.types.singleOrNull
@@ -569,6 +574,77 @@ class JcMethodApproximationResolver(
         }
 
         return false
+    }
+
+    private fun JcState.arrayContentEquals(
+        firstArray: UHeapRef,
+        secondArray: UHeapRef,
+        arrayType: JcArrayType,
+    ): UBoolExpr? = with(ctx) {
+        val arrayDesciptor = arrayDescriptorOf(arrayType)
+        val elementType = arrayType.elementType
+        val elementSort = typeToSort(elementType)
+
+        val firstLength = memory.readArrayLength(firstArray, arrayDesciptor, sizeSort)
+        val secondLength = memory.readArrayLength(secondArray, arrayDesciptor, sizeSort)
+
+        val concreteLength =
+            getIntValue(firstLength)
+                ?: getIntValue(secondLength)
+                ?: return@with null
+
+        return@with mkIte(mkEq(firstLength, secondLength).not(), { falseExpr }) {
+            val arrayEquals = List(concreteLength) {
+                val idx = mkSizeExpr(it)
+                val first = memory.readArrayIndex(firstArray, idx, arrayDesciptor, elementSort)
+                val second =
+                    memory.readArrayIndex(secondArray, idx, arrayDesciptor, elementSort)
+                mkEq(first, second)
+            }
+            mkAnd(arrayEquals)
+        }
+    }
+
+    private fun JcState.arrayEquals(methodCall: JcMethodCall, firstArray: UHeapRef, secondArray: UHeapRef) = with(ctx) {
+        val possibleElementTypes = primitiveTypes + cp.objectType
+        val possibleArrayTypes = possibleElementTypes.map { cp.arrayTypeOf(it) }
+
+        val branches = mutableListOf<Pair<UBoolExpr, (JcState) -> Unit>>()
+        var typeDiffersConstraint: UBoolExpr = trueExpr
+
+        val arrayRefsEqual = mkEq(firstArray, secondArray)
+        val oneArrayIsNull = mkOr(mkEq(firstArray, nullRef), mkEq(secondArray, nullRef))
+        branches += arrayRefsEqual to { state ->
+            state.skipMethodInvocationAndBoxIfNeeded(methodCall, cp.boolean, trueExpr)
+        }
+        branches += mkAnd(mkNot(arrayRefsEqual), oneArrayIsNull) to { state ->
+            state.skipMethodInvocationAndBoxIfNeeded(methodCall, cp.boolean, falseExpr)
+        }
+        val needToCheckContent = mkAnd(mkNot(arrayRefsEqual), mkNot(oneArrayIsNull))
+        for (arrayType in possibleArrayTypes) {
+            val typeConstraint = scope.calcOnState {
+                mkAnd(
+                    memory.types.evalIsSubtype(firstArray, arrayType),
+                    memory.types.evalIsSubtype(secondArray, arrayType)
+                )
+            }
+            typeDiffersConstraint = mkAnd(typeDiffersConstraint, ctx.mkNot(typeConstraint))
+            branches += mkAnd(needToCheckContent, typeConstraint) to { state ->
+                val checkResult = state.arrayContentEquals(firstArray, secondArray, arrayType)
+                if (checkResult == null) {
+                    // Unable to check
+                    state.skipMethodInvocationWithValue(methodCall, nullRef)
+                } else {
+                    state.skipMethodInvocationAndBoxIfNeeded(methodCall, cp.boolean, checkResult)
+                }
+            }
+        }
+
+        branches += typeDiffersConstraint to { state ->
+            state.skipMethodInvocationAndBoxIfNeeded(methodCall, cp.boolean, falseExpr)
+        }
+
+        scope.forkMulti(branches)
     }
 
     private sealed interface StringConcatElement
@@ -1097,6 +1173,12 @@ class JcMethodApproximationResolver(
                     // todo: correct type instead of object
                     makeSymbolicArray(ctx.cp.objectType, sizeExpr)
                 }
+            }
+            dispatchUsvmApiMethod(Engine::arrayEquals) {
+                val first = it.arguments[0].asExpr(ctx.addressSort)
+                val second = it.arguments[1].asExpr(ctx.addressSort)
+                scope.doWithState { arrayEquals(it, first, second) }
+                null
             }
             dispatchMkList(Engine::makeSymbolicList) {
                 scope.calcOnState { mkSymbolicList(symbolicListType) }

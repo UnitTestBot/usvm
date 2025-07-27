@@ -5,6 +5,7 @@ import org.usvm.api.internal.SymbolicListImpl;
 import org.usvm.api.internal.SymbolicMapImpl;
 
 import java.lang.reflect.Array;
+import java.util.Arrays;
 
 public class Engine {
 
@@ -101,6 +102,28 @@ public class Engine {
 
     public static double[] makeSymbolicDoubleArray(int size) {
         return new double[size];
+    }
+
+    public static Boolean arrayEquals(Object first, Object second) {
+        if (first instanceof byte[] && second instanceof byte[])
+            return Arrays.equals((byte[])first, (byte[])second);
+        if (first instanceof char[] && second instanceof char[])
+            return Arrays.equals((char[])first, (char[])second);
+        if (first instanceof int[] && second instanceof int[])
+            return Arrays.equals((int[])first, (int[])second);
+        if (first instanceof long[] && second instanceof long[])
+            return Arrays.equals((long[])first, (long[])second);
+        if (first instanceof boolean[] && second instanceof boolean[])
+            return Arrays.equals((boolean[])first, (boolean[])second);
+        if (first instanceof float[] && second instanceof float[])
+            return Arrays.equals((float[])first, (float[])second);
+        if (first instanceof double[] && second instanceof double[])
+            return Arrays.equals((double[])first, (double[])second);
+        if (first instanceof short[] && second instanceof short[])
+            return Arrays.equals((short[])first, (short[])second);
+        if (first instanceof Object[] && second instanceof Object[])
+            return Arrays.equals((Object[])first, (Object[])second);
+        return false;
     }
 
     public static <T> SymbolicList<T> makeSymbolicList() {
