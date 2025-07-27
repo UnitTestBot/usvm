@@ -44,7 +44,9 @@ suspend fun JcDatabase.classpathWithApproximations(
     val approximationsPath = setOf(File(usvmApiJarPath), File(usvmApproximationsJarPath))
 
     val cpWithApproximations = dirOrJars + approximationsPath
-    val featuresWithApproximations = features + listOf(Approximations)
+    val approximations = this.features.filterIsInstance<Approximations>().singleOrNull()
+        ?: error("approximations feature not found in database features")
+    val featuresWithApproximations = features + listOf(approximations)
     val cp = classpath(cpWithApproximations, featuresWithApproximations.distinct())
 
     val approximationsLocations = cp.locations.filter { it.jarOrFolder in approximationsPath }
