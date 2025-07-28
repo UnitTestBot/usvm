@@ -44,7 +44,7 @@ suspend fun JcDatabase.classpathWithApproximations(
     val approximationsPath = setOf(File(usvmApiJarPath), File(usvmApproximationsJarPath))
 
     val cpWithApproximations = dirOrJars + approximationsPath
-    val featuresWithApproximations = features + listOf(Approximations)
+    val featuresWithApproximations = features + listOf(Approximations(emptyList()))
     val cp = classpath(cpWithApproximations, featuresWithApproximations.distinct())
 
     val approximationsLocations = cp.locations.filter { it.jarOrFolder in approximationsPath }

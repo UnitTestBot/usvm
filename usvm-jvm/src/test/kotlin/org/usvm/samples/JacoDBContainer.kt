@@ -28,7 +28,7 @@ class JacoDBContainer(
                 builder()
 
                 if (samplesWithApproximationsKey == key) {
-                    installFeatures(Approximations)
+                    installFeatures(Approximations(emptyList()))
                 }
 
                 loadByteCode(classpath)
