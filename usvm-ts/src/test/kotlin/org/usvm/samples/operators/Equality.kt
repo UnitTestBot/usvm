@@ -22,7 +22,7 @@ class Equality : TsMethodTestRunner() {
             { a, r -> (r eq 1) && a.value },
             { a, r -> (r eq 2) && !a.value },
             invariants = arrayOf(
-                { _, r -> r neq -1 },
+                { _, r -> r.number > 0 },
             )
         )
     }
@@ -35,6 +35,36 @@ class Equality : TsMethodTestRunner() {
             { a, r -> (r eq 1) && a.isNaN() },
             { a, r -> (r eq 2) && (a eq 42) },
             { a, r -> (r eq 3) && !a.isNaN() && !(a eq 42) },
+            invariants = arrayOf(
+                { _, r -> r.number > 0 },
+            )
+        )
+    }
+
+    @Test
+    fun `test eqNumberWithBool`() {
+        val method = getMethod("eqNumberWithBool")
+        discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
+            method,
+            { a, r -> (r eq 1) && (a eq 1) },
+            { a, r -> (r eq 2) && (a eq 0) },
+            { a, r -> (r eq 3) && (a neq 1) && (a neq 0) },
+            invariants = arrayOf(
+                { _, r -> r.number > 0 },
+            )
+        )
+    }
+
+    @Test
+    fun `test eqBoolWithNumber`() {
+        val method = getMethod("eqBoolWithNumber")
+        discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsNumber>(
+            method,
+            { a, r -> (r eq 1) && !a.value },
+            { a, r -> (r eq 2) && a.value },
+            invariants = arrayOf(
+                { _, r -> r.number > 0 },
+            )
         )
     }
 
@@ -46,6 +76,9 @@ class Equality : TsMethodTestRunner() {
             method,
             { a, r -> (r eq 1) && (a.value == "123") },
             { a, r -> (r eq 2) && (a.value != "123") },
+            invariants = arrayOf(
+                { _, r -> r.number > 0 },
+            )
         )
     }
 
@@ -57,6 +90,9 @@ class Equality : TsMethodTestRunner() {
             method,
             { a, r -> (r eq 1) && (a.value == "42") },
             { a, r -> (r eq 2) && (a.value != "42") },
+            invariants = arrayOf(
+                { _, r -> r.number > 0 },
+            )
         )
     }
 
@@ -67,7 +103,7 @@ class Equality : TsMethodTestRunner() {
             method,
             { _, r -> r eq 1 },
             invariants = arrayOf(
-                { _, r -> r neq -1 },
+                { _, r -> r.number > 0 },
             )
         )
     }
@@ -80,7 +116,7 @@ class Equality : TsMethodTestRunner() {
             method,
             { _, r -> r eq 1 },
             invariants = arrayOf(
-                { _, r -> r neq -1 },
+                { _, r -> r.number > 0 },
             )
         )
     }
