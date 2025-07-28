@@ -2,6 +2,8 @@ package org.usvm.collection.set.primitive
 
 import io.ksmt.cache.hash
 import io.ksmt.utils.uncheckedCast
+import kotlinx.collections.immutable.persistentMapOf
+import kotlinx.collections.immutable.toPersistentMap
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
 import org.usvm.UComposer
@@ -12,13 +14,17 @@ import org.usvm.collection.set.USetRegionBuilder
 import org.usvm.collection.set.USymbolicSetElement
 import org.usvm.collection.set.USymbolicSetElementRegion
 import org.usvm.collection.set.USymbolicSetKeyInfo
+import org.usvm.collections.immutable.persistentHashMapOf
 import org.usvm.memory.ULValue
+import org.usvm.memory.UPinpointUpdateNode
 import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.USymbolicCollectionId
 import org.usvm.memory.USymbolicCollectionKeyInfo
 import org.usvm.memory.UTreeUpdates
+import org.usvm.memory.UUpdateNode
 import org.usvm.memory.UWritableMemory
 import org.usvm.regions.Region
+import org.usvm.regions.RegionTree
 import org.usvm.regions.emptyRegionTree
 import org.usvm.uctx
 import java.util.IdentityHashMap
@@ -115,6 +121,37 @@ class UAllocatedSetId<SetType, ElementSort : USort, Reg : Region<Reg>>(
     }
 
     override fun hashCode(): Int = hash(setAddress, setType, elementSort)
+
+    fun initializedSet(
+        content: Set<UExpr<ElementSort>>,
+        guard: UBoolExpr
+    ): USymbolicCollection<UAllocatedSetId<SetType, ElementSort, Reg>, UExpr<ElementSort>, UBoolSort> {
+
+        val ctx = guard.ctx
+        var unionRegion = elementInfo.bottomRegion()
+        val entries = content.map { value ->
+            val update = UPinpointUpdateNode(value, elementInfo, ctx.trueExpr, guard)
+
+            val region = elementInfo.keyToRegion(value)
+            check(region.compare(unionRegion) == Region.ComparisonResult.DISJOINT) {
+                "Cannot create initializedSet if regions of given elements intersect"
+            }
+            unionRegion = unionRegion.union(region)
+
+            region to update
+        }
+
+        val map = entries.associate {
+            it.first to (it.second to emptyRegionTree<Reg, UUpdateNode<UExpr<ElementSort>, UBoolSort>>())
+        }.toPersistentMap()
+
+        val updates = UTreeUpdates(
+            updates = RegionTree(map),
+            keyInfo()
+        )
+
+        return USymbolicCollection(this, updates)
+    }
 }
 
 class UInputSetId<SetType, ElementSort : USort, Reg : Region<Reg>>(
@@ -180,3 +217,5 @@ class UInputSetId<SetType, ElementSort : USort, Reg : Region<Reg>>(
 
     override fun hashCode(): Int = hash(setType, elementSort)
 }
+
+//private typealias UInitializedSetRegionValue<USizeSort, Sort> = Pair<UUpdateNode<UExpr<USizeSort>, Sort>, RegionTree<, UUpdateNode<UExpr<USizeSort>, Sort>>>
