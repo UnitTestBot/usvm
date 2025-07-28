@@ -2,76 +2,70 @@
 // noinspection JSUnusedGlobalSymbols
 
 class Strings {
-    typeOfString(): string {
-        let x = "hello";
-        return typeof x; // "string"
+    concatenateStrings(a: string, b: string): string {
+        return a + b;
     }
 
-    typeOfNumber(): string {
-        let x = 42;
-        return typeof x; // "number"
+    stringWithNumber(s: string, n: number): string {
+        return s + n;
     }
 
-    typeOfBoolean(): string {
-        let x = true;
-        return typeof x; // "boolean"
+    getStringLength(s: string): number {
+        return s.length;
     }
 
-    typeOfUndefined(): string {
-        let x = undefined;
-        return typeof x; // "undefined"
+    getCharAt(s: string, index: number): string {
+        return s.charAt(index);
     }
 
-    typeOfNull(): string {
-        let x = null;
-        return typeof x; // "object"
+    getSubstring(s: string, start: number, end: number): string {
+        return s.substring(start, end);
     }
 
-    typeOfObject(): string {
-        let x = {};
-        return typeof x; // "object"
+    findIndexOf(s: string, searchString: string): number {
+        return s.indexOf(searchString);
     }
 
-    typeOfArray(): string {
-        let x = [5, 42];
-        return typeof x; // "object"
+    compareStrings(a: string, b: string): number {
+        if (a === b) return 1;
+        if (a < b) return 2;
+        if (a > b) return 3;
+        return 0;
     }
 
-    typeOfFunction(): string {
-        let x = function () {
-        };
-        return typeof x; // "function"
+    templateLiteral(name: string, age: number): string {
+        return `Hello ${name}, you are ${age} years old`;
     }
 
-    typeOfInputString(x: string): string {
-        return typeof x; // "string"
+    stringIncludes(s: string, searchString: string): boolean {
+        return s.includes(searchString);
     }
 
-    typeOfInputNumber(x: number): string {
-        return typeof x; // "number"
+    stringStartsWith(s: string, searchString: string): boolean {
+        return s.startsWith(searchString);
     }
 
-    typeOfInputBoolean(x: boolean): string {
-        return typeof x; // "boolean"
+    stringEndsWith(s: string, searchString: string): boolean {
+        return s.endsWith(searchString);
     }
 
-    typeOfInputUndefined(x: undefined): string {
-        return typeof x; // "undefined"
+    stringToUpperCase(s: string): string {
+        return s.toUpperCase();
     }
 
-    typeOfInputNull(x: null): string {
-        return typeof x; // "object"
+    stringToLowerCase(s: string): string {
+        return s.toLowerCase();
     }
 
-    typeOfInputObject(x: {}): string {
-        return typeof x; // "object"
+    stringTrim(s: string): string {
+        return s.trim();
     }
 
-    typeOfInputArray(x: any[]): string {
-        return typeof x; // "object"
+    stringSplit(s: string, separator: string): string[] {
+        return s.split(separator);
     }
 
-    typeOfInputFunction(x: Function): string {
-        return typeof x; // "function"
+    stringReplace(s: string, searchValue: string, replaceValue: string): string {
+        return s.replace(searchValue, replaceValue);
     }
 }

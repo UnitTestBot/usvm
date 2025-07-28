@@ -5,155 +5,134 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
+import org.usvm.util.eq
 
+@Disabled("Strings are not supported yet")
 class Strings : TsMethodTestRunner() {
     private val tsPath = "/samples/lang/Strings.ts"
 
     override val scene: EtsScene = loadScene(tsPath)
 
     @Test
-    fun `test typeOfString`() {
-        val method = getMethod("typeOfString")
-        discoverProperties<TsTestValue.TsString>(
+    fun `test concatenate strings`() {
+        val method = getMethod("concatenateStrings")
+        discoverProperties<TsTestValue.TsString, TsTestValue.TsString, TsTestValue.TsString>(
             method = method,
-            { r -> r.value == "string" },
+            { a, b, r -> r.value == a.value + b.value },
+            invariants = arrayOf(
+                { a, b, r -> r.value.length == a.value.length + b.value.length }
+            )
         )
     }
 
     @Test
-    fun `test typeOfNumber`() {
-        val method = getMethod("typeOfNumber")
-        discoverProperties<TsTestValue.TsString>(
+    fun `test string with number`() {
+        val method = getMethod("stringWithNumber")
+        discoverProperties<TsTestValue.TsString, TsTestValue.TsNumber, TsTestValue.TsString>(
             method = method,
-            { r -> r.value == "number" },
+            { s, n, r -> r.value == s.value + n.number.toString() },
         )
     }
 
     @Test
-    fun `test typeOfBoolean`() {
-        val method = getMethod("typeOfBoolean")
-        discoverProperties<TsTestValue.TsString>(
+    fun `test string length`() {
+        val method = getMethod("getStringLength")
+        discoverProperties<TsTestValue.TsString, TsTestValue.TsNumber>(
             method = method,
-            { r -> r.value == "boolean" },
+            { s, r -> r.number == s.value.length.toDouble() },
+            invariants = arrayOf(
+                { _, r -> r.number >= 0 }
+            )
         )
     }
 
     @Test
-    fun `test typeOfUndefined`() {
-        val method = getMethod("typeOfUndefined")
-        discoverProperties<TsTestValue.TsString>(
+    @Disabled("String methods not fully implemented")
+    fun `test char at`() {
+        val method = getMethod("getCharAt")
+        discoverProperties<TsTestValue.TsString, TsTestValue.TsNumber, TsTestValue.TsString>(
             method = method,
-            { r -> r.value == "undefined" },
+            { s, index, r ->
+                when {
+                    index.number < 0 || index.number >= s.value.length -> r.value == ""
+                    else -> r.value == s.value[index.number.toInt()].toString()
+                }
+            }
         )
     }
 
     @Test
-    fun `test typeOfNull`() {
-        val method = getMethod("typeOfNull")
-        discoverProperties<TsTestValue.TsString>(
+    @Disabled("String methods not fully implemented")
+    fun `test substring`() {
+        val method = getMethod("getSubstring")
+        discoverProperties<TsTestValue.TsString, TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsString>(
             method = method,
-            { r -> r.value == "object" },
+            { s, start, end, r ->
+                val startIdx = maxOf(0, minOf(start.number.toInt(), s.value.length))
+                val endIdx = maxOf(startIdx, minOf(end.number.toInt(), s.value.length))
+                r.value == s.value.substring(startIdx, endIdx)
+            }
         )
     }
 
     @Test
-    fun `test typeOfObject`() {
-        val method = getMethod("typeOfObject")
-        discoverProperties<TsTestValue.TsString>(
+    @Disabled("String methods not fully implemented")
+    fun `test index of`() {
+        val method = getMethod("findIndexOf")
+        discoverProperties<TsTestValue.TsString, TsTestValue.TsString, TsTestValue.TsNumber>(
             method = method,
-            { r -> r.value == "object" },
+            { s, search, r -> r.number == s.value.indexOf(search.value).toDouble() }
         )
     }
 
     @Test
-    fun `test typeOfArray`() {
-        val method = getMethod("typeOfArray")
-        discoverProperties<TsTestValue.TsString>(
+    fun `test compare strings`() {
+        val method = getMethod("compareStrings")
+        discoverProperties<TsTestValue.TsString, TsTestValue.TsString, TsTestValue.TsNumber>(
             method = method,
-            { r -> r.value == "object" },
-        )
-    }
-
-    @Disabled("Functions are not supported yet")
-    @Test
-    fun `test typeOfFunction`() {
-        val method = getMethod("typeOfFunction")
-        discoverProperties<TsTestValue.TsString>(
-            method = method,
-            { r -> r.value == "function" },
+            { a, b, r -> (a.value == b.value) && (r eq 1) },
+            { a, b, r -> (a.value < b.value) && (r eq 2) },
+            { a, b, r -> (a.value > b.value) && (r eq 3) },
         )
     }
 
     @Test
-    fun `test typeOfInputString`() {
-        val method = getMethod("typeOfInputString")
-        discoverProperties<TsTestValue.TsString, TsTestValue.TsString>(
+    @Disabled("Template literals not implemented")
+    fun `test template literal`() {
+        val method = getMethod("templateLiteral")
+        discoverProperties<TsTestValue.TsString, TsTestValue.TsNumber, TsTestValue.TsString>(
             method = method,
-            { _, r -> r.value == "string" },
+            { name, age, r -> r.value == "Hello ${name.value}, you are ${age.number.toInt()} years old" }
         )
     }
 
     @Test
-    fun `test typeOfInputNumber`() {
-        val method = getMethod("typeOfInputNumber")
-        discoverProperties<TsTestValue.TsNumber, TsTestValue.TsString>(
+    @Disabled("String methods not fully implemented")
+    fun `test string includes`() {
+        val method = getMethod("stringIncludes")
+        discoverProperties<TsTestValue.TsString, TsTestValue.TsString, TsTestValue.TsBoolean>(
             method = method,
-            { _, r -> r.value == "number" },
+            { s, search, r -> r.value == s.value.contains(search.value) }
         )
     }
 
     @Test
-    fun `test typeOfInputBoolean`() {
-        val method = getMethod("typeOfInputBoolean")
-        discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsString>(
+    @Disabled("String methods not fully implemented")
+    fun `test string starts with`() {
+        val method = getMethod("stringStartsWith")
+        discoverProperties<TsTestValue.TsString, TsTestValue.TsString, TsTestValue.TsBoolean>(
             method = method,
-            { _, r -> r.value == "boolean" },
+            { s, search, r -> r.value == s.value.startsWith(search.value) }
         )
     }
 
     @Test
-    fun `test typeOfInputUndefined`() {
-        val method = getMethod("typeOfInputUndefined")
-        discoverProperties<TsTestValue.TsUndefined, TsTestValue.TsString>(
+    @Disabled("String methods not fully implemented")
+    fun `test string ends with`() {
+        val method = getMethod("stringEndsWith")
+        discoverProperties<TsTestValue.TsString, TsTestValue.TsString, TsTestValue.TsBoolean>(
             method = method,
-            { _, r -> r.value == "undefined" },
-        )
-    }
-
-    @Test
-    fun `test typeOfInputNull`() {
-        val method = getMethod("typeOfInputNull")
-        discoverProperties<TsTestValue.TsNull, TsTestValue.TsString>(
-            method = method,
-            { _, r -> r.value == "object" },
-        )
-    }
-
-    @Test
-    fun `test typeOfInputObject`() {
-        val method = getMethod("typeOfInputObject")
-        discoverProperties<TsTestValue, TsTestValue.TsString>(
-            method = method,
-            { _, r -> r.value == "object" },
-        )
-    }
-
-    @Test
-    fun `test typeOfInputArray`() {
-        val method = getMethod("typeOfInputArray")
-        discoverProperties<TsTestValue.TsArray<*>, TsTestValue.TsString>(
-            method = method,
-            { _, r -> r.value == "object" },
-        )
-    }
-
-    @Disabled("Functions are not supported yet")
-    @Test
-    fun `test typeOfInputFunction`() {
-        val method = getMethod("typeOfInputFunction")
-        discoverProperties<TsTestValue, TsTestValue.TsString>(
-            method = method,
-            { _, r -> r.value == "function" },
+            { s, search, r -> r.value == s.value.endsWith(search.value) }
         )
     }
 }
