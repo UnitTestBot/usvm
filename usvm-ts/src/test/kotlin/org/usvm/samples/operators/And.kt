@@ -5,20 +5,14 @@ import org.jacodb.ets.dsl.const
 import org.jacodb.ets.dsl.eqq
 import org.jacodb.ets.dsl.local
 import org.jacodb.ets.dsl.param
-import org.jacodb.ets.dsl.program
-import org.jacodb.ets.dsl.toBlockCfg
-import org.jacodb.ets.model.EtsClassImpl
 import org.jacodb.ets.model.EtsLocal
-import org.jacodb.ets.model.EtsMethodImpl
-import org.jacodb.ets.model.EtsMethodParameter
-import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsScene
-import org.jacodb.ets.utils.toEtsBlockCfg
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
+import org.usvm.util.buildEtsMethod
 import org.usvm.util.callNumberIsNaN
 import org.usvm.util.eq
 import org.usvm.util.isNaN
@@ -31,7 +25,7 @@ class And : TsMethodTestRunner() {
     override val scene: EtsScene = loadScene(tsPath)
 
     @Test
-    fun `test andOfBooleanAndBoolean`() {
+    fun `test boolean && boolean`() {
         val method = getMethod("andOfBooleanAndBoolean")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method = method,
@@ -58,7 +52,7 @@ class And : TsMethodTestRunner() {
     }
 
     @Test
-    fun `test andOfNumberAndNumber`() {
+    fun `test number && number`() {
 
         // ```ts
         // andOfNumberAndNumber(a: number, b: number): number {
@@ -92,7 +86,16 @@ class And : TsMethodTestRunner() {
         // }
         // ```
 
-        val prog = program {
+        val methodName = "andOfNumberAndNumber"
+        val method = buildEtsMethod(
+            name = methodName,
+            enclosingClass = scene.projectAndSdkClasses.single { it.name == className },
+            parameters = listOf(
+                "a" to EtsNumberType,
+                "b" to EtsNumberType
+            ),
+            returnType = EtsNumberType,
+        ) {
             // a := arg(0)
             val a = local("a")
             assign(a, param(0))
@@ -173,27 +176,8 @@ class And : TsMethodTestRunner() {
             // return 0;
             ret(const(0))
         }
-        val blockCfg = prog.toBlockCfg()
 
-        val clazz = scene.projectAndSdkClasses.single { it.name == className }
-        val method = EtsMethodImpl(
-            signature = EtsMethodSignature(
-                enclosingClass = clazz.signature,
-                name = "andOfNumberAndNumber",
-                parameters = listOf(
-                    EtsMethodParameter(0, "a", EtsNumberType),
-                    EtsMethodParameter(1, "b", EtsNumberType),
-                ),
-                returnType = EtsNumberType,
-            ),
-        )
-        val etsCfg = blockCfg.toEtsBlockCfg(method)
-        method._cfg = etsCfg
-
-        method.enclosingClass = clazz
-        ((clazz as EtsClassImpl).methods as MutableList).add(method)
-
-        // val method = getMethod("andOfNumberAndNumber")
+        // val method = getMethod(methodName)
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
             { a, b, r ->
@@ -240,8 +224,9 @@ class And : TsMethodTestRunner() {
 
     @Disabled("CFG from AA is broken")
     @Test
-    fun `test andOfBooleanAndNumber`() {
-        val method = getMethod("andOfBooleanAndNumber")
+    fun `test boolean && number`() {
+        val methodName = "andOfBooleanAndNumber"
+        val method = getMethod(methodName)
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
             { a, b, r ->
@@ -276,7 +261,7 @@ class And : TsMethodTestRunner() {
 
     @Disabled("CFG from AA is broken")
     @Test
-    fun `test andOfNumberAndBoolean`() {
+    fun `test number && boolean`() {
         val method = getMethod("andOfNumberAndBoolean")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method = method,
@@ -312,7 +297,7 @@ class And : TsMethodTestRunner() {
 
     @Disabled("Does not work because objects cannot be null")
     @Test
-    fun `test andOfObjectAndObject`() {
+    fun `test object && object`() {
         val method = getMethod("andOfObjectAndObject")
         discoverProperties<TsTestValue.TsClass, TsTestValue.TsClass, TsTestValue.TsNumber>(
             method = method,
@@ -340,7 +325,7 @@ class And : TsMethodTestRunner() {
 
     @Disabled("CFG from AA is broken")
     @Test
-    fun `test andOfUnknown`() {
+    fun `test unknown && unknown`() {
         val method = getMethod("andOfUnknown")
         discoverProperties<TsTestValue, TsTestValue, TsTestValue.TsNumber>(
             method = method,
