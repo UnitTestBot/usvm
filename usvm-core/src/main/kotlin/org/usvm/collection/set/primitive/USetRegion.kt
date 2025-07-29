@@ -6,6 +6,7 @@ import org.usvm.UConcreteHeapAddress
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
+import org.usvm.collection.array.UArrayRegion
 import org.usvm.collection.set.USymbolicSetEntries
 import org.usvm.collection.set.USymbolicSetElement
 import org.usvm.collection.set.USymbolicSetElementsCollector
@@ -80,6 +81,16 @@ interface USetRegion<SetType, ElementSort : USort, Reg : Region<Reg>> :
         dstRef: UHeapRef,
         operationGuard: UBoolExpr,
         ownership: MutabilityOwnership,
+    ): USetRegion<SetType, ElementSort, Reg>
+
+    fun initializeAllocatedSet(
+        address: UConcreteHeapAddress,
+        setType: SetType,
+        sort: ElementSort,
+        content: Set<UExpr<ElementSort>>,
+        operationGuard: UBoolExpr,
+        ownership: MutabilityOwnership,
+        makeDisjointCheck: Boolean = true,
     ): USetRegion<SetType, ElementSort, Reg>
 }
 
@@ -202,6 +213,20 @@ internal class USetMemoryRegion<SetType, ElementSort : USort, Reg : Region<Reg>>
             region.updateInputSet(updated)
         },
     )
+
+    override fun initializeAllocatedSet(
+        address: UConcreteHeapAddress,
+        setType: SetType,
+        sort: ElementSort,
+        content: Set<UExpr<ElementSort>>,
+        operationGuard: UBoolExpr,
+        ownership: MutabilityOwnership,
+        makeDisjointCheck: Boolean,
+    ): USetRegion<SetType, ElementSort, Reg> {
+        val setId = UAllocatedSetId(address, elementSort, setType, elementInfo)
+        val newCollection = setId.initializedSet(content, operationGuard, makeDisjointCheck)
+        return USetMemoryRegion(setType, elementSort, elementInfo, allocatedSets.put(setId, newCollection, ownership), inputSet)
+    }
 
     override fun setEntries(ref: UHeapRef): UPrimitiveSetEntries<SetType, ElementSort, Reg> =
         foldHeapRefWithStaticAsSymbolic(

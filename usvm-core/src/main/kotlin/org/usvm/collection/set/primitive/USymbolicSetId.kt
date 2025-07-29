@@ -124,7 +124,8 @@ class UAllocatedSetId<SetType, ElementSort : USort, Reg : Region<Reg>>(
 
     fun initializedSet(
         content: Set<UExpr<ElementSort>>,
-        guard: UBoolExpr
+        guard: UBoolExpr,
+        makeDisjointCheck: Boolean = true,
     ): USymbolicCollection<UAllocatedSetId<SetType, ElementSort, Reg>, UExpr<ElementSort>, UBoolSort> {
 
         val ctx = guard.ctx
@@ -133,10 +134,13 @@ class UAllocatedSetId<SetType, ElementSort : USort, Reg : Region<Reg>>(
             val update = UPinpointUpdateNode(value, elementInfo, ctx.trueExpr, guard)
 
             val region = elementInfo.keyToRegion(value)
-            check(region.compare(unionRegion) == Region.ComparisonResult.DISJOINT) {
-                "Cannot create initializedSet if regions of given elements intersect"
+
+            if (makeDisjointCheck) {
+                check(region.compare(unionRegion) == Region.ComparisonResult.DISJOINT) {
+                    "Cannot create initializedSet if regions of given elements intersect"
+                }
+                unionRegion = unionRegion.union(region)
             }
-            unionRegion = unionRegion.union(region)
 
             region to update
         }
@@ -217,5 +221,3 @@ class UInputSetId<SetType, ElementSort : USort, Reg : Region<Reg>>(
 
     override fun hashCode(): Int = hash(setType, elementSort)
 }
-
-//private typealias UInitializedSetRegionValue<USizeSort, Sort> = Pair<UUpdateNode<UExpr<USizeSort>, Sort>, RegionTree<, UUpdateNode<UExpr<USizeSort>, Sort>>>
