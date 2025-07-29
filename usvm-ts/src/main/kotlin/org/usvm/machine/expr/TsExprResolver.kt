@@ -427,8 +427,8 @@ class TsExprResolver(
     }
 
     override fun visit(expr: EtsVoidExpr): UExpr<out USort>? = with(ctx) {
-        // The void operator evaluates its operand and returns undefined
-        resolve(expr.arg) // Evaluate the operand for side effects
+        // The void operator evaluates its operand for side effects and returns undefined.
+        resolve(expr.arg) ?: return null
         return mkUndefinedValue()
     }
 
