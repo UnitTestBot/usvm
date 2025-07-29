@@ -85,6 +85,7 @@ import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.getIntValue
+import org.usvm.isConcrete
 import org.usvm.jvm.util.allInstanceFields
 import org.usvm.jvm.util.javaName
 import org.usvm.machine.interpreter.JcExprResolver
@@ -580,30 +581,28 @@ class JcMethodApproximationResolver(
     private fun JcState.arrayContentEquals(
         firstArray: UHeapRef,
         secondArray: UHeapRef,
+        firstLength: UExpr<USizeSort>,
+        secondLength: UExpr<USizeSort>,
         arrayType: JcArrayType,
     ): UBoolExpr? = with(ctx) {
         val arrayDesciptor = arrayDescriptorOf(arrayType)
         val elementType = arrayType.elementType
         val elementSort = typeToSort(elementType)
 
-        val firstLength = memory.readArrayLength(firstArray, arrayDesciptor, sizeSort)
-        val secondLength = memory.readArrayLength(secondArray, arrayDesciptor, sizeSort)
-
         val concreteLength =
             getIntValue(firstLength)
                 ?: getIntValue(secondLength)
                 ?: return@with null
 
-        return@with mkIte(mkEq(firstLength, secondLength).not(), { falseExpr }) {
-            val arrayEquals = List(concreteLength) {
-                val idx = mkSizeExpr(it)
-                val first = memory.readArrayIndex(firstArray, idx, arrayDesciptor, elementSort)
-                val second =
-                    memory.readArrayIndex(secondArray, idx, arrayDesciptor, elementSort)
-                mkEq(first, second)
-            }
-            mkAnd(arrayEquals)
+        val arrayEquals = List(concreteLength) {
+            val idx = mkSizeExpr(it)
+            val first = memory.readArrayIndex(firstArray, idx, arrayDesciptor, elementSort)
+            val second =
+                memory.readArrayIndex(secondArray, idx, arrayDesciptor, elementSort)
+            mkEq(first, second)
         }
+
+        return@with mkAnd(arrayEquals)
     }
 
     private fun JcState.arrayEquals(methodCall: JcMethodCall, firstArray: UHeapRef, secondArray: UHeapRef) = with(ctx) {
@@ -629,9 +628,18 @@ class JcMethodApproximationResolver(
                     memory.types.evalIsSubtype(secondArray, arrayType)
                 )
             }
-            typeDiffersConstraint = mkAnd(typeDiffersConstraint, ctx.mkNot(typeConstraint))
-            branches += mkAnd(needToCheckContent, typeConstraint) to { state ->
-                val checkResult = state.arrayContentEquals(firstArray, secondArray, arrayType)
+            typeDiffersConstraint = mkAnd(typeDiffersConstraint, mkNot(typeConstraint))
+            val arrayDesciptor = arrayDescriptorOf(arrayType)
+            val firstLength = memory.readArrayLength(firstArray, arrayDesciptor, sizeSort)
+            val secondLength = memory.readArrayLength(secondArray, arrayDesciptor, sizeSort)
+            val lengthsEqual = mkEq(firstLength, secondLength)
+
+            branches += mkAnd(needToCheckContent, typeConstraint, mkNot(lengthsEqual)) to { state ->
+                state.skipMethodInvocationAndBoxIfNeeded(methodCall, cp.boolean, falseExpr)
+            }
+
+            branches += mkAnd(needToCheckContent, typeConstraint, lengthsEqual) to { state ->
+                val checkResult = state.arrayContentEquals(firstArray, secondArray, firstLength, secondLength, arrayType)
                 if (checkResult == null) {
                     // Unable to check
                     state.skipMethodInvocationWithValue(methodCall, nullRef)
@@ -1035,7 +1043,7 @@ class JcMethodApproximationResolver(
             }
             dispatchUsvmApiMethod(Engine::assumeSymbolic) {
                 val instance = it.arguments[0].asExpr(ctx.addressSort)
-                if (instance is UConcreteHeapRef || instance is UNullRef) {
+                if (instance.isConcrete) {
                     ctx.voidValue
                 } else {
                     val condition = it.arguments[1].asExpr(ctx.booleanSort)
