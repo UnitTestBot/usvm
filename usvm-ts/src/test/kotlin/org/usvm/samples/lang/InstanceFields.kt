@@ -53,7 +53,7 @@ class InstanceFields : TsMethodTestRunner() {
             { x, r ->
                 val xa = x.properties["a"] as TsTestValue.TsNumber
                 val xb = x.properties["b"] as TsTestValue.TsNumber
-                xa.number + xb.number eq r.number
+                (xa.number + xb.number) == r.number
             }
         )
     }

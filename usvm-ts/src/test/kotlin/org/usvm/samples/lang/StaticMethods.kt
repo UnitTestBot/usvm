@@ -5,7 +5,6 @@ import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.eq
 import org.usvm.util.isNaN
-import org.usvm.util.neq
 import kotlin.test.Test
 
 class StaticMethods : TsMethodTestRunner() {

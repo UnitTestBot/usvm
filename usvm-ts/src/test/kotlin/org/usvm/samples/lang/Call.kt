@@ -387,7 +387,7 @@ class Call : TsMethodTestRunner() {
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             invariants = arrayOf(
-                { r -> r.number eq 245 },
+                { r -> r eq 245 },
             )
         )
     }
@@ -401,7 +401,7 @@ class Call : TsMethodTestRunner() {
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             invariants = arrayOf(
-                { r -> r.number eq 120 },
+                { r -> r eq 120 },
             )
         )
     }
