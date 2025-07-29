@@ -5,21 +5,15 @@ import org.jacodb.ets.dsl.const
 import org.jacodb.ets.dsl.eqq
 import org.jacodb.ets.dsl.local
 import org.jacodb.ets.dsl.param
-import org.jacodb.ets.dsl.program
-import org.jacodb.ets.dsl.toBlockCfg
 import org.jacodb.ets.model.EtsAnyType
-import org.jacodb.ets.model.EtsClassImpl
 import org.jacodb.ets.model.EtsLocal
-import org.jacodb.ets.model.EtsMethodImpl
-import org.jacodb.ets.model.EtsMethodParameter
-import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsNullConstant
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsUndefinedConstant
-import org.jacodb.ets.utils.toEtsBlockCfg
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
+import org.usvm.util.buildEtsMethod
 import org.usvm.util.callNumberIsNaN
 import org.usvm.util.eq
 import org.usvm.util.isNaN
@@ -63,7 +57,15 @@ class Truthy : TsMethodTestRunner() {
         // }
         // ```
 
-        val prog = program {
+        val methodName = "unknownFalsy"
+        val method = buildEtsMethod(
+            name = methodName,
+            enclosingClass = scene.projectAndSdkClasses.single { it.name == className },
+            parameters = listOf(
+                "a" to EtsAnyType,
+            ),
+            returnType = EtsNumberType,
+        ) {
             // a := arg(0)
             val a = local("a")
             assign(a, param(0))
@@ -108,24 +110,8 @@ class Truthy : TsMethodTestRunner() {
             // return 0;
             ret(const(0))
         }
-        val blockCfg = prog.toBlockCfg()
 
-        val clazz=  scene.projectAndSdkClasses.single { it.name == className }
-        val method = EtsMethodImpl(
-            signature = EtsMethodSignature(
-                enclosingClass = clazz.signature,
-                name = "unknownFalsy",
-                parameters = listOf(EtsMethodParameter(0, "a", EtsAnyType)),
-                returnType = EtsNumberType,
-            ),
-        )
-        val etsCfg = blockCfg.toEtsBlockCfg(method)
-        method._cfg = etsCfg
-
-        method.enclosingClass = clazz
-        ((clazz as EtsClassImpl).methods as MutableList).add(method)
-
-        // val method = getMethod("unknownFalsy")
+        // val method = getMethod(methodName)
         discoverProperties<TsTestValue, TsTestValue.TsNumber>(
             method,
             { a, r ->
