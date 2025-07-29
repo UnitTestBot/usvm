@@ -173,8 +173,8 @@ class ProjectRunner {
     }
 
     private val particularProjectName: String = run {
-        // "DemoCalc"
-        "DemoPhotos"
+        // "Demo_Calc"
+        "Demo_Photos"
     }
 
     @TestFactory
