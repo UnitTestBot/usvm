@@ -2,7 +2,6 @@ package org.usvm.collection.set.primitive
 
 import io.ksmt.cache.hash
 import io.ksmt.utils.uncheckedCast
-import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toPersistentMap
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
@@ -14,7 +13,6 @@ import org.usvm.collection.set.USetRegionBuilder
 import org.usvm.collection.set.USymbolicSetElement
 import org.usvm.collection.set.USymbolicSetElementRegion
 import org.usvm.collection.set.USymbolicSetKeyInfo
-import org.usvm.collections.immutable.persistentHashMapOf
 import org.usvm.memory.ULValue
 import org.usvm.memory.UPinpointUpdateNode
 import org.usvm.memory.USymbolicCollection
