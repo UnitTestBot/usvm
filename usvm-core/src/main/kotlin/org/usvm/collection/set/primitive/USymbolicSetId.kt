@@ -136,7 +136,7 @@ class UAllocatedSetId<SetType, ElementSort : USort, Reg : Region<Reg>>(
             val region = elementInfo.keyToRegion(value)
 
             if (makeDisjointCheck) {
-                check(region.compare(unionRegion) == Region.ComparisonResult.DISJOINT) {
+                check(unionRegion.compare(region) == Region.ComparisonResult.DISJOINT) {
                     "Cannot create initializedSet if regions of given elements intersect"
                 }
                 unionRegion = unionRegion.union(region)
