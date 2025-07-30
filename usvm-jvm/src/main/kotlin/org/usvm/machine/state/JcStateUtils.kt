@@ -102,9 +102,9 @@ fun JcState.skipMethodInvocationAndBoxIfNeeded(methodCall: JcMethodCall, valueTy
             check(typeSystem.isSupertype(methodReturnType, boxedType)) {
                 "skipMethodInvocationAndBoxIfNeeded: Incorrect method return type"
             }
-            val boxMethod = boxedType.declaredMethods.find {
+            val boxMethod = boxedType.declaredMethods.first {
                 it.name == "valueOf" && it.isStatic && it.parameters.singleOrNull()?.type == valueType
-            }!!
+            }
             methodResult = JcMethodResult.NoCall
             newStmt(JcConcreteMethodCallInst(methodCall.location, boxMethod.method, listOf(value), methodCall.returnSite))
         }

@@ -39,7 +39,6 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UFpSort
 import org.usvm.UHeapRef
-import org.usvm.UNullRef
 import org.usvm.USort
 import org.usvm.api.Engine
 import org.usvm.api.SymbolicIdentityMap
