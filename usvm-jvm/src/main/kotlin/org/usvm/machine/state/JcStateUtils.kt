@@ -1,11 +1,15 @@
 package org.usvm.machine.state
 
+import org.jacodb.api.jvm.JcClassType
 import org.jacodb.api.jvm.JcMethod
+import org.jacodb.api.jvm.JcPrimitiveType
 import org.jacodb.api.jvm.JcType
 import org.jacodb.api.jvm.cfg.JcArgument
 import org.jacodb.api.jvm.cfg.JcDynamicCallExpr
 import org.jacodb.api.jvm.cfg.JcInst
+import org.jacodb.api.jvm.ext.autoboxIfNeeded
 import org.jacodb.api.jvm.ext.cfg.locals
+import org.jacodb.api.jvm.ext.findType
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
@@ -87,4 +91,30 @@ inline val JcMethod.localsCount get() = instList.locals.filter { it !is JcArgume
 fun JcState.skipMethodInvocationWithValue(methodCall: JcMethodCall, value: UExpr<out USort>) {
     methodResult = JcMethodResult.Success(methodCall.method, value)
     newStmt(methodCall.returnSite)
+}
+
+fun JcState.skipMethodInvocationAndBoxIfNeeded(methodCall: JcMethodCall, valueType: JcType, value: UExpr<out USort>) {
+    val typeSystem = ctx.typeSystem<JcType>()
+    val methodReturnType = ctx.cp.findType(methodCall.method.returnType.typeName)
+    when {
+        valueType is JcPrimitiveType && methodReturnType is JcClassType -> {
+            val boxedType = valueType.autoboxIfNeeded() as JcClassType
+            check(typeSystem.isSupertype(methodReturnType, boxedType)) {
+                "skipMethodInvocationAndBoxIfNeeded: Incorrect method return type"
+            }
+            val boxMethod = boxedType.declaredMethods.first {
+                it.name == "valueOf" && it.isStatic && it.parameters.singleOrNull()?.type == valueType
+            }
+            methodResult = JcMethodResult.NoCall
+            newStmt(JcConcreteMethodCallInst(methodCall.location, boxMethod.method, listOf(value), methodCall.returnSite))
+        }
+
+        else -> {
+            // TODO: implement unboxing if needed
+            check(typeSystem.isSupertype(methodReturnType, valueType)) {
+                "skipMethodInvocationAndBoxIfNeeded: Incorrect method return type"
+            }
+            skipMethodInvocationWithValue(methodCall, value)
+        }
+    }
 }

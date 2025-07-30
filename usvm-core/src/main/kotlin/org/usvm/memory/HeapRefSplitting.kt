@@ -163,6 +163,25 @@ inline fun <R> foldHeapRefWithStaticAsSymbolic(
     blockOnSymbolic = blockOnSymbolic
 )
 
+inline fun <R> foldHeapRefWithStaticAsConcrete(
+    ref: UHeapRef,
+    initial: R,
+    initialGuard: UBoolExpr,
+    ignoreNullRefs: Boolean = true,
+    collapseHeapRefs: Boolean = true,
+    blockOnConcrete: (R, GuardedExpr<UConcreteHeapRef>) -> R,
+    blockOnSymbolic: (R, GuardedExpr<UHeapRef>) -> R,
+): R = foldHeapRef(
+    ref,
+    initial,
+    initialGuard,
+    ignoreNullRefs,
+    collapseHeapRefs,
+    staticIsConcrete = true,
+    blockOnConcrete = blockOnConcrete,
+    blockOnSymbolic = blockOnSymbolic
+)
+
 inline fun <R> foldHeapRef2(
     ref0: UHeapRef,
     ref1: UHeapRef,
