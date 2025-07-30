@@ -125,7 +125,6 @@ class UAllocatedSetId<SetType, ElementSort : USort, Reg : Region<Reg>>(
         guard: UBoolExpr,
         makeDisjointCheck: Boolean = true,
     ): USymbolicCollection<UAllocatedSetId<SetType, ElementSort, Reg>, UExpr<ElementSort>, UBoolSort> {
-
         val ctx = guard.ctx
         var unionRegion = elementInfo.bottomRegion()
         val entries = content.map { value ->

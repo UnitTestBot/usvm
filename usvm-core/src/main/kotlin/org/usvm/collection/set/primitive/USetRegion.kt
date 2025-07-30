@@ -6,14 +6,13 @@ import org.usvm.UConcreteHeapAddress
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
-import org.usvm.collection.array.UArrayRegion
-import org.usvm.collection.set.USymbolicSetEntries
 import org.usvm.collection.set.USymbolicSetElement
 import org.usvm.collection.set.USymbolicSetElementsCollector
+import org.usvm.collection.set.USymbolicSetEntries
 import org.usvm.collections.immutable.getOrPut
 import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHashMap
-import org.usvm.collections.immutable.persistentHashMapOf
 import org.usvm.collections.immutable.internal.MutabilityOwnership
+import org.usvm.collections.immutable.persistentHashMapOf
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemoryRegion
 import org.usvm.memory.UMemoryRegionId
@@ -225,7 +224,13 @@ internal class USetMemoryRegion<SetType, ElementSort : USort, Reg : Region<Reg>>
     ): USetRegion<SetType, ElementSort, Reg> {
         val setId = UAllocatedSetId(address, elementSort, setType, elementInfo)
         val newCollection = setId.initializedSet(content, operationGuard, makeDisjointCheck)
-        return USetMemoryRegion(setType, elementSort, elementInfo, allocatedSets.put(setId, newCollection, ownership), inputSet)
+        return USetMemoryRegion(
+            setType,
+            elementSort,
+            elementInfo,
+            allocatedSets.put(setId, newCollection, ownership),
+            inputSet
+        )
     }
 
     override fun setEntries(ref: UHeapRef): UPrimitiveSetEntries<SetType, ElementSort, Reg> =
