@@ -31,8 +31,8 @@ open class UComposer<Type, USizeSort : USort>(
     override fun <T : USort> transform(expr: UIteExpr<T>): UExpr<T> =
         transformExprAfterTransformed(expr, expr.condition) { condition ->
             when {
-                condition.isTrue -> apply(expr.trueBranch)
-                condition.isFalse -> apply(expr.falseBranch)
+                condition.isTrue -> transformExprAfterTransformed(expr, expr.trueBranch) { it }
+                condition.isFalse -> transformExprAfterTransformed(expr, expr.falseBranch) { it }
                 else -> super.transform(expr)
             }
         }
