@@ -23,7 +23,6 @@ import io.ksmt.sort.KSort
 import io.ksmt.sort.KUninterpretedSort
 import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.USymbolicCollectionId
-import org.usvm.memory.foldHeapRefWithStaticAsConcrete
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
 
@@ -100,18 +99,6 @@ fun isStaticHeapRef(expr: UExpr<*>): Boolean {
 
 val UConcreteHeapRef.isAllocated: Boolean get() = address.isAllocated
 val UConcreteHeapRef.isStatic: Boolean get() = address.isStatic
-
-val UHeapRef.isConcrete: Boolean get() {
-    return foldHeapRefWithStaticAsConcrete(
-        ref = this,
-        initial = true,
-        initialGuard = this.ctx.trueExpr,
-        ignoreNullRefs = true,
-        collapseHeapRefs = true,
-        blockOnConcrete = { acc, _ -> acc },
-        blockOnSymbolic = { _, _ -> return false }
-    )
-}
 
 class UConcreteHeapRefDecl internal constructor(
     ctx: UContext<*>,

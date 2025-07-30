@@ -85,7 +85,6 @@ import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.getIntValue
-import org.usvm.isConcrete
 import org.usvm.jvm.util.allInstanceFields
 import org.usvm.jvm.util.javaName
 import org.usvm.machine.interpreter.JcExprResolver
@@ -95,6 +94,7 @@ import org.usvm.machine.state.JcState
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.skipMethodInvocationAndBoxIfNeeded
 import org.usvm.machine.state.skipMethodInvocationWithValue
+import org.usvm.memory.foldHeapRefWithStaticAsConcrete
 import org.usvm.mkSizeExpr
 import org.usvm.sizeSort
 import org.usvm.types.first
@@ -1043,12 +1043,16 @@ class JcMethodApproximationResolver(
             }
             dispatchUsvmApiMethod(Engine::assumeSymbolic) {
                 val instance = it.arguments[0].asExpr(ctx.addressSort)
-                if (instance.isConcrete) {
-                    ctx.voidValue
-                } else {
-                    val condition = it.arguments[1].asExpr(ctx.booleanSort)
-                    scope.assert(condition)?.let { ctx.voidValue }
-                }
+                val condition = it.arguments[1].asExpr(ctx.booleanSort)
+                foldHeapRefWithStaticAsConcrete<Unit?>(
+                    ref = instance,
+                    initial = Unit,
+                    initialGuard = ctx.trueExpr,
+                    ignoreNullRefs = true,
+                    collapseHeapRefs = true,
+                    blockOnConcrete = { _, _ -> Unit },
+                    blockOnSymbolic = { acc, ref -> scope.assert(ctx.mkImplies(ref.guard, condition)) ?: acc }
+                )?.let { ctx.voidValue }
             }
             dispatchUsvmApiMethod(Engine::makeSymbolicBoolean) {
                 scope.calcOnState { makeSymbolicPrimitive(ctx.booleanSort) }
