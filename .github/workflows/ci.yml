@@ -10,6 +10,8 @@ on:
 env:
   JAVA: 11
   JAVA_DISTRIBUTION: zulu
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GITHUB_ACTOR: ${{ github.actor }}
 
 jobs:
   ci-core:
