@@ -24,7 +24,7 @@ data class Vertex<out Fact, out Statement : CommonInst>(
     val fact: Fact,
 ) {
     val method: CommonMethod
-        get() = statement.method
+        get() = statement.location.method
 
     override fun toString(): String {
         return "$fact at $statement in $method"

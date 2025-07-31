@@ -80,13 +80,13 @@ class EtsApplicationGraphImpl(
 ) : EtsApplicationGraph {
 
     override fun predecessors(node: EtsStmt): Sequence<EtsStmt> {
-        val graph = node.method.flowGraph()
+        val graph = node.location.method.flowGraph()
         val predecessors = graph.predecessors(node)
         return predecessors.asSequence()
     }
 
     override fun successors(node: EtsStmt): Sequence<EtsStmt> {
-        val graph = node.method.flowGraph()
+        val graph = node.location.method.flowGraph()
         val successors = graph.successors(node)
         return successors.asSequence()
     }
@@ -139,8 +139,8 @@ class EtsApplicationGraphImpl(
         val callee = expr.callee
 
         // Note: the resolving code below expects that at least the current method signature is known.
-        check(node.method.signature.enclosingClass.isIdeal()) {
-            "Incomplete signature in method: ${node.method}"
+        check(node.location.method.signature.enclosingClass.isIdeal()) {
+            "Incomplete signature in method: ${node.location.method}"
         }
 
         // Note: specific resolve for constructor:
@@ -223,9 +223,9 @@ class EtsApplicationGraphImpl(
         // If the callee signature is not ideal, resolve it via a partial match...
         check(!callee.enclosingClass.isIdeal())
 
-        val cls = lookupClassWithIdealSignature(node.method.signature.enclosingClass).let {
+        val cls = lookupClassWithIdealSignature(node.location.method.signature.enclosingClass).let {
             if (it.isNone) {
-                error("Could not find the enclosing class: ${node.method.enclosingClass}")
+                error("Could not find the enclosing class: ${node.location.method.enclosingClass}")
             }
             it.getOrThrow()
         }
@@ -233,7 +233,7 @@ class EtsApplicationGraphImpl(
         // If the complete signature match failed,
         // try to find the unique not-the-same neighbour method in the same class:
         val neighbors = classMethodsByName[cls.signature].orEmpty()[callee.name].orEmpty()
-            .filterNot { it.name == node.method.name }
+            .filterNot { it.name == node.location.method.name }
         if (neighbors.isNotEmpty()) {
             val s = neighbors.singleOrNull()
                 ?: error("Multiple methods with the same name: $neighbors")
@@ -260,7 +260,7 @@ class EtsApplicationGraphImpl(
             .filterNot {
                 compareClassSignatures(
                     it.signature.enclosingClass,
-                    node.method.signature.enclosingClass
+                    node.location.method.signature.enclosingClass
                 ) != ComparisonResult.NotEqual
             }
             .toList()
