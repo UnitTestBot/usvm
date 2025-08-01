@@ -14,6 +14,8 @@ repositories {
     maven("https://jitpack.io")
 }
 
+setupJacodbGitHubPackagesRepository()
+
 dependencies {
     // Align versions of all Kotlin components
     implementation(platform(kotlin("bom", Versions.kotlin)))
