@@ -15,6 +15,8 @@ val logger = object : KLogging() {}.logger
  * @see [run]
  */
 abstract class UMachine<State : UState<*, *, *, *, *, State>> : AutoCloseable {
+    abstract val options: UMachineOptions
+
     /**
      * Runs symbolic execution loop.
      *
@@ -44,6 +46,10 @@ abstract class UMachine<State : UState<*, *, *, *, *, State>> : AutoCloseable {
                     val (forkedStates, stateAlive) = try {
                         interpreter.step(state)
                     } catch (e: Throwable) {
+                        if (options.throwExceptionOnStepFailure) {
+                            throw e
+                        }
+
                         logger.error(e) { "Step failed" }
                         observer.onState(state, forks = emptySequence())
                         pathSelector.remove(state)

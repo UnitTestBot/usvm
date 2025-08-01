@@ -31,7 +31,7 @@ import org.usvm.targets.UTargetsSet
  */
 class SampleMachine(
     program: Program,
-    private val options: UMachineOptions
+    override val options: UMachineOptions
 ) : UMachine<SampleState>() {
     private val applicationGraph = SampleApplicationGraph(program)
     private val typeSystem = SampleTypeSystem(options.typeOperationsTimeout)

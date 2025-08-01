@@ -2,6 +2,7 @@ package org.usvm.machine
 
 import mu.KLogging
 import org.usvm.UMachine
+import org.usvm.UMachineOptions
 import org.usvm.UPathSelector
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.language.PyCallable
@@ -43,6 +44,8 @@ class PyMachine(
 
     private val random = Random(0)
     val statistics = PyMachineStatistics()
+
+    override val options: UMachineOptions = UMachineOptions()
 
     private fun <PyObjectRepr> getInterpreter(
         pinnedTarget: PyPinnedCallable,
