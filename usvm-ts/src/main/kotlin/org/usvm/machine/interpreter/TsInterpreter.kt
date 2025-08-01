@@ -13,12 +13,10 @@ import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
-import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsNopStmt
 import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsParameterRef
-import org.jacodb.ets.model.EtsPtrCallExpr
 import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsStaticFieldRef
@@ -31,20 +29,17 @@ import org.jacodb.ets.model.EtsUndefinedType
 import org.jacodb.ets.model.EtsUnionType
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.model.EtsValue
-import org.jacodb.ets.model.EtsVoidType
 import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.jacodb.ets.utils.callExpr
 import org.jacodb.ets.utils.getDeclaredLocals
 import org.usvm.StepResult
 import org.usvm.StepScope
-import org.usvm.UAddressSort
 import org.usvm.UExpr
 import org.usvm.UInterpreter
 import org.usvm.UIteExpr
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArray
-import org.usvm.api.makeSymbolicPrimitive
-import org.usvm.api.makeSymbolicRefUntyped
+import org.usvm.api.mockMethodCall
 import org.usvm.api.targets.TsTarget
 import org.usvm.api.typeStreamOf
 import org.usvm.collections.immutable.internal.MutabilityOwnership
@@ -67,13 +62,12 @@ import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.state.returnValue
 import org.usvm.machine.types.EtsAuxiliaryType
-import org.usvm.machine.types.mkFakeValue
 import org.usvm.machine.types.toAuxiliaryType
 import org.usvm.sizeSort
 import org.usvm.targets.UTargetsSet
 import org.usvm.types.TypesResult
 import org.usvm.types.single
-import org.usvm.util.EtsPropertyResolution
+import org.usvm.util.TsResolutionResult
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
@@ -156,7 +150,7 @@ class TsInterpreter(
 
         // NOTE: USE '.callee' INSTEAD OF '.method' !!!
 
-        val instance = requireNotNull(stmt.instance) { "Virtual code invocation with null as an instance" }
+        val instance = stmt.instance
 
         val unwrappedInstance = if (instance.isFakeObject()) {
             // TODO support primitives calls
@@ -179,7 +173,7 @@ class TsInterpreter(
                     if (stmt.callee.name == CONSTRUCTOR_NAME) {
                         // Approximate unresolved constructor:
                         scope.doWithState {
-                            methodResult = TsMethodResult.Success.MockedCall(stmt.callee, unwrappedInstance)
+                            methodResult = TsMethodResult.Success.MockedCall(unwrappedInstance, stmt.callee)
                             newStmt(stmt.returnSite)
                         }
                         return
@@ -231,9 +225,7 @@ class TsInterpreter(
 
         if (possibleTypesSet.singleOrNull() == EtsAnyType) {
             mockMethodCall(scope, stmt.callee)
-            scope.calcOnState {
-                newStmt(stmt.returnSite)
-            }
+            scope.doWithState { newStmt(stmt.returnSite) }
             return
         }
 
@@ -297,17 +289,17 @@ class TsInterpreter(
             }
             constraint to block
         }
+
         if (conditionsWithBlocks.isEmpty()) {
             logger.warn {
                 "No suitable methods found for call: ${stmt.callee} with instance: $unwrappedInstance"
             }
             mockMethodCall(scope, stmt.callee)
-            scope.doWithState {
-                newStmt(stmt.returnSite)
-            }
-        } else {
-            scope.forkMulti(conditionsWithBlocks)
+            scope.doWithState { newStmt(stmt.returnSite) }
+            return
         }
+
+        scope.forkMulti(conditionsWithBlocks)
     }
 
     private fun visitConcreteMethodCall(scope: TsStepScope, stmt: TsConcreteMethodCallStmt) {
@@ -318,9 +310,7 @@ class TsInterpreter(
 
         if (stmt.callee.signature.enclosingClass.name == "Log") {
             mockMethodCall(scope, stmt.callee.signature)
-            scope.doWithState {
-                newStmt(stmt.returnSite)
-            }
+            scope.doWithState { newStmt(stmt.returnSite) }
             return
         }
 
@@ -330,9 +320,7 @@ class TsInterpreter(
             // If the method doesn't have entry points,
             // we go through it, we just mock the call
             mockMethodCall(scope, stmt.callee.signature)
-            scope.doWithState {
-                newStmt(stmt.returnSite)
-            }
+            scope.doWithState { newStmt(stmt.returnSite) }
             return
         }
 
@@ -342,6 +330,8 @@ class TsInterpreter(
             val args = mutableListOf<UExpr<*>>()
             val numActual = stmt.args.size
             val numFormal = stmt.callee.parameters.size
+
+            args += stmt.instance
 
             // vararg call:
             // function f(x: any, ...args: any[]) {}
@@ -401,11 +391,9 @@ class TsInterpreter(
                 }
             }
 
-            check(args.size == numFormal) {
-                "Expected $numFormal arguments, got ${args.size}"
+            check(args.size - 1 == numFormal) {
+                "Expected $numFormal arguments, got ${args.size - 1} (not counting 'this')"
             }
-
-            args += stmt.instance!!
 
             // TODO: re-check push sorts for arguments
             pushSortsForActualArguments(args)
@@ -471,13 +459,14 @@ class TsInterpreter(
     private fun visitAssignStmt(scope: TsStepScope, stmt: EtsAssignStmt) = with(ctx) {
         val exprResolver = exprResolverWithScope(scope)
 
-        stmt.callExpr?.let {
+        val callExpr = stmt.callExpr
+        if (callExpr != null) {
             val methodResult = scope.calcOnState { methodResult }
 
             when (methodResult) {
                 is TsMethodResult.NoCall -> observer?.onCallWithUnresolvedArguments(
                     exprResolver.simpleValueResolver,
-                    it,
+                    callExpr,
                     scope
                 )
 
@@ -490,16 +479,14 @@ class TsInterpreter(
                 is TsMethodResult.TsException -> error("Exceptions must be processed earlier")
             }
 
-            if (it is EtsPtrCallExpr) {
-                mockMethodCall(scope, it.callee)
-                return
-            }
-
             if (!tsOptions.interproceduralAnalysis && methodResult == TsMethodResult.NoCall) {
-                mockMethodCall(scope, it.callee)
+                mockMethodCall(scope, callExpr.callee)
+                scope.doWithState { newStmt(stmt) }
                 return
             }
-        } ?: observer?.onAssignStatement(exprResolver.simpleValueResolver, stmt, scope)
+        } else {
+            observer?.onAssignStatement(exprResolver.simpleValueResolver, stmt, scope)
+        }
 
         val expr = exprResolver.resolve(stmt.rhv) ?: return
 
@@ -597,9 +584,9 @@ class TsInterpreter(
 
                     // If there is no such field, we create a fake field for the expr
                     val sort = when (etsField) {
-                        is EtsPropertyResolution.Empty -> unresolvedSort
-                        is EtsPropertyResolution.Unique -> typeToSort(etsField.property.type)
-                        is EtsPropertyResolution.Ambiguous -> unresolvedSort
+                        is TsResolutionResult.Empty -> unresolvedSort
+                        is TsResolutionResult.Unique -> typeToSort(etsField.property.type)
+                        is TsResolutionResult.Ambiguous -> unresolvedSort
                     }
 
                     if (sort == unresolvedSort) {
@@ -692,13 +679,11 @@ class TsInterpreter(
         if (scope.calcOnState { methodResult } is TsMethodResult.Success) {
             scope.doWithState {
                 methodResult = TsMethodResult.NoCall
-                newStmt(stmt.nextStmt!!)
             }
-            return
-        }
-
-        if (stmt.expr is EtsPtrCallExpr) {
-            mockMethodCall(scope, stmt.expr.callee)
+            val nextStmt = stmt.nextStmt ?: return
+            scope.doWithState {
+                newStmt(nextStmt)
+            }
             return
         }
 
@@ -750,11 +735,11 @@ class TsInterpreter(
                 map[local.name]
             }
 
-            // Note: 'this' has index 'n'
-            is EtsThis -> method.parameters.size
+            // Note: 'this' has index 0
+            is EtsThis -> 0
 
-            // Note: arguments have indices from 0 to (n-1)
-            is EtsParameterRef -> local.index
+            // Note: arguments have indices from 1 to n
+            is EtsParameterRef -> local.index + 1
 
             else -> error("Unexpected local: $local")
         }
@@ -774,6 +759,7 @@ class TsInterpreter(
         // TODO check for statics
         val thisIdx = mapLocalToIdx(method, EtsThis(method.enclosingClass!!.type))
             ?: error("Cannot find index for 'this' in method: $method")
+        check(thisIdx == 0)
         val thisInstanceRef = mkRegisterStackLValue(addressSort, thisIdx)
         val thisRef = state.memory.read(thisInstanceRef).asExpr(addressSort)
 
@@ -784,14 +770,16 @@ class TsInterpreter(
         state.pathConstraints += state.memory.types.evalTypeEquals(thisRef, method.enclosingClass!!.type)
 
         method.parameters.forEachIndexed { i, param ->
+            val idx = i + 1 // +1 because 0 is reserved for `this`
+
             val ref by lazy {
-                val lValue = mkRegisterStackLValue(addressSort, i)
+                val lValue = mkRegisterStackLValue(addressSort, idx)
                 state.memory.read(lValue).asExpr(addressSort)
             }
 
             val parameterType = param.type
             if (parameterType is EtsRefType) {
-                val argLValue = mkRegisterStackLValue(addressSort, i)
+                val argLValue = mkRegisterStackLValue(addressSort, idx)
                 val ref = state.memory.read(argLValue).asExpr(addressSort)
                 if (parameterType is EtsArrayType) {
                     state.pathConstraints += state.memory.types.evalTypeEquals(ref, parameterType)
@@ -839,30 +827,6 @@ class TsInterpreter(
         state.memory.types.allocate(mkTsNullValue().address, EtsNullType)
 
         state
-    }
-
-    private fun mockMethodCall(scope: TsStepScope, method: EtsMethodSignature) {
-        scope.doWithState {
-            if (method.returnType is EtsVoidType) {
-                methodResult = TsMethodResult.Success.MockedCall(method, ctx.mkUndefinedValue())
-                return@doWithState
-            }
-
-            val resultSort = ctx.typeToSort(method.returnType)
-            val resultValue = when (resultSort) {
-                is UAddressSort -> makeSymbolicRefUntyped()
-
-                is TsUnresolvedSort -> ctx.mkFakeValue(
-                    scope,
-                    makeSymbolicPrimitive(ctx.boolSort),
-                    makeSymbolicPrimitive(ctx.fp64Sort),
-                    makeSymbolicRefUntyped()
-                )
-
-                else -> makeSymbolicPrimitive(resultSort)
-            }
-            methodResult = TsMethodResult.Success.MockedCall(method, resultValue)
-        }
     }
 
     // TODO: expand with interpreter implementation

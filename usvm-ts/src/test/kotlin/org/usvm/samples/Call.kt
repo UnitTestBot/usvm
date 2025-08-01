@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
+import org.usvm.util.eq
 
 class Call : TsMethodTestRunner() {
 
@@ -288,13 +289,128 @@ class Call : TsMethodTestRunner() {
             { r -> r.number == 20.0 },
         )
     }
-}
 
-fun fib(n: Double): Double {
-    if (n.isNaN()) return 0.0
-    if (n < 0) return -1.0
-    if (n > 10) return -100.0
-    if (n == 0.0) return 1.0
-    if (n == 1.0) return 1.0
-    return fib(n - 1.0) + fib(n - 2.0)
+    @Test
+    fun `test call lambda`() {
+        val method = getMethod(className, "callLambda")
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            invariants = arrayOf(
+                { r -> r.number == 42.0 },
+            )
+        )
+    }
+
+    @Test
+    fun `test call closure capturing local`() {
+        val method = getMethod(className, "callClosureCapturingLocal")
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            invariants = arrayOf(
+                { r -> r.number == 42.0 },
+            )
+        )
+    }
+
+    @Test
+    fun `test call closure capturing arguments`() {
+        val method = getMethod(className, "callClosureCapturingArguments")
+        discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
+            method = method,
+            { a, b, r ->
+                (a.value && b.value) && r.number == 1.0
+            },
+            { a, b, r ->
+                !(a.value && b.value) && r.number == 2.0
+            },
+            invariants = arrayOf(
+                { _, _, r -> r.number in listOf(1.0, 2.0) },
+            )
+        )
+    }
+
+    @Test
+    fun `test call nested lambda`() {
+        val method = getMethod(className, "callNestedLambda")
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            invariants = arrayOf(
+                { r -> r.number == 42.0 },
+            )
+        )
+    }
+
+    @Test
+    fun `test call nested closure capturing outer local`() {
+        val method = getMethod(className, "callNestedClosureCapturingOuterLocal")
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            invariants = arrayOf(
+                { r -> r.number == 42.0 },
+            )
+        )
+    }
+
+    @Test
+    fun `test call nested closure capturing inner local`() {
+        val method = getMethod(className, "callNestedClosureCapturingInnerLocal")
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            invariants = arrayOf(
+                { r -> r.number == 42.0 },
+            )
+        )
+    }
+
+    @Test
+    fun `test call nested closure capturing local and argument`() {
+        val method = getMethod(className, "callNestedClosureCapturingLocalAndArgument")
+        discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsNumber>(
+            method = method,
+            { a, r -> a.value && r.number == 1.0 },
+            { a, r -> !a.value && r.number == 2.0 },
+            invariants = arrayOf(
+                { _, r -> r.number in listOf(1.0, 2.0) }
+            )
+        )
+    }
+
+    @Disabled("Capturing mutable locals is not properly supported in ArkIR")
+    // Note: This test is disabled because ArkIR cannot properly represent the mutation
+    // of a captured mutable local (`let` or `var`) inside a closure.
+    // Due to this, `x += 100` instruction has no effect, and the result is 145 (120+20) instead of 225 (120+125).
+    // A possible solution would be to represent LHS in `x += 100` with `ClosureFieldRef` instead of `Local`.
+    @Test
+    fun `test call closure capturing mutable local`() {
+        val method = getMethod(className, "callClosureCapturingMutableLocal")
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            invariants = arrayOf(
+                { r -> r.number eq 245 },
+            )
+        )
+    }
+
+    @Disabled("Capturing mutable locals is not properly supported in ArkIR")
+    // Note: See above.
+    // This test incorrectly produces 20 instead of 120.
+    @Test
+    fun `test call closure mutating captured local`() {
+        val method = getMethod(className, "callClosureMutatingCapturedLocal")
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            invariants = arrayOf(
+                { r -> r.number eq 120 },
+            )
+        )
+    }
+
+    private fun fib(n: Double): Double {
+        if (n.isNaN()) return 0.0
+        if (n < 0) return -1.0
+        if (n > 10) return -100.0
+        if (n == 0.0) return 1.0
+        if (n == 1.0) return 1.0
+        return fib(n - 1.0) + fib(n - 2.0)
+    }
 }
