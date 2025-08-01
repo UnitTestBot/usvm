@@ -27,6 +27,7 @@ import org.usvm.statistics.TransitiveCoverageZoneObserver
 import org.usvm.statistics.UMachineObserver
 import org.usvm.statistics.collectors.AllStatesCollector
 import org.usvm.statistics.collectors.CoveredNewStatesCollector
+import org.usvm.statistics.collectors.StatesCollector
 import org.usvm.statistics.collectors.TargetsReachedStatesCollector
 import org.usvm.statistics.constraints.SoftConstraintsObserver
 import org.usvm.statistics.distances.CfgStatistics
@@ -107,9 +108,9 @@ class JcMachine(
             { loopTracker }
         )
 
-        val statesCollector =
+        val statesCollector: StatesCollector<JcState> =
             when (options.stateCollectionStrategy) {
-                StateCollectionStrategy.COVERED_NEW -> CoveredNewStatesCollector<JcState>(coverageStatistics) {
+                StateCollectionStrategy.COVERED_NEW -> CoveredNewStatesCollector(coverageStatistics) {
                     it.methodResult is JcMethodResult.JcException
                 }
 
