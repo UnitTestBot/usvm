@@ -36,7 +36,7 @@ private val logger = KotlinLogging.logger {}
 
 class TsMachine(
     private val scene: EtsScene,
-    private val options: UMachineOptions,
+    override val options: UMachineOptions,
     private val tsOptions: TsOptions,
     private val machineObserver: UMachineObserver<TsState>? = null,
     observer: TsInterpreterObserver? = null,

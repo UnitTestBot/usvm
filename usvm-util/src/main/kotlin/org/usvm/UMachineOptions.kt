@@ -259,4 +259,8 @@ data class UMachineOptions(
      * Limit loop iterations.
      * */
     val loopIterationLimit: Int? = null,
+    /**
+     * If set to false, exception will be suppressed and the failed state will be killed.
+     * */
+    val throwExceptionOnStepFailure: Boolean = false,
 )
