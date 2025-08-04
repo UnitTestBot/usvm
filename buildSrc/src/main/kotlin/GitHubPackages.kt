@@ -24,8 +24,8 @@ fun RepositoryHandler.githubPackages(
         name = "GitHubPackages"
         url = uri("https://maven.pkg.github.com/$repo")
         credentials {
-            username = findProperty("gpr.user") as String? ?: System.getenv("USERNAME")
-            password = findProperty("gpr.key") as String? ?: System.getenv("TOKEN")
+            username = findProperty("gpr.user") as String? ?: System.getenv("GITHUB_ACTOR")
+            password = findProperty("gpr.key") as String? ?: System.getenv("GITHUB_TOKEN")
         }
         setup()
     }
