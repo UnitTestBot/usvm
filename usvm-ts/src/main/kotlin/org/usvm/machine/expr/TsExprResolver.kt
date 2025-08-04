@@ -1371,7 +1371,7 @@ class TsExprResolver(
 
     override fun visit(value: EtsClosureFieldRef): UExpr<out USort>? = with(ctx) {
         val obj = resolve(value.base) ?: return null
-        check(isStaticHeapRef(obj)) {
+        check(isAllocatedConcreteHeapRef(obj)) {
             "Closure object should be a concrete heap reference, but got $obj"
         }
 
@@ -1490,8 +1490,7 @@ class TsSimpleValueResolver(
                 }
                 val type = local.type
                 check(type is EtsLexicalEnvType)
-                // val obj = scope.calcOnState { memory.allocConcrete(type) }
-                val obj = mkConcreteHeapRef(addressCounter.freshStaticAddress())
+                val obj = allocateConcreteRef()
                 for (captured in type.closures) {
                     val resolvedCaptured = resolveLocal(captured)
                     val lValue = mkFieldLValue(resolvedCaptured.sort, obj, captured.name)
