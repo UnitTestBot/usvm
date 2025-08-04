@@ -11,10 +11,9 @@ group = "org.usvm"
 
 repositories {
     mavenCentral()
+    githubPackages(project, "UnitTestBot/jacodb")
     maven("https://jitpack.io")
 }
-
-setupJacodbGitHubPackagesRepository()
 
 dependencies {
     // Align versions of all Kotlin components
