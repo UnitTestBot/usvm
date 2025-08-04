@@ -28,10 +28,9 @@ tasks {
 
 repositories {
     mavenCentral()
+    githubPackages(project, "UnitTestBot/jacodb")
     maven("https://jitpack.io")
 }
-
-setupJacodbGitHubPackagesRepository()
 
 dependencies {
     compileOnly(Libs.jacodb_api_jvm)
