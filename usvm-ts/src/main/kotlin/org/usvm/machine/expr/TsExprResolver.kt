@@ -415,9 +415,8 @@ class TsExprResolver(
 
             val args: MutableList<UExpr<*>> = mutableListOf()
 
-            // 'this':
-            // args += mkUndefinedValue()
-            args += mkConcreteHeapRef(addressCounter.freshStaticAddress())
+            // Executor lambda does not have 'this', so we fill it with 'undefined':
+            args += mkUndefinedValue()
 
             val params = executor.parameters.toMutableList()
             if (params.isNotEmpty() && params[0].type is EtsLexicalEnvType) {
