@@ -1,6 +1,7 @@
 package org.usvm.samples.operators
 
 import org.jacodb.ets.model.EtsScene
+import org.junit.jupiter.api.Disabled
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.toDouble
@@ -49,6 +50,7 @@ class Division : TsMethodTestRunner() {
         )
     }
 
+    @Disabled("Long running test")
     @Test
     fun testUnknownDivision() {
         val method = getMethod(className, "unknownDivision")

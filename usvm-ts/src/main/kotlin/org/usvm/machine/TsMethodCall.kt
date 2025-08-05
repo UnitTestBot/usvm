@@ -7,7 +7,7 @@ import org.jacodb.ets.model.EtsStmtLocation
 import org.usvm.UExpr
 
 sealed interface TsMethodCall : EtsStmt {
-    val instance: UExpr<*>?
+    val instance: UExpr<*>
     val args: List<UExpr<*>>
     val returnSite: EtsStmt
 
@@ -21,7 +21,7 @@ sealed interface TsMethodCall : EtsStmt {
 
 class TsVirtualMethodCallStmt(
     val callee: EtsMethodSignature,
-    override val instance: UExpr<*>?,
+    override val instance: UExpr<*>,
     override val args: List<UExpr<*>>,
     override val returnSite: EtsStmt,
 ) : TsMethodCall {
@@ -38,7 +38,7 @@ class TsVirtualMethodCallStmt(
 //  and not wrapped in array (if calling a vararg method)
 class TsConcreteMethodCallStmt(
     val callee: EtsMethod,
-    override val instance: UExpr<*>?,
+    override val instance: UExpr<*>,
     override val args: List<UExpr<*>>,
     override val returnSite: EtsStmt,
 ) : TsMethodCall {

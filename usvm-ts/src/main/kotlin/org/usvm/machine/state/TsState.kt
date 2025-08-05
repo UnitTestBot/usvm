@@ -13,8 +13,10 @@ import org.usvm.PathNode
 import org.usvm.UCallStack
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.UState
+import org.usvm.api.allocateConcreteRef
 import org.usvm.api.targets.TsTarget
 import org.usvm.collections.immutable.getOrPut
 import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHashMap
@@ -23,6 +25,7 @@ import org.usvm.collections.immutable.persistentHashMapOf
 import org.usvm.constraints.UPathConstraints
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.PromiseState
+import org.usvm.machine.interpreter.TsFunction
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase
@@ -55,8 +58,12 @@ class TsState(
     val addedArtificialLocals: MutableSet<String> = hashSetOf(),
     val lValuesToAllocatedFakeObjects: MutableList<Pair<ULValue<*, *>, UConcreteHeapRef>> = mutableListOf(),
     var discoveredCallees: UPersistentHashMap<Pair<EtsStmt, Int>, EtsBlockCfg> = persistentHashMapOf(),
-    var promiseStates: UPersistentHashMap<UConcreteHeapRef, PromiseState> = persistentHashMapOf(),
-    var promiseExecutors: UPersistentHashMap<UConcreteHeapRef, EtsMethod> = persistentHashMapOf(),
+    var promiseState: UPersistentHashMap<UConcreteHeapRef, PromiseState> = persistentHashMapOf(),
+    var promiseExecutor: UPersistentHashMap<UConcreteHeapRef, EtsMethod> = persistentHashMapOf(),
+    var methodToRef: UPersistentHashMap<EtsMethod, UConcreteHeapRef> = persistentHashMapOf(),
+    var associatedFunction: UPersistentHashMap<UConcreteHeapRef, TsFunction> = persistentHashMapOf(),
+    var closureObject: UPersistentHashMap<String, UConcreteHeapRef> = persistentHashMapOf(),
+    var boundThis: UPersistentHashMap<UConcreteHeapRef, UHeapRef> = persistentHashMapOf(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
     ctx = ctx,
     initOwnership = ownership,
@@ -120,18 +127,18 @@ class TsState(
 
         // Note: first, push an empty map, then fill the arguments, and then the instance (this)
         pushLocalToSortStack()
-        argSorts.forEachIndexed { index, sort ->
-            saveSortForLocal(index, sort)
+        instanceSort?.let { saveSortForLocal(0, it) }
+        argSorts.forEachIndexed { i, sort ->
+            val idx = i + 1 // + 1 because 0 is reserved for `this`
+            saveSortForLocal(idx, sort)
         }
-        instanceSort?.let { saveSortForLocal(args.size, it) }
     }
 
     fun pushSortsForActualArguments(
         arguments: List<UExpr<*>>,
     ) {
         pushLocalToSortStack()
-        arguments.forEachIndexed { index, arg ->
-            val idx = index
+        arguments.forEachIndexed { idx, arg ->
             saveSortForLocal(idx, arg.sort)
         }
     }
@@ -148,14 +155,38 @@ class TsState(
         promise: UConcreteHeapRef,
         state: PromiseState,
     ) {
-        promiseStates = promiseStates.put(promise, state, ownership)
+        promiseState = promiseState.put(promise, state, ownership)
     }
 
     fun setPromiseExecutor(
         promise: UConcreteHeapRef,
         method: EtsMethod,
     ) {
-        promiseExecutors = promiseExecutors.put(promise, method, ownership)
+        promiseExecutor = promiseExecutor.put(promise, method, ownership)
+    }
+
+    fun getMethodRef(
+        method: EtsMethod,
+        thisInstance: UHeapRef? = null,
+    ): UConcreteHeapRef {
+        val (updated, result) = methodToRef.getOrPut(method, ownership) { ctx.allocateConcreteRef() }
+        associatedFunction = associatedFunction.put(result, TsFunction(method, thisInstance), ownership)
+        methodToRef = updated
+        return result
+    }
+
+    fun setClosureObject(
+        name: String,
+        closure: UConcreteHeapRef,
+    ) {
+        closureObject = closureObject.put(name, closure, ownership)
+    }
+
+    fun setBoundThis(
+        instance: UConcreteHeapRef,
+        thisRef: UHeapRef,
+    ) {
+        boundThis = boundThis.put(instance, thisRef, ownership)
     }
 
     override fun clone(newConstraints: UPathConstraints<EtsType>?): TsState {
@@ -185,8 +216,11 @@ class TsState(
             addedArtificialLocals = addedArtificialLocals,
             lValuesToAllocatedFakeObjects = lValuesToAllocatedFakeObjects.toMutableList(),
             discoveredCallees = discoveredCallees,
-            promiseStates = promiseStates,
-            promiseExecutors = promiseExecutors,
+            promiseState = promiseState,
+            promiseExecutor = promiseExecutor,
+            methodToRef = methodToRef,
+            associatedFunction = associatedFunction,
+            closureObject = closureObject,
         )
     }
 

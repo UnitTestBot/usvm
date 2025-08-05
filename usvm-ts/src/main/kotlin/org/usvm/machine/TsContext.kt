@@ -58,11 +58,16 @@ class TsContext(
     val voidSort: TsVoidSort by lazy { TsVoidSort(this) }
     val voidValue: TsVoidValue by lazy { TsVoidValue(this) }
 
+    @Deprecated("Use mkUndefinedValue() or mkTsNullValue() instead")
+    override fun mkNullRef(): Nothing {
+        error("Use mkUndefinedValue() or mkTsNullValue() instead of mkNullRef() in TS context")
+    }
+
     /**
      * In TS we treat undefined value as a null reference in other objects.
      * For real null represented in the language we create another reference.
      */
-    private val undefinedValue: UHeapRef = mkNullRef()
+    private val undefinedValue: UHeapRef = nullRef
     fun mkUndefinedValue(): UHeapRef = undefinedValue
 
     private val nullValue: UConcreteHeapRef = mkConcreteHeapRef(addressCounter.freshStaticAddress())
@@ -181,7 +186,7 @@ class TsContext(
     }
 
     fun createFakeObjectRef(): UConcreteHeapRef {
-        val address = mkAddressCounter().freshAllocatedAddress() + MAGIC_OFFSET
+        val address = addressCounter.freshAllocatedAddress() + MAGIC_OFFSET
         return mkConcreteHeapRef(address)
     }
 
@@ -263,6 +268,14 @@ class TsContext(
             ref
         }
     }
+
+    // This is an identifier for a special function representing the 'resolve' function used in promises.
+    // It is not a real function in the code, but we need it to handle promise resolution.
+    val resolveFunctionRef: UConcreteHeapRef = allocateConcreteRef()
+
+    // This is an identifier for a special function representing the 'reject' function used in promises.
+    // It is not a real function in the code, but we need it to handle promise rejection.
+    val rejectFunctionRef: UConcreteHeapRef = allocateConcreteRef()
 }
 
 class Constants {

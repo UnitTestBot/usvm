@@ -16,7 +16,7 @@ fun TsContext.resolveEtsField(
     instance: EtsLocal?,
     field: EtsFieldSignature,
     hierarchy: EtsHierarchy,
-): EtsPropertyResolution<EtsField> {
+): TsResolutionResult<EtsField> {
     // Perfect signature:
     if (field.enclosingClass.name != UNKNOWN_CLASS_NAME) {
         val classes = hierarchy.classesForType(EtsClassType(field.enclosingClass))
@@ -29,7 +29,7 @@ fun TsContext.resolveEtsField(
         val clazz = classes.single()
         val fields = clazz.getAllFields(hierarchy).filter { it.name == field.name }
         if (fields.size == 1) {
-            return EtsPropertyResolution.create(fields.single())
+            return TsResolutionResult.create(fields.single())
         }
     }
 
@@ -39,12 +39,12 @@ fun TsContext.resolveEtsField(
         when (instanceType) {
             is EtsClassType -> {
                 val field = tryGetSingleField(scene, instanceType.signature.name, field.name, hierarchy)
-                if (field != null) return EtsPropertyResolution.create(field)
+                if (field != null) return TsResolutionResult.create(field)
             }
 
             is EtsUnclearRefType -> {
                 val field = tryGetSingleField(scene, instanceType.typeName, field.name, hierarchy)
-                if (field != null) return EtsPropertyResolution.create(field)
+                if (field != null) return TsResolutionResult.create(field)
             }
         }
     }
@@ -53,7 +53,7 @@ fun TsContext.resolveEtsField(
         cls.getAllFields(hierarchy).filter { it.name == field.name }
     }
 
-    return EtsPropertyResolution.create(fields)
+    return TsResolutionResult.create(fields)
 }
 
 private fun tryGetSingleField(
@@ -116,15 +116,15 @@ fun EtsClass.getAllProperties(hierarchy: EtsHierarchy): Pair<Set<EtsFieldName>, 
     return allFields to allMethods
 }
 
-sealed class EtsPropertyResolution<out T> {
-    data class Unique<T>(val property: T) : EtsPropertyResolution<T>()
-    data class Ambiguous<T>(val properties: List<T>) : EtsPropertyResolution<T>()
-    data object Empty : EtsPropertyResolution<Nothing>()
+sealed class TsResolutionResult<out T> {
+    data class Unique<T>(val property: T) : TsResolutionResult<T>()
+    data class Ambiguous<T>(val properties: List<T>) : TsResolutionResult<T>()
+    data object Empty : TsResolutionResult<Nothing>()
 
     companion object {
         fun <T> create(property: T) = Unique(property)
 
-        fun <T> create(properties: List<T>): EtsPropertyResolution<T> {
+        fun <T> create(properties: List<T>): TsResolutionResult<T> {
             return when {
                 properties.isEmpty() -> Empty
                 properties.size == 1 -> Unique(properties.single())

@@ -164,6 +164,87 @@ class Call {
         let x: A = makeA();
         return x.foo(); // 20 (!!!) from B::foo
     }
+
+    callLambda(): number {
+        const f = () => 42;
+        return f();
+    }
+
+    callClosureCapturingLocal(): number {
+        const x = 42;
+        const f = () => x;
+        return f();
+    }
+
+    callClosureCapturingArguments(a: boolean, b: boolean): number {
+        const f = () => a && b;
+        const res = f();
+        if (res) {
+            return 1;
+        } else {
+            return 2;
+        }
+    }
+
+    callNestedLambda(): number {
+        const f = () => {
+            const g = () => 42;
+            return g();
+        };
+        return f();
+    }
+
+    callNestedClosureCapturingOuterLocal(): number {
+        const x = 42;
+        const f = () => {
+            const g = () => x;
+            return g();
+        };
+        return f();
+    }
+
+    callNestedClosureCapturingInnerLocal(): number {
+        const f = () => {
+            const x = 42;
+            const g = () => x;
+            return g();
+        };
+        return f();
+    }
+
+    callNestedClosureCapturingLocalAndArgument(a: boolean): number {
+        const b = true;
+        const f = () => {
+            const g = () => a && b;
+            return g();
+        };
+        const res = f();
+        if (res) {
+            return 1;
+        } else {
+            return 2;
+        }
+    }
+
+    callClosureCapturingMutableLocal(): number {
+        let x = 42;
+        const f = () => {
+            x += 100;
+            return x + 5;
+        };
+        x = 20;
+        return f() + x; // (20+100+5) + (20+100) = 245
+    }
+
+    callClosureMutatingCapturedLocal(): number {
+        let x = 42;
+        const f= () => {
+            x += 100;
+        };
+        x = 20;
+        f();
+        return x; // 120
+    }
 }
 
 class A {

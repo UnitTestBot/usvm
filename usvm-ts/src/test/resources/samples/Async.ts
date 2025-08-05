@@ -2,19 +2,14 @@
 // noinspection JSUnusedGlobalSymbols
 
 class Async {
-    createAndAwaitPromise(): number {
+    awaitResolvingPromise(): number {
         const promise = new Promise((resolve) => {
             resolve(42);
         });
-        const resolved = await promise;
-        if (resolved == 42) {
-            return 1;
-        } else {
-            return -1; // unreachable
-        }
+        return await promise; // 42
     }
 
-    createAndAwaitRejectingPromise(): number {
+    awaitRejectingPromise() {
         const promise = new Promise((resolve, reject) => {
             reject(new Error("An error occurred"));
         });
@@ -22,11 +17,11 @@ class Async {
     }
 
     awaitResolvedPromise(): number {
-        const promise = Promise.resolve(50);
-        return await promise; // 50
+        const promise = Promise.resolve(42);
+        return await promise; // 42
     }
 
-    awaitRejectedPromise(): number {
+    awaitRejectedPromise() {
         const promise = Promise.reject(new Error("An error occurred"));
         await promise; // exception
     }
