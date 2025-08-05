@@ -269,13 +269,13 @@ class TsContext(
         }
     }
 
-    // This is a special function that resolves promises in the interpreter.
+    // This is an identifier for a special function representing the 'resolve' function used in promises.
     // It is not a real function in the code, but we need it to handle promise resolution.
-    val resolveFunctionRef: UConcreteHeapRef = mkConcreteHeapRef(addressCounter.freshStaticAddress())
+    val resolveFunctionRef: UConcreteHeapRef = allocateConcreteRef()
 
-    // This is a special function that rejects promises in the interpreter.
+    // This is an identifier for a special function representing the 'reject' function used in promises.
     // It is not a real function in the code, but we need it to handle promise rejection.
-    val rejectFunctionRef: UConcreteHeapRef = mkConcreteHeapRef(addressCounter.freshStaticAddress())
+    val rejectFunctionRef: UConcreteHeapRef = allocateConcreteRef()
 }
 
 class Constants {

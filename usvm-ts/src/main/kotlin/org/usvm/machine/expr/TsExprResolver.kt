@@ -977,7 +977,7 @@ class TsExprResolver(
             is TsMethodResult.NoCall -> {
                 val ptr = resolve(expr.ptr) ?: return null
 
-                if (isStaticHeapRef(ptr)) {
+                if (isAllocatedConcreteHeapRef(ptr)) {
                     // Handle 'resolve' and 'reject' function call
                     if (ptr === resolveFunctionRef || ptr === rejectFunctionRef) {
                         val promise = scope.calcOnState {
