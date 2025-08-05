@@ -878,66 +878,38 @@ class TsExprResolver(
             return handleBooleanConverter(expr)
         }
 
-        return when (val result = scope.calcOnState { methodResult }) {
-            is TsMethodResult.Success -> {
-                scope.doWithState { methodResult = TsMethodResult.NoCall }
-                result.value
+        val result = scope.calcOnState { methodResult }
+
+        if (result is TsMethodResult.Success) {
+            scope.doWithState { methodResult = TsMethodResult.NoCall }
+            return result.value
+        }
+
+        if (result is TsMethodResult.TsException) {
+            error("Exception should be handled earlier")
+        }
+
+        check(result is TsMethodResult.NoCall)
+
+        when (val resolved = resolveStaticMethod(expr.callee)) {
+            is TsResolutionResult.Empty -> {
+                logger.error { "Could not resolve static call: ${expr.callee}" }
+                scope.assert(falseExpr)
             }
 
-            is TsMethodResult.TsException -> {
-                error("Exception should be handled earlier")
+            is TsResolutionResult.Ambiguous -> {
+                processAmbiguousStaticMethod(resolved, expr)
             }
 
-            is TsMethodResult.NoCall -> {
-                when (val resolved = resolveStaticMethod(expr.callee)) {
-                    TsResolutionResult.Empty -> {
-                        logger.error { "Could not resolve static call: ${expr.callee}" }
-                        scope.assert(falseExpr)
-                    }
-
-                    // Static virtual call
-                    is TsResolutionResult.Ambiguous -> {
-                        val resolvedArgs = expr.args.map { resolve(it) ?: return null }
-                        val staticProperties = resolved.properties.take(Constants.STATIC_METHODS_FORK_LIMIT)
-                        val staticInstances = scope.calcOnState {
-                            staticProperties.map { getStaticInstance(it.enclosingClass!!) }
-                        }
-                        val concreteCalls = staticProperties.mapIndexed { index, value ->
-                            TsConcreteMethodCallStmt(
-                                callee = value,
-                                instance = staticInstances[index],
-                                args = resolvedArgs,
-                                returnSite = scope.calcOnState { lastStmt }
-                            )
-                        }
-                        val blocks: List<Pair<UBoolExpr, TsState.() -> Unit>> = concreteCalls.map { stmt ->
-                            mkTrue() to { newStmt(stmt) }
-                        }
-                        scope.forkMulti(blocks)
-                    }
-
-                    is TsResolutionResult.Unique -> {
-                        val instance = scope.calcOnState {
-                            getStaticInstance(resolved.property.enclosingClass!!)
-                        }
-                        val args = expr.args.map { resolve(it) ?: return null }
-                        val concreteCall = TsConcreteMethodCallStmt(
-                            callee = resolved.property,
-                            instance = instance,
-                            args = args,
-                            returnSite = scope.calcOnState { lastStmt },
-                        )
-                        scope.doWithState { newStmt(concreteCall) }
-                    }
-                }
-                null
+            is TsResolutionResult.Unique -> {
+                processUniqueStaticMethod(resolved, expr)
             }
         }
+
+        null
     }
 
-    private fun resolveStaticMethod(
-        method: EtsMethodSignature,
-    ): TsResolutionResult<EtsMethod> {
+    private fun resolveStaticMethod(method: EtsMethodSignature): TsResolutionResult<EtsMethod> {
         // Perfect signature:
         if (method.enclosingClass.name != UNKNOWN_CLASS_NAME) {
             val classes = hierarchy.classesForType(EtsClassType(method.enclosingClass))
@@ -959,6 +931,46 @@ class TsExprResolver(
             .filter { it.name == method.name }
 
         return TsResolutionResult.create(methods)
+    }
+
+    private fun processAmbiguousStaticMethod(
+        resolved: TsResolutionResult.Ambiguous<EtsMethod>,
+        expr: EtsStaticCallExpr,
+    ) = with(ctx) {
+        val resolvedArgs = expr.args.map { resolve(it) ?: return }
+        val staticProperties = resolved.properties.take(Constants.STATIC_METHODS_FORK_LIMIT)
+        val staticInstances = scope.calcOnState {
+            staticProperties.map { getStaticInstance(it.enclosingClass!!) }
+        }
+        val concreteCalls = staticProperties.mapIndexed { index, value ->
+            TsConcreteMethodCallStmt(
+                callee = value,
+                instance = staticInstances[index],
+                args = resolvedArgs,
+                returnSite = scope.calcOnState { lastStmt }
+            )
+        }
+        val blocks: List<Pair<UBoolExpr, TsState.() -> Unit>> = concreteCalls.map { stmt ->
+            mkTrue() to { newStmt(stmt) }
+        }
+        scope.forkMulti(blocks)
+    }
+
+    private fun processUniqueStaticMethod(
+        resolved: TsResolutionResult.Unique<EtsMethod>,
+        expr: EtsStaticCallExpr,
+    ) = with(ctx) {
+        val instance = scope.calcOnState {
+            getStaticInstance(resolved.property.enclosingClass!!)
+        }
+        val args = expr.args.map { resolve(it) ?: return }
+        val concreteCall = TsConcreteMethodCallStmt(
+            callee = resolved.property,
+            instance = instance,
+            args = args,
+            returnSite = scope.calcOnState { lastStmt },
+        )
+        scope.doWithState { newStmt(concreteCall) }
     }
 
     override fun visit(expr: EtsPtrCallExpr): UExpr<out USort>? = with(ctx) {
