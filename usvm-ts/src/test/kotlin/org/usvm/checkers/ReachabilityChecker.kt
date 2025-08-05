@@ -24,7 +24,7 @@ class ReachabilityChecker {
         pathSelectionStrategies = listOf(PathSelectionStrategy.TARGETED),
         timeout = 15000000.seconds
     )
-    val tsOptions = TsOptions(enableVisualization = true)
+    val tsOptions = TsOptions()
 
     @Test
     fun runReachabilityCheck() {
