@@ -55,19 +55,18 @@ findProject(":usvm-python:usvm-python-commons")?.name = "usvm-python-commons"
 // Actually, `includeBuild("../jacodb")` is enough, but there is a bug in IDEA when path is a symlink.
 // As a workaround, we convert it to a real absolute path.
 // See IDEA bug: https://youtrack.jetbrains.com/issue/IDEA-329756
-
-val jacodbPath = file("jacodb").takeIf { it.exists() }
-    ?: file("../jacodb").takeIf { it.exists() }
-    ?: error("Local JacoDB directory not found")
-includeBuild(jacodbPath.toPath().toRealPath().toAbsolutePath()) {
-    dependencySubstitution {
-        all {
-            val requested = requested
-            if (requested is ModuleComponentSelector && requested.group == "com.github.UnitTestBot.jacodb") {
-                val targetProject = ":${requested.module}"
-                useTarget(project(targetProject))
-                logger.info("Substituting ${requested.group}:${requested.module} with $targetProject")
-            }
-        }
-    }
-}
+// val jacodbPath = file("jacodb").takeIf { it.exists() }
+//     ?: file("../jacodb").takeIf { it.exists() }
+//     ?: error("Local JacoDB directory not found")
+// includeBuild(jacodbPath.toPath().toRealPath().toAbsolutePath()) {
+//     dependencySubstitution {
+//         all {
+//             val requested = requested
+//             if (requested is ModuleComponentSelector && requested.group == "com.github.UnitTestBot.jacodb") {
+//                 val targetProject = ":${requested.module}"
+//                 useTarget(project(targetProject))
+//                 logger.info("Substituting ${requested.group}:${requested.module} with $targetProject")
+//             }
+//         }
+//     }
+// }
