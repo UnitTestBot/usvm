@@ -936,7 +936,7 @@ class TsExprResolver(
     private fun processAmbiguousStaticMethod(
         resolved: TsResolutionResult.Ambiguous<EtsMethod>,
         expr: EtsStaticCallExpr,
-    ) = with(ctx) {
+    ) {
         val resolvedArgs = expr.args.map { resolve(it) ?: return }
         val staticProperties = resolved.properties.take(Constants.STATIC_METHODS_FORK_LIMIT)
         val staticInstances = scope.calcOnState {
@@ -951,7 +951,7 @@ class TsExprResolver(
             )
         }
         val blocks: List<Pair<UBoolExpr, TsState.() -> Unit>> = concreteCalls.map { stmt ->
-            mkTrue() to { newStmt(stmt) }
+            ctx.mkTrue() to { newStmt(stmt) }
         }
         scope.forkMulti(blocks)
     }
@@ -959,7 +959,7 @@ class TsExprResolver(
     private fun processUniqueStaticMethod(
         resolved: TsResolutionResult.Unique<EtsMethod>,
         expr: EtsStaticCallExpr,
-    ) = with(ctx) {
+    ) {
         val instance = scope.calcOnState {
             getStaticInstance(resolved.property.enclosingClass!!)
         }
