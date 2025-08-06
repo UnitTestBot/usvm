@@ -24,6 +24,13 @@ jobs:
           java-version: ${{ env.JAVA }}
           distribution: ${{ env.JAVA_DISTRIBUTION }}
 
+      - name: Checkout local jacodb
+        uses: actions/checkout@v4
+        with:
+          repository: UnitTestBot/jacodb
+          ref: lipen/dev
+          path: jacodb
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
@@ -50,6 +57,13 @@ jobs:
         with:
           java-version: ${{ env.JAVA }}
           distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Checkout local jacodb
+        uses: actions/checkout@v4
+        with:
+          repository: UnitTestBot/jacodb
+          ref: lipen/dev
+          path: jacodb
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -79,6 +93,13 @@ jobs:
         with:
           java-version: ${{ env.JAVA }}
           distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Checkout local jacodb
+        uses: actions/checkout@v4
+        with:
+          repository: UnitTestBot/jacodb
+          ref: lipen/dev
+          path: jacodb
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -112,6 +133,13 @@ jobs:
         with:
           java-version: ${{ env.JAVA }}
           distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Checkout local jacodb
+        uses: actions/checkout@v4
+        with:
+          repository: UnitTestBot/jacodb
+          ref: lipen/dev
+          path: jacodb
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -173,6 +201,13 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
+
+      - name: Checkout local jacodb
+        uses: actions/checkout@v4
+        with:
+          repository: UnitTestBot/jacodb
+          ref: lipen/dev
+          path: jacodb
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
