@@ -149,3 +149,36 @@ fun TsContext.mkNumericExpr(
         )
     )
 }
+
+fun TsContext.mkNullishExpr(
+    expr: UExpr<out USort>,
+    scope: TsStepScope,
+): UBoolExpr {
+    // Handle fake objects specially
+    if (expr.isFakeObject()) {
+        val fakeType = expr.getFakeType(scope)
+        val ref = expr.extractRef(scope)
+        // Only check for nullish if the fake object represents a reference type.
+        // If it represents a primitive type (bool/number), it's never nullish.
+        return mkIte(
+            condition = fakeType.refTypeExpr,
+            trueBranch = mkOr(
+                mkHeapRefEq(ref, mkTsNullValue()),
+                mkHeapRefEq(ref, mkUndefinedValue())
+            ),
+            falseBranch = mkFalse(),
+        )
+    }
+
+    // Regular reference is nullish if it is either null or undefined
+    if (expr.sort == addressSort) {
+        val ref = expr.asExpr(addressSort)
+        return mkOr(
+            mkHeapRefEq(ref, mkTsNullValue()),
+            mkHeapRefEq(ref, mkUndefinedValue())
+        )
+    }
+
+    // Non-reference types (numbers, booleans, strings) are never nullish
+    return mkFalse()
+}

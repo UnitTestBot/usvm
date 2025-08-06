@@ -2,16 +2,17 @@ package org.usvm.samples.types
 
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
+import org.usvm.util.eq
 import kotlin.test.Test
 
 class StructuralEquality : TsMethodTestRunner() {
-    private val className = this::class.simpleName!!
+    private val tsPath = "/samples/types/StructuralEquality.ts"
 
-    override val scene = loadSampleScene(className, folderPrefix = "types")
+    override val scene = loadScene(tsPath)
 
     @Test
     fun `test structural equality`() {
-        val method = getMethod("Example", "testFunction")
+        val method = getMethod("testFunction")
         discoverProperties<TsTestValue.TsClass>(
             method = method,
             { r ->
@@ -25,7 +26,7 @@ class StructuralEquality : TsMethodTestRunner() {
 
                 val propertyValue = property.properties["x"] as TsTestValue.TsNumber
 
-                propertyValue.number == 11.0
+                propertyValue eq 11
             }
         )
     }

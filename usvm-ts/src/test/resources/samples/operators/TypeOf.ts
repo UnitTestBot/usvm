@@ -1,7 +1,7 @@
 // @ts-nocheck
 // noinspection JSUnusedGlobalSymbols
 
-class Strings {
+class TypeOf {
     typeOfString(): string {
         let x = "hello";
         return typeof x; // "string"

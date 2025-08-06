@@ -1,4 +1,4 @@
-package org.usvm.samples
+package org.usvm.samples.lang
 
 import org.jacodb.ets.model.EtsScene
 import org.usvm.api.TsTestValue
@@ -7,48 +7,55 @@ import org.usvm.util.eq
 import kotlin.test.Test
 
 class Async : TsMethodTestRunner() {
+    private val tsPath = "/samples/lang/Async.ts"
 
-    private val className = this::class.simpleName!!
-
-    override val scene: EtsScene = loadSampleScene(className)
+    override val scene: EtsScene = loadScene(tsPath)
 
     @Test
     fun `await resolving promise`() {
-        val method = getMethod(className, "awaitResolvingPromise")
+        val method = getMethod("awaitResolvingPromise")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
+            { r -> r eq 1 },
             invariants = arrayOf(
-                { r -> r.number eq 42 },
+                { r -> r.number > 0 },
             )
         )
     }
 
     @Test
     fun `await rejecting promise`() {
-        val method = getMethod(className, "awaitRejectingPromise")
+        val method = getMethod("awaitRejectingPromise")
         discoverProperties<TsTestValue>(
             method = method,
             { r -> r is TsTestValue.TsException },
+            invariants = arrayOf(
+                { r -> r is TsTestValue.TsException },
+            )
         )
     }
 
     @Test
     fun `await resolved promise`() {
-        val method = getMethod(className, "awaitResolvedPromise")
+        val method = getMethod("awaitResolvedPromise")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
+            { r -> r eq 1 },
             invariants = arrayOf(
-                { r -> r.number eq 42 },
+                { r -> r.number > 0 }
             )
         )
     }
 
     @Test
     fun `await rejected promise`() {
-        val method = getMethod(className, "awaitRejectedPromise")
+        val method = getMethod("awaitRejectedPromise")
         discoverProperties<TsTestValue>(
             method = method,
             { r -> r is TsTestValue.TsException },
+            invariants = arrayOf(
+                { r -> r is TsTestValue.TsException },
+            )
         )
     }
 }

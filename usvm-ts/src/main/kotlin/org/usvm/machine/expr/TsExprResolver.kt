@@ -125,6 +125,7 @@ import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.types.EtsAuxiliaryType
+import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.sizeSort
 import org.usvm.types.first
@@ -253,9 +254,10 @@ class TsExprResolver(
         return resolveUnaryOperator(TsUnaryOperator.Neg, expr)
     }
 
-    override fun visit(expr: EtsUnaryPlusExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsUnaryPlusExpr): UExpr<out USort>? = with(ctx) {
+        // Unary plus converts its operand to a number
+        val arg = resolve(expr.arg) ?: return null
+        return mkNumericExpr(arg, scope)
     }
 
     override fun visit(expr: EtsPostIncExpr): UExpr<out USort>? {
@@ -278,9 +280,26 @@ class TsExprResolver(
         error("Not supported $expr")
     }
 
-    override fun visit(expr: EtsBitNotExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsBitNotExpr): UExpr<out USort>? = with(ctx) {
+        // Bitwise NOT: converts operand to 32-bit signed integer and inverts all bits
+        val arg = resolve(expr.arg) ?: return null
+        val numericArg = mkNumericExpr(arg, scope)
+
+        // Convert to 32-bit integer, perform bitwise NOT, then convert back to number
+        val bvArg = mkFpToBvExpr(
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = numericArg.asExpr(fp64Sort),
+            bvSize = 32,
+            isSigned = true
+        )
+        val notResult = mkBvNotExpr(bvArg)
+
+        return mkBvToFpExpr(
+            fp64Sort,
+            fpRoundingModeSortDefaultValue(),
+            notResult,
+            signed = true
+        )
     }
 
     override fun visit(expr: EtsCastExpr): UExpr<*>? = with(ctx) {
@@ -375,14 +394,43 @@ class TsExprResolver(
         error("Not supported $expr")
     }
 
-    override fun visit(expr: EtsDeleteExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsDeleteExpr): UExpr<out USort>? = with(ctx) {
+        // The delete operator removes a property from an object and returns true/false
+        // For property access like "delete obj.prop", we need to handle EtsInstanceFieldRef
+        when (val operand = expr.arg) {
+            is EtsInstanceFieldRef -> {
+                val instance = resolve(operand.instance)?.asExpr(addressSort) ?: return null
+
+                // Check for null/undefined access
+                checkUndefinedOrNullPropertyRead(instance) ?: return null
+
+                // For now, we simulate deletion by setting the property to undefined
+                // This is a simplification of the real semantics but sufficient for basic cases
+                // TODO: This is incorrect for cases that the existing field is not of sort Address.
+                //       In such case, the "overwriting" the field value with undefined does nothing
+                //       to the actual number/boolean/string value inside the field,
+                //       [if only we read the field using that "other" sort].
+                val fieldLValue = mkFieldLValue(addressSort, instance, operand.field)
+                scope.doWithState {
+                    memory.write(fieldLValue, mkUndefinedValue(), guard = trueExpr)
+                }
+
+                // The delete operator returns true in most cases for property deletion
+                mkTrue()
+            }
+
+            else -> {
+                // For other operands (like variables), delete typically returns true without effect
+                resolve(operand) ?: return null // Evaluate for potential side effects
+                mkTrue()
+            }
+        }
     }
 
-    override fun visit(expr: EtsVoidExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsVoidExpr): UExpr<out USort>? = with(ctx) {
+        // The void operator evaluates its operand for side effects and returns undefined.
+        resolve(expr.arg) ?: return null
+        return mkUndefinedValue()
     }
 
     override fun visit(expr: EtsAwaitExpr): UExpr<out USort>? = with(ctx) {
@@ -390,6 +438,10 @@ class TsExprResolver(
 
         // Awaiting primitives does nothing.
         if (arg.sort != addressSort) {
+            return arg
+        }
+        // ...including null/undefined
+        if (arg == mkTsNullValue() || arg == mkUndefinedValue()) {
             return arg
         }
 
@@ -531,39 +583,123 @@ class TsExprResolver(
         error("Not supported $expr")
     }
 
-    override fun visit(expr: EtsBitAndExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsBitAndExpr): UExpr<out USort>? = with(ctx) {
+        val left = resolve(expr.left) ?: return null
+        val right = resolve(expr.right) ?: return null
+
+        val leftNum = mkNumericExpr(left, scope)
+        val rightNum = mkNumericExpr(right, scope)
+
+        // Convert to 32-bit integers, perform bitwise AND, then convert back
+        val leftBv = mkFpToBvExpr(fpRoundingModeSortDefaultValue(), leftNum.asExpr(fp64Sort), 32, true)
+        val rightBv = mkFpToBvExpr(fpRoundingModeSortDefaultValue(), rightNum.asExpr(fp64Sort), 32, true)
+        val result = mkBvAndExpr(leftBv, rightBv)
+
+        return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), result, signed = true)
     }
 
-    override fun visit(expr: EtsBitOrExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsBitOrExpr): UExpr<out USort>? = with(ctx) {
+        val left = resolve(expr.left) ?: return null
+        val right = resolve(expr.right) ?: return null
+
+        val leftNum = mkNumericExpr(left, scope)
+        val rightNum = mkNumericExpr(right, scope)
+
+        // Convert to 32-bit integers, perform bitwise OR, then convert back
+        val leftBv = mkFpToBvExpr(fpRoundingModeSortDefaultValue(), leftNum.asExpr(fp64Sort), 32, true)
+        val rightBv = mkFpToBvExpr(fpRoundingModeSortDefaultValue(), rightNum.asExpr(fp64Sort), 32, true)
+        val result = mkBvOrExpr(leftBv, rightBv)
+
+        return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), result, signed = true)
     }
 
-    override fun visit(expr: EtsBitXorExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsBitXorExpr): UExpr<out USort>? = with(ctx) {
+        val left = resolve(expr.left) ?: return null
+        val right = resolve(expr.right) ?: return null
+
+        val leftNum = mkNumericExpr(left, scope)
+        val rightNum = mkNumericExpr(right, scope)
+
+        // Convert to 32-bit integers, perform bitwise XOR, then convert back
+        val leftBv = mkFpToBvExpr(fpRoundingModeSortDefaultValue(), leftNum.asExpr(fp64Sort), 32, true)
+        val rightBv = mkFpToBvExpr(fpRoundingModeSortDefaultValue(), rightNum.asExpr(fp64Sort), 32, true)
+        val result = mkBvXorExpr(leftBv, rightBv)
+
+        return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), result, signed = true)
     }
 
-    override fun visit(expr: EtsLeftShiftExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsLeftShiftExpr): UExpr<out USort>? = with(ctx) {
+        val left = resolve(expr.left) ?: return null
+        val right = resolve(expr.right) ?: return null
+
+        val leftNum = mkNumericExpr(left, scope)
+        val rightNum = mkNumericExpr(right, scope)
+
+        // Convert to 32-bit integers and perform left shift
+        val leftBv = mkFpToBvExpr(fpRoundingModeSortDefaultValue(), leftNum.asExpr(fp64Sort), 32, true)
+        val rightBv = mkFpToBvExpr(fpRoundingModeSortDefaultValue(), rightNum.asExpr(fp64Sort), 32, true)
+
+        // Mask the shift amount to 5 bits (0-31) as per JavaScript spec
+        val shiftAmount = mkBvAndExpr(rightBv, mkBv(0x1F, 32u))
+        val result = mkBvShiftLeftExpr(leftBv, shiftAmount)
+
+        return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), result, signed = true)
     }
 
-    override fun visit(expr: EtsRightShiftExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsRightShiftExpr): UExpr<out USort>? = with(ctx) {
+        val left = resolve(expr.left) ?: return null
+        val right = resolve(expr.right) ?: return null
+
+        val leftNum = mkNumericExpr(left, scope)
+        val rightNum = mkNumericExpr(right, scope)
+
+        // Convert to 32-bit integers and perform signed right shift
+        val leftBv = mkFpToBvExpr(fpRoundingModeSortDefaultValue(), leftNum.asExpr(fp64Sort), 32, true)
+        val rightBv = mkFpToBvExpr(fpRoundingModeSortDefaultValue(), rightNum.asExpr(fp64Sort), 32, true)
+
+        // Mask the shift amount to 5 bits (0-31)
+        val shiftAmount = mkBvAndExpr(rightBv, mkBv(0x1F, 32u))
+        val result = mkBvArithShiftRightExpr(leftBv, shiftAmount)
+
+        return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), result, signed = true)
     }
 
-    override fun visit(expr: EtsUnsignedRightShiftExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsUnsignedRightShiftExpr): UExpr<out USort>? = with(ctx) {
+        val left = resolve(expr.left) ?: return null
+        val right = resolve(expr.right) ?: return null
+
+        val leftNum = mkNumericExpr(left, scope)
+        val rightNum = mkNumericExpr(right, scope)
+
+        // Convert to 32-bit integers and perform unsigned right shift
+        val leftBv = mkFpToBvExpr(fpRoundingModeSortDefaultValue(), leftNum.asExpr(fp64Sort), 32, true)
+        val rightBv = mkFpToBvExpr(fpRoundingModeSortDefaultValue(), rightNum.asExpr(fp64Sort), 32, true)
+
+        // Mask the shift amount to 5 bits (0-31)
+        val shiftAmount = mkBvAndExpr(rightBv, mkBv(0x1F, 32u))
+        val result = mkBvLogicalShiftRightExpr(leftBv, shiftAmount)
+
+        return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), result, signed = false)
     }
 
-    override fun visit(expr: EtsNullishCoalescingExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsNullishCoalescingExpr): UExpr<out USort>? = with(ctx) {
+        val left = resolve(expr.left) ?: return null
+        val right = resolve(expr.right) ?: return null
+
+        val leftIsNullish = mkNullishExpr(left, scope)
+
+        // If both operands have the same sort, use mkIte directly
+        if (left.sort == right.sort) {
+            val commonSort = left.sort
+            return mkIte(
+                condition = leftIsNullish,
+                trueBranch = right.asExpr(commonSort),
+                falseBranch = left.asExpr(commonSort)
+            )
+        }
+
+        // If sorts differ, create a fake object that can hold either value
+        return iteWriteIntoFakeObject(scope, leftIsNullish, right, left)
     }
 
     // endregion
@@ -608,9 +744,25 @@ class TsExprResolver(
         return ctx.mkOr(eq.asExpr(ctx.boolSort), gt.asExpr(ctx.boolSort))
     }
 
-    override fun visit(expr: EtsInExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsInExpr): UExpr<out USort>? = with(ctx) {
+        val property = resolve(expr.left) ?: return null
+        val obj = resolve(expr.right)?.asExpr(addressSort) ?: return null
+
+        // Check for null/undefined access
+        checkUndefinedOrNullPropertyRead(obj) ?: return null
+
+        // For now, we simplify this by checking if the property name is a string
+        // and assume the property exists if we can resolve it
+        if (property.sort == addressSort) {
+            val propertyRef = property.asExpr(addressSort)
+
+            // Check if it's a string constant - for now just return true
+            // as implementing proper property existence checking requires more complex logic
+            mkTrue()
+        } else {
+            // For non-reference property names (like number indices), assume they might exist
+            mkTrue()
+        }
     }
 
     override fun visit(expr: EtsInstanceOfExpr): UExpr<out USort>? = with(ctx) {
@@ -663,6 +815,8 @@ class TsExprResolver(
 
                     resolved.asExpr(addressSort)
                 }
+
+                checkUndefinedOrNullPropertyRead(instance) ?: return null
 
                 val resolvedArgs = expr.args.map { resolve(it) ?: return null }
 

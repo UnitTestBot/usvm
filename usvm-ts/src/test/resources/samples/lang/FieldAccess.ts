@@ -1,15 +1,6 @@
 // @ts-nocheck
 // noinspection JSUnusedGlobalSymbols
 
-class SimpleClass {
-    x: any = 5;
-}
-
-class MultiFieldClass {
-    a = 1;
-    b = 2;
-}
-
 class FieldAccess {
     readDefaultField(): number {
         const obj = new SimpleClass();
@@ -55,8 +46,8 @@ class FieldAccess {
     }
 
     conditionalFieldAccess(a: SimpleClass): number {
-        if (a.x === 1.1) return 14;
-        return 10;
+        if (a.x === 1.1) return 1;
+        return 2;
     }
 
     nestedFieldAccess(): number {
@@ -99,4 +90,13 @@ class FieldAccess {
     private createObject(): { x: number } {
         return { x: 42 };
     }
+}
+
+class SimpleClass {
+    x: any = 5;
+}
+
+class MultiFieldClass {
+    a = 1;
+    b = 2;
 }
