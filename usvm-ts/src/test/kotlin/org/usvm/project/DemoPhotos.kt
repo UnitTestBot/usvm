@@ -23,24 +23,25 @@ class RunOnDemoPhotosProject : TsMethodTestRunner() {
 
     companion object {
         private const val PROJECT_PATH = "/projects/Demo_Photos/source/entry"
-        private const val SDK_PATH = "/sdk/ohos/etsir"
+        private const val SDK_TS_PATH = "/sdk/typescript"
+        private const val SDK_OHOS_PATH = "/sdk/ohos/5.0.1.111/ets"
 
         @JvmStatic
         private fun projectAvailable(): Boolean {
             val isProjectPresent = getResourcePathOrNull(PROJECT_PATH) != null
-            val isSdkPreset = getResourcePathOrNull(SDK_PATH) != null
-            return isProjectPresent && isSdkPreset
+            val isProjectTestsEnabled = System.getenv("USVM_TS_TEST_PROJECTS")?.toBoolean() ?: false
+            return isProjectPresent && isProjectTestsEnabled
         }
     }
 
     override val scene: EtsScene = run {
-        val projectPath = getResourcePath(PROJECT_PATH)
-        val sdkPath = getResourcePathOrNull(SDK_PATH)
-            ?: error(
-                "Could not load SDK from resources '$SDK_PATH'. " +
-                    "Try running './gradlew generateSdkIR' to generate it."
-            )
-        loadEtsProjectAutoConvert(projectPath, sdkPath)
+        val project = loadEtsProjectAutoConvert(getResourcePath(PROJECT_PATH))
+        val sdkFiles = listOf(SDK_TS_PATH, SDK_OHOS_PATH).flatMap { sdk ->
+            val sdkPath = getResourcePath(sdk)
+            val sdkProject = loadEtsProjectAutoConvert(sdkPath, useArkAnalyzerTypeInference = null)
+            sdkProject.projectFiles
+        }
+        EtsScene(project.projectFiles, sdkFiles, projectName = project.projectName)
     }
 
     @Test
@@ -112,8 +113,9 @@ class RunOnDemoPhotosProject : TsMethodTestRunner() {
     @Test
     fun `test on particular method`() {
         val method = scene.projectClasses
+            .filter { it.toString() == "@entry/utils/ResourceUtils: %dflt" }
             .flatMap { it.methods }
-            .single { it.name == "onCreate" && it.enclosingClass?.name == "EntryAbility" }
+            .single { it.name == "getResourceString" && it.enclosingClass?.name == "%dflt" }
 
         val tsOptions = TsOptions()
         TsMachine(scene, options, tsOptions).use { machine ->
