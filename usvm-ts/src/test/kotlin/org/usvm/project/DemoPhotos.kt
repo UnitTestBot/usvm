@@ -8,6 +8,7 @@ import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.jacodb.ets.utils.INSTANCE_INIT_METHOD_NAME
 import org.jacodb.ets.utils.STATIC_INIT_METHOD_NAME
 import org.jacodb.ets.utils.loadEtsProjectAutoConvert
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.condition.EnabledIf
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
@@ -18,20 +19,13 @@ import kotlin.test.Test
 
 private val logger = KotlinLogging.logger {}
 
-@EnabledIf("projectAvailable")
+@Tag("manual")
 class RunOnDemoPhotosProject : TsMethodTestRunner() {
 
     companion object {
         private const val PROJECT_PATH = "/projects/Demo_Photos/source/entry"
         private const val SDK_TS_PATH = "/sdk/typescript"
         private const val SDK_OHOS_PATH = "/sdk/ohos/5.0.1.111/ets"
-
-        @JvmStatic
-        private fun projectAvailable(): Boolean {
-            val isProjectPresent = getResourcePathOrNull(PROJECT_PATH) != null
-            val isProjectTestsEnabled = System.getenv("USVM_TS_TEST_PROJECTS")?.toBoolean() ?: false
-            return isProjectPresent && isProjectTestsEnabled
-        }
     }
 
     override val scene: EtsScene = run {

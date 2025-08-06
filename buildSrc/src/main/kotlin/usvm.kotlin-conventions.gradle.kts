@@ -44,14 +44,22 @@ tasks {
     }
 }
 
-tasks.named<Test>("test") {
-    // Use JUnit Platform for unit tests.
-    useJUnitPlatform()
-
+tasks.withType<Test> {
     maxHeapSize = "4G"
-
     testLogging {
         events("passed")
+    }
+}
+
+tasks.test {
+    useJUnitPlatform {
+        excludeTags("manual")
+    }
+}
+
+tasks.create("manualTest", Test::class) {
+    useJUnitPlatform {
+        includeTags("manual")
     }
 }
 

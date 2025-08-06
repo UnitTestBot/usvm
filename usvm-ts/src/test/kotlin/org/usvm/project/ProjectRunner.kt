@@ -10,8 +10,8 @@ import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.jacodb.ets.utils.INSTANCE_INIT_METHOD_NAME
 import org.jacodb.ets.utils.STATIC_INIT_METHOD_NAME
 import org.jacodb.ets.utils.loadEtsProjectAutoConvert
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.TestFactory
-import org.junit.jupiter.api.condition.EnabledIf
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.UMachineOptions
@@ -22,7 +22,6 @@ import org.usvm.dataflow.ts.testForEach
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.util.getResourcePath
-import org.usvm.util.getResourcePathOrNull
 import kotlin.io.path.isDirectory
 import kotlin.io.path.listDirectoryEntries
 import kotlin.io.path.name
@@ -32,19 +31,12 @@ import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
 
-@EnabledIf("projectsAvailable")
+@Tag("manual")
 class ProjectRunner {
     companion object {
         private const val PROJECTS_ROOT = "/projects"
         private const val SDK_TS_PATH = "/sdk/typescript"
         private const val SDK_OHOS_PATH = "/sdk/ohos/5.0.1.111/ets"
-
-        @JvmStatic
-        private fun projectsAvailable(): Boolean {
-            val projectsExist = getResourcePathOrNull(PROJECTS_ROOT) != null
-            val testsEnabled = System.getenv("USVM_TS_TEST_PROJECTS")?.toBoolean() ?: false
-            return projectsExist && testsEnabled
-        }
 
         val machineOptions: UMachineOptions = UMachineOptions(
             pathSelectionStrategies = listOf(PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM),
