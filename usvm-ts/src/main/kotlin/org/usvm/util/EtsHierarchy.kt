@@ -22,7 +22,9 @@ class EtsHierarchy(private val scene: EtsScene) {
                 classes
                     .groupBy { it.signature }
                     .mapValues { it.value.single() }
+                    .let { HashMap(it) }
             }
+            .let { HashMap(it) }
     }
 
     private val ancestors: Map<EtsClass, Set<EtsClass>> by lazy {
@@ -111,7 +113,7 @@ class EtsHierarchy(private val scene: EtsScene) {
 
         if (etsClassType.isResolved()) {
             val signature = (etsClassType as EtsClassType).signature.copy(name = typeName)
-            return suitableClasses[signature]?.let { hashSetOf(it) } ?: emptySet()
+            return suitableClasses[signature]?.let { setOf(it) } ?: emptySet()
         }
 
         return suitableClasses.values
