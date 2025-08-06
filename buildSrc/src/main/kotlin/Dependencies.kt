@@ -6,7 +6,7 @@ object Versions {
     const val clikt = "5.0.0"
     const val detekt = "1.23.7"
     const val ini4j = "0.5.4"
-    const val jacodb = "5acbadfed0"
+    const val jacodb = "lipen-snapshot+a9f47fd3"
     const val juliet = "1.3.2"
     const val junit = "5.9.3"
     const val kotlin = "2.1.0"
@@ -116,7 +116,8 @@ object Libs {
     )
 
     // https://github.com/UnitTestBot/jacodb
-    private const val jacodbPackage = "com.github.UnitTestBot.jacodb" // use "org.jacodb" with includeBuild
+    // private const val jacodbPackage = "com.github.UnitTestBot.jacodb" // JitPack
+    private const val jacodbPackage = "org.jacodb" // GitHub Packages Registry
     val jacodb_core = dep(
         group = jacodbPackage,
         name = "jacodb-core",
