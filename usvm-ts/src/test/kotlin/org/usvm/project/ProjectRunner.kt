@@ -38,6 +38,35 @@ class ProjectRunner {
         private const val SDK_TS_PATH = "/sdk/typescript"
         private const val SDK_OHOS_PATH = "/sdk/ohos/5.0.1.111/ets"
 
+        // Instructions for getting SDK:
+        //
+        // 1. Visit https://repo.huaweicloud.com/harmonyos/os/
+        //
+        // 2. Download the latest version (e.g., `5.0.3`):
+        //    ```sh
+        //    curl -OL https://repo.huaweicloud.com/openharmony/os/5.0.3-Release/ohos-sdk-windows_linux-public.tar.gz
+        //    ```
+        //
+        // 3. Extract the archive and find the folder `ets` with sub-folders `api`, `arkts`, `component`, `kits`.
+        //    Everything else can be thrown away.
+        //
+        // 4. Place the SDK into resources as follows:
+        //    ```
+        //    src/
+        //      test/
+        //        resources/
+        //          sdk/
+        //            ohos/
+        //              <version>/  (e.g., `5.0.1.111`)
+        //                ets/
+        //                  api/
+        //                  arkts/
+        //                  component/
+        //                  kits/
+        //    ```
+        //
+        // 5. Update the `SDK_OHOS_PATH` const to point to the correct version.
+
         val machineOptions: UMachineOptions = UMachineOptions(
             pathSelectionStrategies = listOf(PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM),
             timeout = 10.seconds,
