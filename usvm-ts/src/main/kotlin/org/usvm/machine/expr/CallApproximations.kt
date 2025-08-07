@@ -663,10 +663,6 @@ private fun TsExprResolver.handleArrayConcat(
 
     val args = expr.args.map { resolve(it) ?: return null }
 
-    logger.warn {
-        "Array.concat() is not fully implemented, returning a symbolic array approximation"
-    }
-
     scope.calcOnState {
         // Allocate a new array for the concatenated result
         val resultArray = memory.allocConcrete(arrayType)
@@ -752,6 +748,10 @@ private fun TsExprResolver.handleArrayIndexOf(
     }
     val searchElement = resolve(expr.args.single()) ?: return null
 
+    logger.warn {
+        "Array.indexOf() is not fully implemented, returning a symbolic index approximation"
+    }
+
     scope.calcOnState {
         // For symbolic execution, we return a symbolic result that could be any valid index or -1
         // A more precise implementation would require symbolic iteration
@@ -796,6 +796,10 @@ private fun TsExprResolver.handleArrayIncludes(
     }
     val searchElement = resolve(expr.args.single()) ?: return null
 
+    logger.warn {
+        "Array.includes() is not fully implemented, returning a symbolic boolean approximation"
+    }
+
     scope.calcOnState {
         // For symbolic execution, return a symbolic boolean result
         // A more precise implementation would require symbolic iteration or constraint solving
@@ -825,10 +829,6 @@ private fun TsExprResolver.handleArrayReverse(
         "Array.reverse() should have no arguments, but got ${expr.args.size}"
     }
 
-    logger.warn {
-        "Array.reverse() is not fully implemented, returning a symbolic array approximation"
-    }
-
     scope.calcOnState {
         // Allocate a new array to represent the reversed result
         val reversedArray = memory.allocConcrete(arrayType)
@@ -856,9 +856,11 @@ private fun TsExprResolver.handleArrayReverse(
             }
         )
 
+        //! Note: `reversedArray` is a temporary object not used outside this function,
+        //        so it is not necessary to set the "correct" length for it.
         // Set the length of the reversed array
-        val reversedLengthLValue = mkArrayLengthLValue(reversedArray, arrayType)
-        memory.write(reversedLengthLValue, length, guard = trueExpr)
+        // val reversedLengthLValue = mkArrayLengthLValue(reversedArray, arrayType)
+        // memory.write(reversedLengthLValue, length, guard = trueExpr)
 
         // Copy the reversed array back to the original array (in-place modification)
         memory.memcpy(
