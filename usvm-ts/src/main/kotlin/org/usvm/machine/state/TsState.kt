@@ -1,12 +1,15 @@
 package org.usvm.machine.state
 
+import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBlockCfg
 import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsValue
 import org.usvm.PathNode
@@ -17,6 +20,7 @@ import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.UState
 import org.usvm.api.allocateConcreteRef
+import org.usvm.api.initializeArray
 import org.usvm.api.targets.TsTarget
 import org.usvm.collections.immutable.getOrPut
 import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHashMap
@@ -29,7 +33,9 @@ import org.usvm.machine.interpreter.TsFunction
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase
+import org.usvm.sizeSort
 import org.usvm.targets.UTargetsSet
+import org.usvm.util.mkFieldLValue
 import org.usvm.util.type
 
 /**
@@ -64,6 +70,14 @@ class TsState(
     var associatedFunction: UPersistentHashMap<UConcreteHeapRef, TsFunction> = persistentHashMapOf(),
     var closureObject: UPersistentHashMap<String, UConcreteHeapRef> = persistentHashMapOf(),
     var boundThis: UPersistentHashMap<UConcreteHeapRef, UHeapRef> = persistentHashMapOf(),
+
+    /**
+     * Maps string values to their corresponding heap references that were allocated for string constants.
+     * This tracks which string constants have been initialized in this particular state to avoid
+     * duplicate initialization while ensuring all states use the same heap reference from the context
+     * for identical string values.
+     */
+    var stringConstantAllocatedRefs: UPersistentHashMap<String, UConcreteHeapRef> = persistentHashMapOf(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
     ctx = ctx,
     initOwnership = ownership,
@@ -189,6 +203,46 @@ class TsState(
         boundThis = boundThis.put(instance, thisRef, ownership)
     }
 
+    /**
+     * Initializes and returns a fully constructed string constant in this state's memory.
+     * This function handles both heap reference allocation (via context) and memory initialization.
+     * Use this when you need a complete, usable string object in the current state.
+     */
+    fun mkInitializedStringConstant(
+        value: String,
+    ): UConcreteHeapRef = with(ctx) {
+        // Get the shared reference from context
+        val ref = mkStringConstantRef(value)
+
+        // Check if we've already initialized this string constant in our state
+        val (updated, result) = stringConstantAllocatedRefs.getOrPut(value, ownership) {
+            // Initialize the string constant only if not already done in this state
+            // Allocate type information for this ref in this state's memory
+            memory.types.allocate(ref.address, EtsStringType)
+
+            // Initialize char array
+            val valueType = EtsArrayType(EtsNumberType, dimensions = 1)
+            val descriptor = ctx.arrayDescriptorOf(valueType)
+
+            val charArray = memory.allocConcrete(valueType.elementType)
+            memory.initializeArray(
+                arrayHeapRef = charArray,
+                type = descriptor,
+                sort = bv16Sort,
+                sizeSort = sizeSort,
+                contents = value.asSequence().map { mkBv(it.code, bv16Sort) },
+            )
+
+            // Write char array to `ref.value`
+            val valueLValue = mkFieldLValue(addressSort, ref, "value")
+            memory.write(valueLValue, charArray, guard = trueExpr)
+
+            ref
+        }
+        stringConstantAllocatedRefs = updated
+        result
+    }
+
     override fun clone(newConstraints: UPathConstraints<EtsType>?): TsState {
         val newThisOwnership = MutabilityOwnership()
         val cloneOwnership = MutabilityOwnership()
@@ -221,6 +275,8 @@ class TsState(
             methodToRef = methodToRef,
             associatedFunction = associatedFunction,
             closureObject = closureObject,
+            boundThis = boundThis,
+            stringConstantAllocatedRefs = stringConstantAllocatedRefs,
         )
     }
 
