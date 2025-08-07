@@ -395,6 +395,10 @@ class TsExprResolver(
     }
 
     override fun visit(expr: EtsDeleteExpr): UExpr<out USort>? = with(ctx) {
+        logger.warn {
+            "delete operator is not fully supported, the result may not be accurate"
+        }
+
         // The delete operator removes a property from an object and returns true/false
         // For property access like "delete obj.prop", we need to handle EtsInstanceFieldRef
         when (val operand = expr.arg) {
