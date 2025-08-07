@@ -419,7 +419,7 @@ private fun TsExprResolver.handleArrayFill(
         // Allocate a temporary array to hold the filled values
         val tempArray = memory.allocConcrete(arrayType)
 
-        // Fill the temporary array with the specified value
+        // Fill the temporary array with the specified `value`
         memory.initializeArray(
             tempArray,
             arrayType,
