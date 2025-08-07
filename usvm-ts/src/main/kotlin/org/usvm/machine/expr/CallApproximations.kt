@@ -278,7 +278,7 @@ private fun TsExprResolver.handleArrayPush(
         val length = memory.read(lengthLValue)
 
         // Increase the length of the array
-        val newLength = mkBvAddExpr(length, 1.toBv())
+        val newLength = mkBvAddExpr(length, mkBv(1))
         memory.write(lengthLValue, newLength, guard = trueExpr)
 
         // Write the new element to the end of the array
@@ -327,7 +327,7 @@ private fun TsExprResolver.handleArrayPop(
         // TODO: Only decrease the length if it is not zero.
         //       It is not an error/exception to pop from an empty array!
         //       If the array is empty, `pop` returns `undefined`.
-        val newLength = mkBvSubExpr(length, 1.toBv())
+        val newLength = mkBvSubExpr(length, mkBv(1))
 
         // Read the last element of the array (to be removed)
         val lastIndexLValue = mkArrayIndexLValue(
@@ -362,42 +362,81 @@ private fun TsExprResolver.handleArrayFill(
     elementSort: USort,
 ): UExpr<*>? = with(ctx) {
     val array = resolve(expr.instance)?.asExpr(addressSort) ?: return null
-    check(expr.args.size == 1) {
-        "Array.fill() should have exactly one argument, but got ${expr.args.size}"
+    check(expr.args.size >= 1 && expr.args.size <= 3) {
+        "Array.fill() should have 1 to 3 arguments, but got ${expr.args.size}"
     }
-    // TODO: support `start` and `end` indices
-    val value = resolve(expr.args.single()) ?: return null
+    val value = resolve(expr.args[0]) ?: return null
+
+    val start = if (expr.args.size > 1) {
+        resolve(expr.args[1]) ?: return null
+    } else {
+        mkBv(0)
+    }
+    val startBv: UExpr<TsSizeSort> = when (start.sort) {
+        sizeSort -> start.asExpr(sizeSort)
+
+        fp64Sort -> mkFpToBvExpr(
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = start.asExpr(fp64Sort),
+            bvSize = sizeSort.sizeBits.toInt(),
+            isSigned = true,
+        ).asExpr(sizeSort)
+
+        else -> {
+            logger.warn { "Unsupported sort for `start` index in Array.fill(): ${start.sort}" }
+            return null
+        }
+    }
+
+    val end = if (expr.args.size > 2) {
+        resolve(expr.args[2]) ?: return null
+    } else {
+        val lengthLValue = mkArrayLengthLValue(array, arrayType)
+        scope.calcOnState { memory.read(lengthLValue) }
+    }
+    val endBv: UExpr<TsSizeSort> = when (end.sort) {
+        sizeSort -> end.asExpr(sizeSort)
+
+        fp64Sort -> mkFpToBvExpr(
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = end.asExpr(fp64Sort),
+            bvSize = sizeSort.sizeBits.toInt(),
+            isSigned = true,
+        ).asExpr(sizeSort)
+
+        else -> {
+            logger.warn { "Unsupported sort for `end` index in Array.fill(): ${end.sort}" }
+            return null
+        }
+    }
 
     scope.calcOnState {
-        // Allocate an array to fill
-        val resultArray = memory.allocConcrete(arrayType)
+        // Calculate the length of the range to fill
+        val fillLength = mkBvSubExpr(endBv, startBv)
 
-        // Read the length of the original array
-        val lengthLValue = mkArrayLengthLValue(array, arrayType)
-        val length = memory.read(lengthLValue)
+        // TODO: check that `fillLength` is less than `ARRAY_FILL_MAX_SIZE`
 
-        // Fill the result array with the specified `value`
+        // Allocate a temporary array to hold the filled values
+        val tempArray = memory.allocConcrete(arrayType)
+
+        // Fill the temporary array with the specified value
         memory.initializeArray(
-            resultArray,
+            tempArray,
             arrayType,
             elementSort,
             sizeSort,
             (0 until ARRAY_FILL_MAX_SIZE).asSequence().map { value.asExpr(elementSort) }
         )
 
-        // Set the length of the result array to match the original array
-        val resultLengthLValue = mkArrayLengthLValue(resultArray, arrayType)
-        memory.write(resultLengthLValue, length, guard = trueExpr)
-
-        // Copy the filled array back to the original array (in-place modification)
+        // Copy the filled values to the specified range in the original array
         memory.memcpy(
-            srcRef = resultArray,
+            srcRef = tempArray,
             dstRef = array,
             type = arrayType,
             elementSort = elementSort,
-            fromSrc = 0.toBv().asExpr(sizeSort),
-            fromDst = 0.toBv().asExpr(sizeSort),
-            length = length,
+            fromSrc = mkBv(0),
+            fromDst = startBv,
+            length = fillLength,
         )
 
         // Return the modified original array
@@ -430,7 +469,7 @@ private fun TsExprResolver.handleArrayShift(
         val firstIndexLValue = mkArrayIndexLValue(
             sort = elementSort,
             ref = array,
-            index = 0.toBv().asExpr(sizeSort),
+            index = mkBv(0),
             type = arrayType,
         )
         val firstElement = memory.read(firstIndexLValue)
@@ -443,7 +482,7 @@ private fun TsExprResolver.handleArrayShift(
         // TODO: Only decrease the length if it is not zero.
         //       It is not an error/exception to shift an empty array!
         //       If the array is empty, `shift` returns `undefined`.
-        val newLength = mkBvSubExpr(length, 1.toBv())
+        val newLength = mkBvSubExpr(length, mkBv(1))
         memory.write(lengthLValue, newLength, guard = trueExpr)
 
         // Shift elements to the left
@@ -452,8 +491,8 @@ private fun TsExprResolver.handleArrayShift(
             dstRef = array,
             type = arrayType,
             elementSort = elementSort,
-            fromSrc = 1.toBv().asExpr(sizeSort),
-            fromDst = 0.toBv().asExpr(sizeSort),
+            fromSrc = mkBv(1),
+            fromDst = mkBv(0),
             length = newLength,
         )
 
@@ -487,7 +526,7 @@ private fun TsExprResolver.handleArrayUnshift(
         val length = memory.read(lengthLValue)
 
         // Increase the length of the array
-        val newLength = mkBvAddExpr(length, 1.toBv())
+        val newLength = mkBvAddExpr(length, mkBv(1))
         memory.write(lengthLValue, newLength, guard = trueExpr)
 
         // Shift elements to the right
@@ -496,8 +535,8 @@ private fun TsExprResolver.handleArrayUnshift(
             dstRef = array,
             type = arrayType,
             elementSort = elementSort,
-            fromSrc = 0.toBv().asExpr(sizeSort),
-            fromDst = 1.toBv().asExpr(sizeSort),
+            fromSrc = mkBv(0),
+            fromDst = mkBv(1),
             length = length,
         )
 
@@ -505,7 +544,7 @@ private fun TsExprResolver.handleArrayUnshift(
         val startIndexLValue = mkArrayIndexLValue(
             sort = elementSort,
             ref = array,
-            index = 0.toBv().asExpr(sizeSort),
+            index = mkBv(0),
             type = arrayType,
         )
         memory.write(startIndexLValue, arg.asExpr(elementSort), guard = trueExpr)
@@ -568,10 +607,11 @@ private fun TsExprResolver.handleArraySlice(
     check(expr.args.size <= 2) {
         "Array.slice() should have at most two arguments, but got ${expr.args.size}"
     }
+
     val start = if (expr.args.isNotEmpty()) {
         resolve(expr.args[0]) ?: return null
     } else {
-        mkBv(0, sizeSort)
+        mkBv(0)
     }
     val startBv: UExpr<TsSizeSort> = when (start.sort) {
         sizeSort -> start.asExpr(sizeSort)
@@ -588,6 +628,7 @@ private fun TsExprResolver.handleArraySlice(
             return null
         }
     }
+
     val end = if (expr.args.size > 1) {
         resolve(expr.args[1]) ?: return null
     } else {
@@ -624,7 +665,7 @@ private fun TsExprResolver.handleArraySlice(
             type = arrayType,
             elementSort = elementSort,
             fromSrc = startBv,
-            fromDst = mkBv(0, sizeSort),
+            fromDst = mkBv(0),
             length = newLength,
         )
 
@@ -677,8 +718,8 @@ private fun TsExprResolver.handleArrayConcat(
             dstRef = resultArray,
             type = arrayType,
             elementSort = elementSort,
-            fromSrc = 0.toBv().asExpr(sizeSort),
-            fromDst = 0.toBv().asExpr(sizeSort),
+            fromSrc = mkBv(0),
+            fromDst = mkBv(0),
             length = originalLength,
         )
 
@@ -699,7 +740,7 @@ private fun TsExprResolver.handleArrayConcat(
                         dstRef = resultArray,
                         type = arrayType,
                         elementSort = elementSort,
-                        fromSrc = 0.toBv().asExpr(sizeSort),
+                        fromSrc = mkBv(0),
                         fromDst = totalLength,
                         length = argLength,
                     )
@@ -719,7 +760,7 @@ private fun TsExprResolver.handleArrayConcat(
                 type = arrayType,
             )
             memory.write(newIndexLValue, arg.asExpr(elementSort), guard = trueExpr)
-            totalLength = mkBvAddExpr(totalLength, 1.toBv())
+            totalLength = mkBvAddExpr(totalLength, mkBv(1))
         }
 
         // Set the length of the result array
@@ -762,9 +803,9 @@ private fun TsExprResolver.handleArrayIndexOf(
         val symbolicResult = makeSymbolicPrimitive(sizeSort)
 
         // Add constraints: result is either -1 or in range [0, length-1]
-        val notFound = mkEq(symbolicResult, mkBv(-1, sizeSort))
+        val notFound = mkEq(symbolicResult, mkBv(-1))
         val validIndex = mkAnd(
-            mkBvSignedGreaterOrEqualExpr(symbolicResult, mkBv(0, sizeSort)),
+            mkBvSignedGreaterOrEqualExpr(symbolicResult, mkBv(0)),
             mkBvSignedLessExpr(symbolicResult, length)
         )
         pathConstraints += mkOr(notFound, validIndex)
@@ -845,7 +886,7 @@ private fun TsExprResolver.handleArrayReverse(
             sizeSort,
             (0 until ARRAY_REVERSE_MAX_SIZE).asSequence().map { index ->
                 // reversedIndex := length - 1 - index
-                val reversedIndex = mkBvSubExpr(mkBvSubExpr(length, 1.toBv()), index.toBv())
+                val reversedIndex = mkBvSubExpr(mkBvSubExpr(length, mkBv(1)), index.toBv())
                 val elementLValue = mkArrayIndexLValue(
                     sort = elementSort,
                     ref = array,
@@ -868,8 +909,8 @@ private fun TsExprResolver.handleArrayReverse(
             dstRef = array,
             type = arrayType,
             elementSort = elementSort,
-            fromSrc = 0.toBv().asExpr(sizeSort),
-            fromDst = 0.toBv().asExpr(sizeSort),
+            fromSrc = mkBv(0),
+            fromDst = mkBv(0),
             length = length,
         )
 
