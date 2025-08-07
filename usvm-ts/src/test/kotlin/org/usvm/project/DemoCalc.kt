@@ -22,13 +22,12 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
 
     companion object {
         private const val PROJECT_PATH = "/projects/Demo_Calc/source/entry"
-        private const val SDK_TS_PATH = "/sdk/typescript"
         private const val SDK_OHOS_PATH = "/sdk/ohos/5.0.1.111/ets"
     }
 
     override val scene: EtsScene = run {
         val project = loadEtsProjectAutoConvert(getResourcePath(PROJECT_PATH))
-        val sdkFiles = listOf(SDK_TS_PATH, SDK_OHOS_PATH).flatMap { sdk ->
+        val sdkFiles = listOf(SDK_OHOS_PATH).flatMap { sdk ->
             val sdkPath = getResourcePath(sdk)
             val sdkProject = loadEtsProjectAutoConvert(sdkPath, useArkAnalyzerTypeInference = null)
             sdkProject.projectFiles
