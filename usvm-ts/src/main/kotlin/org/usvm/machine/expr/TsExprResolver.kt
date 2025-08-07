@@ -84,7 +84,6 @@ import org.jacodb.ets.model.EtsValue
 import org.jacodb.ets.model.EtsVoidExpr
 import org.jacodb.ets.model.EtsYieldExpr
 import org.jacodb.ets.utils.ANONYMOUS_METHOD_PREFIX
-import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.jacodb.ets.utils.STATIC_INIT_METHOD_NAME
 import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
 import org.jacodb.ets.utils.getDeclaredLocals
@@ -99,6 +98,7 @@ import org.usvm.USort
 import org.usvm.api.allocateConcreteRef
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArrayLength
+import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.api.mockMethodCall
 import org.usvm.api.typeStreamOf
 import org.usvm.dataflow.ts.infer.tryGetKnownType
@@ -142,6 +142,21 @@ import org.usvm.util.resolveEtsMethods
 import org.usvm.util.throwExceptionWithoutStackFrameDrop
 
 private val logger = KotlinLogging.logger {}
+
+/**
+ * ECMAScript specification requires bitwise operations to be performed on 32-bit
+ * signed integers. All numeric operands are converted to 32-bit integers
+ * before the operation and the result is converted back to a Number type.
+ */
+private const val ECMASCRIPT_BITWISE_INTEGER_SIZE = 32
+
+/**
+ * ECMAScript bitwise shift operations mask the shift amount to 5 bits,
+ * which means the effective shift amount is in the range [0, 31].
+ * For example, `x << 32` is equivalent to `x << 0`,
+ * and `x << 37` is equivalent to `x << 5`.
+ */
+private const val ECMASCRIPT_BITWISE_SHIFT_MASK = 0b11111
 
 class TsExprResolver(
     internal val ctx: TsContext,
@@ -289,7 +304,7 @@ class TsExprResolver(
         val bvArg = mkFpToBvExpr(
             roundingMode = fpRoundingModeSortDefaultValue(),
             value = numericArg.asExpr(fp64Sort),
-            bvSize = 32,
+            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
             isSigned = true
         )
         val notResult = mkBvNotExpr(bvArg)
@@ -595,8 +610,18 @@ class TsExprResolver(
         val rightNum = mkNumericExpr(right, scope)
 
         // Convert to 32-bit integers, perform bitwise AND, then convert back
-        val leftBv = mkFpToBvExpr(fpRoundingModeSortDefaultValue(), leftNum.asExpr(fp64Sort), 32, true)
-        val rightBv = mkFpToBvExpr(fpRoundingModeSortDefaultValue(), rightNum.asExpr(fp64Sort), 32, true)
+        val leftBv = mkFpToBvExpr(
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = leftNum.asExpr(fp64Sort),
+            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
+            isSigned = true,
+        )
+        val rightBv = mkFpToBvExpr(
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = rightNum.asExpr(fp64Sort),
+            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
+            isSigned = true,
+        )
         val result = mkBvAndExpr(leftBv, rightBv)
 
         return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), result, signed = true)
@@ -610,8 +635,18 @@ class TsExprResolver(
         val rightNum = mkNumericExpr(right, scope)
 
         // Convert to 32-bit integers, perform bitwise OR, then convert back
-        val leftBv = mkFpToBvExpr(fpRoundingModeSortDefaultValue(), leftNum.asExpr(fp64Sort), 32, true)
-        val rightBv = mkFpToBvExpr(fpRoundingModeSortDefaultValue(), rightNum.asExpr(fp64Sort), 32, true)
+        val leftBv = mkFpToBvExpr(
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = leftNum.asExpr(fp64Sort),
+            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
+            isSigned = true,
+        )
+        val rightBv = mkFpToBvExpr(
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = rightNum.asExpr(fp64Sort),
+            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
+            isSigned = true,
+        )
         val result = mkBvOrExpr(leftBv, rightBv)
 
         return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), result, signed = true)
@@ -625,8 +660,18 @@ class TsExprResolver(
         val rightNum = mkNumericExpr(right, scope)
 
         // Convert to 32-bit integers, perform bitwise XOR, then convert back
-        val leftBv = mkFpToBvExpr(fpRoundingModeSortDefaultValue(), leftNum.asExpr(fp64Sort), 32, true)
-        val rightBv = mkFpToBvExpr(fpRoundingModeSortDefaultValue(), rightNum.asExpr(fp64Sort), 32, true)
+        val leftBv = mkFpToBvExpr(
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = leftNum.asExpr(fp64Sort),
+            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
+            isSigned = true,
+        )
+        val rightBv = mkFpToBvExpr(
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = rightNum.asExpr(fp64Sort),
+            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
+            isSigned = true,
+        )
         val result = mkBvXorExpr(leftBv, rightBv)
 
         return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), result, signed = true)
@@ -640,11 +685,24 @@ class TsExprResolver(
         val rightNum = mkNumericExpr(right, scope)
 
         // Convert to 32-bit integers and perform left shift
-        val leftBv = mkFpToBvExpr(fpRoundingModeSortDefaultValue(), leftNum.asExpr(fp64Sort), 32, true)
-        val rightBv = mkFpToBvExpr(fpRoundingModeSortDefaultValue(), rightNum.asExpr(fp64Sort), 32, true)
+        val leftBv = mkFpToBvExpr(
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = leftNum.asExpr(fp64Sort),
+            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
+            isSigned = true,
+        )
+        val rightBv = mkFpToBvExpr(
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = rightNum.asExpr(fp64Sort),
+            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
+            isSigned = true,
+        )
 
         // Mask the shift amount to 5 bits (0-31) as per JavaScript spec
-        val shiftAmount = mkBvAndExpr(rightBv, mkBv(0x1F, 32u))
+        val shiftAmount = mkBvAndExpr(
+            rightBv,
+            mkBv(ECMASCRIPT_BITWISE_SHIFT_MASK, ECMASCRIPT_BITWISE_INTEGER_SIZE.toUInt())
+        )
         val result = mkBvShiftLeftExpr(leftBv, shiftAmount)
 
         return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), result, signed = true)
@@ -658,14 +716,32 @@ class TsExprResolver(
         val rightNum = mkNumericExpr(right, scope)
 
         // Convert to 32-bit integers and perform signed right shift
-        val leftBv = mkFpToBvExpr(fpRoundingModeSortDefaultValue(), leftNum.asExpr(fp64Sort), 32, true)
-        val rightBv = mkFpToBvExpr(fpRoundingModeSortDefaultValue(), rightNum.asExpr(fp64Sort), 32, true)
+        val leftBv = mkFpToBvExpr(
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = leftNum.asExpr(fp64Sort),
+            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
+            isSigned = true,
+        )
+        val rightBv = mkFpToBvExpr(
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = rightNum.asExpr(fp64Sort),
+            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
+            isSigned = true,
+        )
 
         // Mask the shift amount to 5 bits (0-31)
-        val shiftAmount = mkBvAndExpr(rightBv, mkBv(0x1F, 32u))
+        val shiftAmount = mkBvAndExpr(
+            rightBv,
+            mkBv(ECMASCRIPT_BITWISE_SHIFT_MASK, ECMASCRIPT_BITWISE_INTEGER_SIZE.toUInt())
+        )
         val result = mkBvArithShiftRightExpr(leftBv, shiftAmount)
 
-        return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), result, signed = true)
+        return mkBvToFpExpr(
+            sort = fp64Sort,
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = result,
+            signed = true,
+        )
     }
 
     override fun visit(expr: EtsUnsignedRightShiftExpr): UExpr<out USort>? = with(ctx) {
@@ -676,14 +752,32 @@ class TsExprResolver(
         val rightNum = mkNumericExpr(right, scope)
 
         // Convert to 32-bit integers and perform unsigned right shift
-        val leftBv = mkFpToBvExpr(fpRoundingModeSortDefaultValue(), leftNum.asExpr(fp64Sort), 32, true)
-        val rightBv = mkFpToBvExpr(fpRoundingModeSortDefaultValue(), rightNum.asExpr(fp64Sort), 32, true)
+        val leftBv = mkFpToBvExpr(
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = leftNum.asExpr(fp64Sort),
+            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
+            isSigned = true,
+        )
+        val rightBv = mkFpToBvExpr(
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = rightNum.asExpr(fp64Sort),
+            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
+            isSigned = true,
+        )
 
         // Mask the shift amount to 5 bits (0-31)
-        val shiftAmount = mkBvAndExpr(rightBv, mkBv(0x1F, 32u))
+        val shiftAmount = mkBvAndExpr(
+            rightBv,
+            mkBv(ECMASCRIPT_BITWISE_SHIFT_MASK, ECMASCRIPT_BITWISE_INTEGER_SIZE.toUInt())
+        )
         val result = mkBvLogicalShiftRightExpr(leftBv, shiftAmount)
 
-        return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), result, signed = false)
+        return mkBvToFpExpr(
+            sort = fp64Sort,
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = result,
+            signed = false,
+        )
     }
 
     override fun visit(expr: EtsNullishCoalescingExpr): UExpr<out USort>? = with(ctx) {
@@ -755,17 +849,13 @@ class TsExprResolver(
         // Check for null/undefined access
         checkUndefinedOrNullPropertyRead(obj) ?: return null
 
-        // For now, we simplify this by checking if the property name is a string
-        // and assume the property exists if we can resolve it
-        if (property.sort == addressSort) {
-            val propertyRef = property.asExpr(addressSort)
+        logger.warn {
+            "The 'in' operator is supported yet, the result may not be accurate"
+        }
 
-            // Check if it's a string constant - for now just return true
-            // as implementing proper property existence checking requires more complex logic
-            mkTrue()
-        } else {
-            // For non-reference property names (like number indices), assume they might exist
-            mkTrue()
+        // For now, just return a symbolic boolean (that can be true or false)
+        scope.calcOnState {
+            makeSymbolicPrimitive(boolSort)
         }
     }
 
@@ -1052,7 +1142,7 @@ class TsExprResolver(
         val bvIndex = mkFpToBvExpr(
             roundingMode = fpRoundingModeSortDefaultValue(),
             value = index,
-            bvSize = 32,
+            bvSize = sizeSort.sizeBits.toInt(),
             isSigned = true,
         ).asExpr(sizeSort)
 
