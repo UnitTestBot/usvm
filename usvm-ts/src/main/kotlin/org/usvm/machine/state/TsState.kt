@@ -78,7 +78,6 @@ class TsState(
      * for identical string values.
      */
     var stringConstantAllocatedRefs: UPersistentHashMap<String, UConcreteHeapRef> = persistentHashMapOf(),
-    val previousState: TsState? = null,
 ) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
     ctx = ctx,
     initOwnership = ownership,
@@ -278,7 +277,6 @@ class TsState(
             closureObject = closureObject,
             boundThis = boundThis,
             stringConstantAllocatedRefs = stringConstantAllocatedRefs,
-            previousState = this,
         )
     }
 
