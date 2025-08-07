@@ -259,6 +259,17 @@ private fun TsExprResolver.handlePromiseResolveReject(expr: EtsInstanceCallExpr)
  * Appends the specified `items` to the end of the array.
  * This method modifies the array in place and returns the new length of the array.
  *
+ * ### Examples:
+ * ```
+ * let a = [10, 20];
+ *
+ * a.push(30) -> 3
+ * a == [10, 20, 30]
+ *
+ * a.push(5, 4, 3) -> 6
+ * a == [10, 20, 30, 5, 4, 3]
+ * ```
+ *
  * https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array.prototype.push
  */
 private fun TsExprResolver.handleArrayPush(
@@ -305,6 +316,21 @@ private fun TsExprResolver.handleArrayPush(
  * Handles the `Array.pop()` method call.
  * Pops the last element from the array and returns it.
  * If the array is empty, it returns `undefined`.
+ *
+ * ### Examples:
+ * ```
+ * let a = [10, 20, 30];
+ *
+ * a.pop() -> 30 // last element
+ * a == [10, 20] // modified in place
+ *
+ * a.pop() -> 20 // last element
+ * a == [10] // modified in place
+ *
+ * let empty = [];
+ * empty.pop() -> undefined // no elements to pop
+ * empty == [] // still empty
+ * ```
  *
  * https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array.prototype.pop
  */
@@ -354,6 +380,22 @@ private fun TsExprResolver.handleArrayPop(
  * If `end` index is not provided, it defaults to the length of the array.
  * This method modifies the array in place and returns it.
  *
+ * ### Examples:
+ * ```
+ * let a = [1, 2, 3, 4, 5];
+ *
+ * a.fill(0) -> [0, 0, 0, 0, 0] (fill entire array)
+ * a == [0, 0, 0, 0, 0]
+ *
+ * let b = [1, 2, 3, 4, 5];
+ * b.fill(9, 2) -> [1, 2, 9, 9, 9] (fill from index 2 to end)
+ * b == [1, 2, 9, 9, 9]
+ *
+ * let c = [1, 2, 3, 4, 5];
+ * c.fill(8, 1, 3) -> [1, 8, 8, 4, 5] (fill from index 1 to 3)
+ * c == [1, 8, 8, 4, 5]
+ * ```
+ *
  * https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array.prototype.fill
  */
 private fun TsExprResolver.handleArrayFill(
@@ -367,6 +409,7 @@ private fun TsExprResolver.handleArrayFill(
     }
     val value = resolve(expr.args[0]) ?: return null
 
+    // TODO: Support negative `start` and `end` indices.
     val start = if (expr.args.size > 1) {
         resolve(expr.args[1]) ?: return null
     } else {
@@ -451,6 +494,21 @@ private const val ARRAY_FILL_MAX_SIZE = 10_000
  * Removes the first element from the array and returns it.
  * If the array is empty, it returns `undefined`.
  *
+ * ### Examples:
+ * ```
+ * let a = [1, 2, 3];
+ *
+ * a.shift() -> 1 (removed element)
+ * a == [2, 3] // modified in place
+ *
+ * a.shift() -> 2 (removed element)
+ * a == [3] // modified in place
+ *
+ * let empty = [];
+ * empty.shift() -> undefined
+ * empty == [] // still empty
+ * ```
+ *
  * https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array.prototype.shift
  */
 private fun TsExprResolver.handleArrayShift(
@@ -505,6 +563,17 @@ private fun TsExprResolver.handleArrayShift(
  * Handle the `Array.unshift(...items)` method call.
  * Prepends the specified `items` to the start of the array.
  * This method modifies the array in place and returns the new length of the array.
+ *
+ * ### Examples:
+ * ```
+ * let a = [2, 3];
+ *
+ * a.unshift(1) -> 3 (new length)
+ * a == [1, 2, 3] // modified in place
+ *
+ * a.unshift(0) -> 4 (new length)
+ * a == [0, 1, 2, 3] // modified in place
+ * ```
  *
  * https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array.prototype.unshift
  */
@@ -565,6 +634,18 @@ private fun TsExprResolver.handleArrayUnshift(
  * If `separator` is not provided, it defaults to `","`.
  * This method returns the resulting string.
  *
+ * ### Examples:
+ * ```
+ * let a = [1, 2, 3];
+ *
+ * a.join() -> "1,2,3" (default comma separator)
+ * a.join("-") -> "1-2-3" (custom separator)
+ * a.join("") -> "123" (no separator)
+ *
+ * let b = ["hello", "world"];
+ * b.join(" ") -> "hello world"
+ * ```
+ *
  * https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array.prototype.join
  */
 private fun TsExprResolver.handleArrayJoin(
@@ -596,6 +677,18 @@ private const val ARRAY_JOIN_RESULT = "joined_array_result"
  * If `start` is not provided, it defaults to `0`.
  * If `end` is not provided, it defaults to the length of the array.
  *
+ * ### Examples:
+ * ```
+ * let a = [1, 2, 3, 4, 5];
+ *
+ * a.slice() -> [1, 2, 3, 4, 5] (copy entire array)
+ * a.slice(2) -> [3, 4, 5] (from index 2 to end)
+ * a.slice(1, 4) -> [2, 3, 4] (from index 1 to 4, exclusive)
+ * a.slice(-2) -> [4, 5] (last 2 elements)
+ *
+ * a == [1, 2, 3, 4, 5] // original array not modified
+ * ```
+ *
  * https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array.prototype.slice
  */
 private fun TsExprResolver.handleArraySlice(
@@ -608,6 +701,7 @@ private fun TsExprResolver.handleArraySlice(
         "Array.slice() should have at most two arguments, but got ${expr.args.size}"
     }
 
+    // TODO: Support negative `start` and `end` indices.
     val start = if (expr.args.isNotEmpty()) {
         resolve(expr.args[0]) ?: return null
     } else {
@@ -683,9 +777,9 @@ private fun TsExprResolver.handleArraySlice(
  * let a = [1, 2];
  * let b = [3, 4];
  *
- * a.concat() -> [1, 2]
- * a.concat(b) -> [1, 2, 3, 4]
- * a.concat(b, 5) -> [1, 2, 3, 4, 5]
+ * a.concat() -> [1, 2] // same array
+ * a.concat(b) -> [1, 2, 3, 4] // concat two arrays
+ * a.concat(b, 5) -> [1, 2, 3, 4, 5] // concat with an array and a single element
  *
  * a == [1, 2] // not modified
  * ```
@@ -776,6 +870,19 @@ private fun TsExprResolver.handleArrayConcat(
  * Handles the `Array.indexOf(searchElement)` method call.
  * Returns the index of the first occurrence of `searchElement` in the array, or `-1` if not found.
  *
+ * ### Examples:
+ * ```
+ * let a = [1, 2, 3, 2, 4];
+ *
+ * a.indexOf(2) -> 1 (first occurrence at index 1)
+ * a.indexOf(5) -> -1 (not found)
+ * a.indexOf(3) -> 2 (found at index 2)
+ *
+ * let b = ["hello", "world", "hello"];
+ * b.indexOf("hello") -> 0 (first occurrence)
+ * b.indexOf("foo") -> -1 (not found)
+ * ```
+ *
  * https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array.prototype.indexof
  */
 private fun TsExprResolver.handleArrayIndexOf(
@@ -824,6 +931,19 @@ private fun TsExprResolver.handleArrayIndexOf(
  * Handles the `Array.includes(searchElement)` method call.
  * Returns `true` if the array contains the `searchElement`, and `false` otherwise.
  *
+ * ### Examples:
+ * ```
+ * let a = [1, 2, 3, 4, 5];
+ *
+ * a.includes(3) -> true (element found)
+ * a.includes(6) -> false (element not found)
+ * a.includes(1) -> true (first element)
+ *
+ * let b = ["hello", "world"];
+ * b.includes("hello") -> true (string found)
+ * b.includes("foo") -> false (string not found)
+ * ```
+ *
  * https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array.prototype.includes
  */
 private fun TsExprResolver.handleArrayIncludes(
@@ -857,6 +977,21 @@ private fun TsExprResolver.handleArrayIncludes(
 /**
  * Handles the `Array.reverse()` method call.
  * Reverses the elements of the array in place and returns the modified array.
+ *
+ * ### Examples:
+ * ```
+ * let a = [1, 2, 3, 4, 5];
+ *
+ * a.reverse() -> [5, 4, 3, 2, 1] (reversed array)
+ * a == [5, 4, 3, 2, 1] // modified in place
+ *
+ * let b = ["hello", "world"];
+ * b.reverse() -> ["world", "hello"]
+ * b == ["world", "hello"] // modified in place
+ *
+ * let empty = [];
+ * empty.reverse() -> [] // still empty
+ * ```
  *
  * https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array.prototype.reverse
  */
