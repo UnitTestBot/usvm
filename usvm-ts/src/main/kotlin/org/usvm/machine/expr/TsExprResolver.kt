@@ -1493,12 +1493,14 @@ class TsExprResolver(
         }
 
         if (expr.type.typeName == "Boolean") {
-            val clazz = scene.sdkClasses.filter { it.name == "Boolean" }.maxBy { it.methods.size }
+            val clazz = scene.sdkClasses.filter { it.name == "Boolean" }.maxByOrNull { it.methods.size }
+                ?: error("No Boolean class found in SDK")
             return@with scope.calcOnState { memory.allocConcrete(clazz.type) }
         }
 
         if (expr.type.typeName == "Number") {
-            val clazz = scene.sdkClasses.filter { it.name == "Number" }.maxBy { it.methods.size }
+            val clazz = scene.sdkClasses.filter { it.name == "Number" }.maxByOrNull { it.methods.size }
+                ?: error("No Number class found in SDK")
             return@with scope.calcOnState { memory.allocConcrete(clazz.type) }
         }
 
