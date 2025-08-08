@@ -233,6 +233,14 @@ class Division : TsMethodTestRunner() {
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method = method,
             { a, b, r ->
+                // 42/true = 42
+                (a.number == 42.0) && b.value && (r.number == 42.0)
+            },
+            { a, b, r ->
+                // -5/false = -Infinity
+                (a.number == -5.0) && !b.value && (r.number == Double.NEGATIVE_INFINITY)
+            },
+            { a, b, r ->
                 // Inf/true = Inf
                 (a.number == Double.POSITIVE_INFINITY) && b.value && (r.number == Double.POSITIVE_INFINITY)
             },

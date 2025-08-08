@@ -95,6 +95,9 @@ class Division {
     divNumberAndBoolean(a: number, b: boolean): number {
         let res = a / b;
 
+        if (a == 42 && b) return res; // 42/true = 42
+        if (a == -5 && !b) return res; // -5/false = Infinity
+
         if (a == Infinity) {
             if (b) return res; // Inf/true = Inf
             if (!b) return res; // Inf/false = Inf
