@@ -877,54 +877,53 @@ class TsExprResolver(
             is TsExprApproximationResult.NoApproximation -> {}
         }
 
+        val result = scope.calcOnState { methodResult }
 
-        return when (val result = scope.calcOnState { methodResult }) {
-            is TsMethodResult.Success -> {
-                scope.doWithState { methodResult = TsMethodResult.NoCall }
-                result.value
-            }
+        if (result is TsMethodResult.Success) {
+            scope.doWithState { methodResult = TsMethodResult.NoCall }
+            return result.value
+        }
 
-            is TsMethodResult.TsException -> {
-                error("Exception should be handled earlier")
-            }
+        if (result is TsMethodResult.TsException) {
+            error("Exception should be handled earlier")
+        }
 
-            is TsMethodResult.NoCall -> {
-                val instance = run {
-                    val resolved = resolve(expr.instance) ?: return null
+        check(result is TsMethodResult.NoCall)
 
-                    if (resolved.sort != addressSort) {
-                        if (expr.callee.name == "valueOf") {
-                            if (expr.args.isNotEmpty()) {
-                                logger.warn {
-                                    "valueOf() should have no arguments, but got ${expr.args.size}"
-                                }
-                            }
-                            return resolved
+        val instance = run {
+            val resolved = resolve(expr.instance) ?: return null
+
+            if (resolved.sort != addressSort) {
+                if (expr.callee.name == "valueOf") {
+                    if (expr.args.isNotEmpty()) {
+                        logger.warn {
+                            "valueOf() should have no arguments, but got ${expr.args.size}"
                         }
-
-                        logger.warn { "Calling method on non-ref instance is not yet supported: $expr" }
-                        scope.assert(falseExpr)
-                        return null
                     }
-
-                    resolved.asExpr(addressSort)
+                    return resolved
                 }
 
-                checkUndefinedOrNullPropertyRead(instance) ?: return null
-
-                val resolvedArgs = expr.args.map { resolve(it) ?: return null }
-
-                val virtualCall = TsVirtualMethodCallStmt(
-                    callee = expr.callee,
-                    instance = instance,
-                    args = resolvedArgs,
-                    returnSite = scope.calcOnState { lastStmt },
-                )
-                scope.doWithState { newStmt(virtualCall) }
-
-                null
+                logger.warn { "Calling method on non-ref instance is not yet supported: $expr" }
+                scope.assert(falseExpr)
+                return null
             }
+
+            resolved.asExpr(addressSort)
         }
+
+        checkUndefinedOrNullPropertyRead(instance) ?: return null
+
+        val resolvedArgs = expr.args.map { resolve(it) ?: return null }
+
+        val virtualCall = TsVirtualMethodCallStmt(
+            callee = expr.callee,
+            instance = instance,
+            args = resolvedArgs,
+            returnSite = scope.calcOnState { lastStmt },
+        )
+        scope.doWithState { newStmt(virtualCall) }
+
+        null
     }
 
     private fun handleR(): UExpr<*>? = with(ctx) {
