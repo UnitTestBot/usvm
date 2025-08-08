@@ -25,6 +25,7 @@ import org.usvm.util.getResourcePath
 import kotlin.io.path.isDirectory
 import kotlin.io.path.listDirectoryEntries
 import kotlin.io.path.name
+import kotlin.test.Test
 import kotlin.test.assertTrue
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -200,15 +201,23 @@ class ProjectRunner {
     }
 
     @TestFactory
-    fun `run on each class in particular project`() = testFactory {
+    fun `run on each class in a particular project`() = testFactory {
         logger.info { "Processing project: $particularProjectName" }
         val scene = createScene(particularProjectName)
 
         testOnEachClass(scene)
     }
 
+    @Test
+    fun `run on a particular class in a particular project`() {
+        val scene = createScene(particularProjectName)
+        val cls = scene.projectClasses.firstOrNull { it.toString() == "@source/entry/utils/AbilityUtils: %dflt" }
+            ?: error("Class not found in project $particularProjectName")
+        runMachineOnClass(scene, cls)
+    }
+
     @TestFactory
-    fun `run on all methods in particular project`() = testFactory {
+    fun `run on all methods in a particular project`() = testFactory {
         logger.info { "Processing project: $particularProjectName" }
         val scene = createScene(particularProjectName)
 
