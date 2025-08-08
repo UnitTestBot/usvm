@@ -36,6 +36,7 @@ private val logger = KotlinLogging.logger {}
 class ProjectRunner {
     companion object {
         private const val PROJECTS_ROOT = "/projects"
+        private const val SDK_TYPESCRIPT_PATH = "/sdk/typescript"
         private const val SDK_OHOS_PATH = "/sdk/ohos/5.0.1.111/ets"
 
         // Instructions for getting SDK:
@@ -78,7 +79,7 @@ class ProjectRunner {
     }
 
     private val sdkFiles: List<EtsFile> by lazy {
-        listOf(SDK_OHOS_PATH).flatMap { sdk ->
+        listOf(SDK_TYPESCRIPT_PATH, SDK_OHOS_PATH).flatMap { sdk ->
             logger.info { "Loading SDK from path: $sdk" }
             val sdkPath = getResourcePath(sdk)
             val sdkProject = loadEtsProjectAutoConvert(sdkPath, useArkAnalyzerTypeInference = null)
