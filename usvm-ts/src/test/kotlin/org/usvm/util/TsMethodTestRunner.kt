@@ -41,16 +41,13 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
 
     protected abstract val scene: EtsScene
 
-    protected fun loadSampleScene(
-        className: String,
-        folderPrefix: String = "",
+    protected fun loadScene(
+        resourcePath: String,
         useArkAnalyzerTypeInference: Boolean = false,
         sdks: List<String> = emptyList(), // resource paths to SDKs
     ): EtsScene {
-        val name = "$className.ts"
-        val path = getResourcePath("/samples/$folderPrefix/$name")
         val file = loadEtsFileAutoConvert(
-            path,
+            getResourcePath(resourcePath),
             useArkAnalyzerTypeInference = if (useArkAnalyzerTypeInference) 1 else null
         )
         val sdkFiles = sdks.flatMap { sdk ->
@@ -58,14 +55,26 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
             val sdkProject = loadEtsProjectAutoConvert(sdkPath, useArkAnalyzerTypeInference = null)
             sdkProject.projectFiles
         }
-        return EtsScene(listOf(file), sdkFiles)
+        return EtsScene(listOf(file), sdkFiles, projectName = file.projectName)
     }
 
-    protected fun getMethod(className: String, methodName: String): EtsMethod {
-        return scene
+    protected val className: String
+        get() = this::class.simpleName ?: error("Class name is not available: ${this::class}")
+
+    protected fun getMethod(
+        methodName: String,
+        className: String = this.className,
+    ): EtsMethod {
+        val methods = scene
             .projectAndSdkClasses.single { it.name == className }
-            .methods.singleOrNull { it.name == methodName }
-            ?: error("No such method $methodName in $className found")
+            .methods.filter { it.name == methodName }
+        if (methods.isEmpty()) {
+            error("Method '$methodName' not found in class $className")
+        }
+        if (methods.size > 1) {
+            error("Multiple methods with name '$methodName' found in class $className: $methods")
+        }
+        return methods.single()
     }
 
     protected val doNotCheckCoverage: CoverageChecker = { _ -> true }

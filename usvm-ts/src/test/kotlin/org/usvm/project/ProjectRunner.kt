@@ -25,6 +25,7 @@ import org.usvm.util.getResourcePath
 import kotlin.io.path.isDirectory
 import kotlin.io.path.listDirectoryEntries
 import kotlin.io.path.name
+import kotlin.test.Test
 import kotlin.test.assertTrue
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -35,36 +36,71 @@ private val logger = KotlinLogging.logger {}
 class ProjectRunner {
     companion object {
         private const val PROJECTS_ROOT = "/projects"
-        private const val SDK_OHOS_PATH = "/sdk/ohos/5.0.1.111/ets"
 
-        // Instructions for getting SDK:
-        //
-        // 1. Visit https://repo.huaweicloud.com/harmonyos/os/
-        //
-        // 2. Download the latest version (e.g., `5.0.3`):
-        //    ```sh
-        //    curl -OL https://repo.huaweicloud.com/openharmony/os/5.0.3-Release/ohos-sdk-windows_linux-public.tar.gz
-        //    ```
-        //
-        // 3. Extract the archive and find the folder `ets` with sub-folders `api`, `arkts`, `component`, `kits`.
-        //    Everything else can be thrown away.
-        //
-        // 4. Place the SDK into resources as follows:
-        //    ```
-        //    src/
-        //      test/
-        //        resources/
-        //          sdk/
-        //            ohos/
-        //              <version>/  (e.g., `5.0.1.111`)
-        //                ets/
-        //                  api/
-        //                  arkts/
-        //                  component/
-        //                  kits/
-        //    ```
-        //
-        // 5. Update the `SDK_OHOS_PATH` const to point to the correct version.
+        /**
+         * ## Instructions for getting TypeScript SDK:
+         *
+         * 1. Download the TypeScript SDK from one of the following sources:
+         *
+         *    - Option 1: Download from npm (recommended)
+         *      ```sh
+         *      npm install typescript@latest
+         *      ```
+         *
+         *    - Option 2: Download from GitHub releases: https://github.com/microsoft/TypeScript/releases/latest
+         *
+         * 2. Extract the TypeScript library files (*.d.ts files) from:
+         *    - `node_modules/typescript/lib/` (if using npm)
+         *    - `TypeScript-<version>/lib/` (if using GitHub releases)
+         *
+         * 3. Place the TypeScript SDK into resources as follows:
+         *    ```
+         *    src/
+         *      test/
+         *        resources/
+         *          sdk/
+         *            typescript/
+         *              lib.d.ts
+         *              lib.es2015.d.ts
+         *              lib.es2020.d.ts
+         *              lib.dom.d.ts
+         *              ... (other TypeScript lib files)
+         *    ```
+         */
+        private const val SDK_TYPESCRIPT_PATH = "/sdk/typescript"
+
+        /**
+         * ## Instructions for getting OpenHarmony SDK:
+         *
+         * 1. Visit https://repo.huaweicloud.com/harmonyos/os/
+         *
+         * 2. Download the latest version (e.g., `5.0.3`):
+         *
+         *    ```sh
+         *    curl -OL https://repo.huaweicloud.com/openharmony/os/5.0.3-Release/ohos-sdk-windows_linux-public.tar.gz
+         *    ```
+         *
+         * 3. Extract the archive and find the folder `ets` with sub-folders `api`, `arkts`, `component`, `kits`.
+         *    _Everything else can be thrown away._
+         *
+         * 4. Place the SDK into resources as follows:
+         *    ```
+         *    src/
+         *      test/
+         *        resources/
+         *          sdk/
+         *            ohos/
+         *              <version>/  (e.g., `5.0.1.111`)
+         *                ets/
+         *                  api/
+         *                  arkts/
+         *                  component/
+         *                  kits/
+         *    ```
+         *
+         * 5. Update the `SDK_OHOS_PATH` const to point to the correct version.
+         */
+        private const val SDK_OHOS_PATH = "/sdk/ohos/5.0.1.111/ets"
 
         val machineOptions: UMachineOptions = UMachineOptions(
             pathSelectionStrategies = listOf(PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM),
@@ -77,7 +113,7 @@ class ProjectRunner {
     }
 
     private val sdkFiles: List<EtsFile> by lazy {
-        listOf(SDK_OHOS_PATH).flatMap { sdk ->
+        listOf(SDK_TYPESCRIPT_PATH, SDK_OHOS_PATH).flatMap { sdk ->
             logger.info { "Loading SDK from path: $sdk" }
             val sdkPath = getResourcePath(sdk)
             val sdkProject = loadEtsProjectAutoConvert(sdkPath, useArkAnalyzerTypeInference = null)
@@ -200,15 +236,23 @@ class ProjectRunner {
     }
 
     @TestFactory
-    fun `run on each class in particular project`() = testFactory {
+    fun `run on each class in a particular project`() = testFactory {
         logger.info { "Processing project: $particularProjectName" }
         val scene = createScene(particularProjectName)
 
         testOnEachClass(scene)
     }
 
+    @Test
+    fun `run on a particular class in a particular project`() {
+        val scene = createScene(particularProjectName)
+        val cls = scene.projectClasses.firstOrNull { it.toString() == "@source/entry/utils/AbilityUtils: %dflt" }
+            ?: error("Class not found in project $particularProjectName")
+        runMachineOnClass(scene, cls)
+    }
+
     @TestFactory
-    fun `run on all methods in particular project`() = testFactory {
+    fun `run on all methods in a particular project`() = testFactory {
         logger.info { "Processing project: $particularProjectName" }
         val scene = createScene(particularProjectName)
 

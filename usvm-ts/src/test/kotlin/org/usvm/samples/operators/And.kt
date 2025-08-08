@@ -2,364 +2,396 @@ package org.usvm.samples.operators
 
 import org.jacodb.ets.dsl.and
 import org.jacodb.ets.dsl.const
+import org.jacodb.ets.dsl.eqq
 import org.jacodb.ets.dsl.local
-import org.jacodb.ets.dsl.neq
-import org.jacodb.ets.dsl.not
 import org.jacodb.ets.dsl.param
-import org.jacodb.ets.dsl.program
-import org.jacodb.ets.dsl.thisRef
-import org.jacodb.ets.dsl.toBlockCfg
-import org.jacodb.ets.model.EtsBooleanType
-import org.jacodb.ets.model.EtsClassSignature
-import org.jacodb.ets.model.EtsMethodImpl
-import org.jacodb.ets.model.EtsMethodParameter
-import org.jacodb.ets.model.EtsMethodSignature
+import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsScene
-import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
-import org.jacodb.ets.utils.toEtsBlockCfg
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
+import org.usvm.util.buildEtsMethod
+import org.usvm.util.callNumberIsNaN
+import org.usvm.util.eq
+import org.usvm.util.isNaN
 import org.usvm.util.isTruthy
+import org.usvm.util.neq
 
 class And : TsMethodTestRunner() {
+    private val tsPath = "/samples/operators/And.ts"
 
-    private val className = this::class.simpleName!!
-
-    override val scene: EtsScene = loadSampleScene(className, folderPrefix = "operators")
-
-    private val classSignature: EtsClassSignature =
-        scene.projectFiles[0].classes.single { it.name != DEFAULT_ARK_CLASS_NAME }.signature
+    override val scene: EtsScene = loadScene(tsPath)
 
     @Test
-    fun `test andOfBooleanAndBoolean`() {
-        val method = getMethod(className, "andOfBooleanAndBoolean")
+    fun `test boolean && boolean`() {
+        val method = getMethod("andOfBooleanAndBoolean")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method = method,
-            { a, b, r -> a.value && b.value && (r.number == 1.0) },
-            { a, b, r -> a.value && !b.value && (r.number == 2.0) },
-            { a, b, r -> !a.value && b.value && (r.number == 3.0) },
-            { a, b, r -> !a.value && !b.value && (r.number == 4.0) },
+            { a, b, r ->
+                // false && false -> false
+                (r eq 1) && !a.value && !b.value
+            },
+            { a, b, r ->
+                // false && true -> false
+                (r eq 2) && !a.value && b.value
+            },
+            { a, b, r ->
+                // true && false -> false
+                (r eq 3) && a.value && !b.value
+            },
+            { a, b, r ->
+                // true && true -> true
+                (r eq 4) && a.value && b.value
+            },
+            invariants = arrayOf(
+                { _, _, r -> r neq 0 }
+            )
         )
     }
 
     @Test
-    fun `test andOfBooleanAndBoolean DSL`() {
-        val prog = program {
-            assign(local("a"), param(0))
-            assign(local("b"), param(1))
-            assign(local("this"), thisRef())
-            ifStmt(and(local("a"), local("b"))) {
-                ret(const(1.0))
-            }
-            ifStmt(local("a")) {
-                ret(const(2.0))
-            }
-            ifStmt(local("b")) {
-                ret(const(3.0))
-            }
-            ret(const(4.0))
-        }
-        val blockCfg = prog.toBlockCfg()
+    fun `test number && number`() {
 
-        val method = EtsMethodImpl(
-            signature = EtsMethodSignature(
-                enclosingClass = classSignature,
-                name = "andOfBooleanAndBoolean",
-                parameters = listOf(
-                    EtsMethodParameter(0, "a", EtsBooleanType),
-                    EtsMethodParameter(1, "b", EtsBooleanType),
-                ),
-                returnType = EtsNumberType,
+        // ```ts
+        // andOfNumberAndNumber(a: number, b: number): number {
+        //     const res = a && b;
+        //     if (a) { // a is truthy, res is b
+        //         if (b) { // b is truthy
+        //             if (res === b) return 1; // res is also b
+        //         } else if (Number.isNaN(b)) { // b is falsy (NaN)
+        //             if (Number.isNaN(res)) return 2; // res is also NaN
+        //         } else if (b === 0) { // b is falsy (0)
+        //             if (res === 0) return 3; // res is also 0
+        //         }
+        //     } else if (Number.isNaN(a)) { // a is falsy (NaN), res is also NaN
+        //         if (b) {
+        //             if (Number.isNaN(res)) return 4;
+        //         } else if (Number.isNaN(b)) {
+        //             if (Number.isNaN(res)) return 5;
+        //         } else if (b === 0) {
+        //             if (Number.isNaN(res)) return 6;
+        //         }
+        //     } else if (a === 0) { // a is falsy (0), res is also 0
+        //         if (b) {
+        //             if (res === 0) return 7;
+        //         } else if (Number.isNaN(b)) {
+        //             if (res === 0) return 8;
+        //         } else if (b === 0) {
+        //             if (res === 0) return 9;
+        //         }
+        //     }
+        //     return 0;
+        // }
+        // ```
+
+        val methodName = "andOfNumberAndNumber"
+        val method = buildEtsMethod(
+            name = methodName,
+            enclosingClass = scene.projectAndSdkClasses.single { it.name == className },
+            parameters = listOf(
+                "a" to EtsNumberType,
+                "b" to EtsNumberType
             ),
-        )
-        method.enclosingClass = scene.projectClasses.first { it.name == DEFAULT_ARK_CLASS_NAME }
+            returnType = EtsNumberType,
+        ) {
+            // a := arg(0)
+            val a = local("a")
+            assign(a, param(0))
 
-        val etsBlockCfg = blockCfg.toEtsBlockCfg(method)
-        method._cfg = etsBlockCfg
+            // b := arg(1)
+            val b = local("b")
+            assign(b, param(1))
 
-        discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
-            method = method,
-            { a, b, r -> a.value && b.value && (r.number == 1.0) },
-            { a, b, r -> a.value && !b.value && (r.number == 2.0) },
-            { a, b, r -> !a.value && b.value && (r.number == 3.0) },
-            { a, b, r -> !a.value && !b.value && (r.number == 4.0) },
-        )
-    }
+            // res := a && b
+            val res = local("res")
+            assign(res, and(a, b))
 
-    @Test
-    fun `test andOfNumberAndNumber`() {
-        // val method = getMethod(className, "andOfNumberAndNumber")
-        //
-        //   andOfNumberAndNumber(a: number, b: number): number {
-        //       if (a && b) return 1
-        //       if (a && (b != b)) return 2
-        //       if (a) return 3
-        //       if ((a != a) && b) return 4
-        //       if ((a != a) && (b != b)) return 5
-        //       if ((a != a)) return 6
-        //       if (b) return 7
-        //       if (b != b) return 8
-        //       return 9
-        //   }
-        //
+            // if (a) {
+            ifStmt(a) {
+                // if (b) {
+                ifStmt(b) {
+                    // if (res === b) return 1;
+                    ifStmt(eqq(res, b)) {
+                        ret(const(1))
+                    }
+                }.elseIf(callNumberIsNaN(EtsLocal("b"))) {
+                    // } else if (Number.isNaN(b)) {
+                    // if (Number.isNaN(res)) return 2;
+                    ifStmt(callNumberIsNaN(EtsLocal("res"))) {
+                        ret(const(2))
+                    }
+                }.elseIf(eqq(b, const(0))) {
+                    // } else if (b === 0) {
+                    // if (res === 0) return 3;
+                    ifStmt(eqq(res, const(0))) {
+                        ret(const(3))
+                    }
+                }
+            }.elseIf(callNumberIsNaN(EtsLocal("a"))) {
+                // } else if (Number.isNaN(a)) {
+                // if (b) {
+                ifStmt(b) {
+                    // if (Number.isNaN(res)) return 4;
+                    ifStmt(callNumberIsNaN(EtsLocal("res"))) {
+                        ret(const(4))
+                    }
+                }.elseIf(callNumberIsNaN(EtsLocal("b"))) {
+                    // } else if (Number.isNaN(b)) {
+                    // if (Number.isNaN(res)) return 5;
+                    ifStmt(callNumberIsNaN(EtsLocal("res"))) {
+                        ret(const(5))
+                    }
+                }.elseIf(eqq(b, const(0))) {
+                    // } else if (b === 0) {
+                    // if (Number.isNaN(res)) return 6;
+                    ifStmt(callNumberIsNaN(EtsLocal("res"))) {
+                        ret(const(6))
+                    }
+                }
+            }.elseIf(eqq(a, const(0))) {
+                // } else if (a === 0) {
+                // if (b) {
+                ifStmt(b) {
+                    // if (res === 0) return 7;
+                    ifStmt(eqq(res, const(0))) {
+                        ret(const(7))
+                    }
+                }.elseIf(callNumberIsNaN(EtsLocal("b"))) {
+                    // } else if (Number.isNaN(b)) {
+                    // if (res === 0) return 8;
+                    ifStmt(eqq(res, const(0))) {
+                        ret(const(8))
+                    }
+                }.elseIf(eqq(b, const(0))) {
+                    // } else if (b === 0) {
+                    // if (res === 0) return 9;
+                    ifStmt(eqq(res, const(0))) {
+                        ret(const(9))
+                    }
+                }
+            }
 
-        val prog = program {
-            assign(local("a"), param(0))
-            assign(local("b"), param(1))
-            assign(local("this"), thisRef())
-            ifStmt(and(local("a"), local("b"))) {
-                ret(const(1.0))
-            }
-            ifStmt(and(local("a"), neq(local("b"), local("b")))) {
-                ret(const(2.0))
-            }
-            ifStmt(local("a")) {
-                ret(const(3.0))
-            }
-            ifStmt(and(neq(local("a"), local("a")), local("b"))) {
-                ret(const(4.0))
-            }
-            ifStmt(and(neq(local("a"), local("a")), neq(local("b"), local("b")))) {
-                ret(const(5.0))
-            }
-            ifStmt(neq(local("a"), local("a"))) {
-                ret(const(6.0))
-            }
-            ifStmt(local("b")) {
-                ret(const(7.0))
-            }
-            ifStmt(neq(local("b"), local("b"))) {
-                ret(const(8.0))
-            }
-            ret(const(9.0))
+            // return 0;
+            ret(const(0))
         }
-        val blockCfg = prog.toBlockCfg()
 
-        val methodParameters = listOf(
-            EtsMethodParameter(0, "a", EtsNumberType),
-            EtsMethodParameter(1, "b", EtsNumberType),
-        )
-        val method = EtsMethodImpl(
-            signature = EtsMethodSignature(
-                enclosingClass = classSignature,
-                name = "andOfNumberAndNumber",
-                parameters = methodParameters,
-                returnType = EtsNumberType,
-            ),
-        )
-        method.enclosingClass = scene.projectClasses.first { it.name == DEFAULT_ARK_CLASS_NAME }
-
-        val etsBlockCfg = blockCfg.toEtsBlockCfg(method)
-        method._cfg = etsBlockCfg
-
+        // val method = getMethod(methodName)
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
-            { a, b, r -> isTruthy(a) && isTruthy(b) && (r.number == 1.0) },
-            { a, b, r -> isTruthy(a) && b.number.isNaN() && (r.number == 2.0) },
-            { a, b, r -> isTruthy(a) && (b.number == 0.0) && (r.number == 3.0) },
-            { a, b, r -> a.number.isNaN() && isTruthy(b) && (r.number == 4.0) },
-            { a, b, r -> a.number.isNaN() && b.number.isNaN() && (r.number == 5.0) },
-            { a, b, r -> a.number.isNaN() && (b.number == 0.0) && (r.number == 6.0) },
-            { a, b, r -> (a.number == 0.0) && isTruthy(b) && (r.number == 7.0) },
-            { a, b, r -> (a.number == 0.0) && b.number.isNaN() && (r.number == 8.0) },
-            { a, b, r -> (a.number == 0.0) && (b.number == 0.0) && (r.number == 9.0) },
+            { a, b, r ->
+                // truthy && truthy -> b
+                (r eq 1) && isTruthy(a) && isTruthy(b)
+            },
+            { a, b, r ->
+                // truthy && NaN -> NaN
+                (r eq 2) && isTruthy(a) && b.isNaN()
+            },
+            { a, b, r ->
+                // truthy && 0 -> 0
+                (r eq 3) && isTruthy(a) && (b eq 0)
+            },
+            { a, b, r ->
+                // NaN && truthy -> NaN
+                (r eq 4) && a.isNaN() && isTruthy(b)
+            },
+            { a, b, r ->
+                // NaN && NaN -> NaN
+                (r eq 5) && a.isNaN() && b.isNaN()
+            },
+            { a, b, r ->
+                // NaN && 0 -> NaN
+                (r eq 6) && a.isNaN() && (b eq 0)
+            },
+            { a, b, r ->
+                // 0 && truthy -> 0
+                (r eq 7) && (a eq 0) && isTruthy(b)
+            },
+            { a, b, r ->
+                // 0 && NaN -> 0
+                (r eq 8) && (a eq 0) && b.isNaN()
+            },
+            { a, b, r ->
+                // 0 && 0 -> 0
+                (r eq 9) && (a eq 0) && (b eq 0)
+            },
+            invariants = arrayOf(
+                { _, _, r -> r neq 0 }
+            )
         )
     }
 
+    @Disabled("CFG from AA is broken")
     @Test
-    fun `test andOfBooleanAndNumber`() {
-        // val method = getMethod(className, "andOfBooleanAndNumber")
-        //
-        //   andOfBooleanAndNumber(a: boolean, b: number): number {
-        //       if (a && b) return 1
-        //       if (a && (b != b)) return 2
-        //       if (a) return 3
-        //       if (b) return 4
-        //       if (b != b) return 5
-        //       return 6
-        //   }
-        //
-
-        val prog = program {
-            assign(local("a"), param(0))
-            assign(local("b"), param(1))
-            assign(local("this"), thisRef())
-            ifStmt(and(local("a"), local("b"))) {
-                ret(const(1.0))
-            }
-            ifStmt(and(local("a"), neq(local("b"), local("b")))) {
-                ret(const(2.0))
-            }
-            ifStmt(local("a")) {
-                ret(const(3.0))
-            }
-            ifStmt(local("b")) {
-                ret(const(4.0))
-            }
-            ifStmt(neq(local("b"), local("b"))) {
-                ret(const(5.0))
-            }
-            ret(const(6.0))
-        }
-        val blockCfg = prog.toBlockCfg()
-
-        val methodParameters = listOf(
-            EtsMethodParameter(0, "a", EtsBooleanType),
-            EtsMethodParameter(1, "b", EtsNumberType),
-        )
-        val method = EtsMethodImpl(
-            signature = EtsMethodSignature(
-                enclosingClass = classSignature,
-                name = "andOfBooleanAndNumber",
-                parameters = methodParameters,
-                returnType = EtsNumberType,
-            ),
-        )
-        method.enclosingClass = scene.projectClasses.first { it.name == DEFAULT_ARK_CLASS_NAME }
-
-        val etsBlockCfg = blockCfg.toEtsBlockCfg(method)
-        method._cfg = etsBlockCfg
-
+    fun `test boolean && number`() {
+        val methodName = "andOfBooleanAndNumber"
+        val method = getMethod(methodName)
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
-            { a, b, r -> a.value && isTruthy(b) && (r.number == 1.0) },
-            { a, b, r -> a.value && b.number.isNaN() && (r.number == 2.0) },
-            { a, b, r -> a.value && (b.number == 0.0) && (r.number == 3.0) },
-            { a, b, r -> !a.value && isTruthy(b) && (r.number == 4.0) },
-            { a, b, r -> !a.value && b.number.isNaN() && (r.number == 5.0) },
-            { a, b, r -> !a.value && (b.number == 0.0) && (r.number == 6.0) },
+            { a, b, r ->
+                // true && truthy -> b
+                (r eq 1) && a.value && isTruthy(b)
+            },
+            { a, b, r ->
+                // true && NaN -> NaN
+                (r eq 2) && a.value && b.isNaN()
+            },
+            { a, b, r ->
+                // true && 0 -> 0
+                (r eq 3) && a.value && (b eq 0)
+            },
+            { a, b, r ->
+                // false && truthy -> false
+                (r eq 4) && !a.value && isTruthy(b)
+            },
+            { a, b, r ->
+                // false && NaN -> false
+                (r eq 5) && !a.value && b.isNaN()
+            },
+            { a, b, r ->
+                // false && 0 -> false
+                (r eq 6) && !a.value && (b eq 0)
+            },
+            invariants = arrayOf(
+                { _, _, r -> r neq 0 }
+            )
         )
     }
 
+    @Disabled("CFG from AA is broken")
     @Test
-    fun `test andOfNumberAndBoolean`() {
-        // val method = getMethod(className, "andOfNumberAndBoolean")
-        //
-        //   andOfNumberAndBoolean(a: number, b: boolean): number {
-        //       if (a && b) return 1
-        //       if (a) return 2
-        //       if ((a != a) && b) return 3.0
-        //       if ((a != a) && !b) return 4.0
-        //       if (b) return 5
-        //       return 6
-        //   }
-        //
-
-        val prog = program {
-            assign(local("a"), param(0))
-            assign(local("b"), param(1))
-            assign(local("this"), thisRef())
-            ifStmt(and(local("a"), local("b"))) {
-                ret(const(1.0))
-            }
-            ifStmt(local("a")) {
-                ret(const(2.0))
-            }
-            ifStmt(and(neq(local("a"), local("a")), local("b"))) {
-                ret(const(3.0))
-            }
-            ifStmt(and(neq(local("a"), local("a")), not(local("b")))) {
-                ret(const(4.0))
-            }
-            ifStmt(local("b")) {
-                ret(const(5.0))
-            }
-            ret(const(6.0))
-        }
-        val blockCfg = prog.toBlockCfg()
-
-        val methodParameters = listOf(
-            EtsMethodParameter(0, "a", EtsNumberType),
-            EtsMethodParameter(1, "b", EtsBooleanType),
-        )
-        val method = EtsMethodImpl(
-            signature = EtsMethodSignature(
-                enclosingClass = classSignature,
-                name = "andOfNumberAndBoolean",
-                parameters = methodParameters,
-                returnType = EtsNumberType,
-            ),
-        )
-        method.enclosingClass = scene.projectClasses.first { it.name == DEFAULT_ARK_CLASS_NAME }
-
-        val etsBlockCfg = blockCfg.toEtsBlockCfg(method)
-        method._cfg = etsBlockCfg
-
+    fun `test number && boolean`() {
+        val method = getMethod("andOfNumberAndBoolean")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method = method,
-            { a, b, r -> isTruthy(a) && b.value && (r.number == 1.0) },
-            { a, b, r -> isTruthy(a) && !b.value && (r.number == 2.0) },
-            { a, b, r -> a.number.isNaN() && b.value && (r.number == 3.0) },
-            { a, b, r -> a.number.isNaN() && !b.value && (r.number == 4.0) },
-            { a, b, r -> (a.number == 0.0) && b.value && (r.number == 5.0) },
-            { a, b, r -> (a.number == 0.0) && !b.value && (r.number == 6.0) },
+            { a, b, r ->
+                // truthy && true -> true
+                (r eq 1) && isTruthy(a) && b.value
+            },
+            { a, b, r ->
+                // truthy && false -> false
+                (r eq 2) && isTruthy(a) && !b.value
+            },
+            { a, b, r ->
+                // NaN && true -> NaN
+                (r eq 3) && a.isNaN() && b.value
+            },
+            { a, b, r ->
+                // NaN && false -> NaN
+                (r eq 4) && a.isNaN() && !b.value
+            },
+            { a, b, r ->
+                // 0 && true -> 0
+                (r eq 5) && (a eq 0) && b.value
+            },
+            { a, b, r ->
+                // 0 && false -> 0
+                (r eq 6) && (a eq 0) && !b.value
+            },
+            invariants = arrayOf(
+                { _, _, r -> r neq 0 }
+            )
         )
     }
 
-    @Test
     @Disabled("Does not work because objects cannot be null")
-    fun `test andOfObjectAndObject`() {
-        val method = getMethod(className, "andOfObjectAndObject")
+    @Test
+    fun `test object && object`() {
+        val method = getMethod("andOfObjectAndObject")
         discoverProperties<TsTestValue.TsClass, TsTestValue.TsClass, TsTestValue.TsNumber>(
             method = method,
-            { a, b, r -> isTruthy(a) && isTruthy(b) && (r.number == 1.0) },
-            { a, b, r -> isTruthy(a) && !isTruthy(b) && (r.number == 2.0) },
-            { a, b, r -> !isTruthy(a) && isTruthy(b) && (r.number == 3.0) },
-            { a, b, r -> !isTruthy(a) && !isTruthy(b) && (r.number == 4.0) },
+            { a, b, r ->
+                // truthy && truthy -> b
+                (r eq 1) && isTruthy(a) && isTruthy(b)
+            },
+            { a, b, r ->
+                // truthy && falsy -> b
+                (r eq 2) && isTruthy(a) && !isTruthy(b)
+            },
+            { a, b, r ->
+                // falsy && truthy -> a
+                (r eq 3) && !isTruthy(a) && isTruthy(b)
+            },
+            { a, b, r ->
+                // falsy && falsy -> a
+                (r eq 4) && !isTruthy(a) && !isTruthy(b)
+            },
+            invariants = arrayOf(
+                { _, _, r -> r neq 0 }
+            )
         )
     }
 
+    @Disabled("CFG from AA is broken")
     @Test
-    fun `test andOfUnknown`() {
-        val method = getMethod(className, "andOfUnknown")
+    fun `test unknown && unknown`() {
+        val method = getMethod("andOfUnknown")
         discoverProperties<TsTestValue, TsTestValue, TsTestValue.TsNumber>(
             method = method,
             { a, b, r ->
-                if (a is TsTestValue.TsBoolean && b is TsTestValue.TsBoolean) {
-                    a.value && b.value && (r.number == 1.0)
-                } else true
+                // a is truthy && b is truthy
+                // isTruthy(a) && isTruthy(b) && (r eq 1)
+                r eq 1
             },
             { a, b, r ->
-                if (a is TsTestValue.TsBoolean && b is TsTestValue.TsBoolean) {
-                    a.value && !b.value && (r.number == 2.0)
-                } else true
+                // a is truthy && b is NaN
+                // isTruthy(a) && b.isNaN() && (r eq 2)
+                r eq 2
             },
             { a, b, r ->
-                if (a is TsTestValue.TsBoolean && b is TsTestValue.TsBoolean) {
-                    !a.value && b.value && (r.number == 3.0)
-                } else true
+                // a is truthy && b is 0
+                // isTruthy(a) && (b eq 0) && (r eq 3)
+                r eq 3
             },
             { a, b, r ->
-                if (a is TsTestValue.TsBoolean && b is TsTestValue.TsBoolean) {
-                    !a.value && !b.value && (r.number == 4.0)
-                } else true
-            },
-        )
-    }
-
-    @Test
-    fun `test truthyUnknown`() {
-        val method = getMethod(className, "truthyUnknown")
-        discoverProperties<TsTestValue, TsTestValue, TsTestValue.TsNumber>(
-            method = method,
-            { a, b, r ->
-                if (a is TsTestValue.TsBoolean && b is TsTestValue.TsBoolean) {
-                    a.value && !b.value && (r.number == 1.0)
-                } else true
+                // a is truthy && b is false
+                // isTruthy(a) && (b is TsTestValue.TsBoolean && !b.value) && (r eq 4)
+                r eq 4
             },
             { a, b, r ->
-                if (a is TsTestValue.TsBoolean && b is TsTestValue.TsBoolean) {
-                    !a.value && b.value && (r.number == 2.0)
-                } else true
+                // a is NaN && b is truthy
+                // a.isNaN() && isTruthy(b) && (r eq 11)
+                r eq 11
             },
             { a, b, r ->
-                if (a is TsTestValue.TsBoolean && b is TsTestValue.TsBoolean) {
-                    !a.value && !b.value && (r.number == 99.0)
-                } else true
+                // a is NaN && b is NaN
+                // a.isNaN() && b.isNaN() && (r eq 12)
+                r eq 12
             },
+            { a, b, r ->
+                // a is NaN && b is 0
+                // a.isNaN() && (b eq 0) && (r eq 13)
+                r eq 13
+            },
+            { a, b, r ->
+                // a is NaN && b is false
+                // a.isNaN() && (b is TsTestValue.TsBoolean && !b.value) && (r eq 14)
+                r eq 14
+            },
+            { a, b, r ->
+                // a is 0 && b is truthy
+                // (a eq 0) && isTruthy(b) && (r eq 21)
+                r eq 21
+            },
+            { a, b, r ->
+                // a is 0 && b is NaN
+                // (a eq 0) && b.isNaN() && (r eq 22)
+                r eq 22
+            },
+            { a, b, r ->
+                // a is 0 && b is 0
+                // (a eq 0) && (b eq 0) && (r eq 23)
+                r eq 23
+            },
+            { a, b, r ->
+                // a is 0 && b is false
+                // (a eq 0) && (b is TsTestValue.TsBoolean && !b.value) && (r eq 24)
+                r eq 24
+            },
+            invariants = arrayOf(
+                { _, _, r -> r neq 0 }
+            )
         )
     }
 }

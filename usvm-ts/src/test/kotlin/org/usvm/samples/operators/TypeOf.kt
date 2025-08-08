@@ -1,4 +1,4 @@
-package org.usvm.samples
+package org.usvm.samples.operators
 
 import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.Disabled
@@ -6,15 +6,14 @@ import org.junit.jupiter.api.Test
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 
-class Strings : TsMethodTestRunner() {
+class TypeOf : TsMethodTestRunner() {
+    private val tsPath = "/samples/operators/TypeOf.ts"
 
-    private val className = this::class.simpleName!!
-
-    override val scene: EtsScene = loadSampleScene(className)
+    override val scene: EtsScene = loadScene(tsPath)
 
     @Test
     fun `test typeOfString`() {
-        val method = getMethod(className, "typeOfString")
+        val method = getMethod("typeOfString")
         discoverProperties<TsTestValue.TsString>(
             method = method,
             { r -> r.value == "string" },
@@ -23,7 +22,7 @@ class Strings : TsMethodTestRunner() {
 
     @Test
     fun `test typeOfNumber`() {
-        val method = getMethod(className, "typeOfNumber")
+        val method = getMethod("typeOfNumber")
         discoverProperties<TsTestValue.TsString>(
             method = method,
             { r -> r.value == "number" },
@@ -32,7 +31,7 @@ class Strings : TsMethodTestRunner() {
 
     @Test
     fun `test typeOfBoolean`() {
-        val method = getMethod(className, "typeOfBoolean")
+        val method = getMethod("typeOfBoolean")
         discoverProperties<TsTestValue.TsString>(
             method = method,
             { r -> r.value == "boolean" },
@@ -41,7 +40,7 @@ class Strings : TsMethodTestRunner() {
 
     @Test
     fun `test typeOfUndefined`() {
-        val method = getMethod(className, "typeOfUndefined")
+        val method = getMethod("typeOfUndefined")
         discoverProperties<TsTestValue.TsString>(
             method = method,
             { r -> r.value == "undefined" },
@@ -50,7 +49,7 @@ class Strings : TsMethodTestRunner() {
 
     @Test
     fun `test typeOfNull`() {
-        val method = getMethod(className, "typeOfNull")
+        val method = getMethod("typeOfNull")
         discoverProperties<TsTestValue.TsString>(
             method = method,
             { r -> r.value == "object" },
@@ -59,7 +58,7 @@ class Strings : TsMethodTestRunner() {
 
     @Test
     fun `test typeOfObject`() {
-        val method = getMethod(className, "typeOfObject")
+        val method = getMethod("typeOfObject")
         discoverProperties<TsTestValue.TsString>(
             method = method,
             { r -> r.value == "object" },
@@ -68,7 +67,7 @@ class Strings : TsMethodTestRunner() {
 
     @Test
     fun `test typeOfArray`() {
-        val method = getMethod(className, "typeOfArray")
+        val method = getMethod("typeOfArray")
         discoverProperties<TsTestValue.TsString>(
             method = method,
             { r -> r.value == "object" },
@@ -78,7 +77,7 @@ class Strings : TsMethodTestRunner() {
     @Disabled("Functions are not supported yet")
     @Test
     fun `test typeOfFunction`() {
-        val method = getMethod(className, "typeOfFunction")
+        val method = getMethod("typeOfFunction")
         discoverProperties<TsTestValue.TsString>(
             method = method,
             { r -> r.value == "function" },
@@ -87,7 +86,7 @@ class Strings : TsMethodTestRunner() {
 
     @Test
     fun `test typeOfInputString`() {
-        val method = getMethod(className, "typeOfInputString")
+        val method = getMethod("typeOfInputString")
         discoverProperties<TsTestValue.TsString, TsTestValue.TsString>(
             method = method,
             { _, r -> r.value == "string" },
@@ -96,7 +95,7 @@ class Strings : TsMethodTestRunner() {
 
     @Test
     fun `test typeOfInputNumber`() {
-        val method = getMethod(className, "typeOfInputNumber")
+        val method = getMethod("typeOfInputNumber")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsString>(
             method = method,
             { _, r -> r.value == "number" },
@@ -105,7 +104,7 @@ class Strings : TsMethodTestRunner() {
 
     @Test
     fun `test typeOfInputBoolean`() {
-        val method = getMethod(className, "typeOfInputBoolean")
+        val method = getMethod("typeOfInputBoolean")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsString>(
             method = method,
             { _, r -> r.value == "boolean" },
@@ -114,7 +113,7 @@ class Strings : TsMethodTestRunner() {
 
     @Test
     fun `test typeOfInputUndefined`() {
-        val method = getMethod(className, "typeOfInputUndefined")
+        val method = getMethod("typeOfInputUndefined")
         discoverProperties<TsTestValue.TsUndefined, TsTestValue.TsString>(
             method = method,
             { _, r -> r.value == "undefined" },
@@ -123,7 +122,7 @@ class Strings : TsMethodTestRunner() {
 
     @Test
     fun `test typeOfInputNull`() {
-        val method = getMethod(className, "typeOfInputNull")
+        val method = getMethod("typeOfInputNull")
         discoverProperties<TsTestValue.TsNull, TsTestValue.TsString>(
             method = method,
             { _, r -> r.value == "object" },
@@ -132,7 +131,7 @@ class Strings : TsMethodTestRunner() {
 
     @Test
     fun `test typeOfInputObject`() {
-        val method = getMethod(className, "typeOfInputObject")
+        val method = getMethod("typeOfInputObject")
         discoverProperties<TsTestValue, TsTestValue.TsString>(
             method = method,
             { _, r -> r.value == "object" },
@@ -141,7 +140,7 @@ class Strings : TsMethodTestRunner() {
 
     @Test
     fun `test typeOfInputArray`() {
-        val method = getMethod(className, "typeOfInputArray")
+        val method = getMethod("typeOfInputArray")
         discoverProperties<TsTestValue.TsArray<*>, TsTestValue.TsString>(
             method = method,
             { _, r -> r.value == "object" },
@@ -151,7 +150,7 @@ class Strings : TsMethodTestRunner() {
     @Disabled("Functions are not supported yet")
     @Test
     fun `test typeOfInputFunction`() {
-        val method = getMethod(className, "typeOfInputFunction")
+        val method = getMethod("typeOfInputFunction")
         discoverProperties<TsTestValue, TsTestValue.TsString>(
             method = method,
             { _, r -> r.value == "function" },

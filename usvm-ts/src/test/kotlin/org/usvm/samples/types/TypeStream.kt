@@ -5,25 +5,27 @@ import org.junit.jupiter.api.RepeatedTest
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
+import org.usvm.util.eq
+import org.usvm.util.neq
 
 class TypeStream : TsMethodTestRunner() {
-    private val className = this::class.simpleName!!
+    private val tsPath = "/samples/types/TypeStream.ts"
 
-    override val scene: EtsScene = loadSampleScene(className, folderPrefix = "types")
+    override val scene: EtsScene = loadScene(tsPath)
 
     @Test
     fun `test ancestor instanceof`() {
-        val method = getMethod(className, "instanceOf")
+        val method = getMethod("instanceOf")
         discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
             method = method,
             { x, r ->
-                x.name == "FirstChild" && r.number == 1.0
+                (r eq 1) && x.name == "FirstChild"
             },
             { x, r ->
-                x.name == "SecondChild" && r.number == 2.0
+                (r eq 2) && x.name == "SecondChild"
             },
             { x, r ->
-                x.name == "Parent" && r.number == 3.0
+                (r eq 3) && x.name == "Parent"
             },
             invariants = arrayOf(
                 { x, r ->
@@ -32,24 +34,24 @@ class TypeStream : TsMethodTestRunner() {
                 { _, r ->
                     r.number in listOf(1.0, 2.0, 3.0)
                 },
-                { _, r -> r.number != -1.0 }
+                { _, r -> r neq -1 }
             )
         )
     }
 
     @Test
     fun `test virtual invoke on an ancestor`() {
-        val method = getMethod(className, "virtualInvokeOnAncestor")
+        val method = getMethod("virtualInvokeOnAncestor")
         discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
             method = method,
             { x, r ->
-                x.name == "FirstChild" && r.number == 1.0
+                (r eq 1) && x.name == "FirstChild"
             },
             { x, r ->
-                x.name == "SecondChild" && r.number == 2.0
+                (r eq 2) && x.name == "SecondChild"
             },
             { x, r ->
-                x.name == "Parent" && r.number == 3.0
+                (r eq 3) && x.name == "Parent"
             },
             invariants = arrayOf(
                 { x, r ->
@@ -58,27 +60,31 @@ class TypeStream : TsMethodTestRunner() {
                 { _, r ->
                     r.number in listOf(1.0, 2.0, 3.0)
                 },
-                { _, r -> r.number != -1.0 }
+                { _, r -> r neq -1 }
             )
         )
     }
 
     @RepeatedTest(10, failureThreshold = 1)
     fun `use unique field`() {
-        val method = getMethod(className, "useUniqueField")
+        val method = getMethod("useUniqueField")
         discoverProperties<TsTestValue, TsTestValue>(
             method = method,
             { x, r ->
                 x as TsTestValue.TsClass
                 r as TsTestValue.TsNumber
-                x.name == "FirstChild" && r.number == 1.0
+                (r eq 1) && x.name == "FirstChild"
             },
             invariants = arrayOf(
                 { x, _ ->
-                    x !is TsTestValue.TsClass || x.name == "FirstChild"
+                    if (x is TsTestValue.TsClass) {
+                        x.name == "FirstChild"
+                    } else true
                 },
                 { _, r ->
-                    r !is TsTestValue.TsNumber || r.number == 1.0
+                    if (r is TsTestValue.TsNumber) {
+                        r eq 1
+                    } else true
                 },
             )
         )
@@ -86,30 +92,34 @@ class TypeStream : TsMethodTestRunner() {
 
     @RepeatedTest(10, failureThreshold = 1)
     fun `use non unique field`() {
-        val method = getMethod(className, "useNonUniqueField")
+        val method = getMethod("useNonUniqueField")
         discoverProperties<TsTestValue, TsTestValue>(
             method = method,
             { x, r ->
                 x as TsTestValue.TsClass
                 r as TsTestValue.TsNumber
-                x.name == "FirstChild" && r.number == 1.0
+                (r eq 1) && x.name == "FirstChild"
             },
             { x, r ->
                 x as TsTestValue.TsClass
                 r as TsTestValue.TsNumber
-                x.name == "SecondChild" && r.number == 2.0
+                (r eq 2) && x.name == "SecondChild"
             },
             { x, r ->
                 x as TsTestValue.TsClass
                 r as TsTestValue.TsNumber
-                x.name == "Parent" && r.number == 3.0
+                (r eq 3) && x.name == "Parent"
             },
             invariants = arrayOf(
                 { _, r ->
-                    r !is TsTestValue.TsNumber || r.number in listOf(1.0, 2.0, 3.0)
+                    if (r is TsTestValue.TsNumber) {
+                        r.number in listOf(1.0, 2.0, 3.0)
+                    } else true
                 },
                 { _, r ->
-                    r !is TsTestValue.TsNumber || r.number != -1.0
+                    if (r is TsTestValue.TsNumber) {
+                        r neq -1
+                    } else true
                 },
             )
         )

@@ -84,7 +84,6 @@ import org.jacodb.ets.model.EtsValue
 import org.jacodb.ets.model.EtsVoidExpr
 import org.jacodb.ets.model.EtsYieldExpr
 import org.jacodb.ets.utils.ANONYMOUS_METHOD_PREFIX
-import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.jacodb.ets.utils.STATIC_INIT_METHOD_NAME
 import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
 import org.jacodb.ets.utils.getDeclaredLocals
@@ -99,6 +98,7 @@ import org.usvm.USort
 import org.usvm.api.allocateConcreteRef
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArrayLength
+import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.api.mockMethodCall
 import org.usvm.api.typeStreamOf
 import org.usvm.dataflow.ts.infer.tryGetKnownType
@@ -125,6 +125,7 @@ import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.types.EtsAuxiliaryType
+import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.sizeSort
 import org.usvm.types.first
@@ -141,6 +142,21 @@ import org.usvm.util.resolveEtsMethods
 import org.usvm.util.throwExceptionWithoutStackFrameDrop
 
 private val logger = KotlinLogging.logger {}
+
+/**
+ * ECMAScript specification requires bitwise operations to be performed on 32-bit
+ * signed integers. All numeric operands are converted to 32-bit integers
+ * before the operation and the result is converted back to a Number type.
+ */
+private const val ECMASCRIPT_BITWISE_INTEGER_SIZE = 32
+
+/**
+ * ECMAScript bitwise shift operations mask the shift amount to 5 bits,
+ * which means the effective shift amount is in the range [0, 31].
+ * For example, `x << 32` is equivalent to `x << 0`,
+ * and `x << 37` is equivalent to `x << 5`.
+ */
+private const val ECMASCRIPT_BITWISE_SHIFT_MASK = 0b11111
 
 class TsExprResolver(
     internal val ctx: TsContext,
@@ -253,9 +269,10 @@ class TsExprResolver(
         return resolveUnaryOperator(TsUnaryOperator.Neg, expr)
     }
 
-    override fun visit(expr: EtsUnaryPlusExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsUnaryPlusExpr): UExpr<out USort>? = with(ctx) {
+        // Unary plus converts its operand to a number
+        val arg = resolve(expr.arg) ?: return null
+        return mkNumericExpr(arg, scope)
     }
 
     override fun visit(expr: EtsPostIncExpr): UExpr<out USort>? {
@@ -278,9 +295,26 @@ class TsExprResolver(
         error("Not supported $expr")
     }
 
-    override fun visit(expr: EtsBitNotExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsBitNotExpr): UExpr<out USort>? = with(ctx) {
+        // Bitwise NOT: converts operand to 32-bit signed integer and inverts all bits
+        val arg = resolve(expr.arg) ?: return null
+        val numericArg = mkNumericExpr(arg, scope)
+
+        // Convert to 32-bit integer, perform bitwise NOT, then convert back to number
+        val bvArg = mkFpToBvExpr(
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = numericArg.asExpr(fp64Sort),
+            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
+            isSigned = true
+        )
+        val notResult = mkBvNotExpr(bvArg)
+
+        return mkBvToFpExpr(
+            fp64Sort,
+            fpRoundingModeSortDefaultValue(),
+            notResult,
+            signed = true
+        )
     }
 
     override fun visit(expr: EtsCastExpr): UExpr<*>? = with(ctx) {
@@ -375,14 +409,47 @@ class TsExprResolver(
         error("Not supported $expr")
     }
 
-    override fun visit(expr: EtsDeleteExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsDeleteExpr): UExpr<out USort>? = with(ctx) {
+        logger.warn {
+            "delete operator is not fully supported, the result may not be accurate"
+        }
+
+        // The delete operator removes a property from an object and returns true/false
+        // For property access like "delete obj.prop", we need to handle EtsInstanceFieldRef
+        when (val operand = expr.arg) {
+            is EtsInstanceFieldRef -> {
+                val instance = resolve(operand.instance)?.asExpr(addressSort) ?: return null
+
+                // Check for null/undefined access
+                checkUndefinedOrNullPropertyRead(instance) ?: return null
+
+                // For now, we simulate deletion by setting the property to undefined
+                // This is a simplification of the real semantics but sufficient for basic cases
+                // TODO: This is incorrect for cases that the existing field is not of sort Address.
+                //       In such case, the "overwriting" the field value with undefined does nothing
+                //       to the actual number/boolean/string value inside the field,
+                //       [if only we read the field using that "other" sort].
+                val fieldLValue = mkFieldLValue(addressSort, instance, operand.field)
+                scope.doWithState {
+                    memory.write(fieldLValue, mkUndefinedValue(), guard = trueExpr)
+                }
+
+                // The delete operator returns true in most cases for property deletion
+                mkTrue()
+            }
+
+            else -> {
+                // For other operands (like variables), delete typically returns true without effect
+                resolve(operand) ?: return null // Evaluate for potential side effects
+                mkTrue()
+            }
+        }
     }
 
-    override fun visit(expr: EtsVoidExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsVoidExpr): UExpr<out USort>? = with(ctx) {
+        // The void operator evaluates its operand for side effects and returns undefined.
+        resolve(expr.arg) ?: return null
+        return mkUndefinedValue()
     }
 
     override fun visit(expr: EtsAwaitExpr): UExpr<out USort>? = with(ctx) {
@@ -390,6 +457,10 @@ class TsExprResolver(
 
         // Awaiting primitives does nothing.
         if (arg.sort != addressSort) {
+            return arg
+        }
+        // ...including null/undefined
+        if (arg == mkTsNullValue() || arg == mkUndefinedValue()) {
             return arg
         }
 
@@ -531,39 +602,202 @@ class TsExprResolver(
         error("Not supported $expr")
     }
 
-    override fun visit(expr: EtsBitAndExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsBitAndExpr): UExpr<out USort>? = with(ctx) {
+        val left = resolve(expr.left) ?: return null
+        val right = resolve(expr.right) ?: return null
+
+        val leftNum = mkNumericExpr(left, scope)
+        val rightNum = mkNumericExpr(right, scope)
+
+        // Convert to 32-bit integers, perform bitwise AND, then convert back
+        val leftBv = mkFpToBvExpr(
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = leftNum.asExpr(fp64Sort),
+            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
+            isSigned = true,
+        )
+        val rightBv = mkFpToBvExpr(
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = rightNum.asExpr(fp64Sort),
+            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
+            isSigned = true,
+        )
+        val result = mkBvAndExpr(leftBv, rightBv)
+
+        return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), result, signed = true)
     }
 
-    override fun visit(expr: EtsBitOrExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsBitOrExpr): UExpr<out USort>? = with(ctx) {
+        val left = resolve(expr.left) ?: return null
+        val right = resolve(expr.right) ?: return null
+
+        val leftNum = mkNumericExpr(left, scope)
+        val rightNum = mkNumericExpr(right, scope)
+
+        // Convert to 32-bit integers, perform bitwise OR, then convert back
+        val leftBv = mkFpToBvExpr(
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = leftNum.asExpr(fp64Sort),
+            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
+            isSigned = true,
+        )
+        val rightBv = mkFpToBvExpr(
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = rightNum.asExpr(fp64Sort),
+            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
+            isSigned = true,
+        )
+        val result = mkBvOrExpr(leftBv, rightBv)
+
+        return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), result, signed = true)
     }
 
-    override fun visit(expr: EtsBitXorExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsBitXorExpr): UExpr<out USort>? = with(ctx) {
+        val left = resolve(expr.left) ?: return null
+        val right = resolve(expr.right) ?: return null
+
+        val leftNum = mkNumericExpr(left, scope)
+        val rightNum = mkNumericExpr(right, scope)
+
+        // Convert to 32-bit integers, perform bitwise XOR, then convert back
+        val leftBv = mkFpToBvExpr(
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = leftNum.asExpr(fp64Sort),
+            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
+            isSigned = true,
+        )
+        val rightBv = mkFpToBvExpr(
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = rightNum.asExpr(fp64Sort),
+            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
+            isSigned = true,
+        )
+        val result = mkBvXorExpr(leftBv, rightBv)
+
+        return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), result, signed = true)
     }
 
-    override fun visit(expr: EtsLeftShiftExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsLeftShiftExpr): UExpr<out USort>? = with(ctx) {
+        val left = resolve(expr.left) ?: return null
+        val right = resolve(expr.right) ?: return null
+
+        val leftNum = mkNumericExpr(left, scope)
+        val rightNum = mkNumericExpr(right, scope)
+
+        // Convert to 32-bit integers and perform left shift
+        val leftBv = mkFpToBvExpr(
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = leftNum.asExpr(fp64Sort),
+            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
+            isSigned = true,
+        )
+        val rightBv = mkFpToBvExpr(
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = rightNum.asExpr(fp64Sort),
+            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
+            isSigned = true,
+        )
+
+        // Mask the shift amount to 5 bits (0-31) as per JavaScript spec
+        val shiftAmount = mkBvAndExpr(
+            rightBv,
+            mkBv(ECMASCRIPT_BITWISE_SHIFT_MASK, ECMASCRIPT_BITWISE_INTEGER_SIZE.toUInt())
+        )
+        val result = mkBvShiftLeftExpr(leftBv, shiftAmount)
+
+        return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), result, signed = true)
     }
 
-    override fun visit(expr: EtsRightShiftExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsRightShiftExpr): UExpr<out USort>? = with(ctx) {
+        val left = resolve(expr.left) ?: return null
+        val right = resolve(expr.right) ?: return null
+
+        val leftNum = mkNumericExpr(left, scope)
+        val rightNum = mkNumericExpr(right, scope)
+
+        // Convert to 32-bit integers and perform signed right shift
+        val leftBv = mkFpToBvExpr(
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = leftNum.asExpr(fp64Sort),
+            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
+            isSigned = true,
+        )
+        val rightBv = mkFpToBvExpr(
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = rightNum.asExpr(fp64Sort),
+            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
+            isSigned = true,
+        )
+
+        // Mask the shift amount to 5 bits (0-31)
+        val shiftAmount = mkBvAndExpr(
+            rightBv,
+            mkBv(ECMASCRIPT_BITWISE_SHIFT_MASK, ECMASCRIPT_BITWISE_INTEGER_SIZE.toUInt())
+        )
+        val result = mkBvArithShiftRightExpr(leftBv, shiftAmount)
+
+        return mkBvToFpExpr(
+            sort = fp64Sort,
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = result,
+            signed = true,
+        )
     }
 
-    override fun visit(expr: EtsUnsignedRightShiftExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsUnsignedRightShiftExpr): UExpr<out USort>? = with(ctx) {
+        val left = resolve(expr.left) ?: return null
+        val right = resolve(expr.right) ?: return null
+
+        val leftNum = mkNumericExpr(left, scope)
+        val rightNum = mkNumericExpr(right, scope)
+
+        // Convert to 32-bit integers and perform unsigned right shift
+        val leftBv = mkFpToBvExpr(
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = leftNum.asExpr(fp64Sort),
+            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
+            isSigned = true,
+        )
+        val rightBv = mkFpToBvExpr(
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = rightNum.asExpr(fp64Sort),
+            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
+            isSigned = true,
+        )
+
+        // Mask the shift amount to 5 bits (0-31)
+        val shiftAmount = mkBvAndExpr(
+            rightBv,
+            mkBv(ECMASCRIPT_BITWISE_SHIFT_MASK, ECMASCRIPT_BITWISE_INTEGER_SIZE.toUInt())
+        )
+        val result = mkBvLogicalShiftRightExpr(leftBv, shiftAmount)
+
+        return mkBvToFpExpr(
+            sort = fp64Sort,
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = result,
+            signed = false,
+        )
     }
 
-    override fun visit(expr: EtsNullishCoalescingExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsNullishCoalescingExpr): UExpr<out USort>? = with(ctx) {
+        val left = resolve(expr.left) ?: return null
+        val right = resolve(expr.right) ?: return null
+
+        val leftIsNullish = mkNullishExpr(left, scope)
+
+        // If both operands have the same sort, use mkIte directly
+        if (left.sort == right.sort) {
+            val commonSort = left.sort
+            return mkIte(
+                condition = leftIsNullish,
+                trueBranch = right.asExpr(commonSort),
+                falseBranch = left.asExpr(commonSort)
+            )
+        }
+
+        // If sorts differ, create a fake object that can hold either value
+        return iteWriteIntoFakeObject(scope, leftIsNullish, right, left)
     }
 
     // endregion
@@ -608,9 +842,21 @@ class TsExprResolver(
         return ctx.mkOr(eq.asExpr(ctx.boolSort), gt.asExpr(ctx.boolSort))
     }
 
-    override fun visit(expr: EtsInExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsInExpr): UExpr<out USort>? = with(ctx) {
+        val property = resolve(expr.left) ?: return null
+        val obj = resolve(expr.right)?.asExpr(addressSort) ?: return null
+
+        // Check for null/undefined access
+        checkUndefinedOrNullPropertyRead(obj) ?: return null
+
+        logger.warn {
+            "The 'in' operator is supported yet, the result may not be accurate"
+        }
+
+        // For now, just return a symbolic boolean (that can be true or false)
+        scope.calcOnState {
+            makeSymbolicPrimitive(boolSort)
+        }
     }
 
     override fun visit(expr: EtsInstanceOfExpr): UExpr<out USort>? = with(ctx) {
@@ -631,52 +877,44 @@ class TsExprResolver(
             is TsExprApproximationResult.NoApproximation -> {}
         }
 
+        val result = scope.calcOnState { methodResult }
 
-        return when (val result = scope.calcOnState { methodResult }) {
-            is TsMethodResult.Success -> {
-                scope.doWithState { methodResult = TsMethodResult.NoCall }
-                result.value
-            }
-
-            is TsMethodResult.TsException -> {
-                error("Exception should be handled earlier")
-            }
-
-            is TsMethodResult.NoCall -> {
-                val instance = run {
-                    val resolved = resolve(expr.instance) ?: return null
-
-                    if (resolved.sort != addressSort) {
-                        if (expr.callee.name == "valueOf") {
-                            if (expr.args.isNotEmpty()) {
-                                logger.warn {
-                                    "valueOf() should have no arguments, but got ${expr.args.size}"
-                                }
-                            }
-                            return resolved
-                        }
-
-                        logger.warn { "Calling method on non-ref instance is not yet supported: $expr" }
-                        scope.assert(falseExpr)
-                        return null
-                    }
-
-                    resolved.asExpr(addressSort)
-                }
-
-                val resolvedArgs = expr.args.map { resolve(it) ?: return null }
-
-                val virtualCall = TsVirtualMethodCallStmt(
-                    callee = expr.callee,
-                    instance = instance,
-                    args = resolvedArgs,
-                    returnSite = scope.calcOnState { lastStmt },
-                )
-                scope.doWithState { newStmt(virtualCall) }
-
-                null
-            }
+        if (result is TsMethodResult.Success) {
+            scope.doWithState { methodResult = TsMethodResult.NoCall }
+            return result.value
         }
+
+        if (result is TsMethodResult.TsException) {
+            error("Exception should be handled earlier")
+        }
+
+        check(result is TsMethodResult.NoCall)
+
+        val instance = run {
+            val resolved = resolve(expr.instance) ?: return null
+
+            if (resolved.sort != addressSort) {
+                logger.warn { "Calling method on non-ref instance is not yet supported: $expr" }
+                scope.assert(falseExpr)
+                return null
+            }
+
+            resolved.asExpr(addressSort)
+        }
+
+        checkUndefinedOrNullPropertyRead(instance) ?: return null
+
+        val resolvedArgs = expr.args.map { resolve(it) ?: return null }
+
+        val virtualCall = TsVirtualMethodCallStmt(
+            callee = expr.callee,
+            instance = instance,
+            args = resolvedArgs,
+            returnSite = scope.calcOnState { lastStmt },
+        )
+        scope.doWithState { newStmt(virtualCall) }
+
+        null
     }
 
     private fun handleR(): UExpr<*>? = with(ctx) {
@@ -894,7 +1132,7 @@ class TsExprResolver(
         val bvIndex = mkFpToBvExpr(
             roundingMode = fpRoundingModeSortDefaultValue(),
             value = index,
-            bvSize = 32,
+            bvSize = sizeSort.sizeBits.toInt(),
             isSigned = true,
         ).asExpr(sizeSort)
 
@@ -1255,12 +1493,14 @@ class TsExprResolver(
         }
 
         if (expr.type.typeName == "Boolean") {
-            val clazz = scene.sdkClasses.filter { it.name == "Boolean" }.maxBy { it.methods.size }
+            val clazz = scene.sdkClasses.filter { it.name == "Boolean" }.maxByOrNull { it.methods.size }
+                ?: error("No Boolean class found in SDK")
             return@with scope.calcOnState { memory.allocConcrete(clazz.type) }
         }
 
         if (expr.type.typeName == "Number") {
-            val clazz = scene.sdkClasses.filter { it.name == "Number" }.maxBy { it.methods.size }
+            val clazz = scene.sdkClasses.filter { it.name == "Number" }.maxByOrNull { it.methods.size }
+                ?: error("No Number class found in SDK")
             return@with scope.calcOnState { memory.allocConcrete(clazz.type) }
         }
 

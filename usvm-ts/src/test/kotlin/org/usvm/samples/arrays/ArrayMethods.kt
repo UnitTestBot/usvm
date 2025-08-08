@@ -6,13 +6,13 @@ import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 
 class ArrayMethods : TsMethodTestRunner() {
-    private val className = this::class.simpleName!!
+    private val tsPath = "/samples/arrays/ArrayMethods.ts"
 
-    override val scene: EtsScene = loadSampleScene(className, folderPrefix = "arrays")
+    override val scene: EtsScene = loadScene(tsPath)
 
     @Test
     fun testArrayPush() {
-        val method = getMethod(className, "arrayPush")
+        val method = getMethod("arrayPush")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue>(
             method = method,
             { x, r ->
@@ -27,7 +27,7 @@ class ArrayMethods : TsMethodTestRunner() {
 
     @Test
     fun testArrayPop() {
-        val method = getMethod(className, "arrayPop")
+        val method = getMethod("arrayPop")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue>(
             method = method,
             { x, r ->
@@ -42,7 +42,7 @@ class ArrayMethods : TsMethodTestRunner() {
 
     @Test
     fun testArrayFill() {
-        val method = getMethod(className, "arrayFill")
+        val method = getMethod("arrayFill")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsArray<TsTestValue.TsNumber>>(
             method = method,
             // Note: both branches return the same array (filled and modified original).
@@ -57,7 +57,7 @@ class ArrayMethods : TsMethodTestRunner() {
 
     @Test
     fun testArrayShift() {
-        val method = getMethod(className, "arrayShift")
+        val method = getMethod("arrayShift")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue>(
             method = method,
             { x, r ->
@@ -72,7 +72,7 @@ class ArrayMethods : TsMethodTestRunner() {
 
     @Test
     fun testArrayUnshift() {
-        val method = getMethod(className, "arrayUnshift")
+        val method = getMethod("arrayUnshift")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue>(
             method = method,
             { x, r ->
@@ -88,7 +88,7 @@ class ArrayMethods : TsMethodTestRunner() {
 
     @Test
     fun testArrayJoin() {
-        val method = getMethod(className, "arrayJoin")
+        val method = getMethod("arrayJoin")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue>(
             method = method,
             { x, r ->
@@ -104,7 +104,7 @@ class ArrayMethods : TsMethodTestRunner() {
 
     @Test
     fun testArraySlice() {
-        val method = getMethod(className, "arraySlice")
+        val method = getMethod("arraySlice")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue>(
             method = method,
             { x, r ->
@@ -120,7 +120,7 @@ class ArrayMethods : TsMethodTestRunner() {
 
     @Test
     fun testArrayConcat() {
-        val method = getMethod(className, "arrayConcat")
+        val method = getMethod("arrayConcat")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue>(
             method = method,
             { x, r ->
@@ -138,7 +138,7 @@ class ArrayMethods : TsMethodTestRunner() {
 
     @Test
     fun testArrayIndexOf() {
-        val method = getMethod(className, "arrayIndexOf")
+        val method = getMethod("arrayIndexOf")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue>(
             method = method,
             { x, r ->
@@ -154,7 +154,7 @@ class ArrayMethods : TsMethodTestRunner() {
 
     @Test
     fun testArrayIncludes() {
-        val method = getMethod(className, "arrayIncludes")
+        val method = getMethod("arrayIncludes")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue>(
             method = method,
             { x, r ->
@@ -170,7 +170,7 @@ class ArrayMethods : TsMethodTestRunner() {
 
     @Test
     fun testArrayReverse() {
-        val method = getMethod(className, "arrayReverse")
+        val method = getMethod("arrayReverse")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue>(
             method = method,
             // Note: Both branches return the same array (reversed and modified original).

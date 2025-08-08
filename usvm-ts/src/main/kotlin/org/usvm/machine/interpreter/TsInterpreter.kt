@@ -704,10 +704,36 @@ class TsInterpreter(
     }
 
     private fun visitThrowStmt(scope: TsStepScope, stmt: EtsThrowStmt) {
-        // TODO do not forget to pop the sorts call stack in the state
         val exprResolver = exprResolverWithScope(scope)
         observer?.onThrowStatement(exprResolver.simpleValueResolver, stmt, scope)
-        TODO()
+
+        val exception = exprResolver.resolve(stmt.exception)
+
+        scope.doWithState {
+            memory.stack.pop()
+
+            if (exception != null) {
+                val exceptionType: EtsType = when {
+                    exception.sort == ctx.addressSort -> {
+                        // If it's an object reference, try to determine its type
+                        val ref = exception.asExpr(ctx.addressSort)
+                        // For now, assume it's a generic error type
+                        EtsStringType // TODO: improve type detection
+                    }
+
+                    exception.sort == ctx.fp64Sort -> EtsNumberType
+
+                    exception.sort == ctx.boolSort -> EtsBooleanType
+
+                    else -> EtsStringType
+                }
+
+                methodResult = TsMethodResult.TsException(exception, exceptionType)
+            } else {
+                // If we couldn't resolve the exception value, throw a generic exception
+                methodResult = TsMethodResult.TsException(ctx.mkUndefinedValue(), EtsStringType)
+            }
+        }
     }
 
     private fun visitNopStmt(scope: TsStepScope, stmt: EtsNopStmt) {
@@ -783,8 +809,12 @@ class TsInterpreter(
 
             val parameterType = param.type
             if (parameterType is EtsRefType) {
+                state.pathConstraints += mkNot(mkHeapRefEq(ref, mkTsNullValue()))
+                state.pathConstraints += mkNot(mkHeapRefEq(ref, mkUndefinedValue()))
+
                 val argLValue = mkRegisterStackLValue(addressSort, idx)
                 val ref = state.memory.read(argLValue).asExpr(addressSort)
+
                 if (parameterType is EtsArrayType) {
                     state.pathConstraints += state.memory.types.evalTypeEquals(ref, parameterType)
                     return@forEachIndexed
@@ -801,11 +831,7 @@ class TsInterpreter(
                 // Therefore, we create information about the fields the type must consist
                 val types = resolvedParameterType.mapNotNull { it.type.toAuxiliaryType(graph.hierarchy) }
                 val auxiliaryType = EtsUnionType(types) // TODO error
-
                 state.pathConstraints += state.memory.types.evalIsSubtype(ref, auxiliaryType)
-
-                state.pathConstraints += mkNot(mkHeapRefEq(ref, mkTsNullValue()))
-                state.pathConstraints += mkNot(mkHeapRefEq(ref, mkUndefinedValue()))
             }
             if (parameterType == EtsNullType) {
                 state.pathConstraints += mkHeapRefEq(ref, mkTsNullValue())

@@ -72,6 +72,11 @@ fun TsExprResolver.tryApproximateInstanceCall(
         }
     }
 
+    // Handle 'Boolean' constructor calls
+    if (expr.callee.enclosingClass.name == "Boolean" && expr.callee.name == CONSTRUCTOR_NAME) {
+        return from(handleBooleanConstructor(expr))
+    }
+
     // Handle `Promise` constructor calls
     if (expr.callee.enclosingClass.name == "Promise" && expr.callee.name == CONSTRUCTOR_NAME) {
         return from(handlePromiseConstructor(expr))
@@ -192,6 +197,15 @@ private fun TsExprResolver.handleNumberIsNaN(expr: EtsInstanceCallExpr): UBoolEx
     } else {
         mkFalse()
     }
+}
+
+private fun TsExprResolver.handleBooleanConstructor(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
+    check(expr.args.size == 1) {
+        "Boolean constructor should have exactly one argument, but got ${expr.args.size}"
+    }
+    val arg = resolve(expr.args.single()) ?: return null
+
+    mkTruthyExpr(arg, scope)
 }
 
 private fun TsExprResolver.handlePromiseConstructor(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {

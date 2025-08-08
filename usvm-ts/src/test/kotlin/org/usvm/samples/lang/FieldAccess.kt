@@ -1,133 +1,143 @@
-package org.usvm.samples
+package org.usvm.samples.lang
 
 import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.Disabled
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
+import org.usvm.util.eq
+import org.usvm.util.neq
 import kotlin.test.Test
 
 class FieldAccess : TsMethodTestRunner() {
+    private val tsPath = "/samples/lang/FieldAccess.ts"
 
-    private val className = this::class.simpleName!!
-
-    override val scene: EtsScene = loadSampleScene(className)
+    override val scene: EtsScene = loadScene(tsPath)
 
     @Test
     fun `test readDefaultField`() {
-        val method = getMethod(className, "readDefaultField")
+        val method = getMethod("readDefaultField")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 5.0 },
+            { r -> r eq 5 },
         )
     }
 
     @Test
     fun `test writeAndReadNumeric`() {
-        val method = getMethod(className, "writeAndReadNumeric")
+        val method = getMethod("writeAndReadNumeric")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 14.0 },
+            { r -> r eq 14 },
         )
     }
 
     @Test
     fun `test writeDifferentTypes`() {
-        val method = getMethod(className, "writeDifferentTypes")
+        val method = getMethod("writeDifferentTypes")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 5.0 },
+            { r -> r eq 5 },
         )
     }
 
     @Test
     fun `test handleNumericEdges`() {
-        val method = getMethod(className, "handleNumericEdges")
+        val method = getMethod("handleNumericEdges")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 1.0 },
+            { r -> r eq 1 },
         )
     }
 
     @Test
     fun `test createWithField`() {
-        val method = getMethod(className, "createWithField")
+        val method = getMethod("createWithField")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 15.0 },
+            { r -> r eq 15 },
         )
     }
 
     @Disabled("Return types are not propagated to locals, need type stream")
     @Test
     fun `test factoryCreatedObject`() {
-        val method = getMethod(className, "factoryCreatedObject")
+        val method = getMethod("factoryCreatedObject")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 42.0 },
+            { r -> r eq 42 },
         )
     }
 
     @Test
     fun `test conditionalFieldAccess`() {
-        val method = getMethod(className, "conditionalFieldAccess")
+        val method = getMethod("conditionalFieldAccess")
         discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
             method = method,
             { a, r ->
                 val x = a.properties["x"] as TsTestValue.TsNumber
-                x.number == 1.1 && r.number == 14.0
+                (x eq 1.1) && (r eq 1)
             },
             { a, r ->
                 val x = a.properties["x"] as? TsTestValue.TsNumber
-                x?.number != 1.1 && r.number == 10.0
+                if (x == null) {
+                    true
+                } else {
+                    (x neq 1.1) && (r eq 2)
+                }
             },
+            invariants = arrayOf(
+                { _, r ->
+                    r.number in listOf(1, 2).map { it.toDouble() }
+                }
+            )
         )
     }
 
     @Disabled("Nested field types are not propagated to locals, need type stream")
     @Test
     fun `test nestedFieldAccess`() {
-        val method = getMethod(className, "nestedFieldAccess")
+        val method = getMethod("nestedFieldAccess")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 7.0 },
+            { r -> r eq 7 },
         )
     }
 
     @Disabled("Nested arrays inside objects are accessed via field properties ('.1') instead of indices ([1])")
     @Test
     fun `test arrayFieldAccess`() {
-        val method = getMethod(className, "arrayFieldAccess")
+        val method = getMethod("arrayFieldAccess")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 5.0 },
+            { r -> r eq 5 },
         )
     }
 
     @Test
     fun `test multipleFieldInteraction`() {
-        val method = getMethod(className, "multipleFieldInteraction")
+        val method = getMethod("multipleFieldInteraction")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 9.0 }, // (2*2=4) + (4+1=5) == 9
+            { r -> r eq 9 }, // (2*2=4) + (4+1=5) == 9
         )
     }
 
     @Test
     fun `test circularTypeChanges`() {
-        val method = getMethod(className, "circularTypeChanges")
+        val method = getMethod("circularTypeChanges")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 1.0 },
+            { r -> r eq 1 },
         )
     }
 
     @Test
     fun `test read from nested fake objects`() {
-        val method = getMethod(className, "readFromNestedFakeObjects")
+        val method = getMethod("readFromNestedFakeObjects")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r.number == 1.0 },
-            { r -> r.number == 2.0 },
+            { r -> r eq 1 },
+            { r -> r eq 2 },
         )
     }
 }

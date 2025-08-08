@@ -4,85 +4,88 @@ import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.Disabled
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
+import org.usvm.util.eq
+import org.usvm.util.isNaN
+import org.usvm.util.neq
 import org.usvm.util.toDouble
 import kotlin.test.Test
 
 class Add : TsMethodTestRunner() {
-    private val className = this::class.simpleName!!
+    private val tsPath = "/samples/operators/Add.ts"
 
-    override val scene: EtsScene = loadSampleScene(className, folderPrefix = "operators")
+    override val scene: EtsScene = loadScene(tsPath)
 
     @Test
     fun `bool + bool`() {
-        val method = getMethod(className, "addBoolAndBool")
+        val method = getMethod("addBoolAndBool")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method = method,
-            { a, b, r -> r.number == 1.0 && !a.value && !b.value },
-            { a, b, r -> r.number == 2.0 && !a.value && b.value },
-            { a, b, r -> r.number == 3.0 && a.value && !b.value },
-            { a, b, r -> r.number == 4.0 && a.value && b.value },
+            { a, b, r -> (r eq 1) && !a.value && !b.value },
+            { a, b, r -> (r eq 2) && !a.value && b.value },
+            { a, b, r -> (r eq 3) && a.value && !b.value },
+            { a, b, r -> (r eq 4) && a.value && b.value },
             invariants = arrayOf(
-                { _, _, r -> r.number != -1.0 }
+                { _, _, r -> r neq -1 }
             )
         )
     }
 
     @Test
     fun `bool + number`() {
-        val method = getMethod(className, "addBoolAndNumber")
+        val method = getMethod("addBoolAndNumber")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
-            { a, b, r -> r.number == 1.0 && a.value && b.number == -1.0 },
-            { a, b, r -> r.number == 2.0 && !a.value && b.number == 0.0 },
-            { a, b, r -> r.number == 3.0 && a.value && b.number == 5.0 },
-            { _, b, r -> r.number.isNaN() && b.number.isNaN() },
+            { a, b, r -> (r eq 1) && a.value && (b eq -1) },
+            { a, b, r -> (r eq 2) && !a.value && (b eq 0) },
+            { a, b, r -> (r eq 3) && a.value && (b eq 5) },
+            { _, b, r -> r.isNaN() && b.isNaN() },
             { a, b, r ->
                 val result = a.value.toDouble() + b.number
-                r.number == 4.0 && result != 2.2 && !result.isNaN()
+                (r eq 4) && result != 2.2 && !result.isNaN()
             }
         )
     }
 
     @Test
     fun `number + number`() {
-        val method = getMethod(className, "addNumberAndNumber")
+        val method = getMethod("addNumberAndNumber")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
-            { a, b, r -> a.number.isNaN() && r.number.isNaN() },
-            { a, b, r -> !a.number.isNaN() && b.number.isNaN() && r.number.isNaN() },
+            { a, b, r -> a.isNaN() && r.isNaN() },
+            { a, b, r -> !a.isNaN() && b.isNaN() && r.isNaN() },
             { a, b, r -> a.number + b.number == r.number },
-            { a, b, r -> !a.number.isNaN() && !b.number.isNaN() && r.number == 0.0 },
+            { a, b, r -> !a.isNaN() && !b.isNaN() && (r eq 0) },
         )
     }
 
     @Test
     fun `number + undefined`() {
-        val method = getMethod(className, "addNumberAndUndefined")
+        val method = getMethod("addNumberAndUndefined")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
             invariants = arrayOf(
-                { a, r -> r.number != -1.0 },
+                { _, r -> r neq -1 },
             )
         )
     }
 
     @Test
     fun `number + null`() {
-        val method = getMethod(className, "addNumberAndNull")
+        val method = getMethod("addNumberAndNull")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
-            { a, r -> a.number.isNaN() && r.number.isNaN() },
-            { a, r -> !a.number.isNaN() && r.number == a.number },
+            { a, r -> a.isNaN() && r.isNaN() },
+            { a, r -> !a.isNaN() && (r eq a) },
         )
     }
 
     @Disabled("Flaky test, see https://github.com/UnitTestBot/usvm/issues/310")
     @Test
     fun `add unknown values`() {
-        val method = getMethod(className, "addUnknownValues")
+        val method = getMethod("addUnknownValues")
         discoverProperties<TsTestValue, TsTestValue, TsTestValue.TsNumber>(
             method = method,
-            { a, b, r -> a is TsTestValue.TsUndefined || b is TsTestValue.TsUndefined && r.number.isNaN() },
+            { a, b, r -> a is TsTestValue.TsUndefined || b is TsTestValue.TsUndefined && r.isNaN() },
             // This condition sometimes fails, in case `bool` + `null`
             // TODO https://github.com/UnitTestBot/usvm/issues/310
             { a, b, r ->
@@ -90,11 +93,11 @@ class Add : TsMethodTestRunner() {
                     || b is TsTestValue.TsClass
                     || (a as? TsTestValue.TsNumber)?.number?.isNaN() == true
                     || (b as? TsTestValue.TsNumber)?.number?.isNaN() == true)
-                    && r.number.isNaN()
+                    && r.isNaN()
             },
-            { a, b, r -> r.number == 7.0 },
-            { a, b, r -> a is TsTestValue.TsNull && b is TsTestValue.TsNull && r.number == 0.0 },
-            { a, b, r -> r.number == 42.0 }
+            { a, b, r -> r eq 7 },
+            { a, b, r -> a is TsTestValue.TsNull && b is TsTestValue.TsNull && (r eq 0) },
+            { a, b, r -> r eq 42 }
         )
     }
 }

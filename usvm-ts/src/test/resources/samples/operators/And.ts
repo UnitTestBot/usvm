@@ -3,10 +3,12 @@
 
 class And {
     andOfBooleanAndBoolean(a: boolean, b: boolean): number {
-        if (a && b) return 1;
-        if (a) return 2;
-        if (b) return 3;
-        return 4;
+        const res = a && b;
+        if (a === false && b === false && res === false) return 1;
+        if (a === false && b === true && res === false) return 2;
+        if (a === true && b === false && res === false) return 3;
+        if (a === true && b === true && res === true) return 4;
+        return 0;
     }
 
     // (a)   (b)  (a && b)
@@ -20,15 +22,33 @@ class And {
     // 0.0   NaN    0.0
     // 0.0   0.0    0.0
     andOfNumberAndNumber(a: number, b: number): number {
-        if (a && b) return 1;                // (a!=0 && !a.isNaN) && (b!=0 && !b.isNaN)
-        if (a && (b != b)) return 2;         // (a!=0 && !a.isNaN) && (b.isNaN)
-        if (a) return 3;                     // (a!=0 && !a.isNaN) && (b==0)
-        if ((a != a) && b) return 4;         // (a.isNaN) && (b!=0 && !b.isNaN)
-        if ((a != a) && (b != b)) return 5;  // (a.isNaN) && (b.isNaN)
-        if ((a != a)) return 6;              // (a.isNaN) && (b==0)
-        if (b) return 7;                     // (a==0) && (b!=0 && !b.isNaN)
-        if (b != b) return 8;                // (a==0) && (b.isNaN)
-        return 9;                            // (a==0) && (b==0)
+        const res = a && b;
+        if (a) { // a is truthy, res is b
+            if (b) { // b is truthy
+                if (res === b) return 1; // res is also b
+            } else if (Number.isNaN(b)) { // b is falsy (NaN)
+                if (Number.isNaN(res)) return 2; // res is also NaN
+            } else if (b === 0) { // b is falsy (0)
+                if (res === 0) return 3; // res is also 0
+            }
+        } else if (Number.isNaN(a)) { // a is falsy (NaN), res is also NaN
+            if (b) {
+                if (Number.isNaN(res)) return 4;
+            } else if (Number.isNaN(b)) {
+                if (Number.isNaN(res)) return 5;
+            } else if (b === 0) {
+                if (Number.isNaN(res)) return 6;
+            }
+        } else if (a === 0) { // a is falsy (0), res is also 0
+            if (b) {
+                if (res === 0) return 7;
+            } else if (Number.isNaN(b)) {
+                if (res === 0) return 8;
+            } else if (b === 0) {
+                if (res === 0) return 9;
+            }
+        }
+        return 0;
     }
 
     //   (a)   (b)  (a && b)
@@ -39,12 +59,25 @@ class And {
     // false   NaN   false
     // false   0.0   false
     andOfBooleanAndNumber(a: boolean, b: number): number {
-        if (a && b) return 1;         //  a && (b!=0 && !b.isNaN)
-        if (a && (b != b)) return 2;  //  a && (b.isNaN)
-        if (a) return 3;              //  a && (b==0)
-        if (b) return 4;              // !a && (b!=0 && !b.isNaN)
-        if (b != b) return 5;         // !a && (b.isNaN)
-        return 6;                     // !a && (b==0)
+        const res = a && b;
+        if (a) { // a is truthy (true), res is b
+            if (b) { // b is truthy
+                if (res === b) return 1; // res is also b
+            } else if (Number.isNaN(b)) { // b is falsy (NaN)
+                if (Number.isNaN(res)) return 2; // res is also NaN
+            } else if (b === 0) { // b is falsy (0)
+                if (res === 0) return 3; // res is also 0
+            }
+        } else { // a is falsy (false), res is also false
+            if (b) {
+                if (res === false) return 4;
+            } else if (Number.isNaN(b)) {
+                if (res === false) return 5;
+            } else if (b === 0) {
+                if (res === false) return 6;
+            }
+        }
+        return 0;
     }
 
     // (a)    (b)   (a && b)
@@ -55,31 +88,83 @@ class And {
     // 0.0    true    0.0
     // 0.0   false    0.0
     andOfNumberAndBoolean(a: number, b: boolean): number {
-        if (a && b) return 1;         // (a!=0 && !a.isNaN) &&  b
-        if (a) return 2;              // (a!=0 && !a.isNaN) && !b
-        if ((a != a) && b) return 3;  //          (a.isNaN) &&  b
-        if (a != a) return 4;         //          (a.isNaN) && !b
-        if (b) return 5;              //             (a==0) &&  b
-        return 6;                     //             (a==0) && !b
+        const res = a && b;
+        if (a) { // a is truthy, res is b
+            if (b) {
+                if (res === true) return 1;
+            } else {
+                if (res === false) return 2;
+            }
+        } else if (Number.isNaN(a)) { // a is falsy (NaN), res is also NaN
+            if (b) {
+                if (Number.isNaN(res)) return 3;
+            } else {
+                if (Number.isNaN(res)) return 4;
+            }
+        } else if (a === 0) { // a is falsy (0), res is also 0
+            if (b) {
+                if (res === 0) return 5;
+            } else {
+                if (res === 0) return 6;
+            }
+        }
+        return 0;
     }
 
     andOfObjectAndObject(a: object, b: object): number {
-        if (a && b) return 1;
-        if (a) return 2;
-        if (b) return 3;
-        return 4;
+        const res = a && b;
+        if (a) { // a is truthy, res is b
+            if (b) {
+                if (res === b) return 1;
+            } else {
+                if (res === b) return 2;
+            }
+        } else { // a is falsy, res is a
+            if (b) {
+                if (res === a) return 3;
+            } else {
+                if (res === a) return 4;
+            }
+        }
+        return 0;
     }
 
-    andOfUnknown(a, b): number {
-        if (a && b) return 1;
-        if (a) return 2;
-        if (b) return 3;
-        return 4;
-    }
-
-    truthyUnknown(a, b): number {
-        if (a) return 1;
-        if (b) return 2;
-        return 99;
+    andOfUnknown(a: any, b: any): number {
+        const res = a && b;
+        if (a) { // a is truthy, res is b
+            if (b) {
+                if (res === b) return 1;
+            } else if (Number.isNaN(b)) {
+                if (Number.isNaN(res)) return 2;
+            } else if (b === 0) {
+                if (res === 0) return 3;
+            } else if (b === false) {
+                if (res === false) return 4;
+            }
+            // TODO: handle other falsy values
+        } else if (Number.isNaN(a)) { // a is falsy (NaN), res is also NaN
+            if (b) {
+                if (Number.isNaN(res)) return 11;
+            } else if (Number.isNaN(b)) {
+                if (Number.isNaN(res)) return 12;
+            } else if (b === 0) {
+                if (Number.isNaN(res)) return 13;
+            } else if (b === false) {
+                if (Number.isNaN(res)) return 14;
+            }
+            // TODO: handle other falsy values
+        } else if (a === 0) { // a is falsy (0), res is also 0
+            if (b) {
+                if (res === 0) return 21;
+            } else if (Number.isNaN(b)) {
+                if (res === 0) return 22;
+            } else if (b === 0) {
+                if (res === 0) return 23;
+            } else if (b === false) {
+                if (res === 0) return 24;
+            }
+            // TODO: handle other falsy values
+        }
+        return 0;
     }
 }
