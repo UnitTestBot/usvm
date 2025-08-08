@@ -6,7 +6,6 @@ import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.eq
 import org.usvm.util.isNaN
-import org.usvm.util.toDouble
 import kotlin.test.Test
 
 class Division : TsMethodTestRunner() {
@@ -15,40 +14,275 @@ class Division : TsMethodTestRunner() {
     override val scene: EtsScene = loadScene(tsPath)
 
     @Test
-    fun testTwoNumbersDivision() {
-        val method = getMethod("twoNumbersDivision")
+    fun `test number div number`() {
+        val method = getMethod("divNumberAndNumber")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
-            { a, b, r -> (r eq 4) && a.number / b.number == 4.0 },
-            { a, b, r -> r.number == Double.POSITIVE_INFINITY && a.number / b.number == Double.POSITIVE_INFINITY },
-            { a, b, r -> r.number == Double.NEGATIVE_INFINITY && a.number / b.number == Double.NEGATIVE_INFINITY },
-            { a, b, r -> r.isNaN() && (a.number / b.number).isNaN() },
-            { a, b, r -> r.number == a.number / b.number && a.number / b.number != 4.0 }
+            { a, b, r ->
+                (a.number == 12.0) && (b.number == 3.0) && (r eq 4.0)
+            },
+            { a, b, r ->
+                (a.number == 7.5) && (b.number == -2.5) && (r eq -3.0)
+            },
+            { a, b, r ->
+                // Inf/Inf = NaN
+                (a.number == Double.POSITIVE_INFINITY) && (b.number == Double.POSITIVE_INFINITY) && r.isNaN()
+            },
+            { a, b, r ->
+                // Inf/-Inf = NaN
+                (a.number == Double.POSITIVE_INFINITY) && (b.number == Double.NEGATIVE_INFINITY) && r.isNaN()
+            },
+            { a, b, r ->
+                // Inf/NaN = NaN
+                (a.number == Double.POSITIVE_INFINITY) && b.isNaN() && r.isNaN()
+            },
+            { a, b, r ->
+                // Inf/0 = +-Infinity (depends on sign of 0)
+                (a.number == Double.POSITIVE_INFINITY) && (b.number == 0.0) && r.number.isInfinite()
+            },
+            { a, b, r ->
+                // Inf/x = Inf
+                (a.number == Double.POSITIVE_INFINITY) && b.number.isFinite() && (b.number > 0) && (r.number == Double.POSITIVE_INFINITY)
+            },
+            { a, b, r ->
+                // Inf/-x = -Inf
+                (a.number == Double.POSITIVE_INFINITY) && b.number.isFinite() && (b.number < 0) && (r.number == Double.NEGATIVE_INFINITY)
+            },
+            { a, b, r ->
+                // -Inf/Inf = NaN
+                (a.number == Double.NEGATIVE_INFINITY) && (b.number == Double.POSITIVE_INFINITY) && r.isNaN()
+            },
+            { a, b, r ->
+                // -Inf/-Inf = NaN
+                (a.number == Double.NEGATIVE_INFINITY) && (b.number == Double.NEGATIVE_INFINITY) && r.isNaN()
+            },
+            { a, b, r ->
+                // -Inf/NaN = NaN
+                (a.number == Double.NEGATIVE_INFINITY) && b.isNaN() && r.isNaN()
+            },
+            { a, b, r ->
+                // -Inf/0 = +-Infinity (depends on sign of 0)
+                (a.number == Double.NEGATIVE_INFINITY) && (b.number == 0.0) && r.number.isInfinite()
+            },
+            { a, b, r ->
+                // -Inf/x = -Inf
+                (a.number == Double.NEGATIVE_INFINITY) && b.number.isFinite() && (b.number > 0) && (r.number == Double.NEGATIVE_INFINITY)
+            },
+            { a, b, r ->
+                // -Inf/-x = Inf
+                (a.number == Double.NEGATIVE_INFINITY) && b.number.isFinite() && (b.number < 0) && (r.number == Double.POSITIVE_INFINITY)
+            },
+            { a, b, r ->
+                // NaN/Inf = NaN
+                a.isNaN() && (b.number == Double.POSITIVE_INFINITY) && r.isNaN()
+            },
+            { a, b, r ->
+                // NaN/-Inf = NaN
+                a.isNaN() && (b.number == Double.NEGATIVE_INFINITY) && r.isNaN()
+            },
+            { a, b, r ->
+                // NaN/NaN = NaN
+                a.isNaN() && b.isNaN() && r.isNaN()
+            },
+            { a, b, r ->
+                // NaN/0 = NaN
+                a.isNaN() && (b.number == 0.0) && r.isNaN()
+            },
+            { a, b, r ->
+                // NaN/x = NaN
+                a.isNaN() && (b.number > 0) && b.number.isFinite() && r.isNaN()
+            },
+            { a, b, r ->
+                // NaN/-x = NaN
+                a.isNaN() && (b.number < 0) && b.number.isFinite() && r.isNaN()
+            },
+            { a, b, r ->
+                // 0/Inf = 0
+                (a.number == 0.0) && (b.number == Double.POSITIVE_INFINITY) && (r.number == 0.0)
+            },
+            { a, b, r ->
+                // 0/-Inf = -0
+                (a.number == 0.0) && (b.number == Double.NEGATIVE_INFINITY) && (r.number == -0.0)
+            },
+            { a, b, r ->
+                // 0/NaN = NaN
+                (a.number == 0.0) && b.isNaN() && r.isNaN()
+            },
+            { a, b, r ->
+                // 0/0 = NaN
+                (a.number == 0.0) && (b.number == 0.0) && r.isNaN()
+            },
+            { a, b, r ->
+                // 0/x = 0
+                (a.number == 0.0) && b.number.isFinite() && (b.number > 0) && (r.number == 0.0)
+            },
+            { a, b, r ->
+                // 0/-x = -0
+                (a.number == 0.0) && b.number.isFinite() && (b.number < 0) && (r.number == -0.0)
+            },
+            { a, b, r ->
+                // x/Inf = 0
+                a.number.isFinite() && (a.number > 0) && (b.number == Double.POSITIVE_INFINITY) && (r.number == 0.0)
+            },
+            { a, b, r ->
+                // x/-Inf = -0
+                a.number.isFinite() && (a.number > 0) && (b.number == Double.NEGATIVE_INFINITY) && (r.number == -0.0)
+            },
+            { a, b, r ->
+                // x/NaN = NaN
+                a.number.isFinite() && (a.number > 0) && b.isNaN() && r.isNaN()
+            },
+            { a, b, r ->
+                // x/0 = +-Infinity (depends on sign of x)
+                a.number.isFinite() && (a.number > 0) && (b.number == 0.0) && r.number.isInfinite()
+            },
+            { a, b, r ->
+                // x/y = non-negative (zero, pos, inf)
+                a.number.isFinite() && (a.number > 0) && (b.number > 0) && b.number.isFinite() && r eq (a.number / b.number)
+            },
+            { a, b, r ->
+                // x/-y = non-positive (zero, neg, -inf)
+                a.number.isFinite() && (a.number < 0) && b.number.isFinite() && (b.number < 0) && r eq (a.number / b.number)
+            },
+            { a, b, r ->
+                // -x/Inf = -0
+                a.number.isFinite() && (a.number < 0) && (b.number == Double.POSITIVE_INFINITY) && (r eq -0.0)
+            },
+            { a, b, r ->
+                // -x/-Inf = 0
+                a.number.isFinite() && (a.number < 0) && (b.number == Double.NEGATIVE_INFINITY) && (r eq 0)
+            },
+            { a, b, r ->
+                // -x/NaN = NaN
+                a.number.isFinite() && (a.number < 0) && b.isNaN() && r.isNaN()
+            },
+            { a, b, r ->
+                // -x/0 = +-Infinity (depends on sign of x)
+                a.number.isFinite() && (a.number < 0) && (b.number == 0.0) && r.number.isInfinite()
+            },
+            { a, b, r ->
+                // -x/y = non-positive (zero, neg, -inf)
+                a.number.isFinite() && (a.number < 0) && (b.number > 0) && b.number.isFinite() && r eq (a.number / b.number)
+            },
+            { a, b, r ->
+                // -x/-y = non-negative (zero, pos, inf)
+                a.number.isFinite() && (a.number < 0) && (b.number < 0) && b.number.isFinite() && r eq (a.number / b.number)
+            },
+            invariants = arrayOf(
+                { _, _, _ -> true }
+            )
         )
     }
 
     @Test
-    fun testBooleanDivision() {
-        val method = getMethod("booleanDivision")
+    fun `test boolean div boolean`() {
+        val method = getMethod("divBooleanAndBoolean")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method = method,
-            { a, b, r -> (r eq 0) && a.value.toDouble() / b.value.toDouble() == 0.0 },
-            { a, b, r ->
-                (r.number == (a.value.toDouble() / b.value.toDouble()) || r.isNaN()) && a.value.toDouble() / b.value.toDouble() != 0.0
-            }
+            { a, b, r -> (a.value && b.value) && (r.number == 1.0) },
+            { a, b, r -> (a.value && !b.value) && (r.number == Double.POSITIVE_INFINITY) },
+            { a, b, r -> (!a.value && b.value) && (r.number == 0.0) },
+            { a, b, r -> (!a.value && !b.value) && r.isNaN() },
         )
     }
 
+    //     divNumberAndBoolean(a: number, b: boolean): number {
+    //         let res = a / b;
+    //
+    //         if (a == Infinity) {
+    //             if (b) return res; // Inf/true = Inf
+    //             if (!b) return res; // Inf/false = Inf
+    //         }
+    //
+    //         if (a == -Infinity) {
+    //             if (b) return res; // -Inf/true = -Inf
+    //             if (!b) return res; // -Inf/false = -Inf
+    //         }
+    //
+    //         if (a != a) {
+    //             if (b) return res; // NaN/true = NaN
+    //             if (!b) return res; // NaN/false = NaN
+    //         }
+    //
+    //         if (a == 0) {
+    //             if (b) return res; // 0/true = 0
+    //             if (!b) return res; // 0/false = 0
+    //         }
+    //
+    //         if (a == -0) {
+    //             if (b) return res; // -0/true = -0
+    //             if (!b) return res; // -0/false = -0
+    //         }
+    //
+    //         if (a > 0) {
+    //             if (b) return res; // x/true = x
+    //             if (!b) return res; // x/false = Infinity
+    //         }
+    //
+    //         if (a < 0) {
+    //             if (b) return res; // -x/true = -x
+    //             if (!b) return res; // -x/false = -Infinity
+    //         }
+    //
+    //         // unreachable
+    //     }
+
     @Test
-    fun testMixedDivision() {
-        val method = getMethod("mixedDivision")
+    fun `test number div boolean`() {
+        val method = getMethod("divNumberAndBoolean")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method = method,
-            { a, b, r -> (r eq 4) && a.number / b.value.toDouble() == 4.0 },
-            { a, b, r -> r.number == Double.POSITIVE_INFINITY && a.number / b.value.toDouble() == Double.POSITIVE_INFINITY },
-            { a, b, r -> r.number == Double.NEGATIVE_INFINITY && a.number / b.value.toDouble() == Double.NEGATIVE_INFINITY },
-            { a, b, r -> r.isNaN() && (a.number / b.value.toDouble()).isNaN() },
-            { a, b, r -> r.number == a.number / b.value.toDouble() && a.number / b.value.toDouble() != 4.0 }
+            { a, b, r ->
+                // Inf/true = Inf
+                (a.number == Double.POSITIVE_INFINITY) && b.value && (r.number == Double.POSITIVE_INFINITY)
+            },
+            { a, b, r ->
+                // Inf/false = Inf
+                (a.number == Double.POSITIVE_INFINITY) && !b.value && (r.number == Double.POSITIVE_INFINITY)
+            },
+            { a, b, r ->
+                // -Inf/true = -Inf
+                (a.number == Double.NEGATIVE_INFINITY) && b.value && (r.number == Double.NEGATIVE_INFINITY)
+            },
+            { a, b, r ->
+                // -Inf/false = -Inf
+                (a.number == Double.NEGATIVE_INFINITY) && !b.value && (r.number == Double.NEGATIVE_INFINITY)
+            },
+            { a, b, r ->
+                // NaN/true = NaN
+                a.isNaN() && b.value && r.isNaN()
+            },
+            { a, b, r ->
+                // NaN/false = NaN
+                a.isNaN() && !b.value && r.isNaN()
+            },
+            { a, b, r ->
+                // 0/true = 0
+                (a.number == 0.0) && b.value && (r.number == 0.0)
+            },
+            { a, b, r ->
+                // 0/false = NaN
+                (a.number == 0.0) && !b.value && r.isNaN()
+            },
+            { a, b, r ->
+                // x/true = x
+                a.number.isFinite() && (a.number > 0) && b.value && (r.number == a.number)
+            },
+            { a, b, r ->
+                // x/false = Infinity
+                a.number.isFinite() && (a.number > 0) && !b.value && (r.number == Double.POSITIVE_INFINITY)
+            },
+            { a, b, r ->
+                // -x/true = -x
+                a.number.isFinite() && (a.number < 0) && b.value && (r.number == a.number)
+            },
+            { a, b, r ->
+                // -x/false = -Infinity
+                a.number.isFinite() && (a.number < 0) && !b.value && (r.number == Double.NEGATIVE_INFINITY)
+            },
+            invariants = arrayOf(
+                { _, _, _ -> true }
+            )
         )
     }
 
