@@ -19,10 +19,10 @@ class Division : TsMethodTestRunner() {
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
             { a, b, r ->
-                (a.number == 12.0) && (b.number == 3.0) && (r eq 4.0)
+                (a eq 12) && (b eq 3) && (r eq 4)
             },
             { a, b, r ->
-                (a.number == 7.5) && (b.number == -2.5) && (r eq -3.0)
+                (a eq 7.5) && (b eq -2.5) && (r eq -3.0)
             },
             { a, b, r ->
                 // Inf/Inf = NaN
@@ -90,11 +90,11 @@ class Division : TsMethodTestRunner() {
             },
             { a, b, r ->
                 // NaN/x = NaN
-                a.isNaN() && (b.number > 0) && b.number.isFinite() && r.isNaN()
+                a.isNaN() && b.number.isFinite() && (b.number > 0) && r.isNaN()
             },
             { a, b, r ->
                 // NaN/-x = NaN
-                a.isNaN() && (b.number < 0) && b.number.isFinite() && r.isNaN()
+                a.isNaN() && b.number.isFinite() && (b.number < 0) && r.isNaN()
             },
             { a, b, r ->
                 // 0/Inf = 0
@@ -138,19 +138,19 @@ class Division : TsMethodTestRunner() {
             },
             { a, b, r ->
                 // x/y = non-negative (zero, pos, inf)
-                a.number.isFinite() && (a.number > 0) && (b.number > 0) && b.number.isFinite() && r eq (a.number / b.number)
+                a.number.isFinite() && (a.number > 0) && b.number.isFinite() && (b.number > 0) && (r.number == a.number / b.number)
             },
             { a, b, r ->
                 // x/-y = non-positive (zero, neg, -inf)
-                a.number.isFinite() && (a.number < 0) && b.number.isFinite() && (b.number < 0) && r eq (a.number / b.number)
+                a.number.isFinite() && (a.number < 0) && b.number.isFinite() && (b.number < 0) && (r.number == a.number / b.number)
             },
             { a, b, r ->
                 // -x/Inf = -0
-                a.number.isFinite() && (a.number < 0) && (b.number == Double.POSITIVE_INFINITY) && (r eq -0.0)
+                a.number.isFinite() && (a.number < 0) && (b.number == Double.POSITIVE_INFINITY) && (r.number == -0.0)
             },
             { a, b, r ->
                 // -x/-Inf = 0
-                a.number.isFinite() && (a.number < 0) && (b.number == Double.NEGATIVE_INFINITY) && (r eq 0)
+                a.number.isFinite() && (a.number < 0) && (b.number == Double.NEGATIVE_INFINITY) && (r.number == 0.0)
             },
             { a, b, r ->
                 // -x/NaN = NaN
@@ -162,11 +162,11 @@ class Division : TsMethodTestRunner() {
             },
             { a, b, r ->
                 // -x/y = non-positive (zero, neg, -inf)
-                a.number.isFinite() && (a.number < 0) && (b.number > 0) && b.number.isFinite() && r eq (a.number / b.number)
+                a.number.isFinite() && (a.number < 0) && b.number.isFinite() && (b.number > 0) && (r.number <= 0) && (r.number == a.number / b.number)
             },
             { a, b, r ->
                 // -x/-y = non-negative (zero, pos, inf)
-                a.number.isFinite() && (a.number < 0) && (b.number < 0) && b.number.isFinite() && r eq (a.number / b.number)
+                a.number.isFinite() && (a.number < 0) && b.number.isFinite() && (b.number < 0) && (r.number >= 0) && (r.number == a.number / b.number)
             },
             invariants = arrayOf(
                 { _, _, _ -> true }
