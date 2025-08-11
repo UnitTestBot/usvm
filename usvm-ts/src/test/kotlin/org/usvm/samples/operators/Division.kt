@@ -186,47 +186,6 @@ class Division : TsMethodTestRunner() {
         )
     }
 
-    //     divNumberAndBoolean(a: number, b: boolean): number {
-    //         let res = a / b;
-    //
-    //         if (a == Infinity) {
-    //             if (b) return res; // Inf/true = Inf
-    //             if (!b) return res; // Inf/false = Inf
-    //         }
-    //
-    //         if (a == -Infinity) {
-    //             if (b) return res; // -Inf/true = -Inf
-    //             if (!b) return res; // -Inf/false = -Inf
-    //         }
-    //
-    //         if (a != a) {
-    //             if (b) return res; // NaN/true = NaN
-    //             if (!b) return res; // NaN/false = NaN
-    //         }
-    //
-    //         if (a == 0) {
-    //             if (b) return res; // 0/true = 0
-    //             if (!b) return res; // 0/false = 0
-    //         }
-    //
-    //         if (a == -0) {
-    //             if (b) return res; // -0/true = -0
-    //             if (!b) return res; // -0/false = -0
-    //         }
-    //
-    //         if (a > 0) {
-    //             if (b) return res; // x/true = x
-    //             if (!b) return res; // x/false = Infinity
-    //         }
-    //
-    //         if (a < 0) {
-    //             if (b) return res; // -x/true = -x
-    //             if (!b) return res; // -x/false = -Infinity
-    //         }
-    //
-    //         // unreachable
-    //     }
-
     @Test
     fun `test number div boolean`() {
         val method = getMethod("divNumberAndBoolean")
