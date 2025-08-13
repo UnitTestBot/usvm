@@ -41,7 +41,7 @@ class D {
     }
 }
 
-class Example {
+class StructuralEquality {
     testFunction(): C {
         const x: A = new B(11);
         const bar = x.foo();

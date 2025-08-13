@@ -6,7 +6,10 @@ class Async {
         const promise = new Promise((resolve) => {
             resolve(42);
         });
-        return await promise; // 42
+        const res = await promise; // 42
+
+        if (res === 42) return 1;
+        return 0;
     }
 
     awaitRejectingPromise() {
@@ -18,7 +21,10 @@ class Async {
 
     awaitResolvedPromise(): number {
         const promise = Promise.resolve(42);
-        return await promise; // 42
+        const res = await promise; // 42
+
+        if (res === 42) return 1;
+        return 0;
     }
 
     awaitRejectedPromise() {

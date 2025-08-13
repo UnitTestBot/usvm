@@ -38,10 +38,10 @@ sealed interface TsMethodResult {
     /**
      * A method threw an exception with [type] type.
      */
-    open class TsException(
-        val address: UHeapRef,
+    class TsException(
+        val value: UExpr<*>,
         val type: EtsType,
     ) : TsMethodResult {
-        override fun toString(): String = "${this::class.simpleName}: Address: $address, type: ${type.typeName}"
+        override fun toString(): String = "Exception(type=$type, value=$value)"
     }
 }

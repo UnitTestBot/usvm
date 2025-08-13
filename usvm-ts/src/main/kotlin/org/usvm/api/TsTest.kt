@@ -33,7 +33,13 @@ sealed interface TsTestValue {
     data object TsException : TsTestValue
 
     data class TsBoolean(val value: Boolean) : TsTestValue
-    data class TsString(val value: String) : TsTestValue
+
+    data class TsString(val value: String) : TsTestValue {
+        override fun toString(): String {
+            return "${this::class.simpleName}(value=\"$value\")"
+        }
+    }
+
     data class TsBigInt(val value: String) : TsTestValue
 
     sealed interface TsNumber : TsTestValue {

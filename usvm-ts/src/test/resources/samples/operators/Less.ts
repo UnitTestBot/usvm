@@ -1,3 +1,6 @@
+// @ts-nocheck
+// noinspection JSUnusedGlobalSymbols
+
 class Less {
     lessNumbers(a: number, b: number): number {
         if (a < b) {
@@ -59,5 +62,3 @@ class Less {
         return false; // Return false if they are equal
     }
 }
-
-

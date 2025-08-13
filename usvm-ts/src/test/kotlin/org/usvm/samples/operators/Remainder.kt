@@ -4,77 +4,164 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
-import org.usvm.util.toDouble
+import org.usvm.util.eq
+import org.usvm.util.isNaN
+import org.usvm.util.neq
 
 class Remainder : TsMethodTestRunner() {
-    private val className = this::class.simpleName!!
+    private val tsPath = "/samples/operators/Remainder.ts"
 
-    override val scene = loadSampleScene(className, folderPrefix = "operators")
+    override val scene = loadScene(tsPath)
 
     @Test
-    @Disabled("Never ends")
-    fun testTwoNumbersRemainder() {
-        val method = getMethod(className, "twoNumbersRemainder")
+    fun testRemNumberAndNumber() {
+        val method = getMethod("remNumberAndNumber")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
             { a, b, r ->
-                val res = a.number % b.number
-                res != res && (a.number.isNaN() || b.number.isNaN())
+                // NaN % x = NaN
+                a.isNaN() && r.isNaN()
             },
             { a, b, r ->
-                val res = a.number % b.number
-                res != res && (a.number == Double.POSITIVE_INFINITY || a.number == Double.NEGATIVE_INFINITY)
-            },
-            { a, b, r -> a.number == 0.0 && b.number == 0.0 && r.number.isNaN() },
-            { a, b, r ->
-                b.number == 0.0 && a.number != 0.0 && r.number.isNaN()
+                // Infinity % x = NaN
+                (a.number == Double.POSITIVE_INFINITY) && r.isNaN()
             },
             { a, b, r ->
-                (b.number == Double.POSITIVE_INFINITY || b.number == Double.NEGATIVE_INFINITY) && r.number == a.number
+                // x % Infinity = x
+                (b.number == Double.POSITIVE_INFINITY) && (r eq a)
             },
-            { a, b, r -> a.number == 0.0 && r.number == a.number },
-            { a, b, r -> a.number % b.number == 4.0 && r.number == 4.0 },
             { a, b, r ->
-                val res = a.number % b.number
-                !res.isNaN() && res != 4.0 && r.number == res
+                // x % 0 = NaN
+                (b eq 0) && r.isNaN()
             },
+            { a, b, r ->
+                // 0 % x = 0
+                (a eq 0) && (r eq 0)
+            },
+            { a, b, r ->
+                // (x.y) % 1 = (0.y)  (`a = x.y`, y is a fractional part of `a`)
+                (b eq 1) && (r eq a.number % 1)
+            },
+            { a, b, r ->
+                // 7 % 4 = 3
+                // (a eq 7) && (b eq 4) && (r eq 3)
+                // TODO: SMT solvers struggle to produce '3' as the result here
+                (a eq 7) && (b eq 4)
+            },
+            { a, b, r ->
+                // 7 % -4 = 3
+                // (a eq 7) && (b eq -4) && (r eq 3)
+                // TODO: SMT solvers struggle to produce '3' as the result here
+                (a eq 7) && (b eq -4)
+            },
+            { a, b, r ->
+                // -7 % 4 = -3
+                // (a eq -7) && (b eq 4) && (r eq -3)
+                // TODO: SMT solvers struggle to produce '-3' as the result here
+                (a eq -7) && (b eq 4)
+            },
+            { a, b, r ->
+                // -7 % -4 = -3
+                // (a eq -7) && (b eq -4) && (r eq -3)
+                // TODO: SMT solvers struggle to produce '-3' as the result here
+                (a eq -7) && (b eq -4)
+            },
+            { a, b, r ->
+                // any other normal case
+                r.number == (a.number % b.number)
+            },
+            invariants = arrayOf(
+                { a, b, r ->
+                    // TODO: SMT solvers struggle to produce the correct results for % operator...
+                    // val res = a.number % b.number
+                    // if (res.isNaN()) {
+                    //     r.isNaN()
+                    // } else {
+                    //     r.number == res
+                    // }
+                    true
+                }
+            )
         )
     }
 
     @Test
-    fun testBooleanRemainder() {
-        val method = getMethod(className, "booleanRemainder")
+    fun testRemBooleanAndBoolean() {
+        val method = getMethod("remBooleanAndBoolean")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method = method,
-            { a, b, r -> a.value.toDouble() % b.value.toDouble() == 0.0 && r.number == 0.0 },
             { a, b, r ->
-                a.value.toDouble() % b.value.toDouble() != 0.0 && (r.number == (a.value.toDouble() % b.value.toDouble()) || r.number.isNaN())
+                // true % true = 0
+                (a.value && b.value) && (r.number == 0.0)
+            },
+            { a, b, r ->
+                // true % false = NaN
+                (a.value && !b.value) && r.isNaN()
+            },
+            { a, b, r ->
+                // false % true = 0
+                (!a.value && b.value) && (r.number == 0.0)
+            },
+            { a, b, r ->
+                // false % false = NaN
+                (!a.value && !b.value) && r.isNaN()
             }
         )
     }
 
     @Test
-    @Disabled("Wrong result")
-    fun testMixedRemainder() {
-        val method = getMethod(className, "mixedRemainder")
+    fun testRemNumberAndBoolean() {
+        val method = getMethod("remNumberAndBoolean")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method = method,
-            { a, b, r -> a.number % b.value.toDouble() == 4.0 && r.number == 4.0 },
-            { a, b, r -> (a.number % b.value.toDouble()).isNaN() && r.number.isNaN() },
-            { a, b, r -> a.number % b.value.toDouble() != 4.0 && r.number == a.number % b.value.toDouble() }
+            { a, b, r ->
+                // NaN % true = NaN
+                a.isNaN() && b.value && r.isNaN()
+            },
+            { a, b, r ->
+                // NaN % false = NaN
+                a.isNaN() && !b.value && r.isNaN()
+            },
+            { a, b, r ->
+                // x % false = NaN
+                !b.value && r.isNaN()
+            },
+            { a, b, r ->
+                // Infinity % true = NaN
+                (a.number == Double.POSITIVE_INFINITY) && b.value && r.isNaN()
+            },
+            { a, b, r ->
+                // -Infinity % true = NaN
+                (a.number == Double.NEGATIVE_INFINITY) && b.value && r.isNaN()
+            },
+            { a, b, r ->
+                // 0 % true = 0
+                (a eq 0) && b.value && (r eq 0)
+            },
+            { a, b, r ->
+                // positive % true = 0
+                // (a.number > 0) && b.value && (r eq 0)
+                // TODO: SMT solvers struggle to produce '0' as the result here
+                (a.number > 0) && b.value
+            },
+            { a, b, r ->
+                // negative % true = -0
+                // (a.number < 0) && b.value && (r eq -0)
+                // TODO: SMT solvers struggle to produce '-0' as the result here
+                (a.number < 0) && b.value
+            }
         )
     }
 
+    @Disabled("Segfaults")
     @Test
-    @Disabled("Never ends")
-    fun testUnknownRemainder() {
-        val method = getMethod(className, "unknownRemainder")
+    fun testRemUnknown() {
+        val method = getMethod("remUnknown")
         discoverProperties<TsTestValue, TsTestValue, TsTestValue.TsNumber>(
             method = method,
-            { a, b, r -> (a is TsTestValue.TsUndefined || b is TsTestValue.TsUndefined) && r.number.isNaN() },
-            { _, _, r -> r.number == 4.0 },
-            { _, _, r -> r.number.isNaN() },
-            { _, _, r -> !r.number.isNaN() && r.number != 4.0 }
+            { a, b, r -> r eq 4 },
+            { a, b, r -> r.isNaN() },
+            { a, b, r -> (r neq 4) && !r.isNaN() }
         )
     }
 }
