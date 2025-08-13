@@ -37,6 +37,8 @@ class ProjectRunner {
     companion object {
         private const val PROJECTS_ROOT = "/projects"
 
+        private const val SDK_ADHOC_PATH = "/sdk/adhoc"
+
         /**
          * ## Instructions for getting TypeScript SDK:
          *
@@ -113,7 +115,7 @@ class ProjectRunner {
     }
 
     private val sdkFiles: List<EtsFile> by lazy {
-        listOf(SDK_TYPESCRIPT_PATH, SDK_OHOS_PATH).flatMap { sdk ->
+        listOf(SDK_ADHOC_PATH, SDK_TYPESCRIPT_PATH, SDK_OHOS_PATH).flatMap { sdk ->
             logger.info { "Loading SDK from path: $sdk" }
             val sdkPath = getResourcePath(sdk)
             val sdkProject = loadEtsProjectAutoConvert(sdkPath, useArkAnalyzerTypeInference = null)
@@ -246,7 +248,7 @@ class ProjectRunner {
     @Test
     fun `run on a particular class in a particular project`() {
         val scene = createScene(particularProjectName)
-        val cls = scene.projectClasses.firstOrNull { it.toString() == "@source/entry/utils/AbilityUtils: %dflt" }
+        val cls = scene.projectClasses.firstOrNull { it.toString() == "@source/entry/pages/VideoBrowser.ets: VideoBrowser" }
             ?: error("Class not found in project $particularProjectName")
         runMachineOnClass(scene, cls)
     }
