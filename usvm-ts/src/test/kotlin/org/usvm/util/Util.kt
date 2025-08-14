@@ -1,6 +1,8 @@
 package org.usvm.util
 
 import org.usvm.api.TsTestValue.TsNumber
+import org.usvm.api.TsTestValue.TsString
+import org.usvm.api.TsTestValue.TsBoolean
 import kotlin.math.absoluteValue
 
 fun Boolean.toDouble() = if (this) 1.0 else 0.0
@@ -39,4 +41,36 @@ infix fun TsNumber.neq(other: Int): Boolean {
 
 fun TsNumber.isNaN(): Boolean {
     return number.isNaN()
+}
+
+infix fun TsString.eq(other: String): Boolean {
+    return value == other
+}
+
+infix fun TsString.neq(other: String): Boolean {
+    return value != other
+}
+
+infix fun TsString.eq(other: TsString): Boolean {
+    return eq(other.value)
+}
+
+infix fun TsString.neq(other: TsString): Boolean {
+    return neq(other.value)
+}
+
+infix fun TsBoolean.eq(other: Boolean): Boolean {
+    return value == other
+}
+
+infix fun TsBoolean.neq(other: Boolean): Boolean {
+    return value != other
+}
+
+infix fun TsBoolean.eq(other: TsBoolean): Boolean {
+    return eq(other.value)
+}
+
+infix fun TsBoolean.neq(other: TsBoolean): Boolean {
+    return neq(other.value)
 }
