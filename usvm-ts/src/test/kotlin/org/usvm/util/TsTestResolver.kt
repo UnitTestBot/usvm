@@ -308,8 +308,7 @@ open class TsTestStateResolver(
     }
 
     fun resolveThisInstance(): TsTestValue? {
-        val parametersCount = method.parameters.size
-        val ref = mkRegisterStackLValue(ctx.addressSort, parametersCount) // TODO check for statics
+        val ref = mkRegisterStackLValue(ctx.addressSort, idx = 0) // TODO check for statics
         return resolveLValue(ref)
     }
 

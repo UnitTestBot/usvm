@@ -4,6 +4,7 @@ import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Test
 import org.usvm.UMachineOptions
+import org.usvm.api.TsTest
 import org.usvm.api.targets.ReachabilityObserver
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
@@ -20,6 +21,21 @@ class ArticleExample {
     val options = UMachineOptions()
     val tsOptions = TsOptions()
 
+    private fun formatTests(tests: List<TsTest>): String {
+        return tests.mapIndexed { idx, t ->
+            val prefix = "  ${idx + 1}) "
+            val indent = " ".repeat(prefix.length)
+            val lines = t.toString().lineSequence().toList()
+            when {
+                lines.isEmpty() -> prefix.trimEnd()
+                else -> buildString {
+                    appendLine(prefix + lines.first())
+                    lines.drop(1).forEach { appendLine(indent + it) }
+                }.trimEnd()
+            }
+        }.joinToString("\n")
+    }
+
     private fun generateTestsFor(methodName: String) {
         val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
         val method = scene.projectClasses
@@ -31,7 +47,7 @@ class ArticleExample {
         val tests = results.map { resolver.resolve(method, it) }
         println("Generated tests for method: ${method.name}")
         println("Total tests generated: ${tests.size}")
-        println("Tests: ${tests.joinToString("\n")}")
+        println("Tests:\n" + formatTests(tests))
     }
 
     @Test
