@@ -1,15 +1,20 @@
 package org.usvm.samples.imports
 
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.utils.loadEtsProjectAutoConvert
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.eq
+import org.usvm.util.getResourcePath
 
 class Imports : TsMethodTestRunner() {
-    private val tsPath = "/samples/imports/imports.ts"
+    private val tsPath = "/samples/imports"
 
-    override val scene: EtsScene = loadScene(tsPath)
+    override val scene: EtsScene = run {
+        val path = getResourcePath(tsPath)
+        loadEtsProjectAutoConvert(path, useArkAnalyzerTypeInference = null)
+    }
 
     @Test
     fun `test get exported number`() {

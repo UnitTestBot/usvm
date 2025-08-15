@@ -217,15 +217,15 @@ class TsExprResolver(
 
     // region SIMPLE VALUE
 
-    override fun visit(value: EtsLocal): UExpr<out USort> {
+    override fun visit(value: EtsLocal): UExpr<out USort>? {
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: EtsParameterRef): UExpr<out USort> {
+    override fun visit(value: EtsParameterRef): UExpr<out USort>? {
         return simpleValueResolver.visit(value)
     }
 
-    override fun visit(value: EtsThis): UExpr<out USort> {
+    override fun visit(value: EtsThis): UExpr<out USort>? {
         return simpleValueResolver.visit(value)
     }
 
@@ -1564,7 +1564,7 @@ class TsSimpleValueResolver(
     private val localToIdx: (EtsMethod, EtsValue) -> Int?,
 ) : EtsValue.Visitor<UExpr<out USort>?> {
 
-    private fun resolveLocal(local: EtsValue): UExpr<*> = with(ctx) {
+    private fun resolveLocal(local: EtsValue): UExpr<*>? = with(ctx) {
         val currentMethod = scope.calcOnState { lastEnteredMethod }
         val entrypoint = scope.calcOnState { entrypoint }
 
@@ -1586,7 +1586,7 @@ class TsSimpleValueResolver(
                 check(type is EtsLexicalEnvType)
                 val obj = allocateConcreteRef()
                 for (captured in type.closures) {
-                    val resolvedCaptured = resolveLocal(captured)
+                    val resolvedCaptured = resolveLocal(captured) ?: return null
                     val lValue = mkFieldLValue(resolvedCaptured.sort, obj, captured.name)
                     scope.doWithState {
                         memory.write(lValue, resolvedCaptured.cast(), guard = ctx.trueExpr)
@@ -1598,34 +1598,24 @@ class TsSimpleValueResolver(
                 return obj
             }
 
-            val globalObject = scope.calcOnState { globalObject }
-
             val localName = local.name
-            // Check whether this local was already created or not
-            if (localName in scope.calcOnState { addedArtificialLocals }) {
-                val sort = ctx.typeToSort(local.type)
-                val lValue = if (sort is TsUnresolvedSort) {
-                    mkFieldLValue(ctx.addressSort, globalObject, local.name)
-                } else {
-                    mkFieldLValue(sort, globalObject, local.name)
-                }
+            // Check whether this local was already assigned to (has a saved sort in dflt object)
+            val file = currentMethod.enclosingClass!!.declaringFile!!
+            val dfltObject = scope.calcOnState { getDfltObject(file) }
+
+            // Try to get the saved sort for this dflt object field
+            val savedSort = scope.calcOnState { getSortForDfltObjectField(file, localName) }
+
+            if (savedSort != null) {
+                // Use the saved sort to read the field
+                val lValue = mkFieldLValue(savedSort, dfltObject, localName)
                 return scope.calcOnState { memory.read(lValue) }
-            }
-
-            logger.warn { "Cannot resolve local $local, creating a field of the global object" }
-
-            scope.doWithState {
-                addedArtificialLocals += localName
-            }
-
-            val sort = ctx.typeToSort(local.type)
-            val lValue = if (sort is TsUnresolvedSort) {
-                globalObject.createFakeField(localName, scope)
-                mkFieldLValue(ctx.addressSort, globalObject, local.name)
             } else {
-                mkFieldLValue(sort, globalObject, local.name)
+                // No saved sort means this field was never assigned to, which is an error
+                logger.error { "Trying to read unassigned global variable: $localName" }
+                scope.assert(ctx.falseExpr)
+                return null
             }
-            return scope.calcOnState { memory.read(lValue) }
         }
 
         val sort = scope.calcOnState {
@@ -1678,7 +1668,7 @@ class TsSimpleValueResolver(
         }
     }
 
-    override fun visit(local: EtsLocal): UExpr<out USort> {
+    override fun visit(local: EtsLocal): UExpr<out USort>? {
         if (local.name == "NaN") {
             return ctx.mkFp64NaN()
         }
@@ -1710,11 +1700,11 @@ class TsSimpleValueResolver(
         return resolveLocal(local)
     }
 
-    override fun visit(value: EtsParameterRef): UExpr<out USort> {
+    override fun visit(value: EtsParameterRef): UExpr<out USort>? {
         return resolveLocal(value)
     }
 
-    override fun visit(value: EtsThis): UExpr<out USort> {
+    override fun visit(value: EtsThis): UExpr<out USort>? {
         return resolveLocal(value)
     }
 

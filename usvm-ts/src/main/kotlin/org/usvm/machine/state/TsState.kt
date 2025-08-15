@@ -5,6 +5,8 @@ import org.jacodb.ets.model.EtsBlockCfg
 import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsFile
+import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsNumberType
@@ -12,6 +14,7 @@ import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsValue
+import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
 import org.usvm.PathNode
 import org.usvm.UCallStack
 import org.usvm.UConcreteHeapRef
@@ -60,7 +63,6 @@ class TsState(
     targets: UTargetsSet<TsTarget, EtsStmt> = UTargetsSet.empty(),
     val localToSortStack: MutableList<UPersistentHashMap<Int, USort>> = mutableListOf(persistentHashMapOf()),
     var staticStorage: UPersistentHashMap<EtsClass, UConcreteHeapRef> = persistentHashMapOf(),
-    val globalObject: UConcreteHeapRef = memory.allocStatic(EtsClassType(EtsClassSignature.UNKNOWN)),
     val addedArtificialLocals: MutableSet<String> = hashSetOf(),
     val lValuesToAllocatedFakeObjects: MutableList<Pair<ULValue<*, *>, UConcreteHeapRef>> = mutableListOf(),
     var discoveredCallees: UPersistentHashMap<Pair<EtsStmt, Int>, EtsBlockCfg> = persistentHashMapOf(),
@@ -70,6 +72,13 @@ class TsState(
     var associatedFunction: UPersistentHashMap<UConcreteHeapRef, TsFunction> = persistentHashMapOf(),
     var closureObject: UPersistentHashMap<String, UConcreteHeapRef> = persistentHashMapOf(),
     var boundThis: UPersistentHashMap<UConcreteHeapRef, UHeapRef> = persistentHashMapOf(),
+    var dfltObject: UPersistentHashMap<EtsFileSignature, UConcreteHeapRef> = persistentHashMapOf(),
+
+    /**
+     * Maps (file signature, field name) to the sort used for that field in the dflt object.
+     * This tracks sorts for global variables that are represented as fields of dflt objects.
+     */
+    var dfltObjectFieldSorts: UPersistentHashMap<Pair<EtsFileSignature, String>, USort> = persistentHashMapOf(),
 
     /**
      * Maps string values to their corresponding heap references that were allocated for string constants.
@@ -203,6 +212,30 @@ class TsState(
         boundThis = boundThis.put(instance, thisRef, ownership)
     }
 
+    fun getDfltObject(file: EtsFile): UConcreteHeapRef {
+        val (updated, result) = dfltObject.getOrPut(file.signature, ownership) {
+            val classType = EtsClassType(EtsClassSignature(DEFAULT_ARK_CLASS_NAME, file.signature))
+            memory.allocConcrete(classType)
+        }
+        dfltObject = updated
+        return result
+    }
+
+    fun getSortForDfltObjectField(
+        file: EtsFile,
+        fieldName: String,
+    ): USort? {
+        return dfltObjectFieldSorts[file.signature to fieldName]
+    }
+
+    fun saveSortForDfltObjectField(
+        file: EtsFile,
+        fieldName: String,
+        sort: USort,
+    ) {
+        dfltObjectFieldSorts = dfltObjectFieldSorts.put(file.signature to fieldName, sort, ownership)
+    }
+
     /**
      * Initializes and returns a fully constructed string constant in this state's memory.
      * This function handles both heap reference allocation (via context) and memory initialization.
@@ -266,7 +299,6 @@ class TsState(
             targets = targets.clone(),
             localToSortStack = localToSortStack.toMutableList(),
             staticStorage = staticStorage,
-            globalObject = globalObject,
             addedArtificialLocals = addedArtificialLocals,
             lValuesToAllocatedFakeObjects = lValuesToAllocatedFakeObjects.toMutableList(),
             discoveredCallees = discoveredCallees,
@@ -276,6 +308,7 @@ class TsState(
             associatedFunction = associatedFunction,
             closureObject = closureObject,
             boundThis = boundThis,
+            dfltObject = dfltObject,
             stringConstantAllocatedRefs = stringConstantAllocatedRefs,
         )
     }
