@@ -20,12 +20,11 @@ class ArticleExample {
     val options = UMachineOptions()
     val tsOptions = TsOptions()
 
-    @Test
-    fun runF1TestGeneration() {
+    private fun generateTestsFor(methodName: String) {
         val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
-            .single { it.name == "f1" }
+            .single { it.name == methodName }
 
         val results = machine.analyze(listOf(method))
         val resolver = TsTestResolver()
@@ -33,140 +32,55 @@ class ArticleExample {
         println("Generated tests for method: ${method.name}")
         println("Total tests generated: ${tests.size}")
         println("Tests: ${tests.joinToString("\n")}")
+    }
+
+    @Test
+    fun runF1TestGeneration() {
+        generateTestsFor("f1")
     }
 
     @Test
     fun runF2TestGeneration() {
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
-        val method = scene.projectClasses
-            .flatMap { it.methods }
-            .single { it.name == "f2" }
-
-        val results = machine.analyze(listOf(method))
-        val resolver = TsTestResolver()
-        val tests = results.map { resolver.resolve(method, it) }
-        println("Generated tests for method: ${method.name}")
-        println("Total tests generated: ${tests.size}")
-        println("Tests: ${tests.joinToString("\n")}")
+        generateTestsFor("f2")
     }
 
     @Test
     fun runF3TestGeneration() {
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
-        val method = scene.projectClasses
-            .flatMap { it.methods }
-            .single { it.name == "f3" }
-
-        val results = machine.analyze(listOf(method))
-        val resolver = TsTestResolver()
-        val tests = results.map { resolver.resolve(method, it) }
-        println("Generated tests for method: ${method.name}")
-        println("Total tests generated: ${tests.size}")
-        println("Tests: ${tests.joinToString("\n")}")
+        generateTestsFor("f3")
     }
 
     @Test
-    fun runF4estGeneration() {
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
-        val method = scene.projectClasses
-            .flatMap { it.methods }
-            .single { it.name == "f4" }
-
-        val results = machine.analyze(listOf(method))
-        val resolver = TsTestResolver()
-        val tests = results.map { resolver.resolve(method, it) }
-        println("Generated tests for method: ${method.name}")
-        println("Total tests generated: ${tests.size}")
-        println("Tests: ${tests.joinToString("\n")}")
+    fun runF4TestGeneration() {
+        generateTestsFor("f4")
     }
 
     @Test
     fun runF5TestGeneration() {
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
-        val method = scene.projectClasses
-            .flatMap { it.methods }
-            .single { it.name == "f5" }
-
-        val results = machine.analyze(listOf(method))
-        val resolver = TsTestResolver()
-        val tests = results.map { resolver.resolve(method, it) }
-        println("Generated tests for method: ${method.name}")
-        println("Total tests generated: ${tests.size}")
-        println("Tests: ${tests.joinToString("\n")}")
+        generateTestsFor("f5")
     }
 
     @Test
     fun runF6TestGeneration() {
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
-        val method = scene.projectClasses
-            .flatMap { it.methods }
-            .single { it.name == "f6" }
-
-        val results = machine.analyze(listOf(method))
-        val resolver = TsTestResolver()
-        val tests = results.map { resolver.resolve(method, it) }
-        println("Generated tests for method: ${method.name}")
-        println("Total tests generated: ${tests.size}")
-        println("Tests: ${tests.joinToString("\n")}")
+        generateTestsFor("f6")
     }
 
     @Test
     fun runF7TestGeneration() {
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
-        val method = scene.projectClasses
-            .flatMap { it.methods }
-            .single { it.name == "f7" }
-
-        val results = machine.analyze(listOf(method))
-        val resolver = TsTestResolver()
-        val tests = results.map { resolver.resolve(method, it) }
-        println("Generated tests for method: ${method.name}")
-        println("Total tests generated: ${tests.size}")
-        println("Tests: ${tests.joinToString("\n")}")
+        generateTestsFor("f7")
     }
 
     @Test
     fun runF8TestGeneration() {
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
-        val method = scene.projectClasses
-            .flatMap { it.methods }
-            .single { it.name == "f8" }
-
-        val results = machine.analyze(listOf(method))
-        val resolver = TsTestResolver()
-        val tests = results.map { resolver.resolve(method, it) }
-        println("Generated tests for method: ${method.name}")
-        println("Total tests generated: ${tests.size}")
-        println("Tests: ${tests.joinToString("\n")}")
+        generateTestsFor("f8")
     }
 
     @Test
     fun runF9TestGeneration() {
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
-        val method = scene.projectClasses
-            .flatMap { it.methods }
-            .single { it.name == "f9" }
-
-        val results = machine.analyze(listOf(method))
-        val resolver = TsTestResolver()
-        val tests = results.map { resolver.resolve(method, it) }
-        println("Generated tests for method: ${method.name}")
-        println("Total tests generated: ${tests.size}")
-        println("Tests: ${tests.joinToString("\n")}")
+        generateTestsFor("f9")
     }
 
     @Test
     fun runF10TestGeneration() {
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
-        val method = scene.projectClasses
-            .flatMap { it.methods }
-            .single { it.name == "f10" }
-
-        val results = machine.analyze(listOf(method))
-        val resolver = TsTestResolver()
-        val tests = results.map { resolver.resolve(method, it) }
-        println("Generated tests for method: ${method.name}")
-        println("Total tests generated: ${tests.size}")
-        println("Tests: ${tests.joinToString("\n")}")
+        generateTestsFor("f10")
     }
 }
