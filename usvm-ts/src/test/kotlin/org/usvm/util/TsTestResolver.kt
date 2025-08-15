@@ -47,7 +47,6 @@ import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.memory.ULValue
 import org.usvm.memory.UReadOnlyMemory
-import org.usvm.memory.URegisterStackLValue
 import org.usvm.mkSizeExpr
 import org.usvm.model.UModel
 import org.usvm.model.UModelBase
@@ -319,12 +318,13 @@ open class TsTestStateResolver(
 
             if (sort is TsUnresolvedSort) {
                 // this means that a fake object was created, and we need to read it from the current memory
-                val address = finalStateMemory.read(mkRegisterStackLValue(addressSort, idx))
+                val ref = mkRegisterStackLValue(addressSort, idx)
+                val address = finalStateMemory.read(ref)
                 check(address.isFakeObject())
                 return@mapIndexed resolveFakeObject(address)
             }
 
-            val ref = URegisterStackLValue(sort, idx)
+            val ref = mkRegisterStackLValue(sort, idx)
             resolveLValue(ref)
         }
     }
