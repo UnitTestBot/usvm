@@ -420,6 +420,11 @@ class TsExprResolver(
             is EtsInstanceFieldRef -> {
                 val instance = resolve(operand.instance)?.asExpr(addressSort) ?: return null
 
+                scope.doWithState {
+                    // TODO support methods removal
+                    removeFieldFromFinalState(instance, operand.field)
+                }
+
                 // Check for null/undefined access
                 checkUndefinedOrNullPropertyRead(instance) ?: return null
 
@@ -843,6 +848,8 @@ class TsExprResolver(
     }
 
     override fun visit(expr: EtsInExpr): UExpr<out USort>? = with(ctx) {
+        // TODO add property
+
         val property = resolve(expr.left) ?: return null
         val obj = resolve(expr.right)?.asExpr(addressSort) ?: return null
 
@@ -871,6 +878,22 @@ class TsExprResolver(
     // region CALL
 
     override fun visit(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
+        val instance = run {
+            val resolved = resolve(expr.instance) ?: return null
+
+            if (resolved.sort != addressSort) {
+                logger.warn { "Calling method on non-ref instance is not yet supported: $expr" }
+                scope.assert(falseExpr)
+                return null
+            }
+
+            resolved.asExpr(addressSort)
+        }
+
+        scope.doWithState {
+            addMethodSignature(instance, expr.callee)
+        }
+
         when (val result = tryApproximateInstanceCall(expr)) {
             is TsExprApproximationResult.SuccessfulApproximation -> return result.expr
             is TsExprApproximationResult.ResolveFailure -> return null
@@ -889,18 +912,6 @@ class TsExprResolver(
         }
 
         check(result is TsMethodResult.NoCall)
-
-        val instance = run {
-            val resolved = resolve(expr.instance) ?: return null
-
-            if (resolved.sort != addressSort) {
-                logger.warn { "Calling method on non-ref instance is not yet supported: $expr" }
-                scope.assert(falseExpr)
-                return null
-            }
-
-            resolved.asExpr(addressSort)
-        }
 
         checkUndefinedOrNullPropertyRead(instance) ?: return null
 
@@ -1250,6 +1261,10 @@ class TsExprResolver(
     ): UExpr<out USort>? = with(ctx) {
         val resolvedAddr = instanceRef.unwrapRef(scope)
 
+        scope.doWithState {
+            addFieldSignature(resolvedAddr, field)
+        }
+
         val etsField = resolveEtsField(instance, field, hierarchy)
 
         val sort = when (etsField) {
@@ -1391,6 +1406,7 @@ class TsExprResolver(
     }
 
     override fun visit(value: EtsInstanceFieldRef): UExpr<out USort>? = with(ctx) {
+        // TODO add field ref
         val instanceResolved = resolve(value.instance) ?: return null
         if (instanceResolved.sort != addressSort) {
             logger.error { "Instance of field ref should be a reference, but got $instanceResolved" }
@@ -1416,6 +1432,7 @@ class TsExprResolver(
     }
 
     override fun visit(value: EtsStaticFieldRef): UExpr<out USort>? = with(ctx) {
+        // todo add static ref
         val clazz = scene.projectAndSdkClasses.singleOrNull {
             it.signature == value.field.enclosingClass
         } ?: return null

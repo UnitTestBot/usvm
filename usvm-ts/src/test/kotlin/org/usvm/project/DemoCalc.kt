@@ -23,7 +23,7 @@ class RunOnDemoCalcProject : TsMethodTestRunner() {
 
     companion object {
         private const val PROJECT_PATH = "/projects/Demo_Calc/source/entry"
-        private const val SDK_OHOS_PATH = "/sdk/ohos/5.0.1.111/ets"
+        private const val SDK_OHOS_PATH = "/sdk/ohos/ets"
     }
 
     override val scene: EtsScene = run {

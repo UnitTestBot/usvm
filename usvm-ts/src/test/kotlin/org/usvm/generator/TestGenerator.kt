@@ -12,6 +12,7 @@ import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.util.TsTestResolver
 import org.usvm.util.getResourcePath
+import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import kotlin.io.path.createTempDirectory
 
@@ -40,11 +41,12 @@ class TestGenerator {
         println(testsText.joinToString("\n\n"))
 
         val resourceTsPath = getResourcePath("/generator/SimpleGeneratorExample.ts")
-        val originalTs = Files.readString(resourceTsPath)
+        val originalTsBytes = Files.readAllBytes(resourceTsPath)
+        val originalTs = String(originalTsBytes, StandardCharsets.UTF_8)
         val harness = TsTestTypeScriptGenerator.buildHarness(originalTs, testsText)
         val tmpDir = createTempDirectory("ts-gen-tests-")
         val testFile = tmpDir.resolve("generatedTests.js")
-        Files.writeString(testFile, harness)
+        Files.newBufferedWriter(testFile, StandardCharsets.UTF_8).use { it.write(harness) }
         println("Harness written to: " + testFile.toAbsolutePath())
 
         val process = ProcessBuilder("node", testFile.toAbsolutePath().toString())
