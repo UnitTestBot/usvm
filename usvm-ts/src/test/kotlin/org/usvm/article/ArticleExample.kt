@@ -10,6 +10,7 @@ import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.util.TsTestResolver
 import org.usvm.util.getResourcePath
+import org.usvm.util.toDouble
 import kotlin.time.Duration
 
 class ArticleExample {
@@ -88,10 +89,10 @@ class ArticleExample {
          */
         val tests = generateTestsFor("f3a")
 
-        check(tests.size == 2) { "Expected 2 tests for f3, got ${tests.size}" }
+        check(tests.size == 3) { "Expected 3 tests for f3, got ${tests.size}" }
 
         val successBranch = tests.single { it.returnValue is TsTestValue.TsNumber }
-        val failedBranch = tests.single { it !== successBranch }
+        val failedBranches = tests.filter { it !== successBranch }
 
         // Checks for success branch
         val succArg = successBranch.before.parameters.single()
@@ -101,18 +102,26 @@ class ArticleExample {
         check(succField.value is TsTestValue.TsNumber || succField.value is TsTestValue.TsBoolean) {
             "Expected TsNumber or TsBoolean for 'x' in success branch, got ${succField.value::class.simpleName}"
         }
-
-        // Checks for failed branch
-        val failArg = failedBranch.before.parameters.single()
-        if (failArg !is TsTestValue.TsClass) {
-            // primitive parameters are fine
-            return
+        val succValue = (succField.value as? TsTestValue.TsNumber)?.number
+            ?: (succField.value as? TsTestValue.TsBoolean)?.value?.toDouble()
+            ?: error("Expected number or boolean value for 'x' in success branch, got ${succField.value::class.simpleName}")
+        check(succValue + 1.0 > 0.0) {
+            "Expected 'x + 1 > 0' in success branch, got 'x + 1 = $succValue'"
         }
 
-        val failField = failArg.properties.entries.single()
-        check(failField.key == "x") { "Expected field 'x' in failed branch, got '${failField.key}'" }
-        check(failField.value !is TsTestValue.TsNumber) {
-            "Expected non-number for 'x' in failed branch, got ${failField.value::class.simpleName}"
+        failedBranches.forEach { failedBranch ->
+            // Checks for failed branch
+            val failArg = failedBranch.before.parameters.single()
+            if (failArg !is TsTestValue.TsClass) {
+                // primitive parameters are fine
+                return
+            }
+
+            val failField = failArg.properties.entries.single()
+            check(failField.key == "x") { "Expected field 'x' in failed branch, got '${failField.key}'" }
+            check(failField.value !is TsTestValue.TsNumber) {
+                "Expected non-number for 'x' in failed branch, got ${failField.value::class.simpleName}"
+            }
         }
     }
 
@@ -127,7 +136,36 @@ class ArticleExample {
          *     }
          */
         val tests = generateTestsFor("f3b")
-        TODO()
+        check(tests.size == 2) { "Expected 2 tests for f3b, got ${tests.size}" }
+
+        val successBranch = tests.single { it.returnValue is TsTestValue.TsNumber }
+        val failedBranch = tests.single { it !== successBranch }
+
+        check(successBranch.before.parameters.size == 1) {
+            "Expected 1 parameter in success branch, got ${successBranch.before.parameters.size}"
+        }
+        val succArg = successBranch.before.parameters.single()
+        check(succArg is TsTestValue.TsClass) {
+            "Expected TsObject for success branch, got ${succArg::class.simpleName}"
+        }
+        val succFields = succArg.properties.entries
+
+        // Empty is a fine case since `undefined + 1 is NaN`
+        if (succFields.isNotEmpty()) {
+            val succField = succFields.single()
+            check(succField.key == "x") { "Expected field 'x' in success branch, got '${succField.key}'" }
+            check(succField.value is TsTestValue.TsNumber || succField.value is TsTestValue.TsUndefined || succField.value is TsTestValue.TsNull || succField.value is TsTestValue.TsBoolean) {
+                "Expected TsNumber, TsBoolean, TsUndefined or TsNull for 'x' in success branch, got ${succField.value::class.simpleName}"
+            }
+        }
+
+        check(failedBranch.before.parameters.size == 1) {
+            "Expected 1 parameter in failed branch, got ${failedBranch.before.parameters.size}"
+        }
+        val failArg = failedBranch.before.parameters.single()
+        check(failArg !is TsTestValue.TsClass || !failArg.properties.contains("x")) {
+            "Expected no 'x' field in failed branch"
+        }
     }
 
 
