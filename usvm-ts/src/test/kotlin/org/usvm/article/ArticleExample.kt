@@ -1,6 +1,23 @@
 package org.usvm.article
 
+import org.jacodb.ets.dsl.CustomValue
+import org.jacodb.ets.dsl.and
+import org.jacodb.ets.dsl.const
+import org.jacodb.ets.dsl.eqq
+import org.jacodb.ets.dsl.local
+import org.jacodb.ets.dsl.not
+import org.jacodb.ets.dsl.param
+import org.jacodb.ets.model.EtsAnyType
+import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsFieldSignature
+import org.jacodb.ets.model.EtsInExpr
+import org.jacodb.ets.model.EtsInstanceFieldRef
+import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.model.EtsStringConstant
+import org.jacodb.ets.model.EtsTypeOfExpr
+import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Test
 import org.usvm.UMachineOptions
@@ -9,6 +26,7 @@ import org.usvm.api.TsTestValue
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.util.TsTestResolver
+import org.usvm.util.buildEtsMethod
 import org.usvm.util.getResourcePath
 import org.usvm.util.toDouble
 import kotlin.time.Duration
@@ -59,11 +77,61 @@ class ArticleExample {
         /**
          *     f1(o: any) {
          *       if ("x" in o && typeof o.x === "number") return 1;
-         *       throw new Error("bad");
+         *       return 2;
          *     }
          *
          */
-        generateTestsFor("f1")
+
+        val methodName = "f1"
+        val method = buildEtsMethod(
+            name = methodName,
+            enclosingClass = scene.projectClasses.first(),
+            parameters = listOf(
+                "o" to EtsAnyType
+            ),
+            returnType = EtsNumberType,
+        ) {
+            // o := arg(0)
+            val o = local("o")
+            assign(o, param(0))
+
+            val inExpr = CustomValue {
+                EtsInExpr(EtsStringConstant("x"), EtsLocal("o", EtsUnknownType))
+            }
+            val typeOfExpr = CustomValue {
+                EtsTypeOfExpr(
+                    EtsInstanceFieldRef(
+                        EtsLocal("o", EtsUnknownType),
+                        EtsFieldSignature(EtsClassSignature.UNKNOWN, "x", EtsUnknownType),
+                        EtsUnknownType
+                    )
+                )
+            }
+            ifStmt(and(inExpr, eqq(typeOfExpr, const("number")))) {
+                ret(const(1))
+            }
+
+            ret(const(2))
+        }
+
+        // Generate tests using the built method
+        val machine = TsMachine(scene, options, tsOptions)
+        val results = machine.analyze(listOf(method))
+        val resolver = TsTestResolver()
+        val tests = results.map { resolver.resolve(method, it) }
+
+        println("Generated tests for method: ${method.name}")
+        println("Total tests generated: ${tests.size}")
+        println("Tests:\n" + formatTests(tests))
+
+        // Basic checks for generated tests
+        check(tests.isNotEmpty()) { "Expected at least 1 test for f1, got ${tests.size}" }
+
+        // Check that we have tests for both branches
+        val returnOne = tests.singleOrNull { it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 1.0 }
+        val returnTwo = tests.singleOrNull { it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 2.0 }
+
+        check(returnOne != null && returnTwo != null)
     }
 
     @Test
@@ -71,11 +139,57 @@ class ArticleExample {
         /**
          *     // f2: throws if "x" is missing
          *     f2(o: any) {
-         *       if (!("x" in o)) throw new Error("miss");
-         *       return 0;
+         *       if (!("x" in o)) return 1;
+         *       return 2;
          *     }
          */
-        generateTestsFor("f2")
+        val methodName = "f2"
+        val method = buildEtsMethod(
+            name = methodName,
+            enclosingClass = scene.projectClasses.first(),
+            parameters = listOf(
+                "o" to EtsAnyType
+            ),
+            returnType = EtsNumberType,
+        ) {
+            // o := arg(0)
+            val o = local("o")
+            assign(o, param(0))
+
+            val inExpr = CustomValue {
+                EtsInExpr(EtsStringConstant("x"), EtsLocal("o", EtsUnknownType))
+            }
+            ifStmt(not(inExpr)) {
+                ret(const(1))
+            }
+            ret(const(2))
+        }
+
+        // Generate tests using the built method
+        val machine = TsMachine(scene, options, tsOptions)
+        val results = machine.analyze(listOf(method))
+        val resolver = TsTestResolver()
+        val tests = results.map { resolver.resolve(method, it) }
+
+        println("Generated tests for method: ${method.name}")
+        println("Total tests generated: ${tests.size}")
+        println("Tests:\n" + formatTests(tests))
+
+        check(tests.isNotEmpty()) { "Expected at least 1 test for f2, got ${tests.size}" }
+
+        val testWithOne = tests.single { it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 1.0 }
+        val testWithTwo = tests.single { it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 2.0 }
+
+        val firstParameter = (testWithOne.before.parameters.singleOrNull() as? TsTestValue.TsClass)?.properties
+        check(firstParameter == null || firstParameter.isEmpty())
+
+        val secondParameter = (testWithTwo.before.parameters.singleOrNull() as? TsTestValue.TsClass)?.properties
+        check(secondParameter != null && secondParameter.size == 1) {
+            "Expected 1 property in second parameter, got ${secondParameter?.size ?: 0}"
+        }
+        check(secondParameter.containsKey("x") == true) {
+            "Expected property 'x' in second parameter"
+        }
     }
 
     @Test
@@ -84,7 +198,7 @@ class ArticleExample {
          *     // f3a: require number explicitly, still use '+' in the branch
          *     f3a(o: any) {
          *       if (typeof o.x === "number" && o.x + 1 > 0) return 1;
-         *       throw new Error("not-number-branch");
+         *       return -1;
          *     }
          */
         val tests = generateTestsFor("f3a")
@@ -132,7 +246,7 @@ class ArticleExample {
          *     f3b(o: any) {
          *       const y = o.x + 1;
          *       if (typeof y === "number") return 1;
-         *       throw new Error("string-branch");
+         *       return -1;
          *     }
          */
         val tests = generateTestsFor("f3b")
@@ -176,7 +290,7 @@ class ArticleExample {
          *     f4(o: any) {
          *       o.x = 1;            // создаётся *внутри*, не часть входа
          *       delete o.x;
-         *       if ("x" in o) throw new Error("still here");
+         *       if ("x" in o) return -1;
          *       return 0;
          *     }
          */
@@ -190,8 +304,17 @@ class ArticleExample {
         check(test.returnValue.number == 0.0) {
             "Expected return value 0 for f4, got ${test.returnValue.number}"
         }
-
-
+        check(test.after.parameters.size == 1) {
+            "Expected 1 parameter in f4, got ${test.before.parameters.size}"
+        }
+        val singlePropertyAfter = test.after.parameters.single()
+        check(singlePropertyAfter is TsTestValue.TsClass) {
+            "Expected TsObject for f4 after, got ${singlePropertyAfter::class.simpleName}"
+        }
+        val properties = singlePropertyAfter.properties.entries
+        check(properties.isEmpty()) {
+            "Expected no property in f4 after, got ${properties.size}"
+        }
     }
 
     @Test
@@ -200,7 +323,7 @@ class ArticleExample {
          *     // f5: destructuring with default
          *     f5({ x = 1 }: { x?: number }) {
          *       if (x > 0) return 1;
-         *       throw new Error("non-positive");
+         *       return -1;
          *     }
          */
         generateTestsFor("f5")
@@ -214,7 +337,7 @@ class ArticleExample {
          *     type B = { kind: "B"; b: string };
          *     f6(o: A | B) {
          *       if (o.kind === "A" && o.a > 0) return 1;
-         *       throw new Error("not A>0");
+         *       return -1;
          *     }
          */
         generateTestsFor("f6")
@@ -226,7 +349,7 @@ class ArticleExample {
          *     // f7: method presence only
          *     f7(o: any) {
          *       if (typeof o.m === "function") return 1;
-         *       throw new Error("no method");
+         *       return -1;
          *     }
          */
         generateTestsFor("f7")
@@ -238,7 +361,7 @@ class ArticleExample {
          *     // f8: method return value is constrained
          *     f8(o: any) {
          *       if (o.m() === 42) return 1;
-         *       throw new Error("bad ret");
+         *       return -1;
          *     }
          */
         generateTestsFor("f8")
@@ -249,7 +372,7 @@ class ArticleExample {
         /**
          *     // f9: rejects null/undefined via == null
          *     f9(o: any) {
-         *       if (o.x == null) throw new Error("nullish");
+         *       if (o.x == null) return -1;
          *       return 0;
          *     }
          */
@@ -262,7 +385,7 @@ class ArticleExample {
          *     // f10: nested field requirement
          *     f10(o: any) {
          *       if ("x" in o && o.x && "y" in o.x && o.x.y === true) return 1;
-         *       throw new Error("missing nested");
+         *       return -1;
          *     }
          */
         generateTestsFor("f10")

@@ -7,7 +7,6 @@ import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassType
-import org.jacodb.ets.model.EtsFieldImpl
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsLiteralType
 import org.jacodb.ets.model.EtsMethod
@@ -510,15 +509,11 @@ open class TsTestStateResolver(
                     ?: error("Field ID not found for $id in $fieldId")
             }
 
-        val properties = clazz.fields
-            .filterNot { field ->
-                field as EtsFieldImpl
-                field.modifiers.isStatic
-            }
+        val properties = resolvedProperties
             .associate { field ->
                 val sort = typeToSort(field.type)
                 if (sort == unresolvedSort) {
-                    val lValue = mkFieldLValue(addressSort, heapRef, field.signature)
+                    val lValue = mkFieldLValue(addressSort, heapRef, field)
 
                     val fakeObject = if (memory is UModel) {
                         resolvedLValuesToFakeObjects.firstOrNull { it.first == lValue }?.second
@@ -538,7 +533,7 @@ open class TsTestStateResolver(
                         field.name to obj
                     }
                 } else {
-                    val lValue = mkFieldLValue(sort, concreteRef.asExpr(addressSort), field.signature)
+                    val lValue = mkFieldLValue(sort, concreteRef.asExpr(addressSort), field)
                     val fieldExpr = memory.read(lValue)
                     // TODO check values if fieldExpr is correct here
                     //      Probably we have to pass fieldExpr as symbolic value and something as a concrete one

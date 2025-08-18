@@ -37,11 +37,13 @@ import org.usvm.StepScope
 import org.usvm.UExpr
 import org.usvm.UInterpreter
 import org.usvm.UIteExpr
+import org.usvm.api.allocateStaticRef
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArray
 import org.usvm.api.mockMethodCall
 import org.usvm.api.targets.TsTarget
 import org.usvm.api.typeStreamOf
+import org.usvm.collection.set.ref.URefSetEntryLValue
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.isAllocatedConcreteHeapRef
@@ -584,6 +586,17 @@ class TsInterpreter(
                         val supertype = EtsAuxiliaryType(properties = setOf(lhv.field.name))
                         // assert is required to update models
                         scope.assert(memory.types.evalIsSubtype(instanceRef, supertype))
+                    }
+
+                    scope.calcOnState {
+                        val fieldToSave = if (etsField is TsResolutionResult.Unique) etsField.property.signature else lhv.field
+                        val fieldId = getOrPutFieldId(fieldToSave) { allocateStaticRef() }
+                        val lValue = URefSetEntryLValue(
+                            instanceRef,
+                            fieldId,
+                            EtsUnknownType
+                        )
+                        memory.write(lValue, trueExpr, guard = trueExpr)
                     }
 
                     // If there is no such field, we create a fake field for the expr

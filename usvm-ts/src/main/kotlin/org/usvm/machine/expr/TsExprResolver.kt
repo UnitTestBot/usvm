@@ -100,7 +100,6 @@ import org.usvm.api.allocateConcreteRef
 import org.usvm.api.allocateStaticRef
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArrayLength
-import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.api.mockMethodCall
 import org.usvm.api.typeStreamOf
 import org.usvm.collection.set.ref.URefSetEntryLValue
@@ -421,7 +420,10 @@ class TsExprResolver(
                                         return@calcOnState mkIte(
                                             condition = unwrappedRef.condition,
                                             trueBranch = memory.types.evalTypeEquals(unwrappedTrueExpr, EtsStringType),
-                                            falseBranch = memory.types.evalTypeEquals(unwrappedFalseExpr, EtsStringType),
+                                            falseBranch = memory.types.evalTypeEquals(
+                                                unwrappedFalseExpr,
+                                                EtsStringType
+                                            ),
                                         )
                                     }
                                 }
@@ -473,10 +475,20 @@ class TsExprResolver(
         when (val operand = expr.arg) {
             is EtsInstanceFieldRef -> {
                 val instance = resolve(operand.instance)?.asExpr(addressSort) ?: return null
+                val unwrappedRef = instance.unwrapRefWithPathConstraint(scope)
+                val resolvedField = resolveEtsField(operand.instance, operand.field, hierarchy)
 
                 scope.doWithState {
                     // TODO support methods removal
-                    TODO()
+                    val fieldToSave =
+                        if (resolvedField is TsResolutionResult.Unique) resolvedField.property.signature else operand.field
+                    val fieldId = getOrPutFieldId(fieldToSave) { allocateStaticRef() }
+                    val lValue = URefSetEntryLValue(
+                        unwrappedRef,
+                        fieldId,
+                        EtsUnknownType
+                    )
+                    memory.write(lValue, mkFalse(), guard = trueExpr)
                 }
 
                 // Check for null/undefined access
@@ -488,6 +500,9 @@ class TsExprResolver(
                 //       In such case, the "overwriting" the field value with undefined does nothing
                 //       to the actual number/boolean/string value inside the field,
                 //       [if only we read the field using that "other" sort].
+
+
+                // TODO when with field resolution result
                 val fieldLValue = mkFieldLValue(addressSort, instance, operand.field)
                 scope.doWithState {
                     memory.write(fieldLValue, mkUndefinedValue(), guard = trueExpr)
@@ -904,19 +919,39 @@ class TsExprResolver(
     override fun visit(expr: EtsInExpr): UExpr<out USort>? = with(ctx) {
         // TODO add property
 
-        val property = resolve(expr.left) ?: return null
+        val propertyInfo = expr.left
+
+        if (propertyInfo !is EtsStringConstant) {
+            logger.error { "The 'in' operator requires a string property name, but got: $propertyInfo" }
+            scope.assert(falseExpr)
+            return null
+        }
+
+        val fieldInfo = EtsFieldSignature(
+            enclosingClass = EtsClassSignature.UNKNOWN,
+            name = propertyInfo.value,
+            type = EtsUnknownType,
+        )
         val obj = resolve(expr.right)?.asExpr(addressSort) ?: return null
 
         // Check for null/undefined access
         checkUndefinedOrNullPropertyRead(obj) ?: return null
 
-        logger.warn {
-            "The 'in' operator is supported yet, the result may not be accurate"
-        }
+        // TODO consider primitive values for path constraints
+        val unwrappedObj = obj.unwrapRefWithPathConstraint(scope)
 
-        // For now, just return a symbolic boolean (that can be true or false)
         scope.calcOnState {
-            makeSymbolicPrimitive(boolSort)
+            val fieldId = getOrPutFieldId(fieldInfo) { allocateStaticRef() }
+            val lValue = URefSetEntryLValue(
+                setRef = unwrappedObj,
+                setElement = fieldId,
+                setType = EtsUnknownType,
+            )
+            unwrappedObj.createFakeField(fieldInfo.name, scope).also {
+                val lValue = mkFieldLValue(addressSort, unwrappedObj, fieldInfo)
+                lValuesToAllocatedFakeObjects += lValue to it
+            }
+            memory.read(lValue)
         }
     }
 
@@ -1272,6 +1307,7 @@ class TsExprResolver(
 
     fun checkUndefinedOrNullPropertyRead(instance: UHeapRef) = with(ctx) {
         val ref = instance.unwrapRef(scope)
+        val constraint = if (instance.isFakeObject()) instance.getFakeType(scope).refTypeExpr else trueExpr
 
         val neqNull = mkAnd(
             mkHeapRefEq(ref, mkUndefinedValue()).not(),
@@ -1279,7 +1315,7 @@ class TsExprResolver(
         )
 
         scope.fork(
-            neqNull,
+            mkImplies(constraint, neqNull),
             blockOnFalseState = allocateException(EtsStringType) // TODO incorrect exception type
         )
     }
