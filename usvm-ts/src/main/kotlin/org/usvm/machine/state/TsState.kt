@@ -137,15 +137,15 @@ class TsState(
     fun pushSortsForArguments(
         instance: EtsLocal?,
         args: List<EtsLocal>,
-        localToIdx: (EtsMethod, EtsValue) -> Int?,
+        localToIdx: (EtsValue) -> Int?,
     ) {
         val argSorts = args.map { arg ->
-            val argIdx = localToIdx(lastEnteredMethod, arg)
+            val argIdx = localToIdx(arg)
                 ?: error("Arguments must present in the locals, but $arg is absent")
             getOrPutSortForLocal(argIdx, arg.type)
         }
 
-        val instanceIdx = instance?.let { localToIdx(lastEnteredMethod, it) }
+        val instanceIdx = instance?.let { localToIdx(it) }
         val instanceSort = instanceIdx?.let { getOrPutSortForLocal(it, instance.type) }
 
         // Note: first, push an empty map, then fill the arguments, and then the instance (this)
@@ -309,6 +309,7 @@ class TsState(
             closureObject = closureObject,
             boundThis = boundThis,
             dfltObject = dfltObject,
+            dfltObjectFieldSorts = dfltObjectFieldSorts,
             stringConstantAllocatedRefs = stringConstantAllocatedRefs,
         )
     }

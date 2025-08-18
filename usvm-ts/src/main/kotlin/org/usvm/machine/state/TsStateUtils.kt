@@ -32,4 +32,4 @@ inline val EtsMethod.parametersWithThisCount: Int
     get() = parameters.size + 1
 
 inline val EtsMethod.localsCount: Int
-    get() = getDeclaredLocals().size
+    get() = locals.size

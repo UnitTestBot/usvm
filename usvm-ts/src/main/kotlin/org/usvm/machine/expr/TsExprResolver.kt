@@ -112,6 +112,8 @@ import org.usvm.machine.TsVirtualMethodCallStmt
 import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.getResolvedValue
+import org.usvm.machine.interpreter.initializeGlobals
+import org.usvm.machine.interpreter.isGlobalsInitialized
 import org.usvm.machine.interpreter.isInitialized
 import org.usvm.machine.interpreter.isResolved
 import org.usvm.machine.interpreter.markInitialized
@@ -1438,7 +1440,7 @@ class TsExprResolver(
             } else {
                 scope.doWithState {
                     markInitialized(clazz)
-                    pushSortsForArguments(instance = null, args = emptyList(), localToIdx)
+                    pushSortsForArguments(instance = null, args = emptyList()) { localToIdx(lastEnteredMethod, it) }
                     registerCallee(currentStatement, initializer.cfg)
                     callStack.push(initializer, currentStatement)
                     memory.stack.push(arrayOf(instanceRef), initializer.localsCount)
@@ -1570,14 +1572,15 @@ class TsSimpleValueResolver(
 
         val localIdx = localToIdx(currentMethod, local)
 
-        // If there is no local variable corresponding to the local,
-        // we treat it as a field of some global object with the corresponding name.
-        // It helps us to support global variables that are missed in the IR.
+        // If the local is not found in the current method,
+        // we treat it as a global variable,
+        // which we represent as a field of the "dflt object".
         if (localIdx == null) {
             require(local is EtsLocal)
 
             // Handle closures
             if (local.name.startsWith("%closures")) {
+                // TODO: add comments
                 val existingClosures = scope.calcOnState { closureObject[local.name] }
                 if (existingClosures != null) {
                     return existingClosures
@@ -1585,6 +1588,7 @@ class TsSimpleValueResolver(
                 val type = local.type
                 check(type is EtsLexicalEnvType)
                 val obj = allocateConcreteRef()
+                // TODO: consider 'types.allocate'
                 for (captured in type.closures) {
                     val resolvedCaptured = resolveLocal(captured) ?: return null
                     val lValue = mkFieldLValue(resolvedCaptured.sort, obj, captured.name)
@@ -1598,23 +1602,40 @@ class TsSimpleValueResolver(
                 return obj
             }
 
-            val localName = local.name
             // Check whether this local was already assigned to (has a saved sort in dflt object)
             val file = currentMethod.enclosingClass!!.declaringFile!!
             val dfltObject = scope.calcOnState { getDfltObject(file) }
 
+            val isGlobalsInitialized = scope.calcOnState { isGlobalsInitialized(file) }
+            if (!isGlobalsInitialized) {
+                logger.info { "Globals are not initialized for file: $file" }
+                scope.doWithState {
+                    initializeGlobals(file)
+                }
+                return null
+            } else {
+                // TODO: handle methodResult
+                scope.doWithState {
+                    if (methodResult is TsMethodResult.Success) {
+                        methodResult = TsMethodResult.NoCall
+                    }
+                }
+            }
+
             // Try to get the saved sort for this dflt object field
-            val savedSort = scope.calcOnState { getSortForDfltObjectField(file, localName) }
+            val savedSort = scope.calcOnState {
+                getSortForDfltObjectField(file, local.name)
+            }
 
             if (savedSort == null) {
                 // No saved sort means this field was never assigned to, which is an error
-                logger.error { "Trying to read unassigned global variable: $localName" }
+                logger.error { "Trying to read unassigned global variable: ${local.name} in $file" }
                 scope.assert(ctx.falseExpr)
                 return null
             }
 
             // Use the saved sort to read the field
-            val lValue = mkFieldLValue(savedSort, dfltObject, localName)
+            val lValue = mkFieldLValue(savedSort, dfltObject, local.name)
             return scope.calcOnState { memory.read(lValue) }
         }
 
