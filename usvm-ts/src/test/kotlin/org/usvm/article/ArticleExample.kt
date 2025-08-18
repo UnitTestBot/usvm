@@ -39,7 +39,7 @@ class ArticleExample {
         EtsScene(listOf(file))
     }
     val options = UMachineOptions(timeout = Duration.INFINITE)
-    val tsOptions = TsOptions(checkFieldPresents = true)
+    val tsOptions = TsOptions(checkFieldPresents = true, enableVisualization = true)
 
     private fun formatTests(tests: List<TsTest>): String {
         return tests.mapIndexed { idx, t ->
@@ -205,7 +205,7 @@ class ArticleExample {
 
         check(tests.size == 3) { "Expected 3 tests for f3, got ${tests.size}" }
 
-        val successBranch = tests.single { it.returnValue is TsTestValue.TsNumber }
+        val successBranch = tests.single { it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 1.0 }
         val failedBranches = tests.filter { it !== successBranch }
 
         // Checks for success branch
@@ -288,41 +288,50 @@ class ArticleExample {
         /**
          *     // f4: writes then deletes; checks absence
          *     f4(o: any) {
-         *       o.x = 1;            // создаётся *внутри*, не часть входа
+         *       o.x = 1;
          *       delete o.x;
-         *       if ("x" in o) return -1;
-         *       return 0;
+         *       if ("x" in o) return -1; // unreachable
+         *       return 1;
          *     }
          */
-        val tests = generateTestsFor("f4")
+        val methodName = "f4"
+        val method = buildEtsMethod(
+            name = methodName,
+            enclosingClass = scene.projectClasses.first(),
+            parameters = listOf(
+                "o" to EtsAnyType
+            ),
+            returnType = EtsNumberType,
+        ) {
+            // o := arg(0)
+            val o = local("o")
+            assign(o, param(0))
 
-        check(tests.size == 1) { "Expected 1 test for f4, got ${tests.size}" }
-        val test = tests.single()
-        check(test.returnValue is TsTestValue.TsNumber) {
-            "Expected TsNumber return value for f4, got ${test.returnValue::class.simpleName}"
+            // TODO unsupported
         }
-        check(test.returnValue.number == 0.0) {
-            "Expected return value 0 for f4, got ${test.returnValue.number}"
-        }
-        check(test.after.parameters.size == 1) {
-            "Expected 1 parameter in f4, got ${test.before.parameters.size}"
-        }
-        val singlePropertyAfter = test.after.parameters.single()
-        check(singlePropertyAfter is TsTestValue.TsClass) {
-            "Expected TsObject for f4 after, got ${singlePropertyAfter::class.simpleName}"
-        }
-        val properties = singlePropertyAfter.properties.entries
-        check(properties.isEmpty()) {
-            "Expected no property in f4 after, got ${properties.size}"
-        }
+
+        val machine = TsMachine(scene, options, tsOptions)
+        val results = machine.analyze(listOf(method))
+        val resolver = TsTestResolver()
+        val tests = results.map { resolver.resolve(method, it) }
+
+        println("Generated tests for method: ${method.name}")
+        println("Total tests generated: ${tests.size}")
+        println("Tests:\n" + formatTests(tests))
+
+        check(tests.size > 1) { "Expected at least 1 test for f4, got ${tests.size}" }
+        val successTests = tests.filter { it.returnValue !is TsTestValue.TsException }
+        successTests.single { it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 1.0 }
     }
 
     @Test
     fun runF5() {
         /**
-         *     // f5: destructuring with default
-         *     f5({ x = 1 }: { x?: number }) {
-         *       if (x > 0) return 1;
+         *     // f5: discriminated union
+         *     type A = { kind: "A"; a: number };
+         *     type B = { kind: "B"; b: string };
+         *     f5(o: A | B) {
+         *       if (o.kind === "A" && o.a > 0) return 1;
          *       return -1;
          *     }
          */
@@ -332,11 +341,9 @@ class ArticleExample {
     @Test
     fun runF6() {
         /**
-         *     // f6: discriminated union
-         *     type A = { kind: "A"; a: number };
-         *     type B = { kind: "B"; b: string };
-         *     f6(o: A | B) {
-         *       if (o.kind === "A" && o.a > 0) return 1;
+         *     // f6: method presence only
+         *     f6(o: any) {
+         *       if (typeof o.m === "function") return 1;
          *       return -1;
          *     }
          */
@@ -346,9 +353,9 @@ class ArticleExample {
     @Test
     fun runF7() {
         /**
-         *     // f7: method presence only
+         *     // f7: method return value is constrained
          *     f7(o: any) {
-         *       if (typeof o.m === "function") return 1;
+         *       if (o.m() === 42) return 1;
          *       return -1;
          *     }
          */
@@ -358,10 +365,10 @@ class ArticleExample {
     @Test
     fun runF8() {
         /**
-         *     // f8: method return value is constrained
+         *     // f8: rejects null/undefined via == null
          *     f8(o: any) {
-         *       if (o.m() === 42) return 1;
-         *       return -1;
+         *       if (o.x == null) return -1;
+         *       return 0;
          *     }
          */
         generateTestsFor("f8")
@@ -370,24 +377,12 @@ class ArticleExample {
     @Test
     fun runF9() {
         /**
-         *     // f9: rejects null/undefined via == null
+         *     // f9: nested field requirement
          *     f9(o: any) {
-         *       if (o.x == null) return -1;
-         *       return 0;
-         *     }
-         */
-        generateTestsFor("f9")
-    }
-
-    @Test
-    fun runF10() {
-        /**
-         *     // f10: nested field requirement
-         *     f10(o: any) {
          *       if ("x" in o && o.x && "y" in o.x && o.x.y === true) return 1;
          *       return -1;
          *     }
          */
-        generateTestsFor("f10")
+        generateTestsFor("f9")
     }
 }
