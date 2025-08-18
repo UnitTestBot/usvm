@@ -1623,8 +1623,8 @@ class TsSimpleValueResolver(
             getOrPutSortForLocal(localIdx, type)
         }
 
-        // If we are not in the entrypoint, all correct values are already resolved and we can just return
-        // a registerStackLValue for the local
+        // If we are not in the entrypoint, all correct values are already resolved,
+        // and we can just return a registerStackLValue for the local.
         if (currentMethod != entrypoint) {
             val lValue = mkRegisterStackLValue(sort, localIdx)
             return scope.calcOnState { memory.read(lValue) }
