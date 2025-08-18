@@ -2,11 +2,13 @@ package org.usvm.util
 
 import io.ksmt.expr.KFpValue
 import io.ksmt.utils.asExpr
+import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFieldImpl
+import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsLiteralType
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsNeverType
@@ -35,6 +37,8 @@ import org.usvm.api.TsTestValue
 import org.usvm.api.typeStreamOf
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.field.UFieldLValue
+import org.usvm.collection.set.ref.refSetEntries
+import org.usvm.collections.immutable.toMutableMap
 import org.usvm.isAllocated
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isTrue
@@ -63,8 +67,10 @@ class TsTestResolver {
 
         prepareForResolve(state)
 
-        val beforeMemoryScope = MemoryScope(this, model, memory, method, resolvedLValuesToFakeObjects)
-        val afterMemoryScope = MemoryScope(this, model, memory, method, resolvedLValuesToFakeObjects)
+        val beforeMemoryScope =
+            MemoryScope(this, model, memory, method, resolvedLValuesToFakeObjects, state.idToField.toMutableMap())
+        val afterMemoryScope =
+            MemoryScope(this, model, memory, method, resolvedLValuesToFakeObjects, state.idToField.toMutableMap())
 
         val result = when (val res = state.methodResult) {
             is TsMethodResult.NoCall -> {
@@ -132,7 +138,8 @@ class TsTestResolver {
         finalStateMemory: UReadOnlyMemory<EtsType>,
         method: EtsMethod,
         resolvedLValuesToFakeObjects: List<Pair<ULValue<*, *>, UConcreteHeapRef>>,
-    ) : TsTestStateResolver(ctx, model, finalStateMemory, method, resolvedLValuesToFakeObjects) {
+        fieldId: Map<UConcreteHeapRef, EtsFieldSignature> = emptyMap(),
+    ) : TsTestStateResolver(ctx, model, finalStateMemory, method, resolvedLValuesToFakeObjects, fieldId) {
         fun resolveState(): TsParametersState {
             val thisInstance = resolveThisInstance()
             val parameters = resolveParameters()
@@ -148,6 +155,7 @@ open class TsTestStateResolver(
     private val finalStateMemory: UReadOnlyMemory<EtsType>,
     val method: EtsMethod,
     val resolvedLValuesToFakeObjects: List<Pair<ULValue<*, *>, UConcreteHeapRef>>,
+    val fieldId: Map<UConcreteHeapRef, EtsFieldSignature>,
 ) {
     fun resolveLValue(
         lValue: ULValue<*, *>,
@@ -229,6 +237,53 @@ open class TsTestStateResolver(
                 } else {
                     TsTestValue.TsString("String construction is not yet implemented")
                 }
+            }
+
+            // A case that is possible only is there are no other classes with suitable fields set in the scene
+            is EtsAnyType -> {
+                val propertiesSet = memory
+                    .refSetEntries(concreteRef, EtsUnknownType)
+                    .entries
+                    .map {
+                        val id = it.setElement
+                        fieldId[id]
+                            ?: error("Field ID not found for $id in $fieldId")
+                    }
+                val resolvedProperties = propertiesSet.map { fieldSignature ->
+                    with(ctx) {
+                        val sort = typeToSort(fieldSignature.type)
+                        if (sort == unresolvedSort) {
+                            val lValue = mkFieldLValue(addressSort, heapRef, fieldSignature)
+
+                            val fakeObject = if (memory is UModel) {
+                                resolvedLValuesToFakeObjects.firstOrNull { it.first == lValue }?.second
+                            } else {
+                                resolvedLValuesToFakeObjects.lastOrNull { it.first == lValue }?.second
+                            }
+
+                            if (fakeObject != null) {
+                                val obj = resolveFakeObject(fakeObject)
+                                fieldSignature.name to obj
+                            } else {
+                                val fieldExpr = finalStateMemory.read(lValue) as? UConcreteHeapRef
+                                    ?: error("UnresolvedSort should be represented by a fake object instance")
+                                // TODO check values if fieldExpr is correct here
+                                //      Probably we have to pass fieldExpr as symbolic value and something as a concrete one
+                                val obj = resolveExpr(fieldExpr)
+                                fieldSignature.name to obj
+                            }
+                        } else {
+                            val lValue = mkFieldLValue(sort, concreteRef.asExpr(addressSort), fieldSignature)
+                            val fieldExpr = memory.read(lValue)
+                            // TODO check values if fieldExpr is correct here
+                            //      Probably we have to pass fieldExpr as symbolic value and something as a concrete one
+                            val obj = resolveExpr(fieldExpr)
+                            fieldSignature.name to obj
+                        }
+                    }
+                }
+
+                TsTestValue.TsClass("ArtificialClass", resolvedProperties.toMap())
             }
 
             else -> error("Unexpected type: $type")
@@ -320,8 +375,7 @@ open class TsTestStateResolver(
             if (sort is TsUnresolvedSort) {
                 // this means that a fake object was created, and we need to read it from the current memory
                 val address = finalStateMemory.read(mkRegisterStackLValue(addressSort, idx))
-                check(address.isFakeObject())
-                return@mapIndexed resolveFakeObject(address)
+                return@mapIndexed resolveExpr(address)
             }
 
             val ref = URegisterStackLValue(sort, idx)
@@ -446,6 +500,16 @@ open class TsTestStateResolver(
         }
         check(type is EtsRefType) { "Expected EtsRefType, but got $type" }
         val clazz = resolveClass(type)
+
+        val resolvedProperties = memory
+            .refSetEntries(concreteRef, EtsUnknownType)
+            .entries
+            .map {
+                val id = it.setElement
+                fieldId[id]
+                    ?: error("Field ID not found for $id in $fieldId")
+            }
+
         val properties = clazz.fields
             .filterNot { field ->
                 field as EtsFieldImpl

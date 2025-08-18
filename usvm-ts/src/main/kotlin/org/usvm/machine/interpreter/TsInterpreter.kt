@@ -593,6 +593,8 @@ class TsInterpreter(
                         is TsResolutionResult.Ambiguous -> unresolvedSort
                     }
 
+
+
                     if (sort == unresolvedSort) {
                         val fakeObject = expr.toFakeObject(scope)
                         val lValue = mkFieldLValue(addressSort, instanceRef, lhv.field)
@@ -746,6 +748,7 @@ class TsInterpreter(
             scope = scope,
             localToIdx = ::mapLocalToIdx,
             hierarchy = graph.hierarchy,
+            checkFieldPresents = tsOptions.checkFieldPresents,
         )
 
     // (method, localName) -> idx

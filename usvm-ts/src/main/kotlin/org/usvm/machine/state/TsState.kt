@@ -8,7 +8,6 @@ import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
-import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsStringType
@@ -26,7 +25,6 @@ import org.usvm.api.initializeArray
 import org.usvm.api.targets.TsTarget
 import org.usvm.collections.immutable.getOrPut
 import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHashMap
-import org.usvm.collections.immutable.implementations.immutableSet.UPersistentHashSet
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.collections.immutable.persistentHashMapOf
 import org.usvm.constraints.UPathConstraints
@@ -81,8 +79,8 @@ class TsState(
      * for identical string values.
      */
     var stringConstantAllocatedRefs: UPersistentHashMap<String, UConcreteHeapRef> = persistentHashMapOf(),
-    var initialProperties: UPersistentHashMap<UHeapRef, Pair<UPersistentHashSet<EtsFieldSignature>, UPersistentHashSet<EtsMethodSignature>>> = persistentHashMapOf(),
-    var finalProperties: UPersistentHashMap<UHeapRef, Pair<UPersistentHashSet<EtsFieldSignature>, UPersistentHashSet<EtsMethodSignature>>> = persistentHashMapOf()
+    var fieldToId: UPersistentHashMap<EtsFieldSignature, UConcreteHeapRef> = persistentHashMapOf(),
+    var idToField: UPersistentHashMap<UConcreteHeapRef, EtsFieldSignature> = persistentHashMapOf(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
     ctx = ctx,
     initOwnership = ownership,
@@ -97,6 +95,16 @@ class TsState(
     fun getSortForLocal(idx: Int): USort? {
         val localToSort = localToSortStack.last()
         return localToSort[idx]
+    }
+
+    fun getOrPutFieldId(
+        field: EtsFieldSignature, // TODO probably it should be a name only
+        idProducer: () -> UConcreteHeapRef,
+    ): UConcreteHeapRef {
+        val (updated, result) = fieldToId.getOrPut(field, ownership) { idProducer() }
+        fieldToId = updated
+        idToField = idToField.put(result, field, ownership)
+        return result
     }
 
     fun getOrPutSortForLocal(idx: Int, localType: EtsType): USort {
@@ -118,38 +126,6 @@ class TsState(
 
     fun popLocalToSortStack() {
         localToSortStack.removeLast()
-    }
-
-    fun removeFieldFromFinalState(instance: UHeapRef, fieldSignature: EtsFieldSignature) {
-        val currentProperties = finalProperties[instance] ?: return
-        val updatedProperties = currentProperties.first.remove(fieldSignature, ownership)
-        finalProperties.put(instance, currentProperties.copy(first = updatedProperties), ownership)
-    }
-
-    fun removeMethodFromFinalState(instance: UHeapRef, methodSignature: EtsMethodSignature) {
-        val currentProperties = finalProperties[instance] ?: return
-        val updatedProperties = currentProperties.second.remove(methodSignature, ownership)
-        finalProperties.put(instance, currentProperties.copy(second = updatedProperties), ownership)
-    }
-
-    fun addFieldSignature(instance: UHeapRef, fieldSignature: EtsFieldSignature) {
-        val currentInitialProperties = initialProperties[instance] ?: return
-        val updatedInitialProperties = currentInitialProperties.first.add(fieldSignature, ownership)
-        initialProperties.put(instance, currentInitialProperties.copy(first = updatedInitialProperties), ownership)
-
-        val currentProperties = finalProperties[instance] ?: return
-        val updatedProperties = currentProperties.first.add(fieldSignature, ownership)
-        finalProperties.put(instance, currentProperties.copy(first = updatedProperties), ownership)
-    }
-
-    fun addMethodSignature(instance: UHeapRef, methodSignature: EtsMethodSignature) {
-        val currentInitialProperties = initialProperties[instance] ?: return
-        val updatedInitialProperties = currentInitialProperties.second.add(methodSignature, ownership)
-        initialProperties.put(instance, currentInitialProperties.copy(second = updatedInitialProperties), ownership)
-
-        val currentProperties = finalProperties[instance] ?: return
-        val updatedProperties = currentProperties.second.add(methodSignature, ownership)
-        finalProperties.put(instance, currentProperties.copy(second = updatedProperties), ownership)
     }
 
     fun registerCallee(stmt: EtsStmt, cfg: EtsBlockCfg) {
@@ -314,8 +290,8 @@ class TsState(
             closureObject = closureObject,
             boundThis = boundThis,
             stringConstantAllocatedRefs = stringConstantAllocatedRefs,
-            initialProperties = initialProperties,
-            finalProperties = finalProperties,
+            fieldToId = fieldToId,
+            idToField = idToField,
         )
     }
 

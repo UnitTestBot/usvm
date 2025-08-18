@@ -1,5 +1,6 @@
 package org.usvm.machine.expr
 
+import io.ksmt.expr.KIteExpr
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
@@ -96,11 +97,13 @@ import org.usvm.UHeapRef
 import org.usvm.UIteExpr
 import org.usvm.USort
 import org.usvm.api.allocateConcreteRef
+import org.usvm.api.allocateStaticRef
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArrayLength
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.api.mockMethodCall
 import org.usvm.api.typeStreamOf
+import org.usvm.collection.set.ref.URefSetEntryLValue
 import org.usvm.dataflow.ts.infer.tryGetKnownType
 import org.usvm.dataflow.ts.util.type
 import org.usvm.isAllocatedConcreteHeapRef
@@ -163,6 +166,7 @@ class TsExprResolver(
     internal val scope: TsStepScope,
     private val localToIdx: (EtsMethod, EtsValue) -> Int?,
     private val hierarchy: EtsHierarchy,
+    private val checkFieldPresents: Boolean,
 ) : EtsEntity.Visitor<UExpr<out USort>?> {
 
     val simpleValueResolver: TsSimpleValueResolver =
@@ -368,41 +372,91 @@ class TsExprResolver(
             return mkStringConstant("boolean", scope)
         }
         if (arg.sort == addressSort) {
-            val ref = arg.asExpr(addressSort)
-            return mkIte(
-                condition = mkHeapRefEq(ref, mkTsNullValue()),
-                trueBranch = mkStringConstant("object", scope),
-                falseBranch = mkIte(
-                    condition = mkHeapRefEq(ref, mkUndefinedValue()),
-                    trueBranch = mkStringConstant("undefined", scope),
-                    falseBranch = mkIte(
-                        condition = scope.calcOnState {
-                            val unwrappedRef = ref.unwrapRefWithPathConstraint(scope)
+            val resolvedArg = arg.asExpr(addressSort)
 
-                            // TODO: adhoc: "expand" ITE
-                            if (unwrappedRef is UIteExpr<*>) {
-                                val trueBranch = unwrappedRef.trueBranch
-                                val falseBranch = unwrappedRef.falseBranch
-                                if (trueBranch.isFakeObject() || falseBranch.isFakeObject()) {
-                                    val unwrappedTrueExpr =
-                                        trueBranch.asExpr(addressSort).unwrapRefWithPathConstraint(scope)
-                                    val unwrappedFalseExpr =
-                                        falseBranch.asExpr(addressSort).unwrapRefWithPathConstraint(scope)
-                                    return@calcOnState mkIte(
-                                        condition = unwrappedRef.condition,
-                                        trueBranch = memory.types.evalTypeEquals(unwrappedTrueExpr, EtsStringType),
-                                        falseBranch = memory.types.evalTypeEquals(unwrappedFalseExpr, EtsStringType),
-                                    )
-                                }
-                            }
+            val processFakeFunction = { ref: UHeapRef ->
+                check(ref.isFakeObject())
 
-                            memory.types.evalTypeEquals(unwrappedRef, EtsStringType)
-                        },
-                        trueBranch = mkStringConstant("string", scope),
-                        falseBranch = mkStringConstant("object", scope),
+                val fakeType = scope.calcOnState { ref.getFakeType(memory) }
+                mkIte(
+                    fakeType.fpTypeExpr,
+                    mkStringConstant("number", scope),
+                    mkIte(
+                        fakeType.boolTypeExpr,
+                        mkStringConstant("boolean", scope),
+                        mkIte(
+                            fakeType.refTypeExpr and mkHeapRefEq(ref.extractRef(scope), mkTsNullValue()),
+                            mkStringConstant("object", scope),
+                            mkIte(
+                                fakeType.refTypeExpr and mkHeapRefEq(ref.extractRef(scope), mkUndefinedValue()),
+                                mkStringConstant("undefined", scope),
+                                mkStringConstant("object", scope) // TODO add string
+                            )
+                        )
                     )
                 )
-            )
+            }
+
+            val regularResolve = { ref: UHeapRef ->
+                mkIte(
+                    condition = mkHeapRefEq(ref, mkTsNullValue()),
+                    trueBranch = mkStringConstant("object", scope),
+                    falseBranch = mkIte(
+                        condition = mkHeapRefEq(ref, mkUndefinedValue()),
+                        trueBranch = mkStringConstant("undefined", scope),
+                        falseBranch = mkIte(
+                            condition = scope.calcOnState {
+                                val unwrappedRef = ref.unwrapRef(scope)
+
+                                // TODO: adhoc: "expand" ITE
+                                // TODO correst support for fake objects, including primitive branches
+                                if (unwrappedRef is UIteExpr<*>) {
+                                    val trueBranch = unwrappedRef.trueBranch
+                                    val falseBranch = unwrappedRef.falseBranch
+                                    if (trueBranch.isFakeObject() || falseBranch.isFakeObject()) {
+                                        val unwrappedTrueExpr =
+                                            trueBranch.asExpr(addressSort).unwrapRef(scope)
+                                        val unwrappedFalseExpr =
+                                            falseBranch.asExpr(addressSort).unwrapRef(scope)
+                                        return@calcOnState mkIte(
+                                            condition = unwrappedRef.condition,
+                                            trueBranch = memory.types.evalTypeEquals(unwrappedTrueExpr, EtsStringType),
+                                            falseBranch = memory.types.evalTypeEquals(unwrappedFalseExpr, EtsStringType),
+                                        )
+                                    }
+                                }
+
+                                memory.types.evalTypeEquals(unwrappedRef, EtsStringType)
+                            },
+                            trueBranch = mkStringConstant("string", scope),
+                            falseBranch = mkStringConstant("object", scope),
+                        )
+                    )
+                )
+
+            }
+
+            if (resolvedArg.isFakeObject()) {
+                return processFakeFunction(resolvedArg)
+            }
+
+            if (resolvedArg is KIteExpr) {
+                val trueBranch = if (resolvedArg.trueBranch.isFakeObject()) {
+                    processFakeFunction(resolvedArg.trueBranch)
+                } else {
+                    regularResolve(resolvedArg.trueBranch)
+                }
+
+                val falseBranch = if (resolvedArg.falseBranch.isFakeObject()) {
+                    processFakeFunction(resolvedArg.falseBranch)
+                } else {
+                    regularResolve(resolvedArg.falseBranch)
+                }
+
+                return mkIte(resolvedArg.condition, trueBranch, falseBranch)
+            }
+
+            return regularResolve(resolvedArg)
         }
 
         logger.error { "visit(${expr::class.simpleName}) is not implemented yet" }
@@ -422,7 +476,7 @@ class TsExprResolver(
 
                 scope.doWithState {
                     // TODO support methods removal
-                    removeFieldFromFinalState(instance, operand.field)
+                    TODO()
                 }
 
                 // Check for null/undefined access
@@ -891,7 +945,7 @@ class TsExprResolver(
         }
 
         scope.doWithState {
-            addMethodSignature(instance, expr.callee)
+            // TODO add methods as a property
         }
 
         when (val result = tryApproximateInstanceCall(expr)) {
@@ -1259,13 +1313,20 @@ class TsExprResolver(
         field: EtsFieldSignature,
         hierarchy: EtsHierarchy,
     ): UExpr<out USort>? = with(ctx) {
-        val resolvedAddr = instanceRef.unwrapRef(scope)
-
-        scope.doWithState {
-            addFieldSignature(resolvedAddr, field)
-        }
+        val resolvedAddr = instanceRef.unwrapRefWithPathConstraint(scope)
 
         val etsField = resolveEtsField(instance, field, hierarchy)
+
+        val fieldExists = scope.calcOnState {
+            val fieldToSave = if (etsField is TsResolutionResult.Unique) etsField.property.signature else field
+            val fieldId = getOrPutFieldId(fieldToSave) { allocateStaticRef() }
+            val lValue = URefSetEntryLValue(
+                resolvedAddr,
+                fieldId,
+                EtsUnknownType
+            )
+            memory.read(lValue)
+        }
 
         val sort = when (etsField) {
             is TsResolutionResult.Empty -> {
@@ -1276,7 +1337,12 @@ class TsExprResolver(
                 // It is possible due to mistakes in the IR or if the field was added explicitly
                 // in the code.
                 // Probably, the right behaviour here is to fork the state.
-                resolvedAddr.createFakeField(field.name, scope)
+                resolvedAddr.createFakeField(field.name, scope).also {
+                    scope.doWithState {
+                        val lValue = mkFieldLValue(addressSort, resolvedAddr, field)
+                        lValuesToAllocatedFakeObjects += lValue to it
+                    }
+                }
                 addressSort
             }
 
@@ -1293,7 +1359,7 @@ class TsExprResolver(
             scope.assert(memory.types.evalIsSubtype(resolvedAddr, auxiliaryType))
         }
 
-        if (sort == unresolvedSort) {
+        val result = if (sort == unresolvedSort) {
             val boolLValue = mkFieldLValue(boolSort, instanceRef, field)
             val fpLValue = mkFieldLValue(fp64Sort, instanceRef, field)
             val refLValue = mkFieldLValue(addressSort, instanceRef, field)
@@ -1340,6 +1406,9 @@ class TsExprResolver(
             val lValue = mkFieldLValue(sort, resolvedAddr, field)
             scope.calcOnState { memory.read(lValue) }
         }
+        val wrappedResult = result.toFakeObject(scope)
+
+        return@with mkIte(fieldExists, wrappedResult, mkUndefinedValue()).asExpr(sort)
     }
 
     private fun handleArrayLength(

@@ -11,9 +11,15 @@ class Example {
       return 0;
     }
 
-    // f3: x: number|string; numeric branch
-    f3(o: any) {
-      const y = o.x + 1;             // если x число → number, если строка → string
+    // f3a: require number explicitly, still use '+' in the branch
+    f3a(o: any) {
+      if (typeof o.x === "number" && o.x + 1 > 0) return 1;
+      throw new Error("not-number-branch");
+    }
+
+    // f3b: '+' coerces many values to number — beware!
+    f3b(o: any) {
+      const y = o.x + 1;
       if (typeof y === "number") return 1;
       throw new Error("string-branch");
     }
@@ -27,8 +33,8 @@ class Example {
     }
 
     // f5: destructuring with default
-    f5({ x = 1 }: { x?: number }) {
-      if (x > 0) return 1;
+    f5({ xx = 1 }: { xx?: number }) {
+      if (xx > 0) return 1;
       throw new Error("non-positive");
     }
 
