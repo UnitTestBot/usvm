@@ -1606,16 +1606,16 @@ class TsSimpleValueResolver(
             // Try to get the saved sort for this dflt object field
             val savedSort = scope.calcOnState { getSortForDfltObjectField(file, localName) }
 
-            if (savedSort != null) {
-                // Use the saved sort to read the field
-                val lValue = mkFieldLValue(savedSort, dfltObject, localName)
-                return scope.calcOnState { memory.read(lValue) }
-            } else {
+            if (savedSort == null) {
                 // No saved sort means this field was never assigned to, which is an error
                 logger.error { "Trying to read unassigned global variable: $localName" }
                 scope.assert(ctx.falseExpr)
                 return null
             }
+
+            // Use the saved sort to read the field
+            val lValue = mkFieldLValue(savedSort, dfltObject, localName)
+            return scope.calcOnState { memory.read(lValue) }
         }
 
         val sort = scope.calcOnState {
