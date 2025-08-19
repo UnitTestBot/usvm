@@ -2,9 +2,6 @@ package org.usvm.util
 
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsScene
-import org.jacodb.ets.utils.loadEtsProjectAutoConvert
-import java.nio.file.Path
-import kotlin.io.path.toPath
 
 sealed class ImportResolutionResult {
     data class Success(val file: EtsFile) : ImportResolutionResult()
