@@ -5,6 +5,7 @@ import org.jacodb.ets.dsl.and
 import org.jacodb.ets.dsl.const
 import org.jacodb.ets.dsl.eqq
 import org.jacodb.ets.dsl.local
+import org.jacodb.ets.dsl.neq
 import org.jacodb.ets.dsl.not
 import org.jacodb.ets.dsl.param
 import org.jacodb.ets.model.EtsAnyType
@@ -40,7 +41,7 @@ class ArticleExample {
         EtsScene(listOf(file))
     }
     val options = UMachineOptions(timeout = Duration.INFINITE)
-    val tsOptions = TsOptions(checkFieldPresents = true, enableVisualization = false)
+    val tsOptions = TsOptions(checkFieldPresents = true, enableVisualization = true)
 
     private fun formatTests(tests: List<TsTest>): String {
         return tests.mapIndexed { idx, t ->
@@ -534,7 +535,7 @@ class ArticleExample {
     }
 
     @Test
-    @Disabled("Unsupported IR, fix")
+    @Disabled("Path constraints and fake type")
     fun runF9() {
         /**
          *   f9(o: any) {
@@ -542,7 +543,112 @@ class ArticleExample {
          *     return 2;
          *   }
          */
-        generateTestsFor("f9")
+
+        val methodName = "f4"
+        val method = buildEtsMethod(
+            name = methodName,
+            enclosingClass = scene.projectClasses.first(),
+            parameters = listOf(
+                "o" to EtsAnyType
+            ),
+            returnType = EtsNumberType,
+        ) {
+            // o := arg(0)
+            val o = local("o")
+            assign(o, param(0))
+
+            val zero = local("%0")
+            assign(
+                zero,
+                CustomValue {
+                    EtsInstanceFieldRef(
+                        EtsLocal("o", EtsUnknownType),
+                        EtsFieldSignature(EtsClassSignature.UNKNOWN, "x", EtsUnknownType),
+                        EtsUnknownType,
+                    )
+                }
+            )
+
+            val fstInExpr = CustomValue {
+                EtsInExpr(EtsStringConstant("x"), EtsLocal("o", EtsUnknownType))
+            }
+
+            val fst = local("%1")
+            assign(fst, and(fstInExpr, zero))
+
+            val snd = local("%2")
+            assign(
+                snd,
+                CustomValue {
+                    EtsInstanceFieldRef(
+                        EtsLocal("o", EtsUnknownType),
+                        EtsFieldSignature(EtsClassSignature.UNKNOWN, "x", EtsUnknownType),
+                        EtsUnknownType,
+                    )
+                }
+            )
+
+            val sndInExpr = CustomValue {
+                EtsInExpr(
+                    EtsStringConstant("y"),
+                    EtsInstanceFieldRef(
+                        EtsLocal("o", EtsUnknownType),
+                        EtsFieldSignature(EtsClassSignature.UNKNOWN, "x", EtsUnknownType),
+                        EtsUnknownType,
+                    )
+                )
+            }
+
+            val trd = local("%3")
+            assign(trd, and(fst, sndInExpr))
+
+            val fourth = local("%4")
+            assign(
+                fourth,
+                CustomValue {
+                    EtsInstanceFieldRef(
+                        EtsLocal("o", EtsUnknownType),
+                        EtsFieldSignature(EtsClassSignature.UNKNOWN, "x", EtsUnknownType),
+                        EtsUnknownType,
+                    )
+                }
+            )
+            val fifth = local("%5")
+            assign(
+                fifth,
+                CustomValue {
+                    EtsInstanceFieldRef(
+                        EtsLocal("%4", EtsUnknownType),
+                        EtsFieldSignature(EtsClassSignature.UNKNOWN, "y", EtsUnknownType),
+                        EtsUnknownType,
+                    )
+                }
+            )
+
+            val sixth = local("%6")
+            assign(sixth, eqq(fifth, const(true)))
+            val seventh = local("%7")
+            assign(seventh, and(trd, sixth))
+            ifStmt(neq(seventh, const(false))) {
+                ret(const(1.0))
+            }.`else` {
+                ret(const(2.0))
+            }
+        }
+
+
+        val machine = TsMachine(scene, options, tsOptions)
+        val results = machine.analyze(listOf(method))
+        val resolver = TsTestResolver()
+        val tests = results.map { resolver.resolve(method, it) }
+
+        println("Generated tests for method: ${method.name}")
+        println("Total tests generated: ${tests.size}")
+        println("Tests:\n" + formatTests(tests))
+
+        // Basic checks for generated tests
+
+        // TODO unsupported
     }
 
     @Test
@@ -588,8 +694,10 @@ class ArticleExample {
         }
 
         val failedArgs = failBranches.map { (it.before.parameters.single() as TsTestValue.TsClass).properties }
-        val fstCondition = failedArgs.singleOrNull { it.contains("x") && it["x"] is TsTestValue.TsNumber && !(it["x"] as TsTestValue.TsNumber).number.isNaN() } != null
-        val sndCondition = failedArgs.singleOrNull { !it.contains("x") || it.contains("x") && it["x"] !is TsTestValue.TsNumber } != null
+        val fstCondition =
+            failedArgs.singleOrNull { it.contains("x") && it["x"] is TsTestValue.TsNumber && !(it["x"] as TsTestValue.TsNumber).number.isNaN() } != null
+        val sndCondition =
+            failedArgs.singleOrNull { !it.contains("x") || it.contains("x") && it["x"] !is TsTestValue.TsNumber } != null
 
         if (failedArgs.size == 2) {
             check(fstCondition && sndCondition)
