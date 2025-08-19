@@ -389,7 +389,7 @@ class TsExprResolver(
                             mkIte(
                                 fakeType.refTypeExpr and mkHeapRefEq(ref.extractRef(scope), mkUndefinedValue()),
                                 mkStringConstant("undefined", scope),
-                                mkStringConstant("object", scope) // TODO add string
+                                mkStringConstant("object", scope) // TODO add string, function
                             )
                         )
                     )
