@@ -63,6 +63,13 @@ class ArticleExample {
         }
         .joinToString("\n")
 
+    // Small helper to keep test logging consistent
+    private fun logTests(methodName: String, tests: List<TsTest>) {
+        println("Generated tests for method: $methodName")
+        println("Total tests generated: ${tests.size}")
+        println("Tests:\n" + formatTests(tests))
+    }
+
     private fun generateTestsFor(methodName: String): List<TsTest> {
         val machine = TsMachine(scene, options, tsOptions)
         val method = scene.projectClasses
@@ -102,19 +109,25 @@ class ArticleExample {
             val o = local("o")
             assign(o, param(0))
 
-            val inExpr = CustomValue {
-                EtsInExpr(EtsStringConstant("x"), EtsLocal("o", EtsUnknownType))
-            }
-            val typeOfExpr = CustomValue {
-                EtsTypeOfExpr(
-                    EtsInstanceFieldRef(
-                        EtsLocal("o", EtsUnknownType),
-                        EtsFieldSignature(EtsClassSignature.UNKNOWN, "x", EtsUnknownType),
-                        EtsUnknownType,
-                    ),
-                )
-            }
-            ifStmt(and(inExpr, eqq(typeOfExpr, const("number")))) {
+            // Common pieces for readability
+            val oUnknown = EtsLocal("o", EtsUnknownType)
+            val xKey = EtsStringConstant("x")
+            val xFieldSig = EtsFieldSignature(EtsClassSignature.UNKNOWN, "x", EtsUnknownType)
+
+            val inExpr = CustomValue { EtsInExpr(xKey, oUnknown) }
+
+            // Use raw EtsInstanceFieldRef here to pass into EtsTypeOfExpr
+            val xFieldRef = EtsInstanceFieldRef(
+                oUnknown,
+                xFieldSig,
+                EtsUnknownType,
+            )
+            val typeOfExpr = CustomValue { EtsTypeOfExpr(xFieldRef) }
+
+            val isNumber = eqq(typeOfExpr, const("number"))
+            val condition = and(inExpr, isNumber)
+
+            ifStmt(condition) {
                 ret(const(1))
             }
 
@@ -127,9 +140,7 @@ class ArticleExample {
         val resolver = TsTestResolver()
         val tests = results.map { resolver.resolve(method, it) }
 
-        println("Generated tests for method: ${method.name}")
-        println("Total tests generated: ${tests.size}")
-        println("Tests:\n" + formatTests(tests))
+        logTests(method.name, tests)
 
         // Basic checks for generated tests
         check(tests.size == 3) { "Expected 3 tests for f1, got ${tests.size}" }
@@ -148,7 +159,7 @@ class ArticleExample {
 
         check(exception != null && returnOne != null && returnTwo != null)
 
-        val retOneArg = returnOne!!.before.parameters.single()
+        val retOneArg = returnOne.before.parameters.single()
         check(retOneArg is TsTestValue.TsClass) {
             "Expected TsObject for returnOne, got ${retOneArg::class.simpleName}"
         }
@@ -160,7 +171,7 @@ class ArticleExample {
             "Expected TsNumber for 'x' in returnOne, got ${property.value::class.simpleName}"
         }
 
-        val retTwoArg = returnTwo!!.before.parameters.single()
+        val retTwoArg = returnTwo.before.parameters.single()
         check(
             retTwoArg !is TsTestValue.TsClass ||
                 "x" !in retTwoArg.properties ||
@@ -190,9 +201,10 @@ class ArticleExample {
             val o = local("o")
             assign(o, param(0))
 
-            val inExpr = CustomValue {
-                EtsInExpr(EtsStringConstant("x"), EtsLocal("o", EtsUnknownType))
-            }
+            val oUnknown = EtsLocal("o", EtsUnknownType)
+            val xKey = EtsStringConstant("x")
+
+            val inExpr = CustomValue { EtsInExpr(xKey, oUnknown) }
             ifStmt(not(inExpr)) {
                 ret(const(1))
             }
@@ -205,9 +217,7 @@ class ArticleExample {
         val resolver = TsTestResolver()
         val tests = results.map { resolver.resolve(method, it) }
 
-        println("Generated tests for method: ${method.name}")
-        println("Total tests generated: ${tests.size}")
-        println("Tests:\n" + formatTests(tests))
+        logTests(method.name, tests)
 
         check(tests.isNotEmpty()) { "Expected at least 1 test for f2, got ${tests.size}" }
 
@@ -401,9 +411,7 @@ class ArticleExample {
          */
         val tests = generateTestsFor("f4")
 
-        println("Generated tests for method: f4")
-        println("Total tests generated: ${tests.size}")
-        println("Tests:\n" + formatTests(tests))
+        logTests("f4", tests)
 
         check(tests.size > 1) { "Expected at least 1 test for f4, got ${tests.size}" }
         val successTests = tests.filter { it.returnValue !is TsTestValue.TsException }
@@ -427,12 +435,10 @@ class ArticleExample {
         check(tests.isNotEmpty()) { "Expected at least 1 test for f5, got ${tests.size}" }
 
         val exceptionBranch = tests.firstOrNull {
-            it.returnValue is TsTestValue.TsException &&
-                it.before.parameters.size == 1 &&
-                (
-                    it.before.parameters.single() is TsTestValue.TsUndefined ||
-                        it.before.parameters.single() is TsTestValue.TsNull
-                    )
+            val hasSingleParam = it.before.parameters.size == 1
+            val arg = it.before.parameters.single()
+            it.returnValue is TsTestValue.TsException && hasSingleParam &&
+                (arg is TsTestValue.TsUndefined || arg is TsTestValue.TsNull)
         }
         check(exceptionBranch != null) {
             "Expected an exception test for f5 with argument undefined or null, got none"
@@ -564,7 +570,7 @@ class ArticleExample {
             "Expected 'x' to be 0 in success branch, got ${value::class.simpleName} with value $value"
         }
 
-        val failedBranchArg = failedBranch!!.before.parameters.singleOrNull()
+        val failedBranchArg = failedBranch.before.parameters.singleOrNull()
         check(
             failedBranchArg !is TsTestValue.TsClass ||
                 "x" !in failedBranchArg.properties ||
@@ -611,7 +617,7 @@ class ArticleExample {
             else -> false // null/undefined/objects (as values) here shouldn't appear; treat as non-zero
         }
 
-        val succArg = successBranch!!.before.parameters.singleOrNull()
+        val succArg = successBranch.before.parameters.singleOrNull()
         check(succArg is TsTestValue.TsClass) {
             "Expected TsObject for success branch, got ${succArg?.javaClass?.simpleName ?: "null"}"
         }
@@ -623,7 +629,7 @@ class ArticleExample {
             "Expected 'x' to be loosely equal to 0 in success branch, got ${succValue::class.simpleName} with value $succValue"
         }
 
-        val failedBranchArg = failedBranch!!.before.parameters.singleOrNull()
+        val failedBranchArg = failedBranch.before.parameters.singleOrNull()
         check(
             failedBranchArg !is TsTestValue.TsClass ||
                 !failedBranchArg.properties.contains("x") ||
@@ -663,7 +669,7 @@ class ArticleExample {
                 "exception=${exceptionBranch != null}, success=${successBranch != null}, failed=${failedBranch != null}"
         }
 
-        val succArg = successBranch!!.before.parameters.singleOrNull()
+        val succArg = successBranch.before.parameters.singleOrNull()
         check(succArg is TsTestValue.TsClass) {
             "Expected TsObject for success branch, got ${succArg?.javaClass?.simpleName ?: "null"}"
         }
@@ -675,7 +681,7 @@ class ArticleExample {
             "Expected 'x' to be null or undefined in success branch, got ${succValue::class.simpleName} with value $succValue"
         }
 
-        val failedArg = failedBranch!!.before.parameters.singleOrNull()
+        val failedArg = failedBranch.before.parameters.singleOrNull()
         check(
             failedArg !is TsTestValue.TsClass ||
                 !failedArg.properties.contains("x") ||
@@ -710,58 +716,63 @@ class ArticleExample {
             val o = local("o")
             assign(o, param(0))
 
+            // Common parts for readability
+            val oUnknown = EtsLocal("o", EtsUnknownType)
+            val xKey = EtsStringConstant("x")
+            val yKey = EtsStringConstant("y")
+            val xFieldSig = EtsFieldSignature(EtsClassSignature.UNKNOWN, "x", EtsUnknownType)
+            val yFieldSig = EtsFieldSignature(EtsClassSignature.UNKNOWN, "y", EtsUnknownType)
+
             val zero = local("%0")
             assign(
                 zero,
                 CustomValue {
                     EtsInstanceFieldRef(
-                        EtsLocal("o", EtsUnknownType),
-                        EtsFieldSignature(EtsClassSignature.UNKNOWN, "x", EtsUnknownType),
+                        oUnknown,
+                        xFieldSig,
                         EtsUnknownType,
                     )
                 },
             )
 
-            val fstInExpr = CustomValue {
-                EtsInExpr(EtsStringConstant("x"), EtsLocal("o", EtsUnknownType))
-            }
+            val firstInExpr = CustomValue { EtsInExpr(xKey, oUnknown) }
 
             val fst = local("%1")
-            assign(fst, and(fstInExpr, zero))
+            assign(fst, and(firstInExpr, zero))
 
             val snd = local("%2")
             assign(
                 snd,
                 CustomValue {
                     EtsInstanceFieldRef(
-                        EtsLocal("o", EtsUnknownType),
-                        EtsFieldSignature(EtsClassSignature.UNKNOWN, "x", EtsUnknownType),
+                        oUnknown,
+                        xFieldSig,
                         EtsUnknownType,
                     )
                 },
             )
 
-            val sndInExpr = CustomValue {
+            val secondInExpr = CustomValue {
                 EtsInExpr(
-                    EtsStringConstant("y"),
+                    yKey,
                     EtsInstanceFieldRef(
-                        EtsLocal("o", EtsUnknownType),
-                        EtsFieldSignature(EtsClassSignature.UNKNOWN, "x", EtsUnknownType),
+                        oUnknown,
+                        xFieldSig,
                         EtsUnknownType,
                     ),
                 )
             }
 
             val trd = local("%3")
-            assign(trd, and(fst, sndInExpr))
+            assign(trd, and(fst, secondInExpr))
 
             val fourth = local("%4")
             assign(
                 fourth,
                 CustomValue {
                     EtsInstanceFieldRef(
-                        EtsLocal("o", EtsUnknownType),
-                        EtsFieldSignature(EtsClassSignature.UNKNOWN, "x", EtsUnknownType),
+                        oUnknown,
+                        xFieldSig,
                         EtsUnknownType,
                     )
                 },
@@ -772,7 +783,7 @@ class ArticleExample {
                 CustomValue {
                     EtsInstanceFieldRef(
                         EtsLocal("%4", EtsUnknownType),
-                        EtsFieldSignature(EtsClassSignature.UNKNOWN, "y", EtsUnknownType),
+                        yFieldSig,
                         EtsUnknownType,
                     )
                 },
@@ -794,9 +805,7 @@ class ArticleExample {
         val resolver = TsTestResolver()
         val tests = results.map { resolver.resolve(method, it) }
 
-        println("Generated tests for method: ${method.name}")
-        println("Total tests generated: ${tests.size}")
-        println("Tests:\n" + formatTests(tests))
+        logTests(method.name, tests)
 
         // Basic checks for generated tests
         val retOne = tests.singleOrNull {
@@ -844,7 +853,7 @@ class ArticleExample {
         }
 
         // Success: x != null and x.y === 1
-        val succArg = successBranch!!.before.parameters.single()
+        val succArg = successBranch.before.parameters.single()
         check(succArg is TsTestValue.TsClass)
         val xVal = succArg.properties["x"]
         check(xVal is TsTestValue.TsClass)
@@ -852,7 +861,7 @@ class ArticleExample {
         check(yVal is TsTestValue.TsNumber && yVal.number == 1.0)
 
         // Failure: violates the condition
-        val failArg = failedBranch!!.before.parameters.single()
+        val failArg = failedBranch.before.parameters.single()
         if (failArg is TsTestValue.TsClass) {
             when (val xv = failArg.properties["x"]) {
                 null, is TsTestValue.TsNull, is TsTestValue.TsUndefined -> Unit
@@ -885,7 +894,7 @@ class ArticleExample {
         val failBranches = tests.filter { it !== succBranch && it !== exceptionBranch }
         check(failBranches.isNotEmpty()) { "Expected at least one failure test for f11_nan, got ${failBranches.size}" }
 
-        val succArg = succBranch!!.before.parameters.singleOrNull()
+        val succArg = succBranch.before.parameters.singleOrNull()
         check(succArg is TsTestValue.TsClass) {
             "Expected TsObject for success branch, got ${succArg?.javaClass?.simpleName ?: "null"}"
         }
