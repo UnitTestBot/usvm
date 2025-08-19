@@ -41,7 +41,7 @@ class ArticleExample {
         EtsScene(listOf(file))
     }
     val options = UMachineOptions(timeout = Duration.INFINITE)
-    val tsOptions = TsOptions(checkFieldPresents = true, enableVisualization = true)
+    val tsOptions = TsOptions(checkFieldPresents = true, enableVisualization = false)
 
     private fun formatTests(tests: List<TsTest>): String {
         return tests.mapIndexed { idx, t ->

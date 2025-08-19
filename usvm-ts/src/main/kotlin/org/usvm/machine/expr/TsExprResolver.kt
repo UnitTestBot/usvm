@@ -1309,6 +1309,8 @@ class TsExprResolver(
         val ref = instance.unwrapRef(scope)
         val constraint = if (instance.isFakeObject()) instance.getFakeType(scope).refTypeExpr else trueExpr
 
+        // TODO process ite expression
+
         val neqNull = mkAnd(
             mkHeapRefEq(ref, mkUndefinedValue()).not(),
             mkHeapRefEq(ref, mkTsNullValue()).not(),

@@ -25,6 +25,7 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.UIteExpr
 import org.usvm.USort
 import org.usvm.api.allocateConcreteRef
 import org.usvm.api.allocateStaticRef
@@ -212,6 +213,13 @@ class TsContext(
         if (isFakeObject()) {
             return extractRef(scope)
         }
+
+        if (this is UIteExpr) {
+            val positiveBranch = trueBranch.unwrapRef(scope)
+            val negativeBranch = falseBranch.unwrapRef(scope)
+            return mkIte(condition, positiveBranch, negativeBranch)
+        }
+
         return this
     }
 
@@ -220,6 +228,13 @@ class TsContext(
             scope.assert(getFakeType(scope).refTypeExpr)
             return extractRef(scope)
         }
+
+        if (this is UIteExpr) {
+            val positiveBranch = trueBranch.unwrapRefWithPathConstraint(scope)
+            val negativeBranch = falseBranch.unwrapRefWithPathConstraint(scope)
+            return mkIte(condition, positiveBranch, negativeBranch)
+        }
+
         return this
     }
 
