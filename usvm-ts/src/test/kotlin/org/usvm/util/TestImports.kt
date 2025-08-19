@@ -28,8 +28,8 @@ fun main() {
     println("=== Import Resolver Testing ===")
     println("Scene loaded with ${scene.projectFiles.size} project files and ${scene.sdkFiles.size} SDK files")
 
-    // Test specific import patterns
-    testImportPatterns(scene)
+    // Test common import patterns
+    testCommonImportPatterns(scene)
 
     // Test import resolution for each file in the scene
     testImportResolverForAllFiles(scene)
@@ -86,8 +86,8 @@ private fun testImportResolverForAllFiles(scene: EtsScene) {
     }
 }
 
-private fun testImportPatterns(scene: EtsScene) {
-    println("\n--- Testing specific import patterns ---")
+private fun testCommonImportPatterns(scene: EtsScene) {
+    println("\n--- Testing common import patterns ---")
 
     if (scene.projectFiles.isEmpty()) {
         println("No project files available for testing")
@@ -104,20 +104,22 @@ private fun testImportPatterns(scene: EtsScene) {
             "@ohos.app.ability.UIAbility",
             "@ohos.hilog",
             "@system.app",
-            "@system.router"
+            "@system.router",
         ),
         "Relative Imports" to listOf(
             "./component",
             "../utils/helper",
             "../../shared/types",
             "./index",
-            "../common"
+            "../common",
         ),
         "Absolute Imports" to listOf(
             "/src/main",
-            "/utils/common",
-            "/types/definitions",
-            "/components/base"
+            "/common/GlobalContext",
+            "/utils/Log",
+            "/models/Action",
+            "/components/ToolBar",
+            "/pages/Index",
         )
     )
 
