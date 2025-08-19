@@ -1570,6 +1570,30 @@ class TsSimpleValueResolver(
         val currentMethod = scope.calcOnState { lastEnteredMethod }
         val entrypoint = scope.calcOnState { entrypoint }
 
+        // Handle closures
+        if (local is EtsLocal && local.name.startsWith("%closures")) {
+            // TODO: add comments
+            val existingClosures = scope.calcOnState { closureObject[local.name] }
+            if (existingClosures != null) {
+                return existingClosures
+            }
+            val type = local.type
+            check(type is EtsLexicalEnvType)
+            val obj = allocateConcreteRef()
+            // TODO: consider 'types.allocate'
+            for (captured in type.closures) {
+                val resolvedCaptured = resolveLocal(captured) ?: return null
+                val lValue = mkFieldLValue(resolvedCaptured.sort, obj, captured.name)
+                scope.doWithState {
+                    memory.write(lValue, resolvedCaptured.cast(), guard = ctx.trueExpr)
+                }
+            }
+            scope.doWithState {
+                setClosureObject(local.name, obj)
+            }
+            return obj
+        }
+
         val localIdx = localToIdx(currentMethod, local)
 
         // If the local is not found in the current method,
@@ -1577,30 +1601,6 @@ class TsSimpleValueResolver(
         // which we represent as a field of the "dflt object".
         if (localIdx == null) {
             require(local is EtsLocal)
-
-            // Handle closures
-            if (local.name.startsWith("%closures")) {
-                // TODO: add comments
-                val existingClosures = scope.calcOnState { closureObject[local.name] }
-                if (existingClosures != null) {
-                    return existingClosures
-                }
-                val type = local.type
-                check(type is EtsLexicalEnvType)
-                val obj = allocateConcreteRef()
-                // TODO: consider 'types.allocate'
-                for (captured in type.closures) {
-                    val resolvedCaptured = resolveLocal(captured) ?: return null
-                    val lValue = mkFieldLValue(resolvedCaptured.sort, obj, captured.name)
-                    scope.doWithState {
-                        memory.write(lValue, resolvedCaptured.cast(), guard = ctx.trueExpr)
-                    }
-                }
-                scope.doWithState {
-                    setClosureObject(local.name, obj)
-                }
-                return obj
-            }
 
             // Check whether this local was already assigned to (has a saved sort in dflt object)
             val file = currentMethod.enclosingClass!!.declaringFile!!
