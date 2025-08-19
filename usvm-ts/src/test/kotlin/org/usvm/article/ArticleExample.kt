@@ -349,45 +349,27 @@ class ArticleExample {
     }
 
     @Test
-    @Disabled("Unsupported IR, fix")
     fun runF4() {
         /**
          *     // f4: writes then deletes; checks absence
          *     f4(o: any) {
          *       o.x = 1;
          *       delete o.x;
-         *       if ("x" in o) return -1; // unreachable
+         *       if (o.x !== undefined) return -1; // unreachable
          *       return 1;
          *     }
          */
-        val methodName = "f4"
-        val method = buildEtsMethod(
-            name = methodName,
-            enclosingClass = scene.projectClasses.first(),
-            parameters = listOf(
-                "o" to EtsAnyType
-            ),
-            returnType = EtsNumberType,
-        ) {
-            // o := arg(0)
-            val o = local("o")
-            assign(o, param(0))
+        val tests = generateTestsFor("f4")
 
-            // TODO unsupported
-        }
-
-        val machine = TsMachine(scene, options, tsOptions)
-        val results = machine.analyze(listOf(method))
-        val resolver = TsTestResolver()
-        val tests = results.map { resolver.resolve(method, it) }
-
-        println("Generated tests for method: ${method.name}")
+        println("Generated tests for method: f4")
         println("Total tests generated: ${tests.size}")
         println("Tests:\n" + formatTests(tests))
 
         check(tests.size > 1) { "Expected at least 1 test for f4, got ${tests.size}" }
         val successTests = tests.filter { it.returnValue !is TsTestValue.TsException }
         successTests.single { it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 1.0 }
+
+        check(tests.none { (it.returnValue as? TsTestValue.TsNumber)?.number == -1.0 })
     }
 
     @Test
@@ -652,7 +634,7 @@ class ArticleExample {
     }
 
     @Test
-    @Disabled("Problem with path constraints")
+    @Disabled("Incorrect IR")
     fun runF10() {
         /**
          *   f10_optchain(o: any) {

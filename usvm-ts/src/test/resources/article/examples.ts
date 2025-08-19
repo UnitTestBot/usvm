@@ -31,7 +31,7 @@ class Example {
   f4(o: any) {
     o.x = 1;
     delete o.x;
-    if ("x" in o) return -1; // unreachable
+    if (o.x !== undefined) return -1; // unreachable
     return 1;
   }
 
