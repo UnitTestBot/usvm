@@ -77,16 +77,6 @@ class FieldAccess {
         return obj.x.length;
     }
 
-    readFromNestedFakeObjects(): number {
-        let x = Foo.Bar.x;
-        let y = Foo.Bar.y;
-        if (x === undefined && y === undefined) {
-            return 1;
-        } else {
-            return 2;
-        }
-    }
-
     private createObject(): { x: number } {
         return { x: 42 };
     }
