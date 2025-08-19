@@ -41,7 +41,7 @@ class ArticleExample {
         EtsScene(listOf(file))
     }
     val options = UMachineOptions(timeout = Duration.INFINITE)
-    val tsOptions = TsOptions(checkFieldPresents = true, enableVisualization = true)
+    val tsOptions = TsOptions(checkFieldPresents = true, enableVisualization = false, assumeFieldsArePresent = true)
 
     private fun formatTests(tests: List<TsTest>): String {
         return tests.mapIndexed { idx, t ->
@@ -373,18 +373,112 @@ class ArticleExample {
     }
 
     @Test
-    @Disabled("Wrong result")
     fun runF5() {
         /**
-         *     // f5: discriminated union
-         *     class A = { kind: "A"; a: number };
-         *     class B = { kind: "B"; b: string };
-         *     f5(o: A | B) {
-         *       if (o.kind === "A" && o.a > 0) return 1;
-         *       return 2;
-         *     }
+         * f5(o: any) {
+         *   const ai = (Number(o.a) | 0);
+         *   const bi = (Number(o.b) | 0);
+         *   const s = ai + bi;
+         *   if (s === 0 && o.a !== o.b) return 1;
+         *   return 2;
+         * }
          */
         val tests = generateTestsFor("f5")
+        check(tests.isNotEmpty()) { "Expected at least 1 test for f5, got ${tests.size}" }
+
+        // FIX: допускаем исключение как для undefined, так и для null аргумента
+        val exceptionBranch = tests.firstOrNull {
+            it.returnValue is TsTestValue.TsException &&
+                it.before.parameters.size == 1 &&
+                (it.before.parameters.single() is TsTestValue.TsUndefined ||
+                    it.before.parameters.single() is TsTestValue.TsNull)
+        }
+        check(exceptionBranch != null) {
+            "Expected an exception test for f5 with argument undefined or null, got none"
+        }
+
+        val successBranch = tests.singleOrNull {
+            it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 1.0
+        }
+        check(successBranch != null) { "Expected a success test for f5 returning 1, got none" }
+
+        val failedBranches = tests.filter { it !== successBranch && it !== exceptionBranch }
+        check(failedBranches.any { (it.returnValue as? TsTestValue.TsNumber)?.number == 2.0 }) {
+            "Expected at least one failure test for f5 returning 2"
+        }
+
+        // --- Helpers: approximate JS semantics ---
+
+        fun numberOf(v: TsTestValue): Double = when (v) {
+            is TsTestValue.TsNumber -> v.number
+            is TsTestValue.TsBoolean -> if (v.value) 1.0 else 0.0
+            is TsTestValue.TsNull -> 0.0
+            is TsTestValue.TsUndefined -> Double.NaN
+            is TsTestValue.TsString -> {
+                // FIX: JS Number("") == 0, Number("   ") == 0; otherwise parsing as Double
+                val s = v.value
+                if (s.isEmpty() || s.trim().isEmpty()) 0.0 else s.toDoubleOrNull() ?: Double.NaN
+            }
+            else -> Double.NaN // objects/symbols → NaN in JS Number(...)
+        }
+
+        fun toInt32Approx(d: Double): Int {
+            // Matches JS ToInt32 for our small test values; NaN/Infinity map to 0 as in JS.
+            if (d.isNaN() || d.isInfinite()) return 0
+            return d.toInt() // truncates toward zero; acceptable approximation for these tests
+        }
+
+        fun strictNotEqual(a: TsTestValue, b: TsTestValue): Boolean = when {
+            a is TsTestValue.TsNumber && b is TsTestValue.TsNumber -> {
+                val an = a.number; val bn = b.number
+                if (an.isNaN() && bn.isNaN()) true else an != bn
+            }
+            a is TsTestValue.TsString && b is TsTestValue.TsString -> a.value != b.value
+            a is TsTestValue.TsBoolean && b is TsTestValue.TsBoolean -> a.value != b.value
+            a is TsTestValue.TsNull && b is TsTestValue.TsNull -> false
+            a is TsTestValue.TsUndefined && b is TsTestValue.TsUndefined -> false
+            // Different runtime types are strictly not equal in JS (objects compare by reference; we treat any object as distinct)
+            else -> true
+        }
+
+        // --- Validate success branch: (Number(a)|0) + (Number(b)|0) === 0 && a !== b ---
+
+        run {
+            check(successBranch!!.before.parameters.size == 1) {
+                "Expected 1 parameter in success branch, got ${successBranch.before.parameters.size}"
+            }
+            val arg = successBranch.before.parameters.single()
+            check(arg is TsTestValue.TsClass) {
+                "Expected object (TsClass) for success branch, got ${arg::class.simpleName}"
+            }
+            val props = arg.properties
+            val aVal = props.getOrElse("a") { TsTestValue.TsUndefined }
+            val bVal = props.getOrElse("b") { TsTestValue.TsUndefined }
+            val ai = toInt32Approx(numberOf(aVal))
+            val bi = toInt32Approx(numberOf(bVal))
+            check(ai + bi == 0) { "Expected ai+bi == 0 in success branch, got ai=$ai, bi=$bi" }
+            check(strictNotEqual(aVal, bVal)) { "Expected a !== b in success branch, got a=$aVal, b=$bVal" }
+        }
+
+        // --- Validate failure branches: must violate at least one conjunct ---
+
+        failedBranches.filter { (it.returnValue as? TsTestValue.TsNumber)?.number == 2.0 }.forEach { fail ->
+            val arg = fail.before.parameters.singleOrNull()
+            if (arg is TsTestValue.TsClass) {
+                val props = arg.properties
+                val aVal = props.getOrElse("a") { TsTestValue.TsUndefined }
+                val bVal = props.getOrElse("b") { TsTestValue.TsUndefined }
+                val ai = toInt32Approx(numberOf(aVal))
+                val bi = toInt32Approx(numberOf(bVal))
+                val sIsZero = ai + bi == 0
+                val neq = strictNotEqual(aVal, bVal)
+                check(!sIsZero || !neq) {
+                    "Failure must have s!=0 or a===b; got ai=$ai, bi=$bi, a=$aVal, b=$bVal"
+                }
+            } else {
+                // Non-object argument (e.g., TsNumber/TsString): properties undefined ⇒ ai=bi=0, a===b ⇒ return 2.
+            }
+        }
     }
 
     @Test

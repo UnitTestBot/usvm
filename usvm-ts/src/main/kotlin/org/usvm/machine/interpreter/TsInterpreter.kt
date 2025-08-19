@@ -589,7 +589,8 @@ class TsInterpreter(
                     }
 
                     scope.calcOnState {
-                        val fieldToSave = if (etsField is TsResolutionResult.Unique) etsField.property.signature else lhv.field
+                        val fieldToSave =
+                            if (etsField is TsResolutionResult.Unique) etsField.property.signature else lhv.field
                         val fieldId = getOrPutFieldId(fieldToSave) { allocateStaticRef() }
                         val lValue = URefSetEntryLValue(
                             instanceRef,
@@ -847,6 +848,20 @@ class TsInterpreter(
                 // Therefore, we create information about the fields the type must consist
                 val types = resolvedParameterType.mapNotNull { it.type.toAuxiliaryType(graph.hierarchy) }
                 val auxiliaryType = EtsUnionType(types) // TODO error
+
+                if (tsOptions.assumeFieldsArePresent) {
+                    resolvedParameterType.forEach { clazz ->
+                        clazz.fields.forEach { field ->
+                            val lValue = URefSetEntryLValue(
+                                ref,
+                                state.getOrPutFieldId(field.signature) { allocateStaticRef() },
+                                field.type
+                            )
+                            state.pathConstraints += state.memory.read(lValue)
+                        }
+                    }
+                }
+
                 state.pathConstraints += state.memory.types.evalIsSubtype(ref, auxiliaryType)
             }
             if (parameterType == EtsNullType) {
@@ -860,6 +875,26 @@ class TsInterpreter(
 
                 state.pathConstraints += mkNot(mkHeapRefEq(ref, mkTsNullValue()))
                 state.pathConstraints += mkNot(mkHeapRefEq(ref, mkUndefinedValue()))
+            }
+            if (parameterType is EtsUnionType) {
+                state.pathConstraints += state.memory.types.evalIsSubtype(ref, parameterType)
+
+                if (tsOptions.assumeFieldsArePresent) {
+                    val resolvedParameterType = parameterType
+                        .types
+                        .filterIsInstance<EtsRefType>()
+                        .flatMap { graph.hierarchy.classesForType(it) }
+                    resolvedParameterType.forEach { clazz ->
+                        clazz.fields.forEach { field ->
+                            val lValue = URefSetEntryLValue(
+                                ref,
+                                state.getOrPutFieldId(field.signature) { allocateStaticRef() },
+                                field.type
+                            )
+                            state.pathConstraints += state.memory.read(lValue)
+                        }
+                    }
+                }
             }
         }
 

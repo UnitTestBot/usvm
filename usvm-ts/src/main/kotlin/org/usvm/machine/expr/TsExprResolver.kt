@@ -1446,7 +1446,7 @@ class TsExprResolver(
         }
         val wrappedResult = result.toFakeObject(scope)
 
-        return@with mkIte(fieldExists, wrappedResult, mkUndefinedValue()).asExpr(sort)
+        return@with mkIte(fieldExists, wrappedResult, mkUndefinedValue())
     }
 
     private fun handleArrayLength(

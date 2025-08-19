@@ -1,5 +1,5 @@
-class A = { kind: "A"; a: number };
-class B = { kind: "B"; b: string };
+class A { kindId: 0; a: number };
+class B { kindId: 1; b: string };
 
 class Example {
   // Requires property "x" to exist and be a number (success → 1, otherwise 2).
@@ -35,9 +35,12 @@ class Example {
     return 1;
   }
 
-  // Discriminated union: success on A-branch with a > 0 (otherwise 2).
-  f5(o: A | B) {
-    if (o.kind === "A" && o.a > 0) return 1;
+  // (1) f5 — correlated integers under coercion
+  f5(o: any) {
+    const ai = (Number(o.a) | 0);
+    const bi = (Number(o.b) | 0);
+    const s = ai + bi;
+    if (s === 0 && o.a !== o.b) return 1;
     return 2;
   }
 

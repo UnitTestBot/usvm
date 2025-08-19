@@ -8,6 +8,7 @@ import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsEnumValueType
 import org.jacodb.ets.model.EtsGenericType
+import org.jacodb.ets.model.EtsLiteralType
 import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsRefType
@@ -132,7 +133,14 @@ class TsContext(
                 TODO("Not yet implemented")
             }
         }
-
+        is EtsLiteralType -> {
+            when {
+                type.literalTypeName.startsWith("String") -> addressSort
+                type.literalTypeName.startsWith("Number") -> fp64Sort
+                type.literalTypeName.startsWith("Boolean") -> boolSort
+                else -> error("Unsupported literal type: ${type.literalTypeName}")
+            }
+        }
         else -> TODO("${type::class.simpleName} is not yet supported: $type")
     }
 
