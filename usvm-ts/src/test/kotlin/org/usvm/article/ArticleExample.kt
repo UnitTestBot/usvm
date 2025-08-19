@@ -41,7 +41,7 @@ class ArticleExample {
         EtsScene(listOf(file))
     }
     val options = UMachineOptions(timeout = Duration.INFINITE)
-    val tsOptions = TsOptions(checkFieldPresents = true, enableVisualization = false)
+    val tsOptions = TsOptions(checkFieldPresents = true, enableVisualization = true)
 
     private fun formatTests(tests: List<TsTest>): String {
         return tests.mapIndexed { idx, t ->
@@ -384,7 +384,7 @@ class ArticleExample {
          *       return 2;
          *     }
          */
-        generateTestsFor("f5")
+        val tests = generateTestsFor("f5")
     }
 
     @Test
@@ -517,7 +517,6 @@ class ArticleExample {
     }
 
     @Test
-    @Disabled("Path constraints and fake type")
     fun runF9() {
         /**
          *   f9(o: any) {
@@ -629,8 +628,18 @@ class ArticleExample {
         println("Tests:\n" + formatTests(tests))
 
         // Basic checks for generated tests
+        val retOne = tests.singleOrNull { it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 1.0 }
+        val retTwo = tests.any { it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 2.0 }
+        check(retOne != null && retTwo) {
+            "Expected one test returning 1 and one returning 2, got: " +
+                "retOne=${retOne != null}, retTwo=$retTwo, total=${tests.size}"
+        }
 
-        // TODO unsupported
+        val fstProps = (retOne.before.parameters.single() as TsTestValue.TsClass).properties
+        val fstNestedProps = (fstProps["x"] as TsTestValue.TsClass).properties.getValue("y")
+        check(fstNestedProps is TsTestValue.TsBoolean && fstNestedProps.value) {
+            "Expected 'y' to be true in success branch, got ${fstNestedProps::class.simpleName} with value $fstNestedProps"
+        }
     }
 
     @Test
