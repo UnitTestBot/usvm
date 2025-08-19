@@ -43,6 +43,7 @@ import org.jacodb.ets.dto.VoidTypeDto
 import org.jacodb.ets.model.EtsAliasType
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
+import org.jacodb.ets.model.EtsBooleanLiteralType
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsEnumValueType
@@ -53,8 +54,10 @@ import org.jacodb.ets.model.EtsLexicalEnvType
 import org.jacodb.ets.model.EtsLiteralType
 import org.jacodb.ets.model.EtsNeverType
 import org.jacodb.ets.model.EtsNullType
+import org.jacodb.ets.model.EtsNumberLiteralType
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsRawType
+import org.jacodb.ets.model.EtsStringLiteralType
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsTupleType
 import org.jacodb.ets.model.EtsType
@@ -149,26 +152,22 @@ private object EtsTypeToDto : EtsType.Visitor<TypeDto> {
         return NeverTypeDto
     }
 
-    override fun visit(type: EtsLiteralType): TypeDto {
-        val literal = when {
-            type.literalTypeName.equals("true", ignoreCase = true) -> {
-                PrimitiveLiteralDto.BooleanLiteral(true)
-            }
+    override fun visit(type: EtsStringLiteralType): TypeDto {
+        return LiteralTypeDto(
+            literal = PrimitiveLiteralDto.StringLiteral(type.value)
+        )
+    }
 
-            type.literalTypeName.equals("false", ignoreCase = true) -> {
-                PrimitiveLiteralDto.BooleanLiteral(false)
-            }
+    override fun visit(type: EtsNumberLiteralType): TypeDto {
+        return LiteralTypeDto(
+            literal = PrimitiveLiteralDto.NumberLiteral(type.value)
+        )
+    }
 
-            else -> {
-                val x = type.literalTypeName.toDoubleOrNull()
-                if (x != null) {
-                    PrimitiveLiteralDto.NumberLiteral(x)
-                } else {
-                    PrimitiveLiteralDto.StringLiteral(type.literalTypeName)
-                }
-            }
-        }
-        return LiteralTypeDto(literal = literal)
+    override fun visit(type: EtsBooleanLiteralType): TypeDto {
+        return LiteralTypeDto(
+            literal = PrimitiveLiteralDto.BooleanLiteral(type.value)
+        )
     }
 
     override fun visit(type: EtsClassType): TypeDto {
