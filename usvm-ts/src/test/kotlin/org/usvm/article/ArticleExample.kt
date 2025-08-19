@@ -39,11 +39,17 @@ class ArticleExample {
         val file = loadEtsFileAutoConvert(path)
         EtsScene(listOf(file))
     }
-    val options = UMachineOptions(timeout = Duration.INFINITE)
-    val tsOptions = TsOptions(checkFieldPresents = true, enableVisualization = false, assumeFieldsArePresent = true)
 
-    private fun formatTests(tests: List<TsTest>): String {
-        return tests.mapIndexed { idx, t ->
+    val options = UMachineOptions(timeout = Duration.INFINITE)
+
+    val tsOptions = TsOptions(
+        checkFieldPresents = true,
+        enableVisualization = false,
+        assumeFieldsArePresent = true,
+    )
+
+    private fun formatTests(tests: List<TsTest>): String = tests
+        .mapIndexed { idx, t ->
             val prefix = "  ${idx + 1}) "
             val indent = " ".repeat(prefix.length)
             val lines = t.toString().lineSequence().toList()
@@ -54,8 +60,8 @@ class ArticleExample {
                     lines.drop(1).forEach { appendLine(indent + it) }
                 }.trimEnd()
             }
-        }.joinToString("\n")
-    }
+        }
+        .joinToString("\n")
 
     private fun generateTestsFor(methodName: String): List<TsTest> {
         val machine = TsMachine(scene, options, tsOptions)
@@ -66,6 +72,7 @@ class ArticleExample {
         val results = machine.analyze(listOf(method))
         val resolver = TsTestResolver()
         val tests = results.map { resolver.resolve(method, it) }
+
         println("Generated tests for method: ${method.name}")
         println("Total tests generated: ${tests.size}")
         println("Tests:\n" + formatTests(tests))
@@ -87,7 +94,7 @@ class ArticleExample {
             name = methodName,
             enclosingClass = scene.projectClasses.first(),
             parameters = listOf(
-                "o" to EtsAnyType
+                "o" to EtsAnyType,
             ),
             returnType = EtsNumberType,
         ) {
@@ -103,8 +110,8 @@ class ArticleExample {
                     EtsInstanceFieldRef(
                         EtsLocal("o", EtsUnknownType),
                         EtsFieldSignature(EtsClassSignature.UNKNOWN, "x", EtsUnknownType),
-                        EtsUnknownType
-                    )
+                        EtsUnknownType,
+                    ),
                 )
             }
             ifStmt(and(inExpr, eqq(typeOfExpr, const("number")))) {
@@ -128,21 +135,37 @@ class ArticleExample {
         check(tests.size == 3) { "Expected 3 tests for f1, got ${tests.size}" }
 
         // Check that we have tests for both branches
-        val exception =
-            tests.singleOrNull { it.returnValue is TsTestValue.TsException && it.before.parameters.single() is TsTestValue.TsUndefined }
-        val returnOne = tests.singleOrNull { it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 1.0 }
-        val returnTwo = tests.singleOrNull { it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 2.0 }
+        val exception = tests.singleOrNull {
+            it.returnValue is TsTestValue.TsException &&
+                it.before.parameters.single() is TsTestValue.TsUndefined
+        }
+        val returnOne = tests.singleOrNull {
+            it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 1.0
+        }
+        val returnTwo = tests.singleOrNull {
+            it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 2.0
+        }
 
         check(exception != null && returnOne != null && returnTwo != null)
 
-        val retOneArg = returnOne.before.parameters.single()
-        check(retOneArg is TsTestValue.TsClass) { "Expected TsObject for returnOne, got ${retOneArg::class.simpleName}" }
+        val retOneArg = returnOne!!.before.parameters.single()
+        check(retOneArg is TsTestValue.TsClass) {
+            "Expected TsObject for returnOne, got ${retOneArg::class.simpleName}"
+        }
         val property = retOneArg.properties.entries.single()
-        check(property.key == "x") { "Expected property 'x' in returnOne, got '${property.key}'" }
-        check(property.value is TsTestValue.TsNumber) { "Expected TsNumber for 'x' in returnOne, got ${property.value::class.simpleName}" }
+        check(property.key == "x") {
+            "Expected property 'x' in returnOne, got '${property.key}'"
+        }
+        check(property.value is TsTestValue.TsNumber) {
+            "Expected TsNumber for 'x' in returnOne, got ${property.value::class.simpleName}"
+        }
 
-        val retTwoArg = returnTwo.before.parameters.single()
-        check(retTwoArg !is TsTestValue.TsClass || "x" !in retTwoArg.properties || retTwoArg.properties.entries.single().value !is TsTestValue.TsNumber)
+        val retTwoArg = returnTwo!!.before.parameters.single()
+        check(
+            retTwoArg !is TsTestValue.TsClass ||
+                "x" !in retTwoArg.properties ||
+                retTwoArg.properties.entries.single().value !is TsTestValue.TsNumber,
+        )
     }
 
     @Test
@@ -159,7 +182,7 @@ class ArticleExample {
             name = methodName,
             enclosingClass = scene.projectClasses.first(),
             parameters = listOf(
-                "o" to EtsAnyType
+                "o" to EtsAnyType,
             ),
             returnType = EtsNumberType,
         ) {
@@ -188,10 +211,16 @@ class ArticleExample {
 
         check(tests.isNotEmpty()) { "Expected at least 1 test for f2, got ${tests.size}" }
 
-        val testWithException =
-            tests.singleOrNull { it.returnValue is TsTestValue.TsException && it.before.parameters.single() == TsTestValue.TsUndefined }
-        val testWithOne = tests.single { it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 1.0 }
-        val testWithTwo = tests.single { it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 2.0 }
+        val testWithException = tests.singleOrNull {
+            it.returnValue is TsTestValue.TsException &&
+                it.before.parameters.single() == TsTestValue.TsUndefined
+        }
+        val testWithOne = tests.single {
+            it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 1.0
+        }
+        val testWithTwo = tests.single {
+            it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 2.0
+        }
 
         check(testWithException != null) { "Expected a test with exception for f2, got none" }
 
@@ -202,9 +231,7 @@ class ArticleExample {
         check(secondParameter != null && secondParameter.size == 1) {
             "Expected 1 property in second parameter, got ${secondParameter?.size ?: 0}"
         }
-        check(secondParameter.containsKey("x") == true) {
-            "Expected property 'x' in second parameter"
-        }
+        check(secondParameter.containsKey("x") == true) { "Expected property 'x' in second parameter" }
     }
 
     @Test
@@ -219,26 +246,38 @@ class ArticleExample {
 
         check(tests.size == 3) { "Expected 3 tests for f3, got ${tests.size}" }
 
-        val exceptionBranch =
-            tests.singleOrNull { it.returnValue is TsTestValue.TsException && it.before.parameters.single() is TsTestValue.TsUndefined }
+        val exceptionBranch = tests.singleOrNull {
+            it.returnValue is TsTestValue.TsException &&
+                it.before.parameters.single() is TsTestValue.TsUndefined
+        }
         check(exceptionBranch != null) { "Expected a test with exception for f3a, got none" }
-        val successBranch = tests.single { it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 1.0 }
+
+        val successBranch = tests.single {
+            it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 1.0
+        }
         val failedBranches = tests.filter { it !== successBranch }
 
         // Checks for success branch
         val succArg = successBranch.before.parameters.single()
-        check(succArg is TsTestValue.TsClass) { "Expected TsObject for success branch, got ${succArg::class.simpleName}" }
+        check(succArg is TsTestValue.TsClass) {
+            "Expected TsObject for success branch, got ${succArg::class.simpleName}"
+        }
         val succField = succArg.properties.entries.single()
-        check(succField.key == "x") { "Expected field 'x' in success branch, got '${succField.key}'" }
-        check(succField.value is TsTestValue.TsNumber || succField.value is TsTestValue.TsBoolean) {
+        check(succField.key == "x") {
+            "Expected field 'x' in success branch, got '${succField.key}'"
+        }
+        check(
+            succField.value is TsTestValue.TsNumber ||
+                succField.value is TsTestValue.TsBoolean,
+        ) {
             "Expected TsNumber or TsBoolean for 'x' in success branch, got ${succField.value::class.simpleName}"
         }
         val succValue = (succField.value as? TsTestValue.TsNumber)?.number
             ?: (succField.value as? TsTestValue.TsBoolean)?.value?.toDouble()
-            ?: error("Expected number or boolean value for 'x' in success branch, got ${succField.value::class.simpleName}")
-        check(succValue + 1.0 > 0.0) {
-            "Expected 'x + 1 > 0' in success branch, got 'x + 1 = $succValue'"
-        }
+            ?: error(
+                "Expected number or boolean value for 'x' in success branch, got ${succField.value::class.simpleName}",
+            )
+        check(succValue + 1.0 > 0.0) { "Expected 'x + 1 > 0' in success branch, got 'x + 1 = $succValue'" }
 
         failedBranches.forEach { failedBranch ->
             // Checks for failed branch
@@ -249,7 +288,9 @@ class ArticleExample {
             }
 
             val failField = failArg.properties.entries.single()
-            check(failField.key == "x") { "Expected field 'x' in failed branch, got '${failField.key}'" }
+            check(failField.key == "x") {
+                "Expected field 'x' in failed branch, got '${failField.key}'"
+            }
             check(failField.value !is TsTestValue.TsNumber) {
                 "Expected non-number for 'x' in failed branch, got ${failField.value::class.simpleName}"
             }
@@ -279,15 +320,14 @@ class ArticleExample {
         check(numericBranches.size == 2) { "Expected 2 non-exception tests, got ${numericBranches.size}" }
 
         val successBranch = numericBranches.singleOrNull {
-            it.returnValue is TsTestValue.TsNumber &&
-                it.returnValue.number == 1.0
+            it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 1.0
         }
         check(successBranch != null) { "Expected a success test for f3b returning 1, got none" }
 
         val failedBranch = numericBranches.single { it !== successBranch }
         check(
             failedBranch.returnValue is TsTestValue.TsNumber &&
-                failedBranch.returnValue.number == 2.0
+                failedBranch.returnValue.number == 2.0,
         ) { "Expected a failure test for f3b returning 2, got ${failedBranch.returnValue}" }
 
         check(successBranch.before.parameters.size == 1) {
@@ -312,7 +352,9 @@ class ArticleExample {
 
                 is TsTestValue.TsNumber -> {
                     // require NaN specifically
-                    check(succVal.number.isNaN()) { "Expected NaN for 'x' in success branch, got ${succVal.number}" }
+                    check(succVal.number.isNaN()) {
+                        "Expected NaN for 'x' in success branch, got ${succVal.number}"
+                    }
                 }
 
                 else -> error("Success branch: 'x' must be undefined or NaN, got ${succVal::class.simpleName}")
@@ -335,16 +377,15 @@ class ArticleExample {
             is TsTestValue.TsUndefined -> error("Failure branch: 'x' must not be undefined")
             is TsTestValue.TsNumber -> {
                 check(!failX.number.isNaN()) { "Failure branch: 'x' must not be NaN" }
-                // numbers like 0, 1, -1 are fine (0+1=1; 1+1=2; -1+1=0) → not NaN ⇒ return 2
+                // numbers like 0, 1, -1 are fine (0+1=1; 1+1=2; -1+1=0) → not NaN -> return 2
             }
 
             is TsTestValue.TsString, is TsTestValue.TsBoolean, is TsTestValue.TsNull -> {
-                // also fine: "a"+1 → "a1" (string), true+1 → 2 (number), null+1 → 1 (number)
+                // also fine: "a"+1 → "a1" (string), true+1 → 2 (number), null+1 -> 1 (number)
             }
 
             else -> error("Failure branch: unexpected type for 'x': ${failX::class.simpleName}")
         }
-
     }
 
     @Test
@@ -386,7 +427,12 @@ class ArticleExample {
         check(tests.isNotEmpty()) { "Expected at least 1 test for f5, got ${tests.size}" }
 
         val exceptionBranch = tests.firstOrNull {
-            it.returnValue is TsTestValue.TsException && (it.before.parameters.single() is TsTestValue.TsUndefined)
+            it.returnValue is TsTestValue.TsException &&
+                it.before.parameters.size == 1 &&
+                (
+                    it.before.parameters.single() is TsTestValue.TsUndefined ||
+                        it.before.parameters.single() is TsTestValue.TsNull
+                    )
         }
         check(exceptionBranch != null) {
             "Expected an exception test for f5 with argument undefined or null, got none"
@@ -403,14 +449,13 @@ class ArticleExample {
         }
 
         // --- Helpers: approximate JS semantics ---
-
         fun numberOf(v: TsTestValue): Double = when (v) {
             is TsTestValue.TsNumber -> v.number
             is TsTestValue.TsBoolean -> if (v.value) 1.0 else 0.0
             is TsTestValue.TsNull -> 0.0
             is TsTestValue.TsUndefined -> Double.NaN
             is TsTestValue.TsString -> {
-                // FIX: JS Number("") == 0, Number("   ") == 0; otherwise parsing as Double
+                // JS Number("") == 0, Number("   ") == 0; otherwise parsing as Double
                 val s = v.value
                 if (s.isEmpty() || s.trim().isEmpty()) 0.0 else s.toDoubleOrNull() ?: Double.NaN
             }
@@ -426,7 +471,7 @@ class ArticleExample {
 
         fun strictNotEqual(a: TsTestValue, b: TsTestValue): Boolean = when {
             a is TsTestValue.TsNumber && b is TsTestValue.TsNumber -> {
-                val an = a.number;
+                val an = a.number
                 val bn = b.number
                 if (an.isNaN() && bn.isNaN()) true else an != bn
             }
@@ -435,14 +480,13 @@ class ArticleExample {
             a is TsTestValue.TsBoolean && b is TsTestValue.TsBoolean -> a.value != b.value
             a is TsTestValue.TsNull && b is TsTestValue.TsNull -> false
             a is TsTestValue.TsUndefined && b is TsTestValue.TsUndefined -> false
-            // Different runtime types are strictly not equal in JS (objects compare by reference; we treat any object as distinct)
+            // Different runtime types are strictly not equal in JS (objects compare by reference; treat any object as distinct)
             else -> true
         }
 
-        // --- Validate success branch: (Number(a)|0) + (Number(b)|0) === 0 && a !== b ---
-
+        // --- Validate success branch ---
         run {
-            check(successBranch!!.before.parameters.size == 1) {
+            check(successBranch.before.parameters.size == 1) {
                 "Expected 1 parameter in success branch, got ${successBranch.before.parameters.size}"
             }
             val arg = successBranch.before.parameters.single()
@@ -458,25 +502,26 @@ class ArticleExample {
             check(strictNotEqual(aVal, bVal)) { "Expected a !== b in success branch, got a=$aVal, b=$bVal" }
         }
 
-        // --- Validate failure branches: must violate at least one conjunct ---
-
-        failedBranches.filter { (it.returnValue as? TsTestValue.TsNumber)?.number == 2.0 }.forEach { fail ->
-            val arg = fail.before.parameters.singleOrNull()
-            if (arg is TsTestValue.TsClass) {
-                val props = arg.properties
-                val aVal = props.getOrElse("a") { TsTestValue.TsUndefined }
-                val bVal = props.getOrElse("b") { TsTestValue.TsUndefined }
-                val ai = toInt32Approx(numberOf(aVal))
-                val bi = toInt32Approx(numberOf(bVal))
-                val sIsZero = ai + bi == 0
-                val neq = strictNotEqual(aVal, bVal)
-                check(!sIsZero || !neq) {
-                    "Failure must have s!=0 or a===b; got ai=$ai, bi=$bi, a=$aVal, b=$bVal"
+        // --- Validate failure branches ---
+        failedBranches
+            .filter { (it.returnValue as? TsTestValue.TsNumber)?.number == 2.0 }
+            .forEach { fail ->
+                val arg = fail.before.parameters.singleOrNull()
+                if (arg is TsTestValue.TsClass) {
+                    val props = arg.properties
+                    val aVal = props.getOrElse("a") { TsTestValue.TsUndefined }
+                    val bVal = props.getOrElse("b") { TsTestValue.TsUndefined }
+                    val ai = toInt32Approx(numberOf(aVal))
+                    val bi = toInt32Approx(numberOf(bVal))
+                    val sIsZero = ai + bi == 0
+                    val neq = strictNotEqual(aVal, bVal)
+                    check(!sIsZero || !neq) {
+                        "Failure must have s!=0 or a===b; got ai=$ai, bi=$bi, a=$aVal, b=$bVal"
+                    }
+                } else {
+                    // Non-object argument (e.g., TsNumber/TsString): properties undefined ⇒ ai=bi=0, a===b ⇒ return 2.
                 }
-            } else {
-                // Non-object argument (e.g., TsNumber/TsString): properties undefined ⇒ ai=bi=0, a===b ⇒ return 2.
             }
-        }
     }
 
     @Test
@@ -489,17 +534,28 @@ class ArticleExample {
          */
         val tests = generateTestsFor("f6_strict")
 
-        val exceptionBranch =
-            tests.singleOrNull { it.returnValue is TsTestValue.TsException && it.before.parameters.single() is TsTestValue.TsUndefined }
-        check(exceptionBranch != null) { "Expected an exception test for f6_strict with argument undefined, got none" }
-        val successBranch =
-            tests.singleOrNull { it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 1.0 }
+        val exceptionBranch = tests.singleOrNull {
+            it.returnValue is TsTestValue.TsException &&
+                it.before.parameters.single() is TsTestValue.TsUndefined
+        }
+        check(exceptionBranch != null) {
+            "Expected an exception test for f6_strict with argument undefined, got none"
+        }
+
+        val successBranch = tests.singleOrNull {
+            it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 1.0
+        }
         check(successBranch != null) { "Expected a success test for f6_strict returning 1, got none" }
-        val failedBranch = tests.singleOrNull { it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 2.0 }
+
+        val failedBranch = tests.singleOrNull {
+            it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 2.0
+        }
         check(failedBranch != null) { "Expected a failure test for f6_strict returning 2, got none" }
 
         val succArg = successBranch.before.parameters.singleOrNull()
-        check(succArg is TsTestValue.TsClass) { "Expected TsObject for success branch, got ${succArg?.javaClass?.simpleName ?: "null"}" }
+        check(succArg is TsTestValue.TsClass) {
+            "Expected TsObject for success branch, got ${succArg?.javaClass?.simpleName ?: "null"}"
+        }
         val succField = succArg.properties.entries.singleOrNull()
         check(succField != null) { "Expected a single field in success branch, got none" }
         check(succField.key == "x") { "Expected field 'x' in success branch, got '${succField.key}'" }
@@ -508,9 +564,16 @@ class ArticleExample {
             "Expected 'x' to be 0 in success branch, got ${value::class.simpleName} with value $value"
         }
 
-        val failedBranchArg = failedBranch.before.parameters.singleOrNull()
-        check(failedBranchArg !is TsTestValue.TsClass || "x" !in failedBranchArg.properties || failedBranchArg.properties.entries.single().value !is TsTestValue.TsNumber || (failedBranchArg.properties.entries.single().value as TsTestValue.TsNumber).number != 0.0) {
-            "Expected failed branch to not have 'x' or have it as non-number, got ${failedBranchArg?.javaClass?.simpleName ?: "null"}"
+        val failedBranchArg = failedBranch!!.before.parameters.singleOrNull()
+        check(
+            failedBranchArg !is TsTestValue.TsClass ||
+                "x" !in failedBranchArg.properties ||
+                failedBranchArg.properties.entries.single().value !is TsTestValue.TsNumber ||
+                (failedBranchArg.properties.entries.single().value as TsTestValue.TsNumber).number != 0.0,
+        ) {
+            "Expected failed branch to not have 'x' or have it as non-number, got ${
+                failedBranchArg?.javaClass?.simpleName ?: "null"
+            }"
         }
     }
 
@@ -524,14 +587,22 @@ class ArticleExample {
          */
         val tests = generateTestsFor("f7_loose")
 
-        val exceptionBranch =
-            tests.singleOrNull { it.returnValue is TsTestValue.TsException && it.before.parameters.single() is TsTestValue.TsUndefined }
-        check(exceptionBranch != null) { "Expected an exception test for f7_loose with argument undefined, got none" }
+        val exceptionBranch = tests.singleOrNull {
+            it.returnValue is TsTestValue.TsException &&
+                it.before.parameters.single() is TsTestValue.TsUndefined
+        }
+        check(exceptionBranch != null) {
+            "Expected an exception test for f7_loose with argument undefined, got none"
+        }
 
-        val successBranch =
-            tests.singleOrNull { it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 1.0 }
+        val successBranch = tests.singleOrNull {
+            it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 1.0
+        }
         check(successBranch != null) { "Expected a success test for f7_loose returning 1, got none" }
-        val failedBranch = tests.singleOrNull { it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 2.0 }
+
+        val failedBranch = tests.singleOrNull {
+            it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 2.0
+        }
         check(failedBranch != null) { "Expected a failure test for f7_loose returning 2, got none" }
 
         fun isLooselyZero(v: TsTestValue): Boolean = when (v) {
@@ -540,8 +611,10 @@ class ArticleExample {
             else -> false // null/undefined/objects (as values) here shouldn't appear; treat as non-zero
         }
 
-        val succArg = successBranch.before.parameters.singleOrNull()
-        check(succArg is TsTestValue.TsClass) { "Expected TsObject for success branch, got ${succArg?.javaClass?.simpleName ?: "null"}" }
+        val succArg = successBranch!!.before.parameters.singleOrNull()
+        check(succArg is TsTestValue.TsClass) {
+            "Expected TsObject for success branch, got ${succArg?.javaClass?.simpleName ?: "null"}"
+        }
         val succField = succArg.properties.entries.singleOrNull()
         check(succField != null) { "Expected a single field in success branch, got none" }
         check(succField.key == "x") { "Expected field 'x' in success branch, got '${succField.key}'" }
@@ -550,13 +623,15 @@ class ArticleExample {
             "Expected 'x' to be loosely equal to 0 in success branch, got ${succValue::class.simpleName} with value $succValue"
         }
 
-        val failedBranchArg = failedBranch.before.parameters.singleOrNull()
+        val failedBranchArg = failedBranch!!.before.parameters.singleOrNull()
         check(
             failedBranchArg !is TsTestValue.TsClass ||
                 !failedBranchArg.properties.contains("x") ||
-                !isLooselyZero(requireNotNull(failedBranchArg.properties["x"]))
+                !isLooselyZero(requireNotNull(failedBranchArg.properties["x"])),
         ) {
-            "Expected failed branch to not have 'x' loosely equal to 0, got ${failedBranchArg?.javaClass?.simpleName ?: "null"}"
+            "Expected failed branch to not have 'x' loosely equal to 0, got ${
+                failedBranchArg?.javaClass?.simpleName ?: "null"
+            }"
         }
     }
 
@@ -573,7 +648,8 @@ class ArticleExample {
         check(tests.size == 3) { "Expected 3 tests for f8, got ${tests.size}" }
 
         val exceptionBranch = tests.singleOrNull {
-            it.returnValue is TsTestValue.TsException && it.before.parameters.single() is TsTestValue.TsUndefined
+            it.returnValue is TsTestValue.TsException &&
+                it.before.parameters.single() is TsTestValue.TsUndefined
         }
         val successBranch = tests.singleOrNull {
             it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 1.0
@@ -587,8 +663,10 @@ class ArticleExample {
                 "exception=${exceptionBranch != null}, success=${successBranch != null}, failed=${failedBranch != null}"
         }
 
-        val succArg = successBranch.before.parameters.singleOrNull()
-        check(succArg is TsTestValue.TsClass) { "Expected TsObject for success branch, got ${succArg?.javaClass?.simpleName ?: "null"}" }
+        val succArg = successBranch!!.before.parameters.singleOrNull()
+        check(succArg is TsTestValue.TsClass) {
+            "Expected TsObject for success branch, got ${succArg?.javaClass?.simpleName ?: "null"}"
+        }
         val succField = succArg.properties.entries.singleOrNull()
         check(succField != null) { "Expected a single field in success branch, got none" }
         check(succField.key == "x") { "Expected field 'x' in success branch, got '${succField.key}'" }
@@ -597,14 +675,16 @@ class ArticleExample {
             "Expected 'x' to be null or undefined in success branch, got ${succValue::class.simpleName} with value $succValue"
         }
 
-        val failedArg = failedBranch.before.parameters.singleOrNull()
+        val failedArg = failedBranch!!.before.parameters.singleOrNull()
         check(
             failedArg !is TsTestValue.TsClass ||
                 !failedArg.properties.contains("x") ||
                 failedArg.properties["x"] !is TsTestValue.TsNull &&
-                failedArg.properties["x"] !is TsTestValue.TsUndefined
+                failedArg.properties["x"] !is TsTestValue.TsUndefined,
         ) {
-            "Expected failed branch to not have 'x' as null or undefined, got ${failedArg?.javaClass?.simpleName ?: "null"}"
+            "Expected failed branch to not have 'x' as null or undefined, got ${
+                failedArg?.javaClass?.simpleName ?: "null"
+            }"
         }
     }
 
@@ -622,7 +702,7 @@ class ArticleExample {
             name = methodName,
             enclosingClass = scene.projectClasses.first(),
             parameters = listOf(
-                "o" to EtsAnyType
+                "o" to EtsAnyType,
             ),
             returnType = EtsNumberType,
         ) {
@@ -639,7 +719,7 @@ class ArticleExample {
                         EtsFieldSignature(EtsClassSignature.UNKNOWN, "x", EtsUnknownType),
                         EtsUnknownType,
                     )
-                }
+                },
             )
 
             val fstInExpr = CustomValue {
@@ -658,7 +738,7 @@ class ArticleExample {
                         EtsFieldSignature(EtsClassSignature.UNKNOWN, "x", EtsUnknownType),
                         EtsUnknownType,
                     )
-                }
+                },
             )
 
             val sndInExpr = CustomValue {
@@ -668,7 +748,7 @@ class ArticleExample {
                         EtsLocal("o", EtsUnknownType),
                         EtsFieldSignature(EtsClassSignature.UNKNOWN, "x", EtsUnknownType),
                         EtsUnknownType,
-                    )
+                    ),
                 )
             }
 
@@ -684,7 +764,7 @@ class ArticleExample {
                         EtsFieldSignature(EtsClassSignature.UNKNOWN, "x", EtsUnknownType),
                         EtsUnknownType,
                     )
-                }
+                },
             )
             val fifth = local("%5")
             assign(
@@ -695,7 +775,7 @@ class ArticleExample {
                         EtsFieldSignature(EtsClassSignature.UNKNOWN, "y", EtsUnknownType),
                         EtsUnknownType,
                     )
-                }
+                },
             )
 
             val sixth = local("%6")
@@ -709,7 +789,6 @@ class ArticleExample {
             }
         }
 
-
         val machine = TsMachine(scene, options, tsOptions)
         val results = machine.analyze(listOf(method))
         val resolver = TsTestResolver()
@@ -720,8 +799,12 @@ class ArticleExample {
         println("Tests:\n" + formatTests(tests))
 
         // Basic checks for generated tests
-        val retOne = tests.singleOrNull { it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 1.0 }
-        val retTwo = tests.any { it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 2.0 }
+        val retOne = tests.singleOrNull {
+            it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 1.0
+        }
+        val retTwo = tests.any {
+            it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 2.0
+        }
         check(retOne != null && retTwo) {
             "Expected one test returning 1 and one returning 2, got: " +
                 "retOne=${retOne != null}, retTwo=$retTwo, total=${tests.size}"
@@ -749,16 +832,19 @@ class ArticleExample {
             it.returnValue is TsTestValue.TsException &&
                 it.before.parameters.singleOrNull() is TsTestValue.TsUndefined
         }
-        val successBranch =
-            tests.singleOrNull { it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 1.0 }
-        val failedBranch = tests.singleOrNull { it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 2.0 }
+        val successBranch = tests.singleOrNull {
+            it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 1.0
+        }
+        val failedBranch = tests.singleOrNull {
+            it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 2.0
+        }
 
         check(exceptionBranch != null && successBranch != null && failedBranch != null) {
             "Expected an exception, a success (1), and a failure (2) test for f10_optchain"
         }
 
         // Success: x != null and x.y === 1
-        val succArg = successBranch.before.parameters.single()
+        val succArg = successBranch!!.before.parameters.single()
         check(succArg is TsTestValue.TsClass)
         val xVal = succArg.properties["x"]
         check(xVal is TsTestValue.TsClass)
@@ -766,7 +852,7 @@ class ArticleExample {
         check(yVal is TsTestValue.TsNumber && yVal.number == 1.0)
 
         // Failure: violates the condition
-        val failArg = failedBranch.before.parameters.single()
+        val failArg = failedBranch!!.before.parameters.single()
         if (failArg is TsTestValue.TsClass) {
             when (val xv = failArg.properties["x"]) {
                 null, is TsTestValue.TsNull, is TsTestValue.TsUndefined -> Unit
@@ -786,9 +872,12 @@ class ArticleExample {
          */
         val tests = generateTestsFor("f11_nan")
         val exceptionBranch = tests.singleOrNull {
-            it.returnValue is TsTestValue.TsException && it.before.parameters.single() is TsTestValue.TsUndefined
+            it.returnValue is TsTestValue.TsException &&
+                it.before.parameters.single() is TsTestValue.TsUndefined
         }
-        check(exceptionBranch != null) { "Expected an exception test for f11_nan with argument undefined, got none" }
+        check(exceptionBranch != null) {
+            "Expected an exception test for f11_nan with argument undefined, got none"
+        }
         val succBranch = tests.singleOrNull {
             it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 1.0
         }
@@ -796,8 +885,10 @@ class ArticleExample {
         val failBranches = tests.filter { it !== succBranch && it !== exceptionBranch }
         check(failBranches.isNotEmpty()) { "Expected at least one failure test for f11_nan, got ${failBranches.size}" }
 
-        val succArg = succBranch.before.parameters.singleOrNull()
-        check(succArg is TsTestValue.TsClass) { "Expected TsObject for success branch, got ${succArg?.javaClass?.simpleName ?: "null"}" }
+        val succArg = succBranch!!.before.parameters.singleOrNull()
+        check(succArg is TsTestValue.TsClass) {
+            "Expected TsObject for success branch, got ${succArg?.javaClass?.simpleName ?: "null"}"
+        }
         val succField = succArg.properties.entries.singleOrNull()
         check(succField != null) { "Expected a single field in success branch, got none" }
         check(succField.key == "x") { "Expected field 'x' in success branch, got '${succField.key}'" }
@@ -807,10 +898,15 @@ class ArticleExample {
         }
 
         val failedArgs = failBranches.map { (it.before.parameters.single() as TsTestValue.TsClass).properties }
-        val fstCondition =
-            failedArgs.singleOrNull { it.contains("x") && it["x"] is TsTestValue.TsNumber && !(it["x"] as TsTestValue.TsNumber).number.isNaN() } != null
-        val sndCondition =
-            failedArgs.singleOrNull { !it.contains("x") || it.contains("x") && it["x"] !is TsTestValue.TsNumber } != null
+        val fstCondition = failedArgs.singleOrNull {
+            it.contains("x") &&
+                it["x"] is TsTestValue.TsNumber &&
+                !(it["x"] as TsTestValue.TsNumber).number.isNaN()
+        } != null
+        val sndCondition = failedArgs.singleOrNull {
+            !it.contains("x") ||
+                it.contains("x") && it["x"] !is TsTestValue.TsNumber
+        } != null
 
         if (failedArgs.size == 2) {
             check(fstCondition && sndCondition)
