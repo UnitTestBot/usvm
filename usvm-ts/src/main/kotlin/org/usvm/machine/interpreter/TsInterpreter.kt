@@ -811,7 +811,7 @@ class TsInterpreter(
             targets = UTargetsSet.from(targets),
         )
 
-        val solver = ctx.solver<EtsType>()
+        state.memory.types.allocate(mkTsNullValue().address, EtsNullType)
 
         // TODO check for statics
         val thisIdx = mapLocalToIdx(method, EtsThis(method.enclosingClass!!.type))
@@ -874,14 +874,13 @@ class TsInterpreter(
             }
         }
 
+        val solver = ctx.solver<EtsType>()
         val model = solver.check(state.pathConstraints).ensureSat().model
         state.models = listOf(model)
 
         state.callStack.push(method, returnSite = null)
         state.memory.stack.push(method.parametersWithThisCount, method.localsCount)
         state.newStmt(method.cfg.instructions.first())
-
-        state.memory.types.allocate(mkTsNullValue().address, EtsNullType)
 
         state
     }
