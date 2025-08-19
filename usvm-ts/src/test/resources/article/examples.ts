@@ -70,7 +70,8 @@ class Example {
 
   // Optional chaining: success when x.y exists and equals 1 (otherwise 2).
   f10_optchain(o: any) {
-    if (o.x?.y === 1) return 1;
+    const x = o.x;
+    if (x != null && x.y === 1) return 1;
     return 2;
   }
 

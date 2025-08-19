@@ -20,7 +20,6 @@ import org.jacodb.ets.model.EtsStringConstant
 import org.jacodb.ets.model.EtsTypeOfExpr
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.UMachineOptions
 import org.usvm.api.TsTest
@@ -419,6 +418,7 @@ class ArticleExample {
                 val s = v.value
                 if (s.isEmpty() || s.trim().isEmpty()) 0.0 else s.toDoubleOrNull() ?: Double.NaN
             }
+
             else -> Double.NaN // objects/symbols → NaN in JS Number(...)
         }
 
@@ -430,9 +430,11 @@ class ArticleExample {
 
         fun strictNotEqual(a: TsTestValue, b: TsTestValue): Boolean = when {
             a is TsTestValue.TsNumber && b is TsTestValue.TsNumber -> {
-                val an = a.number; val bn = b.number
+                val an = a.number;
+                val bn = b.number
                 if (an.isNaN() && bn.isNaN()) true else an != bn
             }
+
             a is TsTestValue.TsString && b is TsTestValue.TsString -> a.value != b.value
             a is TsTestValue.TsBoolean && b is TsTestValue.TsBoolean -> a.value != b.value
             a is TsTestValue.TsNull && b is TsTestValue.TsNull -> false
@@ -737,15 +739,45 @@ class ArticleExample {
     }
 
     @Test
-    @Disabled("Incorrect IR")
     fun runF10() {
         /**
-         *   f10_optchain(o: any) {
-         *     if (o.x?.y === 1) return 1;
-         *     return 2;
-         *   }
+         * f10_optchain(o: any) {
+         *   const x = o.x;
+         *   if (x != null && x.y === 1) return 1;
+         *   return 2;
+         * }
          */
-        generateTestsFor("f10_optchain")
+        val tests = generateTestsFor("f10_optchain")
+
+        val exceptionBranch = tests.singleOrNull {
+            it.returnValue is TsTestValue.TsException &&
+                it.before.parameters.singleOrNull() is TsTestValue.TsUndefined
+        }
+        val successBranch =
+            tests.singleOrNull { it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 1.0 }
+        val failedBranch = tests.singleOrNull { it.returnValue is TsTestValue.TsNumber && it.returnValue.number == 2.0 }
+
+        check(exceptionBranch != null && successBranch != null && failedBranch != null) {
+            "Expected an exception, a success (1), and a failure (2) test for f10_optchain"
+        }
+
+        // Success: x != null and x.y === 1
+        val succArg = successBranch.before.parameters.single()
+        check(succArg is TsTestValue.TsClass)
+        val xVal = succArg.properties["x"]
+        check(xVal is TsTestValue.TsClass)
+        val yVal = xVal.properties["y"]
+        check(yVal is TsTestValue.TsNumber && yVal.number == 1.0)
+
+        // Failure: violates the condition
+        val failArg = failedBranch.before.parameters.single()
+        if (failArg is TsTestValue.TsClass) {
+            when (val xv = failArg.properties["x"]) {
+                null, is TsTestValue.TsNull, is TsTestValue.TsUndefined -> Unit
+                is TsTestValue.TsClass -> check((xv.properties["y"] as? TsTestValue.TsNumber)?.number != 1.0)
+                else -> Unit
+            }
+        }
     }
 
     @Test
