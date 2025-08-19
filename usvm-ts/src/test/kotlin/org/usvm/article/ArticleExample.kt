@@ -385,12 +385,8 @@ class ArticleExample {
         val tests = generateTestsFor("f5")
         check(tests.isNotEmpty()) { "Expected at least 1 test for f5, got ${tests.size}" }
 
-        // FIX: допускаем исключение как для undefined, так и для null аргумента
         val exceptionBranch = tests.firstOrNull {
-            it.returnValue is TsTestValue.TsException &&
-                it.before.parameters.size == 1 &&
-                (it.before.parameters.single() is TsTestValue.TsUndefined ||
-                    it.before.parameters.single() is TsTestValue.TsNull)
+            it.returnValue is TsTestValue.TsException && (it.before.parameters.single() is TsTestValue.TsUndefined)
         }
         check(exceptionBranch != null) {
             "Expected an exception test for f5 with argument undefined or null, got none"
