@@ -144,7 +144,7 @@ private fun resolveSymbolInFile(
 
         EtsImportType.NAMED -> {
             val namedExport = exports.find {
-                it.name == symbolName || it.originalName == symbolName
+                it.name == symbolName
             }
             if (namedExport != null) {
                 SymbolResolutionResult.Success(targetFile, namedExport)
