@@ -3,6 +3,7 @@ package org.usvm.machine.types
 import org.jacodb.ets.model.EtsAliasType
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
+import org.jacodb.ets.model.EtsBooleanLiteralType
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFunctionType
@@ -10,10 +11,12 @@ import org.jacodb.ets.model.EtsIntersectionType
 import org.jacodb.ets.model.EtsLiteralType
 import org.jacodb.ets.model.EtsNeverType
 import org.jacodb.ets.model.EtsNullType
+import org.jacodb.ets.model.EtsNumberLiteralType
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsPrimitiveType
 import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.model.EtsStringLiteralType
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsTupleType
 import org.jacodb.ets.model.EtsType
@@ -91,11 +94,10 @@ class TsTypeSystem(
         if (unwrappedSupertype is EtsPrimitiveType && unwrappedType is EtsPrimitiveType) {
             if (unwrappedType is EtsLiteralType) {
                 // Literal types are subtypes of their base primitive (e.g., 'foo' <: string).
-                return when (unwrappedType.literalTypeName) {
-                    "String" -> unwrappedSupertype is EtsStringType
-                    "Number" -> unwrappedSupertype is EtsNumberType
-                    "Boolean" -> unwrappedSupertype is EtsBooleanType
-                    else -> error("Unexpected literal type name ${unwrappedType.literalTypeName}")
+                return when (unwrappedType) {
+                    is EtsStringLiteralType -> unwrappedSupertype is EtsStringType
+                    is EtsNumberLiteralType -> unwrappedSupertype is EtsNumberType
+                    is EtsBooleanLiteralType -> unwrappedSupertype is EtsBooleanType
                 }
             }
 
@@ -224,7 +226,8 @@ class TsTypeSystem(
             is EtsUnionType -> true  // unions can always drop a branch
             is EtsIntersectionType -> true  // intersections can always add a constraint
             is EtsAnyType,
-            is EtsUnknownType -> true  // top types can always have subtypes
+            is EtsUnknownType,
+                -> true  // top types can always have subtypes
             else -> false
         }
     }
@@ -239,7 +242,8 @@ class TsTypeSystem(
             is EtsNumberType,
             is EtsStringType,
             is EtsBooleanType,
-            is EtsLiteralType -> true  // primitives/literals always final
+            is EtsLiteralType,
+                -> true  // primitives/literals always final
             is EtsClassType -> false
             else -> false  // others can always be specialized
         }
@@ -250,11 +254,13 @@ class TsTypeSystem(
         return when (t) {
             is EtsNeverType -> false  // no runtime value
             is EtsAnyType,
-            is EtsUnknownType -> true   // may represent some value
+            is EtsUnknownType,
+                -> true   // may represent some value
             is EtsLiteralType,
             is EtsNullType,
             is EtsUndefinedType,
-            is EtsPrimitiveType -> true   // literals/primitives have values
+            is EtsPrimitiveType,
+                -> true   // literals/primitives have values
             is EtsUnionType -> t.types.any { isInstantiable(it) }  // union has some branch value
             is EtsIntersectionType -> t.types.all { isInstantiable(it) }  // intersection if all parts have values
             is EtsArrayType -> isInstantiable(t.elementType)         // array if elements instantiable
@@ -270,7 +276,8 @@ class TsTypeSystem(
         return when (t) {
             is EtsPrimitiveType -> emptySequence()
             is EtsAnyType,
-            is EtsUnknownType ->
+            is EtsUnknownType,
+                ->
                 scene.projectAndSdkClasses
                     .asSequence()
                     .map { it.type }
@@ -296,7 +303,8 @@ class TsTypeSystem(
                 }
 
             is EtsUnclearRefType,
-            is EtsClassType ->
+            is EtsClassType,
+                ->
                 if ((t as? EtsClassType)?.signature == EtsHierarchy.OBJECT_CLASS.signature) { // TODO change it
                     scene.projectAndSdkClasses.asSequence().map { it.type } + EtsStringType + EtsAnyType
                 } else {
