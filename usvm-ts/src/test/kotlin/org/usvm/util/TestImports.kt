@@ -21,13 +21,17 @@ private val logger = KotlinLogging.logger {}
 @DisplayName("Import Resolution Tests")
 class ImportResolverTest {
 
+    companion object {
+        private const val TEST_PROJECT_PATH = "/projects/Demo_Photos/source"
+    }
+
     private lateinit var scene: EtsScene
 
     @BeforeAll
     fun setupScene() {
         println("\n--- Setting up scene for import resolution tests ---")
-        val path = "/projects/Demo_Photos/source"
         scene = run {
+            val path = TEST_PROJECT_PATH
             println("Loading project from resources: $path")
             val projectPath = getResourcePathOrNull(path)
             if (projectPath == null) {
