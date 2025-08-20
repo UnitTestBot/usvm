@@ -10,7 +10,6 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import kotlin.math.roundToInt
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -131,7 +130,7 @@ class ImportResolverTest {
         println("Successfully resolved files: $successfulImports")
         println("Failed to resolve files: $failedImports")
         if (totalImports > 0) {
-            val successRate = (successfulImports.toDouble() / totalImports * 100).roundToInt()
+            val successRate = (successfulImports.toDouble() / totalImports * 100).toInt()
             println("File resolution success rate: $successRate%")
         }
 
