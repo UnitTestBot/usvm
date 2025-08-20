@@ -360,7 +360,7 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
         exceptionsPropagation = true,
         timeout = 1000000000.seconds,
         stepsFromLastCovered = 3500L,
-        solverType = SolverType.YICES,
+        solverType = SolverType.Z3,
         solverTimeout = Duration.INFINITE, // we do not need the timeout for a solver in tests
         typeOperationsTimeout = Duration.INFINITE, // we do not need the timeout for type operations in tests
     )

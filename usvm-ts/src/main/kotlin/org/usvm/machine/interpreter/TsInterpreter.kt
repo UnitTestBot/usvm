@@ -607,8 +607,6 @@ class TsInterpreter(
                         is TsResolutionResult.Ambiguous -> unresolvedSort
                     }
 
-
-
                     if (sort == unresolvedSort) {
                         val fakeObject = expr.toFakeObject(scope)
                         val lValue = mkFieldLValue(addressSort, instanceRef, lhv.field)
@@ -855,7 +853,7 @@ class TsInterpreter(
                             val lValue = URefSetEntryLValue(
                                 ref,
                                 state.getOrPutFieldId(field.signature) { allocateStaticRef() },
-                                field.type
+                                EtsUnknownType
                             )
                             state.pathConstraints += state.memory.read(lValue)
                         }

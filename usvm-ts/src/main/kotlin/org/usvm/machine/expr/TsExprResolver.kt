@@ -1,5 +1,6 @@
 package org.usvm.machine.expr
 
+import io.ksmt.expr.KInterpretedValue
 import io.ksmt.expr.KIteExpr
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
@@ -1444,9 +1445,12 @@ class TsExprResolver(
             val lValue = mkFieldLValue(sort, resolvedAddr, field)
             scope.calcOnState { memory.read(lValue) }
         }
-        val wrappedResult = result.toFakeObject(scope)
-
-        return@with mkIte(fieldExists, wrappedResult, mkUndefinedValue())
+        return@with if (result is KInterpretedValue) {
+            result
+        } else {
+            val wrappedResult = result.toFakeObject(scope)
+            mkIte(fieldExists, wrappedResult, mkUndefinedValue())
+        }
     }
 
     private fun handleArrayLength(

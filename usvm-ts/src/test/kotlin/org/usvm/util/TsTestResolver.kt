@@ -198,6 +198,10 @@ open class TsTestStateResolver(
     ): TsTestValue {
         val concreteRef = evaluateInModel(heapRef) as UConcreteHeapRef
 
+        if (with(ctx) { concreteRef.isFakeObject() }) {
+            return resolveFakeObject(concreteRef)
+        }
+
         if (concreteRef.address == 0) {
             return TsTestValue.TsUndefined
         }
@@ -240,7 +244,7 @@ open class TsTestStateResolver(
 
             // A case that is possible only is there are no other classes with suitable fields set in the scene
             is EtsAnyType -> {
-                val propertiesSet = memory
+                val propertiesSet = (if (concreteRef.isAllocated) finalStateMemory else model)
                     .refSetEntries(concreteRef, EtsUnknownType)
                     .entries
                     .map {
@@ -252,7 +256,7 @@ open class TsTestStateResolver(
                     with(ctx) {
                         val sort = typeToSort(fieldSignature.type)
                         if (sort == unresolvedSort) {
-                            val lValue = mkFieldLValue(addressSort, heapRef, fieldSignature)
+                            val lValue = mkFieldLValue(addressSort, concreteRef, fieldSignature)
 
                             val fakeObject = if (memory is UModel) {
                                 resolvedLValuesToFakeObjects.firstOrNull { it.first == lValue }?.second
@@ -396,19 +400,19 @@ open class TsTestStateResolver(
             model.eval(type.boolTypeExpr).isTrue -> {
                 val lValue = getIntermediateBoolLValue(expr.address)
                 val value = finalStateMemory.read(lValue)
-                resolveExpr(model.eval(value))
+                resolveExpr(value)
             }
 
             model.eval(type.fpTypeExpr).isTrue -> {
                 val lValue = getIntermediateFpLValue(expr.address)
                 val value = finalStateMemory.read(lValue)
-                resolveExpr(model.eval(value))
+                resolveExpr(value)
             }
 
             model.eval(type.refTypeExpr).isTrue -> {
                 val lValue = getIntermediateRefLValue(expr.address)
                 val value = finalStateMemory.read(lValue)
-                resolveExpr(model.eval(value))
+                resolveExpr(value)
             }
 
             else -> error("Unsupported")
@@ -425,7 +429,7 @@ open class TsTestStateResolver(
                 if (e.isFakeObject()) {
                     val lValue = getIntermediateFpLValue(e.address)
                     val value = finalStateMemory.read(lValue)
-                    resolveExpr(model.eval(value))
+                    resolveExpr(value)
                 } else {
                     if (e is KFpValue<*>) {
                         TsTestValue.TsNumber.TsDouble(e.extractDouble())
@@ -500,7 +504,7 @@ open class TsTestStateResolver(
         check(type is EtsRefType) { "Expected EtsRefType, but got $type" }
         val clazz = resolveClass(type)
 
-        val resolvedProperties = memory
+        val resolvedProperties = (if (concreteRef.isAllocated) finalStateMemory else model)
             .refSetEntries(concreteRef, EtsUnknownType)
             .entries
             .map {
@@ -513,7 +517,7 @@ open class TsTestStateResolver(
             .associate { field ->
                 val sort = typeToSort(field.type)
                 if (sort == unresolvedSort) {
-                    val lValue = mkFieldLValue(addressSort, heapRef, field)
+                    val lValue = mkFieldLValue(addressSort, concreteRef, field)
 
                     val fakeObject = if (memory is UModel) {
                         resolvedLValuesToFakeObjects.firstOrNull { it.first == lValue }?.second
