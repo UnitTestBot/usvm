@@ -51,8 +51,8 @@ class ImportExportResolutionUnitTest {
                 //  export { internalName as PublicName };
                 EtsExportInfo("PublicName", EtsExportType.METHOD, nameBeforeAs = "internalName"),
 
-                // Re-export from another module
-                //  class ExternalUtil {}  (in 'src/utils/external.ts')
+                // Re-export from another module:
+                //  export class ExternalUtil {}  (in 'src/utils/external.ts')
                 //  export { ExternalUtil } from './external';
                 EtsExportInfo("ExternalUtil", EtsExportType.CLASS, from = "./external"),
             )
@@ -136,8 +136,9 @@ class ImportExportResolutionUnitTest {
     @Test
     @DisplayName("Test default import symbol resolution")
     fun testDefaultImportResolution() {
-        // import Helper from '../utils/helper';
-        // export default Helper;
+        // Import a default symbol:
+        //  import Helper from '../utils/helper';
+        //  export default Helper;  (in helper.ets)
         val result = scene.resolveSymbol(
             currentFile = currentFile,
             importPath = "../utils/helper",
@@ -154,8 +155,9 @@ class ImportExportResolutionUnitTest {
     @Test
     @DisplayName("Test default import when no default export exists")
     fun testDefaultImportNoDefaultExport() {
-        // import Types from '/src/types/index';
-        // no default export in index.ets
+        // Try to import a default export that doesn't exist:
+        //  import Types from '/src/types/index';
+        // Should fail since index.ets does not have a default export
         val result = scene.resolveSymbol(
             currentFile = currentFile,
             importPath = "/src/types/index",
@@ -170,8 +172,9 @@ class ImportExportResolutionUnitTest {
     @Test
     @DisplayName("Test named import symbol resolution")
     fun testNamedImportResolution() {
-        // import { utility } from '../utils/helper';
-        // export function utility() {}
+        // Import a named symbol:
+        //  import { utility } from '../utils/helper';
+        //  export function utility() {}  (in helper.ets)
         val result = scene.resolveSymbol(
             currentFile = currentFile,
             importPath = "../utils/helper",
@@ -186,8 +189,9 @@ class ImportExportResolutionUnitTest {
     @Test
     @DisplayName("Test named import with aliased export")
     fun testNamedImportWithAlias() {
-        // import { PublicName } from '../utils/helper';
-        // export { internalName as PublicName };
+        // Import an aliased symbol:
+        //  import { PublicName } from '../utils/helper';
+        //  export { internalName as PublicName };  (in helper.ets)
         val result = scene.resolveSymbol(
             currentFile = currentFile,
             importPath = "../utils/helper",
@@ -203,8 +207,10 @@ class ImportExportResolutionUnitTest {
     @Test
     @DisplayName("Test named import matching original name before alias")
     fun testNamedImportMatchingOriginalName() {
-        // import { internalName } from '../utils/helper';
-        // export { internalName as PublicName };
+        // Try to import the aliased symbol by its original name:
+        //  import { internalName } from '../utils/helper';
+        //  export { internalName as PublicName };
+        // Should fail since 'internalName' is not exported directly, but aliased to 'PublicName'.
         val result = scene.resolveSymbol(
             currentFile = currentFile,
             importPath = "../utils/helper",
@@ -218,7 +224,8 @@ class ImportExportResolutionUnitTest {
     @Test
     @DisplayName("Test named import when symbol not found")
     fun testNamedImportNotFound() {
-        // import { nonexistent } from '../utils/helper';
+        // Try to import a non-existent symbol:
+        //  import { nonexistent } from '../utils/helper';
         // no such export in helper.ets
         val result = scene.resolveSymbol(
             currentFile = currentFile,
@@ -234,7 +241,9 @@ class ImportExportResolutionUnitTest {
     @Test
     @DisplayName("Test namespace import symbol resolution")
     fun testNamespaceImportResolution() {
-        // import * as HelperModule from '../utils/helper';
+        // Import all symbols from a module:
+        //  import * as HelperModule from '../utils/helper';
+        // Should resolve to a virtual namespace export
         val result = scene.resolveSymbol(
             currentFile = currentFile,
             importPath = "../utils/helper",
@@ -258,9 +267,12 @@ class ImportExportResolutionUnitTest {
             projectName = "TestProject",
         )
 
+        // Import all symbols from an empty module:
+        //  import * as EmptyModule from '/src/empty';
+        // Should fail since there are no exports in empty.ets
         val result = sceneWithEmpty.resolveSymbol(
             currentFile = currentFile,
-            importPath = "./empty",
+            importPath = "/src/empty",
             symbolName = "EmptyModule",
             importType = EtsImportType.NAMESPACE,
         )
@@ -272,6 +284,9 @@ class ImportExportResolutionUnitTest {
     @Test
     @DisplayName("Test side effect import symbol resolution")
     fun testSideEffectImportResolution() {
+        // Import a module for its side effects:
+        //  import '../utils/helper';
+        // Should resolve to a virtual export with no specific symbol
         val result = scene.resolveSymbol(
             currentFile = currentFile,
             importPath = "../utils/helper",
@@ -287,12 +302,15 @@ class ImportExportResolutionUnitTest {
     @Test
     @DisplayName("Test complete import info resolution for default import")
     fun testCompleteDefaultImportInfo() {
+        // Import a default symbol:
+        //  import Helper from '../utils/helper';
         val importInfo = EtsImportInfo(
             name = "Helper",
             type = EtsImportType.DEFAULT,
             from = "../utils/helper",
         )
 
+        // export default class Helper {}  (in helper.ets)
         val result = scene.resolveImportInfo(currentFile, importInfo)
         assertIs<SymbolResolutionResult.Success>(result)
         assertEquals("default", result.exportInfo.name)
@@ -302,12 +320,15 @@ class ImportExportResolutionUnitTest {
     @Test
     @DisplayName("Test complete import info resolution for named import")
     fun testCompleteNamedImportInfo() {
+        // Import a named symbol:
+        //  import { utility } from '../utils/helper';
         val importInfo = EtsImportInfo(
             name = "utility",
             type = EtsImportType.NAMED,
             from = "../utils/helper",
         )
 
+        // export function utility() {}  (in helper.ets)
         val result = scene.resolveImportInfo(currentFile, importInfo)
         assertIs<SymbolResolutionResult.Success>(result)
         assertEquals("utility", result.exportInfo.name)
@@ -317,12 +338,15 @@ class ImportExportResolutionUnitTest {
     @Test
     @DisplayName("Test complete import info resolution for namespace import")
     fun testCompleteNamespaceImportInfo() {
+        // Import all symbols from a module:
+        //  import * as HelperNamespace from '../utils/helper';
         val importInfo = EtsImportInfo(
             name = "HelperNamespace",
             type = EtsImportType.NAMESPACE,
             from = "../utils/helper",
         )
 
+        // Should resolve to a virtual namespace export
         val result = scene.resolveImportInfo(currentFile, importInfo)
         assertIs<SymbolResolutionResult.Success>(result)
         assertEquals("HelperNamespace", result.exportInfo.name)
@@ -333,6 +357,9 @@ class ImportExportResolutionUnitTest {
     @Test
     @DisplayName("Test resolution with re-exported symbols")
     fun testReExportedSymbolResolution() {
+        // Import re-exported symbol:
+        //  import { ExternalUtil } from '../utils/helper';
+        //  export { ExternalUtil } from './external';  (in helper.ets)
         val result = scene.resolveSymbol(
             currentFile = currentFile,
             importPath = "../utils/helper",
@@ -369,6 +396,8 @@ class ImportExportResolutionUnitTest {
     @Test
     @DisplayName("Test symbol resolution when file not found")
     fun testSymbolResolutionFileNotFound() {
+        // Attempt to resolve a symbol from a non-existent file:
+        // import { SomeSymbol } from './nonexistent';
         val result = scene.resolveSymbol(
             currentFile = currentFile,
             importPath = "./nonexistent",
@@ -384,7 +413,8 @@ class ImportExportResolutionUnitTest {
     fun testMultipleImportTypesAgainstSameFile() {
         val filePath = "../utils/helper"
 
-        // Test default import
+        // Test default import:
+        //  import Helper from '../utils/helper';
         val defaultResult = scene.resolveSymbol(
             currentFile = currentFile,
             importPath = filePath,
@@ -393,7 +423,8 @@ class ImportExportResolutionUnitTest {
         )
         assertIs<SymbolResolutionResult.Success>(defaultResult)
 
-        // Test named import
+        // Test named import:
+        //  import { utility } from '../utils/helper';
         val namedResult = scene.resolveSymbol(
             currentFile = currentFile,
             importPath = filePath,
@@ -402,7 +433,8 @@ class ImportExportResolutionUnitTest {
         )
         assertIs<SymbolResolutionResult.Success>(namedResult)
 
-        // Test namespace import
+        // Test namespace import:
+        //  import * as HelperNs from '../utils/helper';
         val namespaceResult = scene.resolveSymbol(
             currentFile = currentFile,
             importPath = filePath,
@@ -412,6 +444,7 @@ class ImportExportResolutionUnitTest {
         assertIs<SymbolResolutionResult.Success>(namespaceResult)
 
         // Test side effect import
+        //  import '../utils/helper';
         val sideEffectResult = scene.resolveSymbol(
             currentFile = currentFile,
             importPath = filePath,
