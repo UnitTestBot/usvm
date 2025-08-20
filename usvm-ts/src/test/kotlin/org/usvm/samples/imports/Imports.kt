@@ -2,14 +2,12 @@ package org.usvm.samples.imports
 
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsProjectAutoConvert
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.eq
 import org.usvm.util.getResourcePath
 
-@Disabled("Imports are not fully supported yet")
 class Imports : TsMethodTestRunner() {
     private val tsPath = "/samples/imports"
 
