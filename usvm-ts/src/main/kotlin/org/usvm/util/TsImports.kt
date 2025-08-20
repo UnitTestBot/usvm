@@ -164,8 +164,6 @@ private fun resolveSymbolInFile(
                 val namespaceExport = EtsExportInfo(
                     name = symbolName,
                     type = EtsExportType.NAME_SPACE,
-                    from = null,
-                    nameBeforeAs = null,
                 )
                 SymbolResolutionResult.Success(targetFile, namespaceExport)
             } else {
@@ -183,8 +181,6 @@ private fun resolveSymbolInFile(
             val sideEffectExport = EtsExportInfo(
                 name = "",
                 type = EtsExportType.UNKNOWN,
-                from = null,
-                nameBeforeAs = null,
             )
             SymbolResolutionResult.Success(targetFile, sideEffectExport)
         }
