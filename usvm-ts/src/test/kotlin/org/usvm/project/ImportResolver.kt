@@ -1,4 +1,4 @@
-package org.usvm.util
+package org.usvm.project
 
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsExportInfo
@@ -10,6 +10,13 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import org.usvm.util.ImportResolutionResult
+import org.usvm.util.SymbolResolutionResult
+import org.usvm.util.abort
+import org.usvm.util.getResourcePathOrNull
+import org.usvm.util.normalizeRelativePath
+import org.usvm.util.resolveImport
+import org.usvm.util.resolveSymbol
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
