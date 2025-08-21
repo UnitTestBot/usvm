@@ -8,7 +8,7 @@ import {
     exportedBoolean,
     exportedFunction,
     ExportedClass,
-    exportedAsyncFunction
+    exportedAsyncFunction,
 } from './namedExports';
 
 // Default import
@@ -21,7 +21,7 @@ import DefaultClass, { namedValue } from './defaultExport';
 import {
     renamedValue as aliasedValue,
     calculate as computeValue,
-    InternalClass as RenamedClass
+    InternalClass as RenamedClass,
 } from './mixedExports';
 
 // Namespace import
@@ -41,7 +41,7 @@ import {
     BaseProcessor,
     NumberProcessor,
     getModuleState,
-    setModuleState
+    setModuleState,
 } from './advancedExports';
 
 class Imports {

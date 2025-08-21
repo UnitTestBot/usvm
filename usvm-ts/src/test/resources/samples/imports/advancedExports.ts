@@ -20,8 +20,8 @@ export const CONSTANTS = {
     MAX_SIZE: 100,
     CONFIG: {
         timeout: 5000,
-        retries: 3
-    }
+        retries: 3,
+    },
 } as const;
 
 // Function overloads
