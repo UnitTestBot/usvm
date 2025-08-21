@@ -497,7 +497,9 @@ class TsInterpreter(
 
         scope.calcOnState {
             // Assignments in %dflt::%dflt are *special*...
-            if (stmt.location.method.name == DEFAULT_ARK_METHOD_NAME && stmt.location.method.enclosingClass?.name == DEFAULT_ARK_CLASS_NAME) {
+            val isDflt = stmt.location.method.name == DEFAULT_ARK_METHOD_NAME &&
+                stmt.location.method.enclosingClass?.name == DEFAULT_ARK_CLASS_NAME
+            if (isDflt) {
                 val lhv = stmt.lhv
                 check(lhv is EtsLocal) {
                     "All assignments in %dflt::%dflt should be to locals, but got: $stmt"
