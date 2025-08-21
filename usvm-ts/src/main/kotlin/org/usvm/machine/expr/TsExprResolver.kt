@@ -132,6 +132,7 @@ import org.usvm.machine.types.mkFakeValue
 import org.usvm.sizeSort
 import org.usvm.types.first
 import org.usvm.util.EtsHierarchy
+import org.usvm.util.SymbolResolutionResult
 import org.usvm.util.TsResolutionResult
 import org.usvm.util.createFakeField
 import org.usvm.util.isResolved
@@ -141,6 +142,7 @@ import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
 import org.usvm.util.resolveEtsField
 import org.usvm.util.resolveEtsMethods
+import org.usvm.util.resolveImportInfo
 import org.usvm.util.throwExceptionWithoutStackFrameDrop
 
 private val logger = KotlinLogging.logger {}
@@ -1602,8 +1604,50 @@ class TsSimpleValueResolver(
         if (localIdx == null) {
             require(local is EtsLocal)
 
-            // Check whether this local was already assigned to (has a saved sort in dflt object)
             val file = currentMethod.enclosingClass!!.declaringFile!!
+            val importInfo = file.importInfos.find { it.name == local.name }
+
+            if (importInfo != null) {
+                return when (val resolutionResult = scene.resolveImportInfo(file, importInfo)) {
+                    is SymbolResolutionResult.Success -> {
+                        val importedFile = resolutionResult.file
+                        val isImportedFileGlobalsInitialized = scope.calcOnState { isGlobalsInitialized(importedFile) }
+                        if (!isImportedFileGlobalsInitialized) {
+                            logger.info { "Globals are not initialized for imported file: $importedFile" }
+                            scope.doWithState {
+                                initializeGlobals(importedFile)
+                            }
+                            return null
+                        }
+                        val importedDfltObject = scope.calcOnState { getDfltObject(importedFile) }
+                        val symbolNameInImportedFile = resolutionResult.exportInfo.originalName
+                        val savedSort = scope.calcOnState {
+                            getSortForDfltObjectField(importedFile, symbolNameInImportedFile)
+                        }
+                        if (savedSort == null) {
+                            logger.error { "Trying to read unassigned imported symbol: ${local.name} from '${importedFile.signature.fileName}'" }
+                            scope.assert(falseExpr)
+                            return null
+                        }
+                        val lValue = mkFieldLValue(savedSort, importedDfltObject, symbolNameInImportedFile)
+                        scope.calcOnState { memory.read(lValue) }
+                    }
+
+                    is SymbolResolutionResult.FileNotFound -> {
+                        logger.error { "Cannot resolve import for ${local.name}: ${resolutionResult.reason}" }
+                        scope.assert(falseExpr)
+                        return null
+                    }
+
+                    is SymbolResolutionResult.SymbolNotFound -> {
+                        logger.error { "Cannot find symbol ${local.name} in '${resolutionResult.file.signature.fileName}': ${resolutionResult.reason}" }
+                        scope.assert(falseExpr)
+                        return null
+                    }
+                }
+            }
+
+            // Check whether this local was already assigned to (has a saved sort in dflt object)
             val dfltObject = scope.calcOnState { getDfltObject(file) }
 
             val isGlobalsInitialized = scope.calcOnState { isGlobalsInitialized(file) }
