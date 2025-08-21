@@ -24,8 +24,8 @@ import org.usvm.machine.types.mkFakeValue
 fun TsContext.boolToFp(expr: UExpr<UBoolSort>): UExpr<KFp64Sort> =
     mkIte(expr, mkFp64(1.0), mkFp64(0.0))
 
-fun TsState.throwExceptionWithoutStackFrameDrop(address: UHeapRef, type: EtsType) {
-    methodResult = TsMethodResult.TsException(address, type)
+fun TsState.throwExceptionWithoutStackFrameDrop(ref: UHeapRef, type: EtsType) {
+    methodResult = TsMethodResult.TsException(ref, type)
 }
 
 val EtsClass.type: EtsClassType

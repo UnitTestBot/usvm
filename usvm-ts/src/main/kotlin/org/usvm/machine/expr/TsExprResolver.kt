@@ -1219,7 +1219,7 @@ class TsExprResolver(
 
         scope.fork(
             neqNull,
-            blockOnFalseState = allocateException(EtsStringType) // TODO incorrect exception type
+            blockOnFalseState = allocateException("Undefined or null property access: $ref")
         )
     }
 
@@ -1228,7 +1228,7 @@ class TsExprResolver(
 
         scope.fork(
             condition,
-            blockOnFalseState = allocateException(EtsStringType) // TODO incorrect exception type
+            blockOnFalseState = allocateException("Negative index access: $index")
         )
     }
 
@@ -1237,13 +1237,13 @@ class TsExprResolver(
 
         scope.fork(
             condition,
-            blockOnFalseState = allocateException(EtsStringType) // TODO incorrect exception type
+            blockOnFalseState = allocateException("Index out of bounds: $index, length: $length" )
         )
     }
 
-    private fun allocateException(type: EtsType): (TsState) -> Unit = { state ->
-        val address = state.memory.allocConcrete(type)
-        state.throwExceptionWithoutStackFrameDrop(address, type)
+    private fun allocateException(reason: String): (TsState) -> Unit = { state ->
+        val s = ctx.mkStringConstant(reason, scope)
+        state.throwExceptionWithoutStackFrameDrop(s, EtsStringType)
     }
 
     private fun handleFieldRef(
@@ -1545,7 +1545,7 @@ class TsExprResolver(
 
             scope.fork(
                 condition,
-                blockOnFalseState = allocateException(EtsStringType) // TODO incorrect exception type
+                blockOnFalseState = allocateException("Invalid array size: ${size.asExpr(fp64Sort)}")
             )
 
             if (arrayType.elementType is EtsArrayType) {

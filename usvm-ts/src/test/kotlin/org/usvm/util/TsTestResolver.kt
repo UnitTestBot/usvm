@@ -116,13 +116,39 @@ class TsTestResolver {
         }
     }
 
-    @Suppress("unused")
     private fun resolveException(
         res: TsMethodResult.TsException,
         afterMemoryScope: MemoryScope,
     ): TsTestValue.TsException {
-        // TODO support exceptions
-        return TsTestValue.TsException
+        return afterMemoryScope.withMode(ResolveMode.CURRENT) {
+            try {
+                // Dispatch based on the exception type, similar to string const resolution
+                when (res.type) {
+                    is EtsStringType -> {
+                        val concreteRef = evaluateInModel(res.value) as? UConcreteHeapRef
+                        if (concreteRef != null && isAllocatedConcreteHeapRef(concreteRef)) {
+                            val stringValue = ctx.getStringConstantValue(concreteRef)
+                            if (stringValue != null) {
+                                TsTestValue.TsException.StringException(stringValue)
+                            } else {
+                                TsTestValue.TsException.UnknownException
+                            }
+                        } else {
+                            TsTestValue.TsException.UnknownException
+                        }
+                    }
+
+                    else -> {
+                        // Other types of exceptions - resolve and wrap the value
+                        val resolvedValue = resolveExpr(res.value)
+                        TsTestValue.TsException.ObjectException(resolvedValue)
+                    }
+                }
+            } catch (_: Exception) {
+                // Fallback to unknown exception if resolution fails
+                TsTestValue.TsException.UnknownException
+            }
+        }
     }
 
     private class MemoryScope(
