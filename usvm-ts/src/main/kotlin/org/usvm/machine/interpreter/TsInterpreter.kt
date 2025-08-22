@@ -519,34 +519,38 @@ class TsInterpreter(
                 is EtsLocal -> {
                     val idx = getLocalIdx(lhv, stmt.location.method)
 
-                    if (idx == null) {
-                        val file = stmt.location.method.enclosingClass!!.declaringFile!!
-                        logger.warn {
-                            "Assigning to a global variable: ${lhv.name} in $file"
-                        }
-
-                        val isGlobalsInitialized = isGlobalsInitialized(file)
-                        if (!isGlobalsInitialized) {
-                            logger.info { "Globals are not initialized for file: $file" }
-                            initializeGlobals(file)
-                            return@calcOnState null
-                        } else {
-                            // TODO: handle methodResult
-                            if (methodResult is TsMethodResult.Success) {
-                                methodResult = TsMethodResult.NoCall
-                            }
-                        }
-
-                        val dfltObject = getDfltObject(file)
-                        val lValue = mkFieldLValue(expr.sort, dfltObject, lhv.name)
+                    // If local is found in the current method:
+                    if (idx != null) {
+                        saveSortForLocal(idx, expr.sort)
+                        val lValue = mkRegisterStackLValue(expr.sort, idx)
                         memory.write(lValue, expr.cast(), guard = trueExpr)
-                        saveSortForDfltObjectField(file, lhv.name, expr.sort)
                         return@calcOnState Unit
                     }
 
-                    saveSortForLocal(idx, expr.sort)
-                    val lValue = mkRegisterStackLValue(expr.sort, idx)
+                    // Local not found, probably a global
+                    val file = stmt.location.method.enclosingClass!!.declaringFile!!
+                    logger.warn {
+                        "Assigning to a global variable: ${lhv.name} in $file"
+                    }
+
+                    // Initialize globals in `file` if necessary
+                    val isGlobalsInitialized = isGlobalsInitialized(file)
+                    if (!isGlobalsInitialized) {
+                        logger.info { "Globals are not initialized for file: $file" }
+                        initializeGlobals(file)
+                        return@calcOnState null
+                    } else {
+                        // TODO: handle methodResult
+                        if (methodResult is TsMethodResult.Success) {
+                            methodResult = TsMethodResult.NoCall
+                        }
+                    }
+
+                    // Resolve the global variable as a field of the dflt object
+                    val dfltObject = getDfltObject(file)
+                    val lValue = mkFieldLValue(expr.sort, dfltObject, lhv.name)
                     memory.write(lValue, expr.cast(), guard = trueExpr)
+                    saveSortForDfltObjectField(file, lhv.name, expr.sort)
                 }
 
                 is EtsArrayAccess -> {
