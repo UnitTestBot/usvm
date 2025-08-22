@@ -48,7 +48,7 @@ fun TsContext.resolveLocal(
             val resolvedCaptured = resolveLocal(scope, captured) ?: return null
             val lValue = mkFieldLValue(resolvedCaptured.sort, obj, captured.name)
             scope.doWithState {
-                memory.write(lValue, resolvedCaptured.cast(), guard = ctx.trueExpr)
+                memory.write(lValue, resolvedCaptured.cast(), guard = trueExpr)
             }
         }
         scope.doWithState {
