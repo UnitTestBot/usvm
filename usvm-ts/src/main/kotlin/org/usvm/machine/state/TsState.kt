@@ -103,9 +103,9 @@ class TsState(
         return localToSort[idx]
     }
 
-    fun getOrPutSortForLocal(idx: Int, localType: EtsType): USort {
+    fun getOrPutSortForLocal(idx: Int, sort: () -> USort): USort {
         val localToSort = localToSortStack.last()
-        val (updated, result) = localToSort.getOrPut(idx, ownership) { ctx.typeToSort(localType) }
+        val (updated, result) = localToSort.getOrPut(idx, ownership, sort)
         localToSortStack[localToSortStack.lastIndex] = updated
         return result
     }
@@ -142,11 +142,11 @@ class TsState(
         val argSorts = args.map { arg ->
             val argIdx = localToIdx(arg)
                 ?: error("Arguments must present in the locals, but $arg is absent")
-            getOrPutSortForLocal(argIdx, arg.type)
+            getOrPutSortForLocal(argIdx) { ctx.typeToSort(arg.type) }
         }
 
         val instanceIdx = instance?.let { localToIdx(it) }
-        val instanceSort = instanceIdx?.let { getOrPutSortForLocal(it, instance.type) }
+        val instanceSort = instanceIdx?.let { getOrPutSortForLocal(it) { ctx.typeToSort(instance.type) } }
 
         // Note: first, push an empty map, then fill the arguments, and then the instance (this)
         pushLocalToSortStack()

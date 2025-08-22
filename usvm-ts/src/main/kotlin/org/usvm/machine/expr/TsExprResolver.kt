@@ -1,8 +1,6 @@
 package org.usvm.machine.expr
 
-import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
-import io.ksmt.utils.cast
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsAddExpr
 import org.jacodb.ets.model.EtsAndExpr
@@ -73,7 +71,6 @@ import org.jacodb.ets.model.EtsStringConstant
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsSubExpr
 import org.jacodb.ets.model.EtsThis
-import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsTypeOfExpr
 import org.jacodb.ets.model.EtsUnaryExpr
 import org.jacodb.ets.model.EtsUnaryPlusExpr
@@ -87,21 +84,17 @@ import org.jacodb.ets.utils.ANONYMOUS_METHOD_PREFIX
 import org.jacodb.ets.utils.STATIC_INIT_METHOD_NAME
 import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
 import org.jacodb.ets.utils.getDeclaredLocals
-import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
-import org.usvm.UBoolSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.UIteExpr
 import org.usvm.USort
-import org.usvm.api.allocateConcreteRef
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArrayLength
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.api.mockMethodCall
 import org.usvm.api.typeStreamOf
-import org.usvm.dataflow.ts.infer.tryGetKnownType
 import org.usvm.dataflow.ts.util.type
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.Constants
@@ -112,8 +105,6 @@ import org.usvm.machine.TsVirtualMethodCallStmt
 import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.getResolvedValue
-import org.usvm.machine.interpreter.initializeGlobals
-import org.usvm.machine.interpreter.isGlobalsInitialized
 import org.usvm.machine.interpreter.isInitialized
 import org.usvm.machine.interpreter.isResolved
 import org.usvm.machine.interpreter.markInitialized
@@ -132,17 +123,14 @@ import org.usvm.machine.types.mkFakeValue
 import org.usvm.sizeSort
 import org.usvm.types.first
 import org.usvm.util.EtsHierarchy
-import org.usvm.util.SymbolResolutionResult
 import org.usvm.util.TsResolutionResult
 import org.usvm.util.createFakeField
 import org.usvm.util.isResolved
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
-import org.usvm.util.mkRegisterStackLValue
 import org.usvm.util.resolveEtsField
 import org.usvm.util.resolveEtsMethods
-import org.usvm.util.resolveImportInfo
 import org.usvm.util.throwExceptionWithoutStackFrameDrop
 
 private val logger = KotlinLogging.logger {}
@@ -165,12 +153,11 @@ private const val ECMASCRIPT_BITWISE_SHIFT_MASK = 0b11111
 class TsExprResolver(
     internal val ctx: TsContext,
     internal val scope: TsStepScope,
-    private val localToIdx: (EtsMethod, EtsValue) -> Int?,
     private val hierarchy: EtsHierarchy,
 ) : EtsEntity.Visitor<UExpr<out USort>?> {
 
     val simpleValueResolver: TsSimpleValueResolver =
-        TsSimpleValueResolver(ctx, scope, localToIdx)
+        TsSimpleValueResolver(ctx, scope)
 
     fun resolve(expr: EtsEntity): UExpr<out USort>? {
         return expr.accept(this)
@@ -1186,7 +1173,7 @@ class TsExprResolver(
                     val fakeObj = if (refValue.isFakeObject()) {
                         refValue
                     } else {
-                        mkFakeValue(scope, boolValue, fpValue, refValue).also {
+                        mkFakeValue(boolValue, fpValue, refValue).also {
                             lValuesToAllocatedFakeObjects += refLValue to it
                         }
                     }
@@ -1237,12 +1224,12 @@ class TsExprResolver(
 
         scope.fork(
             condition,
-            blockOnFalseState = allocateException("Index out of bounds: $index, length: $length" )
+            blockOnFalseState = allocateException("Index out of bounds: $index, length: $length")
         )
     }
 
     private fun allocateException(reason: String): (TsState) -> Unit = { state ->
-        val s = ctx.mkStringConstant(reason, scope)
+        val s = ctx.mkStringConstantRef(reason)
         state.throwExceptionWithoutStackFrameDrop(s, EtsStringType)
     }
 
@@ -1265,7 +1252,7 @@ class TsExprResolver(
                 // It is possible due to mistakes in the IR or if the field was added explicitly
                 // in the code.
                 // Probably, the right behaviour here is to fork the state.
-                resolvedAddr.createFakeField(field.name, scope)
+                resolvedAddr.createFakeField(scope, field.name)
                 addressSort
             }
 
@@ -1297,7 +1284,7 @@ class TsExprResolver(
                 val fakeRef = if (ref.isFakeObject()) {
                     ref
                 } else {
-                    mkFakeValue(scope, bool, fp, ref).also {
+                    mkFakeValue(bool, fp, ref).also {
                         lValuesToAllocatedFakeObjects += refLValue to it
                     }
                 }
@@ -1442,7 +1429,7 @@ class TsExprResolver(
             } else {
                 scope.doWithState {
                     markInitialized(clazz)
-                    pushSortsForArguments(instance = null, args = emptyList()) { localToIdx(lastEnteredMethod, it) }
+                    pushSortsForArguments(instance = null, args = emptyList()) { getLocalIdx(it, lastEnteredMethod) }
                     registerCallee(currentStatement, initializer.cfg)
                     callStack.push(initializer, currentStatement)
                     memory.stack.push(arrayOf(instanceRef), initializer.localsCount)
@@ -1565,172 +1552,10 @@ class TsExprResolver(
 class TsSimpleValueResolver(
     private val ctx: TsContext,
     private val scope: TsStepScope,
-    private val localToIdx: (EtsMethod, EtsValue) -> Int?,
 ) : EtsValue.Visitor<UExpr<out USort>?> {
 
     private fun resolveLocal(local: EtsValue): UExpr<*>? = with(ctx) {
-        val currentMethod = scope.calcOnState { lastEnteredMethod }
-        val entrypoint = scope.calcOnState { entrypoint }
-
-        // Handle closures
-        if (local is EtsLocal && local.name.startsWith("%closures")) {
-            // TODO: add comments
-            val existingClosures = scope.calcOnState { closureObject[local.name] }
-            if (existingClosures != null) {
-                return existingClosures
-            }
-            val type = local.type
-            check(type is EtsLexicalEnvType)
-            val obj = allocateConcreteRef()
-            // TODO: consider 'types.allocate'
-            for (captured in type.closures) {
-                val resolvedCaptured = resolveLocal(captured) ?: return null
-                val lValue = mkFieldLValue(resolvedCaptured.sort, obj, captured.name)
-                scope.doWithState {
-                    memory.write(lValue, resolvedCaptured.cast(), guard = ctx.trueExpr)
-                }
-            }
-            scope.doWithState {
-                setClosureObject(local.name, obj)
-            }
-            return obj
-        }
-
-        val localIdx = localToIdx(currentMethod, local)
-
-        // If the local is not found in the current method,
-        // we treat it as a global variable,
-        // which we represent as a field of the "dflt object".
-        if (localIdx == null) {
-            require(local is EtsLocal)
-
-            val file = currentMethod.enclosingClass!!.declaringFile!!
-            val importInfo = file.importInfos.find { it.name == local.name }
-
-            if (importInfo != null) {
-                return when (val resolutionResult = scene.resolveImportInfo(file, importInfo)) {
-                    is SymbolResolutionResult.Success -> {
-                        val importedFile = resolutionResult.file
-                        val isImportedFileGlobalsInitialized = scope.calcOnState { isGlobalsInitialized(importedFile) }
-                        if (!isImportedFileGlobalsInitialized) {
-                            logger.info { "Globals are not initialized for imported file: $importedFile" }
-                            scope.doWithState {
-                                initializeGlobals(importedFile)
-                            }
-                            return null
-                        }
-                        val importedDfltObject = scope.calcOnState { getDfltObject(importedFile) }
-                        val symbolNameInImportedFile = resolutionResult.exportInfo.originalName
-                        val savedSort = scope.calcOnState {
-                            getSortForDfltObjectField(importedFile, symbolNameInImportedFile)
-                        }
-                        if (savedSort == null) {
-                            logger.error { "Trying to read unassigned imported symbol: ${local.name} from '${importedFile.signature.fileName}'" }
-                            scope.assert(falseExpr)
-                            return null
-                        }
-                        val lValue = mkFieldLValue(savedSort, importedDfltObject, symbolNameInImportedFile)
-                        scope.calcOnState { memory.read(lValue) }
-                    }
-
-                    is SymbolResolutionResult.FileNotFound -> {
-                        logger.error { "Cannot resolve import for ${local.name}: ${resolutionResult.reason}" }
-                        scope.assert(falseExpr)
-                        return null
-                    }
-
-                    is SymbolResolutionResult.SymbolNotFound -> {
-                        logger.error { "Cannot find symbol ${local.name} in '${resolutionResult.file.signature.fileName}': ${resolutionResult.reason}" }
-                        scope.assert(falseExpr)
-                        return null
-                    }
-                }
-            }
-
-            // Check whether this local was already assigned to (has a saved sort in dflt object)
-            val dfltObject = scope.calcOnState { getDfltObject(file) }
-
-            val isGlobalsInitialized = scope.calcOnState { isGlobalsInitialized(file) }
-            if (!isGlobalsInitialized) {
-                logger.info { "Globals are not initialized for file: $file" }
-                scope.doWithState {
-                    initializeGlobals(file)
-                }
-                return null
-            } else {
-                // TODO: handle methodResult
-                scope.doWithState {
-                    if (methodResult is TsMethodResult.Success) {
-                        methodResult = TsMethodResult.NoCall
-                    }
-                }
-            }
-
-            // Try to get the saved sort for this dflt object field
-            val savedSort = scope.calcOnState {
-                getSortForDfltObjectField(file, local.name)
-            }
-
-            if (savedSort == null) {
-                // No saved sort means this field was never assigned to, which is an error
-                logger.error { "Trying to read unassigned global variable: ${local.name} in $file" }
-                scope.assert(ctx.falseExpr)
-                return null
-            }
-
-            // Use the saved sort to read the field
-            val lValue = mkFieldLValue(savedSort, dfltObject, local.name)
-            return scope.calcOnState { memory.read(lValue) }
-        }
-
-        val sort = scope.calcOnState {
-            val type = local.tryGetKnownType(currentMethod)
-            getOrPutSortForLocal(localIdx, type)
-        }
-
-        // If we are not in the entrypoint, all correct values are already resolved,
-        // and we can just return a registerStackLValue for the local.
-        if (currentMethod != entrypoint) {
-            val lValue = mkRegisterStackLValue(sort, localIdx)
-            return scope.calcOnState { memory.read(lValue) }
-        }
-
-        // arguments and this for the first stack frame
-        when (sort) {
-            is UBoolSort -> {
-                val lValue = mkRegisterStackLValue(sort, localIdx)
-                scope.calcOnState { memory.read(lValue) }
-            }
-
-            is KFp64Sort -> {
-                val lValue = mkRegisterStackLValue(sort, localIdx)
-                scope.calcOnState { memory.read(lValue) }
-            }
-
-            is UAddressSort -> {
-                val lValue = mkRegisterStackLValue(sort, localIdx)
-                scope.calcOnState { memory.read(lValue) }
-            }
-
-            is TsUnresolvedSort -> {
-                check(local is EtsThis || local is EtsParameterRef) {
-                    "Only This and ParameterRef are expected here"
-                }
-
-                val boolRValue = ctx.mkRegisterReading(localIdx, ctx.boolSort)
-                val fpRValue = ctx.mkRegisterReading(localIdx, ctx.fp64Sort)
-                val refRValue = ctx.mkRegisterReading(localIdx, ctx.addressSort)
-
-                val fakeObject = ctx.mkFakeValue(scope, boolRValue, fpRValue, refRValue)
-                val lValue = mkRegisterStackLValue(ctx.addressSort, localIdx)
-                scope.calcOnState {
-                    memory.write(lValue, fakeObject.asExpr(ctx.addressSort), guard = ctx.trueExpr)
-                }
-                fakeObject
-            }
-
-            else -> error("Unsupported sort $sort")
-        }
+        resolveLocal(scope, local)
     }
 
     override fun visit(local: EtsLocal): UExpr<out USort>? {

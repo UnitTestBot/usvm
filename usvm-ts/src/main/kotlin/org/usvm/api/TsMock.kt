@@ -22,12 +22,13 @@ fun mockMethodCall(
             result = when (sort) {
                 is UAddressSort -> makeSymbolicRefUntyped()
 
-                is TsUnresolvedSort -> ctx.mkFakeValue(
-                    scope,
-                    makeSymbolicPrimitive(ctx.boolSort),
-                    makeSymbolicPrimitive(ctx.fp64Sort),
-                    makeSymbolicRefUntyped()
-                )
+                is TsUnresolvedSort -> scope.calcOnState {
+                    mkFakeValue(
+                        makeSymbolicPrimitive(ctx.boolSort),
+                        makeSymbolicPrimitive(ctx.fp64Sort),
+                        makeSymbolicRefUntyped()
+                    )
+                }
 
                 else -> makeSymbolicPrimitive(sort)
             }

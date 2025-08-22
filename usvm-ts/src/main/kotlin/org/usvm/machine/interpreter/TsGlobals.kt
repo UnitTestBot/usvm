@@ -1,9 +1,11 @@
 package org.usvm.machine.interpreter
 
+import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsFile
-import org.jacodb.ets.model.EtsValue
+import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
 import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
+import org.jacodb.ets.utils.getDeclaredLocals
 import org.usvm.UBoolSort
 import org.usvm.UHeapRef
 import org.usvm.collection.field.UFieldLValue
@@ -14,11 +16,14 @@ import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
 import org.usvm.util.mkFieldLValue
 
-// fun EtsFile.getGlobals(): Set<EtsLocal> {
-//     val dfltClass = classes.first { it.name == DEFAULT_ARK_CLASS_NAME }
-//     val dfltMethod = dfltClass.methods.first { it.name == DEFAULT_ARK_METHOD_NAME }
-//     return dfltMethod.getDeclaredLocals()
-// }
+fun EtsFile.getGlobals(): List<EtsLocal> {
+    val dfltClass = classes.first { it.name == DEFAULT_ARK_CLASS_NAME }
+    val dfltMethod = dfltClass.methods.first { it.name == DEFAULT_ARK_METHOD_NAME }
+    return dfltMethod.cfg.stmts
+        .filterIsInstance<EtsAssignStmt>()
+        .mapNotNull { it.lhv as? EtsLocal }
+        .distinct()
+}
 
 internal fun TsState.isGlobalsInitialized(file: EtsFile): Boolean {
     val instance = getDfltObject(file)
@@ -43,7 +48,7 @@ internal fun TsState.initializeGlobals(file: EtsFile) {
     val dfltClass = file.classes.first { it.name == DEFAULT_ARK_CLASS_NAME }
     val dfltMethod = dfltClass.methods.first { it.name == DEFAULT_ARK_METHOD_NAME }
     val dfltObject = getDfltObject(file)
-    pushSortsForArguments(instance = null, args = emptyList()){null}
+    pushSortsForArguments(instance = null, args = emptyList()) { null }
     registerCallee(currentStatement, dfltMethod.cfg)
     callStack.push(dfltMethod, currentStatement)
     memory.stack.push(arrayOf(dfltObject), dfltMethod.localsCount)

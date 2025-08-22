@@ -8,15 +8,20 @@ import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsEnumValueType
 import org.jacodb.ets.model.EtsGenericType
+import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsNumberType
+import org.jacodb.ets.model.EtsParameterRef
 import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStringType
+import org.jacodb.ets.model.EtsThis
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUndefinedType
 import org.jacodb.ets.model.EtsUnionType
 import org.jacodb.ets.model.EtsUnknownType
+import org.jacodb.ets.model.EtsValue
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
@@ -110,6 +115,23 @@ class TsContext(
     fun getStringConstantValue(ref: UConcreteHeapRef): String? {
         return heapRefToStringConstant[ref]
     }
+
+    fun getLocalIdx(local: EtsValue, method: EtsMethod): Int? =
+        // Note: below, 'n' means the number of arguments
+        when (local) {
+            // Note: 'this' has index 0
+            is EtsThis -> 0
+
+            // Note: arguments have indices from 1 to n
+            is EtsParameterRef -> local.index + 1
+
+            // Note: locals have indices starting from (n+1)
+            is EtsLocal -> method.locals.indexOfFirst { it.name == local.name }
+                .takeIf { it >= 0 }
+                ?.let { it + method.parameters.size + 1 }
+
+            else -> error("Unexpected local: $local")
+        }
 
     fun typeToSort(type: EtsType): USort = when (type) {
         is EtsBooleanType -> boolSort
@@ -272,7 +294,7 @@ class TsContext(
     fun UConcreteHeapRef.extractRef(scope: TsStepScope): UHeapRef {
         return scope.calcOnState { extractRef(memory) }
     }
-    
+
     // This is an identifier for a special function representing the 'resolve' function used in promises.
     // It is not a real function in the code, but we need it to handle promise resolution.
     val resolveFunctionRef: UConcreteHeapRef = allocateConcreteRef()

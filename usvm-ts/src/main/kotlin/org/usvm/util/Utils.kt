@@ -55,29 +55,27 @@ fun EtsType.getClassesForType(
 
 // TODO save info about this field somewhere
 //      https://github.com/UnitTestBot/usvm/issues/288
-fun UHeapRef.createFakeField(fieldName: String, scope: TsStepScope): UConcreteHeapRef {
-    val ctx = this.tctx
+fun UHeapRef.createFakeField(
+    scope: TsStepScope,
+    fieldName: String,
+): UConcreteHeapRef = with(tctx) {
+    val lValue = mkFieldLValue(addressSort, this@createFakeField, fieldName)
 
-    val lValue = mkFieldLValue(ctx.addressSort, this, fieldName)
+    val boolLValue = mkFieldLValue(boolSort, this@createFakeField, fieldName)
+    val fpLValue = mkFieldLValue(fp64Sort, this@createFakeField, fieldName)
+    val refLValue = mkFieldLValue(addressSort, this@createFakeField, fieldName)
 
-    val boolLValue = mkFieldLValue(ctx.boolSort, this, fieldName)
-    val fpLValue = mkFieldLValue(ctx.fp64Sort, this, fieldName)
-    val refLValue = mkFieldLValue(ctx.addressSort, this, fieldName)
+    val bool = scope.calcOnState { memory.read(boolLValue) }
+    val fp = scope.calcOnState { memory.read(fpLValue) }
+    val ref = scope.calcOnState { memory.read(refLValue) }
 
-    val boolValue = scope.calcOnState { memory.read(boolLValue) }
-    val fpValue = scope.calcOnState { memory.read(fpLValue) }
-    val refValue = scope.calcOnState { memory.read(refLValue) }
-
-    with(ctx) {
-        if (refValue.isFakeObject()) {
-            return refValue
-        }
+    if (ref.isFakeObject()) {
+        return ref
     }
 
-    val fakeObject = ctx.mkFakeValue(scope, boolValue, fpValue, refValue)
-    scope.doWithState {
+    scope.calcOnState {
+        val fakeObject = mkFakeValue(bool, fp, ref)
         memory.write(lValue, fakeObject.asExpr(ctx.addressSort), guard = ctx.trueExpr)
+        fakeObject
     }
-
-    return fakeObject
 }
