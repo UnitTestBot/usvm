@@ -149,7 +149,7 @@ class EtsSceneTest {
                 blocks = blocks,
                 successors = successors,
             )
-            it._cfg = cfg
+            it.body.cfg = cfg
         }
         val ctorBox = EtsMethodImpl(
             signature = EtsMethodSignature(

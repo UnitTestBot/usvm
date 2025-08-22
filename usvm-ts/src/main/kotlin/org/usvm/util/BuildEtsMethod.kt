@@ -33,7 +33,7 @@ fun buildEtsMethod(
     val prog = program(program)
     val blockCfg = prog.toBlockCfg()
     val etsCfg = blockCfg.toEtsBlockCfg(method)
-    method._cfg = etsCfg
+    method.body.cfg = etsCfg
 
     ((enclosingClass as EtsClassImpl).methods as MutableList).add(method)
     method.enclosingClass = enclosingClass
