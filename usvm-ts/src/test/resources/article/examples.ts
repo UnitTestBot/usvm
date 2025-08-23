@@ -53,7 +53,6 @@ class Example {
   // Loose equality: values coercible to 0 (0, "0", false) satisfy (success → 1, otherwise 2).
   f7_loose(o: any) {
     if (o.x == 0) {
-        o.x = 124;
         return 1;
       }
     return 2;

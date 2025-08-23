@@ -23,6 +23,7 @@ import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Test
 import org.usvm.UMachineOptions
 import org.usvm.api.TsTest
+import org.usvm.api.TsTestTypeScriptGenerator
 import org.usvm.api.TsTestValue
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
@@ -317,6 +318,9 @@ class ArticleExample {
          *   }
          */
         val tests = generateTestsFor("f3b")
+        val generatedTest = tests.map { TsTestTypeScriptGenerator.generateTest(it) }
+        println(generatedTest)
+
         check(tests.size == 3) { "Expected 3 tests for f3b, got ${tests.size}" }
 
         val exceptionBranch = tests.singleOrNull {

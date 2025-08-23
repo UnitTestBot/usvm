@@ -1445,11 +1445,16 @@ class TsExprResolver(
             val lValue = mkFieldLValue(sort, resolvedAddr, field)
             scope.calcOnState { memory.read(lValue) }
         }
-        return@with if (result is KInterpretedValue && !result.isFakeObject()) {
-            result
+
+        if (checkFieldPresents) {
+            return@with if (result is KInterpretedValue && !result.isFakeObject()) {
+                result
+            } else {
+                val wrappedResult = result.toFakeObject(scope)
+                mkIte(fieldExists, wrappedResult, mkUndefinedValue())
+            }
         } else {
-            val wrappedResult = result.toFakeObject(scope)
-            mkIte(fieldExists, wrappedResult, mkUndefinedValue())
+            return@with result
         }
     }
 
