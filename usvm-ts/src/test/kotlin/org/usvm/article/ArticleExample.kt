@@ -20,6 +20,7 @@ import org.jacodb.ets.model.EtsStringConstant
 import org.jacodb.ets.model.EtsTypeOfExpr
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
+import org.jacodb.ets.utils.loadEtsProjectFromIR
 import org.junit.jupiter.api.Test
 import org.usvm.UMachineOptions
 import org.usvm.api.TsTest
@@ -34,11 +35,17 @@ import org.usvm.util.toDouble
 import kotlin.time.Duration
 
 class ArticleExample {
+    val usePreparedIR: Boolean = true
+
     val scene = run {
-        val name = "examples.ts"
+        val name = "examples.${if (usePreparedIR) "json" else "ts"}"
         val path = getResourcePath("/article/$name")
-        val file = loadEtsFileAutoConvert(path)
-        EtsScene(listOf(file))
+        if (usePreparedIR) {
+            loadEtsProjectFromIR(path, sdkFilesPath = null)
+        } else {
+            val file = loadEtsFileAutoConvert(path)
+            EtsScene(listOf(file))
+        }
     }
 
     val options = UMachineOptions(timeout = Duration.INFINITE)
