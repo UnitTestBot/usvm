@@ -1,4 +1,4 @@
-package org.usvm.util
+package org.usvm.machine
 
 import org.jacodb.ets.model.EtsExportInfo
 import org.jacodb.ets.model.EtsExportType
@@ -12,12 +12,17 @@ import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
+import org.usvm.util.ImportResolutionResult
+import org.usvm.util.SymbolResolutionResult
+import org.usvm.util.resolveImport
+import org.usvm.util.resolveImportInfo
+import org.usvm.util.resolveSymbol
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
-@DisplayName("Import and Export Resolution Unit Tests")
-class ImportExportResolutionUnitTest {
+@DisplayName("Import and Export Resolution Tests")
+class ImportExportResolutionTest {
 
     private lateinit var scene: EtsScene
     private lateinit var currentFile: EtsFile
@@ -37,7 +42,7 @@ class ImportExportResolutionUnitTest {
                     "default",
                     EtsExportType.CLASS,
                     nameBeforeAs = "Helper",
-                    modifiers = EtsModifiers.of(EtsModifier.DEFAULT)
+                    modifiers = EtsModifiers.Companion.of(EtsModifier.DEFAULT)
                 ),
 
                 // Named exports:
