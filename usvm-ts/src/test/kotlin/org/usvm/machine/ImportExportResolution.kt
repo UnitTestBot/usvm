@@ -69,7 +69,7 @@ class ImportExportResolutionTest {
             exports = listOf(
                 // Namespace export:
                 //  export namespace Types {}
-                EtsExportInfo("Types", EtsExportType.NAME_SPACE),
+                EtsExportInfo("Types", EtsExportType.NAMESPACE),
 
                 // Type export:
                 //  export type UserType = { name: string; }
@@ -77,7 +77,7 @@ class ImportExportResolutionTest {
 
                 // Star re-export:
                 //  export * from './all-types';
-                EtsExportInfo("*", EtsExportType.NAME_SPACE, from = "./all-types"),
+                EtsExportInfo("*", EtsExportType.NAMESPACE, from = "./all-types"),
             )
         )
 
@@ -257,7 +257,7 @@ class ImportExportResolutionTest {
         )
         assertIs<SymbolResolutionResult.Success>(result)
         assertEquals("HelperModule", result.exportInfo.name)
-        assertEquals(EtsExportType.NAME_SPACE, result.exportInfo.type)
+        assertEquals(EtsExportType.NAMESPACE, result.exportInfo.type)
     }
 
     @Test
@@ -374,7 +374,7 @@ class ImportExportResolutionTest {
         val result = scene.resolveImportInfo(currentFile, importInfo)
         assertIs<SymbolResolutionResult.Success>(result)
         assertEquals("HelperNamespace", result.exportInfo.name)
-        assertEquals(EtsExportType.NAME_SPACE, result.exportInfo.type)
+        assertEquals(EtsExportType.NAMESPACE, result.exportInfo.type)
     }
 
     // Test various export scenarios

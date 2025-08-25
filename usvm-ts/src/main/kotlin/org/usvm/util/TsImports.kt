@@ -163,7 +163,7 @@ private fun resolveSymbolInFile(
                 // Create a synthetic namespace export
                 val namespaceExport = EtsExportInfo(
                     name = symbolName,
-                    type = EtsExportType.NAME_SPACE,
+                    type = EtsExportType.NAMESPACE,
                 )
                 SymbolResolutionResult.Success(targetFile, namespaceExport)
             } else {

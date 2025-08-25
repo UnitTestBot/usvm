@@ -344,7 +344,7 @@ class ImportResolverTest {
     // Helper function to describe export information
     private fun getExportDescription(exportInfo: EtsExportInfo): String {
         return when (exportInfo.type) {
-            EtsExportType.NAME_SPACE -> "namespace ${exportInfo.name}"
+            EtsExportType.NAMESPACE -> "namespace ${exportInfo.name}"
             EtsExportType.CLASS -> "class ${exportInfo.name}"
             EtsExportType.METHOD -> "method ${exportInfo.name}"
             EtsExportType.LOCAL -> "local ${exportInfo.name}"
