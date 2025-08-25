@@ -42,7 +42,7 @@ class ImportExportResolutionTest {
                     "default",
                     EtsExportType.CLASS,
                     nameBeforeAs = "Helper",
-                    modifiers = EtsModifiers.Companion.of(EtsModifier.DEFAULT)
+                    modifiers = EtsModifiers.of(EtsModifier.DEFAULT)
                 ),
 
                 // Named exports:
