@@ -154,6 +154,15 @@ fun TsContext.resolveLocalToLValue(
                     return null
                 }
 
+                if (resolutionResult.exportInfo.name == "*") {
+                    logger.warn { "Star import" }
+                    val lValue = mkFieldLValue(addressSort, importedDfltObject, "__self__")
+                    scope.doWithState {
+                        memory.write(lValue, importedDfltObject, guard = trueExpr)
+                    }
+                    return lValue
+                }
+
                 // Try to get the saved sort for this imported dflt object field
                 val symbolNameInImportedFile = resolutionResult.exportInfo.originalName
                 val savedSort = scope.calcOnState {
