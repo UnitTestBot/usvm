@@ -341,6 +341,25 @@ class ImportExportResolutionTest {
     }
 
     @Test
+    @DisplayName("Test complete import info resolution with alias")
+    fun testCompleteImportAliasResolution() {
+        // Import an aliased named symbol:
+        //  import { PublicName as importedName } from '../utils/helper';
+        val importInfo = EtsImportInfo(
+            name = "importedName",
+            nameBeforeAs = "PublicName",
+            type = EtsImportType.NAMED,
+            from = "../utils/helper",
+        )
+        // in helper.ets:
+        //  export { internalName as PublicName };
+        val result = scene.resolveImportInfo(currentFile, importInfo)
+        assertIs<SymbolResolutionResult.Success>(result, "Expected successful resolution, but got: $result")
+        assertEquals("PublicName", result.exportInfo.name)
+        assertEquals("internalName", result.exportInfo.originalName)
+    }
+
+    @Test
     @DisplayName("Test complete import info resolution for namespace import")
     fun testCompleteNamespaceImportInfo() {
         // Import all symbols from a module:

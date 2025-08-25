@@ -49,7 +49,7 @@ fun EtsScene.resolveImportInfo(
     currentFile: EtsFile,
     importInfo: EtsImportInfo,
 ): SymbolResolutionResult {
-    return resolveSymbol(currentFile, importInfo.from, importInfo.name, importInfo.type)
+    return resolveSymbol(currentFile, importInfo.from, importInfo.originalName, importInfo.type)
 }
 
 private fun EtsScene.resolveSystemLibrary(importPath: String): ImportResolutionResult {
