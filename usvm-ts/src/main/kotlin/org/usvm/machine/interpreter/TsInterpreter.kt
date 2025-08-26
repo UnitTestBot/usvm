@@ -874,10 +874,13 @@ class TsInterpreter(
         method.parameters.forEachIndexed { i, param ->
             val idx = i + 1 // +1 because 0 is reserved for `this`
 
+            val ref by lazy {
+                val lValue = mkRegisterStackLValue(addressSort, idx)
+                state.memory.read(lValue).asExpr(addressSort)
+            }
+
             val parameterType = param.type
             if (parameterType is EtsRefType) run {
-                val ref = mkRegisterReading(idx, addressSort)
-
                 state.pathConstraints += mkNot(mkHeapRefEq(ref, mkTsNullValue()))
                 state.pathConstraints += mkNot(mkHeapRefEq(ref, mkUndefinedValue()))
 
@@ -900,16 +903,12 @@ class TsInterpreter(
                 state.pathConstraints += state.memory.types.evalIsSubtype(ref, auxiliaryType)
             }
             if (parameterType == EtsNullType) {
-                val ref = mkRegisterReading(idx, addressSort)
                 state.pathConstraints += mkHeapRefEq(ref, mkTsNullValue())
             }
             if (parameterType == EtsUndefinedType) {
-                val ref = mkRegisterReading(idx, addressSort)
                 state.pathConstraints += mkHeapRefEq(ref, mkUndefinedValue())
             }
             if (parameterType == EtsStringType) {
-                val ref = mkRegisterReading(idx, addressSort)
-
                 state.pathConstraints += mkNot(mkHeapRefEq(ref, mkTsNullValue()))
                 state.pathConstraints += mkNot(mkHeapRefEq(ref, mkUndefinedValue()))
 

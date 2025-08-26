@@ -137,6 +137,7 @@ import org.usvm.util.isResolved
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
+import org.usvm.util.mkRegisterStackLValue
 import org.usvm.util.resolveEtsField
 import org.usvm.util.resolveEtsMethods
 import org.usvm.util.resolveImportInfo
@@ -1603,8 +1604,8 @@ class TsSimpleValueResolver(
 
         // If local is found in the current method:
         if (idx != null) {
-            val sort = scope.calcOnState {
-                getOrPutSortForLocal(idx) {
+            return scope.calcOnState {
+                val sort = getOrPutSortForLocal(idx) {
                     val type = local.tryGetKnownType(currentMethod)
                     typeToSort(type).let {
                         if (it is TsUnresolvedSort) {
@@ -1614,8 +1615,9 @@ class TsSimpleValueResolver(
                         }
                     }
                 }
+                val lValue = mkRegisterStackLValue(sort, idx)
+                memory.read(lValue)
             }
-            return mkRegisterReading(idx, sort)
         }
 
         // Local not found, either global or imported
