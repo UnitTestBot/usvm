@@ -1,6 +1,7 @@
 package org.usvm.machine.expr
 
 import io.ksmt.utils.asExpr
+import io.ksmt.utils.cast
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsAddExpr
 import org.jacodb.ets.model.EtsAndExpr
@@ -81,6 +82,7 @@ import org.jacodb.ets.model.EtsValue
 import org.jacodb.ets.model.EtsVoidExpr
 import org.jacodb.ets.model.EtsYieldExpr
 import org.jacodb.ets.utils.ANONYMOUS_METHOD_PREFIX
+import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
 import org.jacodb.ets.utils.STATIC_INIT_METHOD_NAME
 import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
 import org.jacodb.ets.utils.getDeclaredLocals
@@ -90,11 +92,13 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.UIteExpr
 import org.usvm.USort
+import org.usvm.api.allocateConcreteRef
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArrayLength
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.api.mockMethodCall
 import org.usvm.api.typeStreamOf
+import org.usvm.dataflow.ts.infer.tryGetKnownType
 import org.usvm.dataflow.ts.util.type
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.Constants
@@ -104,7 +108,10 @@ import org.usvm.machine.TsSizeSort
 import org.usvm.machine.TsVirtualMethodCallStmt
 import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.TsStepScope
+import org.usvm.machine.interpreter.getGlobals
 import org.usvm.machine.interpreter.getResolvedValue
+import org.usvm.machine.interpreter.initializeGlobals
+import org.usvm.machine.interpreter.isGlobalsInitialized
 import org.usvm.machine.interpreter.isInitialized
 import org.usvm.machine.interpreter.isResolved
 import org.usvm.machine.interpreter.markInitialized
@@ -123,6 +130,7 @@ import org.usvm.machine.types.mkFakeValue
 import org.usvm.sizeSort
 import org.usvm.types.first
 import org.usvm.util.EtsHierarchy
+import org.usvm.util.SymbolResolutionResult
 import org.usvm.util.TsResolutionResult
 import org.usvm.util.createFakeField
 import org.usvm.util.isResolved
@@ -131,6 +139,7 @@ import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.resolveEtsField
 import org.usvm.util.resolveEtsMethods
+import org.usvm.util.resolveImportInfo
 import org.usvm.util.throwExceptionWithoutStackFrameDrop
 
 private val logger = KotlinLogging.logger {}
@@ -1555,7 +1564,163 @@ class TsSimpleValueResolver(
 ) : EtsValue.Visitor<UExpr<out USort>?> {
 
     private fun resolveLocal(local: EtsValue): UExpr<*>? = with(ctx) {
-        resolveLocal(scope, local)
+        check(local is EtsLocal || local is EtsThis || local is EtsParameterRef) {
+            "Expected EtsLocal, EtsThis, or EtsParameterRef, but got ${local::class.java}: $local"
+        }
+
+        // Handle closures
+        if (local is EtsLocal && local.name.startsWith("%closures")) {
+            // TODO: add comments
+            val existingClosures = scope.calcOnState { closureObject[local.name] }
+            if (existingClosures != null) {
+                return existingClosures
+            }
+            val type = local.type
+            check(type is EtsLexicalEnvType)
+            val obj = allocateConcreteRef()
+            // TODO: consider 'types.allocate'
+            for (captured in type.closures) {
+                val resolvedCaptured = resolveLocal(captured) ?: return null
+                val lValue = mkFieldLValue(resolvedCaptured.sort, obj, captured.name)
+                scope.doWithState {
+                    memory.write(lValue, resolvedCaptured.cast(), guard = trueExpr)
+                }
+            }
+            scope.doWithState {
+                setClosureObject(local.name, obj)
+            }
+            return obj
+        }
+
+        val currentMethod = scope.calcOnState { lastEnteredMethod }
+
+        if (currentMethod.name == DEFAULT_ARK_METHOD_NAME) {
+            // TODO
+        }
+
+        // Get local index
+        val idx = getLocalIdx(local, currentMethod)
+
+        // If local is found in the current method:
+        if (idx != null) {
+            val sort = scope.calcOnState {
+                getOrPutSortForLocal(idx) {
+                    val type = local.tryGetKnownType(currentMethod)
+                    typeToSort(type).let {
+                        if (it is TsUnresolvedSort) {
+                            addressSort
+                        } else {
+                            it
+                        }
+                    }
+                }
+            }
+            return mkRegisterReading(idx, sort)
+        }
+
+        // Local not found, either global or imported
+        val file = currentMethod.enclosingClass!!.declaringFile!!
+        val globals = file.getGlobals()
+
+        require(local is EtsLocal) {
+            "Only locals are supported here, but got ${local::class.java}: $local"
+        }
+
+        // If local is a global variable:
+        if (globals.any { it.name == local.name }) {
+            val dfltObject = scope.calcOnState { getDfltObject(file) }
+
+            // Initialize globals in `file` if necessary
+            val isGlobalsInitialized = scope.calcOnState { isGlobalsInitialized(file) }
+            if (!isGlobalsInitialized) {
+                logger.info { "Globals are not initialized for file: $file" }
+                scope.doWithState {
+                    initializeGlobals(file)
+                }
+                return null
+            } else {
+                // TODO: handle methodResult
+                scope.doWithState {
+                    if (methodResult is TsMethodResult.Success) {
+                        methodResult = TsMethodResult.NoCall
+                    }
+                }
+            }
+
+            // Try to get the saved sort for this dflt object field
+            val savedSort = scope.calcOnState {
+                getSortForDfltObjectField(file, local.name)
+            }
+
+            if (savedSort == null) {
+                // No saved sort means this field was never assigned to, which is an error
+                logger.error { "Trying to read unassigned global variable: '$local' in $file" }
+                scope.assert(falseExpr)
+                return null
+            }
+
+            // Use the saved sort to read the field
+            val lValue = mkFieldLValue(savedSort, dfltObject, local.name)
+            return scope.calcOnState { memory.read(lValue) }
+        }
+
+        // If local is an imported variable:
+        val importInfo = file.importInfos.find { it.name == local.name }
+        if (importInfo != null) {
+            when (val resolutionResult = scene.resolveImportInfo(file, importInfo)) {
+                is SymbolResolutionResult.Success -> {
+                    val importedFile = resolutionResult.file
+                    val importedDfltObject = scope.calcOnState { getDfltObject(importedFile) }
+
+                    // Initialize globals in the imported file if necessary
+                    val isImportedFileGlobalsInitialized = scope.calcOnState { isGlobalsInitialized(importedFile) }
+                    if (!isImportedFileGlobalsInitialized) {
+                        logger.info { "Globals are not initialized for imported file: $importedFile" }
+                        scope.doWithState {
+                            initializeGlobals(importedFile)
+                        }
+                        return null
+                    }
+
+                    if (resolutionResult.exportInfo.name == "*") {
+                        logger.warn { "Star import" }
+                        return importedDfltObject
+                    }
+
+                    // Try to get the saved sort for this imported dflt object field
+                    val symbolNameInImportedFile = resolutionResult.exportInfo.originalName
+                    val savedSort = scope.calcOnState {
+                        getSortForDfltObjectField(importedFile, symbolNameInImportedFile)
+                    }
+
+                    if (savedSort == null) {
+                        // No saved sort means this field was never assigned to, which is an error
+                        logger.error { "Trying to read unassigned imported symbol: '$local' from '$importedFile'" }
+                        scope.assert(falseExpr)
+                        return null
+                    }
+
+                    val lValue = mkFieldLValue(savedSort, importedDfltObject, symbolNameInImportedFile)
+                    return scope.calcOnState { memory.read(lValue) }
+                }
+
+                is SymbolResolutionResult.FileNotFound -> {
+                    logger.error { "Cannot resolve import for '$local': ${resolutionResult.reason}" }
+                    scope.assert(falseExpr)
+                    return null
+                }
+
+                is SymbolResolutionResult.SymbolNotFound -> {
+                    logger.error { "Cannot find symbol '$local' in '${resolutionResult.file.name}': ${resolutionResult.reason}" }
+                    scope.assert(falseExpr)
+                    return null
+                }
+            }
+        }
+
+        logger.error { "Cannot resolve local variable '$local' in method: $currentMethod" }
+        scope.assert(falseExpr)
+        return null
     }
 
     override fun visit(local: EtsLocal): UExpr<out USort>? {
