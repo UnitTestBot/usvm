@@ -498,20 +498,80 @@ class TsInterpreter(
             val isDflt = stmt.location.method.name == DEFAULT_ARK_METHOD_NAME &&
                 stmt.location.method.enclosingClass?.name == DEFAULT_ARK_CLASS_NAME
             if (isDflt) {
-                val lhv = stmt.lhv
-                check(lhv is EtsLocal) {
-                    "All assignments in %dflt::%dflt should be to locals, but got: $stmt"
-                }
-                if (!lhv.name.startsWith("%") && !lhv.name.startsWith("_tmp") && lhv.name != "this") {
-                    val file = stmt.location.method.enclosingClass!!.declaringFile!!
-                    logger.info {
-                        "Assigning to a global variable: ${lhv.name} in $file"
+                when (val lhv = stmt.lhv) {
+                    is EtsLocal -> {
+                        val name = lhv.name
+                        if (!name.startsWith("%") && !name.startsWith("_tmp") && name != "this") {
+                            val file = stmt.location.method.enclosingClass!!.declaringFile!!
+                            logger.info {
+                                "Assigning to a global variable: $name in $file"
+                            }
+                            val dfltObject = getDfltObject(file)
+                            val lValue = mkFieldLValue(expr.sort, dfltObject, name)
+                            memory.write(lValue, expr.cast(), guard = trueExpr)
+                            saveSortForDfltObjectField(file, name, expr.sort)
+                            return@calcOnState Unit
+                        }
                     }
-                    val dfltObject = getDfltObject(file)
-                    val lValue = mkFieldLValue(expr.sort, dfltObject, lhv.name)
-                    memory.write(lValue, expr.cast(), guard = trueExpr)
-                    saveSortForDfltObjectField(file, lhv.name, expr.sort)
-                    return@calcOnState Unit
+
+                    is EtsInstanceFieldRef -> {
+                        val name = lhv.instance.name
+                        if (!name.startsWith("%") && !name.startsWith("_tmp") && name != "this") {
+                            val file = stmt.location.method.enclosingClass!!.declaringFile!!
+                            logger.info {
+                                "Assigning to a field of a global variable: $name.${lhv.field.name} in $file"
+                            }
+                            val dfltObject = getDfltObject(file)
+                            val lValue = mkFieldLValue(addressSort, dfltObject, name)
+                            val instance = memory.read(lValue)
+                            val fieldLValue = mkFieldLValue(expr.sort, instance, lhv.field)
+                            memory.write(fieldLValue, expr.cast(), guard = trueExpr)
+                            return@calcOnState Unit
+                        }
+                    }
+
+                    is EtsArrayAccess -> {
+                        val name = lhv.array.name
+                        if (!name.startsWith("%") && !name.startsWith("_tmp") && name != "this") {
+                            val file = stmt.location.method.enclosingClass!!.declaringFile!!
+                            logger.info {
+                                "Assigning to an element of a global array variable: $name[${lhv.index}] in $file"
+                            }
+                            val dfltObject = getDfltObject(file)
+                            val lValue = mkFieldLValue(addressSort, dfltObject, name)
+                            val array = memory.read(lValue)
+                            val resolvedIndex = exprResolver.resolve(lhv.index)
+                                ?: return@calcOnState null
+                            val index = resolvedIndex.asExpr(fp64Sort)
+                            val bvIndex = mkFpToBvExpr(
+                                roundingMode = fpRoundingModeSortDefaultValue(),
+                                value = index,
+                                bvSize = 32,
+                                isSigned = true
+                            ).asExpr(sizeSort)
+                            val arrayType = if (isAllocatedConcreteHeapRef(array)) {
+                                memory.typeStreamOf(array).first()
+                            } else {
+                                lhv.array.type
+                            }
+                            check(arrayType is EtsArrayType) {
+                                "Expected EtsArrayType, got: ${lhv.array.type}"
+                            }
+                            val elementSort = typeToSort(arrayType.elementType)
+                            val elementLValue = mkArrayIndexLValue(
+                                sort = elementSort,
+                                ref = array,
+                                index = bvIndex.asExpr(sizeSort),
+                                type = arrayType,
+                            )
+                            memory.write(elementLValue, expr.cast(), guard = trueExpr)
+                            return@calcOnState Unit
+                        }
+                    }
+
+                    else -> {
+                        error("LHV of type ${lhv::class.java} is not supported in %dflt::%dflt: $lhv")
+                    }
                 }
             }
 

@@ -1,7 +1,21 @@
 // @ts-nocheck
 // noinspection JSUnusedGlobalSymbols
 
-// Enum exports
+// Const object with nested values
+export const CONSTANTS = {
+    PI: 3.14159,
+    MAX_SIZE: 100,
+    CONFIG: {
+        timeout: 5000,
+        retries: 3,
+    },
+} as const;
+
+// Computed variable exports
+export const computedNumber = CONSTANTS.PI * CONSTANTS.MAX_SIZE;
+export const configString = `timeout:${CONSTANTS.CONFIG.timeout}ms`;
+
+// Enum definitions
 export enum Color {
     Red = "red",
     Green = "green",
@@ -13,16 +27,6 @@ export enum NumberEnum {
     Second = 2,
     Third = 3
 }
-
-// Const assertions and readonly types
-export const CONSTANTS = {
-    PI: 3.14159,
-    MAX_SIZE: 100,
-    CONFIG: {
-        timeout: 5000,
-        retries: 3,
-    },
-} as const;
 
 // Function overloads
 export function processValue(value: number): number;
@@ -39,7 +43,7 @@ export function createArray<T>(item: T, count: number): T[] {
     return new Array(count).fill(item);
 }
 
-// Class with static methods and properties
+// Class with static methods
 export class Utility {
     static readonly VERSION = "1.0.0";
     static counter = 0;
@@ -57,7 +61,7 @@ export class Utility {
     }
 }
 
-// Abstract patterns (simulated with inheritance)
+// Inheritance classes
 export class BaseProcessor {
     protected name: string;
 
@@ -65,7 +69,7 @@ export class BaseProcessor {
         this.name = name;
     }
 
-    process(data: any): any {
+    process(data: any): string {
         return `${this.name}: ${data}`;
     }
 }
@@ -80,7 +84,7 @@ export class NumberProcessor extends BaseProcessor {
     }
 }
 
-// Module-level variables
+// Module state functions
 let moduleState = 0;
 
 export function getModuleState(): number {
