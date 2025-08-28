@@ -116,6 +116,7 @@ import org.usvm.machine.interpreter.isInitialized
 import org.usvm.machine.interpreter.isResolved
 import org.usvm.machine.interpreter.markInitialized
 import org.usvm.machine.interpreter.markResolved
+import org.usvm.machine.interpreter.readGlobal
 import org.usvm.machine.interpreter.setResolvedValue
 import org.usvm.machine.operator.TsBinaryOperator
 import org.usvm.machine.operator.TsUnaryOperator
@@ -1630,40 +1631,7 @@ class TsSimpleValueResolver(
 
         // If local is a global variable:
         if (globals.any { it.name == local.name }) {
-            val dfltObject = scope.calcOnState { getDfltObject(file) }
-
-            // Initialize globals in `file` if necessary
-            val isGlobalsInitialized = scope.calcOnState { isGlobalsInitialized(file) }
-            if (!isGlobalsInitialized) {
-                logger.info { "Globals are not initialized for file: $file" }
-                scope.doWithState {
-                    initializeGlobals(file)
-                }
-                return null
-            } else {
-                // TODO: handle methodResult
-                scope.doWithState {
-                    if (methodResult is TsMethodResult.Success) {
-                        methodResult = TsMethodResult.NoCall
-                    }
-                }
-            }
-
-            // Try to get the saved sort for this dflt object field
-            val savedSort = scope.calcOnState {
-                getSortForDfltObjectField(file, local.name)
-            }
-
-            if (savedSort == null) {
-                // No saved sort means this field was never assigned to, which is an error
-                logger.error { "Trying to read unassigned global variable: '$local' in $file" }
-                scope.assert(falseExpr)
-                return null
-            }
-
-            // Use the saved sort to read the field
-            val lValue = mkFieldLValue(savedSort, dfltObject, local.name)
-            return scope.calcOnState { memory.read(lValue) }
+            return readGlobal(scope, file, local.name)
         }
 
         // If local is an imported variable:

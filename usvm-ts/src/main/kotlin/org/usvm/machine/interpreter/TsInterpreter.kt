@@ -10,7 +10,6 @@ import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsCallStmt
 import org.jacodb.ets.model.EtsClassType
-import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLValue
@@ -507,34 +506,7 @@ class TsInterpreter(
         logger.warn {
             "Assigning to a global variable: ${local.name} in $file"
         }
-
-        // Initialize globals in `file` if necessary
-        initializeGlobals(scope, file) ?: return null
-
-        // Resolve the global variable as a field of the dflt object
         writeGlobal(scope, file, local.name, expr)
-    }
-
-    private fun initializeGlobals(
-        scope: TsStepScope,
-        file: EtsFile,
-    ): Unit? {
-        val isGlobalsInitialized = scope.calcOnState { isGlobalsInitialized(file) }
-
-        if (!isGlobalsInitialized) {
-            logger.info { "Globals are not initialized for file: $file" }
-            scope.doWithState {
-                initializeGlobals(file)
-            }
-            return null
-        }
-
-        return scope.doWithState {
-            // TODO: handle methodResult
-            if (methodResult is TsMethodResult.Success) {
-                methodResult = TsMethodResult.NoCall
-            }
-        }
     }
 
     private fun assignToArrayIndex(
@@ -722,35 +694,6 @@ class TsInterpreter(
                 memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
             }
         }
-    }
-
-    private fun writeGlobal(
-        scope: TsStepScope,
-        file: EtsFile,
-        name: String,
-        expr: UExpr<*>,
-    ) = scope.doWithState {
-        val dfltObject = getDfltObject(file)
-        val lValue = mkFieldLValue(expr.sort, dfltObject, name)
-        memory.write(lValue, expr.cast(), guard = ctx.trueExpr)
-        saveSortForDfltObjectField(file, name, expr.sort)
-    }
-
-    private fun readGlobal(
-        scope: TsStepScope,
-        file: EtsFile,
-        name: String,
-    ): UExpr<*>? = scope.calcOnState {
-        val dfltObject = getDfltObject(file)
-        val savedSort = getSortForDfltObjectField(file, name)
-        if (savedSort == null) {
-            // No saved sort means this variable was never assigned to, which is an error to read.
-            logger.error { "Trying to read unassigned global variable: $name in $file" }
-            scope.assert(ctx.falseExpr)
-            return@calcOnState null
-        }
-        val lValue = mkFieldLValue(savedSort, dfltObject, name)
-        memory.read(lValue)
     }
 
     private fun assignToInDfltDflt(

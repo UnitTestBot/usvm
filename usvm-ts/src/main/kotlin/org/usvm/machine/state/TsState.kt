@@ -3,8 +3,6 @@ package org.usvm.machine.state
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBlockCfg
 import org.jacodb.ets.model.EtsClass
-import org.jacodb.ets.model.EtsClassSignature
-import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsLocal
@@ -14,7 +12,6 @@ import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsValue
-import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
 import org.usvm.PathNode
 import org.usvm.UCallStack
 import org.usvm.UConcreteHeapRef
@@ -33,6 +30,7 @@ import org.usvm.constraints.UPathConstraints
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.TsFunction
+import org.usvm.machine.interpreter.getDfltClass
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase
@@ -214,8 +212,8 @@ class TsState(
 
     fun getDfltObject(file: EtsFile): UConcreteHeapRef {
         val (updated, result) = dfltObject.getOrPut(file.signature, ownership) {
-            val classType = EtsClassType(EtsClassSignature(DEFAULT_ARK_CLASS_NAME, file.signature))
-            memory.allocConcrete(classType)
+            val dfltClass = file.getDfltClass()
+            memory.allocConcrete(dfltClass.type)
         }
         dfltObject = updated
         return result
