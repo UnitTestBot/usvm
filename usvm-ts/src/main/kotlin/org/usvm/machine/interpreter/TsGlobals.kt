@@ -6,6 +6,7 @@ import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
 import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
 import org.usvm.UBoolSort
@@ -26,9 +27,17 @@ fun EtsFile.getDfltClass(): EtsClass {
     return classes.first { it.name == DEFAULT_ARK_CLASS_NAME }
 }
 
-fun EtsFile.getGlobals(): List<EtsLocal> {
+fun EtsClass.getDfltMethod(): EtsMethod {
+    return methods.first { it.name == DEFAULT_ARK_METHOD_NAME }
+}
+
+fun EtsFile.getDfltMethod(): EtsMethod {
     val dfltClass = getDfltClass()
-    val dfltMethod = dfltClass.methods.first { it.name == DEFAULT_ARK_METHOD_NAME }
+    return dfltClass.getDfltMethod()
+}
+
+fun EtsFile.getGlobals(): List<EtsLocal> {
+    val dfltMethod = getDfltMethod()
     return dfltMethod.cfg.stmts
         .filterIsInstance<EtsAssignStmt>()
         .mapNotNull { it.lhv as? EtsLocal }
@@ -56,8 +65,7 @@ internal fun TsState.markGlobalsInitialized(file: EtsFile) {
 internal fun TsState.initializeGlobals(file: EtsFile) {
     markGlobalsInitialized(file)
     val dfltObject = getDfltObject(file)
-    val dfltClass = file.getDfltClass()
-    val dfltMethod = dfltClass.methods.first { it.name == DEFAULT_ARK_METHOD_NAME }
+    val dfltMethod = file.getDfltMethod()
     pushSortsForArguments(instance = null, args = emptyList()) { null }
     registerCallee(currentStatement, dfltMethod.cfg)
     callStack.push(dfltMethod, currentStatement)
