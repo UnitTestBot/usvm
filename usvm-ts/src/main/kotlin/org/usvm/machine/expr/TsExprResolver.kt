@@ -1604,7 +1604,7 @@ class TsSimpleValueResolver(
                     val name = local.name
                     if (!name.startsWith("%") && !name.startsWith("_tmp") && name != "this") {
                         logger.info {
-                            "Reading global variable '$local' in %dflt in $file"
+                            "Reading global variable in %dflt: $local in $file"
                         }
                         return readGlobal(scope, file, name)
                     }
@@ -1649,6 +1649,7 @@ class TsSimpleValueResolver(
 
         // If local is a global variable:
         if (globals.any { it.name == local.name }) {
+            logger.info { "Reading global variable: $local in $file" }
             return readGlobal(scope, file, local.name)
         }
 

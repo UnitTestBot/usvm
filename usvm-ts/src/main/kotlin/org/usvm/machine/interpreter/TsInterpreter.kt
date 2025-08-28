@@ -707,7 +707,7 @@ class TsInterpreter(
                 val name = lhv.name
                 if (!name.startsWith("%") && !name.startsWith("_tmp") && name != "this") {
                     logger.info {
-                        "Assigning to a global variable '$name' in %dflt in $file"
+                        "Assigning to a global variable in %dflt: $name in $file"
                     }
                     writeGlobal(scope, file, name, expr)
                 } else {
