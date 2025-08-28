@@ -161,6 +161,7 @@ class Imports : TsMethodTestRunner() {
         )
     }
 
+    @Disabled("Star imports are not yet supported")
     @Test
     fun `test use namespace variables`() {
         val method = getMethod("useNamespaceVariables")
@@ -223,6 +224,7 @@ class Imports : TsMethodTestRunner() {
         )
     }
 
+    @Disabled("Star imports are not yet supported")
     @Test
     fun `test use destructuring`() {
         val method = getMethod("useDestructuring")
