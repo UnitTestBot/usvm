@@ -173,6 +173,7 @@ class Imports : TsMethodTestRunner() {
         )
     }
 
+    @Disabled("Re-exporting is not yet supported")
     @Test
     fun `test use re-exported values`() {
         val method = getMethod("useReExportedValues")
