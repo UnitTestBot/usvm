@@ -519,7 +519,7 @@ class TsInterpreter(
         val resolvedArray = exprResolver.resolve(lhv.array) ?: return null
         val array = resolvedArray.asExpr(addressSort)
 
-        exprResolver.checkUndefinedOrNullPropertyRead(array) ?: return null
+        exprResolver.checkUndefinedOrNullPropertyRead(array, "[]") ?: return null
 
         val resolvedIndex = exprResolver.resolve(lhv.index) ?: return null
         val index = resolvedIndex.asExpr(fp64Sort)
@@ -588,7 +588,7 @@ class TsInterpreter(
         val resolvedInstance = exprResolver.resolve(lhv.instance) ?: return null
         val instance = resolvedInstance.asExpr(addressSort)
 
-        exprResolver.checkUndefinedOrNullPropertyRead(instance) ?: return null
+        exprResolver.checkUndefinedOrNullPropertyRead(instance, lhv.field.name) ?: return null
 
         val instanceRef = instance.unwrapRef(scope)
 
@@ -707,7 +707,7 @@ class TsInterpreter(
                 val name = lhv.name
                 if (!name.startsWith("%") && !name.startsWith("_tmp") && name != "this") {
                     logger.info {
-                        "Assigning to a global variable in dflt: $name in $file"
+                        "Assigning to a global variable '$name' in %dflt in $file"
                     }
                     writeGlobal(scope, file, name, expr)
                 } else {

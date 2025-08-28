@@ -423,7 +423,7 @@ class TsExprResolver(
                 val instance = resolve(operand.instance)?.asExpr(addressSort) ?: return null
 
                 // Check for null/undefined access
-                checkUndefinedOrNullPropertyRead(instance) ?: return null
+                checkUndefinedOrNullPropertyRead(instance, operand.field.name) ?: return null
 
                 // For now, we simulate deletion by setting the property to undefined
                 // This is a simplification of the real semantics but sufficient for basic cases
@@ -849,7 +849,7 @@ class TsExprResolver(
         val obj = resolve(expr.right)?.asExpr(addressSort) ?: return null
 
         // Check for null/undefined access
-        checkUndefinedOrNullPropertyRead(obj) ?: return null
+        checkUndefinedOrNullPropertyRead(obj, "<in>") ?: return null
 
         logger.warn {
             "The 'in' operator is supported yet, the result may not be accurate"
@@ -904,7 +904,7 @@ class TsExprResolver(
             resolved.asExpr(addressSort)
         }
 
-        checkUndefinedOrNullPropertyRead(instance) ?: return null
+        checkUndefinedOrNullPropertyRead(instance, expr.callee.name) ?: return null
 
         val resolvedArgs = expr.args.map { resolve(it) ?: return null }
 
@@ -1128,7 +1128,7 @@ class TsExprResolver(
     override fun visit(value: EtsArrayAccess): UExpr<out USort>? = with(ctx) {
         val array = resolve(value.array)?.asExpr(addressSort) ?: return null
 
-        checkUndefinedOrNullPropertyRead(array) ?: return null
+        checkUndefinedOrNullPropertyRead(array, "[]") ?: return null
 
         val index = resolve(value.index)?.asExpr(fp64Sort) ?: return null
         val bvIndex = mkFpToBvExpr(
@@ -1207,7 +1207,7 @@ class TsExprResolver(
         return expr
     }
 
-    fun checkUndefinedOrNullPropertyRead(instance: UHeapRef) = with(ctx) {
+    fun checkUndefinedOrNullPropertyRead(instance: UHeapRef, propertyName: String) = with(ctx) {
         val ref = instance.unwrapRef(scope)
 
         val neqNull = mkAnd(
@@ -1217,7 +1217,7 @@ class TsExprResolver(
 
         scope.fork(
             neqNull,
-            blockOnFalseState = allocateException("Undefined or null property access: $ref")
+            blockOnFalseState = allocateException("Undefined or null property access: $propertyName of $ref")
         )
     }
 
@@ -1401,7 +1401,7 @@ class TsExprResolver(
         }
         val instanceRef = instanceResolved.asExpr(addressSort)
 
-        checkUndefinedOrNullPropertyRead(instanceRef) ?: return null
+        checkUndefinedOrNullPropertyRead(instanceRef, value.field.name) ?: return null
 
         // Handle array length
         if (value.field.name == "length" && value.instance.type is EtsArrayType) {
