@@ -9,7 +9,7 @@ export const CONSTANTS = {
         timeout: 5000,
         retries: 3,
     },
-} as const;
+} // as const;
 
 // Computed variable exports
 export const computedNumber = CONSTANTS.PI * CONSTANTS.MAX_SIZE;
