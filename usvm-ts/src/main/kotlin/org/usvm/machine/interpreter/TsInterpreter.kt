@@ -10,8 +10,10 @@ import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsCallStmt
 import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsInstanceFieldRef
+import org.jacodb.ets.model.EtsLValue
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsNopStmt
@@ -34,6 +36,7 @@ import org.jacodb.ets.utils.callExpr
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.UInterpreter
 import org.usvm.UIteExpr
 import org.usvm.api.evalTypeEquals
@@ -457,6 +460,30 @@ class TsInterpreter(
         }
     }
 
+    private fun assignTo(
+        scope: TsStepScope,
+        lhv: EtsLValue,
+        expr: UExpr<*>,
+    ): Unit? = when (lhv) {
+        is EtsLocal -> {
+            assignToLocal(scope, lhv, expr)
+        }
+
+        is EtsArrayAccess -> {
+            assignToArrayIndex(scope, lhv, expr)
+        }
+
+        is EtsInstanceFieldRef -> {
+            assignToInstanceField(scope, lhv, expr)
+        }
+
+        is EtsStaticFieldRef -> {
+            assignToStaticField(scope, lhv, expr)
+        }
+
+        else -> TODO("Not yet implemented")
+    }
+
     private fun assignToLocal(
         scope: TsStepScope,
         local: EtsLocal,
@@ -468,12 +495,11 @@ class TsInterpreter(
 
         // If local is found in the current method:
         if (idx != null) {
-            scope.doWithState {
+            return scope.doWithState {
                 saveSortForLocal(idx, expr.sort)
                 val lValue = mkRegisterStackLValue(expr.sort, idx)
                 memory.write(lValue, expr.cast(), guard = trueExpr)
             }
-            return Unit
         }
 
         // Local not found, probably a global
@@ -483,28 +509,31 @@ class TsInterpreter(
         }
 
         // Initialize globals in `file` if necessary
+        initializeGlobals(scope, file) ?: return null
+
+        // Resolve the global variable as a field of the dflt object
+        writeGlobal(scope, file, local.name, expr)
+    }
+
+    private fun initializeGlobals(
+        scope: TsStepScope,
+        file: EtsFile,
+    ): Unit? {
         val isGlobalsInitialized = scope.calcOnState { isGlobalsInitialized(file) }
+
         if (!isGlobalsInitialized) {
             logger.info { "Globals are not initialized for file: $file" }
             scope.doWithState {
                 initializeGlobals(file)
             }
             return null
-        } else {
-            // TODO: handle methodResult
-            scope.doWithState {
-                if (methodResult is TsMethodResult.Success) {
-                    methodResult = TsMethodResult.NoCall
-                }
-            }
         }
 
-        // Resolve the global variable as a field of the dflt object
-        scope.doWithState {
-            val dfltObject = getDfltObject(file)
-            val lValue = mkFieldLValue(expr.sort, dfltObject, local.name)
-            memory.write(lValue, expr.cast(), guard = trueExpr)
-            saveSortForDfltObjectField(file, local.name, expr.sort)
+        return scope.doWithState {
+            // TODO: handle methodResult
+            if (methodResult is TsMethodResult.Success) {
+                methodResult = TsMethodResult.NoCall
+            }
         }
     }
 
@@ -695,6 +724,123 @@ class TsInterpreter(
         }
     }
 
+    private fun writeGlobal(
+        scope: TsStepScope,
+        file: EtsFile,
+        name: String,
+        expr: UExpr<*>,
+    ) = scope.doWithState {
+        val dfltObject = getDfltObject(file)
+        val lValue = mkFieldLValue(expr.sort, dfltObject, name)
+        memory.write(lValue, expr.cast(), guard = ctx.trueExpr)
+        saveSortForDfltObjectField(file, name, expr.sort)
+    }
+
+    private fun readGlobal(
+        scope: TsStepScope,
+        file: EtsFile,
+        name: String,
+    ): UExpr<*>? = scope.calcOnState {
+        val dfltObject = getDfltObject(file)
+        val savedSort = getSortForDfltObjectField(file, name)
+        if (savedSort == null) {
+            // No saved sort means this variable was never assigned to, which is an error to read.
+            logger.error { "Trying to read unassigned global variable: $name in $file" }
+            scope.assert(ctx.falseExpr)
+            return@calcOnState null
+        }
+        val lValue = mkFieldLValue(savedSort, dfltObject, name)
+        memory.read(lValue)
+    }
+
+    private fun assignToInDfltDflt(
+        scope: TsStepScope,
+        lhv: EtsLValue,
+        expr: UExpr<*>,
+    ): Unit? = with(ctx) {
+        val file = scope.calcOnState { lastEnteredMethod.enclosingClass!!.declaringFile!! }
+        when (lhv) {
+            is EtsLocal -> {
+                val name = lhv.name
+                if (!name.startsWith("%") && !name.startsWith("_tmp") && name != "this") {
+                    logger.info {
+                        "Assigning to a global variable in dflt: $name in $file"
+                    }
+                    writeGlobal(scope, file, name, expr)
+                } else {
+                    assignToLocal(scope, lhv, expr)
+                }
+            }
+
+            is EtsArrayAccess -> {
+                val name = lhv.array.name
+                if (!name.startsWith("%") && !name.startsWith("_tmp") && name != "this") {
+                    logger.info {
+                        "Assigning to an element of a global array variable in dflt: $name[${lhv.index}] in $file"
+                    }
+                    val array = readGlobal(scope, file, name) ?: return null
+                    check(array.sort == addressSort) {
+                        "Expected address sort for the array, got: ${array.sort}"
+                    }
+                    @Suppress("UNCHECKED_CAST")
+                    array as UHeapRef
+                    val exprResolver = exprResolverWithScope(scope)
+                    val resolvedIndex = exprResolver.resolve(lhv.index) ?: return null
+                    val index = resolvedIndex.asExpr(fp64Sort)
+                    val bvIndex = mkFpToBvExpr(
+                        roundingMode = fpRoundingModeSortDefaultValue(),
+                        value = index,
+                        bvSize = 32,
+                        isSigned = true,
+                    ).asExpr(sizeSort)
+                    val arrayType = if (isAllocatedConcreteHeapRef(array)) {
+                        scope.calcOnState { memory.typeStreamOf(array).first() }
+                    } else {
+                        lhv.array.type
+                    }
+                    check(arrayType is EtsArrayType) {
+                        "Expected EtsArrayType, got: ${lhv.array.type}"
+                    }
+                    val elementSort = typeToSort(arrayType.elementType)
+                    val elementLValue = mkArrayIndexLValue(
+                        sort = elementSort,
+                        ref = array,
+                        index = bvIndex.asExpr(sizeSort),
+                        type = arrayType,
+                    )
+                    scope.doWithState {
+                        memory.write(elementLValue, expr.cast(), guard = trueExpr)
+                    }
+                } else {
+                    assignToArrayIndex(scope, lhv, expr)
+                }
+            }
+
+            is EtsInstanceFieldRef -> {
+                val name = lhv.instance.name
+                if (!name.startsWith("%") && !name.startsWith("_tmp") && name != "this") {
+                    logger.info {
+                        "Assigning to a field of a global variable in dflt: $name.${lhv.field.name} in $file"
+                    }
+                    val instance = readGlobal(scope, file, name) ?: return null
+                    check(instance.sort == addressSort) {
+                        "Expected address sort for the instance, got: ${instance.sort}"
+                    }
+                    val fieldLValue = mkFieldLValue(expr.sort, instance.asExpr(addressSort), lhv.field)
+                    scope.doWithState {
+                        memory.write(fieldLValue, expr.cast(), guard = trueExpr)
+                    }
+                } else {
+                    assignToInstanceField(scope, lhv, expr)
+                }
+            }
+
+            else -> {
+                error("LHV of type ${lhv::class.java} is not supported in %dflt::%dflt: $lhv")
+            }
+        }
+    }
+
     private fun visitAssignStmt(scope: TsStepScope, stmt: EtsAssignStmt) = with(ctx) {
         val exprResolver = exprResolverWithScope(scope)
 
@@ -735,103 +881,9 @@ class TsInterpreter(
         val isDflt = stmt.location.method.name == DEFAULT_ARK_METHOD_NAME &&
             stmt.location.method.enclosingClass?.name == DEFAULT_ARK_CLASS_NAME
         if (isDflt) {
-            when (val lhv = stmt.lhv) {
-                is EtsLocal -> {
-                    val name = lhv.name
-                    if (!name.startsWith("%") && !name.startsWith("_tmp") && name != "this") {
-                        val file = stmt.location.method.enclosingClass!!.declaringFile!!
-                        logger.info {
-                            "Assigning to a global variable: $name in $file"
-                        }
-                        val dfltObject = scope.calcOnState { getDfltObject(file) }
-                        val lValue = mkFieldLValue(expr.sort, dfltObject, name)
-                        scope.doWithState {
-                            memory.write(lValue, expr.cast(), guard = trueExpr)
-                            saveSortForDfltObjectField(file, name, expr.sort)
-                        }
-                    }
-                }
-
-                is EtsArrayAccess -> {
-                    val name = lhv.array.name
-                    if (!name.startsWith("%") && !name.startsWith("_tmp") && name != "this") {
-                        val file = stmt.location.method.enclosingClass!!.declaringFile!!
-                        logger.info {
-                            "Assigning to an element of a global array variable: $name[${lhv.index}] in $file"
-                        }
-                        val dfltObject = scope.calcOnState { getDfltObject(file) }
-                        val lValue = mkFieldLValue(addressSort, dfltObject, name)
-                        val array = scope.calcOnState { memory.read(lValue) }
-                        val resolvedIndex = exprResolver.resolve(lhv.index) ?: return
-                        val index = resolvedIndex.asExpr(fp64Sort)
-                        val bvIndex = mkFpToBvExpr(
-                            roundingMode = fpRoundingModeSortDefaultValue(),
-                            value = index,
-                            bvSize = 32,
-                            isSigned = true
-                        ).asExpr(sizeSort)
-                        val arrayType = if (isAllocatedConcreteHeapRef(array)) {
-                            scope.calcOnState { memory.typeStreamOf(array).first() }
-                        } else {
-                            lhv.array.type
-                        }
-                        check(arrayType is EtsArrayType) {
-                            "Expected EtsArrayType, got: ${lhv.array.type}"
-                        }
-                        val elementSort = typeToSort(arrayType.elementType)
-                        val elementLValue = mkArrayIndexLValue(
-                            sort = elementSort,
-                            ref = array,
-                            index = bvIndex.asExpr(sizeSort),
-                            type = arrayType,
-                        )
-                        scope.doWithState {
-                            memory.write(elementLValue, expr.cast(), guard = trueExpr)
-                        }
-                    }
-                }
-
-                is EtsInstanceFieldRef -> {
-                    val name = lhv.instance.name
-                    if (!name.startsWith("%") && !name.startsWith("_tmp") && name != "this") {
-                        val file = stmt.location.method.enclosingClass!!.declaringFile!!
-                        logger.info {
-                            "Assigning to a field of a global variable: $name.${lhv.field.name} in $file"
-                        }
-                        val dfltObject = scope.calcOnState { getDfltObject(file) }
-                        val lValue = mkFieldLValue(addressSort, dfltObject, name)
-                        val instance = scope.calcOnState { memory.read(lValue) }
-                        val fieldLValue = mkFieldLValue(expr.sort, instance, lhv.field)
-                        scope.doWithState {
-                            memory.write(fieldLValue, expr.cast(), guard = trueExpr)
-                        }
-                    }
-                }
-
-                else -> {
-                    error("LHV of type ${lhv::class.java} is not supported in %dflt::%dflt: $lhv")
-                }
-            }
+            assignToInDfltDflt(scope, stmt.lhv, expr) ?: return
         } else {
-            when (val lhv = stmt.lhv) {
-                is EtsLocal -> {
-                    assignToLocal(scope, lhv, expr) ?: return
-                }
-
-                is EtsArrayAccess -> {
-                    assignToArrayIndex(scope, lhv, expr) ?: return
-                }
-
-                is EtsInstanceFieldRef -> {
-                    assignToInstanceField(scope, lhv, expr) ?: return
-                }
-
-                is EtsStaticFieldRef -> {
-                    assignToStaticField(scope, lhv, expr) ?: return
-                }
-
-                else -> TODO("Not yet implemented")
-            }
+            assignTo(scope, stmt.lhv, expr) ?: return
         }
 
         val nextStmt = stmt.nextStmt ?: return
