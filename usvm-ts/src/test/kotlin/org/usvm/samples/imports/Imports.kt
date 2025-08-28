@@ -412,7 +412,6 @@ class Imports : TsMethodTestRunner() {
         )
     }
 
-    @Disabled("Module state functions are not supported yet")
     @Test
     fun `test use module state`() {
         val method = getMethod("useModuleState")
