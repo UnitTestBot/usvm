@@ -1597,7 +1597,25 @@ class TsSimpleValueResolver(
         val currentMethod = scope.calcOnState { lastEnteredMethod }
 
         if (currentMethod.name == DEFAULT_ARK_METHOD_NAME) {
-            // TODO
+            // Locals in %dflt are broken...
+            val file = scope.calcOnState { lastEnteredMethod.enclosingClass!!.declaringFile!! }
+            when (local) {
+                is EtsLocal -> {
+                    val name = local.name
+                    if (!name.startsWith("%") && !name.startsWith("_tmp") && name != "this") {
+                        logger.info {
+                            "Reading global variable '$local' in %dflt in $file"
+                        }
+                        return readGlobal(scope, file, name)
+                    }
+                }
+
+                else -> {
+                    logger.warn {
+                        "Only EtsLocal is supported here, but got ${local::class.java}: $local"
+                    }
+                }
+            }
         }
 
         // Get local index
