@@ -30,7 +30,6 @@ import org.usvm.constraints.UPathConstraints
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.TsFunction
-import org.usvm.machine.interpreter.getDfltClass
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase
@@ -212,8 +211,9 @@ class TsState(
 
     fun getDfltObject(file: EtsFile): UConcreteHeapRef {
         val (updated, result) = dfltObject.getOrPut(file.signature, ownership) {
-            val dfltClass = file.getDfltClass()
-            memory.allocConcrete(dfltClass.type)
+            // val dfltClass = file.getDfltClass()
+            // memory.allocConcrete(dfltClass.type)
+            ctx.allocateConcreteRef()
         }
         dfltObject = updated
         return result
