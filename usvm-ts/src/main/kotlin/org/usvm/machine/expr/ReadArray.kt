@@ -8,8 +8,12 @@ import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsUnknownType
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.api.typeStreamOf
 import org.usvm.isAllocatedConcreteHeapRef
+import org.usvm.machine.TsContext
+import org.usvm.machine.TsSizeSort
+import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.sizeSort
 import org.usvm.types.first
@@ -19,19 +23,24 @@ import org.usvm.util.mkArrayLengthLValue
 internal fun TsExprResolver.handleArrayAccess(
     value: EtsArrayAccess,
 ): UExpr<*>? = with(ctx) {
+    // Resolve the array.
     val resolvedArray = resolve(value.array) ?: return null
     if (resolvedArray.sort != addressSort) {
         error("Expected address sort for array, got: ${resolvedArray.sort}")
     }
     val array = resolvedArray.asExpr(addressSort)
 
+    // Check for undefined or null array access.
     checkUndefinedOrNullPropertyRead(scope, array, "[]") ?: return null
 
+    // Resolve the index.
     val resolvedIndex = resolve(value.index) ?: return null
     if (resolvedIndex.sort != fp64Sort) {
         error("Expected fp64 sort for index, got: ${resolvedIndex.sort}")
     }
     val index = resolvedIndex.asExpr(fp64Sort)
+
+    // Convert the index to a bit-vector
     val bvIndex = mkFpToBvExpr(
         roundingMode = fpRoundingModeSortDefaultValue(),
         value = index,
@@ -39,6 +48,7 @@ internal fun TsExprResolver.handleArrayAccess(
         isSigned = true,
     ).asExpr(sizeSort)
 
+    // Determine the array type.
     val arrayType = if (isAllocatedConcreteHeapRef(array)) {
         scope.calcOnState { memory.typeStreamOf(array).first() }
     } else {
@@ -47,13 +57,29 @@ internal fun TsExprResolver.handleArrayAccess(
     check(arrayType is EtsArrayType) {
         "Expected EtsArrayType, got: ${value.array.type}"
     }
-    val sort = typeToSort(arrayType.elementType)
 
-    val lengthLValue = mkArrayLengthLValue(array, arrayType)
-    val length = scope.calcOnState { memory.read(lengthLValue) }
+    // Read the array element.
+    readArray(scope, array, bvIndex, arrayType)
+}
 
+fun TsContext.readArray(
+    scope: TsStepScope,
+    array: UHeapRef,
+    bvIndex: UExpr<TsSizeSort>,
+    arrayType: EtsArrayType,
+): UExpr<*>? {
+    // Read the array length.
+    val length = scope.calcOnState {
+        val lengthLValue = mkArrayLengthLValue(array, arrayType)
+        memory.read(lengthLValue)
+    }
+
+    // Check for out-of-bounds access.
     checkNegativeIndexRead(scope, bvIndex) ?: return null
     checkReadingInRange(scope, bvIndex, length) ?: return null
+
+    // Determine the element sort.
+    val sort = typeToSort(arrayType.elementType)
 
     // If the element type is known, we can read it directly.
     if (sort !is TsUnresolvedSort) {
@@ -81,7 +107,7 @@ internal fun TsExprResolver.handleArrayAccess(
     // If the element type is unresolved, we need to create a fake object
     // that can hold boolean, number, and reference values.
     // We read all three types from the array and combine them into a fake object.
-    scope.calcOnState {
+    return scope.calcOnState {
         val boolArrayType = EtsArrayType(EtsBooleanType, dimensions = 1)
         val boolLValue = mkArrayIndexLValue(boolSort, array, bvIndex, boolArrayType)
         val bool = memory.read(boolLValue)

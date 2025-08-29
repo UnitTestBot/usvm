@@ -1,7 +1,10 @@
 package org.usvm.machine.expr
 
+import io.ksmt.utils.asExpr
 import mu.KotlinLogging
+import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsFieldSignature
+import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.utils.STATIC_INIT_METHOD_NAME
 import org.usvm.UExpr
@@ -20,12 +23,43 @@ import org.usvm.util.resolveEtsField
 
 private val logger = KotlinLogging.logger {}
 
+internal fun TsExprResolver.handleInstanceFieldRef(
+    value: EtsInstanceFieldRef,
+): UExpr<*>? = with(ctx) {
+    val instanceLocal = value.instance
+
+    // Resolve the instance.
+    val resolvedInstance = resolve(instanceLocal) ?: return null
+    if (resolvedInstance.sort != addressSort) {
+        error("Expected address sort for instance, got: ${resolvedInstance.sort}")
+    }
+    val instance = resolvedInstance.asExpr(addressSort)
+
+    // Check for undefined or null property access.
+    checkUndefinedOrNullPropertyRead(scope, instance, value.field.name) ?: return null
+
+    // Handle reading "length" property for arrays.
+    if (value.field.name == "length" && instanceLocal.type is EtsArrayType) {
+        return readLengthArray(scope, instanceLocal, instance)
+    }
+
+    // Handle reading "length" property for fake objects.
+    // TODO: handle "length" property for arrays inside fake objects
+    if (value.field.name == "length" && instance.isFakeObject()) {
+        return readLengthFake(scope, instanceLocal, instance)
+    }
+
+    // Read the field.
+    return readField(instanceLocal, instance, value.field)
+}
+
 internal fun TsExprResolver.readField(
     instanceLocal: EtsLocal?,
     instance: UHeapRef,
     field: EtsFieldSignature,
 ): UExpr<*> = with(ctx) {
-    val ref = instance.unwrapRef(scope)
+    // Unwrap to get non-fake reference.
+    val unwrappedInstance = instance.unwrapRef(scope)
 
     val sort = when (val etsField = resolveEtsField(instanceLocal, field, hierarchy)) {
         is TsResolutionResult.Empty -> {
@@ -36,7 +70,7 @@ internal fun TsExprResolver.readField(
             // It is possible due to mistakes in the IR or if the field was added explicitly
             // in the code.
             // Probably, the right behaviour here is to fork the state.
-            ref.createFakeField(scope, field.name)
+            unwrappedInstance.createFakeField(scope, field.name)
             addressSort
         }
 
@@ -51,12 +85,12 @@ internal fun TsExprResolver.readField(
         // That's not true in the common case for TS, but that's the decision we made.
         val auxiliaryType = EtsAuxiliaryType(properties = setOf(field.name))
         // assert is required to update models
-        scope.assert(memory.types.evalIsSubtype(ref, auxiliaryType))
+        scope.assert(memory.types.evalIsSubtype(unwrappedInstance, auxiliaryType))
     }
 
     // If the field type is known, we can read it directly.
     if (sort !is TsUnresolvedSort) {
-        val lValue = mkFieldLValue(sort, ref, field)
+        val lValue = mkFieldLValue(sort, unwrappedInstance, field)
         return scope.calcOnState { memory.read(lValue) }
     }
 
@@ -90,7 +124,7 @@ internal fun TsExprResolver.readStaticField(
         it.signature == field.enclosingClass
     } ?: return null
 
-    val instance = scope.calcOnState { getStaticInstance(clazz) }
+    val instanceRef = scope.calcOnState { getStaticInstance(clazz) }
 
     val initializer = clazz.methods.singleOrNull { it.name == STATIC_INIT_METHOD_NAME }
     if (initializer != null) {
@@ -111,12 +145,12 @@ internal fun TsExprResolver.readStaticField(
                 pushSortsForArguments(instance = null, args = emptyList()) { getLocalIdx(it, lastEnteredMethod) }
                 registerCallee(currentStatement, initializer.cfg)
                 callStack.push(initializer, currentStatement)
-                memory.stack.push(arrayOf(instance), initializer.localsCount)
+                memory.stack.push(arrayOf(instanceRef), initializer.localsCount)
                 newStmt(initializer.cfg.stmts.first())
             }
             return null
         }
     }
 
-    return readField(null, instance, field)
+    return readField(null, instanceRef, field)
 }

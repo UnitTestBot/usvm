@@ -78,7 +78,6 @@ import org.jacodb.ets.model.EtsVoidExpr
 import org.jacodb.ets.model.EtsYieldExpr
 import org.jacodb.ets.utils.ANONYMOUS_METHOD_PREFIX
 import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
-import org.jacodb.ets.utils.STATIC_INIT_METHOD_NAME
 import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
 import org.jacodb.ets.utils.getDeclaredLocals
 import org.usvm.UBoolExpr
@@ -103,9 +102,7 @@ import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.getGlobals
 import org.usvm.machine.interpreter.getResolvedValue
-import org.usvm.machine.interpreter.isInitialized
 import org.usvm.machine.interpreter.isResolved
-import org.usvm.machine.interpreter.markInitialized
 import org.usvm.machine.interpreter.markResolved
 import org.usvm.machine.interpreter.readGlobal
 import org.usvm.machine.interpreter.setResolvedValue
@@ -1152,30 +1149,7 @@ class TsExprResolver(
         state.throwExceptionWithoutStackFrameDrop(s, EtsStringType)
     }
 
-    override fun visit(value: EtsInstanceFieldRef): UExpr<*>? = with(ctx) {
-        val resolvedInstance = resolve(value.instance) ?: return null
-        if (resolvedInstance.sort != addressSort) {
-            logger.error { "Instance of field ref should be a reference, but got ${resolvedInstance.sort}" }
-            scope.assert(falseExpr)
-            return null
-        }
-        val instance = resolvedInstance.asExpr(addressSort)
-
-        checkUndefinedOrNullPropertyRead(scope, instance, value.field.name) ?: return null
-
-        // Handle array length
-        if (value.field.name == "length" && value.instance.type is EtsArrayType) {
-            return readLengthArray(value.instance, instance)
-        }
-
-        // Handle length property for fake objects
-        // TODO: handle "length" property for arrays inside fake objects
-        if (value.field.name == "length" && instance.isFakeObject()) {
-            return readLengthFake(value.instance, instance)
-        }
-
-        return readField(value.instance, instance, value.field)
-    }
+    override fun visit(value: EtsInstanceFieldRef): UExpr<*>? = handleInstanceFieldRef(value)
 
     override fun visit(value: EtsStaticFieldRef): UExpr<*>? {
         return readStaticField(value.field)

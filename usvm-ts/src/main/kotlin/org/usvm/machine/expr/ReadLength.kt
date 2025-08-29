@@ -1,11 +1,11 @@
 package org.usvm.machine.expr
 
+import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsUnknownType
-import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.machine.TsContext
@@ -14,34 +14,37 @@ import org.usvm.sizeSort
 import org.usvm.util.mkArrayLengthLValue
 
 // Handles reading the `length` property of an array.
-internal fun TsExprResolver.readLengthArray(
+internal fun TsContext.readLengthArray(
+    scope: TsStepScope,
     instanceLocal: EtsLocal,
     instance: UHeapRef, // array
-): UExpr<*> = with(ctx) {
+): UExpr<*> {
     // Assume that instance is always an array.
     val arrayType = instanceLocal.type as EtsArrayType
 
     // Read the length of the array.
-    readArrayLength(scope, instance, arrayType)
+    return readArrayLength(scope, instance, arrayType)
 }
 
 // Handles reading the `length` property of a fake object.
-internal fun TsExprResolver.readLengthFake(
+internal fun TsContext.readLengthFake(
+    scope: TsStepScope,
     instanceLocal: EtsLocal,
-    instance: UConcreteHeapRef,
-): UExpr<*> = with(ctx) {
+    instance: UHeapRef, // fake object
+): UExpr<*> {
     require(instance.isFakeObject())
-
-    val fakeType = instance.getFakeType(scope)
 
     // If we want to get length from a fake object,
     // we assume that it is an array (has address sort).
     scope.doWithState {
+        val fakeType = instance.getFakeType(scope)
         pathConstraints += fakeType.refTypeExpr
     }
 
-    val ref = instance.unwrapRef(scope)
+    // Unwrap to get non-fake reference.
+    val unwrappedInstance = instance.unwrapRef(scope)
 
+    // Determine the array type.
     val arrayType = when (val type = instanceLocal.type) {
         is EtsArrayType -> type
 
@@ -55,14 +58,15 @@ internal fun TsExprResolver.readLengthFake(
     }
 
     // Read the length of the array.
-    readArrayLength(scope, ref, arrayType)
+    return readArrayLength(scope, unwrappedInstance, arrayType)
 }
 
+// Reads the length of the array and returns it as a fp64 expression.
 internal fun TsContext.readArrayLength(
     scope: TsStepScope,
     array: UHeapRef,
     arrayType: EtsArrayType,
-): UExpr<*> {
+): UExpr<KFp64Sort> {
     // Read the length of the array.
     val length = scope.calcOnState {
         val lengthLValue = mkArrayLengthLValue(array, arrayType)
