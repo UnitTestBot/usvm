@@ -39,6 +39,7 @@ internal fun TsExprResolver.handleInstanceFieldRef(
     }
     val instanceRef = instance.asExpr(addressSort)
 
+    // TODO: consider moving this to 'readField'
     // Check for undefined or null property access.
     checkUndefinedOrNullPropertyRead(scope, instanceRef, value.field.name) ?: return null
 
