@@ -102,7 +102,6 @@ import org.usvm.machine.interpreter.getGlobals
 import org.usvm.machine.interpreter.getResolvedValue
 import org.usvm.machine.interpreter.isResolved
 import org.usvm.machine.interpreter.markResolved
-import org.usvm.machine.interpreter.readGlobal
 import org.usvm.machine.interpreter.setResolvedValue
 import org.usvm.machine.operator.TsBinaryOperator
 import org.usvm.machine.operator.TsUnaryOperator

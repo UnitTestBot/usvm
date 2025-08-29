@@ -35,7 +35,6 @@ import org.jacodb.ets.utils.callExpr
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UExpr
-import org.usvm.UHeapRef
 import org.usvm.UInterpreter
 import org.usvm.UIteExpr
 import org.usvm.api.evalTypeEquals
@@ -58,6 +57,8 @@ import org.usvm.machine.expr.checkNegativeIndexRead
 import org.usvm.machine.expr.checkReadingInRange
 import org.usvm.machine.expr.checkUndefinedOrNullPropertyRead
 import org.usvm.machine.expr.mkTruthyExpr
+import org.usvm.machine.expr.readGlobal
+import org.usvm.machine.expr.writeGlobal
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.machine.state.lastStmt

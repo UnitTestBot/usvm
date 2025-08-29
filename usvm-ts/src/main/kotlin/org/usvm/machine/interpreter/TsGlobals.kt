@@ -1,6 +1,5 @@
 package org.usvm.machine.interpreter
 
-import io.ksmt.utils.cast
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsClass
@@ -10,7 +9,6 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
 import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
 import org.usvm.UBoolSort
-import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.isTrue
@@ -73,7 +71,7 @@ internal fun TsState.initializeGlobals(file: EtsFile) {
     newStmt(dfltMethod.cfg.stmts.first())
 }
 
-internal fun ensureGlobalsInitialized(
+internal fun TsContext.ensureGlobalsInitialized(
     scope: TsStepScope,
     file: EtsFile,
 ): Unit? = scope.calcOnState {
@@ -88,49 +86,4 @@ internal fun ensureGlobalsInitialized(
     if (methodResult is TsMethodResult.Success) {
         methodResult = TsMethodResult.NoCall
     }
-}
-
-internal fun readGlobal(
-    scope: TsStepScope,
-    file: EtsFile,
-    name: String,
-): UExpr<*>? = scope.calcOnState {
-    // Initialize globals in `file` if necessary
-    ensureGlobalsInitialized(scope, file) ?: return@calcOnState null
-
-    // Get the globals container object
-    val dfltObject = getDfltObject(file)
-
-    // Restore the sort of the requested global variable
-    val savedSort = getSortForDfltObjectField(file, name)
-    if (savedSort == null) {
-        // No saved sort means this variable was never assigned to, which is an error to read.
-        logger.error { "Trying to read unassigned global variable: $name in $file" }
-        scope.assert(ctx.falseExpr)
-        return@calcOnState null
-    }
-
-    // Read the global variable as a field of the globals container object
-    val lValue = mkFieldLValue(savedSort, dfltObject, name)
-    memory.read(lValue)
-}
-
-internal fun writeGlobal(
-    scope: TsStepScope,
-    file: EtsFile,
-    name: String,
-    expr: UExpr<*>,
-): Unit? = scope.calcOnState {
-    // Initialize globals in `file` if necessary
-    ensureGlobalsInitialized(scope, file) ?: return@calcOnState null
-
-    // Get the globals container object
-    val dfltObject = getDfltObject(file)
-
-    // Write the global variable as a field of the globals container object
-    val lValue = mkFieldLValue(expr.sort, dfltObject, name)
-    memory.write(lValue, expr.cast(), guard = ctx.trueExpr)
-
-    // Save the sort of the global variable for future reads
-    saveSortForDfltObjectField(file, name, expr.sort)
 }
