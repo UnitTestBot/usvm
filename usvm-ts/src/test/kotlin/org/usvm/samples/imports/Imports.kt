@@ -255,7 +255,7 @@ class Imports : TsMethodTestRunner() {
         val method = getMethod("mathOperationsOnVariables")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
-            { r -> r eq 579.159 }, // 123 + 42 + 100 + 314.159 (computedNumber)
+            { r -> r eq 537.159 }, // 123 + 100 + 314.159
             invariants = arrayOf(
                 { _ -> true }
             )

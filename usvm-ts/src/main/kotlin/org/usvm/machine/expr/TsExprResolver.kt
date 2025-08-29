@@ -110,8 +110,6 @@ import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.getGlobals
 import org.usvm.machine.interpreter.getResolvedValue
-import org.usvm.machine.interpreter.initializeGlobals
-import org.usvm.machine.interpreter.isGlobalsInitialized
 import org.usvm.machine.interpreter.isInitialized
 import org.usvm.machine.interpreter.isResolved
 import org.usvm.machine.interpreter.markInitialized
@@ -1651,38 +1649,9 @@ class TsSimpleValueResolver(
             when (val resolutionResult = scene.resolveImportInfo(file, importInfo)) {
                 is SymbolResolutionResult.Success -> {
                     val importedFile = resolutionResult.file
-                    val importedDfltObject = scope.calcOnState { getDfltObject(importedFile) }
-
-                    // Initialize globals in the imported file if necessary
-                    val isImportedFileGlobalsInitialized = scope.calcOnState { isGlobalsInitialized(importedFile) }
-                    if (!isImportedFileGlobalsInitialized) {
-                        logger.info { "Globals are not initialized for imported file: $importedFile" }
-                        scope.doWithState {
-                            initializeGlobals(importedFile)
-                        }
-                        return null
-                    }
-
-                    if (resolutionResult.exportInfo.name == "*") {
-                        logger.warn { "Star import" }
-                        return importedDfltObject
-                    }
-
-                    // Try to get the saved sort for this imported dflt object field
-                    val symbolNameInImportedFile = resolutionResult.exportInfo.originalName
-                    val savedSort = scope.calcOnState {
-                        getSortForDfltObjectField(importedFile, symbolNameInImportedFile)
-                    }
-
-                    if (savedSort == null) {
-                        // No saved sort means this field was never assigned to, which is an error
-                        logger.error { "Trying to read unassigned imported symbol: '$local' from '$importedFile'" }
-                        scope.assert(falseExpr)
-                        return null
-                    }
-
-                    val lValue = mkFieldLValue(savedSort, importedDfltObject, symbolNameInImportedFile)
-                    return scope.calcOnState { memory.read(lValue) }
+                    val importedName = resolutionResult.exportInfo.originalName
+                    logger.info { "Reading imported variable: $importedName from $importedFile" }
+                    return readGlobal(scope, importedFile, importedName)
                 }
 
                 is SymbolResolutionResult.FileNotFound -> {
