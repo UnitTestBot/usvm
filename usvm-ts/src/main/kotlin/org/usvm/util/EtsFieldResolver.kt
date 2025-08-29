@@ -35,8 +35,7 @@ fun TsContext.resolveEtsField(
 
     // Unknown signature:
     if (instance != null) {
-        val instanceType = instance.type
-        when (instanceType) {
+        when (val instanceType = instance.type) {
             is EtsClassType -> {
                 val field = tryGetSingleField(scene, instanceType.signature.name, field.name, hierarchy)
                 if (field != null) return TsResolutionResult.create(field)
