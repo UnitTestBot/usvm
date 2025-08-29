@@ -24,23 +24,23 @@ internal fun TsExprResolver.handleArrayAccess(
     value: EtsArrayAccess,
 ): UExpr<*>? = with(ctx) {
     // Resolve the array.
-    val resolvedArray = resolve(value.array) ?: return null
-    if (resolvedArray.sort != addressSort) {
-        error("Expected address sort for array, got: ${resolvedArray.sort}")
+    val array = resolve(value.array) ?: return null
+    check(array.sort == addressSort) {
+        "Expected address sort for array, got: ${array.sort}"
     }
-    val array = resolvedArray.asExpr(addressSort)
+    val arrayRef = array.asExpr(addressSort)
 
     // Check for undefined or null array access.
-    checkUndefinedOrNullPropertyRead(scope, array, "[]") ?: return null
+    checkUndefinedOrNullPropertyRead(scope, arrayRef, "[]") ?: return null
 
     // Resolve the index.
     val resolvedIndex = resolve(value.index) ?: return null
-    if (resolvedIndex.sort != fp64Sort) {
-        error("Expected fp64 sort for index, got: ${resolvedIndex.sort}")
+    check(resolvedIndex.sort == fp64Sort) {
+        "Expected fp64 sort for index, got: ${resolvedIndex.sort}"
     }
     val index = resolvedIndex.asExpr(fp64Sort)
 
-    // Convert the index to a bit-vector
+    // Convert the index to a bit-vector.
     val bvIndex = mkFpToBvExpr(
         roundingMode = fpRoundingModeSortDefaultValue(),
         value = index,
@@ -49,8 +49,8 @@ internal fun TsExprResolver.handleArrayAccess(
     ).asExpr(sizeSort)
 
     // Determine the array type.
-    val arrayType = if (isAllocatedConcreteHeapRef(array)) {
-        scope.calcOnState { memory.typeStreamOf(array).first() }
+    val arrayType = if (isAllocatedConcreteHeapRef(arrayRef)) {
+        scope.calcOnState { memory.typeStreamOf(arrayRef).first() }
     } else {
         value.array.type
     }
@@ -59,13 +59,13 @@ internal fun TsExprResolver.handleArrayAccess(
     }
 
     // Read the array element.
-    readArray(scope, array, bvIndex, arrayType)
+    readArray(scope, arrayRef, bvIndex, arrayType)
 }
 
 fun TsContext.readArray(
     scope: TsStepScope,
     array: UHeapRef,
-    bvIndex: UExpr<TsSizeSort>,
+    index: UExpr<TsSizeSort>,
     arrayType: EtsArrayType,
 ): UExpr<*>? {
     // Read the array length.
@@ -75,8 +75,8 @@ fun TsContext.readArray(
     }
 
     // Check for out-of-bounds access.
-    checkNegativeIndexRead(scope, bvIndex) ?: return null
-    checkReadingInRange(scope, bvIndex, length) ?: return null
+    checkNegativeIndexRead(scope, index) ?: return null
+    checkReadingInRange(scope, index, length) ?: return null
 
     // Determine the element sort.
     val sort = typeToSort(arrayType.elementType)
@@ -86,7 +86,7 @@ fun TsContext.readArray(
         val lValue = mkArrayIndexLValue(
             sort = sort,
             ref = array,
-            index = bvIndex,
+            index = index,
             type = arrayType,
         )
         return scope.calcOnState { memory.read(lValue) }
@@ -98,7 +98,7 @@ fun TsContext.readArray(
         val lValue = mkArrayIndexLValue(
             sort = addressSort,
             ref = array,
-            index = bvIndex,
+            index = index,
             type = arrayType,
         )
         return scope.calcOnState { memory.read(lValue) }
@@ -109,15 +109,15 @@ fun TsContext.readArray(
     // We read all three types from the array and combine them into a fake object.
     return scope.calcOnState {
         val boolArrayType = EtsArrayType(EtsBooleanType, dimensions = 1)
-        val boolLValue = mkArrayIndexLValue(boolSort, array, bvIndex, boolArrayType)
+        val boolLValue = mkArrayIndexLValue(boolSort, array, index, boolArrayType)
         val bool = memory.read(boolLValue)
 
         val numberArrayType = EtsArrayType(EtsNumberType, dimensions = 1)
-        val fpLValue = mkArrayIndexLValue(fp64Sort, array, bvIndex, numberArrayType)
+        val fpLValue = mkArrayIndexLValue(fp64Sort, array, index, numberArrayType)
         val fp = memory.read(fpLValue)
 
         val unknownArrayType = EtsArrayType(EtsUnknownType, dimensions = 1)
-        val refLValue = mkArrayIndexLValue(addressSort, array, bvIndex, unknownArrayType)
+        val refLValue = mkArrayIndexLValue(addressSort, array, index, unknownArrayType)
         val ref = memory.read(refLValue)
 
         // If the read reference is already a fake object, we can return it directly.

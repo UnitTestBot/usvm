@@ -734,8 +734,7 @@ class TsInterpreter(
                     check(array.sort == addressSort) {
                         "Expected address sort for the array, got: ${array.sort}"
                     }
-                    @Suppress("UNCHECKED_CAST")
-                    array as UHeapRef
+                    val arrayRef = array.asExpr(addressSort)
                     val exprResolver = exprResolverWithScope(scope)
                     val resolvedIndex = exprResolver.resolve(lhv.index) ?: return null
                     val index = resolvedIndex.asExpr(fp64Sort)
@@ -756,7 +755,7 @@ class TsInterpreter(
                     val elementSort = typeToSort(arrayType.elementType)
                     val elementLValue = mkArrayIndexLValue(
                         sort = elementSort,
-                        ref = array,
+                        ref = arrayRef,
                         index = bvIndex.asExpr(sizeSort),
                         type = arrayType,
                     )

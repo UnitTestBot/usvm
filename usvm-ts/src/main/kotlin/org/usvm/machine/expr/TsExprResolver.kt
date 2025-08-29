@@ -82,7 +82,6 @@ import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
 import org.jacodb.ets.utils.getDeclaredLocals
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
-import org.usvm.UHeapRef
 import org.usvm.UIteExpr
 import org.usvm.USort
 import org.usvm.api.allocateConcreteRef
@@ -96,7 +95,6 @@ import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.Constants
 import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
-import org.usvm.machine.TsSizeSort
 import org.usvm.machine.TsVirtualMethodCallStmt
 import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.TsStepScope
@@ -123,7 +121,6 @@ import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
 import org.usvm.util.resolveEtsMethods
 import org.usvm.util.resolveImportInfo
-import org.usvm.util.throwExceptionWithoutStackFrameDrop
 
 private val logger = KotlinLogging.logger {}
 
@@ -1108,52 +1105,9 @@ class TsExprResolver(
 
     override fun visit(value: EtsArrayAccess): UExpr<*>? = handleArrayAccess(value)
 
-    @Deprecated("use extension")
-    fun checkUndefinedOrNullPropertyRead(instance: UHeapRef, propertyName: String): Unit? = with(ctx) {
-        val ref = instance.unwrapRef(scope)
-
-        val neqNull = mkAnd(
-            mkHeapRefEq(ref, mkUndefinedValue()).not(),
-            mkHeapRefEq(ref, mkTsNullValue()).not(),
-        )
-
-        scope.fork(
-            neqNull,
-            blockOnFalseState = allocateException("Undefined or null property access: $propertyName of $ref")
-        )
-    }
-
-    @Deprecated("use extension")
-    fun checkNegativeIndexRead(index: UExpr<TsSizeSort>) = with(ctx) {
-        val condition = mkBvSignedGreaterOrEqualExpr(index, mkBv(0))
-
-        scope.fork(
-            condition,
-            blockOnFalseState = allocateException("Negative index access: $index")
-        )
-    }
-
-    @Deprecated("use extension")
-    fun checkReadingInRange(index: UExpr<TsSizeSort>, length: UExpr<TsSizeSort>) = with(ctx) {
-        val condition = mkBvSignedLessExpr(index, length)
-
-        scope.fork(
-            condition,
-            blockOnFalseState = allocateException("Index out of bounds: $index, length: $length")
-        )
-    }
-
-    @Deprecated("use extension")
-    private fun allocateException(reason: String): (TsState) -> Unit = { state ->
-        val s = ctx.mkStringConstantRef(reason)
-        state.throwExceptionWithoutStackFrameDrop(s, EtsStringType)
-    }
-
     override fun visit(value: EtsInstanceFieldRef): UExpr<*>? = handleInstanceFieldRef(value)
 
-    override fun visit(value: EtsStaticFieldRef): UExpr<*>? {
-        return readStaticField(value.field)
-    }
+    override fun visit(value: EtsStaticFieldRef): UExpr<*>? = handleStaticFieldRef(value)
 
     override fun visit(value: EtsCaughtExceptionRef): UExpr<out USort>? {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
@@ -1250,7 +1204,7 @@ class TsExprResolver(
 
             scope.fork(
                 condition,
-                blockOnFalseState = allocateException("Invalid array size: ${size.asExpr(fp64Sort)}")
+                blockOnFalseState = { throwException("Invalid array size: ${size.asExpr(fp64Sort)}") }
             )
 
             if (arrayType.elementType is EtsArrayType) {
