@@ -1123,8 +1123,11 @@ class TsExprResolver(
 
     // region ACCESS
 
-    override fun visit(value: EtsArrayAccess): UExpr<out USort>? = with(ctx) {
-        val array = resolve(value.array)?.asExpr(addressSort) ?: return null
+    internal fun readArrayIndex(
+        value: EtsArrayAccess,
+    ): UExpr<*>? = with(ctx) {
+        val resolvedArray = resolve(value.array) ?: return null
+        val array = resolvedArray.asExpr(addressSort)
 
         checkUndefinedOrNullPropertyRead(array, "[]") ?: return null
 
@@ -1140,7 +1143,10 @@ class TsExprResolver(
             scope.calcOnState { memory.typeStreamOf(array).first() }
         } else {
             value.array.type
-        } as? EtsArrayType ?: error("Expected EtsArrayType, got: ${value.array.type}")
+        }
+        check(arrayType is EtsArrayType) {
+            "Expected EtsArrayType, got: ${value.array.type}"
+        }
         val sort = typeToSort(arrayType.elementType)
 
         val lengthLValue = mkArrayLengthLValue(array, arrayType)
@@ -1149,60 +1155,60 @@ class TsExprResolver(
         checkNegativeIndexRead(bvIndex) ?: return null
         checkReadingInRange(bvIndex, length) ?: return null
 
-        val expr = if (sort is TsUnresolvedSort) {
-            // Concrete arrays with the unresolved sort should consist of fake objects only.
-            if (array is UConcreteHeapRef) {
-                // Read a fake object from the array.
-                val lValue = mkArrayIndexLValue(
-                    sort = addressSort,
-                    ref = array,
-                    index = bvIndex,
-                    type = arrayType
-                )
-
-                scope.calcOnState { memory.read(lValue) }
-            } else {
-                // If the array is not concrete, we need to allocate a fake object
-                val boolArrayType = EtsArrayType(EtsBooleanType, dimensions = 1)
-                val boolLValue = mkArrayIndexLValue(boolSort, array, bvIndex, boolArrayType)
-
-                val numberArrayType = EtsArrayType(EtsNumberType, dimensions = 1)
-                val fpLValue = mkArrayIndexLValue(fp64Sort, array, bvIndex, numberArrayType)
-
-                val unknownArrayType = EtsArrayType(EtsUnknownType, dimensions = 1)
-                val refLValue = mkArrayIndexLValue(addressSort, array, bvIndex, unknownArrayType)
-
-                scope.calcOnState {
-                    val boolValue = memory.read(boolLValue)
-                    val fpValue = memory.read(fpLValue)
-                    val refValue = memory.read(refLValue)
-
-                    // Read an object from the memory at first,
-                    // we don't need to recreate it if it is already a fake object.
-                    val fakeObj = if (refValue.isFakeObject()) {
-                        refValue
-                    } else {
-                        mkFakeValue(boolValue, fpValue, refValue).also {
-                            lValuesToAllocatedFakeObjects += refLValue to it
-                        }
-                    }
-
-                    memory.write(refLValue, fakeObj.asExpr(addressSort), guard = trueExpr)
-
-                    fakeObj
-                }
-            }
-        } else {
+        // If the element type is known, we can read it directly.
+        if (sort !is TsUnresolvedSort) {
             val lValue = mkArrayIndexLValue(
                 sort = sort,
                 ref = array,
                 index = bvIndex,
-                type = arrayType
+                type = arrayType,
             )
-            scope.calcOnState { memory.read(lValue) }
+            return scope.calcOnState { memory.read(lValue) }
         }
 
-        return expr
+        // Concrete arrays with the unresolved sort should consist of fake objects only.
+        if (array is UConcreteHeapRef) {
+            // Read a fake object from the array.
+            val lValue = mkArrayIndexLValue(
+                sort = addressSort,
+                ref = array,
+                index = bvIndex,
+                type = arrayType,
+            )
+            return scope.calcOnState { memory.read(lValue) }
+        }
+
+        // If the element type is unresolved, we need to create a fake object
+        // that can hold boolean, number, and reference values.
+        // We read all three types from the array and combine them into a fake object.
+        scope.calcOnState {
+            val boolArrayType = EtsArrayType(EtsBooleanType, dimensions = 1)
+            val boolLValue = mkArrayIndexLValue(boolSort, array, bvIndex, boolArrayType)
+            val boolValue = memory.read(boolLValue)
+
+            val numberArrayType = EtsArrayType(EtsNumberType, dimensions = 1)
+            val fpLValue = mkArrayIndexLValue(fp64Sort, array, bvIndex, numberArrayType)
+            val fpValue = memory.read(fpLValue)
+
+            val unknownArrayType = EtsArrayType(EtsUnknownType, dimensions = 1)
+            val refLValue = mkArrayIndexLValue(addressSort, array, bvIndex, unknownArrayType)
+            val refValue = memory.read(refLValue)
+
+            // If the read reference is already a fake object, we can return it directly.
+            // Otherwise, we need to create a new fake object and write it back to the memory.
+            if (refValue.isFakeObject()) {
+                refValue
+            } else {
+                val fakeObj = mkFakeValue(boolValue, fpValue, refValue)
+                lValuesToAllocatedFakeObjects += refLValue to fakeObj
+                memory.write(refLValue, fakeObj, guard = trueExpr)
+                fakeObj
+            }
+        }
+    }
+
+    override fun visit(value: EtsArrayAccess): UExpr<out USort>? = with(ctx) {
+        readArrayIndex(value)
     }
 
     fun checkUndefinedOrNullPropertyRead(instance: UHeapRef, propertyName: String) = with(ctx) {
