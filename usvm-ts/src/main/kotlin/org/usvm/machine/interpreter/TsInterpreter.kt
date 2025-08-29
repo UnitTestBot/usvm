@@ -54,6 +54,9 @@ import org.usvm.machine.TsOptions
 import org.usvm.machine.TsVirtualMethodCallStmt
 import org.usvm.machine.expr.TsExprResolver
 import org.usvm.machine.expr.TsUnresolvedSort
+import org.usvm.machine.expr.checkNegativeIndexRead
+import org.usvm.machine.expr.checkReadingInRange
+import org.usvm.machine.expr.checkUndefinedOrNullPropertyRead
 import org.usvm.machine.expr.mkTruthyExpr
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
@@ -519,7 +522,7 @@ class TsInterpreter(
         val resolvedArray = exprResolver.resolve(lhv.array) ?: return null
         val array = resolvedArray.asExpr(addressSort)
 
-        exprResolver.checkUndefinedOrNullPropertyRead(array, "[]") ?: return null
+        checkUndefinedOrNullPropertyRead(scope, array, "[]") ?: return null
 
         val resolvedIndex = exprResolver.resolve(lhv.index) ?: return null
         val index = resolvedIndex.asExpr(fp64Sort)
@@ -533,7 +536,7 @@ class TsInterpreter(
         ).asExpr(sizeSort)
 
         // We don't allow access by negative indices and treat is as an error.
-        exprResolver.checkNegativeIndexRead(bvIndex) ?: return null
+        checkNegativeIndexRead(scope, bvIndex) ?: return null
 
         // TODO: handle the case when `lhv.array.type` is NOT an array.
         //  In this case, it could be created manually: `EtsArrayType(EtsUnknownType, 1)`.
@@ -549,7 +552,7 @@ class TsInterpreter(
         val currentLength = scope.calcOnState { memory.read(lengthLValue) }
 
         // We allow readings from the array only in the range [0, length - 1].
-        exprResolver.checkReadingInRange(bvIndex, currentLength) ?: return null
+        checkReadingInRange(scope, bvIndex, currentLength) ?: return null
 
         val elementSort = typeToSort(arrayType.elementType)
 
@@ -588,7 +591,7 @@ class TsInterpreter(
         val resolvedInstance = exprResolver.resolve(lhv.instance) ?: return null
         val instance = resolvedInstance.asExpr(addressSort)
 
-        exprResolver.checkUndefinedOrNullPropertyRead(instance, lhv.field.name) ?: return null
+        checkUndefinedOrNullPropertyRead(scope, instance, lhv.field.name) ?: return null
 
         val instanceRef = instance.unwrapRef(scope)
 

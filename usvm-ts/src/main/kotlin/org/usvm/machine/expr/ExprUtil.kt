@@ -2,14 +2,19 @@ package org.usvm.machine.expr
 
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
+import org.jacodb.ets.model.EtsStringType
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
 import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.isFalse
 import org.usvm.machine.TsContext
+import org.usvm.machine.TsSizeSort
 import org.usvm.machine.interpreter.TsStepScope
+import org.usvm.machine.state.TsMethodResult
+import org.usvm.machine.state.TsState
 import org.usvm.machine.types.EtsFakeType
 import org.usvm.machine.types.ExprWithTypeConstraint
 import org.usvm.types.single
@@ -181,4 +186,48 @@ fun TsContext.mkNullishExpr(
 
     // Non-reference types (numbers, booleans, strings) are never nullish
     return mkFalse()
+}
+
+fun TsState.throwException(reason: String) {
+    val ref = ctx.mkStringConstantRef(reason)
+    methodResult = TsMethodResult.TsException(ref, EtsStringType)
+}
+
+fun TsContext.checkUndefinedOrNullPropertyRead(
+    scope: TsStepScope,
+    instance: UHeapRef,
+    propertyName: String,
+): Unit? {
+    val ref = instance.unwrapRef(scope)
+    val condition = mkAnd(
+        mkNot(mkHeapRefEq(ref, mkUndefinedValue())),
+        mkNot(mkHeapRefEq(ref, mkTsNullValue())),
+    )
+    return scope.fork(
+        condition,
+        blockOnFalseState = { throwException("Undefined or null property access: $propertyName of $ref") }
+    )
+}
+
+fun TsContext.checkNegativeIndexRead(
+    scope: TsStepScope,
+    index: UExpr<TsSizeSort>,
+): Unit? {
+    val condition = mkBvSignedGreaterOrEqualExpr(index, mkBv(0))
+    return scope.fork(
+        condition,
+        blockOnFalseState = { throwException("Negative index access: $index") }
+    )
+}
+
+fun TsContext.checkReadingInRange(
+    scope: TsStepScope,
+    index: UExpr<TsSizeSort>,
+    length: UExpr<TsSizeSort>,
+): Unit? {
+    val condition = mkBvSignedLessExpr(index, length)
+    return scope.fork(
+        condition,
+        blockOnFalseState = { throwException("Index out of bounds: $index, length: $length") }
+    )
 }

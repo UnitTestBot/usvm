@@ -5,7 +5,6 @@ import io.ksmt.utils.cast
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsAddExpr
 import org.jacodb.ets.model.EtsAndExpr
-import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayAccess
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsAwaitExpr
@@ -15,7 +14,6 @@ import org.jacodb.ets.model.EtsBitNotExpr
 import org.jacodb.ets.model.EtsBitOrExpr
 import org.jacodb.ets.model.EtsBitXorExpr
 import org.jacodb.ets.model.EtsBooleanConstant
-import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsCastExpr
 import org.jacodb.ets.model.EtsCaughtExceptionRef
 import org.jacodb.ets.model.EtsClassSignature
@@ -27,7 +25,6 @@ import org.jacodb.ets.model.EtsDivExpr
 import org.jacodb.ets.model.EtsEntity
 import org.jacodb.ets.model.EtsEqExpr
 import org.jacodb.ets.model.EtsExpExpr
-import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsFunctionType
 import org.jacodb.ets.model.EtsGlobalRef
 import org.jacodb.ets.model.EtsGtEqExpr
@@ -52,7 +49,6 @@ import org.jacodb.ets.model.EtsNotExpr
 import org.jacodb.ets.model.EtsNullConstant
 import org.jacodb.ets.model.EtsNullishCoalescingExpr
 import org.jacodb.ets.model.EtsNumberConstant
-import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsOrExpr
 import org.jacodb.ets.model.EtsParameterRef
 import org.jacodb.ets.model.EtsPostDecExpr
@@ -60,7 +56,6 @@ import org.jacodb.ets.model.EtsPostIncExpr
 import org.jacodb.ets.model.EtsPreDecExpr
 import org.jacodb.ets.model.EtsPreIncExpr
 import org.jacodb.ets.model.EtsPtrCallExpr
-import org.jacodb.ets.model.EtsRawType
 import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsRemExpr
 import org.jacodb.ets.model.EtsRightShiftExpr
@@ -87,7 +82,6 @@ import org.jacodb.ets.utils.STATIC_INIT_METHOD_NAME
 import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
 import org.jacodb.ets.utils.getDeclaredLocals
 import org.usvm.UBoolExpr
-import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.UIteExpr
@@ -97,7 +91,6 @@ import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArrayLength
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.api.mockMethodCall
-import org.usvm.api.typeStreamOf
 import org.usvm.dataflow.ts.infer.tryGetKnownType
 import org.usvm.dataflow.ts.util.type
 import org.usvm.isAllocatedConcreteHeapRef
@@ -123,21 +116,14 @@ import org.usvm.machine.state.TsState
 import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
-import org.usvm.machine.types.EtsAuxiliaryType
 import org.usvm.machine.types.iteWriteIntoFakeObject
-import org.usvm.machine.types.mkFakeValue
 import org.usvm.sizeSort
-import org.usvm.types.first
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.SymbolResolutionResult
 import org.usvm.util.TsResolutionResult
-import org.usvm.util.createFakeField
 import org.usvm.util.isResolved
-import org.usvm.util.mkArrayIndexLValue
-import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
-import org.usvm.util.resolveEtsField
 import org.usvm.util.resolveEtsMethods
 import org.usvm.util.resolveImportInfo
 import org.usvm.util.throwExceptionWithoutStackFrameDrop
@@ -162,7 +148,7 @@ private const val ECMASCRIPT_BITWISE_SHIFT_MASK = 0b11111
 class TsExprResolver(
     internal val ctx: TsContext,
     internal val scope: TsStepScope,
-    private val hierarchy: EtsHierarchy,
+    internal val hierarchy: EtsHierarchy,
 ) : EtsEntity.Visitor<UExpr<out USort>?> {
 
     val simpleValueResolver: TsSimpleValueResolver =
@@ -421,7 +407,7 @@ class TsExprResolver(
                 val instance = resolve(operand.instance)?.asExpr(addressSort) ?: return null
 
                 // Check for null/undefined access
-                checkUndefinedOrNullPropertyRead(instance, operand.field.name) ?: return null
+                checkUndefinedOrNullPropertyRead(scope, instance, operand.field.name) ?: return null
 
                 // For now, we simulate deletion by setting the property to undefined
                 // This is a simplification of the real semantics but sufficient for basic cases
@@ -847,7 +833,7 @@ class TsExprResolver(
         val obj = resolve(expr.right)?.asExpr(addressSort) ?: return null
 
         // Check for null/undefined access
-        checkUndefinedOrNullPropertyRead(obj, "<in>") ?: return null
+        checkUndefinedOrNullPropertyRead(scope, obj, "<in>") ?: return null
 
         logger.warn {
             "The 'in' operator is supported yet, the result may not be accurate"
@@ -902,7 +888,7 @@ class TsExprResolver(
             resolved.asExpr(addressSort)
         }
 
-        checkUndefinedOrNullPropertyRead(instance, expr.callee.name) ?: return null
+        checkUndefinedOrNullPropertyRead(scope, instance, expr.callee.name) ?: return null
 
         val resolvedArgs = expr.args.map { resolve(it) ?: return null }
 
@@ -1123,95 +1109,10 @@ class TsExprResolver(
 
     // region ACCESS
 
-    internal fun readArrayIndex(
-        value: EtsArrayAccess,
-    ): UExpr<*>? = with(ctx) {
-        val resolvedArray = resolve(value.array) ?: return null
-        val array = resolvedArray.asExpr(addressSort)
+    override fun visit(value: EtsArrayAccess): UExpr<*>? = handleArrayAccess(value)
 
-        checkUndefinedOrNullPropertyRead(array, "[]") ?: return null
-
-        val index = resolve(value.index)?.asExpr(fp64Sort) ?: return null
-        val bvIndex = mkFpToBvExpr(
-            roundingMode = fpRoundingModeSortDefaultValue(),
-            value = index,
-            bvSize = sizeSort.sizeBits.toInt(),
-            isSigned = true,
-        ).asExpr(sizeSort)
-
-        val arrayType = if (isAllocatedConcreteHeapRef(array)) {
-            scope.calcOnState { memory.typeStreamOf(array).first() }
-        } else {
-            value.array.type
-        }
-        check(arrayType is EtsArrayType) {
-            "Expected EtsArrayType, got: ${value.array.type}"
-        }
-        val sort = typeToSort(arrayType.elementType)
-
-        val lengthLValue = mkArrayLengthLValue(array, arrayType)
-        val length = scope.calcOnState { memory.read(lengthLValue) }
-
-        checkNegativeIndexRead(bvIndex) ?: return null
-        checkReadingInRange(bvIndex, length) ?: return null
-
-        // If the element type is known, we can read it directly.
-        if (sort !is TsUnresolvedSort) {
-            val lValue = mkArrayIndexLValue(
-                sort = sort,
-                ref = array,
-                index = bvIndex,
-                type = arrayType,
-            )
-            return scope.calcOnState { memory.read(lValue) }
-        }
-
-        // Concrete arrays with the unresolved sort should consist of fake objects only.
-        if (array is UConcreteHeapRef) {
-            // Read a fake object from the array.
-            val lValue = mkArrayIndexLValue(
-                sort = addressSort,
-                ref = array,
-                index = bvIndex,
-                type = arrayType,
-            )
-            return scope.calcOnState { memory.read(lValue) }
-        }
-
-        // If the element type is unresolved, we need to create a fake object
-        // that can hold boolean, number, and reference values.
-        // We read all three types from the array and combine them into a fake object.
-        scope.calcOnState {
-            val boolArrayType = EtsArrayType(EtsBooleanType, dimensions = 1)
-            val boolLValue = mkArrayIndexLValue(boolSort, array, bvIndex, boolArrayType)
-            val boolValue = memory.read(boolLValue)
-
-            val numberArrayType = EtsArrayType(EtsNumberType, dimensions = 1)
-            val fpLValue = mkArrayIndexLValue(fp64Sort, array, bvIndex, numberArrayType)
-            val fpValue = memory.read(fpLValue)
-
-            val unknownArrayType = EtsArrayType(EtsUnknownType, dimensions = 1)
-            val refLValue = mkArrayIndexLValue(addressSort, array, bvIndex, unknownArrayType)
-            val refValue = memory.read(refLValue)
-
-            // If the read reference is already a fake object, we can return it directly.
-            // Otherwise, we need to create a new fake object and write it back to the memory.
-            if (refValue.isFakeObject()) {
-                refValue
-            } else {
-                val fakeObj = mkFakeValue(boolValue, fpValue, refValue)
-                lValuesToAllocatedFakeObjects += refLValue to fakeObj
-                memory.write(refLValue, fakeObj, guard = trueExpr)
-                fakeObj
-            }
-        }
-    }
-
-    override fun visit(value: EtsArrayAccess): UExpr<out USort>? = with(ctx) {
-        readArrayIndex(value)
-    }
-
-    fun checkUndefinedOrNullPropertyRead(instance: UHeapRef, propertyName: String) = with(ctx) {
+    @Deprecated("use extension")
+    fun checkUndefinedOrNullPropertyRead(instance: UHeapRef, propertyName: String): Unit? = with(ctx) {
         val ref = instance.unwrapRef(scope)
 
         val neqNull = mkAnd(
@@ -1225,6 +1126,7 @@ class TsExprResolver(
         )
     }
 
+    @Deprecated("use extension")
     fun checkNegativeIndexRead(index: UExpr<TsSizeSort>) = with(ctx) {
         val condition = mkBvSignedGreaterOrEqualExpr(index, mkBv(0))
 
@@ -1234,6 +1136,7 @@ class TsExprResolver(
         )
     }
 
+    @Deprecated("use extension")
     fun checkReadingInRange(index: UExpr<TsSizeSort>, length: UExpr<TsSizeSort>) = with(ctx) {
         val condition = mkBvSignedLessExpr(index, length)
 
@@ -1243,218 +1146,39 @@ class TsExprResolver(
         )
     }
 
+    @Deprecated("use extension")
     private fun allocateException(reason: String): (TsState) -> Unit = { state ->
         val s = ctx.mkStringConstantRef(reason)
         state.throwExceptionWithoutStackFrameDrop(s, EtsStringType)
     }
 
-    private fun handleFieldRef(
-        instance: EtsLocal?,
-        instanceRef: UHeapRef,
-        field: EtsFieldSignature,
-        hierarchy: EtsHierarchy,
-    ): UExpr<out USort>? = with(ctx) {
-        val resolvedAddr = instanceRef.unwrapRef(scope)
-
-        val etsField = resolveEtsField(instance, field, hierarchy)
-
-        val sort = when (etsField) {
-            is TsResolutionResult.Empty -> {
-                if (field.name !in listOf("i", "LogLevel")) {
-                    logger.warn { "Field $field not found, creating fake field" }
-                }
-                // If we didn't find any real fields, let's create a fake one.
-                // It is possible due to mistakes in the IR or if the field was added explicitly
-                // in the code.
-                // Probably, the right behaviour here is to fork the state.
-                resolvedAddr.createFakeField(scope, field.name)
-                addressSort
-            }
-
-            is TsResolutionResult.Unique -> typeToSort(etsField.property.type)
-            is TsResolutionResult.Ambiguous -> unresolvedSort
-        }
-
-        scope.doWithState {
-            // If we accessed some field, we make an assumption that
-            // this field should present in the object.
-            // That's not true in the common case for TS, but that's the decision we made.
-            val auxiliaryType = EtsAuxiliaryType(properties = setOf(field.name))
-            // assert is required to update models
-            scope.assert(memory.types.evalIsSubtype(resolvedAddr, auxiliaryType))
-        }
-
-        if (sort == unresolvedSort) {
-            val boolLValue = mkFieldLValue(boolSort, instanceRef, field)
-            val fpLValue = mkFieldLValue(fp64Sort, instanceRef, field)
-            val refLValue = mkFieldLValue(addressSort, instanceRef, field)
-
-            scope.calcOnState {
-                val bool = memory.read(boolLValue)
-                val fp = memory.read(fpLValue)
-                val ref = memory.read(refLValue)
-
-                // If a fake object is already created and assigned to the field,
-                // there is no need to recreate another one
-                val fakeRef = if (ref.isFakeObject()) {
-                    ref
-                } else {
-                    mkFakeValue(bool, fp, ref).also {
-                        lValuesToAllocatedFakeObjects += refLValue to it
-                    }
-                }
-
-                // TODO ambiguous enum fields resolution
-                if (etsField is TsResolutionResult.Unique) {
-                    val fieldType = etsField.property.type
-                    if (fieldType is EtsRawType && fieldType.kind == "EnumValueType") {
-                        val fakeType = fakeRef.getFakeType(scope)
-                        pathConstraints += ctx.mkOr(
-                            fakeType.fpTypeExpr,
-                            fakeType.refTypeExpr
-                        )
-
-                        // val supertype = TODO()
-                        // TODO add enum type as a constraint
-                        // pathConstraints += memory.types.evalIsSubtype(
-                        //     ref,
-                        //     TODO()
-                        // )
-                    }
-                }
-
-                memory.write(refLValue, fakeRef.asExpr(addressSort), guard = trueExpr)
-
-                fakeRef
-            }
-        } else {
-            val lValue = mkFieldLValue(sort, resolvedAddr, field)
-            scope.calcOnState { memory.read(lValue) }
-        }
-    }
-
-    private fun handleArrayLength(
-        value: EtsInstanceFieldRef,
-        instance: UHeapRef,
-    ): UExpr<*> = with(ctx) {
-        val arrayType = value.instance.type as EtsArrayType
-        val length = scope.calcOnState {
-            val lengthLValue = mkArrayLengthLValue(instance, arrayType)
-            memory.read(lengthLValue)
-        }
-
-        scope.doWithState {
-            pathConstraints += mkBvSignedGreaterOrEqualExpr(length, mkBv(0))
-        }
-
-        return mkBvToFpExpr(
-            fp64Sort,
-            fpRoundingModeSortDefaultValue(),
-            length.asExpr(sizeSort),
-            signed = true,
-        )
-    }
-
-    private fun handleFakeLength(
-        value: EtsInstanceFieldRef,
-        instance: UConcreteHeapRef,
-    ): UExpr<*> = with(ctx) {
-        val fakeType = instance.getFakeType(scope)
-
-        // If we want to get length from a fake object, we assume that it is an array.
-        scope.doWithState {
-            pathConstraints += fakeType.refTypeExpr
-        }
-
-        val ref = instance.unwrapRef(scope)
-
-        val arrayType = when (val type = value.instance.type) {
-            is EtsArrayType -> type
-
-            is EtsAnyType, is EtsUnknownType -> {
-                // If the type is not an array, we assume it is a fake object with
-                // a length property that behaves like an array.
-                EtsArrayType(EtsUnknownType, dimensions = 1)
-            }
-
-            else -> error("Expected EtsArrayType, EtsAnyType or EtsUnknownType, but got $type")
-        }
-        val length = scope.calcOnState {
-            val lengthLValue = mkArrayLengthLValue(ref, arrayType)
-            memory.read(lengthLValue)
-        }
-
-        scope.doWithState {
-            pathConstraints += mkBvSignedGreaterOrEqualExpr(length, mkBv(0))
-        }
-
-        return mkBvToFpExpr(
-            fp64Sort,
-            fpRoundingModeSortDefaultValue(),
-            length.asExpr(sizeSort),
-            signed = true
-        )
-    }
-
-    override fun visit(value: EtsInstanceFieldRef): UExpr<out USort>? = with(ctx) {
-        val instanceResolved = resolve(value.instance) ?: return null
-        if (instanceResolved.sort != addressSort) {
-            logger.error { "Instance of field ref should be a reference, but got $instanceResolved" }
+    override fun visit(value: EtsInstanceFieldRef): UExpr<*>? = with(ctx) {
+        val resolvedInstance = resolve(value.instance) ?: return null
+        if (resolvedInstance.sort != addressSort) {
+            logger.error { "Instance of field ref should be a reference, but got ${resolvedInstance.sort}" }
             scope.assert(falseExpr)
             return null
         }
-        val instanceRef = instanceResolved.asExpr(addressSort)
+        val instance = resolvedInstance.asExpr(addressSort)
 
-        checkUndefinedOrNullPropertyRead(instanceRef, value.field.name) ?: return null
+        checkUndefinedOrNullPropertyRead(scope, instance, value.field.name) ?: return null
 
         // Handle array length
         if (value.field.name == "length" && value.instance.type is EtsArrayType) {
-            return handleArrayLength(value, instanceRef)
+            return readLengthArray(value.instance, instance)
         }
 
         // Handle length property for fake objects
         // TODO: handle "length" property for arrays inside fake objects
-        if (value.field.name == "length" && instanceRef.isFakeObject()) {
-            return handleFakeLength(value, instanceRef)
+        if (value.field.name == "length" && instance.isFakeObject()) {
+            return readLengthFake(value.instance, instance)
         }
 
-        return handleFieldRef(value.instance, instanceRef, value.field, hierarchy)
+        return readField(value.instance, instance, value.field)
     }
 
-    override fun visit(value: EtsStaticFieldRef): UExpr<out USort>? = with(ctx) {
-        val clazz = scene.projectAndSdkClasses.singleOrNull {
-            it.signature == value.field.enclosingClass
-        } ?: return null
-
-        val instanceRef = scope.calcOnState { getStaticInstance(clazz) }
-
-        val initializer = clazz.methods.singleOrNull { it.name == STATIC_INIT_METHOD_NAME }
-        if (initializer != null) {
-            val isInitialized = scope.calcOnState { isInitialized(clazz) }
-            if (isInitialized) {
-                scope.doWithState {
-                    // TODO: Handle static initializer result
-                    val result = methodResult
-                    // TODO: Why this signature check is needed?
-                    // TODO: Why we need to reset methodResult here? Double-check that it is even set anywhere.
-                    if (result is TsMethodResult.Success && result.methodSignature == initializer.signature) {
-                        methodResult = TsMethodResult.NoCall
-                    }
-                }
-            } else {
-                scope.doWithState {
-                    markInitialized(clazz)
-                    pushSortsForArguments(instance = null, args = emptyList()) { getLocalIdx(it, lastEnteredMethod) }
-                    registerCallee(currentStatement, initializer.cfg)
-                    callStack.push(initializer, currentStatement)
-                    memory.stack.push(arrayOf(instanceRef), initializer.localsCount)
-                    newStmt(initializer.cfg.stmts.first())
-                }
-                return null
-            }
-        }
-
-        return handleFieldRef(instance = null, instanceRef, value.field, hierarchy)
+    override fun visit(value: EtsStaticFieldRef): UExpr<*>? {
+        return readStaticField(value.field)
     }
 
     override fun visit(value: EtsCaughtExceptionRef): UExpr<out USort>? {
@@ -1536,12 +1260,17 @@ class TsExprResolver(
 
             val condition = mkAnd(
                 mkEq(
-                    mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), bvSize, signed = true),
+                    mkBvToFpExpr(
+                        sort = fp64Sort,
+                        roundingMode = fpRoundingModeSortDefaultValue(),
+                        value = bvSize,
+                        signed = true,
+                    ),
                     size.asExpr(fp64Sort)
                 ),
                 mkAnd(
-                    mkBvSignedLessOrEqualExpr(0.toBv(), bvSize.asExpr(bv32Sort)),
-                    mkBvSignedLessOrEqualExpr(bvSize, Int.MAX_VALUE.toBv().asExpr(bv32Sort))
+                    mkBvSignedLessOrEqualExpr(mkBv(0), bvSize.asExpr(bv32Sort)),
+                    mkBvSignedLessOrEqualExpr(bvSize.asExpr(bv32Sort), mkBv(Int.MAX_VALUE))
                 )
             )
 
