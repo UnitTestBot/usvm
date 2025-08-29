@@ -708,19 +708,25 @@ class TsInterpreter(
         when (lhv) {
             is EtsLocal -> {
                 val name = lhv.name
-                if (!name.startsWith("%") && !name.startsWith("_tmp") && name != "this") {
+                if (name.startsWith("%") || name.startsWith("_tmp") || name == "this") {
+                    // Normal local variable
+                    assignToLocal(scope, lhv, expr)
+                } else {
+                    // Global variable
                     logger.info {
                         "Assigning to a global variable in %dflt: $name in $file"
                     }
                     writeGlobal(scope, file, name, expr)
-                } else {
-                    assignToLocal(scope, lhv, expr)
                 }
             }
 
             is EtsArrayAccess -> {
                 val name = lhv.array.name
-                if (!name.startsWith("%") && !name.startsWith("_tmp") && name != "this") {
+                if (name.startsWith("%") || name.startsWith("_tmp") || name == "this") {
+                    // Normal local array variable
+                    assignToArrayIndex(scope, lhv, expr)
+                } else {
+                    // Global array variable
                     logger.info {
                         "Assigning to an element of a global array variable in dflt: $name[${lhv.index}] in $file"
                     }
@@ -757,14 +763,16 @@ class TsInterpreter(
                     scope.doWithState {
                         memory.write(elementLValue, expr.cast(), guard = trueExpr)
                     }
-                } else {
-                    assignToArrayIndex(scope, lhv, expr)
                 }
             }
 
             is EtsInstanceFieldRef -> {
                 val name = lhv.instance.name
-                if (!name.startsWith("%") && !name.startsWith("_tmp") && name != "this") {
+                if (name.startsWith("%") || name.startsWith("_tmp") || name == "this") {
+                    // Normal local instance variable
+                    assignToInstanceField(scope, lhv, expr)
+                } else {
+                    // Global instance variable
                     logger.info {
                         "Assigning to a field of a global variable in dflt: $name.${lhv.field.name} in $file"
                     }
@@ -776,8 +784,6 @@ class TsInterpreter(
                     scope.doWithState {
                         memory.write(fieldLValue, expr.cast(), guard = trueExpr)
                     }
-                } else {
-                    assignToInstanceField(scope, lhv, expr)
                 }
             }
 
