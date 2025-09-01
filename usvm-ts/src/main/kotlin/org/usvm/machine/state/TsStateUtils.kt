@@ -32,3 +32,16 @@ inline val EtsMethod.parametersWithThisCount: Int
 
 inline val EtsMethod.localsCount: Int
     get() = locals.size
+
+// TODO: fix handling of arguments and use this function in machine
+fun TsState.makeCall(
+    method: EtsMethod,
+    instance: UExpr<*>,
+    args: List<UExpr<*>>,
+) {
+    pushSortsForArguments(0) { null }
+    registerCallee(currentStatement, method.cfg)
+    callStack.push(method, currentStatement)
+    memory.stack.push(arrayOf(instance) + args.toTypedArray(), method.localsCount)
+    newStmt(method.cfg.stmts.first())
+}

@@ -7,16 +7,11 @@ import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsStaticFieldRef
-import org.jacodb.ets.utils.STATIC_INIT_METHOD_NAME
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
-import org.usvm.machine.interpreter.isInitialized
-import org.usvm.machine.interpreter.markInitialized
-import org.usvm.machine.state.TsMethodResult
-import org.usvm.machine.state.localsCount
-import org.usvm.machine.state.newStmt
+import org.usvm.machine.interpreter.ensureStaticsInitialized
 import org.usvm.machine.types.EtsAuxiliaryType
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.util.EtsHierarchy
@@ -135,37 +130,17 @@ internal fun TsContext.readStaticField(
     field: EtsFieldSignature,
     hierarchy: EtsHierarchy,
 ): UExpr<*>? {
+    // TODO: handle unresolved class, or multiple classes
     val clazz = scene.projectAndSdkClasses.singleOrNull {
         it.signature == field.enclosingClass
     } ?: return null
 
+    // Initialize statics in `clazz` if necessary.
+    ensureStaticsInitialized(scope, clazz) ?: return null
+
+    // Get the static instance.
     val instance = scope.calcOnState { getStaticInstance(clazz) }
 
-    val initializer = clazz.methods.singleOrNull { it.name == STATIC_INIT_METHOD_NAME }
-    if (initializer != null) {
-        val isInitialized = scope.calcOnState { isInitialized(clazz) }
-        if (isInitialized) {
-            scope.doWithState {
-                // TODO: Handle static initializer result
-                val result = methodResult
-                // TODO: Why this signature check is needed?
-                // TODO: Why we need to reset methodResult here? Double-check that it is even set anywhere.
-                if (result is TsMethodResult.Success && result.methodSignature == initializer.signature) {
-                    methodResult = TsMethodResult.NoCall
-                }
-            }
-        } else {
-            scope.doWithState {
-                markInitialized(clazz)
-                pushSortsForArguments(instance = null, args = emptyList()) { getLocalIdx(it, lastEnteredMethod) }
-                registerCallee(currentStatement, initializer.cfg)
-                callStack.push(initializer, currentStatement)
-                memory.stack.push(arrayOf(instance), initializer.localsCount)
-                newStmt(initializer.cfg.stmts.first())
-            }
-            return null
-        }
-    }
-
+    // Read the field.
     return readField(scope, null, instance, field, hierarchy)
 }

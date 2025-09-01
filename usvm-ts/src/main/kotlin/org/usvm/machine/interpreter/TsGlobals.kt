@@ -64,7 +64,7 @@ internal fun TsState.initializeGlobals(file: EtsFile) {
     markGlobalsInitialized(file)
     val dfltObject = getDfltObject(file)
     val dfltMethod = file.getDfltMethod()
-    pushSortsForArguments(instance = null, args = emptyList()) { null }
+    pushSortsForArguments(0) { null }
     registerCallee(currentStatement, dfltMethod.cfg)
     callStack.push(dfltMethod, currentStatement)
     memory.stack.push(arrayOf(dfltObject), dfltMethod.localsCount)

@@ -5,13 +5,11 @@ import org.jacodb.ets.model.EtsBlockCfg
 import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsFileSignature
-import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
-import org.jacodb.ets.model.EtsValue
 import org.usvm.PathNode
 import org.usvm.UCallStack
 import org.usvm.UConcreteHeapRef
@@ -132,25 +130,15 @@ class TsState(
     }
 
     fun pushSortsForArguments(
-        instance: EtsLocal?,
-        args: List<EtsLocal>,
-        localToIdx: (EtsValue) -> Int?,
+        n: Int,
+        idxToSort: (Int) -> USort?,
     ) {
-        val argSorts = args.map { arg ->
-            val argIdx = localToIdx(arg)
-                ?: error("Arguments must present in the locals, but $arg is absent")
-            getOrPutSortForLocal(argIdx) { ctx.typeToSort(arg.type) }
-        }
-
-        val instanceIdx = instance?.let { localToIdx(it) }
-        val instanceSort = instanceIdx?.let { getOrPutSortForLocal(it) { ctx.typeToSort(instance.type) } }
-
-        // Note: first, push an empty map, then fill the arguments, and then the instance (this)
         pushLocalToSortStack()
-        instanceSort?.let { saveSortForLocal(0, it) }
-        argSorts.forEachIndexed { i, sort ->
-            val idx = i + 1 // + 1 because 0 is reserved for `this`
-            saveSortForLocal(idx, sort)
+        for (i in 0..n) {
+            val sort = idxToSort(i)
+            if (sort != null) {
+                saveSortForLocal(i, sort)
+            }
         }
     }
 
