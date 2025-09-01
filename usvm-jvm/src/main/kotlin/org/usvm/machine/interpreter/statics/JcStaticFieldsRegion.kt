@@ -34,7 +34,7 @@ data class JcStaticFieldLValue<Sort : USort>(
     val field: JcField,
     override val sort: Sort,
 ) : ULValue<JcStaticFieldLValue<Sort>, Sort> {
-    override val memoryRegionId: UMemoryRegionId<JcStaticFieldLValue<Sort>, Sort> = JcStaticFieldRegionId(sort)
+    override val memoryRegionId: JcStaticFieldRegionId<Sort> = JcStaticFieldRegionId(sort)
 
     override val key: JcStaticFieldLValue<Sort>
         get() = this
@@ -59,7 +59,7 @@ internal class JcStaticFieldsMemoryRegion<Sort : USort>(
     override fun read(key: JcStaticFieldLValue<Sort>): UExpr<Sort> {
         val field = key.field
         return fieldValuesByClass[field.enclosingClass]?.get(field)
-            ?: sort.jctx.mkStaticFieldReading(key.memoryRegionId as JcStaticFieldRegionId, field, sort)
+            ?: sort.jctx.mkStaticFieldReading(key.memoryRegionId, field, sort)
     }
 
     override fun write(
