@@ -51,6 +51,7 @@ import org.jacodb.ets.model.EtsFunctionType
 import org.jacodb.ets.model.EtsGenericType
 import org.jacodb.ets.model.EtsIntersectionType
 import org.jacodb.ets.model.EtsLexicalEnvType
+import org.jacodb.ets.model.EtsLiteralType
 import org.jacodb.ets.model.EtsNeverType
 import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsNumberLiteralType
@@ -119,7 +120,7 @@ private object EtsTypeToDto : EtsType.Visitor<TypeDto> {
     override fun visit(type: EtsEnumValueType): TypeDto {
         return EnumValueTypeDto(
             signature = type.signature.toDto(),
-            name = type.name,
+            constant = type.constant?.toDto(),
         )
     }
 
