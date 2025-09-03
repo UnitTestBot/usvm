@@ -8,7 +8,7 @@ import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.ensureGlobalsInitialized
 import org.usvm.util.mkFieldLValue
 
-internal fun TsContext.writeGlobal(
+fun TsContext.writeGlobal(
     scope: TsStepScope,
     file: EtsFile,
     name: String,

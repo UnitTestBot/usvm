@@ -80,6 +80,21 @@ class FieldAccess {
     private createObject(): { x: number } {
         return { x: 42 };
     }
+
+    readFromAny(x: any): number {
+        if (x === undefined) return 0;
+        if (x === null) return 0;
+        if (x.a === 10) return 1;
+        return 2;
+    }
+
+    writeToAny(x: any): number {
+        if (x === undefined) return 0;
+        if (x === null) return 0;
+        x.a = 20;
+        x.b = 30;
+        return x.a + x.b;
+    }
 }
 
 class SimpleClass {

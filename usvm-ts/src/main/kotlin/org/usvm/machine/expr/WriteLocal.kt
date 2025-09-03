@@ -17,7 +17,7 @@ internal fun TsExprResolver.handleAssignToLocal(
     return assignToLocal(scope, local, expr)
 }
 
-internal fun TsContext.assignToLocal(
+fun TsContext.assignToLocal(
     scope: TsStepScope,
     local: EtsLocal,
     expr: UExpr<*>,

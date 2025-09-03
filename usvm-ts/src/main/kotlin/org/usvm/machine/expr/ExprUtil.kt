@@ -193,19 +193,30 @@ fun TsState.throwException(reason: String) {
     methodResult = TsMethodResult.TsException(ref, EtsStringType)
 }
 
+fun TsContext.mkNotNullOrUndefined(ref: UHeapRef): UBoolExpr {
+    require(!ref.isFakeObject()) {
+        "Fake object handling should be done outside of this function"
+    }
+    return mkNot(
+        mkOr(
+            mkHeapRefEq(ref, mkTsNullValue()),
+            mkHeapRefEq(ref, mkUndefinedValue())
+        )
+    )
+}
+
 fun TsContext.checkUndefinedOrNullPropertyRead(
     scope: TsStepScope,
     instance: UHeapRef,
     propertyName: String,
 ): Unit? {
-    val ref = instance.unwrapRef(scope)
-    val condition = mkAnd(
-        mkNot(mkHeapRefEq(ref, mkUndefinedValue())),
-        mkNot(mkHeapRefEq(ref, mkTsNullValue())),
-    )
+    require(!instance.isFakeObject()) {
+        "Fake object handling should be done outside of this function"
+    }
+    val condition = mkNotNullOrUndefined(instance)
     return scope.fork(
         condition,
-        blockOnFalseState = { throwException("Undefined or null property access: $propertyName of $ref") }
+        blockOnFalseState = { throwException("Undefined or null property access: $propertyName of $instance") }
     )
 }
 

@@ -31,20 +31,7 @@ import org.usvm.util.resolveEtsMethods
 
 private val logger = KotlinLogging.logger {}
 
-sealed interface TsExprApproximationResult {
-    data class SuccessfulApproximation(val expr: UExpr<*>) : TsExprApproximationResult
-    data object ResolveFailure : TsExprApproximationResult
-    data object NoApproximation : TsExprApproximationResult
-
-    companion object {
-        fun from(expr: UExpr<*>?): TsExprApproximationResult = when {
-            expr != null -> SuccessfulApproximation(expr)
-            else -> ResolveFailure
-        }
-    }
-}
-
-fun TsExprResolver.tryApproximateInstanceCall(
+internal fun TsExprResolver.tryApproximateInstanceCall(
     expr: EtsInstanceCallExpr,
 ): TsExprApproximationResult = with(ctx) {
     // Mock all calls to `Logger` methods

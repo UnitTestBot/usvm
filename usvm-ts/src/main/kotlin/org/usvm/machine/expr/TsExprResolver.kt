@@ -17,7 +17,6 @@ import org.jacodb.ets.model.EtsBooleanConstant
 import org.jacodb.ets.model.EtsCastExpr
 import org.jacodb.ets.model.EtsCaughtExceptionRef
 import org.jacodb.ets.model.EtsClassSignature
-import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsClosureFieldRef
 import org.jacodb.ets.model.EtsConstant
 import org.jacodb.ets.model.EtsDeleteExpr
@@ -38,7 +37,6 @@ import org.jacodb.ets.model.EtsLexicalEnvType
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsLtEqExpr
 import org.jacodb.ets.model.EtsLtExpr
-import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsMulExpr
 import org.jacodb.ets.model.EtsNegExpr
@@ -78,9 +76,7 @@ import org.jacodb.ets.model.EtsVoidExpr
 import org.jacodb.ets.model.EtsYieldExpr
 import org.jacodb.ets.utils.ANONYMOUS_METHOD_PREFIX
 import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
-import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
 import org.jacodb.ets.utils.getDeclaredLocals
-import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.UIteExpr
 import org.usvm.USort
@@ -92,10 +88,8 @@ import org.usvm.api.mockMethodCall
 import org.usvm.dataflow.ts.infer.tryGetKnownType
 import org.usvm.dataflow.ts.util.type
 import org.usvm.isAllocatedConcreteHeapRef
-import org.usvm.machine.Constants
 import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
-import org.usvm.machine.TsVirtualMethodCallStmt
 import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.getGlobals
@@ -106,7 +100,6 @@ import org.usvm.machine.interpreter.setResolvedValue
 import org.usvm.machine.operator.TsBinaryOperator
 import org.usvm.machine.operator.TsUnaryOperator
 import org.usvm.machine.state.TsMethodResult
-import org.usvm.machine.state.TsState
 import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
@@ -114,7 +107,6 @@ import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.sizeSort
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.SymbolResolutionResult
-import org.usvm.util.TsResolutionResult
 import org.usvm.util.isResolved
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
@@ -849,187 +841,9 @@ class TsExprResolver(
 
     // region CALL
 
-    override fun visit(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
-        when (val result = tryApproximateInstanceCall(expr)) {
-            is TsExprApproximationResult.SuccessfulApproximation -> return result.expr
-            is TsExprApproximationResult.ResolveFailure -> return null
-            is TsExprApproximationResult.NoApproximation -> {}
-        }
+    override fun visit(expr: EtsInstanceCallExpr): UExpr<*>? = handleInstanceCall(expr)
 
-        val result = scope.calcOnState { methodResult }
-
-        if (result is TsMethodResult.Success) {
-            scope.doWithState { methodResult = TsMethodResult.NoCall }
-            return result.value
-        }
-
-        if (result is TsMethodResult.TsException) {
-            error("Exception should be handled earlier")
-        }
-
-        check(result is TsMethodResult.NoCall)
-
-        val instance = run {
-            val resolved = resolve(expr.instance) ?: return null
-
-            if (resolved.sort != addressSort) {
-                logger.warn { "Calling method on non-ref instance is not yet supported: $expr" }
-                scope.assert(falseExpr)
-                return null
-            }
-
-            resolved.asExpr(addressSort)
-        }
-
-        checkUndefinedOrNullPropertyRead(scope, instance, expr.callee.name) ?: return null
-
-        val resolvedArgs = expr.args.map { resolve(it) ?: return null }
-
-        val virtualCall = TsVirtualMethodCallStmt(
-            callee = expr.callee,
-            instance = instance,
-            args = resolvedArgs,
-            returnSite = scope.calcOnState { lastStmt },
-        )
-        scope.doWithState { newStmt(virtualCall) }
-
-        null
-    }
-
-    private fun handleR(): UExpr<*>? = with(ctx) {
-        val mockSymbol = scope.calcOnState {
-            memory.mocker.createMockSymbol(trackedLiteral = null, addressSort, ownership)
-        }
-        scope.assert(mkNot(mkEq(mockSymbol, mkTsNullValue())))
-        mockSymbol
-    }
-
-    private fun handleNumberConverter(expr: EtsStaticCallExpr): UExpr<*>? = with(ctx) {
-        check(expr.args.size == 1) {
-            "Number() should have exactly one argument, but got ${expr.args.size}"
-        }
-        val arg = resolve(expr.args.single()) ?: return null
-        return mkNumericExpr(arg, scope)
-    }
-
-    private fun handleBooleanConverter(expr: EtsStaticCallExpr): UExpr<*>? = with(ctx) {
-        check(expr.args.size == 1) {
-            "Boolean() should have exactly one argument, but got ${expr.args.size}"
-        }
-        val arg = resolve(expr.args.single()) ?: return null
-        return mkTruthyExpr(arg, scope)
-    }
-
-    override fun visit(expr: EtsStaticCallExpr): UExpr<*>? = with(ctx) {
-        // Mock `$r` calls
-        if (expr.callee.name == "\$r") {
-            return handleR()
-        }
-
-        // Handle `Number(...)` calls
-        if (expr.callee.name == "Number") {
-            return handleNumberConverter(expr)
-        }
-
-        // Handle `Boolean(...)` calls
-        if (expr.callee.name == "Boolean") {
-            return handleBooleanConverter(expr)
-        }
-
-        val result = scope.calcOnState { methodResult }
-
-        if (result is TsMethodResult.Success) {
-            scope.doWithState { methodResult = TsMethodResult.NoCall }
-            return result.value
-        }
-
-        if (result is TsMethodResult.TsException) {
-            error("Exception should be handled earlier")
-        }
-
-        check(result is TsMethodResult.NoCall)
-
-        when (val resolved = resolveStaticMethod(expr.callee)) {
-            is TsResolutionResult.Empty -> {
-                logger.error { "Could not resolve static call: ${expr.callee}" }
-                scope.assert(falseExpr)
-            }
-
-            is TsResolutionResult.Ambiguous -> {
-                processAmbiguousStaticMethod(resolved, expr)
-            }
-
-            is TsResolutionResult.Unique -> {
-                processUniqueStaticMethod(resolved, expr)
-            }
-        }
-
-        null
-    }
-
-    private fun resolveStaticMethod(method: EtsMethodSignature): TsResolutionResult<EtsMethod> {
-        // Perfect signature:
-        if (method.enclosingClass.name != UNKNOWN_CLASS_NAME) {
-            val classes = hierarchy.classesForType(EtsClassType(method.enclosingClass))
-            if (classes.size > 1) {
-                val methods = classes.map { it.methods.single { it.name == method.name } }
-                return TsResolutionResult.create(methods)
-            }
-
-            if (classes.isEmpty()) return TsResolutionResult.Empty
-
-            val clazz = classes.single()
-            val methods = clazz.methods.filter { it.name == method.name }
-            return TsResolutionResult.create(methods)
-        }
-
-        // Unknown signature:
-        val methods = ctx.scene.projectAndSdkClasses
-            .flatMap { it.methods }
-            .filter { it.name == method.name }
-
-        return TsResolutionResult.create(methods)
-    }
-
-    private fun processAmbiguousStaticMethod(
-        resolved: TsResolutionResult.Ambiguous<EtsMethod>,
-        expr: EtsStaticCallExpr,
-    ) {
-        val resolvedArgs = expr.args.map { resolve(it) ?: return }
-        val staticProperties = resolved.properties.take(Constants.STATIC_METHODS_FORK_LIMIT)
-        val staticInstances = scope.calcOnState {
-            staticProperties.map { getStaticInstance(it.enclosingClass!!) }
-        }
-        val concreteCalls = staticProperties.mapIndexed { index, value ->
-            TsConcreteMethodCallStmt(
-                callee = value,
-                instance = staticInstances[index],
-                args = resolvedArgs,
-                returnSite = scope.calcOnState { lastStmt }
-            )
-        }
-        val blocks: List<Pair<UBoolExpr, TsState.() -> Unit>> = concreteCalls.map { stmt ->
-            ctx.mkTrue() to { newStmt(stmt) }
-        }
-        scope.forkMulti(blocks)
-    }
-
-    private fun processUniqueStaticMethod(
-        resolved: TsResolutionResult.Unique<EtsMethod>,
-        expr: EtsStaticCallExpr,
-    ) {
-        val instance = scope.calcOnState {
-            getStaticInstance(resolved.property.enclosingClass!!)
-        }
-        val args = expr.args.map { resolve(it) ?: return }
-        val concreteCall = TsConcreteMethodCallStmt(
-            callee = resolved.property,
-            instance = instance,
-            args = args,
-            returnSite = scope.calcOnState { lastStmt },
-        )
-        scope.doWithState { newStmt(concreteCall) }
-    }
+    override fun visit(expr: EtsStaticCallExpr): UExpr<*>? = handleStaticCall(expr)
 
     override fun visit(expr: EtsPtrCallExpr): UExpr<out USort>? = with(ctx) {
         when (val result = scope.calcOnState { methodResult }) {

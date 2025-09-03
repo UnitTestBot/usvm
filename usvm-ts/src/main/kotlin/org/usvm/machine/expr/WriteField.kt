@@ -1,6 +1,7 @@
 package org.usvm.machine.expr
 
 import io.ksmt.utils.asExpr
+import mu.KotlinLogging
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsInstanceFieldRef
@@ -17,6 +18,8 @@ import org.usvm.util.TsResolutionResult
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.resolveEtsField
 
+private val logger = KotlinLogging.logger {}
+
 internal fun TsExprResolver.handleAssignToInstanceField(
     lhv: EtsInstanceFieldRef,
     expr: UExpr<*>,
@@ -25,20 +28,30 @@ internal fun TsExprResolver.handleAssignToInstanceField(
     val field = lhv.field
 
     // Resolve the instance.
-    val instance = resolve(instanceLocal) ?: return null
-    check(instance.sort == addressSort) {
-        "Expected address sort for instance, got: ${instance.sort}"
+    val instance: UHeapRef = run {
+        val resolved = resolve(instanceLocal) ?: return null
+        if (resolved.isFakeObject()) {
+            scope.assert(resolved.getFakeType(scope).refTypeExpr) ?: run {
+                logger.warn { "UNSAT after ensuring fake object is ref-typed" }
+                return null
+            }
+            resolved.extractRef(scope)
+        } else {
+            check(resolved.sort == addressSort) {
+                "Expected address sort for instance, got: ${resolved.sort}"
+            }
+            resolved.asExpr(addressSort)
+        }
     }
-    val instanceRef = instance.asExpr(addressSort)
 
     // Check for undefined or null field access.
-    checkUndefinedOrNullPropertyRead(scope, instanceRef, field.name) ?: return null
+    checkUndefinedOrNullPropertyRead(scope, instance, field.name) ?: return null
 
     // Assign to the field.
-    assignToInstanceField(scope, instanceLocal, instanceRef, field, expr, hierarchy)
+    assignToInstanceField(scope, instanceLocal, instance, field, expr, hierarchy)
 }
 
-internal fun TsContext.assignToInstanceField(
+fun TsContext.assignToInstanceField(
     scope: TsStepScope,
     instanceLocal: EtsLocal,
     instance: UHeapRef,
@@ -112,7 +125,7 @@ internal fun TsExprResolver.handleAssignToStaticField(
     assignToStaticField(scope, lhv.field, expr)
 }
 
-internal fun TsContext.assignToStaticField(
+fun TsContext.assignToStaticField(
     scope: TsStepScope,
     field: EtsFieldSignature,
     expr: UExpr<*>,

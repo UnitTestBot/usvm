@@ -2,7 +2,6 @@ package org.usvm.machine.expr
 
 import io.ksmt.utils.asExpr
 import mu.KotlinLogging
-import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLocal
@@ -28,40 +27,45 @@ internal fun TsExprResolver.handleInstanceFieldRef(
     val instanceLocal = value.instance
 
     // Resolve the instance.
-    val instance = resolve(instanceLocal) ?: return null
-    check(instance.sort == addressSort) {
-        "Expected address sort for instance, got: ${instance.sort}"
+    val instance: UHeapRef = run {
+        val resolved = resolve(instanceLocal) ?: return null
+        if (resolved.isFakeObject()) {
+            scope.assert(resolved.getFakeType(scope).refTypeExpr) ?: run {
+                logger.warn { "UNSAT after ensuring fake object is ref-typed" }
+                return null
+            }
+            resolved.extractRef(scope)
+        } else {
+            check(resolved.sort == addressSort) {
+                "Expected address sort for instance, got: ${resolved.sort}"
+            }
+            resolved.asExpr(addressSort)
+        }
     }
-    val instanceRef = instance.asExpr(addressSort)
 
     // TODO: consider moving this to 'readField'
     // Check for undefined or null property access.
-    checkUndefinedOrNullPropertyRead(scope, instanceRef, value.field.name) ?: return null
+    checkUndefinedOrNullPropertyRead(scope, instance, propertyName = value.field.name) ?: return null
 
-    // Handle reading "length" property for arrays.
-    if (value.field.name == "length" && instanceLocal.type is EtsArrayType) {
-        return readLengthArray(scope, instanceLocal, instanceRef)
-    }
-
-    // Handle reading "length" property for fake objects.
-    // TODO: handle "length" property for arrays inside fake objects
-    if (value.field.name == "length" && instanceRef.isFakeObject()) {
-        return readLengthFake(scope, instanceLocal, instanceRef)
+    // Handle reading "length" property.
+    if (value.field.name == "length") {
+        return readLengthProperty(scope, instanceLocal, instance)
     }
 
     // Read the field.
-    return readField(scope, instanceLocal, instanceRef, value.field, hierarchy)
+    return readField(scope, instanceLocal, instance, value.field, hierarchy)
 }
 
-internal fun TsContext.readField(
+fun TsContext.readField(
     scope: TsStepScope,
     instanceLocal: EtsLocal?,
     instance: UHeapRef,
     field: EtsFieldSignature,
     hierarchy: EtsHierarchy,
 ): UExpr<*> {
-    // Unwrap to get non-fake reference.
-    val unwrappedInstance = instance.unwrapRef(scope)
+    require(!instance.isFakeObject()) {
+        "Fake object handling should be done outside of this function"
+    }
 
     val sort = when (val etsField = resolveEtsField(instanceLocal, field, hierarchy)) {
         is TsResolutionResult.Empty -> {
@@ -72,7 +76,7 @@ internal fun TsContext.readField(
             // It is possible due to mistakes in the IR or if the field was added explicitly
             // in the code.
             // Probably, the right behaviour here is to fork the state.
-            unwrappedInstance.createFakeField(scope, field.name)
+            instance.createFakeField(scope, field.name)
             addressSort
         }
 
@@ -87,12 +91,12 @@ internal fun TsContext.readField(
         // That's not true in the common case for TS, but that's the decision we made.
         val auxiliaryType = EtsAuxiliaryType(properties = setOf(field.name))
         // assert is required to update models
-        scope.assert(memory.types.evalIsSubtype(unwrappedInstance, auxiliaryType))
+        scope.assert(memory.types.evalIsSubtype(instance, auxiliaryType))
     }
 
     // If the field type is known, we can read it directly.
     if (sort !is TsUnresolvedSort) {
-        val lValue = mkFieldLValue(sort, unwrappedInstance, field)
+        val lValue = mkFieldLValue(sort, instance, field)
         return scope.calcOnState { memory.read(lValue) }
     }
 
@@ -125,7 +129,7 @@ internal fun TsExprResolver.handleStaticFieldRef(
     return readStaticField(scope, value.field, hierarchy)
 }
 
-internal fun TsContext.readStaticField(
+fun TsContext.readStaticField(
     scope: TsStepScope,
     field: EtsFieldSignature,
     hierarchy: EtsHierarchy,

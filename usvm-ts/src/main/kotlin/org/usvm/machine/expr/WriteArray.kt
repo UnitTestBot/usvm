@@ -59,7 +59,7 @@ internal fun TsExprResolver.handleAssignToArrayIndex(
     return assignToArrayIndex(scope, array, bvIndex, expr, arrayType)
 }
 
-internal fun TsContext.assignToArrayIndex(
+fun TsContext.assignToArrayIndex(
     scope: TsStepScope,
     array: UHeapRef,
     index: UExpr<TsSizeSort>,
