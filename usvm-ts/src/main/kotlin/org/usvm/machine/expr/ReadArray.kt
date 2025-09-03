@@ -31,7 +31,7 @@ internal fun TsExprResolver.handleArrayAccess(
     val arrayRef = array.asExpr(addressSort)
 
     // Check for undefined or null array access.
-    checkUndefinedOrNullPropertyRead(scope, arrayRef, "[]") ?: return null
+    checkUndefinedOrNullPropertyRead(scope, arrayRef, propertyName = "[]") ?: return null
 
     // Resolve the index.
     val resolvedIndex = resolve(value.index) ?: return null

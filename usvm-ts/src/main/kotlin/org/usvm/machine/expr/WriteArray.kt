@@ -27,7 +27,7 @@ internal fun TsExprResolver.handleAssignToArrayIndex(
     val array = resolvedArray.asExpr(addressSort)
 
     // Check for undefined or null array access.
-    checkUndefinedOrNullPropertyRead(scope, array, "[]") ?: return null
+    checkUndefinedOrNullPropertyRead(scope, array, propertyName = "[]") ?: return null
 
     // Resolve the index.
     val resolvedIndex = resolve(lhv.index) ?: return null

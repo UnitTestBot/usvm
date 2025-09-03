@@ -826,7 +826,7 @@ class TsExprResolver(
         val obj = resolve(expr.right)?.asExpr(addressSort) ?: return null
 
         // Check for null/undefined access
-        checkUndefinedOrNullPropertyRead(scope, obj, "<in>") ?: return null
+        checkUndefinedOrNullPropertyRead(scope, obj, propertyName = "<in>") ?: return null
 
         logger.warn {
             "The 'in' operator is supported yet, the result may not be accurate"
