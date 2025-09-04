@@ -1,8 +1,9 @@
 package org.usvm.util
 
+import org.usvm.api.TsTestValue.TsBoolean
 import org.usvm.api.TsTestValue.TsNumber
 import org.usvm.api.TsTestValue.TsString
-import org.usvm.api.TsTestValue.TsBoolean
+import org.usvm.targets.UTarget
 import kotlin.math.absoluteValue
 
 fun Boolean.toDouble() = if (this) 1.0 else 0.0
@@ -73,4 +74,13 @@ infix fun TsBoolean.eq(other: TsBoolean): Boolean {
 
 infix fun TsBoolean.neq(other: TsBoolean): Boolean {
     return neq(other.value)
+}
+
+fun <T> UTarget<*, T>.getRoot(): T where T : UTarget<*, T> {
+    var current = this
+    while (true) {
+        @Suppress("UNCHECKED_CAST")
+        val parent = current.parent ?: return current as T
+        current = parent
+    }
 }
