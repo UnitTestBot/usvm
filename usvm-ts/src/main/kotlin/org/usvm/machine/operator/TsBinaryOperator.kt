@@ -384,6 +384,9 @@ sealed interface TsBinaryOperator {
             rhs: UHeapRef,
             scope: TsStepScope,
         ): UBoolExpr {
+            // Note: in JavaScript, `undefined == null`
+            if (lhs == mkUndefinedValue() && rhs == mkTsNullValue()) return mkTrue()
+            if (lhs == mkTsNullValue() && rhs == mkUndefinedValue()) return mkTrue()
             return mkEq(lhs, rhs)
         }
 

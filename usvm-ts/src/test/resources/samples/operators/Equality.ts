@@ -1,5 +1,6 @@
 // @ts-nocheck
 // noinspection JSUnusedGlobalSymbols
+// noinspection PointlessBooleanExpressionJS
 
 class Equality {
     eqBoolWithBool(a: boolean): number {
@@ -54,5 +55,25 @@ class Equality {
         if ([1] == false) return -1; // unreachable
         if ([42] == false) return -1; // unreachable
         return 0;
+    }
+
+    eqNullWithNull(): number {
+        if (null == null) return 1;
+        return -1; // unreachable
+    }
+
+    eqUndefinedWithUndefined(): number {
+        if (undefined == undefined) return 1;
+        return -1; // unreachable
+    }
+
+    eqNullWithUndefined(): number {
+        if (null == undefined) return 1;
+        return -1; // unreachable
+    }
+
+    eqUndefinedWithNull(): number {
+        if (undefined == null) return 1;
+        return -1; // unreachable
     }
 }

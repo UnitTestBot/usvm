@@ -133,4 +133,52 @@ class Equality : TsMethodTestRunner() {
             )
         )
     }
+
+    @Test
+    fun `test eqNullWithNull`() {
+        val method = getMethod("eqNullWithNull")
+        discoverProperties<TsTestValue.TsNumber>(
+            method,
+            { r -> r eq 1 },
+            invariants = arrayOf(
+                { r -> r.number > 0 },
+            )
+        )
+    }
+
+    @Test
+    fun `test eqUndefinedWithUndefined`() {
+        val method = getMethod("eqUndefinedWithUndefined")
+        discoverProperties<TsTestValue.TsNumber>(
+            method,
+            { r -> r eq 1 },
+            invariants = arrayOf(
+                { r -> r.number > 0 },
+            )
+        )
+    }
+
+    @Test
+    fun `test eqNullWithUndefined`() {
+        val method = getMethod("eqNullWithUndefined")
+        discoverProperties<TsTestValue.TsNumber>(
+            method,
+            { r -> r eq 1 },
+            invariants = arrayOf(
+                { r -> r.number > 0 },
+            )
+        )
+    }
+
+    @Test
+    fun `test eqUndefinedWithNull`() {
+        val method = getMethod("eqUndefinedWithNull")
+        discoverProperties<TsTestValue.TsNumber>(
+            method,
+            { r -> r eq 1 },
+            invariants = arrayOf(
+                { r -> r.number > 0 },
+            )
+        )
+    }
 }
