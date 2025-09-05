@@ -709,23 +709,24 @@ class TsExprResolver(
         val leftNum = mkNumericExpr(left, scope)
         val rightNum = mkNumericExpr(right, scope)
 
-        // Convert to 32-bit integers, perform bitwise OR, then convert back
         val leftBv = mkFpToBvExpr(
             roundingMode = fpRoundingModeSortDefaultValue(),
             value = leftNum.asExpr(fp64Sort),
             bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
             isSigned = true,
         )
+
         val rightBv = mkFpToBvExpr(
             roundingMode = fpRoundingModeSortDefaultValue(),
             value = rightNum.asExpr(fp64Sort),
             bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
             isSigned = true,
         )
-        val result = mkBvOrExpr(leftBv, rightBv)
 
+        val result = mkBvOrExpr(leftBv, rightBv)
         return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), result, signed = true)
     }
+
 
     override fun visit(expr: EtsBitXorExpr): UExpr<out USort>? = with(ctx) {
         val left = resolve(expr.left) ?: return null

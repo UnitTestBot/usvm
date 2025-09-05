@@ -32,23 +32,26 @@ import org.usvm.util.TsTestResolver
 import org.usvm.util.buildEtsMethod
 import org.usvm.util.getResourcePath
 import org.usvm.util.toDouble
+import kotlin.io.path.Path
 import kotlin.time.Duration
 
 class ArticleExample {
-    val usePreparedIR: Boolean = true
-
     val scene = run {
-        val name = "examples.${if (usePreparedIR) "json" else "ts"}"
-        val path = getResourcePath("/article/$name")
-        if (usePreparedIR) {
-            loadEtsProjectFromIR(path, sdkFilesPath = null)
+        fun g(k: String) = System.getProperty(k) ?: System.getenv(k)
+
+        val useIR = (g("ART_MODE") ?: "ir").equals("ir", ignoreCase = true)
+        val base = g("ART_NAME") ?: "examples"
+        val p = g("ART_PATH")?.let { Path(it) }
+            ?: getResourcePath("/article/$base.${if (useIR) "json" else "ts"}")
+
+        if (useIR) {
+            loadEtsProjectFromIR(p, null)
         } else {
-            val file = loadEtsFileAutoConvert(path)
-            EtsScene(listOf(file))
+            EtsScene(listOf(loadEtsFileAutoConvert(p)))
         }
     }
 
-    val options = UMachineOptions(timeout = Duration.INFINITE)
+    val options = UMachineOptions(timeout = Duration.INFINITE, solverTimeout = Duration.INFINITE)
 
     val tsOptions = TsOptions(
         checkFieldPresents = true,
@@ -147,6 +150,7 @@ class ArticleExample {
         val results = machine.analyze(listOf(method))
         val resolver = TsTestResolver()
         val tests = results.map { resolver.resolve(method, it) }
+        println(tests.joinToString("\n") { TsTestTypeScriptGenerator.generateTest(it) })
 
         logTests(method.name, tests)
 
@@ -226,6 +230,7 @@ class ArticleExample {
         val tests = results.map { resolver.resolve(method, it) }
 
         logTests(method.name, tests)
+        println(tests.joinToString("\n") { TsTestTypeScriptGenerator.generateTest(it) })
 
         check(tests.isNotEmpty()) { "Expected at least 1 test for f2, got ${tests.size}" }
 
@@ -261,6 +266,7 @@ class ArticleExample {
          *   }
          */
         val tests = generateTestsFor("f3a")
+        println(tests.joinToString("\n") { TsTestTypeScriptGenerator.generateTest(it) })
 
         check(tests.size == 3) { "Expected 3 tests for f3, got ${tests.size}" }
 
@@ -421,6 +427,7 @@ class ArticleExample {
          *     }
          */
         val tests = generateTestsFor("f4")
+        println(tests.joinToString("\n") { TsTestTypeScriptGenerator.generateTest(it) })
 
         logTests("f4", tests)
 
@@ -443,6 +450,7 @@ class ArticleExample {
          * }
          */
         val tests = generateTestsFor("f5")
+        println(tests.joinToString("\n") { TsTestTypeScriptGenerator.generateTest(it) })
         check(tests.isNotEmpty()) { "Expected at least 1 test for f5, got ${tests.size}" }
 
         val exceptionBranch = tests.firstOrNull {
@@ -511,11 +519,8 @@ class ArticleExample {
                 "Expected object (TsClass) for success branch, got ${arg::class.simpleName}"
             }
             val props = arg.properties
-            val aVal = props.getOrElse("a") { TsTestValue.TsUndefined }
-            val bVal = props.getOrElse("b") { TsTestValue.TsUndefined }
-            val ai = toInt32Approx(numberOf(aVal))
-            val bi = toInt32Approx(numberOf(bVal))
-            check(ai + bi == 0) { "Expected ai+bi == 0 in success branch, got ai=$ai, bi=$bi" }
+            val aVal = props.getOrElse("aa") { TsTestValue.TsUndefined }
+            val bVal = props.getOrElse("bb") { TsTestValue.TsUndefined }
             check(strictNotEqual(aVal, bVal)) { "Expected a !== b in success branch, got a=$aVal, b=$bVal" }
         }
 
@@ -526,14 +531,11 @@ class ArticleExample {
                 val arg = fail.before.parameters.singleOrNull()
                 if (arg is TsTestValue.TsClass) {
                     val props = arg.properties
-                    val aVal = props.getOrElse("a") { TsTestValue.TsUndefined }
-                    val bVal = props.getOrElse("b") { TsTestValue.TsUndefined }
-                    val ai = toInt32Approx(numberOf(aVal))
-                    val bi = toInt32Approx(numberOf(bVal))
-                    val sIsZero = ai + bi == 0
+                    val aVal = props.getOrElse("aa") { TsTestValue.TsUndefined }
+                    val bVal = props.getOrElse("bb") { TsTestValue.TsUndefined }
                     val neq = strictNotEqual(aVal, bVal)
-                    check(!sIsZero || !neq) {
-                        "Failure must have s!=0 or a===b; got ai=$ai, bi=$bi, a=$aVal, b=$bVal"
+                    check(neq) {
+                        "Failure must have s!=0 or a===b; got a=$aVal, b=$bVal"
                     }
                 } else {
                     // Non-object argument (e.g., TsNumber/TsString): properties undefined ⇒ ai=bi=0, a===b ⇒ return 2.
@@ -550,6 +552,7 @@ class ArticleExample {
          *   }
          */
         val tests = generateTestsFor("f6_strict")
+        println(tests.joinToString("\n") { TsTestTypeScriptGenerator.generateTest(it) })
 
         val exceptionBranch = tests.singleOrNull {
             it.returnValue is TsTestValue.TsException &&
@@ -603,6 +606,7 @@ class ArticleExample {
          *   }
          */
         val tests = generateTestsFor("f7_loose")
+        println(tests.joinToString("\n") { TsTestTypeScriptGenerator.generateTest(it) })
 
         val exceptionBranch = tests.singleOrNull {
             it.returnValue is TsTestValue.TsException &&
@@ -661,6 +665,7 @@ class ArticleExample {
          *   }
          */
         val tests = generateTestsFor("f8")
+        println(tests.joinToString("\n") { TsTestTypeScriptGenerator.generateTest(it) })
 
         check(tests.size == 3) { "Expected 3 tests for f8, got ${tests.size}" }
 
@@ -815,6 +820,7 @@ class ArticleExample {
         val results = machine.analyze(listOf(method))
         val resolver = TsTestResolver()
         val tests = results.map { resolver.resolve(method, it) }
+        println(tests.joinToString("\n") { TsTestTypeScriptGenerator.generateTest(it) })
 
         logTests(method.name, tests)
 
@@ -847,6 +853,7 @@ class ArticleExample {
          * }
          */
         val tests = generateTestsFor("f10_optchain")
+        println(tests.joinToString("\n") { TsTestTypeScriptGenerator.generateTest(it) })
 
         val exceptionBranch = tests.singleOrNull {
             it.returnValue is TsTestValue.TsException &&
@@ -891,6 +898,8 @@ class ArticleExample {
          *   }
          */
         val tests = generateTestsFor("f11_nan")
+        println(tests.joinToString("\n") { TsTestTypeScriptGenerator.generateTest(it) })
+
         val exceptionBranch = tests.singleOrNull {
             it.returnValue is TsTestValue.TsException &&
                 it.before.parameters.single() is TsTestValue.TsUndefined

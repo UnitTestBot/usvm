@@ -37,10 +37,10 @@ class Example {
 
   // (1) f5 — correlated integers under coercion
   f5(o: any) {
-    const ai = (Number(o.a) | 0);
-    const bi = (Number(o.b) | 0);
+    const ai = (Number(o.aa) | 0);
+    const bi = (Number(o.bb) | 0);
     const s = ai + bi;
-    if (s === 0 && o.a !== o.b) return 1;
+    if (s === 0 && o.aa !== o.bb) return 1;
     return 2;
   }
 

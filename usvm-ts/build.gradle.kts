@@ -86,6 +86,45 @@ val generateSdkIR by tasks.registering {
     }
 }
 
+tasks.register<Test>("testIr") {
+    description = "Run tests using precomputed ArkIR JSON (no ArkAnalyzer)."
+    group = "verification"
+    useJUnitPlatform()
+
+    systemProperty("ART_MODE", "ir")
+    systemProperty(
+        "ART_PATH",
+        file("src/test/resources/article/examples.json").absolutePath
+    )
+
+    systemProperty("ART_NAME", "examples")
+    filter {
+        includeTestsMatching("org.usvm.article.ArticleExample*")
+    }
+
+    dependsOn("processTestResources")
+}
+
+tasks.register<Test>("genIrAndTest") {
+    description = "Run tests without usage of precomputed IR."
+    group = "verification"
+    useJUnitPlatform()
+
+    systemProperty("ART_MODE", "ts")
+    systemProperty(
+        "ART_PATH",
+        file("src/test/resources/article/examples.ts").absolutePath
+    )
+    environment("ARKANALYZER_DIR", "${project.rootDir}/third_party/arkanalyzer")
+
+    systemProperty("ART_NAME", "examples")
+    filter {
+        includeTestsMatching("org.usvm.article.ArticleExample*")
+    }
+
+    dependsOn("processTestResources")
+}
+
 object ProcessUtil {
     data class Result(
         val exitCode: Int,
