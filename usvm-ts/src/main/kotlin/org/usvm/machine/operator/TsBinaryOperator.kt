@@ -384,10 +384,16 @@ sealed interface TsBinaryOperator {
             rhs: UHeapRef,
             scope: TsStepScope,
         ): UBoolExpr {
-            // Note: in JavaScript, `undefined == null`
-            if (lhs == mkUndefinedValue() && rhs == mkTsNullValue()) return mkTrue()
-            if (lhs == mkTsNullValue() && rhs == mkUndefinedValue()) return mkTrue()
-            return mkEq(lhs, rhs)
+            // Note: in JavaScript, `null == undefined`
+            val lhsIsNull = mkEq(lhs, mkTsNullValue())
+            val rhsIsNull = mkEq(rhs, mkTsNullValue())
+            val lhsIsUndefined = mkEq(lhs, mkUndefinedValue())
+            val rhsIsUndefined = mkEq(rhs, mkUndefinedValue())
+            return mkOr(
+                mkAnd(lhsIsUndefined, rhsIsNull),
+                mkAnd(lhsIsNull, rhsIsUndefined),
+                mkHeapRefEq(lhs, rhs)
+            )
         }
 
         override fun TsContext.resolveFakeObject(
