@@ -5,13 +5,16 @@ import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsAliasType
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
+import org.jacodb.ets.model.EtsBooleanLiteralType
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsEnumValueType
 import org.jacodb.ets.model.EtsGenericType
 import org.jacodb.ets.model.EtsNullType
+import org.jacodb.ets.model.EtsNumberLiteralType
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.model.EtsStringLiteralType
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUndefinedType
@@ -25,6 +28,7 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.UIteExpr
 import org.usvm.USort
 import org.usvm.api.allocateConcreteRef
 import org.usvm.api.allocateStaticRef
@@ -132,6 +136,10 @@ class TsContext(
             }
         }
 
+        is EtsNumberLiteralType -> fp64Sort
+        is EtsStringLiteralType -> addressSort
+        is EtsBooleanLiteralType -> boolSort
+
         else -> TODO("${type::class.simpleName} is not yet supported: $type")
     }
 
@@ -212,6 +220,13 @@ class TsContext(
         if (isFakeObject()) {
             return extractRef(scope)
         }
+
+        if (this is UIteExpr) {
+            val positiveBranch = trueBranch.unwrapRef(scope)
+            val negativeBranch = falseBranch.unwrapRef(scope)
+            return mkIte(condition, positiveBranch, negativeBranch)
+        }
+
         return this
     }
 
@@ -220,6 +235,13 @@ class TsContext(
             scope.assert(getFakeType(scope).refTypeExpr)
             return extractRef(scope)
         }
+
+        if (this is UIteExpr) {
+            val positiveBranch = trueBranch.unwrapRefWithPathConstraint(scope)
+            val negativeBranch = falseBranch.unwrapRefWithPathConstraint(scope)
+            return mkIte(condition, positiveBranch, negativeBranch)
+        }
+
         return this
     }
 
@@ -272,7 +294,7 @@ class TsContext(
     fun UConcreteHeapRef.extractRef(scope: TsStepScope): UHeapRef {
         return scope.calcOnState { extractRef(memory) }
     }
-    
+
     // This is an identifier for a special function representing the 'resolve' function used in promises.
     // It is not a real function in the code, but we need it to handle promise resolution.
     val resolveFunctionRef: UConcreteHeapRef = allocateConcreteRef()
