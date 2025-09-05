@@ -95,7 +95,7 @@ open class UPathConstraints<Type>(
     }
 
     @Suppress("UNCHECKED_CAST")
-    operator fun plusAssign(constraint: UBoolExpr): Unit =
+    open operator fun plusAssign(constraint: UBoolExpr): Unit =
         with(constraint.uctx) {
             when {
                 constraint == falseExpr -> contradiction(this)
