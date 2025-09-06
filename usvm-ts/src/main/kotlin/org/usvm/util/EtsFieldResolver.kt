@@ -8,6 +8,7 @@ import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsUnclearRefType
+import org.jacodb.ets.model.EtsUnionType
 import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
 import org.usvm.machine.TsContext
@@ -45,6 +46,17 @@ fun TsContext.resolveEtsField(
             is EtsUnclearRefType -> {
                 val field = tryGetSingleField(scene, instanceType.typeName, field.name, hierarchy)
                 if (field != null) return TsResolutionResult.create(field)
+            }
+
+            is EtsUnionType -> {
+                // TODO something similar to
+                // if (instanceType.types.all { it is EtsRefType }) {
+                //     val fields = instanceType.types
+                //         .map { tryGetSingleField(scene, it.typeName, field.name, hierarchy) }
+                //     if (fields.all { it != null }) {
+                //         return TsResolutionResult.create(fields.mapNotNull { it })
+                //     }
+                // }
             }
         }
     }

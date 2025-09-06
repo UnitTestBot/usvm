@@ -5,6 +5,7 @@ import io.ksmt.utils.asExpr
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
 import org.usvm.UExpr
+import org.usvm.UIteExpr
 import org.usvm.USort
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.isFalse
@@ -19,6 +20,12 @@ fun TsContext.mkTruthyExpr(
     expr: UExpr<out USort>,
     scope: TsStepScope,
 ): UBoolExpr = scope.calcOnState {
+    if (expr is UIteExpr) {
+        val trueBranch = mkTruthyExpr(expr.trueBranch, scope)
+        val falseBranch = mkTruthyExpr(expr.falseBranch, scope)
+        return@calcOnState mkIte(expr.condition, trueBranch, falseBranch)
+    }
+
     if (expr.isFakeObject()) {
         val falseBranchGround = makeSymbolicPrimitive(boolSort)
 
@@ -92,6 +99,12 @@ fun TsContext.mkNumericExpr(
     expr: UExpr<out USort>,
     scope: TsStepScope,
 ): UExpr<KFp64Sort> {
+    if (expr is UIteExpr) {
+        val trueBranch = mkNumericExpr(expr.trueBranch, scope)
+        val falseBranch = mkNumericExpr(expr.falseBranch, scope)
+        return mkIte(expr.condition, trueBranch, falseBranch)
+    }
+
     if (expr.isFakeObject()) {
         val type = expr.getFakeType(scope)
         return mkIte(
@@ -154,6 +167,12 @@ fun TsContext.mkNullishExpr(
     expr: UExpr<out USort>,
     scope: TsStepScope,
 ): UBoolExpr {
+    if (expr is UIteExpr) {
+        val trueBranch = mkNullishExpr(expr.trueBranch, scope)
+        val falseBranch = mkNullishExpr(expr.falseBranch, scope)
+        return mkIte(expr.condition, trueBranch, falseBranch)
+    }
+
     // Handle fake objects specially
     if (expr.isFakeObject()) {
         val fakeType = expr.getFakeType(scope)

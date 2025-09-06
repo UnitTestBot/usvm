@@ -360,7 +360,6 @@ class TsExprResolver(
 
     override fun visit(expr: EtsTypeOfExpr): UExpr<out USort>? = with(ctx) {
         val arg = resolve(expr.arg) ?: return null
-
         if (arg.sort == fp64Sort) {
             return mkStringConstant("number", scope)
         }
@@ -368,43 +367,95 @@ class TsExprResolver(
             return mkStringConstant("boolean", scope)
         }
         if (arg.sort == addressSort) {
-            val ref = arg.asExpr(addressSort)
-            return mkIte(
-                condition = mkHeapRefEq(ref, mkTsNullValue()),
-                trueBranch = mkStringConstant("object", scope),
-                falseBranch = mkIte(
-                    condition = mkHeapRefEq(ref, mkUndefinedValue()),
-                    trueBranch = mkStringConstant("undefined", scope),
-                    falseBranch = mkIte(
-                        condition = scope.calcOnState {
-                            val unwrappedRef = ref.unwrapRefWithPathConstraint(scope)
+            val resolvedArg = arg.asExpr(addressSort)
 
-                            // TODO: adhoc: "expand" ITE
-                            if (unwrappedRef is UIteExpr<*>) {
-                                val trueBranch = unwrappedRef.trueBranch
-                                val falseBranch = unwrappedRef.falseBranch
-                                if (trueBranch.isFakeObject() || falseBranch.isFakeObject()) {
-                                    val unwrappedTrueExpr =
-                                        trueBranch.asExpr(addressSort).unwrapRefWithPathConstraint(scope)
-                                    val unwrappedFalseExpr =
-                                        falseBranch.asExpr(addressSort).unwrapRefWithPathConstraint(scope)
-                                    return@calcOnState mkIte(
-                                        condition = unwrappedRef.condition,
-                                        trueBranch = memory.types.evalTypeEquals(unwrappedTrueExpr, EtsStringType),
-                                        falseBranch = memory.types.evalTypeEquals(unwrappedFalseExpr, EtsStringType),
-                                    )
-                                }
-                            }
+            val processFakeFunction = { ref: UHeapRef ->
+                check(ref.isFakeObject())
 
-                            memory.types.evalTypeEquals(unwrappedRef, EtsStringType)
-                        },
-                        trueBranch = mkStringConstant("string", scope),
-                        falseBranch = mkStringConstant("object", scope),
+                val fakeType = scope.calcOnState { ref.getFakeType(memory) }
+                mkIte(
+                    fakeType.fpTypeExpr,
+                    mkStringConstant("number", scope),
+                    mkIte(
+                        fakeType.boolTypeExpr,
+                        mkStringConstant("boolean", scope),
+                        mkIte(
+                            fakeType.refTypeExpr and mkHeapRefEq(ref.extractRef(scope), mkTsNullValue()),
+                            mkStringConstant("object", scope),
+                            mkIte(
+                                fakeType.refTypeExpr and mkHeapRefEq(ref.extractRef(scope), mkUndefinedValue()),
+                                mkStringConstant("undefined", scope),
+                                mkStringConstant("object", scope) // TODO add string, function
+                            )
+                        )
                     )
                 )
-            )
-        }
+            }
 
+            val regularResolve = { ref: UHeapRef ->
+                mkIte(
+                    condition = mkHeapRefEq(ref, mkTsNullValue()),
+                    trueBranch = mkStringConstant("object", scope),
+                    falseBranch = mkIte(
+                        condition = mkHeapRefEq(ref, mkUndefinedValue()),
+                        trueBranch = mkStringConstant("undefined", scope),
+                        falseBranch = mkIte(
+                            condition = scope.calcOnState {
+                                val unwrappedRef = ref.unwrapRef(scope)
+
+                                // TODO: adhoc: "expand" ITE
+                                // TODO correst support for fake objects, including primitive branches
+                                if (unwrappedRef is UIteExpr<*>) {
+                                    val trueBranch = unwrappedRef.trueBranch
+                                    val falseBranch = unwrappedRef.falseBranch
+                                    if (trueBranch.isFakeObject() || falseBranch.isFakeObject()) {
+                                        val unwrappedTrueExpr =
+                                            trueBranch.asExpr(addressSort).unwrapRef(scope)
+                                        val unwrappedFalseExpr =
+                                            falseBranch.asExpr(addressSort).unwrapRef(scope)
+                                        return@calcOnState mkIte(
+                                            condition = unwrappedRef.condition,
+                                            trueBranch = memory.types.evalTypeEquals(unwrappedTrueExpr, EtsStringType),
+                                            falseBranch = memory.types.evalTypeEquals(
+                                                unwrappedFalseExpr,
+                                                EtsStringType
+                                            ),
+                                        )
+                                    }
+                                }
+
+                                memory.types.evalTypeEquals(unwrappedRef, EtsStringType)
+                            },
+                            trueBranch = mkStringConstant("string", scope),
+                            falseBranch = mkStringConstant("object", scope),
+                        )
+                    )
+                )
+
+            }
+
+            if (resolvedArg.isFakeObject()) {
+                return processFakeFunction(resolvedArg)
+            }
+
+            if (resolvedArg is UIteExpr) {
+                val trueBranch = if (resolvedArg.trueBranch.isFakeObject()) {
+                    processFakeFunction(resolvedArg.trueBranch)
+                } else {
+                    regularResolve(resolvedArg.trueBranch)
+                }
+
+                val falseBranch = if (resolvedArg.falseBranch.isFakeObject()) {
+                    processFakeFunction(resolvedArg.falseBranch)
+                } else {
+                    regularResolve(resolvedArg.falseBranch)
+                }
+
+                return mkIte(resolvedArg.condition, trueBranch, falseBranch)
+            }
+
+            return regularResolve(resolvedArg)
+        }
         logger.error { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
     }
@@ -419,6 +470,7 @@ class TsExprResolver(
         when (val operand = expr.arg) {
             is EtsInstanceFieldRef -> {
                 val instance = resolve(operand.instance)?.asExpr(addressSort) ?: return null
+                val unwrappedRef = instance.unwrapRefWithPathConstraint(scope)
 
                 // Check for null/undefined access
                 checkUndefinedOrNullPropertyRead(instance) ?: return null
@@ -429,7 +481,8 @@ class TsExprResolver(
                 //       In such case, the "overwriting" the field value with undefined does nothing
                 //       to the actual number/boolean/string value inside the field,
                 //       [if only we read the field using that "other" sort].
-                val fieldLValue = mkFieldLValue(addressSort, instance, operand.field)
+                // TODO use val resolvedField = resolveEtsField(operand.instance, operand.field, hierarchy) instead
+                val fieldLValue = mkFieldLValue(addressSort, unwrappedRef, operand.field)
                 scope.doWithState {
                     memory.write(fieldLValue, mkUndefinedValue(), guard = trueExpr)
                 }
@@ -1205,6 +1258,7 @@ class TsExprResolver(
         return expr
     }
 
+    // TODO condition for unwrapped value
     fun checkUndefinedOrNullPropertyRead(instance: UHeapRef) = with(ctx) {
         val ref = instance.unwrapRef(scope)
 

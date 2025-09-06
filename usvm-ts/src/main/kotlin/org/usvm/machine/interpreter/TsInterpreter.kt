@@ -845,6 +845,8 @@ class TsInterpreter(
                 state.pathConstraints += mkNot(mkHeapRefEq(ref, mkTsNullValue()))
                 state.pathConstraints += mkNot(mkHeapRefEq(ref, mkUndefinedValue()))
             }
+
+            // TODO union type
         }
 
         val model = solver.check(state.pathConstraints).ensureSat().model
