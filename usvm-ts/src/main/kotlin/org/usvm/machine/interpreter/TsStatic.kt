@@ -6,7 +6,6 @@ import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.utils.STATIC_INIT_METHOD_NAME
 import org.usvm.UBoolSort
-import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.isTrue

@@ -106,9 +106,11 @@ private fun TsExprResolver.processAmbiguousStaticMethod(
             returnSite = scope.calcOnState { lastStmt }
         )
     }
-    scope.forkMulti(concreteCalls.map { stmt ->
-        ctx.mkTrue() to { newStmt(stmt) }
-    })
+    scope.forkMulti(
+        concreteCalls.map { stmt ->
+            ctx.mkTrue() to { newStmt(stmt) }
+        }
+    )
 }
 
 private fun TsExprResolver.processUniqueStaticMethod(
