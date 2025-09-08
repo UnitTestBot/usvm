@@ -447,15 +447,17 @@ sealed interface TsBinaryOperator {
 
             // ref == ref
             if (lhs.sort == addressSort && rhs.sort == addressSort) {
-                // Note:
-                //  undefined == null
-                //  null == undefined
+                // Note: in JavaScript, `null == undefined`
                 val lhs = lhs.asExpr(addressSort)
                 val rhs = rhs.asExpr(addressSort)
+                val lhsIsNull = mkEq(lhs, mkTsNullValue())
+                val rhsIsNull = mkEq(rhs, mkTsNullValue())
+                val lhsIsUndefined = mkEq(lhs, mkUndefinedValue())
+                val rhsIsUndefined = mkEq(rhs, mkUndefinedValue())
                 return mkOr(
-                    mkEq(lhs, rhs),
-                    mkEq(lhs, mkUndefinedValue()) and mkEq(rhs, mkTsNullValue()),
-                    mkEq(lhs, mkTsNullValue()) and mkEq(rhs, mkUndefinedValue()),
+                    mkAnd(lhsIsUndefined, rhsIsNull),
+                    mkAnd(lhsIsNull, rhsIsUndefined),
+                    mkHeapRefEq(lhs, rhs)
                 )
             }
 
