@@ -633,8 +633,8 @@ sealed interface TsBinaryOperator {
                 }
             }
 
-            check(!lhsValue.isFakeObject())
-            check(!rhsValue.isFakeObject())
+            check(!lhsValue.isFakeObject()) { "Nested fake objects are not supported" }
+            check(!rhsValue.isFakeObject()) { "Nested fake objects are not supported" }
 
             if (lhsValue.sort == addressSort && rhsValue.sort == addressSort) {
                 val left = lhsValue.asExpr(addressSort)
