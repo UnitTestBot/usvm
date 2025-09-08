@@ -122,6 +122,7 @@ fun TsContext.readArray(
 
         // If the read reference is already a fake object, we can return it directly.
         // Otherwise, we need to create a new fake object and write it back to the memory.
+        // TODO: Think about the type constraint to get a consistent array resolution later
         if (ref.isFakeObject()) {
             ref
         } else {
