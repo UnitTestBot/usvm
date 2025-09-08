@@ -384,7 +384,16 @@ sealed interface TsBinaryOperator {
             rhs: UHeapRef,
             scope: TsStepScope,
         ): UBoolExpr {
-            return mkEq(lhs, rhs)
+            // Note: in JavaScript, `null == undefined`
+            val lhsIsNull = mkEq(lhs, mkTsNullValue())
+            val rhsIsNull = mkEq(rhs, mkTsNullValue())
+            val lhsIsUndefined = mkEq(lhs, mkUndefinedValue())
+            val rhsIsUndefined = mkEq(rhs, mkUndefinedValue())
+            return mkOr(
+                mkAnd(lhsIsUndefined, rhsIsNull),
+                mkAnd(lhsIsNull, rhsIsUndefined),
+                mkHeapRefEq(lhs, rhs)
+            )
         }
 
         override fun TsContext.resolveFakeObject(
@@ -412,42 +421,35 @@ sealed interface TsBinaryOperator {
             if (lhs.sort == boolSort && rhs.sort == boolSort) {
                 val lhs = lhs.asExpr(boolSort)
                 val rhs = rhs.asExpr(boolSort)
-                return mkEq(lhs, rhs)
+                return onBool(lhs, rhs, scope)
             }
 
             // fp == fp
             if (lhs.sort == fp64Sort && rhs.sort == fp64Sort) {
                 val lhs = lhs.asExpr(fp64Sort)
                 val rhs = rhs.asExpr(fp64Sort)
-                return mkFpEqualExpr(lhs, rhs)
+                return onFp(lhs, rhs, scope)
             }
 
             // bool == fp
             if (lhs.sort == boolSort && rhs.sort == fp64Sort) {
                 val lhs = lhs.asExpr(boolSort)
                 val rhs = rhs.asExpr(fp64Sort)
-                return mkFpEqualExpr(boolToFp(lhs), rhs)
+                return onFp(boolToFp(lhs), rhs, scope)
             }
 
             // fp == bool
             if (lhs.sort == fp64Sort && rhs.sort == boolSort) {
                 val lhs = lhs.asExpr(fp64Sort)
                 val rhs = rhs.asExpr(boolSort)
-                return mkFpEqualExpr(lhs, boolToFp(rhs))
+                return onFp(lhs, boolToFp(rhs), scope)
             }
 
             // ref == ref
             if (lhs.sort == addressSort && rhs.sort == addressSort) {
-                // Note:
-                //  undefined == null
-                //  null == undefined
                 val lhs = lhs.asExpr(addressSort)
                 val rhs = rhs.asExpr(addressSort)
-                return mkOr(
-                    mkEq(lhs, rhs),
-                    mkEq(lhs, mkUndefinedValue()) and mkEq(rhs, mkTsNullValue()),
-                    mkEq(lhs, mkTsNullValue()) and mkEq(rhs, mkUndefinedValue()),
-                )
+                return onRef(lhs, rhs, scope)
             }
 
             // bool == ref
@@ -576,7 +578,7 @@ sealed interface TsBinaryOperator {
                         lhsType.boolTypeExpr eq rhsType.boolTypeExpr,
                         lhsType.fpTypeExpr eq rhsType.fpTypeExpr,
                         // TODO support type equality
-                        lhsType.refTypeExpr eq rhsType.refTypeExpr
+                        lhsType.refTypeExpr eq rhsType.refTypeExpr,
                     )
                 }
 
@@ -631,11 +633,27 @@ sealed interface TsBinaryOperator {
                 }
             }
 
-            val loosyEqualityConstraint = with(Eq) {
+            check(!lhsValue.isFakeObject()) { "Nested fake objects are not supported" }
+            check(!rhsValue.isFakeObject()) { "Nested fake objects are not supported" }
+
+            // Note: this is the case 'ref === ref',
+            // which should be `true` only if both have the same reference.
+            // It is not correct to delegate to `Eq.resolve` in this case,
+            // since `==` treats `null == undefined`, while `null !== undefined`.
+            if (lhsValue.sort == addressSort && rhsValue.sort == addressSort) {
+                val left = lhsValue.asExpr(addressSort)
+                val right = rhsValue.asExpr(addressSort)
+                return mkAnd(
+                    typeConstraint,
+                    mkHeapRefEq(left, right)
+                )
+            }
+
+            val looseEqualityConstraint = with(Eq) {
                 resolve(lhsValue, rhsValue, scope)?.asExpr(boolSort) ?: error("Should not be encountered")
             }
 
-            return mkAnd(typeConstraint, loosyEqualityConstraint)
+            return mkAnd(typeConstraint, looseEqualityConstraint)
         }
 
         override fun TsContext.internalResolve(
