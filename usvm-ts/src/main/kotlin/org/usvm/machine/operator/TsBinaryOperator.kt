@@ -421,28 +421,28 @@ sealed interface TsBinaryOperator {
             if (lhs.sort == boolSort && rhs.sort == boolSort) {
                 val lhs = lhs.asExpr(boolSort)
                 val rhs = rhs.asExpr(boolSort)
-                return mkEq(lhs, rhs)
+                return onBool(lhs, rhs, scope)
             }
 
             // fp == fp
             if (lhs.sort == fp64Sort && rhs.sort == fp64Sort) {
                 val lhs = lhs.asExpr(fp64Sort)
                 val rhs = rhs.asExpr(fp64Sort)
-                return mkFpEqualExpr(lhs, rhs)
+                return onFp(lhs, rhs, scope)
             }
 
             // bool == fp
             if (lhs.sort == boolSort && rhs.sort == fp64Sort) {
                 val lhs = lhs.asExpr(boolSort)
                 val rhs = rhs.asExpr(fp64Sort)
-                return mkFpEqualExpr(boolToFp(lhs), rhs)
+                return onFp(boolToFp(lhs), rhs, scope)
             }
 
             // fp == bool
             if (lhs.sort == fp64Sort && rhs.sort == boolSort) {
                 val lhs = lhs.asExpr(fp64Sort)
                 val rhs = rhs.asExpr(boolSort)
-                return mkFpEqualExpr(lhs, boolToFp(rhs))
+                return onFp(lhs, boolToFp(rhs), scope)
             }
 
             // ref == ref
@@ -578,7 +578,7 @@ sealed interface TsBinaryOperator {
                         lhsType.boolTypeExpr eq rhsType.boolTypeExpr,
                         lhsType.fpTypeExpr eq rhsType.fpTypeExpr,
                         // TODO support type equality
-                        lhsType.refTypeExpr eq rhsType.refTypeExpr
+                        lhsType.refTypeExpr eq rhsType.refTypeExpr,
                     )
                 }
 
@@ -633,11 +633,23 @@ sealed interface TsBinaryOperator {
                 }
             }
 
-            val loosyEqualityConstraint = with(Eq) {
+            check(!lhsValue.isFakeObject())
+            check(!rhsValue.isFakeObject())
+
+            if (lhsValue.sort == addressSort && rhsValue.sort == addressSort) {
+                val left = lhsValue.asExpr(addressSort)
+                val right = rhsValue.asExpr(addressSort)
+                return mkAnd(
+                    typeConstraint,
+                    mkHeapRefEq(left, right)
+                )
+            }
+
+            val looseEqualityConstraint = with(Eq) {
                 resolve(lhsValue, rhsValue, scope)?.asExpr(boolSort) ?: error("Should not be encountered")
             }
 
-            return mkAnd(typeConstraint, loosyEqualityConstraint)
+            return mkAnd(typeConstraint, looseEqualityConstraint)
         }
 
         override fun TsContext.internalResolve(

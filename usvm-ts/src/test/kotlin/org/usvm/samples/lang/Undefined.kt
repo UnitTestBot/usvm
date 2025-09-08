@@ -24,4 +24,21 @@ class Undefined : TsMethodTestRunner() {
             },
         )
     }
+
+    @Test
+    fun `test isUndefinedOrNull`() {
+        val method = getMethod("isUndefinedOrNull")
+        discoverProperties<TsTestValue, TsTestValue.TsNumber>(
+            method,
+            { a, r ->
+                (r eq 1) && (a is TsTestValue.TsUndefined)
+            },
+            { a, r ->
+                (r eq 2) && (a is TsTestValue.TsNull)
+            },
+            { a, r ->
+                (r eq 3) && (a !is TsTestValue.TsUndefined) && (a !is TsTestValue.TsNull)
+            },
+        )
+    }
 }
