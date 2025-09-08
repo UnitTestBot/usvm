@@ -15,55 +15,58 @@ import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsState
 import org.usvm.memory.ULValue
 
-fun TsContext.mkFakeValue(
-    scope: TsStepScope,
+fun TsState.mkFakeValue(
+    scope: TsStepScope?, // pass `null` only in the initial state, where `scope` is not available!
     boolValue: UBoolExpr? = null,
     fpValue: UExpr<KFp64Sort>? = null,
     refValue: UHeapRef? = null,
-): UConcreteHeapRef {
+): UConcreteHeapRef = with(ctx) {
     require(boolValue != null || fpValue != null || refValue != null) {
         "Fake object should contain at least one value"
     }
 
-    return scope.calcOnState {
-        val fakeValueRef = createFakeObjectRef()
-        val address = fakeValueRef.address
+    val fakeValueRef = createFakeObjectRef()
+    val address = fakeValueRef.address
 
-        val boolTypeExpr = trueExpr
-            .takeIf { boolValue != null && fpValue == null && refValue == null }
-            ?: makeSymbolicPrimitive(boolSort)
-        val fpTypeExpr = trueExpr
-            .takeIf { boolValue == null && fpValue != null && refValue == null }
-            ?: makeSymbolicPrimitive(boolSort)
-        val refTypeExpr = trueExpr
-            .takeIf { boolValue == null && fpValue == null && refValue != null }
-            ?: makeSymbolicPrimitive(boolSort)
+    val boolTypeExpr = trueExpr
+        .takeIf { boolValue != null && fpValue == null && refValue == null }
+        ?: makeSymbolicPrimitive(boolSort)
+    val fpTypeExpr = trueExpr
+        .takeIf { boolValue == null && fpValue != null && refValue == null }
+        ?: makeSymbolicPrimitive(boolSort)
+    val refTypeExpr = trueExpr
+        .takeIf { boolValue == null && fpValue == null && refValue != null }
+        ?: makeSymbolicPrimitive(boolSort)
 
-        val type = EtsFakeType(
-            boolTypeExpr = boolTypeExpr,
-            fpTypeExpr = fpTypeExpr,
-            refTypeExpr = refTypeExpr,
-        )
-        memory.types.allocate(address, type)
-        scope.assert(type.mkExactlyOneTypeConstraint(ctx))
-
-        if (boolValue != null) {
-            val boolLValue = ctx.getIntermediateBoolLValue(address)
-            memory.write(boolLValue, boolValue, guard = ctx.trueExpr)
-        }
-
-        if (fpValue != null) {
-            val fpLValue = ctx.getIntermediateFpLValue(address)
-            memory.write(fpLValue, fpValue, guard = ctx.trueExpr)
-        }
-
-        if (refValue != null) {
-            val refLValue = ctx.getIntermediateRefLValue(address)
-            memory.write(refLValue, refValue, guard = ctx.trueExpr)
-        }
-
-        fakeValueRef
+    val type = EtsFakeType(
+        boolTypeExpr = boolTypeExpr,
+        fpTypeExpr = fpTypeExpr,
+        refTypeExpr = refTypeExpr,
+    )
+    memory.types.allocate(address, type)
+    val constraint = type.mkExactlyOneTypeConstraint(ctx)
+    if (scope != null) {
+        scope.assert(constraint)
+    } else {
+        pathConstraints += constraint
     }
+
+    if (boolValue != null) {
+        val boolLValue = ctx.getIntermediateBoolLValue(address)
+        memory.write(boolLValue, boolValue, guard = ctx.trueExpr)
+    }
+
+    if (fpValue != null) {
+        val fpLValue = ctx.getIntermediateFpLValue(address)
+        memory.write(fpLValue, fpValue, guard = ctx.trueExpr)
+    }
+
+    if (refValue != null) {
+        val refLValue = ctx.getIntermediateRefLValue(address)
+        memory.write(refLValue, refValue, guard = ctx.trueExpr)
+    }
+
+    fakeValueRef
 }
 
 fun <T : USort> TsState.extractValue(

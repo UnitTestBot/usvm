@@ -47,7 +47,6 @@ import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.memory.ULValue
 import org.usvm.memory.UReadOnlyMemory
-import org.usvm.memory.URegisterStackLValue
 import org.usvm.mkSizeExpr
 import org.usvm.model.UModel
 import org.usvm.model.UModelBase
@@ -117,13 +116,39 @@ class TsTestResolver {
         }
     }
 
-    @Suppress("unused")
     private fun resolveException(
         res: TsMethodResult.TsException,
         afterMemoryScope: MemoryScope,
     ): TsTestValue.TsException {
-        // TODO support exceptions
-        return TsTestValue.TsException
+        return afterMemoryScope.withMode(ResolveMode.CURRENT) {
+            try {
+                // Dispatch based on the exception type, similar to string const resolution
+                when (res.type) {
+                    is EtsStringType -> {
+                        val concreteRef = evaluateInModel(res.value) as? UConcreteHeapRef
+                        if (concreteRef != null && isAllocatedConcreteHeapRef(concreteRef)) {
+                            val stringValue = ctx.getStringConstantValue(concreteRef)
+                            if (stringValue != null) {
+                                TsTestValue.TsException.StringException(stringValue)
+                            } else {
+                                TsTestValue.TsException.UnknownException
+                            }
+                        } else {
+                            TsTestValue.TsException.UnknownException
+                        }
+                    }
+
+                    else -> {
+                        // Other types of exceptions - resolve and wrap the value
+                        val resolvedValue = resolveExpr(res.value)
+                        TsTestValue.TsException.ObjectException(resolvedValue)
+                    }
+                }
+            } catch (_: Exception) {
+                // Fallback to unknown exception if resolution fails
+                TsTestValue.TsException.UnknownException
+            }
+        }
     }
 
     private class MemoryScope(
@@ -307,9 +332,8 @@ open class TsTestStateResolver(
         return TsTestValue.TsString(value)
     }
 
-    fun resolveThisInstance(): TsTestValue? {
-        val parametersCount = method.parameters.size
-        val ref = mkRegisterStackLValue(ctx.addressSort, parametersCount) // TODO check for statics
+    fun resolveThisInstance(): TsTestValue {
+        val ref = mkRegisterStackLValue(ctx.addressSort, 0) // TODO check for statics
         return resolveLValue(ref)
     }
 
@@ -320,12 +344,13 @@ open class TsTestStateResolver(
 
             if (sort is TsUnresolvedSort) {
                 // this means that a fake object was created, and we need to read it from the current memory
-                val address = finalStateMemory.read(mkRegisterStackLValue(addressSort, idx))
+                val ref = mkRegisterStackLValue(addressSort, idx)
+                val address = finalStateMemory.read(ref)
                 check(address.isFakeObject())
                 return@mapIndexed resolveFakeObject(address)
             }
 
-            val ref = URegisterStackLValue(sort, idx)
+            val ref = mkRegisterStackLValue(sort, idx)
             resolveLValue(ref)
         }
     }

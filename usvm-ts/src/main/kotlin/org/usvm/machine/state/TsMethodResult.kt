@@ -4,7 +4,6 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsType
 import org.usvm.UExpr
-import org.usvm.UHeapRef
 
 /**
  * Represents a result of a method invocation.

@@ -3,15 +3,13 @@ package org.usvm.machine.state
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBlockCfg
 import org.jacodb.ets.model.EtsClass
-import org.jacodb.ets.model.EtsClassSignature
-import org.jacodb.ets.model.EtsClassType
-import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsFile
+import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
-import org.jacodb.ets.model.EtsValue
 import org.usvm.PathNode
 import org.usvm.UCallStack
 import org.usvm.UConcreteHeapRef
@@ -60,7 +58,6 @@ class TsState(
     targets: UTargetsSet<TsTarget, EtsStmt> = UTargetsSet.empty(),
     val localToSortStack: MutableList<UPersistentHashMap<Int, USort>> = mutableListOf(persistentHashMapOf()),
     var staticStorage: UPersistentHashMap<EtsClass, UConcreteHeapRef> = persistentHashMapOf(),
-    val globalObject: UConcreteHeapRef = memory.allocStatic(EtsClassType(EtsClassSignature.UNKNOWN)),
     val addedArtificialLocals: MutableSet<String> = hashSetOf(),
     val lValuesToAllocatedFakeObjects: MutableList<Pair<ULValue<*, *>, UConcreteHeapRef>> = mutableListOf(),
     var discoveredCallees: UPersistentHashMap<Pair<EtsStmt, Int>, EtsBlockCfg> = persistentHashMapOf(),
@@ -70,6 +67,13 @@ class TsState(
     var associatedFunction: UPersistentHashMap<UConcreteHeapRef, TsFunction> = persistentHashMapOf(),
     var closureObject: UPersistentHashMap<String, UConcreteHeapRef> = persistentHashMapOf(),
     var boundThis: UPersistentHashMap<UConcreteHeapRef, UHeapRef> = persistentHashMapOf(),
+    var dfltObject: UPersistentHashMap<EtsFileSignature, UConcreteHeapRef> = persistentHashMapOf(),
+
+    /**
+     * Maps (file signature, field name) to the sort used for that field in the dflt object.
+     * This tracks sorts for global variables that are represented as fields of dflt objects.
+     */
+    var dfltObjectFieldSorts: UPersistentHashMap<Pair<EtsFileSignature, String>, USort> = persistentHashMapOf(),
 
     /**
      * Maps string values to their corresponding heap references that were allocated for string constants.
@@ -94,9 +98,9 @@ class TsState(
         return localToSort[idx]
     }
 
-    fun getOrPutSortForLocal(idx: Int, localType: EtsType): USort {
+    fun getOrPutSortForLocal(idx: Int, sort: () -> USort): USort {
         val localToSort = localToSortStack.last()
-        val (updated, result) = localToSort.getOrPut(idx, ownership) { ctx.typeToSort(localType) }
+        val (updated, result) = localToSort.getOrPut(idx, ownership, sort)
         localToSortStack[localToSortStack.lastIndex] = updated
         return result
     }
@@ -126,25 +130,15 @@ class TsState(
     }
 
     fun pushSortsForArguments(
-        instance: EtsLocal?,
-        args: List<EtsLocal>,
-        localToIdx: (EtsMethod, EtsValue) -> Int?,
+        n: Int,
+        idxToSort: (Int) -> USort?,
     ) {
-        val argSorts = args.map { arg ->
-            val argIdx = localToIdx(lastEnteredMethod, arg)
-                ?: error("Arguments must present in the locals, but $arg is absent")
-            getOrPutSortForLocal(argIdx, arg.type)
-        }
-
-        val instanceIdx = instance?.let { localToIdx(lastEnteredMethod, it) }
-        val instanceSort = instanceIdx?.let { getOrPutSortForLocal(it, instance.type) }
-
-        // Note: first, push an empty map, then fill the arguments, and then the instance (this)
         pushLocalToSortStack()
-        instanceSort?.let { saveSortForLocal(0, it) }
-        argSorts.forEachIndexed { i, sort ->
-            val idx = i + 1 // + 1 because 0 is reserved for `this`
-            saveSortForLocal(idx, sort)
+        for (i in 0..n) {
+            val sort = idxToSort(i)
+            if (sort != null) {
+                saveSortForLocal(i, sort)
+            }
         }
     }
 
@@ -201,6 +195,31 @@ class TsState(
         thisRef: UHeapRef,
     ) {
         boundThis = boundThis.put(instance, thisRef, ownership)
+    }
+
+    fun getDfltObject(file: EtsFile): UConcreteHeapRef {
+        val (updated, result) = dfltObject.getOrPut(file.signature, ownership) {
+            // val dfltClass = file.getDfltClass()
+            // memory.allocConcrete(dfltClass.type)
+            ctx.allocateConcreteRef()
+        }
+        dfltObject = updated
+        return result
+    }
+
+    fun getSortForDfltObjectField(
+        file: EtsFile,
+        fieldName: String,
+    ): USort? {
+        return dfltObjectFieldSorts[file.signature to fieldName]
+    }
+
+    fun saveSortForDfltObjectField(
+        file: EtsFile,
+        fieldName: String,
+        sort: USort,
+    ) {
+        dfltObjectFieldSorts = dfltObjectFieldSorts.put(file.signature to fieldName, sort, ownership)
     }
 
     /**
@@ -266,7 +285,6 @@ class TsState(
             targets = targets.clone(),
             localToSortStack = localToSortStack.toMutableList(),
             staticStorage = staticStorage,
-            globalObject = globalObject,
             addedArtificialLocals = addedArtificialLocals,
             lValuesToAllocatedFakeObjects = lValuesToAllocatedFakeObjects.toMutableList(),
             discoveredCallees = discoveredCallees,
@@ -276,6 +294,8 @@ class TsState(
             associatedFunction = associatedFunction,
             closureObject = closureObject,
             boundThis = boundThis,
+            dfltObject = dfltObject,
+            dfltObjectFieldSorts = dfltObjectFieldSorts,
             stringConstantAllocatedRefs = stringConstantAllocatedRefs,
         )
     }

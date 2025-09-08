@@ -3,8 +3,10 @@ package org.usvm.util
 import org.jacodb.ets.dsl.ProgramBuilder
 import org.jacodb.ets.dsl.program
 import org.jacodb.ets.dsl.toBlockCfg
+import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassImpl
+import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodImpl
 import org.jacodb.ets.model.EtsMethodParameter
@@ -34,6 +36,11 @@ fun buildEtsMethod(
     val blockCfg = prog.toBlockCfg()
     val etsCfg = blockCfg.toEtsBlockCfg(method)
     method.body.cfg = etsCfg
+
+    method.body.locals = etsCfg.stmts
+        .filterIsInstance<EtsAssignStmt>()
+        .mapNotNull { it.lhv as? EtsLocal }
+        .distinct()
 
     ((enclosingClass as EtsClassImpl).methods as MutableList).add(method)
     method.enclosingClass = enclosingClass

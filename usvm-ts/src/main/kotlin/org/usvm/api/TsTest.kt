@@ -30,7 +30,12 @@ sealed interface TsTestValue {
     data object TsUnknown : TsTestValue
     data object TsNull : TsTestValue
     data object TsUndefined : TsTestValue
-    data object TsException : TsTestValue
+
+    sealed interface TsException : TsTestValue {
+        data object UnknownException : TsException
+        data class StringException(val message: String) : TsException
+        data class ObjectException(val value: TsTestValue) : TsException
+    }
 
     data class TsBoolean(val value: Boolean) : TsTestValue
 

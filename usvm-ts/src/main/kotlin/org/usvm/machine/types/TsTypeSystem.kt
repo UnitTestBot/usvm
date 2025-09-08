@@ -250,8 +250,7 @@ class TsTypeSystem(
     }
 
     override fun isInstantiable(type: EtsType): Boolean {
-        val t = unwrapAlias(type)
-        return when (t) {
+        return when (val t = unwrapAlias(type)) {
             is EtsNeverType -> false  // no runtime value
             is EtsAnyType,
             is EtsUnknownType,
@@ -272,8 +271,7 @@ class TsTypeSystem(
     }
 
     override fun findSubtypes(type: EtsType): Sequence<EtsType> {
-        val t = unwrapAlias(type)
-        return when (t) {
+        return when (val t = unwrapAlias(type)) {
             is EtsPrimitiveType -> emptySequence()
             is EtsAnyType,
             is EtsUnknownType,

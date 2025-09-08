@@ -331,6 +331,24 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
             TsTestValue.TsUnknown::class -> EtsUnknownType
             TsTestValue.TsNull::class -> EtsNullType
 
+            TsTestValue.TsException.StringException::class -> {
+                // TODO incorrect
+                val signature = EtsClassSignature("StringException", EtsFileSignature.UNKNOWN)
+                EtsClassType(signature)
+            }
+
+            TsTestValue.TsException.ObjectException::class -> {
+                // TODO incorrect
+                val signature = EtsClassSignature("ObjectException", EtsFileSignature.UNKNOWN)
+                EtsClassType(signature)
+            }
+
+            TsTestValue.TsException.UnknownException::class -> {
+                // TODO incorrect
+                val signature = EtsClassSignature("UnknownException", EtsFileSignature.UNKNOWN)
+                EtsClassType(signature)
+            }
+
             TsTestValue.TsException::class -> {
                 // TODO incorrect
                 val signature = EtsClassSignature("Exception", EtsFileSignature.UNKNOWN)
