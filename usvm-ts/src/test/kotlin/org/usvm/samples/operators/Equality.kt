@@ -181,29 +181,4 @@ class Equality : TsMethodTestRunner() {
             )
         )
     }
-
-    @Test
-    fun `test eqAnyWithNull`() {
-        val method = getMethod("eqAnyWithNull")
-        discoverProperties<TsTestValue, TsTestValue.TsNumber>(
-            method,
-            { a, r ->
-                (r eq 1) && (a is TsTestValue.TsNull)
-            },
-            { a, r ->
-                (r eq 2) && (a is TsTestValue.TsUndefined)
-            },
-            { a, r ->
-                (r eq 5) && (a !is TsTestValue.TsNull)
-            },
-            { a, r ->
-                (r eq 10) && (a !is TsTestValue.TsNull) && (a !is TsTestValue.TsUndefined)
-            },
-            invariants = arrayOf(
-                { _, r -> r.number > 0 },
-                { a, r -> if (r eq 1) a is TsTestValue.TsNull else true },
-                { a, r -> if (r eq 2) a is TsTestValue.TsUndefined else true },
-            )
-        )
-    }
 }

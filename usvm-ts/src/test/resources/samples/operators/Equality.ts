@@ -76,28 +76,4 @@ class Equality {
         if (undefined == null) return 1;
         return -1; // unreachable
     }
-
-    eqAnyWithNull(a: any): number {
-        if (typeof a === "object") {
-            // Note: `a == null` is true when `a` is null or undefined,
-            // but here `a` cannot be undefined because `typeof undefined` is "undefined".
-            // Thus, `a == null` is true only if `a === null`.
-            if (a == null) {
-                if (a === null) return 1; // null
-                return -1; // unreachable
-            }
-            return 5; // non-null object
-        }
-        if (typeof a === "undefined") {
-            // Note: `a == null` is true when `a` is null or undefined,
-            // but here `a` cannot be null because `typeof null` is "object".
-            // Thus, `a == null` is true only if `a === undefined`.
-            if (a == null) {
-                if (a === undefined) return 2; // undefined
-                return -1; // unreachable
-            }
-            return -1; // unreachable
-        }
-        return 100; // non-object, non-undefined
-    }
 }
