@@ -47,7 +47,8 @@ class FieldAccessReachabilityTest {
 
     @Test
     fun testSimpleFieldReachable() {
-        // Test reachability through field access: if (this.x > 0) -> if (this.y < 10) -> return 1
+        // Test reachability through field access:
+        //   if (this.x > 0) -> if (this.y < 10) -> return 1
         val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
@@ -84,7 +85,8 @@ class FieldAccessReachabilityTest {
 
     @Test
     fun testFieldModificationReachable() {
-        // Test reachability after field modification: this.x = value -> if (this.x > 15) -> if (this.x < 25) -> return 1
+        // Test reachability after field modification:
+        //   this.x = value -> if (this.x > 15) -> if (this.x < 25) -> return 1
         val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
@@ -121,7 +123,8 @@ class FieldAccessReachabilityTest {
 
     @Test
     fun testFieldConstraintUnreachable() {
-        // Test unreachability due to field constraints: this.x = 10 -> if (this.x > 20) -> return -1
+        // Test unreachability due to field constraints:
+        //   this.x = 10 -> if (this.x > 20) -> return -1
         val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }

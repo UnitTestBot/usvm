@@ -47,7 +47,8 @@ class BasicConditionsReachabilityTest {
 
     @Test
     fun testSimpleReachablePath() {
-        // Test reachability of path: if (x > 10) -> if (x < 20) -> return 1
+        // Test reachability of path:
+        //   if (x > 10) -> if (x < 20) -> return 1
         val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
@@ -84,7 +85,8 @@ class BasicConditionsReachabilityTest {
 
     @Test
     fun testSimpleUnreachablePath() {
-        // Test unreachability of contradicting conditions: if (x > 15) -> if (x < 10) -> return -1
+        // Test unreachability of contradicting conditions:
+        //   if (x > 15) -> if (x < 10) -> return -1
         val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
@@ -116,7 +118,8 @@ class BasicConditionsReachabilityTest {
 
     @Test
     fun testMultiVariableReachable() {
-        // Test reachability with multiple variables: if (x > 0) -> if (y > 5) -> if (x + y > 10) -> return 1
+        // Test reachability with multiple variables:
+        //   if (x > 0) -> if (y > 5) -> if (x + y > 10) -> return 1
         val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
@@ -157,7 +160,8 @@ class BasicConditionsReachabilityTest {
 
     @Test
     fun testEqualityBasedReachability() {
-        // Test reachability with equality: if (value === 42) -> if (value > 40) -> if (value < 50) -> return 1
+        // Test reachability with equality:
+        //   if (value === 42) -> if (value > 40) -> if (value < 50) -> return 1
         val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
@@ -192,7 +196,8 @@ class BasicConditionsReachabilityTest {
 
     @Test
     fun testBooleanUnreachable() {
-        // Test unreachability with contradicting boolean conditions: if (flag) -> if (!flag) -> return -1
+        // Test unreachability with contradicting boolean conditions:
+        //   if (flag) -> if (!flag) -> return -1
         val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
