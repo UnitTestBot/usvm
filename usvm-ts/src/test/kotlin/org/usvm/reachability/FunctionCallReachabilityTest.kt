@@ -47,7 +47,8 @@ class FunctionCallReachabilityTest {
 
     @Test
     fun testSimpleCallReachable() {
-        // Test reachability through method call: this.doubleValue(x) -> result > 20 -> result < 40 -> return 1
+        // Test reachability through method call:
+        //   this.doubleValue(x) -> result > 20 -> result < 40 -> return 1
         val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
@@ -84,7 +85,8 @@ class FunctionCallReachabilityTest {
 
     @Test
     fun testCallUnreachable() {
-        // Test unreachability due to method return constraints: constantValue() returns 42, check result > 100
+        // Test unreachability due to method return constraints:
+        //   constantValue() returns 42 -> result > 100
         val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
@@ -114,7 +116,8 @@ class FunctionCallReachabilityTest {
 
     @Test
     fun testChainedCallsReachable() {
-        // Test reachability through chained method calls: addTen(doubleValue(x)) -> result === 30 -> return 1
+        // Test reachability through chained method calls:
+        //   addTen(doubleValue(x)) -> result === 30 -> return 1
         val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
@@ -147,7 +150,8 @@ class FunctionCallReachabilityTest {
 
     @Test
     fun testRecursiveCallReachable() {
-        // Test reachability through recursive call: factorial(n) -> result === 24 -> return 1
+        // Test reachability through recursive call:
+        //   factorial(n) -> result === 24 -> return 1
         val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
@@ -180,7 +184,8 @@ class FunctionCallReachabilityTest {
 
     @Test
     fun testStateModificationReachable() {
-        // Test reachability through state modification: incrementCounter(counter, 5) -> counter.value === 5 -> counter.value > 3 -> return 1
+        // Test reachability through state modification:
+        //   incrementCounter(counter, 5) -> counter.value === 5 -> counter.value > 3 -> return 1
         val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
