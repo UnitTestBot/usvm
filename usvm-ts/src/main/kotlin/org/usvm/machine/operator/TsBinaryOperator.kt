@@ -636,6 +636,10 @@ sealed interface TsBinaryOperator {
             check(!lhsValue.isFakeObject()) { "Nested fake objects are not supported" }
             check(!rhsValue.isFakeObject()) { "Nested fake objects are not supported" }
 
+            // Note: this is the case 'ref === ref',
+            // which should be `true` only if both have the same reference.
+            // It is not correct to delegate to `Eq.resolve` in this case,
+            // since `==` treats `null == undefined`, while `null !== undefined`.
             if (lhsValue.sort == addressSort && rhsValue.sort == addressSort) {
                 val left = lhsValue.asExpr(addressSort)
                 val right = rhsValue.asExpr(addressSort)
