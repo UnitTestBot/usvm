@@ -774,7 +774,7 @@ class TsInterpreter(
                 val bool = mkRegisterReading(idx, boolSort)
                 val fp = mkRegisterReading(idx, fp64Sort)
                 val ref = mkRegisterReading(idx, addressSort)
-                val fakeObject = state.mkFakeValue(bool, fp, ref)
+                val fakeObject = state.mkFakeValue(null, bool, fp, ref)
                 val lValue = mkRegisterStackLValue(addressSort, idx)
                 state.memory.write(lValue, fakeObject.asExpr(addressSort), guard = trueExpr)
                 state.saveSortForLocal(idx, addressSort)

@@ -16,6 +16,7 @@ import org.usvm.machine.state.TsState
 import org.usvm.memory.ULValue
 
 fun TsState.mkFakeValue(
+    scope: TsStepScope?, // pass `null` only in the initial state, where `scope` is not available!
     boolValue: UBoolExpr? = null,
     fpValue: UExpr<KFp64Sort>? = null,
     refValue: UHeapRef? = null,
@@ -43,7 +44,12 @@ fun TsState.mkFakeValue(
         refTypeExpr = refTypeExpr,
     )
     memory.types.allocate(address, type)
-    pathConstraints += type.mkExactlyOneTypeConstraint(ctx)
+    val constraint = type.mkExactlyOneTypeConstraint(ctx)
+    if (scope != null) {
+        scope.assert(constraint)
+    } else {
+        pathConstraints += constraint
+    }
 
     if (boolValue != null) {
         val boolLValue = ctx.getIntermediateBoolLValue(address)

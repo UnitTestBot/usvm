@@ -111,7 +111,7 @@ internal fun TsContext.readField(
         if (ref.isFakeObject()) {
             ref
         } else {
-            val fakeObj = mkFakeValue(bool, fp, ref)
+            val fakeObj = mkFakeValue(scope, bool, fp, ref)
             lValuesToAllocatedFakeObjects += refLValue to fakeObj
             memory.write(refLValue, fakeObj, guard = trueExpr)
             fakeObj

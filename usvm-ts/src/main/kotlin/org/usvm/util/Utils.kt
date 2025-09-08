@@ -74,7 +74,7 @@ fun UHeapRef.createFakeField(
     }
 
     scope.calcOnState {
-        val fakeObject = mkFakeValue(bool, fp, ref)
+        val fakeObject = mkFakeValue(scope, bool, fp, ref)
         memory.write(lValue, fakeObject.asExpr(ctx.addressSort), guard = ctx.trueExpr)
         fakeObject
     }

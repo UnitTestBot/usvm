@@ -24,9 +24,10 @@ fun mockMethodCall(
 
                 is TsUnresolvedSort -> scope.calcOnState {
                     mkFakeValue(
-                        makeSymbolicPrimitive(ctx.boolSort),
-                        makeSymbolicPrimitive(ctx.fp64Sort),
-                        makeSymbolicRefUntyped()
+                        scope = scope,
+                        boolValue = makeSymbolicPrimitive(ctx.boolSort),
+                        fpValue = makeSymbolicPrimitive(ctx.fp64Sort),
+                        refValue = makeSymbolicRefUntyped(),
                     )
                 }
 
