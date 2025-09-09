@@ -130,4 +130,23 @@ class FieldAccess : TsMethodTestRunner() {
             { r -> r eq 1 },
         )
     }
+
+    @Test
+    fun `test readFromAny`() {
+        val method = getMethod("readFromAny")
+        discoverProperties<TsTestValue, TsTestValue.TsNumber>(
+            method = method,
+            { _, r -> r eq 1 },
+            { _, r -> r eq 2 },
+        )
+    }
+
+    @Test
+    fun `test writeToAny`() {
+        val method = getMethod("writeToAny")
+        discoverProperties<TsTestValue, TsTestValue.TsNumber>(
+            method = method,
+            { _, r -> r eq 50 },
+        )
+    }
 }
