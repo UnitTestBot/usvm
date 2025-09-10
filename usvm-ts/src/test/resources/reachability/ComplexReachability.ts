@@ -29,9 +29,9 @@ class ComplexReachability {
         const arr = this.createNumberArray(input);
         const processedArr = this.processArray(arr);
 
-        if (processedArr.length > 0) {
-            if (processedArr[0] > input) {
-                return 1; // Reachable depending on input value
+        if (processedArr.length > 1) {
+            if (processedArr[1] === 3) {
+                return 1; // Reachable when input >= 2, processedArr = [1,3,5,...]
             }
         }
         return 0;
@@ -45,8 +45,8 @@ class ComplexReachability {
         const doubled = calculator.getDoubled();
         if (doubled === 30) {
             calculator.add(10);
-            if (calculator.getValue() === 40) {
-                return 1; // Reachable: 15 * 2 = 30, then 15 + 10 = 25, but getValue() returns current value
+            if (calculator.getValue() === 25) {
+                return 1; // Reachable: 15 + 10 = 25
             }
         }
         return 0;
