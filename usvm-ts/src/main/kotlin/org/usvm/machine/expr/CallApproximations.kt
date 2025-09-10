@@ -294,14 +294,13 @@ private fun TsExprResolver.handleArrayPush(
         memory.write(lengthLValue, newLength, guard = trueExpr)
 
         // Write the new element to the end of the array
-        // TODO check sorts compatibility https://github.com/UnitTestBot/usvm/issues/300
-        val newIndexLValue = mkArrayIndexLValue(
-            sort = elementSort,
-            ref = array,
+        assignToArrayIndex(
+            scope = scope,
+            array = array,
             index = length,
-            type = arrayType,
-        )
-        memory.write(newIndexLValue, arg.asExpr(elementSort), guard = trueExpr)
+            expr = arg,
+            arrayType = arrayType,
+        ) ?: return@calcOnState null
 
         // Return the new length of the array (as per ECMAScript spec for Array.push)
         mkBvToFpExpr(
