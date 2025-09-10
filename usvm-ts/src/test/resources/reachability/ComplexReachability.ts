@@ -26,8 +26,8 @@ class ComplexReachability {
 
     // Method calls with array manipulation
     methodArrayManipulationReachable(input: number): number {
-        const arr = this.createNumberArray(input);
-        const processedArr = this.processArray(arr);
+        const arr: number[] = this.createNumberArray(input);
+        const processedArr: number[] = this.processArray(arr);
 
         if (processedArr.length > 1) {
             if (processedArr[1] === 3) {
@@ -127,7 +127,7 @@ class ComplexReachability {
 
     // Helper methods
     createNumberArray(size: number): number[] {
-        const arr = [];
+        const arr = new Array<number>();
         for (let i = 0; i < size && i < 5; i++) {
             arr.push(i * 2);
         }
@@ -135,7 +135,7 @@ class ComplexReachability {
     }
 
     processArray(arr: number[]): number[] {
-        const result = [];
+        const result = new Array<number>();
         for (let i = 0; i < arr.length; i++) {
             result.push(arr[i] + 1);
         }
