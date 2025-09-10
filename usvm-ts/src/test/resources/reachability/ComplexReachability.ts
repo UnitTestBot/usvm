@@ -172,7 +172,7 @@ class Calculator {
     }
 
     add(val: number): void {
-        this.currentValue += val;
+        this.currentValue = this.currentValue + val;
     }
 }
 

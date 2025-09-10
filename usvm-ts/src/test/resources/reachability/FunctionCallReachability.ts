@@ -136,12 +136,12 @@ class FunctionCallReachability {
     }
 
     incrementCounter(counter: Counter, amount: number): void {
-        counter.value += amount;
+        counter.value = counter.value + amount;
     }
 
     crossIncrement(obj1: SimpleCounter, obj2: SimpleCounter, amount: number): void {
-        obj1.count += amount;
-        obj2.count += amount;
+        obj1.count = obj1.count + amount;
+        obj2.count = obj2.count + amount;
     }
 
     calculateSum(arr: number[]): number {
