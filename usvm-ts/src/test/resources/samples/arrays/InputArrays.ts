@@ -60,8 +60,8 @@ class InputArrays {
     }
 
     conditionalLength(input: number) {
-        const arr = createNumberArray(input);
-        const res = processArray(arr);
+        const arr: number[] = createNumberArray(input);
+        const res: number[] = processArray(arr);
         if (res.length > 0) return 1;
         if (input > 0) return -1; // unreachable, since 'input > 0' implies 'res.length > 0'
         return 0;
@@ -69,7 +69,7 @@ class InputArrays {
 }
 
 function createNumberArray(size: number): number[] {
-    const arr = [];
+    const arr = new Array<number>();
     for (let i = 0; i < size && i < 5; i++) {
         arr.push(i + 1);
     }
@@ -77,7 +77,7 @@ function createNumberArray(size: number): number[] {
 }
 
 function processArray(arr: number[]): number[] {
-    const result = [];
+    const result = new Array<number>();
     for (let i = 0; i < arr.length; i++) {
         result.push(arr[i] * 2);
     }
