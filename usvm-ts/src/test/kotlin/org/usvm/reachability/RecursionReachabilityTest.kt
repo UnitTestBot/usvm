@@ -234,19 +234,44 @@ class RecursionReachabilityTest {
 
     @Test
     fun testTreeTraversalReachable() {
-        // Test reachability through simplified tree traversal (no actual recursion):
-        //   direct property access -> if (found target 15) -> return 1
+        // Test reachability through simplified tree traversal with parameterized target:
+        //   if (treeNode.value === target) -> return 1 (reachable when target = 10)
+        //   if (treeNode.left.value === target) -> return 2 (reachable when target = 5)
+        //   if (treeNode.right.value === target) -> return 3 (reachable when target = 15)
         val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "treeTraversalReachable" }
 
         val initialTarget = TsReachabilityTarget.InitialPoint(method.cfg.stmts.first())
-        var target: TsTarget = initialTarget
 
-        // The method uses direct property access, so focus on final return
-        val returnStmt = method.cfg.stmts.filterIsInstance<EtsReturnStmt>()[0]
-        target.addChild(TsReachabilityTarget.FinalPoint(returnStmt))
+        // Path 1:
+        //   if (treeNode.value === target)
+        //     return 1
+        val ifStmt1 = method.cfg.stmts.filterIsInstance<EtsIfStmt>()[0]
+        val returnStmt1 = method.cfg.stmts.filterIsInstance<EtsReturnStmt>()[0]
+
+        initialTarget
+            .addChild(TsReachabilityTarget.IntermediatePoint(ifStmt1))
+            .addChild(TsReachabilityTarget.FinalPoint(returnStmt1))
+
+        // Path 2:
+        //   if (treeNode.left.value === target)
+        //     return 2
+        val ifStmt2 = method.cfg.stmts.filterIsInstance<EtsIfStmt>()[1]
+        val returnStmt2 = method.cfg.stmts.filterIsInstance<EtsReturnStmt>()[1]
+        initialTarget
+            .addChild(TsReachabilityTarget.IntermediatePoint(ifStmt2))
+            .addChild(TsReachabilityTarget.FinalPoint(returnStmt2))
+
+        // Path 3:
+        //   if (treeNode.right.value === target)
+        //     return 3
+        val ifStmt3 = method.cfg.stmts.filterIsInstance<EtsIfStmt>()[2]
+        val returnStmt3 = method.cfg.stmts.filterIsInstance<EtsReturnStmt>()[2]
+        initialTarget
+            .addChild(TsReachabilityTarget.IntermediatePoint(ifStmt3))
+            .addChild(TsReachabilityTarget.FinalPoint(returnStmt3))
 
         val results = machine.analyze(listOf(method), listOf(initialTarget))
         assertTrue(
@@ -256,8 +281,16 @@ class RecursionReachabilityTest {
 
         val reachedStatements = results.flatMap { it.pathNode.allStatements }.toSet()
         assertTrue(
-            returnStmt in reachedStatements,
-            "Expected return statement to be reached when value 15 exists in tree"
+            returnStmt1 in reachedStatements,
+            "Expected 'return 1' to be reached when target = 10"
+        )
+        assertTrue(
+            returnStmt2 in reachedStatements,
+            "Expected 'return 2' to be reached when target = 5"
+        )
+        assertTrue(
+            returnStmt3 in reachedStatements,
+            "Expected 'return 3' to be reached when target = 15"
         )
     }
 
