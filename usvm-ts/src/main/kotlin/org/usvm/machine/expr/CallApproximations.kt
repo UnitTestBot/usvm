@@ -1,5 +1,6 @@
 package org.usvm.machine.expr
 
+import io.ksmt.expr.KFpRoundingMode
 import io.ksmt.utils.asExpr
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsArrayType
@@ -73,6 +74,13 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
     if (expr.instance.name == "Promise") {
         if (expr.callee.name in listOf("resolve", "reject")) {
             return from(handlePromiseResolveReject(expr))
+        }
+    }
+
+    // Handle `Math` method calls
+    if (expr.instance.name == "Math") {
+        if (expr.callee.name == "floor") {
+            return from(handleMathFloor(expr))
         }
     }
 
@@ -253,6 +261,27 @@ private fun TsExprResolver.handlePromiseResolveReject(expr: EtsInstanceCallExpr)
         setResolvedValue(promise, fakeValue)
     }
     promise
+}
+
+private fun TsExprResolver.handleMathFloor(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
+    check(expr.args.size == 1) {
+        "Math.floor() should have exactly one argument, but got ${expr.args.size}"
+    }
+    val arg = resolve(expr.args.single()) ?: return null
+
+    when (arg.sort) {
+        fp64Sort -> mkFpRoundToIntegralExpr(
+            roundingMode = mkFpRoundingModeExpr(KFpRoundingMode.RoundTowardNegative),
+            value = arg.asExpr(fp64Sort),
+        )
+
+        sizeSort -> arg.asExpr(sizeSort)
+
+        else -> {
+            logger.warn { "Unsupported argument sort for Math.floor(): ${arg.sort}" }
+            null
+        }
+    }
 }
 
 /**
