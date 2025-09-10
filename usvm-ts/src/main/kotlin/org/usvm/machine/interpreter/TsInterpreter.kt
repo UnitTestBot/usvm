@@ -738,7 +738,7 @@ class TsInterpreter(
                 state.pathConstraints += mkNot(mkHeapRefEq(ref, mkUndefinedValue()))
 
                 if (parameterType is EtsArrayType) {
-                    state.pathConstraints += state.memory.types.evalTypeEquals(ref, parameterType)
+                    state.pathConstraints += state.memory.types.evalIsSubtype(ref, parameterType)
                     return@run
                 }
 
