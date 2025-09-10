@@ -12,11 +12,11 @@ class RecursionReachability {
         if (n <= 1) {
             return 1; // Base case reachable
         }
-        
+
         if (n > 5) {
             return -1; // Note: depth limit to prevent infinite loops
         }
-        
+
         return n * this.factorial(n - 1); // Recursive case with depth limit
     }
 
@@ -36,7 +36,7 @@ class RecursionReachability {
             }
             return 0;
         }
-        
+
         if (n > 5) {
             return 0; // Note: depth limit to prevent excessive recursion
         }
@@ -84,29 +84,27 @@ class RecursionReachability {
         if (b === 13) { // fib(7) = 13
             return 1; // Special case
         }
-        
+
         return b;
     }
 
     // Tree traversal using direct property access
-    treeTraversalReachable(): number {
+    treeTraversalReachable(target: number): number {
         const treeNode = {
             value: 10,
             left: { value: 5 },
-            right: { value: 15 }
+            right: { value: 15 },
         };
-
-        const target = 15;
 
         // Direct search without recursion
         if (treeNode.value === target) {
-            return 1;
+            return 1; // Reachable when root matches target (target = 10)
         }
-        if (treeNode.left && treeNode.left.value === target) {
-            return 1;
+        if (treeNode.left.value === target) {
+            return 2; // Reachable when left child matches target (target = 5)
         }
-        if (treeNode.right && treeNode.right.value === target) {
-            return 1; // Reachable: 15 exists in the tree
+        if (treeNode.right.value === target) {
+            return 3; // Reachable when right child matches target (target = 15)
         }
 
         return 0;
