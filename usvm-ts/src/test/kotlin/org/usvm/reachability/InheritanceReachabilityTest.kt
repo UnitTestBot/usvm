@@ -261,33 +261,30 @@ class InheritanceReachabilityTest {
 
         // Test ConcreteA.process() method directly
         val concreteAMethods = scene.projectClasses
-            .find { it.name.contains("ConcreteA") }
-            ?.methods?.filter { it.name == "process" }
+            .first { it.name.contains("ConcreteA") }
+            .methods.filter { it.name == "process" }
 
-        if (!concreteAMethods.isNullOrEmpty()) {
-            val method = concreteAMethods.first()
-            val initialTarget = TsReachabilityTarget.InitialPoint(method.cfg.stmts.first())
-            var target: TsTarget = initialTarget
+        val method = concreteAMethods.first()
+        val target = TsReachabilityTarget.InitialPoint(method.cfg.stmts.first())
 
-            // if (this.value > 10)
-            val valueCheck = method.cfg.stmts.filterIsInstance<EtsIfStmt>()[0]
-            target = target.addChild(TsReachabilityTarget.IntermediatePoint(valueCheck))
+        // if (this.value > 10)
+        //   return this.commonMethod() or similar
+        val ifStmt = method.cfg.stmts.filterIsInstance<EtsIfStmt>()[0]
+        val returnStmt = method.cfg.stmts.filterIsInstance<EtsReturnStmt>()[0]
+        target
+            .addChild(TsReachabilityTarget.IntermediatePoint(ifStmt))
+            .addChild(TsReachabilityTarget.FinalPoint(returnStmt))
 
-            // return this.commonMethod() or similar
-            val returnStmt = method.cfg.stmts.filterIsInstance<EtsReturnStmt>()[0]
-            target.addChild(TsReachabilityTarget.FinalPoint(returnStmt))
+        val results = machine.analyze(listOf(method), listOf(target))
+        assertTrue(
+            results.isNotEmpty(),
+            "Expected at least one result for abstract method implementation reachability"
+        )
 
-            val results = machine.analyze(listOf(method), listOf(initialTarget))
-            assertTrue(
-                results.isNotEmpty(),
-                "Expected at least one result for abstract method implementation reachability"
-            )
-
-            val reachedStatements = results.flatMap { it.pathNode.allStatements }.toSet()
-            assertTrue(
-                returnStmt in reachedStatements,
-                "Expected return statement to be reached when value > 10"
-            )
-        }
+        val reachedStatements = results.flatMap { it.pathNode.allStatements }.toSet()
+        assertTrue(
+            returnStmt in reachedStatements,
+            "Expected return statement to be reached when value > 10"
+        )
     }
 }
