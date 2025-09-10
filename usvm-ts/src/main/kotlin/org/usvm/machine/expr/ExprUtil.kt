@@ -20,6 +20,12 @@ import org.usvm.machine.types.ExprWithTypeConstraint
 import org.usvm.types.single
 import org.usvm.util.boolToFp
 
+fun TsContext.checkNotFake(expr: UExpr<*>) {
+    require(!expr.isFakeObject()) {
+        "Fake object handling should be done outside of this function"
+    }
+}
+
 fun TsContext.mkTruthyExpr(
     expr: UExpr<out USort>,
     scope: TsStepScope,

@@ -66,6 +66,8 @@ fun TsContext.assignToArrayIndex(
     expr: UExpr<*>,
     arrayType: EtsArrayType,
 ): Unit? {
+    checkNotFake(array)
+
     // Read the array length.
     val length = scope.calcOnState {
         val lengthLValue = mkArrayLengthLValue(array, arrayType)
