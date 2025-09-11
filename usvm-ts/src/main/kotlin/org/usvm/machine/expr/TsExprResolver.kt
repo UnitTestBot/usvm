@@ -90,6 +90,7 @@ import org.usvm.dataflow.ts.util.type
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
+import org.usvm.machine.TsOptions
 import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.getGlobals
@@ -133,6 +134,7 @@ private const val ECMASCRIPT_BITWISE_SHIFT_MASK = 0b11111
 class TsExprResolver(
     internal val ctx: TsContext,
     internal val scope: TsStepScope,
+    internal val options: TsOptions,
     internal val hierarchy: EtsHierarchy,
 ) : EtsEntity.Visitor<UExpr<out USort>?> {
 

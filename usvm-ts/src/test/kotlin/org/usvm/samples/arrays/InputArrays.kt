@@ -1,6 +1,7 @@
 package org.usvm.samples.arrays
 
 import org.jacodb.ets.model.EtsScene
+import org.junit.jupiter.api.RepeatedTest
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
@@ -169,6 +170,15 @@ class InputArrays : TsMethodTestRunner() {
             { x, r ->
                 (r eq 1) && (x.number > 0.0)
             },
+        )
+    }
+
+    @RepeatedTest(10)
+    fun `test getLength`() {
+        val method = getMethod("getLength")
+        discoverProperties<TsTestValue.TsArray<TsTestValue>, TsTestValue.TsNumber>(
+            method = method,
+            { x, r -> (r eq x.values.size) },
         )
     }
 }

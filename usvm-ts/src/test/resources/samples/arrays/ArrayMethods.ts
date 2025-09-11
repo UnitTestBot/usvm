@@ -13,17 +13,13 @@ class ArrayMethods {
     }
 
     arrayPushIntoNumber(x: number[]) {
-        if (x.length == 1) {
-            x.push(123);
-            return x;
-        }
+        x.push(123);
+        return x;
     }
 
     arrayPushIntoUnknown(x: any[]) {
-        if (x.length == 1) {
-            x.push(123);
-            return x;
-        }
+        x.push(123);
+        return x;
     }
 
     arrayPop(x: boolean) {

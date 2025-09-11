@@ -59,7 +59,7 @@ internal fun TsExprResolver.handleArrayAccess(
     }
 
     // Read the array element.
-    readArray(scope, arrayRef, bvIndex, arrayType)
+    readArray(scope, arrayRef, bvIndex, arrayType, options.maxArraySize)
 }
 
 fun TsContext.readArray(
@@ -67,6 +67,7 @@ fun TsContext.readArray(
     array: UHeapRef,
     index: UExpr<TsSizeSort>,
     arrayType: EtsArrayType,
+    maxArraySize: Int,
 ): UExpr<*>? {
     checkNotFake(array)
 
