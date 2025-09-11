@@ -42,6 +42,8 @@ fun TsContext.readArrayLength(
     array: UHeapRef,
     arrayType: EtsArrayType,
 ): UExpr<KFp64Sort> {
+    checkNotFake(array)
+
     // Read the length of the array.
     val length = scope.calcOnState {
         val lengthLValue = mkArrayLengthLValue(array, arrayType)

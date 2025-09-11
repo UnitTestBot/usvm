@@ -344,6 +344,8 @@ private fun TsExprResolver.handleArrayPop(
         "Array.pop() should have no arguments, but got ${expr.args.size}"
     }
 
+    checkNotFake(array)
+
     scope.calcOnState {
         // Read the length of the array
         val lengthLValue = mkArrayLengthLValue(array, arrayType)

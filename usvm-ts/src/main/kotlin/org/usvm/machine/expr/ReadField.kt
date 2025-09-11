@@ -63,9 +63,7 @@ fun TsContext.readField(
     field: EtsFieldSignature,
     hierarchy: EtsHierarchy,
 ): UExpr<*> {
-    require(!instance.isFakeObject()) {
-        "Fake object handling should be done outside of this function"
-    }
+    checkNotFake(instance)
 
     val sort = when (val etsField = resolveEtsField(instanceLocal, field, hierarchy)) {
         is TsResolutionResult.Empty -> {

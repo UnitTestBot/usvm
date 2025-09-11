@@ -68,6 +68,8 @@ fun TsContext.readArray(
     index: UExpr<TsSizeSort>,
     arrayType: EtsArrayType,
 ): UExpr<*>? {
+    checkNotFake(array)
+
     // Read the array length.
     val length = scope.calcOnState {
         val lengthLValue = mkArrayLengthLValue(array, arrayType)
