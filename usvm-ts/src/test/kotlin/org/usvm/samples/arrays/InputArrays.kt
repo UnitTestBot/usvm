@@ -160,4 +160,15 @@ class InputArrays : TsMethodTestRunner() {
             },
         )
     }
+
+    @Test
+    fun `test conditionalLength`() {
+        val method = getMethod("conditionalLength")
+        discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
+            method = method,
+            { x, r ->
+                (r eq 1) && (x.number > 0.0)
+            },
+        )
+    }
 }

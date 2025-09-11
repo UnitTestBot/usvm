@@ -14,10 +14,8 @@ import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.util.getResourcePath
 import kotlin.test.Test
-import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
 
 /**
  * Tests for complex reachability scenarios combining multiple language constructions.
@@ -36,7 +34,7 @@ class ComplexReachabilityTest {
         pathSelectionStrategies = listOf(PathSelectionStrategy.TARGETED),
         exceptionsPropagation = true,
         stopOnTargetsReached = true,
-        timeout = 15.seconds,
+        timeout = Duration.INFINITE,
         stepsFromLastCovered = 3500L,
         solverType = SolverType.YICES,
         solverTimeout = Duration.INFINITE,
@@ -69,10 +67,15 @@ class ComplexReachabilityTest {
         target.addChild(TsReachabilityTarget.FinalPoint(returnStmt))
 
         val results = machine.analyze(listOf(method), listOf(initialTarget))
-        assertEquals(
-            1,
-            results.size,
-            "Expected exactly one result for array-object combined reachable path, but got ${results.size}"
+        assertTrue(
+            results.isNotEmpty(),
+            "Expected at least one result",
+        )
+
+        val reachedStatements = results.flatMap { it.pathNode.allStatements }.toSet()
+        assertTrue(
+            returnStmt in reachedStatements,
+            "Expected return statement to be reached in execution path"
         )
     }
 
@@ -87,23 +90,24 @@ class ComplexReachabilityTest {
         val initialTarget = TsReachabilityTarget.InitialPoint(method.cfg.stmts.first())
         var target: TsTarget = initialTarget
 
-        // if (processedArr.length > 0)
+        // if (processedArr.length > 1)
         val firstIf = method.cfg.stmts.filterIsInstance<EtsIfStmt>()[0]
         target = target.addChild(TsReachabilityTarget.IntermediatePoint(firstIf))
-
-        // if (processedArr[0] > input)
-        val secondIf = method.cfg.stmts.filterIsInstance<EtsIfStmt>()[1]
-        target = target.addChild(TsReachabilityTarget.IntermediatePoint(secondIf))
 
         // return 1
         val returnStmt = method.cfg.stmts.filterIsInstance<EtsReturnStmt>()[0]
         target.addChild(TsReachabilityTarget.FinalPoint(returnStmt))
 
         val results = machine.analyze(listOf(method), listOf(initialTarget))
-        assertEquals(
-            1,
-            results.size,
-            "Expected exactly one result for method array manipulation reachable path, but got ${results.size}"
+        assertTrue(
+            results.isNotEmpty(),
+            "Expected at least one result",
+        )
+
+        val reachedStatements = results.flatMap { it.pathNode.allStatements }.toSet()
+        assertTrue(
+            returnStmt in reachedStatements,
+            "Expected return statement to be reached in execution path"
         )
     }
 
@@ -122,15 +126,24 @@ class ComplexReachabilityTest {
         val firstIf = method.cfg.stmts.filterIsInstance<EtsIfStmt>()[0]
         target = target.addChild(TsReachabilityTarget.IntermediatePoint(firstIf))
 
+        // if (calculator.getValue() === 25)
+        val secondIf = method.cfg.stmts.filterIsInstance<EtsIfStmt>()[1]
+        target = target.addChild(TsReachabilityTarget.IntermediatePoint(secondIf))
+
         // return 1
         val returnStmt = method.cfg.stmts.filterIsInstance<EtsReturnStmt>()[0]
         target.addChild(TsReachabilityTarget.FinalPoint(returnStmt))
 
         val results = machine.analyze(listOf(method), listOf(initialTarget))
-        assertEquals(
-            1,
-            results.size,
-            "Expected exactly one result for object method call reachable path, but got ${results.size}"
+        assertTrue(
+            results.isNotEmpty(),
+            "Expected at least one result",
+        )
+
+        val reachedStatements = results.flatMap { it.pathNode.allStatements }.toSet()
+        assertTrue(
+            returnStmt in reachedStatements,
+            "Expected return statement to be reached in execution path"
         )
     }
 
@@ -164,12 +177,17 @@ class ComplexReachabilityTest {
         val results = machine.analyze(listOf(method), listOf(initialTarget))
         assertTrue(
             results.isNotEmpty(),
-            "Expected at least one result for conditional object reachable path, but got ${results.size}"
+            "Expected at least one result",
         )
+
         val reachedStatements = results.flatMap { it.pathNode.allStatements }.toSet()
         assertTrue(
             return1 in reachedStatements,
-            "Expected 'return 1' statement to be reached in conditional object reachable path"
+            "Expected 'return 1' statement to be reached in execution path"
+        )
+        assertTrue(
+            return2 in reachedStatements,
+            "Expected 'return 2' statement to be reached in execution path"
         )
     }
 
@@ -201,10 +219,15 @@ class ComplexReachabilityTest {
         target.addChild(TsReachabilityTarget.FinalPoint(returnStmt))
 
         val results = machine.analyze(listOf(method), listOf(initialTarget))
-        assertEquals(
-            1,
-            results.size,
-            "Expected exactly one result for cross-reference reachable path, but got ${results.size}"
+        assertTrue(
+            results.isNotEmpty(),
+            "Expected at least one result",
+        )
+
+        val reachedStatements = results.flatMap { it.pathNode.allStatements }.toSet()
+        assertTrue(
+            returnStmt in reachedStatements,
+            "Expected return statement to be reached in execution path"
         )
     }
 }

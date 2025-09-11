@@ -26,12 +26,12 @@ class ComplexReachability {
 
     // Method calls with array manipulation
     methodArrayManipulationReachable(input: number): number {
-        const arr = this.createNumberArray(input);
-        const processedArr = this.processArray(arr);
+        const arr: number[] = this.createNumberArray(input);
+        const processedArr: number[] = this.processArray(arr);
 
-        if (processedArr.length > 0) {
-            if (processedArr[0] > input) {
-                return 1; // Reachable depending on input value
+        if (processedArr.length > 1) {
+            if (processedArr[1] === 3) {
+                return 1; // Reachable when input >= 2, processedArr = [1,3,5,...]
             }
         }
         return 0;
@@ -45,8 +45,8 @@ class ComplexReachability {
         const doubled = calculator.getDoubled();
         if (doubled === 30) {
             calculator.add(10);
-            if (calculator.getValue() === 40) {
-                return 1; // Reachable: 15 * 2 = 30, then 15 + 10 = 25, but getValue() returns current value
+            if (calculator.getValue() === 25) {
+                return 1; // Reachable: 15 + 10 = 25
             }
         }
         return 0;
@@ -127,7 +127,7 @@ class ComplexReachability {
 
     // Helper methods
     createNumberArray(size: number): number[] {
-        const arr = [];
+        const arr = new Array<number>();
         for (let i = 0; i < size && i < 5; i++) {
             arr.push(i * 2);
         }
@@ -135,7 +135,7 @@ class ComplexReachability {
     }
 
     processArray(arr: number[]): number[] {
-        const result = [];
+        const result = new Array<number>();
         for (let i = 0; i < arr.length; i++) {
             result.push(arr[i] + 1);
         }
@@ -172,7 +172,7 @@ class Calculator {
     }
 
     add(val: number): void {
-        this.currentValue += val;
+        this.currentValue = this.currentValue + val;
     }
 }
 

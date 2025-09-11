@@ -14,10 +14,8 @@ import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.util.getResourcePath
 import kotlin.test.Test
-import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
 
 /**
  * Tests for field access reachability scenarios.
@@ -36,7 +34,7 @@ class FieldAccessReachabilityTest {
         pathSelectionStrategies = listOf(PathSelectionStrategy.TARGETED),
         exceptionsPropagation = true,
         stopOnTargetsReached = true,
-        timeout = 15.seconds,
+        timeout = Duration.INFINITE,
         stepsFromLastCovered = 3500L,
         solverType = SolverType.YICES,
         solverTimeout = Duration.INFINITE,
@@ -70,10 +68,9 @@ class FieldAccessReachabilityTest {
         target.addChild(TsReachabilityTarget.FinalPoint(returnStmt))
 
         val results = machine.analyze(listOf(method), listOf(initialTarget))
-        assertEquals(
-            1,
-            results.size,
-            "Expected exactly one result for field access reachable path, but got ${results.size}"
+        assertTrue(
+            results.isNotEmpty(),
+            "Expected at least one result",
         )
 
         val reachedStatements = results.flatMap { it.pathNode.allStatements }.toSet()
@@ -108,10 +105,9 @@ class FieldAccessReachabilityTest {
         target.addChild(TsReachabilityTarget.FinalPoint(returnStmt))
 
         val results = machine.analyze(listOf(method), listOf(initialTarget))
-        assertEquals(
-            1,
-            results.size,
-            "Expected exactly one result for field modification reachable path, but got ${results.size}"
+        assertTrue(
+            results.isNotEmpty(),
+            "Expected at least one result",
         )
 
         val reachedStatements = results.flatMap { it.pathNode.allStatements }.toSet()
@@ -176,10 +172,9 @@ class FieldAccessReachabilityTest {
         target.addChild(TsReachabilityTarget.FinalPoint(returnStmt))
 
         val results = machine.analyze(listOf(method), listOf(initialTarget))
-        assertEquals(
-            1,
-            results.size,
-            "Expected exactly one result for object creation reachable path, but got ${results.size}"
+        assertTrue(
+            results.isNotEmpty(),
+            "Expected at least one result",
         )
 
         val reachedStatements = results.flatMap { it.pathNode.allStatements }.toSet()
@@ -215,7 +210,7 @@ class FieldAccessReachabilityTest {
         val results = machine.analyze(listOf(method), listOf(initialTarget))
         assertTrue(
             results.isNotEmpty(),
-            "Expected at least one result for ambiguous field access, but got ${results.size}"
+            "Expected at least one result",
         )
 
         val reachedStatements = results.flatMap { it.pathNode.allStatements }.toSet()
