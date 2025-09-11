@@ -26,6 +26,24 @@ class ArrayMethods : TsMethodTestRunner() {
     }
 
     @Test
+    fun testArrayPushIntoNumber() {
+        val method = getMethod("arrayPushIntoNumber")
+        discoverProperties<TsTestValue.TsArray<*>, TsTestValue.TsArray<*>>(
+            method = method,
+            { x, r -> x.values.size == r.values.size - 1 && (r.values.last() as TsTestValue.TsNumber).number == 123.0 }
+        )
+    }
+
+    @Test
+    fun testArrayPushIntoUnknown() {
+        val method = getMethod("arrayPushIntoUnknown")
+        discoverProperties<TsTestValue.TsArray<*>, TsTestValue.TsArray<*>>(
+            method = method,
+            { x, r -> x.values.size == r.values.size - 1 && (r.values.last() as TsTestValue.TsNumber).number == 123.0 }
+        )
+    }
+
+    @Test
     fun testArrayPop() {
         val method = getMethod("arrayPop")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue>(

@@ -308,7 +308,7 @@ open class TsTestStateResolver(
                 "Other sorts must be resolved above, but got: $sort"
             }
 
-            val lValue = mkArrayIndexLValue(sort, concreteRef, index, type)
+            val lValue = mkArrayIndexLValue(sort, heapRef, index, type)
             val value = memory.read(lValue)
 
             if (value.sort is UAddressSort) {

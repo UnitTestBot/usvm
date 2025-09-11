@@ -75,6 +75,7 @@ import org.usvm.types.TypesResult
 import org.usvm.types.first
 import org.usvm.types.single
 import org.usvm.util.mkArrayIndexLValue
+import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
 import org.usvm.util.resolveEtsMethods
@@ -89,7 +90,7 @@ typealias TsStepScope = StepScope<TsState, EtsType, EtsStmt, TsContext>
 class TsInterpreter(
     private val ctx: TsContext,
     private val graph: TsGraph,
-    private val tsOptions: TsOptions,
+    private val options: TsOptions,
     private val observer: TsInterpreterObserver? = null,
 ) : UInterpreter<TsState>() {
 
@@ -603,7 +604,7 @@ class TsInterpreter(
                 }
             }
 
-            if (!tsOptions.interproceduralAnalysis && methodResult == TsMethodResult.NoCall) {
+            if (!options.interproceduralAnalysis && methodResult == TsMethodResult.NoCall) {
                 mockMethodCall(scope, callExpr.callee)
                 scope.doWithState { newStmt(stmt) }
                 return
@@ -637,7 +638,7 @@ class TsInterpreter(
             return
         }
 
-        if (tsOptions.interproceduralAnalysis) {
+        if (options.interproceduralAnalysis) {
             val exprResolver = exprResolverWithScope(scope)
             exprResolver.resolve(stmt.expr) ?: return
             val nextStmt = stmt.nextStmt ?: return
@@ -696,6 +697,7 @@ class TsInterpreter(
         TsExprResolver(
             ctx = ctx,
             scope = scope,
+            options = options,
             hierarchy = graph.hierarchy,
         )
 
@@ -738,7 +740,13 @@ class TsInterpreter(
                 state.pathConstraints += mkNot(mkHeapRefEq(ref, mkUndefinedValue()))
 
                 if (parameterType is EtsArrayType) {
-                    state.pathConstraints += state.memory.types.evalTypeEquals(ref, parameterType)
+                    state.pathConstraints += state.memory.types.evalIsSubtype(ref, parameterType)
+
+                    val lengthLValue = mkArrayLengthLValue(ref, parameterType)
+                    val length = state.memory.read(lengthLValue).asExpr(sizeSort)
+                    state.pathConstraints += mkBvSignedGreaterOrEqualExpr(length, mkBv(0))
+                    state.pathConstraints += mkBvSignedLessOrEqualExpr(length, mkBv(options.maxArraySize))
+
                     return@run
                 }
 

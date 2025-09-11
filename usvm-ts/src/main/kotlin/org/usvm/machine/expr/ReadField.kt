@@ -49,7 +49,7 @@ internal fun TsExprResolver.handleInstanceFieldRef(
 
     // Handle reading "length" property.
     if (value.field.name == "length") {
-        return readLengthProperty(scope, instanceLocal, instance)
+        return readLengthProperty(scope, instanceLocal, instance, options.maxArraySize)
     }
 
     // Read the field.

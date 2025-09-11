@@ -18,7 +18,8 @@ fun TsContext.readLengthProperty(
     scope: TsStepScope,
     instanceLocal: EtsLocal,
     instance: UHeapRef,
-): UExpr<*> {
+    maxArraySize: Int,
+): UExpr<*>? {
     // Determine the array type.
     val arrayType: EtsArrayType = when (val type = instanceLocal.type) {
         is EtsArrayType -> type
@@ -33,7 +34,7 @@ fun TsContext.readLengthProperty(
     }
 
     // Read the length of the array.
-    return readArrayLength(scope, instance, arrayType)
+    return readArrayLength(scope, instance, arrayType, maxArraySize)
 }
 
 // Reads the length of the array and returns it as a fp64 expression.
@@ -41,7 +42,8 @@ fun TsContext.readArrayLength(
     scope: TsStepScope,
     array: UHeapRef,
     arrayType: EtsArrayType,
-): UExpr<KFp64Sort> {
+    maxArraySize: Int,
+): UExpr<KFp64Sort>? {
     checkNotFake(array)
 
     // Read the length of the array.
@@ -50,10 +52,8 @@ fun TsContext.readArrayLength(
         memory.read(lengthLValue)
     }
 
-    // Ensure that the length is non-negative.
-    scope.doWithState {
-        pathConstraints += mkBvSignedGreaterOrEqualExpr(length, mkBv(0))
-    }
+    // Check that the length is within the allowed bounds.
+    checkLengthBounds(scope, length, maxArraySize) ?: return null
 
     // Convert the length to fp64.
     return mkBvToFpExpr(

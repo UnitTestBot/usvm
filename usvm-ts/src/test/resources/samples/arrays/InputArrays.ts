@@ -66,6 +66,10 @@ class InputArrays {
         if (input > 0) return -1; // unreachable, since 'input > 0' implies 'res.length > 0'
         return 0;
     }
+
+    getLength(x: number[]): number {
+        return x.length;
+    }
 }
 
 function createNumberArray(size: number): number[] {

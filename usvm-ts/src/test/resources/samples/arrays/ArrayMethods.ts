@@ -12,6 +12,16 @@ class ArrayMethods {
         }
     }
 
+    arrayPushIntoNumber(x: number[]) {
+        x.push(123);
+        return x;
+    }
+
+    arrayPushIntoUnknown(x: any[]) {
+        x.push(123);
+        return x;
+    }
+
     arrayPop(x: boolean) {
         const arr = [10, 20, 30];
         const lastElement = arr.pop();
