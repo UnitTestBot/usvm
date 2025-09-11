@@ -19,7 +19,9 @@ import org.usvm.memory.UMemoryRegionId
 import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.USymbolicCollection
 import org.usvm.memory.USymbolicCollectionKeyInfo
+import org.usvm.memory.foldHeapRef
 import org.usvm.memory.foldHeapRef2
+import org.usvm.memory.foldHeapRefWithStaticAsConcrete
 import org.usvm.memory.foldHeapRefWithStaticAsSymbolic
 import org.usvm.memory.mapWithStaticAsSymbolic
 import org.usvm.regions.Region
@@ -64,7 +66,7 @@ typealias UPrimitiveSetEntries<SetType, ElementSort, Reg> = USymbolicSetEntries<
 
 interface USetReadOnlyRegion<SetType, ElementSort : USort, Reg : Region<Reg>> :
     UReadOnlyMemoryRegion<USetEntryLValue<SetType, ElementSort, Reg>, UBoolSort> {
-    fun setEntries(ref: UHeapRef): UPrimitiveSetEntries<SetType, ElementSort, Reg>
+    fun setEntries(ref: UHeapRef, staticAsSymbolic: Boolean = true): UPrimitiveSetEntries<SetType, ElementSort, Reg>
 }
 
 interface USetRegion<SetType, ElementSort : USort, Reg : Region<Reg>> :
@@ -233,8 +235,9 @@ internal class USetMemoryRegion<SetType, ElementSort : USort, Reg : Region<Reg>>
         )
     }
 
-    override fun setEntries(ref: UHeapRef): UPrimitiveSetEntries<SetType, ElementSort, Reg> =
-        foldHeapRefWithStaticAsSymbolic(
+    override fun setEntries(ref: UHeapRef, staticAsSymbolic: Boolean): UPrimitiveSetEntries<SetType, ElementSort, Reg> {
+        return foldHeapRef(
+            staticIsConcrete = !staticAsSymbolic,
             ref = ref,
             initial = UPrimitiveSetEntries(),
             initialGuard = ref.uctx.trueExpr,
@@ -263,4 +266,5 @@ internal class USetMemoryRegion<SetType, ElementSort : USort, Reg : Region<Reg>>
                 entries
             }
         )
+    }
 }

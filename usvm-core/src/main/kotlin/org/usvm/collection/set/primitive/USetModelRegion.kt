@@ -26,7 +26,7 @@ abstract class USetModelRegion<SetType, ElementSort : USort, Reg : Region<Reg>>(
         return inputSet.read(setRef to key.setElement)
     }
 
-    override fun setEntries(ref: UHeapRef): UPrimitiveSetEntries<SetType, ElementSort, Reg> = with(regionId) {
+    override fun setEntries(ref: UHeapRef, staticAsSymbolic: Boolean): UPrimitiveSetEntries<SetType, ElementSort, Reg> = with(regionId) {
         val setRef = modelEnsureConcreteInputRef(ref)
 
         check(inputSet.constValue.isFalse) { "Set model is not complete" }
