@@ -52,7 +52,7 @@ open class UPathConstraints<Type>(
     /**
      * Recursively changes ownership for all nested data structures that use persistent maps.
      */
-    fun changeOwnership(ownership: MutabilityOwnership) {
+    open fun changeOwnership(ownership: MutabilityOwnership) {
         this.ownership = ownership
         numericConstraints.changeOwnership(ownership)
         equalityConstraints.changeOwnership(ownership)
