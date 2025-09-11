@@ -33,10 +33,11 @@ fun <SetType, KeySort : USort, Reg : Region<Reg>> UReadOnlyMemory<*>.setEntries(
     type: SetType,
     keySort: KeySort,
     keyInfo: USymbolicCollectionKeyInfo<UExpr<KeySort>, Reg>,
+    staticAsSymbolic: Boolean = true,
 ): UPrimitiveSetEntries<SetType, KeySort, Reg> {
     val regionId = USetRegionId(keySort, type, keyInfo)
     val region = getRegion(regionId) as? USetReadOnlyRegion<SetType, KeySort, Reg>
         ?: return UPrimitiveSetEntries<SetType, KeySort, Reg>().apply { markAsInput() }
 
-    return region.setEntries(setRef)
+    return region.setEntries(setRef, staticAsSymbolic)
 }
