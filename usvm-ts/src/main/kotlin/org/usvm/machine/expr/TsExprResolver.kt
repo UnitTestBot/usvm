@@ -1160,13 +1160,24 @@ class TsSimpleValueResolver(
         }
 
         if (local.name.startsWith(ANONYMOUS_METHOD_PREFIX)) {
+            val currentMethod = scope.calcOnState { lastEnteredMethod }
             val sig = EtsMethodSignature(
-                enclosingClass = EtsClassSignature.UNKNOWN,
+                enclosingClass = currentMethod.signature.enclosingClass,
                 name = local.name,
                 parameters = emptyList(),
                 returnType = EtsUnknownType,
             )
             val methods = ctx.resolveEtsMethods(sig)
+            if (methods.isEmpty()) {
+                logger.error { "Cannot resolve anonymous method for local: $local" }
+                scope.assert(ctx.mkFalse())
+                return null
+            }
+            if (methods.size > 1) {
+                logger.error { "Multiple methods found for anonymous method local: $local" }
+                scope.assert(ctx.mkFalse())
+                return null
+            }
             val method = methods.single()
             val ref = scope.calcOnState { getMethodRef(method) }
             return ref
