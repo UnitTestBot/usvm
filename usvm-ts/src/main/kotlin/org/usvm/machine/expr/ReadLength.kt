@@ -5,6 +5,7 @@ import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsUnknownType
 import org.usvm.UExpr
 import org.usvm.UHeapRef
@@ -28,6 +29,11 @@ fun TsContext.readLengthProperty(
             // If the type is not an array, and explicitly unknown,
             // we represent it is an array with unknown element type.
             EtsArrayType(EtsUnknownType, dimensions = 1)
+        }
+
+        is EtsStringType -> {
+            // Strings are treated as arrays of characters (represented as strings).
+            EtsArrayType(EtsStringType, dimensions = 1)
         }
 
         else -> error("Expected EtsArrayType, EtsAnyType or EtsUnknownType, but got: $type")
