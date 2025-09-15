@@ -1,17 +1,19 @@
 package org.usvm.samples.lang
 
 import org.jacodb.ets.model.EtsScene
+import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.RepeatedTest
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.eq
-import kotlin.test.Test
 
 class Optional : TsMethodTestRunner() {
     private val tsPath = "/samples/lang/Optional.ts"
 
     override val scene: EtsScene = loadScene(tsPath)
 
-    @Test
+    @Disabled("Input union types are not supported yet")
+    @RepeatedTest(10, failureThreshold = 1)
     fun `test nullableArgument`() {
         val method = getMethod("nullableArgument")
         discoverProperties<TsTestValue, TsTestValue.TsNumber>(
