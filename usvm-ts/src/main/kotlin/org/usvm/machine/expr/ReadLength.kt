@@ -59,7 +59,7 @@ fun TsContext.readArrayLength(
     }
 
     // Check that the length is within the allowed bounds.
-    checkLengthBounds(scope, length, maxArraySize) ?: return null
+    ensureLengthBounds(scope, length, maxArraySize) ?: return null
 
     // Convert the length to fp64.
     return mkBvToFpExpr(
