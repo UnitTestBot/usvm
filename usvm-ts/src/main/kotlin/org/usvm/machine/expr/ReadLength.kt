@@ -5,6 +5,7 @@ import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsUnknownType
 import org.usvm.UExpr
 import org.usvm.UHeapRef
@@ -30,6 +31,11 @@ fun TsContext.readLengthProperty(
             EtsArrayType(EtsUnknownType, dimensions = 1)
         }
 
+        is EtsStringType -> {
+            // Strings are treated as arrays of characters (represented as strings).
+            EtsArrayType(EtsStringType, dimensions = 1)
+        }
+
         else -> error("Expected EtsArrayType, EtsAnyType or EtsUnknownType, but got: $type")
     }
 
@@ -53,7 +59,7 @@ fun TsContext.readArrayLength(
     }
 
     // Check that the length is within the allowed bounds.
-    checkLengthBounds(scope, length, maxArraySize) ?: return null
+    ensureLengthBounds(scope, length, maxArraySize) ?: return null
 
     // Convert the length to fp64.
     return mkBvToFpExpr(
