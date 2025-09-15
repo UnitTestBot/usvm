@@ -248,3 +248,16 @@ fun TsContext.checkReadingInRange(
         blockOnFalseState = { throwException("Index out of bounds: $index, length: $length") }
     )
 }
+
+fun TsContext.checkLengthBounds(
+    scope: TsStepScope,
+    length: UExpr<TsSizeSort>,
+    maxLength: Int,
+): Unit? {
+    // Check that length is non-negative and does not exceed `maxLength`.
+    val condition = mkAnd(
+        mkBvSignedGreaterOrEqualExpr(length, mkBv(0)),
+        mkBvSignedLessOrEqualExpr(length, mkBv(maxLength))
+    )
+    return scope.assert(condition)
+}
