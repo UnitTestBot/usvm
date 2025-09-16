@@ -1,0 +1,26 @@
+[
+  // Calculator class targets
+  {"type": "initial", "method": "Calculator.add", "statement": 0},
+  {"type": "intermediate", "method": "Calculator.add", "statement": 1},
+  {"type": "final", "method": "Calculator.add", "statement": 4},
+
+  {"type": "initial", "method": "Calculator.divide", "statement": 0},
+  {"type": "intermediate", "method": "Calculator.divide", "statement": 1},
+  {"type": "final", "method": "Calculator.divide", "statement": 4},
+
+  // Complex operation with multiple paths
+  {"type": "initial", "method": "Calculator.complexOperation", "statement": 0},
+  {"type": "intermediate", "method": "Calculator.complexOperation", "statement": 2},
+  {"type": "intermediate", "method": "Calculator.complexOperation", "statement": 4},
+  {"type": "final", "method": "Calculator.complexOperation", "statement": 6},
+
+  // MathUtils targets
+  {"type": "initial", "method": "MathUtils.factorial", "statement": 0},
+  {"type": "intermediate", "method": "MathUtils.factorial", "statement": 3},
+  {"type": "final", "method": "MathUtils.factorial", "statement": 6},
+
+  {"type": "initial", "method": "MathUtils.isPrime", "statement": 0},
+  {"type": "intermediate", "method": "MathUtils.isPrime", "statement": 5},
+  {"type": "intermediate", "method": "MathUtils.isPrime", "statement": 8},
+  {"type": "final", "method": "MathUtils.isPrime", "statement": 12}
+]
