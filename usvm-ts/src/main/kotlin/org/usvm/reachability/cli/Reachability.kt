@@ -103,11 +103,6 @@ class ReachabilityAnalyzer : CliktCommand(
         help = "👣 Max steps from last covered statement"
     ).long().default(3500L)
 
-    private val pathStrategy by option(
-        "--strategy",
-        help = "🛤️ Path selection strategy"
-    ).enum<PathSelectionStrategy>().default(PathSelectionStrategy.TARGETED)
-
     // Output Options
     private val verbose by option(
         "-v", "--verbose",
@@ -145,6 +140,8 @@ class ReachabilityAnalyzer : CliktCommand(
             }
             throw e
         }
+
+        echo("👋 Exiting.")
     }
 
     private fun setupLogging() {
@@ -168,7 +165,7 @@ class ReachabilityAnalyzer : CliktCommand(
 
         // Configure machine options
         val machineOptions = UMachineOptions(
-            pathSelectionStrategies = listOf(pathStrategy),
+            pathSelectionStrategies = listOf(PathSelectionStrategy.TARGETED),
             exceptionsPropagation = true,
             stopOnTargetsReached = true,
             timeout = timeout.seconds,
