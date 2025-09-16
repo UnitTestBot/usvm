@@ -100,6 +100,10 @@ class TsInterpreter(
         val stmt = state.lastStmt
         val scope = StepScope(state, forkBlackList)
 
+        logger.info {
+            "Step ${stmt.location.index} in ${state.lastEnteredMethod.name}: $stmt"
+        }
+
         val result = state.methodResult
         if (result is TsMethodResult.TsException) {
             // TODO catch processing
