@@ -47,14 +47,17 @@ usage() {
     echo "  -h, --help                 Show this help message"
     echo ""
     echo "Examples:"
-    echo "  # Analyze all public methods in a project"
+    echo "  # Analyze all public methods in a TypeScript project"
     echo "  $0 -p ./my-typescript-project"
     echo ""
+    echo "  # Analyze the sample system applications project"
+    echo "  $0 -p ../examples/reachability/sample-project"
+    echo ""
     echo "  # Use custom targets and verbose output"
-    echo "  $0 -p ./my-project -t ./targets.jsonc -v"
+    echo "  $0 -p ./my-project -t ./targets.json -v"
     echo ""
     echo "  # Analyze specific methods with detailed output"
-    echo "  $0 -p ./project --method Calculator --include-statements"
+    echo "  $0 -p ./project --method ProcessManager --include-statements"
 }
 
 while [[ $# -gt 0 ]]; do

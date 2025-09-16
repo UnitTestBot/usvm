@@ -8,6 +8,22 @@ A powerful command-line tool for performing sophisticated reachability analysis 
 - ❌ **UNREACHABLE**: Paths confirmed to be impossible under any conditions
 - ❓ **UNKNOWN**: Paths that could not be determined due to timeout, errors, or approximations
 
+## Sample Project
+
+The included sample project demonstrates a **System Applications** simulator with:
+
+- **ProcessManager.ts**: Process management with state transitions (CREATED → READY → RUNNING → BLOCKED/TERMINATED)
+- **MemoryManager.ts**: Memory allocation, deallocation, compaction, and defragmentation
+- **FileSystem.ts**: Basic file system operations and navigation
+
+These examples use only SMT-solver friendly constructs:
+
+- Integer operations (no floating-point or modulo operations)
+- Array operations (length, indexing, push/pop)
+- Object field access and updates
+- Conditional logic and control flow
+- Function calls without complex inheritance
+
 ## Installation & Setup
 
 1. Ensure you have the USVM project built:
@@ -17,27 +33,43 @@ cd /path/to/usvm
 ./gradlew build
 ```
 
-2. The CLI is ready to use via the wrapper script or Gradle.
+2. Build the shadow JAR for faster execution:
+
+```bash
+./gradlew :usvm-ts:shadowJar
+```
+
+3. The CLI is ready to use via the wrapper script or direct JAR execution.
 
 ## Usage
 
-### Quick Start with Wrapper Script
+### Quick Start with Sample Project
 
 ```bash
-# Analyze a TypeScript project with default settings
+# Analyze the sample system applications project
+./reachability-cli.sh -p ./sample-project
+
+# Analyze specific process management methods
+./reachability-cli.sh -p ./sample-project --method Process --include-statements
+
+# Focus on memory management operations with verbose output
+./reachability-cli.sh -p ./sample-project --method MemoryManager -v
+```
+
+### Analyze Your Own Project
+
+```bash
+# Analyze any TypeScript project with default settings
 ./reachability-cli.sh -p ./my-typescript-project
 
 # Use custom targets and verbose output  
-./reachability-cli.sh -p ./my-project -t ./targets.jsonc -v
-
-# Analyze specific methods with detailed statement output
-./reachability-cli.sh -p ./project --method Calculator --include-statements
+./reachability-cli.sh -p ./my-project -t ./targets.json -v
 ```
 
-### Direct Gradle Usage
+### Direct JAR Execution (Faster)
 
 ```bash
-./gradlew :usvm-ts:run --args="--project ./examples/reachability/sample-project --verbose"
+java -jar usvm-ts/build/libs/usvm-ts-reachability.jar --project ./sample-project --verbose
 ```
 
 ## Command Line Options
