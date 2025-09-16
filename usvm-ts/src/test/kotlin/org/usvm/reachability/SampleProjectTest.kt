@@ -37,7 +37,7 @@ class SampleProjectTest {
             pathSelectionStrategies = listOf(PathSelectionStrategy.TARGETED),
             exceptionsPropagation = true,
             stopOnTargetsReached = false,
-            timeout = if (DEBUG) Duration.INFINITE else 60.seconds,
+            timeout = if (DEBUG) Duration.INFINITE else 30.seconds,
             stepsFromLastCovered = 1000L,
             solverType = SolverType.YICES,
         )
@@ -48,7 +48,7 @@ class SampleProjectTest {
     @Test
     fun `analyze ProcessManager reachability`() {
         println("🚀 Starting TypeScript Reachability Analysis on Sample Project")
-        println("=" + "=".repeat(59))
+        println("=".repeat(60))
 
         val sampleProjectPath = getSampleProjectPath()
         println("📁 Project path: $sampleProjectPath")
@@ -88,14 +88,14 @@ class SampleProjectTest {
     @Test
     fun `analyze ProcessManager state transitions`() {
         println("🎯 Focused Analysis: Process State Transitions")
-        println("=" + "=".repeat(49))
+        println("=".repeat(50))
 
         val sampleProjectPath = getSampleProjectPath()
         val tsFiles = findTypeScriptFiles(sampleProjectPath)
         val scene = EtsScene(tsFiles.map { loadEtsFileAutoConvert(it.toPath()) })
 
         // Find Process class and its state transition methods
-        val processClass = scene.projectClasses.find { it.name.contains("Process") && !it.name.contains("Manager") }
+        val processClass = scene.projectClasses.find { it.name == "Process" }
             ?: throw IllegalStateException("Process class not found")
 
         val stateTransitionMethods = processClass.methods.filter { method ->
@@ -122,7 +122,7 @@ class SampleProjectTest {
     @Test
     fun `analyze MemoryManager operations`() {
         println("🧮 Analysis: Memory Management Operations")
-        println("=" + "=".repeat(45))
+        println("=".repeat(50))
 
         val sampleProjectPath = getSampleProjectPath()
         val tsFiles = findTypeScriptFiles(sampleProjectPath)
@@ -153,17 +153,17 @@ class SampleProjectTest {
     @Test
     fun `demonstrate array operations reachability`() {
         println("🛤️ Demonstration: Array Operations Reachability Analysis")
-        println("=" + "=".repeat(58))
+        println("=".repeat(60))
 
         val sampleProjectPath = getSampleProjectPath()
         val tsFiles = findTypeScriptFiles(sampleProjectPath)
         val scene = EtsScene(tsFiles.map { loadEtsFileAutoConvert(it.toPath()) })
 
-        val processClass = scene.projectClasses.find { it.name.contains("Process") && !it.name.contains("Manager") }
-            ?: throw IllegalStateException("Process class not found")
+        val processClass = scene.projectClasses.find { it.name == "Process" }
+            ?: error("Process class not found")
 
-        val arrayMethod = processClass.methods.find { it.name == "addChild" || it.name == "removeChild" }
-            ?: throw IllegalStateException("Array manipulation method not found")
+        val arrayMethod = processClass.methods.find { it.name == "addChild" }
+            ?: error("Array manipulation method not found")
 
         println("🔍 Analyzing method: ${processClass.name}.${arrayMethod.name}")
 
@@ -300,7 +300,7 @@ class SampleProjectTest {
 
     private fun displayResults(results: List<TsState>, targets: List<TsTarget>) {
         println("\n📊 REACHABILITY ANALYSIS RESULTS")
-        println("=" + "=".repeat(49))
+        println("=".repeat(50))
         println("Total states explored: ${results.size}")
         println("Total targets defined: ${targets.size}")
 
@@ -364,7 +364,7 @@ class SampleProjectTest {
         method: org.jacodb.ets.model.EtsMethod,
     ) {
         println("\n🔍 DETAILED ANALYSIS: ${method.name}")
-        println("=" + "=".repeat(59))
+        println("=".repeat(60))
 
         displayResults(results, targets)
 
@@ -388,7 +388,7 @@ class SampleProjectTest {
         method: org.jacodb.ets.model.EtsMethod,
     ) {
         println("\n🛤️ PATH EXTRACTION DEMONSTRATION")
-        println("=" + "=".repeat(49))
+        println("=".repeat(50))
 
         println("Method: ${method.name}")
         println("Total execution states: ${results.size}")
