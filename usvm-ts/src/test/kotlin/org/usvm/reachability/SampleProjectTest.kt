@@ -96,7 +96,7 @@ class SampleProjectTest {
 
         // Find Process class and its state transition methods
         val processClass = scene.projectClasses.find { it.name == "Process" }
-            ?: throw IllegalStateException("Process class not found")
+            ?: error("Process class not found")
 
         val stateTransitionMethods = processClass.methods.filter { method ->
             method.name in listOf("start", "pause", "block", "unblock", "terminate")
@@ -128,8 +128,8 @@ class SampleProjectTest {
         val tsFiles = findTypeScriptFiles(sampleProjectPath)
         val scene = EtsScene(tsFiles.map { loadEtsFileAutoConvert(it.toPath()) })
 
-        val memoryManagerClass = scene.projectClasses.find { it.name.contains("MemoryManager") }
-            ?: throw IllegalStateException("MemoryManager class not found")
+        val memoryManagerClass = scene.projectClasses.find { it.name == "MemoryManager" }
+            ?: error("MemoryManager class not found")
 
         val memoryMethods = memoryManagerClass.methods.filter { method ->
             method.name in listOf("allocateMemory", "freeMemory", "compactMemory", "defragmentMemory")
@@ -199,7 +199,7 @@ class SampleProjectTest {
         if (parent != null && parent != dir) {
             return findProjectRoot(parent)
         }
-        throw IllegalStateException("Could not find project root")
+        error("Could not find project root")
     }
 
     private fun findTypeScriptFiles(projectDir: File): List<File> {
