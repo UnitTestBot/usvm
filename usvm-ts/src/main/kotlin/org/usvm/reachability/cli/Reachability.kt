@@ -517,7 +517,7 @@ class ReachabilityAnalyzer : CliktCommand(
     private fun printSummaryToConsole(results: ReachabilityResults, duration: Double) {
         echo("")
         echo("🎉 Analysis Complete!")
-        echo("⏱️  Duration: ${String.format("%.2f", duration)}s")
+        echo("⏱️ Duration: ${String.format("%.2f", duration)}s")
         echo("🔍 Methods: ${results.methods.size}")
         echo("📍 Targets: ${results.reachabilityResults.size}")
 
