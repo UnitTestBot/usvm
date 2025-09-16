@@ -29,8 +29,24 @@ import kotlin.time.Duration.Companion.seconds
  */
 class SampleProjectTest {
 
+    companion object {
+        private const val DEBUG = false
+
+        // Common default options for all tests
+        private val DEFAULT_MACHINE_OPTIONS = UMachineOptions(
+            pathSelectionStrategies = listOf(PathSelectionStrategy.TARGETED),
+            exceptionsPropagation = true,
+            stopOnTargetsReached = false,
+            timeout = if (DEBUG) Duration.INFINITE else 60.seconds,
+            stepsFromLastCovered = 1000L,
+            solverType = SolverType.YICES,
+        )
+
+        private val DEFAULT_TS_OPTIONS = TsOptions()
+    }
+
     @Test
-    fun `analyze Calculator class reachability`() {
+    fun `analyze ProcessManager reachability`() {
         println("🚀 Starting TypeScript Reachability Analysis on Sample Project")
         println("=" + "=".repeat(59))
 
@@ -45,19 +61,9 @@ class SampleProjectTest {
         val scene = EtsScene(tsFiles.map { loadEtsFileAutoConvert(it.toPath()) })
         println("📊 Loaded scene with ${scene.projectClasses.size} classes")
 
-        // Configure analysis options
-        val machineOptions = UMachineOptions(
-            pathSelectionStrategies = listOf(PathSelectionStrategy.TARGETED),
-            exceptionsPropagation = true,
-            stopOnTargetsReached = false, // Continue to find all paths
-            timeout = Duration.INFINITE,
-            stepsFromLastCovered = 3500L,
-            solverType = SolverType.YICES,
-        )
-
-        val tsOptions = TsOptions()
+        // Use default options
         val observer = ReachabilityObserver()
-        val machine = TsMachine(scene, machineOptions, tsOptions, machineObserver = observer)
+        val machine = TsMachine(scene, DEFAULT_MACHINE_OPTIONS, DEFAULT_TS_OPTIONS, machineObserver = observer)
 
         // Find all methods in the sample project
         val allMethods = scene.projectClasses.flatMap { it.methods }
@@ -67,7 +73,7 @@ class SampleProjectTest {
             println("   - ${method.enclosingClass?.name ?: "Unknown"}.${method.name}")
         }
 
-        // Create interesting reachability targets for the Calculator class
+        // Create interesting reachability targets for the system classes
         val targets = createSampleTargets(scene)
         println("🎯 Created ${targets.size} reachability targets")
 
@@ -80,112 +86,102 @@ class SampleProjectTest {
     }
 
     @Test
-    fun `analyze specific Calculator methods`() {
-        println("🎯 Focused Analysis: Calculator Complex Operations")
+    fun `analyze ProcessManager state transitions`() {
+        println("🎯 Focused Analysis: Process State Transitions")
         println("=" + "=".repeat(49))
 
         val sampleProjectPath = getSampleProjectPath()
         val tsFiles = findTypeScriptFiles(sampleProjectPath)
         val scene = EtsScene(tsFiles.map { loadEtsFileAutoConvert(it.toPath()) })
 
-        // Find Calculator class and its complexOperation method
-        val calculatorClass = scene.projectClasses.find { it.name.contains("Calculator") }
-            ?: throw IllegalStateException("Calculator class not found")
+        // Find Process class and its state transition methods
+        val processClass = scene.projectClasses.find { it.name.contains("Process") && !it.name.contains("Manager") }
+            ?: throw IllegalStateException("Process class not found")
 
-        val complexOperationMethod = calculatorClass.methods
-            .find { it.name == "complexOperation" }
-            ?: throw IllegalStateException("complexOperation method not found")
+        val stateTransitionMethods = processClass.methods.filter { method ->
+            method.name in listOf("start", "pause", "block", "unblock", "terminate")
+        }
 
-        println("🔍 Analyzing: ${calculatorClass.name}.${complexOperationMethod.name}")
-
-        // Configure for detailed analysis
-        val machineOptions = UMachineOptions(
-            pathSelectionStrategies = listOf(PathSelectionStrategy.TARGETED),
-            exceptionsPropagation = true,
-            stopOnTargetsReached = false,
-            timeout = Duration.INFINITE,
-            stepsFromLastCovered = 5000L,
-            solverType = SolverType.YICES,
-        )
+        println("🔍 Analyzing process state transition methods:")
+        stateTransitionMethods.forEach { method ->
+            println("   - ${processClass.name}.${method.name}")
+        }
 
         val observer = ReachabilityObserver()
-        val machine = TsMachine(scene, machineOptions, TsOptions(), machineObserver = observer)
+        val machine = TsMachine(scene, DEFAULT_MACHINE_OPTIONS, DEFAULT_TS_OPTIONS, machineObserver = observer)
 
-        // Create specific targets for different branches in complexOperation
-        val targets = createComplexOperationTargets(complexOperationMethod)
-        println("📍 Created ${targets.size} specific targets for complex operation branches")
+        // Create specific targets for state transitions
+        val targets = createStateTransitionTargets(stateTransitionMethods)
+        println("📍 Created ${targets.size} specific targets for state transitions")
 
-        val results = machine.analyze(listOf(complexOperationMethod), targets)
+        val results = machine.analyze(stateTransitionMethods, targets)
 
-        displayDetailedResults(results, targets, complexOperationMethod)
+        displayDetailedResults(results, targets, stateTransitionMethods.first())
     }
 
     @Test
-    fun `analyze MathUtils static methods`() {
-        println("🧮 Analysis: MathUtils Static Methods")
-        println("=" + "=".repeat(44))
+    fun `analyze MemoryManager operations`() {
+        println("🧮 Analysis: Memory Management Operations")
+        println("=" + "=".repeat(45))
 
         val sampleProjectPath = getSampleProjectPath()
         val tsFiles = findTypeScriptFiles(sampleProjectPath)
         val scene = EtsScene(tsFiles.map { loadEtsFileAutoConvert(it.toPath()) })
 
-        val mathUtilsClass = scene.projectClasses.find { it.name.contains("MathUtils") }
-            ?: throw IllegalStateException("MathUtils class not found")
+        val memoryManagerClass = scene.projectClasses.find { it.name.contains("MemoryManager") }
+            ?: throw IllegalStateException("MemoryManager class not found")
 
-        val staticMethods = mathUtilsClass.methods.filter { it.isStatic }
-        println("🔍 Found ${staticMethods.size} static methods:")
-        staticMethods.forEach { println("   - ${it.name}") }
+        val memoryMethods = memoryManagerClass.methods.filter { method ->
+            method.name in listOf("allocateMemory", "freeMemory", "compactMemory", "defragmentMemory")
+        }
 
-        val machineOptions = UMachineOptions(
-            pathSelectionStrategies = listOf(PathSelectionStrategy.TARGETED),
-            timeout = Duration.INFINITE,
-            stepsFromLastCovered = 2000L,
-            solverType = SolverType.Z3,
+        println("🔍 Found ${memoryMethods.size} memory management methods:")
+        memoryMethods.forEach { println("   - ${it.name}") }
+
+        // Override options for memory management analysis
+        val machineOptions = DEFAULT_MACHINE_OPTIONS.copy(
+            stepsFromLastCovered = 2000L
         )
 
-        val machine = TsMachine(scene, machineOptions, TsOptions(), machineObserver = ReachabilityObserver())
-        val targets = createMathUtilsTargets(mathUtilsClass).filter { it.location!!.location.method.name == "gcd" }
+        val machine = TsMachine(scene, machineOptions, DEFAULT_TS_OPTIONS, machineObserver = ReachabilityObserver())
+        val targets = createMemoryManagerTargets(memoryManagerClass)
 
-        val results = machine.analyze(staticMethods, targets)
+        val results = machine.analyze(memoryMethods, targets)
         displayResults(results, targets)
     }
 
     @Test
-    fun `demonstrate path extraction from reachability results`() {
-        println("🛤️ Demonstration: Path Extraction from Reachability Analysis")
+    fun `demonstrate array operations reachability`() {
+        println("🛤️ Demonstration: Array Operations Reachability Analysis")
         println("=" + "=".repeat(58))
 
         val sampleProjectPath = getSampleProjectPath()
         val tsFiles = findTypeScriptFiles(sampleProjectPath)
         val scene = EtsScene(tsFiles.map { loadEtsFileAutoConvert(it.toPath()) })
 
-        val calculatorClass = scene.projectClasses.find { it.name.contains("Calculator") }
-            ?: throw IllegalStateException("Calculator class not found")
+        val processClass = scene.projectClasses.find { it.name.contains("Process") && !it.name.contains("Manager") }
+            ?: throw IllegalStateException("Process class not found")
 
-        val addMethod = calculatorClass.methods.find { it.name == "add" }
-            ?: throw IllegalStateException("add method not found")
+        val arrayMethod = processClass.methods.find { it.name == "addChild" || it.name == "removeChild" }
+            ?: throw IllegalStateException("Array manipulation method not found")
 
-        println("🔍 Analyzing method: ${calculatorClass.name}.${addMethod.name}")
+        println("🔍 Analyzing method: ${processClass.name}.${arrayMethod.name}")
 
-        val machineOptions = UMachineOptions(
-            pathSelectionStrategies = listOf(PathSelectionStrategy.TARGETED),
-            exceptionsPropagation = true,
-            stopOnTargetsReached = false,
-            timeout = Duration.INFINITE,
-            stepsFromLastCovered = 1000L,
-            solverType = SolverType.YICES,
+        // Override options for focused array operation analysis
+        val machineOptions = DEFAULT_MACHINE_OPTIONS.copy(
+            stepsFromLastCovered = 1000L
         )
 
         val observer = ReachabilityObserver()
-        val machine = TsMachine(scene, machineOptions, TsOptions(), machineObserver = observer)
+        val machine = TsMachine(scene, machineOptions, DEFAULT_TS_OPTIONS, machineObserver = observer)
 
-        // Create targets for different execution paths in the add method
-        val targets = createMethodPathTargets(addMethod)
+        // Create targets for different execution paths in array operations
+        val targets = createMethodPathTargets(arrayMethod)
         println("📍 Created ${targets.size} path targets")
 
-        val results = machine.analyze(listOf(addMethod), targets)
+        val results = machine.analyze(listOf(arrayMethod), targets)
 
-        displayPathExtractionResults(results, targets, addMethod)
+        displayPathExtractionResults(results, targets, arrayMethod)
     }
 
     private fun getSampleProjectPath(): File {
@@ -223,9 +219,11 @@ class SampleProjectTest {
                         stmt.toString().contains("throw") -> {
                             targets.add(TsReachabilityTarget.FinalPoint(stmt))
                         }
+
                         stmt.toString().contains("return") -> {
                             targets.add(TsReachabilityTarget.FinalPoint(stmt))
                         }
+
                         stmt.toString().contains("if") -> {
                             targets.add(TsReachabilityTarget.IntermediatePoint(stmt))
                         }
@@ -237,22 +235,32 @@ class SampleProjectTest {
         return targets
     }
 
-    private fun createComplexOperationTargets(method: org.jacodb.ets.model.EtsMethod): List<TsTarget> {
+    private fun createStateTransitionTargets(methods: List<org.jacodb.ets.model.EtsMethod>): List<TsTarget> {
         val targets = mutableListOf<TsTarget>()
-        val statements = method.cfg.stmts
 
-        statements.forEachIndexed { index, stmt ->
-            when (index) {
-                0 -> targets.add(TsReachabilityTarget.InitialPoint(stmt))
-                statements.size - 1 -> targets.add(TsReachabilityTarget.FinalPoint(stmt))
-                else -> targets.add(TsReachabilityTarget.IntermediatePoint(stmt))
+        methods.forEach { method ->
+            method.cfg.stmts.forEach { stmt ->
+                // Create targets for state transition statements
+                when {
+                    stmt.toString().contains("start") -> {
+                        targets.add(TsReachabilityTarget.InitialPoint(stmt))
+                    }
+
+                    stmt.toString().contains("terminate") -> {
+                        targets.add(TsReachabilityTarget.FinalPoint(stmt))
+                    }
+
+                    stmt.toString().contains("pause") || stmt.toString().contains("unblock") -> {
+                        targets.add(TsReachabilityTarget.IntermediatePoint(stmt))
+                    }
+                }
             }
         }
 
         return targets
     }
 
-    private fun createMathUtilsTargets(clazz: org.jacodb.ets.model.EtsClass): List<TsTarget> {
+    private fun createMemoryManagerTargets(clazz: org.jacodb.ets.model.EtsClass): List<TsTarget> {
         val targets = mutableListOf<TsTarget>()
 
         clazz.methods.forEach { method ->
@@ -300,6 +308,11 @@ class SampleProjectTest {
         val unreachable = mutableListOf<TsTarget>()
         val unknown = mutableListOf<TsTarget>()
 
+        // Get all statements that were explored during analysis
+        val allExploredStatements = results.flatMap { state ->
+            state.pathNode.allStatements
+        }.toSet()
+
         // Analyze which targets were reached
         targets.forEach { target ->
             val wasReached = results.any { state ->
@@ -307,8 +320,20 @@ class SampleProjectTest {
             }
 
             when {
-                wasReached -> reachable.add(target)
-                else -> unknown.add(target) // For this demo, we'll mark others as unknown
+                wasReached -> {
+                    reachable.add(target)
+                }
+
+                // If the statement was explored but never reached as a target,
+                // it might be unreachable due to path constraints
+                allExploredStatements.contains(target.location) -> {
+                    unreachable.add(target)
+                }
+
+                // If the statement was never even explored, it's unknown
+                else -> {
+                    unknown.add(target)
+                }
             }
         }
 
@@ -336,7 +361,7 @@ class SampleProjectTest {
     private fun displayDetailedResults(
         results: List<TsState>,
         targets: List<TsTarget>,
-        method: org.jacodb.ets.model.EtsMethod
+        method: org.jacodb.ets.model.EtsMethod,
     ) {
         println("\n🔍 DETAILED ANALYSIS: ${method.name}")
         println("=" + "=".repeat(59))
@@ -360,7 +385,7 @@ class SampleProjectTest {
     private fun displayPathExtractionResults(
         results: List<TsState>,
         targets: List<TsTarget>,
-        method: org.jacodb.ets.model.EtsMethod
+        method: org.jacodb.ets.model.EtsMethod,
     ) {
         println("\n🛤️ PATH EXTRACTION DEMONSTRATION")
         println("=" + "=".repeat(49))
