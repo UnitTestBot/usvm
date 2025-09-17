@@ -1,10 +1,9 @@
 package org.usvm.reachability.api
 
-import org.usvm.reachability.api.TsReachabilityTarget
 import org.usvm.machine.state.TsState
 import org.usvm.statistics.UMachineObserver
 
-class ReachabilityObserver : UMachineObserver<TsState> {
+class TsReachabilityObserver : UMachineObserver<TsState> {
     override fun onState(parent: TsState, forks: Sequence<TsState>) {
         parent
             .targets

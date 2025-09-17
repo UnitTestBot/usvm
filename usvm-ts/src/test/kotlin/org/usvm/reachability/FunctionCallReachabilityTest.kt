@@ -7,9 +7,9 @@ import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.UMachineOptions
-import org.usvm.api.targets.ReachabilityObserver
-import org.usvm.api.targets.TsReachabilityTarget
-import org.usvm.api.targets.TsTarget
+import org.usvm.reachability.api.TsReachabilityObserver
+import org.usvm.reachability.api.TsReachabilityTarget
+import org.usvm.api.TsTarget
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.util.getResourcePath
@@ -47,7 +47,7 @@ class FunctionCallReachabilityTest {
     fun testSimpleCallReachable() {
         // Test reachability through method call:
         //   this.doubleValue(x) -> result > 20 -> result < 40 -> return 1
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
+        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "simpleCallReachable" }
@@ -84,7 +84,7 @@ class FunctionCallReachabilityTest {
     fun testCallUnreachable() {
         // Test unreachability due to method return constraints:
         //   constantValue() returns 42 -> result > 100
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
+        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "callUnreachable" }
@@ -115,7 +115,7 @@ class FunctionCallReachabilityTest {
     fun testChainedCallsReachable() {
         // Test reachability through chained method calls:
         //   addTen(doubleValue(x)) -> result === 30 -> return 1
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
+        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "chainedCallsReachable" }
@@ -148,7 +148,7 @@ class FunctionCallReachabilityTest {
     fun testRecursiveCallReachable() {
         // Test reachability through recursive call:
         //   factorial(n) -> result === 24 -> return 1
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
+        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "recursiveCallReachable" }
@@ -181,7 +181,7 @@ class FunctionCallReachabilityTest {
     fun testStateModificationReachable() {
         // Test reachability through state modification:
         //   incrementCounter(counter, 5) -> counter.value === 5 -> counter.value > 3 -> return 1
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
+        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "stateModificationReachable" }

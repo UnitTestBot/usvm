@@ -4,8 +4,8 @@ import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.usvm.PathSelectionStrategy
 import org.usvm.UMachineOptions
-import org.usvm.api.targets.ReachabilityObserver
-import org.usvm.api.targets.TsReachabilityTarget
+import org.usvm.reachability.api.TsReachabilityObserver
+import org.usvm.reachability.api.TsReachabilityTarget
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.util.getResourcePath
@@ -28,7 +28,7 @@ class ReachabilityChecker {
 
     @Test
     fun runReachabilityCheck() {
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
+        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "simpleFunction" }
@@ -51,7 +51,7 @@ class ReachabilityChecker {
 
     @Test
     fun runReachabilityCheckForFirstInstruction() {
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
+        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "simpleFunction" }

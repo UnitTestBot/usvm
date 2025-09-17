@@ -30,12 +30,13 @@ import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.UMachineOptions
-import org.usvm.api.targets.ReachabilityObserver
-import org.usvm.api.targets.TsReachabilityTarget
-import org.usvm.api.targets.TsTarget
+import org.usvm.api.TsTarget
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.machine.state.TsState
+import org.usvm.reachability.api.TsReachabilityObserver
+import org.usvm.reachability.api.TsReachabilityTarget
+import org.usvm.reachability.dto.TargetsContainerDto
 import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.createDirectories
@@ -184,7 +185,7 @@ class ReachabilityAnalyzer : CliktCommand(
         )
 
         val tsOptions = TsOptions()
-        val machine = TsMachine(scene, machineOptions, tsOptions, machineObserver = ReachabilityObserver())
+        val machine = TsMachine(scene, machineOptions, tsOptions, machineObserver = TsReachabilityObserver())
 
         // Find methods to analyze
         val methodsToAnalyze = findMethodsToAnalyze(scene)
@@ -253,8 +254,8 @@ class ReachabilityAnalyzer : CliktCommand(
                 isLenient = true
             }
 
-            val jsonElement = json.parseToJsonElement(content)
-            val targetDefinitions = parseJsonTargets(jsonElement)
+            val targetsDto = json.decodeFromString<TargetsContainerDto>(content)
+            val targetDefinitions = convertToDefinitions(targetsDto)
 
             echo("📋 Parsed ${targetDefinitions.size} target definitions from ${targetsFile.fileName}")
             targetDefinitions
@@ -266,6 +267,22 @@ class ReachabilityAnalyzer : CliktCommand(
             }
             emptyList()
         }
+    }
+
+    private fun convertToDefinitions(targetsDto: TargetsContainerDto) : List<TargetDefinition> {
+        val result = mutableListOf<TargetDefinition>()
+
+        when (targetsDto) {
+            is TargetsContainerDto.LinearTrace -> {
+                result += convertToDefinition(targetsDto.targets)
+            }
+
+            is TargetsContainerDto.TreeTrace -> TODO()
+
+            is TargetsContainerDto.TraceList -> TODO()
+        }
+
+        return result
     }
 
     private fun parseJsonTargets(jsonElement: JsonElement): List<TargetDefinition> {
@@ -491,7 +508,7 @@ class ReachabilityAnalyzer : CliktCommand(
 
         // Match by block and index if both are specified
         if (location.block != null && location.index != null) {
-            // Enhanced location matching based on statement position
+            // Location matching based on statement position
             return matchesByPosition(stmt, location.block, location.index)
         }
 
@@ -540,7 +557,7 @@ class ReachabilityAnalyzer : CliktCommand(
                     TargetReachabilityResult(
                         target = target,
                         status = reachabilityStatus,
-                        executionPaths = executionPaths
+                        executionPaths = executionPaths,
                     )
                 )
             }
@@ -706,7 +723,6 @@ data class LocationInfo(
 
 data class TargetDefinition(
     val type: TargetType,
-    val methodName: String,
     val locationInfo: LocationInfo,
 )
 

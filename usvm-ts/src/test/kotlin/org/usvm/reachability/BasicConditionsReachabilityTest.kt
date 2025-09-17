@@ -7,9 +7,9 @@ import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.UMachineOptions
-import org.usvm.api.targets.ReachabilityObserver
-import org.usvm.api.targets.TsReachabilityTarget
-import org.usvm.api.targets.TsTarget
+import org.usvm.reachability.api.TsReachabilityObserver
+import org.usvm.reachability.api.TsReachabilityTarget
+import org.usvm.api.TsTarget
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.util.getResourcePath
@@ -47,7 +47,7 @@ class BasicConditionsReachabilityTest {
     fun testSimpleReachablePath() {
         // Test reachability of path:
         //   if (x > 10) -> if (x < 20) -> return 1
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
+        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "simpleReachablePath" }
@@ -84,7 +84,7 @@ class BasicConditionsReachabilityTest {
     fun testSimpleUnreachablePath() {
         // Test unreachability of contradicting conditions:
         //   if (x > 15) -> if (x < 10) -> return -1
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
+        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "simpleUnreachablePath" }
@@ -117,7 +117,7 @@ class BasicConditionsReachabilityTest {
     fun testMultiVariableReachable() {
         // Test reachability with multiple variables:
         //   if (x > 0) -> if (y > 5) -> if (x + y > 10) -> return 1
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
+        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "multiVariableReachable" }
@@ -158,7 +158,7 @@ class BasicConditionsReachabilityTest {
     fun testEqualityBasedReachability() {
         // Test reachability with equality:
         //   if (value === 42) -> if (value > 40) -> if (value < 50) -> return 1
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
+        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "equalityBasedReachability" }
@@ -199,7 +199,7 @@ class BasicConditionsReachabilityTest {
     fun testBooleanUnreachable() {
         // Test unreachability with contradicting boolean conditions:
         //   if (flag) -> if (!flag) -> return -1
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
+        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "booleanUnreachable" }

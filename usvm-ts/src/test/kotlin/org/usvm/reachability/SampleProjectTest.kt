@@ -9,9 +9,9 @@ import org.junit.jupiter.api.Test
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.UMachineOptions
-import org.usvm.api.targets.ReachabilityObserver
-import org.usvm.api.targets.TsReachabilityTarget
-import org.usvm.api.targets.TsTarget
+import org.usvm.reachability.api.TsReachabilityObserver
+import org.usvm.reachability.api.TsReachabilityTarget
+import org.usvm.api.TsTarget
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.machine.state.TsState
@@ -65,7 +65,7 @@ class SampleProjectTest {
         println("📊 Loaded scene with ${scene.projectClasses.size} classes")
 
         // Use default options
-        val observer = ReachabilityObserver()
+        val observer = TsReachabilityObserver()
         val machine = TsMachine(scene, DEFAULT_MACHINE_OPTIONS, DEFAULT_TS_OPTIONS, machineObserver = observer)
 
         // Find all methods in the sample project
@@ -118,7 +118,7 @@ class SampleProjectTest {
             println("   - ${processClass.name}.${method.name}")
         }
 
-        val observer = ReachabilityObserver()
+        val observer = TsReachabilityObserver()
         val machine = TsMachine(scene, DEFAULT_MACHINE_OPTIONS, DEFAULT_TS_OPTIONS, machineObserver = observer)
 
         // Create specific targets for state transitions
@@ -154,7 +154,7 @@ class SampleProjectTest {
             stepsFromLastCovered = 2000L
         )
 
-        val machine = TsMachine(scene, machineOptions, DEFAULT_TS_OPTIONS, machineObserver = ReachabilityObserver())
+        val machine = TsMachine(scene, machineOptions, DEFAULT_TS_OPTIONS, machineObserver = TsReachabilityObserver())
         val targets = createMemoryManagerTargets(memoryManagerClass)
 
         val results = machine.analyze(memoryMethods, targets)
@@ -183,7 +183,7 @@ class SampleProjectTest {
             stepsFromLastCovered = 1000L
         )
 
-        val observer = ReachabilityObserver()
+        val observer = TsReachabilityObserver()
         val machine = TsMachine(scene, machineOptions, DEFAULT_TS_OPTIONS, machineObserver = observer)
 
         // Create targets for different execution paths in array operations

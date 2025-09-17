@@ -8,7 +8,7 @@ import org.usvm.CoverageZone
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachine
 import org.usvm.UMachineOptions
-import org.usvm.api.targets.TsTarget
+import org.usvm.api.TsTarget
 import org.usvm.machine.interpreter.TsInterpreter
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState

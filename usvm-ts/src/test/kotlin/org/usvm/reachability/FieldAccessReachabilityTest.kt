@@ -7,9 +7,9 @@ import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.UMachineOptions
-import org.usvm.api.targets.ReachabilityObserver
-import org.usvm.api.targets.TsReachabilityTarget
-import org.usvm.api.targets.TsTarget
+import org.usvm.reachability.api.TsReachabilityObserver
+import org.usvm.reachability.api.TsReachabilityTarget
+import org.usvm.api.TsTarget
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.util.getResourcePath
@@ -47,7 +47,7 @@ class FieldAccessReachabilityTest {
     fun testSimpleFieldReachable() {
         // Test reachability through field access:
         //   if (this.x > 0) -> if (this.y < 10) -> return 1
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
+        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "simpleFieldReachable" }
@@ -84,7 +84,7 @@ class FieldAccessReachabilityTest {
     fun testFieldModificationReachable() {
         // Test reachability after field modification:
         //   this.x = value -> if (this.x > 15) -> if (this.x < 25) -> return 1
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
+        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "fieldModificationReachable" }
@@ -121,7 +121,7 @@ class FieldAccessReachabilityTest {
     fun testFieldConstraintUnreachable() {
         // Test unreachability due to field constraints:
         //   this.x = 10 -> if (this.x > 20) -> return -1
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
+        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "fieldConstraintUnreachable" }
@@ -151,7 +151,7 @@ class FieldAccessReachabilityTest {
     @Test
     fun testObjectCreationReachable() {
         // Test reachability through object creation and field access
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
+        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "objectCreationReachable" }
@@ -187,7 +187,7 @@ class FieldAccessReachabilityTest {
     @Test
     fun testAmbiguousFieldAccess() {
         // Test reachability with ambiguous field access (multiple classes with same field name)
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
+        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "ambiguousFieldAccess" }

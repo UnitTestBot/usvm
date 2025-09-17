@@ -79,7 +79,7 @@ data class TargetTreeNodeDto(
 )
 
 @Serializable
-enum class TargetTypeDto {
+enum class TargetType {
     @SerialName("initial")
     INITIAL,
 
@@ -92,7 +92,7 @@ enum class TargetTypeDto {
 
 @Serializable
 data class TargetDto(
-    val type: TargetTypeDto = TargetTypeDto.INTERMEDIATE,
+    val type: TargetType = TargetType.INTERMEDIATE,
     val location: LocationDto, // TODO: consider inlining
 )
 

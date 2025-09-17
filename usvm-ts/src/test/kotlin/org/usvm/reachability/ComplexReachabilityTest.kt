@@ -7,9 +7,9 @@ import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.UMachineOptions
-import org.usvm.api.targets.ReachabilityObserver
-import org.usvm.api.targets.TsReachabilityTarget
-import org.usvm.api.targets.TsTarget
+import org.usvm.reachability.api.TsReachabilityObserver
+import org.usvm.reachability.api.TsReachabilityTarget
+import org.usvm.api.TsTarget
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.util.getResourcePath
@@ -46,7 +46,7 @@ class ComplexReachabilityTest {
     @Test
     fun testArrayObjectCombinedReachable() {
         // Test reachability combining array and object operations
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
+        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "arrayObjectCombinedReachable" }
@@ -82,7 +82,7 @@ class ComplexReachabilityTest {
     @Test
     fun testMethodArrayManipulationReachable() {
         // Test reachability through method calls with array manipulation
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
+        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "methodArrayManipulationReachable" }
@@ -114,7 +114,7 @@ class ComplexReachabilityTest {
     @Test
     fun testObjectMethodCallReachable() {
         // Test reachability through object method calls affecting state
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
+        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "objectMethodCallReachable" }
@@ -150,7 +150,7 @@ class ComplexReachabilityTest {
     @Test
     fun testConditionalObjectReachable() {
         // Test reachability with conditional object creation and polymorphic method calls
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
+        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "conditionalObjectReachable" }
@@ -194,7 +194,7 @@ class ComplexReachabilityTest {
     @Test
     fun testCrossReferenceReachable() {
         // Test reachability with cross-referenced objects forming a graph
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
+        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "crossReferenceReachable" }
