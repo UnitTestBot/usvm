@@ -1,259 +1,258 @@
-# 🎯 TypeScript Reachability Analysis CLI
+# USVM Reachability Analysis - Target File Formats
 
-A powerful command-line tool for performing sophisticated reachability analysis on TypeScript projects using the USVM framework.
+This document describes the supported target file formats for the USVM TypeScript Reachability Analysis tool.
 
-## Features
+## Supported Formats
 
-- ✅ **REACHABLE**: Paths confirmed to be executable with complete execution traces
-- ❌ **UNREACHABLE**: Paths confirmed to be impossible under any conditions
-- ❓ **UNKNOWN**: Paths that could not be determined due to timeout, errors, or approximations
+The tool automatically detects and supports three different JSON formats for specifying targets:
 
-## Sample Project
+### 1. Linear Trace Format - `{ "targets": [...] }`
 
-The included sample project demonstrates a **System Applications** simulator with:
+A single linear trace containing a sequence of target points. In a linear trace:
+- **Only the first target** should be marked as `"initial"` (entry point)
+- **Only the last target** should be marked as `"final"` (end point)  
+- **All intermediate targets** don't need a type field (defaults to `"intermediate"`)
 
-- **ProcessManager.ts**: Process management with state transitions (CREATED → READY → RUNNING → BLOCKED/TERMINATED)
-- **MemoryManager.ts**: Memory allocation, deallocation, compaction, and defragmentation
-- **FileSystem.ts**: Basic file system operations and navigation
-
-These examples use only SMT-solver friendly constructs:
-
-- Integer operations (no floating-point or modulo operations)
-- Array operations (length, indexing, push/pop)
-- Object field access and updates
-- Conditional logic and control flow
-- Function calls without complex inheritance
-
-## Installation & Setup
-
-1. Ensure you have the USVM project built:
-
-```bash
-cd /path/to/usvm
-./gradlew build
+**Example: `targets.json`**
+```json
+{
+  "targets": [
+    {
+      "type": "initial",
+      "location": {
+        "fileName": "ProcessManager.ts",
+        "className": "Process",
+        "methodName": "start",
+        "stmtType": "IfStmt",
+        "block": 0,
+        "index": 0
+      }
+    },
+    {
+      "location": {
+        "fileName": "ProcessManager.ts",
+        "className": "Process",
+        "methodName": "start",
+        "stmtType": "AssignStmt",
+        "block": 1,
+        "index": 3
+      }
+    },
+    {
+      "location": {
+        "fileName": "ProcessManager.ts",
+        "className": "Process",
+        "methodName": "terminate",
+        "stmtType": "CallStmt",
+        "block": 0,
+        "index": 0
+      }
+    },
+    {
+      "type": "final",
+      "location": {
+        "fileName": "ProcessManager.ts",
+        "className": "Process",
+        "methodName": "terminate",
+        "stmtType": "ReturnStmt",
+        "block": 2,
+        "index": 7
+      }
+    }
+  ]
+}
 ```
 
-2. Build the shadow JAR for faster execution:
+### 2. Tree Trace Format - `{ "target": {...}, "children": [...] }`
 
-```bash
-./gradlew :usvm-ts:shadowJar
+A single tree-like trace with hierarchical target structure.
+
+**Example: `targets-tree.json`**
+```json
+{
+  "target": {
+    "type": "initial",
+    "location": {
+      "fileName": "ProcessManager.ts",
+      "className": "ProcessManager",
+      "methodName": "createProcess",
+      "stmtType": "IfStmt",
+      "block": 0,
+      "index": 0
+    }
+  },
+  "children": [
+    {
+      "target": {
+        "location": {
+          "fileName": "ProcessManager.ts",
+          "className": "ProcessManager",
+          "methodName": "createProcess",
+          "stmtType": "AssignStmt",
+          "block": 1,
+          "index": 3
+        }
+      },
+      "children": [
+        {
+          "target": {
+            "type": "final",
+            "location": {
+              "fileName": "ProcessManager.ts",
+              "className": "ProcessManager",
+              "methodName": "createProcess",
+              "stmtType": "ReturnStmt",
+              "block": 2,
+              "index": 7
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
 ```
 
-3. The CLI is ready to use via the wrapper script or direct JAR execution.
+### 3. Trace List Format - `[ {...} ]`
 
-## Usage
+An array of traces that can contain both linear and tree traces.
 
-### Quick Start with Sample Project
-
-```bash
-# Analyze the sample system applications project
-./reachability-cli.sh -p ./sample-project
-
-# Analyze specific process management methods
-./reachability-cli.sh -p ./sample-project --method Process --include-statements
-
-# Focus on memory management operations with verbose output
-./reachability-cli.sh -p ./sample-project --method MemoryManager -v
-```
-
-### Analyze Your Own Project
-
-```bash
-# Analyze any TypeScript project with default settings
-./reachability-cli.sh -p ./my-typescript-project
-
-# Use custom targets and verbose output  
-./reachability-cli.sh -p ./my-project -t ./targets.json -v
-```
-
-### Direct JAR Execution (Faster)
-
-```bash
-java -jar usvm-ts/build/libs/usvm-ts-reachability.jar --project ./sample-project --verbose
-```
-
-## Command Line Options
-
-### Required
-
-- `-p, --project PATH` - Path to TypeScript project directory
-
-### Optional Analysis Configuration
-
-- `-t, --targets FILE` - JSON file with target definitions (uses auto-generated targets if not provided)
-- `-m, --mode MODE` - Analysis scope: `ALL_METHODS`, `PUBLIC_METHODS`, `ENTRY_POINTS` (default: PUBLIC_METHODS)
-- `--method PATTERN` - Filter methods by name pattern
-
-### Solver & Performance Options
-
-- `--solver SOLVER` - SMT solver: `YICES`, `Z3`, `CVC5` (default: YICES)
-- `--timeout SECONDS` - Overall analysis timeout (default: 300)
-- `--steps LIMIT` - Maximum steps from last covered statement (default: 3500)
-- `--strategy STRATEGY` - Path selection strategy (default: TARGETED)
-
-### Output Options
-
-- `-o, --output DIR` - Output directory (default: ./reachability-results)
-- `-v, --verbose` - Enable verbose logging
-- `--include-statements` - Include detailed statement information in reports
-
-## Target Definitions Format
-
-Create a JSON file to specify custom reachability targets:
-
+**Example: `targets-mixed.json`**
 ```json
 [
   {
-    "type": "initial",
-    "method": "Calculator.add",
-    "statement": 0
+    "targets": [
+      {
+        "type": "initial",
+        "location": {
+          "fileName": "UserService.ts",
+          "className": "UserService",
+          "methodName": "authenticate",
+          "stmtType": "IfStmt",
+          "block": 0,
+          "index": 0
+        }
+      },
+      {
+        "location": {
+          "fileName": "UserService.ts",
+          "className": "UserService",
+          "methodName": "validate",
+          "stmtType": "CallStmt",
+          "block": 0,
+          "index": 0
+        }
+      },
+      {
+        "type": "final",
+        "location": {
+          "fileName": "UserService.ts",
+          "className": "UserService",
+          "methodName": "validate",
+          "stmtType": "ReturnStmt",
+          "block": 3,
+          "index": 8
+        }
+      }
+    ]
   },
   {
-    "type": "intermediate",
-    "method": "Calculator.add",
-    "statement": 1
-  },
-  {
-    "type": "final",
-    "method": "Calculator.add",
-    "statement": 4
+    "target": {
+      "type": "initial",
+      "location": {
+        "fileName": "DatabaseManager.ts",
+        "className": "DatabaseManager",
+        "methodName": "connect",
+        "stmtType": "IfStmt",
+        "block": 0,
+        "index": 0
+      }
+    },
+    "children": [
+      {
+        "target": {
+          "type": "final",
+          "location": {
+            "fileName": "DatabaseManager.ts",
+            "className": "DatabaseManager",
+            "methodName": "establishConnection",
+            "stmtType": "ReturnStmt",
+            "block": 0,
+            "index": 2
+          }
+        }
+      }
+    ]
   }
 ]
 ```
 
-### Target Types
+## Target Types
 
-- **initial**: Entry point of the analysis path
-- **intermediate**: Checkpoint along the execution path
-- **final**: Target endpoint to reach
+Each target can have one of three types:
 
-### Hierarchical Structure
+- **`initial`**: Entry point of a trace (only first target in linear traces)
+- **`intermediate`**: Intermediate point in execution (default - can be omitted)
+- **`final`**: End point of a trace (only last target in linear traces)
 
-Targets are automatically organized into hierarchical chains per method:
-`Initial Point → Intermediate Point(s) → Final Point`
+## Location Structure
 
-## Output Reports
+Each target must specify a location with the following fields:
 
-The tool generates comprehensive analysis reports:
+- **`fileName`**: The TypeScript source file name
+- **`className`**: The class containing the method
+- **`methodName`**: The method name
+- **`stmtType`**: IR statement type (e.g., "IfStmt", "AssignStmt", "CallStmt", "ReturnStmt")
+- **`block`**: Control flow block number
+- **`index`**: Statement index within the block
 
-### Summary Report (`reachability_summary.txt`)
+## Common Statement Types
 
-- Overall statistics and execution time
-- Reachability status counts
-- Per-target analysis results
+The `stmtType` field should contain the IR name of the statement at the specified coordinates:
 
-### Detailed Report (`reachability_detailed.md`)
+- **`IfStmt`**: Conditional if statement
+- **`AssignStmt`**: Assignment statement
+- **`CallStmt`**: Method/function call statement
+- **`ReturnStmt`**: Return statement
+- **`WhileStmt`**: While loop statement
+- **`ForStmt`**: For loop statement
+- **`ThrowStmt`**: Throw/exception statement
 
-- Markdown-formatted comprehensive analysis
-- Method-by-method breakdown
-- Execution paths with statements (when `--include-statements` is used)
+## Linear Trace Rules
 
-## Example Project Structure
+For linear traces (both standalone and within trace lists):
 
-```
-my-typescript-project/
-├── Calculator.ts          # TypeScript source files
-├── MathUtils.ts          
-└── ...
+1. **Single Initial Point**: Only the very first target should have `"type": "initial"`
+2. **Single Final Point**: Only the very last target should have `"type": "final"`  
+3. **Omit Intermediate Types**: All targets between first and last can omit the `"type"` field entirely (defaults to `"intermediate"`)
+4. **Sequential Execution**: Targets represent a single execution path through the code
 
-targets.jsonc             # Optional target definitions
-reachability-results/     # Generated output directory
-├── reachability_summary.txt
-└── reachability_detailed.md
-```
+## Automatic Format Detection
 
-## Reachability Analysis Results
+The tool automatically detects which format is being used based on the JSON structure:
 
-### Status Categories
+- If the JSON is an array at the top level -> Trace List Format
+- If the JSON object contains a `"targets"` field -> Linear Trace Format  
+- If the JSON object contains a `"target"` field -> Tree Trace Format
 
-1. **REACHABLE** ✅
-    - Path is definitely executable
-    - Includes complete execution trace with all statements
-    - Shows path conditions and variable states
+No manual format specification is required!
 
-2. **UNREACHABLE** ❌
-    - Path is proven to be impossible
-    - No valid execution can reach this target
-    - Useful for dead code detection
-
-3. **UNKNOWN** ❓
-    - Analysis couldn't determine reachability
-    - Common causes: timeout, solver limitations, complex approximations
-    - Requires further investigation or different analysis parameters
-
-### Execution Paths
-
-For REACHABLE targets, the tool provides:
-
-- Complete statement sequence from execution start to target
-- All intermediate statements traversed
-- Path conditions (when available)
-- Variable state information
-
-## Example Usage Scenarios
-
-### 1. Dead Code Detection
+## Usage Examples
 
 ```bash
-./reachability-cli.sh -p ./src --mode ALL_METHODS -v
+# Using linear trace format
+./reachability -p ./my-project -t targets.json
+
+# Using hierarchical (tree-like) format
+./reachability -p ./my-project -t targets-tree.json
+
+# Using mixed array format
+./reachability -p ./my-project -t targets-mixed.json
+
+# Auto-generate targets (no file needed)
+./reachability -p ./my-project
 ```
 
-### 2. Critical Path Analysis
+## Legacy Format Support
 
-```bash
-./reachability-cli.sh -p ./src -t ./critical-paths.json --include-statements
-```
-
-### 3. Method-Specific Analysis
-
-```bash  
-./reachability-cli.sh -p ./src --method "authenticate" --solver Z3
-```
-
-### 4. High-Precision Analysis
-
-```bash
-./reachability-cli.sh -p ./src --timeout 600 --steps 10000 --solver CVC5
-```
-
-## Implementation Details
-
-The CLI leverages the USVM framework's powerful reachability analysis capabilities:
-
-- **Project Loading**: Uses `loadEtsFileAutoConvert()` for automatic TypeScript to IR conversion
-- **Target Creation**: Builds hierarchical target structures using `TsReachabilityTarget` classes
-- **Analysis Engine**: Utilizes `TsMachine` with configurable solver backends
-- **Path Extraction**: Extracts execution paths from `TsState.pathNode.allStatements`
-
-## Troubleshooting
-
-### Common Issues
-
-1. **"No TypeScript files found"**
-    - Ensure the project path contains `.ts` or `.js` files
-    - Check file permissions
-
-2. **"Analysis timeout"**
-    - Increase `--timeout` value
-    - Reduce `--steps` limit
-    - Try different `--solver`
-
-3. **"Target not found"**
-    - Verify method names in targets.jsonc match exactly
-    - Check statement indices are within bounds
-
-### Debug Mode
-
-Enable verbose output with `-v` to see detailed analysis progress and any warnings.
-
-## Contributing
-
-The CLI is part of the USVM project. To extend functionality:
-
-1. Add new options to `ReachabilityAnalyzer` class
-2. Update the wrapper script with corresponding parameters
-3. Add appropriate documentation
-
-## License
-
-This tool is part of the USVM project and follows the same licensing terms.
+The tool maintains backward compatibility with legacy target file formats using regex-based parsing as a fallback option.

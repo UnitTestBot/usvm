@@ -1,5 +1,6 @@
-package org.usvm.api.targets
+package org.usvm.reachability.api
 
+import org.usvm.reachability.api.TsReachabilityTarget
 import org.usvm.machine.state.TsState
 import org.usvm.statistics.UMachineObserver
 

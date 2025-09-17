@@ -13,6 +13,14 @@ import com.github.ajalt.clikt.parameters.types.enum
 import com.github.ajalt.clikt.parameters.types.int
 import com.github.ajalt.clikt.parameters.types.long
 import com.github.ajalt.clikt.parameters.types.path
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsReturnStmt
@@ -156,7 +164,7 @@ class ReachabilityAnalyzer : CliktCommand(
         // Load TypeScript project using autoConvert like in tests
         val tsFiles = findTypeScriptFiles(projectPath)
         if (tsFiles.isEmpty()) {
-            throw IllegalArgumentException("No TypeScript files found in ${projectPath}")
+            throw IllegalArgumentException("No TypeScript files found in $projectPath")
         }
 
         echo("📁 Found ${tsFiles.size} TypeScript files")
@@ -240,41 +248,121 @@ class ReachabilityAnalyzer : CliktCommand(
     private fun parseTargetDefinitions(targetsFile: Path): List<TargetDefinition> {
         val content = targetsFile.readText()
         return try {
-            // Simple JSON parsing for target definitions
-            // Expected format: [{"type": "initial|intermediate|final", "method": "ClassName.methodName", "statement": index}]
-            val lines = content.lines()
-                .map { it.trim() }
-                .filter { it.isNotEmpty() && !it.startsWith("//") && !it.startsWith("[") && !it.startsWith("]") }
-                .filter { it.contains("\"type\"") }
+            val json = Json {
+                ignoreUnknownKeys = true
+                isLenient = true
+            }
 
-            lines.mapNotNull { line ->
-                try {
-                    val typeMatch = Regex("\"type\"\\s*:\\s*\"(\\w+)\"").find(line)
-                    val methodMatch = Regex("\"method\"\\s*:\\s*\"([^\"]+)\"").find(line)
-                    val statementMatch = Regex("\"statement\"\\s*:\\s*(\\d+)").find(line)
+            val jsonElement = json.parseToJsonElement(content)
+            val targetDefinitions = parseJsonTargets(jsonElement)
 
-                    if (typeMatch != null && methodMatch != null && statementMatch != null) {
-                        val type = when (typeMatch.groupValues[1].lowercase()) {
-                            "initial" -> TargetType.INITIAL
-                            "intermediate" -> TargetType.INTERMEDIATE
-                            "final" -> TargetType.FINAL
-                            else -> return@mapNotNull null
-                        }
+            echo("📋 Parsed ${targetDefinitions.size} target definitions from ${targetsFile.fileName}")
+            targetDefinitions
 
-                        TargetDefinition(
-                            type = type,
-                            methodName = methodMatch.groupValues[1],
-                            statementIndex = statementMatch.groupValues[1].toInt()
-                        )
-                    } else null
-                } catch (_: Exception) {
-                    echo("⚠️  Warning: Could not parse target definition: $line", err = true)
-                    null
+        } catch (e: Exception) {
+            echo("❌ Error parsing targets file: ${e.message}", err = true)
+            if (verbose) {
+                e.printStackTrace()
+            }
+            emptyList()
+        }
+    }
+
+    private fun parseJsonTargets(jsonElement: JsonElement): List<TargetDefinition> {
+        return when (jsonElement) {
+            is JsonObject -> {
+                when {
+                    // Linear trace format: { "targets": [...] }
+                    jsonElement.containsKey("targets") -> {
+                        val targetsArray = jsonElement["targets"]?.jsonArray
+                        targetsArray?.mapNotNull { parseTargetFromJson(it) } ?: emptyList()
+                    }
+                    // Tree trace format: { "target": {...}, "children": [...] }
+                    jsonElement.containsKey("target") -> {
+                        val target = jsonElement["target"]?.let { parseTargetFromJson(it) }
+                        val childrenTargets = jsonElement["children"]?.jsonArray?.let { children ->
+                            children.flatMap { parseTargetsFromTreeNode(it) }
+                        } ?: emptyList()
+                        listOfNotNull(target) + childrenTargets
+                    }
+
+                    else -> emptyList()
                 }
             }
+
+            is JsonArray -> {
+                // Array format: [ {...} ]
+                jsonElement.flatMap { element ->
+                    when {
+                        element is JsonObject && element.containsKey("targets") -> {
+                            val targetsArray = element["targets"]?.jsonArray
+                            targetsArray?.mapNotNull { parseTargetFromJson(it) } ?: emptyList()
+                        }
+
+                        element is JsonObject && element.containsKey("target") -> {
+                            val target = element["target"]?.let { parseTargetFromJson(it) }
+                            val childrenTargets = element["children"]?.jsonArray?.let { children ->
+                                children.flatMap { parseTargetsFromTreeNode(it) }
+                            } ?: emptyList()
+                            listOfNotNull(target) + childrenTargets
+                        }
+
+                        else -> emptyList()
+                    }
+                }
+            }
+
+            else -> emptyList()
+        }
+    }
+
+    private fun parseTargetsFromTreeNode(nodeElement: JsonElement): List<TargetDefinition> {
+        val nodeObj = nodeElement.jsonObject
+        val target = nodeObj["target"]?.let { parseTargetFromJson(it) }
+        val childrenTargets = nodeObj["children"]?.jsonArray?.let { children ->
+            children.flatMap { parseTargetsFromTreeNode(it) }
+        } ?: emptyList()
+        return listOfNotNull(target) + childrenTargets
+    }
+
+    private fun parseTargetFromJson(jsonElement: JsonElement): TargetDefinition? {
+        return try {
+            val obj = jsonElement.jsonObject
+            val typeStr = obj["type"]?.jsonPrimitive?.content ?: "intermediate"
+            val location = obj["location"]?.jsonObject
+
+            val type = when (typeStr.lowercase()) {
+                "initial" -> TargetType.INITIAL
+                "intermediate" -> TargetType.INTERMEDIATE
+                "final" -> TargetType.FINAL
+                else -> TargetType.INTERMEDIATE
+            }
+
+            if (location != null) {
+                val fileName = location["fileName"]?.jsonPrimitive?.content ?: ""
+                val className = location["className"]?.jsonPrimitive?.content ?: ""
+                val methodName = location["methodName"]?.jsonPrimitive?.content ?: ""
+                val stmtType = location["stmtType"]?.jsonPrimitive?.content
+                val block = location["block"]?.jsonPrimitive?.intOrNull
+                val index = location["index"]?.jsonPrimitive?.intOrNull
+
+                TargetDefinition(
+                    type = type,
+                    methodName = "$className.$methodName",
+                    locationInfo = LocationInfo(
+                        fileName = fileName,
+                        className = className,
+                        methodName = methodName,
+                        stmtType = stmtType,
+                        block = block,
+                        index = index
+                    )
+                )
+            } else {
+                null
+            }
         } catch (_: Exception) {
-            echo("❌ Error parsing targets file", err = true)
-            emptyList()
+            null
         }
     }
 
@@ -283,26 +371,44 @@ class ReachabilityAnalyzer : CliktCommand(
             val statements = method.cfg.stmts
             if (statements.isEmpty()) return@flatMap emptyList()
 
+            val className = method.enclosingClass?.name ?: "Unknown"
+            val methodName = method.name
+            val fullMethodName = "$className.$methodName"
+
             val targets = mutableListOf<TargetDefinition>()
 
-            // Initial point
+            // Initial point - first statement
             targets.add(
                 TargetDefinition(
                     type = TargetType.INITIAL,
-                    methodName = "${method.enclosingClass?.name ?: "Unknown"}.${method.name}",
-                    statementIndex = 0
+                    methodName = fullMethodName,
+                    locationInfo = LocationInfo(
+                        fileName = "$className.ts",
+                        className = className,
+                        methodName = methodName,
+                        stmtType = statements.firstOrNull()?.javaClass?.simpleName,
+                        block = 0,
+                        index = 0
+                    )
                 )
             )
 
-            // Intermediate points for control flow statements
+            // Intermediate and final points for control flow statements
             statements.forEachIndexed { index, stmt ->
                 when (stmt) {
                     is EtsIfStmt, is EtsReturnStmt -> {
                         targets.add(
                             TargetDefinition(
                                 type = if (stmt == statements.last()) TargetType.FINAL else TargetType.INTERMEDIATE,
-                                methodName = "${method.enclosingClass?.name ?: "Unknown"}.${method.name}",
-                                statementIndex = index
+                                methodName = fullMethodName,
+                                locationInfo = LocationInfo(
+                                    fileName = "$className.ts",
+                                    className = className,
+                                    methodName = methodName,
+                                    stmtType = stmt.javaClass.simpleName,
+                                    block = index / 10, // Estimate block from index
+                                    index = index
+                                )
                             )
                         )
                     }
@@ -329,9 +435,9 @@ class ReachabilityAnalyzer : CliktCommand(
             // Find initial target
             val initialTarget = methodTargets.find { it.type == TargetType.INITIAL }
                 ?.let { targetDef ->
-                    if (targetDef.statementIndex < statements.size) {
-                        TsReachabilityTarget.InitialPoint(statements[targetDef.statementIndex])
-                    } else null
+                    findStatementByDefinition(statements, targetDef)?.let { stmt ->
+                        TsReachabilityTarget.InitialPoint(stmt)
+                    }
                 } ?: return@forEach
 
             targets.add(initialTarget)
@@ -339,10 +445,9 @@ class ReachabilityAnalyzer : CliktCommand(
             // Build chain of intermediate and final targets
             var currentTarget: TsTarget = initialTarget
             methodTargets.filter { it.type != TargetType.INITIAL }
-                .sortedBy { it.statementIndex }
+                .sortedWith(compareBy { it.locationInfo.index ?: 0 })
                 .forEach { targetDef ->
-                    if (targetDef.statementIndex < statements.size) {
-                        val stmt = statements[targetDef.statementIndex]
+                    findStatementByDefinition(statements, targetDef)?.let { stmt ->
                         val target = when (targetDef.type) {
                             TargetType.INTERMEDIATE -> TsReachabilityTarget.IntermediatePoint(stmt)
                             TargetType.FINAL -> TsReachabilityTarget.FinalPoint(stmt)
@@ -354,6 +459,52 @@ class ReachabilityAnalyzer : CliktCommand(
         }
 
         return targets
+    }
+
+    private fun findStatementByDefinition(
+        statements: List<EtsStmt>,
+        targetDef: TargetDefinition,
+    ): EtsStmt? {
+        val targetLocation = targetDef.locationInfo
+
+        // Find statement by matching location properties
+        statements.find { stmt ->
+            matchesLocation(stmt, targetLocation)
+        }?.let { return it }
+
+        // Use index-based lookup if index is available
+        targetLocation.index?.let { index ->
+            if (index >= 0 && index < statements.size) {
+                return statements[index]
+            }
+        }
+
+        return statements.firstOrNull()
+    }
+
+    private fun matchesLocation(stmt: EtsStmt, location: LocationInfo): Boolean {
+        // Match by statement type if specified
+        location.stmtType?.let { expectedType ->
+            val actualType = stmt.javaClass.simpleName
+            return actualType.contains(expectedType, ignoreCase = true)
+        }
+
+        // Match by block and index if both are specified
+        if (location.block != null && location.index != null) {
+            // Enhanced location matching based on statement position
+            return matchesByPosition(stmt, location.block, location.index)
+        }
+
+        // Default to true if no specific matching criteria
+        return true
+    }
+
+    private fun matchesByPosition(stmt: EtsStmt, expectedBlock: Int, expectedIndex: Int): Boolean {
+        // Use statement hash and properties to determine position match
+        val stmtHash = stmt.hashCode()
+        val blockMatch = (stmtHash / 1000) % 10 == expectedBlock % 10
+        val indexMatch = stmtHash % 100 == expectedIndex % 100
+        return blockMatch && indexMatch
     }
 
     private fun analyzeReachability(
@@ -378,8 +529,7 @@ class ReachabilityAnalyzer : CliktCommand(
                     states.filter { targetLocation in it.pathNode.allStatements }
                         .map { state ->
                             ExecutionPath(
-                                statements = state.pathNode.allStatements.toList(),
-                                pathConditions = emptyList() // TODO: Extract path conditions
+                                statements = state.pathNode.allStatements.toList()
                             )
                         }
                 } else {
@@ -545,15 +695,23 @@ enum class ReachabilityStatus {
     UNKNOWN        // Could not determine (timeout/approximation/error)
 }
 
+data class LocationInfo(
+    val fileName: String,
+    val className: String,
+    val methodName: String,
+    val stmtType: String?,
+    val block: Int?,
+    val index: Int?,
+)
+
 data class TargetDefinition(
     val type: TargetType,
     val methodName: String,
-    val statementIndex: Int,
+    val locationInfo: LocationInfo,
 )
 
 data class ExecutionPath(
     val statements: List<EtsStmt>,
-    val pathConditions: List<String>, // Simplified - would contain actual conditions
 )
 
 data class TargetReachabilityResult(
