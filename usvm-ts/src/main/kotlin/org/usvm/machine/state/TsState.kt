@@ -19,7 +19,7 @@ import org.usvm.USort
 import org.usvm.UState
 import org.usvm.api.allocateConcreteRef
 import org.usvm.api.initializeArray
-import org.usvm.api.targets.TsTarget
+import org.usvm.api.TsTarget
 import org.usvm.collections.immutable.getOrPut
 import org.usvm.collections.immutable.implementations.immutableMap.UPersistentHashMap
 import org.usvm.collections.immutable.internal.MutabilityOwnership

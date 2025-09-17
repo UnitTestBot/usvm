@@ -40,7 +40,7 @@ import org.usvm.UIteExpr
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArray
 import org.usvm.api.mockMethodCall
-import org.usvm.api.targets.TsTarget
+import org.usvm.api.TsTarget
 import org.usvm.api.typeStreamOf
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.forkblacklists.UForkBlackList

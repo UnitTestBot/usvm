@@ -8,17 +8,15 @@ import org.junit.jupiter.api.Disabled
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.UMachineOptions
-import org.usvm.api.targets.ReachabilityObserver
-import org.usvm.api.targets.TsReachabilityTarget
-import org.usvm.api.targets.TsTarget
+import org.usvm.reachability.api.TsReachabilityObserver
+import org.usvm.reachability.api.TsReachabilityTarget
+import org.usvm.api.TsTarget
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.util.getResourcePath
 import kotlin.test.Test
-import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
 
 /**
  * Tests for array access reachability scenarios.
@@ -49,7 +47,7 @@ class ArrayReachabilityTest {
     @Test
     fun testSimpleArrayReachable() {
         // Test reachability through array access: arr[0] === 10 -> arr[1] > 15 -> return 1
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
+        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "simpleArrayReachable" }
@@ -86,7 +84,7 @@ class ArrayReachabilityTest {
     @Test
     fun testArrayModificationReachable() {
         // Test reachability after array modification: arr[index] = value -> arr[index] > 10 -> return 1
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
+        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "arrayModificationReachable" }
@@ -122,7 +120,7 @@ class ArrayReachabilityTest {
     @Test
     fun testArrayBoundsUnreachable() {
         // Test unreachability due to array element constraints: arr[0] > 20 (when arr[0] = 5)
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
+        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "arrayBoundsUnreachable" }
@@ -152,7 +150,7 @@ class ArrayReachabilityTest {
     @Test
     fun testArraySumReachable() {
         // Test reachability through array sum calculation: sum === 30 -> arr[0] < arr[1] -> return 1
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
+        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "arraySumReachable" }
@@ -189,7 +187,7 @@ class ArrayReachabilityTest {
     @Test
     fun testNestedArrayReachable() {
         // Test reachability through nested array access: matrix[0][0] === 1 -> matrix[1][1] === 4 -> return 1
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = ReachabilityObserver())
+        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "nestedArrayReachable" }
