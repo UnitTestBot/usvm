@@ -14,13 +14,6 @@ import com.github.ajalt.clikt.parameters.types.int
 import com.github.ajalt.clikt.parameters.types.long
 import com.github.ajalt.clikt.parameters.types.path
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.intOrNull
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsReturnStmt
@@ -36,6 +29,10 @@ import org.usvm.machine.TsOptions
 import org.usvm.machine.state.TsState
 import org.usvm.reachability.api.TsReachabilityObserver
 import org.usvm.reachability.api.TsReachabilityTarget
+import org.usvm.reachability.dto.LocationDto
+import org.usvm.reachability.dto.TargetDto
+import org.usvm.reachability.dto.TargetTreeNodeDto
+import org.usvm.reachability.dto.TargetType
 import org.usvm.reachability.dto.TargetsContainerDto
 import java.nio.file.Path
 import kotlin.io.path.Path
@@ -191,15 +188,16 @@ class ReachabilityAnalyzer : CliktCommand(
         val methodsToAnalyze = findMethodsToAnalyze(scene)
         echo("🎯 Analyzing ${methodsToAnalyze.size} methods")
 
-        // Create targets
-        val targetDefinitions = if (targetsFile != null) {
+        // Create target traces (hierarchical intermediate structures)
+        val targetTraces = if (targetsFile != null) {
             parseTargetDefinitions(targetsFile!!)
         } else {
             generateDefaultTargets(methodsToAnalyze)
         }
 
-        val targets = createTargets(methodsToAnalyze, targetDefinitions)
-        echo("📍 Created ${targets.size} reachability targets")
+        // Convert traces to resolved TsTarget hierarchies
+        val targets = createTargetsFromTraces(methodsToAnalyze, targetTraces)
+        echo("📍 Created ${targets.size} reachability target trees from ${targetTraces.size} traces")
 
         // Run analysis
         echo("⚡ Running reachability analysis...")
@@ -211,7 +209,7 @@ class ReachabilityAnalyzer : CliktCommand(
         return ReachabilityResults(
             methods = methodsToAnalyze,
             targets = targets,
-            targetDefinitions = targetDefinitions,
+            targetTraces = targetTraces,
             states = states,
             reachabilityResults = reachabilityResults,
             scene = scene
@@ -246,7 +244,7 @@ class ReachabilityAnalyzer : CliktCommand(
         }
     }
 
-    private fun parseTargetDefinitions(targetsFile: Path): List<TargetDefinition> {
+    private fun parseTargetDefinitions(targetsFile: Path): List<TargetTrace> {
         val content = targetsFile.readText()
         return try {
             val json = Json {
@@ -255,10 +253,10 @@ class ReachabilityAnalyzer : CliktCommand(
             }
 
             val targetsDto = json.decodeFromString<TargetsContainerDto>(content)
-            val targetDefinitions = convertToDefinitions(targetsDto)
+            val traces = extractTargetTraces(targetsDto)
 
-            echo("📋 Parsed ${targetDefinitions.size} target definitions from ${targetsFile.fileName}")
-            targetDefinitions
+            echo("📋 Parsed ${traces.size} target traces from ${targetsFile.fileName}")
+            traces
 
         } catch (e: Exception) {
             echo("❌ Error parsing targets file: ${e.message}", err = true)
@@ -269,137 +267,79 @@ class ReachabilityAnalyzer : CliktCommand(
         }
     }
 
-    private fun convertToDefinitions(targetsDto: TargetsContainerDto) : List<TargetDefinition> {
-        val result = mutableListOf<TargetDefinition>()
-
-        when (targetsDto) {
+    private fun extractTargetTraces(targetsDto: TargetsContainerDto): List<TargetTrace> {
+        return when (targetsDto) {
             is TargetsContainerDto.LinearTrace -> {
-                result += convertToDefinition(targetsDto.targets)
+                // Single linear trace
+                val rootNode = buildLinearTraceNode(targetsDto.targets)
+                listOfNotNull(rootNode?.let { TargetTrace(it) })
             }
 
-            is TargetsContainerDto.TreeTrace -> TODO()
+            is TargetsContainerDto.TreeTrace -> {
+                // Single tree trace
+                val rootNode = buildTreeNode(targetsDto.target, targetsDto.children)
+                listOf(TargetTrace(rootNode))
+            }
 
-            is TargetsContainerDto.TraceList -> TODO()
-        }
-
-        return result
-    }
-
-    private fun parseJsonTargets(jsonElement: JsonElement): List<TargetDefinition> {
-        return when (jsonElement) {
-            is JsonObject -> {
-                when {
-                    // Linear trace format: { "targets": [...] }
-                    jsonElement.containsKey("targets") -> {
-                        val targetsArray = jsonElement["targets"]?.jsonArray
-                        targetsArray?.mapNotNull { parseTargetFromJson(it) } ?: emptyList()
-                    }
-                    // Tree trace format: { "target": {...}, "children": [...] }
-                    jsonElement.containsKey("target") -> {
-                        val target = jsonElement["target"]?.let { parseTargetFromJson(it) }
-                        val childrenTargets = jsonElement["children"]?.jsonArray?.let { children ->
-                            children.flatMap { parseTargetsFromTreeNode(it) }
-                        } ?: emptyList()
-                        listOfNotNull(target) + childrenTargets
-                    }
-
-                    else -> emptyList()
+            is TargetsContainerDto.TraceList -> {
+                // Multiple traces (can be linear or tree)
+                targetsDto.traces.flatMap { trace ->
+                    extractTargetTraces(trace)
                 }
             }
-
-            is JsonArray -> {
-                // Array format: [ {...} ]
-                jsonElement.flatMap { element ->
-                    when {
-                        element is JsonObject && element.containsKey("targets") -> {
-                            val targetsArray = element["targets"]?.jsonArray
-                            targetsArray?.mapNotNull { parseTargetFromJson(it) } ?: emptyList()
-                        }
-
-                        element is JsonObject && element.containsKey("target") -> {
-                            val target = element["target"]?.let { parseTargetFromJson(it) }
-                            val childrenTargets = element["children"]?.jsonArray?.let { children ->
-                                children.flatMap { parseTargetsFromTreeNode(it) }
-                            } ?: emptyList()
-                            listOfNotNull(target) + childrenTargets
-                        }
-
-                        else -> emptyList()
-                    }
-                }
-            }
-
-            else -> emptyList()
         }
     }
 
-    private fun parseTargetsFromTreeNode(nodeElement: JsonElement): List<TargetDefinition> {
-        val nodeObj = nodeElement.jsonObject
-        val target = nodeObj["target"]?.let { parseTargetFromJson(it) }
-        val childrenTargets = nodeObj["children"]?.jsonArray?.let { children ->
-            children.flatMap { parseTargetsFromTreeNode(it) }
-        } ?: emptyList()
-        return listOfNotNull(target) + childrenTargets
+    private fun buildLinearTraceNode(targets: List<TargetDto>): TargetNode? {
+        if (targets.isEmpty()) return null
+
+        // Build linear chain forwards using simple iteration
+        // Start from the last element and work backwards to build parent-child relationships
+        var currentNode: TargetNode? = null
+
+        // Build from end to start so each node can reference the next one as its child
+        for (i in targets.indices.reversed()) {
+            currentNode = TargetNode(targets[i], listOfNotNull(currentNode))
+        }
+
+        return currentNode
     }
 
-    private fun parseTargetFromJson(jsonElement: JsonElement): TargetDefinition? {
-        return try {
-            val obj = jsonElement.jsonObject
-            val typeStr = obj["type"]?.jsonPrimitive?.content ?: "intermediate"
-            val location = obj["location"]?.jsonObject
+    private fun buildTreeNode(targetDto: TargetDto, children: List<TargetTreeNodeDto>): TargetNode {
+        val childNodes = children.map { buildTreeNodeFromDto(it) }
 
-            val type = when (typeStr.lowercase()) {
-                "initial" -> TargetType.INITIAL
-                "intermediate" -> TargetType.INTERMEDIATE
-                "final" -> TargetType.FINAL
-                else -> TargetType.INTERMEDIATE
-            }
-
-            if (location != null) {
-                val fileName = location["fileName"]?.jsonPrimitive?.content ?: ""
-                val className = location["className"]?.jsonPrimitive?.content ?: ""
-                val methodName = location["methodName"]?.jsonPrimitive?.content ?: ""
-                val stmtType = location["stmtType"]?.jsonPrimitive?.content
-                val block = location["block"]?.jsonPrimitive?.intOrNull
-                val index = location["index"]?.jsonPrimitive?.intOrNull
-
-                TargetDefinition(
-                    type = type,
-                    methodName = "$className.$methodName",
-                    locationInfo = LocationInfo(
-                        fileName = fileName,
-                        className = className,
-                        methodName = methodName,
-                        stmtType = stmtType,
-                        block = block,
-                        index = index
-                    )
-                )
-            } else {
-                null
-            }
-        } catch (_: Exception) {
-            null
+        return if (childNodes.isEmpty()) {
+            TargetNode(targetDto)
+        } else {
+            TargetNode(targetDto, childNodes)
         }
     }
 
-    private fun generateDefaultTargets(methods: List<EtsMethod>): List<TargetDefinition> {
-        return methods.flatMap { method ->
+    private fun buildTreeNodeFromDto(nodeDto: TargetTreeNodeDto): TargetNode {
+        val childNodes = nodeDto.children.map { buildTreeNodeFromDto(it) }
+
+        return if (childNodes.isEmpty()) {
+            TargetNode(nodeDto.target)
+        } else {
+            TargetNode(nodeDto.target, childNodes)
+        }
+    }
+
+    private fun generateDefaultTargets(methods: List<EtsMethod>): List<TargetTrace> {
+        return methods.mapNotNull { method ->
             val statements = method.cfg.stmts
-            if (statements.isEmpty()) return@flatMap emptyList()
+            if (statements.isEmpty()) return@mapNotNull null
 
             val className = method.enclosingClass?.name ?: "Unknown"
             val methodName = method.name
-            val fullMethodName = "$className.$methodName"
 
-            val targets = mutableListOf<TargetDefinition>()
+            val targets = mutableListOf<TargetDto>()
 
             // Initial point - first statement
             targets.add(
-                TargetDefinition(
+                TargetDto(
                     type = TargetType.INITIAL,
-                    methodName = fullMethodName,
-                    locationInfo = LocationInfo(
+                    location = LocationDto(
                         fileName = "$className.ts",
                         className = className,
                         methodName = methodName,
@@ -415,16 +355,19 @@ class ReachabilityAnalyzer : CliktCommand(
                 when (stmt) {
                     is EtsIfStmt, is EtsReturnStmt -> {
                         targets.add(
-                            TargetDefinition(
-                                type = if (stmt == statements.last()) TargetType.FINAL else TargetType.INTERMEDIATE,
-                                methodName = fullMethodName,
-                                locationInfo = LocationInfo(
+                            TargetDto(
+                                type = if (stmt == statements.last()) {
+                                    TargetType.FINAL
+                                } else {
+                                    TargetType.INTERMEDIATE
+                                },
+                                location = LocationDto(
                                     fileName = "$className.ts",
                                     className = className,
                                     methodName = methodName,
                                     stmtType = stmt.javaClass.simpleName,
                                     block = index / 10, // Estimate block from index
-                                    index = index
+                                    index = index,
                                 )
                             )
                         )
@@ -432,57 +375,58 @@ class ReachabilityAnalyzer : CliktCommand(
                 }
             }
 
-            targets
+            // Create a linear trace for each method (each target follows the previous one)
+            buildLinearTraceNode(targets)?.let { root ->
+                TargetTrace(root)
+            }
         }
     }
 
-    private fun createTargets(methods: List<EtsMethod>, targetDefs: List<TargetDefinition>): List<TsTarget> {
+    private fun createTargetsFromTraces(methods: List<EtsMethod>, targetTraces: List<TargetTrace>): List<TsTarget> {
         val targets = mutableListOf<TsTarget>()
         val methodMap = methods.associateBy { "${it.enclosingClass?.name ?: "Unknown"}.${it.name}" }
 
-        // Group targets by method to build hierarchical structure
-        val targetsByMethod = targetDefs.groupBy { it.methodName }
-
-        targetsByMethod.forEach { (methodName, methodTargets) ->
+        targetTraces.forEach { trace ->
+            // For each trace, find the corresponding method and build the target hierarchy
+            val methodName = "${trace.root.targetDto.location.className}.${trace.root.targetDto.location.methodName}"
             val method = methodMap[methodName] ?: return@forEach
-            val statements = method.cfg.stmts
 
-            if (statements.isEmpty()) return@forEach
-
-            // Find initial target
-            val initialTarget = methodTargets.find { it.type == TargetType.INITIAL }
-                ?.let { targetDef ->
-                    findStatementByDefinition(statements, targetDef)?.let { stmt ->
-                        TsReachabilityTarget.InitialPoint(stmt)
-                    }
-                } ?: return@forEach
-
-            targets.add(initialTarget)
-
-            // Build chain of intermediate and final targets
-            var currentTarget: TsTarget = initialTarget
-            methodTargets.filter { it.type != TargetType.INITIAL }
-                .sortedWith(compareBy { it.locationInfo.index ?: 0 })
-                .forEach { targetDef ->
-                    findStatementByDefinition(statements, targetDef)?.let { stmt ->
-                        val target = when (targetDef.type) {
-                            TargetType.INTERMEDIATE -> TsReachabilityTarget.IntermediatePoint(stmt)
-                            TargetType.FINAL -> TsReachabilityTarget.FinalPoint(stmt)
-                            else -> return@forEach
-                        }
-                        currentTarget = currentTarget.addChild(target)
-                    }
-                }
+            // Resolve the root target and build the hierarchy using addChild
+            val rootTarget = resolveTargetNode(trace.root, method.cfg.stmts)
+            if (rootTarget != null) {
+                targets.add(rootTarget)
+            }
         }
 
         return targets
     }
 
-    private fun findStatementByDefinition(
+    private fun resolveTargetNode(node: TargetNode, statements: List<EtsStmt>): TsTarget? {
+        // First, resolve the current node to a TsReachabilityTarget
+        val stmt = findStatementByTargetDto(statements, node.targetDto) ?: return null
+
+        val currentTarget = when (node.targetDto.type) {
+            TargetType.INITIAL -> TsReachabilityTarget.InitialPoint(stmt)
+            TargetType.INTERMEDIATE -> TsReachabilityTarget.IntermediatePoint(stmt)
+            TargetType.FINAL -> TsReachabilityTarget.FinalPoint(stmt)
+        }
+
+        // Add all children to build the hierarchical structure
+        node.children.forEach { childNode ->
+            val childTarget = resolveTargetNode(childNode, statements)
+            if (childTarget != null) {
+                currentTarget.addChild(childTarget)
+            }
+        }
+
+        return currentTarget
+    }
+
+    private fun findStatementByTargetDto(
         statements: List<EtsStmt>,
-        targetDef: TargetDefinition,
+        targetDto: TargetDto,
     ): EtsStmt? {
-        val targetLocation = targetDef.locationInfo
+        val targetLocation = targetDto.location
 
         // Find statement by matching location properties
         statements.find { stmt ->
@@ -499,7 +443,7 @@ class ReachabilityAnalyzer : CliktCommand(
         return statements.firstOrNull()
     }
 
-    private fun matchesLocation(stmt: EtsStmt, location: LocationInfo): Boolean {
+    private fun matchesLocation(stmt: EtsStmt, location: LocationDto): Boolean {
         // Match by statement type if specified
         location.stmtType?.let { expectedType ->
             val actualType = stmt.javaClass.simpleName
@@ -693,38 +637,17 @@ class ReachabilityAnalyzer : CliktCommand(
     }
 }
 
-// Enums and data classes
 enum class AnalysisMode {
     ALL_METHODS,
     PUBLIC_METHODS,
-    ENTRY_POINTS
-}
-
-enum class TargetType {
-    INITIAL,
-    INTERMEDIATE,
-    FINAL
+    ENTRY_POINTS,
 }
 
 enum class ReachabilityStatus {
     REACHABLE,     // Confirmed reachable with execution path
     UNREACHABLE,   // Confirmed unreachable
-    UNKNOWN        // Could not determine (timeout/approximation/error)
+    UNKNOWN,       // Could not determine (timeout/approximation/error)
 }
-
-data class LocationInfo(
-    val fileName: String,
-    val className: String,
-    val methodName: String,
-    val stmtType: String?,
-    val block: Int?,
-    val index: Int?,
-)
-
-data class TargetDefinition(
-    val type: TargetType,
-    val locationInfo: LocationInfo,
-)
 
 data class ExecutionPath(
     val statements: List<EtsStmt>,
@@ -739,10 +662,27 @@ data class TargetReachabilityResult(
 data class ReachabilityResults(
     val methods: List<EtsMethod>,
     val targets: List<TsTarget>,
-    val targetDefinitions: List<TargetDefinition>,
+    val targetTraces: List<TargetTrace>,
     val states: List<TsState>,
     val reachabilityResults: List<TargetReachabilityResult>,
     val scene: EtsScene,
+)
+
+// Intermediate structures for building hierarchical targets before statement resolution
+/**
+ * A hierarchical node representing a target with its children.
+ * Can represent linear chains (single child), trees (multiple children), or leaves (no children).
+ */
+data class TargetNode(
+    val targetDto: TargetDto,
+    val children: List<TargetNode> = emptyList(),
+)
+
+/**
+ * Represents a trace - an independent hierarchical structure of targets
+ */
+data class TargetTrace(
+    val root: TargetNode,
 )
 
 fun main(args: Array<String>) {
