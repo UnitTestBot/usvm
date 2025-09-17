@@ -1,9 +1,7 @@
-package org.usvm.api.targets
+package org.usvm.reachability.api
 
 import org.jacodb.ets.model.EtsStmt
-import org.usvm.targets.UTarget
-
-open class TsTarget(location: EtsStmt?) : UTarget<EtsStmt, TsTarget>(location)
+import org.usvm.api.targets.TsTarget
 
 sealed class TsReachabilityTarget(override val location: EtsStmt) : TsTarget(location) {
     class InitialPoint(location: EtsStmt) : TsReachabilityTarget(location)

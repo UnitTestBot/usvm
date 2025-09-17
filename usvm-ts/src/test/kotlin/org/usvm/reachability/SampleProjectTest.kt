@@ -1,6 +1,9 @@
 package org.usvm.reachability
 
+import org.jacodb.ets.model.EtsIfStmt
+import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.model.EtsThrowStmt
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Test
 import org.usvm.PathSelectionStrategy
@@ -75,7 +78,15 @@ class SampleProjectTest {
 
         // Create interesting reachability targets for the system classes
         val targets = createSampleTargets(scene)
-        println("🎯 Created ${targets.size} reachability targets")
+        println(
+            "🎯 Created ${targets.size} reachability targets: ${
+                targets.count { it.location is EtsThrowStmt }
+            } throws, ${
+                targets.count { it.location is EtsReturnStmt }
+            } returns, ${
+                targets.count { it.location is EtsIfStmt }
+            } branches"
+        )
 
         // Run the analysis
         println("\n⚡ Running reachability analysis...")
@@ -215,16 +226,16 @@ class SampleProjectTest {
             clazz.methods.forEach { method ->
                 method.cfg.stmts.forEach { stmt ->
                     // Create targets for different types of statements
-                    when {
-                        stmt.toString().contains("throw") -> {
+                    when (stmt) {
+                        is EtsThrowStmt -> {
                             targets.add(TsReachabilityTarget.FinalPoint(stmt))
                         }
 
-                        stmt.toString().contains("return") -> {
+                        is EtsReturnStmt -> {
                             targets.add(TsReachabilityTarget.FinalPoint(stmt))
                         }
 
-                        stmt.toString().contains("if") -> {
+                        is EtsIfStmt -> {
                             targets.add(TsReachabilityTarget.IntermediatePoint(stmt))
                         }
                     }

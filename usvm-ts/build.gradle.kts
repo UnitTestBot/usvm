@@ -8,7 +8,7 @@ import kotlin.time.Duration
 
 plugins {
     id("usvm.kotlin-conventions")
-    application
+    kotlin("plugin.serialization") version Versions.kotlin
     id(Plugins.Shadow)
 }
 
@@ -19,6 +19,7 @@ dependencies {
     implementation(Libs.jacodb_core)
     implementation(Libs.jacodb_ets)
     implementation(Libs.clikt)
+    implementation(Libs.kotlinx_serialization_json)
 
     implementation(Libs.ksmt_yices)
     implementation(Libs.ksmt_cvc5)
@@ -35,17 +36,8 @@ dependencies {
     testImplementation("org.burningwave:core:12.62.7")
 }
 
-application {
-    mainClass = "org.usvm.reachability.cli.ReachabilityKt"
-    applicationDefaultJvmArgs = listOf("-Dfile.encoding=UTF-8", "-Dsun.stdout.encoding=UTF-8")
-}
-
-tasks.startScripts {
-    applicationName = "usvm-ts-reachability"
-}
-
 tasks.shadowJar {
-    archiveBaseName.set("usvm-ts-reachability")
+    archiveBaseName.set("usvm-ts-all")
     archiveClassifier.set("")
     mergeServiceFiles()
 

@@ -18,6 +18,7 @@ TIMEOUT=300
 STEPS=3500
 VERBOSE=false
 INCLUDE_STATEMENTS=false
+METHOD_FILTER=""
 
 # Colors for output
 RED='\033[0;31m'
@@ -50,9 +51,6 @@ usage() {
     echo "  # Analyze all public methods in a TypeScript project"
     echo "  $0 -p ./my-typescript-project"
     echo ""
-    echo "  # Analyze the sample system applications project"
-    echo "  $0 -p ../examples/reachability/sample-project"
-    echo ""
     echo "  # Use custom targets and verbose output"
     echo "  $0 -p ./my-project -t ./targets.json -v"
     echo ""
@@ -60,6 +58,7 @@ usage() {
     echo "  $0 -p ./project --method ProcessManager --include-statements"
 }
 
+# Parse command line arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
         -p|--project)
@@ -114,6 +113,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Validate required arguments
 if [[ -z "$PROJECT_PATH" ]]; then
     echo -e "${RED}❌ Error: Project path is required${NC}"
     usage
@@ -125,25 +125,27 @@ if [[ ! -d "$PROJECT_PATH" ]]; then
     exit 1
 fi
 
+# Display configuration
 echo -e "${BLUE}🚀 Starting TypeScript Reachability Analysis${NC}"
 echo "📁 Project: $PROJECT_PATH"
 echo "📄 Output: $OUTPUT_DIR"
 echo "🔍 Mode: $MODE"
 echo "⚙️ Solver: $SOLVER"
 
-# Path to the shadow JAR
-SHADOW_JAR="$USVM_ROOT/usvm-ts/build/libs/usvm-ts-reachability.jar"
+# Path to the compiled shadow JAR
+JAR_PATH="$USVM_ROOT/usvm-ts/build/libs/usvm-ts-all.jar"
 
-# Check if shadow JAR exists
-if [[ ! -f "$SHADOW_JAR" ]]; then
-    echo -e "${RED}❌ Error: Shadow JAR not found at $SHADOW_JAR${NC}"
-    echo "Please run the following commands first:"
-    echo "  cd $USVM_ROOT"
-    echo "  ./gradlew :usvm-ts:shadowJar"
-    exit 1
+# Check if JAR exists, if not try to build it
+if [[ ! -f "$JAR_PATH" ]]; then
+    echo -e "${YELLOW}⚠️ JAR not found, attempting to build...${NC}"
+    cd "$USVM_ROOT"
+    if ! ./gradlew :usvm-ts:shadowJar; then
+        echo -e "${RED}❌ Error: Failed to build JAR${NC}"
+        exit 1
+    fi
 fi
 
-# Build the Java command arguments
+# Build the command arguments
 JAVA_ARGS=()
 JAVA_ARGS+=("--project" "$PROJECT_PATH")
 JAVA_ARGS+=("--output" "$OUTPUT_DIR")
@@ -179,9 +181,12 @@ fi
 echo ""
 echo -e "${YELLOW}⚡ Running analysis...${NC}"
 
-# Execute the JAR directly
-echo -e "ARGS: ${JAVA_ARGS[*]}"
-java -Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -jar "$SHADOW_JAR" "${JAVA_ARGS[@]}"
+# Execute the analysis
+java -Dfile.encoding=UTF-8 \
+     -Dsun.stdout.encoding=UTF-8 \
+     -cp "$JAR_PATH" \
+     org.usvm.reachability.cli.ReachabilityKt \
+     "${JAVA_ARGS[@]}"
 
 echo ""
 echo -e "${GREEN}✅ Analysis complete! Check the results in: $OUTPUT_DIR${NC}"
