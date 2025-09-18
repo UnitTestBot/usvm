@@ -1,4 +1,4 @@
-package org.usvm.reachability.api
+package org.usvm.api.reachability
 
 import org.usvm.machine.state.TsState
 import org.usvm.statistics.UMachineObserver

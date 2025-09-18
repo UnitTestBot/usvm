@@ -1,4 +1,4 @@
-package org.usvm.reachability.dto
+package org.usvm.api.reachability.dto
 
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.SerialName
@@ -31,11 +31,10 @@ sealed interface TargetsContainerDto {
         val targets: List<TargetDto>,
     ) : SingleTrace
 
-    // Format: { "target": {...}, "children": [...] }
+    // Format: { "root": {...} }
     @Serializable
     data class TreeTrace(
-        val target: TargetDto,
-        val children: List<TargetTreeNodeDto> = emptyList(),
+        val root: TargetTreeNodeDto,
     ) : SingleTrace
 
     // Format: [ {...} ]
@@ -47,13 +46,14 @@ sealed interface TargetsContainerDto {
 
 object SingleTraceSerializer :
     JsonContentPolymorphicSerializer<TargetsContainerDto.SingleTrace>(TargetsContainerDto.SingleTrace::class) {
+
     override fun selectDeserializer(element: JsonElement): DeserializationStrategy<TargetsContainerDto.SingleTrace> =
         when {
             // Object with "targets" field: { "targets": [...] }
             element is JsonObject && element.containsKey("targets") -> TargetsContainerDto.LinearTrace.serializer()
 
-            // Object with "target" field: { "target": {...}, "children": [...] }
-            element is JsonObject && element.containsKey("target") -> TargetsContainerDto.TreeTrace.serializer()
+            // Object with "root" field: { "root": {...} }
+            element is JsonObject && element.containsKey("root") -> TargetsContainerDto.TreeTrace.serializer()
 
             else -> error("Unknown single trace format")
         }
@@ -62,7 +62,9 @@ object SingleTraceSerializer :
         selectDeserializer(element) as DeserializationStrategy<TargetsContainerDto>
 }
 
-object TargetsContainerSerializer : JsonContentPolymorphicSerializer<TargetsContainerDto>(TargetsContainerDto::class) {
+object TargetsContainerSerializer :
+    JsonContentPolymorphicSerializer<TargetsContainerDto>(TargetsContainerDto::class) {
+
     override fun selectDeserializer(element: JsonElement): DeserializationStrategy<TargetsContainerDto> = when {
         // Array at top level: [ {...} ]
         element is JsonArray -> TargetsContainerDto.TraceList.serializer()
@@ -79,7 +81,7 @@ data class TargetTreeNodeDto(
 )
 
 @Serializable
-enum class TargetType {
+enum class TargetTypeDto {
     @SerialName("initial")
     INITIAL,
 
@@ -87,12 +89,12 @@ enum class TargetType {
     INTERMEDIATE,
 
     @SerialName("final")
-    FINAL
+    FINAL,
 }
 
 @Serializable
 data class TargetDto(
-    val type: TargetType = TargetType.INTERMEDIATE,
+    val type: TargetTypeDto = TargetTypeDto.INTERMEDIATE,
     val location: LocationDto, // TODO: consider inlining
 )
 

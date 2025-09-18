@@ -1,4 +1,4 @@
-package org.usvm.reachability.api
+package org.usvm.api.reachability
 
 import org.jacodb.ets.model.EtsStmt
 import org.usvm.api.TsTarget

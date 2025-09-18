@@ -4,8 +4,8 @@ import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.usvm.PathSelectionStrategy
 import org.usvm.UMachineOptions
-import org.usvm.reachability.api.TsReachabilityObserver
-import org.usvm.reachability.api.TsReachabilityTarget
+import org.usvm.api.reachability.TsReachabilityObserver
+import org.usvm.api.reachability.TsReachabilityTarget
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.util.getResourcePath

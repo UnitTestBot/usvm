@@ -9,9 +9,9 @@ import org.junit.jupiter.api.Test
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.UMachineOptions
-import org.usvm.reachability.api.TsReachabilityObserver
-import org.usvm.reachability.api.TsReachabilityTarget
 import org.usvm.api.TsTarget
+import org.usvm.api.reachability.TsReachabilityObserver
+import org.usvm.api.reachability.TsReachabilityTarget
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.machine.state.TsState
