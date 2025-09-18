@@ -668,7 +668,6 @@ data class ReachabilityResults(
     val scene: EtsScene,
 )
 
-// Intermediate structures for building hierarchical targets before statement resolution
 /**
  * A hierarchical node representing a target with its children.
  * Can represent linear chains (single child), trees (multiple children), or leaves (no children).
@@ -679,7 +678,7 @@ data class TargetNode(
 )
 
 /**
- * Represents a trace - an independent hierarchical structure of targets
+ * Represents a trace - an independent hierarchical structure of targets.
  */
 data class TargetTrace(
     val root: TargetNode,
