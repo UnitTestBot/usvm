@@ -230,7 +230,7 @@ else
     java -Dfile.encoding=UTF-8 \
          -Dsun.stdout.encoding=UTF-8 \
          -cp "$JAR_PATH" \
-         org.usvm.reachability.cli.ReachabilityKt \
+         org.usvm.api.reachability.cli.ReachabilityKt \
          "${CMD_ARGS[@]}"
 fi
 
