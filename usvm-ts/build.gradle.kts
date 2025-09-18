@@ -9,6 +9,7 @@ import kotlin.time.Duration
 plugins {
     id("usvm.kotlin-conventions")
     kotlin("plugin.serialization") version Versions.kotlin
+    application
     id(Plugins.Shadow)
 }
 
@@ -34,6 +35,23 @@ dependencies {
     // https://mvnrepository.com/artifact/org.burningwave/core
     // Use it to export all modules to all
     testImplementation("org.burningwave:core:12.62.7")
+}
+
+fun createStartScript(name: String, configure: CreateStartScripts.() -> Unit) =
+    tasks.register<CreateStartScripts>("startScripts$name") {
+        applicationName = name
+        outputDir = tasks.startScripts.get().outputDir
+        classpath = tasks.startScripts.get().classpath
+        configure()
+    }.also {
+        tasks.named("startScripts") {
+            dependsOn(it)
+        }
+    }
+
+createStartScript("usvm-ts-reachability") {
+    mainClass = "org.usvm.api.reachability.cli.ReachabilityKt"
+    defaultJvmOpts = listOf("-Xmx4g", "-Dfile.encoding=UTF-8", "-Dsun.stdout.encoding=UTF-8")
 }
 
 tasks.shadowJar {
