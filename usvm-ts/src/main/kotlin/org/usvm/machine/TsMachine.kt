@@ -1,6 +1,7 @@
 package org.usvm.machine
 
 import mu.KotlinLogging
+import org.jacodb.ets.model.EtsLexicalEnvType
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStmt
@@ -52,6 +53,10 @@ class TsMachine(
         methods: List<EtsMethod>,
         targets: List<TsTarget> = emptyList(),
     ): List<TsState> {
+        val methods = methods.filterNot {
+            it.parameters.isNotEmpty() && it.parameters.first().type is EtsLexicalEnvType
+        }
+
         val initialStates = mutableMapOf<EtsMethod, TsState>()
         methods.forEach { initialStates[it] = interpreter.getInitialState(it, targets) }
 
