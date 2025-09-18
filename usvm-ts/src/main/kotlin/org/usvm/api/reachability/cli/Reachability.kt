@@ -488,7 +488,7 @@ class ReachabilityAnalyzer : CliktCommand(
         reportFile.writeText(buildString {
             appendLine("🎯 REACHABILITY ANALYSIS SUMMARY")
             appendLine("=".repeat(50))
-            appendLine("⏱️  Duration: ${String.format("%.2f", duration)}s")
+            appendLine("⏱️ Duration: ${String.format("%.2f", duration)}s")
             appendLine("🔍 Methods analyzed: ${results.methods.size}")
             appendLine("📍 Targets analyzed: ${results.reachabilityResults.size}")
 
