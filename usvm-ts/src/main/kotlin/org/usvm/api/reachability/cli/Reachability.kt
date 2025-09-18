@@ -191,13 +191,13 @@ class ReachabilityAnalyzer : CliktCommand(
         // Prepare targets
         val targets = if (targetsFile != null) {
             val targetTraces = parseTargetDefinitions(targetsFile!!)
-            createTargetsFromTraces(methodsToAnalyze, targetTraces).also {
-                echo("📍 Created ${it.size} reachability target trees from ${targetTraces.size} traces")
-            }
+            val targets = createTargetsFromTraces(methodsToAnalyze, targetTraces)
+            echo("📍 Created ${targets.size} reachability target trees from ${targetTraces.size} traces")
+            targets
         } else {
-            generateDefaultTargets(methodsToAnalyze).also {
-                echo("📍 Generated ${it.size} default reachability targets")
-            }
+            val targets = generateDefaultTargets(methodsToAnalyze)
+            echo("📍 Generated ${targets.size} default reachability targets")
+            targets
         }
 
         // Run analysis
@@ -285,24 +285,24 @@ class ReachabilityAnalyzer : CliktCommand(
         return when (trace) {
             // Single linear trace
             is TargetsContainerDto.LinearTrace -> {
-                TargetTrace.Linear(targets = trace.targets.map { it.toDomain() })
+                TargetTrace.Linear(targets = trace.targets)
             }
 
             // Single tree trace
             is TargetsContainerDto.TreeTrace -> {
-                TargetTrace.Tree(root = trace.root.toDomain())
+                TargetTrace.Tree(root = trace.root)
             }
         }
     }
 
     // TODO: remove
-    private fun buildLinearTrace(targets: List<Target>): TargetTreeNode? {
+    private fun buildLinearTrace(targets: List<TargetDto>): TargetTreeNodeDto? {
         if (targets.isEmpty()) return null
 
-        var current: TargetTreeNode? = null
+        var current: TargetTreeNodeDto? = null
 
         for (target in targets.asReversed()) {
-            current = TargetTreeNode(target, children = listOfNotNull(current))
+            current = TargetTreeNodeDto(target, children = listOfNotNull<TargetTreeNodeDto>(current))
         }
 
         return current
@@ -343,29 +343,26 @@ class ReachabilityAnalyzer : CliktCommand(
         val methodMap = methods.associateBy { "${it.enclosingClass?.name ?: "Unknown"}.${it.name}" }
 
         targetTraces.forEach { trace ->
-            when (trace) {
-                is TargetTrace.Linear -> {
+            val root = when (trace) {
+                is TargetTrace.Tree -> trace.root
+                is TargetTrace.Linear -> buildLinearTrace(trace.targets)!!
+            }
 
-                }
+            // For each trace, find the corresponding method and build the target hierarchy
+            val methodName = "${root.target.location.className}.${root.target.location.methodName}"
+            val method = methodMap[methodName] ?: return@forEach
 
-                is TargetTrace.Tree -> {
-                    // For each trace, find the corresponding method and build the target hierarchy
-                    val methodName = "${trace.root.target.location.className}.${trace.root.target.location.methodName}"
-                    val method = methodMap[methodName] ?: return@forEach
-
-                    // Resolve the root target and build the hierarchy using addChild
-                    val rootTarget = resolveTargetNode(trace.root, method.cfg.stmts)
-                    if (rootTarget != null) {
-                        targets.add(rootTarget)
-                    }
-                }
+            // Resolve the root target and build the hierarchy using addChild
+            val rootTarget = resolveTargetNode(root, method.cfg.stmts)
+            if (rootTarget != null) {
+                targets.add(rootTarget)
             }
         }
 
         return targets
     }
 
-    private fun resolveTargetNode(node: TargetTreeNode, statements: List<EtsStmt>): TsTarget? {
+    private fun resolveTargetNode(node: TargetTreeNodeDto, statements: List<EtsStmt>): TsTarget? {
         // First, resolve the current node to a TsReachabilityTarget
         val stmt = findStatementByTarget(statements, node.target) ?: return null
 
@@ -388,7 +385,7 @@ class ReachabilityAnalyzer : CliktCommand(
 
     private fun findStatementByTarget(
         statements: List<EtsStmt>,
-        target: Target,
+        target: TargetDto,
     ): EtsStmt? {
         val targetLocation = target.location
 
@@ -407,7 +404,7 @@ class ReachabilityAnalyzer : CliktCommand(
         return statements.firstOrNull()
     }
 
-    private fun matchesLocation(stmt: EtsStmt, location: Location): Boolean {
+    private fun matchesLocation(stmt: EtsStmt, location: LocationDto): Boolean {
         // Match by statement type if specified
         location.stmtType?.let { expectedType ->
             val actualType = stmt.javaClass.simpleName
@@ -631,76 +628,13 @@ data class ReachabilityResults(
     val scene: EtsScene,
 )
 
-private fun TargetDto.toDomain(): Target {
-    return Target(
-        type = this.type.toDomain(),
-        location = this.location.toDomain(),
-    )
-}
-
-// TODO: replace return type with domain and fix the mapping
-private fun TargetTypeDto.toDomain(): TargetTypeDto {
-    return when (this) {
-        TargetTypeDto.INITIAL -> TargetTypeDto.INITIAL
-        TargetTypeDto.INTERMEDIATE -> TargetTypeDto.INTERMEDIATE
-        TargetTypeDto.FINAL -> TargetTypeDto.FINAL
-    }
-}
-
-private fun LocationDto.toDomain(): Location {
-    return Location(
-        fileName = this.fileName,
-        className = this.className,
-        methodName = this.methodName,
-        stmtType = this.stmtType,
-        block = this.block,
-        index = this.index,
-    )
-}
-
-private fun TargetTreeNodeDto.toDomain(): TargetTreeNode {
-    return TargetTreeNode(
-        target = this.target.toDomain(),
-        children = this.children.map { it.toDomain() },
-    )
-}
-
 /**
  * Represents a trace - an independent hierarchical structure of targets.
  */
 sealed interface TargetTrace {
-    data class Linear(val targets: List<Target>) : TargetTrace
-    data class Tree(val root: TargetTreeNode) : TargetTrace
+    data class Linear(val targets: List<TargetDto>) : TargetTrace
+    data class Tree(val root: TargetTreeNodeDto) : TargetTrace
 }
-
-/**
- * A hierarchical node representing a target with its children.
- * Can represent linear chains (single child), trees (multiple children), or leaves (no children).
- */
-data class TargetTreeNode(
-    val target: Target,
-    val children: List<TargetTreeNode> = emptyList(),
-)
-
-/**
- * A specific target point in the code with its location.
- */
-data class Target(
-    val type: TargetTypeDto, // TODO: domain enum
-    val location: Location,
-)
-
-/**
- * Location details of a target point in the code.
- */
-data class Location(
-    val fileName: String?,
-    val className: String?,
-    val methodName: String?,
-    val stmtType: String?,
-    val block: Int?,
-    val index: Int?,
-)
 
 fun main(args: Array<String>) {
     ReachabilityAnalyzer().main(args)
