@@ -37,6 +37,11 @@ dependencies {
     testImplementation("org.burningwave:core:12.62.7")
 }
 
+application {
+    mainClass = "org.usvm.api.reachability.cli.ReachabilityKt"
+    applicationDefaultJvmArgs = listOf("-Dfile.encoding=UTF-8", "-Dsun.stdout.encoding=UTF-8")
+}
+
 fun createStartScript(name: String, configure: CreateStartScripts.() -> Unit) =
     tasks.register<CreateStartScripts>("startScripts$name") {
         applicationName = name
