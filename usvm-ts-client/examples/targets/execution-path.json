@@ -1,0 +1,49 @@
+{
+  "root": {
+    "target": {
+      "type": "initial",
+      "location": {
+        "fileName": "src/main.ts",
+        "className": "Application",
+        "methodName": "main"
+      }
+    },
+    "children": [
+      {
+        "target": {
+          "type": "intermediate",
+          "location": {
+            "fileName": "src/main.ts",
+            "className": "Application",
+            "methodName": "start"
+          }
+        },
+        "children": [
+          {
+            "target": {
+              "type": "intermediate",
+              "location": {
+                "fileName": "src/main.ts",
+                "className": "Application",
+                "methodName": "initialize"
+              }
+            },
+            "children": [
+              {
+                "target": {
+                  "type": "final",
+                  "location": {
+                    "fileName": "src/main.ts",
+                    "className": "Application",
+                    "methodName": "loadConfiguration"
+                  }
+                },
+                "children": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

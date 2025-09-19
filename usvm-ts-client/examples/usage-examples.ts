@@ -1,12 +1,4 @@
-import {
-    AnalysisMode,
-    ExecutionMode,
-    SolverType,
-    TargetBuilder,
-    TargetPresets,
-    TargetTypeDto,
-    USVMReachabilityClient,
-} from '../src';
+import { AnalysisMode, ExecutionMode, SolverType, TargetBuilder, TargetTypeDto, USVMReachabilityClient } from '../src';
 import * as path from 'path';
 
 /**
@@ -89,23 +81,9 @@ async function customTargetsAnalysis() {
         usvmRoot: USVM_ROOT,
     });
 
-    // Build custom targets using the correct DTO structure
-    const targets = new TargetBuilder()
-        .addMethodAsTree('AuthService', 'login', 'src/auth.ts', {
-            type: TargetTypeDto.INITIAL,
-        })
-        .addMethodAsTree('AuthService', 'validateCredentials', 'src/auth.ts', {
-            type: TargetTypeDto.INTERMEDIATE,
-        })
-        .addMethodAsTree('Calculator', 'divide', 'src/calculator.ts', {
-            type: TargetTypeDto.INTERMEDIATE,
-        })
-        .build();
-
-    // Use our local targets directory
-    const targetsFile = path.join(TARGETS_DIR, 'generated-custom-targets.json');
-    await client.createTargetsFile(targets, targetsFile);
-    console.log(`📋 Created targets file: ${targetsFile}`);
+    // Use the pre-defined custom targets file directly
+    const targetsFile = path.join(TARGETS_DIR, 'custom-targets.json');
+    console.log(`📋 Using targets file: ${targetsFile}`);
 
     try {
         const report = await client.analyze({
@@ -133,38 +111,11 @@ async function executionPathAnalysis() {
         usvmRoot: USVM_ROOT,
     });
 
-    // Create an execution path through our sample application using correct structure
-    const executionPath = TargetPresets.executionPath([
-        {
-            fileName: 'src/main.ts',
-            className: 'Application',
-            methodName: 'main',
-            type: TargetTypeDto.INITIAL,
-        },
-        {
-            fileName: 'src/main.ts',
-            className: 'Application',
-            methodName: 'start',
-            type: TargetTypeDto.INTERMEDIATE,
-        },
-        {
-            fileName: 'src/main.ts',
-            className: 'Application',
-            methodName: 'initialize',
-            type: TargetTypeDto.INTERMEDIATE,
-        },
-        {
-            fileName: 'src/main.ts',
-            className: 'Application',
-            methodName: 'loadConfiguration',
-            type: TargetTypeDto.FINAL,
-        },
-    ]);
+    // Use the pre-defined execution path targets file directly
+    const targetsFile = path.join(TARGETS_DIR, 'execution-path.json');
+    console.log(`📋 Using execution path targets file: ${targetsFile}`);
 
     try {
-        const targetsFile = path.join(TARGETS_DIR, 'generated-execution-path.json');
-        await client.createTargetsFile(executionPath.build(), targetsFile);
-
         const report = await client.analyze({
             projectPath: SAMPLE_PROJECT_PATH,
             targetsFile,
@@ -307,6 +258,53 @@ async function batchAnalysis() {
     console.table(results);
 }
 
+// Example 6: Dynamic Target Generation (demonstrates TargetBuilder usage)
+async function dynamicTargetGeneration() {
+    console.log('🔧 Running analysis with dynamically generated targets...');
+
+    const client = new USVMReachabilityClient({
+        usvmRoot: USVM_ROOT,
+    });
+
+    // Build custom targets using TargetBuilder for specific analysis
+    const dynamicTargets = new TargetBuilder()
+        .addMethodAsTree('Calculator', 'add', 'src/calculator.ts', {
+            type: TargetTypeDto.INITIAL,
+        })
+        .addMethodAsTree('Calculator', 'multiply', 'src/calculator.ts', {
+            type: TargetTypeDto.INTERMEDIATE,
+        })
+        .addMethodAsTree('Calculator', 'divide', 'src/calculator.ts', {
+            type: TargetTypeDto.FINAL,
+        })
+        .build();
+
+    // Generate targets file for this specific analysis
+    const dynamicTargetsFile = path.join(TARGETS_DIR, 'runtime-generated-targets.json');
+    await client.createTargetsFile(dynamicTargets, dynamicTargetsFile);
+    console.log(`📋 Generated dynamic targets file: ${dynamicTargetsFile}`);
+
+    try {
+        const report = await client.analyze({
+            projectPath: SAMPLE_PROJECT_PATH,
+            targetsFile: dynamicTargetsFile,
+            analysisMode: AnalysisMode.ALL_METHODS,
+            verbose: true,
+            outputDir: path.join(__dirname, 'results', 'dynamic-targets'),
+        });
+
+        console.log(`✅ Dynamic targets analysis complete!`);
+        console.log(`🔧 Generated and analyzed ${report.summary.totalTargets} dynamic targets`);
+
+        // Clean up the generated file after use
+        await import('fs').then(fs => fs.promises.unlink(dynamicTargetsFile));
+        console.log(`🧹 Cleaned up generated targets file`);
+
+    } catch (error) {
+        console.error('❌ Dynamic targets analysis failed:', error.message);
+    }
+}
+
 // Main execution
 async function runExamples() {
     console.log('🚀 USVM Reachability Client Examples\n');
@@ -325,6 +323,9 @@ async function runExamples() {
         // console.log('\n' + '='.repeat(50) + '\n');
         //
         // await batchAnalysis();
+        // console.log('\n' + '='.repeat(50) + '\n');
+        //
+        // await dynamicTargetGeneration();
 
     } catch (error) {
         console.error('💥 Example execution failed:', error);
@@ -342,4 +343,5 @@ export {
     executionPathAnalysis,
     advancedAnalysis,
     batchAnalysis,
+    dynamicTargetGeneration,
 };

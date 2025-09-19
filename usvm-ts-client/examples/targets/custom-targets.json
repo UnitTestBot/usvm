@@ -1,0 +1,36 @@
+{
+  "root": {
+    "target": {
+      "type": "initial",
+      "location": {
+        "fileName": "src/auth.ts",
+        "className": "AuthService",
+        "methodName": "login"
+      }
+    },
+    "children": [
+      {
+        "target": {
+          "type": "intermediate",
+          "location": {
+            "fileName": "src/auth.ts",
+            "className": "AuthService",
+            "methodName": "validateCredentials"
+          }
+        },
+        "children": []
+      },
+      {
+        "target": {
+          "type": "intermediate",
+          "location": {
+            "fileName": "src/auth.ts",
+            "className": "AuthService",
+            "methodName": "logSecurityEvent"
+          }
+        },
+        "children": []
+      }
+    ]
+  }
+}
