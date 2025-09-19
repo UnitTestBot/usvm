@@ -117,7 +117,7 @@ export class USVMReachabilityClient {
                     console.log('✅ Build completed successfully');
                     resolve();
                 } else {
-                    reject(new ExecutionError(`Build failed with exit code ${code}:\n${stderr}`, code));
+                    reject(new ExecutionError(`Build failed with exit code ${code}:\n${stderr}`, code ?? undefined));
                 }
             });
 
@@ -214,7 +214,7 @@ export class USVMReachabilityClient {
                     const errorMessage = config.verbose
                         ? `Analysis failed with exit code ${code}`
                         : `Analysis failed with exit code ${code}:\n${stderr}`;
-                    reject(new ExecutionError(errorMessage, code));
+                    reject(new ExecutionError(errorMessage, code ?? undefined));
                 }
             });
 
