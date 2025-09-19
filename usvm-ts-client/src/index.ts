@@ -10,7 +10,7 @@ export {
     AnalysisMode,
     SolverType,
     ExecutionMode,
-    TargetType,
+    TargetTypeDto,
     USVMError,
     AnalysisError,
     ConfigurationError,
