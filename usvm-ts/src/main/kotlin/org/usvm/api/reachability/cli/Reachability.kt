@@ -443,8 +443,8 @@ class ReachabilityAnalyzer : CliktCommand(
             if (targetLocation != null) {
                 val reachabilityStatus = when {
                     targetLocation in allReachedStatements -> ReachabilityStatus.REACHABLE
-                    states.isEmpty() -> ReachabilityStatus.UNKNOWN
-                    else -> ReachabilityStatus.UNREACHABLE
+                    states.isEmpty() -> ReachabilityStatus.UNREACHABLE
+                    else -> ReachabilityStatus.UNKNOWN
                 }
 
                 val executionPaths = if (reachabilityStatus == ReachabilityStatus.REACHABLE) {
