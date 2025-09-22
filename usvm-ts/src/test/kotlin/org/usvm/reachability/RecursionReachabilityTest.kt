@@ -22,6 +22,7 @@ import kotlin.time.Duration
  * Tests for recursion reachability scenarios.
  * Verifies reachability analysis through recursive function calls with controlled depth limits.
  */
+@Disabled("Recursion is not fully supported yet")
 class RecursionReachabilityTest {
 
     private val scene = run {

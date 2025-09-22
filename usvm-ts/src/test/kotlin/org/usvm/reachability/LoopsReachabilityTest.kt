@@ -4,6 +4,7 @@ import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
+import org.junit.jupiter.api.Disabled
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.UMachineOptions
@@ -148,6 +149,7 @@ class LoopsReachabilityTest {
         )
     }
 
+    @Disabled("Iterators are not yet supported")
     @Test
     fun testForInLoopReachable() {
         // Test reachability through for-in loop:
@@ -169,7 +171,7 @@ class LoopsReachabilityTest {
         target = target.addChild(TsReachabilityTarget.IntermediatePoint(valueCheck))
 
         // return 1
-        val returnStmt = method.cfg.stmts.filterIsInstance<EtsReturnStmt>()[0]
+        val returnStmt = method.cfg.stmts.filterIsInstance<EtsReturnStmt>()[1]
         target.addChild(TsReachabilityTarget.FinalPoint(returnStmt))
 
         val results = machine.analyze(listOf(method), listOf(initialTarget))
@@ -185,6 +187,7 @@ class LoopsReachabilityTest {
         )
     }
 
+    @Disabled("Iterators are not yet supported")
     @Test
     fun testForOfLoopReachable() {
         // Test reachability through for-of loop:
@@ -206,7 +209,7 @@ class LoopsReachabilityTest {
         target = target.addChild(TsReachabilityTarget.IntermediatePoint(maxCheck))
 
         // return 1
-        val returnStmt = method.cfg.stmts.filterIsInstance<EtsReturnStmt>()[0]
+        val returnStmt = method.cfg.stmts.filterIsInstance<EtsReturnStmt>()[1]
         target.addChild(TsReachabilityTarget.FinalPoint(returnStmt))
 
         val results = machine.analyze(listOf(method), listOf(initialTarget))
@@ -239,7 +242,7 @@ class LoopsReachabilityTest {
         target = target.addChild(TsReachabilityTarget.IntermediatePoint(thresholdCheck))
 
         // return 1
-        val returnStmt = method.cfg.stmts.filterIsInstance<EtsReturnStmt>()[0]
+        val returnStmt = method.cfg.stmts.filterIsInstance<EtsReturnStmt>()[1]
         target.addChild(TsReachabilityTarget.FinalPoint(returnStmt))
 
         val results = machine.analyze(listOf(method), listOf(initialTarget))

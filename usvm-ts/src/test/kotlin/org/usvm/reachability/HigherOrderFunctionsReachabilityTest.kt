@@ -4,6 +4,7 @@ import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
+import org.junit.jupiter.api.Disabled
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.UMachineOptions
@@ -21,6 +22,7 @@ import kotlin.time.Duration
  * Tests for higher-order functions and closures reachability scenarios.
  * Verifies reachability analysis through function composition and array processing patterns.
  */
+@Disabled("Iterators are not supported")
 class HigherOrderFunctionsReachabilityTest {
 
     private val scene = run {

@@ -101,7 +101,7 @@ class BasicConditionsReachabilityTest {
         target = target.addChild(TsReachabilityTarget.IntermediatePoint(secondIf))
 
         // return -1
-        val returnStmt = method.cfg.stmts.filterIsInstance<EtsReturnStmt>()[0]
+        val returnStmt = method.cfg.stmts.filterIsInstance<EtsReturnStmt>()[1]
         target.addChild(TsReachabilityTarget.FinalPoint(returnStmt))
 
         val results = machine.analyze(listOf(method), listOf(initialTarget))
@@ -216,7 +216,7 @@ class BasicConditionsReachabilityTest {
         target = target.addChild(TsReachabilityTarget.IntermediatePoint(secondIf))
 
         // return -1
-        val returnStmt = method.cfg.stmts.filterIsInstance<EtsReturnStmt>()[0]
+        val returnStmt = method.cfg.stmts.filterIsInstance<EtsReturnStmt>()[1]
         target.addChild(TsReachabilityTarget.FinalPoint(returnStmt))
 
         val results = machine.analyze(listOf(method), listOf(initialTarget))

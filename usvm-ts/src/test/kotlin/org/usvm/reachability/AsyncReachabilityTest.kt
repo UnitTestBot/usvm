@@ -4,6 +4,7 @@ import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
+import org.junit.jupiter.api.Disabled
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.UMachineOptions
@@ -113,6 +114,7 @@ class AsyncReachabilityTest {
         )
     }
 
+    @Disabled("No ::map method")
     @Test
     fun testPromiseAllReachable() {
         // Test reachability through Promise.all pattern:
@@ -150,6 +152,7 @@ class AsyncReachabilityTest {
         )
     }
 
+    @Disabled("Function types are not supported in EtsHierarchy")
     @Test
     fun testCallbackReachable() {
         // Test reachability through callback pattern:

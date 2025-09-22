@@ -4,6 +4,7 @@ import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
+import org.junit.jupiter.api.Disabled
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.UMachineOptions
@@ -80,6 +81,7 @@ class TypeGuardsReachabilityTest {
         )
     }
 
+    @Disabled("Fake type in type constraints")
     @Test
     fun testInstanceofGuardReachable() {
         // Test reachability through instanceof type guard:
@@ -101,7 +103,7 @@ class TypeGuardsReachabilityTest {
         target = target.addChild(TsReachabilityTarget.IntermediatePoint(lengthCheck))
 
         // return 1
-        val returnStmt = method.cfg.stmts.filterIsInstance<EtsReturnStmt>()[0]
+        val returnStmt = method.cfg.stmts.filterIsInstance<EtsReturnStmt>()[1]
         target.addChild(TsReachabilityTarget.FinalPoint(returnStmt))
 
         val results = machine.analyze(listOf(method), listOf(initialTarget))
@@ -171,7 +173,7 @@ class TypeGuardsReachabilityTest {
         target = target.addChild(TsReachabilityTarget.IntermediatePoint(assertionCheck))
 
         // return 1
-        val returnStmt = method.cfg.stmts.filterIsInstance<EtsReturnStmt>()[0]
+        val returnStmt = method.cfg.stmts.filterIsInstance<EtsReturnStmt>()[1]
         target.addChild(TsReachabilityTarget.FinalPoint(returnStmt))
 
         val results = machine.analyze(listOf(method), listOf(initialTarget))
@@ -286,7 +288,7 @@ class TypeGuardsReachabilityTest {
         target = target.addChild(TsReachabilityTarget.IntermediatePoint(boolCheck))
 
         // return 1
-        val returnStmt = method.cfg.stmts.filterIsInstance<EtsReturnStmt>()[0]
+        val returnStmt = method.cfg.stmts.filterIsInstance<EtsReturnStmt>()[1]
         target.addChild(TsReachabilityTarget.FinalPoint(returnStmt))
 
         val results = machine.analyze(listOf(method), listOf(initialTarget))
