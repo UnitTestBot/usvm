@@ -249,7 +249,7 @@ fun TsContext.checkReadingInRange(
     )
 }
 
-fun TsContext.checkLengthBounds(
+fun TsContext.ensureLengthBounds(
     scope: TsStepScope,
     length: UExpr<TsSizeSort>,
     maxLength: Int,

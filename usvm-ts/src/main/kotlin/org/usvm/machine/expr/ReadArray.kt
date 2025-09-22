@@ -1,6 +1,7 @@
 package org.usvm.machine.expr
 
 import io.ksmt.utils.asExpr
+import mu.KotlinLogging
 import org.jacodb.ets.model.EtsArrayAccess
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
@@ -20,18 +21,30 @@ import org.usvm.types.first
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 
+private val logger = KotlinLogging.logger {}
+
 internal fun TsExprResolver.handleArrayAccess(
     value: EtsArrayAccess,
 ): UExpr<*>? = with(ctx) {
     // Resolve the array.
-    val array = resolve(value.array) ?: return null
-    check(array.sort == addressSort) {
-        "Expected address sort for array, got: ${array.sort}"
+    val array = run {
+        val resolved = resolve(value.array) ?: return null
+        if (resolved.isFakeObject()) {
+            scope.assert(resolved.getFakeType(scope).refTypeExpr) ?: run {
+                logger.warn { "UNSAT after ensuring fake object is ref-typed" }
+                return null
+            }
+            resolved.extractRef(scope)
+        } else {
+            check(resolved.sort == addressSort) {
+                "Expected address sort for array, got: ${resolved.sort}"
+            }
+            resolved.asExpr(addressSort)
+        }
     }
-    val arrayRef = array.asExpr(addressSort)
 
     // Check for undefined or null array access.
-    checkUndefinedOrNullPropertyRead(scope, arrayRef, propertyName = "[]") ?: return null
+    checkUndefinedOrNullPropertyRead(scope, array, propertyName = "[]") ?: return null
 
     // Resolve the index.
     val resolvedIndex = resolve(value.index) ?: return null
@@ -49,8 +62,8 @@ internal fun TsExprResolver.handleArrayAccess(
     ).asExpr(sizeSort)
 
     // Determine the array type.
-    val arrayType = if (isAllocatedConcreteHeapRef(arrayRef)) {
-        scope.calcOnState { memory.typeStreamOf(arrayRef).first() }
+    val arrayType = if (isAllocatedConcreteHeapRef(array)) {
+        scope.calcOnState { memory.typeStreamOf(array).first() }
     } else {
         value.array.type
     }
@@ -59,7 +72,7 @@ internal fun TsExprResolver.handleArrayAccess(
     }
 
     // Read the array element.
-    readArray(scope, arrayRef, bvIndex, arrayType)
+    readArray(scope, array, bvIndex, arrayType)
 }
 
 fun TsContext.readArray(
@@ -103,7 +116,11 @@ fun TsContext.readArray(
             index = index,
             type = arrayType,
         )
-        return scope.calcOnState { memory.read(lValue) }
+        val fake = scope.calcOnState { memory.read(lValue) }
+        check(fake.isFakeObject()) {
+            "Expected fake object in concrete array with unresolved element type, got: $fake"
+        }
+        return fake
     }
 
     // If the element type is unresolved, we need to create a fake object

@@ -1,5 +1,6 @@
 package org.usvm.util
 
+import mu.KotlinLogging
 import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsField
@@ -11,6 +12,8 @@ import org.jacodb.ets.model.EtsUnclearRefType
 import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
 import org.usvm.machine.TsContext
+
+private val logger = KotlinLogging.logger {}
 
 fun TsContext.resolveEtsField(
     instance: EtsLocal?,
@@ -68,10 +71,12 @@ private fun tryGetSingleField(
         val clazz = classes.single()
         val fields = clazz.getAllFields(hierarchy).filter { it.name == fieldName }
         if (fields.isEmpty()) {
-            error("No field with name '$fieldName' in class '${clazz.name}'")
+            // logger.warn { "No field with name '$fieldName' in class '${clazz.name}'" }
+            return null
         }
         if (fields.size > 1) {
-            error("Multiple fields with name '$fieldName' in class '${clazz.name}': $fields")
+            logger.warn { "Multiple fields with name '$fieldName' in class '${clazz.name}': $fields" }
+            return null
         }
         return fields.single()
     }
