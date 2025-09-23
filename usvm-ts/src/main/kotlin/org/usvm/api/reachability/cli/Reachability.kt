@@ -391,7 +391,7 @@ class ReachabilityAnalyzer : CliktCommand(
             val method = methodMap[methodName] ?: return@forEach
 
             // Resolve the root target and build the hierarchy using addChild
-            val rootTarget = resolveTargetNode(root, method.cfg.stmts)
+            val rootTarget = resolveTarget(root, method.cfg.stmts)
             if (rootTarget != null) {
                 targets.add(rootTarget)
             }
@@ -400,7 +400,7 @@ class ReachabilityAnalyzer : CliktCommand(
         return targets
     }
 
-    private fun resolveTargetNode(node: TargetTreeNodeDto, statements: List<EtsStmt>): TsTarget? {
+    private fun resolveTarget(node: TargetTreeNodeDto, statements: List<EtsStmt>): TsTarget? {
         // First, resolve the current node to a TsReachabilityTarget
         val stmt = findStatementByTarget(statements, node.target) ?: return null
 
@@ -412,7 +412,7 @@ class ReachabilityAnalyzer : CliktCommand(
 
         // Add all children to build the hierarchical structure
         node.children.forEach { childNode ->
-            val childTarget = resolveTargetNode(childNode, statements)
+            val childTarget = resolveTarget(childNode, statements)
             if (childTarget != null) {
                 currentTarget.addChild(childTarget)
             }
@@ -425,46 +425,32 @@ class ReachabilityAnalyzer : CliktCommand(
         statements: List<EtsStmt>,
         target: TargetDto,
     ): EtsStmt? {
-        val targetLocation = target.location
-
-        // Find statement by matching location properties
-        statements.find { stmt ->
-            matchesLocation(stmt, targetLocation)
-        }?.let { return it }
-
-        // Use index-based lookup if index is available
-        targetLocation.index?.let { index ->
-            if (index >= 0 && index < statements.size) {
-                return statements[index]
+        // Find statement by matching location
+        for (stmt in statements) {
+            // TODO: handle 'target.stmtType'
+            if (matchesLocation(stmt, target.location)) {
+                echo("Matched target $target to statement $stmt", err=true)
+                return stmt
             }
         }
-
+        // Return the first statement as a fallback
         return statements.firstOrNull()
     }
 
     private fun matchesLocation(stmt: EtsStmt, location: LocationDto): Boolean {
-        // Match by statement type if specified
-        location.stmtType?.let { expectedType ->
-            val actualType = stmt.javaClass.simpleName
-            return actualType.contains(expectedType, ignoreCase = true)
-        }
-
-        // Match by block and index if both are specified
+        // If both block and index are specified, match by both (using original DTO block/stmt indices)
         if (location.block != null && location.index != null) {
-            // Location matching based on statement position
-            return matchesByPosition(stmt, location.block, location.index)
+            if (stmt.location.blockDtoIndex == location.block && stmt.location.index == location.index) {
+                return true
+            }
         }
-
-        // Default to true if no specific matching criteria
-        return true
-    }
-
-    private fun matchesByPosition(stmt: EtsStmt, expectedBlock: Int, expectedIndex: Int): Boolean {
-        // Use statement hash and properties to determine position match
-        val stmtHash = stmt.hashCode()
-        val blockMatch = (stmtHash / 1000) % 10 == expectedBlock % 10
-        val indexMatch = stmtHash % 100 == expectedIndex % 100
-        return blockMatch && indexMatch
+        // EXTRA: If only the index is specified, match by index only (using the normal stmt index in linear CFG)
+        if (location.block == null && location.index != null) {
+            if (stmt.location.index == location.index) {
+                return true
+            }
+        }
+        return false
     }
 
     private fun analyzeReachability(
