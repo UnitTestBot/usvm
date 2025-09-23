@@ -403,6 +403,7 @@ class ReachabilityAnalyzer : CliktCommand(
     private fun resolveTarget(node: TargetTreeNodeDto, statements: List<EtsStmt>): TsTarget? {
         // First, resolve the current node to a TsReachabilityTarget
         val stmt = findStatementByTarget(statements, node.target) ?: return null
+        echo("Resolved target ${node.target} to statement $stmt", err = true)
 
         val currentTarget: TsTarget = when (node.target.type) {
             TargetTypeDto.INITIAL -> TsReachabilityTarget.InitialPoint(stmt)
@@ -429,7 +430,6 @@ class ReachabilityAnalyzer : CliktCommand(
         for (stmt in statements) {
             // TODO: handle 'target.stmtType'
             if (matchesLocation(stmt, target.location)) {
-                echo("Matched target $target to statement $stmt", err=true)
                 return stmt
             }
         }
