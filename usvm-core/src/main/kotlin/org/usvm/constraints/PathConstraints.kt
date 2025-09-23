@@ -146,21 +146,21 @@ open class UPathConstraints<Type>(
                     val notConstraint = constraint.arg
                     when {
                         notConstraint is UEqExpr<*> &&
-                                isSymbolicHeapRef(notConstraint.lhs) && isSymbolicHeapRef(notConstraint.rhs) ->
+                            isSymbolicHeapRef(notConstraint.lhs) && isSymbolicHeapRef(notConstraint.rhs) ->
                             equalityConstraints.makeNonEqual(
                                 notConstraint.lhs as USymbolicHeapRef,
                                 notConstraint.rhs as USymbolicHeapRef
                             )
 
                         notConstraint is UEqExpr<*> &&
-                                isSymbolicHeapRef(notConstraint.lhs) && isStaticHeapRef(notConstraint.rhs) ->
+                            isSymbolicHeapRef(notConstraint.lhs) && isStaticHeapRef(notConstraint.rhs) ->
                             equalityConstraints.makeNonEqual(
                                 notConstraint.lhs as USymbolicHeapRef,
                                 notConstraint.rhs as UConcreteHeapRef
                             )
 
                         notConstraint is UEqExpr<*> &&
-                                isStaticHeapRef(notConstraint.lhs) && isSymbolicHeapRef(notConstraint.rhs) ->
+                            isStaticHeapRef(notConstraint.lhs) && isSymbolicHeapRef(notConstraint.rhs) ->
                             equalityConstraints.makeNonEqual(
                                 notConstraint.rhs as USymbolicHeapRef,
                                 notConstraint.lhs as UConcreteHeapRef
