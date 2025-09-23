@@ -404,7 +404,7 @@ class ReachabilityAnalyzer : CliktCommand(
         // First, resolve the current node to a TsReachabilityTarget
         val stmt = findStatementByTarget(statements, node.target) ?: return null
         if (verbose) {
-            echo("Resolved target ${node.target} to statement $stmt", err = true)
+            echo("Resolved target ${node.target} to statement $stmt")
         }
 
         val currentTarget: TsTarget = when (node.target.type) {
