@@ -60,7 +60,7 @@ class ReachabilityAnalyzer : CliktCommand(
             helpFormatter = {
                 MordantHelpFormatter(
                     it,
-                    requiredOptionMarker = "🔸",
+                    requiredOptionMarker = "*",
                     showDefaultValues = true,
                     showRequiredTag = true
                 )
