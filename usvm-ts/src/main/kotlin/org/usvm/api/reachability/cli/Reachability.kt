@@ -440,7 +440,7 @@ class ReachabilityAnalyzer : CliktCommand(
     private fun matchesLocation(stmt: EtsStmt, location: LocationDto): Boolean {
         // If both block and index are specified, match by both (using original DTO block/stmt indices)
         if (location.block != null && location.index != null) {
-            if (stmt.location.blockDtoIndex == location.block && stmt.location.index == location.index) {
+            if (stmt.location.blockDtoIndex == location.block && stmt.location.stmtDtoIndex == location.index) {
                 return true
             }
         }
