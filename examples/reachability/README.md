@@ -1,19 +1,185 @@
-# USVM Reachability Analysis - Target File Formats
+# USVM TypeScript Reachability Analysis
 
-This document describes the supported target file formats for the USVM TypeScript Reachability Analysis tool.
+A powerful tool for analyzing code reachability in TypeScript projects, supporting both source code and pre-compiled IR analysis.
 
-## Supported Formats
+## Quick Start
 
-The tool automatically detects and supports three different JSON formats for specifying targets:
+### Basic Commands
 
-### 1. Linear Trace Format - `{ "targets": [...] }`
+```bash
+# Analyze TypeScript source project (traditional)
+./reachability-cli.sh -p ./my-project
 
-A single linear trace containing a sequence of target points. In a linear trace:
-- **Only the first target** should be marked as `"initial"` (entry point)
-- **Only the last target** should be marked as `"final"` (end point)  
-- **All intermediate targets** don't need a type field (defaults to `"intermediate"`)
+# Analyze pre-compiled IR files (fast, no setup)
+./reachability-cli.sh -i ./project-ir --sdk ./stdlib-ir
 
-**Example: `targets.json`**
+# With custom targets and verbose output
+./reachability-cli.sh -i ./project-ir -t targets.json -v
+```
+
+### Key Components
+
+- **📁 Input Sources**: TypeScript source code OR pre-compiled IR JSON files
+- **📋 Target Files**: JSON specifications of code points to analyze (optional)
+- **📊 Analysis Reports**: Summary and detailed reachability results
+- **🔧 CLI Options**: Flexible configuration for different analysis needs
+
+### Essential Options
+
+| Option | Purpose | Example |
+|--------|---------|---------|
+| `-p, --project` | Source code analysis | `-p ./src` |
+| `-i, --input` | IR file analysis | `-i ./project-ir` |
+| `--sdk` | Add SDK libraries | `--sdk ./stdlib-ir` |
+| `-t, --targets` | Custom target file | `-t targets.json` |
+| `-o, --output` | Results directory | `-o ./results` |
+
+## Analysis Modes
+
+### 🚀 IR Mode (Recommended)
+
+**Fast analysis using pre-compiled IR files - no TypeScript setup required**
+
+**Benefits:**
+
+- ✅ No complex TypeScript environment setup
+- ⚡ Faster startup and analysis
+- 🔄 Reproducible results across environments
+- 📚 Flexible SDK management
+- 🤖 Perfect for CI/CD pipelines
+
+**Usage:**
+
+```bash
+./reachability-cli.sh -i ./project-ir --sdk ./dom-ir --sdk ./node-ir
+```
+
+### 📝 Source Mode (Traditional)
+
+**Direct analysis of TypeScript source files with auto-conversion**
+
+**When to use:**
+
+- Working with live TypeScript codebases
+- No pre-compiled IR files available
+- Development and debugging scenarios
+
+**Usage:**
+
+```bash
+./reachability-cli.sh -p ./my-typescript-project
+```
+
+## Target File Formats
+
+The tool supports flexible target specification through JSON files. **Targets are optional** - the tool can auto-generate them if none are provided.
+
+### Format Overview
+
+| Format | Structure | Use Case |
+|--------|-----------|----------|
+| **Linear** | `{"targets": [...]}` | Sequential execution paths |
+| **Tree** | `{"target": {...}, "children": [...]}` | Hierarchical target structure |
+| **Mixed** | `[{...}, {...}]` | Multiple traces of any type |
+
+### Quick Examples
+
+**Simple linear trace:**
+
+```json
+{
+  "targets": [
+    {
+      "type": "initial",
+      "location": {
+        "className": "UserService",
+        "methodName": "authenticate",
+        "stmtType": "IfStmt"
+      }
+    },
+    {
+      "type": "final",
+      "location": {
+        "className": "UserService",
+        "methodName": "validate",
+        "stmtType": "ReturnStmt"
+      }
+    }
+  ]
+}
+```
+
+## Advanced Usage
+
+### Common Workflows
+
+```bash
+# Full analysis with all options
+./reachability-cli.sh -i ./project-ir \
+  --sdk ./stdlib-ir --sdk ./dom-ir \
+  -t custom-targets.json \
+  -o ./detailed-results \
+  --mode ALL_METHODS \
+  --solver Z3 \
+  --timeout 600 \
+  -v --include-statements
+
+# Quick public method analysis
+./reachability-cli.sh -p ./src --mode PUBLIC_METHODS
+
+# Filter specific methods
+./reachability-cli.sh -i ./ir --method "authenticate" --method "validate"
+```
+
+### Performance Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--timeout` | 300 | Analysis timeout in seconds |
+| `--steps` | 3500 | Max steps from last covered statement |
+| `--solver` | YICES | SMT solver (YICES, Z3, CVC5) |
+| `--mode` | PUBLIC_METHODS | Analysis scope |
+
+---
+
+## Detailed Reference
+
+### Complete CLI Options
+
+**Input Options:**
+
+- `-p, --project PATH` - TypeScript project directory (source mode)
+- `-i, --input PATH` - IR JSON directory (can use multiple times)
+- `--sdk PATH` - SDK IR directory (can use multiple times)
+
+**Analysis Options:**
+
+- `-t, --targets FILE` - JSON target definitions file
+- `-m, --mode MODE` - Analysis scope: ALL_METHODS, PUBLIC_METHODS, ENTRY_POINTS
+- `--method PATTERN` - Filter methods by name pattern (can use multiple times)
+
+**Performance Options:**
+
+- `--solver SOLVER` - SMT solver: YICES, Z3, CVC5
+- `--timeout SECONDS` - Analysis timeout (default: 300)
+- `--steps LIMIT` - Max steps limit (default: 3500)
+
+**Output Options:**
+
+- `-o, --output DIR` - Output directory (default: ./reachability-results)
+- `-v, --verbose` - Enable verbose output
+- `--include-statements` - Include statement details in reports
+- `--exec-mode MODE` - Execution mode: shadow, dist (default: shadow)
+
+### Target File Format Details
+
+#### 1. Linear Trace Format
+
+Sequential execution path with entry and exit points:
+
+<details>
+<summary>Linear Trace Example</summary>
+
 ```json
 {
   "targets": [
@@ -39,16 +205,6 @@ A single linear trace containing a sequence of target points. In a linear trace:
       }
     },
     {
-      "location": {
-        "fileName": "ProcessManager.ts",
-        "className": "Process",
-        "methodName": "terminate",
-        "stmtType": "CallStmt",
-        "block": 0,
-        "index": 0
-      }
-    },
-    {
       "type": "final",
       "location": {
         "fileName": "ProcessManager.ts",
@@ -63,11 +219,15 @@ A single linear trace containing a sequence of target points. In a linear trace:
 }
 ```
 
-### 2. Tree Trace Format - `{ "target": {...}, "children": [...] }`
+</details>
 
-A single tree-like trace with hierarchical target structure.
+#### 2. Tree Trace Format
 
-**Example: `targets-tree.json`**
+Hierarchical target structure with parent-child relationships:
+
+<details>
+<summary>Tree Trace Example</summary>
+
 ```json
 {
   "target": {
@@ -113,11 +273,15 @@ A single tree-like trace with hierarchical target structure.
 }
 ```
 
-### 3. Trace List Format - `[ {...} ]`
+</details>
 
-An array of traces that can contain both linear and tree traces.
+#### 3. Mixed Trace List Format
 
-**Example: `targets-mixed.json`**
+Array containing multiple traces (can mix linear and tree formats):
+
+<details>
+<summary>Mixed Trace List Example</summary>
+
 ```json
 [
   {
@@ -128,19 +292,7 @@ An array of traces that can contain both linear and tree traces.
           "fileName": "UserService.ts",
           "className": "UserService",
           "methodName": "authenticate",
-          "stmtType": "IfStmt",
-          "block": 0,
-          "index": 0
-        }
-      },
-      {
-        "location": {
-          "fileName": "UserService.ts",
-          "className": "UserService",
-          "methodName": "validate",
-          "stmtType": "CallStmt",
-          "block": 0,
-          "index": 0
+          "stmtType": "IfStmt"
         }
       },
       {
@@ -149,9 +301,7 @@ An array of traces that can contain both linear and tree traces.
           "fileName": "UserService.ts",
           "className": "UserService",
           "methodName": "validate",
-          "stmtType": "ReturnStmt",
-          "block": 3,
-          "index": 8
+          "stmtType": "ReturnStmt"
         }
       }
     ]
@@ -163,9 +313,7 @@ An array of traces that can contain both linear and tree traces.
         "fileName": "DatabaseManager.ts",
         "className": "DatabaseManager",
         "methodName": "connect",
-        "stmtType": "IfStmt",
-        "block": 0,
-        "index": 0
+        "stmtType": "IfStmt"
       }
     },
     "children": [
@@ -176,9 +324,7 @@ An array of traces that can contain both linear and tree traces.
             "fileName": "DatabaseManager.ts",
             "className": "DatabaseManager",
             "methodName": "establishConnection",
-            "stmtType": "ReturnStmt",
-            "block": 0,
-            "index": 2
+            "stmtType": "ReturnStmt"
           }
         }
       }
@@ -187,72 +333,59 @@ An array of traces that can contain both linear and tree traces.
 ]
 ```
 
-## Target Types
+</details>
 
-Each target can have one of three types:
+### Location Structure Reference
 
-- **`initial`**: Entry point of a trace (only first target in linear traces)
-- **`intermediate`**: Intermediate point in execution (default - can be omitted)
-- **`final`**: End point of a trace (only last target in linear traces)
+Each target location must specify:
 
-## Location Structure
+**Required Fields:**
 
-Each target must specify a location with the following fields:
+- `fileName` - TypeScript source file name
+- `className` - Class containing the method
+- `methodName` - Method name
 
-- **`fileName`**: The TypeScript source file name
-- **`className`**: The class containing the method
-- **`methodName`**: The method name
-- **`stmtType`**: IR statement type (e.g., "IfStmt", "AssignStmt", "CallStmt", "ReturnStmt")
-- **`block`**: Control flow block number
-- **`index`**: Statement index within the block
+**Optional Fields:**
 
-## Common Statement Types
+- `stmtType` - IR statement type. Currently does nothing, and can be safely omitted.
+- `block` - Control flow block number (id)
+- `index` - Statement index (0-based) within block
 
-The `stmtType` field should contain the IR name of the statement at the specified coordinates:
+### Target Types
 
-- **`IfStmt`**: Conditional if statement
-- **`AssignStmt`**: Assignment statement
-- **`CallStmt`**: Method/function call statement
-- **`ReturnStmt`**: Return statement
-- **`WhileStmt`**: While loop statement
-- **`ForStmt`**: For loop statement
-- **`ThrowStmt`**: Throw/exception statement
+- **`initial`** - Entry point (first target in linear traces)
+- **`intermediate`** - Intermediate point (default, can be omitted)
+- **`final`** - End point (last target in linear traces)
 
-## Linear Trace Rules
+### Common Statement Types
 
-For linear traces (both standalone and within trace lists):
+- `IfStmt` - Conditional statements
+- `AssignStmt` - Assignment operations
+- `CallStmt` - Method/function calls
+- `ReturnStmt` - Return statements
+- `WhileStmt` - While loops
+- `ForStmt` - For loops
+- `ThrowStmt` - Exception throwing
 
-1. **Single Initial Point**: Only the very first target should have `"type": "initial"`
-2. **Single Final Point**: Only the very last target should have `"type": "final"`  
-3. **Omit Intermediate Types**: All targets between first and last can omit the `"type"` field entirely (defaults to `"intermediate"`)
-4. **Sequential Execution**: Targets represent a single execution path through the code
+### Input Validation Rules
 
-## Automatic Format Detection
+✅ **Valid combinations:**
 
-The tool automatically detects which format is being used based on the JSON structure:
+- `--project ./src` (source mode only)
+- `--input ./ir` (IR mode only)
+- `--input ./ir --sdk ./stdlib` (IR with SDK)
 
-- If the JSON is an array at the top level -> Trace List Format
-- If the JSON object contains a `"targets"` field -> Linear Trace Format  
-- If the JSON object contains a `"target"` field -> Tree Trace Format
+❌ **Invalid combinations:**
 
-No manual format specification is required!
+- `--project ./src --input ./ir` (conflicting modes)
+- No input specified (missing input)
 
-## Usage Examples
+### Automatic Format Detection
 
-```bash
-# Using linear trace format
-./reachability -p ./my-project -t targets.json
+The tool automatically detects target file format:
 
-# Using hierarchical (tree-like) format
-./reachability -p ./my-project -t targets-tree.json
+- Array at top level → Mixed Trace List
+- Object with `"targets"` → Linear Trace
+- Object with `"target"` → Tree Trace
 
-# Using mixed array format
-./reachability -p ./my-project -t targets-mixed.json
-
-# Auto-generate targets (no file needed)
-./reachability -p ./my-project
-```
-
-## Legacy Format Support
-
-The tool maintains backward compatibility with legacy target file formats using regex-based parsing as a fallback option.
+No manual format specification needed!
