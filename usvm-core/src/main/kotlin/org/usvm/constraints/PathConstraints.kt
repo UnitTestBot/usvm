@@ -94,8 +94,17 @@ open class UPathConstraints<Type>(
                 typeConstraints.constraints()
     }
 
+    operator fun plusAssign(constraint: UBoolExpr) {
+        val queue = ArrayDeque<UBoolExpr>()
+        queue.add(constraint)
+        while (queue.isNotEmpty()) {
+            val c = queue.removeFirst()
+            addConstraint(c, queue)
+        }
+    }
+
     @Suppress("UNCHECKED_CAST")
-    open operator fun plusAssign(constraint: UBoolExpr): Unit =
+    protected open fun addConstraint(constraint: UBoolExpr, queue: ArrayDeque<UBoolExpr>): Unit =
         with(constraint.uctx) {
             when {
                 constraint == falseExpr -> contradiction(this)
@@ -131,27 +140,27 @@ open class UPathConstraints<Type>(
                     typeConstraints.addSubtype(constraint.ref, constraint.subtype as Type)
                 }
 
-                constraint is UAndExpr -> constraint.args.forEach(::plusAssign)
+                constraint is UAndExpr -> queue.addAll(constraint.args)
 
                 constraint is UNotExpr -> {
                     val notConstraint = constraint.arg
                     when {
                         notConstraint is UEqExpr<*> &&
-                            isSymbolicHeapRef(notConstraint.lhs) && isSymbolicHeapRef(notConstraint.rhs) ->
+                                isSymbolicHeapRef(notConstraint.lhs) && isSymbolicHeapRef(notConstraint.rhs) ->
                             equalityConstraints.makeNonEqual(
                                 notConstraint.lhs as USymbolicHeapRef,
                                 notConstraint.rhs as USymbolicHeapRef
                             )
 
                         notConstraint is UEqExpr<*> &&
-                            isSymbolicHeapRef(notConstraint.lhs) && isStaticHeapRef(notConstraint.rhs) ->
+                                isSymbolicHeapRef(notConstraint.lhs) && isStaticHeapRef(notConstraint.rhs) ->
                             equalityConstraints.makeNonEqual(
                                 notConstraint.lhs as USymbolicHeapRef,
                                 notConstraint.rhs as UConcreteHeapRef
                             )
 
                         notConstraint is UEqExpr<*> &&
-                            isStaticHeapRef(notConstraint.lhs) && isSymbolicHeapRef(notConstraint.rhs) ->
+                                isStaticHeapRef(notConstraint.lhs) && isSymbolicHeapRef(notConstraint.rhs) ->
                             equalityConstraints.makeNonEqual(
                                 notConstraint.rhs as USymbolicHeapRef,
                                 notConstraint.lhs as UConcreteHeapRef
@@ -172,7 +181,7 @@ open class UPathConstraints<Type>(
 
                         notConstraint in logicalConstraints -> contradiction(ctx)
 
-                        notConstraint is UOrExpr -> notConstraint.args.forEach { plusAssign(ctx.mkNot(it)) }
+                        notConstraint is UOrExpr -> queue.addAll(notConstraint.args.map(::mkNot))
 
                         else -> logicalConstraints.add(constraint, ownership)
                     }
