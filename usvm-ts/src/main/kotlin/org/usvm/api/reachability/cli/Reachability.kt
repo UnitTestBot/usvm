@@ -8,7 +8,6 @@ import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
-import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.enum
 import com.github.ajalt.clikt.parameters.types.int
 import com.github.ajalt.clikt.parameters.types.long
@@ -20,6 +19,7 @@ import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
+import org.jacodb.ets.utils.loadEtsProjectFromMultipleIR
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.UMachineOptions
@@ -49,6 +49,8 @@ import kotlin.time.Duration.Companion.seconds
  *
  * This tool performs reachability analysis on TypeScript projects to determine
  * which code paths can be reached under various conditions.
+ *
+ * Supports both source code analysis (auto-conversion) and direct IR loading.
  */
 class ReachabilityAnalyzer : CliktCommand(
     name = "reachability"
@@ -69,8 +71,18 @@ class ReachabilityAnalyzer : CliktCommand(
     // Input Options
     private val projectPath by option(
         "-p", "--project",
-        help = "📁 Path to TypeScript project directory"
-    ).path(mustExist = true).required()
+        help = "📁 Path to TypeScript project directory (for source analysis)"
+    ).path(mustExist = true)
+
+    private val irPaths by option(
+        "-i", "--input", "--ir",
+        help = "📂 Path to directory(s) with IR JSON files (alternative to --project)"
+    ).path(mustExist = true).multiple()
+
+    private val sdkPaths by option(
+        "--sdk",
+        help = "📚 Path to SDK directory(s) with IR JSON files"
+    ).path(mustExist = true).multiple()
 
     private val targetsFile by option(
         "-t", "--targets",
@@ -121,6 +133,19 @@ class ReachabilityAnalyzer : CliktCommand(
     ).flag()
 
     override fun run() {
+        // Validate input options
+        if (projectPath == null && irPaths.isEmpty()) {
+            echo("❌ Error: Either --project or --input must be specified", err = true)
+            echo("Use --help for usage information")
+            throw IllegalArgumentException("No input specified")
+        }
+
+        if (projectPath != null && irPaths.isNotEmpty()) {
+            echo("❌ Error: Cannot specify both --project and --input", err = true)
+            echo("Use --help for usage information")
+            throw IllegalArgumentException("Conflicting input options")
+        }
+
         setupLogging()
 
         echo("🚀 Starting TypeScript Reachability Analysis")
@@ -157,17 +182,30 @@ class ReachabilityAnalyzer : CliktCommand(
     }
 
     private fun performAnalysis(): ReachabilityResults {
-        echo("🔍 Loading TypeScript project...")
+        val scene = if (projectPath != null) {
+            // Source mode: Load TypeScript project using autoConvert
+            echo("🔍 Loading TypeScript project from source...")
+            val tsFiles = findTypeScriptFiles(projectPath!!)
+            if (tsFiles.isEmpty()) {
+                throw IllegalArgumentException("No TypeScript files found in $projectPath")
+            }
+            echo("📁 Found ${tsFiles.size} TypeScript files")
+            val loadedScene = EtsScene(tsFiles.map { loadEtsFileAutoConvert(it) })
+            echo("📊 Project loaded: ${loadedScene.projectClasses.size} classes")
+            loadedScene
+        } else {
+            // IR mode: Load project from IR directories
+            echo("🔍 Loading TypeScript project from IR...")
+            echo("📂 Input directories: ${irPaths.joinToString(", ")}")
+            if (sdkPaths.isNotEmpty()) {
+                echo("📚 SDK directories: ${sdkPaths.joinToString(", ")}")
+            }
 
-        // Load TypeScript project using autoConvert like in tests
-        val tsFiles = findTypeScriptFiles(projectPath)
-        if (tsFiles.isEmpty()) {
-            throw IllegalArgumentException("No TypeScript files found in $projectPath")
+            val project = loadEtsProjectFromMultipleIR(irPaths, sdkPaths)
+            val loadedScene = EtsScene(project.projectFiles)
+            echo("📊 Project loaded: ${loadedScene.projectClasses.size} classes")
+            loadedScene
         }
-
-        echo("📁 Found ${tsFiles.size} TypeScript files")
-        val scene = EtsScene(tsFiles.map { loadEtsFileAutoConvert(it) })
-        echo("📊 Project loaded: ${scene.projectClasses.size} classes")
 
         // Configure machine options
         val machineOptions = UMachineOptions(
@@ -302,7 +340,7 @@ class ReachabilityAnalyzer : CliktCommand(
         var current: TargetTreeNodeDto? = null
 
         for (target in targets.asReversed()) {
-            current = TargetTreeNodeDto(target, children = listOfNotNull<TargetTreeNodeDto>(current))
+            current = TargetTreeNodeDto(target, children = listOfNotNull(current))
         }
 
         return current

@@ -10,6 +10,8 @@ USVM_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # Default values
 PROJECT_PATH=""
+IR_PATHS=()
+SDK_PATHS=()
 TARGETS_FILE=""
 OUTPUT_DIR="./reachability-results"
 MODE="PUBLIC_METHODS"
@@ -31,12 +33,14 @@ NC='\033[0m' # No Color
 usage() {
     echo -e "${BLUE}🎯 TypeScript Reachability Analysis Tool${NC}"
     echo ""
-    echo "Usage: $0 -p PROJECT_PATH [OPTIONS]"
+    echo "Usage: $0 [INPUT_MODE] [OPTIONS]"
     echo ""
-    echo "Required:"
-    echo "  -p, --project PATH         TypeScript project directory"
+    echo "Input Modes (choose one):"
+    echo "  -p, --project PATH         TypeScript project directory (source analysis)"
+    echo "  -i, --input PATH           Directory with IR JSON files (IR analysis)"
     echo ""
     echo "Optional:"
+    echo "      --sdk PATH             SDK directory with IR JSON files (can be used multiple times)"
     echo "  -t, --targets FILE         JSON file with target definitions"
     echo "  -o, --output DIR           Output directory (default: ./reachability-results)"
     echo "  -m, --mode MODE            Analysis mode: ALL_METHODS, PUBLIC_METHODS, ENTRY_POINTS"
@@ -49,21 +53,25 @@ usage() {
     echo "      --include-statements   Include statement details in output"
     echo "  -h, --help                 Show this help message"
     echo ""
+    echo "Input modes:"
+    echo "  Source mode: Analyzes TypeScript source files directly with auto-conversion"
+    echo "  IR mode:     Loads pre-compiled IR JSON files directly (faster, no complex setup)"
+    echo ""
     echo "Execution modes:"
     echo "  shadow: Uses shadow JAR: java -cp usvm-ts-all.jar ..."
     echo "  dist:   Uses Gradle distribution binary: /path/to/bin/usvm-ts ..."
     echo ""
     echo "Examples:"
-    echo "  # Analyze all public methods in a TypeScript project (using shadow JAR)"
+    echo "  # Analyze TypeScript source project (traditional mode)"
     echo "  $0 -p ./my-typescript-project"
     echo ""
-    echo "  # Use Gradle distribution binary instead"
-    echo "  $0 -p ./my-typescript-project --exec-mode dist"
+    echo "  # Analyze from IR directories (fast mode, no setup required)"
+    echo "  $0 -i ./project-ir --sdk ./stdlib-ir --sdk ./dom-ir"
     echo ""
-    echo "  # Use custom targets and verbose output with distribution binary"
-    echo "  $0 -p ./my-project -t ./targets.json -v --exec-mode dist"
+    echo "  # Use custom targets and verbose output with IR"
+    echo "  $0 -i ./project-ir -t ./targets.json -v --exec-mode dist"
     echo ""
-    echo "  # Analyze specific methods with detailed output"
+    echo "  # Analyze specific methods with detailed output from source"
     echo "  $0 -p ./project --method ProcessManager --include-statements"
 }
 
@@ -72,6 +80,14 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         -p|--project)
             PROJECT_PATH="$2"
+            shift 2
+            ;;
+        -i|--input)
+            IR_PATHS+=("$2")
+            shift 2
+            ;;
+        --sdk)
+            SDK_PATHS+=("$2")
             shift 2
             ;;
         -t|--targets)
@@ -135,20 +151,38 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Validate required arguments
-if [[ -z "$PROJECT_PATH" ]]; then
-    echo -e "${RED}❌ Error: Project path is required${NC}"
+if [[ -z "$PROJECT_PATH" ]] && [[ ${#IR_PATHS[@]} -eq 0 ]]; then
+    echo -e "${RED}❌ Error: Either project path or IR input path is required${NC}"
     usage
     exit 1
 fi
 
-if [[ ! -d "$PROJECT_PATH" ]]; then
+if [[ -n "$PROJECT_PATH" ]] && [[ ! -d "$PROJECT_PATH" ]]; then
     echo -e "${RED}❌ Error: Project path does not exist: $PROJECT_PATH${NC}"
     exit 1
 fi
 
+for IR_PATH in "${IR_PATHS[@]}"; do
+    if [[ ! -d "$IR_PATH" ]]; then
+        echo -e "${RED}❌ Error: IR input path does not exist: $IR_PATH${NC}"
+        exit 1
+    fi
+done
+
 # Display configuration
 echo -e "${BLUE}🚀 Starting TypeScript Reachability Analysis${NC}"
-echo "📁 Project: $PROJECT_PATH"
+
+if [[ -n "$PROJECT_PATH" ]]; then
+    echo "📁 Project: $PROJECT_PATH"
+    echo "🔄 Mode: Source analysis"
+else
+    echo "📂 IR Inputs: ${IR_PATHS[*]}"
+    if [[ ${#SDK_PATHS[@]} -gt 0 ]]; then
+        echo "📚 SDK Paths: ${SDK_PATHS[*]}"
+    fi
+    echo "🔄 Mode: IR analysis"
+fi
+
 echo "📄 Output: $OUTPUT_DIR"
 echo "🔍 Mode: $MODE"
 echo "⚙️ Solver: $SOLVER"
@@ -156,7 +190,19 @@ echo "📦 Execution mode: $EXECUTION_MODE"
 
 # Build command arguments
 CMD_ARGS=()
-CMD_ARGS+=("--project" "$PROJECT_PATH")
+
+# Add input arguments based on mode
+if [[ -n "$PROJECT_PATH" ]]; then
+    CMD_ARGS+=("--project" "$PROJECT_PATH")
+else
+    for IR_PATH in "${IR_PATHS[@]}"; do
+        CMD_ARGS+=("--input" "$IR_PATH")
+    done
+    for SDK_PATH in "${SDK_PATHS[@]}"; do
+        CMD_ARGS+=("--sdk" "$SDK_PATH")
+    done
+fi
+
 CMD_ARGS+=("--output" "$OUTPUT_DIR")
 CMD_ARGS+=("--mode" "$MODE")
 CMD_ARGS+=("--solver" "$SOLVER")
