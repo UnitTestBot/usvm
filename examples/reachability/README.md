@@ -26,13 +26,13 @@ A powerful tool for analyzing code reachability in TypeScript projects, supporti
 
 ### Essential Options
 
-| Option | Purpose | Example |
-|--------|---------|---------|
-| `-p, --project` | Source code analysis | `-p ./src` |
-| `-i, --input` | IR file analysis | `-i ./project-ir` |
-| `--sdk` | Add SDK libraries | `--sdk ./stdlib-ir` |
-| `-t, --targets` | Custom target file | `-t targets.json` |
-| `-o, --output` | Results directory | `-o ./results` |
+| Option          | Purpose              | Example             |
+|-----------------|----------------------|---------------------|
+| `-p, --project` | Source code analysis | `-p ./src`          |
+| `-i, --input`   | IR file analysis     | `-i ./project-ir`   |
+| `--sdk`         | Add SDK libraries    | `--sdk ./stdlib-ir` |
+| `-t, --targets` | Custom target file   | `-t targets.json`   |
+| `-o, --output`  | Results directory    | `-o ./results`      |
 
 ## Analysis Modes
 
@@ -72,15 +72,16 @@ A powerful tool for analyzing code reachability in TypeScript projects, supporti
 
 ## Target File Formats
 
-The tool supports flexible target specification through JSON files. **Targets are optional** - the tool can auto-generate them if none are provided.
+The tool supports flexible target specification through JSON files.
+**Targets are optional** - the tool can auto-generate them if none are provided.
 
 ### Format Overview
 
-| Format | Structure | Use Case |
-|--------|-----------|----------|
-| **Linear** | `{"targets": [...]}` | Sequential execution paths |
-| **Tree** | `{"target": {...}, "children": [...]}` | Hierarchical target structure |
-| **Mixed** | `[{...}, {...}]` | Multiple traces of any type |
+| Format     | Structure                              | Use Case                      |
+|------------|----------------------------------------|-------------------------------|
+| **Linear** | `{"targets": [...]}`                   | Sequential execution paths    |
+| **Tree**   | `{"target": {...}, "children": [...]}` | Hierarchical target structure |
+| **Mixed**  | `[{...}, {...}]`                       | Multiple traces of any type   |
 
 ### Quick Examples
 
@@ -133,12 +134,12 @@ The tool supports flexible target specification through JSON files. **Targets ar
 
 ### Performance Options
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--timeout` | 300 | Analysis timeout in seconds |
-| `--steps` | 3500 | Max steps from last covered statement |
-| `--solver` | YICES | SMT solver (YICES, Z3, CVC5) |
-| `--mode` | PUBLIC_METHODS | Analysis scope |
+| Option      | Default        | Description                           |
+|-------------|----------------|---------------------------------------|
+| `--timeout` | 300            | Analysis timeout in seconds           |
+| `--steps`   | 3500           | Max steps from last covered statement |
+| `--solver`  | YICES          | SMT solver (YICES, Z3, CVC5)          |
+| `--mode`    | PUBLIC_METHODS | Analysis scope                        |
 
 ---
 
