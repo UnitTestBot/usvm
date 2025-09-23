@@ -64,12 +64,13 @@ tasks.shadowJar {
     archiveClassifier.set("")
     mergeServiceFiles()
 
-    // minimize {
-    //     // Keep necessary service files and dependencies
-    //     exclude(dependency("com.github.ajalt.mordant:.*:.*"))
-    //     exclude(dependency("ch.qos.logback:.*"))
-    //     exclude(dependency("org.slf4j:.*"))
-    // }
+    minimize {
+        // Keep necessary service files and dependencies
+        exclude(dependency("com.github.ajalt.mordant:.*"))
+        exclude(dependency("ch.qos.logback:.*"))
+        exclude(dependency("org.slf4j:.*"))
+        exclude(dependency("io.ksmt:.*"))
+    }
 }
 
 val generateSdkIR by tasks.registering {
