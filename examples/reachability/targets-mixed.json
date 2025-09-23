@@ -1,0 +1,80 @@
+[
+  {
+    "targets": [
+      {
+        "type": "initial",
+        "location": {
+          "fileName": "UserService.ts",
+          "className": "UserService",
+          "methodName": "authenticate",
+          "stmtType": "IfStmt",
+          "block": 0,
+          "index": 0
+        }
+      },
+      {
+        "location": {
+          "fileName": "UserService.ts",
+          "className": "UserService",
+          "methodName": "validate",
+          "stmtType": "CallStmt",
+          "block": 0,
+          "index": 0
+        }
+      },
+      {
+        "type": "final",
+        "location": {
+          "fileName": "UserService.ts",
+          "className": "UserService",
+          "methodName": "validate",
+          "stmtType": "ReturnStmt",
+          "block": 3,
+          "index": 8
+        }
+      }
+    ]
+  },
+  {
+    "root": {
+      "target": {
+        "type": "initial",
+        "location": {
+          "fileName": "DatabaseManager.ts",
+          "className": "DatabaseManager",
+          "methodName": "connect",
+          "stmtType": "IfStmt",
+          "block": 0,
+          "index": 0
+        }
+      },
+      "children": [
+        {
+          "target": {
+            "location": {
+              "fileName": "DatabaseManager.ts",
+              "className": "DatabaseManager",
+              "methodName": "connect",
+              "stmtType": "AssignStmt",
+              "block": 1,
+              "index": 4
+            }
+          }
+        },
+        {
+          "target": {
+            "type": "final",
+            "location": {
+              "fileName": "DatabaseManager.ts",
+              "className": "DatabaseManager",
+              "methodName": "establishConnection",
+              "stmtType": "ReturnStmt",
+              "block": 0,
+              "index": 2
+            }
+          }
+        }
+      ]
+    }
+  }
+]

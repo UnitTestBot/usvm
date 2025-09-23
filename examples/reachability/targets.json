@@ -1,0 +1,45 @@
+{
+  "targets": [
+    {
+      "type": "initial",
+      "location": {
+        "fileName": "ProcessManager.ts",
+        "className": "Process",
+        "methodName": "start",
+        "stmtType": "Assign",
+        "block": 0,
+        "index": 0
+      }
+    },
+    {
+      "location": {
+        "fileName": "ProcessManager.ts",
+        "className": "Process",
+        "methodName": "start",
+        "stmtType": "If",
+        "block": 0,
+        "index": 8
+      }
+    },
+    {
+      "location": {
+        "fileName": "ProcessManager.ts",
+        "className": "Process",
+        "methodName": "start",
+        "stmtType": "Assign",
+        "block": 2,
+        "index": 0
+      }
+    },
+    {
+      "location": {
+        "fileName": "ProcessManager.ts",
+        "className": "Process",
+        "methodName": "start",
+        "stmtType": "Return",
+        "block": 2,
+        "index": 2
+      }
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "root": {
+    "target": {
+      "type": "initial",
+      "location": {
+        "fileName": "ProcessManager.ts",
+        "className": "ProcessManager",
+        "methodName": "createProcess",
+        "stmtType": "IfStmt",
+        "block": 0,
+        "index": 0
+      }
+    },
+    "children": [
+      {
+        "target": {
+          "location": {
+            "fileName": "ProcessManager.ts",
+            "className": "ProcessManager",
+            "methodName": "createProcess",
+            "stmtType": "AssignStmt",
+            "block": 1,
+            "index": 3
+          }
+        },
+        "children": [
+          {
+            "target": {
+              "type": "final",
+              "location": {
+                "fileName": "ProcessManager.ts",
+                "className": "ProcessManager",
+                "methodName": "createProcess",
+                "stmtType": "ReturnStmt",
+                "block": 2,
+                "index": 7
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
