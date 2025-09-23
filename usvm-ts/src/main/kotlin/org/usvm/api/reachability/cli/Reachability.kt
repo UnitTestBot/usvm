@@ -207,21 +207,6 @@ class ReachabilityAnalyzer : CliktCommand(
             loadedScene
         }
 
-        // Configure machine options
-        val machineOptions = UMachineOptions(
-            pathSelectionStrategies = listOf(PathSelectionStrategy.TARGETED),
-            exceptionsPropagation = true,
-            stopOnTargetsReached = true,
-            timeout = timeout.seconds,
-            stepsFromLastCovered = stepsLimit,
-            solverType = solverType,
-            solverTimeout = Duration.INFINITE,
-            typeOperationsTimeout = Duration.INFINITE,
-        )
-
-        val tsOptions = TsOptions()
-        val machine = TsMachine(scene, machineOptions, tsOptions, machineObserver = TsReachabilityObserver())
-
         // Find methods to analyze
         val methodsToAnalyze = findMethodsToAnalyze(scene)
         echo("🎯 Analyzing ${methodsToAnalyze.size} methods")
@@ -238,9 +223,24 @@ class ReachabilityAnalyzer : CliktCommand(
             targets
         }
 
+        // Configure machine options
+        val options = UMachineOptions(
+            pathSelectionStrategies = listOf(PathSelectionStrategy.TARGETED),
+            exceptionsPropagation = true,
+            stopOnTargetsReached = true,
+            timeout = timeout.seconds,
+            stepsFromLastCovered = stepsLimit,
+            solverType = solverType,
+            solverTimeout = Duration.INFINITE,
+            typeOperationsTimeout = Duration.INFINITE,
+        )
+        val tsOptions = TsOptions()
+
         // Run analysis
         echo("⚡ Running reachability analysis...")
-        val states = machine.analyze(methodsToAnalyze, targets)
+        val states = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver()).use { machine ->
+            machine.analyze(methodsToAnalyze, targets)
+        }
 
         // Analyze results for reachability
         val reachabilityResults = analyzeReachability(targets, states)
