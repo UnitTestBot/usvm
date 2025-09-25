@@ -69,19 +69,24 @@ class ReachabilityAnalyzer : CliktCommand(
     }
 
     // Input Options
+    private val projectIrPaths by option(
+        "-i", "--input-ir",
+        help = "📂 Path to directory with IR JSON files"
+    ).path(mustExist = true).multiple()
+
+    private val sdkIrPaths by option(
+        "--sdk-ir",
+        help = "📚 Path to SDK directory with IR JSON files"
+    ).path(mustExist = true).multiple()
+
     private val projectPath by option(
         "-p", "--project",
-        help = "📁 Path to TypeScript project directory (for source analysis)"
+        help = "📁 Path to TypeScript project directory"
     ).path(mustExist = true)
-
-    private val irPaths by option(
-        "-i", "--input", "--ir",
-        help = "📂 Path to directory(s) with IR JSON files (alternative to --project)"
-    ).path(mustExist = true).multiple()
 
     private val sdkPaths by option(
         "--sdk",
-        help = "📚 Path to SDK directory(s) with IR JSON files"
+        help = "📚 Path to SDK directory with TypeScript declaration files"
     ).path(mustExist = true).multiple()
 
     private val targetsFile by option(
@@ -134,13 +139,13 @@ class ReachabilityAnalyzer : CliktCommand(
 
     override fun run() {
         // Validate input options
-        if (projectPath == null && irPaths.isEmpty()) {
+        if (projectPath == null && projectIrPaths.isEmpty()) {
             echo("❌ Error: Either --project or --input must be specified", err = true)
             echo("Use --help for usage information")
             throw IllegalArgumentException("No input specified")
         }
 
-        if (projectPath != null && irPaths.isNotEmpty()) {
+        if (projectPath != null && projectIrPaths.isNotEmpty()) {
             echo("❌ Error: Cannot specify both --project and --input", err = true)
             echo("Use --help for usage information")
             throw IllegalArgumentException("Conflicting input options")
@@ -183,25 +188,48 @@ class ReachabilityAnalyzer : CliktCommand(
 
     private fun performAnalysis(): ReachabilityResults {
         val scene = if (projectPath != null) {
-            // Source mode: Load TypeScript project using autoConvert
+            // Source mode: Load TypeScript project using autoConvert with SDK support
             echo("🔍 Loading TypeScript project from source...")
             val tsFiles = findTypeScriptFiles(projectPath!!)
             if (tsFiles.isEmpty()) {
                 throw IllegalArgumentException("No TypeScript files found in $projectPath")
             }
             echo("📁 Found ${tsFiles.size} TypeScript files")
-            val loadedScene = EtsScene(tsFiles.map { loadEtsFileAutoConvert(it) })
+
+            // Handle SDK files in source mode
+            val allFiles = tsFiles.toMutableList()
+            if (sdkPaths.isNotEmpty()) {
+                echo("📚 Processing SDK directories: ${sdkPaths.joinToString(", ")}")
+                sdkPaths.forEach { sdkPath ->
+                    val sdkFiles = findTypeScriptFiles(sdkPath)
+                    echo("📚 Found ${sdkFiles.size} SDK files in $sdkPath")
+                    allFiles.addAll(sdkFiles)
+                }
+            }
+
+            val loadedScene = EtsScene(allFiles.map { loadEtsFileAutoConvert(it) })
             echo("📊 Project loaded: ${loadedScene.projectClasses.size} classes")
             loadedScene
         } else {
-            // IR mode: Load project from IR directories
+            // IR mode: Load project from IR directories with SDK support
             echo("🔍 Loading TypeScript project from IR...")
-            echo("📂 Input directories: ${irPaths.joinToString(", ")}")
+            echo("📂 Input directories: ${projectIrPaths.joinToString(", ")}")
+
+            // Combine both SDK IR paths and convert source SDK paths to IR if needed
+            val allSdkIrPaths = sdkIrPaths.toMutableList()
+
             if (sdkPaths.isNotEmpty()) {
-                echo("📚 SDK directories: ${sdkPaths.joinToString(", ")}")
+                echo("📚 Converting source SDK directories to IR: ${sdkPaths.joinToString(", ")}")
+                // Here we would need to convert source SDK files to IR format
+                // For now, we'll log this requirement
+                echo("⚠️ Note: Source SDK conversion to IR not yet implemented. Use --sdk-ir for IR-based SDKs.")
             }
 
-            val project = loadEtsProjectFromMultipleIR(irPaths, sdkPaths)
+            if (sdkIrPaths.isNotEmpty()) {
+                echo("📚 SDK IR directories: ${sdkIrPaths.joinToString(", ")}")
+            }
+
+            val project = loadEtsProjectFromMultipleIR(projectIrPaths, allSdkIrPaths)
             val loadedScene = EtsScene(project.projectFiles)
             echo("📊 Project loaded: ${loadedScene.projectClasses.size} classes")
             loadedScene
