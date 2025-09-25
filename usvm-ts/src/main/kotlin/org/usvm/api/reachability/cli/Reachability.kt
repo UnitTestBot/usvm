@@ -140,13 +140,13 @@ class ReachabilityAnalyzer : CliktCommand(
     override fun run() {
         // Validate input options
         if (projectPath == null && projectIrPaths.isEmpty()) {
-            echo("❌ Error: Either --project or --input must be specified", err = true)
+            echo("❌ Error: Either --project or --input-ir must be specified", err = true)
             echo("Use --help for usage information")
             throw IllegalArgumentException("No input specified")
         }
 
         if (projectPath != null && projectIrPaths.isNotEmpty()) {
-            echo("❌ Error: Cannot specify both --project and --input", err = true)
+            echo("❌ Error: Cannot specify both --project and --input-ir", err = true)
             echo("Use --help for usage information")
             throw IllegalArgumentException("Conflicting input options")
         }
