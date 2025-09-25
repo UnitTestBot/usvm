@@ -39,7 +39,6 @@ import kotlin.io.path.Path
 import kotlin.io.path.createDirectories
 import kotlin.io.path.div
 import kotlin.io.path.readText
-import kotlin.io.path.relativeTo
 import kotlin.io.path.writeText
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -571,7 +570,7 @@ class ReachabilityAnalyzer : CliktCommand(
             }
         })
 
-        echo("📄 Summary saved to: ${reportFile.relativeTo(Path("."))}")
+        echo("📄 Summary saved to: $reportFile")
     }
 
     private fun generateDetailedReport(results: ReachabilityResults, duration: Double) {
@@ -634,7 +633,7 @@ class ReachabilityAnalyzer : CliktCommand(
             }
         })
 
-        echo("📄 Detailed report saved to: ${reportFile.relativeTo(Path("."))}")
+        echo("📄 Detailed report saved to: $reportFile")
     }
 
     private fun printSummaryToConsole(results: ReachabilityResults, duration: Double) {
@@ -648,7 +647,7 @@ class ReachabilityAnalyzer : CliktCommand(
         echo("✅ Reachable: ${statusCounts[ReachabilityStatus.REACHABLE] ?: 0}")
         echo("❌ Unreachable: ${statusCounts[ReachabilityStatus.UNREACHABLE] ?: 0}")
         echo("❓ Unknown: ${statusCounts[ReachabilityStatus.UNKNOWN] ?: 0}")
-        echo("📁 Reports saved to: ${output.relativeTo(Path("."))}")
+        echo("📁 Reports saved to: $output")
     }
 }
 
