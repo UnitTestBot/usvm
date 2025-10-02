@@ -39,6 +39,7 @@ import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.machine.state.TsState
 import org.usvm.util.countLeaves
+import org.usvm.util.getLeaves
 import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.createDirectories
@@ -270,7 +271,12 @@ class ReachabilityAnalyzer : CliktCommand(
 
         // Run analysis
         echo("⚡ Running reachability analysis...")
-        val states = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver()).use { machine ->
+        val states = TsMachine(
+            scene,
+            options,
+            tsOptions,
+            machineObserver = TsReachabilityObserver()
+        ).use { machine ->
             machine.analyze(methodsToAnalyze, targets)
         }
 
@@ -533,27 +539,35 @@ class ReachabilityAnalyzer : CliktCommand(
     ): List<TargetReachabilityResult> {
         val results = mutableListOf<TargetReachabilityResult>()
 
-        // Get all reached statements across all execution paths
-        val allReachedStatements = states.flatMap { it.pathNode.allStatements }.toSet()
+        // Get all reached terminal targets across all states
+        val allReachedTerminalTargets = states.flatMapTo(hashSetOf()) { it.targets.reachedTerminal }
 
+        // For each target tree, analyze all leaf targets (terminal targets)
         targets.forEach { target ->
             val targetStartTime = System.currentTimeMillis()
 
             try {
-                val targetLocation = target.location
+                // Get all leaf targets from this target tree
+                val leafTargets = target.getLeaves()
+
+                // Check if any leaf target in this tree was reached
+                val reachedLeafTargets = leafTargets.filter { it in allReachedTerminalTargets }
+
                 val reachabilityStatus = when {
-                    targetLocation in allReachedStatements -> ReachabilityStatus.REACHABLE
+                    reachedLeafTargets.isNotEmpty() -> ReachabilityStatus.REACHABLE
                     states.isEmpty() -> ReachabilityStatus.UNREACHABLE
                     else -> ReachabilityStatus.UNKNOWN
                 }
 
                 val executionPaths = if (reachabilityStatus == ReachabilityStatus.REACHABLE) {
-                    states.filter { targetLocation in it.pathNode.allStatements }
-                        .map { state ->
-                            ExecutionPath(
-                                statements = state.pathNode.allStatements.toList()
-                            )
-                        }
+                    // Find states that reached any of the leaf targets in this tree
+                    states.filter { state ->
+                        reachedLeafTargets.any { leafTarget -> leafTarget in state.targets.reachedTerminal }
+                    }.map { state ->
+                        ExecutionPath(
+                            statements = state.pathNode.allStatements.toList()
+                        )
+                    }
                 } else {
                     emptyList()
                 }
