@@ -3,6 +3,7 @@ package org.usvm.machine.expr
 import io.ksmt.utils.asExpr
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsBooleanType
+import org.jacodb.ets.model.EtsClassCategory
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLocal
@@ -74,7 +75,14 @@ fun TsContext.assignToInstanceField(
     // Determine the field sort.
     val sort = when (etsField) {
         is TsResolutionResult.Empty -> unresolvedSort
-        is TsResolutionResult.Unique -> typeToSort(etsField.property.type)
+        is TsResolutionResult.Unique -> {
+            val cls = etsField.property.declaringClass
+            if (cls != null && cls.category == EtsClassCategory.ENUM) {
+                unresolvedSort
+            } else {
+                typeToSort(etsField.property.type)
+            }
+        }
         is TsResolutionResult.Ambiguous -> unresolvedSort
     }
 
