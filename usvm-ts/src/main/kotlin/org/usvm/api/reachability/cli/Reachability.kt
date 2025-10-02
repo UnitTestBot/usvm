@@ -27,8 +27,8 @@ import org.usvm.UMachineOptions
 import org.usvm.api.TsTarget
 import org.usvm.api.reachability.TsReachabilityObserver
 import org.usvm.api.reachability.TsReachabilityTarget
+import org.usvm.api.reachability.dto.AnalysisReportDto
 import org.usvm.api.reachability.dto.AnalysisResultDto
-import org.usvm.api.reachability.dto.AnalysisResultsDto
 import org.usvm.api.reachability.dto.AnalysisSummaryDto
 import org.usvm.api.reachability.dto.LocationDto
 import org.usvm.api.reachability.dto.TargetDto
@@ -551,9 +551,9 @@ class ReachabilityAnalyzer : CliktCommand(
         echo("📊 Generating analysis reports...")
 
         output.createDirectories()
-        val duration = (System.currentTimeMillis() - startTime) / 1000.0
+        val duration = (System.currentTimeMillis() - startTime) / 1000.0 // in seconds
 
-        generateJsonReport(results)
+        generateJsonReport(results, duration)
         generateSummaryReport(results, duration)
 
         printSummaryToConsole(results, duration)
@@ -658,7 +658,7 @@ class ReachabilityAnalyzer : CliktCommand(
         echo("📄 Detailed summary saved to: $reportFile")
     }
 
-    private fun generateJsonReport(results: ReachabilityResults) {
+    private fun generateJsonReport(results: ReachabilityResults, duration: Double) {
         val json = Json {
             prettyPrint = true
             ignoreUnknownKeys = true
@@ -676,17 +676,25 @@ class ReachabilityAnalyzer : CliktCommand(
 
         // Calculate summary statistics
         val statusCounts = results.reachabilityResults.groupingBy { it.status }.eachCount()
-        val totalExecutionTimeMs = results.reachabilityResults.sumOf { it.executionTimeMs }
 
         val summary = AnalysisSummaryDto(
             totalTargets = results.reachabilityResults.size,
             reachableTargets = statusCounts[ReachabilityStatus.REACHABLE] ?: 0,
             unreachableTargets = statusCounts[ReachabilityStatus.UNREACHABLE] ?: 0,
-            unknownTargets = statusCounts[ReachabilityStatus.UNKNOWN] ?: 0,
-            totalExecutionTimeMs = totalExecutionTimeMs,
+            unknownTargets = statusCounts[ReachabilityStatus.UNKNOWN] ?: 0
         )
 
-        val jsonOutput = AnalysisResultsDto(
+        // Determine project path
+        val projectPathStr = when {
+            projectPath != null -> projectPath.toString()
+            projectIrPaths.isNotEmpty() -> projectIrPaths.first().toString()
+            else -> "unknown"
+        }
+
+        val jsonOutput = AnalysisReportDto(
+            projectPath = projectPathStr,
+            solverType = solverType.name,
+            totalTime = (duration * 1000.0).toLong(),
             results = analysisResults,
             summary = summary
         )

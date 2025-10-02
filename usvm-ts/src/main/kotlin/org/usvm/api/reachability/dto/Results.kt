@@ -3,27 +3,18 @@ package org.usvm.api.reachability.dto
 import kotlinx.serialization.Serializable
 
 /**
- * Individual analysis result.
+ * Individual analysis result for a reachability target.
  */
 @Serializable
 data class AnalysisResultDto(
     val targetId: String,
     val reachable: Boolean,
     val executionTime: Long = 0L, // in milliseconds
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
 )
 
 /**
- * Container for all analysis results.
- */
-@Serializable
-data class AnalysisResultsDto(
-    val results: List<AnalysisResultDto>,
-    val summary: AnalysisSummaryDto
-)
-
-/**
- * Summary information about the analysis run.
+ * Summary statistics for the analysis run.
  */
 @Serializable
 data class AnalysisSummaryDto(
@@ -31,5 +22,16 @@ data class AnalysisSummaryDto(
     val reachableTargets: Int,
     val unreachableTargets: Int,
     val unknownTargets: Int,
-    val totalExecutionTimeMs: Long,
+)
+
+/**
+ * Complete analysis report containing all results and metadata.
+ */
+@Serializable
+data class AnalysisReportDto(
+    val projectPath: String,
+    val solverType: String,
+    val totalTime: Long, // in milliseconds
+    val results: List<AnalysisResultDto>,
+    val summary: AnalysisSummaryDto,
 )
