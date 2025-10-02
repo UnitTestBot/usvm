@@ -13,6 +13,7 @@ import org.usvm.UBoolSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.api.TsTarget
 import org.usvm.machine.TsContext
 import org.usvm.machine.expr.tctx
 import org.usvm.machine.interpreter.TsStepScope
@@ -78,4 +79,12 @@ fun UHeapRef.createFakeField(
         memory.write(lValue, fakeObject.asExpr(ctx.addressSort), guard = ctx.trueExpr)
         fakeObject
     }
+}
+
+/**
+ * Counts all leaf targets in the tree.
+ */
+fun TsTarget.countLeaves(): Int = when {
+    children.isEmpty() -> 1
+    else -> children.sumOf { it.countLeaves() }
 }
