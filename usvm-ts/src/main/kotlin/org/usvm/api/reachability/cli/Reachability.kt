@@ -38,6 +38,7 @@ import org.usvm.api.reachability.dto.TargetsContainerDto
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.machine.state.TsState
+import org.usvm.util.countLeaves
 import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.createDirectories
@@ -246,11 +247,11 @@ class ReachabilityAnalyzer : CliktCommand(
         val targets = if (targetsFile != null) {
             val targetTraces = parseTargetDefinitions(targetsFile!!)
             val targets = createTargetsFromTraces(methodsToAnalyze, targetTraces)
-            echo("📍 Created ${targets.size} reachability target trees from ${targetTraces.size} traces")
+            echo("📍 Created ${targets.sumOf { it.countLeaves() }} reachability target trees from ${targetTraces.size} traces")
             targets
         } else {
             val targets = generateDefaultTargets(methodsToAnalyze)
-            echo("📍 Generated ${targets.size} default reachability targets")
+            echo("📍 Generated ${targets.sumOf { it.countLeaves() }} default reachability targets")
             targets
         }
 
@@ -382,26 +383,66 @@ class ReachabilityAnalyzer : CliktCommand(
             val statements = method.cfg.stmts
             if (statements.isEmpty()) return@mapNotNull null
 
-            // Initial point - first statement
-            val initialTarget = TsReachabilityTarget.InitialPoint(statements.first())
-            var target: TsTarget = initialTarget
+            // Build target tree following CFG paths from start to return statements
+            buildTargetTree(method, statements.first())
+        }
+    }
 
-            // Intermediate and final points for control flow statements
-            statements.forEachIndexed { index, stmt ->
-                when (stmt) {
-                    is EtsIfStmt, is EtsReturnStmt -> {
-                        val newTarget = if (index == statements.lastIndex) {
-                            TsReachabilityTarget.FinalPoint(stmt)
-                        } else {
-                            TsReachabilityTarget.IntermediatePoint(stmt)
+    private fun buildTargetTree(method: EtsMethod, startStmt: EtsStmt): TsReachabilityTarget {
+        val visited = mutableSetOf<EtsStmt>()
+
+        fun findRelevantTargets(stmt: EtsStmt): List<TsReachabilityTarget> {
+            if (stmt in visited) return emptyList()
+            visited.add(stmt)
+
+            val targets = mutableListOf<TsReachabilityTarget>()
+
+            when (stmt) {
+                startStmt -> {
+                    // First statement is the initial point
+                    val initialTarget = TsReachabilityTarget.InitialPoint(stmt)
+                    // Add children by traversing successors
+                    val successors = method.cfg.successors(stmt)
+                    successors.forEach { successor ->
+                        findRelevantTargets(successor).forEach { childTarget ->
+                            initialTarget.addChild(childTarget)
                         }
-                        target = target.addChild(newTarget)
+                    }
+                    targets.add(initialTarget)
+                }
+
+                is EtsReturnStmt -> {
+                    // Return statements are always final points with no children
+                    targets.add(TsReachabilityTarget.FinalPoint(stmt))
+                }
+
+                is EtsIfStmt -> {
+                    // If statements are intermediate points that can branch
+                    val ifTarget = TsReachabilityTarget.IntermediatePoint(stmt)
+                    // Add children by traversing successors
+                    val successors = method.cfg.successors(stmt)
+                    successors.forEach { successor ->
+                        findRelevantTargets(successor).forEach { childTarget ->
+                            ifTarget.addChild(childTarget)
+                        }
+                    }
+                    targets.add(ifTarget)
+                }
+
+                else -> {
+                    // Skip other statements - traverse through them to find relevant ones
+                    val successors = method.cfg.successors(stmt)
+                    successors.forEach { successor ->
+                        targets.addAll(findRelevantTargets(successor))
                     }
                 }
             }
 
-            initialTarget
+            visited.remove(stmt) // Allow revisiting in different paths
+            return targets
         }
+
+        return findRelevantTargets(startStmt).first()
     }
 
     private fun createTargetsFromTraces(
