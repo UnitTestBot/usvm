@@ -88,3 +88,11 @@ fun TsTarget.countLeaves(): Int = when {
     children.isEmpty() -> 1
     else -> children.sumOf { it.countLeaves() }
 }
+
+/**
+ * Returns all leaf targets in the tree.
+ */
+fun TsTarget.getLeaves(): List<TsTarget> = when {
+    children.isEmpty() -> listOf(this)
+    else -> children.flatMap { it.getLeaves() }
+}
