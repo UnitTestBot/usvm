@@ -12,6 +12,7 @@ import com.github.ajalt.clikt.parameters.types.enum
 import com.github.ajalt.clikt.parameters.types.int
 import com.github.ajalt.clikt.parameters.types.long
 import com.github.ajalt.clikt.parameters.types.path
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsMethod
@@ -26,6 +27,9 @@ import org.usvm.UMachineOptions
 import org.usvm.api.TsTarget
 import org.usvm.api.reachability.TsReachabilityObserver
 import org.usvm.api.reachability.TsReachabilityTarget
+import org.usvm.api.reachability.dto.AnalysisResultDto
+import org.usvm.api.reachability.dto.AnalysisResultsDto
+import org.usvm.api.reachability.dto.AnalysisSummaryDto
 import org.usvm.api.reachability.dto.LocationDto
 import org.usvm.api.reachability.dto.TargetDto
 import org.usvm.api.reachability.dto.TargetTreeNodeDto
@@ -373,7 +377,7 @@ class ReachabilityAnalyzer : CliktCommand(
         return current
     }
 
-    private fun generateDefaultTargets(methods: List<EtsMethod>): List<TsTarget> {
+    private fun generateDefaultTargets(methods: List<EtsMethod>): List<TsReachabilityTarget> {
         return methods.mapNotNull { method ->
             val statements = method.cfg.stmts
             if (statements.isEmpty()) return@mapNotNull null
@@ -403,8 +407,8 @@ class ReachabilityAnalyzer : CliktCommand(
     private fun createTargetsFromTraces(
         methods: List<EtsMethod>,
         targetTraces: List<TargetTrace>,
-    ): List<TsTarget> {
-        val targets = mutableListOf<TsTarget>()
+    ): List<TsReachabilityTarget> {
+        val targets = mutableListOf<TsReachabilityTarget>()
         val methodMap = methods.associateBy { "${it.enclosingClass?.name ?: "Unknown"}.${it.name}" }
 
         targetTraces.forEach { trace ->
@@ -427,14 +431,14 @@ class ReachabilityAnalyzer : CliktCommand(
         return targets
     }
 
-    private fun resolveTarget(node: TargetTreeNodeDto, statements: List<EtsStmt>): TsTarget? {
+    private fun resolveTarget(node: TargetTreeNodeDto, statements: List<EtsStmt>): TsReachabilityTarget? {
         // First, resolve the current node to a TsReachabilityTarget
         val stmt = findStatementByTarget(statements, node.target) ?: return null
         if (verbose) {
             echo("Resolved target ${node.target} to statement $stmt")
         }
 
-        val currentTarget: TsTarget = when (node.target.type) {
+        val currentTarget: TsReachabilityTarget = when (node.target.type) {
             TargetTypeDto.INITIAL -> TsReachabilityTarget.InitialPoint(stmt)
             TargetTypeDto.INTERMEDIATE -> TsReachabilityTarget.IntermediatePoint(stmt)
             TargetTypeDto.FINAL -> TsReachabilityTarget.FinalPoint(stmt)
@@ -483,7 +487,7 @@ class ReachabilityAnalyzer : CliktCommand(
     }
 
     private fun analyzeReachability(
-        targets: List<TsTarget>,
+        targets: List<TsReachabilityTarget>,
         states: List<TsState>,
     ): List<TargetReachabilityResult> {
         val results = mutableListOf<TargetReachabilityResult>()
@@ -492,8 +496,10 @@ class ReachabilityAnalyzer : CliktCommand(
         val allReachedStatements = states.flatMap { it.pathNode.allStatements }.toSet()
 
         targets.forEach { target ->
-            val targetLocation = target.location
-            if (targetLocation != null) {
+            val targetStartTime = System.currentTimeMillis()
+
+            try {
+                val targetLocation = target.location
                 val reachabilityStatus = when {
                     targetLocation in allReachedStatements -> ReachabilityStatus.REACHABLE
                     states.isEmpty() -> ReachabilityStatus.UNREACHABLE
@@ -511,11 +517,28 @@ class ReachabilityAnalyzer : CliktCommand(
                     emptyList()
                 }
 
+                val targetEndTime = System.currentTimeMillis()
+                val executionTimeMs = targetEndTime - targetStartTime
+
                 results.add(
                     TargetReachabilityResult(
                         target = target,
                         status = reachabilityStatus,
                         executionPaths = executionPaths,
+                        executionTimeMs = executionTimeMs,
+                    )
+                )
+            } catch (e: Exception) {
+                val targetEndTime = System.currentTimeMillis()
+                val executionTimeMs = targetEndTime - targetStartTime
+
+                results.add(
+                    TargetReachabilityResult(
+                        target = target,
+                        status = ReachabilityStatus.UNKNOWN,
+                        executionPaths = emptyList(),
+                        executionTimeMs = executionTimeMs,
+                        errorMessage = "Analysis error: ${e.message}",
                     )
                 )
             }
@@ -530,70 +553,49 @@ class ReachabilityAnalyzer : CliktCommand(
         output.createDirectories()
         val duration = (System.currentTimeMillis() - startTime) / 1000.0
 
+        generateJsonReport(results)
         generateSummaryReport(results, duration)
-        generateDetailedReport(results, duration)
 
         printSummaryToConsole(results, duration)
     }
 
     private fun generateSummaryReport(results: ReachabilityResults, duration: Double) {
-        val reportFile = output / "reachability_summary.txt"
+        val reportFile = output / "reachability_summary.md"
         reportFile.writeText(buildString {
-            appendLine("🎯 REACHABILITY ANALYSIS SUMMARY")
-            appendLine("=".repeat(50))
-            appendLine("⏱️ Duration: ${String.format("%.2f", duration)}s")
-            appendLine("🔍 Methods analyzed: ${results.methods.size}")
-            appendLine("📍 Targets analyzed: ${results.reachabilityResults.size}")
-
-            val statusCounts = results.reachabilityResults.groupingBy { it.status }.eachCount()
-            appendLine("✅ Reachable: ${statusCounts[ReachabilityStatus.REACHABLE] ?: 0}")
-            appendLine("❌ Unreachable: ${statusCounts[ReachabilityStatus.UNREACHABLE] ?: 0}")
-            appendLine("❓ Unknown: ${statusCounts[ReachabilityStatus.UNKNOWN] ?: 0}")
-
-            appendLine("\n📈 DETAILED RESULTS")
-            appendLine("-".repeat(30))
-
-            results.reachabilityResults.forEach { result ->
-                val targetType = when (result.target) {
-                    is TsReachabilityTarget.InitialPoint -> "INITIAL"
-                    is TsReachabilityTarget.IntermediatePoint -> "INTERMEDIATE"
-                    is TsReachabilityTarget.FinalPoint -> "FINAL"
-                    else -> "UNKNOWN"
-                }
-
-                appendLine("Target: $targetType at ${result.target.location?.javaClass?.simpleName}")
-                appendLine("  Status: ${result.status}")
-                if (result.executionPaths.isNotEmpty()) {
-                    appendLine("  Paths found: ${result.executionPaths.size}")
-                }
-                appendLine()
-            }
-        })
-
-        echo("📄 Summary saved to: $reportFile")
-    }
-
-    private fun generateDetailedReport(results: ReachabilityResults, duration: Double) {
-        val reportFile = output / "reachability_detailed.md"
-        reportFile.writeText(buildString {
-            appendLine("# 🎯 TypeScript Reachability Analysis - Detailed Report")
-            appendLine()
-            appendLine("**Analysis Duration:** ${String.format("%.2f", duration)}s")
-            appendLine("**Methods Analyzed:** ${results.methods.size}")
-            appendLine("**Targets Analyzed:** ${results.reachabilityResults.size}")
+            appendLine("# 🎯 TypeScript Reachability Analysis Summary")
             appendLine()
 
+            // Analysis Overview
+            appendLine("## 📊 Analysis Overview")
+            appendLine("- **Analysis Duration:** ${String.format("%.2f", duration)}s")
+            appendLine("- **Methods Analyzed:** ${results.methods.size}")
+            appendLine("- **Targets Analyzed:** ${results.reachabilityResults.size}")
+            appendLine()
+
+            // Reachability Summary
             val statusCounts = results.reachabilityResults.groupingBy { it.status }.eachCount()
-            appendLine("## 📊 Reachability Summary")
+            val totalExecutionTimeMs = results.reachabilityResults.sumOf { it.executionTimeMs }
+
+            appendLine("## 📈 Reachability Results")
             appendLine("- ✅ **Reachable:** ${statusCounts[ReachabilityStatus.REACHABLE] ?: 0}")
             appendLine("- ❌ **Unreachable:** ${statusCounts[ReachabilityStatus.UNREACHABLE] ?: 0}")
             appendLine("- ❓ **Unknown:** ${statusCounts[ReachabilityStatus.UNKNOWN] ?: 0}")
+            appendLine("- ⏱️ **Total Target Analysis Time:** ${totalExecutionTimeMs}ms")
             appendLine()
 
-            appendLine("## 🔍 Target Analysis Results")
+            // Methods Analyzed
+            appendLine("## 🔍 Methods Analyzed")
+            results.methods.forEach { method ->
+                val className = method.enclosingClass?.name ?: "Unknown"
+                appendLine("- `$className.${method.name}`")
+            }
             appendLine()
 
-            results.reachabilityResults.forEach { result ->
+            // Detailed Target Results
+            appendLine("## 🎯 Detailed Target Analysis")
+            appendLine()
+
+            results.reachabilityResults.forEachIndexed { index, result ->
                 val targetType = when (result.target) {
                     is TsReachabilityTarget.InitialPoint -> "Initial Point"
                     is TsReachabilityTarget.IntermediatePoint -> "Intermediate Point"
@@ -607,43 +609,127 @@ class ReachabilityAnalyzer : CliktCommand(
                     ReachabilityStatus.UNKNOWN -> "❓"
                 }
 
-                appendLine("### $statusIcon $targetType")
-                appendLine("**Location:** ${result.target.location?.javaClass?.simpleName ?: "Unknown"}")
-                appendLine("**Status:** ${result.status}")
+                appendLine("### ${index + 1}. $statusIcon $targetType")
+                appendLine("- **Target ID:** `${generateTargetId(result.target)}`")
+                appendLine("- **Location:** ${result.target.location?.location ?: "Unknown"}")
+                appendLine("- **Status:** ${result.status}")
+                appendLine("- **Analysis Time:** ${result.executionTimeMs}ms")
+
+                if (result.errorMessage != null) {
+                    appendLine("- **Error:** ${result.errorMessage}")
+                }
 
                 if (result.executionPaths.isNotEmpty()) {
-                    appendLine("**Execution Paths Found:** ${result.executionPaths.size}")
+                    appendLine("- **Execution Paths Found:** ${result.executionPaths.size}")
 
                     if (includeStatements) {
                         result.executionPaths.forEachIndexed { pathIndex, path ->
-                            appendLine("#### Path ${pathIndex + 1}")
-                            appendLine("Statements in execution path:")
+                            appendLine()
+                            appendLine("#### Path ${pathIndex + 1} (${path.statements.size} statements)")
+                            appendLine("```")
                             path.statements.forEachIndexed { stmtIndex, stmt ->
                                 appendLine(
-                                    "${stmtIndex + 1}. ${stmt.javaClass.simpleName}: `${
-                                        stmt.toString().take(60)
-                                    }...`"
+                                    "${stmtIndex + 1}. ${stmt.javaClass.simpleName}: ${
+                                        stmt.toString().take(80)
+                                    }"
                                 )
                             }
-                            appendLine()
+                            appendLine("```")
                         }
                     }
                 }
                 appendLine()
             }
+
+            // Performance Summary
+            if (results.reachabilityResults.isNotEmpty()) {
+                appendLine("## ⚡ Performance Summary")
+                val avgTimePerTarget = totalExecutionTimeMs.toDouble() / results.reachabilityResults.size
+                val maxTime = results.reachabilityResults.maxOfOrNull { it.executionTimeMs } ?: 0L
+                val minTime = results.reachabilityResults.minOfOrNull { it.executionTimeMs } ?: 0L
+
+                appendLine("- **Average time per target:** ${String.format("%.2f", avgTimePerTarget)}ms")
+                appendLine("- **Maximum target analysis time:** ${maxTime}ms")
+                appendLine("- **Minimum target analysis time:** ${minTime}ms")
+                appendLine()
+            }
         })
 
-        echo("📄 Detailed report saved to: $reportFile")
+        echo("📄 Detailed summary saved to: $reportFile")
+    }
+
+    private fun generateJsonReport(results: ReachabilityResults) {
+        val json = Json {
+            prettyPrint = true
+            ignoreUnknownKeys = true
+        }
+
+        // Create individual analysis results matching the Zod schema
+        val analysisResults = results.reachabilityResults.map { result ->
+            AnalysisResultDto(
+                targetId = generateTargetId(result.target),
+                reachable = result.status == ReachabilityStatus.REACHABLE,
+                executionTime = result.executionTimeMs,
+                errorMessage = result.errorMessage
+            )
+        }
+
+        // Calculate summary statistics
+        val statusCounts = results.reachabilityResults.groupingBy { it.status }.eachCount()
+        val totalExecutionTimeMs = results.reachabilityResults.sumOf { it.executionTimeMs }
+
+        val summary = AnalysisSummaryDto(
+            totalTargets = results.reachabilityResults.size,
+            reachableTargets = statusCounts[ReachabilityStatus.REACHABLE] ?: 0,
+            unreachableTargets = statusCounts[ReachabilityStatus.UNREACHABLE] ?: 0,
+            unknownTargets = statusCounts[ReachabilityStatus.UNKNOWN] ?: 0,
+            totalExecutionTimeMs = totalExecutionTimeMs,
+        )
+
+        val jsonOutput = AnalysisResultsDto(
+            results = analysisResults,
+            summary = summary
+        )
+
+        val reportFile = output / "reachability_results.json"
+        reportFile.writeText(json.encodeToString(jsonOutput))
+
+        echo("📄 JSON report saved to: $reportFile")
+    }
+
+    private fun generateTargetId(target: TsTarget): String {
+        val targetType = when (target) {
+            is TsReachabilityTarget.InitialPoint -> "initial"
+            is TsReachabilityTarget.IntermediatePoint -> "intermediate"
+            is TsReachabilityTarget.FinalPoint -> "final"
+            else -> "unknown"
+        }
+
+        val location = target.location
+        return if (location != null) {
+            val locationInfo = when {
+                location.location.blockDtoIndex != null && location.location.stmtDtoIndex != null -> {
+                    "block_${location.location.blockDtoIndex}_stmt_${location.location.stmtDtoIndex}"
+                }
+
+                else -> {
+                    "unknown_location"
+                }
+            }
+            "${targetType}_${locationInfo}"
+        } else {
+            "${targetType}_null_location"
+        }
     }
 
     private fun printSummaryToConsole(results: ReachabilityResults, duration: Double) {
-        echo("")
-        echo("🎉 Analysis Complete!")
+        val statusCounts = results.reachabilityResults.groupingBy { it.status }.eachCount()
+
+        echo("\n📊 ANALYSIS COMPLETE")
+        echo("=".repeat(30))
         echo("⏱️ Duration: ${String.format("%.2f", duration)}s")
         echo("🔍 Methods: ${results.methods.size}")
         echo("📍 Targets: ${results.reachabilityResults.size}")
-
-        val statusCounts = results.reachabilityResults.groupingBy { it.status }.eachCount()
         echo("✅ Reachable: ${statusCounts[ReachabilityStatus.REACHABLE] ?: 0}")
         echo("❌ Unreachable: ${statusCounts[ReachabilityStatus.UNREACHABLE] ?: 0}")
         echo("❓ Unknown: ${statusCounts[ReachabilityStatus.UNKNOWN] ?: 0}")
@@ -671,6 +757,8 @@ data class TargetReachabilityResult(
     val target: TsTarget,
     val status: ReachabilityStatus,
     val executionPaths: List<ExecutionPath>,
+    val executionTimeMs: Long = 0L,
+    val errorMessage: String? = null,
 )
 
 data class ReachabilityResults(
