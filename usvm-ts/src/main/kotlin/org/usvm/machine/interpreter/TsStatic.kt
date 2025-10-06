@@ -58,7 +58,7 @@ internal fun TsContext.ensureStaticsInitialized(
 
     // Initialize statics in `clazz` if necessary
     if (!isInitialized(clazz)) {
-        logger.info { "Statics are not initialized for class: $clazz" }
+        // logger.info { "Statics are not initialized for class: $clazz" }
         initializeStatics(clazz, initializer)
         return@calcOnState null
     }

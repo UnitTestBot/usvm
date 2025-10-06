@@ -77,7 +77,7 @@ internal fun TsContext.ensureGlobalsInitialized(
 ): Unit? = scope.calcOnState {
     // Initialize globals in `file` if necessary
     if (!isGlobalsInitialized(file)) {
-        logger.info { "Globals are not initialized for file: $file" }
+        // logger.info { "Globals are not initialized for file: $file" }
         initializeGlobals(file)
         return@calcOnState null
     }
