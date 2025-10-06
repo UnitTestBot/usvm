@@ -546,6 +546,9 @@ class ReachabilityAnalyzer : CliktCommand(
         targets.forEach { target ->
             val targetStartTime = System.currentTimeMillis()
 
+            // Get the method directly from the target's statement location
+            val method = target.location.location.method
+
             try {
                 // Get all leaf targets from this target tree
                 val leafTargets = target.getLeaves()
@@ -578,6 +581,7 @@ class ReachabilityAnalyzer : CliktCommand(
                 results.add(
                     TargetReachabilityResult(
                         target = target,
+                        method = method,
                         status = reachabilityStatus,
                         executionPaths = executionPaths,
                         executionTimeMs = executionTimeMs,
@@ -590,6 +594,7 @@ class ReachabilityAnalyzer : CliktCommand(
                 results.add(
                     TargetReachabilityResult(
                         target = target,
+                        method = method,
                         status = ReachabilityStatus.UNKNOWN,
                         executionPaths = emptyList(),
                         executionTimeMs = executionTimeMs,
@@ -665,7 +670,7 @@ class ReachabilityAnalyzer : CliktCommand(
                 }
 
                 appendLine("### ${index + 1}. $statusIcon $targetType")
-                appendLine("- **Target ID:** `${generateTargetId(result.target)}`")
+                appendLine("- **Target ID:** `${generateTargetId(result.target, result.method)}`")
                 appendLine("- **Location:** ${result.target.location?.location ?: "Unknown"}")
                 appendLine("- **Status:** ${result.status}")
                 appendLine("- **Analysis Time:** ${result.executionTimeMs}ms")
@@ -722,7 +727,7 @@ class ReachabilityAnalyzer : CliktCommand(
         // Create individual analysis results matching the Zod schema
         val analysisResults = results.reachabilityResults.map { result ->
             AnalysisResultDto(
-                targetId = generateTargetId(result.target),
+                targetId = generateTargetId(result.target, result.method),
                 reachable = result.status == ReachabilityStatus.REACHABLE,
                 executionTime = result.executionTimeMs,
                 errorMessage = result.errorMessage
@@ -760,29 +765,35 @@ class ReachabilityAnalyzer : CliktCommand(
         echo("📄 JSON report saved to: $reportFile")
     }
 
-    private fun generateTargetId(target: TsTarget): String {
-        val targetType = when (target) {
-            is TsReachabilityTarget.InitialPoint -> "initial"
-            is TsReachabilityTarget.IntermediatePoint -> "intermediate"
-            is TsReachabilityTarget.FinalPoint -> "final"
-            else -> "unknown"
-        }
+    private fun generateTargetId(target: TsTarget, method: EtsMethod): String {
+        val className = method.enclosingClass?.name ?: "UnknownClass"
+        val methodName = method.name
+        val fileName = method.enclosingClass?.signature?.file?.fileName ?: "UnknownFile"
+
+        // val targetType = when (target) {
+        //     is TsReachabilityTarget.InitialPoint -> "initial"
+        //     is TsReachabilityTarget.IntermediatePoint -> "intermediate"
+        //     is TsReachabilityTarget.FinalPoint -> "final"
+        //     else -> "unknown"
+        // }
 
         val location = target.location
-        return if (location != null) {
-            val locationInfo = when {
+        val locationInfo = if (location != null) {
+            when {
                 location.location.blockDtoIndex != null && location.location.stmtDtoIndex != null -> {
-                    "block_${location.location.blockDtoIndex}_stmt_${location.location.stmtDtoIndex}"
+                    "b${location.location.blockDtoIndex}_s${location.location.stmtDtoIndex}"
                 }
 
                 else -> {
-                    "unknown_location"
+                    "unknown_loc"
                 }
             }
-            "${targetType}_${locationInfo}"
         } else {
-            "${targetType}_null_location"
+            "null_loc"
         }
+
+        // Format: ClassName.methodName:location@fileName
+        return "${className}.${methodName}:${locationInfo}@${fileName}"
     }
 
     private fun printSummaryToConsole(results: ReachabilityResults, duration: Double) {
@@ -818,6 +829,7 @@ data class ExecutionPath(
 
 data class TargetReachabilityResult(
     val target: TsTarget,
+    val method: EtsMethod,
     val status: ReachabilityStatus,
     val executionPaths: List<ExecutionPath>,
     val executionTimeMs: Long = 0L,
