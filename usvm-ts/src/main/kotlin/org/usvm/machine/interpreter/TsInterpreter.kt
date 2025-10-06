@@ -507,9 +507,7 @@ class TsInterpreter(
                     exprResolver.handleAssignToLocal(lhv, expr)
                 } else {
                     // Global variable
-                    logger.info {
-                        "Assigning to a global variable in %dflt: $name in $file"
-                    }
+                    // logger.info { "Assigning to a global variable in %dflt: $name in $file" }
                     writeGlobal(scope, file, name, expr)
                 }
             }
