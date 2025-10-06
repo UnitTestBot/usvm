@@ -30,6 +30,7 @@ import org.usvm.api.reachability.dto.AnalysisReportDto
 import org.usvm.api.reachability.dto.AnalysisResultDto
 import org.usvm.api.reachability.dto.AnalysisSummaryDto
 import org.usvm.api.reachability.dto.LocationDto
+import org.usvm.api.reachability.dto.ReachabilityStatusDto
 import org.usvm.api.reachability.dto.TargetDto
 import org.usvm.api.reachability.dto.TargetTreeNodeDto
 import org.usvm.api.reachability.dto.TargetTypeDto
@@ -721,7 +722,7 @@ class ReachabilityAnalyzer : CliktCommand(
         val analysisResults = results.reachabilityResults.map { result ->
             AnalysisResultDto(
                 targetId = generateTargetId(result.target),
-                reachable = result.status == ReachabilityStatus.REACHABLE,
+                status = result.status.toDto(),
                 executionTime = result.executionTimeMs,
                 errorMessage = result.errorMessage
             )
@@ -810,6 +811,12 @@ enum class ReachabilityStatus {
     REACHABLE,     // Confirmed reachable with execution path
     UNREACHABLE,   // Confirmed unreachable
     UNKNOWN,       // Could not determine (timeout/approximation/error)
+}
+
+fun ReachabilityStatus.toDto(): ReachabilityStatusDto = when (this) {
+    ReachabilityStatus.REACHABLE -> ReachabilityStatusDto.REACHABLE
+    ReachabilityStatus.UNREACHABLE -> ReachabilityStatusDto.UNREACHABLE
+    ReachabilityStatus.UNKNOWN -> ReachabilityStatusDto.UNKNOWN
 }
 
 data class ExecutionPath(

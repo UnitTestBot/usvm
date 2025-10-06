@@ -8,7 +8,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class AnalysisResultDto(
     val targetId: String,
-    val reachable: Boolean,
+    val status: ReachabilityStatusDto,
     val executionTime: Long = 0L, // in milliseconds
     val errorMessage: String? = null,
 )
@@ -35,3 +35,12 @@ data class AnalysisReportDto(
     val results: List<AnalysisResultDto>,
     val summary: AnalysisSummaryDto,
 )
+
+/**
+ * Reachability status.
+ */
+enum class ReachabilityStatusDto {
+    REACHABLE,     // Confirmed reachable with execution path
+    UNREACHABLE,   // Confirmed unreachable
+    UNKNOWN,       // Could not determine (timeout/approximation/error)
+}
