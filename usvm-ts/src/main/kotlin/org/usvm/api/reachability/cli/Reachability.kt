@@ -24,7 +24,6 @@ import org.jacodb.ets.utils.loadEtsProjectFromMultipleIR
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.UMachineOptions
-import org.usvm.api.TsTarget
 import org.usvm.api.reachability.TsReachabilityObserver
 import org.usvm.api.reachability.TsReachabilityTarget
 import org.usvm.api.reachability.dto.AnalysisReportDto
@@ -546,9 +545,6 @@ class ReachabilityAnalyzer : CliktCommand(
         targets.forEach { target ->
             val targetStartTime = System.currentTimeMillis()
 
-            // Get the method directly from the target's statement location
-            val method = target.location.location.method
-
             try {
                 // Get all leaf targets from this target tree
                 val leafTargets = target.getLeaves()
@@ -581,7 +577,6 @@ class ReachabilityAnalyzer : CliktCommand(
                 results.add(
                     TargetReachabilityResult(
                         target = target,
-                        method = method,
                         status = reachabilityStatus,
                         executionPaths = executionPaths,
                         executionTimeMs = executionTimeMs,
@@ -594,7 +589,6 @@ class ReachabilityAnalyzer : CliktCommand(
                 results.add(
                     TargetReachabilityResult(
                         target = target,
-                        method = method,
                         status = ReachabilityStatus.UNKNOWN,
                         executionPaths = emptyList(),
                         executionTimeMs = executionTimeMs,
@@ -660,7 +654,6 @@ class ReachabilityAnalyzer : CliktCommand(
                     is TsReachabilityTarget.InitialPoint -> "Initial Point"
                     is TsReachabilityTarget.IntermediatePoint -> "Intermediate Point"
                     is TsReachabilityTarget.FinalPoint -> "Final Point"
-                    else -> "Unknown Target"
                 }
 
                 val statusIcon = when (result.status) {
@@ -670,8 +663,8 @@ class ReachabilityAnalyzer : CliktCommand(
                 }
 
                 appendLine("### ${index + 1}. $statusIcon $targetType")
-                appendLine("- **Target ID:** `${generateTargetId(result.target, result.method)}`")
-                appendLine("- **Location:** ${result.target.location?.location ?: "Unknown"}")
+                appendLine("- **Target ID:** `${generateTargetId(result.target)}`")
+                appendLine("- **Location:** ${result.target.location.location}")
                 appendLine("- **Status:** ${result.status}")
                 appendLine("- **Analysis Time:** ${result.executionTimeMs}ms")
 
@@ -727,7 +720,7 @@ class ReachabilityAnalyzer : CliktCommand(
         // Create individual analysis results matching the Zod schema
         val analysisResults = results.reachabilityResults.map { result ->
             AnalysisResultDto(
-                targetId = generateTargetId(result.target, result.method),
+                targetId = generateTargetId(result.target),
                 reachable = result.status == ReachabilityStatus.REACHABLE,
                 executionTime = result.executionTimeMs,
                 errorMessage = result.errorMessage
@@ -765,7 +758,8 @@ class ReachabilityAnalyzer : CliktCommand(
         echo("📄 JSON report saved to: $reportFile")
     }
 
-    private fun generateTargetId(target: TsTarget, method: EtsMethod): String {
+    private fun generateTargetId(target: TsReachabilityTarget): String {
+        val method = target.location.location.method
         val className = method.enclosingClass?.name ?: "UnknownClass"
         val methodName = method.name
         val fileName = method.enclosingClass?.signature?.file?.fileName ?: "UnknownFile"
@@ -774,22 +768,17 @@ class ReachabilityAnalyzer : CliktCommand(
         //     is TsReachabilityTarget.InitialPoint -> "initial"
         //     is TsReachabilityTarget.IntermediatePoint -> "intermediate"
         //     is TsReachabilityTarget.FinalPoint -> "final"
-        //     else -> "unknown"
         // }
 
-        val location = target.location
-        val locationInfo = if (location != null) {
-            when {
-                location.location.blockDtoIndex != null && location.location.stmtDtoIndex != null -> {
-                    "b${location.location.blockDtoIndex}_s${location.location.stmtDtoIndex}"
-                }
-
-                else -> {
-                    "unknown_loc"
-                }
+        val location = target.location.location
+        val locationInfo = when {
+            location.blockDtoIndex != null && location.stmtDtoIndex != null -> {
+                "b${location.blockDtoIndex}_s${location.stmtDtoIndex}"
             }
-        } else {
-            "null_loc"
+
+            else -> {
+                "unknown_loc"
+            }
         }
 
         // Format: ClassName.methodName:location@fileName
@@ -828,8 +817,7 @@ data class ExecutionPath(
 )
 
 data class TargetReachabilityResult(
-    val target: TsTarget,
-    val method: EtsMethod,
+    val target: TsReachabilityTarget,
     val status: ReachabilityStatus,
     val executionPaths: List<ExecutionPath>,
     val executionTimeMs: Long = 0L,
@@ -838,7 +826,7 @@ data class TargetReachabilityResult(
 
 data class ReachabilityResults(
     val methods: List<EtsMethod>,
-    val targets: List<TsTarget>,
+    val targets: List<TsReachabilityTarget>,
     val states: List<TsState>,
     val reachabilityResults: List<TargetReachabilityResult>,
     val scene: EtsScene,
