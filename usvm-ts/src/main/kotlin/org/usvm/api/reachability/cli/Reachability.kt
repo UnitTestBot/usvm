@@ -718,7 +718,7 @@ class ReachabilityAnalyzer : CliktCommand(
             ignoreUnknownKeys = true
         }
 
-        // Create individual analysis results matching the Zod schema
+        // Create individual analysis results
         val analysisResults = results.reachabilityResults.map { result ->
             AnalysisResultDto(
                 targetId = generateTargetId(result.target),
