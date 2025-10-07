@@ -777,6 +777,32 @@ class TsInterpreter(
 
                 state.pathConstraints += state.memory.types.evalTypeEquals(ref, EtsStringType)
             }
+            if (parameterType is EtsUnionType) {
+                val subConstraints = parameterType.types.map { type ->
+                    when (type) {
+                        is EtsRefType -> {
+                            val subTypeConstraints = mutableListOf<UExpr<*>>()
+                            subTypeConstraints += mkNot(mkHeapRefEq(ref, mkTsNullValue()))
+                            subTypeConstraints += mkNot(mkHeapRefEq(ref, mkUndefinedValue()))
+                            subTypeConstraints += state.memory.types.evalIsSubtype(ref, type)
+                            mkAnd(subTypeConstraints)
+                        }
+
+                        EtsNullType -> mkHeapRefEq(ref, mkTsNullValue())
+                        EtsUndefinedType -> mkHeapRefEq(ref, mkUndefinedValue())
+                        EtsStringType -> {
+                            val subTypeConstraints = mutableListOf<UExpr<*>>()
+                            subTypeConstraints += mkNot(mkHeapRefEq(ref, mkTsNullValue()))
+                            subTypeConstraints += mkNot(mkHeapRefEq(ref, mkUndefinedValue()))
+                            subTypeConstraints += state.memory.types.evalTypeEquals(ref, EtsStringType)
+                            mkAnd(subTypeConstraints)
+                        }
+
+                        else -> error("Unsupported union type: $type")
+                    }
+                }
+                state.pathConstraints += mkOr(subConstraints)
+            }
 
             val parameterSort = typeToSort(parameterType)
             if (parameterSort is TsUnresolvedSort) {

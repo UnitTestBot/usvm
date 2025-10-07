@@ -2,12 +2,10 @@ package org.usvm.machine.expr
 
 import io.ksmt.utils.asExpr
 import mu.KotlinLogging
-import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsClassCategory
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLocal
-import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsStaticFieldRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
@@ -83,6 +81,7 @@ fun TsContext.assignToInstanceField(
                 typeToSort(etsField.property.type)
             }
         }
+
         is TsResolutionResult.Ambiguous -> unresolvedSort
     }
 
@@ -98,21 +97,24 @@ fun TsContext.assignToInstanceField(
             val lValue = mkFieldLValue(sort, unwrappedInstance, field)
             if (lValue.sort != expr.sort) {
                 if (expr.isFakeObject()) {
-                    val lhvType = instanceLocal.type
-                    val value = when (lhvType) {
-                        is EtsBooleanType -> {
+                    val value = when (sort) {
+                        boolSort -> {
                             pathConstraints += expr.getFakeType(scope).boolTypeExpr
                             expr.extractBool(scope)
                         }
 
-                        is EtsNumberType -> {
+                        fp64Sort -> {
                             pathConstraints += expr.getFakeType(scope).fpTypeExpr
                             expr.extractFp(scope)
                         }
 
-                        else -> {
+                        addressSort -> {
                             pathConstraints += expr.getFakeType(scope).refTypeExpr
                             expr.extractRef(scope)
+                        }
+
+                        else -> {
+                            error("Unsupported field sort for fake object extraction: ${lValue.sort}")
                         }
                     }
                     memory.write(lValue, value.asExpr(lValue.sort), guard = trueExpr)
