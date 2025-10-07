@@ -34,6 +34,7 @@ import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
 import org.jacodb.ets.utils.callExpr
 import org.usvm.StepResult
 import org.usvm.StepScope
+import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.UInterpreter
 import org.usvm.UIteExpr
@@ -778,10 +779,11 @@ class TsInterpreter(
                 state.pathConstraints += state.memory.types.evalTypeEquals(ref, EtsStringType)
             }
             if (parameterType is EtsUnionType) {
+                state.pathConstraints += state.memory.types.evalIsSubtype(ref, parameterType)
                 val subConstraints = parameterType.types.map { type ->
                     when (type) {
                         is EtsRefType -> {
-                            val subTypeConstraints = mutableListOf<UExpr<*>>()
+                            val subTypeConstraints = mutableListOf<UBoolExpr>()
                             subTypeConstraints += mkNot(mkHeapRefEq(ref, mkTsNullValue()))
                             subTypeConstraints += mkNot(mkHeapRefEq(ref, mkUndefinedValue()))
                             subTypeConstraints += state.memory.types.evalIsSubtype(ref, type)
@@ -790,11 +792,20 @@ class TsInterpreter(
 
                         EtsNullType -> mkHeapRefEq(ref, mkTsNullValue())
                         EtsUndefinedType -> mkHeapRefEq(ref, mkUndefinedValue())
+
                         EtsStringType -> {
-                            val subTypeConstraints = mutableListOf<UExpr<*>>()
+                            val subTypeConstraints = mutableListOf<UBoolExpr>()
                             subTypeConstraints += mkNot(mkHeapRefEq(ref, mkTsNullValue()))
                             subTypeConstraints += mkNot(mkHeapRefEq(ref, mkUndefinedValue()))
                             subTypeConstraints += state.memory.types.evalTypeEquals(ref, EtsStringType)
+                            mkAnd(subTypeConstraints)
+                        }
+
+                        EtsBooleanType -> {
+                            val subTypeConstraints = mutableListOf<UBoolExpr>()
+                            subTypeConstraints += mkNot(mkHeapRefEq(ref, mkTsNullValue()))
+                            subTypeConstraints += mkNot(mkHeapRefEq(ref, mkUndefinedValue()))
+                            subTypeConstraints += state.memory.types.evalTypeEquals(ref, EtsBooleanType)
                             mkAnd(subTypeConstraints)
                         }
 
