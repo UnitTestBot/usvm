@@ -2,16 +2,34 @@
 // noinspection JSUnusedGlobalSymbols
 
 class NullableFields {
-    useNullableArg(isVisible: boolean | null): number {
+    useNullableArg(isVisible: boolean | null): boolean {
         // const options = { isVisible: isVisible };
         const options = new Options(isVisible);
         const component = new Component(options);
-        return component.visible ? 1 : 2; // 1 if true/null, 2 if false
+        if (isVisible === null) {
+            return component.visible; // true
+        }
+        if (isVisible === true) {
+            return component.visible; // true
+        }
+        if (isVisible === false) {
+            return component.visible; // false
+        }
+        // unreachable
     }
 
-    useOptions(options: Options): number {
+    useOptions(options: Options): boolean {
         const component = new Component(options);
-        return component.visible ? 1 : 2; // 1 if true/null, 2 if false
+        if (options.isVisible === null) {
+            return component.visible; // true
+        }
+        if (options.isVisible === true) {
+            return component.visible; // true
+        }
+        if (options.isVisible === false) {
+            return component.visible; // false
+        }
+        // unreachable
     }
 }
 

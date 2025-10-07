@@ -117,6 +117,10 @@ fun TsContext.assignToInstanceField(
                             error("Unsupported field sort for fake object extraction: ${lValue.sort}")
                         }
                     }
+                    scope.assert(trueExpr) ?: run {
+                        logger.warn { "UNSAT after ensuring fake object is of expected type" }
+                        return@doWithState
+                    }
                     memory.write(lValue, value.asExpr(lValue.sort), guard = trueExpr)
                 } else {
                     TODO("Support enums fields")

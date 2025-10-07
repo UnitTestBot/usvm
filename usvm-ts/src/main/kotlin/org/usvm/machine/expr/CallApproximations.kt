@@ -917,7 +917,11 @@ private fun TsExprResolver.handleArrayIndexOf(
             mkBvSignedGreaterOrEqualExpr(symbolicResult, mkBv(0)),
             mkBvSignedLessExpr(symbolicResult, length)
         )
-        pathConstraints += mkOr(notFound, validIndex)
+        // pathConstraints += mkOr(notFound, validIndex)
+        scope.assert(mkOr(notFound, validIndex) ) ?: run {
+            logger.warn { "UNSAT after adding Array.indexOf constraints" }
+            return@calcOnState null
+        }
 
         // Convert to fp64 for return
         mkBvToFpExpr(

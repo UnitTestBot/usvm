@@ -424,7 +424,7 @@ class TsInterpreter(
         val boolExpr = if (expr.sort == ctx.boolSort) {
             expr.asExpr(ctx.boolSort)
         } else {
-            ctx.mkTruthyExpr(expr, scope)
+            ctx.mkTruthyExpr(expr, scope) ?: error("Should not be null")
         }
 
         observer?.onIfStatementWithResolvedCondition(simpleValueResolver, stmt, boolExpr, scope)
@@ -454,6 +454,11 @@ class TsInterpreter(
 
     private fun visitReturnStmt(scope: TsStepScope, stmt: EtsReturnStmt) {
         val exprResolver = exprResolverWithScope(scope)
+
+        scope.assert(ctx.trueExpr) ?: run {
+            logger.warn { "UNSAT in return statement: $stmt" }
+            return
+        }
 
         observer?.onReturnStatement(exprResolver.simpleValueResolver, stmt, scope)
 
@@ -778,53 +783,69 @@ class TsInterpreter(
 
                 state.pathConstraints += state.memory.types.evalTypeEquals(ref, EtsStringType)
             }
-            if (parameterType is EtsUnionType) {
-                state.pathConstraints += state.memory.types.evalIsSubtype(ref, parameterType)
-                val subConstraints = parameterType.types.map { type ->
-                    when (type) {
-                        is EtsRefType -> {
-                            val subTypeConstraints = mutableListOf<UBoolExpr>()
-                            subTypeConstraints += mkNot(mkHeapRefEq(ref, mkTsNullValue()))
-                            subTypeConstraints += mkNot(mkHeapRefEq(ref, mkUndefinedValue()))
-                            subTypeConstraints += state.memory.types.evalIsSubtype(ref, type)
-                            mkAnd(subTypeConstraints)
-                        }
-
-                        EtsNullType -> mkHeapRefEq(ref, mkTsNullValue())
-                        EtsUndefinedType -> mkHeapRefEq(ref, mkUndefinedValue())
-
-                        EtsStringType -> {
-                            val subTypeConstraints = mutableListOf<UBoolExpr>()
-                            subTypeConstraints += mkNot(mkHeapRefEq(ref, mkTsNullValue()))
-                            subTypeConstraints += mkNot(mkHeapRefEq(ref, mkUndefinedValue()))
-                            subTypeConstraints += state.memory.types.evalTypeEquals(ref, EtsStringType)
-                            mkAnd(subTypeConstraints)
-                        }
-
-                        EtsBooleanType -> {
-                            val subTypeConstraints = mutableListOf<UBoolExpr>()
-                            subTypeConstraints += mkNot(mkHeapRefEq(ref, mkTsNullValue()))
-                            subTypeConstraints += mkNot(mkHeapRefEq(ref, mkUndefinedValue()))
-                            subTypeConstraints += state.memory.types.evalTypeEquals(ref, EtsBooleanType)
-                            mkAnd(subTypeConstraints)
-                        }
-
-                        else -> error("Unsupported union type: $type")
-                    }
-                }
-                state.pathConstraints += mkOr(subConstraints)
-            }
 
             val parameterSort = typeToSort(parameterType)
             if (parameterSort is TsUnresolvedSort) {
                 // If the parameter type is unresolved, we create a fake object for it
-                val bool = mkRegisterReading(idx, boolSort)
-                val fp = mkRegisterReading(idx, fp64Sort)
-                val ref = mkRegisterReading(idx, addressSort)
-                val fakeObject = state.mkFakeValue(null, bool, fp, ref)
-                val lValue = mkRegisterStackLValue(addressSort, idx)
-                state.memory.write(lValue, fakeObject.asExpr(addressSort), guard = trueExpr)
-                state.saveSortForLocal(idx, addressSort)
+
+                if (parameterType is EtsUnionType) {
+                    // Union types are always represented as fake objects
+                    // Create symbolic values for each possible type in the union
+                    val hasBooleanType = parameterType.types.any { it is EtsBooleanType }
+                    val hasNumberType = parameterType.types.any { it is EtsNumberType }
+                    val hasRefType = parameterType.types.any {
+                        it is EtsRefType || it is EtsStringType || it is EtsNullType || it is EtsUndefinedType
+                    }
+                    val hasNull = parameterType.types.any { it is EtsNullType }
+                    val hasUndefined = parameterType.types.any { it is EtsUndefinedType }
+
+                    // Create symbolic values for each component
+                    val boolValue = if (hasBooleanType) {
+                        mkRegisterReading(idx, boolSort)
+                    } else {
+                        null
+                    }
+
+                    val fpValue = if (hasNumberType) {
+                        mkRegisterReading(idx, fp64Sort)
+                    } else {
+                        null
+                    }
+
+                    val refValue = if (hasRefType) {
+                        mkRegisterReading(idx, addressSort)
+                    } else {
+                        null
+                    }
+
+                    // Create the fake object with the symbolic values
+                    val fakeObject = state.mkFakeValue(null, boolValue, fpValue, refValue)
+
+                    // If the union doesn't contain null or undefined, add constraints
+                    if (hasRefType && !hasNull) {
+                        val refLValue = getIntermediateRefLValue(fakeObject.address)
+                        val refComponent = state.memory.read(refLValue).asExpr(addressSort)
+                        state.pathConstraints += mkNot(mkHeapRefEq(refComponent, mkTsNullValue()))
+                    }
+                    if (hasRefType && !hasUndefined) {
+                        val refLValue = getIntermediateRefLValue(fakeObject.address)
+                        val refComponent = state.memory.read(refLValue).asExpr(addressSort)
+                        state.pathConstraints += mkNot(mkHeapRefEq(refComponent, mkUndefinedValue()))
+                    }
+
+                    // Write the fake object to the parameter location
+                    val lValue = mkRegisterStackLValue(addressSort, idx)
+                    state.memory.write(lValue, fakeObject.asExpr(addressSort), guard = trueExpr)
+                    state.saveSortForLocal(idx, addressSort)
+                } else {
+                    val bool = mkRegisterReading(idx, boolSort)
+                    val fp = mkRegisterReading(idx, fp64Sort)
+                    val ref = mkRegisterReading(idx, addressSort)
+                    val fakeObject = state.mkFakeValue(null, bool, fp, ref)
+                    val lValue = mkRegisterStackLValue(addressSort, idx)
+                    state.memory.write(lValue, fakeObject.asExpr(addressSort), guard = trueExpr)
+                    state.saveSortForLocal(idx, addressSort)
+                }
             } else {
                 state.saveSortForLocal(idx, parameterSort)
             }

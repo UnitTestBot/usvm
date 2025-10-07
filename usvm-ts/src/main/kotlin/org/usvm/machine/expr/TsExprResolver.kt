@@ -311,7 +311,11 @@ class TsExprResolver(
                         val fakeType = instance.getFakeType(scope)
                         pathConstraints += fakeType.refTypeExpr
                         val refValue = instance.extractRef(scope)
-                        pathConstraints += memory.types.evalIsSubtype(refValue, expr.type)
+                        // pathConstraints += memory.types.evalIsSubtype(refValue, expr.type)
+                        scope.assert(memory.types.evalIsSubtype(refValue, expr.type)) ?: run {
+                            logger.warn { "UNSAT after ensuring fake object is of expected type" }
+                            return@calcOnState null
+                        }
                         return@calcOnState instance
                     }
 
@@ -320,7 +324,11 @@ class TsExprResolver(
                         TODO("Not supported yet https://github.com/UnitTestBot/usvm/issues/299")
                     }
 
-                    pathConstraints += memory.types.evalIsSubtype(instance, expr.type)
+                    // pathConstraints += memory.types.evalIsSubtype(instance, expr.type)
+                    scope.assert(memory.types.evalIsSubtype(instance, expr.type)) ?: run {
+                        logger.warn { "UNSAT after ensuring instance is of expected type" }
+                        return@calcOnState null
+                    }
                     instance
                 }
             }

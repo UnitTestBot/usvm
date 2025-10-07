@@ -61,21 +61,21 @@ sealed interface TsUnaryOperator {
             arg: UExpr<KFp64Sort>,
             scope: TsStepScope,
         ): UBoolExpr {
-            return mkNot(mkTruthyExpr(arg, scope))
+            return mkNot(mkTruthyExpr(arg, scope) ?: error("Should not be null"))
         }
 
         override fun TsContext.resolveRef(
             arg: UExpr<UAddressSort>,
             scope: TsStepScope,
         ): UBoolExpr {
-            return mkNot(mkTruthyExpr(arg, scope))
+            return mkNot(mkTruthyExpr(arg, scope) ?: error("Should not be null"))
         }
 
         override fun TsContext.resolveFake(
             arg: UConcreteHeapRef,
             scope: TsStepScope,
         ): UBoolExpr {
-            return mkNot(mkTruthyExpr(arg, scope))
+            return mkNot(mkTruthyExpr(arg, scope) ?: error("Should not be null"))
         }
     }
 

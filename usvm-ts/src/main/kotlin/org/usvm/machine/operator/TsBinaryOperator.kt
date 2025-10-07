@@ -879,7 +879,7 @@ sealed interface TsBinaryOperator {
             check(lhs.isFakeObject() || rhs.isFakeObject())
 
             return scope.calcOnState {
-                val lhsTruthyExpr = mkTruthyExpr(lhs, scope)
+                val lhsTruthyExpr = mkTruthyExpr(lhs, scope) ?: error("Should not be null")
                 iteWriteIntoFakeObject(scope, lhsTruthyExpr, rhs, lhs)
             }
         }
@@ -891,7 +891,7 @@ sealed interface TsBinaryOperator {
         ): UExpr<*> {
             check(!lhs.isFakeObject() && !rhs.isFakeObject())
 
-            val lhsTruthyExpr = mkTruthyExpr(lhs, scope)
+            val lhsTruthyExpr = mkTruthyExpr(lhs, scope) ?: error("Should not be null")
             return scope.calcOnState {
                 iteWriteIntoFakeObject(scope, lhsTruthyExpr, rhs, lhs)
             }
@@ -930,7 +930,7 @@ sealed interface TsBinaryOperator {
         ): UExpr<*> {
             check(lhs.isFakeObject() || rhs.isFakeObject())
 
-            val lhsTruthyExpr = mkTruthyExpr(lhs, scope)
+            val lhsTruthyExpr = mkTruthyExpr(lhs, scope) ?: error("Should not be null")
             return iteWriteIntoFakeObject(scope, lhsTruthyExpr, lhs, rhs)
         }
 
@@ -941,7 +941,7 @@ sealed interface TsBinaryOperator {
         ): UExpr<*> {
             check(!lhs.isFakeObject() && !rhs.isFakeObject())
 
-            val lhsTruthyExpr = mkTruthyExpr(lhs, scope)
+            val lhsTruthyExpr = mkTruthyExpr(lhs, scope) ?: error("Should not be null")
             return iteWriteIntoFakeObject(scope, lhsTruthyExpr, lhs, rhs)
         }
     }

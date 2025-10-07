@@ -10,6 +10,7 @@ import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.isFalse
+import org.usvm.logger
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.interpreter.TsStepScope
@@ -29,15 +30,19 @@ fun TsContext.checkNotFake(expr: UExpr<*>) {
 fun TsContext.mkTruthyExpr(
     expr: UExpr<out USort>,
     scope: TsStepScope,
-): UBoolExpr = scope.calcOnState {
+): UBoolExpr? = scope.calcOnState {
     if (expr.isFakeObject()) {
         val falseBranchGround = makeSymbolicPrimitive(boolSort)
 
         val conjuncts = mutableListOf<ExprWithTypeConstraint<UBoolSort>>()
         val possibleType = memory.types.getTypeStream(expr.asExpr(addressSort)).single() as EtsFakeType
 
-        scope.doWithState {
-            pathConstraints += possibleType.mkExactlyOneTypeConstraint(this@mkTruthyExpr)
+        // scope.doWithState {
+        //     pathConstraints += possibleType.mkExactlyOneTypeConstraint(this@mkTruthyExpr)
+        // }
+        scope.assert(possibleType.mkExactlyOneTypeConstraint(this@mkTruthyExpr)) ?: run {
+            logger.warn { "UNSAT after ensuring exactly one type for fake object $expr" }
+            return@calcOnState null
         }
 
         if (!possibleType.boolTypeExpr.isFalse) {

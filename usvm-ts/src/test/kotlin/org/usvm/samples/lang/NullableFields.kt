@@ -14,19 +14,23 @@ class NullableFields : TsMethodTestRunner() {
     @Test
     fun `test useNullableArg`() {
         val method = getMethod("useNullableArg")
-        discoverProperties<TsTestValue, TsTestValue.TsNumber>(
+        discoverProperties<TsTestValue, TsTestValue.TsBoolean>(
             method,
             { a, r ->
-                (r eq 1) && (a is TsTestValue.TsNull)
+                // `a is null => r is true`
+                (a is TsTestValue.TsNull) && r.value
             },
             { a, r ->
-                (r eq 1) && (a is TsTestValue.TsBoolean) && a.value
+                // `a is true => r is true`
+                (a is TsTestValue.TsBoolean) && a.value && r.value
             },
             { a, r ->
-                (r eq 2) && (a is TsTestValue.TsBoolean) && !a.value
+                // `a is false => r is false`
+                (a is TsTestValue.TsBoolean) && !a.value && !r.value
             },
             invariants = arrayOf(
-                { _, r -> (r eq 1) or (r eq 2) },
+                // r is Boolean
+                { _, _ -> true },
             )
         )
     }
@@ -34,22 +38,23 @@ class NullableFields : TsMethodTestRunner() {
     @Test
     fun `test useOptions`() {
         val method = getMethod("useOptions")
-        discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
+        discoverProperties<TsTestValue.TsClass, TsTestValue.TsBoolean>(
             method,
             { a, r ->
                 val f = a.properties.getValue("isVisible")
-                (r eq 1) && f is TsTestValue.TsNull
+                r.value && f is TsTestValue.TsNull
             },
             { a, r ->
                 val f = a.properties.getValue("isVisible")
-                (r eq 1) && f is TsTestValue.TsBoolean && f.value
+                r.value && f is TsTestValue.TsBoolean && f.value
             },
             { a, r ->
                 val f = a.properties.getValue("isVisible")
-                (r eq 2) && f is TsTestValue.TsBoolean && !f.value
+                !r.value && f is TsTestValue.TsBoolean && !f.value
             },
             invariants = arrayOf(
-                { _, r -> (r eq 0) or (r eq 1) },
+                // r is Boolean
+                { _, _ -> true },
             )
         )
     }
