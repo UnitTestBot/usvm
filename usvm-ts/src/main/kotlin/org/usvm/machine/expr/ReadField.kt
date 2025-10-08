@@ -63,7 +63,7 @@ fun TsContext.readField(
     instance: UHeapRef,
     field: EtsFieldSignature,
     hierarchy: EtsHierarchy,
-): UExpr<*> {
+): UExpr<*>? {
     checkNotFake(instance)
 
     val sort = when (val etsField = resolveEtsField(instanceLocal, field, hierarchy)) {
@@ -91,14 +91,14 @@ fun TsContext.readField(
         is TsResolutionResult.Ambiguous -> unresolvedSort
     }
 
-    scope.doWithState {
+    scope.calcOnState {
         // If we accessed some field, we make an assumption that
         // this field should present in the object.
         // That's not true in the common case for TS, but that's the decision we made.
         val auxiliaryType = EtsAuxiliaryType(properties = setOf(field.name))
         // assert is required to update models
         scope.assert(memory.types.evalIsSubtype(instance, auxiliaryType))
-    }
+    } ?: return null
 
     // If the field type is known, we can read it directly.
     if (sort !is TsUnresolvedSort) {
