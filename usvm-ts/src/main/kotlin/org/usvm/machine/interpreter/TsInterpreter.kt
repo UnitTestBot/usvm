@@ -34,7 +34,6 @@ import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
 import org.jacodb.ets.utils.callExpr
 import org.usvm.StepResult
 import org.usvm.StepScope
-import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.UInterpreter
 import org.usvm.UIteExpr
@@ -71,6 +70,9 @@ import org.usvm.machine.state.returnValue
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.machine.types.toAuxiliaryType
 import org.usvm.sizeSort
+import org.usvm.solver.USatResult
+import org.usvm.solver.UUnknownResult
+import org.usvm.solver.UUnsatResult
 import org.usvm.targets.UTargetsSet
 import org.usvm.types.TypesResult
 import org.usvm.types.first
@@ -452,12 +454,30 @@ class TsInterpreter(
         )
     }
 
+    private var done = false
+
     private fun visitReturnStmt(scope: TsStepScope, stmt: EtsReturnStmt) {
         val exprResolver = exprResolverWithScope(scope)
 
-        scope.assert(ctx.trueExpr) ?: run {
-            logger.warn { "UNSAT in return statement: $stmt" }
-            return
+        // Note: scope.assert(trueExpr) does not do anything...
+        //   scope.assert(ctx.trueExpr) ?: run {
+        //       logger.warn { "UNSAT in return statement: $stmt" }
+        //       return
+        //   }
+        // ... instead, we need to call solver.check manually:
+        when (ctx.solver<EtsType>().check(scope.calcOnState { pathConstraints })) {
+            is USatResult<*> -> {
+                // OK
+            }
+
+            is UUnknownResult<*> -> {
+                // Not expected, but OK...
+            }
+
+            is UUnsatResult<*> -> {
+                // logger.warn { "UNSAT in return statement: $stmt" }
+                return
+            }
         }
 
         observer?.onReturnStatement(exprResolver.simpleValueResolver, stmt, scope)
@@ -823,14 +843,12 @@ class TsInterpreter(
 
                     // If the union doesn't contain null or undefined, add constraints
                     if (hasRefType && !hasNull) {
-                        val refLValue = getIntermediateRefLValue(fakeObject.address)
-                        val refComponent = state.memory.read(refLValue).asExpr(addressSort)
-                        state.pathConstraints += mkNot(mkHeapRefEq(refComponent, mkTsNullValue()))
+                        val ref = fakeObject.extractRef(state.memory)
+                        state.pathConstraints += mkNot(mkHeapRefEq(ref, mkTsNullValue()))
                     }
                     if (hasRefType && !hasUndefined) {
-                        val refLValue = getIntermediateRefLValue(fakeObject.address)
-                        val refComponent = state.memory.read(refLValue).asExpr(addressSort)
-                        state.pathConstraints += mkNot(mkHeapRefEq(refComponent, mkUndefinedValue()))
+                        val ref = fakeObject.extractRef(state.memory)
+                        state.pathConstraints += mkNot(mkHeapRefEq(ref, mkUndefinedValue()))
                     }
 
                     // Write the fake object to the parameter location
