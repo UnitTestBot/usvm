@@ -6,6 +6,8 @@ import org.jacodb.ets.model.EtsAliasType
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
+import org.jacodb.ets.model.EtsClassCategory
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsEnumValueType
 import org.jacodb.ets.model.EtsGenericType
 import org.jacodb.ets.model.EtsLocal
@@ -140,7 +142,20 @@ class TsContext(
         is EtsNullType -> addressSort
         is EtsUndefinedType -> addressSort
         is EtsUnionType -> unresolvedSort
-        is EtsRefType -> addressSort
+
+        is EtsRefType -> {
+            if (type is EtsClassType) {
+                val classes = scene.projectClasses.filter { it.signature == type.signature }
+                if (classes.any { it.category == EtsClassCategory.ENUM }) {
+                    unresolvedSort
+                } else {
+                    addressSort
+                }
+            } else {
+                addressSort
+            }
+        }
+
         is EtsAnyType -> unresolvedSort
         is EtsUnknownType -> unresolvedSort
         is EtsAliasType -> typeToSort(type.originalType)
