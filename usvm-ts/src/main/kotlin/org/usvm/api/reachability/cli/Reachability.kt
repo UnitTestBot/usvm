@@ -19,7 +19,7 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStmt
-import org.jacodb.ets.utils.loadEtsFileAutoConvert
+import org.jacodb.ets.utils.loadEtsProjectAutoConvert
 import org.jacodb.ets.utils.loadEtsProjectFromMultipleIR
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
@@ -93,6 +93,11 @@ class ReachabilityAnalyzer : CliktCommand(
         "--sdk",
         help = "📚 Path to SDK directory with TypeScript declaration files"
     ).path(mustExist = true).multiple()
+
+    private val useArkAnalyzerTypeInference by option(
+        "--type-inference",
+        help = "🔬 Use Ark Analyzer type inference (1=enabled, <n>=multi-pass, default=no)"
+    ).int()
 
     private val targetsFile by option(
         "-t", "--targets",
@@ -195,24 +200,28 @@ class ReachabilityAnalyzer : CliktCommand(
         val scene = if (projectPath != null) {
             // Source mode: Load TypeScript project using autoConvert with SDK support
             echo("🔍 Loading TypeScript project from source...")
-            val tsFiles = findTypeScriptFiles(projectPath!!)
-            if (tsFiles.isEmpty()) {
-                throw IllegalArgumentException("No TypeScript files found in $projectPath")
-            }
-            echo("📁 Found ${tsFiles.size} TypeScript files")
+            val project = loadEtsProjectAutoConvert(
+                projectPath = projectPath!!,
+                useArkAnalyzerTypeInference = useArkAnalyzerTypeInference
+            )
+            echo("📁 Loaded ${project.projectFiles.size} project files")
 
             // Handle SDK files in source mode
-            val allFiles = tsFiles.toMutableList()
-            if (sdkPaths.isNotEmpty()) {
+            val sdkFiles = if (sdkPaths.isNotEmpty()) {
                 echo("📚 Processing SDK directories: ${sdkPaths.joinToString(", ")}")
-                sdkPaths.forEach { sdkPath ->
-                    val sdkFiles = findTypeScriptFiles(sdkPath)
-                    echo("📚 Found ${sdkFiles.size} SDK files in $sdkPath")
-                    allFiles.addAll(sdkFiles)
+                sdkPaths.flatMap { sdkPath ->
+                    val sdkProject = loadEtsProjectAutoConvert(
+                        projectPath = sdkPath,
+                        useArkAnalyzerTypeInference = null  // SDK always uses null
+                    )
+                    echo("📚 Loaded ${sdkProject.projectFiles.size} SDK files from $sdkPath")
+                    sdkProject.projectFiles
                 }
+            } else {
+                emptyList()
             }
 
-            val loadedScene = EtsScene(allFiles.map { loadEtsFileAutoConvert(it) })
+            val loadedScene = EtsScene(project.projectFiles, sdkFiles)
             echo("📊 Project loaded: ${loadedScene.projectClasses.size} classes")
             loadedScene
         } else {
@@ -241,7 +250,7 @@ class ReachabilityAnalyzer : CliktCommand(
         }
 
         // Find methods to analyze
-        val methodsToAnalyze = findMethodsToAnalyze(scene)
+        val methodsToAnalyze = findMethodsToAnalyze(scene).filter { it.name == "start" }
         echo("🎯 Analyzing ${methodsToAnalyze.size} methods")
 
         // Prepare targets
@@ -290,13 +299,6 @@ class ReachabilityAnalyzer : CliktCommand(
             reachabilityResults = reachabilityResults,
             scene = scene
         )
-    }
-
-    private fun findTypeScriptFiles(projectDir: Path): List<Path> {
-        return projectDir.toFile().walkTopDown()
-            .filter { it.isFile && (it.extension == "ts" || it.extension == "js") }
-            .map { it.toPath() }
-            .toList()
     }
 
     private fun findMethodsToAnalyze(scene: EtsScene): List<EtsMethod> {
