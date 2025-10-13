@@ -22,6 +22,7 @@ import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsStaticFieldRef
 import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.model.EtsStringLiteralType
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsThrowStmt
 import org.jacodb.ets.model.EtsType
@@ -797,7 +798,7 @@ class TsInterpreter(
             if (parameterType == EtsUndefinedType) {
                 state.pathConstraints += mkHeapRefEq(ref, mkUndefinedValue())
             }
-            if (parameterType == EtsStringType) {
+            if (parameterType == EtsStringType || parameterType is EtsStringLiteralType) {
                 state.pathConstraints += mkNot(mkHeapRefEq(ref, mkTsNullValue()))
                 state.pathConstraints += mkNot(mkHeapRefEq(ref, mkUndefinedValue()))
 
@@ -814,7 +815,7 @@ class TsInterpreter(
                     val hasBooleanType = parameterType.types.any { it is EtsBooleanType }
                     val hasNumberType = parameterType.types.any { it is EtsNumberType }
                     val hasRefType = parameterType.types.any {
-                        it is EtsRefType || it is EtsStringType || it is EtsNullType || it is EtsUndefinedType
+                        it is EtsRefType || it is EtsStringType || it is EtsStringLiteralType || it is EtsNullType || it is EtsUndefinedType
                     }
                     val hasNull = parameterType.types.any { it is EtsNullType }
                     val hasUndefined = parameterType.types.any { it is EtsUndefinedType }
