@@ -41,7 +41,6 @@ import org.usvm.machine.state.TsState
 import org.usvm.util.countLeaves
 import org.usvm.util.getLeaves
 import java.nio.file.Path
-import kotlin.io.path.Path
 import kotlin.io.path.absolute
 import kotlin.io.path.createDirectories
 import kotlin.io.path.div
@@ -108,7 +107,7 @@ class ReachabilityAnalyzer : CliktCommand(
     private val output by option(
         "-o", "--output",
         help = "📄 Output directory for analysis results"
-    ).path().default(Path("./reachability-results"))
+    ).path()
 
     // Analysis Configuration
     private val analysisMode by option(
@@ -608,16 +607,24 @@ class ReachabilityAnalyzer : CliktCommand(
     private fun generateReports(results: ReachabilityResults, startTime: Long) {
         echo("📊 Generating analysis reports...")
 
-        output.createDirectories()
         val duration = (System.currentTimeMillis() - startTime) / 1000.0 // in seconds
 
-        generateJsonReport(results, duration)
-        generateSummaryReport(results, duration)
+        if (output != null) {
+            output!!.createDirectories()
+            generateJsonReport(output!!, results, duration)
+            generateSummaryReport(output!!, results, duration)
+        } else {
+            echo("⚠️ Output directory not specified, skipping report generation")
+        }
 
         printSummaryToConsole(results, duration)
     }
 
-    private fun generateSummaryReport(results: ReachabilityResults, duration: Double) {
+    private fun generateSummaryReport(
+        output: Path,
+        results: ReachabilityResults,
+        duration: Double,
+    ) {
         val reportFile = output / "reachability_summary.md"
         reportFile.writeText(buildString {
             appendLine("# 🎯 TypeScript Reachability Analysis Summary")
@@ -715,7 +722,11 @@ class ReachabilityAnalyzer : CliktCommand(
         echo("📄 Detailed summary saved to: $reportFile")
     }
 
-    private fun generateJsonReport(results: ReachabilityResults, duration: Double) {
+    private fun generateJsonReport(
+        output: Path,
+        results: ReachabilityResults,
+        duration: Double,
+    ) {
         val json = Json {
             prettyPrint = true
             ignoreUnknownKeys = true
@@ -800,7 +811,11 @@ class ReachabilityAnalyzer : CliktCommand(
         echo("✅ Reachable: ${statusCounts[ReachabilityStatus.REACHABLE] ?: 0}")
         echo("❌ Unreachable: ${statusCounts[ReachabilityStatus.UNREACHABLE] ?: 0}")
         echo("❓ Unknown: ${statusCounts[ReachabilityStatus.UNKNOWN] ?: 0}")
-        echo("📁 Reports saved to: ${output.absolute().normalize()}")
+        if (output != null) {
+            echo("📁 Reports saved to: ${output!!.absolute().normalize()}")
+        } else {
+            echo("📁 No output directory specified, reports not saved")
+        }
     }
 }
 
