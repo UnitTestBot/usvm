@@ -12,7 +12,7 @@ import org.usvm.algorithms.UPriorityCollection
  */
 open class WeightedPathSelector<State, Weight>(
     priorityCollectionFactory: () -> UPriorityCollection<State, Weight>,
-    private val weighter: StateWeighter<State, Weight>
+    private val weighter: StateWeighter<State, Weight>,
 ) : UPathSelector<State> {
 
     private val priorityCollection = priorityCollectionFactory()
@@ -21,11 +21,21 @@ open class WeightedPathSelector<State, Weight>(
 
     override fun peek(): State = priorityCollection.peek()
 
-    override fun update(state: State) = priorityCollection.update(state, weighter.weight(state))
+    override fun update(state: State) {
+        val weight = weighter.weight(state)
+        // TODO hack for targeted mode, replace it later
+        if (weight == 64u) {
+            priorityCollection.remove(state)
+        } else {
+            priorityCollection.update(state, weighter.weight(state))
+        }
+    }
 
     override fun add(states: Collection<State>) {
         for (state in states) {
-            priorityCollection.add(state, weighter.weight(state))
+            val weight = weighter.weight(state)
+            if (weight == 64u) continue
+            priorityCollection.add(state, weight)
         }
     }
 
