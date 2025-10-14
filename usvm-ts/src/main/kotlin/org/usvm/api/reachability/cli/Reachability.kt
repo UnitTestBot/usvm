@@ -42,6 +42,7 @@ import org.usvm.util.countLeaves
 import org.usvm.util.getLeaves
 import java.nio.file.Path
 import kotlin.io.path.Path
+import kotlin.io.path.absolute
 import kotlin.io.path.createDirectories
 import kotlin.io.path.div
 import kotlin.io.path.readText
@@ -799,7 +800,7 @@ class ReachabilityAnalyzer : CliktCommand(
         echo("✅ Reachable: ${statusCounts[ReachabilityStatus.REACHABLE] ?: 0}")
         echo("❌ Unreachable: ${statusCounts[ReachabilityStatus.UNREACHABLE] ?: 0}")
         echo("❓ Unknown: ${statusCounts[ReachabilityStatus.UNKNOWN] ?: 0}")
-        echo("📁 Reports saved to: $output")
+        echo("📁 Reports saved to: ${output.absolute().normalize()}")
     }
 }
 
@@ -850,5 +851,12 @@ sealed interface TargetTrace {
 }
 
 fun main(args: Array<String>) {
+    // $ java -jar usvm-ts-all.jar --input-ir ./arkanalyzer-usvm-1760415336692/arkir/ --output ./results --targets ./arkanalyzer-usvm-1760415336692/targets/targetsFile.json --solver YICES --timeout 120 --steps 3500
+    val args = arrayOf(
+        "--input-ir", "C:/work/usvm-aa/arkanalyzer-usvm-1760415336692/arkir/",
+        "--output", "./results",
+        "--targets", "C:/work/usvm-aa/arkanalyzer-usvm-1760415336692/targets/targetsFile.json",
+        "--mode", "ALL_METHODS"
+    )
     ReachabilityAnalyzer().main(args)
 }
