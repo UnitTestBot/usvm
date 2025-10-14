@@ -8,12 +8,22 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.makeSymbolicPrimitive
+import org.usvm.api.makeSymbolicRefUntyped
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.machine.IntermediateLValueField
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsState
 import org.usvm.memory.ULValue
+
+fun TsState.mkFakeValue(
+    scope: TsStepScope?,
+): UConcreteHeapRef = mkFakeValue(
+    scope = scope,
+    boolValue = makeSymbolicPrimitive(ctx.boolSort),
+    fpValue = makeSymbolicPrimitive(ctx.fp64Sort),
+    refValue = makeSymbolicRefUntyped(),
+)
 
 fun TsState.mkFakeValue(
     scope: TsStepScope?, // pass `null` only in the initial state, where `scope` is not available!

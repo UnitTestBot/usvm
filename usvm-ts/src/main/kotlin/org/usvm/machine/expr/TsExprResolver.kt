@@ -446,9 +446,19 @@ class TsExprResolver(
         }
 
         val promise = arg.asExpr(addressSort)
-        check(isAllocatedConcreteHeapRef(promise)) {
-            "Promise instance should be allocated, but it is not: $promise"
+
+        val isAllocated = isAllocatedConcreteHeapRef(promise)
+
+        if (!isAllocated) {
+            if (options.isTargetedModeEnabled) {
+                // We cannot under-approximate in targeted mode
+                return scope.calcOnState { mkFakeValue(scope) }
+            } else {
+                error("Promise instance should be allocated, but it is not: $promise")
+            }
         }
+
+        require(isAllocated)
 
         val promiseState = scope.calcOnState {
             promiseState[promise] ?: PromiseState.PENDING
