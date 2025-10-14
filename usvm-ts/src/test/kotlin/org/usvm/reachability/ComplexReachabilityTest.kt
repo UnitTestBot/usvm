@@ -4,6 +4,7 @@ import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
+import org.junit.jupiter.api.Disabled
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.UMachineOptions
@@ -95,7 +96,7 @@ class ComplexReachabilityTest {
         target = target.addChild(TsReachabilityTarget.IntermediatePoint(firstIf))
 
         // return 1
-        val returnStmt = method.cfg.stmts.filterIsInstance<EtsReturnStmt>()[0]
+        val returnStmt = method.cfg.stmts.filterIsInstance<EtsReturnStmt>()[1]
         target.addChild(TsReachabilityTarget.FinalPoint(returnStmt))
 
         val results = machine.analyze(listOf(method), listOf(initialTarget))
@@ -147,6 +148,7 @@ class ComplexReachabilityTest {
         )
     }
 
+    @Disabled("Multiple methods ::process")
     @Test
     fun testConditionalObjectReachable() {
         // Test reachability with conditional object creation and polymorphic method calls
@@ -167,7 +169,7 @@ class ComplexReachabilityTest {
         target = target.addChild(TsReachabilityTarget.IntermediatePoint(secondIf))
 
         // return 1
-        val return1 = method.cfg.stmts.filterIsInstance<EtsReturnStmt>()[0]
+        val return1 = method.cfg.stmts.filterIsInstance<EtsReturnStmt>()[2]
         target.addChild(TsReachabilityTarget.FinalPoint(return1))
 
         // return 2

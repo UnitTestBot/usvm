@@ -161,7 +161,7 @@ class FunctionCallReachabilityTest {
         target = target.addChild(TsReachabilityTarget.IntermediatePoint(check))
 
         // return 1
-        val returnStmt = method.cfg.stmts.filterIsInstance<EtsReturnStmt>()[0]
+        val returnStmt = method.cfg.stmts.filterIsInstance<EtsReturnStmt>()[1]
         target.addChild(TsReachabilityTarget.FinalPoint(returnStmt))
 
         val results = machine.analyze(listOf(method), listOf(initialTarget))
