@@ -76,6 +76,7 @@ class RunnerTest {
         target = target.addChild(TsReachabilityTarget.FinalPoint(returnStmt))
 
         val results = machine.analyze(listOf(method), listOf(initialTarget))
+        println("Got ${results.size} results")
         results.let {}
     }
 }
