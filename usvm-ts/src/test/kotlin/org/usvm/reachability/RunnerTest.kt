@@ -67,7 +67,7 @@ class RunnerTest {
         val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
-            .single { it.name == "branch01_bad" }
+            .single { it.name == "branch01" }
 
         val initialTarget: TsTarget = TsReachabilityTarget.InitialPoint(method.cfg.stmts.first())
         var target: TsTarget = initialTarget
