@@ -719,7 +719,7 @@ class ReachabilityAnalyzer : CliktCommand(
             }
         })
 
-        echo("📄 Detailed summary saved to: $reportFile")
+        echo("📄 Detailed summary saved to: ${reportFile.absolute()}")
     }
 
     private fun generateJsonReport(
@@ -770,7 +770,7 @@ class ReachabilityAnalyzer : CliktCommand(
         val reportFile = output / "reachability_results.json"
         reportFile.writeText(json.encodeToString(jsonOutput))
 
-        echo("📄 JSON report saved to: $reportFile")
+        echo("📄 JSON report saved to: ${reportFile.absolute()}")
     }
 
     private fun generateTargetId(target: TsReachabilityTarget): String {
@@ -812,7 +812,7 @@ class ReachabilityAnalyzer : CliktCommand(
         echo("❌ Unreachable: ${statusCounts[ReachabilityStatus.UNREACHABLE] ?: 0}")
         echo("❓ Unknown: ${statusCounts[ReachabilityStatus.UNKNOWN] ?: 0}")
         if (output != null) {
-            echo("📁 Reports saved to: ${output!!.absolute().normalize()}")
+            echo("📁 Reports saved to: ${output!!.absolute()}")
         } else {
             echo("📁 No output directory specified, reports not saved")
         }
