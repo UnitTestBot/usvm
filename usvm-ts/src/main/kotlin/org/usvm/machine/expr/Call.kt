@@ -14,6 +14,7 @@ import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.newStmt
+import org.usvm.machine.types.mkFakeValue
 
 private val logger = KotlinLogging.logger {}
 
@@ -54,8 +55,13 @@ internal fun TsExprResolver.handleInstanceCall(
         } else {
             if (resolved.sort != addressSort) {
                 logger.warn { "Calling method on non-ref instance is not yet supported: $expr" }
-                scope.assert(falseExpr)
-                return null
+                if (options.isTargetedModeEnabled) {
+                    // We do not drop states in targeted mode since we cannot under-approximate behavior
+                    return scope.calcOnState { mkFakeValue(scope) }
+                } else {
+                    scope.assert(falseExpr)
+                    return null
+                }
             }
             resolved.asExpr(addressSort)
         }

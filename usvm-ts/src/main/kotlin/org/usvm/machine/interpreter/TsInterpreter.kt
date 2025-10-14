@@ -191,8 +191,15 @@ class TsInterpreter(
                         }
                         return
                     }
-                    scope.assert(falseExpr)
-                    return
+                    if (options.isTargetedModeEnabled) {
+                        scope.doWithState {
+                            methodResult = TsMethodResult.Success.MockedCall(unwrappedInstance, stmt.callee)
+                            newStmt(stmt.returnSite)
+                        }
+                    } else {
+                        scope.assert(falseExpr)
+                        return
+                    }
                 }
                 if (classes.size > 1) {
                     logger.warn { "Multiple (${classes.size}) classes with name '${type.typeName}'" }
@@ -211,8 +218,16 @@ class TsInterpreter(
                 logger.warn {
                     "Could not resolve method: ${stmt.callee} on type: $type"
                 }
-                scope.assert(falseExpr)
-                return
+
+                if (options.isTargetedModeEnabled) {
+                    scope.doWithState {
+                        methodResult = TsMethodResult.Success.MockedCall(unwrappedInstance, stmt.callee)
+                        newStmt(stmt.returnSite)
+                    }
+                } else {
+                    scope.assert(falseExpr)
+                    return
+                }
             }
         } else {
             val methods = resolveEtsMethods(stmt.callee)
@@ -220,8 +235,15 @@ class TsInterpreter(
                 if (stmt.callee.name !in listOf("then")) {
                     logger.warn { "Could not resolve method: ${stmt.callee}" }
                 }
-                scope.assert(falseExpr)
-                return
+                if (options.isTargetedModeEnabled) {
+                    scope.doWithState {
+                        methodResult = TsMethodResult.Success.MockedCall(unwrappedInstance, stmt.callee)
+                        newStmt(stmt.returnSite)
+                    }
+                } else {
+                    scope.assert(falseExpr)
+                    return
+                }
             }
             concreteMethods += methods
         }

@@ -7,6 +7,7 @@ import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsStaticCallExpr
 import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
 import org.usvm.UExpr
+import org.usvm.api.mockMethodCall
 import org.usvm.machine.Constants
 import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.expr.TsExprApproximationResult.NoApproximation
@@ -47,7 +48,11 @@ internal fun TsExprResolver.handleStaticCall(
     when (val resolved = resolveStaticMethod(expr.callee)) {
         is TsResolutionResult.Empty -> {
             logger.error { "Could not resolve static call: ${expr.callee}" }
-            scope.assert(falseExpr) ?: return null
+            if (options.isTargetedModeEnabled) {
+                mockMethodCall(scope, expr.callee)
+            } else {
+                scope.assert(falseExpr) ?: return null
+            }
         }
 
         is TsResolutionResult.Ambiguous -> {

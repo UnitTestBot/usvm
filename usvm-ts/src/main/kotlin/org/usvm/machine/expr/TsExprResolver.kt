@@ -16,7 +16,6 @@ import org.jacodb.ets.model.EtsBitXorExpr
 import org.jacodb.ets.model.EtsBooleanConstant
 import org.jacodb.ets.model.EtsCastExpr
 import org.jacodb.ets.model.EtsCaughtExceptionRef
-import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsClosureFieldRef
 import org.jacodb.ets.model.EtsConstant
 import org.jacodb.ets.model.EtsDeleteExpr
@@ -105,6 +104,7 @@ import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.types.iteWriteIntoFakeObject
+import org.usvm.machine.types.mkFakeValue
 import org.usvm.sizeSort
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.SymbolResolutionResult
@@ -139,7 +139,7 @@ class TsExprResolver(
 ) : EtsEntity.Visitor<UExpr<out USort>?> {
 
     val simpleValueResolver: TsSimpleValueResolver =
-        TsSimpleValueResolver(ctx, scope)
+        TsSimpleValueResolver(ctx, scope, options)
 
     fun resolve(expr: EtsEntity): UExpr<out USort>? {
         return expr.accept(this)
@@ -1047,6 +1047,7 @@ class TsExprResolver(
 class TsSimpleValueResolver(
     private val ctx: TsContext,
     private val scope: TsStepScope,
+    private val options: TsOptions,
 ) : EtsValue.Visitor<UExpr<out USort>?> {
 
     private fun resolveLocal(local: EtsValue): UExpr<*>? = with(ctx) {
@@ -1142,21 +1143,37 @@ class TsSimpleValueResolver(
 
                 is SymbolResolutionResult.FileNotFound -> {
                     logger.error { "Cannot resolve import for '$local': ${resolutionResult.reason}" }
-                    scope.assert(falseExpr)
-                    return null
+                    if (options.isTargetedModeEnabled) {
+                        // We do not drop states in targeted mode since we cannot under-approximate behavior
+                        return scope.calcOnState { mkFakeValue(scope) }
+                    } else {
+                        scope.assert(falseExpr)
+                        return null
+                    }
                 }
 
                 is SymbolResolutionResult.SymbolNotFound -> {
                     logger.error { "Cannot find symbol '$local' in '${resolutionResult.file.name}': ${resolutionResult.reason}" }
-                    scope.assert(falseExpr)
-                    return null
+
+                    if (options.isTargetedModeEnabled) {
+                        // We do not drop states in targeted mode since we cannot under-approximate behavior
+                        return scope.calcOnState { mkFakeValue(scope) }
+                    } else {
+                        scope.assert(falseExpr)
+                        return null
+                    }
                 }
             }
         }
 
         logger.error { "Cannot resolve local variable '$local' in method: $currentMethod" }
-        scope.assert(falseExpr)
-        return null
+        if (options.isTargetedModeEnabled) {
+            // We do not drop states in targeted mode since we cannot under-approximate behavior
+            return scope.calcOnState { mkFakeValue(scope) }
+        } else {
+            scope.assert(falseExpr)
+            return null
+        }
     }
 
     override fun visit(local: EtsLocal): UExpr<out USort>? {

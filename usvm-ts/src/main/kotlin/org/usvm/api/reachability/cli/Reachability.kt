@@ -250,7 +250,7 @@ class ReachabilityAnalyzer : CliktCommand(
         }
 
         // Find methods to analyze
-        val methodsToAnalyze = findMethodsToAnalyze(scene).filter { it.name == "start" }
+        val methodsToAnalyze = findMethodsToAnalyze(scene)
         echo("🎯 Analyzing ${methodsToAnalyze.size} methods")
 
         // Prepare targets
@@ -276,7 +276,7 @@ class ReachabilityAnalyzer : CliktCommand(
             solverTimeout = Duration.INFINITE,
             typeOperationsTimeout = Duration.INFINITE,
         )
-        val tsOptions = TsOptions()
+        val tsOptions = TsOptions(isTargetedModeEnabled = true)
 
         // Run analysis
         echo("⚡ Running reachability analysis...")

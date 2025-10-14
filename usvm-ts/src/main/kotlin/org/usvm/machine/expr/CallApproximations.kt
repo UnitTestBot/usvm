@@ -22,6 +22,7 @@ import org.usvm.machine.expr.TsExprApproximationResult.Companion.from
 import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.markResolved
 import org.usvm.machine.interpreter.setResolvedValue
+import org.usvm.machine.types.mkFakeValue
 import org.usvm.sizeSort
 import org.usvm.types.first
 import org.usvm.types.firstOrNull
@@ -217,13 +218,23 @@ private fun TsExprResolver.handlePromiseConstructor(expr: EtsInstanceCallExpr): 
     )
     if (executors.isEmpty()) {
         logger.error { "Could not resolve executor method: ${executorLocal.name}" }
-        scope.assert(falseExpr)
-        return null
+        if (options.isTargetedModeEnabled) {
+            // We do not drop states in targeted mode since we cannot under-approximate behavior
+            return scope.calcOnState { mkFakeValue(scope) }
+        } else {
+            scope.assert(falseExpr)
+            return null
+        }
     }
     if (executors.size > 1) {
         logger.error { "Ambiguous executor method: ${executorLocal.name}, resolved ${executors.size} times" }
-        scope.assert(falseExpr)
-        return null
+        if (options.isTargetedModeEnabled) {
+            // We do not drop states in targeted mode since we cannot under-approximate behavior
+            return scope.calcOnState { mkFakeValue(scope) }
+        } else {
+            scope.assert(falseExpr)
+            return null
+        }
     }
     val executor = executors.single()
 
