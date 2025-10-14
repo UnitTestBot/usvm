@@ -851,12 +851,5 @@ sealed interface TargetTrace {
 }
 
 fun main(args: Array<String>) {
-    // $ java -jar usvm-ts-all.jar --input-ir ./arkanalyzer-usvm-1760415336692/arkir/ --output ./results --targets ./arkanalyzer-usvm-1760415336692/targets/targetsFile.json --solver YICES --timeout 120 --steps 3500
-    val args = arrayOf(
-        "--input-ir", "C:/work/usvm-aa/arkanalyzer-usvm-1760415336692/arkir/",
-        "--output", "./results",
-        "--targets", "C:/work/usvm-aa/arkanalyzer-usvm-1760415336692/targets/targetsFile.json",
-        "--mode", "ALL_METHODS"
-    )
     ReachabilityAnalyzer().main(args)
 }
