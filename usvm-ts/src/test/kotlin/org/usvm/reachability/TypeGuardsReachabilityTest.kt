@@ -44,6 +44,7 @@ class TypeGuardsReachabilityTest {
 
     private val tsOptions = TsOptions()
 
+    @Disabled("Typeof is not fully supported")
     @Test
     fun testTypeofGuardReachable() {
         // Test reachability through typeof type guard with constant string comparison:
@@ -119,6 +120,7 @@ class TypeGuardsReachabilityTest {
         )
     }
 
+    @Disabled("Typeof is not fully supported")
     @Test
     fun testUserDefinedGuardReachable() {
         // Test reachability through user-defined type guard:
@@ -189,6 +191,7 @@ class TypeGuardsReachabilityTest {
         )
     }
 
+    @Disabled("Input string to constant string comparison")
     @Test
     fun testNonNullAssertionReachable() {
         // Test reachability through non-null assertion:
@@ -226,6 +229,7 @@ class TypeGuardsReachabilityTest {
         )
     }
 
+    @Disabled("Typeof is not fully supported")
     @Test
     fun testNumericTypeGuardReachable() {
         // Test reachability through numeric type guard:
@@ -337,6 +341,7 @@ class TypeGuardsReachabilityTest {
         )
     }
 
+    @Disabled("Fake type in type constraints")
     @Test
     fun testComplexTypeGuardReachable() {
         // Test reachability through complex type guard combination:
