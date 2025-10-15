@@ -23,6 +23,7 @@ import org.jacodb.ets.utils.loadEtsProjectAutoConvert
 import org.jacodb.ets.utils.loadEtsProjectFromMultipleIR
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
+import org.usvm.StateCollectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.api.reachability.TsReachabilityObserver
 import org.usvm.api.reachability.TsReachabilityTarget
@@ -275,27 +276,30 @@ class ReachabilityAnalyzer : CliktCommand(
             solverType = solverType,
             solverTimeout = Duration.INFINITE,
             typeOperationsTimeout = Duration.INFINITE,
+            stateCollectionStrategy = StateCollectionStrategy.REACHED_TARGET,
         )
         val tsOptions = TsOptions(isTargetedModeEnabled = true)
 
         // Run analysis
         echo("⚡ Running reachability analysis...")
-        val states = TsMachine(
+
+
+        val (collectedStates, isFinished) = TsMachine(
             scene,
             options,
             tsOptions,
             machineObserver = TsReachabilityObserver()
         ).use { machine ->
-            machine.analyze(methodsToAnalyze, targets)
+            machine.analyze(methodsToAnalyze, targets) to machine.isFinished
         }
 
         // Analyze results for reachability
-        val reachabilityResults = analyzeReachability(targets, states)
+        val reachabilityResults = analyzeReachability(targets, collectedStates, isFinished)
 
         return ReachabilityResults(
             methods = methodsToAnalyze,
             targets = targets,
-            states = states,
+            states = collectedStates,
             reachabilityResults = reachabilityResults,
             scene = scene
         )
@@ -532,12 +536,19 @@ class ReachabilityAnalyzer : CliktCommand(
                 return true
             }
         }
+        // If only the block index is specified, match by the first instruction of the block
+        if (location.block != null && location.index == null) {
+            if (stmt.location.blockDtoIndex == location.block && stmt.location.stmtDtoIndex == 0) {
+                return true
+            }
+        }
         return false
     }
 
     private fun analyzeReachability(
         targets: List<TsReachabilityTarget>,
         states: List<TsState>,
+        isFinished: Boolean
     ): List<TargetReachabilityResult> {
         val results = mutableListOf<TargetReachabilityResult>()
 
@@ -557,7 +568,7 @@ class ReachabilityAnalyzer : CliktCommand(
 
                 val reachabilityStatus = when {
                     reachedLeafTargets.isNotEmpty() -> ReachabilityStatus.REACHABLE
-                    states.isEmpty() -> ReachabilityStatus.UNREACHABLE
+                    isFinished -> ReachabilityStatus.UNREACHABLE
                     else -> ReachabilityStatus.UNKNOWN
                 }
 

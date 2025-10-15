@@ -17,4 +17,10 @@ class TargetsReachedStatesCollector<State : UState<*, *, *, *, *, State>> : Stat
             mutableCollectedStates.add(state)
         }
     }
+
+    override fun onState(parent: State, forks: Sequence<State>) {
+        if (parent.targets.reachedTerminal.isNotEmpty()) {
+            mutableCollectedStates.add(parent)
+        }
+    }
 }

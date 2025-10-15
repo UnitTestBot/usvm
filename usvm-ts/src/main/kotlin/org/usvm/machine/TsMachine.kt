@@ -49,6 +49,8 @@ class TsMachine(
     private val interpreter = TsInterpreter(ctx, graph, tsOptions, observer)
     private val cfgStatistics = CfgStatisticsImpl(graph)
 
+    var isFinished: Boolean = false
+
     fun analyze(
         methods: List<EtsMethod>,
         targets: List<TsTarget> = emptyList(),
@@ -104,7 +106,6 @@ class TsMachine(
             }
 
         val observers = mutableListOf<UMachineObserver<TsState>>(coverageStatistics)
-        observers.add(statesCollector)
 
         if (tsOptions.enableVisualization) {
             observers += TsStateVisualizer()
@@ -154,6 +155,9 @@ class TsMachine(
             )
         }
 
+        // TODO hack, for now states collector must be the last one since other collectors might depend on it
+        observers.add(statesCollector)
+
         run(
             interpreter,
             pathSelector,
@@ -161,6 +165,8 @@ class TsMachine(
             isStateTerminated = { state -> state.callStack.isEmpty() },
             stopStrategy = stopStrategy
         )
+
+        isFinished = pathSelector.isEmpty()
 
         return statesCollector.collectedStates
     }
