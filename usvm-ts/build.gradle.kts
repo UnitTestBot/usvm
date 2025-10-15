@@ -69,7 +69,15 @@ tasks.shadowJar {
         exclude(dependency("com.github.ajalt.mordant:.*"))
         exclude(dependency("ch.qos.logback:.*"))
         exclude(dependency("org.slf4j:.*"))
-        exclude(dependency("io.ksmt:.*"))
+        // exclude(dependency("io.ksmt:.*"))
+    }
+
+    dependencies {
+        // Exclude CVC5 native libraries:
+        exclude(dependency("io.ksmt:ksmt-cvc5-native.*:.*"))
+
+        // Exclude Z3 native libraries:
+        exclude(dependency("io.ksmt:ksmt-z3-native-.*:.*"))
     }
 }
 
