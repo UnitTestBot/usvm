@@ -17,7 +17,7 @@ import org.usvm.machine.state.TsState
 import org.usvm.memory.ULValue
 
 fun TsState.mkFakeValue(
-    scope: TsStepScope?,
+    scope: TsStepScope,
 ): UConcreteHeapRef = mkFakeValue(
     scope = scope,
     boolValue = makeSymbolicPrimitive(ctx.boolSort),
