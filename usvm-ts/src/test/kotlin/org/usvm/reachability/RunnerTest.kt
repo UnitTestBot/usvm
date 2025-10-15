@@ -53,7 +53,7 @@ class RunnerTest {
 
     @Test
     fun `run reachability on branch01`() {
-        val projectPath = Path("../examples/reachability/projects/branch01")
+        val projectPath = Path("../examples/reachability/projects/branch")
         val scene = run {
             val project = loadEtsProjectAutoConvert(projectPath)
             val sdks = loadSdks()
@@ -68,6 +68,35 @@ class RunnerTest {
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "branch01" }
+
+        val initialTarget: TsTarget = TsReachabilityTarget.InitialPoint(method.cfg.stmts.first())
+        var target: TsTarget = initialTarget
+
+        val returnStmt = method.cfg.stmts.filterIsInstance<EtsReturnStmt>()[0]
+        target = target.addChild(TsReachabilityTarget.FinalPoint(returnStmt))
+
+        val results = machine.analyze(listOf(method), listOf(initialTarget))
+        println("Got ${results.size} results")
+        results.let {}
+    }
+
+    @Test
+    fun `run reachability on branch02`() {
+        val projectPath = Path("../examples/reachability/projects/branch")
+        val scene = run {
+            val project = loadEtsProjectAutoConvert(projectPath)
+            val sdks = loadSdks()
+            EtsScene(
+                projectFiles = project.projectFiles,
+                sdkFiles = sdks.flatMap { it.projectFiles },
+                projectName = project.projectName,
+            )
+        }
+
+        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
+        val method = scene.projectClasses
+            .flatMap { it.methods }
+            .single { it.name == "branch02" }
 
         val initialTarget: TsTarget = TsReachabilityTarget.InitialPoint(method.cfg.stmts.first())
         var target: TsTarget = initialTarget
