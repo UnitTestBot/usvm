@@ -30,7 +30,7 @@ class StaticModification {
     }
 }
 
-function callStaticModification(): number {
+function callStaticIncrement(): number {
     StaticModification.incrementTwice();
     StaticModification.incrementTwice();
     return StaticModification.count; // 4
@@ -80,6 +80,13 @@ class StaticBoolean {
     }
 }
 
+function callStaticBooleanToggle(): boolean {
+    StaticBoolean.toggleAndGet();
+    StaticBoolean.toggleAndGet();
+    StaticBoolean.toggleAndGet();
+    return StaticBoolean.flag; // true
+}
+
 // Test: Array static manipulation
 class StaticArray {
     static numbers = [1, 2, 3];
@@ -89,6 +96,12 @@ class StaticArray {
         this.numbers.push(5);
         return this.numbers.length;
     }
+}
+
+function callStaticArrayPush(): number {
+    StaticArray.pushTwice();
+    StaticArray.pushTwice();
+    return StaticArray.numbers.length; // 7
 }
 
 // Test: Null initialization and update
@@ -115,6 +128,12 @@ class StaticObject {
         this.config.flip();
         return this.config;
     }
+}
+
+function callStaticObjectModify(): Config {
+    StaticObject.modifyAndGet();
+    StaticObject.config.increment();
+    return StaticObject.config.count; // { enabled: true, count: 16 }
 }
 
 class Config {

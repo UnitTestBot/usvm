@@ -34,7 +34,7 @@ class StaticFields : TsMethodTestRunner() {
     }
 
     @Test
-    fun `test static modification`() {
+    fun `test static increment`() {
         val method = getMethod("incrementTwice", className = "StaticModification")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
@@ -43,8 +43,8 @@ class StaticFields : TsMethodTestRunner() {
     }
 
     @Test
-    fun `test call static modification`() {
-        val method = getMethod("callStaticModification", className = DEFAULT_ARK_CLASS_NAME)
+    fun `test call static increment`() {
+        val method = getMethod("callStaticIncrement", className = DEFAULT_ARK_CLASS_NAME)
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r eq 4 },
@@ -98,13 +98,30 @@ class StaticFields : TsMethodTestRunner() {
         )
     }
 
-    @Disabled("Array::push() is not supported")
     @Test
-    fun `test static array modification`() {
+    fun `test call static boolean toggle`() {
+        val method = getMethod("callStaticBooleanToggle", className = DEFAULT_ARK_CLASS_NAME)
+        discoverProperties<TsTestValue.TsBoolean>(
+            method = method,
+            { r -> r.value },
+        )
+    }
+
+    @Test
+    fun `test static array push`() {
         val method = getMethod("pushTwice", className = "StaticArray")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r eq 5 },
+        )
+    }
+
+    @Test
+    fun `test call static array push`() {
+        val method = getMethod("callStaticArrayPush", className = DEFAULT_ARK_CLASS_NAME)
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { r -> r eq 7 },
         )
     }
 
@@ -125,8 +142,23 @@ class StaticFields : TsMethodTestRunner() {
         discoverProperties<TsTestValue.TsClass>(
             method = method,
             { r ->
-                (r.properties["enabled"] as TsTestValue.TsBoolean).value &&
-                    ((r.properties["count"] as TsTestValue.TsNumber) eq 15)
+                val enabled = r.properties["enabled"] as TsTestValue.TsBoolean
+                val count = r.properties["count"] as TsTestValue.TsNumber
+                enabled.value && (count eq 15)
+            },
+        )
+    }
+
+    @Disabled("see above")
+    @Test
+    fun `test call static object manipulation`() {
+        val method = getMethod("callStaticObjectModify", className = DEFAULT_ARK_CLASS_NAME)
+        discoverProperties<TsTestValue.TsClass>(
+            method = method,
+            { r ->
+                val enabled = r.properties["enabled"] as TsTestValue.TsBoolean
+                val count = r.properties["count"] as TsTestValue.TsNumber
+                enabled.value && (count eq 16)
             },
         )
     }
