@@ -25,7 +25,7 @@ internal fun TsExprResolver.handleInstanceCall(
     when (val result = scope.calcOnState { methodResult }) {
         is TsMethodResult.Success -> {
             // React only if the same method is being called again.
-            if (result.methodSignature == expr.callee) {
+            if (result.methodSignature.name == expr.callee.name) {
                 scope.doWithState { methodResult = TsMethodResult.NoCall }
                 return result.value
             } else {
