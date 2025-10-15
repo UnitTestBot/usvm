@@ -1147,6 +1147,13 @@ class TsSimpleValueResolver(
                 is SymbolResolutionResult.Success -> {
                     val importedFile = resolutionResult.file
                     val importedName = resolutionResult.exportInfo.originalName
+
+                    // If we imported a namespace, then we just approximate it with a fake object
+                    if (importedFile.namespaces.any { it.signature.name == importedName }) {
+                        logger.info { "Reading imported namespace: $importedName from $importedFile" }
+                        return scope.calcOnState { mkFakeValue(scope) }
+                    }
+
                     logger.info { "Reading imported variable: $importedName from $importedFile" }
                     return readGlobal(scope, importedFile, importedName)
                 }
