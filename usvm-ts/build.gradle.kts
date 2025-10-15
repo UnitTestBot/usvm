@@ -70,6 +70,10 @@ tasks.shadowJar {
         exclude(dependency("ch.qos.logback:.*"))
         exclude(dependency("org.slf4j:.*"))
         // exclude(dependency("io.ksmt:.*"))
+        exclude(dependency("io.ksmt:ksmt-core:.*"))
+        exclude(dependency("io.ksmt:ksmt-cvc5:.*"))
+        exclude(dependency("io.ksmt:ksmt-yices:.*"))
+        exclude(dependency("io.ksmt:ksmt-z3:.*"))
     }
 
     dependencies {
