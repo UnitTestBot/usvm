@@ -64,9 +64,18 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
     protected fun getMethod(
         methodName: String,
         className: String = this.className,
+        namespaceName: String? = null,
     ): EtsMethod {
         val methods = scene
-            .projectAndSdkClasses.single { it.name == className }
+            .projectAndSdkClasses.single {
+                val nameMatch = it.name == className
+                val namespaceMatch = if (namespaceName != null) {
+                    it.declaringNamespace?.signature?.name == namespaceName
+                } else {
+                    true
+                }
+                nameMatch && namespaceMatch
+            }
             .methods.filter { it.name == methodName }
         if (methods.isEmpty()) {
             error("Method '$methodName' not found in class $className")

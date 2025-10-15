@@ -1,6 +1,8 @@
 package org.usvm.samples.lang
 
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
+import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsTestValue
@@ -413,5 +415,19 @@ class Call : TsMethodTestRunner() {
         if (n == 0.0) return 1.0
         if (n == 1.0) return 1.0
         return fib(n - 1.0) + fib(n - 2.0)
+    }
+
+    @Disabled("Method references are not supported")
+    @Test
+    fun `test call processor`() {
+        val method = getMethod(
+            methodName = "callProcessor",
+            className = DEFAULT_ARK_CLASS_NAME,
+            namespaceName = "TestCall1",
+        )
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { r -> r eq 15 },
+        )
     }
 }

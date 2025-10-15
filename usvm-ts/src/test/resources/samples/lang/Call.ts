@@ -315,3 +315,33 @@ class ValueHolderWithPublicParameter {
     constructor(public value: number) {
     }
 }
+
+namespace TestCall1 {
+    class Processor {
+        on: (data: number) => number = this.log;
+
+        log(data: number): number {
+            return data;
+        }
+
+        transform(data: number): number {
+            return data * 2;
+        }
+
+        process(input: number): number {
+            return this.on(input)
+        }
+
+        updateHandler(): void {
+            this.on = this.transform;
+        }
+    }
+
+    function callProcessor() : number {
+        const p = new Processor();
+        let res1 = p.process(5); // 5
+        p.updateHandler();
+        let res2 = p.process(5); // 10
+        return res1 + res2; // 15
+    }
+}
