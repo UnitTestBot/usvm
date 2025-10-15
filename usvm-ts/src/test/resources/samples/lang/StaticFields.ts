@@ -30,6 +30,12 @@ class StaticModification {
     }
 }
 
+function callStaticModification(): number {
+    StaticModification.incrementTwice();
+    StaticModification.incrementTwice();
+    return StaticModification.count; // 4
+}
+
 // Test: Inheritance
 class StaticBase {
     static id = 100;

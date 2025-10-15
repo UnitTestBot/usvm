@@ -1,17 +1,18 @@
 package org.usvm.samples.lang
 
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.eq
 
-@Disabled("Statics are not fully supported, yet")
+// @Disabled("Statics are not fully supported, yet")
 class StaticFields : TsMethodTestRunner() {
     private val tsPath = "/samples/lang/StaticFields.ts"
 
-    override val scene: EtsScene = loadScene(tsPath)
+    override val scene: EtsScene = loadScene(tsPath, useArkAnalyzerTypeInference = true)
 
     @Test
     fun `test static access get`() {
@@ -22,6 +23,7 @@ class StaticFields : TsMethodTestRunner() {
         )
     }
 
+    @Disabled("Returns 0 instead of undefined")
     @Test
     fun `test static default value`() {
         val method = getMethod("getValue", className = "StaticDefault")
@@ -37,6 +39,15 @@ class StaticFields : TsMethodTestRunner() {
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r eq 2 },
+        )
+    }
+
+    @Test
+    fun `test call static modification`() {
+        val method = getMethod("callStaticModification", className = DEFAULT_ARK_CLASS_NAME)
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { r -> r eq 4 },
         )
     }
 
@@ -58,6 +69,7 @@ class StaticFields : TsMethodTestRunner() {
         )
     }
 
+    @Disabled("Returns false instead of 200")
     @Test
     fun `test static inheritance shadowing child`() {
         val method = getMethod("getChildId", className = "StaticChild")
@@ -67,6 +79,7 @@ class StaticFields : TsMethodTestRunner() {
         )
     }
 
+    @Disabled("Returns false instead of 200")
     @Test
     fun `test static inheritance shadowing`() {
         val method = getMethod("getId", className = "StaticChild")
