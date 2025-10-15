@@ -238,7 +238,7 @@ class Call {
 
     callClosureMutatingCapturedLocal(): number {
         let x = 42;
-        const f= () => {
+        const f = () => {
             x += 100;
         };
         x = 20;
