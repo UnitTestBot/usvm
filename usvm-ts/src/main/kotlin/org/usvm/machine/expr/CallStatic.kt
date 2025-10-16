@@ -7,7 +7,6 @@ import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsStaticCallExpr
 import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
 import org.usvm.UExpr
-import org.usvm.api.mockMethodCall
 import org.usvm.machine.Constants
 import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.expr.TsExprApproximationResult.NoApproximation
@@ -17,6 +16,7 @@ import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.newStmt
 import org.usvm.util.TsResolutionResult
+import org.usvm.util.mockOrDie
 
 private val logger = KotlinLogging.logger {}
 
@@ -47,20 +47,18 @@ internal fun TsExprResolver.handleStaticCall(
     // Resolve the static method.
     when (val resolved = resolveStaticMethod(expr.callee)) {
         is TsResolutionResult.Empty -> {
-            logger.error { "Could not resolve static call: ${expr.callee}" }
-            if (options.isTargetedModeEnabled) {
-                mockMethodCall(scope, expr.callee)
-            } else {
-                scope.assert(falseExpr) ?: return null
-            }
+            logger.warn { "Could not resolve static call: ${expr.callee}" }
+            mockOrDie(scope, expr.callee, options.isTargetedModeEnabled)
         }
 
         is TsResolutionResult.Ambiguous -> {
-            processAmbiguousStaticMethod(resolved, expr)
+            val resolvedMethods = resolved.properties
+            processAmbiguousStaticMethod(resolvedMethods, expr)
         }
 
         is TsResolutionResult.Unique -> {
-            processUniqueStaticMethod(resolved, expr)
+            val resolvedMethod = resolved.property
+            processUniqueStaticMethod(resolvedMethod, expr)
         }
     }
 
@@ -95,11 +93,11 @@ private fun TsExprResolver.resolveStaticMethod(
 }
 
 private fun TsExprResolver.processAmbiguousStaticMethod(
-    resolved: TsResolutionResult.Ambiguous<EtsMethod>,
+    methods: List<EtsMethod>,
     expr: EtsStaticCallExpr,
 ) {
     val args = expr.args.map { resolve(it) ?: return }
-    val staticProperties = resolved.properties.take(Constants.STATIC_METHODS_FORK_LIMIT)
+    val staticProperties = methods.take(Constants.STATIC_METHODS_FORK_LIMIT)
     val staticInstances = scope.calcOnState {
         staticProperties.map { getStaticInstance(it.enclosingClass!!) }
     }
@@ -119,15 +117,15 @@ private fun TsExprResolver.processAmbiguousStaticMethod(
 }
 
 private fun TsExprResolver.processUniqueStaticMethod(
-    resolved: TsResolutionResult.Unique<EtsMethod>,
+    method: EtsMethod,
     expr: EtsStaticCallExpr,
 ) {
     val instance = scope.calcOnState {
-        getStaticInstance(resolved.property.enclosingClass!!)
+        getStaticInstance(method.enclosingClass!!)
     }
     val args = expr.args.map { resolve(it) ?: return }
     val concreteCall = TsConcreteMethodCallStmt(
-        callee = resolved.property,
+        callee = method,
         instance = instance,
         args = args,
         returnSite = scope.calcOnState { lastStmt },

@@ -6,6 +6,7 @@ import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUnclearRefType
@@ -14,6 +15,7 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.api.TsTarget
+import org.usvm.api.mockMethodCall
 import org.usvm.machine.TsContext
 import org.usvm.machine.expr.tctx
 import org.usvm.machine.interpreter.TsStepScope
@@ -106,3 +108,17 @@ fun TsContext.fakeOrDie(scope: TsStepScope, isTargetMode: Boolean): UExpr<*>? =
         scope.assert(falseExpr)
         null
     }
+
+fun TsContext.mockOrDie(
+    scope: TsStepScope,
+    method: EtsMethodSignature,
+    isTargetMode: Boolean,
+) {
+    if (isTargetMode) {
+        // In targeted mode, we cannot under-approximate, so we mock the method call
+        mockMethodCall(scope, method)
+    } else {
+        // In normal mode, we kill the state since we cannot proceed
+        scope.assert(falseExpr)
+    }
+}
