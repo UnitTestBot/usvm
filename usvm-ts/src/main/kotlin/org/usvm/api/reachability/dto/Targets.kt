@@ -8,10 +8,13 @@ import kotlinx.serialization.json.JsonContentPolymorphicSerializer
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonTransformingSerializer
+import mu.KotlinLogging
+
+private val logger = KotlinLogging.logger {}
 
 // The `targets.json` can contain the traces in the following formats:
 //  - { "targets": [...] }, a single linear trace with a list of targets
-//  - { "target": {...}, "children": [...] }, a single tree-like trace with a tree structure of targets
+//  - { "root": {...}, "children": [...] }, a single tree-like trace with a tree structure of targets
 //  - [ {...} ], a list of traces (can contain both linear and tree traces)
 //
 // Note:
@@ -26,7 +29,7 @@ sealed interface TargetsContainerDto {
     @Serializable(with = SingleTraceSerializer::class)
     sealed interface SingleTrace : TargetsContainerDto
 
-    // Format: { "targets": [...] }
+    // Format: { "targets": [...] } or [ {...} ]
     @Serializable
     data class LinearTrace(
         val targets: List<TargetDto>,
@@ -38,7 +41,7 @@ sealed interface TargetsContainerDto {
         val root: TargetTreeNodeDto,
     ) : SingleTrace
 
-    // Format: [ {...} ]
+    // Format: { "traces": [...] } or [ {...} ]
     @Serializable
     data class TraceList(
         val traces: List<SingleTrace>,
@@ -49,6 +52,9 @@ object SingleTraceSerializer :
     JsonContentPolymorphicSerializer<TargetsContainerDto.SingleTrace>(TargetsContainerDto.SingleTrace::class) {
 
     override fun selectDeserializer(element: JsonElement) = when {
+        // Array: [ {...} ]
+        element is JsonArray -> LinearTraceArrayDeserializer
+
         // Object with "targets" field: { "targets": [...] }
         element is JsonObject && element.containsKey("targets") -> TargetsContainerDto.LinearTrace.serializer()
 
@@ -67,7 +73,21 @@ object TargetsContainerSerializer :
 
     override fun selectDeserializer(element: JsonElement) = when {
         // Array at top level: [ {...} ]
-        element is JsonArray -> TraceListArrayDeserializer
+        element is JsonArray -> run {
+            // Array of targets, delegate to LinearTrace
+            if (element.isNotEmpty()) {
+                val first = element.first()
+                if (first is JsonObject && first.contains("location")) {
+                    return LinearTraceArrayDeserializer
+                }
+            }
+
+            // Array of traces, delegate to TraceListArrayDeserializer
+            TraceListArrayDeserializer
+        }
+
+        // Object with "traces" field: { "traces": [...] }
+        element is JsonObject && element.containsKey("traces") -> TargetsContainerDto.TraceList.serializer()
 
         // Any object: delegate to SingleTraceSerializer
         else -> SingleTraceSerializer.deserializeSingleTrace(element)
@@ -78,8 +98,21 @@ private object TraceListArrayDeserializer : JsonTransformingSerializer<TargetsCo
     TargetsContainerDto.TraceList.serializer()
 ) {
     override fun transformDeserialize(element: JsonElement): JsonElement {
-        // Transform [ {...}, {...} ] into { "traces": [ {...}, {...} ] }
+        // Transform [ {...} ] into { "traces": [ {...} ] }
+        logger.warn { "Deprecated format: array of targets at top level. Use { \"targets\": [...] } instead." }
+        logger.info { "Parsing [...] as TraceList" }
         return JsonObject(mapOf("traces" to element))
+    }
+}
+
+private object LinearTraceArrayDeserializer : JsonTransformingSerializer<TargetsContainerDto.LinearTrace>(
+    TargetsContainerDto.LinearTrace.serializer()
+) {
+    override fun transformDeserialize(element: JsonElement): JsonElement {
+        // Transform [ {...} ] into { "targets": [ {...} ] }
+        logger.warn { "Deprecated format: array of targets at top level. Use { \"targets\": [...] } instead." }
+        logger.info { "Parsing [...] as LinearTrace" }
+        return JsonObject(mapOf("targets" to element))
     }
 }
 
