@@ -235,18 +235,24 @@ fun <Method, Statement, Target, State> createPathSelector(
     when (options.coverageZone) {
         CoverageZone.METHOD -> {
             coverageStatistics?.addOnCoveredObserver { _, method, _ ->
-                if (coverageStatistics.getMethodCoverage(method) == totalCoveragePercents) {
-                    pathSelector.removeKey(method)
+                if (options.pathSelectionStrategies.all { it != PathSelectionStrategy.TARGETED }) {
+                    if (coverageStatistics.getMethodCoverage(method) == totalCoveragePercents) {
+                        pathSelector.removeKey(method)
+                    }
                 }
             }
         }
+
         CoverageZone.CLASS -> {
             coverageStatistics?.addOnCoveredObserver { _, method, _ ->
-                if (coverageStatistics.getTransitiveMethodCoverage(method) == totalCoveragePercents) {
-                    pathSelector.removeKey(method)
+                if (options.pathSelectionStrategies.all { it != PathSelectionStrategy.TARGETED }) {
+                    if (coverageStatistics.getTransitiveMethodCoverage(method) == totalCoveragePercents) {
+                        pathSelector.removeKey(method)
+                    }
                 }
             }
         }
+
         CoverageZone.TRANSITIVE -> {}
     }
 
@@ -262,9 +268,10 @@ private fun <State : UState<*, *, *, *, *, State>> UPathSelector<State>.wrapIfRe
     } else {
         this
     }
+
 private fun <Statement, Method, State : UState<*, Method, Statement, *, *, State>> UPathSelector<State>.wrapIfRequired(
     options: UMachineOptions,
-    loopStatisticFactory: () -> StateLoopTracker<*, Statement, State>?
+    loopStatisticFactory: () -> StateLoopTracker<*, Statement, State>?,
 ): UPathSelector<State> {
     var ps = this
     if (options.exceptionsPropagation && ps !is ExceptionPropagationPathSelector<State>) {
