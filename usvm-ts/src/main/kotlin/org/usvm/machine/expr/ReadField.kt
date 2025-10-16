@@ -10,6 +10,7 @@ import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsStaticFieldRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.USort
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.ensureStaticsInitialized
@@ -66,8 +67,6 @@ fun TsContext.readField(
     field: EtsFieldSignature,
     hierarchy: EtsHierarchy,
 ): UExpr<*>? {
-    checkNotFake(instance)
-
     val sort = when (val etsField = resolveEtsField(instanceLocal, field, hierarchy)) {
         is TsResolutionResult.Empty -> {
             if (field.name !in listOf("i", "LogLevel")) {
@@ -93,14 +92,25 @@ fun TsContext.readField(
         is TsResolutionResult.Ambiguous -> unresolvedSort
     }
 
-    scope.calcOnState {
-        // If we accessed some field, we make an assumption that
-        // this field should present in the object.
-        // That's not true in the common case for TS, but that's the decision we made.
+    return readField(scope, instance, field, sort)
+}
+
+fun TsContext.readField(
+    scope: TsStepScope,
+    instance: UHeapRef,
+    field: EtsFieldSignature,
+    sort: USort,
+): UExpr<*>? {
+    checkNotFake(instance)
+
+    // If we accessed some field, we make an assumption
+    //  that this field should present in the object.
+    // That's not true in the common case for TS, but that's the decision we made.
+    val constraint = scope.calcOnState {
         val auxiliaryType = EtsAuxiliaryType(properties = setOf(field.name))
-        // assert is required to update models
-        scope.assert(memory.types.evalIsSubtype(instance, auxiliaryType))
-    } ?: return null
+        memory.types.evalIsSubtype(instance, auxiliaryType)
+    }
+    scope.assert(constraint) ?: return null
 
     // If the field type is known, we can read it directly.
     if (sort !is TsUnresolvedSort) {
