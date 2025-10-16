@@ -7,6 +7,7 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonContentPolymorphicSerializer
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonTransformingSerializer
 
 // The `targets.json` can contain the traces in the following formats:
 //  - { "targets": [...] }, a single linear trace with a list of targets
@@ -47,30 +48,38 @@ sealed interface TargetsContainerDto {
 object SingleTraceSerializer :
     JsonContentPolymorphicSerializer<TargetsContainerDto.SingleTrace>(TargetsContainerDto.SingleTrace::class) {
 
-    override fun selectDeserializer(element: JsonElement): DeserializationStrategy<TargetsContainerDto.SingleTrace> =
-        when {
-            // Object with "targets" field: { "targets": [...] }
-            element is JsonObject && element.containsKey("targets") -> TargetsContainerDto.LinearTrace.serializer()
+    override fun selectDeserializer(element: JsonElement) = when {
+        // Object with "targets" field: { "targets": [...] }
+        element is JsonObject && element.containsKey("targets") -> TargetsContainerDto.LinearTrace.serializer()
 
-            // Object with "root" field: { "root": {...} }
-            element is JsonObject && element.containsKey("root") -> TargetsContainerDto.TreeTrace.serializer()
+        // Object with "root" field: { "root": {...} }
+        element is JsonObject && element.containsKey("root") -> TargetsContainerDto.TreeTrace.serializer()
 
-            else -> error("Unknown single trace format")
-        }
+        else -> error("Unknown single trace format")
+    }
 
     fun deserializeSingleTrace(element: JsonElement): DeserializationStrategy<TargetsContainerDto> =
-        selectDeserializer(element) as DeserializationStrategy<TargetsContainerDto>
+        selectDeserializer(element)
 }
 
 object TargetsContainerSerializer :
     JsonContentPolymorphicSerializer<TargetsContainerDto>(TargetsContainerDto::class) {
 
-    override fun selectDeserializer(element: JsonElement): DeserializationStrategy<TargetsContainerDto> = when {
+    override fun selectDeserializer(element: JsonElement) = when {
         // Array at top level: [ {...} ]
-        element is JsonArray -> TargetsContainerDto.TraceList.serializer()
+        element is JsonArray -> TraceListArrayDeserializer
 
         // Any object: delegate to SingleTraceSerializer
         else -> SingleTraceSerializer.deserializeSingleTrace(element)
+    }
+}
+
+private object TraceListArrayDeserializer : JsonTransformingSerializer<TargetsContainerDto.TraceList>(
+    TargetsContainerDto.TraceList.serializer()
+) {
+    override fun transformDeserialize(element: JsonElement): JsonElement {
+        // Transform [ {...}, {...} ] into { "traces": [ {...}, {...} ] }
+        return JsonObject(mapOf("traces" to element))
     }
 }
 
