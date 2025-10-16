@@ -96,3 +96,13 @@ fun TsTarget.getLeaves(): List<TsTarget> = when {
     children.isEmpty() -> listOf(this)
     else -> children.flatMap { it.getLeaves() }
 }
+
+fun TsContext.fakeOrDie(scope: TsStepScope, isTargetMode: Boolean): UExpr<*>? =
+    if (isTargetMode) {
+        // In targeted mode, we cannot under-approximate, so we return a fake value
+        scope.calcOnState { mkFakeValue(scope) }
+    } else {
+        // In normal mode, we kill the state since we cannot proceed
+        scope.assert(falseExpr)
+        null
+    }

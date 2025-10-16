@@ -11,7 +11,6 @@ import org.jacodb.ets.model.EtsStaticFieldRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.machine.TsContext
-import org.usvm.machine.TsOptions
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.ensureStaticsInitialized
 import org.usvm.machine.types.EtsAuxiliaryType
@@ -19,6 +18,7 @@ import org.usvm.machine.types.mkFakeValue
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.TsResolutionResult
 import org.usvm.util.createFakeField
+import org.usvm.util.fakeOrDie
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.resolveEtsField
 
@@ -134,14 +134,14 @@ fun TsContext.readField(
 internal fun TsExprResolver.handleStaticFieldRef(
     value: EtsStaticFieldRef,
 ): UExpr<*>? = with(ctx) {
-    return readStaticField(scope, value.field, hierarchy, options)
+    return readStaticField(scope, value.field, hierarchy, options.isTargetedModeEnabled)
 }
 
 fun TsContext.readStaticField(
     scope: TsStepScope,
     field: EtsFieldSignature,
     hierarchy: EtsHierarchy,
-    options: TsOptions,
+    isTargetedMode: Boolean = false,
 ): UExpr<*>? {
     // Resolve the static field using the existing resolver
     // Note: instance is null for static fields
@@ -152,12 +152,7 @@ fun TsContext.readStaticField(
 
             if (clazz == null) {
                 logger.warn { "Resolved field $field has no declaring class" }
-                if (options.isTargetedModeEnabled) {
-                    return scope.calcOnState { mkFakeValue(scope) }
-                } else {
-                    scope.assert(falseExpr)
-                    return null
-                }
+                return fakeOrDie(scope, isTargetedMode)
             }
 
             // Initialize statics in `clazz` if necessary.
@@ -172,26 +167,12 @@ fun TsContext.readStaticField(
 
         is TsResolutionResult.Ambiguous -> {
             logger.warn { "Ambiguous static field resolution for $field: ${result.properties.size} candidates found" }
-            if (options.isTargetedModeEnabled) {
-                // In targeted mode, we cannot under-approximate, so we return a fake value
-                return scope.calcOnState { mkFakeValue(scope) }
-            } else {
-                // In normal mode, we kill the state since we cannot proceed
-                scope.assert(falseExpr)
-                return null
-            }
+            return fakeOrDie(scope, isTargetedMode)
         }
 
         is TsResolutionResult.Empty -> {
             logger.warn { "Static field resolution failed for $field: not found" }
-            if (options.isTargetedModeEnabled) {
-                // In targeted mode, we cannot under-approximate, so we return a fake value
-                return scope.calcOnState { mkFakeValue(scope) }
-            } else {
-                // In normal mode, we kill the state since we cannot proceed
-                scope.assert(falseExpr)
-                return null
-            }
+            return fakeOrDie(scope, isTargetedMode)
         }
     }
 }
