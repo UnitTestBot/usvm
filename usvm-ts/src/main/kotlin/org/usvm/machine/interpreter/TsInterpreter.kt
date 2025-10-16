@@ -10,6 +10,7 @@ import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsCallStmt
 import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsFunctionType
 import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLValue
@@ -789,6 +790,12 @@ class TsInterpreter(
             if (parameterType is EtsRefType) run {
                 state.pathConstraints += mkNot(mkHeapRefEq(ref, mkTsNullValue()))
                 state.pathConstraints += mkNot(mkHeapRefEq(ref, mkUndefinedValue()))
+
+                if (parameterType is EtsFunctionType) {
+                    // TODO add support for function types
+                    // state.pathConstraints += state.memory.types.evalIsSubtype(ref, parameterType)
+                    return@run
+                }
 
                 if (parameterType is EtsArrayType) {
                     state.pathConstraints += state.memory.types.evalIsSubtype(ref, parameterType)

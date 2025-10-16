@@ -3,6 +3,7 @@ package org.usvm.machine.expr
 import io.ksmt.utils.asExpr
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsClassCategory
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLocal
@@ -140,10 +141,18 @@ fun TsContext.readStaticField(
     field: EtsFieldSignature,
     hierarchy: EtsHierarchy,
 ): UExpr<*>? {
-    // TODO: handle unresolved class, or multiple classes
-    val clazz = scene.projectAndSdkClasses.singleOrNull {
-        it.signature == field.enclosingClass
-    } ?: return null
+    val classes = hierarchy.classesForType(EtsClassType(field.enclosingClass))
+
+    if (classes.isEmpty()) {
+        return scope.calcOnState { mkFakeValue(scope) }
+    }
+
+    if (classes.size > 1) {
+        // TODO add better processing
+        return scope.calcOnState { mkFakeValue(scope) }
+    }
+
+    val clazz = classes.single()
 
     // Initialize statics in `clazz` if necessary.
     ensureStaticsInitialized(scope, clazz) ?: return null

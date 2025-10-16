@@ -42,6 +42,7 @@ import org.usvm.machine.state.TsState
 import org.usvm.util.countLeaves
 import org.usvm.util.getLeaves
 import java.nio.file.Path
+import java.nio.file.Paths
 import kotlin.io.path.absolute
 import kotlin.io.path.createDirectories
 import kotlin.io.path.div
@@ -251,7 +252,7 @@ class ReachabilityAnalyzer : CliktCommand(
         }
 
         // Find methods to analyze
-        val methodsToAnalyze = findMethodsToAnalyze(scene)
+        val methodsToAnalyze = findMethodsToAnalyze(scene).filter { it.name.contains("transferAll") }
         echo("🎯 Analyzing ${methodsToAnalyze.size} methods")
 
         // Prepare targets
@@ -273,8 +274,9 @@ class ReachabilityAnalyzer : CliktCommand(
             stopOnTargetsReached = true,
             timeout = timeout.seconds,
             stepsFromLastCovered = stepsLimit,
+            stopOnCoverage = 200, // disable parameter
             solverType = solverType,
-            solverTimeout = Duration.INFINITE,
+            solverTimeout = 1.seconds,
             typeOperationsTimeout = Duration.INFINITE,
             stateCollectionStrategy = StateCollectionStrategy.REACHED_TARGET,
         )
@@ -877,5 +879,34 @@ sealed interface TargetTrace {
 }
 
 fun main(args: Array<String>) {
+    if (args.isEmpty()) {
+        val file = Paths.get("C:/work/usvm-aa/arkanalyzer-usvm-1760605242143/targets").toFile()
+
+        // browserCommon-src-main-ets-default-utils-ExifUtil-ets-ExifUtil-transferAll-targetsFile-1760605269603.json
+        for (target in file.listFiles().take(1)) {
+            runCatching {
+                if (args.isEmpty()) {
+                    val newArgs = arrayOf(
+                        "--input-ir",
+                        "C:/work/usvm-aa/arkanalyzer-usvm-1760605242143/arkir",
+                        "--output",
+                        "C:/work/usvm-aa/arkanalyzer-usvm-1760605242143/results",
+                        "--targets",
+                        target.absolutePath,
+                        "--solver",
+                        "YICES",
+                        "--timeout",
+                        "120000",
+                        "--steps",
+                        "3500"
+                    )
+                    ReachabilityAnalyzer().main(newArgs)
+
+                }
+            }.onFailure { System.err.println(it.message) }
+            return
+        }
+    }
+    
     ReachabilityAnalyzer().main(args)
 }

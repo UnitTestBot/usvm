@@ -7,6 +7,7 @@ import org.jacodb.ets.model.EtsBooleanLiteralType
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFunctionType
+import org.jacodb.ets.model.EtsGenericType
 import org.jacodb.ets.model.EtsIntersectionType
 import org.jacodb.ets.model.EtsLiteralType
 import org.jacodb.ets.model.EtsNeverType
@@ -43,14 +44,22 @@ class TsTypeSystem(
     override val typeOperationsTimeout: Duration,
     val hierarchy: EtsHierarchy,
 ) : UTypeSystem<EtsType> {
-    private fun unwrapAlias(type: EtsType): EtsType = when (type) {
-        is EtsAliasType -> unwrapAlias(type.originalType)
+    private fun unwrapAliasAndGenerics(type: EtsType): EtsType = when (type) {
+        is EtsAliasType -> unwrapAliasAndGenerics(type.originalType)
+        is EtsGenericType -> {
+            val typeConstraint = type.constraint
+            if (typeConstraint != null) {
+                unwrapAliasAndGenerics(typeConstraint)
+            } else {
+                EtsAnyType
+            }
+        }
         else -> type
     }
 
     override fun isSupertype(supertype: EtsType, type: EtsType): Boolean {
-        val unwrappedSupertype = unwrapAlias(supertype)
-        val unwrappedType = unwrapAlias(type)
+        val unwrappedSupertype = unwrapAliasAndGenerics(supertype)
+        val unwrappedType = unwrapAliasAndGenerics(type)
 
         // In JS/TS, any reference type inherits from Object
         if (unwrappedSupertype is EtsClassType
@@ -214,7 +223,7 @@ class TsTypeSystem(
     }
 
     override fun hasCommonSubtype(type: EtsType, types: Collection<EtsType>): Boolean {
-        val t = unwrapAlias(type)
+        val t = unwrapAliasAndGenerics(type)
         return when (t) {
             is EtsAuxiliaryType -> true  // structural types can always be refined
             is EtsPrimitiveType -> types.isEmpty() // primitive has no subtypes, so only when no other constraints
@@ -233,7 +242,7 @@ class TsTypeSystem(
     }
 
     override fun isFinal(type: EtsType): Boolean {
-        val t = unwrapAlias(type)
+        val t = unwrapAliasAndGenerics(type)
         return when (t) {
             is EtsNullType,
             is EtsUndefinedType,
@@ -250,7 +259,7 @@ class TsTypeSystem(
     }
 
     override fun isInstantiable(type: EtsType): Boolean {
-        return when (val t = unwrapAlias(type)) {
+        return when (val t = unwrapAliasAndGenerics(type)) {
             is EtsNeverType -> false  // no runtime value
             is EtsAnyType,
             is EtsUnknownType,
@@ -271,7 +280,7 @@ class TsTypeSystem(
     }
 
     override fun findSubtypes(type: EtsType): Sequence<EtsType> {
-        return when (val t = unwrapAlias(type)) {
+        return when (val t = unwrapAliasAndGenerics(type)) {
             is EtsPrimitiveType -> emptySequence()
             is EtsAnyType,
             is EtsUnknownType,

@@ -40,6 +40,10 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
         return from(mkUndefinedValue())
     }
 
+    if (expr.instance.name == "Log") {
+        return from(mkUndefinedValue())
+    }
+
     // Mock `.toString()` method calls
     if (expr.callee.name == "toString") {
         if (expr.args.isNotEmpty()) {

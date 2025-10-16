@@ -164,8 +164,11 @@ class TsContext(
         is EtsGenericType -> {
             if (type.constraint == null && type.defaultType == null) {
                 unresolvedSort
+            } else if (type.defaultType == null) {
+                // T extends SomeClass
+                addressSort // you cannot create type constraint for primitive
             } else {
-                TODO("Not yet implemented")
+                TODO("Generic types are not fully implemented: $type")
             }
         }
 

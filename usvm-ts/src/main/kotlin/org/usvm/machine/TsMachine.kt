@@ -122,9 +122,6 @@ class TsMachine(
                 options,
                 targets,
                 timeStatisticsFactory = { timeStatistics },
-                stepsStatisticsFactory = { stepsStatistics },
-                coverageStatisticsFactory = { coverageStatistics },
-                getCollectedStatesCount = { statesCollector.collectedStates.size },
             )
 
             override fun shouldStop(): Boolean {
@@ -143,16 +140,18 @@ class TsMachine(
         machineObserver?.let { observers.add(it) }
 
         if (logger.isInfoEnabled) {
-            observers.add(
-                StatisticsByMethodPrinter(
-                    getMethods = { methods },
-                    print = logger::info,
-                    getMethodSignature = { it.humanReadableSignature },
-                    coverageStatistics = coverageStatistics,
-                    timeStatistics = timeStatistics,
-                    stepsStatistics = stepsStatistics
+            if (methods.size < 100) {
+                observers.add(
+                    StatisticsByMethodPrinter(
+                        getMethods = { methods },
+                        print = logger::info,
+                        getMethodSignature = { it.humanReadableSignature },
+                        coverageStatistics = coverageStatistics,
+                        timeStatistics = timeStatistics,
+                        stepsStatistics = stepsStatistics
+                    )
                 )
-            )
+            }
         }
 
         // TODO hack, for now states collector must be the last one since other collectors might depend on it
