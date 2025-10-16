@@ -67,7 +67,7 @@ fun TsContext.readField(
     field: EtsFieldSignature,
     hierarchy: EtsHierarchy,
 ): UExpr<*>? {
-    val sort = when (val etsField = resolveEtsField(instanceLocal, field, hierarchy)) {
+    val sort = when (val result = resolveEtsField(instanceLocal, field, hierarchy)) {
         is TsResolutionResult.Empty -> {
             if (field.name !in listOf("i", "LogLevel")) {
                 logger.warn { "Field $field not found, creating fake field" }
@@ -81,11 +81,12 @@ fun TsContext.readField(
         }
 
         is TsResolutionResult.Unique -> {
-            val cls = etsField.property.declaringClass
+            val resolvedField = result.property
+            val cls = resolvedField.declaringClass
             if (cls != null && cls.category == EtsClassCategory.ENUM) {
                 unresolvedSort
             } else {
-                typeToSort(etsField.property.type)
+                typeToSort(resolvedField.type)
             }
         }
 
