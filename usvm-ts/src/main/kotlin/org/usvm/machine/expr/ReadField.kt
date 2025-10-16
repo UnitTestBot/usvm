@@ -90,7 +90,10 @@ fun TsContext.readField(
             }
         }
 
-        is TsResolutionResult.Ambiguous -> unresolvedSort
+        is TsResolutionResult.Ambiguous -> {
+            logger.warn { "Ambiguous field resolution for $field: ${result.properties.size} candidates found" }
+            unresolvedSort
+        }
     }
 
     return readField(scope, instance, field, sort)
