@@ -157,9 +157,8 @@ fun TsContext.readStaticField(
     hierarchy: EtsHierarchy,
     isTargetedMode: Boolean = false,
 ): UExpr<*>? {
-    // Resolve the static field using the existing resolver
-    // Note: instance is null for static fields
-    when (val result = resolveEtsField(instance = null, field = field, hierarchy = hierarchy)) {
+    // Resolve the static field.
+    when (val result = resolveEtsField(instance = null, field, hierarchy)) {
         is TsResolutionResult.Unique -> {
             val resolvedField = result.property
             val clazz = resolvedField.declaringClass
