@@ -26,6 +26,7 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsNewExpr
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.model.EtsStaticCallExpr
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.jacodb.ets.utils.Maybe
@@ -207,13 +208,17 @@ class EtsApplicationGraphImpl(
                 if (cls.isNone) {
                     emptySequence()
                 } else {
-                    cls.getOrThrow().methods.asSequence().filter { it.name == callee.name }
+                    // TODO write rules for overloading
+                    cls.getOrThrow().methods.asSequence()
+                        .filter { it.name == callee.name && it.parameters == callee.parameters }
+                        .filter { node.callExpr is EtsStaticCallExpr == it.isStatic }
                 }
             }
             if (resolved.none()) {
                 cacheMethodWithIdealSignature[callee] = Maybe.none()
                 return emptySequence()
             }
+
             val r = resolved.singleOrNull()
                 ?: error("Multiple methods with the same complete signature: ${resolved.toList()}")
             cacheMethodWithIdealSignature[callee] = Maybe.some(r)
@@ -263,12 +268,15 @@ class EtsApplicationGraphImpl(
                     node.location.method.signature.enclosingClass
                 ) != ComparisonResult.NotEqual
             }
+            // TODO wrong for overload with too many arguments
+            .filter { it.parameters == callee.parameters }
             .toList()
         if (resolved.isEmpty()) {
             cachePartiallyMatchedCallees[callee] = emptyList()
             return emptySequence()
         }
         val r = resolved.singleOrNull() ?: run {
+            // TODO error, should be considered overloads
             logger.warn { "Multiple methods with the same partial signature '$callee': $resolved" }
             cachePartiallyMatchedCallees[callee] = emptyList()
             return emptySequence()

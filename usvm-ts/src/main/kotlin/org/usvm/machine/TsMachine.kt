@@ -7,6 +7,7 @@ import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStmt
 import org.usvm.CoverageZone
 import org.usvm.StateCollectionStrategy
+import org.usvm.UCallStack
 import org.usvm.UMachine
 import org.usvm.UMachineOptions
 import org.usvm.api.TsTarget
@@ -26,7 +27,10 @@ import org.usvm.statistics.collectors.CoveredNewStatesCollector
 import org.usvm.statistics.collectors.TargetsReachedStatesCollector
 import org.usvm.statistics.constraints.SoftConstraintsObserver
 import org.usvm.statistics.distances.CfgStatisticsImpl
+import org.usvm.statistics.distances.InterprocDistanceCalculator
+import org.usvm.statistics.distances.MultiTargetDistanceCalculator
 import org.usvm.statistics.distances.PlainCallGraphStatistics
+import org.usvm.statistics.distances.ReachabilityKind
 import org.usvm.stopstrategies.StopStrategy
 import org.usvm.stopstrategies.createStopStrategy
 import org.usvm.util.TsStateVisualizer
@@ -63,9 +67,6 @@ class TsMachine(
                 it.cfg.stmts.isEmpty()
             }
 
-        val initialStates = mutableMapOf<EtsMethod, TsState>()
-        methods.forEach { initialStates[it] = interpreter.getInitialState(it, targets) }
-
         val methodsToTrackCoverage =
             when (options.coverageZone) {
                 CoverageZone.METHOD, CoverageZone.TRANSITIVE -> methods.toHashSet()
@@ -85,6 +86,41 @@ class TsMachine(
 
         val timeStatistics = TimeStatistics<EtsMethod, TsState>()
 
+        val distanceCalculator = MultiTargetDistanceCalculator<EtsMethod, EtsStmt, _> { stmt ->
+            InterprocDistanceCalculator(
+                targetLocation = stmt,
+                applicationGraph = graph,
+                cfgStatistics = cfgStatistics,
+                callGraphStatistics = callGraphStatistics
+            )
+        }
+
+        val initialStates = mutableMapOf<EtsMethod, TsState>()
+
+        val methodsForAnalysis = if (targets.isEmpty()) {
+            methods
+        } else {
+            methods
+                .mapNotNull { method ->
+                    runCatching {
+                        val stack = UCallStack<EtsMethod, EtsStmt>(method)
+                        val stmt = method.cfg.stmts.first()
+                        val required = targets.any { target ->
+                            val distance = distanceCalculator.calculateDistance(
+                                stmt,
+                                stack,
+                                target.location!!
+                            )
+                            distance.reachabilityKind != ReachabilityKind.NONE
+                        }
+
+                        if (required) method else null
+                    }.getOrNull()
+                }
+        }
+
+        methodsForAnalysis.forEach { initialStates[it] = interpreter.getInitialState(it, targets) }
+
         val pathSelector = createPathSelector(
             initialStates = initialStates,
             options = options,
@@ -93,6 +129,7 @@ class TsMachine(
             coverageStatisticsFactory = { coverageStatistics },
             cfgStatisticsFactory = { cfgStatistics },
             callGraphStatisticsFactory = { callGraphStatistics },
+            distanceCalculator = distanceCalculator,
         )
 
         val statesCollector =

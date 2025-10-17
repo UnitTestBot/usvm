@@ -36,6 +36,7 @@ private fun <Method, Statement, Target, State> createPathSelector(
     cfgStatisticsFactory: () -> CfgStatistics<Method, Statement>? = { null },
     callGraphStatisticsFactory: () -> CallGraphStatistics<Method>? = { null },
     loopStatisticFactory: () -> StateLoopTracker<*, Statement, State>? = { null },
+    distanceCalculator: MultiTargetDistanceCalculator<Method, Statement, InterprocDistance>? = null,
 ): UPathSelector<State>
     where Target : UTarget<Statement, Target>,
           State : UState<*, Method, Statement, *, Target, State> {
@@ -82,14 +83,16 @@ private fun <Method, Statement, Target, State> createPathSelector(
             PathSelectionStrategy.TARGETED -> createTargetedPathSelector<Method, Statement, Target, State>(
                 requireNotNull(cfgStatisticsFactory()) { "CFG statistics is required for targeted path selector" },
                 requireNotNull(callGraphStatisticsFactory()) { "Call graph statistics is required for targeted path selector" },
-                applicationGraph
+                applicationGraph,
+                distanceCalculator = distanceCalculator
             )
 
             PathSelectionStrategy.TARGETED_RANDOM -> createTargetedPathSelector<Method, Statement, Target, State>(
                 requireNotNull(cfgStatisticsFactory()) { "CFG statistics is required for targeted path selector" },
                 requireNotNull(callGraphStatisticsFactory()) { "Call graph statistics is required for targeted path selector" },
                 applicationGraph,
-                random
+                random,
+                distanceCalculator = distanceCalculator
             )
 
             PathSelectionStrategy.TARGETED_CALL_STACK_LOCAL -> createTargetedPathSelector<Method, Statement, Target, State>(
@@ -153,6 +156,7 @@ fun <Method, Statement, Target, State> createPathSelector(
     cfgStatisticsFactory: () -> CfgStatistics<Method, Statement>? = { null },
     callGraphStatisticsFactory: () -> CallGraphStatistics<Method>? = { null },
     loopStatisticFactory: () -> StateLoopTracker<*, Statement, State>? = { null },
+    distanceCalculator: MultiTargetDistanceCalculator<Method, Statement, InterprocDistance>? = null,
 ): UPathSelector<State> where Target : UTarget<Statement, Target>, State : UState<*, Method, Statement, *, Target, State> =
     createPathSelector(
         listOf(initialState),
@@ -161,7 +165,8 @@ fun <Method, Statement, Target, State> createPathSelector(
         coverageStatisticsFactory,
         cfgStatisticsFactory,
         callGraphStatisticsFactory,
-        loopStatisticFactory
+        loopStatisticFactory,
+        distanceCalculator
     )
 
 fun <Method, Statement, Target, State> createPathSelector(
@@ -173,6 +178,7 @@ fun <Method, Statement, Target, State> createPathSelector(
     cfgStatisticsFactory: () -> CfgStatistics<Method, Statement>? = { null },
     callGraphStatisticsFactory: () -> CallGraphStatistics<Method>? = { null },
     loopStatisticFactory: () -> StateLoopTracker<*, Statement, State>? = { null },
+    distanceCalculator: MultiTargetDistanceCalculator<Method, Statement, InterprocDistance>? = null,
 ): UPathSelector<State> where Target : UTarget<Statement, Target>, State : UState<*, Method, Statement, *, Target, State> {
     if (options.timeout == Duration.INFINITE || initialStates.size == 1) {
         return createPathSelector(
@@ -182,7 +188,8 @@ fun <Method, Statement, Target, State> createPathSelector(
             coverageStatisticsFactory,
             cfgStatisticsFactory,
             callGraphStatisticsFactory,
-            loopStatisticFactory
+            loopStatisticFactory,
+            distanceCalculator
         )
     }
 
@@ -468,11 +475,12 @@ internal fun <Method, Statement, Target, State> createTargetedPathSelector(
     callGraphStatistics: CallGraphStatistics<Method>,
     applicationGraph: ApplicationGraph<Method, Statement>,
     random: Random? = null,
+    distanceCalculator: MultiTargetDistanceCalculator<Method, Statement, InterprocDistance>?,
 ): UPathSelector<State>
     where Target : UTarget<Statement, Target>,
           State : UState<*, Method, Statement, *, Target, State> {
 
-    val distanceCalculator = MultiTargetDistanceCalculator<Method, Statement, _> { stmt ->
+    val distanceCalculator = distanceCalculator ?: MultiTargetDistanceCalculator<Method, Statement, _> { stmt ->
         InterprocDistanceCalculator(
             targetLocation = stmt,
             applicationGraph = applicationGraph,
