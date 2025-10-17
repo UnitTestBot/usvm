@@ -42,7 +42,6 @@ import org.usvm.machine.state.TsState
 import org.usvm.util.countLeaves
 import org.usvm.util.getLeaves
 import java.nio.file.Path
-import java.nio.file.Paths
 import kotlin.io.path.absolute
 import kotlin.io.path.createDirectories
 import kotlin.io.path.div
@@ -115,7 +114,7 @@ class ReachabilityAnalyzer : CliktCommand(
     private val analysisMode by option(
         "-m", "--mode",
         help = "🔍 Analysis scope"
-    ).enum<AnalysisMode>().default(AnalysisMode.PUBLIC_METHODS)
+    ).enum<AnalysisMode>().default(AnalysisMode.ALL_METHODS)
 
     private val methodFilter by option(
         "--method",
@@ -252,7 +251,7 @@ class ReachabilityAnalyzer : CliktCommand(
         }
 
         // Find methods to analyze
-        val methodsToAnalyze = findMethodsToAnalyze(scene).filter { it.name.contains("transferAll") }
+        val methodsToAnalyze = findMethodsToAnalyze(scene)
         echo("🎯 Analyzing ${methodsToAnalyze.size} methods")
 
         // Prepare targets
@@ -464,7 +463,10 @@ class ReachabilityAnalyzer : CliktCommand(
         targetTraces: List<TargetTrace>,
     ): List<TsReachabilityTarget> {
         val targets = mutableListOf<TsReachabilityTarget>()
-        val methodMap = methods.associateBy { "${it.enclosingClass?.name ?: "Unknown"}.${it.name}" }
+        val methodMap = methods.associateBy {
+            val enclosingClass = it.enclosingClass
+            "${enclosingClass?.declaringFile?.name ?: "Unknown"}:${enclosingClass?.name ?: "Unknown"}.${it.name}"
+        }
 
         targetTraces.forEach { trace ->
             val root = when (trace) {
@@ -472,12 +474,8 @@ class ReachabilityAnalyzer : CliktCommand(
                 is TargetTrace.Linear -> buildLinearTrace(trace.targets)!!
             }
 
-            // For each trace, find the corresponding method and build the target hierarchy
-            val methodName = "${root.target.location.className}.${root.target.location.methodName}"
-            val method = methodMap[methodName] ?: return@forEach
-
             // Resolve the root target and build the hierarchy using addChild
-            val rootTarget = resolveTarget(root, method.cfg.stmts)
+            val rootTarget = resolveTarget(root, methodMap)
             if (rootTarget != null) {
                 targets.add(rootTarget)
             }
@@ -486,8 +484,11 @@ class ReachabilityAnalyzer : CliktCommand(
         return targets
     }
 
-    private fun resolveTarget(node: TargetTreeNodeDto, statements: List<EtsStmt>): TsReachabilityTarget? {
+    private fun resolveTarget(node: TargetTreeNodeDto, methodMap: Map<String, EtsMethod>): TsReachabilityTarget? {
         // First, resolve the current node to a TsReachabilityTarget
+        val targetLocation = node.target.location
+        val methodName = "${targetLocation.fileName}:${targetLocation.className}.${targetLocation.methodName}"
+        val statements = methodMap[methodName]?.cfg?.stmts ?: return null
         val stmt = findStatementByTarget(statements, node.target) ?: return null
         if (verbose) {
             echo("Resolved target ${node.target} to statement $stmt")
@@ -501,7 +502,7 @@ class ReachabilityAnalyzer : CliktCommand(
 
         // Add all children to build the hierarchical structure
         node.children.forEach { childNode ->
-            val childTarget = resolveTarget(childNode, statements)
+            val childTarget = resolveTarget(childNode, methodMap)
             if (childTarget != null) {
                 currentTarget.addChild(childTarget)
             }
@@ -879,34 +880,5 @@ sealed interface TargetTrace {
 }
 
 fun main(args: Array<String>) {
-    if (args.isEmpty()) {
-        val file = Paths.get("C:/work/usvm-aa/arkanalyzer-usvm-1760605242143/targets").toFile()
-
-        // browserCommon-src-main-ets-default-utils-ExifUtil-ets-ExifUtil-transferAll-targetsFile-1760605269603.json
-        for (target in file.listFiles().take(1)) {
-            runCatching {
-                if (args.isEmpty()) {
-                    val newArgs = arrayOf(
-                        "--input-ir",
-                        "C:/work/usvm-aa/arkanalyzer-usvm-1760605242143/arkir",
-                        "--output",
-                        "C:/work/usvm-aa/arkanalyzer-usvm-1760605242143/results",
-                        "--targets",
-                        target.absolutePath,
-                        "--solver",
-                        "YICES",
-                        "--timeout",
-                        "120000",
-                        "--steps",
-                        "3500"
-                    )
-                    ReachabilityAnalyzer().main(newArgs)
-
-                }
-            }.onFailure { System.err.println(it.message) }
-            return
-        }
-    }
-    
     ReachabilityAnalyzer().main(args)
 }

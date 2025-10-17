@@ -117,11 +117,20 @@ class TsMachine(
 
         val stepsStatistics = StepsStatistics<EtsMethod, TsState>()
 
+        val (stepsFactory, coverageFactory, collectedStatesCount) = if (options.stopOnCoverage !in 1..100) {
+            Triple({ null }, { null }, null)
+        } else {
+            Triple({ stepsStatistics }, { coverageStatistics }, { statesCollector.collectedStates.size })
+        }
+
         val stopStrategy = object : StopStrategy {
             val strategy = createStopStrategy(
                 options,
                 targets,
                 timeStatisticsFactory = { timeStatistics },
+                stepsStatisticsFactory = stepsFactory,
+                coverageStatisticsFactory = coverageFactory,
+                getCollectedStatesCount = collectedStatesCount,
             )
 
             override fun shouldStop(): Boolean {
