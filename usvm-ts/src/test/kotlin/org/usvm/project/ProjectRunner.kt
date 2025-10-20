@@ -258,4 +258,18 @@ class ProjectRunner {
 
         testOnAllMethods(scene)
     }
+
+    @Test
+    fun `run on a particular method in a particular project`() {
+        val scene = createScene(particularProjectName)
+        val cls = scene.projectClasses.firstOrNull { it.name == "AlbumDataImpl" }
+            ?: error("Class not found in project $particularProjectName")
+        val method = cls.methods.firstOrNull { it.name == "getAlbumDataItem" }
+            ?: error("Method not found in class $cls")
+        val tsOptions = TsOptions()
+        TsMachine(scene, machineOptions, tsOptions).use { machine ->
+            val states = machine.analyze(listOf(method))
+            states.let {}
+        }
+    }
 }
