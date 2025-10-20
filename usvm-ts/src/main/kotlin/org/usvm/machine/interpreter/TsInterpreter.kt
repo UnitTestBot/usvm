@@ -27,6 +27,7 @@ import org.jacodb.ets.model.EtsStringLiteralType
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsThrowStmt
 import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUnclearRefType
 import org.jacodb.ets.model.EtsUndefinedType
 import org.jacodb.ets.model.EtsUnionType
 import org.jacodb.ets.model.EtsUnknownType
@@ -788,8 +789,10 @@ class TsInterpreter(
 
             val parameterType = param.type
             if (parameterType is EtsRefType) run {
-                state.pathConstraints += mkNot(mkHeapRefEq(ref, mkTsNullValue()))
-                state.pathConstraints += mkNot(mkHeapRefEq(ref, mkUndefinedValue()))
+                if (parameterType !is EtsArrayType || parameterType.elementType !is EtsUnclearRefType) {
+                    state.pathConstraints += mkNot(mkHeapRefEq(ref, mkTsNullValue()))
+                    state.pathConstraints += mkNot(mkHeapRefEq(ref, mkUndefinedValue()))
+                }
 
                 if (parameterType is EtsFunctionType) {
                     // TODO add support for function types
