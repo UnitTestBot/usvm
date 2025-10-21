@@ -98,9 +98,14 @@ class ProjectRunner {
          *                  kits/
          *    ```
          *
-         * 5. Update the `SDK_OHOS_PATH` const to point to the correct version.
+         * 5. Update the `SDK_OHOS_PATHS` to point to the correct version.
          */
-        private const val SDK_OHOS_PATH = "/sdk/ohos/5.0.1.111/ets"
+        private val SDK_OHOS_PATHS = listOf(
+            "/sdk/ohos/5.0.1.111/ets/api",
+            "/sdk/ohos/5.0.1.111/ets/arkts",
+            "/sdk/ohos/5.0.1.111/ets/component",
+            "/sdk/ohos/5.0.1.111/ets/kits",
+        )
 
         val machineOptions: UMachineOptions = UMachineOptions(
             pathSelectionStrategies = listOf(PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM),
@@ -113,7 +118,7 @@ class ProjectRunner {
     }
 
     private val sdkFiles: List<EtsFile> by lazy {
-        listOf(SDK_TYPESCRIPT_PATH, SDK_OHOS_PATH).flatMap { sdk ->
+        (SDK_OHOS_PATHS + SDK_TYPESCRIPT_PATH).flatMap { sdk ->
             logger.info { "Loading SDK from path: $sdk" }
             val sdkPath = getResourcePath(sdk)
             val sdkProject = loadEtsProjectAutoConvert(sdkPath, useArkAnalyzerTypeInference = null)
