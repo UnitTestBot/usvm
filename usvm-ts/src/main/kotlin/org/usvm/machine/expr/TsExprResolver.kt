@@ -1136,7 +1136,7 @@ class TsSimpleValueResolver(
 
         // If local is a global variable:
         if (globals.any { it.name == local.name }) {
-            logger.info { "Reading global variable: $local in $file" }
+            // logger.info { "Reading global variable: $local in $file" }
             return readGlobal(scope, file, local.name)
         }
 
