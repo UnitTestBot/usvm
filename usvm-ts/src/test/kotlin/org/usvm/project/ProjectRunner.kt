@@ -251,7 +251,7 @@ class ProjectRunner {
     @Test
     fun `run on a particular class in a particular project`() {
         val scene = createScene(particularProjectName)
-        val cls = scene.projectClasses.firstOrNull { it.toString() == "@source/entry/utils/AbilityUtils: %dflt" }
+        val cls = scene.projectClasses.firstOrNull { it.toString() == "@source/entry/pages/SelectPhotoBrowser.ets: SelectPhotoBrowser" }
             ?: error("Class not found in project $particularProjectName")
         runMachineOnClass(scene, cls)
     }
