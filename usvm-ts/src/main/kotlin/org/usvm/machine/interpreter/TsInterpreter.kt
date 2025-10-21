@@ -254,11 +254,22 @@ class TsInterpreter(
             memory.typeStreamOf(unwrappedInstance).take(scene.projectAndSdkClasses.size)
         }
 
-        if (possibleTypes !is TypesResult.SuccessfulTypesResult) {
-            error("TODO") // is it right?
-        }
+        val possibleTypesSet = when (possibleTypes) {
+            is TypesResult.SuccessfulTypesResult -> {
+                possibleTypes.types.toSet()
+            }
 
-        val possibleTypesSet = possibleTypes.types.toSet()
+            is TypesResult.TypesResultWithExpiredTimeout -> {
+                possibleTypes.collectedTypes.toSet()
+            }
+
+            is TypesResult.EmptyTypesResult -> {
+                logger.warn {
+                    "Could not determine possible types for instance: $unwrappedInstance"
+                }
+                emptySet()
+            }
+        }
 
         if (possibleTypesSet.singleOrNull() == EtsAnyType) {
             mockMethodCall(scope, stmt.callee)
