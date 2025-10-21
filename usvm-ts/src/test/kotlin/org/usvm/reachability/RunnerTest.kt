@@ -108,4 +108,34 @@ class RunnerTest {
         println("Got ${results.size} results")
         results.let {}
     }
+
+    @Test
+    fun `run reachability on branch41`() {
+        val projectPath = Path("../examples/reachability/projects/branch")
+        val scene = run {
+            val project = loadEtsProjectAutoConvert(projectPath)
+            val sdks = loadSdks()
+            EtsScene(
+                projectFiles = project.projectFiles,
+                sdkFiles = sdks.flatMap { it.projectFiles },
+                projectName = project.projectName,
+            )
+        }
+
+        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
+        val method = scene.projectClasses
+            .flatMap { it.methods }
+            .single { it.name == "branch41" }
+
+        val initialTarget: TsTarget = TsReachabilityTarget.InitialPoint(method.cfg.stmts.first())
+        var target: TsTarget = initialTarget
+
+        target = target.addChild(TsReachabilityTarget.IntermediatePoint(method.cfg.blocks[4].statements.first()))
+        target = target.addChild(TsReachabilityTarget.IntermediatePoint(method.cfg.blocks[1].statements.first()))
+        target = target.addChild(TsReachabilityTarget.IntermediatePoint(method.cfg.blocks[2].statements.first()))
+
+        val results = machine.analyze(listOf(method), listOf(initialTarget))
+        println("Got ${results.size} results")
+        results.let {}
+    }
 }

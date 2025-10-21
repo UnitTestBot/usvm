@@ -1,3 +1,6 @@
+// @ts-nocheck
+// noinspection PointlessBooleanExpressionJS
+
 import image from '@ohos.multimedia.image';
 
 function branch01(condition: boolean) {
@@ -21,4 +24,23 @@ function branch02(condition: boolean) {
         imageSource.release();
     }
     return;
+}
+
+function branch41() {
+    let imageSource: image.ImageSource | null = null;
+    let pixelMap: image.PixelMap | null = null;
+
+    if (!imageSource) {
+        imageSource = image.createImageSource("");
+    }
+
+    console.log("Do something with resources");
+
+    if (pixelMap) {
+        pixelMap.release();
+        imageSource.release();
+        return;
+    }
+
+    console.log("imageSource is never released");
 }
