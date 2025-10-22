@@ -350,6 +350,31 @@ class TsExprResolver(
         }
         if (arg.sort == addressSort) {
             val ref = arg.asExpr(addressSort)
+            val condition = scope.calcOnState {
+                val unwrappedRef = ref.unwrapRefWithPathConstraint(scope) ?: return@calcOnState null
+
+                // TODO: adhoc: "expand" ITE
+                if (unwrappedRef is UIteExpr<*>) {
+                    val trueBranch = unwrappedRef.trueBranch
+                    val falseBranch = unwrappedRef.falseBranch
+                    if (trueBranch.isFakeObject() || falseBranch.isFakeObject()) {
+                        val unwrappedTrueExpr =
+                            trueBranch.asExpr(addressSort).unwrapRefWithPathConstraint(scope)
+                                ?: return@calcOnState null
+                        val unwrappedFalseExpr =
+                            falseBranch.asExpr(addressSort).unwrapRefWithPathConstraint(scope)
+                                ?: return@calcOnState null
+                        return@calcOnState mkIte(
+                            condition = unwrappedRef.condition,
+                            trueBranch = memory.types.evalTypeEquals(unwrappedTrueExpr, EtsStringType),
+                            falseBranch = memory.types.evalTypeEquals(unwrappedFalseExpr, EtsStringType),
+                        )
+                    }
+                }
+
+                memory.types.evalTypeEquals(unwrappedRef, EtsStringType)
+            } ?: return null
+
             return mkIte(
                 condition = mkHeapRefEq(ref, mkTsNullValue()),
                 trueBranch = mkStringConstant("object", scope),
@@ -357,28 +382,7 @@ class TsExprResolver(
                     condition = mkHeapRefEq(ref, mkUndefinedValue()),
                     trueBranch = mkStringConstant("undefined", scope),
                     falseBranch = mkIte(
-                        condition = scope.calcOnState {
-                            val unwrappedRef = ref.unwrapRefWithPathConstraint(scope)
-
-                            // TODO: adhoc: "expand" ITE
-                            if (unwrappedRef is UIteExpr<*>) {
-                                val trueBranch = unwrappedRef.trueBranch
-                                val falseBranch = unwrappedRef.falseBranch
-                                if (trueBranch.isFakeObject() || falseBranch.isFakeObject()) {
-                                    val unwrappedTrueExpr =
-                                        trueBranch.asExpr(addressSort).unwrapRefWithPathConstraint(scope)
-                                    val unwrappedFalseExpr =
-                                        falseBranch.asExpr(addressSort).unwrapRefWithPathConstraint(scope)
-                                    return@calcOnState mkIte(
-                                        condition = unwrappedRef.condition,
-                                        trueBranch = memory.types.evalTypeEquals(unwrappedTrueExpr, EtsStringType),
-                                        falseBranch = memory.types.evalTypeEquals(unwrappedFalseExpr, EtsStringType),
-                                    )
-                                }
-                            }
-
-                            memory.types.evalTypeEquals(unwrappedRef, EtsStringType)
-                        },
+                        condition = condition,
                         trueBranch = mkStringConstant("string", scope),
                         falseBranch = mkStringConstant("object", scope),
                     )

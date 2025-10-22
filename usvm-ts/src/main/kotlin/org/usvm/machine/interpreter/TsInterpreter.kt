@@ -318,8 +318,12 @@ class TsInterpreter(
                     val trueBranch = ref.trueBranch
                     val falseBranch = ref.falseBranch
                     if (trueBranch.isFakeObject() || falseBranch.isFakeObject()) {
-                        val unwrappedTrueExpr = trueBranch.asExpr(addressSort).unwrapRefWithPathConstraint(scope)
-                        val unwrappedFalseExpr = falseBranch.asExpr(addressSort).unwrapRefWithPathConstraint(scope)
+                        val unwrappedTrueExpr =
+                            trueBranch.asExpr(addressSort).unwrapRefWithPathConstraint(scope)
+                                ?: return@calcOnState null
+                        val unwrappedFalseExpr =
+                            falseBranch.asExpr(addressSort).unwrapRefWithPathConstraint(scope)
+                                ?: return@calcOnState null
                         return@calcOnState mkIte(
                             condition = ref.condition,
                             trueBranch = memory.types.evalIsSubtype(unwrappedTrueExpr, type),
@@ -334,7 +338,7 @@ class TsInterpreter(
                     memory.types.evalIsSubtype(ref, clazz),
                     memory.types.evalIsSupertype(ref, type)
                 )
-            }
+            } ?: return
             constraint to block
         }
 

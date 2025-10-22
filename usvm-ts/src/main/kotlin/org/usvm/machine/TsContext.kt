@@ -255,9 +255,9 @@ class TsContext(
         return this
     }
 
-    fun UHeapRef.unwrapRefWithPathConstraint(scope: TsStepScope): UHeapRef {
+    fun UHeapRef.unwrapRefWithPathConstraint(scope: TsStepScope): UHeapRef? {
         if (isFakeObject()) {
-            scope.assert(getFakeType(scope).refTypeExpr)
+            scope.assert(getFakeType(scope).refTypeExpr) ?: return null
             return extractRef(scope)
         }
         return this
