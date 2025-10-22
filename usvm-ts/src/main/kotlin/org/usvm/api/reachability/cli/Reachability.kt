@@ -37,6 +37,7 @@ import org.usvm.api.reachability.dto.TargetTreeNodeDto
 import org.usvm.api.reachability.dto.TargetTypeDto
 import org.usvm.api.reachability.dto.TargetsContainerDto
 import org.usvm.api.reachability.dto.extractTargetTraces
+import org.usvm.api.reachability.dto.parseTargetsContainer
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.machine.state.TsState
@@ -329,14 +330,8 @@ class ReachabilityAnalyzer : CliktCommand(
     }
 
     private fun parseTargetDefinitions(targetsFile: Path): List<TargetTrace> {
-        val content = targetsFile.readText()
         return try {
-            val json = Json {
-                ignoreUnknownKeys = true
-                isLenient = true
-            }
-
-            val container = json.decodeFromString<TargetsContainerDto>(content)
+            val container = parseTargetsContainer(targetsFile)
             val traces = extractTargetTraces(container)
 
             echo("📋 Parsed ${traces.size} target traces from ${targetsFile.fileName}")
