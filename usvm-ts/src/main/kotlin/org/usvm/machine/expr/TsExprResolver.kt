@@ -358,17 +358,9 @@ class TsExprResolver(
                     val trueBranch = unwrappedRef.trueBranch
                     val falseBranch = unwrappedRef.falseBranch
                     if (trueBranch.isFakeObject() || falseBranch.isFakeObject()) {
-                        val unwrappedTrueExpr =
-                            trueBranch.asExpr(addressSort).unwrapRefWithPathConstraint(scope)
-                                ?: return@calcOnState null
-                        val unwrappedFalseExpr =
-                            falseBranch.asExpr(addressSort).unwrapRefWithPathConstraint(scope)
-                                ?: return@calcOnState null
-                        return@calcOnState mkIte(
-                            condition = unwrappedRef.condition,
-                            trueBranch = memory.types.evalTypeEquals(unwrappedTrueExpr, EtsStringType),
-                            falseBranch = memory.types.evalTypeEquals(unwrappedFalseExpr, EtsStringType),
-                        )
+                        return@calcOnState rewrapIte(scope, unwrappedRef) {
+                            memory.types.evalIsSubtype(it, EtsStringType)
+                        }
                     }
                 }
 

@@ -62,6 +62,7 @@ import org.usvm.machine.expr.handleAssignToLocal
 import org.usvm.machine.expr.handleAssignToStaticField
 import org.usvm.machine.expr.mkTruthyExpr
 import org.usvm.machine.expr.readGlobal
+import org.usvm.machine.expr.rewrapIte
 import org.usvm.machine.expr.writeGlobal
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
@@ -318,17 +319,9 @@ class TsInterpreter(
                     val trueBranch = ref.trueBranch
                     val falseBranch = ref.falseBranch
                     if (trueBranch.isFakeObject() || falseBranch.isFakeObject()) {
-                        val unwrappedTrueExpr =
-                            trueBranch.asExpr(addressSort).unwrapRefWithPathConstraint(scope)
-                                ?: return@calcOnState null
-                        val unwrappedFalseExpr =
-                            falseBranch.asExpr(addressSort).unwrapRefWithPathConstraint(scope)
-                                ?: return@calcOnState null
-                        return@calcOnState mkIte(
-                            condition = ref.condition,
-                            trueBranch = memory.types.evalIsSubtype(unwrappedTrueExpr, type),
-                            falseBranch = memory.types.evalIsSubtype(unwrappedFalseExpr, type),
-                        )
+                        return@calcOnState rewrapIte(scope, ref) {
+                            memory.types.evalIsSubtype(it, type)
+                        }
                     }
                 }
 

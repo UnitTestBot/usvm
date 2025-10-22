@@ -7,6 +7,7 @@ import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.UIteExpr
 import org.usvm.USort
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.isFalse
@@ -266,3 +267,21 @@ fun TsContext.ensureLengthBounds(
     )
     return scope.assert(condition)
 }
+
+fun <R : USort> TsContext.rewrapIte(
+    scope: TsStepScope,
+    expr: UIteExpr<*>,
+    map: (UHeapRef) -> UExpr<R>,
+): UExpr<R>? = mkIte(
+    condition = expr.condition,
+    trueBranch = {
+        val ref = expr.trueBranch.asExpr(addressSort)
+        val unwrapped = ref.unwrapRefWithPathConstraint(scope) ?: return null
+        map(unwrapped)
+    },
+    falseBranch = {
+        val ref = expr.falseBranch.asExpr(addressSort)
+        val unwrapped = ref.unwrapRefWithPathConstraint(scope) ?: return null
+        map(unwrapped)
+    },
+)
