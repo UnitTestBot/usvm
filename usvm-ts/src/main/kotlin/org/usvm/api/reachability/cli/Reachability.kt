@@ -35,7 +35,6 @@ import org.usvm.api.reachability.dto.ReachabilityStatusDto
 import org.usvm.api.reachability.dto.TargetDto
 import org.usvm.api.reachability.dto.TargetTreeNodeDto
 import org.usvm.api.reachability.dto.TargetTypeDto
-import org.usvm.api.reachability.dto.TargetsContainerDto
 import org.usvm.api.reachability.dto.extractTargetTraces
 import org.usvm.api.reachability.dto.parseTargetsContainer
 import org.usvm.machine.TsMachine
@@ -47,7 +46,6 @@ import java.nio.file.Path
 import kotlin.io.path.absolute
 import kotlin.io.path.createDirectories
 import kotlin.io.path.div
-import kotlin.io.path.readText
 import kotlin.io.path.writeText
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -330,19 +328,17 @@ class ReachabilityAnalyzer : CliktCommand(
     }
 
     private fun parseTargetDefinitions(targetsFile: Path): List<TargetTrace> {
-        return try {
+        try {
             val container = parseTargetsContainer(targetsFile)
             val traces = extractTargetTraces(container)
-
             echo("📋 Parsed ${traces.size} target traces from ${targetsFile.fileName}")
-            traces
-
+            return traces
         } catch (e: Exception) {
             echo("❌ Error parsing targets file: ${e.message}", err = true)
             if (verbose) {
                 e.printStackTrace()
             }
-            emptyList()
+            return emptyList()
         }
     }
 
