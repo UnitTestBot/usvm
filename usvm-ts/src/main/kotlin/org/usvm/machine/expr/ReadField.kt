@@ -3,7 +3,6 @@ package org.usvm.machine.expr
 import io.ksmt.utils.asExpr
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsClassCategory
-import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLocal
@@ -15,7 +14,6 @@ import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.ensureStaticsInitialized
 import org.usvm.machine.types.EtsAuxiliaryType
-import org.usvm.machine.types.mkFakeValue
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.TsResolutionResult
 import org.usvm.util.createFakeField
@@ -76,8 +74,8 @@ fun TsContext.readField(
             // It is possible due to mistakes in the IR or if the field was added explicitly
             // in the code.
             // Probably, the right behaviour here is to fork the state.
-            instance.createFakeField(scope, field.name)
-            addressSort
+            // instance.createFakeField(scope, field.name)
+            unresolvedSort
         }
 
         is TsResolutionResult.Unique -> {
@@ -122,27 +120,8 @@ fun TsContext.readField(
         return scope.calcOnState { memory.read(lValue) }
     }
 
-    // If the field type is unknown, we create a fake object.
-    return scope.calcOnState {
-        val boolLValue = mkFieldLValue(boolSort, instance, field)
-        val fpLValue = mkFieldLValue(fp64Sort, instance, field)
-        val refLValue = mkFieldLValue(addressSort, instance, field)
-
-        val bool = memory.read(boolLValue)
-        val fp = memory.read(fpLValue)
-        val ref = memory.read(refLValue)
-
-        // If a fake object is already created and assigned to the field,
-        // there is no need to recreate another one.
-        if (ref.isFakeObject()) {
-            ref
-        } else {
-            val fakeObj = mkFakeValue(scope, bool, fp, ref)
-            lValuesToAllocatedFakeObjects += refLValue to fakeObj
-            memory.write(refLValue, fakeObj, guard = trueExpr)
-            fakeObj
-        }
-    }
+    // If the field type is unknown (sort is unresolved), we create a fake field.
+    return createFakeField(scope, instance, field.name)
 }
 
 internal fun TsExprResolver.handleStaticFieldRef(
