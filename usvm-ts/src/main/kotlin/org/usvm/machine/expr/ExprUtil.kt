@@ -270,18 +270,23 @@ fun TsContext.ensureLengthBounds(
 
 fun <R : USort> TsContext.rewrapIte(
     scope: TsStepScope,
-    expr: UIteExpr<*>,
+    expr: UHeapRef,
     map: (UHeapRef) -> UExpr<R>,
-): UExpr<R>? = mkIte(
-    condition = expr.condition,
-    trueBranch = {
-        val ref = expr.trueBranch.asExpr(addressSort)
-        val unwrapped = ref.unwrapRefWithPathConstraint(scope) ?: return null
-        map(unwrapped)
-    },
-    falseBranch = {
-        val ref = expr.falseBranch.asExpr(addressSort)
-        val unwrapped = ref.unwrapRefWithPathConstraint(scope) ?: return null
-        map(unwrapped)
-    },
-)
+): UExpr<R>? {
+    if (expr is UIteExpr<*>) {
+        val trueBranch = expr.trueBranch
+        val falseBranch = expr.falseBranch
+        if (trueBranch.isFakeObject() || falseBranch.isFakeObject()) {
+            val trueBranchUnwrapped = trueBranch.asExpr(addressSort)
+                .unwrapRefWithPathConstraint(scope) ?: return null
+            val falseBranchUnwrapped = falseBranch.asExpr(addressSort)
+                .unwrapRefWithPathConstraint(scope) ?: return null
+            return mkIte(
+                condition = expr.condition,
+                trueBranch = map(trueBranchUnwrapped),
+                falseBranch = map(falseBranchUnwrapped),
+            )
+        }
+    }
+    return map(expr)
+}

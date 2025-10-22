@@ -352,19 +352,9 @@ class TsExprResolver(
             val ref = arg.asExpr(addressSort)
             val condition = scope.calcOnState {
                 val unwrappedRef = ref.unwrapRefWithPathConstraint(scope) ?: return@calcOnState null
-
-                // TODO: adhoc: "expand" ITE
-                if (unwrappedRef is UIteExpr<*>) {
-                    val trueBranch = unwrappedRef.trueBranch
-                    val falseBranch = unwrappedRef.falseBranch
-                    if (trueBranch.isFakeObject() || falseBranch.isFakeObject()) {
-                        return@calcOnState rewrapIte(scope, unwrappedRef) {
-                            memory.types.evalIsSubtype(it, EtsStringType)
-                        }
-                    }
+                rewrapIte(scope, unwrappedRef) {
+                    memory.types.evalIsSubtype(it, EtsStringType)
                 }
-
-                memory.types.evalTypeEquals(unwrappedRef, EtsStringType)
             } ?: return null
 
             return mkIte(

@@ -9,6 +9,7 @@ import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsStaticFieldRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.UIteExpr
 import org.usvm.USort
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
@@ -110,8 +111,10 @@ fun TsContext.readField(
     // That's not true in the common case for TS, but that's the decision we made.
     val constraint = scope.calcOnState {
         val auxiliaryType = EtsAuxiliaryType(properties = setOf(field.name))
-        memory.types.evalIsSubtype(instance, auxiliaryType)
-    }
+        rewrapIte(scope, instance) {
+                memory.types.evalIsSubtype(it, auxiliaryType)
+        }
+    } ?: return null
     scope.assert(constraint) ?: return null
 
     // If the field type is known, we can read it directly.

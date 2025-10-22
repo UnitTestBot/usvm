@@ -313,24 +313,12 @@ class TsInterpreter(
                 val ref = stmt.instance.asExpr(addressSort)
                     .takeIf { !it.isFakeObject() }
                     ?: unwrappedInstance.asExpr(addressSort)
-
-                // TODO: adhoc: "expand" ITE
-                if (ref is UIteExpr<*>) {
-                    val trueBranch = ref.trueBranch
-                    val falseBranch = ref.falseBranch
-                    if (trueBranch.isFakeObject() || falseBranch.isFakeObject()) {
-                        return@calcOnState rewrapIte(scope, ref) {
-                            memory.types.evalIsSubtype(it, type)
-                        }
-                    }
+                rewrapIte(scope, ref) {
+                    mkAnd(
+                        memory.types.evalIsSubtype(it, clazz),
+                        memory.types.evalIsSupertype(it, type)
+                    )
                 }
-
-                // TODO mistake, should be separated into several hierarchies
-                //      or evalTypeEqual with several concrete types
-                mkAnd(
-                    memory.types.evalIsSubtype(ref, clazz),
-                    memory.types.evalIsSupertype(ref, type)
-                )
             } ?: return
             constraint to block
         }
