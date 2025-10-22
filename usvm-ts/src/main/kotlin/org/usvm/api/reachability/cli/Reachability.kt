@@ -36,6 +36,7 @@ import org.usvm.api.reachability.dto.TargetDto
 import org.usvm.api.reachability.dto.TargetTreeNodeDto
 import org.usvm.api.reachability.dto.TargetTypeDto
 import org.usvm.api.reachability.dto.TargetsContainerDto
+import org.usvm.api.reachability.dto.extractTargetTraces
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.machine.state.TsState
@@ -350,34 +351,6 @@ class ReachabilityAnalyzer : CliktCommand(
         }
     }
 
-    private fun extractTargetTraces(container: TargetsContainerDto): List<TargetTrace> {
-        return when (container) {
-            // Single trace (linear or tree)
-            is TargetsContainerDto.SingleTrace -> {
-                listOf(extractTargetTrace(container))
-            }
-
-            // Multiple traces (can be linear or tree)
-            is TargetsContainerDto.TraceList -> {
-                container.traces.map { extractTargetTrace(it) }
-            }
-        }
-    }
-
-    private fun extractTargetTrace(trace: TargetsContainerDto.SingleTrace): TargetTrace {
-        return when (trace) {
-            // Single linear trace
-            is TargetsContainerDto.LinearTrace -> {
-                TargetTrace.Linear(targets = trace.targets)
-            }
-
-            // Single tree trace
-            is TargetsContainerDto.TreeTrace -> {
-                TargetTrace.Tree(root = trace.root)
-            }
-        }
-    }
-
     // TODO: remove
     private fun buildLinearTrace(targets: List<TargetDto>): TargetTreeNodeDto? {
         if (targets.isEmpty()) return null
@@ -465,7 +438,9 @@ class ReachabilityAnalyzer : CliktCommand(
         val targets = mutableListOf<TsReachabilityTarget>()
         val methodMap = methods.associateBy {
             val enclosingClass = it.enclosingClass
-            "${enclosingClass?.declaringFile?.name ?: "Unknown"}:${enclosingClass?.name ?: "Unknown"}.${it.name}"
+            val fileName = enclosingClass?.declaringFile?.name ?: "Unknown"
+            val className = enclosingClass?.name ?: "Unknown"
+            "$fileName:$className.${it.name}"
         }
 
         targetTraces.forEach { trace ->
@@ -551,7 +526,7 @@ class ReachabilityAnalyzer : CliktCommand(
     private fun analyzeReachability(
         targets: List<TsReachabilityTarget>,
         states: List<TsState>,
-        isFinished: Boolean
+        isFinished: Boolean,
     ): List<TargetReachabilityResult> {
         val results = mutableListOf<TargetReachabilityResult>()
 
