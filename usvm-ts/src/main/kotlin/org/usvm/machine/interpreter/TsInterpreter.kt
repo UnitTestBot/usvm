@@ -39,7 +39,6 @@ import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UExpr
 import org.usvm.UInterpreter
-import org.usvm.UIteExpr
 import org.usvm.api.TsTarget
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArray
@@ -308,12 +307,11 @@ class TsInterpreter(
             val concreteCall = stmt.toConcrete(method)
             val block = { state: TsState -> state.newStmt(concreteCall) }
             val type = requireNotNull(method.enclosingClass).type
-
-            val constraint = scope.calcOnState {
-                val ref = stmt.instance.asExpr(addressSort)
-                    .takeIf { !it.isFakeObject() }
-                    ?: unwrappedInstance.asExpr(addressSort)
-                rewrapIte(scope, ref) {
+            val ref = stmt.instance.asExpr(addressSort)
+                .takeIf { !it.isFakeObject() }
+                ?: unwrappedInstance.asExpr(addressSort)
+            val constraint = rewrapIte(scope, ref) {
+                scope.calcOnState {
                     mkAnd(
                         memory.types.evalIsSubtype(it, clazz),
                         memory.types.evalIsSupertype(it, type)

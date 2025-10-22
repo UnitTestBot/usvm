@@ -77,10 +77,8 @@ import org.jacodb.ets.utils.ANONYMOUS_METHOD_PREFIX
 import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
 import org.jacodb.ets.utils.getDeclaredLocals
 import org.usvm.UExpr
-import org.usvm.UIteExpr
 import org.usvm.USort
 import org.usvm.api.allocateConcreteRef
-import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArrayLength
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.api.mockMethodCall
@@ -350,11 +348,9 @@ class TsExprResolver(
         }
         if (arg.sort == addressSort) {
             val ref = arg.asExpr(addressSort)
-            val condition = scope.calcOnState {
-                val unwrappedRef = ref.unwrapRefWithPathConstraint(scope) ?: return@calcOnState null
-                rewrapIte(scope, unwrappedRef) {
-                    memory.types.evalIsSubtype(it, EtsStringType)
-                }
+            val unwrappedRef = ref.unwrapRefWithPathConstraint(scope) ?: return null
+            val condition = rewrapIte(scope, unwrappedRef) {
+                scope.calcOnState { memory.types.evalIsSubtype(it, EtsStringType) }
             } ?: return null
 
             return mkIte(
