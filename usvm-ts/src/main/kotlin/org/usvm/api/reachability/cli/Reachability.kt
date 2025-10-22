@@ -493,24 +493,23 @@ class ReachabilityAnalyzer : CliktCommand(
     }
 
     private fun matchesLocation(stmt: EtsStmt, location: LocationDto): Boolean {
-        // If both block and index are specified, match by both (using original DTO block/stmt indices)
-        if (location.block != null && location.index != null) {
-            if (stmt.location.blockDtoIndex == location.block && stmt.location.stmtDtoIndex == location.index) {
+        // Match by block and index
+        if (location.block != null) {
+            // If the index is not specified, match the first statement in the block
+            val index = location.index ?: 0
+            if (stmt.location.blockDtoIndex == location.block && stmt.location.stmtDtoIndex == index) {
                 return true
             }
         }
+
         // EXTRA: If only the index is specified, match by index only (using the normal stmt index in linear CFG)
         if (location.block == null && location.index != null) {
             if (stmt.location.index == location.index) {
                 return true
             }
         }
-        // If only the block index is specified, match by the first instruction of the block
-        if (location.block != null && location.index == null) {
-            if (stmt.location.blockDtoIndex == location.block && stmt.location.stmtDtoIndex == 0) {
-                return true
-            }
-        }
+
+        // No match
         return false
     }
 
