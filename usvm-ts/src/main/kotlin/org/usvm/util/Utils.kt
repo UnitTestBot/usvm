@@ -17,7 +17,6 @@ import org.usvm.UHeapRef
 import org.usvm.api.TsTarget
 import org.usvm.api.mockMethodCall
 import org.usvm.machine.TsContext
-import org.usvm.machine.expr.tctx
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
@@ -58,15 +57,16 @@ fun EtsType.getClassesForType(
 
 // TODO save info about this field somewhere
 //      https://github.com/UnitTestBot/usvm/issues/288
-fun UHeapRef.createFakeField(
+fun TsContext.createFakeField(
     scope: TsStepScope,
+    instance: UHeapRef,
     fieldName: String,
-): UConcreteHeapRef = with(tctx) {
-    val lValue = mkFieldLValue(addressSort, this@createFakeField, fieldName)
+): UConcreteHeapRef {
+    val lValue = mkFieldLValue(addressSort, instance, fieldName)
 
-    val boolLValue = mkFieldLValue(boolSort, this@createFakeField, fieldName)
-    val fpLValue = mkFieldLValue(fp64Sort, this@createFakeField, fieldName)
-    val refLValue = mkFieldLValue(addressSort, this@createFakeField, fieldName)
+    val boolLValue = mkFieldLValue(boolSort, instance, fieldName)
+    val fpLValue = mkFieldLValue(fp64Sort, instance, fieldName)
+    val refLValue = mkFieldLValue(addressSort, instance, fieldName)
 
     val bool = scope.calcOnState { memory.read(boolLValue) }
     val fp = scope.calcOnState { memory.read(fpLValue) }
@@ -76,7 +76,7 @@ fun UHeapRef.createFakeField(
         return ref
     }
 
-    scope.calcOnState {
+    return scope.calcOnState {
         val fakeObject = mkFakeValue(scope, bool, fp, ref)
         memory.write(lValue, fakeObject.asExpr(ctx.addressSort), guard = ctx.trueExpr)
         lValuesToAllocatedFakeObjects += refLValue to fakeObject
