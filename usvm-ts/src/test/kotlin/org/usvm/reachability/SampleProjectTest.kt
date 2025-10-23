@@ -1,6 +1,8 @@
 package org.usvm.reachability
 
+import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsIfStmt
+import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsThrowStmt
@@ -246,7 +248,7 @@ class SampleProjectTest {
         return targets
     }
 
-    private fun createStateTransitionTargets(methods: List<org.jacodb.ets.model.EtsMethod>): List<TsTarget> {
+    private fun createStateTransitionTargets(methods: List<EtsMethod>): List<TsTarget> {
         val targets = mutableListOf<TsTarget>()
 
         methods.forEach { method ->
@@ -271,7 +273,7 @@ class SampleProjectTest {
         return targets
     }
 
-    private fun createMemoryManagerTargets(clazz: org.jacodb.ets.model.EtsClass): List<TsTarget> {
+    private fun createMemoryManagerTargets(clazz: EtsClass): List<TsTarget> {
         val targets = mutableListOf<TsTarget>()
 
         clazz.methods.forEach { method ->
@@ -285,7 +287,7 @@ class SampleProjectTest {
         return targets
     }
 
-    private fun createMethodPathTargets(method: org.jacodb.ets.model.EtsMethod): List<TsTarget> {
+    private fun createMethodPathTargets(method: EtsMethod): List<TsTarget> {
         val targets = mutableListOf<TsTarget>()
         val statements = method.cfg.stmts
 
@@ -372,7 +374,7 @@ class SampleProjectTest {
     private fun displayDetailedResults(
         results: List<TsState>,
         targets: List<TsTarget>,
-        method: org.jacodb.ets.model.EtsMethod,
+        method: EtsMethod,
     ) {
         println("\n🔍 DETAILED ANALYSIS: ${method.name}")
         println("=".repeat(60))
@@ -396,7 +398,7 @@ class SampleProjectTest {
     private fun displayPathExtractionResults(
         results: List<TsState>,
         targets: List<TsTarget>,
-        method: org.jacodb.ets.model.EtsMethod,
+        method: EtsMethod,
     ) {
         println("\n🛤️ PATH EXTRACTION DEMONSTRATION")
         println("=".repeat(50))
