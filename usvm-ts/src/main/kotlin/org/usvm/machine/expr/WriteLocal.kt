@@ -8,8 +8,6 @@ import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.util.mkRegisterStackLValue
 
-private val logger = KotlinLogging.logger {}
-
 internal fun TsExprResolver.handleAssignToLocal(
     local: EtsLocal,
     expr: UExpr<*>,
@@ -37,6 +35,5 @@ fun TsContext.assignToLocal(
 
     // Local not found, probably a global
     val file = currentMethod.enclosingClass!!.declaringFile!!
-    // logger.warn { "Assigning to a global variable: ${local.name} in $file" }
     return writeGlobal(scope, file, local.name, expr)
 }
