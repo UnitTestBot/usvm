@@ -1193,12 +1193,12 @@ class TsSimpleValueResolver(
             )
             val methods = ctx.resolveEtsMethods(sig)
             if (methods.isEmpty()) {
-                logger.error { "Cannot resolve anonymous method for local: $local" }
+                logger.error { "Cannot resolve anonymous method for local: $local, killing the state" }
                 scope.assert(ctx.mkFalse())
                 return null
             }
             if (methods.size > 1) {
-                logger.error { "Multiple methods found for anonymous method local: $local" }
+                logger.error { "Multiple methods found for anonymous method local: $local, killing the state" }
                 scope.assert(ctx.mkFalse())
                 return null
             }

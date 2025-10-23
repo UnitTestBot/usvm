@@ -195,9 +195,11 @@ class TsInterpreter(
                     }
                     if (options.isTargetedModeEnabled) {
                         scope.doWithState {
-                            methodResult = TsMethodResult.Success.MockedCall(unwrappedInstance, stmt.callee)
+                            val returnValue = mkFakeValue(scope)
+                            methodResult = TsMethodResult.Success.MockedCall(returnValue, stmt.callee)
                             newStmt(stmt.returnSite)
                         }
+                        return
                     } else {
                         scope.assert(falseExpr)
                         return

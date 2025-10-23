@@ -5,6 +5,7 @@ import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsUnknownType
 import org.usvm.UExpr
@@ -34,6 +35,11 @@ fun TsContext.readLengthProperty(
         is EtsStringType -> {
             // Strings are treated as arrays of characters (represented as strings).
             EtsArrayType(EtsStringType, dimensions = 1)
+        }
+
+        is EtsRefType -> {
+            // TODO check that it is a map or something similar
+            return scope.calcOnState { memory.mocker.createMockSymbol(null, sizeSort, ownership) }
         }
 
         else -> error("Expected EtsArrayType, EtsAnyType or EtsUnknownType, but got: $type")
