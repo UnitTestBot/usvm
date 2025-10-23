@@ -1,0 +1,116 @@
+{
+  "traces": [
+    {
+      "targets": [
+        {
+          "type": "initial",
+          "location": {
+            "fileName": "mixed1.ts",
+            "className": "MixedClass1",
+            "methodName": "linearMethod",
+            "block": 0,
+            "index": 0
+          }
+        },
+        {
+          "type": "intermediate",
+          "location": {
+            "fileName": "mixed1.ts",
+            "className": "MixedClass1",
+            "methodName": "linearMethod",
+            "block": 1,
+            "index": 1
+          }
+        },
+        {
+          "type": "final",
+          "location": {
+            "fileName": "mixed1.ts",
+            "className": "MixedClass1",
+            "methodName": "linearMethod",
+            "block": 2,
+            "index": 2
+          }
+        }
+      ]
+    },
+    {
+      "root": {
+        "target": {
+          "type": "initial",
+          "location": {
+            "fileName": "mixed2.ts",
+            "className": "MixedClass2",
+            "methodName": "treeMethod",
+            "block": 0,
+            "index": 0
+          }
+        },
+        "children": [
+          {
+            "target": {
+              "type": "intermediate",
+              "location": {
+                "fileName": "mixed2.ts",
+                "className": "MixedClass2",
+                "methodName": "treeMethod",
+                "block": 1,
+                "index": 1
+              }
+            },
+            "children": [
+              {
+                "target": {
+                  "type": "final",
+                  "location": {
+                    "fileName": "mixed2.ts",
+                    "className": "MixedClass2",
+                    "methodName": "treeMethod",
+                    "block": 2,
+                    "index": 2
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "target": {
+              "type": "final",
+              "location": {
+                "fileName": "mixed2.ts",
+                "className": "MixedClass2",
+                "methodName": "treeMethod",
+                "block": 2,
+                "index": 3
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "targets": [
+        {
+          "type": "initial",
+          "location": {
+            "fileName": "mixed3.ts",
+            "className": "MixedClass3",
+            "methodName": "anotherLinear",
+            "block": 0,
+            "index": 0
+          }
+        },
+        {
+          "type": "final",
+          "location": {
+            "fileName": "mixed3.ts",
+            "className": "MixedClass3",
+            "methodName": "anotherLinear",
+            "block": 1,
+            "index": 1
+          }
+        }
+      ]
+    }
+  ]
+}

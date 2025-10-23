@@ -1,0 +1,29 @@
+{
+  "targets": [
+    {
+      "type": "initial",
+      "location": {
+        "fileName": "minimal.ts",
+        "className": "MinimalClass",
+        "methodName": "minimalMethod"
+      }
+    },
+    {
+      "location": {
+        "fileName": "minimal.ts",
+        "className": "MinimalClass",
+        "methodName": "minimalMethod",
+        "index": 1
+      }
+    },
+    {
+      "type": "final",
+      "location": {
+        "fileName": "minimal.ts",
+        "className": "MinimalClass",
+        "methodName": "minimalMethod",
+        "stmtType": "ReturnStmt"
+      }
+    }
+  ]
+}

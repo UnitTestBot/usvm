@@ -1,0 +1,31 @@
+[
+  {
+    "type": "initial",
+    "location": {
+      "fileName": "test.ts",
+      "className": "TestClass",
+      "methodName": "testMethod",
+      "block": 0,
+      "index": 0
+    }
+  },
+  {
+    "location": {
+      "fileName": "test.ts",
+      "className": "TestClass",
+      "methodName": "testMethod",
+      "block": 1,
+      "index": 1
+    }
+  },
+  {
+    "type": "final",
+    "location": {
+      "fileName": "test.ts",
+      "className": "TestClass",
+      "methodName": "testMethod",
+      "block": 2,
+      "index": 3
+    }
+  }
+]

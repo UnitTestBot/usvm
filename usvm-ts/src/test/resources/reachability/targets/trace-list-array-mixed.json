@@ -1,0 +1,54 @@
+[
+  {
+    "targets": [
+      {
+        "type": "initial",
+        "location": {
+          "fileName": "test1.ts",
+          "className": "TestClass1",
+          "methodName": "method1",
+          "block": 0,
+          "index": 0
+        }
+      },
+      {
+        "type": "final",
+        "location": {
+          "fileName": "test1.ts",
+          "className": "TestClass1",
+          "methodName": "method1",
+          "block": 1,
+          "index": 1
+        }
+      }
+    ]
+  },
+  {
+    "root": {
+      "target": {
+        "type": "initial",
+        "location": {
+          "fileName": "test2.ts",
+          "className": "TestClass2",
+          "methodName": "method2",
+          "block": 0,
+          "index": 0
+        }
+      },
+      "children": [
+        {
+          "target": {
+            "type": "final",
+            "location": {
+              "fileName": "test2.ts",
+              "className": "TestClass2",
+              "methodName": "method2",
+              "block": 1,
+              "index": 1
+            }
+          }
+        }
+      ]
+    }
+  }
+]
