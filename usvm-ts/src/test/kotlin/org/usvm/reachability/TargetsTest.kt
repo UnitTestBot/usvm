@@ -1,6 +1,5 @@
 package org.usvm.reachability
 
-import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.usvm.api.reachability.cli.TargetTrace
 import org.usvm.api.reachability.dto.TargetTreeNodeDto
@@ -8,6 +7,9 @@ import org.usvm.api.reachability.dto.TargetTypeDto
 import org.usvm.api.reachability.dto.TargetsContainerDto
 import org.usvm.api.reachability.dto.extractTargetTraces
 import kotlin.io.path.Path
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 
 /**
  * Unit tests for parsing target traces from JSON files.
@@ -34,21 +36,20 @@ class TargetsTest {
         val container = loadTargets("linear-trace-object.json")
 
         // Should be parsed as LinearTrace
-        Assertions.assertTrue(container is TargetsContainerDto.LinearTrace)
-        val linearTrace = container as TargetsContainerDto.LinearTrace
+        assertIs<TargetsContainerDto.LinearTrace>(container)
 
         // Verify number of targets
-        Assertions.assertEquals(3, linearTrace.targets.size)
+        assertEquals(3, container.targets.size)
 
         // Verify target types
-        Assertions.assertEquals(TargetTypeDto.INITIAL, linearTrace.targets[0].type)
-        Assertions.assertEquals(TargetTypeDto.INTERMEDIATE, linearTrace.targets[1].type)
-        Assertions.assertEquals(TargetTypeDto.FINAL, linearTrace.targets[2].type)
+        assertEquals(TargetTypeDto.INITIAL, container.targets[0].type)
+        assertEquals(TargetTypeDto.INTERMEDIATE, container.targets[1].type)
+        assertEquals(TargetTypeDto.FINAL, container.targets[2].type)
 
         // Verify locations
-        Assertions.assertEquals("test.ts", linearTrace.targets[0].location.fileName)
-        Assertions.assertEquals("TestClass", linearTrace.targets[0].location.className)
-        Assertions.assertEquals("testMethod", linearTrace.targets[0].location.methodName)
+        assertEquals("test.ts", container.targets[0].location.fileName)
+        assertEquals("TestClass", container.targets[0].location.className)
+        assertEquals("testMethod", container.targets[0].location.methodName)
     }
 
     @Test
@@ -57,16 +58,15 @@ class TargetsTest {
         val container = loadTargets("linear-trace-array.json")
 
         // Should be parsed as LinearTrace (transformed from array)
-        Assertions.assertTrue(container is TargetsContainerDto.LinearTrace)
-        val linearTrace = container as TargetsContainerDto.LinearTrace
+        assertIs<TargetsContainerDto.LinearTrace>(container)
 
         // Verify number of targets
-        Assertions.assertEquals(3, linearTrace.targets.size)
+        assertEquals(3, container.targets.size)
 
         // Verify target types (default should be INTERMEDIATE if not specified)
-        Assertions.assertEquals(TargetTypeDto.INITIAL, linearTrace.targets[0].type)
-        Assertions.assertEquals(TargetTypeDto.INTERMEDIATE, linearTrace.targets[1].type)
-        Assertions.assertEquals(TargetTypeDto.FINAL, linearTrace.targets[2].type)
+        assertEquals(TargetTypeDto.INITIAL, container.targets[0].type)
+        assertEquals(TargetTypeDto.INTERMEDIATE, container.targets[1].type)
+        assertEquals(TargetTypeDto.FINAL, container.targets[2].type)
     }
 
     @Test
@@ -75,27 +75,26 @@ class TargetsTest {
         val container = loadTargets("tree-trace-single.json")
 
         // Should be parsed as TreeTrace
-        Assertions.assertTrue(container is TargetsContainerDto.TreeTrace)
-        val treeTrace = container as TargetsContainerDto.TreeTrace
+        assertIs<TargetsContainerDto.TreeTrace>(container)
 
         // Verify root
-        Assertions.assertNotNull(treeTrace.root)
-        Assertions.assertEquals(TargetTypeDto.INITIAL, treeTrace.root.target.type)
+        assertNotNull(container.root)
+        assertEquals(TargetTypeDto.INITIAL, container.root.target.type)
 
         // Verify tree structure
-        Assertions.assertEquals(2, treeTrace.root.children.size)
+        assertEquals(2, container.root.children.size)
 
         // First branch has 2 children (both final)
-        Assertions.assertEquals(2, treeTrace.root.children[0].children.size)
-        Assertions.assertEquals(TargetTypeDto.FINAL, treeTrace.root.children[0].children[0].target.type)
-        Assertions.assertEquals(TargetTypeDto.FINAL, treeTrace.root.children[0].children[1].target.type)
+        assertEquals(2, container.root.children[0].children.size)
+        assertEquals(TargetTypeDto.FINAL, container.root.children[0].children[0].target.type)
+        assertEquals(TargetTypeDto.FINAL, container.root.children[0].children[1].target.type)
 
         // Second branch has 1 child (final)
-        Assertions.assertEquals(1, treeTrace.root.children[1].children.size)
-        Assertions.assertEquals(TargetTypeDto.FINAL, treeTrace.root.children[1].children[0].target.type)
+        assertEquals(1, container.root.children[1].children.size)
+        assertEquals(TargetTypeDto.FINAL, container.root.children[1].children[0].target.type)
 
         // Total targets in tree should be 6 (1 root + 2 intermediate + 3 final)
-        Assertions.assertEquals(6, countTargetsInTree(treeTrace.root))
+        assertEquals(6, countTargetsInTree(container.root))
     }
 
     @Test
@@ -104,25 +103,24 @@ class TargetsTest {
         val container = loadTargets("trace-list-object.json")
 
         // Should be parsed as TraceList
-        Assertions.assertTrue(container is TargetsContainerDto.TraceList)
-        val traceList = container as TargetsContainerDto.TraceList
+        assertIs<TargetsContainerDto.TraceList>(container)
 
         // Verify number of traces
-        Assertions.assertEquals(2, traceList.traces.size)
+        assertEquals(2, container.traces.size)
 
         // Both should be LinearTrace
-        Assertions.assertTrue(traceList.traces[0] is TargetsContainerDto.LinearTrace)
-        Assertions.assertTrue(traceList.traces[1] is TargetsContainerDto.LinearTrace)
+        val trace1 = container.traces[0]
+        assertIs<TargetsContainerDto.LinearTrace>(trace1)
+        val trace2 = container.traces[1]
+        assertIs<TargetsContainerDto.LinearTrace>(trace2)
 
         // Verify first trace
-        val trace1 = traceList.traces[0] as TargetsContainerDto.LinearTrace
-        Assertions.assertEquals(2, trace1.targets.size)
-        Assertions.assertEquals("test1.ts", trace1.targets[0].location.fileName)
+        assertEquals(2, trace1.targets.size)
+        assertEquals("test1.ts", trace1.targets[0].location.fileName)
 
         // Verify second trace
-        val trace2 = traceList.traces[1] as TargetsContainerDto.LinearTrace
-        Assertions.assertEquals(2, trace2.targets.size)
-        Assertions.assertEquals("test2.ts", trace2.targets[0].location.fileName)
+        assertEquals(2, trace2.targets.size)
+        assertEquals("test2.ts", trace2.targets[0].location.fileName)
     }
 
     @Test
@@ -131,21 +129,20 @@ class TargetsTest {
         val container = loadTargets("trace-list-array-mixed.json")
 
         // Should be parsed as TraceList
-        Assertions.assertTrue(container is TargetsContainerDto.TraceList)
-        val traceList = container as TargetsContainerDto.TraceList
+        assertIs<TargetsContainerDto.TraceList>(container)
 
         // Verify number of traces
-        Assertions.assertEquals(2, traceList.traces.size)
+        assertEquals(2, container.traces.size)
 
         // First should be LinearTrace
-        Assertions.assertTrue(traceList.traces[0] is TargetsContainerDto.LinearTrace)
-        val linearTrace = traceList.traces[0] as TargetsContainerDto.LinearTrace
-        Assertions.assertEquals(2, linearTrace.targets.size)
+        val linearTrace = container.traces[0]
+        assertIs<TargetsContainerDto.LinearTrace>(linearTrace)
+        assertEquals(2, linearTrace.targets.size)
 
         // Second should be TreeTrace
-        Assertions.assertTrue(traceList.traces[1] is TargetsContainerDto.TreeTrace)
-        val treeTrace = traceList.traces[1] as TargetsContainerDto.TreeTrace
-        Assertions.assertEquals(1, treeTrace.root.children.size)
+        val treeTrace = container.traces[1]
+        assertIs<TargetsContainerDto.TreeTrace>(treeTrace)
+        assertEquals(1, treeTrace.root.children.size)
     }
 
     @Test
@@ -154,29 +151,28 @@ class TargetsTest {
         val container = loadTargets("trace-list-mixed.json")
 
         // Should be parsed as TraceList
-        Assertions.assertTrue(container is TargetsContainerDto.TraceList)
-        val traceList = container as TargetsContainerDto.TraceList
+        assertIs<TargetsContainerDto.TraceList>(container)
 
         // Verify number of traces
-        Assertions.assertEquals(3, traceList.traces.size)
+        assertEquals(3, container.traces.size)
 
         // First trace: LinearTrace
-        Assertions.assertTrue(traceList.traces[0] is TargetsContainerDto.LinearTrace)
-        val linear1 = traceList.traces[0] as TargetsContainerDto.LinearTrace
-        Assertions.assertEquals(3, linear1.targets.size)
-        Assertions.assertEquals("mixed1.ts", linear1.targets[0].location.fileName)
+        val linear1 = container.traces[0]
+        assertIs<TargetsContainerDto.LinearTrace>(linear1)
+        assertEquals(3, linear1.targets.size)
+        assertEquals("mixed1.ts", linear1.targets[0].location.fileName)
 
         // Second trace: TreeTrace
-        Assertions.assertTrue(traceList.traces[1] is TargetsContainerDto.TreeTrace)
-        val tree = traceList.traces[1] as TargetsContainerDto.TreeTrace
-        Assertions.assertEquals(2, tree.root.children.size)
-        Assertions.assertEquals("mixed2.ts", tree.root.target.location.fileName)
+        val tree = container.traces[1]
+        assertIs<TargetsContainerDto.TreeTrace>(tree)
+        assertEquals(2, tree.root.children.size)
+        assertEquals("mixed2.ts", tree.root.target.location.fileName)
 
         // Third trace: LinearTrace
-        Assertions.assertTrue(traceList.traces[2] is TargetsContainerDto.LinearTrace)
-        val linear2 = traceList.traces[2] as TargetsContainerDto.LinearTrace
-        Assertions.assertEquals(2, linear2.targets.size)
-        Assertions.assertEquals("mixed3.ts", linear2.targets[0].location.fileName)
+        val linear2 = container.traces[2]
+        assertIs<TargetsContainerDto.LinearTrace>(linear2)
+        assertEquals(2, linear2.targets.size)
+        assertEquals("mixed3.ts", linear2.targets[0].location.fileName)
     }
 
     @Test
@@ -184,30 +180,29 @@ class TargetsTest {
         // Load trace with minimal required fields in LocationDto
         val container = loadTargets("minimal-location-fields.json")
 
-        Assertions.assertTrue(container is TargetsContainerDto.LinearTrace)
-        val linearTrace = container as TargetsContainerDto.LinearTrace
+        assertIs<TargetsContainerDto.LinearTrace>(container)
 
-        Assertions.assertEquals(3, linearTrace.targets.size)
+        assertEquals(3, container.targets.size)
 
         // First target: has type but minimal location
-        val target1 = linearTrace.targets[0]
-        Assertions.assertEquals(TargetTypeDto.INITIAL, target1.type)
-        Assertions.assertEquals("minimal.ts", target1.location.fileName)
-        Assertions.assertEquals("MinimalClass", target1.location.className)
-        Assertions.assertEquals("minimalMethod", target1.location.methodName)
-        Assertions.assertEquals(null, target1.location.block)
-        Assertions.assertEquals(null, target1.location.index)
-        Assertions.assertEquals(null, target1.location.stmtType)
+        val target1 = container.targets[0]
+        assertEquals(TargetTypeDto.INITIAL, target1.type)
+        assertEquals("minimal.ts", target1.location.fileName)
+        assertEquals("MinimalClass", target1.location.className)
+        assertEquals("minimalMethod", target1.location.methodName)
+        assertEquals(null, target1.location.block)
+        assertEquals(null, target1.location.index)
+        assertEquals(null, target1.location.stmtType)
 
         // Second target: default type with only index
-        val target2 = linearTrace.targets[1]
-        Assertions.assertEquals(TargetTypeDto.INTERMEDIATE, target2.type) // default
-        Assertions.assertEquals(1, target2.location.index)
-        Assertions.assertEquals(null, target2.location.block)
+        val target2 = container.targets[1]
+        assertEquals(TargetTypeDto.INTERMEDIATE, target2.type) // default
+        assertEquals(1, target2.location.index)
+        assertEquals(null, target2.location.block)
 
         // Third target: has stmtType
-        val target3 = linearTrace.targets[2]
-        Assertions.assertEquals("ReturnStmt", target3.location.stmtType)
+        val target3 = container.targets[2]
+        assertEquals("ReturnStmt", target3.location.stmtType)
     }
 
     @Test
@@ -216,12 +211,12 @@ class TargetsTest {
         val traces = extractTargetTraces(container)
 
         // Should extract 1 trace
-        Assertions.assertEquals(1, traces.size)
+        assertEquals(1, traces.size)
 
         // Should be TargetTrace.Linear
-        Assertions.assertTrue(traces[0] is TargetTrace.Linear)
-        val linearTrace = traces[0] as TargetTrace.Linear
-        Assertions.assertEquals(3, linearTrace.targets.size)
+        val linearTrace = traces[0]
+        assertIs<TargetTrace.Linear>(linearTrace)
+        assertEquals(3, linearTrace.targets.size)
     }
 
     @Test
@@ -230,12 +225,12 @@ class TargetsTest {
         val traces = extractTargetTraces(container)
 
         // Should extract 1 trace
-        Assertions.assertEquals(1, traces.size)
+        assertEquals(1, traces.size)
 
         // Should be TargetTrace.Tree
-        Assertions.assertTrue(traces[0] is TargetTrace.Tree)
-        val treeTrace = traces[0] as TargetTrace.Tree
-        Assertions.assertEquals(6, countTargetsInTree(treeTrace.root))
+        val treeTrace = traces[0]
+        assertIs<TargetTrace.Tree>(treeTrace)
+        assertEquals(6, countTargetsInTree(treeTrace.root))
     }
 
     @Test
@@ -244,22 +239,22 @@ class TargetsTest {
         val traces = extractTargetTraces(container)
 
         // Should extract 3 traces
-        Assertions.assertEquals(3, traces.size)
+        assertEquals(3, traces.size)
 
         // First: Linear
-        Assertions.assertTrue(traces[0] is TargetTrace.Linear)
-        val linear1 = traces[0] as TargetTrace.Linear
-        Assertions.assertEquals(3, linear1.targets.size)
+        val linear1 = traces[0]
+        assertIs<TargetTrace.Linear>(linear1)
+        assertEquals(3, linear1.targets.size)
 
         // Second: Tree
-        Assertions.assertTrue(traces[1] is TargetTrace.Tree)
-        val tree = traces[1] as TargetTrace.Tree
-        Assertions.assertEquals(4, countTargetsInTree(tree.root))
+        val tree = traces[1]
+        assertIs<TargetTrace.Tree>(tree)
+        assertEquals(4, countTargetsInTree(tree.root))
 
         // Third: Linear
-        Assertions.assertTrue(traces[2] is TargetTrace.Linear)
-        val linear2 = traces[2] as TargetTrace.Linear
-        Assertions.assertEquals(2, linear2.targets.size)
+        val linear2 = traces[2]
+        assertIs<TargetTrace.Linear>(linear2)
+        assertEquals(2, linear2.targets.size)
     }
 
     @Test
@@ -283,10 +278,9 @@ class TargetsTest {
 
         val container = TargetsContainerDto.from(jsonString)
 
-        Assertions.assertTrue(container is TargetsContainerDto.LinearTrace)
-        val linearTrace = container as TargetsContainerDto.LinearTrace
-        Assertions.assertEquals(1, linearTrace.targets.size)
-        Assertions.assertEquals("string-test.ts", linearTrace.targets[0].location.fileName)
+        assertIs<TargetsContainerDto.LinearTrace>(container)
+        assertEquals(1, container.targets.size)
+        assertEquals("string-test.ts", container.targets[0].location.fileName)
     }
 
     @Test
@@ -294,25 +288,27 @@ class TargetsTest {
         // Linear trace object: 3 targets
         val linear1 = loadTargets("linear-trace-object.json")
         val linear1Traces = extractTargetTraces(linear1)
-        Assertions.assertEquals(1, linear1Traces.size)
-        Assertions.assertTrue(linear1Traces[0] is TargetTrace.Linear)
-        Assertions.assertEquals(3, (linear1Traces[0] as TargetTrace.Linear).targets.size)
+        assertEquals(1, linear1Traces.size)
+        val linear1Trace0 = linear1Traces[0]
+        assertIs<TargetTrace.Linear>(linear1Trace0)
+        assertEquals(3, linear1Trace0.targets.size)
 
         // Tree trace: 6 targets total
         val tree = loadTargets("tree-trace-single.json")
         val treeTraces = extractTargetTraces(tree)
-        Assertions.assertEquals(1, treeTraces.size)
-        Assertions.assertTrue(treeTraces[0] is TargetTrace.Tree)
-        Assertions.assertEquals(6, countTargetsInTree((treeTraces[0] as TargetTrace.Tree).root))
+        assertEquals(1, treeTraces.size)
+        val treeTrace0 = treeTraces[0]
+        assertIs<TargetTrace.Tree>(treeTrace0)
+        assertEquals(6, countTargetsInTree(treeTrace0.root))
 
         // Trace list object: 2 traces, 2 targets each = 4 total
         val traceList1 = loadTargets("trace-list-object.json")
         val traceList1Traces = extractTargetTraces(traceList1)
-        Assertions.assertEquals(2, traceList1Traces.size)
+        assertEquals(2, traceList1Traces.size)
 
         // Mixed trace list: 3 traces (3 + 5 + 2 = 10 targets total)
         val mixed = loadTargets("trace-list-mixed.json")
         val mixedTraces = extractTargetTraces(mixed)
-        Assertions.assertEquals(3, mixedTraces.size)
+        assertEquals(3, mixedTraces.size)
     }
 }
