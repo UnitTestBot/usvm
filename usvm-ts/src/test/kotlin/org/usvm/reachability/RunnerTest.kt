@@ -35,7 +35,7 @@ class RunnerTest {
         typeOperationsTimeout = Duration.INFINITE,
     )
 
-    private val tsOptions = TsOptions()
+    private val tsOptions = TsOptions(isTargetedModeEnabled = true)
 
     /**
      * Path to SDK in resources.
