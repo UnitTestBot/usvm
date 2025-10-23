@@ -47,8 +47,15 @@ class RunnerTest {
         "/sdk/ohos/5.0.1.111/ets/kits",
     )
 
-    private fun loadSdks(): List<EtsScene> = sdkPaths.map {
-        loadEtsProjectAutoConvert(getResourcePath(it))
+    private val useSDK = false
+
+    private fun loadSdks(): List<EtsScene> {
+        if (!useSDK) {
+            return emptyList()
+        }
+        return sdkPaths.map {
+            loadEtsProjectAutoConvert(getResourcePath(it))
+        }
     }
 
     @Test
