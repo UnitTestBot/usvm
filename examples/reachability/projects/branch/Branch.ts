@@ -36,7 +36,7 @@ function branch41() {
 
     console.log("Do something with resources");
 
-    if (pixelMap) {
+    if (pixelMap != null) {
         pixelMap.release();
         imageSource.release();
         return;
