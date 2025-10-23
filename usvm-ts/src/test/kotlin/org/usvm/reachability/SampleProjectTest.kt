@@ -16,6 +16,11 @@ import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.machine.state.TsState
 import java.io.File
+import java.nio.file.Path
+import kotlin.io.path.Path
+import kotlin.io.path.extension
+import kotlin.io.path.name
+import kotlin.io.path.walk
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
@@ -46,6 +51,8 @@ class SampleProjectTest {
         )
 
         private val DEFAULT_TS_OPTIONS = TsOptions()
+
+        private const val SAMPLE_PROJECT_PATH = "../examples/reachability/sample-project"
     }
 
     @Test
@@ -53,15 +60,15 @@ class SampleProjectTest {
         println("🚀 Starting TypeScript Reachability Analysis on Sample Project")
         println("=".repeat(60))
 
-        val sampleProjectPath = getSampleProjectPath()
-        println("📁 Project path: $sampleProjectPath")
+        val projectPath = Path(SAMPLE_PROJECT_PATH)
+        println("📁 Project path: $projectPath")
 
         // Load TypeScript files
-        val tsFiles = findTypeScriptFiles(sampleProjectPath)
+        val tsFiles = findTypeScriptFiles(projectPath)
         println("📄 Found ${tsFiles.size} TypeScript files:")
         tsFiles.forEach { println("   - ${it.name}") }
 
-        val scene = EtsScene(tsFiles.map { loadEtsFileAutoConvert(it.toPath()) })
+        val scene = EtsScene(tsFiles.map { loadEtsFileAutoConvert(it) })
         println("📊 Loaded scene with ${scene.projectClasses.size} classes")
 
         // Use default options
@@ -101,9 +108,9 @@ class SampleProjectTest {
         println("🎯 Focused Analysis: Process State Transitions")
         println("=".repeat(50))
 
-        val sampleProjectPath = getSampleProjectPath()
-        val tsFiles = findTypeScriptFiles(sampleProjectPath)
-        val scene = EtsScene(tsFiles.map { loadEtsFileAutoConvert(it.toPath()) })
+        val projectPath = Path(SAMPLE_PROJECT_PATH)
+        val tsFiles = findTypeScriptFiles(projectPath)
+        val scene = EtsScene(tsFiles.map { loadEtsFileAutoConvert(it) })
 
         // Find Process class and its state transition methods
         val processClass = scene.projectClasses.find { it.name == "Process" }
@@ -135,9 +142,9 @@ class SampleProjectTest {
         println("🧮 Analysis: Memory Management Operations")
         println("=".repeat(50))
 
-        val sampleProjectPath = getSampleProjectPath()
-        val tsFiles = findTypeScriptFiles(sampleProjectPath)
-        val scene = EtsScene(tsFiles.map { loadEtsFileAutoConvert(it.toPath()) })
+        val projectPath = Path(SAMPLE_PROJECT_PATH)
+        val tsFiles = findTypeScriptFiles(projectPath)
+        val scene = EtsScene(tsFiles.map { loadEtsFileAutoConvert(it) })
 
         val memoryManagerClass = scene.projectClasses.find { it.name == "MemoryManager" }
             ?: error("MemoryManager class not found")
@@ -166,9 +173,9 @@ class SampleProjectTest {
         println("🛤️ Demonstration: Array Operations Reachability Analysis")
         println("=".repeat(60))
 
-        val sampleProjectPath = getSampleProjectPath()
-        val tsFiles = findTypeScriptFiles(sampleProjectPath)
-        val scene = EtsScene(tsFiles.map { loadEtsFileAutoConvert(it.toPath()) })
+        val projectPath = Path(SAMPLE_PROJECT_PATH)
+        val tsFiles = findTypeScriptFiles(projectPath)
+        val scene = EtsScene(tsFiles.map { loadEtsFileAutoConvert(it) })
 
         val processClass = scene.projectClasses.find { it.name == "Process" }
             ?: error("Process class not found")
@@ -195,13 +202,6 @@ class SampleProjectTest {
         displayPathExtractionResults(results, targets, arrayMethod)
     }
 
-    private fun getSampleProjectPath(): File {
-        // Get the project root directory
-        val currentDir = File(System.getProperty("user.dir"))
-        val projectRoot = findProjectRoot(currentDir)
-        return File(projectRoot, "examples/reachability/sample-project")
-    }
-
     private fun findProjectRoot(dir: File): File {
         if (File(dir, "LICENSE").exists()) {
             return dir
@@ -213,9 +213,9 @@ class SampleProjectTest {
         error("Could not find project root")
     }
 
-    private fun findTypeScriptFiles(projectDir: File): List<File> {
-        return projectDir.walkTopDown()
-            .filter { it.isFile && it.extension == "ts" }
+    private fun findTypeScriptFiles(projectDir: Path): List<Path> {
+        return projectDir.walk()
+            .filter { it.extension == "ts" }
             .toList()
     }
 
