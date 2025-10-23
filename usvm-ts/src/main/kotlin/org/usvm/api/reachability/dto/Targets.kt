@@ -1,14 +1,22 @@
+@file:OptIn(ExperimentalSerializationApi::class)
+
 package org.usvm.api.reachability.dto
 
 import kotlinx.serialization.DeserializationStrategy
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonContentPolymorphicSerializer
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonTransformingSerializer
+import kotlinx.serialization.json.decodeFromStream
 import mu.KotlinLogging
+import java.io.InputStream
+import java.nio.file.Path
+import kotlin.io.path.inputStream
 
 private val logger = KotlinLogging.logger {}
 
@@ -46,6 +54,23 @@ sealed interface TargetsContainerDto {
     data class TraceList(
         val traces: List<SingleTrace>,
     ) : TargetsContainerDto
+
+    companion object {
+        private val json = Json {
+            isLenient = true
+        }
+
+        fun from(jsonString: String): TargetsContainerDto {
+            return json.decodeFromString(jsonString)
+        }
+
+        fun from(stream: InputStream): TargetsContainerDto {
+            return json.decodeFromStream(stream)
+        }
+
+        fun from(path: Path): TargetsContainerDto =
+            path.inputStream().use { stream -> from(stream) }
+    }
 }
 
 object SingleTraceSerializer :

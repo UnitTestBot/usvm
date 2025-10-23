@@ -35,8 +35,8 @@ import org.usvm.api.reachability.dto.ReachabilityStatusDto
 import org.usvm.api.reachability.dto.TargetDto
 import org.usvm.api.reachability.dto.TargetTreeNodeDto
 import org.usvm.api.reachability.dto.TargetTypeDto
+import org.usvm.api.reachability.dto.TargetsContainerDto
 import org.usvm.api.reachability.dto.extractTargetTraces
-import org.usvm.api.reachability.dto.parseTargetsContainer
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.machine.state.TsState
@@ -329,7 +329,7 @@ class ReachabilityAnalyzer : CliktCommand(
 
     private fun parseTargetDefinitions(targetsFile: Path): List<TargetTrace> {
         try {
-            val container = parseTargetsContainer(targetsFile)
+            val container = TargetsContainerDto.from(targetsFile)
             val traces = extractTargetTraces(container)
             echo("📋 Parsed ${traces.size} target traces from ${targetsFile.fileName}")
             return traces
