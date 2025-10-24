@@ -97,27 +97,27 @@ fun TsContext.assignToInstanceField(
             val lValue = mkFieldLValue(sort, unwrappedInstance, field)
             if (lValue.sort != expr.sort) {
                 if (expr.isFakeObject()) {
-                    val value = when (sort) {
+                    val (value, constraint) = when (sort) {
                         boolSort -> {
-                            pathConstraints += expr.getFakeType(scope).boolTypeExpr
-                            expr.extractBool(scope)
+                            val condition = expr.getFakeType(scope).boolTypeExpr
+                            expr.extractBool(scope) to condition
                         }
 
                         fp64Sort -> {
-                            pathConstraints += expr.getFakeType(scope).fpTypeExpr
-                            expr.extractFp(scope)
+                            val condition = expr.getFakeType(scope).fpTypeExpr
+                            expr.extractFp(scope) to condition
                         }
 
                         addressSort -> {
-                            pathConstraints += expr.getFakeType(scope).refTypeExpr
-                            expr.extractRef(scope)
+                            val condition = expr.getFakeType(scope).refTypeExpr
+                            expr.extractRef(scope) to condition
                         }
 
                         else -> {
                             error("Unsupported field sort for fake object extraction: ${lValue.sort}")
                         }
                     }
-                    scope.assert(trueExpr) ?: run {
+                    scope.assert(constraint) ?: run {
                         logger.warn { "UNSAT after ensuring fake object is of expected type" }
                         return@doWithState
                     }
