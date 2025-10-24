@@ -16,7 +16,6 @@ import org.usvm.machine.TsOptions
 import org.usvm.util.countLeaves
 import org.usvm.util.getResourcePath
 import java.nio.file.Path
-import kotlin.io.path.name
 import kotlin.test.Test
 import kotlin.time.Duration
 
@@ -74,7 +73,7 @@ class RunnerTest {
     private fun loadFile(path: String): EtsScene {
         val resourcePath = getResourcePath("/$path")
         val file = loadEtsFileAutoConvert(resourcePath)
-        return EtsScene(listOf(file), projectName = resourcePath.parent.name)
+        return EtsScene(listOf(file))
     }
 
     private fun loadTraces(path: String): List<TargetTrace> {
@@ -82,83 +81,63 @@ class RunnerTest {
         return loadTraces(resourcePath)
     }
 
-    @Test
-    fun `run reachability on branch01`() {
-        val scene = loadFile("validation/branch01.ts")
-
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
+    private fun runOn(
+        methodName: String,
+        filePath: String,
+        targetsPath: String,
+    ) {
+        val scene = loadFile(filePath)
+        println("Loaded scene with ${scene.projectClasses.size} classes")
         val method = scene.projectClasses
             .flatMap { it.methods }
-            .single { it.name == "branch01" }
+            .single { it.name == methodName }
+        println("Method: $method")
 
-        val traces = loadTraces("validation/targets-branch01.json")
+        val traces = loadTraces(targetsPath)
         println("Loaded ${traces.size} traces")
         val targets = createTargetsFromTraces(listOf(method), traces)
         println("Created ${targets.size} targets with ${targets.sumOf { it.countLeaves() }} leaves")
         check(targets.isNotEmpty())
 
+        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
         val results = machine.analyze(listOf(method), targets)
         println("Got ${results.size} results")
         results.let {}
+    }
+
+    @Test
+    fun `run reachability on branch01`() {
+        runOn(
+            methodName = "branch01",
+            filePath = "validation/branch01.ts",
+            targetsPath = "validation/targets-branch01.json"
+        )
     }
 
     @Test
     fun `run reachability on branch02`() {
-        val scene = loadFile("validation/branch02.ts")
-
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
-        val method = scene.projectClasses
-            .flatMap { it.methods }
-            .single { it.name == "branch02" }
-
-        val traces = loadTraces("validation/targets-branch02.json")
-        println("Loaded ${traces.size} traces")
-        val targets = createTargetsFromTraces(listOf(method), traces)
-        println("Created ${targets.size} targets with ${targets.sumOf { it.countLeaves() }} leaves")
-        check(targets.isNotEmpty())
-
-        val results = machine.analyze(listOf(method), targets)
-        println("Got ${results.size} results")
-        results.let {}
+        runOn(
+            methodName = "branch02",
+            filePath = "validation/branch02.ts",
+            targetsPath = "validation/targets-branch02.json"
+        )
     }
 
     @Test
     fun `run reachability on branch40`() {
-        val scene = loadFile("validation/branch40.ts")
-
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
-        val method = scene.projectClasses
-            .flatMap { it.methods }
-            .single { it.name == "branch40" }
-
-        val traces = loadTraces("validation/targets-branch40.json")
-        println("Loaded ${traces.size} traces")
-        val targets = createTargetsFromTraces(listOf(method), traces)
-        println("Created ${targets.size} targets with ${targets.sumOf { it.countLeaves() }} leaves")
-        check(targets.isNotEmpty())
-
-        val results = machine.analyze(listOf(method), targets)
-        println("Got ${results.size} results")
-        results.let {}
+        runOn(
+            methodName = "branch40",
+            filePath = "validation/branch40.ts",
+            targetsPath = "validation/targets-branch40.json"
+        )
     }
 
     @Test
     fun `run reachability on branch41`() {
-        val scene = loadFile("validation/branch41.ts")
-
-        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
-        val method = scene.projectClasses
-            .flatMap { it.methods }
-            .single { it.name == "branch41" }
-
-        val traces = loadTraces("validation/targets-branch41.json")
-        println("Loaded ${traces.size} traces")
-        val targets = createTargetsFromTraces(listOf(method), traces)
-        println("Created ${targets.size} targets with ${targets.sumOf { it.countLeaves() }} leaves")
-        check(targets.isNotEmpty())
-
-        val results = machine.analyze(listOf(method), targets)
-        println("Got ${results.size} results")
-        results.let {}
+        runOn(
+            methodName = "branch41",
+            filePath = "validation/branch41.ts",
+            targetsPath = "validation/targets-branch41.json"
+        )
     }
 }
