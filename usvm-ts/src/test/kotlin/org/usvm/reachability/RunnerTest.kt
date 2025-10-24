@@ -140,4 +140,13 @@ class RunnerTest {
             targetsPath = "validation/targets-branch41.json"
         )
     }
+
+    @Test
+    fun `run reachability on forOf05`() {
+        runOn(
+            methodName = "forOf05",
+            filePath = "validation/forOf05.ts",
+            targetsPath = "validation/targets-forOf05.json"
+        )
+    }
 }
