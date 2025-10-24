@@ -6,6 +6,7 @@ import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsStringType
@@ -63,7 +64,7 @@ class TsState(
     var discoveredCallees: UPersistentHashMap<Pair<EtsStmt, Int>, EtsBlockCfg> = persistentHashMapOf(),
     var promiseState: UPersistentHashMap<UConcreteHeapRef, PromiseState> = persistentHashMapOf(),
     var promiseExecutor: UPersistentHashMap<UConcreteHeapRef, EtsMethod> = persistentHashMapOf(),
-    var methodToRef: UPersistentHashMap<EtsMethod, UConcreteHeapRef> = persistentHashMapOf(),
+    var methodToRef: UPersistentHashMap<EtsMethodSignature, UConcreteHeapRef> = persistentHashMapOf(),
     var associatedFunction: UPersistentHashMap<UConcreteHeapRef, TsFunction> = persistentHashMapOf(),
     var closureObject: UPersistentHashMap<String, UConcreteHeapRef> = persistentHashMapOf(),
     var boundThis: UPersistentHashMap<UConcreteHeapRef, UHeapRef> = persistentHashMapOf(),
@@ -174,7 +175,7 @@ class TsState(
     }
 
     fun getMethodRef(
-        method: EtsMethod,
+        method: EtsMethodSignature,
         thisInstance: UHeapRef? = null,
     ): UConcreteHeapRef {
         val (updated, result) = methodToRef.getOrPut(method, ownership) { ctx.allocateConcreteRef() }

@@ -85,9 +85,9 @@ import org.usvm.api.mockMethodCall
 import org.usvm.dataflow.ts.infer.tryGetKnownType
 import org.usvm.dataflow.ts.util.type
 import org.usvm.isAllocatedConcreteHeapRef
-import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsOptions
+import org.usvm.machine.TsVirtualMethodCallStmt
 import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.getGlobals
@@ -109,7 +109,6 @@ import org.usvm.util.SymbolResolutionResult
 import org.usvm.util.isResolved
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
-import org.usvm.util.resolveEtsMethods
 import org.usvm.util.resolveImportInfo
 
 private val logger = KotlinLogging.logger {}
@@ -898,7 +897,7 @@ class TsExprResolver(
                         associatedFunction[ptr] ?: error("No associated methods for ptr: $ptr")
                     }
                     val resolvedArgs = expr.args.map { resolve(it) ?: return null }
-                    val concreteCall = TsConcreteMethodCallStmt(
+                    val concreteCall = TsVirtualMethodCallStmt(
                         callee = callee.method,
                         instance = callee.thisInstance ?: ctx.mkUndefinedValue(),
                         args = resolvedArgs,
@@ -1191,19 +1190,7 @@ class TsSimpleValueResolver(
                 parameters = emptyList(),
                 returnType = EtsUnknownType,
             )
-            val methods = ctx.resolveEtsMethods(sig)
-            if (methods.isEmpty()) {
-                logger.error { "Cannot resolve anonymous method for local: $local, killing the state" }
-                scope.assert(ctx.mkFalse())
-                return null
-            }
-            if (methods.size > 1) {
-                logger.error { "Multiple methods found for anonymous method local: $local, killing the state" }
-                scope.assert(ctx.mkFalse())
-                return null
-            }
-            val method = methods.single()
-            val ref = scope.calcOnState { getMethodRef(method) }
+            val ref = scope.calcOnState { getMethodRef(sig) }
             return ref
         }
 

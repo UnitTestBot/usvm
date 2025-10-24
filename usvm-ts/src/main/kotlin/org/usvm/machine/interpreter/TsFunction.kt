@@ -1,9 +1,9 @@
 package org.usvm.machine.interpreter
 
-import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsMethodSignature
 import org.usvm.UHeapRef
 
 class TsFunction(
-    val method: EtsMethod,
+    val method: EtsMethodSignature,
     val thisInstance: UHeapRef?,
 )
