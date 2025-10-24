@@ -25,16 +25,14 @@ import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachineOptions
+import org.usvm.api.reachability.TargetTrace
 import org.usvm.api.reachability.TsReachabilityObserver
 import org.usvm.api.reachability.TsReachabilityTarget
+import org.usvm.api.reachability.createTargetsFromTraces
 import org.usvm.api.reachability.dto.AnalysisReportDto
 import org.usvm.api.reachability.dto.AnalysisResultDto
 import org.usvm.api.reachability.dto.AnalysisSummaryDto
-import org.usvm.api.reachability.dto.LocationDto
 import org.usvm.api.reachability.dto.ReachabilityStatusDto
-import org.usvm.api.reachability.dto.TargetDto
-import org.usvm.api.reachability.dto.TargetTreeNodeDto
-import org.usvm.api.reachability.dto.TargetTypeDto
 import org.usvm.api.reachability.dto.TargetsContainerDto
 import org.usvm.api.reachability.dto.extractTargetTraces
 import org.usvm.machine.TsMachine
@@ -341,19 +339,6 @@ class ReachabilityAnalyzer : CliktCommand(
         }
     }
 
-    // TODO: remove
-    private fun buildLinearTrace(targets: List<TargetDto>): TargetTreeNodeDto? {
-        if (targets.isEmpty()) return null
-
-        var current: TargetTreeNodeDto? = null
-
-        for (target in targets.asReversed()) {
-            current = TargetTreeNodeDto(target, children = listOfNotNull(current))
-        }
-
-        return current
-    }
-
     private fun generateDefaultTargets(methods: List<EtsMethod>): List<TsReachabilityTarget> {
         return methods.mapNotNull { method ->
             val statements = method.cfg.stmts
@@ -419,97 +404,6 @@ class ReachabilityAnalyzer : CliktCommand(
         }
 
         return findRelevantTargets(startStmt).first()
-    }
-
-    private fun createTargetsFromTraces(
-        methods: List<EtsMethod>,
-        targetTraces: List<TargetTrace>,
-    ): List<TsReachabilityTarget> {
-        val targets = mutableListOf<TsReachabilityTarget>()
-        val methodMap = methods.associateBy {
-            val enclosingClass = it.enclosingClass
-            val fileName = enclosingClass?.declaringFile?.name ?: "Unknown"
-            val className = enclosingClass?.name ?: "Unknown"
-            "$fileName:$className.${it.name}"
-        }
-
-        targetTraces.forEach { trace ->
-            val root = when (trace) {
-                is TargetTrace.Tree -> trace.root
-                is TargetTrace.Linear -> buildLinearTrace(trace.targets)!!
-            }
-
-            // Resolve the root target and build the hierarchy using addChild
-            val rootTarget = resolveTarget(root, methodMap)
-            if (rootTarget != null) {
-                targets.add(rootTarget)
-            }
-        }
-
-        return targets
-    }
-
-    private fun resolveTarget(node: TargetTreeNodeDto, methodMap: Map<String, EtsMethod>): TsReachabilityTarget? {
-        // First, resolve the current node to a TsReachabilityTarget
-        val targetLocation = node.target.location
-        val methodName = "${targetLocation.fileName}:${targetLocation.className}.${targetLocation.methodName}"
-        val statements = methodMap[methodName]?.cfg?.stmts ?: return null
-        val stmt = findStatementByTarget(statements, node.target) ?: return null
-        if (verbose) {
-            echo("Resolved target ${node.target} to statement $stmt")
-        }
-
-        val currentTarget: TsReachabilityTarget = when (node.target.type) {
-            TargetTypeDto.INITIAL -> TsReachabilityTarget.InitialPoint(stmt)
-            TargetTypeDto.INTERMEDIATE -> TsReachabilityTarget.IntermediatePoint(stmt)
-            TargetTypeDto.FINAL -> TsReachabilityTarget.FinalPoint(stmt)
-        }
-
-        // Add all children to build the hierarchical structure
-        node.children.forEach { childNode ->
-            val childTarget = resolveTarget(childNode, methodMap)
-            if (childTarget != null) {
-                currentTarget.addChild(childTarget)
-            }
-        }
-
-        return currentTarget
-    }
-
-    private fun findStatementByTarget(
-        statements: List<EtsStmt>,
-        target: TargetDto,
-    ): EtsStmt? {
-        // Find statement by matching location
-        for (stmt in statements) {
-            // TODO: handle 'target.stmtType'
-            if (matchesLocation(stmt, target.location)) {
-                return stmt
-            }
-        }
-        // Return the first statement as a fallback
-        return statements.firstOrNull()
-    }
-
-    private fun matchesLocation(stmt: EtsStmt, location: LocationDto): Boolean {
-        // Match by block and index
-        if (location.block != null) {
-            // If the index is not specified, match the first statement in the block
-            val index = location.index ?: 0
-            if (stmt.location.blockDtoIndex == location.block && stmt.location.stmtDtoIndex == index) {
-                return true
-            }
-        }
-
-        // EXTRA: If only the index is specified, match by index only (using the normal stmt index in linear CFG)
-        if (location.block == null && location.index != null) {
-            if (stmt.location.index == location.index) {
-                return true
-            }
-        }
-
-        // No match
-        return false
     }
 
     private fun analyzeReachability(
@@ -834,14 +728,6 @@ data class ReachabilityResults(
     val reachabilityResults: List<TargetReachabilityResult>,
     val scene: EtsScene,
 )
-
-/**
- * Represents a trace - an independent hierarchical structure of targets.
- */
-sealed interface TargetTrace {
-    data class Linear(val targets: List<TargetDto>) : TargetTrace
-    data class Tree(val root: TargetTreeNodeDto) : TargetTrace
-}
 
 fun main(args: Array<String>) {
     ReachabilityAnalyzer().main(args)

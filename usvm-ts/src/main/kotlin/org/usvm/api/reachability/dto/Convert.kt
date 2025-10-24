@@ -1,6 +1,6 @@
 package org.usvm.api.reachability.dto
 
-import org.usvm.api.reachability.cli.TargetTrace
+import org.usvm.api.reachability.TargetTrace
 
 fun extractTargetTraces(container: TargetsContainerDto): List<TargetTrace> {
     return when (container) {

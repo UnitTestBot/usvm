@@ -43,4 +43,5 @@ function branch41() {
     }
 
     console.log("imageSource is never released");
+    return;
 }

@@ -1,5 +1,6 @@
 package org.usvm.reachability
 
+import mu.KotlinLogging
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsProjectAutoConvert
@@ -10,10 +11,15 @@ import org.usvm.UMachineOptions
 import org.usvm.api.TsTarget
 import org.usvm.api.reachability.TsReachabilityObserver
 import org.usvm.api.reachability.TsReachabilityTarget
+import org.usvm.api.reachability.createTargetsFromTraces
+import org.usvm.api.reachability.dto.loadTraces
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
+import org.usvm.util.countLeaves
 import org.usvm.util.getResourcePath
+import java.nio.file.Path
 import kotlin.io.path.Path
+import kotlin.io.path.div
 import kotlin.test.Test
 import kotlin.time.Duration
 
@@ -58,18 +64,20 @@ class RunnerTest {
         }
     }
 
+    private fun loadProject(projectPath: Path): EtsScene {
+        val project = loadEtsProjectAutoConvert(projectPath)
+        val sdks = loadSdks()
+        return EtsScene(
+            projectFiles = project.projectFiles,
+            sdkFiles = sdks.flatMap { it.projectFiles },
+            projectName = project.projectName,
+        )
+    }
+
     @Test
     fun `run reachability on branch01`() {
-        val projectPath = Path("../examples/reachability/projects/branch")
-        val scene = run {
-            val project = loadEtsProjectAutoConvert(projectPath)
-            val sdks = loadSdks()
-            EtsScene(
-                projectFiles = project.projectFiles,
-                sdkFiles = sdks.flatMap { it.projectFiles },
-                projectName = project.projectName,
-            )
-        }
+        val projectPath = Path("../examples/reachability/projects/validation")
+        val scene = loadProject(projectPath / "src")
 
         val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
         val method = scene.projectClasses
@@ -89,16 +97,8 @@ class RunnerTest {
 
     @Test
     fun `run reachability on branch02`() {
-        val projectPath = Path("../examples/reachability/projects/branch")
-        val scene = run {
-            val project = loadEtsProjectAutoConvert(projectPath)
-            val sdks = loadSdks()
-            EtsScene(
-                projectFiles = project.projectFiles,
-                sdkFiles = sdks.flatMap { it.projectFiles },
-                projectName = project.projectName,
-            )
-        }
+        val projectPath = Path("../examples/reachability/projects/validation")
+        val scene = loadProject(projectPath / "src")
 
         val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
         val method = scene.projectClasses
@@ -118,30 +118,21 @@ class RunnerTest {
 
     @Test
     fun `run reachability on branch41`() {
-        val projectPath = Path("../examples/reachability/projects/branch")
-        val scene = run {
-            val project = loadEtsProjectAutoConvert(projectPath)
-            val sdks = loadSdks()
-            EtsScene(
-                projectFiles = project.projectFiles,
-                sdkFiles = sdks.flatMap { it.projectFiles },
-                projectName = project.projectName,
-            )
-        }
+        val projectPath = Path("../examples/reachability/projects/validation")
+        val scene = loadProject(projectPath / "src")
 
         val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
         val method = scene.projectClasses
             .flatMap { it.methods }
             .single { it.name == "branch41" }
 
-        val initialTarget: TsTarget = TsReachabilityTarget.InitialPoint(method.cfg.stmts.first())
-        var target: TsTarget = initialTarget
+        val traces = loadTraces(projectPath / "targets" / "targets-branch41.json")
+        println("Loaded ${traces.size} traces")
+        val targets = createTargetsFromTraces(listOf(method), traces)
+        println("Created ${targets.size} targets with ${targets.sumOf { it.countLeaves() }} leaves")
+        check(targets.isNotEmpty())
 
-        target = target.addChild(TsReachabilityTarget.IntermediatePoint(method.cfg.blocks[4].statements.first()))
-        target = target.addChild(TsReachabilityTarget.IntermediatePoint(method.cfg.blocks[1].statements.first()))
-        target = target.addChild(TsReachabilityTarget.IntermediatePoint(method.cfg.blocks[2].statements.first()))
-
-        val results = machine.analyze(listOf(method), listOf(initialTarget))
+        val results = machine.analyze(listOf(method), targets)
         println("Got ${results.size} results")
         results.let {}
     }
