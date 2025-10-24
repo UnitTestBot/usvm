@@ -123,6 +123,26 @@ class RunnerTest {
     }
 
     @Test
+    fun `run reachability on branch40`() {
+        val scene = loadFile("validation/branch40.ts")
+
+        val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
+        val method = scene.projectClasses
+            .flatMap { it.methods }
+            .single { it.name == "branch40" }
+
+        val traces = loadTraces("validation/targets-branch40.json")
+        println("Loaded ${traces.size} traces")
+        val targets = createTargetsFromTraces(listOf(method), traces)
+        println("Created ${targets.size} targets with ${targets.sumOf { it.countLeaves() }} leaves")
+        check(targets.isNotEmpty())
+
+        val results = machine.analyze(listOf(method), targets)
+        println("Got ${results.size} results")
+        results.let {}
+    }
+
+    @Test
     fun `run reachability on branch41`() {
         val scene = loadFile("validation/branch41.ts")
 
