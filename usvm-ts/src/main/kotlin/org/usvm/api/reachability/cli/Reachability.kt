@@ -47,7 +47,6 @@ import kotlin.io.path.absolute
 import kotlin.io.path.createDirectories
 import kotlin.io.path.div
 import kotlin.io.path.writeText
-import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -276,7 +275,7 @@ class ReachabilityAnalyzer : CliktCommand(
             stopOnCoverage = 200, // disable parameter
             solverType = solverType,
             solverTimeout = 1.seconds,
-            typeOperationsTimeout = Duration.INFINITE,
+            typeOperationsTimeout = 1.seconds,
             stateCollectionStrategy = StateCollectionStrategy.REACHED_TARGET,
         )
         val tsOptions = TsOptions(isTargetedModeEnabled = true)
