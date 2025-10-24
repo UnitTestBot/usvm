@@ -3,6 +3,7 @@ package org.usvm.machine.expr
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsStringType
+import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
 import org.usvm.UExpr
@@ -268,25 +269,65 @@ fun TsContext.ensureLengthBounds(
     return scope.assert(condition)
 }
 
-fun <R : USort> TsContext.rewrapIte(
+/**
+ * Recursively unwraps fake objects and ITE expressions, then applies the given mapping function.
+ *
+ * This function handles complex heap reference expressions that may contain:
+ * - Fake objects: symbolic values that can represent primitives or references
+ * - ITE (if-then-else) expressions: conditional branches in the symbolic execution
+ * - Nested combinations of the above
+ *
+ * The algorithm works as follows:
+ * 1. If [expr] is an ITE expression, recursively process both branches and reconstruct the ITE
+ * 2. If [expr] is a fake object, assert that it's a ref type, extract the actual ref, and recurse
+ * 3. Otherwise, apply [map] to the base case (a simple heap reference)
+ *
+ * Example usage:
+ * ```kotlin
+ * val condition = rewrap(scope, instance) {
+ *     scope.calcOnState { memory.types.evalIsSubtype(it, targetType) }
+ * } ?: return null
+ * scope.assert(condition)
+ * ```
+ *
+ * This example extracts refs from any fake objects nested inside `instance` (even if it's an ITE),
+ * then evaluates a type constraint on each unwrapped ref, and reconstructs the ITE structure
+ * with the constraints at the leaves.
+ *
+ * @param scope The step scope for asserting constraints and reading state
+ * @param expr The heap reference expression to process
+ * @param map The mapping function to apply to each unwrapped heap reference
+ * @return The mapped expression with the same ITE structure, or null if any constraint assertion fails
+ */
+fun <R : USort> TsContext.rewrap(
     scope: TsStepScope,
     expr: UHeapRef,
     map: (UHeapRef) -> UExpr<R>,
 ): UExpr<R>? {
-    if (expr is UIteExpr<*>) {
-        val trueBranch = expr.trueBranch
-        val falseBranch = expr.falseBranch
-        if (trueBranch.isFakeObject() || falseBranch.isFakeObject()) {
-            val trueBranchUnwrapped = trueBranch.asExpr(addressSort)
-                .unwrapRefWithPathConstraint(scope) ?: return null
-            val falseBranchUnwrapped = falseBranch.asExpr(addressSort)
-                .unwrapRefWithPathConstraint(scope) ?: return null
-            return mkIte(
-                condition = expr.condition,
-                trueBranch = map(trueBranchUnwrapped),
-                falseBranch = map(falseBranchUnwrapped),
-            )
-        }
+    // Handle ITE expressions first - we need to process both branches
+    if (expr is UIteExpr<UAddressSort>) {
+        // Recursively process both branches
+        val trueBranchResult = rewrap(scope, expr.trueBranch, map) ?: return null
+        val falseBranchResult = rewrap(scope, expr.falseBranch, map) ?: return null
+
+        // Reconstruct ITE with processed branches
+        return mkIte(
+            condition = expr.condition,
+            trueBranch = trueBranchResult,
+            falseBranch = falseBranchResult,
+        )
     }
+
+    // Handle fake objects - unwrap by extracting the ref
+    if (expr.isFakeObject()) {
+        // Assert that the fake object is a ref type, then extract the ref
+        scope.assert(expr.getFakeType(scope).refTypeExpr) ?: return null
+        val unwrapped = expr.extractRef(scope)
+
+        // Recursively process the unwrapped ref (it might be an ITE or another fake object)
+        return rewrap(scope, unwrapped, map)
+    }
+
+    // Base case: apply the mapping function to the unwrapped expression
     return map(expr)
 }

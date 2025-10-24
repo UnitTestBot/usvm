@@ -18,6 +18,7 @@ import org.usvm.util.getResourcePath
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 @Tag("manual")
 class RunnerTest {
@@ -26,7 +27,7 @@ class RunnerTest {
     //! Note: "current directory" is "usvm-ts" module
     //! -----
 
-    private val options = UMachineOptions(
+    private var options = UMachineOptions(
         pathSelectionStrategies = listOf(PathSelectionStrategy.TARGETED),
         exceptionsPropagation = true,
         stopOnTargetsReached = true,
@@ -143,6 +144,7 @@ class RunnerTest {
 
     @Test
     fun `run reachability on forOf05`() {
+        options = options.copy(timeout = 10.seconds)
         runOn(
             methodName = "forOf05",
             filePath = "validation/forOf05.ts",

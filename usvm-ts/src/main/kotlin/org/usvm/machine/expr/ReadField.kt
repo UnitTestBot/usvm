@@ -109,7 +109,7 @@ fun TsContext.readField(
     //  that this field should present in the object.
     // That's not true in the common case for TS, but that's the decision we made.
     val auxiliaryType = EtsAuxiliaryType(properties = setOf(field.name))
-    val constraint = rewrapIte(scope, instance) {
+    val constraint = rewrap(scope, instance) {
         scope.calcOnState {
             memory.types.evalIsSubtype(it, auxiliaryType)
         }

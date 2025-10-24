@@ -61,7 +61,7 @@ import org.usvm.machine.expr.handleAssignToLocal
 import org.usvm.machine.expr.handleAssignToStaticField
 import org.usvm.machine.expr.mkTruthyExpr
 import org.usvm.machine.expr.readGlobal
-import org.usvm.machine.expr.rewrapIte
+import org.usvm.machine.expr.rewrap
 import org.usvm.machine.expr.writeGlobal
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
@@ -312,7 +312,7 @@ class TsInterpreter(
             val ref = stmt.instance.asExpr(addressSort)
                 .takeIf { !it.isFakeObject() }
                 ?: unwrappedInstance.asExpr(addressSort)
-            val constraint = rewrapIte(scope, ref) {
+            val constraint = rewrap(scope, ref) {
                 scope.calcOnState {
                     mkAnd(
                         memory.types.evalIsSubtype(it, clazz),

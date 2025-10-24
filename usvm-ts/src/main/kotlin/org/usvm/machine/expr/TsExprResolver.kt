@@ -301,33 +301,23 @@ class TsExprResolver(
             }
 
             addressSort -> {
-                scope.calcOnState {
-                    val instance = resolvedExpr.asExpr(addressSort)
+                val instance = resolvedExpr.asExpr(addressSort)
 
-                    if (instance.isFakeObject()) {
-                        val fakeType = instance.getFakeType(scope)
-                        pathConstraints += fakeType.refTypeExpr
-                        val refValue = instance.extractRef(scope)
-                        // pathConstraints += memory.types.evalIsSubtype(refValue, expr.type)
-                        scope.assert(memory.types.evalIsSubtype(refValue, expr.type)) ?: run {
-                            logger.warn { "UNSAT after ensuring fake object is of expected type" }
-                            return@calcOnState null
-                        }
-                        return@calcOnState instance
-                    }
-
-                    if (expr.type !is EtsRefType) {
-                        logger.error("Unsupported cast from non-ref ${expr.arg} to ${expr.type}")
-                        TODO("Not supported yet https://github.com/UnitTestBot/usvm/issues/299")
-                    }
-
-                    // pathConstraints += memory.types.evalIsSubtype(instance, expr.type)
-                    scope.assert(memory.types.evalIsSubtype(instance, expr.type)) ?: run {
-                        logger.warn { "UNSAT after ensuring instance is of expected type" }
-                        return@calcOnState null
-                    }
-                    instance
+                if (expr.type !is EtsRefType) {
+                    // TODO: https://github.com/UnitTestBot/usvm/issues/299"
+                    logger.error { "Unsupported cast from non-ref ${expr.arg} to ${expr.type}" }
+                    scope.assert(falseExpr)
+                    return null
                 }
+
+                val condition = rewrap(scope, instance) {
+                    scope.calcOnState { memory.types.evalIsSubtype(it, expr.type) }
+                } ?: return null
+                scope.assert(condition) ?: run {
+                    logger.warn { "UNSAT after ensuring instance is of expected type" }
+                    return null
+                }
+                instance
             }
 
             else -> {
@@ -348,7 +338,7 @@ class TsExprResolver(
         if (arg.sort == addressSort) {
             val ref = arg.asExpr(addressSort)
             val unwrappedRef = ref.unwrapRefWithPathConstraint(scope) ?: return null
-            val condition = rewrapIte(scope, unwrappedRef) {
+            val condition = rewrap(scope, unwrappedRef) {
                 scope.calcOnState { memory.types.evalIsSubtype(it, EtsStringType) }
             } ?: return null
 
