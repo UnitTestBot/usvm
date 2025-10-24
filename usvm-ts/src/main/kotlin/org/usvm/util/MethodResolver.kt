@@ -21,7 +21,20 @@ fun TsContext.resolveEtsMethods(
         }.filter {
             it.name == method.name
         }
-        return methods
+
+        val filteredMethods = methods.mapNotNull {
+            if (method.returnType != EtsUnknownType && it.returnType != method.returnType) {
+                return@mapNotNull null
+            }
+
+            if (method.parameters.size > it.parameters.size) {
+                return@mapNotNull null
+            }
+
+            it
+        }
+
+        return filteredMethods
     }
 
     val classes = if (instanceType is EtsClassType) {
@@ -36,5 +49,18 @@ fun TsContext.resolveEtsMethods(
     }.filter {
         it.name == method.name
     }
-    return methods
+
+    val filteredMethods = methods.mapNotNull {
+        if (method.returnType != EtsUnknownType && it.returnType != method.returnType) {
+            return@mapNotNull null
+        }
+
+        if (method.parameters.size > it.parameters.size) {
+            return@mapNotNull null
+        }
+
+        it
+    }
+
+    return filteredMethods
 }

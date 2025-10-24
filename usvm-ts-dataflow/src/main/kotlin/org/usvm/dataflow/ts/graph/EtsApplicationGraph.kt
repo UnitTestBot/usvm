@@ -277,9 +277,14 @@ class EtsApplicationGraphImpl(
         }
         val r = resolved.singleOrNull() ?: run {
             // TODO error, should be considered overloads
-            logger.warn { "Multiple methods with the same partial signature '$callee': $resolved" }
-            cachePartiallyMatchedCallees[callee] = emptyList()
-            return emptySequence()
+            if (resolved.size <= 5) {
+                cachePartiallyMatchedCallees[callee] = resolved
+                return resolved.asSequence()
+            } else {
+                logger.warn { "Multiple methods (${resolved.size}) with the same partial signature '$callee'" }
+                cachePartiallyMatchedCallees[callee] = emptyList()
+                return emptySequence()
+            }
         }
         cachePartiallyMatchedCallees[callee] = listOf(r)
         return sequenceOf(r)
