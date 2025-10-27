@@ -734,13 +734,13 @@ class TsExprResolver(
                         associatedFunction[ptr] ?: error("No associated methods for ptr: $ptr")
                     }
                     val resolvedArgs = expr.args.map { resolve(it) ?: return null }
-                    val concreteCall = TsVirtualMethodCallStmt(
+                    val newCall = TsVirtualMethodCallStmt(
                         callee = callee.method,
                         instance = callee.thisInstance ?: ctx.mkUndefinedValue(),
                         args = resolvedArgs,
                         returnSite = scope.calcOnState { lastStmt },
                     )
-                    scope.doWithState { newStmt(concreteCall) }
+                    scope.doWithState { newStmt(newCall) }
                 } else {
                     mockMethodCall(scope, expr.callee)
                 }
