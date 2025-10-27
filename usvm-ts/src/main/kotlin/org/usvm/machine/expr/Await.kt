@@ -25,7 +25,7 @@ internal fun TsExprResolver.handleAwait(
     return processAwait(scope, arg, isTargetedMode = options.isTargetedModeEnabled)
 }
 
-private fun TsContext.processAwait(
+fun TsContext.processAwait(
     scope: TsStepScope,
     arg: UExpr<*>,
     isTargetedMode: Boolean = false,
