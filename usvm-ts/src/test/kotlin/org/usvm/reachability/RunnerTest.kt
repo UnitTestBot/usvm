@@ -6,6 +6,7 @@ import org.jacodb.ets.utils.loadEtsProjectAutoConvert
 import org.junit.jupiter.api.Tag
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
+import org.usvm.StateCollectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.api.reachability.TargetTrace
 import org.usvm.api.reachability.TsReachabilityObserver
@@ -36,6 +37,7 @@ class RunnerTest {
         solverType = SolverType.YICES,
         solverTimeout = Duration.INFINITE,
         typeOperationsTimeout = Duration.INFINITE,
+        stateCollectionStrategy = StateCollectionStrategy.REACHED_TARGET,
     )
 
     private val tsOptions = TsOptions(isTargetedModeEnabled = true)

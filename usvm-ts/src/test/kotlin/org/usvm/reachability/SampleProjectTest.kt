@@ -10,6 +10,7 @@ import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Test
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
+import org.usvm.StateCollectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.api.TsTarget
 import org.usvm.api.reachability.TsReachabilityObserver
@@ -50,9 +51,10 @@ class SampleProjectTest {
             timeout = if (DEBUG) Duration.INFINITE else 30.seconds,
             stepsFromLastCovered = 1000L,
             solverType = SolverType.YICES,
+            stateCollectionStrategy = StateCollectionStrategy.REACHED_TARGET,
         )
 
-        private val DEFAULT_TS_OPTIONS = TsOptions()
+        private val DEFAULT_TS_OPTIONS = TsOptions(isTargetedModeEnabled = true)
 
         private const val SAMPLE_PROJECT_PATH = "../examples/reachability/sample-project"
     }
