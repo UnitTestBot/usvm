@@ -2,6 +2,7 @@ package org.usvm.machine.types
 
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
+import mu.KotlinLogging
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
@@ -15,6 +16,8 @@ import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsState
 import org.usvm.memory.ULValue
+
+private val logger = KotlinLogging.logger {}
 
 fun TsState.mkFakeValue(
     scope: TsStepScope,
@@ -56,7 +59,11 @@ fun TsState.mkFakeValue(
     memory.types.allocate(address, type)
     val constraint = type.mkExactlyOneTypeConstraint(ctx)
     if (scope != null) {
-        scope.assert(constraint)
+        scope.assert(constraint) ?: run {
+            logger.warn {
+                "UNSAT after ensuring ExactlyOne type constraint for fake object: $fakeValueRef"
+            }
+        }
     } else {
         pathConstraints += constraint
     }
