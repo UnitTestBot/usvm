@@ -14,6 +14,7 @@ import org.jacodb.ets.model.EtsBitNotExpr
 import org.jacodb.ets.model.EtsBitOrExpr
 import org.jacodb.ets.model.EtsBitXorExpr
 import org.jacodb.ets.model.EtsBooleanConstant
+import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsCastExpr
 import org.jacodb.ets.model.EtsCaughtExceptionRef
 import org.jacodb.ets.model.EtsClosureFieldRef
@@ -46,6 +47,7 @@ import org.jacodb.ets.model.EtsNotExpr
 import org.jacodb.ets.model.EtsNullConstant
 import org.jacodb.ets.model.EtsNullishCoalescingExpr
 import org.jacodb.ets.model.EtsNumberConstant
+import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsOrExpr
 import org.jacodb.ets.model.EtsParameterRef
 import org.jacodb.ets.model.EtsPostDecExpr
@@ -77,6 +79,7 @@ import org.jacodb.ets.utils.ANONYMOUS_METHOD_PREFIX
 import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
 import org.jacodb.ets.utils.getDeclaredLocals
 import org.usvm.UExpr
+import org.usvm.UIteExpr
 import org.usvm.USort
 import org.usvm.api.allocateConcreteRef
 import org.usvm.api.initializeArrayLength
@@ -302,6 +305,38 @@ class TsExprResolver(
 
             addressSort -> {
                 val instance = resolvedExpr.asExpr(addressSort)
+
+                check(instance !is UIteExpr<*>) {
+                    "Casting from ITE expressions is not supported: $expr"
+                }
+
+                // If instance is fake object, we CAN cast, by imposing additional type constraints:
+                if (instance.isFakeObject()) {
+                    val fakeType = instance.getFakeType(scope)
+                    if (expr.type is EtsNumberType) {
+                        scope.assert(fakeType.fpTypeExpr) ?: run {
+                            logger.warn { "UNSAT after ensuring casted fake object is a number" }
+                            return null
+                        }
+                        return instance.extractFp(scope)
+                    }
+                    if (expr.type is EtsBooleanType) {
+                        scope.assert(fakeType.boolTypeExpr) ?: run {
+                            logger.warn { "UNSAT after ensuring casted fake object is a boolean" }
+                            return null
+                        }
+                        return instance.extractBool(scope)
+                    }
+                    if (expr.type is EtsRefType) {
+                        val condition = rewrap(scope, instance) {
+                            scope.calcOnState { memory.types.evalIsSubtype(it, expr.type) }
+                        } ?: return null
+                        scope.assert(condition) ?: run {
+                            logger.warn { "UNSAT after ensuring casted fake object is a subtype of ${expr.type}" }
+                            return null
+                        }
+                    }
+                }
 
                 if (expr.type !is EtsRefType) {
                     // TODO: https://github.com/UnitTestBot/usvm/issues/299"
