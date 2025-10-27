@@ -54,6 +54,7 @@ class TsTypeSystem(
                 EtsAnyType
             }
         }
+
         else -> type
     }
 

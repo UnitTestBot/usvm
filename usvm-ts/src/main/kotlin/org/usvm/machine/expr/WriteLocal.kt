@@ -1,7 +1,6 @@
 package org.usvm.machine.expr
 
 import io.ksmt.utils.cast
-import mu.KotlinLogging
 import org.jacodb.ets.model.EtsLocal
 import org.usvm.UExpr
 import org.usvm.machine.TsContext

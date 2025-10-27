@@ -937,7 +937,7 @@ private fun TsExprResolver.handleArrayIndexOf(
             mkBvSignedLessExpr(symbolicResult, length)
         )
         // pathConstraints += mkOr(notFound, validIndex)
-        scope.assert(mkOr(notFound, validIndex) ) ?: run {
+        scope.assert(mkOr(notFound, validIndex)) ?: run {
             logger.warn { "UNSAT after adding Array.indexOf constraints" }
             return@calcOnState null
         }
