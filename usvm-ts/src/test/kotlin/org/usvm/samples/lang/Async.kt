@@ -58,4 +58,13 @@ class Async : TsMethodTestRunner() {
             )
         )
     }
+
+    @Test
+    fun `await fake promise`() {
+        val method = getMethod("awaitFakePromise")
+        discoverProperties<TsTestValue>(
+            method = method,
+            { r -> r is TsTestValue.TsNumber && r eq 42 },
+        )
+    }
 }

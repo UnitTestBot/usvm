@@ -31,4 +31,9 @@ class Async {
         const promise = Promise.reject(new Error("An error occurred"));
         await promise; // exception
     }
+
+    awaitFakePromise(): number {
+        const arr: any[] = [Promise.resolve(42)];
+        return await arr[0]; // 42
+    }
 }

@@ -15,7 +15,7 @@ function forOf05() {
             imageSource.release();
         }
         imageSource = image.createImageSource("");
-        pixelMap = imageSource.createPixelMap("");
+        pixelMap = await imageSource.createPixelMap("");
         console.log('Using resources after re-initialization');
     }
 

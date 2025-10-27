@@ -38,9 +38,6 @@ fun TsState.mkFakeValue(
         "Fake object should contain at least one value"
     }
 
-    val fakeValueRef = createFakeObjectRef()
-    val address = fakeValueRef.address
-
     val boolTypeExpr = trueExpr
         .takeIf { boolValue != null && fpValue == null && refValue == null }
         ?: makeSymbolicPrimitive(boolSort)
@@ -50,6 +47,70 @@ fun TsState.mkFakeValue(
     val refTypeExpr = trueExpr
         .takeIf { boolValue == null && fpValue == null && refValue != null }
         ?: makeSymbolicPrimitive(boolSort)
+
+    createFakeObject(
+        scope = scope,
+        boolTypeExpr = boolTypeExpr,
+        fpTypeExpr = fpTypeExpr,
+        refTypeExpr = refTypeExpr,
+        boolValue = boolValue,
+        fpValue = fpValue,
+        refValue = refValue,
+    )
+}
+
+/**
+ * Maps values of a fake object using the provided lambda functions while preserving the type discriminants.
+ *
+ * @param scope The step scope
+ * @param fakeObject The original fake object to map
+ * @param mapBool The mapping function to apply to the bool value
+ * @param mapFp The mapping function to apply to the fp value
+ * @param mapRef The mapping function to apply to the ref value
+ * @return A new fake object with mapped values but the same type discriminants as the original
+ */
+fun TsState.mapFake(
+    scope: TsStepScope,
+    fakeObject: UConcreteHeapRef,
+    mapBool: (UBoolExpr) -> UBoolExpr?,
+    mapFp: (UExpr<KFp64Sort>) -> UExpr<KFp64Sort>?,
+    mapRef: (UHeapRef) -> UHeapRef?,
+): UConcreteHeapRef = with(ctx) {
+    require(fakeObject.isFakeObject()) {
+        "mapFake requires a fake object, but got: $fakeObject"
+    }
+
+    val originalType = fakeObject.getFakeType(memory)
+
+    val boolValue = fakeObject.extractBool(memory).let(mapBool)
+    val fpValue = fakeObject.extractFp(memory).let(mapFp)
+    val refValue = fakeObject.extractRef(memory).let(mapRef)
+
+    createFakeObject(
+        scope = scope,
+        boolTypeExpr = originalType.boolTypeExpr,
+        fpTypeExpr = originalType.fpTypeExpr,
+        refTypeExpr = originalType.refTypeExpr,
+        boolValue = boolValue,
+        fpValue = fpValue,
+        refValue = refValue,
+    )
+}
+
+/**
+ * Helper function to create a fake object with given type discriminants and values.
+ */
+private fun TsState.createFakeObject(
+    scope: TsStepScope?,
+    boolTypeExpr: UBoolExpr,
+    fpTypeExpr: UBoolExpr,
+    refTypeExpr: UBoolExpr,
+    boolValue: UBoolExpr?,
+    fpValue: UExpr<KFp64Sort>?,
+    refValue: UHeapRef?,
+): UConcreteHeapRef = with(ctx) {
+    val fakeValueRef = createFakeObjectRef()
+    val address = fakeValueRef.address
 
     val type = EtsFakeType(
         boolTypeExpr = boolTypeExpr,
