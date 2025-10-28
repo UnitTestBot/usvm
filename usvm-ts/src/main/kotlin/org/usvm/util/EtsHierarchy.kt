@@ -18,13 +18,11 @@ class EtsHierarchy(private val scene: EtsScene) {
     private val resolveMap: Map<ClassName, Map<EtsClassSignature, EtsClass>> by lazy {
         scene.projectAndSdkClasses
             .groupBy { it.name }
-            .mapValues { (_, classes) ->
+            .mapValuesTo(hashMapOf()) { (_, classes) ->
                 classes
                     .groupBy { it.signature }
-                    .mapValues { it.value.single() }
-                    .let { HashMap(it) }
+                    .mapValuesTo(hashMapOf()) { it.value.single() }
             }
-            .let { HashMap(it) }
     }
 
     private val ancestors: Map<EtsClass, Set<EtsClass>> by lazy {
