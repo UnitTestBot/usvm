@@ -167,6 +167,32 @@ class TsInterpreter(
 
         val instance = stmt.instance
 
+        if (instance == null) {
+            val methods = resolveEtsMethods(stmt.callee, hierarchy = graph.hierarchy)
+            if (methods.isEmpty()) {
+                logger.warn { "Could not resolve method: ${stmt.callee} (no instance)" }
+                if (options.isTargetedModeEnabled) {
+                    scope.doWithState {
+                        methodResult = TsMethodResult.Success.MockedCall(ctx.mkUndefinedValue(), stmt.callee)
+                        newStmt(stmt.returnSite)
+                    }
+                } else {
+                    scope.assert(falseExpr)
+                }
+                return
+            }
+
+            val blocks = methods.map { method ->
+                val concreteCall = stmt.toConcrete(method, ctx.mkUndefinedValue())
+                val block = { state: TsState -> state.newStmt(concreteCall) }
+                block
+            }
+
+            scope.forkMulti(blocks.map { ctx.trueExpr to it })
+
+            return
+        }
+
         val unwrappedInstance = if (instance.isFakeObject()) {
             // TODO support primitives calls
             // We ignore the possibility of method call on primitives.
@@ -306,10 +332,10 @@ class TsInterpreter(
         // }
 
         val conditionsWithBlocks = chosenMethods.mapIndexed { i, (clazz, method) ->
-            val concreteCall = stmt.toConcrete(method)
+            val concreteCall = stmt.toConcrete(method, instance)
             val block = { state: TsState -> state.newStmt(concreteCall) }
             val type = requireNotNull(method.enclosingClass).type
-            val ref = stmt.instance.asExpr(addressSort)
+            val ref = instance.asExpr(addressSort)
                 .takeIf { !it.isFakeObject() }
                 ?: unwrappedInstance.asExpr(addressSort)
             val constraint = rewrap(scope, ref) {

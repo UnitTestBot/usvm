@@ -732,7 +732,7 @@ class TsExprResolver(
                     val resolvedArgs = expr.args.map { resolve(it) ?: return null }
                     val newCall = TsVirtualMethodCallStmt(
                         callee = callee.method,
-                        instance = callee.thisInstance ?: ctx.mkUndefinedValue(),
+                        instance = callee.thisInstance,
                         args = resolvedArgs,
                         returnSite = scope.calcOnState { lastStmt },
                     )
