@@ -45,6 +45,7 @@ import org.usvm.machine.expr.TsVoidSort
 import org.usvm.machine.expr.TsVoidValue
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.types.EtsFakeType
+import org.usvm.machine.types.TsTypeSystem
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.types.single
 import org.usvm.util.mkFieldLValue
@@ -78,6 +79,8 @@ class TsContext(
 
     private val nullValue: UConcreteHeapRef = allocateStaticRef()
     fun mkTsNullValue(): UConcreteHeapRef = nullValue
+
+    fun tsTypeSystem(): TsTypeSystem = typeSystem<EtsType>() as TsTypeSystem
 
     // String constant caching at context level
     private val stringConstants: MutableMap<String, UConcreteHeapRef> = mutableMapOf()
