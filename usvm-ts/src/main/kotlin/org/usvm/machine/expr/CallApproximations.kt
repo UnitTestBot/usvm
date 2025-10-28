@@ -222,7 +222,8 @@ private fun TsExprResolver.handlePromiseConstructor(expr: EtsInstanceCallExpr): 
             name = executorLocal.name,
             parameters = emptyList(),
             returnType = EtsUnknownType,
-        )
+        ),
+        hierarchy = hierarchy,
     )
     if (executors.isEmpty()) {
         logger.error { "Could not resolve executor method: ${executorLocal.name}" }

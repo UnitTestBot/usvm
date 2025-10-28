@@ -11,11 +11,11 @@ import org.usvm.machine.TsContext
 fun TsContext.resolveEtsMethods(
     method: EtsMethodSignature,
     instanceType: EtsType = EtsUnknownType,
+    hierarchy: EtsHierarchy,
 ): List<EtsMethod> {
     if (method.enclosingClass.name != UNKNOWN_CLASS_NAME) {
-        val classes = scene.projectAndSdkClasses.filter {
-            it.name == method.enclosingClass.name
-        }
+        val classes = hierarchy.classesForType(EtsClassType(method.enclosingClass))
+
         val methods = classes.flatMap {
             it.methods
         }.filter {

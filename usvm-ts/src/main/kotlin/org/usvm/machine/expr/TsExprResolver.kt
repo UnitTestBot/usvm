@@ -132,7 +132,7 @@ class TsExprResolver(
 ) : EtsEntity.Visitor<UExpr<out USort>?> {
 
     val simpleValueResolver: TsSimpleValueResolver =
-        TsSimpleValueResolver(ctx, scope, options)
+        TsSimpleValueResolver(ctx, scope, options, hierarchy)
 
     fun resolve(expr: EtsEntity): UExpr<out USort>? {
         return expr.accept(this)
@@ -872,6 +872,7 @@ class TsSimpleValueResolver(
     private val ctx: TsContext,
     private val scope: TsStepScope,
     private val options: TsOptions,
+    private val hierarchy: EtsHierarchy,
 ) : EtsValue.Visitor<UExpr<out USort>?> {
 
     private fun resolveLocal(local: EtsValue): UExpr<*>? = with(ctx) {

@@ -230,11 +230,11 @@ class TsInterpreter(
                     }
                 } else {
                     scope.assert(falseExpr)
-                    return
                 }
+                return
             }
         } else {
-            val methods = resolveEtsMethods(stmt.callee)
+            val methods = resolveEtsMethods(stmt.callee, hierarchy = graph.hierarchy)
             if (methods.isEmpty()) {
                 if (stmt.callee.name !in listOf("then")) {
                     logger.warn { "Could not resolve method: ${stmt.callee}" }
@@ -246,8 +246,8 @@ class TsInterpreter(
                     }
                 } else {
                     scope.assert(falseExpr)
-                    return
                 }
+                return
             }
             concreteMethods += methods
         }
