@@ -108,7 +108,6 @@ class Equality : TsMethodTestRunner() {
         )
     }
 
-    @Disabled("Argument unexpectedly becomes TsUndefined")
     @Test
     fun `test eqArrayWithArray`() {
         val method = getMethod("eqArrayWithArray")

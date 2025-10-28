@@ -115,12 +115,12 @@ fun EtsClass.getAllProperties(hierarchy: EtsHierarchy): Pair<Set<EtsFieldName>, 
 
     val classes = hierarchy.getAncestors(this)
 
-    classes.forEach {
-        val fieldNames = it.fields.map<EtsField, EtsFieldName> { it.name }
+    classes.forEach { cls ->
+        val fieldNames = cls.fields.map { it.name }
         allFields.addAll(fieldNames)
 
-        val methods = it.methods.filter { it.name != CONSTRUCTOR_NAME }
-        val methodNames = methods.map<EtsMethod, EtsFieldName> { it.name }
+        val methods = cls.methods.filter { it.name != CONSTRUCTOR_NAME }
+        val methodNames = methods.map { it.name }
         allMethods.addAll(methodNames)
     }
 

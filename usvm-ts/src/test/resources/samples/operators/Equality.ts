@@ -44,7 +44,7 @@ class Equality {
     }
 
     eqArrayWithArray(a: any[]): number {
-        if (a == []) return -1; // unreachable
+        if (a == []) return -2; // unreachable, since RHS is allocated
         if (a == a) return 1;
         return -1; // unreachable
     }

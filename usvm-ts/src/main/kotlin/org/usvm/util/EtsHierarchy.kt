@@ -3,6 +3,7 @@ package org.usvm.util
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsClass
+import org.jacodb.ets.model.EtsClassImpl
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFileSignature
@@ -45,7 +46,7 @@ class EtsHierarchy(private val scene: EtsScene) {
                     }
 
                     result.takeIf { it.isNotEmpty() }
-                }.flatten().toMutableSet() + classesForType(OBJECT_CLASS)
+                }.flatten().toMutableSet() + classesForType(OBJECT_CLASS_TYPE)
             }
         }
 
@@ -85,41 +86,51 @@ class EtsHierarchy(private val scene: EtsScene) {
     }
 
     fun getAncestors(clazz: EtsClass): Set<EtsClass> {
-        return ancestors[clazz] ?: run {
-            error("TODO")
-        }
+        return ancestors[clazz].orEmpty()
     }
 
     fun getInheritors(clazz: EtsClass): Set<EtsClass> {
-        return inheritors[clazz] ?: run {
-            error("TODO")
-        }
+        return inheritors[clazz].orEmpty()
     }
 
-    fun classesForType(etsClassType: EtsRefType): Collection<EtsClass> {
-        if (etsClassType is EtsArrayType) {
+    fun classesForType(type: EtsRefType): Collection<EtsClass> {
+        if (type is EtsArrayType) {
             return scene.sdkClasses.filter { it.name == "Array" }
         }
 
-        require(etsClassType is EtsClassType || etsClassType is EtsUnclearRefType) {
-            "Expected EtsClassType or EtsUnclearRefType, but got ${etsClassType::class.simpleName}"
+        if (type.typeName.equals("object", ignoreCase = true) && type !== OBJECT_CLASS_TYPE) {
+            return listOf(objectClass)
+        }
+
+        require(type is EtsClassType || type is EtsUnclearRefType) {
+            "Expected EtsClassType or EtsUnclearRefType, but got ${type::class.simpleName}"
         }
 
         // We don't want to remove names like "$AC2$FieldAccess.createObject"
-        val typeName = etsClassType.typeName.removeTrashFromTheName()
+        val typeName = type.typeName.removeTrashFromTheName()
         val suitableClasses = resolveMap[typeName] ?: return emptySet()
 
-        if (etsClassType.isResolved()) {
-            val signature = (etsClassType as EtsClassType).signature.copy(name = typeName)
+        if (type.isResolved()) {
+            val signature = (type as EtsClassType).signature.copy(name = typeName)
             return suitableClasses[signature]?.let { setOf(it) } ?: emptySet()
         }
 
         return suitableClasses.values
     }
 
+    val objectClass: EtsClass by lazy {
+        val map = resolveMap["Object"].orEmpty()
+        val sig = OBJECT_CLASS_TYPE.signature
+        map[sig] ?: EtsClassImpl(
+            signature = sig,
+            fields = emptyList(),
+            methods = emptyList(),
+        )
+    }
+
     companion object {
         // TODO use real one
-        val OBJECT_CLASS = EtsClassType(
+        val OBJECT_CLASS_TYPE = EtsClassType(
             signature = EtsClassSignature(
                 name = "Object",
                 file = EtsFileSignature(projectName = "ES2015", fileName = "BuiltinClass")

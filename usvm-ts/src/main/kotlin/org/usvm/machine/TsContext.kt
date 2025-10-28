@@ -20,6 +20,7 @@ import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsThis
 import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUnclearRefType
 import org.jacodb.ets.model.EtsUndefinedType
 import org.jacodb.ets.model.EtsUnionType
 import org.jacodb.ets.model.EtsUnknownType
@@ -147,13 +148,20 @@ class TsContext(
         is EtsUnionType -> unresolvedSort
 
         is EtsRefType -> {
-            if (type is EtsClassType) {
-                val classes = scene.projectClasses.filter { it.signature == type.signature }
-                if (classes.any { it.category == EtsClassCategory.ENUM }) {
+            if (type.typeName == "object" || type.typeName == "Object") {
+                addressSort
+            } else if (type is EtsClassType) {
+                val hierarchy = tsTypeSystem().hierarchy
+                val classes = hierarchy.classesForType(type)
+                if (classes.isEmpty()) {
+                    unresolvedSort
+                } else if (classes.any { it.category == EtsClassCategory.ENUM }) {
                     unresolvedSort
                 } else {
                     addressSort
                 }
+            } else if (type is EtsUnclearRefType) {
+                unresolvedSort
             } else {
                 addressSort
             }

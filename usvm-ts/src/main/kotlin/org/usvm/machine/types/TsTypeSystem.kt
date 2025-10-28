@@ -64,7 +64,7 @@ class TsTypeSystem(
 
         // In JS/TS, any reference type inherits from Object
         if (unwrappedSupertype is EtsClassType
-            && unwrappedSupertype.signature == EtsHierarchy.OBJECT_CLASS.signature
+            && unwrappedSupertype.signature == EtsHierarchy.OBJECT_CLASS_TYPE.signature
             && unwrappedType is EtsRefType
         ) {
             return true
@@ -313,7 +313,7 @@ class TsTypeSystem(
             is EtsUnclearRefType,
             is EtsClassType,
                 ->
-                if ((t as? EtsClassType)?.signature == EtsHierarchy.OBJECT_CLASS.signature) { // TODO change it
+                if ((t as? EtsClassType)?.signature == EtsHierarchy.OBJECT_CLASS_TYPE.signature) { // TODO change it
                     scene.projectAndSdkClasses.asSequence().map { it.type } + EtsStringType + EtsAnyType
                 } else {
                     hierarchy.classesForType(t)
@@ -327,7 +327,7 @@ class TsTypeSystem(
     }
 
     private val topTypeStream by lazy {
-        USupportTypeStream.from(this, EtsHierarchy.OBJECT_CLASS)
+        USupportTypeStream.from(this, EtsHierarchy.OBJECT_CLASS_TYPE)
     }
 
     override fun topTypeStream(): UTypeStream<EtsType> = topTypeStream
