@@ -329,7 +329,7 @@ namespace TestCall1 {
         }
 
         process(input: number): number {
-            return this.on(input)
+            return this.on(input);
         }
 
         updateHandler(): void {
@@ -337,7 +337,7 @@ namespace TestCall1 {
         }
     }
 
-    function callProcessor() : number {
+    function callProcessor(): number {
         const p = new Processor();
         let res1 = p.process(5); // 5
         p.updateHandler();
