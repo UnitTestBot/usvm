@@ -2,7 +2,6 @@ package org.usvm.samples.lang
 
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
-import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.usvm.api.TsTestValue
