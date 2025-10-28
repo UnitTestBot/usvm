@@ -1,6 +1,7 @@
 package org.usvm.machine.expr
 
 import io.ksmt.utils.asExpr
+import mu.KotlinLogging
 import org.jacodb.ets.model.EtsArrayAccess
 import org.jacodb.ets.model.EtsArrayType
 import org.usvm.UExpr
@@ -14,6 +15,8 @@ import org.usvm.sizeSort
 import org.usvm.types.first
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
+
+private val logger = KotlinLogging.logger {}
 
 internal fun TsExprResolver.handleAssignToArrayIndex(
     lhv: EtsArrayAccess,
@@ -86,6 +89,13 @@ fun TsContext.assignToArrayIndex(
 
     // If the element sort is known, write directly.
     if (elementSort !is TsUnresolvedSort) {
+        if (expr.sort != elementSort) {
+            logger.warn {
+                "Sort mismatch when writing to array index: expected $elementSort, got ${expr.sort}"
+            }
+            scope.assert(falseExpr) ?: return null
+        }
+
         val lValue = mkArrayIndexLValue(
             sort = elementSort,
             ref = array,
