@@ -20,7 +20,6 @@ import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsThis
 import org.jacodb.ets.model.EtsType
-import org.jacodb.ets.model.EtsUnclearRefType
 import org.jacodb.ets.model.EtsUndefinedType
 import org.jacodb.ets.model.EtsUnionType
 import org.jacodb.ets.model.EtsUnknownType
@@ -160,8 +159,10 @@ class TsContext(
                 } else {
                     addressSort
                 }
-            } else if (type is EtsUnclearRefType) {
-                unresolvedSort
+                // TODO: consider interpreting unclear refs as fake objects,
+                //       but currently it leads to tests failures due to type system
+                // } else if (type is EtsUnclearRefType) {
+                //     unresolvedSort
             } else {
                 addressSort
             }
