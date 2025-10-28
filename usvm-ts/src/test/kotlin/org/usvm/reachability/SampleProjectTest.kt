@@ -7,6 +7,7 @@ import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsThrowStmt
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
@@ -38,6 +39,7 @@ import kotlin.time.Duration.Companion.seconds
  * 2. Select "Run 'SampleProjectTest'" or use Ctrl+Shift+F10
  * 3. View the analysis results in the console output
  */
+@Tag("manual")
 class SampleProjectTest {
 
     companion object {
