@@ -152,17 +152,11 @@ class TsContext(
             } else if (type is EtsClassType) {
                 val hierarchy = tsTypeSystem().hierarchy
                 val classes = hierarchy.classesForType(type)
-                if (classes.isEmpty()) {
-                    unresolvedSort
-                } else if (classes.any { it.category == EtsClassCategory.ENUM }) {
+                if (classes.any { it.category == EtsClassCategory.ENUM }) {
                     unresolvedSort
                 } else {
                     addressSort
                 }
-                // TODO: consider interpreting unclear refs as fake objects,
-                //       but currently it leads to tests failures due to type system
-                // } else if (type is EtsUnclearRefType) {
-                //     unresolvedSort
             } else {
                 addressSort
             }
