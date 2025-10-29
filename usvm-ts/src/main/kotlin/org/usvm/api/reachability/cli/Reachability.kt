@@ -134,6 +134,11 @@ class ReachabilityAnalyzer : CliktCommand(
         help = "👣 Max steps from last covered statement"
     ).long().default(3500L)
 
+    private val useSoftConstraints by option(
+        "--soft-constraints",
+        help = "🧩 Use soft constraints in the solver"
+    ).flag("--no-soft-constraints", default = false, defaultForHelp = "use")
+
     // Output Options
     private val verbose by option(
         "-v", "--verbose",
@@ -275,6 +280,7 @@ class ReachabilityAnalyzer : CliktCommand(
             solverTimeout = 1.seconds,
             typeOperationsTimeout = 1.seconds,
             stateCollectionStrategy = StateCollectionStrategy.REACHED_TARGET,
+            useSoftConstraints = useSoftConstraints,
         )
         val tsOptions = TsOptions(isTargetedModeEnabled = true)
 
