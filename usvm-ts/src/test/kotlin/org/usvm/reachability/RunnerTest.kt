@@ -145,6 +145,16 @@ class RunnerTest {
     }
 
     @Test
+    fun `run reachability on forOf03`() {
+        options = options.copy(timeout = 10.seconds)
+        runOn(
+            methodName = "forOf03",
+            filePath = "validation/forOf03.ts",
+            targetsPath = "validation/targets-forOf03.json"
+        )
+    }
+
+    @Test
     fun `run reachability on forOf05`() {
         options = options.copy(timeout = 10.seconds)
         runOn(
