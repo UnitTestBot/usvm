@@ -113,8 +113,14 @@ fun TsContext.readField(
         scope.calcOnState {
             memory.types.evalIsSubtype(it, auxiliaryType)
         }
-    } ?: return null
-    scope.assert(constraint) ?: return null
+    } ?: run {
+        logger.warn { "UNSAT when evaluating presence of field ${field.name} in $instance" }
+        return null
+    }
+    scope.assert(constraint) ?: run {
+        logger.warn { "UNSAT after asserting presence of field ${field.name} in $instance" }
+        return null
+    }
 
     // If the field type is known, we can read it directly.
     if (sort !is TsUnresolvedSort) {
