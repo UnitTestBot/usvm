@@ -1,5 +1,7 @@
 package org.usvm.api.reachability.cli
 
+import ch.qos.logback.classic.Level
+import ch.qos.logback.classic.LoggerContext
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.context
 import com.github.ajalt.clikt.core.main
@@ -21,6 +23,8 @@ import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.utils.loadEtsProjectAutoConvert
 import org.jacodb.ets.utils.loadEtsProjectFromMultipleIR
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
@@ -145,6 +149,11 @@ class ReachabilityAnalyzer : CliktCommand(
         help = "📝 Verbose output"
     ).flag()
 
+    private val logLevel by option(
+        "--log-level",
+        help = "📊 Logging level (TRACE, DEBUG, INFO, WARN, ERROR, OFF)"
+    ).enum<LogLevel>()
+
     private val includeStatements by option(
         "--include-statements",
         help = "📍 Include statement details in output"
@@ -194,8 +203,30 @@ class ReachabilityAnalyzer : CliktCommand(
     }
 
     private fun setupLogging() {
-        if (verbose) {
-            System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "DEBUG")
+        // Determine the effective log level
+        val effectiveLevel = when {
+            logLevel != null -> logLevel!!
+            verbose -> LogLevel.DEBUG
+            else -> null // Use default from logback.xml
+        }
+
+        // Configure Logback programmatically if a level was specified
+        if (effectiveLevel != null) {
+            try {
+                val loggerContext = LoggerFactory.getILoggerFactory() as LoggerContext
+                val rootLogger = loggerContext.getLogger(Logger.ROOT_LOGGER_NAME)
+                rootLogger.level = when (effectiveLevel) {
+                    LogLevel.TRACE -> Level.TRACE
+                    LogLevel.DEBUG -> Level.DEBUG
+                    LogLevel.INFO -> Level.INFO
+                    LogLevel.WARN -> Level.WARN
+                    LogLevel.ERROR -> Level.ERROR
+                    LogLevel.OFF -> Level.OFF
+                }
+            } catch (_: Exception) {
+                // Fallback to simple logger if Logback is not available
+                System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", effectiveLevel.name)
+            }
         }
     }
 
@@ -701,6 +732,15 @@ enum class AnalysisMode {
     ALL_METHODS,
     PUBLIC_METHODS,
     ENTRY_POINTS,
+}
+
+enum class LogLevel {
+    TRACE,
+    DEBUG,
+    INFO,
+    WARN,
+    ERROR,
+    OFF,
 }
 
 enum class ReachabilityStatus {

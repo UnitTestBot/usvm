@@ -21,7 +21,7 @@ dependencies {
     implementation(Libs.jacodb_ets)
     implementation(Libs.kotlinx_serialization_json)
     implementation(Libs.clikt)
-    runtimeOnly(Libs.logback)
+    implementation(Libs.logback)
 
     implementation(Libs.ksmt_yices)
     implementation(Libs.ksmt_cvc5)
