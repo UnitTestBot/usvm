@@ -1,6 +1,7 @@
 {
   "targets": [
     {
+      "id": "1",
       "type": "initial",
       "location": {
         "fileName": "ProcessManager.ts",
@@ -12,6 +13,7 @@
       }
     },
     {
+      "id": "2",
       "location": {
         "fileName": "ProcessManager.ts",
         "className": "Process",
@@ -22,6 +24,7 @@
       }
     },
     {
+      "id": "3",
       "location": {
         "fileName": "ProcessManager.ts",
         "className": "Process",
