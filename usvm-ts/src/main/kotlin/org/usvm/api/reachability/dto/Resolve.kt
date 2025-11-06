@@ -19,9 +19,9 @@ fun resolveTarget(
     logger.debug { "Resolved target ${node.target} to statement $stmt" }
 
     val currentTarget: TsReachabilityTarget = when (node.target.type) {
-        TargetTypeDto.INITIAL -> TsReachabilityTarget.InitialPoint(stmt)
-        TargetTypeDto.INTERMEDIATE -> TsReachabilityTarget.IntermediatePoint(stmt)
-        TargetTypeDto.FINAL -> TsReachabilityTarget.FinalPoint(stmt)
+        TargetTypeDto.INITIAL -> TsReachabilityTarget.InitialPoint(stmt, node.target.id)
+        TargetTypeDto.INTERMEDIATE -> TsReachabilityTarget.IntermediatePoint(stmt, node.target.id)
+        TargetTypeDto.FINAL -> TsReachabilityTarget.FinalPoint(stmt, node.target.id)
     }
 
     // Add all children to build the hierarchical structure
