@@ -448,13 +448,11 @@ class ReachabilityAnalyzer : CliktCommand(
         states: List<TsState>,
         isFinished: Boolean,
     ): List<TargetReachabilityResult> {
-        val results = mutableListOf<TargetReachabilityResult>()
-
         // Get all reached terminal targets across all states
         val allReachedTerminalTargets = states.flatMapTo(hashSetOf()) { it.targets.reachedTerminal }
 
         // For each target tree, analyze all leaf targets (terminal targets)
-        targets.forEach { target ->
+        return targets.map { target ->
             val targetStartTime = System.currentTimeMillis()
 
             try {
@@ -486,31 +484,25 @@ class ReachabilityAnalyzer : CliktCommand(
                 val targetEndTime = System.currentTimeMillis()
                 val executionTimeMs = targetEndTime - targetStartTime
 
-                results.add(
-                    TargetReachabilityResult(
-                        target = target,
-                        status = reachabilityStatus,
-                        executionPaths = executionPaths,
-                        executionTimeMs = executionTimeMs,
-                    )
+                TargetReachabilityResult(
+                    target = target,
+                    status = reachabilityStatus,
+                    executionPaths = executionPaths,
+                    executionTimeMs = executionTimeMs,
                 )
             } catch (e: Exception) {
                 val targetEndTime = System.currentTimeMillis()
                 val executionTimeMs = targetEndTime - targetStartTime
 
-                results.add(
-                    TargetReachabilityResult(
-                        target = target,
-                        status = ReachabilityStatus.UNKNOWN,
-                        executionPaths = emptyList(),
-                        executionTimeMs = executionTimeMs,
-                        errorMessage = "Analysis error: ${e.message}",
-                    )
+                TargetReachabilityResult(
+                    target = target,
+                    status = ReachabilityStatus.UNKNOWN,
+                    executionPaths = emptyList(),
+                    executionTimeMs = executionTimeMs,
+                    errorMessage = "Analysis error: ${e.message}",
                 )
             }
         }
-
-        return results
     }
 
     private fun generateReports(results: ReachabilityResults, startTime: Long) {
