@@ -575,7 +575,7 @@ class ReachabilityAnalyzer : CliktCommand(
                 }
 
                 appendLine("### ${index + 1}. $statusIcon $targetType")
-                appendLine("- **Target ID:** `${generateTargetId(result.target)}`")
+                appendLine("- **Target ID:** `${getOrGenerateTargetId(result.target)}`")
                 appendLine("- **Location:** ${result.target.location.location}")
                 appendLine("- **Status:** ${result.status}")
                 appendLine("- **Analysis Time:** ${result.executionTimeMs}ms")
@@ -636,7 +636,7 @@ class ReachabilityAnalyzer : CliktCommand(
         // Create individual analysis results
         val analysisResults = results.reachabilityResults.map { result ->
             AnalysisResultDto(
-                targetId = generateTargetId(result.target),
+                targetId = getOrGenerateTargetId(result.target),
                 status = result.status.toDto(),
                 executionTime = result.executionTimeMs,
                 errorMessage = result.errorMessage
@@ -674,7 +674,11 @@ class ReachabilityAnalyzer : CliktCommand(
         echo("📄 JSON report saved to: ${reportFile.absolute()}")
     }
 
-    private fun generateTargetId(target: TsReachabilityTarget): String {
+    private fun getOrGenerateTargetId(target: TsReachabilityTarget): String {
+        if (target.id != null) {
+            return target.id
+        }
+
         val method = target.location.location.method
         val className = method.enclosingClass?.name ?: "UnknownClass"
         val methodName = method.name
@@ -688,8 +692,8 @@ class ReachabilityAnalyzer : CliktCommand(
 
         val location = target.location.location
         val locationInfo = when {
-            location.blockDtoIndex != null && location.stmtDtoIndex != null -> {
-                "b${location.blockDtoIndex}_s${location.stmtDtoIndex}"
+            location.blockDtoIndex != null -> {
+                "b${location.blockDtoIndex}_s${location.stmtDtoIndex ?: 0}"
             }
 
             else -> {
