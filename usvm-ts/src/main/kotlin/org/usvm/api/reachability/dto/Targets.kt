@@ -161,8 +161,9 @@ enum class TargetTypeDto {
 
 @Serializable
 data class TargetDto(
-    val type: TargetTypeDto = TargetTypeDto.INTERMEDIATE,
     val location: LocationDto, // TODO: consider inlining
+    val type: TargetTypeDto = TargetTypeDto.INTERMEDIATE,
+    val id: String? = null,
 )
 
 @Serializable
