@@ -127,6 +127,15 @@ class RunnerTest {
     }
 
     @Test
+    fun `run reachability on branch07`() {
+        runOn(
+            methodName = "branch07",
+            filePath = "validation/branch07.ts",
+            targetsPath = "validation/targets-branch07.json"
+        )
+    }
+
+    @Test
     fun `run reachability on branch40`() {
         runOn(
             methodName = "branch40",
@@ -146,7 +155,7 @@ class RunnerTest {
 
     @Test
     fun `run reachability on forOf03`() {
-        options = options.copy(timeout = 10.seconds)
+        // options = options.copy(timeout = 10.seconds)
         runOn(
             methodName = "forOf03",
             filePath = "validation/forOf03.ts",
@@ -156,7 +165,7 @@ class RunnerTest {
 
     @Test
     fun `run reachability on forOf05`() {
-        options = options.copy(timeout = 10.seconds)
+        // options = options.copy(timeout = 10.seconds)
         runOn(
             methodName = "forOf05",
             filePath = "validation/forOf05.ts",
@@ -166,7 +175,7 @@ class RunnerTest {
 
     @Test
     fun `run reachability on forOf07`() {
-        options = options.copy(timeout = 10.seconds)
+        // options = options.copy(timeout = 10.seconds)
         runOn(
             methodName = "forOf07",
             filePath = "validation/forOf07.ts",
