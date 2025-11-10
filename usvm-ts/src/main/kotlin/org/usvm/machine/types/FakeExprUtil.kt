@@ -86,6 +86,26 @@ fun TsState.mapFake(
     val fpValue = fakeObject.extractFp(memory).let(mapFp)
     val refValue = fakeObject.extractRef(memory).let(mapRef)
 
+    // If the mapped ref is already a fake object, return it directly without wrapping
+    if (refValue != null && refValue.isFakeObject()) {
+        // if (boolValue != null) {
+        //     val boolValue2 = refValue.extractBool(memory)
+        //     if (boolValue !== boolValue2 ) {
+        //         error("Cannot map fake object to another fake object with bool value")
+        //     }
+        // }
+        // if (fpValue != null) {
+        //     val fpValue2 = refValue.extractFp(memory)
+        //     if (fpValue !== fpValue2 ) {
+        //         error("Cannot map fake object to another fake object with fp value")
+        //     }
+        // }
+        // check(boolValue == null && fpValue == null) {
+        //     "Cannot have bool/fp values when mapped ref is already a fake object: ref=$refValue, bool=$boolValue, fp=$fpValue"
+        // }
+        return refValue
+    }
+
     createFakeObject(
         scope = scope,
         boolTypeExpr = originalType.boolTypeExpr,
@@ -109,6 +129,12 @@ private fun TsState.createFakeObject(
     fpValue: UExpr<KFp64Sort>?,
     refValue: UHeapRef?,
 ): UConcreteHeapRef = with(ctx) {
+    if (refValue != null) {
+        check(!refValue.isFakeObject()) {
+            "Nested fake objects are not supported: $refValue"
+        }
+    }
+
     val fakeValueRef = createFakeObjectRef()
     val address = fakeValueRef.address
 

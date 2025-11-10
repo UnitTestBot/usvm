@@ -172,10 +172,8 @@ class TsInterpreter(
             if (methods.isEmpty()) {
                 logger.warn { "Could not resolve method: ${stmt.callee} (no instance)" }
                 if (options.isTargetedModeEnabled) {
-                    scope.doWithState {
-                        methodResult = TsMethodResult.Success.MockedCall(ctx.mkUndefinedValue(), stmt.callee)
-                        newStmt(stmt.returnSite)
-                    }
+                    mockMethodCall(scope, stmt.callee)
+                    scope.doWithState { newStmt(stmt.returnSite) }
                 } else {
                     scope.assert(falseExpr)
                 }
@@ -220,16 +218,12 @@ class TsInterpreter(
                         return
                     }
                     if (options.isTargetedModeEnabled) {
-                        scope.doWithState {
-                            val returnValue = mkFakeValue(scope)
-                            methodResult = TsMethodResult.Success.MockedCall(returnValue, stmt.callee)
-                            newStmt(stmt.returnSite)
-                        }
-                        return
+                        mockMethodCall(scope, stmt.callee)
+                        scope.doWithState { newStmt(stmt.returnSite) }
                     } else {
                         scope.assert(falseExpr)
-                        return
                     }
+                    return
                 }
                 if (classes.size > 1) {
                     logger.warn { "Multiple (${classes.size}) classes with name '${type.typeName}'" }
@@ -248,13 +242,9 @@ class TsInterpreter(
                 logger.warn {
                     "Could not resolve method: ${stmt.callee} on type: $type"
                 }
-
                 if (options.isTargetedModeEnabled) {
-                    scope.doWithState {
-                        val returnValue = mkFakeValue(scope)
-                        methodResult = TsMethodResult.Success.MockedCall(returnValue, stmt.callee)
-                        newStmt(stmt.returnSite)
-                    }
+                    mockMethodCall(scope, stmt.callee)
+                    scope.doWithState { newStmt(stmt.returnSite) }
                 } else {
                     scope.assert(falseExpr)
                 }
@@ -267,10 +257,8 @@ class TsInterpreter(
                     logger.warn { "Could not resolve method: ${stmt.callee}" }
                 }
                 if (options.isTargetedModeEnabled) {
-                    scope.doWithState {
-                        methodResult = TsMethodResult.Success.MockedCall(unwrappedInstance, stmt.callee)
-                        newStmt(stmt.returnSite)
-                    }
+                    mockMethodCall(scope, stmt.callee)
+                    scope.doWithState { newStmt(stmt.returnSite) }
                 } else {
                     scope.assert(falseExpr)
                 }

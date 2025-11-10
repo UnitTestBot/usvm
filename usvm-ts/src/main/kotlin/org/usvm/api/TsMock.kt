@@ -1,13 +1,22 @@
 package org.usvm.api
 
+import mu.KotlinLogging
 import org.jacodb.ets.model.EtsMethodSignature
+import org.jacodb.ets.model.EtsNullType
+import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUndefinedType
+import org.jacodb.ets.model.EtsUnionType
 import org.jacodb.ets.model.EtsVoidType
 import org.usvm.UAddressSort
 import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsMethodResult
+import org.usvm.machine.state.TsState
 import org.usvm.machine.types.mkFakeValue
+
+private val logger = KotlinLogging.logger {}
 
 fun mockMethodCall(
     scope: TsStepScope,
@@ -20,14 +29,14 @@ fun mockMethodCall(
         } else {
             val sort = ctx.typeToSort(method.returnType)
             result = when (sort) {
-                is UAddressSort -> makeSymbolicRefUntyped()
+                is UAddressSort -> makeSymbolicRef(scope, method.returnType)
 
                 is TsUnresolvedSort -> scope.calcOnState {
                     mkFakeValue(
                         scope = scope,
                         boolValue = makeSymbolicPrimitive(ctx.boolSort),
                         fpValue = makeSymbolicPrimitive(ctx.fp64Sort),
-                        refValue = makeSymbolicRefUntyped(),
+                        refValue = makeSymbolicRef(scope, method.returnType),
                     )
                 }
 
@@ -37,4 +46,38 @@ fun mockMethodCall(
 
         methodResult = TsMethodResult.Success.MockedCall(result, method)
     }
+}
+
+fun TsState.makeSymbolicRef(scope: TsStepScope, type: EtsType): UHeapRef = with(ctx) {
+    val ref = makeSymbolicRefUntyped()
+    var canBeNull = false
+    var canBeUndefined = false
+
+    if (type is EtsNullType) {
+        canBeNull = true
+    }
+    if (type is EtsUndefinedType) {
+        canBeUndefined = true
+    }
+    if (type is EtsUnionType) {
+        for (t in type.types) {
+            when (t) {
+                is EtsNullType -> canBeNull = true
+                is EtsUndefinedType -> canBeUndefined = true
+            }
+        }
+    }
+
+    if (!canBeNull) {
+        scope.assert(mkNot(mkHeapRefEq(ref, mkTsNullValue()))) ?: run {
+            logger.warn { "Failed to assert that symbolic ref is not null for type $type" }
+        }
+    }
+    if (!canBeUndefined) {
+        scope.assert(mkNot(mkHeapRefEq(ref, mkUndefinedValue()))) ?: run {
+            logger.warn { "Failed to assert that symbolic ref is not undefined for type $type" }
+        }
+    }
+
+    ref
 }
