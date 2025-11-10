@@ -185,6 +185,15 @@ class RunnerTest {
             targetsPath = "validation/targets-forOf07.json"
         )
     }
+
+    @Test
+    fun `run reachability on basic01`() {
+        runOn(
+            methodName = "basic01",
+            filePath = "validation/basic01.ts",
+            targetsPath = "validation/targets-basic01.json"
+        )
+    }
 }
 
 /*

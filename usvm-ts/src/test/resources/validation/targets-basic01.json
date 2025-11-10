@@ -1,0 +1,54 @@
+[
+  [
+    {
+      "location": {
+        "fileName": "basic01.ts",
+        "className": "%dflt",
+        "methodName": "basic01",
+        "block": 0
+      }
+    },
+    {
+      "location": {
+        "fileName": "basic01.ts",
+        "className": "%dflt",
+        "methodName": "basic01",
+        "block": 1
+      }
+    },
+    {
+      "location": {
+        "fileName": "basic01.ts",
+        "className": "%dflt",
+        "methodName": "basic01",
+        "block": 2
+      }
+    }
+  ],
+  [
+    {
+      "location": {
+        "fileName": "basic01.ts",
+        "className": "%dflt",
+        "methodName": "basic01",
+        "block": 0
+      }
+    },
+    {
+      "location": {
+        "fileName": "basic01.ts",
+        "className": "%dflt",
+        "methodName": "basic01",
+        "block": 3
+      }
+    },
+    {
+      "location": {
+        "fileName": "basic01.ts",
+        "className": "%dflt",
+        "methodName": "basic01",
+        "block": 2
+      }
+    }
+  ]
+]
