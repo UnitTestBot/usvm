@@ -12,7 +12,7 @@ sealed interface TsMethodResult {
     /**
      * No call was performed.
      */
-    object NoCall : TsMethodResult
+    data object NoCall : TsMethodResult
 
     sealed interface Success : TsMethodResult {
         val value: UExpr<*>
@@ -26,12 +26,16 @@ sealed interface TsMethodResult {
             val method: EtsMethod,
         ) : Success {
             override val methodSignature: EtsMethodSignature get() = method.signature
+
+            override fun toString(): String = "Call(method=${method.signature}, value=$value)"
         }
 
         class MockedCall(
             override val value: UExpr<*>,
             override val methodSignature: EtsMethodSignature,
-        ) : Success
+        ) : Success {
+            override fun toString(): String = "MockedCall(method=$methodSignature, value=$value)"
+        }
     }
 
     /**
