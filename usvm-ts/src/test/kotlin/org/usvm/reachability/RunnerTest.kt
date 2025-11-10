@@ -105,6 +105,9 @@ class RunnerTest {
         val machine = TsMachine(scene, options, tsOptions, machineObserver = TsReachabilityObserver())
         val results = machine.analyze(listOf(method), targets)
         println("Got ${results.size} results")
+        for (state in results) {
+            println("State finished in method ${state.currentStatement.location.method} with result: ${state.methodResult}")
+        }
         results.let {}
     }
 
