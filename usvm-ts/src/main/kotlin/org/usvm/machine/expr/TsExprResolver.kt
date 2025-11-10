@@ -690,6 +690,10 @@ class TsExprResolver(
                 error("Exception should be handled earlier")
             }
 
+            is TsMethodResult.MachineError -> {
+                error("Machine error should be handled earlier")
+            }
+
             is TsMethodResult.NoCall -> {
                 val ptr = resolve(expr.ptr) ?: return null
 

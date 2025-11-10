@@ -33,11 +33,15 @@ internal fun TsExprResolver.handleInstanceCall(
             }
         }
 
+        is TsMethodResult.NoCall -> {} // proceed to call
+
         is TsMethodResult.TsException -> {
             error("Exception should be handled earlier")
         }
 
-        is TsMethodResult.NoCall -> {} // proceed to call
+        is TsMethodResult.MachineError -> {
+            error("Machine error should be handled earlier")
+        }
     }
 
     // Try to approximate the call.

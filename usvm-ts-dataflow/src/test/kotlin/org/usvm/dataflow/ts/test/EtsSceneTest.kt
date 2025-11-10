@@ -146,6 +146,7 @@ class EtsSceneTest {
                 0 to listOf(),
             )
             val cfg = EtsBlockCfg(
+                method = it,
                 blocks = blocks,
                 successors = successors,
             )

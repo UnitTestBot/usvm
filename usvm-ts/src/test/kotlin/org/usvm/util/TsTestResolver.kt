@@ -79,6 +79,10 @@ class TsTestResolver {
             is TsMethodResult.TsException -> {
                 resolveException(res, afterMemoryScope)
             }
+
+            is TsMethodResult.MachineError -> {
+                error("Machine error during test resolution: ${res.message}")
+            }
         }
 
         val before = beforeMemoryScope.withMode(ResolveMode.MODEL) { resolveState() }

@@ -312,4 +312,10 @@ class EtsApplicationGraphImpl(
     override fun methodOf(node: EtsStmt): EtsMethod {
         return node.location.method
     }
+
+    fun catchers(node: EtsStmt): Sequence<EtsStmt> {
+        val graph = node.location.method.flowGraph()
+        val catchers = graph.catchers(node)
+        return catchers.asSequence()
+    }
 }

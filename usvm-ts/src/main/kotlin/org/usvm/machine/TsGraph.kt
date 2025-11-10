@@ -42,4 +42,8 @@ class TsGraph(scene: EtsScene) : ApplicationGraph<EtsMethod, EtsStmt> {
 
     override fun statementsOf(method: EtsMethod): Sequence<EtsStmt> =
         method.cfg.stmts.asSequence()
+
+    fun catchers(node: EtsStmt): Sequence<EtsStmt> {
+        return (etsGraph as EtsApplicationGraphImpl).catchers(node)
+    }
 }

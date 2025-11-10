@@ -19,6 +19,7 @@ package org.usvm.dataflow.ts.infer.annotation
 import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsCallExpr
 import org.jacodb.ets.model.EtsCallStmt
+import org.jacodb.ets.model.EtsCatchStmt
 import org.jacodb.ets.model.EtsEntity
 import org.jacodb.ets.model.EtsExpr
 import org.jacodb.ets.model.EtsIfStmt
@@ -55,6 +56,10 @@ class StmtTypeAnnotator(
 
     override fun visit(stmt: EtsCallStmt) = stmt.copy(
         expr = annotate(stmt.expr) as EtsCallExpr
+    )
+
+    override fun visit(stmt: EtsCatchStmt): EtsStmt = stmt.copy(
+        error = annotate(stmt.error) as EtsLocal // safe cast
     )
 
     override fun visit(stmt: EtsReturnStmt) = stmt.copy(

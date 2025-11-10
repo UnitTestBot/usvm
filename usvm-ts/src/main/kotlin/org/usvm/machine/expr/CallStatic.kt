@@ -30,11 +30,15 @@ internal fun TsExprResolver.handleStaticCall(
             return result.value
         }
 
+        is TsMethodResult.NoCall -> {} // proceed to call
+
         is TsMethodResult.TsException -> {
             error("Exception should be handled earlier")
         }
 
-        is TsMethodResult.NoCall -> {} // proceed to call
+        is TsMethodResult.MachineError -> {
+            error("Machine error should be handled earlier: ${result.message}")
+        }
     }
 
     // Try to approximate the call.

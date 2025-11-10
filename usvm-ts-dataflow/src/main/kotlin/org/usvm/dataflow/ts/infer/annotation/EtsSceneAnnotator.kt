@@ -20,6 +20,7 @@ package org.usvm.dataflow.ts.infer.annotation
 
 import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsCallStmt
+import org.jacodb.ets.model.EtsCatchStmt
 import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassImpl
 import org.jacodb.ets.model.EtsFile
@@ -100,6 +101,9 @@ class EtsSceneAnnotator(
             stmt.copy(location = stmt.location.copy(method = to))
 
         override fun visit(stmt: EtsCallStmt): EtsStmt =
+            stmt.copy(location = stmt.location.copy(method = to))
+
+        override fun visit(stmt: EtsCatchStmt): EtsStmt =
             stmt.copy(location = stmt.location.copy(method = to))
 
         override fun visit(stmt: EtsReturnStmt): EtsStmt =

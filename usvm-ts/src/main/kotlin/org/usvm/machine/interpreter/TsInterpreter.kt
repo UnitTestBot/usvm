@@ -9,6 +9,7 @@ import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsCallStmt
+import org.jacodb.ets.model.EtsCaughtExceptionRef
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFunctionType
 import org.jacodb.ets.model.EtsIfStmt
@@ -39,6 +40,7 @@ import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UExpr
 import org.usvm.UInterpreter
+import org.usvm.USort
 import org.usvm.api.TsTarget
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArray
@@ -72,6 +74,7 @@ import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.state.returnValue
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.machine.types.toAuxiliaryType
+import org.usvm.memory.ULValue
 import org.usvm.sizeSort
 import org.usvm.solver.USatResult
 import org.usvm.solver.UUnknownResult
@@ -111,8 +114,8 @@ class TsInterpreter(
         // }
 
         val result = state.methodResult
-        if (result is TsMethodResult.TsException) {
-            // TODO catch processing
+
+        if (result is TsMethodResult.MachineError) {
             scope.doWithState {
                 val returnSite = callStack.pop()
 
@@ -125,6 +128,12 @@ class TsInterpreter(
                 }
             }
 
+            logger.warn { "Machine error: ${result.message}" }
+            return StepResult(forkedStates = emptySequence(), originalStateAlive = false)
+        }
+
+        if (result is TsMethodResult.TsException) {
+            handleException(scope, result, stmt)
             return scope.stepResult()
         }
 
@@ -159,6 +168,67 @@ class TsInterpreter(
         }
 
         return scope.stepResult()
+    }
+
+    private fun handleException(
+        scope: TsStepScope,
+        result: TsMethodResult.TsException,
+        stmt: EtsStmt,
+    ): Unit = with(ctx) {
+        // TODO: this is a stub implementation, needs to be improved!
+
+        val catchers = graph.catchers(stmt).toList()
+
+        if (catchers.isEmpty()) {
+            scope.doWithState {
+                memory.stack.pop()
+                val returnSite = callStack.pop()
+                if (returnSite != null) {
+                    newStmt(returnSite)
+                }
+            }
+            return
+        }
+
+        if (catchers.size > 1) {
+            error("Multiple catchers not supported yet")
+        }
+
+        val catcher = catchers.single()
+        check(catcher is EtsAssignStmt)
+        val lhs = catcher.lhv
+        check(lhs is EtsLocal)
+        val rhs = catcher.rhv
+        check(rhs is EtsCaughtExceptionRef)
+
+        val currentMethod = scope.calcOnState { lastEnteredMethod }
+        val idx = getLocalIdx(lhs, currentMethod) ?: run {
+            logger.error { "Could not get local index for $lhs in $currentMethod" }
+            scope.assert(falseExpr)
+            return
+        }
+        val sort = typeToSort(lhs.type).let {
+            if (it is TsUnresolvedSort) {
+                addressSort
+            } else {
+                it
+            }
+        }
+        val lValue = mkRegisterStackLValue(sort, idx)
+        val expr = if (sort == addressSort) {
+            result.value.toFakeObject(scope)
+        } else {
+            result.value
+        }
+        check(expr.sort == lValue.sort) {
+            "Sort mismatch in exception handling: lValue=${lValue.sort}, expr=${expr.sort}"
+        }
+        scope.doWithState {
+            @Suppress("UNCHECKED_CAST")
+            memory.write(lValue as ULValue<*, USort>, expr as UExpr<USort>, guard = ctx.trueExpr)
+            methodResult = TsMethodResult.NoCall
+            newStmt(catcher.nextStmt!!)
+        }
     }
 
     private fun visitVirtualMethodCall(scope: TsStepScope, stmt: TsVirtualMethodCallStmt) = with(ctx) {
@@ -666,6 +736,10 @@ class TsInterpreter(
                 is TsMethodResult.TsException -> {
                     error("Exceptions must be processed earlier")
                 }
+
+                is TsMethodResult.MachineError -> {
+                    error("Machine errors must be processed earlier")
+                }
             }
 
             if (!options.interproceduralAnalysis && methodResult == TsMethodResult.NoCall) {
@@ -721,10 +795,11 @@ class TsInterpreter(
 
         val exception = exprResolver.resolve(stmt.exception)
 
+        // TODO: do not pop here! Exceptions are handled in step()
         // Pop the call stack to return to the caller
-        scope.doWithState {
-            memory.stack.pop()
-        }
+        // scope.doWithState {
+        //     memory.stack.pop()
+        // }
 
         if (exception != null) {
             val exceptionType: EtsType = when (exception.sort) {

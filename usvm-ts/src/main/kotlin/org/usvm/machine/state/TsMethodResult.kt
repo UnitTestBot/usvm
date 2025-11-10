@@ -47,4 +47,17 @@ sealed interface TsMethodResult {
     ) : TsMethodResult {
         override fun toString(): String = "Exception(type=$type, value=$value)"
     }
+
+    /**
+     * A machine error occurred.
+     *
+     * @param message describes the error.
+     * @param payload contains additional information about the error.
+     */
+    class MachineError(
+        val message: String,
+        val payload: Any? = null,
+    ) : TsMethodResult {
+        override fun toString(): String = "MachineError($message)"
+    }
 }

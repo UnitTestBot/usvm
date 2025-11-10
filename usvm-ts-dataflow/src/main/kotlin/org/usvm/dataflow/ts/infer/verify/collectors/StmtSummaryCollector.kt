@@ -20,6 +20,7 @@ import org.jacodb.ets.model.EtsArrayAccess
 import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsBinaryExpr
 import org.jacodb.ets.model.EtsCallStmt
+import org.jacodb.ets.model.EtsCatchStmt
 import org.jacodb.ets.model.EtsEntity
 import org.jacodb.ets.model.EtsExpr
 import org.jacodb.ets.model.EtsIfStmt
@@ -78,6 +79,10 @@ class StmtSummaryCollector(
 
     override fun visit(stmt: EtsCallStmt) {
         collect(stmt.expr)
+    }
+
+    override fun visit(stmt: EtsCatchStmt) {
+        collect(stmt.error)
     }
 
     override fun visit(stmt: EtsReturnStmt) {
