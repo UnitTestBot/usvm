@@ -3,12 +3,14 @@ package org.usvm.machine.types
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import mu.KotlinLogging
+import org.jacodb.ets.model.EtsType
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.makeSymbolicPrimitive
+import org.usvm.api.makeSymbolicRef
 import org.usvm.api.makeSymbolicRefUntyped
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.machine.IntermediateLValueField
@@ -21,11 +23,12 @@ private val logger = KotlinLogging.logger {}
 
 fun TsState.mkFakeValue(
     scope: TsStepScope,
+    type: EtsType? = null,
 ): UConcreteHeapRef = mkFakeValue(
     scope = scope,
     boolValue = makeSymbolicPrimitive(ctx.boolSort),
     fpValue = makeSymbolicPrimitive(ctx.fp64Sort),
-    refValue = makeSymbolicRefUntyped(),
+    refValue = if (type != null) makeSymbolicRef(scope, type) else makeSymbolicRefUntyped(),
 )
 
 fun TsState.mkFakeValue(
@@ -80,12 +83,7 @@ fun TsState.mapFake(
         "mapFake requires a fake object, but got: $fakeObject"
     }
 
-    val originalType = fakeObject.getFakeType(memory)
-
-    val boolValue = fakeObject.extractBool(memory).let(mapBool)
-    val fpValue = fakeObject.extractFp(memory).let(mapFp)
     val refValue = fakeObject.extractRef(memory).let(mapRef)
-
     // If the mapped ref is already a fake object, return it directly without wrapping
     if (refValue != null && refValue.isFakeObject()) {
         // if (boolValue != null) {
@@ -105,6 +103,11 @@ fun TsState.mapFake(
         // }
         return refValue
     }
+
+    val boolValue = fakeObject.extractBool(memory).let(mapBool)
+    val fpValue = fakeObject.extractFp(memory).let(mapFp)
+
+    val originalType = fakeObject.getFakeType(memory)
 
     createFakeObject(
         scope = scope,

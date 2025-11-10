@@ -31,14 +31,7 @@ fun mockMethodCall(
             result = when (sort) {
                 is UAddressSort -> makeSymbolicRef(scope, method.returnType)
 
-                is TsUnresolvedSort -> scope.calcOnState {
-                    mkFakeValue(
-                        scope = scope,
-                        boolValue = makeSymbolicPrimitive(ctx.boolSort),
-                        fpValue = makeSymbolicPrimitive(ctx.fp64Sort),
-                        refValue = makeSymbolicRef(scope, method.returnType),
-                    )
-                }
+                is TsUnresolvedSort -> mkFakeValue(scope, method.returnType)
 
                 else -> makeSymbolicPrimitive(sort)
             }

@@ -4,6 +4,7 @@ import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsAwaitExpr
 import org.jacodb.ets.model.EtsLexicalEnvType
 import org.jacodb.ets.model.EtsStringType
+import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUnknownType
 import org.usvm.UExpr
 import org.usvm.isAllocatedConcreteHeapRef
@@ -22,12 +23,13 @@ internal fun TsExprResolver.handleAwait(
     expr: EtsAwaitExpr,
 ): UExpr<*>? = with(ctx) {
     val arg = resolve(expr.arg) ?: return null
-    return processAwait(scope, arg, isTargetedMode = options.isTargetedModeEnabled)
+    return processAwait(scope, arg, expr.arg.type, isTargetedMode = options.isTargetedModeEnabled)
 }
 
 fun TsContext.processAwait(
     scope: TsStepScope,
     arg: UExpr<*>,
+    type: EtsType,
     isTargetedMode: Boolean = false,
 ): UExpr<*>? {
     // Awaiting primitives does nothing.
@@ -47,9 +49,9 @@ fun TsContext.processAwait(
             mapFake(
                 scope = scope,
                 fakeObject = promise,
-                mapBool = { processAwait(scope, it, isTargetedMode)?.asExpr(boolSort) },
-                mapFp = { processAwait(scope, it, isTargetedMode)?.asExpr(fp64Sort) },
-                mapRef = { processAwait(scope, it, isTargetedMode)?.asExpr(addressSort) },
+                mapBool = { processAwait(scope, it, type, isTargetedMode)?.asExpr(boolSort) },
+                mapFp = { processAwait(scope, it, type, isTargetedMode)?.asExpr(fp64Sort) },
+                mapRef = { processAwait(scope, it, type, isTargetedMode)?.asExpr(addressSort) },
             )
         }
     }
@@ -58,7 +60,7 @@ fun TsContext.processAwait(
     if (!isAllocated) {
         if (isTargetedMode) {
             // We cannot under-approximate in targeted mode
-            return scope.calcOnState { mkFakeValue(scope) }
+            return scope.calcOnState { mkFakeValue(scope, type = type) }
         } else {
             error("Promise instance should be allocated, but it is not: $promise")
         }
