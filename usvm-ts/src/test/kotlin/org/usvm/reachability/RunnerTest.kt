@@ -186,3 +186,38 @@ class RunnerTest {
         )
     }
 }
+
+/*
+
+TODO
+
+// [0] -> [3], expected: Reachable
+function basic basic01_00_good(data: rpc.MessageSequence) {
+    // [0]
+    const sizeValue = data.readInt();
+    if (sizeValue > 0 && sizeValue <= 1024 * 1024) {
+        // [3]
+        const safeBuffer = new ArrayBuffer(sizeValue);
+    } else {
+        console.log("No safe, do nothing");
+    }
+}
+
+
+// [2] -> [1], expected: Reachable
+private async getBgPixelMap() {
+    // [0]
+    let bgPixMap : image.PixelMap | undefined = undefined;
+    let config = getProjectConfig();
+    let imageUrl : string = config?.H5_SHARE_PIC;
+    let bgArrayBuffer = await WeatherDataRequest.requestPixelMap(imageUrl, "");
+    if (bgArrayBuffer) {
+        // [2]
+        let imgSrc = image.createImageSource(bgArrayBuffer);
+        bgPixMap = await imgSrc.createPixelMap();
+    }
+    // [1]
+    return bgPixMap;
+}
+
+ */
