@@ -4,20 +4,21 @@ import image from '@ohos.multimedia.image';
 
 function branch41() {
     let imageSource: image.ImageSource | null = null;
-    let pixelMap: image.PixelMap | null = null;
-
-    if (!imageSource) {
+    if (imageSource === null) {
         imageSource = image.createImageSource("");
+    } else {
+        console.log("no need to create imageSource");
     }
+
+    let pixelMap: image.PixelMap = await imageSource.createPixelMap();
 
     console.log("Do something with resources");
 
-    if (pixelMap != null) {
+    if (pixelMap !== undefined) {
         pixelMap.release();
-        imageSource.release();
-        return;
+    } else {
+        console.log("no need to release");
     }
 
-    console.log("imageSource is never released");
     return;
 }
