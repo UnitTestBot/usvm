@@ -175,11 +175,9 @@ class TsInterpreter(
         result: TsMethodResult.TsException,
         stmt: EtsStmt,
     ): Unit = with(ctx) {
-        // TODO: this is a stub implementation, needs to be improved!
+        val trap = graph.findTrap(stmt)
 
-        val catchers = graph.catchers(stmt).toList()
-
-        if (catchers.isEmpty()) {
+        if (trap == null) {
             scope.doWithState {
                 memory.stack.pop()
                 val returnSite = callStack.pop()
@@ -190,39 +188,25 @@ class TsInterpreter(
             return
         }
 
-        if (catchers.size > 1) {
-            error("Multiple catchers not supported yet")
-        }
-
-        val catcher = catchers.single()
+        val catcher = trap.catchBlocks.first().statements.first()
         check(catcher is EtsAssignStmt)
         val lhs = catcher.lhv
         check(lhs is EtsLocal)
         val rhs = catcher.rhv
         check(rhs is EtsCaughtExceptionRef)
 
-        val currentMethod = scope.calcOnState { lastEnteredMethod }
-        val idx = getLocalIdx(lhs, currentMethod) ?: run {
-            logger.error { "Could not get local index for $lhs in $currentMethod" }
+        logger.debug {
+            "Caught exception in method '${stmt.location.method.name}' at stmt '$stmt': ${result.value}"
+        }
+
+        val method = stmt.location.method
+        val idx = getLocalIdx(lhs, method) ?: run {
+            logger.error { "Could not get local index for $lhs in $method" }
             scope.assert(falseExpr)
             return
         }
-        val sort = typeToSort(lhs.type).let {
-            if (it is TsUnresolvedSort) {
-                addressSort
-            } else {
-                it
-            }
-        }
-        val lValue = mkRegisterStackLValue(sort, idx)
-        val expr = if (sort == addressSort) {
-            result.value.toFakeObject(scope)
-        } else {
-            result.value
-        }
-        check(expr.sort == lValue.sort) {
-            "Sort mismatch in exception handling: lValue=${lValue.sort}, expr=${expr.sort}"
-        }
+        val lValue = mkRegisterStackLValue(addressSort, idx)
+        val expr = result.value.toFakeObject(scope)
         scope.doWithState {
             @Suppress("UNCHECKED_CAST")
             memory.write(lValue as ULValue<*, USort>, expr as UExpr<USort>, guard = ctx.trueExpr)

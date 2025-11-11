@@ -1,12 +1,17 @@
 package org.usvm.machine
 
+import mu.KotlinLogging
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.model.EtsTrap
+import org.jacodb.ets.utils.TrapUtils
 import org.usvm.dataflow.ts.graph.EtsApplicationGraph
 import org.usvm.dataflow.ts.graph.EtsApplicationGraphImpl
 import org.usvm.statistics.ApplicationGraph
 import org.usvm.util.EtsHierarchy
+
+private val logger = KotlinLogging.logger {}
 
 class TsGraph(scene: EtsScene) : ApplicationGraph<EtsMethod, EtsStmt> {
     private val etsGraph: EtsApplicationGraph = EtsApplicationGraphImpl(scene)
@@ -43,7 +48,14 @@ class TsGraph(scene: EtsScene) : ApplicationGraph<EtsMethod, EtsStmt> {
     override fun statementsOf(method: EtsMethod): Sequence<EtsStmt> =
         method.cfg.stmts.asSequence()
 
-    fun catchers(node: EtsStmt): Sequence<EtsStmt> {
-        return (etsGraph as EtsApplicationGraphImpl).catchers(node)
+    fun findTrap(stmt: EtsStmt): EtsTrap? {
+        val method = stmt.location.method
+        val cfg = method.cfg
+        val block = cfg.blocks.find { b -> b.statements.any { s -> s === stmt } } ?: run {
+            logger.warn { "Cannot find block for stmt $stmt in method: $method" }
+            return null
+        }
+        val trap = TrapUtils.findInnermostTrap(method.traps, block)
+        return trap
     }
 }
