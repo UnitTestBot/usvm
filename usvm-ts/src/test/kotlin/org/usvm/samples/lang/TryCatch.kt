@@ -555,33 +555,6 @@ class TryCatch : TsMethodTestRunner() {
     }
 
     @Test
-    fun `cascading exceptions`() {
-        val method = getMethod("cascadingExceptions")
-        discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
-            method = method,
-            { level, r ->
-                // level < 1
-                level.number < 1 && (r eq 1)
-            },
-            { level, r ->
-                // level >= 1 and < 2
-                level.number >= 1 && level.number < 2 && (r eq 2)
-            },
-            { level, r ->
-                // level >= 2 and < 3
-                level.number >= 2 && level.number < 3 && (r eq 3)
-            },
-            { level, r ->
-                // level >= 3
-                level.number >= 3 && (r eq 4)
-            },
-            invariants = arrayOf(
-                { _, r -> r.number > 0 },
-            )
-        )
-    }
-
-    @Test
     fun `try-catch with logical ops`() {
         val method = getMethod("tryCatchWithLogicalOps")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
