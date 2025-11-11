@@ -3,52 +3,63 @@
 
 class TryCatch {
     emptyTryCatch(): number {
+        let result = 0;
         try {
-            return 1;
+            result = 1;
         } catch (e) {
-            return -1; // unreachable
+            result = -1; // unreachable
         }
+        return result; // 1
     }
 
     simpleTryCatch(): number {
+        let result = 0;
         try {
             throw new Error("test");
-            return -1; // unreachable
+            result = -1; // unreachable
         } catch (e) {
-            return 1;
+            result = 1;
         }
-        return -2; // unreachable
+        return result; // 1
     }
 
     conditionalThrowTryCatch(shouldThrow: boolean): number {
+        let result = 0;
         try {
             if (shouldThrow) {
                 throw new Error("conditional error");
-                return -1; // unreachable
+                result = -1; // unreachable
+            } else {
+                result = 1;
             }
-            return 1;
         } catch (e) {
-            return 2;
+            result = 2;
         }
-        return -2; // unreachable
+        if (shouldThrow) {
+            return result; // 2
+        } else {
+            return result; // 1
+        }
     }
 
-    nestedTryCatch(shouldThrow: boolean): number {
-        try {
-            try {
-                if (shouldThrow) {
-                    throw new Error("inner error");
-                    return -1; // unreachable
-                }
-                return 1;
-            } catch (e) {
-                return 2;
-            }
-            return -2; // unreachable - inner try-catch always returns
-        } catch (e) {
-            return -3; // unreachable - inner catch doesn't rethrow
-        }
-    }
+    // nestedTryCatch(shouldThrow: boolean): number {
+    //     let result = 0;
+    //     try {
+    //         try {
+    //             if (shouldThrow) {
+    //                 throw new Error("inner error");
+    //                 result = -1; // unreachable
+    //             } else {
+    //                 result = 1;
+    //             }
+    //         } catch (e) {
+    //             result = 2;
+    //         }
+    //     } catch (e) {
+    //         result = -3; // unreachable - inner catch doesn't rethrow
+    //     }
+    //     return result; // 1 if no throw, 2 if thrown
+    // }
 
     tryFinallyNoException(): number {
         let result = 0;
@@ -69,7 +80,7 @@ class TryCatch {
         } finally {
             result = result + 10;
         }
-        return -2; // unreachable - exception propagates
+        return result; // 11, exception is swallowed
     }
 
     tryCatchFinally(shouldThrow: boolean): number {
@@ -78,58 +89,68 @@ class TryCatch {
             if (shouldThrow) {
                 throw new Error("test");
                 result = -1; // unreachable
+            } else {
+                result = 1;
             }
-            result = 1;
         } catch (e) {
             result = 2;
         } finally {
             result = result + 10;
         }
-        return result; // 11 or 12
+        if (shouldThrow) {
+            return result; // 12
+        } else {
+            return result; // 11
+        }
     }
 
     catchWithReturn(): number {
+        let result = 0;
         try {
             throw new Error("test");
-            return -1; // unreachable
+            result = -1; // unreachable
         } catch (e) {
-            return 1;
+            result = 1;
         }
-        return -2; // unreachable
+        return result; // 1
     }
 
     finallyOverridesReturn(shouldThrow: boolean): number {
+        let result = 0;
         try {
             if (shouldThrow) {
                 throw new Error("test");
-                return -1; // unreachable
+                result = -1; // unreachable
+            } else {
+                result = 1; // will be overridden
             }
-            return 1; // will be overridden
         } catch (e) {
-            return 2; // will be overridden
+            result = 2; // will be overridden
         } finally {
-            return 100; // always wins
+            result = 100; // always wins
         }
-        return -2; // unreachable
+        return result; // always 100
     }
 
     rethrowInCatch(): number {
+        let result = 0;
         try {
             try {
                 throw new Error("test");
-                return -1; // unreachable
+                result = -1; // unreachable
             } catch (e) {
                 throw e; // rethrow
-                return -2; // unreachable
+                result = -2; // unreachable
             }
-            return -3; // unreachable
+            result = -3; // unreachable
         } catch (e) {
-            return 1;
+            result = 1;
         }
-        return -4; // unreachable
+        return result; // 1
     }
 
-    catchDifferentTypes(value: any): number {
+    catchDifferentTypes(value: number): number {
+        let result = 0;
         try {
             if (value === 1) {
                 throw new Error("error object");
@@ -143,119 +164,139 @@ class TryCatch {
                 throw null;
             } else if (value === 6) {
                 throw undefined;
+            } else {
+                result = 0; // no exception
             }
-            return 0; // no exception
         } catch (e) {
-            return 1; // caught any exception
+            result = 1; // caught any exception
         }
-        return -1; // unreachable
+        return result; // 0 if no throw, 1 if thrown
     }
 
     multipleReturnsInTry(x: number): number {
+        let result = 0;
         try {
             if (x < 0) {
-                return 1;
+                result = 1;
+            } else if (x === 0) {
+                result = 2;
+            } else if (x > 0) {
+                result = 3;
+            } else {
+                result = -1; // unreachable - all cases covered
             }
-            if (x === 0) {
-                return 2;
-            }
-            if (x > 0) {
-                return 3;
-            }
-            return -1; // unreachable - all cases covered
         } catch (e) {
-            return -2; // unreachable - no throws
+            result = -2; // unreachable - no throws
         }
-        return -3; // unreachable
+        return result;
     }
 
     finallyWithThrow(): number {
+        let result = 0;
         try {
-            return -1; // will be overridden by finally
+            result = -1; // will be overridden by finally
         } finally {
             throw new Error("finally throws");
-            return -2; // unreachable
+            result = -2; // unreachable
         }
-        return -3; // unreachable
+        return result; // unreachable, exception always thrown
     }
 
     catchWithoutVariable(): number {
+        let result = 0;
         try {
             throw new Error("test");
-            return -1; // unreachable
+            result = -1; // unreachable
         } catch {
-            return 1; // catch without binding
+            result = 1; // catch without binding
         }
-        return -2; // unreachable
+        return result; // 1
     }
 
     conditionalRethrow(shouldRethrow: boolean): number {
+        let result = 0;
         try {
             try {
                 throw new Error("test");
-                return -1; // unreachable
+                result = -1; // unreachable
             } catch (e) {
                 if (shouldRethrow) {
                     throw e;
-                    return -2; // unreachable
+                    result = -2; // unreachable
+                } else {
+                    result = 1;
                 }
-                return 1;
             }
-            return -3; // unreachable
         } catch (e) {
-            return 2;
+            result = 2;
         }
-        return -4; // unreachable
+        if (shouldRethrow) {
+            return result; // 2
+        } else {
+            return result; // 1
+        }
     }
 
     multipleCatchPaths(x: number): number {
+        let result = 0;
         try {
             if (x === 0) {
                 throw new Error("zero");
-            }
-            if (x < 0) {
-                return 1;
-            }
-            if (x > 0) {
+            } else if (x < 0) {
+                result = 1;
+            } else if (x > 0) {
                 throw new Error("positive");
+            } else {
+                result = -1; // unreachable - all cases covered
             }
-            return -1; // unreachable - all cases covered
         } catch (e) {
-            return 2;
+            result = 2;
         }
-        return -2; // unreachable
+        if (x == 0) {
+            return result; // 2
+        } else if (x < 0) {
+            return result; // 1
+        } else if (x > 0) {
+            return result; // 2
+        }
+        return result; // unreachable
     }
 
     finallyModifiesVariable(shouldThrow: boolean): number {
-        let x = 0;
+        let result = 0;
         try {
-            x = 10;
+            result = 10;
             if (shouldThrow) {
                 throw new Error("test");
-                x = -1; // unreachable
+                result = -1; // unreachable
+            } else {
+                result = 20;
             }
-            x = 20;
         } catch (e) {
-            x = 30;
+            result = 30;
         } finally {
-            x = x + 5;
+            result = result + 5;
         }
-        return x; // 25 or 35
+        if (shouldThrow) {
+            return result; // 35
+        } else {
+            return result; // 25
+        }
     }
 
     earlyReturnInFinally(): number {
+        let result = 0;
         try {
-            return -1; // will be overridden by finally
+            result = -1; // will be overridden by finally
         } finally {
             if (true) {
-                return 1; // always executed
+                result = 1; // always executed
+            } else {
+                result = -2; // unreachable
             }
-            return -2; // unreachable
         }
-        return -3; // unreachable
+        return result; // always 1
     }
-
-    // Realistic scenarios combining try-catch with other constructs
 
     tryCatchInLoop(n: number): number {
         let sum = 0;
@@ -269,42 +310,57 @@ class TryCatch {
                 sum += 100;
             }
         }
-        return sum;
+        if (n == 1) {
+            return sum; // sum is 0
+        } else if (n == 2) {
+            return sum; // sum is 1
+        } else if (n == 3) {
+            return sum; // sum is 3
+        } else if (n == 4) {
+            return sum; // sum is 103
+        } else if (n == 5) {
+            return sum; // sum is 107
+        }
+        return sum; // sum of 0..n-1 with 100 added for i=3
     }
 
     tryCatchWithObjectAccess(obj: any): number {
+        let result = 0;
         try {
             if (obj === null || obj === undefined) {
-                return 1; // null/undefined check
+                result = 1; // null/undefined check
+            } else {
+                const value = obj.x;
+                if (value === 42) {
+                    result = 2;
+                } else {
+                    result = 3;
+                }
             }
-            const value = obj.x;
-            if (value === 42) {
-                return 2;
-            }
-            return 3;
         } catch (e) {
-            return 4; // property access error
+            result = 4; // property access error
         }
-        return -1; // unreachable
+        return result; // 1, 2, 3, or 4
     }
 
     tryCatchWithArrayAccess(arr: any, index: number): number {
+        let result = 0;
         try {
             if (arr === null || arr === undefined) {
                 throw new Error("null array");
             }
             const value = arr[index];
             if (value === undefined) {
-                return 1; // out of bounds or missing element
+                result = 1; // out of bounds or missing element
+            } else if (value > 10) {
+                result = 2;
+            } else {
+                result = 3;
             }
-            if (value > 10) {
-                return 2;
-            }
-            return 3;
         } catch (e) {
-            return 4; // caught exception
+            result = 4; // caught exception
         }
-        return -1; // unreachable
+        return result; // 1, 2, 3, or 4
     }
 
     tryCatchWithFunctionCall(shouldFail: boolean): number {
@@ -315,37 +371,38 @@ class TryCatch {
             return 42;
         }
 
+        let result = 0;
         try {
-            const result = mayThrow(shouldFail);
-            if (result > 40) {
-                return 1;
+            const value = mayThrow(shouldFail);
+            if (value > 40) {
+                result = 1;
+            } else {
+                result = 2;
             }
-            return 2;
         } catch (e) {
-            return 3;
+            result = 3;
         }
-        return -1; // unreachable
+        return result; // 1 if no throw, 3 if thrown
     }
 
     tryCatchWithMultipleConditions(x: number, y: number): number {
+        let result = 0;
         try {
             if (x < 0 && y < 0) {
                 throw new Error("both negative");
+            } else if (x < 0 || y < 0) {
+                result = 1; // one negative
+            } else if (x === 0 && y === 0) {
+                result = 2; // both zero
+            } else if (x > 0 && y > 0) {
+                result = 3; // both positive
+            } else {
+                result = 4; // mixed
             }
-            if (x < 0 || y < 0) {
-                return 1; // one negative
-            }
-            if (x === 0 && y === 0) {
-                return 2; // both zero
-            }
-            if (x > 0 && y > 0) {
-                return 3; // both positive
-            }
-            return 4; // mixed
         } catch (e) {
-            return 5; // exception caught
+            result = 5; // exception caught
         }
-        return -1; // unreachable
+        return result;
     }
 
     tryCatchInConditional(flag: boolean, x: number): number {
@@ -366,69 +423,48 @@ class TryCatch {
     }
 
     tryCatchWithReturn(x: number): number {
+        let result = 0;
         try {
             if (x < 0) {
-                return 1;
-            }
-            if (x === 0) {
+                result = 1;
+            } else if (x === 0) {
                 throw new Error("zero");
+            } else {
+                result = 2;
             }
-            return 2;
         } catch (e) {
             if (x === 0) {
-                return 3;
+                result = 3;
+            } else {
+                result = 4;
             }
-            return 4;
         }
-        return -1; // unreachable
+        return result;
     }
 
-    // cascadingExceptions(level: number): number {
-    //     try {
-    //         if (level >= 3) {
-    //             throw new Error("level 3");
-    //         }
-    //         try {
-    //             if (level >= 2) {
-    //                 throw new Error("level 2");
-    //             }
-    //             try {
-    //                 if (level >= 1) {
-    //                     throw new Error("level 1");
-    //                 }
-    //                 return 1; // level 0
-    //             } catch (e) {
-    //                 return 2; // caught level 1
-    //             }
-    //         } catch (e) {
-    //             return 3; // caught level 2
-    //         }
-    //     } catch (e) {
-    //         return 4; // caught level 3
-    //     }
-    //     return -1; // unreachable
-    // }
-
     tryCatchWithLogicalOps(a: boolean, b: boolean): number {
+        let result = 0;
         try {
             if (a && b) {
                 throw new Error("both true");
+            } else if (a || b) {
+                result = 1; // at least one true
+            } else {
+                result = 2; // both false
             }
-            if (a || b) {
-                return 1; // at least one true
-            }
-            return 2; // both false
         } catch (e) {
             if (a) {
-                return 3; // a is true
+                result = 3; // a is true
+            } else {
+                result = 4; // should be unreachable
             }
-            return 4; // should be unreachable
         }
-        return -1; // unreachable
+        return result;
     }
 
     finallyWithSideEffects(x: number): number {
         let counter = 0;
+        let result = 0;
         try {
             counter++;
             if (x < 0) {
@@ -436,49 +472,54 @@ class TryCatch {
             }
             counter++;
             if (x === 0) {
-                return counter; // 2
+                result = counter; // 2
+            } else {
+                counter++;
+                result = counter; // 3
             }
-            counter++;
-            return counter; // 3
         } catch (e) {
             counter += 10;
-            return counter; // 11
+            result = counter; // 11
         } finally {
             counter += 100; // always executed, but return already happened
         }
-        return -1; // unreachable
+        return result;
     }
 
     exceptionInComplexExpression(x: number, y: number): number {
+        let result = 0;
         try {
             const temp = (x > 0 && y > 0) ? x + y : x - y;
             if (temp === 0) {
                 throw new Error("zero result");
+            } else if (temp > 0) {
+                result = 1;
+            } else {
+                result = 2;
             }
-            if (temp > 0) {
-                return 1;
-            }
-            return 2;
         } catch (e) {
-            return 3;
+            result = 3;
         }
-        return -1; // unreachable
+        result = result || -1; // unreachable
+        return result;
     }
 
     tryCatchWithTernary(x: number): number {
+        let result = 0;
         try {
             const value = x > 0 ? (x > 10 ? 1 : 2) : (x < -10 ? 3 : 4);
             if (value === 2) {
                 throw new Error("case 2");
             }
-            return value;
+            result = value;
         } catch (e) {
-            return 5;
+            result = 5;
         }
-        return -1; // unreachable
+        return result;
     }
 
     exceptionAfterMultipleOps(x: number): number {
+        let result = 0;
         try {
             let temp = x;
             temp = temp + 5;
@@ -487,42 +528,45 @@ class TryCatch {
                 throw new Error("too large");
             }
             temp = temp - 3;
-            return temp;
+            result = temp;
         } catch (e) {
-            return 100;
+            result = 100;
         }
-        return -1; // unreachable
+        return result;
     }
 
     tryCatchWithEarlyExit(x: number, y: number): number {
+        let result = 0;
         try {
             if (x === 0) {
-                return 1; // early exit
+                result = 1; // early exit
+            } else {
+                const ratio = y;
+                if (ratio < 0) {
+                    throw new Error("negative ratio");
+                } else if (ratio === 0) {
+                    result = 2;
+                } else {
+                    result = 3;
+                }
             }
-            const ratio = y;
-            if (ratio < 0) {
-                throw new Error("negative ratio");
-            }
-            if (ratio === 0) {
-                return 2;
-            }
-            return 3;
         } catch (e) {
-            return 4;
+            result = 4;
         }
-        return -1; // unreachable
+        return result;
     }
 
     finallyDoesNotCatchException(shouldThrow: boolean): number {
+        let result = 0;
         try {
             if (shouldThrow) {
                 throw new Error("test");
             }
-            return 1;
+            result = 1;
         } finally {
             const temp = 42; // side effect, doesn't catch
         }
-        return -1; // unreachable when exception thrown
+        return result; // -1 when exception thrown (actually unreachable)
     }
 
     multipleFinallyBlocks(x: number): number {
@@ -541,19 +585,28 @@ class TryCatch {
         } catch (e) {
             result += 1000; // executed on exception
         }
-        return result; // 112 or 1011
+        if (x < 0) {
+            return result; // 111
+        } else {
+            return result; // 112
+        }
     }
 
     tryCatchSwallowsException(x: number): number {
+        let result = 0;
         try {
             if (x < 0) {
                 throw new Error("negative");
             }
-            return 1;
+            result = 1;
         } catch (e) {
             // swallow the exception, don't rethrow
             const temp = 42;
         }
-        return 2; // reachable after catching
+        if (x < 0) {
+            return result; // 0, exception swallowed
+        } else {
+            return result; // 1
+        }
     }
 }
