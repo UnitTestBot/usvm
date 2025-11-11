@@ -39,13 +39,15 @@ sealed interface TsMethodResult {
     }
 
     /**
-     * A method threw an exception with [type] type.
+     * An exception was thrown.
+     *
+     * @param value the thrown value.
      */
     class TsException(
         val value: UExpr<*>,
-        val type: EtsType,
+        // TODO: additional (optional) info?
     ) : TsMethodResult {
-        override fun toString(): String = "Exception(type=$type, value=$value)"
+        override fun toString(): String = "Exception(value=$value)"
     }
 
     /**

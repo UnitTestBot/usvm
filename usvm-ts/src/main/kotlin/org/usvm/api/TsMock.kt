@@ -41,8 +41,10 @@ fun mockMethodCall(
     }
 }
 
-fun TsState.makeSymbolicRef(scope: TsStepScope, type: EtsType): UHeapRef = with(ctx) {
-    val ref = makeSymbolicRefUntyped()
+fun TsState.makeSymbolicRef(
+    scope: TsStepScope,
+    type: EtsType,
+): UHeapRef {
     var canBeNull = false
     var canBeUndefined = false
 
@@ -61,14 +63,28 @@ fun TsState.makeSymbolicRef(scope: TsStepScope, type: EtsType): UHeapRef = with(
         }
     }
 
+    return makeSymbolicRef(
+        scope = scope,
+        canBeNull = canBeNull,
+        canBeUndefined = canBeUndefined,
+    )
+}
+
+fun TsState.makeSymbolicRef(
+    scope: TsStepScope,
+    canBeNull: Boolean = true,
+    canBeUndefined: Boolean = true,
+): UHeapRef = with(ctx) {
+    val ref = makeSymbolicRefUntyped()
+
     if (!canBeNull) {
         scope.assert(mkNot(mkHeapRefEq(ref, mkTsNullValue()))) ?: run {
-            logger.warn { "Failed to assert that symbolic ref is not null for type $type" }
+            logger.warn { "Failed to assert that symbolic ref is not null" }
         }
     }
     if (!canBeUndefined) {
         scope.assert(mkNot(mkHeapRefEq(ref, mkUndefinedValue()))) ?: run {
-            logger.warn { "Failed to assert that symbolic ref is not undefined for type $type" }
+            logger.warn { "Failed to assert that symbolic ref is not undefined" }
         }
     }
 

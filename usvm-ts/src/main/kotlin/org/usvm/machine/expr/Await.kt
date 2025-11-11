@@ -2,11 +2,13 @@ package org.usvm.machine.expr
 
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsAwaitExpr
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsLexicalEnvType
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUnknownType
 import org.usvm.UExpr
+import org.usvm.api.makeSymbolicRef
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.PromiseState
@@ -16,6 +18,7 @@ import org.usvm.machine.interpreter.isResolved
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
+import org.usvm.machine.types.EtsErrorTypes
 import org.usvm.machine.types.mapFake
 import org.usvm.machine.types.mkFakeValue
 
@@ -123,11 +126,12 @@ fun TsContext.processAwait(
     } else {
         when (promiseState) {
             PromiseState.PENDING -> {
+                // TODO: replace with MachineError
                 error("Promise state should not be PENDING, but it is for $promise")
             }
 
             PromiseState.FULFILLED -> {
-                // If the promise is already resolved, we can return this value.
+                // If the promise is fulfilled, we can return its value.
                 // val sort = typeToSort(expr.arg.type)
                 val sort = typeToSort(EtsUnknownType)
                 if (sort == unresolvedSort) {
@@ -145,12 +149,9 @@ fun TsContext.processAwait(
 
             PromiseState.REJECTED -> {
                 // If the promise is rejected, we throw an exception.
-                val reason = scope.calcOnState {
-                    getResolvedValue(promise, addressSort)
-                }
                 scope.doWithState {
-                    // TODO: create proper exception
-                    methodResult = TsMethodResult.TsException(reason, EtsStringType)
+                    val exc = getResolvedValue(promise, addressSort)
+                    methodResult = TsMethodResult.TsException(exc)
                 }
                 null
             }

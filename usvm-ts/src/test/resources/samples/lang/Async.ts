@@ -14,7 +14,7 @@ class Async {
 
     awaitRejectingPromise() {
         const promise = new Promise((resolve, reject) => {
-            reject(new Error("An error occurred"));
+            reject("An error occurred");
         });
         await promise; // exception
     }
@@ -28,7 +28,7 @@ class Async {
     }
 
     awaitRejectedPromise() {
-        const promise = Promise.reject(new Error("An error occurred"));
+        const promise = Promise.reject("An error occurred");
         await promise; // exception
     }
 

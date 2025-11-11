@@ -23,11 +23,41 @@ class TryCatch {
         return result; // 1
     }
 
+    catchThrownValue(): number {
+        let result = 0;
+        try {
+            throw 42;
+        } catch (e) {
+            if (e === 42) {
+                result = 1;
+            } else {
+                const temp = 42; // adhoc for single-branch if
+            }
+        }
+        return result; // 1
+    }
+
+    catchThrownValueWithFinally(): number {
+        let result = 0;
+        try {
+            throw 42;
+        } catch (e) {
+            if (e === 42) {
+                result = 1;
+            } else {
+                const temp = 42; // adhoc for single-branch if
+            }
+        } finally {
+            result = result + 10;
+        }
+        return result; // 11
+    }
+
     conditionalThrowTryCatch(shouldThrow: boolean): number {
         let result = 0;
         try {
             if (shouldThrow) {
-                throw new Error("conditional error");
+                throw "conditional error";
                 result = -1; // unreachable
             } else {
                 result = 1;
@@ -47,7 +77,7 @@ class TryCatch {
     //     try {
     //         try {
     //             if (shouldThrow) {
-    //                 throw new Error("inner error");
+    //                 throw "inner error";
     //                 result = -1; // unreachable
     //             } else {
     //                 result = 1;
@@ -75,7 +105,7 @@ class TryCatch {
         let result = 0;
         try {
             result = 1;
-            throw new Error("test");
+            throw "test";
             result = -1; // unreachable
         } finally {
             result = result + 10;
@@ -87,7 +117,7 @@ class TryCatch {
         let result = 0;
         try {
             if (shouldThrow) {
-                throw new Error("test");
+                throw "test";
                 result = -1; // unreachable
             } else {
                 result = 1;
@@ -107,7 +137,7 @@ class TryCatch {
     catchWithReturn(): number {
         let result = 0;
         try {
-            throw new Error("test");
+            throw "test";
             result = -1; // unreachable
         } catch (e) {
             result = 1;
@@ -119,7 +149,7 @@ class TryCatch {
         let result = 0;
         try {
             if (shouldThrow) {
-                throw new Error("test");
+                throw "test";
                 result = -1; // unreachable
             } else {
                 result = 1; // will be overridden
@@ -136,7 +166,7 @@ class TryCatch {
         let result = 0;
         try {
             try {
-                throw new Error("test");
+                throw "test";
                 result = -1; // unreachable
             } catch (e) {
                 throw e; // rethrow
@@ -165,12 +195,16 @@ class TryCatch {
             } else if (value === 6) {
                 throw undefined;
             } else {
-                result = 0; // no exception
+                result = 2; // no exception
             }
         } catch (e) {
             result = 1; // caught any exception
         }
-        return result; // 0 if no throw, 1 if thrown
+        if (value >= 1 && value <= 6) {
+            return result; // 1
+        } else {
+            return result; // 2
+        }
     }
 
     multipleReturnsInTry(x: number): number {
@@ -182,13 +216,24 @@ class TryCatch {
                 result = 2;
             } else if (x > 0) {
                 result = 3;
+            } else if (x != x) {
+                result = 4;
             } else {
                 result = -1; // unreachable - all cases covered
             }
         } catch (e) {
             result = -2; // unreachable - no throws
         }
-        return result;
+        if (x < 0) {
+            return result; // 1
+        } else if (x === 0) {
+            return result; // 2
+        } else if (x > 0) {
+            return result; // 3
+        } else if (x != x) {
+            return result; // 4
+        }
+        return result; // unreachable
     }
 
     finallyWithThrow(): number {
@@ -196,7 +241,7 @@ class TryCatch {
         try {
             result = -1; // will be overridden by finally
         } finally {
-            throw new Error("finally throws");
+            throw "finally throws";
             result = -2; // unreachable
         }
         return result; // unreachable, exception always thrown
@@ -205,7 +250,7 @@ class TryCatch {
     catchWithoutVariable(): number {
         let result = 0;
         try {
-            throw new Error("test");
+            throw "test";
             result = -1; // unreachable
         } catch {
             result = 1; // catch without binding
@@ -217,7 +262,7 @@ class TryCatch {
         let result = 0;
         try {
             try {
-                throw new Error("test");
+                throw "test";
                 result = -1; // unreachable
             } catch (e) {
                 if (shouldRethrow) {
@@ -241,22 +286,26 @@ class TryCatch {
         let result = 0;
         try {
             if (x === 0) {
-                throw new Error("zero");
+                throw "zero";
             } else if (x < 0) {
                 result = 1;
             } else if (x > 0) {
-                throw new Error("positive");
+                throw "positive";
+            } else if (x != x) {
+                result = 2;
             } else {
                 result = -1; // unreachable - all cases covered
             }
         } catch (e) {
-            result = 2;
+            result = 3;
         }
         if (x == 0) {
-            return result; // 2
+            return result; // 3
         } else if (x < 0) {
             return result; // 1
         } else if (x > 0) {
+            return result; // 3
+        } else if (x != x) {
             return result; // 2
         }
         return result; // unreachable
@@ -267,7 +316,7 @@ class TryCatch {
         try {
             result = 10;
             if (shouldThrow) {
-                throw new Error("test");
+                throw "test";
                 result = -1; // unreachable
             } else {
                 result = 20;
@@ -303,7 +352,7 @@ class TryCatch {
         for (let i = 0; i < n; i++) {
             try {
                 if (i === 3) {
-                    throw new Error("three");
+                    throw "three";
                 }
                 sum += i;
             } catch (e) {
@@ -324,7 +373,7 @@ class TryCatch {
         return sum; // sum of 0..n-1 with 100 added for i=3
     }
 
-    tryCatchWithObjectAccess(obj: any): number {
+    tryCatchWithObjectAccess(obj: object): number {
         let result = 0;
         try {
             if (obj === null || obj === undefined) {
@@ -343,11 +392,11 @@ class TryCatch {
         return result; // 1, 2, 3, or 4
     }
 
-    tryCatchWithArrayAccess(arr: any, index: number): number {
+    tryCatchWithArrayAccess(arr: number[], index: number): number {
         let result = 0;
         try {
             if (arr === null || arr === undefined) {
-                throw new Error("null array");
+                throw "null array";
             }
             const value = arr[index];
             if (value === undefined) {
@@ -366,7 +415,7 @@ class TryCatch {
     tryCatchWithFunctionCall(shouldFail: boolean): number {
         function mayThrow(flag: boolean): number {
             if (flag) {
-                throw new Error("function error");
+                throw "function error";
             }
             return 42;
         }
@@ -389,7 +438,7 @@ class TryCatch {
         let result = 0;
         try {
             if (x < 0 && y < 0) {
-                throw new Error("both negative");
+                throw "both negative";
             } else if (x < 0 || y < 0) {
                 result = 1; // one negative
             } else if (x === 0 && y === 0) {
@@ -410,7 +459,7 @@ class TryCatch {
         if (flag) {
             try {
                 if (x === 0) {
-                    throw new Error("zero");
+                    throw "zero";
                 }
                 result = x > 0 ? 1 : 2;
             } catch (e) {
@@ -428,7 +477,7 @@ class TryCatch {
             if (x < 0) {
                 result = 1;
             } else if (x === 0) {
-                throw new Error("zero");
+                throw "zero";
             } else {
                 result = 2;
             }
@@ -446,7 +495,7 @@ class TryCatch {
         let result = 0;
         try {
             if (a && b) {
-                throw new Error("both true");
+                throw "both true";
             } else if (a || b) {
                 result = 1; // at least one true
             } else {
@@ -468,7 +517,7 @@ class TryCatch {
         try {
             counter++;
             if (x < 0) {
-                throw new Error("negative");
+                throw "negative";
             }
             counter++;
             if (x === 0) {
@@ -491,7 +540,7 @@ class TryCatch {
         try {
             const temp = (x > 0 && y > 0) ? x + y : x - y;
             if (temp === 0) {
-                throw new Error("zero result");
+                throw "zero result";
             } else if (temp > 0) {
                 result = 1;
             } else {
@@ -509,7 +558,7 @@ class TryCatch {
         try {
             const value = x > 0 ? (x > 10 ? 1 : 2) : (x < -10 ? 3 : 4);
             if (value === 2) {
-                throw new Error("case 2");
+                throw "case 2";
             }
             result = value;
         } catch (e) {
@@ -525,7 +574,7 @@ class TryCatch {
             temp = temp + 5;
             temp = temp * 2;
             if (temp > 20) {
-                throw new Error("too large");
+                throw "too large";
             }
             temp = temp - 3;
             result = temp;
@@ -543,7 +592,7 @@ class TryCatch {
             } else {
                 const ratio = y;
                 if (ratio < 0) {
-                    throw new Error("negative ratio");
+                    throw "negative ratio";
                 } else if (ratio === 0) {
                     result = 2;
                 } else {
@@ -560,7 +609,7 @@ class TryCatch {
         let result = 0;
         try {
             if (shouldThrow) {
-                throw new Error("test");
+                throw "test";
             }
             result = 1;
         } finally {
@@ -575,7 +624,7 @@ class TryCatch {
             try {
                 result = 1;
                 if (x < 0) {
-                    throw new Error("negative");
+                    throw "negative";
                 }
                 result = 2;
             } finally {
@@ -596,15 +645,16 @@ class TryCatch {
         let result = 0;
         try {
             if (x < 0) {
-                throw new Error("negative");
+                throw "negative";
             }
             result = 1;
         } catch (e) {
             // swallow the exception, don't rethrow
             const temp = 42;
+            result = 2;
         }
         if (x < 0) {
-            return result; // 0, exception swallowed
+            return result; // 2, exception swallowed
         } else {
             return result; // 1
         }

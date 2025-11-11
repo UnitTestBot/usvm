@@ -177,6 +177,8 @@ class TsInterpreter(
     ): Unit = with(ctx) {
         val trap = graph.findTrap(stmt)
 
+        // If there is no trap, we just pop the stack and return to the caller.
+        // Note: do not reset the exception here!
         if (trap == null) {
             scope.doWithState {
                 memory.stack.pop()
@@ -188,30 +190,56 @@ class TsInterpreter(
             return
         }
 
-        val catcher = trap.catchBlocks.first().statements.first()
-        check(catcher is EtsAssignStmt)
-        val lhs = catcher.lhv
-        check(lhs is EtsLocal)
-        val rhs = catcher.rhv
-        check(rhs is EtsCaughtExceptionRef)
+        // If there is a trap, we go to the catch block and process the exception.
+        //
+        // Note: we could reset the exception (methodResult = NoCall) here,
+        //       continue execution and let the next assignment stmt handle the caught exception,
+        //       but this would require _storing_ the "last exception" in the state.
+        //       Instead, we process "e := caughtException" right here
+        //       and reset the exception afterward.
+        // TODO: store "last exception" in the state and handle
+        //       "e := caughtException" in the assignment stmt visitor.
 
-        logger.debug {
-            "Caught exception in method '${stmt.location.method.name}' at stmt '$stmt': ${result.value}"
-        }
-
-        val method = stmt.location.method
-        val idx = getLocalIdx(lhs, method) ?: run {
-            logger.error { "Could not get local index for $lhs in $method" }
-            scope.assert(falseExpr)
-            return
-        }
-        val lValue = mkRegisterStackLValue(addressSort, idx)
-        val expr = result.value.toFakeObject(scope)
+        // Reset the exception.
         scope.doWithState {
-            @Suppress("UNCHECKED_CAST")
-            memory.write(lValue as ULValue<*, USort>, expr as UExpr<USort>, guard = ctx.trueExpr)
             methodResult = TsMethodResult.NoCall
-            newStmt(catcher.nextStmt!!)
+        }
+
+        val catcher = trap.catchBlocks.first().statements.first()
+        // If the catch binds the exception to a local variable, process it here.
+        // Otherwise (plain `catch` without binding), do nothing.
+        if (catcher is EtsAssignStmt) {
+            val lhs = catcher.lhv
+            val rhs = catcher.rhv
+            if (lhs is EtsLocal && rhs is EtsCaughtExceptionRef) {
+                logger.info {
+                    "Caught exception in method '${stmt.location.method.name}' at stmt '$stmt': ${result.value}"
+                }
+
+                val method = stmt.location.method
+                val idx = getLocalIdx(lhs, method) ?: run {
+                    logger.error { "Could not get local index for $lhs in $method" }
+                    scope.assert(falseExpr)
+                    return
+                }
+                val lValue = mkRegisterStackLValue(addressSort, idx)
+                val expr = result.value.toFakeObject(scope)
+                scope.doWithState {
+                    @Suppress("UNCHECKED_CAST")
+                    memory.write(lValue as ULValue<*, USort>, expr as UExpr<USort>, guard = ctx.trueExpr)
+                }
+
+                // Continue execution at the next statement after the processed assignment.
+                scope.doWithState {
+                    newStmt(catcher.nextStmt!!)
+                }
+                return
+            }
+        }
+
+        // Continue execution at the beginning of the catch block.
+        scope.doWithState {
+            newStmt(catcher)
         }
     }
 
@@ -777,7 +805,7 @@ class TsInterpreter(
 
         observer?.onThrowStatement(exprResolver.simpleValueResolver, stmt, scope)
 
-        val exception = exprResolver.resolve(stmt.exception)
+        val exception = exprResolver.resolve(stmt.exception) ?: return
 
         // TODO: do not pop here! Exceptions are handled in step()
         // Pop the call stack to return to the caller
@@ -785,31 +813,32 @@ class TsInterpreter(
         //     memory.stack.pop()
         // }
 
-        if (exception != null) {
-            val exceptionType: EtsType = when (exception.sort) {
-                ctx.addressSort -> {
-                    // If it's an object reference, try to determine its type
-                    val ref = exception.asExpr(ctx.addressSort)
-                    // For now, assume it's a generic error type
-                    EtsStringType // TODO: improve type detection
-                }
+        // if (exception != null) {
+        // val exceptionType: EtsType = when (exception.sort) {
+        //     ctx.addressSort -> {
+        //         // If it's an object reference, try to determine its type
+        //         val ref = exception.asExpr(ctx.addressSort)
+        //         // For now, assume it's a generic error type
+        //         EtsStringType // TODO: improve type detection
+        //     }
+        //
+        //     ctx.fp64Sort -> EtsNumberType
+        //
+        //     ctx.boolSort -> EtsBooleanType
+        //
+        //     else -> EtsStringType
+        // }
 
-                ctx.fp64Sort -> EtsNumberType
-
-                ctx.boolSort -> EtsBooleanType
-
-                else -> EtsStringType
-            }
-
-            scope.doWithState {
-                methodResult = TsMethodResult.TsException(exception, exceptionType)
-            }
-        } else {
-            scope.doWithState {
-                // If we couldn't resolve the exception value, throw a generic exception
-                methodResult = TsMethodResult.TsException(ctx.mkUndefinedValue(), EtsStringType)
-            }
+        scope.doWithState {
+            methodResult = TsMethodResult.TsException(exception)
         }
+        // } else {
+        //     scope.doWithState {
+        //         // If we couldn't resolve the exception value, throw a generic exception
+        //         val exc = ctx.mkUndefinedValue()
+        //         methodResult = TsMethodResult.TsException(exc)
+        //     }
+        // }
     }
 
     private fun visitNopStmt(scope: TsStepScope, stmt: EtsNopStmt) {

@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Disabled
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.eq
+import org.usvm.util.neq
 import kotlin.test.Test
 
 class TryCatch : TsMethodTestRunner() {
@@ -30,6 +31,30 @@ class TryCatch : TsMethodTestRunner() {
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r eq 1 },
+            invariants = arrayOf(
+                { r -> r.number > 0 },
+            )
+        )
+    }
+
+    @Test
+    fun `catch thrown value`() {
+        val method = getMethod("catchThrownValue")
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { r -> r eq 1 },
+            invariants = arrayOf(
+                { r -> r.number > 0 },
+            )
+        )
+    }
+
+    @Test
+    fun `catch thrown value with finally`() {
+        val method = getMethod("catchThrownValueWithFinally")
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { r -> r eq 11 },
             invariants = arrayOf(
                 { r -> r.number > 0 },
             )
@@ -152,6 +177,7 @@ class TryCatch : TsMethodTestRunner() {
         )
     }
 
+    @Disabled("Nested try-catch is broken in ArkIR")
     @Test
     fun `rethrow in catch`() {
         val method = getMethod("rethrowInCatch")
@@ -195,8 +221,8 @@ class TryCatch : TsMethodTestRunner() {
             },
             { value, r ->
                 // no throw
-                value is TsTestValue.TsNumber && !(value eq 1) && !(value eq 2) && !(value eq 3)
-                    && !(value eq 4) && !(value eq 5) && !(value eq 6) && (r eq 0)
+                value is TsTestValue.TsNumber && (value neq 1) && (value neq 2) && (value neq 3)
+                    && (value neq 4) && (value neq 5) && (value neq 6) && (r eq 2)
             },
             invariants = arrayOf(
                 { _, r -> r.number > 0 },
@@ -220,6 +246,10 @@ class TryCatch : TsMethodTestRunner() {
             { x, r ->
                 // x > 0
                 x.number > 0 && (r eq 3)
+            },
+            { x, r ->
+                // x is NaN
+                x.number.isNaN() && (r eq 4)
             },
             invariants = arrayOf(
                 { _, r -> r.number > 0 },
@@ -251,6 +281,7 @@ class TryCatch : TsMethodTestRunner() {
         )
     }
 
+    @Disabled("Nested try-catch is broken in ArkIR")
     @Test
     fun `conditional rethrow`() {
         val method = getMethod("conditionalRethrow")
@@ -276,16 +307,20 @@ class TryCatch : TsMethodTestRunner() {
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
             { x, r ->
-                // x === 0, throws
-                (x eq 0) && (r eq 2)
+                // x === 0, throws -> caught, returns 3
+                (x eq 0) && (r eq 3)
             },
             { x, r ->
                 // x < 0, returns 1
                 x.number < 0 && (r eq 1)
             },
             { x, r ->
-                // x > 0, throws
-                x.number > 0 && (r eq 2)
+                // x > 0, throws -> caught, returns 3
+                x.number > 0 && (r eq 3)
+            },
+            { x, r ->
+                // x is NaN, returns 2
+                x.number.isNaN() && (r eq 2)
             },
             invariants = arrayOf(
                 { _, r -> r.number > 0 },
@@ -326,6 +361,7 @@ class TryCatch : TsMethodTestRunner() {
 
     // Realistic scenarios combining try-catch with other constructs
 
+    @Disabled("Loops are broken in ArkIR")
     @Test
     fun `try-catch in loop`() {
         val method = getMethod("tryCatchInLoop")
@@ -366,14 +402,15 @@ class TryCatch : TsMethodTestRunner() {
         val method = getMethod("tryCatchWithObjectAccess")
         discoverProperties<TsTestValue, TsTestValue.TsNumber>(
             method = method,
-            { obj, r ->
-                // null check
-                obj is TsTestValue.TsNull && (r eq 1)
-            },
-            { obj, r ->
-                // undefined check
-                obj is TsTestValue.TsUndefined && (r eq 1)
-            },
+            // TODO: 'object' input type can't be null/undefined
+            // { obj, r ->
+            //     // null check
+            //     obj is TsTestValue.TsNull && (r eq 1)
+            // },
+            // { obj, r ->
+            //     // undefined check
+            //     obj is TsTestValue.TsUndefined && (r eq 1)
+            // },
             { obj, r ->
                 // valid object, value === 42
                 obj !is TsTestValue.TsNull && obj !is TsTestValue.TsUndefined && (r eq 2)
@@ -393,14 +430,16 @@ class TryCatch : TsMethodTestRunner() {
         val method = getMethod("tryCatchWithArrayAccess")
         discoverProperties<TsTestValue, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
-            { arr, _, r ->
-                // null/undefined array - throws
-                (arr is TsTestValue.TsNull || arr is TsTestValue.TsUndefined) && (r eq 4)
-            },
-            { arr, _, r ->
-                // value is undefined
-                arr !is TsTestValue.TsNull && arr !is TsTestValue.TsUndefined && (r eq 1)
-            },
+            // TODO: `number[]` input type can't be null/undefined
+            // { arr, _, r ->
+            //     // null/undefined array - throws
+            //     (arr is TsTestValue.TsNull || arr is TsTestValue.TsUndefined) && (r eq 4)
+            // },
+            // TODO: `number` inside `number[]` can't be undefined
+            // { arr, _, r ->
+            //     // value is undefined
+            //     arr !is TsTestValue.TsNull && arr !is TsTestValue.TsUndefined && (r eq 1)
+            // },
             { arr, _, r ->
                 // value > 10
                 arr !is TsTestValue.TsNull && arr !is TsTestValue.TsUndefined && (r eq 2)

@@ -203,7 +203,8 @@ fun TsContext.mkNullishExpr(
 
 fun TsState.throwException(reason: String) {
     val ref = ctx.mkStringConstantRef(reason)
-    methodResult = TsMethodResult.TsException(ref, EtsStringType)
+    // TODO: val type = EtsStringType
+    methodResult = TsMethodResult.TsException(ref)
 }
 
 fun TsContext.mkNotNullOrUndefined(ref: UHeapRef): UBoolExpr {
