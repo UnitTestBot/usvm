@@ -348,10 +348,10 @@ open class TsTestStateResolver(
 
             if (sort is TsUnresolvedSort) {
                 // this means that a fake object was created, and we need to read it from the current memory
-                val ref = mkRegisterStackLValue(addressSort, idx)
-                val address = finalStateMemory.read(ref)
-                check(address.isFakeObject())
-                return@mapIndexed resolveFakeObject(address)
+                val lValue = mkRegisterStackLValue(addressSort, idx)
+                val ref = finalStateMemory.read(lValue).asExpr(addressSort)
+                check(ref.isFakeObject())
+                return@mapIndexed resolveFakeObject(ref)
             }
 
             val ref = mkRegisterStackLValue(sort, idx)
