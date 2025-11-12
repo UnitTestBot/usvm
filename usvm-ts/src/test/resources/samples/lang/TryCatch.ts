@@ -431,7 +431,11 @@ class TryCatch {
         } catch (e) {
             result = 3;
         }
-        return result; // 1 if no throw, 3 if thrown
+        if (shouldFail) {
+            return result; // 3
+        } else {
+            return result; // 1
+        }
     }
 
     tryCatchWithMultipleConditions(x: number, y: number): number {
