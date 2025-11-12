@@ -409,7 +409,25 @@ class TryCatch {
         } catch (e) {
             result = 4; // caught exception
         }
-        return result; // 1, 2, 3, or 4
+
+        if (arr === null) {
+            return result; // 4
+        }
+        if (arr === undefined) {
+            return result; // 4
+        }
+        if (index < 0) {
+            return result; // 1
+        }
+        if (index >= arr.length) {
+            return result; // 1
+        }
+        const value = arr[index];
+        if (value > 10) {
+            return result; // 2
+        } else {
+            return result; // 3
+        }
     }
 
     tryCatchWithFunctionCall(shouldFail: boolean): number {

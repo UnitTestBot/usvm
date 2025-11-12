@@ -18,7 +18,7 @@ class InputArrays : TsMethodTestRunner() {
         val method = getMethod("inputArrayOfNumbers")
         discoverProperties<TsTestValue.TsArray<*>, TsTestValue>(
             method = method,
-            { _, r -> r is TsTestValue.TsException },
+            { _, r -> r is TsTestValue.TsMachineError },
             { x, r ->
                 r as TsTestValue.TsNumber
                 val x0 = x.values[0] as TsTestValue.TsNumber

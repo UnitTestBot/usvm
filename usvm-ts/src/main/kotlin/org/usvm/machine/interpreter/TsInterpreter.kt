@@ -131,11 +131,7 @@ class TsInterpreter(
                 }
             }
 
-            scope.doWithState {
-                val exc = makeSymbolicRefUntyped()
-                methodResult = TsMethodResult.TsException(exc, result.message)
-            }
-            return StepResult(forkedStates = emptySequence(), originalStateAlive = false)
+            return scope.stepResult()
         }
 
         if (result is TsMethodResult.TsException) {

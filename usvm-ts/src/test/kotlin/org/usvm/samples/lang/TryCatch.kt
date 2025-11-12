@@ -428,28 +428,46 @@ class TryCatch : TsMethodTestRunner() {
     @Test
     fun `try-catch with array access`() {
         val method = getMethod("tryCatchWithArrayAccess")
-        discoverProperties<TsTestValue, TsTestValue.TsNumber, TsTestValue.TsNumber>(
+        discoverProperties<TsTestValue, TsTestValue.TsNumber, TsTestValue>(
             method = method,
             // TODO: `number[]` input type can't be null/undefined
             // { arr, _, r ->
             //     // null/undefined array - throws
             //     (arr is TsTestValue.TsNull || arr is TsTestValue.TsUndefined) && (r eq 4)
             // },
-            // TODO: `number` inside `number[]` can't be undefined
             // { arr, _, r ->
             //     // value is undefined
             //     arr !is TsTestValue.TsNull && arr !is TsTestValue.TsUndefined && (r eq 1)
             // },
-            { arr, _, r ->
-                // value > 10
-                arr !is TsTestValue.TsNull && arr !is TsTestValue.TsUndefined && (r eq 2)
+            // { arr, x, r ->
+            //     arr as TsTestValue.TsArray<*>
+            //     r as TsTestValue.TsNumber
+            //     (r eq 1) && (x.number < 0 || x.number >= arr.values.size)
+            // },
+            // TODO: for out-of-bound access, we throw MachineError, instead of returning undefined!
+            { _, x, r ->
+                val b1 = x.number < 0
+                val b2 = x.number >= 0
+                (r is TsTestValue.TsMachineError) && (b1 || b2)
             },
-            { arr, _, r ->
+            { _, _, r ->
+                // value > 10
+                r as TsTestValue.TsNumber
+                (r eq 2)
+            },
+            { _, _, r ->
                 // value <= 10
-                arr !is TsTestValue.TsNull && arr !is TsTestValue.TsUndefined && (r eq 3)
+                r as TsTestValue.TsNumber
+                (r eq 3)
             },
             invariants = arrayOf(
-                { _, _, r -> r.number > 0 },
+                { _, _, r ->
+                    if (r is TsTestValue.TsNumber) {
+                        r.number > 0
+                    } else {
+                        true
+                    }
+                },
             )
         )
     }

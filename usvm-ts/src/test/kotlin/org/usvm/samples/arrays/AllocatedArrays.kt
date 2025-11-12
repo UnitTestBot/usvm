@@ -98,7 +98,7 @@ class AllocatedArrays : TsMethodTestRunner() {
         val method = getMethod("allocatedArrayLengthExpansion")
         discoverProperties<TsTestValue>(
             method = method,
-            { r -> r is TsTestValue.TsException }
+            { r -> r is TsTestValue.TsMachineError }
         )
     }
 
@@ -107,7 +107,7 @@ class AllocatedArrays : TsMethodTestRunner() {
         val method = getMethod("writeInTheIndexEqualToLength")
         discoverProperties<TsTestValue>(
             method = method,
-            { r -> r is TsTestValue.TsException },
+            { r -> r is TsTestValue.TsMachineError },
         )
     }
 }

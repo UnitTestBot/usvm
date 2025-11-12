@@ -364,6 +364,12 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
                 EtsClassType(signature)
             }
 
+            TsTestValue.TsMachineError::class -> {
+                // TODO incorrect
+                val signature = EtsClassSignature("UsvmError", EtsFileSignature.UNKNOWN)
+                EtsClassType(signature)
+            }
+
             else -> error("Unsupported type: $klass")
         }
     }
