@@ -424,12 +424,12 @@ class TryCatch {
         try {
             const value = mayThrow(shouldFail);
             if (value > 40) {
-                result = 1;
+                result = 1; // function returned 42
             } else {
-                result = 2;
+                result = 2; // unreachable
             }
         } catch (e) {
-            result = 3;
+            result = 3; // function threw
         }
         if (shouldFail) {
             return result; // 3
