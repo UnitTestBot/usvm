@@ -194,6 +194,15 @@ class RunnerTest {
             targetsPath = "validation/targets-basic01.json"
         )
     }
+
+    @Test
+    fun `run reachability on sample 1`() {
+        runOn(
+            methodName = "checkImageModel",
+            filePath = "validation/sample1.ts",
+            targetsPath = "validation/targets-sample1.json"
+        )
+    }
 }
 
 /*

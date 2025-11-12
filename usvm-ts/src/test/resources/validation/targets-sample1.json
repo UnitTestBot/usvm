@@ -1,0 +1,40 @@
+[
+  [
+    {
+      "location": {
+        "fileName": "sample1.ts",
+        "className": "%dflt",
+        "methodName": "checkImageModel",
+        "block": 0
+      }
+    },
+    {
+      "location": {
+        "fileName": "sample1.ts",
+        "className": "%dflt",
+        "methodName": "checkImageModel",
+        "block": 2,
+        "index": 2
+      }
+    }
+  ],
+  [
+    {
+      "location": {
+        "fileName": "sample1.ts",
+        "className": "%dflt",
+        "methodName": "checkImageModel",
+        "block": 0
+      }
+    },
+    {
+      "location": {
+        "fileName": "sample1.ts",
+        "className": "%dflt",
+        "methodName": "checkImageModel",
+        "block": 1,
+        "index": 1
+      }
+    }
+  ]
+]
