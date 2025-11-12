@@ -454,6 +454,7 @@ class TryCatch : TsMethodTestRunner() {
         )
     }
 
+    @Disabled("Calls to nested functions have incorrect signatures in ArkIR")
     @Test
     fun `try-catch with function call`() {
         val method = getMethod("tryCatchWithFunctionCall")
