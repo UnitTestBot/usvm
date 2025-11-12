@@ -181,9 +181,14 @@ class TsInterpreter(
         // Note: do not reset the exception here!
         if (trap == null) {
             scope.doWithState {
-                memory.stack.pop()
+                // TODO: where we have to pop the memory stack?
+                //       If we pop it always (unconditionally, before callStack.pop),
+                //       then we end up with "empty" memory stack if no one caught the exception,
+                //       which leads to failure in test resolver (when resolving `any` type params...).
+                // memory.stack.pop() // moved below...
                 val returnSite = callStack.pop()
                 if (returnSite != null) {
+                    memory.stack.pop() // moved from above...
                     newStmt(returnSite)
                 }
             }
