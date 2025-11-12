@@ -715,6 +715,7 @@ class TryCatch : TsMethodTestRunner() {
         )
     }
 
+    @Disabled("Nested try-catch is broken in ArkIR")
     @Test
     fun `multiple finally blocks`() {
         val method = getMethod("multipleFinallyBlocks")
