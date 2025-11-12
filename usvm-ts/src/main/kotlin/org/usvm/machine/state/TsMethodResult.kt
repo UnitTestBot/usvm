@@ -2,7 +2,6 @@ package org.usvm.machine.state
 
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodSignature
-import org.jacodb.ets.model.EtsType
 import org.usvm.UExpr
 
 /**
@@ -46,8 +45,14 @@ sealed interface TsMethodResult {
     class TsException(
         val value: UExpr<*>,
         // TODO: additional (optional) info?
+        val reason: String? = null,
     ) : TsMethodResult {
-        override fun toString(): String = "Exception(value=$value)"
+        override fun toString(): String =
+            if (reason != null) {
+                "Exception(value=$value, reason=\"$reason\")"
+            } else {
+                "Exception(value=$value)"
+            }
     }
 
     /**

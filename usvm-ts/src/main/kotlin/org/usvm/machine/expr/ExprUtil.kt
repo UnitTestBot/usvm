@@ -2,7 +2,7 @@ package org.usvm.machine.expr
 
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
-import org.jacodb.ets.model.EtsStringType
+import org.jacodb.ets.model.EtsClassType
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
@@ -11,6 +11,7 @@ import org.usvm.UHeapRef
 import org.usvm.UIteExpr
 import org.usvm.USort
 import org.usvm.api.makeSymbolicPrimitive
+import org.usvm.api.makeSymbolicRefUntyped
 import org.usvm.isFalse
 import org.usvm.logger
 import org.usvm.machine.TsContext
@@ -18,6 +19,7 @@ import org.usvm.machine.TsSizeSort
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
+import org.usvm.machine.types.EtsErrorTypes
 import org.usvm.machine.types.EtsFakeType
 import org.usvm.machine.types.ExprWithTypeConstraint
 import org.usvm.types.single
@@ -201,10 +203,17 @@ fun TsContext.mkNullishExpr(
     return mkFalse()
 }
 
-fun TsState.throwException(reason: String) {
-    val ref = ctx.mkStringConstantRef(reason)
-    // TODO: val type = EtsStringType
-    methodResult = TsMethodResult.TsException(ref)
+fun TsState.throwException(
+    type: EtsClassType,
+    reason: String? = null,
+) {
+    val ref = makeSymbolicRefUntyped()
+    pathConstraints += memory.types.evalIsSubtype(ref, type)
+    methodResult = TsMethodResult.TsException(ref, reason)
+}
+
+fun TsState.throwMachineError(reason: String) {
+    methodResult = TsMethodResult.MachineError(reason)
 }
 
 fun TsContext.mkNotNullOrUndefined(ref: UHeapRef): UBoolExpr {
@@ -230,7 +239,11 @@ fun TsContext.checkUndefinedOrNullPropertyRead(
     val condition = mkNotNullOrUndefined(instance)
     return scope.fork(
         condition,
-        blockOnFalseState = { throwException("Undefined or null property access: $propertyName of $instance") }
+        blockOnFalseState = {
+            val type = EtsErrorTypes.TypeError
+            val reason = "Cannot read property '$propertyName' of null or undefined"
+            throwException(type, reason)
+        }
     )
 }
 
@@ -241,7 +254,9 @@ fun TsContext.checkNegativeIndexRead(
     val condition = mkBvSignedGreaterOrEqualExpr(index, mkBv(0))
     return scope.fork(
         condition,
-        blockOnFalseState = { throwException("Negative index access: $index") }
+        blockOnFalseState = {
+            throwMachineError("Negative index access: $index")
+        }
     )
 }
 
@@ -253,7 +268,9 @@ fun TsContext.checkReadingInRange(
     val condition = mkBvSignedLessExpr(index, length)
     return scope.fork(
         condition,
-        blockOnFalseState = { throwException("Index out of bounds: $index, length: $length") }
+        blockOnFalseState = {
+            throwMachineError("Index out of bounds: $index, length: $length")
+        }
     )
 }
 

@@ -44,6 +44,7 @@ import org.usvm.USort
 import org.usvm.api.TsTarget
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArray
+import org.usvm.api.makeSymbolicRefUntyped
 import org.usvm.api.mockMethodCall
 import org.usvm.api.typeStreamOf
 import org.usvm.collections.immutable.internal.MutabilityOwnership
@@ -116,6 +117,8 @@ class TsInterpreter(
         val result = state.methodResult
 
         if (result is TsMethodResult.MachineError) {
+            logger.warn { "Machine error: ${result.message}" }
+
             scope.doWithState {
                 val returnSite = callStack.pop()
 
@@ -128,7 +131,10 @@ class TsInterpreter(
                 }
             }
 
-            logger.warn { "Machine error: ${result.message}" }
+            scope.doWithState {
+                val exc = makeSymbolicRefUntyped()
+                methodResult = TsMethodResult.TsException(exc, result.message)
+            }
             return StepResult(forkedStates = emptySequence(), originalStateAlive = false)
         }
 

@@ -302,5 +302,5 @@ class TsState(
     }
 
     override val isExceptional: Boolean
-        get() = methodResult is TsMethodResult.TsException
+        get() = methodResult is TsMethodResult.TsException || methodResult is TsMethodResult.MachineError
 }

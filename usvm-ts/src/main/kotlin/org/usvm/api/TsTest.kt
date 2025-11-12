@@ -31,6 +31,10 @@ sealed interface TsTestValue {
     data object TsNull : TsTestValue
     data object TsUndefined : TsTestValue
 
+    data class TsMachineError(
+        val message: String,
+    ): TsTestValue
+
     sealed interface TsException : TsTestValue {
         data object UnknownException : TsException
         data class StringException(val message: String) : TsException

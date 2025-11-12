@@ -97,6 +97,7 @@ import org.usvm.machine.operator.TsUnaryOperator
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.newStmt
+import org.usvm.machine.types.EtsErrorTypes
 import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.sizeSort
@@ -855,7 +856,11 @@ class TsExprResolver(
 
             scope.fork(
                 condition,
-                blockOnFalseState = { throwException("Invalid array size: ${size.asExpr(fp64Sort)}") }
+                blockOnFalseState = {
+                    val type = EtsErrorTypes.RangeError
+                    val reason = "Invalid array size: ${size.asExpr(fp64Sort)}"
+                    throwException(type, reason)
+                }
             )
 
             if (arrayType.elementType is EtsArrayType) {
