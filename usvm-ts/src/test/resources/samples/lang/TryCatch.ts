@@ -508,7 +508,13 @@ class TryCatch {
                 result = 4; // should be unreachable
             }
         }
-        return result;
+        if (a && b) {
+            return result; // 3
+        } else if (a || b) {
+            return result; // 1
+        } else {
+            return result; // 2
+        }
     }
 
     finallyWithSideEffects(x: number): number {

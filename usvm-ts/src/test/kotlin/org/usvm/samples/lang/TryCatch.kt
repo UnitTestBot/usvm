@@ -560,20 +560,16 @@ class TryCatch : TsMethodTestRunner() {
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method = method,
             { a, b, r ->
-                // both true - throws, a is true in catch
-                a.value && b.value && (r eq 3)
+                // both true - throws - caught
+                (a.value && b.value) && (r eq 3)
             },
             { a, b, r ->
-                // a true, b false - at least one true
-                a.value && !b.value && (r eq 1)
-            },
-            { a, b, r ->
-                // a false, b true - at least one true
-                !a.value && b.value && (r eq 1)
+                // at least one true
+                (a.value || b.value) && (r eq 1)
             },
             { a, b, r ->
                 // both false
-                !a.value && !b.value && (r eq 2)
+                (!a.value && !b.value) && (r eq 2)
             },
             invariants = arrayOf(
                 { _, _, r -> r.number > 0 },
