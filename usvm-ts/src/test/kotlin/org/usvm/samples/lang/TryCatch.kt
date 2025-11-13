@@ -528,7 +528,7 @@ class TryCatch : TsMethodTestRunner() {
         val method = getMethod("tryCatchInConditional")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
-            { flag, x, r ->
+            { flag, _, r ->
                 // flag is false
                 !flag.value && (r eq 4)
             },
