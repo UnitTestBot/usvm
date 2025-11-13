@@ -687,12 +687,8 @@ class TsExprResolver(
                 result.value
             }
 
-            is TsMethodResult.TsException -> {
-                error("Exception should be handled earlier")
-            }
-
-            is TsMethodResult.MachineError -> {
-                error("Machine error should be handled earlier")
+            is TsMethodResult.Error -> {
+                error("Errors must be processed earlier")
             }
 
             is TsMethodResult.NoCall -> {

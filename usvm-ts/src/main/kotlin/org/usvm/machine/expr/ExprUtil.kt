@@ -209,11 +209,11 @@ fun TsState.throwException(
 ) {
     val ref = makeSymbolicRefUntyped()
     pathConstraints += memory.types.evalIsSubtype(ref, type)
-    methodResult = TsMethodResult.TsException(ref, reason)
+    methodResult = TsMethodResult.Error.Exception(ref, reason)
 }
 
 fun TsState.throwMachineError(reason: String) {
-    methodResult = TsMethodResult.MachineError(reason)
+    methodResult = TsMethodResult.Error.MachineError(reason)
 }
 
 fun TsContext.mkNotNullOrUndefined(ref: UHeapRef): UBoolExpr {

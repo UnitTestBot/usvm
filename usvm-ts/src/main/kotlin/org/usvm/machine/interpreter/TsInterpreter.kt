@@ -44,7 +44,6 @@ import org.usvm.USort
 import org.usvm.api.TsTarget
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArray
-import org.usvm.api.makeSymbolicRefUntyped
 import org.usvm.api.mockMethodCall
 import org.usvm.api.typeStreamOf
 import org.usvm.collections.immutable.internal.MutabilityOwnership
@@ -116,7 +115,7 @@ class TsInterpreter(
 
         val result = state.methodResult
 
-        if (result is TsMethodResult.MachineError) {
+        if (result is TsMethodResult.Error.MachineError) {
             logger.warn { "Machine error: ${result.message}" }
 
             scope.doWithState {
@@ -134,7 +133,7 @@ class TsInterpreter(
             return scope.stepResult()
         }
 
-        if (result is TsMethodResult.TsException) {
+        if (result is TsMethodResult.Error.Exception) {
             handleException(scope, result, stmt)
             return scope.stepResult()
         }
@@ -174,7 +173,7 @@ class TsInterpreter(
 
     private fun handleException(
         scope: TsStepScope,
-        result: TsMethodResult.TsException,
+        result: TsMethodResult.Error.Exception,
         stmt: EtsStmt,
     ): Unit = with(ctx) {
         val trap = graph.findTrap(stmt)
@@ -752,12 +751,8 @@ class TsInterpreter(
                     observer?.onAssignStatement(exprResolver.simpleValueResolver, stmt, scope)
                 }
 
-                is TsMethodResult.TsException -> {
-                    error("Exceptions must be processed earlier")
-                }
-
-                is TsMethodResult.MachineError -> {
-                    error("Machine errors must be processed earlier")
+                is TsMethodResult.Error -> {
+                    error("Errors must be processed earlier")
                 }
             }
 
@@ -837,7 +832,7 @@ class TsInterpreter(
         // }
 
         scope.doWithState {
-            methodResult = TsMethodResult.TsException(exception)
+            methodResult = TsMethodResult.Error.Exception(exception)
         }
         // } else {
         //     scope.doWithState {

@@ -76,11 +76,11 @@ class TsTestResolver {
                 }
             }
 
-            is TsMethodResult.TsException -> {
+            is TsMethodResult.Error.Exception -> {
                 resolveException(res, afterMemoryScope)
             }
 
-            is TsMethodResult.MachineError -> {
+            is TsMethodResult.Error.MachineError -> {
                 TsTestValue.TsMachineError(res.message)
             }
         }
@@ -121,7 +121,7 @@ class TsTestResolver {
     }
 
     private fun resolveException(
-        res: TsMethodResult.TsException,
+        res: TsMethodResult.Error.Exception,
         afterMemoryScope: MemoryScope,
     ): TsTestValue.TsException {
         return afterMemoryScope.withMode(ResolveMode.CURRENT) {

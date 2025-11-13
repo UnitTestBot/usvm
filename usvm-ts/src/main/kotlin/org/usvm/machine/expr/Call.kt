@@ -35,12 +35,8 @@ internal fun TsExprResolver.handleInstanceCall(
 
         is TsMethodResult.NoCall -> {} // proceed to call
 
-        is TsMethodResult.TsException -> {
-            error("Exception should be handled earlier")
-        }
-
-        is TsMethodResult.MachineError -> {
-            error("Machine error should be handled earlier")
+        is TsMethodResult.Error -> {
+            error("Errors must be processed earlier")
         }
     }
 

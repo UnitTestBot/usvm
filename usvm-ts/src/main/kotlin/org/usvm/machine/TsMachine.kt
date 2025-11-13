@@ -136,7 +136,7 @@ class TsMachine(
         val statesCollector: StatesCollector<TsState> =
             when (options.stateCollectionStrategy) {
                 StateCollectionStrategy.COVERED_NEW -> CoveredNewStatesCollector(coverageStatistics) {
-                    it.methodResult is TsMethodResult.TsException || it.methodResult is TsMethodResult.MachineError
+                    it.methodResult is TsMethodResult.Error
                 }
 
                 StateCollectionStrategy.REACHED_TARGET -> TargetsReachedStatesCollector()

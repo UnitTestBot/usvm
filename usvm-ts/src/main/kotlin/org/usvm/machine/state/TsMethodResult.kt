@@ -37,34 +37,31 @@ sealed interface TsMethodResult {
         }
     }
 
-    /**
-     * An exception was thrown.
-     *
-     * @param value the thrown value.
-     */
-    class TsException(
-        val value: UExpr<*>,
-        // TODO: additional (optional) info?
-        val reason: String? = null,
-    ) : TsMethodResult {
-        override fun toString(): String =
-            if (reason != null) {
-                "Exception(value=$value, reason=\"$reason\")"
-            } else {
-                "Exception(value=$value)"
-            }
-    }
+    sealed interface Error : TsMethodResult {
+        /**
+         * A JS/TS exception was thrown.
+         *
+         * @param value the thrown value.
+         */
+        class Exception(
+             val value: UExpr<*>,
+            // TODO: additional (optional) info?
+            val reason: String? = null,
+        ) : Error {
+            override fun toString(): String = "Exception($value)"
+        }
 
-    /**
-     * A machine error occurred.
-     *
-     * @param message describes the error.
-     * @param payload contains additional information about the error.
-     */
-    class MachineError(
-        val message: String,
-        val payload: Any? = null,
-    ) : TsMethodResult {
-        override fun toString(): String = "MachineError($message)"
+        /**
+         * A machine error occurred.
+         *
+         * @param message describes the error.
+         * @param payload contains additional information about the error.
+         */
+        class MachineError(
+            val message: String,
+            val payload: Any? = null,
+        ) : Error {
+            override fun toString(): String = "MachineError($message)"
+        }
     }
 }

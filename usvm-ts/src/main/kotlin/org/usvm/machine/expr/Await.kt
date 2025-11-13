@@ -151,7 +151,7 @@ fun TsContext.processAwait(
                 // If the promise is rejected, we throw an exception.
                 scope.doWithState {
                     val exc = getResolvedValue(promise, addressSort)
-                    methodResult = TsMethodResult.TsException(exc)
+                    methodResult = TsMethodResult.Error.Exception(exc)
                 }
                 null
             }
