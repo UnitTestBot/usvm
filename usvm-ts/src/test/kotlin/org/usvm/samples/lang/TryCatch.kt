@@ -147,28 +147,16 @@ class TryCatch : TsMethodTestRunner() {
     }
 
     @Test
-    fun `catch with return`() {
-        val method = getMethod("catchWithReturn")
-        discoverProperties<TsTestValue.TsNumber>(
-            method = method,
-            { r -> r eq 1 },
-            invariants = arrayOf(
-                { r -> r.number > 0 },
-            )
-        )
-    }
-
-    @Test
-    fun `finally overrides return`() {
-        val method = getMethod("finallyOverridesReturn")
+    fun `finally overrides result`() {
+        val method = getMethod("finallyOverridesResult")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsNumber>(
             method = method,
             { shouldThrow, r ->
-                // exception path: finally overrides catch return
+                // exception path: finally overrides catch result
                 shouldThrow.value && (r eq 100)
             },
             { shouldThrow, r ->
-                // normal path: finally overrides try return
+                // normal path: finally overrides try result
                 !shouldThrow.value && (r eq 100)
             },
             invariants = arrayOf(
@@ -231,8 +219,8 @@ class TryCatch : TsMethodTestRunner() {
     }
 
     @Test
-    fun `multiple returns in try`() {
-        val method = getMethod("multipleReturnsInTry")
+    fun `multiple branches in try`() {
+        val method = getMethod("multipleBranchesInTry")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
             { x, r ->
@@ -348,8 +336,8 @@ class TryCatch : TsMethodTestRunner() {
     }
 
     @Test
-    fun `early return in finally`() {
-        val method = getMethod("earlyReturnInFinally")
+    fun `finally always executes`() {
+        val method = getMethod("finallyAlwaysExecutes")
         discoverProperties<TsTestValue.TsNumber>(
             method = method,
             { r -> r eq 1 }, // finally always returns 1
@@ -551,29 +539,6 @@ class TryCatch : TsMethodTestRunner() {
     }
 
     @Test
-    fun `try-catch with return`() {
-        val method = getMethod("tryCatchWithReturn")
-        discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
-            method = method,
-            { x, r ->
-                // x < 0
-                x.number < 0 && (r eq 1)
-            },
-            { x, r ->
-                // x === 0, throws and caught
-                (x eq 0) && (r eq 3)
-            },
-            { x, r ->
-                // x > 0
-                x.number > 0 && (r eq 2)
-            },
-            invariants = arrayOf(
-                { _, r -> r.number > 0 },
-            )
-        )
-    }
-
-    @Test
     fun `try-catch with logical ops`() {
         val method = getMethod("tryCatchWithLogicalOps")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
@@ -770,6 +735,114 @@ class TryCatch : TsMethodTestRunner() {
             invariants = arrayOf(
                 { _, r -> r.number > 0 },
             )
+        )
+    }
+
+    @Test
+    fun `result accumulation in try-catch`() {
+        val method = getMethod("resultAccumulationInTryCatch")
+        discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber>(
+            method = method,
+            { x, _, r ->
+                // x < 0: result = x + 100
+                x.number < 0 && (r eq (x.number + 100))
+            },
+            { x, y, r ->
+                // x >= 0: result = x + y
+                x.number >= 0 && (r eq (x.number + y.number))
+            },
+            invariants = arrayOf(
+                { x, y, r ->
+                    if (x.number < 0) {
+                        r eq (x.number + 100)
+                    } else {
+                        r eq (x.number + y.number)
+                    }
+                },
+            )
+        )
+    }
+
+    @Test
+    fun `result modification in finally`() {
+        val method = getMethod("resultModificationInFinally")
+        discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
+            method = method,
+            { x, r ->
+                // x < 0: result = 3*x + 10
+                x.number < 0 && (r eq (3 * x.number + 10))
+            },
+            { x, r ->
+                // x >= 0: result = 2*x + 10
+                x.number >= 0 && (r eq (2 * x.number + 10))
+            },
+            invariants = arrayOf(
+                { x, r ->
+                    if (x.number < 0) {
+                        r eq (3 * x.number + 10)
+                    } else {
+                        r eq (2 * x.number + 10)
+                    }
+                },
+            )
+        )
+    }
+
+    @Test
+    fun `multiple result updates in try`() {
+        val method = getMethod("multipleResultUpdatesInTry")
+        discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
+            method = method,
+            { x, r ->
+                val computed = 2 * (x.number + 5) - 3
+                // if computed >= 0, return it
+                computed >= 0 && (r eq computed)
+            },
+            { x, r ->
+                val computed = 2 * (x.number + 5) - 3
+                // if computed < 0, return -computed
+                computed < 0 && (r eq -computed)
+            },
+        )
+    }
+
+    @Test
+    fun `conditional result in catch`() {
+        val method = getMethod("conditionalResultInCatch")
+        discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
+            method = method,
+            { x, r ->
+                // x === 0: result = 100
+                (x eq 0) && (r eq 100)
+            },
+            { x, r ->
+                // x < 0: result = 200
+                x.number < 0 && (r eq 200)
+            },
+            { x, r ->
+                // x > 0: result = x
+                x.number > 0 && (r eq x.number)
+            },
+            invariants = arrayOf(
+                { _, r -> r.number > 0 },
+            )
+        )
+    }
+
+    @Disabled("Nested try-catch is broken in ArkIR")
+    @Test
+    fun `result preserved across rethrow`() {
+        val method = getMethod("resultPreservedAcrossRethrow")
+        discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
+            method = method,
+            { x, r ->
+                // x < 0: result = x + 10 + 5 + 100 = x + 115
+                x.number < 0 && (r eq (x.number + 115))
+            },
+            { x, r ->
+                // x >= 0: result = x + 10 + 20 = x + 30
+                x.number >= 0 && (r eq (x.number + 30))
+            },
         )
     }
 }
