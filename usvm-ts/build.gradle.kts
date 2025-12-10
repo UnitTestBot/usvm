@@ -82,7 +82,7 @@ tasks.shadowJar {
         exclude(dependency("io.ksmt:ksmt-cvc5-native.*:.*"))
 
         // Exclude Z3 native libraries:
-        exclude(dependency("io.ksmt:ksmt-z3-native-.*:.*"))
+        // exclude(dependency("io.ksmt:ksmt-z3-native-.*:.*"))
     }
 }
 
