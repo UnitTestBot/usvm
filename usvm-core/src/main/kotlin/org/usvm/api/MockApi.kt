@@ -1,6 +1,7 @@
 package org.usvm.api
 
 import org.usvm.StepScope
+import org.usvm.TrackedLiteral
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.UHeapRef
@@ -12,10 +13,11 @@ import org.usvm.utils.logAssertFailure
 // TODO: special mock api for variables
 
 fun <Method, T : USort> UState<*, Method, *, *, *, *>.makeSymbolicPrimitive(
-    sort: T
+    sort: T,
+    trackedLiteral: TrackedLiteral? = null,
 ): UExpr<T> {
     check(sort != sort.uctx.addressSort) { "$sort is not primitive" }
-    return memory.mocker.createMockSymbol(trackedLiteral = null, sort, ownership)
+    return memory.mocker.createMockSymbol(trackedLiteral = trackedLiteral, sort, ownership)
 }
 
 fun <Type, Method, State> StepScope<State, Type, *, *>.makeSymbolicRef(

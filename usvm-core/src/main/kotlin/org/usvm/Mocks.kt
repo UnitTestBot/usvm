@@ -14,7 +14,9 @@ interface UMockEvaluator {
     fun <Sort : USort> eval(symbol: UMockSymbol<Sort>): UExpr<Sort>
 }
 
-interface TrackedLiteral
+interface TrackedLiteral {
+    val name: String
+}
 
 interface UMocker<Method> : UMockEvaluator {
     fun <Sort : USort> call(
@@ -69,7 +71,7 @@ class UIndexedMocker<Method>(
         sort: Sort,
         ownership: MutabilityOwnership,
     ): UExpr<Sort> {
-        val const = sort.uctx.mkTrackedSymbol(sort)
+        val const = sort.uctx.mkTrackedSymbol(sort, trackedLiteral?.name)
 
         if (trackedLiteral != null) {
             trackedSymbols = trackedSymbols.put(trackedLiteral, const, ownership)
