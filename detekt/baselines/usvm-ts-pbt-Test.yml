@@ -1,0 +1,27 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>ArgumentListWrapping:ConcreteVsSymbolicDifferentialTest.kt$ConcreteVsSymbolicDifferentialTest$("[$className] compared=${verdict.compared}, skipped=${verdict.skipped}, mismatches=${verdict.mismatches.size}")</ID>
+    <ID>ArgumentListWrapping:HybridE2eTest.kt$HybridE2eTest$( scene, m, coverage, hints = hints, hintFallback = false, )</ID>
+    <ID>ArgumentListWrapping:HybridE2eTest.kt$HybridE2eTest$( scene, m, coverage, hints = pbt.typeProfiler.toHints(), )</ID>
+    <ID>BracesOnWhenStatements:ConcreteVsSymbolicDifferentialTest.kt$ConcreteVsSymbolicDifferentialTest$when</ID>
+    <ID>CommentSpacing:LoadEts.kt$//-----------------------------------------------------------------------------</ID>
+    <ID>ForbiddenMethodCall:ConcreteVsSymbolicDifferentialTest.kt$ConcreteVsSymbolicDifferentialTest$println(" MISMATCH: $it")</ID>
+    <ID>ForbiddenMethodCall:ConcreteVsSymbolicDifferentialTest.kt$ConcreteVsSymbolicDifferentialTest$println("[$className] compared=${verdict.compared}, skipped=${verdict.skipped}, mismatches=${verdict.mismatches.size}")</ID>
+    <ID>ForbiddenMethodCall:HybridE2eTest.kt$HybridE2eTest$println( "[ablation] with hints: steps=${withHints.steps}, reached=${withHints.reached}, " + "wallMs=${withHints.wallMs}; without: steps=${withoutHints.steps}, " + "reached=${withoutHints.reached}, wallMs=${withoutHints.wallMs}" )</ID>
+    <ID>ImportOrdering:ConcreteInterpreterDslTest.kt$import org.jacodb.ets.dsl.add import org.jacodb.ets.dsl.and import org.jacodb.ets.dsl.const import org.jacodb.ets.dsl.eqq import org.jacodb.ets.dsl.gt import org.jacodb.ets.dsl.local import org.jacodb.ets.dsl.lt import org.jacodb.ets.dsl.mul import org.jacodb.ets.dsl.neg import org.jacodb.ets.dsl.param import org.jacodb.ets.dsl.program import org.jacodb.ets.dsl.sub import org.jacodb.ets.dsl.toBlockCfg import org.jacodb.ets.dsl.ProgramBuilder import org.jacodb.ets.model.EtsClassSignature import org.jacodb.ets.model.EtsFileSignature import org.jacodb.ets.model.EtsIfStmt import org.jacodb.ets.model.EtsMethod import org.jacodb.ets.model.EtsMethodImpl import org.jacodb.ets.model.EtsMethodParameter import org.jacodb.ets.model.EtsMethodSignature import org.jacodb.ets.model.EtsScene import org.jacodb.ets.model.EtsStmt import org.jacodb.ets.model.EtsUnknownType import org.jacodb.ets.utils.toEtsBlockCfg import org.junit.jupiter.api.Assertions.assertEquals import org.junit.jupiter.api.Assertions.assertTrue import org.junit.jupiter.api.Test</ID>
+    <ID>MaxLineLength:ConcreteVsSymbolicDifferentialTest.kt$ConcreteVsSymbolicDifferentialTest$println("[$className] compared=${verdict.compared}, skipped=${verdict.skipped}, mismatches=${verdict.mismatches.size}")</ID>
+    <ID>MaximumLineLength:ConcreteVsSymbolicDifferentialTest.kt$ConcreteVsSymbolicDifferentialTest$ </ID>
+    <ID>MultiLineIfElse:ConcreteVsSymbolicDifferentialTest.kt$ConcreteVsSymbolicDifferentialTest$compared++</ID>
+    <ID>MultiLineIfElse:ConcreteVsSymbolicDifferentialTest.kt$ConcreteVsSymbolicDifferentialTest$mismatches += "$ctx: concrete threw ${result.value}, symbolic returned ${test.returnValue}"</ID>
+    <ID>NestedBlockDepth:ConcreteVsSymbolicDifferentialTest.kt$ConcreteVsSymbolicDifferentialTest$private fun runDifferential(resourcePath: String, className: String): Verdict</ID>
+    <ID>NoMultipleSpaces:JsSemanticsTest.kt$JsSemanticsTest$ </ID>
+    <ID>SwallowedException:ConcreteVsSymbolicDifferentialTest.kt$ConcreteVsSymbolicDifferentialTest$e: Throwable</ID>
+    <ID>UnderscoresInNumericLiterals:HybridE2eTest.kt$HybridE2eTest$49382.0</ID>
+    <ID>UnderscoresInNumericLiterals:JsSemanticsTest.kt$JsSemanticsTest$4294967295.0</ID>
+    <ID>UnderscoresInNumericLiterals:JsSemanticsTest.kt$JsSemanticsTest$4294967295L</ID>
+    <ID>Wrapping:ConcreteVsSymbolicDifferentialTest.kt$ConcreteVsSymbolicDifferentialTest$(</ID>
+    <ID>Wrapping:ConcreteVsSymbolicDifferentialTest.kt$ConcreteVsSymbolicDifferentialTest$;</ID>
+  </CurrentIssues>
+</SmellBaseline>

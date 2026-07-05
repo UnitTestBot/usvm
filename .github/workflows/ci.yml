@@ -149,10 +149,16 @@ jobs:
           cd $DEST_DIR
 
           npm install
+          # Transitively hoisted @types/node >= 24 uses TypeScript syntax that the
+          # ArkAnalyzer toolchain cannot parse; pin a compatible version. Both
+          # --no-save packages must be installed in one command: each `npm install`
+          # re-resolves the tree and drops previous --no-save additions
+          # (ohos-typescript is installed --no-save by the postinstall script).
+          npm install --no-save @types/node@22 arktools/lib/ohos-typescript-4.9.5-r4-OpenHarmony-v5.0.0-Release.tgz
           npm run build
 
       - name: Run TS tests
-        run: ./gradlew :usvm-ts:check :usvm-ts-dataflow:check
+        run: ./gradlew :usvm-ts:check :usvm-ts-dataflow:check :usvm-ts-pbt:check
 
       - name: Upload Gradle reports
         if: (!cancelled())

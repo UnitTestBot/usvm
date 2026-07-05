@@ -1,0 +1,87 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>ArgumentListWrapping:EtsConcreteInterpreter.kt$EtsConcreteInterpreter.Execution$("cannot set property '${lhv.field.name}' of ${JsSemantics.toStringJs(target)}")</ID>
+    <ID>ArgumentListWrapping:EtsConcreteInterpreter.kt$EtsConcreteInterpreter.Execution$(JsSemantics.toInt32(eval(left, frame)), JsSemantics.toInt32(eval(right, frame)))</ID>
+    <ID>ArgumentListWrapping:EtsConcreteInterpreter.kt$EtsConcreteInterpreter.Execution$(eval(left, frame))</ID>
+    <ID>ArgumentListWrapping:EtsConcreteInterpreter.kt$EtsConcreteInterpreter.Execution$(eval(right, frame))</ID>
+    <ID>ArgumentListWrapping:EtsConcreteInterpreter.kt$EtsConcreteInterpreter.Execution$(left, frame)</ID>
+    <ID>ArgumentListWrapping:EtsConcreteInterpreter.kt$EtsConcreteInterpreter.Execution$(op(JsSemantics.toInt32(eval(left, frame)), JsSemantics.toInt32(eval(right, frame))).toDouble())</ID>
+    <ID>ArgumentListWrapping:EtsConcreteInterpreter.kt$EtsConcreteInterpreter.Execution$(right, frame)</ID>
+    <ID>ArgumentListWrapping:EtsConcreteInterpreter.kt$EtsConcreteInterpreter.Execution$(target)</ID>
+    <ID>BracesOnWhenStatements:ConstantMiner.kt$MinedConstants.Companion$when</ID>
+    <ID>BracesOnWhenStatements:Conversions.kt$when</ID>
+    <ID>BracesOnWhenStatements:EtsConcreteInterpreter.kt$EtsConcreteInterpreter.Execution$when</ID>
+    <ID>BracesOnWhenStatements:Generators.kt$InputGenerator$when</ID>
+    <ID>BracesOnWhenStatements:Intrinsics.kt$Intrinsics$when</ID>
+    <ID>BracesOnWhenStatements:JsSemantics.kt$JsSemantics$when</ID>
+    <ID>BracesOnWhenStatements:Main.kt$when</ID>
+    <ID>BracesOnWhenStatements:PbtPhase.kt$PbtPhase$when</ID>
+    <ID>EmptyFunctionBlock:CoverageTracker.kt$CoverageTracker${}</ID>
+    <ID>Filename:ConstantMiner.kt$org.usvm.ts.pbt.gen.ConstantMiner.kt</ID>
+    <ID>Filename:Generators.kt$org.usvm.ts.pbt.gen.Generators.kt</ID>
+    <ID>ForbiddenMethodCall:Main.kt$println( " ${m.method}: stmt=%.1f%%, branch=%.1f%% (pbt: %s, symbolic: %s), %d ms".format( m.stmtCoverage * 100, m.branchCoverage * 100, m.pbt?.let { "${it.executions} runs, ${it.failures.size} failures" } ?: "-", m.symbolic?.let { "${it.reached}/${it.targets.size} targets" } ?: "-", m.totalWallMs, ) )</ID>
+    <ID>ForbiddenMethodCall:Main.kt$println("Analyzing ${methods.size} method(s) in mode $mode...")</ID>
+    <ID>ForbiddenMethodCall:Main.kt$println("Loading ${files.size} file(s) via ArkAnalyzer...")</ID>
+    <ID>ForbiddenMethodCall:Main.kt$println("Report written to $out")</ID>
+    <ID>ForbiddenMethodCall:Main.kt$println("Unknown option: ${args[i]}\n$USAGE")</ID>
+    <ID>ForbiddenMethodCall:Main.kt$println(USAGE)</ID>
+    <ID>LoopWithTooManyJumpStatements:PbtPhase.kt$PbtPhase$while</ID>
+    <ID>MagicNumber:EtsConcreteInterpreter.kt$EtsConcreteInterpreter.Execution$31</ID>
+    <ID>MagicNumber:Generators.kt$InputGenerator$0.0</ID>
+    <ID>MagicNumber:Generators.kt$InputGenerator$0.6</ID>
+    <ID>MagicNumber:Generators.kt$InputGenerator$10</ID>
+    <ID>MagicNumber:Generators.kt$InputGenerator$100</ID>
+    <ID>MagicNumber:Generators.kt$InputGenerator$1000</ID>
+    <ID>MagicNumber:Generators.kt$InputGenerator$1001</ID>
+    <ID>MagicNumber:Generators.kt$InputGenerator$101</ID>
+    <ID>MagicNumber:Generators.kt$InputGenerator$11</ID>
+    <ID>MagicNumber:Generators.kt$InputGenerator$1e6</ID>
+    <ID>MagicNumber:Generators.kt$InputGenerator$3</ID>
+    <ID>MagicNumber:Generators.kt$InputGenerator$4</ID>
+    <ID>MagicNumber:Generators.kt$InputGenerator$5</ID>
+    <ID>MagicNumber:Generators.kt$InputGenerator$6</ID>
+    <ID>MagicNumber:Generators.kt$InputGenerator$8</ID>
+    <ID>MagicNumber:Intrinsics.kt$Intrinsics$9007199254740991.0</ID>
+    <ID>MagicNumber:JsSemantics.kt$JsSemantics$0xFFFFFFFFL</ID>
+    <ID>MagicNumber:JsSemantics.kt$JsSemantics$16</ID>
+    <ID>MagicNumber:JsSemantics.kt$JsSemantics$1e21</ID>
+    <ID>MagicNumber:JsSemantics.kt$JsSemantics$8</ID>
+    <ID>MagicNumber:JsSemantics.kt$JsSemantics$9.007199254740992E15</ID>
+    <ID>MagicNumber:Main.kt$100</ID>
+    <ID>MagicNumber:Main.kt$20</ID>
+    <ID>MagicNumber:Main.kt$2_000</ID>
+    <ID>MagicNumber:PbtPhase.kt$PbtPhase$100</ID>
+    <ID>MagicNumber:SymbolicPhase.kt$SymbolicPhase$1_000_000</ID>
+    <ID>MatchingDeclarationName:ConstantMiner.kt$MinedConstants</ID>
+    <ID>MatchingDeclarationName:Generators.kt$InputGenerator</ID>
+    <ID>MaxLineLength:EtsConcreteInterpreter.kt$EtsConcreteInterpreter.Execution$)</ID>
+    <ID>MaxLineLength:EtsConcreteInterpreter.kt$EtsConcreteInterpreter.Execution$throw typeError("cannot set property '${lhv.field.name}' of ${JsSemantics.toStringJs(target)}")</ID>
+    <ID>MaximumLineLength:EtsConcreteInterpreter.kt$EtsConcreteInterpreter.Execution$ </ID>
+    <ID>MultiLineIfElse:EtsConcreteInterpreter.kt$EtsConcreteInterpreter.Execution$VNamespace(e.name)</ID>
+    <ID>MultiLineIfElse:EtsConcreteInterpreter.kt$EtsConcreteInterpreter.Execution$VString(array.value[i.toInt()].toString())</ID>
+    <ID>MultiLineIfElse:EtsConcreteInterpreter.kt$EtsConcreteInterpreter.Execution$VUndefined</ID>
+    <ID>MultiLineIfElse:EtsConcreteInterpreter.kt$EtsConcreteInterpreter.Execution$throw UnsupportedFeatureSignal("global ref: ${e.name}")</ID>
+    <ID>MultiLineIfElse:Generators.kt$InputGenerator$genAny(depth)</ID>
+    <ID>MultiLineIfElse:Generators.kt$InputGenerator$generate(type.types[random.nextInt(type.types.size)], depth)</ID>
+    <ID>MultiLineIfElse:Generators.kt$InputGenerator$random.nextDouble(-1e6, 1e6)</ID>
+    <ID>MultiLineIfElse:Generators.kt$InputGenerator$random.nextInt(-100, 101) + random.nextDouble()</ID>
+    <ID>MultiLineIfElse:JsSemantics.kt$JsSemantics$d.toLong().toString()</ID>
+    <ID>MultiLineIfElse:JsSemantics.kt$JsSemantics$java.math.BigDecimal(d).toBigInteger().toString()</ID>
+    <ID>MultiLineIfElse:PbtPhase.kt$PbtPhase$args</ID>
+    <ID>NestedBlockDepth:EtsConcreteInterpreter.kt$EtsConcreteInterpreter.Execution$fun runMethod(method: EtsMethod, thisValue: VValue, args: List&lt;VValue&gt;): VValue</ID>
+    <ID>NestedBlockDepth:EtsConcreteInterpreter.kt$EtsConcreteInterpreter.Execution$private fun assign(lhv: EtsLValue, value: VValue, frame: Frame)</ID>
+    <ID>NestedBlockDepth:Shrinker.kt$Shrinker$fun shrink(args: List&lt;VValue&gt;, stillFails: (List&lt;VValue&gt;) -&gt; Boolean): List&lt;VValue&gt;</ID>
+    <ID>NoMultipleSpaces:Generators.kt$InputGenerator$ </ID>
+    <ID>SwallowedException:EtsConcreteInterpreter.kt$EtsConcreteInterpreter$e: StackOverflowError</ID>
+    <ID>ThrowsCount:EtsConcreteInterpreter.kt$EtsConcreteInterpreter.Execution$fun evalCall(expr: EtsCallExpr, frame: Frame): VValue</ID>
+    <ID>ThrowsCount:EtsConcreteInterpreter.kt$EtsConcreteInterpreter.Execution$fun runMethod(method: EtsMethod, thisValue: VValue, args: List&lt;VValue&gt;): VValue</ID>
+    <ID>ThrowsCount:EtsConcreteInterpreter.kt$EtsConcreteInterpreter.Execution$private fun assign(lhv: EtsLValue, value: VValue, frame: Frame)</ID>
+    <ID>TooGenericExceptionCaught:SymbolicPhase.kt$SymbolicPhase$e: Throwable</ID>
+    <ID>UnderscoresInNumericLiterals:Intrinsics.kt$Intrinsics$9007199254740991.0</ID>
+    <ID>Wrapping:Generators.kt$InputGenerator$;</ID>
+    <ID>Wrapping:Intrinsics.kt$Intrinsics$(</ID>
+    <ID>Wrapping:Intrinsics.kt$Intrinsics$;</ID>
+  </CurrentIssues>
+</SmellBaseline>
