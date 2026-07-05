@@ -149,6 +149,14 @@ jobs:
           cd $DEST_DIR
 
           npm install
+          # ArkAnalyzer has no lockfile, and 'typescript'/'@types/node' are resolved
+          # transitively, so a fresh 'npm install' floats them to the latest versions.
+          # New '@types/node' releases are not parseable by the TypeScript version
+          # ArkAnalyzer builds with, which breaks 'npm run build'.
+          # Pin a known-good toolchain without touching package.json
+          # ('ohos-typescript' must be re-installed explicitly: npm prunes it
+          # otherwise, because it is only listed in bundleDependencies).
+          npm install --no-save typescript@5.4.5 @types/node@24.0.0 ohos-typescript@4.9.5-r10
           npm run build
 
       - name: Run TS tests
