@@ -87,6 +87,23 @@ class TsTestResolver {
         return TsTest(method, before, after, result, trace = emptyList())
     }
 
+    /**
+     * Resolve only the *input* valuation (`this` + parameters) of a state.
+     *
+     * Unlike [resolve], this also works for states that have not terminated yet
+     * (e.g. states captured at the moment they reach a symbolic execution target),
+     * where no method result is available.
+     */
+    fun resolveInputs(method: EtsMethod, state: TsState): TsParametersState = with(state.ctx) {
+        val model = state.models.first()
+        val memory = state.memory
+
+        prepareForResolve(state)
+
+        val beforeMemoryScope = MemoryScope(this, model, memory, method, resolvedLValuesToFakeObjects)
+        return beforeMemoryScope.withMode(ResolveMode.MODEL) { resolveState() }
+    }
+
     private fun prepareForResolve(state: TsState) {
         state.lValuesToAllocatedFakeObjects.forEach { (lValue, fakeObject) ->
             when (lValue) {

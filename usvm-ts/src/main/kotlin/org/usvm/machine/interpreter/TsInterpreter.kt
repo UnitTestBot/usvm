@@ -34,7 +34,9 @@ import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
 import org.jacodb.ets.utils.callExpr
 import org.usvm.StepResult
 import org.usvm.StepScope
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.UInterpreter
 import org.usvm.UIteExpr
 import org.usvm.api.evalTypeEquals
@@ -48,6 +50,7 @@ import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsGraph
+import org.usvm.machine.TsHintType
 import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsOptions
 import org.usvm.machine.TsVirtualMethodCallStmt
@@ -781,11 +784,17 @@ class TsInterpreter(
                 // If the parameter type is unresolved, we create a fake object for it
                 val bool = mkRegisterReading(idx, boolSort)
                 val fp = mkRegisterReading(idx, fp64Sort)
-                val ref = mkRegisterReading(idx, addressSort)
-                val fakeObject = state.mkFakeValue(null, bool, fp, ref)
+                val refReading = mkRegisterReading(idx, addressSort)
+                val fakeObject = state.mkFakeValue(null, bool, fp, refReading)
                 val lValue = mkRegisterStackLValue(addressSort, idx)
                 state.memory.write(lValue, fakeObject.asExpr(addressSort), guard = trueExpr)
                 state.saveSortForLocal(idx, addressSort)
+
+                // Observed-type hints from a dynamic phase (if any) restrict the
+                // fake object's type discriminators, pruning the type search space.
+                options.inputTypeHints.forParameter(method, i)?.let { hints ->
+                    applyParameterTypeHints(state, fakeObject, refReading, hints)
+                }
             } else {
                 state.saveSortForLocal(idx, parameterSort)
             }
@@ -796,6 +805,69 @@ class TsInterpreter(
         state.models = listOf(model)
 
         state
+    }
+
+    /**
+     * Constrain the type discriminators of an input fake object according to the
+     * type tags observed during a dynamic (e.g. PBT) phase.
+     *
+     * This is a deliberately *unsound* pruning: callers are expected to fall back
+     * to a hint-free run when a target is not reached under hints (or when the
+     * initial constraints become unsatisfiable).
+     */
+    private fun applyParameterTypeHints(
+        state: TsState,
+        fakeObject: UConcreteHeapRef,
+        refReading: UHeapRef,
+        hints: Set<TsHintType>,
+    ): Unit = with(ctx) {
+        val fakeType = fakeObject.getFakeType(state.memory)
+
+        val refHints = hints.intersect(REF_HINTS)
+
+        // 1. Restrict the discriminator to the observed value kinds.
+        val allowedDiscriminators = buildList {
+            if (TsHintType.NUMBER in hints) add(fakeType.fpTypeExpr)
+            if (TsHintType.BOOLEAN in hints) add(fakeType.boolTypeExpr)
+            if (refHints.isNotEmpty()) add(fakeType.refTypeExpr)
+        }
+        if (allowedDiscriminators.isEmpty()) return@with
+        state.pathConstraints += mkOr(allowedDiscriminators)
+
+        // 2. Refine the ref slot under the ref discriminator.
+        if (refHints.isNotEmpty()) {
+            val refCases = refHints.map { hint ->
+                when (hint) {
+                    TsHintType.NULL -> mkHeapRefEq(refReading, mkTsNullValue())
+                    TsHintType.UNDEFINED -> mkHeapRefEq(refReading, mkUndefinedValue())
+                    TsHintType.STRING -> mkAnd(
+                        mkNot(mkHeapRefEq(refReading, mkTsNullValue())),
+                        mkNot(mkHeapRefEq(refReading, mkUndefinedValue())),
+                        state.memory.types.evalTypeEquals(refReading, EtsStringType),
+                    )
+
+                    // For objects/arrays the discriminator restriction is the main prune;
+                    // we only exclude null/undefined here.
+                    TsHintType.OBJECT, TsHintType.ARRAY -> mkAnd(
+                        mkNot(mkHeapRefEq(refReading, mkTsNullValue())),
+                        mkNot(mkHeapRefEq(refReading, mkUndefinedValue())),
+                    )
+
+                    else -> error("Non-ref hint in ref cases: $hint")
+                }
+            }
+            state.pathConstraints += mkImplies(fakeType.refTypeExpr, mkOr(refCases))
+        }
+    }
+
+    private companion object {
+        private val REF_HINTS = setOf(
+            TsHintType.STRING,
+            TsHintType.NULL,
+            TsHintType.UNDEFINED,
+            TsHintType.OBJECT,
+            TsHintType.ARRAY,
+        )
     }
 
     // TODO: expand with interpreter implementation
