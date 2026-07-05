@@ -63,6 +63,10 @@ class ConcreteVsSymbolicDifferentialTest {
      *   numerically (e.g. `null + {}` becomes fp NaN), while JS applies ToPrimitive
      *   and string concatenation (`null + {} === "null[object Object]"`), so the
      *   engine follows the `res != res` (NaN) branch that is concretely unreachable.
+     * - `Less.lessUnknown`: for mixed-type fake-object operands the engine resolves
+     *   relational operators per sort pair (`Lt.onBool = !lhs && rhs`, see
+     *   TsBinaryOperator.Lt) instead of the JS ToNumber coercion, so e.g.
+     *   `false < 0.0` is reported `true` while JS gives `0 < 0 === false`.
      *
      * NOTE: requires the CI-pinned ArkAnalyzer (`neo/2025-09-03`). Older/newer AA
      * builds may emit a different if-successor order in the DTO, which inverts
@@ -70,6 +74,7 @@ class ConcreteVsSymbolicDifferentialTest {
      */
     private val knownEngineDivergences: Set<String> = setOf(
         "Add.addUnknownValues",
+        "Less.lessUnknown",
     )
 
     private fun runDifferential(resourcePath: String, className: String): Verdict {
