@@ -22,7 +22,7 @@
       "url": "https://github.com/loiane/javascript-datastructures-algorithms.git",
       "commit": "e8ee8f9b8a07589533c4243a210d4cea7b090b10",
       "include": [
-        "src/ts"
+        "src"
       ],
       "excludePatterns": [
         ".test.ts",
