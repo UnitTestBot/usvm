@@ -473,34 +473,48 @@ reached of targets attempted; ``FB'' counts hint-fallback runs.}
 \toprule
 Mode & Branch\,\% & Stmt\,\% & Wall, s & Reached & FB \\
 \midrule
-PBT only          & 61.0 & 66.3 & 5.2   & ---     & --- \\
-Symbolic only     & 34.8 & 32.4 & 182.7 & 61/233  & --- \\
-Hybrid            & \textbf{64.0} & \textbf{68.2} & 135.0 & 8/103 & 0 \\
-Hybrid + hints    & \textbf{64.0} & \textbf{68.2} & 265.1 & 8/103 & 95 \\
+PBT only          & 78.0 & 80.9 & 6.3   & ---     & --- \\
+Symbolic only     & 63.1 & 60.9 & 306.3 & 105/198 & --- \\
+Hybrid            & \textbf{83.0} & \textbf{84.1} & 156.4 & 13/58 & 0 \\
+Hybrid + hints    & \textbf{83.0} & \textbf{84.1} & 307.5 & 13/58 & 45 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 Three observations. First, the phases are genuinely complementary in the
-expected direction: the random phase alone reaches 61\% of branch edges in
-five seconds, while the symbolic engine alone --- paying for every branch
---- reaches barely half of that in $35\times$ the time; the hybrid
-dominates both on coverage. Second, the residual after PBT is hard for a
-reason: of 103 leftover targets only 8 are engine-reachable, and the bulk
-of the remainder is string-dependent or relies on constructs unmodeled by
-the engine --- the same honesty counters (7\,130 unsupported PBT
-executions) identify the residual as a front-end/engine coverage gap
-rather than a search failure. Third, the hinted mode illustrates the price
-of unsound pruning on an unfavorable corpus: it reaches exactly the same
-targets, but the 95 fallback runs --- triggered because the residual
-targets fail with and without hints alike --- double the symbolic wall
-time. Type hints pay off when the residual targets are reachable and
-type-constrained (\S\ref{sec:cases}); when the residual is dominated by
-infeasible or unsupported targets, the fallback discipline converts
-unsoundness into a measurable time overhead instead of lost coverage.
-Budgeting the fallback (e.g.\ skipping it when the hinted run exhausts the
-timeout rather than proving unsatisfiability) is an immediate optimization
-suggested by these numbers.
+expected direction: the random phase alone reaches 78\% of branch edges in
+six seconds, while the symbolic engine alone --- paying for every branch
+--- stays 15 points below it at $50\times$ the cost; the hybrid dominates
+both on coverage. Second, the residual after PBT is hard for a reason: of
+58 leftover targets 13 are engine-reachable, and the bulk of the remainder
+is string-dependent, uses generators, or hits engine-unmodeled operators
+--- the same honesty counters (2\,391 unsupported PBT executions)
+identify the residual as a front-end/engine coverage gap rather than a
+search failure. Third, the hinted mode illustrates the price of unsound
+pruning on an unfavorable corpus: it reaches exactly the same targets, but
+the 45 fallback runs --- triggered because the residual targets fail with
+and without hints alike --- double the symbolic wall time. Type hints pay
+off when the residual targets are reachable and type-constrained
+(\S\ref{sec:cases}); when the residual is dominated by infeasible or
+unsupported targets, the fallback discipline converts unsoundness into a
+measurable time overhead instead of lost coverage. Budgeting the fallback
+(e.g.\ skipping it when the hinted run exhausts the timeout rather than
+proving unsatisfiability) is an immediate optimization suggested by these
+numbers.
+
+The measurement loop itself earned its keep here: the \emph{first} run of
+this campaign produced 64\%/34.8\% (hybrid/symbolic-only) branch coverage,
+and the per-target wall-time distribution exposed that 90\% of unreached
+targets were dying within 100\,ms rather than timing out --- the engine
+killed the state on \emph{any} unresolved callee (\lstinline|Number.isInteger|
+sufficed), making everything after such a call unreachable. Replacing the
+kill with a mocked call (filtered downstream by concrete replay) and
+extending the concrete interpreter with first-class functions,
+higher-order array intrinsics, and \lstinline|Map|/\lstinline|Set| moved
+the corpus from 64\% to 83\% hybrid branch coverage; the
+unsupported-execution counter dropped threefold. Honest per-target and
+per-execution accounting is what turned a disappointing aggregate number
+into two concrete, fixable causes.
 
 \section{Discussion}
 
