@@ -1,0 +1,561 @@
+\documentclass[sigconf,nonacm,screen]{acmart}
+
+\usepackage{listings}
+\usepackage{xcolor}
+
+\lstdefinelanguage{TypeScript}{
+  keywords={class, const, let, var, function, return, if, else, while, for,
+            new, throw, typeof, instanceof, in, delete, void, this, export,
+            true, false, null, undefined, number, string, boolean, any, unknown},
+  keywordstyle=\bfseries,
+  comment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  commentstyle=\itshape\color{gray},
+  string=[b]',
+  morestring=[b]",
+  basicstyle=\small\ttfamily,
+  breaklines=true,
+  showstringspaces=false,
+}
+\lstset{language=TypeScript, captionpos=b}
+
+\begin{document}
+
+\title{Hybrid Property-Based Testing and Targeted Symbolic Execution over ArkIR}
+\subtitle{Runtime Type Feedback for Test Generation in Dynamically Typed Languages}
+
+\author{Aleksei Menshutin}
+\affiliation{%
+  \institution{ITMO University}
+  \city{Saint-Petersburg}
+  \country{Russia}}
+\email{alex.menshutin99@gmail.com}
+
+\begin{abstract}
+We study coverage-oriented test generation for TypeScript/ArkTS programs
+at the level of the Ark intermediate representation (ArkIR). Purely random
+property-based testing (PBT) covers most branches at a negligible cost but
+stalls on arithmetically constrained conditions; purely symbolic execution
+solves such conditions but pays for every branch, and in a dynamically typed
+setting additionally suffers from a \emph{type-space explosion}: every
+untyped input multiplies the search by the alternatives of its runtime type.
+We combine the two phases into a hybrid pipeline: a new \emph{concrete ArkIR
+interpreter} executes randomly generated inputs, records statement and
+branch-edge coverage together with \emph{runtime type profiles}, and the
+uncovered branch edges are handed to the USVM-based symbolic engine as
+reachability targets for a distance-guided search. Observed type profiles
+are injected into the symbolic engine as constraints over the type
+discriminators of its \emph{faked objects}, pruning the type dimension of
+the search; the pruning is deliberately unsound and is paired with an
+automatic hint-free fallback. Inputs synthesized by the solver are extracted
+from the model and \emph{replayed concretely}: a branch counts as covered
+only if its replay actually takes it.
+
+The same concrete interpreter doubles as a differential oracle for the
+symbolic engine and its two front ends. Replaying engine-produced inputs
+concretely uncovered, within hours, an if-successor ordering drift between
+front-end versions that silently inverted every branch, a numeric
+approximation of \texttt{+} on references, a non-JS resolution of relational
+and logical operators on mixed-type operands, and the NaN hole of the
+compare-to-zero truthiness idiom shared by both front ends. On the
+usvm-ts operator suite the hybrid pipeline reaches 72.8\% branch coverage
+over 90 methods in under six seconds of analysis time; qualitative
+end-to-end cases demonstrate that PBT with constant mining covers everything
+except arithmetically guarded branches, which the targeted symbolic phase
+then reaches and confirms by replay.
+\end{abstract}
+
+\maketitle
+
+\section{Introduction}
+
+Programs in dynamically and gradually typed languages such as ArkTS and
+JavaScript/TypeScript routinely consume inputs whose kind and shape are not
+fixed in advance: the same parameter may be a primitive value or an object
+with an unknown set of properties, and observable behavior hinges on
+coercions prescribed by the ECMAScript semantics~\cite{ecma262}. Two
+families of automated test generation attack this setting from opposite
+ends.
+
+\emph{Property-based testing}~\cite{claessen2000,maciver2019,fastcheck}
+and feedback-directed random generation~\cite{pacheco2007} execute the
+program on many cheap concrete inputs. In a dynamic language this is
+attractive precisely because execution \emph{is} the semantics: no modeling
+of coercions is required, and millions of runs per minute are feasible.
+The weakness is well known: branches guarded by arithmetic relations
+(\lstinline|x * 2 === 98764|) or long conjunctions have vanishing
+probability under any practical input distribution.
+
+\emph{Symbolic execution}~\cite{king1976,cadar2013} solves exactly such
+conditions, and mature engines exist for
+JavaScript~\cite{javert2,santos2018,expose,loring2019,kudzu,li2023,symjs}.
+However, for dynamically typed inputs the symbolic search space grows along
+\emph{two} axes. Besides the classical path explosion, every input whose
+static type is \lstinline|any|/\lstinline|unknown| forces the engine to
+consider the alternatives of its runtime type. In the USVM-based ArkTS
+engine~\cite{usvm} that we build upon, such inputs are represented by
+\emph{faked objects}: a triple of typed slots (boolean, float64, reference)
+guarded by symbolic type discriminators with an exactly-one
+constraint~\cite{menshutin2025}. Every operation on a faked object splits
+or conditions the state on these discriminators; with $k$ untyped
+parameters the type dimension alone contributes up to $3^k$ combinations
+before a single interesting path condition is solved. We call this the
+\emph{type-space explosion}, and it is specific to symbolic execution of
+dynamic languages.
+
+The complementarity of cheap random search and expensive constraint solving
+is the basis of hybrid concolic testing~\cite{majumdar2007} and hybrid
+fuzzing~\cite{stephens2016,yun2018,godefroid2012}, where a fuzzer explores
+the easy part of the state space and a symbolic executor is invoked only
+on the frontier the fuzzer cannot cross. Search-based test generation has
+similarly profited from a symbolic booster~\cite{galeotti2013}. These
+systems, however, operate on binaries or statically typed bytecode: the
+handoff transfers only \emph{control-flow} information (which branches are
+uncovered). Our observation is that in a dynamic language the dynamic phase
+produces a second, equally valuable artifact: \emph{runtime type profiles}
+of the inputs, which directly address the type axis of the symbolic search.
+
+\emph{Why type feedback matters.} A random phase that has executed a method
+thousands of times knows which runtime types actually flowed into each
+parameter and each transitively called function. For the entry point these
+profiles reflect the generator; but for everything downstream they reflect
+genuine data flow, and even at the entry they enumerate the type kinds under
+which the \emph{already covered} part of the method was exercised. Handing
+these profiles to the symbolic engine as constraints over faked-object
+discriminators removes type alternatives that the search would otherwise
+enumerate and the solver would otherwise refute one by one. The pruning is
+deliberately unsound---the uncovered branch may require a type never
+observed---so it must be paired with a fallback; we make the
+hints-then-fallback discipline an explicit, measured part of the design.
+
+We approach the problem at the intermediate-representation level, continuing
+the ArkIR line of work~\cite{menshutin2025}. Programs are lowered to ArkIR
+either by ArkAnalyzer~\cite{arkanalyzer} or by a native
+TypeScript-compiler-based front end recently added to the JacoDB toolchain;
+the symbolic engine is the USVM-based ArkTS executor with KSMT
+solvers~\cite{usvm,ksmt}. Working at the IR level keeps both phases in the
+same semantic frame: the concrete interpreter and the symbolic engine
+consume the \emph{same} lowered program, so coverage, targets, and
+counterexamples transfer between them without any source-position mapping.
+
+\textbf{Contributions.}
+(1)~The first \emph{concrete interpreter for ArkIR}: a JS-semantics
+executor over the lowered IR (ECMAScript coercions, reference semantics,
+virtual dispatch, a curated intrinsics registry) that reports every
+unmodeled construct explicitly instead of guessing.
+(2)~A hybrid pipeline in which an IR-level PBT phase---type-driven
+generators biased by constants mined from the method body, online
+statement/branch-edge coverage, failure shrinking---hands every uncovered
+branch edge to the symbolic engine as a reachability target chain, one
+distance-guided machine run per target, with solver-produced inputs
+extracted from the model and \emph{confirmed by concrete replay}.
+(3)~\emph{Runtime type feedback}: observed type profiles constrain the type
+discriminators of faked objects in the symbolic engine, with an automatic
+hint-free fallback; the engine change is
+a localized extension of the initial-state construction.
+(4)~A differential-testing methodology in which the concrete interpreter
+replays every input model the symbolic engine produces; we report four
+confirmed engine/front-end divergences found this way, including a
+branch-inverting front-end drift and the NaN hole of the compare-to-zero
+truthiness idiom.
+(5)~An open benchmark harness over pinned open-source TypeScript corpora
+with four ablation modes (PBT-only, symbolic-only, hybrid, hybrid with type
+hints) and machine-readable reports including coverage timelines and
+per-target attribution.
+
+\section{Method}
+
+\subsection{Pipeline Overview}
+
+Given an entry method in ArkIR, the workflow is:
+
+\begin{enumerate}
+\item \textbf{Front end.} Parse and lower the program to ArkIR (JSON),
+      deserialize and lift it to the in-memory model shared by all
+      subsequent stages (\S\ref{sec:frontend}).
+\item \textbf{PBT phase.} Execute the method on randomly generated inputs
+      with the concrete interpreter (\S\ref{sec:interp}); record online
+      statement and branch-edge coverage, runtime type profiles, and
+      property violations with shrinking (\S\ref{sec:pbt}).
+\item \textbf{Handoff.} Compute the uncovered branch edges
+      $(\mathit{if}, \mathit{succ})$ --- the worklist of the symbolic phase.
+\item \textbf{Targeted symbolic phase.} For each uncovered edge, run the
+      symbolic engine with a reachability target chain and a distance-guided
+      path selector; extract concrete inputs from the SMT model of the
+      reaching state (\S\ref{sec:symbolic}).
+\item \textbf{Type feedback.} In the hinted mode, constrain the type
+      discriminators of untyped inputs by the observed profiles; on failure,
+      fall back to an unconstrained run (\S\ref{sec:hints}).
+\item \textbf{Replay confirmation.} Replay each synthesized input on the
+      concrete interpreter; a branch is counted as covered only if the
+      replay takes it. Merge coverage; emit a machine-readable report.
+\end{enumerate}
+
+\subsection{Front Ends and ArkIR}
+\label{sec:frontend}
+
+Inputs are TypeScript/ArkTS source files. Two interchangeable front ends
+lower them to the same ArkIR contract: ArkAnalyzer~\cite{arkanalyzer} and a
+native front end built directly on the TypeScript compiler API, developed in
+the JacoDB toolchain. ArkIR is a three-address, basic-block IR with seven
+statement kinds; conditions of \lstinline|if| statements are pre-flattened
+locals, call arguments are immediates, and the block successor order encodes
+the true/false branches.
+
+Two front-end contract details matter for everything that follows.
+First, the DTO encodes if-successors as (false, true) while the lifted model
+normalizes them to (true, false); a version drift on either side of this
+convention \emph{silently inverts every branch of every method}
+(\S\ref{sec:findings}). Second, both front ends lower the truthiness test
+\lstinline|if (x)| to the compare-to-zero idiom \lstinline|x != 0| ---
+byte-identical to a genuine source-level loose comparison, although the two
+differ in JS for non-number operands (\lstinline|[] != 0| is false, yet
+\lstinline|[]| is truthy). The IR is thus ambiguous; we return to the
+consequences in \S\ref{sec:findings}.
+
+\subsection{A Concrete ArkIR Interpreter}
+\label{sec:interp}
+
+The dynamic phase needs an execution vehicle that is fast, hermetic, and
+speaks the same IR as the symbolic engine. No concrete executor for ArkIR
+existed, so we built one.
+
+\emph{Value model.} Runtime values are numbers (IEEE-754 doubles), booleans,
+strings, \lstinline|null|, \lstinline|undefined|, and heap entities (objects
+with a mutable property map and an optional declaring class; arrays as
+mutable element lists) with reference identity. Intrinsic namespaces
+(\lstinline|Math|, \lstinline|Number|, \lstinline|console|, \ldots) are
+first-class values so that lowered member calls dispatch uniformly.
+
+\emph{Semantics.} Coercions implement the ECMAScript
+algorithms~\cite{ecma262}: ToBoolean/ToNumber/ToString/ToPrimitive,
+strict and loose equality, relational comparison with the
+both-strings-lexicographic rule, \lstinline|ToInt32|/\lstinline|ToUint32|
+for bitwise operators, string concatenation in \lstinline|+|, precise
+NaN, signed zero, and infinities. The single deliberate deviation is the
+compare-to-zero idiom: a comparison of a \emph{non-number} operand against
+the literal \lstinline|0| is interpreted as ToBoolean, following the
+front-end contract of \S\ref{sec:frontend} rather than the loose-equality
+reading, since real corpora use \lstinline|if (x)| pervasively.
+
+\emph{Honesty.} Every construct the interpreter does not model --- an
+unknown intrinsic, a pointer call, an IR escape hatch --- terminates the run
+with an explicit \textsf{Unsupported} verdict; runaway executions terminate
+with \textsf{Diverged} under a step and call-depth budget. Neither counts as
+a passing nor as a failing observation, and both are surfaced in the
+reports. The interpreter never silently returns a wrong value; this
+discipline is what later allows using it as an oracle.
+
+\emph{Calls.} Static calls resolve by signature within the scene; instance
+calls mirror the symbolic engine's name-based virtual dispatch over the
+class hierarchy of the runtime receiver. Constructors of classes outside
+the scene (e.g.\ \lstinline|new Error(msg)|) initialize a plain record.
+
+\subsection{The PBT Phase}
+\label{sec:pbt}
+
+\emph{Generators.} Inputs are generated per parameter from the declared
+type, with the union of all base generators for
+\lstinline|any|/\lstinline|unknown|. Number generation is a weighted mix of
+boundary values ($0$, $\pm 1$, NaN, $\pm\infty$, extremes) and ---
+importantly --- \emph{constants mined from the method body} together with
+their $\pm 1$ neighborhood. Mining makes equality guards against literals
+(\lstinline|x === 1234567|) trivially coverable by the random phase and
+reserves the symbolic phase for genuinely arithmetic conditions
+(\S\ref{sec:cases}). Arrays use geometric sizes; scene classes are
+instantiated with recursively generated fields. All generation is seeded
+and reproducible.
+
+\emph{Coverage.} The tracker observes execution online through interpreter
+hooks: covered statements and covered branch \emph{edges}
+$(\mathit{if}, \mathit{taken})$, with a timestamped timeline for
+coverage-over-time plots. Branch edges, not statements, are the handoff
+granularity: an uncovered edge of a covered conditional is precisely ``the
+part PBT could not do''.
+
+\emph{Properties and shrinking.} The default property is ``the method does
+not throw''; violations are deduplicated by failure site and greedily
+shrunk per parameter (empty/zero/halved/truncated candidates, re-checking
+the property) to a fixpoint under a budget. \textsf{Unsupported} and
+\textsf{Diverged} runs are excluded from verdicts; a method whose first 25
+executions are all unsupported is abandoned early.
+
+\emph{Type profiling.} A listener records, for every executed method, the
+set of runtime type kinds observed at each parameter position
+(number, boolean, string, null, undefined, object, array). This is the
+input of the type feedback below.
+
+\subsection{Targeted Symbolic Phase}
+\label{sec:symbolic}
+
+For every uncovered edge $(I, S)$ we build a reachability target chain
+$\mathit{Initial}(\mathit{entry}) \to \mathit{Intermediate}(I) \to
+\mathit{Final}(S)$ and run the USVM-based engine with its distance-guided
+(\textsc{Targeted}) path selector. Three design points required care.
+
+\emph{One machine run per target.} The engine's stop condition for targets
+fires only when \emph{all} supplied targets are reached. Batching all
+uncovered edges into one run would let a single infeasible branch --- and
+real code has many, from intentionally unreachable guards to
+engine-unsupported constructs --- consume the entire time budget. Running
+targets separately bounds the cost of infeasibility by the per-target
+timeout and yields clean per-target attribution for the evaluation.
+
+\emph{Capturing the reaching state.} The stock configuration
+(stop-on-targets-reached plus the reached-target state collector) contains
+a race: the machine halts at target \emph{propagation} time, before the
+reaching state terminates, while the collector only inspects terminated
+states; moreover, the collector observes before the reachability tracker,
+so even a terminating reach is missed. We instead capture the state at
+propagation time with an observer placed after the tracker, and extract
+the \emph{input valuation only} (this-object and parameters) from the
+state's SMT model --- return values do not exist yet for a non-terminated
+state, and are not needed: the concrete replay recomputes them.
+
+\emph{Replay as ground truth.} The extracted inputs are decoded into
+concrete interpreter values and replayed; the target edge is credited only
+if the replay traverses it. Replay closes two gaps at once: it validates
+the engine's model against real semantics (\S\ref{sec:findings}), and it
+converts the symbolic result into the same artifact the PBT phase produces
+--- a concrete test with a reproducible outcome. When inputs are not
+representable (the engine's symbolic strings concretize to a placeholder),
+we conservatively fall back to trace-based accounting and mark the target
+as not replay-confirmed.
+
+\subsection{Runtime Type Feedback}
+\label{sec:hints}
+
+In the engine, a parameter whose type is unresolved becomes a faked
+object~\cite{menshutin2025}: three typed slots guarded by boolean
+discriminators $(\mathit{isBool}, \mathit{isFp}, \mathit{isRef})$ under an
+exactly-one constraint. Our extension is a single hook in the initial state
+construction: if the dynamic phase observed types $T$ for parameter $i$,
+we assert the disjunction of the corresponding discriminators, and under
+the reference discriminator additionally refine the slot (only-null,
+only-undefined, string-typed, or not-nullish for objects/arrays). With one
+observed kind the disjunction collapses to a single discriminator --- e.g.\
+$\mathit{isFp}$ when only numbers were seen --- and the type dimension of
+the search disappears for that input.
+
+The hints are an \emph{unsound} optimization by construction: the uncovered
+branch may be reachable only under a type the random phase never produced.
+The orchestrator therefore retries every unreached target without hints,
+and both attempts are reported separately, making the price of unsoundness
+a measured quantity rather than a leap of faith.
+
+A measurement caveat discovered during the evaluation: machine \emph{steps}
+are the wrong metric for the hints ablation. With solver-checked forking,
+infeasible discriminator branches are pruned eagerly and never become
+states, so step counts coincide; the hints save \emph{solver work}, visible
+as per-target wall time and solver calls on larger corpora. Our reports
+carry per-target wall time for this reason.
+
+\section{Results}
+
+We evaluate the prototype in three complementary ways: as a differential
+oracle against the symbolic engine (\S\ref{sec:findings}), on
+characteristic end-to-end cases (\S\ref{sec:cases}), and on method corpora
+(\S\ref{sec:corpus}). As in the companion ArkIR work~\cite{menshutin2025},
+the emphasis is on qualitative evidence with honest accounting; large-scale
+comparative benchmarking is staged by the released harness.
+
+\subsection{The Concrete Interpreter as a Differential Oracle}
+\label{sec:findings}
+
+For every terminal state the symbolic engine produces on the usvm-ts sample
+suites, we decode the model into concrete inputs and replay them: the
+concrete result must match the engine's predicted one. Across seven sample
+suites this yields on the order of a hundred compared executions per run;
+each mismatch was triaged manually against the ECMAScript semantics. Four
+confirmed engine/front-end divergences emerged, all of which would have been
+invisible without an IR-level concrete executor:
+
+\begin{enumerate}
+\item \textbf{Branch-inverting front-end drift.} A development version of
+  ArkAnalyzer emits if-successors in an order incompatible with the
+  deserializer's normalization; after the lift, \emph{every} branch of every
+  method is inverted. The drift explained a family of pre-existing engine
+  test failures that had been attributed to flakiness; the differential
+  suite localized it within hours. The lesson is methodological: the
+  successor-order convention is an unchecked cross-component contract, and a
+  concrete replayer checks it end-to-end for free.
+\item \textbf{Numeric \texttt{+} on references.} The engine approximates
+  \lstinline|+| on reference operands numerically, so
+  \lstinline|null + {}| becomes NaN, while JS prescribes ToPrimitive and
+  string concatenation (\lstinline|"null[object Object]"|). The engine
+  consequently follows a concretely unreachable NaN branch.
+\item \textbf{Mixed-type relational and logical operators.} Relational
+  operators on faked objects are resolved per sort pair
+  (e.g.\ $a <_{\mathrm{bool}} b \equiv \lnot a \land b$) instead of the JS
+  ToNumber coercion, reporting \lstinline|false < 0.0| as true; logical
+  \lstinline|&&| yields a boolean rather than one of its operand values.
+\item \textbf{The NaN hole of the truthiness idiom.} Both front ends lower
+  \lstinline|if (x)| to \lstinline|x != 0| (\S\ref{sec:frontend}). The
+  engine evaluates the idiom numerically, so for
+  \lstinline|x === undefined| it derives
+  $\mathrm{ToNumber}(\mathit{undefined}) = \mathrm{NaN} \neq 0$ and treats
+  \lstinline|undefined| as \emph{truthy}. The idiom is also ambiguous by
+  itself: a genuine loose comparison \lstinline|c != 0| is
+  IR-indistinguishable from it, and no interpretation satisfies both
+  readings. A dedicated truthiness condition in the IR would remove the
+  ambiguity; we filed this against the native front end.
+\end{enumerate}
+
+Divergences are whitelisted per method with a documented root cause, so the
+differential suite remains a regression gate: any \emph{new} mismatch fails
+the build.
+
+\subsection{Characteristic End-to-End Cases}
+\label{sec:cases}
+
+\emph{Constant guards fall to mining; arithmetic guards fall to the
+solver.} For a branch guarded by \lstinline|x === 1234567| the PBT phase
+covers everything, including the guard --- the literal is mined from the
+body. Replacing the guard by the arithmetic relation
+\lstinline|x * 2 === 98764| (solution $x = 49382$, outside the mined
+neighborhood) makes the random phase provably stall at $3/4$ branch edges;
+the symbolic phase then reaches the edge, the extracted model contains
+$x = 49382$, and the concrete replay confirms the edge, closing coverage at
+100\%.
+
+\begin{lstlisting}[caption={The hybrid split on a micro-benchmark: PBT
+covers all edges except the arithmetic guard; the symbolic phase synthesizes
+$x=49382$ and the replay confirms it.},label={lst:magic}]
+magic(x: number): number {
+  if (x * 2 === 98764) { return 42; } // symbolic
+  if (x > 0) { return 1; }            // PBT
+  return 0;                           // PBT
+}
+\end{lstlisting}
+
+\emph{Crash finding and shrinking.} For an out-of-bounds access pattern the
+PBT phase finds the throwing input within the first iterations and shrinks
+it to the minimal witness (\lstinline|([], 0)|); the failure, its shrunk
+form, and the throw site enter the report.
+
+\emph{Type feedback.} On methods with untyped parameters and numeric
+guards, the hinted mode reaches all branches that the unhinted mode
+reaches, never at a higher cost; on micro-benchmarks the saving hides in
+solver calls rather than machine steps (\S\ref{sec:hints}), motivating the
+wall-time-based ablation in the corpus harness.
+
+\subsection{Corpus Runs}
+\label{sec:corpus}
+
+\emph{Engine sample corpus.} On the usvm-ts operator suite (90 methods,
+720 branch edges) the full hybrid mode attains 524/720 (72.8\%) branch and
+1660/1974 (84.1\%) statement coverage with about six seconds of total
+analysis time; 44/90 methods reach full branch coverage. The PBT phase
+performs 29\,052 executions of which 3\,500 are honestly reported as
+unsupported (bigint, \lstinline|delete|, \lstinline|in|-operator paths).
+Of 275 symbolic targets, 80 are reached; most unreached targets are the
+suite's \emph{intentionally unreachable} branches --- the hybrid analysis
+degenerates, correctly, into an unreachable-code detector on them. The
+195 hint-fallback runs quantify the price of unsound pruning on this
+corpus.
+
+\emph{Open-source corpus.} The released harness pins open-source
+TypeScript projects (algorithm-style repositories whose functions are
+self-contained and arithmetic-rich) and runs all four ablation modes over
+the same corpus with per-file fault isolation, using the native TypeScript
+front end. Table~\ref{tab:maths} shows a first campaign over the
+\textsf{maths} module of \textsf{TheAlgorithms/TypeScript} (42 files,
+62 entry methods, 264 branch edges; PBT budget 1\,000 executions per
+method, 10\,s per symbolic target, seed fixed).
+
+\begin{table}[t]
+\caption{Ablation on \textsf{TheAlgorithms/TypeScript}, \textsf{maths}
+(62 methods, 264 branch edges). ``Reached'' counts symbolic targets
+reached of targets attempted; ``FB'' counts hint-fallback runs.}
+\label{tab:maths}
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+Mode & Branch\,\% & Stmt\,\% & Wall, s & Reached & FB \\
+\midrule
+PBT only          & 61.0 & 66.3 & 5.2   & ---     & --- \\
+Symbolic only     & 34.8 & 32.4 & 182.7 & 61/233  & --- \\
+Hybrid            & \textbf{64.0} & \textbf{68.2} & 135.0 & 8/103 & 0 \\
+Hybrid + hints    & \textbf{64.0} & \textbf{68.2} & 265.1 & 8/103 & 95 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Three observations. First, the phases are genuinely complementary in the
+expected direction: the random phase alone reaches 61\% of branch edges in
+five seconds, while the symbolic engine alone --- paying for every branch
+--- reaches barely half of that in $35\times$ the time; the hybrid
+dominates both on coverage. Second, the residual after PBT is hard for a
+reason: of 103 leftover targets only 8 are engine-reachable, and the bulk
+of the remainder is string-dependent or relies on constructs unmodeled by
+the engine --- the same honesty counters (7\,130 unsupported PBT
+executions) identify the residual as a front-end/engine coverage gap
+rather than a search failure. Third, the hinted mode illustrates the price
+of unsound pruning on an unfavorable corpus: it reaches exactly the same
+targets, but the 95 fallback runs --- triggered because the residual
+targets fail with and without hints alike --- double the symbolic wall
+time. Type hints pay off when the residual targets are reachable and
+type-constrained (\S\ref{sec:cases}); when the residual is dominated by
+infeasible or unsupported targets, the fallback discipline converts
+unsoundness into a measurable time overhead instead of lost coverage.
+Budgeting the fallback (e.g.\ skipping it when the hinted run exhausts the
+timeout rather than proving unsatisfiability) is an immediate optimization
+suggested by these numbers.
+
+\section{Discussion}
+
+\emph{Why a hybrid at the IR level.} Hybrid fuzzing demonstrated that
+random search should spend the cheap budget and symbolic execution the
+expensive one~\cite{majumdar2007,stephens2016,yun2018}. Porting the idea
+to a dynamically typed IR adds a dimension those systems do not have: the
+runtime \emph{type} of every untyped input. Because both phases consume the
+same lowered IR, the handoff is exact --- branch edges and input models
+transfer without source mapping --- and the dynamic phase can pay forward
+not only coverage but type knowledge, attacking the very mechanism (faked
+objects) that makes dynamic-language symbolic execution expensive.
+
+\emph{The oracle for free.} The differential findings of
+\S\ref{sec:findings} were a by-product, not a goal: once a concrete
+replayer exists, every symbolic test is also a conformance check of the
+engine, and every corpus run is a fuzzing campaign against the front end.
+We consider this triple-oracle arrangement (concrete interpreter vs.\
+symbolic engine vs.\ the ECMAScript semantics) a reusable methodology for
+any IR-level dynamic-language toolchain.
+
+\emph{Honest accounting.} Dynamic-language analyzers meet unmodeled
+constructs constantly. Both our phases report them (\textsf{Unsupported}
+executions; unreached targets with fallback attribution) instead of
+guessing; the numbers in \S\ref{sec:corpus} carry these counters
+explicitly. We found this discipline essential for interpreting coverage
+figures on real corpora.
+
+\emph{Limitations and threats to validity.} The corpus evaluation is
+preliminary: micro-benchmarks and algorithm-style projects; broader,
+import-heavy codebases require module resolution the front ends are still
+growing into. Symbolic strings concretize to placeholders, so
+string-dependent targets lose replay confirmation. The PBT entry-point
+type profiles reflect the generator distribution (downstream call-site
+profiles do not); the fallback discipline compensates but costs time.
+The interpreter's truthiness-idiom contract is a deliberate deviation
+forced by ambiguous IR. Finally, several divergences of
+\S\ref{sec:findings} are whitelisted rather than fixed in the engine; they
+bound the fidelity of symbolic results independently of our pipeline.
+
+\emph{Future work.} (i)~closing the loop: solver-synthesized inputs as
+seeds for a mutation-based second PBT round, iterating to a fixpoint;
+(ii)~a quantitative campaign on the open-source harness with wall-time and
+solver-call ablations of the type hints, plus mutation-based bug seeding at
+the IR level; (iii)~call-site type profiles as hints for interprocedural
+targets; (iv)~lifting the engine divergences of \S\ref{sec:findings} into
+fixes, with the differential suite as the regression gate; (v)~a dedicated
+truthiness condition in the IR to remove the compare-to-zero ambiguity.
+
+\begin{acks}
+The prototype builds on the USVM symbolic core, the JacoDB ArkIR toolchain,
+and the ArkAnalyzer front end; the author thanks their maintainers.
+\end{acks}
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{refs}
+
+\end{document}
