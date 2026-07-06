@@ -1,0 +1,34 @@
+{
+  "description": "Open-source TypeScript corpus for the hybrid PBT + symbolic execution experiments. Projects are pinned to specific commits for reproducibility. Algorithm-style repositories are preferred: self-contained functions with rich arithmetic/branching are analyzable at the EtsIR level without full cross-module resolution.",
+  "projects": [
+    {
+      "name": "TheAlgorithms-TypeScript",
+      "url": "https://github.com/TheAlgorithms/TypeScript.git",
+      "commit": "19b4ced86c99815f142d4a46a028f55487b8038a",
+      "include": [
+        "maths",
+        "search",
+        "sorts",
+        "bit_manipulation",
+        "dynamic_programming"
+      ],
+      "excludePatterns": [
+        ".test.ts",
+        ".d.ts"
+      ]
+    },
+    {
+      "name": "typescript-algorithms",
+      "url": "https://github.com/loiane/javascript-datastructures-algorithms.git",
+      "commit": "e8ee8f9b8a07589533c4243a210d4cea7b090b10",
+      "include": [
+        "src/ts"
+      ],
+      "excludePatterns": [
+        ".test.ts",
+        ".spec.ts",
+        ".d.ts"
+      ]
+    }
+  ]
+}

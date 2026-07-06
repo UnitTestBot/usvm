@@ -16,6 +16,9 @@ import kotlin.time.TimeSource
 
 private val logger = KotlinLogging.logger {}
 
+/** After this many executions that are *all* [ExecutionResult.Unsupported], give up on the method. */
+private const val UNSUPPORTED_BAILOUT_THRESHOLD = 25
+
 /**
  * The property (oracle) checked for every concrete execution.
  * The default property is "the method does not throw".
@@ -88,6 +91,10 @@ class PbtPhase(
         while (executions < maxIterations && start.elapsedNow() < timeBudget) {
             // Stop early once everything is covered — the symbolic phase has nothing to add
             if (coverage.branchCoverage() == 1.0 && coverage.stmtCoverage() == 1.0) break
+
+            // Bail out if the method is dominated by unmodeled constructs:
+            // burning the whole budget on Unsupported executions is pointless.
+            if (executions >= UNSUPPORTED_BAILOUT_THRESHOLD && unsupported == executions) break
 
             val thisValue = generator.generateThis()
             val args = generator.generateArgs()
