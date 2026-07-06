@@ -17,6 +17,7 @@ import org.jacodb.ets.model.EtsDivExpr
 import org.jacodb.ets.model.EtsEntity
 import org.jacodb.ets.model.EtsEqExpr
 import org.jacodb.ets.model.EtsExpExpr
+import org.jacodb.ets.model.EtsFunctionType
 import org.jacodb.ets.model.EtsGlobalRef
 import org.jacodb.ets.model.EtsGtEqExpr
 import org.jacodb.ets.model.EtsGtExpr
@@ -198,6 +199,7 @@ class EtsConcreteInterpreter(
             // Immediates
             is EtsLocal -> frame.locals[e.name]
                 ?: frame.args.getOrNull(parameterIndexOfLocal(frame, e.name) ?: -1)
+                ?: functionValueOf(e)
                 ?: VUndefined
 
             is EtsNumberConstant -> VNumber(e.value)
@@ -325,6 +327,20 @@ class EtsConcreteInterpreter(
         private fun isZeroConstant(e: EtsEntity): Boolean =
             e is EtsNumberConstant && e.value == 0.0
 
+        /**
+         * A local of a function type that was never assigned is a function
+         * *literal reference*: its type signature names the lowered method
+         * (e.g. `factorial := %AM0$%dflt` in the file initializer).
+         */
+        private fun functionValueOf(e: EtsLocal): VValue? {
+            val fnType = e.type as? EtsFunctionType ?: return null
+            val method = resolver.methodByFunctionType(fnType)
+                ?: resolver.resolveFunctionPointer(fnType.signature)
+                ?: resolver.functionAliasFor(e.name)
+                ?: return null
+            return VFunction(method)
+        }
+
         private inline fun numeric(
             left: EtsEntity,
             right: EtsEntity,
@@ -357,6 +373,9 @@ class EtsConcreteInterpreter(
             }
             return when (v) {
                 is VArray -> typeName == "Array"
+                is VMap -> typeName == "Map"
+                is VSet -> typeName == "Set"
+                is VFunction -> typeName == "Function"
                 is VObject -> {
                     var cls = v.cls
                     val visited = mutableSetOf<String>()
@@ -398,6 +417,8 @@ class EtsConcreteInterpreter(
             is VObject -> instance.fields[name] ?: VUndefined
             is VArray -> if (name == "length") VNumber(instance.elements.size.toDouble()) else VUndefined
             is VString -> if (name == "length") VNumber(instance.value.length.toDouble()) else VUndefined
+            is VMap -> if (name == "size") VNumber(instance.entries.size.toDouble()) else VUndefined
+            is VSet -> if (name == "size") VNumber(instance.elements.size.toDouble()) else VUndefined
             is VNamespace -> Intrinsics.namespaceField(instance.name, name)
                 ?: throw UnsupportedFeatureSignal("namespace field: ${instance.name}.$name")
 
@@ -414,10 +435,23 @@ class EtsConcreteInterpreter(
         }
 
         private fun newObject(e: EtsNewExpr): VValue {
+            val typeName = when (val t = e.type) {
+                is EtsClassType -> t.signature.name
+                is EtsUnclearRefType -> t.name
+                else -> null
+            }
             val cls = when (val t = e.type) {
                 is EtsClassType -> resolver.classBySignature(t.signature)
                 is EtsUnclearRefType -> resolver.classByName(t.name)
                 else -> null
+            }
+            if (cls == null) {
+                // Built-in containers are not scene classes
+                when (typeName) {
+                    "Array" -> return VArray()
+                    "Map" -> return VMap()
+                    "Set" -> return VSet()
+                }
             }
             return VObject(cls)
         }
@@ -504,14 +538,46 @@ class EtsConcreteInterpreter(
                         }
                     }
 
-                    // Constructor of a class outside the scene (e.g. `new Error(msg)`):
-                    // model as a record initialization.
-                    if (name == CONSTRUCTOR_NAME && receiver is VObject) {
-                        args.firstOrNull()?.let { receiver.fields["message"] = it }
-                        return receiver
+                    // Constructors of classes outside the scene.
+                    if (name == CONSTRUCTOR_NAME) {
+                        when (receiver) {
+                            is VObject -> {
+                                // e.g. `new Error(msg)`: model as record initialization
+                                args.firstOrNull()?.let { receiver.fields["message"] = it }
+                                return receiver
+                            }
+
+                            is VArray -> {
+                                // `new Array(n)` / `new Array(a, b, ...)`
+                                if (args.size == 1 && args[0] is VNumber) {
+                                    val n = (args[0] as VNumber).value
+                                    if (n == floor(n) && n >= 0) {
+                                        receiver.elements.clear()
+                                        repeat(n.toInt()) { receiver.elements.add(VUndefined) }
+                                    } else {
+                                        throw JsThrowSignal(VString("RangeError: Invalid array length"))
+                                    }
+                                } else {
+                                    receiver.elements.clear()
+                                    receiver.elements.addAll(args)
+                                }
+                                return receiver
+                            }
+
+                            is VMap, is VSet -> {
+                                if (args.isEmpty() || args[0] == VUndefined || args[0] == VNull) return receiver
+                                if (receiver is VSet && args[0] is VArray) {
+                                    (args[0] as VArray).elements.forEach { receiver.elements.add(it) }
+                                    return receiver
+                                }
+                                throw UnsupportedFeatureSignal("iterable constructor argument for Map/Set")
+                            }
+
+                            else -> Unit
+                        }
                     }
 
-                    Intrinsics.callInstance(receiver, name, args)
+                    Intrinsics.callInstance(receiver, name, args, ::invokeFunction)
                         ?: throw UnsupportedFeatureSignal(
                             "instance method: $name on ${receiver::class.simpleName}"
                         )
@@ -528,7 +594,21 @@ class EtsConcreteInterpreter(
                     runMethod(callee, VUndefined, padArgs(callee, args))
                 }
 
-                is EtsPtrCallExpr -> throw UnsupportedFeatureSignal("ptr call: $expr")
+                is EtsPtrCallExpr -> {
+                    // Prefer the dynamic function value held by the pointer local
+                    val ptrValue = eval(expr.ptr, frame)
+                    if (ptrValue is VFunction) {
+                        runMethod(ptrValue.method, ptrValue.thisValue, padArgs(ptrValue.method, args))
+                    } else {
+                        val callee = resolver.resolveFunctionPointer(expr.callee)
+                        if (callee != null) {
+                            runMethod(callee, frame.thisValue, padArgs(callee, args))
+                        } else {
+                            Intrinsics.callConversion(expr.callee.name, args)
+                                ?: throw UnsupportedFeatureSignal("ptr call: ${expr.callee.name}")
+                        }
+                    }
+                }
 
                 else -> throw UnsupportedFeatureSignal("call kind: ${expr::class.simpleName}")
             }
@@ -538,5 +618,9 @@ class EtsConcreteInterpreter(
             if (args.size >= callee.parameters.size) return args
             return args + List(callee.parameters.size - args.size) { VUndefined }
         }
+
+        /** Host callback for higher-order intrinsics (`arr.map(f)`, `map.forEach(f)`, ...). */
+        private fun invokeFunction(fn: VFunction, args: List<VValue>): VValue =
+            runMethod(fn.method, fn.thisValue, padArgs(fn.method, args))
     }
 }

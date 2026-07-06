@@ -18,26 +18,51 @@ internal object Intrinsics {
 
     val NAMESPACES: Set<String> = setOf("Math", "Number", "Boolean", "String", "console", "Logger", "JSON", "Object")
 
+    /** Host callback for invoking a first-class function value (HOF callbacks). */
+    fun interface FunctionInvoker {
+        fun invoke(fn: VFunction, args: List<VValue>): VValue
+    }
+
     /** Call on a namespace object: `Math.floor(x)`, `Number.isNaN(x)`, `console.log(...)`. */
     fun callNamespace(namespace: String, method: String, args: List<VValue>): VValue? = when (namespace) {
         "console", "Logger" -> VUndefined // logging is a no-op
 
         "Math" -> {
             val x = args.getOrElse(0) { VUndefined }
+            val n = JsSemantics.toNumber(x)
             when (method) {
-                "floor" -> VNumber(floor(JsSemantics.toNumber(x)))
-                "ceil" -> VNumber(ceil(JsSemantics.toNumber(x)))
-                "round" -> VNumber(round(JsSemantics.toNumber(x)))
-                "trunc" -> VNumber(kotlin.math.truncate(JsSemantics.toNumber(x)))
-                "abs" -> VNumber(abs(JsSemantics.toNumber(x)))
-                "sqrt" -> VNumber(sqrt(JsSemantics.toNumber(x)))
+                "floor" -> VNumber(floor(n))
+                "ceil" -> VNumber(ceil(n))
+                "round" -> VNumber(floor(n + 0.5)) // JS rounds .5 towards +Infinity
+                "trunc" -> VNumber(kotlin.math.truncate(n))
+                "abs" -> VNumber(abs(n))
+                "sqrt" -> VNumber(sqrt(n))
+                "cbrt" -> VNumber(kotlin.math.cbrt(n))
+                "sign" -> VNumber(if (n.isNaN()) Double.NaN else kotlin.math.sign(n))
+                "log" -> VNumber(kotlin.math.ln(n))
+                "log2" -> VNumber(kotlin.math.log2(n))
+                "log10" -> VNumber(kotlin.math.log10(n))
+                "log1p" -> VNumber(kotlin.math.ln1p(n))
+                "exp" -> VNumber(kotlin.math.exp(n))
+                "expm1" -> VNumber(kotlin.math.expm1(n))
+                "sin" -> VNumber(kotlin.math.sin(n))
+                "cos" -> VNumber(kotlin.math.cos(n))
+                "tan" -> VNumber(kotlin.math.tan(n))
+                "asin" -> VNumber(kotlin.math.asin(n))
+                "acos" -> VNumber(kotlin.math.acos(n))
+                "atan" -> VNumber(kotlin.math.atan(n))
+                "sinh" -> VNumber(kotlin.math.sinh(n))
+                "cosh" -> VNumber(kotlin.math.cosh(n))
+                "tanh" -> VNumber(kotlin.math.tanh(n))
                 "max" -> VNumber(args.map { JsSemantics.toNumber(it) }.maxOrNull() ?: Double.NEGATIVE_INFINITY)
                 "min" -> VNumber(args.map { JsSemantics.toNumber(it) }.minOrNull() ?: Double.POSITIVE_INFINITY)
+                "hypot" -> VNumber(sqrt(args.sumOf { val v = JsSemantics.toNumber(it); v * v }))
+                "atan2" -> VNumber(
+                    kotlin.math.atan2(n, JsSemantics.toNumber(args.getOrElse(1) { VUndefined }))
+                )
+
                 "pow" -> VNumber(
-                    Math.pow(
-                        JsSemantics.toNumber(args.getOrElse(0) { VUndefined }),
-                        JsSemantics.toNumber(args.getOrElse(1) { VUndefined }),
-                    )
+                    Math.pow(n, JsSemantics.toNumber(args.getOrElse(1) { VUndefined }))
                 )
 
                 else -> null
@@ -50,12 +75,56 @@ internal object Intrinsics {
                 "isNaN" -> VBool(x is VNumber && x.value.isNaN())
                 "isFinite" -> VBool(x is VNumber && x.value.isFinite())
                 "isInteger" -> VBool(x is VNumber && x.value.isFinite() && x.value == floor(x.value))
+                "isSafeInteger" -> VBool(
+                    x is VNumber && x.value.isFinite() && x.value == floor(x.value) &&
+                        abs(x.value) <= 9007199254740991.0
+                )
+
                 "parseFloat" -> VNumber(JsSemantics.stringToNumber(JsSemantics.toStringJs(x)))
+                "parseInt" -> parseIntJs(args)
                 else -> null
             }
         }
 
+        "Object" -> when (method) {
+            "keys" -> when (val o = args.getOrElse(0) { VUndefined }) {
+                is VObject -> VArray(o.fields.keys.map { VString(it) as VValue }.toMutableList())
+                is VArray -> VArray(o.elements.indices.map { VString(it.toString()) as VValue }.toMutableList())
+                else -> VArray()
+            }
+
+            "values" -> when (val o = args.getOrElse(0) { VUndefined }) {
+                is VObject -> VArray(o.fields.values.toMutableList())
+                is VArray -> VArray(o.elements.toMutableList())
+                else -> VArray()
+            }
+
+            else -> null
+        }
+
         else -> null
+    }
+
+    private fun parseIntJs(args: List<VValue>): VNumber {
+        val s = JsSemantics.toStringJs(args.getOrElse(0) { VUndefined }).trim()
+        val radix = args.getOrNull(1)?.let { JsSemantics.toInt32(it) }?.takeIf { it != 0 } ?: 10
+        var i = 0
+        var sign = 1
+        if (i < s.length && (s[i] == '+' || s[i] == '-')) {
+            if (s[i] == '-') sign = -1
+            i++
+        }
+        var body = s.substring(i)
+        var r = radix
+        if ((r == 16 || args.getOrNull(1) == null) && (body.startsWith("0x") || body.startsWith("0X"))) {
+            body = body.substring(2)
+            r = 16
+        }
+        val digits = body.takeWhile { Character.digit(it, r) >= 0 }
+        if (digits.isEmpty()) return VNumber(Double.NaN)
+        var acc = 0.0
+        for (c in digits) acc = acc * r + Character.digit(c, r)
+        return VNumber(sign * acc)
     }
 
     /** Constant field on a namespace object: `Number.MAX_VALUE`, `Math.PI`. */
@@ -95,7 +164,12 @@ internal object Intrinsics {
     }
 
     /** Instance method on a concrete receiver value: `arr.push(x)`, `n.toString()`. */
-    fun callInstance(receiver: VValue, method: String, args: List<VValue>): VValue? {
+    fun callInstance(
+        receiver: VValue,
+        method: String,
+        args: List<VValue>,
+        invoker: FunctionInvoker,
+    ): VValue? {
         // Universal methods
         when (method) {
             "toString" -> return VString(JsSemantics.toStringJs(receiver))
@@ -103,7 +177,175 @@ internal object Intrinsics {
         }
         return when (receiver) {
             is VArray -> callArrayMethod(receiver, method, args)
+                ?: callArrayHof(receiver, method, args, invoker)
+
             is VString -> callStringMethod(receiver, method, args)
+            is VMap -> callMapMethod(receiver, method, args, invoker)
+            is VSet -> callSetMethod(receiver, method, args, invoker)
+            else -> null
+        }
+    }
+
+    private fun callArrayHof(
+        arr: VArray,
+        method: String,
+        args: List<VValue>,
+        invoker: FunctionInvoker,
+    ): VValue? {
+        val fn = args.getOrNull(0) as? VFunction
+        fun call(vararg a: VValue): VValue = invoker.invoke(fn!!, a.toList())
+
+        return when (method) {
+            "map" -> {
+                fn ?: return null
+                VArray(arr.elements.mapIndexed { i, e -> call(e, VNumber(i.toDouble()), arr) }.toMutableList())
+            }
+
+            "filter" -> {
+                fn ?: return null
+                VArray(
+                    arr.elements.filterIndexed { i, e ->
+                        JsSemantics.truthy(call(e, VNumber(i.toDouble()), arr))
+                    }.toMutableList()
+                )
+            }
+
+            "forEach" -> {
+                fn ?: return null
+                arr.elements.forEachIndexed { i, e -> call(e, VNumber(i.toDouble()), arr) }
+                VUndefined
+            }
+
+            "some" -> {
+                fn ?: return null
+                VBool(arr.elements.withIndex().any { (i, e) -> JsSemantics.truthy(call(e, VNumber(i.toDouble()), arr)) })
+            }
+
+            "every" -> {
+                fn ?: return null
+                VBool(arr.elements.withIndex().all { (i, e) -> JsSemantics.truthy(call(e, VNumber(i.toDouble()), arr)) })
+            }
+
+            "find" -> {
+                fn ?: return null
+                arr.elements.withIndex()
+                    .firstOrNull { (i, e) -> JsSemantics.truthy(call(e, VNumber(i.toDouble()), arr)) }
+                    ?.value ?: VUndefined
+            }
+
+            "findIndex" -> {
+                fn ?: return null
+                VNumber(
+                    arr.elements.withIndex()
+                        .indexOfFirst { (i, e) -> JsSemantics.truthy(call(e, VNumber(i.toDouble()), arr)) }
+                        .toDouble()
+                )
+            }
+
+            "reduce" -> {
+                fn ?: return null
+                var acc: VValue
+                var start: Int
+                if (args.size >= 2) {
+                    acc = args[1]
+                    start = 0
+                } else {
+                    if (arr.elements.isEmpty()) {
+                        throw JsThrowSignal(VString("TypeError: Reduce of empty array with no initial value"))
+                    }
+                    acc = arr.elements[0]
+                    start = 1
+                }
+                for (i in start until arr.elements.size) {
+                    acc = call(acc, arr.elements[i], VNumber(i.toDouble()), arr)
+                }
+                acc
+            }
+
+            "sort" -> {
+                val comparator: Comparator<VValue> = if (fn != null) {
+                    Comparator { a, b ->
+                        val r = JsSemantics.toNumber(call(a, b))
+                        if (r.isNaN()) 0 else r.compareTo(0.0)
+                    }
+                } else {
+                    // Default JS sort: by ToString, undefined last
+                    Comparator { a, b -> JsSemantics.toStringJs(a).compareTo(JsSemantics.toStringJs(b)) }
+                }
+                arr.elements.sortWith(comparator)
+                arr
+            }
+
+            else -> null
+        }
+    }
+
+    private fun callMapMethod(
+        map: VMap,
+        method: String,
+        args: List<VValue>,
+        invoker: FunctionInvoker,
+    ): VValue? {
+        fun key(v: VValue): VValue = if (v is VNumber && v.value == 0.0) VNumber(0.0) else v // normalize -0
+        val k = key(args.getOrElse(0) { VUndefined })
+        return when (method) {
+            "get" -> map.entries[k] ?: VUndefined
+            "set" -> {
+                map.entries[k] = args.getOrElse(1) { VUndefined }
+                map
+            }
+
+            "has" -> VBool(k in map.entries)
+            "delete" -> VBool(map.entries.remove(k) != null)
+            "clear" -> {
+                map.entries.clear()
+                VUndefined
+            }
+
+            "keys" -> VArray(map.entries.keys.toMutableList())
+            "values" -> VArray(map.entries.values.toMutableList())
+            "forEach" -> {
+                val fn = args.getOrNull(0) as? VFunction ?: return null
+                for ((kk, v) in map.entries.entries.toList()) {
+                    invoker.invoke(fn, listOf(v, kk, map))
+                }
+                VUndefined
+            }
+
+            else -> null
+        }
+    }
+
+    private fun callSetMethod(
+        set: VSet,
+        method: String,
+        args: List<VValue>,
+        invoker: FunctionInvoker,
+    ): VValue? {
+        fun key(v: VValue): VValue = if (v is VNumber && v.value == 0.0) VNumber(0.0) else v
+        val k = key(args.getOrElse(0) { VUndefined })
+        return when (method) {
+            "add" -> {
+                set.elements.add(k)
+                set
+            }
+
+            "has" -> VBool(k in set.elements)
+            "delete" -> VBool(set.elements.remove(k))
+            "clear" -> {
+                set.elements.clear()
+                VUndefined
+            }
+
+            "values", "keys" -> VArray(set.elements.toMutableList())
+            "forEach" -> {
+                val fn = args.getOrNull(0) as? VFunction ?: return null
+                for (e in set.elements.toList()) {
+                    invoker.invoke(fn, listOf(e, e, set))
+                }
+                VUndefined
+            }
+
             else -> null
         }
     }

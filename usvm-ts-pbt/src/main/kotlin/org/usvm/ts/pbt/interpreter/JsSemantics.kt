@@ -20,7 +20,7 @@ object JsSemantics {
         is VNumber -> v.value != 0.0 && !v.value.isNaN()
         is VString -> v.value.isNotEmpty()
         VNull, VUndefined -> false
-        is VObject, is VArray, is VNamespace -> true
+        is VObject, is VArray, is VNamespace, is VFunction, is VMap, is VSet -> true
     }
 
     // ToNumber
@@ -30,7 +30,7 @@ object JsSemantics {
         is VString -> stringToNumber(v.value)
         VNull -> 0.0
         VUndefined -> Double.NaN
-        is VObject, is VArray, is VNamespace -> toNumber(toPrimitive(v))
+        is VObject, is VArray, is VNamespace, is VFunction, is VMap, is VSet -> toNumber(toPrimitive(v))
     }
 
     fun stringToNumber(s: String): Double {
@@ -63,7 +63,9 @@ object JsSemantics {
             if (el == VNull || el == VUndefined) "" else toStringJs(el)
         }
 
-        is VObject, is VNamespace -> "[object Object]"
+        is VObject, is VNamespace, is VMap, is VSet -> "[object Object]"
+
+        is VFunction -> "function ${v.method.name}() { [code] }"
     }
 
     /**
@@ -88,7 +90,7 @@ object JsSemantics {
     // ToPrimitive (hint: number/default). Plain objects have no user-defined valueOf in our model.
     fun toPrimitive(v: VValue): VValue = when (v) {
         is VArray -> VString(toStringJs(v))
-        is VObject, is VNamespace -> VString("[object Object]")
+        is VObject, is VNamespace, is VFunction, is VMap, is VSet -> VString(toStringJs(v))
         else -> v
     }
 
@@ -124,6 +126,9 @@ object JsSemantics {
         a is VObject && b is VObject -> a === b
         a is VArray && b is VArray -> a === b
         a is VNamespace && b is VNamespace -> a == b
+        a is VFunction && b is VFunction -> a === b
+        a is VMap && b is VMap -> a === b
+        a is VSet && b is VSet -> a === b
         else -> false
     }
 
@@ -140,7 +145,8 @@ object JsSemantics {
         else -> false
     }
 
-    private fun isObjectLike(v: VValue): Boolean = v is VObject || v is VArray || v is VNamespace
+    private fun isObjectLike(v: VValue): Boolean =
+        v is VObject || v is VArray || v is VNamespace || v is VFunction || v is VMap || v is VSet
 
     private fun sameTypeCategory(a: VValue, b: VValue): Boolean = when (a) {
         is VNumber -> b is VNumber
@@ -148,7 +154,7 @@ object JsSemantics {
         is VBool -> b is VBool
         VNull -> b == VNull
         VUndefined -> b == VUndefined
-        is VObject, is VArray, is VNamespace -> isObjectLike(b)
+        is VObject, is VArray, is VNamespace, is VFunction, is VMap, is VSet -> isObjectLike(b)
     }
 
     // Relational (<, <=, >, >=): both string -> lexicographic, else numeric (NaN -> false)
@@ -176,7 +182,8 @@ object JsSemantics {
         is VString -> "string"
         VUndefined -> "undefined"
         VNull -> "object"
-        is VObject, is VArray, is VNamespace -> "object"
+        is VFunction -> "function"
+        is VObject, is VArray, is VNamespace, is VMap, is VSet -> "object"
     }
 
     // `in` operator

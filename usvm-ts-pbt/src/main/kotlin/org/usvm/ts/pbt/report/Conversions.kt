@@ -4,8 +4,11 @@ import org.jacodb.ets.model.EtsClass
 import org.usvm.api.TsTestValue
 import org.usvm.ts.pbt.interpreter.VArray
 import org.usvm.ts.pbt.interpreter.VBool
+import org.usvm.ts.pbt.interpreter.VFunction
+import org.usvm.ts.pbt.interpreter.VMap
 import org.usvm.ts.pbt.interpreter.VNamespace
 import org.usvm.ts.pbt.interpreter.VNull
+import org.usvm.ts.pbt.interpreter.VSet
 import org.usvm.ts.pbt.interpreter.VNumber
 import org.usvm.ts.pbt.interpreter.VObject
 import org.usvm.ts.pbt.interpreter.VString
@@ -67,4 +70,18 @@ fun VValue.toTsTestValue(): TsTestValue = when (this) {
     )
 
     is VNamespace -> TsTestValue.TsClass(name = name, properties = emptyMap())
+
+    is VFunction -> TsTestValue.TsClass(name = "Function", properties = emptyMap())
+
+    is VMap -> TsTestValue.TsClass(
+        name = "Map",
+        properties = entries.entries.withIndex().associate { (i, e) ->
+            "entry$i" to TsTestValue.TsArray(listOf(e.key.toTsTestValue(), e.value.toTsTestValue()))
+        },
+    )
+
+    is VSet -> TsTestValue.TsClass(
+        name = "Set",
+        properties = elements.withIndex().associate { (i, e) -> "element$i" to e.toTsTestValue() },
+    )
 }

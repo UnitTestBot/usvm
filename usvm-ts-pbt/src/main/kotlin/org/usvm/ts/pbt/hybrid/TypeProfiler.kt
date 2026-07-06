@@ -45,7 +45,7 @@ class TypeProfiler : ExecutionListener {
             VNull -> TsHintType.NULL
             VUndefined -> TsHintType.UNDEFINED
             is VArray -> TsHintType.ARRAY
-            is VObject, is VNamespace -> TsHintType.OBJECT
+            else -> TsHintType.OBJECT // objects, namespaces, functions, maps, sets
         }
     }
 }
