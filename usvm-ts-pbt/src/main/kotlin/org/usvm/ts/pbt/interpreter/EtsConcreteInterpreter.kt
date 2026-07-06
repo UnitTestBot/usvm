@@ -265,9 +265,29 @@ class EtsConcreteInterpreter(
                 VNumber((a ushr b).toDouble())
             }
 
-            // Binary: relational
-            is EtsEqExpr -> VBool(JsSemantics.looseEq(eval(e.left, frame), eval(e.right, frame)))
-            is EtsNotEqExpr -> VBool(!JsSemantics.looseEq(eval(e.left, frame), eval(e.right, frame)))
+            // Binary: relational.
+            //
+            // NOTE on the compare-to-zero idiom: both frontends (ArkAnalyzer and the
+            // jacodb ts-frontend) lower `if (x)` to the ConditionExpr `x != 0`, which
+            // is NOT equivalent to JS loose inequality for non-number operands
+            // (`[] != 0` is false in JS, yet `[]` is truthy). The IR is ambiguous:
+            // a genuine source-level `x != 0` produces the same shape. We follow the
+            // IR contract: compare-to-zero on a non-number operand means ToBoolean.
+            is EtsEqExpr ->
+                if (isZeroConstant(e.right)) {
+                    val l = eval(e.left, frame)
+                    if (l is VNumber) VBool(l.value == 0.0) else VBool(!JsSemantics.truthy(l))
+                } else {
+                    VBool(JsSemantics.looseEq(eval(e.left, frame), eval(e.right, frame)))
+                }
+
+            is EtsNotEqExpr ->
+                if (isZeroConstant(e.right)) {
+                    val l = eval(e.left, frame)
+                    if (l is VNumber) VBool(l.value != 0.0) else VBool(JsSemantics.truthy(l))
+                } else {
+                    VBool(!JsSemantics.looseEq(eval(e.left, frame), eval(e.right, frame)))
+                }
             is EtsStrictEqExpr -> VBool(JsSemantics.strictEq(eval(e.left, frame), eval(e.right, frame)))
             is EtsStrictNotEqExpr -> VBool(!JsSemantics.strictEq(eval(e.left, frame), eval(e.right, frame)))
             is EtsLtExpr -> VBool(JsSemantics.lt(eval(e.left, frame), eval(e.right, frame)))
@@ -301,6 +321,9 @@ class EtsConcreteInterpreter(
         /** A local that was never assigned may actually be a named parameter. */
         private fun parameterIndexOfLocal(frame: Frame, name: String): Int? =
             frame.method.parameters.firstOrNull { it.name == name }?.index
+
+        private fun isZeroConstant(e: EtsEntity): Boolean =
+            e is EtsNumberConstant && e.value == 0.0
 
         private inline fun numeric(
             left: EtsEntity,

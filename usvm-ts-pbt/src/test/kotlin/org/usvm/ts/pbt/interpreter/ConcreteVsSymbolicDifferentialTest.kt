@@ -67,6 +67,15 @@ class ConcreteVsSymbolicDifferentialTest {
      *   relational operators per sort pair (`Lt.onBool = !lhs && rhs`, see
      *   TsBinaryOperator.Lt) instead of the JS ToNumber coercion, so e.g.
      *   `false < 0.0` is reported `true` while JS gives `0 < 0 === false`.
+     * - `And.andOfUnknown`: frontends lower `if (x)` to the idiom `x != 0`; the
+     *   engine evaluates it numerically, so for `x = undefined` it gets
+     *   `ToNumber(undefined) = NaN != 0 -> true` while `undefined` is falsy in JS
+     *   (the NaN hole of the compare-to-zero truthiness contract).
+     * - `TypeCoercion.transitiveCoercionNoTypes`: doubly ambiguous — the *genuine*
+     *   source-level `c != 0` loose comparison is indistinguishable in the IR from
+     *   the truthiness idiom (the concrete interpreter follows the idiom contract),
+     *   and the engine's `&&` on references diverges from JS anyway
+     *   (JS gives 2, engine 1, concrete 4).
      *
      * NOTE: requires the CI-pinned ArkAnalyzer (`neo/2025-09-03`). Older/newer AA
      * builds may emit a different if-successor order in the DTO, which inverts
@@ -75,6 +84,8 @@ class ConcreteVsSymbolicDifferentialTest {
     private val knownEngineDivergences: Set<String> = setOf(
         "Add.addUnknownValues",
         "Less.lessUnknown",
+        "And.andOfUnknown",
+        "TypeCoercion.transitiveCoercionNoTypes",
     )
 
     private fun runDifferential(resourcePath: String, className: String): Verdict {
