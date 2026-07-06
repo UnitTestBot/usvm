@@ -183,7 +183,11 @@ class TsInterpreter(
                         }
                         return
                     }
-                    scope.assert(falseExpr)
+                    // Approximate a call on an unresolved class with a mock instead of
+                    // killing the state: otherwise a single unmodeled call (e.g. an SDK
+                    // function) makes everything after it unreachable.
+                    mockMethodCall(scope, stmt.callee)
+                    scope.doWithState { newStmt(stmt.returnSite) }
                     return
                 }
                 if (classes.size > 1) {
@@ -203,7 +207,9 @@ class TsInterpreter(
                 logger.warn {
                     "Could not resolve method: ${stmt.callee} on type: $type"
                 }
-                scope.assert(falseExpr)
+                // Mock instead of killing the state (see the comment above).
+                mockMethodCall(scope, stmt.callee)
+                scope.doWithState { newStmt(stmt.returnSite) }
                 return
             }
         } else {
@@ -212,7 +218,9 @@ class TsInterpreter(
                 if (stmt.callee.name !in listOf("then")) {
                     logger.warn { "Could not resolve method: ${stmt.callee}" }
                 }
-                scope.assert(falseExpr)
+                // Mock instead of killing the state (see the comment above).
+                mockMethodCall(scope, stmt.callee)
+                scope.doWithState { newStmt(stmt.returnSite) }
                 return
             }
             concreteMethods += methods
