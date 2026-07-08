@@ -248,24 +248,32 @@ class TsExprResolver(
         return mkNumericExpr(arg, scope)
     }
 
-    override fun visit(expr: EtsPostIncExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    // NOTE on inc/dec: front ends lower the *side effect* of `x++`/`--x` into an
+    // explicit assignment (`%t := x; x := ++x`), and the jacodb DTO conversion maps
+    // both `++` and `--` to the Pre* classes only. Therefore the expressions below
+    // are pure value computations: Pre* yield ToNumber(arg) +- 1, Post* (which never
+    // come from the converter, but are part of the model) yield the old value.
+
+    override fun visit(expr: EtsPostIncExpr): UExpr<out USort>? = with(ctx) {
+        val arg = resolve(expr.arg) ?: return null
+        return mkNumericExpr(arg, scope)
     }
 
-    override fun visit(expr: EtsPostDecExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsPostDecExpr): UExpr<out USort>? = with(ctx) {
+        val arg = resolve(expr.arg) ?: return null
+        return mkNumericExpr(arg, scope)
     }
 
-    override fun visit(expr: EtsPreIncExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsPreIncExpr): UExpr<out USort>? = with(ctx) {
+        val arg = resolve(expr.arg) ?: return null
+        val numeric = mkNumericExpr(arg, scope).asExpr(fp64Sort)
+        return mkFpAddExpr(fpRoundingModeSortDefaultValue(), numeric, mkFp64(1.0))
     }
 
-    override fun visit(expr: EtsPreDecExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsPreDecExpr): UExpr<out USort>? = with(ctx) {
+        val arg = resolve(expr.arg) ?: return null
+        val numeric = mkNumericExpr(arg, scope).asExpr(fp64Sort)
+        return mkFpSubExpr(fpRoundingModeSortDefaultValue(), numeric, mkFp64(1.0))
     }
 
     override fun visit(expr: EtsBitNotExpr): UExpr<out USort>? = with(ctx) {
