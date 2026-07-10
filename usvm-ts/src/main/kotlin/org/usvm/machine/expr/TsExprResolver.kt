@@ -787,9 +787,6 @@ class TsExprResolver(
     // region RELATION
 
     override fun visit(expr: EtsEqExpr): UExpr<out USort>? {
-        truthinessIdiomOrNull(expr.left, expr.right)?.let { truthy ->
-            return ctx.mkNot(truthy)
-        }
         return resolveBinaryOperator(TsBinaryOperator.Eq, expr)
     }
 
@@ -801,15 +798,16 @@ class TsExprResolver(
     }
 
     /**
-     * Front ends lower the truthiness test `if (x)` into the compare-to-zero /
-     * compare-to-false idiom (`x != 0`, `x != false`), which is byte-identical
-     * to a genuine loose comparison in the IR. For *reference-like* operands the
-     * numeric reading diverges from ToBoolean (e.g. `undefined != 0` evaluates
-     * to `NaN != 0 = true`, although `undefined` is falsy). Follow the idiom
-     * contract: a compare of a fake/ref operand against literal zero/false is
-     * ToBoolean. Numeric and boolean operands keep the literal loose-comparison
-     * semantics (this matches the concrete ArkIR interpreter of the hybrid
-     * pipeline).
+     * Front ends lower the truthiness test `if (x)` into the compare idiom
+     * `x != 0` (ArkAnalyzer) / `x != false` (ts-frontend) — byte-identical to a
+     * genuine loose comparison in the IR. The numeric reading diverges from
+     * ToBoolean on both axes: `undefined != 0` evaluates to
+     * ToNumber(undefined) = NaN != 0 = true although `undefined` is falsy, and
+     * `NaN != 0` is true although `NaN` is falsy. Follow the idiom contract:
+     * `!=` against literal zero/false is ToBoolean for ALL operand kinds
+     * (bool/fp/ref/fake), matching the concrete ArkIR interpreter of the
+     * hybrid pipeline. Note the idiom only ever uses `!=` (negated tests swap
+     * the branch successors instead), so `==` keeps the literal semantics.
      *
      * @return the truthiness expression, or null when the idiom does not apply.
      */
@@ -819,9 +817,6 @@ class TsExprResolver(
         if (!isZeroOrFalse) return null
 
         val lhs = resolve(left) ?: return null
-        val isRefLike = lhs.isFakeObject() || (lhs.sort == addressSort)
-        if (!isRefLike) return null
-
         mkTruthyExpr(lhs, scope)
     }
 
