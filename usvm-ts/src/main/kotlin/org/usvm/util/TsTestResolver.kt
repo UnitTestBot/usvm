@@ -478,6 +478,9 @@ open class TsTestStateResolver(
         return classes.first()
     }
 
+    /** Object references currently being resolved: guards against cyclic object graphs. */
+    private val classResolutionInProgress = mutableSetOf<UConcreteHeapRef>()
+
     private fun resolveTsClass(
         concreteRef: UConcreteHeapRef,
         heapRef: UHeapRef,
@@ -489,6 +492,12 @@ open class TsTestStateResolver(
         }
         check(type is EtsRefType) { "Expected EtsRefType, but got $type" }
         val clazz = resolveClass(type)
+        if (!classResolutionInProgress.add(concreteRef)) {
+            // A cyclic object graph (e.g. linked nodes): cut the cycle instead of
+            // overflowing the stack; the replay validates the resulting input.
+            return TsTestValue.TsClass(clazz.name, emptyMap())
+        }
+        try {
         val properties = clazz.fields
             .filterNot { field ->
                 field as EtsFieldImpl
@@ -498,11 +507,15 @@ open class TsTestStateResolver(
                 val sort = typeToSort(field.type)
                 if (sort == unresolvedSort) {
                     val lValue = mkFieldLValue(addressSort, heapRef, field.signature)
+                    // The bookkeeping in prepareForResolve stores lvalues with
+                    // model-EVALUATED refs, while `heapRef` here may be the raw
+                    // symbolic input ref: look the fake object up by both keys.
+                    val lValueInModel = mkFieldLValue(addressSort, evaluateInModel(heapRef), field.signature)
 
                     val fakeObject = if (memory is UModel) {
-                        resolvedLValuesToFakeObjects.firstOrNull { it.first == lValue }?.second
+                        resolvedLValuesToFakeObjects.firstOrNull { it.first == lValue || it.first == lValueInModel }?.second
                     } else {
-                        resolvedLValuesToFakeObjects.lastOrNull { it.first == lValue }?.second
+                        resolvedLValuesToFakeObjects.lastOrNull { it.first == lValue || it.first == lValueInModel }?.second
                     }
 
                     if (fakeObject != null) {
@@ -529,6 +542,9 @@ open class TsTestStateResolver(
                 }
             }
         TsTestValue.TsClass(clazz.name, properties)
+        } finally {
+            classResolutionInProgress.remove(concreteRef)
+        }
     }
 
     internal var resolveMode: ResolveMode = ResolveMode.ERROR
