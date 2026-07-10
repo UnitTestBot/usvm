@@ -91,14 +91,18 @@ measurable reduction of over-approximation). Residual mocks on maths:
 generators `next` (18), array HOF `some` (10), `Symbol` (8).
 
 Backlog:
-1. Container constructors: `new Array(n)` / `Map` / `Set` currently resolve
-   to the unresolved-class mock (13 Error / 9 Map / 8 Array / 1 Set per
-   probe); `Array(n)` can be modeled precisely with initializeArray.
+1. Container constructors: ~~Array~~ DONE (`new Array(n)` allocates a real
+   array, the constructor sets the length: +14/+8 covered stmts on maths,
+   +1 analyzable method); Map / Set constructors still fall to the mock.
 2. Unbounded recursion `StrictEq.resolveFakeObject <-> resolveBinaryOperator`
    (stack overflow on fake-object comparisons; seen on corpus runs).
-3. The NaN hole of the compare-to-zero truthiness idiom: engine evaluates
-   `x != 0` numerically, so `undefined` becomes truthy (note 04 §2);
-   candidate fix: `mkTruthyExpr` for compare-to-zero on non-fp operands.
+3. ~~The NaN hole of the compare-to-zero truthiness idiom~~ DONE
+   (2026-07-10, two commits in ts-interpreter-fixes): `!=` against literal
+   zero/false resolves via mkTruthyExpr for ALL operand kinds; `==` keeps
+   literal semantics (front ends never lower truthiness through `==`).
+   The contract is aligned in both executors; And.andOfUnknown passes the
+   differential oracle against the fixed engine (whitelist entry kept with
+   a note until the engine branch is merged).
 4. `+` on references is approximated numerically (`null + {}` -> NaN instead
    of string concat) — differential finding, whitelisted.
 5. Lt/logical operators on mixed fake-object sorts (whitelisted findings).
