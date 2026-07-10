@@ -73,15 +73,11 @@ class InputGenerator(
         is EtsArrayType -> genArray(type.elementType, depth)
 
         is EtsClassType -> genRefByName(type.signature.name, depth)
-            ?: run {
-                val cls = scene.projectAndSdkClasses.firstOrNull { it.signature == type.signature }
-                    ?: scene.projectAndSdkClasses.firstOrNull { it.name == type.signature.name }
-                if (cls != null) instantiate(cls, depth) else VObject(null)
-            }
+            ?: substantialClassByName(type.signature.name)?.let { instantiate(it, depth) }
+            ?: VObject(null)
 
         is EtsUnclearRefType -> genRefByName(type.name, depth)
-            ?: scene.projectAndSdkClasses.firstOrNull { it.name == type.name }
-                ?.let { instantiate(it, depth) }
+            ?: substantialClassByName(type.name)?.let { instantiate(it, depth) }
             ?: VObject(null)
 
         is EtsFunctionType -> genFunction(type)
@@ -182,6 +178,12 @@ class InputGenerator(
         while (size < 8 && random.nextDouble() < 0.6) size++ // geometric
         return VArray(MutableList(size) { generate(elementType, depth + 1) })
     }
+
+    /** Prefer definitions over phantom declarations produced by path-alias imports. */
+    private fun substantialClassByName(name: String): EtsClass? =
+        scene.projectAndSdkClasses
+            .filter { it.name == name }
+            .maxByOrNull { c -> c.methods.count { it.cfg.stmts.isNotEmpty() } * 2 + c.fields.size }
 
     private fun instantiate(cls: EtsClass, depth: Int): VObject {
         val fields = mutableMapOf<String, VValue>()

@@ -584,7 +584,11 @@ class EtsConcreteInterpreter(
 
                     Intrinsics.callInstance(receiver, name, args, ::invokeFunction)
                         ?: throw UnsupportedFeatureSignal(
-                            "instance method: $name on ${receiver::class.simpleName}"
+                            "instance method: $name on " + when (receiver) {
+                                is VObject -> "VObject(${receiver.cls?.signature ?: "<record>"})"
+                                is VFunction -> "VFunction(${receiver.method.signature})"
+                                else -> receiver::class.simpleName
+                            }
                         )
                 }
 

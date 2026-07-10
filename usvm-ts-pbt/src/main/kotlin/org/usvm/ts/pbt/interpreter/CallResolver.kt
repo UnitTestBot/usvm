@@ -21,14 +21,27 @@ import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
 internal class CallResolver(private val scene: EtsScene) {
 
     private val classesByName: Map<String, List<EtsClass>> by lazy {
-        (scene.projectClasses + scene.sdkClasses).groupBy { it.name }
+        (scene.projectClasses + scene.sdkClasses)
+            .groupBy { it.name }
+            // Prefer definitions over declarations: path-alias imports produce
+            // phantom classes (a signature with no method bodies) that would
+            // otherwise shadow the real class of the same name.
+            .mapValues { (_, classes) -> classes.sortedByDescending { it.substance() } }
     }
+
+    private fun EtsClass.substance(): Int =
+        methods.count { it.cfg.stmts.isNotEmpty() } * 2 + fields.size
 
     fun classByName(name: String): EtsClass? = classesByName[name]?.firstOrNull()
 
     fun classBySignature(signature: EtsClassSignature): EtsClass? {
         val candidates = classesByName[signature.name] ?: return null
-        return candidates.firstOrNull { it.signature == signature } ?: candidates.firstOrNull()
+        val exact = candidates.firstOrNull { it.signature == signature }
+        // A phantom exact match loses to a substantial same-named class.
+        if (exact != null && exact.substance() == 0) {
+            candidates.firstOrNull { it.substance() > 0 }?.let { return it }
+        }
+        return exact ?: candidates.firstOrNull()
     }
 
     /** Resolve an instance method by name on [cls], walking the superclass chain. */
@@ -40,7 +53,13 @@ internal class CallResolver(private val scene: EtsScene) {
                 ?.let { return it }
             current = current.superClass?.let { classBySignature(it) }
         }
-        return null
+        // The receiver's class may be a phantom produced by a path-alias import:
+        // fall back to a substantial same-named class that declares the method.
+        return classesByName[cls.name].orEmpty()
+            .asSequence()
+            .filter { it !== cls }
+            .mapNotNull { twin -> twin.methods.firstOrNull { it.name == name && it.cfg.stmts.isNotEmpty() } }
+            .firstOrNull()
     }
 
     /** Resolve a static call target (including free functions in the default class). */
