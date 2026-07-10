@@ -62,15 +62,36 @@ extensions (notes 02/03 tell the diagnosis story — useful for the paper).
    experiment (paper).
 
 **Engine side (ts-interpreter-fixes only):**
-1. Unbounded recursion `StrictEq.resolveFakeObject <-> resolveBinaryOperator`
+
+DONE so far in the branch: mock unresolved virtual calls (instead of killing
+the state) with a distinct "Mocking an unresolved call" log line; inc/dec
+unary expressions; precise approximations for the corpus-hot builtins
+(Number.isInteger/isSafeInteger/isFinite, Math floor/ceil/trunc/round/abs/
+sqrt/min/max with JS NaN semantics, console.* as undefined). Frequency data
+(full-log probes, 2026-07-10): maths corpus unresolved calls were dominated
+by Math.abs (208), Number.isInteger (55), Math.sqrt (13) — now modeled;
+the datastructures corpus is dominated by *in-project cross-file* targets
+(lessThan 46, greaterThan 24, class Stack 29) — a per-file-scene problem to
+fix on the PBT side, not by mocking. Effect of precise approximations:
+symbolic-only replay-confirmed on maths went 66 -> 83 of ~105 reached (the
+measurable reduction of over-approximation). Residual mocks on maths:
+generators `next` (18), array HOF `some` (10), `Symbol` (8).
+
+Backlog:
+1. Container constructors: `new Array(n)` / `Map` / `Set` currently resolve
+   to the unresolved-class mock (13 Error / 9 Map / 8 Array / 1 Set per
+   probe); `Array(n)` can be modeled precisely with initializeArray.
+2. Unbounded recursion `StrictEq.resolveFakeObject <-> resolveBinaryOperator`
    (stack overflow on fake-object comparisons; seen on corpus runs).
-2. The NaN hole of the compare-to-zero truthiness idiom: engine evaluates
+3. The NaN hole of the compare-to-zero truthiness idiom: engine evaluates
    `x != 0` numerically, so `undefined` becomes truthy (note 04 §2);
    candidate fix: `mkTruthyExpr` for compare-to-zero on non-fp operands.
-3. `+` on references is approximated numerically (`null + {}` -> NaN instead
+4. `+` on references is approximated numerically (`null + {}` -> NaN instead
    of string concat) — differential finding, whitelisted.
-4. Lt/logical operators on mixed fake-object sorts (whitelisted findings).
-5. Strings: `TsTestStateResolver` returns placeholder strings -> lossy replay.
+5. Lt/logical operators on mixed fake-object sorts (whitelisted findings).
+6. Strings: `TsTestStateResolver` returns placeholder strings -> lossy replay.
+7. Consider TS-level builtin implementations (a builtins.ts lowered to EtsIR
+   and added to the scene as SDK) for things awkward to encode in SMT.
 
 **Front-end findings to report upstream:**
 - ArkAnalyzer lowers `const old = x++` as `x := x + 1; old := x` (old gets the
