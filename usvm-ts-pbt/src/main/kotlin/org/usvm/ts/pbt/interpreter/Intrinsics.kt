@@ -27,6 +27,11 @@ internal object Intrinsics {
     fun callNamespace(namespace: String, method: String, args: List<VValue>): VValue? = when (namespace) {
         "console", "Logger" -> VUndefined // logging is a no-op
 
+        "JSON" -> when (method) {
+            "stringify" -> VString(jsonStringify(args.getOrElse(0) { VUndefined }, mutableSetOf()) ?: "undefined")
+            else -> null
+        }
+
         "Math" -> {
             val x = args.getOrElse(0) { VUndefined }
             val n = JsSemantics.toNumber(x)
@@ -105,6 +110,51 @@ internal object Intrinsics {
         else -> null
     }
 
+    /**
+     * `JSON.stringify` per ES semantics for the modeled value universe:
+     * undefined/functions are omitted in objects and become null in arrays;
+     * Map/Set serialize as plain empty objects; circular structures throw.
+     * @return null when the top-level value is not serializable (undefined/function).
+     */
+    private fun jsonStringify(v: VValue, visited: MutableSet<VValue>): String? = when (v) {
+        VUndefined, is VFunction, is VNamespace -> null
+        VNull -> "null"
+        is VBool -> v.value.toString()
+        is VNumber -> if (v.value.isFinite()) JsSemantics.numberToString(v.value) else "null"
+        is VString -> jsonQuote(v.value)
+        is VMap, is VSet -> "{}"
+        is VArray -> {
+            if (!visited.add(v)) throw JsThrowSignal(VString("TypeError: Converting circular structure to JSON"))
+            val body = v.elements.joinToString(",") { jsonStringify(it, visited) ?: "null" }
+            visited.remove(v)
+            "[$body]"
+        }
+
+        is VObject -> {
+            if (!visited.add(v)) throw JsThrowSignal(VString("TypeError: Converting circular structure to JSON"))
+            val body = v.fields.entries.mapNotNull { (k, value) ->
+                jsonStringify(value, visited)?.let { "${jsonQuote(k)}:$it" }
+            }.joinToString(",")
+            visited.remove(v)
+            "{$body}"
+        }
+    }
+
+    private fun jsonQuote(s: String): String = buildString {
+        append('"')
+        for (c in s) {
+            when (c) {
+                '"' -> append("\\\"")
+                '\\' -> append("\\\\")
+                '\n' -> append("\\n")
+                '\r' -> append("\\r")
+                '\t' -> append("\\t")
+                else -> if (c < ' ') append("\\u%04x".format(c.code)) else append(c)
+            }
+        }
+        append('"')
+    }
+
     private fun parseIntJs(args: List<VValue>): VNumber {
         val s = JsSemantics.toStringJs(args.getOrElse(0) { VUndefined }).trim()
         val radix = args.getOrNull(1)?.let { JsSemantics.toInt32(it) }?.takeIf { it != 0 } ?: 10
@@ -158,6 +208,8 @@ internal object Intrinsics {
             "Boolean" -> VBool(args.isNotEmpty() && JsSemantics.truthy(x))
             "String" -> VString(if (args.isEmpty()) "" else JsSemantics.toStringJs(x))
             "isNaN" -> VBool(JsSemantics.toNumber(x).isNaN())
+            "isFinite" -> VBool(JsSemantics.toNumber(x).isFinite())
+            "parseInt" -> parseIntJs(args)
             "parseFloat" -> VNumber(JsSemantics.stringToNumber(JsSemantics.toStringJs(x)))
             else -> null
         }
@@ -436,6 +488,38 @@ internal object Intrinsics {
         )
 
         "includes" -> VBool(s.value.contains(JsSemantics.toStringJs(args.getOrElse(0) { VUndefined })))
+
+        "split" -> {
+            val sep = args.getOrNull(0)
+            when {
+                sep == null || sep == VUndefined -> VArray(mutableListOf(s))
+                else -> {
+                    val sepStr = JsSemantics.toStringJs(sep)
+                    val parts = if (sepStr.isEmpty()) s.value.map { it.toString() }
+                    else s.value.split(sepStr)
+                    VArray(parts.map { VString(it) as VValue }.toMutableList())
+                }
+            }
+        }
+
+        "localeCompare" -> VNumber(
+            s.value.compareTo(JsSemantics.toStringJs(args.getOrElse(0) { VUndefined }))
+                .coerceIn(-1, 1).toDouble()
+        )
+
+        "startsWith" -> VBool(s.value.startsWith(JsSemantics.toStringJs(args.getOrElse(0) { VUndefined })))
+        "endsWith" -> VBool(s.value.endsWith(JsSemantics.toStringJs(args.getOrElse(0) { VUndefined })))
+
+        "charCodeAt" -> {
+            val i = JsSemantics.toNumber(args.getOrElse(0) { VNumber(0.0) }).toInt()
+            if (i in s.value.indices) VNumber(s.value[i].code.toDouble()) else VNumber(Double.NaN)
+        }
+
+        "repeat" -> {
+            val n = JsSemantics.toNumber(args.getOrElse(0) { VUndefined })
+            if (n.isNaN() || n < 0) throw JsThrowSignal(VString("RangeError: Invalid count value"))
+            VString(s.value.repeat(n.toInt()))
+        }
 
         "toUpperCase" -> VString(s.value.uppercase())
         "toLowerCase" -> VString(s.value.lowercase())

@@ -226,6 +226,18 @@ private fun printSummary(mode: String, report: HybridReport, analysisFailures: I
                 if (totalStmts > 0) 100.0 * coveredStmts / totalStmts else 100.0,
             )
     )
+    val reasonTotals = mutableMapOf<String, Int>()
+    for (m in ms) {
+        for ((k, v) in m.pbt?.unsupportedReasons.orEmpty()) {
+            reasonTotals[k] = (reasonTotals[k] ?: 0) + v
+        }
+    }
+    if (reasonTotals.isNotEmpty()) {
+        println("  top unsupported reasons:")
+        reasonTotals.entries.sortedByDescending { it.value }.take(10).forEach { (k, v) ->
+            println("    %6d  %s".format(v, k))
+        }
+    }
     println(
         "  pbt failures: $failures, unsupported executions: $unsupported; " +
             "symbolic targets: ${targets.size}, reached: ${targets.count { it.reached }}, " +

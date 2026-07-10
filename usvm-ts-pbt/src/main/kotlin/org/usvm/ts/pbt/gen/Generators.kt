@@ -5,20 +5,25 @@ import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsFunctionType
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUnclearRefType
 import org.jacodb.ets.model.EtsUndefinedType
 import org.jacodb.ets.model.EtsUnionType
 import org.jacodb.ets.model.EtsUnknownType
 import org.usvm.ts.pbt.interpreter.VArray
 import org.usvm.ts.pbt.interpreter.VBool
+import org.usvm.ts.pbt.interpreter.VFunction
+import org.usvm.ts.pbt.interpreter.VMap
 import org.usvm.ts.pbt.interpreter.VNull
 import org.usvm.ts.pbt.interpreter.VNumber
 import org.usvm.ts.pbt.interpreter.VObject
+import org.usvm.ts.pbt.interpreter.VSet
 import org.usvm.ts.pbt.interpreter.VString
 import org.usvm.ts.pbt.interpreter.VUndefined
 import org.usvm.ts.pbt.interpreter.VValue
@@ -67,11 +72,19 @@ class InputGenerator(
 
         is EtsArrayType -> genArray(type.elementType, depth)
 
-        is EtsClassType -> {
-            val cls = scene.projectAndSdkClasses.firstOrNull { it.signature == type.signature }
-                ?: scene.projectAndSdkClasses.firstOrNull { it.name == type.signature.name }
-            if (cls != null) instantiate(cls, depth) else VObject(null)
-        }
+        is EtsClassType -> genRefByName(type.signature.name, depth)
+            ?: run {
+                val cls = scene.projectAndSdkClasses.firstOrNull { it.signature == type.signature }
+                    ?: scene.projectAndSdkClasses.firstOrNull { it.name == type.signature.name }
+                if (cls != null) instantiate(cls, depth) else VObject(null)
+            }
+
+        is EtsUnclearRefType -> genRefByName(type.name, depth)
+            ?: scene.projectAndSdkClasses.firstOrNull { it.name == type.name }
+                ?.let { instantiate(it, depth) }
+            ?: VObject(null)
+
+        is EtsFunctionType -> genFunction(type)
 
         is EtsUnionType ->
             if (type.types.isEmpty()) genAny(depth)
@@ -112,6 +125,56 @@ class InputGenerator(
                 .map { "abcxyz01"[random.nextInt(8)] }
                 .joinToString("")
         )
+    }
+
+    /** Built-in container types are not scene classes. */
+    private fun genRefByName(name: String, depth: Int): VValue? = when (name) {
+        "Array" -> genArray(EtsUnknownType, depth)
+        "Map" -> {
+            val map = VMap()
+            repeat(random.nextInt(0, 4)) {
+                map.entries[genPrimitiveKey()] = generate(EtsUnknownType, depth + 1)
+            }
+            map
+        }
+
+        "Set" -> {
+            val set = VSet()
+            repeat(random.nextInt(0, 4)) { set.elements.add(genPrimitiveKey()) }
+            set
+        }
+
+        else -> null
+    }
+
+    private fun genPrimitiveKey(): VValue = when (random.nextInt(3)) {
+        0 -> genNumber()
+        1 -> genString()
+        else -> VBool(random.nextBoolean())
+    }
+
+    /**
+     * A function-typed input (a callback, a comparator field): pick a scene
+     * method with a matching arity — real projects usually have a suitable one
+     * (e.g. `defaultCompare`) — falling back to any method of that arity.
+     */
+    private fun genFunction(type: EtsFunctionType): VValue {
+        val sig = type.signature
+        val declared = scene.projectAndSdkClasses.asSequence()
+            .flatMap { it.methods }
+            .filter { it.cfg.stmts.isNotEmpty() }
+            .firstOrNull { it.name == sig.name && sig.name.isNotBlank() }
+        if (declared != null) return VFunction(declared)
+
+        val arity = sig.parameters.size
+        val candidates = scene.projectClasses
+            .flatMap { it.methods }
+            .filter {
+                it.cfg.stmts.isNotEmpty() && it.parameters.size == arity &&
+                    !it.name.startsWith("%") && it.name != "constructor"
+            }
+        if (candidates.isEmpty()) return VUndefined
+        return VFunction(candidates[random.nextInt(candidates.size)])
     }
 
     private fun genArray(elementType: EtsType, depth: Int): VArray {

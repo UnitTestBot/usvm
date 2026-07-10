@@ -47,6 +47,8 @@ data class PbtStats(
     val diverged: Int,
     val unsupported: Int,
     val elapsedMs: Long,
+    /** Truncated reason -> count, for prioritizing interpreter/engine gaps. */
+    val unsupportedReasons: Map<String, Int> = emptyMap(),
 )
 
 class PbtResult(
@@ -84,6 +86,7 @@ class PbtPhase(
         var diverged = 0
         var unsupported = 0
         var executions = 0
+        val unsupportedReasons = mutableMapOf<String, Int>()
 
         val start = TimeSource.Monotonic.markNow()
         coverage.phase = "pbt"
@@ -107,6 +110,8 @@ class PbtPhase(
                 is ExecutionResult.Diverged -> diverged++
                 is ExecutionResult.Unsupported -> {
                     unsupported++
+                    val key = result.reason.take(60)
+                    unsupportedReasons[key] = (unsupportedReasons[key] ?: 0) + 1
                     logger.debug { "unsupported: ${result.reason}" }
                 }
             }
@@ -136,6 +141,7 @@ class PbtPhase(
             diverged = diverged,
             unsupported = unsupported,
             elapsedMs = start.elapsedNow().inWholeMilliseconds,
+            unsupportedReasons = unsupportedReasons,
         )
         logger.info {
             "PBT phase for ${method.name}: $stats, " +

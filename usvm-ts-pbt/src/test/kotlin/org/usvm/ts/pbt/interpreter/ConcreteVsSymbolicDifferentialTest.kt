@@ -85,6 +85,9 @@ class ConcreteVsSymbolicDifferentialTest {
         "Add.addUnknownValues",
         "Less.lessUnknown",
         "And.andOfUnknown", // FIXED in caelmbleidd/ts-interpreter-fixes (truthiness idiom
+        "And.andOfNumberAndNumber", // same family: pinned engine reads `if (NaN)` as
+        "And.andOfBooleanAndNumber", // NaN != 0 = true; fixed by the same idiom commit
+        "And.andOfNumberAndBoolean", // in the engine branch
         // resolved via mkTruthyExpr for all operand kinds); unwhitelist after the
         // engine branch is merged and the dependency is picked up.
         "TypeCoercion.transitiveCoercionNoTypes",

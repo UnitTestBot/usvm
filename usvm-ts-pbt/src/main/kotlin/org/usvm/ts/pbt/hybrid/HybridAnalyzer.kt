@@ -93,6 +93,7 @@ class HybridAnalyzer(
                 diverged = pbt.stats.diverged,
                 unsupported = pbt.stats.unsupported,
                 wallMs = (System.nanoTime() - pbtStart) / 1_000_000,
+                unsupportedReasons = pbt.stats.unsupportedReasons,
                 failures = pbt.failures.map { failure ->
                     FailureReport(
                         description = failure.description,

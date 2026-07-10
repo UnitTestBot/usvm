@@ -64,6 +64,7 @@ data class PbtReport(
     val unsupported: Int,
     val wallMs: Long,
     val failures: List<FailureReport>,
+    val unsupportedReasons: Map<String, Int> = emptyMap(),
 )
 
 @Serializable
