@@ -50,9 +50,17 @@ extensions (notes 02/03 tell the diagnosis story — useful for the paper).
 ## 4. Backlog
 
 **PBT side (ts_pbt):**
-1. Replay confirmation for instance methods: solver-synthesized `this`
-   objects rarely replay (TsClass -> VObject decode gaps) — investigate on
-   the datastructures corpus (`replay-confirmed: 1` out of 84 reached).
+1. Replay confirmation for instance methods — PARTIALLY DONE (2026-07-10):
+   input-resolution failures went 47 -> 2 of 68 reached targets (resolver
+   no longer fails on path-untouched unresolved fields; field-function
+   calls `this.#cmp(...)` supported; unrepresentable fields degrade to
+   undefined). The residual divergence is genuine: fields that WERE read
+   along the path could not be extracted from the *captured* state (e.g.
+   `MySet.#items` comes back undefined while the path read it), plus a
+   resolver StackOverflow on cyclic node graphs. Next step: extract
+   path-read fields from the captured state's model (the
+   lValuesToAllocatedFakeObjects bookkeeping covers only written fakes),
+   and add a recursion guard to resolveClass.
 2. ~~Project-level scenes~~ DONE (2026-07-10): the batch CLI loads the whole
    corpus into one EtsScene by default (`--file-scenes` restores per-file).
    Effect on datastructures: PBT Unsupported 13436 -> 6719, PBT branch
