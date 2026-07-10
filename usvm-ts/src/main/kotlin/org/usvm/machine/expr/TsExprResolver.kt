@@ -77,6 +77,7 @@ import org.jacodb.ets.model.EtsYieldExpr
 import org.jacodb.ets.utils.ANONYMOUS_METHOD_PREFIX
 import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
 import org.jacodb.ets.utils.getDeclaredLocals
+import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.UIteExpr
 import org.usvm.USort
@@ -786,11 +787,42 @@ class TsExprResolver(
     // region RELATION
 
     override fun visit(expr: EtsEqExpr): UExpr<out USort>? {
+        truthinessIdiomOrNull(expr.left, expr.right)?.let { truthy ->
+            return ctx.mkNot(truthy)
+        }
         return resolveBinaryOperator(TsBinaryOperator.Eq, expr)
     }
 
     override fun visit(expr: EtsNotEqExpr): UExpr<out USort>? {
+        truthinessIdiomOrNull(expr.left, expr.right)?.let { truthy ->
+            return truthy
+        }
         return resolveBinaryOperator(TsBinaryOperator.Neq, expr)
+    }
+
+    /**
+     * Front ends lower the truthiness test `if (x)` into the compare-to-zero /
+     * compare-to-false idiom (`x != 0`, `x != false`), which is byte-identical
+     * to a genuine loose comparison in the IR. For *reference-like* operands the
+     * numeric reading diverges from ToBoolean (e.g. `undefined != 0` evaluates
+     * to `NaN != 0 = true`, although `undefined` is falsy). Follow the idiom
+     * contract: a compare of a fake/ref operand against literal zero/false is
+     * ToBoolean. Numeric and boolean operands keep the literal loose-comparison
+     * semantics (this matches the concrete ArkIR interpreter of the hybrid
+     * pipeline).
+     *
+     * @return the truthiness expression, or null when the idiom does not apply.
+     */
+    private fun truthinessIdiomOrNull(left: EtsEntity, right: EtsEntity): UBoolExpr? = with(ctx) {
+        val isZeroOrFalse = (right is EtsNumberConstant && right.value == 0.0) ||
+            (right is EtsBooleanConstant && !right.value)
+        if (!isZeroOrFalse) return null
+
+        val lhs = resolve(left) ?: return null
+        val isRefLike = lhs.isFakeObject() || (lhs.sort == addressSort)
+        if (!isRefLike) return null
+
+        mkTruthyExpr(lhs, scope)
     }
 
     override fun visit(expr: EtsStrictEqExpr): UExpr<out USort>? {
