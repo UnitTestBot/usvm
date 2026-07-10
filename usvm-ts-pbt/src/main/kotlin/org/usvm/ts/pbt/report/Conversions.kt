@@ -39,14 +39,19 @@ fun TsTestValue.toVValueOrNull(classResolver: (String) -> EtsClass? = { null }):
         TsTestValue.TsUndefined -> VUndefined
 
         is TsTestValue.TsArray<*> -> {
-            val elements = values.map { it.toVValueOrNull(classResolver) ?: return null }
-            VArray(elements.toMutableList())
+            // An unrepresentable element degrades to undefined: the replay is
+            // validated against the target edge anyway, so a wrong guess can
+            // only lose a confirmation, never fake one.
+            VArray(values.map { it.toVValueOrNull(classResolver) ?: VUndefined }.toMutableList())
         }
 
         is TsTestValue.TsClass -> {
+            // Same for fields: fields the path never touched come back as
+            // TsUnknown and are simply absent (i.e. undefined) on replay.
             val fields = mutableMapOf<String, VValue>()
             for ((k, v) in properties) {
-                fields[k] = v.toVValueOrNull(classResolver) ?: return null
+                val converted = v.toVValueOrNull(classResolver) ?: continue
+                fields[k] = converted
             }
             VObject(classResolver(name), fields)
         }

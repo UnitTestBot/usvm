@@ -538,6 +538,14 @@ class EtsConcreteInterpreter(
                         }
                     }
 
+                    // A function value stored in an object field: `this.#cmp(a, b)`
+                    if (receiver is VObject) {
+                        val fieldFn = receiver.fields[name]
+                        if (fieldFn is VFunction) {
+                            return runMethod(fieldFn.method, receiver, padArgs(fieldFn.method, args))
+                        }
+                    }
+
                     // Constructors of classes outside the scene.
                     if (name == CONSTRUCTOR_NAME) {
                         when (receiver) {

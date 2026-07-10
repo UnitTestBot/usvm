@@ -219,8 +219,11 @@ class SymbolicPhase(
             scene.projectAndSdkClasses.firstOrNull { it.name == name }
         }
         val thisValue = inputs.thisInstance?.toVValueOrNull(classResolver) ?: VUndefined
-        val args = inputs.parameters.map {
-            it.toVValueOrNull(classResolver) ?: return false
+        val args = inputs.parameters.mapIndexed { i, value ->
+            value.toVValueOrNull(classResolver) ?: run {
+                logger.debug { "replay skipped: parameter $i is not representable: $value" }
+                return false
+            }
         }
 
         var edgeTaken = false
@@ -237,7 +240,15 @@ class SymbolicPhase(
             args,
             ExecutionListener.composite(listOf(coverage, probe)),
         )
-        if (result is ExecutionResult.Unsupported) return false
+        if (result is ExecutionResult.Unsupported) {
+            logger.debug { "replay unsupported for $edge: ${result.reason}" }
+            return false
+        }
+        if (!edgeTaken) {
+            logger.info {
+                "replay diverged for $edge: result=$result, this=$thisValue, args=$args"
+            }
+        }
         return edgeTaken
     }
 

@@ -509,8 +509,11 @@ open class TsTestStateResolver(
                         val obj = resolveFakeObject(fakeObject)
                         field.name to obj
                     } else {
+                        // A field never touched along the path is not an input
+                        // obligation (path-minimal inputs): degrade to TsUnknown
+                        // instead of failing the whole resolution.
                         val fieldExpr = finalStateMemory.read(lValue) as? UConcreteHeapRef
-                            ?: error("UnresolvedSort should be represented by a fake object instance")
+                            ?: return@associate field.name to TsTestValue.TsUnknown
                         // TODO check values if fieldExpr is correct here
                         //      Probably we have to pass fieldExpr as symbolic value and something as a concrete one
                         val obj = resolveExpr(fieldExpr)
