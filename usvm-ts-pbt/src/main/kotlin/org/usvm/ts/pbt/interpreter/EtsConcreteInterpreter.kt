@@ -269,24 +269,20 @@ class EtsConcreteInterpreter(
 
             // Binary: relational.
             //
-            // NOTE on the compare-to-zero idiom: both frontends (ArkAnalyzer and the
-            // jacodb ts-frontend) lower `if (x)` to the ConditionExpr `x != 0`, which
-            // is NOT equivalent to JS loose inequality for non-number operands
-            // (`[] != 0` is false in JS, yet `[]` is truthy). The IR is ambiguous:
-            // a genuine source-level `x != 0` produces the same shape. We follow the
-            // IR contract: compare-to-zero on a non-number operand means ToBoolean.
+            // NOTE on the truthiness idiom: front ends lower `if (x)` to
+            // `x != 0` (ArkAnalyzer) / `x != false` (ts-frontend) — byte-identical
+            // to a genuine loose comparison in the IR, although the two readings
+            // diverge (`[] != 0` and `NaN != 0` vs the truthiness of `[]`/`NaN`).
+            // We follow the idiom contract: `!=` against literal zero/false is
+            // ToBoolean for ALL operand kinds. The idiom only ever uses `!=`
+            // (negated tests swap branch successors), so `==` keeps the literal
+            // loose-equality semantics. The engine mirrors this contract.
             is EtsEqExpr ->
-                if (isZeroConstant(e.right)) {
-                    val l = eval(e.left, frame)
-                    if (l is VNumber) VBool(l.value == 0.0) else VBool(!JsSemantics.truthy(l))
-                } else {
-                    VBool(JsSemantics.looseEq(eval(e.left, frame), eval(e.right, frame)))
-                }
+                VBool(JsSemantics.looseEq(eval(e.left, frame), eval(e.right, frame)))
 
             is EtsNotEqExpr ->
-                if (isZeroConstant(e.right)) {
-                    val l = eval(e.left, frame)
-                    if (l is VNumber) VBool(l.value != 0.0) else VBool(JsSemantics.truthy(l))
+                if (isZeroOrFalseConstant(e.right)) {
+                    VBool(JsSemantics.truthy(eval(e.left, frame)))
                 } else {
                     VBool(!JsSemantics.looseEq(eval(e.left, frame), eval(e.right, frame)))
                 }
@@ -324,8 +320,9 @@ class EtsConcreteInterpreter(
         private fun parameterIndexOfLocal(frame: Frame, name: String): Int? =
             frame.method.parameters.firstOrNull { it.name == name }?.index
 
-        private fun isZeroConstant(e: EtsEntity): Boolean =
-            e is EtsNumberConstant && e.value == 0.0
+        private fun isZeroOrFalseConstant(e: EtsEntity): Boolean =
+            (e is EtsNumberConstant && e.value == 0.0) ||
+                (e is EtsBooleanConstant && !e.value)
 
         /**
          * A local of a function type that was never assigned is a function

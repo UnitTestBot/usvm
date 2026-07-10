@@ -84,7 +84,9 @@ class ConcreteVsSymbolicDifferentialTest {
     private val knownEngineDivergences: Set<String> = setOf(
         "Add.addUnknownValues",
         "Less.lessUnknown",
-        "And.andOfUnknown",
+        "And.andOfUnknown", // FIXED in caelmbleidd/ts-interpreter-fixes (truthiness idiom
+        // resolved via mkTruthyExpr for all operand kinds); unwhitelist after the
+        // engine branch is merged and the dependency is picked up.
         "TypeCoercion.transitiveCoercionNoTypes",
     )
 
