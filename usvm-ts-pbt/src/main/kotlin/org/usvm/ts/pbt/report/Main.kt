@@ -2,6 +2,7 @@ package org.usvm.ts.pbt.report
 
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.usvm.ts.pbt.hybrid.AnalysisMode
@@ -28,6 +29,9 @@ Corpus selection:
   --exclude <substring>      skip files whose path contains the substring (repeatable);
                              defaults always applied: .d.ts, node_modules, .test.ts, .spec.ts
   --max-files <n>            cap the number of analyzed files
+  --file-scenes              load every file into its own scene (default: one
+                             project scene for the whole corpus, so that
+                             cross-file classes and functions resolve)
   --class <name>             only methods of this class
   --method <name>            only methods with this name
 
@@ -53,6 +57,7 @@ private class Options(args: Array<String>) {
     var recursive = false
     val excludes = mutableListOf(".d.ts", "node_modules", ".test.ts", ".spec.ts")
     var maxFiles = Int.MAX_VALUE
+    var projectScene = true
     var classFilter: String? = null
     var methodFilter: String? = null
     var modes: List<AnalysisMode> = listOf(AnalysisMode.HYBRID_WITH_HINTS)
@@ -69,6 +74,7 @@ private class Options(args: Array<String>) {
                 "--recursive" -> recursive = true
                 "--exclude" -> excludes += args[++i]
                 "--max-files" -> maxFiles = args[++i].toInt()
+                "--file-scenes" -> projectScene = false
                 "--class" -> classFilter = args[++i]
                 "--method" -> methodFilter = args[++i]
                 "--modes" -> modes = args[++i].split(',').map { AnalysisMode.valueOf(it.trim()) }
@@ -128,18 +134,30 @@ fun main(args: Array<String>) {
     val files = collectFiles(opts)
     println("Corpus: ${files.size} file(s)")
 
-    // Load every file into its own scene, isolating frontend failures per file.
-    val scenes = mutableListOf<Pair<Path, EtsScene>>()
+    // Load files, isolating frontend failures per file.
+    val loadedFiles = mutableListOf<Pair<Path, EtsFile>>()
     var loadFailures = 0
     for (file in files) {
         try {
-            scenes += file to EtsScene(listOf(loadEtsFileAutoConvert(file)))
+            loadedFiles += file to loadEtsFileAutoConvert(file)
         } catch (e: Throwable) {
             loadFailures++
             logger.warn { "failed to load $file: ${e.message?.take(200)}" }
         }
     }
-    println("Loaded ${scenes.size} file(s), $loadFailures load failure(s)")
+    println("Loaded ${loadedFiles.size} file(s), $loadFailures load failure(s)")
+
+    // Scene construction. Default: ONE scene over the whole corpus, so that
+    // cross-file classes and free functions resolve (both the symbolic engine
+    // and the concrete interpreter look targets up by name across the scene).
+    // --file-scenes restores the old per-file isolation.
+    val scenes: List<Pair<Path, EtsScene>> = if (opts.projectScene) {
+        if (loadedFiles.isEmpty()) emptyList()
+        else listOf(opts.input to EtsScene(loadedFiles.map { it.second }))
+    } else {
+        loadedFiles.map { (path, file) -> path to EtsScene(listOf(file)) }
+    }
+    println("Scene mode: ${if (opts.projectScene) "project (1 scene)" else "per-file (${scenes.size} scenes)"}")
 
     for (mode in opts.modes) {
         val config = HybridConfig(
