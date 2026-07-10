@@ -53,8 +53,13 @@ extensions (notes 02/03 tell the diagnosis story — useful for the paper).
 1. Replay confirmation for instance methods: solver-synthesized `this`
    objects rarely replay (TsClass -> VObject decode gaps) — investigate on
    the datastructures corpus (`replay-confirmed: 1` out of 84 reached).
-2. Project-level scenes (load whole project instead of per-file) to resolve
-   cross-file imports — the largest `Unsupported` bucket on real corpora.
+2. ~~Project-level scenes~~ DONE (2026-07-10): the batch CLI loads the whole
+   corpus into one EtsScene by default (`--file-scenes` restores per-file).
+   Effect on datastructures: PBT Unsupported 13436 -> 6719, PBT branch
+   62.5 -> 64.8%, symbolic-only 57.2 -> 59.8% with replay-confirmed
+   101 -> 115; the in-project unresolved bucket (lessThan/Stack) vanished —
+   residual unresolved calls are pure builtins (Symbol 32, iterator `next`
+   32, toLowerCase 8, Array.isArray 4, JSON.stringify 4, Object.keys 2).
 3. Symbolic->PBT feedback loop: reached inputs as seeds for a mutation round.
 4. Fallback budgeting for type hints (skip the retry when the hinted run
    timed out rather than proved UNSAT) — motivated by the ablation numbers.
