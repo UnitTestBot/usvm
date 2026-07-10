@@ -111,6 +111,18 @@ Backlog:
    and added to the scene as SDK) for things awkward to encode in SMT.
 
 **Front-end findings to report upstream:**
+- ts-frontend types several corpus comparator fields as *functions* while
+  the code calls Comparator *methods* on them
+  (`#compareFn: CompareFn` in the IR vs `this.#compareFn.lessThan(a, b)` in
+  the code, see loiane 10-tree) — input generation follows the declared type
+  and produces a function, so every such method call is honestly Unsupported
+  (~1k executions on the corpus). Fix belongs to the frontend's type
+  assignment, not to generator heuristics.
+- SpreadElement (`...args`) is emitted as an opaque UnsupportedValue
+  RawEntity (12 sites, the largest residual Unsupported bucket).
+- path-alias imports produce phantom classes (signature, no bodies); both
+  our resolver and generator now rank same-named classes by substance, but
+  a frontend-side resolution of the alias would remove the ambiguity.
 - ArkAnalyzer lowers `const old = x++` as `x := x + 1; old := x` (old gets the
   NEW value) — lowering bug, documented in the ts-interpreter-fixes sample.
 - The `if (x)` -> `x != 0` idiom is ambiguous IR (indistinguishable from a
