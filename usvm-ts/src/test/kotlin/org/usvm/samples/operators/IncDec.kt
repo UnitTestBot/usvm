@@ -47,9 +47,14 @@ class IncDec : TsMethodTestRunner() {
         val method = getMethod("decrementLoop")
         discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
             method = method,
+            // Classify by the observed depth, not by n: non-integral inputs
+            // (e.g. n = 2.5) legitimately reach depth ceil(n).
             { n, r -> (n.number <= 0 || n.isNaN()) && (r eq 0) },
-            { n, r -> n.number >= 3 && (r eq 3) },
-            { n, r -> n.number > 0 && n.number <= 2 && r.number > 0 && r.number <= 2 },
+            { n, r -> r eq 3 },
+            { n, r -> r.number > 0 && r.number < 3 },
+            invariants = arrayOf(
+                { _, r -> r.number >= 0 && r.number <= 3 },
+            ),
         )
     }
 }

@@ -186,6 +186,7 @@ class TsInterpreter(
                     // Approximate a call on an unresolved class with a mock instead of
                     // killing the state: otherwise a single unmodeled call (e.g. an SDK
                     // function) makes everything after it unreachable.
+                    logger.warn { "Mocking a call on an unresolved class: ${stmt.callee} (over-approximation)" }
                     mockMethodCall(scope, stmt.callee)
                     scope.doWithState { newStmt(stmt.returnSite) }
                     return
@@ -208,6 +209,7 @@ class TsInterpreter(
                     "Could not resolve method: ${stmt.callee} on type: $type"
                 }
                 // Mock instead of killing the state (see the comment above).
+                logger.warn { "Mocking an unresolved call: ${stmt.callee} (over-approximation)" }
                 mockMethodCall(scope, stmt.callee)
                 scope.doWithState { newStmt(stmt.returnSite) }
                 return
@@ -219,6 +221,7 @@ class TsInterpreter(
                     logger.warn { "Could not resolve method: ${stmt.callee}" }
                 }
                 // Mock instead of killing the state (see the comment above).
+                logger.warn { "Mocking an unresolved call: ${stmt.callee} (over-approximation)" }
                 mockMethodCall(scope, stmt.callee)
                 scope.doWithState { newStmt(stmt.returnSite) }
                 return

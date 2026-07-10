@@ -1,6 +1,7 @@
 package org.usvm.machine.expr
 
 import io.ksmt.expr.KFpRoundingMode
+import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsArrayType
@@ -28,6 +29,7 @@ import org.usvm.types.first
 import org.usvm.types.firstOrNull
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
+import org.usvm.util.boolToFp
 import org.usvm.util.resolveEtsMethods
 
 private val logger = KotlinLogging.logger {}
@@ -58,6 +60,17 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
         if (expr.callee.name == "isNaN") {
             return from(handleNumberIsNaN(expr))
         }
+        if (expr.callee.name == "isInteger" || expr.callee.name == "isSafeInteger") {
+            return from(handleNumberIsInteger(expr))
+        }
+        if (expr.callee.name == "isFinite") {
+            return from(handleNumberIsFinite(expr))
+        }
+    }
+
+    // `console.*` is side-effect-free for the analysis, like `Logger`
+    if (expr.instance.name == "console") {
+        return from(mkUndefinedValue())
     }
 
     // Handle 'Boolean' constructor calls
@@ -79,8 +92,15 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
 
     // Handle `Math` method calls
     if (expr.instance.name == "Math") {
-        if (expr.callee.name == "floor") {
-            return from(handleMathFloor(expr))
+        when (expr.callee.name) {
+            "floor" -> return from(handleMathRounding(expr, KFpRoundingMode.RoundTowardNegative))
+            "ceil" -> return from(handleMathRounding(expr, KFpRoundingMode.RoundTowardPositive))
+            "trunc" -> return from(handleMathRounding(expr, KFpRoundingMode.RoundTowardZero))
+            "round" -> return from(handleMathRound(expr))
+            "abs" -> return from(handleMathAbs(expr))
+            "sqrt" -> return from(handleMathSqrt(expr))
+            "min" -> return from(handleMathMinMax(expr, isMin = true))
+            "max" -> return from(handleMathMinMax(expr, isMin = false))
         }
     }
 
@@ -263,24 +283,149 @@ private fun TsExprResolver.handlePromiseResolveReject(expr: EtsInstanceCallExpr)
     promise
 }
 
-private fun TsExprResolver.handleMathFloor(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
+/** Resolve the single argument of a Math function as an fp64 value, when possible. */
+private fun TsExprResolver.resolveSingleFpArg(expr: EtsInstanceCallExpr): UExpr<KFp64Sort>? = with(ctx) {
     check(expr.args.size == 1) {
-        "Math.floor() should have exactly one argument, but got ${expr.args.size}"
+        "Math.${expr.callee.name}() should have exactly one argument, but got ${expr.args.size}"
     }
     val arg = resolve(expr.args.single()) ?: return null
+    when {
+        arg.isFakeObject() -> {
+            // Constrain the fake object to its numeric alternative: precise Math
+            // semantics for non-number arguments (ToNumber coercions) is future work.
+            scope.assert(arg.getFakeType(scope).fpTypeExpr) ?: return null
+            arg.extractFp(scope)
+        }
 
-    when (arg.sort) {
-        fp64Sort -> mkFpRoundToIntegralExpr(
-            roundingMode = mkFpRoundingModeExpr(KFpRoundingMode.RoundTowardNegative),
-            value = arg.asExpr(fp64Sort),
-        )
+        arg.sort == fp64Sort -> arg.asExpr(fp64Sort)
 
-        sizeSort -> arg.asExpr(sizeSort)
+        arg.sort == boolSort -> boolToFp(arg.asExpr(boolSort))
 
         else -> {
-            logger.warn { "Unsupported argument sort for Math.floor(): ${arg.sort}" }
+            logger.warn { "Unsupported argument sort for Math.${expr.callee.name}(): ${arg.sort}" }
             null
         }
+    }
+}
+
+/** `Math.floor` / `Math.ceil` / `Math.trunc`: fp round-to-integral in the corresponding mode. */
+private fun TsExprResolver.handleMathRounding(
+    expr: EtsInstanceCallExpr,
+    mode: KFpRoundingMode,
+): UExpr<*>? = with(ctx) {
+    val value = resolveSingleFpArg(expr) ?: return null
+    mkFpRoundToIntegralExpr(mkFpRoundingModeExpr(mode), value)
+}
+
+/**
+ * `Math.round(x)` in JS is `floor(x + 0.5)` (halfway cases round towards +Infinity),
+ * which differs from the IEEE round-to-nearest-even mode.
+ * (The sign of a `-0` result is not preserved by this encoding.)
+ */
+private fun TsExprResolver.handleMathRound(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
+    val value = resolveSingleFpArg(expr) ?: return null
+    val plusHalf = mkFpAddExpr(
+        mkFpRoundingModeExpr(KFpRoundingMode.RoundNearestTiesToEven),
+        value,
+        mkFp64(0.5),
+    )
+    mkFpRoundToIntegralExpr(mkFpRoundingModeExpr(KFpRoundingMode.RoundTowardNegative), plusHalf)
+}
+
+private fun TsExprResolver.handleMathAbs(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
+    val value = resolveSingleFpArg(expr) ?: return null
+    mkFpAbsExpr(value)
+}
+
+private fun TsExprResolver.handleMathSqrt(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
+    val value = resolveSingleFpArg(expr) ?: return null
+    mkFpSqrtExpr(mkFpRoundingModeExpr(KFpRoundingMode.RoundNearestTiesToEven), value)
+}
+
+/**
+ * `Math.min` / `Math.max`. Unlike the IEEE minNum/maxNum operations (which prefer
+ * the non-NaN operand), JS returns NaN if *any* argument is NaN.
+ */
+private fun TsExprResolver.handleMathMinMax(expr: EtsInstanceCallExpr, isMin: Boolean): UExpr<*>? = with(ctx) {
+    val args = expr.args.map { arg ->
+        val resolved = resolve(arg) ?: return null
+        when {
+            resolved.isFakeObject() -> {
+                scope.assert(resolved.getFakeType(scope).fpTypeExpr) ?: return null
+                resolved.extractFp(scope)
+            }
+
+            resolved.sort == fp64Sort -> resolved.asExpr(fp64Sort)
+            resolved.sort == boolSort -> boolToFp(resolved.asExpr(boolSort))
+            else -> {
+                logger.warn { "Unsupported argument sort for Math.min/max: ${resolved.sort}" }
+                return null
+            }
+        }
+    }
+    if (args.isEmpty()) {
+        // Math.min() == +Infinity, Math.max() == -Infinity
+        return mkFp64(if (isMin) Double.POSITIVE_INFINITY else Double.NEGATIVE_INFINITY)
+    }
+    val anyNaN = args.map { mkFpIsNaNExpr(it) }.reduce { a, b -> mkOr(a, b) }
+    val pure = args.reduce { a, b -> if (isMin) mkFpMinExpr(a, b) else mkFpMaxExpr(a, b) }
+    mkIte(anyNaN, mkFp64(Double.NaN), pure)
+}
+
+/**
+ * 21.1.2.3 `Number.isInteger ( number )`: false for non-numbers, NaN and infinities;
+ * true iff the value equals its integral rounding. `isSafeInteger` is approximated
+ * the same way (the 2^53 bound is not modeled).
+ */
+private fun TsExprResolver.handleNumberIsInteger(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
+    check(expr.args.size == 1) { "Number.isInteger should have one argument" }
+    val arg = resolve(expr.args.single()) ?: return null
+
+    fun isIntegral(value: UExpr<KFp64Sort>): UBoolExpr {
+        val rounded = mkFpRoundToIntegralExpr(mkFpRoundingModeExpr(KFpRoundingMode.RoundTowardZero), value)
+        return mkAnd(
+            mkNot(mkFpIsInfiniteExpr(value)),
+            mkFpEqualExpr(rounded, value), // false for NaN by IEEE equality
+        )
+    }
+
+    if (arg.isFakeObject()) {
+        val fakeType = arg.getFakeType(scope)
+        return mkIte(
+            condition = fakeType.fpTypeExpr,
+            trueBranch = isIntegral(arg.extractFp(scope)),
+            falseBranch = mkFalse(),
+        )
+    }
+
+    if (arg.sort == fp64Sort) {
+        isIntegral(arg.asExpr(fp64Sort))
+    } else {
+        mkFalse()
+    }
+}
+
+/** 21.1.2.2 `Number.isFinite ( number )`: false for non-numbers, NaN and infinities. */
+private fun TsExprResolver.handleNumberIsFinite(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
+    check(expr.args.size == 1) { "Number.isFinite should have one argument" }
+    val arg = resolve(expr.args.single()) ?: return null
+
+    fun isFinite(value: UExpr<KFp64Sort>): UBoolExpr =
+        mkAnd(mkNot(mkFpIsNaNExpr(value)), mkNot(mkFpIsInfiniteExpr(value)))
+
+    if (arg.isFakeObject()) {
+        val fakeType = arg.getFakeType(scope)
+        return mkIte(
+            condition = fakeType.fpTypeExpr,
+            trueBranch = isFinite(arg.extractFp(scope)),
+            falseBranch = mkFalse(),
+        )
+    }
+
+    if (arg.sort == fp64Sort) {
+        isFinite(arg.asExpr(fp64Sort))
+    } else {
+        mkFalse()
     }
 }
 
