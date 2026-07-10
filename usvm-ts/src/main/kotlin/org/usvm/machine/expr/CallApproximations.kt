@@ -11,10 +11,12 @@ import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.usvm.UBoolExpr
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.api.allocateConcreteRef
 import org.usvm.api.initializeArray
+import org.usvm.api.initializeArrayLength
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.api.memcpy
 import org.usvm.api.typeStreamOf
@@ -119,6 +121,11 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
         val elementSort = typeToSort(instanceType.elementType)
             .takeIf { it !is TsUnresolvedSort }
             ?: addressSort
+
+        // Handle the `Array` constructor: `new Array()` / `new Array(n)`
+        if (expr.callee.name == CONSTRUCTOR_NAME) {
+            return from(handleArrayConstructor(expr, instanceType))
+        }
 
         // Handle 'Array.push()' method calls
         if (expr.callee.name == "push") {
@@ -574,6 +581,66 @@ private fun TsExprResolver.handleArrayPop(
  *
  * https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array.prototype.fill
  */
+/**
+ * The `Array` constructor. `new Array()` keeps the zero length set at allocation;
+ * `new Array(n)` sets the length to `n`, forking on the validity of the size
+ * (a non-integral or out-of-range `n` throws a RangeError in JS).
+ * The multi-argument literal form `new Array(a, b, ...)` is not approximated.
+ */
+private fun TsExprResolver.handleArrayConstructor(
+    expr: EtsInstanceCallExpr,
+    arrayType: EtsArrayType,
+): UExpr<*>? = with(ctx) {
+    val resolved = resolve(expr.instance)?.asExpr(addressSort) ?: return null
+    val array = resolved as? UConcreteHeapRef ?: run {
+        logger.warn { "Array constructor on a non-concrete instance is not approximated" }
+        return null
+    }
+
+    when (expr.args.size) {
+        0 -> array
+
+        1 -> {
+            val size = resolve(expr.args.single()) ?: return null
+            if (size.sort != fp64Sort) {
+                logger.warn { "Unsupported sort for the Array constructor size: ${size.sort}" }
+                return null
+            }
+            val bvSize = mkFpToBvExpr(
+                roundingMode = fpRoundingModeSortDefaultValue(),
+                value = size.asExpr(fp64Sort),
+                bvSize = 32,
+                isSigned = true,
+            )
+            val isValidSize = mkAnd(
+                mkEq(
+                    mkBvToFpExpr(
+                        sort = fp64Sort,
+                        roundingMode = fpRoundingModeSortDefaultValue(),
+                        value = bvSize,
+                        signed = true,
+                    ),
+                    size.asExpr(fp64Sort),
+                ),
+                mkBvSignedLessOrEqualExpr(mkBv(0), bvSize.asExpr(bv32Sort)),
+            )
+            scope.fork(
+                isValidSize,
+                blockOnFalseState = { throwException("Invalid array length: ${size.asExpr(fp64Sort)}") },
+            ) ?: return null
+            scope.doWithState {
+                memory.initializeArrayLength(array, arrayType, sizeSort, bvSize.asExpr(sizeSort))
+            }
+            array
+        }
+
+        else -> {
+            logger.warn { "The literal form of the Array constructor is not approximated: ${expr.args.size} args" }
+            null
+        }
+    }
+}
+
 private fun TsExprResolver.handleArrayFill(
     expr: EtsInstanceCallExpr,
     arrayType: EtsArrayType,

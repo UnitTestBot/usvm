@@ -973,6 +973,18 @@ class TsExprResolver(
             expr.type
         }
 
+        if (expr.type.typeName == "Array") {
+            // `new Array(...)`: allocate a genuine array object so that the array
+            // approximations apply; the length is set by the constructor call
+            // that immediately follows the allocation.
+            val arrayType = EtsArrayType(EtsUnknownType, dimensions = 1)
+            return@with scope.calcOnState {
+                val address = memory.allocConcrete(arrayType)
+                memory.initializeArrayLength(address, arrayType, sizeSort, mkBv(0).asExpr(sizeSort))
+                address
+            }
+        }
+
         if (expr.type.typeName == "Boolean") {
             val clazz = scene.sdkClasses.filter { it.name == "Boolean" }.maxByOrNull { it.methods.size }
                 ?: error("No Boolean class found in SDK")
