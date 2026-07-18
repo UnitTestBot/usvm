@@ -24,6 +24,7 @@ org.usvm.ts.pbt
 │   ├── Intrinsics.kt          Math/Number/Array-HOFs/Map/Set/strings registry
 │   └── ExecutionResult.kt     Returned | Threw | Diverged | Unsupported
 ├── gen/           type-driven input generators (+constant mining), Shrinker
+├── external/      versioned external corpus, providers, target manifest
 ├── coverage/      CoverageTracker: stmt + branch-EDGE coverage, timelines
 ├── hybrid/        PbtPhase, SymbolicPhase (targets, capture, replay),
 │                  TypeProfiler, HybridAnalyzer (4 ablation modes)
@@ -54,7 +55,7 @@ Key design invariants:
 | What | Value |
 |---|---|
 | ArkAnalyzer (provider 1) | build of the **CI-pinned branch** `neo/2025-09-03`; `export ARKANALYZER_DIR=...`. Do NOT use other branches: if-successor order drifts and silently inverts every branch (note 02 §3) |
-| jacodb ts-frontend (provider 2, default for benchmarks) | jacodb PR #361 branch; `npm install && npm run build` in `jacodb-ets/ts-frontend`; `export ETS_IR_PROVIDER=ts-frontend ETS_FRONTEND_DIR=<jacodb>/jacodb-ets/ts-frontend`; substitute jacodb via `./gradlew -PuseLocalJacodb=<jacodb> ...` until the pin is bumped |
+| jacodb ts-frontend (provider 2, default for benchmarks) | jacodb commit `ba042500` or newer; `npm install && npm run build` in `jacodb-ets/ts-frontend`; `export ETS_IR_PROVIDER=ts-frontend ETS_FRONTEND_DIR=<jacodb>/jacodb-ets/ts-frontend`; local development can use `./gradlew -PuseLocalJacodb=<jacodb> ...` |
 | Solver | YICES (bundled via ksmt) |
 | JDK | detekt requires <= 21 locally (`JAVA_HOME=<jdk21> ./gradlew detektMain`) |
 
@@ -64,7 +65,8 @@ invalidate test tasks — use `--rerun-tasks` when switching providers.
 ## Running
 
 ```bash
-# tests (29): unit, differential oracle vs TsMachine, hybrid e2e, ablation
+# tests: unit, external-corpus replay, differential oracle vs TsMachine,
+# hybrid e2e, ablation
 ARKANALYZER_DIR=<pinned-aa> ./gradlew :usvm-ts-pbt:test
 
 # one method / one file
@@ -73,6 +75,30 @@ ARKANALYZER_DIR=<pinned-aa> ./gradlew :usvm-ts-pbt:test
 # a whole open-source project, all ablation modes, aggregated:
 cd usvm-ts-pbt/benchmarks && ./run-project.sh <git-url|corpus-name|local-path> [--include dir]
 ```
+
+## External input corpus
+
+`fast-check`, Jazzer.js, ExpoSE, and other adapters exchange inputs through a
+versioned External Test Corpus (ETC). Export the entry-point/branch manifest,
+then replay one or more JSON or JSONL corpora before the internal PBT phase:
+
+```bash
+./gradlew :usvm-ts-pbt:runHybrid --args="src/ \
+  --recursive --export-target-manifest targets.json \
+  --external-inputs fast-check.jsonl --external-inputs jazzer.json \
+  --modes PBT_ONLY,HYBRID --out experiment"
+
+# Corpus-only concrete phase, followed by symbolic execution of its leftovers:
+./gradlew :usvm-ts-pbt:runHybrid --args="src/ --recursive \
+  --external-inputs external.json --external-only --mode HYBRID"
+```
+
+The tagged ETC value format preserves `undefined`, `null`, `NaN`, infinities,
+and negative zero. It also preserves array holes on the wire, but currently
+rejects them at replay because `VArray` cannot represent hole-vs-`undefined`
+semantics. Unknown kinds, class-backed values, cycles, and shared aliases are
+reported as rejected inputs rather than silently coerced. Coverage and type
+profiles are credited only after replay by the concrete EtsIR interpreter.
 
 ## Differential-test whitelist policy
 

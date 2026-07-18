@@ -1,0 +1,16 @@
+{
+  "name": "@usvm/ts-pbt-fast-check-adapter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test",
+    "generate": "node src/cli.mjs"
+  },
+  "dependencies": {
+    "fast-check": "4.9.0"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "@usvm/ts-pbt-gillian-adapter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test",
+    "feasibility": "node src/feasibility.mjs"
+  }
+}
