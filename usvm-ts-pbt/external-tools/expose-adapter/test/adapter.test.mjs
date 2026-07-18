@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { exportExpoSeCorpus } from "../src/export.mjs";
-import { generateTarget } from "../src/target.mjs";
+import { generateTarget, parseInitialArguments } from "../src/target.mjs";
 import { decodeJsonSeed } from "../src/value-codec.mjs";
 
 const method = {
@@ -40,4 +40,18 @@ test("ExpoSE path inputs export to ETC without parsing console output", async ()
 test("lossy JSON initial seeds are rejected", () => {
   assert.throws(() => decodeJsonSeed({ kind: "number", value: "NaN" }), /not losslessly JSON-encodable/);
   assert.throws(() => decodeJsonSeed({ kind: "undefined" }), /not JSON-encodable/);
+});
+
+test("explicit initial arguments specialize generic manifest parameters", () => {
+  const genericMethod = {
+    parameterTypes: ["T[]", "number", "number"],
+    parameters: [
+      { index: 0, name: "array", type: "T[]", optional: false, rest: false },
+      { index: 1, name: "i", type: "number", optional: false, rest: false },
+      { index: 2, name: "j", type: "number", optional: false, rest: false },
+    ],
+  };
+  assert.deepEqual(parseInitialArguments('[[0],0,0]', genericMethod), [[0], 0, 0]);
+  assert.throws(() => parseInitialArguments('[0]', genericMethod), /expected 3/);
+  assert.throws(() => parseInitialArguments('{}', genericMethod), /argument array/);
 });

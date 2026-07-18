@@ -5,7 +5,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { readInitialArguments } from "./etc.mjs";
 import { exportExpoSeCorpus } from "./export.mjs";
-import { defaultArguments, generateTarget, symbolName } from "./target.mjs";
+import { defaultArguments, generateTarget, parseInitialArguments, symbolName } from "./target.mjs";
 
 main().catch((error) => {
   console.error(error instanceof Error ? error.stack : String(error));
@@ -18,7 +18,9 @@ async function main() {
   if (manifest.schemaVersion !== 1) throw new Error(`unsupported target manifest schemaVersion ${manifest.schemaVersion}`);
   const method = manifest.methods.find((candidate) => candidate.methodId === options.methodId);
   if (!method) throw new Error(`methodId '${options.methodId}' is absent from ${options.manifest}`);
-  const initialArguments = await readInitialArguments(options.initialInputs, options.methodId) ?? defaultArguments(method);
+  const initialArguments = parseInitialArguments(options.initialArgumentsJson, method)
+    ?? await readInitialArguments(options.initialInputs, options.methodId)
+    ?? defaultArguments(method);
 
   await mkdir(options.workdir, { recursive: true });
   await mkdir(dirname(resolve(options.out)), { recursive: true });
@@ -80,6 +82,7 @@ function parseArgs(args) {
   const result = {
     exposeDir: null, node: process.execPath, z3Library: null, manifest: null, methodId: null,
     harness: null, workdir: null, raw: null, out: null, log: null, initialInputs: [],
+    initialArgumentsJson: null,
     seconds: 10, testTimeout: 5, concurrency: 1, commit: "unknown",
     harnessEnv: {},
   };
@@ -96,6 +99,7 @@ function parseArgs(args) {
       case "--out": result.out = args[++index]; break;
       case "--log": result.log = args[++index]; break;
       case "--initial-external-inputs": result.initialInputs.push(args[++index]); break;
+      case "--initial-arguments-json": result.initialArgumentsJson = args[++index]; break;
       case "--seconds": result.seconds = positiveInteger(args[++index], "seconds"); break;
       case "--test-timeout": result.testTimeout = positiveInteger(args[++index], "test-timeout"); break;
       case "--concurrency": result.concurrency = positiveInteger(args[++index], "concurrency"); break;

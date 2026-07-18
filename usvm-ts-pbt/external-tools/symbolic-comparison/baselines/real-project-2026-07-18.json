@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "metric": "replay-confirmed EtsIR branch-edge coverage",
+  "timingCaveat": "Engine timers have different process and frontend boundaries and are diagnostic only.",
+  "nonInferiority": {
+    "marginPoints": 2,
+    "differencePoints": 0,
+    "passed": true
+  },
+  "totals": {
+    "projects": 3,
+    "methods": 3,
+    "totalBranches": 14,
+    "exposeCovered": 14,
+    "exposeCoveragePct": 100,
+    "exposePaths": 35,
+    "exposePathErrors": 1,
+    "exposeElapsedMs": 11912,
+    "usvmCovered": 14,
+    "usvmCoveragePct": 100,
+    "usvmTargets": 10,
+    "usvmReached": 9,
+    "usvmReplayConfirmed": 9,
+    "usvmWallMs": 7850
+  },
+  "methods": [
+    {
+      "label": "sieve",
+      "project": "TheAlgorithms-TypeScript",
+      "method": "%dflt::sieveOfEratosthenes(n: number): number[]",
+      "totalBranches": 8,
+      "exposeReplayCovered": 8,
+      "exposePaths": 15,
+      "exposePathErrors": 1,
+      "exposeElapsedMs": 5034,
+      "usvmReplayCovered": 8,
+      "usvmTargets": 5,
+      "usvmReached": 4,
+      "usvmReplayConfirmed": 4,
+      "usvmWallMs": 6350
+    },
+    {
+      "label": "factorial",
+      "project": "typescript-algorithms",
+      "method": "%dflt::factorialIterative(number: number): number | undefined",
+      "totalBranches": 4,
+      "exposeReplayCovered": 4,
+      "exposePaths": 15,
+      "exposePathErrors": 0,
+      "exposeElapsedMs": 5028,
+      "usvmReplayCovered": 4,
+      "usvmTargets": 3,
+      "usvmReached": 3,
+      "usvmReplayConfirmed": 3,
+      "usvmWallMs": 737
+    },
+    {
+      "label": "swap",
+      "project": "typescript-collections",
+      "method": "%dflt::swap(array: T[], i: number, j: number): boolean",
+      "totalBranches": 2,
+      "exposeReplayCovered": 2,
+      "exposePaths": 5,
+      "exposePathErrors": 0,
+      "exposeElapsedMs": 1850,
+      "usvmReplayCovered": 2,
+      "usvmTargets": 2,
+      "usvmReached": 2,
+      "usvmReplayConfirmed": 2,
+      "usvmWallMs": 763
+    }
+  ]
+}

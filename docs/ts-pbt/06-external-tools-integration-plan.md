@@ -314,3 +314,7 @@ typescript-collections плюс хотя бы один npm-пакет с нет�
   и патча экспорта моделей успешных путей.
 - M7 pilot: на пяти numeric methods USVM 16/16, ExpoSE 15/16 после EtsIR
   replay; подробности в `08-symbolic-engine-pilot.md`.
+- M8 real-project pilot: на трёх pinned проектах USVM и ExpoSE оба дали 14/14
+  replay-confirmed ветвей. Первый прогон USVM дал 7/14 и обнаружил три
+  исправимых integration defect; baseline и протокол находятся в
+  `09-real-project-symbolic-comparison.md`.

@@ -13,6 +13,22 @@ export function defaultArguments(method) {
   });
 }
 
+export function parseInitialArguments(raw, method) {
+  if (raw == null) return null;
+  let value;
+  try {
+    value = JSON.parse(raw);
+  } catch (error) {
+    throw new Error(`initial-arguments-json is not valid JSON: ${error.message}`);
+  }
+  if (!Array.isArray(value)) throw new Error("initial-arguments-json must encode an argument array");
+  const expected = methodParameters(method).length;
+  if (value.length !== expected) {
+    throw new Error(`initial-arguments-json has ${value.length} arguments; expected ${expected}`);
+  }
+  return value;
+}
+
 export function symbolName(index) {
   return `usvm_arg_${index}`;
 }

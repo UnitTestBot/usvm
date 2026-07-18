@@ -34,6 +34,15 @@ initial concrete type/value assignment:
 npm run run -- ... --initial-external-inputs /tmp/seeds.jsonl
 ```
 
+Generic entry points can be specialized explicitly for a benchmark without
+changing the EtsIR manifest. The JSON value must be the complete argument
+array; it is recorded in the command/config and takes precedence over an ETC
+seed:
+
+```bash
+npm run run -- ... --initial-arguments-json '[[0],0,0]'
+```
+
 Only the first matching case is used by unmodified ExpoSE because its
 Distributor accepts one initial input. Importing a complete seed worklist is a
 small upstream-fork candidate; running multiple isolated campaigns is the

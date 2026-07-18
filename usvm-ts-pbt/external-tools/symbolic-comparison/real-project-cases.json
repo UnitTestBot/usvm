@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    {
+      "label": "the-algorithms-sieve",
+      "project": "TheAlgorithms-TypeScript",
+      "commit": "19b4ced86c99815f142d4a46a028f55487b8038a",
+      "source": "usvm-ts-pbt/benchmarks/corpus/TheAlgorithms-TypeScript/maths/sieve_of_eratosthenes.ts",
+      "method": "sieveOfEratosthenes",
+      "moduleExport": "sieveOfEratosthenes",
+      "initialArguments": [0]
+    },
+    {
+      "label": "typescript-algorithms-factorial",
+      "project": "typescript-algorithms",
+      "commit": "e8ee8f9b8a07589533c4243a210d4cea7b090b10",
+      "source": "usvm-ts-pbt/benchmarks/corpus/typescript-algorithms/src/09-recursion/02-factorial.ts",
+      "method": "factorialIterative",
+      "moduleExport": "factorialIterative",
+      "initialArguments": [0]
+    },
+    {
+      "label": "typescript-collections-swap",
+      "project": "typescript-collections",
+      "commit": "309bb1b6955b403b212309531607b8d17df152e5",
+      "source": "usvm-ts-pbt/benchmarks/corpus/typescript-collections/src/lib/arrays.ts",
+      "method": "swap",
+      "moduleExport": "swap",
+      "initialArguments": [[0], 0, 0],
+      "specialization": "T=number"
+    }
+  ]
+}
