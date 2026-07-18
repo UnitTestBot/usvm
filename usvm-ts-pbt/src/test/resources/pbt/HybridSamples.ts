@@ -46,4 +46,14 @@ class HybridSamples {
         }
         return 3;
     }
+
+    genericSwap<T>(array: T[], i: number, j: number): boolean {
+        if (i < 0 || i >= array.length || j < 0 || j >= array.length) {
+            return false;
+        }
+        const value = array[i];
+        array[i] = array[j];
+        array[j] = value;
+        return true;
+    }
 }

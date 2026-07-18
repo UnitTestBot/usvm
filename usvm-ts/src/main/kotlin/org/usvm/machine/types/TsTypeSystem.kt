@@ -7,6 +7,7 @@ import org.jacodb.ets.model.EtsBooleanLiteralType
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFunctionType
+import org.jacodb.ets.model.EtsGenericType
 import org.jacodb.ets.model.EtsIntersectionType
 import org.jacodb.ets.model.EtsLiteralType
 import org.jacodb.ets.model.EtsNeverType
@@ -45,6 +46,9 @@ class TsTypeSystem(
 ) : UTypeSystem<EtsType> {
     private fun unwrapAlias(type: EtsType): EtsType = when (type) {
         is EtsAliasType -> unwrapAlias(type.originalType)
+        // A runtime value of an unconstrained type parameter may have any
+        // type. Its `defaultType` is an inference default, not an upper bound.
+        is EtsGenericType -> unwrapAlias(type.constraint ?: EtsUnknownType)
         else -> type
     }
 

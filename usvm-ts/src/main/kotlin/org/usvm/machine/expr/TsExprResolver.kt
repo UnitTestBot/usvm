@@ -1013,7 +1013,7 @@ class TsExprResolver(
                 ),
                 mkAnd(
                     mkBvSignedLessOrEqualExpr(mkBv(0), bvSize.asExpr(bv32Sort)),
-                    mkBvSignedLessOrEqualExpr(bvSize.asExpr(bv32Sort), mkBv(Int.MAX_VALUE))
+                    mkBvSignedLessOrEqualExpr(bvSize.asExpr(bv32Sort), mkBv(options.maxArraySize))
                 )
             )
 

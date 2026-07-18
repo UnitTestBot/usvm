@@ -108,4 +108,14 @@ class HybridAnalyzerTest {
         assertTrue(report.symbolic!!.targets.single().replayConfirmed)
         assertEquals(1.0, report.branchCoverage, 1e-9)
     }
+
+    @Test
+    fun `unconstrained generic array parameters have satisfiable symbolic inputs`() {
+        val report = HybridAnalyzer(scene, config(AnalysisMode.SYMBOLIC_ONLY).copy(perTargetTimeout = 5.seconds))
+            .analyzeMethod(method("genericSwap"))
+
+        assertEquals(1.0, report.branchCoverage, 1e-9)
+        assertTrue(report.symbolic!!.targets.all { it.reached })
+        assertTrue(report.symbolic!!.targets.all { it.replayConfirmed })
+    }
 }
