@@ -10,6 +10,11 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable
 import org.usvm.ts.pbt.report.HybridReport
+import org.usvm.ts.pbt.external.ExternalCorpusInputProvider
+import org.usvm.ts.pbt.external.ExternalTestCase
+import org.usvm.ts.pbt.external.ExternalTestCorpus
+import org.usvm.ts.pbt.external.ExternalValue
+import org.usvm.ts.pbt.external.stableMethodId
 import org.usvm.ts.pbt.util.getResourcePath
 import kotlin.time.Duration.Companion.seconds
 
@@ -69,5 +74,38 @@ class HybridAnalyzerTest {
         val crashy = decoded.methods.single { "crashy" in it.method }
         assertTrue(crashy.pbt!!.failures.isNotEmpty()) { "crashy failures must be serialized" }
         assertTrue(decoded.methods.all { it.timeline.isNotEmpty() })
+    }
+
+    @Test
+    fun `external corpus covers the ordinary magic edges before one targeted symbolic run`() {
+        val m = method("magic")
+        val methodId = stableMethodId(m)
+        val provider = ExternalCorpusInputProvider.fromCorpus(
+            ExternalTestCorpus(
+                producer = "fixture@1",
+                cases = listOf(-1, 1).map { value ->
+                    ExternalTestCase(
+                        id = "x-$value",
+                        methodId = methodId,
+                        arguments = listOf(ExternalValue("number", value = value.toString())),
+                    )
+                },
+            )
+        )
+        val externalOnly = config(AnalysisMode.HYBRID).copy(
+            pbtMaxIterations = 0,
+            externalInputProviders = listOf(provider),
+            internalPbtEnabled = false,
+        )
+
+        val report = HybridAnalyzer(scene, externalOnly).analyzeMethod(m)
+
+        assertEquals(2, report.pbt!!.externalImported)
+        assertEquals(2, report.pbt!!.externalExecuted)
+        assertEquals(0, report.pbt!!.generatedExecutions)
+        assertEquals(1, report.symbolic!!.targets.size)
+        assertTrue(report.symbolic!!.targets.single().reached)
+        assertTrue(report.symbolic!!.targets.single().replayConfirmed)
+        assertEquals(1.0, report.branchCoverage, 1e-9)
     }
 }

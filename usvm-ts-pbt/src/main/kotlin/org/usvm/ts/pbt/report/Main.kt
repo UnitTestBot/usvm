@@ -8,6 +8,8 @@ import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.usvm.ts.pbt.hybrid.AnalysisMode
 import org.usvm.ts.pbt.hybrid.HybridAnalyzer
 import org.usvm.ts.pbt.hybrid.HybridConfig
+import org.usvm.ts.pbt.external.ExternalCorpusInputProvider
+import org.usvm.ts.pbt.external.TargetManifest
 import java.nio.file.Path
 import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.Path
@@ -43,10 +45,15 @@ Analysis:
   --pbt-iterations <int>     PBT iteration budget per method (default: 2000)
   --target-timeout <sec>     per-target symbolic timeout (default: 20)
   --no-fallback              disable the hint-free fallback run
+  --external-inputs <file>   import an External Test Corpus JSON/JSONL (repeatable)
+  --external-only            replay external inputs without internal random PBT
 
 Output:
   --out <prefix>             report path prefix; per mode: <prefix>-<MODE>.json
                              (default: hybrid-report)
+  --export-target-manifest <path>
+                             write entry points and stable EtsIR branch IDs for
+                             external generators
 
 EtsIR provider is selected by the jacodb loader (ETS_IR_PROVIDER=ts-frontend|arkanalyzer
 with ETS_FRONTEND_DIR / ARKANALYZER_DIR respectively).
@@ -65,6 +72,9 @@ private class Options(args: Array<String>) {
     var pbtIterations = 2_000
     var targetTimeoutSec = 20
     var hintFallback = true
+    val externalInputPaths = mutableListOf<Path>()
+    var externalOnly = false
+    var targetManifestPath: Path? = null
     var outPrefix = "hybrid-report"
 
     init {
@@ -83,6 +93,9 @@ private class Options(args: Array<String>) {
                 "--pbt-iterations" -> pbtIterations = args[++i].toInt()
                 "--target-timeout" -> targetTimeoutSec = args[++i].toInt()
                 "--no-fallback" -> hintFallback = false
+                "--external-inputs" -> externalInputPaths.add(Path(args[++i]))
+                "--external-only" -> externalOnly = true
+                "--export-target-manifest" -> targetManifestPath = Path(args[++i])
                 "--out" -> outPrefix = args[++i].removeSuffix(".json")
                 else -> {
                     println("Unknown option: ${args[i]}\n$USAGE")
@@ -130,6 +143,17 @@ fun main(args: Array<String>) {
         exitProcess(1)
     }
     val opts = Options(args)
+    if (opts.externalOnly && opts.externalInputPaths.isEmpty()) {
+        println("--external-only requires at least one --external-inputs file\n$USAGE")
+        exitProcess(1)
+    }
+
+    val externalProviders = try {
+        opts.externalInputPaths.map(ExternalCorpusInputProvider::fromPath)
+    } catch (e: Throwable) {
+        println("Failed to load external input corpus: ${e.message}")
+        exitProcess(1)
+    }
 
     val files = collectFiles(opts)
     println("Corpus: ${files.size} file(s)")
@@ -159,6 +183,12 @@ fun main(args: Array<String>) {
     }
     println("Scene mode: ${if (opts.projectScene) "project (1 scene)" else "per-file (${scenes.size} scenes)"}")
 
+    opts.targetManifestPath?.let { path ->
+        val methods = scenes.flatMap { (_, scene) -> selectMethods(scene, opts) }
+        path.writeText(TargetManifest.encode(TargetManifest.fromMethods(methods)))
+        println("Target manifest written to $path (${methods.distinctBy { it.signature }.size} methods)")
+    }
+
     for (mode in opts.modes) {
         val config = HybridConfig(
             mode = mode,
@@ -166,6 +196,8 @@ fun main(args: Array<String>) {
             pbtMaxIterations = opts.pbtIterations,
             perTargetTimeout = opts.targetTimeoutSec.seconds,
             hintFallback = opts.hintFallback,
+            externalInputProviders = externalProviders,
+            internalPbtEnabled = !opts.externalOnly,
         )
 
         val methodReports = mutableListOf<MethodReport>()
@@ -191,6 +223,8 @@ fun main(args: Array<String>) {
                 pbtTimeBudgetMs = config.pbtTimeBudget.inWholeMilliseconds,
                 perTargetTimeoutMs = config.perTargetTimeout.inWholeMilliseconds,
                 hintFallback = opts.hintFallback,
+                internalPbtEnabled = !opts.externalOnly,
+                externalInputProducers = externalProviders.map { it.name },
             ),
             methods = methodReports,
         )
@@ -215,6 +249,10 @@ private fun printSummary(mode: String, report: HybridReport, analysisFailures: I
     val coveredStmts = ms.sumOf { it.coveredStmts }
     val failures = ms.sumOf { it.pbt?.failures?.size ?: 0 }
     val unsupported = ms.sumOf { it.pbt?.unsupported ?: 0 }
+    val externalImported = ms.sumOf { it.pbt?.externalImported ?: 0 }
+    val externalExecuted = ms.sumOf { it.pbt?.externalExecuted ?: 0 }
+    val externalRejected = ms.sumOf { it.pbt?.externalRejected ?: 0 }
+    val externalDeduplicated = ms.sumOf { it.pbt?.externalDeduplicated ?: 0 }
     val targets = ms.flatMap { it.symbolic?.targets.orEmpty() }
     val wallMs = ms.sumOf { it.totalWallMs }
 
@@ -237,6 +275,12 @@ private fun printSummary(mode: String, report: HybridReport, analysisFailures: I
         reasonTotals.entries.sortedByDescending { it.value }.take(10).forEach { (k, v) ->
             println("    %6d  %s".format(v, k))
         }
+    }
+    if (externalImported > 0 || externalRejected > 0) {
+        println(
+            "  external inputs: imported=$externalImported, executed=$externalExecuted, " +
+                "rejected=$externalRejected, deduplicated=$externalDeduplicated"
+        )
     }
     println(
         "  pbt failures: $failures, unsupported executions: $unsupported; " +

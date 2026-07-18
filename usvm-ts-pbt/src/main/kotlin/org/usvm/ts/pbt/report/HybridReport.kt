@@ -29,6 +29,8 @@ data class ConfigEcho(
     val pbtTimeBudgetMs: Long,
     val perTargetTimeoutMs: Long,
     val hintFallback: Boolean,
+    val internalPbtEnabled: Boolean = true,
+    val externalInputProducers: List<String> = emptyList(),
 )
 
 @Serializable
@@ -65,6 +67,21 @@ data class PbtReport(
     val wallMs: Long,
     val failures: List<FailureReport>,
     val unsupportedReasons: Map<String, Int> = emptyMap(),
+    val generatedExecutions: Int = executions,
+    val externalImported: Int = 0,
+    val externalExecuted: Int = 0,
+    val externalRejected: Int = 0,
+    val externalDeduplicated: Int = 0,
+    val externalProviders: Map<String, ExternalProviderReport> = emptyMap(),
+)
+
+@Serializable
+data class ExternalProviderReport(
+    val imported: Int,
+    val executed: Int,
+    val rejected: Int,
+    val deduplicated: Int,
+    val rejectionReasons: Map<String, Int> = emptyMap(),
 )
 
 @Serializable

@@ -5,8 +5,10 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.usvm.machine.TsInputTypeHints
 import org.usvm.ts.pbt.coverage.CoverageTracker
+import org.usvm.ts.pbt.external.ConcreteInputProvider
 import org.usvm.ts.pbt.report.ConfigEcho
 import org.usvm.ts.pbt.report.FailureReport
+import org.usvm.ts.pbt.report.ExternalProviderReport
 import org.usvm.ts.pbt.report.HybridReport
 import org.usvm.ts.pbt.report.MethodReport
 import org.usvm.ts.pbt.report.PbtReport
@@ -41,6 +43,8 @@ data class HybridConfig(
     val hintFallback: Boolean = true,
     val shrink: Boolean = true,
     val interproceduralAnalysis: Boolean = true,
+    val externalInputProviders: List<ConcreteInputProvider> = emptyList(),
+    val internalPbtEnabled: Boolean = true,
 )
 
 /**
@@ -61,6 +65,8 @@ class HybridAnalyzer(
                 pbtTimeBudgetMs = config.pbtTimeBudget.inWholeMilliseconds,
                 perTargetTimeoutMs = config.perTargetTimeout.inWholeMilliseconds,
                 hintFallback = config.hintFallback,
+                internalPbtEnabled = config.internalPbtEnabled,
+                externalInputProducers = config.externalInputProviders.map { it.name },
             ),
             methods = reports,
         )
@@ -84,6 +90,8 @@ class HybridAnalyzer(
                 maxIterations = config.pbtMaxIterations,
                 timeBudget = config.pbtTimeBudget,
                 shrink = config.shrink,
+                inputProviders = config.externalInputProviders,
+                internalGeneration = config.internalPbtEnabled,
             ).run()
 
             pbtReport = PbtReport(
@@ -94,6 +102,20 @@ class HybridAnalyzer(
                 unsupported = pbt.stats.unsupported,
                 wallMs = (System.nanoTime() - pbtStart) / 1_000_000,
                 unsupportedReasons = pbt.stats.unsupportedReasons,
+                generatedExecutions = pbt.stats.generatedExecutions,
+                externalImported = pbt.stats.externalImported,
+                externalExecuted = pbt.stats.externalExecuted,
+                externalRejected = pbt.stats.externalRejected,
+                externalDeduplicated = pbt.stats.externalDeduplicated,
+                externalProviders = pbt.stats.externalProviders.mapValues { (_, stats) ->
+                    ExternalProviderReport(
+                        imported = stats.imported,
+                        executed = stats.executed,
+                        rejected = stats.rejected,
+                        deduplicated = stats.deduplicated,
+                        rejectionReasons = stats.rejectionReasons,
+                    )
+                },
                 failures = pbt.failures.map { failure ->
                     FailureReport(
                         description = failure.description,
