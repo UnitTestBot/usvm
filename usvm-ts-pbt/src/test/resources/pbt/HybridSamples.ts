@@ -56,4 +56,8 @@ class HybridSamples {
         array[j] = value;
         return true;
     }
+
+    boundedArrayLength(n: number): number {
+        return new Array<number>(n).length;
+    }
 }

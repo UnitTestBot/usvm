@@ -23,7 +23,26 @@ sealed interface ExecutionResult {
 data class ExecutionLimits(
     val maxSteps: Long = 100_000,
     val maxCallDepth: Int = 64,
+    /** Largest dense JS array the concrete interpreter will materialize. */
+    val maxArrayLength: Int = 1_000,
 )
+
+private const val JS_MAX_ARRAY_LENGTH = 4_294_967_295.0
+
+/**
+ * Validate JavaScript Array-length semantics separately from our materialization
+ * budget. Invalid JS lengths throw RangeError; valid but impractically large
+ * arrays exhaust the concrete execution budget instead of crashing the JVM.
+ */
+internal fun checkedConcreteArrayLength(value: Double, limit: Int): Int {
+    if (!value.isFinite() || value < 0 || value != kotlin.math.floor(value) || value > JS_MAX_ARRAY_LENGTH) {
+        throw JsThrowSignal(VString("RangeError: Invalid array length"))
+    }
+    if (value > limit) {
+        throw BudgetExceededSignal("array length ${JsSemantics.numberToString(value)} exceeds concrete limit $limit")
+    }
+    return value.toInt()
+}
 
 /** Internal control-flow signal: JS `throw`. */
 internal class JsThrowSignal(val value: VValue) : RuntimeException() {

@@ -118,4 +118,33 @@ class HybridAnalyzerTest {
         assertTrue(report.symbolic!!.targets.all { it.reached })
         assertTrue(report.symbolic!!.targets.all { it.replayConfirmed })
     }
+
+    @Test
+    fun `oversized external arrays diverge without aborting later replay`() {
+        val m = method("boundedArrayLength")
+        val provider = ExternalCorpusInputProvider.fromCorpus(
+            ExternalTestCorpus(
+                producer = "fixture@1",
+                cases = listOf(10_000.0, 1e20, 2.0).mapIndexed { index, value ->
+                    ExternalTestCase(
+                        id = "size-$index",
+                        methodId = stableMethodId(m),
+                        arguments = listOf(ExternalValue("number", value = value.toString())),
+                    )
+                },
+            )
+        )
+        val externalOnly = config(AnalysisMode.PBT_ONLY).copy(
+            pbtMaxIterations = 0,
+            externalInputProviders = listOf(provider),
+            internalPbtEnabled = false,
+        )
+
+        val report = HybridAnalyzer(scene, externalOnly).analyzeMethod(m)
+
+        assertEquals(3, report.pbt!!.externalExecuted)
+        assertEquals(1, report.pbt!!.diverged)
+        assertEquals(1, report.pbt!!.threw)
+        assertEquals(1, report.pbt!!.returned)
+    }
 }

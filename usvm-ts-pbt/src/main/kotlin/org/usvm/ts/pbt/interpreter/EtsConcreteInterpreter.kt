@@ -221,11 +221,11 @@ class EtsConcreteInterpreter(
             // Allocation
             is EtsNewExpr -> newObject(e)
             is EtsNewArrayExpr -> {
-                val size = JsSemantics.toNumber(eval(e.size, frame))
-                if (size.isNaN() || size < 0 || size != floor(size)) {
-                    throw JsThrowSignal(VString("RangeError: Invalid array length"))
-                }
-                VArray(MutableList(size.toInt()) { VUndefined })
+                val size = checkedConcreteArrayLength(
+                    JsSemantics.toNumber(eval(e.size, frame)),
+                    limits.maxArrayLength,
+                )
+                VArray(MutableList(size) { VUndefined })
             }
 
             // Unary
@@ -463,6 +463,12 @@ class EtsConcreteInterpreter(
                     when (target) {
                         is VArray -> {
                             if (i != floor(i) || i < 0) return // JS silently allows sparse/weird keys; skip
+                            if (i >= limits.maxArrayLength) {
+                                throw BudgetExceededSignal(
+                                    "array index ${JsSemantics.numberToString(i)} exceeds concrete limit " +
+                                        "${limits.maxArrayLength}"
+                                )
+                            }
                             val idx = i.toInt()
                             while (target.elements.size <= idx) target.elements.add(VUndefined)
                             target.elements[idx] = value
@@ -481,7 +487,10 @@ class EtsConcreteInterpreter(
                         is VObject -> target.fields[lhv.field.name] = value
 
                         is VArray -> if (lhv.field.name == "length") {
-                            val n = JsSemantics.toNumber(value).toInt()
+                            val n = checkedConcreteArrayLength(
+                                JsSemantics.toNumber(value),
+                                limits.maxArrayLength,
+                            )
                             while (target.elements.size > n) target.elements.removeAt(target.elements.size - 1)
                             while (target.elements.size < n) target.elements.add(VUndefined)
                         }
@@ -555,13 +564,12 @@ class EtsConcreteInterpreter(
                             is VArray -> {
                                 // `new Array(n)` / `new Array(a, b, ...)`
                                 if (args.size == 1 && args[0] is VNumber) {
-                                    val n = (args[0] as VNumber).value
-                                    if (n == floor(n) && n >= 0) {
-                                        receiver.elements.clear()
-                                        repeat(n.toInt()) { receiver.elements.add(VUndefined) }
-                                    } else {
-                                        throw JsThrowSignal(VString("RangeError: Invalid array length"))
-                                    }
+                                    val n = checkedConcreteArrayLength(
+                                        (args[0] as VNumber).value,
+                                        limits.maxArrayLength,
+                                    )
+                                    receiver.elements.clear()
+                                    repeat(n) { receiver.elements.add(VUndefined) }
                                 } else {
                                     receiver.elements.clear()
                                     receiver.elements.addAll(args)
@@ -596,7 +604,7 @@ class EtsConcreteInterpreter(
                     val className = expr.callee.enclosingClass.name
 
                     Intrinsics.callNamespace(className, expr.callee.name, args)?.let { return it }
-                    Intrinsics.callConversion(expr.callee.name, args)?.let { return it }
+                    callConversion(expr.callee.name, args)?.let { return it }
 
                     val callee = resolver.resolveStaticMethod(expr.callee)
                         ?: throw UnsupportedFeatureSignal("static callee not found: ${expr.callee}")
@@ -613,7 +621,7 @@ class EtsConcreteInterpreter(
                         if (callee != null) {
                             runMethod(callee, frame.thisValue, padArgs(callee, args))
                         } else {
-                            Intrinsics.callConversion(expr.callee.name, args)
+                            callConversion(expr.callee.name, args)
                                 ?: throw UnsupportedFeatureSignal("ptr call: ${expr.callee.name}")
                         }
                     }
@@ -626,6 +634,18 @@ class EtsConcreteInterpreter(
         private fun padArgs(callee: EtsMethod, args: List<VValue>): List<VValue> {
             if (args.size >= callee.parameters.size) return args
             return args + List(callee.parameters.size - args.size) { VUndefined }
+        }
+
+        private fun callConversion(name: String, args: List<VValue>): VValue? {
+            if (name != "Array") return Intrinsics.callConversion(name, args)
+            if (args.isEmpty()) return VArray()
+            if (args.size != 1 || args[0] !is VNumber) return VArray(args.toMutableList())
+
+            val size = checkedConcreteArrayLength(
+                (args[0] as VNumber).value,
+                limits.maxArrayLength,
+            )
+            return VArray(MutableList(size) { VUndefined })
         }
 
         /** Host callback for higher-order intrinsics (`arr.map(f)`, `map.forEach(f)`, ...). */
