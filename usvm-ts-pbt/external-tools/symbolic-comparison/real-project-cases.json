@@ -8,7 +8,8 @@
       "source": "usvm-ts-pbt/benchmarks/corpus/TheAlgorithms-TypeScript/maths/sieve_of_eratosthenes.ts",
       "method": "sieveOfEratosthenes",
       "moduleExport": "sieveOfEratosthenes",
-      "initialArguments": [0]
+      "initialArguments": [0],
+      "coverageNumberBounds": [-100, 100]
     },
     {
       "label": "typescript-algorithms-factorial",
@@ -17,7 +18,8 @@
       "source": "usvm-ts-pbt/benchmarks/corpus/typescript-algorithms/src/09-recursion/02-factorial.ts",
       "method": "factorialIterative",
       "moduleExport": "factorialIterative",
-      "initialArguments": [0]
+      "initialArguments": [0],
+      "coverageNumberBounds": [-100, 100]
     },
     {
       "label": "typescript-collections-swap",
@@ -27,6 +29,7 @@
       "method": "swap",
       "moduleExport": "swap",
       "initialArguments": [[0], 0, 0],
+      "coverageNumberBounds": [-100, 100],
       "specialization": "T=number"
     }
   ]

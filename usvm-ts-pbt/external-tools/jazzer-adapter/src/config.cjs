@@ -14,7 +14,8 @@ function loadConfiguration() {
   const harness = require(resolve(harnessPath));
   const invoke = harness.invoke ?? harness.default ?? harness;
   if (typeof invoke !== "function") throw new Error("harness must export invoke(args) or a function");
-  return { manifestPath, methodId, harnessPath, method, harness, invoke };
+  const ignoreExceptions = process.env.USVM_JAZZER_IGNORE_EXCEPTIONS === "1";
+  return { manifestPath, methodId, harnessPath, method, harness, invoke, ignoreExceptions };
 }
 
 function requiredEnv(name) {

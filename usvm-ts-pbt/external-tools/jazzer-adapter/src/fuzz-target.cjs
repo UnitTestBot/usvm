@@ -3,9 +3,21 @@
 const { loadConfiguration } = require("./config.cjs");
 const { decodeMethodInput } = require("./type-decoder.cjs");
 
-const configuration = loadConfiguration();
+let configuration;
 
 module.exports.fuzz = function fuzz(data) {
-  const args = decodeMethodInput(data, configuration.method);
-  return configuration.invoke(args);
+  configuration ??= loadConfiguration();
+  return invokeForFuzz(configuration, data);
 };
+
+function invokeForFuzz(configuration, data) {
+  const args = decodeMethodInput(data, configuration.method);
+  try {
+    return configuration.invoke(args);
+  } catch (error) {
+    if (!configuration.ignoreExceptions) throw error;
+    return undefined;
+  }
+}
+
+module.exports.invokeForFuzz = invokeForFuzz;

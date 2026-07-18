@@ -37,3 +37,8 @@ Automatic inference currently handles primitives, literals, unions, arrays,
 tuples, optional and rest parameters. Unknown types use a bounded mixture of
 primitives, arrays, and plain records. Project classes deliberately degrade to
 plain records unless the harness provides a schema-specific mapping.
+
+The `number` arbitrary deliberately mixes bounded integers and finite doubles
+with full-range IEEE doubles and explicit `NaN`/infinity/signed-zero edges.
+This keeps index/loop-heavy programs reachable without hiding numeric corner
+cases behind benchmark-specific generators.

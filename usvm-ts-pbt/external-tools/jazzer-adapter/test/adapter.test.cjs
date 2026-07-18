@@ -6,6 +6,8 @@ const { tmpdir } = require("node:os");
 const { join } = require("node:path");
 const { test } = require("node:test");
 const { exportRawCorpus } = require("../src/corpus.cjs");
+const { invokeForFuzz } = require("../src/fuzz-target.cjs");
+const { normalizeArguments } = require("../../shared-fixtures/module-export-harness.cjs");
 const { decodeMethodInput, encodeMethodInput } = require("../src/type-decoder.cjs");
 
 const method = {
@@ -34,6 +36,31 @@ test("ETC seeds encode to the same typed arguments decoded by the fuzz target", 
 test("decoding is deterministic for truncated and arbitrary bytes", () => {
   for (const raw of [Buffer.alloc(0), Buffer.from([0]), Buffer.from([255, 1, 2, 3, 4, 5])]) {
     assert.deepEqual(decodeMethodInput(raw, method), decodeMethodInput(raw, method));
+  }
+});
+
+test("coverage mode can continue after target exceptions", () => {
+  const oneNumber = { parameterTypes: ["number"] };
+  const invoke = () => { throw new Error("expected target failure"); };
+  assert.doesNotThrow(() => invokeForFuzz({ method: oneNumber, invoke, ignoreExceptions: true }, Buffer.alloc(0)));
+  assert.throws(
+    () => invokeForFuzz({ method: oneNumber, invoke, ignoreExceptions: false }, Buffer.alloc(0)),
+    /expected target failure/,
+  );
+});
+
+test("bounded harness maps execution and exported ETC arguments identically", () => {
+  const beforeMin = process.env.USVM_NUMBER_MIN;
+  const beforeMax = process.env.USVM_NUMBER_MAX;
+  process.env.USVM_NUMBER_MIN = "-100";
+  process.env.USVM_NUMBER_MAX = "100";
+  try {
+    assert.deepEqual(normalizeArguments([Infinity, -123.9, 12.8, "x"]), [0, -100, 12, "x"]);
+  } finally {
+    if (beforeMin === undefined) delete process.env.USVM_NUMBER_MIN;
+    else process.env.USVM_NUMBER_MIN = beforeMin;
+    if (beforeMax === undefined) delete process.env.USVM_NUMBER_MAX;
+    else process.env.USVM_NUMBER_MAX = beforeMax;
   }
 });
 

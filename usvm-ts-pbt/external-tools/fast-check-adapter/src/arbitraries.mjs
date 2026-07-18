@@ -1,7 +1,15 @@
 import fc from "fast-check";
 
 const EDGE_NUMBERS = [NaN, Infinity, -Infinity, -0, 0, 1, -1, Number.MAX_SAFE_INTEGER, Number.MIN_SAFE_INTEGER];
-const numberArbitrary = fc.oneof(fc.constantFrom(...EDGE_NUMBERS), fc.double());
+// Full-range doubles mostly produce huge non-integral magnitudes. Keep them for
+// semantic edge discovery, but give ordinary program-sized numbers enough mass
+// to exercise loops, indexes, and allocation guards in real code.
+const numberArbitrary = fc.oneof(
+  fc.integer({ min: -1_000, max: 1_000 }),
+  fc.double({ min: -1_000, max: 1_000, noNaN: true }),
+  fc.constantFrom(...EDGE_NUMBERS),
+  fc.double(),
+);
 const primitiveArbitrary = fc.oneof(
   numberArbitrary,
   fc.boolean(),

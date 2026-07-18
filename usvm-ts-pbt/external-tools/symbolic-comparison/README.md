@@ -31,3 +31,15 @@ npm run campaign -- \
 The aggregator rejects a case when method identities or EtsIR branch totals
 disagree. It also requires `generatedExecutions=0` in the external replay
 report, preventing accidental inclusion of internal PBT coverage.
+
+For a rectangular comparison of any number of generators and engines, use
+`npm run matrix`. Each report is `tool,kind,label,project,path`, where `kind`
+is `external`, `internal`, or `symbolic`. The command rejects mixed modes,
+missing methods, and method/branch-total drift before aggregating coverage:
+
+```bash
+npm run matrix -- \
+  --report fast-check,external,sieve,TheAlgorithms,/tmp/fast-sieve.json \
+  --report usvm,symbolic,sieve,TheAlgorithms,/tmp/usvm-sieve.json \
+  --out /tmp/tool-matrix.json
+```

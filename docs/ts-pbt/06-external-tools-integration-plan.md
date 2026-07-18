@@ -318,3 +318,7 @@ typescript-collections плюс хотя бы один npm-пакет с нет�
   replay-confirmed ветвей. Первый прогон USVM дал 7/14 и обнаружил три
   исправимых integration defect; baseline и протокол находятся в
   `09-real-project-symbolic-comparison.md`.
+- M8 tool-matrix pilot: internal PBT, fast-check, Jazzer.js, ExpoSE и USVM дали
+  14/14 на общем EtsIR replay subset. Адаптации numeric generation, exception
+  policy и domain harness, а также обнаруженный concrete-array crash описаны в
+  `10-real-project-tool-matrix.md`.

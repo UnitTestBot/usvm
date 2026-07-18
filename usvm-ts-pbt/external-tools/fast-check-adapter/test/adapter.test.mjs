@@ -45,6 +45,12 @@ test("manifest type arbitraries are seeded and shape-correct", () => {
   }
 });
 
+test("number arbitrary mixes operational values with IEEE edges", () => {
+  const values = fc.sample(arbitraryForType("number"), { seed: 42, numRuns: 1_000 });
+  assert.ok(values.some((value) => Number.isInteger(value) && value >= 2 && value <= 1_000));
+  assert.ok(values.some((value) => !Number.isFinite(value) || Number.isNaN(value)));
+});
+
 test("JSON and JSONL writers keep the required ETC header", () => {
   const corpus = {
     schemaVersion: SCHEMA_VERSION,

@@ -9,6 +9,7 @@
   "scripts": {
     "test": "node --test",
     "summarize": "node src/cli.mjs",
-    "campaign": "node src/campaign-cli.mjs"
+    "campaign": "node src/campaign-cli.mjs",
+    "matrix": "node src/matrix-cli.mjs"
   }
 }

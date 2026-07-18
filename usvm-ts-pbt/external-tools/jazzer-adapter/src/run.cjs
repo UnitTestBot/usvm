@@ -42,6 +42,7 @@ async function main() {
       USVM_JAZZER_MANIFEST: resolve(options.manifest),
       USVM_JAZZER_METHOD_ID: options.methodId,
       USVM_JAZZER_HARNESS: resolve(options.harness),
+      USVM_JAZZER_IGNORE_EXCEPTIONS: options.ignoreExceptions ? "1" : "0",
     },
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
@@ -60,6 +61,7 @@ async function main() {
     methodId: options.methodId,
     seed: options.seed,
     seconds: options.seconds,
+    ignoreExceptions: options.ignoreExceptions,
     jazzerExitCode: fuzz.status,
     signal: fuzz.signal,
     out: options.out,
@@ -88,6 +90,7 @@ function parseArgs(args) {
     seed: 0,
     maxLength: 256,
     sync: false,
+    ignoreExceptions: false,
   };
   for (let index = 0; index < args.length; index += 1) {
     switch (args[index]) {
@@ -104,6 +107,7 @@ function parseArgs(args) {
       case "--seed": result.seed = nonNegativeInteger(args[++index], "seed"); break;
       case "--max-length": result.maxLength = nonNegativeInteger(args[++index], "max-length"); break;
       case "--sync": result.sync = true; break;
+      case "--ignore-exceptions": result.ignoreExceptions = true; break;
       default: throw new Error(`unknown option '${args[index]}'`);
     }
   }

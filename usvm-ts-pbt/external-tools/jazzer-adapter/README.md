@@ -28,6 +28,17 @@ npm run fuzz -- \
   --out /tmp/jazzer.json --log /tmp/jazzer.log
 ```
 
+For a coverage campaign rather than crash discovery, add
+`--ignore-exceptions`. Jazzer then continues mutating after a target throws;
+the exported inputs are still replayed by EtsIR, where throws remain visible
+in the report. Without this flag an exception keeps the normal Jazzer crash
+semantics and non-zero exit status.
+
+The shared `module-export-harness.cjs` also accepts optional
+`USVM_NUMBER_MIN`/`USVM_NUMBER_MAX` bounds. It applies the same truncation and
+clamping both before invocation and in `toCorpusCase`, which is useful for
+loop-heavy coverage campaigns while preserving exact EtsIR replay inputs.
+
 Seed Jazzer.js with ETC produced by internal PBT, fast-check, or USVM:
 
 ```bash
