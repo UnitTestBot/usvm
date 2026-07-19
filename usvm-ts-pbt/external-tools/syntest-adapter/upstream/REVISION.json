@@ -1,0 +1,10 @@
+{
+  "repository": "https://github.com/syntest-framework/syntest-javascript",
+  "commit": "53547145f16c3ce4eefb8b479b124ba581d70e2d",
+  "spdx": "Apache-2.0",
+  "licenseGitBlob": "25d5b94be87665d6b25e88314c7e909f161b6537",
+  "noticeGitBlob": "a9d61efb8ba51da916e1acf75d48ab4eea2b1fc6",
+  "source": "benchmarks/baselines/2026-07-19/upstream-audit.json",
+  "vendoredUpstreamCode": false,
+  "freshRuntimeRun": "deferred-to-A-BENCH"
+}

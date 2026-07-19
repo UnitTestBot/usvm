@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "frozenBaseline": "2026-07-19",
+  "derivation": "Only the 42 pre-frozen primitive IDs are selected. v1 callable evidence is joined with exact branch condition origins; no coverage observation is generated.",
+  "sourceSha256": {
+    "D_primitive-reference-v1.methods.tsv": "75e7a393f40860a2b3d739ca8193e2d94c54706ad25271a23f59810c0aa43449"
+  },
+  "generatedSha256": {
+    "primitive-target-manifest.v2.json": "dfb32f2c729ff20ed226f890c2d21c428d129593b36616c9ed94ee7b5ac4f424",
+    "primitive-source-targets.v2.jsonl": "959f9ea6c5e283eb19181d991dfd85afec4a3cd763cee010e760c67b08398690",
+    "primitive-method-ids.txt": "8157c7215199d42df012896cb156f3c000720acc6dfe2e1bfbda18f53fba1309",
+    "primitive-classification.expected.json": "3f5caf651b705806aef5fb252a1ead10f0c54f7b4ff88fcce46e9651aa186ce2",
+    "run-config.v2.json": "09fbfee9882546973f1068e4db52c8c63f16f05a4bfa722de91487822ec6aaa4"
+  }
+}

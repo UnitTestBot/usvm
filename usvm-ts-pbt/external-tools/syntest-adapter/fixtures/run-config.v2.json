@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 2,
+  "runId": "syntest-primitive-fixture",
+  "adapter": {
+    "name": "syntest-javascript",
+    "version": "0.1.0",
+    "commit": "53547145f16c3ce4eefb8b479b124ba581d70e2d"
+  },
+  "seed": 20260719,
+  "budgetMs": 10000,
+  "exportReplayGraceMs": 1000,
+  "explorationDeadlineMs": 9000,
+  "hardResultDeadlineMs": 10000,
+  "cacheMode": "cold",
+  "versions": {
+    "node": ">=18",
+    "syntest-javascript": "commit:53547145f16c3ce4eefb8b479b124ba581d70e2d"
+  },
+  "commits": {
+    "usvm": "5a558721",
+    "syntest-javascript": "53547145f16c3ce4eefb8b479b124ba581d70e2d"
+  },
+  "flags": {
+    "syntest": {
+      "algorithm": "DynaMOSA",
+      "upstreamCapabilities": {
+        "initialCorpus": false
+      }
+    }
+  }
+}
