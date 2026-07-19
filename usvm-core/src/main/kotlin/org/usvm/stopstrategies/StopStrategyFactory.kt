@@ -14,8 +14,10 @@ fun createStopStrategy(
     stepsStatisticsFactory: () -> StepsStatistics<*, *>? = { null },
     coverageStatisticsFactory: () -> CoverageStatistics<*, *, *>? = { null },
     getCollectedStatesCount: (() -> Int)? = null,
+    targetsProgressTimeout: Duration? = null,
 ) : StopStrategy {
     val stepsStatistics = lazy { requireNotNull(stepsStatisticsFactory()) { "Steps statistics is required for selected stopping strategy" } }
+    val effectiveTargetsProgressTimeout = if (options.stopOnTargetsReached) targetsProgressTimeout else null
 
     val stopStrategies = mutableListOf<StopStrategy>()
 
@@ -39,7 +41,7 @@ fun createStopStrategy(
         stopStrategies.add(collectedStatesCountStopStrategy)
     }
 
-    if (options.timeout < Duration.INFINITE) {
+    if (effectiveTargetsProgressTimeout == null && options.timeout < Duration.INFINITE) {
         val timeStatistics = requireNotNull(timeStatisticsFactory()) { "Time statistics is required for stopping on timeout" }
         stopStrategies.add(TimeoutStopStrategy(options.timeout, timeStatistics))
     }
@@ -54,7 +56,16 @@ fun createStopStrategy(
         stopStrategies.add(stepsFromLastCoveredStopStrategy)
     }
 
-    if (options.stopOnTargetsReached) {
+    if (effectiveTargetsProgressTimeout != null) {
+        stopStrategies.add(
+            ProgressBasedStopStrategy(
+                progressTimeout = effectiveTargetsProgressTimeout,
+                progressCounter = { targets.count { it.isRemoved }.toLong() },
+                globalSafetyTimeout = options.timeout,
+                isComplete = { targets.all { it.isRemoved } },
+            ),
+        )
+    } else if (options.stopOnTargetsReached) {
         stopStrategies.add(TargetsReachedStopStrategy(targets))
     }
 
