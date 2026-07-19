@@ -9,9 +9,12 @@ import org.usvm.StateCollectionStrategy
 import org.usvm.UMachine
 import org.usvm.UMachineOptions
 import org.usvm.api.targets.TsTarget
+import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.machine.interpreter.TsInterpreter
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
+import org.usvm.machine.targets.TsTargetReachabilityPruner
+import org.usvm.machine.targets.TsTargetReachabilityPruningStatistics
 import org.usvm.machine.types.TsTypeSystem
 import org.usvm.ps.createPathSelector
 import org.usvm.statistics.CompositeUMachineObserver
@@ -45,13 +48,30 @@ class TsMachine(
     private val typeSystem = TsTypeSystem(scene, typeOperationsTimeout = 1.seconds, graph.hierarchy)
     private val components = TsComponents(typeSystem, options)
     private val ctx = TsContext(scene, components)
-    private val interpreter = TsInterpreter(ctx, graph, tsOptions, observer)
     private val cfgStatistics = CfgStatisticsImpl(graph)
+    private val targetReachabilityPruner =
+        if (tsOptions.tsTargetReachabilityPruning) {
+            TsTargetReachabilityPruner(
+                applicationGraph = graph,
+                cfgStatistics = cfgStatistics,
+                callGraphStatistics = PlainCallGraphStatistics(),
+            )
+        } else {
+            null
+        }
+    private val forkBlackList = targetReachabilityPruner ?: UForkBlackList.createDefault<TsState, EtsStmt>()
+    private val interpreter = TsInterpreter(ctx, graph, tsOptions, observer, forkBlackList)
+
+    /** Null means that [TsOptions.tsTargetReachabilityPruning] is disabled. */
+    val targetReachabilityPruningStatistics: TsTargetReachabilityPruningStatistics?
+        get() = targetReachabilityPruner?.statistics
 
     fun analyze(
         methods: List<EtsMethod>,
         targets: List<TsTarget> = emptyList(),
     ): List<TsState> {
+        targetReachabilityPruner?.reset()
+
         val initialStates = mutableMapOf<EtsMethod, TsState>()
         methods.forEach { initialStates[it] = interpreter.getInitialState(it, targets) }
 

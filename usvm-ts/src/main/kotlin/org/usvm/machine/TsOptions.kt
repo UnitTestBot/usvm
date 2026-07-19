@@ -5,6 +5,11 @@ data class TsOptions(
     val enableVisualization: Boolean = false,
     val maxArraySize: Int = 1_000,
     /**
+     * Reject forks that are proven unable to reach any target active in the current state.
+     * Disabled by default until the TS reachability campaign gate is complete.
+     */
+    val tsTargetReachabilityPruning: Boolean = false,
+    /**
      * Observed input type profiles from a dynamic (e.g. PBT) phase.
      * Restrict fake-object type discriminators for unresolved parameters.
      * [TsInputTypeHints.EMPTY] preserves the default behavior.
