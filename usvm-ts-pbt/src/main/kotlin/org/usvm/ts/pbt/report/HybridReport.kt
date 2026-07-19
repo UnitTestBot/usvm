@@ -3,6 +3,7 @@ package org.usvm.ts.pbt.report
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.usvm.ts.pbt.telemetry.HybridTelemetry
 
 /**
  * Machine-readable report of one hybrid analysis run — the raw material for
@@ -13,6 +14,11 @@ import kotlinx.serialization.json.Json
 data class HybridReport(
     val config: ConfigEcho,
     val methods: List<MethodReport>,
+    /**
+     * Opt-in telemetry. It stays absent while the producer feature flag is off,
+     * preserving the legacy JSON shape and all existing report constructors.
+     */
+    val telemetry: HybridTelemetry? = null,
 ) {
     companion object {
         private val json = Json { prettyPrint = true }
