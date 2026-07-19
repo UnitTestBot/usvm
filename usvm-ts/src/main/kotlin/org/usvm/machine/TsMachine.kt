@@ -135,6 +135,9 @@ class TsMachine(
                 stepsStatisticsFactory = { stepsStatistics },
                 coverageStatisticsFactory = { coverageStatistics },
                 getCollectedStatesCount = { statesCollector.collectedStates.size },
+                targetsProgressTimeout = tsOptions.progressTimeout.takeIf {
+                    tsOptions.symbolicProgressStop
+                },
             )
 
             override fun shouldStop(): Boolean {
