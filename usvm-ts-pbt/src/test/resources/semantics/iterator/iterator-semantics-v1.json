@@ -1,0 +1,1548 @@
+{
+  "schemaVersion": 1,
+  "contractId": "usvm-ts-pbt.iterator.exact.v1",
+  "description": "Dependency-neutral executable contract for synchronous iterator acquisition, next results, for-of and a bounded IteratorClose subset.",
+  "sourceFixture": "IteratorSemanticsFixture.ts",
+  "requiredOperations": [
+    "iterator.nextSequence",
+    "iterator.self",
+    "forOf.collect",
+    "forOf.collectTracked",
+    "forOf.break",
+    "forOf.return",
+    "forOf.throw",
+    "iterator.return"
+  ],
+  "baselineEvidence": {
+    "freezeDate": "2026-07-19",
+    "observationsPath": "usvm-ts-pbt/benchmarks/baselines/2026-07-19/observations/batched-reports.json",
+    "observationsSha256": "bb9d7e6c712c69db65e2ab1e3cb08afd0f59b1c0667ec337c71bf8e9b2fa079b",
+    "broadDenominator": {
+      "methods": 84,
+      "edges": 422
+    },
+    "broadReachedNotReplayed": 23,
+    "iteratorMethodIds": [
+      "find_min.ts::%dflt::%AM0$%dflt/1",
+      "03-array/12-flatten-arrays.ts::%dflt::flattenRecursive/1",
+      "arrays.ts::%dflt::forEach/2"
+    ],
+    "targetManifests": {
+      "the-algorithms-maths": {
+        "path": "usvm-ts-pbt/benchmarks/baselines/2026-07-19/projects/the-algorithms-maths/targets.json",
+        "sha256": "bc29937151a3d211a0eae60dcc2f5cd51e10fe46ec6cc90757fa43a779ddecf0"
+      },
+      "typescript-algorithms": {
+        "path": "usvm-ts-pbt/benchmarks/baselines/2026-07-19/projects/typescript-algorithms/targets.json",
+        "sha256": "dc0f4a67d4388b202c570bc78c4ee3aecd203c1d774f6523b66589d239f9de5f"
+      },
+      "typescript-collections": {
+        "path": "usvm-ts-pbt/benchmarks/baselines/2026-07-19/projects/typescript-collections/targets.json",
+        "sha256": "d22920192ded760712c643c6df1bb4521846d6d5198089809dbedbb348730d35"
+      }
+    },
+    "projects": {
+      "the-algorithms-maths": {
+        "repository": "https://github.com/TheAlgorithms/TypeScript",
+        "commit": "19b4ced86c99815f142d4a46a028f55487b8038a"
+      },
+      "typescript-algorithms": {
+        "repository": "https://github.com/loiane/javascript-datastructures-algorithms",
+        "commit": "e8ee8f9b8a07589533c4243a210d4cea7b090b10"
+      },
+      "typescript-collections": {
+        "repository": "https://github.com/basarat/typescript-collections",
+        "commit": "309bb1b6955b403b212309531607b8d17df152e5"
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "array-next-empty-sticky-done",
+      "sourceCallableId": "ts:semantic/iterator/IteratorSemanticsFixture.ts::free:nextSequence/2",
+      "operation": "iterator.nextSequence",
+      "iterable": { "kind": "array", "elements": [] },
+      "arguments": { "count": 2 },
+      "expected": {
+        "result": {
+          "kind": "array",
+          "elements": [
+            { "kind": "iteratorResult", "value": { "kind": "undefined" }, "done": true },
+            { "kind": "iteratorResult", "value": { "kind": "undefined" }, "done": true }
+          ]
+        },
+        "trace": [
+          "Symbol.iterator(array) -> iterator",
+          "next() -> {value:undefined, done:true}",
+          "next() -> {value:undefined, done:true}"
+        ]
+      },
+      "capability": {
+        "labels": ["iterator", "array_object"],
+        "semanticTags": ["symbol_iterator", "iterator_next", "done_stability", "array_iteration"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "array-next-values-and-sticky-done",
+      "sourceCallableId": "ts:semantic/iterator/IteratorSemanticsFixture.ts::free:nextSequence/2",
+      "operation": "iterator.nextSequence",
+      "iterable": {
+        "kind": "array",
+        "elements": [
+          { "kind": "number", "value": "1" },
+          { "kind": "number", "value": "2" }
+        ]
+      },
+      "arguments": { "count": 4 },
+      "expected": {
+        "result": {
+          "kind": "array",
+          "elements": [
+            { "kind": "iteratorResult", "value": { "kind": "number", "value": "1" }, "done": false },
+            { "kind": "iteratorResult", "value": { "kind": "number", "value": "2" }, "done": false },
+            { "kind": "iteratorResult", "value": { "kind": "undefined" }, "done": true },
+            { "kind": "iteratorResult", "value": { "kind": "undefined" }, "done": true }
+          ]
+        },
+        "trace": [
+          "Symbol.iterator(array) -> iterator",
+          "next() -> {value:number:1, done:false}",
+          "next() -> {value:number:2, done:false}",
+          "next() -> {value:undefined, done:true}",
+          "next() -> {value:undefined, done:true}"
+        ]
+      },
+      "capability": {
+        "labels": ["iterator", "array_object"],
+        "semanticTags": ["symbol_iterator", "iterator_next", "done_stability", "array_iteration"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "array-next-hole-yields-undefined",
+      "sourceCallableId": "ts:semantic/iterator/IteratorSemanticsFixture.ts::free:nextSequence/2",
+      "operation": "iterator.nextSequence",
+      "iterable": {
+        "kind": "array",
+        "elements": [
+          { "kind": "number", "value": "1" },
+          { "kind": "hole" },
+          { "kind": "number", "value": "3" }
+        ]
+      },
+      "arguments": { "count": 4 },
+      "expected": {
+        "result": {
+          "kind": "array",
+          "elements": [
+            { "kind": "iteratorResult", "value": { "kind": "number", "value": "1" }, "done": false },
+            { "kind": "iteratorResult", "value": { "kind": "undefined" }, "done": false },
+            { "kind": "iteratorResult", "value": { "kind": "number", "value": "3" }, "done": false },
+            { "kind": "iteratorResult", "value": { "kind": "undefined" }, "done": true }
+          ]
+        },
+        "trace": [
+          "Symbol.iterator(array) -> iterator",
+          "next() -> {value:number:1, done:false}",
+          "next() -> {value:undefined, done:false}",
+          "next() -> {value:number:3, done:false}",
+          "next() -> {value:undefined, done:true}"
+        ]
+      },
+      "capability": {
+        "labels": ["iterator", "array_object"],
+        "semanticTags": ["symbol_iterator", "iterator_next", "array_iteration", "sparse_array"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "string-next-empty-sticky-done",
+      "sourceCallableId": "ts:semantic/iterator/IteratorSemanticsFixture.ts::free:nextSequence/2",
+      "operation": "iterator.nextSequence",
+      "iterable": { "kind": "string", "value": "" },
+      "arguments": { "count": 2 },
+      "expected": {
+        "result": {
+          "kind": "array",
+          "elements": [
+            { "kind": "iteratorResult", "value": { "kind": "undefined" }, "done": true },
+            { "kind": "iteratorResult", "value": { "kind": "undefined" }, "done": true }
+          ]
+        },
+        "trace": [
+          "Symbol.iterator(string) -> iterator",
+          "next() -> {value:undefined, done:true}",
+          "next() -> {value:undefined, done:true}"
+        ]
+      },
+      "capability": {
+        "labels": ["iterator"],
+        "semanticTags": ["symbol_iterator", "iterator_next", "done_stability", "string_code_points"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "string-next-unicode-code-points",
+      "sourceCallableId": "ts:semantic/iterator/IteratorSemanticsFixture.ts::free:nextSequence/2",
+      "operation": "iterator.nextSequence",
+      "iterable": { "kind": "string", "value": "A😀B" },
+      "arguments": { "count": 4 },
+      "expected": {
+        "result": {
+          "kind": "array",
+          "elements": [
+            { "kind": "iteratorResult", "value": { "kind": "string", "value": "A" }, "done": false },
+            { "kind": "iteratorResult", "value": { "kind": "string", "value": "😀" }, "done": false },
+            { "kind": "iteratorResult", "value": { "kind": "string", "value": "B" }, "done": false },
+            { "kind": "iteratorResult", "value": { "kind": "undefined" }, "done": true }
+          ]
+        },
+        "trace": [
+          "Symbol.iterator(string) -> iterator",
+          "next() -> {value:string:\"A\", done:false}",
+          "next() -> {value:string:\"😀\", done:false}",
+          "next() -> {value:string:\"B\", done:false}",
+          "next() -> {value:undefined, done:true}"
+        ]
+      },
+      "capability": {
+        "labels": ["iterator"],
+        "semanticTags": ["symbol_iterator", "iterator_next", "string_code_points"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "map-next-empty-sticky-done",
+      "sourceCallableId": "ts:semantic/iterator/IteratorSemanticsFixture.ts::free:nextSequence/2",
+      "operation": "iterator.nextSequence",
+      "iterable": { "kind": "map", "entries": [] },
+      "arguments": { "count": 2 },
+      "expected": {
+        "result": {
+          "kind": "array",
+          "elements": [
+            { "kind": "iteratorResult", "value": { "kind": "undefined" }, "done": true },
+            { "kind": "iteratorResult", "value": { "kind": "undefined" }, "done": true }
+          ]
+        },
+        "trace": [
+          "Symbol.iterator(map) -> iterator",
+          "next() -> {value:undefined, done:true}",
+          "next() -> {value:undefined, done:true}"
+        ]
+      },
+      "capability": {
+        "labels": ["iterator", "map_set"],
+        "semanticTags": ["symbol_iterator", "iterator_next", "done_stability", "map_entries"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "map-next-entry-order",
+      "sourceCallableId": "ts:semantic/iterator/IteratorSemanticsFixture.ts::free:nextSequence/2",
+      "operation": "iterator.nextSequence",
+      "iterable": {
+        "kind": "map",
+        "entries": [
+          { "key": { "kind": "string", "value": "a" }, "value": { "kind": "number", "value": "1" } },
+          { "key": { "kind": "string", "value": "b" }, "value": { "kind": "number", "value": "2" } }
+        ]
+      },
+      "arguments": { "count": 3 },
+      "expected": {
+        "result": {
+          "kind": "array",
+          "elements": [
+            {
+              "kind": "iteratorResult",
+              "value": {
+                "kind": "array",
+                "elements": [
+                  { "kind": "string", "value": "a" },
+                  { "kind": "number", "value": "1" }
+                ]
+              },
+              "done": false
+            },
+            {
+              "kind": "iteratorResult",
+              "value": {
+                "kind": "array",
+                "elements": [
+                  { "kind": "string", "value": "b" },
+                  { "kind": "number", "value": "2" }
+                ]
+              },
+              "done": false
+            },
+            { "kind": "iteratorResult", "value": { "kind": "undefined" }, "done": true }
+          ]
+        },
+        "trace": [
+          "Symbol.iterator(map) -> iterator",
+          "next() -> {value:array:[string:\"a\", number:1], done:false}",
+          "next() -> {value:array:[string:\"b\", number:2], done:false}",
+          "next() -> {value:undefined, done:true}"
+        ]
+      },
+      "capability": {
+        "labels": ["iterator", "map_set"],
+        "semanticTags": ["symbol_iterator", "iterator_next", "map_entries", "insertion_order"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "map-next-overwrite-retains-order",
+      "sourceCallableId": "ts:semantic/iterator/IteratorSemanticsFixture.ts::free:nextSequence/2",
+      "operation": "iterator.nextSequence",
+      "iterable": {
+        "kind": "map",
+        "entries": [
+          { "key": { "kind": "string", "value": "a" }, "value": { "kind": "number", "value": "1" } },
+          { "key": { "kind": "string", "value": "b" }, "value": { "kind": "number", "value": "2" } },
+          { "key": { "kind": "string", "value": "a" }, "value": { "kind": "number", "value": "3" } }
+        ]
+      },
+      "arguments": { "count": 3 },
+      "expected": {
+        "result": {
+          "kind": "array",
+          "elements": [
+            {
+              "kind": "iteratorResult",
+              "value": {
+                "kind": "array",
+                "elements": [
+                  { "kind": "string", "value": "a" },
+                  { "kind": "number", "value": "3" }
+                ]
+              },
+              "done": false
+            },
+            {
+              "kind": "iteratorResult",
+              "value": {
+                "kind": "array",
+                "elements": [
+                  { "kind": "string", "value": "b" },
+                  { "kind": "number", "value": "2" }
+                ]
+              },
+              "done": false
+            },
+            { "kind": "iteratorResult", "value": { "kind": "undefined" }, "done": true }
+          ]
+        },
+        "trace": [
+          "Symbol.iterator(map) -> iterator",
+          "next() -> {value:array:[string:\"a\", number:3], done:false}",
+          "next() -> {value:array:[string:\"b\", number:2], done:false}",
+          "next() -> {value:undefined, done:true}"
+        ]
+      },
+      "capability": {
+        "labels": ["iterator", "map_set"],
+        "semanticTags": ["symbol_iterator", "iterator_next", "map_entries", "insertion_order"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "set-next-empty-sticky-done",
+      "sourceCallableId": "ts:semantic/iterator/IteratorSemanticsFixture.ts::free:nextSequence/2",
+      "operation": "iterator.nextSequence",
+      "iterable": { "kind": "set", "values": [] },
+      "arguments": { "count": 2 },
+      "expected": {
+        "result": {
+          "kind": "array",
+          "elements": [
+            { "kind": "iteratorResult", "value": { "kind": "undefined" }, "done": true },
+            { "kind": "iteratorResult", "value": { "kind": "undefined" }, "done": true }
+          ]
+        },
+        "trace": [
+          "Symbol.iterator(set) -> iterator",
+          "next() -> {value:undefined, done:true}",
+          "next() -> {value:undefined, done:true}"
+        ]
+      },
+      "capability": {
+        "labels": ["iterator", "map_set"],
+        "semanticTags": ["symbol_iterator", "iterator_next", "done_stability", "set_values"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "set-next-order-and-same-value-zero",
+      "sourceCallableId": "ts:semantic/iterator/IteratorSemanticsFixture.ts::free:nextSequence/2",
+      "operation": "iterator.nextSequence",
+      "iterable": {
+        "kind": "set",
+        "values": [
+          { "kind": "number", "value": "1" },
+          { "kind": "number", "value": "NaN" },
+          { "kind": "number", "value": "NaN" },
+          { "kind": "number", "value": "-0" },
+          { "kind": "number", "value": "0" }
+        ]
+      },
+      "arguments": { "count": 4 },
+      "expected": {
+        "result": {
+          "kind": "array",
+          "elements": [
+            { "kind": "iteratorResult", "value": { "kind": "number", "value": "1" }, "done": false },
+            { "kind": "iteratorResult", "value": { "kind": "number", "value": "NaN" }, "done": false },
+            { "kind": "iteratorResult", "value": { "kind": "number", "value": "0" }, "done": false },
+            { "kind": "iteratorResult", "value": { "kind": "undefined" }, "done": true }
+          ]
+        },
+        "trace": [
+          "Symbol.iterator(set) -> iterator",
+          "next() -> {value:number:1, done:false}",
+          "next() -> {value:number:NaN, done:false}",
+          "next() -> {value:number:0, done:false}",
+          "next() -> {value:undefined, done:true}"
+        ]
+      },
+      "capability": {
+        "labels": ["iterator", "map_set"],
+        "semanticTags": ["symbol_iterator", "iterator_next", "set_values", "insertion_order", "same_value_zero"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "array-iterator-is-self-iterable",
+      "sourceCallableId": "ts:semantic/iterator/IteratorSemanticsFixture.ts::free:iteratorSelf/1",
+      "operation": "iterator.self",
+      "iterable": { "kind": "array", "elements": [] },
+      "expected": {
+        "result": { "kind": "boolean", "value": true },
+        "trace": [
+          "Symbol.iterator(array) -> iterator",
+          "iterator[Symbol.iterator]() === iterator -> boolean:true"
+        ]
+      },
+      "capability": {
+        "labels": ["iterator", "array_object"],
+        "semanticTags": ["symbol_iterator", "iterator_self", "array_iteration"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "string-iterator-is-self-iterable",
+      "sourceCallableId": "ts:semantic/iterator/IteratorSemanticsFixture.ts::free:iteratorSelf/1",
+      "operation": "iterator.self",
+      "iterable": { "kind": "string", "value": "x" },
+      "expected": {
+        "result": { "kind": "boolean", "value": true },
+        "trace": [
+          "Symbol.iterator(string) -> iterator",
+          "iterator[Symbol.iterator]() === iterator -> boolean:true"
+        ]
+      },
+      "capability": {
+        "labels": ["iterator"],
+        "semanticTags": ["symbol_iterator", "iterator_self", "string_code_points"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "map-iterator-is-self-iterable",
+      "sourceCallableId": "ts:semantic/iterator/IteratorSemanticsFixture.ts::free:iteratorSelf/1",
+      "operation": "iterator.self",
+      "iterable": { "kind": "map", "entries": [] },
+      "expected": {
+        "result": { "kind": "boolean", "value": true },
+        "trace": [
+          "Symbol.iterator(map) -> iterator",
+          "iterator[Symbol.iterator]() === iterator -> boolean:true"
+        ]
+      },
+      "capability": {
+        "labels": ["iterator", "map_set"],
+        "semanticTags": ["symbol_iterator", "iterator_self", "map_entries"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "set-iterator-is-self-iterable",
+      "sourceCallableId": "ts:semantic/iterator/IteratorSemanticsFixture.ts::free:iteratorSelf/1",
+      "operation": "iterator.self",
+      "iterable": { "kind": "set", "values": [] },
+      "expected": {
+        "result": { "kind": "boolean", "value": true },
+        "trace": [
+          "Symbol.iterator(set) -> iterator",
+          "iterator[Symbol.iterator]() === iterator -> boolean:true"
+        ]
+      },
+      "capability": {
+        "labels": ["iterator", "map_set"],
+        "semanticTags": ["symbol_iterator", "iterator_self", "set_values"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "for-of-array-values",
+      "sourceCallableId": "ts:semantic/iterator/IteratorSemanticsFixture.ts::free:collectForOf/1",
+      "operation": "forOf.collect",
+      "iterable": {
+        "kind": "array",
+        "elements": [
+          { "kind": "number", "value": "1" },
+          { "kind": "number", "value": "2" }
+        ]
+      },
+      "expected": {
+        "result": {
+          "kind": "array",
+          "elements": [
+            { "kind": "number", "value": "1" },
+            { "kind": "number", "value": "2" }
+          ]
+        },
+        "trace": [
+          "Symbol.iterator(array) -> iterator",
+          "for-of value -> number:1",
+          "for-of value -> number:2",
+          "for-of complete"
+        ]
+      },
+      "capability": {
+        "labels": ["iterator", "array_object"],
+        "semanticTags": ["symbol_iterator", "for_of", "array_iteration"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "for-of-sparse-array-yields-undefined",
+      "sourceCallableId": "ts:semantic/iterator/IteratorSemanticsFixture.ts::free:collectForOf/1",
+      "operation": "forOf.collect",
+      "iterable": {
+        "kind": "array",
+        "elements": [
+          { "kind": "number", "value": "1" },
+          { "kind": "hole" },
+          { "kind": "number", "value": "3" }
+        ]
+      },
+      "expected": {
+        "result": {
+          "kind": "array",
+          "elements": [
+            { "kind": "number", "value": "1" },
+            { "kind": "undefined" },
+            { "kind": "number", "value": "3" }
+          ]
+        },
+        "trace": [
+          "Symbol.iterator(array) -> iterator",
+          "for-of value -> number:1",
+          "for-of value -> undefined",
+          "for-of value -> number:3",
+          "for-of complete"
+        ]
+      },
+      "capability": {
+        "labels": ["iterator", "array_object"],
+        "semanticTags": ["symbol_iterator", "for_of", "array_iteration", "sparse_array"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "for-of-string-unicode-code-points",
+      "sourceCallableId": "ts:semantic/iterator/IteratorSemanticsFixture.ts::free:collectForOf/1",
+      "operation": "forOf.collect",
+      "iterable": { "kind": "string", "value": "A😀B" },
+      "expected": {
+        "result": {
+          "kind": "array",
+          "elements": [
+            { "kind": "string", "value": "A" },
+            { "kind": "string", "value": "😀" },
+            { "kind": "string", "value": "B" }
+          ]
+        },
+        "trace": [
+          "Symbol.iterator(string) -> iterator",
+          "for-of value -> string:\"A\"",
+          "for-of value -> string:\"😀\"",
+          "for-of value -> string:\"B\"",
+          "for-of complete"
+        ]
+      },
+      "capability": {
+        "labels": ["iterator"],
+        "semanticTags": ["symbol_iterator", "for_of", "string_code_points"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "for-of-map-entry-order",
+      "sourceCallableId": "ts:semantic/iterator/IteratorSemanticsFixture.ts::free:collectForOf/1",
+      "operation": "forOf.collect",
+      "iterable": {
+        "kind": "map",
+        "entries": [
+          { "key": { "kind": "string", "value": "a" }, "value": { "kind": "number", "value": "1" } },
+          { "key": { "kind": "string", "value": "b" }, "value": { "kind": "number", "value": "2" } }
+        ]
+      },
+      "expected": {
+        "result": {
+          "kind": "array",
+          "elements": [
+            {
+              "kind": "array",
+              "elements": [
+                { "kind": "string", "value": "a" },
+                { "kind": "number", "value": "1" }
+              ]
+            },
+            {
+              "kind": "array",
+              "elements": [
+                { "kind": "string", "value": "b" },
+                { "kind": "number", "value": "2" }
+              ]
+            }
+          ]
+        },
+        "trace": [
+          "Symbol.iterator(map) -> iterator",
+          "for-of value -> array:[string:\"a\", number:1]",
+          "for-of value -> array:[string:\"b\", number:2]",
+          "for-of complete"
+        ]
+      },
+      "capability": {
+        "labels": ["iterator", "map_set"],
+        "semanticTags": ["symbol_iterator", "for_of", "map_entries", "insertion_order"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "for-of-set-order-and-same-value-zero",
+      "sourceCallableId": "ts:semantic/iterator/IteratorSemanticsFixture.ts::free:collectForOf/1",
+      "operation": "forOf.collect",
+      "iterable": {
+        "kind": "set",
+        "values": [
+          { "kind": "number", "value": "1" },
+          { "kind": "number", "value": "NaN" },
+          { "kind": "number", "value": "NaN" },
+          { "kind": "number", "value": "-0" },
+          { "kind": "number", "value": "0" }
+        ]
+      },
+      "expected": {
+        "result": {
+          "kind": "array",
+          "elements": [
+            { "kind": "number", "value": "1" },
+            { "kind": "number", "value": "NaN" },
+            { "kind": "number", "value": "0" }
+          ]
+        },
+        "trace": [
+          "Symbol.iterator(set) -> iterator",
+          "for-of value -> number:1",
+          "for-of value -> number:NaN",
+          "for-of value -> number:0",
+          "for-of complete"
+        ]
+      },
+      "capability": {
+        "labels": ["iterator", "map_set"],
+        "semanticTags": ["symbol_iterator", "for_of", "set_values", "insertion_order", "same_value_zero"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "for-of-custom-normal-exhaustion-does-not-close",
+      "sourceCallableId": "ts:semantic/iterator/IteratorSemanticsFixture.ts::free:collectTracked/1",
+      "operation": "forOf.collectTracked",
+      "iterable": {
+        "kind": "customIterable",
+        "values": [
+          { "kind": "number", "value": "1" },
+          { "kind": "number", "value": "2" }
+        ],
+        "hasReturn": true
+      },
+      "expected": {
+        "result": {
+          "kind": "record",
+          "fields": {
+            "values": {
+              "kind": "array",
+              "elements": [
+                { "kind": "number", "value": "1" },
+                { "kind": "number", "value": "2" }
+              ]
+            },
+            "stats": {
+              "kind": "record",
+              "fields": {
+                "iteratorGets": { "kind": "number", "value": "1" },
+                "nextCalls": { "kind": "number", "value": "3" },
+                "returnCalls": { "kind": "number", "value": "0" }
+              }
+            }
+          }
+        },
+        "trace": [
+          "Symbol.iterator(customIterable) -> iterator",
+          "for-of value -> number:1",
+          "for-of value -> number:2",
+          "for-of complete"
+        ]
+      },
+      "capability": {
+        "labels": ["iterator"],
+        "semanticTags": ["symbol_iterator", "for_of", "iterator_close", "custom_iterable_subset"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "for-of-break-closes-custom-iterator",
+      "sourceCallableId": "ts:semantic/iterator/IteratorSemanticsFixture.ts::free:breakTracked/1",
+      "operation": "forOf.break",
+      "iterable": {
+        "kind": "customIterable",
+        "values": [
+          { "kind": "number", "value": "1" },
+          { "kind": "number", "value": "2" }
+        ],
+        "hasReturn": true
+      },
+      "expected": {
+        "result": {
+          "kind": "record",
+          "fields": {
+            "values": {
+              "kind": "array",
+              "elements": [{ "kind": "number", "value": "1" }]
+            },
+            "broke": { "kind": "boolean", "value": true },
+            "stats": {
+              "kind": "record",
+              "fields": {
+                "iteratorGets": { "kind": "number", "value": "1" },
+                "nextCalls": { "kind": "number", "value": "1" },
+                "returnCalls": { "kind": "number", "value": "1" }
+              }
+            }
+          }
+        },
+        "trace": [
+          "Symbol.iterator(customIterable) -> iterator",
+          "for-of value -> number:1",
+          "return() -> {value:string:\"closed\", done:true}",
+          "for-of break"
+        ]
+      },
+      "capability": {
+        "labels": ["iterator"],
+        "semanticTags": ["symbol_iterator", "for_of", "iterator_close", "iterator_return", "abrupt_completion", "custom_iterable_subset"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "for-of-function-return-closes-custom-iterator",
+      "sourceCallableId": "ts:semantic/iterator/IteratorSemanticsFixture.ts::free:returnTracked/1",
+      "operation": "forOf.return",
+      "iterable": {
+        "kind": "customIterable",
+        "values": [
+          { "kind": "number", "value": "1" },
+          { "kind": "number", "value": "2" }
+        ],
+        "hasReturn": true
+      },
+      "expected": {
+        "result": {
+          "kind": "record",
+          "fields": {
+            "value": { "kind": "number", "value": "1" },
+            "stats": {
+              "kind": "record",
+              "fields": {
+                "iteratorGets": { "kind": "number", "value": "1" },
+                "nextCalls": { "kind": "number", "value": "1" },
+                "returnCalls": { "kind": "number", "value": "1" }
+              }
+            }
+          }
+        },
+        "trace": [
+          "Symbol.iterator(customIterable) -> iterator",
+          "for-of value -> number:1",
+          "return() -> {value:string:\"closed\", done:true}",
+          "for-of function return"
+        ]
+      },
+      "capability": {
+        "labels": ["iterator"],
+        "semanticTags": ["symbol_iterator", "for_of", "iterator_close", "iterator_return", "abrupt_completion", "custom_iterable_subset"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "for-of-throw-closes-custom-iterator-before-catch",
+      "sourceCallableId": "ts:semantic/iterator/IteratorSemanticsFixture.ts::free:throwTracked/1",
+      "operation": "forOf.throw",
+      "iterable": {
+        "kind": "customIterable",
+        "values": [
+          { "kind": "number", "value": "1" },
+          { "kind": "number", "value": "2" }
+        ],
+        "hasReturn": true
+      },
+      "expected": {
+        "result": {
+          "kind": "record",
+          "fields": {
+            "error": { "kind": "string", "value": "boom" },
+            "stats": {
+              "kind": "record",
+              "fields": {
+                "iteratorGets": { "kind": "number", "value": "1" },
+                "nextCalls": { "kind": "number", "value": "1" },
+                "returnCalls": { "kind": "number", "value": "1" }
+              }
+            }
+          }
+        },
+        "trace": [
+          "Symbol.iterator(customIterable) -> iterator",
+          "for-of value -> number:1",
+          "return() -> {value:string:\"closed\", done:true}",
+          "for-of throw -> string:\"boom\""
+        ]
+      },
+      "capability": {
+        "labels": ["iterator"],
+        "semanticTags": ["symbol_iterator", "for_of", "iterator_close", "iterator_return", "abrupt_completion", "custom_iterable_subset"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "direct-iterator-return-closes-after-first-next",
+      "sourceCallableId": "ts:semantic/iterator/IteratorSemanticsFixture.ts::free:directReturn/1",
+      "operation": "iterator.return",
+      "iterable": {
+        "kind": "customIterable",
+        "values": [
+          { "kind": "number", "value": "1" },
+          { "kind": "number", "value": "2" }
+        ],
+        "hasReturn": true
+      },
+      "expected": {
+        "result": {
+          "kind": "record",
+          "fields": {
+            "first": { "kind": "iteratorResult", "value": { "kind": "number", "value": "1" }, "done": false },
+            "close": { "kind": "iteratorResult", "value": { "kind": "string", "value": "closed" }, "done": true },
+            "stats": {
+              "kind": "record",
+              "fields": {
+                "iteratorGets": { "kind": "number", "value": "1" },
+                "nextCalls": { "kind": "number", "value": "1" },
+                "returnCalls": { "kind": "number", "value": "1" }
+              }
+            }
+          }
+        },
+        "trace": [
+          "Symbol.iterator(customIterable) -> iterator",
+          "next() -> {value:number:1, done:false}",
+          "return() -> {value:string:\"closed\", done:true}"
+        ]
+      },
+      "capability": {
+        "labels": ["iterator"],
+        "semanticTags": ["symbol_iterator", "iterator_next", "iterator_return", "custom_iterable_subset"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "for-of-break-without-return-method",
+      "sourceCallableId": "ts:semantic/iterator/IteratorSemanticsFixture.ts::free:breakTracked/1",
+      "operation": "forOf.break",
+      "iterable": {
+        "kind": "customIterable",
+        "values": [
+          { "kind": "number", "value": "1" },
+          { "kind": "number", "value": "2" }
+        ],
+        "hasReturn": false
+      },
+      "expected": {
+        "result": {
+          "kind": "record",
+          "fields": {
+            "values": {
+              "kind": "array",
+              "elements": [{ "kind": "number", "value": "1" }]
+            },
+            "broke": { "kind": "boolean", "value": true },
+            "stats": {
+              "kind": "record",
+              "fields": {
+                "iteratorGets": { "kind": "number", "value": "1" },
+                "nextCalls": { "kind": "number", "value": "1" },
+                "returnCalls": { "kind": "number", "value": "0" }
+              }
+            }
+          }
+        },
+        "trace": [
+          "Symbol.iterator(customIterable) -> iterator",
+          "for-of value -> number:1",
+          "for-of break"
+        ]
+      },
+      "capability": {
+        "labels": ["iterator"],
+        "semanticTags": ["symbol_iterator", "for_of", "iterator_close", "abrupt_completion", "custom_iterable_subset"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "for-of-empty-break-path-does-not-close",
+      "sourceCallableId": "ts:semantic/iterator/IteratorSemanticsFixture.ts::free:breakTracked/1",
+      "operation": "forOf.break",
+      "iterable": {
+        "kind": "customIterable",
+        "values": [],
+        "hasReturn": true
+      },
+      "expected": {
+        "result": {
+          "kind": "record",
+          "fields": {
+            "values": { "kind": "array", "elements": [] },
+            "broke": { "kind": "boolean", "value": false },
+            "stats": {
+              "kind": "record",
+              "fields": {
+                "iteratorGets": { "kind": "number", "value": "1" },
+                "nextCalls": { "kind": "number", "value": "1" },
+                "returnCalls": { "kind": "number", "value": "0" }
+              }
+            }
+          }
+        },
+        "trace": [
+          "Symbol.iterator(customIterable) -> iterator",
+          "for-of complete"
+        ]
+      },
+      "capability": {
+        "labels": ["iterator"],
+        "semanticTags": ["symbol_iterator", "for_of", "iterator_close", "custom_iterable_subset"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    }
+  ],
+  "realTargets": [
+    {
+      "id": "find-min-for-of-exit",
+      "projectId": "the-algorithms-maths",
+      "sourceCallableId": "ts:find_min.ts::free:findMin/1",
+      "source": {
+        "expression": "for (const num of nums)",
+        "conditionOrigin": {
+          "fileName": "find_min.ts",
+          "startOffset": 597,
+          "endOffset": 685,
+          "startLine": 17,
+          "startColumn": 2,
+          "endLine": 21,
+          "endColumn": 3,
+          "nodeKind": "ForOfStatement"
+        }
+      },
+      "etsIr": {
+        "methodId": "find_min.ts::%dflt::%AM0$%dflt/1",
+        "branchId": "find_min.ts::%dflt::%AM0$%dflt/1#s14:0->15",
+        "semanticIteratorStmtIndex": 10,
+        "semanticIteratorStatement": "%2 := call nums.Symbol.iterator()",
+        "nextStmtIndex": 11,
+        "doneStmtIndex": 12,
+        "ifStmtIndex": 14,
+        "successorOrdinal": 0,
+        "successorStmtIndex": 15
+      },
+      "observationScenarios": ["internal-pbt-usvm", "usvm-only"],
+      "frozenOutcome": {
+        "status": "reached_not_replayed",
+        "reasonCode": "replay_unsupported",
+        "reached": true,
+        "replayConfirmed": false,
+        "firstDivergence": "not_recorded_in_legacy_artifact",
+        "semanticGateStmtIndex": 10
+      },
+      "expectedTerminalOutcome": {
+        "status": "replay_confirmed",
+        "iteratorWitnessCaseId": "array-next-empty-sticky-done"
+      },
+      "capability": {
+        "labels": ["iterator", "array_object"],
+        "semanticTags": ["symbol_iterator", "iterator_next", "for_of"],
+        "expectedStatus": "supported_with_flag"
+      }
+    },
+    {
+      "id": "find-min-for-of-body",
+      "projectId": "the-algorithms-maths",
+      "sourceCallableId": "ts:find_min.ts::free:findMin/1",
+      "source": {
+        "expression": "for (const num of nums)",
+        "conditionOrigin": {
+          "fileName": "find_min.ts",
+          "startOffset": 597,
+          "endOffset": 685,
+          "startLine": 17,
+          "startColumn": 2,
+          "endLine": 21,
+          "endColumn": 3,
+          "nodeKind": "ForOfStatement"
+        }
+      },
+      "etsIr": {
+        "methodId": "find_min.ts::%dflt::%AM0$%dflt/1",
+        "branchId": "find_min.ts::%dflt::%AM0$%dflt/1#s14:1->16",
+        "semanticIteratorStmtIndex": 10,
+        "semanticIteratorStatement": "%2 := call nums.Symbol.iterator()",
+        "nextStmtIndex": 11,
+        "doneStmtIndex": 12,
+        "ifStmtIndex": 14,
+        "successorOrdinal": 1,
+        "successorStmtIndex": 16
+      },
+      "observationScenarios": ["internal-pbt-usvm", "usvm-only"],
+      "frozenOutcome": {
+        "status": "reached_not_replayed",
+        "reasonCode": "replay_unsupported",
+        "reached": true,
+        "replayConfirmed": false,
+        "firstDivergence": "not_recorded_in_legacy_artifact",
+        "semanticGateStmtIndex": 10
+      },
+      "expectedTerminalOutcome": {
+        "status": "replay_confirmed",
+        "iteratorWitnessCaseId": "array-next-values-and-sticky-done"
+      },
+      "capability": {
+        "labels": ["iterator", "array_object"],
+        "semanticTags": ["symbol_iterator", "iterator_next", "for_of"],
+        "expectedStatus": "supported_with_flag"
+      }
+    },
+    {
+      "id": "find-min-comparison-true-after-iteration",
+      "projectId": "the-algorithms-maths",
+      "sourceCallableId": "ts:find_min.ts::free:findMin/1",
+      "source": {
+        "expression": "num < minimumSeen",
+        "conditionOrigin": {
+          "fileName": "find_min.ts",
+          "startOffset": 631,
+          "endOffset": 648,
+          "startLine": 18,
+          "startColumn": 8,
+          "endLine": 18,
+          "endColumn": 25,
+          "nodeKind": "BinaryExpression"
+        }
+      },
+      "etsIr": {
+        "methodId": "find_min.ts::%dflt::%AM0$%dflt/1",
+        "branchId": "find_min.ts::%dflt::%AM0$%dflt/1#s18:0->19",
+        "semanticIteratorStmtIndex": 10,
+        "semanticIteratorStatement": "%2 := call nums.Symbol.iterator()",
+        "nextStmtIndex": 11,
+        "doneStmtIndex": 12,
+        "ifStmtIndex": 18,
+        "successorOrdinal": 0,
+        "successorStmtIndex": 19
+      },
+      "observationScenarios": ["internal-pbt-usvm", "usvm-only"],
+      "frozenOutcome": {
+        "status": "reached_not_replayed",
+        "reasonCode": "replay_unsupported",
+        "reached": true,
+        "replayConfirmed": false,
+        "firstDivergence": "not_recorded_in_legacy_artifact",
+        "semanticGateStmtIndex": 10
+      },
+      "expectedTerminalOutcome": {
+        "status": "replay_confirmed",
+        "iteratorWitnessCaseId": "for-of-array-values"
+      },
+      "capability": {
+        "labels": ["iterator", "array_object", "primitive_arithmetic"],
+        "semanticTags": ["symbol_iterator", "iterator_next", "for_of"],
+        "expectedStatus": "supported_with_flag"
+      }
+    },
+    {
+      "id": "flatten-recursive-for-of-exit",
+      "projectId": "typescript-algorithms",
+      "sourceCallableId": "ts:03-array/12-flatten-arrays.ts::free:flattenRecursive/1",
+      "source": {
+        "expression": "for (let item of array)",
+        "conditionOrigin": {
+          "fileName": "03-array/12-flatten-arrays.ts",
+          "startOffset": 1251,
+          "endOffset": 1404,
+          "startLine": 40,
+          "startColumn": 2,
+          "endLine": 46,
+          "endColumn": 3,
+          "nodeKind": "ForOfStatement"
+        }
+      },
+      "etsIr": {
+        "methodId": "03-array/12-flatten-arrays.ts::%dflt::flattenRecursive/1",
+        "branchId": "03-array/12-flatten-arrays.ts::%dflt::flattenRecursive/1#s8:0->9",
+        "semanticIteratorStmtIndex": 4,
+        "semanticIteratorStatement": "%1 := call array.Symbol.iterator()",
+        "nextStmtIndex": 5,
+        "doneStmtIndex": 6,
+        "ifStmtIndex": 8,
+        "successorOrdinal": 0,
+        "successorStmtIndex": 9
+      },
+      "observationScenarios": ["internal-pbt-usvm", "usvm-only"],
+      "frozenOutcome": {
+        "status": "reached_not_replayed",
+        "reasonCode": "replay_unsupported",
+        "reached": true,
+        "replayConfirmed": false,
+        "firstDivergence": "not_recorded_in_legacy_artifact",
+        "semanticGateStmtIndex": 4
+      },
+      "expectedTerminalOutcome": {
+        "status": "replay_confirmed",
+        "iteratorWitnessCaseId": "array-next-empty-sticky-done"
+      },
+      "capability": {
+        "labels": ["iterator", "array_object"],
+        "semanticTags": ["symbol_iterator", "iterator_next", "for_of"],
+        "expectedStatus": "supported_with_flag"
+      }
+    },
+    {
+      "id": "flatten-recursive-for-of-body",
+      "projectId": "typescript-algorithms",
+      "sourceCallableId": "ts:03-array/12-flatten-arrays.ts::free:flattenRecursive/1",
+      "source": {
+        "expression": "for (let item of array)",
+        "conditionOrigin": {
+          "fileName": "03-array/12-flatten-arrays.ts",
+          "startOffset": 1251,
+          "endOffset": 1404,
+          "startLine": 40,
+          "startColumn": 2,
+          "endLine": 46,
+          "endColumn": 3,
+          "nodeKind": "ForOfStatement"
+        }
+      },
+      "etsIr": {
+        "methodId": "03-array/12-flatten-arrays.ts::%dflt::flattenRecursive/1",
+        "branchId": "03-array/12-flatten-arrays.ts::%dflt::flattenRecursive/1#s8:1->10",
+        "semanticIteratorStmtIndex": 4,
+        "semanticIteratorStatement": "%1 := call array.Symbol.iterator()",
+        "nextStmtIndex": 5,
+        "doneStmtIndex": 6,
+        "ifStmtIndex": 8,
+        "successorOrdinal": 1,
+        "successorStmtIndex": 10
+      },
+      "observationScenarios": ["internal-pbt-usvm", "usvm-only"],
+      "frozenOutcome": {
+        "status": "reached_not_replayed",
+        "reasonCode": "replay_unsupported",
+        "reached": true,
+        "replayConfirmed": false,
+        "firstDivergence": "not_recorded_in_legacy_artifact",
+        "semanticGateStmtIndex": 4
+      },
+      "expectedTerminalOutcome": {
+        "status": "replay_confirmed",
+        "iteratorWitnessCaseId": "array-next-values-and-sticky-done"
+      },
+      "capability": {
+        "labels": ["iterator", "array_object"],
+        "semanticTags": ["symbol_iterator", "iterator_next", "for_of"],
+        "expectedStatus": "supported_with_flag"
+      }
+    },
+    {
+      "id": "flatten-recursive-array-is-array-false",
+      "projectId": "typescript-algorithms",
+      "sourceCallableId": "ts:03-array/12-flatten-arrays.ts::free:flattenRecursive/1",
+      "source": {
+        "expression": "Array.isArray(item)",
+        "conditionOrigin": {
+          "fileName": "03-array/12-flatten-arrays.ts",
+          "startOffset": 1285,
+          "endOffset": 1304,
+          "startLine": 41,
+          "startColumn": 8,
+          "endLine": 41,
+          "endColumn": 27,
+          "nodeKind": "CallExpression"
+        }
+      },
+      "etsIr": {
+        "methodId": "03-array/12-flatten-arrays.ts::%dflt::flattenRecursive/1",
+        "branchId": "03-array/12-flatten-arrays.ts::%dflt::flattenRecursive/1#s13:1->17",
+        "semanticIteratorStmtIndex": 4,
+        "semanticIteratorStatement": "%1 := call array.Symbol.iterator()",
+        "nextStmtIndex": 5,
+        "doneStmtIndex": 6,
+        "postIteratorDependencyStmtIndex": 11,
+        "postIteratorDependencyStatement": "%4 := call Array.isArray(item)",
+        "ifStmtIndex": 13,
+        "successorOrdinal": 1,
+        "successorStmtIndex": 17
+      },
+      "observationScenarios": ["internal-pbt-usvm", "usvm-only"],
+      "frozenOutcome": {
+        "status": "reached_not_replayed",
+        "reasonCode": "replay_unsupported",
+        "reached": true,
+        "replayConfirmed": false,
+        "firstDivergence": "not_recorded_in_legacy_artifact",
+        "semanticGateStmtIndex": 4
+      },
+      "expectedTerminalOutcome": {
+        "status": "exact_capability_mismatch",
+        "reasonCode": "iterator_contract_does_not_model_array_static_builtin",
+        "missingCapabilityLabels": ["builtin_call"],
+        "iteratorWitnessCaseId": "array-next-values-and-sticky-done"
+      },
+      "capability": {
+        "labels": ["iterator", "array_object", "builtin_call"],
+        "semanticTags": ["symbol_iterator", "iterator_next", "for_of"],
+        "expectedStatus": "supported_with_flag"
+      }
+    },
+    {
+      "id": "collections-for-each-for-of-exit",
+      "projectId": "typescript-collections",
+      "sourceCallableId": "ts:arrays.ts::free:forEach/2",
+      "source": {
+        "expression": "for (const ele of array)",
+        "conditionOrigin": {
+          "fileName": "arrays.ts",
+          "startOffset": 6003,
+          "endOffset": 6104,
+          "startLine": 161,
+          "startColumn": 4,
+          "endLine": 165,
+          "endColumn": 5,
+          "nodeKind": "ForOfStatement"
+        }
+      },
+      "etsIr": {
+        "methodId": "arrays.ts::%dflt::forEach/2",
+        "branchId": "arrays.ts::%dflt::forEach/2#s7:0->8",
+        "semanticIteratorStmtIndex": 3,
+        "semanticIteratorStatement": "%0 := call array.Symbol.iterator()",
+        "nextStmtIndex": 4,
+        "doneStmtIndex": 5,
+        "ifStmtIndex": 7,
+        "successorOrdinal": 0,
+        "successorStmtIndex": 8
+      },
+      "observationScenarios": ["internal-pbt-usvm", "usvm-only"],
+      "frozenOutcome": {
+        "status": "reached_not_replayed",
+        "reasonCode": "replay_unsupported",
+        "reached": true,
+        "replayConfirmed": false,
+        "firstDivergence": "not_recorded_in_legacy_artifact",
+        "semanticGateStmtIndex": 3
+      },
+      "expectedTerminalOutcome": {
+        "status": "replay_confirmed",
+        "iteratorWitnessCaseId": "array-next-empty-sticky-done"
+      },
+      "capability": {
+        "labels": ["iterator", "array_object"],
+        "semanticTags": ["symbol_iterator", "iterator_next", "for_of"],
+        "expectedStatus": "supported_with_flag"
+      }
+    },
+    {
+      "id": "collections-for-each-for-of-body",
+      "projectId": "typescript-collections",
+      "sourceCallableId": "ts:arrays.ts::free:forEach/2",
+      "source": {
+        "expression": "for (const ele of array)",
+        "conditionOrigin": {
+          "fileName": "arrays.ts",
+          "startOffset": 6003,
+          "endOffset": 6104,
+          "startLine": 161,
+          "startColumn": 4,
+          "endLine": 165,
+          "endColumn": 5,
+          "nodeKind": "ForOfStatement"
+        }
+      },
+      "etsIr": {
+        "methodId": "arrays.ts::%dflt::forEach/2",
+        "branchId": "arrays.ts::%dflt::forEach/2#s7:1->9",
+        "semanticIteratorStmtIndex": 3,
+        "semanticIteratorStatement": "%0 := call array.Symbol.iterator()",
+        "nextStmtIndex": 4,
+        "doneStmtIndex": 5,
+        "ifStmtIndex": 7,
+        "successorOrdinal": 1,
+        "successorStmtIndex": 9
+      },
+      "observationScenarios": ["internal-pbt-usvm", "usvm-only"],
+      "frozenOutcome": {
+        "status": "reached_not_replayed",
+        "reasonCode": "replay_unsupported",
+        "reached": true,
+        "replayConfirmed": false,
+        "firstDivergence": "not_recorded_in_legacy_artifact",
+        "semanticGateStmtIndex": 3
+      },
+      "expectedTerminalOutcome": {
+        "status": "replay_confirmed",
+        "iteratorWitnessCaseId": "array-next-values-and-sticky-done"
+      },
+      "capability": {
+        "labels": ["iterator", "array_object"],
+        "semanticTags": ["symbol_iterator", "iterator_next", "for_of"],
+        "expectedStatus": "supported_with_flag"
+      }
+    },
+    {
+      "id": "collections-for-each-callback-false",
+      "projectId": "typescript-collections",
+      "sourceCallableId": "ts:arrays.ts::free:forEach/2",
+      "source": {
+        "expression": "callback(ele) === false",
+        "conditionOrigin": {
+          "fileName": "arrays.ts",
+          "startOffset": 6042,
+          "endOffset": 6065,
+          "startLine": 162,
+          "startColumn": 12,
+          "endLine": 162,
+          "endColumn": 35,
+          "nodeKind": "BinaryExpression"
+        }
+      },
+      "etsIr": {
+        "methodId": "arrays.ts::%dflt::forEach/2",
+        "branchId": "arrays.ts::%dflt::forEach/2#s12:0->13",
+        "semanticIteratorStmtIndex": 3,
+        "semanticIteratorStatement": "%0 := call array.Symbol.iterator()",
+        "nextStmtIndex": 4,
+        "doneStmtIndex": 5,
+        "postIteratorDependencyStmtIndex": 10,
+        "postIteratorDependencyStatement": "%3 := ptr_call callback(element)",
+        "ifStmtIndex": 12,
+        "successorOrdinal": 0,
+        "successorStmtIndex": 13
+      },
+      "observationScenarios": ["internal-pbt-usvm", "usvm-only"],
+      "frozenOutcome": {
+        "status": "reached_not_replayed",
+        "reasonCode": "replay_unsupported",
+        "reached": true,
+        "replayConfirmed": false,
+        "firstDivergence": "not_recorded_in_legacy_artifact",
+        "semanticGateStmtIndex": 3
+      },
+      "expectedTerminalOutcome": {
+        "status": "exact_capability_mismatch",
+        "reasonCode": "iterator_contract_does_not_materialize_callback",
+        "missingCapabilityLabels": ["callable", "unresolved_pointer_call"],
+        "iteratorWitnessCaseId": "array-next-values-and-sticky-done"
+      },
+      "capability": {
+        "labels": ["iterator", "array_object", "callable", "unresolved_pointer_call"],
+        "semanticTags": ["symbol_iterator", "iterator_next", "for_of"],
+        "expectedStatus": "supported_with_flag"
+      }
+    }
+  ],
+  "collectionUnsupportedEvidence": {
+    "claim": "25/25 Unsupported Symbol.iterator",
+    "interpretation": "Each row counts per-execution PBT outcomes for arrays.ts::forEach in one frozen report. It is not a count of unique targets and the two rows must not be summed into 50 targets.",
+    "runs": [
+      {
+        "id": "collections-for-each-pbt-only-unsupported-events",
+        "projectId": "typescript-collections",
+        "scenario": "internal-pbt",
+        "sourceReport": "source-entry-internal-100-batched-PBT_ONLY.json",
+        "sourceReportSha256": "1f70e824d11dfe4167c9dbc66c28314a079ebe572ccc21b42fa3389c822f09a4",
+        "methodId": "arrays.ts::%dflt::forEach/2",
+        "executions": 25,
+        "unsupported": 25,
+        "reason": "instance method: Symbol.iterator on VArray",
+        "reasonEvents": 25,
+        "countUnit": "pbt_execution_outcome",
+        "isUniqueTargetCount": false
+      },
+      {
+        "id": "collections-for-each-hybrid-pbt-prefix-unsupported-events",
+        "projectId": "typescript-collections",
+        "scenario": "internal-pbt-usvm",
+        "sourceReport": "source-entry-internal-100-batched-HYBRID.json",
+        "sourceReportSha256": "76edaa836af999dc022d49bc14235ec0cacfa59004418a9968156c3e53190a4d",
+        "methodId": "arrays.ts::%dflt::forEach/2",
+        "executions": 25,
+        "unsupported": 25,
+        "reason": "instance method: Symbol.iterator on VArray",
+        "reasonEvents": 25,
+        "countUnit": "pbt_execution_outcome",
+        "isUniqueTargetCount": false
+      }
+    ]
+  },
+  "unsupported": [
+    {
+      "id": "async-iterator-protocol",
+      "terminalOutcome": "exact_unsupported",
+      "reason": "Symbol.asyncIterator and for-await-of are outside the synchronous iterator contract.",
+      "capability": {
+        "labels": ["iterator"],
+        "semanticTags": ["async_iterator"],
+        "expectedStatus": "unsupported"
+      }
+    },
+    {
+      "id": "generator-yield-state-machine",
+      "terminalOutcome": "exact_capability_mismatch",
+      "reason": "Generator suspension and yield require the separate spread/yield capability and are not implemented by iterator support alone.",
+      "capability": {
+        "labels": ["iterator", "spread_yield"],
+        "semanticTags": ["generator_yield"],
+        "expectedStatus": "unsupported"
+      }
+    },
+    {
+      "id": "generator-yield-star-delegation",
+      "terminalOutcome": "exact_capability_mismatch",
+      "reason": "yield-star delegation combines generator suspension with iterator forwarding and closing.",
+      "capability": {
+        "labels": ["iterator", "spread_yield"],
+        "semanticTags": ["yield_star"],
+        "expectedStatus": "unsupported"
+      }
+    },
+    {
+      "id": "custom-mutation-during-next",
+      "terminalOutcome": "needs_dynamic_probe",
+      "reason": "User iterator mutation of its iterable or prototype during next requires a side-effect probe.",
+      "capability": {
+        "labels": ["iterator"],
+        "semanticTags": ["mutation_during_iteration"],
+        "expectedStatus": "needs_dynamic_probe"
+      }
+    },
+    {
+      "id": "map-set-mutation-during-iteration",
+      "terminalOutcome": "needs_dynamic_probe",
+      "reason": "Map and Set additions/deletions while an iterator is live are not part of the frozen insertion-order subset.",
+      "capability": {
+        "labels": ["iterator", "map_set"],
+        "semanticTags": ["mutation_during_iteration"],
+        "expectedStatus": "needs_dynamic_probe"
+      }
+    },
+    {
+      "id": "iterator-next-return-reentrancy",
+      "terminalOutcome": "needs_dynamic_probe",
+      "reason": "Reentrant next or return calls can observe partially updated iterator state.",
+      "capability": {
+        "labels": ["iterator"],
+        "semanticTags": ["iterator_reentrancy"],
+        "expectedStatus": "needs_dynamic_probe"
+      }
+    },
+    {
+      "id": "proxy-symbol-iterator-trap",
+      "terminalOutcome": "needs_dynamic_probe",
+      "reason": "Proxy get/apply traps around Symbol.iterator can mutate state and throw before iterator acquisition.",
+      "capability": {
+        "labels": ["iterator", "builtin_call"],
+        "semanticTags": ["proxy_trap"],
+        "expectedStatus": "needs_dynamic_probe"
+      }
+    },
+    {
+      "id": "invalid-non-object-next-result",
+      "terminalOutcome": "exact_unsupported",
+      "reason": "Exact TypeError behavior when next returns a primitive is outside the result-only subset.",
+      "capability": {
+        "labels": ["iterator"],
+        "semanticTags": ["invalid_iterator_result"],
+        "expectedStatus": "unsupported"
+      }
+    },
+    {
+      "id": "iterator-return-throws-or-returns-primitive",
+      "terminalOutcome": "needs_dynamic_probe",
+      "reason": "Abrupt return and non-object return results require exact completion-precedence handling.",
+      "capability": {
+        "labels": ["iterator"],
+        "semanticTags": ["iterator_return", "abrupt_completion", "invalid_iterator_result"],
+        "expectedStatus": "needs_dynamic_probe"
+      }
+    },
+    {
+      "id": "iterator-helper-methods",
+      "terminalOutcome": "external_only",
+      "reason": "Iterator helpers such as map, filter and take are not required for the frozen real targets.",
+      "capability": {
+        "labels": ["iterator"],
+        "semanticTags": ["iterator_helpers"],
+        "expectedStatus": "external_only"
+      }
+    }
+  ]
+}
