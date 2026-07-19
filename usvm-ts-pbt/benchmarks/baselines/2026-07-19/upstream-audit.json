@@ -1,0 +1,190 @@
+{
+  "schemaVersion": 1,
+  "auditedAt": "2026-07-19",
+  "method": "Canonical repositories and exact revisions were checked with git ls-remote; license files were read from shallow checkouts of those exact revisions.",
+  "completeness": {
+    "canonicalUrlUnknown": 0,
+    "pinnedRevisionUnknown": 0,
+    "spdxUnknown": 0,
+    "status": "complete"
+  },
+  "tools": [
+    {
+      "id": "fast-check",
+      "role": "property-based testing",
+      "canonicalRepository": "https://github.com/dubzzz/fast-check",
+      "pinned": {
+        "version": "4.9.0",
+        "tag": "v4.9.0",
+        "tagObject": "0d3c2547dce556f72413607849377530d18ea283",
+        "commit": "0d3c2547dce556f72413607849377530d18ea283",
+        "evidence": "https://github.com/dubzzz/fast-check/releases/tag/v4.9.0"
+      },
+      "spdx": "MIT",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "gitBlob": "879582464487c55389c243110ca18e014db7319e",
+          "requiredWhenRedistributing": true,
+          "evidence": "https://github.com/dubzzz/fast-check/blob/0d3c2547dce556f72413607849377530d18ea283/LICENSE"
+        }
+      ],
+      "notice": {
+        "presentAtRepositoryRoot": false,
+        "required": false
+      },
+      "campaignEvidence": "fast-check-adapter package-lock pins fast-check 4.9.0",
+      "status": "audited"
+    },
+    {
+      "id": "jazzer-js",
+      "role": "coverage-guided fuzzing",
+      "canonicalRepository": "https://github.com/CodeIntelligenceTesting/jazzer.js",
+      "pinned": {
+        "version": "4.0.0",
+        "tag": "v4.0.0",
+        "tagObject": "50bea9aebfde877b11e7ab78ff1791e44fcb32dc",
+        "commit": "f3eb99cb0ea20fe45356535b1f60f86741974e72",
+        "evidence": "https://github.com/CodeIntelligenceTesting/jazzer.js/releases/tag/v4.0.0"
+      },
+      "spdx": "Apache-2.0",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "gitBlob": "261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64",
+          "requiredWhenRedistributing": true,
+          "evidence": "https://github.com/CodeIntelligenceTesting/jazzer.js/blob/f3eb99cb0ea20fe45356535b1f60f86741974e72/LICENSE"
+        }
+      ],
+      "notice": {
+        "presentAtRepositoryRoot": false,
+        "required": false,
+        "note": "Apache-2.0 NOTICE propagation applies only if upstream includes a NOTICE file."
+      },
+      "campaignEvidence": "jazzer-adapter package-lock pins @jazzer.js/core 4.0.0",
+      "status": "audited"
+    },
+    {
+      "id": "expose",
+      "role": "dynamic symbolic execution comparison",
+      "canonicalRepository": "https://github.com/ExpoSEJS/ExpoSE",
+      "pinned": {
+        "version": null,
+        "tag": null,
+        "commit": "ec03edf85f883248612b1d498c6a7d9189d16d6f",
+        "evidence": "https://github.com/ExpoSEJS/ExpoSE/commit/ec03edf85f883248612b1d498c6a7d9189d16d6f"
+      },
+      "spdx": "MIT",
+      "licenseFiles": [
+        {
+          "path": "LICENSE.md",
+          "gitBlob": "becead748b70e9f008351c960140621d499015e1",
+          "requiredWhenRedistributing": true,
+          "evidence": "https://github.com/ExpoSEJS/ExpoSE/blob/ec03edf85f883248612b1d498c6a7d9189d16d6f/LICENSE.md"
+        }
+      ],
+      "notice": {
+        "presentAtRepositoryRoot": false,
+        "required": false
+      },
+      "campaignEvidence": "ExpoSE checkout and adapter config pin the commit; campaign used Node.js 21.7.2",
+      "status": "audited"
+    },
+    {
+      "id": "gillian",
+      "role": "symbolic execution feasibility comparison",
+      "canonicalRepository": "https://github.com/GillianPlatform/Gillian",
+      "pinned": {
+        "version": null,
+        "tag": null,
+        "commit": "b195dfc39a99d98f4d3c292537b6c572473653c3",
+        "evidence": "https://github.com/GillianPlatform/Gillian/commit/b195dfc39a99d98f4d3c292537b6c572473653c3"
+      },
+      "spdx": "BSD-3-Clause",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "gitBlob": "db73787b7d86e6cd99659208be1ba05f23b15022",
+          "requiredWhenRedistributing": true,
+          "evidence": "https://github.com/GillianPlatform/Gillian/blob/b195dfc39a99d98f4d3c292537b6c572473653c3/LICENSE"
+        },
+        {
+          "path": "NOTICE",
+          "gitBlob": "a42d8d04a52051c25a4a78ae8809552be7739131",
+          "requiredWhenRedistributing": true,
+          "evidence": "https://github.com/GillianPlatform/Gillian/blob/b195dfc39a99d98f4d3c292537b6c572473653c3/NOTICE"
+        },
+        {
+          "path": "THIRD-PARTY-LICENSES",
+          "gitBlob": "ac0eba2fc081f72132643c52593a710846079f34",
+          "requiredWhenRedistributing": true,
+          "evidence": "https://github.com/GillianPlatform/Gillian/blob/b195dfc39a99d98f4d3c292537b6c572473653c3/THIRD-PARTY-LICENSES"
+        }
+      ],
+      "notice": {
+        "presentAtRepositoryRoot": true,
+        "required": true
+      },
+      "campaignEvidence": "gillian feasibility snapshot pins the full commit",
+      "status": "audited"
+    },
+    {
+      "id": "syntest-javascript",
+      "role": "search-based test generation pilot",
+      "canonicalRepository": "https://github.com/syntest-framework/syntest-javascript",
+      "pinned": {
+        "version": null,
+        "tag": null,
+        "commit": "53547145f16c3ce4eefb8b479b124ba581d70e2d",
+        "evidence": "https://github.com/syntest-framework/syntest-javascript/commit/53547145f16c3ce4eefb8b479b124ba581d70e2d"
+      },
+      "spdx": "Apache-2.0",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "gitBlob": "25d5b94be87665d6b25e88314c7e909f161b6537",
+          "requiredWhenRedistributing": true,
+          "evidence": "https://github.com/syntest-framework/syntest-javascript/blob/53547145f16c3ce4eefb8b479b124ba581d70e2d/LICENSE"
+        },
+        {
+          "path": "NOTICE",
+          "gitBlob": "a9d61efb8ba51da916e1acf75d48ab4eea2b1fc6",
+          "requiredWhenRedistributing": true,
+          "evidence": "https://github.com/syntest-framework/syntest-javascript/blob/53547145f16c3ce4eefb8b479b124ba581d70e2d/NOTICE"
+        }
+      ],
+      "notice": {
+        "presentAtRepositoryRoot": true,
+        "required": true
+      },
+      "campaignEvidence": "Not run in the 2026-07-19 campaign; revision was frozen by this audit before pilot work.",
+      "status": "audited-ready-for-pilot"
+    },
+    {
+      "id": "nodemedic-fine",
+      "role": "legacy dynamic symbolic execution pilot",
+      "canonicalRepository": "https://github.com/NodeMedicAnalysis/NodeMedic-FINE",
+      "pinned": {
+        "version": null,
+        "tag": null,
+        "commit": "cddb1a9ea7b9ba80f4c4e411ab8a6ef89c584d36",
+        "evidence": "https://github.com/NodeMedicAnalysis/NodeMedic-FINE/commit/cddb1a9ea7b9ba80f4c4e411ab8a6ef89c584d36"
+      },
+      "spdx": "MIT",
+      "licenseFiles": [
+        {
+          "path": "LICENSE",
+          "gitBlob": "6f61b8df40280d13ec34c8dfbb86adfc7d103393",
+          "requiredWhenRedistributing": true,
+          "evidence": "https://github.com/NodeMedicAnalysis/NodeMedic-FINE/blob/cddb1a9ea7b9ba80f4c4e411ab8a6ef89c584d36/LICENSE"
+        }
+      ],
+      "notice": {
+        "presentAtRepositoryRoot": false,
+        "required": false
+      },
+      "campaignEvidence": "Not run in the 2026-07-19 campaign; revision was frozen by this audit before pilot work.",
+      "status": "audited-ready-for-pilot"
+    }
+  ]
+}

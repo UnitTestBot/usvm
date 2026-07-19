@@ -1,0 +1,951 @@
+{
+  "schemaVersion": 1,
+  "summary": {
+    "manifestMethods": 62,
+    "manifestBranches": 264,
+    "sourceCallableMethods": 41,
+    "sourceCallableBranches": 232,
+    "primitiveEligibleMethods": 33,
+    "primitiveEligibleBranches": 186,
+    "exclusionsByReason": {
+      "no-branches": 15,
+      "non-primitive-parameters": 12,
+      "not-exported": 1,
+      "nested-function": 3,
+      "ambiguous-source-binding": 2
+    }
+  },
+  "entries": [
+    {
+      "methodId": "absolute_value.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "absolute_value.ts",
+      "sourceFile": "absolute_value.ts",
+      "compiledModule": null,
+      "exportName": "absoluteValue",
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 2,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "aliquot_sum.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "aliquot_sum.ts",
+      "sourceFile": "aliquot_sum.ts",
+      "compiledModule": null,
+      "exportName": "aliquotSum",
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 10,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "armstrong_number.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "armstrong_number.ts",
+      "sourceFile": "armstrong_number.ts",
+      "compiledModule": null,
+      "exportName": "armstrongNumber",
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 4,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "binary_convert.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "binary_convert.ts",
+      "sourceFile": "binary_convert.ts",
+      "compiledModule": null,
+      "exportName": "binaryConvert",
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 2,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "binomial_coefficient.ts::%dflt::%AM0$%dflt/2",
+      "fileName": "binomial_coefficient.ts",
+      "sourceFile": "binomial_coefficient.ts",
+      "compiledModule": null,
+      "exportName": "binomialCoefficient",
+      "parameterTypes": [
+        "number",
+        "number"
+      ],
+      "branches": 2,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "calculate_mean.ts::%dflt::%AM1$%AM0$%dflt/2",
+      "fileName": "calculate_mean.ts",
+      "sourceFile": "calculate_mean.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number",
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "calculate_mean.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "calculate_mean.ts",
+      "sourceFile": "calculate_mean.ts",
+      "compiledModule": null,
+      "exportName": "calculateMean",
+      "parameterTypes": [
+        "number[]"
+      ],
+      "branches": 2,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "calculate_median.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "calculate_median.ts",
+      "sourceFile": "calculate_median.ts",
+      "compiledModule": null,
+      "exportName": "calculateMedian",
+      "parameterTypes": [
+        "number[]"
+      ],
+      "branches": 4,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "degrees_to_radians.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "degrees_to_radians.ts",
+      "sourceFile": "degrees_to_radians.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "digit_sum.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "digit_sum.ts",
+      "sourceFile": "digit_sum.ts",
+      "compiledModule": null,
+      "exportName": "digitSum",
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 4,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "double_factorial_iterative.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "double_factorial_iterative.ts",
+      "sourceFile": "double_factorial_iterative.ts",
+      "compiledModule": null,
+      "exportName": "DoubleFactorialIterative",
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 4,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "euler_totient.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "euler_totient.ts",
+      "sourceFile": "euler_totient.ts",
+      "compiledModule": null,
+      "exportName": "phi",
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 8,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "factorial.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "factorial.ts",
+      "sourceFile": "factorial.ts",
+      "compiledModule": null,
+      "exportName": "factorial",
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 4,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "factors.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "factors.ts",
+      "sourceFile": "factors.ts",
+      "compiledModule": null,
+      "exportName": "findFactors",
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 6,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "fibonacci.ts::%dflt::generateFibonacci/0",
+      "fileName": "fibonacci.ts",
+      "sourceFile": "fibonacci.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "not-exported"
+      ]
+    },
+    {
+      "methodId": "fibonacci.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "fibonacci.ts",
+      "sourceFile": "fibonacci.ts",
+      "compiledModule": null,
+      "exportName": "nthFibonacci",
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 8,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "fibonacci.ts::%dflt::%AM1$%dflt/1",
+      "fileName": "fibonacci.ts",
+      "sourceFile": "fibonacci.ts",
+      "compiledModule": null,
+      "exportName": "nthFibonacciRecursively",
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 4,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "fibonacci.ts::%dflt::%AM2$%dflt/1",
+      "fileName": "fibonacci.ts",
+      "sourceFile": "fibonacci.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "find_min.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "find_min.ts",
+      "sourceFile": "find_min.ts",
+      "compiledModule": null,
+      "exportName": "findMin",
+      "parameterTypes": [
+        "number[]"
+      ],
+      "branches": 6,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "gaussian_elimination.ts::%dflt::gaussianElimination/1",
+      "fileName": "gaussian_elimination.ts",
+      "sourceFile": "gaussian_elimination.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number[][]"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "gaussian_elimination.ts::%dflt::partialPivot/0",
+      "fileName": "gaussian_elimination.ts",
+      "sourceFile": "gaussian_elimination.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 14,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "nested-function"
+      ]
+    },
+    {
+      "methodId": "gaussian_elimination.ts::%dflt::backSubstitute/0",
+      "fileName": "gaussian_elimination.ts",
+      "sourceFile": "gaussian_elimination.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "nested-function"
+      ]
+    },
+    {
+      "methodId": "greatest_common_factor.ts::%dflt::%AM0$%dflt/2",
+      "fileName": "greatest_common_factor.ts",
+      "sourceFile": "greatest_common_factor.ts",
+      "compiledModule": null,
+      "exportName": "binaryGCF",
+      "parameterTypes": [
+        "number",
+        "number"
+      ],
+      "branches": 4,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "greatest_common_factor.ts::%dflt::%AM1$%dflt/1",
+      "fileName": "greatest_common_factor.ts",
+      "sourceFile": "greatest_common_factor.ts",
+      "compiledModule": null,
+      "exportName": "greatestCommonFactor",
+      "parameterTypes": [
+        "number[]"
+      ],
+      "branches": 2,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "hamming_distance.ts::%dflt::%AM0$%dflt/2",
+      "fileName": "hamming_distance.ts",
+      "sourceFile": "hamming_distance.ts",
+      "compiledModule": null,
+      "exportName": "hammingDistance",
+      "parameterTypes": [
+        "string",
+        "string"
+      ],
+      "branches": 6,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "is_divisible.ts::%dflt::%AM0$%dflt/2",
+      "fileName": "is_divisible.ts",
+      "sourceFile": "is_divisible.ts",
+      "compiledModule": null,
+      "exportName": "isDivisible",
+      "parameterTypes": [
+        "number",
+        "number"
+      ],
+      "branches": 2,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "is_even.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "is_even.ts",
+      "sourceFile": "is_even.ts",
+      "compiledModule": null,
+      "exportName": "isEven",
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 2,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "is_leap_year.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "is_leap_year.ts",
+      "sourceFile": "is_leap_year.ts",
+      "compiledModule": null,
+      "exportName": "isLeapYear",
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 2,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "is_odd.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "is_odd.ts",
+      "sourceFile": "is_odd.ts",
+      "compiledModule": null,
+      "exportName": "isOdd",
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 2,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "is_palindrome.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "is_palindrome.ts",
+      "sourceFile": "is_palindrome.ts",
+      "compiledModule": null,
+      "exportName": "isPalindrome",
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 4,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "is_square_free.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "is_square_free.ts",
+      "sourceFile": "is_square_free.ts",
+      "compiledModule": null,
+      "exportName": "isSquareFree",
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 12,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "juggler_sequence.ts::%dflt::%AM0$%dflt/2",
+      "fileName": "juggler_sequence.ts",
+      "sourceFile": "juggler_sequence.ts",
+      "compiledModule": null,
+      "exportName": "jugglerSequence",
+      "parameterTypes": [
+        "number",
+        "number"
+      ],
+      "branches": 4,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "lowest_common_multiple.ts::%dflt::%AM1$%AM0$%dflt/1",
+      "fileName": "lowest_common_multiple.ts",
+      "sourceFile": "lowest_common_multiple.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "lowest_common_multiple.ts::%dflt::%AM2$%AM0$%dflt/1",
+      "fileName": "lowest_common_multiple.ts",
+      "sourceFile": "lowest_common_multiple.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "lowest_common_multiple.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "lowest_common_multiple.ts",
+      "sourceFile": "lowest_common_multiple.ts",
+      "compiledModule": null,
+      "exportName": "naiveLCM",
+      "parameterTypes": [
+        "number[]"
+      ],
+      "branches": 8,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "lowest_common_multiple.ts::%dflt::%AM3$%dflt/2",
+      "fileName": "lowest_common_multiple.ts",
+      "sourceFile": "lowest_common_multiple.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number",
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "lowest_common_multiple.ts::%dflt::%AM4$%dflt/1",
+      "fileName": "lowest_common_multiple.ts",
+      "sourceFile": "lowest_common_multiple.ts",
+      "compiledModule": null,
+      "exportName": "lowestCommonMultiple",
+      "parameterTypes": [
+        "number[]"
+      ],
+      "branches": 2,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "matrix_multiplication.ts::%dflt::matrixMultiplication/2",
+      "fileName": "matrix_multiplication.ts",
+      "sourceFile": "matrix_multiplication.ts",
+      "compiledModule": null,
+      "exportName": "matrixMultiplication",
+      "parameterTypes": [
+        "number[][]",
+        "any"
+      ],
+      "branches": 12,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "matrix_multiplication.ts::%dflt::%AM1$%AM0$matrixMultiplication/1",
+      "fileName": "matrix_multiplication.ts",
+      "sourceFile": "matrix_multiplication.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "matrix_multiplication.ts::%dflt::%AM0$matrixMultiplication/1",
+      "fileName": "matrix_multiplication.ts",
+      "sourceFile": "matrix_multiplication.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number[]"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "matrix_multiplication.ts::%dflt::%AM3$%AM2$matrixMultiplication/3",
+      "fileName": "matrix_multiplication.ts",
+      "sourceFile": "matrix_multiplication.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number",
+        "number",
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "matrix_multiplication.ts::%dflt::%AM2$matrixMultiplication/1",
+      "fileName": "matrix_multiplication.ts",
+      "sourceFile": "matrix_multiplication.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number[]"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "matrix_multiplication.ts::%dflt::%AM4$matrixMultiplication/0",
+      "fileName": "matrix_multiplication.ts",
+      "sourceFile": "matrix_multiplication.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "number_of_digits.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "number_of_digits.ts",
+      "sourceFile": "number_of_digits.ts",
+      "compiledModule": null,
+      "exportName": "numberOfDigits",
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 2,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "pascals_triangle.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "pascals_triangle.ts",
+      "sourceFile": "pascals_triangle.ts",
+      "compiledModule": null,
+      "exportName": "pascalsTriangle",
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 8,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "perfect_cube.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "perfect_cube.ts",
+      "sourceFile": "perfect_cube.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "perfect_number.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "perfect_number.ts",
+      "sourceFile": "perfect_number.ts",
+      "compiledModule": null,
+      "exportName": "isPerfectNumber",
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 8,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "perfect_square.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "perfect_square.ts",
+      "sourceFile": "perfect_square.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "prime_factorization.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "prime_factorization.ts",
+      "sourceFile": "prime_factorization.ts",
+      "compiledModule": null,
+      "exportName": "factorize",
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 10,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "primes.ts::%dflt::sieveOfEratosthenes/1",
+      "fileName": "primes.ts",
+      "sourceFile": "primes.ts",
+      "compiledModule": null,
+      "exportName": "sieveOfEratosthenes",
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 12,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "primes.ts::%dflt::primeGenerator/0",
+      "fileName": "primes.ts",
+      "sourceFile": "primes.ts",
+      "compiledModule": null,
+      "exportName": "primeGenerator",
+      "parameterTypes": [],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "ambiguous-source-binding"
+      ]
+    },
+    {
+      "methodId": "primes.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "primes.ts",
+      "sourceFile": "primes.ts",
+      "compiledModule": null,
+      "exportName": "isPrime",
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 8,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "primes.ts::%dflt::filter/2",
+      "fileName": "primes.ts",
+      "sourceFile": "primes.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "Generator<number, void, any>",
+        "number"
+      ],
+      "branches": 6,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "nested-function",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "primes.ts::%dflt::%AM1$primeGenerator/0",
+      "fileName": "primes.ts",
+      "sourceFile": "primes.ts",
+      "compiledModule": null,
+      "exportName": "primeGenerator",
+      "parameterTypes": [],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "ambiguous-source-binding"
+      ]
+    },
+    {
+      "methodId": "pronic_number.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "pronic_number.ts",
+      "sourceFile": "pronic_number.ts",
+      "compiledModule": null,
+      "exportName": "pronicNumber",
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 6,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "radians_to_degrees.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "radians_to_degrees.ts",
+      "sourceFile": "radians_to_degrees.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "hexagonal_numbers.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "hexagonal_numbers.ts",
+      "sourceFile": "series/hexagonal_numbers.ts",
+      "compiledModule": null,
+      "exportName": "HexagonalNumbers",
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 6,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "sieve_of_eratosthenes.ts::%dflt::sieveOfEratosthenes/1",
+      "fileName": "sieve_of_eratosthenes.ts",
+      "sourceFile": "sieve_of_eratosthenes.ts",
+      "compiledModule": null,
+      "exportName": "sieveOfEratosthenes",
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 8,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "signum.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "signum.ts",
+      "sourceFile": "signum.ts",
+      "compiledModule": null,
+      "exportName": "signum",
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 6,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "square_root.ts::%dflt::%AM0$%dflt/2",
+      "fileName": "square_root.ts",
+      "sourceFile": "square_root.ts",
+      "compiledModule": null,
+      "exportName": "squareRoot",
+      "parameterTypes": [
+        "number",
+        "number"
+      ],
+      "branches": 8,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "ugly_numbers.ts::%dflt::uglyNumbers/0",
+      "fileName": "ugly_numbers.ts",
+      "sourceFile": "ugly_numbers.ts",
+      "compiledModule": null,
+      "exportName": "uglyNumbers",
+      "parameterTypes": [],
+      "branches": 8,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "zellers_congruence.ts::%dflt::%AM0$%dflt/4",
+      "fileName": "zellers_congruence.ts",
+      "sourceFile": "zellers_congruence.ts",
+      "compiledModule": null,
+      "exportName": "getWeekday",
+      "parameterTypes": [
+        "number",
+        "number",
+        "number",
+        "Calendar"
+      ],
+      "branches": 10,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    }
+  ]
+}

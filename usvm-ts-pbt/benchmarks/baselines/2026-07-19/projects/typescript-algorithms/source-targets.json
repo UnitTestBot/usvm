@@ -1,0 +1,5190 @@
+{
+  "schemaVersion": 1,
+  "summary": {
+    "manifestMethods": 312,
+    "manifestBranches": 694,
+    "sourceCallableMethods": 33,
+    "sourceCallableBranches": 142,
+    "primitiveEligibleMethods": 9,
+    "primitiveEligibleBranches": 50,
+    "exclusionsByReason": {
+      "no-branches": 156,
+      "entry-kind:instance": 172,
+      "non-primitive-parameters": 164,
+      "function-origin-unresolved": 11,
+      "not-exported": 18,
+      "nested-function": 2,
+      "ambiguous-source-binding": 2
+    }
+  },
+  "entries": [
+    {
+      "methodId": "08-dictionary-hash/hash-table.ts::%dflt::%AM0$#loseLoseHashCode/2",
+      "fileName": "08-dictionary-hash/hash-table.ts",
+      "sourceFile": "08-dictionary-hash/hash-table.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number",
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "08-dictionary-hash/hash-table.ts::HashTable::#loseLoseHashCode/1",
+      "fileName": "08-dictionary-hash/hash-table.ts",
+      "sourceFile": "08-dictionary-hash/hash-table.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "08-dictionary-hash/hash-table.ts::HashTable::hash/1",
+      "fileName": "08-dictionary-hash/hash-table.ts",
+      "sourceFile": "08-dictionary-hash/hash-table.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "08-dictionary-hash/hash-table.ts::HashTable::put/2",
+      "fileName": "08-dictionary-hash/hash-table.ts",
+      "sourceFile": "08-dictionary-hash/hash-table.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string",
+        "V"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "08-dictionary-hash/hash-table.ts::HashTable::get/1",
+      "fileName": "08-dictionary-hash/hash-table.ts",
+      "sourceFile": "08-dictionary-hash/hash-table.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "08-dictionary-hash/hash-table.ts::HashTable::remove/1",
+      "fileName": "08-dictionary-hash/hash-table.ts",
+      "sourceFile": "08-dictionary-hash/hash-table.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "08-dictionary-hash/hash-table.ts::HashTable::#elementToString/1",
+      "fileName": "08-dictionary-hash/hash-table.ts",
+      "sourceFile": "08-dictionary-hash/hash-table.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "V"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "08-dictionary-hash/hash-table.ts::HashTable::toString/0",
+      "fileName": "08-dictionary-hash/hash-table.ts",
+      "sourceFile": "08-dictionary-hash/hash-table.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "07-set/set.ts::%dflt::%AM0$addAll/1",
+      "fileName": "07-set/set.ts",
+      "sourceFile": "07-set/set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "07-set/set.ts::%dflt::%AM1$union/1",
+      "fileName": "07-set/set.ts",
+      "sourceFile": "07-set/set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "07-set/set.ts::%dflt::%AM2$union/1",
+      "fileName": "07-set/set.ts",
+      "sourceFile": "07-set/set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "07-set/set.ts::%dflt::%AM3$intersection/1",
+      "fileName": "07-set/set.ts",
+      "sourceFile": "07-set/set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "function-origin-unresolved"
+      ]
+    },
+    {
+      "methodId": "07-set/set.ts::%dflt::%AM4$difference/1",
+      "fileName": "07-set/set.ts",
+      "sourceFile": "07-set/set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "function-origin-unresolved"
+      ]
+    },
+    {
+      "methodId": "07-set/set.ts::%dflt::%AM5$isSubsetOf/1",
+      "fileName": "07-set/set.ts",
+      "sourceFile": "07-set/set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "07-set/set.ts::%dflt::%AM6$isSupersetOf/1",
+      "fileName": "07-set/set.ts",
+      "sourceFile": "07-set/set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "07-set/set.ts::MySet::add/1",
+      "fileName": "07-set/set.ts",
+      "sourceFile": "07-set/set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "07-set/set.ts::MySet::addAll/1",
+      "fileName": "07-set/set.ts",
+      "sourceFile": "07-set/set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string[]"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "07-set/set.ts::MySet::delete/1",
+      "fileName": "07-set/set.ts",
+      "sourceFile": "07-set/set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "07-set/set.ts::MySet::has/1",
+      "fileName": "07-set/set.ts",
+      "sourceFile": "07-set/set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "07-set/set.ts::MySet::values/0",
+      "fileName": "07-set/set.ts",
+      "sourceFile": "07-set/set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "07-set/set.ts::MySet::size/0",
+      "fileName": "07-set/set.ts",
+      "sourceFile": "07-set/set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "07-set/set.ts::MySet::getSizeWithoutSizeProperty/0",
+      "fileName": "07-set/set.ts",
+      "sourceFile": "07-set/set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "07-set/set.ts::MySet::isEmpty/0",
+      "fileName": "07-set/set.ts",
+      "sourceFile": "07-set/set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "07-set/set.ts::MySet::clear/0",
+      "fileName": "07-set/set.ts",
+      "sourceFile": "07-set/set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "07-set/set.ts::MySet::union/1",
+      "fileName": "07-set/set.ts",
+      "sourceFile": "07-set/set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "MySet"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "07-set/set.ts::MySet::intersection/1",
+      "fileName": "07-set/set.ts",
+      "sourceFile": "07-set/set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "MySet"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "07-set/set.ts::MySet::difference/1",
+      "fileName": "07-set/set.ts",
+      "sourceFile": "07-set/set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "MySet"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "07-set/set.ts::MySet::isSubsetOf/1",
+      "fileName": "07-set/set.ts",
+      "sourceFile": "07-set/set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "MySet"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "07-set/set.ts::MySet::isSupersetOf/1",
+      "fileName": "07-set/set.ts",
+      "sourceFile": "07-set/set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "MySet"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "07-set/set.ts::MySet::toString/0",
+      "fileName": "07-set/set.ts",
+      "sourceFile": "07-set/set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "02-bigOnotation/03-exercises.ts::%dflt::calculateAverage/1",
+      "fileName": "02-bigOnotation/03-exercises.ts",
+      "sourceFile": "02-bigOnotation/03-exercises.ts",
+      "compiledModule": null,
+      "exportName": "calculateAverage",
+      "parameterTypes": [
+        "number[]"
+      ],
+      "branches": 2,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "02-bigOnotation/03-exercises.ts::%dflt::hasCommonElements/2",
+      "fileName": "02-bigOnotation/03-exercises.ts",
+      "sourceFile": "02-bigOnotation/03-exercises.ts",
+      "compiledModule": null,
+      "exportName": "hasCommonElements",
+      "parameterTypes": [
+        "number[]",
+        "number[]"
+      ],
+      "branches": 6,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "02-bigOnotation/03-exercises.ts::%dflt::getOddNumbers/1",
+      "fileName": "02-bigOnotation/03-exercises.ts",
+      "sourceFile": "02-bigOnotation/03-exercises.ts",
+      "compiledModule": null,
+      "exportName": "getOddNumbers",
+      "parameterTypes": [
+        "number[]"
+      ],
+      "branches": 4,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "02-bigOnotation/03-exercises.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "02-bigOnotation/03-exercises.ts",
+      "sourceFile": "02-bigOnotation/03-exercises.ts",
+      "compiledModule": null,
+      "exportName": "oddOrEven",
+      "parameterTypes": [
+        "unknown[]"
+      ],
+      "branches": 2,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "02-bigOnotation/01-big-o-intro.ts::%dflt::secondsInDays/1",
+      "fileName": "02-bigOnotation/01-big-o-intro.ts",
+      "sourceFile": "02-bigOnotation/01-big-o-intro.ts",
+      "compiledModule": null,
+      "exportName": "secondsInDays",
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 2,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "02-bigOnotation/01-big-o-intro.ts::%dflt::calculateTotalExpenses/1",
+      "fileName": "02-bigOnotation/01-big-o-intro.ts",
+      "sourceFile": "02-bigOnotation/01-big-o-intro.ts",
+      "compiledModule": null,
+      "exportName": "calculateTotalExpenses",
+      "parameterTypes": [
+        "number[]"
+      ],
+      "branches": 2,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "02-bigOnotation/01-big-o-intro.ts::%dflt::calculateExpensesMatrix/1",
+      "fileName": "02-bigOnotation/01-big-o-intro.ts",
+      "sourceFile": "02-bigOnotation/01-big-o-intro.ts",
+      "compiledModule": null,
+      "exportName": "calculateExpensesMatrix",
+      "parameterTypes": [
+        "number[][]"
+      ],
+      "branches": 4,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "02-bigOnotation/01-big-o-intro.ts::%dflt::multiplicationTable/2",
+      "fileName": "02-bigOnotation/01-big-o-intro.ts",
+      "sourceFile": "02-bigOnotation/01-big-o-intro.ts",
+      "compiledModule": null,
+      "exportName": "multiplicationTable",
+      "parameterTypes": [
+        "number",
+        "number"
+      ],
+      "branches": 6,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "06-linked-list/circular-linked-list.ts::CircularLinkedList::append/1",
+      "fileName": "06-linked-list/circular-linked-list.ts",
+      "sourceFile": "06-linked-list/circular-linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 6,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/circular-linked-list.ts::CircularLinkedList::prepend/1",
+      "fileName": "06-linked-list/circular-linked-list.ts",
+      "sourceFile": "06-linked-list/circular-linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/circular-linked-list.ts::CircularLinkedList::insert/2",
+      "fileName": "06-linked-list/circular-linked-list.ts",
+      "sourceFile": "06-linked-list/circular-linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number",
+        "T"
+      ],
+      "branches": 10,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/circular-linked-list.ts::CircularLinkedList::removeAt/1",
+      "fileName": "06-linked-list/circular-linked-list.ts",
+      "sourceFile": "06-linked-list/circular-linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 20,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/circular-linked-list.ts::CircularLinkedList::isInvalidPosition/1",
+      "fileName": "06-linked-list/circular-linked-list.ts",
+      "sourceFile": "06-linked-list/circular-linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/circular-linked-list.ts::CircularLinkedList::getSize/0",
+      "fileName": "06-linked-list/circular-linked-list.ts",
+      "sourceFile": "06-linked-list/circular-linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/circular-linked-list.ts::CircularLinkedList::isEmpty/0",
+      "fileName": "06-linked-list/circular-linked-list.ts",
+      "sourceFile": "06-linked-list/circular-linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/circular-linked-list.ts::CircularLinkedList::getHead/0",
+      "fileName": "06-linked-list/circular-linked-list.ts",
+      "sourceFile": "06-linked-list/circular-linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/circular-linked-list.ts::CircularLinkedList::clear/0",
+      "fileName": "06-linked-list/circular-linked-list.ts",
+      "sourceFile": "06-linked-list/circular-linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/circular-linked-list.ts::CircularLinkedList::remove/1",
+      "fileName": "06-linked-list/circular-linked-list.ts",
+      "sourceFile": "06-linked-list/circular-linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/circular-linked-list.ts::CircularLinkedList::indexOf/1",
+      "fileName": "06-linked-list/circular-linked-list.ts",
+      "sourceFile": "06-linked-list/circular-linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 6,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/circular-linked-list.ts::CircularLinkedList::toString/0",
+      "fileName": "06-linked-list/circular-linked-list.ts",
+      "sourceFile": "06-linked-list/circular-linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 6,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/circular-linked-list.ts::CircularLinkedList::reverse/0",
+      "fileName": "06-linked-list/circular-linked-list.ts",
+      "sourceFile": "06-linked-list/circular-linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/doubly-linked-list.ts::DoublyLinkedList::append/1",
+      "fileName": "06-linked-list/doubly-linked-list.ts",
+      "sourceFile": "06-linked-list/doubly-linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/doubly-linked-list.ts::DoublyLinkedList::prepend/1",
+      "fileName": "06-linked-list/doubly-linked-list.ts",
+      "sourceFile": "06-linked-list/doubly-linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/doubly-linked-list.ts::DoublyLinkedList::insert/2",
+      "fileName": "06-linked-list/doubly-linked-list.ts",
+      "sourceFile": "06-linked-list/doubly-linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T",
+        "number"
+      ],
+      "branches": 14,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/doubly-linked-list.ts::DoublyLinkedList::removeAt/1",
+      "fileName": "06-linked-list/doubly-linked-list.ts",
+      "sourceFile": "06-linked-list/doubly-linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 24,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/doubly-linked-list.ts::DoublyLinkedList::isInvalidPosition/1",
+      "fileName": "06-linked-list/doubly-linked-list.ts",
+      "sourceFile": "06-linked-list/doubly-linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/doubly-linked-list.ts::DoublyLinkedList::getSize/0",
+      "fileName": "06-linked-list/doubly-linked-list.ts",
+      "sourceFile": "06-linked-list/doubly-linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/doubly-linked-list.ts::DoublyLinkedList::isEmpty/0",
+      "fileName": "06-linked-list/doubly-linked-list.ts",
+      "sourceFile": "06-linked-list/doubly-linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/doubly-linked-list.ts::DoublyLinkedList::indexOf/1",
+      "fileName": "06-linked-list/doubly-linked-list.ts",
+      "sourceFile": "06-linked-list/doubly-linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/doubly-linked-list.ts::DoublyLinkedList::remove/1",
+      "fileName": "06-linked-list/doubly-linked-list.ts",
+      "sourceFile": "06-linked-list/doubly-linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/doubly-linked-list.ts::DoublyLinkedList::clear/0",
+      "fileName": "06-linked-list/doubly-linked-list.ts",
+      "sourceFile": "06-linked-list/doubly-linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/doubly-linked-list.ts::DoublyLinkedList::toString/0",
+      "fileName": "06-linked-list/doubly-linked-list.ts",
+      "sourceFile": "06-linked-list/doubly-linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/doubly-linked-list.ts::DoublyLinkedList::inverseToString/0",
+      "fileName": "06-linked-list/doubly-linked-list.ts",
+      "sourceFile": "06-linked-list/doubly-linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/doubly-linked-list.ts::DoublyLinkedList::elementToString/1",
+      "fileName": "06-linked-list/doubly-linked-list.ts",
+      "sourceFile": "06-linked-list/doubly-linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/doubly-linked-list.ts::DoublyLinkedList::reverse/0",
+      "fileName": "06-linked-list/doubly-linked-list.ts",
+      "sourceFile": "06-linked-list/doubly-linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/linked-list.ts::LinkedList::append/1",
+      "fileName": "06-linked-list/linked-list.ts",
+      "sourceFile": "06-linked-list/linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/linked-list.ts::LinkedList::prepend/1",
+      "fileName": "06-linked-list/linked-list.ts",
+      "sourceFile": "06-linked-list/linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/linked-list.ts::LinkedList::insert/2",
+      "fileName": "06-linked-list/linked-list.ts",
+      "sourceFile": "06-linked-list/linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number",
+        "T"
+      ],
+      "branches": 10,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/linked-list.ts::LinkedList::removeAt/1",
+      "fileName": "06-linked-list/linked-list.ts",
+      "sourceFile": "06-linked-list/linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 16,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/linked-list.ts::LinkedList::isInvalidPosition/1",
+      "fileName": "06-linked-list/linked-list.ts",
+      "sourceFile": "06-linked-list/linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/linked-list.ts::LinkedList::remove/1",
+      "fileName": "06-linked-list/linked-list.ts",
+      "sourceFile": "06-linked-list/linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/linked-list.ts::LinkedList::indexOf/1",
+      "fileName": "06-linked-list/linked-list.ts",
+      "sourceFile": "06-linked-list/linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/linked-list.ts::LinkedList::isEmpty/0",
+      "fileName": "06-linked-list/linked-list.ts",
+      "sourceFile": "06-linked-list/linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/linked-list.ts::LinkedList::clear/0",
+      "fileName": "06-linked-list/linked-list.ts",
+      "sourceFile": "06-linked-list/linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/linked-list.ts::LinkedList::getSize/0",
+      "fileName": "06-linked-list/linked-list.ts",
+      "sourceFile": "06-linked-list/linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/linked-list.ts::LinkedList::reverse/0",
+      "fileName": "06-linked-list/linked-list.ts",
+      "sourceFile": "06-linked-list/linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/linked-list.ts::LinkedList::toString/0",
+      "fileName": "06-linked-list/linked-list.ts",
+      "sourceFile": "06-linked-list/linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "06-linked-list/linked-list.ts::LinkedList::elementToString/1",
+      "fileName": "06-linked-list/linked-list.ts",
+      "sourceFile": "06-linked-list/linked-list.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "11-heap/heap.ts::Heap::getLeftChildIndex/1",
+      "fileName": "11-heap/heap.ts",
+      "sourceFile": "11-heap/heap.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "11-heap/heap.ts::Heap::getRightChildIndex/1",
+      "fileName": "11-heap/heap.ts",
+      "sourceFile": "11-heap/heap.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "11-heap/heap.ts::Heap::getParentIndex/1",
+      "fileName": "11-heap/heap.ts",
+      "sourceFile": "11-heap/heap.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "11-heap/heap.ts::Heap::insert/1",
+      "fileName": "11-heap/heap.ts",
+      "sourceFile": "11-heap/heap.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "11-heap/heap.ts::Heap::#siftUp/1",
+      "fileName": "11-heap/heap.ts",
+      "sourceFile": "11-heap/heap.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "11-heap/heap.ts::Heap::extract/0",
+      "fileName": "11-heap/heap.ts",
+      "sourceFile": "11-heap/heap.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "11-heap/heap.ts::Heap::#siftDown/1",
+      "fileName": "11-heap/heap.ts",
+      "sourceFile": "11-heap/heap.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 6,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "11-heap/heap.ts::Heap::heapify/1",
+      "fileName": "11-heap/heap.ts",
+      "sourceFile": "11-heap/heap.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T[]"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "11-heap/heap.ts::Heap::peek/0",
+      "fileName": "11-heap/heap.ts",
+      "sourceFile": "11-heap/heap.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "11-heap/heap.ts::Heap::size/0",
+      "fileName": "11-heap/heap.ts",
+      "sourceFile": "11-heap/heap.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "11-heap/heap.ts::Heap::isEmpty/0",
+      "fileName": "11-heap/heap.ts",
+      "sourceFile": "11-heap/heap.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "11-heap/heap.ts::Heap::toArray/0",
+      "fileName": "11-heap/heap.ts",
+      "sourceFile": "11-heap/heap.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "11-heap/heap.ts::Heap::clear/0",
+      "fileName": "11-heap/heap.ts",
+      "sourceFile": "11-heap/heap.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "11-heap/heap.ts::Heap::toString/0",
+      "fileName": "11-heap/heap.ts",
+      "sourceFile": "11-heap/heap.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "11-heap/02-max-heap.ts::%dflt::%AM0$%dflt/2",
+      "fileName": "11-heap/02-max-heap.ts",
+      "sourceFile": "11-heap/02-max-heap.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "Patient",
+        "Patient"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "11-heap/01-min-heap.ts::%dflt::%AM0$constructor/2",
+      "fileName": "11-heap/01-min-heap.ts",
+      "sourceFile": "11-heap/01-min-heap.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "Task",
+        "Task"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "11-heap/01-min-heap.ts::TaskScheduler::addTask/1",
+      "fileName": "11-heap/01-min-heap.ts",
+      "sourceFile": "11-heap/01-min-heap.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "Task"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "11-heap/01-min-heap.ts::TaskScheduler::scheduleNextTask/0",
+      "fileName": "11-heap/01-min-heap.ts",
+      "sourceFile": "11-heap/01-min-heap.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "03-array/05-transforming-array.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "03-array/05-transforming-array.ts",
+      "sourceFile": "03-array/05-transforming-array.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "03-array/05-transforming-array.ts::%dflt::%AM1$%dflt/2",
+      "fileName": "03-array/05-transforming-array.ts",
+      "sourceFile": "03-array/05-transforming-array.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number",
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "03-array/05-transforming-array.ts::%dflt::%AM2$%dflt/2",
+      "fileName": "03-array/05-transforming-array.ts",
+      "sourceFile": "03-array/05-transforming-array.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number",
+        "number"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "function-origin-unresolved"
+      ]
+    },
+    {
+      "methodId": "03-array/05-transforming-array.ts::%dflt::%AM3$%dflt/2",
+      "fileName": "03-array/05-transforming-array.ts",
+      "sourceFile": "03-array/05-transforming-array.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number[]",
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/02-adding-removing-elements.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "03-array/02-adding-removing-elements.ts",
+      "sourceFile": "03-array/02-adding-removing-elements.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "any"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "function-origin-unresolved",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/02-adding-removing-elements.ts::%dflt::%AM1$%dflt/1",
+      "fileName": "03-array/02-adding-removing-elements.ts",
+      "sourceFile": "03-array/02-adding-removing-elements.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "any"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "function-origin-unresolved",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/02-adding-removing-elements.ts::%dflt::%AM2$%dflt/0",
+      "fileName": "03-array/02-adding-removing-elements.ts",
+      "sourceFile": "03-array/02-adding-removing-elements.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "function-origin-unresolved"
+      ]
+    },
+    {
+      "methodId": "03-array/06-other-methods.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "03-array/06-other-methods.ts",
+      "sourceFile": "03-array/06-other-methods.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "any"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/06-other-methods.ts::%dflt::%AM1$%dflt/1",
+      "fileName": "03-array/06-other-methods.ts",
+      "sourceFile": "03-array/06-other-methods.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "03-array/07-multidimensional-arrays.ts::%dflt::printMultidimensionalArray/1",
+      "fileName": "03-array/07-multidimensional-arrays.ts",
+      "sourceFile": "03-array/07-multidimensional-arrays.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number[][]"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "not-exported",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/07-multidimensional-arrays.ts::%dflt::printMultidimensionalArray3D/1",
+      "fileName": "03-array/07-multidimensional-arrays.ts",
+      "sourceFile": "03-array/07-multidimensional-arrays.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number[][][]"
+      ],
+      "branches": 6,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "not-exported",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/09-arrays-typescript.ts::%dflt::%AM0$%dflt/2",
+      "fileName": "03-array/09-arrays-typescript.ts",
+      "sourceFile": "03-array/09-arrays-typescript.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "Friend",
+        "Friend"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/12-flatten-arrays.ts::%dflt::flattenSimple/2",
+      "fileName": "03-array/12-flatten-arrays.ts",
+      "sourceFile": "03-array/12-flatten-arrays.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "any[]",
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/12-flatten-arrays.ts::%dflt::flattenDeep/1",
+      "fileName": "03-array/12-flatten-arrays.ts",
+      "sourceFile": "03-array/12-flatten-arrays.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "any[]"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/12-flatten-arrays.ts::%dflt::flattenRecursive/1",
+      "fileName": "03-array/12-flatten-arrays.ts",
+      "sourceFile": "03-array/12-flatten-arrays.ts",
+      "compiledModule": null,
+      "exportName": "flattenRecursive",
+      "parameterTypes": [
+        "any[]"
+      ],
+      "branches": 4,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/12-flatten-arrays.ts::%dflt::flattenReduce/1",
+      "fileName": "03-array/12-flatten-arrays.ts",
+      "sourceFile": "03-array/12-flatten-arrays.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "any[]"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/12-flatten-arrays.ts::%dflt::flattenIterative/1",
+      "fileName": "03-array/12-flatten-arrays.ts",
+      "sourceFile": "03-array/12-flatten-arrays.ts",
+      "compiledModule": null,
+      "exportName": "flattenIterative",
+      "parameterTypes": [
+        "any[]"
+      ],
+      "branches": 4,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/12-flatten-arrays.ts::%dflt::%AM0$flattenReduce/2",
+      "fileName": "03-array/12-flatten-arrays.ts",
+      "sourceFile": "03-array/12-flatten-arrays.ts",
+      "compiledModule": null,
+      "exportName": "flattenReduce",
+      "parameterTypes": [
+        "T[]",
+        "any"
+      ],
+      "branches": 2,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/03-iterator-functions.ts::%dflt::%AM0$%dflt/2",
+      "fileName": "03-array/03-iterator-functions.ts",
+      "sourceFile": "03-array/03-iterator-functions.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number",
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "03-array/03-iterator-functions.ts::%dflt::%AM1$%dflt/1",
+      "fileName": "03-array/03-iterator-functions.ts",
+      "sourceFile": "03-array/03-iterator-functions.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "03-array/03-iterator-functions.ts::%dflt::%AM2$%dflt/1",
+      "fileName": "03-array/03-iterator-functions.ts",
+      "sourceFile": "03-array/03-iterator-functions.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "03-array/03-iterator-functions.ts::%dflt::%AM3$%dflt/1",
+      "fileName": "03-array/03-iterator-functions.ts",
+      "sourceFile": "03-array/03-iterator-functions.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "03-array/03-iterator-functions.ts::%dflt::%AM4$%dflt/1",
+      "fileName": "03-array/03-iterator-functions.ts",
+      "sourceFile": "03-array/03-iterator-functions.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "03-array/13-remove-duplicates.ts::%dflt::removeDuplicatesSet/1",
+      "fileName": "03-array/13-remove-duplicates.ts",
+      "sourceFile": "03-array/13-remove-duplicates.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T[]"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/13-remove-duplicates.ts::%dflt::removeDuplicatesFilter/1",
+      "fileName": "03-array/13-remove-duplicates.ts",
+      "sourceFile": "03-array/13-remove-duplicates.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T[]"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/13-remove-duplicates.ts::%dflt::removeDuplicatesReduce/1",
+      "fileName": "03-array/13-remove-duplicates.ts",
+      "sourceFile": "03-array/13-remove-duplicates.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T[]"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/13-remove-duplicates.ts::%dflt::removeDuplicatesMap/1",
+      "fileName": "03-array/13-remove-duplicates.ts",
+      "sourceFile": "03-array/13-remove-duplicates.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T[]"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/13-remove-duplicates.ts::%dflt::removeDuplicatesLoop/1",
+      "fileName": "03-array/13-remove-duplicates.ts",
+      "sourceFile": "03-array/13-remove-duplicates.ts",
+      "compiledModule": null,
+      "exportName": "removeDuplicatesLoop",
+      "parameterTypes": [
+        "T[]"
+      ],
+      "branches": 4,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/13-remove-duplicates.ts::%dflt::removeDuplicatesByProperty/2",
+      "fileName": "03-array/13-remove-duplicates.ts",
+      "sourceFile": "03-array/13-remove-duplicates.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T[]",
+        "unknown"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/13-remove-duplicates.ts::%dflt::countDuplicates/1",
+      "fileName": "03-array/13-remove-duplicates.ts",
+      "sourceFile": "03-array/13-remove-duplicates.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string | number[]"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/13-remove-duplicates.ts::%dflt::%AM0$%dflt/0",
+      "fileName": "03-array/13-remove-duplicates.ts",
+      "sourceFile": "03-array/13-remove-duplicates.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "03-array/13-remove-duplicates.ts::%dflt::%AM1$removeDuplicatesFilter/2",
+      "fileName": "03-array/13-remove-duplicates.ts",
+      "sourceFile": "03-array/13-remove-duplicates.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T",
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/13-remove-duplicates.ts::%dflt::%AM2$removeDuplicatesReduce/2",
+      "fileName": "03-array/13-remove-duplicates.ts",
+      "sourceFile": "03-array/13-remove-duplicates.ts",
+      "compiledModule": null,
+      "exportName": "removeDuplicatesReduce",
+      "parameterTypes": [
+        "T[]",
+        "T"
+      ],
+      "branches": 2,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/13-remove-duplicates.ts::%dflt::%AM3$removeDuplicatesMap/1",
+      "fileName": "03-array/13-remove-duplicates.ts",
+      "sourceFile": "03-array/13-remove-duplicates.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/13-remove-duplicates.ts::%dflt::%AM4$removeDuplicatesByProperty/1",
+      "fileName": "03-array/13-remove-duplicates.ts",
+      "sourceFile": "03-array/13-remove-duplicates.ts",
+      "compiledModule": null,
+      "exportName": "removeDuplicatesByProperty",
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 2,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/13-remove-duplicates.ts::%dflt::%AM5$countDuplicates/1",
+      "fileName": "03-array/13-remove-duplicates.ts",
+      "sourceFile": "03-array/13-remove-duplicates.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string | number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "03-array/04-searching-sorting.ts::%dflt::compareNumbers/2",
+      "fileName": "03-array/04-searching-sorting.ts",
+      "sourceFile": "03-array/04-searching-sorting.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number",
+        "number"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "not-exported"
+      ]
+    },
+    {
+      "methodId": "03-array/04-searching-sorting.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "03-array/04-searching-sorting.ts",
+      "sourceFile": "03-array/04-searching-sorting.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "03-array/04-searching-sorting.ts::%dflt::%AM1$%dflt/1",
+      "fileName": "03-array/04-searching-sorting.ts",
+      "sourceFile": "03-array/04-searching-sorting.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "03-array/04-searching-sorting.ts::%dflt::%AM2$%dflt/1",
+      "fileName": "03-array/04-searching-sorting.ts",
+      "sourceFile": "03-array/04-searching-sorting.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "any"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/04-searching-sorting.ts::%dflt::%AM3$%dflt/1",
+      "fileName": "03-array/04-searching-sorting.ts",
+      "sourceFile": "03-array/04-searching-sorting.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "unknown"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/04-searching-sorting.ts::%dflt::%AM4$%dflt/1",
+      "fileName": "03-array/04-searching-sorting.ts",
+      "sourceFile": "03-array/04-searching-sorting.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "unknown"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/04-searching-sorting.ts::%dflt::%AM5$%dflt/1",
+      "fileName": "03-array/04-searching-sorting.ts",
+      "sourceFile": "03-array/04-searching-sorting.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "unknown"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/04-searching-sorting.ts::%dflt::%AM6$%dflt/1",
+      "fileName": "03-array/04-searching-sorting.ts",
+      "sourceFile": "03-array/04-searching-sorting.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "03-array/04-searching-sorting.ts::%dflt::%AM7$%dflt/2",
+      "fileName": "03-array/04-searching-sorting.ts",
+      "sourceFile": "03-array/04-searching-sorting.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number",
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "03-array/04-searching-sorting.ts::%dflt::%AM8$%dflt/2",
+      "fileName": "03-array/04-searching-sorting.ts",
+      "sourceFile": "03-array/04-searching-sorting.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "Friend",
+        "Friend"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/04-searching-sorting.ts::%dflt::%AM9$%dflt/2",
+      "fileName": "03-array/04-searching-sorting.ts",
+      "sourceFile": "03-array/04-searching-sorting.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string",
+        "string"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "function-origin-unresolved"
+      ]
+    },
+    {
+      "methodId": "03-array/04-searching-sorting.ts::%dflt::%AM10$%dflt/2",
+      "fileName": "03-array/04-searching-sorting.ts",
+      "sourceFile": "03-array/04-searching-sorting.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string",
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "03-array/04-searching-sorting.ts::%dflt::%AM11$%dflt/2",
+      "fileName": "03-array/04-searching-sorting.ts",
+      "sourceFile": "03-array/04-searching-sorting.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string",
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "03-array/14-array-rotation.ts::%dflt::rotateRight/2",
+      "fileName": "03-array/14-array-rotation.ts",
+      "sourceFile": "03-array/14-array-rotation.ts",
+      "compiledModule": null,
+      "exportName": "rotateRight",
+      "parameterTypes": [
+        "T[]",
+        "number"
+      ],
+      "branches": 4,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/14-array-rotation.ts::%dflt::rotateLeft/2",
+      "fileName": "03-array/14-array-rotation.ts",
+      "sourceFile": "03-array/14-array-rotation.ts",
+      "compiledModule": null,
+      "exportName": "rotateLeft",
+      "parameterTypes": [
+        "T[]",
+        "number"
+      ],
+      "branches": 4,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/14-array-rotation.ts::%dflt::rotateRightSpread/2",
+      "fileName": "03-array/14-array-rotation.ts",
+      "sourceFile": "03-array/14-array-rotation.ts",
+      "compiledModule": null,
+      "exportName": "rotateRightSpread",
+      "parameterTypes": [
+        "T[]",
+        "number"
+      ],
+      "branches": 4,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/14-array-rotation.ts::%dflt::rotateRightInPlace/2",
+      "fileName": "03-array/14-array-rotation.ts",
+      "sourceFile": "03-array/14-array-rotation.ts",
+      "compiledModule": null,
+      "exportName": "rotateRightInPlace",
+      "parameterTypes": [
+        "T[]",
+        "number"
+      ],
+      "branches": 4,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/14-array-rotation.ts::%dflt::rotateRightSimple/2",
+      "fileName": "03-array/14-array-rotation.ts",
+      "sourceFile": "03-array/14-array-rotation.ts",
+      "compiledModule": null,
+      "exportName": "rotateRightSimple",
+      "parameterTypes": [
+        "T[]",
+        "number"
+      ],
+      "branches": 4,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/14-array-rotation.ts::%dflt::findRotationCount/1",
+      "fileName": "03-array/14-array-rotation.ts",
+      "sourceFile": "03-array/14-array-rotation.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number[]"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "not-exported",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/14-array-rotation.ts::%dflt::%AM0$%dflt/2",
+      "fileName": "03-array/14-array-rotation.ts",
+      "sourceFile": "03-array/14-array-rotation.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "unknown",
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/14-array-rotation.ts::%dflt::%AM1$rotateRightInPlace/2",
+      "fileName": "03-array/14-array-rotation.ts",
+      "sourceFile": "03-array/14-array-rotation.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number",
+        "number"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "nested-function"
+      ]
+    },
+    {
+      "methodId": "03-array/11-array-chunking.ts::%dflt::chunkArray/2",
+      "fileName": "03-array/11-array-chunking.ts",
+      "sourceFile": "03-array/11-array-chunking.ts",
+      "compiledModule": null,
+      "exportName": "chunkArray",
+      "parameterTypes": [
+        "T[]",
+        "number"
+      ],
+      "branches": 4,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/11-array-chunking.ts::%dflt::chunkArraySplice/2",
+      "fileName": "03-array/11-array-chunking.ts",
+      "sourceFile": "03-array/11-array-chunking.ts",
+      "compiledModule": null,
+      "exportName": "chunkArraySplice",
+      "parameterTypes": [
+        "T[]",
+        "number"
+      ],
+      "branches": 4,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/11-array-chunking.ts::%dflt::chunkArrayReduce/2",
+      "fileName": "03-array/11-array-chunking.ts",
+      "sourceFile": "03-array/11-array-chunking.ts",
+      "compiledModule": null,
+      "exportName": "chunkArrayReduce",
+      "parameterTypes": [
+        "T[]",
+        "number"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters",
+        "ambiguous-source-binding"
+      ]
+    },
+    {
+      "methodId": "03-array/11-array-chunking.ts::%dflt::%AM0$%dflt/2",
+      "fileName": "03-array/11-array-chunking.ts",
+      "sourceFile": "03-array/11-array-chunking.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string[]",
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "03-array/11-array-chunking.ts::%dflt::%AM1$chunkArrayReduce/3",
+      "fileName": "03-array/11-array-chunking.ts",
+      "sourceFile": "03-array/11-array-chunking.ts",
+      "compiledModule": null,
+      "exportName": "chunkArrayReduce",
+      "parameterTypes": [
+        "T[][]",
+        "T",
+        "number"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters",
+        "ambiguous-source-binding"
+      ]
+    },
+    {
+      "methodId": "01-intro/08-typescript.ts::%dflt::printName/1",
+      "fileName": "01-intro/08-typescript.ts",
+      "sourceFile": "01-intro/08-typescript.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "Friend"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "01-intro/08-typescript.ts::%dflt::compareTo/2",
+      "fileName": "01-intro/08-typescript.ts",
+      "sourceFile": "01-intro/08-typescript.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "MyObject",
+        "MyObject"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "not-exported",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "01-intro/08-typescript.ts::MyObject::compareTo/1",
+      "fileName": "01-intro/08-typescript.ts",
+      "sourceFile": "01-intro/08-typescript.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "MyObject"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "05-queue-deque/deque.ts::%dflt::%AM0$toString/1",
+      "fileName": "05-queue-deque/deque.ts",
+      "sourceFile": "05-queue-deque/deque.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "function-origin-unresolved",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "05-queue-deque/deque.ts::Deque::addFront/1",
+      "fileName": "05-queue-deque/deque.ts",
+      "sourceFile": "05-queue-deque/deque.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "05-queue-deque/deque.ts::Deque::addRear/1",
+      "fileName": "05-queue-deque/deque.ts",
+      "sourceFile": "05-queue-deque/deque.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "05-queue-deque/deque.ts::Deque::removeFront/0",
+      "fileName": "05-queue-deque/deque.ts",
+      "sourceFile": "05-queue-deque/deque.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "05-queue-deque/deque.ts::Deque::removeRear/0",
+      "fileName": "05-queue-deque/deque.ts",
+      "sourceFile": "05-queue-deque/deque.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "05-queue-deque/deque.ts::Deque::peekFront/0",
+      "fileName": "05-queue-deque/deque.ts",
+      "sourceFile": "05-queue-deque/deque.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "05-queue-deque/deque.ts::Deque::peekRear/0",
+      "fileName": "05-queue-deque/deque.ts",
+      "sourceFile": "05-queue-deque/deque.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "05-queue-deque/deque.ts::Deque::isEmpty/0",
+      "fileName": "05-queue-deque/deque.ts",
+      "sourceFile": "05-queue-deque/deque.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "05-queue-deque/deque.ts::Deque::size/0",
+      "fileName": "05-queue-deque/deque.ts",
+      "sourceFile": "05-queue-deque/deque.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "05-queue-deque/deque.ts::Deque::clear/0",
+      "fileName": "05-queue-deque/deque.ts",
+      "sourceFile": "05-queue-deque/deque.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "05-queue-deque/deque.ts::Deque::toString/0",
+      "fileName": "05-queue-deque/deque.ts",
+      "sourceFile": "05-queue-deque/deque.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "05-queue-deque/queue.ts::%dflt::%AM0$toString/1",
+      "fileName": "05-queue-deque/queue.ts",
+      "sourceFile": "05-queue-deque/queue.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "function-origin-unresolved",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "05-queue-deque/queue.ts::Queue::enqueue/1",
+      "fileName": "05-queue-deque/queue.ts",
+      "sourceFile": "05-queue-deque/queue.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "05-queue-deque/queue.ts::Queue::dequeue/0",
+      "fileName": "05-queue-deque/queue.ts",
+      "sourceFile": "05-queue-deque/queue.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "05-queue-deque/queue.ts::Queue::front/0",
+      "fileName": "05-queue-deque/queue.ts",
+      "sourceFile": "05-queue-deque/queue.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "05-queue-deque/queue.ts::Queue::isEmpty/0",
+      "fileName": "05-queue-deque/queue.ts",
+      "sourceFile": "05-queue-deque/queue.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "05-queue-deque/queue.ts::Queue::size/0",
+      "fileName": "05-queue-deque/queue.ts",
+      "sourceFile": "05-queue-deque/queue.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "05-queue-deque/queue.ts::Queue::clear/0",
+      "fileName": "05-queue-deque/queue.ts",
+      "sourceFile": "05-queue-deque/queue.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "05-queue-deque/queue.ts::Queue::toString/0",
+      "fileName": "05-queue-deque/queue.ts",
+      "sourceFile": "05-queue-deque/queue.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "09-recursion/04-fibonacci.ts::%dflt::fibonacciIterative/1",
+      "fileName": "09-recursion/04-fibonacci.ts",
+      "sourceFile": "09-recursion/04-fibonacci.ts",
+      "compiledModule": null,
+      "exportName": "fibonacciIterative",
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 6,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "09-recursion/04-fibonacci.ts::%dflt::fibonacci/1",
+      "fileName": "09-recursion/04-fibonacci.ts",
+      "sourceFile": "09-recursion/04-fibonacci.ts",
+      "compiledModule": null,
+      "exportName": "fibonacci",
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 4,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "09-recursion/04-fibonacci.ts::%dflt::fibonacciMemoization/1",
+      "fileName": "09-recursion/04-fibonacci.ts",
+      "sourceFile": "09-recursion/04-fibonacci.ts",
+      "compiledModule": null,
+      "exportName": "fibonacciMemoization",
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 2,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "09-recursion/04-fibonacci.ts::%dflt::%AM0$fibonacciMemoization/1",
+      "fileName": "09-recursion/04-fibonacci.ts",
+      "sourceFile": "09-recursion/04-fibonacci.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "nested-function"
+      ]
+    },
+    {
+      "methodId": "09-recursion/02-factorial.ts::%dflt::factorialIterative/1",
+      "fileName": "09-recursion/02-factorial.ts",
+      "sourceFile": "09-recursion/02-factorial.ts",
+      "compiledModule": null,
+      "exportName": "factorialIterative",
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 4,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "09-recursion/02-factorial.ts::%dflt::factorial/1",
+      "fileName": "09-recursion/02-factorial.ts",
+      "sourceFile": "09-recursion/02-factorial.ts",
+      "compiledModule": null,
+      "exportName": "factorial",
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 4,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "13-graph/01-airline-system.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "13-graph/01-airline-system.ts",
+      "sourceFile": "13-graph/01-airline-system.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "13-graph/graph.ts::%dflt::%AM1$%AM0$toString/1",
+      "fileName": "13-graph/graph.ts",
+      "sourceFile": "13-graph/graph.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "13-graph/graph.ts::%dflt::%AM0$toString/1",
+      "fileName": "13-graph/graph.ts",
+      "sourceFile": "13-graph/graph.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "13-graph/graph.ts::Graph::addVertex/1",
+      "fileName": "13-graph/graph.ts",
+      "sourceFile": "13-graph/graph.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "13-graph/graph.ts::Graph::addEdge/2",
+      "fileName": "13-graph/graph.ts",
+      "sourceFile": "13-graph/graph.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T",
+        "T"
+      ],
+      "branches": 6,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "13-graph/graph.ts::Graph::vertices/0",
+      "fileName": "13-graph/graph.ts",
+      "sourceFile": "13-graph/graph.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "13-graph/graph.ts::Graph::adjList/0",
+      "fileName": "13-graph/graph.ts",
+      "sourceFile": "13-graph/graph.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "13-graph/graph.ts::Graph::toString/0",
+      "fileName": "13-graph/graph.ts",
+      "sourceFile": "13-graph/graph.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "13-graph/dijkstra.ts::%dflt::%AM0$%dflt/2",
+      "fileName": "13-graph/dijkstra.ts",
+      "sourceFile": "13-graph/dijkstra.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number[]",
+        "boolean[]"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "not-exported",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "13-graph/dijkstra.ts::%dflt::%AM1$%dflt/2",
+      "fileName": "13-graph/dijkstra.ts",
+      "sourceFile": "13-graph/dijkstra.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number[][]",
+        "number"
+      ],
+      "branches": 12,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "not-exported",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "13-graph/05-using-floyd-warshall.ts::%dflt::%AM1$%AM0$%dflt/3",
+      "fileName": "13-graph/05-using-floyd-warshall.ts",
+      "sourceFile": "13-graph/05-using-floyd-warshall.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "Record<string, number>",
+        "string",
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "13-graph/05-using-floyd-warshall.ts::%dflt::%AM0$%dflt/2",
+      "fileName": "13-graph/05-using-floyd-warshall.ts",
+      "sourceFile": "13-graph/05-using-floyd-warshall.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string",
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "13-graph/dfs.ts::%dflt::%AM1$%AM0$%dflt/1",
+      "fileName": "13-graph/dfs.ts",
+      "sourceFile": "13-graph/dfs.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "13-graph/dfs.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "13-graph/dfs.ts",
+      "sourceFile": "13-graph/dfs.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string[]"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "13-graph/dfs.ts::%dflt::%AM2$%dflt/2",
+      "fileName": "13-graph/dfs.ts",
+      "sourceFile": "13-graph/dfs.ts",
+      "compiledModule": null,
+      "exportName": "depthFirstSearch",
+      "parameterTypes": [
+        "Graph<string>",
+        ""
+      ],
+      "branches": 4,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "13-graph/dfs.ts::%dflt::%AM3$%dflt/4",
+      "fileName": "13-graph/dfs.ts",
+      "sourceFile": "13-graph/dfs.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string",
+        "Record<string, unknown>",
+        "Map<string, string[]>",
+        ""
+      ],
+      "branches": 6,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "not-exported",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "13-graph/dfs.ts::%dflt::%AM4$%dflt/2",
+      "fileName": "13-graph/dfs.ts",
+      "sourceFile": "13-graph/dfs.ts",
+      "compiledModule": null,
+      "exportName": "enhancedDepthFirstSearch",
+      "parameterTypes": [
+        "Graph<string>",
+        ""
+      ],
+      "branches": 6,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "13-graph/dfs.ts::%dflt::%AM5$%dflt/7",
+      "fileName": "13-graph/dfs.ts",
+      "sourceFile": "13-graph/dfs.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string",
+        "Record<string, unknown>",
+        "Record<string, number>",
+        "Record<string, number>",
+        "Record<string, string | null>",
+        "unknown",
+        "Map<string, string[]>"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "not-exported",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "13-graph/03-using-dfs.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "13-graph/03-using-dfs.ts",
+      "sourceFile": "13-graph/03-using-dfs.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "13-graph/03-using-dfs.ts::%dflt::%AM1$%dflt/1",
+      "fileName": "13-graph/03-using-dfs.ts",
+      "sourceFile": "13-graph/03-using-dfs.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "13-graph/03-using-dfs.ts::%dflt::%AM2$%dflt/1",
+      "fileName": "13-graph/03-using-dfs.ts",
+      "sourceFile": "13-graph/03-using-dfs.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "13-graph/03-using-dfs.ts::%dflt::%AM3$%dflt/2",
+      "fileName": "13-graph/03-using-dfs.ts",
+      "sourceFile": "13-graph/03-using-dfs.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string",
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "13-graph/02-using-bfs.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "13-graph/02-using-bfs.ts",
+      "sourceFile": "13-graph/02-using-bfs.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "13-graph/02-using-bfs.ts::%dflt::%AM1$%dflt/1",
+      "fileName": "13-graph/02-using-bfs.ts",
+      "sourceFile": "13-graph/02-using-bfs.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "13-graph/floyd-warshall.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "13-graph/floyd-warshall.ts",
+      "sourceFile": "13-graph/floyd-warshall.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number[][]"
+      ],
+      "branches": 8,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "not-exported",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "13-graph/floyd-warshall.ts::%dflt::%AM1$%dflt/1",
+      "fileName": "13-graph/floyd-warshall.ts",
+      "sourceFile": "13-graph/floyd-warshall.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number[][]"
+      ],
+      "branches": 8,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "not-exported",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "13-graph/bfs.ts::%dflt::%AM1$%AM0$%dflt/1",
+      "fileName": "13-graph/bfs.ts",
+      "sourceFile": "13-graph/bfs.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "13-graph/bfs.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "13-graph/bfs.ts",
+      "sourceFile": "13-graph/bfs.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string[]"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "13-graph/bfs.ts::%dflt::%AM2$%dflt/3",
+      "fileName": "13-graph/bfs.ts",
+      "sourceFile": "13-graph/bfs.ts",
+      "compiledModule": null,
+      "exportName": "breadthFirstSearch",
+      "parameterTypes": [
+        "Graph<string>",
+        "string",
+        ""
+      ],
+      "branches": 8,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "13-graph/bfs.ts::%dflt::%AM4$%AM3$%dflt/1",
+      "fileName": "13-graph/bfs.ts",
+      "sourceFile": "13-graph/bfs.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "13-graph/bfs.ts::%dflt::%AM3$%dflt/2",
+      "fileName": "13-graph/bfs.ts",
+      "sourceFile": "13-graph/bfs.ts",
+      "compiledModule": null,
+      "exportName": "bfsShortestPath",
+      "parameterTypes": [
+        "Graph<string>",
+        "string"
+      ],
+      "branches": 6,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "13-graph/kruskal.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "13-graph/kruskal.ts",
+      "sourceFile": "13-graph/kruskal.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number[][]"
+      ],
+      "branches": 10,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "not-exported",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "13-graph/kruskal.ts::%dflt::%AM2$%AM1$%dflt/0",
+      "fileName": "13-graph/kruskal.ts",
+      "sourceFile": "13-graph/kruskal.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "13-graph/kruskal.ts::%dflt::%AM1$%dflt/1",
+      "fileName": "13-graph/kruskal.ts",
+      "sourceFile": "13-graph/kruskal.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number[][]"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "not-exported",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "13-graph/kruskal.ts::%dflt::%AM3$%dflt/2",
+      "fileName": "13-graph/kruskal.ts",
+      "sourceFile": "13-graph/kruskal.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number",
+        "number[]"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "not-exported",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "13-graph/kruskal.ts::%dflt::%AM4$%dflt/3",
+      "fileName": "13-graph/kruskal.ts",
+      "sourceFile": "13-graph/kruskal.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number",
+        "number",
+        "number[]"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "not-exported",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "13-graph/04-using-dijkstra.ts::%dflt::%AM0$%dflt/1",
+      "fileName": "13-graph/04-using-dijkstra.ts",
+      "sourceFile": "13-graph/04-using-dijkstra.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches"
+      ]
+    },
+    {
+      "methodId": "13-graph/prim.ts::%dflt::%AM0$%dflt/3",
+      "fileName": "13-graph/prim.ts",
+      "sourceFile": "13-graph/prim.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number[][]",
+        "number[]",
+        "boolean[]"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "not-exported",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "13-graph/prim.ts::%dflt::%AM1$%dflt/1",
+      "fileName": "13-graph/prim.ts",
+      "sourceFile": "13-graph/prim.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number[][]"
+      ],
+      "branches": 8,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "not-exported",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "12-trie/trie.ts::Trie::insert/1",
+      "fileName": "12-trie/trie.ts",
+      "sourceFile": "12-trie/trie.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "12-trie/trie.ts::Trie::search/1",
+      "fileName": "12-trie/trie.ts",
+      "sourceFile": "12-trie/trie.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "12-trie/trie.ts::Trie::startsWith/1",
+      "fileName": "12-trie/trie.ts",
+      "sourceFile": "12-trie/trie.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "12-trie/trie.ts::Trie::remove/1",
+      "fileName": "12-trie/trie.ts",
+      "sourceFile": "12-trie/trie.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "12-trie/trie.ts::Trie::#removeWord/3",
+      "fileName": "12-trie/trie.ts",
+      "sourceFile": "12-trie/trie.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "TrieNode",
+        "string",
+        "number"
+      ],
+      "branches": 8,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/comparator.ts::Comparator::defaultCompareFn/2",
+      "fileName": "10-tree/comparator.ts",
+      "sourceFile": "10-tree/comparator.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T",
+        "T"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "function-origin-unresolved",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/comparator.ts::Comparator::equal/2",
+      "fileName": "10-tree/comparator.ts",
+      "sourceFile": "10-tree/comparator.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T",
+        "T"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/comparator.ts::Comparator::lessThan/2",
+      "fileName": "10-tree/comparator.ts",
+      "sourceFile": "10-tree/comparator.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T",
+        "T"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/comparator.ts::Comparator::greaterThan/2",
+      "fileName": "10-tree/comparator.ts",
+      "sourceFile": "10-tree/comparator.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T",
+        "T"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/06-red-black.ts::%dflt::%AM0$%dflt/2",
+      "fileName": "10-tree/06-red-black.ts",
+      "sourceFile": "10-tree/06-red-black.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "Student",
+        "Student"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/06-red-black.ts::Student::toString/0",
+      "fileName": "10-tree/06-red-black.ts",
+      "sourceFile": "10-tree/06-red-black.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "10-tree/02-in-order-traversal.ts::%dflt::%AM0$%dflt/2",
+      "fileName": "10-tree/02-in-order-traversal.ts",
+      "sourceFile": "10-tree/02-in-order-traversal.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "Student",
+        "Student"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/02-in-order-traversal.ts::%dflt::%AM1$%dflt/1",
+      "fileName": "10-tree/02-in-order-traversal.ts",
+      "sourceFile": "10-tree/02-in-order-traversal.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "Student"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/red-black-tree.ts::RedBlackNode::isRed/0",
+      "fileName": "10-tree/red-black-tree.ts",
+      "sourceFile": "10-tree/red-black-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "10-tree/red-black-tree.ts::RedBlackTree::insert/1",
+      "fileName": "10-tree/red-black-tree.ts",
+      "sourceFile": "10-tree/red-black-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/red-black-tree.ts::RedBlackTree::#insertNode/2",
+      "fileName": "10-tree/red-black-tree.ts",
+      "sourceFile": "10-tree/red-black-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "RedBlackNode<T>",
+        "T"
+      ],
+      "branches": 6,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/red-black-tree.ts::RedBlackTree::#fixTreeProperties/1",
+      "fileName": "10-tree/red-black-tree.ts",
+      "sourceFile": "10-tree/red-black-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "RedBlackNode<T>"
+      ],
+      "branches": 12,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/red-black-tree.ts::RedBlackTree::#flipColors/3",
+      "fileName": "10-tree/red-black-tree.ts",
+      "sourceFile": "10-tree/red-black-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "RedBlackNode<T>",
+        "RedBlackNode<T>",
+        "RedBlackNode<T>"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/red-black-tree.ts::RedBlackTree::#rotateLeft/1",
+      "fileName": "10-tree/red-black-tree.ts",
+      "sourceFile": "10-tree/red-black-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "RedBlackNode<T>"
+      ],
+      "branches": 6,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/red-black-tree.ts::RedBlackTree::#rotateRight/1",
+      "fileName": "10-tree/red-black-tree.ts",
+      "sourceFile": "10-tree/red-black-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "RedBlackNode<T>"
+      ],
+      "branches": 6,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/red-black-tree.ts::RedBlackTree::remove/1",
+      "fileName": "10-tree/red-black-tree.ts",
+      "sourceFile": "10-tree/red-black-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/red-black-tree.ts::RedBlackTree::#removeNode/2",
+      "fileName": "10-tree/red-black-tree.ts",
+      "sourceFile": "10-tree/red-black-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T",
+        "RedBlackNode<T> | null"
+      ],
+      "branches": 12,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/red-black-tree.ts::RedBlackTree::#findMinNode/1",
+      "fileName": "10-tree/red-black-tree.ts",
+      "sourceFile": "10-tree/red-black-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "RedBlackNode<T>"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/red-black-tree.ts::RedBlackTree::#balance/1",
+      "fileName": "10-tree/red-black-tree.ts",
+      "sourceFile": "10-tree/red-black-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "RedBlackNode<T>"
+      ],
+      "branches": 14,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/red-black-tree.ts::RedBlackTree::printInorder/1",
+      "fileName": "10-tree/red-black-tree.ts",
+      "sourceFile": "10-tree/red-black-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "RedBlackNode<T> | null"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/red-black-tree.ts::RedBlackTree::print/0",
+      "fileName": "10-tree/red-black-tree.ts",
+      "sourceFile": "10-tree/red-black-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "10-tree/segment-tree.ts::SegmentTree::#build/3",
+      "fileName": "10-tree/segment-tree.ts",
+      "sourceFile": "10-tree/segment-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number",
+        "number",
+        "number"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "10-tree/segment-tree.ts::SegmentTree::query/2",
+      "fileName": "10-tree/segment-tree.ts",
+      "sourceFile": "10-tree/segment-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number",
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "10-tree/segment-tree.ts::SegmentTree::#query/5",
+      "fileName": "10-tree/segment-tree.ts",
+      "sourceFile": "10-tree/segment-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number",
+        "number",
+        "number",
+        "number",
+        "number"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "10-tree/segment-tree.ts::SegmentTree::update/2",
+      "fileName": "10-tree/segment-tree.ts",
+      "sourceFile": "10-tree/segment-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number",
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "10-tree/segment-tree.ts::SegmentTree::#update/5",
+      "fileName": "10-tree/segment-tree.ts",
+      "sourceFile": "10-tree/segment-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number",
+        "number",
+        "number",
+        "number",
+        "number"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "10-tree/segment-tree.ts::SegmentTree::toString/0",
+      "fileName": "10-tree/segment-tree.ts",
+      "sourceFile": "10-tree/segment-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "10-tree/binary-search-tree.ts::BinarySearchTree::insert/1",
+      "fileName": "10-tree/binary-search-tree.ts",
+      "sourceFile": "10-tree/binary-search-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/binary-search-tree.ts::BinarySearchTree::#insertNode/2",
+      "fileName": "10-tree/binary-search-tree.ts",
+      "sourceFile": "10-tree/binary-search-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T",
+        "BSTNode<T>"
+      ],
+      "branches": 6,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/binary-search-tree.ts::BinarySearchTree::search/1",
+      "fileName": "10-tree/binary-search-tree.ts",
+      "sourceFile": "10-tree/binary-search-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/binary-search-tree.ts::BinarySearchTree::#searchNode/2",
+      "fileName": "10-tree/binary-search-tree.ts",
+      "sourceFile": "10-tree/binary-search-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T",
+        "BSTNode<T> | null"
+      ],
+      "branches": 6,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/binary-search-tree.ts::BinarySearchTree::remove/1",
+      "fileName": "10-tree/binary-search-tree.ts",
+      "sourceFile": "10-tree/binary-search-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/binary-search-tree.ts::BinarySearchTree::#removeNode/2",
+      "fileName": "10-tree/binary-search-tree.ts",
+      "sourceFile": "10-tree/binary-search-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T",
+        "BSTNode<T> | null"
+      ],
+      "branches": 12,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/binary-search-tree.ts::BinarySearchTree::min/0",
+      "fileName": "10-tree/binary-search-tree.ts",
+      "sourceFile": "10-tree/binary-search-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "10-tree/binary-search-tree.ts::BinarySearchTree::#findMinNode/1",
+      "fileName": "10-tree/binary-search-tree.ts",
+      "sourceFile": "10-tree/binary-search-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "BSTNode<T>"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/binary-search-tree.ts::BinarySearchTree::max/0",
+      "fileName": "10-tree/binary-search-tree.ts",
+      "sourceFile": "10-tree/binary-search-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "10-tree/binary-search-tree.ts::BinarySearchTree::#findMaxNode/1",
+      "fileName": "10-tree/binary-search-tree.ts",
+      "sourceFile": "10-tree/binary-search-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "BSTNode<T>"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/binary-search-tree.ts::BinarySearchTree::root/0",
+      "fileName": "10-tree/binary-search-tree.ts",
+      "sourceFile": "10-tree/binary-search-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "10-tree/binary-search-tree.ts::BinarySearchTree::inOrderTraverse/1",
+      "fileName": "10-tree/binary-search-tree.ts",
+      "sourceFile": "10-tree/binary-search-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        ""
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/binary-search-tree.ts::BinarySearchTree::#inOrderTraverseNode/2",
+      "fileName": "10-tree/binary-search-tree.ts",
+      "sourceFile": "10-tree/binary-search-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "BSTNode<T> | null",
+        ""
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/binary-search-tree.ts::BinarySearchTree::preOrderTraverse/1",
+      "fileName": "10-tree/binary-search-tree.ts",
+      "sourceFile": "10-tree/binary-search-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        ""
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/binary-search-tree.ts::BinarySearchTree::#preOrderTraverseNode/2",
+      "fileName": "10-tree/binary-search-tree.ts",
+      "sourceFile": "10-tree/binary-search-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "BSTNode<T> | null",
+        ""
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/binary-search-tree.ts::BinarySearchTree::postOrderTraverse/1",
+      "fileName": "10-tree/binary-search-tree.ts",
+      "sourceFile": "10-tree/binary-search-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        ""
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/binary-search-tree.ts::BinarySearchTree::#postOrderTraverseNode/2",
+      "fileName": "10-tree/binary-search-tree.ts",
+      "sourceFile": "10-tree/binary-search-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "BSTNode<T> | null",
+        ""
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/01-bst.ts::%dflt::%AM0$%dflt/2",
+      "fileName": "10-tree/01-bst.ts",
+      "sourceFile": "10-tree/01-bst.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "Student",
+        "Student"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/03-pre-order-traversal.ts::%dflt::%AM0$%dflt/2",
+      "fileName": "10-tree/03-pre-order-traversal.ts",
+      "sourceFile": "10-tree/03-pre-order-traversal.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "Employee",
+        "Employee"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/03-pre-order-traversal.ts::%dflt::%AM1$%dflt/2",
+      "fileName": "10-tree/03-pre-order-traversal.ts",
+      "sourceFile": "10-tree/03-pre-order-traversal.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "Employee",
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/03-pre-order-traversal.ts::%dflt::%AM2$%dflt/1",
+      "fileName": "10-tree/03-pre-order-traversal.ts",
+      "sourceFile": "10-tree/03-pre-order-traversal.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "Employee"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/avl-tree.ts::AVLTree::insert/1",
+      "fileName": "10-tree/avl-tree.ts",
+      "sourceFile": "10-tree/avl-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/avl-tree.ts::AVLTree::#insertNode/2",
+      "fileName": "10-tree/avl-tree.ts",
+      "sourceFile": "10-tree/avl-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T",
+        "AVLNode<T> | null"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/avl-tree.ts::AVLTree::#updateNodeHeight/1",
+      "fileName": "10-tree/avl-tree.ts",
+      "sourceFile": "10-tree/avl-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "AVLNode<T>"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/avl-tree.ts::AVLTree::#getHeight/1",
+      "fileName": "10-tree/avl-tree.ts",
+      "sourceFile": "10-tree/avl-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "AVLNode<T> | null"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/avl-tree.ts::AVLTree::#getBalanceFactor/1",
+      "fileName": "10-tree/avl-tree.ts",
+      "sourceFile": "10-tree/avl-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "AVLNode<T>"
+      ],
+      "branches": 8,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/avl-tree.ts::AVLTree::#balance/1",
+      "fileName": "10-tree/avl-tree.ts",
+      "sourceFile": "10-tree/avl-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "AVLNode<T>"
+      ],
+      "branches": 8,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/avl-tree.ts::AVLTree::#rotateRight/1",
+      "fileName": "10-tree/avl-tree.ts",
+      "sourceFile": "10-tree/avl-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "AVLNode<T>"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/avl-tree.ts::AVLTree::#rotateLeft/1",
+      "fileName": "10-tree/avl-tree.ts",
+      "sourceFile": "10-tree/avl-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "AVLNode<T>"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/avl-tree.ts::AVLTree::#rotateLeftRight/1",
+      "fileName": "10-tree/avl-tree.ts",
+      "sourceFile": "10-tree/avl-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "AVLNode<T>"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/avl-tree.ts::AVLTree::#rotateRightLeft/1",
+      "fileName": "10-tree/avl-tree.ts",
+      "sourceFile": "10-tree/avl-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "AVLNode<T>"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/avl-tree.ts::AVLTree::remove/1",
+      "fileName": "10-tree/avl-tree.ts",
+      "sourceFile": "10-tree/avl-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/avl-tree.ts::AVLTree::#removeNode/2",
+      "fileName": "10-tree/avl-tree.ts",
+      "sourceFile": "10-tree/avl-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T",
+        "AVLNode<T> | null"
+      ],
+      "branches": 12,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/avl-tree.ts::AVLTree::#findMinNode/1",
+      "fileName": "10-tree/avl-tree.ts",
+      "sourceFile": "10-tree/avl-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "AVLNode<T>"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/fenwick-tree.ts::FenwickTree::update/2",
+      "fileName": "10-tree/fenwick-tree.ts",
+      "sourceFile": "10-tree/fenwick-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number",
+        "number"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "10-tree/fenwick-tree.ts::FenwickTree::query/1",
+      "fileName": "10-tree/fenwick-tree.ts",
+      "sourceFile": "10-tree/fenwick-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "10-tree/fenwick-tree.ts::FenwickTree::#lowBit/1",
+      "fileName": "10-tree/fenwick-tree.ts",
+      "sourceFile": "10-tree/fenwick-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "10-tree/fenwick-tree.ts::FenwickTree::arraySize/0",
+      "fileName": "10-tree/fenwick-tree.ts",
+      "sourceFile": "10-tree/fenwick-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "10-tree/fenwick-tree.ts::FenwickTree::toString/0",
+      "fileName": "10-tree/fenwick-tree.ts",
+      "sourceFile": "10-tree/fenwick-tree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "10-tree/05-avl.ts::%dflt::%AM0$%dflt/2",
+      "fileName": "10-tree/05-avl.ts",
+      "sourceFile": "10-tree/05-avl.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "Student",
+        "Student"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/05-avl.ts::Student::toString/0",
+      "fileName": "10-tree/05-avl.ts",
+      "sourceFile": "10-tree/05-avl.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "10-tree/04-post-order-traversal.ts::%dflt::%AM0$%dflt/2",
+      "fileName": "10-tree/04-post-order-traversal.ts",
+      "sourceFile": "10-tree/04-post-order-traversal.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "FileOrDirectory",
+        "FileOrDirectory"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "10-tree/04-post-order-traversal.ts::%dflt::%AM1$%dflt/1",
+      "fileName": "10-tree/04-post-order-traversal.ts",
+      "sourceFile": "10-tree/04-post-order-traversal.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "FileOrDirectory"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "04-stack/stack.ts::%dflt::%AM0$toString/1",
+      "fileName": "04-stack/stack.ts",
+      "sourceFile": "04-stack/stack.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "function-origin-unresolved",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "04-stack/stack.ts::Stack::push/1",
+      "fileName": "04-stack/stack.ts",
+      "sourceFile": "04-stack/stack.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "04-stack/stack.ts::Stack::pop/0",
+      "fileName": "04-stack/stack.ts",
+      "sourceFile": "04-stack/stack.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "04-stack/stack.ts::Stack::peek/0",
+      "fileName": "04-stack/stack.ts",
+      "sourceFile": "04-stack/stack.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "04-stack/stack.ts::Stack::isEmpty/0",
+      "fileName": "04-stack/stack.ts",
+      "sourceFile": "04-stack/stack.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "04-stack/stack.ts::Stack::size/0",
+      "fileName": "04-stack/stack.ts",
+      "sourceFile": "04-stack/stack.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "04-stack/stack.ts::Stack::clear/0",
+      "fileName": "04-stack/stack.ts",
+      "sourceFile": "04-stack/stack.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "04-stack/stack.ts::Stack::toString/0",
+      "fileName": "04-stack/stack.ts",
+      "sourceFile": "04-stack/stack.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "04-stack/decimal-to-binary.ts::%dflt::decimalToBinary/1",
+      "fileName": "04-stack/decimal-to-binary.ts",
+      "sourceFile": "04-stack/decimal-to-binary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 8,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "not-exported"
+      ]
+    },
+    {
+      "methodId": "04-stack/tower-of-hanoi.ts::%dflt::towerOfHanoi/4",
+      "fileName": "04-stack/tower-of-hanoi.ts",
+      "sourceFile": "04-stack/tower-of-hanoi.ts",
+      "compiledModule": null,
+      "exportName": "towerOfHanoi",
+      "parameterTypes": [
+        "number",
+        "Stack<T>",
+        "Stack<T>",
+        "Stack<T>"
+      ],
+      "branches": 2,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "04-stack/decimal-to-base.ts::%dflt::decimalToBase/2",
+      "fileName": "04-stack/decimal-to-base.ts",
+      "sourceFile": "04-stack/decimal-to-base.ts",
+      "compiledModule": null,
+      "exportName": "decimalToBase",
+      "parameterTypes": [
+        "number",
+        "number"
+      ],
+      "branches": 8,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    },
+    {
+      "methodId": "04-stack/decimal-to-base.ts::%dflt::decimalToBase64/2",
+      "fileName": "04-stack/decimal-to-base.ts",
+      "sourceFile": "04-stack/decimal-to-base.ts",
+      "compiledModule": null,
+      "exportName": "decimalToBase64",
+      "parameterTypes": [
+        "number",
+        "number"
+      ],
+      "branches": 14,
+      "sourceCallable": true,
+      "primitiveEligible": true,
+      "reasons": []
+    }
+  ]
+}

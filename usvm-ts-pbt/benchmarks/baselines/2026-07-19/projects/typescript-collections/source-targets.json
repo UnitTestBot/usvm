@@ -1,0 +1,3606 @@
+{
+  "schemaVersion": 1,
+  "summary": {
+    "manifestMethods": 215,
+    "manifestBranches": 454,
+    "sourceCallableMethods": 10,
+    "sourceCallableBranches": 48,
+    "primitiveEligibleMethods": 0,
+    "primitiveEligibleBranches": 0,
+    "exclusionsByReason": {
+      "no-branches": 121,
+      "entry-kind:instance": 179,
+      "non-primitive-parameters": 112,
+      "function-origin-unresolved": 3,
+      "nested-function": 2,
+      "ambiguous-source-binding": 2
+    }
+  },
+  "entries": [
+    {
+      "methodId": "Stack.ts::Stack::push/1",
+      "fileName": "Stack.ts",
+      "sourceFile": "Stack.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Stack.ts::Stack::add/1",
+      "fileName": "Stack.ts",
+      "sourceFile": "Stack.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Stack.ts::Stack::pop/0",
+      "fileName": "Stack.ts",
+      "sourceFile": "Stack.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Stack.ts::Stack::peek/0",
+      "fileName": "Stack.ts",
+      "sourceFile": "Stack.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Stack.ts::Stack::size/0",
+      "fileName": "Stack.ts",
+      "sourceFile": "Stack.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Stack.ts::Stack::contains/2",
+      "fileName": "Stack.ts",
+      "sourceFile": "Stack.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T",
+        "IEqualsFunction<T>"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Stack.ts::Stack::isEmpty/0",
+      "fileName": "Stack.ts",
+      "sourceFile": "Stack.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Stack.ts::Stack::clear/0",
+      "fileName": "Stack.ts",
+      "sourceFile": "Stack.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Stack.ts::Stack::forEach/1",
+      "fileName": "Stack.ts",
+      "sourceFile": "Stack.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "ILoopFunction<T>"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Heap.ts::Heap::leftChildIndex/1",
+      "fileName": "Heap.ts",
+      "sourceFile": "Heap.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Heap.ts::Heap::rightChildIndex/1",
+      "fileName": "Heap.ts",
+      "sourceFile": "Heap.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Heap.ts::Heap::parentIndex/1",
+      "fileName": "Heap.ts",
+      "sourceFile": "Heap.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Heap.ts::Heap::minIndex/2",
+      "fileName": "Heap.ts",
+      "sourceFile": "Heap.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number",
+        "number"
+      ],
+      "branches": 6,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Heap.ts::Heap::siftUp/1",
+      "fileName": "Heap.ts",
+      "sourceFile": "Heap.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Heap.ts::Heap::siftDown/1",
+      "fileName": "Heap.ts",
+      "sourceFile": "Heap.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Heap.ts::Heap::peek/0",
+      "fileName": "Heap.ts",
+      "sourceFile": "Heap.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Heap.ts::Heap::add/1",
+      "fileName": "Heap.ts",
+      "sourceFile": "Heap.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Heap.ts::Heap::removeRoot/0",
+      "fileName": "Heap.ts",
+      "sourceFile": "Heap.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Heap.ts::Heap::contains/1",
+      "fileName": "Heap.ts",
+      "sourceFile": "Heap.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Heap.ts::Heap::size/0",
+      "fileName": "Heap.ts",
+      "sourceFile": "Heap.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Heap.ts::Heap::isEmpty/0",
+      "fileName": "Heap.ts",
+      "sourceFile": "Heap.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Heap.ts::Heap::clear/0",
+      "fileName": "Heap.ts",
+      "sourceFile": "Heap.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Heap.ts::Heap::forEach/1",
+      "fileName": "Heap.ts",
+      "sourceFile": "Heap.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "ILoopFunction<T>"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "BSTreeKV.ts::%dflt::%AM0$toArray/1",
+      "fileName": "BSTreeKV.ts",
+      "sourceFile": "BSTreeKV.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "V"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "BSTreeKV.ts::BSTreeKV::add/1",
+      "fileName": "BSTreeKV.ts",
+      "sourceFile": "BSTreeKV.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "V"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "BSTreeKV.ts::BSTreeKV::clear/0",
+      "fileName": "BSTreeKV.ts",
+      "sourceFile": "BSTreeKV.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "BSTreeKV.ts::BSTreeKV::isEmpty/0",
+      "fileName": "BSTreeKV.ts",
+      "sourceFile": "BSTreeKV.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "BSTreeKV.ts::BSTreeKV::size/0",
+      "fileName": "BSTreeKV.ts",
+      "sourceFile": "BSTreeKV.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "BSTreeKV.ts::BSTreeKV::contains/1",
+      "fileName": "BSTreeKV.ts",
+      "sourceFile": "BSTreeKV.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "K"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "BSTreeKV.ts::BSTreeKV::search/1",
+      "fileName": "BSTreeKV.ts",
+      "sourceFile": "BSTreeKV.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "K"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "BSTreeKV.ts::BSTreeKV::remove/1",
+      "fileName": "BSTreeKV.ts",
+      "sourceFile": "BSTreeKV.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "K"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "BSTreeKV.ts::BSTreeKV::inorderTraversal/1",
+      "fileName": "BSTreeKV.ts",
+      "sourceFile": "BSTreeKV.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "ILoopFunction<V>"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "BSTreeKV.ts::BSTreeKV::preorderTraversal/1",
+      "fileName": "BSTreeKV.ts",
+      "sourceFile": "BSTreeKV.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "ILoopFunction<V>"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "BSTreeKV.ts::BSTreeKV::postorderTraversal/1",
+      "fileName": "BSTreeKV.ts",
+      "sourceFile": "BSTreeKV.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "ILoopFunction<V>"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "BSTreeKV.ts::BSTreeKV::levelTraversal/1",
+      "fileName": "BSTreeKV.ts",
+      "sourceFile": "BSTreeKV.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "ILoopFunction<V>"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "BSTreeKV.ts::BSTreeKV::minimum/0",
+      "fileName": "BSTreeKV.ts",
+      "sourceFile": "BSTreeKV.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "BSTreeKV.ts::BSTreeKV::maximum/0",
+      "fileName": "BSTreeKV.ts",
+      "sourceFile": "BSTreeKV.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "BSTreeKV.ts::BSTreeKV::forEach/1",
+      "fileName": "BSTreeKV.ts",
+      "sourceFile": "BSTreeKV.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "ILoopFunction<V>"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "BSTreeKV.ts::BSTreeKV::toArray/0",
+      "fileName": "BSTreeKV.ts",
+      "sourceFile": "BSTreeKV.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "BSTreeKV.ts::BSTreeKV::height/0",
+      "fileName": "BSTreeKV.ts",
+      "sourceFile": "BSTreeKV.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "BSTreeKV.ts::BSTreeKV::searchNode/2",
+      "fileName": "BSTreeKV.ts",
+      "sourceFile": "BSTreeKV.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "BSTreeNode<V> | null",
+        "K"
+      ],
+      "branches": 6,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "BSTreeKV.ts::BSTreeKV::transplant/2",
+      "fileName": "BSTreeKV.ts",
+      "sourceFile": "BSTreeKV.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "BSTreeNode<V>",
+        "BSTreeNode<V> | null"
+      ],
+      "branches": 6,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "BSTreeKV.ts::BSTreeKV::removeNode/1",
+      "fileName": "BSTreeKV.ts",
+      "sourceFile": "BSTreeKV.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "BSTreeNode<V>"
+      ],
+      "branches": 6,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "BSTreeKV.ts::BSTreeKV::inorderTraversalAux/3",
+      "fileName": "BSTreeKV.ts",
+      "sourceFile": "BSTreeKV.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "BSTreeNode<V> | null",
+        "ILoopFunction<V>",
+        "unknown"
+      ],
+      "branches": 6,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "BSTreeKV.ts::BSTreeKV::levelTraversalAux/2",
+      "fileName": "BSTreeKV.ts",
+      "sourceFile": "BSTreeKV.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "BSTreeNode<V> | null",
+        "ILoopFunction<V>"
+      ],
+      "branches": 10,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "BSTreeKV.ts::BSTreeKV::preorderTraversalAux/3",
+      "fileName": "BSTreeKV.ts",
+      "sourceFile": "BSTreeKV.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "BSTreeNode<V> | null",
+        "ILoopFunction<V>",
+        "unknown"
+      ],
+      "branches": 6,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "BSTreeKV.ts::BSTreeKV::postorderTraversalAux/3",
+      "fileName": "BSTreeKV.ts",
+      "sourceFile": "BSTreeKV.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "BSTreeNode<V> | null",
+        "ILoopFunction<V>",
+        "unknown"
+      ],
+      "branches": 6,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "BSTreeKV.ts::BSTreeKV::minimumAux/1",
+      "fileName": "BSTreeKV.ts",
+      "sourceFile": "BSTreeKV.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "BSTreeNode<V> | null"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "BSTreeKV.ts::BSTreeKV::maximumAux/1",
+      "fileName": "BSTreeKV.ts",
+      "sourceFile": "BSTreeKV.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "BSTreeNode<V> | null"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "BSTreeKV.ts::BSTreeKV::heightAux/1",
+      "fileName": "BSTreeKV.ts",
+      "sourceFile": "BSTreeKV.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "BSTreeNode<V> | null"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "BSTreeKV.ts::BSTreeKV::insertNode/1",
+      "fileName": "BSTreeKV.ts",
+      "sourceFile": "BSTreeKV.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "BSTreeNode<V>"
+      ],
+      "branches": 10,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "BSTreeKV.ts::BSTreeKV::createNode/1",
+      "fileName": "BSTreeKV.ts",
+      "sourceFile": "BSTreeKV.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "V"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Set.ts::%dflt::%AM0$intersection/1",
+      "fileName": "Set.ts",
+      "sourceFile": "Set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "function-origin-unresolved",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Set.ts::%dflt::%AM1$union/1",
+      "fileName": "Set.ts",
+      "sourceFile": "Set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Set.ts::%dflt::%AM2$difference/1",
+      "fileName": "Set.ts",
+      "sourceFile": "Set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Set.ts::%dflt::%AM3$isSubsetOf/1",
+      "fileName": "Set.ts",
+      "sourceFile": "Set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "function-origin-unresolved",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Set.ts::%dflt::%AM4$forEach/2",
+      "fileName": "Set.ts",
+      "sourceFile": "Set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T",
+        "any"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Set.ts::Set::contains/1",
+      "fileName": "Set.ts",
+      "sourceFile": "Set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Set.ts::Set::add/1",
+      "fileName": "Set.ts",
+      "sourceFile": "Set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Set.ts::Set::intersection/1",
+      "fileName": "Set.ts",
+      "sourceFile": "Set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "Set<T>"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Set.ts::Set::union/1",
+      "fileName": "Set.ts",
+      "sourceFile": "Set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "Set<T>"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Set.ts::Set::difference/1",
+      "fileName": "Set.ts",
+      "sourceFile": "Set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "Set<T>"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Set.ts::Set::isSubsetOf/1",
+      "fileName": "Set.ts",
+      "sourceFile": "Set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "Set<T>"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Set.ts::Set::remove/1",
+      "fileName": "Set.ts",
+      "sourceFile": "Set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Set.ts::Set::forEach/1",
+      "fileName": "Set.ts",
+      "sourceFile": "Set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "ILoopFunction<T>"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Set.ts::Set::toArray/0",
+      "fileName": "Set.ts",
+      "sourceFile": "Set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Set.ts::Set::isEmpty/0",
+      "fileName": "Set.ts",
+      "sourceFile": "Set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Set.ts::Set::size/0",
+      "fileName": "Set.ts",
+      "sourceFile": "Set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Set.ts::Set::clear/0",
+      "fileName": "Set.ts",
+      "sourceFile": "Set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Set.ts::Set::toString/0",
+      "fileName": "Set.ts",
+      "sourceFile": "Set.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "LinkedList.ts::LinkedList::add/2",
+      "fileName": "LinkedList.ts",
+      "sourceFile": "LinkedList.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T",
+        "number"
+      ],
+      "branches": 12,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "LinkedList.ts::LinkedList::first/0",
+      "fileName": "LinkedList.ts",
+      "sourceFile": "LinkedList.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "LinkedList.ts::LinkedList::last/0",
+      "fileName": "LinkedList.ts",
+      "sourceFile": "LinkedList.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "LinkedList.ts::LinkedList::elementAtIndex/1",
+      "fileName": "LinkedList.ts",
+      "sourceFile": "LinkedList.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "LinkedList.ts::LinkedList::indexOf/2",
+      "fileName": "LinkedList.ts",
+      "sourceFile": "LinkedList.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T",
+        "IEqualsFunction<T>"
+      ],
+      "branches": 6,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "LinkedList.ts::LinkedList::contains/2",
+      "fileName": "LinkedList.ts",
+      "sourceFile": "LinkedList.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T",
+        "IEqualsFunction<T>"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "LinkedList.ts::LinkedList::remove/2",
+      "fileName": "LinkedList.ts",
+      "sourceFile": "LinkedList.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T",
+        "IEqualsFunction<T>"
+      ],
+      "branches": 12,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "LinkedList.ts::LinkedList::clear/0",
+      "fileName": "LinkedList.ts",
+      "sourceFile": "LinkedList.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "LinkedList.ts::LinkedList::equals/2",
+      "fileName": "LinkedList.ts",
+      "sourceFile": "LinkedList.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "any",
+        "IEqualsFunction<T>"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "LinkedList.ts::LinkedList::equalsAux/3",
+      "fileName": "LinkedList.ts",
+      "sourceFile": "LinkedList.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "ILinkedListNode<T> | null",
+        "ILinkedListNode<T> | null",
+        "IEqualsFunction<T>"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "LinkedList.ts::LinkedList::removeElementAtIndex/1",
+      "fileName": "LinkedList.ts",
+      "sourceFile": "LinkedList.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 10,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "LinkedList.ts::LinkedList::forEach/1",
+      "fileName": "LinkedList.ts",
+      "sourceFile": "LinkedList.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "ILoopFunction<T>"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "LinkedList.ts::LinkedList::reverse/0",
+      "fileName": "LinkedList.ts",
+      "sourceFile": "LinkedList.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "LinkedList.ts::LinkedList::toArray/0",
+      "fileName": "LinkedList.ts",
+      "sourceFile": "LinkedList.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "LinkedList.ts::LinkedList::size/0",
+      "fileName": "LinkedList.ts",
+      "sourceFile": "LinkedList.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "LinkedList.ts::LinkedList::isEmpty/0",
+      "fileName": "LinkedList.ts",
+      "sourceFile": "LinkedList.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "LinkedList.ts::LinkedList::toString/0",
+      "fileName": "LinkedList.ts",
+      "sourceFile": "LinkedList.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "LinkedList.ts::LinkedList::nodeAtIndex/1",
+      "fileName": "LinkedList.ts",
+      "sourceFile": "LinkedList.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 6,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "LinkedList.ts::LinkedList::createNode/1",
+      "fileName": "LinkedList.ts",
+      "sourceFile": "LinkedList.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Dictionary.ts::%dflt::%AM0$toString/2",
+      "fileName": "Dictionary.ts",
+      "sourceFile": "Dictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "K",
+        "V"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Dictionary.ts::Dictionary::getValue/1",
+      "fileName": "Dictionary.ts",
+      "sourceFile": "Dictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "K"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Dictionary.ts::Dictionary::setValue/2",
+      "fileName": "Dictionary.ts",
+      "sourceFile": "Dictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "K",
+        "V"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Dictionary.ts::Dictionary::remove/1",
+      "fileName": "Dictionary.ts",
+      "sourceFile": "Dictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "K"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Dictionary.ts::Dictionary::keys/0",
+      "fileName": "Dictionary.ts",
+      "sourceFile": "Dictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Dictionary.ts::Dictionary::values/0",
+      "fileName": "Dictionary.ts",
+      "sourceFile": "Dictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Dictionary.ts::Dictionary::forEach/1",
+      "fileName": "Dictionary.ts",
+      "sourceFile": "Dictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        ""
+      ],
+      "branches": 6,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Dictionary.ts::Dictionary::containsKey/1",
+      "fileName": "Dictionary.ts",
+      "sourceFile": "Dictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "K"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Dictionary.ts::Dictionary::clear/0",
+      "fileName": "Dictionary.ts",
+      "sourceFile": "Dictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Dictionary.ts::Dictionary::size/0",
+      "fileName": "Dictionary.ts",
+      "sourceFile": "Dictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Dictionary.ts::Dictionary::isEmpty/0",
+      "fileName": "Dictionary.ts",
+      "sourceFile": "Dictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Dictionary.ts::Dictionary::toString/0",
+      "fileName": "Dictionary.ts",
+      "sourceFile": "Dictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "arrays.ts::%dflt::indexOf/3",
+      "fileName": "arrays.ts",
+      "sourceFile": "arrays.ts",
+      "compiledModule": null,
+      "exportName": "indexOf",
+      "parameterTypes": [
+        "T[]",
+        "T",
+        "IEqualsFunction<T>"
+      ],
+      "branches": 4,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "arrays.ts::%dflt::lastIndexOf/3",
+      "fileName": "arrays.ts",
+      "sourceFile": "arrays.ts",
+      "compiledModule": null,
+      "exportName": "lastIndexOf",
+      "parameterTypes": [
+        "T[]",
+        "T",
+        "IEqualsFunction<T>"
+      ],
+      "branches": 4,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "arrays.ts::%dflt::contains/3",
+      "fileName": "arrays.ts",
+      "sourceFile": "arrays.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T[]",
+        "T",
+        "IEqualsFunction<T>"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "arrays.ts::%dflt::remove/3",
+      "fileName": "arrays.ts",
+      "sourceFile": "arrays.ts",
+      "compiledModule": null,
+      "exportName": "remove",
+      "parameterTypes": [
+        "T[]",
+        "T",
+        "IEqualsFunction<T>"
+      ],
+      "branches": 2,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "arrays.ts::%dflt::frequency/3",
+      "fileName": "arrays.ts",
+      "sourceFile": "arrays.ts",
+      "compiledModule": null,
+      "exportName": "frequency",
+      "parameterTypes": [
+        "T[]",
+        "T",
+        "IEqualsFunction<T>"
+      ],
+      "branches": 4,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "arrays.ts::%dflt::equals/3",
+      "fileName": "arrays.ts",
+      "sourceFile": "arrays.ts",
+      "compiledModule": null,
+      "exportName": "equals",
+      "parameterTypes": [
+        "T[]",
+        "T[]",
+        "IEqualsFunction<T>"
+      ],
+      "branches": 6,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "arrays.ts::%dflt::copy/1",
+      "fileName": "arrays.ts",
+      "sourceFile": "arrays.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T[]"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "arrays.ts::%dflt::swap/3",
+      "fileName": "arrays.ts",
+      "sourceFile": "arrays.ts",
+      "compiledModule": null,
+      "exportName": "swap",
+      "parameterTypes": [
+        "T[]",
+        "number",
+        "number"
+      ],
+      "branches": 2,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "arrays.ts::%dflt::toString/1",
+      "fileName": "arrays.ts",
+      "sourceFile": "arrays.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T[]"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "arrays.ts::%dflt::forEach/2",
+      "fileName": "arrays.ts",
+      "sourceFile": "arrays.ts",
+      "compiledModule": null,
+      "exportName": "forEach",
+      "parameterTypes": [
+        "T[]",
+        "ILoopFunction<T>"
+      ],
+      "branches": 4,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "PriorityQueue.ts::PriorityQueue::enqueue/1",
+      "fileName": "PriorityQueue.ts",
+      "sourceFile": "PriorityQueue.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "PriorityQueue.ts::PriorityQueue::add/1",
+      "fileName": "PriorityQueue.ts",
+      "sourceFile": "PriorityQueue.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "PriorityQueue.ts::PriorityQueue::dequeue/0",
+      "fileName": "PriorityQueue.ts",
+      "sourceFile": "PriorityQueue.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "PriorityQueue.ts::PriorityQueue::peek/0",
+      "fileName": "PriorityQueue.ts",
+      "sourceFile": "PriorityQueue.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "PriorityQueue.ts::PriorityQueue::contains/1",
+      "fileName": "PriorityQueue.ts",
+      "sourceFile": "PriorityQueue.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "PriorityQueue.ts::PriorityQueue::isEmpty/0",
+      "fileName": "PriorityQueue.ts",
+      "sourceFile": "PriorityQueue.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "PriorityQueue.ts::PriorityQueue::size/0",
+      "fileName": "PriorityQueue.ts",
+      "sourceFile": "PriorityQueue.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "PriorityQueue.ts::PriorityQueue::clear/0",
+      "fileName": "PriorityQueue.ts",
+      "sourceFile": "PriorityQueue.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "PriorityQueue.ts::PriorityQueue::forEach/1",
+      "fileName": "PriorityQueue.ts",
+      "sourceFile": "PriorityQueue.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "ILoopFunction<T>"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "FactoryDictionary.ts::FactoryDictionary::setDefault/2",
+      "fileName": "FactoryDictionary.ts",
+      "sourceFile": "FactoryDictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "K",
+        "V"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "FactoryDictionary.ts::FactoryDictionary::getValue/1",
+      "fileName": "FactoryDictionary.ts",
+      "sourceFile": "FactoryDictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "K"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Queue.ts::Queue::enqueue/1",
+      "fileName": "Queue.ts",
+      "sourceFile": "Queue.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Queue.ts::Queue::add/1",
+      "fileName": "Queue.ts",
+      "sourceFile": "Queue.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Queue.ts::Queue::dequeue/0",
+      "fileName": "Queue.ts",
+      "sourceFile": "Queue.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Queue.ts::Queue::peek/0",
+      "fileName": "Queue.ts",
+      "sourceFile": "Queue.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Queue.ts::Queue::size/0",
+      "fileName": "Queue.ts",
+      "sourceFile": "Queue.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Queue.ts::Queue::contains/2",
+      "fileName": "Queue.ts",
+      "sourceFile": "Queue.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T",
+        "IEqualsFunction<T>"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Queue.ts::Queue::isEmpty/0",
+      "fileName": "Queue.ts",
+      "sourceFile": "Queue.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Queue.ts::Queue::clear/0",
+      "fileName": "Queue.ts",
+      "sourceFile": "Queue.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Queue.ts::Queue::forEach/1",
+      "fileName": "Queue.ts",
+      "sourceFile": "Queue.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "ILoopFunction<T>"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::%dflt::countChildren/1",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "nested-function"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::%dflt::traverse/4",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string",
+        "unknown",
+        "any[]",
+        "number"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "nested-function",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::initRootIds/0",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::initNodes/0",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 6,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::createEmptyNodeIfNotExist/1",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::getRootIds/0",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::getNodes/0",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::getObject/0",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::toObject/0",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::flatten/0",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::moveIdBeforeId/2",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string",
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::moveIdAfterId/2",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string",
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::moveIdIntoId/3",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string",
+        "string",
+        "boolean"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::swapRootIdWithRootId/2",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string",
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::swapRootPositionWithRootPosition/2",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number",
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::deleteId/1",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::insertIdBeforeId/2",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string",
+        "string"
+      ],
+      "branches": 8,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::insertIdAfterId/2",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string",
+        "string"
+      ],
+      "branches": 8,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::insertIdIntoId/2",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string",
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::insertIdIntoRoot/2",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string",
+        "number"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::insertIdIntoNode/3",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string",
+        "string",
+        "number"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::moveId/3",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string",
+        "string",
+        "Direction"
+      ],
+      "branches": 76,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::swapArrayElements/3",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "any[]",
+        "number",
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::rootDeleteId/1",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::nodeAndSubNodesDelete/1",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::nodeRefrencesDelete/1",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 8,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::nodeDelete/1",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::findRootId/1",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::findNodeId/2",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string",
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::findNode/1",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::nodeInsertAtStart/2",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string",
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::nodeInsertAtEnd/2",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string",
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::rootDelete/1",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::nodeDeleteAtIndex/2",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string",
+        "number"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::rootInsertAtStart/1",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiRootTree.ts::MultiRootTree::rootInsertAtEnd/1",
+      "fileName": "MultiRootTree.ts",
+      "sourceFile": "MultiRootTree.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "string"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Bag.ts::%dflt::%AM0$forEach/2",
+      "fileName": "Bag.ts",
+      "sourceFile": "Bag.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T",
+        "any"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "function-origin-unresolved",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Bag.ts::Bag::add/2",
+      "fileName": "Bag.ts",
+      "sourceFile": "Bag.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T",
+        "number"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Bag.ts::Bag::count/1",
+      "fileName": "Bag.ts",
+      "sourceFile": "Bag.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Bag.ts::Bag::contains/1",
+      "fileName": "Bag.ts",
+      "sourceFile": "Bag.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Bag.ts::Bag::remove/2",
+      "fileName": "Bag.ts",
+      "sourceFile": "Bag.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T",
+        "number"
+      ],
+      "branches": 8,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Bag.ts::Bag::toArray/0",
+      "fileName": "Bag.ts",
+      "sourceFile": "Bag.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Bag.ts::Bag::toSet/0",
+      "fileName": "Bag.ts",
+      "sourceFile": "Bag.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Bag.ts::Bag::forEach/1",
+      "fileName": "Bag.ts",
+      "sourceFile": "Bag.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "ILoopFunction<T>"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "Bag.ts::Bag::size/0",
+      "fileName": "Bag.ts",
+      "sourceFile": "Bag.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Bag.ts::Bag::isEmpty/0",
+      "fileName": "Bag.ts",
+      "sourceFile": "Bag.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "Bag.ts::Bag::clear/0",
+      "fileName": "Bag.ts",
+      "sourceFile": "Bag.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiDictionary.ts::MultiDictionary::getValue/1",
+      "fileName": "MultiDictionary.ts",
+      "sourceFile": "MultiDictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "K"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "MultiDictionary.ts::MultiDictionary::setValue/2",
+      "fileName": "MultiDictionary.ts",
+      "sourceFile": "MultiDictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "K",
+        "V"
+      ],
+      "branches": 8,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "MultiDictionary.ts::MultiDictionary::remove/2",
+      "fileName": "MultiDictionary.ts",
+      "sourceFile": "MultiDictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "K",
+        "V"
+      ],
+      "branches": 6,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "MultiDictionary.ts::MultiDictionary::keys/0",
+      "fileName": "MultiDictionary.ts",
+      "sourceFile": "MultiDictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiDictionary.ts::MultiDictionary::values/0",
+      "fileName": "MultiDictionary.ts",
+      "sourceFile": "MultiDictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiDictionary.ts::MultiDictionary::containsKey/1",
+      "fileName": "MultiDictionary.ts",
+      "sourceFile": "MultiDictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "K"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "MultiDictionary.ts::MultiDictionary::clear/0",
+      "fileName": "MultiDictionary.ts",
+      "sourceFile": "MultiDictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiDictionary.ts::MultiDictionary::size/0",
+      "fileName": "MultiDictionary.ts",
+      "sourceFile": "MultiDictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "MultiDictionary.ts::MultiDictionary::isEmpty/0",
+      "fileName": "MultiDictionary.ts",
+      "sourceFile": "MultiDictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "util.ts::%dflt::defaultCompare/2",
+      "fileName": "util.ts",
+      "sourceFile": "util.ts",
+      "compiledModule": null,
+      "exportName": "defaultCompare",
+      "parameterTypes": [
+        "T",
+        "T"
+      ],
+      "branches": 4,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "util.ts::%dflt::defaultEquals/2",
+      "fileName": "util.ts",
+      "sourceFile": "util.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T",
+        "T"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "util.ts::%dflt::defaultToString/1",
+      "fileName": "util.ts",
+      "sourceFile": "util.ts",
+      "compiledModule": null,
+      "exportName": "defaultToString",
+      "parameterTypes": [
+        "any"
+      ],
+      "branches": 6,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "util.ts::%dflt::makeString/2",
+      "fileName": "util.ts",
+      "sourceFile": "util.ts",
+      "compiledModule": null,
+      "exportName": "makeString",
+      "parameterTypes": [
+        "T",
+        "string"
+      ],
+      "branches": 12,
+      "sourceCallable": true,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "util.ts::%dflt::isFunction/1",
+      "fileName": "util.ts",
+      "sourceFile": "util.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "any"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "util.ts::%dflt::isUndefined/1",
+      "fileName": "util.ts",
+      "sourceFile": "util.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "any"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "util.ts::%dflt::isString/1",
+      "fileName": "util.ts",
+      "sourceFile": "util.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "any"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "util.ts::%dflt::reverseCompareFunction/1",
+      "fileName": "util.ts",
+      "sourceFile": "util.ts",
+      "compiledModule": null,
+      "exportName": "reverseCompareFunction",
+      "parameterTypes": [
+        "ICompareFunction<T>"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters",
+        "ambiguous-source-binding"
+      ]
+    },
+    {
+      "methodId": "util.ts::%dflt::compareToEquals/1",
+      "fileName": "util.ts",
+      "sourceFile": "util.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "ICompareFunction<T>"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "util.ts::%dflt::%AM0$%dflt/2",
+      "fileName": "util.ts",
+      "sourceFile": "util.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "any",
+        "any"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "util.ts::%dflt::%AM1$reverseCompareFunction/2",
+      "fileName": "util.ts",
+      "sourceFile": "util.ts",
+      "compiledModule": null,
+      "exportName": "reverseCompareFunction",
+      "parameterTypes": [
+        "T",
+        "T"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "non-primitive-parameters",
+        "ambiguous-source-binding"
+      ]
+    },
+    {
+      "methodId": "util.ts::%dflt::%AM2$reverseCompareFunction/2",
+      "fileName": "util.ts",
+      "sourceFile": "util.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T",
+        "T"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "util.ts::%dflt::%AM3$compareToEquals/2",
+      "fileName": "util.ts",
+      "sourceFile": "util.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "T",
+        "T"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "LinkedDictionary.ts::%dflt::isHeadOrTailLinkedDictionaryPair/1",
+      "fileName": "LinkedDictionary.ts",
+      "sourceFile": "LinkedDictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "HeadOrTailLinkedDictionaryPair<K, V> | LinkedDictionaryPair<K, V>"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "LinkedDictionary.ts::%dflt::%AM0$keys/2",
+      "fileName": "LinkedDictionary.ts",
+      "sourceFile": "LinkedDictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "K",
+        "V"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "LinkedDictionary.ts::%dflt::%AM1$values/2",
+      "fileName": "LinkedDictionary.ts",
+      "sourceFile": "LinkedDictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "K",
+        "V"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "LinkedDictionary.ts::LinkedDictionaryPair::unlink/0",
+      "fileName": "LinkedDictionary.ts",
+      "sourceFile": "LinkedDictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "LinkedDictionary.ts::HeadOrTailLinkedDictionaryPair::unlink/0",
+      "fileName": "LinkedDictionary.ts",
+      "sourceFile": "LinkedDictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "LinkedDictionary.ts::LinkedDictionary::appendToTail/1",
+      "fileName": "LinkedDictionary.ts",
+      "sourceFile": "LinkedDictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "LinkedDictionaryPair<K, V>"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "LinkedDictionary.ts::LinkedDictionary::getLinkedDictionaryPair/1",
+      "fileName": "LinkedDictionary.ts",
+      "sourceFile": "LinkedDictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "K"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "LinkedDictionary.ts::LinkedDictionary::getValue/1",
+      "fileName": "LinkedDictionary.ts",
+      "sourceFile": "LinkedDictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "K"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "LinkedDictionary.ts::LinkedDictionary::remove/1",
+      "fileName": "LinkedDictionary.ts",
+      "sourceFile": "LinkedDictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "K"
+      ],
+      "branches": 2,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "LinkedDictionary.ts::LinkedDictionary::clear/0",
+      "fileName": "LinkedDictionary.ts",
+      "sourceFile": "LinkedDictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "LinkedDictionary.ts::LinkedDictionary::replace/2",
+      "fileName": "LinkedDictionary.ts",
+      "sourceFile": "LinkedDictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "LinkedDictionaryPair<K, V>",
+        "LinkedDictionaryPair<K, V>"
+      ],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "LinkedDictionary.ts::LinkedDictionary::setValue/2",
+      "fileName": "LinkedDictionary.ts",
+      "sourceFile": "LinkedDictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        "K",
+        "V"
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    },
+    {
+      "methodId": "LinkedDictionary.ts::LinkedDictionary::keys/0",
+      "fileName": "LinkedDictionary.ts",
+      "sourceFile": "LinkedDictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "LinkedDictionary.ts::LinkedDictionary::values/0",
+      "fileName": "LinkedDictionary.ts",
+      "sourceFile": "LinkedDictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [],
+      "branches": 0,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "no-branches",
+        "entry-kind:instance"
+      ]
+    },
+    {
+      "methodId": "LinkedDictionary.ts::LinkedDictionary::forEach/1",
+      "fileName": "LinkedDictionary.ts",
+      "sourceFile": "LinkedDictionary.ts",
+      "compiledModule": null,
+      "exportName": null,
+      "parameterTypes": [
+        ""
+      ],
+      "branches": 4,
+      "sourceCallable": false,
+      "primitiveEligible": false,
+      "reasons": [
+        "entry-kind:instance",
+        "non-primitive-parameters"
+      ]
+    }
+  ]
+}

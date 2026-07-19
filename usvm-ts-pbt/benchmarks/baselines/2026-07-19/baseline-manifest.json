@@ -1,0 +1,228 @@
+{
+  "schemaVersion": 1,
+  "baselineId": "ts-pbt-2026-07-19",
+  "frozenAt": "2026-07-19",
+  "purpose": "Immutable evidence package for the USVM plus PBT TypeScript paper campaign",
+  "gateStatus": {
+    "artifactFreeze": "pass",
+    "denominatorFreeze": "pass",
+    "upstreamAudit": "pass",
+    "freshPairedLegacyTiming": "deferred-to-A-BENCH",
+    "readyForArtifactAndSemanticWork": true,
+    "readyForOrchestrationPerformanceAcceptance": false
+  },
+  "repositoryState": {
+    "cleanBaselineBranch": "caelmbleidd/ts-pbt-base",
+    "baseSha": "c31b924f2a1bd82b8bc39cb96386697bbc4bf526",
+    "batchImplementationSha": "a53555fae2499dbfa766bba502c3b0d90ac9070f",
+    "representativeCampaignSha": "2e1a8f87fc4fb7f19136dd32ccfdfdcec266dc76",
+    "numericalState": "The raw reports were produced from c31b924f plus the protected semantic overlay listed below. The clean SHA alone is not a bit-for-bit executable reconstruction.",
+    "originalWorktreeBranch": "caelmbleidd/ts_pbt",
+    "protectedDirtyOverlay": [
+      {
+        "path": "usvm-ts-pbt/src/main/kotlin/org/usvm/ts/pbt/interpreter/Intrinsics.kt",
+        "owner": "A-SEM-CONCRETE",
+        "fileSha256": "34d2bae603bee65e8c76b4a9b91ea67ed49dd78985503278d66600c6de46994e",
+        "diffSha256": "09e92b18723e9a0867ff318609430a6464313e5ce17c7ab3af0f4f59ded2f1d6"
+      },
+      {
+        "path": "usvm-ts/src/main/kotlin/org/usvm/machine/expr/CallApproximations.kt",
+        "owner": "A-SEM-SYMBOLIC",
+        "fileSha256": "6172a0a9fab8758d0c0f90500ccf4209e54dccc530f8dd9b057274a555147e69",
+        "diffSha256": "a4b41a638865dd4939221121f4569c6f93b7714e0de42cb7ff9ca047f14a2135"
+      },
+      {
+        "path": "usvm-ts/src/main/kotlin/org/usvm/machine/expr/TsExprResolver.kt",
+        "owner": "A-SEM-SYMBOLIC",
+        "fileSha256": "30df2a173c6a5aa1a0aafb57dc678bd5474616fcf8e87f368c703acbc56e52e0",
+        "diffSha256": "c5aa6bec3e0e3d6d52eab0f5308b521879b2aefad6aa23c997bd2b01124a04b2"
+      },
+      {
+        "path": "usvm-ts/src/main/kotlin/org/usvm/machine/interpreter/TsInterpreter.kt",
+        "owner": "A-SEM-SYMBOLIC",
+        "fileSha256": "41a55e03d225531eea9bdb8f3874673781075109a271484a73755786f1c72b2c",
+        "diffSha256": "1ccf7c07b4327a4f02451190ad54f3ca4b2a8f10f55c4829eb4236f995c23909"
+      },
+      {
+        "path": "2026-07-17-122150-property-based-testing.txt",
+        "owner": "user/coordinator",
+        "fileSha256": "7eadcff27f01e2005aa3e65ec2bb06a080fce995d01385ace711730137c7c723"
+      },
+      {
+        "path": "docs/ts-pbt/05-real-world-problems.md",
+        "owner": "user/coordinator",
+        "fileSha256": "7d457b9c9cffbd337a5b16baa5987a1a442a11da2f527e68181cc0bb926382fe"
+      }
+    ]
+  },
+  "projects": [
+    {
+      "id": "the-algorithms-maths",
+      "repository": "https://github.com/TheAlgorithms/TypeScript",
+      "commit": "19b4ced86c99815f142d4a46a028f55487b8038a",
+      "scope": "maths",
+      "files": 42,
+      "spdx": "MIT",
+      "licenseSha256": "4eae8735ffc9b94b81d06f78799a937b51b466c1b083036ea8a52943a57c35a0"
+    },
+    {
+      "id": "typescript-algorithms",
+      "repository": "https://github.com/loiane/javascript-datastructures-algorithms",
+      "commit": "e8ee8f9b8a07589533c4243a210d4cea7b090b10",
+      "scope": "src",
+      "files": 62,
+      "spdx": "MIT",
+      "licenseSha256": "81f461530782f6060cb93ff92c50ee18c1d0425cf4e78317d5e47457be068e22"
+    },
+    {
+      "id": "typescript-collections",
+      "repository": "https://github.com/basarat/typescript-collections",
+      "commit": "309bb1b6955b403b212309531607b8d17df152e5",
+      "scope": "src/lib",
+      "files": 17,
+      "spdx": "MIT",
+      "licenseSha256": "9de040587128bd3f50f89fd637c16dc47490546a02474c7c08e41d66418e481e"
+    }
+  ],
+  "environment": {
+    "os": "macOS 15.7.3 (24G419), Darwin arm64",
+    "jdk": "Oracle OpenJDK 23.0.2+7-58",
+    "gradle": "8.11",
+    "kotlin": "2.0.20",
+    "campaignNode": "18.20.8",
+    "campaignNpm": "10.8.2",
+    "exposeNode": "21.7.2",
+    "solver": {
+      "name": "Yices 2",
+      "version": "2.6.4",
+      "binding": "io.ksmt:ksmt-yices:0.5.26",
+      "nativeArtifact": "io.ksmt:ksmt-yices-native-mac-arm:0.5.26",
+      "nativeArtifactSha256": "f708b03fd773bdab4719b5491fdaa62f230bb46cc7ef36c7d951a701c758a74e",
+      "libyicesSha256": "fc20face17da639e3542f256f064327e115ad2db27c89ff9e8cc5b11b5f1e035",
+      "versionEvidence": "The packaged libyices.2.dylib contains the version string 2.6.4."
+    },
+    "tsFrontend": {
+      "repository": "local jacodb worktree",
+      "commit": "ed94d48c78bd69464b6f2ef7f9635cd93a6bd66d",
+      "branch": "caelmbleidd/ts_native_parser",
+      "typescript": "5.4.5",
+      "packageLockSha256": "d8ca4e4fae2f28ab82e390965c80a8e6233bb0d0d648c708292e417bbd9fe444"
+    },
+    "adapters": {
+      "fastCheck": {
+        "adapterVersion": "0.1.0",
+        "toolVersion": "4.9.0",
+        "packageLockSha256": "6d04122c144a832e1eb5e38d30396e1a3116183d3e48f9ca6a6c342120658d3d"
+      },
+      "jazzer": {
+        "adapterVersion": "0.1.0",
+        "toolVersion": "4.0.0",
+        "packageLockSha256": "0eae86b6c6e15d5213c02a3abf12271aca61bf904b3747a3af249cc84fe6fc0f"
+      },
+      "expose": {
+        "adapterVersion": "0.1.0",
+        "toolCommit": "ec03edf85f883248612b1d498c6a7d9189d16d6f",
+        "packageLockSha256": "464f0894799f13a45bd69fac2d9ce82f3dcc805a4139ab1eeb7ce8531495363d"
+      },
+      "gillian": {
+        "adapterVersion": "0.1.0",
+        "toolCommit": "b195dfc39a99d98f4d3c292537b6c572473653c3",
+        "packageLockSha256": "b3e9f0c4ed35bbdc3a6990cb76ba355d35368d7e00741bac3f973e558f68e90b"
+      }
+    }
+  },
+  "campaign": {
+    "seed": 20260719,
+    "pbtRunsPerMethod": 100,
+    "jazzerBudgetSecondsPerMethod": 1,
+    "exposeBudgetSecondsPerMethod": 2,
+    "usvmTargetTimeoutSeconds": 1,
+    "coverageTruth": "EtsIR branch edges observed by concrete replay",
+    "stochasticRuns": 1,
+    "confidenceIntervals": false,
+    "timingCaveat": "Jazzer and ExpoSE rows count corpus import plus EtsIR replay, not corpus-generation process startup."
+  },
+  "denominators": {
+    "D_broad-v1": {
+      "methods": 84,
+      "edges": 422,
+      "methodsFile": "denominators/D_broad-v1.methods.tsv",
+      "methodsSha256": "c081af63a7e17e86c764553d3e33819155d81d99fe89c8c522c9ccb78b4ef411",
+      "edgesFile": "denominators/D_broad-v1.edges.tsv",
+      "edgesSha256": "fdf220647d4a009fb54f79ac10023b200b03173eabd2c376f50ae39638d3096d"
+    },
+    "D_primitive-reference-v1": {
+      "methods": 42,
+      "edges": 236,
+      "methodsFile": "denominators/D_primitive-reference-v1.methods.tsv",
+      "methodsSha256": "75e7a393f40860a2b3d739ca8193e2d94c54706ad25271a23f59810c0aa43449",
+      "edgesFile": "denominators/D_primitive-reference-v1.edges.tsv",
+      "edgesSha256": "af3f684991276832c9994518021f58f4d98bbdf6f3c18c57c9e1c39f5394f93f"
+    }
+  },
+  "expectedArtifacts": [
+    { "path": "projects/the-algorithms-maths/entry-method-ids.txt", "sha256": "2032c509b1439967e259f25f82582e5eeaba164c611646f2732407e327149bd2" },
+    { "path": "projects/the-algorithms-maths/primitive-method-ids.txt", "sha256": "47c85f9178a29a323bd62c9e59ba722fd15bdfc4254775c16bb81d13725bf365" },
+    { "path": "projects/the-algorithms-maths/source-targets.json", "sha256": "ed546bdac689e2d3b1a07792e71172f1c646526d0b9b04bb271f57b1721599cc" },
+    { "path": "projects/the-algorithms-maths/targets.json", "sha256": "bc29937151a3d211a0eae60dcc2f5cd51e10fe46ec6cc90757fa43a779ddecf0" },
+    { "path": "projects/typescript-algorithms/entry-method-ids.txt", "sha256": "256e59027b2fc8cbb8aa7fa19719aac0bea852c9913f86df5e44e20914ac2cd4" },
+    { "path": "projects/typescript-algorithms/primitive-method-ids.txt", "sha256": "f6c984c9295c462693b19c2211b22cc54e5500715985b808736ebd8323d7e659" },
+    { "path": "projects/typescript-algorithms/source-targets.json", "sha256": "528fadb7c0b62f43bf106e4ccdc3df714e1e4f9c772c329efc2e0236c8c52cb7" },
+    { "path": "projects/typescript-algorithms/targets.json", "sha256": "dc0f4a67d4388b202c570bc78c4ee3aecd203c1d774f6523b66589d239f9de5f" },
+    { "path": "projects/typescript-collections/entry-method-ids.txt", "sha256": "1eb49b546e9a92538ea2023bf097bb254b0b0ab61080aee628740608466ea234" },
+    { "path": "projects/typescript-collections/primitive-method-ids.txt", "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b" },
+    { "path": "projects/typescript-collections/source-targets.json", "sha256": "400e54cf2c94c5af208fe0e6262ae40d3bbb87f67c1b02574464d09b2a726448" },
+    { "path": "projects/typescript-collections/targets.json", "sha256": "d22920192ded760712c643c6df1bb4521846d6d5198089809dbedbb348730d35" },
+    { "path": "results/batched-coverage.csv", "sha256": "0b51c816c9cecf2ece505e285e29ce881f04a85e9d10dc9de502d6f10b4b2563" },
+    { "path": "results/batched-summary.json", "sha256": "54f07a2662e1aef5fd64c3ecd109c8a37807f118d5f590a2152ec884a08bf167" },
+    { "path": "results/representative-coverage.csv", "sha256": "64e223ed5308f604add5d6fd3746eb53c5008a86b68dc0e68a944d55f0eae5a6" },
+    { "path": "results/representative-summary.json", "sha256": "59c323b39c01623ec0c73f68adef6abb4c94934becfd22bb1153cb76988d8c0a" },
+    { "path": "observations/batched-reports.json", "sha256": "bb9d7e6c712c69db65e2ab1e3cb08afd0f59b1c0667ec337c71bf8e9b2fa079b" },
+    { "path": "observations/legacy-per-target-reports.json", "sha256": "1b504fa7840eb2afddf90334eb7fcc938f373887a0ca51a87d7a98122edec140" }
+  ],
+  "acceptance": {
+    "batched": {
+      "broad": {
+        "internal-pbt": { "totalBranches": 422, "coveredBranches": 305, "symbolicTargets": 0, "symbolicReached": 0, "symbolicReplayConfirmed": 0 },
+        "internal-pbt-usvm": { "totalBranches": 422, "coveredBranches": 309, "symbolicTargets": 117, "symbolicReached": 25, "symbolicReplayConfirmed": 2, "symbolicWallMs": 18897, "machineRuns": 31 },
+        "usvm-only": { "totalBranches": 422, "coveredBranches": 240, "symbolicTargets": 422, "symbolicReached": 238, "symbolicReplayConfirmed": 207, "symbolicWallMs": 138484, "machineRuns": 84 }
+      },
+      "primitive": {
+        "internal-pbt": { "totalBranches": 236, "coveredBranches": 217 },
+        "internal-pbt-usvm": { "totalBranches": 236, "coveredBranches": 220, "symbolicTargets": 19, "symbolicReached": 2, "symbolicReplayConfirmed": 1, "symbolicWallMs": 8856, "machineRuns": 7 },
+        "usvm-only": { "totalBranches": 236, "coveredBranches": 169, "symbolicTargets": 236, "symbolicReached": 147, "symbolicReplayConfirmed": 144, "symbolicWallMs": 111233, "machineRuns": 42 },
+        "fast-check": { "totalBranches": 236, "coveredBranches": 213 },
+        "fast-check-usvm": { "totalBranches": 236, "coveredBranches": 216, "symbolicTargets": 23, "symbolicReached": 2, "symbolicReplayConfirmed": 1, "symbolicWallMs": 11832, "machineRuns": 10 },
+        "jazzer": { "totalBranches": 236, "coveredBranches": 211 },
+        "jazzer-usvm": { "totalBranches": 236, "coveredBranches": 218, "symbolicTargets": 25, "symbolicReached": 8, "symbolicReplayConfirmed": 7, "symbolicWallMs": 8582, "machineRuns": 13 },
+        "expose": { "totalBranches": 236, "coveredBranches": 162 },
+        "expose-usvm": { "totalBranches": 236, "coveredBranches": 202, "symbolicTargets": 74, "symbolicReached": 34, "symbolicReplayConfirmed": 33, "symbolicWallMs": 33212, "machineRuns": 26 },
+        "ensemble": { "totalBranches": 236, "coveredBranches": 220 },
+        "ensemble-usvm": { "totalBranches": 236, "coveredBranches": 220, "symbolicTargets": 16, "symbolicReached": 1, "symbolicReplayConfirmed": 0, "symbolicWallMs": 5300, "machineRuns": 7 }
+      }
+    },
+    "historicalPerTargetPrimitive": {
+      "internal-pbt-usvm": { "totalBranches": 236, "coveredBranches": 220, "symbolicTargets": 17, "symbolicReached": 2, "symbolicReplayConfirmed": 1, "symbolicWallMs": 6051, "machineRuns": 17 },
+      "fast-check-usvm": { "totalBranches": 236, "coveredBranches": 216, "symbolicTargets": 21, "symbolicReached": 2, "symbolicReplayConfirmed": 1, "symbolicWallMs": 8771, "machineRuns": 21 },
+      "jazzer-usvm": { "totalBranches": 236, "coveredBranches": 218, "symbolicTargets": 25, "symbolicReached": 8, "symbolicReplayConfirmed": 7, "symbolicWallMs": 5825, "machineRuns": 25 },
+      "expose-usvm": { "totalBranches": 236, "coveredBranches": 203, "symbolicTargets": 57, "symbolicReached": 25, "symbolicReplayConfirmed": 24, "symbolicWallMs": 13439, "machineRuns": 57 },
+      "ensemble-usvm": { "totalBranches": 236, "coveredBranches": 220, "symbolicTargets": 16, "symbolicReached": 1, "symbolicReplayConfirmed": 0, "symbolicWallMs": 5412, "machineRuns": 16 }
+    },
+    "historicalTimingReference": {
+      "symbolicWallMs": 39498,
+      "machineRuns": 136,
+      "acceptanceThreshold": false
+    },
+    "batchedTimingReference": {
+      "symbolicWallMs": 67782,
+      "machineRuns": 63,
+      "acceptanceThreshold": false
+    }
+  },
+  "deferredFreshTiming": {
+    "owner": "A-BENCH",
+    "reason": "The legacy implementation is not available behind a feature flag at c31b924f, and the protected semantic overlay must first receive a stable integration SHA.",
+    "requiredProtocol": "Run legacy and candidate modes interleaved on the same integrated SHA, machine, method list, external corpus and seed schedule; retain per-method paired wall times for bootstrap analysis.",
+    "historical39498msMayBeUsedAsGate": false
+  }
+}

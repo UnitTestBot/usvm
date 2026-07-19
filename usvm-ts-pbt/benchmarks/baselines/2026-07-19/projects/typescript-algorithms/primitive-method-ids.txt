@@ -1,0 +1,9 @@
+02-bigOnotation/01-big-o-intro.ts::%dflt::secondsInDays/1
+02-bigOnotation/01-big-o-intro.ts::%dflt::multiplicationTable/2
+09-recursion/04-fibonacci.ts::%dflt::fibonacciIterative/1
+09-recursion/04-fibonacci.ts::%dflt::fibonacci/1
+09-recursion/04-fibonacci.ts::%dflt::fibonacciMemoization/1
+09-recursion/02-factorial.ts::%dflt::factorialIterative/1
+09-recursion/02-factorial.ts::%dflt::factorial/1
+04-stack/decimal-to-base.ts::%dflt::decimalToBase/2
+04-stack/decimal-to-base.ts::%dflt::decimalToBase64/2

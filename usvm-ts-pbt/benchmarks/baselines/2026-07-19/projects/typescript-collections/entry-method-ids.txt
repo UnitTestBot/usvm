@@ -1,0 +1,10 @@
+arrays.ts::%dflt::indexOf/3
+arrays.ts::%dflt::lastIndexOf/3
+arrays.ts::%dflt::remove/3
+arrays.ts::%dflt::frequency/3
+arrays.ts::%dflt::equals/3
+arrays.ts::%dflt::swap/3
+arrays.ts::%dflt::forEach/2
+util.ts::%dflt::defaultCompare/2
+util.ts::%dflt::defaultToString/1
+util.ts::%dflt::makeString/2
