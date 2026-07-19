@@ -1,0 +1,378 @@
+{
+  "schemaVersion": 1,
+  "contractId": "usvm-ts-module-semantics-v1",
+  "nodeProtocolVersion": 1,
+  "evidence": [
+    {
+      "id": "typescript-collections-internal-pbt-usvm-broad-v1",
+      "baselineId": "ts-pbt-2026-07-19",
+      "projectId": "typescript-collections",
+      "repository": "https://github.com/basarat/typescript-collections",
+      "projectCommit": "309bb1b6955b403b212309531607b8d17df152e5",
+      "denominatorId": "D_broad-v1",
+      "denominatorPath": "usvm-ts-pbt/benchmarks/baselines/2026-07-19/denominators/D_broad-v1.edges.tsv",
+      "denominatorSha256": "fdf220647d4a009fb54f79ac10023b200b03173eabd2c376f50ae39638d3096d",
+      "scenario": "internal-pbt-usvm",
+      "targetManifestPath": "usvm-ts-pbt/benchmarks/baselines/2026-07-19/projects/typescript-collections/targets.json",
+      "targetManifestSha256": "d22920192ded760712c643c6df1bb4521846d6d5198089809dbedbb348730d35",
+      "sourceTargetsPath": "usvm-ts-pbt/benchmarks/baselines/2026-07-19/projects/typescript-collections/source-targets.json",
+      "sourceTargetsSha256": "400e54cf2c94c5af208fe0e6262ae40d3bbb87f67c1b02574464d09b2a726448",
+      "observationPath": "usvm-ts-pbt/benchmarks/baselines/2026-07-19/observations/batched-reports.json",
+      "observationSha256": "bb9d7e6c712c69db65e2ab1e3cb08afd0f59b1c0667ec337c71bf8e9b2fa079b",
+      "sourceReport": "source-entry-internal-100-batched-HYBRID.json",
+      "sourceReportSha256": "76edaa836af999dc022d49bc14235ec0cacfa59004418a9968156c3e53190a4d"
+    }
+  ],
+  "cases": [
+    {
+      "id": "file-init-order",
+      "entryModule": "cases/file-init-order/entry.mjs",
+      "modules": [
+        {"moduleId":"ts:semantics/module/cases/record.mjs::%module","sourcePath":"cases/record.mjs","exports":[{"name":"record","kind":"callable"}]},
+        {"moduleId":"ts:semantics/module/cases/file-init-order/shared.mjs::%module","sourcePath":"cases/file-init-order/shared.mjs","exports":[{"name":"shared","kind":"value"}]},
+        {"moduleId":"ts:semantics/module/cases/file-init-order/left.mjs::%module","sourcePath":"cases/file-init-order/left.mjs","exports":[{"name":"left","kind":"value"}]},
+        {"moduleId":"ts:semantics/module/cases/file-init-order/right.mjs::%module","sourcePath":"cases/file-init-order/right.mjs","exports":[{"name":"right","kind":"value"}]},
+        {"moduleId":"ts:semantics/module/cases/file-init-order/entry.mjs::%module","sourcePath":"cases/file-init-order/entry.mjs","exports":[{"name":"result","kind":"value"}]}
+      ],
+      "bindings": [
+        {"importerModuleId":"ts:semantics/module/cases/file-init-order/left.mjs::%module","localName":"shared","sourceModuleId":"ts:semantics/module/cases/file-init-order/shared.mjs::%module","exportName":"shared","importKind":"named","expectedResolution":"value"},
+        {"importerModuleId":"ts:semantics/module/cases/file-init-order/right.mjs::%module","localName":"shared","sourceModuleId":"ts:semantics/module/cases/file-init-order/shared.mjs::%module","exportName":"shared","importKind":"named","expectedResolution":"value"},
+        {"importerModuleId":"ts:semantics/module/cases/file-init-order/entry.mjs::%module","localName":"left","sourceModuleId":"ts:semantics/module/cases/file-init-order/left.mjs::%module","exportName":"left","importKind":"named","expectedResolution":"value"},
+        {"importerModuleId":"ts:semantics/module/cases/file-init-order/entry.mjs::%module","localName":"right","sourceModuleId":"ts:semantics/module/cases/file-init-order/right.mjs::%module","exportName":"right","importKind":"named","expectedResolution":"value"}
+      ],
+      "expected": {
+        "outcome": "returned",
+        "result": {"left":"left:shared","right":"right:shared"},
+        "trace": ["shared:init","left:init","right:init","entry:init"]
+      },
+      "capability": {
+        "labels": ["module_init"],
+        "semanticTags": ["file_init_order","dependency_single_evaluation"],
+        "expectedStatus": "supported_with_flag",
+        "requiredFlags": ["moduleRuntimeModel"],
+        "expectedOutcome": "replay_confirmed"
+      }
+    },
+    {
+      "id": "namespace-import-callable-export",
+      "entryModule": "cases/namespace-import/entry.mjs",
+      "modules": [
+        {"moduleId":"ts:semantics/module/cases/record.mjs::%module","sourcePath":"cases/record.mjs","exports":[{"name":"record","kind":"callable"}]},
+        {"moduleId":"ts:semantics/module/cases/namespace-import/util.mjs::%module","sourcePath":"cases/namespace-import/util.mjs","exports":[{"name":"defaultEquals","kind":"callable"},{"name":"marker","kind":"value"}]},
+        {"moduleId":"ts:semantics/module/cases/namespace-import/entry.mjs::%module","sourcePath":"cases/namespace-import/entry.mjs","exports":[{"name":"result","kind":"value"}]}
+      ],
+      "bindings": [
+        {"importerModuleId":"ts:semantics/module/cases/namespace-import/entry.mjs::%module","localName":"util","sourceModuleId":"ts:semantics/module/cases/namespace-import/util.mjs::%module","exportName":"*","importKind":"namespace","expectedResolution":"namespace"},
+        {"importerModuleId":"ts:semantics/module/cases/namespace-import/entry.mjs::%module","localName":"util.defaultEquals","sourceModuleId":"ts:semantics/module/cases/namespace-import/util.mjs::%module","exportName":"defaultEquals","importKind":"namespace_member","expectedResolution":"callable"}
+      ],
+      "expected": {
+        "outcome": "returned",
+        "result": {"callableType":"function","equal":true,"unequal":false,"marker":"util"},
+        "trace": ["namespace-util:init","namespace-entry:init","namespace-util:defaultEquals:3:3","namespace-util:defaultEquals:3:3"]
+      },
+      "capability": {
+        "labels": ["module_init","callable"],
+        "semanticTags": ["namespace_import","util.defaultEquals","real_callable_export"],
+        "expectedStatus": "supported_with_flag",
+        "requiredFlags": ["moduleRuntimeModel","callableValueModel"],
+        "expectedOutcome": "replay_confirmed"
+      }
+    },
+    {
+      "id": "default-and-named-imports",
+      "entryModule": "cases/default-named-imports/entry.mjs",
+      "modules": [
+        {"moduleId":"ts:semantics/module/cases/record.mjs::%module","sourcePath":"cases/record.mjs","exports":[{"name":"record","kind":"callable"}]},
+        {"moduleId":"ts:semantics/module/cases/default-named-imports/library.mjs::%module","sourcePath":"cases/default-named-imports/library.mjs","exports":[{"name":"default","kind":"default"},{"name":"offset","kind":"callable"}]},
+        {"moduleId":"ts:semantics/module/cases/default-named-imports/entry.mjs::%module","sourcePath":"cases/default-named-imports/entry.mjs","exports":[{"name":"result","kind":"value"}]}
+      ],
+      "bindings": [
+        {"importerModuleId":"ts:semantics/module/cases/default-named-imports/entry.mjs::%module","localName":"scale","sourceModuleId":"ts:semantics/module/cases/default-named-imports/library.mjs::%module","exportName":"default","importKind":"default","expectedResolution":"callable"},
+        {"importerModuleId":"ts:semantics/module/cases/default-named-imports/entry.mjs::%module","localName":"plusOne","sourceModuleId":"ts:semantics/module/cases/default-named-imports/library.mjs::%module","exportName":"offset","importKind":"named","expectedResolution":"callable"}
+      ],
+      "expected": {
+        "outcome": "returned",
+        "result": {"defaultResult":10,"namedResult":6},
+        "trace": ["default-named-library:init","default-named-entry:init","default-named-library:default:5","default-named-library:named:5"]
+      },
+      "capability": {
+        "labels": ["module_init","callable"],
+        "semanticTags": ["default_import","named_import","callable_export"],
+        "expectedStatus": "supported_with_flag",
+        "requiredFlags": ["moduleRuntimeModel","callableValueModel"],
+        "expectedOutcome": "replay_confirmed"
+      }
+    },
+    {
+      "id": "cross-file-live-binding",
+      "entryModule": "cases/cross-file-binding/entry.mjs",
+      "modules": [
+        {"moduleId":"ts:semantics/module/cases/record.mjs::%module","sourcePath":"cases/record.mjs","exports":[{"name":"record","kind":"callable"}]},
+        {"moduleId":"ts:semantics/module/cases/cross-file-binding/state.mjs::%module","sourcePath":"cases/cross-file-binding/state.mjs","exports":[{"name":"counter","kind":"value"},{"name":"increment","kind":"callable"}]},
+        {"moduleId":"ts:semantics/module/cases/cross-file-binding/barrel.mjs::%module","sourcePath":"cases/cross-file-binding/barrel.mjs","exports":[{"name":"counter","kind":"re_export"},{"name":"increment","kind":"re_export"}]},
+        {"moduleId":"ts:semantics/module/cases/cross-file-binding/entry.mjs::%module","sourcePath":"cases/cross-file-binding/entry.mjs","exports":[{"name":"result","kind":"value"}]}
+      ],
+      "bindings": [
+        {"importerModuleId":"ts:semantics/module/cases/cross-file-binding/barrel.mjs::%module","localName":"counter","sourceModuleId":"ts:semantics/module/cases/cross-file-binding/state.mjs::%module","exportName":"counter","importKind":"named","expectedResolution":"value"},
+        {"importerModuleId":"ts:semantics/module/cases/cross-file-binding/barrel.mjs::%module","localName":"increment","sourceModuleId":"ts:semantics/module/cases/cross-file-binding/state.mjs::%module","exportName":"increment","importKind":"named","expectedResolution":"callable"},
+        {"importerModuleId":"ts:semantics/module/cases/cross-file-binding/entry.mjs::%module","localName":"counter","sourceModuleId":"ts:semantics/module/cases/cross-file-binding/barrel.mjs::%module","exportName":"counter","importKind":"named","expectedResolution":"value"},
+        {"importerModuleId":"ts:semantics/module/cases/cross-file-binding/entry.mjs::%module","localName":"increment","sourceModuleId":"ts:semantics/module/cases/cross-file-binding/barrel.mjs::%module","exportName":"increment","importKind":"named","expectedResolution":"callable"}
+      ],
+      "expected": {
+        "outcome": "returned",
+        "result": {"before":0,"after":2},
+        "trace": ["state:init","barrel:init","cross-file-entry:init","state:increment:1","state:increment:2"]
+      },
+      "capability": {
+        "labels": ["module_init","callable"],
+        "semanticTags": ["cross_file_binding","live_binding","re_export"],
+        "expectedStatus": "supported_with_flag",
+        "requiredFlags": ["moduleRuntimeModel","callableValueModel"],
+        "expectedOutcome": "replay_confirmed"
+      }
+    },
+    {
+      "id": "typescript-collections-default-equals",
+      "entryModule": "cases/default-equals/entry.mjs",
+      "modules": [
+        {"moduleId":"ts:semantics/module/cases/record.mjs::%module","sourcePath":"cases/record.mjs","exports":[{"name":"record","kind":"callable"}]},
+        {"moduleId":"ts:semantics/module/cases/default-equals/util.mjs::%module","sourcePath":"cases/default-equals/util.mjs","exports":[{"name":"defaultEquals","kind":"callable"}]},
+        {"moduleId":"ts:semantics/module/cases/default-equals/arrays.mjs::%module","sourcePath":"cases/default-equals/arrays.mjs","exports":[{"name":"indexOf","kind":"callable"},{"name":"lastIndexOf","kind":"callable"},{"name":"remove","kind":"callable"},{"name":"frequency","kind":"callable"},{"name":"equals","kind":"callable"}]},
+        {"moduleId":"ts:semantics/module/cases/default-equals/entry.mjs::%module","sourcePath":"cases/default-equals/entry.mjs","exports":[{"name":"result","kind":"value"}]}
+      ],
+      "bindings": [
+        {"importerModuleId":"ts:semantics/module/cases/default-equals/arrays.mjs::%module","localName":"util","sourceModuleId":"ts:semantics/module/cases/default-equals/util.mjs::%module","exportName":"*","importKind":"namespace","expectedResolution":"namespace"},
+        {"importerModuleId":"ts:semantics/module/cases/default-equals/arrays.mjs::%module","localName":"util.defaultEquals","sourceModuleId":"ts:semantics/module/cases/default-equals/util.mjs::%module","exportName":"defaultEquals","importKind":"namespace_member","expectedResolution":"callable"},
+        {"importerModuleId":"ts:semantics/module/cases/default-equals/entry.mjs::%module","localName":"util","sourceModuleId":"ts:semantics/module/cases/default-equals/util.mjs::%module","exportName":"*","importKind":"namespace","expectedResolution":"namespace"},
+        {"importerModuleId":"ts:semantics/module/cases/default-equals/entry.mjs::%module","localName":"indexOf","sourceModuleId":"ts:semantics/module/cases/default-equals/arrays.mjs::%module","exportName":"indexOf","importKind":"named","expectedResolution":"callable"},
+        {"importerModuleId":"ts:semantics/module/cases/default-equals/entry.mjs::%module","localName":"lastIndexOf","sourceModuleId":"ts:semantics/module/cases/default-equals/arrays.mjs::%module","exportName":"lastIndexOf","importKind":"named","expectedResolution":"callable"},
+        {"importerModuleId":"ts:semantics/module/cases/default-equals/entry.mjs::%module","localName":"remove","sourceModuleId":"ts:semantics/module/cases/default-equals/arrays.mjs::%module","exportName":"remove","importKind":"named","expectedResolution":"callable"},
+        {"importerModuleId":"ts:semantics/module/cases/default-equals/entry.mjs::%module","localName":"frequency","sourceModuleId":"ts:semantics/module/cases/default-equals/arrays.mjs::%module","exportName":"frequency","importKind":"named","expectedResolution":"callable"},
+        {"importerModuleId":"ts:semantics/module/cases/default-equals/entry.mjs::%module","localName":"equals","sourceModuleId":"ts:semantics/module/cases/default-equals/arrays.mjs::%module","exportName":"equals","importKind":"named","expectedResolution":"callable"}
+      ],
+      "expected": {
+        "outcome": "returned",
+        "result": {"callableType":"function","defaultTrue":true,"defaultFalse":false,"indexOf":1,"lastIndexOf":2,"removed":true,"afterRemove":[1,1],"frequency":2,"arraysEqual":true,"overrideIndex":0},
+        "trace": [
+          "collections-util:init",
+          "collections-arrays:init",
+          "collections-entry:init",
+          "collections-util:defaultEquals:number:1:number:1",
+          "collections-util:defaultEquals:number:1:string:1",
+          "collections-util:defaultEquals:number:1:number:2",
+          "collections-util:defaultEquals:number:2:number:2",
+          "collections-util:defaultEquals:number:1:number:1",
+          "collections-util:defaultEquals:number:1:number:2",
+          "collections-util:defaultEquals:number:2:number:2",
+          "collections-util:defaultEquals:number:1:number:1",
+          "collections-util:defaultEquals:number:2:number:1",
+          "collections-util:defaultEquals:number:1:number:1",
+          "collections-util:defaultEquals:number:1:number:1",
+          "collections-util:defaultEquals:number:2:number:2"
+        ]
+      },
+      "capability": {
+        "labels": ["module_init","callable"],
+        "semanticTags": ["namespace_import","util.defaultEquals","typescript_collections_reduced_source","module_binding_claim"],
+        "expectedStatus": "supported_with_flag",
+        "requiredFlags": ["moduleRuntimeModel","callableValueModel"],
+        "expectedOutcome": "replay_confirmed"
+      }
+    },
+    {
+      "id": "explicit-absent-namespace-member",
+      "entryModule": "cases/explicit-absent/entry.mjs",
+      "modules": [
+        {"moduleId":"ts:semantics/module/cases/record.mjs::%module","sourcePath":"cases/record.mjs","exports":[{"name":"record","kind":"callable"}]},
+        {"moduleId":"ts:semantics/module/cases/explicit-absent/provider.mjs::%module","sourcePath":"cases/explicit-absent/provider.mjs","exports":[{"name":"present","kind":"value"}]},
+        {"moduleId":"ts:semantics/module/cases/explicit-absent/entry.mjs::%module","sourcePath":"cases/explicit-absent/entry.mjs","exports":[{"name":"result","kind":"value"}]}
+      ],
+      "bindings": [
+        {"importerModuleId":"ts:semantics/module/cases/explicit-absent/entry.mjs::%module","localName":"provider","sourceModuleId":"ts:semantics/module/cases/explicit-absent/provider.mjs::%module","exportName":"*","importKind":"namespace","expectedResolution":"namespace"},
+        {"importerModuleId":"ts:semantics/module/cases/explicit-absent/entry.mjs::%module","localName":"provider.missing","sourceModuleId":"ts:semantics/module/cases/explicit-absent/provider.mjs::%module","exportName":"missing","importKind":"namespace_member","expectedResolution":"absent"}
+      ],
+      "explicitAbsentExports": [
+        {"moduleId":"ts:semantics/module/cases/explicit-absent/provider.mjs::%module","exportName":"missing"}
+      ],
+      "expected": {
+        "outcome": "returned",
+        "result": {"present":7,"missing":{"kind":"undefined"}},
+        "trace": ["explicit-absent-provider:init","explicit-absent-entry:init"]
+      },
+      "capability": {
+        "labels": ["module_init"],
+        "semanticTags": ["namespace_import","explicit_absent_export","undefined_only_when_absent"],
+        "expectedStatus": "supported_with_flag",
+        "requiredFlags": ["moduleRuntimeModel"],
+        "expectedOutcome": "replay_confirmed"
+      }
+    },
+    {
+      "id": "missing-named-import-link-error",
+      "entryModule": "cases/missing-named/entry.mjs",
+      "modules": [
+        {"moduleId":"ts:semantics/module/cases/missing-named/provider.mjs::%module","sourcePath":"cases/missing-named/provider.mjs","exports":[{"name":"present","kind":"value"}]},
+        {"moduleId":"ts:semantics/module/cases/missing-named/entry.mjs::%module","sourcePath":"cases/missing-named/entry.mjs","exports":[{"name":"result","kind":"value"}]}
+      ],
+      "bindings": [
+        {"importerModuleId":"ts:semantics/module/cases/missing-named/entry.mjs::%module","localName":"missing","sourceModuleId":"ts:semantics/module/cases/missing-named/provider.mjs::%module","exportName":"missing","importKind":"named","expectedResolution":"absent"}
+      ],
+      "explicitAbsentExports": [
+        {"moduleId":"ts:semantics/module/cases/missing-named/provider.mjs::%module","exportName":"missing"}
+      ],
+      "expected": {"outcome":"link_error","result":null,"trace":[],"errorName":"SyntaxError"},
+      "capability": {
+        "labels": ["module_init"],
+        "semanticTags": ["named_import","absent_export","link_error_no_fallback"],
+        "expectedStatus": "supported_with_flag",
+        "requiredFlags": ["moduleRuntimeModel"],
+        "expectedOutcome": "replay_confirmed"
+      }
+    },
+    {
+      "id": "ambiguous-star-reexport-link-error",
+      "entryModule": "cases/ambiguous-star/entry.mjs",
+      "modules": [
+        {"moduleId":"ts:semantics/module/cases/ambiguous-star/left.mjs::%module","sourcePath":"cases/ambiguous-star/left.mjs","exports":[{"name":"collision","kind":"value"}]},
+        {"moduleId":"ts:semantics/module/cases/ambiguous-star/right.mjs::%module","sourcePath":"cases/ambiguous-star/right.mjs","exports":[{"name":"collision","kind":"value"}]},
+        {"moduleId":"ts:semantics/module/cases/ambiguous-star/barrel.mjs::%module","sourcePath":"cases/ambiguous-star/barrel.mjs","exports":[]},
+        {"moduleId":"ts:semantics/module/cases/ambiguous-star/entry.mjs::%module","sourcePath":"cases/ambiguous-star/entry.mjs","exports":[{"name":"result","kind":"value"}]}
+      ],
+      "bindings": [
+        {"importerModuleId":"ts:semantics/module/cases/ambiguous-star/entry.mjs::%module","localName":"collision","sourceModuleId":"ts:semantics/module/cases/ambiguous-star/barrel.mjs::%module","exportName":"collision","importKind":"named","expectedResolution":"ambiguous"}
+      ],
+      "expected": {"outcome":"link_error","result":null,"trace":[],"errorName":"SyntaxError"},
+      "capability": {
+        "labels": ["module_init"],
+        "semanticTags": ["star_re_export","ambiguous_binding","link_error_no_fallback"],
+        "expectedStatus": "supported_with_flag",
+        "requiredFlags": ["moduleRuntimeModel"],
+        "expectedOutcome": "replay_confirmed"
+      }
+    },
+    {
+      "id": "cycle-temporal-dead-zone",
+      "entryModule": "cases/cycle-tdz/entry.mjs",
+      "modules": [
+        {"moduleId":"ts:semantics/module/cases/record.mjs::%module","sourcePath":"cases/record.mjs","exports":[{"name":"record","kind":"callable"}]},
+        {"moduleId":"ts:semantics/module/cases/cycle-tdz/a.mjs::%module","sourcePath":"cases/cycle-tdz/a.mjs","exports":[{"name":"valueA","kind":"value"}]},
+        {"moduleId":"ts:semantics/module/cases/cycle-tdz/b.mjs::%module","sourcePath":"cases/cycle-tdz/b.mjs","exports":[{"name":"valueB","kind":"value"}]},
+        {"moduleId":"ts:semantics/module/cases/cycle-tdz/entry.mjs::%module","sourcePath":"cases/cycle-tdz/entry.mjs","exports":[{"name":"result","kind":"value"}]}
+      ],
+      "bindings": [
+        {"importerModuleId":"ts:semantics/module/cases/cycle-tdz/a.mjs::%module","localName":"valueB","sourceModuleId":"ts:semantics/module/cases/cycle-tdz/b.mjs::%module","exportName":"valueB","importKind":"named","expectedResolution":"value"},
+        {"importerModuleId":"ts:semantics/module/cases/cycle-tdz/b.mjs::%module","localName":"valueA","sourceModuleId":"ts:semantics/module/cases/cycle-tdz/a.mjs::%module","exportName":"valueA","importKind":"named","expectedResolution":"cycle_tdz"},
+        {"importerModuleId":"ts:semantics/module/cases/cycle-tdz/entry.mjs::%module","localName":"valueA","sourceModuleId":"ts:semantics/module/cases/cycle-tdz/a.mjs::%module","exportName":"valueA","importKind":"named","expectedResolution":"value"}
+      ],
+      "expected": {"outcome":"initialization_error","result":null,"trace":["cycle-b:read-a-before-init"],"errorName":"ReferenceError"},
+      "capability": {
+        "labels": ["module_init"],
+        "semanticTags": ["cyclic_module","temporal_dead_zone","initialization_error_no_fallback"],
+        "expectedStatus": "supported_with_flag",
+        "requiredFlags": ["moduleRuntimeModel"],
+        "expectedOutcome": "replay_confirmed"
+      }
+    }
+  ],
+  "witnesses": [
+    {
+      "projectId":"typescript-collections","projectCommit":"309bb1b6955b403b212309531607b8d17df152e5","evidenceId":"typescript-collections-internal-pbt-usvm-broad-v1",
+      "methodId":"arrays.ts::%dflt::indexOf/3","branchId":"arrays.ts::%dflt::indexOf/3#s9:0->10","sourceCallableId":"ts:arrays.ts::free:indexOf/3","etsIrOriginId":"arrays.ts::%dflt::indexOf/3#s9:0->10","sourceBindingStatus":"exact","etsIrMappingStatus":"unmapped",
+      "mappingEvidence":"Frozen v1 target has exact source callable selection and source ranges but no emitted-JS v2 source-map artifact.","provenanceScope":"shared_module_callable","ownershipClaim":"module_init_namespace_import_binding","sharedWith":"WP-SEM-CALLABLE","unionKey":"branchId",
+      "conditionOrigin":{"fileName":"arrays.ts","startOffset":719,"endOffset":729,"startLine":15,"startColumn":20,"endLine":15,"endColumn":30,"nodeKind":"BinaryExpression"},
+      "successorOrigin":{"fileName":"arrays.ts","startOffset":750,"endOffset":772,"startLine":16,"startColumn":12,"endLine":16,"endColumn":34,"nodeKind":"CallExpression"},
+      "historical":{"reached":true,"replayConfirmed":false,"wallMs":891,"steps":12,"hintsUsed":false,"fallbackUsed":false,"pbtExecutions":100,"pbtThrew":100,"failureClass":"TypeError:cannot_read_property_defaultEquals_of_undefined"},
+      "capability":{"labels":["module_init","callable"],"semanticTags":["namespace_import","util.defaultEquals","frozen_reached_not_replayed","module_binding_claim"],"expectedStatus":"supported_with_flag","requiredFlags":["moduleRuntimeModel","callableValueModel"],"expectedOutcome":"replay_confirmed"}
+    },
+    {
+      "projectId":"typescript-collections","projectCommit":"309bb1b6955b403b212309531607b8d17df152e5","evidenceId":"typescript-collections-internal-pbt-usvm-broad-v1",
+      "methodId":"arrays.ts::%dflt::indexOf/3","branchId":"arrays.ts::%dflt::indexOf/3#s9:1->18","sourceCallableId":"ts:arrays.ts::free:indexOf/3","etsIrOriginId":"arrays.ts::%dflt::indexOf/3#s9:1->18","sourceBindingStatus":"exact","etsIrMappingStatus":"unmapped",
+      "mappingEvidence":"Frozen v1 target has exact source callable selection and source ranges but no emitted-JS v2 source-map artifact.","provenanceScope":"shared_module_callable","ownershipClaim":"module_init_namespace_import_binding","sharedWith":"WP-SEM-CALLABLE","unionKey":"branchId",
+      "conditionOrigin":{"fileName":"arrays.ts","startOffset":719,"endOffset":729,"startLine":15,"startColumn":20,"endLine":15,"endColumn":30,"nodeKind":"BinaryExpression"},
+      "successorOrigin":{"fileName":"arrays.ts","startOffset":818,"endOffset":828,"startLine":20,"startColumn":4,"endLine":20,"endColumn":14,"nodeKind":"ReturnStatement"},
+      "historical":{"reached":true,"replayConfirmed":false,"wallMs":892,"steps":13,"hintsUsed":false,"fallbackUsed":false,"pbtExecutions":100,"pbtThrew":100,"failureClass":"TypeError:cannot_read_property_defaultEquals_of_undefined"},
+      "capability":{"labels":["module_init","callable"],"semanticTags":["namespace_import","util.defaultEquals","frozen_reached_not_replayed","module_binding_claim"],"expectedStatus":"supported_with_flag","requiredFlags":["moduleRuntimeModel","callableValueModel"],"expectedOutcome":"replay_confirmed"}
+    },
+    {
+      "projectId":"typescript-collections","projectCommit":"309bb1b6955b403b212309531607b8d17df152e5","evidenceId":"typescript-collections-internal-pbt-usvm-broad-v1",
+      "methodId":"arrays.ts::%dflt::lastIndexOf/3","branchId":"arrays.ts::%dflt::lastIndexOf/3#s9:0->10","sourceCallableId":"ts:arrays.ts::free:lastIndexOf/3","etsIrOriginId":"arrays.ts::%dflt::lastIndexOf/3#s9:0->10","sourceBindingStatus":"exact","etsIrMappingStatus":"unmapped",
+      "mappingEvidence":"Frozen v1 target has exact source callable selection and source ranges but no emitted-JS v2 source-map artifact.","provenanceScope":"shared_module_callable","ownershipClaim":"module_init_namespace_import_binding","sharedWith":"WP-SEM-CALLABLE","unionKey":"branchId",
+      "conditionOrigin":{"fileName":"arrays.ts","startOffset":1530,"endOffset":1536,"startLine":36,"startColumn":29,"endLine":36,"endColumn":35,"nodeKind":"BinaryExpression"},
+      "successorOrigin":{"fileName":"arrays.ts","startOffset":1557,"endOffset":1579,"startLine":37,"startColumn":12,"endLine":37,"endColumn":34,"nodeKind":"CallExpression"},
+      "historical":{"reached":true,"replayConfirmed":false,"wallMs":35,"steps":12,"hintsUsed":false,"fallbackUsed":false,"pbtExecutions":100,"pbtThrew":100,"failureClass":"TypeError:cannot_read_property_defaultEquals_of_undefined"},
+      "capability":{"labels":["module_init","callable"],"semanticTags":["namespace_import","util.defaultEquals","frozen_reached_not_replayed","module_binding_claim"],"expectedStatus":"supported_with_flag","requiredFlags":["moduleRuntimeModel","callableValueModel"],"expectedOutcome":"replay_confirmed"}
+    },
+    {
+      "projectId":"typescript-collections","projectCommit":"309bb1b6955b403b212309531607b8d17df152e5","evidenceId":"typescript-collections-internal-pbt-usvm-broad-v1",
+      "methodId":"arrays.ts::%dflt::lastIndexOf/3","branchId":"arrays.ts::%dflt::lastIndexOf/3#s9:1->18","sourceCallableId":"ts:arrays.ts::free:lastIndexOf/3","etsIrOriginId":"arrays.ts::%dflt::lastIndexOf/3#s9:1->18","sourceBindingStatus":"exact","etsIrMappingStatus":"unmapped",
+      "mappingEvidence":"Frozen v1 target has exact source callable selection and source ranges but no emitted-JS v2 source-map artifact.","provenanceScope":"shared_module_callable","ownershipClaim":"module_init_namespace_import_binding","sharedWith":"WP-SEM-CALLABLE","unionKey":"branchId",
+      "conditionOrigin":{"fileName":"arrays.ts","startOffset":1530,"endOffset":1536,"startLine":36,"startColumn":29,"endLine":36,"endColumn":35,"nodeKind":"BinaryExpression"},
+      "successorOrigin":{"fileName":"arrays.ts","startOffset":1625,"endOffset":1635,"startLine":41,"startColumn":4,"endLine":41,"endColumn":14,"nodeKind":"ReturnStatement"},
+      "historical":{"reached":true,"replayConfirmed":false,"wallMs":36,"steps":13,"hintsUsed":false,"fallbackUsed":false,"pbtExecutions":100,"pbtThrew":100,"failureClass":"TypeError:cannot_read_property_defaultEquals_of_undefined"},
+      "capability":{"labels":["module_init","callable"],"semanticTags":["namespace_import","util.defaultEquals","frozen_reached_not_replayed","module_binding_claim"],"expectedStatus":"supported_with_flag","requiredFlags":["moduleRuntimeModel","callableValueModel"],"expectedOutcome":"replay_confirmed"}
+    },
+    {
+      "projectId":"typescript-collections","projectCommit":"309bb1b6955b403b212309531607b8d17df152e5","evidenceId":"typescript-collections-internal-pbt-usvm-broad-v1",
+      "methodId":"arrays.ts::%dflt::remove/3","branchId":"arrays.ts::%dflt::remove/3#s6:0->7","sourceCallableId":"ts:arrays.ts::free:remove/3","etsIrOriginId":"arrays.ts::%dflt::remove/3#s6:0->7","sourceBindingStatus":"exact","etsIrMappingStatus":"unmapped",
+      "mappingEvidence":"Frozen v1 target has exact source callable selection and source ranges but no emitted-JS v2 source-map artifact.","provenanceScope":"shared_module_callable","ownershipClaim":"module_init_namespace_import_binding","sharedWith":"WP-SEM-CALLABLE","unionKey":"branchId",
+      "conditionOrigin":{"fileName":"arrays.ts","startOffset":2729,"endOffset":2738,"startLine":67,"startColumn":8,"endLine":67,"endColumn":17,"nodeKind":"BinaryExpression"},
+      "successorOrigin":{"fileName":"arrays.ts","startOffset":2750,"endOffset":2763,"startLine":68,"startColumn":8,"endLine":68,"endColumn":21,"nodeKind":"ReturnStatement"},
+      "historical":{"reached":true,"replayConfirmed":false,"wallMs":15,"steps":24,"hintsUsed":false,"fallbackUsed":false,"pbtExecutions":100,"pbtThrew":100,"failureClass":"TypeError:cannot_read_property_defaultEquals_of_undefined"},
+      "capability":{"labels":["module_init","callable"],"semanticTags":["namespace_import","util.defaultEquals","cross_function_binding","frozen_reached_not_replayed","module_binding_claim"],"expectedStatus":"supported_with_flag","requiredFlags":["moduleRuntimeModel","callableValueModel"],"expectedOutcome":"replay_confirmed"}
+    },
+    {
+      "projectId":"typescript-collections","projectCommit":"309bb1b6955b403b212309531607b8d17df152e5","evidenceId":"typescript-collections-internal-pbt-usvm-broad-v1",
+      "methodId":"arrays.ts::%dflt::frequency/3","branchId":"arrays.ts::%dflt::frequency/3#s10:0->11","sourceCallableId":"ts:arrays.ts::free:frequency/3","etsIrOriginId":"arrays.ts::%dflt::frequency/3#s10:0->11","sourceBindingStatus":"exact","etsIrMappingStatus":"unmapped",
+      "mappingEvidence":"Frozen v1 target has exact source callable selection and source ranges but no emitted-JS v2 source-map artifact.","provenanceScope":"shared_module_callable","ownershipClaim":"module_init_namespace_import_binding","sharedWith":"WP-SEM-CALLABLE","unionKey":"branchId",
+      "conditionOrigin":{"fileName":"arrays.ts","startOffset":3530,"endOffset":3540,"startLine":88,"startColumn":20,"endLine":88,"endColumn":30,"nodeKind":"BinaryExpression"},
+      "successorOrigin":{"fileName":"arrays.ts","startOffset":3561,"endOffset":3583,"startLine":89,"startColumn":12,"endLine":89,"endColumn":34,"nodeKind":"CallExpression"},
+      "historical":{"reached":true,"replayConfirmed":false,"wallMs":10,"steps":13,"hintsUsed":false,"fallbackUsed":false,"pbtExecutions":100,"pbtThrew":100,"failureClass":"TypeError:cannot_read_property_defaultEquals_of_undefined"},
+      "capability":{"labels":["module_init","callable"],"semanticTags":["namespace_import","util.defaultEquals","frozen_reached_not_replayed","module_binding_claim"],"expectedStatus":"supported_with_flag","requiredFlags":["moduleRuntimeModel","callableValueModel"],"expectedOutcome":"replay_confirmed"}
+    },
+    {
+      "projectId":"typescript-collections","projectCommit":"309bb1b6955b403b212309531607b8d17df152e5","evidenceId":"typescript-collections-internal-pbt-usvm-broad-v1",
+      "methodId":"arrays.ts::%dflt::frequency/3","branchId":"arrays.ts::%dflt::frequency/3#s10:1->20","sourceCallableId":"ts:arrays.ts::free:frequency/3","etsIrOriginId":"arrays.ts::%dflt::frequency/3#s10:1->20","sourceBindingStatus":"exact","etsIrMappingStatus":"unmapped",
+      "mappingEvidence":"Frozen v1 target has exact source callable selection and source ranges but no emitted-JS v2 source-map artifact.","provenanceScope":"shared_module_callable","ownershipClaim":"module_init_namespace_import_binding","sharedWith":"WP-SEM-CALLABLE","unionKey":"branchId",
+      "conditionOrigin":{"fileName":"arrays.ts","startOffset":3530,"endOffset":3540,"startLine":88,"startColumn":20,"endLine":88,"endColumn":30,"nodeKind":"BinaryExpression"},
+      "successorOrigin":{"fileName":"arrays.ts","startOffset":3627,"endOffset":3639,"startLine":93,"startColumn":4,"endLine":93,"endColumn":16,"nodeKind":"ReturnStatement"},
+      "historical":{"reached":true,"replayConfirmed":false,"wallMs":12,"steps":14,"hintsUsed":false,"fallbackUsed":false,"pbtExecutions":100,"pbtThrew":100,"failureClass":"TypeError:cannot_read_property_defaultEquals_of_undefined"},
+      "capability":{"labels":["module_init","callable"],"semanticTags":["namespace_import","util.defaultEquals","frozen_reached_not_replayed","module_binding_claim"],"expectedStatus":"supported_with_flag","requiredFlags":["moduleRuntimeModel","callableValueModel"],"expectedOutcome":"replay_confirmed"}
+    },
+    {
+      "projectId":"typescript-collections","projectCommit":"309bb1b6955b403b212309531607b8d17df152e5","evidenceId":"typescript-collections-internal-pbt-usvm-broad-v1",
+      "methodId":"arrays.ts::%dflt::equals/3","branchId":"arrays.ts::%dflt::equals/3#s9:0->10","sourceCallableId":"ts:arrays.ts::free:equals/3","etsIrOriginId":"arrays.ts::%dflt::equals/3#s9:0->10","sourceBindingStatus":"exact","etsIrMappingStatus":"unmapped",
+      "mappingEvidence":"Frozen v1 target has exact source callable selection and source ranges but no emitted-JS v2 source-map artifact.","provenanceScope":"shared_module_callable","ownershipClaim":"module_init_namespace_import_binding","sharedWith":"WP-SEM-CALLABLE","unionKey":"branchId",
+      "conditionOrigin":{"fileName":"arrays.ts","startOffset":4402,"endOffset":4433,"startLine":110,"startColumn":8,"endLine":110,"endColumn":39,"nodeKind":"BinaryExpression"},
+      "successorOrigin":{"fileName":"arrays.ts","startOffset":4445,"endOffset":4458,"startLine":111,"startColumn":8,"endLine":111,"endColumn":21,"nodeKind":"ReturnStatement"},
+      "historical":{"reached":true,"replayConfirmed":false,"wallMs":13,"steps":12,"hintsUsed":false,"fallbackUsed":false,"pbtExecutions":100,"pbtThrew":100,"failureClass":"TypeError:cannot_read_property_defaultEquals_of_undefined"},
+      "capability":{"labels":["module_init","callable"],"semanticTags":["namespace_import","util.defaultEquals","frozen_reached_not_replayed","module_binding_claim"],"expectedStatus":"supported_with_flag","requiredFlags":["moduleRuntimeModel","callableValueModel"],"expectedOutcome":"replay_confirmed"}
+    },
+    {
+      "projectId":"typescript-collections","projectCommit":"309bb1b6955b403b212309531607b8d17df152e5","evidenceId":"typescript-collections-internal-pbt-usvm-broad-v1",
+      "methodId":"arrays.ts::%dflt::equals/3","branchId":"arrays.ts::%dflt::equals/3#s9:1->12","sourceCallableId":"ts:arrays.ts::free:equals/3","etsIrOriginId":"arrays.ts::%dflt::equals/3#s9:1->12","sourceBindingStatus":"exact","etsIrMappingStatus":"unmapped",
+      "mappingEvidence":"Frozen v1 target has exact source callable selection and source ranges but no emitted-JS v2 source-map artifact.","provenanceScope":"shared_module_callable","ownershipClaim":"module_init_namespace_import_binding","sharedWith":"WP-SEM-CALLABLE","unionKey":"branchId",
+      "conditionOrigin":{"fileName":"arrays.ts","startOffset":4402,"endOffset":4433,"startLine":110,"startColumn":8,"endLine":110,"endColumn":39,"nodeKind":"BinaryExpression"},
+      "successorOrigin":{"fileName":"arrays.ts","startOffset":4469,"endOffset":4498,"startLine":113,"startColumn":4,"endLine":113,"endColumn":33,"nodeKind":"FirstStatement"},
+      "historical":{"reached":true,"replayConfirmed":false,"wallMs":13,"steps":13,"hintsUsed":false,"fallbackUsed":false,"pbtExecutions":100,"pbtThrew":100,"failureClass":"TypeError:cannot_read_property_defaultEquals_of_undefined"},
+      "capability":{"labels":["module_init","callable"],"semanticTags":["namespace_import","util.defaultEquals","frozen_reached_not_replayed","module_binding_claim"],"expectedStatus":"supported_with_flag","requiredFlags":["moduleRuntimeModel","callableValueModel"],"expectedOutcome":"replay_confirmed"}
+    },
+    {
+      "projectId":"typescript-collections","projectCommit":"309bb1b6955b403b212309531607b8d17df152e5","evidenceId":"typescript-collections-internal-pbt-usvm-broad-v1",
+      "methodId":"arrays.ts::%dflt::equals/3","branchId":"arrays.ts::%dflt::equals/3#s15:0->16","sourceCallableId":"ts:arrays.ts::free:equals/3","etsIrOriginId":"arrays.ts::%dflt::equals/3#s15:0->16","sourceBindingStatus":"exact","etsIrMappingStatus":"unmapped",
+      "mappingEvidence":"Frozen v1 target has exact source callable selection and source ranges but no emitted-JS v2 source-map artifact.","provenanceScope":"shared_module_callable","ownershipClaim":"module_init_namespace_import_binding","sharedWith":"WP-SEM-CALLABLE","unionKey":"branchId",
+      "conditionOrigin":{"fileName":"arrays.ts","startOffset":4519,"endOffset":4529,"startLine":114,"startColumn":20,"endLine":114,"endColumn":30,"nodeKind":"BinaryExpression"},
+      "successorOrigin":{"fileName":"arrays.ts","startOffset":4551,"endOffset":4579,"startLine":115,"startColumn":13,"endLine":115,"endColumn":41,"nodeKind":"CallExpression"},
+      "historical":{"reached":true,"replayConfirmed":false,"wallMs":18,"steps":17,"hintsUsed":false,"fallbackUsed":false,"pbtExecutions":100,"pbtThrew":100,"failureClass":"TypeError:cannot_read_property_defaultEquals_of_undefined"},
+      "capability":{"labels":["module_init","callable"],"semanticTags":["namespace_import","util.defaultEquals","frozen_reached_not_replayed","module_binding_claim"],"expectedStatus":"supported_with_flag","requiredFlags":["moduleRuntimeModel","callableValueModel"],"expectedOutcome":"replay_confirmed"}
+    },
+    {
+      "projectId":"typescript-collections","projectCommit":"309bb1b6955b403b212309531607b8d17df152e5","evidenceId":"typescript-collections-internal-pbt-usvm-broad-v1",
+      "methodId":"arrays.ts::%dflt::equals/3","branchId":"arrays.ts::%dflt::equals/3#s15:1->26","sourceCallableId":"ts:arrays.ts::free:equals/3","etsIrOriginId":"arrays.ts::%dflt::equals/3#s15:1->26","sourceBindingStatus":"exact","etsIrMappingStatus":"unmapped",
+      "mappingEvidence":"Frozen v1 target has exact source callable selection and source ranges but no emitted-JS v2 source-map artifact.","provenanceScope":"shared_module_callable","ownershipClaim":"module_init_namespace_import_binding","sharedWith":"WP-SEM-CALLABLE","unionKey":"branchId",
+      "conditionOrigin":{"fileName":"arrays.ts","startOffset":4519,"endOffset":4529,"startLine":114,"startColumn":20,"endLine":114,"endColumn":30,"nodeKind":"BinaryExpression"},
+      "successorOrigin":{"fileName":"arrays.ts","startOffset":4629,"endOffset":4641,"startLine":119,"startColumn":4,"endLine":119,"endColumn":16,"nodeKind":"ReturnStatement"},
+      "historical":{"reached":true,"replayConfirmed":false,"wallMs":18,"steps":18,"hintsUsed":false,"fallbackUsed":false,"pbtExecutions":100,"pbtThrew":100,"failureClass":"TypeError:cannot_read_property_defaultEquals_of_undefined"},
+      "capability":{"labels":["module_init","callable"],"semanticTags":["namespace_import","util.defaultEquals","frozen_reached_not_replayed","module_binding_claim"],"expectedStatus":"supported_with_flag","requiredFlags":["moduleRuntimeModel","callableValueModel"],"expectedOutcome":"replay_confirmed"}
+    }
+  ]
+}
