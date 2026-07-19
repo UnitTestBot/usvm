@@ -10,6 +10,7 @@ import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsCallStmt
 import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsFunctionType
 import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLValue
@@ -54,6 +55,7 @@ import org.usvm.machine.TsHintType
 import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsOptions
 import org.usvm.machine.TsVirtualMethodCallStmt
+import org.usvm.machine.expr.SymbolicSemanticReason
 import org.usvm.machine.expr.TsExprResolver
 import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.expr.handleAssignToArrayIndex
@@ -62,6 +64,7 @@ import org.usvm.machine.expr.handleAssignToLocal
 import org.usvm.machine.expr.handleAssignToStaticField
 import org.usvm.machine.expr.mkTruthyExpr
 import org.usvm.machine.expr.readGlobal
+import org.usvm.machine.expr.recordSymbolicSemanticFallback
 import org.usvm.machine.expr.writeGlobal
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
@@ -154,7 +157,6 @@ class TsInterpreter(
     }
 
     private fun visitVirtualMethodCall(scope: TsStepScope, stmt: TsVirtualMethodCallStmt) = with(ctx) {
-
         // NOTE: USE '.callee' INSTEAD OF '.method' !!!
 
         val instance = stmt.instance
@@ -179,6 +181,7 @@ class TsInterpreter(
                     logger.warn { "Could not resolve class: ${type.typeName}" }
                     if (stmt.callee.name == CONSTRUCTOR_NAME) {
                         // Approximate unresolved constructor:
+                        recordSymbolicSemanticFallback(SymbolicSemanticReason.UNRESOLVED_VIRTUAL_CLASS, stmt.callee)
                         scope.doWithState {
                             methodResult = TsMethodResult.Success.MockedCall(unwrappedInstance, stmt.callee)
                             newStmt(stmt.returnSite)
@@ -231,6 +234,7 @@ class TsInterpreter(
         val possibleTypesSet = possibleTypes.types.toSet()
 
         if (possibleTypesSet.singleOrNull() == EtsAnyType) {
+            recordSymbolicSemanticFallback(SymbolicSemanticReason.LEGACY_ANY_RECEIVER, stmt.callee)
             mockMethodCall(scope, stmt.callee)
             scope.doWithState { newStmt(stmt.returnSite) }
             return
@@ -301,6 +305,7 @@ class TsInterpreter(
             logger.warn {
                 "No suitable methods found for call: ${stmt.callee} with instance: $unwrappedInstance"
             }
+            recordSymbolicSemanticFallback(SymbolicSemanticReason.LEGACY_NO_SUITABLE_VIRTUAL_TARGET, stmt.callee)
             mockMethodCall(scope, stmt.callee)
             scope.doWithState { newStmt(stmt.returnSite) }
             return
@@ -310,12 +315,12 @@ class TsInterpreter(
     }
 
     private fun visitConcreteMethodCall(scope: TsStepScope, stmt: TsConcreteMethodCallStmt) {
-
         // NOTE: USE '.callee' INSTEAD OF '.method' !!!
 
         // TODO: observer
 
         if (stmt.callee.signature.enclosingClass.name == "Log") {
+            recordSymbolicSemanticFallback(SymbolicSemanticReason.BUILTIN_OUTSIDE_EXACT_SUBSET, stmt.callee.signature)
             mockMethodCall(scope, stmt.callee.signature)
             scope.doWithState { newStmt(stmt.returnSite) }
             return
@@ -326,6 +331,10 @@ class TsInterpreter(
             // logger.warn { "No entry point for method: ${stmt.callee}, mocking the call" }
             // If the method doesn't have entry points,
             // we go through it, we just mock the call
+            recordSymbolicSemanticFallback(
+                SymbolicSemanticReason.LEGACY_METHOD_WITHOUT_ENTRY_POINT,
+                stmt.callee.signature,
+            )
             mockMethodCall(scope, stmt.callee.signature)
             scope.doWithState { newStmt(stmt.returnSite) }
             return
@@ -607,6 +616,10 @@ class TsInterpreter(
             }
 
             if (!options.interproceduralAnalysis && methodResult == TsMethodResult.NoCall) {
+                recordSymbolicSemanticFallback(
+                    SymbolicSemanticReason.INTERPROCEDURAL_ANALYSIS_DISABLED,
+                    callExpr.callee,
+                )
                 mockMethodCall(scope, callExpr.callee)
                 scope.doWithState { newStmt(stmt) }
                 return
@@ -649,6 +662,7 @@ class TsInterpreter(
         }
 
         // intraprocedural analysis
+        recordSymbolicSemanticFallback(SymbolicSemanticReason.INTERPROCEDURAL_ANALYSIS_DISABLED, stmt.expr.callee)
         mockMethodCall(scope, stmt.expr.callee)
     }
 
@@ -737,7 +751,13 @@ class TsInterpreter(
             }
 
             val parameterType = param.type
-            if (parameterType is EtsRefType) run {
+            // Function parameters may represent optional callbacks after TS
+            // lowering (the optional marker is not retained in EtsFunctionType).
+            // Keep the address unconstrained so the undefined/default branch
+            // stays reachable; exact callable dispatch rejects unknown non-null
+            // function identities at the call site.
+            val isExactCallableInput = parameterType is EtsFunctionType && options.callableValueModel
+            if (parameterType is EtsRefType && !isExactCallableInput) {
                 state.pathConstraints += mkNot(mkHeapRefEq(ref, mkTsNullValue()))
                 state.pathConstraints += mkNot(mkHeapRefEq(ref, mkUndefinedValue()))
 
@@ -748,22 +768,18 @@ class TsInterpreter(
                     val length = state.memory.read(lengthLValue).asExpr(sizeSort)
                     state.pathConstraints += mkBvSignedGreaterOrEqualExpr(length, mkBv(0))
                     state.pathConstraints += mkBvSignedLessOrEqualExpr(length, mkBv(options.maxArraySize))
-
-                    return@run
+                } else {
+                    val resolvedParameterType = graph.hierarchy.classesForType(parameterType)
+                    if (resolvedParameterType.isEmpty()) {
+                        logger.error("Cannot resolve class for parameter type: $parameterType")
+                    } else {
+                        // Because of structural equality in TS we cannot determine the exact type
+                        // Therefore, we create information about the fields the type must consist
+                        val types = resolvedParameterType.mapNotNull { it.type.toAuxiliaryType(graph.hierarchy) }
+                        val auxiliaryType = EtsUnionType(types) // TODO error
+                        state.pathConstraints += state.memory.types.evalIsSubtype(ref, auxiliaryType)
+                    }
                 }
-
-                val resolvedParameterType = graph.hierarchy.classesForType(parameterType)
-
-                if (resolvedParameterType.isEmpty()) {
-                    logger.error("Cannot resolve class for parameter type: $parameterType")
-                    return@run // TODO should be an error
-                }
-
-                // Because of structural equality in TS we cannot determine the exact type
-                // Therefore, we create information about the fields the type must consist
-                val types = resolvedParameterType.mapNotNull { it.type.toAuxiliaryType(graph.hierarchy) }
-                val auxiliaryType = EtsUnionType(types) // TODO error
-                state.pathConstraints += state.memory.types.evalIsSubtype(ref, auxiliaryType)
             }
             if (parameterType == EtsNullType) {
                 state.pathConstraints += mkHeapRefEq(ref, mkTsNullValue())

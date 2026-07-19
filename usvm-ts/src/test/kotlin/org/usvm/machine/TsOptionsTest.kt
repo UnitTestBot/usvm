@@ -16,6 +16,30 @@ class TsOptionsTest {
         assertFalse(options.symbolicProgressStop)
         assertNull(options.progressTimeout)
         assertFalse(options.tsTargetReachabilityPruning)
+        assertFalse(options.moduleRuntimeModel)
+        assertFalse(options.callableValueModel)
+        assertFalse(options.iteratorModel)
+        assertFalse(options.exactCollectionBuiltins)
+    }
+
+    @Test
+    fun `semantic feature groups are independently opt in`() {
+        assertEquals(
+            listOf(true, false, false, false),
+            TsOptions(moduleRuntimeModel = true).semanticFeatureVector(),
+        )
+        assertEquals(
+            listOf(false, true, false, false),
+            TsOptions(callableValueModel = true).semanticFeatureVector(),
+        )
+        assertEquals(
+            listOf(false, false, true, false),
+            TsOptions(iteratorModel = true).semanticFeatureVector(),
+        )
+        assertEquals(
+            listOf(false, false, false, true),
+            TsOptions(exactCollectionBuiltins = true).semanticFeatureVector(),
+        )
     }
 
     @Test
@@ -34,3 +58,10 @@ class TsOptionsTest {
         assertEquals(3.seconds, options.progressTimeout)
     }
 }
+
+private fun TsOptions.semanticFeatureVector(): List<Boolean> = listOf(
+    moduleRuntimeModel,
+    callableValueModel,
+    iteratorModel,
+    exactCollectionBuiltins,
+)

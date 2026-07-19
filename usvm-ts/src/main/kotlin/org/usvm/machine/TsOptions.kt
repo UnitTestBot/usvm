@@ -19,6 +19,26 @@ data class TsOptions(
      */
     val tsTargetReachabilityPruning: Boolean = false,
     /**
+     * Enable exact lookup for the supported stateless ES module subset.
+     * Kept off until the hybrid integration layer opts into the semantic profile.
+     */
+    val moduleRuntimeModel: Boolean = false,
+    /**
+     * Materialize stable function values and dispatch pointer calls exactly when
+     * their source method can be resolved. Dynamic/opaque callables are rejected.
+     */
+    val callableValueModel: Boolean = false,
+    /**
+     * Enable the synchronous iterator protocol subset used by the TS fixtures.
+     * Generators, async iterators and dynamic iterator replacement stay outside it.
+     */
+    val iteratorModel: Boolean = false,
+    /**
+     * Enable exact models and rejection boundaries for collection builtins.
+     * Unsupported property-presence and Map state never become unconstrained results.
+     */
+    val exactCollectionBuiltins: Boolean = false,
+    /**
      * Observed input type profiles from a dynamic (e.g. PBT) phase.
      * Restrict fake-object type discriminators for unresolved parameters.
      * [TsInputTypeHints.EMPTY] preserves the default behavior.

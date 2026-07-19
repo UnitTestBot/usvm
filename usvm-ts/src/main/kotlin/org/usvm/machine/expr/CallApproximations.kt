@@ -1,6 +1,7 @@
 package org.usvm.machine.expr
 
 import io.ksmt.expr.KFpRoundingMode
+import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsArrayType
@@ -10,22 +11,28 @@ import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.usvm.UBoolExpr
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.api.allocateConcreteRef
 import org.usvm.api.initializeArray
+import org.usvm.api.initializeArrayLength
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.api.memcpy
 import org.usvm.api.typeStreamOf
 import org.usvm.isAllocatedConcreteHeapRef
+import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.expr.TsExprApproximationResult.Companion.from
 import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.markResolved
 import org.usvm.machine.interpreter.setResolvedValue
+import org.usvm.machine.state.lastStmt
+import org.usvm.machine.state.newStmt
 import org.usvm.sizeSort
 import org.usvm.types.first
 import org.usvm.types.firstOrNull
+import org.usvm.util.boolToFp
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.resolveEtsMethods
@@ -35,6 +42,13 @@ private val logger = KotlinLogging.logger {}
 internal fun TsExprResolver.tryApproximateInstanceCall(
     expr: EtsInstanceCallExpr,
 ): TsExprApproximationResult = with(ctx) {
+    tryApproximateExactIteratorCall(expr)?.let { return it }
+    tryApproximateExactBuiltinCall(expr)?.let { return it }
+
+    if (options.callableValueModel && expr.callee.name == "call") {
+        return handleExactFunctionCall(expr)
+    }
+
     // Mock all calls to `Logger` methods
     if (expr.instance.name == "Logger") {
         return from(mkUndefinedValue())
@@ -58,6 +72,12 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
         if (expr.callee.name == "isNaN") {
             return from(handleNumberIsNaN(expr))
         }
+        if (options.exactCollectionBuiltins && expr.callee.name in setOf("isInteger", "isSafeInteger")) {
+            return from(handleNumberIsInteger(expr))
+        }
+        if (options.exactCollectionBuiltins && expr.callee.name == "isFinite") {
+            return from(handleNumberIsFinite(expr))
+        }
     }
 
     // Handle 'Boolean' constructor calls
@@ -79,6 +99,18 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
 
     // Handle `Math` method calls
     if (expr.instance.name == "Math") {
+        if (options.exactCollectionBuiltins) {
+            when (expr.callee.name) {
+                "floor" -> return from(handleExactMathRounding(expr, KFpRoundingMode.RoundTowardNegative))
+                "ceil" -> return from(handleExactMathRounding(expr, KFpRoundingMode.RoundTowardPositive))
+                "trunc" -> return from(handleExactMathRounding(expr, KFpRoundingMode.RoundTowardZero))
+                "round" -> return from(handleExactMathRound(expr))
+                "abs" -> return from(handleExactMathAbs(expr))
+                "sqrt" -> return from(handleExactMathSqrt(expr))
+                "min" -> return from(handleExactMathMinMax(expr, isMin = true))
+                "max" -> return from(handleExactMathMinMax(expr, isMin = false))
+            }
+        }
         if (expr.callee.name == "floor") {
             return from(handleMathFloor(expr))
         }
@@ -99,6 +131,10 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
         val elementSort = typeToSort(instanceType.elementType)
             .takeIf { it !is TsUnresolvedSort }
             ?: addressSort
+
+        if (options.exactCollectionBuiltins && expr.callee.name == CONSTRUCTOR_NAME) {
+            return from(handleArrayConstructor(expr, instanceType))
+        }
 
         // Handle 'Array.push()' method calls
         if (expr.callee.name == "push") {
@@ -157,6 +193,43 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
     }
 
     return TsExprApproximationResult.NoApproximation
+}
+
+/** Exact `Function.prototype.call` for already materialized method refs. */
+private fun TsExprResolver.handleExactFunctionCall(
+    expr: EtsInstanceCallExpr,
+): TsExprApproximationResult = with(ctx) {
+    val function = resolve(expr.instance)
+        ?: return TsExprApproximationResult.ResolveFailure
+    if (!isAllocatedConcreteHeapRef(function)) {
+        recordSymbolicSemanticFallback(
+            SymbolicSemanticReason.CALLABLE_REFERENCE_NOT_MATERIALIZED,
+            expr.callee,
+        )
+        scope.assert(falseExpr)
+        return TsExprApproximationResult.ResolveFailure
+    }
+
+    val target = scope.calcOnState { associatedFunction[function] }
+    if (target == null) {
+        recordSymbolicSemanticFallback(
+            SymbolicSemanticReason.CALLABLE_REFERENCE_NOT_MATERIALIZED,
+            expr.callee,
+        )
+        scope.assert(falseExpr)
+        return TsExprApproximationResult.ResolveFailure
+    }
+
+    val resolved = expr.args.map { resolve(it) ?: return TsExprApproximationResult.ResolveFailure }
+    val receiver = resolved.firstOrNull() ?: mkUndefinedValue()
+    val call = TsConcreteMethodCallStmt(
+        callee = target.method,
+        instance = receiver,
+        args = resolved.drop(1),
+        returnSite = scope.calcOnState { lastStmt },
+    )
+    scope.doWithState { newStmt(call) }
+    TsExprApproximationResult.ResolveFailure
 }
 
 private fun TsExprResolver.handleValueOf(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
@@ -279,6 +352,237 @@ private fun TsExprResolver.handleMathFloor(expr: EtsInstanceCallExpr): UExpr<*>?
 
         else -> {
             logger.warn { "Unsupported argument sort for Math.floor(): ${arg.sort}" }
+            null
+        }
+    }
+}
+
+private fun TsExprResolver.resolveExactSingleFpArg(
+    expr: EtsInstanceCallExpr,
+): UExpr<KFp64Sort>? = with(ctx) {
+    check(expr.args.size == 1) {
+        "Math.${expr.callee.name}() should have exactly one argument, but got ${expr.args.size}"
+    }
+    val arg = resolve(expr.args.single()) ?: return null
+    when {
+        arg.isFakeObject() -> {
+            scope.assert(arg.getFakeType(scope).fpTypeExpr) ?: return null
+            arg.extractFp(scope)
+        }
+
+        arg.sort == fp64Sort -> arg.asExpr(fp64Sort)
+        arg.sort == boolSort -> boolToFp(arg.asExpr(boolSort))
+        else -> rejectExactMathArgument(expr, arg.sort)
+    }
+}
+
+private fun TsExprResolver.rejectExactMathArgument(
+    expr: EtsInstanceCallExpr,
+    sort: USort,
+): UExpr<KFp64Sort>? {
+    recordSymbolicSemanticFallback(
+        SymbolicSemanticReason.BUILTIN_OUTSIDE_EXACT_SUBSET,
+        "${expr.callee}:argument-sort=$sort",
+    )
+    scope.assert(ctx.falseExpr)
+    return null
+}
+
+private fun TsExprResolver.handleExactMathRounding(
+    expr: EtsInstanceCallExpr,
+    mode: KFpRoundingMode,
+): UExpr<*>? = with(ctx) {
+    val value = resolveExactSingleFpArg(expr) ?: return null
+    mkFpRoundToIntegralExpr(mkFpRoundingModeExpr(mode), value)
+}
+
+private fun TsExprResolver.handleExactMathRound(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
+    val value = resolveExactSingleFpArg(expr) ?: return null
+
+    // ECMAScript rounds ties towards +Infinity and preserves negative zero.
+    // `floor(value + 0.5)` is not equivalent for binary64 values: the addition
+    // can round 0.49999999999999994 to 1.0 and can also change large integers.
+    val truncated = mkFpRoundToIntegralExpr(
+        mkFpRoundingModeExpr(KFpRoundingMode.RoundTowardZero),
+        value,
+    )
+    val fractionalMagnitude = mkFpAbsExpr(
+        mkFpSubExpr(
+            mkFpRoundingModeExpr(KFpRoundingMode.RoundNearestTiesToEven),
+            value,
+            truncated,
+        ),
+    )
+    val negative = mkFpLessExpr(value, mkFp64(0.0))
+    val half = mkFp64(0.5)
+    val roundAwayFromZero = mkIte(
+        negative,
+        mkFpLessExpr(half, fractionalMagnitude),
+        mkFpLessOrEqualExpr(half, fractionalMagnitude),
+    )
+    val delta = mkIte(negative, mkFp64(-1.0), mkFp64(1.0))
+    val adjusted = mkFpAddExpr(
+        mkFpRoundingModeExpr(KFpRoundingMode.RoundNearestTiesToEven),
+        truncated,
+        delta,
+    )
+    mkIte(roundAwayFromZero, adjusted, truncated)
+}
+
+private fun TsExprResolver.handleExactMathAbs(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
+    val value = resolveExactSingleFpArg(expr) ?: return null
+    mkFpAbsExpr(value)
+}
+
+private fun TsExprResolver.handleExactMathSqrt(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
+    val value = resolveExactSingleFpArg(expr) ?: return null
+    mkFpSqrtExpr(mkFpRoundingModeExpr(KFpRoundingMode.RoundNearestTiesToEven), value)
+}
+
+private fun TsExprResolver.handleExactMathMinMax(
+    expr: EtsInstanceCallExpr,
+    isMin: Boolean,
+): UExpr<*>? = with(ctx) {
+    val args = expr.args.map { arg ->
+        val resolved = resolve(arg) ?: return null
+        when {
+            resolved.isFakeObject() -> {
+                scope.assert(resolved.getFakeType(scope).fpTypeExpr) ?: return null
+                resolved.extractFp(scope)
+            }
+
+            resolved.sort == fp64Sort -> resolved.asExpr(fp64Sort)
+            resolved.sort == boolSort -> boolToFp(resolved.asExpr(boolSort))
+            else -> return rejectExactMathArgument(expr, resolved.sort)
+        }
+    }
+    if (args.isEmpty()) {
+        return mkFp64(if (isMin) Double.POSITIVE_INFINITY else Double.NEGATIVE_INFINITY)
+    }
+    val anyNaN = args.map { mkFpIsNaNExpr(it) }.reduce(::mkOr)
+    val pure = args.reduce { left, right ->
+        if (isMin) mkFpMinExpr(left, right) else mkFpMaxExpr(left, right)
+    }
+    mkIte(anyNaN, mkFp64(Double.NaN), pure)
+}
+
+private fun TsExprResolver.handleNumberIsInteger(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
+    check(expr.args.size == 1) { "Number.${expr.callee.name} should have one argument" }
+    val arg = resolve(expr.args.single()) ?: return null
+
+    fun isIntegral(value: UExpr<KFp64Sort>): UBoolExpr {
+        val rounded = mkFpRoundToIntegralExpr(
+            mkFpRoundingModeExpr(KFpRoundingMode.RoundTowardZero),
+            value,
+        )
+        val withinSafeRange = if (expr.callee.name == "isSafeInteger") {
+            mkFpLessOrEqualExpr(mkFpAbsExpr(value), mkFp64(MAX_SAFE_INTEGER))
+        } else {
+            trueExpr
+        }
+        return mkAnd(
+            mkNot(mkFpIsInfiniteExpr(value)),
+            mkFpEqualExpr(rounded, value),
+            withinSafeRange,
+        )
+    }
+
+    when {
+        arg.isFakeObject() -> mkIte(
+            arg.getFakeType(scope).fpTypeExpr,
+            isIntegral(arg.extractFp(scope)),
+            falseExpr,
+        )
+
+        arg.sort == fp64Sort -> isIntegral(arg.asExpr(fp64Sort))
+        else -> falseExpr
+    }
+}
+
+private fun TsExprResolver.handleNumberIsFinite(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
+    check(expr.args.size == 1) { "Number.isFinite should have one argument" }
+    val arg = resolve(expr.args.single()) ?: return null
+
+    fun isFinite(value: UExpr<KFp64Sort>): UBoolExpr = mkAnd(
+        mkNot(mkFpIsNaNExpr(value)),
+        mkNot(mkFpIsInfiniteExpr(value)),
+    )
+
+    when {
+        arg.isFakeObject() -> mkIte(
+            arg.getFakeType(scope).fpTypeExpr,
+            isFinite(arg.extractFp(scope)),
+            falseExpr,
+        )
+
+        arg.sort == fp64Sort -> isFinite(arg.asExpr(fp64Sort))
+        else -> falseExpr
+    }
+}
+
+private const val MAX_SAFE_INTEGER = 9_007_199_254_740_991.0
+
+private fun TsExprResolver.handleArrayConstructor(
+    expr: EtsInstanceCallExpr,
+    arrayType: EtsArrayType,
+): UExpr<*>? = with(ctx) {
+    val resolved = resolve(expr.instance)?.asExpr(addressSort) ?: return null
+    val array = resolved as? UConcreteHeapRef ?: run {
+        recordSymbolicSemanticFallback(
+            SymbolicSemanticReason.BUILTIN_OUTSIDE_EXACT_SUBSET,
+            "${expr.callee}:non-concrete-array",
+        )
+        scope.assert(falseExpr)
+        return null
+    }
+
+    when (expr.args.size) {
+        0 -> array
+
+        1 -> {
+            val size = resolve(expr.args.single()) ?: return null
+            if (size.sort != fp64Sort) {
+                recordSymbolicSemanticFallback(
+                    SymbolicSemanticReason.BUILTIN_OUTSIDE_EXACT_SUBSET,
+                    "${expr.callee}:array-size-sort=${size.sort}",
+                )
+                scope.assert(falseExpr)
+                return null
+            }
+            val bvSize = mkFpToBvExpr(
+                roundingMode = fpRoundingModeSortDefaultValue(),
+                value = size.asExpr(fp64Sort),
+                bvSize = 32,
+                isSigned = true,
+            )
+            val isValidSize = mkAnd(
+                mkEq(
+                    mkBvToFpExpr(
+                        sort = fp64Sort,
+                        roundingMode = fpRoundingModeSortDefaultValue(),
+                        value = bvSize,
+                        signed = true,
+                    ),
+                    size.asExpr(fp64Sort),
+                ),
+                mkBvSignedLessOrEqualExpr(mkBv(0), bvSize.asExpr(bv32Sort)),
+            )
+            scope.fork(
+                isValidSize,
+                blockOnFalseState = { throwException("Invalid array length: ${size.asExpr(fp64Sort)}") },
+            ) ?: return null
+            scope.doWithState {
+                memory.initializeArrayLength(array, arrayType, sizeSort, bvSize.asExpr(sizeSort))
+            }
+            array
+        }
+
+        else -> {
+            recordSymbolicSemanticFallback(
+                SymbolicSemanticReason.BUILTIN_OUTSIDE_EXACT_SUBSET,
+                "${expr.callee}:array-literal-arity=${expr.args.size}",
+            )
+            scope.assert(falseExpr)
             null
         }
     }
@@ -1063,7 +1367,7 @@ private fun TsExprResolver.handleArrayReverse(
             }
         )
 
-        //! Note: `reversedArray` is a temporary object not used outside this function,
+        // ! Note: `reversedArray` is a temporary object not used outside this function,
         //        so it is not necessary to set the "correct" length for it.
         // Set the length of the reversed array
         // val reversedLengthLValue = mkArrayLengthLValue(reversedArray, arrayType)

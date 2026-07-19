@@ -16,7 +16,6 @@ import org.jacodb.ets.model.EtsBitXorExpr
 import org.jacodb.ets.model.EtsBooleanConstant
 import org.jacodb.ets.model.EtsCastExpr
 import org.jacodb.ets.model.EtsCaughtExceptionRef
-import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsClosureFieldRef
 import org.jacodb.ets.model.EtsConstant
 import org.jacodb.ets.model.EtsDeleteExpr
@@ -77,6 +76,8 @@ import org.jacodb.ets.model.EtsYieldExpr
 import org.jacodb.ets.utils.ANONYMOUS_METHOD_PREFIX
 import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
 import org.jacodb.ets.utils.getDeclaredLocals
+import org.usvm.UBoolExpr
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UIteExpr
 import org.usvm.USort
@@ -139,7 +140,7 @@ class TsExprResolver(
 ) : EtsEntity.Visitor<UExpr<out USort>?> {
 
     val simpleValueResolver: TsSimpleValueResolver =
-        TsSimpleValueResolver(ctx, scope)
+        TsSimpleValueResolver(ctx, scope, options)
 
     fun resolve(expr: EtsEntity): UExpr<out USort>? {
         return expr.accept(this)
@@ -248,24 +249,26 @@ class TsExprResolver(
         return mkNumericExpr(arg, scope)
     }
 
-    override fun visit(expr: EtsPostIncExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsPostIncExpr): UExpr<out USort>? = with(ctx) {
+        val arg = resolve(expr.arg) ?: return null
+        mkNumericExpr(arg, scope)
     }
 
-    override fun visit(expr: EtsPostDecExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsPostDecExpr): UExpr<out USort>? = with(ctx) {
+        val arg = resolve(expr.arg) ?: return null
+        mkNumericExpr(arg, scope)
     }
 
-    override fun visit(expr: EtsPreIncExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsPreIncExpr): UExpr<out USort>? = with(ctx) {
+        val arg = resolve(expr.arg) ?: return null
+        val numeric = mkNumericExpr(arg, scope).asExpr(fp64Sort)
+        mkFpAddExpr(fpRoundingModeSortDefaultValue(), numeric, mkFp64(1.0))
     }
 
-    override fun visit(expr: EtsPreDecExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+    override fun visit(expr: EtsPreDecExpr): UExpr<out USort>? = with(ctx) {
+        val arg = resolve(expr.arg) ?: return null
+        val numeric = mkNumericExpr(arg, scope).asExpr(fp64Sort)
+        mkFpSubExpr(fpRoundingModeSortDefaultValue(), numeric, mkFp64(1.0))
     }
 
     override fun visit(expr: EtsBitNotExpr): UExpr<out USort>? = with(ctx) {
@@ -782,15 +785,74 @@ class TsExprResolver(
     }
 
     override fun visit(expr: EtsNotEqExpr): UExpr<out USort>? {
+        truthinessIdiomOrNull(expr.left, expr.right)?.let { truthy ->
+            return truthy
+        }
         return resolveBinaryOperator(TsBinaryOperator.Neq, expr)
     }
 
+    /**
+     * ArkAnalyzer and the native frontend lower `if (x)` to `x != 0` or
+     * `x != false`.  That IR idiom is ToBoolean, not a numeric loose compare:
+     * notably both `undefined` and `NaN` are falsy even though each is unequal
+     * to numeric zero.  Genuine `==` remains a normal loose comparison.
+     */
+    private fun truthinessIdiomOrNull(left: EtsEntity, right: EtsEntity): UBoolExpr? = with(ctx) {
+        val isZeroOrFalse = (right is EtsNumberConstant && right.value == 0.0) ||
+            (right is EtsBooleanConstant && !right.value)
+        if (!isZeroOrFalse) return null
+
+        val lhs = resolve(left) ?: return null
+        mkTruthyExpr(lhs, scope)
+    }
+
     override fun visit(expr: EtsStrictEqExpr): UExpr<out USort>? {
-        return resolveBinaryOperator(TsBinaryOperator.StrictEq, expr)
+        return resolveStrictEquality(expr.left, expr.right, negated = false)
     }
 
     override fun visit(expr: EtsStrictNotEqExpr): UExpr<out USort>? {
-        return resolveBinaryOperator(TsBinaryOperator.StrictNeq, expr)
+        return resolveStrictEquality(expr.left, expr.right, negated = true)
+    }
+
+    /**
+     * Strict equality between two dynamic input values compares the active
+     * primitive/reference alternatives directly.  Routing two fake values
+     * through the generic binary-operator path used to leave both wrappers in
+     * place and abort with "Nested fake objects are not supported".
+     */
+    private fun resolveStrictEquality(
+        left: EtsEntity,
+        right: EtsEntity,
+        negated: Boolean,
+    ): UBoolExpr? = with(ctx) {
+        val lhs = resolve(left) ?: return null
+        val rhs = resolve(right) ?: return null
+        val equality = if (lhs.isFakeObject() && rhs.isFakeObject()) {
+            val lhsType = lhs.getFakeType(scope)
+            val rhsType = rhs.getFakeType(scope)
+            mkOr(
+                mkAnd(
+                    lhsType.boolTypeExpr,
+                    rhsType.boolTypeExpr,
+                    mkEq(lhs.extractBool(scope), rhs.extractBool(scope)),
+                ),
+                mkAnd(
+                    lhsType.fpTypeExpr,
+                    rhsType.fpTypeExpr,
+                    mkFpEqualExpr(lhs.extractFp(scope), rhs.extractFp(scope)),
+                ),
+                mkAnd(
+                    lhsType.refTypeExpr,
+                    rhsType.refTypeExpr,
+                    mkHeapRefEq(lhs.extractRef(scope), rhs.extractRef(scope)),
+                ),
+            )
+        } else {
+            with(TsBinaryOperator.StrictEq) {
+                resolve(lhs, rhs, scope)?.asExpr(boolSort) ?: return null
+            }
+        }
+        if (negated) equality.not() else equality
     }
 
     override fun visit(expr: EtsLtExpr): UExpr<out USort>? {
@@ -816,6 +878,15 @@ class TsExprResolver(
     }
 
     override fun visit(expr: EtsInExpr): UExpr<out USort>? = with(ctx) {
+        if (options.exactCollectionBuiltins) {
+            recordSymbolicSemanticFallback(
+                SymbolicSemanticReason.PROPERTY_PRESENCE_NOT_TRACKED,
+                expr,
+            )
+            scope.assert(falseExpr)
+            return null
+        }
+
         val property = resolve(expr.left) ?: return null
         val obj = resolve(expr.right)?.asExpr(addressSort) ?: return null
 
@@ -861,6 +932,10 @@ class TsExprResolver(
             is TsMethodResult.NoCall -> {
                 val ptr = resolve(expr.ptr) ?: return null
 
+                if (ptr is UConcreteHeapRef && tryDispatchExactCallableValue(expr, ptr)) {
+                    return null
+                }
+
                 if (isAllocatedConcreteHeapRef(ptr)) {
                     // Handle 'resolve' and 'reject' function call
                     if (ptr === resolveFunctionRef || ptr === rejectFunctionRef) {
@@ -894,8 +969,19 @@ class TsExprResolver(
                         return mkUndefinedValue()
                     }
 
-                    val callee = scope.calcOnState {
-                        associatedFunction[ptr] ?: error("No associated methods for ptr: $ptr")
+                    val callee = scope.calcOnState { associatedFunction[ptr] }
+                    if (callee == null) {
+                        if (options.callableValueModel) {
+                            recordSymbolicSemanticFallback(
+                                SymbolicSemanticReason.CALLABLE_REFERENCE_NOT_MATERIALIZED,
+                                expr.callee,
+                            )
+                            scope.assert(falseExpr)
+                        } else {
+                            recordSymbolicSemanticFallback(SymbolicSemanticReason.UNRESOLVED_POINTER_CALL, expr.callee)
+                            mockMethodCall(scope, expr.callee)
+                        }
+                        return null
                     }
                     val resolvedArgs = expr.args.map { resolve(it) ?: return null }
                     val concreteCall = TsConcreteMethodCallStmt(
@@ -906,7 +992,16 @@ class TsExprResolver(
                     )
                     scope.doWithState { newStmt(concreteCall) }
                 } else {
-                    mockMethodCall(scope, expr.callee)
+                    if (options.callableValueModel) {
+                        recordSymbolicSemanticFallback(
+                            SymbolicSemanticReason.CALLABLE_REFERENCE_NOT_MATERIALIZED,
+                            expr.callee,
+                        )
+                        scope.assert(falseExpr)
+                    } else {
+                        recordSymbolicSemanticFallback(SymbolicSemanticReason.UNRESOLVED_POINTER_CALL, expr.callee)
+                        mockMethodCall(scope, expr.callee)
+                    }
                 }
 
                 null
@@ -920,7 +1015,23 @@ class TsExprResolver(
 
     override fun visit(value: EtsArrayAccess): UExpr<*>? = handleArrayAccess(value)
 
-    override fun visit(value: EtsInstanceFieldRef): UExpr<*>? = handleInstanceFieldRef(value)
+    override fun visit(value: EtsInstanceFieldRef): UExpr<*>? {
+        when (val builtin = tryReadExactBuiltinField(value)) {
+            ExactSymbolicResolution.PendingOrRejected -> return null
+            is ExactSymbolicResolution.Resolved -> return builtin.value
+            ExactSymbolicResolution.NotApplicable -> Unit
+        }
+        when (val iterator = tryReadExactIteratorResult(value)) {
+            ExactSymbolicResolution.PendingOrRejected -> return null
+            is ExactSymbolicResolution.Resolved -> return iterator.value
+            ExactSymbolicResolution.NotApplicable -> Unit
+        }
+        return when (val exact = tryResolveNamespaceCallable(value)) {
+            ExactSymbolicResolution.NotApplicable -> handleInstanceFieldRef(value)
+            ExactSymbolicResolution.PendingOrRejected -> null
+            is ExactSymbolicResolution.Resolved -> exact.value
+        }
+    }
 
     override fun visit(value: EtsStaticFieldRef): UExpr<*>? = handleStaticFieldRef(value)
 
@@ -963,6 +1074,15 @@ class TsExprResolver(
                 ?: expr.type
         } else {
             expr.type
+        }
+
+        if (options.exactCollectionBuiltins && expr.type.typeName == "Array") {
+            val arrayType = EtsArrayType(EtsUnknownType, dimensions = 1)
+            return@with scope.calcOnState {
+                val address = memory.allocConcrete(arrayType)
+                memory.initializeArrayLength(address, arrayType, sizeSort, mkBv(0).asExpr(sizeSort))
+                address
+            }
         }
 
         if (expr.type.typeName == "Boolean") {
@@ -1037,8 +1157,9 @@ class TsExprResolver(
 }
 
 class TsSimpleValueResolver(
-    private val ctx: TsContext,
-    private val scope: TsStepScope,
+    internal val ctx: TsContext,
+    internal val scope: TsStepScope,
+    internal val options: TsOptions,
 ) : EtsValue.Visitor<UExpr<out USort>?> {
 
     private fun resolveLocal(local: EtsValue): UExpr<*>? = with(ctx) {
@@ -1139,7 +1260,9 @@ class TsSimpleValueResolver(
                 }
 
                 is SymbolResolutionResult.SymbolNotFound -> {
-                    logger.error { "Cannot find symbol '$local' in '${resolutionResult.file.name}': ${resolutionResult.reason}" }
+                    logger.error {
+                        "Cannot find symbol '$local' in '${resolutionResult.file.name}': ${resolutionResult.reason}"
+                    }
                     scope.assert(falseExpr)
                     return null
                 }
@@ -1186,6 +1309,14 @@ class TsSimpleValueResolver(
         val currentMethod = scope.calcOnState { lastEnteredMethod }
         if (local !in currentMethod.getDeclaredLocals()) {
             if (local.type is EtsFunctionType) {
+                if (options.callableValueModel) {
+                    return when (val exact = tryResolveStableCallable(local)) {
+                        ExactSymbolicResolution.NotApplicable,
+                        ExactSymbolicResolution.PendingOrRejected,
+                        -> null
+                        is ExactSymbolicResolution.Resolved -> exact.value
+                    }
+                }
                 // TODO: function pointers should be "singletons"
                 return scope.calcOnState { memory.allocConcrete(local.type) }
             }
