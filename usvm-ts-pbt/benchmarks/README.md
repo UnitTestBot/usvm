@@ -64,6 +64,14 @@ python3 aggregate.py results/my-run-*.json --csv results/my-run.csv
 See `./gradlew :usvm-ts-pbt:runHybrid --args=""` for the full option list
 (`--class`, `--method`, `--exclude`, `--seed`, `--no-fallback`, ...).
 
+For source-level campaigns, `source-targets.cjs` can write two reproducible
+method selections from an exported Target Manifest:
+
+- `--source-callable-method-ids-out <file>` — unambiguous exported top-level
+  source entry points, including arrays/objects/callback parameters;
+- `--method-ids-out <file>` — the stricter primitive-parameter subset used by
+  source-level fuzzing and symbolic-execution harnesses.
+
 ## Interpreting the numbers
 
 - **Branch %** counts covered branch *edges* `(if, successor)` — the handoff

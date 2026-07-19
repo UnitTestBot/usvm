@@ -135,7 +135,6 @@ class HybridAnalyzer(
         var symbolicReport: SymbolicReport? = null
 
         if (config.mode != AnalysisMode.PBT_ONLY) {
-            val symStart = System.nanoTime()
             val symbolic = SymbolicPhase(
                 scene = scene,
                 method = method,
@@ -161,7 +160,9 @@ class HybridAnalyzer(
                     )
                 },
                 reached = symbolic.reachedCount,
-                wallMs = (System.nanoTime() - symStart) / 1_000_000,
+                wallMs = symbolic.wallMs,
+                machineRuns = symbolic.machineRuns,
+                steps = symbolic.steps.toLong(),
             )
         }
 

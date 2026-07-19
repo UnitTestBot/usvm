@@ -69,9 +69,9 @@ class HybridE2eTest {
                 hintFallback = false,
             ).run()
             return Run(
-                steps = result.outcomes.sumOf { it.steps },
+                steps = result.steps,
                 reached = result.outcomes.count { it.reached },
-                wallMs = result.outcomes.sumOf { it.wallMs },
+                wallMs = result.wallMs,
             )
         }
 

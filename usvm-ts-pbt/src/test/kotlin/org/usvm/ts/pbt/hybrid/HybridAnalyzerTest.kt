@@ -49,11 +49,15 @@ class HybridAnalyzerTest {
         assertNull(symbolicOnly.pbt)
         assertNotNull(symbolicOnly.symbolic)
         assertEquals(1.0, symbolicOnly.branchCoverage, 1e-9)
+        assertEquals(1, symbolicOnly.symbolic!!.machineRuns)
+        assertEquals(4, symbolicOnly.symbolic!!.targets.size)
+        assertTrue(symbolicOnly.symbolic!!.targets.all { it.reached })
 
         val hybrid = HybridAnalyzer(scene, config(AnalysisMode.HYBRID)).analyzeMethod(m)
         assertEquals(1.0, hybrid.branchCoverage, 1e-9)
         // PBT covered 3 of 4 edges, so only one symbolic target remains
         assertEquals(1, hybrid.symbolic!!.targets.size)
+        assertEquals(1, hybrid.symbolic!!.machineRuns)
         assertTrue(hybrid.symbolic!!.targets.single().reached)
         assertTrue(hybrid.symbolic!!.targets.none { it.hintsUsed })
 

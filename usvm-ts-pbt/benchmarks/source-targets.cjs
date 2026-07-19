@@ -78,6 +78,13 @@ async function main() {
   if (options.methodIdsOut) {
     await writeFile(options.methodIdsOut, `${entries.filter((entry) => entry.primitiveEligible).map((entry) => entry.methodId).join("\n")}\n`, "utf8");
   }
+  if (options.sourceCallableMethodIdsOut) {
+    await writeFile(
+      options.sourceCallableMethodIdsOut,
+      `${entries.filter((entry) => entry.sourceCallable).map((entry) => entry.methodId).join("\n")}\n`,
+      "utf8",
+    );
+  }
   console.log(JSON.stringify({ out: options.out, ...summary }));
 }
 
@@ -260,7 +267,15 @@ function countReasons(entries) {
 function normalize(path) { return String(path).replaceAll("\\", "/"); }
 
 function parseArgs(args) {
-  const result = { manifest: null, sourceRoot: null, typescriptDir: null, compiledOut: null, methodIdsOut: null, out: null };
+  const result = {
+    manifest: null,
+    sourceRoot: null,
+    typescriptDir: null,
+    compiledOut: null,
+    methodIdsOut: null,
+    sourceCallableMethodIdsOut: null,
+    out: null,
+  };
   for (let index = 0; index < args.length; index += 1) {
     switch (args[index]) {
       case "--manifest": result.manifest = args[++index]; break;
@@ -268,12 +283,16 @@ function parseArgs(args) {
       case "--typescript-dir": result.typescriptDir = resolve(args[++index]); break;
       case "--compiled-out": result.compiledOut = resolve(args[++index]); break;
       case "--method-ids-out": result.methodIdsOut = resolve(args[++index]); break;
+      case "--source-callable-method-ids-out": result.sourceCallableMethodIdsOut = resolve(args[++index]); break;
       case "--out": result.out = resolve(args[++index]); break;
       default: throw new Error(`unknown option '${args[index]}'`);
     }
   }
   if (!result.manifest || !result.sourceRoot || !result.typescriptDir || !result.out) {
-    throw new Error("required: --manifest --source-root --typescript-dir --out [--compiled-out]");
+    throw new Error(
+      "required: --manifest --source-root --typescript-dir --out " +
+        "[--compiled-out] [--method-ids-out] [--source-callable-method-ids-out]",
+    );
   }
   return result;
 }

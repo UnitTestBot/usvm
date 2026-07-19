@@ -98,6 +98,10 @@ data class SymbolicReport(
     val targets: List<TargetReport>,
     val reached: Int,
     val wallMs: Long,
+    /** Number of TsMachine invocations (normally one, or two after hint fallback). */
+    val machineRuns: Int = targets.size,
+    /** Aggregate symbolic steps without double-counting per-target discovery prefixes. */
+    val steps: Long = targets.sumOf { it.steps },
 )
 
 @Serializable

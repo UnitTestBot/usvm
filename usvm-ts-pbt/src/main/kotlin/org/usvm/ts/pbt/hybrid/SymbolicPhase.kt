@@ -32,44 +32,52 @@ import kotlin.time.Duration.Companion.seconds
 private val logger = KotlinLogging.logger {}
 
 /**
- * Construction of reachability target chains for uncovered branches.
- *
- * For an uncovered edge `(I, S)` the chain is
- * `InitialPoint(entry) -> IntermediatePoint(I) -> FinalPoint(S)`;
- * `ReachabilityObserver` advances a state through the chain as the
- * corresponding statements are executed.
+ * Resolves inputs for every state that reaches one or more terminal targets.
+ * The observer runs after [ReachabilityObserver], while [StepsStatistics] runs
+ * before it, so each capture contains the exact elapsed effort at discovery.
  */
-object TargetBuilder {
-    fun forBranch(method: EtsMethod, branch: CoverageTracker.BranchEdge): TsTarget {
-        val root: TsTarget = TsReachabilityTarget.InitialPoint(method.cfg.stmts.first())
-        root.addChild(TsReachabilityTarget.IntermediatePoint(branch.ifStmt))
-            .addChild(TsReachabilityTarget.FinalPoint(branch.successor))
-        return root
-    }
-}
+private class ReachingStateCaptor(
+    private val method: EtsMethod,
+    private val branchesByTerminal: Map<TsTarget, CoverageTracker.UncoveredBranch>,
+    private val stepsStatistics: StepsStatistics<EtsMethod, TsState>,
+    private val startNanos: Long,
+) : UMachineObserver<TsState> {
+    data class Capture(
+        val inputs: TsParametersState?,
+        val wallMs: Long,
+        val steps: ULong,
+    )
 
-/**
- * Captures the first state whose target set contains a reached terminal target.
- *
- * Note: the machine's own `TargetsReachedStatesCollector` only inspects
- * *terminated* states, and `stopOnTargetsReached` halts the machine as soon as
- * the target tree is fully removed — usually *before* the reaching state gets a
- * chance to terminate. Capturing at propagation time avoids the race. This
- * observer must be placed *after* [ReachabilityObserver] in the composite.
- */
-private class ReachingStateCaptor : UMachineObserver<TsState> {
-    var captured: TsState? = null
-        private set
+    val captures = mutableMapOf<CoverageTracker.UncoveredBranch, Capture>()
 
     private fun check(state: TsState) {
-        if (captured == null && state.targets.reachedTerminal.isNotEmpty()) {
-            captured = state
+        val newlyReached = state.targets.reachedTerminal
+            .mapNotNull { branchesByTerminal[it] }
+            .filterNot { it in captures }
+        if (newlyReached.isEmpty()) return
+
+        // The machine continues mutating live states while looking for other
+        // targets, so keep the resolved input instead of retaining the state.
+        val inputs = try {
+            TsTestResolver().resolveInputs(method, state)
+        } catch (e: Throwable) {
+            logger.warn {
+                "input resolution failed for " +
+                    "${newlyReached.joinToString { it.edge.toString() }}: $e"
+            }
+            null
         }
+        val capture = Capture(
+            inputs = inputs,
+            wallMs = (System.nanoTime() - startNanos) / 1_000_000,
+            steps = stepsStatistics.totalSteps,
+        )
+        newlyReached.forEach { captures[it] = capture }
     }
 
     override fun onState(parent: TsState, forks: Sequence<TsState>) {
         check(parent)
-        forks.forEach { check(it) }
+        forks.forEach(::check)
     }
 
     override fun onStateTerminated(state: TsState, stateReachable: Boolean) {
@@ -80,7 +88,9 @@ private class ReachingStateCaptor : UMachineObserver<TsState> {
 data class TargetOutcome(
     val branch: CoverageTracker.BranchEdge,
     val reached: Boolean,
+    /** Elapsed batch time when this target was reached, or total batch time otherwise. */
     val wallMs: Long,
+    /** Batch step count when this target was reached, or total batch steps otherwise. */
     val steps: ULong,
     val hintsUsed: Boolean,
     val fallbackUsed: Boolean,
@@ -91,19 +101,26 @@ data class TargetOutcome(
 
 class SymbolicPhaseResult(
     val outcomes: List<TargetOutcome>,
+    /** Real aggregate duration; unlike per-target discovery times, counted once per batch. */
+    val wallMs: Long,
+    /** Real aggregate steps; unlike per-target discovery steps, counted once per batch. */
+    val steps: ULong,
+    val machineRuns: Int,
 ) {
     val reachedCount: Int get() = outcomes.count { it.reached }
 }
 
+private data class BatchAttempt(
+    val outcomes: List<TargetOutcome>,
+    val wallMs: Long,
+    val steps: ULong,
+)
+
 /**
- * Phase 2 of the hybrid analysis: for every branch the PBT phase failed to cover,
- * run the usvm-ts machine in targeted mode, extract concrete inputs from the
- * reaching state, and replay them on the concrete interpreter to confirm
- * (and merge) the coverage.
- *
- * One machine run per target: `TargetsReachedStopStrategy` only stops when *all*
- * targets are reached, so batching would let a single infeasible branch consume
- * the whole time budget.
+ * Phase 2 of the hybrid analysis. All branches left by PBT are passed to one
+ * targeted `TsMachine` run. If observed-type hints make some targets
+ * unreachable, only that residual subset is retried in one hint-free run.
+ * Solver selection deliberately remains Yices.
  */
 class SymbolicPhase(
     private val scene: EtsScene,
@@ -116,100 +133,137 @@ class SymbolicPhase(
 ) {
     fun run(): SymbolicPhaseResult {
         coverage.phase = "symbolic"
-        val outcomes = mutableListOf<TargetOutcome>()
+        val branches = coverage.uncoveredBranches()
+        if (branches.isEmpty()) {
+            return SymbolicPhaseResult(emptyList(), wallMs = 0, steps = 0UL, machineRuns = 0)
+        }
 
-        for (uncovered in coverage.uncoveredBranches()) {
-            if (coverage.isCovered(uncovered.edge)) continue // covered by an earlier target's replay
+        val useHints = hints != TsInputTypeHints.EMPTY
+        val primary = attemptTargets(branches, if (useHints) hints else TsInputTypeHints.EMPTY)
 
-            val useHints = hints != TsInputTypeHints.EMPTY
-            var outcome = attemptTarget(uncovered, if (useHints) hints else TsInputTypeHints.EMPTY)
+        val fallbackBranches = if (useHints && hintFallback) {
+            val reached = primary.outcomes.asSequence()
+                .filter(TargetOutcome::reached)
+                .map(TargetOutcome::branch)
+                .toHashSet()
+            branches.filterNot { it.edge in reached }
+        } else {
+            emptyList()
+        }
+        if (fallbackBranches.isNotEmpty()) {
+            logger.info {
+                "${fallbackBranches.size} targets not reached with hints, retrying without hints"
+            }
+        }
+        val fallback = if (fallbackBranches.isEmpty()) null else {
+            attemptTargets(fallbackBranches, TsInputTypeHints.EMPTY)
+        }
 
-            if (!outcome.reached && useHints && hintFallback) {
-                logger.info { "target not reached with hints, falling back: ${uncovered.edge}" }
-                val fallback = attemptTarget(uncovered, TsInputTypeHints.EMPTY)
-                outcome = fallback.copy(
-                    wallMs = outcome.wallMs + fallback.wallMs,
+        val fallbackByBranch = fallback?.outcomes.orEmpty().associateBy(TargetOutcome::branch)
+        val outcomes = primary.outcomes.map { initial ->
+            fallbackByBranch[initial.branch]?.let { retry ->
+                retry.copy(
+                    wallMs = initial.wallMs + retry.wallMs,
+                    steps = initial.steps + retry.steps,
                     fallbackUsed = true,
                 )
-            }
-            outcomes += outcome
+            } ?: initial
         }
-        return SymbolicPhaseResult(outcomes)
+
+        return SymbolicPhaseResult(
+            outcomes = outcomes,
+            wallMs = primary.wallMs + (fallback?.wallMs ?: 0),
+            steps = primary.steps + (fallback?.steps ?: 0UL),
+            machineRuns = 1 + if (fallback == null) 0 else 1,
+        )
     }
 
-    private fun attemptTarget(
-        uncovered: CoverageTracker.UncoveredBranch,
-        hints: TsInputTypeHints,
-    ): TargetOutcome {
+    private fun attemptTargets(
+        branches: List<CoverageTracker.UncoveredBranch>,
+        runHints: TsInputTypeHints,
+    ): BatchAttempt {
         val start = System.nanoTime()
-        val stepsStats = StepsStatistics<EtsMethod, TsState>()
-        val captor = ReachingStateCaptor()
+        val stepsStatistics = StepsStatistics<EtsMethod, TsState>()
+        val targetRoots = mutableListOf<TsTarget>()
+        val branchesByTerminal = mutableMapOf<TsTarget, CoverageTracker.UncoveredBranch>()
+        branches.forEach { uncovered ->
+            require(uncovered.method == method) { "All targets must belong to the analyzed method" }
+            val root: TsTarget = TsReachabilityTarget.InitialPoint(method.cfg.stmts.first())
+            val terminal: TsTarget = TsReachabilityTarget.FinalPoint(uncovered.edge.successor)
+            root.addChild(TsReachabilityTarget.IntermediatePoint(uncovered.edge.ifStmt))
+                .addChild(terminal)
+            targetRoots += root
+            branchesByTerminal[terminal] = uncovered
+        }
+        val captor = ReachingStateCaptor(
+            method = method,
+            branchesByTerminal = branchesByTerminal,
+            stepsStatistics = stepsStatistics,
+            startNanos = start,
+        )
 
         val options = UMachineOptions(
             pathSelectionStrategies = listOf(PathSelectionStrategy.TARGETED),
             stopOnTargetsReached = true,
             exceptionsPropagation = true,
-            timeout = perTargetTimeout,
+            // Preserve the old maximum budget of N independent target runs.
+            timeout = perTargetTimeout * branches.size.toDouble(),
             solverType = SolverType.YICES,
         )
         val tsOptions = TsOptions(
             interproceduralAnalysis = interproceduralAnalysis,
-            inputTypeHints = hints,
+            inputTypeHints = runHints,
         )
-
-        val target = TargetBuilder.forBranch(uncovered.method, uncovered.edge)
 
         try {
             TsMachine(
                 scene,
                 options,
                 tsOptions,
-                // Order matters: the captor must observe *after* target propagation
-                machineObserver = CompositeUMachineObserver(ReachabilityObserver(), captor, stepsStats),
+                machineObserver = CompositeUMachineObserver(
+                    ReachabilityObserver(),
+                    stepsStatistics,
+                    captor,
+                ),
             ).use { machine ->
-                machine.analyze(listOf(method), listOf(target))
+                machine.analyze(listOf(method), targetRoots)
             }
         } catch (e: Throwable) {
-            // e.g. UNSAT initial constraints under too-restrictive hints
-            logger.warn { "symbolic run failed for ${uncovered.edge}: $e" }
+            logger.warn {
+                "symbolic batch failed for ${branches.size} targets " +
+                    "(${branches.joinToString(limit = 3) { it.edge.toString() }}): $e"
+            }
         }
 
         val wallMs = (System.nanoTime() - start) / 1_000_000
-        val hintsUsed = hints != TsInputTypeHints.EMPTY
-        val state = captor.captured
-            ?: return TargetOutcome(
-                branch = uncovered.edge,
-                reached = false,
-                wallMs = wallMs,
-                steps = stepsStats.totalSteps,
-                hintsUsed = hintsUsed,
-                fallbackUsed = false,
-                inputs = null,
-                replayConfirmed = false,
-            )
-
-        val inputs = try {
-            TsTestResolver().resolveInputs(method, state)
-        } catch (e: Throwable) {
-            logger.warn { "input resolution failed for ${uncovered.edge}: $e" }
-            null
+        val hintsUsed = runHints != TsInputTypeHints.EMPTY
+        val outcomes = branches.map { uncovered ->
+            val capture = captor.captures[uncovered]
+            if (capture == null) {
+                TargetOutcome(
+                    branch = uncovered.edge,
+                    reached = false,
+                    wallMs = wallMs,
+                    steps = stepsStatistics.totalSteps,
+                    hintsUsed = hintsUsed,
+                    fallbackUsed = false,
+                    inputs = null,
+                    replayConfirmed = false,
+                )
+            } else {
+                TargetOutcome(
+                    branch = uncovered.edge,
+                    reached = true,
+                    wallMs = capture.wallMs,
+                    steps = capture.steps,
+                    hintsUsed = hintsUsed,
+                    fallbackUsed = false,
+                    inputs = capture.inputs,
+                    replayConfirmed = capture.inputs?.let { replay(it, uncovered.edge) } ?: false,
+                )
+            }
         }
-
-        // Symbolic reachability and replay-confirmed EtsIR coverage are
-        // deliberately separate metrics. Never credit a solver trace to the
-        // concrete coverage tracker when its extracted input cannot replay.
-        val replayConfirmed = inputs?.let { replay(it, uncovered.edge) } ?: false
-
-        return TargetOutcome(
-            branch = uncovered.edge,
-            reached = true,
-            wallMs = wallMs,
-            steps = stepsStats.totalSteps,
-            hintsUsed = hintsUsed,
-            fallbackUsed = false,
-            inputs = inputs,
-            replayConfirmed = replayConfirmed,
-        )
+        return BatchAttempt(outcomes, wallMs, stepsStatistics.totalSteps)
     }
 
     /** Replay extracted inputs concretely; returns true if the target edge was actually taken. */
@@ -239,9 +293,6 @@ class SymbolicPhase(
             args,
             ExecutionListener.composite(listOf(coverage, probe)),
         )
-        // Reaching the requested edge is enough for branch-coverage credit;
-        // an unsupported construct encountered later does not undo the
-        // concrete observation that has already been reported to coverage.
         if (edgeTaken) return true
         if (result is ExecutionResult.Unsupported) {
             logger.debug { "replay unsupported for $edge: ${result.reason}" }
