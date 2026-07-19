@@ -95,9 +95,8 @@ class TsInterpreter(
     private val graph: TsGraph,
     private val options: TsOptions,
     private val observer: TsInterpreterObserver? = null,
+    private val forkBlackList: UForkBlackList<TsState, EtsStmt> = UForkBlackList.createDefault(),
 ) : UInterpreter<TsState>() {
-
-    private val forkBlackList: UForkBlackList<TsState, EtsStmt> = UForkBlackList.createDefault()
 
     override fun step(state: TsState): StepResult<TsState> {
         val stmt = state.lastStmt
