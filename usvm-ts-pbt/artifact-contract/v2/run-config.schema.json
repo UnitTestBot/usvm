@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://usvm.dev/ts-pbt/artifact-contract/v2/run-config.schema.json",
+  "title": "Adapter run configuration v2",
+  "type": "object",
+  "required": ["schemaVersion", "runId", "adapter", "seed", "budgetMs", "exportReplayGraceMs", "explorationDeadlineMs", "hardResultDeadlineMs", "cacheMode", "versions", "commits", "flags"],
+  "properties": {
+    "schemaVersion": { "const": 2 },
+    "runId": { "type": "string", "minLength": 1 },
+    "adapter": { "$ref": "#/$defs/producer" },
+    "seed": { "type": "integer", "minimum": 0, "maximum": 4294967295 },
+    "budgetMs": { "type": "integer", "minimum": 1 },
+    "exportReplayGraceMs": { "type": "integer", "minimum": 1 },
+    "explorationDeadlineMs": { "type": "integer", "minimum": 0 },
+    "hardResultDeadlineMs": { "type": "integer", "minimum": 1 },
+    "cacheMode": { "enum": ["cold", "warm"] },
+    "versions": { "$ref": "#/$defs/nonEmptyStringMap" },
+    "commits": { "$ref": "#/$defs/nonEmptyStringMap" },
+    "flags": { "type": "object", "additionalProperties": true }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "producer": {
+      "type": "object",
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 },
+        "commit": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": true
+    },
+    "nonEmptyStringMap": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    }
+  }
+}

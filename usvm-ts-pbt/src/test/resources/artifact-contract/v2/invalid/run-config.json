@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 2,
+  "runId": "broken-deadline",
+  "adapter": { "name": "fixture-tool", "version": "1.0.0" },
+  "seed": -1,
+  "budgetMs": 10000,
+  "exportReplayGraceMs": 2000,
+  "explorationDeadlineMs": 9000,
+  "hardResultDeadlineMs": 11000,
+  "cacheMode": "lukewarm",
+  "versions": {},
+  "commits": {},
+  "flags": {}
+}

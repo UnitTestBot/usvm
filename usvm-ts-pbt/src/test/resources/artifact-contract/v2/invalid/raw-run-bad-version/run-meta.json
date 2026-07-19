@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 2,
+  "runId": "invalid-raw-run",
+  "producer": { "name": "fixture-tool", "version": "1.0.0" },
+  "startupMs": 0,
+  "generationMs": 0,
+  "exportMs": 0,
+  "totalMs": 0,
+  "commits": { "usvm": "c31b924f" },
+  "exitStatus": "success",
+  "timedOut": false,
+  "logCapBytes": 1024,
+  "logTruncated": false,
+  "overBudgetMs": 0
+}

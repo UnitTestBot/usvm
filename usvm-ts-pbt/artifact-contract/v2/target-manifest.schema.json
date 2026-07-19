@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://usvm.dev/ts-pbt/artifact-contract/v2/target-manifest.schema.json",
+  "title": "USVM TypeScript target manifest v2",
+  "type": "object",
+  "required": ["schemaVersion", "generator", "methods"],
+  "properties": {
+    "schemaVersion": { "const": 2 },
+    "generator": { "type": "string", "minLength": 1 },
+    "methods": { "type": "array", "items": { "$ref": "#/$defs/method" } }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "method": {
+      "type": "object",
+      "required": ["methodId", "signature", "projectName", "fileName", "className", "methodName", "arity", "parameterTypes", "parameters", "entryKind", "branches"],
+      "properties": {
+        "methodId": { "type": "string", "minLength": 1 },
+        "signature": { "type": "string", "minLength": 1 },
+        "projectName": { "type": "string", "minLength": 1 },
+        "fileName": { "type": "string", "minLength": 1 },
+        "namespace": { "type": ["string", "null"] },
+        "className": { "type": "string", "minLength": 1 },
+        "methodName": { "type": "string", "minLength": 1 },
+        "arity": { "type": "integer", "minimum": 0 },
+        "parameterTypes": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "parameters": { "type": "array", "items": { "$ref": "#/$defs/parameter" } },
+        "entryKind": { "enum": ["free", "static", "instance"] },
+        "branches": { "type": "array", "items": { "$ref": "#/$defs/branch" } }
+      },
+      "additionalProperties": true
+    },
+    "parameter": {
+      "type": "object",
+      "required": ["index", "name", "type", "optional", "rest"],
+      "properties": {
+        "index": { "type": "integer", "minimum": 0 },
+        "name": { "type": "string", "minLength": 1 },
+        "type": { "type": "string", "minLength": 1 },
+        "optional": { "type": "boolean" },
+        "rest": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "branch": {
+      "type": "object",
+      "required": ["branchId", "ifStmtIndex", "successorOrdinal", "successorStmtIndex"],
+      "properties": {
+        "branchId": { "type": "string", "minLength": 1 },
+        "ifStmtIndex": { "type": "integer", "minimum": 0 },
+        "successorOrdinal": { "type": "integer", "minimum": 0, "maximum": 1 },
+        "successorStmtIndex": { "type": "integer", "minimum": 0 },
+        "conditionOrigin": { "$ref": "#/$defs/origin" },
+        "successorOrigin": { "$ref": "#/$defs/origin" }
+      },
+      "additionalProperties": true
+    },
+    "origin": {
+      "type": "object",
+      "required": ["fileName", "startOffset", "endOffset", "startLine", "startColumn", "endLine", "endColumn", "nodeKind"],
+      "properties": {
+        "fileName": { "type": "string", "minLength": 1 },
+        "startOffset": { "type": "integer", "minimum": 0 },
+        "endOffset": { "type": "integer", "minimum": 0 },
+        "startLine": { "type": "integer", "minimum": 0 },
+        "startColumn": { "type": "integer", "minimum": 0 },
+        "endLine": { "type": "integer", "minimum": 0 },
+        "endColumn": { "type": "integer", "minimum": 0 },
+        "nodeKind": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": true
+    }
+  }
+}

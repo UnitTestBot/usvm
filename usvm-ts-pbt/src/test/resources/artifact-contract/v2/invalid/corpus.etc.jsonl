@@ -1,0 +1,2 @@
+{"schemaVersion":2,"producer":"fixture-without-version"}
+{"id":"broken","methodId":"src/example.ts::%dflt::classify/1","generatedAtMs":-1,"arguments":[{"kind":"future-bigint","value":"42"},{"kind":"hole"},{"kind":"alias","aliasReference":"missing"}]}

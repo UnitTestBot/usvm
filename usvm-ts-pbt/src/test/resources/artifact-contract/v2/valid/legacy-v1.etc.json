@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "producer": "legacy-tool@0.9.0",
+  "cases": [
+    {
+      "id": "legacy-special",
+      "methodId": "src/example.ts::%dflt::classify/1",
+      "receiver": { "kind": "undefined" },
+      "arguments": [
+        { "kind": "number", "value": "NaN" },
+        { "kind": "array", "elements": [{ "kind": "hole" }] },
+        { "kind": "unrepresentable", "reason": "$[2] is a function" }
+      ],
+      "metadata": {
+        "seed": "17",
+        "generatedAtMs": "25"
+      }
+    }
+  ]
+}

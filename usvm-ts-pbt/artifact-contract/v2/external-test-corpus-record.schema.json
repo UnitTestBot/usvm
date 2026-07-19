@@ -1,0 +1,236 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://usvm.dev/ts-pbt/artifact-contract/v2/external-test-corpus-record.schema.json",
+  "title": "One record in canonical External Test Corpus v2 JSONL",
+  "oneOf": [
+    { "$ref": "#/$defs/header" },
+    { "$ref": "#/$defs/case" }
+  ],
+  "$defs": {
+    "header": {
+      "type": "object",
+      "required": ["schemaVersion", "producer"],
+      "properties": {
+        "schemaVersion": { "const": 2 },
+        "producer": { "type": "string", "pattern": "^[^@]+@[^@]+$" }
+      },
+      "additionalProperties": true
+    },
+    "case": {
+      "type": "object",
+      "required": ["id", "methodId", "generatedAtMs", "arguments"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "methodId": { "type": "string", "minLength": 1 },
+        "generatedAtMs": { "type": "integer", "minimum": 0 },
+        "seed": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "minLength": 1 },
+        "receiver": { "$ref": "#/$defs/value" },
+        "arguments": { "type": "array", "items": { "$ref": "#/$defs/value" } },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      },
+      "anyOf": [
+        { "required": ["seed"] },
+        { "required": ["path"] }
+      ],
+      "additionalProperties": true
+    },
+    "value": {
+      "oneOf": [
+        { "$ref": "#/$defs/undefinedValue" },
+        { "$ref": "#/$defs/nullValue" },
+        { "$ref": "#/$defs/numberValue" },
+        { "$ref": "#/$defs/booleanValue" },
+        { "$ref": "#/$defs/stringValue" },
+        { "$ref": "#/$defs/holeValue" },
+        { "$ref": "#/$defs/arrayValue" },
+        { "$ref": "#/$defs/objectValue" },
+        { "$ref": "#/$defs/mapValue" },
+        { "$ref": "#/$defs/setValue" },
+        { "$ref": "#/$defs/callableValue" },
+        { "$ref": "#/$defs/aliasValue" },
+        { "$ref": "#/$defs/unrepresentableValue" }
+      ]
+    },
+    "baseValue": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "aliasId": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": true
+    },
+    "undefinedValue": {
+      "allOf": [
+        { "$ref": "#/$defs/baseValue" },
+        { "properties": { "kind": { "const": "undefined" } } }
+      ]
+    },
+    "nullValue": {
+      "allOf": [
+        { "$ref": "#/$defs/baseValue" },
+        { "properties": { "kind": { "const": "null" } } }
+      ]
+    },
+    "numberValue": {
+      "allOf": [
+        { "$ref": "#/$defs/baseValue" },
+        {
+          "required": ["value"],
+          "properties": {
+            "kind": { "const": "number" },
+            "value": {
+              "type": "string",
+              "pattern": "^(NaN|Infinity|-Infinity|-0|-?(0|[1-9][0-9]*)(\\.[0-9]+)?([eE][+-]?[0-9]+)?)$"
+            }
+          }
+        }
+      ]
+    },
+    "booleanValue": {
+      "allOf": [
+        { "$ref": "#/$defs/baseValue" },
+        { "required": ["value"], "properties": { "kind": { "const": "boolean" }, "value": { "enum": ["true", "false"] } } }
+      ]
+    },
+    "stringValue": {
+      "allOf": [
+        { "$ref": "#/$defs/baseValue" },
+        { "required": ["value"], "properties": { "kind": { "const": "string" }, "value": { "type": "string" } } }
+      ]
+    },
+    "holeValue": {
+      "allOf": [
+        { "$ref": "#/$defs/baseValue" },
+        { "properties": { "kind": { "const": "hole" } } }
+      ]
+    },
+    "arrayValue": {
+      "allOf": [
+        { "$ref": "#/$defs/baseValue" },
+        {
+          "required": ["elements"],
+          "properties": {
+            "kind": { "const": "array" },
+            "elements": { "type": "array", "items": { "$ref": "#/$defs/value" } }
+          }
+        }
+      ]
+    },
+    "objectValue": {
+      "allOf": [
+        { "$ref": "#/$defs/baseValue" },
+        {
+          "required": ["properties"],
+          "properties": {
+            "kind": { "const": "object" },
+            "className": { "type": "string" },
+            "properties": { "type": "array", "items": { "$ref": "#/$defs/property" } },
+            "constructorPlan": { "$ref": "#/$defs/constructorPlan" }
+          }
+        }
+      ]
+    },
+    "mapValue": {
+      "allOf": [
+        { "$ref": "#/$defs/baseValue" },
+        {
+          "required": ["entries"],
+          "properties": {
+            "kind": { "const": "map" },
+            "entries": { "type": "array", "items": { "$ref": "#/$defs/mapEntry" } }
+          }
+        }
+      ]
+    },
+    "setValue": {
+      "allOf": [
+        { "$ref": "#/$defs/baseValue" },
+        {
+          "required": ["elements"],
+          "properties": {
+            "kind": { "const": "set" },
+            "elements": { "type": "array", "items": { "$ref": "#/$defs/value" } }
+          }
+        }
+      ]
+    },
+    "callableValue": {
+      "allOf": [
+        { "$ref": "#/$defs/baseValue" },
+        {
+          "required": ["callableReference"],
+          "properties": {
+            "kind": { "const": "callable" },
+            "callableReference": { "$ref": "#/$defs/callableReference" }
+          }
+        }
+      ]
+    },
+    "aliasValue": {
+      "allOf": [
+        { "$ref": "#/$defs/baseValue" },
+        {
+          "required": ["aliasReference"],
+          "properties": {
+            "kind": { "const": "alias" },
+            "aliasReference": { "type": "string", "minLength": 1 }
+          }
+        }
+      ]
+    },
+    "unrepresentableValue": {
+      "allOf": [
+        { "$ref": "#/$defs/baseValue" },
+        {
+          "required": ["reason", "unrepresentableKind"],
+          "properties": {
+            "kind": { "const": "unrepresentable" },
+            "reason": { "type": "string", "minLength": 1 },
+            "unrepresentableKind": { "enum": ["function", "cycle", "symbol", "accessor", "classInstance", "namespace", "other"] }
+          }
+        }
+      ]
+    },
+    "property": {
+      "type": "object",
+      "required": ["key", "value"],
+      "properties": {
+        "key": { "type": "string" },
+        "value": { "$ref": "#/$defs/value" }
+      },
+      "additionalProperties": true
+    },
+    "mapEntry": {
+      "type": "object",
+      "required": ["key", "value"],
+      "properties": {
+        "key": { "$ref": "#/$defs/value" },
+        "value": { "$ref": "#/$defs/value" }
+      },
+      "additionalProperties": true
+    },
+    "callableReference": {
+      "type": "object",
+      "required": ["modulePath", "exportName", "callableKind"],
+      "properties": {
+        "modulePath": { "type": "string", "minLength": 1 },
+        "exportName": { "type": "string", "minLength": 1 },
+        "callableKind": { "enum": ["function", "class", "staticMethod", "instanceMethod", "arrow"] }
+      },
+      "additionalProperties": true
+    },
+    "constructorPlan": {
+      "type": "object",
+      "required": ["callable", "arguments"],
+      "properties": {
+        "callable": { "$ref": "#/$defs/callableReference" },
+        "arguments": { "type": "array", "items": { "$ref": "#/$defs/value" } }
+      },
+      "additionalProperties": true
+    }
+  }
+}

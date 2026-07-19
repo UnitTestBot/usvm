@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "producer": {
+    "name": "fixture-tool",
+    "version": "1.0.0",
+    "commit": "0123456789abcdef"
+  },
+  "claims": [
+    {
+      "methodId": "src/example.ts::%dflt::classify/1",
+      "nativeTargetId": "native-branch-0",
+      "claimedCovered": true,
+      "discoveredAtMs": 20
+    }
+  ],
+  "diagnostics": {
+    "nativeMetric": "branch"
+  },
+  "futureCoverageField": true
+}

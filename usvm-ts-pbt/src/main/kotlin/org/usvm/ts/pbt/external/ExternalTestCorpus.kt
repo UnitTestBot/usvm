@@ -8,6 +8,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.intOrNull
@@ -30,7 +31,8 @@ import kotlin.io.path.name
 import kotlin.io.path.readText
 import kotlin.io.path.writeText
 
-const val EXTERNAL_TEST_CORPUS_SCHEMA_VERSION: Int = 1
+const val EXTERNAL_TEST_CORPUS_SCHEMA_VERSION: Int = ARTIFACT_SCHEMA_VERSION
+const val LEGACY_EXTERNAL_TEST_CORPUS_SCHEMA_VERSION: Int = 1
 
 /**
  * Portable corpus shared by Node-side generators and the EtsIR replay engine.
@@ -51,13 +53,20 @@ data class ExternalTestCorpus(
 data class ExternalTestCase(
     val id: String,
     val methodId: String,
+    /** Monotonic milliseconds from the common run start. */
+    @OptIn(ExperimentalSerializationApi::class)
+    @EncodeDefault(EncodeDefault.Mode.ALWAYS)
+    val generatedAtMs: Long = 0,
+    /** Producer seed and/or exploration path. At least one is required in raw v2 artifacts. */
+    val seed: String? = null,
+    val path: String? = null,
     val receiver: ExternalValue = ExternalValue(kind = "undefined"),
     val arguments: List<ExternalValue>,
     val metadata: Map<String, String> = emptyMap(),
 )
 
 /**
- * Version-one tagged value. Only fields relevant to [kind] are populated.
+ * Version-two tagged value. Only fields relevant to [kind] are populated.
  * Keeping the tag as data (rather than a closed polymorphic hierarchy) lets a
  * newer producer be rejected case-by-case instead of making the whole corpus
  * undecodable when it introduces a new value kind.
@@ -71,6 +80,15 @@ data class ExternalValue(
     val entries: List<ExternalMapEntry> = emptyList(),
     val className: String? = null,
     val reason: String? = null,
+    /** function | cycle | symbol | accessor | classInstance | namespace | other */
+    val unrepresentableKind: String? = null,
+    /** Defines or references identity shared by structured values in one case. */
+    val aliasId: String? = null,
+    val aliasReference: String? = null,
+    /** A materializable source-level callable, distinct from an arbitrary function value. */
+    val callableReference: ExternalCallableReference? = null,
+    /** Optional construction recipe for a structured receiver/object. */
+    val constructorPlan: ExternalConstructorPlan? = null,
 )
 
 @Serializable
@@ -78,6 +96,20 @@ data class ExternalProperty(val key: String, val value: ExternalValue)
 
 @Serializable
 data class ExternalMapEntry(val key: ExternalValue, val value: ExternalValue)
+
+@Serializable
+data class ExternalCallableReference(
+    val modulePath: String,
+    val exportName: String,
+    /** function | class | staticMethod | instanceMethod | arrow */
+    val callableKind: String,
+)
+
+@Serializable
+data class ExternalConstructorPlan(
+    val callable: ExternalCallableReference,
+    val arguments: List<ExternalValue> = emptyList(),
+)
 
 data class ExternalCorpusRejection(
     val id: String?,
@@ -94,20 +126,13 @@ data class ExternalCorpusReadResult(
 
 /** JSON and JSONL reader/writer with per-case decode failures. */
 object ExternalTestCorpusCodec {
-    private val prettyJson = Json {
-        prettyPrint = true
-        encodeDefaults = false
-        ignoreUnknownKeys = true
-    }
     private val compactJson = Json {
         encodeDefaults = false
         ignoreUnknownKeys = true
     }
 
-    fun encode(corpus: ExternalTestCorpus): String {
-        requireSupportedVersion(corpus.schemaVersion)
-        return prettyJson.encodeToString(corpus)
-    }
+    /** ETC v2 has one canonical wire format: a header plus JSONL case records. */
+    fun encode(corpus: ExternalTestCorpus): String = encodeJsonLines(corpus)
 
     fun decode(text: String, sourceName: String = "<memory>"): ExternalCorpusReadResult =
         readText(text, sourceName)
@@ -123,7 +148,7 @@ object ExternalTestCorpusCodec {
      * case becomes a rejection without hiding the remaining valid cases.
      */
     fun encodeJsonLines(corpus: ExternalTestCorpus): String {
-        requireSupportedVersion(corpus.schemaVersion)
+        requireWritableVersion(corpus.schemaVersion)
         val header = CorpusHeader(corpus.schemaVersion, corpus.producer)
         return buildString {
             appendLine(compactJson.encodeToString(header))
@@ -142,15 +167,16 @@ object ExternalTestCorpusCodec {
             is JsonObject -> when {
                 "cases" in wholeDocument -> decodeDocument(wholeDocument, sourceName)
                 "methodId" in wholeDocument -> decodeElements(
-                    schemaVersion = EXTERNAL_TEST_CORPUS_SCHEMA_VERSION,
+                    schemaVersion = LEGACY_EXTERNAL_TEST_CORPUS_SCHEMA_VERSION,
                     producer = sourceName,
                     elements = listOf(wholeDocument),
                 )
+                "schemaVersion" in wholeDocument -> decodeJsonLines(text, sourceName)
                 else -> error("external corpus $sourceName has a header but no cases")
             }
 
             is JsonArray -> decodeElements(
-                schemaVersion = EXTERNAL_TEST_CORPUS_SCHEMA_VERSION,
+                schemaVersion = LEGACY_EXTERNAL_TEST_CORPUS_SCHEMA_VERSION,
                 producer = sourceName,
                 elements = wholeDocument,
             )
@@ -161,9 +187,12 @@ object ExternalTestCorpusCodec {
     }
 
     private fun decodeDocument(document: JsonObject, sourceName: String): ExternalCorpusReadResult {
-        val version = document["schemaVersion"]?.jsonPrimitive?.intOrNull
+        val version = document.strictInt("schemaVersion")
             ?: error("external corpus $sourceName has no integer schemaVersion")
-        requireSupportedVersion(version)
+        require(version == LEGACY_EXTERNAL_TEST_CORPUS_SCHEMA_VERSION) {
+            "external corpus $sourceName uses JSON document encoding for schemaVersion $version; " +
+                "schemaVersion $EXTERNAL_TEST_CORPUS_SCHEMA_VERSION requires JSONL"
+        }
         val producer = document.string("producer")
             ?: error("external corpus $sourceName has no producer")
         val cases = document["cases"] as? JsonArray
@@ -188,13 +217,19 @@ object ExternalTestCorpusCodec {
         val header = elements.firstOrNull() as? JsonObject
         val hasHeader = header != null && "schemaVersion" in header && "methodId" !in header
         val version = if (hasHeader) {
-            header!!["schemaVersion"]?.jsonPrimitive?.intOrNull
+            header!!.strictInt("schemaVersion")
                 ?: error("external corpus $sourceName has no integer schemaVersion")
         } else {
-            EXTERNAL_TEST_CORPUS_SCHEMA_VERSION
+            LEGACY_EXTERNAL_TEST_CORPUS_SCHEMA_VERSION
         }
-        requireSupportedVersion(version)
-        val producer = if (hasHeader) header!!.string("producer") ?: sourceName else sourceName
+        requireReadableVersion(version)
+        val producer = if (hasHeader) {
+            header!!.string("producer")
+                ?: if (version == LEGACY_EXTERNAL_TEST_CORPUS_SCHEMA_VERSION) sourceName
+                else error("external corpus $sourceName has no producer")
+        } else {
+            sourceName
+        }
         val decoded = decodeElements(version, producer, if (hasHeader) elements.drop(1) else elements)
         return decoded.copy(rejections = parseRejections + decoded.rejections)
     }
@@ -223,13 +258,25 @@ object ExternalTestCorpusCodec {
         return ExternalCorpusReadResult(schemaVersion, producer, cases, rejections)
     }
 
-    private fun requireSupportedVersion(version: Int) {
+    private fun requireReadableVersion(version: Int) {
+        require(version == LEGACY_EXTERNAL_TEST_CORPUS_SCHEMA_VERSION || version == EXTERNAL_TEST_CORPUS_SCHEMA_VERSION) {
+            "unsupported External Test Corpus schemaVersion $version; expected " +
+                "$LEGACY_EXTERNAL_TEST_CORPUS_SCHEMA_VERSION or $EXTERNAL_TEST_CORPUS_SCHEMA_VERSION"
+        }
+    }
+
+    private fun requireWritableVersion(version: Int) {
         require(version == EXTERNAL_TEST_CORPUS_SCHEMA_VERSION) {
-            "unsupported External Test Corpus schemaVersion $version; expected $EXTERNAL_TEST_CORPUS_SCHEMA_VERSION"
+            "cannot encode External Test Corpus schemaVersion $version; canonical output is " +
+                "schemaVersion $EXTERNAL_TEST_CORPUS_SCHEMA_VERSION JSONL"
         }
     }
 
     private fun JsonObject.string(key: String): String? = this[key]?.jsonPrimitive?.contentOrNull
+
+    private fun JsonObject.strictInt(key: String): Int? = (this[key] as? JsonPrimitive)
+        ?.takeUnless(JsonPrimitive::isString)
+        ?.intOrNull
 
     @Serializable
     private data class CorpusHeader(val schemaVersion: Int, val producer: String)
@@ -239,6 +286,77 @@ object ExternalTestCorpusCodec {
         val receiver: ExternalValue,
         val arguments: List<ExternalValue>,
     )
+}
+
+/** Explicit, deterministic migration from every legacy v1 encoding to canonical v2 JSONL. */
+object ExternalTestCorpusV1Converter {
+    fun convert(text: String, sourceName: String = "<memory>"): ExternalTestCorpus {
+        val legacy = ExternalTestCorpusCodec.decode(text, sourceName)
+        require(legacy.schemaVersion == LEGACY_EXTERNAL_TEST_CORPUS_SCHEMA_VERSION) {
+            "external corpus $sourceName is schemaVersion ${legacy.schemaVersion}; expected legacy schemaVersion " +
+                LEGACY_EXTERNAL_TEST_CORPUS_SCHEMA_VERSION
+        }
+        require(legacy.rejections.isEmpty()) {
+            "external corpus $sourceName has ${legacy.rejections.size} malformed case(s): " +
+                legacy.rejections.joinToString { it.reason }
+        }
+        val producerIsVersioned = hasVersionedProducerLabel(legacy.producer)
+        return ExternalTestCorpus(
+            producer = if (producerIsVersioned) legacy.producer else "legacy-v1@unknown",
+            cases = legacy.cases.map { case ->
+                val convertedAt = case.generatedAtMs.takeIf { it > 0 }
+                    ?: case.metadata["generatedAtMs"]?.toLongOrNull()?.takeIf { it >= 0 }
+                    ?: 0
+                val convertedSeed = case.seed ?: case.metadata["seed"]
+                val convertedPath = case.path ?: case.metadata["path"] ?: "legacy-v1:${case.id}"
+                val conversionMetadata = buildMap {
+                    putAll(case.metadata)
+                    put("convertedFromSchemaVersion", "1")
+                    if (!producerIsVersioned) put("legacyProducer", legacy.producer)
+                }
+                case.copy(
+                    generatedAtMs = convertedAt,
+                    seed = convertedSeed,
+                    path = convertedPath,
+                    receiver = upgradeValue(case.receiver),
+                    arguments = case.arguments.map(::upgradeValue),
+                    metadata = conversionMetadata,
+                )
+            },
+        )
+    }
+
+    fun convertFile(input: Path, output: Path) {
+        val converted = convert(input.readText(), input.name)
+        output.writeText(ExternalTestCorpusCodec.encode(converted))
+    }
+
+    private fun upgradeValue(value: ExternalValue): ExternalValue = value.copy(
+        elements = value.elements.map(::upgradeValue),
+        properties = value.properties.map { it.copy(value = upgradeValue(it.value)) },
+        entries = value.entries.map { it.copy(key = upgradeValue(it.key), value = upgradeValue(it.value)) },
+        unrepresentableKind = value.unrepresentableKind ?: if (value.kind == "unrepresentable") {
+            inferUnrepresentableKind(value.reason)
+        } else {
+            null
+        },
+    )
+
+    private fun inferUnrepresentableKind(reason: String?): String = when {
+        reason == null -> "other"
+        "cycle" in reason || "shared alias" in reason -> "cycle"
+        "function" in reason -> "function"
+        "symbol" in reason -> "symbol"
+        "accessor" in reason -> "accessor"
+        "instance" in reason -> "classInstance"
+        "namespace" in reason -> "namespace"
+        else -> "other"
+    }
+
+    private fun hasVersionedProducerLabel(producer: String): Boolean {
+        val separator = producer.lastIndexOf('@')
+        return separator > 0 && separator < producer.lastIndex
+    }
 }
 
 class ExternalValueConversionException(message: String) : IllegalArgumentException(message)
@@ -266,6 +384,9 @@ object ExternalValueCodec {
         }.toMutableList())
 
         "object" -> {
+            if (value.constructorPlan != null) {
+                reject(path, "constructor plan needs a scene-aware decoder")
+            }
             if (value.className != null) {
                 reject(path, "class-backed object '${value.className}' needs a scene-aware decoder")
             }
@@ -290,6 +411,8 @@ object ExternalValueCodec {
             decode(element, "$path.set[$index]")
         }))
 
+        "callable" -> reject(path, "callable reference needs a scene-aware decoder")
+        "alias" -> reject(path, "alias reference needs an identity-aware decoder")
         "hole" -> reject(path, "array hole is only valid inside an array and cannot be replayed yet")
         "unrepresentable" -> reject(path, value.reason ?: "producer marked the value unrepresentable")
         else -> reject(path, "unknown value kind '${value.kind}'")
@@ -346,8 +469,16 @@ object ExternalValueCodec {
             )
         }
 
-        is VNamespace -> ExternalValue(kind = "unrepresentable", reason = "$path is namespace ${value.name}")
-        is VFunction -> ExternalValue(kind = "unrepresentable", reason = "$path is function ${value.method.name}")
+        is VNamespace -> ExternalValue(
+            kind = "unrepresentable",
+            reason = "$path is namespace ${value.name}",
+            unrepresentableKind = "namespace",
+        )
+        is VFunction -> ExternalValue(
+            kind = "unrepresentable",
+            reason = "$path is function ${value.method.name}",
+            unrepresentableKind = "function",
+        )
     }
 
     private inline fun encodeReference(
@@ -357,7 +488,11 @@ object ExternalValueCodec {
         body: () -> ExternalValue,
     ): ExternalValue {
         if (seen.put(value, Unit) != null) {
-            return ExternalValue(kind = "unrepresentable", reason = "$path contains a cycle or shared alias")
+            return ExternalValue(
+                kind = "unrepresentable",
+                reason = "$path contains a cycle or shared alias",
+                unrepresentableKind = "cycle",
+            )
         }
         return body()
     }

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 2,
+  "runId": "fixture-run-17",
+  "adapter": {
+    "name": "fixture-tool",
+    "version": "1.0.0",
+    "commit": "0123456789abcdef",
+    "futureProducerField": true
+  },
+  "seed": 17,
+  "budgetMs": 10000,
+  "exportReplayGraceMs": 1000,
+  "explorationDeadlineMs": 9000,
+  "hardResultDeadlineMs": 10000,
+  "cacheMode": "cold",
+  "versions": {
+    "node": "24.0.0",
+    "jdk": "23"
+  },
+  "commits": {
+    "usvm": "c31b924f",
+    "fixture-tool": "0123456789abcdef"
+  },
+  "flags": {
+    "shrink": true,
+    "maxDepth": 8,
+    "labels": ["contract", "golden"]
+  },
+  "futureConfigField": "accepted"
+}

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://usvm.dev/ts-pbt/artifact-contract/v2/source-target-record.schema.json",
+  "title": "One source-targets.jsonl EtsIR edge record",
+  "type": "object",
+  "required": ["schemaVersion", "methodId", "branchId", "stmtIndex", "successorStmtIndex", "successorOrdinal", "tsSourceRange", "sourceOrigin", "mappingStatus"],
+  "properties": {
+    "schemaVersion": { "const": 2 },
+    "methodId": { "type": "string", "minLength": 1 },
+    "branchId": { "type": "string", "minLength": 1 },
+    "stmtIndex": { "type": "integer", "minimum": 0 },
+    "successorStmtIndex": { "type": "integer", "minimum": 0 },
+    "successorOrdinal": { "type": "integer", "minimum": 0 },
+    "tsSourceRange": { "$ref": "#/$defs/range" },
+    "emittedJsRange": { "$ref": "#/$defs/range" },
+    "sourceOrigin": { "$ref": "#/$defs/sourceOrigin" },
+    "mappingStatus": { "enum": ["exact", "oneToMany", "ambiguous", "unmapped", "synthetic"] }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "range": {
+      "type": "object",
+      "required": ["fileName", "startOffset", "endOffset", "startLine", "startColumn", "endLine", "endColumn"],
+      "properties": {
+        "fileName": { "type": "string", "minLength": 1 },
+        "startOffset": { "type": "integer", "minimum": 0 },
+        "endOffset": { "type": "integer", "minimum": 0 },
+        "startLine": { "type": "integer", "minimum": 0 },
+        "startColumn": { "type": "integer", "minimum": 0 },
+        "endLine": { "type": "integer", "minimum": 0 },
+        "endColumn": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": true
+    },
+    "sourceOrigin": {
+      "type": "object",
+      "required": ["modulePath", "callableName", "callableKind"],
+      "properties": {
+        "modulePath": { "type": "string", "minLength": 1 },
+        "callableName": { "type": "string", "minLength": 1 },
+        "callableKind": { "enum": ["free", "static", "instance", "constructor", "arrow", "synthetic"] }
+      },
+      "additionalProperties": true
+    }
+  }
+}

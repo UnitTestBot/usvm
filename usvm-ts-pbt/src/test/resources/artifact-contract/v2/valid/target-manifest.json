@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 2,
+  "generator": "contract-fixture",
+  "futureDocumentField": { "ignored": true },
+  "methods": [
+    {
+      "methodId": "src/example.ts::%dflt::classify/1",
+      "signature": "classify(x: number): number",
+      "projectName": "fixture",
+      "fileName": "src/example.ts",
+      "namespace": null,
+      "className": "%dflt",
+      "methodName": "classify",
+      "arity": 1,
+      "parameterTypes": ["number"],
+      "parameters": [
+        {
+          "index": 0,
+          "name": "x",
+          "type": "number",
+          "optional": false,
+          "rest": false,
+          "futureParameterField": "accepted"
+        }
+      ],
+      "entryKind": "free",
+      "branches": [
+        {
+          "branchId": "src/example.ts::%dflt::classify/1#s2:0->3",
+          "ifStmtIndex": 2,
+          "successorOrdinal": 0,
+          "successorStmtIndex": 3,
+          "conditionOrigin": {
+            "fileName": "src/example.ts",
+            "startOffset": 30,
+            "endOffset": 35,
+            "startLine": 2,
+            "startColumn": 6,
+            "endLine": 2,
+            "endColumn": 11,
+            "nodeKind": "BinaryExpression"
+          }
+        },
+        {
+          "branchId": "src/example.ts::%dflt::classify/1#s2:1->5",
+          "ifStmtIndex": 2,
+          "successorOrdinal": 1,
+          "successorStmtIndex": 5
+        }
+      ]
+    }
+  ]
+}

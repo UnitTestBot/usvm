@@ -1,0 +1,3 @@
+ src/example.ts::%dflt::classify/1
+src/example.ts::%dflt::classify/1
+src/example.ts::%dflt::classify/1

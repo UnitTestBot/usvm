@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 2,
+  "runId": "fixture-run-17",
+  "producer": {
+    "name": "fixture-tool",
+    "version": "1.0.0",
+    "commit": "0123456789abcdef"
+  },
+  "startupMs": 10,
+  "generationMs": 50,
+  "exportMs": 20,
+  "totalMs": 100,
+  "commits": {
+    "usvm": "c31b924f",
+    "fixture-tool": "0123456789abcdef"
+  },
+  "exitStatus": "success",
+  "timedOut": false,
+  "logCapBytes": 16777216,
+  "logTruncated": false,
+  "overBudgetMs": 0,
+  "futureMetaField": "accepted"
+}

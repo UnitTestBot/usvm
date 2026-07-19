@@ -5,13 +5,17 @@ import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.intOrNull
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsNamespaceSignature
 import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsStmt
 import java.util.IdentityHashMap
 
-private const val TARGET_MANIFEST_SCHEMA_VERSION = 1
+const val TARGET_MANIFEST_SCHEMA_VERSION: Int = ARTIFACT_SCHEMA_VERSION
 
 fun stableMethodId(method: EtsMethod): String {
     val signature = method.signature
@@ -46,7 +50,10 @@ data class TargetManifest(
     val methods: List<TargetMethod>,
 ) {
     companion object {
-        private val json = Json { prettyPrint = true }
+        private val json = Json {
+            prettyPrint = true
+            ignoreUnknownKeys = true
+        }
 
         fun fromMethods(methods: List<EtsMethod>): TargetManifest {
             val collisions = methods.groupBy(::stableMethodId).filterValues { it.size > 1 }
@@ -56,7 +63,30 @@ data class TargetManifest(
             return TargetManifest(methods = methods.map(TargetMethod::fromMethod))
         }
 
-        fun encode(manifest: TargetManifest): String = json.encodeToString(manifest)
+        fun encode(manifest: TargetManifest): String {
+            require(manifest.schemaVersion == TARGET_MANIFEST_SCHEMA_VERSION) {
+                "cannot encode target manifest schemaVersion ${manifest.schemaVersion}; " +
+                    "expected $TARGET_MANIFEST_SCHEMA_VERSION"
+            }
+            return json.encodeToString(manifest)
+        }
+
+        /**
+         * Unknown object members are ignored as additive v2 extensions. A
+         * missing, malformed, or non-v2 schemaVersion is always rejected.
+         */
+        fun decode(text: String, sourceName: String = "<memory>"): TargetManifest {
+            val document = json.parseToJsonElement(text) as? JsonObject
+                ?: error("target manifest $sourceName must be a JSON object")
+            val version = (document["schemaVersion"] as? JsonPrimitive)
+                ?.takeUnless(JsonPrimitive::isString)
+                ?.intOrNull
+                ?: error("target manifest $sourceName has no integer schemaVersion")
+            require(version == TARGET_MANIFEST_SCHEMA_VERSION) {
+                "unsupported target manifest schemaVersion $version; expected $TARGET_MANIFEST_SCHEMA_VERSION"
+            }
+            return json.decodeFromJsonElement(document)
+        }
     }
 }
 
