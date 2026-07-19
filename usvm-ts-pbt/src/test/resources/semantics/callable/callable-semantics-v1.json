@@ -1,0 +1,1262 @@
+{
+  "schemaVersion": 1,
+  "contractId": "usvm-ts-pbt.callable.exact.v1",
+  "description": "Dependency-neutral ETC v2 callable materialization and dispatch contract.",
+  "etcSchemaVersion": 2,
+  "etcSchemaPath": "usvm-ts-pbt/artifact-contract/v2/external-test-corpus-record.schema.json",
+  "sourceFixtures": [
+    "semantics/callable/CallableSemanticsFixture.ts",
+    "semantics/callable/CallableSemanticsLibrary.ts"
+  ],
+  "requiredDispatchKinds": [
+    "direct",
+    "field",
+    "imported",
+    "call"
+  ],
+  "cases": [
+    {
+      "id": "direct-function",
+      "sourceCallableId": "ts:semantic/callable/CallableSemanticsFixture.ts::free:directAdd/2",
+      "sourceExpression": "directAdd(2, 3)",
+      "etcCase": {
+        "id": "etc-direct-function",
+        "methodId": "ts:semantic/callable/CallableSemanticsFixture.ts::free:directAdd/2",
+        "generatedAtMs": 0,
+        "path": "callable-contract:direct-function",
+        "receiver": { "kind": "undefined" },
+        "arguments": [
+          {
+            "kind": "callable",
+            "callableReference": {
+              "modulePath": "semantics/callable/CallableSemanticsFixture.ts",
+              "exportName": "directAdd",
+              "callableKind": "function"
+            }
+          },
+          { "kind": "number", "value": "2" },
+          { "kind": "number", "value": "3" }
+        ],
+        "metadata": { "callableContract": "usvm-ts-pbt.callable.exact.v1" }
+      },
+      "materialization": {
+        "outcome": "materialized",
+        "callablePath": "/arguments/0",
+        "stableCallableId": "ts:semantic/callable/CallableSemanticsFixture.ts::free:directAdd/2",
+        "dispatchKind": "direct",
+        "receiverBinding": "none",
+        "declaredArity": 2,
+        "argumentPaths": ["/arguments/1", "/arguments/2"]
+      },
+      "expected": {
+        "outcome": "materialized",
+        "result": { "kind": "number", "value": "5" },
+        "trace": [
+          "materialize callable /arguments/0 semantics/callable/CallableSemanticsFixture.ts#directAdd kind=function arity=2 -> ts:semantic/callable/CallableSemanticsFixture.ts::free:directAdd/2",
+          "dispatch direct ts:semantic/callable/CallableSemanticsFixture.ts::free:directAdd/2 receiver=undefined args=[number:2,number:3] -> number:5"
+        ]
+      },
+      "capability": {
+        "labels": ["callable"],
+        "semanticTags": ["etc_v2_callable_reference", "direct_dispatch"],
+        "expectedStatus": "supported_with_flag",
+        "requiredFlags": ["callableValueModel"],
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "top-level-arrow",
+      "sourceCallableId": "ts:semantic/callable/CallableSemanticsFixture.ts::arrow:topLevelArrow/1",
+      "sourceExpression": "topLevelArrow(21)",
+      "etcCase": {
+        "id": "etc-top-level-arrow",
+        "methodId": "ts:semantic/callable/CallableSemanticsFixture.ts::arrow:topLevelArrow/1",
+        "generatedAtMs": 0,
+        "path": "callable-contract:top-level-arrow",
+        "receiver": { "kind": "undefined" },
+        "arguments": [
+          {
+            "kind": "callable",
+            "callableReference": {
+              "modulePath": "semantics/callable/CallableSemanticsFixture.ts",
+              "exportName": "topLevelArrow",
+              "callableKind": "arrow"
+            }
+          },
+          { "kind": "number", "value": "21" }
+        ],
+        "metadata": { "callableContract": "usvm-ts-pbt.callable.exact.v1" }
+      },
+      "materialization": {
+        "outcome": "materialized",
+        "callablePath": "/arguments/0",
+        "stableCallableId": "ts:semantic/callable/CallableSemanticsFixture.ts::arrow:topLevelArrow/1",
+        "dispatchKind": "direct",
+        "receiverBinding": "none",
+        "declaredArity": 1,
+        "argumentPaths": ["/arguments/1"]
+      },
+      "expected": {
+        "outcome": "materialized",
+        "result": { "kind": "number", "value": "42" },
+        "trace": [
+          "materialize callable /arguments/0 semantics/callable/CallableSemanticsFixture.ts#topLevelArrow kind=arrow arity=1 -> ts:semantic/callable/CallableSemanticsFixture.ts::arrow:topLevelArrow/1",
+          "dispatch direct ts:semantic/callable/CallableSemanticsFixture.ts::arrow:topLevelArrow/1 receiver=undefined args=[number:21] -> number:42"
+        ]
+      },
+      "capability": {
+        "labels": ["callable"],
+        "semanticTags": ["etc_v2_callable_reference", "top_level_arrow", "direct_dispatch"],
+        "expectedStatus": "supported_with_flag",
+        "requiredFlags": ["callableValueModel"],
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "imported-arrow-direct",
+      "sourceCallableId": "ts:semantic/callable/CallableSemanticsLibrary.ts::arrow:importedArrow/2",
+      "sourceExpression": "callableLibrary.importedArrow(6, 7)",
+      "etcCase": {
+        "id": "etc-imported-arrow-direct",
+        "methodId": "ts:semantic/callable/CallableSemanticsLibrary.ts::arrow:importedArrow/2",
+        "generatedAtMs": 0,
+        "path": "callable-contract:imported-arrow-direct",
+        "receiver": { "kind": "undefined" },
+        "arguments": [
+          {
+            "kind": "callable",
+            "callableReference": {
+              "modulePath": "semantics/callable/CallableSemanticsLibrary.ts",
+              "exportName": "importedArrow",
+              "callableKind": "arrow"
+            }
+          },
+          { "kind": "number", "value": "6" },
+          { "kind": "number", "value": "7" }
+        ],
+        "metadata": { "callableContract": "usvm-ts-pbt.callable.exact.v1" }
+      },
+      "materialization": {
+        "outcome": "materialized",
+        "callablePath": "/arguments/0",
+        "stableCallableId": "ts:semantic/callable/CallableSemanticsLibrary.ts::arrow:importedArrow/2",
+        "dispatchKind": "imported",
+        "receiverBinding": "none",
+        "declaredArity": 2,
+        "argumentPaths": ["/arguments/1", "/arguments/2"]
+      },
+      "expected": {
+        "outcome": "materialized",
+        "result": { "kind": "number", "value": "42" },
+        "trace": [
+          "materialize callable /arguments/0 semantics/callable/CallableSemanticsLibrary.ts#importedArrow kind=arrow arity=2 -> ts:semantic/callable/CallableSemanticsLibrary.ts::arrow:importedArrow/2",
+          "dispatch imported ts:semantic/callable/CallableSemanticsLibrary.ts::arrow:importedArrow/2 receiver=undefined args=[number:6,number:7] -> number:42"
+        ]
+      },
+      "capability": {
+        "labels": ["module_init", "callable"],
+        "semanticTags": ["etc_v2_callable_reference", "imported_callable", "top_level_arrow"],
+        "expectedStatus": "supported_with_flag",
+        "requiredFlags": ["moduleRuntimeModel", "callableValueModel"],
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "imported-function-direct",
+      "sourceCallableId": "ts:semantic/callable/CallableSemanticsLibrary.ts::free:importedOffset/1",
+      "sourceExpression": "callableLibrary.importedOffset(2)",
+      "etcCase": {
+        "id": "etc-imported-function-direct",
+        "methodId": "ts:semantic/callable/CallableSemanticsLibrary.ts::free:importedOffset/1",
+        "generatedAtMs": 0,
+        "path": "callable-contract:imported-function-direct",
+        "receiver": { "kind": "undefined" },
+        "arguments": [
+          {
+            "kind": "callable",
+            "callableReference": {
+              "modulePath": "semantics/callable/CallableSemanticsLibrary.ts",
+              "exportName": "importedOffset",
+              "callableKind": "function"
+            }
+          },
+          { "kind": "number", "value": "2" }
+        ],
+        "metadata": { "callableContract": "usvm-ts-pbt.callable.exact.v1" }
+      },
+      "materialization": {
+        "outcome": "materialized",
+        "callablePath": "/arguments/0",
+        "stableCallableId": "ts:semantic/callable/CallableSemanticsLibrary.ts::free:importedOffset/1",
+        "dispatchKind": "imported",
+        "receiverBinding": "none",
+        "declaredArity": 1,
+        "argumentPaths": ["/arguments/1"]
+      },
+      "expected": {
+        "outcome": "materialized",
+        "result": { "kind": "number", "value": "42" },
+        "trace": [
+          "materialize callable /arguments/0 semantics/callable/CallableSemanticsLibrary.ts#importedOffset kind=function arity=1 -> ts:semantic/callable/CallableSemanticsLibrary.ts::free:importedOffset/1",
+          "dispatch imported ts:semantic/callable/CallableSemanticsLibrary.ts::free:importedOffset/1 receiver=undefined args=[number:2] -> number:42"
+        ]
+      },
+      "capability": {
+        "labels": ["module_init", "callable"],
+        "semanticTags": ["etc_v2_callable_reference", "imported_callable"],
+        "expectedStatus": "supported_with_flag",
+        "requiredFlags": ["moduleRuntimeModel", "callableValueModel"],
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "function-in-field",
+      "sourceCallableId": "ts:semantic/callable/CallableSemanticsFixture.ts::free:fieldMultiply/2",
+      "sourceExpression": "holder.operation(6, 7)",
+      "etcCase": {
+        "id": "etc-function-in-field",
+        "methodId": "ts:semantic/callable/CallableSemanticsFixture.ts::free:fieldMultiply/2",
+        "generatedAtMs": 0,
+        "path": "callable-contract:function-in-field",
+        "receiver": {
+          "kind": "object",
+          "properties": [
+            {
+              "key": "operation",
+              "value": {
+                "kind": "callable",
+                "callableReference": {
+                  "modulePath": "semantics/callable/CallableSemanticsFixture.ts",
+                  "exportName": "fieldMultiply",
+                  "callableKind": "function"
+                }
+              }
+            }
+          ]
+        },
+        "arguments": [
+          { "kind": "number", "value": "6" },
+          { "kind": "number", "value": "7" }
+        ],
+        "metadata": { "callableContract": "usvm-ts-pbt.callable.exact.v1" }
+      },
+      "materialization": {
+        "outcome": "materialized",
+        "callablePath": "/receiver/properties/0/value",
+        "stableCallableId": "ts:semantic/callable/CallableSemanticsFixture.ts::free:fieldMultiply/2",
+        "dispatchKind": "field",
+        "receiverPath": "/receiver",
+        "receiverBinding": "property",
+        "fieldName": "operation",
+        "declaredArity": 2,
+        "argumentPaths": ["/arguments/0", "/arguments/1"]
+      },
+      "expected": {
+        "outcome": "materialized",
+        "result": { "kind": "number", "value": "42" },
+        "trace": [
+          "materialize callable /receiver/properties/0/value semantics/callable/CallableSemanticsFixture.ts#fieldMultiply kind=function arity=2 -> ts:semantic/callable/CallableSemanticsFixture.ts::free:fieldMultiply/2",
+          "dispatch field ts:semantic/callable/CallableSemanticsFixture.ts::free:fieldMultiply/2 receiver=object field=operation args=[number:6,number:7] -> number:42"
+        ]
+      },
+      "capability": {
+        "labels": ["callable", "array_object"],
+        "semanticTags": ["etc_v2_callable_reference", "function_field", "receiver_binding"],
+        "expectedStatus": "supported_with_flag",
+        "requiredFlags": ["callableValueModel"],
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "field-receiver-binding",
+      "sourceCallableId": "ts:semantic/callable/CallableSemanticsFixture.ts::free:readBase/1",
+      "sourceExpression": "holder.operation(2)",
+      "etcCase": {
+        "id": "etc-field-receiver-binding",
+        "methodId": "ts:semantic/callable/CallableSemanticsFixture.ts::free:readBase/1",
+        "generatedAtMs": 0,
+        "path": "callable-contract:field-receiver-binding",
+        "receiver": {
+          "kind": "object",
+          "properties": [
+            { "key": "base", "value": { "kind": "number", "value": "40" } },
+            {
+              "key": "operation",
+              "value": {
+                "kind": "callable",
+                "callableReference": {
+                  "modulePath": "semantics/callable/CallableSemanticsFixture.ts",
+                  "exportName": "readBase",
+                  "callableKind": "function"
+                }
+              }
+            }
+          ]
+        },
+        "arguments": [{ "kind": "number", "value": "2" }],
+        "metadata": { "callableContract": "usvm-ts-pbt.callable.exact.v1" }
+      },
+      "materialization": {
+        "outcome": "materialized",
+        "callablePath": "/receiver/properties/1/value",
+        "stableCallableId": "ts:semantic/callable/CallableSemanticsFixture.ts::free:readBase/1",
+        "dispatchKind": "field",
+        "receiverPath": "/receiver",
+        "receiverBinding": "property",
+        "fieldName": "operation",
+        "declaredArity": 1,
+        "argumentPaths": ["/arguments/0"]
+      },
+      "expected": {
+        "outcome": "materialized",
+        "result": { "kind": "number", "value": "42" },
+        "trace": [
+          "materialize callable /receiver/properties/1/value semantics/callable/CallableSemanticsFixture.ts#readBase kind=function arity=1 -> ts:semantic/callable/CallableSemanticsFixture.ts::free:readBase/1",
+          "dispatch field ts:semantic/callable/CallableSemanticsFixture.ts::free:readBase/1 receiver=object field=operation args=[number:2] -> number:42"
+        ]
+      },
+      "capability": {
+        "labels": ["callable", "array_object"],
+        "semanticTags": ["etc_v2_callable_reference", "function_field", "receiver_binding"],
+        "expectedStatus": "supported_with_flag",
+        "requiredFlags": ["callableValueModel"],
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "constructor-instance-method",
+      "sourceCallableId": "ts:semantic/callable/CallableSemanticsFixture.ts::instance:ReceiverBox.add/1",
+      "sourceExpression": "new ReceiverBox(37).add(5)",
+      "etcCase": {
+        "id": "etc-constructor-instance-method",
+        "methodId": "ts:semantic/callable/CallableSemanticsFixture.ts::instance:ReceiverBox.add/1",
+        "generatedAtMs": 0,
+        "path": "callable-contract:constructor-instance-method",
+        "receiver": {
+          "kind": "object",
+          "className": "ReceiverBox",
+          "properties": [],
+          "constructorPlan": {
+            "callable": {
+              "modulePath": "semantics/callable/CallableSemanticsFixture.ts",
+              "exportName": "ReceiverBox",
+              "callableKind": "class"
+            },
+            "arguments": [{ "kind": "number", "value": "37" }]
+          }
+        },
+        "arguments": [
+          {
+            "kind": "callable",
+            "callableReference": {
+              "modulePath": "semantics/callable/CallableSemanticsFixture.ts",
+              "exportName": "ReceiverBox.prototype.add",
+              "callableKind": "instanceMethod"
+            }
+          },
+          { "kind": "number", "value": "5" }
+        ],
+        "metadata": { "callableContract": "usvm-ts-pbt.callable.exact.v1" }
+      },
+      "materialization": {
+        "outcome": "materialized",
+        "callablePath": "/arguments/0",
+        "stableCallableId": "ts:semantic/callable/CallableSemanticsFixture.ts::instance:ReceiverBox.add/1",
+        "dispatchKind": "field",
+        "receiverPath": "/receiver",
+        "receiverBinding": "constructor_instance",
+        "fieldName": "add",
+        "declaredArity": 1,
+        "argumentPaths": ["/arguments/1"]
+      },
+      "expected": {
+        "outcome": "materialized",
+        "result": { "kind": "number", "value": "42" },
+        "trace": [
+          "materialize callable /arguments/0 semantics/callable/CallableSemanticsFixture.ts#ReceiverBox.prototype.add kind=instanceMethod arity=1 -> ts:semantic/callable/CallableSemanticsFixture.ts::instance:ReceiverBox.add/1",
+          "materialize constructor /receiver semantics/callable/CallableSemanticsFixture.ts#ReceiverBox args=[number:37] -> object:ReceiverBox",
+          "dispatch field ts:semantic/callable/CallableSemanticsFixture.ts::instance:ReceiverBox.add/1 receiver=object:ReceiverBox field=add args=[number:5] -> number:42"
+        ]
+      },
+      "capability": {
+        "labels": ["callable", "array_object"],
+        "semanticTags": ["etc_v2_callable_reference", "etc_v2_constructor_plan", "instance_method", "receiver_binding"],
+        "expectedStatus": "supported_with_flag",
+        "requiredFlags": ["callableValueModel"],
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "static-method",
+      "sourceCallableId": "ts:semantic/callable/CallableSemanticsFixture.ts::static:ReceiverBox.staticSum/2",
+      "sourceExpression": "ReceiverBox.staticSum(19, 23)",
+      "etcCase": {
+        "id": "etc-static-method",
+        "methodId": "ts:semantic/callable/CallableSemanticsFixture.ts::static:ReceiverBox.staticSum/2",
+        "generatedAtMs": 0,
+        "path": "callable-contract:static-method",
+        "receiver": { "kind": "undefined" },
+        "arguments": [
+          {
+            "kind": "callable",
+            "callableReference": {
+              "modulePath": "semantics/callable/CallableSemanticsFixture.ts",
+              "exportName": "ReceiverBox.staticSum",
+              "callableKind": "staticMethod"
+            }
+          },
+          { "kind": "number", "value": "19" },
+          { "kind": "number", "value": "23" }
+        ],
+        "metadata": { "callableContract": "usvm-ts-pbt.callable.exact.v1" }
+      },
+      "materialization": {
+        "outcome": "materialized",
+        "callablePath": "/arguments/0",
+        "stableCallableId": "ts:semantic/callable/CallableSemanticsFixture.ts::static:ReceiverBox.staticSum/2",
+        "dispatchKind": "direct",
+        "receiverBinding": "none",
+        "declaredArity": 2,
+        "argumentPaths": ["/arguments/1", "/arguments/2"]
+      },
+      "expected": {
+        "outcome": "materialized",
+        "result": { "kind": "number", "value": "42" },
+        "trace": [
+          "materialize callable /arguments/0 semantics/callable/CallableSemanticsFixture.ts#ReceiverBox.staticSum kind=staticMethod arity=2 -> ts:semantic/callable/CallableSemanticsFixture.ts::static:ReceiverBox.staticSum/2",
+          "dispatch direct ts:semantic/callable/CallableSemanticsFixture.ts::static:ReceiverBox.staticSum/2 receiver=undefined args=[number:19,number:23] -> number:42"
+        ]
+      },
+      "capability": {
+        "labels": ["callable"],
+        "semanticTags": ["etc_v2_callable_reference", "static_method", "direct_dispatch"],
+        "expectedStatus": "supported_with_flag",
+        "requiredFlags": ["callableValueModel"],
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "explicit-call-receiver",
+      "sourceCallableId": "ts:semantic/callable/CallableSemanticsFixture.ts::free:readBase/1",
+      "sourceExpression": "readBase.call({ base: 38 }, 4)",
+      "etcCase": {
+        "id": "etc-explicit-call-receiver",
+        "methodId": "ts:semantic/callable/CallableSemanticsFixture.ts::free:readBase/1",
+        "generatedAtMs": 0,
+        "path": "callable-contract:explicit-call-receiver",
+        "receiver": {
+          "kind": "object",
+          "properties": [
+            { "key": "base", "value": { "kind": "number", "value": "38" } }
+          ]
+        },
+        "arguments": [
+          {
+            "kind": "callable",
+            "callableReference": {
+              "modulePath": "semantics/callable/CallableSemanticsFixture.ts",
+              "exportName": "readBase",
+              "callableKind": "function"
+            }
+          },
+          { "kind": "number", "value": "4" }
+        ],
+        "metadata": { "callableContract": "usvm-ts-pbt.callable.exact.v1" }
+      },
+      "materialization": {
+        "outcome": "materialized",
+        "callablePath": "/arguments/0",
+        "stableCallableId": "ts:semantic/callable/CallableSemanticsFixture.ts::free:readBase/1",
+        "dispatchKind": "call",
+        "receiverPath": "/receiver",
+        "receiverBinding": "explicit_call",
+        "declaredArity": 1,
+        "argumentPaths": ["/arguments/1"]
+      },
+      "expected": {
+        "outcome": "materialized",
+        "result": { "kind": "number", "value": "42" },
+        "trace": [
+          "materialize callable /arguments/0 semantics/callable/CallableSemanticsFixture.ts#readBase kind=function arity=1 -> ts:semantic/callable/CallableSemanticsFixture.ts::free:readBase/1",
+          "dispatch call ts:semantic/callable/CallableSemanticsFixture.ts::free:readBase/1 receiver=object args=[number:4] -> number:42"
+        ]
+      },
+      "capability": {
+        "labels": ["callable", "builtin_call"],
+        "semanticTags": ["etc_v2_callable_reference", "explicit_call", "receiver_binding"],
+        "expectedStatus": "supported_with_flag",
+        "requiredFlags": ["callableValueModel"],
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "direct-recursion",
+      "sourceCallableId": "ts:semantic/callable/CallableSemanticsFixture.ts::free:recursiveFactorial/1",
+      "sourceExpression": "recursiveFactorial(6)",
+      "etcCase": {
+        "id": "etc-direct-recursion",
+        "methodId": "ts:semantic/callable/CallableSemanticsFixture.ts::free:recursiveFactorial/1",
+        "generatedAtMs": 0,
+        "path": "callable-contract:direct-recursion",
+        "receiver": { "kind": "undefined" },
+        "arguments": [
+          {
+            "kind": "callable",
+            "callableReference": {
+              "modulePath": "semantics/callable/CallableSemanticsFixture.ts",
+              "exportName": "recursiveFactorial",
+              "callableKind": "function"
+            }
+          },
+          { "kind": "number", "value": "6" }
+        ],
+        "metadata": { "callableContract": "usvm-ts-pbt.callable.exact.v1" }
+      },
+      "materialization": {
+        "outcome": "materialized",
+        "callablePath": "/arguments/0",
+        "stableCallableId": "ts:semantic/callable/CallableSemanticsFixture.ts::free:recursiveFactorial/1",
+        "dispatchKind": "direct",
+        "receiverBinding": "none",
+        "declaredArity": 1,
+        "argumentPaths": ["/arguments/1"]
+      },
+      "expected": {
+        "outcome": "materialized",
+        "result": { "kind": "number", "value": "720" },
+        "trace": [
+          "materialize callable /arguments/0 semantics/callable/CallableSemanticsFixture.ts#recursiveFactorial kind=function arity=1 -> ts:semantic/callable/CallableSemanticsFixture.ts::free:recursiveFactorial/1",
+          "dispatch direct ts:semantic/callable/CallableSemanticsFixture.ts::free:recursiveFactorial/1 receiver=undefined args=[number:6] -> number:720"
+        ]
+      },
+      "capability": {
+        "labels": ["callable"],
+        "semanticTags": ["etc_v2_callable_reference", "direct_dispatch", "recursion"],
+        "expectedStatus": "supported_with_flag",
+        "requiredFlags": ["callableValueModel"],
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "callback-extra-arguments",
+      "sourceCallableId": "ts:semantic/callable/CallableSemanticsFixture.ts::free:arityPair/2",
+      "sourceExpression": "arityPair(4, 5, 99)",
+      "etcCase": {
+        "id": "etc-callback-extra-arguments",
+        "methodId": "ts:semantic/callable/CallableSemanticsFixture.ts::free:arityPair/2",
+        "generatedAtMs": 0,
+        "path": "callable-contract:callback-extra-arguments",
+        "receiver": { "kind": "undefined" },
+        "arguments": [
+          {
+            "kind": "callable",
+            "callableReference": {
+              "modulePath": "semantics/callable/CallableSemanticsFixture.ts",
+              "exportName": "arityPair",
+              "callableKind": "function"
+            }
+          },
+          { "kind": "number", "value": "4" },
+          { "kind": "number", "value": "5" },
+          { "kind": "number", "value": "99" }
+        ],
+        "metadata": { "callableContract": "usvm-ts-pbt.callable.exact.v1" }
+      },
+      "materialization": {
+        "outcome": "materialized",
+        "callablePath": "/arguments/0",
+        "stableCallableId": "ts:semantic/callable/CallableSemanticsFixture.ts::free:arityPair/2",
+        "dispatchKind": "direct",
+        "receiverBinding": "none",
+        "declaredArity": 2,
+        "argumentPaths": ["/arguments/1", "/arguments/2", "/arguments/3"]
+      },
+      "expected": {
+        "outcome": "materialized",
+        "result": { "kind": "string", "value": "3:4:5" },
+        "trace": [
+          "materialize callable /arguments/0 semantics/callable/CallableSemanticsFixture.ts#arityPair kind=function arity=2 -> ts:semantic/callable/CallableSemanticsFixture.ts::free:arityPair/2",
+          "dispatch direct ts:semantic/callable/CallableSemanticsFixture.ts::free:arityPair/2 receiver=undefined args=[number:4,number:5,number:99] -> string:\"3:4:5\""
+        ]
+      },
+      "capability": {
+        "labels": ["callable"],
+        "semanticTags": ["etc_v2_callable_reference", "callback_arity", "extra_arguments"],
+        "expectedStatus": "supported_with_flag",
+        "requiredFlags": ["callableValueModel"],
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "callback-missing-argument",
+      "sourceCallableId": "ts:semantic/callable/CallableSemanticsFixture.ts::free:arityPair/2",
+      "sourceExpression": "arityPair(4)",
+      "etcCase": {
+        "id": "etc-callback-missing-argument",
+        "methodId": "ts:semantic/callable/CallableSemanticsFixture.ts::free:arityPair/2",
+        "generatedAtMs": 0,
+        "path": "callable-contract:callback-missing-argument",
+        "receiver": { "kind": "undefined" },
+        "arguments": [
+          {
+            "kind": "callable",
+            "callableReference": {
+              "modulePath": "semantics/callable/CallableSemanticsFixture.ts",
+              "exportName": "arityPair",
+              "callableKind": "function"
+            }
+          },
+          { "kind": "number", "value": "4" }
+        ],
+        "metadata": { "callableContract": "usvm-ts-pbt.callable.exact.v1" }
+      },
+      "materialization": {
+        "outcome": "materialized",
+        "callablePath": "/arguments/0",
+        "stableCallableId": "ts:semantic/callable/CallableSemanticsFixture.ts::free:arityPair/2",
+        "dispatchKind": "direct",
+        "receiverBinding": "none",
+        "declaredArity": 2,
+        "argumentPaths": ["/arguments/1"]
+      },
+      "expected": {
+        "outcome": "materialized",
+        "result": { "kind": "string", "value": "1:4:undefined" },
+        "trace": [
+          "materialize callable /arguments/0 semantics/callable/CallableSemanticsFixture.ts#arityPair kind=function arity=2 -> ts:semantic/callable/CallableSemanticsFixture.ts::free:arityPair/2",
+          "dispatch direct ts:semantic/callable/CallableSemanticsFixture.ts::free:arityPair/2 receiver=undefined args=[number:4] -> string:\"1:4:undefined\""
+        ]
+      },
+      "capability": {
+        "labels": ["callable"],
+        "semanticTags": ["etc_v2_callable_reference", "callback_arity", "missing_arguments"],
+        "expectedStatus": "supported_with_flag",
+        "requiredFlags": ["callableValueModel"],
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "imported-arrow-in-field",
+      "sourceCallableId": "ts:semantic/callable/CallableSemanticsLibrary.ts::arrow:importedArrow/2",
+      "sourceExpression": "holder.operation(6, 7)",
+      "etcCase": {
+        "id": "etc-imported-arrow-in-field",
+        "methodId": "ts:semantic/callable/CallableSemanticsLibrary.ts::arrow:importedArrow/2",
+        "generatedAtMs": 0,
+        "path": "callable-contract:imported-arrow-in-field",
+        "receiver": {
+          "kind": "object",
+          "properties": [
+            {
+              "key": "operation",
+              "value": {
+                "kind": "callable",
+                "callableReference": {
+                  "modulePath": "semantics/callable/CallableSemanticsLibrary.ts",
+                  "exportName": "importedArrow",
+                  "callableKind": "arrow"
+                }
+              }
+            }
+          ]
+        },
+        "arguments": [
+          { "kind": "number", "value": "6" },
+          { "kind": "number", "value": "7" }
+        ],
+        "metadata": { "callableContract": "usvm-ts-pbt.callable.exact.v1" }
+      },
+      "materialization": {
+        "outcome": "materialized",
+        "callablePath": "/receiver/properties/0/value",
+        "stableCallableId": "ts:semantic/callable/CallableSemanticsLibrary.ts::arrow:importedArrow/2",
+        "dispatchKind": "field",
+        "receiverPath": "/receiver",
+        "receiverBinding": "property",
+        "fieldName": "operation",
+        "declaredArity": 2,
+        "argumentPaths": ["/arguments/0", "/arguments/1"]
+      },
+      "expected": {
+        "outcome": "materialized",
+        "result": { "kind": "number", "value": "42" },
+        "trace": [
+          "materialize callable /receiver/properties/0/value semantics/callable/CallableSemanticsLibrary.ts#importedArrow kind=arrow arity=2 -> ts:semantic/callable/CallableSemanticsLibrary.ts::arrow:importedArrow/2",
+          "dispatch field ts:semantic/callable/CallableSemanticsLibrary.ts::arrow:importedArrow/2 receiver=object field=operation args=[number:6,number:7] -> number:42"
+        ]
+      },
+      "capability": {
+        "labels": ["module_init", "callable", "array_object"],
+        "semanticTags": ["etc_v2_callable_reference", "imported_callable", "function_field", "top_level_arrow"],
+        "expectedStatus": "supported_with_flag",
+        "requiredFlags": ["moduleRuntimeModel", "callableValueModel"],
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "captured-mutable-closure",
+      "sourceCallableId": "ts:semantic/callable/CallableSemanticsFixture.ts::factory:makeCapturedMutableClosure/0",
+      "sourceExpression": "makeCapturedMutableClosure()",
+      "etcCase": {
+        "id": "etc-captured-mutable-closure",
+        "methodId": "ts:semantic/callable/CallableSemanticsFixture.ts::factory:makeCapturedMutableClosure/0",
+        "generatedAtMs": 0,
+        "path": "callable-contract:captured-mutable-closure",
+        "receiver": { "kind": "undefined" },
+        "arguments": [
+          {
+            "kind": "unrepresentable",
+            "reason": "captured mutable lexical environment requires heap and environment identity",
+            "unrepresentableKind": "function"
+          }
+        ],
+        "metadata": { "callableContract": "usvm-ts-pbt.callable.exact.v1" }
+      },
+      "materialization": {
+        "outcome": "rejected",
+        "valuePath": "/arguments/0",
+        "reasonCode": "captured_mutable_environment_not_exact"
+      },
+      "expected": {
+        "outcome": "rejected",
+        "reasonCode": "captured_mutable_environment_not_exact",
+        "trace": ["reject callable /arguments/0 kind=function -> captured_mutable_environment_not_exact"]
+      },
+      "capability": {
+        "labels": ["callable"],
+        "semanticTags": ["stable_reject", "captured_environment", "closure"],
+        "expectedStatus": "unsupported",
+        "requiredFlags": [],
+        "expectedOutcome": "stable_reject"
+      }
+    },
+    {
+      "id": "lexical-this-arrow-closure",
+      "sourceCallableId": "ts:semantic/callable/CallableSemanticsFixture.ts::factory:makeLexicalThisArrow/0",
+      "sourceExpression": "makeLexicalThisArrow()",
+      "etcCase": {
+        "id": "etc-lexical-this-arrow-closure",
+        "methodId": "ts:semantic/callable/CallableSemanticsFixture.ts::factory:makeLexicalThisArrow/0",
+        "generatedAtMs": 0,
+        "path": "callable-contract:lexical-this-arrow-closure",
+        "receiver": { "kind": "undefined" },
+        "arguments": [
+          {
+            "kind": "unrepresentable",
+            "reason": "lexical this capture has no lossless ETC environment reference",
+            "unrepresentableKind": "function"
+          }
+        ],
+        "metadata": { "callableContract": "usvm-ts-pbt.callable.exact.v1" }
+      },
+      "materialization": {
+        "outcome": "rejected",
+        "valuePath": "/arguments/0",
+        "reasonCode": "lexical_this_environment_not_exact"
+      },
+      "expected": {
+        "outcome": "rejected",
+        "reasonCode": "lexical_this_environment_not_exact",
+        "trace": ["reject callable /arguments/0 kind=function -> lexical_this_environment_not_exact"]
+      },
+      "capability": {
+        "labels": ["callable"],
+        "semanticTags": ["stable_reject", "captured_environment", "closure", "top_level_arrow"],
+        "expectedStatus": "unsupported",
+        "requiredFlags": [],
+        "expectedOutcome": "stable_reject"
+      }
+    },
+    {
+      "id": "bound-callable",
+      "sourceCallableId": "ts:semantic/callable/CallableSemanticsFixture.ts::factory:makeBoundCallable/0",
+      "sourceExpression": "readBase.bind({ base: 40 })",
+      "etcCase": {
+        "id": "etc-bound-callable",
+        "methodId": "ts:semantic/callable/CallableSemanticsFixture.ts::factory:makeBoundCallable/0",
+        "generatedAtMs": 0,
+        "path": "callable-contract:bound-callable",
+        "receiver": { "kind": "undefined" },
+        "arguments": [
+          {
+            "kind": "unrepresentable",
+            "reason": "bound target, bound receiver and bound argument tuple are not encoded by ETC v2",
+            "unrepresentableKind": "function"
+          }
+        ],
+        "metadata": { "callableContract": "usvm-ts-pbt.callable.exact.v1" }
+      },
+      "materialization": {
+        "outcome": "rejected",
+        "valuePath": "/arguments/0",
+        "reasonCode": "bound_callable_plan_missing"
+      },
+      "expected": {
+        "outcome": "rejected",
+        "reasonCode": "bound_callable_plan_missing",
+        "trace": ["reject callable /arguments/0 kind=function -> bound_callable_plan_missing"]
+      },
+      "capability": {
+        "labels": ["callable", "builtin_call"],
+        "semanticTags": ["stable_reject", "bound_callable", "receiver_binding"],
+        "expectedStatus": "needs_dynamic_probe",
+        "requiredFlags": [],
+        "expectedOutcome": "stable_reject"
+      }
+    },
+    {
+      "id": "proxy-callable",
+      "sourceCallableId": "ts:semantic/callable/CallableSemanticsFixture.ts::factory:makeProxyCallable/0",
+      "sourceExpression": "new Proxy(directAdd, { apply: Reflect.apply })",
+      "etcCase": {
+        "id": "etc-proxy-callable",
+        "methodId": "ts:semantic/callable/CallableSemanticsFixture.ts::factory:makeProxyCallable/0",
+        "generatedAtMs": 0,
+        "path": "callable-contract:proxy-callable",
+        "receiver": { "kind": "undefined" },
+        "arguments": [
+          {
+            "kind": "unrepresentable",
+            "reason": "Proxy apply and construct traps can be effectful and are not encoded by ETC v2",
+            "unrepresentableKind": "function"
+          }
+        ],
+        "metadata": { "callableContract": "usvm-ts-pbt.callable.exact.v1" }
+      },
+      "materialization": {
+        "outcome": "rejected",
+        "valuePath": "/arguments/0",
+        "reasonCode": "proxy_callable_requires_dynamic_probe"
+      },
+      "expected": {
+        "outcome": "rejected",
+        "reasonCode": "proxy_callable_requires_dynamic_probe",
+        "trace": ["reject callable /arguments/0 kind=function -> proxy_callable_requires_dynamic_probe"]
+      },
+      "capability": {
+        "labels": ["callable"],
+        "semanticTags": ["stable_reject", "proxy_callable"],
+        "expectedStatus": "needs_dynamic_probe",
+        "requiredFlags": [],
+        "expectedOutcome": "stable_reject"
+      }
+    },
+    {
+      "id": "async-callable",
+      "sourceCallableId": "ts:semantic/callable/CallableSemanticsFixture.ts::async:asyncIdentity/1",
+      "sourceExpression": "asyncIdentity",
+      "etcCase": {
+        "id": "etc-async-callable",
+        "methodId": "ts:semantic/callable/CallableSemanticsFixture.ts::async:asyncIdentity/1",
+        "generatedAtMs": 0,
+        "path": "callable-contract:async-callable",
+        "receiver": { "kind": "undefined" },
+        "arguments": [
+          {
+            "kind": "unrepresentable",
+            "reason": "Promise scheduling and settlement are outside the synchronous exact callable subset",
+            "unrepresentableKind": "function"
+          }
+        ],
+        "metadata": { "callableContract": "usvm-ts-pbt.callable.exact.v1" }
+      },
+      "materialization": {
+        "outcome": "rejected",
+        "valuePath": "/arguments/0",
+        "reasonCode": "async_callable_not_exact"
+      },
+      "expected": {
+        "outcome": "rejected",
+        "reasonCode": "async_callable_not_exact",
+        "trace": ["reject callable /arguments/0 kind=function -> async_callable_not_exact"]
+      },
+      "capability": {
+        "labels": ["callable"],
+        "semanticTags": ["stable_reject", "async_callable"],
+        "expectedStatus": "unsupported",
+        "requiredFlags": [],
+        "expectedOutcome": "stable_reject"
+      }
+    },
+    {
+      "id": "generator-callable",
+      "sourceCallableId": "ts:semantic/callable/CallableSemanticsFixture.ts::generator:generatorIdentity/1",
+      "sourceExpression": "generatorIdentity",
+      "etcCase": {
+        "id": "etc-generator-callable",
+        "methodId": "ts:semantic/callable/CallableSemanticsFixture.ts::generator:generatorIdentity/1",
+        "generatedAtMs": 0,
+        "path": "callable-contract:generator-callable",
+        "receiver": { "kind": "undefined" },
+        "arguments": [
+          {
+            "kind": "unrepresentable",
+            "reason": "generator suspension state and iterator identity are outside ETC v2 callable references",
+            "unrepresentableKind": "function"
+          }
+        ],
+        "metadata": { "callableContract": "usvm-ts-pbt.callable.exact.v1" }
+      },
+      "materialization": {
+        "outcome": "rejected",
+        "valuePath": "/arguments/0",
+        "reasonCode": "generator_callable_not_exact"
+      },
+      "expected": {
+        "outcome": "rejected",
+        "reasonCode": "generator_callable_not_exact",
+        "trace": ["reject callable /arguments/0 kind=function -> generator_callable_not_exact"]
+      },
+      "capability": {
+        "labels": ["callable", "spread_yield"],
+        "semanticTags": ["stable_reject", "generator_callable"],
+        "expectedStatus": "unsupported",
+        "requiredFlags": [],
+        "expectedOutcome": "stable_reject"
+      }
+    },
+    {
+      "id": "dynamic-unresolved-callable",
+      "sourceCallableId": "ts:semantic/callable/CallableSemanticsFixture.ts::free:dynamicCallableLookup/2",
+      "sourceExpression": "holder[propertyName]",
+      "etcCase": {
+        "id": "etc-dynamic-unresolved-callable",
+        "methodId": "ts:semantic/callable/CallableSemanticsFixture.ts::free:dynamicCallableLookup/2",
+        "generatedAtMs": 0,
+        "path": "callable-contract:dynamic-unresolved-callable",
+        "receiver": { "kind": "undefined" },
+        "arguments": [
+          {
+            "kind": "unrepresentable",
+            "reason": "dynamic property lookup did not produce a stable modulePath and exportName",
+            "unrepresentableKind": "function"
+          }
+        ],
+        "metadata": { "callableContract": "usvm-ts-pbt.callable.exact.v1" }
+      },
+      "materialization": {
+        "outcome": "rejected",
+        "valuePath": "/arguments/0",
+        "reasonCode": "unresolved_callable_reference"
+      },
+      "expected": {
+        "outcome": "rejected",
+        "reasonCode": "unresolved_callable_reference",
+        "trace": ["reject callable /arguments/0 kind=function -> unresolved_callable_reference"]
+      },
+      "capability": {
+        "labels": ["callable", "unresolved_pointer_call"],
+        "semanticTags": ["stable_reject", "dynamic_callable"],
+        "expectedStatus": "needs_dynamic_probe",
+        "requiredFlags": [],
+        "expectedOutcome": "stable_reject"
+      }
+    }
+  ],
+  "baselineEvidence": {
+    "freezeDate": "2026-07-19",
+    "observationsPath": "usvm-ts-pbt/benchmarks/baselines/2026-07-19/observations/batched-reports.json",
+    "observationsSha256": "bb9d7e6c712c69db65e2ab1e3cb08afd0f59b1c0667ec337c71bf8e9b2fa079b",
+    "targetManifestPath": "usvm-ts-pbt/benchmarks/baselines/2026-07-19/projects/typescript-collections/targets.json",
+    "targetManifestSha256": "d22920192ded760712c643c6df1bb4521846d6d5198089809dbedbb348730d35",
+    "sourceReport": "source-entry-internal-100-batched-HYBRID.json",
+    "sourceReportSha256": "76edaa836af999dc022d49bc14235ec0cacfa59004418a9968156c3e53190a4d",
+    "projectRepository": "https://github.com/basarat/typescript-collections",
+    "projectCommit": "309bb1b6955b403b212309531607b8d17df152e5",
+    "projectId": "typescript-collections",
+    "scenario": "internal-pbt-usvm",
+    "denominatorScope": "broad",
+    "crossReference": "semantics/module/module-semantics-v1.json",
+    "deduplicationKey": "branchId",
+    "moduleOwnership": "namespace initialization and import binding for util.defaultEquals",
+    "callableOwnership": "materialized function value and exact dispatch",
+    "observedFailure": "unexpected throw: VObject(<record>, {name=VString(value=TypeError), message=VString(value=cannot read property 'defaultEquals' of undefined)})",
+    "broadDenominator": { "methods": 84, "edges": 422 }
+  },
+  "residualBlockers": [
+    {
+      "id": "real-index-of-default-equals-enter-loop",
+      "semanticClass": "module_bound_callable_dispatch",
+      "provenanceScope": "shared_module_callable",
+      "ownershipClaim": "materialized_function_value_callable_dispatch",
+      "sharedWith": "WP-SEM-MODULE",
+      "unionKey": "branchId",
+      "etsIrOriginId": "arrays.ts::%dflt::indexOf/3#s9:0->10",
+      "sourceBindingStatus": "exact",
+      "etsIrMappingStatus": "unmapped",
+      "mappingEvidence": "Frozen v1 target has exact source ranges and EtsIR branch identity but no emitted-JS v2 source-map artifact.",
+      "sourceCallableId": "ts:arrays.ts::free:indexOf/3",
+      "witnessCaseId": "imported-function-direct",
+      "etsIr": {
+        "methodId": "arrays.ts::%dflt::indexOf/3",
+        "branchId": "arrays.ts::%dflt::indexOf/3#s9:0->10",
+        "ifStmtIndex": 9,
+        "successorOrdinal": 0,
+        "successorStmtIndex": 10,
+        "conditionOrigin": { "fileName": "arrays.ts", "startOffset": 719, "endOffset": 729, "startLine": 15, "startColumn": 20, "endLine": 15, "endColumn": 30, "nodeKind": "BinaryExpression" },
+        "successorOrigin": { "fileName": "arrays.ts", "startOffset": 750, "endOffset": 772, "startLine": 16, "startColumn": 12, "endLine": 16, "endColumn": 34, "nodeKind": "CallExpression" }
+      },
+      "frozenOutcome": { "status": "semantic_mismatch", "reasonCode": "module_namespace_callable_unmaterialized", "reached": true, "replayConfirmed": false },
+      "capability": { "labels": ["module_init", "callable"], "semanticTags": ["shared_module_callable", "materialized_function_value", "callable_dispatch", "imported_callable"], "expectedStatus": "supported_with_flag" }
+    },
+    {
+      "id": "real-index-of-default-equals-empty-exit",
+      "semanticClass": "module_bound_callable_dispatch",
+      "provenanceScope": "shared_module_callable",
+      "ownershipClaim": "materialized_function_value_callable_dispatch",
+      "sharedWith": "WP-SEM-MODULE",
+      "unionKey": "branchId",
+      "etsIrOriginId": "arrays.ts::%dflt::indexOf/3#s9:1->18",
+      "sourceBindingStatus": "exact",
+      "etsIrMappingStatus": "unmapped",
+      "mappingEvidence": "Frozen v1 target has exact source ranges and EtsIR branch identity but no emitted-JS v2 source-map artifact.",
+      "sourceCallableId": "ts:arrays.ts::free:indexOf/3",
+      "witnessCaseId": "imported-function-direct",
+      "etsIr": {
+        "methodId": "arrays.ts::%dflt::indexOf/3",
+        "branchId": "arrays.ts::%dflt::indexOf/3#s9:1->18",
+        "ifStmtIndex": 9,
+        "successorOrdinal": 1,
+        "successorStmtIndex": 18,
+        "conditionOrigin": { "fileName": "arrays.ts", "startOffset": 719, "endOffset": 729, "startLine": 15, "startColumn": 20, "endLine": 15, "endColumn": 30, "nodeKind": "BinaryExpression" },
+        "successorOrigin": { "fileName": "arrays.ts", "startOffset": 818, "endOffset": 828, "startLine": 20, "startColumn": 4, "endLine": 20, "endColumn": 14, "nodeKind": "ReturnStatement" }
+      },
+      "frozenOutcome": { "status": "semantic_mismatch", "reasonCode": "module_namespace_callable_unmaterialized", "reached": true, "replayConfirmed": false },
+      "capability": { "labels": ["module_init", "callable"], "semanticTags": ["shared_module_callable", "materialized_function_value", "callable_dispatch", "imported_callable"], "expectedStatus": "supported_with_flag" }
+    },
+    {
+      "id": "real-last-index-of-default-equals-enter-loop",
+      "semanticClass": "module_bound_callable_dispatch",
+      "provenanceScope": "shared_module_callable",
+      "ownershipClaim": "materialized_function_value_callable_dispatch",
+      "sharedWith": "WP-SEM-MODULE",
+      "unionKey": "branchId",
+      "etsIrOriginId": "arrays.ts::%dflt::lastIndexOf/3#s9:0->10",
+      "sourceBindingStatus": "exact",
+      "etsIrMappingStatus": "unmapped",
+      "mappingEvidence": "Frozen v1 target has exact source ranges and EtsIR branch identity but no emitted-JS v2 source-map artifact.",
+      "sourceCallableId": "ts:arrays.ts::free:lastIndexOf/3",
+      "witnessCaseId": "imported-function-direct",
+      "etsIr": {
+        "methodId": "arrays.ts::%dflt::lastIndexOf/3",
+        "branchId": "arrays.ts::%dflt::lastIndexOf/3#s9:0->10",
+        "ifStmtIndex": 9,
+        "successorOrdinal": 0,
+        "successorStmtIndex": 10,
+        "conditionOrigin": { "fileName": "arrays.ts", "startOffset": 1530, "endOffset": 1536, "startLine": 36, "startColumn": 29, "endLine": 36, "endColumn": 35, "nodeKind": "BinaryExpression" },
+        "successorOrigin": { "fileName": "arrays.ts", "startOffset": 1557, "endOffset": 1579, "startLine": 37, "startColumn": 12, "endLine": 37, "endColumn": 34, "nodeKind": "CallExpression" }
+      },
+      "frozenOutcome": { "status": "semantic_mismatch", "reasonCode": "module_namespace_callable_unmaterialized", "reached": true, "replayConfirmed": false },
+      "capability": { "labels": ["module_init", "callable"], "semanticTags": ["shared_module_callable", "materialized_function_value", "callable_dispatch", "imported_callable"], "expectedStatus": "supported_with_flag" }
+    },
+    {
+      "id": "real-last-index-of-default-equals-empty-exit",
+      "semanticClass": "module_bound_callable_dispatch",
+      "provenanceScope": "shared_module_callable",
+      "ownershipClaim": "materialized_function_value_callable_dispatch",
+      "sharedWith": "WP-SEM-MODULE",
+      "unionKey": "branchId",
+      "etsIrOriginId": "arrays.ts::%dflt::lastIndexOf/3#s9:1->18",
+      "sourceBindingStatus": "exact",
+      "etsIrMappingStatus": "unmapped",
+      "mappingEvidence": "Frozen v1 target has exact source ranges and EtsIR branch identity but no emitted-JS v2 source-map artifact.",
+      "sourceCallableId": "ts:arrays.ts::free:lastIndexOf/3",
+      "witnessCaseId": "imported-function-direct",
+      "etsIr": {
+        "methodId": "arrays.ts::%dflt::lastIndexOf/3",
+        "branchId": "arrays.ts::%dflt::lastIndexOf/3#s9:1->18",
+        "ifStmtIndex": 9,
+        "successorOrdinal": 1,
+        "successorStmtIndex": 18,
+        "conditionOrigin": { "fileName": "arrays.ts", "startOffset": 1530, "endOffset": 1536, "startLine": 36, "startColumn": 29, "endLine": 36, "endColumn": 35, "nodeKind": "BinaryExpression" },
+        "successorOrigin": { "fileName": "arrays.ts", "startOffset": 1625, "endOffset": 1635, "startLine": 41, "startColumn": 4, "endLine": 41, "endColumn": 14, "nodeKind": "ReturnStatement" }
+      },
+      "frozenOutcome": { "status": "semantic_mismatch", "reasonCode": "module_namespace_callable_unmaterialized", "reached": true, "replayConfirmed": false },
+      "capability": { "labels": ["module_init", "callable"], "semanticTags": ["shared_module_callable", "materialized_function_value", "callable_dispatch", "imported_callable"], "expectedStatus": "supported_with_flag" }
+    },
+    {
+      "id": "real-remove-default-equals-found",
+      "semanticClass": "module_bound_callable_dispatch",
+      "provenanceScope": "shared_module_callable",
+      "ownershipClaim": "materialized_function_value_callable_dispatch",
+      "sharedWith": "WP-SEM-MODULE",
+      "unionKey": "branchId",
+      "etsIrOriginId": "arrays.ts::%dflt::remove/3#s6:0->7",
+      "sourceBindingStatus": "exact",
+      "etsIrMappingStatus": "unmapped",
+      "mappingEvidence": "Frozen v1 target has exact source ranges and EtsIR branch identity but no emitted-JS v2 source-map artifact.",
+      "sourceCallableId": "ts:arrays.ts::free:remove/3",
+      "witnessCaseId": "imported-function-direct",
+      "etsIr": {
+        "methodId": "arrays.ts::%dflt::remove/3",
+        "branchId": "arrays.ts::%dflt::remove/3#s6:0->7",
+        "ifStmtIndex": 6,
+        "successorOrdinal": 0,
+        "successorStmtIndex": 7,
+        "conditionOrigin": { "fileName": "arrays.ts", "startOffset": 2729, "endOffset": 2738, "startLine": 67, "startColumn": 8, "endLine": 67, "endColumn": 17, "nodeKind": "BinaryExpression" },
+        "successorOrigin": { "fileName": "arrays.ts", "startOffset": 2750, "endOffset": 2763, "startLine": 68, "startColumn": 8, "endLine": 68, "endColumn": 21, "nodeKind": "ReturnStatement" }
+      },
+      "frozenOutcome": { "status": "semantic_mismatch", "reasonCode": "module_namespace_callable_unmaterialized", "reached": true, "replayConfirmed": false },
+      "capability": { "labels": ["module_init", "callable"], "semanticTags": ["shared_module_callable", "materialized_function_value", "callable_dispatch", "imported_callable"], "expectedStatus": "supported_with_flag" }
+    },
+    {
+      "id": "real-frequency-default-equals-enter-loop",
+      "semanticClass": "module_bound_callable_dispatch",
+      "provenanceScope": "shared_module_callable",
+      "ownershipClaim": "materialized_function_value_callable_dispatch",
+      "sharedWith": "WP-SEM-MODULE",
+      "unionKey": "branchId",
+      "etsIrOriginId": "arrays.ts::%dflt::frequency/3#s10:0->11",
+      "sourceBindingStatus": "exact",
+      "etsIrMappingStatus": "unmapped",
+      "mappingEvidence": "Frozen v1 target has exact source ranges and EtsIR branch identity but no emitted-JS v2 source-map artifact.",
+      "sourceCallableId": "ts:arrays.ts::free:frequency/3",
+      "witnessCaseId": "imported-function-direct",
+      "etsIr": {
+        "methodId": "arrays.ts::%dflt::frequency/3",
+        "branchId": "arrays.ts::%dflt::frequency/3#s10:0->11",
+        "ifStmtIndex": 10,
+        "successorOrdinal": 0,
+        "successorStmtIndex": 11,
+        "conditionOrigin": { "fileName": "arrays.ts", "startOffset": 3530, "endOffset": 3540, "startLine": 88, "startColumn": 20, "endLine": 88, "endColumn": 30, "nodeKind": "BinaryExpression" },
+        "successorOrigin": { "fileName": "arrays.ts", "startOffset": 3561, "endOffset": 3583, "startLine": 89, "startColumn": 12, "endLine": 89, "endColumn": 34, "nodeKind": "CallExpression" }
+      },
+      "frozenOutcome": { "status": "semantic_mismatch", "reasonCode": "module_namespace_callable_unmaterialized", "reached": true, "replayConfirmed": false },
+      "capability": { "labels": ["module_init", "callable"], "semanticTags": ["shared_module_callable", "materialized_function_value", "callable_dispatch", "imported_callable"], "expectedStatus": "supported_with_flag" }
+    },
+    {
+      "id": "real-frequency-default-equals-empty-exit",
+      "semanticClass": "module_bound_callable_dispatch",
+      "provenanceScope": "shared_module_callable",
+      "ownershipClaim": "materialized_function_value_callable_dispatch",
+      "sharedWith": "WP-SEM-MODULE",
+      "unionKey": "branchId",
+      "etsIrOriginId": "arrays.ts::%dflt::frequency/3#s10:1->20",
+      "sourceBindingStatus": "exact",
+      "etsIrMappingStatus": "unmapped",
+      "mappingEvidence": "Frozen v1 target has exact source ranges and EtsIR branch identity but no emitted-JS v2 source-map artifact.",
+      "sourceCallableId": "ts:arrays.ts::free:frequency/3",
+      "witnessCaseId": "imported-function-direct",
+      "etsIr": {
+        "methodId": "arrays.ts::%dflt::frequency/3",
+        "branchId": "arrays.ts::%dflt::frequency/3#s10:1->20",
+        "ifStmtIndex": 10,
+        "successorOrdinal": 1,
+        "successorStmtIndex": 20,
+        "conditionOrigin": { "fileName": "arrays.ts", "startOffset": 3530, "endOffset": 3540, "startLine": 88, "startColumn": 20, "endLine": 88, "endColumn": 30, "nodeKind": "BinaryExpression" },
+        "successorOrigin": { "fileName": "arrays.ts", "startOffset": 3627, "endOffset": 3639, "startLine": 93, "startColumn": 4, "endLine": 93, "endColumn": 16, "nodeKind": "ReturnStatement" }
+      },
+      "frozenOutcome": { "status": "semantic_mismatch", "reasonCode": "module_namespace_callable_unmaterialized", "reached": true, "replayConfirmed": false },
+      "capability": { "labels": ["module_init", "callable"], "semanticTags": ["shared_module_callable", "materialized_function_value", "callable_dispatch", "imported_callable"], "expectedStatus": "supported_with_flag" }
+    },
+    {
+      "id": "real-equals-default-equals-length-mismatch",
+      "semanticClass": "module_bound_callable_dispatch",
+      "provenanceScope": "shared_module_callable",
+      "ownershipClaim": "materialized_function_value_callable_dispatch",
+      "sharedWith": "WP-SEM-MODULE",
+      "unionKey": "branchId",
+      "etsIrOriginId": "arrays.ts::%dflt::equals/3#s9:0->10",
+      "sourceBindingStatus": "exact",
+      "etsIrMappingStatus": "unmapped",
+      "mappingEvidence": "Frozen v1 target has exact source ranges and EtsIR branch identity but no emitted-JS v2 source-map artifact.",
+      "sourceCallableId": "ts:arrays.ts::free:equals/3",
+      "witnessCaseId": "imported-function-direct",
+      "etsIr": {
+        "methodId": "arrays.ts::%dflt::equals/3",
+        "branchId": "arrays.ts::%dflt::equals/3#s9:0->10",
+        "ifStmtIndex": 9,
+        "successorOrdinal": 0,
+        "successorStmtIndex": 10,
+        "conditionOrigin": { "fileName": "arrays.ts", "startOffset": 4402, "endOffset": 4433, "startLine": 110, "startColumn": 8, "endLine": 110, "endColumn": 39, "nodeKind": "BinaryExpression" },
+        "successorOrigin": { "fileName": "arrays.ts", "startOffset": 4445, "endOffset": 4458, "startLine": 111, "startColumn": 8, "endLine": 111, "endColumn": 21, "nodeKind": "ReturnStatement" }
+      },
+      "frozenOutcome": { "status": "semantic_mismatch", "reasonCode": "module_namespace_callable_unmaterialized", "reached": true, "replayConfirmed": false },
+      "capability": { "labels": ["module_init", "callable"], "semanticTags": ["shared_module_callable", "materialized_function_value", "callable_dispatch", "imported_callable"], "expectedStatus": "supported_with_flag" }
+    },
+    {
+      "id": "real-equals-default-equals-length-match",
+      "semanticClass": "module_bound_callable_dispatch",
+      "provenanceScope": "shared_module_callable",
+      "ownershipClaim": "materialized_function_value_callable_dispatch",
+      "sharedWith": "WP-SEM-MODULE",
+      "unionKey": "branchId",
+      "etsIrOriginId": "arrays.ts::%dflt::equals/3#s9:1->12",
+      "sourceBindingStatus": "exact",
+      "etsIrMappingStatus": "unmapped",
+      "mappingEvidence": "Frozen v1 target has exact source ranges and EtsIR branch identity but no emitted-JS v2 source-map artifact.",
+      "sourceCallableId": "ts:arrays.ts::free:equals/3",
+      "witnessCaseId": "imported-function-direct",
+      "etsIr": {
+        "methodId": "arrays.ts::%dflt::equals/3",
+        "branchId": "arrays.ts::%dflt::equals/3#s9:1->12",
+        "ifStmtIndex": 9,
+        "successorOrdinal": 1,
+        "successorStmtIndex": 12,
+        "conditionOrigin": { "fileName": "arrays.ts", "startOffset": 4402, "endOffset": 4433, "startLine": 110, "startColumn": 8, "endLine": 110, "endColumn": 39, "nodeKind": "BinaryExpression" },
+        "successorOrigin": { "fileName": "arrays.ts", "startOffset": 4469, "endOffset": 4498, "startLine": 113, "startColumn": 4, "endLine": 113, "endColumn": 33, "nodeKind": "FirstStatement" }
+      },
+      "frozenOutcome": { "status": "semantic_mismatch", "reasonCode": "module_namespace_callable_unmaterialized", "reached": true, "replayConfirmed": false },
+      "capability": { "labels": ["module_init", "callable"], "semanticTags": ["shared_module_callable", "materialized_function_value", "callable_dispatch", "imported_callable"], "expectedStatus": "supported_with_flag" }
+    },
+    {
+      "id": "real-equals-default-equals-enter-loop",
+      "semanticClass": "module_bound_callable_dispatch",
+      "provenanceScope": "shared_module_callable",
+      "ownershipClaim": "materialized_function_value_callable_dispatch",
+      "sharedWith": "WP-SEM-MODULE",
+      "unionKey": "branchId",
+      "etsIrOriginId": "arrays.ts::%dflt::equals/3#s15:0->16",
+      "sourceBindingStatus": "exact",
+      "etsIrMappingStatus": "unmapped",
+      "mappingEvidence": "Frozen v1 target has exact source ranges and EtsIR branch identity but no emitted-JS v2 source-map artifact.",
+      "sourceCallableId": "ts:arrays.ts::free:equals/3",
+      "witnessCaseId": "imported-function-direct",
+      "etsIr": {
+        "methodId": "arrays.ts::%dflt::equals/3",
+        "branchId": "arrays.ts::%dflt::equals/3#s15:0->16",
+        "ifStmtIndex": 15,
+        "successorOrdinal": 0,
+        "successorStmtIndex": 16,
+        "conditionOrigin": { "fileName": "arrays.ts", "startOffset": 4519, "endOffset": 4529, "startLine": 114, "startColumn": 20, "endLine": 114, "endColumn": 30, "nodeKind": "BinaryExpression" },
+        "successorOrigin": { "fileName": "arrays.ts", "startOffset": 4551, "endOffset": 4579, "startLine": 115, "startColumn": 13, "endLine": 115, "endColumn": 41, "nodeKind": "CallExpression" }
+      },
+      "frozenOutcome": { "status": "semantic_mismatch", "reasonCode": "module_namespace_callable_unmaterialized", "reached": true, "replayConfirmed": false },
+      "capability": { "labels": ["module_init", "callable"], "semanticTags": ["shared_module_callable", "materialized_function_value", "callable_dispatch", "imported_callable"], "expectedStatus": "supported_with_flag" }
+    },
+    {
+      "id": "real-equals-default-equals-loop-exit",
+      "semanticClass": "module_bound_callable_dispatch",
+      "provenanceScope": "shared_module_callable",
+      "ownershipClaim": "materialized_function_value_callable_dispatch",
+      "sharedWith": "WP-SEM-MODULE",
+      "unionKey": "branchId",
+      "etsIrOriginId": "arrays.ts::%dflt::equals/3#s15:1->26",
+      "sourceBindingStatus": "exact",
+      "etsIrMappingStatus": "unmapped",
+      "mappingEvidence": "Frozen v1 target has exact source ranges and EtsIR branch identity but no emitted-JS v2 source-map artifact.",
+      "sourceCallableId": "ts:arrays.ts::free:equals/3",
+      "witnessCaseId": "imported-function-direct",
+      "etsIr": {
+        "methodId": "arrays.ts::%dflt::equals/3",
+        "branchId": "arrays.ts::%dflt::equals/3#s15:1->26",
+        "ifStmtIndex": 15,
+        "successorOrdinal": 1,
+        "successorStmtIndex": 26,
+        "conditionOrigin": { "fileName": "arrays.ts", "startOffset": 4519, "endOffset": 4529, "startLine": 114, "startColumn": 20, "endLine": 114, "endColumn": 30, "nodeKind": "BinaryExpression" },
+        "successorOrigin": { "fileName": "arrays.ts", "startOffset": 4629, "endOffset": 4641, "startLine": 119, "startColumn": 4, "endLine": 119, "endColumn": 16, "nodeKind": "ReturnStatement" }
+      },
+      "frozenOutcome": { "status": "semantic_mismatch", "reasonCode": "module_namespace_callable_unmaterialized", "reached": true, "replayConfirmed": false },
+      "capability": { "labels": ["module_init", "callable"], "semanticTags": ["shared_module_callable", "materialized_function_value", "callable_dispatch", "imported_callable"], "expectedStatus": "supported_with_flag" }
+    }
+  ],
+  "unsupported": [
+    { "id": "captured-mutable-environment", "caseId": "captured-mutable-closure", "expectedStatus": "unsupported", "reasonCode": "captured_mutable_environment_not_exact", "reason": "Mutable lexical cells require explicit environment identity and lifetime." },
+    { "id": "lexical-this-environment", "caseId": "lexical-this-arrow-closure", "expectedStatus": "unsupported", "reasonCode": "lexical_this_environment_not_exact", "reason": "A returned arrow cannot be reconstructed without its lexical this environment." },
+    { "id": "bound-function-state", "caseId": "bound-callable", "expectedStatus": "needs_dynamic_probe", "reasonCode": "bound_callable_plan_missing", "reason": "ETC v2 has no bound target, receiver and argument tuple." },
+    { "id": "proxy-call-traps", "caseId": "proxy-callable", "expectedStatus": "needs_dynamic_probe", "reasonCode": "proxy_callable_requires_dynamic_probe", "reason": "Proxy apply and construct traps can be effectful." },
+    { "id": "async-promise-scheduling", "caseId": "async-callable", "expectedStatus": "unsupported", "reasonCode": "async_callable_not_exact", "reason": "Promise scheduling and settlement are outside the synchronous subset." },
+    { "id": "generator-suspension", "caseId": "generator-callable", "expectedStatus": "unsupported", "reasonCode": "generator_callable_not_exact", "reason": "Generator suspension state and iterator identity are not materialized." },
+    { "id": "dynamic-callable-lookup", "caseId": "dynamic-unresolved-callable", "expectedStatus": "needs_dynamic_probe", "reasonCode": "unresolved_callable_reference", "reason": "A dynamic property result without stable source identity cannot become a callable reference." }
+  ]
+}
