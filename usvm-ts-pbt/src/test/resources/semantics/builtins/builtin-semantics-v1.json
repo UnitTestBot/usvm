@@ -1,0 +1,1190 @@
+{
+  "schemaVersion": 1,
+  "contractId": "usvm-ts-pbt.builtins.exact.v1",
+  "sourceFixture": "BuiltinSemanticsFixture.ts",
+  "description": "Dependency-neutral executable contract for the exact builtin, membership, Map, missing-vs-undefined and result-truthiness subset.",
+  "requiredOperations": [
+    "array.isArray",
+    "object.toStringTag",
+    "object.hasOwn",
+    "property.in",
+    "map.set",
+    "map.get",
+    "map.has",
+    "map.size",
+    "truthy"
+  ],
+  "baselineEvidence": {
+    "freezeDate": "2026-07-19",
+    "observationsPath": "usvm-ts-pbt/benchmarks/baselines/2026-07-19/observations/batched-reports.json",
+    "observationsSha256": "bb9d7e6c712c69db65e2ab1e3cb08afd0f59b1c0667ec337c71bf8e9b2fa079b",
+    "broadDenominator": {
+      "methods": 84,
+      "edges": 422
+    }
+  },
+  "cases": [
+    {
+      "id": "array-is-array-array",
+      "sourceCallableId": "ts:semantic/builtins/BuiltinSemanticsFixture.ts::free:arrayIsArray/1",
+      "sourceExpression": "Array.isArray(subject)",
+      "environment": { "subject": { "kind": "array", "elements": [] } },
+      "steps": [
+        { "operation": "array.isArray", "receiver": "subject", "arguments": [], "saveAs": "result" }
+      ],
+      "return": "result",
+      "expected": {
+        "result": { "kind": "boolean", "value": true },
+        "truthy": true,
+        "trace": ["array.isArray(subject) -> boolean:true"]
+      },
+      "capability": {
+        "labels": ["array_object","builtin_call"],
+        "semanticTags": ["static_builtin_call"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "array-is-array-object",
+      "sourceCallableId": "ts:semantic/builtins/BuiltinSemanticsFixture.ts::free:arrayIsArray/1",
+      "sourceExpression": "Array.isArray(subject)",
+      "environment": { "subject": { "kind": "object", "own": {} } },
+      "steps": [
+        { "operation": "array.isArray", "receiver": "subject", "arguments": [], "saveAs": "result" }
+      ],
+      "return": "result",
+      "expected": {
+        "result": { "kind": "boolean", "value": false },
+        "truthy": false,
+        "trace": ["array.isArray(subject) -> boolean:false"]
+      },
+      "capability": {
+        "labels": ["array_object","builtin_call"],
+        "semanticTags": ["static_builtin_call"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "array-is-array-array-like-object",
+      "sourceCallableId": "ts:semantic/builtins/BuiltinSemanticsFixture.ts::free:arrayIsArray/1",
+      "sourceExpression": "Array.isArray(subject)",
+      "environment": {
+        "subject": {
+          "kind": "object",
+          "own": { "length": { "kind": "number", "value": "0" } }
+        }
+      },
+      "steps": [
+        { "operation": "array.isArray", "receiver": "subject", "arguments": [], "saveAs": "result" }
+      ],
+      "return": "result",
+      "expected": {
+        "result": { "kind": "boolean", "value": false },
+        "truthy": false,
+        "trace": ["array.isArray(subject) -> boolean:false"]
+      },
+      "capability": {
+        "labels": ["array_object","builtin_call"],
+        "semanticTags": ["static_builtin_call"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "to-string-tag-array",
+      "sourceCallableId": "ts:semantic/builtins/BuiltinSemanticsFixture.ts::free:objectToStringTag/1",
+      "sourceExpression": "Object.prototype.toString.call(subject)",
+      "environment": { "subject": { "kind": "array", "elements": [] } },
+      "steps": [
+        { "operation": "object.toStringTag", "receiver": "subject", "arguments": [], "saveAs": "result" }
+      ],
+      "return": "result",
+      "expected": {
+        "result": { "kind": "string", "value": "[object Array]" },
+        "truthy": true,
+        "trace": ["object.toStringTag(subject) -> string:\"[object Array]\""]
+      },
+      "capability": {
+        "labels": ["array_object","builtin_call"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "to-string-tag-object",
+      "sourceCallableId": "ts:semantic/builtins/BuiltinSemanticsFixture.ts::free:objectToStringTag/1",
+      "sourceExpression": "Object.prototype.toString.call(subject)",
+      "environment": { "subject": { "kind": "object", "own": {} } },
+      "steps": [
+        { "operation": "object.toStringTag", "receiver": "subject", "arguments": [], "saveAs": "result" }
+      ],
+      "return": "result",
+      "expected": {
+        "result": { "kind": "string", "value": "[object Object]" },
+        "truthy": true,
+        "trace": ["object.toStringTag(subject) -> string:\"[object Object]\""]
+      },
+      "capability": {
+        "labels": ["array_object","builtin_call"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "to-string-tag-string",
+      "sourceCallableId": "ts:semantic/builtins/BuiltinSemanticsFixture.ts::free:objectToStringTag/1",
+      "sourceExpression": "Object.prototype.toString.call(subject)",
+      "environment": { "subject": { "kind": "string", "value": "value" } },
+      "steps": [
+        { "operation": "object.toStringTag", "receiver": "subject", "arguments": [], "saveAs": "result" }
+      ],
+      "return": "result",
+      "expected": {
+        "result": { "kind": "string", "value": "[object String]" },
+        "truthy": true,
+        "trace": ["object.toStringTag(subject) -> string:\"[object String]\""]
+      },
+      "capability": {
+        "labels": ["builtin_call"],
+        "semanticTags": ["primitive_string"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "to-string-tag-null",
+      "sourceCallableId": "ts:semantic/builtins/BuiltinSemanticsFixture.ts::free:objectToStringTag/1",
+      "sourceExpression": "Object.prototype.toString.call(subject)",
+      "environment": { "subject": { "kind": "null" } },
+      "steps": [
+        { "operation": "object.toStringTag", "receiver": "subject", "arguments": [], "saveAs": "result" }
+      ],
+      "return": "result",
+      "expected": {
+        "result": { "kind": "string", "value": "[object Null]" },
+        "truthy": true,
+        "trace": ["object.toStringTag(subject) -> string:\"[object Null]\""]
+      },
+      "capability": {
+        "labels": ["builtin_call"],
+        "semanticTags": ["nullish"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "to-string-tag-undefined",
+      "sourceCallableId": "ts:semantic/builtins/BuiltinSemanticsFixture.ts::free:objectToStringTag/1",
+      "sourceExpression": "Object.prototype.toString.call(subject)",
+      "environment": { "subject": { "kind": "undefined" } },
+      "steps": [
+        { "operation": "object.toStringTag", "receiver": "subject", "arguments": [], "saveAs": "result" }
+      ],
+      "return": "result",
+      "expected": {
+        "result": { "kind": "string", "value": "[object Undefined]" },
+        "truthy": true,
+        "trace": ["object.toStringTag(subject) -> string:\"[object Undefined]\""]
+      },
+      "capability": {
+        "labels": ["builtin_call"],
+        "semanticTags": ["nullish"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "to-string-tag-map",
+      "sourceCallableId": "ts:semantic/builtins/BuiltinSemanticsFixture.ts::free:objectToStringTag/1",
+      "sourceExpression": "Object.prototype.toString.call(subject)",
+      "environment": { "subject": { "kind": "map", "entries": [] } },
+      "steps": [
+        { "operation": "object.toStringTag", "receiver": "subject", "arguments": [], "saveAs": "result" }
+      ],
+      "return": "result",
+      "expected": {
+        "result": { "kind": "string", "value": "[object Map]" },
+        "truthy": true,
+        "trace": ["object.toStringTag(subject) -> string:\"[object Map]\""]
+      },
+      "capability": {
+        "labels": ["map_set","builtin_call"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "has-own-value",
+      "sourceCallableId": "ts:semantic/builtins/BuiltinSemanticsFixture.ts::free:objectHasOwn/2",
+      "sourceExpression": "Object.prototype.hasOwnProperty.call(subject, key)",
+      "environment": {
+        "subject": { "kind": "object", "own": { "own": { "kind": "number", "value": "7" } } }
+      },
+      "steps": [
+        {
+          "operation": "object.hasOwn",
+          "receiver": "subject",
+          "arguments": [{ "literal": { "kind": "string", "value": "own" } }],
+          "saveAs": "result"
+        }
+      ],
+      "return": "result",
+      "expected": {
+        "result": { "kind": "boolean", "value": true },
+        "truthy": true,
+        "trace": ["object.hasOwn(subject, string:\"own\") -> boolean:true"]
+      },
+      "capability": {
+        "labels": ["array_object","builtin_call"],
+        "semanticTags": ["property_membership"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "has-own-undefined",
+      "sourceCallableId": "ts:semantic/builtins/BuiltinSemanticsFixture.ts::free:objectHasOwn/2",
+      "sourceExpression": "Object.prototype.hasOwnProperty.call(subject, key)",
+      "environment": {
+        "subject": { "kind": "object", "own": { "present": { "kind": "undefined" } } }
+      },
+      "steps": [
+        {
+          "operation": "object.hasOwn",
+          "receiver": "subject",
+          "arguments": [{ "literal": { "kind": "string", "value": "present" } }],
+          "saveAs": "result"
+        }
+      ],
+      "return": "result",
+      "expected": {
+        "result": { "kind": "boolean", "value": true },
+        "truthy": true,
+        "trace": ["object.hasOwn(subject, string:\"present\") -> boolean:true"]
+      },
+      "capability": {
+        "labels": ["array_object","builtin_call"],
+        "semanticTags": ["property_membership","missing_vs_undefined"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "has-own-inherited-false",
+      "sourceCallableId": "ts:semantic/builtins/BuiltinSemanticsFixture.ts::free:objectHasOwn/2",
+      "sourceExpression": "Object.prototype.hasOwnProperty.call(subject, key)",
+      "environment": {
+        "subject": {
+          "kind": "object",
+          "own": {},
+          "prototype": { "kind": "object", "own": { "inherited": { "kind": "number", "value": "1" } } }
+        }
+      },
+      "steps": [
+        {
+          "operation": "object.hasOwn",
+          "receiver": "subject",
+          "arguments": [{ "literal": { "kind": "string", "value": "inherited" } }],
+          "saveAs": "result"
+        }
+      ],
+      "return": "result",
+      "expected": {
+        "result": { "kind": "boolean", "value": false },
+        "truthy": false,
+        "trace": ["object.hasOwn(subject, string:\"inherited\") -> boolean:false"]
+      },
+      "capability": {
+        "labels": ["array_object","builtin_call"],
+        "semanticTags": ["prototype_chain","property_membership"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "has-own-missing",
+      "sourceCallableId": "ts:semantic/builtins/BuiltinSemanticsFixture.ts::free:objectHasOwn/2",
+      "sourceExpression": "Object.prototype.hasOwnProperty.call(subject, key)",
+      "environment": { "subject": { "kind": "object", "own": {} } },
+      "steps": [
+        {
+          "operation": "object.hasOwn",
+          "receiver": "subject",
+          "arguments": [{ "literal": { "kind": "string", "value": "missing" } }],
+          "saveAs": "result"
+        }
+      ],
+      "return": "result",
+      "expected": {
+        "result": { "kind": "boolean", "value": false },
+        "truthy": false,
+        "trace": ["object.hasOwn(subject, string:\"missing\") -> boolean:false"]
+      },
+      "capability": {
+        "labels": ["array_object","builtin_call"],
+        "semanticTags": ["property_membership","missing_vs_undefined"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "has-own-shadowed-method-name",
+      "sourceCallableId": "ts:semantic/builtins/BuiltinSemanticsFixture.ts::free:objectHasOwn/2",
+      "sourceExpression": "Object.prototype.hasOwnProperty.call(subject, key)",
+      "environment": {
+        "subject": {
+          "kind": "object",
+          "own": { "hasOwnProperty": { "kind": "string", "value": "shadowed" } }
+        }
+      },
+      "steps": [
+        {
+          "operation": "object.hasOwn",
+          "receiver": "subject",
+          "arguments": [{ "literal": { "kind": "string", "value": "hasOwnProperty" } }],
+          "saveAs": "result"
+        }
+      ],
+      "return": "result",
+      "expected": {
+        "result": { "kind": "boolean", "value": true },
+        "truthy": true,
+        "trace": ["object.hasOwn(subject, string:\"hasOwnProperty\") -> boolean:true"]
+      },
+      "capability": {
+        "labels": ["array_object","builtin_call"],
+        "semanticTags": ["property_membership"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "property-in-own",
+      "sourceCallableId": "ts:semantic/builtins/BuiltinSemanticsFixture.ts::free:propertyIn/2",
+      "sourceExpression": "key in subject",
+      "environment": {
+        "subject": { "kind": "object", "own": { "own": { "kind": "number", "value": "7" } } }
+      },
+      "steps": [
+        {
+          "operation": "property.in",
+          "receiver": "subject",
+          "arguments": [{ "literal": { "kind": "string", "value": "own" } }],
+          "saveAs": "result"
+        }
+      ],
+      "return": "result",
+      "expected": {
+        "result": { "kind": "boolean", "value": true },
+        "truthy": true,
+        "trace": ["property.in(subject, string:\"own\") -> boolean:true"]
+      },
+      "capability": {
+        "labels": ["array_object"],
+        "semanticTags": ["property_membership"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "property-in-own-undefined",
+      "sourceCallableId": "ts:semantic/builtins/BuiltinSemanticsFixture.ts::free:propertyIn/2",
+      "sourceExpression": "key in subject",
+      "environment": {
+        "subject": { "kind": "object", "own": { "present": { "kind": "undefined" } } }
+      },
+      "steps": [
+        {
+          "operation": "property.in",
+          "receiver": "subject",
+          "arguments": [{ "literal": { "kind": "string", "value": "present" } }],
+          "saveAs": "result"
+        }
+      ],
+      "return": "result",
+      "expected": {
+        "result": { "kind": "boolean", "value": true },
+        "truthy": true,
+        "trace": ["property.in(subject, string:\"present\") -> boolean:true"]
+      },
+      "capability": {
+        "labels": ["array_object"],
+        "semanticTags": ["property_membership","missing_vs_undefined"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "property-in-inherited",
+      "sourceCallableId": "ts:semantic/builtins/BuiltinSemanticsFixture.ts::free:propertyIn/2",
+      "sourceExpression": "key in subject",
+      "environment": {
+        "subject": {
+          "kind": "object",
+          "own": {},
+          "prototype": { "kind": "object", "own": { "inherited": { "kind": "number", "value": "1" } } }
+        }
+      },
+      "steps": [
+        {
+          "operation": "property.in",
+          "receiver": "subject",
+          "arguments": [{ "literal": { "kind": "string", "value": "inherited" } }],
+          "saveAs": "result"
+        }
+      ],
+      "return": "result",
+      "expected": {
+        "result": { "kind": "boolean", "value": true },
+        "truthy": true,
+        "trace": ["property.in(subject, string:\"inherited\") -> boolean:true"]
+      },
+      "capability": {
+        "labels": ["array_object"],
+        "semanticTags": ["prototype_chain","property_membership"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "property-in-missing",
+      "sourceCallableId": "ts:semantic/builtins/BuiltinSemanticsFixture.ts::free:propertyIn/2",
+      "sourceExpression": "key in subject",
+      "environment": { "subject": { "kind": "object", "own": {} } },
+      "steps": [
+        {
+          "operation": "property.in",
+          "receiver": "subject",
+          "arguments": [{ "literal": { "kind": "string", "value": "missing" } }],
+          "saveAs": "result"
+        }
+      ],
+      "return": "result",
+      "expected": {
+        "result": { "kind": "boolean", "value": false },
+        "truthy": false,
+        "trace": ["property.in(subject, string:\"missing\") -> boolean:false"]
+      },
+      "capability": {
+        "labels": ["array_object"],
+        "semanticTags": ["property_membership","missing_vs_undefined"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "map-set-then-get",
+      "sourceCallableId": "ts:semantic/builtins/BuiltinSemanticsFixture.ts::free:mapGet/2",
+      "sourceExpression": "subject.set(key, value); subject.get(key)",
+      "environment": { "map": { "kind": "map", "entries": [] } },
+      "steps": [
+        {
+          "operation": "map.set",
+          "receiver": "map",
+          "arguments": [
+            { "literal": { "kind": "number", "value": "7" } },
+            { "literal": { "kind": "string", "value": "seven" } }
+          ],
+          "saveAs": "setResult"
+        },
+        {
+          "operation": "map.get",
+          "receiver": "map",
+          "arguments": [{ "literal": { "kind": "number", "value": "7" } }],
+          "saveAs": "result"
+        }
+      ],
+      "return": "result",
+      "expected": {
+        "result": { "kind": "string", "value": "seven" },
+        "truthy": true,
+        "trace": [
+          "map.set(map, number:7, string:\"seven\") -> receiver:map",
+          "map.get(map, number:7) -> string:\"seven\""
+        ]
+      },
+      "capability": {
+        "labels": ["map_set"],
+        "semanticTags": ["map_mutation"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "map-set-then-has",
+      "sourceCallableId": "ts:semantic/builtins/BuiltinSemanticsFixture.ts::free:mapHas/2",
+      "sourceExpression": "subject.set(key, value); subject.has(key)",
+      "environment": { "map": { "kind": "map", "entries": [] } },
+      "steps": [
+        {
+          "operation": "map.set",
+          "receiver": "map",
+          "arguments": [
+            { "literal": { "kind": "string", "value": "key" } },
+            { "literal": { "kind": "undefined" } }
+          ],
+          "saveAs": "setResult"
+        },
+        {
+          "operation": "map.has",
+          "receiver": "map",
+          "arguments": [{ "literal": { "kind": "string", "value": "key" } }],
+          "saveAs": "result"
+        }
+      ],
+      "return": "result",
+      "expected": {
+        "result": { "kind": "boolean", "value": true },
+        "truthy": true,
+        "trace": [
+          "map.set(map, string:\"key\", undefined) -> receiver:map",
+          "map.has(map, string:\"key\") -> boolean:true"
+        ]
+      },
+      "capability": {
+        "labels": ["map_set"],
+        "semanticTags": ["map_mutation","missing_vs_undefined"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "map-get-missing",
+      "sourceCallableId": "ts:semantic/builtins/BuiltinSemanticsFixture.ts::free:mapGet/2",
+      "sourceExpression": "subject.get(key)",
+      "environment": { "map": { "kind": "map", "entries": [] } },
+      "steps": [
+        {
+          "operation": "map.get",
+          "receiver": "map",
+          "arguments": [{ "literal": { "kind": "string", "value": "missing" } }],
+          "saveAs": "result"
+        }
+      ],
+      "return": "result",
+      "expected": {
+        "result": { "kind": "undefined" },
+        "truthy": false,
+        "trace": ["map.get(map, string:\"missing\") -> undefined"]
+      },
+      "capability": {
+        "labels": ["map_set"],
+        "semanticTags": ["missing_vs_undefined","truthiness"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "map-has-missing",
+      "sourceCallableId": "ts:semantic/builtins/BuiltinSemanticsFixture.ts::free:mapHas/2",
+      "sourceExpression": "subject.has(key)",
+      "environment": { "map": { "kind": "map", "entries": [] } },
+      "steps": [
+        {
+          "operation": "map.has",
+          "receiver": "map",
+          "arguments": [{ "literal": { "kind": "string", "value": "missing" } }],
+          "saveAs": "result"
+        }
+      ],
+      "return": "result",
+      "expected": {
+        "result": { "kind": "boolean", "value": false },
+        "truthy": false,
+        "trace": ["map.has(map, string:\"missing\") -> boolean:false"]
+      },
+      "capability": {
+        "labels": ["map_set"],
+        "semanticTags": ["missing_vs_undefined"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "map-get-stored-undefined",
+      "sourceCallableId": "ts:semantic/builtins/BuiltinSemanticsFixture.ts::free:mapGet/2",
+      "sourceExpression": "subject.get(key)",
+      "environment": {
+        "map": {
+          "kind": "map",
+          "entries": [
+            { "key": { "kind": "string", "value": "present" }, "value": { "kind": "undefined" } }
+          ]
+        }
+      },
+      "steps": [
+        {
+          "operation": "map.get",
+          "receiver": "map",
+          "arguments": [{ "literal": { "kind": "string", "value": "present" } }],
+          "saveAs": "result"
+        }
+      ],
+      "return": "result",
+      "expected": {
+        "result": { "kind": "undefined" },
+        "truthy": false,
+        "trace": ["map.get(map, string:\"present\") -> undefined"]
+      },
+      "capability": {
+        "labels": ["map_set"],
+        "semanticTags": ["missing_vs_undefined","truthiness"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "map-has-stored-undefined",
+      "sourceCallableId": "ts:semantic/builtins/BuiltinSemanticsFixture.ts::free:mapHas/2",
+      "sourceExpression": "subject.has(key)",
+      "environment": {
+        "map": {
+          "kind": "map",
+          "entries": [
+            { "key": { "kind": "string", "value": "present" }, "value": { "kind": "undefined" } }
+          ]
+        }
+      },
+      "steps": [
+        {
+          "operation": "map.has",
+          "receiver": "map",
+          "arguments": [{ "literal": { "kind": "string", "value": "present" } }],
+          "saveAs": "result"
+        }
+      ],
+      "return": "result",
+      "expected": {
+        "result": { "kind": "boolean", "value": true },
+        "truthy": true,
+        "trace": ["map.has(map, string:\"present\") -> boolean:true"]
+      },
+      "capability": {
+        "labels": ["map_set"],
+        "semanticTags": ["missing_vs_undefined"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "map-same-value-zero-nan",
+      "sourceCallableId": "ts:semantic/builtins/BuiltinSemanticsFixture.ts::free:mapGet/2",
+      "sourceExpression": "subject.set(NaN, value); subject.get(NaN)",
+      "environment": { "map": { "kind": "map", "entries": [] } },
+      "steps": [
+        {
+          "operation": "map.set",
+          "receiver": "map",
+          "arguments": [
+            { "literal": { "kind": "number", "value": "NaN" } },
+            { "literal": { "kind": "string", "value": "nan-value" } }
+          ],
+          "saveAs": "setResult"
+        },
+        {
+          "operation": "map.get",
+          "receiver": "map",
+          "arguments": [{ "literal": { "kind": "number", "value": "NaN" } }],
+          "saveAs": "result"
+        }
+      ],
+      "return": "result",
+      "expected": {
+        "result": { "kind": "string", "value": "nan-value" },
+        "truthy": true,
+        "trace": [
+          "map.set(map, number:NaN, string:\"nan-value\") -> receiver:map",
+          "map.get(map, number:NaN) -> string:\"nan-value\""
+        ]
+      },
+      "capability": {
+        "labels": ["map_set"],
+        "semanticTags": ["map_mutation","same_value_zero"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "map-same-value-zero-signed-zero",
+      "sourceCallableId": "ts:semantic/builtins/BuiltinSemanticsFixture.ts::free:mapGet/2",
+      "sourceExpression": "subject.set(-0, value); subject.get(+0)",
+      "environment": { "map": { "kind": "map", "entries": [] } },
+      "steps": [
+        {
+          "operation": "map.set",
+          "receiver": "map",
+          "arguments": [
+            { "literal": { "kind": "number", "value": "-0" } },
+            { "literal": { "kind": "string", "value": "zero-value" } }
+          ],
+          "saveAs": "setResult"
+        },
+        {
+          "operation": "map.get",
+          "receiver": "map",
+          "arguments": [{ "literal": { "kind": "number", "value": "0" } }],
+          "saveAs": "result"
+        }
+      ],
+      "return": "result",
+      "expected": {
+        "result": { "kind": "string", "value": "zero-value" },
+        "truthy": true,
+        "trace": [
+          "map.set(map, number:-0, string:\"zero-value\") -> receiver:map",
+          "map.get(map, number:0) -> string:\"zero-value\""
+        ]
+      },
+      "capability": {
+        "labels": ["map_set"],
+        "semanticTags": ["map_mutation","same_value_zero"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "map-overwrite-preserves-size",
+      "sourceCallableId": "ts:semantic/builtins/BuiltinSemanticsFixture.ts::free:mapSize/1",
+      "sourceExpression": "subject.set(key, replacement); subject.get(key); subject.size",
+      "environment": {
+        "map": {
+          "kind": "map",
+          "entries": [
+            { "key": { "kind": "string", "value": "key" }, "value": { "kind": "number", "value": "1" } }
+          ]
+        }
+      },
+      "steps": [
+        {
+          "operation": "map.set",
+          "receiver": "map",
+          "arguments": [
+            { "literal": { "kind": "string", "value": "key" } },
+            { "literal": { "kind": "number", "value": "2" } }
+          ],
+          "saveAs": "setResult"
+        },
+        {
+          "operation": "map.get",
+          "receiver": "map",
+          "arguments": [{ "literal": { "kind": "string", "value": "key" } }],
+          "saveAs": "replacement"
+        },
+        { "operation": "map.size", "receiver": "map", "arguments": [], "saveAs": "result" }
+      ],
+      "return": "result",
+      "expected": {
+        "result": { "kind": "number", "value": "1" },
+        "truthy": true,
+        "trace": [
+          "map.set(map, string:\"key\", number:2) -> receiver:map",
+          "map.get(map, string:\"key\") -> number:2",
+          "map.size(map) -> number:1"
+        ]
+      },
+      "capability": {
+        "labels": ["map_set"],
+        "semanticTags": ["map_mutation"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "truthy-map-get-missing",
+      "sourceCallableId": "ts:semantic/builtins/BuiltinSemanticsFixture.ts::free:truthy/1",
+      "sourceExpression": "Boolean(subject.get(key))",
+      "environment": { "map": { "kind": "map", "entries": [] } },
+      "steps": [
+        {
+          "operation": "map.get",
+          "receiver": "map",
+          "arguments": [{ "literal": { "kind": "number", "value": "2" } }],
+          "saveAs": "value"
+        },
+        { "operation": "truthy", "receiver": "value", "arguments": [], "saveAs": "result" }
+      ],
+      "return": "result",
+      "expected": {
+        "result": { "kind": "boolean", "value": false },
+        "truthy": false,
+        "trace": [
+          "map.get(map, number:2) -> undefined",
+          "truthy(value) -> boolean:false"
+        ]
+      },
+      "capability": {
+        "labels": ["map_set"],
+        "semanticTags": ["missing_vs_undefined","truthiness"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "truthy-map-get-zero",
+      "sourceCallableId": "ts:semantic/builtins/BuiltinSemanticsFixture.ts::free:truthy/1",
+      "sourceExpression": "Boolean(subject.get(key))",
+      "environment": {
+        "map": {
+          "kind": "map",
+          "entries": [
+            { "key": { "kind": "string", "value": "key" }, "value": { "kind": "number", "value": "0" } }
+          ]
+        }
+      },
+      "steps": [
+        {
+          "operation": "map.get",
+          "receiver": "map",
+          "arguments": [{ "literal": { "kind": "string", "value": "key" } }],
+          "saveAs": "value"
+        },
+        { "operation": "truthy", "receiver": "value", "arguments": [], "saveAs": "result" }
+      ],
+      "return": "result",
+      "expected": {
+        "result": { "kind": "boolean", "value": false },
+        "truthy": false,
+        "trace": [
+          "map.get(map, string:\"key\") -> number:0",
+          "truthy(value) -> boolean:false"
+        ]
+      },
+      "capability": {
+        "labels": ["map_set"],
+        "semanticTags": ["truthiness"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "truthy-map-get-nan",
+      "sourceCallableId": "ts:semantic/builtins/BuiltinSemanticsFixture.ts::free:truthy/1",
+      "sourceExpression": "Boolean(subject.get(key))",
+      "environment": {
+        "map": {
+          "kind": "map",
+          "entries": [
+            { "key": { "kind": "string", "value": "key" }, "value": { "kind": "number", "value": "NaN" } }
+          ]
+        }
+      },
+      "steps": [
+        {
+          "operation": "map.get",
+          "receiver": "map",
+          "arguments": [{ "literal": { "kind": "string", "value": "key" } }],
+          "saveAs": "value"
+        },
+        { "operation": "truthy", "receiver": "value", "arguments": [], "saveAs": "result" }
+      ],
+      "return": "result",
+      "expected": {
+        "result": { "kind": "boolean", "value": false },
+        "truthy": false,
+        "trace": [
+          "map.get(map, string:\"key\") -> number:NaN",
+          "truthy(value) -> boolean:false"
+        ]
+      },
+      "capability": {
+        "labels": ["map_set"],
+        "semanticTags": ["truthiness"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "truthy-map-get-empty-string",
+      "sourceCallableId": "ts:semantic/builtins/BuiltinSemanticsFixture.ts::free:truthy/1",
+      "sourceExpression": "Boolean(subject.get(key))",
+      "environment": {
+        "map": {
+          "kind": "map",
+          "entries": [
+            { "key": { "kind": "string", "value": "key" }, "value": { "kind": "string", "value": "" } }
+          ]
+        }
+      },
+      "steps": [
+        {
+          "operation": "map.get",
+          "receiver": "map",
+          "arguments": [{ "literal": { "kind": "string", "value": "key" } }],
+          "saveAs": "value"
+        },
+        { "operation": "truthy", "receiver": "value", "arguments": [], "saveAs": "result" }
+      ],
+      "return": "result",
+      "expected": {
+        "result": { "kind": "boolean", "value": false },
+        "truthy": false,
+        "trace": [
+          "map.get(map, string:\"key\") -> string:\"\"",
+          "truthy(value) -> boolean:false"
+        ]
+      },
+      "capability": {
+        "labels": ["map_set"],
+        "semanticTags": ["truthiness"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "truthy-map-get-string",
+      "sourceCallableId": "ts:semantic/builtins/BuiltinSemanticsFixture.ts::free:truthy/1",
+      "sourceExpression": "Boolean(subject.get(key))",
+      "environment": {
+        "map": {
+          "kind": "map",
+          "entries": [
+            { "key": { "kind": "string", "value": "key" }, "value": { "kind": "string", "value": "value" } }
+          ]
+        }
+      },
+      "steps": [
+        {
+          "operation": "map.get",
+          "receiver": "map",
+          "arguments": [{ "literal": { "kind": "string", "value": "key" } }],
+          "saveAs": "value"
+        },
+        { "operation": "truthy", "receiver": "value", "arguments": [], "saveAs": "result" }
+      ],
+      "return": "result",
+      "expected": {
+        "result": { "kind": "boolean", "value": true },
+        "truthy": true,
+        "trace": [
+          "map.get(map, string:\"key\") -> string:\"value\"",
+          "truthy(value) -> boolean:true"
+        ]
+      },
+      "capability": {
+        "labels": ["map_set"],
+        "semanticTags": ["truthiness"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    },
+    {
+      "id": "truthy-map-has-stored-undefined",
+      "sourceCallableId": "ts:semantic/builtins/BuiltinSemanticsFixture.ts::free:truthy/1",
+      "sourceExpression": "Boolean(subject.has(key))",
+      "environment": {
+        "map": {
+          "kind": "map",
+          "entries": [
+            { "key": { "kind": "string", "value": "key" }, "value": { "kind": "undefined" } }
+          ]
+        }
+      },
+      "steps": [
+        {
+          "operation": "map.has",
+          "receiver": "map",
+          "arguments": [{ "literal": { "kind": "string", "value": "key" } }],
+          "saveAs": "value"
+        },
+        { "operation": "truthy", "receiver": "value", "arguments": [], "saveAs": "result" }
+      ],
+      "return": "result",
+      "expected": {
+        "result": { "kind": "boolean", "value": true },
+        "truthy": true,
+        "trace": [
+          "map.has(map, string:\"key\") -> boolean:true",
+          "truthy(value) -> boolean:true"
+        ]
+      },
+      "capability": {
+        "labels": ["map_set"],
+        "semanticTags": ["missing_vs_undefined","truthiness"],
+        "expectedStatus": "supported_with_flag",
+        "expectedOutcome": "exact"
+      }
+    }
+  ],
+  "residualBlockers": [
+    {
+      "id": "real-static-flatten-reduce-array-edge",
+      "semanticClass": "static_runtime_builtin",
+      "projectId": "typescript-algorithms",
+      "sourceCallableId": "ts:03-array/12-flatten-arrays.ts::free:flattenReduce/1",
+      "source": {
+        "fileName": "03-array/12-flatten-arrays.ts",
+        "line": 61,
+        "expression": "Array.isArray(item)",
+        "expectedDecision": true
+      },
+      "etsIr": {
+        "methodId": "03-array/12-flatten-arrays.ts::%dflt::%AM0$flattenReduce/2",
+        "branchId": "03-array/12-flatten-arrays.ts::%dflt::%AM0$flattenReduce/2#s5:0->6",
+        "semanticCallStmtIndex": 3,
+        "semanticCallStatement": "%1 := call Array.isArray(item)",
+        "conditionStmtIndex": 4,
+        "conditionStatement": "_tmp0 := %1 != false",
+        "ifStmtIndex": 5,
+        "successorStmtIndex": 6,
+        "successorOrdinal": 0,
+        "targetStatement": "if (_tmp0) -> %0 := static_call %dflt.flattenReduce(item)"
+      },
+      "targetManifestPath": "usvm-ts-pbt/benchmarks/baselines/2026-07-19/projects/typescript-algorithms/targets.json",
+      "observationScenarios": ["internal-pbt-usvm", "usvm-only"],
+      "witnessCaseId": "array-is-array-array",
+      "frozenOutcome": {
+        "status": "semantic_mismatch",
+        "reasonCode": "concrete_static_builtin_receiver_unmaterialized",
+        "mismatchStmtIndex": 3,
+        "reached": true,
+        "replayConfirmed": false,
+        "observedFailure": "TypeError: cannot call 'isArray' of undefined",
+        "symbolicWitness": ["TsArray(values=[])", "TsDouble(value=0.0)"],
+        "nodeExpectedTrace": ["array.isArray(subject) -> boolean:true"]
+      },
+      "capability": {
+        "labels": ["array_object","builtin_call"],
+        "semanticTags": ["static_builtin_call"],
+        "expectedStatus": "supported_with_flag"
+      }
+    },
+    {
+      "id": "real-static-flatten-reduce-scalar-edge",
+      "semanticClass": "static_runtime_builtin",
+      "projectId": "typescript-algorithms",
+      "sourceCallableId": "ts:03-array/12-flatten-arrays.ts::free:flattenReduce/1",
+      "source": {
+        "fileName": "03-array/12-flatten-arrays.ts",
+        "line": 61,
+        "expression": "Array.isArray(item)",
+        "expectedDecision": false
+      },
+      "etsIr": {
+        "methodId": "03-array/12-flatten-arrays.ts::%dflt::%AM0$flattenReduce/2",
+        "branchId": "03-array/12-flatten-arrays.ts::%dflt::%AM0$flattenReduce/2#s5:1->9",
+        "semanticCallStmtIndex": 3,
+        "semanticCallStatement": "%1 := call Array.isArray(item)",
+        "conditionStmtIndex": 4,
+        "conditionStatement": "_tmp0 := %1 != false",
+        "ifStmtIndex": 5,
+        "successorStmtIndex": 9,
+        "successorOrdinal": 1,
+        "targetStatement": "if (_tmp0) -> %0 := item"
+      },
+      "targetManifestPath": "usvm-ts-pbt/benchmarks/baselines/2026-07-19/projects/typescript-algorithms/targets.json",
+      "observationScenarios": ["internal-pbt-usvm", "usvm-only"],
+      "witnessCaseId": "array-is-array-object",
+      "frozenOutcome": {
+        "status": "semantic_mismatch",
+        "reasonCode": "concrete_static_builtin_receiver_unmaterialized",
+        "mismatchStmtIndex": 3,
+        "reached": true,
+        "replayConfirmed": false,
+        "observedFailure": "TypeError: cannot call 'isArray' of undefined",
+        "symbolicWitness": ["TsArray(values=[])", "TsDouble(value=0.0)"],
+        "nodeExpectedTrace": ["array.isArray(subject) -> boolean:false"]
+      },
+      "capability": {
+        "labels": ["array_object","builtin_call"],
+        "semanticTags": ["static_builtin_call"],
+        "expectedStatus": "supported_with_flag"
+      }
+    },
+    {
+      "id": "real-map-factorize-tail-truthiness-edge",
+      "semanticClass": "map_membership_truthiness",
+      "projectId": "the-algorithms-maths",
+      "sourceCallableId": "ts:prime_factorization.ts::free:factorize/1",
+      "source": {
+        "fileName": "prime_factorization.ts",
+        "line": 22,
+        "expression": "if (!occurence) occurence = 0",
+        "dependencyExpression": "result.get(n)",
+        "expectedOccurrence": "undefined",
+        "expectedTargetTaken": false
+      },
+      "etsIr": {
+        "methodId": "prime_factorization.ts::%dflt::%AM0$%dflt/1",
+        "branchId": "prime_factorization.ts::%dflt::%AM0$%dflt/1#s27:0->28",
+        "semanticCallStmtIndex": 25,
+        "semanticCallStatement": "occurence := call result.get(n)",
+        "conditionStmtIndex": 26,
+        "conditionStatement": "_tmp4 := occurence != 0.0",
+        "ifStmtIndex": 27,
+        "successorStmtIndex": 28,
+        "successorOrdinal": 0,
+        "targetStatement": "if (_tmp4) -> %5 := occurence + 1.0"
+      },
+      "targetManifestPath": "usvm-ts-pbt/benchmarks/baselines/2026-07-19/projects/the-algorithms-maths/targets.json",
+      "observationScenarios": [
+        "internal-pbt-usvm",
+        "fast-check-usvm",
+        "jazzer-usvm",
+        "expose-usvm",
+        "ensemble-usvm"
+      ],
+      "witnessCaseId": "truthy-map-get-missing",
+      "frozenOutcome": {
+        "status": "semantic_mismatch",
+        "reasonCode": "symbolic_map_get_truthiness_overapproximation",
+        "mismatchStmtIndex": 25,
+        "reached": true,
+        "replayConfirmed": false,
+        "symbolicWitness": ["TsDouble(value=2.0)"],
+        "nodeExpectedTrace": [
+          "map.get(map, number:2) -> undefined",
+          "truthy(value) -> boolean:false"
+        ]
+      },
+      "capability": {
+        "labels": ["map_set"],
+        "semanticTags": ["missing_vs_undefined","truthiness"],
+        "expectedStatus": "supported_with_flag"
+      }
+    }
+  ],
+  "unsupported": [
+    {
+      "id": "proxy-membership-traps",
+      "expectedStatus": "needs_dynamic_probe",
+      "reason": "Proxy has/get traps and their side effects are outside the exact object-membership subset."
+    },
+    {
+      "id": "custom-symbol-to-string-tag",
+      "expectedStatus": "unsupported",
+      "reason": "Object.prototype.toString values overridden through Symbol.toStringTag are not modeled by this contract."
+    },
+    {
+      "id": "symbol-and-bigint-property-keys",
+      "expectedStatus": "unsupported",
+      "reason": "The exact property-key subset is frozen to strings; Symbol and BigInt ToPropertyKey conversion is excluded."
+    },
+    {
+      "id": "accessor-side-effects",
+      "expectedStatus": "needs_dynamic_probe",
+      "reason": "Accessor execution and prototype mutation during lookup require a dynamic side-effect probe."
+    },
+    {
+      "id": "cross-realm-brands",
+      "expectedStatus": "external_only",
+      "reason": "Cross-realm Array and Map branding cannot be represented by the dependency-neutral value encoding."
+    },
+    {
+      "id": "map-object-identity-keys",
+      "expectedStatus": "needs_dynamic_probe",
+      "reason": "Object-identity Map keys require ETC alias/materialization integration; only primitive SameValueZero keys are exact here."
+    },
+    {
+      "id": "weak-map",
+      "expectedStatus": "unsupported",
+      "reason": "WeakMap reachability and key constraints are deliberately outside the Map subset."
+    },
+    {
+      "id": "invalid-receiver-errors",
+      "expectedStatus": "needs_dynamic_probe",
+      "reason": "TypeError identity and stack behavior for in/null and Map methods on incompatible receivers are not part of the result subset."
+    }
+  ]
+}
