@@ -6,6 +6,8 @@ import org.jacodb.ets.model.EtsScene
 import org.usvm.machine.TsInputTypeHints
 import org.usvm.ts.pbt.coverage.CoverageTracker
 import org.usvm.ts.pbt.external.ConcreteInputProvider
+import org.usvm.ts.pbt.external.stableBranchId
+import org.usvm.ts.pbt.external.stableMethodId
 import org.usvm.ts.pbt.report.ConfigEcho
 import org.usvm.ts.pbt.report.FailureReport
 import org.usvm.ts.pbt.report.ExternalProviderReport
@@ -147,6 +149,7 @@ class HybridAnalyzer(
             symbolicReport = SymbolicReport(
                 targets = symbolic.outcomes.map { outcome ->
                     TargetReport(
+                        branchId = stableBranchId(method, outcome.branch.ifStmt, outcome.branch.successor),
                         branch = "${outcome.branch.ifStmt} -> ${outcome.branch.successor}",
                         reached = outcome.reached,
                         wallMs = outcome.wallMs,
@@ -172,6 +175,7 @@ class HybridAnalyzer(
         }
 
         return MethodReport(
+            methodId = stableMethodId(method),
             method = method.signature.toString(),
             totalStmts = coverage.allStmts.size,
             totalBranches = coverage.allBranches.size,

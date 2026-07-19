@@ -8,12 +8,12 @@ exports.invoke = function invoke(args) {
   if (!modulePath || !exportName) {
     throw new Error("USVM_COMPILED_MODULE and USVM_MODULE_EXPORT are required");
   }
-  const loaded = require(resolve(modulePath));
+  const loaded = quietly(() => require(resolve(modulePath)));
   const target = loaded[exportName];
   if (typeof target !== "function") {
     throw new Error(`module export '${exportName}' is not a function`);
   }
-  return target(...normalizeArguments(args));
+  return quietly(() => target(...normalizeArguments(args)));
 };
 
 exports.toCorpusCase = function toCorpusCase(args) {
@@ -40,3 +40,15 @@ function normalizeArguments(args) {
 }
 
 exports.normalizeArguments = normalizeArguments;
+
+function quietly(action) {
+  if (process.env.USVM_SUPPRESS_CONSOLE !== "1") return action();
+  const methods = ["log", "info", "warn", "error", "debug"];
+  const saved = Object.fromEntries(methods.map((name) => [name, console[name]]));
+  methods.forEach((name) => { console[name] = () => {}; });
+  try {
+    return action();
+  } finally {
+    methods.forEach((name) => { console[name] = saved[name]; });
+  }
+}

@@ -35,6 +35,8 @@ data class ConfigEcho(
 
 @Serializable
 data class MethodReport(
+    /** Stable file/owner/name/arity identity shared with the Target Manifest. */
+    val methodId: String = "",
     val method: String,
     val totalStmts: Int,
     val totalBranches: Int,
@@ -100,6 +102,8 @@ data class SymbolicReport(
 
 @Serializable
 data class TargetReport(
+    /** Stable EtsIR edge identity shared with the Target Manifest. */
+    val branchId: String = "",
     val branch: String,
     val reached: Boolean,
     val wallMs: Long,

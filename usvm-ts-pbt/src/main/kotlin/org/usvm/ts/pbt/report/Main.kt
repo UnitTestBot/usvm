@@ -5,17 +5,20 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
+import org.jacodb.ets.utils.loadEtsProjectAutoConvert
 import org.usvm.ts.pbt.hybrid.AnalysisMode
 import org.usvm.ts.pbt.hybrid.HybridAnalyzer
 import org.usvm.ts.pbt.hybrid.HybridConfig
 import org.usvm.ts.pbt.external.ExternalCorpusInputProvider
 import org.usvm.ts.pbt.external.TargetManifest
+import org.usvm.ts.pbt.external.stableMethodId
 import java.nio.file.Path
 import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.Path
 import kotlin.io.path.extension
 import kotlin.io.path.isDirectory
 import kotlin.io.path.pathString
+import kotlin.io.path.readLines
 import kotlin.io.path.walk
 import kotlin.io.path.writeText
 import kotlin.system.exitProcess
@@ -34,8 +37,11 @@ Corpus selection:
   --file-scenes              load every file into its own scene (default: one
                              project scene for the whole corpus, so that
                              cross-file classes and functions resolve)
+  --project-frontend         convert the directory as one TypeScript Program;
+                             preserves relative file paths and project typing
   --class <name>             only methods of this class
   --method <name>            only methods with this name
+  --method-ids <file>        only stable method IDs listed one per line
 
 Analysis:
   --modes <M1,M2,...>        comma-separated analysis modes to run over the same corpus
@@ -54,6 +60,7 @@ Output:
   --export-target-manifest <path>
                              write entry points and stable EtsIR branch IDs for
                              external generators
+  --manifest-only            stop after writing the target manifest
 
 EtsIR provider is selected by the jacodb loader (ETS_IR_PROVIDER=ts-frontend|arkanalyzer
 with ETS_FRONTEND_DIR / ARKANALYZER_DIR respectively).
@@ -65,8 +72,10 @@ private class Options(args: Array<String>) {
     val excludes = mutableListOf(".d.ts", "node_modules", ".test.ts", ".spec.ts")
     var maxFiles = Int.MAX_VALUE
     var projectScene = true
+    var projectFrontend = false
     var classFilter: String? = null
     var methodFilter: String? = null
+    var methodIds: Set<String>? = null
     var modes: List<AnalysisMode> = listOf(AnalysisMode.HYBRID_WITH_HINTS)
     var seed = 0L
     var pbtIterations = 2_000
@@ -75,6 +84,7 @@ private class Options(args: Array<String>) {
     val externalInputPaths = mutableListOf<Path>()
     var externalOnly = false
     var targetManifestPath: Path? = null
+    var manifestOnly = false
     var outPrefix = "hybrid-report"
 
     init {
@@ -85,8 +95,10 @@ private class Options(args: Array<String>) {
                 "--exclude" -> excludes += args[++i]
                 "--max-files" -> maxFiles = args[++i].toInt()
                 "--file-scenes" -> projectScene = false
+                "--project-frontend" -> projectFrontend = true
                 "--class" -> classFilter = args[++i]
                 "--method" -> methodFilter = args[++i]
+                "--method-ids" -> methodIds = Path(args[++i]).readLines().map(String::trim).filter(String::isNotEmpty).toSet()
                 "--modes" -> modes = args[++i].split(',').map { AnalysisMode.valueOf(it.trim()) }
                 "--mode" -> modes = listOf(AnalysisMode.valueOf(args[++i])) // backward compat
                 "--seed" -> seed = args[++i].toLong()
@@ -96,6 +108,7 @@ private class Options(args: Array<String>) {
                 "--external-inputs" -> externalInputPaths.add(Path(args[++i]))
                 "--external-only" -> externalOnly = true
                 "--export-target-manifest" -> targetManifestPath = Path(args[++i])
+                "--manifest-only" -> manifestOnly = true
                 "--out" -> outPrefix = args[++i].removeSuffix(".json")
                 else -> {
                     println("Unknown option: ${args[i]}\n$USAGE")
@@ -134,7 +147,12 @@ private fun selectMethods(scene: EtsScene, opts: Options): List<EtsMethod> =
         .flatMap { it.methods }
         .filter { it.cfg.stmts.isNotEmpty() }
         .filter { it.name !in SYNTHETIC_METHOD_NAMES }
+        .filter { method ->
+            val fileName = method.signature.enclosingClass.file.fileName
+            fileName.endsWith(".ts") && opts.excludes.none { fileName.contains(it) }
+        }
         .filter { opts.methodFilter == null || it.name == opts.methodFilter }
+        .filter { opts.methodIds == null || stableMethodId(it) in opts.methodIds.orEmpty() }
         .toList()
 
 fun main(args: Array<String>) {
@@ -145,6 +163,18 @@ fun main(args: Array<String>) {
     val opts = Options(args)
     if (opts.externalOnly && opts.externalInputPaths.isEmpty()) {
         println("--external-only requires at least one --external-inputs file\n$USAGE")
+        exitProcess(1)
+    }
+    if (opts.manifestOnly && opts.targetManifestPath == null) {
+        println("--manifest-only requires --export-target-manifest <path>\n$USAGE")
+        exitProcess(1)
+    }
+    if (opts.projectFrontend && !opts.input.isDirectory()) {
+        println("--project-frontend requires a directory input\n$USAGE")
+        exitProcess(1)
+    }
+    if (opts.projectFrontend && !opts.projectScene) {
+        println("--project-frontend and --file-scenes are mutually exclusive\n$USAGE")
         exitProcess(1)
     }
 
@@ -158,36 +188,52 @@ fun main(args: Array<String>) {
     val files = collectFiles(opts)
     println("Corpus: ${files.size} file(s)")
 
-    // Load files, isolating frontend failures per file.
-    val loadedFiles = mutableListOf<Pair<Path, EtsFile>>()
-    var loadFailures = 0
-    for (file in files) {
-        try {
-            loadedFiles += file to loadEtsFileAutoConvert(file)
+    val scenes: List<Pair<Path, EtsScene>>
+    if (opts.projectFrontend) {
+        scenes = try {
+            listOf(opts.input to loadEtsProjectAutoConvert(opts.input))
         } catch (e: Throwable) {
-            loadFailures++
-            logger.warn { "failed to load $file: ${e.message?.take(200)}" }
+            logger.warn { "project frontend failed for ${opts.input}: ${e.message?.take(500)}" }
+            emptyList()
+        }
+        println("Project frontend: ${if (scenes.isEmpty()) "failed" else "loaded one TypeScript Program"}")
+    } else {
+        // Load files, isolating frontend failures per file.
+        val loadedFiles = mutableListOf<Pair<Path, EtsFile>>()
+        var loadFailures = 0
+        for (file in files) {
+            try {
+                loadedFiles += file to loadEtsFileAutoConvert(file)
+            } catch (e: Throwable) {
+                loadFailures++
+                logger.warn { "failed to load $file: ${e.message?.take(200)}" }
+            }
+        }
+        println("Loaded ${loadedFiles.size} file(s), $loadFailures load failure(s)")
+
+        // Default: ONE scene over the whole corpus, so that cross-file classes
+        // and free functions resolve. --file-scenes restores old isolation.
+        scenes = if (opts.projectScene) {
+            if (loadedFiles.isEmpty()) emptyList()
+            else listOf(opts.input to EtsScene(loadedFiles.map { it.second }))
+        } else {
+            loadedFiles.map { (path, file) -> path to EtsScene(listOf(file)) }
         }
     }
-    println("Loaded ${loadedFiles.size} file(s), $loadFailures load failure(s)")
-
-    // Scene construction. Default: ONE scene over the whole corpus, so that
-    // cross-file classes and free functions resolve (both the symbolic engine
-    // and the concrete interpreter look targets up by name across the scene).
-    // --file-scenes restores the old per-file isolation.
-    val scenes: List<Pair<Path, EtsScene>> = if (opts.projectScene) {
-        if (loadedFiles.isEmpty()) emptyList()
-        else listOf(opts.input to EtsScene(loadedFiles.map { it.second }))
-    } else {
-        loadedFiles.map { (path, file) -> path to EtsScene(listOf(file)) }
-    }
-    println("Scene mode: ${if (opts.projectScene) "project (1 scene)" else "per-file (${scenes.size} scenes)"}")
+    println(
+        "Scene mode: ${when {
+            opts.projectFrontend -> "native project frontend (1 scene)"
+            opts.projectScene -> "combined files (1 scene)"
+            else -> "per-file (${scenes.size} scenes)"
+        }}"
+    )
 
     opts.targetManifestPath?.let { path ->
         val methods = scenes.flatMap { (_, scene) -> selectMethods(scene, opts) }
         path.writeText(TargetManifest.encode(TargetManifest.fromMethods(methods)))
         println("Target manifest written to $path (${methods.distinctBy { it.signature }.size} methods)")
     }
+    if (opts.manifestOnly) return
 
     for (mode in opts.modes) {
         val config = HybridConfig(

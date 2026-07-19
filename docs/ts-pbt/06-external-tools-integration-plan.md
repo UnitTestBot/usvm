@@ -1,9 +1,10 @@
 # План интеграции внешних PBT, fuzzing и symbolic-execution инструментов
 
-> Статус: M0–M6 реализованы/проверены; M7 имеет первый numeric pilot, M8
-> остаётся многопроектной кампанией. Текущий конкретный EtsIR-интерпретатор и
-> `usvm-ts` сохраняются. Внешние инструменты добавляются как независимые
-> источники входов, покрытия и экспериментальные baseline'ы.
+> Статус: M0–M6 реализованы/проверены; M7 имеет quantitative pilots; для M8
+> выполнена первая representative fixed-seed кампания на 130 методах и 612
+> ветвях. До полной M8 остаются 10+ seeds, confidence intervals, object/instance
+> harnesses и ещё один строковый/объектный npm-проект. Текущий конкретный
+> EtsIR-интерпретатор и `usvm-ts` сохраняются.
 
 ## 1. Цель
 
@@ -322,3 +323,22 @@ typescript-collections плюс хотя бы один npm-пакет с нет�
   14/14 на общем EtsIR replay subset. Адаптации numeric generation, exception
   policy и domain harness, а также обнаруженный concrete-array crash описаны в
   `10-real-project-tool-matrix.md`.
+
+## 8. Representative fixed-seed кампания (2026-07-19)
+
+- три pinned OSS-проекта: 121 TS-файл, 589 EtsIR методов, 1412 ветвей до
+  отбора;
+- широкий общий знаменатель internal PBT / fast-check / USVM: 130 методов с
+  ветвями, 612 branch edges;
+- exact source↔EtsIR подмножество для Jazzer/ExpoSE: 42 метода, 236 ветвей;
+- реализованы batch fast-check, source mapping, sequential Jazzer/ExpoSE
+  campaigns, external ensemble и строгий replay-only coverage accounting;
+- лучший broad результат: internal PBT → USVM, 425/612 (69.44%); standalone
+  internal PBT дал 420/612 (68.63%) при существенно меньшей стоимости;
+- лучший source-level результат: external ensemble и internal PBT → USVM,
+  оба 220/236 (93.22%);
+- hints не дали aggregate coverage gain;
+- Gillian feasibility: 116/589 методов допускают automatic primitive symbolic
+  declarations, 473 требуют custom harness;
+- таблицы, ограничения и анализ находятся в
+  `11-representative-open-source-campaign.md`.

@@ -29,6 +29,19 @@
         ".spec.ts",
         ".d.ts"
       ]
+    },
+    {
+      "name": "typescript-collections",
+      "url": "https://github.com/basarat/typescript-collections.git",
+      "commit": "309bb1b6955b403b212309531607b8d17df152e5",
+      "include": [
+        "src/lib"
+      ],
+      "excludePatterns": [
+        ".test.ts",
+        ".spec.ts",
+        ".d.ts"
+      ]
     }
   ]
 }

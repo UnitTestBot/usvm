@@ -195,11 +195,10 @@ class SymbolicPhase(
             null
         }
 
+        // Symbolic reachability and replay-confirmed EtsIR coverage are
+        // deliberately separate metrics. Never credit a solver trace to the
+        // concrete coverage tracker when its extracted input cannot replay.
         val replayConfirmed = inputs?.let { replay(it, uncovered.edge) } ?: false
-        if (!replayConfirmed) {
-            // Fall back to the symbolic trace for coverage accounting
-            mergeSymbolicTrace(state)
-        }
 
         return TargetOutcome(
             branch = uncovered.edge,
@@ -240,20 +239,17 @@ class SymbolicPhase(
             args,
             ExecutionListener.composite(listOf(coverage, probe)),
         )
+        // Reaching the requested edge is enough for branch-coverage credit;
+        // an unsupported construct encountered later does not undo the
+        // concrete observation that has already been reported to coverage.
+        if (edgeTaken) return true
         if (result is ExecutionResult.Unsupported) {
             logger.debug { "replay unsupported for $edge: ${result.reason}" }
             return false
         }
-        if (!edgeTaken) {
-            logger.info {
-                "replay diverged for $edge: result=$result, this=$thisValue, args=$args"
-            }
+        logger.info {
+            "replay diverged for $edge: result=$result, this=$thisValue, args=$args"
         }
-        return edgeTaken
-    }
-
-    private fun mergeSymbolicTrace(state: TsState) {
-        val trace: List<EtsStmt> = state.pathNode.allStatements.toList().asReversed()
-        coverage.mergeTrace(trace)
+        return false
     }
 }

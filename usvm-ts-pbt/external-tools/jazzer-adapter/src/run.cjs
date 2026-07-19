@@ -46,6 +46,7 @@ async function main() {
     },
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
+    maxBuffer: 16 * 1024 * 1024,
   });
 
   const harness = require(resolve(options.harness));

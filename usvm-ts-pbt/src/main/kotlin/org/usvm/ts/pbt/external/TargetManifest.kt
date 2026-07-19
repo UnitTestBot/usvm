@@ -8,6 +8,7 @@ import kotlinx.serialization.json.Json
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsNamespaceSignature
 import org.jacodb.ets.model.EtsIfStmt
+import org.jacodb.ets.model.EtsStmt
 import java.util.IdentityHashMap
 
 private const val TARGET_MANIFEST_SCHEMA_VERSION = 1
@@ -18,6 +19,15 @@ fun stableMethodId(method: EtsMethod): String {
     val namespace = namespacePath(clazz.namespace)
     val owner = if (namespace.isEmpty()) clazz.name else "$namespace.${clazz.name}"
     return "${clazz.file.fileName}::$owner::${signature.name}/${signature.parameters.size}"
+}
+
+fun stableBranchId(method: EtsMethod, ifStmt: EtsIfStmt, successor: EtsStmt): String {
+    val stmts = method.cfg.stmts
+    val ifStmtIndex = stmts.indexOfFirst { it === ifStmt }
+    val successors = method.cfg.successors(ifStmt).toList()
+    val successorOrdinal = successors.indexOfFirst { it === successor }
+    val successorStmtIndex = stmts.indexOfFirst { it === successor }
+    return "${stableMethodId(method)}#s$ifStmtIndex:$successorOrdinal->$successorStmtIndex"
 }
 
 private fun namespacePath(namespace: EtsNamespaceSignature?): String = when (namespace) {

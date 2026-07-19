@@ -8,7 +8,8 @@
   },
   "scripts": {
     "test": "node --test",
-    "generate": "node src/cli.mjs"
+    "generate": "node src/cli.mjs",
+    "generate-batch": "node src/batch-cli.mjs"
   },
   "dependencies": {
     "fast-check": "4.9.0"

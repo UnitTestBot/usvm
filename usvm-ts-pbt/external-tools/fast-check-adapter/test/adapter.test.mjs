@@ -7,6 +7,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import fc from "fast-check";
 import { arbitraryForType } from "../src/arbitraries.mjs";
+import { generateBatchCases, selectBatchMethods, stableMethodSeed, summarizeSelection } from "../src/batch.mjs";
 import { encodeCorpus, makeCase, SCHEMA_VERSION } from "../src/corpus.mjs";
 import { encodeInput, encodeValue } from "../src/value-codec.mjs";
 
@@ -61,6 +62,51 @@ test("JSON and JSONL writers keep the required ETC header", () => {
   const lines = encodeCorpus(corpus, true).trim().split("\n");
   assert.equal(JSON.parse(lines[0]).producer, "fast-check@test");
   assert.equal(JSON.parse(lines[1]).arguments[0].kind, "undefined");
+});
+
+test("batch selection is deterministic and records every exclusion", () => {
+  const manifest = {
+    methods: [
+      { methodId: "z.ts::C::instance/1", entryKind: "instance", branches: [{ branchId: "z#0" }] },
+      { methodId: "b.ts::C::plain/0", entryKind: "static", branches: [] },
+      {
+        methodId: "a.ts::%dflt::branching/1",
+        entryKind: "free",
+        branches: [{ branchId: "a#0" }, { branchId: "a#1" }],
+        parameterTypes: ["number"],
+        parameters: [{ index: 0, name: "x", type: "number", optional: false, rest: false }],
+      },
+    ],
+  };
+  const selection = selectBatchMethods(manifest);
+  assert.deepEqual(selection.selected.map((method) => method.methodId), ["a.ts::%dflt::branching/1"]);
+  assert.deepEqual(selection.excluded, [
+    { methodId: "b.ts::C::plain/0", reasons: ["no-branches"] },
+    { methodId: "z.ts::C::instance/1", reasons: ["entry-kind:instance"] },
+  ]);
+
+  const options = { entryKinds: ["free", "static"], runsPerMethod: 3, seed: 42 };
+  const summary = summarizeSelection(manifest, selection, options);
+  assert.deepEqual(summary.total, { methods: 3, branches: 3 });
+  assert.deepEqual(summary.selected, {
+    methods: 1,
+    branches: 2,
+    methodIds: ["a.ts::%dflt::branching/1"],
+  });
+  assert.deepEqual(summary.excluded.byReason, { "no-branches": 1, "entry-kind:instance": 1 });
+});
+
+test("batch generation derives stable per-method seeds", () => {
+  const methods = [{
+    methodId: "a.ts::%dflt::branching/1",
+    parameterTypes: ["number"],
+    parameters: [{ index: 0, name: "x", type: "number", optional: false, rest: false }],
+  }];
+  const first = generateBatchCases(methods, { runsPerMethod: 10, seed: 42 });
+  const second = generateBatchCases(methods, { runsPerMethod: 10, seed: 42 });
+  assert.deepEqual(first, second);
+  assert.equal(first.length, 10);
+  assert.equal(first[0].metadata.methodSeed, String(stableMethodSeed(42, methods[0].methodId)));
 });
 
 test("CLI harness exports shrink attempts and the minimal counterexample", async () => {
