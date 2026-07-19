@@ -1,0 +1,199 @@
+{
+  "schemaVersion": 1,
+  "contractId": "usvm-ts-pbt.concrete-semantics-production.v1",
+  "frozenContracts": {
+    "moduleCallable": "usvm-ts-pbt.callable.exact.v1",
+    "iterator": "usvm-ts-pbt.iterator.exact.v1",
+    "builtins": "usvm-ts-pbt.builtins.exact.v1"
+  },
+  "productionGates": {
+    "moduleCallableDefaultComparator": {
+      "historical": {
+        "executions": 500,
+        "returned": 0,
+        "threw": 500,
+        "reasonCode": "module_namespace_callable_unmaterialized"
+      },
+      "current": {
+        "driver": "EtsConcreteInterpreter",
+        "inputProfile": "optional comparator omitted; 100 cases per array API family",
+        "executions": 500,
+        "returned": 500,
+        "threw": 0,
+        "unsupported": 0
+      }
+    },
+    "collectionIterator": {
+      "historical": {
+        "executions": 25,
+        "unsupported": 25,
+        "reasonCode": "symbol_iterator_unsupported"
+      },
+      "current": {
+        "driver": "EtsConcreteInterpreter",
+        "executions": 25,
+        "returned": 25,
+        "symbolIteratorUnsupported": 0
+      }
+    }
+  },
+  "realProjectCampaign": {
+    "projectId": "typescript-collections",
+    "projectCommit": "309bb1b6955b403b212309531607b8d17df152e5",
+    "seed": 20260719,
+    "pbtIterations": 100,
+    "historical": {
+      "coveredBranches": 14,
+      "totalBranches": 48,
+      "defaultEqualsFailures": 500,
+      "symbolIteratorUnsupported": 25
+    },
+    "current": {
+      "artifact": "/interpreter/typescript-collections-100-PBT_ONLY.json",
+      "artifactSha256": "6bdbbf12428b1468d40fdec378834b4a6a8aa83f43d14f99e18bb81c98ae265a",
+      "coveredBranches": 33,
+      "totalBranches": 48,
+      "defaultComparatorFamilyExecutions": 500,
+      "defaultComparatorFamilyReturned": 238,
+      "defaultEqualsFailures": 0,
+      "defaultComparatorFamilyThrew": 262,
+      "defaultComparatorFamilyUnsupported": 0,
+      "forEachExecutions": 100,
+      "forEachReturned": 42,
+      "forEachThrew": 58,
+      "forEachUnsupported": 0,
+      "symbolIteratorUnsupported": 0,
+      "remainingThrowClass": "generated callable-interface object is not callable"
+    }
+  },
+  "semanticPartitions": {
+    "moduleCallable": [
+      {
+        "id": "real-index-of-default-equals-enter-loop",
+        "branchId": "arrays.ts::%dflt::indexOf/3#s9:0->10"
+      },
+      {
+        "id": "real-index-of-default-equals-empty-exit",
+        "branchId": "arrays.ts::%dflt::indexOf/3#s9:1->18"
+      },
+      {
+        "id": "real-last-index-of-default-equals-enter-loop",
+        "branchId": "arrays.ts::%dflt::lastIndexOf/3#s9:0->10"
+      },
+      {
+        "id": "real-last-index-of-default-equals-empty-exit",
+        "branchId": "arrays.ts::%dflt::lastIndexOf/3#s9:1->18"
+      },
+      {
+        "id": "real-remove-default-equals-found",
+        "branchId": "arrays.ts::%dflt::remove/3#s6:0->7"
+      },
+      {
+        "id": "real-frequency-default-equals-enter-loop",
+        "branchId": "arrays.ts::%dflt::frequency/3#s10:0->11"
+      },
+      {
+        "id": "real-frequency-default-equals-empty-exit",
+        "branchId": "arrays.ts::%dflt::frequency/3#s10:1->20"
+      },
+      {
+        "id": "real-equals-default-equals-length-mismatch",
+        "branchId": "arrays.ts::%dflt::equals/3#s9:0->10"
+      },
+      {
+        "id": "real-equals-default-equals-length-match",
+        "branchId": "arrays.ts::%dflt::equals/3#s9:1->12"
+      },
+      {
+        "id": "real-equals-default-equals-enter-loop",
+        "branchId": "arrays.ts::%dflt::equals/3#s15:0->16"
+      },
+      {
+        "id": "real-equals-default-equals-loop-exit",
+        "branchId": "arrays.ts::%dflt::equals/3#s15:1->26"
+      }
+    ],
+    "iterator": [
+      {
+        "id": "find-min-for-of-exit",
+        "branchId": "find_min.ts::%dflt::%AM0$%dflt/1#s14:0->15"
+      },
+      {
+        "id": "find-min-for-of-body",
+        "branchId": "find_min.ts::%dflt::%AM0$%dflt/1#s14:1->16"
+      },
+      {
+        "id": "find-min-comparison-true-after-iteration",
+        "branchId": "find_min.ts::%dflt::%AM0$%dflt/1#s18:0->19"
+      },
+      {
+        "id": "flatten-recursive-for-of-exit",
+        "branchId": "03-array/12-flatten-arrays.ts::%dflt::flattenRecursive/1#s8:0->9"
+      },
+      {
+        "id": "flatten-recursive-for-of-body",
+        "branchId": "03-array/12-flatten-arrays.ts::%dflt::flattenRecursive/1#s8:1->10"
+      },
+      {
+        "id": "flatten-recursive-array-is-array-false",
+        "branchId": "03-array/12-flatten-arrays.ts::%dflt::flattenRecursive/1#s13:1->17"
+      },
+      {
+        "id": "collections-for-each-for-of-exit",
+        "branchId": "arrays.ts::%dflt::forEach/2#s7:0->8"
+      },
+      {
+        "id": "collections-for-each-for-of-body",
+        "branchId": "arrays.ts::%dflt::forEach/2#s7:1->9"
+      },
+      {
+        "id": "collections-for-each-callback-false",
+        "branchId": "arrays.ts::%dflt::forEach/2#s12:0->13"
+      }
+    ],
+    "builtins": [
+      {
+        "id": "real-static-flatten-reduce-array-edge",
+        "branchId": "03-array/12-flatten-arrays.ts::%dflt::%AM0$flattenReduce/2#s5:0->6"
+      },
+      {
+        "id": "real-static-flatten-reduce-scalar-edge",
+        "branchId": "03-array/12-flatten-arrays.ts::%dflt::%AM0$flattenReduce/2#s5:1->9"
+      },
+      {
+        "id": "real-map-factorize-tail-truthiness-edge",
+        "branchId": "prime_factorization.ts::%dflt::%AM0$%dflt/1#s27:0->28"
+      }
+    ]
+  },
+  "acceptancePartition": [
+    "arrays.ts::%dflt::equals/3#s9:0->10",
+    "arrays.ts::%dflt::equals/3#s9:1->12",
+    "arrays.ts::%dflt::equals/3#s15:0->16",
+    "arrays.ts::%dflt::equals/3#s15:1->26",
+    "arrays.ts::%dflt::frequency/3#s10:0->11",
+    "arrays.ts::%dflt::frequency/3#s10:1->20",
+    "arrays.ts::%dflt::indexOf/3#s9:0->10",
+    "arrays.ts::%dflt::indexOf/3#s9:1->18",
+    "arrays.ts::%dflt::lastIndexOf/3#s9:0->10",
+    "arrays.ts::%dflt::lastIndexOf/3#s9:1->18",
+    "arrays.ts::%dflt::remove/3#s6:0->7",
+    "arrays.ts::%dflt::forEach/2#s7:0->8",
+    "arrays.ts::%dflt::forEach/2#s7:1->9",
+    "arrays.ts::%dflt::forEach/2#s12:0->13"
+  ],
+  "stableRejections": [
+    {
+      "input": "ETC v2 callable kind outside the exact subset",
+      "reasonCode": "callable_kind_not_exact"
+    },
+    {
+      "input": "ETC v2 alias without a case-wide identity table",
+      "reasonCode": "input_unrepresentable"
+    },
+    {
+      "input": "ETC v2 sparse array without an exact hole model",
+      "reasonCode": "input_unrepresentable"
+    }
+  ]
+}

@@ -23,12 +23,19 @@ data object VNull : VValue
 
 data object VUndefined : VValue
 
-class VObject(
+open class VObject(
     /** Declaring class, if the object is an instance of a scene class; `null` for plain records. */
     val cls: EtsClass?,
     val fields: MutableMap<String, VValue> = mutableMapOf(),
+    /** Explicit prototype for ETC/plain objects. Scene instances use [cls]'s superclass chain. */
+    val prototype: VObject? = null,
 ) : VValue {
     override fun toString(): String = "VObject(${cls?.name ?: "<record>"}, $fields)"
+}
+
+/** Execution-local host callable used for exact built-in protocol functions. */
+class VNativeFunction internal constructor() : VObject(cls = null) {
+    override fun toString(): String = "VNativeFunction"
 }
 
 class VArray(
@@ -52,20 +59,68 @@ class VFunction(
     val method: EtsMethod,
     /** Captured `this`, when the function was obtained from an instance context. */
     val thisValue: VValue = VUndefined,
+    /** Whether call-site receiver binding is dynamic, lexical (arrow), or permanently bound. */
+    val thisMode: VFunctionThisMode = VFunctionThisMode.DYNAMIC,
 ) : VValue {
     override fun toString(): String = "VFunction(${method.name})"
 }
 
+enum class VFunctionThisMode {
+    DYNAMIC,
+    LEXICAL,
+    BOUND,
+}
+
 /** A JS `Map` with SameValueZero keys (primitives by value, heap entities by identity). */
 class VMap(
-    val entries: LinkedHashMap<VValue, VValue> = LinkedHashMap(),
+    entries: LinkedHashMap<VValue, VValue> = LinkedHashMap(),
 ) : VValue {
+    val entries: LinkedHashMap<VValue, VValue> = SameValueZeroMap(entries)
+
     override fun toString(): String = "VMap($entries)"
 }
 
 /** A JS `Set` with SameValueZero elements. */
 class VSet(
-    val elements: LinkedHashSet<VValue> = LinkedHashSet(),
+    elements: LinkedHashSet<VValue> = LinkedHashSet(),
 ) : VValue {
+    val elements: LinkedHashSet<VValue> = SameValueZeroSet(elements)
+
     override fun toString(): String = "VSet($elements)"
+}
+
+internal fun sameValueZeroKey(value: VValue): VValue =
+    if (value is VNumber && value.value == 0.0) VNumber(0.0) else value
+
+private class SameValueZeroMap(initial: Map<VValue, VValue>) : LinkedHashMap<VValue, VValue>() {
+    init {
+        putAll(initial)
+    }
+
+    override fun put(key: VValue, value: VValue): VValue? = super.put(sameValueZeroKey(key), value)
+
+    override fun putAll(from: Map<out VValue, VValue>) {
+        from.forEach { (key, value) -> put(key, value) }
+    }
+
+    override fun get(key: VValue): VValue? = super.get(sameValueZeroKey(key))
+
+    override fun containsKey(key: VValue): Boolean = super.containsKey(sameValueZeroKey(key))
+
+    override fun remove(key: VValue): VValue? = super.remove(sameValueZeroKey(key))
+}
+
+private class SameValueZeroSet(initial: Collection<VValue>) : LinkedHashSet<VValue>() {
+    init {
+        addAll(initial)
+    }
+
+    override fun add(element: VValue): Boolean = super.add(sameValueZeroKey(element))
+
+    override fun addAll(elements: Collection<VValue>): Boolean =
+        elements.fold(false) { changed, element -> add(element) || changed }
+
+    override fun contains(element: VValue): Boolean = super.contains(sameValueZeroKey(element))
+
+    override fun remove(element: VValue): Boolean = super.remove(sameValueZeroKey(element))
 }

@@ -63,6 +63,7 @@ object JsSemantics {
             if (el == VNull || el == VUndefined) "" else toStringJs(el)
         }
 
+        is VNativeFunction -> "function () { [native code] }"
         is VObject, is VNamespace, is VMap, is VSet -> "[object Object]"
 
         is VFunction -> "function ${v.method.name}() { [code] }"
@@ -80,8 +81,11 @@ object JsSemantics {
         d == Double.NEGATIVE_INFINITY -> "-Infinity"
         d == 0.0 -> "0" // covers -0.0 as well
         d == floor(d) && abs(d) < 1e21 -> {
-            if (abs(d) <= 9.007199254740992E15) d.toLong().toString()
-            else java.math.BigDecimal(d).toBigInteger().toString()
+            if (abs(d) <= 9.007199254740992E15) {
+                d.toLong().toString()
+            } else {
+                java.math.BigDecimal(d).toBigInteger().toString()
+            }
         }
 
         else -> d.toString()
@@ -182,7 +186,7 @@ object JsSemantics {
         is VString -> "string"
         VUndefined -> "undefined"
         VNull -> "object"
-        is VFunction -> "function"
+        is VFunction, is VNativeFunction -> "function"
         is VObject, is VArray, is VNamespace, is VMap, is VSet -> "object"
     }
 

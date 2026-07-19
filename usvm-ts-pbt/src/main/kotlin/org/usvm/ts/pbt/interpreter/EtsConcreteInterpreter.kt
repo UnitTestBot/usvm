@@ -69,6 +69,8 @@ import org.jacodb.ets.model.EtsUndefinedConstant
 import org.jacodb.ets.model.EtsUnsignedRightShiftExpr
 import org.jacodb.ets.model.EtsVoidExpr
 import org.jacodb.ets.utils.CONSTRUCTOR_NAME
+import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
+import java.util.IdentityHashMap
 import kotlin.math.floor
 
 /**
@@ -84,6 +86,20 @@ class EtsConcreteInterpreter(
     private val limits: ExecutionLimits = ExecutionLimits(),
 ) {
     private val resolver = CallResolver(scene)
+
+    private sealed interface NativeCallable {
+        data class IteratorFactory(val receiver: VValue) : NativeCallable
+        data class IteratorMethod(val iterator: VObject, val method: String) : NativeCallable
+    }
+
+    private data class IteratorState(
+        val receiver: VValue,
+        val kind: String,
+        var index: Int = 0,
+        var finished: Boolean = false,
+    )
+
+    private data class ObjectProperty(val value: VValue)
 
     fun execute(
         method: EtsMethod,
@@ -110,12 +126,17 @@ class EtsConcreteInterpreter(
         val thisValue: VValue,
         val args: List<VValue>,
         val locals: MutableMap<String, VValue> = mutableMapOf(),
+        val temporaryCallReceivers: MutableMap<String, VValue> = mutableMapOf(),
     )
 
     private inner class Execution(val listener: ExecutionListener) {
         var steps: Long = 0
         var callDepth: Int = 0
         val statics: MutableMap<String, MutableMap<String, VValue>> = mutableMapOf()
+        val nativeCallables: IdentityHashMap<VObject, NativeCallable> = IdentityHashMap()
+        val nativeFunctionCache: IdentityHashMap<VValue, MutableMap<String, VNativeFunction>> = IdentityHashMap()
+        val iterators: IdentityHashMap<VObject, IteratorState> = IdentityHashMap()
+        val methodFunctionCache: IdentityHashMap<EtsMethod, VFunction> = IdentityHashMap()
 
         fun runMethod(method: EtsMethod, thisValue: VValue, args: List<VValue>): VValue {
             if (callDepth >= limits.maxCallDepth) {
@@ -144,6 +165,7 @@ class EtsConcreteInterpreter(
                         is EtsAssignStmt -> {
                             val value = eval(stmt.rhv, frame)
                             assign(stmt.lhv, value, frame)
+                            preserveTemporaryCallReference(stmt, value, frame)
                             pc = next(method, stmt)
                         }
 
@@ -191,16 +213,34 @@ class EtsConcreteInterpreter(
         private fun next(method: EtsMethod, stmt: EtsStmt): EtsStmt? =
             method.cfg.successors(stmt).firstOrNull()
 
+        private fun preserveTemporaryCallReference(
+            stmt: EtsAssignStmt,
+            value: VValue,
+            frame: Frame,
+        ) {
+            val target = stmt.lhv as? EtsLocal ?: return
+            frame.temporaryCallReceivers.remove(target.name)
+            if (!target.name.startsWith("%") || value !is VFunction ||
+                value.thisMode != VFunctionThisMode.DYNAMIC
+            ) {
+                return
+            }
+            val receiver = when (val source = stmt.rhv) {
+                is EtsInstanceFieldRef -> eval(source.instance, frame)
+                is EtsArrayAccess -> eval(source.array, frame)
+                is EtsLocal -> frame.temporaryCallReceivers[source.name] ?: return
+                else -> return
+            }
+            frame.temporaryCallReceivers[target.name] = receiver
+        }
+
         // ---------------------------------------------------------------
         // Expression evaluation
         // ---------------------------------------------------------------
 
         fun eval(e: EtsEntity, frame: Frame): VValue = when (e) {
             // Immediates
-            is EtsLocal -> frame.locals[e.name]
-                ?: frame.args.getOrNull(parameterIndexOfLocal(frame, e.name) ?: -1)
-                ?: functionValueOf(e)
-                ?: VUndefined
+            is EtsLocal -> evalLocal(e, frame)
 
             is EtsNumberConstant -> VNumber(e.value)
             is EtsStringConstant -> VString(e.value)
@@ -214,9 +254,11 @@ class EtsConcreteInterpreter(
             is EtsArrayAccess -> readArray(eval(e.array, frame), eval(e.index, frame))
             is EtsInstanceFieldRef -> readField(eval(e.instance, frame), e.field.name)
             is EtsStaticFieldRef -> readStaticField(e)
-            is EtsGlobalRef ->
-                if (e.name in Intrinsics.NAMESPACES) VNamespace(e.name)
-                else throw UnsupportedFeatureSignal("global ref: ${e.name}")
+            is EtsGlobalRef -> if (e.name in Intrinsics.NAMESPACES) {
+                VNamespace(e.name)
+            } else {
+                throw UnsupportedFeatureSignal("global ref: ${e.name}")
+            }
 
             // Allocation
             is EtsNewExpr -> newObject(e)
@@ -292,7 +334,7 @@ class EtsConcreteInterpreter(
             is EtsLtEqExpr -> VBool(JsSemantics.le(eval(e.left, frame), eval(e.right, frame)))
             is EtsGtExpr -> VBool(JsSemantics.gt(eval(e.left, frame), eval(e.right, frame)))
             is EtsGtEqExpr -> VBool(JsSemantics.ge(eval(e.left, frame), eval(e.right, frame)))
-            is EtsInExpr -> VBool(JsSemantics.inOp(eval(e.left, frame), eval(e.right, frame)))
+            is EtsInExpr -> VBool(propertyIn(eval(e.left, frame), eval(e.right, frame)))
 
             // Binary: logical (operands are pre-flattened locals in 3AC, eager evaluation is safe)
             is EtsAndExpr -> {
@@ -320,6 +362,18 @@ class EtsConcreteInterpreter(
         private fun parameterIndexOfLocal(frame: Frame, name: String): Int? =
             frame.method.parameters.firstOrNull { it.name == name }?.index
 
+        private fun evalLocal(local: EtsLocal, frame: Frame): VValue {
+            frame.locals[local.name]?.let { return it }
+            parameterIndexOfLocal(frame, local.name)?.let { parameterIndex ->
+                return frame.args.getOrElse(parameterIndex) { VUndefined }
+            }
+            if (local.name == "arguments") return VArray(frame.args.toMutableList())
+            if (local.name in Intrinsics.NAMESPACES) return VNamespace(local.name)
+            resolver.modulePathOf(local, frame.method.signature.enclosingClass.file.fileName)
+                ?.let { return VNamespace("module:$it") }
+            return functionValueOf(local, frame.method) ?: VUndefined
+        }
+
         private fun isZeroOrFalseConstant(e: EtsEntity): Boolean =
             (e is EtsNumberConstant && e.value == 0.0) ||
                 (e is EtsBooleanConstant && !e.value)
@@ -329,11 +383,11 @@ class EtsConcreteInterpreter(
          * *literal reference*: its type signature names the lowered method
          * (e.g. `factorial := %AM0$%dflt` in the file initializer).
          */
-        private fun functionValueOf(e: EtsLocal): VValue? {
+        private fun functionValueOf(e: EtsLocal, enclosingMethod: EtsMethod): VValue? {
             val fnType = e.type as? EtsFunctionType ?: return null
             val method = resolver.methodByFunctionType(fnType)
                 ?: resolver.resolveFunctionPointer(fnType.signature)
-                ?: resolver.functionAliasFor(e.name)
+                ?: resolver.functionAliasFor(e.name, enclosingMethod.signature.enclosingClass.file.fileName)
                 ?: return null
             return VFunction(method)
         }
@@ -343,14 +397,24 @@ class EtsConcreteInterpreter(
             right: EtsEntity,
             frame: Frame,
             op: (Double, Double) -> Double,
-        ): VNumber = VNumber(op(JsSemantics.toNumber(eval(left, frame)), JsSemantics.toNumber(eval(right, frame))))
+        ): VNumber = VNumber(
+            op(
+                JsSemantics.toNumber(eval(left, frame)),
+                JsSemantics.toNumber(eval(right, frame)),
+            ),
+        )
 
         private inline fun int32(
             left: EtsEntity,
             right: EtsEntity,
             frame: Frame,
             op: (Int, Int) -> Int,
-        ): VNumber = VNumber(op(JsSemantics.toInt32(eval(left, frame)), JsSemantics.toInt32(eval(right, frame))).toDouble())
+        ): VNumber = VNumber(
+            op(
+                JsSemantics.toInt32(eval(left, frame)),
+                JsSemantics.toInt32(eval(right, frame)),
+            ).toDouble(),
+        )
 
         private fun incDec(arg: EtsEntity, frame: Frame, delta: Double, returnNew: Boolean): VValue {
             if (arg !is EtsLocal) {
@@ -372,7 +436,7 @@ class EtsConcreteInterpreter(
                 is VArray -> typeName == "Array"
                 is VMap -> typeName == "Map"
                 is VSet -> typeName == "Set"
-                is VFunction -> typeName == "Function"
+                is VFunction, is VNativeFunction -> typeName == "Function"
                 is VObject -> {
                     var cls = v.cls
                     val visited = mutableSetOf<String>()
@@ -391,39 +455,240 @@ class EtsConcreteInterpreter(
         // Heap access
         // ---------------------------------------------------------------
 
-        private fun readArray(array: VValue, index: VValue): VValue = when (array) {
-            is VArray -> {
-                val i = JsSemantics.toNumber(index)
-                if (i == floor(i) && i >= 0 && i < array.elements.size) array.elements[i.toInt()] else VUndefined
+        private fun readArray(array: VValue, index: VValue): VValue {
+            return when (array) {
+                is VArray -> {
+                    if (index == VNamespace("Symbol.iterator")) return iteratorFactory(array)
+                    val i = JsSemantics.toNumber(index)
+                    if (i == floor(i) && i >= 0 && i < array.elements.size) {
+                        array.elements[i.toInt()]
+                    } else {
+                        VUndefined
+                    }
+                }
+
+                is VString -> {
+                    if (index == VNamespace("Symbol.iterator")) return iteratorFactory(array)
+                    val i = JsSemantics.toNumber(index)
+                    if (i == floor(i) && i >= 0 && i < array.value.length) {
+                        VString(array.value[i.toInt()].toString())
+                    } else {
+                        VUndefined
+                    }
+                }
+
+                VNull, VUndefined -> throw typeError("cannot read index of ${JsSemantics.toStringJs(array)}")
+
+                is VObject -> {
+                    if (array in iterators && index == VNamespace("Symbol.iterator")) {
+                        return iteratorMethod(array, "Symbol.iterator")
+                    }
+                    val property = if (index == VNamespace("Symbol.iterator")) {
+                        "Symbol.iterator"
+                    } else {
+                        JsSemantics.toStringJs(index)
+                    }
+                    readObjectProperty(array, property)
+                }
+
+                is VMap, is VSet ->
+                    if (index == VNamespace("Symbol.iterator")) iteratorFactory(array) else VUndefined
+
+                else -> VUndefined
             }
-
-            is VString -> {
-                val i = JsSemantics.toNumber(index)
-                if (i == floor(i) && i >= 0 && i < array.value.length) VString(array.value[i.toInt()].toString())
-                else VUndefined
-            }
-
-            VNull, VUndefined -> throw typeError("cannot read index of ${JsSemantics.toStringJs(array)}")
-
-            is VObject -> array.fields[JsSemantics.toStringJs(index)] ?: VUndefined
-
-            else -> VUndefined
         }
 
         private fun readField(instance: VValue, name: String): VValue = when (instance) {
-            is VObject -> instance.fields[name] ?: VUndefined
-            is VArray -> if (name == "length") VNumber(instance.elements.size.toDouble()) else VUndefined
-            is VString -> if (name == "length") VNumber(instance.value.length.toDouble()) else VUndefined
-            is VMap -> if (name == "size") VNumber(instance.entries.size.toDouble()) else VUndefined
-            is VSet -> if (name == "size") VNumber(instance.elements.size.toDouble()) else VUndefined
-            is VNamespace -> Intrinsics.namespaceField(instance.name, name)
-                ?: throw UnsupportedFeatureSignal("namespace field: ${instance.name}.$name")
+            is VObject -> if (instance in iterators && name in setOf("next", "Symbol.iterator")) {
+                iteratorMethod(instance, name)
+            } else {
+                readObjectProperty(instance, name)
+            }
+            is VArray -> when (name) {
+                "length" -> VNumber(instance.elements.size.toDouble())
+                "Symbol.iterator" -> iteratorFactory(instance)
+                else -> VUndefined
+            }
+
+            is VString -> when (name) {
+                "length" -> VNumber(instance.value.length.toDouble())
+                "Symbol.iterator" -> iteratorFactory(instance)
+                else -> VUndefined
+            }
+
+            is VMap -> when (name) {
+                "size" -> VNumber(instance.entries.size.toDouble())
+                "Symbol.iterator" -> iteratorFactory(instance)
+                else -> VUndefined
+            }
+
+            is VSet -> when (name) {
+                "size" -> VNumber(instance.elements.size.toDouble())
+                "Symbol.iterator" -> iteratorFactory(instance)
+                else -> VUndefined
+            }
+            is VNamespace -> {
+                if (instance.name.startsWith("module:")) {
+                    val modulePath = instance.name.removePrefix("module:")
+                    resolver.resolveModuleExport(modulePath, name)?.let { method ->
+                        methodFunctionCache.getOrPut(method) { VFunction(method) }
+                    }
+                        ?: if (resolver.hasDeclaredExport(modulePath, name)) {
+                            throw UnsupportedFeatureSignal("module export not materialized: $modulePath#$name")
+                        } else if (resolver.hasModule(modulePath) && !resolver.hasExactExportIndex(modulePath)) {
+                            throw UnsupportedFeatureSignal("module export index unavailable: $modulePath")
+                        } else if (resolver.hasModule(modulePath)) {
+                            VUndefined
+                        } else {
+                            throw UnsupportedFeatureSignal("module namespace unavailable: $modulePath")
+                        }
+                } else {
+                    Intrinsics.namespaceField(instance.name, name)
+                        ?: throw UnsupportedFeatureSignal("namespace field: ${instance.name}.$name")
+                }
+            }
 
             VNull, VUndefined ->
                 throw typeError("cannot read property '$name' of ${JsSemantics.toStringJs(instance)}")
 
             else -> VUndefined
         }
+
+        private fun readObjectProperty(
+            instance: VObject,
+            name: String,
+        ): VValue {
+            explicitObjectProperty(instance, name)?.let { return it.value }
+            instance.cls?.let { cls ->
+                resolver.resolveInstanceMethod(cls, name)?.let { method ->
+                    return methodFunctionCache.getOrPut(method) { VFunction(method) }
+                }
+            }
+            return VUndefined
+        }
+
+        private fun explicitObjectProperty(instance: VObject, name: String): ObjectProperty? {
+            var current: VObject? = instance
+            val visited = java.util.Collections.newSetFromMap(IdentityHashMap<VObject, Boolean>())
+            while (current != null && visited.add(current)) {
+                if (current.fields.containsKey(name)) {
+                    return ObjectProperty(current.fields.getValue(name))
+                }
+                current = current.prototype
+            }
+            return null
+        }
+
+        private fun propertyIn(key: VValue, container: VValue): Boolean {
+            val property = JsSemantics.toStringJs(key)
+            return when (container) {
+                is VObject -> {
+                    var current: VObject? = container
+                    val visited = java.util.Collections.newSetFromMap(IdentityHashMap<VObject, Boolean>())
+                    while (current != null && visited.add(current)) {
+                        if (current.fields.containsKey(property)) return true
+                        current = current.prototype
+                    }
+                    container.cls?.let { resolver.resolveInstanceMethod(it, property) } != null
+                }
+
+                is VArray -> {
+                    property == "length" ||
+                        property.toIntOrNull()?.let { it in container.elements.indices } == true
+                }
+                is VMap, is VSet -> property == "size"
+                VNull, VUndefined, is VBool, is VNumber, is VString ->
+                    throw typeError("right-hand side of 'in' is ${JsSemantics.toStringJs(container)}")
+
+                is VFunction, is VNamespace ->
+                    throw UnsupportedFeatureSignal("property membership on ${container::class.simpleName}")
+            }
+        }
+
+        private fun iteratorFactory(receiver: VValue): VObject = nativeFunction(
+            receiver,
+            "Symbol.iterator:factory",
+            NativeCallable.IteratorFactory(receiver),
+        )
+
+        private fun iteratorMethod(iterator: VObject, method: String): VObject = nativeFunction(
+            iterator,
+            "iterator:$method",
+            NativeCallable.IteratorMethod(iterator, method),
+        )
+
+        private fun nativeFunction(
+            receiver: VValue,
+            key: String,
+            callable: NativeCallable,
+        ): VObject = nativeFunctionCache.getOrPut(receiver) { mutableMapOf() }.getOrPut(key) {
+            VNativeFunction().also { nativeCallables[it] = callable }
+        }
+
+        private fun createIterator(receiver: VValue, kind: String = "default"): VObject {
+            if (receiver is VObject && receiver in iterators) return receiver
+            if (receiver !is VArray && receiver !is VString && receiver !is VMap && receiver !is VSet) {
+                throw UnsupportedFeatureSignal(
+                    "Symbol.iterator exact subset does not include ${receiver::class.simpleName}",
+                )
+            }
+            return VObject(cls = null).also { iterators[it] = IteratorState(receiver, kind) }
+        }
+
+        private fun callIterator(iterator: VObject, method: String): VValue? {
+            val state = iterators[iterator] ?: return null
+            return when (method) {
+                "Symbol.iterator" -> iterator
+                "next" -> {
+                    val (present, value) = iteratorValue(state)
+                    iteratorResult(value, done = !present)
+                }
+
+                else -> null
+            }
+        }
+
+        private fun iteratorValue(state: IteratorState): Pair<Boolean, VValue> {
+            if (state.finished) return false to VUndefined
+            val values: List<VValue> = when (val receiver = state.receiver) {
+                is VArray -> receiver.elements
+                is VString -> receiver.value.codePoints().toArray().map { codePoint ->
+                    VString(String(Character.toChars(codePoint)))
+                }
+
+                is VMap -> when (state.kind) {
+                    "keys" -> receiver.entries.keys.toList()
+                    "values" -> receiver.entries.values.toList()
+                    else -> receiver.entries.map { (key, value) -> VArray(mutableListOf(key, value)) }
+                }
+
+                is VSet -> when (state.kind) {
+                    "entries" -> receiver.elements.map { value -> VArray(mutableListOf(value, value)) }
+                    else -> receiver.elements.toList()
+                }
+
+                else -> error("validated iterator receiver changed kind")
+            }
+            if (state.index >= values.size) {
+                state.finished = true
+                return false to VUndefined
+            }
+            return true to values[state.index++]
+        }
+
+        private fun iteratorResult(value: VValue, done: Boolean): VObject = VObject(
+            cls = null,
+            fields = linkedMapOf(
+                "value" to value,
+                "done" to VBool(done),
+            ),
+        )
+
+        private fun invokeNative(callableValue: VObject): VValue? =
+            when (val callable = nativeCallables[callableValue] ?: return null) {
+                is NativeCallable.IteratorFactory -> createIterator(callable.receiver)
+                is NativeCallable.IteratorMethod -> callIterator(callable.iterator, callable.method)
+            }
 
         private fun readStaticField(ref: EtsStaticFieldRef): VValue {
             val className = ref.field.enclosingClass.name
@@ -496,7 +761,9 @@ class EtsConcreteInterpreter(
                         }
 
                         VNull, VUndefined ->
-                            throw typeError("cannot set property '${lhv.field.name}' of ${JsSemantics.toStringJs(target)}")
+                            throw typeError(
+                                "cannot set property '${lhv.field.name}' of ${JsSemantics.toStringJs(target)}",
+                            )
 
                         else -> Unit
                     }
@@ -518,122 +785,209 @@ class EtsConcreteInterpreter(
             val args = expr.args.map { eval(it, frame) }
 
             return when (expr) {
-                is EtsInstanceCallExpr -> {
-                    val receiver = eval(expr.instance, frame)
-                    val name = expr.callee.name
-
-                    if (receiver is VNamespace) {
-                        return Intrinsics.callNamespace(receiver.name, name, args)
-                            ?: throw UnsupportedFeatureSignal("intrinsic: ${receiver.name}.$name")
-                    }
-
-                    // Namespace receiver referenced by its bare local name (Math, console, ...)
-                    if (receiver == VUndefined && expr.instance.name in Intrinsics.NAMESPACES) {
-                        return Intrinsics.callNamespace(expr.instance.name, name, args)
-                            ?: throw UnsupportedFeatureSignal("intrinsic: ${expr.instance.name}.$name")
-                    }
-
-                    if (receiver == VNull || receiver == VUndefined) {
-                        throw typeError("cannot call '$name' of ${JsSemantics.toStringJs(receiver)}")
-                    }
-
-                    if (receiver is VObject && receiver.cls != null) {
-                        val callee = resolver.resolveInstanceMethod(receiver.cls, name)
-                        if (callee != null) {
-                            return runMethod(callee, receiver, padArgs(callee, args))
-                        }
-                    }
-
-                    // A function value stored in an object field: `this.#cmp(a, b)`
-                    if (receiver is VObject) {
-                        val fieldFn = receiver.fields[name]
-                        if (fieldFn is VFunction) {
-                            return runMethod(fieldFn.method, receiver, padArgs(fieldFn.method, args))
-                        }
-                    }
-
-                    // Constructors of classes outside the scene.
-                    if (name == CONSTRUCTOR_NAME) {
-                        when (receiver) {
-                            is VObject -> {
-                                // e.g. `new Error(msg)`: model as record initialization
-                                args.firstOrNull()?.let { receiver.fields["message"] = it }
-                                return receiver
-                            }
-
-                            is VArray -> {
-                                // `new Array(n)` / `new Array(a, b, ...)`
-                                if (args.size == 1 && args[0] is VNumber) {
-                                    val n = checkedConcreteArrayLength(
-                                        (args[0] as VNumber).value,
-                                        limits.maxArrayLength,
-                                    )
-                                    receiver.elements.clear()
-                                    repeat(n) { receiver.elements.add(VUndefined) }
-                                } else {
-                                    receiver.elements.clear()
-                                    receiver.elements.addAll(args)
-                                }
-                                return receiver
-                            }
-
-                            is VMap, is VSet -> {
-                                if (args.isEmpty() || args[0] == VUndefined || args[0] == VNull) return receiver
-                                if (receiver is VSet && args[0] is VArray) {
-                                    (args[0] as VArray).elements.forEach { receiver.elements.add(it) }
-                                    return receiver
-                                }
-                                throw UnsupportedFeatureSignal("iterable constructor argument for Map/Set")
-                            }
-
-                            else -> Unit
-                        }
-                    }
-
-                    Intrinsics.callInstance(receiver, name, args, ::invokeFunction)
-                        ?: throw UnsupportedFeatureSignal(
-                            "instance method: $name on " + when (receiver) {
-                                is VObject -> "VObject(${receiver.cls?.signature ?: "<record>"})"
-                                is VFunction -> "VFunction(${receiver.method.signature})"
-                                else -> receiver::class.simpleName
-                            }
-                        )
-                }
-
-                is EtsStaticCallExpr -> {
-                    val className = expr.callee.enclosingClass.name
-
-                    Intrinsics.callNamespace(className, expr.callee.name, args)?.let { return it }
-                    callConversion(expr.callee.name, args)?.let { return it }
-
-                    val callee = resolver.resolveStaticMethod(expr.callee)
-                        ?: throw UnsupportedFeatureSignal("static callee not found: ${expr.callee}")
-                    runMethod(callee, VUndefined, padArgs(callee, args))
-                }
-
-                is EtsPtrCallExpr -> {
-                    // Prefer the dynamic function value held by the pointer local
-                    val ptrValue = eval(expr.ptr, frame)
-                    if (ptrValue is VFunction) {
-                        runMethod(ptrValue.method, ptrValue.thisValue, padArgs(ptrValue.method, args))
-                    } else {
-                        val callee = resolver.resolveFunctionPointer(expr.callee)
-                        if (callee != null) {
-                            runMethod(callee, frame.thisValue, padArgs(callee, args))
-                        } else {
-                            callConversion(expr.callee.name, args)
-                                ?: throw UnsupportedFeatureSignal("ptr call: ${expr.callee.name}")
-                        }
-                    }
-                }
+                is EtsInstanceCallExpr -> evalInstanceCall(expr, frame, args)
+                is EtsStaticCallExpr -> evalStaticCall(expr, frame, args)
+                is EtsPtrCallExpr -> evalPointerCall(expr, frame, args)
 
                 else -> throw UnsupportedFeatureSignal("call kind: ${expr::class.simpleName}")
             }
         }
 
-        private fun padArgs(callee: EtsMethod, args: List<VValue>): List<VValue> {
-            if (args.size >= callee.parameters.size) return args
-            return args + List(callee.parameters.size - args.size) { VUndefined }
+        private fun evalInstanceCall(
+            expr: EtsInstanceCallExpr,
+            frame: Frame,
+            args: List<VValue>,
+        ): VValue {
+            val receiver = eval(expr.instance, frame)
+            val name = expr.callee.name
+            specialInstanceCall(receiver, expr.instance.name, name, args)?.let { return it }
+
+            if (receiver == VNull || receiver == VUndefined) {
+                throw typeError("cannot call '$name' of ${JsSemantics.toStringJs(receiver)}")
+            }
+            if (receiver is VObject) {
+                explicitObjectProperty(receiver, name)?.let { property ->
+                    val member = property.value
+                    if (member is VFunction) {
+                        return runMethod(member.method, functionThis(member, receiver), args)
+                    }
+                    throw typeError("property '$name' is not callable")
+                }
+                receiver.cls?.let { cls ->
+                    resolver.resolveInstanceMethod(cls, name)?.let { callee ->
+                        return runMethod(callee, receiver, args)
+                    }
+                }
+            }
+            if (name == CONSTRUCTOR_NAME) {
+                constructIntrinsic(receiver, args)?.let { return it }
+            }
+            return Intrinsics.callInstance(receiver, name, args, ::invokeFunction)
+                ?: throw UnsupportedFeatureSignal("instance method: $name on ${describeReceiver(receiver)}")
+        }
+
+        private fun specialInstanceCall(
+            receiver: VValue,
+            receiverName: String,
+            name: String,
+            args: List<VValue>,
+        ): VValue? {
+            if (receiver is VNamespace && receiver.name.startsWith("Object.prototype.") && name == "call") {
+                val method = receiver.name.substringAfterLast('.')
+                return Intrinsics.callObjectPrototype(
+                    method,
+                    args.getOrElse(0) { VUndefined },
+                    args.drop(1),
+                ) ?: throw UnsupportedFeatureSignal("Object.prototype.$method.call")
+            }
+            if (receiver is VFunction && (name == "call" || name == "apply")) {
+                val thisArg = args.getOrElse(0) { VUndefined }
+                return runMethod(
+                    receiver.method,
+                    functionThis(receiver, thisArg),
+                    forwardedFunctionArgs(name, args),
+                )
+            }
+            if (receiver is VObject) {
+                callIterator(receiver, name)?.let { return it }
+                if (receiver in iterators && name == "return") {
+                    throw typeError("built-in iterator.return is not callable")
+                }
+            }
+            if (name == "Symbol.iterator" && (receiver is VArray || receiver is VString)) {
+                return createIterator(receiver)
+            }
+            if (receiver is VMap && name in ITERATOR_METHODS) return createIterator(receiver, name)
+            if (receiver is VSet && name in ITERATOR_METHODS) {
+                return createIterator(receiver, if (name == "entries") "entries" else "values")
+            }
+            if (receiver is VNamespace) {
+                if (receiver.name.startsWith("module:")) {
+                    val modulePath = receiver.name.removePrefix("module:")
+                    resolver.resolveModuleExport(modulePath, name)?.let { method ->
+                        return runMethod(method, VUndefined, args)
+                    }
+                    if (resolver.hasDeclaredExport(modulePath, name)) {
+                        throw UnsupportedFeatureSignal("module export not callable: $modulePath#$name")
+                    }
+                    if (resolver.hasModule(modulePath) && !resolver.hasExactExportIndex(modulePath)) {
+                        throw UnsupportedFeatureSignal("module export index unavailable: $modulePath")
+                    }
+                    if (resolver.hasModule(modulePath)) {
+                        throw typeError("module export '$name' is not callable")
+                    }
+                    throw UnsupportedFeatureSignal("module namespace unavailable: $modulePath")
+                }
+                return Intrinsics.callNamespace(receiver.name, name, args)
+                    ?: throw UnsupportedFeatureSignal("intrinsic: ${receiver.name}.$name")
+            }
+            if (receiver == VUndefined && receiverName in Intrinsics.NAMESPACES) {
+                return Intrinsics.callNamespace(receiverName, name, args)
+                    ?: throw UnsupportedFeatureSignal("intrinsic: $receiverName.$name")
+            }
+            return null
+        }
+
+        private fun forwardedFunctionArgs(name: String, args: List<VValue>): List<VValue> {
+            if (name != "apply") return args.drop(1)
+            return when (val list = args.getOrElse(1) { VUndefined }) {
+                is VArray -> list.elements.toList()
+                VNull, VUndefined -> emptyList()
+                else -> throw UnsupportedFeatureSignal("Function.prototype.apply array-like argument")
+            }
+        }
+
+        private fun constructIntrinsic(receiver: VValue, args: List<VValue>): VValue? {
+            return when (receiver) {
+                is VObject -> {
+                    args.firstOrNull()?.let { receiver.fields["message"] = it }
+                    receiver
+                }
+
+                is VArray -> {
+                    receiver.elements.clear()
+                    if (args.size == 1 && args[0] is VNumber) {
+                        val size = checkedConcreteArrayLength((args[0] as VNumber).value, limits.maxArrayLength)
+                        repeat(size) { receiver.elements.add(VUndefined) }
+                    } else {
+                        receiver.elements.addAll(args)
+                    }
+                    receiver
+                }
+
+                is VMap, is VSet -> {
+                    when {
+                        args.isEmpty() || args[0] == VUndefined || args[0] == VNull -> receiver
+                        receiver is VSet && args[0] is VArray -> {
+                            receiver.elements.addAll((args[0] as VArray).elements)
+                            receiver
+                        }
+
+                        else -> throw UnsupportedFeatureSignal("iterable constructor argument for Map/Set")
+                    }
+                }
+
+                else -> null
+            }
+        }
+
+        private fun describeReceiver(receiver: VValue): String = when (receiver) {
+            is VObject -> "VObject(${receiver.cls?.signature ?: "<record>"})"
+            is VFunction -> "VFunction(${receiver.method.signature})"
+            else -> receiver::class.simpleName ?: "unknown"
+        }
+
+        private fun evalStaticCall(
+            expr: EtsStaticCallExpr,
+            frame: Frame,
+            args: List<VValue>,
+        ): VValue {
+            val className = expr.callee.enclosingClass.name
+            val freeCall = className.isBlank() || className == DEFAULT_ARK_CLASS_NAME
+            if (freeCall && frame.locals.containsKey(expr.callee.name)) {
+                val dynamic = frame.locals.getValue(expr.callee.name)
+                if (dynamic is VFunction) {
+                    return runMethod(dynamic.method, functionThis(dynamic, VUndefined), args)
+                }
+                throw typeError("${JsSemantics.toStringJs(dynamic)} is not callable")
+            }
+            Intrinsics.callNamespace(className, expr.callee.name, args)?.let { return it }
+            resolver.resolveStaticMethod(expr.callee)?.let { callee ->
+                return runMethod(callee, VUndefined, args)
+            }
+            if (freeCall) {
+                callConversion(expr.callee.name, args)?.let { return it }
+            }
+            throw UnsupportedFeatureSignal("static callee not found: ${expr.callee}")
+        }
+
+        private fun evalPointerCall(
+            expr: EtsPtrCallExpr,
+            frame: Frame,
+            args: List<VValue>,
+        ): VValue {
+            val ptrValue = eval(expr.ptr, frame)
+            if (ptrValue is VFunction) {
+                val receiver = frame.temporaryCallReceivers[expr.ptr.name] ?: VUndefined
+                return runMethod(ptrValue.method, functionThis(ptrValue, receiver), args)
+            }
+            if (ptrValue is VObject && nativeCallables.containsKey(ptrValue)) {
+                return invokeNative(ptrValue)
+                    ?: throw UnsupportedFeatureSignal("native ptr call: ${expr.callee.name}")
+            }
+            if (ptrValue != VUndefined) {
+                val globalConversionReference = !frame.locals.containsKey(expr.ptr.name) &&
+                    expr.ptr.name == expr.callee.name
+                val loweredConversionArgument = expr.ptr.name != expr.callee.name
+                if (globalConversionReference || loweredConversionArgument) {
+                    callConversion(expr.callee.name, args)?.let { return it }
+                }
+                throw typeError("${JsSemantics.toStringJs(ptrValue)} is not callable")
+            }
+            callConversion(expr.callee.name, args)?.let { return it }
+            val callee = resolver.resolveFunctionPointer(expr.callee)
+                ?: throw UnsupportedFeatureSignal("ptr call: ${expr.callee.name}")
+            return runMethod(callee, VUndefined, args)
         }
 
         private fun callConversion(name: String, args: List<VValue>): VValue? {
@@ -650,6 +1004,16 @@ class EtsConcreteInterpreter(
 
         /** Host callback for higher-order intrinsics (`arr.map(f)`, `map.forEach(f)`, ...). */
         private fun invokeFunction(fn: VFunction, args: List<VValue>): VValue =
-            runMethod(fn.method, fn.thisValue, padArgs(fn.method, args))
+            runMethod(fn.method, functionThis(fn, VUndefined), args)
+
+        private fun functionThis(fn: VFunction, dynamicReceiver: VValue): VValue =
+            when (fn.thisMode) {
+                VFunctionThisMode.DYNAMIC -> dynamicReceiver
+                VFunctionThisMode.LEXICAL, VFunctionThisMode.BOUND -> fn.thisValue
+            }
+    }
+
+    private companion object {
+        val ITERATOR_METHODS = setOf("Symbol.iterator", "keys", "values", "entries")
     }
 }

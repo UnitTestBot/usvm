@@ -3,7 +3,6 @@ package org.usvm.ts.pbt.interpreter
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
-import kotlin.math.round
 import kotlin.math.sqrt
 
 /**
@@ -16,7 +15,9 @@ import kotlin.math.sqrt
  */
 internal object Intrinsics {
 
-    val NAMESPACES: Set<String> = setOf("Math", "Number", "Boolean", "String", "console", "Logger", "JSON", "Object")
+    val NAMESPACES: Set<String> = setOf(
+        "Array", "Math", "Number", "Boolean", "String", "console", "Logger", "JSON", "Object", "Symbol",
+    )
 
     /** Host callback for invoking a first-class function value (HOF callbacks). */
     fun interface FunctionInvoker {
@@ -61,7 +62,14 @@ internal object Intrinsics {
                 "tanh" -> VNumber(kotlin.math.tanh(n))
                 "max" -> VNumber(args.map { JsSemantics.toNumber(it) }.maxOrNull() ?: Double.NEGATIVE_INFINITY)
                 "min" -> VNumber(args.map { JsSemantics.toNumber(it) }.minOrNull() ?: Double.POSITIVE_INFINITY)
-                "hypot" -> VNumber(sqrt(args.sumOf { val v = JsSemantics.toNumber(it); v * v }))
+                "hypot" -> VNumber(
+                    sqrt(
+                        args.sumOf {
+                            val value = JsSemantics.toNumber(it)
+                            value * value
+                        },
+                    ),
+                )
                 "atan2" -> VNumber(
                     kotlin.math.atan2(n, JsSemantics.toNumber(args.getOrElse(1) { VUndefined }))
                 )
@@ -91,7 +99,13 @@ internal object Intrinsics {
             }
         }
 
+        "Array" -> when (method) {
+            "isArray" -> VBool(args.getOrElse(0) { VUndefined } is VArray)
+            else -> null
+        }
+
         "Object" -> when (method) {
+            "hasOwn" -> VBool(hasOwn(args.getOrElse(0) { VUndefined }, args.getOrElse(1) { VUndefined }))
             "keys" -> when (val o = args.getOrElse(0) { VUndefined }) {
                 is VObject -> VArray(o.fields.keys.map { VString(it) as VValue }.toMutableList())
                 is VArray -> VArray(o.elements.indices.map { VString(it.toString()) as VValue }.toMutableList())
@@ -117,7 +131,7 @@ internal object Intrinsics {
      * @return null when the top-level value is not serializable (undefined/function).
      */
     private fun jsonStringify(v: VValue, visited: MutableSet<VValue>): String? = when (v) {
-        VUndefined, is VFunction, is VNamespace -> null
+        VUndefined, is VFunction, is VNativeFunction, is VNamespace -> null
         VNull -> "null"
         is VBool -> v.value.toString()
         is VNumber -> if (v.value.isFinite()) JsSemantics.numberToString(v.value) else "null"
@@ -197,7 +211,56 @@ internal object Intrinsics {
             else -> null
         }
 
+        "Object" -> when (field) {
+            "prototype" -> VNamespace("Object.prototype")
+            else -> null
+        }
+
+        "Symbol" -> when (field) {
+            "iterator" -> VNamespace("Symbol.iterator")
+            else -> null
+        }
+
+        "Object.prototype" -> when (field) {
+            "toString", "hasOwnProperty" -> VNamespace("Object.prototype.$field")
+            else -> null
+        }
+
         else -> null
+    }
+
+    /** Exact result subset for `Object.prototype.<method>.call(receiver, ...)`. */
+    fun callObjectPrototype(method: String, receiver: VValue, args: List<VValue>): VValue? = when (method) {
+        "toString" -> VString(objectTag(receiver))
+        "hasOwnProperty" -> VBool(hasOwn(receiver, args.getOrElse(0) { VUndefined }))
+        else -> null
+    }
+
+    private fun objectTag(value: VValue): String = when (value) {
+        VUndefined -> "[object Undefined]"
+        VNull -> "[object Null]"
+        is VBool -> "[object Boolean]"
+        is VNumber -> "[object Number]"
+        is VString -> "[object String]"
+        is VArray -> "[object Array]"
+        is VFunction, is VNativeFunction -> "[object Function]"
+        is VMap -> "[object Map]"
+        is VSet -> "[object Set]"
+        is VNamespace, is VObject -> "[object Object]"
+    }
+
+    private fun hasOwn(receiver: VValue, key: VValue): Boolean {
+        if (receiver == VNull || receiver == VUndefined) {
+            throw typeError("cannot convert ${JsSemantics.toStringJs(receiver)} to object")
+        }
+        val property = JsSemantics.toStringJs(key)
+        return when (receiver) {
+            is VObject -> receiver.fields.containsKey(property)
+            is VArray -> property == "length" || property.toIntOrNull()?.let { it in receiver.elements.indices } == true
+            is VString -> property == "length" || property.toIntOrNull()?.let { it in receiver.value.indices } == true
+            is VMap, is VSet -> false
+            else -> false
+        }
     }
 
     /** Free-function-style conversions: `Number(x)`, `Boolean(x)`, `String(x)`. */
@@ -270,12 +333,20 @@ internal object Intrinsics {
 
             "some" -> {
                 fn ?: return null
-                VBool(arr.elements.withIndex().any { (i, e) -> JsSemantics.truthy(call(e, VNumber(i.toDouble()), arr)) })
+                VBool(
+                    arr.elements.withIndex().any { (index, element) ->
+                        JsSemantics.truthy(call(element, VNumber(index.toDouble()), arr))
+                    },
+                )
             }
 
             "every" -> {
                 fn ?: return null
-                VBool(arr.elements.withIndex().all { (i, e) -> JsSemantics.truthy(call(e, VNumber(i.toDouble()), arr)) })
+                VBool(
+                    arr.elements.withIndex().all { (index, element) ->
+                        JsSemantics.truthy(call(element, VNumber(index.toDouble()), arr))
+                    },
+                )
             }
 
             "find" -> {
@@ -338,8 +409,7 @@ internal object Intrinsics {
         args: List<VValue>,
         invoker: FunctionInvoker,
     ): VValue? {
-        fun key(v: VValue): VValue = if (v is VNumber && v.value == 0.0) VNumber(0.0) else v // normalize -0
-        val k = key(args.getOrElse(0) { VUndefined })
+        val k = sameValueZeroKey(args.getOrElse(0) { VUndefined })
         return when (method) {
             "get" -> map.entries[k] ?: VUndefined
             "set" -> {
@@ -374,8 +444,7 @@ internal object Intrinsics {
         args: List<VValue>,
         invoker: FunctionInvoker,
     ): VValue? {
-        fun key(v: VValue): VValue = if (v is VNumber && v.value == 0.0) VNumber(0.0) else v
-        val k = key(args.getOrElse(0) { VUndefined })
+        val k = sameValueZeroKey(args.getOrElse(0) { VUndefined })
         return when (method) {
             "add" -> {
                 set.elements.add(k)
@@ -425,9 +494,11 @@ internal object Intrinsics {
 
         "join" -> {
             val sep = args.getOrNull(0)?.let { JsSemantics.toStringJs(it) } ?: ","
-            VString(arr.elements.joinToString(sep) { el ->
-                if (el == VNull || el == VUndefined) "" else JsSemantics.toStringJs(el)
-            })
+            VString(
+                arr.elements.joinToString(sep) { el ->
+                    if (el == VNull || el == VUndefined) "" else JsSemantics.toStringJs(el)
+                },
+            )
         }
 
         "slice" -> {
@@ -463,10 +534,12 @@ internal object Intrinsics {
         "includes" -> {
             val target = args.getOrElse(0) { VUndefined }
             // `includes` uses SameValueZero: NaN is found, unlike indexOf
-            VBool(arr.elements.any { el ->
-                JsSemantics.strictEq(el, target) ||
-                    (el is VNumber && target is VNumber && el.value.isNaN() && target.value.isNaN())
-            })
+            VBool(
+                arr.elements.any { el ->
+                    JsSemantics.strictEq(el, target) ||
+                        (el is VNumber && target is VNumber && el.value.isNaN() && target.value.isNaN())
+                },
+            )
         }
 
         "reverse" -> {
@@ -474,7 +547,31 @@ internal object Intrinsics {
             arr
         }
 
+        "splice" -> {
+            val size = arr.elements.size
+            val relativeStart = integerOrInfinity(args.getOrElse(0) { VNumber(0.0) })
+            val start = when {
+                relativeStart == Double.NEGATIVE_INFINITY -> 0
+                relativeStart < 0 -> (size + relativeStart).coerceAtLeast(0.0).toInt()
+                relativeStart >= size -> size
+                else -> relativeStart.toInt()
+            }
+            val deleteCount = when {
+                args.isEmpty() -> 0
+                args.size == 1 -> size - start
+                else -> integerOrInfinity(args[1]).coerceIn(0.0, (size - start).toDouble()).toInt()
+            }
+            val removed = MutableList(deleteCount) { arr.elements.removeAt(start) }
+            if (args.size > 2) arr.elements.addAll(start, args.drop(2))
+            VArray(removed)
+        }
+
         else -> null
+    }
+
+    private fun integerOrInfinity(value: VValue): Double {
+        val number = JsSemantics.toNumber(value)
+        return if (number.isNaN() || number == 0.0) 0.0 else kotlin.math.truncate(number)
     }
 
     private fun callStringMethod(s: VString, method: String, args: List<VValue>): VValue? = when (method) {
@@ -495,8 +592,11 @@ internal object Intrinsics {
                 sep == null || sep == VUndefined -> VArray(mutableListOf(s))
                 else -> {
                     val sepStr = JsSemantics.toStringJs(sep)
-                    val parts = if (sepStr.isEmpty()) s.value.map { it.toString() }
-                    else s.value.split(sepStr)
+                    val parts = if (sepStr.isEmpty()) {
+                        s.value.map { it.toString() }
+                    } else {
+                        s.value.split(sepStr)
+                    }
                     VArray(parts.map { VString(it) as VValue }.toMutableList())
                 }
             }
@@ -540,7 +640,9 @@ internal object Intrinsics {
             var start = idx(args.getOrNull(0), 0)
             var end = idx(args.getOrNull(1), len)
             if (method == "substring" && start > end) {
-                val t = start; start = end; end = t
+                val temporary = start
+                start = end
+                end = temporary
             }
             VString(if (start < end) s.value.substring(start, end) else "")
         }

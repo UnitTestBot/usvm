@@ -1,0 +1,1540 @@
+{
+    "config": {
+        "mode": "PBT_ONLY",
+        "seed": 20260719,
+        "pbtMaxIterations": 100,
+        "pbtTimeBudgetMs": 30000,
+        "perTargetTimeoutMs": 1000,
+        "hintFallback": true
+    },
+    "methods": [
+        {
+            "methodId": "arrays.ts::%dflt::indexOf/3",
+            "method": "%dflt::indexOf(array: T[], item: T, equalsFunction?: IEqualsFunction<T>): number",
+            "totalStmts": 20,
+            "totalBranches": 4,
+            "coveredStmts": 14,
+            "coveredBranches": 2,
+            "stmtCoverage": 0.7,
+            "branchCoverage": 0.5,
+            "timeline": [
+                {
+                    "elapsedMs": 12,
+                    "phase": "pbt",
+                    "coveredStmts": 1,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 12,
+                    "phase": "pbt",
+                    "coveredStmts": 2,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 12,
+                    "phase": "pbt",
+                    "coveredStmts": 3,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 12,
+                    "phase": "pbt",
+                    "coveredStmts": 4,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 12,
+                    "phase": "pbt",
+                    "coveredStmts": 5,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 15,
+                    "phase": "pbt",
+                    "coveredStmts": 6,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 17,
+                    "phase": "pbt",
+                    "coveredStmts": 7,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 17,
+                    "phase": "pbt",
+                    "coveredStmts": 8,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 17,
+                    "phase": "pbt",
+                    "coveredStmts": 9,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 17,
+                    "phase": "pbt",
+                    "coveredStmts": 10,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 18,
+                    "phase": "pbt",
+                    "coveredStmts": 10,
+                    "coveredBranches": 1
+                },
+                {
+                    "elapsedMs": 18,
+                    "phase": "pbt",
+                    "coveredStmts": 11,
+                    "coveredBranches": 1
+                },
+                {
+                    "elapsedMs": 18,
+                    "phase": "pbt",
+                    "coveredStmts": 12,
+                    "coveredBranches": 1
+                },
+                {
+                    "elapsedMs": 18,
+                    "phase": "pbt",
+                    "coveredStmts": 12,
+                    "coveredBranches": 2
+                },
+                {
+                    "elapsedMs": 18,
+                    "phase": "pbt",
+                    "coveredStmts": 13,
+                    "coveredBranches": 2
+                },
+                {
+                    "elapsedMs": 18,
+                    "phase": "pbt",
+                    "coveredStmts": 14,
+                    "coveredBranches": 2
+                }
+            ],
+            "pbt": {
+                "executions": 100,
+                "returned": 36,
+                "threw": 64,
+                "diverged": 0,
+                "unsupported": 0,
+                "wallMs": 39,
+                "failures": [
+                    {
+                        "description": "unexpected throw: VObject(<record>, {name=VString(value=TypeError), message=VString(value=[object Object] is not callable)})",
+                        "args": [
+                            "VArray([VArray([VNumber(-882.0), VString(value=-58)])])",
+                            "VNumber(-9.0)",
+                            "VObject(IEqualsFunction, {})"
+                        ],
+                        "shrunkArgs": [
+                            "VArray([VArray([VNumber(-882.0), VString(value=-58)])])",
+                            "VNumber(0.0)",
+                            "VObject(IEqualsFunction, {})"
+                        ]
+                    }
+                ]
+            },
+            "symbolic": null,
+            "typeProfile": {},
+            "totalWallMs": 45
+        },
+        {
+            "methodId": "arrays.ts::%dflt::lastIndexOf/3",
+            "method": "%dflt::lastIndexOf(array: T[], item: T, equalsFunction?: IEqualsFunction<T>): number",
+            "totalStmts": 20,
+            "totalBranches": 4,
+            "coveredStmts": 14,
+            "coveredBranches": 2,
+            "stmtCoverage": 0.7,
+            "branchCoverage": 0.5,
+            "timeline": [
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 1,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 2,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 3,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 4,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 5,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 6,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 7,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 8,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 9,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 10,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 10,
+                    "coveredBranches": 1
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 11,
+                    "coveredBranches": 1
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 12,
+                    "coveredBranches": 1
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 12,
+                    "coveredBranches": 2
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 13,
+                    "coveredBranches": 2
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 14,
+                    "coveredBranches": 2
+                }
+            ],
+            "pbt": {
+                "executions": 100,
+                "returned": 36,
+                "threw": 64,
+                "diverged": 0,
+                "unsupported": 0,
+                "wallMs": 7,
+                "failures": [
+                    {
+                        "description": "unexpected throw: VObject(<record>, {name=VString(value=TypeError), message=VString(value=[object Object] is not callable)})",
+                        "args": [
+                            "VArray([VArray([VNumber(-882.0), VString(value=-58)])])",
+                            "VNumber(-9.0)",
+                            "VObject(IEqualsFunction, {})"
+                        ],
+                        "shrunkArgs": [
+                            "VArray([VArray([VNumber(-882.0), VString(value=-58)])])",
+                            "VNumber(0.0)",
+                            "VObject(IEqualsFunction, {})"
+                        ]
+                    }
+                ]
+            },
+            "symbolic": null,
+            "typeProfile": {},
+            "totalWallMs": 7
+        },
+        {
+            "methodId": "arrays.ts::%dflt::remove/3",
+            "method": "%dflt::remove(array: T[], item: T, equalsFunction?: IEqualsFunction<T>): boolean",
+            "totalStmts": 13,
+            "totalBranches": 2,
+            "coveredStmts": 9,
+            "coveredBranches": 1,
+            "stmtCoverage": 0.6923076923076923,
+            "branchCoverage": 0.5,
+            "timeline": [
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 1,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 2,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 3,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 4,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 5,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 6,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 7,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 7,
+                    "coveredBranches": 1
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 8,
+                    "coveredBranches": 1
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 9,
+                    "coveredBranches": 1
+                }
+            ],
+            "pbt": {
+                "executions": 100,
+                "returned": 36,
+                "threw": 64,
+                "diverged": 0,
+                "unsupported": 0,
+                "wallMs": 10,
+                "failures": [
+                    {
+                        "description": "unexpected throw: VObject(<record>, {name=VString(value=TypeError), message=VString(value=[object Object] is not callable)})",
+                        "args": [
+                            "VArray([VArray([VNumber(-882.0), VString(value=-58)])])",
+                            "VNumber(-9.0)",
+                            "VObject(IEqualsFunction, {})"
+                        ],
+                        "shrunkArgs": [
+                            "VArray([VArray([VNumber(-882.0), VString(value=-58)])])",
+                            "VNumber(0.0)",
+                            "VObject(IEqualsFunction, {})"
+                        ]
+                    }
+                ]
+            },
+            "symbolic": null,
+            "typeProfile": {},
+            "totalWallMs": 11
+        },
+        {
+            "methodId": "arrays.ts::%dflt::frequency/3",
+            "method": "%dflt::frequency(array: T[], item: T, equalsFunction?: IEqualsFunction<T>): number",
+            "totalStmts": 21,
+            "totalBranches": 4,
+            "coveredStmts": 14,
+            "coveredBranches": 2,
+            "stmtCoverage": 0.6666666666666666,
+            "branchCoverage": 0.5,
+            "timeline": [
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 1,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 2,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 3,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 4,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 5,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 6,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 7,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 8,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 9,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 10,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 11,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 11,
+                    "coveredBranches": 1
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 12,
+                    "coveredBranches": 1
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 12,
+                    "coveredBranches": 2
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 13,
+                    "coveredBranches": 2
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 14,
+                    "coveredBranches": 2
+                }
+            ],
+            "pbt": {
+                "executions": 100,
+                "returned": 36,
+                "threw": 64,
+                "diverged": 0,
+                "unsupported": 0,
+                "wallMs": 5,
+                "failures": [
+                    {
+                        "description": "unexpected throw: VObject(<record>, {name=VString(value=TypeError), message=VString(value=[object Object] is not callable)})",
+                        "args": [
+                            "VArray([VArray([VNumber(-882.0), VString(value=-58)])])",
+                            "VNumber(-9.0)",
+                            "VObject(IEqualsFunction, {})"
+                        ],
+                        "shrunkArgs": [
+                            "VArray([VArray([VNumber(-882.0), VString(value=-58)])])",
+                            "VNumber(0.0)",
+                            "VObject(IEqualsFunction, {})"
+                        ]
+                    }
+                ]
+            },
+            "symbolic": null,
+            "typeProfile": {},
+            "totalWallMs": 5
+        },
+        {
+            "methodId": "arrays.ts::%dflt::equals/3",
+            "method": "%dflt::equals(array1: T[], array2: T[], equalsFunction?: IEqualsFunction<T>): boolean",
+            "totalStmts": 28,
+            "totalBranches": 6,
+            "coveredStmts": 21,
+            "coveredBranches": 4,
+            "stmtCoverage": 0.75,
+            "branchCoverage": 0.6666666666666666,
+            "timeline": [
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 1,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 2,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 3,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 4,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 5,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 6,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 7,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 8,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 9,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 10,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 10,
+                    "coveredBranches": 1
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 11,
+                    "coveredBranches": 1
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 12,
+                    "coveredBranches": 1
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 12,
+                    "coveredBranches": 2
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 13,
+                    "coveredBranches": 2
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 14,
+                    "coveredBranches": 2
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 15,
+                    "coveredBranches": 2
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 16,
+                    "coveredBranches": 2
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 16,
+                    "coveredBranches": 3
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 17,
+                    "coveredBranches": 3
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 18,
+                    "coveredBranches": 3
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 19,
+                    "coveredBranches": 3
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 19,
+                    "coveredBranches": 4
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 20,
+                    "coveredBranches": 4
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 21,
+                    "coveredBranches": 4
+                }
+            ],
+            "pbt": {
+                "executions": 100,
+                "returned": 94,
+                "threw": 6,
+                "diverged": 0,
+                "unsupported": 0,
+                "wallMs": 4,
+                "failures": [
+                    {
+                        "description": "unexpected throw: VObject(<record>, {name=VString(value=TypeError), message=VString(value=[object Object] is not callable)})",
+                        "args": [
+                            "VArray([VArray([])])",
+                            "VArray([VNumber(0.0)])",
+                            "VObject(IEqualsFunction, {})"
+                        ],
+                        "shrunkArgs": [
+                            "VArray([VArray([])])",
+                            "VArray([VNumber(0.0)])",
+                            "VObject(IEqualsFunction, {})"
+                        ]
+                    }
+                ]
+            },
+            "symbolic": null,
+            "typeProfile": {},
+            "totalWallMs": 4
+        },
+        {
+            "methodId": "arrays.ts::%dflt::swap/3",
+            "method": "%dflt::swap(array: T[], i: number, j: number): boolean",
+            "totalStmts": 23,
+            "totalBranches": 2,
+            "coveredStmts": 23,
+            "coveredBranches": 2,
+            "stmtCoverage": 1.0,
+            "branchCoverage": 1.0,
+            "timeline": [
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 1,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 2,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 3,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 4,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 5,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 6,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 7,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 8,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 9,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 10,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 11,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 12,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 13,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 14,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 15,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 15,
+                    "coveredBranches": 1
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 16,
+                    "coveredBranches": 1
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 17,
+                    "coveredBranches": 1
+                },
+                {
+                    "elapsedMs": 2,
+                    "phase": "pbt",
+                    "coveredStmts": 17,
+                    "coveredBranches": 2
+                },
+                {
+                    "elapsedMs": 2,
+                    "phase": "pbt",
+                    "coveredStmts": 18,
+                    "coveredBranches": 2
+                },
+                {
+                    "elapsedMs": 2,
+                    "phase": "pbt",
+                    "coveredStmts": 19,
+                    "coveredBranches": 2
+                },
+                {
+                    "elapsedMs": 2,
+                    "phase": "pbt",
+                    "coveredStmts": 20,
+                    "coveredBranches": 2
+                },
+                {
+                    "elapsedMs": 2,
+                    "phase": "pbt",
+                    "coveredStmts": 21,
+                    "coveredBranches": 2
+                },
+                {
+                    "elapsedMs": 2,
+                    "phase": "pbt",
+                    "coveredStmts": 22,
+                    "coveredBranches": 2
+                },
+                {
+                    "elapsedMs": 2,
+                    "phase": "pbt",
+                    "coveredStmts": 23,
+                    "coveredBranches": 2
+                }
+            ],
+            "pbt": {
+                "executions": 85,
+                "returned": 85,
+                "threw": 0,
+                "diverged": 0,
+                "unsupported": 0,
+                "wallMs": 3,
+                "failures": []
+            },
+            "symbolic": null,
+            "typeProfile": {},
+            "totalWallMs": 3
+        },
+        {
+            "methodId": "arrays.ts::%dflt::forEach/2",
+            "method": "%dflt::forEach(array: T[], callback: ILoopFunction<T>): void",
+            "totalStmts": 15,
+            "totalBranches": 4,
+            "coveredStmts": 11,
+            "coveredBranches": 2,
+            "stmtCoverage": 0.7333333333333333,
+            "branchCoverage": 0.5,
+            "timeline": [
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 1,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 2,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 3,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 4,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 5,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 6,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 7,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 1,
+                    "phase": "pbt",
+                    "coveredStmts": 8,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 1,
+                    "phase": "pbt",
+                    "coveredStmts": 8,
+                    "coveredBranches": 1
+                },
+                {
+                    "elapsedMs": 1,
+                    "phase": "pbt",
+                    "coveredStmts": 9,
+                    "coveredBranches": 1
+                },
+                {
+                    "elapsedMs": 1,
+                    "phase": "pbt",
+                    "coveredStmts": 9,
+                    "coveredBranches": 2
+                },
+                {
+                    "elapsedMs": 1,
+                    "phase": "pbt",
+                    "coveredStmts": 10,
+                    "coveredBranches": 2
+                },
+                {
+                    "elapsedMs": 1,
+                    "phase": "pbt",
+                    "coveredStmts": 11,
+                    "coveredBranches": 2
+                }
+            ],
+            "pbt": {
+                "executions": 100,
+                "returned": 42,
+                "threw": 58,
+                "diverged": 0,
+                "unsupported": 0,
+                "wallMs": 4,
+                "failures": [
+                    {
+                        "description": "unexpected throw: VObject(<record>, {name=VString(value=TypeError), message=VString(value=[object Object] is not callable)})",
+                        "args": [
+                            "VArray([VArray([VNumber(-882.0), VString(value=-58)]), VNumber(-9.0), VNumber(80.0), VNull])",
+                            "VObject(ILoopFunction, {})"
+                        ],
+                        "shrunkArgs": [
+                            "VArray([VArray([VNumber(-882.0), VString(value=-58)])])",
+                            "VObject(ILoopFunction, {})"
+                        ]
+                    }
+                ]
+            },
+            "symbolic": null,
+            "typeProfile": {},
+            "totalWallMs": 4
+        },
+        {
+            "methodId": "util.ts::%dflt::defaultCompare/2",
+            "method": "%dflt::defaultCompare(a: T, b: T): number",
+            "totalStmts": 13,
+            "totalBranches": 4,
+            "coveredStmts": 13,
+            "coveredBranches": 4,
+            "stmtCoverage": 1.0,
+            "branchCoverage": 1.0,
+            "timeline": [
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 1,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 2,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 3,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 4,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 5,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 5,
+                    "coveredBranches": 1
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 6,
+                    "coveredBranches": 1
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 7,
+                    "coveredBranches": 1
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 7,
+                    "coveredBranches": 2
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 8,
+                    "coveredBranches": 2
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 9,
+                    "coveredBranches": 2
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 9,
+                    "coveredBranches": 3
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 10,
+                    "coveredBranches": 3
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 11,
+                    "coveredBranches": 3
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 11,
+                    "coveredBranches": 4
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 12,
+                    "coveredBranches": 4
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 13,
+                    "coveredBranches": 4
+                }
+            ],
+            "pbt": {
+                "executions": 6,
+                "returned": 6,
+                "threw": 0,
+                "diverged": 0,
+                "unsupported": 0,
+                "wallMs": 0,
+                "failures": []
+            },
+            "symbolic": null,
+            "typeProfile": {},
+            "totalWallMs": 0
+        },
+        {
+            "methodId": "util.ts::%dflt::defaultToString/1",
+            "method": "%dflt::defaultToString(item: any): string",
+            "totalStmts": 19,
+            "totalBranches": 6,
+            "coveredStmts": 19,
+            "coveredBranches": 6,
+            "stmtCoverage": 1.0,
+            "branchCoverage": 1.0,
+            "timeline": [
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 1,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 2,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 3,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 4,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 4,
+                    "coveredBranches": 1
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 5,
+                    "coveredBranches": 1
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 6,
+                    "coveredBranches": 1
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 7,
+                    "coveredBranches": 1
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 7,
+                    "coveredBranches": 2
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 8,
+                    "coveredBranches": 2
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 9,
+                    "coveredBranches": 2
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 10,
+                    "coveredBranches": 2
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 10,
+                    "coveredBranches": 3
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 11,
+                    "coveredBranches": 3
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 12,
+                    "coveredBranches": 3
+                },
+                {
+                    "elapsedMs": 1,
+                    "phase": "pbt",
+                    "coveredStmts": 13,
+                    "coveredBranches": 3
+                },
+                {
+                    "elapsedMs": 1,
+                    "phase": "pbt",
+                    "coveredStmts": 13,
+                    "coveredBranches": 4
+                },
+                {
+                    "elapsedMs": 1,
+                    "phase": "pbt",
+                    "coveredStmts": 14,
+                    "coveredBranches": 4
+                },
+                {
+                    "elapsedMs": 1,
+                    "phase": "pbt",
+                    "coveredStmts": 15,
+                    "coveredBranches": 4
+                },
+                {
+                    "elapsedMs": 1,
+                    "phase": "pbt",
+                    "coveredStmts": 15,
+                    "coveredBranches": 5
+                },
+                {
+                    "elapsedMs": 1,
+                    "phase": "pbt",
+                    "coveredStmts": 16,
+                    "coveredBranches": 5
+                },
+                {
+                    "elapsedMs": 1,
+                    "phase": "pbt",
+                    "coveredStmts": 17,
+                    "coveredBranches": 5
+                },
+                {
+                    "elapsedMs": 2,
+                    "phase": "pbt",
+                    "coveredStmts": 17,
+                    "coveredBranches": 6
+                },
+                {
+                    "elapsedMs": 2,
+                    "phase": "pbt",
+                    "coveredStmts": 18,
+                    "coveredBranches": 6
+                },
+                {
+                    "elapsedMs": 2,
+                    "phase": "pbt",
+                    "coveredStmts": 19,
+                    "coveredBranches": 6
+                }
+            ],
+            "pbt": {
+                "executions": 35,
+                "returned": 35,
+                "threw": 0,
+                "diverged": 0,
+                "unsupported": 0,
+                "wallMs": 2,
+                "failures": []
+            },
+            "symbolic": null,
+            "typeProfile": {},
+            "totalWallMs": 2
+        },
+        {
+            "methodId": "util.ts::%dflt::makeString/2",
+            "method": "%dflt::makeString(item: T, join: string): string",
+            "totalStmts": 41,
+            "totalBranches": 12,
+            "coveredStmts": 28,
+            "coveredBranches": 8,
+            "stmtCoverage": 0.6829268292682927,
+            "branchCoverage": 0.6666666666666666,
+            "timeline": [
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 1,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 2,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 3,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 4,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 5,
+                    "coveredBranches": 0
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 5,
+                    "coveredBranches": 1
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 6,
+                    "coveredBranches": 1
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 7,
+                    "coveredBranches": 1
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 8,
+                    "coveredBranches": 1
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 8,
+                    "coveredBranches": 2
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 9,
+                    "coveredBranches": 2
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 10,
+                    "coveredBranches": 2
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 11,
+                    "coveredBranches": 2
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 11,
+                    "coveredBranches": 3
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 12,
+                    "coveredBranches": 3
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 13,
+                    "coveredBranches": 3
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 14,
+                    "coveredBranches": 3
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 15,
+                    "coveredBranches": 3
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 16,
+                    "coveredBranches": 3
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 17,
+                    "coveredBranches": 3
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 18,
+                    "coveredBranches": 3
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 18,
+                    "coveredBranches": 4
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 19,
+                    "coveredBranches": 4
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 20,
+                    "coveredBranches": 4
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 20,
+                    "coveredBranches": 5
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 21,
+                    "coveredBranches": 5
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 22,
+                    "coveredBranches": 5
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 22,
+                    "coveredBranches": 6
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 23,
+                    "coveredBranches": 6
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 24,
+                    "coveredBranches": 6
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 24,
+                    "coveredBranches": 7
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 25,
+                    "coveredBranches": 7
+                },
+                {
+                    "elapsedMs": 0,
+                    "phase": "pbt",
+                    "coveredStmts": 26,
+                    "coveredBranches": 7
+                },
+                {
+                    "elapsedMs": 1,
+                    "phase": "pbt",
+                    "coveredStmts": 26,
+                    "coveredBranches": 8
+                },
+                {
+                    "elapsedMs": 1,
+                    "phase": "pbt",
+                    "coveredStmts": 27,
+                    "coveredBranches": 8
+                },
+                {
+                    "elapsedMs": 1,
+                    "phase": "pbt",
+                    "coveredStmts": 28,
+                    "coveredBranches": 8
+                }
+            ],
+            "pbt": {
+                "executions": 100,
+                "returned": 89,
+                "threw": 11,
+                "diverged": 0,
+                "unsupported": 0,
+                "wallMs": 5,
+                "failures": [
+                    {
+                        "description": "unexpected throw: VObject(<record>, {name=VString(value=TypeError), message=VString(value=cannot call 'call' of undefined)})",
+                        "args": [
+                            "VArray([VNull])",
+                            "VString(value=-65)"
+                        ],
+                        "shrunkArgs": [
+                            "VArray([VNull])",
+                            "VString(value=)"
+                        ]
+                    }
+                ]
+            },
+            "symbolic": null,
+            "typeProfile": {},
+            "totalWallMs": 6
+        }
+    ]
+}
