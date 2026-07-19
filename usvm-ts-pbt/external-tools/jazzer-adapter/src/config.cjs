@@ -8,7 +8,7 @@ function loadConfiguration() {
   const methodId = requiredEnv("USVM_JAZZER_METHOD_ID");
   const harnessPath = requiredEnv("USVM_JAZZER_HARNESS");
   const manifest = JSON.parse(readFileSync(resolve(manifestPath), "utf8"));
-  if (manifest.schemaVersion !== 1) throw new Error(`unsupported target manifest schemaVersion ${manifest.schemaVersion}`);
+  if (manifest.schemaVersion !== 2) throw new Error(`unsupported target manifest schemaVersion ${manifest.schemaVersion}; expected 2`);
   const method = manifest.methods.find((candidate) => candidate.methodId === methodId);
   if (!method) throw new Error(`methodId '${methodId}' is absent from ${manifestPath}`);
   const harness = require(resolve(harnessPath));

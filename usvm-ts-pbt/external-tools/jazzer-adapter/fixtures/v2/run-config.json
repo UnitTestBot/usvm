@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 2,
+  "runId": "jazzer-adapter-fixture-17",
+  "adapter": {
+    "name": "jazzer.js",
+    "version": "4.0.0",
+    "commit": "f3eb99cb0ea20fe45356535b1f60f86741974e72"
+  },
+  "seed": 17,
+  "budgetMs": 2000,
+  "exportReplayGraceMs": 1000,
+  "explorationDeadlineMs": 1000,
+  "hardResultDeadlineMs": 2000,
+  "cacheMode": "cold",
+  "versions": {
+    "node": "test"
+  },
+  "commits": {
+    "usvm": "5a558721",
+    "jazzer.js": "f3eb99cb0ea20fe45356535b1f60f86741974e72"
+  },
+  "flags": {
+    "sync": false,
+    "ignoreExceptions": true,
+    "maxLength": 8192,
+    "logCapBytes": 256
+  }
+}

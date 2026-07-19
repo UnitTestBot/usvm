@@ -1,0 +1,14 @@
+{
+  "method": {
+    "methodId": "fixture.ts::%dflt::number/1",
+    "parameterTypes": ["number"],
+    "parameters": [
+      { "index": 0, "name": "value", "type": "number", "optional": false, "rest": false }
+    ]
+  },
+  "rawHex": "0203",
+  "expected": {
+    "receiver": { "kind": "undefined" },
+    "arguments": [{ "kind": "number", "value": "-0" }]
+  }
+}

@@ -1,5 +1,7 @@
 "use strict";
 
+const { decodeEnvelope, encodeEnvelope } = require("./etc-v2.cjs");
+
 const EDGE_NUMBERS = [NaN, Infinity, -Infinity, -0, 0, 1, -1, Number.MAX_SAFE_INTEGER, Number.MIN_SAFE_INTEGER];
 
 class ByteCursor {
@@ -40,6 +42,43 @@ function decodeMethodInput(buffer, method) {
     }
     return decodeType(cursor, parameter.type);
   });
+}
+
+/**
+ * ETC-v2 imports use a self-describing envelope. Every other byte sequence is
+ * decoded by the original 0.1 decoder unchanged, preserving old Jazzer corpus
+ * meaning and therefore the frozen primitive baseline.
+ */
+function decodeMethodInvocation(buffer, method, hooks = {}) {
+  const envelope = decodeEnvelope(buffer, hooks);
+  if (envelope) {
+    assertArity(envelope.arguments, method);
+    return { ...envelope, encoding: "etc-v2-envelope" };
+  }
+  return {
+    receiver: undefined,
+    arguments: decodeMethodInput(buffer, method),
+    externalInput: null,
+    encoding: "legacy-typed-bytes",
+  };
+}
+
+function encodeMethodInvocation(testCase, method, hooks = {}) {
+  const raw = encodeEnvelope(testCase);
+  // Reject a seed before it reaches Jazzer if the declared receiver/callable
+  // plan cannot be materialized by this harness.
+  const decoded = decodeMethodInvocation(raw, method, hooks);
+  if (decoded.receiver !== undefined && typeof hooks.invokeCase !== "function") {
+    throw new Error("receiver_requires_invokeCase: harness.invokeCase({ receiver, arguments }) is required");
+  }
+  return raw;
+}
+
+function assertArity(argumentsList, method) {
+  const parameters = method.parameters ?? method.parameterTypes.map((type, index) => ({ index, type, rest: false }));
+  if (argumentsList.length !== parameters.length) {
+    throw new Error(`ETC v2 envelope expected ${parameters.length} arguments, got ${argumentsList.length}`);
+  }
 }
 
 function decodeType(cursor, rawType) {
@@ -323,4 +362,4 @@ function splitTopLevel(value, separator) {
   return result.filter(Boolean);
 }
 
-module.exports = { decodeMethodInput, encodeMethodInput };
+module.exports = { decodeMethodInput, decodeMethodInvocation, encodeMethodInput, encodeMethodInvocation };

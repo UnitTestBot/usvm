@@ -1,0 +1,19 @@
+// Adapter-local bridge to the common Kotlin validator. The integration agent
+// owns permanent launcher wiring; this init script deliberately adds no source
+// or build-system changes outside jazzer-adapter/**.
+gradle.projectsEvaluated {
+    def target = gradle.rootProject.findProject(":usvm-ts-pbt")
+    if (target != null) target.with {
+        tasks.register("validateJazzerRawRun", JavaExec) {
+            dependsOn(tasks.named("classes"))
+            classpath = sourceSets.main.runtimeClasspath
+            mainClass = "org.usvm.ts.pbt.external.ArtifactContractCliKt"
+            workingDir = gradle.rootProject.projectDir
+            args(
+                "validate",
+                System.getProperty("jazzerArtifact", "raw-run"),
+                System.getProperty("jazzerArtifactPath", System.getProperty("jazzerRawRun")),
+            )
+        }
+    }
+}

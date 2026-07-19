@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 2,
+  "generator": "jazzer-adapter-test",
+  "methods": [
+    {
+      "methodId": "fixtures/receiver.ts::Model::exercise/4",
+      "signature": "Model.exercise(a: unknown, b: unknown, c: unknown, d: unknown): unknown",
+      "projectName": "jazzer-adapter-fixture",
+      "fileName": "fixtures/receiver.ts",
+      "namespace": null,
+      "className": "Model",
+      "methodName": "exercise",
+      "arity": 4,
+      "parameterTypes": ["unknown", "unknown", "unknown", "unknown"],
+      "parameters": [
+        { "index": 0, "name": "a", "type": "unknown", "optional": false, "rest": false },
+        { "index": 1, "name": "b", "type": "unknown", "optional": false, "rest": false },
+        { "index": 2, "name": "c", "type": "unknown", "optional": false, "rest": false },
+        { "index": 3, "name": "d", "type": "unknown", "optional": false, "rest": false }
+      ],
+      "entryKind": "instance",
+      "branches": []
+    }
+  ]
+}
