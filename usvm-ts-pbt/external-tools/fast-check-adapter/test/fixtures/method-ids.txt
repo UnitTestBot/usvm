@@ -1,0 +1,1 @@
+src/fixture.ts::%dflt::classify/2

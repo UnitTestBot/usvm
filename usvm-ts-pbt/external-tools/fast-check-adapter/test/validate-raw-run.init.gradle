@@ -1,0 +1,11 @@
+gradle.projectsEvaluated {
+    def module = gradle.rootProject.findProject(':usvm-ts-pbt')
+    if (module != null) {
+        module.tasks.register('validateFastCheckRawRun', JavaExec) {
+            dependsOn module.tasks.named('classes')
+            classpath = module.sourceSets.main.runtimeClasspath
+            mainClass = 'org.usvm.ts.pbt.external.ArtifactContractCliKt'
+            args 'validate', 'raw-run', module.findProperty('fastCheckRawRun')
+        }
+    }
+}

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 2,
+  "runId": "fast-check-golden-42",
+  "adapter": {
+    "name": "fast-check",
+    "version": "4.9.0",
+    "commit": "0d3c2547dce556f72413607849377530d18ea283"
+  },
+  "seed": 42,
+  "budgetMs": 10000,
+  "exportReplayGraceMs": 1000,
+  "explorationDeadlineMs": 9000,
+  "hardResultDeadlineMs": 10000,
+  "cacheMode": "cold",
+  "versions": {
+    "node": "test-runtime",
+    "fastCheck": "4.9.0"
+  },
+  "commits": {
+    "usvm": "5a558721",
+    "fastCheck": "0d3c2547dce556f72413607849377530d18ea283"
+  },
+  "flags": {
+    "fastCheckRunsPerMethod": 16,
+    "logCapBytes": 4096
+  }
+}

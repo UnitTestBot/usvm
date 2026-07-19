@@ -17,9 +17,19 @@ const primitiveArbitrary = fc.oneof(
   fc.constant(null),
   fc.constant(undefined),
 );
+const sparsePrimitiveArrayArbitrary = fc
+  .array(fc.option(primitiveArbitrary, { nil: undefined }), { maxLength: 8 })
+  .map((entries) => {
+    const result = [...entries];
+    for (let index = 0; index < entries.length; index += 1) {
+      if (entries[index] === undefined) delete result[index];
+    }
+    return result;
+  });
 const unknownArbitrary = fc.oneof(
   primitiveArbitrary,
   fc.array(primitiveArbitrary, { maxLength: 6 }),
+  sparsePrimitiveArrayArbitrary,
   fc.dictionary(fc.string({ maxLength: 12 }), primitiveArbitrary, { maxKeys: 6 }),
 );
 
@@ -52,6 +62,34 @@ export function arbitraryForType(rawType) {
   const arrayMatch = /^(?:Array|ReadonlyArray)<(.+)>$/.exec(type);
   if (arrayMatch) return fc.array(arbitraryForType(arrayMatch[1]), { maxLength: 8 });
 
+  const mapMatch = /^(?:Map|ReadonlyMap)<(.+)>$/.exec(type);
+  if (mapMatch) {
+    const entries = splitTopLevel(mapMatch[1], ",");
+    if (entries.length === 2) {
+      return fc.array(fc.tuple(arbitraryForType(entries[0]), arbitraryForType(entries[1])), { maxLength: 6 })
+        .map((values) => new Map(values));
+    }
+  }
+  const setMatch = /^(?:Set|ReadonlySet)<(.+)>$/.exec(type);
+  if (setMatch) {
+    return fc.array(arbitraryForType(setMatch[1]), { maxLength: 6 }).map((values) => new Set(values));
+  }
+
+  const recordMatch = /^Record<string,\s*(.+)>$/.exec(type);
+  if (recordMatch) {
+    return fc.dictionary(fc.string({ maxLength: 12 }), arbitraryForType(recordMatch[1]), { maxKeys: 6 });
+  }
+
+  if (type.startsWith("{") && type.endsWith("}")) {
+    const fields = splitObjectFields(type.slice(1, -1));
+    if (fields !== null) {
+      return fc.record(
+        Object.fromEntries(fields.map((field) => [field.name, arbitraryForType(field.type)])),
+        { requiredKeys: fields.filter((field) => !field.optional).map((field) => field.name) },
+      );
+    }
+  }
+
   if (type.startsWith("[") && type.endsWith("]")) {
     const items = splitTopLevel(type.slice(1, -1), ",");
     return fc.tuple(...items.map(arbitraryForType));
@@ -73,10 +111,31 @@ export function arbitraryForType(rawType) {
     case "any":
     case "unknown": return unknownArbitrary;
     default:
+      if (isCallableType(type)) {
+        // The generated function can still be executed by a harness, but ETC
+        // will classify it as unrepresentable unless a callable reference is
+        // supplied explicitly by the harness.
+        return fc.func(unknownArbitrary);
+      }
       // Class/reference layouts need a user-provided schema or harness. A
       // plain record is the least-assumptive automatically replayable seed.
       return fc.dictionary(fc.string({ maxLength: 12 }), primitiveArbitrary, { maxKeys: 6 });
   }
+}
+
+function isCallableType(type) {
+  return type === "Function" || type.includes("=>") || /^\([^)]*\)\s*=>/u.test(type);
+}
+
+function splitObjectFields(value) {
+  const chunks = splitTopLevel(value.replaceAll(";", ","), ",");
+  const fields = [];
+  for (const chunk of chunks) {
+    const match = /^([A-Za-z_$][\w$]*)(\?)?\s*:\s*(.+)$/u.exec(chunk);
+    if (match === null) return null;
+    fields.push({ name: match[1], optional: match[2] === "?", type: match[3] });
+  }
+  return fields;
 }
 
 function stripOuterParentheses(value) {
@@ -96,6 +155,7 @@ function splitTopLevel(value, separator) {
   let angle = 0;
   let square = 0;
   let round = 0;
+  let curly = 0;
   let quoted = false;
   let escaped = false;
   for (let index = 0; index < value.length; index += 1) {
@@ -108,12 +168,14 @@ function splitTopLevel(value, separator) {
     }
     if (char === '"') quoted = true;
     else if (char === "<") angle += 1;
-    else if (char === ">") angle -= 1;
+    else if (char === ">" && angle > 0) angle -= 1;
     else if (char === "[") square += 1;
     else if (char === "]") square -= 1;
     else if (char === "(") round += 1;
     else if (char === ")") round -= 1;
-    else if (char === separator && angle === 0 && square === 0 && round === 0) {
+    else if (char === "{") curly += 1;
+    else if (char === "}") curly -= 1;
+    else if (char === separator && angle === 0 && square === 0 && round === 0 && curly === 0) {
       result.push(value.slice(start, index).trim());
       start = index + 1;
     }
