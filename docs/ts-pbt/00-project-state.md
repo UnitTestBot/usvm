@@ -1,8 +1,15 @@
-# Project state: hybrid PBT + symbolic execution for TS (handoff document)
+# Project state: hybrid PBT + symbolic execution for TS (historical snapshot)
 
 > Last updated: 2026-07-08. **Read this first** when resuming work.
 > Context: prototype for the PhD "Гибридные методы анализа динамических
 > языков программирования" and the accompanying paper.
+
+> **2026-07-22 handoff:** this file preserves the state before the agent
+> roadmap was integrated. The current branch, build instructions, measured
+> checkpoint and continuation order are documented in
+> [`14-continuation-guide.md`](14-continuation-guide.md). New work must start
+> there. The active branch is `caelmbleidd/ts-pbt-roadmap-integration`; all
+> state required for continuation is committed to it.
 
 ## 1. Branch map (all pushed to origin)
 
@@ -140,6 +147,12 @@ Backlog:
   stop/collect race, first corpus numbers.
 - `docs/ts-pbt/04-jacodb-native-parser-compat.md` — ts-frontend compat,
   truthiness-idiom ambiguity, how to run with the native parser.
+- `docs/ts-pbt/05-real-world-problems.md` — measured failure taxonomy from
+  real projects (historical measurements, still useful for diagnosis).
+- `docs/ts-pbt/13-agent-implementation-roadmap.md` — complete task graph and
+  acceptance criteria used for the integration wave.
+- `docs/ts-pbt/14-continuation-guide.md` — **current source of truth**:
+  checkout, toolchain, verification, results and remaining work.
 - `docs/ts-pbt/paper/` (branch `pbt_article`) — the paper; numbers in
   Table 1 come from `benchmarks/results/maths2-*.json`-style runs.
 
