@@ -98,7 +98,7 @@ open class UContext<USizeSort : USort>(
         return nullRef
     }
 
-    val addressCounter = UAddressCounter()
+    open val addressCounter = UAddressCounter()
 
     fun mkAddressCounter(): UAddressCounter {
         return addressCounter

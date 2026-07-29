@@ -93,13 +93,13 @@ interface UWritableMemory<Type> : UReadOnlyMemory<Type> {
 }
 
 @Suppress("MemberVisibilityCanBePrivate")
-class UMemory<Type, Method>(
-    internal val ctx: UContext<*>,
+open class UMemory<Type, Method>(
+    val ctx: UContext<*>,
     override var ownership: MutabilityOwnership,
     override val types: UTypeConstraints<Type>,
     override val stack: URegistersStack = URegistersStack(),
-    private val mocks: UIndexedMocker<Method> = UIndexedMocker(),
-    private var regions: UPersistentHashMap<UMemoryRegionId<*, *>, UMemoryRegion<*, *>> = persistentHashMapOf(),
+    val mocks: UIndexedMocker<Method> = UIndexedMocker(),
+    var regions: UPersistentHashMap<UMemoryRegionId<*, *>, UMemoryRegion<*, *>> = persistentHashMapOf(),
 ) : UWritableMemory<Type>, UOwnedMergeable<UMemory<Type, Method>, MergeGuard> {
 
     override val mocker: UMocker<Method>
@@ -155,7 +155,7 @@ class UMemory<Type, Method>(
 
     override fun nullRef(): UHeapRef = ctx.nullRef
 
-    fun clone(
+    open fun clone(
         typeConstraints: UTypeConstraints<Type>,
         thisOwnership: MutabilityOwnership,
         cloneOwnership: MutabilityOwnership,
