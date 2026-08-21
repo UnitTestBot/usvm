@@ -5,6 +5,7 @@ import io.ksmt.utils.cast
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsAddExpr
 import org.jacodb.ets.model.EtsAndExpr
+import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayAccess
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsAwaitExpr
@@ -47,6 +48,7 @@ import org.jacodb.ets.model.EtsNotExpr
 import org.jacodb.ets.model.EtsNullConstant
 import org.jacodb.ets.model.EtsNullishCoalescingExpr
 import org.jacodb.ets.model.EtsNumberConstant
+import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsOrExpr
 import org.jacodb.ets.model.EtsParameterRef
 import org.jacodb.ets.model.EtsPostDecExpr
@@ -870,6 +872,10 @@ class TsExprResolver(
     override fun visit(expr: EtsStaticCallExpr): UExpr<*>? = handleStaticCall(expr)
 
     override fun visit(expr: EtsPtrCallExpr): UExpr<out USort>? = with(ctx) {
+        if (expr.isBuiltInNumberConverter()) {
+            return handleNumberConverter(expr.args)
+        }
+
         when (val result = scope.calcOnState { methodResult }) {
             is TsMethodResult.Success -> {
                 scope.doWithState { methodResult = TsMethodResult.NoCall }
@@ -937,6 +943,24 @@ class TsExprResolver(
                 null
             }
         }
+    }
+
+    private fun EtsPtrCallExpr.isBuiltInNumberConverter(): Boolean {
+        val hasBuiltInCallSite = callee.name == "Number" &&
+            callee.enclosingClass == EtsClassSignature.UNKNOWN &&
+            ptr.name == "Number"
+        if (!hasBuiltInCallSite) {
+            return false
+        }
+
+        val signature = (ptr.type as? EtsFunctionType)?.signature ?: return false
+        val parameter = signature.parameters.singleOrNull() ?: return false
+        return signature.enclosingClass == EtsClassSignature.UNKNOWN &&
+            signature.name.isEmpty() &&
+            signature.returnType == EtsNumberType &&
+            parameter.type == EtsAnyType &&
+            parameter.isOptional &&
+            !parameter.isRest
     }
 
     // endregion

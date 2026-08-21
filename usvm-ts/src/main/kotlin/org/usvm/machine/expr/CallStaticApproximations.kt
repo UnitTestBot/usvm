@@ -1,6 +1,7 @@
 package org.usvm.machine.expr
 
 import org.jacodb.ets.model.EtsStaticCallExpr
+import org.jacodb.ets.model.EtsValue
 import org.usvm.UExpr
 import org.usvm.machine.expr.TsExprApproximationResult.Companion.from
 
@@ -14,7 +15,7 @@ internal fun TsExprResolver.tryApproximateStaticCall(
 
     // Handle `Number(...)` calls
     if (expr.callee.name == "Number") {
-        return from(handleNumberConverter(expr))
+        return from(handleNumberConverter(expr.args))
     }
 
     // Handle `Boolean(...)` calls
@@ -33,11 +34,11 @@ private fun TsExprResolver.handleR(): UExpr<*> = with(ctx) {
     mockSymbol
 }
 
-private fun TsExprResolver.handleNumberConverter(expr: EtsStaticCallExpr): UExpr<*>? = with(ctx) {
-    check(expr.args.size == 1) {
-        "Number() should have exactly one argument, but got ${expr.args.size}"
+internal fun TsExprResolver.handleNumberConverter(args: List<EtsValue>): UExpr<*>? = with(ctx) {
+    check(args.size == 1) {
+        "Number() should have exactly one argument, but got ${args.size}"
     }
-    val arg = resolve(expr.args.single()) ?: return null
+    val arg = resolve(args.single()) ?: return null
     return mkNumericExpr(arg, scope)
 }
 

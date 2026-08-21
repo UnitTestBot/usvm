@@ -14,6 +14,15 @@ class Numeric : TsMethodTestRunner() {
     override val scene: EtsScene = loadScene(tsPath)
 
     @Test
+    fun `test custom Number is not handled as built-in converter`() {
+        val method = getMethod("customNumber")
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { r -> r eq 42 },
+        )
+    }
+
+    @Test
     fun `test numberToNumber`() {
         val method = getMethod("numberToNumber")
         // ```ts

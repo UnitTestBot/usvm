@@ -2,6 +2,11 @@
 // noinspection JSUnusedGlobalSymbols
 
 class Numeric {
+    customNumber(): number {
+        const Number = (value: number): number => value + 10;
+        return Number(32);
+    }
+
     numberToNumber(x: number): number {
         if (x != x) return Number(x); // NaN
         if (x == 0) return Number(x); // 0
