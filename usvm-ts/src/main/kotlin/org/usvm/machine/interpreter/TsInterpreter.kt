@@ -690,7 +690,12 @@ class TsInterpreter(
     }
 
     private fun visitNopStmt(scope: TsStepScope, stmt: EtsNopStmt) {
-        // Do nothing
+        val successors = graph.successors(stmt).toList()
+        when (successors.size) {
+            0 -> scope.doWithState { returnValue(ctx.mkUndefinedValue()) }
+            1 -> scope.doWithState { newStmt(successors.single()) }
+            else -> error("A NOP statement must not have multiple successors")
+        }
     }
 
     private fun exprResolverWithScope(scope: TsStepScope): TsExprResolver =
