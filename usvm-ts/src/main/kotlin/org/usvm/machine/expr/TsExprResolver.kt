@@ -1,5 +1,6 @@
 package org.usvm.machine.expr
 
+import io.ksmt.expr.KFp64Value
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import mu.KotlinLogging
@@ -79,6 +80,7 @@ import org.jacodb.ets.model.EtsYieldExpr
 import org.jacodb.ets.utils.ANONYMOUS_METHOD_PREFIX
 import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
 import org.jacodb.ets.utils.getDeclaredLocals
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.UIteExpr
@@ -567,7 +569,37 @@ class TsExprResolver(
     // region BINARY
 
     override fun visit(expr: EtsAddExpr): UExpr<out USort>? {
+        if (expr.type == EtsStringType) {
+            return resolveAfterResolved(expr.left, expr.right) { lhs, rhs ->
+                val lhsString = concreteStringValue(lhs)
+                    ?: error("Symbolic string concatenation is not supported for left operand: $lhs")
+                val rhsString = concreteStringValue(rhs)
+                    ?: error("Symbolic string concatenation is not supported for right operand: $rhs")
+                ctx.mkStringConstant(lhsString + rhsString, scope)
+            }
+        }
         return resolveBinaryOperator(TsBinaryOperator.Add, expr)
+    }
+
+    private fun concreteStringValue(value: UExpr<*>): String? = with(ctx) {
+        when {
+            value == trueExpr -> "true"
+            value == falseExpr -> "false"
+            value == mkTsNullValue() -> "null"
+            value == mkUndefinedValue() -> "undefined"
+            value is KFp64Value -> value.value.toSupportedString()
+            value is UConcreteHeapRef -> getStringConstantValue(value)
+            else -> null
+        }
+    }
+
+    private fun Double.toSupportedString(): String? = when {
+        isNaN() -> "NaN"
+        this == Double.POSITIVE_INFINITY -> "Infinity"
+        this == Double.NEGATIVE_INFINITY -> "-Infinity"
+        this == 0.0 -> "0"
+        this == toLong().toDouble() -> toLong().toString()
+        else -> null
     }
 
     override fun visit(expr: EtsSubExpr): UExpr<out USort>? {

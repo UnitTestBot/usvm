@@ -2,6 +2,10 @@
 // noinspection JSUnusedGlobalSymbols
 
 class Add {
+    addStringAndNumberConstants(): string {
+        return "timeout:" + 5000 + "ms";
+    }
+
     addBoolAndBool(a: boolean, b: boolean): number {
         let res = a + b;
 

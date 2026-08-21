@@ -16,6 +16,15 @@ class Add : TsMethodTestRunner() {
     override val scene: EtsScene = loadScene(tsPath)
 
     @Test
+    fun `string + number constants`() {
+        val method = getMethod("addStringAndNumberConstants")
+        discoverProperties<TsTestValue.TsString>(
+            method = method,
+            { r -> r.value == "timeout:5000ms" },
+        )
+    }
+
+    @Test
     fun `bool + bool`() {
         val method = getMethod("addBoolAndBool")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
