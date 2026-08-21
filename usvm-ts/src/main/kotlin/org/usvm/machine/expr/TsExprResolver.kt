@@ -249,23 +249,44 @@ class TsExprResolver(
     }
 
     override fun visit(expr: EtsPostIncExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+        return resolveUpdateExpression(expr.arg, increment = true, returnOldValue = true)
     }
 
     override fun visit(expr: EtsPostDecExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+        return resolveUpdateExpression(expr.arg, increment = false, returnOldValue = true)
     }
 
     override fun visit(expr: EtsPreIncExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+        return resolveUpdateExpression(expr.arg, increment = true, returnOldValue = false)
     }
 
     override fun visit(expr: EtsPreDecExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+        return resolveUpdateExpression(expr.arg, increment = false, returnOldValue = false)
+    }
+
+    private fun resolveUpdateExpression(
+        target: EtsEntity,
+        increment: Boolean,
+        returnOldValue: Boolean,
+    ): UExpr<out USort>? = with(ctx) {
+        val oldValue = resolve(target) ?: return null
+        val oldNumericValue = mkNumericExpr(oldValue, scope)
+        val one = mkFp64(1.0)
+        val updatedValue = if (increment) {
+            mkFpAddExpr(fpRoundingModeSortDefaultValue(), oldNumericValue, one)
+        } else {
+            mkFpSubExpr(fpRoundingModeSortDefaultValue(), oldNumericValue, one)
+        }
+
+        when (target) {
+            is EtsLocal -> handleAssignToLocal(target, updatedValue)
+            is EtsArrayAccess -> handleAssignToArrayIndex(target, updatedValue)
+            is EtsInstanceFieldRef -> handleAssignToInstanceField(target, updatedValue)
+            is EtsStaticFieldRef -> handleAssignToStaticField(target, updatedValue)
+            else -> error("Increment and decrement require an assignable target, got: $target")
+        } ?: return null
+
+        if (returnOldValue) oldNumericValue else updatedValue
     }
 
     override fun visit(expr: EtsBitNotExpr): UExpr<out USort>? = with(ctx) {
