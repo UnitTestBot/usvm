@@ -10,6 +10,7 @@ import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsEnumValueType
 import org.jacodb.ets.model.EtsGenericType
 import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsLexicalEnvType
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsNumberLiteralType
@@ -147,6 +148,7 @@ class TsContext(
         is EtsUndefinedType -> addressSort
         is EtsUnionType -> unresolvedSort
         is EtsRefType -> addressSort
+        is EtsLexicalEnvType -> addressSort
         is EtsAnyType -> unresolvedSort
         is EtsUnknownType -> unresolvedSort
         is EtsAliasType -> typeToSort(type.originalType)

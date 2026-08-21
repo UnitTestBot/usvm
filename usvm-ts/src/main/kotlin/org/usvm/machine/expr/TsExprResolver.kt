@@ -78,6 +78,7 @@ import org.jacodb.ets.utils.ANONYMOUS_METHOD_PREFIX
 import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
 import org.jacodb.ets.utils.getDeclaredLocals
 import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.UIteExpr
 import org.usvm.USort
 import org.usvm.api.allocateConcreteRef
@@ -918,7 +919,10 @@ class TsExprResolver(
                     val callee = scope.calcOnState {
                         associatedFunction[ptr] ?: error("No associated methods for ptr: $ptr")
                     }
-                    val resolvedArgs = expr.args.map { resolve(it) ?: return null }
+                    val resolvedArgs = buildList {
+                        callee.closure?.let(::add)
+                        expr.args.mapTo(this) { resolve(it) ?: return null }
+                    }
                     val concreteCall = TsConcreteMethodCallStmt(
                         callee = callee.method,
                         instance = callee.thisInstance ?: ctx.mkUndefinedValue(),
@@ -1068,17 +1072,22 @@ class TsSimpleValueResolver(
             "Expected EtsLocal, EtsThis, or EtsParameterRef, but got ${local::class.java}: $local"
         }
 
+        val currentMethod = scope.calcOnState { lastEnteredMethod }
+
         // Handle closures
         if (local is EtsLocal && local.name.startsWith("%closures")) {
-            // TODO: add comments
-            val existingClosures = scope.calcOnState { closureObject[local.name] }
-            if (existingClosures != null) {
-                return existingClosures
+            val idx = getLocalIdx(local, currentMethod)
+            if (idx != null) {
+                val initializedSort = scope.calcOnState { getSortForLocal(idx) }
+                if (initializedSort != null) {
+                    val lValue = mkRegisterStackLValue(initializedSort, idx)
+                    return scope.calcOnState { memory.read(lValue) }
+                }
             }
+
             val type = local.type
             check(type is EtsLexicalEnvType)
             val obj = allocateConcreteRef()
-            // TODO: consider 'types.allocate'
             for (captured in type.closures) {
                 val resolvedCaptured = resolveLocal(captured) ?: return null
                 val lValue = mkFieldLValue(resolvedCaptured.sort, obj, captured.name)
@@ -1086,13 +1095,8 @@ class TsSimpleValueResolver(
                     memory.write(lValue, resolvedCaptured.cast(), guard = trueExpr)
                 }
             }
-            scope.doWithState {
-                setClosureObject(local.name, obj)
-            }
             return obj
         }
-
-        val currentMethod = scope.calcOnState { lastEnteredMethod }
 
         // Locals in %dflt method are a little bit *special*...
         if (currentMethod.name == DEFAULT_ARK_METHOD_NAME) {
@@ -1201,7 +1205,16 @@ class TsSimpleValueResolver(
                 return null
             }
             val method = methods.single()
-            val ref = scope.calcOnState { getMethodRef(method) }
+            val closureParameter = method.parameters
+                .firstOrNull()
+                ?.takeIf { it.type is EtsLexicalEnvType }
+            val closure: UHeapRef? = if (closureParameter != null) {
+                val resolved = resolveLocal(EtsLocal(closureParameter.name, closureParameter.type)) ?: return null
+                resolved.asExpr(ctx.addressSort)
+            } else {
+                null
+            }
+            val ref = scope.calcOnState { getMethodRef(method, closure = closure) }
             return ref
         }
 
