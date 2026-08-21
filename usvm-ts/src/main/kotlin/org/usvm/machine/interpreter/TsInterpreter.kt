@@ -575,6 +575,10 @@ class TsInterpreter(
                 }
             }
 
+            is EtsStaticFieldRef -> {
+                exprResolver.handleAssignToStaticField(lhv, expr)
+            }
+
             else -> {
                 error("LHV of type ${lhv::class.java} is not supported in %dflt::%dflt: $lhv")
             }

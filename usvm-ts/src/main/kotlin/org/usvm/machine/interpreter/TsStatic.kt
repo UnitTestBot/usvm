@@ -4,6 +4,8 @@ import mu.KotlinLogging
 import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
+import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
 import org.jacodb.ets.utils.STATIC_INIT_METHOD_NAME
 import org.usvm.UBoolSort
 import org.usvm.UHeapRef
@@ -52,6 +54,9 @@ internal fun TsContext.ensureStaticsInitialized(
     clazz: EtsClass,
 ): Unit? = scope.calcOnState {
     val initializer = clazz.methods.singleOrNull { it.name == STATIC_INIT_METHOD_NAME }
+        ?: clazz.takeIf { it.name == DEFAULT_ARK_CLASS_NAME }
+            ?.methods
+            ?.singleOrNull { it.name == DEFAULT_ARK_METHOD_NAME }
     if (initializer == null) {
         return@calcOnState Unit
     }

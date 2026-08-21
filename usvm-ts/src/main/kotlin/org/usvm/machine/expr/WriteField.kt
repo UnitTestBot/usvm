@@ -12,6 +12,7 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
+import org.usvm.machine.interpreter.ensureStaticsInitialized
 import org.usvm.machine.types.EtsAuxiliaryType
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.TsResolutionResult
@@ -134,11 +135,11 @@ fun TsContext.assignToStaticField(
         it.signature == field.enclosingClass
     } ?: return null
 
-    val instance = scope.calcOnState { getStaticInstance(clazz) }
+    // Static initialization precedes the first read or write. In particular,
+    // a module initializer must not overwrite a value written by the caller.
+    ensureStaticsInitialized(scope, clazz) ?: return null
 
-    // TODO: initialize the static field first
-    //  Note: Since we are assigning to a static field, we can omit its initialization,
-    //        if it does not have any side effects.
+    val instance = scope.calcOnState { getStaticInstance(clazz) }
 
     val sort = run {
         val fields = clazz.fields.filter { it.name == field.name }
