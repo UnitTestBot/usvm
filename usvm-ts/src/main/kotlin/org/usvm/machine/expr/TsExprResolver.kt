@@ -1047,8 +1047,9 @@ class TsExprResolver(
                 TODO("Multidimensional arrays are not supported yet, https://github.com/UnitTestBot/usvm/issues/287")
             }
 
-            val address = memory.allocConcrete(arrayType)
-            memory.initializeArrayLength(address, arrayType, sizeSort, bvSize)
+            val descriptor = arrayDescriptorOf(arrayType)
+            val address = memory.allocConcrete(descriptor)
+            memory.initializeArrayLength(address, descriptor, sizeSort, bvSize)
 
             address
         }

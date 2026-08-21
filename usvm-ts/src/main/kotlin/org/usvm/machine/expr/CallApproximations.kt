@@ -485,18 +485,20 @@ private fun TsExprResolver.handleArrayFill(
     }
 
     scope.calcOnState {
+        val descriptor = arrayDescriptorOf(arrayType)
+
         // Calculate the length of the range to fill
         val fillLength = mkBvSubExpr(endBv, startBv)
 
         // TODO: check that `fillLength` is less than `ARRAY_FILL_MAX_SIZE`
 
         // Allocate a temporary array to hold the filled values
-        val tempArray = memory.allocConcrete(arrayType)
+        val tempArray = memory.allocConcrete(descriptor)
 
         // Fill the temporary array with the specified `value`
         memory.initializeArray(
             tempArray,
-            arrayType,
+            descriptor,
             elementSort,
             sizeSort,
             (0 until ARRAY_FILL_MAX_SIZE).asSequence().map { value.asExpr(elementSort) }
@@ -506,7 +508,7 @@ private fun TsExprResolver.handleArrayFill(
         memory.memcpy(
             srcRef = tempArray,
             dstRef = array,
-            type = arrayType,
+            type = descriptor,
             elementSort = elementSort,
             fromSrc = mkBv(0),
             fromDst = startBv,
@@ -777,17 +779,19 @@ private fun TsExprResolver.handleArraySlice(
     }
 
     scope.calcOnState {
+        val descriptor = arrayDescriptorOf(arrayType)
+
         // Calculate the new length of the sliced array
         val newLength = mkBvSubExpr(endBv, startBv)
 
         // Allocate a new array for the slice
-        val slicedArray = memory.allocConcrete(arrayType)
+        val slicedArray = memory.allocConcrete(descriptor)
 
         // Copy the specified range from the original array to the new array
         memory.memcpy(
             srcRef = array,
             dstRef = slicedArray,
-            type = arrayType,
+            type = descriptor,
             elementSort = elementSort,
             fromSrc = startBv,
             fromDst = mkBv(0),
@@ -830,8 +834,10 @@ private fun TsExprResolver.handleArrayConcat(
     val args = expr.args.map { resolve(it) ?: return null }
 
     scope.calcOnState {
+        val descriptor = arrayDescriptorOf(arrayType)
+
         // Allocate a new array for the concatenated result
-        val resultArray = memory.allocConcrete(arrayType)
+        val resultArray = memory.allocConcrete(descriptor)
 
         // Read the length of the original array
         val originalLengthLValue = mkArrayLengthLValue(array, arrayType)
@@ -841,7 +847,7 @@ private fun TsExprResolver.handleArrayConcat(
         memory.memcpy(
             srcRef = array,
             dstRef = resultArray,
-            type = arrayType,
+            type = descriptor,
             elementSort = elementSort,
             fromSrc = mkBv(0),
             fromDst = mkBv(0),
@@ -863,7 +869,7 @@ private fun TsExprResolver.handleArrayConcat(
                     memory.memcpy(
                         srcRef = arg.asExpr(addressSort),
                         dstRef = resultArray,
-                        type = arrayType,
+                        type = descriptor,
                         elementSort = elementSort,
                         fromSrc = mkBv(0),
                         fromDst = totalLength,
@@ -1037,8 +1043,10 @@ private fun TsExprResolver.handleArrayReverse(
     }
 
     scope.calcOnState {
+        val descriptor = arrayDescriptorOf(arrayType)
+
         // Allocate a new array to represent the reversed result
-        val reversedArray = memory.allocConcrete(arrayType)
+        val reversedArray = memory.allocConcrete(descriptor)
 
         // Read the length of the original array
         val lengthLValue = mkArrayLengthLValue(array, arrayType)
@@ -1047,7 +1055,7 @@ private fun TsExprResolver.handleArrayReverse(
         // Initialize the reversed array with symbolic elements
         memory.initializeArray(
             reversedArray,
-            arrayType,
+            descriptor,
             elementSort,
             sizeSort,
             (0 until ARRAY_REVERSE_MAX_SIZE).asSequence().map { index ->
@@ -1073,7 +1081,7 @@ private fun TsExprResolver.handleArrayReverse(
         memory.memcpy(
             srcRef = reversedArray,
             dstRef = array,
-            type = arrayType,
+            type = descriptor,
             elementSort = elementSort,
             fromSrc = mkBv(0),
             fromDst = mkBv(0),
