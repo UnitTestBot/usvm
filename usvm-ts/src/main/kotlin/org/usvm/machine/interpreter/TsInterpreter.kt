@@ -313,28 +313,30 @@ class TsInterpreter(
 
         // TODO: observer
 
-        if (stmt.callee.signature.enclosingClass.name == "Log") {
-            mockMethodCall(scope, stmt.callee.signature)
+        val callee = stmt.callee.executableOverloadImplementation()
+
+        if (callee.signature.enclosingClass.name == "Log") {
+            mockMethodCall(scope, callee.signature)
             scope.doWithState { newStmt(stmt.returnSite) }
             return
         }
 
-        val entryPoint = graph.entryPoints(stmt.callee).singleOrNull()
+        val entryPoint = graph.entryPoints(callee).singleOrNull()
         if (entryPoint == null) {
-            // logger.warn { "No entry point for method: ${stmt.callee}, mocking the call" }
+            // logger.warn { "No entry point for method: $callee, mocking the call" }
             // If the method doesn't have entry points,
             // we go through it, we just mock the call
-            mockMethodCall(scope, stmt.callee.signature)
+            mockMethodCall(scope, callee.signature)
             scope.doWithState { newStmt(stmt.returnSite) }
             return
         }
 
         scope.doWithState {
-            registerCallee(stmt.returnSite, stmt.callee.cfg)
+            registerCallee(stmt.returnSite, callee.cfg)
 
             val args = mutableListOf<UExpr<*>>()
             val numActual = stmt.args.size
-            val numFormal = stmt.callee.parameters.size
+            val numFormal = callee.parameters.size
 
             args += stmt.instance
 
@@ -352,7 +354,7 @@ class TsInterpreter(
             //   g() -> g(undefined, undefined)
             //   g(1, 2, 3) -> g(1, 2)
 
-            if (stmt.callee.parameters.isNotEmpty() && stmt.callee.parameters.last().isRest) {
+            if (callee.parameters.isNotEmpty() && callee.parameters.last().isRest) {
                 // vararg call
 
                 // first n-1 args are normal
@@ -402,10 +404,24 @@ class TsInterpreter(
 
             // TODO: re-check push sorts for arguments
             pushSortsForActualArguments(args)
-            callStack.push(stmt.callee, stmt.returnSite)
-            memory.stack.push(args.toTypedArray(), stmt.callee.localsCount)
+            callStack.push(callee, stmt.returnSite)
+            memory.stack.push(args.toTypedArray(), callee.localsCount)
             newStmt(entryPoint)
         }
+    }
+
+    private fun EtsMethod.executableOverloadImplementation(): EtsMethod {
+        if (cfg.stmts.isNotEmpty()) return this
+
+        return enclosingClass
+            ?.methods
+            ?.filter { candidate ->
+                candidate.name == name &&
+                    candidate.isStatic == isStatic &&
+                    candidate.cfg.stmts.isNotEmpty()
+            }
+            ?.singleOrNull()
+            ?: this
     }
 
     private fun visitIfStmt(scope: TsStepScope, stmt: EtsIfStmt) {
