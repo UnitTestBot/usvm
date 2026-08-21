@@ -182,16 +182,10 @@ class TsTypeSystem(
         }
 
         if (unwrappedType is EtsAuxiliaryType) {
-            if (unwrappedSupertype !is EtsClassType) return false // TODO arrays?
-
-            val superClasses = hierarchy.classesForType(unwrappedSupertype)
-            if (superClasses.isEmpty()) return false // TODO log
-
-            return superClasses.any { cls ->
-                val properties = cls.getAllPropertiesCombined(hierarchy)
-
-                return properties.containsAll(unwrappedType.properties)
-            }
+            // An auxiliary type denotes a structural requirement, not a concrete
+            // nominal class. A class can satisfy that requirement (handled above),
+            // but the requirement itself is not a subtype of that class.
+            return false
         }
 
         if (unwrappedSupertype is EtsClassType || unwrappedSupertype is EtsUnclearRefType) {
