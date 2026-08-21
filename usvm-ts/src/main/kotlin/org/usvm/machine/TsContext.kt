@@ -5,16 +5,19 @@ import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsAliasType
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
+import org.jacodb.ets.model.EtsBooleanLiteralType
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsEnumValueType
 import org.jacodb.ets.model.EtsGenericType
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsNullType
+import org.jacodb.ets.model.EtsNumberLiteralType
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsParameterRef
 import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.model.EtsStringLiteralType
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsThis
 import org.jacodb.ets.model.EtsType
@@ -134,8 +137,11 @@ class TsContext(
         }
 
     fun typeToSort(type: EtsType): USort = when (type) {
+        is EtsBooleanLiteralType -> boolSort
         is EtsBooleanType -> boolSort
+        is EtsNumberLiteralType -> fp64Sort
         is EtsNumberType -> fp64Sort
+        is EtsStringLiteralType -> addressSort
         is EtsStringType -> addressSort
         is EtsNullType -> addressSort
         is EtsUndefinedType -> addressSort
