@@ -74,11 +74,11 @@ import org.usvm.targets.UTargetsSet
 import org.usvm.types.TypesResult
 import org.usvm.types.first
 import org.usvm.types.single
+import org.usvm.util.executableOverloadImplementation
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
-import org.usvm.util.executableOverloadImplementation
 import org.usvm.util.resolveEtsMethods
 import org.usvm.util.type
 import org.usvm.utils.ensureSat

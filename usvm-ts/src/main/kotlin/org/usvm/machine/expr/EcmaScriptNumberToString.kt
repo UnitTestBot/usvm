@@ -13,10 +13,22 @@ private const val ROUNDING_NEIGHBORHOOD = 2
 
 /** Formats a concrete IEEE-754 value according to ECMAScript Number::toString. */
 internal fun Double.toEcmaScriptString(): String = when {
-    isNaN() -> "NaN"
-    this == Double.POSITIVE_INFINITY -> "Infinity"
-    this == Double.NEGATIVE_INFINITY -> "-Infinity"
-    this == 0.0 -> "0"
+    isNaN() -> {
+        "NaN"
+    }
+
+    this == Double.POSITIVE_INFINITY -> {
+        "Infinity"
+    }
+
+    this == Double.NEGATIVE_INFINITY -> {
+        "-Infinity"
+    }
+
+    this == 0.0 -> {
+        "0"
+    }
+
     else -> {
         val negative = this < 0.0
         val decimal = absoluteValue.shortestRoundTripDecimal().stripTrailingZeros()
@@ -31,8 +43,9 @@ internal fun Double.toEcmaScriptString(): String = when {
                 }
             }
 
-            decimalPoint in MIN_PLAIN_DECIMAL_POINT..0 ->
+            decimalPoint in MIN_PLAIN_DECIMAL_POINT..0 -> {
                 "0." + "0".repeat(-decimalPoint) + digits
+            }
 
             else -> {
                 val mantissa = if (digits.length == 1) {
