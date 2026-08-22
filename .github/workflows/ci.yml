@@ -148,6 +148,11 @@ jobs:
           echo "ARKANALYZER_DIR=$(realpath $DEST_DIR)" >> $GITHUB_ENV
           cd $DEST_DIR
 
+          # ArkAnalyzer's bundled TypeScript 4.9 cannot parse syntax from the
+          # latest floating @types/node, so pin a compatible major before the
+          # single install. A second install would prune the postinstall-only
+          # ohos-typescript package because it is absent from package.json.
+          npm pkg set 'devDependencies.@types/node=18'
           npm install
           npm run build
 
