@@ -20,6 +20,7 @@ import org.usvm.api.targets.ReachabilityObserver
 import org.usvm.api.targets.TsReachabilityTarget
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
+import org.usvm.machine.call.TsCompatibilityUnknownCallDispatcher
 import org.usvm.util.getResourcePath
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
@@ -178,6 +179,7 @@ class CallFallbackBaselineTest {
             options = machineOptions,
             tsOptions = tsOptions,
             machineObserver = ReachabilityObserver(),
+            unknownCallDispatcher = TsCompatibilityUnknownCallDispatcher,
         ).use { machine ->
             machine.analyze(listOf(method), listOf(initialTarget))
                 .flatMapTo(mutableSetOf()) { state -> state.pathNode.allStatements }

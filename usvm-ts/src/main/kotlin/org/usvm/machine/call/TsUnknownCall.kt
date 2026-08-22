@@ -64,12 +64,12 @@ enum class TsUnknownCallFailureReason {
 
 /** Handles TypeScript calls that could not be executed by the regular call pipeline. */
 fun interface TsUnknownCallDispatcher {
-    fun dispatch(scope: TsStepScope, call: TsUnknownCall)
+    fun dispatch(scope: TsStepScope, call: TsUnknownCall): TsUnknownCallOutcome
 }
 
 /** Preserves the pruning and opaque-return behavior that existed before the common dispatch boundary. */
 object TsCompatibilityUnknownCallDispatcher : TsUnknownCallDispatcher {
-    override fun dispatch(scope: TsStepScope, call: TsUnknownCall) {
+    override fun dispatch(scope: TsStepScope, call: TsUnknownCall): TsUnknownCallOutcome {
         val isUnresolvedConstructor = call.failureReason == TsUnknownCallFailureReason.RECEIVER_CLASS_NOT_FOUND &&
             call.callee.name == CONSTRUCTOR_NAME
 
@@ -81,7 +81,7 @@ object TsCompatibilityUnknownCallDispatcher : TsUnknownCallDispatcher {
                 methodResult = TsMethodResult.Success.MockedCall(receiver, call.callee)
                 newStmt(call.callSite)
             }
-            return
+            return TsUnknownCallOutcome.FRESH_SYMBOLIC_RETURN
         }
 
         when (call.failureReason) {
@@ -94,6 +94,7 @@ object TsCompatibilityUnknownCallDispatcher : TsUnknownCallDispatcher {
             -> {
                 mockMethodCall(scope, call.callee)
                 scope.doWithState { newStmt(call.callSite) }
+                return TsUnknownCallOutcome.FRESH_SYMBOLIC_RETURN
             }
 
             TsUnknownCallFailureReason.STATIC_METHOD_NOT_FOUND,
@@ -106,6 +107,7 @@ object TsCompatibilityUnknownCallDispatcher : TsUnknownCallDispatcher {
             -> {
                 val falseExpr = scope.calcOnState { ctx.falseExpr }
                 scope.assert(falseExpr)
+                return TsUnknownCallOutcome.PATH_STOPPED
             }
         }
     }
@@ -119,7 +121,7 @@ internal fun TsUnknownCallDispatcher.dispatch(
     callee: EtsMethodSignature = call.callee,
     resolvedReceiver: UExpr<*>? = null,
     resolvedArguments: List<UExpr<*>?> = List(call.args.size) { null },
-) {
+): TsUnknownCallOutcome {
     require(resolvedArguments.size == call.args.size) {
         "Expected ${call.args.size} resolved argument slots, got ${resolvedArguments.size}"
     }
@@ -129,7 +131,7 @@ internal fun TsUnknownCallDispatcher.dispatch(
         is EtsPtrCallExpr -> call.ptr
         else -> null
     }
-    dispatch(
+    return dispatch(
         scope,
         TsUnknownCall(
             callee = callee,
