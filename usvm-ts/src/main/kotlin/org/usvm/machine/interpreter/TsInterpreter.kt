@@ -85,6 +85,7 @@ import org.usvm.util.type
 import org.usvm.utils.ensureSat
 
 private val logger = KotlinLogging.logger {}
+private typealias Reason = TsUnknownCallFailureReason
 
 typealias TsStepScope = StepScope<TsState, EtsType, EtsStmt, TsContext>
 
@@ -177,14 +178,7 @@ class TsInterpreter(
                 val classes = graph.hierarchy.classesForType(type)
                 if (classes.isEmpty()) {
                     logger.warn { "Could not resolve class: ${type.typeName}" }
-                    unknownCallDispatcher.dispatch(
-                        scope = scope,
-                        call = stmt.call,
-                        callSite = stmt.returnSite,
-                        failureReason = TsUnknownCallFailureReason.RECEIVER_CLASS_NOT_FOUND,
-                        resolvedReceiver = unwrappedInstance,
-                        resolvedArguments = stmt.args,
-                    )
+                    unknownCallDispatcher.dispatch(scope, stmt, Reason.RECEIVER_CLASS_NOT_FOUND, unwrappedInstance)
                     return
                 }
                 if (classes.size > 1) {
@@ -204,14 +198,7 @@ class TsInterpreter(
                 logger.warn {
                     "Could not resolve method: $callee on type: $type"
                 }
-                unknownCallDispatcher.dispatch(
-                    scope = scope,
-                    call = stmt.call,
-                    callSite = stmt.returnSite,
-                    failureReason = TsUnknownCallFailureReason.UNSUPPORTED_RECEIVER_TYPE,
-                    resolvedReceiver = unwrappedInstance,
-                    resolvedArguments = stmt.args,
-                )
+                unknownCallDispatcher.dispatch(scope, stmt, Reason.UNSUPPORTED_RECEIVER_TYPE, unwrappedInstance)
                 return
             }
         } else {
@@ -220,14 +207,7 @@ class TsInterpreter(
                 if (callee.name !in listOf("then")) {
                     logger.warn { "Could not resolve method: $callee" }
                 }
-                unknownCallDispatcher.dispatch(
-                    scope = scope,
-                    call = stmt.call,
-                    callSite = stmt.returnSite,
-                    failureReason = TsUnknownCallFailureReason.VIRTUAL_METHOD_NOT_FOUND,
-                    resolvedReceiver = unwrappedInstance,
-                    resolvedArguments = stmt.args,
-                )
+                unknownCallDispatcher.dispatch(scope, stmt, Reason.VIRTUAL_METHOD_NOT_FOUND, unwrappedInstance)
                 return
             }
             concreteMethods += methods
@@ -238,28 +218,14 @@ class TsInterpreter(
         }
 
         if (possibleTypes !is TypesResult.SuccessfulTypesResult) {
-            unknownCallDispatcher.dispatch(
-                scope = scope,
-                call = stmt.call,
-                callSite = stmt.returnSite,
-                failureReason = TsUnknownCallFailureReason.RECEIVER_TYPE_STREAM_UNAVAILABLE,
-                resolvedReceiver = unwrappedInstance,
-                resolvedArguments = stmt.args,
-            )
+            unknownCallDispatcher.dispatch(scope, stmt, Reason.RECEIVER_TYPE_STREAM_UNAVAILABLE, unwrappedInstance)
             return
         }
 
         val possibleTypesSet = possibleTypes.types.toSet()
 
         if (possibleTypesSet.singleOrNull() == EtsAnyType) {
-            unknownCallDispatcher.dispatch(
-                scope = scope,
-                call = stmt.call,
-                callSite = stmt.returnSite,
-                failureReason = TsUnknownCallFailureReason.ANY_RECEIVER,
-                resolvedReceiver = unwrappedInstance,
-                resolvedArguments = stmt.args,
-            )
+            unknownCallDispatcher.dispatch(scope, stmt, Reason.ANY_RECEIVER, unwrappedInstance)
             return
         }
 
@@ -278,9 +244,13 @@ class TsInterpreter(
             graph.hierarchy.classesForType(clazz as EtsRefType)
                 .asSequence()
                 // TODO wrong order, ancestors are unordered
-                .map { graph.hierarchy.getAncestors(it) }
-                .mapNotNull { it.firstOrNull { it.methods.any { it.name == callee.name } } }
-                .map { clazz to it.methods.first { it.name == callee.name } }
+                .map { candidate -> graph.hierarchy.getAncestors(candidate) }
+                .mapNotNull { ancestors ->
+                    ancestors.firstOrNull { ancestor ->
+                        ancestor.methods.any { method -> method.name == callee.name }
+                    }
+                }
+                .map { ancestor -> clazz to ancestor.methods.first { method -> method.name == callee.name } }
         }.toList().take(10) // TODO check it
 
         // logger.info {
@@ -328,14 +298,7 @@ class TsInterpreter(
             logger.warn {
                 "No suitable methods found for call: $callee with instance: $unwrappedInstance"
             }
-            unknownCallDispatcher.dispatch(
-                scope = scope,
-                call = stmt.call,
-                callSite = stmt.returnSite,
-                failureReason = TsUnknownCallFailureReason.NO_SUITABLE_VIRTUAL_TARGET,
-                resolvedReceiver = unwrappedInstance,
-                resolvedArguments = stmt.args,
-            )
+            unknownCallDispatcher.dispatch(scope, stmt, Reason.NO_SUITABLE_VIRTUAL_TARGET, unwrappedInstance)
             return
         }
 
@@ -351,15 +314,7 @@ class TsInterpreter(
         val callee = stmt.callee.executableOverloadImplementation()
 
         if (callee.signature.enclosingClass.name == "Log") {
-            unknownCallDispatcher.dispatch(
-                scope = scope,
-                call = stmt.call,
-                callSite = stmt.returnSite,
-                failureReason = TsUnknownCallFailureReason.LOGGING_CALL,
-                callee = callee.signature,
-                resolvedReceiver = stmt.resolvedReceiver,
-                resolvedArguments = stmt.args.takeLast(stmt.call.args.size),
-            )
+            unknownCallDispatcher.dispatch(scope, stmt, Reason.LOGGING_CALL, callee.signature)
             return
         }
 
@@ -368,15 +323,7 @@ class TsInterpreter(
             // logger.warn { "No entry point for method: $callee, mocking the call" }
             // If the method doesn't have entry points,
             // we go through it, we just mock the call
-            unknownCallDispatcher.dispatch(
-                scope = scope,
-                call = stmt.call,
-                callSite = stmt.returnSite,
-                failureReason = TsUnknownCallFailureReason.METHOD_BODY_UNAVAILABLE,
-                callee = callee.signature,
-                resolvedReceiver = stmt.resolvedReceiver,
-                resolvedArguments = stmt.args.takeLast(stmt.call.args.size),
-            )
+            unknownCallDispatcher.dispatch(scope, stmt, Reason.METHOD_BODY_UNAVAILABLE, callee.signature)
             return
         }
 
@@ -660,12 +607,7 @@ class TsInterpreter(
             }
 
             if (!options.interproceduralAnalysis && methodResult == TsMethodResult.NoCall) {
-                unknownCallDispatcher.dispatch(
-                    scope = scope,
-                    call = callExpr,
-                    callSite = stmt,
-                    failureReason = TsUnknownCallFailureReason.INTERPROCEDURAL_ANALYSIS_DISABLED,
-                )
+                unknownCallDispatcher.dispatch(scope, callExpr, stmt, Reason.INTERPROCEDURAL_ANALYSIS_DISABLED)
                 return
             }
         }
@@ -706,12 +648,7 @@ class TsInterpreter(
         }
 
         // intraprocedural analysis
-        unknownCallDispatcher.dispatch(
-            scope = scope,
-            call = stmt.expr,
-            callSite = stmt,
-            failureReason = TsUnknownCallFailureReason.INTERPROCEDURAL_ANALYSIS_DISABLED,
-        )
+        unknownCallDispatcher.dispatch(scope, stmt.expr, stmt, Reason.INTERPROCEDURAL_ANALYSIS_DISABLED)
     }
 
     private fun visitThrowStmt(scope: TsStepScope, stmt: EtsThrowStmt) {

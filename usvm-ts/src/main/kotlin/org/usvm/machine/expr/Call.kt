@@ -6,7 +6,6 @@ import org.jacodb.ets.model.EtsInstanceCallExpr
 import org.usvm.UExpr
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsVirtualMethodCallStmt
-import org.usvm.machine.call.TsUnknownCallDispatcher
 import org.usvm.machine.call.TsUnknownCallFailureReason
 import org.usvm.machine.call.dispatch
 import org.usvm.machine.expr.TsExprApproximationResult.NoApproximation

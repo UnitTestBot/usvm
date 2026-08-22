@@ -15,8 +15,8 @@ import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Test
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
-import org.usvm.UMachineOptions
 import org.usvm.UConcreteHeapRef
+import org.usvm.UMachineOptions
 import org.usvm.api.targets.ReachabilityObserver
 import org.usvm.api.targets.TsReachabilityTarget
 import org.usvm.machine.TsMachine
@@ -42,7 +42,11 @@ class TsUnknownCallDispatcherTest {
     fun `inventoried unknown calls use normalized compatibility dispatch`() {
         val cases = listOf(
             Case("declaredMethodWithoutBodyContinues", TsUnknownCallFailureReason.METHOD_BODY_UNAVAILABLE, true),
-            Case("allocatedReceiverWithoutMethodContinues", TsUnknownCallFailureReason.NO_SUITABLE_VIRTUAL_TARGET, true),
+            Case(
+                "allocatedReceiverWithoutMethodContinues",
+                TsUnknownCallFailureReason.NO_SUITABLE_VIRTUAL_TARGET,
+                true,
+            ),
             Case(
                 "unresolvedStaticCallPrunes",
                 TsUnknownCallFailureReason.STATIC_METHOD_NOT_FOUND,
@@ -166,7 +170,9 @@ class TsUnknownCallDispatcherTest {
     fun `pointer descriptor pairs its source with the resolved function pointer`() {
         val dispatcher = RecordingUnknownCallDispatcher()
         val pointerCall = method(fullScene, "associatedLoggingPointerContinues", className = "Log")
-            .cfg.stmts.mapNotNull { it.callExpr }
+            .cfg
+            .stmts
+            .mapNotNull { it.callExpr }
             .filterIsInstance<EtsPtrCallExpr>()
             .single()
 
@@ -240,7 +246,8 @@ class TsUnknownCallDispatcherTest {
         className: String = "CallFallbackBaseline",
     ): EtsMethod = scene.projectClasses
         .single { it.name == className }
-        .methods.single { it.name == methodName }
+        .methods
+        .single { it.name == methodName }
 
     private fun sceneWithout(className: String): EtsScene {
         val filteredFile = EtsFile(

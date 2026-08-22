@@ -10,6 +10,8 @@ import org.jacodb.ets.model.EtsValue
 import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.usvm.UExpr
 import org.usvm.api.mockMethodCall
+import org.usvm.machine.TsConcreteMethodCallStmt
+import org.usvm.machine.TsVirtualMethodCallStmt
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.newStmt
@@ -43,6 +45,7 @@ data class TsUnknownCallValue(
     val resolved: UExpr<*>?,
 )
 
+/** Identifies the execution stage that prevented a TypeScript call from continuing normally. */
 enum class TsUnknownCallFailureReason {
     STATIC_METHOD_NOT_FOUND,
     NON_REFERENCE_RECEIVER,
@@ -59,6 +62,7 @@ enum class TsUnknownCallFailureReason {
     LOGGING_CALL,
 }
 
+/** Handles TypeScript calls that could not be executed by the regular call pipeline. */
 fun interface TsUnknownCallDispatcher {
     fun dispatch(scope: TsStepScope, call: TsUnknownCall)
 }
@@ -139,3 +143,32 @@ internal fun TsUnknownCallDispatcher.dispatch(
         ),
     )
 }
+
+internal fun TsUnknownCallDispatcher.dispatch(
+    scope: TsStepScope,
+    call: TsVirtualMethodCallStmt,
+    failureReason: TsUnknownCallFailureReason,
+    resolvedReceiver: UExpr<*>,
+) = dispatch(
+    scope = scope,
+    call = call.call,
+    callSite = call.returnSite,
+    failureReason = failureReason,
+    resolvedReceiver = resolvedReceiver,
+    resolvedArguments = call.args,
+)
+
+internal fun TsUnknownCallDispatcher.dispatch(
+    scope: TsStepScope,
+    call: TsConcreteMethodCallStmt,
+    failureReason: TsUnknownCallFailureReason,
+    callee: EtsMethodSignature,
+) = dispatch(
+    scope = scope,
+    call = call.call,
+    callSite = call.returnSite,
+    failureReason = failureReason,
+    callee = callee,
+    resolvedReceiver = call.resolvedReceiver,
+    resolvedArguments = call.args.takeLast(call.call.args.size),
+)
