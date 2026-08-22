@@ -587,19 +587,10 @@ class TsExprResolver(
             value == falseExpr -> "false"
             value == mkTsNullValue() -> "null"
             value == mkUndefinedValue() -> "undefined"
-            value is KFp64Value -> value.value.toSupportedString()
+            value is KFp64Value -> value.value.toEcmaScriptString()
             value is UConcreteHeapRef -> getStringConstantValue(value)
             else -> null
         }
-    }
-
-    private fun Double.toSupportedString(): String? = when {
-        isNaN() -> "NaN"
-        this == Double.POSITIVE_INFINITY -> "Infinity"
-        this == Double.NEGATIVE_INFINITY -> "-Infinity"
-        this == 0.0 -> "0"
-        this == toLong().toDouble() -> toLong().toString()
-        else -> null
     }
 
     override fun visit(expr: EtsSubExpr): UExpr<out USort>? {

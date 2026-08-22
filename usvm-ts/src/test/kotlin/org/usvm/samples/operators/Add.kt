@@ -25,6 +25,17 @@ class Add : TsMethodTestRunner() {
     }
 
     @Test
+    fun `string + fractional number constant`() {
+        val method = getMethod("addStringAndFractionalNumberConstant")
+        val expected = "values:1.5,1e-7,0.000001," +
+            "100000000000000000000,1e+21,5e-324"
+        discoverProperties<TsTestValue.TsString>(
+            method = method,
+            { r -> r.value == expected },
+        )
+    }
+
+    @Test
     fun `bool + bool`() {
         val method = getMethod("addBoolAndBool")
         discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsBoolean, TsTestValue.TsNumber>(

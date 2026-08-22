@@ -6,6 +6,11 @@ class Add {
         return "timeout:" + 5000 + "ms";
     }
 
+    addStringAndFractionalNumberConstant(): string {
+        return "values:" + 1.5 + "," + 1e-7 + "," + 1e-6 + "," +
+            1e20 + "," + 1e21 + "," + 5e-324;
+    }
+
     addBoolAndBool(a: boolean, b: boolean): number {
         let res = a + b;
 
