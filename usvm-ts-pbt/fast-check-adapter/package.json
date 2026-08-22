@@ -1,0 +1,15 @@
+{
+  "name": "@usvm/fast-check-adapter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "fast-check": "4.9.0"
+  },
+  "engines": {
+    "node": ">=18.18.0"
+  }
+}
