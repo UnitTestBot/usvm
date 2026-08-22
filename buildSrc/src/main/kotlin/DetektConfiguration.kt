@@ -3,6 +3,7 @@ import gradle.kotlin.dsl.accessors._466a692754d3da37fc853e1c7ad8ae1e.detektPlugi
 import io.gitlab.arturbosch.detekt.Detekt
 import io.gitlab.arturbosch.detekt.DetektCreateBaselineTask
 import io.gitlab.arturbosch.detekt.report.ReportMergeTask
+import org.gradle.api.JavaVersion
 import org.gradle.api.Project
 import org.gradle.api.tasks.TaskProvider
 import org.gradle.kotlin.dsl.assign
@@ -34,17 +35,21 @@ fun Project.configureDetekt() {
             .resolve("${project}-${taskPostfix}.yml")
     }
     val configFile = rootDir.resolve("detekt").resolve("config.yml")
+    val tsConfigFile = rootDir.resolve("detekt").resolve("ts-config.yml")
     val reportFile = rootProject.layout.buildDirectory.file("reports/detekt/detekt.sarif")
+    val usesStrictTsRules = name in STRICT_TS_DETEKT_PROJECTS
+    val configFiles = if (usesStrictTsRules) listOf(configFile, tsConfigFile) else listOf(configFile)
 
     detekt {
         buildUponDefaultConfig = true
-        ignoreFailures = true
+        ignoreFailures = !usesStrictTsRules
         parallel = true
 
-        config.setFrom(configFile)
+        config.setFrom(configFiles)
     }
 
     tasks.withType<Detekt> {
+        jvmTarget = JavaVersion.VERSION_1_8.toString()
         setIncludes(includes)
         setExcludes(excludes)
 
@@ -61,6 +66,7 @@ fun Project.configureDetekt() {
     }
 
     tasks.withType<DetektCreateBaselineTask> {
+        jvmTarget = JavaVersion.VERSION_1_8.toString()
         baseline = resolveBaselineFile(project.name, this@withType.name)
     }
 
@@ -82,3 +88,5 @@ fun Project.configureDetekt() {
         setDependsOn(dependsOn.filterNot { it is TaskProvider<*> && it.name == "detekt" })
     }
 }
+
+private val STRICT_TS_DETEKT_PROJECTS = setOf("usvm-ts", "usvm-ts-pbt")

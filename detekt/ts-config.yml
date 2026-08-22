@@ -1,0 +1,15 @@
+comments:
+  UndocumentedPublicClass:
+    active: true
+    searchInNestedClass: false
+    excludes:
+      - '**/test/**'
+
+complexity:
+  ComplexCondition:
+    active: true
+    threshold: 4
+
+style:
+  CascadingCallWrapping:
+    active: true

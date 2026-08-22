@@ -1,0 +1,157 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>ArgumentListWrapping:TsImports.kt$("File not found for relative path: '$importPath' from ${currentFile.signature.fileName}")</ID>
+    <ID>BracesOnWhenStatements:CallApproximations.kt$when</ID>
+    <ID>BracesOnWhenStatements:ReadField.kt$when</ID>
+    <ID>BracesOnWhenStatements:ReadLength.kt$when</ID>
+    <ID>BracesOnWhenStatements:TsBinaryOperator.kt$TsBinaryOperator.Add$when</ID>
+    <ID>BracesOnWhenStatements:TsBinaryOperator.kt$TsBinaryOperator.StrictEq$when</ID>
+    <ID>BracesOnWhenStatements:TsContext.kt$TsContext$when</ID>
+    <ID>BracesOnWhenStatements:TsInterpreter.kt$TsInterpreter$when</ID>
+    <ID>CascadingCallWrapping:TsExprResolver.kt$TsExprResolver$type</ID>
+    <ID>CascadingCallWrapping:TsState.kt$TsState$stmt.location.method.cfg.blocks.indexOfFirst { it.statements.contains(stmt) } .takeIf { it &gt;= 0 } ?: error("Statement $stmt is not found in the method CFG")</ID>
+    <ID>CascadingCallWrapping:UnreachableCodeDetector.kt$UnreachableCodeDetector$toMap()</ID>
+    <ID>ChainWrapping:TsTypeSystem.kt$TsTypeSystem$&amp;&amp;</ID>
+    <ID>CommentSpacing:CallApproximations.kt$//! Note: `reversedArray` is a temporary object not used outside this function,</ID>
+    <ID>Filename:TsApproximations.kt$org.usvm.machine.expr.TsApproximations.kt</ID>
+    <ID>ImportOrdering:TsContext.kt$import io.ksmt.sort.KFp64Sort import io.ksmt.utils.asExpr import org.jacodb.ets.model.EtsAliasType import org.jacodb.ets.model.EtsAnyType import org.jacodb.ets.model.EtsArrayType import org.jacodb.ets.model.EtsBooleanLiteralType import org.jacodb.ets.model.EtsBooleanType import org.jacodb.ets.model.EtsEnumValueType import org.jacodb.ets.model.EtsGenericType import org.jacodb.ets.model.EtsLocal import org.jacodb.ets.model.EtsLexicalEnvType import org.jacodb.ets.model.EtsMethod import org.jacodb.ets.model.EtsNullType import org.jacodb.ets.model.EtsNumberLiteralType import org.jacodb.ets.model.EtsNumberType import org.jacodb.ets.model.EtsParameterRef import org.jacodb.ets.model.EtsRefType import org.jacodb.ets.model.EtsScene import org.jacodb.ets.model.EtsStringLiteralType import org.jacodb.ets.model.EtsStringType import org.jacodb.ets.model.EtsThis import org.jacodb.ets.model.EtsType import org.jacodb.ets.model.EtsUndefinedType import org.jacodb.ets.model.EtsUnionType import org.jacodb.ets.model.EtsUnknownType import org.jacodb.ets.model.EtsValue import org.usvm.UAddressSort import org.usvm.UBoolExpr import org.usvm.UBoolSort import org.usvm.UBv32Sort import org.usvm.UConcreteHeapRef import org.usvm.UContext import org.usvm.UExpr import org.usvm.UHeapRef import org.usvm.USort import org.usvm.api.allocateConcreteRef import org.usvm.api.allocateStaticRef import org.usvm.api.typeStreamOf import org.usvm.collection.field.UFieldLValue import org.usvm.isTrue import org.usvm.machine.Constants.Companion.MAGIC_OFFSET import org.usvm.machine.expr.TsUndefinedSort import org.usvm.machine.expr.TsUnresolvedSort import org.usvm.machine.expr.TsVoidSort import org.usvm.machine.expr.TsVoidValue import org.usvm.machine.interpreter.TsStepScope import org.usvm.machine.types.EtsFakeType import org.usvm.memory.UReadOnlyMemory import org.usvm.types.single import org.usvm.util.mkFieldLValue import kotlin.contracts.ExperimentalContracts import kotlin.contracts.contract</ID>
+    <ID>Indentation:TsTypeSystem.kt$TsTypeSystem$ </ID>
+    <ID>LargeClass:TsExprResolver.kt$TsExprResolver : Visitor</ID>
+    <ID>LongMethod:TsBinaryOperator.kt$TsBinaryOperator$fun &lt;R : USort&gt; TsContext.commonResolveFakeObject( lhs: UExpr&lt;*&gt;, rhs: UExpr&lt;*&gt;, scope: TsStepScope, resultSort: R, reduce: (List&lt;ExprWithTypeConstraint&lt;R&gt;&gt;) -&gt; UExpr&lt;R&gt;, ): UExpr&lt;R&gt;?</ID>
+    <ID>LongMethod:TsInterpreter.kt$TsInterpreter$private fun visitVirtualMethodCall(scope: TsStepScope, stmt: TsVirtualMethodCallStmt)</ID>
+    <ID>LongMethod:TsTypeSystem.kt$TsTypeSystem$override fun isSupertype(supertype: EtsType, type: EtsType): Boolean</ID>
+    <ID>MagicNumber:CallApproximations.kt$3</ID>
+    <ID>MagicNumber:EtsHierarchy.kt$EtsHierarchy$100</ID>
+    <ID>MagicNumber:TsExprResolver.kt$TsExprResolver$3</ID>
+    <ID>MagicNumber:TsInterpreter.kt$TsInterpreter$10</ID>
+    <ID>MagicNumber:TsInterpreter.kt$TsInterpreter$5</ID>
+    <ID>MatchingDeclarationName:TsApproximations.kt$TsExprApproximationResult</ID>
+    <ID>MatchingDeclarationName:TsPromise.kt$PromiseState</ID>
+    <ID>MaxChainedCallsOnSameLine:TsState.kt$TsState$stmt.location.method.cfg.blocks.indexOfFirst { it.statements.contains(stmt) }</ID>
+    <ID>MaxLineLength:TsExprResolver.kt$TsSimpleValueResolver$logger.error { "Cannot find symbol '$local' in '${resolutionResult.file.name}': ${resolutionResult.reason}" }</ID>
+    <ID>MaxLineLength:TsImports.kt$ImportResolutionResult.NotFound("File not found for relative path: '$importPath' from ${currentFile.signature.fileName}")</ID>
+    <ID>MaximumLineLength:TsExprResolver.kt$TsSimpleValueResolver$ </ID>
+    <ID>MaximumLineLength:TsImports.kt$ </ID>
+    <ID>MultiLineIfElse:TsInterpreter.kt$TsInterpreter$run { state.pathConstraints += mkNot(mkHeapRefEq(ref, mkTsNullValue())) state.pathConstraints += mkNot(mkHeapRefEq(ref, mkUndefinedValue())) if (parameterType is EtsArrayType) { state.pathConstraints += state.memory.types.evalIsSubtype(ref, parameterType) val lengthLValue = mkArrayLengthLValue(ref, parameterType) val length = state.memory.read(lengthLValue).asExpr(sizeSort) state.pathConstraints += mkBvSignedGreaterOrEqualExpr(length, mkBv(0)) state.pathConstraints += mkBvSignedLessOrEqualExpr(length, mkBv(options.maxArraySize)) return@run } val resolvedParameterType = graph.hierarchy.classesForType(parameterType) if (resolvedParameterType.isEmpty()) { logger.error("Cannot resolve class for parameter type: $parameterType") return@run // TODO should be an error } // Because of structural equality in TS we cannot determine the exact type // Therefore, we create information about the fields the type must consist val types = resolvedParameterType.mapNotNull { it.type.toAuxiliaryType(graph.hierarchy) } val auxiliaryType = EtsUnionType(types) // TODO error state.pathConstraints += state.memory.types.evalIsSubtype(ref, auxiliaryType) }</ID>
+    <ID>NestedBlockDepth:Call.kt$internal fun TsExprResolver.handleInstanceCall( expr: EtsInstanceCallExpr, ): UExpr&lt;*&gt;?</ID>
+    <ID>NestedBlockDepth:ReadArray.kt$internal fun TsExprResolver.handleArrayAccess( value: EtsArrayAccess, ): UExpr&lt;*&gt;?</ID>
+    <ID>NestedBlockDepth:ReadField.kt$internal fun TsExprResolver.handleInstanceFieldRef( value: EtsInstanceFieldRef, ): UExpr&lt;*&gt;?</ID>
+    <ID>NestedBlockDepth:TsExprResolver.kt$TsExprResolver$override fun visit(expr: EtsAwaitExpr): UExpr&lt;out USort&gt;?</ID>
+    <ID>NestedBlockDepth:TsExprResolver.kt$TsExprResolver$override fun visit(expr: EtsPtrCallExpr): UExpr&lt;out USort&gt;?</ID>
+    <ID>NestedBlockDepth:TsExprResolver.kt$TsSimpleValueResolver$private fun resolveLocal(local: EtsValue): UExpr&lt;*&gt;?</ID>
+    <ID>NestedBlockDepth:TsInterpreter.kt$TsInterpreter$private fun assignToInDfltDflt( scope: TsStepScope, lhv: EtsLValue, expr: UExpr&lt;*&gt;, ): Unit?</ID>
+    <ID>NestedBlockDepth:TsInterpreter.kt$TsInterpreter$private fun visitVirtualMethodCall(scope: TsStepScope, stmt: TsVirtualMethodCallStmt)</ID>
+    <ID>NestedBlockDepth:WriteField.kt$internal fun TsExprResolver.handleAssignToInstanceField( lhv: EtsInstanceFieldRef, expr: UExpr&lt;*&gt;, ): Unit?</ID>
+    <ID>NoBlankLineInList:TsState.kt$TsState$ </ID>
+    <ID>NoEmptyFirstLineInMethodBlock:TsInterpreter.kt$TsInterpreter$ </ID>
+    <ID>NoMultipleSpaces:TsTypeSystem.kt$TsTypeSystem$ </ID>
+    <ID>NoNameShadowing:EtsFieldResolver.kt$field</ID>
+    <ID>NoNameShadowing:EtsFieldResolver.kt${ it.name != CONSTRUCTOR_NAME }</ID>
+    <ID>NoNameShadowing:EtsFieldResolver.kt${ it.name }</ID>
+    <ID>NoNameShadowing:EtsHierarchy.kt$EtsHierarchy$result</ID>
+    <ID>NoNameShadowing:TsBinaryOperator.kt$TsBinaryOperator.Eq$lhs</ID>
+    <ID>NoNameShadowing:TsBinaryOperator.kt$TsBinaryOperator.Eq$rhs</ID>
+    <ID>NoNameShadowing:TsInterpreter.kt$TsInterpreter$ref</ID>
+    <ID>NoNameShadowing:TsInterpreter.kt$TsInterpreter${ it.methods.any { it.name == stmt.callee.name } }</ID>
+    <ID>NoNameShadowing:TsInterpreter.kt$TsInterpreter${ it.name == stmt.callee.name }</ID>
+    <ID>NoNameShadowing:WriteField.kt$field</ID>
+    <ID>NoSemicolons:TsPromise.kt$PromiseState.REJECTED$;</ID>
+    <ID>TooGenericExceptionCaught:TsImports.kt$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:TsInterpreter.kt$TsInterpreter$e: Exception</ID>
+    <ID>TrailingCommaOnDeclarationSite:TsPromise.kt$PromiseState</ID>
+    <ID>UnderscoresInNumericLiterals:TsContext.kt$Constants.Companion$1000000</ID>
+    <ID>UndocumentedPublicClass:EtsFakeType.kt$EtsFakeType : EtsType</ID>
+    <ID>UndocumentedPublicClass:EtsFakeType.kt$ExprWithTypeConstraint&lt;Sort : USort&gt;</ID>
+    <ID>UndocumentedPublicClass:EtsFieldResolver.kt$TsResolutionResult$Empty : TsResolutionResult</ID>
+    <ID>UndocumentedPublicClass:EtsFieldResolver.kt$TsResolutionResult&lt;out T&gt;</ID>
+    <ID>UndocumentedPublicClass:EtsHierarchy.kt$EtsHierarchy</ID>
+    <ID>UndocumentedPublicClass:ReachabilityObserver.kt$ReachabilityObserver : UMachineObserver</ID>
+    <ID>UndocumentedPublicClass:TsApproximations.kt$TsExprApproximationResult</ID>
+    <ID>UndocumentedPublicClass:TsApproximations.kt$TsExprApproximationResult$NoApproximation : TsExprApproximationResult</ID>
+    <ID>UndocumentedPublicClass:TsApproximations.kt$TsExprApproximationResult$ResolveFailure : TsExprApproximationResult</ID>
+    <ID>UndocumentedPublicClass:TsBinaryOperator.kt$TsBinaryOperator</ID>
+    <ID>UndocumentedPublicClass:TsBinaryOperator.kt$TsBinaryOperator$Add : TsBinaryOperator</ID>
+    <ID>UndocumentedPublicClass:TsBinaryOperator.kt$TsBinaryOperator$And : TsBinaryOperator</ID>
+    <ID>UndocumentedPublicClass:TsBinaryOperator.kt$TsBinaryOperator$Div : TsArithmeticOperator</ID>
+    <ID>UndocumentedPublicClass:TsBinaryOperator.kt$TsBinaryOperator$Eq : TsBinaryOperator</ID>
+    <ID>UndocumentedPublicClass:TsBinaryOperator.kt$TsBinaryOperator$Gt : TsBinaryOperator</ID>
+    <ID>UndocumentedPublicClass:TsBinaryOperator.kt$TsBinaryOperator$Lt : TsBinaryOperator</ID>
+    <ID>UndocumentedPublicClass:TsBinaryOperator.kt$TsBinaryOperator$Mul : TsArithmeticOperator</ID>
+    <ID>UndocumentedPublicClass:TsBinaryOperator.kt$TsBinaryOperator$Neq : TsBinaryOperator</ID>
+    <ID>UndocumentedPublicClass:TsBinaryOperator.kt$TsBinaryOperator$Or : TsBinaryOperator</ID>
+    <ID>UndocumentedPublicClass:TsBinaryOperator.kt$TsBinaryOperator$Rem : TsArithmeticOperator</ID>
+    <ID>UndocumentedPublicClass:TsBinaryOperator.kt$TsBinaryOperator$StrictEq : TsBinaryOperator</ID>
+    <ID>UndocumentedPublicClass:TsBinaryOperator.kt$TsBinaryOperator$StrictNeq : TsBinaryOperator</ID>
+    <ID>UndocumentedPublicClass:TsBinaryOperator.kt$TsBinaryOperator$Sub : TsArithmeticOperator</ID>
+    <ID>UndocumentedPublicClass:TsBinaryOperator.kt$TsBinaryOperator$TsArithmeticOperator : TsBinaryOperator</ID>
+    <ID>UndocumentedPublicClass:TsComponents.kt$TsComponents : UComponents</ID>
+    <ID>UndocumentedPublicClass:TsContext.kt$Constants</ID>
+    <ID>UndocumentedPublicClass:TsContext.kt$IntermediateLValueField</ID>
+    <ID>UndocumentedPublicClass:TsContext.kt$TsContext : UContext</ID>
+    <ID>UndocumentedPublicClass:TsExprResolver.kt$TsExprResolver : Visitor</ID>
+    <ID>UndocumentedPublicClass:TsExprResolver.kt$TsSimpleValueResolver : Visitor</ID>
+    <ID>UndocumentedPublicClass:TsExpressions.kt$TsUndefinedSort : USort</ID>
+    <ID>UndocumentedPublicClass:TsExpressions.kt$TsUndefinedValue : UExpr</ID>
+    <ID>UndocumentedPublicClass:TsExpressions.kt$TsVoidSort : USort</ID>
+    <ID>UndocumentedPublicClass:TsExpressions.kt$TsVoidValue : UExpr</ID>
+    <ID>UndocumentedPublicClass:TsFunction.kt$TsFunction</ID>
+    <ID>UndocumentedPublicClass:TsGraph.kt$TsGraph : ApplicationGraph</ID>
+    <ID>UndocumentedPublicClass:TsImports.kt$ImportResolutionResult</ID>
+    <ID>UndocumentedPublicClass:TsImports.kt$SymbolResolutionResult</ID>
+    <ID>UndocumentedPublicClass:TsInterpreter.kt$TsInterpreter : UInterpreter</ID>
+    <ID>UndocumentedPublicClass:TsInterpreterObserver.kt$TsInterpreterObserver : UInterpreterObserver</ID>
+    <ID>UndocumentedPublicClass:TsMachine.kt$TsMachine : UMachine</ID>
+    <ID>UndocumentedPublicClass:TsMethodCall.kt$TsConcreteMethodCallStmt : TsMethodCall</ID>
+    <ID>UndocumentedPublicClass:TsMethodCall.kt$TsMethodCall : EtsStmt</ID>
+    <ID>UndocumentedPublicClass:TsMethodCall.kt$TsVirtualMethodCallStmt : TsMethodCall</ID>
+    <ID>UndocumentedPublicClass:TsMethodResult.kt$TsMethodResult$Success : TsMethodResult</ID>
+    <ID>UndocumentedPublicClass:TsOptions.kt$TsOptions</ID>
+    <ID>UndocumentedPublicClass:TsPromise.kt$PromiseState</ID>
+    <ID>UndocumentedPublicClass:TsStateVisualizer.kt$TsStateVisualizer : TsInterpreterObserverUMachineObserver</ID>
+    <ID>UndocumentedPublicClass:TsTarget.kt$TsReachabilityTarget : TsTarget</ID>
+    <ID>UndocumentedPublicClass:TsTarget.kt$TsTarget : UTarget</ID>
+    <ID>UndocumentedPublicClass:TsTest.kt$GlobalFieldValue</ID>
+    <ID>UndocumentedPublicClass:TsTest.kt$NoCoverage : TsMethodCoverage</ID>
+    <ID>UndocumentedPublicClass:TsTest.kt$TsMethodCoverage</ID>
+    <ID>UndocumentedPublicClass:TsTest.kt$TsParametersState</ID>
+    <ID>UndocumentedPublicClass:TsTest.kt$TsTest</ID>
+    <ID>UndocumentedPublicClass:TsTest.kt$TsTestValue</ID>
+    <ID>UndocumentedPublicClass:TsTest.kt$TsTestValue$TsAny : TsTestValue</ID>
+    <ID>UndocumentedPublicClass:TsTest.kt$TsTestValue$TsException : TsTestValue</ID>
+    <ID>UndocumentedPublicClass:TsTest.kt$TsTestValue$TsNull : TsTestValue</ID>
+    <ID>UndocumentedPublicClass:TsTest.kt$TsTestValue$TsNumber : TsTestValue</ID>
+    <ID>UndocumentedPublicClass:TsTest.kt$TsTestValue$TsUndefined : TsTestValue</ID>
+    <ID>UndocumentedPublicClass:TsTest.kt$TsTestValue$TsUnknown : TsTestValue</ID>
+    <ID>UndocumentedPublicClass:TsTest.kt$TsTestValue.TsException$UnknownException : TsException</ID>
+    <ID>UndocumentedPublicClass:TsTransformer.kt$TsComposer : UComposerTsTransformer</ID>
+    <ID>UndocumentedPublicClass:TsTransformer.kt$TsExprTranslator : UExprTranslatorTsTransformer</ID>
+    <ID>UndocumentedPublicClass:TsTransformer.kt$TsTransformer : UTransformer</ID>
+    <ID>UndocumentedPublicClass:TsTypeSystem.kt$TsTypeSystem : UTypeSystem</ID>
+    <ID>UndocumentedPublicClass:TsUnaryOperator.kt$TsUnaryOperator</ID>
+    <ID>UndocumentedPublicClass:TsUnaryOperator.kt$TsUnaryOperator$Neg : TsUnaryOperator</ID>
+    <ID>UndocumentedPublicClass:TsUnaryOperator.kt$TsUnaryOperator$Not : TsUnaryOperator</ID>
+    <ID>UndocumentedPublicClass:UnreachableCodeDetector.kt$UncoveredIfSuccessors</ID>
+    <ID>UndocumentedPublicClass:UnreachableCodeDetector.kt$UnreachableCodeDetector : TsInterpreterObserverUMachineObserver</ID>
+    <ID>UnreachableCode:FakeExprUtil.kt$memory.read(lValue) to typeCondition</ID>
+    <ID>UnsafeCallOnNullableType:CallStatic.kt$it.enclosingClass!!</ID>
+    <ID>UnsafeCallOnNullableType:CallStatic.kt$resolved.property.enclosingClass!!</ID>
+    <ID>UnsafeCallOnNullableType:TsExprResolver.kt$TsSimpleValueResolver$currentMethod.enclosingClass!!</ID>
+    <ID>UnsafeCallOnNullableType:TsExprResolver.kt$TsSimpleValueResolver$currentMethod.enclosingClass!!.declaringFile!!</ID>
+    <ID>UnsafeCallOnNullableType:TsInterpreter.kt$TsInterpreter$lastEnteredMethod.enclosingClass!!</ID>
+    <ID>UnsafeCallOnNullableType:TsInterpreter.kt$TsInterpreter$lastEnteredMethod.enclosingClass!!.declaringFile!!</ID>
+    <ID>UnsafeCallOnNullableType:TsInterpreter.kt$TsInterpreter$method.enclosingClass!!</ID>
+    <ID>UnsafeCallOnNullableType:WriteLocal.kt$currentMethod.enclosingClass!!</ID>
+    <ID>UnsafeCallOnNullableType:WriteLocal.kt$currentMethod.enclosingClass!!.declaringFile!!</ID>
+    <ID>UnusedParameter:CallApproximations.kt$arrayType: EtsArrayType</ID>
+    <ID>UnusedParameter:CallApproximations.kt$elementSort: USort</ID>
+    <ID>UnusedParameter:TsStatic.kt$clazz: EtsClassSignature</ID>
+    <ID>UnusedPrivateProperty:CallApproximations.kt$val searchElement = resolve(expr.args.single()) ?: return null</ID>
+    <ID>UnusedPrivateProperty:TsExprResolver.kt$TsExprResolver$val property = resolve(expr.left) ?: return null</ID>
+    <ID>UseOrEmpty:EtsHierarchy.kt$EtsHierarchy$suitableClasses[signature]?.let { setOf(it) } ?: emptySet()</ID>
+    <ID>UseOrEmpty:TsTypeSystem.kt$fields.reduceOrNull { acc, set -&gt; acc.intersect(set) } ?: emptySet()</ID>
+    <ID>UseOrEmpty:TsTypeSystem.kt$methods.reduceOrNull { acc, set -&gt; acc.intersect(set) } ?: emptySet()</ID>
+    <ID>UtilityClassWithPublicConstructor:TsContext.kt$Constants</ID>
+  </CurrentIssues>
+</SmellBaseline>

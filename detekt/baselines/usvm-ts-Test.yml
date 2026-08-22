@@ -1,0 +1,118 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues></ManuallySuppressedIssues>
+  <CurrentIssues>
+    <ID>ArgumentListWrapping:TsMethodTestRunner.kt$TsMethodTestRunner$( typeTransformer(T1::class), typeTransformer(T2::class), typeTransformer(R::class) )</ID>
+    <ID>BlockCommentInitialStarAlignment:TsMethodTestRunner.kt$TsMethodTestRunner$/* Both KClass and TsObject instances come here because only KClass&lt;TsObject&gt; is available to match different objects. However, this method is also used in parent TestRunner class and passes here TsObject instances. So this check on current level is required. */</ID>
+    <ID>BracesOnWhenStatements:TsMethodTestRunner.kt$TsMethodTestRunner$when</ID>
+    <ID>BracesOnWhenStatements:TsTestResolver.kt$TsTestStateResolver$when</ID>
+    <ID>CascadingCallWrapping:CallFallbackBaselineTest.kt$CallFallbackBaselineTest$single { it.name == methodName }</ID>
+    <ID>CascadingCallWrapping:CallFallbackBaselineTest.kt$CallFallbackBaselineTest$stmts</ID>
+    <ID>CascadingCallWrapping:InheritanceReachabilityTest.kt$InheritanceReachabilityTest$filter { it.name == "process" }</ID>
+    <ID>CascadingCallWrapping:TsMethodTestRunner.kt$TsMethodTestRunner$filter { it.name == methodName }</ID>
+    <ID>CascadingCallWrapping:TsMethodTestRunner.kt$TsMethodTestRunner$single { it.name == className }</ID>
+    <ID>ChainWrapping:Add.kt$Add$&amp;&amp;</ID>
+    <ID>ChainWrapping:Add.kt$Add$||</ID>
+    <ID>ChainWrapping:ArrayMethods.kt$ArrayMethods$&amp;&amp;</ID>
+    <ID>CommentSpacing:LoadEts.kt$//-----------------------------------------------------------------------------</ID>
+    <ID>Filename:DemoCalc.kt$org.usvm.project.DemoCalc.kt</ID>
+    <ID>Filename:DemoPhotos.kt$org.usvm.project.DemoPhotos.kt</ID>
+    <ID>Filename:ImportExportResolution.kt$org.usvm.machine.ImportExportResolution.kt</ID>
+    <ID>Filename:ImportResolver.kt$org.usvm.project.ImportResolver.kt</ID>
+    <ID>Filename:UnreachableCodeDetector.kt$org.usvm.checkers.UnreachableCodeDetector.kt</ID>
+    <ID>ForbiddenMethodCall:DemoCalc.kt$RunOnDemoCalcProject$println("${es.first()}")</ID>
+    <ID>ForbiddenMethodCall:DemoCalc.kt$RunOnDemoCalcProject$println("Total classes: ${classes.size}")</ID>
+    <ID>ForbiddenMethodCall:DemoCalc.kt$RunOnDemoCalcProject$println("Total exceptions: ${exc.size}")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println( " Available exports: ${ exportNames.joinToString(", ") }${ if (availableExports.size &gt; 5) " ..." else "" }" )</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println( " ✅ '${importInfo.name}' from '${importInfo.from}' -&gt; '${result.file.signature.fileName}'" + " (type: ${importInfo.type})" )</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println( " ❌ '${importInfo.name}' from '${importInfo.from}' -&gt; ${result.reason}" + " (type: ${importInfo.type})" )</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println( " 🎯 '${importInfo.name}' from '${importInfo.from}' -&gt; '${result.file.signature.fileName}'" + " exports: ${getExportDescription(exportInfo)} (import type: ${importInfo.type})" )</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println( " 📁❌ '${importInfo.name}' from '${importInfo.from}' -&gt; ${result.reason}" + " (import type: ${importInfo.type})" )</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println( " 🔍❌ '${importInfo.name}' from '${importInfo.from}' -&gt; ${result.reason}" + " (import type: ${importInfo.type})" )</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println(" $status '$input' -&gt; '$result' (expected: '$expected')")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println(" ✓ '$importPath' resolved to '${result.file.signature.fileName}'")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println(" ✗ '$importPath' failed: ${result.reason}")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("Complete symbol resolution success rate: $symbolSuccessRate%")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("Failed to resolve files: $failedImports")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("File not found: $fileNotFoundSymbols")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("File resolution success rate: $successRate%")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("Loading SDK from path: $sdkPath")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("Loading SDK from resource: $it")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("Loading project from path: $projectPath")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("Loading project from resources: $path")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("Merging project and SDK files...")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("Project files by extension: ${projectFilesByExtension.mapValues { it.value.size }}")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("Project files: ${scene.projectFiles.size}")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("Project loaded: ${projectScene.projectName} with ${projectScene.projectFiles.size} files")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("SDK files by extension: ${sdkFilesByExtension.mapValues { it.value.size }}")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("SDK files: ${scene.sdkFiles.size}")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("SDK loaded: ${sdkScene.projectName} with ${sdkScene.projectFiles.size} files")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("Scene loaded with ${scene.projectFiles.size} project files and ${scene.sdkFiles.size} SDK files")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("Successfully resolved files: $successfulImports")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("Successfully resolved symbols: $successfulSymbols")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("Symbol not found in file: $symbolNotFoundSymbols")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("Total files: ${scene.projectAndSdkClasses.size}")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("Total imports found: $totalImports")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("Total imports in project files: ${scene.projectFiles.sumOf { it.importInfos.size }}")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("Total symbols to resolve: $totalSymbols")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("Using test file: ${testFile.signature.fileName}")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("\n$category:")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("\n--- Complete Symbol Resolution Summary ---")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("\n--- File Import Resolution Summary ---")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("\n--- Setting up scene for import resolution tests ---")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("\n--- Summary ---")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("\n--- Testing common import patterns ---")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("\n--- Testing complete symbol resolver ---")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("\n--- Testing file-level import resolver ---")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("\nPath Normalization Tests:")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("\n[${index + 1}/${allFiles.size}] File: $fileName (${imports.size} imports)")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("\n[${index + 1}/${allFiles.size}] File: $fileName (no imports)")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("\n[${index + 1}/${allFiles.size}] File: '$fileName' (${imports.size} imports)")</ID>
+    <ID>ForbiddenMethodCall:ImportResolver.kt$ImportResolverTest$println("\n[${index + 1}/${allFiles.size}] File: '$fileName' (no imports)")</ID>
+    <ID>FunctionOnlyReturningConstant:Truthy.kt$fun isTruthy(x: TsTestValue.TsClass): Boolean</ID>
+    <ID>ImportOrdering:StaticOverloads.kt$import org.jacodb.ets.model.EtsScene import org.junit.jupiter.api.Test import org.usvm.api.TsTestValue import org.usvm.machine.TsMachine import org.usvm.machine.TsOptions import org.usvm.machine.state.TsState import org.usvm.statistics.UMachineObserver import org.usvm.test.util.checkers.eq as exactly import org.usvm.util.TsMethodTestRunner import org.usvm.util.eq import kotlin.test.assertEquals</ID>
+    <ID>LongMethod:Division.kt$Division$@Test fun `test number div number`()</ID>
+    <ID>MatchingDeclarationName:ImportExportResolution.kt$ImportExportResolutionTest</ID>
+    <ID>MatchingDeclarationName:UnreachableCodeDetector.kt$UnreachableCodeDetectorTest</ID>
+    <ID>MaxLineLength:Division.kt$Division$(a.number == Double.NEGATIVE_INFINITY) &amp;&amp; b.number.isFinite() &amp;&amp; (b.number &lt; 0) &amp;&amp; (r.number == Double.POSITIVE_INFINITY)</ID>
+    <ID>MaxLineLength:Division.kt$Division$(a.number == Double.NEGATIVE_INFINITY) &amp;&amp; b.number.isFinite() &amp;&amp; (b.number &gt; 0) &amp;&amp; (r.number == Double.NEGATIVE_INFINITY)</ID>
+    <ID>MaxLineLength:Division.kt$Division$(a.number == Double.POSITIVE_INFINITY) &amp;&amp; b.number.isFinite() &amp;&amp; (b.number &lt; 0) &amp;&amp; (r.number == Double.NEGATIVE_INFINITY)</ID>
+    <ID>MaxLineLength:Division.kt$Division$(a.number == Double.POSITIVE_INFINITY) &amp;&amp; b.number.isFinite() &amp;&amp; (b.number &gt; 0) &amp;&amp; (r.number == Double.POSITIVE_INFINITY)</ID>
+    <ID>MaxLineLength:Division.kt$Division$a.number.isFinite() &amp;&amp; (a.number &lt; 0) &amp;&amp; b.number.isFinite() &amp;&amp; (b.number &lt; 0) &amp;&amp; (r.number == a.number / b.number)</ID>
+    <ID>MaxLineLength:Division.kt$Division$a.number.isFinite() &amp;&amp; (a.number &lt; 0) &amp;&amp; b.number.isFinite() &amp;&amp; (b.number &lt; 0) &amp;&amp; (r.number &gt;= 0) &amp;&amp; (r.number == a.number / b.number)</ID>
+    <ID>MaxLineLength:Division.kt$Division$a.number.isFinite() &amp;&amp; (a.number &lt; 0) &amp;&amp; b.number.isFinite() &amp;&amp; (b.number &gt; 0) &amp;&amp; (r.number &lt;= 0) &amp;&amp; (r.number == a.number / b.number)</ID>
+    <ID>MaxLineLength:Division.kt$Division$a.number.isFinite() &amp;&amp; (a.number &gt; 0) &amp;&amp; b.number.isFinite() &amp;&amp; (b.number &gt; 0) &amp;&amp; (r.number == a.number / b.number)</ID>
+    <ID>MaxLineLength:ImportResolver.kt$ImportResolverTest$" ✅ '${importInfo.name}' from '${importInfo.from}' -&gt; '${result.file.signature.fileName}'"</ID>
+    <ID>MaxLineLength:ImportResolver.kt$ImportResolverTest$" 🎯 '${importInfo.name}' from '${importInfo.from}' -&gt; '${result.file.signature.fileName}'"</ID>
+    <ID>MaxLineLength:ImportResolver.kt$ImportResolverTest$"All path normalization tests should pass (expected: ${normalizationTests.size}, actual: $correctNormalizations)"</ID>
+    <ID>MaxLineLength:InheritanceReachabilityTest.kt$InheritanceReachabilityTest$// const obj = new ConcreteA(value) -&gt; const specificResult = obj.specificMethodA() -&gt; if (specificResult === 1) -&gt; return 1</ID>
+    <ID>MaxLineLength:InstanceMethods.kt$InstanceMethods$discoverProperties</ID>
+    <ID>MaxLineLength:RecursionReachabilityTest.kt$RecursionReachabilityTest$// if (input &gt; 0 &amp;&amp; input &lt; 5) -&gt; const evenResult = this.isEven(input) -&gt; if (evenResult &amp;&amp; input === 4) -&gt; return 1</ID>
+    <ID>MaxLineLength:StaticMethods.kt$StaticMethods$discoverProperties</ID>
+    <ID>MaxLineLength:TsMethodTestRunner.kt$TsMethodTestRunner$protected inline</ID>
+    <ID>MaxLineLength:TypeGuardsReachabilityTest.kt$TypeGuardsReachabilityTest$// if (typeof value === "object" &amp;&amp; value !== null) -&gt; if (value instanceof Date) -&gt; if (value.getFullYear() &gt; 2020) -&gt; return 1</ID>
+    <ID>MaximumLineLength:Division.kt$Division$ </ID>
+    <ID>MaximumLineLength:ImportResolver.kt$ImportResolverTest$ </ID>
+    <ID>MaximumLineLength:InstanceMethods.kt$InstanceMethods$ </ID>
+    <ID>MaximumLineLength:StaticMethods.kt$StaticMethods$ </ID>
+    <ID>MaximumLineLength:TsMethodTestRunner.kt$TsMethodTestRunner$ </ID>
+    <ID>MultiLineIfElse:TypeStream.kt$TypeStream$true</ID>
+    <ID>NestedBlockDepth:TsTestResolver.kt$TsTestStateResolver$private fun resolvePrimitive( expr: UExpr&lt;out USort&gt;, type: EtsPrimitiveType, ): TsTestValue</ID>
+    <ID>NoBlankLineInList:ImportExportResolution.kt$ImportExportResolutionTest$ </ID>
+    <ID>NoEmptyFirstLineInMethodBlock:And.kt$And$ </ID>
+    <ID>NoEmptyFirstLineInMethodBlock:NullishCoalescing.kt$NullishCoalescing$ </ID>
+    <ID>NoEmptyFirstLineInMethodBlock:Truthy.kt$Truthy$ </ID>
+    <ID>NoNameShadowing:NullishCoalescing.kt$NullishCoalescing$a</ID>
+    <ID>NoTrailingSpaces:LoopsReachabilityTest.kt$LoopsReachabilityTest$ </ID>
+    <ID>NoUnusedImports:ArrayReachabilityTest.kt$org.usvm.reachability.ArrayReachabilityTest.kt</ID>
+    <ID>NoUnusedImports:DemoPhotos.kt$org.usvm.project.DemoPhotos.kt</ID>
+    <ID>UnderscoresInNumericLiterals:Bitwise.kt$Bitwise$2147483647</ID>
+    <ID>UnderscoresInNumericLiterals:ReachabilityChecker.kt$ReachabilityChecker$15000000</ID>
+    <ID>UnderscoresInNumericLiterals:TsMethodTestRunner.kt$TsMethodTestRunner$1000000000</ID>
+    <ID>UnusedParameter:Truthy.kt$x: TsTestValue.TsClass</ID>
+    <ID>UseCheckNotNull:UnreachableCodeDetector.kt$UnreachableCodeDetectorTest$check(uncoveredStatements != null) { "Uncovered statements are incorrect, results are $uncoveredStatements" }</ID>
+    <ID>VarCouldBeVal:HigherOrderFunctionsReachabilityTest.kt$HigherOrderFunctionsReachabilityTest$var target: TsTarget = initialTarget</ID>
+    <ID>Wrapping:Add.kt$Add$(</ID>
+    <ID>Wrapping:ImportResolver.kt$ImportResolverTest$(</ID>
+  </CurrentIssues>
+</SmellBaseline>

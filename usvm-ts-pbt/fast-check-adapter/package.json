@@ -1,0 +1,24 @@
+{
+  "name": "@usvm/fast-check-adapter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "clean": "node --input-type=module --eval \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true })\"",
+    "prebuild": "npm run clean",
+    "build": "tsc --project tsconfig.json",
+    "pretest": "npm run build",
+    "test": "npm run test:compiled",
+    "test:compiled": "node --test dist/test/js-value.test.js dist/test/project-domain.test.js dist/test/projection-cli.test.js"
+  },
+  "dependencies": {
+    "fast-check": "4.9.0"
+  },
+  "devDependencies": {
+    "@types/node": "18.19.130",
+    "typescript": "5.9.2"
+  },
+  "engines": {
+    "node": ">=18.18.0"
+  }
+}
