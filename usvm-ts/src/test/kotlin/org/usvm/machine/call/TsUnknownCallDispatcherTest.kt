@@ -41,22 +41,26 @@ class TsUnknownCallDispatcherTest {
     @Test
     fun `inventoried unknown calls use normalized compatibility dispatch`() {
         val cases = listOf(
-            Case("declaredMethodWithoutBodyContinues", TsUnknownCallFailureReason.METHOD_BODY_UNAVAILABLE, true),
+            Case(
+                "declaredMethodWithoutBodyContinues",
+                TsUnknownCallFailureReason.METHOD_BODY_UNAVAILABLE,
+                reachesReturn = true,
+            ),
             Case(
                 "allocatedReceiverWithoutMethodContinues",
                 TsUnknownCallFailureReason.NO_SUITABLE_VIRTUAL_TARGET,
-                true,
+                reachesReturn = true,
             ),
             Case(
                 "unresolvedStaticCallPrunes",
                 TsUnknownCallFailureReason.STATIC_METHOD_NOT_FOUND,
-                false,
+                reachesReturn = false,
                 sceneWithout = "ExternalStatic",
             ),
             Case(
                 "unresolvedVirtualCallPrunes",
                 TsUnknownCallFailureReason.VIRTUAL_METHOD_NOT_FOUND,
-                false,
+                reachesReturn = false,
                 sceneWithout = "ExternalReceiver",
             ),
             Case(
@@ -65,32 +69,52 @@ class TsUnknownCallDispatcherTest {
                     TsUnknownCallFailureReason.RECEIVER_CLASS_NOT_FOUND,
                     TsUnknownCallFailureReason.RECEIVER_CLASS_NOT_FOUND,
                 ),
-                false,
+                reachesReturn = false,
                 sceneWithout = "ExternalReceiver",
             ),
-            Case("nonReferenceInstanceCallPrunes", TsUnknownCallFailureReason.NON_REFERENCE_RECEIVER, false),
+            Case(
+                "nonReferenceInstanceCallPrunes",
+                TsUnknownCallFailureReason.NON_REFERENCE_RECEIVER,
+                reachesReturn = false,
+            ),
             Case(
                 "unresolvedConstructorContinues",
                 TsUnknownCallFailureReason.RECEIVER_CLASS_NOT_FOUND,
-                true,
+                reachesReturn = true,
                 sceneWithout = "ExternalReceiver",
             ),
-            Case("unresolvedAnyPointerCallPrunes", TsUnknownCallFailureReason.POINTER_TARGET_NOT_FOUND, false),
-            Case("nonReferencePointerCallContinues", TsUnknownCallFailureReason.NON_REFERENCE_POINTER, true),
+            Case(
+                "unresolvedAnyPointerCallPrunes",
+                TsUnknownCallFailureReason.POINTER_TARGET_NOT_FOUND,
+                reachesReturn = false,
+            ),
+            Case(
+                "nonReferencePointerCallContinues",
+                TsUnknownCallFailureReason.NON_REFERENCE_POINTER,
+                reachesReturn = true,
+            ),
             Case(
                 "intraproceduralAssignmentCallContinues",
                 TsUnknownCallFailureReason.INTERPROCEDURAL_ANALYSIS_DISABLED,
-                true,
+                reachesReturn = true,
                 tsOptions = TsOptions(interproceduralAnalysis = false),
             ),
             Case(
                 "intraproceduralCallStatementContinues",
                 TsUnknownCallFailureReason.INTERPROCEDURAL_ANALYSIS_DISABLED,
-                true,
+                reachesReturn = true,
                 tsOptions = TsOptions(interproceduralAnalysis = false),
             ),
-            Case("logCallSkipsBody", TsUnknownCallFailureReason.LOGGING_CALL, true),
-            Case("booleanConverterPrunes", TsUnknownCallFailureReason.POINTER_TARGET_NOT_FOUND, false),
+            Case(
+                "logCallSkipsBody",
+                TsUnknownCallFailureReason.LOGGING_CALL,
+                reachesReturn = true,
+            ),
+            Case(
+                "booleanConverterPrunes",
+                TsUnknownCallFailureReason.POINTER_TARGET_NOT_FOUND,
+                reachesReturn = false,
+            ),
         )
 
         cases.forEach { case ->
