@@ -159,9 +159,6 @@ jobs:
       - name: Run TS tests
         run: ./gradlew :usvm-ts:check :usvm-ts-dataflow:check
 
-      - name: Run TS PBT integration baseline
-        run: env -u ARKANALYZER_DIR ETS_IR_PROVIDER=ts-frontend ./gradlew :usvm-ts-pbt:check
-
       - name: Upload Gradle reports
         if: (!cancelled())
         uses: actions/upload-artifact@v4
@@ -169,6 +166,29 @@ jobs:
           name: gradle-reports-ts
           path: '**/build/reports/'
           retention-days: 1
+
+  ci-ts-pbt:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run TS PBT integration baseline
+        run: env -u ARKANALYZER_DIR ETS_IR_PROVIDER=ts-frontend ./gradlew :usvm-ts-pbt:check
 
   lint:
     runs-on: ubuntu-latest
