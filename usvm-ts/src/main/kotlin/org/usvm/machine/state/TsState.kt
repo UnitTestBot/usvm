@@ -65,7 +65,6 @@ class TsState(
     var promiseExecutor: UPersistentHashMap<UConcreteHeapRef, EtsMethod> = persistentHashMapOf(),
     var methodToRef: UPersistentHashMap<EtsMethod, UConcreteHeapRef> = persistentHashMapOf(),
     var associatedFunction: UPersistentHashMap<UConcreteHeapRef, TsFunction> = persistentHashMapOf(),
-    var closureObject: UPersistentHashMap<String, UConcreteHeapRef> = persistentHashMapOf(),
     var boundThis: UPersistentHashMap<UConcreteHeapRef, UHeapRef> = persistentHashMapOf(),
     var dfltObject: UPersistentHashMap<EtsFileSignature, UConcreteHeapRef> = persistentHashMapOf(),
 
@@ -176,18 +175,17 @@ class TsState(
     fun getMethodRef(
         method: EtsMethod,
         thisInstance: UHeapRef? = null,
+        closure: UHeapRef? = null,
     ): UConcreteHeapRef {
-        val (updated, result) = methodToRef.getOrPut(method, ownership) { ctx.allocateConcreteRef() }
-        associatedFunction = associatedFunction.put(result, TsFunction(method, thisInstance), ownership)
-        methodToRef = updated
+        val result = if (closure == null) {
+            val (updated, methodRef) = methodToRef.getOrPut(method, ownership) { ctx.allocateConcreteRef() }
+            methodToRef = updated
+            methodRef
+        } else {
+            ctx.allocateConcreteRef()
+        }
+        associatedFunction = associatedFunction.put(result, TsFunction(method, thisInstance, closure), ownership)
         return result
-    }
-
-    fun setClosureObject(
-        name: String,
-        closure: UConcreteHeapRef,
-    ) {
-        closureObject = closureObject.put(name, closure, ownership)
     }
 
     fun setBoundThis(
@@ -292,7 +290,6 @@ class TsState(
             promiseExecutor = promiseExecutor,
             methodToRef = methodToRef,
             associatedFunction = associatedFunction,
-            closureObject = closureObject,
             boundThis = boundThis,
             dfltObject = dfltObject,
             dfltObjectFieldSorts = dfltObjectFieldSorts,

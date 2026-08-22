@@ -1,10 +1,12 @@
 package org.usvm.machine.expr
 
+import io.ksmt.expr.KFp64Value
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsAddExpr
 import org.jacodb.ets.model.EtsAndExpr
+import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayAccess
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsAwaitExpr
@@ -47,6 +49,7 @@ import org.jacodb.ets.model.EtsNotExpr
 import org.jacodb.ets.model.EtsNullConstant
 import org.jacodb.ets.model.EtsNullishCoalescingExpr
 import org.jacodb.ets.model.EtsNumberConstant
+import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsOrExpr
 import org.jacodb.ets.model.EtsParameterRef
 import org.jacodb.ets.model.EtsPostDecExpr
@@ -77,7 +80,9 @@ import org.jacodb.ets.model.EtsYieldExpr
 import org.jacodb.ets.utils.ANONYMOUS_METHOD_PREFIX
 import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
 import org.jacodb.ets.utils.getDeclaredLocals
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.UIteExpr
 import org.usvm.USort
 import org.usvm.api.allocateConcreteRef
@@ -104,6 +109,7 @@ import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
+import org.usvm.machine.types.EtsNominalType
 import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.sizeSort
 import org.usvm.util.EtsHierarchy
@@ -130,6 +136,11 @@ private const val ECMASCRIPT_BITWISE_INTEGER_SIZE = 32
  * and `x << 37` is equivalent to `x << 5`.
  */
 private const val ECMASCRIPT_BITWISE_SHIFT_MASK = 0b11111
+
+private enum class UpdateOperator {
+    INCREMENT,
+    DECREMENT,
+}
 
 class TsExprResolver(
     internal val ctx: TsContext,
@@ -249,23 +260,43 @@ class TsExprResolver(
     }
 
     override fun visit(expr: EtsPostIncExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+        return resolveUpdateExpression(expr.arg, UpdateOperator.INCREMENT, returnOldValue = true)
     }
 
     override fun visit(expr: EtsPostDecExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+        return resolveUpdateExpression(expr.arg, UpdateOperator.DECREMENT, returnOldValue = true)
     }
 
     override fun visit(expr: EtsPreIncExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+        return resolveUpdateExpression(expr.arg, UpdateOperator.INCREMENT, returnOldValue = false)
     }
 
     override fun visit(expr: EtsPreDecExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+        return resolveUpdateExpression(expr.arg, UpdateOperator.DECREMENT, returnOldValue = false)
+    }
+
+    private fun resolveUpdateExpression(
+        target: EtsEntity,
+        operator: UpdateOperator,
+        returnOldValue: Boolean,
+    ): UExpr<out USort>? = with(ctx) {
+        val oldValue = resolve(target) ?: return null
+        val oldNumericValue = mkNumericExpr(oldValue, scope)
+        val one = mkFp64(1.0)
+        val updatedValue = when (operator) {
+            UpdateOperator.INCREMENT -> mkFpAddExpr(fpRoundingModeSortDefaultValue(), oldNumericValue, one)
+            UpdateOperator.DECREMENT -> mkFpSubExpr(fpRoundingModeSortDefaultValue(), oldNumericValue, one)
+        }
+
+        when (target) {
+            is EtsLocal -> handleAssignToLocal(target, updatedValue)
+            is EtsArrayAccess -> handleAssignToArrayIndex(target, updatedValue)
+            is EtsInstanceFieldRef -> handleAssignToInstanceField(target, updatedValue)
+            is EtsStaticFieldRef -> handleAssignToStaticField(target, updatedValue)
+            else -> error("Increment and decrement require an assignable target, got: $target")
+        } ?: return null
+
+        if (returnOldValue) oldNumericValue else updatedValue
     }
 
     override fun visit(expr: EtsBitNotExpr): UExpr<out USort>? = with(ctx) {
@@ -543,7 +574,28 @@ class TsExprResolver(
     // region BINARY
 
     override fun visit(expr: EtsAddExpr): UExpr<out USort>? {
+        if (expr.type == EtsStringType) {
+            return resolveAfterResolved(expr.left, expr.right) { lhs, rhs ->
+                val lhsString = concreteStringValue(lhs)
+                    ?: error("Symbolic string concatenation is not supported for left operand: $lhs")
+                val rhsString = concreteStringValue(rhs)
+                    ?: error("Symbolic string concatenation is not supported for right operand: $rhs")
+                ctx.mkStringConstant(lhsString + rhsString, scope)
+            }
+        }
         return resolveBinaryOperator(TsBinaryOperator.Add, expr)
+    }
+
+    private fun concreteStringValue(value: UExpr<*>): String? = with(ctx) {
+        when {
+            value == trueExpr -> "true"
+            value == falseExpr -> "false"
+            value == mkTsNullValue() -> "null"
+            value == mkUndefinedValue() -> "undefined"
+            value is KFp64Value -> value.value.toEcmaScriptString()
+            value is UConcreteHeapRef -> getStringConstantValue(value)
+            else -> null
+        }
     }
 
     override fun visit(expr: EtsSubExpr): UExpr<out USort>? {
@@ -834,8 +886,10 @@ class TsExprResolver(
 
     override fun visit(expr: EtsInstanceOfExpr): UExpr<out USort>? = with(ctx) {
         val arg = resolve(expr.arg)?.asExpr(addressSort) ?: return null
+        val checkType = expr.checkType as? EtsRefType ?: return falseExpr
+
         scope.calcOnState {
-            memory.types.evalIsSubtype(arg, expr.checkType)
+            memory.types.evalIsSubtype(arg, EtsNominalType(checkType))
         }
     }
 
@@ -848,6 +902,10 @@ class TsExprResolver(
     override fun visit(expr: EtsStaticCallExpr): UExpr<*>? = handleStaticCall(expr)
 
     override fun visit(expr: EtsPtrCallExpr): UExpr<out USort>? = with(ctx) {
+        if (expr.isBuiltInNumberConverter()) {
+            return handleNumberConverter(expr.args)
+        }
+
         when (val result = scope.calcOnState { methodResult }) {
             is TsMethodResult.Success -> {
                 scope.doWithState { methodResult = TsMethodResult.NoCall }
@@ -897,7 +955,10 @@ class TsExprResolver(
                     val callee = scope.calcOnState {
                         associatedFunction[ptr] ?: error("No associated methods for ptr: $ptr")
                     }
-                    val resolvedArgs = expr.args.map { resolve(it) ?: return null }
+                    val resolvedArgs = buildList {
+                        callee.closure?.let(::add)
+                        expr.args.mapTo(this) { resolve(it) ?: return null }
+                    }
                     val concreteCall = TsConcreteMethodCallStmt(
                         callee = callee.method,
                         instance = callee.thisInstance ?: ctx.mkUndefinedValue(),
@@ -912,6 +973,24 @@ class TsExprResolver(
                 null
             }
         }
+    }
+
+    private fun EtsPtrCallExpr.isBuiltInNumberConverter(): Boolean {
+        val hasBuiltInCallSite = callee.name == "Number" &&
+            callee.enclosingClass == EtsClassSignature.UNKNOWN &&
+            ptr.name == "Number"
+        if (!hasBuiltInCallSite) {
+            return false
+        }
+
+        val signature = (ptr.type as? EtsFunctionType)?.signature ?: return false
+        val parameter = signature.parameters.singleOrNull() ?: return false
+        return signature.enclosingClass == EtsClassSignature.UNKNOWN &&
+            signature.name.isEmpty() &&
+            signature.returnType == EtsNumberType &&
+            parameter.type == EtsAnyType &&
+            parameter.isOptional &&
+            !parameter.isRest
     }
 
     // endregion
@@ -1026,8 +1105,9 @@ class TsExprResolver(
                 TODO("Multidimensional arrays are not supported yet, https://github.com/UnitTestBot/usvm/issues/287")
             }
 
-            val address = memory.allocConcrete(arrayType)
-            memory.initializeArrayLength(address, arrayType, sizeSort, bvSize)
+            val descriptor = arrayDescriptorOf(arrayType)
+            val address = memory.allocConcrete(descriptor)
+            memory.initializeArrayLength(address, descriptor, sizeSort, bvSize)
 
             address
         }
@@ -1046,17 +1126,22 @@ class TsSimpleValueResolver(
             "Expected EtsLocal, EtsThis, or EtsParameterRef, but got ${local::class.java}: $local"
         }
 
+        val currentMethod = scope.calcOnState { lastEnteredMethod }
+
         // Handle closures
         if (local is EtsLocal && local.name.startsWith("%closures")) {
-            // TODO: add comments
-            val existingClosures = scope.calcOnState { closureObject[local.name] }
-            if (existingClosures != null) {
-                return existingClosures
+            val idx = getLocalIdx(local, currentMethod)
+            if (idx != null) {
+                val initializedSort = scope.calcOnState { getSortForLocal(idx) }
+                if (initializedSort != null) {
+                    val lValue = mkRegisterStackLValue(initializedSort, idx)
+                    return scope.calcOnState { memory.read(lValue) }
+                }
             }
+
             val type = local.type
             check(type is EtsLexicalEnvType)
             val obj = allocateConcreteRef()
-            // TODO: consider 'types.allocate'
             for (captured in type.closures) {
                 val resolvedCaptured = resolveLocal(captured) ?: return null
                 val lValue = mkFieldLValue(resolvedCaptured.sort, obj, captured.name)
@@ -1064,13 +1149,8 @@ class TsSimpleValueResolver(
                     memory.write(lValue, resolvedCaptured.cast(), guard = trueExpr)
                 }
             }
-            scope.doWithState {
-                setClosureObject(local.name, obj)
-            }
             return obj
         }
-
-        val currentMethod = scope.calcOnState { lastEnteredMethod }
 
         // Locals in %dflt method are a little bit *special*...
         if (currentMethod.name == DEFAULT_ARK_METHOD_NAME) {
@@ -1179,7 +1259,17 @@ class TsSimpleValueResolver(
                 return null
             }
             val method = methods.single()
-            val ref = scope.calcOnState { getMethodRef(method) }
+            val closureParameter = method.parameters
+                .firstOrNull()
+                ?.takeIf { it.type is EtsLexicalEnvType }
+            val closure: UHeapRef? = if (closureParameter != null) {
+                val closureLocal = EtsLocal(closureParameter.name, closureParameter.type)
+                val resolved = resolveLocal(closureLocal) ?: return null
+                resolved.asExpr(ctx.addressSort)
+            } else {
+                null
+            }
+            val ref = scope.calcOnState { getMethodRef(method, closure = closure) }
             return ref
         }
 

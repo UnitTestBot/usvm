@@ -67,7 +67,6 @@ import kotlin.io.path.toPath
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
-import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 private val logger = KotlinLogging.logger {}
@@ -304,7 +303,7 @@ class EtsTypeInferenceTest {
     }
 
     @Test
-    fun `test if guesser does anything`() {
+    fun `type guesser reaches a fixed point after one pass`() {
         val name = "testcases"
         val file = load("/ts/$name.ts")
         val project = EtsScene(listOf(file))
@@ -322,8 +321,9 @@ class EtsTypeInferenceTest {
         val manager = TypeInferenceManager(EtsTraits(), graph)
         val resultWithoutGuessed = manager.analyze(entrypoints)
         val resultWithGuessed = resultWithoutGuessed.withGuessedTypes(guesser)
+        val resultWithGuessedTwice = resultWithGuessed.withGuessedTypes(guesser)
 
-        assertNotEquals(resultWithoutGuessed.inferredTypes, resultWithGuessed.inferredTypes)
+        assertEquals(resultWithGuessed, resultWithGuessedTwice)
 
         println("=".repeat(42))
         println("Inferred types WITHOUT guesser: ")

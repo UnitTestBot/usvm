@@ -16,6 +16,7 @@ import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.newStmt
 import org.usvm.util.TsResolutionResult
+import org.usvm.util.canonicalizeExecutableOverloads
 
 private val logger = KotlinLogging.logger {}
 
@@ -70,14 +71,18 @@ private fun TsExprResolver.resolveStaticMethod(
     if (method.enclosingClass.name != UNKNOWN_CLASS_NAME) {
         val classes = hierarchy.classesForType(EtsClassType(method.enclosingClass))
         if (classes.size > 1) {
-            val methods = classes.map { it.methods.single { it.name == method.name } }
+            val methods = classes
+                .flatMap { clazz -> clazz.methods.filter { it.name == method.name } }
+                .canonicalizeExecutableOverloads()
             return TsResolutionResult.create(methods)
         }
 
         if (classes.isEmpty()) return TsResolutionResult.Empty
 
         val clazz = classes.single()
-        val methods = clazz.methods.filter { it.name == method.name }
+        val methods = clazz.methods
+            .filter { it.name == method.name }
+            .canonicalizeExecutableOverloads()
         return TsResolutionResult.create(methods)
     }
 
@@ -85,6 +90,7 @@ private fun TsExprResolver.resolveStaticMethod(
     val methods = ctx.scene.projectAndSdkClasses
         .flatMap { it.methods }
         .filter { it.name == method.name }
+        .canonicalizeExecutableOverloads()
 
     return TsResolutionResult.create(methods)
 }

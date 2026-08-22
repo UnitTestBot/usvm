@@ -74,6 +74,7 @@ import org.usvm.targets.UTargetsSet
 import org.usvm.types.TypesResult
 import org.usvm.types.first
 import org.usvm.types.single
+import org.usvm.util.executableOverloadImplementation
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
@@ -313,28 +314,30 @@ class TsInterpreter(
 
         // TODO: observer
 
-        if (stmt.callee.signature.enclosingClass.name == "Log") {
-            mockMethodCall(scope, stmt.callee.signature)
+        val callee = stmt.callee.executableOverloadImplementation()
+
+        if (callee.signature.enclosingClass.name == "Log") {
+            mockMethodCall(scope, callee.signature)
             scope.doWithState { newStmt(stmt.returnSite) }
             return
         }
 
-        val entryPoint = graph.entryPoints(stmt.callee).singleOrNull()
+        val entryPoint = graph.entryPoints(callee).singleOrNull()
         if (entryPoint == null) {
-            // logger.warn { "No entry point for method: ${stmt.callee}, mocking the call" }
+            // logger.warn { "No entry point for method: $callee, mocking the call" }
             // If the method doesn't have entry points,
             // we go through it, we just mock the call
-            mockMethodCall(scope, stmt.callee.signature)
+            mockMethodCall(scope, callee.signature)
             scope.doWithState { newStmt(stmt.returnSite) }
             return
         }
 
         scope.doWithState {
-            registerCallee(stmt.returnSite, stmt.callee.cfg)
+            registerCallee(stmt.returnSite, callee.cfg)
 
             val args = mutableListOf<UExpr<*>>()
             val numActual = stmt.args.size
-            val numFormal = stmt.callee.parameters.size
+            val numFormal = callee.parameters.size
 
             args += stmt.instance
 
@@ -352,7 +355,7 @@ class TsInterpreter(
             //   g() -> g(undefined, undefined)
             //   g(1, 2, 3) -> g(1, 2)
 
-            if (stmt.callee.parameters.isNotEmpty() && stmt.callee.parameters.last().isRest) {
+            if (callee.parameters.isNotEmpty() && callee.parameters.last().isRest) {
                 // vararg call
 
                 // first n-1 args are normal
@@ -402,8 +405,8 @@ class TsInterpreter(
 
             // TODO: re-check push sorts for arguments
             pushSortsForActualArguments(args)
-            callStack.push(stmt.callee, stmt.returnSite)
-            memory.stack.push(args.toTypedArray(), stmt.callee.localsCount)
+            callStack.push(callee, stmt.returnSite)
+            memory.stack.push(args.toTypedArray(), callee.localsCount)
             newStmt(entryPoint)
         }
     }
@@ -575,6 +578,10 @@ class TsInterpreter(
                 }
             }
 
+            is EtsStaticFieldRef -> {
+                exprResolver.handleAssignToStaticField(lhv, expr)
+            }
+
             else -> {
                 error("LHV of type ${lhv::class.java} is not supported in %dflt::%dflt: $lhv")
             }
@@ -690,7 +697,12 @@ class TsInterpreter(
     }
 
     private fun visitNopStmt(scope: TsStepScope, stmt: EtsNopStmt) {
-        // Do nothing
+        val successors = graph.successors(stmt).toList()
+        when (successors.size) {
+            0 -> scope.doWithState { returnValue(ctx.mkUndefinedValue()) }
+            1 -> scope.doWithState { newStmt(successors.single()) }
+            else -> error("A NOP statement must not have multiple successors")
+        }
     }
 
     private fun exprResolverWithScope(scope: TsStepScope): TsExprResolver =
