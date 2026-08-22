@@ -3,10 +3,11 @@ package org.usvm.machine.expr
 import io.ksmt.utils.asExpr
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsInstanceCallExpr
-import org.jacodb.ets.model.EtsMethodSignature
 import org.usvm.UExpr
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsVirtualMethodCallStmt
+import org.usvm.machine.call.TsUnknownCallFailureReason
+import org.usvm.machine.call.dispatch
 import org.usvm.machine.expr.TsExprApproximationResult.NoApproximation
 import org.usvm.machine.expr.TsExprApproximationResult.ResolveFailure
 import org.usvm.machine.expr.TsExprApproximationResult.SuccessfulApproximation
@@ -48,13 +49,26 @@ internal fun TsExprResolver.handleInstanceCall(
             val fakeType = resolved.getFakeType(scope)
             scope.assert(fakeType.refTypeExpr) ?: run {
                 logger.warn { "Calls on non-ref (fake) instance is not supported: $expr" }
+                unknownCallDispatcher.dispatch(
+                    scope = scope,
+                    call = expr,
+                    callSite = scope.calcOnState { lastStmt },
+                    failureReason = TsUnknownCallFailureReason.NON_REFERENCE_RECEIVER,
+                    resolvedReceiver = resolved,
+                )
                 return null
             }
             resolved.extractRef(scope)
         } else {
             if (resolved.sort != addressSort) {
                 logger.warn { "Calling method on non-ref instance is not yet supported: $expr" }
-                scope.assert(falseExpr)
+                unknownCallDispatcher.dispatch(
+                    scope = scope,
+                    call = expr,
+                    callSite = scope.calcOnState { lastStmt },
+                    failureReason = TsUnknownCallFailureReason.NON_REFERENCE_RECEIVER,
+                    resolvedReceiver = resolved,
+                )
                 return null
             }
             resolved.asExpr(addressSort)
@@ -68,18 +82,18 @@ internal fun TsExprResolver.handleInstanceCall(
     val args = expr.args.map { resolve(it) ?: return null }
 
     // Call.
-    callInstanceMethod(scope, expr.callee, instance, args)
+    callInstanceMethod(scope, expr, instance, args)
 }
 
 fun TsContext.callInstanceMethod(
     scope: TsStepScope,
-    callee: EtsMethodSignature,
+    call: EtsInstanceCallExpr,
     instance: UExpr<*>,
     args: List<UExpr<*>>,
 ): UExpr<*>? {
     // Create the virtual call statement.
     val virtualCall = TsVirtualMethodCallStmt(
-        callee = callee,
+        call = call,
         instance = instance,
         args = args,
         returnSite = scope.calcOnState { lastStmt },

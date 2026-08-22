@@ -9,6 +9,11 @@ declare class ExternalStatic {
     static external(): void;
 }
 
+declare class ExternalOverloads {
+    static convert(value: number): number;
+    static convert(value: string): string;
+}
+
 class KnownReceiver {
     known(): number {
         return 1;
@@ -29,6 +34,12 @@ class EmptyReceiver {
 class Log {
     static record(): number {
         return 999;
+    }
+
+    associatedLoggingPointerContinues(): number {
+        const callback = () => 999;
+        callback();
+        return 121;
     }
 }
 
@@ -94,6 +105,10 @@ class CallFallbackBaseline {
     nonReferencePointerCallContinues(callback: number): number {
         callback(42);
         return 108;
+    }
+
+    overloadedDeclaredMethodWithoutBodyContinues(): number {
+        return ExternalOverloads.convert(41);
     }
 
     intraproceduralAssignmentCallContinues(): number {

@@ -84,12 +84,12 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
         }
     }
 
-    val instance = scope.calcOnState { resolve(expr.instance)?.asExpr(addressSort) }
+    val instance = resolve(expr.instance)
         ?: return TsExprApproximationResult.ResolveFailure
 
-    val instanceType = if (isAllocatedConcreteHeapRef(instance)) {
+    val instanceType = if (instance.sort == addressSort && isAllocatedConcreteHeapRef(instance)) {
         scope.calcOnState {
-            memory.typeStreamOf(instance).firstOrNull() ?: expr.instance.type
+            memory.typeStreamOf(instance.asExpr(addressSort)).firstOrNull() ?: expr.instance.type
         }
     } else {
         expr.instance.type
