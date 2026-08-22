@@ -56,7 +56,3 @@ tasks.check {
 tasks.clean {
     delete(fastCheckAdapterDir.dir("dist"))
 }
-
-tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
-    jvmTarget = JavaVersion.VERSION_1_8.toString()
-}

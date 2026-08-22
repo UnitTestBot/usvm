@@ -11,6 +11,7 @@ import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonDecoder
 import kotlinx.serialization.json.JsonEncoder
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
@@ -18,21 +19,27 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 
+/** Tags the finite and non-finite cases of an ECMAScript binary64 value. */
 @Serializable
 enum class JsNumberKind {
+    /** Finite value represented by its raw IEEE-754 bits. */
     @SerialName("finite")
     FINITE,
 
+    /** JavaScript NaN value. */
     @SerialName("nan")
     NAN,
 
+    /** Positive infinity. */
     @SerialName("positive-infinity")
     POSITIVE_INFINITY,
 
+    /** Negative infinity. */
     @SerialName("negative-infinity")
     NEGATIVE_INFINITY,
 }
 
+/** Lossless tagged representation of a JavaScript number, including NaN, infinities, and negative zero. */
 @Serializable
 data class JsNumber(
     val value: JsNumberKind,
@@ -55,7 +62,10 @@ data class JsNumber(
             require(value.isFinite()) { "Use a tagged representation for non-finite JavaScript numbers" }
             return JsNumber(
                 value = JsNumberKind.FINITE,
-                bits = value.toRawBits().toULong().toString(JS_NUMBER_HEX_RADIX)
+                bits = value
+                    .toRawBits()
+                    .toULong()
+                    .toString(JS_NUMBER_HEX_RADIX)
                     .padStart(JS_NUMBER_HEX_DIGITS, '0'),
             )
         }
@@ -75,23 +85,31 @@ data class JsNumber(
     }
 }
 
+/** Lossless transport value for JavaScript primitives and recursively nested arrays. */
 @Serializable(with = JsConcreteValueSerializer::class)
 sealed interface JsConcreteValue {
+    /** JavaScript `undefined`. */
     data object Undefined : JsConcreteValue
 
+    /** JavaScript `null`. */
     data object Null : JsConcreteValue
 
+    /** Concrete JavaScript boolean value. */
     data class Boolean(val value: kotlin.Boolean) : JsConcreteValue
 
+    /** Concrete JavaScript UTF-16 string value. */
     data class String(val value: kotlin.String) : JsConcreteValue
 
+    /** Concrete JavaScript binary64 number with lossless special-value encoding. */
     data class Number(val number: JsNumber) : JsConcreteValue {
         fun toDouble(): Double = number.toDouble()
     }
 
+    /** Ordered recursively tagged elements of one concrete JavaScript array. */
     data class Array(val elements: List<JsConcreteValue>) : JsConcreteValue
 }
 
+/** JSON serializer for the tagged [JsConcreteValue] wire representation. */
 object JsConcreteValueSerializer : KSerializer<JsConcreteValue> {
     override val descriptor: SerialDescriptor = buildClassSerialDescriptor("JsConcreteValue")
 
@@ -108,6 +126,7 @@ object JsConcreteValueSerializer : KSerializer<JsConcreteValue> {
                     JsConcreteValue.Null -> {
                         put("kind", "null")
                     }
+
                     is JsConcreteValue.Boolean -> {
                         put("kind", "boolean")
                         put("value", value.value)
@@ -125,15 +144,13 @@ object JsConcreteValueSerializer : KSerializer<JsConcreteValue> {
                     }
 
                     is JsConcreteValue.Array -> {
+                        val elements = value.elements.map { element ->
+                            jsonEncoder.json.encodeToJsonElement(JsConcreteValueSerializer, element)
+                        }
+                        val jsonElements = JsonArray(elements)
+
                         put("kind", "array")
-                        put(
-                            "elements",
-                            JsonArray(
-                                value.elements.map { element ->
-                                    jsonEncoder.json.encodeToJsonElement(JsConcreteValueSerializer, element)
-                                },
-                            ),
-                        )
+                        put("elements", jsonElements)
                     }
                 }
             },
@@ -147,37 +164,47 @@ object JsConcreteValueSerializer : KSerializer<JsConcreteValue> {
         return when (val kind = value.requiredString("kind")) {
             "undefined" -> JsConcreteValue.Undefined
             "null" -> JsConcreteValue.Null
-            "boolean" -> JsConcreteValue.Boolean(
-                value["value"]?.jsonPrimitive?.booleanOrNull
-                    ?: throw SerializationException("Boolean JsConcreteValue requires a boolean value"),
-            )
-
+            "boolean" -> deserializeBoolean(value)
             "string" -> JsConcreteValue.String(value.requiredString("value"))
-            "number" -> JsConcreteValue.Number(
-                JsNumber(
-                    value = when (val numberKind = value.requiredString("value")) {
-                        "finite" -> JsNumberKind.FINITE
-                        "nan" -> JsNumberKind.NAN
-                        "positive-infinity" -> JsNumberKind.POSITIVE_INFINITY
-                        "negative-infinity" -> JsNumberKind.NEGATIVE_INFINITY
-                        else -> throw SerializationException("Unknown JavaScript number kind: $numberKind")
-                    },
-                    bits = value["bits"]?.jsonPrimitive?.content,
-                ),
-            )
-
-            "array" -> JsConcreteValue.Array(
-                value["elements"]?.jsonArray?.map { element ->
-                    jsonDecoder.json.decodeFromJsonElement(JsConcreteValueSerializer, element)
-                } ?: throw SerializationException("Array JsConcreteValue requires elements"),
-            )
-
+            "number" -> deserializeNumber(value)
+            "array" -> deserializeArray(jsonDecoder, value)
             else -> throw SerializationException("Unknown JavaScript value kind: $kind")
         }
     }
 }
 
-private val JsNumberKind.serialName: kotlin.String
+private fun deserializeBoolean(value: JsonObject): JsConcreteValue.Boolean {
+    val booleanValue = value["value"]?.jsonPrimitive?.booleanOrNull
+        ?: throw SerializationException("Boolean JsConcreteValue requires a boolean value")
+    return JsConcreteValue.Boolean(booleanValue)
+}
+
+private fun deserializeNumber(value: JsonObject): JsConcreteValue.Number {
+    val numberKindName = value.requiredString("value")
+    val numberKind = when (numberKindName) {
+        "finite" -> JsNumberKind.FINITE
+        "nan" -> JsNumberKind.NAN
+        "positive-infinity" -> JsNumberKind.POSITIVE_INFINITY
+        "negative-infinity" -> JsNumberKind.NEGATIVE_INFINITY
+        else -> throw SerializationException("Unknown JavaScript number kind: $numberKindName")
+    }
+    val bits = value["bits"]?.jsonPrimitive?.content
+    val number = JsNumber(value = numberKind, bits = bits)
+
+    return JsConcreteValue.Number(number)
+}
+
+private fun deserializeArray(jsonDecoder: JsonDecoder, value: JsonObject): JsConcreteValue.Array {
+    val jsonElements = value["elements"]?.jsonArray
+        ?: throw SerializationException("Array JsConcreteValue requires elements")
+    val elements = jsonElements.map { element ->
+        jsonDecoder.json.decodeFromJsonElement(JsConcreteValueSerializer, element)
+    }
+
+    return JsConcreteValue.Array(elements)
+}
+
+private val JsNumberKind.serialName: String
     get() = when (this) {
         JsNumberKind.FINITE -> "finite"
         JsNumberKind.NAN -> "nan"
@@ -185,7 +212,7 @@ private val JsNumberKind.serialName: kotlin.String
         JsNumberKind.NEGATIVE_INFINITY -> "negative-infinity"
     }
 
-private fun kotlinx.serialization.json.JsonObject.requiredString(name: kotlin.String): kotlin.String =
+private fun JsonObject.requiredString(name: String): String =
     get(name)?.jsonPrimitive?.content
         ?: throw SerializationException("JsConcreteValue requires a $name field")
 

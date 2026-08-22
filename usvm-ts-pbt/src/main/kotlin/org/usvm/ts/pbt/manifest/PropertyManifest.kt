@@ -13,6 +13,11 @@ import org.usvm.ts.pbt.validation.validatePropertyManifest
 
 const val PROPERTY_MANIFEST_SCHEMA_VERSION = 1
 
+/**
+ * Versioned transport representation of a validated [PropertyDefinition].
+ *
+ * The manifest is the boundary shared with replaceable concrete PBT adapters and later symbolic projections.
+ */
 @Serializable
 data class PropertyManifest(
     val schemaVersion: Int = PROPERTY_MANIFEST_SCHEMA_VERSION,
@@ -32,6 +37,7 @@ fun PropertyDefinition.toManifest(): PropertyManifest {
     )
 }
 
+/** Strict JSON codec for versioned property manifests. */
 object PropertyManifestJson {
     val json = Json {
         classDiscriminator = "kind"

@@ -116,6 +116,31 @@ class FastCheckProjectionClientTest {
         }
     }
 
+    @Test
+    fun `large adapter stderr does not block a successful response`() {
+        withTemporaryAdapter(
+            """
+            const timeout = setTimeout(() => process.exit(2), 1000)
+            process.stderr.write('x'.repeat(1024 * 1024), () => {
+              clearTimeout(timeout)
+              process.stdout.write(JSON.stringify({
+                protocolVersion: 1,
+                requestId: 'valid-request',
+                status: 'ok',
+                samples: [[{ kind: 'boolean', value: true }]]
+              }))
+            })
+            """.trimIndent(),
+        ) { temporaryClient ->
+            val response = temporaryClient.sample(validRequest)
+
+            assertEquals(
+                listOf(listOf(JsConcreteValue.Boolean(true))),
+                response.samples,
+            )
+        }
+    }
+
     private fun assertConforms(values: List<JsConcreteValue>, domains: List<PropertyDomain>) {
         assertEquals(domains.size, values.size)
         values.zip(domains).forEach { (value, domain) ->

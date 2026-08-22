@@ -5,11 +5,19 @@ import kotlinx.serialization.encodeToString
 import org.usvm.ts.pbt.manifest.PropertyManifestJson
 import java.io.IOException
 import java.nio.file.Path
+import java.util.concurrent.Executors
 
+/**
+ * Synchronous Kotlin client for the private fast-check Node adapter.
+ *
+ * Each request starts a fresh adapter process, writes one JSON request, and validates the single JSON response
+ * before exposing sampled values to Kotlin callers.
+ */
 class FastCheckProjectionClient(
     private val nodeExecutable: String = "node",
     private val adapterEntryPoint: Path,
 ) {
+    /** Projects the requested domains to fast-check and returns the generated samples. */
     fun sample(request: FastCheckProjectionRequest): FastCheckProjectionResponse {
         validateRequest(request)
         val response = decodeResponse(invokeAdapter(request))
@@ -63,25 +71,33 @@ class FastCheckProjectionClient(
 
     private fun invokeAdapter(request: FastCheckProjectionRequest): String {
         val process = startAdapter()
-        process.outputWriter(Charsets.UTF_8).use { writer ->
-            writer.write(PropertyManifestJson.json.encodeToString(request))
+        val errorReaderExecutor = Executors.newSingleThreadExecutor()
+        val stderr = errorReaderExecutor.submit<String> {
+            process.errorStream.bufferedReader(Charsets.UTF_8).use { reader -> reader.readText() }
         }
-        val stdout = process.inputReader(Charsets.UTF_8).readText()
-        val stderr = process.errorReader(Charsets.UTF_8).readText()
-        val exitCode = process.waitFor()
-        if (exitCode != 0) {
-            throw FastCheckProjectionException(
-                code = "backend.process.failed",
-                message = "fast-check adapter exited with code $exitCode: ${stderr.trim()}",
-            )
+        try {
+            process.outputStream.bufferedWriter(Charsets.UTF_8).use { writer ->
+                writer.write(PropertyManifestJson.json.encodeToString(request))
+            }
+            val stdout = process.inputStream.bufferedReader(Charsets.UTF_8).use { reader -> reader.readText() }
+            val exitCode = process.waitFor()
+            val stderrText = stderr.get()
+            if (exitCode != 0) {
+                throw FastCheckProjectionException(
+                    code = "backend.process.failed",
+                    message = "fast-check adapter exited with code $exitCode: ${stderrText.trim()}",
+                )
+            }
+            if (stdout.isBlank()) {
+                throw FastCheckProjectionException(
+                    code = "backend.response.empty",
+                    message = "fast-check adapter returned an empty response",
+                )
+            }
+            return stdout
+        } finally {
+            errorReaderExecutor.shutdownNow()
         }
-        if (stdout.isBlank()) {
-            throw FastCheckProjectionException(
-                code = "backend.response.empty",
-                message = "fast-check adapter returned an empty response",
-            )
-        }
-        return stdout
     }
 
     private fun startAdapter(): Process = try {

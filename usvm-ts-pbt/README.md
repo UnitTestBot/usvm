@@ -46,16 +46,16 @@ val manifest = property.toManifest()
 Input order is significant because TypeScript parameters are positional. Names are unique and are retained in
 diagnostics and artifacts.
 
-| Domain | Semantics and defaults |
-| --- | --- |
-| `BooleanDomain` | JavaScript booleans |
-| `IntegerDomain` | Inclusive signed 32-bit range; defaults to `Int.MIN_VALUE..Int.MAX_VALUE` |
-| `NumberDomain` | ECMAScript binary64; defaults to both infinities and `allowNaN = true`; bounded domains reject NaN |
-| `StringDomain` | Arbitrary UTF-16 code units; length is JavaScript `String.length`; defaults to `0..10` |
-| `ConstantDomain` | One tagged JavaScript primitive |
-| `OptionalDomain` | Nested domain plus exactly `undefined` or `null` as the nil value |
-| `TupleDomain` | Non-empty ordered recursive domains |
-| `ArrayDomain` | Recursive element domain; defaults to length `0..10` |
+| Domain           | Semantics and defaults                                                                             |
+| ---------------- | -------------------------------------------------------------------------------------------------- |
+| `BooleanDomain`  | JavaScript booleans                                                                                |
+| `IntegerDomain`  | Inclusive signed 32-bit range; defaults to `Int.MIN_VALUE..Int.MAX_VALUE`                          |
+| `NumberDomain`   | ECMAScript binary64; defaults to both infinities and `allowNaN = true`; bounded domains reject NaN |
+| `StringDomain`   | Arbitrary UTF-16 code units; length is JavaScript `String.length`; defaults to `0..10`             |
+| `ConstantDomain` | One tagged JavaScript primitive                                                                    |
+| `OptionalDomain` | Nested domain plus exactly `undefined` or `null` as the nil value                                  |
+| `TupleDomain`    | Non-empty ordered recursive domains                                                                |
+| `ArrayDomain`    | Recursive element domain; defaults to length `0..10`                                               |
 
 `PropertyDomain` describes a set of allowed inputs. `JsConcreteValue` describes one concrete JavaScript value used as a
 constant or returned sample; it is unrelated to JacoDB IR values. Its tagged encoding preserves `undefined`,

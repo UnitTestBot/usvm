@@ -6,6 +6,7 @@ import org.usvm.ts.pbt.model.PropertyDomain
 
 const val FAST_CHECK_PROTOCOL_VERSION = 1
 
+/** One versioned request sent from Kotlin to the private fast-check adapter process. */
 @Serializable
 data class FastCheckProjectionRequest(
     val protocolVersion: Int = FAST_CHECK_PROTOCOL_VERSION,
@@ -16,6 +17,7 @@ data class FastCheckProjectionRequest(
     val domains: List<PropertyDomain>,
 )
 
+/** Validated samples returned by fast-check in positional input order. */
 data class FastCheckProjectionResponse(
     val protocolVersion: Int,
     val requestId: String,
@@ -38,6 +40,7 @@ internal data class FastCheckProtocolDiagnostic(
     val path: String? = null,
 )
 
+/** Typed failure reported by the fast-check process or its Kotlin protocol boundary. */
 class FastCheckProjectionException(
     val code: String,
     message: String,

@@ -3,6 +3,7 @@ package org.usvm.ts.pbt.model
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+/** Stable canonical identifier used to correlate one property across artifacts and backends. */
 @JvmInline
 @Serializable
 value class PropertyId private constructor(val value: String) {
@@ -18,6 +19,14 @@ value class PropertyId private constructor(val value: String) {
     }
 }
 
+/**
+ * Backend-independent Kotlin definition of one property.
+ *
+ * @property id stable identity of the property
+ * @property inputs ordered domains matching positional TypeScript parameters
+ * @property predicate TypeScript function that must hold for generated inputs
+ * @property precondition optional TypeScript function that filters inputs before evaluation
+ */
 @Serializable
 data class PropertyDefinition(
     val id: PropertyId,
@@ -26,12 +35,25 @@ data class PropertyDefinition(
     val precondition: TypeScriptEntryPoint? = null,
 )
 
+/**
+ * Names one positional property input and declares its backend-independent domain.
+ *
+ * @property name JavaScript identifier used in diagnostics and artifacts
+ * @property domain values that concrete and symbolic backends may produce
+ */
 @Serializable
 data class PropertyInput(
     val name: String,
     val domain: PropertyDomain,
 )
 
+/**
+ * References an exported TypeScript function without loading or executing it.
+ *
+ * @property module normalized project-relative POSIX module path
+ * @property exportName JavaScript identifier exported by [module]
+ * @property executionKind whether invoking the function returns directly or asynchronously
+ */
 @Serializable
 data class TypeScriptEntryPoint(
     val module: String,
@@ -39,11 +61,14 @@ data class TypeScriptEntryPoint(
     val executionKind: ExecutionKind = ExecutionKind.SYNC,
 )
 
+/** Describes how a referenced TypeScript function completes. */
 @Serializable
 enum class ExecutionKind {
+    /** The function returns its result directly. */
     @SerialName("sync")
     SYNC,
 
+    /** The function returns an awaitable result. */
     @SerialName("async")
     ASYNC,
 }

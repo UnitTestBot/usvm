@@ -19,17 +19,26 @@ import org.usvm.ts.pbt.model.TupleDomain
 import org.usvm.ts.pbt.model.TypeScriptEntryPoint
 import org.usvm.ts.pbt.model.isCanonicalPropertyId
 
+/**
+ * One deterministic validation failure.
+ *
+ * @property code stable machine-readable diagnostic code
+ * @property message human-readable description of the invalid value
+ * @property path location of the invalid value in the property model
+ */
 data class ValidationDiagnostic(
     val code: String,
     val message: String,
     val path: String,
 )
 
+/** Ordered validation diagnostics and their derived validity state. */
 data class PropertyValidationResult(val diagnostics: List<ValidationDiagnostic>) {
     val isValid: Boolean
         get() = diagnostics.isEmpty()
 }
 
+/** Thrown when an operation requires a valid property but receives [result] with diagnostics. */
 class InvalidPropertyDefinitionException(
     val result: PropertyValidationResult,
 ) : IllegalArgumentException(result.diagnostics.joinToString(separator = "; ") { "${it.path}: ${it.message}" })
@@ -177,17 +186,21 @@ private fun validateNumberDomain(
     path: String,
     diagnostics: MutableList<ValidationDiagnostic>,
 ) {
-    val minValid = validateJsNumber(domain.min, "$path.min", diagnostics)
-    val maxValid = validateJsNumber(domain.max, "$path.max", diagnostics)
+    val minimumEncodingIsValid = validateJsNumber(domain.min, "$path.min", diagnostics)
+    val maximumEncodingIsValid = validateJsNumber(domain.max, "$path.max", diagnostics)
+
     if (domain.min.value == JsNumberKind.NAN) {
         diagnostics += diagnostic("domain.number.bound.nan", "Number minimum must not be NaN", "$path.min")
     }
     if (domain.max.value == JsNumberKind.NAN) {
         diagnostics += diagnostic("domain.number.bound.nan", "Number maximum must not be NaN", "$path.max")
     }
-    if (minValid && maxValid && domain.min.value != JsNumberKind.NAN && domain.max.value != JsNumberKind.NAN &&
-        domain.min.toDouble() > domain.max.toDouble()
-    ) {
+
+    val encodingsAreValid = minimumEncodingIsValid && maximumEncodingIsValid
+    val boundsAreNotNaN = domain.min.value != JsNumberKind.NAN && domain.max.value != JsNumberKind.NAN
+    val boundsCanBeCompared = encodingsAreValid && boundsAreNotNaN
+    val minimumExceedsMaximum = boundsCanBeCompared && domain.min.toDouble() > domain.max.toDouble()
+    if (minimumExceedsMaximum) {
         diagnostics += diagnostic("domain.number.bounds", "Number minimum exceeds maximum", path)
     }
 
@@ -269,32 +282,46 @@ private fun isProjectRelativePosixPath(path: String): Boolean =
 
 private fun isJavaScriptIdentifier(value: String): Boolean {
     if (value.isEmpty()) return false
+
     var index = 0
     var first = true
+
     while (index < value.length) {
         val codePoint = value.codePointAt(index)
         val valid = if (first) {
-            codePoint == '$'.code || codePoint == '_'.code || Character.isUnicodeIdentifierStart(codePoint)
+            isJavaScriptIdentifierStart(codePoint)
         } else {
-            codePoint == '$'.code ||
-                codePoint == '_'.code ||
-                codePoint == ZERO_WIDTH_NON_JOINER ||
-                codePoint == ZERO_WIDTH_JOINER ||
-                Character.isUnicodeIdentifierPart(codePoint)
+            isJavaScriptIdentifierPart(codePoint)
         }
         if (!valid) return false
+
         first = false
         index += Character.charCount(codePoint)
     }
+
     return true
 }
 
-private fun MutableList<ValidationDiagnostic>.toResult(): PropertyValidationResult =
-    sortedWith(compareBy(ValidationDiagnostic::path, ValidationDiagnostic::code))
-        .let(::PropertyValidationResult)
+private fun isJavaScriptIdentifierStart(codePoint: Int): Boolean =
+    codePoint == '$'.code ||
+        codePoint == '_'.code ||
+        Character.isUnicodeIdentifierStart(codePoint)
+
+private fun isJavaScriptIdentifierPart(codePoint: Int): Boolean =
+    isJavaScriptIdentifierStart(codePoint) ||
+        codePoint == ZERO_WIDTH_NON_JOINER_CODE_POINT ||
+        codePoint == ZERO_WIDTH_JOINER_CODE_POINT ||
+        Character.isUnicodeIdentifierPart(codePoint)
+
+private fun MutableList<ValidationDiagnostic>.toResult(): PropertyValidationResult {
+    val orderedDiagnostics = sortedWith(compareBy(ValidationDiagnostic::path, ValidationDiagnostic::code))
+    return PropertyValidationResult(orderedDiagnostics)
+}
 
 private fun diagnostic(code: String, message: String, path: String) = ValidationDiagnostic(code, message, path)
 
 private val FINITE_NUMBER_BITS_REGEX = Regex("[0-9a-f]{16}")
-private const val ZERO_WIDTH_NON_JOINER = 0x200C
-private const val ZERO_WIDTH_JOINER = 0x200D
+
+// ECMAScript permits these otherwise invisible Unicode characters after the first identifier character.
+private const val ZERO_WIDTH_NON_JOINER_CODE_POINT = 0x200C
+private const val ZERO_WIDTH_JOINER_CODE_POINT = 0x200D

@@ -6,8 +6,12 @@ import org.usvm.ts.pbt.manifest.PropertyManifest
 import org.usvm.ts.pbt.model.ConstantDomain
 import org.usvm.ts.pbt.model.IntegerDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
+import org.usvm.ts.pbt.model.JsNumber
+import org.usvm.ts.pbt.model.JsNumberKind
+import org.usvm.ts.pbt.model.NumberDomain
 import org.usvm.ts.pbt.model.OptionalDomain
 import org.usvm.ts.pbt.model.PropertyDefinition
+import org.usvm.ts.pbt.model.PropertyDomain
 import org.usvm.ts.pbt.model.PropertyId
 import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.StringDomain
@@ -73,6 +77,23 @@ class PropertyValidationTest {
     }
 
     @Test
+    fun `invalid number encodings are diagnosed without comparing the bounds`() {
+        val invalidMinimum = JsNumber(JsNumberKind.FINITE, bits = "invalid")
+        val definition = validDefinition(
+            NumberDomain(
+                min = invalidMinimum,
+                max = JsNumber.finite(1.0),
+                allowNaN = false,
+            ),
+        )
+
+        assertEquals(
+            listOf("js-number.encoding.invalid"),
+            validatePropertyDefinition(definition).diagnostics.map { it.code },
+        )
+    }
+
+    @Test
     fun `manifest validation rejects unknown schema version`() {
         val manifest = PropertyManifest(
             schemaVersion = PROPERTY_MANIFEST_SCHEMA_VERSION + 1,
@@ -92,7 +113,7 @@ class PropertyValidationTest {
         assertTrue(validatePropertyDefinition(validDefinition(IntegerDomain(-5, 5))).isValid)
     }
 
-    private fun validDefinition(domain: org.usvm.ts.pbt.model.PropertyDomain) = PropertyDefinition(
+    private fun validDefinition(domain: PropertyDomain) = PropertyDefinition(
         id = PropertyId("valid.id"),
         inputs = listOf(PropertyInput("value", domain)),
         predicate = TypeScriptEntryPoint("properties/value.ts", "holds"),
