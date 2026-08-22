@@ -78,6 +78,7 @@ import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
+import org.usvm.util.executableOverloadImplementation
 import org.usvm.util.resolveEtsMethods
 import org.usvm.util.type
 import org.usvm.utils.ensureSat
@@ -408,20 +409,6 @@ class TsInterpreter(
             memory.stack.push(args.toTypedArray(), callee.localsCount)
             newStmt(entryPoint)
         }
-    }
-
-    private fun EtsMethod.executableOverloadImplementation(): EtsMethod {
-        if (cfg.stmts.isNotEmpty()) return this
-
-        return enclosingClass
-            ?.methods
-            ?.filter { candidate ->
-                candidate.name == name &&
-                    candidate.isStatic == isStatic &&
-                    candidate.cfg.stmts.isNotEmpty()
-            }
-            ?.singleOrNull()
-            ?: this
     }
 
     private fun visitIfStmt(scope: TsStepScope, stmt: EtsIfStmt) {
