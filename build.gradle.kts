@@ -21,6 +21,7 @@ tasks.register("validateProjectList") {
             project(":usvm-jvm-instrumentation"),
             project(":usvm-python"),
             project(":usvm-ts"),
+            project(":usvm-ts-pbt"),
             project(":usvm-ts-dataflow"),
         )
 

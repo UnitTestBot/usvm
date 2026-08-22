@@ -159,6 +159,9 @@ jobs:
       - name: Run TS tests
         run: ./gradlew :usvm-ts:check :usvm-ts-dataflow:check
 
+      - name: Run TS PBT integration baseline
+        run: env -u ARKANALYZER_DIR ETS_IR_PROVIDER=ts-frontend ./gradlew :usvm-ts-pbt:check
+
       - name: Upload Gradle reports
         if: (!cancelled())
         uses: actions/upload-artifact@v4
