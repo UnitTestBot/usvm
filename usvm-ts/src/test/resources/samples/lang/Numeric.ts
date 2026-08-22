@@ -2,6 +2,10 @@
 // noinspection JSUnusedGlobalSymbols
 
 class Numeric {
+    emptyNumber(): number {
+        return Number();
+    }
+
     customNumber(): number {
         const Number = (value: number): number => value + 10;
         return Number(32);

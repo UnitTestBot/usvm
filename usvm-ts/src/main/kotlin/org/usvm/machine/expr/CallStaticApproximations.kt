@@ -35,6 +35,9 @@ private fun TsExprResolver.handleR(): UExpr<*> = with(ctx) {
 }
 
 internal fun TsExprResolver.handleNumberConverter(args: List<EtsValue>): UExpr<*>? = with(ctx) {
+    if (args.isEmpty()) {
+        return mkFp64(0.0)
+    }
     check(args.size == 1) {
         "Number() should have exactly one argument, but got ${args.size}"
     }
