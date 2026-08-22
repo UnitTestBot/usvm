@@ -43,6 +43,21 @@ test('bounded numbers exclude NaN and values outside their inclusive bounds', ()
   assert.ok(samples.every((value) => !Number.isNaN(value) && value >= -1.5 && value <= 2.5));
 });
 
+test('singleton infinity ranges project without an empty finite arbitrary', () => {
+  for (const [bound, expected] of [
+    [{ value: 'negative-infinity' }, Number.NEGATIVE_INFINITY],
+    [{ value: 'positive-infinity' }, Number.POSITIVE_INFINITY],
+  ]) {
+    const samples = sample({
+      kind: 'number',
+      min: bound,
+      max: bound,
+      allowNaN: false,
+    });
+    assert.ok(samples.every((value) => value === expected));
+  }
+});
+
 for (const [name, domain, predicate] of [
   ['boolean', { kind: 'boolean' }, (value) => typeof value === 'boolean'],
   [

@@ -92,12 +92,15 @@ function projectNumber(domain, path) {
 
   const finiteMin = min === Number.NEGATIVE_INFINITY ? -Number.MAX_VALUE : min;
   const finiteMax = max === Number.POSITIVE_INFINITY ? Number.MAX_VALUE : max;
-  const arbitraries = [fc.double({
-    min: finiteMin,
-    max: finiteMax,
-    noNaN: true,
-    noDefaultInfinity: true,
-  })];
+  const arbitraries = [];
+  if (finiteMin <= finiteMax) {
+    arbitraries.push(fc.double({
+      min: finiteMin,
+      max: finiteMax,
+      noNaN: true,
+      noDefaultInfinity: true,
+    }));
+  }
   if (domain.allowNaN) arbitraries.push(fc.constant(Number.NaN));
   if (min === Number.NEGATIVE_INFINITY) arbitraries.push(fc.constant(Number.NEGATIVE_INFINITY));
   if (max === Number.POSITIVE_INFINITY) arbitraries.push(fc.constant(Number.POSITIVE_INFINITY));
