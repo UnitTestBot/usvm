@@ -9,6 +9,8 @@ import org.jacodb.ets.utils.UNKNOWN_CLASS_NAME
 import org.usvm.UExpr
 import org.usvm.machine.Constants
 import org.usvm.machine.TsConcreteMethodCallStmt
+import org.usvm.machine.call.TsUnknownCallFailureReason
+import org.usvm.machine.call.dispatch
 import org.usvm.machine.expr.TsExprApproximationResult.NoApproximation
 import org.usvm.machine.expr.TsExprApproximationResult.ResolveFailure
 import org.usvm.machine.expr.TsExprApproximationResult.SuccessfulApproximation
@@ -48,7 +50,13 @@ internal fun TsExprResolver.handleStaticCall(
     when (val resolved = resolveStaticMethod(expr.callee)) {
         is TsResolutionResult.Empty -> {
             logger.error { "Could not resolve static call: ${expr.callee}" }
-            scope.assert(falseExpr) ?: return null
+            unknownCallDispatcher.dispatch(
+                scope = scope,
+                call = expr,
+                callSite = scope.calcOnState { lastStmt },
+                failureReason = TsUnknownCallFailureReason.STATIC_METHOD_NOT_FOUND,
+            )
+            return null
         }
 
         is TsResolutionResult.Ambiguous -> {
@@ -107,6 +115,8 @@ private fun TsExprResolver.processAmbiguousStaticMethod(
     val concreteCalls = staticProperties.mapIndexed { index, value ->
         TsConcreteMethodCallStmt(
             callee = value,
+            call = expr,
+            resolvedReceiver = null,
             instance = staticInstances[index],
             args = args,
             returnSite = scope.calcOnState { lastStmt }
@@ -129,6 +139,8 @@ private fun TsExprResolver.processUniqueStaticMethod(
     val args = expr.args.map { resolve(it) ?: return }
     val concreteCall = TsConcreteMethodCallStmt(
         callee = resolved.property,
+        call = expr,
+        resolvedReceiver = null,
         instance = instance,
         args = args,
         returnSite = scope.calcOnState { lastStmt },

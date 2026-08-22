@@ -9,6 +9,8 @@ import org.usvm.StateCollectionStrategy
 import org.usvm.UMachine
 import org.usvm.UMachineOptions
 import org.usvm.api.targets.TsTarget
+import org.usvm.machine.call.TsCompatibilityUnknownCallDispatcher
+import org.usvm.machine.call.TsUnknownCallDispatcher
 import org.usvm.machine.interpreter.TsInterpreter
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
@@ -40,12 +42,13 @@ class TsMachine(
     private val tsOptions: TsOptions,
     private val machineObserver: UMachineObserver<TsState>? = null,
     observer: TsInterpreterObserver? = null,
+    unknownCallDispatcher: TsUnknownCallDispatcher = TsCompatibilityUnknownCallDispatcher,
 ) : UMachine<TsState>() {
     private val graph = TsGraph(scene)
     private val typeSystem = TsTypeSystem(scene, typeOperationsTimeout = 1.seconds, graph.hierarchy)
     private val components = TsComponents(typeSystem, options)
     private val ctx = TsContext(scene, components)
-    private val interpreter = TsInterpreter(ctx, graph, tsOptions, observer)
+    private val interpreter = TsInterpreter(ctx, graph, tsOptions, observer, unknownCallDispatcher)
     private val cfgStatistics = CfgStatisticsImpl(graph)
 
     fun analyze(

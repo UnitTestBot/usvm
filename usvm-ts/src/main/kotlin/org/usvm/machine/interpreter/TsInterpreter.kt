@@ -28,7 +28,6 @@ import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUndefinedType
 import org.jacodb.ets.model.EtsUnionType
 import org.jacodb.ets.model.EtsUnknownType
-import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
 import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
 import org.jacodb.ets.utils.callExpr
@@ -39,7 +38,6 @@ import org.usvm.UInterpreter
 import org.usvm.UIteExpr
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArray
-import org.usvm.api.mockMethodCall
 import org.usvm.api.targets.TsTarget
 import org.usvm.api.typeStreamOf
 import org.usvm.collections.immutable.internal.MutabilityOwnership
@@ -51,6 +49,9 @@ import org.usvm.machine.TsGraph
 import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsOptions
 import org.usvm.machine.TsVirtualMethodCallStmt
+import org.usvm.machine.call.TsUnknownCallDispatcher
+import org.usvm.machine.call.TsUnknownCallFailureReason
+import org.usvm.machine.call.dispatch
 import org.usvm.machine.expr.TsExprResolver
 import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.expr.handleAssignToArrayIndex
@@ -93,6 +94,7 @@ class TsInterpreter(
     private val graph: TsGraph,
     private val options: TsOptions,
     private val observer: TsInterpreterObserver? = null,
+    private val unknownCallDispatcher: TsUnknownCallDispatcher,
 ) : UInterpreter<TsState>() {
 
     private val forkBlackList: UForkBlackList<TsState, EtsStmt> = UForkBlackList.createDefault()
@@ -154,9 +156,8 @@ class TsInterpreter(
 
     private fun visitVirtualMethodCall(scope: TsStepScope, stmt: TsVirtualMethodCallStmt) = with(ctx) {
 
-        // NOTE: USE '.callee' INSTEAD OF '.method' !!!
-
         val instance = stmt.instance
+        val callee = stmt.call.callee
 
         val unwrappedInstance = if (instance.isFakeObject()) {
             // TODO support primitives calls
@@ -176,15 +177,14 @@ class TsInterpreter(
                 val classes = graph.hierarchy.classesForType(type)
                 if (classes.isEmpty()) {
                     logger.warn { "Could not resolve class: ${type.typeName}" }
-                    if (stmt.callee.name == CONSTRUCTOR_NAME) {
-                        // Approximate unresolved constructor:
-                        scope.doWithState {
-                            methodResult = TsMethodResult.Success.MockedCall(unwrappedInstance, stmt.callee)
-                            newStmt(stmt.returnSite)
-                        }
-                        return
-                    }
-                    scope.assert(falseExpr)
+                    unknownCallDispatcher.dispatch(
+                        scope = scope,
+                        call = stmt.call,
+                        callSite = stmt.returnSite,
+                        failureReason = TsUnknownCallFailureReason.RECEIVER_CLASS_NOT_FOUND,
+                        resolvedReceiver = unwrappedInstance,
+                        resolvedArguments = stmt.args,
+                    )
                     return
                 }
                 if (classes.size > 1) {
@@ -192,28 +192,42 @@ class TsInterpreter(
                     // scope.assert(falseExpr)
                     // return
                     for (cls in classes) {
-                        val suitableMethods = cls.methods.filter { it.name == stmt.callee.name }
+                        val suitableMethods = cls.methods.filter { it.name == callee.name }
                         concreteMethods += suitableMethods
                     }
                 } else {
                     val cls = classes.single()
-                    val suitableMethods = cls.methods.filter { it.name == stmt.callee.name }
+                    val suitableMethods = cls.methods.filter { it.name == callee.name }
                     concreteMethods += suitableMethods
                 }
             } else {
                 logger.warn {
-                    "Could not resolve method: ${stmt.callee} on type: $type"
+                    "Could not resolve method: $callee on type: $type"
                 }
-                scope.assert(falseExpr)
+                unknownCallDispatcher.dispatch(
+                    scope = scope,
+                    call = stmt.call,
+                    callSite = stmt.returnSite,
+                    failureReason = TsUnknownCallFailureReason.UNSUPPORTED_RECEIVER_TYPE,
+                    resolvedReceiver = unwrappedInstance,
+                    resolvedArguments = stmt.args,
+                )
                 return
             }
         } else {
-            val methods = resolveEtsMethods(stmt.callee)
+            val methods = resolveEtsMethods(callee)
             if (methods.isEmpty()) {
-                if (stmt.callee.name !in listOf("then")) {
-                    logger.warn { "Could not resolve method: ${stmt.callee}" }
+                if (callee.name !in listOf("then")) {
+                    logger.warn { "Could not resolve method: $callee" }
                 }
-                scope.assert(falseExpr)
+                unknownCallDispatcher.dispatch(
+                    scope = scope,
+                    call = stmt.call,
+                    callSite = stmt.returnSite,
+                    failureReason = TsUnknownCallFailureReason.VIRTUAL_METHOD_NOT_FOUND,
+                    resolvedReceiver = unwrappedInstance,
+                    resolvedArguments = stmt.args,
+                )
                 return
             }
             concreteMethods += methods
@@ -224,14 +238,28 @@ class TsInterpreter(
         }
 
         if (possibleTypes !is TypesResult.SuccessfulTypesResult) {
-            error("TODO") // is it right?
+            unknownCallDispatcher.dispatch(
+                scope = scope,
+                call = stmt.call,
+                callSite = stmt.returnSite,
+                failureReason = TsUnknownCallFailureReason.RECEIVER_TYPE_STREAM_UNAVAILABLE,
+                resolvedReceiver = unwrappedInstance,
+                resolvedArguments = stmt.args,
+            )
+            return
         }
 
         val possibleTypesSet = possibleTypes.types.toSet()
 
         if (possibleTypesSet.singleOrNull() == EtsAnyType) {
-            mockMethodCall(scope, stmt.callee)
-            scope.doWithState { newStmt(stmt.returnSite) }
+            unknownCallDispatcher.dispatch(
+                scope = scope,
+                call = stmt.call,
+                callSite = stmt.returnSite,
+                failureReason = TsUnknownCallFailureReason.ANY_RECEIVER,
+                resolvedReceiver = unwrappedInstance,
+                resolvedArguments = stmt.args,
+            )
             return
         }
 
@@ -251,8 +279,8 @@ class TsInterpreter(
                 .asSequence()
                 // TODO wrong order, ancestors are unordered
                 .map { graph.hierarchy.getAncestors(it) }
-                .mapNotNull { it.firstOrNull { it.methods.any { it.name == stmt.callee.name } } }
-                .map { clazz to it.methods.first { it.name == stmt.callee.name } }
+                .mapNotNull { it.firstOrNull { it.methods.any { it.name == callee.name } } }
+                .map { clazz to it.methods.first { it.name == callee.name } }
         }.toList().take(10) // TODO check it
 
         // logger.info {
@@ -298,10 +326,16 @@ class TsInterpreter(
 
         if (conditionsWithBlocks.isEmpty()) {
             logger.warn {
-                "No suitable methods found for call: ${stmt.callee} with instance: $unwrappedInstance"
+                "No suitable methods found for call: $callee with instance: $unwrappedInstance"
             }
-            mockMethodCall(scope, stmt.callee)
-            scope.doWithState { newStmt(stmt.returnSite) }
+            unknownCallDispatcher.dispatch(
+                scope = scope,
+                call = stmt.call,
+                callSite = stmt.returnSite,
+                failureReason = TsUnknownCallFailureReason.NO_SUITABLE_VIRTUAL_TARGET,
+                resolvedReceiver = unwrappedInstance,
+                resolvedArguments = stmt.args,
+            )
             return
         }
 
@@ -317,8 +351,15 @@ class TsInterpreter(
         val callee = stmt.callee.executableOverloadImplementation()
 
         if (callee.signature.enclosingClass.name == "Log") {
-            mockMethodCall(scope, callee.signature)
-            scope.doWithState { newStmt(stmt.returnSite) }
+            unknownCallDispatcher.dispatch(
+                scope = scope,
+                call = stmt.call,
+                callSite = stmt.returnSite,
+                failureReason = TsUnknownCallFailureReason.LOGGING_CALL,
+                callee = callee.signature,
+                resolvedReceiver = stmt.resolvedReceiver,
+                resolvedArguments = stmt.args.takeLast(stmt.call.args.size),
+            )
             return
         }
 
@@ -327,8 +368,15 @@ class TsInterpreter(
             // logger.warn { "No entry point for method: $callee, mocking the call" }
             // If the method doesn't have entry points,
             // we go through it, we just mock the call
-            mockMethodCall(scope, callee.signature)
-            scope.doWithState { newStmt(stmt.returnSite) }
+            unknownCallDispatcher.dispatch(
+                scope = scope,
+                call = stmt.call,
+                callSite = stmt.returnSite,
+                failureReason = TsUnknownCallFailureReason.METHOD_BODY_UNAVAILABLE,
+                callee = callee.signature,
+                resolvedReceiver = stmt.resolvedReceiver,
+                resolvedArguments = stmt.args.takeLast(stmt.call.args.size),
+            )
             return
         }
 
@@ -612,8 +660,12 @@ class TsInterpreter(
             }
 
             if (!options.interproceduralAnalysis && methodResult == TsMethodResult.NoCall) {
-                mockMethodCall(scope, callExpr.callee)
-                scope.doWithState { newStmt(stmt) }
+                unknownCallDispatcher.dispatch(
+                    scope = scope,
+                    call = callExpr,
+                    callSite = stmt,
+                    failureReason = TsUnknownCallFailureReason.INTERPROCEDURAL_ANALYSIS_DISABLED,
+                )
                 return
             }
         }
@@ -654,7 +706,12 @@ class TsInterpreter(
         }
 
         // intraprocedural analysis
-        mockMethodCall(scope, stmt.expr.callee)
+        unknownCallDispatcher.dispatch(
+            scope = scope,
+            call = stmt.expr,
+            callSite = stmt,
+            failureReason = TsUnknownCallFailureReason.INTERPROCEDURAL_ANALYSIS_DISABLED,
+        )
     }
 
     private fun visitThrowStmt(scope: TsStepScope, stmt: EtsThrowStmt) {
@@ -711,6 +768,7 @@ class TsInterpreter(
             scope = scope,
             options = options,
             hierarchy = graph.hierarchy,
+            unknownCallDispatcher = unknownCallDispatcher,
         )
 
     fun getInitialState(method: EtsMethod, targets: List<TsTarget>): TsState = with(ctx) {

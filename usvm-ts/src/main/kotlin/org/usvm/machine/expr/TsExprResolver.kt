@@ -89,11 +89,13 @@ import org.usvm.api.allocateConcreteRef
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArrayLength
 import org.usvm.api.makeSymbolicPrimitive
-import org.usvm.api.mockMethodCall
 import org.usvm.dataflow.ts.infer.tryGetKnownType
 import org.usvm.dataflow.ts.util.type
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.TsConcreteMethodCallStmt
+import org.usvm.machine.call.TsUnknownCallDispatcher
+import org.usvm.machine.call.TsUnknownCallFailureReason
+import org.usvm.machine.call.dispatch
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsOptions
 import org.usvm.machine.interpreter.PromiseState
@@ -147,6 +149,7 @@ class TsExprResolver(
     internal val scope: TsStepScope,
     internal val options: TsOptions,
     internal val hierarchy: EtsHierarchy,
+    internal val unknownCallDispatcher: TsUnknownCallDispatcher,
 ) : EtsEntity.Visitor<UExpr<out USort>?> {
 
     val simpleValueResolver: TsSimpleValueResolver =
@@ -952,8 +955,16 @@ class TsExprResolver(
                         return mkUndefinedValue()
                     }
 
-                    val callee = scope.calcOnState {
-                        associatedFunction[ptr] ?: error("No associated methods for ptr: $ptr")
+                    val callee = scope.calcOnState { associatedFunction[ptr] }
+                    if (callee == null) {
+                        unknownCallDispatcher.dispatch(
+                            scope = scope,
+                            call = expr,
+                            callSite = scope.calcOnState { lastStmt },
+                            failureReason = TsUnknownCallFailureReason.POINTER_TARGET_NOT_FOUND,
+                            resolvedReceiver = ptr,
+                        )
+                        return null
                     }
                     val resolvedArgs = buildList {
                         callee.closure?.let(::add)
@@ -961,13 +972,21 @@ class TsExprResolver(
                     }
                     val concreteCall = TsConcreteMethodCallStmt(
                         callee = callee.method,
+                        call = expr,
+                        resolvedReceiver = ptr,
                         instance = callee.thisInstance ?: ctx.mkUndefinedValue(),
                         args = resolvedArgs,
                         returnSite = scope.calcOnState { lastStmt },
                     )
                     scope.doWithState { newStmt(concreteCall) }
                 } else {
-                    mockMethodCall(scope, expr.callee)
+                    unknownCallDispatcher.dispatch(
+                        scope = scope,
+                        call = expr,
+                        callSite = scope.calcOnState { lastStmt },
+                        failureReason = TsUnknownCallFailureReason.NON_REFERENCE_POINTER,
+                        resolvedReceiver = ptr,
+                    )
                 }
 
                 null
