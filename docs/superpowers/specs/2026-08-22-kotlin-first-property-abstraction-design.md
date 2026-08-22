@@ -2,7 +2,7 @@
 
 **Issue:** [#347](https://github.com/UnitTestBot/usvm/issues/347)
 
-**Status:** Kotlin-first architecture approved in chat; detailed specification pending review
+**Status:** Kotlin-first architecture approved; implementation in progress
 
 ## Context
 
@@ -134,12 +134,12 @@ data class StringDomain(
 ) : PropertyDomain
 
 data class ConstantDomain(
-    val value: JsValue,
+    val value: JsConcreteValue,
 ) : PropertyDomain
 
 data class OptionalDomain(
     val value: PropertyDomain,
-    val nil: JsValue = JsValue.Undefined,
+    val nil: JsConcreteValue = JsConcreteValue.Undefined,
 ) : PropertyDomain
 
 data class TupleDomain(
@@ -159,13 +159,13 @@ data class ArrayDomain(
 
 `StringDomain` contains arbitrary UTF-16 code-unit sequences, including valid surrogate pairs and unpaired surrogates. Length bounds count UTF-16 code units, matching JavaScript `String.length`. The fast-check adapter constructs this domain from arrays of integers in `0..0xffff` instead of inheriting changing `fc.string()` defaults.
 
-The initial `ConstantDomain` supports JavaScript primitives only. Objects, functions, symbols, and bigints are rejected rather than coerced. `OptionalDomain.nil` must be either `JsValue.Undefined` or `JsValue.Null`; other sentinel values are rejected.
+The initial `ConstantDomain` supports JavaScript primitives only. Objects, functions, symbols, and bigints are rejected rather than coerced. `OptionalDomain.nil` must be either `JsConcreteValue.Undefined` or `JsConcreteValue.Null`; other sentinel values are rejected.
 
 Tuple and array nesting is recursive. Cycles cannot occur because the model is immutable and value-based.
 
 ## JavaScript Value Encoding
 
-Ordinary JSON cannot distinguish or preserve `undefined`, NaN, infinities, and negative zero. All values crossing a manifest or backend protocol use a tagged `JsValue` representation:
+Ordinary JSON cannot distinguish or preserve `undefined`, NaN, infinities, and negative zero. All values crossing a manifest or backend protocol use a tagged `JsConcreteValue` representation:
 
 ```json
 { "kind": "undefined" }
@@ -176,9 +176,16 @@ Ordinary JSON cannot distinguish or preserve `undefined`, NaN, infinities, and n
 { "kind": "number", "value": "nan" }
 { "kind": "number", "value": "positive-infinity" }
 { "kind": "number", "value": "negative-infinity" }
+{ "kind": "array", "elements": [{ "kind": "undefined" }, { "kind": "null" }] }
 ```
 
 Finite doubles use their exact unsigned 64-bit hexadecimal IEEE-754 representation. This preserves negative zero and avoids decimal round-trip ambiguity. NaN uses one semantic tag because the pipeline does not expose NaN payloads.
+
+`JsConcreteValue` represents one concrete JavaScript value rather than a domain or JacoDB IR value.
+`JsConcreteValue.Array`
+recursively encodes tuple and array samples crossing the Kotlin-to-Node protocol. It does not expand
+`ConstantDomain`: constants remain restricted to JavaScript primitives and validation rejects a composite
+constant.
 
 ## Property Manifest
 
@@ -279,7 +286,7 @@ Requests and responses use one JSON document on standard input/output:
 }
 ```
 
-Successful responses echo `protocolVersion` and `requestId`, contain `status: "ok"`, and encode sample values as `JsValue`. Validation failures return `status: "error"` with stable diagnostic codes. Process startup failures and invalid non-JSON output are reported by the Kotlin caller as transport errors.
+Successful responses echo `protocolVersion` and `requestId`, contain `status: "ok"`, and encode sample values as `JsConcreteValue`. Validation failures return `status: "error"` with stable diagnostic codes. Process startup failures and invalid non-JSON output are reported by the Kotlin caller as transport errors.
 
 The adapter writes protocol output only to stdout. Human-readable logging goes to stderr so it cannot corrupt the protocol.
 
@@ -309,8 +316,8 @@ The planned responsibilities are:
 ```text
 usvm-ts-pbt/
   src/main/kotlin/org/usvm/ts/pbt/
-    model/              PropertyDefinition, entry points, domain algebra
-    manifest/           versioned DTOs, JsValue, serialization, validation
+    model/              PropertyDefinition, entry points, domain algebra, JsConcreteValue
+    manifest/           versioned DTOs and serialization
     backend/            projection capability contracts and aggregation
     fastcheck/          Kotlin protocol DTOs and one-shot process client
   src/test/kotlin/org/usvm/ts/pbt/
@@ -339,7 +346,7 @@ Tests follow red-green TDD during implementation.
 
 - validate every domain variant and invalid constraint;
 - verify deterministic diagnostic ordering and paths;
-- round-trip every manifest and tagged JavaScript value;
+- round-trip every manifest and tagged JavaScript value, including recursive protocol arrays;
 - preserve finite double bits, negative zero, NaN, and infinities;
 - aggregate nested domain and property capabilities;
 - classify a supported concrete plus unsupported symbolic projection as `concrete-only`.

@@ -16,6 +16,13 @@ test('tagged JavaScript primitives round trip without losing semantics', () => {
     [{ kind: 'number', value: 'nan' }, Number.isNaN],
     [{ kind: 'number', value: 'positive-infinity' }, (value) => value === Number.POSITIVE_INFINITY],
     [{ kind: 'number', value: 'negative-infinity' }, (value) => value === Number.NEGATIVE_INFINITY],
+    [
+      {
+        kind: 'array',
+        elements: [{ kind: 'undefined' }, { kind: 'number', value: 'finite', bits: '8000000000000000' }],
+      },
+      (value) => Array.isArray(value) && value[0] === undefined && Object.is(value[1], -0),
+    ],
   ];
 
   for (const [tagged, predicate] of cases) {

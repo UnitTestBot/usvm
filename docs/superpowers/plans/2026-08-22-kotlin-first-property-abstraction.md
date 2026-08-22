@@ -20,6 +20,7 @@
 - String length counts arbitrary UTF-16 code units; default maximum length is `10`.
 - Array default maximum length is `10`.
 - Bounded number domains reject NaN; all JavaScript special numbers use tagged encoding.
+- Tuple and array samples use recursive tagged `JsConcreteValue.Array`; `ConstantDomain` remains primitive-only.
 - Capability is separate from `PropertyManifest` and is keyed by backend ID and version.
 - The Node adapter is private and pins fast-check `4.9.0`.
 - Existing `FrontendBaselineTest` must remain green.
@@ -31,18 +32,18 @@
 **Files:**
 
 - Modify: `usvm-ts-pbt/build.gradle.kts`
-- Create: `usvm-ts-pbt/src/main/kotlin/org/usvm/ts/pbt/model/JsValue.kt`
+- Create: `usvm-ts-pbt/src/main/kotlin/org/usvm/ts/pbt/model/JsConcreteValue.kt`
 - Create: `usvm-ts-pbt/src/main/kotlin/org/usvm/ts/pbt/model/PropertyDomain.kt`
 - Create: `usvm-ts-pbt/src/main/kotlin/org/usvm/ts/pbt/model/PropertyDefinition.kt`
 - Create: `usvm-ts-pbt/src/main/kotlin/org/usvm/ts/pbt/manifest/PropertyManifest.kt`
 - Create: `usvm-ts-pbt/src/main/kotlin/org/usvm/ts/pbt/validation/PropertyValidation.kt`
-- Test: `usvm-ts-pbt/src/test/kotlin/org/usvm/ts/pbt/model/JsValueTest.kt`
+- Test: `usvm-ts-pbt/src/test/kotlin/org/usvm/ts/pbt/model/JsConcreteValueTest.kt`
 - Test: `usvm-ts-pbt/src/test/kotlin/org/usvm/ts/pbt/manifest/PropertyManifestTest.kt`
 - Test: `usvm-ts-pbt/src/test/kotlin/org/usvm/ts/pbt/validation/PropertyValidationTest.kt`
 
 **Interfaces:**
 
-- Produces: `PropertyDefinition`, `PropertyDomain`, `JsValue`, `JsNumber`, `PropertyManifest`, `PropertyManifestJson`, `validatePropertyDefinition`, and `validatePropertyManifest`.
+- Produces: `PropertyDefinition`, `PropertyDomain`, `JsConcreteValue`, `JsNumber`, `PropertyManifest`, `PropertyManifestJson`, `validatePropertyDefinition`, and `validatePropertyManifest`.
 - Consumes: only Kotlin stdlib and kotlinx.serialization; it has no Node, fast-check, JacoDB, or USVM dependency.
 
 - [ ] **Step 1: Enable Kotlin serialization and add the JSON runtime**
@@ -66,11 +67,11 @@ dependencies {
 ```kotlin
 @Test
 fun `negative zero keeps its raw IEEE bits through JSON`() {
-    val value = JsValue.Number(JsNumber.finite(-0.0))
-    val encoded = PropertyManifestJson.json.encodeToString(JsValue.serializer(), value)
-    val decoded = PropertyManifestJson.json.decodeFromString(JsValue.serializer(), encoded)
+    val value = JsConcreteValue.Number(JsNumber.finite(-0.0))
+    val encoded = PropertyManifestJson.json.encodeToString(JsConcreteValue.serializer(), value)
+    val decoded = PropertyManifestJson.json.decodeFromString(JsConcreteValue.serializer(), encoded)
     assertEquals(value, decoded)
-    assertEquals((-0.0).toRawBits(), (decoded as JsValue.Number).number.toDouble().toRawBits())
+    assertEquals((-0.0).toRawBits(), (decoded as JsConcreteValue.Number).number.toDouble().toRawBits())
 }
 
 @Test
@@ -96,11 +97,11 @@ Run:
 ```shell
 env -u ARKANALYZER_DIR ETS_IR_PROVIDER=ts-frontend \
   ./gradlew --no-daemon :usvm-ts-pbt:test \
-  --tests 'org.usvm.ts.pbt.model.JsValueTest' \
+  --tests 'org.usvm.ts.pbt.model.JsConcreteValueTest' \
   --tests 'org.usvm.ts.pbt.manifest.PropertyManifestTest'
 ```
 
-Expected: compilation fails because `JsValue`, `PropertyDefinition`, and manifest APIs do not exist.
+Expected: compilation fails because `JsConcreteValue`, `PropertyDefinition`, and manifest APIs do not exist.
 
 - [ ] **Step 4: Implement tagged JavaScript primitives and domain algebra**
 
@@ -158,13 +159,13 @@ data class StringDomain(
 
 @Serializable
 @SerialName("constant")
-data class ConstantDomain(val value: JsValue) : PropertyDomain
+data class ConstantDomain(val value: JsConcreteValue) : PropertyDomain
 
 @Serializable
 @SerialName("optional")
 data class OptionalDomain(
     val value: PropertyDomain,
-    val nil: JsValue = JsValue.Undefined,
+    val nil: JsConcreteValue = JsConcreteValue.Undefined,
 ) : PropertyDomain
 
 @Serializable
@@ -385,7 +386,7 @@ git commit -m "feat(ts-pbt): add backend capability model"
 
 **Interfaces:**
 
-- Consumes: schema-version-1 domain and `JsValue` JSON produced by Task 1.
+- Consumes: schema-version-1 domain and `JsConcreteValue` JSON produced by Task 1.
 - Produces: `decodeJsValue`, `encodeJsValue`, `projectDomain`, `projectionCapability`, and a one-shot `sample` protocol executable.
 
 - [ ] **Step 1: Add the private adapter package and lock fast-check 4.9.0**

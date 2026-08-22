@@ -6,9 +6,9 @@ import org.usvm.ts.pbt.model.ArrayDomain
 import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.ConstantDomain
 import org.usvm.ts.pbt.model.IntegerDomain
+import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.JsNumber
 import org.usvm.ts.pbt.model.JsNumberKind
-import org.usvm.ts.pbt.model.JsValue
 import org.usvm.ts.pbt.model.NumberDomain
 import org.usvm.ts.pbt.model.OptionalDomain
 import org.usvm.ts.pbt.model.PropertyDefinition
@@ -102,31 +102,50 @@ private fun validateDomain(
     diagnostics: MutableList<ValidationDiagnostic>,
 ) {
     when (domain) {
-        BooleanDomain -> Unit
-        is IntegerDomain -> if (domain.min > domain.max) {
-            diagnostics += diagnostic("domain.integer.bounds", "Integer minimum exceeds maximum", path)
+        BooleanDomain -> {
+            Unit
         }
 
-        is NumberDomain -> validateNumberDomain(domain, path, diagnostics)
-        is StringDomain -> validateLengths(
-            minLength = domain.minLength,
-            maxLength = domain.maxLength,
-            code = "domain.string.length",
-            description = "String",
-            path = path,
-            diagnostics = diagnostics,
-        )
+        is IntegerDomain -> {
+            if (domain.min > domain.max) {
+                diagnostics += diagnostic("domain.integer.bounds", "Integer minimum exceeds maximum", path)
+            }
+        }
 
-        is ConstantDomain -> validateJsValue(domain.value, "$path.value", diagnostics)
+        is NumberDomain -> {
+            validateNumberDomain(domain, path, diagnostics)
+        }
+
+        is StringDomain -> {
+            validateLengths(
+                minLength = domain.minLength,
+                maxLength = domain.maxLength,
+                code = "domain.string.length",
+                description = "String",
+                path = path,
+                diagnostics = diagnostics,
+            )
+        }
+
+        is ConstantDomain -> {
+            if (domain.value is JsConcreteValue.Array) {
+                diagnostics += diagnostic(
+                    "domain.constant.unsupported",
+                    "Constant domains support JavaScript primitives only",
+                    path,
+                )
+            }
+            validateJsConcreteValue(domain.value, "$path.value", diagnostics)
+        }
         is OptionalDomain -> {
-            if (domain.nil != JsValue.Undefined && domain.nil != JsValue.Null) {
+            if (domain.nil != JsConcreteValue.Undefined && domain.nil != JsConcreteValue.Null) {
                 diagnostics += diagnostic(
                     "domain.optional.nil",
                     "Optional nil must be null or undefined",
                     "$path.nil",
                 )
             }
-            validateJsValue(domain.nil, "$path.nil", diagnostics)
+            validateJsConcreteValue(domain.nil, "$path.nil", diagnostics)
             validateDomain(domain.value, "$path.value", diagnostics)
         }
 
@@ -182,13 +201,18 @@ private fun validateNumberDomain(
     }
 }
 
-private fun validateJsValue(
-    value: JsValue,
+private fun validateJsConcreteValue(
+    value: JsConcreteValue,
     path: String,
     diagnostics: MutableList<ValidationDiagnostic>,
 ) {
-    if (value is JsValue.Number) {
+    if (value is JsConcreteValue.Number) {
         validateJsNumber(value.number, path, diagnostics)
+    }
+    if (value is JsConcreteValue.Array) {
+        value.elements.forEachIndexed { index, element ->
+            validateJsConcreteValue(element, "$path.elements[$index]", diagnostics)
+        }
     }
 }
 

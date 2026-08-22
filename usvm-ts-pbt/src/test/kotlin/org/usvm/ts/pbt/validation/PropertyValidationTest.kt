@@ -3,8 +3,9 @@ package org.usvm.ts.pbt.validation
 import org.junit.jupiter.api.Test
 import org.usvm.ts.pbt.manifest.PROPERTY_MANIFEST_SCHEMA_VERSION
 import org.usvm.ts.pbt.manifest.PropertyManifest
+import org.usvm.ts.pbt.model.ConstantDomain
 import org.usvm.ts.pbt.model.IntegerDomain
-import org.usvm.ts.pbt.model.JsValue
+import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.OptionalDomain
 import org.usvm.ts.pbt.model.PropertyDefinition
 import org.usvm.ts.pbt.model.PropertyId
@@ -12,8 +13,8 @@ import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.StringDomain
 import org.usvm.ts.pbt.model.TypeScriptEntryPoint
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class PropertyValidationTest {
@@ -52,11 +53,21 @@ class PropertyValidationTest {
     @Test
     fun `optional domain accepts only null or undefined as nil`() {
         val definition = validDefinition(
-            OptionalDomain(IntegerDomain(), JsValue.String("none")),
+            OptionalDomain(IntegerDomain(), JsConcreteValue.String("none")),
         )
 
         assertEquals(
             listOf("domain.optional.nil"),
+            validatePropertyDefinition(definition).diagnostics.map { it.code },
+        )
+    }
+
+    @Test
+    fun `constant domain rejects composite JavaScript values`() {
+        val definition = validDefinition(ConstantDomain(JsConcreteValue.Array(listOf(JsConcreteValue.Null))))
+
+        assertEquals(
+            listOf("domain.constant.unsupported"),
             validatePropertyDefinition(definition).diagnostics.map { it.code },
         )
     }

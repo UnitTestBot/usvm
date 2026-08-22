@@ -37,13 +37,13 @@ data class StringDomain(
 
 @Serializable
 @SerialName("constant")
-data class ConstantDomain(val value: JsValue) : PropertyDomain
+data class ConstantDomain(val value: JsConcreteValue) : PropertyDomain
 
 @Serializable
 @SerialName("optional")
 data class OptionalDomain(
     val value: PropertyDomain,
-    val nil: JsValue = JsValue.Undefined,
+    val nil: JsConcreteValue = JsConcreteValue.Undefined,
 ) : PropertyDomain
 
 @Serializable
