@@ -24,20 +24,37 @@ val installFastCheckAdapter = tasks.register<Exec>("installFastCheckAdapter") {
     outputs.dir(fastCheckAdapterDir.dir("node_modules"))
 }
 
-val testFastCheckAdapter = tasks.register<Exec>("testFastCheckAdapter") {
+val buildFastCheckAdapter = tasks.register<Exec>("buildFastCheckAdapter") {
     dependsOn(installFastCheckAdapter)
     workingDir(fastCheckAdapterDir)
-    commandLine(npmExecutable, "test")
+    commandLine(npmExecutable, "run", "build")
+    inputs.files(
+        fastCheckAdapterDir.file("package.json"),
+        fastCheckAdapterDir.file("package-lock.json"),
+        fastCheckAdapterDir.file("tsconfig.json"),
+    )
     inputs.dir(fastCheckAdapterDir.dir("src"))
     inputs.dir(fastCheckAdapterDir.dir("test"))
+    outputs.dir(fastCheckAdapterDir.dir("dist"))
+}
+
+val testFastCheckAdapter = tasks.register<Exec>("testFastCheckAdapter") {
+    dependsOn(buildFastCheckAdapter)
+    workingDir(fastCheckAdapterDir)
+    commandLine(npmExecutable, "run", "test:compiled")
+    inputs.dir(fastCheckAdapterDir.dir("dist"))
 }
 
 tasks.test {
-    dependsOn(installFastCheckAdapter)
+    dependsOn(buildFastCheckAdapter)
 }
 
 tasks.check {
     dependsOn(testFastCheckAdapter)
+}
+
+tasks.clean {
+    delete(fastCheckAdapterDir.dir("dist"))
 }
 
 tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {

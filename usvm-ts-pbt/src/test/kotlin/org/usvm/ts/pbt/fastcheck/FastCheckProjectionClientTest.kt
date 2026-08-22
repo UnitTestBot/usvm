@@ -162,8 +162,8 @@ class FastCheckProjectionClientTest {
 
         fun adapterEntryPoint(): Path {
             val candidates = listOf(
-                Path.of("fast-check-adapter/src/projection-cli.mjs"),
-                Path.of("usvm-ts-pbt/fast-check-adapter/src/projection-cli.mjs"),
+                Path.of("fast-check-adapter/dist/src/projection-cli.js"),
+                Path.of("usvm-ts-pbt/fast-check-adapter/dist/src/projection-cli.js"),
             ).map { it.absolute() }
             return candidates.singleOrNull(Files::isRegularFile)
                 ?: error("Cannot locate fast-check adapter; checked $candidates")

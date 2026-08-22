@@ -76,10 +76,11 @@ that classification is not stored in the manifest.
 
 ## Private fast-check adapter
 
-`fast-check-adapter` is a private ECMAScript module pinned to fast-check 4.9.0. It recursively reconstructs real
-`fc.Arbitrary` objects from common domain descriptors. Kotlin invokes its one-shot `sample` operation over one
-JSON request on stdin and one JSON response on stdout. The adapter does not discover properties, load predicates,
-run campaigns, select USVM, or orchestrate the pipeline.
+`fast-check-adapter` is a private TypeScript module pinned to fast-check 4.9.0. Gradle compiles it with `tsc` into
+an ignored `dist` directory before Kotlin integration tests run. The adapter recursively reconstructs real
+`fc.Arbitrary` objects from common domain descriptors. Kotlin invokes the compiled one-shot `sample` operation
+over one JSON request on stdin and one JSON response on stdout. The adapter does not discover properties, load
+predicates, run campaigns, select USVM, or orchestrate the pipeline.
 
 Both manifest and protocol versions start at `1`. Kotlin validates outgoing request sizes and verifies process
 exit status, JSON shape, protocol version, request identity, sample shape, and typed backend diagnostics.
@@ -97,12 +98,13 @@ exit status, JSON shape, protocol version, request identity, sample shape, and t
 
 ## Verification
 
-Requires JDK 11, Node.js 18.18 or newer, npm, and the repository Gradle wrapper. The full Gradle check installs the
-pinned private adapter, runs Node tests, runs Kotlin/Node protocol tests, and retains the native `ts-frontend`
-baseline from #346.
+Requires JDK 11, Node.js 18.18 or newer, npm, and the repository Gradle wrapper. The full Gradle check installs and
+compiles the pinned private adapter, runs its compiled Node tests, runs Kotlin/Node protocol tests, and retains the
+native `ts-frontend` baseline from #346.
 
 ```shell
 npm ci --prefix usvm-ts-pbt/fast-check-adapter --ignore-scripts
+npm run build --prefix usvm-ts-pbt/fast-check-adapter
 npm test --prefix usvm-ts-pbt/fast-check-adapter
 
 env -u ARKANALYZER_DIR ETS_IR_PROVIDER=ts-frontend \

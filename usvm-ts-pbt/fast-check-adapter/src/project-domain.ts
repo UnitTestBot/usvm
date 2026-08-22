@@ -2,13 +2,29 @@ import fc from 'fast-check';
 import {
   decodeJsNumber,
   decodeJsValue,
+  ProtocolError,
   protocolError,
-} from './js-value.mjs';
+} from './js-value.js';
 
 export const FAST_CHECK_BACKEND_ID = 'fast-check';
 export const FAST_CHECK_BACKEND_VERSION = '4.9.0';
 
-export function projectDomain(domain, path = 'domain') {
+export interface ProjectionDiagnostic {
+  code: string;
+  message: string;
+  path: string;
+}
+
+export interface ProjectionCapability {
+  backendId: string;
+  backendVersion: string;
+  level: 'exact' | 'unsupported';
+  diagnostics: ProjectionDiagnostic[];
+}
+
+type DomainRecord = Record<string, unknown>;
+
+export function projectDomain(domain: unknown, path = 'domain'): fc.Arbitrary<unknown> {
   requireDomainObject(domain, path);
   switch (domain.kind) {
     case 'boolean':
@@ -37,7 +53,9 @@ export function projectDomain(domain, path = 'domain') {
       if (!Array.isArray(domain.elements) || domain.elements.length === 0) {
         throw protocolError('domain.tuple.empty', 'Tuple domain must contain elements', path);
       }
-      return fc.tuple(...domain.elements.map((element, index) => projectDomain(element, `${path}.elements[${index}]`)));
+      return fc.tuple(...domain.elements.map(
+        (element: unknown, index: number) => projectDomain(element, `${path}.elements[${index}]`),
+      ));
     case 'array':
       validateLengths(domain, path);
       return fc.array(projectDomain(domain.element, `${path}.element`), {
@@ -45,11 +63,15 @@ export function projectDomain(domain, path = 'domain') {
         maxLength: domain.maxLength,
       });
     default:
-      throw protocolError('domain.kind.unknown', `Unknown property domain kind: ${String(domain.kind)}`, path);
+      throw protocolError(
+        'domain.kind.unknown',
+        `Unknown property domain kind: ${String(domain.kind)}`,
+        path,
+      );
   }
 }
 
-export function projectionCapability(domain, path = 'domain') {
+export function projectionCapability(domain: unknown, path = 'domain'): ProjectionCapability {
   try {
     projectDomain(domain, path);
     return {
@@ -58,22 +80,22 @@ export function projectionCapability(domain, path = 'domain') {
       level: 'exact',
       diagnostics: [],
     };
-  } catch (error) {
-    if (typeof error?.code !== 'string') throw error;
+  } catch (error: unknown) {
+    if (!(error instanceof ProtocolError)) throw error;
     return {
       backendId: FAST_CHECK_BACKEND_ID,
       backendVersion: FAST_CHECK_BACKEND_VERSION,
       level: 'unsupported',
       diagnostics: [{
         code: error.code,
-        message: error.message.slice(error.message.indexOf(':') + 2),
-        path: error.path ?? path,
+        message: error.diagnosticMessage,
+        path: error.path,
       }],
     };
   }
 }
 
-function projectNumber(domain, path) {
+function projectNumber(domain: DomainRecord, path: string): fc.Arbitrary<number> {
   if (typeof domain.allowNaN !== 'boolean') {
     throw protocolError('domain.number.allow-nan.invalid', 'allowNaN must be a boolean', `${path}.allowNaN`);
   }
@@ -92,7 +114,7 @@ function projectNumber(domain, path) {
 
   const finiteMin = min === Number.NEGATIVE_INFINITY ? -Number.MAX_VALUE : min;
   const finiteMax = max === Number.POSITIVE_INFINITY ? Number.MAX_VALUE : max;
-  const arbitraries = [];
+  const arbitraries: fc.Arbitrary<number>[] = [];
   if (finiteMin <= finiteMax) {
     arbitraries.push(fc.double({
       min: finiteMin,
@@ -105,11 +127,21 @@ function projectNumber(domain, path) {
   if (min === Number.NEGATIVE_INFINITY) arbitraries.push(fc.constant(Number.NEGATIVE_INFINITY));
   if (max === Number.POSITIVE_INFINITY) arbitraries.push(fc.constant(Number.POSITIVE_INFINITY));
   if (min <= 0 && max >= 0) arbitraries.push(fc.constant(-0));
-  return arbitraries.length === 1 ? arbitraries[0] : fc.oneof(...arbitraries);
+
+  const [first, ...rest] = arbitraries;
+  if (first === undefined) {
+    throw protocolError('domain.number.empty', 'Number domain does not contain any values', path);
+  }
+  return rest.length === 0 ? first : fc.oneof(first, ...rest);
 }
 
-function validateIntegerDomain(domain, path) {
-  const valid = Number.isInteger(domain.min)
+function validateIntegerDomain(
+  domain: DomainRecord,
+  path: string,
+): asserts domain is DomainRecord & { min: number; max: number } {
+  const valid = typeof domain.min === 'number'
+    && typeof domain.max === 'number'
+    && Number.isInteger(domain.min)
     && Number.isInteger(domain.max)
     && domain.min >= -0x80000000
     && domain.max <= 0x7fffffff
@@ -119,8 +151,13 @@ function validateIntegerDomain(domain, path) {
   }
 }
 
-function validateLengths(domain, path) {
-  const valid = Number.isInteger(domain.minLength)
+function validateLengths(
+  domain: DomainRecord,
+  path: string,
+): asserts domain is DomainRecord & { minLength: number; maxLength: number } {
+  const valid = typeof domain.minLength === 'number'
+    && typeof domain.maxLength === 'number'
+    && Number.isInteger(domain.minLength)
     && Number.isInteger(domain.maxLength)
     && domain.minLength >= 0
     && domain.minLength <= domain.maxLength;
@@ -129,7 +166,7 @@ function validateLengths(domain, path) {
   }
 }
 
-function requireDomainObject(domain, path) {
+function requireDomainObject(domain: unknown, path: string): asserts domain is DomainRecord {
   if (domain === null || typeof domain !== 'object' || Array.isArray(domain)) {
     throw protocolError('domain.invalid', 'Property domain must be an object', path);
   }

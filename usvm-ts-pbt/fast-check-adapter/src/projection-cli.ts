@@ -1,18 +1,49 @@
 import fc from 'fast-check';
 import {
   encodeJsValue,
+  ProtocolError,
   protocolError,
-} from './js-value.mjs';
-import { projectDomain } from './project-domain.mjs';
+} from './js-value.js';
+import type { TaggedJsValue } from './js-value.js';
+import { projectDomain } from './project-domain.js';
 
 const PROTOCOL_VERSION = 1;
 
-let parsedRequest;
-let response;
+interface FastCheckProjectionRequest {
+  protocolVersion: 1;
+  requestId: string;
+  operation: 'sample';
+  seed: number;
+  numSamples: number;
+  domains: unknown[];
+}
+
+interface FastCheckProjectionSuccess {
+  protocolVersion: 1;
+  requestId: string;
+  status: 'ok';
+  samples: TaggedJsValue[][];
+}
+
+interface FastCheckProjectionFailure {
+  protocolVersion: 1;
+  requestId?: string;
+  status: 'error';
+  diagnostics: Array<{
+    code: string;
+    message: string;
+    path: string;
+  }>;
+}
+
+type FastCheckProjectionWireResponse = FastCheckProjectionSuccess | FastCheckProjectionFailure;
+
+let parsedRequest: unknown = undefined;
+let response: FastCheckProjectionWireResponse;
 try {
   const input = await readStdin();
   try {
-    parsedRequest = JSON.parse(input);
+    parsedRequest = JSON.parse(input) as unknown;
   } catch {
     throw protocolError('protocol.json.invalid', 'Standard input is not valid JSON', 'request');
   }
@@ -30,21 +61,21 @@ try {
     status: 'ok',
     samples: tuples.map((tuple) => tuple.map(encodeJsValue)),
   };
-} catch (error) {
+} catch (error: unknown) {
   response = protocolErrorResponse(error, parsedRequest);
 }
 
 process.stdout.write(`${JSON.stringify(response)}\n`);
 
-async function readStdin() {
+async function readStdin(): Promise<string> {
   process.stdin.setEncoding('utf8');
   let input = '';
   for await (const chunk of process.stdin) input += chunk;
   return input;
 }
 
-function validateRequest(request) {
-  if (request === null || typeof request !== 'object' || Array.isArray(request)) {
+function validateRequest(request: unknown): FastCheckProjectionRequest {
+  if (!isRecord(request)) {
     throw protocolError('protocol.request.invalid', 'Request must be a JSON object', 'request');
   }
   if (request.protocolVersion !== PROTOCOL_VERSION) {
@@ -63,9 +94,11 @@ function validateRequest(request) {
   }
   const valid = typeof request.requestId === 'string'
     && request.requestId.length > 0
+    && typeof request.seed === 'number'
     && Number.isInteger(request.seed)
     && request.seed >= -0x80000000
     && request.seed <= 0x7fffffff
+    && typeof request.numSamples === 'number'
     && Number.isInteger(request.numSamples)
     && request.numSamples >= 1
     && request.numSamples <= 10_000
@@ -78,24 +111,33 @@ function validateRequest(request) {
       'request',
     );
   }
-  return request;
+  return {
+    protocolVersion: PROTOCOL_VERSION,
+    requestId: request.requestId as string,
+    operation: 'sample',
+    seed: request.seed as number,
+    numSamples: request.numSamples as number,
+    domains: request.domains as unknown[],
+  };
 }
 
-function protocolErrorResponse(error, request) {
-  const code = typeof error?.code === 'string' ? error.code : 'protocol.request.invalid';
-  const rawMessage = error instanceof Error ? error.message : String(error);
-  const message = rawMessage.startsWith(`${code}: `) ? rawMessage.slice(code.length + 2) : rawMessage;
-  const result = {
+function protocolErrorResponse(error: unknown, request: unknown): FastCheckProjectionFailure {
+  const protocolFailure = error instanceof ProtocolError ? error : undefined;
+  const result: FastCheckProjectionFailure = {
     protocolVersion: PROTOCOL_VERSION,
     status: 'error',
     diagnostics: [{
-      code,
-      message,
-      path: typeof error?.path === 'string' ? error.path : 'request',
+      code: protocolFailure?.code ?? 'protocol.request.invalid',
+      message: protocolFailure?.diagnosticMessage ?? (error instanceof Error ? error.message : String(error)),
+      path: protocolFailure?.path ?? 'request',
     }],
   };
-  if (request !== null && typeof request === 'object' && typeof request.requestId === 'string') {
+  if (isRecord(request) && typeof request.requestId === 'string') {
     result.requestId = request.requestId;
   }
   return result;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }

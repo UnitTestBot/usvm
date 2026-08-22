@@ -1,4 +1,37 @@
-export function decodeJsValue(value, path = 'value') {
+export type JsConcreteValue =
+  | undefined
+  | null
+  | boolean
+  | string
+  | number
+  | JsConcreteValue[];
+
+export type TaggedJsNumber =
+  | { value: 'finite'; bits: string }
+  | { value: 'nan' }
+  | { value: 'positive-infinity' }
+  | { value: 'negative-infinity' };
+
+export type TaggedJsValue =
+  | { kind: 'undefined' }
+  | { kind: 'null' }
+  | { kind: 'boolean'; value: boolean }
+  | { kind: 'string'; value: string }
+  | ({ kind: 'number' } & TaggedJsNumber)
+  | { kind: 'array'; elements: TaggedJsValue[] };
+
+export class ProtocolError extends Error {
+  constructor(
+    readonly code: string,
+    readonly diagnosticMessage: string,
+    readonly path: string,
+  ) {
+    super(`${code}: ${diagnosticMessage}`);
+    this.name = 'ProtocolError';
+  }
+}
+
+export function decodeJsValue(value: unknown, path = 'value'): JsConcreteValue {
   requireObject(value, 'js-value.invalid', 'Tagged JavaScript value must be an object', path);
   switch (value.kind) {
     case 'undefined':
@@ -21,13 +54,18 @@ export function decodeJsValue(value, path = 'value') {
       if (!Array.isArray(value.elements)) {
         throw protocolError('js-value.array.invalid', 'Array value must contain elements', path);
       }
-      return value.elements.map((element, index) => decodeJsValue(element, `${path}.elements[${index}]`));
+      return value.elements.map((element: unknown, index: number) =>
+        decodeJsValue(element, `${path}.elements[${index}]`));
     default:
-      throw protocolError('js-value.kind.unknown', `Unknown JavaScript value kind: ${String(value.kind)}`, path);
+      throw protocolError(
+        'js-value.kind.unknown',
+        `Unknown JavaScript value kind: ${String(value.kind)}`,
+        path,
+      );
   }
 }
 
-export function encodeJsValue(value) {
+export function encodeJsValue(value: unknown): TaggedJsValue {
   if (value === undefined) return { kind: 'undefined' };
   if (value === null) return { kind: 'null' };
   if (typeof value === 'boolean') return { kind: 'boolean', value };
@@ -41,71 +79,73 @@ export function encodeJsValue(value) {
   );
 }
 
-export function decodeJsNumber(number, path = 'number') {
-  requireObject(number, 'js-number.invalid', 'Tagged JavaScript number must be an object', path);
-  switch (number.value) {
+export function decodeJsNumber(taggedNumber: unknown, path = 'number'): number {
+  requireObject(taggedNumber, 'js-number.invalid', 'Tagged JavaScript number must be an object', path);
+  switch (taggedNumber.value) {
     case 'finite':
-      if (typeof number.bits !== 'string' || !/^[0-9a-f]{16}$/.test(number.bits)) {
+      if (typeof taggedNumber.bits !== 'string' || !/^[0-9a-f]{16}$/.test(taggedNumber.bits)) {
         throw protocolError(
           'js-number.encoding.invalid',
           'Finite JavaScript numbers require sixteen lowercase hexadecimal digits',
           path,
         );
       }
-      return bitsToDouble(number.bits);
+      return bitsToDouble(taggedNumber.bits);
     case 'nan':
-      requireNoBits(number, path);
+      requireNoBits(taggedNumber, path);
       return Number.NaN;
     case 'positive-infinity':
-      requireNoBits(number, path);
+      requireNoBits(taggedNumber, path);
       return Number.POSITIVE_INFINITY;
     case 'negative-infinity':
-      requireNoBits(number, path);
+      requireNoBits(taggedNumber, path);
       return Number.NEGATIVE_INFINITY;
     default:
       throw protocolError(
         'js-number.kind.unknown',
-        `Unknown JavaScript number kind: ${String(number.value)}`,
+        `Unknown JavaScript number kind: ${String(taggedNumber.value)}`,
         path,
       );
   }
 }
 
-export function encodeJsNumber(value) {
+export function encodeJsNumber(value: number): TaggedJsNumber {
   if (Number.isNaN(value)) return { value: 'nan' };
   if (value === Number.POSITIVE_INFINITY) return { value: 'positive-infinity' };
   if (value === Number.NEGATIVE_INFINITY) return { value: 'negative-infinity' };
   return { value: 'finite', bits: doubleToBits(value) };
 }
 
-export function protocolError(code, message, path) {
-  const error = new Error(`${code}: ${message}`);
-  error.code = code;
-  error.path = path;
-  return error;
+export function protocolError(code: string, message: string, path: string): ProtocolError {
+  return new ProtocolError(code, message, path);
 }
 
-function bitsToDouble(bits) {
+function bitsToDouble(bits: string): number {
   const buffer = new ArrayBuffer(8);
   const view = new DataView(buffer);
   view.setBigUint64(0, BigInt(`0x${bits}`), false);
   return view.getFloat64(0, false);
 }
 
-function doubleToBits(value) {
+function doubleToBits(value: number): string {
   const buffer = new ArrayBuffer(8);
   const view = new DataView(buffer);
   view.setFloat64(0, value, false);
   return view.getBigUint64(0, false).toString(16).padStart(16, '0');
 }
 
-function requireNoBits(number, path) {
-  if (number.bits !== undefined) {
+function requireNoBits(taggedNumber: Record<string, unknown>, path: string): void {
+  if (taggedNumber.bits !== undefined) {
     throw protocolError('js-number.encoding.invalid', 'Non-finite JavaScript numbers must not contain bits', path);
   }
 }
 
-function requireObject(value, code, message, path) {
+function requireObject(
+  value: unknown,
+  code: string,
+  message: string,
+  path: string,
+): asserts value is Record<string, unknown> {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     throw protocolError(code, message, path);
   }
