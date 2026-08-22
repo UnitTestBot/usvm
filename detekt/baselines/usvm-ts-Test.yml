@@ -6,6 +6,8 @@
     <ID>BlockCommentInitialStarAlignment:TsMethodTestRunner.kt$TsMethodTestRunner$/* Both KClass and TsObject instances come here because only KClass&lt;TsObject&gt; is available to match different objects. However, this method is also used in parent TestRunner class and passes here TsObject instances. So this check on current level is required. */</ID>
     <ID>BracesOnWhenStatements:TsMethodTestRunner.kt$TsMethodTestRunner$when</ID>
     <ID>BracesOnWhenStatements:TsTestResolver.kt$TsTestStateResolver$when</ID>
+    <ID>CascadingCallWrapping:CallFallbackBaselineTest.kt$CallFallbackBaselineTest$single { it.name == methodName }</ID>
+    <ID>CascadingCallWrapping:CallFallbackBaselineTest.kt$CallFallbackBaselineTest$stmts</ID>
     <ID>CascadingCallWrapping:InheritanceReachabilityTest.kt$InheritanceReachabilityTest$filter { it.name == "process" }</ID>
     <ID>CascadingCallWrapping:TsMethodTestRunner.kt$TsMethodTestRunner$filter { it.name == methodName }</ID>
     <ID>CascadingCallWrapping:TsMethodTestRunner.kt$TsMethodTestRunner$single { it.name == className }</ID>
