@@ -127,6 +127,17 @@ class TsTypeSystem(
             return unwrappedType.types.all { isSupertype(unwrappedSupertype, it) }
         }
 
+        // Runtime checks such as `instanceof` use the nominal class hierarchy,
+        // independently of TypeScript's structural assignability rules.
+        if (unwrappedSupertype is EtsNominalType) {
+            val nominalType = when (unwrappedType) {
+                is EtsNominalType -> unwrappedType.type
+                is EtsRefType -> unwrappedType
+                else -> return false
+            }
+            return isNominalSupertype(unwrappedSupertype.type, nominalType)
+        }
+
         // Function types
 
         if (unwrappedSupertype is EtsFunctionType && unwrappedType is EtsFunctionType) {
@@ -182,25 +193,21 @@ class TsTypeSystem(
         }
 
         if (unwrappedType is EtsAuxiliaryType) {
-            // An auxiliary type denotes a structural requirement, not a concrete
-            // nominal class. A class can satisfy that requirement (handled above),
-            // but the requirement itself is not a subtype of that class.
-            return false
+            if (unwrappedSupertype !is EtsClassType) return false // TODO arrays?
+
+            val superClasses = hierarchy.classesForType(unwrappedSupertype)
+            if (superClasses.isEmpty()) return false // TODO log
+
+            return superClasses.any { cls ->
+                val properties = cls.getAllPropertiesCombined(hierarchy)
+
+                return properties.containsAll(unwrappedType.properties)
+            }
         }
 
         if (unwrappedSupertype is EtsClassType || unwrappedSupertype is EtsUnclearRefType) {
             if (unwrappedType is EtsClassType || unwrappedType is EtsUnclearRefType) {
-                val classes = hierarchy.classesForType(unwrappedType)
-                val superClasses = hierarchy.classesForType(unwrappedSupertype)
-
-                if (classes.isEmpty() || superClasses.isEmpty()) return false // TODO log
-
-                return classes.any { cls ->
-                    val ancestors = hierarchy.getAncestors(cls)
-                    superClasses.any { superClass ->
-                        superClass in ancestors
-                    }
-                }
+                return isNominalSupertype(unwrappedSupertype, unwrappedType)
             }
         }
 
@@ -210,6 +217,7 @@ class TsTypeSystem(
     override fun hasCommonSubtype(type: EtsType, types: Collection<EtsType>): Boolean {
         val t = unwrapAlias(type)
         return when (t) {
+            is EtsNominalType -> true
             is EtsAuxiliaryType -> true  // structural types can always be refined
             is EtsPrimitiveType -> types.isEmpty() // primitive has no subtypes, so only when no other constraints
             is EtsClassType -> true  // classes can always have subclasses
@@ -315,6 +323,20 @@ class TsTypeSystem(
     }
 
     override fun topTypeStream(): UTypeStream<EtsType> = topTypeStream
+
+    private fun isNominalSupertype(supertype: EtsRefType, type: EtsRefType): Boolean {
+        val classes = hierarchy.classesForType(type)
+        val superClasses = hierarchy.classesForType(supertype)
+
+        if (classes.isEmpty() || superClasses.isEmpty()) return false // TODO log
+
+        return classes.any { cls ->
+            val ancestors = hierarchy.getAncestors(cls)
+            superClasses.any { superClass ->
+                superClass in ancestors
+            }
+        }
+    }
 }
 
 // TODO support unclear ref type

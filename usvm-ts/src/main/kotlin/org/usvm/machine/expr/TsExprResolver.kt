@@ -109,6 +109,7 @@ import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
+import org.usvm.machine.types.EtsNominalType
 import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.sizeSort
 import org.usvm.util.EtsHierarchy
@@ -135,6 +136,11 @@ private const val ECMASCRIPT_BITWISE_INTEGER_SIZE = 32
  * and `x << 37` is equivalent to `x << 5`.
  */
 private const val ECMASCRIPT_BITWISE_SHIFT_MASK = 0b11111
+
+private enum class UpdateOperator {
+    INCREMENT,
+    DECREMENT,
+}
 
 class TsExprResolver(
     internal val ctx: TsContext,
@@ -254,33 +260,32 @@ class TsExprResolver(
     }
 
     override fun visit(expr: EtsPostIncExpr): UExpr<out USort>? {
-        return resolveUpdateExpression(expr.arg, increment = true, returnOldValue = true)
+        return resolveUpdateExpression(expr.arg, UpdateOperator.INCREMENT, returnOldValue = true)
     }
 
     override fun visit(expr: EtsPostDecExpr): UExpr<out USort>? {
-        return resolveUpdateExpression(expr.arg, increment = false, returnOldValue = true)
+        return resolveUpdateExpression(expr.arg, UpdateOperator.DECREMENT, returnOldValue = true)
     }
 
     override fun visit(expr: EtsPreIncExpr): UExpr<out USort>? {
-        return resolveUpdateExpression(expr.arg, increment = true, returnOldValue = false)
+        return resolveUpdateExpression(expr.arg, UpdateOperator.INCREMENT, returnOldValue = false)
     }
 
     override fun visit(expr: EtsPreDecExpr): UExpr<out USort>? {
-        return resolveUpdateExpression(expr.arg, increment = false, returnOldValue = false)
+        return resolveUpdateExpression(expr.arg, UpdateOperator.DECREMENT, returnOldValue = false)
     }
 
     private fun resolveUpdateExpression(
         target: EtsEntity,
-        increment: Boolean,
+        operator: UpdateOperator,
         returnOldValue: Boolean,
     ): UExpr<out USort>? = with(ctx) {
         val oldValue = resolve(target) ?: return null
         val oldNumericValue = mkNumericExpr(oldValue, scope)
         val one = mkFp64(1.0)
-        val updatedValue = if (increment) {
-            mkFpAddExpr(fpRoundingModeSortDefaultValue(), oldNumericValue, one)
-        } else {
-            mkFpSubExpr(fpRoundingModeSortDefaultValue(), oldNumericValue, one)
+        val updatedValue = when (operator) {
+            UpdateOperator.INCREMENT -> mkFpAddExpr(fpRoundingModeSortDefaultValue(), oldNumericValue, one)
+            UpdateOperator.DECREMENT -> mkFpSubExpr(fpRoundingModeSortDefaultValue(), oldNumericValue, one)
         }
 
         when (target) {
@@ -881,8 +886,10 @@ class TsExprResolver(
 
     override fun visit(expr: EtsInstanceOfExpr): UExpr<out USort>? = with(ctx) {
         val arg = resolve(expr.arg)?.asExpr(addressSort) ?: return null
+        val checkType = expr.checkType as? EtsRefType ?: return falseExpr
+
         scope.calcOnState {
-            memory.types.evalIsSubtype(arg, expr.checkType)
+            memory.types.evalIsSubtype(arg, EtsNominalType(checkType))
         }
     }
 
@@ -1256,7 +1263,8 @@ class TsSimpleValueResolver(
                 .firstOrNull()
                 ?.takeIf { it.type is EtsLexicalEnvType }
             val closure: UHeapRef? = if (closureParameter != null) {
-                val resolved = resolveLocal(EtsLocal(closureParameter.name, closureParameter.type)) ?: return null
+                val closureLocal = EtsLocal(closureParameter.name, closureParameter.type)
+                val resolved = resolveLocal(closureLocal) ?: return null
                 resolved.asExpr(ctx.addressSort)
             } else {
                 null
