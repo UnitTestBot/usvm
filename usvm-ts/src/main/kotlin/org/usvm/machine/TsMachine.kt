@@ -9,8 +9,10 @@ import org.usvm.StateCollectionStrategy
 import org.usvm.UMachine
 import org.usvm.UMachineOptions
 import org.usvm.api.targets.TsTarget
-import org.usvm.machine.call.TsCompatibilityUnknownCallDispatcher
+import org.usvm.machine.call.TsNoUnknownCallModels
+import org.usvm.machine.call.TsProfileUnknownCallDispatcher
 import org.usvm.machine.call.TsUnknownCallDispatcher
+import org.usvm.machine.call.TsUnknownCallModelProvider
 import org.usvm.machine.interpreter.TsInterpreter
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
@@ -42,13 +44,18 @@ class TsMachine(
     private val tsOptions: TsOptions,
     private val machineObserver: UMachineObserver<TsState>? = null,
     observer: TsInterpreterObserver? = null,
-    unknownCallDispatcher: TsUnknownCallDispatcher = TsCompatibilityUnknownCallDispatcher,
+    unknownCallDispatcher: TsUnknownCallDispatcher? = null,
+    unknownCallModelProvider: TsUnknownCallModelProvider = TsNoUnknownCallModels,
 ) : UMachine<TsState>() {
     private val graph = TsGraph(scene)
     private val typeSystem = TsTypeSystem(scene, typeOperationsTimeout = 1.seconds, graph.hierarchy)
     private val components = TsComponents(typeSystem, options)
     private val ctx = TsContext(scene, components)
-    private val interpreter = TsInterpreter(ctx, graph, tsOptions, observer, unknownCallDispatcher)
+    private val resolvedUnknownCallDispatcher = unknownCallDispatcher ?: TsProfileUnknownCallDispatcher(
+        tsOptions.unknownCallProfile,
+        unknownCallModelProvider,
+    )
+    private val interpreter = TsInterpreter(ctx, graph, tsOptions, observer, resolvedUnknownCallDispatcher)
     private val cfgStatistics = CfgStatisticsImpl(graph)
 
     fun analyze(

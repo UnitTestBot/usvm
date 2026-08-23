@@ -1,6 +1,7 @@
 package org.usvm.api
 
 import org.jacodb.ets.model.EtsMethodSignature
+import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsVoidType
 import org.usvm.UAddressSort
 import org.usvm.UExpr
@@ -12,13 +13,14 @@ import org.usvm.machine.types.mkFakeValue
 fun mockMethodCall(
     scope: TsStepScope,
     method: EtsMethodSignature,
+    resultType: EtsType = method.returnType,
 ) {
     scope.doWithState {
         val result: UExpr<*>
-        if (method.returnType is EtsVoidType) {
+        if (resultType is EtsVoidType) {
             result = ctx.mkUndefinedValue()
         } else {
-            val sort = ctx.typeToSort(method.returnType)
+            val sort = ctx.typeToSort(resultType)
             result = when (sort) {
                 is UAddressSort -> makeSymbolicRefUntyped()
 

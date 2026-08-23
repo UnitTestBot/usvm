@@ -17,11 +17,14 @@ import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.UConcreteHeapRef
 import org.usvm.UMachineOptions
+import org.usvm.api.mockMethodCall
 import org.usvm.api.targets.ReachabilityObserver
 import org.usvm.api.targets.TsReachabilityTarget
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.machine.interpreter.TsStepScope
+import org.usvm.machine.state.TsMethodResult
+import org.usvm.machine.state.newStmt
 import org.usvm.util.getResourcePath
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -37,6 +40,112 @@ class TsUnknownCallDispatcherTest {
         provider = EtsIrProvider.TS_FRONTEND,
     )
     private val fullScene = EtsScene(listOf(sourceFile))
+
+    @Test
+    fun `profiles select model lookup independently from residual fallback`() {
+        val cases = listOf(
+            ProfileCase(
+                profile = TsUnknownCallProfiles.STOP_ALL,
+                withoutModel = ProfileResult(
+                    reachesReturn = false,
+                    outcome = TsUnknownCallOutcome.PATH_STOPPED,
+                ),
+                withModel = ProfileResult(
+                    reachesReturn = false,
+                    outcome = TsUnknownCallOutcome.PATH_STOPPED,
+                ),
+            ),
+            ProfileCase(
+                profile = TsUnknownCallProfiles.FRESH_SYMBOLIC_FOR_ALL,
+                withoutModel = ProfileResult(
+                    reachesReturn = true,
+                    outcome = TsUnknownCallOutcome.FRESH_SYMBOLIC_RETURN,
+                ),
+                withModel = ProfileResult(
+                    reachesReturn = true,
+                    outcome = TsUnknownCallOutcome.FRESH_SYMBOLIC_RETURN,
+                ),
+            ),
+            ProfileCase(
+                profile = TsUnknownCallProfiles.MODELS_THEN_STOP,
+                withoutModel = ProfileResult(
+                    reachesReturn = false,
+                    outcome = TsUnknownCallOutcome.PATH_STOPPED,
+                ),
+                withModel = ProfileResult(
+                    reachesReturn = true,
+                    outcome = TsUnknownCallOutcome.MODEL_APPLIED,
+                ),
+            ),
+            ProfileCase(
+                profile = TsUnknownCallProfiles.MODELS_THEN_FRESH_SYMBOLIC,
+                withoutModel = ProfileResult(
+                    reachesReturn = true,
+                    outcome = TsUnknownCallOutcome.FRESH_SYMBOLIC_RETURN,
+                ),
+                withModel = ProfileResult(
+                    reachesReturn = true,
+                    outcome = TsUnknownCallOutcome.MODEL_APPLIED,
+                ),
+            ),
+        )
+
+        cases.forEach { case ->
+            assertEquals(case.withoutModel, runProfile(case.profile, TsNoUnknownCallModels), case.profile.toString())
+            assertEquals(case.withModel, runProfile(case.profile, ApplyingModelProvider), case.profile.toString())
+        }
+    }
+
+    @Test
+    fun `TsOptions profile configures the machine dispatcher`() {
+        assertEquals(TsUnknownCallProfiles.MODELS_THEN_STOP, TsOptions().unknownCallProfile)
+        assertTrue(TsOptions().unknownCallProfile.residualOverrides.isEmpty())
+
+        assertFalse(reachesReturn("declaredMethodWithoutBodyContinues"))
+        assertTrue(
+            reachesReturn(
+                "declaredMethodWithoutBodyContinues",
+                tsOptions = TsOptions(unknownCallProfile = TsUnknownCallProfiles.FRESH_SYMBOLIC_FOR_ALL),
+            )
+        )
+    }
+
+    @Test
+    fun `explicit family override replaces the profile residual fallback`() {
+        val family = method(fullScene, "declaredMethodWithoutBodyContinues")
+            .cfg
+            .stmts
+            .mapNotNull { it.callExpr }
+            .single { it.callee.name == "external" }
+            .callee
+            .enclosingClass
+        val profile = TsUnknownCallProfiles.STOP_ALL.copy(
+            residualOverrides = mapOf(
+                family to TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN,
+            )
+        )
+
+        assertTrue(
+            reachesReturn(
+                "declaredMethodWithoutBodyContinues",
+                tsOptions = TsOptions(unknownCallProfile = profile),
+            )
+        )
+    }
+
+    @Test
+    fun `fresh symbolic return uses the source call result type`() {
+        val dispatcher = RecordingResultSortDispatcher(
+            TsProfileUnknownCallDispatcher(
+                TsUnknownCallProfiles.FRESH_SYMBOLIC_FOR_ALL,
+                TsNoUnknownCallModels,
+            )
+        )
+
+        assertTrue(reachesReturn("overloadedDeclaredMethodWithoutBodyContinues", dispatcher = dispatcher))
+        assertTrue(dispatcher.resultSortMatches.isNotEmpty())
+        assertTrue(dispatcher.resultSortMatches.all { it })
+    }
 
     @Test
     fun `inventoried unknown calls use normalized compatibility dispatch`() {
@@ -232,16 +341,18 @@ class TsUnknownCallDispatcherTest {
         methodName: String,
         scene: EtsScene = fullScene,
         tsOptions: TsOptions = TsOptions(),
-        dispatcher: TsUnknownCallDispatcher,
+        dispatcher: TsUnknownCallDispatcher? = null,
+        modelProvider: TsUnknownCallModelProvider = TsNoUnknownCallModels,
         className: String = "CallFallbackBaseline",
     ): Boolean = returnStatement(scene, methodName, className) in
-        reachedStatements(methodName, scene, tsOptions, dispatcher, className)
+        reachedStatements(methodName, scene, tsOptions, dispatcher, modelProvider, className)
 
     private fun reachedStatements(
         methodName: String,
         scene: EtsScene,
         tsOptions: TsOptions,
-        dispatcher: TsUnknownCallDispatcher,
+        dispatcher: TsUnknownCallDispatcher?,
+        modelProvider: TsUnknownCallModelProvider,
         className: String,
     ): Set<EtsStmt> {
         val method = method(scene, methodName, className)
@@ -255,6 +366,7 @@ class TsUnknownCallDispatcherTest {
             tsOptions = tsOptions,
             machineObserver = ReachabilityObserver(),
             unknownCallDispatcher = dispatcher,
+            unknownCallModelProvider = modelProvider,
         ).use { machine ->
             machine.analyze(listOf(method), listOf(initialTarget))
                 .flatMapTo(mutableSetOf()) { state -> state.pathNode.allStatements }
@@ -288,15 +400,72 @@ class TsUnknownCallDispatcherTest {
         val calls = mutableListOf<TsUnknownCall>()
         val receiverIsAssociatedFunction = mutableListOf<Boolean?>()
 
-        override fun dispatch(scope: TsStepScope, call: TsUnknownCall) {
+        override fun dispatch(scope: TsStepScope, call: TsUnknownCall): TsUnknownCallOutcome {
             calls += call
             val receiver = call.receiver?.resolved as? UConcreteHeapRef
             receiverIsAssociatedFunction += receiver?.let { resolved ->
                 scope.calcOnState { associatedFunction[resolved] != null }
             }
-            TsCompatibilityUnknownCallDispatcher.dispatch(scope, call)
+            return TsCompatibilityUnknownCallDispatcher.dispatch(scope, call)
         }
     }
+
+    private fun runProfile(
+        profile: TsUnknownCallProfile,
+        modelProvider: TsUnknownCallModelProvider,
+    ): ProfileResult {
+        val dispatcher = RecordingOutcomeDispatcher(TsProfileUnknownCallDispatcher(profile, modelProvider))
+        val reachesReturn = reachesReturn(
+            "declaredMethodWithoutBodyContinues",
+            dispatcher = dispatcher,
+        )
+        return ProfileResult(reachesReturn, dispatcher.outcomes.single())
+    }
+
+    private class RecordingOutcomeDispatcher(
+        private val delegate: TsUnknownCallDispatcher,
+    ) : TsUnknownCallDispatcher {
+        val outcomes = mutableListOf<TsUnknownCallOutcome>()
+
+        override fun dispatch(scope: TsStepScope, call: TsUnknownCall): TsUnknownCallOutcome =
+            delegate.dispatch(scope, call).also(outcomes::add)
+    }
+
+    private class RecordingResultSortDispatcher(
+        private val delegate: TsUnknownCallDispatcher,
+    ) : TsUnknownCallDispatcher {
+        val resultSortMatches = mutableListOf<Boolean>()
+
+        override fun dispatch(scope: TsStepScope, call: TsUnknownCall): TsUnknownCallOutcome {
+            val outcome = delegate.dispatch(scope, call)
+            if (outcome == TsUnknownCallOutcome.FRESH_SYMBOLIC_RETURN) {
+                resultSortMatches += scope.calcOnState {
+                    val result = methodResult as TsMethodResult.Success.MockedCall
+                    result.value.sort == ctx.typeToSort(call.resultType)
+                }
+            }
+            return outcome
+        }
+    }
+
+    private object ApplyingModelProvider : TsUnknownCallModelProvider {
+        override fun apply(scope: TsStepScope, call: TsUnknownCall): TsUnknownCallModelApplication {
+            mockMethodCall(scope, call.callee, call.resultType)
+            scope.doWithState { newStmt(call.callSite) }
+            return TsUnknownCallModelApplication.APPLIED
+        }
+    }
+
+    private data class ProfileCase(
+        val profile: TsUnknownCallProfile,
+        val withoutModel: ProfileResult,
+        val withModel: ProfileResult,
+    )
+
+    private data class ProfileResult(
+        val reachesReturn: Boolean,
+        val outcome: TsUnknownCallOutcome,
+    )
 
     private data class Case(
         val methodName: String,

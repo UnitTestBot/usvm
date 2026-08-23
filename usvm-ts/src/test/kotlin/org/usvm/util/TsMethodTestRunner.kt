@@ -27,6 +27,7 @@ import org.usvm.api.TsTest
 import org.usvm.api.TsTestValue
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
+import org.usvm.machine.call.TsCompatibilityUnknownCallDispatcher
 import org.usvm.test.util.TestRunner
 import org.usvm.test.util.checkers.AnalysisResultsNumberMatcher
 import org.usvm.test.util.checkers.ignoreNumberOfAnalysisResults
@@ -361,7 +362,12 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
 
     override val runner: (EtsMethod, UMachineOptions) -> List<TsTest> = { method, options ->
         val tsMachineOptions = TsOptions()
-        TsMachine(scene, options, tsMachineOptions).use { machine ->
+        TsMachine(
+            scene,
+            options,
+            tsMachineOptions,
+            unknownCallDispatcher = TsCompatibilityUnknownCallDispatcher,
+        ).use { machine ->
             val states = machine.analyze(listOf(method))
             val resolved = states.map { state ->
                 val resolver = TsTestResolver()

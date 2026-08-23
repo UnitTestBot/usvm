@@ -12,6 +12,7 @@ import org.usvm.UMachineOptions
 import org.usvm.api.checkers.UnreachableCodeDetector
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
+import org.usvm.machine.call.TsCompatibilityUnknownCallDispatcher
 import org.usvm.util.getResourcePath
 
 @TestInstance(PER_CLASS)
@@ -48,7 +49,14 @@ class UnreachableCodeDetectorTest {
     fun testUnreachableCodeWithMockedCallsInside() {
         val observer = UnreachableCodeDetector()
         val tsOptions = TsOptions(interproceduralAnalysis = false)
-        val machine = TsMachine(scene, options, tsOptions, observer, observer)
+        val machine = TsMachine(
+            scene,
+            options,
+            tsOptions,
+            observer,
+            observer,
+            TsCompatibilityUnknownCallDispatcher,
+        )
         val methods = scene.projectClasses
             .flatMap { it.methods }
             .filter { it.name == "unreachableCodeWithCallsInside" }
