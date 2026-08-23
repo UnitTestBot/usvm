@@ -14,6 +14,10 @@ declare class ExternalOverloads {
     static convert(value: string): string;
 }
 
+declare class ExternalBoolean {
+    static convert(value: boolean): boolean;
+}
+
 class KnownReceiver {
     known(): number {
         return 1;
@@ -58,6 +62,10 @@ class CallFallbackBaseline {
         const receiver = new ExternalReceiver();
         receiver.external();
         return 101;
+    }
+
+    modeledUnknownCallForks(value: boolean): boolean {
+        return ExternalBoolean.convert(value);
     }
 
     anyReceiverWithKnownMethodContinues(receiver: any): number {

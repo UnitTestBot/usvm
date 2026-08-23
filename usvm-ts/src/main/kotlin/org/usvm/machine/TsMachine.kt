@@ -52,10 +52,17 @@ class TsMachine(
     private val components = TsComponents(typeSystem, options)
     private val ctx = TsContext(scene, components)
     private val resolvedUnknownCallDispatcher = unknownCallDispatcher ?: TsProfileUnknownCallDispatcher(
-        tsOptions.unknownCallProfile,
-        unknownCallModelProvider,
+        profile = tsOptions.unknownCallProfile,
+        modelProvider = unknownCallModelProvider,
+        observer = observer,
     )
-    private val interpreter = TsInterpreter(ctx, graph, tsOptions, observer, resolvedUnknownCallDispatcher)
+    private val interpreter = TsInterpreter(
+        ctx = ctx,
+        graph = graph,
+        options = tsOptions,
+        observer = observer,
+        unknownCallDispatcher = resolvedUnknownCallDispatcher,
+    )
     private val cfgStatistics = CfgStatisticsImpl(graph)
 
     fun analyze(
