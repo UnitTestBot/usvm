@@ -130,8 +130,6 @@ test('fast-check capability is exact for supported recursive domains', () => {
       maxLength: 2,
     }),
     {
-      backendId: 'fast-check',
-      backendVersion: '4.9.0',
       level: 'exact',
       diagnostics: [],
     },
@@ -143,8 +141,6 @@ test('unknown domain kinds are rejected and reported as unsupported', () => {
   assert.deepEqual(
     projectionCapability({ kind: 'object' }, 'inputs[0].domain'),
     {
-      backendId: 'fast-check',
-      backendVersion: '4.9.0',
       level: 'unsupported',
       diagnostics: [{
         code: 'domain.kind.unknown',

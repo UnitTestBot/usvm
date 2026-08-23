@@ -10,8 +10,6 @@ const val FAST_CHECK_PROTOCOL_VERSION = 1
 @Serializable
 data class FastCheckProjectionRequest(
     val protocolVersion: Int = FAST_CHECK_PROTOCOL_VERSION,
-    val requestId: String,
-    val operation: String = "sample",
     val seed: Int,
     val numSamples: Int,
     val domains: List<PropertyDomain>,
@@ -19,15 +17,12 @@ data class FastCheckProjectionRequest(
 
 /** Validated samples returned by fast-check in positional input order. */
 data class FastCheckProjectionResponse(
-    val protocolVersion: Int,
-    val requestId: String,
     val samples: List<List<JsConcreteValue>>,
 )
 
 @Serializable
 internal data class FastCheckProjectionWireResponse(
     val protocolVersion: Int,
-    val requestId: String? = null,
     val status: String,
     val samples: List<List<JsConcreteValue>> = emptyList(),
     val diagnostics: List<FastCheckProtocolDiagnostic> = emptyList(),

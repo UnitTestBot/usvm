@@ -3,26 +3,20 @@ import { spawn } from 'node:child_process';
 import type { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
-import type { TaggedJsValue } from '../src/js-value.js';
+import type { ProtocolDiagnostic, TaggedJsValue } from '../src/js-value.js';
 
 const cliPath = fileURLToPath(new URL('../src/projection-cli.js', import.meta.url));
 
 interface SuccessResponse {
   protocolVersion: number;
-  requestId: string;
   status: 'ok';
   samples: TaggedJsValue[][];
 }
 
 interface ErrorResponse {
   protocolVersion: number;
-  requestId?: string;
   status: 'error';
-  diagnostics: Array<{
-    code: string;
-    message: string;
-    path: string;
-  }>;
+  diagnostics: ProtocolDiagnostic[];
 }
 
 type WireResponse = SuccessResponse | ErrorResponse;
@@ -34,11 +28,9 @@ interface InvocationResult {
   response: WireResponse | undefined;
 }
 
-test('sample response echoes request identity and returns deterministic tagged values', async () => {
+test('sample response returns deterministic tagged values', async () => {
   const request = {
     protocolVersion: 1,
-    requestId: 'sample-1',
-    operation: 'sample',
     seed: 42,
     numSamples: 4,
     domains: [{ kind: 'integer', min: -1, max: 1 }],
@@ -54,7 +46,6 @@ test('sample response echoes request identity and returns deterministic tagged v
   assert.equal(first.stdout.trim().split('\n').length, 1);
   assert.deepEqual(firstResponse, secondResponse);
   assert.equal(firstResponse.protocolVersion, 1);
-  assert.equal(firstResponse.requestId, 'sample-1');
   assert.equal(firstResponse.status, 'ok');
   if (firstResponse.status !== 'ok') assert.fail('Expected a successful response');
   assert.equal(firstResponse.samples.length, 4);
@@ -67,7 +58,6 @@ interface ProtocolErrorCase {
   name: string;
   input: unknown;
   code: string;
-  requestId: string;
   path: string;
 }
 
@@ -76,47 +66,27 @@ const protocolErrorCases: ProtocolErrorCase[] = [
     name: 'unsupported protocol version',
     input: {
       protocolVersion: 2,
-      requestId: 'wrong-version',
-      operation: 'sample',
       seed: 1,
       numSamples: 1,
       domains: [{ kind: 'boolean' }],
     },
     code: 'protocol.version.unsupported',
-    requestId: 'wrong-version',
     path: 'protocolVersion',
-  },
-  {
-    name: 'unsupported operation',
-    input: {
-      protocolVersion: 1,
-      requestId: 'wrong-operation',
-      operation: 'check',
-      seed: 1,
-      numSamples: 1,
-      domains: [{ kind: 'boolean' }],
-    },
-    code: 'protocol.operation.unsupported',
-    requestId: 'wrong-operation',
-    path: 'operation',
   },
   {
     name: 'invalid request',
     input: {
       protocolVersion: 1,
-      requestId: '',
-      operation: 'sample',
       seed: 1.5,
       numSamples: 0,
       domains: [],
     },
     code: 'protocol.request.invalid',
-    requestId: '',
     path: 'request',
   },
 ];
 
-for (const { name, input, code, requestId, path } of protocolErrorCases) {
+for (const { name, input, code, path } of protocolErrorCases) {
   test(`${name} returns a typed protocol error`, async () => {
     const result = await invokeCli(JSON.stringify(input));
     const response = requireResponse(result);
@@ -125,7 +95,6 @@ for (const { name, input, code, requestId, path } of protocolErrorCases) {
     if (response.status !== 'error') assert.fail('Expected an error response');
     assert.deepEqual(response, {
       protocolVersion: 1,
-      requestId,
       status: 'error',
       diagnostics: [{
         code,
@@ -147,7 +116,6 @@ test('malformed JSON produces one clean protocol error document', async () => {
   assert.equal(response.status, 'error');
   if (response.status !== 'error') assert.fail('Expected an error response');
   assert.equal(response.diagnostics[0]?.code, 'protocol.json.invalid');
-  assert.ok(!('requestId' in response));
 });
 
 async function invokeCli(input: string): Promise<InvocationResult> {

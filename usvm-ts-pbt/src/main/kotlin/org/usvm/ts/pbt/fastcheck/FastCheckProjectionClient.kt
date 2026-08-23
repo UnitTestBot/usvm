@@ -15,30 +15,25 @@ import java.util.concurrent.Executors
  */
 class FastCheckProjectionClient(
     private val nodeExecutable: String = "node",
-    private val adapterEntryPoint: Path,
+    private val adapterEntryPoint: Path = FastCheckRuntime.projectionEntryPoint(),
 ) {
     /** Projects the requested domains to fast-check and returns the generated samples. */
     fun sample(request: FastCheckProjectionRequest): FastCheckProjectionResponse {
         validateRequest(request)
         val response = decodeResponse(invokeAdapter(request))
-        validateResponseIdentity(request, response)
+        validateProtocolVersion(response)
         throwBackendError(response)
         validateSuccessfulResponse(request, response)
         return FastCheckProjectionResponse(
-            protocolVersion = response.protocolVersion,
-            requestId = requireNotNull(response.requestId),
             samples = response.samples,
         )
     }
 
-    private fun validateResponseIdentity(
-        request: FastCheckProjectionRequest,
-        response: FastCheckProjectionWireResponse,
-    ) {
-        if (response.protocolVersion != FAST_CHECK_PROTOCOL_VERSION || response.requestId != request.requestId) {
+    private fun validateProtocolVersion(response: FastCheckProjectionWireResponse) {
+        if (response.protocolVersion != FAST_CHECK_PROTOCOL_VERSION) {
             throw FastCheckProjectionException(
                 code = "backend.response.mismatch",
-                message = "fast-check response identity does not match the request",
+                message = "fast-check response protocol version is incompatible",
             )
         }
     }
@@ -59,9 +54,10 @@ class FastCheckProjectionClient(
         request: FastCheckProjectionRequest,
         response: FastCheckProjectionWireResponse,
     ) {
-        if (response.status != "ok" || response.samples.size != request.numSamples ||
-            response.samples.any { it.size != request.domains.size }
-        ) {
+        val hasExpectedStatus = response.status == "ok"
+        val hasExpectedSampleCount = response.samples.size == request.numSamples
+        val hasExpectedArity = response.samples.all { it.size == request.domains.size }
+        if (!hasExpectedStatus || !hasExpectedSampleCount || !hasExpectedArity) {
             throw FastCheckProjectionException(
                 code = "backend.response.invalid",
                 message = "fast-check adapter returned an invalid successful response",
@@ -126,14 +122,12 @@ class FastCheckProjectionClient(
     )
 
     private fun validateRequest(request: FastCheckProjectionRequest) {
-        val valid = request.requestId.isNotEmpty() &&
-            request.operation == "sample" &&
-            request.numSamples in 1..MAX_SAMPLES &&
-            request.domains.isNotEmpty()
-        if (!valid) {
+        val hasValidSampleCount = request.numSamples in 1..MAX_SAMPLES
+        val hasDomains = request.domains.isNotEmpty()
+        if (!hasValidSampleCount || !hasDomains) {
             throw FastCheckProjectionException(
                 code = "protocol.request.invalid",
-                message = "Request requires a non-empty ID and domains, operation sample, and numSamples in 1..10000",
+                message = "Request requires domains and numSamples in 1..10000",
                 path = "request",
             )
         }

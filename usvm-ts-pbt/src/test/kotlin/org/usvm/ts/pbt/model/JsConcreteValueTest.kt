@@ -7,6 +7,13 @@ import kotlin.test.assertEquals
 
 class JsConcreteValueTest {
     @Test
+    fun `number factory creates a lossless concrete value`() {
+        val value = JsConcreteValue.number(-0.0)
+
+        assertEquals((-0.0).toRawBits(), value.toDouble().toRawBits())
+    }
+
+    @Test
     fun `special JavaScript numbers keep their semantics through JSON`() {
         val values = listOf(
             JsConcreteValue.Number(JsNumber.fromDouble(-0.0)),

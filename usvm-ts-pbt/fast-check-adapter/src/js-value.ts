@@ -20,6 +20,12 @@ export type TaggedJsValue =
   | ({ kind: 'number' } & TaggedJsNumber)
   | { kind: 'array'; elements: TaggedJsValue[] };
 
+export interface ProtocolDiagnostic {
+  code: string;
+  message: string;
+  path: string;
+}
+
 export class ProtocolError extends Error {
   constructor(
     readonly code: string,

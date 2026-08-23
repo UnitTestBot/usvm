@@ -8,17 +8,13 @@ class ProjectionCapabilityTest {
     @Test
     fun `least capable nested projection wins and diagnostics are deterministic`() {
         val capability = aggregateProjectionCapabilities(
-            backendId = FAST_CHECK_ID,
-            backendVersion = FAST_CHECK_VERSION,
             capabilities = listOf(
                 exact(),
-                approximate("inputs[1].domain", "domain.string.approximate"),
-                approximate("inputs[0].domain", "domain.number.approximate"),
+                approximate(path = "inputs[1].domain", code = "domain.string.approximate"),
+                approximate(path = "inputs[0].domain", code = "domain.number.approximate"),
             ),
         )
 
-        assertEquals(FAST_CHECK_ID, capability.backendId)
-        assertEquals(FAST_CHECK_VERSION, capability.backendVersion)
         assertEquals(ProjectionLevel.APPROXIMATE, capability.level)
         assertEquals(
             listOf("domain.number.approximate", "domain.string.approximate"),
@@ -29,11 +25,9 @@ class ProjectionCapabilityTest {
     @Test
     fun `unsupported nested projection wins over approximate projection`() {
         val capability = aggregateProjectionCapabilities(
-            backendId = FAST_CHECK_ID,
-            backendVersion = FAST_CHECK_VERSION,
             capabilities = listOf(
-                approximate("inputs[0].domain", "domain.number.approximate"),
-                unsupported("inputs[1].domain", "domain.object.unsupported"),
+                approximate(path = "inputs[0].domain", code = "domain.number.approximate"),
+                unsupported(path = "inputs[1].domain", code = "domain.object.unsupported"),
             ),
         )
 
@@ -44,8 +38,6 @@ class ProjectionCapabilityTest {
     fun `non exact capability requires a diagnostic reason`() {
         assertFailsWith<IllegalArgumentException> {
             ProjectionCapability(
-                backendId = FAST_CHECK_ID,
-                backendVersion = FAST_CHECK_VERSION,
                 level = ProjectionLevel.APPROXIMATE,
             )
         }
@@ -57,7 +49,7 @@ class ProjectionCapabilityTest {
             PropertyCapabilityLevel.CONCRETE_ONLY,
             classifyPropertyCapability(
                 concrete = exact(),
-                symbolic = unsupported("predicate", "entrypoint.async", backendId = "usvm"),
+                symbolic = unsupported(path = "predicate", code = "entrypoint.async"),
             ),
         )
     }
@@ -66,54 +58,53 @@ class ProjectionCapabilityTest {
     fun `property classification accounts for both projections`() {
         assertEquals(
             PropertyCapabilityLevel.EXACT,
-            classifyPropertyCapability(exact(), exact(backendId = "usvm")),
+            classifyPropertyCapability(exact(), exact()),
         )
         assertEquals(
             PropertyCapabilityLevel.APPROXIMATE,
             classifyPropertyCapability(
                 exact(),
-                approximate("inputs[0].domain", "domain.approximate", backendId = "usvm"),
+                approximate(path = "inputs[0].domain", code = "domain.approximate"),
             ),
         )
         assertEquals(
             PropertyCapabilityLevel.UNSUPPORTED,
             classifyPropertyCapability(
-                unsupported("inputs[0].domain", "domain.unsupported"),
-                exact(backendId = "usvm"),
+                unsupported(path = "inputs[0].domain", code = "domain.unsupported"),
+                exact(),
             ),
         )
     }
 
-    private fun exact(backendId: String = FAST_CHECK_ID) = ProjectionCapability(
-        backendId = backendId,
-        backendVersion = FAST_CHECK_VERSION,
+    private fun exact() = ProjectionCapability(
         level = ProjectionLevel.EXACT,
     )
 
     private fun approximate(
         path: String,
         code: String,
-        backendId: String = FAST_CHECK_ID,
     ) = ProjectionCapability(
-        backendId = backendId,
-        backendVersion = FAST_CHECK_VERSION,
         level = ProjectionLevel.APPROXIMATE,
-        diagnostics = listOf(CapabilityDiagnostic(code, "Approximate projection", path)),
+        diagnostics = listOf(
+            CapabilityDiagnostic(
+                code = code,
+                message = "Approximate projection",
+                path = path,
+            ),
+        ),
     )
 
     private fun unsupported(
         path: String,
         code: String,
-        backendId: String = FAST_CHECK_ID,
     ) = ProjectionCapability(
-        backendId = backendId,
-        backendVersion = FAST_CHECK_VERSION,
         level = ProjectionLevel.UNSUPPORTED,
-        diagnostics = listOf(CapabilityDiagnostic(code, "Unsupported projection", path)),
+        diagnostics = listOf(
+            CapabilityDiagnostic(
+                code = code,
+                message = "Unsupported projection",
+                path = path,
+            ),
+        ),
     )
-
-    private companion object {
-        const val FAST_CHECK_ID = "fast-check"
-        const val FAST_CHECK_VERSION = "4.9.0"
-    }
 }

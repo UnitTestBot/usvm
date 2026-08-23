@@ -107,6 +107,11 @@ sealed interface JsConcreteValue {
 
     /** Ordered recursively tagged elements of one concrete JavaScript array. */
     data class Array(val elements: List<JsConcreteValue>) : JsConcreteValue
+
+    companion object {
+        /** Creates a lossless tagged value from any ECMAScript binary64 number. */
+        fun number(value: Double): Number = Number(JsNumber.fromDouble(value))
+    }
 }
 
 /** JSON serializer for the tagged [JsConcreteValue] wire representation. */

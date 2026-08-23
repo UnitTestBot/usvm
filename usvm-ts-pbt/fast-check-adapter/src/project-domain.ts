@@ -6,9 +6,6 @@ import {
   protocolError,
 } from './js-value.js';
 
-export const FAST_CHECK_BACKEND_ID = 'fast-check';
-export const FAST_CHECK_BACKEND_VERSION = '4.9.0';
-
 export interface ProjectionDiagnostic {
   code: string;
   message: string;
@@ -16,8 +13,6 @@ export interface ProjectionDiagnostic {
 }
 
 export interface ProjectionCapability {
-  backendId: string;
-  backendVersion: string;
   level: 'exact' | 'unsupported';
   diagnostics: ProjectionDiagnostic[];
 }
@@ -75,16 +70,12 @@ export function projectionCapability(domain: unknown, path = 'domain'): Projecti
   try {
     projectDomain(domain, path);
     return {
-      backendId: FAST_CHECK_BACKEND_ID,
-      backendVersion: FAST_CHECK_BACKEND_VERSION,
       level: 'exact',
       diagnostics: [],
     };
   } catch (error: unknown) {
     if (!(error instanceof ProtocolError)) throw error;
     return {
-      backendId: FAST_CHECK_BACKEND_ID,
-      backendVersion: FAST_CHECK_BACKEND_VERSION,
       level: 'unsupported',
       diagnostics: [{
         code: error.code,

@@ -70,3 +70,42 @@ data class ArrayDomain(
     val minLength: Int = 0,
     val maxLength: Int = DEFAULT_MAX_ARRAY_LENGTH,
 ) : PropertyDomain
+
+/** Returns whether [value] belongs to this domain, including recursive tuple and array constraints. */
+operator fun PropertyDomain.contains(value: JsConcreteValue): Boolean = when (this) {
+    BooleanDomain -> value is JsConcreteValue.Boolean
+    is IntegerDomain -> value is JsConcreteValue.Number && value.isIntegerIn(this)
+    is NumberDomain -> value is JsConcreteValue.Number && value.isNumberIn(this)
+    is StringDomain -> value is JsConcreteValue.String && value.value.length in minLength..maxLength
+    is ConstantDomain -> value == this.value
+    is OptionalDomain -> value == nil || value in this.value
+    is TupleDomain ->
+        value is JsConcreteValue.Array &&
+            value.elements.size == elements.size &&
+            value.elements.zip(elements).all { (element, domain) -> element in domain }
+
+    is ArrayDomain ->
+        value is JsConcreteValue.Array &&
+            value.elements.size in minLength..maxLength &&
+            value.elements.all { elementValue -> elementValue in element }
+}
+
+private fun JsConcreteValue.Number.isIntegerIn(domain: IntegerDomain): Boolean {
+    if (number.bits == NEGATIVE_ZERO_BITS) return false
+
+    val value = validDoubleOrNull() ?: return false
+    return value.isFinite() && value % 1.0 == 0.0 && value in domain.min.toDouble()..domain.max.toDouble()
+}
+
+private fun JsConcreteValue.Number.isNumberIn(domain: NumberDomain): Boolean {
+    if (number.value == JsNumberKind.NAN) return domain.allowNaN
+
+    val value = validDoubleOrNull() ?: return false
+    val minimum = runCatching(domain.min::toDouble).getOrNull() ?: return false
+    val maximum = runCatching(domain.max::toDouble).getOrNull() ?: return false
+    return value in minimum..maximum
+}
+
+private fun JsConcreteValue.Number.validDoubleOrNull(): Double? = runCatching(::toDouble).getOrNull()
+
+private const val NEGATIVE_ZERO_BITS = "8000000000000000"
