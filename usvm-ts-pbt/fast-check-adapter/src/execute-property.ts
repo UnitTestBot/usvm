@@ -71,18 +71,23 @@ export interface FastCheckExecutionSuccess {
 export async function executeProperty(requestValue: unknown): Promise<FastCheckExecutionSuccess> {
   const request = validateRequest(requestValue);
   const startedAt = performance.now();
+
   const predicate = await loadEntryPoint(request.manifest.predicate, request.sourceRoots, 'manifest.predicate');
   const precondition = request.manifest.precondition === undefined
     ? undefined
     : await loadEntryPoint(request.manifest.precondition, request.sourceRoots, 'manifest.precondition');
+
   const arbitrary = fc.tuple(
     ...request.manifest.inputs.map((input, index) =>
       projectDomain(input.domain, `manifest.inputs[${index}].domain`)),
   );
   const property = buildProperty(arbitrary, predicate, precondition);
   const parameters = buildParameters(request);
+
   const details = await Promise.resolve(fc.check(property, parameters));
+
   if (details.errorInstance instanceof ProtocolError) throw details.errorInstance;
+
   return {
     protocolVersion: FAST_CHECK_EXECUTION_PROTOCOL_VERSION,
     status: 'ok',
@@ -100,16 +105,22 @@ function buildProperty(
   precondition: LoadedEntryPoint | undefined,
 ): fc.IProperty<[unknown[]]> | fc.IAsyncProperty<[unknown[]]> {
   const asynchronous = predicate.executionKind === 'async' || precondition?.executionKind === 'async';
+
   if (asynchronous) {
     return fc.asyncProperty(arbitrary, async (values: unknown[]): Promise<boolean> => {
       const argumentsList = values as JsConcreteValue[];
+
       if (precondition !== undefined && !(await precondition.invoke(argumentsList))) fc.pre(false);
+
       return await predicate.invoke(argumentsList);
     });
   }
+
   return fc.property(arbitrary, (values: unknown[]): boolean => {
     const argumentsList = values as JsConcreteValue[];
+
     if (precondition !== undefined && !precondition.invoke(argumentsList)) fc.pre(false);
+
     return predicate.invoke(argumentsList) as boolean;
   });
 }
@@ -123,10 +134,13 @@ function buildParameters(request: FastCheckExecutionRequest): Parameters<[unknow
         `examples[${exampleIndex}]`,
       );
     }
+
     const values = example.map((value, valueIndex) =>
       decodeJsValue(value, `examples[${exampleIndex}][${valueIndex}]`));
+
     return [values] as [unknown[]];
   });
+
   const parameters: Parameters<[unknown[]]> = {
     numRuns: request.numRuns,
     timeout: request.timeoutMillis,
@@ -134,8 +148,10 @@ function buildParameters(request: FastCheckExecutionRequest): Parameters<[unknow
     markInterruptAsFailure: true,
     examples: decodedExamples,
   };
+
   if (request.seed !== undefined) parameters.seed = request.seed;
   if (request.replayPath !== undefined) parameters.path = request.replayPath;
+
   return parameters;
 }
 
@@ -149,6 +165,7 @@ function toRunResult(
     ? null
     : counterexampleValues.map(encodeJsValue);
   const failure = details.failed ? failureDetails(details) : null;
+
   return {
     propertyId,
     status: details.failed ? 'failure' : 'success',
@@ -166,6 +183,7 @@ function toRunResult(
 function failureDetails(details: RunDetails<[unknown[]]>): FastCheckFailureDetails {
   const error = details.errorInstance;
   const timeout = (details.interrupted && details.counterexample === null) || isFastCheckTimeout(error);
+
   if (error instanceof Error) {
     return {
       kind: timeout ? 'timeout' : 'property',
@@ -173,6 +191,7 @@ function failureDetails(details: RunDetails<[unknown[]]>): FastCheckFailureDetai
       message: error.message || 'Property execution failed',
     };
   }
+
   if (timeout) {
     return {
       kind: 'timeout',
@@ -180,6 +199,7 @@ function failureDetails(details: RunDetails<[unknown[]]>): FastCheckFailureDetai
       message: 'Property execution exceeded the configured timeout',
     };
   }
+
   return {
     kind: 'property',
     errorName: 'PropertyFailure',
@@ -195,6 +215,7 @@ function isFastCheckTimeout(error: unknown): boolean {
 
 function validateRequest(value: unknown): FastCheckExecutionRequest {
   const request = requireRecord(value, 'protocol.request.invalid', 'Request must be a JSON object', 'request');
+
   if (request.protocolVersion !== FAST_CHECK_EXECUTION_PROTOCOL_VERSION) {
     throw protocolError(
       'protocol.version.unsupported',
@@ -202,17 +223,22 @@ function validateRequest(value: unknown): FastCheckExecutionRequest {
       'protocolVersion',
     );
   }
+
   const validSourceRoots = Array.isArray(request.sourceRoots)
     && request.sourceRoots.length > 0
     && request.sourceRoots.every((root) => typeof root === 'string');
+
   const validRunCount = Number.isInteger(request.numRuns)
     && (request.numRuns as number) >= 1
     && (request.numRuns as number) <= MAX_RUNS;
+
   const validTimeout = Number.isInteger(request.timeoutMillis)
     && (request.timeoutMillis as number) >= 1
     && (request.timeoutMillis as number) <= MAX_TIMEOUT_MILLIS;
+
   const validExamples = Array.isArray(request.examples)
     && request.examples.length <= MAX_EXAMPLES;
+
   if (!validSourceRoots || !validRunCount || !validTimeout || !validExamples) {
     throw protocolError(
       'protocol.request.invalid',
@@ -220,21 +246,26 @@ function validateRequest(value: unknown): FastCheckExecutionRequest {
       'request',
     );
   }
+
   if (request.seed !== undefined && !isSignedInt(request.seed)) {
     throw protocolError('protocol.seed.invalid', 'Seed must be a signed 32-bit integer', 'seed');
   }
+
   if (request.replayPath !== undefined &&
       (typeof request.replayPath !== 'string' || request.replayPath.length > MAX_REPLAY_PATH_LENGTH)) {
     throw protocolError('protocol.replay-path.invalid', 'Replay path is invalid', 'replayPath');
   }
+
   const manifest = validateManifest(request.manifest);
   const rawExamples = request.examples as unknown[];
   const examples = rawExamples.map((example: unknown, index: number) => {
     if (!Array.isArray(example)) {
       throw protocolError('protocol.examples.invalid', 'Each explicit example must be an array', `examples[${index}]`);
     }
+
     return example as TaggedJsValue[];
   });
+
   const validated: FastCheckExecutionRequest = {
     protocolVersion: FAST_CHECK_EXECUTION_PROTOCOL_VERSION,
     manifest,
@@ -243,13 +274,16 @@ function validateRequest(value: unknown): FastCheckExecutionRequest {
     timeoutMillis: request.timeoutMillis as number,
     examples,
   };
+
   if (request.seed !== undefined) validated.seed = request.seed as number;
   if (request.replayPath !== undefined) validated.replayPath = request.replayPath as string;
+
   return validated;
 }
 
 function validateManifest(value: unknown): PropertyManifestWire {
   const manifest = requireRecord(value, 'protocol.manifest.invalid', 'Manifest must be an object', 'manifest');
+
   const valid = manifest.schemaVersion === 1
     && typeof manifest.propertyId === 'string'
     && manifest.propertyId.length > 0
@@ -258,6 +292,7 @@ function validateManifest(value: unknown): PropertyManifestWire {
   if (!valid) {
     throw protocolError('protocol.manifest.invalid', 'Manifest identity or inputs are invalid', 'manifest');
   }
+
   const rawInputs = manifest.inputs as unknown[];
   const inputs = rawInputs.map((value: unknown, index: number): PropertyManifestInput => {
     const input = requireRecord(
@@ -266,6 +301,7 @@ function validateManifest(value: unknown): PropertyManifestWire {
       'Property input must be an object',
       `manifest.inputs[${index}]`,
     );
+
     if (typeof input.name !== 'string' || !('domain' in input)) {
       throw protocolError(
         'protocol.manifest.input.invalid',
@@ -273,17 +309,21 @@ function validateManifest(value: unknown): PropertyManifestWire {
         `manifest.inputs[${index}]`,
       );
     }
+
     return { name: input.name, domain: input.domain };
   });
+
   const validated: PropertyManifestWire = {
     schemaVersion: 1,
     propertyId: manifest.propertyId as string,
     inputs,
     predicate: validateEntryPoint(manifest.predicate, 'manifest.predicate'),
   };
+
   if (manifest.precondition !== undefined) {
     validated.precondition = validateEntryPoint(manifest.precondition, 'manifest.precondition');
   }
+
   return validated;
 }
 
@@ -294,6 +334,7 @@ function validateEntryPoint(value: unknown, entryPath: string): TypeScriptEntryP
     'Entry point must be an object',
     entryPath,
   );
+
   const executionKind = entryPoint.executionKind;
   const valid = typeof entryPoint.module === 'string'
     && entryPoint.module.length > 0
@@ -303,6 +344,7 @@ function validateEntryPoint(value: unknown, entryPath: string): TypeScriptEntryP
   if (!valid) {
     throw protocolError('protocol.entrypoint.invalid', 'Entry point reference is invalid', entryPath);
   }
+
   return {
     module: entryPoint.module as string,
     exportName: entryPoint.exportName as string,
@@ -319,6 +361,7 @@ function requireRecord(
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     throw protocolError(code, message, path);
   }
+
   return value as Record<string, unknown>;
 }
 

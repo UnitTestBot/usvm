@@ -14,6 +14,7 @@ test('execution CLI emits one successful response document', async () => {
   const sourceRoot = await realpath(await mkdtemp(path.join(tmpdir(), 'usvm-execution-cli-')));
   try {
     await writeFile(sourceRoot + '/property.ts', 'export function predicate(value: boolean) { return value; }\n');
+
     const invocation = await invokeCli(JSON.stringify(executionRequest(sourceRoot)));
     const response = JSON.parse(invocation.stdout) as Record<string, unknown>;
 
@@ -91,12 +92,15 @@ interface CliInvocation {
 
 async function invokeCli(input: string, timeoutMillis = 3_000): Promise<CliInvocation> {
   const child = spawn(process.execPath, [cliPath], { stdio: ['pipe', 'pipe', 'pipe'] });
+
   let timedOut = false;
   const timeout = setTimeout(() => {
     timedOut = true;
     child.kill();
   }, timeoutMillis);
+
   child.stdin.end(input);
+
   try {
     const [exitCode, stdout, stderr] = await Promise.all([
       new Promise<number | null>((resolve, reject) => {
@@ -106,6 +110,7 @@ async function invokeCli(input: string, timeoutMillis = 3_000): Promise<CliInvoc
       collect(child.stdout),
       collect(child.stderr),
     ]);
+
     return { exitCode, stdout, stderr, timedOut };
   } finally {
     clearTimeout(timeout);
@@ -115,6 +120,7 @@ async function invokeCli(input: string, timeoutMillis = 3_000): Promise<CliInvoc
 async function collect(stream: Readable): Promise<string> {
   const chunks: Buffer[] = [];
   for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+
   return Buffer.concat(chunks).toString('utf8');
 }
 

@@ -53,6 +53,7 @@ test('rejects missing and ambiguous modules with distinct diagnostics', async ()
   await withWorkspace(async (workspace) => {
     const firstRoot = path.join(workspace, 'first');
     const secondRoot = path.join(workspace, 'second');
+
     await mkdir(firstRoot);
     await mkdir(secondRoot);
 
@@ -68,6 +69,7 @@ test('rejects missing and ambiguous modules with distinct diagnostics', async ()
 
     await writeFile(path.join(firstRoot, 'duplicate.ts'), 'export function predicate() { return true; }\n');
     await writeFile(path.join(secondRoot, 'duplicate.ts'), 'export function predicate() { return true; }\n');
+
     await assertProtocolError(
       loadEntryPoint(
         { module: 'duplicate.ts', exportName: 'predicate', executionKind: 'sync' },
@@ -102,6 +104,7 @@ test('rejects a module whose symlink escapes its source root', async () => {
   await withWorkspace(async (workspace) => {
     const sourceRoot = path.join(workspace, 'src');
     const outside = path.join(workspace, 'outside.ts');
+
     await mkdir(sourceRoot);
     await writeFile(outside, 'export function predicate() { return true; }\n');
     await symlink(outside, path.join(sourceRoot, 'escape.ts'));
@@ -133,6 +136,7 @@ test('rejects missing and non-function exports', async () => {
       'entrypoint.export.not-found',
       'predicate.exportName',
     );
+
     await assertProtocolError(
       loadEntryPoint(
         { module: 'exports.ts', exportName: 'value', executionKind: 'sync' },
@@ -163,6 +167,7 @@ test('enforces declared execution kind and boolean results', async () => {
       [sourceRoot],
       'predicate',
     );
+
     assert.throws(
       () => declaredSync.invoke([]),
       (error: unknown) => isProtocolError(error, 'entrypoint.execution-kind.mismatch'),
@@ -173,6 +178,7 @@ test('enforces declared execution kind and boolean results', async () => {
       [sourceRoot],
       'predicate',
     );
+
     await assertProtocolError(
       Promise.resolve(declaredAsync.invoke([])),
       'entrypoint.execution-kind.mismatch',
@@ -184,6 +190,7 @@ test('enforces declared execution kind and boolean results', async () => {
       [sourceRoot],
       'predicate',
     );
+
     assert.throws(
       () => nonBoolean.invoke([]),
       (error: unknown) => isProtocolError(error, 'entrypoint.result.invalid'),
@@ -193,6 +200,7 @@ test('enforces declared execution kind and boolean results', async () => {
 
 async function withWorkspace(block: (workspace: string) => Promise<void>): Promise<void> {
   const workspace = await realpath(await mkdtemp(path.join(tmpdir(), 'usvm-entry-point-')));
+
   try {
     await block(workspace);
   } finally {

@@ -18,9 +18,11 @@ process.stdout.write = process.stderr.write.bind(process.stderr) as typeof proce
 let response: FastCheckExecutionSuccess | FastCheckExecutionFailure;
 try {
   const request = parseRequest(await readStdin());
+
   response = await executeProperty(request);
 } catch (error: unknown) {
   if (!(error instanceof ProtocolError)) throw error;
+
   response = protocolErrorResponse(error);
 }
 
@@ -29,8 +31,10 @@ process.exit(0);
 
 async function readStdin(): Promise<string> {
   process.stdin.setEncoding('utf8');
+
   let input = '';
   for await (const chunk of process.stdin) input += chunk;
+
   return input;
 }
 
@@ -56,6 +60,7 @@ function protocolErrorResponse(error: ProtocolError): FastCheckExecutionFailure 
 
 async function writeResponse(response: FastCheckExecutionSuccess | FastCheckExecutionFailure): Promise<void> {
   const document = `${JSON.stringify(response)}\n`;
+
   await new Promise<void>((resolve, reject) => {
     writeProtocolOutput(document, (error?: Error | null) => {
       if (error !== undefined && error !== null) {

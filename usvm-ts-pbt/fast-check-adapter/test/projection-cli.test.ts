@@ -90,6 +90,7 @@ for (const { name, input, code, path } of protocolErrorCases) {
   test(`${name} returns a typed protocol error`, async () => {
     const result = await invokeCli(JSON.stringify(input));
     const response = requireResponse(result);
+
     assert.equal(result.exitCode, 0);
     assert.equal(response.status, 'error');
     if (response.status !== 'error') assert.fail('Expected an error response');
@@ -120,7 +121,9 @@ test('malformed JSON produces one clean protocol error document', async () => {
 
 async function invokeCli(input: string): Promise<InvocationResult> {
   const child = spawn(process.execPath, [cliPath], { stdio: ['pipe', 'pipe', 'pipe'] });
+
   child.stdin.end(input);
+
   const [exitCode, stdout, stderr] = await Promise.all([
     new Promise<number | null>((resolve, reject) => {
       child.once('error', reject);
@@ -129,22 +132,26 @@ async function invokeCli(input: string): Promise<InvocationResult> {
     collect(child.stdout),
     collect(child.stderr),
   ]);
+
   let response: WireResponse | undefined;
   try {
     response = JSON.parse(stdout) as WireResponse;
   } catch {
     response = undefined;
   }
+
   return { exitCode, stdout, stderr, response };
 }
 
 async function collect(stream: Readable): Promise<string> {
   const chunks: Buffer[] = [];
   for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+
   return Buffer.concat(chunks).toString('utf8');
 }
 
 function requireResponse(result: InvocationResult): WireResponse {
   assert.ok(result.response, `CLI did not return JSON: ${result.stdout}`);
+
   return result.response;
 }

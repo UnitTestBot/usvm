@@ -8,6 +8,7 @@ import {
 
 test('bounded integers use a real fast-check arbitrary', () => {
   const samples = sample({ kind: 'integer', min: -3, max: 7 });
+
   assert.ok(samples.every(
     (value) => typeof value === 'number' && Number.isInteger(value) && value >= -3 && value <= 7,
   ));
@@ -15,6 +16,7 @@ test('bounded integers use a real fast-check arbitrary', () => {
 
 test('strings are arbitrary UTF-16 code-unit sequences with declared lengths', () => {
   const samples = sample({ kind: 'string', minLength: 2, maxLength: 4 });
+
   assert.ok(samples.every(
     (value) => typeof value === 'string' && value.length >= 2 && value.length <= 4,
   ));
@@ -44,6 +46,7 @@ test('bounded numbers exclude NaN and values outside their inclusive bounds', ()
     max: taggedNumber(2.5),
     allowNaN: false,
   });
+
   assert.ok(samples.every(
     (value) => typeof value === 'number' && !Number.isNaN(value) && value >= -1.5 && value <= 2.5,
   ));
@@ -54,6 +57,7 @@ test('singleton infinity ranges project without an empty finite arbitrary', () =
     [{ value: 'negative-infinity' }, Number.NEGATIVE_INFINITY],
     [{ value: 'positive-infinity' }, Number.POSITIVE_INFINITY],
   ];
+
   for (const [bound, expected] of bounds) {
     const samples = sample({
       kind: 'number',
@@ -61,6 +65,7 @@ test('singleton infinity ranges project without an empty finite arbitrary', () =
       max: bound,
       allowNaN: false,
     });
+
     assert.ok(samples.every((value) => value === expected));
   }
 });
@@ -138,6 +143,7 @@ test('fast-check capability is exact for supported recursive domains', () => {
 
 test('unknown domain kinds are rejected and reported as unsupported', () => {
   assert.throws(() => projectDomain({ kind: 'object' }), /domain\.kind\.unknown/);
+
   assert.deepEqual(
     projectionCapability({ kind: 'object' }, 'inputs[0].domain'),
     {
@@ -158,6 +164,8 @@ function sample(domain: unknown, numRuns = 100): unknown[] {
 function taggedNumber(value: number): { value: 'finite'; bits: string } {
   const buffer = new ArrayBuffer(8);
   const view = new DataView(buffer);
+
   view.setFloat64(0, value, false);
+
   return { value: 'finite', bits: view.getBigUint64(0, false).toString(16).padStart(16, '0') };
 }

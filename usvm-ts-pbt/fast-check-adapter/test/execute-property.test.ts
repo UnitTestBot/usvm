@@ -138,7 +138,9 @@ function executionRequest(
       executionKind: overrides.predicateExecutionKind ?? 'sync',
     },
   };
+
   if (overrides.precondition !== undefined) manifest.precondition = overrides.precondition;
+
   return {
     protocolVersion: 1,
     manifest,
@@ -153,6 +155,7 @@ function executionRequest(
 async function withPropertyModule(block: (sourceRoot: string) => Promise<void>): Promise<void> {
   const workspace = await realpath(await mkdtemp(path.join(tmpdir(), 'usvm-execute-property-')));
   const sourceRoot = path.join(workspace, 'src');
+
   await mkdir(sourceRoot);
   await writeFile(
     path.join(sourceRoot, 'properties.ts'),
@@ -173,6 +176,7 @@ async function withPropertyModule(block: (sourceRoot: string) => Promise<void>):
       '}',
     ].join('\n'),
   );
+
   try {
     await block(sourceRoot);
   } finally {
@@ -182,5 +186,6 @@ async function withPropertyModule(block: (sourceRoot: string) => Promise<void>):
 
 function semanticResult(result: FastCheckRunResult): Omit<FastCheckRunResult, 'executionTimeMillis'> {
   const { executionTimeMillis: _executionTimeMillis, ...semantic } = result;
+
   return semantic;
 }

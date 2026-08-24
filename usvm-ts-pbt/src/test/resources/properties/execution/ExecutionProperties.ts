@@ -24,5 +24,6 @@ export function isNotSeven(value: number): boolean {
 
 export async function neverCompletes(_value: number): Promise<boolean> {
     await new Promise<never>(() => undefined);
+
     return true;
 }
