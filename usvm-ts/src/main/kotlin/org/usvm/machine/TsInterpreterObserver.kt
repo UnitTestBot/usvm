@@ -6,12 +6,18 @@ import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsThrowStmt
 import org.usvm.UBoolExpr
+import org.usvm.machine.call.TsUnknownCallEvent
 import org.usvm.machine.expr.TsSimpleValueResolver
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.statistics.UInterpreterObserver
 
 @Suppress("unused")
 interface TsInterpreterObserver : UInterpreterObserver {
+    /** Called after the profile dispatcher selects an outcome for an unknown call. */
+    fun onUnknownCall(event: TsUnknownCallEvent) {
+        // default empty implementation
+    }
+
     fun onAssignStatement(
         simpleValueResolver: TsSimpleValueResolver,
         stmt: EtsAssignStmt,

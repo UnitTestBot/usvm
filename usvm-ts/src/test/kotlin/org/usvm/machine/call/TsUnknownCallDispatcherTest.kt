@@ -1,5 +1,6 @@
 package org.usvm.machine.call
 
+import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
@@ -15,18 +16,22 @@ import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Test
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
+import org.usvm.StateCollectionStrategy
 import org.usvm.UConcreteHeapRef
 import org.usvm.UMachineOptions
 import org.usvm.api.mockMethodCall
 import org.usvm.api.targets.ReachabilityObserver
 import org.usvm.api.targets.TsReachabilityTarget
+import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsMethodResult
+import org.usvm.machine.state.TsState
 import org.usvm.machine.state.newStmt
 import org.usvm.util.getResourcePath
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
@@ -40,6 +45,111 @@ class TsUnknownCallDispatcherTest {
         provider = EtsIrProvider.TS_FRONTEND,
     )
     private val fullScene = EtsScene(listOf(sourceFile))
+
+    @Test
+    fun `every profile decision is reported through the interpreter observer`() {
+        val cases = listOf(
+            ObservationCase(
+                profile = TsUnknownCallProfiles.MODELS_THEN_STOP,
+                modelProvider = TsNoUnknownCallModels,
+                outcome = TsUnknownCallOutcome.PATH_STOPPED,
+                decision = TsUnknownCallDecision.ResidualFallback(
+                    policy = TsResidualCallPolicy.STOP_PATH,
+                    reason = TsUnknownCallResidualReason.MODEL_NOT_APPLICABLE,
+                ),
+                finalStateCount = 0,
+            ),
+            ObservationCase(
+                profile = TsUnknownCallProfiles.FRESH_SYMBOLIC_FOR_ALL,
+                modelProvider = TsNoUnknownCallModels,
+                outcome = TsUnknownCallOutcome.FRESH_SYMBOLIC_RETURN,
+                decision = TsUnknownCallDecision.ResidualFallback(
+                    policy = TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN,
+                    reason = TsUnknownCallResidualReason.MODEL_LOOKUP_DISABLED,
+                ),
+                finalStateCount = 1,
+            ),
+            ObservationCase(
+                profile = TsUnknownCallProfiles.MODELS_THEN_FRESH_SYMBOLIC,
+                modelProvider = ApplyingModelProvider,
+                outcome = TsUnknownCallOutcome.MODEL_APPLIED,
+                decision = TsUnknownCallDecision.ModelApplied(modelId = "applying-model"),
+                finalStateCount = 1,
+            ),
+        )
+
+        cases.forEach { case ->
+            val observer = RecordingUnknownCallObserver()
+            val states = analyzeAllStates(
+                methodName = "declaredMethodWithoutBodyContinues",
+                profile = case.profile,
+                modelProvider = case.modelProvider,
+                observer = observer,
+            )
+
+            assertEquals(case.finalStateCount, states.size, case.profile.toString())
+            val event = observer.events.single()
+            assertEquals("declaredMethodWithoutBodyContinues", event.callSite.location.method.name)
+            assertEquals("external", event.callee.name)
+            assertEquals(TsUnknownCallFailureReason.METHOD_BODY_UNAVAILABLE, event.failureReason)
+            assertEquals(case.profile, event.profile)
+            assertEquals(case.outcome, event.outcome)
+            assertEquals(case.decision, event.decision)
+        }
+    }
+
+    @Test
+    fun `model decision is reported once when the model forks`() {
+        val observer = RecordingUnknownCallObserver()
+        val states = analyzeAllStates(
+            methodName = "modeledUnknownCallForks",
+            profile = TsUnknownCallProfiles.MODELS_THEN_STOP,
+            modelProvider = ForkingModelProvider,
+            observer = observer,
+        )
+
+        assertEquals(2, states.size)
+        val event = observer.events.single()
+        assertEquals(TsUnknownCallOutcome.MODEL_APPLIED, event.outcome)
+    }
+
+    @Test
+    fun `throwing observer cannot change fresh or modeled exploration`() {
+        val cases = listOf(
+            ObservationFailureCase(
+                profile = TsUnknownCallProfiles.FRESH_SYMBOLIC_FOR_ALL,
+                modelProvider = TsNoUnknownCallModels,
+                expectedFinalStateCount = 1,
+            ),
+            ObservationFailureCase(
+                profile = TsUnknownCallProfiles.MODELS_THEN_STOP,
+                modelProvider = ForkingModelProvider,
+                expectedFinalStateCount = 2,
+                methodName = "modeledUnknownCallForks",
+            ),
+        )
+
+        cases.forEach { case ->
+            val states = analyzeAllStates(
+                methodName = case.methodName,
+                profile = case.profile,
+                modelProvider = case.modelProvider,
+                observer = ThrowingUnknownCallObserver,
+            )
+
+            assertEquals(case.expectedFinalStateCount, states.size, case.profile.toString())
+        }
+    }
+
+    @Test
+    fun `applied model decisions require non blank identifiers`() {
+        assertFailsWith<IllegalArgumentException> {
+            TsUnknownCallModelApplication.Applied(modelId = " ")
+        }
+        assertFailsWith<IllegalArgumentException> {
+            TsUnknownCallDecision.ModelApplied(modelId = "")
+        }
+    }
 
     @Test
     fun `profiles select model lookup independently from residual fallback`() {
@@ -396,6 +506,24 @@ class TsUnknownCallDispatcherTest {
         return EtsScene(listOf(filteredFile))
     }
 
+    private fun analyzeAllStates(
+        methodName: String,
+        profile: TsUnknownCallProfile,
+        modelProvider: TsUnknownCallModelProvider = TsNoUnknownCallModels,
+        observer: TsInterpreterObserver? = null,
+    ): List<TsState> {
+        val method = method(fullScene, methodName)
+        return TsMachine(
+            scene = fullScene,
+            options = allStatesMachineOptions,
+            tsOptions = TsOptions(unknownCallProfile = profile),
+            observer = observer,
+            unknownCallModelProvider = modelProvider,
+        ).use { machine ->
+            machine.analyze(listOf(method))
+        }
+    }
+
     private class RecordingUnknownCallDispatcher : TsUnknownCallDispatcher {
         val calls = mutableListOf<TsUnknownCall>()
         val receiverIsAssociatedFunction = mutableListOf<Boolean?>()
@@ -452,7 +580,38 @@ class TsUnknownCallDispatcherTest {
         override fun apply(scope: TsStepScope, call: TsUnknownCall): TsUnknownCallModelApplication {
             mockMethodCall(scope, call.callee, call.resultType)
             scope.doWithState { newStmt(call.callSite) }
-            return TsUnknownCallModelApplication.APPLIED
+            return TsUnknownCallModelApplication.Applied(modelId = "applying-model")
+        }
+    }
+
+    private object ForkingModelProvider : TsUnknownCallModelProvider {
+        override fun apply(scope: TsStepScope, call: TsUnknownCall): TsUnknownCallModelApplication {
+            val result = requireNotNull(call.arguments.single().resolved)
+            val condition = scope.calcOnState { result.asExpr(ctx.boolSort) }
+            val completeCall: TsState.() -> Unit = {
+                methodResult = TsMethodResult.Success.MockedCall(result, call.callee)
+                newStmt(call.callSite)
+            }
+            scope.fork(
+                condition = condition,
+                blockOnTrueState = completeCall,
+                blockOnFalseState = completeCall,
+            )
+            return TsUnknownCallModelApplication.Applied(modelId = "forking-model")
+        }
+    }
+
+    private class RecordingUnknownCallObserver : TsInterpreterObserver {
+        val events = mutableListOf<TsUnknownCallEvent>()
+
+        override fun onUnknownCall(event: TsUnknownCallEvent) {
+            events += event
+        }
+    }
+
+    private object ThrowingUnknownCallObserver : TsInterpreterObserver {
+        override fun onUnknownCall(event: TsUnknownCallEvent) {
+            error("observer failure")
         }
     }
 
@@ -465,6 +624,21 @@ class TsUnknownCallDispatcherTest {
     private data class ProfileResult(
         val reachesReturn: Boolean,
         val outcome: TsUnknownCallOutcome,
+    )
+
+    private data class ObservationCase(
+        val profile: TsUnknownCallProfile,
+        val modelProvider: TsUnknownCallModelProvider,
+        val outcome: TsUnknownCallOutcome,
+        val decision: TsUnknownCallDecision,
+        val finalStateCount: Int,
+    )
+
+    private data class ObservationFailureCase(
+        val profile: TsUnknownCallProfile,
+        val modelProvider: TsUnknownCallModelProvider,
+        val expectedFinalStateCount: Int,
+        val methodName: String = "declaredMethodWithoutBodyContinues",
     )
 
     private data class Case(
@@ -493,6 +667,13 @@ class TsUnknownCallDispatcherTest {
             solverType = SolverType.YICES,
             solverTimeout = Duration.INFINITE,
             typeOperationsTimeout = Duration.INFINITE,
+        )
+
+        val allStatesMachineOptions = machineOptions.copy(
+            pathSelectionStrategies = listOf(PathSelectionStrategy.BFS),
+            stateCollectionStrategy = StateCollectionStrategy.ALL,
+            stopOnCoverage = 0,
+            stopOnTargetsReached = false,
         )
     }
 }
