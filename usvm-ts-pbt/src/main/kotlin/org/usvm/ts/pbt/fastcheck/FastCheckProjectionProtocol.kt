@@ -4,12 +4,9 @@ import kotlinx.serialization.Serializable
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyDomain
 
-const val FAST_CHECK_PROTOCOL_VERSION = 1
-
-/** One versioned request sent from Kotlin to the private fast-check adapter process. */
+/** One request sent from Kotlin to the private fast-check adapter process. */
 @Serializable
 data class FastCheckProjectionRequest(
-    val protocolVersion: Int = FAST_CHECK_PROTOCOL_VERSION,
     val seed: Int,
     val numSamples: Int,
     val domains: List<PropertyDomain>,
@@ -22,7 +19,6 @@ data class FastCheckProjectionResponse(
 
 @Serializable
 internal data class FastCheckProjectionWireResponse(
-    val protocolVersion: Int,
     val status: String,
     val samples: List<List<JsConcreteValue>> = emptyList(),
     val diagnostics: List<FastCheckProtocolDiagnostic> = emptyList(),
@@ -30,6 +26,7 @@ internal data class FastCheckProjectionWireResponse(
 
 @Serializable
 internal data class FastCheckProtocolDiagnostic(
+    val kind: BackendErrorKind,
     val code: String,
     val message: String,
     val path: String? = null,

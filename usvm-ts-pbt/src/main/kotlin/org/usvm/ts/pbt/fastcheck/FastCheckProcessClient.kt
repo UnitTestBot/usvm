@@ -2,6 +2,7 @@ package org.usvm.ts.pbt.fastcheck
 
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
+import org.usvm.ts.pbt.PbtDiagnosticCode
 import org.usvm.ts.pbt.backend.PropertyRunResult
 import org.usvm.ts.pbt.manifest.PropertyManifestJson
 import org.usvm.ts.pbt.model.PropertyId
@@ -26,7 +27,7 @@ internal class FastCheckProcessClient(
         val encodedRequest = encodeRequest(request)
 
         val process = startAdapter(request)
-        val executor = Executors.newFixedThreadPool(PROCESS_IO_THREADS)
+        val executor = Executors.newCachedThreadPool()
         val stdout = executor.submit<BoundedText> { process.inputStream.readBounded(MAX_STDOUT_BYTES) }
         val stderr = executor.submit<BoundedText> { process.errorStream.readBounded(MAX_STDERR_BYTES) }
         val writer = executor.submit<Unit> {
@@ -37,16 +38,23 @@ internal class FastCheckProcessClient(
 
         try {
             awaitProcess(process, request)
-            awaitWriter(writer, request)
-
-            val stdoutText = awaitStream(
-                future = stdout,
-                streamName = "stdout",
+            await(
+                future = writer,
+                operation = "writing the fast-check request",
+                failureCode = PbtDiagnosticCode.BACKEND_PROCESS_WRITE_FAILED,
                 request = request,
             )
-            val stderrText = awaitStream(
+
+            val stdoutText = await(
+                future = stdout,
+                operation = "reading fast-check stdout",
+                failureCode = PbtDiagnosticCode.BACKEND_PROCESS_READ_FAILED,
+                request = request,
+            )
+            val stderrText = await(
                 future = stderr,
-                streamName = "stderr",
+                operation = "reading fast-check stderr",
+                failureCode = PbtDiagnosticCode.BACKEND_PROCESS_READ_FAILED,
                 request = request,
             )
 
@@ -54,7 +62,6 @@ internal class FastCheckProcessClient(
             validateStdout(stdoutText, request)
 
             val response = decodeResponse(stdoutText.text, request)
-            validateProtocolVersion(response, request)
 
             return decodeSuccessfulResponse(response, request)
         } finally {
@@ -69,7 +76,7 @@ internal class FastCheckProcessClient(
         if (encodedRequest.toByteArray(Charsets.UTF_8).size > MAX_REQUEST_BYTES) {
             throw backendError(
                 kind = BackendErrorKind.INVALID_REQUEST,
-                code = "backend.request.too-large",
+                code = PbtDiagnosticCode.BACKEND_REQUEST_TOO_LARGE,
                 message = "fast-check request exceeds $MAX_REQUEST_BYTES bytes",
                 request = request,
             )
@@ -85,7 +92,7 @@ internal class FastCheckProcessClient(
             terminate(process)
             throw backendError(
                 kind = BackendErrorKind.TIMEOUT,
-                code = "backend.process.timeout",
+                code = PbtDiagnosticCode.BACKEND_PROCESS_TIMEOUT,
                 message = "fast-check adapter exceeded the ${request.timeoutMillis} ms timeout",
                 request = request,
             )
@@ -102,7 +109,7 @@ internal class FastCheckProcessClient(
 
             throw backendError(
                 kind = BackendErrorKind.PROCESS_FAILURE,
-                code = "backend.process.failed",
+                code = PbtDiagnosticCode.BACKEND_PROCESS_FAILED,
                 message = "fast-check adapter exited with code ${process.exitValue()}: $detail",
                 request = request,
             )
@@ -113,7 +120,7 @@ internal class FastCheckProcessClient(
         if (stdout.exceeded) {
             throw backendError(
                 kind = BackendErrorKind.PROTOCOL_ERROR,
-                code = "backend.response.too-large",
+                code = PbtDiagnosticCode.BACKEND_RESPONSE_TOO_LARGE,
                 message = "fast-check adapter stdout exceeds $MAX_STDOUT_BYTES bytes",
                 request = request,
             )
@@ -122,7 +129,7 @@ internal class FastCheckProcessClient(
         if (stdout.text.isBlank()) {
             throw backendError(
                 kind = BackendErrorKind.PROTOCOL_ERROR,
-                code = "backend.response.empty",
+                code = PbtDiagnosticCode.BACKEND_RESPONSE_EMPTY,
                 message = "fast-check adapter returned an empty response",
                 request = request,
             )
@@ -134,61 +141,35 @@ internal class FastCheckProcessClient(
     } catch (error: IOException) {
         throw backendError(
             kind = BackendErrorKind.PROCESS_FAILURE,
-            code = "backend.process.start.failed",
+            code = PbtDiagnosticCode.BACKEND_PROCESS_START_FAILED,
             message = "Failed to start fast-check adapter: ${error.message}",
             request = request,
             cause = error,
         )
     }
 
-    private fun awaitWriter(
-        writer: Future<Unit>,
+    private fun <T> await(
+        future: Future<T>,
+        operation: String,
+        failureCode: String,
         request: FastCheckExecutionRequest,
-    ) {
-        try {
-            writer.get()
-        } catch (error: InterruptedException) {
-            Thread.currentThread().interrupt()
-
-            throw backendError(
-                kind = BackendErrorKind.PROCESS_FAILURE,
-                code = "backend.process.interrupted",
-                message = "Interrupted while writing the fast-check request",
-                request = request,
-                cause = error,
-            )
-        } catch (error: ExecutionException) {
-            throw backendError(
-                kind = BackendErrorKind.PROCESS_FAILURE,
-                code = "backend.process.write.failed",
-                message = "Failed to write the fast-check request: ${error.cause?.message}",
-                request = request,
-                cause = error,
-            )
-        }
-    }
-
-    private fun awaitStream(
-        future: Future<BoundedText>,
-        streamName: String,
-        request: FastCheckExecutionRequest,
-    ): BoundedText = try {
+    ): T = try {
         future.get()
     } catch (error: InterruptedException) {
         Thread.currentThread().interrupt()
 
         throw backendError(
             kind = BackendErrorKind.PROCESS_FAILURE,
-            code = "backend.process.interrupted",
-            message = "Interrupted while reading fast-check $streamName",
+            code = PbtDiagnosticCode.BACKEND_PROCESS_INTERRUPTED,
+            message = "Interrupted while $operation",
             request = request,
             cause = error,
         )
     } catch (error: ExecutionException) {
         throw backendError(
             kind = BackendErrorKind.PROCESS_FAILURE,
-            code = "backend.process.read.failed",
-            message = "Failed to read fast-check $streamName: ${error.cause?.message}",
+            code = failureCode,
+            message = "Failed while $operation: ${error.cause?.message}",
             request = request,
             cause = error,
         )
@@ -202,25 +183,11 @@ internal class FastCheckProcessClient(
     } catch (error: IllegalArgumentException) {
         throw backendError(
             kind = BackendErrorKind.PROTOCOL_ERROR,
-            code = "backend.response.invalid",
+            code = PbtDiagnosticCode.BACKEND_RESPONSE_INVALID,
             message = "fast-check adapter returned invalid JSON: ${error.message}",
             request = request,
             cause = error,
         )
-    }
-
-    private fun validateProtocolVersion(
-        response: FastCheckExecutionWireResponse,
-        request: FastCheckExecutionRequest,
-    ) {
-        if (response.protocolVersion != FAST_CHECK_EXECUTION_PROTOCOL_VERSION) {
-            throw backendError(
-                kind = BackendErrorKind.PROTOCOL_ERROR,
-                code = "backend.response.mismatch",
-                message = "fast-check response protocol version is incompatible",
-                request = request,
-            )
-        }
     }
 
     private fun throwNodeDiagnostic(
@@ -233,17 +200,8 @@ internal class FastCheckProcessClient(
                 request = request,
             )
 
-        val kind = when {
-            diagnostic.code.startsWith("entrypoint.") -> BackendErrorKind.ENTRY_POINT
-            diagnostic.code.startsWith("protocol.") -> BackendErrorKind.INVALID_REQUEST
-            diagnostic.code.startsWith("source-root.") -> BackendErrorKind.INVALID_REQUEST
-            diagnostic.code.startsWith("domain.") -> BackendErrorKind.INVALID_REQUEST
-            diagnostic.code.startsWith("js-") -> BackendErrorKind.INVALID_REQUEST
-            else -> BackendErrorKind.PROTOCOL_ERROR
-        }
-
         throw backendError(
-            kind = kind,
+            kind = diagnostic.kind,
             code = diagnostic.code,
             message = diagnostic.message,
             request = request,
@@ -283,7 +241,7 @@ internal class FastCheckProcessClient(
         } catch (error: IllegalArgumentException) {
             throw backendError(
                 kind = BackendErrorKind.PROTOCOL_ERROR,
-                code = "backend.response.invalid",
+                code = PbtDiagnosticCode.BACKEND_RESPONSE_INVALID,
                 message = "fast-check result property ID is invalid: ${error.message}",
                 request = request,
                 cause = error,
@@ -303,7 +261,7 @@ internal class FastCheckProcessClient(
         request: FastCheckExecutionRequest,
     ): PbtBackendException = backendError(
         kind = BackendErrorKind.PROTOCOL_ERROR,
-        code = "backend.response.invalid",
+        code = PbtDiagnosticCode.BACKEND_RESPONSE_INVALID,
         message = message,
         request = request,
     )
@@ -334,7 +292,6 @@ internal class FastCheckProcessClient(
     }
 
     private companion object {
-        const val PROCESS_IO_THREADS = 3
         const val MAX_REQUEST_BYTES = 4 * 1024 * 1024
         const val MAX_STDOUT_BYTES = 4 * 1024 * 1024
         const val MAX_STDERR_BYTES = 64 * 1024

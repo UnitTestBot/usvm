@@ -126,7 +126,6 @@ function executionRequest(
   overrides: RequestOverrides = {},
 ): FastCheckExecutionRequest {
   const manifest: FastCheckExecutionRequest['manifest'] = {
-    schemaVersion: 1,
     propertyId: `example.${predicateExport}`,
     inputs: [{
       name: 'value',
@@ -142,7 +141,6 @@ function executionRequest(
   if (overrides.precondition !== undefined) manifest.precondition = overrides.precondition;
 
   return {
-    protocolVersion: 1,
     manifest,
     sourceRoots: [sourceRoot],
     seed: 42,

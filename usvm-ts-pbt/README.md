@@ -3,6 +3,9 @@
 `usvm-ts-pbt` is the Kotlin-owned integration layer for concrete property-based testing backends and USVM.
 Kotlin defines each property once; fast-check is the first concrete backend.
 
+See [DESIGN.md](DESIGN.md) for component responsibilities, Kotlin–TypeScript data flow, process supervision, and
+runtime packaging.
+
 ## Kotlin property model
 
 ```kotlin
@@ -114,17 +117,6 @@ Replay paths and explicit examples require exactly one selected property.
 The CLI writes a JSON array of results to stdout. Exit code `0` means every property succeeded, `1` means at least
 one property failed, and `2` means a CLI, registry, validation, backend, or transport error. Exit-code-2 diagnostics
 are written as one JSON object to stderr.
-
-## Private fast-check adapter
-
-The private adapter uses `tsx` to import TypeScript source and delegates each property run to `fc.check`. Gradle
-builds and packages the adapter with its runtime dependencies; execution does not install or download packages.
-Distribution archives are specific to the OS and architecture in their filename. Node.js 18.18 or newer is
-required.
-
-Each entry-point module must resolve to exactly one regular file below the supplied source roots. Missing,
-ambiguous, escaping, or invalid exports are reported as typed backend errors. Kotlin supervises one Node process
-per property and terminates a process that exceeds the configured timeout plus a short transport grace period.
 
 ## Verification
 

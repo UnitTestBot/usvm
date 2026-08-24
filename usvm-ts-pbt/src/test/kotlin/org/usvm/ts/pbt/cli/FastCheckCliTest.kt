@@ -77,6 +77,27 @@ class FastCheckCliTest {
     }
 
     @Test
+    fun `accepts run controls above the former policy caps`() {
+        val output = StringBuilder()
+
+        val exitCode = cli(
+            providers = listOf(provider(registryId = "examples", propertyIds = arrayOf("property"))),
+            output = output,
+        ).run(
+            arrayOf(
+                "--source-root",
+                sourceRoot.toString(),
+                "--num-runs",
+                "10001",
+                "--timeout-ms",
+                "86400001",
+            ),
+        )
+
+        assertEquals(0, exitCode)
+    }
+
+    @Test
     fun `runs selected registries in deterministic order and returns one for a property failure`() {
         val output = StringBuilder()
         val cli = cli(

@@ -23,6 +23,7 @@ test('execution CLI emits one successful response document', async () => {
     assert.equal(invocation.stderr, '');
     assert.equal(invocation.stdout.trim().split('\n').length, 1);
     assert.equal(response.status, 'ok');
+    assert.equal('protocolVersion' in response, false);
   } finally {
     await rm(sourceRoot, { recursive: true, force: true });
   }
@@ -35,6 +36,7 @@ test('execution CLI reports malformed JSON without crashing', async () => {
   assert.equal(invocation.exitCode, 0);
   assert.equal(invocation.stderr, '');
   assert.equal(response.status, 'error');
+  assert.equal(response.diagnostics[0]?.kind, 'invalid-request');
   assert.equal(response.diagnostics[0]?.code, 'protocol.json.invalid');
 });
 
@@ -126,9 +128,7 @@ async function collect(stream: Readable): Promise<string> {
 
 function executionRequest(sourceRoot: string): Record<string, unknown> {
   return {
-    protocolVersion: 1,
     manifest: {
-      schemaVersion: 1,
       propertyId: 'example.cli',
       inputs: [{ name: 'value', domain: { kind: 'constant', value: { kind: 'boolean', value: true } } }],
       predicate: { module: 'property.ts', exportName: 'predicate', executionKind: 'sync' },

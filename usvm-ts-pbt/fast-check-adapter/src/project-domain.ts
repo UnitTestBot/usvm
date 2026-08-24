@@ -1,4 +1,5 @@
 import fc from 'fast-check';
+import { adapterDiagnostic } from './diagnostics.js';
 import {
   decodeJsNumber,
   decodeJsValue,
@@ -49,7 +50,11 @@ export function projectDomain(domain: unknown, path = 'domain'): fc.Arbitrary<un
       const nil = decodeJsValue(domain.nil, `${path}.nil`);
 
       if (nil !== undefined && nil !== null) {
-        throw protocolError('domain.optional.nil', 'Optional nil must be null or undefined', `${path}.nil`);
+        throw protocolError(
+          adapterDiagnostic.domainOptionalNil,
+          'Optional nil must be null or undefined',
+          `${path}.nil`,
+        );
       }
 
       return fc.option(projectDomain(domain.value, `${path}.value`), { nil });
@@ -57,7 +62,7 @@ export function projectDomain(domain: unknown, path = 'domain'): fc.Arbitrary<un
 
     case 'tuple':
       if (!Array.isArray(domain.elements) || domain.elements.length === 0) {
-        throw protocolError('domain.tuple.empty', 'Tuple domain must contain elements', path);
+        throw protocolError(adapterDiagnostic.domainTupleEmpty, 'Tuple domain must contain elements', path);
       }
 
       return fc.tuple(...domain.elements.map(
@@ -74,7 +79,7 @@ export function projectDomain(domain: unknown, path = 'domain'): fc.Arbitrary<un
 
     default:
       throw protocolError(
-        'domain.kind.unknown',
+        adapterDiagnostic.domainKindUnknown,
         `Unknown property domain kind: ${String(domain.kind)}`,
         path,
       );
@@ -105,24 +110,32 @@ export function projectionCapability(domain: unknown, path = 'domain'): Projecti
 
 function projectNumber(domain: DomainRecord, path: string): fc.Arbitrary<number> {
   if (typeof domain.allowNaN !== 'boolean') {
-    throw protocolError('domain.number.allow-nan.invalid', 'allowNaN must be a boolean', `${path}.allowNaN`);
+    throw protocolError(
+      adapterDiagnostic.domainNumberAllowNaNInvalid,
+      'allowNaN must be a boolean',
+      `${path}.allowNaN`,
+    );
   }
 
   const min = decodeJsNumber(domain.min, `${path}.min`);
   const max = decodeJsNumber(domain.max, `${path}.max`);
 
   if (Number.isNaN(min) || Number.isNaN(max)) {
-    throw protocolError('domain.number.bound.nan', 'Number bounds must not be NaN', path);
+    throw protocolError(adapterDiagnostic.domainNumberBoundNaN, 'Number bounds must not be NaN', path);
   }
 
   if (min > max) {
-    throw protocolError('domain.number.bounds', 'Number minimum exceeds maximum', path);
+    throw protocolError(adapterDiagnostic.domainNumberBounds, 'Number minimum exceeds maximum', path);
   }
 
   const bounded = min !== Number.NEGATIVE_INFINITY || max !== Number.POSITIVE_INFINITY;
 
   if (bounded && domain.allowNaN) {
-    throw protocolError('domain.number.nan-bounded', 'Bounded number domains must exclude NaN', `${path}.allowNaN`);
+    throw protocolError(
+      adapterDiagnostic.domainNumberNaNBounded,
+      'Bounded number domains must exclude NaN',
+      `${path}.allowNaN`,
+    );
   }
 
   const finiteMin = min === Number.NEGATIVE_INFINITY ? -Number.MAX_VALUE : min;
@@ -145,7 +158,7 @@ function projectNumber(domain: DomainRecord, path: string): fc.Arbitrary<number>
 
   const [first, ...rest] = arbitraries;
   if (first === undefined) {
-    throw protocolError('domain.number.empty', 'Number domain does not contain any values', path);
+    throw protocolError(adapterDiagnostic.domainNumberEmpty, 'Number domain does not contain any values', path);
   }
 
   return rest.length === 0 ? first : fc.oneof(first, ...rest);
@@ -164,7 +177,11 @@ function validateIntegerDomain(
     && domain.min <= domain.max;
 
   if (!valid) {
-    throw protocolError('domain.integer.bounds', 'Integer bounds must be an inclusive signed 32-bit range', path);
+    throw protocolError(
+      adapterDiagnostic.domainIntegerBounds,
+      'Integer bounds must be an inclusive signed 32-bit range',
+      path,
+    );
   }
 }
 
@@ -180,12 +197,12 @@ function validateLengths(
     && domain.minLength <= domain.maxLength;
 
   if (!valid) {
-    throw protocolError('domain.length.invalid', 'Domain length bounds are invalid', path);
+    throw protocolError(adapterDiagnostic.domainLengthInvalid, 'Domain length bounds are invalid', path);
   }
 }
 
 function requireDomainObject(domain: unknown, path: string): asserts domain is DomainRecord {
   if (domain === null || typeof domain !== 'object' || Array.isArray(domain)) {
-    throw protocolError('domain.invalid', 'Property domain must be an object', path);
+    throw protocolError(adapterDiagnostic.domainInvalid, 'Property domain must be an object', path);
   }
 }

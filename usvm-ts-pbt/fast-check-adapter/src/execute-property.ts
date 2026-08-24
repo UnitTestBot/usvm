@@ -2,6 +2,10 @@ import { performance } from 'node:perf_hooks';
 import fc from 'fast-check';
 import type { Parameters, RunDetails } from 'fast-check';
 import {
+  adapterDiagnostic,
+  type AdapterDiagnosticDescriptor,
+} from './diagnostics.js';
+import {
   type ExecutionKind,
   loadEntryPoint,
   type LoadedEntryPoint,
@@ -17,15 +21,12 @@ import {
 } from './js-value.js';
 import { projectDomain } from './project-domain.js';
 
-export const FAST_CHECK_EXECUTION_PROTOCOL_VERSION = 1;
-
 export interface PropertyManifestInput {
   name: string;
   domain: unknown;
 }
 
 export interface PropertyManifestWire {
-  schemaVersion: number;
   propertyId: string;
   inputs: PropertyManifestInput[];
   predicate: TypeScriptEntryPointReference;
@@ -33,7 +34,6 @@ export interface PropertyManifestWire {
 }
 
 export interface FastCheckExecutionRequest {
-  protocolVersion: number;
   manifest: PropertyManifestWire;
   sourceRoots: string[];
   seed?: number;
@@ -63,7 +63,6 @@ export interface FastCheckRunResult {
 }
 
 export interface FastCheckExecutionSuccess {
-  protocolVersion: number;
   status: 'ok';
   result: FastCheckRunResult;
 }
@@ -89,7 +88,6 @@ export async function executeProperty(requestValue: unknown): Promise<FastCheckE
   if (details.errorInstance instanceof ProtocolError) throw details.errorInstance;
 
   return {
-    protocolVersion: FAST_CHECK_EXECUTION_PROTOCOL_VERSION,
     status: 'ok',
     result: toRunResult(
       request.manifest.propertyId,
@@ -129,7 +127,7 @@ function buildParameters(request: FastCheckExecutionRequest): Parameters<[unknow
   const decodedExamples = request.examples.map((example, exampleIndex) => {
     if (example.length !== request.manifest.inputs.length) {
       throw protocolError(
-        'protocol.examples.arity',
+        adapterDiagnostic.protocolExamplesArity,
         `Explicit example ${exampleIndex} has ${example.length} values, expected ${request.manifest.inputs.length}`,
         `examples[${exampleIndex}]`,
       );
@@ -214,60 +212,66 @@ function isFastCheckTimeout(error: unknown): boolean {
 }
 
 function validateRequest(value: unknown): FastCheckExecutionRequest {
-  const request = requireRecord(value, 'protocol.request.invalid', 'Request must be a JSON object', 'request');
-
-  if (request.protocolVersion !== FAST_CHECK_EXECUTION_PROTOCOL_VERSION) {
-    throw protocolError(
-      'protocol.version.unsupported',
-      `Unsupported protocol version: ${String(request.protocolVersion)}`,
-      'protocolVersion',
-    );
-  }
+  const request = requireRecord(
+    value,
+    adapterDiagnostic.protocolRequestInvalid,
+    'Request must be a JSON object',
+    'request',
+  );
 
   const validSourceRoots = Array.isArray(request.sourceRoots)
     && request.sourceRoots.length > 0
     && request.sourceRoots.every((root) => typeof root === 'string');
 
   const validRunCount = Number.isInteger(request.numRuns)
-    && (request.numRuns as number) >= 1
-    && (request.numRuns as number) <= MAX_RUNS;
+    && (request.numRuns as number) >= 1;
 
   const validTimeout = Number.isInteger(request.timeoutMillis)
     && (request.timeoutMillis as number) >= 1
-    && (request.timeoutMillis as number) <= MAX_TIMEOUT_MILLIS;
+    && (request.timeoutMillis as number) <= MAX_TIMER_DELAY_MILLIS;
 
-  const validExamples = Array.isArray(request.examples)
-    && request.examples.length <= MAX_EXAMPLES;
+  const validExamples = Array.isArray(request.examples);
 
   if (!validSourceRoots || !validRunCount || !validTimeout || !validExamples) {
     throw protocolError(
-      'protocol.request.invalid',
+      adapterDiagnostic.protocolRequestInvalid,
       'Source roots, run count, timeout, or examples are invalid',
       'request',
     );
   }
 
   if (request.seed !== undefined && !isSignedInt(request.seed)) {
-    throw protocolError('protocol.seed.invalid', 'Seed must be a signed 32-bit integer', 'seed');
+    throw protocolError(
+      adapterDiagnostic.protocolSeedInvalid,
+      'Seed must be a signed 32-bit integer',
+      'seed',
+    );
   }
 
-  if (request.replayPath !== undefined &&
-      (typeof request.replayPath !== 'string' || request.replayPath.length > MAX_REPLAY_PATH_LENGTH)) {
-    throw protocolError('protocol.replay-path.invalid', 'Replay path is invalid', 'replayPath');
+  const invalidReplayPath = request.replayPath !== undefined && typeof request.replayPath !== 'string';
+  if (invalidReplayPath) {
+    throw protocolError(
+      adapterDiagnostic.protocolReplayPathInvalid,
+      'Replay path is invalid',
+      'replayPath',
+    );
   }
 
   const manifest = validateManifest(request.manifest);
   const rawExamples = request.examples as unknown[];
   const examples = rawExamples.map((example: unknown, index: number) => {
     if (!Array.isArray(example)) {
-      throw protocolError('protocol.examples.invalid', 'Each explicit example must be an array', `examples[${index}]`);
+      throw protocolError(
+        adapterDiagnostic.protocolExamplesInvalid,
+        'Each explicit example must be an array',
+        `examples[${index}]`,
+      );
     }
 
     return example as TaggedJsValue[];
   });
 
   const validated: FastCheckExecutionRequest = {
-    protocolVersion: FAST_CHECK_EXECUTION_PROTOCOL_VERSION,
     manifest,
     sourceRoots: request.sourceRoots as string[],
     numRuns: request.numRuns as number,
@@ -282,29 +286,37 @@ function validateRequest(value: unknown): FastCheckExecutionRequest {
 }
 
 function validateManifest(value: unknown): PropertyManifestWire {
-  const manifest = requireRecord(value, 'protocol.manifest.invalid', 'Manifest must be an object', 'manifest');
+  const manifest = requireRecord(
+    value,
+    adapterDiagnostic.protocolManifestInvalid,
+    'Manifest must be an object',
+    'manifest',
+  );
 
-  const valid = manifest.schemaVersion === 1
-    && typeof manifest.propertyId === 'string'
+  const valid = typeof manifest.propertyId === 'string'
     && manifest.propertyId.length > 0
     && Array.isArray(manifest.inputs)
     && manifest.inputs.length > 0;
   if (!valid) {
-    throw protocolError('protocol.manifest.invalid', 'Manifest identity or inputs are invalid', 'manifest');
+    throw protocolError(
+      adapterDiagnostic.protocolManifestInvalid,
+      'Manifest identity or inputs are invalid',
+      'manifest',
+    );
   }
 
   const rawInputs = manifest.inputs as unknown[];
   const inputs = rawInputs.map((value: unknown, index: number): PropertyManifestInput => {
     const input = requireRecord(
       value,
-      'protocol.manifest.input.invalid',
+      adapterDiagnostic.protocolManifestInputInvalid,
       'Property input must be an object',
       `manifest.inputs[${index}]`,
     );
 
     if (typeof input.name !== 'string' || !('domain' in input)) {
       throw protocolError(
-        'protocol.manifest.input.invalid',
+        adapterDiagnostic.protocolManifestInputInvalid,
         'Property input requires a name and domain',
         `manifest.inputs[${index}]`,
       );
@@ -314,7 +326,6 @@ function validateManifest(value: unknown): PropertyManifestWire {
   });
 
   const validated: PropertyManifestWire = {
-    schemaVersion: 1,
     propertyId: manifest.propertyId as string,
     inputs,
     predicate: validateEntryPoint(manifest.predicate, 'manifest.predicate'),
@@ -330,7 +341,7 @@ function validateManifest(value: unknown): PropertyManifestWire {
 function validateEntryPoint(value: unknown, entryPath: string): TypeScriptEntryPointReference {
   const entryPoint = requireRecord(
     value,
-    'protocol.entrypoint.invalid',
+    adapterDiagnostic.protocolEntryPointInvalid,
     'Entry point must be an object',
     entryPath,
   );
@@ -342,7 +353,11 @@ function validateEntryPoint(value: unknown, entryPath: string): TypeScriptEntryP
     && entryPoint.exportName.length > 0
     && (executionKind === 'sync' || executionKind === 'async');
   if (!valid) {
-    throw protocolError('protocol.entrypoint.invalid', 'Entry point reference is invalid', entryPath);
+    throw protocolError(
+      adapterDiagnostic.protocolEntryPointInvalid,
+      'Entry point reference is invalid',
+      entryPath,
+    );
   }
 
   return {
@@ -354,12 +369,12 @@ function validateEntryPoint(value: unknown, entryPath: string): TypeScriptEntryP
 
 function requireRecord(
   value: unknown,
-  code: string,
+  diagnostic: AdapterDiagnosticDescriptor,
   message: string,
   path: string,
 ): Record<string, unknown> {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
-    throw protocolError(code, message, path);
+    throw protocolError(diagnostic, message, path);
   }
 
   return value as Record<string, unknown>;
@@ -372,7 +387,5 @@ function isSignedInt(value: unknown): value is number {
     && value <= 0x7fffffff;
 }
 
-const MAX_REPLAY_PATH_LENGTH = 4_096;
-const MAX_RUNS = 10_000;
-const MAX_EXAMPLES = 10_000;
-const MAX_TIMEOUT_MILLIS = 86_400_000;
+// Node timers use signed 32-bit millisecond delays; larger values are clamped to one millisecond.
+const MAX_TIMER_DELAY_MILLIS = 2 ** 31 - 1;

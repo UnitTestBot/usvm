@@ -1,13 +1,9 @@
-import {
-  executeProperty,
-  FAST_CHECK_EXECUTION_PROTOCOL_VERSION,
-  type FastCheckExecutionSuccess,
-} from './execute-property.js';
+import { adapterDiagnostic } from './diagnostics.js';
+import { executeProperty, type FastCheckExecutionSuccess } from './execute-property.js';
 import { ProtocolError, protocolError } from './js-value.js';
 import type { ProtocolDiagnostic } from './js-value.js';
 
 interface FastCheckExecutionFailure {
-  protocolVersion: number;
   status: 'error';
   diagnostics: ProtocolDiagnostic[];
 }
@@ -42,15 +38,19 @@ function parseRequest(input: string): unknown {
   try {
     return JSON.parse(input) as unknown;
   } catch {
-    throw protocolError('protocol.json.invalid', 'Standard input is not valid JSON', 'request');
+    throw protocolError(
+      adapterDiagnostic.protocolJsonInvalid,
+      'Standard input is not valid JSON',
+      'request',
+    );
   }
 }
 
 function protocolErrorResponse(error: ProtocolError): FastCheckExecutionFailure {
   return {
-    protocolVersion: FAST_CHECK_EXECUTION_PROTOCOL_VERSION,
     status: 'error',
     diagnostics: [{
+      kind: error.kind,
       code: error.code,
       message: error.diagnosticMessage,
       path: error.path,

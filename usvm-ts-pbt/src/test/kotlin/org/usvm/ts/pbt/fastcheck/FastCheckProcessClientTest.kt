@@ -42,7 +42,7 @@ class FastCheckProcessClientTest {
     }
 
     @Test
-    fun `empty malformed and incompatible responses are protocol errors`() {
+    fun `empty malformed and unknown responses are protocol errors`() {
         val cases = listOf(
             InvalidResponseCase(script = "", expectedCode = "backend.response.empty"),
             InvalidResponseCase(
@@ -52,12 +52,10 @@ class FastCheckProcessClientTest {
             InvalidResponseCase(
                 script = """
                     process.stdout.write(JSON.stringify({
-                      protocolVersion: 2,
-                      status: 'error',
-                      diagnostics: [{ code: 'protocol.request.invalid', message: 'bad request', path: 'request' }]
+                      status: 'unknown'
                     }))
                 """.trimIndent(),
-                expectedCode = "backend.response.mismatch",
+                expectedCode = "backend.response.invalid",
             ),
         )
 
@@ -72,14 +70,14 @@ class FastCheckProcessClientTest {
     }
 
     @Test
-    fun `entry point diagnostics retain their typed category and path`() {
+    fun `Node diagnostic category does not depend on code naming`() {
         withTemporaryAdapter(
             source = """
             process.stdout.write(JSON.stringify({
-              protocolVersion: 1,
               status: 'error',
               diagnostics: [{
-                code: 'entrypoint.module.not-found',
+                kind: 'entry-point',
+                code: 'adapter.module.failure',
                 message: 'module missing',
                 path: 'manifest.predicate.module'
               }]
@@ -89,7 +87,7 @@ class FastCheckProcessClientTest {
             val error = assertFailsWith<PbtBackendException> { client.check(validRequest) }
 
             assertEquals(BackendErrorKind.ENTRY_POINT, error.kind)
-            assertEquals("entrypoint.module.not-found", error.code)
+            assertEquals("adapter.module.failure", error.code)
             assertEquals("manifest.predicate.module", error.path)
         }
     }

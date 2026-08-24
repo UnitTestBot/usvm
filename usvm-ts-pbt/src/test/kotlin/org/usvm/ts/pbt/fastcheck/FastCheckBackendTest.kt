@@ -136,6 +136,27 @@ class FastCheckBackendTest {
     }
 
     @Test
+    fun `run and timeout controls are not capped by arbitrary policy limits`() {
+        val error = assertFailsWith<PbtBackendException> {
+            backend.run(
+                property = property(predicate = "alwaysTrue").copy(
+                    predicate = TypeScriptEntryPoint(
+                        module = "missing.ts",
+                        exportName = "predicate",
+                    ),
+                ),
+                configuration = configuration.copy(
+                    numRuns = 10_001,
+                    timeoutMillis = 86_400_001,
+                ),
+            )
+        }
+
+        assertEquals(BackendErrorKind.ENTRY_POINT, error.kind)
+        assertEquals("entrypoint.module.not-found", error.code)
+    }
+
+    @Test
     fun `invalid explicit examples are rejected before Node starts`() {
         val missingNodeBackend = FastCheckBackend(
             sourceRoots = listOf(testResourcesRoot()),

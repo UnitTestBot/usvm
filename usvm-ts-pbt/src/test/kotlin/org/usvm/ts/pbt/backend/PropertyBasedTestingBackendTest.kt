@@ -16,6 +16,21 @@ class PropertyBasedTestingBackendTest {
         assertFailsWith<IllegalArgumentException> {
             PropertyRunConfiguration(timeoutMillis = 0)
         }
+
+        assertFailsWith<IllegalArgumentException> {
+            PropertyRunConfiguration(timeoutMillis = Int.MAX_VALUE.toLong() + 1)
+        }
+    }
+
+    @Test
+    fun `configuration has no arbitrary run or one-day timeout cap`() {
+        val configuration = PropertyRunConfiguration(
+            numRuns = 10_001,
+            timeoutMillis = 86_400_001,
+        )
+
+        assertEquals(10_001, configuration.numRuns)
+        assertEquals(86_400_001, configuration.timeoutMillis)
     }
 
     @Test

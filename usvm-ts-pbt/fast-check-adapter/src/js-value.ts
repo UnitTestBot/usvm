@@ -1,3 +1,9 @@
+import {
+  adapterDiagnostic,
+  type AdapterDiagnosticDescriptor,
+  type AdapterDiagnosticKind,
+} from './diagnostics.js';
+
 export type JsConcreteValue =
   | undefined
   | null
@@ -21,6 +27,7 @@ export type TaggedJsValue =
   | { kind: 'array'; elements: TaggedJsValue[] };
 
 export interface ProtocolDiagnostic {
+  kind: AdapterDiagnosticKind;
   code: string;
   message: string;
   path: string;
@@ -28,17 +35,22 @@ export interface ProtocolDiagnostic {
 
 export class ProtocolError extends Error {
   constructor(
-    readonly code: string,
+    diagnostic: AdapterDiagnosticDescriptor,
     readonly diagnosticMessage: string,
     readonly path: string,
   ) {
-    super(`${code}: ${diagnosticMessage}`);
+    super(`${diagnostic.code}: ${diagnosticMessage}`);
     this.name = 'ProtocolError';
+    this.kind = diagnostic.kind;
+    this.code = diagnostic.code;
   }
+
+  readonly kind: AdapterDiagnosticKind;
+  readonly code: string;
 }
 
 export function decodeJsValue(value: unknown, path = 'value'): JsConcreteValue {
-  requireObject(value, 'js-value.invalid', 'Tagged JavaScript value must be an object', path);
+  requireObject(value, adapterDiagnostic.jsValueInvalid, 'Tagged JavaScript value must be an object', path);
 
   switch (value.kind) {
     case 'undefined':
@@ -49,14 +61,22 @@ export function decodeJsValue(value: unknown, path = 'value'): JsConcreteValue {
 
     case 'boolean':
       if (typeof value.value !== 'boolean') {
-        throw protocolError('js-value.boolean.invalid', 'Boolean value must contain a boolean', path);
+        throw protocolError(
+          adapterDiagnostic.jsValueBooleanInvalid,
+          'Boolean value must contain a boolean',
+          path,
+        );
       }
 
       return value.value;
 
     case 'string':
       if (typeof value.value !== 'string') {
-        throw protocolError('js-value.string.invalid', 'String value must contain a string', path);
+        throw protocolError(
+          adapterDiagnostic.jsValueStringInvalid,
+          'String value must contain a string',
+          path,
+        );
       }
 
       return value.value;
@@ -66,7 +86,7 @@ export function decodeJsValue(value: unknown, path = 'value'): JsConcreteValue {
 
     case 'array':
       if (!Array.isArray(value.elements)) {
-        throw protocolError('js-value.array.invalid', 'Array value must contain elements', path);
+        throw protocolError(adapterDiagnostic.jsValueArrayInvalid, 'Array value must contain elements', path);
       }
 
       return value.elements.map((element: unknown, index: number) =>
@@ -74,7 +94,7 @@ export function decodeJsValue(value: unknown, path = 'value'): JsConcreteValue {
 
     default:
       throw protocolError(
-        'js-value.kind.unknown',
+        adapterDiagnostic.jsValueKindUnknown,
         `Unknown JavaScript value kind: ${String(value.kind)}`,
         path,
       );
@@ -90,20 +110,25 @@ export function encodeJsValue(value: unknown): TaggedJsValue {
   if (Array.isArray(value)) return { kind: 'array', elements: value.map(encodeJsValue) };
 
   throw protocolError(
-    'js-value.type.unsupported',
+    adapterDiagnostic.jsValueTypeUnsupported,
     `Unsupported JavaScript value type: ${typeof value}`,
     'value',
   );
 }
 
 export function decodeJsNumber(taggedNumber: unknown, path = 'number'): number {
-  requireObject(taggedNumber, 'js-number.invalid', 'Tagged JavaScript number must be an object', path);
+  requireObject(
+    taggedNumber,
+    adapterDiagnostic.jsNumberInvalid,
+    'Tagged JavaScript number must be an object',
+    path,
+  );
 
   switch (taggedNumber.value) {
     case 'finite':
       if (typeof taggedNumber.bits !== 'string' || !/^[0-9a-f]{16}$/.test(taggedNumber.bits)) {
         throw protocolError(
-          'js-number.encoding.invalid',
+          adapterDiagnostic.jsNumberEncodingInvalid,
           'Finite JavaScript numbers require sixteen lowercase hexadecimal digits',
           path,
         );
@@ -128,7 +153,7 @@ export function decodeJsNumber(taggedNumber: unknown, path = 'number'): number {
 
     default:
       throw protocolError(
-        'js-number.kind.unknown',
+        adapterDiagnostic.jsNumberKindUnknown,
         `Unknown JavaScript number kind: ${String(taggedNumber.value)}`,
         path,
       );
@@ -143,8 +168,12 @@ export function encodeJsNumber(value: number): TaggedJsNumber {
   return { value: 'finite', bits: doubleToBits(value) };
 }
 
-export function protocolError(code: string, message: string, path: string): ProtocolError {
-  return new ProtocolError(code, message, path);
+export function protocolError(
+  diagnostic: AdapterDiagnosticDescriptor,
+  message: string,
+  path: string,
+): ProtocolError {
+  return new ProtocolError(diagnostic, message, path);
 }
 
 function bitsToDouble(bits: string): number {
@@ -167,17 +196,21 @@ function doubleToBits(value: number): string {
 
 function requireNoBits(taggedNumber: Record<string, unknown>, path: string): void {
   if (taggedNumber.bits !== undefined) {
-    throw protocolError('js-number.encoding.invalid', 'Non-finite JavaScript numbers must not contain bits', path);
+    throw protocolError(
+      adapterDiagnostic.jsNumberEncodingInvalid,
+      'Non-finite JavaScript numbers must not contain bits',
+      path,
+    );
   }
 }
 
 function requireObject(
   value: unknown,
-  code: string,
+  diagnostic: AdapterDiagnosticDescriptor,
   message: string,
   path: string,
 ): asserts value is Record<string, unknown> {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
-    throw protocolError(code, message, path);
+    throw protocolError(diagnostic, message, path);
   }
 }

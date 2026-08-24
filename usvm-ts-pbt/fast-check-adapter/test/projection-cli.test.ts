@@ -8,13 +8,11 @@ import type { ProtocolDiagnostic, TaggedJsValue } from '../src/js-value.js';
 const cliPath = fileURLToPath(new URL('../src/projection-cli.js', import.meta.url));
 
 interface SuccessResponse {
-  protocolVersion: number;
   status: 'ok';
   samples: TaggedJsValue[][];
 }
 
 interface ErrorResponse {
-  protocolVersion: number;
   status: 'error';
   diagnostics: ProtocolDiagnostic[];
 }
@@ -30,7 +28,6 @@ interface InvocationResult {
 
 test('sample response returns deterministic tagged values', async () => {
   const request = {
-    protocolVersion: 1,
     seed: 42,
     numSamples: 4,
     domains: [{ kind: 'integer', min: -1, max: 1 }],
@@ -45,7 +42,6 @@ test('sample response returns deterministic tagged values', async () => {
   assert.equal(first.stderr, '');
   assert.equal(first.stdout.trim().split('\n').length, 1);
   assert.deepEqual(firstResponse, secondResponse);
-  assert.equal(firstResponse.protocolVersion, 1);
   assert.equal(firstResponse.status, 'ok');
   if (firstResponse.status !== 'ok') assert.fail('Expected a successful response');
   assert.equal(firstResponse.samples.length, 4);
@@ -63,20 +59,8 @@ interface ProtocolErrorCase {
 
 const protocolErrorCases: ProtocolErrorCase[] = [
   {
-    name: 'unsupported protocol version',
-    input: {
-      protocolVersion: 2,
-      seed: 1,
-      numSamples: 1,
-      domains: [{ kind: 'boolean' }],
-    },
-    code: 'protocol.version.unsupported',
-    path: 'protocolVersion',
-  },
-  {
     name: 'invalid request',
     input: {
-      protocolVersion: 1,
       seed: 1.5,
       numSamples: 0,
       domains: [],
@@ -95,9 +79,9 @@ for (const { name, input, code, path } of protocolErrorCases) {
     assert.equal(response.status, 'error');
     if (response.status !== 'error') assert.fail('Expected an error response');
     assert.deepEqual(response, {
-      protocolVersion: 1,
       status: 'error',
       diagnostics: [{
+        kind: 'invalid-request',
         code,
         message: response.diagnostics[0]?.message,
         path,
@@ -113,9 +97,9 @@ test('malformed JSON produces one clean protocol error document', async () => {
   assert.equal(result.exitCode, 0);
   assert.equal(result.stderr, '');
   assert.equal(result.stdout.trim().split('\n').length, 1);
-  assert.equal(response.protocolVersion, 1);
   assert.equal(response.status, 'error');
   if (response.status !== 'error') assert.fail('Expected an error response');
+  assert.equal(response.diagnostics[0]?.kind, 'invalid-request');
   assert.equal(response.diagnostics[0]?.code, 'protocol.json.invalid');
 });
 

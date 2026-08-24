@@ -2,6 +2,7 @@ import { realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { tsImport } from 'tsx/esm/api';
+import { adapterDiagnostic } from './diagnostics.js';
 import type { JsConcreteValue } from './js-value.js';
 import { ProtocolError, protocolError } from './js-value.js';
 
@@ -30,7 +31,7 @@ export async function loadEntryPoint(
 
   if (!(reference.exportName in moduleNamespace)) {
     throw protocolError(
-      'entrypoint.export.not-found',
+      adapterDiagnostic.entryPointExportNotFound,
       `TypeScript module ${reference.module} does not export ${reference.exportName}`,
       `${referencePath}.exportName`,
     );
@@ -39,7 +40,7 @@ export async function loadEntryPoint(
   const exportedValue = moduleNamespace[reference.exportName];
   if (typeof exportedValue !== 'function') {
     throw protocolError(
-      'entrypoint.export.not-function',
+      adapterDiagnostic.entryPointExportNotFunction,
       `TypeScript export ${reference.exportName} is not a function`,
       `${referencePath}.exportName`,
     );
@@ -60,7 +61,7 @@ async function resolveModule(
 ): Promise<string> {
   if (sourceRoots.length === 0) {
     throw protocolError(
-      'source-root.invalid',
+      adapterDiagnostic.sourceRootInvalid,
       'At least one TypeScript source root is required',
       'sourceRoots',
     );
@@ -72,7 +73,7 @@ async function resolveModule(
 
     if (sourceRoot === undefined || !path.isAbsolute(sourceRoot)) {
       throw protocolError(
-        'source-root.invalid',
+        adapterDiagnostic.sourceRootInvalid,
         'TypeScript source roots must be absolute paths',
         `sourceRoots[${index}]`,
       );
@@ -83,7 +84,7 @@ async function resolveModule(
 
     if (!isWithin(candidate, realSourceRoot)) {
       throw protocolError(
-        'entrypoint.module.outside-root',
+        adapterDiagnostic.entryPointModuleOutsideRoot,
         `TypeScript module ${module} escapes source root ${realSourceRoot}`,
         `${referencePath}.module`,
       );
@@ -94,7 +95,7 @@ async function resolveModule(
 
     if (!isWithin(realCandidate, realSourceRoot)) {
       throw protocolError(
-        'entrypoint.module.outside-root',
+        adapterDiagnostic.entryPointModuleOutsideRoot,
         `TypeScript module ${module} resolves outside source root ${realSourceRoot}`,
         `${referencePath}.module`,
       );
@@ -106,7 +107,7 @@ async function resolveModule(
 
   if (matches.length === 0) {
     throw protocolError(
-      'entrypoint.module.not-found',
+      adapterDiagnostic.entryPointModuleNotFound,
       `TypeScript module ${module} was not found in any source root`,
       `${referencePath}.module`,
     );
@@ -114,7 +115,7 @@ async function resolveModule(
 
   if (matches.length > 1) {
     throw protocolError(
-      'entrypoint.module.ambiguous',
+      adapterDiagnostic.entryPointModuleAmbiguous,
       `TypeScript module ${module} exists in multiple source roots`,
       `${referencePath}.module`,
     );
@@ -129,7 +130,7 @@ async function requireDirectory(sourceRoot: string, index: number): Promise<stri
     realSourceRoot = await realpath(sourceRoot);
   } catch {
     throw protocolError(
-      'source-root.invalid',
+      adapterDiagnostic.sourceRootInvalid,
       `TypeScript source root does not exist: ${sourceRoot}`,
       `sourceRoots[${index}]`,
     );
@@ -137,7 +138,7 @@ async function requireDirectory(sourceRoot: string, index: number): Promise<stri
 
   if (!(await stat(realSourceRoot)).isDirectory()) {
     throw protocolError(
-      'source-root.invalid',
+      adapterDiagnostic.sourceRootInvalid,
       `TypeScript source root is not a directory: ${sourceRoot}`,
       `sourceRoots[${index}]`,
     );
@@ -168,7 +169,7 @@ async function importTypeScriptModule(
     const message = error instanceof Error ? error.message : String(error);
 
     throw protocolError(
-      'entrypoint.module.import-failed',
+      adapterDiagnostic.entryPointModuleImportFailed,
       `Failed to import TypeScript module: ${message}`,
       `${referencePath}.module`,
     );
@@ -187,7 +188,7 @@ function buildInvocation(
       if (isThenable(result)) {
         void Promise.resolve(result).catch(() => undefined);
         throw protocolError(
-          'entrypoint.execution-kind.mismatch',
+          adapterDiagnostic.entryPointExecutionKindMismatch,
           'A synchronous entry point returned an awaitable value',
           `${referencePath}.executionKind`,
         );
@@ -202,7 +203,7 @@ function buildInvocation(
 
     if (!isThenable(result)) {
       throw protocolError(
-        'entrypoint.execution-kind.mismatch',
+        adapterDiagnostic.entryPointExecutionKindMismatch,
         'An asynchronous entry point returned a direct value',
         `${referencePath}.executionKind`,
       );
@@ -215,7 +216,7 @@ function buildInvocation(
 function requireBoolean(result: unknown, referencePath: string): boolean {
   if (typeof result !== 'boolean') {
     throw protocolError(
-      'entrypoint.result.invalid',
+      adapterDiagnostic.entryPointResultInvalid,
       'A property entry point must return a boolean',
       `${referencePath}.result`,
     );

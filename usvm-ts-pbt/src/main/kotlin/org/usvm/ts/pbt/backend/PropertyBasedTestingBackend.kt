@@ -26,11 +26,17 @@ data class PropertyRunConfiguration(
     init {
         require(numRuns > 0) { "Number of runs must be positive" }
         require(timeoutMillis > 0) { "Timeout must be positive" }
+        require(timeoutMillis <= MAX_TIMEOUT_MILLIS) {
+            "Timeout exceeds the maximum delay supported by Node timers"
+        }
     }
 
     companion object {
         const val DEFAULT_NUM_RUNS = 100
         const val DEFAULT_TIMEOUT_MILLIS = 60_000L
+
+        /** Node timers use signed 32-bit millisecond delays. */
+        val MAX_TIMEOUT_MILLIS: Long = Int.MAX_VALUE.toLong()
     }
 }
 

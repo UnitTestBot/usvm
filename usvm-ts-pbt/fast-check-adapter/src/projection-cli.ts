@@ -1,4 +1,5 @@
 import fc from 'fast-check';
+import { adapterDiagnostic } from './diagnostics.js';
 import {
   encodeJsValue,
   ProtocolError,
@@ -7,23 +8,18 @@ import {
 import type { ProtocolDiagnostic, TaggedJsValue } from './js-value.js';
 import { projectDomain } from './project-domain.js';
 
-const PROTOCOL_VERSION = 1;
-
 interface FastCheckProjectionRequest {
-  protocolVersion: 1;
   seed: number;
   numSamples: number;
   domains: unknown[];
 }
 
 interface FastCheckProjectionSuccess {
-  protocolVersion: 1;
   status: 'ok';
   samples: TaggedJsValue[][];
 }
 
 interface FastCheckProjectionFailure {
-  protocolVersion: 1;
   status: 'error';
   diagnostics: ProtocolDiagnostic[];
 }
@@ -38,7 +34,11 @@ try {
   try {
     parsedRequest = JSON.parse(input) as unknown;
   } catch {
-    throw protocolError('protocol.json.invalid', 'Standard input is not valid JSON', 'request');
+    throw protocolError(
+      adapterDiagnostic.protocolJsonInvalid,
+      'Standard input is not valid JSON',
+      'request',
+    );
   }
 
   const request = validateRequest(parsedRequest);
@@ -52,7 +52,6 @@ try {
   });
 
   response = {
-    protocolVersion: PROTOCOL_VERSION,
     status: 'ok',
     samples: tuples.map((tuple) => tuple.map(encodeJsValue)),
   };
@@ -74,14 +73,6 @@ async function readStdin(): Promise<string> {
 function validateRequest(value: unknown): FastCheckProjectionRequest {
   const request = requireRecord(value);
 
-  if (request.protocolVersion !== PROTOCOL_VERSION) {
-    throw protocolError(
-      'protocol.version.unsupported',
-      `Unsupported protocol version: ${String(request.protocolVersion)}`,
-      'protocolVersion',
-    );
-  }
-
   const validSeed = typeof request.seed === 'number'
     && Number.isInteger(request.seed)
     && request.seed >= -0x80000000
@@ -89,21 +80,19 @@ function validateRequest(value: unknown): FastCheckProjectionRequest {
 
   const validSampleCount = typeof request.numSamples === 'number'
     && Number.isInteger(request.numSamples)
-    && request.numSamples >= 1
-    && request.numSamples <= 10_000;
+    && request.numSamples >= 1;
 
   const hasDomains = Array.isArray(request.domains) && request.domains.length > 0;
 
   if (!validSeed || !validSampleCount || !hasDomains) {
     throw protocolError(
-      'protocol.request.invalid',
-      'Request requires domains, an Int seed, and numSamples in 1..10000',
+      adapterDiagnostic.protocolRequestInvalid,
+      'Request requires domains, an Int seed, and a positive numSamples',
       'request',
     );
   }
 
   return {
-    protocolVersion: PROTOCOL_VERSION,
     seed: request.seed as number,
     numSamples: request.numSamples as number,
     domains: request.domains as unknown[],
@@ -112,12 +101,13 @@ function validateRequest(value: unknown): FastCheckProjectionRequest {
 
 function protocolErrorResponse(error: unknown): FastCheckProjectionFailure {
   const protocolFailure = error instanceof ProtocolError ? error : undefined;
+  const fallback = adapterDiagnostic.protocolRequestInvalid;
 
   return {
-    protocolVersion: PROTOCOL_VERSION,
     status: 'error',
     diagnostics: [{
-      code: protocolFailure?.code ?? 'protocol.request.invalid',
+      kind: protocolFailure?.kind ?? fallback.kind,
+      code: protocolFailure?.code ?? fallback.code,
       message: protocolFailure?.diagnosticMessage ?? (error instanceof Error ? error.message : String(error)),
       path: protocolFailure?.path ?? 'request',
     }],
@@ -126,7 +116,11 @@ function protocolErrorResponse(error: unknown): FastCheckProjectionFailure {
 
 function requireRecord(value: unknown): Record<string, unknown> {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
-    throw protocolError('protocol.request.invalid', 'Request must be a JSON object', 'request');
+    throw protocolError(
+      adapterDiagnostic.protocolRequestInvalid,
+      'Request must be a JSON object',
+      'request',
+    );
   }
 
   return value as Record<string, unknown>;

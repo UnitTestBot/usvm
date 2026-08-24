@@ -91,10 +91,12 @@ operator fun PropertyDomain.contains(value: JsConcreteValue): Boolean = when (th
 }
 
 private fun JsConcreteValue.Number.isIntegerIn(domain: IntegerDomain): Boolean {
-    if (number.bits == NEGATIVE_ZERO_BITS) return false
-
     val value = validDoubleOrNull() ?: return false
-    return value.isFinite() && value % 1.0 == 0.0 && value in domain.min.toDouble()..domain.max.toDouble()
+
+    // fc.integer can generate positive zero but never the distinct binary64 value negative zero.
+    val isGeneratedInteger = value.isFinite() && !value.isNegativeZero() && value % 1.0 == 0.0
+
+    return isGeneratedInteger && value in domain.min.toDouble()..domain.max.toDouble()
 }
 
 private fun JsConcreteValue.Number.isNumberIn(domain: NumberDomain): Boolean {
@@ -109,4 +111,6 @@ private fun JsConcreteValue.Number.isNumberIn(domain: NumberDomain): Boolean {
 
 private fun JsConcreteValue.Number.validDoubleOrNull(): Double? = runCatching(::toDouble).getOrNull()
 
-private const val NEGATIVE_ZERO_BITS = "8000000000000000"
+private fun Double.isNegativeZero(): Boolean = toRawBits() == NEGATIVE_ZERO_BITS
+
+private val NEGATIVE_ZERO_BITS = Double.fromBits(Long.MIN_VALUE).toRawBits()

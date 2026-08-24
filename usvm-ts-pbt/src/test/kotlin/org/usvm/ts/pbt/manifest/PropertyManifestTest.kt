@@ -31,7 +31,7 @@ class PropertyManifestTest {
     }
 
     @Test
-    fun `manifest serializes resolved integer bounds and schema version`() {
+    fun `manifest serializes resolved integer bounds`() {
         val definition = PropertyDefinition(
             id = PropertyId("integer.defaults"),
             inputs = listOf(PropertyInput("value", IntegerDomain())),
@@ -41,7 +41,7 @@ class PropertyManifestTest {
         val encoded = PropertyManifestJson.encode(definition.toManifest())
 
         assertEquals(
-            """{"schemaVersion":1,"propertyId":"integer.defaults","inputs":[""" +
+            """{"propertyId":"integer.defaults","inputs":[""" +
                 """{"name":"value","domain":{"kind":"integer","min":-2147483648,"max":2147483647}}],""" +
                 """"predicate":{"module":"properties/integer.ts","exportName":"holds","executionKind":"sync"}}""",
             encoded,

@@ -2,6 +2,7 @@ package org.usvm.ts.pbt.fastcheck
 
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
+import org.usvm.ts.pbt.PbtDiagnosticCode
 import org.usvm.ts.pbt.manifest.PropertyManifestJson
 import java.io.IOException
 import java.nio.file.Path
@@ -23,22 +24,12 @@ class FastCheckProjectionClient(
 
         val response = decodeResponse(invokeAdapter(request))
 
-        validateProtocolVersion(response)
         throwBackendError(response)
         validateSuccessfulResponse(request, response)
 
         return FastCheckProjectionResponse(
             samples = response.samples,
         )
-    }
-
-    private fun validateProtocolVersion(response: FastCheckProjectionWireResponse) {
-        if (response.protocolVersion != FAST_CHECK_PROTOCOL_VERSION) {
-            throw FastCheckProjectionException(
-                code = "backend.response.mismatch",
-                message = "fast-check response protocol version is incompatible",
-            )
-        }
     }
 
     private fun throwBackendError(response: FastCheckProjectionWireResponse) {
@@ -64,7 +55,7 @@ class FastCheckProjectionClient(
 
         if (!hasExpectedStatus || !hasExpectedSampleCount || !hasExpectedArity) {
             throw FastCheckProjectionException(
-                code = "backend.response.invalid",
+                code = PbtDiagnosticCode.BACKEND_RESPONSE_INVALID,
                 message = "fast-check adapter returned an invalid successful response",
             )
         }
@@ -88,14 +79,14 @@ class FastCheckProjectionClient(
 
             if (exitCode != 0) {
                 throw FastCheckProjectionException(
-                    code = "backend.process.failed",
+                    code = PbtDiagnosticCode.BACKEND_PROCESS_FAILED,
                     message = "fast-check adapter exited with code $exitCode: ${stderrText.trim()}",
                 )
             }
 
             if (stdout.isBlank()) {
                 throw FastCheckProjectionException(
-                    code = "backend.response.empty",
+                    code = PbtDiagnosticCode.BACKEND_RESPONSE_EMPTY,
                     message = "fast-check adapter returned an empty response",
                 )
             }
@@ -110,7 +101,7 @@ class FastCheckProjectionClient(
         ProcessBuilder(nodeExecutable, adapterEntryPoint.toString()).start()
     } catch (error: IOException) {
         throw FastCheckProjectionException(
-            code = "backend.process.start.failed",
+            code = PbtDiagnosticCode.BACKEND_PROCESS_START_FAILED,
             message = "Failed to start fast-check adapter: ${error.message}",
             cause = error,
         )
@@ -120,31 +111,27 @@ class FastCheckProjectionClient(
         PropertyManifestJson.json.decodeFromString(stdout)
     } catch (error: IllegalArgumentException) {
         throw FastCheckProjectionException(
-            code = "backend.response.invalid",
+            code = PbtDiagnosticCode.BACKEND_RESPONSE_INVALID,
             message = "fast-check adapter returned invalid JSON: ${error.message}",
             cause = error,
         )
     }
 
     private fun invalidResponse(message: String): Nothing = throw FastCheckProjectionException(
-        code = "backend.response.invalid",
+        code = PbtDiagnosticCode.BACKEND_RESPONSE_INVALID,
         message = message,
     )
 
     private fun validateRequest(request: FastCheckProjectionRequest) {
-        val hasValidSampleCount = request.numSamples in 1..MAX_SAMPLES
+        val hasValidSampleCount = request.numSamples > 0
         val hasDomains = request.domains.isNotEmpty()
 
         if (!hasValidSampleCount || !hasDomains) {
             throw FastCheckProjectionException(
-                code = "protocol.request.invalid",
-                message = "Request requires domains and numSamples in 1..10000",
+                code = PbtDiagnosticCode.PROTOCOL_REQUEST_INVALID,
+                message = "Request requires domains and a positive numSamples",
                 path = "request",
             )
         }
-    }
-
-    private companion object {
-        const val MAX_SAMPLES = 10_000
     }
 }

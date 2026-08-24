@@ -1,6 +1,6 @@
 package org.usvm.ts.pbt.validation
 
-import org.usvm.ts.pbt.manifest.PROPERTY_MANIFEST_SCHEMA_VERSION
+import org.usvm.ts.pbt.PbtDiagnosticCode
 import org.usvm.ts.pbt.manifest.PropertyManifest
 import org.usvm.ts.pbt.model.ArrayDomain
 import org.usvm.ts.pbt.model.BooleanDomain
@@ -51,21 +51,12 @@ fun validatePropertyDefinition(definition: PropertyDefinition): PropertyValidati
 )
 
 fun validatePropertyManifest(manifest: PropertyManifest): PropertyValidationResult {
-    val diagnostics = mutableListOf<ValidationDiagnostic>()
-    if (manifest.schemaVersion != PROPERTY_MANIFEST_SCHEMA_VERSION) {
-        diagnostics += diagnostic(
-            code = "manifest.schema.unsupported",
-            message = "Unsupported property manifest schema version: ${manifest.schemaVersion}",
-            path = "schemaVersion",
-        )
-    }
-    diagnostics += validateProperty(
+    return validateProperty(
         propertyId = manifest.propertyId,
         inputs = manifest.inputs,
         predicate = manifest.predicate,
         precondition = manifest.precondition,
-    ).diagnostics
-    return diagnostics.toResult()
+    )
 }
 
 fun requireValid(result: PropertyValidationResult) {
@@ -82,20 +73,36 @@ private fun validateProperty(
 ): PropertyValidationResult {
     val diagnostics = mutableListOf<ValidationDiagnostic>()
     if (!isCanonicalPropertyId(propertyId)) {
-        diagnostics += diagnostic("property.id.invalid", "Invalid property ID", "propertyId")
+        diagnostics += diagnostic(
+            code = PbtDiagnosticCode.PROPERTY_ID_INVALID,
+            message = "Invalid property ID",
+            path = "propertyId",
+        )
     }
     if (inputs.isEmpty()) {
-        diagnostics += diagnostic("property.inputs.empty", "A property requires at least one input", "inputs")
+        diagnostics += diagnostic(
+            code = PbtDiagnosticCode.PROPERTY_INPUTS_EMPTY,
+            message = "A property requires at least one input",
+            path = "inputs",
+        )
     }
 
     val firstInputByName = mutableMapOf<String, Int>()
     inputs.forEachIndexed { index, input ->
         val path = "inputs[$index]"
         if (!isJavaScriptIdentifier(input.name)) {
-            diagnostics += diagnostic("input.name.invalid", "Invalid input name", "$path.name")
+            diagnostics += diagnostic(
+                code = PbtDiagnosticCode.INPUT_NAME_INVALID,
+                message = "Invalid input name",
+                path = "$path.name",
+            )
         }
         if (firstInputByName.putIfAbsent(input.name, index) != null) {
-            diagnostics += diagnostic("input.name.duplicate", "Duplicate input name: ${input.name}", path)
+            diagnostics += diagnostic(
+                code = PbtDiagnosticCode.INPUT_NAME_DUPLICATE,
+                message = "Duplicate input name: ${input.name}",
+                path = path,
+            )
         }
         validateDomain(input.domain, "$path.domain", diagnostics)
     }
@@ -117,7 +124,11 @@ private fun validateDomain(
 
         is IntegerDomain -> {
             if (domain.min > domain.max) {
-                diagnostics += diagnostic("domain.integer.bounds", "Integer minimum exceeds maximum", path)
+                diagnostics += diagnostic(
+                    code = PbtDiagnosticCode.DOMAIN_INTEGER_BOUNDS,
+                    message = "Integer minimum exceeds maximum",
+                    path = path,
+                )
             }
         }
 
@@ -129,7 +140,7 @@ private fun validateDomain(
             validateLengths(
                 minLength = domain.minLength,
                 maxLength = domain.maxLength,
-                code = "domain.string.length",
+                code = PbtDiagnosticCode.DOMAIN_STRING_LENGTH,
                 description = "String",
                 path = path,
                 diagnostics = diagnostics,
@@ -139,9 +150,9 @@ private fun validateDomain(
         is ConstantDomain -> {
             if (domain.value is JsConcreteValue.Array) {
                 diagnostics += diagnostic(
-                    "domain.constant.unsupported",
-                    "Constant domains support JavaScript primitives only",
-                    path,
+                    code = PbtDiagnosticCode.DOMAIN_CONSTANT_UNSUPPORTED,
+                    message = "Constant domains support JavaScript primitives only",
+                    path = path,
                 )
             }
             validateJsConcreteValue(domain.value, "$path.value", diagnostics)
@@ -149,9 +160,9 @@ private fun validateDomain(
         is OptionalDomain -> {
             if (domain.nil != JsConcreteValue.Undefined && domain.nil != JsConcreteValue.Null) {
                 diagnostics += diagnostic(
-                    "domain.optional.nil",
-                    "Optional nil must be null or undefined",
-                    "$path.nil",
+                    code = PbtDiagnosticCode.DOMAIN_OPTIONAL_NIL,
+                    message = "Optional nil must be null or undefined",
+                    path = "$path.nil",
                 )
             }
             validateJsConcreteValue(domain.nil, "$path.nil", diagnostics)
@@ -160,7 +171,11 @@ private fun validateDomain(
 
         is TupleDomain -> {
             if (domain.elements.isEmpty()) {
-                diagnostics += diagnostic("domain.tuple.empty", "Tuple domain must not be empty", path)
+                diagnostics += diagnostic(
+                    code = PbtDiagnosticCode.DOMAIN_TUPLE_EMPTY,
+                    message = "Tuple domain must not be empty",
+                    path = path,
+                )
             }
             domain.elements.forEachIndexed { index, element ->
                 validateDomain(element, "$path.elements[$index]", diagnostics)
@@ -171,7 +186,7 @@ private fun validateDomain(
             validateLengths(
                 minLength = domain.minLength,
                 maxLength = domain.maxLength,
-                code = "domain.array.length",
+                code = PbtDiagnosticCode.DOMAIN_ARRAY_LENGTH,
                 description = "Array",
                 path = path,
                 diagnostics = diagnostics,
@@ -190,10 +205,18 @@ private fun validateNumberDomain(
     val maximumEncodingIsValid = validateJsNumber(domain.max, "$path.max", diagnostics)
 
     if (domain.min.value == JsNumberKind.NAN) {
-        diagnostics += diagnostic("domain.number.bound.nan", "Number minimum must not be NaN", "$path.min")
+        diagnostics += diagnostic(
+            code = PbtDiagnosticCode.DOMAIN_NUMBER_BOUND_NAN,
+            message = "Number minimum must not be NaN",
+            path = "$path.min",
+        )
     }
     if (domain.max.value == JsNumberKind.NAN) {
-        diagnostics += diagnostic("domain.number.bound.nan", "Number maximum must not be NaN", "$path.max")
+        diagnostics += diagnostic(
+            code = PbtDiagnosticCode.DOMAIN_NUMBER_BOUND_NAN,
+            message = "Number maximum must not be NaN",
+            path = "$path.max",
+        )
     }
 
     val encodingsAreValid = minimumEncodingIsValid && maximumEncodingIsValid
@@ -201,15 +224,19 @@ private fun validateNumberDomain(
     val boundsCanBeCompared = encodingsAreValid && boundsAreNotNaN
     val minimumExceedsMaximum = boundsCanBeCompared && domain.min.toDouble() > domain.max.toDouble()
     if (minimumExceedsMaximum) {
-        diagnostics += diagnostic("domain.number.bounds", "Number minimum exceeds maximum", path)
+        diagnostics += diagnostic(
+            code = PbtDiagnosticCode.DOMAIN_NUMBER_BOUNDS,
+            message = "Number minimum exceeds maximum",
+            path = path,
+        )
     }
 
     val bounded = domain.min != JsNumber.negativeInfinity() || domain.max != JsNumber.positiveInfinity()
     if (bounded && domain.allowNaN) {
         diagnostics += diagnostic(
-            "domain.number.nan-bounded",
-            "Bounded number domains must exclude NaN",
-            "$path.allowNaN",
+            code = PbtDiagnosticCode.DOMAIN_NUMBER_NAN_BOUNDED,
+            message = "Bounded number domains must exclude NaN",
+            path = "$path.allowNaN",
         )
     }
 }
@@ -240,9 +267,9 @@ private fun validateJsNumber(
     }
     if (!valid) {
         diagnostics += diagnostic(
-            "js-number.encoding.invalid",
-            "Invalid tagged JavaScript number encoding",
-            path,
+            code = PbtDiagnosticCode.JS_NUMBER_ENCODING_INVALID,
+            message = "Invalid tagged JavaScript number encoding",
+            path = path,
         )
     }
     return valid
@@ -257,7 +284,11 @@ private fun validateLengths(
     diagnostics: MutableList<ValidationDiagnostic>,
 ) {
     if (minLength < 0 || maxLength < 0 || minLength > maxLength) {
-        diagnostics += diagnostic(code, "$description length bounds are invalid", path)
+        diagnostics += diagnostic(
+            code = code,
+            message = "$description length bounds are invalid",
+            path = path,
+        )
     }
 }
 
@@ -267,10 +298,18 @@ private fun validateEntryPoint(
     diagnostics: MutableList<ValidationDiagnostic>,
 ) {
     if (!isProjectRelativePosixPath(entryPoint.module)) {
-        diagnostics += diagnostic("entrypoint.module.invalid", "Invalid TypeScript module path", "$path.module")
+        diagnostics += diagnostic(
+            code = PbtDiagnosticCode.ENTRY_POINT_MODULE_INVALID,
+            message = "Invalid TypeScript module path",
+            path = "$path.module",
+        )
     }
     if (!isJavaScriptIdentifier(entryPoint.exportName)) {
-        diagnostics += diagnostic("entrypoint.export.invalid", "Invalid TypeScript export name", "$path.exportName")
+        diagnostics += diagnostic(
+            code = PbtDiagnosticCode.ENTRY_POINT_EXPORT_INVALID,
+            message = "Invalid TypeScript export name",
+            path = "$path.exportName",
+        )
     }
 }
 
@@ -318,7 +357,11 @@ private fun MutableList<ValidationDiagnostic>.toResult(): PropertyValidationResu
     return PropertyValidationResult(orderedDiagnostics)
 }
 
-private fun diagnostic(code: String, message: String, path: String) = ValidationDiagnostic(code, message, path)
+private fun diagnostic(code: String, message: String, path: String) = ValidationDiagnostic(
+    code = code,
+    message = message,
+    path = path,
+)
 
 private val FINITE_NUMBER_BITS_REGEX = Regex("[0-9a-f]{16}")
 

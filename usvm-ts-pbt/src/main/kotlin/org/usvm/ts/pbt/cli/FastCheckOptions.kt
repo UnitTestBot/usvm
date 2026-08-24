@@ -10,6 +10,7 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.int
 import com.github.ajalt.clikt.parameters.types.long
 import com.github.ajalt.clikt.parameters.types.path
+import org.usvm.ts.pbt.PbtDiagnosticCode
 import org.usvm.ts.pbt.backend.PropertyRunConfiguration
 import org.usvm.ts.pbt.model.PropertyId
 import java.nio.file.Path
@@ -49,7 +50,7 @@ internal fun parseCliOptions(args: Array<String>): CliParseResult {
         CliParseResult.Help(parser.getFormattedHelp(help).orEmpty())
     } catch (error: CliktError) {
         throw CliUsageException(
-            code = "cli.argument.invalid",
+            code = PbtDiagnosticCode.CLI_ARGUMENT_INVALID,
             message = error.message ?: "Invalid command line arguments",
             cause = error,
         )
@@ -102,7 +103,7 @@ private class FastCheckOptionsParser : CliktCommand(name = "usvm-ts-pbt") {
 
     override fun run() {
         requireSourceRoots()
-        requireRunLimits()
+        requirePositiveRunControls()
 
         options = CliOptions(
             sourceRoots = sourceRoots,
@@ -119,26 +120,26 @@ private class FastCheckOptionsParser : CliktCommand(name = "usvm-ts-pbt") {
     private fun requireSourceRoots() {
         if (sourceRoots.isEmpty()) {
             throw CliUsageException(
-                code = "cli.source-root.required",
+                code = PbtDiagnosticCode.CLI_SOURCE_ROOT_REQUIRED,
                 message = "At least one --source-root is required",
                 path = "sourceRoot",
             )
         }
     }
 
-    private fun requireRunLimits() {
-        if (numRuns !in 1..MAX_RUNS) {
+    private fun requirePositiveRunControls() {
+        if (numRuns <= 0) {
             throw CliUsageException(
-                code = "cli.num-runs.invalid",
-                message = "--num-runs must be in 1..$MAX_RUNS",
+                code = PbtDiagnosticCode.CLI_NUM_RUNS_INVALID,
+                message = "--num-runs must be positive",
                 path = "numRuns",
             )
         }
 
-        if (timeoutMillis !in 1..MAX_TIMEOUT_MILLIS) {
+        if (timeoutMillis !in 1..PropertyRunConfiguration.MAX_TIMEOUT_MILLIS) {
             throw CliUsageException(
-                code = "cli.timeout.invalid",
-                message = "--timeout-ms must be in 1..$MAX_TIMEOUT_MILLIS",
+                code = PbtDiagnosticCode.CLI_TIMEOUT_INVALID,
+                message = "--timeout-ms must be in 1..${PropertyRunConfiguration.MAX_TIMEOUT_MILLIS}",
                 path = "timeoutMillis",
             )
         }
@@ -149,12 +150,9 @@ private fun parsePropertyId(value: String): PropertyId = try {
     PropertyId(value)
 } catch (error: IllegalArgumentException) {
     throw CliUsageException(
-        code = "cli.property.invalid",
+        code = PbtDiagnosticCode.CLI_PROPERTY_INVALID,
         message = error.message.orEmpty(),
         path = "property",
         cause = error,
     )
 }
-
-private const val MAX_RUNS = 10_000
-private const val MAX_TIMEOUT_MILLIS = 86_400_000L

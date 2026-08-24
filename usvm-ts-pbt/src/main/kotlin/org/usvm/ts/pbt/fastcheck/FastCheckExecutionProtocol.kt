@@ -1,15 +1,13 @@
 package org.usvm.ts.pbt.fastcheck
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.usvm.ts.pbt.backend.PropertyRunResult
 import org.usvm.ts.pbt.manifest.PropertyManifest
 import org.usvm.ts.pbt.model.JsConcreteValue
 
-internal const val FAST_CHECK_EXECUTION_PROTOCOL_VERSION = 1
-
 @Serializable
 internal data class FastCheckExecutionRequest(
-    val protocolVersion: Int = FAST_CHECK_EXECUTION_PROTOCOL_VERSION,
     val manifest: PropertyManifest,
     val sourceRoots: List<String>,
     val seed: Int? = null,
@@ -21,18 +19,27 @@ internal data class FastCheckExecutionRequest(
 
 @Serializable
 internal data class FastCheckExecutionWireResponse(
-    val protocolVersion: Int,
     val status: String,
     val result: PropertyRunResult? = null,
     val diagnostics: List<FastCheckProtocolDiagnostic> = emptyList(),
 )
 
 /** Infrastructure categories that remain distinct from a falsified property result. */
+@Serializable
 enum class BackendErrorKind {
+    @SerialName("invalid-request")
     INVALID_REQUEST,
+
+    @SerialName("entry-point")
     ENTRY_POINT,
+
+    @SerialName("process-failure")
     PROCESS_FAILURE,
+
+    @SerialName("protocol-error")
     PROTOCOL_ERROR,
+
+    @SerialName("timeout")
     TIMEOUT,
 }
 

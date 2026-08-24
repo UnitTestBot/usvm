@@ -4,6 +4,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
+import org.usvm.ts.pbt.PbtDiagnosticCode
 import org.usvm.ts.pbt.backend.PropertyBasedTestingBackend
 import org.usvm.ts.pbt.backend.PropertyRunConfiguration
 import org.usvm.ts.pbt.backend.PropertyRunStatus
@@ -53,7 +54,7 @@ class FastCheckCli(
         EXIT_ERROR
     } catch (error: DuplicatePropertyIdException) {
         reportError(
-            code = "registry.property-id.duplicate",
+            code = PbtDiagnosticCode.REGISTRY_PROPERTY_ID_DUPLICATE,
             message = error.message.orEmpty(),
             path = "properties",
             propertyId = error.propertyId.value,
@@ -62,7 +63,7 @@ class FastCheckCli(
         EXIT_ERROR
     } catch (error: UnknownPropertyIdException) {
         reportError(
-            code = "cli.property.unknown",
+            code = PbtDiagnosticCode.CLI_PROPERTY_UNKNOWN,
             message = error.message.orEmpty(),
             path = "property",
             propertyId = error.propertyId.value,
@@ -71,7 +72,7 @@ class FastCheckCli(
         EXIT_ERROR
     } catch (error: InvalidPropertyDefinitionException) {
         reportError(
-            code = "registry.property.invalid",
+            code = PbtDiagnosticCode.REGISTRY_PROPERTY_INVALID,
             message = error.message.orEmpty(),
             path = error.result.diagnostics.firstOrNull()?.path,
         )
@@ -89,7 +90,7 @@ class FastCheckCli(
         EXIT_ERROR
     } catch (error: ServiceConfigurationError) {
         reportError(
-            code = "registry.provider.load.failed",
+            code = PbtDiagnosticCode.REGISTRY_PROVIDER_LOAD_FAILED,
             message = error.message.orEmpty(),
             path = "registry",
         )
@@ -97,7 +98,7 @@ class FastCheckCli(
         EXIT_ERROR
     } catch (error: IllegalArgumentException) {
         reportError(
-            code = "cli.argument.invalid",
+            code = PbtDiagnosticCode.CLI_ARGUMENT_INVALID,
             message = error.message.orEmpty(),
         )
 
@@ -142,7 +143,7 @@ class FastCheckCli(
         val properties = registry.properties
         if (properties.isEmpty()) {
             throw CliUsageException(
-                code = "cli.property.empty",
+                code = PbtDiagnosticCode.CLI_PROPERTY_EMPTY,
                 message = "Selected registries contain no properties",
                 path = "registry",
             )
@@ -169,7 +170,7 @@ class FastCheckCli(
 
         if (usesRunScopedControls && propertyCount != 1) {
             throw CliUsageException(
-                code = "cli.single-property.required",
+                code = PbtDiagnosticCode.CLI_SINGLE_PROPERTY_REQUIRED,
                 message = "Replay paths and explicit examples require exactly one selected property",
                 path = "property",
             )
@@ -188,7 +189,7 @@ class FastCheckCli(
 
         if (unknown != null) {
             throw CliUsageException(
-                code = "cli.registry.unknown",
+                code = PbtDiagnosticCode.CLI_REGISTRY_UNKNOWN,
                 message = "Unknown registry ID $unknown; available IDs: ${availableIds.sorted().joinToString()}",
                 path = "registry",
             )
@@ -205,7 +206,7 @@ class FastCheckCli(
 
         if (orderedProviders.isEmpty()) {
             throw CliUsageException(
-                code = "cli.registry.empty",
+                code = PbtDiagnosticCode.CLI_REGISTRY_EMPTY,
                 message = "No PropertyRegistryProvider services were found",
                 path = "registry",
             )
@@ -217,7 +218,7 @@ class FastCheckCli(
     private fun validateProviderId(providerId: String) {
         if (!REGISTRY_ID_REGEX.matches(providerId)) {
             throw CliUsageException(
-                code = "cli.registry.id.invalid",
+                code = PbtDiagnosticCode.CLI_REGISTRY_ID_INVALID,
                 message = "Invalid registry ID: $providerId",
                 path = "registry",
             )
@@ -233,7 +234,7 @@ class FastCheckCli(
 
         if (duplicateRegistryId != null) {
             throw CliUsageException(
-                code = "cli.registry.id.duplicate",
+                code = PbtDiagnosticCode.CLI_REGISTRY_ID_DUPLICATE,
                 message = "Duplicate registry ID: $duplicateRegistryId",
                 path = "registry",
             )
@@ -253,7 +254,7 @@ class FastCheckCli(
     }
 
     private fun providerFailure(providerName: String, cause: Throwable) = CliUsageException(
-        code = "registry.provider.load.failed",
+        code = PbtDiagnosticCode.REGISTRY_PROVIDER_LOAD_FAILED,
         message = "Property registry provider $providerName failed: ${cause.message}",
         path = "registry",
         cause = cause,
@@ -268,7 +269,7 @@ class FastCheckCli(
     }
 
     private fun invalidExamples(path: Path, cause: Exception) = CliUsageException(
-        code = "cli.examples.invalid",
+        code = PbtDiagnosticCode.CLI_EXAMPLES_INVALID,
         message = "Cannot read explicit examples from $path: ${cause.message}",
         path = "examples",
         cause = cause,

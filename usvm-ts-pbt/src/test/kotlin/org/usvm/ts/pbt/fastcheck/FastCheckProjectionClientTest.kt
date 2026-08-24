@@ -34,16 +34,6 @@ class FastCheckProjectionClientTest {
     }
 
     @Test
-    fun `protocol version mismatch is a typed backend error`() {
-        val error = assertFailsWith<FastCheckProjectionException> {
-            client.sample(validRequest.copy(protocolVersion = 999))
-        }
-
-        assertEquals("protocol.version.unsupported", error.code)
-        assertEquals("protocolVersion", error.path)
-    }
-
-    @Test
     fun `invalid request is rejected before starting Node`() {
         val missingAdapterClient = FastCheckProjectionClient(
             nodeExecutable = "definitely-not-a-node-executable",
@@ -96,25 +86,6 @@ class FastCheckProjectionClientTest {
     }
 
     @Test
-    fun `response protocol mismatch is rejected`() {
-        withTemporaryAdapter(
-            """
-            process.stdout.write(JSON.stringify({
-              protocolVersion: 2,
-              status: 'ok',
-              samples: []
-            }))
-            """.trimIndent(),
-        ) { temporaryClient ->
-            val error = assertFailsWith<FastCheckProjectionException> {
-                temporaryClient.sample(validRequest)
-            }
-
-            assertEquals("backend.response.mismatch", error.code)
-        }
-    }
-
-    @Test
     fun `large adapter stderr does not block a successful response`() {
         withTemporaryAdapter(
             """
@@ -122,7 +93,6 @@ class FastCheckProjectionClientTest {
             process.stderr.write('x'.repeat(1024 * 1024), () => {
               clearTimeout(timeout)
               process.stdout.write(JSON.stringify({
-                protocolVersion: 1,
                 status: 'ok',
                 samples: [[{ kind: 'boolean', value: true }]]
               }))
