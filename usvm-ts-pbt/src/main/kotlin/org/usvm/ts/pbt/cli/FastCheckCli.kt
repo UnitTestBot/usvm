@@ -39,6 +39,7 @@ class FastCheckCli(
         when (val parsed = parseCliOptions(args)) {
             is CliParseResult.Help -> {
                 output.appendLine(parsed.text)
+
                 EXIT_SUCCESS
             }
 
@@ -48,6 +49,7 @@ class FastCheckCli(
         }
     } catch (error: CliUsageException) {
         reportError(error.code, error.message.orEmpty(), error.path)
+
         EXIT_ERROR
     } catch (error: DuplicatePropertyIdException) {
         reportError(
@@ -56,6 +58,7 @@ class FastCheckCli(
             path = "properties",
             propertyId = error.propertyId.value,
         )
+
         EXIT_ERROR
     } catch (error: UnknownPropertyIdException) {
         reportError(
@@ -64,6 +67,7 @@ class FastCheckCli(
             path = "property",
             propertyId = error.propertyId.value,
         )
+
         EXIT_ERROR
     } catch (error: InvalidPropertyDefinitionException) {
         reportError(
@@ -71,6 +75,7 @@ class FastCheckCli(
             message = error.message.orEmpty(),
             path = error.result.diagnostics.firstOrNull()?.path,
         )
+
         EXIT_ERROR
     } catch (error: PbtBackendException) {
         reportError(
@@ -80,6 +85,7 @@ class FastCheckCli(
             propertyId = error.propertyId,
             kind = error.kind.name.lowercase(),
         )
+
         EXIT_ERROR
     } catch (error: ServiceConfigurationError) {
         reportError(
@@ -87,12 +93,14 @@ class FastCheckCli(
             message = error.message.orEmpty(),
             path = "registry",
         )
+
         EXIT_ERROR
     } catch (error: IllegalArgumentException) {
         reportError(
             code = "cli.argument.invalid",
             message = error.message.orEmpty(),
         )
+
         EXIT_ERROR
     }
 
@@ -100,7 +108,9 @@ class FastCheckCli(
         val selectedProviders = selectProviders(options.registryIds)
         val registry = PropertyRegistry.combine(selectedProviders.map(::loadRegistry))
         val properties = selectProperties(registry, options.propertyId)
+
         requireSinglePropertyForRunScopedControls(options, properties.size)
+
         val examples = options.examplesFile?.let(::loadExamples).orEmpty()
         val configuration = PropertyRunConfiguration(
             seed = options.seed,
@@ -109,8 +119,10 @@ class FastCheckCli(
             timeoutMillis = options.timeoutMillis,
             examples = examples,
         )
+
         val backend = backendFactory(options.sourceRoots)
         val results = properties.map { property -> backend.run(property, configuration) }
+
         output.appendLine(PropertyManifestJson.json.encodeToString(results))
 
         val hasPropertyFailure = results.any { result -> result.status == PropertyRunStatus.FAILURE }
@@ -135,6 +147,7 @@ class FastCheckCli(
                 path = "registry",
             )
         }
+
         return properties
     }
 
@@ -153,6 +166,7 @@ class FastCheckCli(
 
     private fun requireSinglePropertyForRunScopedControls(options: CliOptions, propertyCount: Int) {
         val usesRunScopedControls = options.replayPath != null || options.examplesFile != null
+
         if (usesRunScopedControls && propertyCount != 1) {
             throw CliUsageException(
                 code = "cli.single-property.required",
@@ -165,10 +179,13 @@ class FastCheckCli(
     private fun selectProviders(registryIds: List<String>): List<ProviderRegistration> {
         val availableProviders = (providers ?: loadProviders()).map(::registerProvider)
         val orderedProviders = validateProviders(availableProviders.sortedBy(ProviderRegistration::id))
+
         if (registryIds.isEmpty()) return orderedProviders
+
         val requestedIds = registryIds.toSet()
         val availableIds = orderedProviders.map(ProviderRegistration::id).toSet()
         val unknown = requestedIds.minus(availableIds).minOrNull()
+
         if (unknown != null) {
             throw CliUsageException(
                 code = "cli.registry.unknown",
@@ -176,6 +193,7 @@ class FastCheckCli(
                 path = "registry",
             )
         }
+
         return orderedProviders.filter { registration -> registration.id in requestedIds }
     }
 
@@ -184,6 +202,7 @@ class FastCheckCli(
     ): List<ProviderRegistration> {
         orderedProviders.forEach { registration -> validateProviderId(registration.id) }
         validateUniqueProviderIds(orderedProviders)
+
         if (orderedProviders.isEmpty()) {
             throw CliUsageException(
                 code = "cli.registry.empty",
@@ -191,6 +210,7 @@ class FastCheckCli(
                 path = "registry",
             )
         }
+
         return orderedProviders
     }
 
@@ -210,6 +230,7 @@ class FastCheckCli(
             .filterValues { duplicates -> duplicates.size > 1 }
             .keys
             .minOrNull()
+
         if (duplicateRegistryId != null) {
             throw CliUsageException(
                 code = "cli.registry.id.duplicate",
@@ -267,6 +288,7 @@ class FastCheckCli(
             propertyId = propertyId,
             kind = kind,
         )
+
         errors.appendLine(PropertyManifestJson.json.encodeToString(diagnostic))
     }
 

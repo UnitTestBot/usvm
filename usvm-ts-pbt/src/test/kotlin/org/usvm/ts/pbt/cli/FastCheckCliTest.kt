@@ -31,6 +31,7 @@ class FastCheckCliTest {
     fun `help describes options declared by the CLI parser`() {
         val output = StringBuilder()
         val errors = StringBuilder()
+
         val exitCode = cli(
             providers = listOf(provider(registryId = "examples", propertyIds = arrayOf("property"))),
             output = output,
@@ -67,6 +68,7 @@ class FastCheckCliTest {
 
         val results = PropertyManifestJson.json.parseToJsonElement(output.toString()).jsonArray
         val result = results.single().jsonObject
+
         assertEquals(0, exitCode)
         assertEquals("", errors.toString())
         assertEquals(1, results.size)
@@ -98,6 +100,7 @@ class FastCheckCliTest {
         val propertyIds = PropertyManifestJson.json.parseToJsonElement(output.toString())
             .jsonArray
             .map { result -> result.jsonObject.getValue("propertyId").jsonPrimitive.content }
+
         assertEquals(1, exitCode)
         assertEquals(listOf("passing", "failing"), propertyIds)
     }
@@ -105,6 +108,7 @@ class FastCheckCliTest {
     @Test
     fun `reports unknown registries and duplicate property ids as CLI errors`() {
         val unknownErrors = StringBuilder()
+
         val unknownExit = cli(
             providers = listOf(provider(registryId = "known", propertyIds = arrayOf("property"))),
             errors = unknownErrors,
@@ -116,10 +120,12 @@ class FastCheckCliTest {
                 "missing",
             ),
         )
+
         assertEquals(2, unknownExit)
         assertEquals("cli.registry.unknown", diagnosticCode(unknownErrors))
 
         val duplicateErrors = StringBuilder()
+
         val duplicateExit = cli(
             providers = listOf(
                 provider(registryId = "first-registry", propertyIds = arrayOf("shared")),
@@ -127,6 +133,7 @@ class FastCheckCliTest {
             ),
             errors = duplicateErrors,
         ).run(arrayOf("--source-root", sourceRoot.toString()))
+
         assertEquals(2, duplicateExit)
         assertEquals("registry.property-id.duplicate", diagnosticCode(duplicateErrors))
     }
@@ -134,14 +141,17 @@ class FastCheckCliTest {
     @Test
     fun `requires source roots and a single property for replay controls`() {
         val missingRootErrors = StringBuilder()
+
         val missingRootExit = cli(
             providers = listOf(provider(registryId = "examples", propertyIds = arrayOf("property"))),
             errors = missingRootErrors,
         ).run(emptyArray())
+
         assertEquals(2, missingRootExit)
         assertEquals("cli.source-root.required", diagnosticCode(missingRootErrors))
 
         val replayErrors = StringBuilder()
+
         val replayExit = cli(
             providers = listOf(
                 provider(registryId = "examples", propertyIds = arrayOf("first", "second")),
@@ -155,6 +165,7 @@ class FastCheckCliTest {
                 "1:0",
             ),
         )
+
         assertEquals(2, replayExit)
         assertEquals("cli.single-property.required", diagnosticCode(replayErrors))
     }
@@ -165,8 +176,10 @@ class FastCheckCliTest {
         val serviceFile = serviceRoot.resolve(
             "META-INF/services/org.usvm.ts.pbt.registry.PropertyRegistryProvider",
         )
+
         Files.createDirectories(serviceFile.parent)
         Files.writeString(serviceFile, "missing.InvalidPropertyRegistryProvider\n")
+
         val errors = StringBuilder()
         val thread = Thread.currentThread()
         val previousClassLoader = thread.contextClassLoader
@@ -174,6 +187,7 @@ class FastCheckCliTest {
         try {
             URLClassLoader(arrayOf(serviceRoot.toUri().toURL()), previousClassLoader).use { classLoader ->
                 thread.contextClassLoader = classLoader
+
                 val exitCode = runCatching {
                     FastCheckCli(errors = errors).run(
                         arrayOf("--source-root", sourceRoot.toString()),
@@ -227,6 +241,7 @@ class FastCheckCliTest {
 
         invalidProviders.forEach { provider ->
             val errors = StringBuilder()
+
             val exitCode = runCatching {
                 cli(
                     providers = listOf(provider),

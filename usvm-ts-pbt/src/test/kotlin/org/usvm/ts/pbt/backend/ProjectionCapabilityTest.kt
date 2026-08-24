@@ -60,6 +60,7 @@ class ProjectionCapabilityTest {
             PropertyCapabilityLevel.EXACT,
             classifyPropertyCapability(exact(), exact()),
         )
+
         assertEquals(
             PropertyCapabilityLevel.APPROXIMATE,
             classifyPropertyCapability(
@@ -67,6 +68,7 @@ class ProjectionCapabilityTest {
                 approximate(path = "inputs[0].domain", code = "domain.approximate"),
             ),
         )
+
         assertEquals(
             PropertyCapabilityLevel.UNSUPPORTED,
             classifyPropertyCapability(

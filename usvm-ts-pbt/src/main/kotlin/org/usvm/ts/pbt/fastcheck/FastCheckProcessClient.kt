@@ -24,6 +24,7 @@ internal class FastCheckProcessClient(
     /** Executes one request and exposes only a fully validated common result. */
     fun check(request: FastCheckExecutionRequest): PropertyRunResult {
         val encodedRequest = encodeRequest(request)
+
         val process = startAdapter(request)
         val executor = Executors.newFixedThreadPool(PROCESS_IO_THREADS)
         val stdout = executor.submit<BoundedText> { process.inputStream.readBounded(MAX_STDOUT_BYTES) }
@@ -33,9 +34,11 @@ internal class FastCheckProcessClient(
                 output.write(encodedRequest)
             }
         }
+
         try {
             awaitProcess(process, request)
             awaitWriter(writer, request)
+
             val stdoutText = awaitStream(
                 future = stdout,
                 streamName = "stdout",
@@ -46,10 +49,13 @@ internal class FastCheckProcessClient(
                 streamName = "stderr",
                 request = request,
             )
+
             validateProcessExit(process, stderrText, request)
             validateStdout(stdoutText, request)
+
             val response = decodeResponse(stdoutText.text, request)
             validateProtocolVersion(response, request)
+
             return decodeSuccessfulResponse(response, request)
         } finally {
             executor.shutdownNow()
@@ -59,6 +65,7 @@ internal class FastCheckProcessClient(
 
     private fun encodeRequest(request: FastCheckExecutionRequest): String {
         val encodedRequest = PropertyManifestJson.json.encodeToString(request)
+
         if (encodedRequest.toByteArray(Charsets.UTF_8).size > MAX_REQUEST_BYTES) {
             throw backendError(
                 kind = BackendErrorKind.INVALID_REQUEST,
@@ -67,11 +74,13 @@ internal class FastCheckProcessClient(
                 request = request,
             )
         }
+
         return encodedRequest
     }
 
     private fun awaitProcess(process: Process, request: FastCheckExecutionRequest) {
         val hardDeadline = safeAdd(request.timeoutMillis, transportGraceMillis)
+
         if (!process.waitFor(hardDeadline, TimeUnit.MILLISECONDS)) {
             terminate(process)
             throw backendError(
@@ -90,6 +99,7 @@ internal class FastCheckProcessClient(
     ) {
         if (process.exitValue() != 0) {
             val detail = stderr.text.trim().ifEmpty { "no stderr" }
+
             throw backendError(
                 kind = BackendErrorKind.PROCESS_FAILURE,
                 code = "backend.process.failed",
@@ -108,6 +118,7 @@ internal class FastCheckProcessClient(
                 request = request,
             )
         }
+
         if (stdout.text.isBlank()) {
             throw backendError(
                 kind = BackendErrorKind.PROTOCOL_ERROR,
@@ -138,6 +149,7 @@ internal class FastCheckProcessClient(
             writer.get()
         } catch (error: InterruptedException) {
             Thread.currentThread().interrupt()
+
             throw backendError(
                 kind = BackendErrorKind.PROCESS_FAILURE,
                 code = "backend.process.interrupted",
@@ -164,6 +176,7 @@ internal class FastCheckProcessClient(
         future.get()
     } catch (error: InterruptedException) {
         Thread.currentThread().interrupt()
+
         throw backendError(
             kind = BackendErrorKind.PROCESS_FAILURE,
             code = "backend.process.interrupted",
@@ -219,6 +232,7 @@ internal class FastCheckProcessClient(
                 message = "fast-check error response has no diagnostic",
                 request = request,
             )
+
         val kind = when {
             diagnostic.code.startsWith("entrypoint.") -> BackendErrorKind.ENTRY_POINT
             diagnostic.code.startsWith("protocol.") -> BackendErrorKind.INVALID_REQUEST
@@ -227,6 +241,7 @@ internal class FastCheckProcessClient(
             diagnostic.code.startsWith("js-") -> BackendErrorKind.INVALID_REQUEST
             else -> BackendErrorKind.PROTOCOL_ERROR
         }
+
         throw backendError(
             kind = kind,
             code = diagnostic.code,
@@ -241,17 +256,21 @@ internal class FastCheckProcessClient(
         request: FastCheckExecutionRequest,
     ): PropertyRunResult {
         if (response.status == "error") throwNodeDiagnostic(response, request)
+
         if (response.status != "ok") {
             throw invalidResponse(
                 message = "Unknown fast-check response status: ${response.status}",
                 request = request,
             )
         }
+
         val result = response.result ?: throw invalidResponse(
             message = "Successful response has no result",
             request = request,
         )
+
         validateResultIdentity(result, request)
+
         return result
     }
 
@@ -270,6 +289,7 @@ internal class FastCheckProcessClient(
                 cause = error,
             )
         }
+
         if (result.propertyId.value != request.manifest.propertyId) {
             throw invalidResponse(
                 message = "fast-check result property does not match the request",
@@ -306,6 +326,7 @@ internal class FastCheckProcessClient(
 
     private fun terminate(process: Process) {
         process.destroy()
+
         if (!process.waitFor(shutdownGraceMillis, TimeUnit.MILLISECONDS)) {
             process.destroyForcibly()
             process.waitFor()
@@ -328,13 +349,17 @@ private fun InputStream.readBounded(limit: Int): BoundedText {
     val output = ByteArrayOutputStream(minOf(limit, DEFAULT_BUFFER_SIZE))
     val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
     var exceeded = false
+
     while (true) {
         val read = read(buffer)
         if (read < 0) break
+
         val remaining = limit - output.size()
+
         if (remaining > 0) output.write(buffer, 0, minOf(read, remaining))
         if (read > remaining) exceeded = true
     }
+
     return BoundedText(
         text = output.toString(Charsets.UTF_8),
         exceeded = exceeded,

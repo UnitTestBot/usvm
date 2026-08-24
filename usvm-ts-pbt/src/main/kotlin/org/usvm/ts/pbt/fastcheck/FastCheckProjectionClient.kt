@@ -20,10 +20,13 @@ class FastCheckProjectionClient(
     /** Projects the requested domains to fast-check and returns the generated samples. */
     fun sample(request: FastCheckProjectionRequest): FastCheckProjectionResponse {
         validateRequest(request)
+
         val response = decodeResponse(invokeAdapter(request))
+
         validateProtocolVersion(response)
         throwBackendError(response)
         validateSuccessfulResponse(request, response)
+
         return FastCheckProjectionResponse(
             samples = response.samples,
         )
@@ -42,6 +45,7 @@ class FastCheckProjectionClient(
         if (response.status == "error") {
             val diagnostic = response.diagnostics.firstOrNull()
                 ?: invalidResponse("fast-check error response does not contain a diagnostic")
+
             throw FastCheckProjectionException(
                 code = diagnostic.code,
                 message = diagnostic.message,
@@ -57,6 +61,7 @@ class FastCheckProjectionClient(
         val hasExpectedStatus = response.status == "ok"
         val hasExpectedSampleCount = response.samples.size == request.numSamples
         val hasExpectedArity = response.samples.all { it.size == request.domains.size }
+
         if (!hasExpectedStatus || !hasExpectedSampleCount || !hasExpectedArity) {
             throw FastCheckProjectionException(
                 code = "backend.response.invalid",
@@ -71,25 +76,30 @@ class FastCheckProjectionClient(
         val stderr = errorReaderExecutor.submit<String> {
             process.errorStream.bufferedReader(Charsets.UTF_8).use { reader -> reader.readText() }
         }
+
         try {
             process.outputStream.bufferedWriter(Charsets.UTF_8).use { writer ->
                 writer.write(PropertyManifestJson.json.encodeToString(request))
             }
+
             val stdout = process.inputStream.bufferedReader(Charsets.UTF_8).use { reader -> reader.readText() }
             val exitCode = process.waitFor()
             val stderrText = stderr.get()
+
             if (exitCode != 0) {
                 throw FastCheckProjectionException(
                     code = "backend.process.failed",
                     message = "fast-check adapter exited with code $exitCode: ${stderrText.trim()}",
                 )
             }
+
             if (stdout.isBlank()) {
                 throw FastCheckProjectionException(
                     code = "backend.response.empty",
                     message = "fast-check adapter returned an empty response",
                 )
             }
+
             return stdout
         } finally {
             errorReaderExecutor.shutdownNow()
@@ -124,6 +134,7 @@ class FastCheckProjectionClient(
     private fun validateRequest(request: FastCheckProjectionRequest) {
         val hasValidSampleCount = request.numSamples in 1..MAX_SAMPLES
         val hasDomains = request.domains.isNotEmpty()
+
         if (!hasValidSampleCount || !hasDomains) {
             throw FastCheckProjectionException(
                 code = "protocol.request.invalid",

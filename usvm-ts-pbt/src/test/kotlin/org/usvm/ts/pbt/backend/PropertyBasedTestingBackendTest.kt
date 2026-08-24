@@ -12,6 +12,7 @@ class PropertyBasedTestingBackendTest {
         assertFailsWith<IllegalArgumentException> {
             PropertyRunConfiguration(numRuns = 0)
         }
+
         assertFailsWith<IllegalArgumentException> {
             PropertyRunConfiguration(timeoutMillis = 0)
         }
@@ -41,6 +42,7 @@ class PropertyBasedTestingBackendTest {
                 counterexample = listOf(JsConcreteValue.Boolean(false)),
             )
         }
+
         assertFailsWith<IllegalArgumentException> {
             successfulResult().copy(
                 failure = PropertyFailureDetails(
@@ -64,6 +66,7 @@ class PropertyBasedTestingBackendTest {
         assertFailsWith<IllegalArgumentException> {
             successfulResult().copy(numShrinks = -1)
         }
+
         assertFailsWith<IllegalArgumentException> {
             successfulResult().copy(executionTimeMillis = -1)
         }

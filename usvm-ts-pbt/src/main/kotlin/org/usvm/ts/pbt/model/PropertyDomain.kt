@@ -103,6 +103,7 @@ private fun JsConcreteValue.Number.isNumberIn(domain: NumberDomain): Boolean {
     val value = validDoubleOrNull() ?: return false
     val minimum = runCatching(domain.min::toDouble).getOrNull() ?: return false
     val maximum = runCatching(domain.max::toDouble).getOrNull() ?: return false
+
     return value in minimum..maximum
 }
 

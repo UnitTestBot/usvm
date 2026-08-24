@@ -64,6 +64,7 @@ class FastCheckProjectionClientTest {
                 nodeExecutable = "definitely-not-a-node-executable",
             ).sample(validRequest)
         }
+
         assertEquals("backend.process.start.failed", startup.code)
 
         val exit = assertFailsWith<FastCheckProjectionException> {
@@ -71,6 +72,7 @@ class FastCheckProjectionClientTest {
                 adapterEntryPoint = Path.of("missing-adapter.mjs"),
             ).sample(validRequest)
         }
+
         assertEquals("backend.process.failed", exit.code)
     }
 
@@ -80,6 +82,7 @@ class FastCheckProjectionClientTest {
             val malformed = assertFailsWith<FastCheckProjectionException> {
                 temporaryClient.sample(validRequest)
             }
+
             assertEquals("backend.response.invalid", malformed.code)
         }
 
@@ -87,6 +90,7 @@ class FastCheckProjectionClientTest {
             val empty = assertFailsWith<FastCheckProjectionException> {
                 temporaryClient.sample(validRequest)
             }
+
             assertEquals("backend.response.empty", empty.code)
         }
     }
@@ -105,6 +109,7 @@ class FastCheckProjectionClientTest {
             val error = assertFailsWith<FastCheckProjectionException> {
                 temporaryClient.sample(validRequest)
             }
+
             assertEquals("backend.response.mismatch", error.code)
         }
     }
@@ -135,6 +140,7 @@ class FastCheckProjectionClientTest {
 
     private fun assertConforms(values: List<JsConcreteValue>, domains: List<PropertyDomain>) {
         assertEquals(domains.size, values.size)
+
         values.zip(domains).forEach { (value, domain) ->
             when (domain) {
                 is IntegerDomain -> {
@@ -164,6 +170,7 @@ class FastCheckProjectionClientTest {
 
     private fun withTemporaryAdapter(source: String, block: (FastCheckProjectionClient) -> Unit) {
         val script = createTempFile(prefix = "fast-check-adapter-", suffix = ".mjs")
+
         try {
             script.writeText(source)
             block(FastCheckProjectionClient(adapterEntryPoint = script))

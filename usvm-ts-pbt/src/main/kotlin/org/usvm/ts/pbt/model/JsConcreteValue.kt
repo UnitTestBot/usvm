@@ -60,6 +60,7 @@ data class JsNumber(
     companion object {
         fun finite(value: Double): JsNumber {
             require(value.isFinite()) { "Use a tagged representation for non-finite JavaScript numbers" }
+
             return JsNumber(
                 value = JsNumberKind.FINITE,
                 bits = value
@@ -121,6 +122,7 @@ object JsConcreteValueSerializer : KSerializer<JsConcreteValue> {
     override fun serialize(encoder: Encoder, value: JsConcreteValue) {
         val jsonEncoder = encoder as? JsonEncoder
             ?: throw SerializationException("JsConcreteValue supports JSON serialization only")
+
         jsonEncoder.encodeJsonElement(
             buildJsonObject {
                 when (value) {
@@ -152,6 +154,7 @@ object JsConcreteValueSerializer : KSerializer<JsConcreteValue> {
                         val elements = value.elements.map { element ->
                             jsonEncoder.json.encodeToJsonElement(JsConcreteValueSerializer, element)
                         }
+
                         val jsonElements = JsonArray(elements)
 
                         put("kind", "array")
@@ -165,7 +168,9 @@ object JsConcreteValueSerializer : KSerializer<JsConcreteValue> {
     override fun deserialize(decoder: Decoder): JsConcreteValue {
         val jsonDecoder = decoder as? JsonDecoder
             ?: throw SerializationException("JsConcreteValue supports JSON deserialization only")
+
         val value = jsonDecoder.decodeJsonElement().jsonObject
+
         return when (val kind = value.requiredString("kind")) {
             "undefined" -> JsConcreteValue.Undefined
             "null" -> JsConcreteValue.Null
@@ -181,6 +186,7 @@ object JsConcreteValueSerializer : KSerializer<JsConcreteValue> {
 private fun deserializeBoolean(value: JsonObject): JsConcreteValue.Boolean {
     val booleanValue = value["value"]?.jsonPrimitive?.booleanOrNull
         ?: throw SerializationException("Boolean JsConcreteValue requires a boolean value")
+
     return JsConcreteValue.Boolean(booleanValue)
 }
 
@@ -193,6 +199,7 @@ private fun deserializeNumber(value: JsonObject): JsConcreteValue.Number {
         "negative-infinity" -> JsNumberKind.NEGATIVE_INFINITY
         else -> throw SerializationException("Unknown JavaScript number kind: $numberKindName")
     }
+
     val bits = value["bits"]?.jsonPrimitive?.content
     val number = JsNumber(value = numberKind, bits = bits)
 
@@ -202,6 +209,7 @@ private fun deserializeNumber(value: JsonObject): JsConcreteValue.Number {
 private fun deserializeArray(jsonDecoder: JsonDecoder, value: JsonObject): JsConcreteValue.Array {
     val jsonElements = value["elements"]?.jsonArray
         ?: throw SerializationException("Array JsConcreteValue requires elements")
+
     val elements = jsonElements.map { element ->
         jsonDecoder.json.decodeFromJsonElement(JsConcreteValueSerializer, element)
     }

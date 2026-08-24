@@ -56,6 +56,7 @@ class FastCheckBackendTest {
             property = property(predicate = "isNegative"),
             configuration = configuration,
         )
+
         assertEquals(PropertyRunStatus.FAILURE, first.status)
         assertEquals(PropertyFailureKind.PROPERTY, first.failure?.kind)
         assertNotNull(first.counterexample)

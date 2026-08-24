@@ -32,6 +32,7 @@ class FastCheckBackend(
     ): PropertyRunResult {
         requireValid(validatePropertyDefinition(property))
         validateConfiguration(property, configuration)
+
         return client.check(
             FastCheckExecutionRequest(
                 manifest = property.toManifest(),
@@ -66,6 +67,7 @@ class FastCheckBackend(
                 path = "numRuns",
             )
         }
+
         if (configuration.timeoutMillis > MAX_TIMEOUT_MILLIS) {
             throw invalidRequest(
                 code = "backend.timeout.invalid",
@@ -100,13 +102,16 @@ class FastCheckBackend(
                     path = "examples[$index]",
                 )
             }
+
             example.forEachIndexed { valueIndex, value ->
                 val path = "examples[$index][$valueIndex]"
+
                 validateExampleValue(
                     property = property,
                     value = value,
                     path = path,
                 )
+
                 if (value !in property.inputs[valueIndex].domain) {
                     throw invalidRequest(
                         code = "backend.examples.domain",
@@ -132,6 +137,7 @@ class FastCheckBackend(
                 path = path,
             )
         }
+
         if (value is JsConcreteValue.Array) {
             value.elements.forEachIndexed { index, element ->
                 validateExampleValue(
@@ -176,6 +182,7 @@ class FastCheckBackend(
                     path = "sourceRoots",
                 )
             }
+
             return sourceRoots.mapIndexed(::canonicalizeSourceRoot).distinct()
         }
 

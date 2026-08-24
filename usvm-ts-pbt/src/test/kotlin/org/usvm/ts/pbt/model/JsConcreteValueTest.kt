@@ -25,10 +25,12 @@ class JsConcreteValueTest {
         values.forEach { value ->
             val encoded = PropertyManifestJson.json.encodeToString<JsConcreteValue>(value)
             val decoded = PropertyManifestJson.json.decodeFromString<JsConcreteValue>(encoded)
+
             assertEquals(value, decoded)
         }
 
         val negativeZero = values.first() as JsConcreteValue.Number
+
         assertEquals((-0.0).toRawBits(), negativeZero.toDouble().toRawBits())
     }
 

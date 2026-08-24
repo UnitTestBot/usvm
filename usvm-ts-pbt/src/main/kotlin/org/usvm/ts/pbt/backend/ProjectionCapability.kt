@@ -65,6 +65,7 @@ fun aggregateProjectionCapabilities(
     val diagnostics = capabilities
         .flatMap(ProjectionCapability::diagnostics)
         .sortedWith(compareBy(CapabilityDiagnostic::path, CapabilityDiagnostic::code))
+
     return ProjectionCapability(
         level = level,
         diagnostics = diagnostics,

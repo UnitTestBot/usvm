@@ -20,11 +20,14 @@ class ExamplePropertiesTest {
     @Test
     fun `four Kotlin property shapes validate serialize and project through fast-check`() {
         assertNotNull(javaClass.getResource("/properties/examples/PropertyExamples.ts"))
+
         val client = FastCheckProjectionClient()
 
         examples.forEach { definition ->
             assertTrue(validatePropertyDefinition(definition).isValid, definition.id.value)
+
             val manifest = definition.toManifest()
+
             assertEquals(manifest, PropertyManifestJson.decode(PropertyManifestJson.encode(manifest)))
 
             val response = client.sample(
@@ -34,6 +37,7 @@ class ExamplePropertiesTest {
                     domains = definition.inputs.map(PropertyInput::domain),
                 ),
             )
+
             assertEquals(5, response.samples.size)
             assertTrue(response.samples.all { it.size == definition.inputs.size })
         }

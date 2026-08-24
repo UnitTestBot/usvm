@@ -13,6 +13,7 @@ internal object FastCheckRuntime {
         val candidates = runtimeDirectories().map { runtimeDirectory ->
             runtimeDirectory.resolve(ENTRY_POINT_DIRECTORY).resolve(fileName)
         }
+
         return candidates.firstOrNull(Files::isRegularFile)
             ?: throw PbtBackendException(
                 kind = BackendErrorKind.INVALID_REQUEST,

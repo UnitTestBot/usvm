@@ -40,8 +40,10 @@ internal class CliUsageException(
 
 internal fun parseCliOptions(args: Array<String>): CliParseResult {
     val parser = FastCheckOptionsParser()
+
     return try {
         parser.parse(args)
+
         CliParseResult.Success(parser.options)
     } catch (help: PrintHelpMessage) {
         CliParseResult.Help(parser.getFormattedHelp(help).orEmpty())
@@ -132,6 +134,7 @@ private class FastCheckOptionsParser : CliktCommand(name = "usvm-ts-pbt") {
                 path = "numRuns",
             )
         }
+
         if (timeoutMillis !in 1..MAX_TIMEOUT_MILLIS) {
             throw CliUsageException(
                 code = "cli.timeout.invalid",

@@ -15,7 +15,9 @@ class PropertyRegistry(properties: List<PropertyDefinition>) {
         this.properties.forEach { property ->
             requireValid(validatePropertyDefinition(property))
         }
+
         rejectDuplicateIds(this.properties)
+
         propertiesById = this.properties.associateBy(PropertyDefinition::id)
     }
 
@@ -54,9 +56,11 @@ private fun rejectDuplicateIds(properties: List<PropertyDefinition>) {
     val positionsById = properties
         .mapIndexed { index, property -> property.id to index }
         .groupBy(keySelector = Pair<PropertyId, Int>::first, valueTransform = Pair<PropertyId, Int>::second)
+
     val duplicate = positionsById
         .filterValues { positions -> positions.size > 1 }
         .minByOrNull { (id, _) -> id.value }
         ?: return
+
     throw DuplicatePropertyIdException(duplicate.key, duplicate.value)
 }

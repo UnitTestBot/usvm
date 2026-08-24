@@ -25,6 +25,7 @@ class FastCheckProcessClientTest {
                 adapterEntryPoint = Path.of("missing-adapter.mjs"),
             ).check(validRequest)
         }
+
         assertEquals(BackendErrorKind.PROCESS_FAILURE, startup.kind)
         assertEquals("backend.process.start.failed", startup.code)
     }
@@ -33,6 +34,7 @@ class FastCheckProcessClientTest {
     fun `non-zero exit retains stderr`() {
         withTemporaryAdapter(source = "process.stderr.write('adapter failed'); process.exit(3)") { client ->
             val exit = assertFailsWith<PbtBackendException> { client.check(validRequest) }
+
             assertEquals(BackendErrorKind.PROCESS_FAILURE, exit.kind)
             assertEquals("backend.process.failed", exit.code)
             assertTrue(exit.message.orEmpty().contains("adapter failed"))
@@ -62,6 +64,7 @@ class FastCheckProcessClientTest {
         cases.forEach { case ->
             withTemporaryAdapter(source = case.script) { client ->
                 val error = assertFailsWith<PbtBackendException> { client.check(validRequest) }
+
                 assertEquals(BackendErrorKind.PROTOCOL_ERROR, error.kind)
                 assertEquals(case.expectedCode, error.code)
             }
@@ -115,6 +118,7 @@ class FastCheckProcessClientTest {
         block: (FastCheckProcessClient) -> Unit,
     ) {
         val script = createTempFile(prefix = "fast-check-execution-", suffix = ".mjs")
+
         try {
             script.writeText(source)
             block(

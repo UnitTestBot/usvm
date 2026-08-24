@@ -86,6 +86,7 @@ data class PropertyRunResult(
         require(numSkips >= 0) { "Skip count must not be negative" }
         require(numShrinks >= 0) { "Shrink count must not be negative" }
         require(executionTimeMillis >= 0) { "Execution time must not be negative" }
+
         when (status) {
             PropertyRunStatus.SUCCESS -> {
                 require(counterexample == null) { "A successful run must not contain a counterexample" }
