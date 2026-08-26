@@ -16,6 +16,7 @@ object Versions {
     const val kotlinx_serialization = "1.7.3"
     const val ksmt = "0.5.26"
     const val logback = "1.4.8"
+    const val mcp_kotlin_sdk = "0.8.3"
     const val mockk = "1.13.4"
     const val rd = "2023.2.0"
     const val sarif4k = "0.5.0"
@@ -247,6 +248,13 @@ object Libs {
         group = "com.github.ajalt.clikt",
         name = "clikt",
         version = Versions.clikt
+    )
+
+    // https://github.com/modelcontextprotocol/kotlin-sdk
+    val mcp_kotlin_sdk = dep(
+        group = "io.modelcontextprotocol",
+        name = "kotlin-sdk",
+        version = Versions.mcp_kotlin_sdk
     )
 }
 

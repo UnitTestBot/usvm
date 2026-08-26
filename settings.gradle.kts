@@ -40,6 +40,7 @@ include("usvm-sample-language")
 include("usvm-dataflow")
 include("usvm-jvm-dataflow")
 include("usvm-ts-dataflow")
+include("usvm-mcp")
 
 include("usvm-python")
 include("usvm-python:cpythonadapter")

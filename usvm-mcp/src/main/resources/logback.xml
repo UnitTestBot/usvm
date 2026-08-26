@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- stdout is the MCP JSON-RPC channel: all logging must go to stderr. -->
+    <appender name="STDERR" class="ch.qos.logback.core.ConsoleAppender">
+        <target>System.err</target>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %-5level %logger{24} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- The symbolic machine is chatty; keep only warnings. -->
+    <logger name="org.usvm" level="WARN"/>
+    <logger name="org.jacodb" level="WARN"/>
+    <logger name="io.ksmt" level="WARN"/>
+    <!-- But keep the MCP server's own messages. -->
+    <logger name="org.usvm.mcp" level="INFO"/>
+
+    <root level="INFO">
+        <appender-ref ref="STDERR"/>
+    </root>
+</configuration>

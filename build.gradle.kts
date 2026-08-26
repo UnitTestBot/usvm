@@ -23,6 +23,7 @@ tasks.register("validateProjectList") {
             project(":usvm-ts"),
             project(":usvm-ts-pbt"),
             project(":usvm-ts-dataflow"),
+            project(":usvm-mcp"),
         )
 
         // Gather the actual subprojects from the current root project.
