@@ -1,6 +1,7 @@
 package org.usvm.machine.call
 
 import io.mockk.mockk
+import org.usvm.machine.state.TsState
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -36,6 +37,7 @@ class TsUnknownCallModelRegistryTest {
     fun `ambiguous matches report stable sorted IDs`() {
         val registry = TsUnknownCallModelRegistry(
             registrations = listOf(registration("z-model"), registration("a-model")),
+            backends = listOf(FakeBackend),
         ).freeze()
 
         val error = assertFailsWith<IllegalStateException> {
@@ -57,6 +59,19 @@ class TsUnknownCallModelRegistryTest {
     }
 
     @Test
+    fun `enabled implementation kinds require configured backends`() {
+        val registry = TsUnknownCallModelRegistry(
+            registrations = listOf(registration("model-without-backend")),
+        )
+
+        val error = assertFailsWith<IllegalArgumentException> {
+            registry.freeze()
+        }
+
+        assertEquals("Missing semantic model backends: INTRINSIC", error.message)
+    }
+
+    @Test
     fun `selection and fingerprint do not depend on registration order`() {
         val forward = listOf(
             registration(id = "a", matches = false),
@@ -64,8 +79,14 @@ class TsUnknownCallModelRegistryTest {
         )
         val call = mockk<TsUnknownCall>()
 
-        val first = TsUnknownCallModelRegistry(forward).freeze()
-        val second = TsUnknownCallModelRegistry(forward.reversed()).freeze()
+        val first = TsUnknownCallModelRegistry(
+            registrations = forward,
+            backends = listOf(FakeBackend),
+        ).freeze()
+        val second = TsUnknownCallModelRegistry(
+            registrations = forward.reversed(),
+            backends = listOf(FakeBackend),
+        ).freeze()
 
         assertEquals("b", first.select(call)?.descriptor?.id)
         assertEquals("b", second.select(call)?.descriptor?.id)
@@ -76,7 +97,8 @@ class TsUnknownCallModelRegistryTest {
     fun `frozen subset is detached and changes fingerprint`() {
         val mutableIds = mutableSetOf("a")
         val registry = TsUnknownCallModelRegistry(
-            listOf(registration("a"), registration("b")),
+            registrations = listOf(registration("a"), registration("b")),
+            backends = listOf(FakeBackend),
         )
 
         val onlyA = registry.freeze(enabledModelIds = mutableIds)
@@ -115,5 +137,16 @@ class TsUnknownCallModelRegistryTest {
     private object FakeImplementation : TsUnknownCallModelImplementation {
         override val kind: TsUnknownCallModelImplementationKind =
             TsUnknownCallModelImplementationKind.INTRINSIC
+    }
+
+    private object FakeBackend : TsUnknownCallModelBackend {
+        override val kind: TsUnknownCallModelImplementationKind =
+            TsUnknownCallModelImplementationKind.INTRINSIC
+
+        override fun execute(
+            implementation: TsUnknownCallModelImplementation,
+            state: TsState,
+            call: TsUnknownCall,
+        ): TsUnknownCallModelExecution = error("Fake backend must not execute in registry metadata tests")
     }
 }

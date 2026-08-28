@@ -18,6 +18,10 @@ declare class ExternalBoolean {
     static convert(value: boolean): boolean;
 }
 
+declare class ExternalAny {
+    static value(): any;
+}
+
 declare class ExternalModeledCall {
     static identity(value: ExternalReceiver): ExternalReceiver;
     static fail(): number;
@@ -82,6 +86,10 @@ class CallFallbackBaseline {
 
     modeledUnknownCallThrows(): number {
         return ExternalModeledCall.fail();
+    }
+
+    freshUnknownCallResult(): any {
+        return ExternalAny.value();
     }
 
     anyReceiverWithKnownMethodContinues(receiver: any): number {

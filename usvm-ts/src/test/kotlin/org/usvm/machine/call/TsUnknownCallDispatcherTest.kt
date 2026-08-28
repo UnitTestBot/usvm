@@ -25,6 +25,7 @@ import org.usvm.UExpr
 import org.usvm.UMachineOptions
 import org.usvm.api.targets.ReachabilityObserver
 import org.usvm.api.targets.TsReachabilityTarget
+import org.usvm.isTrue
 import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
@@ -173,6 +174,27 @@ class TsUnknownCallDispatcherTest {
                 execution = execution(residualGuard = null),
             )
         }
+    }
+
+    @Test
+    fun `fresh fallback keeps fake type constraints in state models`() {
+        val states = analyzeAllStates(
+            methodName = "freshUnknownCallResult",
+            profile = TsUnknownCallProfiles.FRESH_SYMBOLIC_FOR_ALL,
+        )
+
+        assertFreshResultModelSatisfiesFakeType(states.single())
+    }
+
+    @Test
+    fun `partial residual fallback keeps fake type constraints in state models`() {
+        val states = analyzeAllStates(
+            methodName = "freshUnknownCallResult",
+            profile = TsUnknownCallProfiles.MODELS_THEN_FRESH_SYMBOLIC,
+            modelProvider = UnsupportedPartialModelProvider,
+        )
+
+        assertFreshResultModelSatisfiesFakeType(states.single())
     }
 
     @Test
@@ -611,6 +633,18 @@ class TsUnknownCallDispatcherTest {
         }
     }
 
+    private fun assertFreshResultModelSatisfiesFakeType(state: TsState) {
+        val result = assertIs<TsMethodResult.Success>(state.methodResult).value
+        val fakeValue = assertIs<UConcreteHeapRef>(result)
+        val exactlyOneType = state.ctx.run {
+            assertTrue(fakeValue.isFakeObject())
+            fakeValue.getFakeType(state.memory).mkExactlyOneTypeConstraint(this)
+        }
+
+        assertTrue(state.models.isNotEmpty())
+        assertTrue(state.models.all { model -> model.eval(exactlyOneType).isTrue })
+    }
+
     private class RecordingUnknownCallDispatcher : TsUnknownCallDispatcher {
         val calls = mutableListOf<TsUnknownCall>()
         val receiverIsAssociatedFunction = mutableListOf<Boolean?>()
@@ -742,6 +776,24 @@ class TsUnknownCallDispatcherTest {
                 execution = TsUnknownCallModelExecution(
                     successors = listOf(successor),
                     residualGuard = null,
+                ),
+            )
+        }
+    }
+
+    private object UnsupportedPartialModelProvider : TsUnknownCallModelProvider {
+        override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelApplication {
+            val successor = TsUnknownCallModelSuccessor(
+                guard = state.ctx.falseExpr,
+                completion = TsUnknownCallModelCompletion.Normal { ctx.mkUndefinedValue() },
+            )
+
+            return TsUnknownCallModelApplication.Applied(
+                modelId = "unsupported-partial-model",
+                precision = TsUnknownCallModelPrecision.PARTIAL,
+                execution = TsUnknownCallModelExecution(
+                    successors = listOf(successor),
+                    residualGuard = state.ctx.trueExpr,
                 ),
             )
         }

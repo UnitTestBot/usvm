@@ -4,6 +4,7 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
+import org.junit.jupiter.api.Disabled
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
@@ -12,6 +13,8 @@ import org.usvm.api.TsTestValue
 import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
+import org.usvm.machine.state.TsMethodResult
+import org.usvm.machine.state.TsState
 import org.usvm.util.TsTestResolver
 import org.usvm.util.getResourcePath
 import kotlin.test.Test
@@ -47,12 +50,54 @@ class TsArrayPopIntrinsicModelTest {
     }
 
     @Test
-    fun `array pop preserves a returned reference alias`() {
-        val result = analyze(methodName = "aliasedElement")
+    fun `allocated reference array uses residual fallback`() {
+        assertUsesResidualFallback(methodName = "aliasedElement")
+    }
 
-        assertTrue(result.values.isNotEmpty(), "No final states; events=${result.events}")
-        assertEquals(42.0, assertIs<TsTestValue.TsNumber>(result.values.single()).number)
-        assertEquals(listOf("ts.array.pop"), result.modelIds)
+    @Test
+    fun `symbolic reference array uses residual fallback`() {
+        assertUsesResidualFallback(methodName = "symbolicReferenceArray")
+    }
+
+    @Test
+    fun `symbolic primitive array remains in the supported domain`() {
+        val result = analyze(methodName = "symbolicNumberArray")
+
+        assertTrue(result.values.isNotEmpty())
+        assertEquals(listOf(TsUnknownCallOutcome.MODEL_APPLIED), result.events.map { it.outcome })
+    }
+
+    @Test
+    fun `symbolic unknown array uses residual fallback`() {
+        assertUsesResidualFallback(methodName = "symbolicUnknownArray")
+    }
+
+    @Test
+    fun `allocated reference array with symbolic write uses residual fallback`() {
+        val result = analyze(methodName = "allocatedReferenceArrayWithSymbolicWrite")
+
+        val event = result.events.single()
+        assertEquals(TsUnknownCallOutcome.PATH_STOPPED, event.outcome)
+        assertIs<TsUnknownCallDecision.ResidualFallback>(event.decision)
+    }
+
+    @Test
+    fun `array pop with arguments uses residual fallback`() {
+        assertUsesResidualFallback(methodName = "popWithArguments")
+    }
+
+    @Disabled("Tracked by https://github.com/UnitTestBot/usvm/issues/379")
+    @Test
+    fun `symbolic reference array pop preserves fake value representations`() {
+        val states = analyzeStates(methodName = "symbolicReferenceArrayPreservesFakeValue")
+
+        assertTrue(
+            states.any { state ->
+                val result = (state.methodResult as? TsMethodResult.Success)?.value
+                result == state.ctx.mkFp(44.0, state.ctx.fp64Sort)
+            },
+            "Expected the number representation to reach return 44",
+        )
     }
 
     @Test
@@ -112,6 +157,27 @@ class TsArrayPopIntrinsicModelTest {
                 events = observer.events.toList(),
                 catalogFingerprint = machine.unknownCallModelCatalogFingerprint,
             )
+        }
+    }
+
+    private fun assertUsesResidualFallback(methodName: String) {
+        val result = analyze(methodName = methodName)
+
+        assertTrue(result.values.isEmpty())
+        val event = result.events.single()
+        assertEquals(TsUnknownCallOutcome.PATH_STOPPED, event.outcome)
+        assertIs<TsUnknownCallDecision.ResidualFallback>(event.decision)
+    }
+
+    private fun analyzeStates(methodName: String): List<TsState> {
+        val method = method(methodName)
+
+        return TsMachine(
+            scene = scene,
+            options = machineOptions,
+            tsOptions = TsOptions(),
+        ).use { machine ->
+            machine.analyze(listOf(method))
         }
     }
 

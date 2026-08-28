@@ -74,7 +74,8 @@ class TsUnknownCallModelSuccessor(
  * A backend-neutral semantic-model execution plan.
  *
  * [residualGuard] denotes the unsupported part of a partial model's domain. Together, successor guards and the
- * residual guard must partition the current call domain.
+ * residual guard must partition the current call domain. The dispatcher validates disjointness and coverage before
+ * applying any successor.
  */
 class TsUnknownCallModelExecution(
     successors: List<TsUnknownCallModelSuccessor>,
