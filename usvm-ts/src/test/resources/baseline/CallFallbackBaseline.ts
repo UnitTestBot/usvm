@@ -18,6 +18,11 @@ declare class ExternalBoolean {
     static convert(value: boolean): boolean;
 }
 
+declare class ExternalModeledCall {
+    static identity(value: ExternalReceiver): ExternalReceiver;
+    static fail(): number;
+}
+
 class KnownReceiver {
     known(): number {
         return 1;
@@ -66,6 +71,17 @@ class CallFallbackBaseline {
 
     modeledUnknownCallForks(value: boolean): boolean {
         return ExternalBoolean.convert(value);
+    }
+
+    modeledUnknownCallReturnsAlias(receiver: ExternalReceiver): number {
+        if (ExternalModeledCall.identity(receiver) === receiver) {
+            return 122;
+        }
+        return 0;
+    }
+
+    modeledUnknownCallThrows(): number {
+        return ExternalModeledCall.fail();
     }
 
     anyReceiverWithKnownMethodContinues(receiver: any): number {

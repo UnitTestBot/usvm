@@ -4,6 +4,8 @@ import org.jacodb.ets.model.EtsClassSignature
 import org.usvm.api.mockMethodCall
 import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.interpreter.TsStepScope
+import org.usvm.machine.state.TsMethodResult
+import org.usvm.machine.state.TsState
 import org.usvm.machine.state.newStmt
 
 /** The externally observable decision made for a call that could not be executed normally. */
@@ -61,34 +63,9 @@ object TsUnknownCallProfiles {
     )
 }
 
-/** The result of asking a model provider to handle one unknown call. */
-sealed interface TsUnknownCallModelApplication {
-    /** Identifies the semantic model that produced the successor states. */
-    data class Applied(
-        val modelId: String,
-    ) : TsUnknownCallModelApplication {
-        init {
-            require(modelId.isNotBlank()) { "Applied model ID must not be blank" }
-        }
-    }
-
-    /** Indicates that the provider has no semantic model for this call. */
-    data object NotApplicable : TsUnknownCallModelApplication
-}
-
-/**
- * Applies semantic models without exposing their lookup or registry implementation to the dispatcher.
- *
- * A provider returning [TsUnknownCallModelApplication.Applied] must update the supplied scope with the model's
- * successor states. The deterministic registry and concrete model implementations are introduced separately.
- */
-fun interface TsUnknownCallModelProvider {
-    fun apply(scope: TsStepScope, call: TsUnknownCall): TsUnknownCallModelApplication
-}
-
 /** Empty provider used until an explicit model registry is configured. */
 object TsNoUnknownCallModels : TsUnknownCallModelProvider {
-    override fun apply(scope: TsStepScope, call: TsUnknownCall): TsUnknownCallModelApplication =
+    override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelApplication =
         TsUnknownCallModelApplication.NotApplicable
 }
 
@@ -97,32 +74,39 @@ class TsProfileUnknownCallDispatcher(
     private val profile: TsUnknownCallProfile,
     private val modelProvider: TsUnknownCallModelProvider,
     private val observer: TsInterpreterObserver? = null,
-) : TsUnknownCallDispatcher {
+) : TsUnknownCallModelDispatcher {
     override fun dispatch(scope: TsStepScope, call: TsUnknownCall): TsUnknownCallOutcome {
-        val residualReason = when (profile.modelLookup) {
-            TsUnknownCallModelLookup.DISABLED -> {
-                TsUnknownCallResidualReason.MODEL_LOOKUP_DISABLED
-            }
-
-            TsUnknownCallModelLookup.ENABLED -> {
-                when (val application = modelProvider.apply(scope, call)) {
-                    is TsUnknownCallModelApplication.Applied -> {
-                        val event = event(
-                            call = call,
-                            outcome = TsUnknownCallOutcome.MODEL_APPLIED,
-                            decision = TsUnknownCallDecision.ModelApplied(modelId = application.modelId),
-                        )
-                        observer?.onUnknownCallSafely(event)
-                        return TsUnknownCallOutcome.MODEL_APPLIED
-                    }
-
-                    TsUnknownCallModelApplication.NotApplicable -> {
-                        TsUnknownCallResidualReason.MODEL_NOT_APPLICABLE
-                    }
-                }
-            }
+        if (profile.modelLookup == TsUnknownCallModelLookup.DISABLED) {
+            return applyResidualFallback(
+                scope = scope,
+                call = call,
+                reason = TsUnknownCallResidualReason.MODEL_LOOKUP_DISABLED,
+            )
         }
 
+        val application = scope.calcOnState {
+            modelProvider.apply(state = this, call = call)
+        }
+        return when (application) {
+            is TsUnknownCallModelApplication.Applied -> applyModel(
+                scope = scope,
+                call = call,
+                application = application,
+            )
+
+            TsUnknownCallModelApplication.NotApplicable -> applyResidualFallback(
+                scope = scope,
+                call = call,
+                reason = TsUnknownCallResidualReason.MODEL_NOT_APPLICABLE,
+            )
+        }
+    }
+
+    private fun applyResidualFallback(
+        scope: TsStepScope,
+        call: TsUnknownCall,
+        reason: TsUnknownCallResidualReason,
+    ): TsUnknownCallOutcome {
         val residualPolicy = profile.residualPolicyFor(call)
         val outcome = when (residualPolicy) {
             TsResidualCallPolicy.STOP_PATH -> TsUnknownCallOutcome.PATH_STOPPED
@@ -133,7 +117,7 @@ class TsProfileUnknownCallDispatcher(
             outcome = outcome,
             decision = TsUnknownCallDecision.ResidualFallback(
                 policy = residualPolicy,
-                reason = residualReason,
+                reason = reason,
             ),
         )
         when (residualPolicy) {
@@ -151,6 +135,115 @@ class TsProfileUnknownCallDispatcher(
         observer?.onUnknownCallSafely(event)
         return outcome
     }
+
+    private fun applyModel(
+        scope: TsStepScope,
+        call: TsUnknownCall,
+        application: TsUnknownCallModelApplication.Applied,
+    ): TsUnknownCallOutcome {
+        val residualGuard = application.execution.residualGuard
+        val residualPolicy = profile.residualPolicyFor(call)
+        val stoppedResidualIsSatisfiable = residualGuard != null &&
+            residualPolicy == TsResidualCallPolicy.STOP_PATH &&
+            scope.checkSat(residualGuard) != null
+
+        var modelApplied = false
+        var modelEventReported = false
+        var freshResidualApplied = false
+        val guardedStateChanges = application.execution.successors.map { successor ->
+            successor.guard to modelStateChange(
+                call = call,
+                application = application,
+                successor = successor,
+                onApplied = {
+                    modelApplied = true
+                    if (modelEventReported) {
+                        false
+                    } else {
+                        modelEventReported = true
+                        true
+                    }
+                },
+            )
+        }.toMutableList()
+
+        if (residualGuard != null && residualPolicy == TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN) {
+            guardedStateChanges += residualGuard to {
+                mockMethodCall(method = call.callee, resultType = call.resultType)
+                newStmt(call.callSite)
+                freshResidualApplied = true
+
+                val event = residualEvent(
+                    call = call,
+                    policy = TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN,
+                )
+                observer?.onUnknownCallSafely(event)
+            }
+        }
+
+        scope.forkMulti(guardedStateChanges)
+
+        if (stoppedResidualIsSatisfiable) {
+            val event = residualEvent(
+                call = call,
+                policy = TsResidualCallPolicy.STOP_PATH,
+            )
+            observer?.onUnknownCallSafely(event)
+        }
+
+        return when {
+            modelApplied -> TsUnknownCallOutcome.MODEL_APPLIED
+            freshResidualApplied -> TsUnknownCallOutcome.FRESH_SYMBOLIC_RETURN
+            stoppedResidualIsSatisfiable -> TsUnknownCallOutcome.PATH_STOPPED
+            else -> error("Semantic model ${application.modelId} produced no satisfiable successor or residual state")
+        }
+    }
+
+    private fun modelStateChange(
+        call: TsUnknownCall,
+        application: TsUnknownCallModelApplication.Applied,
+        successor: TsUnknownCallModelSuccessor,
+        onApplied: () -> Boolean,
+    ): TsState.() -> Unit = {
+        successor.applyStateChanges(this)
+
+        when (val completion = successor.completion) {
+            is TsUnknownCallModelCompletion.Normal -> {
+                val result = completion.result(this)
+                methodResult = TsMethodResult.Success.MockedCall(result, call.callee)
+                newStmt(call.callSite)
+            }
+
+            is TsUnknownCallModelCompletion.Exceptional -> {
+                val (exception, type) = completion.exception(this)
+                methodResult = TsMethodResult.TsException(exception, type)
+            }
+        }
+
+        if (onApplied()) {
+            val event = event(
+                call = call,
+                outcome = TsUnknownCallOutcome.MODEL_APPLIED,
+                decision = TsUnknownCallDecision.ModelApplied(modelId = application.modelId),
+            )
+            observer?.onUnknownCallSafely(event)
+        }
+    }
+
+    private fun residualEvent(
+        call: TsUnknownCall,
+        policy: TsResidualCallPolicy,
+    ) = event(
+        call = call,
+        outcome = when (policy) {
+            TsResidualCallPolicy.STOP_PATH -> TsUnknownCallOutcome.PATH_STOPPED
+            TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN -> TsUnknownCallOutcome.FRESH_SYMBOLIC_RETURN
+        },
+        decision = TsUnknownCallDecision.ResidualFallback(
+            policy = policy,
+            reason = TsUnknownCallResidualReason.MODEL_NOT_APPLICABLE,
+        ),
+    )
 
     private fun event(
         call: TsUnknownCall,
