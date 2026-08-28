@@ -1,5 +1,13 @@
 package org.usvm.ts.pbt.fastcheck
 
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.runInterruptible
+import kotlinx.coroutines.supervisorScope
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import org.usvm.ts.pbt.PbtDiagnosticCode
@@ -10,9 +18,6 @@ import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.io.InputStream
 import java.nio.file.Path
-import java.util.concurrent.ExecutionException
-import java.util.concurrent.Executors
-import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 
 /** Supervised one-shot transport for the private fast-check execution bridge. */
@@ -23,14 +28,27 @@ internal class FastCheckProcessClient(
     private val shutdownGraceMillis: Long = DEFAULT_SHUTDOWN_GRACE_MILLIS,
 ) {
     /** Executes one request and exposes only a fully validated common result. */
-    fun check(request: FastCheckExecutionRequest): PropertyRunResult {
+    fun check(request: FastCheckExecutionRequest): PropertyRunResult = try {
+        runBlocking { checkSuspending(request) }
+    } catch (error: InterruptedException) {
+        Thread.currentThread().interrupt()
+
+        throw backendError(
+            kind = BackendErrorKind.PROCESS_FAILURE,
+            code = PbtDiagnosticCode.BACKEND_PROCESS_INTERRUPTED,
+            message = "Interrupted while waiting for the fast-check adapter",
+            request = request,
+            cause = error,
+        )
+    }
+
+    private suspend fun checkSuspending(request: FastCheckExecutionRequest): PropertyRunResult = supervisorScope {
         val encodedRequest = encodeRequest(request)
 
         val process = startAdapter(request)
-        val executor = Executors.newCachedThreadPool()
-        val stdout = executor.submit<BoundedText> { process.inputStream.readBounded(MAX_STDOUT_BYTES) }
-        val stderr = executor.submit<BoundedText> { process.errorStream.readBounded(MAX_STDERR_BYTES) }
-        val writer = executor.submit<Unit> {
+        val stdout = async(Dispatchers.IO) { process.inputStream.readBounded(MAX_STDOUT_BYTES) }
+        val stderr = async(Dispatchers.IO) { process.errorStream.readBounded(MAX_STDERR_BYTES) }
+        val writer = async(Dispatchers.IO) {
             process.outputStream.bufferedWriter(Charsets.UTF_8).use { output ->
                 output.write(encodedRequest)
             }
@@ -38,21 +56,22 @@ internal class FastCheckProcessClient(
 
         try {
             awaitProcess(process, request)
-            await(
-                future = writer,
+
+            awaitIo(
+                task = writer,
                 operation = "writing the fast-check request",
                 failureCode = PbtDiagnosticCode.BACKEND_PROCESS_WRITE_FAILED,
                 request = request,
             )
 
-            val stdoutText = await(
-                future = stdout,
+            val stdoutText = awaitIo(
+                task = stdout,
                 operation = "reading fast-check stdout",
                 failureCode = PbtDiagnosticCode.BACKEND_PROCESS_READ_FAILED,
                 request = request,
             )
-            val stderrText = await(
-                future = stderr,
+            val stderrText = awaitIo(
+                task = stderr,
                 operation = "reading fast-check stderr",
                 failureCode = PbtDiagnosticCode.BACKEND_PROCESS_READ_FAILED,
                 request = request,
@@ -63,9 +82,8 @@ internal class FastCheckProcessClient(
 
             val response = decodeResponse(stdoutText.text, request)
 
-            return decodeSuccessfulResponse(response, request)
+            decodeSuccessfulResponse(response, request)
         } finally {
-            executor.shutdownNow()
             if (process.isAlive) terminate(process)
         }
     }
@@ -85,11 +103,15 @@ internal class FastCheckProcessClient(
         return encodedRequest
     }
 
-    private fun awaitProcess(process: Process, request: FastCheckExecutionRequest) {
-        val hardDeadline = safeAdd(request.timeoutMillis, transportGraceMillis)
+    private suspend fun awaitProcess(process: Process, request: FastCheckExecutionRequest) {
+        val hardTimeoutMillis = safeAdd(request.timeoutMillis, transportGraceMillis)
+        val exitCode = withTimeoutOrNull(hardTimeoutMillis) {
+            runInterruptible(Dispatchers.IO) { process.waitFor() }
+        }
 
-        if (!process.waitFor(hardDeadline, TimeUnit.MILLISECONDS)) {
+        if (exitCode == null) {
             terminate(process)
+
             throw backendError(
                 kind = BackendErrorKind.TIMEOUT,
                 code = PbtDiagnosticCode.BACKEND_PROCESS_TIMEOUT,
@@ -148,28 +170,20 @@ internal class FastCheckProcessClient(
         )
     }
 
-    private fun <T> await(
-        future: Future<T>,
+    private suspend fun <T> awaitIo(
+        task: Deferred<T>,
         operation: String,
         failureCode: String,
         request: FastCheckExecutionRequest,
     ): T = try {
-        future.get()
-    } catch (error: InterruptedException) {
-        Thread.currentThread().interrupt()
-
-        throw backendError(
-            kind = BackendErrorKind.PROCESS_FAILURE,
-            code = PbtDiagnosticCode.BACKEND_PROCESS_INTERRUPTED,
-            message = "Interrupted while $operation",
-            request = request,
-            cause = error,
-        )
-    } catch (error: ExecutionException) {
+        task.await()
+    } catch (error: CancellationException) {
+        throw error
+    } catch (error: IOException) {
         throw backendError(
             kind = BackendErrorKind.PROCESS_FAILURE,
             code = failureCode,
-            message = "Failed while $operation: ${error.cause?.message}",
+            message = "Failed while $operation: ${error.message}",
             request = request,
             cause = error,
         )

@@ -67,7 +67,7 @@ flowchart LR
 | Kotlin model and validation | Define one backend-neutral property and reject invalid structure before execution. |
 | Registry and CLI | Select Kotlin-defined properties and turn user options into a run configuration. |
 | `FastCheckBackend` | Validate examples, resolve source roots, and create the adapter request. |
-| `FastCheckProcessClient` | Supervise Node, bound I/O, enforce the hard deadline, and validate the response. |
+| `FastCheckProcessClient` | Supervise Node with coroutines, bounded I/O, hard deadlines, and response validation. |
 | `execution-cli.ts` | Read one JSON request, protect protocol stdout from user logging, and write one response. |
 | `execute-property.ts` | Build the fast-check property, run it, and translate `RunDetails` into the common result. |
 | `project-domain.ts` | Translate domain descriptors into real `fc.Arbitrary` instances. |
@@ -167,11 +167,11 @@ Falsification and a timeout cleanly reported by fast-check are completed propert
 entry-point failures, process failures, malformed responses, and the JVM hard timeout are infrastructure
 exceptions.
 
-The execution client starts stdout, stderr, and stdin work concurrently. Requests and stdout are limited to 4 MiB;
-stderr is limited to 64 KiB. These are transport safety bounds, not property-policy limits. The hard deadline is the
-property timeout plus two seconds for transport, followed by a 250 ms graceful shutdown before force-kill. The only
-run-control maximum is `2^31 - 1` milliseconds because Node timers use signed 32-bit delays; runs, examples, and
-replay paths have no arbitrary count or length caps.
+The execution client starts stdout, stderr, and stdin work concurrently on the coroutine I/O dispatcher. Requests
+and stdout are limited to 4 MiB; stderr is limited to 64 KiB. These are transport safety bounds, not property-policy
+limits. The hard deadline is the property timeout plus two seconds for transport, followed by a 250 ms graceful
+shutdown before force-kill. The only run-control maximum is `2^31 - 1` milliseconds because Node timers use signed
+32-bit delays; runs, examples, and replay paths have no arbitrary count or length caps.
 
 ## Runtime packaging
 
