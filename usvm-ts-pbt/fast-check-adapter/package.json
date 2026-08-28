@@ -12,12 +12,18 @@
     "test:compiled": "node --test dist/test/entry-point.test.js dist/test/execute-property.test.js dist/test/execution-cli.test.js dist/test/js-value.test.js dist/test/project-domain.test.js dist/test/projection-cli.test.js"
   },
   "dependencies": {
+    "c8": "10.1.3",
     "fast-check": "4.9.0",
     "tsx": "4.23.12"
   },
   "devDependencies": {
     "@types/node": "18.19.130",
     "typescript": "5.9.2"
+  },
+  "overrides": {
+    "c8": {
+      "test-exclude": "7.0.1"
+    }
   },
   "engines": {
     "node": ">=18.18.0"

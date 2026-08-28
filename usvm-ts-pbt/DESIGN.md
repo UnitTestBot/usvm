@@ -7,6 +7,7 @@ API and CLI examples, see [README.md](README.md).
 
 - Kotlin owns property definitions, validation, registries, orchestration, and public results.
 - Node is a thin adapter around fast-check and direct TypeScript loading.
+- Per-property source coverage is an optional backend capability collected by Kotlin through an isolated c8 run.
 - The JSON exchange is one request and one response from the same packaged distribution; it has no persistence or
   compatibility negotiation.
 - Failures are typed without exposing runtime-dependent Node stack traces.
@@ -38,6 +39,7 @@ flowchart LR
 
     FastCheck[fast-check]
     Tsx[tsx]
+    C8[c8 and Istanbul JSON]
     UserTS[User TypeScript source]
 
     CLI --> Registry
@@ -47,6 +49,8 @@ flowchart LR
     Backend --> Model
     Backend --> Process
     Process --> ExecutionCLI
+    Process --> C8
+    C8 --> ExecutionCLI
     Projection --> ProjectionCLI
     ExecutionCLI --> Execute
     Execute --> Domains
@@ -67,7 +71,7 @@ flowchart LR
 | Kotlin model and validation | Define one backend-neutral property and reject invalid structure before execution. |
 | Registry and CLI | Select Kotlin-defined properties and turn user options into a run configuration. |
 | `FastCheckBackend` | Validate examples, resolve source roots, and create the adapter request. |
-| `FastCheckProcessClient` | Supervise Node with coroutines, bounded I/O, hard deadlines, and response validation. |
+| `FastCheckProcessClient` | Supervise Node with coroutines and optionally decode one isolated c8 report. |
 | `execution-cli.ts` | Read one JSON request, protect protocol stdout from user logging, and write one response. |
 | `execute-property.ts` | Build the fast-check property, run it, and translate `RunDetails` into the common result. |
 | `project-domain.ts` | Translate domain descriptors into real `fc.Arbitrary` instances. |
@@ -93,8 +97,9 @@ flowchart LR
     Verify --> Result[PropertyRunResult or PbtBackendException]
 ```
 
-The execution request contains `manifest`, `sourceRoots`, optional `seed` and `replayPath`, `numRuns`,
-`timeoutMillis`, and tagged `examples`. A response is either:
+The private execution request contains `manifest`, `sourceRoots`, optional `seed` and `replayPath`, `numRuns`,
+`timeoutMillis`, and tagged `examples`. `coverageRequest` is Kotlin-only transport metadata and is not serialized
+to Node or added to `PropertyManifest`. A Node response is either:
 
 ```text
 { status: "ok", result: PropertyRunResult }
@@ -104,6 +109,10 @@ The execution request contains `manifest`, `sourceRoots`, optional `seed` and `r
 There is intentionally no request ID, operation name, schema version, protocol version, backend ID, or backend
 version. The exchange is private, one-shot, and produced and consumed by the same build. Adding compatibility
 metadata would create branches that no supported workflow uses.
+
+Coverage does not version this private protocol. When requested, Kotlin starts the same execution CLI under c8,
+then reads a separate Istanbul report after a valid response. Backend identity and artifact schema version belong
+to `coverageCapability` and `PropertyCoverageArtifact`, not the ordinary property result or private wire response.
 
 Kotlin validates trusted model objects and examples early so callers get local errors. Node validates the decoded
 JSON again because the process boundary must not trust malformed input. Diagnostic codes have one owner per
@@ -139,6 +148,9 @@ sequenceDiagram
     FC-->>Node: RunDetails
     Node-->>Client: one JSON response
     Client->>Client: validate exit, size, shape, category, and property ID
+    opt coverage requested
+        Client->>Client: decode isolated c8 Istanbul report
+    end
     Client-->>Backend: PropertyRunResult
     Backend-->>Caller: PropertyRunResult
 ```
@@ -167,6 +179,40 @@ Falsification and a timeout cleanly reported by fast-check are completed propert
 entry-point failures, process failures, malformed responses, and the JVM hard timeout are infrastructure
 exceptions.
 
+Coverage collection failures use the separate `COVERAGE` infrastructure category. Stable diagnostics distinguish
+an unsupported backend or Node runtime, unavailable runtime version, missing collector, missing or malformed
+report, and missing or invalid source map. They are never converted into an empty artifact.
+
+## Coverage collection and filtering
+
+For each coverage-enabled property the process client creates unique `raw` and `report` directories and runs:
+
+```text
+node <adapter>/node_modules/c8/bin/c8.js
+  --config=<run>/c8-config.json
+  --reporter=json
+  --reports-dir=<run>/report
+  --temp-directory=<run>/raw
+  --exclude-after-remap
+  --allowExternal
+  --exclude=__usvm_no_default_excludes__
+  node <adapter>/dist/src/execution-cli.js
+```
+
+Kotlin first probes the configured Node executable and rejects versions older than 18.18 before creating the c8
+workspace. The verified version is reused as artifact provenance. The c8 process inherits the caller's current
+directory so user predicates observe the same environment with and without coverage, while an explicit empty
+configuration prevents project-local c8 settings from altering collection. c8 then performs V8-to-Istanbul
+conversion and source-map remapping. Kotlin rejects reports larger than 64 MiB before
+reading them, validates statement, function, and branch maps and counters, classifies remapped files into
+source-under-test, property entry points, generated wrappers, or dependencies, then applies include and exclude
+globs. Excludes take precedence. Files and diagnostics are sorted deterministically before constructing artifact
+schema version 1.
+
+A successful or falsified property exits the bridge normally, allowing c8 to flush the report. Process crashes,
+invalid protocol responses, and hard kills do not produce a completed property result. The workspace is removed
+in all cases, and a new workspace is used for every property.
+
 The execution client starts stdout, stderr, and stdin work concurrently on the coroutine I/O dispatcher. Requests
 and stdout are limited to 4 MiB; stderr is limited to 64 KiB. These are transport safety bounds, not property-policy
 limits. The hard deadline is the property timeout plus two seconds for transport, followed by a 250 ms graceful
@@ -175,8 +221,8 @@ shutdown before force-kill. The only run-control maximum is `2^31 - 1` milliseco
 
 ## Runtime packaging
 
-Gradle installs pinned adapter dependencies, compiles only the private adapter, and packages `dist/src` plus its
-runtime dependencies in the application distribution. User TypeScript stays as source. During repository tests,
+Gradle installs pinned adapter dependencies, including c8 10.1.3, compiles only the private adapter, and packages
+`dist/src` plus its runtime dependencies in the application distribution. User TypeScript stays as source. During repository tests,
 Gradle passes the adapter directory through a JVM system property; an installed distribution resolves it next to
 the application libraries. Node.js 18.18 or newer is required, and runtime archives carry an OS/architecture
 classifier because `tsx` depends on a native esbuild package.
@@ -190,6 +236,8 @@ classifier because `tsx` depends on a native esbuild package.
   fast-check: startup failure, non-zero exit, malformed output, explicit diagnostic categories, and hard timeout.
 - Backend integration tests execute real uncompiled TypeScript through the packaged adapter, including replay,
   shrinking, explicit examples, preconditions, async predicates, and timeouts.
+- Coverage golden tests assert literal TypeScript statement and branch outcomes for successful and falsified runs,
+  cross-property isolation, scope and glob filtering, and source-map/report diagnostics.
 
 ## Non-goals
 
@@ -197,4 +245,5 @@ classifier because `tsx` depends on a native esbuild package.
 - Discovering properties by scanning TypeScript source roots.
 - Compiling user TypeScript as part of the PBT workflow.
 - Reimplementing generation, replay, skip accounting, or shrinking in Kotlin.
-- Recording coverage or other per-run artifacts in this change.
+- Mapping Node source locations to EtsIR or constructing symbolic targets from coverage.
+- Combining Node source coverage with future EtsIR replay coverage.

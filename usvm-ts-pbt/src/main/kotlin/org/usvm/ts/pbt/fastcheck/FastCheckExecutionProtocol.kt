@@ -2,6 +2,8 @@ package org.usvm.ts.pbt.fastcheck
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
+import org.usvm.ts.pbt.backend.PropertyCoverageRequest
 import org.usvm.ts.pbt.backend.PropertyRunResult
 import org.usvm.ts.pbt.manifest.PropertyManifest
 import org.usvm.ts.pbt.model.JsConcreteValue
@@ -15,6 +17,8 @@ internal data class FastCheckExecutionRequest(
     val numRuns: Int,
     val timeoutMillis: Long,
     val examples: List<List<JsConcreteValue>> = emptyList(),
+    @Transient
+    val coverageRequest: PropertyCoverageRequest? = null,
 )
 
 @Serializable
@@ -41,6 +45,9 @@ enum class BackendErrorKind {
 
     @SerialName("timeout")
     TIMEOUT,
+
+    @SerialName("coverage")
+    COVERAGE,
 }
 
 /** Typed failure at the concrete backend boundary. */

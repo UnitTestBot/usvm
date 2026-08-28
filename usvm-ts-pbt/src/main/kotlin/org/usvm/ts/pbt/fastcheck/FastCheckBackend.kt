@@ -1,9 +1,12 @@
 package org.usvm.ts.pbt.fastcheck
 
 import org.usvm.ts.pbt.PbtDiagnosticCode
+import org.usvm.ts.pbt.backend.CoverageCollectorIdentity
 import org.usvm.ts.pbt.backend.PropertyBasedTestingBackend
+import org.usvm.ts.pbt.backend.PropertyCoverageCapability
 import org.usvm.ts.pbt.backend.PropertyRunConfiguration
 import org.usvm.ts.pbt.backend.PropertyRunResult
+import org.usvm.ts.pbt.coverage.C8_COLLECTOR_VERSION
 import org.usvm.ts.pbt.manifest.toManifest
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.JsNumberKind
@@ -21,6 +24,15 @@ class FastCheckBackend(
     nodeExecutable: String = "node",
     adapterEntryPoint: Path = FastCheckRuntime.executionEntryPoint(),
 ) : PropertyBasedTestingBackend {
+    override val coverageCapability: PropertyCoverageCapability = PropertyCoverageCapability.supported(
+        backendId = FAST_CHECK_BACKEND_ID,
+        backendVersion = FAST_CHECK_BACKEND_VERSION,
+        collector = CoverageCollectorIdentity(
+            id = "c8",
+            version = C8_COLLECTOR_VERSION,
+        ),
+    )
+
     private val sourceRoots = canonicalizeSourceRoots(sourceRoots)
     private val client = FastCheckProcessClient(
         nodeExecutable = nodeExecutable,
@@ -43,6 +55,7 @@ class FastCheckBackend(
                 numRuns = configuration.numRuns,
                 timeoutMillis = configuration.timeoutMillis,
                 examples = configuration.examples,
+                coverageRequest = configuration.coverageRequest,
             ),
         )
     }
@@ -133,6 +146,9 @@ class FastCheckBackend(
     )
 
     companion object {
+        const val FAST_CHECK_BACKEND_ID = "fast-check"
+        const val FAST_CHECK_BACKEND_VERSION = "4.9.0"
+
         private val FINITE_NUMBER_BITS_REGEX = Regex("[0-9a-f]{16}")
 
         private fun canonicalizeSourceRoots(sourceRoots: List<Path>): List<Path> {
