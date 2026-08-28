@@ -6,9 +6,7 @@ import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.IntegerDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyDomain
-import java.nio.file.Files
 import java.nio.file.Path
-import kotlin.io.path.absolute
 import kotlin.io.path.createTempFile
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.writeText
@@ -17,12 +15,11 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class FastCheckProjectionClientTest {
-    private val client = FastCheckProjectionClient(adapterEntryPoint = adapterEntryPoint())
+    private val client = FastCheckProjectionClient()
 
     @Test
     fun `Kotlin domains produce deterministic tagged fast-check samples`() {
         val request = FastCheckProjectionRequest(
-            requestId = "integration-1",
             seed = 42,
             numSamples = 20,
             domains = listOf(IntegerDomain(-10, 10), ArrayDomain(BooleanDomain, 0, 3)),
@@ -32,20 +29,8 @@ class FastCheckProjectionClientTest {
         val second = client.sample(request)
 
         assertEquals(first, second)
-        assertEquals(FAST_CHECK_PROTOCOL_VERSION, first.protocolVersion)
-        assertEquals("integration-1", first.requestId)
         assertEquals(20, first.samples.size)
         first.samples.forEach { sample -> assertConforms(sample, request.domains) }
-    }
-
-    @Test
-    fun `protocol version mismatch is a typed backend error`() {
-        val error = assertFailsWith<FastCheckProjectionException> {
-            client.sample(validRequest.copy(protocolVersion = 999))
-        }
-
-        assertEquals("protocol.version.unsupported", error.code)
-        assertEquals("protocolVersion", error.path)
     }
 
     @Test
@@ -67,9 +52,9 @@ class FastCheckProjectionClientTest {
         val startup = assertFailsWith<FastCheckProjectionException> {
             FastCheckProjectionClient(
                 nodeExecutable = "definitely-not-a-node-executable",
-                adapterEntryPoint = adapterEntryPoint(),
             ).sample(validRequest)
         }
+
         assertEquals("backend.process.start.failed", startup.code)
 
         val exit = assertFailsWith<FastCheckProjectionException> {
@@ -77,6 +62,7 @@ class FastCheckProjectionClientTest {
                 adapterEntryPoint = Path.of("missing-adapter.mjs"),
             ).sample(validRequest)
         }
+
         assertEquals("backend.process.failed", exit.code)
     }
 
@@ -86,6 +72,7 @@ class FastCheckProjectionClientTest {
             val malformed = assertFailsWith<FastCheckProjectionException> {
                 temporaryClient.sample(validRequest)
             }
+
             assertEquals("backend.response.invalid", malformed.code)
         }
 
@@ -93,26 +80,8 @@ class FastCheckProjectionClientTest {
             val empty = assertFailsWith<FastCheckProjectionException> {
                 temporaryClient.sample(validRequest)
             }
-            assertEquals("backend.response.empty", empty.code)
-        }
-    }
 
-    @Test
-    fun `response identity mismatch is rejected`() {
-        withTemporaryAdapter(
-            """
-            process.stdout.write(JSON.stringify({
-              protocolVersion: 1,
-              requestId: 'different-request',
-              status: 'ok',
-              samples: []
-            }))
-            """.trimIndent(),
-        ) { temporaryClient ->
-            val error = assertFailsWith<FastCheckProjectionException> {
-                temporaryClient.sample(validRequest)
-            }
-            assertEquals("backend.response.mismatch", error.code)
+            assertEquals("backend.response.empty", empty.code)
         }
     }
 
@@ -124,8 +93,6 @@ class FastCheckProjectionClientTest {
             process.stderr.write('x'.repeat(1024 * 1024), () => {
               clearTimeout(timeout)
               process.stdout.write(JSON.stringify({
-                protocolVersion: 1,
-                requestId: 'valid-request',
                 status: 'ok',
                 samples: [[{ kind: 'boolean', value: true }]]
               }))
@@ -143,11 +110,15 @@ class FastCheckProjectionClientTest {
 
     private fun assertConforms(values: List<JsConcreteValue>, domains: List<PropertyDomain>) {
         assertEquals(domains.size, values.size)
+
         values.zip(domains).forEach { (value, domain) ->
             when (domain) {
                 is IntegerDomain -> {
                     val number = (value as JsConcreteValue.Number).toDouble()
-                    assertTrue(number % 1.0 == 0.0 && number >= domain.min && number <= domain.max)
+                    val isInteger = number % 1.0 == 0.0
+                    val isWithinBounds = number >= domain.min && number <= domain.max
+
+                    assertTrue(isInteger && isWithinBounds)
                 }
 
                 is ArrayDomain -> {
@@ -169,6 +140,7 @@ class FastCheckProjectionClientTest {
 
     private fun withTemporaryAdapter(source: String, block: (FastCheckProjectionClient) -> Unit) {
         val script = createTempFile(prefix = "fast-check-adapter-", suffix = ".mjs")
+
         try {
             script.writeText(source)
             block(FastCheckProjectionClient(adapterEntryPoint = script))
@@ -179,19 +151,9 @@ class FastCheckProjectionClientTest {
 
     private companion object {
         val validRequest = FastCheckProjectionRequest(
-            requestId = "valid-request",
             seed = 42,
             numSamples = 1,
             domains = listOf(BooleanDomain),
         )
-
-        fun adapterEntryPoint(): Path {
-            val candidates = listOf(
-                Path.of("fast-check-adapter/dist/src/projection-cli.js"),
-                Path.of("usvm-ts-pbt/fast-check-adapter/dist/src/projection-cli.js"),
-            ).map { it.absolute() }
-            return candidates.singleOrNull(Files::isRegularFile)
-                ?: error("Cannot locate fast-check adapter; checked $candidates")
-        }
     }
 }

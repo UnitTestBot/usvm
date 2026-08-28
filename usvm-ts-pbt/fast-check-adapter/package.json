@@ -9,10 +9,11 @@
     "build": "tsc --project tsconfig.json",
     "pretest": "npm run build",
     "test": "npm run test:compiled",
-    "test:compiled": "node --test dist/test/js-value.test.js dist/test/project-domain.test.js dist/test/projection-cli.test.js"
+    "test:compiled": "node --test dist/test/entry-point.test.js dist/test/execute-property.test.js dist/test/execution-cli.test.js dist/test/js-value.test.js dist/test/project-domain.test.js dist/test/projection-cli.test.js"
   },
   "dependencies": {
-    "fast-check": "4.9.0"
+    "fast-check": "4.9.0",
+    "tsx": "4.23.12"
   },
   "devDependencies": {
     "@types/node": "18.19.130",

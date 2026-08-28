@@ -1,27 +1,10 @@
 # USVM TypeScript property-based testing
 
 `usvm-ts-pbt` is the Kotlin-owned integration layer for concrete property-based testing backends and USVM.
-Kotlin defines each property once; fast-check is the first replaceable concrete backend.
+Kotlin defines each property once; fast-check is the first concrete backend.
 
-## Architecture
-
-```text
-Kotlin PropertyDefinition
-        |
-        +--> versioned PropertyManifest
-        |
-        +--> PBT projection ----------> private fast-check Node adapter
-        |
-        +--> symbolic projection -----> USVM (#351)
-```
-
-Kotlin owns property identity, ordered inputs, domain semantics, TypeScript entry-point references, validation,
-capability aggregation, and later orchestration. Common Kotlin code never contains `fc.Arbitrary` or another
-backend-native generator type.
-
-Predicate and precondition bodies remain exported TypeScript functions. Kotlin refers to each function by a
-normalized project-relative module path, export name, and synchronous or asynchronous execution kind. Issue #347
-validates and serializes those references but does not load or execute the functions.
+See [DESIGN.md](DESIGN.md) for component responsibilities, Kotlin–TypeScript data flow, process supervision, and
+runtime packaging.
 
 ## Kotlin property model
 
@@ -31,7 +14,11 @@ val property = PropertyDefinition(
     inputs = listOf(
         PropertyInput(
             name = "values",
-            domain = ArrayDomain(IntegerDomain(-100, 100), minLength = 0, maxLength = 20),
+            domain = ArrayDomain(
+                element = IntegerDomain(min = -100, max = 100),
+                minLength = 0,
+                maxLength = 20,
+            ),
         ),
     ),
     predicate = TypeScriptEntryPoint(
@@ -39,12 +26,16 @@ val property = PropertyDefinition(
         exportName = "reverseTwicePreservesValues",
     ),
 )
-
-val manifest = property.toManifest()
 ```
 
-Input order is significant because TypeScript parameters are positional. Names are unique and are retained in
-diagnostics and artifacts.
+Input order is significant because TypeScript parameters are positional. The referenced function remains in the
+user's TypeScript source tree:
+
+```typescript
+export function reverseTwicePreservesValues(values: number[]): boolean {
+  return values.toReversed().toReversed().every((value, index) => value === values[index]);
+}
+```
 
 | Domain           | Semantics and defaults                                                                             |
 | ---------------- | -------------------------------------------------------------------------------------------------- |
@@ -57,73 +48,86 @@ diagnostics and artifacts.
 | `TupleDomain`    | Non-empty ordered recursive domains                                                                |
 | `ArrayDomain`    | Recursive element domain; defaults to length `0..10`                                               |
 
-`PropertyDomain` describes a set of allowed inputs. `JsConcreteValue` describes one concrete JavaScript value used as a
-constant or returned sample; it is unrelated to JacoDB IR values. Its tagged encoding preserves `undefined`,
-`null`, NaN, both infinities, and the raw IEEE-754 bits of finite numbers, including negative zero. Protocol
-samples also use recursive tagged arrays so tuple and array values cross JSON without losing nested special
-values. `ConstantDomain` still rejects composite values.
+`JsConcreteValue` is a lossless tagged representation used for examples and counterexamples. It preserves
+`undefined`, `null`, NaN, infinities, negative zero, and nested arrays.
 
-## Manifest and capability are separate
+## Execute a property
 
-`PropertyManifest` is schema-versioned engine-neutral data. It contains property semantics and TypeScript
-entry-point references, but no backend name, fast-check configuration, seed, replay path, shrink data, coverage,
-or USVM expression.
+`FastCheckBackend` accepts TypeScript source roots and loads `.ts` entry points directly. User projects do not
+need a separate TypeScript compilation step or a path to the private adapter.
 
-`ProjectionCapability` is a backend-and-version-specific report with `EXACT`, `APPROXIMATE`, or `UNSUPPORTED`
-level and stable diagnostics. Recursive composition selects the least capable child. A concrete projection that
-is supported while the selected USVM projection is unsupported is classified by the pipeline as `CONCRETE_ONLY`;
-that classification is not stored in the manifest.
+```kotlin
+val backend = FastCheckBackend(
+    sourceRoots = listOf(Path.of("/workspace/packages/core/src")),
+)
 
-## Private fast-check adapter
+val result = backend.run(
+    property = property,
+    configuration = PropertyRunConfiguration(
+        seed = 42,
+        numRuns = 1_000,
+        timeoutMillis = 30_000,
+    ),
+)
+```
 
-`fast-check-adapter` is a private TypeScript module pinned to fast-check 4.9.0. Gradle compiles it with `tsc` into
-an ignored `dist` directory before Kotlin integration tests run. The adapter recursively reconstructs real
-`fc.Arbitrary` objects from common domain descriptors. Kotlin invokes the compiled one-shot `sample` operation
-over one JSON request on stdin and one JSON response on stdout. The adapter does not discover properties, load
-predicates, run campaigns, select USVM, or orchestrate the pipeline.
+The defaults are 100 successful runs and a 60-second timeout. Configuration also supports replay paths and
+positional explicit examples. `PropertyRunResult` contains the property ID, status, actual seed, replay path,
+counterexample, run/skip/shrink counts, failure details, and elapsed time.
 
-Both manifest and protocol versions start at `1`. Kotlin validates outgoing request sizes and verifies process
-exit status, JSON shape, protocol version, request identity, sample shape, and typed backend diagnostics.
+Predicate falsification and a timeout reported by fast-check are normal `FAILURE` results. Invalid input,
+entry-point, process, and transport failures throw `PbtBackendException`.
 
-## Extension rules
+Synchronous entry points must return a boolean directly. Asynchronous entry points must return an awaitable that
+resolves to a boolean. A false precondition is passed to fast-check as a skipped input. Generation, replay, explicit
+examples, checking, and shrinking retain fast-check semantics.
 
-- A new PBT backend consumes the common manifest and implements projection/capability reporting. Existing
-  `PropertyDefinition` instances and USVM code must not change for already-supported domains.
-- A new common domain needs explicit Kotlin semantics and validation, serialization, a capability decision from
-  every backend, and conformance tests.
-- A backend-specific extension must be namespaced and must be reported as unsupported by backends that do not
-  implement it.
-- Backend-native arbitrary objects, arbitrary TypeScript closures, silent approximation, and backend defaults in
-  the common model are rejected extension mechanisms.
+## Registries and CLI
+
+The CLI loads Kotlin property registries through `ServiceLoader`:
+
+```kotlin
+class ExamplePropertyRegistryProvider : PropertyRegistryProvider {
+    override val registryId: String = "example"
+
+    override fun load(): PropertyRegistry = PropertyRegistry(
+        listOf(arrayReverseTwiceProperty, anotherProperty),
+    )
+}
+```
+
+Register the provider in
+`META-INF/services/org.usvm.ts.pbt.registry.PropertyRegistryProvider` using its fully qualified class name. Put the
+provider JAR on the application classpath, then run:
+
+```shell
+java -cp '/opt/usvm-ts-pbt/lib/*:/workspace/example-properties.jar' \
+  org.usvm.ts.pbt.cli.FastCheckCliKt \
+  --source-root /workspace/packages/core/src \
+  --registry example \
+  --property array.reverse-twice \
+  --seed 42 \
+  --num-runs 1000
+```
+
+Use `--help` for the complete option list. `--source-root` and `--registry` are repeatable. Without `--registry`,
+all providers run in registry-ID order; without `--property`, all selected properties run in registry order.
+Replay paths and explicit examples require exactly one selected property.
+
+The CLI writes a JSON array of results to stdout. Exit code `0` means every property succeeded, `1` means at least
+one property failed, and `2` means a CLI, registry, validation, backend, or transport error. Exit-code-2 diagnostics
+are written as one JSON object to stderr.
 
 ## Verification
 
-Requires JDK 11, Node.js 18.18 or newer, npm, and the repository Gradle wrapper. The full Gradle check installs and
-compiles the pinned private adapter, runs its compiled Node tests, runs Kotlin/Node protocol tests, and retains the
-native `ts-frontend` baseline from #346.
+Requires JDK 11, Node.js 18.18 or newer, npm, and the repository Gradle wrapper.
 
 ```shell
 npm ci --prefix usvm-ts-pbt/fast-check-adapter --ignore-scripts
-npm run build --prefix usvm-ts-pbt/fast-check-adapter
 npm test --prefix usvm-ts-pbt/fast-check-adapter
 
 env -u ARKANALYZER_DIR ETS_IR_PROVIDER=ts-frontend \
-  ./gradlew --no-daemon :usvm-ts-pbt:test
-
-env -u ARKANALYZER_DIR ETS_IR_PROVIDER=ts-frontend \
-  ./gradlew --no-daemon :usvm-ts-pbt:clean :usvm-ts-pbt:check
+  ./gradlew --no-daemon :usvm-ts-pbt:check
 ```
 
-To substitute a local JacoDB checkout, add
-`-PuseLocalJacodb=/absolute/path/to/jacodb` to the Gradle command.
-
-## Issue boundaries
-
-- #348 loads TypeScript entry points and executes Kotlin definitions through `fc.check`.
-- #349 records backend-neutral per-property coverage.
-- #350 maps entry points and coverage locations to EtsIR.
-- #351 projects common domains and preconditions into USVM.
-- #352 searches for property violations with USVM.
-- #353 replays USVM witnesses and delegates shrinking to a capable PBT backend.
-- #354 assembles the Kotlin-orchestrated end-to-end pipeline.
-- #355–#357 build runtime hints, benchmarks, and evaluation on backend-identified artifacts.
+To substitute a local JacoDB checkout, add `-PuseLocalJacodb=/absolute/path/to/jacodb` to the Gradle command.

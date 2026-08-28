@@ -12,9 +12,6 @@ import org.usvm.ts.pbt.model.PropertyId
 import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.TypeScriptEntryPoint
 import org.usvm.ts.pbt.validation.validatePropertyDefinition
-import java.nio.file.Files
-import java.nio.file.Path
-import kotlin.io.path.absolute
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -23,21 +20,24 @@ class ExamplePropertiesTest {
     @Test
     fun `four Kotlin property shapes validate serialize and project through fast-check`() {
         assertNotNull(javaClass.getResource("/properties/examples/PropertyExamples.ts"))
-        val client = FastCheckProjectionClient(adapterEntryPoint = adapterEntryPoint())
 
-        examples.forEachIndexed { index, definition ->
+        val client = FastCheckProjectionClient()
+
+        examples.forEach { definition ->
             assertTrue(validatePropertyDefinition(definition).isValid, definition.id.value)
+
             val manifest = definition.toManifest()
+
             assertEquals(manifest, PropertyManifestJson.decode(PropertyManifestJson.encode(manifest)))
 
             val response = client.sample(
                 FastCheckProjectionRequest(
-                    requestId = "example-$index",
                     seed = 42,
                     numSamples = 5,
                     domains = definition.inputs.map(PropertyInput::domain),
                 ),
             )
+
             assertEquals(5, response.samples.size)
             assertTrue(response.samples.all { it.size == definition.inputs.size })
         }
@@ -77,14 +77,5 @@ class ExamplePropertiesTest {
                 predicate = TypeScriptEntryPoint(MODULE, "reverseTwicePreservesValues"),
             ),
         )
-
-        fun adapterEntryPoint(): Path {
-            val candidates = listOf(
-                Path.of("fast-check-adapter/dist/src/projection-cli.js"),
-                Path.of("usvm-ts-pbt/fast-check-adapter/dist/src/projection-cli.js"),
-            ).map { it.absolute() }
-            return candidates.singleOrNull(Files::isRegularFile)
-                ?: error("Cannot locate fast-check adapter; checked $candidates")
-        }
     }
 }

@@ -1,8 +1,6 @@
 package org.usvm.ts.pbt.validation
 
 import org.junit.jupiter.api.Test
-import org.usvm.ts.pbt.manifest.PROPERTY_MANIFEST_SCHEMA_VERSION
-import org.usvm.ts.pbt.manifest.PropertyManifest
 import org.usvm.ts.pbt.model.ConstantDomain
 import org.usvm.ts.pbt.model.IntegerDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
@@ -90,21 +88,6 @@ class PropertyValidationTest {
         assertEquals(
             listOf("js-number.encoding.invalid"),
             validatePropertyDefinition(definition).diagnostics.map { it.code },
-        )
-    }
-
-    @Test
-    fun `manifest validation rejects unknown schema version`() {
-        val manifest = PropertyManifest(
-            schemaVersion = PROPERTY_MANIFEST_SCHEMA_VERSION + 1,
-            propertyId = "valid.id",
-            inputs = listOf(PropertyInput("value", IntegerDomain())),
-            predicate = TypeScriptEntryPoint("properties/value.ts", "holds"),
-        )
-
-        assertEquals(
-            listOf("manifest.schema.unsupported"),
-            validatePropertyManifest(manifest).diagnostics.map { it.code },
         )
     }
 

@@ -41,22 +41,16 @@ data class CapabilityDiagnostic(
 )
 
 /**
- * Reports whether one backend version can represent a property domain.
+ * Reports whether a property domain can be represented by an execution backend.
  *
- * @property backendId stable backend identifier
- * @property backendVersion backend version used to evaluate support
  * @property level semantic fidelity of the projection
  * @property diagnostics limitations that explain a non-exact [level]
  */
 data class ProjectionCapability(
-    val backendId: String,
-    val backendVersion: String,
     val level: ProjectionLevel,
     val diagnostics: List<CapabilityDiagnostic> = emptyList(),
 ) {
     init {
-        require(backendId.isNotBlank()) { "Backend ID must not be blank" }
-        require(backendVersion.isNotBlank()) { "Backend version must not be blank" }
         require(level == ProjectionLevel.EXACT || diagnostics.isNotEmpty()) {
             "A non-exact projection requires at least one diagnostic"
         }
@@ -65,20 +59,14 @@ data class ProjectionCapability(
 
 /** Combines domain-level [capabilities] into one deterministic backend capability report. */
 fun aggregateProjectionCapabilities(
-    backendId: String,
-    backendVersion: String,
     capabilities: List<ProjectionCapability>,
 ): ProjectionCapability {
-    require(capabilities.all { it.backendId == backendId && it.backendVersion == backendVersion }) {
-        "All projection capabilities must belong to $backendId $backendVersion"
-    }
     val level = capabilities.maxOfOrNull { it.level } ?: ProjectionLevel.EXACT
     val diagnostics = capabilities
         .flatMap(ProjectionCapability::diagnostics)
         .sortedWith(compareBy(CapabilityDiagnostic::path, CapabilityDiagnostic::code))
+
     return ProjectionCapability(
-        backendId = backendId,
-        backendVersion = backendVersion,
         level = level,
         diagnostics = diagnostics,
     )
