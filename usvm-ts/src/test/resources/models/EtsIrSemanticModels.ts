@@ -1,4 +1,8 @@
 export class EtsIrSemanticModels {
+    instanceIdentity(value: number): number {
+        return value;
+    }
+
     static absolute(value: number): number {
         if (value < 0) {
             return -value;
@@ -29,6 +33,11 @@ export class EtsIrSemanticModels {
     }
 
     static recurse(value: number): number {
+        if (value <= 0) {
+            return 0;
+        }
+
+        EtsIrSemanticModels.recurse(value - 1);
         return ExternalModels.recursive(value);
     }
 }

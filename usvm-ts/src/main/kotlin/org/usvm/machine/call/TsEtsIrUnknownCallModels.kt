@@ -42,17 +42,35 @@ fun loadEtsIrUnknownCallModelArtifact(
     sourcePath: Path,
     entryPointClassName: String,
     entryPointMethodName: String,
+): TsEtsIrUnknownCallModelArtifact = loadEtsIrUnknownCallModelArtifact(
+    sourcePath = sourcePath,
+    entryPointClassName = entryPointClassName,
+    entryPointMethodName = entryPointMethodName,
+    generateIr = { path ->
+        generateEtsIR(
+            projectPath = path,
+            isProject = false,
+            loadEntrypoints = true,
+            useArkAnalyzerTypeInference = null,
+            provider = EtsIrProvider.TS_FRONTEND,
+        )
+    },
+)
+
+internal fun loadEtsIrUnknownCallModelArtifact(
+    sourcePath: Path,
+    entryPointClassName: String,
+    entryPointMethodName: String,
+    generateIr: (Path) -> Path,
 ): TsEtsIrUnknownCallModelArtifact {
-    val sourceHash = sourcePath.readBytes().sha256()
-    val irPath = generateEtsIR(
-        projectPath = sourcePath,
-        isProject = false,
-        loadEntrypoints = true,
-        useArkAnalyzerTypeInference = null,
-        provider = EtsIrProvider.TS_FRONTEND,
-    )
+    val sourceBytes = sourcePath.readBytes()
+    val irPath = generateIr(sourcePath)
 
     return try {
+        check(sourcePath.readBytes().contentEquals(sourceBytes)) {
+            "TypeScript model source changed while generating EtsIR: $sourcePath"
+        }
+
         val irBytes = irPath.readBytes()
         val file = irPath.inputStream().use { stream ->
             EtsFileDto.loadFromJson(stream).toEtsFile()
@@ -61,11 +79,17 @@ fun loadEtsIrUnknownCallModelArtifact(
             ?: error("Expected one TypeScript model class named $entryPointClassName")
         val entryPoint = entryPointClass.methods.singleOrNull { it.name == entryPointMethodName }
             ?: error("Expected one TypeScript model entry point named $entryPointClassName::$entryPointMethodName")
+        check(entryPoint.isStatic) {
+            "TypeScript model entry point $entryPointClassName::$entryPointMethodName must be static"
+        }
+        check(entryPoint.cfg.instructions.isNotEmpty()) {
+            "TypeScript model entry point $entryPointClassName::$entryPointMethodName must have a body"
+        }
 
         TsEtsIrUnknownCallModelArtifact(
             file = file,
             entryPoint = entryPoint,
-            sourceHash = sourceHash,
+            sourceHash = sourceBytes.sha256(),
             etsIrHash = irBytes.sha256(),
         )
     } finally {
@@ -113,13 +137,18 @@ object TsEtsIrUnknownCallModelBackend : TsUnknownCallModelBackend {
         precision: TsUnknownCallModelPrecision,
         state: TsState,
         call: TsUnknownCall,
-    ): TsUnknownCallModelExecution {
+    ): TsUnknownCallModelBackendResult {
         val etsIrImplementation = requireNotNull(implementation as? TsEtsIrUnknownCallModelImplementation) {
             "ETS_IR_BODY backend requires TsEtsIrUnknownCallModelImplementation, got ${implementation::class}"
         }
         val inputs = call.resolvedInputs()
         if (inputs == null || inputs.size != etsIrImplementation.artifact.entryPoint.parameters.size) {
-            return unsupportedExecution(state = state, precision = precision)
+            return when (precision) {
+                TsUnknownCallModelPrecision.EXACT -> TsUnknownCallModelBackendResult.NotApplicable
+                TsUnknownCallModelPrecision.PARTIAL -> TsUnknownCallModelBackendResult.Executed(
+                    execution = unsupportedExecution(state),
+                )
+            }
         }
 
         val domainGuard = etsIrImplementation.domainGuard.evaluate(
@@ -127,6 +156,10 @@ object TsEtsIrUnknownCallModelBackend : TsUnknownCallModelBackend {
             call = call,
             inputs = inputs,
         )
+        if (precision == TsUnknownCallModelPrecision.EXACT && domainGuard != state.ctx.trueExpr) {
+            return TsUnknownCallModelBackendResult.NotApplicable
+        }
+
         val successor = TsUnknownCallModelSuccessor(
             guard = domainGuard,
             completion = TsUnknownCallModelCompletion.EtsIrBody(
@@ -135,22 +168,18 @@ object TsEtsIrUnknownCallModelBackend : TsUnknownCallModelBackend {
             ),
         )
 
-        return TsUnknownCallModelExecution(
-            successors = listOf(successor),
-            residualGuard = when (precision) {
-                TsUnknownCallModelPrecision.EXACT -> null
-                TsUnknownCallModelPrecision.PARTIAL -> state.ctx.mkNot(domainGuard)
-            },
+        return TsUnknownCallModelBackendResult.Executed(
+            execution = TsUnknownCallModelExecution(
+                successors = listOf(successor),
+                residualGuard = when (precision) {
+                    TsUnknownCallModelPrecision.EXACT -> null
+                    TsUnknownCallModelPrecision.PARTIAL -> state.ctx.mkNot(domainGuard)
+                },
+            ),
         )
     }
 
-    private fun unsupportedExecution(
-        state: TsState,
-        precision: TsUnknownCallModelPrecision,
-    ): TsUnknownCallModelExecution {
-        check(precision == TsUnknownCallModelPrecision.PARTIAL) {
-            "Exact EtsIR semantic models require every receiver and argument to be resolved"
-        }
+    private fun unsupportedExecution(state: TsState): TsUnknownCallModelExecution {
         val unreachableSuccessor = TsUnknownCallModelSuccessor(
             guard = state.ctx.falseExpr,
             completion = TsUnknownCallModelCompletion.Normal { ctx.mkUndefinedValue() },

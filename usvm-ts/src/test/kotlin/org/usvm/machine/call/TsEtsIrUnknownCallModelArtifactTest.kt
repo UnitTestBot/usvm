@@ -1,8 +1,16 @@
 package org.usvm.machine.call
 
+import org.jacodb.ets.utils.EtsIrProvider
+import org.jacodb.ets.utils.generateEtsIR
 import org.usvm.util.getResourcePath
+import kotlin.io.path.copyTo
+import kotlin.io.path.createTempFile
+import kotlin.io.path.deleteIfExists
+import kotlin.io.path.readBytes
+import kotlin.io.path.writeBytes
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
@@ -54,6 +62,63 @@ class TsEtsIrUnknownCallModelArtifactTest {
 
         assertNotEquals(originalFingerprint, changedSourceFingerprint)
         assertNotEquals(originalFingerprint, changedIrFingerprint)
+    }
+
+    @Test
+    fun `loader rejects source changed while EtsIR is generated`() {
+        val mutableSourcePath = createTempFile(prefix = "EtsIrSemanticModels", suffix = ".ts")
+        sourcePath.copyTo(mutableSourcePath, overwrite = true)
+
+        try {
+            val error = assertFailsWith<IllegalStateException> {
+                loadEtsIrUnknownCallModelArtifact(
+                    sourcePath = mutableSourcePath,
+                    entryPointClassName = "EtsIrSemanticModels",
+                    entryPointMethodName = "absolute",
+                    generateIr = { path ->
+                        val irPath = generateEtsIR(
+                            projectPath = path,
+                            isProject = false,
+                            loadEntrypoints = true,
+                            useArkAnalyzerTypeInference = null,
+                            provider = EtsIrProvider.TS_FRONTEND,
+                        )
+                        path.writeBytes(path.readBytes() + byteArrayOf('\n'.code.toByte()))
+                        irPath
+                    },
+                )
+            }
+
+            assertTrue(error.message.orEmpty().contains("changed while generating EtsIR"))
+        } finally {
+            mutableSourcePath.deleteIfExists()
+        }
+    }
+
+    @Test
+    fun `loader rejects instance entry points`() {
+        val error = assertFailsWith<IllegalStateException> {
+            loadEtsIrUnknownCallModelArtifact(
+                sourcePath = sourcePath,
+                entryPointClassName = "EtsIrSemanticModels",
+                entryPointMethodName = "instanceIdentity",
+            )
+        }
+
+        assertTrue(error.message.orEmpty().contains("must be static"))
+    }
+
+    @Test
+    fun `loader rejects declaration-only entry points`() {
+        val error = assertFailsWith<IllegalStateException> {
+            loadEtsIrUnknownCallModelArtifact(
+                sourcePath = getResourcePath("/models/EtsIrSemanticModelCalls.ts"),
+                entryPointClassName = "ExternalModels",
+                entryPointMethodName = "absolute",
+            )
+        }
+
+        assertTrue(error.message.orEmpty().contains("must have a body"))
     }
 
     private fun fingerprint(implementation: TsEtsIrUnknownCallModelImplementation): String {

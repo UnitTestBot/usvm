@@ -81,7 +81,7 @@ class TsState(
      * for identical string values.
      */
     var stringConstantAllocatedRefs: UPersistentHashMap<String, UConcreteHeapRef> = persistentHashMapOf(),
-    private val activeUnknownCallModels: MutableList<Pair<String, EtsMethod>> = mutableListOf(),
+    private val activeUnknownCallModels: MutableList<Triple<String, EtsMethod, Int>> = mutableListOf(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
     ctx = ctx,
     initOwnership = ownership,
@@ -120,14 +120,16 @@ class TsState(
     }
 
     fun isUnknownCallModelActive(modelId: String): Boolean =
-        activeUnknownCallModels.any { (activeModelId, _) -> activeModelId == modelId }
+        activeUnknownCallModels.any { (activeModelId, _, _) -> activeModelId == modelId }
 
     fun enterUnknownCallModel(modelId: String, entryPoint: EtsMethod) {
-        activeUnknownCallModels += modelId to entryPoint
+        val entryCallDepth = callStack.size + 1
+        activeUnknownCallModels += Triple(modelId, entryPoint, entryCallDepth)
     }
 
     fun leaveUnknownCallModelIfReturning(method: EtsMethod) {
-        if (activeUnknownCallModels.lastOrNull()?.second == method) {
+        val activeModel = activeUnknownCallModels.lastOrNull()
+        if (activeModel?.second == method && activeModel.third == callStack.size) {
             activeUnknownCallModels.removeLast()
         }
     }

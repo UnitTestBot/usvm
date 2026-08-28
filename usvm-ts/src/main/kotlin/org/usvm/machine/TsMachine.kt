@@ -14,6 +14,7 @@ import org.usvm.machine.call.TsNoUnknownCallModels
 import org.usvm.machine.call.TsProfileUnknownCallDispatcher
 import org.usvm.machine.call.TsUnknownCallDispatcher
 import org.usvm.machine.call.TsUnknownCallModelProvider
+import org.usvm.machine.call.deduplicateEtsFilesBySignature
 import org.usvm.machine.interpreter.TsInterpreter
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
@@ -63,7 +64,7 @@ class TsMachine(
         .takeIf { modelFiles -> modelFiles.isNotEmpty() }
         ?.let { modelFiles ->
             EtsScene(
-                projectFiles = (scene.projectFiles + modelFiles).distinctBy { file -> file.signature },
+                projectFiles = (scene.projectFiles + modelFiles).deduplicateEtsFilesBySignature(),
                 sdkFiles = scene.sdkFiles,
                 projectName = scene.projectName,
             )

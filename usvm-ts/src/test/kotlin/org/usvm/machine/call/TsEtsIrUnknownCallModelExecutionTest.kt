@@ -56,11 +56,23 @@ class TsEtsIrUnknownCallModelExecutionTest {
                 targetName = "positiveIdentity",
                 entryPointName = "positiveIdentity",
                 precision = TsUnknownCallModelPrecision.PARTIAL,
-                domainGuard = TsEtsIrUnknownCallModelDomainGuard { state, _, inputs ->
-                    val zero = state.ctx.mkFp(0.0, state.ctx.fp64Sort)
-                    val value = inputs.single().asExpr(state.ctx.fp64Sort)
-                    state.ctx.mkFpLessExpr(zero, value)
-                },
+                domainGuard = positiveInputGuard,
+            ),
+            registration(
+                id = "test.ets-ir.exact-positive-identity",
+                targetName = "exactPositiveIdentity",
+                entryPointName = "positiveIdentity",
+                domainGuard = positiveInputGuard,
+            ),
+            registration(
+                id = "test.ets-ir.arity-mismatch",
+                targetName = "arityMismatch",
+                entryPointName = "positiveIdentity",
+            ),
+            registration(
+                id = "test.ets-ir.unresolved-argument",
+                targetName = "unresolvedExactInput",
+                entryPointName = "positiveIdentity",
             ),
             registration(
                 id = "test.ets-ir.outer",
@@ -113,6 +125,26 @@ class TsEtsIrUnknownCallModelExecutionTest {
         assertTrue(result.states.isEmpty())
         assertEquals(listOf(TsUnknownCallOutcome.PATH_STOPPED), result.events.map { it.outcome })
         assertIs<TsUnknownCallDecision.ResidualFallback>(result.events.single().decision)
+    }
+
+    @Test
+    fun `unsupported exact model inputs use configured residual fallback`() {
+        val unsupportedMethods = listOf(
+            "exactGuardRejectsInput",
+            "exactArityMismatch",
+            "exactUnresolvedArgument",
+        )
+
+        unsupportedMethods.forEach { methodName ->
+            val result = analyze(methodName = methodName)
+
+            assertEquals(
+                listOf(TsUnknownCallOutcome.PATH_STOPPED),
+                result.events.map { it.outcome },
+                methodName,
+            )
+            assertIs<TsUnknownCallDecision.ResidualFallback>(result.events.single().decision, methodName)
+        }
     }
 
     @Test
@@ -212,6 +244,12 @@ class TsEtsIrUnknownCallModelExecutionTest {
     }
 
     private companion object {
+        val positiveInputGuard = TsEtsIrUnknownCallModelDomainGuard { state, _, inputs ->
+            val zero = state.ctx.mkFp(0.0, state.ctx.fp64Sort)
+            val value = inputs.single().asExpr(state.ctx.fp64Sort)
+            state.ctx.mkFpLessExpr(zero, value)
+        }
+
         val machineOptions = UMachineOptions(
             pathSelectionStrategies = listOf(PathSelectionStrategy.BFS),
             stateCollectionStrategy = StateCollectionStrategy.ALL,
