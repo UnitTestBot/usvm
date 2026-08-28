@@ -1,6 +1,7 @@
 package org.usvm.machine.call
 
 import io.ksmt.utils.asExpr
+import io.mockk.mockk
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
@@ -9,6 +10,7 @@ import org.jacodb.ets.model.EtsPtrCallExpr
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsVoidType
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.callExpr
@@ -17,9 +19,10 @@ import org.junit.jupiter.api.Test
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
+import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
+import org.usvm.UExpr
 import org.usvm.UMachineOptions
-import org.usvm.api.mockMethodCall
 import org.usvm.api.targets.ReachabilityObserver
 import org.usvm.api.targets.TsReachabilityTarget
 import org.usvm.machine.TsInterpreterObserver
@@ -28,7 +31,6 @@ import org.usvm.machine.TsOptions
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
-import org.usvm.machine.state.newStmt
 import org.usvm.util.getResourcePath
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -144,11 +146,96 @@ class TsUnknownCallDispatcherTest {
     @Test
     fun `applied model decisions require non blank identifiers`() {
         assertFailsWith<IllegalArgumentException> {
-            TsUnknownCallModelApplication.Applied(modelId = " ")
+            TsUnknownCallModelApplication.Applied(
+                modelId = " ",
+                precision = TsUnknownCallModelPrecision.EXACT,
+                execution = exactExecution(),
+            )
         }
         assertFailsWith<IllegalArgumentException> {
             TsUnknownCallDecision.ModelApplied(modelId = "")
         }
+    }
+
+    @Test
+    fun `model applications enforce exact and partial residual contracts`() {
+        assertFailsWith<IllegalArgumentException> {
+            TsUnknownCallModelApplication.Applied(
+                modelId = "invalid-exact",
+                precision = TsUnknownCallModelPrecision.EXACT,
+                execution = execution(residualGuard = mockk()),
+            )
+        }
+        assertFailsWith<IllegalArgumentException> {
+            TsUnknownCallModelApplication.Applied(
+                modelId = "invalid-partial",
+                precision = TsUnknownCallModelPrecision.PARTIAL,
+                execution = execution(residualGuard = null),
+            )
+        }
+    }
+
+    @Test
+    fun `partial model sends only residual domain to fresh fallback`() {
+        val observer = RecordingUnknownCallObserver()
+        val states = analyzeAllStates(
+            methodName = "modeledUnknownCallForks",
+            profile = TsUnknownCallProfiles.MODELS_THEN_FRESH_SYMBOLIC,
+            modelProvider = SupportedTrueResidualFalseProvider,
+            observer = observer,
+        )
+
+        assertEquals(2, states.size)
+        assertEquals(
+            listOf(TsUnknownCallOutcome.MODEL_APPLIED, TsUnknownCallOutcome.FRESH_SYMBOLIC_RETURN),
+            observer.events.map { it.outcome },
+        )
+    }
+
+    @Test
+    fun `partial model sends residual domain to stop fallback`() {
+        val observer = RecordingUnknownCallObserver()
+        val states = analyzeAllStates(
+            methodName = "modeledUnknownCallForks",
+            profile = TsUnknownCallProfiles.MODELS_THEN_STOP,
+            modelProvider = SupportedTrueResidualFalseProvider,
+            observer = observer,
+        )
+
+        assertEquals(1, states.size)
+        assertEquals(
+            listOf(TsUnknownCallOutcome.MODEL_APPLIED, TsUnknownCallOutcome.PATH_STOPPED),
+            observer.events.map { it.outcome },
+        )
+    }
+
+    @Test
+    fun `exceptional model successor preserves exception state`() {
+        val states = analyzeAllStates(
+            methodName = "modeledUnknownCallThrows",
+            profile = TsUnknownCallProfiles.MODELS_THEN_STOP,
+            modelProvider = ExceptionalModelProvider,
+        )
+
+        assertIs<TsMethodResult.TsException>(states.single().methodResult)
+    }
+
+    @Test
+    fun `stateful model can return an existing reference alias`() {
+        val states = analyzeAllStates(
+            methodName = "modeledUnknownCallReturnsAlias",
+            profile = TsUnknownCallProfiles.MODELS_THEN_STOP,
+            modelProvider = StatefulAliasModelProvider,
+        )
+        val aliasReturn = method(fullScene, "modeledUnknownCallReturnsAlias")
+            .cfg
+            .stmts
+            .filterIsInstance<EtsReturnStmt>()
+            .first()
+
+        val state = states.single()
+        assertTrue(aliasReturn in state.pathNode.allStatements)
+        assertTrue(STATE_CHANGE_MARKER in state.addedArtificialLocals)
     }
 
     @Test
@@ -577,27 +664,106 @@ class TsUnknownCallDispatcherTest {
     }
 
     private object ApplyingModelProvider : TsUnknownCallModelProvider {
-        override fun apply(scope: TsStepScope, call: TsUnknownCall): TsUnknownCallModelApplication {
-            mockMethodCall(scope, call.callee, call.resultType)
-            scope.doWithState { newStmt(call.callSite) }
-            return TsUnknownCallModelApplication.Applied(modelId = "applying-model")
+        override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelApplication {
+            val successor = TsUnknownCallModelSuccessor(
+                guard = state.ctx.trueExpr,
+                completion = TsUnknownCallModelCompletion.Normal { ctx.mkUndefinedValue() },
+            )
+
+            return TsUnknownCallModelApplication.Applied(
+                modelId = "applying-model",
+                precision = TsUnknownCallModelPrecision.EXACT,
+                execution = TsUnknownCallModelExecution(
+                    successors = listOf(successor),
+                    residualGuard = null,
+                ),
+            )
         }
     }
 
     private object ForkingModelProvider : TsUnknownCallModelProvider {
-        override fun apply(scope: TsStepScope, call: TsUnknownCall): TsUnknownCallModelApplication {
+        override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelApplication {
             val result = requireNotNull(call.arguments.single().resolved)
-            val condition = scope.calcOnState { result.asExpr(ctx.boolSort) }
-            val completeCall: TsState.() -> Unit = {
-                methodResult = TsMethodResult.Success.MockedCall(result, call.callee)
-                newStmt(call.callSite)
-            }
-            scope.fork(
-                condition = condition,
-                blockOnTrueState = completeCall,
-                blockOnFalseState = completeCall,
+            val condition = result.asExpr(state.ctx.boolSort)
+            val completion = TsUnknownCallModelCompletion.Normal { result }
+
+            return TsUnknownCallModelApplication.Applied(
+                modelId = "forking-model",
+                precision = TsUnknownCallModelPrecision.EXACT,
+                execution = TsUnknownCallModelExecution(
+                    successors = listOf(
+                        TsUnknownCallModelSuccessor(
+                            guard = condition,
+                            completion = completion,
+                        ),
+                        TsUnknownCallModelSuccessor(
+                            guard = state.ctx.mkNot(condition),
+                            completion = completion,
+                        ),
+                    ),
+                    residualGuard = null,
+                ),
             )
-            return TsUnknownCallModelApplication.Applied(modelId = "forking-model")
+        }
+    }
+
+    private object SupportedTrueResidualFalseProvider : TsUnknownCallModelProvider {
+        override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelApplication {
+            val result = requireNotNull(call.arguments.single().resolved)
+            val condition = result.asExpr(state.ctx.boolSort)
+            val successor = TsUnknownCallModelSuccessor(
+                guard = condition,
+                completion = TsUnknownCallModelCompletion.Normal { result },
+            )
+
+            return TsUnknownCallModelApplication.Applied(
+                modelId = "partial-model",
+                precision = TsUnknownCallModelPrecision.PARTIAL,
+                execution = TsUnknownCallModelExecution(
+                    successors = listOf(successor),
+                    residualGuard = state.ctx.mkNot(condition),
+                ),
+            )
+        }
+    }
+
+    private object ExceptionalModelProvider : TsUnknownCallModelProvider {
+        override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelApplication {
+            val successor = TsUnknownCallModelSuccessor(
+                guard = state.ctx.trueExpr,
+                completion = TsUnknownCallModelCompletion.Exceptional {
+                    ctx.mkUndefinedValue() to EtsStringType
+                },
+            )
+
+            return TsUnknownCallModelApplication.Applied(
+                modelId = "exceptional-model",
+                precision = TsUnknownCallModelPrecision.EXACT,
+                execution = TsUnknownCallModelExecution(
+                    successors = listOf(successor),
+                    residualGuard = null,
+                ),
+            )
+        }
+    }
+
+    private object StatefulAliasModelProvider : TsUnknownCallModelProvider {
+        override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelApplication {
+            val argument = requireNotNull(call.arguments.single().resolved)
+            val successor = TsUnknownCallModelSuccessor(
+                guard = state.ctx.trueExpr,
+                completion = TsUnknownCallModelCompletion.Normal { argument },
+                applyStateChanges = { addedArtificialLocals += STATE_CHANGE_MARKER },
+            )
+
+            return TsUnknownCallModelApplication.Applied(
+                modelId = "stateful-alias-model",
+                precision = TsUnknownCallModelPrecision.EXACT,
+                execution = TsUnknownCallModelExecution(
+                    successors = listOf(successor),
+                    residualGuard = null,
+                ),
+            )
         }
     }
 
@@ -658,6 +824,21 @@ class TsUnknownCallDispatcherTest {
     }
 
     private companion object {
+        const val STATE_CHANGE_MARKER = "semantic-model-state-change"
+
+        fun exactExecution(): TsUnknownCallModelExecution = execution(residualGuard = null)
+
+        fun execution(residualGuard: UBoolExpr?): TsUnknownCallModelExecution =
+            TsUnknownCallModelExecution(
+                successors = listOf(
+                    TsUnknownCallModelSuccessor(
+                        guard = mockk(),
+                        completion = TsUnknownCallModelCompletion.Normal { mockk<UExpr<*>>() },
+                    ),
+                ),
+                residualGuard = residualGuard,
+            )
+
         val machineOptions = UMachineOptions(
             pathSelectionStrategies = listOf(PathSelectionStrategy.TARGETED),
             exceptionsPropagation = true,
