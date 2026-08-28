@@ -1,5 +1,7 @@
 package org.usvm.machine.call
 
+import org.jacodb.ets.model.EtsFile
+import org.jacodb.ets.model.EtsFileSignature
 import org.usvm.machine.state.TsState
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
@@ -10,6 +12,14 @@ private const val BYTE_MASK = 0xff
 /** Opaque semantic-model implementation selected by its [kind]. */
 interface TsUnknownCallModelImplementation {
     val kind: TsUnknownCallModelImplementationKind
+
+    /** Stable implementation-specific inputs included in the frozen catalog fingerprint. */
+    val fingerprintComponents: List<String>
+        get() = emptyList()
+
+    /** EtsIR files that must be visible to the normal interpreter when this implementation is enabled. */
+    val additionalSceneFiles: List<EtsFile>
+        get() = emptyList()
 }
 
 /** Executes opaque model implementations of one [kind]. */
@@ -18,9 +28,19 @@ interface TsUnknownCallModelBackend {
 
     fun execute(
         implementation: TsUnknownCallModelImplementation,
+        precision: TsUnknownCallModelPrecision,
         state: TsState,
         call: TsUnknownCall,
-    ): TsUnknownCallModelExecution
+    ): TsUnknownCallModelBackendResult
+}
+
+/** Result of attempting to execute one selected backend implementation. */
+sealed interface TsUnknownCallModelBackendResult {
+    data class Executed(
+        val execution: TsUnknownCallModelExecution,
+    ) : TsUnknownCallModelBackendResult
+
+    data object NotApplicable : TsUnknownCallModelBackendResult
 }
 
 /** Binds backend-neutral model metadata to an opaque backend implementation. */
@@ -114,6 +134,9 @@ class TsFrozenUnknownCallModelRegistry internal constructor(
 ) : TsUnknownCallModelProvider {
     val descriptors: List<TsUnknownCallModelDescriptor> = registrations.map { it.descriptor }
     val fingerprint: String = computeFingerprint(registrations)
+    override val additionalSceneFiles: List<EtsFile> = registrations
+        .flatMap { registration -> registration.implementation.additionalSceneFiles }
+        .deduplicateEtsFilesBySignature()
 
     internal fun select(call: TsUnknownCall): TsUnknownCallModelRegistration? {
         val matches = registrations.filter { it.descriptor.matcher.matches(call) }
@@ -128,22 +151,46 @@ class TsFrozenUnknownCallModelRegistry internal constructor(
 
     override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelApplication {
         val registration = select(call) ?: return TsUnknownCallModelApplication.NotApplicable
+        if (state.isUnknownCallModelActive(registration.descriptor.id)) {
+            return TsUnknownCallModelApplication.NotApplicable
+        }
+
         val implementationKind = registration.descriptor.implementationKind
         val backend = checkNotNull(backends[implementationKind]) {
             "No semantic model backend configured for $implementationKind"
         }
-        val execution = backend.execute(
+        val backendResult = backend.execute(
             implementation = registration.implementation,
+            precision = registration.descriptor.precision,
             state = state,
             call = call,
         )
 
-        return TsUnknownCallModelApplication.Applied(
-            modelId = registration.descriptor.id,
-            precision = registration.descriptor.precision,
-            execution = execution,
-        )
+        return when (backendResult) {
+            is TsUnknownCallModelBackendResult.Executed -> TsUnknownCallModelApplication.Applied(
+                modelId = registration.descriptor.id,
+                precision = registration.descriptor.precision,
+                execution = backendResult.execution,
+            )
+
+            TsUnknownCallModelBackendResult.NotApplicable -> TsUnknownCallModelApplication.NotApplicable
+        }
     }
+}
+
+internal fun Iterable<EtsFile>.deduplicateEtsFilesBySignature(): List<EtsFile> {
+    val filesBySignature = linkedMapOf<EtsFileSignature, EtsFile>()
+
+    for (file in this) {
+        val existingFile = filesBySignature[file.signature]
+        require(existingFile == null || existingFile === file) {
+            "Conflicting EtsIR files share signature ${file.signature}"
+        }
+
+        filesBySignature.putIfAbsent(file.signature, file)
+    }
+
+    return filesBySignature.values.toList()
 }
 
 private fun computeFingerprint(registrations: List<TsUnknownCallModelRegistration>): String {
@@ -152,6 +199,7 @@ private fun computeFingerprint(registrations: List<TsUnknownCallModelRegistratio
     registrations.forEach { registration ->
         digest.updateLengthPrefixed(registration.descriptor.id)
         digest.updateLengthPrefixed(registration.descriptor.implementationKind.name)
+        registration.implementation.fingerprintComponents.forEach(digest::updateLengthPrefixed)
     }
 
     return digest.digest().joinToString(separator = "") { byte ->

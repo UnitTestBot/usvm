@@ -81,6 +81,7 @@ class TsState(
      * for identical string values.
      */
     var stringConstantAllocatedRefs: UPersistentHashMap<String, UConcreteHeapRef> = persistentHashMapOf(),
+    private val activeUnknownCallModels: MutableList<Triple<String, EtsMethod, Int>> = mutableListOf(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
     ctx = ctx,
     initOwnership = ownership,
@@ -116,6 +117,21 @@ class TsState(
 
     fun popLocalToSortStack() {
         localToSortStack.removeLast()
+    }
+
+    fun isUnknownCallModelActive(modelId: String): Boolean =
+        activeUnknownCallModels.any { (activeModelId, _, _) -> activeModelId == modelId }
+
+    fun enterUnknownCallModel(modelId: String, entryPoint: EtsMethod) {
+        val entryCallDepth = callStack.size + 1
+        activeUnknownCallModels += Triple(modelId, entryPoint, entryCallDepth)
+    }
+
+    fun leaveUnknownCallModelIfReturning(method: EtsMethod) {
+        val activeModel = activeUnknownCallModels.lastOrNull()
+        if (activeModel?.second == method && activeModel.third == callStack.size) {
+            activeUnknownCallModels.removeLast()
+        }
     }
 
     fun registerCallee(stmt: EtsStmt, cfg: EtsBlockCfg) {
@@ -294,6 +310,7 @@ class TsState(
             dfltObject = dfltObject,
             dfltObjectFieldSorts = dfltObjectFieldSorts,
             stringConstantAllocatedRefs = stringConstantAllocatedRefs,
+            activeUnknownCallModels = activeUnknownCallModels.toMutableList(),
         )
     }
 

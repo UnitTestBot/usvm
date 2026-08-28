@@ -32,14 +32,17 @@ object TsIntrinsicUnknownCallModelBackend : TsUnknownCallModelBackend {
 
     override fun execute(
         implementation: TsUnknownCallModelImplementation,
+        precision: TsUnknownCallModelPrecision,
         state: TsState,
         call: TsUnknownCall,
-    ): TsUnknownCallModelExecution {
+    ): TsUnknownCallModelBackendResult {
         val intrinsic = requireNotNull(implementation as? TsIntrinsicUnknownCallModelImplementation) {
             "INTRINSIC backend requires TsIntrinsicUnknownCallModelImplementation, got ${implementation::class}"
         }
 
-        return intrinsic.model.execute(state = state, call = call)
+        return TsUnknownCallModelBackendResult.Executed(
+            execution = intrinsic.model.execute(state = state, call = call),
+        )
     }
 }
 

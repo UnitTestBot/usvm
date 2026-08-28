@@ -298,6 +298,15 @@ class TsProfileUnknownCallDispatcher(
                 val (exception, type) = completion.exception(this)
                 methodResult = TsMethodResult.TsException(exception, type)
             }
+
+            is TsUnknownCallModelCompletion.EtsIrBody -> {
+                enterEtsIrUnknownCallModel(
+                    modelId = application.modelId,
+                    entryPoint = completion.entryPoint,
+                    inputs = completion.inputs,
+                    returnSite = call.callSite,
+                )
+            }
         }
 
         if (onApplied()) {

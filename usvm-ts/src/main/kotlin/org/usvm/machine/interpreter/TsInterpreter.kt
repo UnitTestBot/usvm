@@ -109,6 +109,7 @@ class TsInterpreter(
         if (result is TsMethodResult.TsException) {
             // TODO catch processing
             scope.doWithState {
+                leaveUnknownCallModelIfReturning(callStack.lastMethod())
                 val returnSite = callStack.pop()
 
                 if (callStack.isNotEmpty()) {
