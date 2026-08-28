@@ -16,30 +16,33 @@ fun mockMethodCall(
     method: EtsMethodSignature,
     resultType: EtsType = method.returnType,
 ) {
+    val result = makeFreshUnknownCallResult(scope = scope, resultType = resultType)
+
     scope.doWithState {
-        mockMethodCall(method = method, resultType = resultType)
+        setMockMethodCallResult(method = method, result = result)
     }
 }
 
-/** Creates a fresh opaque result directly on this state without applying callee effects or exceptions. */
-fun TsState.mockMethodCall(
+/** Stores a prepared opaque result on this state without applying callee effects or exceptions. */
+internal fun TsState.setMockMethodCallResult(
     method: EtsMethodSignature,
-    resultType: EtsType = method.returnType,
+    result: UExpr<*>,
 ) {
-    val result = freshUnknownCallResult(resultType)
     methodResult = TsMethodResult.Success.MockedCall(result, method)
 }
 
-private fun TsState.freshUnknownCallResult(resultType: EtsType): UExpr<*> {
-    if (resultType is EtsVoidType) {
-        return ctx.mkUndefinedValue()
-    }
+/** Creates a fresh opaque result through [scope], keeping solver models consistent with new constraints. */
+internal fun makeFreshUnknownCallResult(
+    scope: TsStepScope,
+    resultType: EtsType,
+): UExpr<*> = scope.calcOnState {
+    if (resultType is EtsVoidType) return@calcOnState ctx.mkUndefinedValue()
 
-    return when (val sort = ctx.typeToSort(resultType)) {
+    when (val sort = ctx.typeToSort(resultType)) {
         is UAddressSort -> makeSymbolicRefUntyped()
 
         is TsUnresolvedSort -> mkFakeValue(
-            scope = null,
+            scope = scope,
             boolValue = makeSymbolicPrimitive(ctx.boolSort),
             fpValue = makeSymbolicPrimitive(ctx.fp64Sort),
             refValue = makeSymbolicRefUntyped(),

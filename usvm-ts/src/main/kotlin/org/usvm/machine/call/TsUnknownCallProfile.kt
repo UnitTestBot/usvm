@@ -1,12 +1,21 @@
 package org.usvm.machine.call
 
 import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsType
+import org.usvm.UBoolExpr
+import org.usvm.api.makeFreshUnknownCallResult
 import org.usvm.api.mockMethodCall
+import org.usvm.api.setMockMethodCallResult
+import org.usvm.isTrue
 import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.machine.state.newStmt
+import org.usvm.solver.USatResult
+import org.usvm.solver.USolverResult
+import org.usvm.solver.UUnknownResult
+import org.usvm.solver.UUnsatResult
 
 /** The externally observable decision made for a call that could not be executed normally. */
 enum class TsUnknownCallOutcome {
@@ -141,8 +150,17 @@ class TsProfileUnknownCallDispatcher(
         call: TsUnknownCall,
         application: TsUnknownCallModelApplication.Applied,
     ): TsUnknownCallOutcome {
+        validateExecutionGuards(scope = scope, application = application)
+
         val residualGuard = application.execution.residualGuard
         val residualPolicy = profile.residualPolicyFor(call)
+        val freshResidualResult = if (
+            residualGuard != null && residualPolicy == TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN
+        ) {
+            makeFreshUnknownCallResult(scope = scope, resultType = call.resultType)
+        } else {
+            null
+        }
         val stoppedResidualIsSatisfiable = residualGuard != null &&
             residualPolicy == TsResidualCallPolicy.STOP_PATH &&
             scope.checkSat(residualGuard) != null
@@ -169,7 +187,10 @@ class TsProfileUnknownCallDispatcher(
 
         if (residualGuard != null && residualPolicy == TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN) {
             guardedStateChanges += residualGuard to {
-                mockMethodCall(method = call.callee, resultType = call.resultType)
+                setMockMethodCallResult(
+                    method = call.callee,
+                    result = requireNotNull(freshResidualResult),
+                )
                 newStmt(call.callSite)
                 freshResidualApplied = true
 
@@ -196,6 +217,65 @@ class TsProfileUnknownCallDispatcher(
             freshResidualApplied -> TsUnknownCallOutcome.FRESH_SYMBOLIC_RETURN
             stoppedResidualIsSatisfiable -> TsUnknownCallOutcome.PATH_STOPPED
             else -> error("Semantic model ${application.modelId} produced no satisfiable successor or residual state")
+        }
+    }
+
+    private fun validateExecutionGuards(
+        scope: TsStepScope,
+        application: TsUnknownCallModelApplication.Applied,
+    ) = scope.doWithState {
+        val namedGuards = buildList {
+            application.execution.successors.forEachIndexed { index, successor ->
+                add(NamedGuard(name = "successor[$index]", guard = successor.guard))
+            }
+            application.execution.residualGuard?.let { residualGuard ->
+                add(NamedGuard(name = "residual", guard = residualGuard))
+            }
+        }
+        val overlaps = buildList {
+            namedGuards.forEachIndexed { firstIndex, first ->
+                namedGuards.drop(firstIndex + 1).forEach { second ->
+                    add(
+                        GuardOverlap(
+                            firstName = first.name,
+                            secondName = second.name,
+                            condition = ctx.mkAnd(first.guard, second.guard),
+                        )
+                    )
+                }
+            }
+        }
+        val coveredDomain = ctx.mkOr(namedGuards.map(NamedGuard::guard))
+        val uncoveredDomain = ctx.mkNot(coveredDomain)
+        val invalidity = ctx.mkOr(overlaps.map(GuardOverlap::condition) + uncoveredDomain)
+        val validationConstraints = pathConstraints.clone()
+        validationConstraints += invalidity
+
+        val solverResult = ctx.solver<EtsType>().check(validationConstraints)
+        solverResult.requireConclusiveGuardValidation(modelId = application.modelId)
+
+        when (solverResult) {
+            is UUnsatResult -> {
+                // The invalidity condition is unreachable, so the guards form a partition.
+            }
+
+            is USatResult -> {
+                val witnessedOverlap = overlaps.firstOrNull { overlap ->
+                    solverResult.model.eval(overlap.condition).isTrue
+                }
+                if (witnessedOverlap != null) {
+                    error(
+                        "Semantic model ${application.modelId} produced overlapping guards: " +
+                            "${witnessedOverlap.firstName}, ${witnessedOverlap.secondName}"
+                    )
+                }
+
+                error("Semantic model ${application.modelId} guards do not cover the current call domain")
+            }
+
+            is UUnknownResult -> {
+                error("Unreachable after conclusive guard validation")
+            }
         }
     }
 
@@ -258,3 +338,20 @@ class TsProfileUnknownCallDispatcher(
         decision = decision,
     )
 }
+
+internal fun USolverResult<*>.requireConclusiveGuardValidation(modelId: String) {
+    check(this !is UUnknownResult) {
+        "Semantic model $modelId guards could not be validated: solver returned UNKNOWN"
+    }
+}
+
+private data class NamedGuard(
+    val name: String,
+    val guard: UBoolExpr,
+)
+
+private data class GuardOverlap(
+    val firstName: String,
+    val secondName: String,
+    val condition: UBoolExpr,
+)

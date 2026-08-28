@@ -74,6 +74,7 @@ class TsMachine(
         options = tsOptions,
         observer = observer,
         unknownCallDispatcher = resolvedUnknownCallDispatcher,
+        throwExceptionOnStepFailure = options.throwExceptionOnStepFailure,
     )
     private val cfgStatistics = CfgStatisticsImpl(graph)
 

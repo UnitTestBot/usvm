@@ -55,7 +55,7 @@ object TsBuiltInUnknownCallModels {
         },
         supportedDomain = TsUnknownCallModelSupportedDomain(
             id = "native-array-pop",
-            description = "Resolved one-dimensional native arrays with no arguments and a resolved element sort",
+            description = "Resolved one-dimensional native arrays with no arguments and a primitive element sort",
         ),
         precision = TsUnknownCallModelPrecision.PARTIAL,
         implementationKind = TsUnknownCallModelImplementationKind.INTRINSIC,
@@ -130,6 +130,9 @@ private object TsArrayPopIntrinsicModel : TsIntrinsicUnknownCallModel {
             ?: return null
 
         val elementSort = state.ctx.typeToSort(arrayType.elementType)
+        if (elementSort == state.ctx.addressSort) {
+            return null
+        }
 
         return ArrayPopInput(
             array = array,

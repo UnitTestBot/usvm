@@ -57,7 +57,7 @@ class TsUnknownCallModelRegistry(
         }
     }
 
-    /** Freezes an immutable enabled subset; `null` enables the complete registered catalog. */
+    /** Freezes an immutable enabled subset and validates its backends; `null` enables the complete catalog. */
     fun freeze(enabledModelIds: Set<String>? = null): TsFrozenUnknownCallModelRegistry {
         val enabledIds = enabledModelIds?.toSet()
         val knownIds = registrations.mapTo(mutableSetOf()) { it.descriptor.id }
@@ -70,6 +70,15 @@ class TsUnknownCallModelRegistry(
         val enabledRegistrations = when (enabledIds) {
             null -> registrations
             else -> registrations.filter { it.descriptor.id in enabledIds }
+        }
+        val missingBackendKinds = enabledRegistrations
+            .map { it.descriptor.implementationKind }
+            .distinct()
+            .filterNot(backends::containsKey)
+            .sortedBy { it.name }
+
+        require(missingBackendKinds.isEmpty()) {
+            "Missing semantic model backends: ${missingBackendKinds.joinToString()}"
         }
 
         return TsFrozenUnknownCallModelRegistry(enabledRegistrations, backends)
