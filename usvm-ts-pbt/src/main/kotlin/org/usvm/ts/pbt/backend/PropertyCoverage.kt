@@ -4,8 +4,6 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.usvm.ts.pbt.model.PropertyId
 
-const val PROPERTY_COVERAGE_ARTIFACT_VERSION = 1
-
 /** Distinguishes Node source coverage from future replay coverage over another representation. */
 @Serializable
 enum class CoverageArtifactKind {
@@ -71,7 +69,6 @@ data class PropertyCoverageCapability(
     val backendVersion: String,
     val level: CoverageCapabilityLevel,
     val collector: CoverageCollectorIdentity? = null,
-    val artifactVersion: Int? = null,
     val diagnostics: List<CoverageDiagnostic> = emptyList(),
 ) {
     init {
@@ -80,15 +77,11 @@ data class PropertyCoverageCapability(
         when (level) {
             CoverageCapabilityLevel.SUPPORTED -> {
                 requireNotNull(collector) { "Supported coverage requires a collector identity" }
-                require(artifactVersion == PROPERTY_COVERAGE_ARTIFACT_VERSION) {
-                    "Supported coverage requires artifact version $PROPERTY_COVERAGE_ARTIFACT_VERSION"
-                }
                 require(diagnostics.isEmpty()) { "Supported coverage must not contain capability diagnostics" }
             }
 
             CoverageCapabilityLevel.UNSUPPORTED -> {
                 require(collector == null) { "Unsupported coverage must not name a collector" }
-                require(artifactVersion == null) { "Unsupported coverage must not name an artifact version" }
                 require(diagnostics.isNotEmpty()) { "Unsupported coverage requires an actionable diagnostic" }
             }
         }
@@ -99,13 +92,11 @@ data class PropertyCoverageCapability(
             backendId: String,
             backendVersion: String,
             collector: CoverageCollectorIdentity,
-            artifactVersion: Int = PROPERTY_COVERAGE_ARTIFACT_VERSION,
         ) = PropertyCoverageCapability(
             backendId = backendId,
             backendVersion = backendVersion,
             level = CoverageCapabilityLevel.SUPPORTED,
             collector = collector,
-            artifactVersion = artifactVersion,
         )
 
         fun unsupported(
@@ -245,10 +236,9 @@ data class CoverageProvenance(
     }
 }
 
-/** Versioned per-property Node source coverage returned by a concrete backend. */
+/** Per-property Node source coverage returned by a concrete backend. */
 @Serializable
 data class PropertyCoverageArtifact(
-    val schemaVersion: Int = PROPERTY_COVERAGE_ARTIFACT_VERSION,
     val kind: CoverageArtifactKind = CoverageArtifactKind.NODE_SOURCE,
     val backendId: String,
     val backendVersion: String,
@@ -258,9 +248,6 @@ data class PropertyCoverageArtifact(
     val diagnostics: List<CoverageDiagnostic> = emptyList(),
 ) {
     init {
-        require(schemaVersion == PROPERTY_COVERAGE_ARTIFACT_VERSION) {
-            "Unsupported property coverage artifact version: $schemaVersion"
-        }
         require(backendId.isNotBlank()) { "Coverage backend ID must not be blank" }
         require(backendVersion.isNotBlank()) { "Coverage backend version must not be blank" }
         require(files.map(SourceFileCoverage::path).distinct().size == files.size) {

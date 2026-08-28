@@ -85,9 +85,9 @@ examples, checking, and shrinking retain fast-check semantics.
 ## Per-property TypeScript coverage
 
 Coverage is a backend capability, not part of `PropertyDefinition` or `PropertyManifest`.
-`PropertyBasedTestingBackend.coverageCapability` exposes the backend identity, backend version, collector, and
-artifact version before execution. `FastCheckBackend` reports c8 10.1.3 and coverage artifact schema version 1.
-An unsupported backend reports `coverage.unsupported` explicitly.
+`PropertyBasedTestingBackend.coverageCapability` exposes the backend identity, backend version, and collector
+before execution. `FastCheckBackend` reports c8 10.1.3. An unsupported backend reports
+`coverage.unsupported` explicitly.
 
 Kotlin requests coverage for one run through `PropertyRunConfiguration`:
 
@@ -127,10 +127,10 @@ Before starting c8, Kotlin probes the configured Node executable once. Versions 
 `coverage.runtime.unsupported`; an unavailable or unparseable version uses `coverage.runtime.version-unavailable`.
 The verified version is recorded in the artifact provenance without a second probe.
 
-Artifact schema version 1 has kind `NODE_SOURCE` and contains backend/property identity, c8 and Node provenance,
-canonical source roots, the original request, and deterministic per-file statement, function, and branch hits.
-Lines are one-based and columns are zero-based, following Istanbul. Node source coverage remains separate from
-future EtsIR replay coverage.
+The artifact has kind `NODE_SOURCE` and contains backend/property identity, c8 and Node provenance, canonical
+source roots, the original request, and deterministic per-file statement, function, and branch hits. Lines are
+one-based and columns are zero-based, following Istanbul. Node source coverage remains separate from future EtsIR
+replay coverage.
 
 Missing or malformed reports use `coverage.report.missing` and `coverage.report.invalid`. Reports larger than
 64 MiB are rejected as invalid before they are read. JavaScript below a TypeScript source root that c8 could not

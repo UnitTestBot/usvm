@@ -8,7 +8,6 @@ import org.usvm.ts.pbt.backend.CoverageArtifactKind
 import org.usvm.ts.pbt.backend.CoverageCollectorIdentity
 import org.usvm.ts.pbt.backend.CoverageDiagnostic
 import org.usvm.ts.pbt.backend.CoverageProvenance
-import org.usvm.ts.pbt.backend.PROPERTY_COVERAGE_ARTIFACT_VERSION
 import org.usvm.ts.pbt.backend.PropertyBasedTestingBackend
 import org.usvm.ts.pbt.backend.PropertyCoverageArtifact
 import org.usvm.ts.pbt.backend.PropertyCoverageCapability
@@ -32,6 +31,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 
 class FastCheckCliTest {
     @Test
@@ -163,7 +163,7 @@ class FastCheckCliTest {
 
         assertEquals(0, exitCode)
         assertEquals("", errors.toString())
-        assertEquals(1, coverage.getValue("schemaVersion").jsonPrimitive.content.toInt())
+        assertFalse("schemaVersion" in coverage)
         assertEquals(
             listOf("property_entry_points"),
             request.getValue("scopes").jsonArray.map { scope -> scope.jsonPrimitive.content },
@@ -453,7 +453,6 @@ class FastCheckCliTest {
                 executionTimeMillis = 1,
                 coverage = configuration.coverageRequest?.let { request ->
                     PropertyCoverageArtifact(
-                        schemaVersion = PROPERTY_COVERAGE_ARTIFACT_VERSION,
                         kind = CoverageArtifactKind.NODE_SOURCE,
                         backendId = coverageCapability.backendId,
                         backendVersion = coverageCapability.backendVersion,

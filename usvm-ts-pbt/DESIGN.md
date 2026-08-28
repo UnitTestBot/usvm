@@ -106,13 +106,13 @@ to Node or added to `PropertyManifest`. A Node response is either:
 { status: "error", diagnostics: [{ kind, code, message, path }] }
 ```
 
-There is intentionally no request ID, operation name, schema version, protocol version, backend ID, or backend
-version. The exchange is private, one-shot, and produced and consumed by the same build. Adding compatibility
-metadata would create branches that no supported workflow uses.
+There is intentionally no request ID, operation name, backend ID, or backend version. The exchange is private,
+one-shot, and produced and consumed by the same build. Adding compatibility metadata would create branches that
+no supported workflow uses.
 
-Coverage does not version this private protocol. When requested, Kotlin starts the same execution CLI under c8,
-then reads a separate Istanbul report after a valid response. Backend identity and artifact schema version belong
-to `coverageCapability` and `PropertyCoverageArtifact`, not the ordinary property result or private wire response.
+Coverage uses the same private protocol. When requested, Kotlin starts the execution CLI under c8, then reads a
+separate Istanbul report after a valid response. Backend identity belongs to `coverageCapability` and
+`PropertyCoverageArtifact`, not the ordinary property result or private wire response.
 
 Kotlin validates trusted model objects and examples early so callers get local errors. Node validates the decoded
 JSON again because the process boundary must not trust malformed input. Diagnostic codes have one owner per
@@ -206,8 +206,8 @@ configuration prevents project-local c8 settings from altering collection. c8 th
 conversion and source-map remapping. Kotlin rejects reports larger than 64 MiB before
 reading them, validates statement, function, and branch maps and counters, classifies remapped files into
 source-under-test, property entry points, generated wrappers, or dependencies, then applies include and exclude
-globs. Excludes take precedence. Files and diagnostics are sorted deterministically before constructing artifact
-schema version 1.
+globs. Excludes take precedence. Files and diagnostics are sorted deterministically before constructing the
+artifact.
 
 A successful or falsified property exits the bridge normally, allowing c8 to flush the report. Process crashes,
 invalid protocol responses, and hard kills do not produce a completed property result. The workspace is removed

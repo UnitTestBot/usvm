@@ -16,7 +16,6 @@ import org.usvm.ts.pbt.backend.CoverageDiagnostic
 import org.usvm.ts.pbt.backend.CoverageProvenance
 import org.usvm.ts.pbt.backend.CoverageScope
 import org.usvm.ts.pbt.backend.FunctionCoverage
-import org.usvm.ts.pbt.backend.PROPERTY_COVERAGE_ARTIFACT_VERSION
 import org.usvm.ts.pbt.backend.PropertyCoverageArtifact
 import org.usvm.ts.pbt.backend.PropertyCoverageRequest
 import org.usvm.ts.pbt.backend.SourceFileCoverage
@@ -155,7 +154,6 @@ private fun decodeReport(
     }.sortedBy(SourceFileCoverage::path)
 
     return PropertyCoverageArtifact(
-        schemaVersion = PROPERTY_COVERAGE_ARTIFACT_VERSION,
         kind = CoverageArtifactKind.NODE_SOURCE,
         backendId = context.backendId,
         backendVersion = context.backendVersion,

@@ -1,9 +1,13 @@
 package org.usvm.ts.pbt.backend
 
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.jsonObject
 import org.junit.jupiter.api.Test
+import org.usvm.ts.pbt.manifest.PropertyManifestJson
 import org.usvm.ts.pbt.model.PropertyId
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 
 class PropertyCoverageTest {
@@ -25,12 +29,14 @@ class PropertyCoverageTest {
                 id = "c8",
                 version = "10.1.3",
             ),
-            artifactVersion = 1,
         )
+        val supportedJson = PropertyManifestJson.json
+            .parseToJsonElement(PropertyManifestJson.json.encodeToString(supported))
+            .jsonObject
 
         assertEquals(CoverageCapabilityLevel.SUPPORTED, supported.level)
         assertEquals("c8", supported.collector?.id)
-        assertEquals(1, supported.artifactVersion)
+        assertFalse("artifactVersion" in supportedJson)
         assertEquals(emptyList(), supported.diagnostics)
 
         val unsupported = PropertyCoverageCapability.unsupported(
@@ -42,10 +48,13 @@ class PropertyCoverageTest {
                 path = "coverageRequest",
             ),
         )
+        val unsupportedJson = PropertyManifestJson.json
+            .parseToJsonElement(PropertyManifestJson.json.encodeToString(unsupported))
+            .jsonObject
 
         assertEquals(CoverageCapabilityLevel.UNSUPPORTED, unsupported.level)
         assertNull(unsupported.collector)
-        assertNull(unsupported.artifactVersion)
+        assertFalse("artifactVersion" in unsupportedJson)
         assertEquals("coverage.unsupported", unsupported.diagnostics.single().code)
     }
 
@@ -90,7 +99,6 @@ class PropertyCoverageTest {
     }
 
     private fun artifact() = PropertyCoverageArtifact(
-        schemaVersion = PROPERTY_COVERAGE_ARTIFACT_VERSION,
         kind = CoverageArtifactKind.NODE_SOURCE,
         backendId = "fast-check",
         backendVersion = "4.9.0",
