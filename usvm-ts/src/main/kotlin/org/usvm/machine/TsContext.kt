@@ -183,6 +183,12 @@ class TsContext(
     fun UConcreteHeapRef.getFakeType(scope: TsStepScope): EtsFakeType =
         scope.calcOnState { getFakeType(memory) }
 
+    /**
+     * Returns whether this expression is the storage identity of a synthetic fake-value wrapper.
+     *
+     * A positive result says nothing about the wrapper's active runtime kind. In particular, the expression must not
+     * be used as the represented object reference; inspect [EtsFakeType.refTypeExpr] and extract the reference payload.
+     */
     @OptIn(ExperimentalContracts::class)
     fun UExpr<*>.isFakeObject(): Boolean {
         contract {
@@ -238,6 +244,12 @@ class TsContext(
         }
     }
 
+    /**
+     * Returns the reference payload of a fake-value wrapper without adding a reference-kind constraint.
+     *
+     * Use this only when [EtsFakeType.refTypeExpr] is already known or the caller guards the result equivalently.
+     * Otherwise use [unwrapRefWithPathConstraint].
+     */
     fun UHeapRef.unwrapRef(scope: TsStepScope): UHeapRef {
         if (isFakeObject()) {
             return extractRef(scope)
@@ -245,6 +257,9 @@ class TsContext(
         return this
     }
 
+    /**
+     * Extracts the reference payload from a fake-value wrapper and constrains that wrapper to the reference kind.
+     */
     fun UHeapRef.unwrapRefWithPathConstraint(scope: TsStepScope): UHeapRef {
         if (isFakeObject()) {
             scope.assert(getFakeType(scope).refTypeExpr)
@@ -285,6 +300,12 @@ class TsContext(
         return memory.read(lValue)
     }
 
+    /**
+     * Reads the reference payload without constraining [EtsFakeType.refTypeExpr].
+     *
+     * This operation alone does not prove that the wrapped value is a reference. The caller must either assert the
+     * discriminator through a live [TsStepScope] or use the payload only under an equivalent guard.
+     */
     fun UConcreteHeapRef.extractRef(memory: UReadOnlyMemory<*>): UHeapRef {
         check(isFakeObject())
         val lValue = getIntermediateRefLValue(address)
@@ -299,6 +320,7 @@ class TsContext(
         return scope.calcOnState { extractFp(memory) }
     }
 
+    /** Reads the reference payload through [scope] without adding a reference-kind constraint. */
     fun UConcreteHeapRef.extractRef(scope: TsStepScope): UHeapRef {
         return scope.calcOnState { extractRef(memory) }
     }
