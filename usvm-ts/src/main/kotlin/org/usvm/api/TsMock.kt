@@ -8,6 +8,7 @@ import org.usvm.UExpr
 import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsMethodResult
+import org.usvm.machine.state.TsState
 import org.usvm.machine.types.mkFakeValue
 
 fun mockMethodCall(
@@ -16,27 +17,34 @@ fun mockMethodCall(
     resultType: EtsType = method.returnType,
 ) {
     scope.doWithState {
-        val result: UExpr<*>
-        if (resultType is EtsVoidType) {
-            result = ctx.mkUndefinedValue()
-        } else {
-            val sort = ctx.typeToSort(resultType)
-            result = when (sort) {
-                is UAddressSort -> makeSymbolicRefUntyped()
+        mockMethodCall(method = method, resultType = resultType)
+    }
+}
 
-                is TsUnresolvedSort -> scope.calcOnState {
-                    mkFakeValue(
-                        scope = scope,
-                        boolValue = makeSymbolicPrimitive(ctx.boolSort),
-                        fpValue = makeSymbolicPrimitive(ctx.fp64Sort),
-                        refValue = makeSymbolicRefUntyped(),
-                    )
-                }
+/** Creates a fresh opaque result directly on this state without applying callee effects or exceptions. */
+fun TsState.mockMethodCall(
+    method: EtsMethodSignature,
+    resultType: EtsType = method.returnType,
+) {
+    val result = freshUnknownCallResult(resultType)
+    methodResult = TsMethodResult.Success.MockedCall(result, method)
+}
 
-                else -> makeSymbolicPrimitive(sort)
-            }
-        }
+private fun TsState.freshUnknownCallResult(resultType: EtsType): UExpr<*> {
+    if (resultType is EtsVoidType) {
+        return ctx.mkUndefinedValue()
+    }
 
-        methodResult = TsMethodResult.Success.MockedCall(result, method)
+    return when (val sort = ctx.typeToSort(resultType)) {
+        is UAddressSort -> makeSymbolicRefUntyped()
+
+        is TsUnresolvedSort -> mkFakeValue(
+            scope = null,
+            boolValue = makeSymbolicPrimitive(ctx.boolSort),
+            fpValue = makeSymbolicPrimitive(ctx.fp64Sort),
+            refValue = makeSymbolicRefUntyped(),
+        )
+
+        else -> makeSymbolicPrimitive(sort)
     }
 }

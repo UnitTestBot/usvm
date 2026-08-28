@@ -60,12 +60,16 @@ enum class TsUnknownCallFailureReason {
     METHOD_BODY_UNAVAILABLE,
     INTERPROCEDURAL_ANALYSIS_DISABLED,
     LOGGING_CALL,
+    PARTIAL_APPROXIMATION,
 }
 
 /** Handles TypeScript calls that could not be executed by the regular call pipeline. */
 fun interface TsUnknownCallDispatcher {
     fun dispatch(scope: TsStepScope, call: TsUnknownCall): TsUnknownCallOutcome
 }
+
+/** Marks profile dispatchers that replace migrated compatibility approximations with registered models. */
+interface TsUnknownCallModelDispatcher : TsUnknownCallDispatcher
 
 /** Preserves the pruning and opaque-return behavior that existed before the common dispatch boundary. */
 object TsCompatibilityUnknownCallDispatcher : TsUnknownCallDispatcher {
@@ -108,6 +112,10 @@ object TsCompatibilityUnknownCallDispatcher : TsUnknownCallDispatcher {
                 val falseExpr = scope.calcOnState { ctx.falseExpr }
                 scope.assert(falseExpr)
                 return TsUnknownCallOutcome.PATH_STOPPED
+            }
+
+            TsUnknownCallFailureReason.PARTIAL_APPROXIMATION -> {
+                error("Migrated approximations must not be sent to the compatibility dispatcher")
             }
         }
     }
