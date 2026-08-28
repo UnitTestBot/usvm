@@ -1,5 +1,7 @@
 package org.usvm.machine.call
 
+import org.jacodb.ets.model.EtsFile
+import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsType
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
@@ -8,6 +10,7 @@ import org.usvm.machine.state.TsState
 /** Identifies the backend that executes a semantic model implementation. */
 enum class TsUnknownCallModelImplementationKind {
     INTRINSIC,
+    ETS_IR_BODY,
 }
 
 /** Describes the semantic precision of a model within its declared supported domain. */
@@ -56,6 +59,14 @@ sealed interface TsUnknownCallModelCompletion {
     class Exceptional(
         val exception: TsState.() -> Pair<UExpr<*>, EtsType>,
     ) : TsUnknownCallModelCompletion
+
+    /** Enters a TypeScript model body through the normal EtsIR interpreter. */
+    class EtsIrBody(
+        val entryPoint: EtsMethod,
+        inputs: List<UExpr<*>>,
+    ) : TsUnknownCallModelCompletion {
+        val inputs: List<UExpr<*>> = inputs.toList()
+    }
 }
 
 /**
@@ -114,4 +125,8 @@ sealed interface TsUnknownCallModelApplication {
 /** Selects and executes models without exposing registry or backend details to the dispatcher. */
 fun interface TsUnknownCallModelProvider {
     fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelApplication
+
+    /** EtsIR files that must be merged into the machine scene before analysis starts. */
+    val additionalSceneFiles: List<EtsFile>
+        get() = emptyList()
 }

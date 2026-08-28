@@ -1,5 +1,6 @@
 package org.usvm.machine.call
 
+import org.jacodb.ets.model.EtsFile
 import org.usvm.machine.state.TsState
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
@@ -10,6 +11,14 @@ private const val BYTE_MASK = 0xff
 /** Opaque semantic-model implementation selected by its [kind]. */
 interface TsUnknownCallModelImplementation {
     val kind: TsUnknownCallModelImplementationKind
+
+    /** Stable implementation-specific inputs included in the frozen catalog fingerprint. */
+    val fingerprintComponents: List<String>
+        get() = emptyList()
+
+    /** EtsIR files that must be visible to the normal interpreter when this implementation is enabled. */
+    val additionalSceneFiles: List<EtsFile>
+        get() = emptyList()
 }
 
 /** Executes opaque model implementations of one [kind]. */
@@ -18,6 +27,7 @@ interface TsUnknownCallModelBackend {
 
     fun execute(
         implementation: TsUnknownCallModelImplementation,
+        precision: TsUnknownCallModelPrecision,
         state: TsState,
         call: TsUnknownCall,
     ): TsUnknownCallModelExecution
@@ -114,6 +124,9 @@ class TsFrozenUnknownCallModelRegistry internal constructor(
 ) : TsUnknownCallModelProvider {
     val descriptors: List<TsUnknownCallModelDescriptor> = registrations.map { it.descriptor }
     val fingerprint: String = computeFingerprint(registrations)
+    override val additionalSceneFiles: List<EtsFile> = registrations
+        .flatMap { registration -> registration.implementation.additionalSceneFiles }
+        .distinctBy { file -> file.signature }
 
     internal fun select(call: TsUnknownCall): TsUnknownCallModelRegistration? {
         val matches = registrations.filter { it.descriptor.matcher.matches(call) }
@@ -128,12 +141,17 @@ class TsFrozenUnknownCallModelRegistry internal constructor(
 
     override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelApplication {
         val registration = select(call) ?: return TsUnknownCallModelApplication.NotApplicable
+        if (state.isUnknownCallModelActive(registration.descriptor.id)) {
+            return TsUnknownCallModelApplication.NotApplicable
+        }
+
         val implementationKind = registration.descriptor.implementationKind
         val backend = checkNotNull(backends[implementationKind]) {
             "No semantic model backend configured for $implementationKind"
         }
         val execution = backend.execute(
             implementation = registration.implementation,
+            precision = registration.descriptor.precision,
             state = state,
             call = call,
         )
@@ -152,6 +170,7 @@ private fun computeFingerprint(registrations: List<TsUnknownCallModelRegistratio
     registrations.forEach { registration ->
         digest.updateLengthPrefixed(registration.descriptor.id)
         digest.updateLengthPrefixed(registration.descriptor.implementationKind.name)
+        registration.implementation.fingerprintComponents.forEach(digest::updateLengthPrefixed)
     }
 
     return digest.digest().joinToString(separator = "") { byte ->

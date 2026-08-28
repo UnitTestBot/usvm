@@ -145,6 +145,7 @@ class TsUnknownCallModelRegistryTest {
 
         override fun execute(
             implementation: TsUnknownCallModelImplementation,
+            precision: TsUnknownCallModelPrecision,
             state: TsState,
             call: TsUnknownCall,
         ): TsUnknownCallModelExecution = error("Fake backend must not execute in registry metadata tests")

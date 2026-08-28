@@ -48,10 +48,6 @@ class TsMachine(
     unknownCallDispatcher: TsUnknownCallDispatcher? = null,
     unknownCallModelProvider: TsUnknownCallModelProvider? = null,
 ) : UMachine<TsState>() {
-    private val graph = TsGraph(scene)
-    private val typeSystem = TsTypeSystem(scene, typeOperationsTimeout = 1.seconds, graph.hierarchy)
-    private val components = TsComponents(typeSystem, options)
-    private val ctx = TsContext(scene, components)
     private val frozenUnknownCallModels = when {
         unknownCallDispatcher != null || unknownCallModelProvider != null -> null
         else -> TsBuiltInUnknownCallModels.registry.freeze(tsOptions.unknownCallModels.enabledModelIds)
@@ -63,6 +59,20 @@ class TsMachine(
 
     private val resolvedUnknownCallModelProvider =
         unknownCallModelProvider ?: frozenUnknownCallModels ?: TsNoUnknownCallModels
+    private val analysisScene = resolvedUnknownCallModelProvider.additionalSceneFiles
+        .takeIf { modelFiles -> modelFiles.isNotEmpty() }
+        ?.let { modelFiles ->
+            EtsScene(
+                projectFiles = (scene.projectFiles + modelFiles).distinctBy { file -> file.signature },
+                sdkFiles = scene.sdkFiles,
+                projectName = scene.projectName,
+            )
+        }
+        ?: scene
+    private val graph = TsGraph(analysisScene)
+    private val typeSystem = TsTypeSystem(analysisScene, typeOperationsTimeout = 1.seconds, graph.hierarchy)
+    private val components = TsComponents(typeSystem, options)
+    private val ctx = TsContext(analysisScene, components)
     private val resolvedUnknownCallDispatcher = unknownCallDispatcher ?: TsProfileUnknownCallDispatcher(
         profile = tsOptions.unknownCallProfile,
         modelProvider = resolvedUnknownCallModelProvider,

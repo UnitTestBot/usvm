@@ -14,6 +14,7 @@ fun TsState.newStmt(stmt: EtsStmt) {
 
 fun TsState.returnValue(valueToReturn: UExpr<out USort>) {
     val returnFromMethod = callStack.lastMethod()
+    leaveUnknownCallModelIfReturning(returnFromMethod)
     val returnSite = callStack.pop()
     if (callStack.isNotEmpty()) {
         memory.stack.pop()

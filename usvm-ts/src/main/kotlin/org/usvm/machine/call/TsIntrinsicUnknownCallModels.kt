@@ -32,6 +32,7 @@ object TsIntrinsicUnknownCallModelBackend : TsUnknownCallModelBackend {
 
     override fun execute(
         implementation: TsUnknownCallModelImplementation,
+        precision: TsUnknownCallModelPrecision,
         state: TsState,
         call: TsUnknownCall,
     ): TsUnknownCallModelExecution {
