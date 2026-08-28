@@ -1,6 +1,7 @@
 package org.usvm.ts.pbt.fastcheck
 
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -26,6 +27,7 @@ internal class FastCheckProcessClient(
     private val adapterEntryPoint: Path,
     private val transportGraceMillis: Long = DEFAULT_TRANSPORT_GRACE_MILLIS,
     private val shutdownGraceMillis: Long = DEFAULT_SHUTDOWN_GRACE_MILLIS,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
     /** Executes one request and exposes only a fully validated common result. */
     fun check(request: FastCheckExecutionRequest): PropertyRunResult = try {
@@ -46,9 +48,9 @@ internal class FastCheckProcessClient(
         val encodedRequest = encodeRequest(request)
 
         val process = startAdapter(request)
-        val stdout = async(Dispatchers.IO) { process.inputStream.readBounded(MAX_STDOUT_BYTES) }
-        val stderr = async(Dispatchers.IO) { process.errorStream.readBounded(MAX_STDERR_BYTES) }
-        val writer = async(Dispatchers.IO) {
+        val stdout = async(ioDispatcher) { process.inputStream.readBounded(MAX_STDOUT_BYTES) }
+        val stderr = async(ioDispatcher) { process.errorStream.readBounded(MAX_STDERR_BYTES) }
+        val writer = async(ioDispatcher) {
             process.outputStream.bufferedWriter(Charsets.UTF_8).use { output ->
                 output.write(encodedRequest)
             }
@@ -106,7 +108,7 @@ internal class FastCheckProcessClient(
     private suspend fun awaitProcess(process: Process, request: FastCheckExecutionRequest) {
         val hardTimeoutMillis = safeAdd(request.timeoutMillis, transportGraceMillis)
         val exitCode = withTimeoutOrNull(hardTimeoutMillis) {
-            runInterruptible(Dispatchers.IO) { process.waitFor() }
+            runInterruptible(ioDispatcher) { process.waitFor() }
         }
 
         if (exitCode == null) {
