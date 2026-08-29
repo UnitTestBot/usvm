@@ -5,12 +5,15 @@ import com.github.ajalt.clikt.core.CliktError
 import com.github.ajalt.clikt.core.PrintHelpMessage
 import com.github.ajalt.clikt.core.parse
 import com.github.ajalt.clikt.parameters.options.default
+import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.int
 import com.github.ajalt.clikt.parameters.types.long
 import com.github.ajalt.clikt.parameters.types.path
 import org.usvm.ts.pbt.PbtDiagnosticCode
+import org.usvm.ts.pbt.backend.CoverageScope
+import org.usvm.ts.pbt.backend.PropertyCoverageRequest
 import org.usvm.ts.pbt.backend.PropertyRunConfiguration
 import org.usvm.ts.pbt.model.PropertyId
 import java.nio.file.Path
@@ -30,6 +33,7 @@ internal data class CliOptions(
     val numRuns: Int,
     val timeoutMillis: Long,
     val examplesFile: Path?,
+    val coverageRequest: PropertyCoverageRequest?,
 )
 
 internal class CliUsageException(
@@ -98,12 +102,33 @@ private class FastCheckOptionsParser : CliktCommand(name = "usvm-ts-pbt") {
         help = "JSON file with positional tagged examples",
     ).path()
 
+    private val coverageEnabled by option(
+        "--coverage",
+        help = "Collect source-mapped coverage for every property run",
+    ).flag()
+
+    private val coverageScopes by option(
+        "--coverage-scope",
+        help = "Coverage scope; repeat for multiple scopes",
+    ).multiple()
+
+    private val coverageIncludePatterns by option(
+        "--coverage-include",
+        help = "Include glob over remapped source paths; repeat for multiple patterns",
+    ).multiple()
+
+    private val coverageExcludePatterns by option(
+        "--coverage-exclude",
+        help = "Exclude glob over remapped source paths; repeat for multiple patterns",
+    ).multiple()
+
     lateinit var options: CliOptions
         private set
 
     override fun run() {
         requireSourceRoots()
         requirePositiveRunControls()
+        requireCoverageFlag()
 
         options = CliOptions(
             sourceRoots = sourceRoots,
@@ -114,6 +139,7 @@ private class FastCheckOptionsParser : CliktCommand(name = "usvm-ts-pbt") {
             numRuns = numRuns,
             timeoutMillis = timeoutMillis,
             examplesFile = examplesFile,
+            coverageRequest = buildCoverageRequest(),
         )
     }
 
@@ -144,6 +170,42 @@ private class FastCheckOptionsParser : CliktCommand(name = "usvm-ts-pbt") {
             )
         }
     }
+
+    private fun requireCoverageFlag() {
+        val hasCoverageDetails = coverageScopes.isNotEmpty() ||
+            coverageIncludePatterns.isNotEmpty() ||
+            coverageExcludePatterns.isNotEmpty()
+        if (!coverageEnabled && hasCoverageDetails) {
+            throw CliUsageException(
+                code = PbtDiagnosticCode.CLI_COVERAGE_REQUIRED,
+                message = "Coverage scope and path rules require --coverage",
+                path = "coverage",
+            )
+        }
+    }
+
+    private fun buildCoverageRequest(): PropertyCoverageRequest? {
+        if (!coverageEnabled) return null
+
+        return PropertyCoverageRequest(
+            scopes = coverageScopes.mapTo(hashSetOf(), ::parseCoverageScope)
+                .ifEmpty { setOf(CoverageScope.SOURCE_UNDER_TEST) },
+            includePatterns = coverageIncludePatterns,
+            excludePatterns = coverageExcludePatterns,
+        )
+    }
+}
+
+private fun parseCoverageScope(value: String): CoverageScope = when (value) {
+    "source-under-test" -> CoverageScope.SOURCE_UNDER_TEST
+    "property-entry-points" -> CoverageScope.PROPERTY_ENTRY_POINTS
+    "generated-backend-wrappers" -> CoverageScope.GENERATED_BACKEND_WRAPPERS
+    "dependencies" -> CoverageScope.DEPENDENCIES
+    else -> throw CliUsageException(
+        code = PbtDiagnosticCode.CLI_COVERAGE_SCOPE_INVALID,
+        message = "Unknown coverage scope $value",
+        path = "coverageScope",
+    )
 }
 
 private fun parsePropertyId(value: String): PropertyId = try {

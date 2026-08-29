@@ -5,6 +5,7 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import org.usvm.ts.pbt.PbtDiagnosticCode
+import org.usvm.ts.pbt.backend.CoverageCapabilityLevel
 import org.usvm.ts.pbt.backend.PropertyBasedTestingBackend
 import org.usvm.ts.pbt.backend.PropertyRunConfiguration
 import org.usvm.ts.pbt.backend.PropertyRunStatus
@@ -119,9 +120,11 @@ class FastCheckCli(
             numRuns = options.numRuns,
             timeoutMillis = options.timeoutMillis,
             examples = examples,
+            coverageRequest = options.coverageRequest,
         )
 
         val backend = backendFactory(options.sourceRoots)
+        requireCoverageSupport(options, backend)
         val results = properties.map { property -> backend.run(property, configuration) }
 
         output.appendLine(PropertyManifestJson.json.encodeToString(results))
@@ -132,6 +135,24 @@ class FastCheckCli(
         } else {
             EXIT_SUCCESS
         }
+    }
+
+    private fun requireCoverageSupport(
+        options: CliOptions,
+        backend: PropertyBasedTestingBackend,
+    ) {
+        if (options.coverageRequest == null ||
+            backend.coverageCapability.level != CoverageCapabilityLevel.UNSUPPORTED
+        ) {
+            return
+        }
+
+        val diagnostic = backend.coverageCapability.diagnostics.first()
+        throw CliUsageException(
+            code = diagnostic.code,
+            message = diagnostic.message,
+            path = diagnostic.path,
+        )
     }
 
     private fun selectProperties(
@@ -183,8 +204,8 @@ class FastCheckCli(
 
         if (registryIds.isEmpty()) return orderedProviders
 
-        val requestedIds = registryIds.toSet()
-        val availableIds = orderedProviders.map(ProviderRegistration::id).toSet()
+        val requestedIds = registryIds.toHashSet()
+        val availableIds = orderedProviders.mapTo(hashSetOf(), ProviderRegistration::id)
         val unknown = requestedIds.minus(availableIds).minOrNull()
 
         if (unknown != null) {

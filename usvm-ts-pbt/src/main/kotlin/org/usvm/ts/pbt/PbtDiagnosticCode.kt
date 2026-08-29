@@ -3,6 +3,8 @@ package org.usvm.ts.pbt
 /** Stable identifiers for diagnostics created on the Kotlin side of the PBT boundary. */
 internal object PbtDiagnosticCode {
     const val CLI_ARGUMENT_INVALID = "cli.argument.invalid"
+    const val CLI_COVERAGE_REQUIRED = "cli.coverage.required"
+    const val CLI_COVERAGE_SCOPE_INVALID = "cli.coverage.scope.invalid"
     const val CLI_EXAMPLES_INVALID = "cli.examples.invalid"
     const val CLI_NUM_RUNS_INVALID = "cli.num-runs.invalid"
     const val CLI_PROPERTY_EMPTY = "cli.property.empty"
@@ -34,6 +36,14 @@ internal object PbtDiagnosticCode {
     const val BACKEND_RESPONSE_INVALID = "backend.response.invalid"
     const val BACKEND_RESPONSE_TOO_LARGE = "backend.response.too-large"
     const val BACKEND_RUNTIME_NOT_FOUND = "backend.runtime.not-found"
+
+    const val COVERAGE_COLLECTOR_NOT_FOUND = "coverage.collector.not-found"
+    const val COVERAGE_REPORT_INVALID = "coverage.report.invalid"
+    const val COVERAGE_REPORT_MISSING = "coverage.report.missing"
+    const val COVERAGE_RUNTIME_UNSUPPORTED = "coverage.runtime.unsupported"
+    const val COVERAGE_RUNTIME_VERSION_UNAVAILABLE = "coverage.runtime.version-unavailable"
+    const val COVERAGE_SOURCE_MAP_INVALID = "coverage.source-map.invalid"
+    const val COVERAGE_SOURCE_MAP_MISSING = "coverage.source-map.missing"
 
     const val PROTOCOL_REQUEST_INVALID = "protocol.request.invalid"
     const val SOURCE_ROOT_INVALID = "source-root.invalid"

@@ -1,6 +1,8 @@
 package org.usvm.ts.pbt.fastcheck
 
 import org.junit.jupiter.api.Test
+import org.usvm.ts.pbt.backend.CoverageScope
+import org.usvm.ts.pbt.backend.PropertyCoverageRequest
 import org.usvm.ts.pbt.backend.PropertyFailureKind
 import org.usvm.ts.pbt.backend.PropertyRunConfiguration
 import org.usvm.ts.pbt.backend.PropertyRunStatus
@@ -33,6 +35,24 @@ class FastCheckBackendTest {
 
         assertEquals(PropertyRunStatus.SUCCESS, result.status)
         assertEquals(20, result.numRuns)
+    }
+
+    @Test
+    fun `collects source mapped entry point coverage when Kotlin requests it`() {
+        val result = backend.run(
+            property = property(predicate = "alwaysTrue"),
+            configuration = configuration.copy(
+                coverageRequest = PropertyCoverageRequest(
+                    scopes = setOf(CoverageScope.PROPERTY_ENTRY_POINTS),
+                ),
+            ),
+        )
+
+        val coverage = assertNotNull(result.coverage)
+        val file = coverage.files.single { source -> source.path.endsWith(MODULE) }
+
+        assertTrue(file.statements.isNotEmpty())
+        assertTrue(file.functions.isNotEmpty())
     }
 
     @Test

@@ -12,12 +12,17 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import org.usvm.ts.pbt.PbtDiagnosticCode
+import org.usvm.ts.pbt.backend.CoverageScope
 import org.usvm.ts.pbt.backend.PropertyRunResult
+import org.usvm.ts.pbt.coverage.CoverageArtifactException
+import org.usvm.ts.pbt.coverage.IstanbulCoverageContext
+import org.usvm.ts.pbt.coverage.decodeIstanbulCoverageReport
 import org.usvm.ts.pbt.manifest.PropertyManifestJson
 import org.usvm.ts.pbt.model.PropertyId
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.io.InputStream
+import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 
@@ -47,17 +52,22 @@ internal class FastCheckProcessClient(
     private suspend fun checkSuspending(request: FastCheckExecutionRequest): PropertyRunResult = supervisorScope {
         val encodedRequest = encodeRequest(request)
 
-        val process = startAdapter(request)
-        val stdout = async(ioDispatcher) { process.inputStream.readBounded(MAX_STDOUT_BYTES) }
-        val stderr = async(ioDispatcher) { process.errorStream.readBounded(MAX_STDERR_BYTES) }
-        val writer = async(ioDispatcher) {
-            process.outputStream.bufferedWriter(Charsets.UTF_8).use { output ->
-                output.write(encodedRequest)
-            }
-        }
+        val coverageRuntimeVersion = request.coverageRequest?.let { nodeVersion(request) }
+        val coverageWorkspace = request.coverageRequest?.let { createCoverageWorkspace(request) }
+        var process: Process? = null
 
         try {
-            awaitProcess(process, request)
+            val startedProcess = startAdapter(request, coverageWorkspace)
+            process = startedProcess
+            val stdout = async(ioDispatcher) { startedProcess.inputStream.readBounded(MAX_STDOUT_BYTES) }
+            val stderr = async(ioDispatcher) { startedProcess.errorStream.readBounded(MAX_STDERR_BYTES) }
+            val writer = async(ioDispatcher) {
+                startedProcess.outputStream.bufferedWriter(Charsets.UTF_8).use { output ->
+                    output.write(encodedRequest)
+                }
+            }
+
+            awaitProcess(startedProcess, request)
 
             awaitIo(
                 task = writer,
@@ -79,14 +89,24 @@ internal class FastCheckProcessClient(
                 request = request,
             )
 
-            validateProcessExit(process, stderrText, request)
+            validateProcessExit(startedProcess, stderrText, request)
             validateStdout(stdoutText, request)
 
             val response = decodeResponse(stdoutText.text, request)
 
-            decodeSuccessfulResponse(response, request)
+            val result = decodeSuccessfulResponse(response, request)
+
+            coverageWorkspace?.let { workspace ->
+                collectCoverage(
+                    result = result,
+                    request = request,
+                    workspace = workspace,
+                    runtimeVersion = requireNotNull(coverageRuntimeVersion),
+                )
+            } ?: result
         } finally {
-            if (process.isAlive) terminate(process)
+            process?.takeIf(Process::isAlive)?.let(::terminate)
+            coverageWorkspace?.root?.toFile()?.deleteRecursively()
         }
     }
 
@@ -160,8 +180,11 @@ internal class FastCheckProcessClient(
         }
     }
 
-    private fun startAdapter(request: FastCheckExecutionRequest): Process = try {
-        ProcessBuilder(nodeExecutable, adapterEntryPoint.toString()).start()
+    private fun startAdapter(
+        request: FastCheckExecutionRequest,
+        coverageWorkspace: CoverageWorkspace?,
+    ): Process = try {
+        ProcessBuilder(adapterCommand(request, coverageWorkspace)).start()
     } catch (error: IOException) {
         throw backendError(
             kind = BackendErrorKind.PROCESS_FAILURE,
@@ -171,6 +194,198 @@ internal class FastCheckProcessClient(
             cause = error,
         )
     }
+
+    private fun adapterCommand(
+        request: FastCheckExecutionRequest,
+        coverageWorkspace: CoverageWorkspace?,
+    ): List<String> {
+        if (coverageWorkspace == null) return listOf(nodeExecutable, adapterEntryPoint.toString())
+
+        val command = mutableListOf(
+            nodeExecutable,
+            coverageWorkspace.c8EntryPoint.toString(),
+            "--config=${coverageWorkspace.configPath}",
+            "--reporter=json",
+            "--reports-dir=${coverageWorkspace.reportDirectory}",
+            "--temp-directory=${coverageWorkspace.rawDirectory}",
+            "--exclude-after-remap",
+            "--allowExternal",
+            "--exclude=__usvm_no_default_excludes__",
+        )
+        if (CoverageScope.DEPENDENCIES in requireNotNull(request.coverageRequest).scopes) {
+            command += "--exclude-node-modules=false"
+        }
+        command += nodeExecutable
+        command += adapterEntryPoint.toString()
+
+        return command
+    }
+
+    private fun createCoverageWorkspace(request: FastCheckExecutionRequest): CoverageWorkspace {
+        val adapterRoot = adapterRoot()
+        val c8EntryPoint = adapterRoot.resolve("node_modules/c8/bin/c8.js")
+        if (!Files.isRegularFile(c8EntryPoint)) {
+            throw backendError(
+                kind = BackendErrorKind.COVERAGE,
+                code = PbtDiagnosticCode.COVERAGE_COLLECTOR_NOT_FOUND,
+                message = "Cannot locate c8 ${FastCheckRuntimeMetadata.coverageCollector.version} " +
+                    "in the fast-check adapter runtime",
+                request = request,
+                path = c8EntryPoint.toString(),
+            )
+        }
+
+        val root = Files.createTempDirectory("usvm-ts-pbt-coverage-")
+        val configPath = Files.writeString(root.resolve("c8-config.json"), "{}")
+        return CoverageWorkspace(
+            root = root,
+            configPath = configPath,
+            rawDirectory = root.resolve("raw"),
+            reportDirectory = root.resolve("report"),
+            c8EntryPoint = c8EntryPoint,
+            adapterRoot = adapterRoot,
+        )
+    }
+
+    private fun collectCoverage(
+        result: PropertyRunResult,
+        request: FastCheckExecutionRequest,
+        workspace: CoverageWorkspace,
+        runtimeVersion: String,
+    ): PropertyRunResult {
+        val coverageRequest = requireNotNull(request.coverageRequest)
+        val entryPointPaths = hashSetOf<String>()
+        request.sourceRoots.forEach { sourceRoot ->
+            val root = Path.of(sourceRoot)
+            entryPointPaths += root.resolve(request.manifest.predicate.module).normalize().toString()
+            request.manifest.precondition?.let { precondition ->
+                entryPointPaths += root.resolve(precondition.module).normalize().toString()
+            }
+        }
+        val artifact = try {
+            decodeIstanbulCoverageReport(
+                reportPath = workspace.reportDirectory.resolve("coverage-final.json"),
+                context = IstanbulCoverageContext(
+                    backendId = FastCheckBackend.FAST_CHECK_BACKEND_ID,
+                    backendVersion = FastCheckRuntimeMetadata.fastCheckVersion,
+                    propertyId = result.propertyId,
+                    sourceRoots = request.sourceRoots,
+                    propertyEntryPointPaths = entryPointPaths,
+                    adapterRoot = workspace.adapterRoot.toString(),
+                    runtimeVersion = runtimeVersion,
+                    collector = FastCheckRuntimeMetadata.coverageCollector,
+                    request = coverageRequest,
+                ),
+            )
+        } catch (error: CoverageArtifactException) {
+            throw backendError(
+                kind = BackendErrorKind.COVERAGE,
+                code = error.diagnostic.code,
+                message = error.diagnostic.message,
+                request = request,
+                path = error.diagnostic.path,
+                cause = error,
+            )
+        }
+
+        return result.copy(coverage = artifact)
+    }
+
+    private suspend fun nodeVersion(request: FastCheckExecutionRequest): String {
+        val process = startNodeVersionProcess(request)
+
+        awaitNodeVersionProcess(process, request)
+
+        return readNodeVersion(process, request)
+    }
+
+    private fun startNodeVersionProcess(request: FastCheckExecutionRequest): Process = try {
+        ProcessBuilder(nodeExecutable, "--version").start()
+    } catch (error: IOException) {
+        throw coverageRuntimeVersionError(request, error)
+    }
+
+    private suspend fun awaitNodeVersionProcess(
+        process: Process,
+        request: FastCheckExecutionRequest,
+    ) {
+        val completed = runInterruptible(ioDispatcher) {
+            process.waitFor(NODE_VERSION_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+        }
+        if (!completed) {
+            process.destroyForcibly()
+
+            throw backendError(
+                kind = BackendErrorKind.COVERAGE,
+                code = PbtDiagnosticCode.COVERAGE_RUNTIME_VERSION_UNAVAILABLE,
+                message = "Timed out while querying the Node.js runtime version",
+                request = request,
+            )
+        }
+    }
+
+    private fun readNodeVersion(
+        process: Process,
+        request: FastCheckExecutionRequest,
+    ): String {
+        val version = process.inputStream.bufferedReader(Charsets.UTF_8).use { input ->
+            input.readLine().orEmpty().trim()
+        }
+        if (process.exitValue() != 0 || version.isBlank()) {
+            throw backendError(
+                kind = BackendErrorKind.COVERAGE,
+                code = PbtDiagnosticCode.COVERAGE_RUNTIME_VERSION_UNAVAILABLE,
+                message = "Cannot query the Node.js runtime version",
+                request = request,
+            )
+        }
+
+        return requireSupportedNodeVersion(version, request)
+    }
+
+    private fun requireSupportedNodeVersion(
+        version: String,
+        request: FastCheckExecutionRequest,
+    ): String {
+        val match = NODE_VERSION_PATTERN.matchEntire(version)
+        val major = match?.groupValues?.get(1)?.toIntOrNull()
+        val minor = match?.groupValues?.get(2)?.toIntOrNull()
+        if (major == null || minor == null) {
+            throw backendError(
+                kind = BackendErrorKind.COVERAGE,
+                code = PbtDiagnosticCode.COVERAGE_RUNTIME_VERSION_UNAVAILABLE,
+                message = "Cannot parse the Node.js runtime version: $version",
+                request = request,
+            )
+        }
+
+        val isSupported = major > MINIMUM_NODE_MAJOR_VERSION ||
+            major == MINIMUM_NODE_MAJOR_VERSION && minor >= MINIMUM_NODE_MINOR_VERSION
+        if (!isSupported) {
+            throw backendError(
+                kind = BackendErrorKind.COVERAGE,
+                code = PbtDiagnosticCode.COVERAGE_RUNTIME_UNSUPPORTED,
+                message = "Coverage requires Node.js 18.18 or newer; found $version",
+                request = request,
+            )
+        }
+
+        return version
+    }
+
+    private fun coverageRuntimeVersionError(
+        request: FastCheckExecutionRequest,
+        error: IOException,
+    ) = backendError(
+        kind = BackendErrorKind.COVERAGE,
+        code = PbtDiagnosticCode.COVERAGE_RUNTIME_VERSION_UNAVAILABLE,
+        message = "Cannot query the Node.js runtime version: ${error.message}",
+        request = request,
+        cause = error,
+    )
+
+    private fun adapterRoot(): Path = adapterEntryPoint.parent?.parent?.parent
+        ?: throw IllegalArgumentException("Adapter entry point has no runtime root: $adapterEntryPoint")
 
     private suspend fun <T> awaitIo(
         task: Deferred<T>,
@@ -313,8 +528,21 @@ internal class FastCheckProcessClient(
         const val MAX_STDERR_BYTES = 64 * 1024
         const val DEFAULT_TRANSPORT_GRACE_MILLIS = 2_000L
         const val DEFAULT_SHUTDOWN_GRACE_MILLIS = 250L
+        const val NODE_VERSION_TIMEOUT_MILLIS = 5_000L
+        const val MINIMUM_NODE_MAJOR_VERSION = 18
+        const val MINIMUM_NODE_MINOR_VERSION = 18
+        val NODE_VERSION_PATTERN = Regex("""^v(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$""")
     }
 }
+
+private data class CoverageWorkspace(
+    val root: Path,
+    val configPath: Path,
+    val rawDirectory: Path,
+    val reportDirectory: Path,
+    val c8EntryPoint: Path,
+    val adapterRoot: Path,
+)
 
 private data class BoundedText(val text: String, val exceeded: Boolean)
 

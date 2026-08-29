@@ -1,6 +1,7 @@
 package org.usvm.ts.pbt.fastcheck
 
 import org.junit.jupiter.api.Test
+import org.usvm.ts.pbt.backend.PropertyCoverageRequest
 import org.usvm.ts.pbt.manifest.toManifest
 import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.PropertyDefinition
@@ -8,9 +9,14 @@ import org.usvm.ts.pbt.model.PropertyId
 import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.TypeScriptEntryPoint
 import org.usvm.ts.pbt.testResourcesRoot
+import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.io.path.createDirectories
+import kotlin.io.path.createFile
+import kotlin.io.path.createTempDirectory
 import kotlin.io.path.createTempFile
 import kotlin.io.path.deleteIfExists
+import kotlin.io.path.readText
 import kotlin.io.path.writeText
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -28,6 +34,190 @@ class FastCheckProcessClientTest {
 
         assertEquals(BackendErrorKind.PROCESS_FAILURE, startup.kind)
         assertEquals("backend.process.start.failed", startup.code)
+    }
+
+    @Test
+    fun `coverage workspace is removed when process startup fails`() {
+        val runtime = createTempDirectory(prefix = "fast-check-runtime-")
+        val adapter = runtime.resolve("dist/src/execution-cli.js")
+        val c8 = runtime.resolve("node_modules/c8/bin/c8.js")
+        val fakeNode = runtime.resolve("fake-node")
+        adapter.parent.createDirectories()
+        c8.parent.createDirectories()
+        adapter.createFile()
+        c8.createFile()
+        fakeNode.writeText(
+            """
+            #!/bin/sh
+            if [ "${'$'}1" = "--version" ]; then
+                printf 'v22.14.0\n'
+                rm "${'$'}0"
+                exit 0
+            fi
+            exit 1
+            """.trimIndent(),
+        )
+        check(fakeNode.toFile().setExecutable(true))
+        val workspacesBefore = coverageWorkspaces()
+
+        try {
+            val error = assertFailsWith<PbtBackendException> {
+                FastCheckProcessClient(
+                    nodeExecutable = fakeNode.toString(),
+                    adapterEntryPoint = adapter,
+                ).check(
+                    validRequest.copy(coverageRequest = PropertyCoverageRequest()),
+                )
+            }
+
+            assertEquals(BackendErrorKind.PROCESS_FAILURE, error.kind)
+            assertEquals(workspacesBefore, coverageWorkspaces())
+        } finally {
+            runtime.toFile().deleteRecursively()
+            coverageWorkspaces()
+                .minus(workspacesBefore)
+                .forEach { workspace -> workspace.toFile().deleteRecursively() }
+        }
+    }
+
+    @Test
+    fun `coverage rejects an unsupported Node runtime before starting c8`() {
+        val runtime = createTempDirectory(prefix = "fast-check-runtime-")
+        val adapter = runtime.resolve("dist/src/execution-cli.js")
+        val c8 = runtime.resolve("node_modules/c8/bin/c8.js")
+        val collectorStarted = runtime.resolve("collector-started")
+        val fakeNode = runtime.resolve("fake-node")
+        adapter.parent.createDirectories()
+        c8.parent.createDirectories()
+        adapter.createFile()
+        c8.createFile()
+        fakeNode.writeText(
+            """
+            #!/bin/sh
+            if [ "${'$'}1" = "--version" ]; then
+                printf 'v16.20.2\n'
+                exit 0
+            fi
+            touch "$collectorStarted"
+            exit 1
+            """.trimIndent(),
+        )
+        check(fakeNode.toFile().setExecutable(true))
+
+        try {
+            val error = assertFailsWith<PbtBackendException> {
+                FastCheckProcessClient(
+                    nodeExecutable = fakeNode.toString(),
+                    adapterEntryPoint = adapter,
+                ).check(
+                    validRequest.copy(coverageRequest = PropertyCoverageRequest()),
+                )
+            }
+
+            assertEquals(BackendErrorKind.COVERAGE, error.kind)
+            assertEquals("coverage.runtime.unsupported", error.code)
+            assertTrue(Files.notExists(collectorStarted))
+        } finally {
+            runtime.toFile().deleteRecursively()
+        }
+    }
+
+    @Test
+    fun `coverage collector preserves the caller working directory`() {
+        val runtime = createTempDirectory(prefix = "fast-check-runtime-")
+        val adapter = runtime.resolve("dist/src/execution-cli.js")
+        val c8 = runtime.resolve("node_modules/c8/bin/c8.js")
+        val collectorDirectory = runtime.resolve("collector-directory")
+        val fakeNode = runtime.resolve("fake-node")
+        adapter.parent.createDirectories()
+        c8.parent.createDirectories()
+        adapter.createFile()
+        c8.createFile()
+        fakeNode.writeText(
+            """
+            #!/bin/sh
+            if [ "${'$'}1" = "--version" ]; then
+                printf 'v22.14.0\n'
+                exit 0
+            fi
+            pwd > "$collectorDirectory"
+            exit 1
+            """.trimIndent(),
+        )
+        check(fakeNode.toFile().setExecutable(true))
+        val callerDirectory = Path.of("").toAbsolutePath().normalize()
+
+        try {
+            val error = assertFailsWith<PbtBackendException> {
+                FastCheckProcessClient(
+                    nodeExecutable = fakeNode.toString(),
+                    adapterEntryPoint = adapter,
+                ).check(
+                    validRequest.copy(coverageRequest = PropertyCoverageRequest()),
+                )
+            }
+            val startedDirectory = Path.of(collectorDirectory.readText().trim())
+
+            assertEquals(BackendErrorKind.PROCESS_FAILURE, error.kind)
+            assertEquals(callerDirectory, startedDirectory)
+        } finally {
+            runtime.toFile().deleteRecursively()
+        }
+    }
+
+    @Test
+    fun `coverage collector uses an explicit empty configuration`() {
+        val runtime = createTempDirectory(prefix = "fast-check-runtime-")
+        val adapter = runtime.resolve("dist/src/execution-cli.js")
+        val c8 = runtime.resolve("node_modules/c8/bin/c8.js")
+        val collectorArguments = runtime.resolve("collector-arguments")
+        val collectorConfiguration = runtime.resolve("collector-configuration")
+        val fakeNode = runtime.resolve("fake-node")
+        adapter.parent.createDirectories()
+        c8.parent.createDirectories()
+        adapter.createFile()
+        c8.createFile()
+        fakeNode.writeText(
+            """
+            #!/bin/sh
+            if [ "${'$'}1" = "--version" ]; then
+                printf 'v22.14.0\n'
+                exit 0
+            fi
+            printf '%s\n' "${'$'}@" > "$collectorArguments"
+            for argument in "${'$'}@"; do
+                case "${'$'}argument" in
+                    --config=*)
+                        config_path="${'$'}{argument#--config=}"
+                        cat "${'$'}config_path" > "$collectorConfiguration"
+                        ;;
+                esac
+            done
+            exit 1
+            """.trimIndent(),
+        )
+        check(fakeNode.toFile().setExecutable(true))
+
+        try {
+            val error = assertFailsWith<PbtBackendException> {
+                FastCheckProcessClient(
+                    nodeExecutable = fakeNode.toString(),
+                    adapterEntryPoint = adapter,
+                ).check(
+                    validRequest.copy(coverageRequest = PropertyCoverageRequest()),
+                )
+            }
+            val configArguments = collectorArguments.readText()
+                .lineSequence()
+                .filter { argument -> argument.startsWith("--config=") }
+                .toList()
+
+            assertEquals(BackendErrorKind.PROCESS_FAILURE, error.kind)
+            assertEquals(1, configArguments.size)
+            assertEquals("{}", collectorConfiguration.readText())
+        } finally {
+            runtime.toFile().deleteRecursively()
+        }
     }
 
     @Test
@@ -127,6 +317,13 @@ class FastCheckProcessClientTest {
             )
         } finally {
             script.deleteIfExists()
+        }
+    }
+
+    private fun coverageWorkspaces(): Set<Path> {
+        val temporaryRoot = Path.of(System.getProperty("java.io.tmpdir"))
+        return Files.newDirectoryStream(temporaryRoot, "usvm-ts-pbt-coverage-*").use { entries ->
+            entries.toHashSet()
         }
     }
 
