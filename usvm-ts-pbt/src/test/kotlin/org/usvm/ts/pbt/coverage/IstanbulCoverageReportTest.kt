@@ -43,7 +43,7 @@ class IstanbulCoverageReportTest {
         val artifact = decodeIstanbulCoverageReport(
             reportPath = goldenReport(),
             context = context(
-                request = PropertyCoverageRequest(scopes = CoverageScope.entries.toSet()),
+                request = PropertyCoverageRequest(scopes = CoverageScope.entries.toHashSet()),
             ),
         )
 
@@ -64,7 +64,7 @@ class IstanbulCoverageReportTest {
             reportPath = goldenReport(),
             context = context(
                 request = PropertyCoverageRequest(
-                    scopes = CoverageScope.entries.toSet(),
+                    scopes = CoverageScope.entries.toHashSet(),
                     includePatterns = listOf("**/*.ts"),
                     excludePatterns = listOf("**/property.?s"),
                 ),

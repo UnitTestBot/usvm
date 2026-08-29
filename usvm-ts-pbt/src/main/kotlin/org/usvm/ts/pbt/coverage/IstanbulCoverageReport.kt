@@ -121,7 +121,7 @@ private fun decodeReport(
     context: IstanbulCoverageContext,
 ): PropertyCoverageArtifact {
     val normalizedRoots = context.sourceRoots.map(::normalizeCoveragePath)
-    val normalizedEntryPoints = context.propertyEntryPointPaths.mapTo(mutableSetOf(), ::normalizeCoveragePath)
+    val normalizedEntryPoints = context.propertyEntryPointPaths.mapTo(hashSetOf(), ::normalizeCoveragePath)
     val normalizedAdapterRoot = normalizeCoveragePath(context.adapterRoot)
     val diagnostics = mutableListOf<CoverageDiagnostic>()
     val files = report.entries.mapNotNull { (reportKey, element) ->

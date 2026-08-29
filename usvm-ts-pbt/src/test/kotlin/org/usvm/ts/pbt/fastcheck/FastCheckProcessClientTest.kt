@@ -323,7 +323,7 @@ class FastCheckProcessClientTest {
     private fun coverageWorkspaces(): Set<Path> {
         val temporaryRoot = Path.of(System.getProperty("java.io.tmpdir"))
         return Files.newDirectoryStream(temporaryRoot, "usvm-ts-pbt-coverage-*").use { entries ->
-            entries.toSet()
+            entries.toHashSet()
         }
     }
 

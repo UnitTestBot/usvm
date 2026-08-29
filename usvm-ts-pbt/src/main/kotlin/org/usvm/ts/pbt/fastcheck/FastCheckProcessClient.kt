@@ -254,13 +254,12 @@ internal class FastCheckProcessClient(
         runtimeVersion: String,
     ): PropertyRunResult {
         val coverageRequest = requireNotNull(request.coverageRequest)
-        val entryPointPaths = buildSet {
-            request.sourceRoots.forEach { sourceRoot ->
-                val root = Path.of(sourceRoot)
-                add(root.resolve(request.manifest.predicate.module).normalize().toString())
-                request.manifest.precondition?.let { precondition ->
-                    add(root.resolve(precondition.module).normalize().toString())
-                }
+        val entryPointPaths = hashSetOf<String>()
+        request.sourceRoots.forEach { sourceRoot ->
+            val root = Path.of(sourceRoot)
+            entryPointPaths += root.resolve(request.manifest.predicate.module).normalize().toString()
+            request.manifest.precondition?.let { precondition ->
+                entryPointPaths += root.resolve(precondition.module).normalize().toString()
             }
         }
         val artifact = try {

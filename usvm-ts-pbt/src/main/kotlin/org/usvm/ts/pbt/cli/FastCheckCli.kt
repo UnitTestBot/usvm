@@ -204,8 +204,8 @@ class FastCheckCli(
 
         if (registryIds.isEmpty()) return orderedProviders
 
-        val requestedIds = registryIds.toSet()
-        val availableIds = orderedProviders.map(ProviderRegistration::id).toSet()
+        val requestedIds = registryIds.toHashSet()
+        val availableIds = orderedProviders.mapTo(hashSetOf(), ProviderRegistration::id)
         val unknown = requestedIds.minus(availableIds).minOrNull()
 
         if (unknown != null) {
