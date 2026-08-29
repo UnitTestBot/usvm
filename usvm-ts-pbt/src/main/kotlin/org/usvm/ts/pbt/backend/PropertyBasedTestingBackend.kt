@@ -8,6 +8,9 @@ import org.usvm.ts.pbt.model.PropertyId
 
 /** Executes validated Kotlin property definitions through one concrete PBT engine. */
 interface PropertyBasedTestingBackend {
+    /** Reports whether this backend version can collect per-property source coverage. */
+    val coverageCapability: PropertyCoverageCapability
+
     /** Executes [property] with [configuration] and returns a structured property result. */
     fun run(
         property: PropertyDefinition,
@@ -22,6 +25,7 @@ data class PropertyRunConfiguration(
     val numRuns: Int = DEFAULT_NUM_RUNS,
     val timeoutMillis: Long = DEFAULT_TIMEOUT_MILLIS,
     val examples: List<List<JsConcreteValue>> = emptyList(),
+    val coverageRequest: PropertyCoverageRequest? = null,
 ) {
     init {
         require(numRuns > 0) { "Number of runs must be positive" }
@@ -86,12 +90,16 @@ data class PropertyRunResult(
     val numShrinks: Int,
     val failure: PropertyFailureDetails?,
     val executionTimeMillis: Long,
+    val coverage: PropertyCoverageArtifact? = null,
 ) {
     init {
         require(numRuns >= 0) { "Run count must not be negative" }
         require(numSkips >= 0) { "Skip count must not be negative" }
         require(numShrinks >= 0) { "Shrink count must not be negative" }
         require(executionTimeMillis >= 0) { "Execution time must not be negative" }
+        require(coverage == null || coverage.propertyId == propertyId) {
+            "Coverage property ID must match the run result"
+        }
 
         when (status) {
             PropertyRunStatus.SUCCESS -> {

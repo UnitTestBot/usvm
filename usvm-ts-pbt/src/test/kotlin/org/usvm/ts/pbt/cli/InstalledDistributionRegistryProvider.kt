@@ -26,6 +26,19 @@ class InstalledDistributionRegistryProvider : PropertyRegistryProvider {
                     exportName = "alwaysTrue",
                 ),
             ),
+            PropertyDefinition(
+                id = PropertyId("distribution.covers-positive"),
+                inputs = listOf(
+                    PropertyInput(
+                        name = "value",
+                        domain = IntegerDomain(min = 1, max = 10),
+                    ),
+                ),
+                predicate = TypeScriptEntryPoint(
+                    module = "properties/coverage/CoverageProperties.ts",
+                    exportName = "coversPositive",
+                ),
+            ),
         ),
     )
 }

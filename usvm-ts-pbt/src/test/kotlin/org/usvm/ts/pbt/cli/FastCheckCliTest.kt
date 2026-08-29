@@ -4,7 +4,13 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.jupiter.api.Test
+import org.usvm.ts.pbt.backend.CoverageArtifactKind
+import org.usvm.ts.pbt.backend.CoverageCollectorIdentity
+import org.usvm.ts.pbt.backend.CoverageDiagnostic
+import org.usvm.ts.pbt.backend.CoverageProvenance
 import org.usvm.ts.pbt.backend.PropertyBasedTestingBackend
+import org.usvm.ts.pbt.backend.PropertyCoverageArtifact
+import org.usvm.ts.pbt.backend.PropertyCoverageCapability
 import org.usvm.ts.pbt.backend.PropertyFailureDetails
 import org.usvm.ts.pbt.backend.PropertyFailureKind
 import org.usvm.ts.pbt.backend.PropertyRunConfiguration
@@ -25,6 +31,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 
 class FastCheckCliTest {
     @Test
@@ -42,6 +49,7 @@ class FastCheckCliTest {
         assertEquals("", errors.toString())
         assertContains(output, "TypeScript source root")
         assertContains(output, "--examples")
+        assertContains(output, "--coverage-scope")
     }
 
     @Test
@@ -124,6 +132,84 @@ class FastCheckCliTest {
 
         assertEquals(1, exitCode)
         assertEquals(listOf("passing", "failing"), propertyIds)
+    }
+
+    @Test
+    fun `coverage options request and serialize one artifact per property`() {
+        val output = StringBuilder()
+        val errors = StringBuilder()
+        val cli = cli(
+            providers = listOf(provider(registryId = "examples", propertyIds = arrayOf("covered"))),
+            output = output,
+            errors = errors,
+        )
+
+        val exitCode = cli.run(
+            arrayOf(
+                "--source-root", sourceRoot.toString(),
+                "--property", "covered",
+                "--coverage",
+                "--coverage-scope", "property-entry-points",
+                "--coverage-include", "**/*.ts",
+                "--coverage-exclude", "**/ignored.ts",
+            ),
+        )
+
+        val result = PropertyManifestJson.json.parseToJsonElement(output.toString()).jsonArray.single().jsonObject
+        val coverage = result.getValue("coverage").jsonObject
+        val request = coverage.getValue("provenance").jsonObject.getValue("request").jsonObject
+        val includePatterns = request.getValue("includePatterns").jsonArray
+        val excludePatterns = request.getValue("excludePatterns").jsonArray
+
+        assertEquals(0, exitCode)
+        assertEquals("", errors.toString())
+        assertFalse("schemaVersion" in coverage)
+        assertEquals(
+            listOf("property_entry_points"),
+            request.getValue("scopes").jsonArray.map { scope -> scope.jsonPrimitive.content },
+        )
+        assertEquals("**/*.ts", includePatterns.single().jsonPrimitive.content)
+        assertEquals("**/ignored.ts", excludePatterns.single().jsonPrimitive.content)
+    }
+
+    @Test
+    fun `coverage details require the coverage flag`() {
+        val errors = StringBuilder()
+
+        val exitCode = cli(
+            providers = listOf(provider(registryId = "examples", propertyIds = arrayOf("property"))),
+            errors = errors,
+        ).run(
+            arrayOf(
+                "--source-root",
+                sourceRoot.toString(),
+                "--coverage-scope",
+                "source-under-test",
+            ),
+        )
+
+        assertEquals(2, exitCode)
+        assertEquals("cli.coverage.required", diagnosticCode(errors))
+    }
+
+    @Test
+    fun `coverage request reports an unsupported backend before execution`() {
+        val errors = StringBuilder()
+
+        val exitCode = cli(
+            providers = listOf(provider(registryId = "examples", propertyIds = arrayOf("property"))),
+            errors = errors,
+            supportsCoverage = false,
+        ).run(
+            arrayOf(
+                "--source-root",
+                sourceRoot.toString(),
+                "--coverage",
+            ),
+        )
+
+        assertEquals(2, exitCode)
+        assertEquals("coverage.unsupported", diagnosticCode(errors))
     }
 
     @Test
@@ -280,9 +366,15 @@ class FastCheckCliTest {
         output: Appendable = StringBuilder(),
         errors: Appendable = StringBuilder(),
         failures: Set<PropertyId> = emptySet(),
+        supportsCoverage: Boolean = true,
     ) = FastCheckCli(
         providers = providers,
-        backendFactory = { FakeBackend(failures) },
+        backendFactory = {
+            FakeBackend(
+                failures = failures,
+                supportsCoverage = supportsCoverage,
+            )
+        },
         output = output,
         errors = errors,
     )
@@ -309,7 +401,31 @@ class FastCheckCliTest {
         .jsonPrimitive
         .content
 
-    private class FakeBackend(private val failures: Set<PropertyId>) : PropertyBasedTestingBackend {
+    private class FakeBackend(
+        private val failures: Set<PropertyId>,
+        supportsCoverage: Boolean,
+    ) : PropertyBasedTestingBackend {
+        override val coverageCapability: PropertyCoverageCapability = if (supportsCoverage) {
+            PropertyCoverageCapability.supported(
+                backendId = "fake",
+                backendVersion = "1.0.0",
+                collector = CoverageCollectorIdentity(
+                    id = "c8",
+                    version = "10.1.3",
+                ),
+            )
+        } else {
+            PropertyCoverageCapability.unsupported(
+                backendId = "fake",
+                backendVersion = "1.0.0",
+                diagnostic = CoverageDiagnostic(
+                    code = "coverage.unsupported",
+                    message = "Fake backend does not collect coverage",
+                    path = "coverageRequest",
+                ),
+            )
+        }
+
         override fun run(
             property: PropertyDefinition,
             configuration: PropertyRunConfiguration,
@@ -335,6 +451,22 @@ class FastCheckCliTest {
                     null
                 },
                 executionTimeMillis = 1,
+                coverage = configuration.coverageRequest?.let { request ->
+                    PropertyCoverageArtifact(
+                        kind = CoverageArtifactKind.NODE_SOURCE,
+                        backendId = coverageCapability.backendId,
+                        backendVersion = coverageCapability.backendVersion,
+                        propertyId = property.id,
+                        provenance = CoverageProvenance(
+                            collector = requireNotNull(coverageCapability.collector),
+                            runtimeId = "node",
+                            runtimeVersion = "v22.14.0",
+                            sourceRoots = listOf(sourceRoot.toString()),
+                            request = request,
+                        ),
+                        files = emptyList(),
+                    )
+                },
             )
         }
     }

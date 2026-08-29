@@ -73,7 +73,7 @@ val result = backend.run(
 
 The defaults are 100 successful runs and a 60-second timeout. Configuration also supports replay paths and
 positional explicit examples. `PropertyRunResult` contains the property ID, status, actual seed, replay path,
-counterexample, run/skip/shrink counts, failure details, and elapsed time.
+counterexample, run/skip/shrink counts, failure details, elapsed time, and optional per-property coverage.
 
 Predicate falsification and a timeout reported by fast-check are normal `FAILURE` results. Invalid input,
 entry-point, process, and transport failures throw `PbtBackendException`.
@@ -81,6 +81,61 @@ entry-point, process, and transport failures throw `PbtBackendException`.
 Synchronous entry points must return a boolean directly. Asynchronous entry points must return an awaitable that
 resolves to a boolean. A false precondition is passed to fast-check as a skipped input. Generation, replay, explicit
 examples, checking, and shrinking retain fast-check semantics.
+
+## Per-property TypeScript coverage
+
+Coverage is a backend capability, not part of `PropertyDefinition` or `PropertyManifest`.
+`PropertyBasedTestingBackend.coverageCapability` exposes the backend identity, backend version, and collector
+before execution. `FastCheckBackend` reports c8 10.1.3. An unsupported backend reports
+`coverage.unsupported` explicitly.
+
+Kotlin requests coverage for one run through `PropertyRunConfiguration`:
+
+```kotlin
+val result = backend.run(
+    property = property,
+    configuration = PropertyRunConfiguration(
+        seed = 42,
+        coverageRequest = PropertyCoverageRequest(
+            scopes = setOf(CoverageScope.SOURCE_UNDER_TEST),
+            includePatterns = listOf("packages/core/**/*.ts"),
+            excludePatterns = listOf("**/*.generated.ts"),
+        ),
+    ),
+)
+```
+
+The default scope is `SOURCE_UNDER_TEST`. Available scopes are:
+
+| Scope | Files retained after source-map remapping |
+| --- | --- |
+| `SOURCE_UNDER_TEST` | Files below a source root except exact predicate and precondition modules |
+| `PROPERTY_ENTRY_POINTS` | Exact predicate and optional precondition modules |
+| `GENERATED_BACKEND_WRAPPERS` | Files in the private adapter runtime outside `node_modules` |
+| `DEPENDENCIES` | Executed files below `node_modules` |
+
+Include and exclude globs operate on original remapped paths, use `/` separators, and support `*`, `?`, and `**`.
+An empty include list retains every file in a selected scope; exclude rules always win.
+
+For every requested property Kotlin creates a unique c8 workspace, runs the private adapter as
+`node c8.js ... node execution-cli.js`, decodes `coverage-final.json`, and removes the workspace. This isolation
+prevents coverage from one property contaminating another. The adapter inherits the caller's current directory,
+while an explicit empty c8 configuration prevents project-local c8 settings from altering collection. A falsified
+property remains a completed Node run, so its artifact preserves coverage collected before falsification.
+
+Before starting c8, Kotlin probes the configured Node executable once. Versions older than 18.18 are rejected with
+`coverage.runtime.unsupported`; an unavailable or unparseable version uses `coverage.runtime.version-unavailable`.
+The verified version is recorded in the artifact provenance without a second probe.
+
+The artifact has kind `NODE_SOURCE` and contains backend/property identity, c8 and Node provenance, canonical
+source roots, the original request, and deterministic per-file statement, function, and branch hits. Lines are
+one-based and columns are zero-based, following Istanbul. Node source coverage remains separate from future EtsIR
+replay coverage.
+
+Missing or malformed reports use `coverage.report.missing` and `coverage.report.invalid`. Reports larger than
+64 MiB are rejected as invalid before they are read. JavaScript below a TypeScript source root that c8 could not
+remap produces `coverage.source-map.missing` or `coverage.source-map.invalid`; a missing packaged c8 runtime
+produces `coverage.collector.not-found`.
 
 ## Registries and CLI
 
@@ -107,12 +162,18 @@ java -cp '/opt/usvm-ts-pbt/lib/*:/workspace/example-properties.jar' \
   --registry example \
   --property array.reverse-twice \
   --seed 42 \
-  --num-runs 1000
+  --num-runs 1000 \
+  --coverage \
+  --coverage-scope source-under-test \
+  --coverage-exclude '**/*.generated.ts'
 ```
 
 Use `--help` for the complete option list. `--source-root` and `--registry` are repeatable. Without `--registry`,
 all providers run in registry-ID order; without `--property`, all selected properties run in registry order.
 Replay paths and explicit examples require exactly one selected property.
+
+`--coverage` enables collection. `--coverage-scope`, `--coverage-include`, and `--coverage-exclude` are repeatable;
+scope and path options require `--coverage`. Without an explicit scope, source-under-test coverage is collected.
 
 The CLI writes a JSON array of results to stdout. Exit code `0` means every property succeeded, `1` means at least
 one property failed, and `2` means a CLI, registry, validation, backend, or transport error. Exit-code-2 diagnostics
@@ -121,6 +182,7 @@ are written as one JSON object to stderr.
 ## Verification
 
 Requires JDK 11, Node.js 18.18 or newer, npm, and the repository Gradle wrapper.
+The private distribution pins c8 10.1.3 because it supports the module's Node 18 floor.
 
 ```shell
 npm ci --prefix usvm-ts-pbt/fast-check-adapter --ignore-scripts
