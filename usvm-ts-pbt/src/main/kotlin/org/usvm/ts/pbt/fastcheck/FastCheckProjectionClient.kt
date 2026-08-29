@@ -131,6 +131,7 @@ class FastCheckProjectionClient private constructor(
 
     private fun invokeAdapter(encodedRequest: String): String {
         val process = startAdapter()
+        val processTree = ProjectionProcessTree(process.toHandle())
         val deadlineNanos = deadlineAfter(transportLimits.wallClockTimeoutMillis)
         val ioExecutor = Executors.newFixedThreadPool(IO_TASKS)
         var stdout: Future<ProjectionBoundedText>? = null
@@ -159,6 +160,7 @@ class FastCheckProjectionClient private constructor(
 
             val output = awaitAdapter(
                 process = process,
+                processTree = processTree,
                 writer = writerTask,
                 stdout = requireNotNull(stdout),
                 stderr = requireNotNull(stderr),
@@ -181,26 +183,27 @@ class FastCheckProjectionClient private constructor(
 
             return output.stdout.text
         } finally {
+            processTree.observe()
             stdout?.cancel(true)
             stderr?.cancel(true)
             writer?.cancel(true)
 
             closeStreams(process)
-            if (process.isAlive) {
-                terminate(process)
-            }
+            terminate(processTree = processTree, deadlineNanos = deadlineNanos)
             ioExecutor.shutdownNow()
         }
     }
 
     private fun awaitAdapter(
         process: Process,
+        processTree: ProjectionProcessTree,
         writer: Future<*>,
         stdout: Future<ProjectionBoundedText>,
         stderr: Future<ProjectionBoundedText>,
         deadlineNanos: Long,
     ): ProjectionAdapterOutput {
         while (true) {
+            processTree.observe()
             checkCompletedIo(
                 task = stdout,
                 operation = "reading fast-check projection stdout",
@@ -217,8 +220,10 @@ class FastCheckProjectionClient private constructor(
                 failureCode = PbtDiagnosticCode.BACKEND_PROCESS_WRITE_FAILED,
             )
 
-            val waitMillis = minOf(remainingMillis(deadlineNanos), PROCESS_POLL_MILLIS)
-            if (waitMillis == 0L) projectionTimeout()
+            val remainingMillis = remainingMillis(deadlineNanos)
+            if (remainingMillis <= FORCED_TERMINATION_RESERVE_MILLIS) projectionTimeout()
+
+            val waitMillis = minOf(remainingMillis, PROCESS_POLL_MILLIS)
 
             val completed = try {
                 process.waitFor(waitMillis, TimeUnit.MILLISECONDS)
@@ -233,6 +238,8 @@ class FastCheckProjectionClient private constructor(
             }
 
             if (completed) {
+                processTree.observe()
+
                 return awaitIoAfterProcessExit(
                     writer = writer,
                     stdout = stdout,
@@ -266,8 +273,10 @@ class FastCheckProjectionClient private constructor(
                 failureCode = PbtDiagnosticCode.BACKEND_PROCESS_WRITE_FAILED,
             )
 
-            val waitMillis = minOf(remainingMillis(deadlineNanos), IO_POLL_MILLIS)
-            if (waitMillis == 0L) projectionTimeout()
+            val remainingMillis = remainingMillis(deadlineNanos)
+            if (remainingMillis <= FORCED_TERMINATION_RESERVE_MILLIS) projectionTimeout()
+
+            val waitMillis = minOf(remainingMillis, IO_POLL_MILLIS)
 
             when {
                 !stdout.isDone -> awaitIo(
@@ -376,13 +385,21 @@ class FastCheckProjectionClient private constructor(
         return if (now > Long.MAX_VALUE - timeoutNanos) Long.MAX_VALUE else now + timeoutNanos
     }
 
+    private fun deadlineBefore(deadlineNanos: Long, durationMillis: Long): Long {
+        if (deadlineNanos == Long.MAX_VALUE) return Long.MAX_VALUE
+
+        val durationNanos = TimeUnit.MILLISECONDS.toNanos(durationMillis)
+
+        return if (deadlineNanos < Long.MIN_VALUE + durationNanos) Long.MIN_VALUE else deadlineNanos - durationNanos
+    }
+
     private fun remainingMillis(deadlineNanos: Long): Long {
         if (deadlineNanos == Long.MAX_VALUE) return Long.MAX_VALUE
 
         val remainingNanos = deadlineNanos - System.nanoTime()
         if (remainingNanos <= 0) return 0
 
-        return TimeUnit.NANOSECONDS.toMillis(remainingNanos).coerceAtLeast(1)
+        return TimeUnit.NANOSECONDS.toMillis(remainingNanos)
     }
 
     private fun projectionTimeout(): Nothing = throw FastCheckProjectionException(
@@ -435,17 +452,50 @@ class FastCheckProjectionClient private constructor(
         runCatching { process.errorStream.close() }
     }
 
-    private fun terminate(process: Process) {
-        process.destroy()
+    private fun terminate(processTree: ProjectionProcessTree, deadlineNanos: Long) {
+        processTree.observe()
+        val processes = processTree.processesInTerminationOrder()
+        if (processes.none(ProcessHandle::isAlive)) return
 
-        try {
-            if (!process.waitFor(transportLimits.shutdownGraceMillis, TimeUnit.MILLISECONDS)) {
-                process.destroyForcibly()
-                process.waitFor(transportLimits.shutdownGraceMillis, TimeUnit.MILLISECONDS)
+        if (remainingMillis(deadlineNanos) <= FORCED_TERMINATION_RESERVE_MILLIS) {
+            processes.destroyForcibly()
+            awaitProcessTreeExit(processes, deadlineNanos)
+
+            return
+        }
+
+        processes.destroy()
+
+        val gracefulDeadlineNanos = minOf(
+            deadlineBefore(
+                deadlineNanos = deadlineNanos,
+                durationMillis = FORCED_TERMINATION_RESERVE_MILLIS,
+            ),
+            deadlineAfter(transportLimits.shutdownGraceMillis),
+        )
+        if (awaitProcessTreeExit(processes, gracefulDeadlineNanos)) return
+
+        processes.destroyForcibly()
+        awaitProcessTreeExit(processes, deadlineNanos)
+    }
+
+    private fun awaitProcessTreeExit(processes: List<ProcessHandle>, deadlineNanos: Long): Boolean {
+        while (true) {
+            val liveProcess = processes.firstOrNull(ProcessHandle::isAlive) ?: return true
+            val waitMillis = minOf(remainingMillis(deadlineNanos), PROCESS_POLL_MILLIS)
+            if (waitMillis == 0L) return false
+
+            try {
+                liveProcess.onExit().get(waitMillis, TimeUnit.MILLISECONDS)
+            } catch (_: TimeoutException) {
+                continue
+            } catch (_: ExecutionException) {
+                continue
+            } catch (_: InterruptedException) {
+                Thread.currentThread().interrupt()
+
+                return false
             }
-        } catch (error: InterruptedException) {
-            process.destroyForcibly()
-            Thread.currentThread().interrupt()
         }
     }
 
@@ -459,6 +509,7 @@ class FastCheckProjectionClient private constructor(
         const val IO_TASKS = 3
         const val PROCESS_POLL_MILLIS = 10L
         const val IO_POLL_MILLIS = 10L
+        const val FORCED_TERMINATION_RESERVE_MILLIS = 25L
 
         val DEFAULT_TRANSPORT_LIMITS = FastCheckProjectionTransportLimits(
             maxRequestBytes = DEFAULT_MAX_REQUEST_BYTES,
@@ -481,6 +532,38 @@ private class ProjectionOutputLimitExceeded(
     val stream: String,
     val limit: Int,
 ) : IOException("fast-check projection $stream exceeds $limit bytes")
+
+private class ProjectionProcessTree(private val root: ProcessHandle) {
+    private val processes = linkedMapOf(root.pid() to root)
+
+    fun observe() {
+        processes.values.toList().forEach { process ->
+            runCatching {
+                process.descendants().use { descendants ->
+                    descendants.forEach { descendant ->
+                        processes.putIfAbsent(descendant.pid(), descendant)
+                    }
+                }
+            }
+        }
+    }
+
+    fun processesInTerminationOrder(): List<ProcessHandle> = processes.values.sortedBy { process ->
+        if (process.pid() == root.pid()) 1 else 0
+    }
+}
+
+private fun List<ProcessHandle>.destroy() {
+    forEach { process ->
+        runCatching { process.destroy() }
+    }
+}
+
+private fun List<ProcessHandle>.destroyForcibly() {
+    forEach { process ->
+        runCatching { process.destroyForcibly() }
+    }
+}
 
 private fun InputStream.readProjectionBounded(limit: Int, stream: String): ProjectionBoundedText {
     val output = ByteArrayOutputStream(minOf(limit, DEFAULT_BUFFER_SIZE))

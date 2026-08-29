@@ -188,9 +188,15 @@ class FastCheckProjectionClientTest {
                 source = """
                     import { writeFileSync } from 'node:fs'
                     writeFileSync(${pidFile.toJavaScriptStringLiteral()}, String(process.pid))
+                    process.stdout.on('error', () => undefined)
+                    process.on('SIGTERM', () => undefined)
                     setInterval(() => process.stdout.write('x'.repeat(1025)), 1)
                 """.trimIndent(),
-                transportLimits = transportLimits(maxStdoutBytes = 1_024),
+                transportLimits = transportLimits(
+                    maxStdoutBytes = 1_024,
+                    wallClockTimeoutMillis = 250,
+                    shutdownGraceMillis = 500,
+                ),
             ) { temporaryClient ->
                 val startedAt = System.nanoTime()
                 val error = assertFailsWith<FastCheckProjectionException> {
@@ -252,12 +258,15 @@ class FastCheckProjectionClientTest {
                     import { writeFileSync } from 'node:fs'
                     const child = spawn(process.execPath, [
                       '-e',
-                      'setInterval(() => undefined, 1000)'
+                      "process.on('SIGTERM', () => undefined); setInterval(() => undefined, 1000)"
                     ], { stdio: 'inherit' })
                     writeFileSync(${childPidFile.toJavaScriptStringLiteral()}, String(child.pid))
-                    setTimeout(() => process.exit(0), 25)
+                    setTimeout(() => process.exit(0), 100)
                 """.trimIndent(),
-                transportLimits = transportLimits(wallClockTimeoutMillis = 500),
+                transportLimits = transportLimits(
+                    wallClockTimeoutMillis = 250,
+                    shutdownGraceMillis = 500,
+                ),
             ) { temporaryClient ->
                 val startedAt = System.nanoTime()
                 val error = assertFailsWith<FastCheckProjectionException> {
@@ -266,7 +275,8 @@ class FastCheckProjectionClientTest {
                 val elapsedMillis = (System.nanoTime() - startedAt) / 1_000_000
 
                 assertEquals("backend.process.timeout", error.code)
-                assertTrue(elapsedMillis < 2_000, "Descendant pipe timeout took $elapsedMillis ms")
+                assertTrue(elapsedMillis < 600, "Descendant cleanup took $elapsedMillis ms")
+                assertTrue(adapterIsTerminated(childPidFile), "Descendant is still running")
             }
         } finally {
             assertTrue(terminateAdapter(childPidFile), "Test cleanup did not terminate descendant")
@@ -278,19 +288,13 @@ class FastCheckProjectionClientTest {
     @Timeout(value = 2, unit = TimeUnit.SECONDS)
     fun `wall clock timeout returns promptly and terminates the adapter`() {
         val pidFile = createTempFile(prefix = "fast-check-adapter-pid-", suffix = ".txt")
-        val terminationMarker = createTempFile(prefix = "fast-check-adapter-termination-", suffix = ".txt")
         pidFile.deleteIfExists()
-        terminationMarker.deleteIfExists()
 
         try {
             withTemporaryAdapter(
                 source = """
                     import { writeFileSync } from 'node:fs'
                     writeFileSync(${pidFile.toJavaScriptStringLiteral()}, String(process.pid))
-                    process.on('SIGTERM', () => {
-                      writeFileSync(${terminationMarker.toJavaScriptStringLiteral()}, 'terminated')
-                      process.exit(0)
-                    })
                     setInterval(() => undefined, 1_000)
                 """.trimIndent(),
                 transportLimits = transportLimits(wallClockTimeoutMillis = 250),
@@ -302,13 +306,12 @@ class FastCheckProjectionClientTest {
                 val elapsedMillis = (System.nanoTime() - startedAt) / 1_000_000
 
                 assertEquals("backend.process.timeout", error.code)
-                assertTrue(elapsedMillis < 2_000, "Projection timeout took $elapsedMillis ms")
-                assertEquals("terminated", terminationMarker.readText())
+                assertTrue(elapsedMillis < 600, "Projection timeout took $elapsedMillis ms")
+                assertTrue(adapterIsTerminated(pidFile), "Adapter is still running")
             }
         } finally {
             terminateAdapter(pidFile)
             pidFile.deleteIfExists()
-            terminationMarker.deleteIfExists()
         }
     }
 
@@ -392,12 +395,13 @@ class FastCheckProjectionClientTest {
         maxStdoutBytes: Int = 1_024,
         maxStderrBytes: Int = 1_024,
         wallClockTimeoutMillis: Long = 1_000,
+        shutdownGraceMillis: Long = 25,
     ) = FastCheckProjectionTransportLimits(
         maxRequestBytes = maxRequestBytes,
         maxStdoutBytes = maxStdoutBytes,
         maxStderrBytes = maxStderrBytes,
         wallClockTimeoutMillis = wallClockTimeoutMillis,
-        shutdownGraceMillis = 25,
+        shutdownGraceMillis = shutdownGraceMillis,
     )
 
     private fun Path.toJavaScriptStringLiteral(): String = "'${toString().replace("\\", "\\\\").replace("'", "\\'")}'"
