@@ -12,11 +12,9 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonDecoder
 import kotlinx.serialization.json.JsonEncoder
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 
 /** Tags the finite and non-finite cases of an ECMAScript binary64 value. */
@@ -169,22 +167,46 @@ object JsConcreteValueSerializer : KSerializer<JsConcreteValue> {
         val jsonDecoder = decoder as? JsonDecoder
             ?: throw SerializationException("JsConcreteValue supports JSON deserialization only")
 
-        val value = jsonDecoder.decodeJsonElement().jsonObject
+        val value = jsonDecoder.decodeJsonElement() as? JsonObject
+            ?: throw SerializationException("JsConcreteValue must be a JSON object")
 
         return when (val kind = value.requiredString("kind")) {
-            "undefined" -> JsConcreteValue.Undefined
-            "null" -> JsConcreteValue.Null
-            "boolean" -> deserializeBoolean(value)
-            "string" -> JsConcreteValue.String(value.requiredString("value"))
+            "undefined" -> {
+                value.requireExactKeys("kind")
+                JsConcreteValue.Undefined
+            }
+
+            "null" -> {
+                value.requireExactKeys("kind")
+                JsConcreteValue.Null
+            }
+
+            "boolean" -> {
+                value.requireExactKeys("kind", "value")
+                deserializeBoolean(value)
+            }
+
+            "string" -> {
+                value.requireExactKeys("kind", "value")
+                JsConcreteValue.String(value.requiredString("value"))
+            }
+
             "number" -> deserializeNumber(value)
-            "array" -> deserializeArray(jsonDecoder, value)
+
+            "array" -> {
+                value.requireExactKeys("kind", "elements")
+                deserializeArray(jsonDecoder, value)
+            }
+
             else -> throw SerializationException("Unknown JavaScript value kind: $kind")
         }
     }
 }
 
 private fun deserializeBoolean(value: JsonObject): JsConcreteValue.Boolean {
-    val booleanValue = value["value"]?.jsonPrimitive?.booleanOrNull
+    val primitive = value["value"] as? JsonPrimitive
+        ?: throw SerializationException("Boolean JsConcreteValue requires a boolean value")
+    val booleanValue = primitive.takeUnless(JsonPrimitive::isString)?.booleanOrNull
         ?: throw SerializationException("Boolean JsConcreteValue requires a boolean value")
 
     return JsConcreteValue.Boolean(booleanValue)
@@ -200,14 +222,27 @@ private fun deserializeNumber(value: JsonObject): JsConcreteValue.Number {
         else -> throw SerializationException("Unknown JavaScript number kind: $numberKindName")
     }
 
-    val bits = value["bits"]?.jsonPrimitive?.content
+    val bits = when (numberKind) {
+        JsNumberKind.FINITE -> {
+            value.requireExactKeys("kind", "value", "bits")
+            value.requiredFiniteBits()
+        }
+
+        JsNumberKind.NAN,
+        JsNumberKind.POSITIVE_INFINITY,
+        JsNumberKind.NEGATIVE_INFINITY,
+        -> {
+            value.requireExactKeys("kind", "value")
+            null
+        }
+    }
     val number = JsNumber(value = numberKind, bits = bits)
 
     return JsConcreteValue.Number(number)
 }
 
 private fun deserializeArray(jsonDecoder: JsonDecoder, value: JsonObject): JsConcreteValue.Array {
-    val jsonElements = value["elements"]?.jsonArray
+    val jsonElements = value["elements"] as? JsonArray
         ?: throw SerializationException("Array JsConcreteValue requires elements")
 
     val elements = jsonElements.map { element ->
@@ -225,9 +260,36 @@ private val JsNumberKind.serialName: String
         JsNumberKind.NEGATIVE_INFINITY -> "negative-infinity"
     }
 
-private fun JsonObject.requiredString(name: String): String =
-    get(name)?.jsonPrimitive?.content
-        ?: throw SerializationException("JsConcreteValue requires a $name field")
+private fun JsonObject.requireExactKeys(vararg expectedKeys: String) {
+    if (keys != expectedKeys.toSet()) {
+        throw SerializationException("JsConcreteValue has unexpected fields")
+    }
+}
+
+private fun JsonObject.requiredString(name: String): String {
+    val value = get(name) as? JsonPrimitive
+        ?: throw SerializationException("JsConcreteValue requires a string $name field")
+    if (!value.isString) {
+        throw SerializationException("JsConcreteValue requires a string $name field")
+    }
+
+    return value.content
+}
+
+private fun JsonObject.requiredFiniteBits(): String {
+    val bits = requiredString("bits")
+    if (!bits.matches(FINITE_NUMBER_BITS_REGEX)) {
+        throw SerializationException("Finite JsConcreteValue requires sixteen lowercase hexadecimal bits")
+    }
+
+    val number = Double.fromBits(bits.toULong(JS_NUMBER_HEX_RADIX).toLong())
+    if (!number.isFinite()) {
+        throw SerializationException("Finite JsConcreteValue requires finite IEEE-754 bits")
+    }
+
+    return bits
+}
 
 private const val JS_NUMBER_HEX_DIGITS = 16
 private const val JS_NUMBER_HEX_RADIX = 16
+private val FINITE_NUMBER_BITS_REGEX = Regex("[0-9a-f]{16}")

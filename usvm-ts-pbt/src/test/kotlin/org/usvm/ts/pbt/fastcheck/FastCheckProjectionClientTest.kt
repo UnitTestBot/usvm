@@ -1,14 +1,19 @@
 package org.usvm.ts.pbt.fastcheck
 
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Timeout
 import org.usvm.ts.pbt.model.ArrayDomain
 import org.usvm.ts.pbt.model.BooleanDomain
+import org.usvm.ts.pbt.model.ConstantDomain
 import org.usvm.ts.pbt.model.IntegerDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyDomain
+import java.nio.file.Files
 import java.nio.file.Path
+import java.util.concurrent.TimeUnit
 import kotlin.io.path.createTempFile
 import kotlin.io.path.deleteIfExists
+import kotlin.io.path.readText
 import kotlin.io.path.writeText
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -42,6 +47,20 @@ class FastCheckProjectionClientTest {
 
         val error = assertFailsWith<FastCheckProjectionException> {
             missingAdapterClient.sample(validRequest.copy(numSamples = 0))
+        }
+
+        assertEquals("protocol.request.invalid", error.code)
+    }
+
+    @Test
+    fun `requests above the projection sample cap are rejected before starting Node`() {
+        val missingAdapterClient = FastCheckProjectionClient(
+            nodeExecutable = "definitely-not-a-node-executable",
+            adapterEntryPoint = Path.of("missing-adapter.mjs"),
+        )
+
+        val error = assertFailsWith<FastCheckProjectionException> {
+            missingAdapterClient.sample(validRequest.copy(numSamples = 10_001))
         }
 
         assertEquals("protocol.request.invalid", error.code)
@@ -86,11 +105,122 @@ class FastCheckProjectionClientTest {
     }
 
     @Test
+    fun `successful samples outside their domains are rejected`() {
+        withTemporaryAdapter(
+            """
+            process.stdout.write(JSON.stringify({
+              status: 'ok',
+              samples: [[{ kind: 'boolean', value: true }]]
+            }))
+            """.trimIndent(),
+        ) { temporaryClient ->
+            val error = assertFailsWith<FastCheckProjectionException> {
+                temporaryClient.sample(
+                    validRequest.copy(domains = listOf(IntegerDomain(min = 0, max = 1))),
+                )
+            }
+
+            assertEquals("backend.response.invalid", error.code)
+            assertEquals("samples[0][0]", error.path)
+        }
+    }
+
+    @Test
+    fun `requests beyond the transport byte limit are rejected before starting Node`() {
+        withTemporaryAdapter(
+            source = "",
+            transportLimits = transportLimits(maxRequestBytes = 100),
+        ) { temporaryClient ->
+            val error = assertFailsWith<FastCheckProjectionException> {
+                temporaryClient.sample(
+                    validRequest.copy(
+                        domains = listOf(ConstantDomain(JsConcreteValue.String("x".repeat(101)))),
+                    ),
+                )
+            }
+
+            assertEquals("backend.request.too-large", error.code)
+        }
+    }
+
+    @Test
+    fun `stdout beyond the transport byte limit is rejected`() {
+        withTemporaryAdapter(
+            source = "process.stdout.write('x'.repeat(1025))",
+            transportLimits = transportLimits(maxStdoutBytes = 1_024),
+        ) { temporaryClient ->
+            val error = assertFailsWith<FastCheckProjectionException> {
+                temporaryClient.sample(validRequest)
+            }
+
+            assertEquals("backend.response.too-large", error.code)
+        }
+    }
+
+    @Test
+    fun `stderr beyond the transport byte limit is rejected`() {
+        withTemporaryAdapter(
+            source = """
+                process.stderr.write('x'.repeat(1025))
+                process.stdout.write(JSON.stringify({
+                  status: 'ok',
+                  samples: [[{ kind: 'boolean', value: true }]]
+                }))
+            """.trimIndent(),
+            transportLimits = transportLimits(maxStderrBytes = 1_024),
+        ) { temporaryClient ->
+            val error = assertFailsWith<FastCheckProjectionException> {
+                temporaryClient.sample(validRequest)
+            }
+
+            assertEquals("backend.response.too-large", error.code)
+        }
+    }
+
+    @Test
+    @Timeout(value = 2, unit = TimeUnit.SECONDS)
+    fun `wall clock timeout returns promptly and terminates the adapter`() {
+        val pidFile = createTempFile(prefix = "fast-check-adapter-pid-", suffix = ".txt")
+        val terminationMarker = createTempFile(prefix = "fast-check-adapter-termination-", suffix = ".txt")
+        pidFile.deleteIfExists()
+        terminationMarker.deleteIfExists()
+
+        try {
+            withTemporaryAdapter(
+                source = """
+                    import { writeFileSync } from 'node:fs'
+                    writeFileSync(${pidFile.toJavaScriptStringLiteral()}, String(process.pid))
+                    process.on('SIGTERM', () => {
+                      writeFileSync(${terminationMarker.toJavaScriptStringLiteral()}, 'terminated')
+                      process.exit(0)
+                    })
+                    setInterval(() => undefined, 1_000)
+                """.trimIndent(),
+                transportLimits = transportLimits(wallClockTimeoutMillis = 250),
+            ) { temporaryClient ->
+                val startedAt = System.nanoTime()
+                val error = assertFailsWith<FastCheckProjectionException> {
+                    temporaryClient.sample(validRequest)
+                }
+                val elapsedMillis = (System.nanoTime() - startedAt) / 1_000_000
+
+                assertEquals("backend.process.timeout", error.code)
+                assertTrue(elapsedMillis < 2_000, "Projection timeout took $elapsedMillis ms")
+                assertEquals("terminated", terminationMarker.readText())
+            }
+        } finally {
+            terminateAdapter(pidFile)
+            pidFile.deleteIfExists()
+            terminationMarker.deleteIfExists()
+        }
+    }
+
+    @Test
     fun `large adapter stderr does not block a successful response`() {
         withTemporaryAdapter(
             """
             const timeout = setTimeout(() => process.exit(2), 1000)
-            process.stderr.write('x'.repeat(1024 * 1024), () => {
+            process.stderr.write('x'.repeat(32 * 1024), () => {
               clearTimeout(timeout)
               process.stdout.write(JSON.stringify({
                 status: 'ok',
@@ -138,15 +268,49 @@ class FastCheckProjectionClientTest {
         }
     }
 
-    private fun withTemporaryAdapter(source: String, block: (FastCheckProjectionClient) -> Unit) {
+    private fun withTemporaryAdapter(
+        source: String,
+        transportLimits: FastCheckProjectionTransportLimits? = null,
+        block: (FastCheckProjectionClient) -> Unit,
+    ) {
         val script = createTempFile(prefix = "fast-check-adapter-", suffix = ".mjs")
 
         try {
             script.writeText(source)
-            block(FastCheckProjectionClient(adapterEntryPoint = script))
+            val client = transportLimits?.let { limits ->
+                FastCheckProjectionClient(
+                    adapterEntryPoint = script,
+                    transportLimits = limits,
+                )
+            } ?: FastCheckProjectionClient(adapterEntryPoint = script)
+
+            block(client)
         } finally {
             script.deleteIfExists()
         }
+    }
+
+    private fun transportLimits(
+        maxRequestBytes: Int = 1_024,
+        maxStdoutBytes: Int = 1_024,
+        maxStderrBytes: Int = 1_024,
+        wallClockTimeoutMillis: Long = 1_000,
+    ) = FastCheckProjectionTransportLimits(
+        maxRequestBytes = maxRequestBytes,
+        maxStdoutBytes = maxStdoutBytes,
+        maxStderrBytes = maxStderrBytes,
+        wallClockTimeoutMillis = wallClockTimeoutMillis,
+        shutdownGraceMillis = 25,
+    )
+
+    private fun Path.toJavaScriptStringLiteral(): String = "'${toString().replace("\\", "\\\\").replace("'", "\\'")}'"
+
+    private fun terminateAdapter(pidFile: Path) {
+        val pid = pidFile.takeIf(Files::exists)?.readText()?.trim()?.toLongOrNull() ?: return
+        val process = ProcessHandle.of(pid).orElse(null) ?: return
+
+        process.destroyForcibly()
+        process.onExit().get(1, TimeUnit.SECONDS)
     }
 
     private companion object {

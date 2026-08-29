@@ -92,6 +92,25 @@ class PropertyValidationTest {
     }
 
     @Test
+    fun `finite tags for infinity and NaN are invalid`() {
+        listOf(
+            "7ff0000000000000",
+            "7ff8000000000000",
+        ).forEach { bits ->
+            val definition = validDefinition(
+                ConstantDomain(
+                    JsConcreteValue.Number(JsNumber(JsNumberKind.FINITE, bits = bits)),
+                ),
+            )
+
+            assertEquals(
+                listOf("js-number.encoding.invalid"),
+                validatePropertyDefinition(definition).diagnostics.map { it.code },
+            )
+        }
+    }
+
+    @Test
     fun `valid definition has no diagnostics`() {
         assertTrue(validatePropertyDefinition(validDefinition(IntegerDomain(-5, 5))).isValid)
     }
