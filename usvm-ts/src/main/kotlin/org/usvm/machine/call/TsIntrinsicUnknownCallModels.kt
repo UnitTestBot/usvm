@@ -39,7 +39,7 @@ object TsIntrinsicUnknownCallModelBackend : TsUnknownCallModelBackend {
             "INTRINSIC backend requires TsIntrinsicUnknownCallModelImplementation, got ${implementation::class}"
         }
 
-        return intrinsic.model.execute(state = state, call = call)
+        return intrinsic.model.execute(state, call)
     }
 }
 
@@ -74,7 +74,7 @@ object TsBuiltInUnknownCallModels {
 
 private object TsArrayPopIntrinsicModel : TsIntrinsicUnknownCallModel {
     override fun execute(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution {
-        val input = resolveInput(state = state, call = call)
+        val input = resolveInput(state, call)
             ?: return unsupportedExecution(state)
 
         val lengthLValue = mkArrayLengthLValue(input.array, input.arrayType)
@@ -134,11 +134,7 @@ private object TsArrayPopIntrinsicModel : TsIntrinsicUnknownCallModel {
             return null
         }
 
-        return ArrayPopInput(
-            array = array,
-            arrayType = arrayType,
-            elementSort = elementSort,
-        )
+        return ArrayPopInput(array, arrayType, elementSort)
     }
 
     private fun unsupportedExecution(state: TsState): TsUnknownCallModelExecution {

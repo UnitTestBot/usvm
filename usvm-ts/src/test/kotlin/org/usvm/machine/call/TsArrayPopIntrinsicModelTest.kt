@@ -103,7 +103,7 @@ class TsArrayPopIntrinsicModelTest {
     @Test
     fun `disabled model sends pop to configured residual fallback`() {
         val enabledModelIds = mutableSetOf("ts.array.pop")
-        val selection = TsUnknownCallModelSelection(enabledModelIds = enabledModelIds)
+        val selection = TsUnknownCallModelSelection(enabledModelIds)
         enabledModelIds.clear()
         val result = analyze(
             methodName = "nonEmptyArray",
@@ -161,7 +161,7 @@ class TsArrayPopIntrinsicModelTest {
     }
 
     private fun assertUsesResidualFallback(methodName: String) {
-        val result = analyze(methodName = methodName)
+        val result = analyze(methodName)
 
         assertTrue(result.values.isEmpty())
         val event = result.events.single()

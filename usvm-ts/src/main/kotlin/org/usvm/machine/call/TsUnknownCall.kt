@@ -160,10 +160,10 @@ internal fun TsUnknownCallDispatcher.dispatch(
     failureReason: TsUnknownCallFailureReason,
     resolvedReceiver: UExpr<*>,
 ) = dispatch(
-    scope = scope,
-    call = call.call,
-    callSite = call.returnSite,
-    failureReason = failureReason,
+    scope,
+    call.call,
+    call.returnSite,
+    failureReason,
     resolvedReceiver = resolvedReceiver,
     resolvedArguments = call.args,
 )
@@ -174,11 +174,11 @@ internal fun TsUnknownCallDispatcher.dispatch(
     failureReason: TsUnknownCallFailureReason,
     callee: EtsMethodSignature,
 ) = dispatch(
-    scope = scope,
-    call = call.call,
-    callSite = call.returnSite,
-    failureReason = failureReason,
-    callee = callee,
+    scope,
+    call.call,
+    call.returnSite,
+    failureReason,
+    callee,
     resolvedReceiver = call.resolvedReceiver,
     resolvedArguments = call.args.takeLast(call.call.args.size),
 )

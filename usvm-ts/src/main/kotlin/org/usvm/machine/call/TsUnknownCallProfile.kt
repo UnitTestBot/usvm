@@ -87,25 +87,21 @@ class TsProfileUnknownCallDispatcher(
     override fun dispatch(scope: TsStepScope, call: TsUnknownCall): TsUnknownCallOutcome {
         if (profile.modelLookup == TsUnknownCallModelLookup.DISABLED) {
             return applyResidualFallback(
-                scope = scope,
-                call = call,
+                scope,
+                call,
                 reason = TsUnknownCallResidualReason.MODEL_LOOKUP_DISABLED,
             )
         }
 
         val application = scope.calcOnState {
-            modelProvider.apply(state = this, call = call)
+            modelProvider.apply(this, call)
         }
         return when (application) {
-            is TsUnknownCallModelApplication.Applied -> applyModel(
-                scope = scope,
-                call = call,
-                application = application,
-            )
+            is TsUnknownCallModelApplication.Applied -> applyModel(scope, call, application)
 
             TsUnknownCallModelApplication.NotApplicable -> applyResidualFallback(
-                scope = scope,
-                call = call,
+                scope,
+                call,
                 reason = TsUnknownCallResidualReason.MODEL_NOT_APPLICABLE,
             )
         }
@@ -122,11 +118,11 @@ class TsProfileUnknownCallDispatcher(
             TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN -> TsUnknownCallOutcome.FRESH_SYMBOLIC_RETURN
         }
         val event = event(
-            call = call,
-            outcome = outcome,
+            call,
+            outcome,
             decision = TsUnknownCallDecision.ResidualFallback(
-                policy = residualPolicy,
-                reason = reason,
+                residualPolicy,
+                reason,
             ),
         )
         when (residualPolicy) {
@@ -150,14 +146,14 @@ class TsProfileUnknownCallDispatcher(
         call: TsUnknownCall,
         application: TsUnknownCallModelApplication.Applied,
     ): TsUnknownCallOutcome {
-        validateExecutionGuards(scope = scope, application = application)
+        validateExecutionGuards(scope, application)
 
         val residualGuard = application.execution.residualGuard
         val residualPolicy = profile.residualPolicyFor(call)
         val freshResidualResult = if (
             residualGuard != null && residualPolicy == TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN
         ) {
-            makeFreshUnknownCallResult(scope = scope, resultType = call.resultType)
+            makeFreshUnknownCallResult(scope, call.resultType)
         } else {
             null
         }
@@ -170,9 +166,9 @@ class TsProfileUnknownCallDispatcher(
         var freshResidualApplied = false
         val guardedStateChanges = application.execution.successors.map { successor ->
             successor.guard to modelStateChange(
-                call = call,
-                application = application,
-                successor = successor,
+                call,
+                application,
+                successor,
                 onApplied = {
                     modelApplied = true
                     if (modelEventReported) {
@@ -187,15 +183,12 @@ class TsProfileUnknownCallDispatcher(
 
         if (residualGuard != null && residualPolicy == TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN) {
             guardedStateChanges += residualGuard to {
-                setMockMethodCallResult(
-                    method = call.callee,
-                    result = requireNotNull(freshResidualResult),
-                )
+                setMockMethodCallResult(call.callee, requireNotNull(freshResidualResult))
                 newStmt(call.callSite)
                 freshResidualApplied = true
 
                 val event = residualEvent(
-                    call = call,
+                    call,
                     policy = TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN,
                 )
                 observer?.onUnknownCallSafely(event)
@@ -206,7 +199,7 @@ class TsProfileUnknownCallDispatcher(
 
         if (stoppedResidualIsSatisfiable) {
             val event = residualEvent(
-                call = call,
+                call,
                 policy = TsResidualCallPolicy.STOP_PATH,
             )
             observer?.onUnknownCallSafely(event)
@@ -252,7 +245,7 @@ class TsProfileUnknownCallDispatcher(
         validationConstraints += invalidity
 
         val solverResult = ctx.solver<EtsType>().check(validationConstraints)
-        solverResult.requireConclusiveGuardValidation(modelId = application.modelId)
+        solverResult.requireConclusiveGuardValidation(application.modelId)
 
         when (solverResult) {
             is UUnsatResult -> {
@@ -302,7 +295,7 @@ class TsProfileUnknownCallDispatcher(
 
         if (onApplied()) {
             val event = event(
-                call = call,
+                call,
                 outcome = TsUnknownCallOutcome.MODEL_APPLIED,
                 decision = TsUnknownCallDecision.ModelApplied(modelId = application.modelId),
             )
@@ -314,13 +307,13 @@ class TsProfileUnknownCallDispatcher(
         call: TsUnknownCall,
         policy: TsResidualCallPolicy,
     ) = event(
-        call = call,
+        call,
         outcome = when (policy) {
             TsResidualCallPolicy.STOP_PATH -> TsUnknownCallOutcome.PATH_STOPPED
             TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN -> TsUnknownCallOutcome.FRESH_SYMBOLIC_RETURN
         },
         decision = TsUnknownCallDecision.ResidualFallback(
-            policy = policy,
+            policy,
             reason = TsUnknownCallResidualReason.MODEL_NOT_APPLICABLE,
         ),
     )

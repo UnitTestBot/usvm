@@ -111,12 +111,7 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
 
         // Handle `Array.pop() method calls
         if (expr.callee.name == "pop") {
-            return handleArrayPopCall(
-                expr = expr,
-                instanceType = instanceType,
-                elementSort = elementSort,
-                resolvedReceiver = instance,
-            )
+            return handleArrayPopCall(expr, instanceType, elementSort, instance)
         }
 
         // Handle `Array.fill() method calls
@@ -180,9 +175,9 @@ private fun TsExprResolver.handleArrayPopCall(
     }
 
     dispatcher.dispatch(
-        scope = scope,
-        call = expr,
-        callSite = scope.calcOnState { lastStmt },
+        scope,
+        expr,
+        scope.calcOnState { lastStmt },
         failureReason = TsUnknownCallFailureReason.PARTIAL_APPROXIMATION,
         resolvedReceiver = resolvedReceiver,
     )

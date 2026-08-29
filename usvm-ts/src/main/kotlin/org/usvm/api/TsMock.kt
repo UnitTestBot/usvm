@@ -16,10 +16,10 @@ fun mockMethodCall(
     method: EtsMethodSignature,
     resultType: EtsType = method.returnType,
 ) {
-    val result = makeFreshUnknownCallResult(scope = scope, resultType = resultType)
+    val result = makeFreshUnknownCallResult(scope, resultType)
 
     scope.doWithState {
-        setMockMethodCallResult(method = method, result = result)
+        setMockMethodCallResult(method, result)
     }
 }
 
@@ -42,7 +42,7 @@ internal fun makeFreshUnknownCallResult(
         is UAddressSort -> makeSymbolicRefUntyped()
 
         is TsUnresolvedSort -> mkFakeValue(
-            scope = scope,
+            scope,
             boolValue = makeSymbolicPrimitive(ctx.boolSort),
             fpValue = makeSymbolicPrimitive(ctx.fp64Sort),
             refValue = makeSymbolicRefUntyped(),
