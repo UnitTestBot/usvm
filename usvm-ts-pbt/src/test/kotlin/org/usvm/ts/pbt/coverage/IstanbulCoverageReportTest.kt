@@ -1,6 +1,7 @@
 package org.usvm.ts.pbt.coverage
 
 import org.junit.jupiter.api.Test
+import org.usvm.ts.pbt.backend.CoverageCollectorIdentity
 import org.usvm.ts.pbt.backend.CoverageScope
 import org.usvm.ts.pbt.backend.PropertyCoverageRequest
 import org.usvm.ts.pbt.model.PropertyId
@@ -185,6 +186,7 @@ class IstanbulCoverageReportTest {
         propertyEntryPointPaths = setOf("/workspace/src/property.ts"),
         adapterRoot = "/adapter",
         runtimeVersion = "v22.14.0",
+        collector = CoverageCollectorIdentity(id = "c8", version = "10.1.3"),
         request = request,
     )
 

@@ -29,8 +29,6 @@ import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 
-const val C8_COLLECTOR_VERSION = "10.1.3"
-
 /** All identities and path boundaries required to convert one isolated c8 report. */
 data class IstanbulCoverageContext(
     val backendId: String,
@@ -40,6 +38,7 @@ data class IstanbulCoverageContext(
     val propertyEntryPointPaths: Set<String>,
     val adapterRoot: String,
     val runtimeVersion: String,
+    val collector: CoverageCollectorIdentity,
     val request: PropertyCoverageRequest,
 )
 
@@ -164,7 +163,7 @@ private fun decodeReport(
         backendVersion = context.backendVersion,
         propertyId = context.propertyId,
         provenance = CoverageProvenance(
-            collector = CoverageCollectorIdentity(id = "c8", version = C8_COLLECTOR_VERSION),
+            collector = context.collector,
             runtimeId = "node",
             runtimeVersion = context.runtimeVersion,
             sourceRoots = normalizedRoots,

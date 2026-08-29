@@ -1,3 +1,5 @@
+import groovy.json.JsonSlurper
+
 plugins {
     id("usvm.kotlin-conventions")
     kotlin("plugin.serialization") version Versions.kotlin
@@ -14,7 +16,12 @@ dependencies {
 }
 
 val fastCheckAdapterDir = layout.projectDirectory.dir("fast-check-adapter")
+val fastCheckAdapterPackageJson = fastCheckAdapterDir.file("package.json")
+val fastCheckAdapterPackageLock = fastCheckAdapterDir.file("package-lock.json")
 val fastCheckRuntimeProperty = "org.usvm.ts.pbt.fastcheck.runtime"
+val generatedFastCheckRuntimeMetadataDirectory = layout.buildDirectory.dir(
+    "generated/resources/fastCheckRuntimeMetadata",
+)
 val hostOperatingSystem = System.getProperty("os.name").lowercase()
 val hostPlatform = when {
     hostOperatingSystem.contains("mac") -> "darwin"
@@ -31,12 +38,52 @@ val hostArchitecture = when (val architecture = System.getProperty("os.arch").lo
 val fastCheckRuntimeClassifier = "$hostPlatform-$hostArchitecture"
 val npmExecutable = if (hostPlatform == "win32") "npm.cmd" else "npm"
 
+val generateFastCheckRuntimeMetadata = tasks.register("generateFastCheckRuntimeMetadata") {
+    inputs.file(fastCheckAdapterPackageLock)
+    outputs.dir(generatedFastCheckRuntimeMetadataDirectory)
+
+    doLast {
+        val packageLock = JsonSlurper().parse(fastCheckAdapterPackageLock.asFile) as? Map<*, *>
+            ?: error("Invalid fast-check adapter package lock")
+        val packages = packageLock["packages"] as? Map<*, *>
+            ?: error("Missing packages in fast-check adapter package lock")
+        fun dependencyVersion(dependency: String): String {
+            val metadata = packages["node_modules/$dependency"] as? Map<*, *>
+                ?: error("Missing locked fast-check adapter dependency: $dependency")
+
+            return (metadata["version"] as? String)
+                ?.takeIf(String::isNotBlank)
+                ?: error("Missing locked fast-check adapter dependency version: $dependency")
+        }
+
+        val metadataFile = generatedFastCheckRuntimeMetadataDirectory.get()
+            .file("org/usvm/ts/pbt/fastcheck/runtime-dependencies.properties")
+            .asFile
+        metadataFile.parentFile.mkdirs()
+        metadataFile.writeText(
+            """
+            fast-check.version=${dependencyVersion("fast-check")}
+            c8.version=${dependencyVersion("c8")}
+            """.trimIndent() + "\n",
+            Charsets.UTF_8,
+        )
+    }
+}
+
+sourceSets.main {
+    resources.srcDir(generatedFastCheckRuntimeMetadataDirectory)
+}
+
+tasks.processResources {
+    dependsOn(generateFastCheckRuntimeMetadata)
+}
+
 val installFastCheckAdapter = tasks.register<Exec>("installFastCheckAdapter") {
     workingDir(fastCheckAdapterDir)
     commandLine(npmExecutable, "ci", "--ignore-scripts")
     inputs.files(
-        fastCheckAdapterDir.file("package.json"),
-        fastCheckAdapterDir.file("package-lock.json"),
+        fastCheckAdapterPackageJson,
+        fastCheckAdapterPackageLock,
     )
     inputs.property("runtimeClassifier", fastCheckRuntimeClassifier)
     outputs.dir(fastCheckAdapterDir.dir("node_modules"))

@@ -14,7 +14,6 @@ import kotlinx.serialization.encodeToString
 import org.usvm.ts.pbt.PbtDiagnosticCode
 import org.usvm.ts.pbt.backend.CoverageScope
 import org.usvm.ts.pbt.backend.PropertyRunResult
-import org.usvm.ts.pbt.coverage.C8_COLLECTOR_VERSION
 import org.usvm.ts.pbt.coverage.CoverageArtifactException
 import org.usvm.ts.pbt.coverage.IstanbulCoverageContext
 import org.usvm.ts.pbt.coverage.decodeIstanbulCoverageReport
@@ -229,7 +228,8 @@ internal class FastCheckProcessClient(
             throw backendError(
                 kind = BackendErrorKind.COVERAGE,
                 code = PbtDiagnosticCode.COVERAGE_COLLECTOR_NOT_FOUND,
-                message = "Cannot locate c8 $C8_COLLECTOR_VERSION in the fast-check adapter runtime",
+                message = "Cannot locate c8 ${FastCheckRuntimeMetadata.coverageCollector.version} " +
+                    "in the fast-check adapter runtime",
                 request = request,
                 path = c8EntryPoint.toString(),
             )
@@ -267,12 +267,13 @@ internal class FastCheckProcessClient(
                 reportPath = workspace.reportDirectory.resolve("coverage-final.json"),
                 context = IstanbulCoverageContext(
                     backendId = FastCheckBackend.FAST_CHECK_BACKEND_ID,
-                    backendVersion = FastCheckBackend.FAST_CHECK_BACKEND_VERSION,
+                    backendVersion = FastCheckRuntimeMetadata.fastCheckVersion,
                     propertyId = result.propertyId,
                     sourceRoots = request.sourceRoots,
                     propertyEntryPointPaths = entryPointPaths,
                     adapterRoot = workspace.adapterRoot.toString(),
                     runtimeVersion = runtimeVersion,
+                    collector = FastCheckRuntimeMetadata.coverageCollector,
                     request = coverageRequest,
                 ),
             )
