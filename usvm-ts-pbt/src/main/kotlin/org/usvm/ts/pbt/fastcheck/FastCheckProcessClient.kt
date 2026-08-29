@@ -17,6 +17,8 @@ import org.usvm.ts.pbt.backend.PropertyRunResult
 import org.usvm.ts.pbt.coverage.CoverageArtifactException
 import org.usvm.ts.pbt.coverage.IstanbulCoverageContext
 import org.usvm.ts.pbt.coverage.decodeIstanbulCoverageReport
+import org.usvm.ts.pbt.coverage.inspectRawV8SourceMapDiagnostics
+import org.usvm.ts.pbt.coverage.mergeCoverageDiagnostics
 import org.usvm.ts.pbt.manifest.PropertyManifestJson
 import org.usvm.ts.pbt.model.PropertyId
 import java.io.ByteArrayOutputStream
@@ -272,13 +274,17 @@ internal class FastCheckProcessClient(
         val entryPointPaths = hashSetOf<String>()
         request.sourceRoots.forEach { sourceRoot ->
             val root = Path.of(sourceRoot)
-            entryPointPaths += root.resolve(request.manifest.predicate.module).normalize().toString()
+            entryPointPaths += canonicalizeExistingEntryPoint(
+                root.resolve(request.manifest.predicate.module).normalize(),
+            )
             request.manifest.precondition?.let { precondition ->
-                entryPointPaths += root.resolve(precondition.module).normalize().toString()
+                entryPointPaths += canonicalizeExistingEntryPoint(
+                    root.resolve(precondition.module).normalize(),
+                )
             }
         }
         val artifact = try {
-            decodeIstanbulCoverageReport(
+            val finalArtifact = decodeIstanbulCoverageReport(
                 reportPath = workspace.reportDirectory.resolve("coverage-final.json"),
                 context = IstanbulCoverageContext(
                     backendId = FastCheckBackend.FAST_CHECK_BACKEND_ID,
@@ -290,6 +296,17 @@ internal class FastCheckProcessClient(
                     runtimeVersion = runtimeVersion,
                     collector = FastCheckRuntimeMetadata.coverageCollector,
                     request = coverageRequest,
+                ),
+            )
+            val rawDiagnostics = inspectRawV8SourceMapDiagnostics(
+                rawDirectory = workspace.rawDirectory,
+                sourceRoots = request.sourceRoots,
+            )
+
+            finalArtifact.copy(
+                diagnostics = mergeCoverageDiagnostics(
+                    finalDiagnostics = finalArtifact.diagnostics,
+                    rawDiagnostics = rawDiagnostics,
                 ),
             )
         } catch (error: CoverageArtifactException) {
@@ -305,6 +322,9 @@ internal class FastCheckProcessClient(
 
         return result.copy(coverage = artifact)
     }
+
+    private fun canonicalizeExistingEntryPoint(candidate: Path): String =
+        if (Files.exists(candidate)) candidate.toRealPath().toString() else candidate.toString()
 
     private suspend fun nodeVersion(request: FastCheckExecutionRequest): String {
         val process = startNodeVersionProcess(request)
