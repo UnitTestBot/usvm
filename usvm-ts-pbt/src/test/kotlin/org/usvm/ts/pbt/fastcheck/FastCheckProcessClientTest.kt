@@ -300,6 +300,49 @@ class FastCheckProcessClientTest {
         }
     }
 
+    @Test
+    fun `hard deadline includes inherited descendant pipe drain`() {
+        withTemporaryAdapter(
+            source = """
+                import { spawn } from 'node:child_process'
+
+                const child = spawn(
+                  process.execPath,
+                  ['-e', 'setTimeout(() => undefined, 3000)'],
+                  { stdio: ['ignore', 'inherit', 'inherit'] }
+                )
+                child.unref()
+
+                process.stdout.write(JSON.stringify({
+                  status: 'ok',
+                  result: {
+                    propertyId: 'example.property',
+                    status: 'success',
+                    seed: 42,
+                    replayPath: null,
+                    counterexample: null,
+                    numRuns: 1,
+                    numSkips: 0,
+                    numShrinks: 0,
+                    failure: null,
+                    executionTimeMillis: 1
+                  }
+                }))
+            """.trimIndent(),
+            transportGraceMillis = 100,
+        ) { client ->
+            val startedAt = System.nanoTime()
+            val error = assertFailsWith<PbtBackendException> {
+                client.check(validRequest.copy(timeoutMillis = 100))
+            }
+            val elapsedMillis = (System.nanoTime() - startedAt) / 1_000_000
+
+            assertEquals(BackendErrorKind.TIMEOUT, error.kind)
+            assertEquals("backend.process.timeout", error.code)
+            assertTrue(elapsedMillis < 1_000, "Inherited pipe timeout took $elapsedMillis ms")
+        }
+    }
+
     private fun withTemporaryAdapter(
         source: String,
         transportGraceMillis: Long = 2_000,

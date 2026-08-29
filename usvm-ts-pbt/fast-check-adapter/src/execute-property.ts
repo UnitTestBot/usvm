@@ -83,7 +83,7 @@ export async function executeProperty(requestValue: unknown): Promise<FastCheckE
   const property = buildProperty(arbitrary, predicate, precondition);
   const parameters = buildParameters(request);
 
-  const details = await Promise.resolve(fc.check(property, parameters));
+  const details = await checkProperty(property, parameters, request.replayPath);
 
   if (details.errorInstance instanceof ProtocolError) throw details.errorInstance;
 
@@ -106,21 +106,57 @@ function buildProperty(
 
   if (asynchronous) {
     return fc.asyncProperty(arbitrary, async (values: unknown[]): Promise<boolean> => {
-      const argumentsList = values as JsConcreteValue[];
+      if (precondition !== undefined && !(await precondition.invoke(cloneArguments(values)))) fc.pre(false);
 
-      if (precondition !== undefined && !(await precondition.invoke(argumentsList))) fc.pre(false);
-
-      return await predicate.invoke(argumentsList);
+      return await predicate.invoke(cloneArguments(values));
     });
   }
 
   return fc.property(arbitrary, (values: unknown[]): boolean => {
-    const argumentsList = values as JsConcreteValue[];
+    if (precondition !== undefined && !precondition.invoke(cloneArguments(values))) fc.pre(false);
 
-    if (precondition !== undefined && !precondition.invoke(argumentsList)) fc.pre(false);
-
-    return predicate.invoke(argumentsList) as boolean;
+    return predicate.invoke(cloneArguments(values)) as boolean;
   });
+}
+
+async function checkProperty(
+  property: fc.IProperty<[unknown[]]> | fc.IAsyncProperty<[unknown[]]>,
+  parameters: Parameters<[unknown[]]>,
+  replayPath: string | undefined,
+): Promise<RunDetails<[unknown[]]>> {
+  try {
+    return await Promise.resolve(fc.check(property, parameters));
+  } catch (error: unknown) {
+    const replayFailed = replayPath !== undefined
+      && error instanceof Error
+      && error.message.startsWith('Unable to replay,');
+    if (replayFailed) {
+      throw protocolError(
+        adapterDiagnostic.protocolReplayPathInvalid,
+        'Replay path cannot be applied to this property run',
+        'replayPath',
+      );
+    }
+
+    throw error;
+  }
+}
+
+function cloneArguments(values: unknown[]): JsConcreteValue[] {
+  return cloneRecursiveArrays(values, new Map()) as JsConcreteValue[];
+}
+
+function cloneRecursiveArrays(value: unknown, clones: Map<unknown[], unknown[]>): unknown {
+  if (!Array.isArray(value)) return value;
+
+  const existing = clones.get(value);
+  if (existing !== undefined) return existing;
+
+  const clone: unknown[] = [];
+  clones.set(value, clone);
+  value.forEach((element) => clone.push(cloneRecursiveArrays(element, clones)));
+
+  return clone;
 }
 
 function buildParameters(request: FastCheckExecutionRequest): Parameters<[unknown[]]> {
@@ -200,10 +236,8 @@ function failureDetails(details: RunDetails<[unknown[]]>): FastCheckFailureDetai
 
   return {
     kind: 'property',
-    errorName: 'PropertyFailure',
-    message: details.counterexample === null
-      ? 'Property could not satisfy its precondition within the skip limit'
-      : 'Property predicate returned false',
+    errorName: 'ThrownValue',
+    message: String(error),
   };
 }
 
@@ -248,7 +282,8 @@ function validateRequest(value: unknown): FastCheckExecutionRequest {
     );
   }
 
-  const invalidReplayPath = request.replayPath !== undefined && typeof request.replayPath !== 'string';
+  const invalidReplayPath = request.replayPath !== undefined
+    && (typeof request.replayPath !== 'string' || !REPLAY_PATH_PATTERN.test(request.replayPath));
   if (invalidReplayPath) {
     throw protocolError(
       adapterDiagnostic.protocolReplayPathInvalid,
@@ -389,3 +424,4 @@ function isSignedInt(value: unknown): value is number {
 
 // Node timers use signed 32-bit millisecond delays; larger values are clamped to one millisecond.
 const MAX_TIMER_DELAY_MILLIS = 2 ** 31 - 1;
+const REPLAY_PATH_PATTERN = /^\d+(?::\d+)*$/;

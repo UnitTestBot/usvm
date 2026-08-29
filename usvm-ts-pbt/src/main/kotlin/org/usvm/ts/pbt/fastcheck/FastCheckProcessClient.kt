@@ -54,38 +54,52 @@ internal class FastCheckProcessClient(
 
         val coverageRuntimeVersion = request.coverageRequest?.let { nodeVersion(request) }
         val coverageWorkspace = request.coverageRequest?.let { createCoverageWorkspace(request) }
+        val deadlineNanos = deadlineAfter(safeAdd(request.timeoutMillis, transportGraceMillis))
         var process: Process? = null
+        var stdout: Deferred<BoundedText>? = null
+        var stderr: Deferred<BoundedText>? = null
+        var writer: Deferred<Unit>? = null
 
         try {
             val startedProcess = startAdapter(request, coverageWorkspace)
             process = startedProcess
-            val stdout = async(ioDispatcher) { startedProcess.inputStream.readBounded(MAX_STDOUT_BYTES) }
-            val stderr = async(ioDispatcher) { startedProcess.errorStream.readBounded(MAX_STDERR_BYTES) }
-            val writer = async(ioDispatcher) {
+            val stdoutTask = async(ioDispatcher) { startedProcess.inputStream.readBounded(MAX_STDOUT_BYTES) }
+            stdout = stdoutTask
+            val stderrTask = async(ioDispatcher) { startedProcess.errorStream.readBounded(MAX_STDERR_BYTES) }
+            stderr = stderrTask
+            val writerTask = async(ioDispatcher) {
                 startedProcess.outputStream.bufferedWriter(Charsets.UTF_8).use { output ->
                     output.write(encodedRequest)
                 }
             }
+            writer = writerTask
 
-            awaitProcess(startedProcess, request)
+            awaitProcess(
+                process = startedProcess,
+                deadlineNanos = deadlineNanos,
+                request = request,
+            )
 
             awaitIo(
-                task = writer,
+                task = writerTask,
                 operation = "writing the fast-check request",
                 failureCode = PbtDiagnosticCode.BACKEND_PROCESS_WRITE_FAILED,
+                deadlineNanos = deadlineNanos,
                 request = request,
             )
 
             val stdoutText = awaitIo(
-                task = stdout,
+                task = stdoutTask,
                 operation = "reading fast-check stdout",
                 failureCode = PbtDiagnosticCode.BACKEND_PROCESS_READ_FAILED,
+                deadlineNanos = deadlineNanos,
                 request = request,
             )
             val stderrText = awaitIo(
-                task = stderr,
+                task = stderrTask,
                 operation = "reading fast-check stderr",
                 failureCode = PbtDiagnosticCode.BACKEND_PROCESS_READ_FAILED,
+                deadlineNanos = deadlineNanos,
                 request = request,
             )
 
@@ -105,7 +119,13 @@ internal class FastCheckProcessClient(
                 )
             } ?: result
         } finally {
-            process?.takeIf(Process::isAlive)?.let(::terminate)
+            writer?.cancel()
+            stdout?.cancel()
+            stderr?.cancel()
+            process?.let { startedProcess ->
+                closeStreams(startedProcess)
+                terminate(startedProcess, deadlineNanos)
+            }
             coverageWorkspace?.root?.toFile()?.deleteRecursively()
         }
     }
@@ -125,22 +145,17 @@ internal class FastCheckProcessClient(
         return encodedRequest
     }
 
-    private suspend fun awaitProcess(process: Process, request: FastCheckExecutionRequest) {
-        val hardTimeoutMillis = safeAdd(request.timeoutMillis, transportGraceMillis)
-        val exitCode = withTimeoutOrNull(hardTimeoutMillis) {
+    private suspend fun awaitProcess(
+        process: Process,
+        deadlineNanos: Long,
+        request: FastCheckExecutionRequest,
+    ) {
+        val completed = withTimeoutOrNull(remainingMillis(deadlineNanos)) {
             runInterruptible(ioDispatcher) { process.waitFor() }
+            true
         }
 
-        if (exitCode == null) {
-            terminate(process)
-
-            throw backendError(
-                kind = BackendErrorKind.TIMEOUT,
-                code = PbtDiagnosticCode.BACKEND_PROCESS_TIMEOUT,
-                message = "fast-check adapter exceeded the ${request.timeoutMillis} ms timeout",
-                request = request,
-            )
-        }
+        if (completed == null) executionTimeout(request)
     }
 
     private fun validateProcessExit(
@@ -391,9 +406,12 @@ internal class FastCheckProcessClient(
         task: Deferred<T>,
         operation: String,
         failureCode: String,
+        deadlineNanos: Long,
         request: FastCheckExecutionRequest,
     ): T = try {
-        task.await()
+        withTimeoutOrNull(remainingMillis(deadlineNanos)) {
+            task.await()
+        } ?: executionTimeout(request)
     } catch (error: CancellationException) {
         throw error
     } catch (error: IOException) {
@@ -405,6 +423,13 @@ internal class FastCheckProcessClient(
             cause = error,
         )
     }
+
+    private fun executionTimeout(request: FastCheckExecutionRequest): Nothing = throw backendError(
+        kind = BackendErrorKind.TIMEOUT,
+        code = PbtDiagnosticCode.BACKEND_PROCESS_TIMEOUT,
+        message = "fast-check adapter exceeded the ${request.timeoutMillis} ms timeout",
+        request = request,
+    )
 
     private fun decodeResponse(
         stdout: String,
@@ -513,13 +538,50 @@ internal class FastCheckProcessClient(
         cause = cause,
     )
 
-    private fun terminate(process: Process) {
+    private fun closeStreams(process: Process) {
+        runCatching { process.outputStream.close() }
+        runCatching { process.inputStream.close() }
+        runCatching { process.errorStream.close() }
+    }
+
+    private fun terminate(process: Process, deadlineNanos: Long) {
+        if (!process.isAlive) return
+
         process.destroy()
 
-        if (!process.waitFor(shutdownGraceMillis, TimeUnit.MILLISECONDS)) {
-            process.destroyForcibly()
-            process.waitFor()
+        val gracefulWaitMillis = minOf(shutdownGraceMillis, remainingMillis(deadlineNanos))
+        if (awaitProcessExit(process, gracefulWaitMillis)) return
+
+        process.destroyForcibly()
+        awaitProcessExit(process, remainingMillis(deadlineNanos))
+    }
+
+    private fun awaitProcessExit(process: Process, waitMillis: Long): Boolean {
+        if (waitMillis <= 0) return !process.isAlive
+
+        return try {
+            process.waitFor(waitMillis, TimeUnit.MILLISECONDS)
+        } catch (_: InterruptedException) {
+            Thread.currentThread().interrupt()
+
+            false
         }
+    }
+
+    private fun deadlineAfter(timeoutMillis: Long): Long {
+        val timeoutNanos = TimeUnit.MILLISECONDS.toNanos(timeoutMillis)
+        val now = System.nanoTime()
+
+        return if (now > Long.MAX_VALUE - timeoutNanos) Long.MAX_VALUE else now + timeoutNanos
+    }
+
+    private fun remainingMillis(deadlineNanos: Long): Long {
+        if (deadlineNanos == Long.MAX_VALUE) return Long.MAX_VALUE
+
+        val remainingNanos = deadlineNanos - System.nanoTime()
+        if (remainingNanos <= 0) return 0
+
+        return TimeUnit.NANOSECONDS.toMillis(remainingNanos)
     }
 
     private companion object {
