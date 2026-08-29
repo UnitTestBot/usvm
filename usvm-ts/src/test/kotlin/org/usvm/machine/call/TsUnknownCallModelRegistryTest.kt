@@ -114,7 +114,7 @@ class TsUnknownCallModelRegistryTest {
         id: String,
         matches: Boolean = true,
     ) = TsUnknownCallModelRegistration(
-        descriptor = descriptor(id = id, matches = matches),
+        descriptor = descriptor(id, matches = matches),
         implementation = FakeImplementation,
     )
 

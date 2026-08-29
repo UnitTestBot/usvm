@@ -132,11 +132,7 @@ class TsFrozenUnknownCallModelRegistry internal constructor(
         val backend = checkNotNull(backends[implementationKind]) {
             "No semantic model backend configured for $implementationKind"
         }
-        val execution = backend.execute(
-            implementation = registration.implementation,
-            state = state,
-            call = call,
-        )
+        val execution = backend.execute(registration.implementation, state, call)
 
         return TsUnknownCallModelApplication.Applied(
             modelId = registration.descriptor.id,

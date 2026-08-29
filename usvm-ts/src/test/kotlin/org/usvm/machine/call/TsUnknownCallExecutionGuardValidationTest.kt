@@ -70,7 +70,7 @@ class TsUnknownCallExecutionGuardValidationTest {
     @Test
     fun `unknown solver result cannot validate execution guards`() {
         val exception = assertFailsWith<IllegalStateException> {
-            UUnknownResult<Nothing>().requireConclusiveGuardValidation(modelId = "unknown-guards")
+            UUnknownResult<Nothing>().requireConclusiveGuardValidation("unknown-guards")
         }
 
         assertEquals(
@@ -86,11 +86,7 @@ class TsUnknownCallExecutionGuardValidationTest {
         expectedMessage: String,
     ) {
         val exception = assertFailsWith<IllegalStateException> {
-            analyzeAllStates(
-                methodName = methodName,
-                profile = profile,
-                modelProvider = modelProvider,
-            )
+            analyzeAllStates(methodName, profile, modelProvider)
         }
 
         assertEquals(expectedMessage, exception.message)
