@@ -8,6 +8,8 @@ API and CLI examples, see [README.md](README.md).
 - Kotlin owns property definitions, validation, registries, orchestration, and public results.
 - Node is a thin adapter around fast-check and direct TypeScript loading.
 - Per-property source coverage is an optional backend capability collected by Kotlin through an isolated c8 run.
+- A backend-neutral Kotlin mapping layer connects manifests and source coverage to EtsIR without changing the
+  declarative property model.
 - The JSON exchange is one request and one response from the same packaged distribution; it has no persistence or
   compatibility negotiation.
 - Failures are typed without exposing runtime-dependent Node stack traces.
@@ -25,6 +27,7 @@ flowchart LR
         Backend[FastCheckBackend]
         Process[FastCheckProcessClient]
         Projection[FastCheckProjectionClient]
+        Mapping[PropertyEtsMapper]
     end
 
     subgraph Node_adapter[Private Node adapter]
@@ -41,6 +44,7 @@ flowchart LR
     Tsx[tsx]
     C8[c8 and Istanbul JSON]
     UserTS[User TypeScript source]
+    EtsIR[EtsScene and EtsSourceSpan]
 
     CLI --> Registry
     CLI --> Backend
@@ -48,6 +52,9 @@ flowchart LR
     Registry --> Model
     Backend --> Model
     Backend --> Process
+    Model --> Mapping
+    Process --> Mapping
+    Mapping --> EtsIR
     Process --> ExecutionCLI
     Process --> C8
     C8 --> ExecutionCLI
@@ -72,6 +79,7 @@ flowchart LR
 | Registry and CLI | Select Kotlin-defined properties and turn user options into a run configuration. |
 | `FastCheckBackend` | Validate examples, resolve source roots, and create the adapter request. |
 | `FastCheckProcessClient` | Supervise Node with coroutines and optionally decode one isolated c8 report. |
+| `PropertyEtsMapper` | Resolve property entry points and backend-neutral coverage to explicit EtsIR targets. |
 | `execution-cli.ts` | Read one JSON request, protect protocol stdout from user logging, and write one response. |
 | `execute-property.ts` | Build the fast-check property, run it, and translate `RunDetails` into the common result. |
 | `project-domain.ts` | Translate domain descriptors into real `fc.Arbitrary` instances. |
@@ -213,6 +221,45 @@ A successful or falsified property exits the bridge normally, allowing c8 to flu
 invalid protocol responses, and hard kills do not produce a completed property result. The workspace is removed
 in all cases, and a new workspace is used for every property.
 
+## Property-to-EtsIR mapping
+
+The mapping layer consumes common Kotlin artifacts only: `PropertyManifest`, optional `PropertyCoverageArtifact`,
+an `EtsScene`, and source roots. It does not depend on `FastCheckBackend` or its private runtime representation.
+The result is a `PropertyEtsMappingArtifact` that keeps the manifest property ID, backend coverage provenance,
+mapping coordinate and branch-order provenance, resolved predicate and precondition targets, coverage targets, and
+stable diagnostic reasons.
+
+Entry-point resolution starts from the manifest module/export pair and follows named or bare-star TypeScript
+re-exports. Direct function exports resolve only in the file-level `%dflt` class. Namespace-star exports are not
+callable methods, bare-star traversal excludes `default`, explicit runtime exports take precedence over bare-star
+exports, and duplicate paths to one EtsIR method are deduplicated. Type-alias exports do not mask bare-star runtime
+exports. EtsIR currently loses TypeScript `isTypeOnly` on named re-exports whose declaration has a runtime kind;
+the mapper treats those exports conservatively as runtime-bearing instead of guessing that a star export wins.
+Module candidates mirror the frontend's `.ts`, `.ets`, `.d.ts`, and directory-index suffix rules.
+Predicate and precondition resolution are independent. A resolved method carries `EtsEntryPointBindings`: receiver
+slot zero, ordered input-to-parameter bindings in subsequent slots, and the result type. A mismatch between
+manifest inputs and EtsIR parameters is unsupported, as is coverage carrying another property ID.
+
+Existing source roots and files are canonicalized with real paths; an unresolvable root makes entry-point mapping
+unsupported. Istanbul lines are converted from one-based to zero-based, columns stay zero-based, and offsets are
+calculated in UTF-16 code units using TypeScript's LF, CRLF, CR, U+2028, and U+2029 line terminators. Statement mapping first looks
+for an exact `EtsSourceSpan`; if normalized EtsIR statements share that span, all remain exact targets. A containing
+coverage range with one distinct origin is also exact, several distinct origins are ambiguous, and no origin match
+is unmapped. Missing source text, invalid coordinates, or an EtsIR file whose statements have no origins are
+unsupported.
+
+Branch mapping currently accepts an Istanbul `if` with exactly two ordered arms and resolves conditions to
+`EtsIfStmt`. The first CFG successor is recorded as true and the second as false. Several EtsIR conditions with one
+shared origin are exact; several distinct condition origins are ambiguous. Other branch types, non-binary arm
+shapes, and EtsIR conditions without two ordered successors are unsupported rather than inferred.
+An invalid arm is reported independently while a successfully resolved condition remains available, and aggregate
+coverage status includes both conditions and arms.
+
+The JVM taint-analysis `PositionResolver` and `ConditionResolver` were reviewed as architectural prior art. Their
+useful separation is preserved: declarative receiver/argument/result positions are distinct from runtime-bound
+values, and condition interpretation is distinct from position resolution. The TypeScript mapper expresses this
+with EtsIR-specific binding and mapping records and has no dependency on `usvm-jvm` or the taint-analysis module.
+
 The execution client starts stdout, stderr, and stdin work concurrently on the coroutine I/O dispatcher. Requests
 and stdout are limited to 4 MiB; stderr is limited to 64 KiB. These are transport safety bounds, not property-policy
 limits. The hard deadline is the property timeout plus two seconds for transport, followed by a 250 ms graceful
@@ -238,6 +285,9 @@ classifier because `tsx` depends on a native esbuild package.
   shrinking, explicit examples, preconditions, async predicates, and timeouts.
 - Coverage golden tests assert literal TypeScript statement and branch outcomes for successful and falsified runs,
   cross-property isolation, scope and glob filtering, and source-map/report diagnostics.
+- Mapping golden tests load stable TypeScript fixtures through the native frontend and cover predicate,
+  precondition, re-export, UTF-16 normalization, shared spans, exact/ambiguous/unmapped branches, unsupported
+  source data, and backend-without-coverage behavior.
 
 ## Non-goals
 
@@ -245,5 +295,5 @@ classifier because `tsx` depends on a native esbuild package.
 - Discovering properties by scanning TypeScript source roots.
 - Compiling user TypeScript as part of the PBT workflow.
 - Reimplementing generation, replay, skip accounting, or shrinking in Kotlin.
-- Mapping Node source locations to EtsIR or constructing symbolic targets from coverage.
-- Combining Node source coverage with future EtsIR replay coverage.
+- Constructing symbolic inputs or executing mapped properties in USVM.
+- Combining backend source coverage with future EtsIR replay coverage.
