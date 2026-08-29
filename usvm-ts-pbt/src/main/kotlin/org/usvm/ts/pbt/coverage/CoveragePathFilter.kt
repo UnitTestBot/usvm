@@ -20,7 +20,14 @@ internal fun matchesCoveragePath(
     }
 }
 
+/**
+ * Converts a coverage glob into a regex over normalized forward-slash paths.
+ *
+ * A single `*` or `?` stays within one path segment, while `**` may cross directory separators.
+ * The resulting regex matches the complete candidate path rather than an arbitrary substring.
+ */
 private fun coverageGlobToRegex(pattern: String): Regex {
+    // Treat Windows and Unix patterns uniformly and accept the common relative-path prefix.
     val normalized = pattern.replace('\\', '/').removePrefix("./")
     val expression = StringBuilder("^")
     var index = 0
@@ -29,25 +36,30 @@ private fun coverageGlobToRegex(pattern: String): Regex {
         when {
             character == '*' && normalized.getOrNull(index + 1) == '*' -> {
                 if (normalized.getOrNull(index + DOUBLE_WILDCARD_LENGTH) == '/') {
+                    // `**/` covers zero or more whole segments: `**/*.ts` also matches `file.ts`.
                     expression.append("(?:.*/)?")
                     index += DOUBLE_WILDCARD_WITH_SEPARATOR_LENGTH
                 } else {
+                    // A bare `**` consumes any characters, including directory separators.
                     expression.append(".*")
                     index += 2
                 }
             }
 
             character == '*' -> {
+                // A single wildcard consumes characters only inside the current path segment.
                 expression.append("[^/]*")
                 index++
             }
 
             character == '?' -> {
+                // `?` consumes exactly one non-separator character in the current segment.
                 expression.append("[^/]")
                 index++
             }
 
             character in REGEX_SPECIAL_CHARACTERS -> {
+                // Non-glob regex metacharacters are literals in coverage patterns.
                 expression.append('\\').append(character)
                 index++
             }
