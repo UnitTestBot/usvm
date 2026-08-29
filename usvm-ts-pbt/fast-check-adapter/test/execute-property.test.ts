@@ -66,6 +66,30 @@ test('supports asynchronous predicates and preconditions', async () => {
   });
 });
 
+test('reports exhausted preconditions as a property failure without a counterexample', async () => {
+  await withPropertyModule(async (sourceRoot) => {
+    const request = executionRequest(sourceRoot, 'alwaysTrue', {
+      precondition: {
+        module: 'properties.ts',
+        exportName: 'neverAccepts',
+        executionKind: 'sync',
+      },
+    });
+    request.numRuns = 1;
+
+    const response = await executeProperty(request);
+
+    assert.equal(response.result.status, 'failure');
+    assert.equal(response.result.counterexample, null);
+    assert.equal(response.result.failure?.kind, 'property');
+    assert.equal(response.result.failure?.errorName, 'PropertyFailure');
+    assert.equal(
+      response.result.failure?.message,
+      'Property could not satisfy its precondition within the skip limit',
+    );
+  });
+});
+
 test('executes explicit examples through the same predicate', async () => {
   await withPropertyModule(async (sourceRoot) => {
     const request = executionRequest(sourceRoot, 'isNotSeven');
@@ -251,6 +275,7 @@ async function withPropertyModule(block: (sourceRoot: string) => Promise<void>):
       'export function isNegative(value: number): boolean { return value < 0; }',
       'export async function asyncAlwaysTrue(_value: number): Promise<boolean> { return true; }',
       'export async function asyncIsOne(value: number): Promise<boolean> { return value === 1; }',
+      'export function neverAccepts(_value: number): boolean { return false; }',
       'export function isNotSeven(value: number): boolean { return value !== 7; }',
       'export function slowFailure(_value: number[]): boolean {',
       '  const deadline = Date.now() + 10;',

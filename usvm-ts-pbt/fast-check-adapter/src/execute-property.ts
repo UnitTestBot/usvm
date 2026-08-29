@@ -234,6 +234,14 @@ function failureDetails(details: RunDetails<[unknown[]]>): FastCheckFailureDetai
     };
   }
 
+  if (details.counterexample === null) {
+    return {
+      kind: 'property',
+      errorName: 'PropertyFailure',
+      message: 'Property could not satisfy its precondition within the skip limit',
+    };
+  }
+
   return {
     kind: 'property',
     errorName: 'ThrownValue',
