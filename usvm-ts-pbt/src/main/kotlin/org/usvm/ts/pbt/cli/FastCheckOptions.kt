@@ -177,7 +177,7 @@ private class FastCheckOptionsParser : CliktCommand(name = "usvm-ts-pbt") {
             coverageExcludePatterns.isNotEmpty()
         if (!coverageEnabled && hasCoverageDetails) {
             throw CliUsageException(
-                code = "cli.coverage.required",
+                code = PbtDiagnosticCode.CLI_COVERAGE_REQUIRED,
                 message = "Coverage scope and path rules require --coverage",
                 path = "coverage",
             )
@@ -204,7 +204,7 @@ private fun parseCoverageScope(value: String): CoverageScope = when (value) {
     "generated-backend-wrappers" -> CoverageScope.GENERATED_BACKEND_WRAPPERS
     "dependencies" -> CoverageScope.DEPENDENCIES
     else -> throw CliUsageException(
-        code = "cli.coverage.scope.invalid",
+        code = PbtDiagnosticCode.CLI_COVERAGE_SCOPE_INVALID,
         message = "Unknown coverage scope $value",
         path = "coverageScope",
     )

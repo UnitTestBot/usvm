@@ -8,6 +8,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.longOrNull
+import org.usvm.ts.pbt.PbtDiagnosticCode
 import org.usvm.ts.pbt.backend.BranchArmCoverage
 import org.usvm.ts.pbt.backend.BranchCoverage
 import org.usvm.ts.pbt.backend.CoverageArtifactKind
@@ -62,7 +63,7 @@ private fun readCoverageReport(reportPath: Path): JsonObject {
 private fun requireCoverageReport(reportPath: Path) {
     if (!Files.isRegularFile(reportPath)) {
         throw coverageError(
-            code = "coverage.report.missing",
+            code = PbtDiagnosticCode.COVERAGE_REPORT_MISSING,
             message = "c8 did not produce the expected Istanbul report: $reportPath",
             path = reportPath.toString(),
         )
@@ -87,7 +88,7 @@ private fun requireCoverageReportSize(reportPath: Path) {
     }
     if (reportSize > MAX_COVERAGE_REPORT_BYTES) {
         throw coverageError(
-            code = "coverage.report.invalid",
+            code = PbtDiagnosticCode.COVERAGE_REPORT_INVALID,
             message = "Istanbul coverage report exceeds $MAX_COVERAGE_REPORT_BYTES bytes",
             path = reportPath.toString(),
         )
@@ -98,7 +99,7 @@ private fun unreadableCoverageReport(
     reportPath: Path,
     error: IOException,
 ): CoverageArtifactException = coverageError(
-    code = "coverage.report.invalid",
+    code = PbtDiagnosticCode.COVERAGE_REPORT_INVALID,
     message = "Cannot read Istanbul coverage report: ${error.message}",
     path = reportPath.toString(),
     cause = error,
@@ -108,7 +109,7 @@ private fun parseCoverageReport(text: String, reportPath: Path): JsonObject = tr
     PropertyManifestJson.json.parseToJsonElement(text).jsonObject
 } catch (error: IllegalArgumentException) {
     throw coverageError(
-        code = "coverage.report.invalid",
+        code = PbtDiagnosticCode.COVERAGE_REPORT_INVALID,
         message = "Istanbul coverage report is not valid JSON: ${error.message}",
         path = reportPath.toString(),
         cause = error,
@@ -131,7 +132,11 @@ private fun decodeReport(
         if (isGeneratedJavaScriptBelowSourceRoot(path, normalizedRoots)) {
             val sourceMapExists = Files.exists(Path.of("$path.map"))
             diagnostics += CoverageDiagnostic(
-                code = if (sourceMapExists) "coverage.source-map.invalid" else "coverage.source-map.missing",
+                code = if (sourceMapExists) {
+                    PbtDiagnosticCode.COVERAGE_SOURCE_MAP_INVALID
+                } else {
+                    PbtDiagnosticCode.COVERAGE_SOURCE_MAP_MISSING
+                },
                 message = if (sourceMapExists) {
                     "Executed JavaScript has a source map that c8 could not remap to its original source"
                 } else {
@@ -214,7 +219,7 @@ private fun decodeSourceFileCoverage(
     throw error
 } catch (error: IllegalArgumentException) {
     throw coverageError(
-        code = "coverage.report.invalid",
+        code = PbtDiagnosticCode.COVERAGE_REPORT_INVALID,
         message = "Invalid Istanbul coverage for $path: ${error.message}",
         path = "coverage[$reportKey]",
         cause = error,
@@ -368,7 +373,7 @@ private fun normalizeCoveragePath(path: String): String = Path.of(path)
     .replace('\\', '/')
 
 private fun invalidReport(message: String, path: String): CoverageArtifactException = coverageError(
-    code = "coverage.report.invalid",
+    code = PbtDiagnosticCode.COVERAGE_REPORT_INVALID,
     message = message,
     path = path,
 )

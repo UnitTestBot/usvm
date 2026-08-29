@@ -228,7 +228,7 @@ internal class FastCheckProcessClient(
         if (!Files.isRegularFile(c8EntryPoint)) {
             throw backendError(
                 kind = BackendErrorKind.COVERAGE,
-                code = "coverage.collector.not-found",
+                code = PbtDiagnosticCode.COVERAGE_COLLECTOR_NOT_FOUND,
                 message = "Cannot locate c8 $C8_COLLECTOR_VERSION in the fast-check adapter runtime",
                 request = request,
                 path = c8EntryPoint.toString(),
@@ -317,7 +317,7 @@ internal class FastCheckProcessClient(
 
             throw backendError(
                 kind = BackendErrorKind.COVERAGE,
-                code = "coverage.runtime.version-unavailable",
+                code = PbtDiagnosticCode.COVERAGE_RUNTIME_VERSION_UNAVAILABLE,
                 message = "Timed out while querying the Node.js runtime version",
                 request = request,
             )
@@ -334,7 +334,7 @@ internal class FastCheckProcessClient(
         if (process.exitValue() != 0 || version.isBlank()) {
             throw backendError(
                 kind = BackendErrorKind.COVERAGE,
-                code = "coverage.runtime.version-unavailable",
+                code = PbtDiagnosticCode.COVERAGE_RUNTIME_VERSION_UNAVAILABLE,
                 message = "Cannot query the Node.js runtime version",
                 request = request,
             )
@@ -353,7 +353,7 @@ internal class FastCheckProcessClient(
         if (major == null || minor == null) {
             throw backendError(
                 kind = BackendErrorKind.COVERAGE,
-                code = "coverage.runtime.version-unavailable",
+                code = PbtDiagnosticCode.COVERAGE_RUNTIME_VERSION_UNAVAILABLE,
                 message = "Cannot parse the Node.js runtime version: $version",
                 request = request,
             )
@@ -364,7 +364,7 @@ internal class FastCheckProcessClient(
         if (!isSupported) {
             throw backendError(
                 kind = BackendErrorKind.COVERAGE,
-                code = "coverage.runtime.unsupported",
+                code = PbtDiagnosticCode.COVERAGE_RUNTIME_UNSUPPORTED,
                 message = "Coverage requires Node.js 18.18 or newer; found $version",
                 request = request,
             )
@@ -378,7 +378,7 @@ internal class FastCheckProcessClient(
         error: IOException,
     ) = backendError(
         kind = BackendErrorKind.COVERAGE,
-        code = "coverage.runtime.version-unavailable",
+        code = PbtDiagnosticCode.COVERAGE_RUNTIME_VERSION_UNAVAILABLE,
         message = "Cannot query the Node.js runtime version: ${error.message}",
         request = request,
         cause = error,
