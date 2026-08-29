@@ -94,6 +94,26 @@ class JsConcreteValueTest {
     }
 
     @Test
+    fun `every tagged value kind rejects unexpected fields`() {
+        val cases = listOf(
+            """{"kind":"null","extra":null}""",
+            """{"kind":"boolean","value":true,"extra":null}""",
+            """{"kind":"string","value":"value","extra":null}""",
+            """{"kind":"array","elements":[],"extra":null}""",
+            """{"kind":"number","value":"finite","bits":"3ff0000000000000","extra":null}""",
+            """{"kind":"number","value":"nan","extra":null}""",
+            """{"kind":"number","value":"positive-infinity","extra":null}""",
+            """{"kind":"number","value":"negative-infinity","extra":null}""",
+        )
+
+        cases.forEach { encoded ->
+            assertFailsWith<SerializationException> {
+                PropertyManifestJson.json.decodeFromString<JsConcreteValue>(encoded)
+            }
+        }
+    }
+
+    @Test
     fun `finite number tags reject non-finite bit patterns`() {
         listOf(
             "7ff0000000000000",

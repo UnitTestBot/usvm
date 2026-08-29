@@ -13,6 +13,7 @@ import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 /** Internal transport limits for bounded projection-process communication. */
 internal data class FastCheckProjectionTransportLimits(
@@ -130,70 +131,60 @@ class FastCheckProjectionClient private constructor(
 
     private fun invokeAdapter(encodedRequest: String): String {
         val process = startAdapter()
+        val deadlineNanos = deadlineAfter(transportLimits.wallClockTimeoutMillis)
         val ioExecutor = Executors.newFixedThreadPool(IO_TASKS)
+        var stdout: Future<ProjectionBoundedText>? = null
+        var stderr: Future<ProjectionBoundedText>? = null
+        var writer: Future<*>? = null
 
         try {
-            val stdout = ioExecutor.submit<ProjectionBoundedText> {
-                process.inputStream.readProjectionBounded(transportLimits.maxStdoutBytes)
+            stdout = ioExecutor.submit<ProjectionBoundedText> {
+                process.inputStream.readProjectionBounded(
+                    limit = transportLimits.maxStdoutBytes,
+                    stream = "stdout",
+                )
             }
-            val stderr = ioExecutor.submit<ProjectionBoundedText> {
-                process.errorStream.readProjectionBounded(transportLimits.maxStderrBytes)
+            stderr = ioExecutor.submit<ProjectionBoundedText> {
+                process.errorStream.readProjectionBounded(
+                    limit = transportLimits.maxStderrBytes,
+                    stream = "stderr",
+                )
             }
-            val writer = ioExecutor.submit {
+            val writerTask = ioExecutor.submit {
                 process.outputStream.bufferedWriter(Charsets.UTF_8).use { output ->
                     output.write(encodedRequest)
                 }
             }
+            writer = writerTask
 
-            awaitProcess(process)
-
-            awaitIo(
-                task = writer,
-                operation = "writing the fast-check projection request",
-                failureCode = PbtDiagnosticCode.BACKEND_PROCESS_WRITE_FAILED,
-            )
-
-            val stdoutText = awaitIo(
-                task = stdout,
-                operation = "reading fast-check projection stdout",
-                failureCode = PbtDiagnosticCode.BACKEND_PROCESS_READ_FAILED,
-            )
-            val stderrText = awaitIo(
-                task = stderr,
-                operation = "reading fast-check projection stderr",
-                failureCode = PbtDiagnosticCode.BACKEND_PROCESS_READ_FAILED,
+            val output = awaitAdapter(
+                process = process,
+                writer = writerTask,
+                stdout = requireNotNull(stdout),
+                stderr = requireNotNull(stderr),
+                deadlineNanos = deadlineNanos,
             )
 
             if (process.exitValue() != 0) {
                 throw FastCheckProjectionException(
                     code = PbtDiagnosticCode.BACKEND_PROCESS_FAILED,
-                    message = "fast-check adapter exited with code ${process.exitValue()}: ${stderrText.text.trim()}",
+                    message = "fast-check adapter exited with code ${process.exitValue()}: ${output.stderr.text.trim()}",
                 )
             }
 
-            if (stdoutText.exceeded) {
-                throw FastCheckProjectionException(
-                    code = PbtDiagnosticCode.BACKEND_RESPONSE_TOO_LARGE,
-                    message = "fast-check projection stdout exceeds ${transportLimits.maxStdoutBytes} bytes",
-                )
-            }
-
-            if (stderrText.exceeded) {
-                throw FastCheckProjectionException(
-                    code = PbtDiagnosticCode.BACKEND_RESPONSE_TOO_LARGE,
-                    message = "fast-check projection stderr exceeds ${transportLimits.maxStderrBytes} bytes",
-                )
-            }
-
-            if (stdoutText.text.isBlank()) {
+            if (output.stdout.text.isBlank()) {
                 throw FastCheckProjectionException(
                     code = PbtDiagnosticCode.BACKEND_RESPONSE_EMPTY,
                     message = "fast-check adapter returned an empty response",
                 )
             }
 
-            return stdoutText.text
+            return output.stdout.text
         } finally {
+            stdout?.cancel(true)
+            stderr?.cancel(true)
+            writer?.cancel(true)
+
             closeStreams(process)
             if (process.isAlive) {
                 terminate(process)
@@ -202,25 +193,144 @@ class FastCheckProjectionClient private constructor(
         }
     }
 
-    private fun awaitProcess(process: Process) {
-        val completed = try {
-            process.waitFor(transportLimits.wallClockTimeoutMillis, TimeUnit.MILLISECONDS)
-        } catch (error: InterruptedException) {
-            Thread.currentThread().interrupt()
-
-            throw FastCheckProjectionException(
-                code = PbtDiagnosticCode.BACKEND_PROCESS_INTERRUPTED,
-                message = "Interrupted while waiting for the fast-check projection adapter",
-                cause = error,
+    private fun awaitAdapter(
+        process: Process,
+        writer: Future<*>,
+        stdout: Future<ProjectionBoundedText>,
+        stderr: Future<ProjectionBoundedText>,
+        deadlineNanos: Long,
+    ): ProjectionAdapterOutput {
+        while (true) {
+            checkCompletedIo(
+                task = stdout,
+                operation = "reading fast-check projection stdout",
+                failureCode = PbtDiagnosticCode.BACKEND_PROCESS_READ_FAILED,
             )
+            checkCompletedIo(
+                task = stderr,
+                operation = "reading fast-check projection stderr",
+                failureCode = PbtDiagnosticCode.BACKEND_PROCESS_READ_FAILED,
+            )
+            checkCompletedIo(
+                task = writer,
+                operation = "writing the fast-check projection request",
+                failureCode = PbtDiagnosticCode.BACKEND_PROCESS_WRITE_FAILED,
+            )
+
+            val waitMillis = minOf(remainingMillis(deadlineNanos), PROCESS_POLL_MILLIS)
+            if (waitMillis == 0L) projectionTimeout()
+
+            val completed = try {
+                process.waitFor(waitMillis, TimeUnit.MILLISECONDS)
+            } catch (error: InterruptedException) {
+                Thread.currentThread().interrupt()
+
+                throw FastCheckProjectionException(
+                    code = PbtDiagnosticCode.BACKEND_PROCESS_INTERRUPTED,
+                    message = "Interrupted while waiting for the fast-check projection adapter",
+                    cause = error,
+                )
+            }
+
+            if (completed) {
+                return awaitIoAfterProcessExit(
+                    writer = writer,
+                    stdout = stdout,
+                    stderr = stderr,
+                    deadlineNanos = deadlineNanos,
+                )
+            }
+        }
+    }
+
+    private fun awaitIoAfterProcessExit(
+        writer: Future<*>,
+        stdout: Future<ProjectionBoundedText>,
+        stderr: Future<ProjectionBoundedText>,
+        deadlineNanos: Long,
+    ): ProjectionAdapterOutput {
+        while (!writer.isDone || !stdout.isDone || !stderr.isDone) {
+            checkCompletedIo(
+                task = stdout,
+                operation = "reading fast-check projection stdout",
+                failureCode = PbtDiagnosticCode.BACKEND_PROCESS_READ_FAILED,
+            )
+            checkCompletedIo(
+                task = stderr,
+                operation = "reading fast-check projection stderr",
+                failureCode = PbtDiagnosticCode.BACKEND_PROCESS_READ_FAILED,
+            )
+            checkCompletedIo(
+                task = writer,
+                operation = "writing the fast-check projection request",
+                failureCode = PbtDiagnosticCode.BACKEND_PROCESS_WRITE_FAILED,
+            )
+
+            val waitMillis = minOf(remainingMillis(deadlineNanos), IO_POLL_MILLIS)
+            if (waitMillis == 0L) projectionTimeout()
+
+            when {
+                !stdout.isDone -> awaitIo(
+                    task = stdout,
+                    operation = "reading fast-check projection stdout",
+                    failureCode = PbtDiagnosticCode.BACKEND_PROCESS_READ_FAILED,
+                    waitMillis = waitMillis,
+                )
+
+                !stderr.isDone -> awaitIo(
+                    task = stderr,
+                    operation = "reading fast-check projection stderr",
+                    failureCode = PbtDiagnosticCode.BACKEND_PROCESS_READ_FAILED,
+                    waitMillis = waitMillis,
+                )
+
+                else -> awaitIo(
+                    task = writer,
+                    operation = "writing the fast-check projection request",
+                    failureCode = PbtDiagnosticCode.BACKEND_PROCESS_WRITE_FAILED,
+                    waitMillis = waitMillis,
+                )
+            }
         }
 
-        if (!completed) {
-            terminate(process)
+        awaitIo(
+            task = writer,
+            operation = "writing the fast-check projection request",
+            failureCode = PbtDiagnosticCode.BACKEND_PROCESS_WRITE_FAILED,
+            waitMillis = 0,
+        )
 
-            throw FastCheckProjectionException(
-                code = PbtDiagnosticCode.BACKEND_PROCESS_TIMEOUT,
-                message = "fast-check projection adapter exceeded the ${transportLimits.wallClockTimeoutMillis} ms timeout",
+        return ProjectionAdapterOutput(
+            stdout = requireNotNull(
+                awaitIo(
+                    task = stdout,
+                    operation = "reading fast-check projection stdout",
+                    failureCode = PbtDiagnosticCode.BACKEND_PROCESS_READ_FAILED,
+                    waitMillis = 0,
+                ),
+            ),
+            stderr = requireNotNull(
+                awaitIo(
+                    task = stderr,
+                    operation = "reading fast-check projection stderr",
+                    failureCode = PbtDiagnosticCode.BACKEND_PROCESS_READ_FAILED,
+                    waitMillis = 0,
+                ),
+            ),
+        )
+    }
+
+    private fun <T> checkCompletedIo(
+        task: Future<T>,
+        operation: String,
+        failureCode: String,
+    ) {
+        if (task.isDone) {
+            awaitIo(
+                task = task,
+                operation = operation,
+                failureCode = failureCode,
+                waitMillis = 0,
             )
         }
     }
@@ -229,8 +339,11 @@ class FastCheckProjectionClient private constructor(
         task: Future<T>,
         operation: String,
         failureCode: String,
-    ): T = try {
-        task.get()
+        waitMillis: Long,
+    ): T? = try {
+        task.get(waitMillis, TimeUnit.MILLISECONDS)
+    } catch (_: TimeoutException) {
+        null
     } catch (error: InterruptedException) {
         Thread.currentThread().interrupt()
 
@@ -240,12 +353,42 @@ class FastCheckProjectionClient private constructor(
             cause = error,
         )
     } catch (error: ExecutionException) {
+        val cause = error.cause
+        if (cause is ProjectionOutputLimitExceeded) {
+            throw FastCheckProjectionException(
+                code = PbtDiagnosticCode.BACKEND_RESPONSE_TOO_LARGE,
+                message = "fast-check projection ${cause.stream} exceeds ${cause.limit} bytes",
+                cause = cause,
+            )
+        }
+
         throw FastCheckProjectionException(
             code = failureCode,
-            message = "Failed while $operation: ${error.cause?.message}",
-            cause = error.cause,
+            message = "Failed while $operation: ${cause?.message}",
+            cause = cause,
         )
     }
+
+    private fun deadlineAfter(timeoutMillis: Long): Long {
+        val timeoutNanos = TimeUnit.MILLISECONDS.toNanos(timeoutMillis)
+        val now = System.nanoTime()
+
+        return if (now > Long.MAX_VALUE - timeoutNanos) Long.MAX_VALUE else now + timeoutNanos
+    }
+
+    private fun remainingMillis(deadlineNanos: Long): Long {
+        if (deadlineNanos == Long.MAX_VALUE) return Long.MAX_VALUE
+
+        val remainingNanos = deadlineNanos - System.nanoTime()
+        if (remainingNanos <= 0) return 0
+
+        return TimeUnit.NANOSECONDS.toMillis(remainingNanos).coerceAtLeast(1)
+    }
+
+    private fun projectionTimeout(): Nothing = throw FastCheckProjectionException(
+        code = PbtDiagnosticCode.BACKEND_PROCESS_TIMEOUT,
+        message = "fast-check projection adapter exceeded the ${transportLimits.wallClockTimeoutMillis} ms timeout",
+    )
 
     private fun startAdapter(): Process = try {
         ProcessBuilder(nodeExecutable, adapterEntryPoint.toString()).start()
@@ -314,6 +457,8 @@ class FastCheckProjectionClient private constructor(
         const val DEFAULT_WALL_CLOCK_TIMEOUT_MILLIS = 60_000L
         const val DEFAULT_SHUTDOWN_GRACE_MILLIS = 250L
         const val IO_TASKS = 3
+        const val PROCESS_POLL_MILLIS = 10L
+        const val IO_POLL_MILLIS = 10L
 
         val DEFAULT_TRANSPORT_LIMITS = FastCheckProjectionTransportLimits(
             maxRequestBytes = DEFAULT_MAX_REQUEST_BYTES,
@@ -325,12 +470,21 @@ class FastCheckProjectionClient private constructor(
     }
 }
 
-private data class ProjectionBoundedText(val text: String, val exceeded: Boolean)
+private data class ProjectionAdapterOutput(
+    val stdout: ProjectionBoundedText,
+    val stderr: ProjectionBoundedText,
+)
 
-private fun InputStream.readProjectionBounded(limit: Int): ProjectionBoundedText {
+private data class ProjectionBoundedText(val text: String)
+
+private class ProjectionOutputLimitExceeded(
+    val stream: String,
+    val limit: Int,
+) : IOException("fast-check projection $stream exceeds $limit bytes")
+
+private fun InputStream.readProjectionBounded(limit: Int, stream: String): ProjectionBoundedText {
     val output = ByteArrayOutputStream(minOf(limit, DEFAULT_BUFFER_SIZE))
     val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
-    var exceeded = false
 
     while (true) {
         val read = read(buffer)
@@ -339,11 +493,8 @@ private fun InputStream.readProjectionBounded(limit: Int): ProjectionBoundedText
         val remaining = limit - output.size()
 
         if (remaining > 0) output.write(buffer, 0, minOf(read, remaining))
-        if (read > remaining) exceeded = true
+        if (read > remaining) throw ProjectionOutputLimitExceeded(stream, limit)
     }
 
-    return ProjectionBoundedText(
-        text = output.toString(Charsets.UTF_8),
-        exceeded = exceeded,
-    )
+    return ProjectionBoundedText(text = output.toString(Charsets.UTF_8))
 }

@@ -179,6 +179,103 @@ class FastCheckProjectionClientTest {
 
     @Test
     @Timeout(value = 2, unit = TimeUnit.SECONDS)
+    fun `continuing stdout beyond the transport byte limit fails promptly`() {
+        val pidFile = createTempFile(prefix = "fast-check-stdout-pid-", suffix = ".txt")
+        pidFile.deleteIfExists()
+
+        try {
+            withTemporaryAdapter(
+                source = """
+                    import { writeFileSync } from 'node:fs'
+                    writeFileSync(${pidFile.toJavaScriptStringLiteral()}, String(process.pid))
+                    setInterval(() => process.stdout.write('x'.repeat(1025)), 1)
+                """.trimIndent(),
+                transportLimits = transportLimits(maxStdoutBytes = 1_024),
+            ) { temporaryClient ->
+                val startedAt = System.nanoTime()
+                val error = assertFailsWith<FastCheckProjectionException> {
+                    temporaryClient.sample(validRequest)
+                }
+                val elapsedMillis = (System.nanoTime() - startedAt) / 1_000_000
+
+                assertEquals("backend.response.too-large", error.code)
+                assertTrue(elapsedMillis < 2_000, "Stdout limit took $elapsedMillis ms")
+                assertTrue(adapterIsTerminated(pidFile), "Stdout adapter is still running")
+            }
+        } finally {
+            terminateAdapter(pidFile)
+            pidFile.deleteIfExists()
+        }
+    }
+
+    @Test
+    @Timeout(value = 2, unit = TimeUnit.SECONDS)
+    fun `continuing stderr beyond the transport byte limit fails promptly`() {
+        val pidFile = createTempFile(prefix = "fast-check-stderr-pid-", suffix = ".txt")
+        pidFile.deleteIfExists()
+
+        try {
+            withTemporaryAdapter(
+                source = """
+                    import { writeFileSync } from 'node:fs'
+                    writeFileSync(${pidFile.toJavaScriptStringLiteral()}, String(process.pid))
+                    setInterval(() => process.stderr.write('x'.repeat(1025)), 1)
+                """.trimIndent(),
+                transportLimits = transportLimits(maxStderrBytes = 1_024),
+            ) { temporaryClient ->
+                val startedAt = System.nanoTime()
+                val error = assertFailsWith<FastCheckProjectionException> {
+                    temporaryClient.sample(validRequest)
+                }
+                val elapsedMillis = (System.nanoTime() - startedAt) / 1_000_000
+
+                assertEquals("backend.response.too-large", error.code)
+                assertTrue(elapsedMillis < 2_000, "Stderr limit took $elapsedMillis ms")
+                assertTrue(adapterIsTerminated(pidFile), "Stderr adapter is still running")
+            }
+        } finally {
+            terminateAdapter(pidFile)
+            pidFile.deleteIfExists()
+        }
+    }
+
+    @Test
+    @Timeout(value = 2, unit = TimeUnit.SECONDS)
+    fun `parent exit with a descendant retaining a pipe reaches the adapter deadline`() {
+        val childPidFile = createTempFile(prefix = "fast-check-descendant-pid-", suffix = ".txt")
+        childPidFile.deleteIfExists()
+
+        try {
+            withTemporaryAdapter(
+                source = """
+                    import { spawn } from 'node:child_process'
+                    import { writeFileSync } from 'node:fs'
+                    const child = spawn(process.execPath, [
+                      '-e',
+                      'setInterval(() => undefined, 1000)'
+                    ], { stdio: 'inherit' })
+                    writeFileSync(${childPidFile.toJavaScriptStringLiteral()}, String(child.pid))
+                    setTimeout(() => process.exit(0), 25)
+                """.trimIndent(),
+                transportLimits = transportLimits(wallClockTimeoutMillis = 500),
+            ) { temporaryClient ->
+                val startedAt = System.nanoTime()
+                val error = assertFailsWith<FastCheckProjectionException> {
+                    temporaryClient.sample(validRequest)
+                }
+                val elapsedMillis = (System.nanoTime() - startedAt) / 1_000_000
+
+                assertEquals("backend.process.timeout", error.code)
+                assertTrue(elapsedMillis < 2_000, "Descendant pipe timeout took $elapsedMillis ms")
+            }
+        } finally {
+            assertTrue(terminateAdapter(childPidFile), "Test cleanup did not terminate descendant")
+            childPidFile.deleteIfExists()
+        }
+    }
+
+    @Test
+    @Timeout(value = 2, unit = TimeUnit.SECONDS)
     fun `wall clock timeout returns promptly and terminates the adapter`() {
         val pidFile = createTempFile(prefix = "fast-check-adapter-pid-", suffix = ".txt")
         val terminationMarker = createTempFile(prefix = "fast-check-adapter-termination-", suffix = ".txt")
@@ -305,12 +402,28 @@ class FastCheckProjectionClientTest {
 
     private fun Path.toJavaScriptStringLiteral(): String = "'${toString().replace("\\", "\\\\").replace("'", "\\'")}'"
 
-    private fun terminateAdapter(pidFile: Path) {
-        val pid = pidFile.takeIf(Files::exists)?.readText()?.trim()?.toLongOrNull() ?: return
-        val process = ProcessHandle.of(pid).orElse(null) ?: return
+    private fun terminateAdapter(pidFile: Path): Boolean {
+        val pid = pidFile.takeIf(Files::exists)?.readText()?.trim()?.toLongOrNull() ?: return true
+        val process = ProcessHandle.of(pid).orElse(null) ?: return true
 
         process.destroyForcibly()
-        process.onExit().get(1, TimeUnit.SECONDS)
+
+        try {
+            process.onExit().get(1, TimeUnit.SECONDS)
+        } catch (_: InterruptedException) {
+            Thread.currentThread().interrupt()
+
+            return true
+        }
+
+        return !process.isAlive
+    }
+
+    private fun adapterIsTerminated(pidFile: Path): Boolean {
+        val pid = pidFile.readText().trim().toLong()
+        val process = ProcessHandle.of(pid).orElse(null)
+
+        return process == null || !process.isAlive
     }
 
     private companion object {
