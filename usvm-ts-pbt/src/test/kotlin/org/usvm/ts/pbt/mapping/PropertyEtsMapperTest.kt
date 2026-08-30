@@ -150,7 +150,7 @@ class PropertyEtsMapperTest {
     }
 
     @Test
-    fun `duplicate frontend signatures keep coverage source provenance ambiguous`() {
+    fun `duplicate frontend signatures stay ambiguous when one source has no matching targets`() {
         val sourceRoot = testResourcePath("/mapping/source-roots")
         val primarySource = sourceRoot.resolve("a/Foo.ts")
         val duplicateSource = sourceRoot.resolve("b/Foo.ts")
@@ -203,13 +203,19 @@ class PropertyEtsMapperTest {
         val primaryMethods = primaryFile.classes.flatMap { etsClass -> etsClass.methods }
         val duplicateMethods = duplicateFile.classes.flatMap { etsClass -> etsClass.methods }
 
+        assertEquals(EtsMappingStatus.AMBIGUOUS, artifact.predicate.status)
+        assertEquals(1, artifact.predicate.targets.size)
         val mapping = artifact.coverage.statements.single().mapping
         assertEquals(EtsMappingStatus.AMBIGUOUS, mapping.status)
+        assertTrue(mapping.targets.isNotEmpty())
         assertTrue(
-            mapping.targets.any { target ->
-                duplicateFile.classes
-                    .flatMap { etsClass -> etsClass.methods }
-                    .any { method -> target.statement.location.method === method }
+            mapping.targets.all { target ->
+                primaryMethods.any { method -> target.statement.location.method === method }
+            },
+        )
+        assertTrue(
+            mapping.targets.none { target ->
+                duplicateMethods.any { method -> target.statement.location.method === method }
             },
         )
         assertEquals("mapping.statement.ambiguous", mapping.diagnostics.single().code)
@@ -223,8 +229,9 @@ class PropertyEtsMapperTest {
         branch.arms.forEach { arm ->
             val targetMethods = arm.mapping.targets.map { target -> target.condition.location.method }
 
-            assertTrue(targetMethods.any { target -> primaryMethods.any { method -> target === method } })
-            assertTrue(targetMethods.any { target -> duplicateMethods.any { method -> target === method } })
+            assertTrue(targetMethods.isNotEmpty())
+            assertTrue(targetMethods.all { target -> primaryMethods.any { method -> target === method } })
+            assertTrue(targetMethods.none { target -> duplicateMethods.any { method -> target === method } })
         }
     }
 
@@ -542,7 +549,9 @@ class PropertyEtsBranchMappingTest {
     @Test
     fun `reports a branch range without an EtsIR condition as unmapped`() {
         val source = testResourcePath("/mapping/PropertyMappingFixture.ts")
+        val duplicateSource = testResourcePath("/mapping/duplicate/PropertyMappingFixture.ts")
         val file = loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)
+        val duplicateFile = loadEtsFileAutoConvert(duplicateSource, provider = EtsIrProvider.TS_FRONTEND)
         val propertyId = PropertyId("mapping.unmapped-branch")
         val manifest = PropertyManifest(
             propertyId = propertyId.value,
@@ -573,8 +582,8 @@ class PropertyEtsBranchMappingTest {
             ),
         )
         val mapper = PropertyEtsMapper(
-            scene = EtsScene(listOf(file)),
-            sourceRoots = listOf(source.parent),
+            scene = EtsScene(listOf(file, duplicateFile)),
+            sourceRoots = listOf(source.parent, duplicateSource.parent),
         )
 
         val artifact = mapper.map(manifest, coverage)

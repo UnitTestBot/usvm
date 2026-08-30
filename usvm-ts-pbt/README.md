@@ -157,9 +157,8 @@ re-exports and extensionless `.ts`, `.ets`, `.d.ts`, and directory-index module 
 only to file-level EtsIR methods; namespace-star exports are not treated as functions, bare-star exports do not
 forward `default`, explicit runtime exports take precedence over bare-star exports, and duplicate re-export paths
 to the same method collapse to one target. Type-alias exports do not mask bare-star runtime exports. The current
-EtsIR export model does not preserve TypeScript `isTypeOnly` for named re-exports whose declaration also has a
-runtime kind; those cases are conservatively treated as runtime exports and may remain unmapped instead of
-following a bare-star export.
+EtsIR export model preserves `isTypeOnly` independently of the declaration kind, so type-only named and star
+re-exports do not mask a bare-star runtime fallback.
 Every resolved entry point has explicit receiver, ordered input, and result bindings. The receiver uses stack slot
 zero and property inputs follow it in manifest order. A coverage artifact for another property is rejected rather
 than combined with the manifest.
@@ -189,7 +188,8 @@ Stable mapping diagnostics include `mapping.entry-point.unmapped`, `mapping.entr
 `mapping.branch.unmapped`, `mapping.branch.ambiguous`, `mapping.branch.shape.unsupported`,
 `mapping.branch.cfg.unsupported`,
 `mapping.source.unavailable`, `mapping.source.location.unsupported`, and
-`mapping.source-origins.unsupported`. Backend provenance is preserved separately from mapping provenance and
+`mapping.source-origins.unsupported`, and `mapping.source-root.unsupported`. Backend provenance is preserved
+separately from mapping provenance and
 backend diagnostics are copied without reinterpretation.
 
 ## Registries and CLI

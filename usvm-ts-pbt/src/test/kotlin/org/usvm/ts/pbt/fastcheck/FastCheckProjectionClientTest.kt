@@ -10,7 +10,9 @@ import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyDomain
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import kotlin.io.path.createTempFile
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.readText
@@ -247,7 +249,7 @@ class FastCheckProjectionClientTest {
 
     @Test
     @Timeout(value = 2, unit = TimeUnit.SECONDS)
-    fun `parent exit with a descendant retaining a pipe reaches the adapter deadline`() {
+    fun `immediate parent exit still terminates a descendant retaining a pipe`() {
         val childPidFile = createTempFile(prefix = "fast-check-descendant-pid-", suffix = ".txt")
         childPidFile.deleteIfExists()
 
@@ -261,7 +263,7 @@ class FastCheckProjectionClientTest {
                       "process.on('SIGTERM', () => undefined); setInterval(() => undefined, 1000)"
                     ], { stdio: 'inherit' })
                     writeFileSync(${childPidFile.toJavaScriptStringLiteral()}, String(child.pid))
-                    setTimeout(() => process.exit(0), 100)
+                    process.exit(0)
                 """.trimIndent(),
                 transportLimits = transportLimits(
                     wallClockTimeoutMillis = 250,
@@ -274,7 +276,7 @@ class FastCheckProjectionClientTest {
                 }
                 val elapsedMillis = (System.nanoTime() - startedAt) / 1_000_000
 
-                assertEquals("backend.process.timeout", error.code)
+                assertEquals("backend.response.empty", error.code)
                 assertTrue(elapsedMillis < 600, "Descendant cleanup took $elapsedMillis ms")
                 assertTrue(adapterIsTerminated(childPidFile), "Descendant is still running")
             }
@@ -426,8 +428,21 @@ class FastCheckProjectionClientTest {
     private fun adapterIsTerminated(pidFile: Path): Boolean {
         val pid = pidFile.readText().trim().toLong()
         val process = ProcessHandle.of(pid).orElse(null)
+        if (process == null || !process.isAlive) return true
 
-        return process == null || !process.isAlive
+        try {
+            process.onExit().get(1, TimeUnit.SECONDS)
+        } catch (_: TimeoutException) {
+            return false
+        } catch (_: ExecutionException) {
+            return !process.isAlive
+        } catch (_: InterruptedException) {
+            Thread.currentThread().interrupt()
+
+            return !process.isAlive
+        }
+
+        return !process.isAlive
     }
 
     private companion object {

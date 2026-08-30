@@ -233,8 +233,8 @@ Entry-point resolution starts from the manifest module/export pair and follows n
 re-exports. Direct function exports resolve only in the file-level `%dflt` class. Namespace-star exports are not
 callable methods, bare-star traversal excludes `default`, explicit runtime exports take precedence over bare-star
 exports, and duplicate paths to one EtsIR method are deduplicated. Type-alias exports do not mask bare-star runtime
-exports. EtsIR currently loses TypeScript `isTypeOnly` on named re-exports whose declaration has a runtime kind;
-the mapper treats those exports conservatively as runtime-bearing instead of guessing that a star export wins.
+exports. The pinned EtsIR model preserves `isTypeOnly` independently of declaration kind, so type-only named and
+star re-exports do not mask a bare-star runtime fallback.
 Module candidates mirror the frontend's `.ts`, `.ets`, `.d.ts`, and directory-index suffix rules.
 Predicate and precondition resolution are independent. A resolved method carries `EtsEntryPointBindings`: receiver
 slot zero, ordered input-to-parameter bindings in subsequent slots, and the result type. A mismatch between
@@ -262,9 +262,11 @@ with EtsIR-specific binding and mapping records and has no dependency on `usvm-j
 
 The execution client starts stdout, stderr, and stdin work concurrently on the coroutine I/O dispatcher. Requests
 and stdout are limited to 4 MiB; stderr is limited to 64 KiB. These are transport safety bounds, not property-policy
-limits. The hard deadline is the property timeout plus two seconds for transport, followed by a 250 ms graceful
-shutdown before force-kill. The only run-control maximum is `2^31 - 1` milliseconds because Node timers use signed
-32-bit delays; runs, examples, and replay paths have no arbitrary count or length caps.
+limits. The hard deadline is the property timeout plus two seconds for transport, followed by up to 250 ms of
+graceful shutdown before force-kill, bounded by the absolute deadline. A private supervisor keeps the adapter in an
+owned process group and retains a stable worker until cleanup, so an adapter that exits before its descendants cannot
+orphan them. The only run-control maximum is `2^31 - 1` milliseconds because Node timers use signed 32-bit delays;
+runs, examples, and replay paths have no arbitrary count or length caps.
 
 ## Runtime packaging
 

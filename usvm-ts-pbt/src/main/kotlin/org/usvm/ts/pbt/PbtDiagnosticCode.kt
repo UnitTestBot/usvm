@@ -45,6 +45,22 @@ internal object PbtDiagnosticCode {
     const val COVERAGE_SOURCE_MAP_INVALID = "coverage.source-map.invalid"
     const val COVERAGE_SOURCE_MAP_MISSING = "coverage.source-map.missing"
 
+    const val MAPPING_BRANCH_AMBIGUOUS = "mapping.branch.ambiguous"
+    const val MAPPING_BRANCH_CFG_UNSUPPORTED = "mapping.branch.cfg.unsupported"
+    const val MAPPING_BRANCH_SHAPE_UNSUPPORTED = "mapping.branch.shape.unsupported"
+    const val MAPPING_BRANCH_UNMAPPED = "mapping.branch.unmapped"
+    const val MAPPING_COVERAGE_PROPERTY_ID_MISMATCH = "mapping.coverage.property-id.mismatch"
+    const val MAPPING_COVERAGE_UNAVAILABLE = "mapping.coverage.unavailable"
+    const val MAPPING_ENTRY_POINT_AMBIGUOUS = "mapping.entry-point.ambiguous"
+    const val MAPPING_ENTRY_POINT_BINDINGS_UNSUPPORTED = "mapping.entry-point.bindings.unsupported"
+    const val MAPPING_ENTRY_POINT_UNMAPPED = "mapping.entry-point.unmapped"
+    const val MAPPING_SOURCE_LOCATION_UNSUPPORTED = "mapping.source.location.unsupported"
+    const val MAPPING_SOURCE_ORIGINS_UNSUPPORTED = "mapping.source-origins.unsupported"
+    const val MAPPING_SOURCE_ROOT_UNSUPPORTED = "mapping.source-root.unsupported"
+    const val MAPPING_SOURCE_UNAVAILABLE = "mapping.source.unavailable"
+    const val MAPPING_STATEMENT_AMBIGUOUS = "mapping.statement.ambiguous"
+    const val MAPPING_STATEMENT_UNMAPPED = "mapping.statement.unmapped"
+
     const val PROTOCOL_REQUEST_INVALID = "protocol.request.invalid"
     const val SOURCE_ROOT_INVALID = "source-root.invalid"
 

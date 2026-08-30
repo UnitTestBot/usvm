@@ -1,6 +1,7 @@
 package org.usvm.ts.pbt.mapping
 
 import org.jacodb.ets.model.EtsAssignStmt
+import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsFunctionType
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsScene
@@ -164,6 +165,20 @@ class PropertyEtsExportResolutionTest {
     }
 
     @Test
+    fun `callable local followed by a non-callable assignment remains ambiguous`() {
+        val source = testResourcePath("/mapping/exports/CallableLocalFixture.ts")
+        val mapper = mapper(source)
+
+        val artifact = mapper.map(manifest(module = source.fileName.toString(), exportName = "callableThenValue"))
+        val target = artifact.predicate.targets.single()
+
+        assertEquals(EtsMappingStatus.AMBIGUOUS, artifact.predicate.status)
+        assertEquals(1, artifact.predicate.targets.size)
+        assertTrue(target.method.name.startsWith("%AM"))
+        assertEquals("mapping.entry-point.ambiguous", artifact.predicate.diagnostics.single().code)
+    }
+
+    @Test
     fun `aliased callable with repeated links to one lifted method remains ambiguous`() {
         val source = testResourcePath("/mapping/exports/CallableLocalFixture.ts")
         val file = loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)
@@ -235,14 +250,38 @@ class PropertyEtsExportResolutionTest {
         assertEquals("corePredicate", targetMethod.name)
     }
 
+    @Test
+    fun `re-export with multiple module files stays ambiguous when only one exports the target`() {
+        val sourceDirectory = testResourcePath("/mapping/exports/ambiguous-reexport")
+        val sources = listOf("Entry.ts", "Foo.ts", "Foo/index.ts").map(sourceDirectory::resolve)
+        val mapper = mapper(*sources.toTypedArray())
+
+        val artifact = mapper.map(manifest(module = "Entry.ts", exportName = "predicate"))
+        val target = artifact.predicate.targets.single()
+
+        assertEquals(EtsMappingStatus.AMBIGUOUS, artifact.predicate.status)
+        assertEquals(1, artifact.predicate.targets.size)
+        assertEquals("predicate", target.method.name)
+        assertEquals("mapping.entry-point.ambiguous", artifact.predicate.diagnostics.single().code)
+    }
+
     private fun mapper(vararg sources: Path): PropertyEtsMapper {
+        val sourceRoot = sources.first().parent
         val files = sources.map { source ->
-            loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)
+            val file = loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)
+
+            EtsFile(
+                signature = file.signature.copy(fileName = sourceRoot.relativize(source).toString()),
+                classes = file.classes,
+                namespaces = file.namespaces,
+                importInfos = file.importInfos,
+                exportInfos = file.exportInfos,
+            )
         }
 
         return PropertyEtsMapper(
             scene = EtsScene(files),
-            sourceRoots = listOf(sources.first().parent),
+            sourceRoots = listOf(sourceRoot),
         )
     }
 

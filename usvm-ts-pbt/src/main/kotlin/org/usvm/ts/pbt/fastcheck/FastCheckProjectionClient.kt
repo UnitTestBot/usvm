@@ -8,6 +8,7 @@ import org.usvm.ts.pbt.model.contains
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.io.InputStream
+import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
@@ -130,8 +131,8 @@ class FastCheckProjectionClient private constructor(
     }
 
     private fun invokeAdapter(encodedRequest: String): String {
-        val process = startAdapter()
-        val processTree = ProjectionProcessTree(process.toHandle())
+        val managedProcess = startAdapter()
+        val process = managedProcess.process
         val deadlineNanos = deadlineAfter(transportLimits.wallClockTimeoutMillis)
         val ioExecutor = Executors.newFixedThreadPool(IO_TASKS)
         var stdout: Future<ProjectionBoundedText>? = null
@@ -160,7 +161,6 @@ class FastCheckProjectionClient private constructor(
 
             val output = awaitAdapter(
                 process = process,
-                processTree = processTree,
                 writer = writerTask,
                 stdout = requireNotNull(stdout),
                 stderr = requireNotNull(stderr),
@@ -184,27 +184,25 @@ class FastCheckProjectionClient private constructor(
 
             return output.stdout.text
         } finally {
-            processTree.observe()
             stdout?.cancel(true)
             stderr?.cancel(true)
             writer?.cancel(true)
 
+            terminate(managedProcess = managedProcess, deadlineNanos = deadlineNanos)
             closeStreams(process)
-            terminate(processTree = processTree, deadlineNanos = deadlineNanos)
+            runCatching { Files.deleteIfExists(managedProcess.processGroupFile) }
             ioExecutor.shutdownNow()
         }
     }
 
     private fun awaitAdapter(
         process: Process,
-        processTree: ProjectionProcessTree,
         writer: Future<*>,
         stdout: Future<ProjectionBoundedText>,
         stderr: Future<ProjectionBoundedText>,
         deadlineNanos: Long,
     ): ProjectionAdapterOutput {
         while (true) {
-            processTree.observe()
             checkCompletedIo(
                 task = stdout,
                 operation = "reading fast-check projection stdout",
@@ -239,8 +237,6 @@ class FastCheckProjectionClient private constructor(
             }
 
             if (completed) {
-                processTree.observe()
-
                 return awaitIoAfterProcessExit(
                     writer = writer,
                     stdout = stdout,
@@ -408,15 +404,41 @@ class FastCheckProjectionClient private constructor(
         message = "fast-check projection adapter exceeded the ${transportLimits.wallClockTimeoutMillis} ms timeout",
     )
 
-    private fun startAdapter(): Process = try {
-        ProcessBuilder(nodeExecutable, adapterEntryPoint.toString()).start()
-    } catch (error: IOException) {
-        throw FastCheckProjectionException(
-            code = PbtDiagnosticCode.BACKEND_PROCESS_START_FAILED,
-            message = "Failed to start fast-check adapter: ${error.message}",
-            cause = error,
-        )
+    private fun startAdapter(): ManagedProjectionProcess {
+        val processGroupFile = try {
+            Files.createTempFile("usvm-projection-process-group-", ".pid")
+        } catch (error: IOException) {
+            processStartFailure(error)
+        }
+        var processStarted = false
+
+        try {
+            val supervisorEntryPoint = FastCheckRuntime.projectionSupervisorEntryPoint()
+            val process = ProcessBuilder(
+                nodeExecutable,
+                supervisorEntryPoint.toString(),
+                adapterEntryPoint.toString(),
+                transportLimits.shutdownGraceMillis.toString(),
+                processGroupFile.toString(),
+            ).start()
+            processStarted = true
+
+            return ManagedProjectionProcess(
+                process = process,
+                processGroupFile = processGroupFile,
+            )
+        } catch (error: IOException) {
+            processStartFailure(error)
+        } finally {
+            if (!processStarted) runCatching { Files.deleteIfExists(processGroupFile) }
+        }
     }
+
+    private fun processStartFailure(error: IOException): Nothing = throw FastCheckProjectionException(
+        code = PbtDiagnosticCode.BACKEND_PROCESS_START_FAILED,
+        message = "Failed to start fast-check adapter: ${error.message}",
+        cause = error,
+    )
 
     private fun decodeResponse(stdout: String): FastCheckProjectionWireResponse = try {
         PropertyManifestJson.json.decodeFromString(stdout)
@@ -453,19 +475,24 @@ class FastCheckProjectionClient private constructor(
         runCatching { process.errorStream.close() }
     }
 
-    private fun terminate(processTree: ProjectionProcessTree, deadlineNanos: Long) {
-        processTree.observe()
-        val processes = processTree.processesInTerminationOrder()
-        if (processes.none(ProcessHandle::isAlive)) return
-
-        if (remainingMillis(deadlineNanos) <= FORCED_TERMINATION_RESERVE_MILLIS) {
-            processes.destroyForcibly()
-            awaitProcessTreeExit(processes, deadlineNanos)
+    private fun terminate(managedProcess: ManagedProjectionProcess, deadlineNanos: Long) {
+        val process = managedProcess.process
+        if (!process.isAlive) {
+            forceTerminateOwnedProcessGroup(managedProcess.processGroupFile, deadlineNanos)
 
             return
         }
 
-        processes.destroy()
+        process.destroy()
+
+        val remainingMillis = remainingMillis(deadlineNanos)
+        if (remainingMillis <= FORCED_TERMINATION_RESERVE_MILLIS) {
+            forceTerminateOwnedProcessGroup(managedProcess.processGroupFile, deadlineNanos)
+            process.destroyForcibly()
+            awaitProcessExit(process, deadlineNanos)
+
+            return
+        }
 
         val gracefulDeadlineNanos = minOf(
             deadlineBefore(
@@ -474,24 +501,47 @@ class FastCheckProjectionClient private constructor(
             ),
             deadlineAfter(transportLimits.shutdownGraceMillis),
         )
-        if (awaitProcessTreeExit(processes, gracefulDeadlineNanos)) return
+        if (awaitProcessExit(process, gracefulDeadlineNanos)) return
 
-        processes.destroyForcibly()
-        awaitProcessTreeExit(processes, deadlineNanos)
+        forceTerminateOwnedProcessGroup(managedProcess.processGroupFile, deadlineNanos)
+        process.destroyForcibly()
+        awaitProcessExit(process, deadlineNanos)
     }
 
-    private fun awaitProcessTreeExit(processes: List<ProcessHandle>, deadlineNanos: Long): Boolean {
+    private fun forceTerminateOwnedProcessGroup(processGroupFile: Path, deadlineNanos: Long) {
+        val processGroupId = runCatching {
+            Files.readString(processGroupFile).trim().toLong()
+        }.getOrNull() ?: return
+        val command = if (IS_WINDOWS) {
+            listOf("taskkill", "/PID", processGroupId.toString(), "/T", "/F")
+        } else {
+            listOf("/bin/kill", "-KILL", "--", "-$processGroupId")
+        }
+        val killer = runCatching {
+            ProcessBuilder(command)
+                .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+                .redirectError(ProcessBuilder.Redirect.DISCARD)
+                .start()
+        }.getOrNull() ?: return
+        val waitMillis = minOf(remainingMillis(deadlineNanos), PROCESS_GROUP_KILL_WAIT_MILLIS)
+
+        try {
+            if (!killer.waitFor(waitMillis, TimeUnit.MILLISECONDS)) killer.destroyForcibly()
+        } catch (_: InterruptedException) {
+            Thread.currentThread().interrupt()
+            killer.destroyForcibly()
+        }
+    }
+
+    private fun awaitProcessExit(process: Process, deadlineNanos: Long): Boolean {
         while (true) {
-            val liveProcess = processes.firstOrNull(ProcessHandle::isAlive) ?: return true
+            if (!process.isAlive) return true
+
             val waitMillis = minOf(remainingMillis(deadlineNanos), PROCESS_POLL_MILLIS)
             if (waitMillis == 0L) return false
 
             try {
-                liveProcess.onExit().get(waitMillis, TimeUnit.MILLISECONDS)
-            } catch (_: TimeoutException) {
-                continue
-            } catch (_: ExecutionException) {
-                continue
+                if (process.waitFor(waitMillis, TimeUnit.MILLISECONDS)) return true
             } catch (_: InterruptedException) {
                 Thread.currentThread().interrupt()
 
@@ -511,6 +561,9 @@ class FastCheckProjectionClient private constructor(
         const val PROCESS_POLL_MILLIS = 10L
         const val IO_POLL_MILLIS = 10L
         const val FORCED_TERMINATION_RESERVE_MILLIS = 25L
+        const val PROCESS_GROUP_KILL_WAIT_MILLIS = 10L
+
+        val IS_WINDOWS = System.getProperty("os.name").lowercase().contains("windows")
 
         val DEFAULT_TRANSPORT_LIMITS = FastCheckProjectionTransportLimits(
             maxRequestBytes = DEFAULT_MAX_REQUEST_BYTES,
@@ -527,44 +580,17 @@ private data class ProjectionAdapterOutput(
     val stderr: ProjectionBoundedText,
 )
 
+private data class ManagedProjectionProcess(
+    val process: Process,
+    val processGroupFile: Path,
+)
+
 private data class ProjectionBoundedText(val text: String)
 
 private class ProjectionOutputLimitExceeded(
     val stream: String,
     val limit: Int,
 ) : IOException("fast-check projection $stream exceeds $limit bytes")
-
-private class ProjectionProcessTree(private val root: ProcessHandle) {
-    private val processes = linkedMapOf(root.pid() to root)
-
-    fun observe() {
-        processes.values.toList().forEach { process ->
-            runCatching {
-                process.descendants().use { descendants ->
-                    descendants.forEach { descendant ->
-                        processes.putIfAbsent(descendant.pid(), descendant)
-                    }
-                }
-            }
-        }
-    }
-
-    fun processesInTerminationOrder(): List<ProcessHandle> = processes.values.sortedBy { process ->
-        if (process.pid() == root.pid()) 1 else 0
-    }
-}
-
-private fun List<ProcessHandle>.destroy() {
-    forEach { process ->
-        runCatching { process.destroy() }
-    }
-}
-
-private fun List<ProcessHandle>.destroyForcibly() {
-    forEach { process ->
-        runCatching { process.destroyForcibly() }
-    }
-}
 
 private fun InputStream.readProjectionBounded(limit: Int, stream: String): ProjectionBoundedText {
     val output = ByteArrayOutputStream(minOf(limit, DEFAULT_BUFFER_SIZE))

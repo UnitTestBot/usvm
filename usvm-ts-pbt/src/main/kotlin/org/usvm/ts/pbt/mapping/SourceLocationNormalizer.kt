@@ -1,5 +1,6 @@
 package org.usvm.ts.pbt.mapping
 
+import org.usvm.ts.pbt.PbtDiagnosticCode
 import org.usvm.ts.pbt.backend.SourcePosition
 import org.usvm.ts.pbt.backend.SourceRange
 import java.io.IOException
@@ -120,7 +121,7 @@ internal class SourceLocationNormalizer(sourceRoots: List<Path>) {
         SourceRootResolution(
             path = path,
             diagnostic = EtsMappingDiagnostic(
-                code = "mapping.source-root.unsupported",
+                code = PbtDiagnosticCode.MAPPING_SOURCE_ROOT_UNSUPPORTED,
                 message = "Cannot resolve TypeScript source root $index ($path): $reason",
                 sourcePath = path.toString(),
             ),

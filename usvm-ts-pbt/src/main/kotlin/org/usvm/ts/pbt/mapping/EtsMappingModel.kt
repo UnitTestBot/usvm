@@ -41,7 +41,12 @@ data class EtsMappingDiagnostic(
     val code: String,
     val message: String,
     val sourcePath: String? = null,
-)
+) {
+    init {
+        require(code.isNotBlank()) { "Mapping diagnostic code must not be blank" }
+        require(message.isNotBlank()) { "Mapping diagnostic message must not be blank" }
+    }
+}
 
 /** One mapping decision together with every EtsIR target selected by that decision. */
 data class EtsMappingResult<T>(

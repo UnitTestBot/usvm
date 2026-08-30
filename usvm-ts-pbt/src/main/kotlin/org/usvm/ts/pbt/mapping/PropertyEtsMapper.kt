@@ -17,6 +17,7 @@ import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.utils.ANONYMOUS_METHOD_PREFIX
 import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
 import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
+import org.usvm.ts.pbt.PbtDiagnosticCode
 import org.usvm.ts.pbt.backend.BranchArmCoverage
 import org.usvm.ts.pbt.backend.BranchCoverage
 import org.usvm.ts.pbt.backend.PropertyCoverageArtifact
@@ -70,7 +71,7 @@ class PropertyEtsMapper(
         backendProvenance = null,
         diagnostics = listOf(
             EtsMappingDiagnostic(
-                code = "mapping.coverage.unavailable",
+                code = PbtDiagnosticCode.MAPPING_COVERAGE_UNAVAILABLE,
                 message = "The property backend returned no source coverage artifact",
             ),
         ),
@@ -86,7 +87,7 @@ class PropertyEtsMapper(
                 backendProvenance = coverage.provenance,
                 diagnostics = listOf(
                     EtsMappingDiagnostic(
-                        code = "mapping.coverage.property-id.mismatch",
+                        code = PbtDiagnosticCode.MAPPING_COVERAGE_PROPERTY_ID_MISMATCH,
                         message = "Coverage property ${coverage.propertyId.value} does not match ${propertyId.value}",
                     ),
                 ),
@@ -139,7 +140,7 @@ class PropertyEtsMapper(
 
         if (coverage.type != ISTANBUL_IF_BRANCH_TYPE || coverage.arms.size != BINARY_BRANCH_ARM_COUNT) {
             val diagnostic = EtsMappingDiagnostic(
-                code = "mapping.branch.shape.unsupported",
+                code = PbtDiagnosticCode.MAPPING_BRANCH_SHAPE_UNSUPPORTED,
                 message = "EtsIR branch mapping requires an if branch with exactly two ordered coverage arms",
                 sourcePath = location.path,
             )
@@ -159,7 +160,7 @@ class PropertyEtsMapper(
         val conditionsInSourceFile = conditionGroupsInSourceFile.flatten()
         if (conditionsInSourceFile.isNotEmpty() && conditionsInSourceFile.none { it.location.origin != null }) {
             val diagnostic = EtsMappingDiagnostic(
-                code = "mapping.source-origins.unsupported",
+                code = PbtDiagnosticCode.MAPPING_SOURCE_ORIGINS_UNSUPPORTED,
                 message = "EtsIR conditions for the covered source file have no source origins",
                 sourcePath = location.path,
             )
@@ -179,7 +180,7 @@ class PropertyEtsMapper(
         val conditions = conditionGroups.flatten()
         if (conditions.any { statement -> statement.successorCount() != BINARY_BRANCH_ARM_COUNT }) {
             val diagnostic = EtsMappingDiagnostic(
-                code = "mapping.branch.cfg.unsupported",
+                code = PbtDiagnosticCode.MAPPING_BRANCH_CFG_UNSUPPORTED,
                 message = "EtsIR branch mapping requires exactly two ordered CFG successors",
                 sourcePath = location.path,
             )
@@ -200,7 +201,7 @@ class PropertyEtsMapper(
             location = location,
             conditions = conditions,
             distinctOriginCount = distinctOrigins.size,
-            sourceCandidateCount = conditionGroups.size,
+            sourceCandidateCount = conditionGroupsInSourceFile.size,
         )
         val arms = coverage.arms.mapIndexed { index, arm ->
             mapBranchArm(sourcePath, arm, index, mapping)
@@ -250,6 +251,18 @@ class PropertyEtsMapper(
         distinctOriginCount: Int,
         sourceCandidateCount: Int,
     ): EtsMappingResult<EtsBranchTarget> = when {
+        conditions.isEmpty() -> EtsMappingResult(
+            status = EtsMappingStatus.UNMAPPED,
+            targets = emptyList(),
+            diagnostics = listOf(
+                EtsMappingDiagnostic(
+                    code = PbtDiagnosticCode.MAPPING_BRANCH_UNMAPPED,
+                    message = "No EtsIR condition belongs to the covered TypeScript branch",
+                    sourcePath = location.path,
+                ),
+            ),
+        )
+
         distinctOriginCount == 1 && sourceCandidateCount == 1 -> EtsMappingResult(
             status = EtsMappingStatus.EXACT,
             targets = conditions.map(::EtsBranchTarget),
@@ -260,24 +273,14 @@ class PropertyEtsMapper(
             targets = conditions.map(::EtsBranchTarget),
             diagnostics = listOf(
                 EtsMappingDiagnostic(
-                    code = "mapping.branch.ambiguous",
+                    code = PbtDiagnosticCode.MAPPING_BRANCH_AMBIGUOUS,
                     message = "The covered TypeScript branch contains several EtsIR conditions",
                     sourcePath = location.path,
                 ),
             ),
         )
 
-        else -> EtsMappingResult(
-            status = EtsMappingStatus.UNMAPPED,
-            targets = emptyList(),
-            diagnostics = listOf(
-                EtsMappingDiagnostic(
-                    code = "mapping.branch.unmapped",
-                    message = "No EtsIR condition belongs to the covered TypeScript branch",
-                    sourcePath = location.path,
-                ),
-            ),
-        )
+        else -> error("EtsIR branch mapping has targets without source provenance")
     }
 
     private fun mapBranchArm(
@@ -346,7 +349,7 @@ class PropertyEtsMapper(
                 location = location,
                 mapping = unsupportedMapping(
                     EtsMappingDiagnostic(
-                        code = "mapping.source-origins.unsupported",
+                        code = PbtDiagnosticCode.MAPPING_SOURCE_ORIGINS_UNSUPPORTED,
                         message = "EtsIR statements for the covered source file have no source origins",
                         sourcePath = location.path,
                     ),
@@ -365,7 +368,8 @@ class PropertyEtsMapper(
             .mapNotNull { statement -> statement.location.origin }
             .distinct()
         val mapping = when {
-            containedStatementGroups.size > 1 -> ambiguousStatementMapping(location, containedStatements)
+            statementGroupsInSourceFile.size > 1 && containedStatements.isNotEmpty() ->
+                ambiguousStatementMapping(location, containedStatements)
 
             exactTargets.isNotEmpty() -> EtsMappingResult(
                 status = EtsMappingStatus.EXACT,
@@ -384,7 +388,7 @@ class PropertyEtsMapper(
                 targets = emptyList(),
                 diagnostics = listOf(
                     EtsMappingDiagnostic(
-                        code = "mapping.statement.unmapped",
+                        code = PbtDiagnosticCode.MAPPING_STATEMENT_UNMAPPED,
                         message = "No EtsIR statement has the covered TypeScript source span",
                         sourcePath = location.path,
                     ),
@@ -407,7 +411,7 @@ class PropertyEtsMapper(
         targets = statements.map(::EtsStatementTarget),
         diagnostics = listOf(
             EtsMappingDiagnostic(
-                code = "mapping.statement.ambiguous",
+                code = PbtDiagnosticCode.MAPPING_STATEMENT_AMBIGUOUS,
                 message = "The covered TypeScript range matches several EtsIR source candidates or spans",
                 sourcePath = location.path,
             ),
@@ -419,9 +423,9 @@ class PropertyEtsMapper(
         failure: Throwable?,
     ): EtsMappingDiagnostic {
         val diagnosticCode = if (failure is UnsupportedSourceLocationException) {
-            "mapping.source.location.unsupported"
+            PbtDiagnosticCode.MAPPING_SOURCE_LOCATION_UNSUPPORTED
         } else {
-            "mapping.source.unavailable"
+            PbtDiagnosticCode.MAPPING_SOURCE_UNAVAILABLE
         }
 
         return EtsMappingDiagnostic(
@@ -457,18 +461,8 @@ class PropertyEtsMapper(
             origin.endOffset <= location.end.offset
     }
 
-    private fun EtsIfStmt.successorCount(): Int = location.method.cfg.successors(this).size
-
     private fun org.jacodb.ets.model.EtsSourceSpan.hasPath(path: String): Boolean =
         sourceLocations.normalizePath(fileName).any { candidate -> candidate.toString() == path }
-
-    private fun aggregateStatus(statuses: List<EtsMappingStatus>): EtsMappingStatus = when {
-        statuses.isEmpty() -> EtsMappingStatus.EXACT
-        EtsMappingStatus.UNSUPPORTED in statuses -> EtsMappingStatus.UNSUPPORTED
-        EtsMappingStatus.AMBIGUOUS in statuses -> EtsMappingStatus.AMBIGUOUS
-        EtsMappingStatus.UNMAPPED in statuses -> EtsMappingStatus.UNMAPPED
-        else -> EtsMappingStatus.EXACT
-    }
 
     private fun resolveEntryPoint(
         entryPoint: TypeScriptEntryPoint,
@@ -482,14 +476,15 @@ class PropertyEtsMapper(
             )
         }
 
-        val candidateResolutions = scene.projectFiles
-            .filter { candidate -> candidate.matches(entryPoint.module) }
-            .map { file -> resolveExportedMethods(file, entryPoint.exportName, visited = emptySet()) }
+        val sourceCandidates = scene.projectFiles.filter { candidate -> candidate.matches(entryPoint.module) }
+        val candidateResolutions = sourceCandidates.map { file ->
+            resolveExportedMethods(file, entryPoint.exportName, visited = emptySet())
+        }
         val methods = candidateResolutions
             .flatMap { resolution -> resolution.methods }
             .distinctByIdentity()
         val hasAmbiguousResolution = candidateResolutions.any { resolution -> resolution.isAmbiguous } ||
-            candidateResolutions.count { resolution -> resolution.methods.isNotEmpty() } > 1
+            sourceCandidates.size > 1
 
         if (methods.any { method -> method.parameters.size != manifest.inputs.size }) {
             return EtsMappingResult(
@@ -497,7 +492,7 @@ class PropertyEtsMapper(
                 targets = emptyList(),
                 diagnostics = listOf(
                     EtsMappingDiagnostic(
-                        code = "mapping.entry-point.bindings.unsupported",
+                        code = PbtDiagnosticCode.MAPPING_ENTRY_POINT_BINDINGS_UNSUPPORTED,
                         message = "Property inputs do not match EtsIR parameters for ${entryPoint.exportName}",
                         sourcePath = entryPoint.module,
                     ),
@@ -524,7 +519,7 @@ class PropertyEtsMapper(
                 targets = targets,
                 diagnostics = listOf(
                     EtsMappingDiagnostic(
-                        code = "mapping.entry-point.ambiguous",
+                        code = PbtDiagnosticCode.MAPPING_ENTRY_POINT_AMBIGUOUS,
                         message = "Several EtsIR methods, source candidates, or export links match " +
                             "${entryPoint.module}#${entryPoint.exportName}",
                         sourcePath = entryPoint.module,
@@ -538,7 +533,7 @@ class PropertyEtsMapper(
             targets = emptyList(),
             diagnostics = listOf(
                 EtsMappingDiagnostic(
-                    code = "mapping.entry-point.unmapped",
+                    code = PbtDiagnosticCode.MAPPING_ENTRY_POINT_UNMAPPED,
                     message = "No EtsIR method matches ${entryPoint.module}#${entryPoint.exportName}",
                     sourcePath = entryPoint.module,
                 ),
@@ -578,9 +573,12 @@ class PropertyEtsMapper(
             .filter { export -> export.isReExport && !export.isNamespaceStarReExport }
             .flatMap { export ->
                 val targetExportName = if (export.isBareStarReExport) exportName else export.originalName
+                val targetFiles = resolveReExportFiles(file, requireNotNull(export.from))
 
-                resolveReExportFiles(file, requireNotNull(export.from)).map { targetFile ->
-                    resolveExportedMethods(targetFile, targetExportName, visited + file)
+                targetFiles.map { targetFile ->
+                    val resolution = resolveExportedMethods(targetFile, targetExportName, visited + file)
+
+                    resolution.copy(isAmbiguous = resolution.isAmbiguous || targetFiles.size > 1)
                 }
             }
         val methods = (
@@ -597,7 +595,7 @@ class PropertyEtsMapper(
     }
 
     private fun resolveCallableLocal(file: EtsFile, localName: String): MethodResolution {
-        val callableAssignments = file.classes
+        val assignments = file.classes
             .filter { etsClass -> etsClass.name == DEFAULT_ARK_CLASS_NAME }
             .flatMap { defaultClass ->
                 defaultClass.methods
@@ -610,15 +608,18 @@ class PropertyEtsMapper(
                             return@mapNotNull null
                         }
 
-                        val local = assignment.rhv as? EtsLocal ?: return@mapNotNull null
-                        val functionType = local.type as? EtsFunctionType ?: return@mapNotNull null
-
-                        CallableLocalAssignment(
-                            defaultClass = defaultClass,
-                            functionSignature = functionType.signature,
-                        )
+                        defaultClass to assignment
                     }
             }
+        val callableAssignments = assignments.mapNotNull { (defaultClass, assignment) ->
+            val local = assignment.rhv as? EtsLocal ?: return@mapNotNull null
+            val functionType = local.type as? EtsFunctionType ?: return@mapNotNull null
+
+            CallableLocalAssignment(
+                defaultClass = defaultClass,
+                functionSignature = functionType.signature,
+            )
+        }
         val linkedMethods = callableAssignments.flatMap { assignment ->
             assignment.defaultClass.methods.filter { method ->
                 method.name.startsWith(ANONYMOUS_METHOD_PREFIX) &&
@@ -626,28 +627,13 @@ class PropertyEtsMapper(
             }
         }
         val methods = linkedMethods.distinctByIdentity()
-        val isExactLink = callableAssignments.size == 1 && linkedMethods.size == 1
+        val isExactLink = assignments.size == 1 && callableAssignments.size == 1 && linkedMethods.size == 1
 
         return MethodResolution(
             methods = methods,
             isAmbiguous = methods.isNotEmpty() && !isExactLink,
         )
     }
-
-    private fun List<EtsMethod>.distinctByIdentity(): List<EtsMethod> {
-        val seen = IdentityHashMap<EtsMethod, Unit>()
-
-        return filter { method -> seen.put(method, Unit) == null }
-    }
-
-    private val EtsExportInfo.isBareStarReExport: Boolean
-        get() = isStarReExport && !isAliased
-
-    private val EtsExportInfo.isNamespaceStarReExport: Boolean
-        get() = isStarReExport && isAliased
-
-    private val EtsExportInfo.runtimeName: String
-        get() = if (!isReExport && isDefaultExport) DEFAULT_EXPORT_NAME else name
 
     private fun resolveReExportFiles(file: EtsFile, module: String): List<EtsFile> {
         val targetPaths = sourceLocations.normalizePath(file.name).flatMapTo(linkedSetOf()) { sourcePath ->
@@ -692,36 +678,59 @@ class PropertyEtsMapper(
             result = EtsResultBinding(type = returnType),
         )
     }
+}
 
-    private data class SceneFileCandidate(
-        val file: EtsFile,
-        val canonicalPaths: Set<String>,
-    ) {
-        val statements: List<EtsStmt> = file.allClasses
-            .flatMap { etsClass -> etsClass.methods }
-            .flatMap { method -> method.cfg.stmts }
-    }
+private data class SceneFileCandidate(
+    val file: EtsFile,
+    val canonicalPaths: Set<String>,
+) {
+    val statements: List<EtsStmt> = file.allClasses
+        .flatMap { etsClass -> etsClass.methods }
+        .flatMap { method -> method.cfg.stmts }
+}
 
-    private data class CallableLocalAssignment(
-        val defaultClass: EtsClass,
-        val functionSignature: EtsMethodSignature,
-    )
+private data class CallableLocalAssignment(
+    val defaultClass: EtsClass,
+    val functionSignature: EtsMethodSignature,
+)
 
-    private data class MethodResolution(
-        val methods: List<EtsMethod>,
-        val isAmbiguous: Boolean = false,
-    ) {
-        companion object {
-            val EMPTY = MethodResolution(methods = emptyList())
-        }
-    }
-
-    private companion object {
-        const val BINARY_BRANCH_ARM_COUNT = 2
-        const val DEFAULT_EXPORT_NAME = "default"
-        const val ISTANBUL_IF_BRANCH_TYPE = "if"
-        const val RECEIVER_STACK_SLOT = 0
-        const val RECEIVER_STACK_SLOTS = 1
-        const val TRUE_BRANCH_ARM_INDEX = 0
+private data class MethodResolution(
+    val methods: List<EtsMethod>,
+    val isAmbiguous: Boolean = false,
+) {
+    companion object {
+        val EMPTY = MethodResolution(methods = emptyList())
     }
 }
+
+private fun EtsIfStmt.successorCount(): Int = location.method.cfg.successors(this).size
+
+private fun aggregateStatus(statuses: List<EtsMappingStatus>): EtsMappingStatus = when {
+    statuses.isEmpty() -> EtsMappingStatus.EXACT
+    EtsMappingStatus.UNSUPPORTED in statuses -> EtsMappingStatus.UNSUPPORTED
+    EtsMappingStatus.AMBIGUOUS in statuses -> EtsMappingStatus.AMBIGUOUS
+    EtsMappingStatus.UNMAPPED in statuses -> EtsMappingStatus.UNMAPPED
+    else -> EtsMappingStatus.EXACT
+}
+
+private fun List<EtsMethod>.distinctByIdentity(): List<EtsMethod> {
+    val seen = IdentityHashMap<EtsMethod, Unit>()
+
+    return filter { method -> seen.put(method, Unit) == null }
+}
+
+private val EtsExportInfo.isBareStarReExport: Boolean
+    get() = isStarReExport && !isAliased
+
+private val EtsExportInfo.isNamespaceStarReExport: Boolean
+    get() = isStarReExport && isAliased
+
+private val EtsExportInfo.runtimeName: String
+    get() = if (!isReExport && isDefaultExport) DEFAULT_EXPORT_NAME else name
+
+private const val BINARY_BRANCH_ARM_COUNT = 2
+private const val DEFAULT_EXPORT_NAME = "default"
+private const val ISTANBUL_IF_BRANCH_TYPE = "if"
+private const val RECEIVER_STACK_SLOT = 0
+private const val RECEIVER_STACK_SLOTS = 1
+private const val TRUE_BRANCH_ARM_INDEX = 0
