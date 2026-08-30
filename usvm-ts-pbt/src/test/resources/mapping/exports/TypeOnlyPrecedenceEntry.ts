@@ -1,2 +1,2 @@
-export type predicate = (value: number) => boolean;
+export type { predicate } from './TypeOnlyPredicate';
 export * from './StarPredicate';

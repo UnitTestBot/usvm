@@ -11,8 +11,24 @@ import org.usvm.ts.pbt.model.TypeScriptEntryPoint
 import org.usvm.ts.pbt.testResourcePath
 import java.nio.file.Path
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class PropertyEtsExportResolutionTest {
+    @Test
+    fun `named default declaration resolves only through the default export name`() {
+        val source = testResourcePath("/mapping/exports/NamedDefaultDeclaration.ts")
+        val mapper = mapper(source)
+
+        val defaultArtifact = mapper.map(manifest(module = source.fileName.toString(), exportName = "default"))
+        val sourceNameArtifact = mapper.map(manifest(module = source.fileName.toString(), exportName = "namedDefault"))
+
+        assertEquals(EtsMappingStatus.EXACT, defaultArtifact.predicate.status)
+        val defaultMethod = defaultArtifact.predicate.targets.single().method
+        assertEquals("namedDefault", defaultMethod.name)
+        assertEquals(EtsMappingStatus.UNMAPPED, sourceNameArtifact.predicate.status)
+        assertEquals(emptyList(), sourceNameArtifact.predicate.targets)
+    }
+
     @Test
     fun `direct function export ignores same-named class methods`() {
         val source = testResourcePath("/mapping/exports/DirectExportFixture.ts")
@@ -53,17 +69,89 @@ class PropertyEtsExportResolutionTest {
     }
 
     @Test
-    fun `type-only declaration does not mask a bare star value export`() {
+    fun `type-only named export does not mask a bare star value export`() {
         val sourceDirectory = testResourcePath("/mapping/exports")
-        val sources = listOf("TypeOnlyPrecedenceEntry.ts", "StarPredicate.ts")
+        val sources = listOf("TypeOnlyPrecedenceEntry.ts", "TypeOnlyPredicate.ts", "StarPredicate.ts")
             .map(sourceDirectory::resolve)
         val mapper = mapper(*sources.toTypedArray())
 
         val artifact = mapper.map(manifest(module = "TypeOnlyPrecedenceEntry.ts", exportName = "predicate"))
-
         assertEquals(EtsMappingStatus.EXACT, artifact.predicate.status)
         val target = artifact.predicate.targets.single()
+        val enclosingClass = target.method.signature.enclosingClass
+        val targetFileName = enclosingClass.file.fileName
         assertEquals("predicate", target.method.name)
+        assertTrue(targetFileName.endsWith("StarPredicate.ts"))
+    }
+
+    @Test
+    fun `type-only star export does not add a runtime candidate`() {
+        val sourceDirectory = testResourcePath("/mapping/exports")
+        val sources = listOf("TypeOnlyStarEntry.ts", "TypeOnlyPredicate.ts", "StarPredicate.ts")
+            .map(sourceDirectory::resolve)
+        val mapper = mapper(*sources.toTypedArray())
+
+        val artifact = mapper.map(manifest(module = "TypeOnlyStarEntry.ts", exportName = "predicate"))
+        assertEquals(EtsMappingStatus.EXACT, artifact.predicate.status)
+        val target = artifact.predicate.targets.single()
+        val enclosingClass = target.method.signature.enclosingClass
+        val targetFileName = enclosingClass.file.fileName
+        assertTrue(targetFileName.endsWith("StarPredicate.ts"))
+    }
+
+    @Test
+    fun `exported arrow local resolves through its lifted method`() {
+        val source = testResourcePath("/mapping/exports/CallableLocalFixture.ts")
+        val mapper = mapper(source)
+
+        val artifact = mapper.map(manifest(module = source.fileName.toString(), exportName = "arrowPredicate"))
+
+        assertEquals(EtsMappingStatus.EXACT, artifact.predicate.status)
+        val method = artifact.predicate.targets.single().method
+        assertTrue(method.name.startsWith("%AM"))
+        assertEquals(listOf("value"), method.parameters.map { parameter -> parameter.name })
+    }
+
+    @Test
+    fun `local function expression alias routes only through the export name`() {
+        val source = testResourcePath("/mapping/exports/CallableLocalFixture.ts")
+        val mapper = mapper(source)
+
+        val aliasArtifact = mapper.map(
+            manifest(module = source.fileName.toString(), exportName = "aliasedPredicate"),
+        )
+        val localNameArtifact = mapper.map(
+            manifest(module = source.fileName.toString(), exportName = "functionPredicate"),
+        )
+        assertEquals(EtsMappingStatus.EXACT, aliasArtifact.predicate.status)
+        val aliasMethod = aliasArtifact.predicate.targets.single().method
+        assertTrue(aliasMethod.name.startsWith("%AM"))
+        assertEquals(EtsMappingStatus.UNMAPPED, localNameArtifact.predicate.status)
+        assertEquals(emptyList(), localNameArtifact.predicate.targets)
+    }
+
+    @Test
+    fun `non-callable exported local remains unmapped`() {
+        val source = testResourcePath("/mapping/exports/CallableLocalFixture.ts")
+        val mapper = mapper(source)
+
+        val artifact = mapper.map(manifest(module = source.fileName.toString(), exportName = "nonCallable"))
+
+        assertEquals(EtsMappingStatus.UNMAPPED, artifact.predicate.status)
+        assertEquals(emptyList(), artifact.predicate.targets)
+    }
+
+    @Test
+    fun `multiple lifted assignments for one export remain ambiguous`() {
+        val source = testResourcePath("/mapping/exports/CallableLocalFixture.ts")
+        val mapper = mapper(source)
+
+        val artifact = mapper.map(manifest(module = source.fileName.toString(), exportName = "reassignedPredicate"))
+
+        assertEquals(EtsMappingStatus.AMBIGUOUS, artifact.predicate.status)
+        assertEquals(2, artifact.predicate.targets.size)
+        assertTrue(artifact.predicate.targets.all { target -> target.method.name.startsWith("%AM") })
+        assertEquals("mapping.entry-point.ambiguous", artifact.predicate.diagnostics.single().code)
     }
 
     @Test

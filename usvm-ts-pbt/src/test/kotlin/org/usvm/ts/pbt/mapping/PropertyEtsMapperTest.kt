@@ -150,6 +150,73 @@ class PropertyEtsMapperTest {
     }
 
     @Test
+    fun `duplicate frontend signatures keep coverage source provenance ambiguous`() {
+        val sourceRoot = testResourcePath("/mapping/source-roots")
+        val primarySource = sourceRoot.resolve("a/Foo.ts")
+        val duplicateSource = sourceRoot.resolve("b/Foo.ts")
+        val primaryFile = loadEtsFileAutoConvert(primarySource, provider = EtsIrProvider.TS_FRONTEND)
+        val duplicateFile = loadEtsFileAutoConvert(duplicateSource, provider = EtsIrProvider.TS_FRONTEND)
+        val propertyId = PropertyId("mapping.duplicate-source-provenance")
+        val manifest = PropertyManifest(
+            propertyId = propertyId.value,
+            inputs = listOf(PropertyInput(name = "value", domain = IntegerDomain())),
+            predicate = TypeScriptEntryPoint(
+                module = "Foo.ts",
+                exportName = "predicate",
+            ),
+        )
+        val branchLocation = SourceRange(
+            start = SourcePosition(line = 2, column = 2),
+            end = SourcePosition(line = 6, column = 3),
+        )
+        val coverage = coverageArtifact(
+            source = primarySource,
+            propertyId = propertyId,
+            statements = listOf(
+                StatementCoverage(
+                    statementId = 0,
+                    location = SourceRange(
+                        start = SourcePosition(line = 3, column = 4),
+                        end = SourcePosition(line = 3, column = 16),
+                    ),
+                    hits = 1,
+                ),
+            ),
+            branches = listOf(
+                BranchCoverage(
+                    branchId = 0,
+                    type = "if",
+                    location = branchLocation,
+                    arms = listOf(
+                        BranchArmCoverage(location = branchLocation, hits = 1),
+                        BranchArmCoverage(location = branchLocation, hits = 0),
+                    ),
+                ),
+            ),
+        )
+        val mapper = PropertyEtsMapper(
+            scene = EtsScene(listOf(primaryFile, duplicateFile)),
+            sourceRoots = listOf(primarySource.parent, duplicateSource.parent),
+        )
+
+        val artifact = mapper.map(manifest, coverage)
+
+        val mapping = artifact.coverage.statements.single().mapping
+        assertEquals(EtsMappingStatus.AMBIGUOUS, mapping.status)
+        assertTrue(
+            mapping.targets.any { target ->
+                duplicateFile.classes
+                    .flatMap { etsClass -> etsClass.methods }
+                    .any { method -> target.statement.location.method === method }
+            },
+        )
+        assertEquals("mapping.statement.ambiguous", mapping.diagnostics.single().code)
+        val branchMapping = artifact.coverage.branches.single().mapping
+        assertEquals(EtsMappingStatus.AMBIGUOUS, branchMapping.status)
+        assertEquals("mapping.branch.ambiguous", branchMapping.diagnostics.single().code)
+    }
+
+    @Test
     fun `reports unsupported bindings when an ambiguous candidate has another arity`() {
         val primarySource = testResourcePath("/mapping/PropertyMappingFixture.ts")
         val mismatchedSource = testResourcePath("/mapping/mismatched/PropertyMappingFixture.ts")
