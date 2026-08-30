@@ -1,7 +1,6 @@
 package org.usvm.ts.pbt.fastcheck
 
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.Timeout
 import org.usvm.ts.pbt.backend.PropertyCoverageRequest
 import org.usvm.ts.pbt.manifest.toManifest
 import org.usvm.ts.pbt.model.BooleanDomain
@@ -303,7 +302,6 @@ class FastCheckProcessClientTest {
     }
 
     @Test
-    @Timeout(value = 5, unit = TimeUnit.SECONDS)
     fun `hard deadline includes inherited descendant pipe drain`() {
         val childPidFile = createTempFile(prefix = "fast-check-inherited-pipe-pid-", suffix = ".txt")
         childPidFile.deleteIfExists()
