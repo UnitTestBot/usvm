@@ -1,6 +1,7 @@
 package org.usvm.ts.pbt.fastcheck
 
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Timeout
 import org.usvm.ts.pbt.backend.PropertyCoverageRequest
 import org.usvm.ts.pbt.manifest.toManifest
 import org.usvm.ts.pbt.model.BooleanDomain
@@ -11,6 +12,7 @@ import org.usvm.ts.pbt.model.TypeScriptEntryPoint
 import org.usvm.ts.pbt.testResourcesRoot
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.concurrent.TimeUnit
 import kotlin.io.path.createDirectories
 import kotlin.io.path.createFile
 import kotlin.io.path.createTempDirectory
@@ -301,45 +303,54 @@ class FastCheckProcessClientTest {
     }
 
     @Test
+    @Timeout(value = 5, unit = TimeUnit.SECONDS)
     fun `hard deadline includes inherited descendant pipe drain`() {
-        withTemporaryAdapter(
-            source = """
-                import { spawn } from 'node:child_process'
+        val childPidFile = createTempFile(prefix = "fast-check-inherited-pipe-pid-", suffix = ".txt")
+        childPidFile.deleteIfExists()
 
-                const child = spawn(
-                  process.execPath,
-                  ['-e', 'setTimeout(() => undefined, 3000)'],
-                  { stdio: ['ignore', 'inherit', 'inherit'] }
-                )
-                child.unref()
+        try {
+            withTemporaryAdapter(
+                source = """
+                    import { spawn } from 'node:child_process'
+                    import { writeFileSync } from 'node:fs'
 
-                process.stdout.write(JSON.stringify({
-                  status: 'ok',
-                  result: {
-                    propertyId: 'example.property',
-                    status: 'success',
-                    seed: 42,
-                    replayPath: null,
-                    counterexample: null,
-                    numRuns: 1,
-                    numSkips: 0,
-                    numShrinks: 0,
-                    failure: null,
-                    executionTimeMillis: 1
-                  }
-                }))
-            """.trimIndent(),
-            transportGraceMillis = 100,
-        ) { client ->
-            val startedAt = System.nanoTime()
-            val error = assertFailsWith<PbtBackendException> {
-                client.check(validRequest.copy(timeoutMillis = 100))
+                    const child = spawn(
+                      process.execPath,
+                      ['-e', 'setTimeout(() => undefined, 30000)'],
+                      { stdio: ['ignore', 'inherit', 'inherit'] }
+                    )
+                    writeFileSync(${childPidFile.toJavaScriptStringLiteral()}, String(child.pid))
+                    child.unref()
+
+                    process.stdout.write(JSON.stringify({
+                      status: 'ok',
+                      result: {
+                        propertyId: 'example.property',
+                        status: 'success',
+                        seed: 42,
+                        replayPath: null,
+                        counterexample: null,
+                        numRuns: 1,
+                        numSkips: 0,
+                        numShrinks: 0,
+                        failure: null,
+                        executionTimeMillis: 1
+                      }
+                    }))
+                """.trimIndent(),
+                transportGraceMillis = 100,
+            ) { client ->
+                val error = assertFailsWith<PbtBackendException> {
+                    client.check(validRequest.copy(timeoutMillis = 100))
+                }
+
+                assertEquals(BackendErrorKind.TIMEOUT, error.kind)
+                assertEquals("backend.process.timeout", error.code)
+                assertTrue(processIsAlive(childPidFile), "Inherited-pipe descendant exited before the hard deadline")
             }
-            val elapsedMillis = (System.nanoTime() - startedAt) / 1_000_000
-
-            assertEquals(BackendErrorKind.TIMEOUT, error.kind)
-            assertEquals("backend.process.timeout", error.code)
-            assertTrue(elapsedMillis < 1_000, "Inherited pipe timeout took $elapsedMillis ms")
+        } finally {
+            terminateProcess(childPidFile)
+            childPidFile.deleteIfExists()
         }
     }
 
@@ -368,6 +379,23 @@ class FastCheckProcessClientTest {
         return Files.newDirectoryStream(temporaryRoot, "usvm-ts-pbt-coverage-*").use { entries ->
             entries.toHashSet()
         }
+    }
+
+    private fun Path.toJavaScriptStringLiteral(): String = "'${toString().replace("\\", "\\\\").replace("'", "\\'")}'"
+
+    private fun processIsAlive(pidFile: Path): Boolean {
+        val pid = pidFile.takeIf(Files::exists)?.readText()?.trim()?.toLongOrNull() ?: return false
+        val process = ProcessHandle.of(pid).orElse(null) ?: return false
+
+        return process.isAlive
+    }
+
+    private fun terminateProcess(pidFile: Path) {
+        val pid = pidFile.takeIf(Files::exists)?.readText()?.trim()?.toLongOrNull() ?: return
+        val process = ProcessHandle.of(pid).orElse(null) ?: return
+
+        process.destroyForcibly()
+        process.onExit().get(1, TimeUnit.SECONDS)
     }
 
     private companion object {
