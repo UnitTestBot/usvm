@@ -82,6 +82,7 @@ class PropertyEtsExportResolutionTest {
         val mapper = mapper(*sources.toTypedArray())
 
         val artifact = mapper.map(manifest(module = "TypeOnlyPrecedenceEntry.ts", exportName = "predicate"))
+
         assertEquals(EtsMappingStatus.EXACT, artifact.predicate.status)
         val target = artifact.predicate.targets.single()
         val enclosingClass = target.method.signature.enclosingClass
@@ -98,6 +99,7 @@ class PropertyEtsExportResolutionTest {
         val mapper = mapper(*sources.toTypedArray())
 
         val artifact = mapper.map(manifest(module = "TypeOnlyStarEntry.ts", exportName = "predicate"))
+
         assertEquals(EtsMappingStatus.EXACT, artifact.predicate.status)
         val target = artifact.predicate.targets.single()
         val enclosingClass = target.method.signature.enclosingClass
@@ -129,6 +131,7 @@ class PropertyEtsExportResolutionTest {
         val localNameArtifact = mapper.map(
             manifest(module = source.fileName.toString(), exportName = "functionPredicate"),
         )
+
         assertEquals(EtsMappingStatus.EXACT, aliasArtifact.predicate.status)
         val aliasMethod = aliasArtifact.predicate.targets.single().method
         assertTrue(aliasMethod.name.startsWith("%AM"))
@@ -195,7 +198,13 @@ class PropertyEtsExportResolutionTest {
         val target = aliasArtifact.predicate.targets.single()
         assertEquals(linkedSignatures.distinct().single(), target.method.signature)
         assertTrue(target.method.name.startsWith("%AM"))
-        assertEquals("mapping.entry-point.ambiguous", aliasArtifact.predicate.diagnostics.single().code)
+        val diagnostic = aliasArtifact.predicate.diagnostics.single()
+        assertEquals("mapping.entry-point.ambiguous", diagnostic.code)
+        assertEquals(
+            "Several EtsIR methods, source candidates, or export links match " +
+                "CallableLocalFixture.ts#aliasedMultiplyLinkedPredicate",
+            diagnostic.message,
+        )
         assertEquals(EtsMappingStatus.UNMAPPED, localNameArtifact.predicate.status)
         assertEquals(emptyList(), localNameArtifact.predicate.targets)
     }

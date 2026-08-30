@@ -53,9 +53,7 @@ internal fun inspectRawV8SourceMapDiagnostics(
         )
     }
 
-    return diagnostics
-        .distinct()
-        .sortedWith(COVERAGE_DIAGNOSTIC_ORDER)
+    return coalesceSourceMapDiagnostics(diagnostics)
 }
 
 /** Raw source-map evidence takes precedence over final-report guesses for the same generated script. */
@@ -70,9 +68,7 @@ internal fun mergeCoverageDiagnostics(
         isSourceMapDiagnostic(diagnostic) && diagnostic.path in rawSourceMapPaths
     }
 
-    return (retainedFinalDiagnostics + rawDiagnostics)
-        .distinct()
-        .sortedWith(COVERAGE_DIAGNOSTIC_ORDER)
+    return coalesceSourceMapDiagnostics(retainedFinalDiagnostics + rawDiagnostics)
 }
 
 internal fun buildSourceMapDiagnostic(path: String, sourceMapExists: Boolean): CoverageDiagnostic {
@@ -300,6 +296,7 @@ private fun inspectSourceMapCacheEntry(
             message = "Raw V8 source-map cache entry is missing data",
             path = "$reportPath.source-map-cache[$scriptUrl].data",
         )
+    requireValidSourceMapDataShape(reportPath, scriptUrl, data)
     if (data != JsonNull) return null
 
     val scriptUri = parseScriptUri(reportPath, scriptUrl)
@@ -326,6 +323,15 @@ private fun inspectSourceMapCacheEntry(
     return buildSourceMapDiagnostic(
         path = scriptPath,
         sourceMapExists = sourceMapExists,
+    )
+}
+
+private fun requireValidSourceMapDataShape(reportPath: Path, scriptUrl: String, data: JsonElement) {
+    if (data == JsonNull || data is JsonObject) return
+
+    throw invalidRawReport(
+        message = "Raw V8 source-map cache entry data must be a JSON object when non-null",
+        path = "$reportPath.source-map-cache[$scriptUrl].data",
     )
 }
 
@@ -415,6 +421,32 @@ private fun isGeneratedJavaScriptBelowSourceRoot(path: String, sourceRoots: List
 private fun isSourceMapDiagnostic(diagnostic: CoverageDiagnostic): Boolean =
     diagnostic.code == PbtDiagnosticCode.COVERAGE_SOURCE_MAP_MISSING ||
         diagnostic.code == PbtDiagnosticCode.COVERAGE_SOURCE_MAP_INVALID
+
+private fun coalesceSourceMapDiagnostics(diagnostics: List<CoverageDiagnostic>): List<CoverageDiagnostic> {
+    val diagnosticsByScriptPath = hashMapOf<String, CoverageDiagnostic>()
+    val unkeyedDiagnostics = mutableListOf<CoverageDiagnostic>()
+
+    diagnostics.forEach { diagnostic ->
+        val scriptPath = diagnostic.path
+        if (!isSourceMapDiagnostic(diagnostic) || scriptPath == null) {
+            unkeyedDiagnostics += diagnostic
+            return@forEach
+        }
+
+        val previous = diagnosticsByScriptPath[scriptPath]
+        if (previous == null || diagnostic.isInvalidInsteadOfMissing(previous)) {
+            diagnosticsByScriptPath[scriptPath] = diagnostic
+        }
+    }
+
+    return (unkeyedDiagnostics + diagnosticsByScriptPath.values)
+        .distinct()
+        .sortedWith(COVERAGE_DIAGNOSTIC_ORDER)
+}
+
+private fun CoverageDiagnostic.isInvalidInsteadOfMissing(other: CoverageDiagnostic): Boolean =
+    code == PbtDiagnosticCode.COVERAGE_SOURCE_MAP_INVALID &&
+        other.code == PbtDiagnosticCode.COVERAGE_SOURCE_MAP_MISSING
 
 private fun invalidRawReport(
     message: String,

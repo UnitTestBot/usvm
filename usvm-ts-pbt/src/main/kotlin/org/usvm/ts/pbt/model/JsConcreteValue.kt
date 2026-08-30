@@ -191,14 +191,18 @@ object JsConcreteValueSerializer : KSerializer<JsConcreteValue> {
                 JsConcreteValue.String(value.requiredString("value"))
             }
 
-            "number" -> deserializeNumber(value)
+            "number" -> {
+                deserializeNumber(value)
+            }
 
             "array" -> {
                 value.requireExactKeys("kind", "elements")
                 deserializeArray(jsonDecoder, value)
             }
 
-            else -> throw SerializationException("Unknown JavaScript value kind: $kind")
+            else -> {
+                throw SerializationException("Unknown JavaScript value kind: $kind")
+            }
         }
     }
 }

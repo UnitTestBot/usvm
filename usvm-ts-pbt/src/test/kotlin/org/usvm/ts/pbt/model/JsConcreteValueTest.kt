@@ -1,7 +1,7 @@
 package org.usvm.ts.pbt.model
 
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.SerializationException
+import kotlinx.serialization.encodeToString
 import org.junit.jupiter.api.Test
 import org.usvm.ts.pbt.manifest.PropertyManifestJson
 import kotlin.test.assertEquals

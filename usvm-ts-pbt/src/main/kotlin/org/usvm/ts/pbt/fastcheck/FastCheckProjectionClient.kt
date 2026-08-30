@@ -170,7 +170,8 @@ class FastCheckProjectionClient private constructor(
             if (process.exitValue() != 0) {
                 throw FastCheckProjectionException(
                     code = PbtDiagnosticCode.BACKEND_PROCESS_FAILED,
-                    message = "fast-check adapter exited with code ${process.exitValue()}: ${output.stderr.text.trim()}",
+                    message = "fast-check adapter exited with code ${process.exitValue()}: " +
+                        output.stderr.text.trim(),
                 )
             }
 
@@ -362,7 +363,7 @@ class FastCheckProjectionClient private constructor(
             cause = error,
         )
     } catch (error: ExecutionException) {
-        val cause = error.cause
+        val cause = error.cause ?: error
         if (cause is ProjectionOutputLimitExceeded) {
             throw FastCheckProjectionException(
                 code = PbtDiagnosticCode.BACKEND_RESPONSE_TOO_LARGE,
@@ -373,7 +374,7 @@ class FastCheckProjectionClient private constructor(
 
         throw FastCheckProjectionException(
             code = failureCode,
-            message = "Failed while $operation: ${cause?.message}",
+            message = "Failed while $operation: ${cause.message}",
             cause = cause,
         )
     }

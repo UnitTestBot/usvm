@@ -108,6 +108,16 @@ class RawV8SourceMapInspectorTest {
     }
 
     @Test
+    fun `primitive raw source-map data is a typed coverage failure`() {
+        assertInvalidSourceMapData(dataJson = "true")
+    }
+
+    @Test
+    fun `array raw source-map data is a typed coverage failure`() {
+        assertInvalidSourceMapData(dataJson = "[]")
+    }
+
+    @Test
     fun `malformed source-map cache key is a typed coverage failure`() {
         withRawDirectory { rawDirectory ->
             val rawReport = rawDirectory.resolve("coverage.json")
@@ -160,6 +170,40 @@ class RawV8SourceMapInspectorTest {
                 ),
                 diagnostics.map { diagnostic -> diagnostic.path to diagnostic.code },
             )
+        }
+    }
+
+    @Test
+    fun `invalid raw source-map diagnostic wins for one script regardless of report order`() {
+        withRawDirectory { rawDirectory ->
+            val sourceRoot = rawDirectory.resolve("source").createDirectory()
+            val script = sourceRoot.resolve("generated.js")
+            val firstReport = rawDirectory.resolve("a-first.json")
+            val secondReport = rawDirectory.resolve("z-second.json")
+            script.writeText("export const generated = 1")
+            val missingSourceMap = rawReport(script, referencedUrl = "generated.js.map")
+            val invalidSourceMap = rawReport(
+                script = script,
+                referencedUrl = "data:application/json;base64,e30=",
+            )
+            val expected = listOf(script.toString() to "coverage.source-map.invalid")
+
+            firstReport.writeText(missingSourceMap)
+            secondReport.writeText(invalidSourceMap)
+            val missingFirst = inspectRawV8SourceMapDiagnostics(
+                rawDirectory = rawDirectory,
+                sourceRoots = listOf(sourceRoot.toString()),
+            )
+
+            firstReport.writeText(invalidSourceMap)
+            secondReport.writeText(missingSourceMap)
+            val invalidFirst = inspectRawV8SourceMapDiagnostics(
+                rawDirectory = rawDirectory,
+                sourceRoots = listOf(sourceRoot.toString()),
+            )
+
+            assertEquals(expected, missingFirst.map { diagnostic -> diagnostic.path to diagnostic.code })
+            assertEquals(expected, invalidFirst.map { diagnostic -> diagnostic.path to diagnostic.code })
         }
     }
 
@@ -332,6 +376,36 @@ class RawV8SourceMapInspectorTest {
           }
         }
         """.trimIndent()
+
+    private fun assertInvalidSourceMapData(dataJson: String) {
+        withRawDirectory { rawDirectory ->
+            val rawReport = rawDirectory.resolve("coverage.json")
+            val scriptUrl = "file:///generated.js"
+            rawReport.writeText(
+                """
+                {
+                  "source-map-cache": {
+                    "$scriptUrl": {
+                      "lineLengths": [1],
+                      "data": $dataJson,
+                      "url": "generated.js.map"
+                    }
+                  }
+                }
+                """.trimIndent(),
+            )
+
+            val error = assertFailsWith<CoverageArtifactException> {
+                inspectRawV8SourceMapDiagnostics(
+                    rawDirectory = rawDirectory,
+                    sourceRoots = listOf(rawDirectory.toString()),
+                )
+            }
+
+            assertEquals("coverage.report.invalid", error.diagnostic.code)
+            assertEquals("$rawReport.source-map-cache[$scriptUrl].data", error.diagnostic.path)
+        }
+    }
 
     private fun withRawDirectory(block: (Path) -> Unit) {
         val rawDirectory = createTempDirectory(prefix = "raw-v8-source-maps-")

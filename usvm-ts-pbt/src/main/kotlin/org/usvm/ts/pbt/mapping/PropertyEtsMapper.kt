@@ -525,7 +525,8 @@ class PropertyEtsMapper(
                 diagnostics = listOf(
                     EtsMappingDiagnostic(
                         code = "mapping.entry-point.ambiguous",
-                        message = "Several EtsIR methods match ${entryPoint.module}#${entryPoint.exportName}",
+                        message = "Several EtsIR methods, source candidates, or export links match " +
+                            "${entryPoint.module}#${entryPoint.exportName}",
                         sourcePath = entryPoint.module,
                     ),
                 ),
