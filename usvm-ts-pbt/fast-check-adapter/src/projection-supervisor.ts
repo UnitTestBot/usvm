@@ -12,7 +12,11 @@ interface AdapterWorkerData {
   adapterEntryPoint: string;
 }
 
+type Command = [string, ...string[]];
+
 const workerFlag = '--worker';
+const commandFlag = '--command';
+const commandWorkerFlag = '--command-worker';
 
 if (!isMainThread) {
   const data = requireAdapterWorkerData(workerData);
@@ -22,6 +26,17 @@ if (!isMainThread) {
   const mode = process.argv[2];
   if (mode === workerFlag) {
     runWorker(requireArgument(process.argv[3], 'adapter entry point'));
+  } else if (mode === commandWorkerFlag) {
+    runCommandWorker(requireCommand(process.argv.slice(3)));
+  } else if (mode === commandFlag) {
+    const forceKillDelayMillis = requirePositiveInteger(process.argv[3], 'force-kill delay');
+    const processGroupFile = requireArgument(process.argv[4], 'process-group file');
+
+    runCommandSupervisor(
+      requireCommand(process.argv.slice(5)),
+      forceKillDelayMillis,
+      processGroupFile,
+    );
   } else {
     const adapterEntryPoint = requireArgument(mode, 'adapter entry point');
     const forceKillDelayMillis = requirePositiveInteger(process.argv[3], 'force-kill delay');
@@ -29,6 +44,82 @@ if (!isMainThread) {
 
     runSupervisor(adapterEntryPoint, forceKillDelayMillis, processGroupFile);
   }
+}
+
+function runCommandSupervisor(
+  command: Command,
+  forceKillDelayMillis: number,
+  processGroupFile: string,
+): void {
+  const supervisorEntryPoint = requireArgument(process.argv[1], 'supervisor entry point');
+  const worker = spawn(
+    process.execPath,
+    [supervisorEntryPoint, commandWorkerFlag, ...command],
+    {
+      detached: true,
+      stdio: ['pipe', 'pipe', 'pipe'],
+    },
+  );
+  const workerPid = requirePid(worker.pid, 'command worker');
+  const workerStdin = requireStream(worker.stdin, 'command worker stdin');
+  const workerStdout = requireStream(worker.stdout, 'command worker stdout');
+  const workerStderr = requireStream(worker.stderr, 'command worker stderr');
+  let shutdownStarted = false;
+  let forceKillTimer: NodeJS.Timeout | undefined;
+
+  writeFileSync(processGroupFile, String(workerPid));
+
+  process.stdin.pipe(workerStdin);
+  workerStdout.pipe(process.stdout);
+  workerStderr.pipe(process.stderr);
+
+  worker.on('error', (error: Error) => {
+    process.stderr.write(`Failed to start command worker: ${error.message}\n`);
+    process.exitCode = 1;
+  });
+  worker.on('close', (code: number | null) => {
+    if (forceKillTimer !== undefined) clearTimeout(forceKillTimer);
+    removeProcessGroupFile(processGroupFile);
+
+    process.exitCode = code ?? 1;
+  });
+
+  const shutdown = (): void => {
+    if (shutdownStarted) return;
+
+    shutdownStarted = true;
+    terminateOwnedProcessGroup(workerPid, false);
+    forceKillTimer = setTimeout(() => {
+      terminateOwnedProcessGroup(workerPid, true);
+    }, forceKillDelayMillis);
+  };
+
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
+}
+
+function runCommandWorker(command: Command): void {
+  const child = spawn(command[0], command.slice(1), {
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
+  const childStdin = requireStream(child.stdin, 'supervised command stdin');
+  const childStdout = requireStream(child.stdout, 'supervised command stdout');
+  const childStderr = requireStream(child.stderr, 'supervised command stderr');
+
+  process.stdin.pipe(childStdin);
+  childStdout.pipe(process.stdout);
+  childStderr.pipe(process.stderr);
+
+  child.on('error', (error: Error) => {
+    process.stderr.write(`Failed to start supervised command: ${error.message}\n`);
+    process.exitCode = 1;
+  });
+  child.on('close', (code: number | null) => {
+    process.exitCode = code ?? 1;
+  });
+
+  process.on('SIGINT', () => undefined);
+  process.on('SIGTERM', () => undefined);
 }
 
 function runSupervisor(
@@ -194,6 +285,12 @@ function requireArgument(value: string | undefined, name: string): string {
   if (value === undefined || value.length === 0) fail(`Missing ${name}`);
 
   return value;
+}
+
+function requireCommand(command: string[]): Command {
+  const executable = requireArgument(command[0], 'command executable');
+
+  return [executable, ...command.slice(1)];
 }
 
 function requirePositiveInteger(value: string | undefined, name: string): number {

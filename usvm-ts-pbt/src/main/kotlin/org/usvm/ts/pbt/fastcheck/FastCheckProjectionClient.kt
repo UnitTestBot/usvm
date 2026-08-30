@@ -413,7 +413,7 @@ class FastCheckProjectionClient private constructor(
         var processStarted = false
 
         try {
-            val supervisorEntryPoint = FastCheckRuntime.projectionSupervisorEntryPoint()
+            val supervisorEntryPoint = FastCheckRuntime.processSupervisorEntryPoint()
             val process = ProcessBuilder(
                 nodeExecutable,
                 supervisorEntryPoint.toString(),

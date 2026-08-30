@@ -44,6 +44,49 @@ test('adapter runs inside the stable process-group owner', { timeout: 3_000 }, a
   }
 });
 
+test('command mode owns descendants that retain inherited pipes', { timeout: 10_000 }, async () => {
+  const workspace = await mkdtemp(path.join(tmpdir(), 'usvm-command-supervisor-'));
+  const adapterPath = path.join(workspace, 'adapter.mjs');
+  const childPidFile = path.join(workspace, 'child.pid');
+  const processGroupFile = path.join(workspace, 'process-group.pid');
+  await writeFile(
+    adapterPath,
+    `import { spawn } from 'node:child_process';\n`
+      + `import { writeFileSync } from 'node:fs';\n`
+      + `const child = spawn(process.execPath, ['-e', 'setInterval(() => undefined, 1000)'], `
+      + `{ stdio: ['ignore', 'inherit', 'inherit'] });\n`
+      + `writeFileSync(${JSON.stringify(childPidFile)}, String(child.pid));\n`
+      + `child.unref();\n`,
+  );
+  const supervisor = spawn(
+    process.execPath,
+    [supervisorPath, '--command', '25', processGroupFile, process.execPath, adapterPath],
+    { stdio: 'ignore' },
+  );
+  const supervisorExit = new Promise<void>((resolve) => supervisor.once('close', () => resolve()));
+  let childPid: number | undefined;
+
+  try {
+    const [childPidText, processGroupPidText] = await Promise.all([
+      readTextEventually(childPidFile),
+      readTextEventually(processGroupFile),
+    ]);
+    childPid = Number(childPidText);
+
+    assert.notEqual(childPidText, processGroupPidText);
+    assert.equal(supervisor.exitCode, null);
+
+    supervisor.kill('SIGTERM');
+    await supervisorExit;
+
+    assert.equal(isProcessAlive(childPid), false);
+  } finally {
+    supervisor.kill('SIGKILL');
+    if (childPid !== undefined) terminateProcess(childPid);
+    await rm(workspace, { recursive: true, force: true });
+  }
+});
+
 async function readTextEventually(file: string): Promise<string> {
   const deadline = Date.now() + 2_000;
 
@@ -62,4 +105,30 @@ function isMissingFile(error: unknown): boolean {
   return error instanceof Error
     && 'code' in error
     && error.code === 'ENOENT';
+}
+
+function isProcessAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+
+    return true;
+  } catch (error: unknown) {
+    if (isMissingProcess(error)) return false;
+
+    throw error;
+  }
+}
+
+function terminateProcess(pid: number): void {
+  try {
+    process.kill(pid, 'SIGKILL');
+  } catch (error: unknown) {
+    if (!isMissingProcess(error)) throw error;
+  }
+}
+
+function isMissingProcess(error: unknown): boolean {
+  return error instanceof Error
+    && 'code' in error
+    && error.code === 'ESRCH';
 }

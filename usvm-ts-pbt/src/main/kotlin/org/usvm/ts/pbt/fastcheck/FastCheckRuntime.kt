@@ -10,7 +10,7 @@ internal object FastCheckRuntime {
 
     fun projectionEntryPoint(): Path = locateEntryPoint(PROJECTION_CLI)
 
-    fun projectionSupervisorEntryPoint(): Path = locateEntryPoint(PROJECTION_SUPERVISOR)
+    fun processSupervisorEntryPoint(): Path = locateEntryPoint(PROCESS_SUPERVISOR)
 
     private fun locateEntryPoint(fileName: String): Path {
         val candidates = runtimeDirectories().map { runtimeDirectory ->
@@ -48,6 +48,6 @@ internal object FastCheckRuntime {
     private const val ENTRY_POINT_DIRECTORY = "dist/src"
     private const val EXECUTION_CLI = "execution-cli.js"
     private const val PROJECTION_CLI = "projection-cli.js"
-    private const val PROJECTION_SUPERVISOR = "projection-supervisor.js"
+    private const val PROCESS_SUPERVISOR = "projection-supervisor.js"
     private const val INSTALLED_RUNTIME_DIRECTORY = "fast-check-adapter"
 }

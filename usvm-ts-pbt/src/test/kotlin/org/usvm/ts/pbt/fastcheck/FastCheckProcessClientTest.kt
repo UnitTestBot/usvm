@@ -21,6 +21,7 @@ import kotlin.io.path.readText
 import kotlin.io.path.writeText
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class FastCheckProcessClientTest {
@@ -302,9 +303,11 @@ class FastCheckProcessClientTest {
     }
 
     @Test
-    fun `hard deadline includes inherited descendant pipe drain`() {
+    fun `hard deadline terminates a descendant retaining an inherited pipe`() {
         val childPidFile = createTempFile(prefix = "fast-check-inherited-pipe-pid-", suffix = ".txt")
+        val naturalExitFile = createTempFile(prefix = "fast-check-inherited-pipe-exit-", suffix = ".txt")
         childPidFile.deleteIfExists()
+        naturalExitFile.deleteIfExists()
 
         try {
             withTemporaryAdapter(
@@ -312,9 +315,16 @@ class FastCheckProcessClientTest {
                     import { spawn } from 'node:child_process'
                     import { writeFileSync } from 'node:fs'
 
+                    const childSource = `setTimeout(
+                      () => require('node:fs').writeFileSync(
+                        ${naturalExitFile.toJavaScriptStringLiteral()},
+                        'done'
+                      ),
+                      30000
+                    )`
                     const child = spawn(
                       process.execPath,
-                      ['-e', 'setTimeout(() => undefined, 30000)'],
+                      ['-e', childSource],
                       { stdio: ['ignore', 'inherit', 'inherit'] }
                     )
                     writeFileSync(${childPidFile.toJavaScriptStringLiteral()}, String(child.pid))
@@ -344,11 +354,13 @@ class FastCheckProcessClientTest {
 
                 assertEquals(BackendErrorKind.TIMEOUT, error.kind)
                 assertEquals("backend.process.timeout", error.code)
-                assertTrue(processIsAlive(childPidFile), "Inherited-pipe descendant exited before the hard deadline")
+                assertFalse(Files.exists(naturalExitFile), "Inherited-pipe descendant reached its natural exit")
+                assertFalse(processIsAlive(childPidFile), "Inherited-pipe descendant is still running")
             }
         } finally {
             terminateProcess(childPidFile)
             childPidFile.deleteIfExists()
+            naturalExitFile.deleteIfExists()
         }
     }
 
