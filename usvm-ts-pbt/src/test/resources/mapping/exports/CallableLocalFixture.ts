@@ -9,3 +9,7 @@ export const nonCallable = 42;
 
 export let reassignedPredicate = (value: number): boolean => value > 0;
 reassignedPredicate = (value: number): boolean => value < 0;
+
+let multiplyLinkedPredicate: (value: number) => boolean;
+multiplyLinkedPredicate = multiplyLinkedPredicate = (value: number): boolean => value === 0;
+export { multiplyLinkedPredicate as aliasedMultiplyLinkedPredicate };

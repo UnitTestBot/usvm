@@ -1,6 +1,12 @@
 package org.usvm.ts.pbt.mapping
 
+import org.jacodb.ets.model.EtsAssignStmt
+import org.jacodb.ets.model.EtsFunctionType
+import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.model.EtsStaticFieldRef
+import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
+import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Test
@@ -152,6 +158,46 @@ class PropertyEtsExportResolutionTest {
         assertEquals(2, artifact.predicate.targets.size)
         assertTrue(artifact.predicate.targets.all { target -> target.method.name.startsWith("%AM") })
         assertEquals("mapping.entry-point.ambiguous", artifact.predicate.diagnostics.single().code)
+    }
+
+    @Test
+    fun `aliased callable with repeated links to one lifted method remains ambiguous`() {
+        val source = testResourcePath("/mapping/exports/CallableLocalFixture.ts")
+        val file = loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)
+        val defaultClass = file.classes.single { etsClass -> etsClass.name == DEFAULT_ARK_CLASS_NAME }
+        val defaultMethod = defaultClass.methods.single { method -> method.name == DEFAULT_ARK_METHOD_NAME }
+        val linkedSignatures = defaultMethod.cfg.stmts
+            .filterIsInstance<EtsAssignStmt>()
+            .mapNotNull { assignment ->
+                val field = assignment.lhv as? EtsStaticFieldRef ?: return@mapNotNull null
+                if (field.field.name != "multiplyLinkedPredicate") return@mapNotNull null
+
+                val local = assignment.rhv as? EtsLocal ?: return@mapNotNull null
+                val functionType = local.type as? EtsFunctionType ?: return@mapNotNull null
+
+                functionType.signature
+            }
+        val mapper = PropertyEtsMapper(
+            scene = EtsScene(listOf(file)),
+            sourceRoots = listOf(source.parent),
+        )
+
+        val aliasArtifact = mapper.map(
+            manifest(module = source.fileName.toString(), exportName = "aliasedMultiplyLinkedPredicate"),
+        )
+        val localNameArtifact = mapper.map(
+            manifest(module = source.fileName.toString(), exportName = "multiplyLinkedPredicate"),
+        )
+
+        assertEquals(2, linkedSignatures.size)
+        assertEquals(1, linkedSignatures.distinct().size)
+        assertEquals(EtsMappingStatus.AMBIGUOUS, aliasArtifact.predicate.status)
+        val target = aliasArtifact.predicate.targets.single()
+        assertEquals(linkedSignatures.distinct().single(), target.method.signature)
+        assertTrue(target.method.name.startsWith("%AM"))
+        assertEquals("mapping.entry-point.ambiguous", aliasArtifact.predicate.diagnostics.single().code)
+        assertEquals(EtsMappingStatus.UNMAPPED, localNameArtifact.predicate.status)
+        assertEquals(emptyList(), localNameArtifact.predicate.targets)
     }
 
     @Test

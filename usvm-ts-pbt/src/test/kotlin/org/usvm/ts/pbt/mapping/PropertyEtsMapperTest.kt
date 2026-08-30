@@ -200,6 +200,8 @@ class PropertyEtsMapperTest {
         )
 
         val artifact = mapper.map(manifest, coverage)
+        val primaryMethods = primaryFile.classes.flatMap { etsClass -> etsClass.methods }
+        val duplicateMethods = duplicateFile.classes.flatMap { etsClass -> etsClass.methods }
 
         val mapping = artifact.coverage.statements.single().mapping
         assertEquals(EtsMappingStatus.AMBIGUOUS, mapping.status)
@@ -211,9 +213,19 @@ class PropertyEtsMapperTest {
             },
         )
         assertEquals("mapping.statement.ambiguous", mapping.diagnostics.single().code)
-        val branchMapping = artifact.coverage.branches.single().mapping
-        assertEquals(EtsMappingStatus.AMBIGUOUS, branchMapping.status)
-        assertEquals("mapping.branch.ambiguous", branchMapping.diagnostics.single().code)
+        val branch = artifact.coverage.branches.single()
+        assertEquals(EtsMappingStatus.AMBIGUOUS, branch.mapping.status)
+        assertEquals("mapping.branch.ambiguous", branch.mapping.diagnostics.single().code)
+        assertEquals(
+            listOf(EtsMappingStatus.AMBIGUOUS, EtsMappingStatus.AMBIGUOUS),
+            branch.arms.map { arm -> arm.mapping.status },
+        )
+        branch.arms.forEach { arm ->
+            val targetMethods = arm.mapping.targets.map { target -> target.condition.location.method }
+
+            assertTrue(targetMethods.any { target -> primaryMethods.any { method -> target === method } })
+            assertTrue(targetMethods.any { target -> duplicateMethods.any { method -> target === method } })
+        }
     }
 
     @Test
