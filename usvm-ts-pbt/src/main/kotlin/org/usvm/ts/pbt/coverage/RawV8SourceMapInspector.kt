@@ -7,9 +7,12 @@ import kotlinx.serialization.json.JsonPrimitive
 import org.usvm.ts.pbt.PbtDiagnosticCode
 import org.usvm.ts.pbt.backend.CoverageDiagnostic
 import org.usvm.ts.pbt.manifest.PropertyManifestJson
+import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.net.URI
 import java.net.URISyntaxException
+import java.nio.ByteBuffer
+import java.nio.charset.CharacterCodingException
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -41,10 +44,12 @@ internal fun inspectRawV8SourceMapDiagnostics(
     }
     requireAllowedRawReportSizes(reportPaths, maxReportBytes)
     val normalizedSourceRoots = sourceRoots.map(::normalizeCoveragePath)
+    val reportReader = RawV8ReportReader(maxReportBytes = maxReportBytes)
     val diagnostics = reportPaths.flatMap { reportPath ->
         inspectRawReport(
             reportPath = reportPath,
             sourceRoots = normalizedSourceRoots,
+            reportReader = reportReader,
         )
     }
 
@@ -94,6 +99,67 @@ internal fun normalizeCoveragePath(path: String): String = Path.of(path)
     .normalize()
     .toString()
     .replace('\\', '/')
+
+/** Reads raw reports under one aggregate byte budget, including bytes consumed after preflight. */
+internal class RawV8ReportReader(private val maxReportBytes: Long) {
+    private var consumedBytes = 0L
+
+    init {
+        require(maxReportBytes > 0) { "Raw V8 report byte limit must be positive" }
+    }
+
+    fun readText(reportPath: Path): String {
+        val reportBytes = try {
+            readBytes(reportPath)
+        } catch (error: IOException) {
+            throw invalidRawReport(
+                message = "Cannot read raw V8 coverage report: ${error.message}",
+                path = reportPath,
+                cause = error,
+            )
+        }
+
+        return try {
+            Charsets.UTF_8.newDecoder().decode(ByteBuffer.wrap(reportBytes)).toString()
+        } catch (error: CharacterCodingException) {
+            throw invalidRawReport(
+                message = "Cannot decode raw V8 coverage report as UTF-8: ${error.message}",
+                path = reportPath,
+                cause = error,
+            )
+        }
+    }
+
+    private fun readBytes(reportPath: Path): ByteArray {
+        val output = ByteArrayOutputStream()
+        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+
+        Files.newInputStream(reportPath).use { input ->
+            while (true) {
+                val remainingBytes = maxReportBytes - consumedBytes
+                val readLength = if (remainingBytes >= buffer.size) {
+                    buffer.size
+                } else {
+                    remainingBytes.toInt() + 1
+                }
+                val readBytes = input.read(buffer, 0, readLength)
+                if (readBytes < 0) break
+
+                if (readBytes > remainingBytes) {
+                    throw invalidRawReport(
+                        message = "Raw V8 coverage reports exceed $maxReportBytes bytes",
+                        path = reportPath,
+                    )
+                }
+
+                output.write(buffer, 0, readBytes)
+                consumedBytes += readBytes
+            }
+        }
+
+        return output.toByteArray()
+    }
+}
 
 private fun listRawReportPaths(rawDirectory: Path, maxReportFiles: Int): List<Path> = try {
     val reportPaths = mutableListOf<Path>()
@@ -160,8 +226,12 @@ private fun requireAllowedRawReportSizes(reportPaths: List<Path>, maxReportBytes
     }
 }
 
-private fun inspectRawReport(reportPath: Path, sourceRoots: List<String>): List<CoverageDiagnostic> {
-    val report = readRawReport(reportPath)
+private fun inspectRawReport(
+    reportPath: Path,
+    sourceRoots: List<String>,
+    reportReader: RawV8ReportReader,
+): List<CoverageDiagnostic> {
+    val report = readRawReport(reportPath, reportReader)
     val sourceMapCache = readSourceMapCache(report, reportPath) ?: return emptyList()
 
     return sourceMapCache.mapNotNull { (scriptUrl, cacheEntryElement) ->
@@ -178,20 +248,10 @@ private fun inspectRawReport(reportPath: Path, sourceRoots: List<String>): List<
     }
 }
 
-private fun readRawReport(reportPath: Path): JsonObject {
-    val reportText = readRawReportText(reportPath)
+private fun readRawReport(reportPath: Path, reportReader: RawV8ReportReader): JsonObject {
+    val reportText = reportReader.readText(reportPath)
 
     return parseRawReport(reportText, reportPath)
-}
-
-private fun readRawReportText(reportPath: Path): String = try {
-    Files.readString(reportPath)
-} catch (error: IOException) {
-    throw invalidRawReport(
-        message = "Cannot read raw V8 coverage report: ${error.message}",
-        path = reportPath,
-        cause = error,
-    )
 }
 
 private fun parseRawReport(reportText: String, reportPath: Path): JsonObject = try {
@@ -277,6 +337,12 @@ private fun parseScriptUri(reportPath: Path, scriptUrl: String): URI = try {
         path = "$reportPath.source-map-cache[$scriptUrl]",
         cause = error,
     )
+} catch (error: URISyntaxException) {
+    throw invalidRawReport(
+        message = "Raw V8 source-map cache key is not a valid script URL: ${error.message}",
+        path = "$reportPath.source-map-cache[$scriptUrl]",
+        cause = error,
+    )
 }
 
 private fun URI.toCoveragePath(reportPath: Path, scriptUrl: String): String {
@@ -302,15 +368,23 @@ private fun invalidScriptUrlPath(
 private fun resolveSourceMapPath(scriptUri: URI, scriptPath: Path, referencedUrl: String): Path? {
     if (referencedUrl.startsWith("data:")) return null
 
-    return try {
-        val referenceUri = URI(referencedUrl)
-        val resolvedUri = scriptUri.resolve(referenceUri)
-
-        if (resolvedUri.scheme == "file") resolvedUri.toLocalFilePath().normalize() else null
+    val referenceUri = try {
+        URI(referencedUrl)
     } catch (_: IllegalArgumentException) {
-        resolveSourceMapPathFallback(scriptPath, referencedUrl)
+        return resolveSourceMapPathFallback(scriptPath, referencedUrl)
     } catch (_: URISyntaxException) {
-        resolveSourceMapPathFallback(scriptPath, referencedUrl)
+        return resolveSourceMapPathFallback(scriptPath, referencedUrl)
+    }
+    val resolvedUri = scriptUri.resolve(referenceUri)
+    val hasRemoteAuthority = !resolvedUri.authority.isNullOrEmpty()
+    if (resolvedUri.scheme != "file" || hasRemoteAuthority) return null
+
+    return try {
+        resolvedUri.toLocalFilePath().normalize()
+    } catch (_: IllegalArgumentException) {
+        null
+    } catch (_: URISyntaxException) {
+        null
     }
 }
 

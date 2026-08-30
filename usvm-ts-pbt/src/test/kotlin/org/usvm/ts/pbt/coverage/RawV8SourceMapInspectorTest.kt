@@ -2,7 +2,9 @@ package org.usvm.ts.pbt.coverage
 
 import org.junit.jupiter.api.Test
 import org.usvm.ts.pbt.backend.CoverageDiagnostic
+import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.io.path.createDirectories
 import kotlin.io.path.createDirectory
 import kotlin.io.path.createTempDirectory
 import kotlin.io.path.writeText
@@ -66,6 +68,28 @@ class RawV8SourceMapInspectorTest {
     }
 
     @Test
+    fun `bounded reader enforces aggregate bytes after a report replacement`() {
+        withRawDirectory { rawDirectory ->
+            val firstReport = rawDirectory.resolve("first.json")
+            val replacedReport = rawDirectory.resolve("replaced.json")
+            firstReport.writeText("{}")
+            replacedReport.writeText("{}")
+            val preflightBytes = Files.size(firstReport) + Files.size(replacedReport)
+            replacedReport.writeText("""{"source-map-cache": {}, "replacement": "larger"}""")
+            val reader = RawV8ReportReader(maxReportBytes = preflightBytes)
+
+            reader.readText(firstReport)
+
+            val error = assertFailsWith<CoverageArtifactException> {
+                reader.readText(replacedReport)
+            }
+
+            assertEquals("coverage.report.invalid", error.diagnostic.code)
+            assertEquals(replacedReport.toString(), error.diagnostic.path)
+        }
+    }
+
+    @Test
     fun `malformed raw source-map-cache schema is a typed coverage failure`() {
         withRawDirectory { rawDirectory ->
             val rawReport = rawDirectory.resolve("coverage.json")
@@ -80,6 +104,36 @@ class RawV8SourceMapInspectorTest {
 
             assertEquals("coverage.report.invalid", error.diagnostic.code)
             assertEquals("$rawReport.source-map-cache", error.diagnostic.path)
+        }
+    }
+
+    @Test
+    fun `malformed source-map cache key is a typed coverage failure`() {
+        withRawDirectory { rawDirectory ->
+            val rawReport = rawDirectory.resolve("coverage.json")
+            rawReport.writeText(
+                """
+                {
+                  "source-map-cache": {
+                    "not a valid URI": {
+                      "lineLengths": [1],
+                      "data": null,
+                      "url": "generated.js.map"
+                    }
+                  }
+                }
+                """.trimIndent(),
+            )
+
+            val error = assertFailsWith<CoverageArtifactException> {
+                inspectRawV8SourceMapDiagnostics(
+                    rawDirectory = rawDirectory,
+                    sourceRoots = listOf(rawDirectory.toString()),
+                )
+            }
+
+            assertEquals("coverage.report.invalid", error.diagnostic.code)
+            assertEquals("$rawReport.source-map-cache[not a valid URI]", error.diagnostic.path)
         }
     }
 
@@ -137,6 +191,73 @@ class RawV8SourceMapInspectorTest {
 
             assertEquals("coverage.source-map.invalid", diagnostic.code)
             assertEquals(script.toString(), diagnostic.path)
+        }
+    }
+
+    @Test
+    fun `source-map references are classified by URI semantics`() {
+        val cases = listOf(
+            SourceMapReferenceCase(
+                name = "remote file URI",
+                scriptPath = "generated.js",
+                referencedUrl = "file://coverage.example/maps/generated.js.map",
+            ),
+            SourceMapReferenceCase(
+                name = "network-path reference",
+                scriptPath = "generated.js",
+                referencedUrl = "//coverage.example/maps/generated.js.map",
+            ),
+            SourceMapReferenceCase(
+                name = "HTTP URL",
+                scriptPath = "generated.js",
+                referencedUrl = "https://coverage.example/maps/generated.js.map",
+            ),
+            SourceMapReferenceCase(
+                name = "local fragment",
+                scriptPath = "generated.js",
+                referencedUrl = "generated.js.map#section",
+                presentMapPath = "generated.js.map",
+            ),
+            SourceMapReferenceCase(
+                name = "local traversal",
+                scriptPath = "scripts/generated.js",
+                referencedUrl = "../maps/generated.js.map",
+                presentMapPath = "maps/generated.js.map",
+            ),
+            SourceMapReferenceCase(
+                name = "local path with invalid URI syntax",
+                scriptPath = "generated.js",
+                referencedUrl = "generated script.js.map",
+                presentMapPath = "generated script.js.map",
+            ),
+        )
+
+        cases.forEach { case ->
+            withRawDirectory { rawDirectory ->
+                val sourceRoot = rawDirectory.resolve("source").createDirectory()
+                val script = sourceRoot.resolve(case.scriptPath)
+                script.parent.createDirectories()
+                script.writeText("export const generated = 1")
+                case.presentMapPath?.let { presentMapPath ->
+                    val sourceMap = sourceRoot.resolve(presentMapPath)
+                    sourceMap.parent.createDirectories()
+                    sourceMap.writeText("{not-json")
+                }
+                rawDirectory.resolve("coverage.json").writeText(
+                    rawReport(
+                        script = script,
+                        referencedUrl = case.referencedUrl,
+                    ),
+                )
+
+                val diagnostic = inspectRawV8SourceMapDiagnostics(
+                    rawDirectory = rawDirectory,
+                    sourceRoots = listOf(sourceRoot.toString()),
+                ).single()
+
+                assertEquals("coverage.source-map.invalid", diagnostic.code, case.name)
+                assertEquals(script.toString(), diagnostic.path, case.name)
+            }
         }
     }
 
@@ -199,6 +320,19 @@ class RawV8SourceMapInspectorTest {
         }
         """.trimIndent()
 
+    private fun rawReport(script: Path, referencedUrl: String): String =
+        """
+        {
+          "source-map-cache": {
+            "${script.toUri()}": {
+              "lineLengths": [1],
+              "data": null,
+              "url": "$referencedUrl"
+            }
+          }
+        }
+        """.trimIndent()
+
     private fun withRawDirectory(block: (Path) -> Unit) {
         val rawDirectory = createTempDirectory(prefix = "raw-v8-source-maps-")
 
@@ -208,4 +342,11 @@ class RawV8SourceMapInspectorTest {
             rawDirectory.toFile().deleteRecursively()
         }
     }
+
+    private data class SourceMapReferenceCase(
+        val name: String,
+        val scriptPath: String,
+        val referencedUrl: String,
+        val presentMapPath: String? = null,
+    )
 }
