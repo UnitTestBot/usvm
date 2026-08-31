@@ -30,6 +30,9 @@ internal data class FastCheckProjectionTransportLimits(
         require(maxStderrBytes > 0) { "Maximum stderr size must be positive" }
         require(wallClockTimeoutMillis > 0) { "Projection wall-clock timeout must be positive" }
         require(shutdownGraceMillis > 0) { "Projection shutdown grace period must be positive" }
+        require(shutdownGraceMillis <= Int.MAX_VALUE.toLong()) {
+            "Projection shutdown grace period exceeds the maximum delay supported by Node timers"
+        }
     }
 }
 
@@ -417,9 +420,10 @@ class FastCheckProjectionClient private constructor(
             val process = ProcessBuilder(
                 nodeExecutable,
                 supervisorEntryPoint.toString(),
-                adapterEntryPoint.toString(),
+                PROCESS_SUPERVISOR_ADAPTER,
                 transportLimits.shutdownGraceMillis.toString(),
                 processGroupFile.toString(),
+                adapterEntryPoint.toString(),
             ).start()
             processStarted = true
 
@@ -551,6 +555,7 @@ class FastCheckProjectionClient private constructor(
     }
 
     private companion object {
+        const val PROCESS_SUPERVISOR_ADAPTER = "--adapter"
         const val MAX_SAMPLES = 10_000
         const val DEFAULT_MAX_REQUEST_BYTES = 4 * 1024 * 1024
         const val DEFAULT_MAX_STDOUT_BYTES = 4 * 1024 * 1024

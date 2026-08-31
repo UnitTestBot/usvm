@@ -268,51 +268,7 @@ async function withPropertyModule(block: (sourceRoot: string) => Promise<void>):
   const sourceRoot = path.join(workspace, 'src');
 
   await mkdir(sourceRoot);
-  await writeFile(
-    path.join(sourceRoot, 'properties.ts'),
-    [
-      'export function alwaysTrue(_value: number): boolean { return true; }',
-      'export function isNegative(value: number): boolean { return value < 0; }',
-      'export async function asyncAlwaysTrue(_value: number): Promise<boolean> { return true; }',
-      'export async function asyncIsOne(value: number): Promise<boolean> { return value === 1; }',
-      'export function neverAccepts(_value: number): boolean { return false; }',
-      'export function isNotSeven(value: number): boolean { return value !== 7; }',
-      'export function slowFailure(_value: number[]): boolean {',
-      '  const deadline = Date.now() + 10;',
-      '  while (Date.now() < deadline) {}',
-      '  return false;',
-      '}',
-      'export async function neverCompletes(_value: number): Promise<boolean> {',
-      '  await new Promise<never>(() => undefined);',
-      '  return true;',
-      '}',
-      'export function mutatesNestedArrayToObject(value: unknown[][]): boolean {',
-      '  value[0]![0] = {};',
-      '  return false;',
-      '}',
-      'export function mutatesArrayToCycle(value: unknown[]): boolean {',
-      '  value[0] = value;',
-      '  return false;',
-      '}',
-      'export function mutatesNestedArrayAndAccepts(value: unknown[][]): boolean {',
-      '  value[0]![0] = {};',
-      '  return true;',
-      '}',
-      'export function receivesOriginalNestedArray(value: unknown[][]): boolean {',
-      '  return value[0]?.[0] === 1;',
-      '}',
-      'export async function asyncMutatesNestedArrayAndAccepts(value: unknown[][]): Promise<boolean> {',
-      '  value[0]![0] = {};',
-      '  return true;',
-      '}',
-      'export async function asyncReceivesOriginalNestedArray(value: unknown[][]): Promise<boolean> {',
-      '  return value[0]?.[0] === 1;',
-      '}',
-      'export function throwsInput(value: unknown): never {',
-      '  throw value;',
-      '}',
-    ].join('\n'),
-  );
+  await writeFile(path.join(sourceRoot, 'properties.ts'), PROPERTY_MODULE_SOURCE);
 
   try {
     await block(sourceRoot);
@@ -326,3 +282,61 @@ function semanticResult(result: FastCheckRunResult): Omit<FastCheckRunResult, 'e
 
   return semantic;
 }
+
+const PROPERTY_MODULE_SOURCE = `
+export function alwaysTrue(_value: number): boolean { return true; }
+export function isNegative(value: number): boolean { return value < 0; }
+export async function asyncAlwaysTrue(_value: number): Promise<boolean> { return true; }
+export async function asyncIsOne(value: number): Promise<boolean> { return value === 1; }
+export function neverAccepts(_value: number): boolean { return false; }
+export function isNotSeven(value: number): boolean { return value !== 7; }
+
+export function slowFailure(_value: number[]): boolean {
+  const deadline = Date.now() + 10;
+  while (Date.now() < deadline) {}
+
+  return false;
+}
+
+export async function neverCompletes(_value: number): Promise<boolean> {
+  await new Promise<never>(() => undefined);
+
+  return true;
+}
+
+export function mutatesNestedArrayToObject(value: unknown[][]): boolean {
+  value[0]![0] = {};
+
+  return false;
+}
+
+export function mutatesArrayToCycle(value: unknown[]): boolean {
+  value[0] = value;
+
+  return false;
+}
+
+export function mutatesNestedArrayAndAccepts(value: unknown[][]): boolean {
+  value[0]![0] = {};
+
+  return true;
+}
+
+export function receivesOriginalNestedArray(value: unknown[][]): boolean {
+  return value[0]?.[0] === 1;
+}
+
+export async function asyncMutatesNestedArrayAndAccepts(value: unknown[][]): Promise<boolean> {
+  value[0]![0] = {};
+
+  return true;
+}
+
+export async function asyncReceivesOriginalNestedArray(value: unknown[][]): Promise<boolean> {
+  return value[0]?.[0] === 1;
+}
+
+export function throwsInput(value: unknown): never {
+  throw value;
+}
+`.trimStart();

@@ -3,11 +3,12 @@ import { spawn } from 'node:child_process';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import type { Readable } from 'node:stream';
 import { setTimeout as delay } from 'node:timers/promises';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-const supervisorPath = fileURLToPath(new URL('../src/projection-supervisor.js', import.meta.url));
+const supervisorPath = fileURLToPath(new URL('../src/process-supervisor.js', import.meta.url));
 
 test('adapter runs inside the stable process-group owner', { timeout: 3_000 }, async () => {
   const workspace = await mkdtemp(path.join(tmpdir(), 'usvm-projection-supervisor-'));
@@ -22,7 +23,7 @@ test('adapter runs inside the stable process-group owner', { timeout: 3_000 }, a
   );
   const supervisor = spawn(
     process.execPath,
-    [supervisorPath, adapterPath, '25', processGroupFile],
+    [supervisorPath, '--adapter', '25', processGroupFile, adapterPath],
     { stdio: 'ignore' },
   );
   const supervisorExit = new Promise<void>((resolve) => supervisor.once('close', () => resolve()));
@@ -44,7 +45,7 @@ test('adapter runs inside the stable process-group owner', { timeout: 3_000 }, a
   }
 });
 
-test('command mode owns descendants that retain inherited pipes', { timeout: 10_000 }, async () => {
+test('command exit removes descendants that retain inherited pipes', { timeout: 10_000 }, async () => {
   const workspace = await mkdtemp(path.join(tmpdir(), 'usvm-command-supervisor-'));
   const adapterPath = path.join(workspace, 'adapter.mjs');
   const childPidFile = path.join(workspace, 'child.pid');
@@ -56,14 +57,18 @@ test('command mode owns descendants that retain inherited pipes', { timeout: 10_
       + `const child = spawn(process.execPath, ['-e', 'setInterval(() => undefined, 1000)'], `
       + `{ stdio: ['ignore', 'inherit', 'inherit'] });\n`
       + `writeFileSync(${JSON.stringify(childPidFile)}, String(child.pid));\n`
-      + `child.unref();\n`,
+      + `child.unref();\n`
+      + `setTimeout(() => undefined, 100);\n`,
   );
   const supervisor = spawn(
     process.execPath,
     [supervisorPath, '--command', '25', processGroupFile, process.execPath, adapterPath],
     { stdio: 'ignore' },
   );
-  const supervisorExit = new Promise<void>((resolve) => supervisor.once('close', () => resolve()));
+  const supervisorExit = new Promise<number | null>((resolve, reject) => {
+    supervisor.once('error', reject);
+    supervisor.once('close', resolve);
+  });
   let childPid: number | undefined;
 
   try {
@@ -74,15 +79,48 @@ test('command mode owns descendants that retain inherited pipes', { timeout: 10_
     childPid = Number(childPidText);
 
     assert.notEqual(childPidText, processGroupPidText);
-    assert.equal(supervisor.exitCode, null);
-
-    supervisor.kill('SIGTERM');
-    await supervisorExit;
+    assert.equal(await supervisorExit, 0);
 
     assert.equal(isProcessAlive(childPid), false);
   } finally {
     supervisor.kill('SIGKILL');
     if (childPid !== undefined) terminateProcess(childPid);
+    await rm(workspace, { recursive: true, force: true });
+  }
+});
+
+test('rejects a force-kill delay outside the Node timer range', async () => {
+  const workspace = await mkdtemp(path.join(tmpdir(), 'usvm-command-supervisor-'));
+  const processGroupFile = path.join(workspace, 'process-group.pid');
+  const supervisor = spawn(
+    process.execPath,
+    [
+      supervisorPath,
+      '--command',
+      String(2 ** 31),
+      processGroupFile,
+      process.execPath,
+      '-e',
+      'process.exit(0)',
+    ],
+    { stdio: ['ignore', 'pipe', 'pipe'] },
+  );
+
+  try {
+    const [exitCode, stdout, stderr] = await Promise.all([
+      new Promise<number | null>((resolve, reject) => {
+        supervisor.once('error', reject);
+        supervisor.once('close', resolve);
+      }),
+      collectText(supervisor.stdout),
+      collectText(supervisor.stderr),
+    ]);
+
+    assert.equal(exitCode, 1);
+    assert.equal(stdout, '');
+    assert.match(stderr, /Invalid force-kill delay/);
+  } finally {
+    supervisor.kill('SIGKILL');
     await rm(workspace, { recursive: true, force: true });
   }
 });
@@ -131,4 +169,11 @@ function isMissingProcess(error: unknown): boolean {
   return error instanceof Error
     && 'code' in error
     && error.code === 'ESRCH';
+}
+
+async function collectText(stream: Readable): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+
+  return Buffer.concat(chunks).toString('utf8');
 }

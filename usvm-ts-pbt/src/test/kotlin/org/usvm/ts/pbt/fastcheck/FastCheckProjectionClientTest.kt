@@ -22,6 +22,13 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class FastCheckProjectionClientTest {
+    @Test
+    fun `transport limits reject a shutdown grace period outside the Node timer range`() {
+        assertFailsWith<IllegalArgumentException> {
+            transportLimits(shutdownGraceMillis = 2_147_483_648L)
+        }
+    }
+
     private val client = FastCheckProjectionClient()
 
     @Test

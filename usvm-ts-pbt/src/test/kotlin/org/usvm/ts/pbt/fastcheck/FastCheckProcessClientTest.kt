@@ -2,6 +2,7 @@ package org.usvm.ts.pbt.fastcheck
 
 import org.junit.jupiter.api.Test
 import org.usvm.ts.pbt.backend.PropertyCoverageRequest
+import org.usvm.ts.pbt.backend.PropertyRunStatus
 import org.usvm.ts.pbt.manifest.toManifest
 import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.PropertyDefinition
@@ -25,6 +26,16 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class FastCheckProcessClientTest {
+    @Test
+    fun `process client rejects a shutdown grace period outside the Node timer range`() {
+        assertFailsWith<IllegalArgumentException> {
+            FastCheckProcessClient(
+                adapterEntryPoint = Path.of("unused"),
+                shutdownGraceMillis = 2_147_483_648L,
+            )
+        }
+    }
+
     @Test
     fun `process startup failure is typed`() {
         val startup = assertFailsWith<PbtBackendException> {
@@ -303,7 +314,7 @@ class FastCheckProcessClientTest {
     }
 
     @Test
-    fun `hard deadline terminates a descendant retaining an inherited pipe`() {
+    fun `successful adapter exit terminates a descendant retaining an inherited pipe`() {
         val childPidFile = createTempFile(prefix = "fast-check-inherited-pipe-pid-", suffix = ".txt")
         val naturalExitFile = createTempFile(prefix = "fast-check-inherited-pipe-exit-", suffix = ".txt")
         childPidFile.deleteIfExists()
@@ -348,12 +359,9 @@ class FastCheckProcessClientTest {
                 """.trimIndent(),
                 transportGraceMillis = 100,
             ) { client ->
-                val error = assertFailsWith<PbtBackendException> {
-                    client.check(validRequest.copy(timeoutMillis = 100))
-                }
+                val result = client.check(validRequest.copy(timeoutMillis = 100))
 
-                assertEquals(BackendErrorKind.TIMEOUT, error.kind)
-                assertEquals("backend.process.timeout", error.code)
+                assertEquals(PropertyRunStatus.SUCCESS, result.status)
                 assertFalse(Files.exists(naturalExitFile), "Inherited-pipe descendant reached its natural exit")
                 assertFalse(processIsAlive(childPidFile), "Inherited-pipe descendant is still running")
             }

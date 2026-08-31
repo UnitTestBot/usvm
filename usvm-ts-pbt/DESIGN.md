@@ -263,10 +263,18 @@ with EtsIR-specific binding and mapping records and has no dependency on `usvm-j
 The execution client starts stdout, stderr, and stdin work concurrently on the coroutine I/O dispatcher. Requests
 and stdout are limited to 4 MiB; stderr is limited to 64 KiB. These are transport safety bounds, not property-policy
 limits. The hard deadline is the property timeout plus two seconds for transport, followed by up to 250 ms of
-graceful shutdown before force-kill, bounded by the absolute deadline. A private supervisor keeps the adapter in an
-owned process group and retains a stable worker until cleanup, so an adapter that exits before its descendants cannot
-orphan them. The only run-control maximum is `2^31 - 1` milliseconds because Node timers use signed 32-bit delays;
-runs, examples, and replay paths have no arbitrary count or length caps.
+graceful shutdown before force-kill, bounded by the absolute deadline. The private process tree is:
+
+```text
+Kotlin client -> process supervisor -> detached group-owner worker -> adapter or command -> descendants
+```
+
+The supervisor accepts explicit `--adapter` and `--command` modes and stays outside the owned process group so it can
+escalate shutdown. It installs signal handlers before spawning the group owner, so an immediate cancellation is
+remembered until the process-group ID becomes available. The stable group owner reports adapter or command exit over
+IPC; the supervisor then force-removes remaining descendants. If the supervisor disappears first, the IPC disconnect
+handler performs the same cleanup. The only run-control maximum is `2^31 - 1` milliseconds because Node timers use
+signed 32-bit delays; runs, examples, and replay paths have no arbitrary count or length caps.
 
 ## Runtime packaging
 

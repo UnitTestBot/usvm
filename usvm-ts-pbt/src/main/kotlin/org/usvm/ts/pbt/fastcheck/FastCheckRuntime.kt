@@ -48,6 +48,6 @@ internal object FastCheckRuntime {
     private const val ENTRY_POINT_DIRECTORY = "dist/src"
     private const val EXECUTION_CLI = "execution-cli.js"
     private const val PROJECTION_CLI = "projection-cli.js"
-    private const val PROCESS_SUPERVISOR = "projection-supervisor.js"
+    private const val PROCESS_SUPERVISOR = "process-supervisor.js"
     private const val INSTALLED_RUNTIME_DIRECTORY = "fast-check-adapter"
 }

@@ -36,6 +36,12 @@ internal class FastCheckProcessClient(
     private val shutdownGraceMillis: Long = DEFAULT_SHUTDOWN_GRACE_MILLIS,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
+    init {
+        require(shutdownGraceMillis in 1..Int.MAX_VALUE.toLong()) {
+            "Shutdown grace period must fit the positive delay range supported by Node timers"
+        }
+    }
+
     /** Executes one request and exposes only a fully validated common result. */
     fun check(request: FastCheckExecutionRequest): PropertyRunResult = try {
         runBlocking { checkSuspending(request) }
