@@ -96,6 +96,7 @@ class TsInterpreter(
     private val options: TsOptions,
     private val observer: TsInterpreterObserver? = null,
     private val unknownCallDispatcher: TsUnknownCallDispatcher,
+    private val throwExceptionOnStepFailure: Boolean = false,
 ) : UInterpreter<TsState>() {
 
     private val forkBlackList: UForkBlackList<TsState, EtsStmt> = UForkBlackList.createDefault()
@@ -146,6 +147,10 @@ class TsInterpreter(
                 }
             }
         } catch (e: Exception) {
+            if (throwExceptionOnStepFailure) {
+                throw e
+            }
+
             logger.error {
                 "Exception: $e\n${e.stackTrace.take(5).joinToString("\n") { "    $it" }}"
             }

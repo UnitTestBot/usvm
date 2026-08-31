@@ -19,10 +19,14 @@ import org.usvm.api.memcpy
 import org.usvm.api.typeStreamOf
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.TsSizeSort
+import org.usvm.machine.call.TsUnknownCallFailureReason
+import org.usvm.machine.call.TsUnknownCallModelDispatcher
+import org.usvm.machine.call.dispatch
 import org.usvm.machine.expr.TsExprApproximationResult.Companion.from
 import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.markResolved
 import org.usvm.machine.interpreter.setResolvedValue
+import org.usvm.machine.state.lastStmt
 import org.usvm.sizeSort
 import org.usvm.types.first
 import org.usvm.types.firstOrNull
@@ -107,7 +111,7 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
 
         // Handle `Array.pop() method calls
         if (expr.callee.name == "pop") {
-            return from(handleArrayPop(expr, instanceType, elementSort))
+            return handleArrayPopCall(expr, instanceType, elementSort, instance)
         }
 
         // Handle `Array.fill() method calls
@@ -157,6 +161,28 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
     }
 
     return TsExprApproximationResult.NoApproximation
+}
+
+private fun TsExprResolver.handleArrayPopCall(
+    expr: EtsInstanceCallExpr,
+    instanceType: EtsArrayType,
+    elementSort: USort,
+    resolvedReceiver: UExpr<*>,
+): TsExprApproximationResult {
+    val dispatcher = unknownCallDispatcher
+    if (dispatcher !is TsUnknownCallModelDispatcher) {
+        return from(handleArrayPop(expr, instanceType, elementSort))
+    }
+
+    dispatcher.dispatch(
+        scope,
+        expr,
+        scope.calcOnState { lastStmt },
+        failureReason = TsUnknownCallFailureReason.PARTIAL_APPROXIMATION,
+        resolvedReceiver = resolvedReceiver,
+    )
+
+    return TsExprApproximationResult.ResolveFailure
 }
 
 private fun TsExprResolver.handleValueOf(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {

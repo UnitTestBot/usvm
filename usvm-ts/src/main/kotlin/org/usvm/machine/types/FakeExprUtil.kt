@@ -15,6 +15,21 @@ import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsState
 import org.usvm.memory.ULValue
 
+/**
+ * Creates a fresh synthetic wrapper for a TypeScript value with a not necessarily known runtime kind.
+ *
+ * Non-null arguments initialize the corresponding boolean, number, and reference payload fields. When exactly one
+ * payload is supplied, the wrapper is constrained to that runtime kind. When multiple payloads are supplied, all
+ * three kind discriminators remain symbolic and [EtsFakeType.mkExactlyOneTypeConstraint] selects exactly one active
+ * representation. Callers that model a completely unknown value should therefore supply all three payloads.
+ *
+ * The returned concrete heap reference identifies the wrapper, not its reference payload. Consumers must preserve
+ * the wrapper or explicitly constrain the appropriate discriminator before extracting a payload.
+ *
+ * [scope] may be `null` only while constructing the initial state, before solver models exist. During symbolic
+ * execution a live scope is required so that adding the exactly-one constraint also checks satisfiability and updates
+ * the state's models.
+ */
 fun TsState.mkFakeValue(
     scope: TsStepScope?, // pass `null` only in the initial state, where `scope` is not available!
     boolValue: UBoolExpr? = null,
