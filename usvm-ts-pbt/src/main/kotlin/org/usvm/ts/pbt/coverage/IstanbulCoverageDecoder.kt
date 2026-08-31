@@ -2,7 +2,6 @@ package org.usvm.ts.pbt.coverage
 
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
-import org.usvm.ts.pbt.PbtDiagnosticCode
 import org.usvm.ts.pbt.backend.CoverageArtifactKind
 import org.usvm.ts.pbt.backend.CoverageDiagnostic
 import org.usvm.ts.pbt.backend.CoverageProvenance
@@ -77,23 +76,9 @@ internal class IstanbulCoverageDecoder(
 
     private fun sourceMapDiagnostic(path: String): CoverageDiagnostic {
         val sourceMapPath = Path.of("$path.map")
-        val sourceMapExists = Files.exists(sourceMapPath)
-
-        val diagnosticCode = if (sourceMapExists) {
-            PbtDiagnosticCode.COVERAGE_SOURCE_MAP_INVALID
-        } else {
-            PbtDiagnosticCode.COVERAGE_SOURCE_MAP_MISSING
-        }
-        val diagnosticMessage = if (sourceMapExists) {
-            "Executed JavaScript has a source map that c8 could not remap to its original source"
-        } else {
-            "Executed JavaScript below a TypeScript source root has no source map"
-        }
-
-        return CoverageDiagnostic(
-            code = diagnosticCode,
-            message = diagnosticMessage,
+        return buildSourceMapDiagnostic(
             path = path,
+            sourceMapExists = Files.exists(sourceMapPath),
         )
     }
 
@@ -155,11 +140,5 @@ internal class IstanbulCoverageDecoder(
 
     private companion object {
         val GENERATED_JAVASCRIPT_EXTENSIONS = hashSetOf("js", "mjs", "cjs")
-
-        fun normalizeCoveragePath(path: String): String = Path.of(path)
-            .toAbsolutePath()
-            .normalize()
-            .toString()
-            .replace('\\', '/')
     }
 }

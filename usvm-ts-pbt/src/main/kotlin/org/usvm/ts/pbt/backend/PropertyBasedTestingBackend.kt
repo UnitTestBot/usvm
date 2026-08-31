@@ -73,7 +73,6 @@ data class PropertyFailureDetails(
 ) {
     init {
         require(errorName.isNotBlank()) { "Failure error name must not be blank" }
-        require(message.isNotBlank()) { "Failure message must not be blank" }
     }
 }
 

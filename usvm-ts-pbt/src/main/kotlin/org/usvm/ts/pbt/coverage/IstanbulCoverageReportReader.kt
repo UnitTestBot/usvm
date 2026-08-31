@@ -71,6 +71,6 @@ internal object IstanbulCoverageReportReader {
         path = reportPath.toString(),
         cause = error,
     )
-
-    private const val MAX_COVERAGE_REPORT_BYTES = 64L * 1024 * 1024
 }
+
+internal const val MAX_COVERAGE_REPORT_BYTES = 64L * 1024 * 1024

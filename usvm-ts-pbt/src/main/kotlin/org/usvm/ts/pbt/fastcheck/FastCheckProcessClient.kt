@@ -17,6 +17,8 @@ import org.usvm.ts.pbt.backend.PropertyRunResult
 import org.usvm.ts.pbt.coverage.CoverageArtifactException
 import org.usvm.ts.pbt.coverage.IstanbulCoverageContext
 import org.usvm.ts.pbt.coverage.decodeIstanbulCoverageReport
+import org.usvm.ts.pbt.coverage.inspectRawV8SourceMapDiagnostics
+import org.usvm.ts.pbt.coverage.mergeCoverageDiagnostics
 import org.usvm.ts.pbt.manifest.PropertyManifestJson
 import org.usvm.ts.pbt.model.PropertyId
 import java.io.ByteArrayOutputStream
@@ -34,6 +36,12 @@ internal class FastCheckProcessClient(
     private val shutdownGraceMillis: Long = DEFAULT_SHUTDOWN_GRACE_MILLIS,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
+    init {
+        require(shutdownGraceMillis in 1..Int.MAX_VALUE.toLong()) {
+            "Shutdown grace period must fit the positive delay range supported by Node timers"
+        }
+    }
+
     /** Executes one request and exposes only a fully validated common result. */
     fun check(request: FastCheckExecutionRequest): PropertyRunResult = try {
         runBlocking { checkSuspending(request) }
@@ -54,42 +62,61 @@ internal class FastCheckProcessClient(
 
         val coverageRuntimeVersion = request.coverageRequest?.let { nodeVersion(request) }
         val coverageWorkspace = request.coverageRequest?.let { createCoverageWorkspace(request) }
-        var process: Process? = null
+        val deadlineNanos = deadlineAfter(safeAdd(request.timeoutMillis, transportGraceMillis))
+        val operationDeadlineNanos = deadlineBefore(
+            deadlineNanos = deadlineNanos,
+            durationMillis = minOf(FORCED_TERMINATION_RESERVE_MILLIS, transportGraceMillis),
+        )
+        var managedProcess: ManagedFastCheckProcess? = null
+        var stdout: Deferred<BoundedText>? = null
+        var stderr: Deferred<BoundedText>? = null
+        var writer: Deferred<Unit>? = null
 
         try {
             val startedProcess = startAdapter(request, coverageWorkspace)
-            process = startedProcess
-            val stdout = async(ioDispatcher) { startedProcess.inputStream.readBounded(MAX_STDOUT_BYTES) }
-            val stderr = async(ioDispatcher) { startedProcess.errorStream.readBounded(MAX_STDERR_BYTES) }
-            val writer = async(ioDispatcher) {
-                startedProcess.outputStream.bufferedWriter(Charsets.UTF_8).use { output ->
+            managedProcess = startedProcess
+            val process = startedProcess.process
+            val stdoutTask = async(ioDispatcher) { process.inputStream.readBounded(MAX_STDOUT_BYTES) }
+            stdout = stdoutTask
+            val stderrTask = async(ioDispatcher) { process.errorStream.readBounded(MAX_STDERR_BYTES) }
+            stderr = stderrTask
+            val writerTask = async(ioDispatcher) {
+                process.outputStream.bufferedWriter(Charsets.UTF_8).use { output ->
                     output.write(encodedRequest)
                 }
             }
+            writer = writerTask
 
-            awaitProcess(startedProcess, request)
+            awaitProcess(
+                process = process,
+                deadlineNanos = operationDeadlineNanos,
+                request = request,
+            )
 
             awaitIo(
-                task = writer,
+                task = writerTask,
                 operation = "writing the fast-check request",
                 failureCode = PbtDiagnosticCode.BACKEND_PROCESS_WRITE_FAILED,
+                deadlineNanos = operationDeadlineNanos,
                 request = request,
             )
 
             val stdoutText = awaitIo(
-                task = stdout,
+                task = stdoutTask,
                 operation = "reading fast-check stdout",
                 failureCode = PbtDiagnosticCode.BACKEND_PROCESS_READ_FAILED,
+                deadlineNanos = operationDeadlineNanos,
                 request = request,
             )
             val stderrText = awaitIo(
-                task = stderr,
+                task = stderrTask,
                 operation = "reading fast-check stderr",
                 failureCode = PbtDiagnosticCode.BACKEND_PROCESS_READ_FAILED,
+                deadlineNanos = operationDeadlineNanos,
                 request = request,
             )
 
-            validateProcessExit(startedProcess, stderrText, request)
+            validateProcessExit(process, stderrText, request)
             validateStdout(stdoutText, request)
 
             val response = decodeResponse(stdoutText.text, request)
@@ -105,7 +132,14 @@ internal class FastCheckProcessClient(
                 )
             } ?: result
         } finally {
-            process?.takeIf(Process::isAlive)?.let(::terminate)
+            writer?.cancel()
+            stdout?.cancel()
+            stderr?.cancel()
+            managedProcess?.let { startedProcess ->
+                terminate(startedProcess, deadlineNanos)
+                closeStreams(startedProcess.process)
+                runCatching { Files.deleteIfExists(startedProcess.processGroupFile) }
+            }
             coverageWorkspace?.root?.toFile()?.deleteRecursively()
         }
     }
@@ -125,22 +159,17 @@ internal class FastCheckProcessClient(
         return encodedRequest
     }
 
-    private suspend fun awaitProcess(process: Process, request: FastCheckExecutionRequest) {
-        val hardTimeoutMillis = safeAdd(request.timeoutMillis, transportGraceMillis)
-        val exitCode = withTimeoutOrNull(hardTimeoutMillis) {
+    private suspend fun awaitProcess(
+        process: Process,
+        deadlineNanos: Long,
+        request: FastCheckExecutionRequest,
+    ) {
+        val completed = withTimeoutOrNull(remainingMillis(deadlineNanos)) {
             runInterruptible(ioDispatcher) { process.waitFor() }
+            true
         }
 
-        if (exitCode == null) {
-            terminate(process)
-
-            throw backendError(
-                kind = BackendErrorKind.TIMEOUT,
-                code = PbtDiagnosticCode.BACKEND_PROCESS_TIMEOUT,
-                message = "fast-check adapter exceeded the ${request.timeoutMillis} ms timeout",
-                request = request,
-            )
-        }
+        if (completed == null) executionTimeout(request)
     }
 
     private fun validateProcessExit(
@@ -183,16 +212,57 @@ internal class FastCheckProcessClient(
     private fun startAdapter(
         request: FastCheckExecutionRequest,
         coverageWorkspace: CoverageWorkspace?,
-    ): Process = try {
-        ProcessBuilder(adapterCommand(request, coverageWorkspace)).start()
-    } catch (error: IOException) {
-        throw backendError(
-            kind = BackendErrorKind.PROCESS_FAILURE,
-            code = PbtDiagnosticCode.BACKEND_PROCESS_START_FAILED,
-            message = "Failed to start fast-check adapter: ${error.message}",
-            request = request,
-            cause = error,
-        )
+    ): ManagedFastCheckProcess {
+        val processGroupFile = try {
+            Files.createTempFile("usvm-execution-process-group-", ".pid")
+        } catch (error: IOException) {
+            throw processStartFailure(request, error)
+        }
+        var processStarted = false
+
+        try {
+            val process = ProcessBuilder(
+                supervisedAdapterCommand(
+                    request = request,
+                    coverageWorkspace = coverageWorkspace,
+                    processGroupFile = processGroupFile,
+                ),
+            ).start()
+            processStarted = true
+
+            return ManagedFastCheckProcess(
+                process = process,
+                processGroupFile = processGroupFile,
+            )
+        } catch (error: IOException) {
+            throw processStartFailure(request, error)
+        } finally {
+            if (!processStarted) runCatching { Files.deleteIfExists(processGroupFile) }
+        }
+    }
+
+    private fun processStartFailure(
+        request: FastCheckExecutionRequest,
+        error: IOException,
+    ) = backendError(
+        kind = BackendErrorKind.PROCESS_FAILURE,
+        code = PbtDiagnosticCode.BACKEND_PROCESS_START_FAILED,
+        message = "Failed to start fast-check adapter: ${error.message}",
+        request = request,
+        cause = error,
+    )
+
+    private fun supervisedAdapterCommand(
+        request: FastCheckExecutionRequest,
+        coverageWorkspace: CoverageWorkspace?,
+        processGroupFile: Path,
+    ): List<String> = buildList {
+        add(nodeExecutable)
+        add(FastCheckRuntime.processSupervisorEntryPoint().toString())
+        add(PROCESS_SUPERVISOR_COMMAND)
+        add(shutdownGraceMillis.toString())
+        add(processGroupFile.toString())
+        addAll(adapterCommand(request, coverageWorkspace))
     }
 
     private fun adapterCommand(
@@ -257,13 +327,17 @@ internal class FastCheckProcessClient(
         val entryPointPaths = hashSetOf<String>()
         request.sourceRoots.forEach { sourceRoot ->
             val root = Path.of(sourceRoot)
-            entryPointPaths += root.resolve(request.manifest.predicate.module).normalize().toString()
+            entryPointPaths += canonicalizeExistingEntryPoint(
+                root.resolve(request.manifest.predicate.module).normalize(),
+            )
             request.manifest.precondition?.let { precondition ->
-                entryPointPaths += root.resolve(precondition.module).normalize().toString()
+                entryPointPaths += canonicalizeExistingEntryPoint(
+                    root.resolve(precondition.module).normalize(),
+                )
             }
         }
         val artifact = try {
-            decodeIstanbulCoverageReport(
+            val finalArtifact = decodeIstanbulCoverageReport(
                 reportPath = workspace.reportDirectory.resolve("coverage-final.json"),
                 context = IstanbulCoverageContext(
                     backendId = FastCheckBackend.FAST_CHECK_BACKEND_ID,
@@ -275,6 +349,17 @@ internal class FastCheckProcessClient(
                     runtimeVersion = runtimeVersion,
                     collector = FastCheckRuntimeMetadata.coverageCollector,
                     request = coverageRequest,
+                ),
+            )
+            val rawDiagnostics = inspectRawV8SourceMapDiagnostics(
+                rawDirectory = workspace.rawDirectory,
+                sourceRoots = request.sourceRoots,
+            )
+
+            finalArtifact.copy(
+                diagnostics = mergeCoverageDiagnostics(
+                    finalDiagnostics = finalArtifact.diagnostics,
+                    rawDiagnostics = rawDiagnostics,
                 ),
             )
         } catch (error: CoverageArtifactException) {
@@ -290,6 +375,9 @@ internal class FastCheckProcessClient(
 
         return result.copy(coverage = artifact)
     }
+
+    private fun canonicalizeExistingEntryPoint(candidate: Path): String =
+        if (Files.exists(candidate)) candidate.toRealPath().toString() else candidate.toString()
 
     private suspend fun nodeVersion(request: FastCheckExecutionRequest): String {
         val process = startNodeVersionProcess(request)
@@ -391,9 +479,12 @@ internal class FastCheckProcessClient(
         task: Deferred<T>,
         operation: String,
         failureCode: String,
+        deadlineNanos: Long,
         request: FastCheckExecutionRequest,
     ): T = try {
-        task.await()
+        withTimeoutOrNull(remainingMillis(deadlineNanos)) {
+            task.await()
+        } ?: executionTimeout(request)
     } catch (error: CancellationException) {
         throw error
     } catch (error: IOException) {
@@ -405,6 +496,13 @@ internal class FastCheckProcessClient(
             cause = error,
         )
     }
+
+    private fun executionTimeout(request: FastCheckExecutionRequest): Nothing = throw backendError(
+        kind = BackendErrorKind.TIMEOUT,
+        code = PbtDiagnosticCode.BACKEND_PROCESS_TIMEOUT,
+        message = "fast-check adapter exceeded the ${request.timeoutMillis} ms timeout",
+        request = request,
+    )
 
     private fun decodeResponse(
         stdout: String,
@@ -513,13 +611,101 @@ internal class FastCheckProcessClient(
         cause = cause,
     )
 
-    private fun terminate(process: Process) {
+    private fun closeStreams(process: Process) {
+        runCatching { process.outputStream.close() }
+        runCatching { process.inputStream.close() }
+        runCatching { process.errorStream.close() }
+    }
+
+    private fun terminate(managedProcess: ManagedFastCheckProcess, deadlineNanos: Long) {
+        val process = managedProcess.process
+        if (!process.isAlive) {
+            forceTerminateOwnedProcessGroup(managedProcess.processGroupFile, deadlineNanos)
+
+            return
+        }
+
         process.destroy()
 
-        if (!process.waitFor(shutdownGraceMillis, TimeUnit.MILLISECONDS)) {
-            process.destroyForcibly()
-            process.waitFor()
+        val gracefulDeadlineNanos = minOf(
+            deadlineBefore(
+                deadlineNanos = deadlineNanos,
+                durationMillis = FORCED_TERMINATION_RESERVE_MILLIS,
+            ),
+            deadlineAfter(shutdownGraceMillis),
+        )
+        if (awaitProcessExit(process, gracefulDeadlineNanos)) return
+
+        forceTerminateOwnedProcessGroup(managedProcess.processGroupFile, deadlineNanos)
+        process.destroyForcibly()
+        awaitProcessExit(process, deadlineNanos)
+    }
+
+    private fun forceTerminateOwnedProcessGroup(processGroupFile: Path, deadlineNanos: Long) {
+        val processGroupId = runCatching {
+            Files.readString(processGroupFile).trim().toLong()
+        }.getOrNull() ?: return
+        val command = if (IS_WINDOWS) {
+            listOf("taskkill", "/PID", processGroupId.toString(), "/T", "/F")
+        } else {
+            listOf("/bin/kill", "-KILL", "--", "-$processGroupId")
         }
+        val killer = runCatching {
+            ProcessBuilder(command)
+                .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+                .redirectError(ProcessBuilder.Redirect.DISCARD)
+                .start()
+        }.getOrNull() ?: return
+        val waitMillis = minOf(remainingMillis(deadlineNanos), PROCESS_GROUP_KILL_WAIT_MILLIS)
+        if (waitMillis == 0L) return
+
+        try {
+            if (!killer.waitFor(waitMillis, TimeUnit.MILLISECONDS)) killer.destroyForcibly()
+        } catch (_: InterruptedException) {
+            Thread.currentThread().interrupt()
+            killer.destroyForcibly()
+        }
+    }
+
+    private fun awaitProcessExit(process: Process, deadlineNanos: Long): Boolean {
+        while (true) {
+            if (!process.isAlive) return true
+
+            val waitMillis = minOf(remainingMillis(deadlineNanos), PROCESS_POLL_MILLIS)
+            if (waitMillis == 0L) return false
+
+            try {
+                if (process.waitFor(waitMillis, TimeUnit.MILLISECONDS)) return true
+            } catch (_: InterruptedException) {
+                Thread.currentThread().interrupt()
+
+                return false
+            }
+        }
+    }
+
+    private fun deadlineAfter(timeoutMillis: Long): Long {
+        val timeoutNanos = TimeUnit.MILLISECONDS.toNanos(timeoutMillis)
+        val now = System.nanoTime()
+
+        return if (now > Long.MAX_VALUE - timeoutNanos) Long.MAX_VALUE else now + timeoutNanos
+    }
+
+    private fun deadlineBefore(deadlineNanos: Long, durationMillis: Long): Long {
+        if (deadlineNanos == Long.MAX_VALUE) return Long.MAX_VALUE
+
+        val durationNanos = TimeUnit.MILLISECONDS.toNanos(durationMillis)
+
+        return if (deadlineNanos < Long.MIN_VALUE + durationNanos) Long.MIN_VALUE else deadlineNanos - durationNanos
+    }
+
+    private fun remainingMillis(deadlineNanos: Long): Long {
+        if (deadlineNanos == Long.MAX_VALUE) return Long.MAX_VALUE
+
+        val remainingNanos = deadlineNanos - System.nanoTime()
+        if (remainingNanos <= 0) return 0
+
+        return TimeUnit.NANOSECONDS.toMillis(remainingNanos)
     }
 
     private companion object {
@@ -529,11 +715,21 @@ internal class FastCheckProcessClient(
         const val DEFAULT_TRANSPORT_GRACE_MILLIS = 2_000L
         const val DEFAULT_SHUTDOWN_GRACE_MILLIS = 250L
         const val NODE_VERSION_TIMEOUT_MILLIS = 5_000L
+        const val PROCESS_POLL_MILLIS = 10L
+        const val FORCED_TERMINATION_RESERVE_MILLIS = 25L
+        const val PROCESS_GROUP_KILL_WAIT_MILLIS = 10L
         const val MINIMUM_NODE_MAJOR_VERSION = 18
         const val MINIMUM_NODE_MINOR_VERSION = 18
+        const val PROCESS_SUPERVISOR_COMMAND = "--command"
         val NODE_VERSION_PATTERN = Regex("""^v(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$""")
+        val IS_WINDOWS = System.getProperty("os.name").lowercase().contains("windows")
     }
 }
+
+private data class ManagedFastCheckProcess(
+    val process: Process,
+    val processGroupFile: Path,
+)
 
 private data class CoverageWorkspace(
     val root: Path,

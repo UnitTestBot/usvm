@@ -2,6 +2,7 @@ package org.usvm.ts.pbt.fastcheck
 
 import org.junit.jupiter.api.Test
 import org.usvm.ts.pbt.backend.PropertyCoverageRequest
+import org.usvm.ts.pbt.backend.PropertyRunStatus
 import org.usvm.ts.pbt.manifest.toManifest
 import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.PropertyDefinition
@@ -11,6 +12,7 @@ import org.usvm.ts.pbt.model.TypeScriptEntryPoint
 import org.usvm.ts.pbt.testResourcesRoot
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.concurrent.TimeUnit
 import kotlin.io.path.createDirectories
 import kotlin.io.path.createFile
 import kotlin.io.path.createTempDirectory
@@ -20,9 +22,20 @@ import kotlin.io.path.readText
 import kotlin.io.path.writeText
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class FastCheckProcessClientTest {
+    @Test
+    fun `process client rejects a shutdown grace period outside the Node timer range`() {
+        assertFailsWith<IllegalArgumentException> {
+            FastCheckProcessClient(
+                adapterEntryPoint = Path.of("unused"),
+                shutdownGraceMillis = 2_147_483_648L,
+            )
+        }
+    }
+
     @Test
     fun `process startup failure is typed`() {
         val startup = assertFailsWith<PbtBackendException> {
@@ -300,6 +313,65 @@ class FastCheckProcessClientTest {
         }
     }
 
+    @Test
+    fun `successful adapter exit terminates a descendant retaining an inherited pipe`() {
+        val childPidFile = createTempFile(prefix = "fast-check-inherited-pipe-pid-", suffix = ".txt")
+        val naturalExitFile = createTempFile(prefix = "fast-check-inherited-pipe-exit-", suffix = ".txt")
+        childPidFile.deleteIfExists()
+        naturalExitFile.deleteIfExists()
+
+        try {
+            withTemporaryAdapter(
+                source = """
+                    import { spawn } from 'node:child_process'
+                    import { writeFileSync } from 'node:fs'
+
+                    const childSource = `setTimeout(
+                      () => require('node:fs').writeFileSync(
+                        ${naturalExitFile.toJavaScriptStringLiteral()},
+                        'done'
+                      ),
+                      30000
+                    )`
+                    const child = spawn(
+                      process.execPath,
+                      ['-e', childSource],
+                      { stdio: ['ignore', 'inherit', 'inherit'] }
+                    )
+                    writeFileSync(${childPidFile.toJavaScriptStringLiteral()}, String(child.pid))
+                    child.unref()
+
+                    process.stdout.write(JSON.stringify({
+                      status: 'ok',
+                      result: {
+                        propertyId: 'example.property',
+                        status: 'success',
+                        seed: 42,
+                        replayPath: null,
+                        counterexample: null,
+                        numRuns: 1,
+                        numSkips: 0,
+                        numShrinks: 0,
+                        failure: null,
+                        executionTimeMillis: 1
+                      }
+                    }))
+                """.trimIndent(),
+                transportGraceMillis = 100,
+            ) { client ->
+                val result = client.check(validRequest.copy(timeoutMillis = 100))
+
+                assertEquals(PropertyRunStatus.SUCCESS, result.status)
+                assertFalse(Files.exists(naturalExitFile), "Inherited-pipe descendant reached its natural exit")
+                assertFalse(processIsAlive(childPidFile), "Inherited-pipe descendant is still running")
+            }
+        } finally {
+            terminateProcess(childPidFile)
+            childPidFile.deleteIfExists()
+            naturalExitFile.deleteIfExists()
+        }
+    }
+
     private fun withTemporaryAdapter(
         source: String,
         transportGraceMillis: Long = 2_000,
@@ -325,6 +397,23 @@ class FastCheckProcessClientTest {
         return Files.newDirectoryStream(temporaryRoot, "usvm-ts-pbt-coverage-*").use { entries ->
             entries.toHashSet()
         }
+    }
+
+    private fun Path.toJavaScriptStringLiteral(): String = "'${toString().replace("\\", "\\\\").replace("'", "\\'")}'"
+
+    private fun processIsAlive(pidFile: Path): Boolean {
+        val pid = pidFile.takeIf(Files::exists)?.readText()?.trim()?.toLongOrNull() ?: return false
+        val process = ProcessHandle.of(pid).orElse(null) ?: return false
+
+        return process.isAlive
+    }
+
+    private fun terminateProcess(pidFile: Path) {
+        val pid = pidFile.takeIf(Files::exists)?.readText()?.trim()?.toLongOrNull() ?: return
+        val process = ProcessHandle.of(pid).orElse(null) ?: return
+
+        process.destroyForcibly()
+        process.onExit().get(1, TimeUnit.SECONDS)
     }
 
     private companion object {
