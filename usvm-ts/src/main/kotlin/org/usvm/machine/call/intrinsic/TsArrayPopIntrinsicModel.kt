@@ -1,4 +1,4 @@
-package org.usvm.machine.call
+package org.usvm.machine.call.intrinsic
 
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsArrayType
@@ -6,49 +6,29 @@ import org.usvm.UAddressSort
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.api.typeStreamOf
+import org.usvm.machine.call.TsUnknownCall
+import org.usvm.machine.call.TsUnknownCallFailureReason
+import org.usvm.machine.call.TsUnknownCallModelCompletion
+import org.usvm.machine.call.TsUnknownCallModelDescriptor
+import org.usvm.machine.call.TsUnknownCallModelExecution
+import org.usvm.machine.call.TsUnknownCallModelImplementationKind
+import org.usvm.machine.call.TsUnknownCallModelMatcher
+import org.usvm.machine.call.TsUnknownCallModelPrecision
+import org.usvm.machine.call.TsUnknownCallModelRegistration
+import org.usvm.machine.call.TsUnknownCallModelSuccessor
+import org.usvm.machine.call.TsUnknownCallModelSupportedDomain
 import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.state.TsState
 import org.usvm.types.firstOrNull
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 
-/** Builds constraint-level execution plans directly from a TypeScript symbolic state. */
-fun interface TsIntrinsicUnknownCallModel {
-    fun execute(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution
-}
+/** Partial intrinsic model for `Array.pop` on resolved one-dimensional primitive arrays. */
+internal object TsArrayPopIntrinsicModel : TsIntrinsicUnknownCallModel {
+    const val MODEL_ID: String = "ts.array.pop"
 
-/** Opaque registry handle for a Kotlin intrinsic semantic model. */
-class TsIntrinsicUnknownCallModelImplementation(
-    val model: TsIntrinsicUnknownCallModel,
-) : TsUnknownCallModelImplementation {
-    override val kind: TsUnknownCallModelImplementationKind =
-        TsUnknownCallModelImplementationKind.INTRINSIC
-}
-
-/** Executes intrinsic model handles without exposing them to the common registry or dispatcher contract. */
-object TsIntrinsicUnknownCallModelBackend : TsUnknownCallModelBackend {
-    override val kind: TsUnknownCallModelImplementationKind =
-        TsUnknownCallModelImplementationKind.INTRINSIC
-
-    override fun execute(
-        implementation: TsUnknownCallModelImplementation,
-        state: TsState,
-        call: TsUnknownCall,
-    ): TsUnknownCallModelExecution {
-        val intrinsic = requireNotNull(implementation as? TsIntrinsicUnknownCallModelImplementation) {
-            "INTRINSIC backend requires TsIntrinsicUnknownCallModelImplementation, got ${implementation::class}"
-        }
-
-        return intrinsic.model.execute(state, call)
-    }
-}
-
-/** The intentionally small built-in catalog enabled by default for profile-based unknown-call dispatch. */
-object TsBuiltInUnknownCallModels {
-    const val ARRAY_POP_MODEL_ID: String = "ts.array.pop"
-
-    private val arrayPopDescriptor = TsUnknownCallModelDescriptor(
-        id = ARRAY_POP_MODEL_ID,
+    private val descriptor = TsUnknownCallModelDescriptor(
+        id = MODEL_ID,
         matcher = TsUnknownCallModelMatcher { call ->
             call.failureReason == TsUnknownCallFailureReason.PARTIAL_APPROXIMATION &&
                 call.callee.name == "pop"
@@ -61,18 +41,11 @@ object TsBuiltInUnknownCallModels {
         implementationKind = TsUnknownCallModelImplementationKind.INTRINSIC,
     )
 
-    val registry = TsUnknownCallModelRegistry(
-        registrations = listOf(
-            TsUnknownCallModelRegistration(
-                descriptor = arrayPopDescriptor,
-                implementation = TsIntrinsicUnknownCallModelImplementation(TsArrayPopIntrinsicModel),
-            ),
-        ),
-        backends = listOf(TsIntrinsicUnknownCallModelBackend),
+    val registration = TsUnknownCallModelRegistration(
+        descriptor = descriptor,
+        implementation = TsIntrinsicUnknownCallModelImplementation(this),
     )
-}
 
-private object TsArrayPopIntrinsicModel : TsIntrinsicUnknownCallModel {
     override fun execute(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution {
         val input = resolveInput(state, call)
             ?: return unsupportedExecution(state)
