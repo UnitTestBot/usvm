@@ -5,7 +5,7 @@ enum class ProjectionLevel {
     /** Every value produced by the backend has the declared Kotlin domain semantics. */
     EXACT,
 
-    /** The backend can run the domain, but its values differ from the declared semantics. */
+    /** The backend can run the domain, with diagnostics stating each over- or under-approximation. */
     APPROXIMATE,
 
     /** The backend cannot project the domain. */
@@ -17,7 +17,7 @@ enum class PropertyCapabilityLevel {
     /** Both concrete and symbolic projections preserve the declared property semantics. */
     EXACT,
 
-    /** Both projections are available, but at least one is approximate. */
+    /** Both projections are available, but at least one has a documented directional approximation. */
     APPROXIMATE,
 
     /** Concrete PBT execution is available, but symbolic execution is not. */
@@ -44,7 +44,7 @@ data class CapabilityDiagnostic(
  * Reports whether a property domain can be represented by an execution backend.
  *
  * @property level semantic fidelity of the projection
- * @property diagnostics limitations that explain a non-exact [level]
+ * @property diagnostics limitations and directions that explain a non-exact [level]
  */
 data class ProjectionCapability(
     val level: ProjectionLevel,

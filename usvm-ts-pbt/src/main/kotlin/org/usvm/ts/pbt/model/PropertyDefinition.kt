@@ -22,10 +22,12 @@ value class PropertyId private constructor(val value: String) {
 /**
  * Backend-independent Kotlin definition of one property.
  *
+ * Invocation semantics are defined in `usvm-ts-pbt/PROPERTY_EXECUTION_CONTRACT.md`.
+ *
  * @property id stable identity of the property
  * @property inputs ordered domains matching positional TypeScript parameters
- * @property predicate TypeScript function that must hold for generated inputs
- * @property precondition optional TypeScript function that filters inputs before evaluation
+ * @property predicate boolean TypeScript function that must hold for admitted inputs
+ * @property precondition optional pure boolean TypeScript function that admits or discards inputs
  */
 @Serializable
 data class PropertyDefinition(

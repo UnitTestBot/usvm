@@ -3,7 +3,8 @@ import { mkdtemp, mkdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { encodeJsValue } from '../src/js-value.js';
+import { fileURLToPath } from 'node:url';
+import { encodeJsValue, ProtocolError } from '../src/js-value.js';
 import {
   executeProperty,
   type FastCheckExecutionRequest,
@@ -66,7 +67,7 @@ test('supports asynchronous predicates and preconditions', async () => {
   });
 });
 
-test('reports exhausted preconditions as a property failure without a counterexample', async () => {
+test('classifies exhausted preconditions separately from property violations', async () => {
   await withPropertyModule(async (sourceRoot) => {
     const request = executionRequest(sourceRoot, 'alwaysTrue', {
       precondition: {
@@ -81,13 +82,118 @@ test('reports exhausted preconditions as a property failure without a counterexa
 
     assert.equal(response.result.status, 'failure');
     assert.equal(response.result.counterexample, null);
-    assert.equal(response.result.failure?.kind, 'property');
-    assert.equal(response.result.failure?.errorName, 'PropertyFailure');
+    assert.equal(response.result.failure?.kind, 'precondition-exhausted');
+    assert.equal(response.result.failure?.errorName, 'PreconditionExhausted');
     assert.equal(
       response.result.failure?.message,
       'Property could not satisfy its precondition within the skip limit',
     );
   });
+});
+
+test('reports a throwing precondition as an execution error instead of a counterexample', async () => {
+  const request = contractExecutionRequest('alwaysTrue', {
+    preconditionExport: 'throwingPrecondition',
+  });
+
+  await assert.rejects(
+    executeProperty(request),
+    (error: unknown) => error instanceof ProtocolError
+      && error.code === 'entrypoint.precondition.threw'
+      && error.path === 'manifest.precondition'
+      && error.diagnosticMessage === 'Property precondition threw a non-Error value: precondition exploded',
+  );
+});
+
+test('reports a non-boolean precondition as an entry-point contract error', async () => {
+  const request = contractExecutionRequest('alwaysTrue', {
+    preconditionExport: 'nonBooleanPrecondition',
+  });
+
+  await assert.rejects(
+    executeProperty(request),
+    (error: unknown) => error instanceof ProtocolError
+      && error.code === 'entrypoint.result.invalid'
+      && error.path === 'manifest.precondition.result',
+  );
+});
+
+test('keeps false, throwing, and assertion predicates classified as property violations', async () => {
+  for (const predicateExport of ['falsePredicate', 'throwingPredicate', 'assertionPredicate']) {
+    const response = await executeProperty(contractExecutionRequest(predicateExport));
+
+    assert.equal(response.result.status, 'failure');
+    assert.equal(response.result.failure?.kind, 'property');
+    assert.ok(response.result.counterexample);
+  }
+});
+
+test('reports a non-boolean predicate as an entry-point contract error', async () => {
+  await assert.rejects(
+    executeProperty(contractExecutionRequest('nonBooleanPredicate')),
+    (error: unknown) => error instanceof ProtocolError
+      && error.code === 'entrypoint.result.invalid'
+      && error.path === 'manifest.predicate.result',
+  );
+});
+
+test('preserves positional special values through one invocation', async () => {
+  const request = contractExecutionRequest('recognizesSpecialValues', {
+    inputDomains: [
+      constantDomain(undefined),
+      constantDomain(null),
+      constantDomain(-0),
+      constantDomain(Number.NaN),
+      constantDomain(Number.POSITIVE_INFINITY),
+      constantDomain(Number.NEGATIVE_INFINITY),
+    ],
+  });
+
+  const response = await executeProperty(request);
+
+  assert.equal(response.result.status, 'success');
+});
+
+test('isolates predicate mutation between explicit examples and generated samples', async () => {
+  const request = contractExecutionRequest('isolatesPredicateMutation', {
+    inputDomains: [{
+      kind: 'array',
+      element: { kind: 'integer', min: 1, max: 1 },
+      minLength: 1,
+      maxLength: 1,
+    }],
+  });
+  request.examples = [[encodeJsValue([1])]];
+  request.numRuns = 2;
+
+  const response = await executeProperty(request);
+
+  assert.equal(response.result.status, 'success');
+  assert.equal(response.result.numRuns, 2);
+});
+
+test('shrinks and replays the unmodified sample after predicate-local mutation', async () => {
+  const arrayDomain = {
+    kind: 'array',
+    element: { kind: 'integer', min: -10, max: 10 },
+    minLength: 1,
+    maxLength: 3,
+  };
+  const request = contractExecutionRequest('mutatesAndFails', {
+    inputDomains: [arrayDomain],
+  });
+
+  const first = await executeProperty(request);
+  const replay = await executeProperty({
+    ...request,
+    replayPath: first.result.replayPath ?? undefined,
+    seed: first.result.seed,
+  });
+
+  assert.equal(first.result.status, 'failure');
+  assert.ok(first.result.numShrinks > 0);
+  assert.notDeepEqual(first.result.counterexample, [encodeJsValue([999])]);
+  assert.deepEqual(replay.result.counterexample, first.result.counterexample);
 });
 
 test('executes explicit examples through the same predicate', async () => {
@@ -142,7 +248,17 @@ test('reports the original nested array when the predicate mutates its invocatio
   await withPropertyModule(async (sourceRoot) => {
     const originalValue = [[1]];
     const request = executionRequest(sourceRoot, 'mutatesNestedArrayToObject', {
-      inputDomain: { kind: 'constant', value: encodeJsValue(originalValue) },
+      inputDomain: {
+        kind: 'array',
+        element: {
+          kind: 'array',
+          element: { kind: 'integer', min: 1, max: 1 },
+          minLength: 1,
+          maxLength: 1,
+        },
+        minLength: 1,
+        maxLength: 1,
+      },
     });
 
     const response = await executeProperty(request);
@@ -156,7 +272,12 @@ test('reports and replays the original array when the predicate creates a cycle'
   await withPropertyModule(async (sourceRoot) => {
     const originalValue = [1];
     const request = executionRequest(sourceRoot, 'mutatesArrayToCycle', {
-      inputDomain: { kind: 'constant', value: encodeJsValue(originalValue) },
+      inputDomain: {
+        kind: 'array',
+        element: { kind: 'integer', min: 1, max: 1 },
+        minLength: 1,
+        maxLength: 1,
+      },
     });
 
     const first = await executeProperty(request);
@@ -171,41 +292,6 @@ test('reports and replays the original array when the predicate creates a cycle'
     assert.equal(first.result.status, 'failure');
     assert.deepEqual(first.result.counterexample, [encodeJsValue(originalValue)]);
     assert.deepEqual(replay.result.counterexample, first.result.counterexample);
-  });
-});
-
-test('isolates predicate input from recursive array mutation in the precondition', async () => {
-  await withPropertyModule(async (sourceRoot) => {
-    const request = executionRequest(sourceRoot, 'receivesOriginalNestedArray', {
-      precondition: {
-        module: 'properties.ts',
-        exportName: 'mutatesNestedArrayAndAccepts',
-        executionKind: 'sync',
-      },
-      inputDomain: { kind: 'constant', value: encodeJsValue([[1]]) },
-    });
-
-    const response = await executeProperty(request);
-
-    assert.equal(response.result.status, 'success');
-  });
-});
-
-test('isolates asynchronous predicate input from recursive array mutation in the precondition', async () => {
-  await withPropertyModule(async (sourceRoot) => {
-    const request = executionRequest(sourceRoot, 'asyncReceivesOriginalNestedArray', {
-      predicateExecutionKind: 'async',
-      precondition: {
-        module: 'properties.ts',
-        exportName: 'asyncMutatesNestedArrayAndAccepts',
-        executionKind: 'async',
-      },
-      inputDomain: { kind: 'constant', value: encodeJsValue([[1]]) },
-    });
-
-    const response = await executeProperty(request);
-
-    assert.equal(response.result.status, 'success');
   });
 });
 
@@ -231,6 +317,7 @@ interface RequestOverrides {
   predicateExecutionKind?: 'sync' | 'async';
   precondition?: FastCheckExecutionRequest['manifest']['precondition'];
   inputDomain?: unknown;
+  inputDomains?: unknown[];
 }
 
 function executionRequest(
@@ -238,12 +325,12 @@ function executionRequest(
   predicateExport: string,
   overrides: RequestOverrides = {},
 ): FastCheckExecutionRequest {
+  const inputDomains = overrides.inputDomains ?? [
+    overrides.inputDomain ?? { kind: 'integer', min: -10, max: 10 },
+  ];
   const manifest: FastCheckExecutionRequest['manifest'] = {
     propertyId: `example.${predicateExport}`,
-    inputs: [{
-      name: 'value',
-      domain: overrides.inputDomain ?? { kind: 'integer', min: -10, max: 10 },
-    }],
+    inputs: inputDomains.map((domain, index) => ({ name: `argument${index}`, domain })),
     predicate: {
       module: 'properties.ts',
       exportName: predicateExport,
@@ -261,6 +348,36 @@ function executionRequest(
     timeoutMillis: 1_000,
     examples: [],
   };
+}
+
+interface ContractRequestOverrides {
+  preconditionExport?: string;
+  inputDomains?: unknown[];
+}
+
+function contractExecutionRequest(
+  predicateExport: string,
+  overrides: ContractRequestOverrides = {},
+): FastCheckExecutionRequest {
+  const requestOverrides: RequestOverrides = {};
+  if (overrides.inputDomains !== undefined) requestOverrides.inputDomains = overrides.inputDomains;
+
+  const request = executionRequest(CONTRACT_SOURCE_ROOT, predicateExport, requestOverrides);
+  request.manifest.predicate.module = CONTRACT_MODULE;
+
+  if (overrides.preconditionExport !== undefined) {
+    request.manifest.precondition = {
+      module: CONTRACT_MODULE,
+      exportName: overrides.preconditionExport,
+      executionKind: 'sync',
+    };
+  }
+
+  return request;
+}
+
+function constantDomain(value: unknown): unknown {
+  return { kind: 'constant', value: encodeJsValue(value) };
 }
 
 async function withPropertyModule(block: (sourceRoot: string) => Promise<void>): Promise<void> {
@@ -316,27 +433,10 @@ export function mutatesArrayToCycle(value: unknown[]): boolean {
   return false;
 }
 
-export function mutatesNestedArrayAndAccepts(value: unknown[][]): boolean {
-  value[0]![0] = {};
-
-  return true;
-}
-
-export function receivesOriginalNestedArray(value: unknown[][]): boolean {
-  return value[0]?.[0] === 1;
-}
-
-export async function asyncMutatesNestedArrayAndAccepts(value: unknown[][]): Promise<boolean> {
-  value[0]![0] = {};
-
-  return true;
-}
-
-export async function asyncReceivesOriginalNestedArray(value: unknown[][]): Promise<boolean> {
-  return value[0]?.[0] === 1;
-}
-
 export function throwsInput(value: unknown): never {
   throw value;
 }
 `.trimStart();
+
+const CONTRACT_SOURCE_ROOT = fileURLToPath(new URL('../../../src/test/resources/', import.meta.url));
+const CONTRACT_MODULE = 'properties/contract/PropertyExecutionContract.ts';
