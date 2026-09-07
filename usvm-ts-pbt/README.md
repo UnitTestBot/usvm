@@ -51,6 +51,9 @@ export function reverseTwicePreservesValues(values: number[]): boolean {
 `JsConcreteValue` is a lossless tagged representation used for examples and counterexamples. It preserves
 `undefined`, `null`, NaN, infinities, negative zero, and nested arrays.
 
+The normative behavior of inputs, preconditions, predicates, mutation isolation, projection, search, and replay is
+defined once in the [property execution contract](PROPERTY_EXECUTION_CONTRACT.md).
+
 ## Execute a property
 
 `FastCheckBackend` accepts TypeScript source roots and loads `.ts` entry points directly. User projects do not
@@ -75,12 +78,13 @@ The defaults are 100 successful runs and a 60-second timeout. Configuration also
 positional explicit examples. `PropertyRunResult` contains the property ID, status, actual seed, replay path,
 counterexample, run/skip/shrink counts, failure details, elapsed time, and optional per-property coverage.
 
-Predicate falsification and a timeout reported by fast-check are normal `FAILURE` results. Invalid input,
-entry-point, process, and transport failures throw `PbtBackendException`.
+Predicate falsification, discard-budget exhaustion, and a timeout reported by fast-check are completed `FAILURE`
+results with distinct `PropertyFailureKind` values. Only `PROPERTY` denotes a candidate violation;
+`PRECONDITION_EXHAUSTED` and `TIMEOUT` do not. Invalid input, entry-point contract, process, and transport failures
+throw `PbtBackendException`.
 
-Synchronous entry points must return a boolean directly. Asynchronous entry points must return an awaitable that
-resolves to a boolean. A false precondition is passed to fast-check as a skipped input. Generation, replay, explicit
-examples, checking, and shrinking retain fast-check semantics.
+Generation, replay, explicit examples, checking, and shrinking use the same invocation path and follow the
+[property execution contract](PROPERTY_EXECUTION_CONTRACT.md).
 
 ## Per-property TypeScript coverage
 
