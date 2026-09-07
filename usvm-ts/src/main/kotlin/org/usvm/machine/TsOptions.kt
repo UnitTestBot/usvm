@@ -1,6 +1,5 @@
 package org.usvm.machine
 
-import org.jacodb.ets.model.EtsClassSignature
 import org.usvm.machine.call.TsResidualCallPolicy
 
 data class TsOptions(
@@ -10,5 +9,4 @@ data class TsOptions(
     /** `null` enables every built-in model; an empty set disables all models. */
     val enabledUnknownCallModelIds: Set<String>? = null,
     val unknownCallFallback: TsResidualCallPolicy = TsResidualCallPolicy.STOP_PATH,
-    val unknownCallFallbackOverrides: Map<EtsClassSignature, TsResidualCallPolicy> = emptyMap(),
 )

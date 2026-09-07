@@ -36,7 +36,7 @@ internal object TsArrayShiftIntrinsicModel : TsUnknownCallModel {
         val length = state.memory.read(lengthLValue)
         val zero = mkBv(0)
         val emptyGuard = mkEq(length, zero)
-        val nonEmptyGuard = mkBvSignedLessExpr(zero, length)
+        val nonEmptyGuard = mkNot(emptyGuard)
         val newLength = mkBvSubExpr(length, mkBv(1))
         val firstElementLValue = mkArrayIndexLValue(
             sort = input.elementSort,
@@ -67,10 +67,7 @@ internal object TsArrayShiftIntrinsicModel : TsUnknownCallModel {
             },
         )
 
-        TsUnknownCallModelExecution(
-            successors = listOf(emptySuccessor, nonEmptySuccessor),
-            residualGuard = mkNot(mkOr(emptyGuard, nonEmptyGuard)),
-        )
+        TsUnknownCallModelExecution(successors = listOf(emptySuccessor, nonEmptySuccessor))
     }
 
     private fun resolveInput(state: TsState, call: TsUnknownCall): ArrayShiftInput? = with(state.ctx) {

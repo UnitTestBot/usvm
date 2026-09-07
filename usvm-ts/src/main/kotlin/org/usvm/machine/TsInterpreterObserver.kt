@@ -13,7 +13,7 @@ import org.usvm.statistics.UInterpreterObserver
 
 @Suppress("unused")
 interface TsInterpreterObserver : UInterpreterObserver {
-    /** Called after the profile dispatcher selects an outcome for an unknown call. */
+    /** Called after the dispatcher selects a model or fallback decision for an unknown call. */
     fun onUnknownCall(event: TsUnknownCallEvent) {
         // default empty implementation
     }

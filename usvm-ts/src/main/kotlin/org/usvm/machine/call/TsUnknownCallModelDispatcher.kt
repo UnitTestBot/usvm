@@ -1,6 +1,5 @@
 package org.usvm.machine.call
 
-import org.jacodb.ets.model.EtsClassSignature
 import org.usvm.api.makeFreshUnknownCallResult
 import org.usvm.api.mockMethodCall
 import org.usvm.api.setMockMethodCallResult
@@ -27,11 +26,8 @@ enum class TsResidualCallPolicy {
 class TsModelUnknownCallDispatcher(
     private val models: TsUnknownCallModelCatalog,
     private val fallback: TsResidualCallPolicy,
-    fallbackOverrides: Map<EtsClassSignature, TsResidualCallPolicy> = emptyMap(),
     private val observer: TsInterpreterObserver? = null,
 ) : TsUnknownCallModelDispatcher {
-    private val fallbackOverrides = fallbackOverrides.toMap()
-
     override fun dispatch(scope: TsStepScope, call: TsUnknownCall): TsUnknownCallOutcome {
         val application = scope.calcOnState {
             this@TsModelUnknownCallDispatcher.models.apply(this, call)
@@ -47,10 +43,9 @@ class TsModelUnknownCallDispatcher(
         scope: TsStepScope,
         call: TsUnknownCall,
     ): TsUnknownCallOutcome {
-        val policy = fallbackFor(call)
-        val decision = TsUnknownCallDecision.ResidualFallback(policy)
+        val decision = TsUnknownCallDecision.ResidualFallback(fallback)
 
-        when (policy) {
+        when (fallback) {
             TsResidualCallPolicy.STOP_PATH -> {
                 val falseExpr = scope.calcOnState { ctx.falseExpr }
                 scope.assert(falseExpr)
@@ -72,18 +67,17 @@ class TsModelUnknownCallDispatcher(
         application: TsUnknownCallModelApplication.Applied,
     ): TsUnknownCallOutcome {
         val residualGuard = application.execution.residualGuard
-        val residualPolicy = fallbackFor(call)
         // Creating an unresolved value may add fake-value constraints. Do it before forking so the residual clone
         // inherits both the constraints and their solver models.
         val freshResidualResult = if (
-            residualGuard != null && residualPolicy == TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN
+            residualGuard != null && fallback == TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN
         ) {
             makeFreshUnknownCallResult(scope, call.resultType)
         } else {
             null
         }
         val stoppedResidualIsSatisfiable = residualGuard != null &&
-            residualPolicy == TsResidualCallPolicy.STOP_PATH &&
+            fallback == TsResidualCallPolicy.STOP_PATH &&
             scope.checkSat(residualGuard) != null
 
         var modelApplied = false
@@ -106,7 +100,7 @@ class TsModelUnknownCallDispatcher(
             )
         }.toMutableList()
 
-        if (residualGuard != null && residualPolicy == TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN) {
+        if (residualGuard != null && fallback == TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN) {
             guardedStateChanges += residualGuard to {
                 setMockMethodCallResult(call.callee, requireNotNull(freshResidualResult))
                 newStmt(call.callSite)
@@ -159,9 +153,6 @@ class TsModelUnknownCallDispatcher(
             observer?.onUnknownCallSafely(event(call, TsUnknownCallDecision.ModelApplied(modelId)))
         }
     }
-
-    private fun fallbackFor(call: TsUnknownCall): TsResidualCallPolicy =
-        fallbackOverrides[call.callee.enclosingClass] ?: fallback
 
     private fun event(
         call: TsUnknownCall,

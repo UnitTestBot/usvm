@@ -70,6 +70,20 @@ class TsArrayShiftIntrinsicModelTest {
     }
 
     @Test
+    fun `empty and non empty guards are complementary`() {
+        val state = analyzeStates(methodName = "unknownValue").single()
+        val symbolicArray = state.makeSymbolicRefUntyped()
+
+        val application = TsArrayShiftIntrinsicModel.apply(state, arrayShiftCall(symbolicArray))
+        val execution = assertNotNull(application)
+        val (emptyArray, nonEmptyArray) = execution.successors
+
+        assertEquals(2, execution.successors.size)
+        assertEquals(state.ctx.mkNot(emptyArray.guard), nonEmptyArray.guard)
+        assertNull(execution.residualGuard)
+    }
+
+    @Test
     fun `symbolic unknown array uses residual fallback`() {
         assertUsesResidualFallback(methodName = "symbolicUnknownArray")
     }

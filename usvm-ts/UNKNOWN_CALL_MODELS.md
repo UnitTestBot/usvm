@@ -82,23 +82,6 @@ The available policies are:
 
 `FRESH_SYMBOLIC_RETURN` is deliberately imprecise. Use it only when opaque continuation is preferable to pruning.
 
-### Per-family fallback overrides
-
-`unknownCallFallbackOverrides` changes the fallback for calls whose callee has a particular
-`EtsClassSignature`:
-
-```kotlin
-TsOptions(
-    unknownCallFallback = TsResidualCallPolicy.STOP_PATH,
-    unknownCallFallbackOverrides = mapOf(
-        externalApiSignature to TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN,
-    ),
-)
-```
-
-An override applies both when no model accepts the call and to a residual state returned by a model. Prefer the global
-fallback unless one call family has a concrete reason to differ.
-
 ## Model identity and target
 
 Every model implements `TsUnknownCallModel`:
@@ -200,6 +183,21 @@ Good intrinsic candidates include:
 
 Do not write an intrinsic merely because a library method is stateful.
 
+## Source-model migration
+
+A source model uses the same `TsUnknownCallModel` object and the same ID, target, successor, and residual contract.
+The source-model work in PR #380 should extend a successor completion with the EtsIR entry point and resolved inputs,
+make the model's EtsIR files visible in the analysis scene, and enter that method through the regular interpreter.
+Receiver binding, arguments, returns, exceptions, heap changes, aliases, and nested calls then use normal interpreter
+semantics. They must not be reimplemented in a source-specific dispatcher or backend registry.
+
+The model checks its supported domain before entering EtsIR. An unsupported call returns `null`; a guarded supported
+subdomain uses the complementary residual guard and the same configured fallback. Recursive redirection is prevented
+by tracking the active model ID in execution state, not by creating a second catalog.
+
+`Array.pop` is the source-model example. Its TypeScript body uses indexing and `length`; it must not call `pop` again.
+The existing `Array.shift` intrinsic remains the example for engine-only symbolic-memory `memcpy`.
+
 ## Dynamic receivers
 
 A method name does not prove the receiver type. In particular, `value.shift()` may call a user-defined property rather
@@ -224,7 +222,11 @@ The catalog sorts enabled models by ID and hashes their length-prefixed IDs. The
 not affect the fingerprint and ambiguous concatenations cannot collide merely because of ID boundaries.
 
 The fingerprint identifies the frozen enabled model set for one run. It is not a version and must not be used as a
-manually maintained configuration value.
+manually maintained configuration value. Experiment metadata records the tool revision separately. If model source
+can change independently of that revision, the runner also records a content hash for the external source or generated
+artifact; that content identity is experiment metadata, not another model ID, version, or compatibility setting. Keep
+the catalog fingerprint based only on enabled model IDs rather than adding implementation-specific fingerprint fields
+to the common model contract.
 
 ## Observation
 

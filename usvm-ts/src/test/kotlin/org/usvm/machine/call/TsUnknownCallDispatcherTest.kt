@@ -241,35 +241,12 @@ class TsUnknownCallDispatcherTest {
     fun `TsOptions configures one fallback without profiles`() {
         assertEquals(TsResidualCallPolicy.STOP_PATH, TsOptions().unknownCallFallback)
         assertNull(TsOptions().enabledUnknownCallModelIds)
-        assertTrue(TsOptions().unknownCallFallbackOverrides.isEmpty())
 
         assertFalse(reachesReturn("declaredMethodWithoutBodyContinues"))
         assertTrue(
             reachesReturn(
                 "declaredMethodWithoutBodyContinues",
                 tsOptions = TsOptions(unknownCallFallback = TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN),
-            )
-        )
-    }
-
-    @Test
-    fun `explicit family override replaces the default residual fallback`() {
-        val family = method(fullScene, "declaredMethodWithoutBodyContinues")
-            .cfg
-            .stmts
-            .mapNotNull { it.callExpr }
-            .single { it.callee.name == "external" }
-            .callee
-            .enclosingClass
-
-        assertTrue(
-            reachesReturn(
-                "declaredMethodWithoutBodyContinues",
-                tsOptions = TsOptions(
-                    unknownCallFallbackOverrides = mapOf(
-                        family to TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN,
-                    ),
-                ),
             )
         )
     }

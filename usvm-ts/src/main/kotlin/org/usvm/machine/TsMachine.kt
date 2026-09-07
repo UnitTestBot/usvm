@@ -64,7 +64,6 @@ class TsMachine(
     private val resolvedUnknownCallDispatcher = unknownCallDispatcher ?: TsModelUnknownCallDispatcher(
         models = requireNotNull(resolvedUnknownCallModels),
         fallback = tsOptions.unknownCallFallback,
-        fallbackOverrides = tsOptions.unknownCallFallbackOverrides,
         observer = observer,
     )
     private val interpreter = TsInterpreter(
