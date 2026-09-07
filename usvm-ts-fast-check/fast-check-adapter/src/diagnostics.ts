@@ -31,6 +31,7 @@ export const adapterDiagnostic = {
   domainKindUnknown: invalidRequest('domain.kind.unknown'),
   domainOptionalNil: invalidRequest('domain.optional.nil'),
   domainTupleEmpty: invalidRequest('domain.tuple.empty'),
+  domainConstantUnsupported: invalidRequest('domain.constant.unsupported'),
   domainNumberAllowNaNInvalid: invalidRequest('domain.number.allow-nan.invalid'),
   domainNumberBoundNaN: invalidRequest('domain.number.bound.nan'),
   domainNumberBounds: invalidRequest('domain.number.bounds'),
@@ -55,4 +56,5 @@ export const adapterDiagnostic = {
   entryPointModuleImportFailed: entryPoint('entrypoint.module.import-failed'),
   entryPointExecutionKindMismatch: entryPoint('entrypoint.execution-kind.mismatch'),
   entryPointResultInvalid: entryPoint('entrypoint.result.invalid'),
+  entryPointPreconditionThrew: entryPoint('entrypoint.precondition.threw'),
 } as const;

@@ -157,6 +157,29 @@ test('unknown domain kinds are rejected and reported as unsupported', () => {
   );
 });
 
+test('constant domains reject composite values consistently with the Kotlin model', () => {
+  const domain = {
+    kind: 'constant',
+    value: {
+      kind: 'array',
+      elements: [{ kind: 'number', value: 'finite', bits: '3ff0000000000000' }],
+    },
+  };
+
+  assert.throws(() => projectDomain(domain), /domain\.constant\.unsupported/);
+  assert.deepEqual(
+    projectionCapability(domain, 'inputs[0].domain'),
+    {
+      level: 'unsupported',
+      diagnostics: [{
+        code: 'domain.constant.unsupported',
+        message: 'Constant domains support JavaScript primitives only',
+        path: 'inputs[0].domain',
+      }],
+    },
+  );
+});
+
 function sample(domain: unknown, numRuns = 100): unknown[] {
   return fc.sample(projectDomain(domain), { seed: 42, numRuns });
 }

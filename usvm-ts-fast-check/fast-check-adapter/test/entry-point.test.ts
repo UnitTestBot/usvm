@@ -3,6 +3,7 @@ import { mkdtemp, mkdir, realpath, rm, symlink, writeFile } from 'node:fs/promis
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { ProtocolError } from '../src/js-value.js';
 import { loadEntryPoint } from '../src/entry-point.js';
 
@@ -198,6 +199,22 @@ test('enforces declared execution kind and boolean results', async () => {
   });
 });
 
+test('preserves aliases in one supported invocation graph', async () => {
+  const loaded = await loadEntryPoint(
+    {
+      module: CONTRACT_MODULE,
+      exportName: 'preservesNestedArrayAlias',
+      executionKind: 'sync',
+    },
+    [CONTRACT_SOURCE_ROOT],
+    'manifest.predicate',
+  );
+  const sharedElement = [1];
+  const aliasedValue = [sharedElement, sharedElement];
+
+  assert.equal(loaded.invoke([aliasedValue]), true);
+});
+
 async function withWorkspace(block: (workspace: string) => Promise<void>): Promise<void> {
   const workspace = await realpath(await mkdtemp(path.join(tmpdir(), 'usvm-entry-point-')));
 
@@ -222,3 +239,6 @@ async function assertProtocolError(
 function isProtocolError(error: unknown, code: string): error is ProtocolError {
   return error instanceof ProtocolError && error.code === code;
 }
+
+const CONTRACT_SOURCE_ROOT = fileURLToPath(new URL('../../../src/test/resources/', import.meta.url));
+const CONTRACT_MODULE = 'properties/contract/PropertyExecutionContract.ts';

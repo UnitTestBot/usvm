@@ -37,6 +37,7 @@ export interface FastCheckExecutionRequest {
   manifest: PropertyManifestWire;
   sourceRoots: string[];
   seed?: number;
+  /** Replay follows the same invocation contract as generation and shrinking. */
   replayPath?: string;
   numRuns: number;
   timeoutMillis: number;
@@ -44,7 +45,7 @@ export interface FastCheckExecutionRequest {
 }
 
 export interface FastCheckFailureDetails {
-  kind: 'property' | 'timeout';
+  kind: 'property' | 'precondition-exhausted' | 'timeout';
   errorName: string;
   message: string;
 }
@@ -106,17 +107,61 @@ function buildProperty(
 
   if (asynchronous) {
     return fc.asyncProperty(arbitrary, async (values: JsConcreteValue[]): Promise<boolean> => {
-      if (precondition !== undefined && !(await precondition.invoke(cloneArguments(values)))) fc.pre(false);
+      const invocationValues = cloneArguments(values);
+      if (precondition !== undefined && !(await invokePrecondition(precondition, invocationValues))) fc.pre(false);
 
-      return await predicate.invoke(cloneArguments(values));
+      return await predicate.invoke(invocationValues);
     });
   }
 
   return fc.property(arbitrary, (values: JsConcreteValue[]): boolean => {
-    if (precondition !== undefined && !precondition.invoke(cloneArguments(values))) fc.pre(false);
+    const invocationValues = cloneArguments(values);
+    if (precondition !== undefined && !invokeSynchronousPrecondition(precondition, invocationValues)) fc.pre(false);
 
-    return predicate.invoke(cloneArguments(values)) as boolean;
+    return predicate.invoke(invocationValues) as boolean;
   });
+}
+
+async function invokePrecondition(
+  precondition: LoadedEntryPoint,
+  values: JsConcreteValue[],
+): Promise<boolean> {
+  try {
+    return await precondition.invoke(values);
+  } catch (error: unknown) {
+    throw classifyPreconditionError(error);
+  }
+}
+
+function invokeSynchronousPrecondition(
+  precondition: LoadedEntryPoint,
+  values: JsConcreteValue[],
+): boolean {
+  try {
+    return precondition.invoke(values) as boolean;
+  } catch (error: unknown) {
+    throw classifyPreconditionError(error);
+  }
+}
+
+function classifyPreconditionError(error: unknown): ProtocolError {
+  if (error instanceof ProtocolError) return error;
+
+  return protocolError(
+    adapterDiagnostic.entryPointPreconditionThrew,
+    `Property precondition threw ${describeThrownValue(error)}`,
+    'manifest.precondition',
+  );
+}
+
+function describeThrownValue(value: unknown): string {
+  if (value instanceof Error) {
+    const name = value.name || 'Error';
+
+    return value.message.length === 0 ? name : `${name}: ${value.message}`;
+  }
+
+  return `a non-Error value: ${String(value)}`;
 }
 
 async function checkProperty(
@@ -139,28 +184,9 @@ async function checkProperty(
   }
 }
 
-/**
- * User callbacks must not mutate fast-check's sample, which it retains for shrinking and replay.
- * A shared clone map preserves aliases and cycles within one invocation while isolating separate invocations.
- */
+/** See [the contract](../../PROPERTY_EXECUTION_CONTRACT.md) for the invocation and isolation rules. */
 function cloneArguments(values: JsConcreteValue[]): JsConcreteValue[] {
-  return cloneArray(values, new Map());
-}
-
-function cloneArray(
-  value: JsConcreteValue[],
-  clones: Map<JsConcreteValue[], JsConcreteValue[]>,
-): JsConcreteValue[] {
-  const existing = clones.get(value);
-  if (existing !== undefined) return existing;
-
-  const clone: JsConcreteValue[] = [];
-  clones.set(value, clone);
-  for (const element of value) {
-    clone.push(Array.isArray(element) ? cloneArray(element, clones) : element);
-  }
-
-  return clone;
+  return structuredClone(values);
 }
 
 function buildParameters(request: FastCheckExecutionRequest): Parameters<[JsConcreteValue[]]> {
@@ -240,8 +266,8 @@ function failureDetails(details: RunDetails<[JsConcreteValue[]]>): FastCheckFail
 
   if (details.counterexample === null) {
     return {
-      kind: 'property',
-      errorName: 'PropertyFailure',
+      kind: 'precondition-exhausted',
+      errorName: 'PreconditionExhausted',
       message: 'Property could not satisfy its precondition within the skip limit',
     };
   }

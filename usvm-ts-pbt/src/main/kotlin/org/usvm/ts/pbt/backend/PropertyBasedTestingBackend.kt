@@ -44,7 +44,7 @@ data class PropertyRunConfiguration(
     }
 }
 
-/** Whether the predicate held for every value executed by the backend. */
+/** Completion status; inspect [PropertyFailureKind] before interpreting a failure as a property violation. */
 @Serializable
 enum class PropertyRunStatus {
     @SerialName("success")
@@ -57,9 +57,15 @@ enum class PropertyRunStatus {
 /** Stable classification of a completed property failure. */
 @Serializable
 enum class PropertyFailureKind {
+    /** A predicate returned false or let an exception escape for one admitted input. */
     @SerialName("property")
     PROPERTY,
 
+    /** No generated or explicit input was admitted before the backend skip limit was exhausted. */
+    @SerialName("precondition-exhausted")
+    PRECONDITION_EXHAUSTED,
+
+    /** The concrete backend reported its configured time limit; this is not a property violation. */
     @SerialName("timeout")
     TIMEOUT,
 }
@@ -107,7 +113,19 @@ data class PropertyRunResult(
             }
 
             PropertyRunStatus.FAILURE -> {
-                requireNotNull(failure) { "A failed run requires failure details" }
+                val failureDetails = requireNotNull(failure) { "A failed run requires failure details" }
+
+                when (failureDetails.kind) {
+                    PropertyFailureKind.PROPERTY -> {
+                        requireNotNull(counterexample) { "A property violation requires a counterexample" }
+                    }
+
+                    PropertyFailureKind.PRECONDITION_EXHAUSTED,
+                    PropertyFailureKind.TIMEOUT,
+                    -> require(counterexample == null) {
+                        "A non-violation failure must not contain a counterexample"
+                    }
+                }
             }
         }
     }
