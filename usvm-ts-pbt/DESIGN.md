@@ -15,62 +15,57 @@ API and CLI examples, see [README.md](README.md).
 - Failures are typed without exposing runtime-dependent Node stack traces.
 - A blocked or noisy child process cannot hang the JVM or exhaust unbounded memory.
 
-## Components and dependencies
+## Main data flows
+
+The execution, projection, and EtsIR mapping paths are independent. Cross-cutting adapter helpers such as value
+encoding and diagnostics are described in the component table instead of being drawn as extra graph branches.
+
+### Property execution
 
 ```mermaid
 flowchart LR
-    subgraph Kotlin
-        Caller[Backend caller]
-        CLI[FastCheckCli]
-        Registry[PropertyRegistry]
-        Model[Property model and validation]
-        Backend[FastCheckBackend]
-        Process[FastCheckProcessClient]
-        Projection[FastCheckProjectionClient]
-        Mapping[PropertyEtsMapper]
-    end
+    Entry[Backend caller or FastCheckCli]
+    Backend[FastCheckBackend]
+    Process[FastCheckProcessClient]
+    Adapter[Node execution adapter<br/>direct or c8-wrapped]
+    Output[PropertyRunResult<br/>and optional PropertyCoverageArtifact]
+    Source[User TypeScript source]
 
-    subgraph Node_adapter[Private Node adapter]
-        ExecutionCLI[execution-cli.ts]
-        ProjectionCLI[projection-cli.ts]
-        Execute[execute-property.ts]
-        Domains[project-domain.ts]
-        EntryPoints[entry-point.ts]
-        Values[js-value.ts]
-        Diagnostics[diagnostics.ts]
-    end
+    Entry --> Backend --> Process --> Adapter --> Output
+    Source --> Adapter
+```
 
+### Domain projection
+
+```mermaid
+flowchart LR
+    Client[FastCheckProjectionClient]
+    CLI[projection-cli.ts]
+    Domains[project-domain.ts]
     FastCheck[fast-check]
-    Tsx[tsx]
-    C8[c8 and Istanbul JSON]
-    UserTS[User TypeScript source]
-    EtsIR[EtsScene and EtsSourceSpan]
+    Samples[Projected samples]
 
-    CLI --> Registry
-    CLI --> Backend
-    Caller --> Backend
-    Registry --> Model
-    Backend --> Model
-    Backend --> Process
-    Model --> Mapping
-    Process --> Mapping
-    Mapping --> EtsIR
-    Process --> ExecutionCLI
-    Process --> C8
-    C8 --> ExecutionCLI
-    Projection --> ProjectionCLI
-    ExecutionCLI --> Execute
-    Execute --> Domains
-    Execute --> EntryPoints
-    Execute --> Values
-    ProjectionCLI --> Domains
-    Diagnostics --> ExecutionCLI
-    Diagnostics --> Domains
-    Diagnostics --> EntryPoints
-    Domains --> FastCheck
-    Execute --> FastCheck
-    EntryPoints --> Tsx
-    Tsx --> UserTS
+    Client --> CLI --> Domains --> FastCheck --> Samples
+```
+
+### Property-to-EtsIR mapping
+
+```mermaid
+flowchart LR
+    subgraph Inputs
+        direction TB
+        Manifest[PropertyManifest]
+        Coverage[Optional PropertyCoverageArtifact]
+        Scene[EtsScene and EtsSourceSpan]
+    end
+
+    Mapper[PropertyEtsMapper]
+    Artifact[PropertyEtsMappingArtifact]
+
+    Manifest --> Mapper
+    Coverage --> Mapper
+    Scene --> Mapper
+    Mapper --> Artifact
 ```
 
 | Component | Responsibility |
