@@ -13,6 +13,9 @@ import org.gradle.kotlin.dsl.withType
 fun Project.configureDetekt() {
     dependencies {
         detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:${detekt.toolVersion}")
+        if (path != USVM_DETEKT_RULES_PROJECT_PATH) {
+            detektPlugins(project(USVM_DETEKT_RULES_PROJECT_PATH))
+        }
     }
 
     val includes = listOf(
@@ -90,3 +93,4 @@ fun Project.configureDetekt() {
 }
 
 private val STRICT_TS_DETEKT_PROJECTS = setOf("usvm-ts", "usvm-ts-pbt")
+private const val USVM_DETEKT_RULES_PROJECT_PATH = ":usvm-detekt-rules"

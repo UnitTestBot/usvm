@@ -67,18 +67,22 @@ internal class IstanbulCoverageDecoder(
             return null
         }
 
-        return IstanbulSourceFileDecoder(
+        val decoder = IstanbulSourceFileDecoder(
             file = fileObject,
             path = path,
             reportKey = reportKey,
-        ).decode()
+        )
+
+        return decoder.decode()
     }
 
     private fun sourceMapDiagnostic(path: String): CoverageDiagnostic {
         val sourceMapPath = Path.of("$path.map")
+        val sourceMapExists = Files.exists(sourceMapPath)
+
         return buildSourceMapDiagnostic(
             path = path,
-            sourceMapExists = Files.exists(sourceMapPath),
+            sourceMapExists = sourceMapExists,
         )
     }
 

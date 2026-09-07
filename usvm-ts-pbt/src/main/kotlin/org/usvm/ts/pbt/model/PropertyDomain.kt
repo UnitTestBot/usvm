@@ -79,15 +79,17 @@ operator fun PropertyDomain.contains(value: JsConcreteValue): Boolean = when (th
     is StringDomain -> value is JsConcreteValue.String && value.value.length in minLength..maxLength
     is ConstantDomain -> value == this.value
     is OptionalDomain -> value == nil || value in this.value
-    is TupleDomain ->
+    is TupleDomain -> {
         value is JsConcreteValue.Array &&
             value.elements.size == elements.size &&
             value.elements.zip(elements).all { (element, domain) -> element in domain }
+    }
 
-    is ArrayDomain ->
+    is ArrayDomain -> {
         value is JsConcreteValue.Array &&
             value.elements.size in minLength..maxLength &&
             value.elements.all { elementValue -> elementValue in element }
+    }
 }
 
 private fun JsConcreteValue.Number.isIntegerIn(domain: IntegerDomain): Boolean {

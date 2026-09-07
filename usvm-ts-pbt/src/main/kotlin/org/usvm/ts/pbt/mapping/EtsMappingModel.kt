@@ -24,9 +24,17 @@ enum class EtsSourceCoordinateSystem {
     TYPESCRIPT_UTF16_ZERO_BASED_HALF_OPEN,
 }
 
-/** Ordered-successor convention used to bind binary backend branch arms. */
-enum class EtsBranchSuccessorOrder {
-    TRUE_FALSE,
+/** Ordered-successor convention used to bind backend branch arms to EtsIR CFG successors. */
+enum class EtsBranchSuccessorOrder(
+    private val orderedOutcomes: List<Boolean>,
+) {
+    TRUE_FALSE(orderedOutcomes = listOf(true, false)),
+    ;
+
+    internal val armCount: Int
+        get() = orderedOutcomes.size
+
+    internal fun outcomeAt(successorIndex: Int): Boolean = orderedOutcomes[successorIndex]
 }
 
 /** Mapping-layer assumptions needed to interpret every target in one property artifact. */
@@ -48,12 +56,39 @@ data class EtsMappingDiagnostic(
     }
 }
 
-/** One mapping decision together with every EtsIR target selected by that decision. */
+/**
+ * One mapping decision together with every EtsIR target selected by that decision.
+ *
+ * One TypeScript statement may be lowered into several EtsIR statements that share its source origin, so an exact
+ * result may contain several targets. Ambiguous results preserve every candidate and explain the ambiguity.
+ * Unmapped and unsupported results carry only their diagnostic reasons.
+ */
 data class EtsMappingResult<T>(
     val status: EtsMappingStatus,
     val targets: List<T>,
     val diagnostics: List<EtsMappingDiagnostic> = emptyList(),
-)
+) {
+    init {
+        when (status) {
+            EtsMappingStatus.EXACT -> {
+                require(targets.isNotEmpty()) { "Exact mapping requires at least one target" }
+                require(diagnostics.isEmpty()) { "Exact mapping must not contain diagnostics" }
+            }
+
+            EtsMappingStatus.AMBIGUOUS -> {
+                require(targets.isNotEmpty()) { "Ambiguous mapping requires at least one candidate target" }
+                require(diagnostics.isNotEmpty()) { "Ambiguous mapping requires a diagnostic" }
+            }
+
+            EtsMappingStatus.UNMAPPED,
+            EtsMappingStatus.UNSUPPORTED,
+            -> {
+                require(targets.isEmpty()) { "$status mapping must not contain targets" }
+                require(diagnostics.isNotEmpty()) { "$status mapping requires a diagnostic" }
+            }
+        }
+    }
+}
 
 /** Explicit stack binding for the receiver reserved by the TypeScript interpreter. */
 data class EtsReceiverBinding(

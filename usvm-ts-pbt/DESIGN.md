@@ -15,71 +15,24 @@ API and CLI examples, see [README.md](README.md).
 - Failures are typed without exposing runtime-dependent Node stack traces.
 - A blocked or noisy child process cannot hang the JVM or exhaust unbounded memory.
 
-## Main data flows
+## Component responsibilities
 
-The execution, projection, and EtsIR mapping paths are independent. Cross-cutting adapter helpers such as value
-encoding and diagnostics are described in the component table instead of being drawn as extra graph branches.
-
-### Property execution
-
-```mermaid
-flowchart LR
-    Entry[Backend caller or FastCheckCli]
-    Backend[FastCheckBackend]
-    Process[FastCheckProcessClient]
-    Adapter[Node execution adapter<br/>direct or c8-wrapped]
-    Output[PropertyRunResult<br/>and optional PropertyCoverageArtifact]
-    Source[User TypeScript source]
-
-    Entry --> Backend --> Process --> Adapter --> Output
-    Source --> Adapter
-```
-
-### Domain projection
-
-```mermaid
-flowchart LR
-    Client[FastCheckProjectionClient]
-    CLI[projection-cli.ts]
-    Domains[project-domain.ts]
-    FastCheck[fast-check]
-    Samples[Projected samples]
-
-    Client --> CLI --> Domains --> FastCheck --> Samples
-```
-
-### Property-to-EtsIR mapping
-
-```mermaid
-flowchart LR
-    subgraph Inputs
-        direction TB
-        Manifest[PropertyManifest]
-        Coverage[Optional PropertyCoverageArtifact]
-        Scene[EtsScene and EtsSourceSpan]
-    end
-
-    Mapper[PropertyEtsMapper]
-    Artifact[PropertyEtsMappingArtifact]
-
-    Manifest --> Mapper
-    Coverage --> Mapper
-    Scene --> Mapper
-    Mapper --> Artifact
-```
-
-| Component | Responsibility |
-| --- | --- |
-| Kotlin model and validation | Define one backend-neutral property and reject invalid structure before execution. |
-| Registry and CLI | Select Kotlin-defined properties and turn user options into a run configuration. |
-| `FastCheckBackend` | Validate examples, resolve source roots, and create the adapter request. |
-| `FastCheckProcessClient` | Supervise Node with coroutines and optionally decode one isolated c8 report. |
-| `PropertyEtsMapper` | Resolve property entry points and backend-neutral coverage to explicit EtsIR targets. |
-| `execution-cli.ts` | Read one JSON request, protect protocol stdout from user logging, and write one response. |
-| `execute-property.ts` | Build the fast-check property, run it, and translate `RunDetails` into the common result. |
-| `project-domain.ts` | Translate domain descriptors into real `fc.Arbitrary` instances. |
-| `entry-point.ts` | Resolve exactly one module below a source root and invoke its typed export through `tsx`. |
-| Value and diagnostic modules | Preserve JavaScript values losslessly and define adapter-emitted diagnostic identifiers. |
+| Component                       | Responsibility                                                                                     |
+| ------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Kotlin model and validation     | Define one backend-neutral property and reject invalid structure before execution.                 |
+| Registry and CLI                | Select Kotlin-defined properties and turn user options into a run configuration.                   |
+| `FastCheckBackend`              | Validate examples, resolve source roots, and create the adapter request.                           |
+| `FastCheckProcessClient`        | Encode one execution request and validate the adapter response.                                    |
+| `FastCheckProjectionClient`     | Encode one projection request and validate sampled values.                                         |
+| `FastCheckProcessTransport`     | Run one bounded supervised process exchange for either Kotlin client.                              |
+| `FastCheckCoverageSession`      | Prepare c8, own its temporary workspace, and attach decoded coverage to the result.                |
+| `PropertyEtsMapper`             | Resolve property entry points and backend-neutral coverage to explicit EtsIR targets.              |
+| `process-supervisor.ts`         | Own the adapter process group and terminate its descendants on exit or cancellation.               |
+| `execution-cli.ts`              | Read one JSON request, protect protocol stdout from user logging, and write one response.          |
+| `execute-property.ts`           | Build the fast-check property, run it, and translate `RunDetails` into the common result.          |
+| `project-domain.ts`             | Translate domain descriptors into real `fc.Arbitrary` instances.                                   |
+| `entry-point.ts`                | Resolve exactly one module below a source root and invoke its typed export through `tsx`.          |
+| Value and diagnostic modules    | Preserve JavaScript values losslessly and define adapter-emitted diagnostic identifiers.           |
 
 `projection-cli.ts` is the smaller sampling path used by `FastCheckProjectionClient`. It shares domain and value
 translation with property execution but does not load or call user predicates.
@@ -161,6 +114,9 @@ sequenceDiagram
 Input order is preserved from `PropertyDefinition.inputs` to the positional TypeScript arguments. If either the
 predicate or precondition is asynchronous, the adapter uses `fc.asyncProperty`; otherwise it uses `fc.property`.
 A false precondition becomes `fc.pre(false)`, leaving skip accounting to fast-check.
+Each callback receives its own recursive clone of the generated arguments. This keeps predicate and precondition
+mutations from changing fast-check's retained sample or leaking from one callback into the other during shrinking
+and replay, while preserving aliases and cycles within one invocation.
 
 ## Results, errors, and timeouts
 
@@ -224,6 +180,26 @@ The result is a `PropertyEtsMappingArtifact` that keeps the manifest property ID
 mapping coordinate and branch-order provenance, resolved predicate and precondition targets, coverage targets, and
 stable diagnostic reasons.
 
+```mermaid
+flowchart LR
+    subgraph Inputs
+        direction TB
+        Manifest[PropertyManifest]
+        Coverage[Optional PropertyCoverageArtifact]
+        Scene[EtsScene with EtsSourceSpan origins]
+        Roots[Source roots]
+    end
+
+    Mapper[PropertyEtsMapper]
+    Artifact[PropertyEtsMappingArtifact]
+
+    Manifest --> Mapper
+    Coverage --> Mapper
+    Scene --> Mapper
+    Roots --> Mapper
+    Mapper --> Artifact
+```
+
 Entry-point resolution starts from the manifest module/export pair and follows named or bare-star TypeScript
 re-exports. Direct function exports resolve only in the file-level `%dflt` class. Namespace-star exports are not
 callable methods, bare-star traversal excludes `default`, explicit runtime exports take precedence over bare-star
@@ -233,43 +209,60 @@ star re-exports do not mask a bare-star runtime fallback.
 Module candidates mirror the frontend's `.ts`, `.ets`, `.d.ts`, and directory-index suffix rules.
 Predicate and precondition resolution are independent. A resolved method carries `EtsEntryPointBindings`: receiver
 slot zero, ordered input-to-parameter bindings in subsequent slots, and the result type. A mismatch between
-manifest inputs and EtsIR parameters is unsupported, as is coverage carrying another property ID.
+manifest inputs and EtsIR parameters is unsupported, as is coverage carrying another property ID. A candidate set
+with mixed parameter counts is unsupported as a whole: discarding its unbindable candidates would turn an
+ambiguous resolution into a guess.
 
 Existing source roots and files are canonicalized with real paths; an unresolvable root makes entry-point mapping
 unsupported. Istanbul lines are converted from one-based to zero-based, columns stay zero-based, and offsets are
-calculated in UTF-16 code units using TypeScript's LF, CRLF, CR, U+2028, and U+2029 line terminators. Statement mapping first looks
-for an exact `EtsSourceSpan`; if normalized EtsIR statements share that span, all remain exact targets. A containing
-coverage range with one distinct origin is also exact, several distinct origins are ambiguous, and no origin match
-is unmapped. Missing source text, invalid coordinates, or an EtsIR file whose statements have no origins are
-unsupported.
+calculated in UTF-16 code units. TypeScript line terminators are LF, CRLF, CR, Unicode line separator (`U+2028`),
+and Unicode paragraph separator (`U+2029`). Statement mapping first looks for an exact `EtsSourceSpan`; if
+normalized EtsIR statements share that span, all remain exact targets. A containing coverage range with one
+distinct origin is also exact, several distinct origins are ambiguous, and no origin match is unmapped. Missing
+source text, invalid coordinates, or an EtsIR file whose statements have no origins are unsupported.
 
 Branch mapping currently accepts an Istanbul `if` with exactly two ordered arms and resolves conditions to
 `EtsIfStmt`. The first CFG successor is recorded as true and the second as false. Several EtsIR conditions with one
-shared origin are exact; several distinct condition origins are ambiguous. Other branch types, non-binary arm
-shapes, and EtsIR conditions without two ordered successors are unsupported rather than inferred.
+shared origin are still ambiguous because short-circuit expressions can lower to conditions with different CFG
+semantics. Only one condition from one source candidate is exact. Other branch types, non-binary arm shapes, and
+EtsIR conditions without two ordered successors are unsupported rather than inferred.
+
 An invalid arm is reported independently while a successfully resolved condition remains available, and aggregate
 coverage status includes both conditions and arms.
+
+The pinned c8/V8 collector emits backend-specific `branch` records with one arm, so those records remain
+unsupported for CFG-edge mapping; their statement coverage is still mapped. A backend that supplies binary
+Istanbul `if` branches can use the exact edge mapping above.
+
+An empty but valid coverage artifact has no failed mapping decisions and therefore has `EXACT` aggregate status.
+Backend coverage diagnostics are preserved separately and do not alter that aggregate: they can describe omitted
+files outside the requested coverage scopes.
 
 The JVM taint-analysis `PositionResolver` and `ConditionResolver` were reviewed as architectural prior art. Their
 useful separation is preserved: declarative receiver/argument/result positions are distinct from runtime-bound
 values, and condition interpretation is distinct from position resolution. The TypeScript mapper expresses this
 with EtsIR-specific binding and mapping records and has no dependency on `usvm-jvm` or the taint-analysis module.
 
-The execution client starts stdout, stderr, and stdin work concurrently on the coroutine I/O dispatcher. Requests
-and stdout are limited to 4 MiB; stderr is limited to 64 KiB. These are transport safety bounds, not property-policy
-limits. The hard deadline is the property timeout plus two seconds for transport, followed by up to 250 ms of
-graceful shutdown before force-kill, bounded by the absolute deadline. The private process tree is:
+## Process supervision
+
+`FastCheckProcessTransport` writes stdin and drains stdout and stderr concurrently. This is necessary because each
+OS pipe has a finite buffer: reading either output only after process exit can deadlock a child that fills the other
+pipe. Requests and stdout are limited to 4 MiB; stderr is limited to 64 KiB. Crossing an output limit fails promptly
+and starts cleanup instead of continuing to buffer data. These are transport safety bounds, not property-policy
+limits. The execution deadline is the property timeout plus two seconds for transport; projection has its own
+bounded wall-clock timeout. Shutdown gets up to 250 ms before force-kill, within the same absolute deadline. The
+private process tree is:
 
 ```text
-Kotlin client -> process supervisor -> detached group-owner worker -> adapter or command -> descendants
+Kotlin client -> process supervisor -> detached group owner -> adapter command -> descendants
 ```
 
-The supervisor accepts explicit `--adapter` and `--command` modes and stays outside the owned process group so it can
-escalate shutdown. It installs signal handlers before spawning the group owner, so an immediate cancellation is
-remembered until the process-group ID becomes available. The stable group owner reports adapter or command exit over
-IPC; the supervisor then force-removes remaining descendants. If the supervisor disappears first, the IPC disconnect
-handler performs the same cleanup. The only run-control maximum is `2^31 - 1` milliseconds because Node timers use
-signed 32-bit delays; runs, examples, and replay paths have no arbitrary count or length caps.
+The supervisor stays outside the owned process group so it can escalate shutdown. It installs signal handlers before
+spawning the group owner, so an immediate cancellation is remembered until the process-group ID becomes available.
+The stable group owner reports command exit over IPC; the supervisor then force-removes remaining descendants. If the
+supervisor disappears first, the IPC disconnect handler performs the same cleanup. The only run-control maximum is
+`2^31 - 1` milliseconds because Node timers use signed 32-bit delays; runs, examples, and replay paths have no
+arbitrary count or length caps.
 
 ## Runtime packaging
 

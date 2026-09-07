@@ -22,6 +22,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 class PropertyEtsSourceNormalizationTest {
     @TempDir
@@ -59,7 +60,7 @@ class PropertyEtsSourceNormalizationTest {
         val file = loadEtsFileAutoConvert(symlinkSource, provider = EtsIrProvider.TS_FRONTEND)
         val propertyId = PropertyId("mapping.symlink-root")
         val coverage = coverageArtifact(
-            sourceRoot = realRoot,
+            sourceRoots = listOf(realRoot),
             sourcePath = realSource.toRealPath(),
             propertyId = propertyId,
             statements = listOf(
@@ -98,7 +99,7 @@ class PropertyEtsSourceNormalizationTest {
             statement(statementId = 3, line = 5),
         )
         val coverage = coverageArtifact(
-            sourceRoot = tempDirectory,
+            sourceRoots = listOf(tempDirectory),
             sourcePath = source,
             propertyId = propertyId,
             statements = statements,
@@ -113,6 +114,88 @@ class PropertyEtsSourceNormalizationTest {
         val locations = artifact.coverage.statements.map { mapping -> assertNotNull(mapping.location) }
         assertEquals(listOf(3, 5, 7, 9), locations.map { location -> location.start.offset })
         assertEquals(listOf(4, 6, 8, 10), locations.map { location -> location.end.offset })
+    }
+
+    @Test
+    fun `relative coverage path resolves through its only existing source root`() {
+        val emptyRoot = Files.createDirectory(tempDirectory.resolve("empty"))
+        val sourceRoot = Files.createDirectory(tempDirectory.resolve("source"))
+        val source = sourceRoot.resolve("Predicate.ts")
+        Files.writeString(source, "x")
+
+        val propertyId = PropertyId("mapping.relative-source")
+        val coverage = coverageArtifact(
+            sourceRoots = listOf(emptyRoot, sourceRoot),
+            sourcePath = Path.of("Predicate.ts"),
+            propertyId = propertyId,
+            statements = listOf(statement(statementId = 0, line = 1)),
+        )
+        val mapper = PropertyEtsMapper(
+            scene = EtsScene(emptyList()),
+            sourceRoots = listOf(emptyRoot, sourceRoot),
+        )
+
+        val artifact = mapper.map(manifest(propertyId, module = source.fileName.toString()), coverage)
+
+        val statement = artifact.coverage.statements.single()
+        assertEquals(source.toRealPath().toString(), statement.location?.path)
+        assertEquals(EtsMappingStatus.UNMAPPED, statement.mapping.status)
+    }
+
+    @Test
+    fun `relative coverage path below several source roots remains unsupported`() {
+        val firstRoot = Files.createDirectory(tempDirectory.resolve("first"))
+        val secondRoot = Files.createDirectory(tempDirectory.resolve("second"))
+        Files.writeString(firstRoot.resolve("Predicate.ts"), "x")
+        Files.writeString(secondRoot.resolve("Predicate.ts"), "x")
+
+        val propertyId = PropertyId("mapping.ambiguous-relative-source")
+        val coverage = coverageArtifact(
+            sourceRoots = listOf(firstRoot, secondRoot),
+            sourcePath = Path.of("Predicate.ts"),
+            propertyId = propertyId,
+            statements = listOf(statement(statementId = 0, line = 1)),
+        )
+        val mapper = PropertyEtsMapper(
+            scene = EtsScene(emptyList()),
+            sourceRoots = listOf(firstRoot, secondRoot),
+        )
+
+        val artifact = mapper.map(manifest(propertyId, module = "Predicate.ts"), coverage)
+
+        val statement = artifact.coverage.statements.single()
+        assertNull(statement.location)
+        assertEquals(EtsMappingStatus.UNSUPPORTED, statement.mapping.status)
+        assertEquals("mapping.source.location.unsupported", statement.mapping.diagnostics.single().code)
+    }
+
+    @Test
+    fun `module path candidates include every supported file and directory suffix`() {
+        val normalizer = SourceLocationNormalizer(sourceRoots = listOf(tempDirectory))
+        val modulePath = tempDirectory.resolve("Predicate")
+        val expectedCandidates = setOf(
+            modulePath,
+            tempDirectory.resolve("Predicate.ts"),
+            tempDirectory.resolve("Predicate.ets"),
+            tempDirectory.resolve("Predicate.d.ts"),
+            modulePath.resolve("index.ts"),
+            modulePath.resolve("index.ets"),
+            modulePath.resolve("index.d.ts"),
+        )
+
+        val candidates = normalizer.modulePathCandidates(modulePath)
+
+        assertEquals(expectedCandidates, candidates)
+    }
+
+    @Test
+    fun `module path with a supported suffix is already resolved`() {
+        val normalizer = SourceLocationNormalizer(sourceRoots = listOf(tempDirectory))
+        val declarationPath = tempDirectory.resolve("Predicate.d.ts")
+
+        val candidates = normalizer.modulePathCandidates(declarationPath)
+
+        assertEquals(setOf(declarationPath), candidates)
     }
 
     private fun statement(statementId: Int, line: Int): StatementCoverage = StatementCoverage(
@@ -131,7 +214,7 @@ class PropertyEtsSourceNormalizationTest {
     )
 
     private fun coverageArtifact(
-        sourceRoot: Path,
+        sourceRoots: List<Path>,
         sourcePath: Path,
         propertyId: PropertyId,
         statements: List<StatementCoverage>,
@@ -143,7 +226,7 @@ class PropertyEtsSourceNormalizationTest {
             collector = CoverageCollectorIdentity(id = "fixture", version = "1.0"),
             runtimeId = "node",
             runtimeVersion = "22.0.0",
-            sourceRoots = listOf(sourceRoot.toString()),
+            sourceRoots = sourceRoots.map(Path::toString),
             request = PropertyCoverageRequest(),
         ),
         files = listOf(

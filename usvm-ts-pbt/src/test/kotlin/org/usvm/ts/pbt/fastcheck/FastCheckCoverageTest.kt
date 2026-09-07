@@ -57,6 +57,12 @@ class FastCheckCoverageTest {
         assertEquals(listOf(2), zeroHitBranchLines(nonPositiveFile))
         assertEquals(1L, statementHitsAtLine(positiveFile, line = 2))
         assertEquals(1L, statementHitsAtLine(nonPositiveFile, line = 2))
+        assertTrue(
+            (positiveFile.branches + nonPositiveFile.branches).all { branch ->
+                branch.type == "branch" && branch.arms.size == 1
+            },
+            "The pinned c8/V8 collector must expose its backend-specific single-arm branch shape",
+        )
     }
 
     @Test

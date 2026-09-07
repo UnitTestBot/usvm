@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 
 const supervisorPath = fileURLToPath(new URL('../src/process-supervisor.js', import.meta.url));
 
-test('adapter runs inside the stable process-group owner', { timeout: 3_000 }, async () => {
+test('command runs below the stable process-group owner', { timeout: 3_000 }, async () => {
   const workspace = await mkdtemp(path.join(tmpdir(), 'usvm-projection-supervisor-'));
   const adapterPath = path.join(workspace, 'adapter.mjs');
   const adapterPidFile = path.join(workspace, 'adapter.pid');
@@ -23,7 +23,7 @@ test('adapter runs inside the stable process-group owner', { timeout: 3_000 }, a
   );
   const supervisor = spawn(
     process.execPath,
-    [supervisorPath, '--adapter', '25', processGroupFile, adapterPath],
+    [supervisorPath, '--command', '25', processGroupFile, process.execPath, adapterPath],
     { stdio: 'ignore' },
   );
   const supervisorExit = new Promise<void>((resolve) => supervisor.once('close', () => resolve()));
@@ -34,7 +34,7 @@ test('adapter runs inside the stable process-group owner', { timeout: 3_000 }, a
       readTextEventually(processGroupFile),
     ]);
 
-    assert.equal(adapterPid, processGroupPid);
+    assert.notEqual(adapterPid, processGroupPid);
   } finally {
     supervisor.kill('SIGTERM');
     await Promise.race([

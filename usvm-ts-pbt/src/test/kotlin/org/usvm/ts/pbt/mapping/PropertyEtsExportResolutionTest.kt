@@ -265,6 +265,31 @@ class PropertyEtsExportResolutionTest {
         assertEquals("mapping.entry-point.ambiguous", artifact.predicate.diagnostics.single().code)
     }
 
+    @Test
+    fun `cyclic star re-exports terminate when the export is absent`() {
+        val sourceDirectory = testResourcePath("/mapping/exports")
+        val sources = listOf("CycleEntry.ts", "CyclePeer.ts").map(sourceDirectory::resolve)
+        val mapper = mapper(*sources.toTypedArray())
+
+        val artifact = mapper.map(manifest(module = "CycleEntry.ts", exportName = "predicate"))
+
+        assertEquals(EtsMappingStatus.UNMAPPED, artifact.predicate.status)
+        assertEquals(emptyList(), artifact.predicate.targets)
+        assertEquals("mapping.entry-point.unmapped", artifact.predicate.diagnostics.single().code)
+    }
+
+    @Test
+    fun `re-export path may revisit a file to resolve another export`() {
+        val sourceDirectory = testResourcePath("/mapping/exports")
+        val sources = listOf("RenamedCycleEntry.ts", "RenamedCyclePeer.ts").map(sourceDirectory::resolve)
+        val mapper = mapper(*sources.toTypedArray())
+
+        val artifact = mapper.map(manifest(module = "RenamedCycleEntry.ts", exportName = "predicate"))
+
+        assertEquals(EtsMappingStatus.EXACT, artifact.predicate.status)
+        assertEquals("actual", artifact.predicate.targets.single().method.name)
+    }
+
     private fun mapper(vararg sources: Path): PropertyEtsMapper {
         val sourceRoot = sources.first().parent
         val files = sources.map { source ->

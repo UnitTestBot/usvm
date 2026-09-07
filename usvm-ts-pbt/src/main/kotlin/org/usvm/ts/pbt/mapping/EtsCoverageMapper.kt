@@ -16,11 +16,14 @@ import java.nio.file.Path
 internal class EtsCoverageMapper(
     scene: EtsScene,
     private val sourceLocations: SourceLocationNormalizer,
+    private val branchSuccessorOrder: EtsBranchSuccessorOrder,
 ) {
     private val sceneFileCandidates = scene.projectFiles.map { file ->
+        val canonicalPaths = sourceLocations.sourcePathCandidates(file.name).mapTo(hashSetOf(), Path::toString)
+
         SceneFileCandidate(
             file = file,
-            canonicalPaths = sourceLocations.normalizePath(file.name).mapTo(hashSetOf(), Path::toString),
+            canonicalPaths = canonicalPaths,
         )
     }
 
@@ -31,15 +34,15 @@ internal class EtsCoverageMapper(
         if (coverage == null) return coverageUnavailable()
 
         if (coverage.propertyId != propertyId) {
+            val diagnostic = EtsMappingDiagnostic(
+                code = PbtDiagnosticCode.MAPPING_COVERAGE_PROPERTY_ID_MISMATCH,
+                message = "Coverage property ${coverage.propertyId.value} does not match ${propertyId.value}",
+            )
+
             return EtsCoverageMapping(
                 status = EtsMappingStatus.UNSUPPORTED,
                 backendProvenance = coverage.provenance,
-                diagnostics = listOf(
-                    EtsMappingDiagnostic(
-                        code = PbtDiagnosticCode.MAPPING_COVERAGE_PROPERTY_ID_MISMATCH,
-                        message = "Coverage property ${coverage.propertyId.value} does not match ${propertyId.value}",
-                    ),
-                ),
+                diagnostics = listOf(diagnostic),
             )
         }
 
@@ -56,14 +59,16 @@ internal class EtsCoverageMapper(
                 sourcePath = diagnostic.path,
             )
         }
+        val statementStatuses = statements.map { statement -> statement.mapping.status }
+        val branchStatuses = branches.map { branch -> branch.mapping.status }
+        val branchArmStatuses = branches.flatMap { branch ->
+            branch.arms.map { arm -> arm.mapping.status }
+        }
+        val mappingStatuses = statementStatuses + branchStatuses + branchArmStatuses
+        val status = aggregateStatus(mappingStatuses)
 
         return EtsCoverageMapping(
-            status = aggregateStatus(
-                statements.map { statement -> statement.mapping.status } +
-                    branches.flatMap { branch ->
-                        listOf(branch.mapping.status) + branch.arms.map { arm -> arm.mapping.status }
-                    },
-            ),
+            status = status,
             backendProvenance = coverage.provenance,
             statements = statements,
             branches = branches,
@@ -71,16 +76,18 @@ internal class EtsCoverageMapper(
         )
     }
 
-    private fun coverageUnavailable(): EtsCoverageMapping = EtsCoverageMapping(
-        status = EtsMappingStatus.UNSUPPORTED,
-        backendProvenance = null,
-        diagnostics = listOf(
-            EtsMappingDiagnostic(
-                code = PbtDiagnosticCode.MAPPING_COVERAGE_UNAVAILABLE,
-                message = "The property backend returned no source coverage artifact",
-            ),
-        ),
-    )
+    private fun coverageUnavailable(): EtsCoverageMapping {
+        val diagnostic = EtsMappingDiagnostic(
+            code = PbtDiagnosticCode.MAPPING_COVERAGE_UNAVAILABLE,
+            message = "The property backend returned no source coverage artifact",
+        )
+
+        return EtsCoverageMapping(
+            status = EtsMappingStatus.UNSUPPORTED,
+            backendProvenance = null,
+            diagnostics = listOf(diagnostic),
+        )
+    }
 
     private fun mapBranchCoverage(
         sourcePath: String,
@@ -89,19 +96,25 @@ internal class EtsCoverageMapper(
         val normalization = runCatching { sourceLocations.normalizeRange(sourcePath, coverage.location) }
         val location = normalization.getOrNull()
         if (location == null) {
+            val normalizationFailure = normalization.exceptionOrNull()
+            val diagnostic = sourceNormalizationDiagnostic(sourcePath, normalizationFailure)
+
             return unsupportedBranchCoverage(
                 sourcePath = sourcePath,
                 coverage = coverage,
                 location = null,
-                diagnostic = sourceNormalizationDiagnostic(sourcePath, normalization.exceptionOrNull()),
+                diagnostic = diagnostic,
                 normalizeArmLocations = false,
             )
         }
 
-        if (coverage.type != ISTANBUL_IF_BRANCH_TYPE || coverage.arms.size != BINARY_BRANCH_ARM_COUNT) {
+        val expectedBranchArmCount = branchSuccessorOrder.armCount
+        val requiredBranchShape =
+            "an if branch with exactly $expectedBranchArmCount ordered coverage arms"
+        if (coverage.type != ISTANBUL_IF_BRANCH_TYPE || coverage.arms.size != expectedBranchArmCount) {
             val diagnostic = EtsMappingDiagnostic(
                 code = PbtDiagnosticCode.MAPPING_BRANCH_SHAPE_UNSUPPORTED,
-                message = "EtsIR branch mapping requires an if branch with exactly two ordered coverage arms",
+                message = "EtsIR branch mapping requires $requiredBranchShape",
                 sourcePath = location.path,
             )
 
@@ -139,10 +152,10 @@ internal class EtsCoverageMapper(
             .map { statements -> statements.filter { statement -> statement.hasOriginWithin(location) } }
             .filter { statements -> statements.isNotEmpty() }
         val conditions = conditionGroups.flatten()
-        if (conditions.any { statement -> statement.successorCount() != BINARY_BRANCH_ARM_COUNT }) {
+        if (conditions.any { statement -> statement.successorCount() != expectedBranchArmCount }) {
             val diagnostic = EtsMappingDiagnostic(
                 code = PbtDiagnosticCode.MAPPING_BRANCH_CFG_UNSUPPORTED,
-                message = "EtsIR branch mapping requires exactly two ordered CFG successors",
+                message = "EtsIR branch mapping requires exactly $expectedBranchArmCount ordered CFG successors",
                 sourcePath = location.path,
             )
 
@@ -155,13 +168,9 @@ internal class EtsCoverageMapper(
             )
         }
 
-        val distinctOrigins = conditions
-            .mapNotNull { statement -> statement.location.origin }
-            .distinct()
         val mapping = branchMapping(
             location = location,
             conditions = conditions,
-            distinctOriginCount = distinctOrigins.size,
             sourceCandidateCount = conditionGroupsInSourceFile.size,
         )
         val arms = coverage.arms.mapIndexed { index, arm ->
@@ -209,39 +218,46 @@ internal class EtsCoverageMapper(
     private fun branchMapping(
         location: NormalizedSourceRange,
         conditions: List<EtsIfStmt>,
-        distinctOriginCount: Int,
         sourceCandidateCount: Int,
-    ): EtsMappingResult<EtsBranchTarget> = when {
-        conditions.isEmpty() -> EtsMappingResult(
-            status = EtsMappingStatus.UNMAPPED,
-            targets = emptyList(),
-            diagnostics = listOf(
-                EtsMappingDiagnostic(
+    ): EtsMappingResult<EtsBranchTarget> {
+        val targets = conditions.map(::EtsBranchTarget)
+
+        return when {
+            conditions.isEmpty() -> {
+                val diagnostic = EtsMappingDiagnostic(
                     code = PbtDiagnosticCode.MAPPING_BRANCH_UNMAPPED,
                     message = "No EtsIR condition belongs to the covered TypeScript branch",
                     sourcePath = location.path,
-                ),
-            ),
-        )
+                )
 
-        distinctOriginCount == 1 && sourceCandidateCount == 1 -> EtsMappingResult(
-            status = EtsMappingStatus.EXACT,
-            targets = conditions.map(::EtsBranchTarget),
-        )
+                EtsMappingResult(
+                    status = EtsMappingStatus.UNMAPPED,
+                    targets = emptyList(),
+                    diagnostics = listOf(diagnostic),
+                )
+            }
 
-        distinctOriginCount > 1 || sourceCandidateCount > 1 -> EtsMappingResult(
-            status = EtsMappingStatus.AMBIGUOUS,
-            targets = conditions.map(::EtsBranchTarget),
-            diagnostics = listOf(
-                EtsMappingDiagnostic(
+            conditions.size == 1 && sourceCandidateCount == 1 -> EtsMappingResult(
+                status = EtsMappingStatus.EXACT,
+                targets = targets,
+            )
+
+            conditions.size > 1 || sourceCandidateCount > 1 -> {
+                val diagnostic = EtsMappingDiagnostic(
                     code = PbtDiagnosticCode.MAPPING_BRANCH_AMBIGUOUS,
                     message = "The covered TypeScript branch contains several EtsIR conditions",
                     sourcePath = location.path,
-                ),
-            ),
-        )
+                )
 
-        else -> error("EtsIR branch mapping has targets without source provenance")
+                EtsMappingResult(
+                    status = EtsMappingStatus.AMBIGUOUS,
+                    targets = targets,
+                    diagnostics = listOf(diagnostic),
+                )
+            }
+
+            else -> error("EtsIR branch mapping has targets without source provenance")
+        }
     }
 
     private fun mapBranchArm(
@@ -253,35 +269,38 @@ internal class EtsCoverageMapper(
         val normalization = runCatching { sourceLocations.normalizeRange(sourcePath, coverage.location) }
         val location = normalization.getOrNull()
         if (location == null) {
+            val diagnostic = sourceNormalizationDiagnostic(sourcePath, normalization.exceptionOrNull())
+            val mapping = unsupportedMapping<EtsBranchArmTarget>(diagnostic)
+
             return EtsBranchArmCoverageMapping(
                 coverage = coverage,
                 location = null,
-                mapping = unsupportedMapping(
-                    sourceNormalizationDiagnostic(sourcePath, normalization.exceptionOrNull()),
-                ),
+                mapping = mapping,
             )
         }
 
         val targets = branchMapping.targets.map { branch ->
             val graph = branch.statement.location.method.cfg
             val successors = graph.successors(branch.statement).toList()
+            val outcome = branchSuccessorOrder.outcomeAt(armIndex)
 
             // Istanbul if arms and the EtsIR CFG both use true-then-false order by contract.
             EtsBranchArmTarget(
                 condition = branch.statement,
-                outcome = armIndex == TRUE_BRANCH_ARM_INDEX,
+                outcome = outcome,
                 successor = successors[armIndex],
             )
         }
+        val mapping = EtsMappingResult(
+            status = branchMapping.status,
+            targets = targets,
+            diagnostics = branchMapping.diagnostics,
+        )
 
         return EtsBranchArmCoverageMapping(
             coverage = coverage,
             location = location,
-            mapping = EtsMappingResult(
-                status = branchMapping.status,
-                targets = targets,
-                diagnostics = branchMapping.diagnostics,
-            ),
+            mapping = mapping,
         )
     }
 
@@ -292,12 +311,13 @@ internal class EtsCoverageMapper(
         val normalization = runCatching { sourceLocations.normalizeRange(sourcePath, coverage.location) }
         val location = normalization.getOrNull()
         if (location == null) {
+            val diagnostic = sourceNormalizationDiagnostic(sourcePath, normalization.exceptionOrNull())
+            val mapping = unsupportedMapping<EtsStatementTarget>(diagnostic)
+
             return EtsStatementCoverageMapping(
                 coverage = coverage,
                 location = null,
-                mapping = unsupportedMapping(
-                    sourceNormalizationDiagnostic(sourcePath, normalization.exceptionOrNull()),
-                ),
+                mapping = mapping,
             )
         }
 
@@ -306,16 +326,17 @@ internal class EtsCoverageMapper(
             .map { candidate -> candidate.statements }
         val statementsInSourceFile = statementGroupsInSourceFile.flatten()
         if (statementsInSourceFile.isNotEmpty() && statementsInSourceFile.none { it.location.origin != null }) {
+            val diagnostic = EtsMappingDiagnostic(
+                code = PbtDiagnosticCode.MAPPING_SOURCE_ORIGINS_UNSUPPORTED,
+                message = "EtsIR statements for the covered source file have no source origins",
+                sourcePath = location.path,
+            )
+            val mapping = unsupportedMapping<EtsStatementTarget>(diagnostic)
+
             return EtsStatementCoverageMapping(
                 coverage = coverage,
                 location = location,
-                mapping = unsupportedMapping(
-                    EtsMappingDiagnostic(
-                        code = PbtDiagnosticCode.MAPPING_SOURCE_ORIGINS_UNSUPPORTED,
-                        message = "EtsIR statements for the covered source file have no source origins",
-                        sourcePath = location.path,
-                    ),
-                ),
+                mapping = mapping,
             )
         }
 
@@ -330,9 +351,11 @@ internal class EtsCoverageMapper(
         val distinctContainedOrigins = containedStatements
             .mapNotNull { statement -> statement.location.origin }
             .distinct()
+        val containedTargets = containedStatements.map(::EtsStatementTarget)
         val mapping = when {
-            statementGroupsInSourceFile.size > 1 && containedStatements.isNotEmpty() ->
+            statementGroupsInSourceFile.size > 1 && containedStatements.isNotEmpty() -> {
                 ambiguousStatementMapping(location, containedStatements)
+            }
 
             exactTargets.isNotEmpty() -> EtsMappingResult(
                 status = EtsMappingStatus.EXACT,
@@ -341,22 +364,24 @@ internal class EtsCoverageMapper(
 
             distinctContainedOrigins.size == 1 -> EtsMappingResult(
                 status = EtsMappingStatus.EXACT,
-                targets = containedStatements.map(::EtsStatementTarget),
+                targets = containedTargets,
             )
 
             distinctContainedOrigins.size > 1 -> ambiguousStatementMapping(location, containedStatements)
 
-            else -> EtsMappingResult(
-                status = EtsMappingStatus.UNMAPPED,
-                targets = emptyList(),
-                diagnostics = listOf(
-                    EtsMappingDiagnostic(
-                        code = PbtDiagnosticCode.MAPPING_STATEMENT_UNMAPPED,
-                        message = "No EtsIR statement has the covered TypeScript source span",
-                        sourcePath = location.path,
-                    ),
-                ),
-            )
+            else -> {
+                val diagnostic = EtsMappingDiagnostic(
+                    code = PbtDiagnosticCode.MAPPING_STATEMENT_UNMAPPED,
+                    message = "No EtsIR statement has the covered TypeScript source span",
+                    sourcePath = location.path,
+                )
+
+                EtsMappingResult(
+                    status = EtsMappingStatus.UNMAPPED,
+                    targets = emptyList(),
+                    diagnostics = listOf(diagnostic),
+                )
+            }
         }
 
         return EtsStatementCoverageMapping(
@@ -369,17 +394,20 @@ internal class EtsCoverageMapper(
     private fun ambiguousStatementMapping(
         location: NormalizedSourceRange,
         statements: List<EtsStmt>,
-    ): EtsMappingResult<EtsStatementTarget> = EtsMappingResult(
-        status = EtsMappingStatus.AMBIGUOUS,
-        targets = statements.map(::EtsStatementTarget),
-        diagnostics = listOf(
-            EtsMappingDiagnostic(
-                code = PbtDiagnosticCode.MAPPING_STATEMENT_AMBIGUOUS,
-                message = "The covered TypeScript range matches several EtsIR source candidates or spans",
-                sourcePath = location.path,
-            ),
-        ),
-    )
+    ): EtsMappingResult<EtsStatementTarget> {
+        val targets = statements.map(::EtsStatementTarget)
+        val diagnostic = EtsMappingDiagnostic(
+            code = PbtDiagnosticCode.MAPPING_STATEMENT_AMBIGUOUS,
+            message = "The covered TypeScript range matches several EtsIR source candidates or spans",
+            sourcePath = location.path,
+        )
+
+        return EtsMappingResult(
+            status = EtsMappingStatus.AMBIGUOUS,
+            targets = targets,
+            diagnostics = listOf(diagnostic),
+        )
+    }
 
     private fun sourceNormalizationDiagnostic(
         sourcePath: String,
@@ -425,7 +453,7 @@ internal class EtsCoverageMapper(
     }
 
     private fun org.jacodb.ets.model.EtsSourceSpan.hasPath(path: String): Boolean =
-        sourceLocations.normalizePath(fileName).any { candidate -> candidate.toString() == path }
+        sourceLocations.sourcePathCandidates(fileName).any { candidate -> candidate.toString() == path }
 }
 
 private data class SceneFileCandidate(
@@ -447,6 +475,4 @@ private fun aggregateStatus(statuses: List<EtsMappingStatus>): EtsMappingStatus 
     else -> EtsMappingStatus.EXACT
 }
 
-private const val BINARY_BRANCH_ARM_COUNT = 2
 private const val ISTANBUL_IF_BRANCH_TYPE = "if"
-private const val TRUE_BRANCH_ARM_INDEX = 0

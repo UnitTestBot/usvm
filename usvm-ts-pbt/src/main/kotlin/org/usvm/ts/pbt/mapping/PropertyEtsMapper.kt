@@ -12,8 +12,9 @@ class PropertyEtsMapper(
     sourceRoots: List<Path>,
 ) {
     private val sourceLocations = SourceLocationNormalizer(sourceRoots)
+    private val branchSuccessorOrder = EtsBranchSuccessorOrder.TRUE_FALSE
     private val entryPointResolver = EtsEntryPointResolver(scene, sourceLocations)
-    private val coverageMapper = EtsCoverageMapper(scene, sourceLocations)
+    private val coverageMapper = EtsCoverageMapper(scene, sourceLocations, branchSuccessorOrder)
 
     /** Produces a complete mapping artifact even when individual entry points or coverage locations do not map. */
     fun map(
@@ -25,17 +26,20 @@ class PropertyEtsMapper(
         val precondition = manifest.precondition?.let { entryPoint ->
             entryPointResolver.resolve(entryPoint, manifest)
         }
+        val sourceRootPaths = sourceLocations.normalizedSourceRoots.map(Path::toString)
+        val provenance = EtsMappingProvenance(
+            sourceRoots = sourceRootPaths,
+            coordinates = EtsSourceCoordinateSystem.TYPESCRIPT_UTF16_ZERO_BASED_HALF_OPEN,
+            branchSuccessorOrder = branchSuccessorOrder,
+        )
+        val mappedCoverage = coverageMapper.map(propertyId, coverage)
 
         return PropertyEtsMappingArtifact(
             propertyId = propertyId,
-            provenance = EtsMappingProvenance(
-                sourceRoots = sourceLocations.normalizedSourceRoots.map(Path::toString),
-                coordinates = EtsSourceCoordinateSystem.TYPESCRIPT_UTF16_ZERO_BASED_HALF_OPEN,
-                branchSuccessorOrder = EtsBranchSuccessorOrder.TRUE_FALSE,
-            ),
+            provenance = provenance,
             predicate = predicate,
             precondition = precondition,
-            coverage = coverageMapper.map(propertyId, coverage),
+            coverage = mappedCoverage,
         )
     }
 }

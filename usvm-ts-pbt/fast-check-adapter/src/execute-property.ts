@@ -144,29 +144,21 @@ async function checkProperty(
  * A shared clone map preserves aliases and cycles within one invocation while isolating separate invocations.
  */
 function cloneArguments(values: JsConcreteValue[]): JsConcreteValue[] {
-  return cloneRecursiveArrays(values, new Map());
+  return cloneArray(values, new Map());
 }
 
-function cloneRecursiveArrays(
+function cloneArray(
   value: JsConcreteValue[],
   clones: Map<JsConcreteValue[], JsConcreteValue[]>,
-): JsConcreteValue[];
-function cloneRecursiveArrays(
-  value: JsConcreteValue,
-  clones: Map<JsConcreteValue[], JsConcreteValue[]>,
-): JsConcreteValue;
-function cloneRecursiveArrays(
-  value: JsConcreteValue,
-  clones: Map<JsConcreteValue[], JsConcreteValue[]>,
-): JsConcreteValue {
-  if (!Array.isArray(value)) return value;
-
+): JsConcreteValue[] {
   const existing = clones.get(value);
   if (existing !== undefined) return existing;
 
   const clone: JsConcreteValue[] = [];
   clones.set(value, clone);
-  value.forEach((element) => clone.push(cloneRecursiveArrays(element, clones)));
+  for (const element of value) {
+    clone.push(Array.isArray(element) ? cloneArray(element, clones) : element);
+  }
 
   return clone;
 }
@@ -269,7 +261,7 @@ function isFastCheckReplayFailure(error: unknown): boolean {
   return hasFastCheckMessagePrefix(error, FAST_CHECK_REPLAY_FAILURE_PREFIX);
 }
 
-/** fast-check 3.x exposes these two failure categories only through stable message prefixes. */
+/** The pinned fast-check version exposes these two failure categories only through stable message prefixes. */
 function hasFastCheckMessagePrefix(error: unknown, prefix: string): boolean {
   return error instanceof Error && error.message.startsWith(prefix);
 }

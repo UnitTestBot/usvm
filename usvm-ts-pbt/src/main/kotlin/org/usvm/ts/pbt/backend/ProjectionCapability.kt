@@ -79,8 +79,9 @@ fun classifyPropertyCapability(
 ): PropertyCapabilityLevel = when {
     concrete.level == ProjectionLevel.UNSUPPORTED -> PropertyCapabilityLevel.UNSUPPORTED
     symbolic.level == ProjectionLevel.UNSUPPORTED -> PropertyCapabilityLevel.CONCRETE_ONLY
-    concrete.level == ProjectionLevel.APPROXIMATE || symbolic.level == ProjectionLevel.APPROXIMATE ->
+    concrete.level == ProjectionLevel.APPROXIMATE || symbolic.level == ProjectionLevel.APPROXIMATE -> {
         PropertyCapabilityLevel.APPROXIMATE
+    }
 
     else -> PropertyCapabilityLevel.EXACT
 }

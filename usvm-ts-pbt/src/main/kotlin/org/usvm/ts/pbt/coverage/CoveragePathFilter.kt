@@ -1,5 +1,13 @@
 package org.usvm.ts.pbt.coverage
 
+import java.nio.file.Path
+import kotlin.io.path.invariantSeparatorsPathString
+
+internal fun normalizeCoveragePath(path: String): String = Path.of(path)
+    .toAbsolutePath()
+    .normalize()
+    .invariantSeparatorsPathString
+
 internal fun matchesCoveragePath(
     path: String,
     patterns: List<String>,

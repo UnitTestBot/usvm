@@ -44,20 +44,22 @@ internal class EtsEntryPointResolver(
         val methods = candidateResolutions
             .flatMap { resolution -> resolution.methods }
             .distinctByIdentity()
-        val hasAmbiguousResolution = candidateResolutions.any { resolution -> resolution.isAmbiguous } ||
-            sourceCandidates.size > 1
+        val hasAmbiguousCandidateResolution = candidateResolutions.any { resolution -> resolution.isAmbiguous }
+        val hasAmbiguousSourceResolution = sourceCandidates.size > 1
+        val hasAmbiguousResolution = hasAmbiguousCandidateResolution || hasAmbiguousSourceResolution
+        val entryPointName = "${entryPoint.module}#${entryPoint.exportName}"
 
         if (methods.any { method -> method.parameters.size != manifest.inputs.size }) {
+            val diagnostic = EtsMappingDiagnostic(
+                code = PbtDiagnosticCode.MAPPING_ENTRY_POINT_BINDINGS_UNSUPPORTED,
+                message = "Property inputs do not match EtsIR parameters for ${entryPoint.exportName}",
+                sourcePath = entryPoint.module,
+            )
+
             return EtsMappingResult(
                 status = EtsMappingStatus.UNSUPPORTED,
                 targets = emptyList(),
-                diagnostics = listOf(
-                    EtsMappingDiagnostic(
-                        code = PbtDiagnosticCode.MAPPING_ENTRY_POINT_BINDINGS_UNSUPPORTED,
-                        message = "Property inputs do not match EtsIR parameters for ${entryPoint.exportName}",
-                        sourcePath = entryPoint.module,
-                    ),
-                ),
+                diagnostics = listOf(diagnostic),
             )
         }
 
@@ -75,39 +77,41 @@ internal class EtsEntryPointResolver(
             )
         }
         if (targets.isNotEmpty()) {
+            val diagnostic = EtsMappingDiagnostic(
+                code = PbtDiagnosticCode.MAPPING_ENTRY_POINT_AMBIGUOUS,
+                message = "Several EtsIR methods, source candidates, or export links match $entryPointName",
+                sourcePath = entryPoint.module,
+            )
+
             return EtsMappingResult(
                 status = EtsMappingStatus.AMBIGUOUS,
                 targets = targets,
-                diagnostics = listOf(
-                    EtsMappingDiagnostic(
-                        code = PbtDiagnosticCode.MAPPING_ENTRY_POINT_AMBIGUOUS,
-                        message = "Several EtsIR methods, source candidates, or export links match " +
-                            "${entryPoint.module}#${entryPoint.exportName}",
-                        sourcePath = entryPoint.module,
-                    ),
-                ),
+                diagnostics = listOf(diagnostic),
             )
         }
+
+        val diagnostic = EtsMappingDiagnostic(
+            code = PbtDiagnosticCode.MAPPING_ENTRY_POINT_UNMAPPED,
+            message = "No EtsIR method matches $entryPointName",
+            sourcePath = entryPoint.module,
+        )
 
         return EtsMappingResult(
             status = EtsMappingStatus.UNMAPPED,
             targets = emptyList(),
-            diagnostics = listOf(
-                EtsMappingDiagnostic(
-                    code = PbtDiagnosticCode.MAPPING_ENTRY_POINT_UNMAPPED,
-                    message = "No EtsIR method matches ${entryPoint.module}#${entryPoint.exportName}",
-                    sourcePath = entryPoint.module,
-                ),
-            ),
+            diagnostics = listOf(diagnostic),
         )
     }
 
     private fun resolveExportedMethods(
         file: EtsFile,
         exportName: String,
-        visited: Set<EtsFile>,
+        visited: Set<ExportResolutionStep>,
     ): MethodResolution {
-        if (file in visited) return MethodResolution.EMPTY
+        val currentStep = ExportResolutionStep(file, exportName)
+        if (currentStep in visited) return MethodResolution.EMPTY
+
+        val resolutionPath = visited + currentStep
 
         val runtimeExports = file.exportInfos.filter { export ->
             !export.isTypeOnly && export.type != EtsExportType.TYPE
@@ -138,57 +142,32 @@ internal class EtsEntryPointResolver(
                 val targetFiles = resolveReExportFiles(file, requireNotNull(export.from))
 
                 targetFiles.map { targetFile ->
-                    val resolution = resolveExportedMethods(targetFile, targetExportName, visited + file)
+                    val resolution = resolveExportedMethods(targetFile, targetExportName, resolutionPath)
 
                     resolution.copy(isAmbiguous = resolution.isAmbiguous || targetFiles.size > 1)
                 }
             }
-        val methods = (
-            directMethods +
-                localResolutions.flatMap { resolution -> resolution.methods } +
-                reExportedResolutions.flatMap { resolution -> resolution.methods }
-            ).distinctByIdentity()
+        val localMethods = localResolutions.flatMap { resolution -> resolution.methods }
+        val reExportedMethods = reExportedResolutions.flatMap { resolution -> resolution.methods }
+        val methodCandidates = directMethods + localMethods + reExportedMethods
+        val methods = methodCandidates.distinctByIdentity()
+        val hasAmbiguousLocalResolution = localResolutions.any { resolution -> resolution.isAmbiguous }
+        val hasAmbiguousReExportedResolution = reExportedResolutions.any { resolution -> resolution.isAmbiguous }
+        val hasAmbiguousResolution = hasAmbiguousLocalResolution || hasAmbiguousReExportedResolution
 
         return MethodResolution(
             methods = methods,
-            isAmbiguous = localResolutions.any { resolution -> resolution.isAmbiguous } ||
-                reExportedResolutions.any { resolution -> resolution.isAmbiguous },
+            isAmbiguous = hasAmbiguousResolution,
         )
     }
 
     private fun resolveCallableLocal(file: EtsFile, localName: String): MethodResolution {
         // The frontend lowers a callable local to a static-field assignment whose function signature identifies
         // the lifted anonymous method. Keep every link so repeated or partial lowering remains visibly ambiguous.
-        val assignments = file.classes
-            .filter { etsClass -> etsClass.name == DEFAULT_ARK_CLASS_NAME }
-            .flatMap { defaultClass ->
-                defaultClass.methods
-                    .filter { method -> method.name == DEFAULT_ARK_METHOD_NAME }
-                    .flatMap { method -> method.cfg.stmts }
-                    .filterIsInstance<EtsAssignStmt>()
-                    .mapNotNull { assignment ->
-                        val field = assignment.lhv as? EtsStaticFieldRef ?: return@mapNotNull null
-                        if (field.field.enclosingClass != defaultClass.signature || field.field.name != localName) {
-                            return@mapNotNull null
-                        }
-
-                        defaultClass to assignment
-                    }
-            }
-        val callableAssignments = assignments.mapNotNull { (defaultClass, assignment) ->
-            val local = assignment.rhv as? EtsLocal ?: return@mapNotNull null
-            val functionType = local.type as? EtsFunctionType ?: return@mapNotNull null
-
-            CallableLocalAssignment(
-                defaultClass = defaultClass,
-                functionSignature = functionType.signature,
-            )
-        }
+        val assignments = file.findLocalAssignments(localName)
+        val callableAssignments = assignments.mapNotNull { assignment -> assignment.toCallableAssignment() }
         val linkedMethods = callableAssignments.flatMap { assignment ->
-            assignment.defaultClass.methods.filter { method ->
-                method.name.startsWith(ANONYMOUS_METHOD_PREFIX) &&
-                    method.signature == assignment.functionSignature
-            }
+            assignment.findLinkedMethods()
         }
         val methods = linkedMethods.distinctByIdentity()
         val isExactLink = assignments.size == 1 && callableAssignments.size == 1 && linkedMethods.size == 1
@@ -199,23 +178,55 @@ internal class EtsEntryPointResolver(
         )
     }
 
+    private fun EtsFile.findLocalAssignments(localName: String): List<LocalAssignment> {
+        val assignments = mutableListOf<LocalAssignment>()
+
+        for (defaultClass in classes) {
+            if (defaultClass.name != DEFAULT_ARK_CLASS_NAME) continue
+
+            assignments += defaultClass.findLocalAssignments(localName)
+        }
+
+        return assignments
+    }
+
+    private fun EtsClass.findLocalAssignments(localName: String): List<LocalAssignment> {
+        val assignments = mutableListOf<LocalAssignment>()
+
+        for (defaultMethod in methods) {
+            if (defaultMethod.name != DEFAULT_ARK_METHOD_NAME) continue
+
+            for (statement in defaultMethod.cfg.stmts) {
+                val assignment = statement as? EtsAssignStmt ?: continue
+                val field = assignment.lhv as? EtsStaticFieldRef ?: continue
+                val belongsToDefaultClass = field.field.enclosingClass == signature
+                val hasRequestedName = field.field.name == localName
+                if (belongsToDefaultClass && hasRequestedName) {
+                    assignments += LocalAssignment(this, assignment)
+                }
+            }
+        }
+
+        return assignments
+    }
+
     private fun resolveReExportFiles(file: EtsFile, module: String): List<EtsFile> {
-        val targetPaths = sourceLocations.normalizePath(file.name).flatMapTo(linkedSetOf()) { sourcePath ->
+        val targetPaths = sourceLocations.sourcePathCandidates(file.name).flatMapTo(linkedSetOf()) { sourcePath ->
             val targetPath = requireNotNull(sourcePath.parent).resolve(module).normalize()
 
             sourceLocations.modulePathCandidates(targetPath)
         }
 
         return scene.projectFiles.filter { candidate ->
-            sourceLocations.normalizePath(candidate.name).any(targetPaths::contains)
+            sourceLocations.sourcePathCandidates(candidate.name).any(targetPaths::contains)
         }
     }
 
     private fun EtsFile.matches(module: String): Boolean {
-        val modulePaths = sourceLocations.normalizePath(module).flatMapTo(linkedSetOf()) { path ->
+        val modulePaths = sourceLocations.sourcePathCandidates(module).flatMapTo(linkedSetOf()) { path ->
             sourceLocations.modulePathCandidates(path)
         }
-        val filePaths = sourceLocations.normalizePath(name)
+        val filePaths = sourceLocations.sourcePathCandidates(name)
 
         return modulePaths.any(filePaths::contains)
     }
@@ -244,10 +255,37 @@ internal class EtsEntryPointResolver(
     }
 }
 
+private data class ExportResolutionStep(
+    val file: EtsFile,
+    val exportName: String,
+)
+
+private data class LocalAssignment(
+    val defaultClass: EtsClass,
+    val assignment: EtsAssignStmt,
+) {
+    fun toCallableAssignment(): CallableLocalAssignment? {
+        val local = assignment.rhv as? EtsLocal ?: return null
+        val functionType = local.type as? EtsFunctionType ?: return null
+
+        return CallableLocalAssignment(
+            defaultClass = defaultClass,
+            functionSignature = functionType.signature,
+        )
+    }
+}
+
 private data class CallableLocalAssignment(
     val defaultClass: EtsClass,
     val functionSignature: EtsMethodSignature,
-)
+) {
+    fun findLinkedMethods(): List<EtsMethod> = defaultClass.methods.filter { method ->
+        val isAnonymousMethod = method.name.startsWith(ANONYMOUS_METHOD_PREFIX)
+        val hasExpectedSignature = method.signature == functionSignature
+
+        isAnonymousMethod && hasExpectedSignature
+    }
+}
 
 private data class MethodResolution(
     val methods: List<EtsMethod>,

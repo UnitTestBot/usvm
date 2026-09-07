@@ -22,17 +22,25 @@ class PropertyRegistry(properties: List<PropertyDefinition>) {
     }
 
     /** Returns the property identified by [id], or reports all IDs available in this registry. */
-    operator fun get(id: PropertyId): PropertyDefinition = propertiesById[id]
-        ?: throw UnknownPropertyIdException(
+    operator fun get(id: PropertyId): PropertyDefinition {
+        val property = propertiesById[id]
+        if (property != null) return property
+
+        val availablePropertyIds = properties.map(PropertyDefinition::id)
+
+        throw UnknownPropertyIdException(
             propertyId = id,
-            availablePropertyIds = properties.map(PropertyDefinition::id),
+            availablePropertyIds = availablePropertyIds,
         )
+    }
 
     companion object {
         /** Combines registries in input order and validates IDs across registry boundaries. */
-        fun combine(registries: List<PropertyRegistry>): PropertyRegistry = PropertyRegistry(
-            registries.flatMap(PropertyRegistry::properties),
-        )
+        fun combine(registries: List<PropertyRegistry>): PropertyRegistry {
+            val properties = registries.flatMap(PropertyRegistry::properties)
+
+            return PropertyRegistry(properties)
+        }
     }
 }
 

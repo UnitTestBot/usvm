@@ -1,6 +1,7 @@
 package org.usvm.ts.pbt.mapping
 
 import org.jacodb.ets.model.EtsBlockCfg
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.EtsIrProvider
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.Test
 import org.usvm.ts.pbt.backend.BranchArmCoverage
 import org.usvm.ts.pbt.backend.BranchCoverage
 import org.usvm.ts.pbt.backend.CoverageCollectorIdentity
+import org.usvm.ts.pbt.backend.CoverageDiagnostic
 import org.usvm.ts.pbt.backend.CoverageProvenance
 import org.usvm.ts.pbt.backend.PropertyCoverageArtifact
 import org.usvm.ts.pbt.backend.PropertyCoverageRequest
@@ -63,6 +65,39 @@ class PropertyEtsMapperTest {
         assertEquals(0, inputBinding.parameter.index)
         assertEquals(1, inputBinding.stackSlot)
         assertEquals(target.method.returnType, target.bindings.result.type)
+    }
+
+    @Test
+    fun `maps property inputs to parameters and stack slots in declaration order`() {
+        val source = testResourcePath("/mapping/PropertyMappingFixture.ts")
+        val file = loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)
+        val manifest = PropertyManifest(
+            propertyId = "mapping.ordered-bindings",
+            inputs = listOf(
+                PropertyInput(name = "first", domain = IntegerDomain()),
+                PropertyInput(name = "second", domain = IntegerDomain()),
+            ),
+            predicate = TypeScriptEntryPoint(
+                module = "PropertyMappingFixture.ts",
+                exportName = "needsTwoInputs",
+            ),
+        )
+        val mapper = PropertyEtsMapper(
+            scene = EtsScene(listOf(file)),
+            sourceRoots = listOf(source.parent),
+        )
+
+        val artifact = mapper.map(manifest)
+
+        val target = artifact.predicate.targets.single()
+        val bindings = target.bindings
+        val receiverType = bindings.receiver.type as EtsClassType
+        assertEquals(EtsMappingStatus.EXACT, artifact.predicate.status)
+        assertEquals(target.method.signature.enclosingClass, receiverType.signature)
+        assertEquals(listOf("first", "second"), bindings.inputs.map { binding -> binding.propertyInputName })
+        assertEquals(listOf("left", "right"), bindings.inputs.map { binding -> binding.parameter.name })
+        assertEquals(listOf(0, 1), bindings.inputs.map { binding -> binding.parameter.index })
+        assertEquals(listOf(1, 2), bindings.inputs.map { binding -> binding.stackSlot })
     }
 
     @Test
@@ -340,6 +375,48 @@ class PropertyEtsMapperTest {
         assertEquals(emptyList(), artifact.coverage.statements)
         assertEquals(emptyList(), artifact.coverage.branches)
         assertEquals("mapping.coverage.property-id.mismatch", artifact.coverage.diagnostics.single().code)
+    }
+
+    @Test
+    fun `empty coverage is exact and preserves backend diagnostics`() {
+        val source = testResourcePath("/mapping/PropertyMappingFixture.ts")
+        val file = loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)
+        val propertyId = PropertyId("mapping.empty-coverage")
+        val manifest = PropertyManifest(
+            propertyId = propertyId.value,
+            inputs = listOf(PropertyInput(name = "value", domain = IntegerDomain())),
+            predicate = TypeScriptEntryPoint(
+                module = "PropertyMappingFixture.ts",
+                exportName = "isPositive",
+            ),
+        )
+        val diagnostic = CoverageDiagnostic(
+            code = "coverage.fixture.omitted",
+            message = "A file outside the requested scopes was omitted",
+            path = "Dependency.ts",
+        )
+        val coverage = coverageArtifact(
+            source = source,
+            propertyId = propertyId,
+            statements = emptyList(),
+        ).copy(
+            files = emptyList(),
+            diagnostics = listOf(diagnostic),
+        )
+        val mapper = PropertyEtsMapper(
+            scene = EtsScene(listOf(file)),
+            sourceRoots = listOf(source.parent),
+        )
+
+        val artifact = mapper.map(manifest, coverage)
+
+        assertEquals(EtsMappingStatus.EXACT, artifact.coverage.status)
+        assertEquals(emptyList(), artifact.coverage.statements)
+        assertEquals(emptyList(), artifact.coverage.branches)
+        val mappedDiagnostic = artifact.coverage.diagnostics.single()
+        assertEquals(diagnostic.code, mappedDiagnostic.code)
+        assertEquals(diagnostic.message, mappedDiagnostic.message)
+        assertEquals(diagnostic.path, mappedDiagnostic.sourcePath)
     }
 }
 
@@ -641,6 +718,60 @@ class PropertyEtsBranchMappingTest {
         assertEquals("mapping.branch.ambiguous", branch.mapping.diagnostics.single().code)
         assertTrue(branch.arms.all { arm -> arm.mapping.targets.size == 2 })
     }
+
+    @Test
+    fun `reports short circuit conditions sharing one source origin as ambiguous`() {
+        val source = testResourcePath("/mapping/ShortCircuitBranchMappingFixture.ts")
+        val file = loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)
+        val propertyId = PropertyId("mapping.short-circuit-branch")
+        val manifest = PropertyManifest(
+            propertyId = propertyId.value,
+            inputs = listOf(PropertyInput(name = "value", domain = IntegerDomain())),
+            predicate = TypeScriptEntryPoint(
+                module = "ShortCircuitBranchMappingFixture.ts",
+                exportName = "bothConditions",
+            ),
+        )
+        val andLocation = SourceRange(
+            start = SourcePosition(line = 2, column = 2),
+            end = SourcePosition(line = 6, column = 3),
+        )
+        val orLocation = SourceRange(
+            start = SourcePosition(line = 10, column = 2),
+            end = SourcePosition(line = 14, column = 3),
+        )
+        val branches = listOf(andLocation, orLocation).mapIndexed { index, location ->
+            BranchCoverage(
+                branchId = index,
+                type = "if",
+                location = location,
+                arms = listOf(
+                    BranchArmCoverage(location = location, hits = 1),
+                    BranchArmCoverage(location = location, hits = 1),
+                ),
+            )
+        }
+        val coverage = coverageArtifact(
+            source = source,
+            propertyId = propertyId,
+            statements = emptyList(),
+            branches = branches,
+        )
+        val mapper = PropertyEtsMapper(
+            scene = EtsScene(listOf(file)),
+            sourceRoots = listOf(source.parent),
+        )
+
+        val artifact = mapper.map(manifest, coverage)
+
+        assertEquals(2, artifact.coverage.branches.size)
+        for (branch in artifact.coverage.branches) {
+            assertEquals(EtsMappingStatus.AMBIGUOUS, branch.mapping.status)
+            assertEquals(2, branch.mapping.targets.size)
+            assertEquals("mapping.branch.ambiguous", branch.mapping.diagnostics.single().code)
+            assertTrue(branch.arms.all { arm -> arm.mapping.status == EtsMappingStatus.AMBIGUOUS })
+        }
+    }
 }
 
 class PropertyEtsUnsupportedMappingTest {
@@ -824,6 +955,60 @@ class PropertyEtsUnsupportedMappingTest {
         assertEquals(emptyList(), branch.mapping.targets)
         assertEquals("mapping.branch.shape.unsupported", branch.mapping.diagnostics.single().code)
         assertTrue(branch.arms.all { arm -> arm.mapping.status == EtsMappingStatus.UNSUPPORTED })
+    }
+
+    @Test
+    fun `one-arm c8 branch is unsupported while statement coverage remains mapped`() {
+        val source = testResourcePath("/mapping/BranchMappingFixture.ts")
+        val file = loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)
+        val propertyId = PropertyId("mapping.one-arm-c8-branch")
+        val manifest = PropertyManifest(
+            propertyId = propertyId.value,
+            inputs = listOf(PropertyInput(name = "value", domain = IntegerDomain())),
+            predicate = TypeScriptEntryPoint(
+                module = "BranchMappingFixture.ts",
+                exportName = "classifiesPositive",
+            ),
+        )
+        val branchLocation = SourceRange(
+            start = SourcePosition(line = 2, column = 2),
+            end = SourcePosition(line = 6, column = 3),
+        )
+        val coverage = coverageArtifact(
+            source = source,
+            propertyId = propertyId,
+            statements = listOf(
+                StatementCoverage(
+                    statementId = 0,
+                    location = SourceRange(
+                        start = SourcePosition(line = 3, column = 4),
+                        end = SourcePosition(line = 3, column = 16),
+                    ),
+                    hits = 1,
+                ),
+            ),
+            branches = listOf(
+                BranchCoverage(
+                    branchId = 0,
+                    type = "if",
+                    location = branchLocation,
+                    arms = listOf(BranchArmCoverage(location = branchLocation, hits = 1)),
+                ),
+            ),
+        )
+        val mapper = PropertyEtsMapper(
+            scene = EtsScene(listOf(file)),
+            sourceRoots = listOf(source.parent),
+        )
+
+        val artifact = mapper.map(manifest, coverage)
+
+        assertEquals(EtsMappingStatus.EXACT, artifact.coverage.statements.single().mapping.status)
+        val branch = artifact.coverage.branches.single()
+        assertEquals(EtsMappingStatus.UNSUPPORTED, branch.mapping.status)
+        assertEquals("mapping.branch.shape.unsupported", branch.mapping.diagnostics.single().code)
+        assertTrue(branch.arms.all { arm -> arm.mapping.status == EtsMappingStatus.UNSUPPORTED })
+        assertEquals(EtsMappingStatus.UNSUPPORTED, artifact.coverage.status)
     }
 
     @Test

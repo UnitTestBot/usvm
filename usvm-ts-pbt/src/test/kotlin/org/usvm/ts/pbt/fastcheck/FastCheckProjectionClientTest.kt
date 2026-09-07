@@ -416,7 +416,7 @@ class FastCheckProjectionClientTest {
     private fun Path.toJavaScriptStringLiteral(): String = "'${toString().replace("\\", "\\\\").replace("'", "\\'")}'"
 
     private fun terminateAdapter(pidFile: Path): Boolean {
-        val pid = pidFile.takeIf(Files::exists)?.readText()?.trim()?.toLongOrNull() ?: return true
+        val pid = readAdapterPid(pidFile) ?: return true
         val process = ProcessHandle.of(pid).orElse(null) ?: return true
 
         process.destroyForcibly()
@@ -433,7 +433,7 @@ class FastCheckProjectionClientTest {
     }
 
     private fun adapterIsTerminated(pidFile: Path): Boolean {
-        val pid = pidFile.readText().trim().toLong()
+        val pid = readAdapterPid(pidFile) ?: return true
         val process = ProcessHandle.of(pid).orElse(null)
         if (process == null || !process.isAlive) return true
 
@@ -450,6 +450,12 @@ class FastCheckProjectionClientTest {
         }
 
         return !process.isAlive
+    }
+
+    private fun readAdapterPid(pidFile: Path): Long? {
+        if (!Files.exists(pidFile)) return null
+
+        return pidFile.readText().trim().toLongOrNull()
     }
 
     private companion object {

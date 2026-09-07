@@ -107,12 +107,12 @@ val result = backend.run(
 
 The default scope is `SOURCE_UNDER_TEST`. Available scopes are:
 
-| Scope | Files retained after source-map remapping |
-| --- | --- |
-| `SOURCE_UNDER_TEST` | Files below a source root except exact predicate and precondition modules |
-| `PROPERTY_ENTRY_POINTS` | Exact predicate and optional precondition modules |
-| `GENERATED_BACKEND_WRAPPERS` | Files in the private adapter runtime outside `node_modules` |
-| `DEPENDENCIES` | Executed files below `node_modules` |
+| Scope                        | Files retained after source-map remapping                                 |
+| ---------------------------- | ------------------------------------------------------------------------- |
+| `SOURCE_UNDER_TEST`          | Files below a source root except exact predicate and precondition modules |
+| `PROPERTY_ENTRY_POINTS`      | Exact predicate and optional precondition modules                         |
+| `GENERATED_BACKEND_WRAPPERS` | Files in the private adapter runtime outside `node_modules`               |
+| `DEPENDENCIES`               | Executed files below `node_modules`                                       |
 
 Include and exclude globs operate on original remapped paths, use `/` separators, and support `*`, `?`, and `**`.
 An empty include list retains every file in a selected scope; exclude rules always win.
@@ -165,8 +165,9 @@ than combined with the manifest.
 
 Existing source roots and files are canonicalized through real paths, so symlinked frontend inputs align with
 backend coverage; an unresolvable root is `UNSUPPORTED`. Istanbul's one-based lines and zero-based columns become
-zero-based half-open ranges with UTF-16 offsets, matching TypeScript and EtsIR source spans. CRLF, lone CR, LF,
-U+2028, and U+2029 are recognized as TypeScript line terminators.
+zero-based half-open ranges with UTF-16 offsets, matching TypeScript and EtsIR source spans. Recognized TypeScript
+line terminators are CRLF, lone CR, LF, Unicode line separator (`U+2028`), and Unicode paragraph separator
+(`U+2029`).
 Statement ranges are compared with `EtsSourceSpan` origins. Several normalized EtsIR statements sharing one exact
 origin remain one `EXACT` mapping with several targets; several distinct origins inside a covered range are
 `AMBIGUOUS`.
@@ -175,11 +176,18 @@ Binary Istanbul branches map to `EtsIfStmt`. Arm zero is the true CFG successor 
 as recorded by `EtsMappingProvenance`. Other branch shapes are `UNSUPPORTED`; the mapper does not guess switch,
 logical-expression, or backend-specific arm semantics.
 
-| Status | Meaning |
-| --- | --- |
-| `EXACT` | One source identity was established; normalized statements may produce several EtsIR targets with that shared identity. |
-| `AMBIGUOUS` | Several distinct entry points or source origins match, and every candidate is preserved. |
-| `UNMAPPED` | The input is supported, but no EtsIR target matches it. |
+Only one EtsIR condition from one source candidate is an `EXACT` branch mapping. Multiple conditions are
+`AMBIGUOUS` even when they share one source origin, because a short-circuit expression can lower to conditions with
+different CFG semantics.
+
+The pinned c8/V8 collector reports one-arm `branch` records, which therefore remain unsupported for CFG-edge
+mapping; statement coverage from the same artifact remains usable.
+
+| Status        | Meaning                                                                                                                                             |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `EXACT`       | One source identity was established; normalized statements may produce several EtsIR targets with that shared identity.                             |
+| `AMBIGUOUS`   | Several entry points, source origins, source candidates, or branch conditions match, and every candidate is preserved.                              |
+| `UNMAPPED`    | The input is supported, but no EtsIR target matches it.                                                                                             |
 | `UNSUPPORTED` | The input cannot be interpreted safely, for example because coverage, source text, origins, coordinates, bindings, or branch shape are unsupported. |
 
 Stable mapping diagnostics include `mapping.entry-point.unmapped`, `mapping.entry-point.ambiguous`,

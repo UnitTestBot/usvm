@@ -8,6 +8,37 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 internal class SourceLocationNormalizer(sourceRoots: List<Path>) {
+    private val paths = SourcePathResolver(sourceRoots)
+    private val sourceLineMaps = hashMapOf<Path, TypeScriptLineMap>()
+
+    val normalizedSourceRoots: List<Path> = paths.normalizedSourceRoots
+    val sourceRootDiagnostics: List<EtsMappingDiagnostic> = paths.sourceRootDiagnostics
+
+    fun normalizeRange(sourcePath: String, range: SourceRange): NormalizedSourceRange {
+        val path = paths.resolveSourceFile(sourcePath)
+        val sourceLineMap = sourceLineMaps.getOrPut(path) { readSourceLineMap(path) }
+        val start = sourceLineMap.normalize(range.start)
+        val end = sourceLineMap.normalize(range.end)
+
+        return NormalizedSourceRange(
+            path = path.toString(),
+            start = start,
+            end = end,
+        )
+    }
+
+    fun sourcePathCandidates(value: String): Set<Path> = paths.sourcePathCandidates(value)
+
+    fun modulePathCandidates(path: Path): Set<Path> = paths.modulePathCandidates(path)
+
+    private fun readSourceLineMap(path: Path): TypeScriptLineMap {
+        val source = Files.readString(path)
+
+        return TypeScriptLineMap(source)
+    }
+}
+
+private class SourcePathResolver(sourceRoots: List<Path>) {
     private val sourceRootResolutions = sourceRoots.mapIndexed { index, root ->
         normalizeSourceRoot(index, root)
     }
@@ -17,24 +48,7 @@ internal class SourceLocationNormalizer(sourceRoots: List<Path>) {
         resolution.diagnostic
     }
 
-    fun normalizeRange(sourcePath: String, range: SourceRange): NormalizedSourceRange {
-        val path = normalizePath(sourcePath).single()
-        val source = Files.readString(path)
-        val lines = source.sourceLines()
-        val start = range.start.normalize(lines)
-        val end = range.end.normalize(lines)
-        if (end.offset < start.offset) {
-            throw UnsupportedSourceLocationException("Source range end precedes its start")
-        }
-
-        return NormalizedSourceRange(
-            path = path.toString(),
-            start = start,
-            end = end,
-        )
-    }
-
-    fun normalizePath(value: String): Set<Path> {
+    fun sourcePathCandidates(value: String): Set<Path> {
         val path = Path.of(value)
         val candidates = if (path.isAbsolute) {
             listOf(path)
@@ -45,61 +59,41 @@ internal class SourceLocationNormalizer(sourceRoots: List<Path>) {
         return candidates.mapTo(linkedSetOf()) { candidate -> candidate.canonicalizeIfExisting() }
     }
 
-    fun modulePathCandidates(path: Path): Set<Path> {
-        val candidates = buildList {
-            add(path)
-            val name = path.fileName?.toString().orEmpty()
-            if (name.endsWith(".ts") || name.endsWith(".ets")) return@buildList
+    fun resolveSourceFile(sourcePath: String): Path {
+        val candidates = sourcePathCandidates(sourcePath)
+        val existingFiles = candidates.filter(Files::isRegularFile)
 
-            add(path.resolveSibling("$name.ts"))
-            add(path.resolveSibling("$name.ets"))
-            add(path.resolveSibling("$name.d.ts"))
-            add(path.resolve("index.ts"))
-            add(path.resolve("index.ets"))
-            add(path.resolve("index.d.ts"))
+        return when (existingFiles.size) {
+            0 -> {
+                val unresolvedCandidate = candidates.singleOrNull()
+
+                unresolvedCandidate ?: throw UnsupportedSourceLocationException(
+                    "Source path $sourcePath does not resolve uniquely below the configured source roots",
+                )
+            }
+
+            1 -> existingFiles.single()
+
+            else -> throw UnsupportedSourceLocationException(
+                "Source path $sourcePath resolves to several files: ${existingFiles.sorted().joinToString()}",
+            )
+        }
+    }
+
+    fun modulePathCandidates(path: Path): Set<Path> {
+        val candidates = mutableListOf(path)
+        if (!path.hasTypeScriptModuleSuffix()) {
+            val moduleName = path.fileName?.toString().orEmpty()
+
+            for (suffix in TYPESCRIPT_MODULE_SUFFIXES) {
+                candidates.add(path.resolveSibling("$moduleName$suffix"))
+            }
+            for (suffix in TYPESCRIPT_MODULE_SUFFIXES) {
+                candidates.add(path.resolve("index$suffix"))
+            }
         }
 
         return candidates.mapTo(linkedSetOf()) { candidate -> candidate.canonicalizeIfExisting() }
-    }
-
-    private fun SourcePosition.normalize(lines: List<SourceLine>): NormalizedSourcePosition {
-        val zeroBasedLine = line - ISTANBUL_LINE_BASE
-        val sourceLine = lines.getOrNull(zeroBasedLine)
-            ?: throw UnsupportedSourceLocationException("Source line $line is outside the file")
-        val offset = sourceLine.startOffset + column
-        if (offset > sourceLine.endOffset) {
-            throw UnsupportedSourceLocationException(
-                "Source column $column is outside line $line",
-            )
-        }
-
-        return NormalizedSourcePosition(
-            line = zeroBasedLine,
-            column = column,
-            offset = offset,
-        )
-    }
-
-    private fun String.sourceLines(): List<SourceLine> = buildList {
-        var lineStart = 0
-        var index = 0
-        while (index < length) {
-            val terminatorLength = when (this@sourceLines[index]) {
-                '\r' -> if (this@sourceLines.getOrNull(index + 1) == '\n') 2 else 1
-                '\n', '\u2028', '\u2029' -> 1
-                else -> 0
-            }
-            if (terminatorLength == 0) {
-                index++
-                continue
-            }
-
-            add(SourceLine(startOffset = lineStart, endOffset = index))
-            index += terminatorLength
-            lineStart = index
-        }
-
-        add(SourceLine(startOffset = lineStart, endOffset = length))
     }
 
     private fun normalizeSourceRoot(index: Int, root: Path): SourceRootResolution {
@@ -117,15 +111,18 @@ internal class SourceLocationNormalizer(sourceRoots: List<Path>) {
         }
     }
 
-    private fun unsupportedSourceRoot(index: Int, path: Path, reason: String): SourceRootResolution =
-        SourceRootResolution(
-            path = path,
-            diagnostic = EtsMappingDiagnostic(
-                code = PbtDiagnosticCode.MAPPING_SOURCE_ROOT_UNSUPPORTED,
-                message = "Cannot resolve TypeScript source root $index ($path): $reason",
-                sourcePath = path.toString(),
-            ),
+    private fun unsupportedSourceRoot(index: Int, path: Path, reason: String): SourceRootResolution {
+        val diagnostic = EtsMappingDiagnostic(
+            code = PbtDiagnosticCode.MAPPING_SOURCE_ROOT_UNSUPPORTED,
+            message = "Cannot resolve TypeScript source root $index ($path): $reason",
+            sourcePath = path.toString(),
         )
+
+        return SourceRootResolution(
+            path = path,
+            diagnostic = diagnostic,
+        )
+    }
 
     private fun Path.canonicalizeIfExisting(): Path {
         val absolutePath = if (isAbsolute) this else toAbsolutePath()
@@ -136,10 +133,47 @@ internal class SourceLocationNormalizer(sourceRoots: List<Path>) {
             absolutePath.normalize()
         }
     }
+}
 
-    private companion object {
-        const val ISTANBUL_LINE_BASE = 1
+private class TypeScriptLineMap(source: String) {
+    private val lines = source.indexTypeScriptLines()
+
+    fun normalize(position: SourcePosition): NormalizedSourcePosition {
+        val zeroBasedLine = position.line - ISTANBUL_LINE_BASE
+        val sourceLine = lines.getOrNull(zeroBasedLine)
+            ?: throw UnsupportedSourceLocationException("Source line ${position.line} is outside the file")
+        val offset = sourceLine.startOffset + position.column
+        if (offset > sourceLine.endOffset) {
+            throw UnsupportedSourceLocationException(
+                "Source column ${position.column} is outside line ${position.line}",
+            )
+        }
+
+        return NormalizedSourcePosition(
+            line = zeroBasedLine,
+            column = position.column,
+            offset = offset,
+        )
     }
+}
+
+private fun String.indexTypeScriptLines(): List<SourceLine> {
+    val lines = mutableListOf<SourceLine>()
+    var lineStart = 0
+    for (lineBreak in TYPESCRIPT_LINE_BREAK.findAll(this)) {
+        lines += SourceLine(startOffset = lineStart, endOffset = lineBreak.range.first)
+        lineStart = lineBreak.range.last + 1
+    }
+
+    lines += SourceLine(startOffset = lineStart, endOffset = length)
+
+    return lines
+}
+
+private fun Path.hasTypeScriptModuleSuffix(): Boolean {
+    val name = fileName?.toString().orEmpty()
+
+    return TYPESCRIPT_MODULE_SUFFIXES.any(name::endsWith)
 }
 
 private data class SourceLine(
@@ -153,3 +187,12 @@ private data class SourceRootResolution(
 )
 
 internal class UnsupportedSourceLocationException(message: String) : IllegalArgumentException(message)
+
+// TypeScript also treats the Unicode LINE SEPARATOR and PARAGRAPH SEPARATOR characters as line breaks.
+private const val UNICODE_LINE_SEPARATOR = '\u2028'
+private const val UNICODE_PARAGRAPH_SEPARATOR = '\u2029'
+private const val ISTANBUL_LINE_BASE = 1
+private val TYPESCRIPT_LINE_BREAK = Regex(
+    pattern = "\r\n|[\n\r$UNICODE_LINE_SEPARATOR$UNICODE_PARAGRAPH_SEPARATOR]",
+)
+private val TYPESCRIPT_MODULE_SUFFIXES = listOf(".ts", ".ets", ".d.ts")

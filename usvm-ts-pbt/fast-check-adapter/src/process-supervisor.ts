@@ -1,96 +1,50 @@
 import { spawn } from 'node:child_process';
 import { unlinkSync, writeFileSync } from 'node:fs';
-import { pathToFileURL } from 'node:url';
-import { isMainThread, Worker, workerData } from 'node:worker_threads';
 import {
   ProcessGroupShutdown,
   terminateOwnProcessGroup,
   terminateOwnedProcessGroup,
 } from './process-group-shutdown.js';
 
-interface WorkerExitMessage {
-  type: 'worker-exit';
+interface CommandExitMessage {
+  type: 'command-exit';
   code: number;
-}
-
-interface AdapterWorkerData {
-  adapterEntryPoint: string;
-}
-
-interface SupervisedWorker {
-  label: string;
-  arguments: string[];
 }
 
 type Command = [string, ...string[]];
 
 /**
  * Process tree:
- * Kotlin client -> supervisor -> detached group owner -> adapter/command -> any descendants.
+ * Kotlin client -> supervisor -> detached group owner -> command -> any descendants.
  * The supervisor stays outside the owned group so it can escalate shutdown. The group owner stays alive over IPC
- * until the adapter or command reports its exit, then the supervisor removes every remaining descendant at once.
+ * until the command reports its exit, then the supervisor removes every remaining descendant at once.
  */
 
-const adapterModeFlag = '--adapter';
 const commandModeFlag = '--command';
-const adapterWorkerFlag = '--adapter-worker';
-const commandWorkerFlag = '--command-worker';
+const groupOwnerFlag = '--group-owner';
 const MAX_TIMER_DELAY_MILLIS = 2 ** 31 - 1;
 
-if (!isMainThread) {
-  const data = requireAdapterWorkerData(workerData);
-
-  await runAdapterThread(data.adapterEntryPoint);
-} else {
-  runProcess(process.argv.slice(2));
-}
+runProcess(process.argv.slice(2));
 
 function runProcess(arguments_: string[]): void {
   const mode = requireArgument(arguments_[0], 'supervisor mode');
 
-  if (mode === adapterWorkerFlag) {
-    runAdapterWorker(requireArgument(arguments_[1], 'adapter entry point'));
+  if (mode === groupOwnerFlag) {
+    runGroupOwner(requireCommand(arguments_.slice(1)));
     return;
   }
 
-  if (mode === commandWorkerFlag) {
-    runCommandWorker(requireCommand(arguments_.slice(1)));
-    return;
-  }
+  if (mode !== commandModeFlag) fail(`Unknown supervisor mode: ${mode}`);
 
   const forceKillDelayMillis = requireTimerDelay(arguments_[1], 'force-kill delay');
   const processGroupFile = requireArgument(arguments_[2], 'process-group file');
+  const command = requireCommand(arguments_.slice(3));
 
-  if (mode === adapterModeFlag) {
-    const adapterEntryPoint = requireArgument(arguments_[3], 'adapter entry point');
-    runSupervisor(
-      {
-        label: 'adapter worker',
-        arguments: [adapterWorkerFlag, adapterEntryPoint],
-      },
-      forceKillDelayMillis,
-      processGroupFile,
-    );
-    return;
-  }
-
-  if (mode === commandModeFlag) {
-    runSupervisor(
-      {
-        label: 'command worker',
-        arguments: [commandWorkerFlag, ...requireCommand(arguments_.slice(3))],
-      },
-      forceKillDelayMillis,
-      processGroupFile,
-    );
-    return;
-  }
-
-  fail(`Unknown supervisor mode: ${mode}`);
+  runSupervisor(command, forceKillDelayMillis, processGroupFile);
 }
 
 function runSupervisor(
-  workerSpec: SupervisedWorker,
+  command: Command,
   forceKillDelayMillis: number,
   processGroupFile: string,
 ): void {
@@ -98,38 +52,38 @@ function runSupervisor(
   installSupervisorSignalHandlers(shutdown);
 
   const supervisorEntryPoint = requireArgument(process.argv[1], 'supervisor entry point');
-  const worker = spawn(
+  const groupOwner = spawn(
     process.execPath,
-    [supervisorEntryPoint, ...workerSpec.arguments],
+    [supervisorEntryPoint, groupOwnerFlag, ...command],
     {
       detached: true,
       stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
     },
   );
-  const workerPid = requirePid(worker.pid, workerSpec.label);
-  const workerStdin = requireStream(worker.stdin, `${workerSpec.label} stdin`);
-  const workerStdout = requireStream(worker.stdout, `${workerSpec.label} stdout`);
-  const workerStderr = requireStream(worker.stderr, `${workerSpec.label} stderr`);
+  const groupOwnerPid = requirePid(groupOwner.pid, 'group owner');
+  const groupOwnerStdin = requireStream(groupOwner.stdin, 'group owner stdin');
+  const groupOwnerStdout = requireStream(groupOwner.stdout, 'group owner stdout');
+  const groupOwnerStderr = requireStream(groupOwner.stderr, 'group owner stderr');
   let reportedExitCode: number | undefined;
 
-  shutdown.attach(workerPid);
-  writeFileSync(processGroupFile, String(workerPid));
+  shutdown.attach(groupOwnerPid);
+  writeFileSync(processGroupFile, String(groupOwnerPid));
 
-  process.stdin.pipe(workerStdin);
-  workerStdout.pipe(process.stdout);
-  workerStderr.pipe(process.stderr);
+  process.stdin.pipe(groupOwnerStdin);
+  groupOwnerStdout.pipe(process.stdout);
+  groupOwnerStderr.pipe(process.stderr);
 
-  worker.on('message', (message: unknown) => {
-    if (!isWorkerExitMessage(message)) return;
+  groupOwner.on('message', (message: unknown) => {
+    if (!isCommandExitMessage(message)) return;
 
     reportedExitCode = message.code;
-    terminateOwnedProcessGroup(workerPid, 'forceful');
+    terminateOwnedProcessGroup(groupOwnerPid, 'forceful');
   });
-  worker.on('error', (error: Error) => {
-    process.stderr.write(`Failed to start ${workerSpec.label}: ${error.message}\n`);
+  groupOwner.on('error', (error: Error) => {
+    process.stderr.write(`Failed to start process-group owner: ${error.message}\n`);
     reportedExitCode = 1;
   });
-  worker.on('close', (code: number | null) => {
+  groupOwner.on('close', (code: number | null) => {
     shutdown.cancel();
     removeProcessGroupFile(processGroupFile);
 
@@ -142,30 +96,10 @@ function installSupervisorSignalHandlers(shutdown: ProcessGroupShutdown): void {
   process.on('SIGTERM', () => shutdown.request());
 }
 
-function runAdapterWorker(adapterEntryPoint: string): void {
+function runGroupOwner(command: Command): void {
   installProcessGroupOwnerHandlers();
 
-  const supervisorEntryPoint = requireArgument(process.argv[1], 'supervisor entry point');
-  const reportExit = createWorkerExitReporter();
-  const adapter = new Worker(supervisorEntryPoint, {
-    workerData: { adapterEntryPoint } satisfies AdapterWorkerData,
-    stdin: true,
-  });
-  const adapterStdin = requireStream(adapter.stdin, 'adapter stdin');
-
-  process.stdin.pipe(adapterStdin);
-
-  adapter.on('error', (error: Error) => {
-    process.stderr.write(`Failed to start projection adapter: ${error.message}\n`);
-    reportExit(1);
-  });
-  adapter.on('exit', reportExit);
-}
-
-function runCommandWorker(command: Command): void {
-  installProcessGroupOwnerHandlers();
-
-  const reportExit = createWorkerExitReporter();
+  const reportExit = createCommandExitReporter();
   const child = spawn(command[0], command.slice(1), {
     // Direct inheritance avoids a user-space forwarding buffer that could be truncated when the group is removed.
     stdio: 'inherit',
@@ -186,32 +120,24 @@ function installProcessGroupOwnerHandlers(): void {
   process.on('disconnect', terminateOwnProcessGroup);
 }
 
-function createWorkerExitReporter(): (code: number) => void {
+function createCommandExitReporter(): (code: number) => void {
   let reported = false;
 
   return (code: number): void => {
     if (reported) return;
 
     reported = true;
-    const message: WorkerExitMessage = { type: 'worker-exit', code };
+    const message: CommandExitMessage = { type: 'command-exit', code };
     process.send?.(message);
   };
 }
 
-async function runAdapterThread(adapterEntryPoint: string): Promise<void> {
-  try {
-    await import(pathToFileURL(adapterEntryPoint).href);
-  } finally {
-    process.stdin.destroy();
-  }
-}
-
-function isWorkerExitMessage(value: unknown): value is WorkerExitMessage {
+function isCommandExitMessage(value: unknown): value is CommandExitMessage {
   if (value === null || typeof value !== 'object') return false;
 
   const record = value as Record<string, unknown>;
 
-  return record.type === 'worker-exit'
+  return record.type === 'command-exit'
     && typeof record.code === 'number'
     && Number.isInteger(record.code);
 }
@@ -225,9 +151,9 @@ function removeProcessGroupFile(processGroupFile: string): void {
 }
 
 function isMissingFile(error: unknown): boolean {
-  return error instanceof Error
-    && 'code' in error
-    && error.code === 'ENOENT';
+  if (!(error instanceof Error) || !('code' in error)) return false;
+
+  return error.code === 'ENOENT';
 }
 
 function requireArgument(value: string | undefined, name: string): string {
@@ -244,9 +170,10 @@ function requireCommand(command: string[]): Command {
 
 function requireTimerDelay(value: string | undefined, name: string): number {
   const parsed = value === undefined ? Number.NaN : Number(value);
-  const valid = Number.isInteger(parsed)
-    && parsed > 0
-    && parsed <= MAX_TIMER_DELAY_MILLIS;
+  const isInteger = Number.isInteger(parsed);
+  const isPositive = parsed > 0;
+  const fitsNodeTimer = parsed <= MAX_TIMER_DELAY_MILLIS;
+  const valid = isInteger && isPositive && fitsNodeTimer;
   if (!valid) fail(`Invalid ${name}: ${value ?? '<missing>'}`);
 
   return parsed;
@@ -262,18 +189,6 @@ function requireStream<T>(value: T | null, name: string): T {
   if (value === null) fail(`Missing ${name}`);
 
   return value;
-}
-
-function requireAdapterWorkerData(value: unknown): AdapterWorkerData {
-  if (value === null || typeof value !== 'object') fail('Missing projection adapter worker data');
-
-  const record = value as Record<string, unknown>;
-  const adapterEntryPoint = requireArgument(
-    typeof record.adapterEntryPoint === 'string' ? record.adapterEntryPoint : undefined,
-    'adapter entry point',
-  );
-
-  return { adapterEntryPoint };
 }
 
 function fail(message: string): never {

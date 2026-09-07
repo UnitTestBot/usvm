@@ -277,13 +277,14 @@ class TsTypeSystem(
             is EtsPrimitiveType -> emptySequence()
             is EtsAnyType,
             is EtsUnknownType,
-                ->
+                -> {
                 scene.projectAndSdkClasses
                     .asSequence()
                     .map { it.type }
                     .plus(sequenceOf(EtsNumberType, EtsBooleanType, EtsStringType))
+            }
 
-            is EtsAuxiliaryType ->
+            is EtsAuxiliaryType -> {
                 scene.projectAndSdkClasses
                     .asSequence()
                     .filter { cls ->
@@ -292,8 +293,9 @@ class TsTypeSystem(
                             .containsAll(t.properties)
                     }
                     .map { it.type }
+            }
 
-            is EtsArrayType ->
+            is EtsArrayType -> {
                 findSubtypes(t.elementType).map { child ->
                     if (child is EtsArrayType) {
                         EtsArrayType(child.elementType, child.dimensions + 1)
@@ -301,10 +303,11 @@ class TsTypeSystem(
                         EtsArrayType(child, dimensions = 1)
                     }
                 }
+            }
 
             is EtsUnclearRefType,
             is EtsClassType,
-                ->
+                -> {
                 if ((t as? EtsClassType)?.signature == EtsHierarchy.OBJECT_CLASS.signature) { // TODO change it
                     scene.projectAndSdkClasses.asSequence().map { it.type } + EtsStringType + EtsAnyType
                 } else {
@@ -313,6 +316,7 @@ class TsTypeSystem(
                         .flatMap { hierarchy.getInheritors(it).asSequence() }
                         .map { it.type }
                 }
+            }
 
             else -> emptySequence()
         }
