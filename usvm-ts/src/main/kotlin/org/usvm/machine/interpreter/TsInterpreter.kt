@@ -111,10 +111,12 @@ class TsInterpreter(
         if (result is TsMethodResult.TsException) {
             // TODO catch processing
             scope.doWithState {
+                leaveUnknownCallModelIfReturning()
                 val returnSite = callStack.pop()
 
                 if (callStack.isNotEmpty()) {
                     memory.stack.pop()
+                    popLocalToSortStack()
                 }
 
                 if (returnSite != null) {

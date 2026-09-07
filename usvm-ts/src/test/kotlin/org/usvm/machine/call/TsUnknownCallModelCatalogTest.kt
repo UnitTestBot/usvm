@@ -6,6 +6,12 @@ import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsUnknownType
 import org.usvm.machine.call.intrinsic.TsArrayShiftIntrinsicModel
+import org.jacodb.ets.model.EtsFile
+import org.jacodb.ets.model.EtsFileSignature
+import org.jacodb.ets.model.EtsScene
+import org.usvm.UMachineOptions
+import org.usvm.machine.TsMachine
+import org.usvm.machine.TsOptions
 import org.usvm.machine.state.TsState
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -149,10 +155,10 @@ class TsUnknownCallModelCatalogTest {
     fun `built in models are discovered once and an explicit empty selection disables all`() {
         val catalog = TsBuiltInUnknownCallModels.catalog()
 
-        assertEquals(listOf(TsArrayShiftIntrinsicModel.MODEL_ID), catalog.modelIds)
+        assertEquals(listOf("ts.array.pop", TsArrayShiftIntrinsicModel.MODEL_ID), catalog.modelIds)
         assertSame(catalog, TsBuiltInUnknownCallModels.catalog())
         assertFailsWith<UnsupportedOperationException> { (catalog.modelIds as MutableList<String>).clear() }
-        assertEquals(listOf(TsArrayShiftIntrinsicModel.MODEL_ID), TsBuiltInUnknownCallModels.catalog().modelIds)
+        assertEquals(listOf("ts.array.pop", TsArrayShiftIntrinsicModel.MODEL_ID), TsBuiltInUnknownCallModels.catalog().modelIds)
         assertTrue(TsBuiltInUnknownCallModels.catalog(TsUnknownCallModelSelection.Only(emptySet())).modelIds.isEmpty())
     }
 
@@ -179,11 +185,64 @@ class TsUnknownCallModelCatalogTest {
         failureReason = reason,
     )
 
+    @Test
+    fun `same model EtsIR file object is merged once`() {
+        val modelFile = etsFile(fileName = "model.ts")
+        val catalog = TsUnknownCallModelCatalog(
+            models = listOf(
+                model(id = "a", methodName = "first", additionalSceneFiles = listOf(modelFile)),
+                model(id = "b", methodName = "second", additionalSceneFiles = listOf(modelFile)),
+            )
+        )
+
+        assertEquals(listOf(modelFile), catalog.additionalSceneFiles)
+    }
+
+    @Test
+    fun `distinct model EtsIR files with the same signature are rejected`() {
+        val first = etsFile(fileName = "model.ts")
+        val second = etsFile(fileName = "model.ts")
+
+        val error = assertFailsWith<IllegalArgumentException> {
+            TsUnknownCallModelCatalog(
+                models = listOf(
+                    model(id = "a", methodName = "first", additionalSceneFiles = listOf(first)),
+                    model(id = "b", methodName = "second", additionalSceneFiles = listOf(second)),
+                )
+            )
+        }
+
+        assertEquals("Conflicting EtsIR files share signature @test/model", error.message)
+    }
+
+    @Test
+    fun `application and model EtsIR files with the same signature are rejected`() {
+        val applicationFile = etsFile(fileName = "shared.ts")
+        val modelFile = etsFile(fileName = "shared.ts")
+        val catalog = TsUnknownCallModelCatalog(
+            models = listOf(
+                model(id = "model", additionalSceneFiles = listOf(modelFile)),
+            )
+        )
+
+        val error = assertFailsWith<IllegalArgumentException> {
+            TsMachine(
+                scene = EtsScene(projectFiles = listOf(applicationFile)),
+                options = UMachineOptions(),
+                tsOptions = TsOptions(),
+                unknownCallModels = catalog,
+            )
+        }
+
+        assertEquals("Conflicting EtsIR files share signature @test/shared", error.message)
+    }
+
     private fun model(
         id: String,
         methodName: String = "target-$id",
         failureReason: TsUnknownCallFailureReason? = null,
         className: String? = null,
+        additionalSceneFiles: List<EtsFile> = emptyList(),
     ): TsUnknownCallModel = FakeModel(
         id = id,
         target = TsUnknownCallTarget(
@@ -191,13 +250,21 @@ class TsUnknownCallModelCatalogTest {
             failureReason = failureReason,
             enclosingClassName = className,
         ),
+        additionalSceneFiles = additionalSceneFiles,
     )
 
     private class FakeModel(
         override val id: String,
         override val target: TsUnknownCallTarget,
+        override val additionalSceneFiles: List<EtsFile> = emptyList(),
     ) : TsUnknownCallModel {
         override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution =
             error("Fake model must not execute in catalog metadata tests")
     }
+
+    private fun etsFile(fileName: String): EtsFile = EtsFile(
+        signature = EtsFileSignature(projectName = "test", fileName = fileName),
+        classes = emptyList(),
+        namespaces = emptyList(),
+    )
 }

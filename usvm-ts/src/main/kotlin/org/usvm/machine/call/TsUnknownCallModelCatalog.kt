@@ -1,5 +1,7 @@
 package org.usvm.machine.call
 
+import org.jacodb.ets.model.EtsFile
+import org.jacodb.ets.model.EtsFileSignature
 import org.usvm.machine.state.TsState
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
@@ -17,6 +19,7 @@ class TsUnknownCallModelCatalog(
 
     val modelIds: List<String>
     val fingerprint: String
+    val additionalSceneFiles: List<EtsFile>
 
     init {
         val modelsById = hashMapOf<String, TsUnknownCallModel>()
@@ -37,6 +40,9 @@ class TsUnknownCallModelCatalog(
         modelIds = Collections.unmodifiableList(selectedModels.map(TsUnknownCallModel::id))
         index = indexModels(selectedModels)
         fingerprint = computeFingerprint(modelIds)
+        additionalSceneFiles = selectedModels
+            .flatMap(TsUnknownCallModel::additionalSceneFiles)
+            .deduplicateEtsFilesBySignature()
     }
 
     internal fun select(call: TsUnknownCall): TsUnknownCallModel? {
@@ -46,6 +52,10 @@ class TsUnknownCallModelCatalog(
 
     fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelApplication {
         val model = select(call) ?: return TsUnknownCallModelApplication.NotApplicable
+        if (state.isUnknownCallModelActive(model.id)) {
+            return TsUnknownCallModelApplication.NotApplicable
+        }
+
         val execution = model.apply(state, call) ?: return TsUnknownCallModelApplication.NotApplicable
 
         return TsUnknownCallModelApplication.Applied(
@@ -78,6 +88,21 @@ private fun indexModels(
         }
     }
     return index
+}
+
+internal fun Iterable<EtsFile>.deduplicateEtsFilesBySignature(): List<EtsFile> {
+    val filesBySignature = linkedMapOf<EtsFileSignature, EtsFile>()
+
+    for (file in this) {
+        val existingFile = filesBySignature[file.signature]
+        require(existingFile == null || existingFile === file) {
+            "Conflicting EtsIR files share signature ${file.signature}"
+        }
+
+        filesBySignature.putIfAbsent(file.signature, file)
+    }
+
+    return filesBySignature.values.toList()
 }
 
 private fun computeFingerprint(modelIds: List<String>): String {
