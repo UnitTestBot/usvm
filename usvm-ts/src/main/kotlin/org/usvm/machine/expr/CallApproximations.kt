@@ -111,7 +111,7 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
 
         // Handle `Array.pop() method calls
         if (expr.callee.name == "pop") {
-            return from(handleArrayPop(expr, instanceType, elementSort))
+            return handleArrayPopCall(expr, instanceType, elementSort, instance)
         }
 
         // Handle `Array.fill() method calls
@@ -161,6 +161,28 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
     }
 
     return TsExprApproximationResult.NoApproximation
+}
+
+private fun TsExprResolver.handleArrayPopCall(
+    expr: EtsInstanceCallExpr,
+    instanceType: EtsArrayType,
+    elementSort: USort,
+    resolvedReceiver: UExpr<*>,
+): TsExprApproximationResult {
+    val dispatcher = unknownCallDispatcher
+    if (dispatcher !is TsUnknownCallModelDispatcher) {
+        return from(handleArrayPop(expr, instanceType, elementSort))
+    }
+
+    dispatcher.dispatch(
+        scope,
+        expr,
+        scope.calcOnState { lastStmt },
+        failureReason = TsUnknownCallFailureReason.PARTIAL_APPROXIMATION,
+        resolvedReceiver = resolvedReceiver,
+    )
+
+    return TsExprApproximationResult.ResolveFailure
 }
 
 private fun TsExprResolver.handleArrayShiftCall(

@@ -1,5 +1,11 @@
 package org.usvm.machine.call
 
+import org.jacodb.ets.model.EtsFile
+import org.jacodb.ets.model.EtsFileSignature
+import org.jacodb.ets.model.EtsScene
+import org.usvm.UMachineOptions
+import org.usvm.machine.TsMachine
+import org.usvm.machine.TsOptions
 import org.usvm.machine.state.TsState
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -96,23 +102,84 @@ class TsUnknownCallModelCatalogTest {
         assertTrue(onlyA.fingerprint.matches(Regex("[0-9a-f]{64}")))
     }
 
+    @Test
+    fun `same model EtsIR file object is merged once`() {
+        val modelFile = etsFile(fileName = "model.ts")
+        val catalog = TsUnknownCallModelCatalog(
+            models = listOf(
+                model(id = "a", methodName = "first", additionalSceneFiles = listOf(modelFile)),
+                model(id = "b", methodName = "second", additionalSceneFiles = listOf(modelFile)),
+            )
+        )
+
+        assertEquals(listOf(modelFile), catalog.additionalSceneFiles)
+    }
+
+    @Test
+    fun `distinct model EtsIR files with the same signature are rejected`() {
+        val first = etsFile(fileName = "model.ts")
+        val second = etsFile(fileName = "model.ts")
+
+        val error = assertFailsWith<IllegalArgumentException> {
+            TsUnknownCallModelCatalog(
+                models = listOf(
+                    model(id = "a", methodName = "first", additionalSceneFiles = listOf(first)),
+                    model(id = "b", methodName = "second", additionalSceneFiles = listOf(second)),
+                )
+            )
+        }
+
+        assertEquals("Conflicting EtsIR files share signature @test/model", error.message)
+    }
+
+    @Test
+    fun `application and model EtsIR files with the same signature are rejected`() {
+        val applicationFile = etsFile(fileName = "shared.ts")
+        val modelFile = etsFile(fileName = "shared.ts")
+        val catalog = TsUnknownCallModelCatalog(
+            models = listOf(
+                model(id = "model", additionalSceneFiles = listOf(modelFile)),
+            )
+        )
+
+        val error = assertFailsWith<IllegalArgumentException> {
+            TsMachine(
+                scene = EtsScene(projectFiles = listOf(applicationFile)),
+                options = UMachineOptions(),
+                tsOptions = TsOptions(),
+                unknownCallModels = catalog,
+            )
+        }
+
+        assertEquals("Conflicting EtsIR files share signature @test/shared", error.message)
+    }
+
     private fun model(
         id: String,
         methodName: String = "target-$id",
         failureReason: TsUnknownCallFailureReason? = null,
+        additionalSceneFiles: List<EtsFile> = emptyList(),
     ): TsUnknownCallModel = FakeModel(
         id = id,
         target = TsUnknownCallTarget(
             methodName = methodName,
             failureReason = failureReason,
         ),
+        additionalSceneFiles = additionalSceneFiles,
     )
 
     private class FakeModel(
         override val id: String,
         override val target: TsUnknownCallTarget,
+        override val additionalSceneFiles: List<EtsFile>,
     ) : TsUnknownCallModel {
         override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution =
             error("Fake model must not execute in catalog metadata tests")
     }
+
+    private fun etsFile(fileName: String): EtsFile = EtsFile(
+        signature = EtsFileSignature(projectName = "test", fileName = fileName),
+        classes = emptyList(),
+        namespaces = emptyList(),
+    )
 }

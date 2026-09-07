@@ -35,7 +35,7 @@ Unknown-call behavior is configured directly in `TsOptions`:
 
 ```kotlin
 TsOptions(
-    enabledUnknownCallModelIds = setOf("ts.array.shift"),
+    enabledUnknownCallModelIds = setOf("ts.array.pop"),
     unknownCallFallback = TsResidualCallPolicy.STOP_PATH,
 )
 ```
@@ -53,18 +53,20 @@ This is the only model-selection setting.
 Unknown IDs are rejected when the machine creates its immutable per-run catalog. The input set is copied at that
 point, so later mutations cannot change an active run.
 
-Use the model's `id`, for example `ts.array.shift`. A target method name, class name, source filename, or fingerprint is
+Use the model's `id`, for example `ts.array.pop`. A target method name, class name, source filename, or artifact hash is
 not a model ID.
 
-The built-in catalog currently contains one model:
+The built-in catalog currently contains:
 
 | ID | Implementation | Accepted calls |
 | --- | --- | --- |
 | `ts.array.shift` | Kotlin intrinsic using symbolic-memory `memcpy` | Zero-argument `shift` on a definitely one-dimensional array. |
+| `ts.array.pop` | TypeScript/EtsIR body | Zero-argument `pop` on a statically proven `number[]` receiver that also satisfies the symbolic runtime type guard. |
 
 An `any`/unknown receiver, a fake-value wrapper, and a non-array receiver do not become applicable merely because the
-method is named `shift`; they use fallback. A definitely-array receiver with an unresolved element sort remains
-applicable and uses the fake-value representation described below.
+method is named `pop` or `shift`; they use fallback. A definitely-array `shift` receiver with an unresolved element sort
+remains applicable and uses the fake-value representation described below. An array outside the `pop` model's
+`number[]` domain uses fallback.
 
 ### `unknownCallFallback`
 
@@ -72,7 +74,8 @@ The fallback is applied when:
 
 - no enabled model target matches the call;
 - the selected model returns `null` because it cannot safely handle the concrete inputs;
-- a model returns a satisfiable `residualGuard`.
+- a model returns a satisfiable `residualGuard`;
+- recursive redirection attempts to enter the same model again.
 
 The available policies are:
 
@@ -106,18 +109,18 @@ Use a stable semantic name:
 
 Examples:
 
-- `ts.array.shift`
 - `ts.array.pop`
+- `ts.array.shift`
 - `node.buffer.copy`
 
-The ID is used for configuration, observer events, and catalog fingerprints. Do not include:
+The ID is used for configuration, observer events, recursion prevention, and catalog fingerprints. Do not include:
 
-- an implementation mechanism such as `intrinsic`;
-- a hash;
+- an implementation mechanism such as `intrinsic` or `ets-ir`;
+- a source or EtsIR hash;
 - a version number;
 - a supported-domain label.
 
-Keep the same ID if an equivalent model is later reimplemented by another mechanism.
+Keep the same ID when an equivalent model moves from Kotlin to TypeScript.
 
 ### Choosing a target
 
@@ -125,7 +128,7 @@ Keep the same ID if an equivalent model is later reimplemented by another mechan
 
 ```kotlin
 TsUnknownCallTarget(
-    methodName = "shift",
+    methodName = "pop",
     failureReason = TsUnknownCallFailureReason.PARTIAL_APPROXIMATION,
 )
 ```
@@ -134,12 +137,13 @@ Only `methodName` is required. Add `enclosingClassName` or `failureReason` when 
 The catalog rejects overlapping enabled targets before execution, so catalog order is never a priority rule.
 
 The target identifies a call family. State-dependent checks, such as the receiver's symbolic runtime type, belong in
-`apply`.
+`apply` or in an EtsIR model's domain guard.
 
-The built-in array target intentionally combines the method name with `PARTIAL_APPROXIMATION` instead of a class name.
+The built-in array targets intentionally combine the method name with `PARTIAL_APPROXIMATION` instead of a class name.
 That failure reason is emitted only after the regular approximation path has classified the receiver as an
-`EtsArrayType`. Calls on `any`/unknown receivers reach another failure reason and cannot match this target. The model
-still validates the resolved receiver and array shape before changing memory.
+`EtsArrayType`. Calls on `any`/unknown receivers reach another failure reason and cannot match these targets. Each model
+still validates the resolved receiver and its supported domain before changing memory. `shift` accepts an unresolved
+element sort, while `pop` currently accepts only `number[]`.
 
 ## Applicability and residual states
 
@@ -167,44 +171,88 @@ Model authors are responsible for making successor guards and the residual guard
 property belongs in focused model tests; the dispatcher does not invoke the solver a second time merely to validate a
 model on every call.
 
-## When to write an intrinsic
+## TypeScript bodies and intrinsics
 
-An intrinsic directly builds guarded successors and symbolic-memory operations in Kotlin. Use it only for an operation
-that TypeScript cannot express without losing symbolic efficiency or correctness.
+Use a TypeScript body by default. Use a Kotlin intrinsic only for an operation that TypeScript cannot express without
+losing symbolic efficiency or correctness.
+
+### TypeScript/EtsIR model
+
+A TypeScript model is ordinary source code:
+
+```typescript
+export class ArrayModels {
+    static pop(receiver: number[]): number | undefined {
+        const length = receiver.length;
+        if (length === 0) {
+            return undefined;
+        }
+
+        const result = receiver[length - 1];
+        receiver.length = length - 1;
+        return result;
+    }
+}
+```
+
+Load the source and put the resulting model directly in the catalog:
+
+```kotlin
+val artifact = loadEtsIrUnknownCallModelArtifact(
+    sourcePath = modelPath,
+    entryPointClassName = "ArrayModels",
+    entryPointMethodName = "pop",
+)
+
+val model = TsEtsIrUnknownCallModel(
+    id = "ts.array.pop",
+    target = TsUnknownCallTarget(methodName = "pop"),
+    artifact = artifact,
+    domainGuard = numberArrayGuard,
+)
+
+val catalog = TsUnknownCallModelCatalog(models = listOf(model))
+```
+
+The normal EtsIR interpreter executes the body. Receiver and arguments become entry-point parameters; ordinary return,
+exception, field and array writes, and reference aliases flow back through the normal call stack.
+
+The entry point must be static and have a non-empty body. Its parameter count must equal the resolved receiver plus
+argument count. Unresolved inputs or an arity mismatch make the model not applicable.
+
+The domain guard has three useful outcomes:
+
+| Guard | Result |
+| --- | --- |
+| Concrete `false` | The model is not applicable; fallback handles the complete state. |
+| Concrete `true` | The interpreter enters the TypeScript body; there is no residual state. |
+| Symbolic expression | The true branch enters the body and the complementary branch uses fallback. |
+
+### Kotlin intrinsic
+
+An intrinsic is simply another `TsUnknownCallModel` implementation. It directly builds guarded successors and symbolic
+memory operations.
 
 `Array.shift` is the built-in example because shifting a symbolic array is naturally represented by symbolic-memory
 `memcpy` operations. A resolved element sort uses one array region. A symbolic array with an unresolved element sort
 uses the boolean, number, and address regions that back a fake value; its removed element is materialized before
-forking so the exactly-one type constraint and updated solver models are inherited by every successor.
+forking so the exactly-one type constraint and updated solver models are inherited by every successor. In contrast,
+`Array.pop` is expressed as the TypeScript body shown above.
 
 Good intrinsic candidates include:
 
 - bulk symbolic-memory copy or fill;
 - symbolic collection primitives;
-- solver operations unavailable in the modeled language;
-- type-system operations that cannot be represented faithfully by ordinary code.
+- solver operations unavailable in TypeScript;
+- type-system operations that cannot be represented faithfully in EtsIR.
 
-Do not write an intrinsic merely because a library method is stateful.
-
-## Source-model migration
-
-A source model uses the same `TsUnknownCallModel` object and the same ID, target, successor, and residual contract.
-The source-model work in PR #380 should extend a successor completion with the EtsIR entry point and resolved inputs,
-make the model's EtsIR files visible in the analysis scene, and enter that method through the regular interpreter.
-Receiver binding, arguments, returns, exceptions, heap changes, aliases, and nested calls then use normal interpreter
-semantics. They must not be reimplemented in a source-specific dispatcher or backend registry.
-
-The model checks its supported domain before entering EtsIR. An unsupported call returns `null`; a guarded supported
-subdomain uses the complementary residual guard and the same configured fallback. Recursive redirection is prevented
-by tracking the active model ID in execution state, not by creating a second catalog.
-
-`Array.pop` is the source-model example. Its TypeScript body uses indexing and `length`; it must not call `pop` again.
-The existing `Array.shift` intrinsic remains the example for engine-only symbolic-memory `memcpy`.
+Do not write a Kotlin intrinsic merely because a library method is stateful. If ordinary TypeScript can express the
+semantics, keep the model in TypeScript.
 
 ## Dynamic receivers
 
-A method name does not prove the receiver type. In particular, `value.shift()` may call a user-defined property rather
-than `Array.prototype.shift`.
+A method name does not prove the receiver type. In particular, `value.pop()` may call a user-defined property rather
+than `Array.prototype.pop`.
 
 Use this decision rule:
 
@@ -219,17 +267,31 @@ Never choose `typeStreamOf(receiver).firstOrNull()` as proof. It returns one pos
 possible type. Use a statically proven type, `singleOrNull()` where uniqueness is guaranteed, or an explicit symbolic
 type guard.
 
-## Fingerprints
+## Nested calls and recursion
+
+Unknown calls made inside a TypeScript model body use the same catalog and fallback as the original program. This lets
+source models compose with other source models and intrinsics.
+
+The state tracks each active model ID together with its call-stack depth. If the same model would redirect recursively,
+lookup declines that redirection and fallback is applied instead of entering an infinite loop.
+
+Do not implement `Array.pop` by calling `receiver.pop()` inside its own model body. Implement it through `length` and
+indexed access, as in the example above.
+
+## Artifacts and fingerprints
+
+The loader snapshots the source bytes, invokes the native JacoDB TypeScript frontend, and rejects source mutation during
+generation. The resulting artifact records source and EtsIR SHA-256 hashes for reproducibility.
 
 The catalog sorts enabled models by ID and hashes their length-prefixed IDs. Therefore model registration order does
-not affect the fingerprint and ambiguous concatenations cannot collide merely because of ID boundaries.
+not affect the fingerprint and ambiguous concatenations cannot collide merely because of ID boundaries. The
+fingerprint identifies the frozen enabled model set for one run. It is not a version and must not be used as a manually
+maintained configuration value. Experiment metadata records the tool revision separately. If model source can change
+independently of that revision, the runner also records the artifact's content hashes as experiment metadata; those
+hashes are not another model ID, version, compatibility setting, or part of the common model contract.
 
-The fingerprint identifies the frozen enabled model set for one run. It is not a version and must not be used as a
-manually maintained configuration value. Experiment metadata records the tool revision separately. If model source
-can change independently of that revision, the runner also records a content hash for the external source or generated
-artifact; that content identity is experiment metadata, not another model ID, version, or compatibility setting. Keep
-the catalog fingerprint based only on enabled model IDs rather than adding implementation-specific fingerprint fields
-to the common model contract.
+EtsIR files are merged into the analysis scene by file signature. Reusing the same file object is deduplicated;
+distinct files with the same signature are rejected.
 
 ## Observation
 

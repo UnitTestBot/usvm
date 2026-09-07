@@ -2,6 +2,7 @@ package org.usvm.machine.expr
 
 import io.ksmt.utils.asExpr
 import mu.KotlinLogging
+import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsInstanceFieldRef
@@ -14,8 +15,10 @@ import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.ensureStaticsInitialized
 import org.usvm.machine.types.EtsAuxiliaryType
+import org.usvm.sizeSort
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.TsResolutionResult
+import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.resolveEtsField
 
@@ -48,8 +51,60 @@ internal fun TsExprResolver.handleAssignToInstanceField(
     // Check for undefined or null field access.
     checkUndefinedOrNullPropertyRead(scope, instance, field.name) ?: return null
 
+    val arrayType = instanceLocal.type as? EtsArrayType
+    if (field.name == "length" && arrayType != null) {
+        return assignToArrayLength(
+            scope = scope,
+            array = instance,
+            arrayType = arrayType,
+            value = expr,
+            maxArraySize = options.maxArraySize,
+        )
+    }
+
     // Assign to the field.
     assignToInstanceField(scope, instanceLocal, instance, field, expr, hierarchy)
+}
+
+private fun TsContext.assignToArrayLength(
+    scope: TsStepScope,
+    array: UHeapRef,
+    arrayType: EtsArrayType,
+    value: UExpr<*>,
+    maxArraySize: Int,
+): Unit? = with(this) {
+    if (value.sort != fp64Sort) {
+        return null
+    }
+
+    val fpLength = value.asExpr(fp64Sort)
+    val convertedLength = mkFpToBvExpr(
+        roundingMode = fpRoundingModeSortDefaultValue(),
+        value = fpLength,
+        bvSize = 32,
+        isSigned = true,
+    )
+    val roundTrip = mkBvToFpExpr(
+        sort = fp64Sort,
+        roundingMode = fpRoundingModeSortDefaultValue(),
+        value = convertedLength,
+        signed = true,
+    )
+    val length = convertedLength.asExpr(sizeSort)
+    val lengthIsIntegral = mkEq(roundTrip, fpLength)
+    val lengthIsNonNegative = mkBvSignedGreaterOrEqualExpr(length, mkBv(0))
+    val lengthIsWithinLimit = mkBvSignedLessOrEqualExpr(length, mkBv(maxArraySize))
+    val validLength = mkAnd(
+        lengthIsIntegral,
+        lengthIsNonNegative,
+        lengthIsWithinLimit,
+    )
+    scope.assert(validLength) ?: return null
+
+    val lengthLValue = mkArrayLengthLValue(array, arrayType)
+    return scope.doWithState {
+        memory.write(lengthLValue, length, guard = trueExpr)
+    }
 }
 
 fun TsContext.assignToInstanceField(
