@@ -68,7 +68,7 @@ fun interface TsUnknownCallDispatcher {
     fun dispatch(scope: TsStepScope, call: TsUnknownCall): TsUnknownCallOutcome
 }
 
-/** Marks profile dispatchers that replace migrated compatibility approximations with registered models. */
+/** Marks dispatchers that replace migrated compatibility approximations with semantic models. */
 interface TsUnknownCallModelDispatcher : TsUnknownCallDispatcher
 
 /** Preserves the pruning and opaque-return behavior that existed before the common dispatch boundary. */

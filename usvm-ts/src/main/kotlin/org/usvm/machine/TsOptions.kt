@@ -1,13 +1,14 @@
 package org.usvm.machine
 
-import org.usvm.machine.call.TsUnknownCallModelSelection
-import org.usvm.machine.call.TsUnknownCallProfile
-import org.usvm.machine.call.TsUnknownCallProfiles
+import org.jacodb.ets.model.EtsClassSignature
+import org.usvm.machine.call.TsResidualCallPolicy
 
 data class TsOptions(
     val interproceduralAnalysis: Boolean = true,
     val enableVisualization: Boolean = false,
     val maxArraySize: Int = 1_000,
-    val unknownCallProfile: TsUnknownCallProfile = TsUnknownCallProfiles.MODELS_THEN_STOP,
-    val unknownCallModels: TsUnknownCallModelSelection = TsUnknownCallModelSelection(),
+    /** `null` enables every built-in model; an empty set disables all models. */
+    val enabledUnknownCallModelIds: Set<String>? = null,
+    val unknownCallFallback: TsResidualCallPolicy = TsResidualCallPolicy.STOP_PATH,
+    val unknownCallFallbackOverrides: Map<EtsClassSignature, TsResidualCallPolicy> = emptyMap(),
 )

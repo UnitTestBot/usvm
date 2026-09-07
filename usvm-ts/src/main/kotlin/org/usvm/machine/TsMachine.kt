@@ -10,10 +10,9 @@ import org.usvm.UMachine
 import org.usvm.UMachineOptions
 import org.usvm.api.targets.TsTarget
 import org.usvm.machine.call.TsBuiltInUnknownCallModels
-import org.usvm.machine.call.TsNoUnknownCallModels
-import org.usvm.machine.call.TsProfileUnknownCallDispatcher
+import org.usvm.machine.call.TsModelUnknownCallDispatcher
 import org.usvm.machine.call.TsUnknownCallDispatcher
-import org.usvm.machine.call.TsUnknownCallModelProvider
+import org.usvm.machine.call.TsUnknownCallModelCatalog
 import org.usvm.machine.interpreter.TsInterpreter
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
@@ -46,26 +45,26 @@ class TsMachine(
     private val machineObserver: UMachineObserver<TsState>? = null,
     observer: TsInterpreterObserver? = null,
     unknownCallDispatcher: TsUnknownCallDispatcher? = null,
-    unknownCallModelProvider: TsUnknownCallModelProvider? = null,
+    unknownCallModels: TsUnknownCallModelCatalog? = null,
 ) : UMachine<TsState>() {
+    private val resolvedUnknownCallModels = when {
+        unknownCallDispatcher != null -> null
+        unknownCallModels != null -> unknownCallModels
+        else -> TsBuiltInUnknownCallModels.catalog(tsOptions.enabledUnknownCallModelIds)
+    }
+
+    /** Fingerprint of the model catalog used by this machine, or `null` for a custom dispatcher. */
+    val unknownCallModelCatalogFingerprint: String?
+        get() = resolvedUnknownCallModels?.fingerprint
+
     private val graph = TsGraph(scene)
     private val typeSystem = TsTypeSystem(scene, typeOperationsTimeout = 1.seconds, graph.hierarchy)
     private val components = TsComponents(typeSystem, options)
     private val ctx = TsContext(scene, components)
-    private val frozenUnknownCallModels = when {
-        unknownCallDispatcher != null || unknownCallModelProvider != null -> null
-        else -> TsBuiltInUnknownCallModels.registry.freeze(tsOptions.unknownCallModels.enabledModelIds)
-    }
-
-    /** Fingerprint of the frozen built-in catalog, or `null` when custom dispatch/model wiring is used. */
-    val unknownCallModelCatalogFingerprint: String?
-        get() = frozenUnknownCallModels?.fingerprint
-
-    private val resolvedUnknownCallModelProvider =
-        unknownCallModelProvider ?: frozenUnknownCallModels ?: TsNoUnknownCallModels
-    private val resolvedUnknownCallDispatcher = unknownCallDispatcher ?: TsProfileUnknownCallDispatcher(
-        profile = tsOptions.unknownCallProfile,
-        modelProvider = resolvedUnknownCallModelProvider,
+    private val resolvedUnknownCallDispatcher = unknownCallDispatcher ?: TsModelUnknownCallDispatcher(
+        models = requireNotNull(resolvedUnknownCallModels),
+        fallback = tsOptions.unknownCallFallback,
+        fallbackOverrides = tsOptions.unknownCallFallbackOverrides,
         observer = observer,
     )
     private val interpreter = TsInterpreter(

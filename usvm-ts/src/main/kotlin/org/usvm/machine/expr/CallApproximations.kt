@@ -29,7 +29,7 @@ import org.usvm.machine.interpreter.setResolvedValue
 import org.usvm.machine.state.lastStmt
 import org.usvm.sizeSort
 import org.usvm.types.first
-import org.usvm.types.firstOrNull
+import org.usvm.types.singleOrNull
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.resolveEtsMethods
@@ -93,7 +93,7 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
 
     val instanceType = if (instance.sort == addressSort && isAllocatedConcreteHeapRef(instance)) {
         scope.calcOnState {
-            memory.typeStreamOf(instance.asExpr(addressSort)).firstOrNull() ?: expr.instance.type
+            memory.typeStreamOf(instance.asExpr(addressSort)).singleOrNull() ?: expr.instance.type
         }
     } else {
         expr.instance.type
@@ -111,7 +111,7 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
 
         // Handle `Array.pop() method calls
         if (expr.callee.name == "pop") {
-            return handleArrayPopCall(expr, instanceType, elementSort, instance)
+            return from(handleArrayPop(expr, instanceType, elementSort))
         }
 
         // Handle `Array.fill() method calls
@@ -126,7 +126,7 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
 
         // Handle `Array.shift() method calls
         if (expr.callee.name == "shift") {
-            return from(handleArrayShift(expr, instanceType, elementSort))
+            return handleArrayShiftCall(expr, instanceType, elementSort, instance)
         }
 
         // Handle `Array.join() method calls
@@ -163,7 +163,7 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
     return TsExprApproximationResult.NoApproximation
 }
 
-private fun TsExprResolver.handleArrayPopCall(
+private fun TsExprResolver.handleArrayShiftCall(
     expr: EtsInstanceCallExpr,
     instanceType: EtsArrayType,
     elementSort: USort,
@@ -171,7 +171,7 @@ private fun TsExprResolver.handleArrayPopCall(
 ): TsExprApproximationResult {
     val dispatcher = unknownCallDispatcher
     if (dispatcher !is TsUnknownCallModelDispatcher) {
-        return from(handleArrayPop(expr, instanceType, elementSort))
+        return from(handleArrayShift(expr, instanceType, elementSort))
     }
 
     dispatcher.dispatch(

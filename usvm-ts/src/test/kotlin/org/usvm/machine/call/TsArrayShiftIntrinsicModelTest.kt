@@ -1,18 +1,23 @@
 package org.usvm.machine.call
 
+import org.jacodb.ets.model.EtsInstanceCallExpr
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.EtsIrProvider
+import org.jacodb.ets.utils.callExpr
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
-import org.junit.jupiter.api.Disabled
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
+import org.usvm.UConcreteHeapRef
+import org.usvm.UExpr
 import org.usvm.UMachineOptions
 import org.usvm.api.TsTestValue
+import org.usvm.api.makeSymbolicRefUntyped
 import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
+import org.usvm.machine.call.intrinsic.TsArrayShiftIntrinsicModel
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.util.TsTestResolver
@@ -25,24 +30,24 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration
 
-class TsArrayPopIntrinsicModelTest {
+class TsArrayShiftIntrinsicModelTest {
     private val sourceFile = loadEtsFileAutoConvert(
-        getResourcePath("/models/ArrayPopIntrinsic.ts"),
+        getResourcePath("/models/ArrayShiftIntrinsic.ts"),
         provider = EtsIrProvider.TS_FRONTEND,
     )
     private val scene = EtsScene(listOf(sourceFile))
 
     @Test
-    fun `empty array pop returns undefined through intrinsic model`() {
+    fun `empty array shift returns undefined through intrinsic model`() {
         val result = analyze(methodName = "emptyArray")
 
         assertIs<TsTestValue.TsUndefined>(result.values.single())
-        assertEquals(listOf("ts.array.pop"), result.modelIds)
+        assertEquals(listOf("ts.array.shift"), result.modelIds)
         assertTrue(assertNotNull(result.catalogFingerprint).matches(Regex("[0-9a-f]{64}")))
     }
 
     @Test
-    fun `non empty array pop returns last element and shrinks array`() {
+    fun `non empty array shift returns first element moves tail and shrinks array`() {
         val result = analyze(methodName = "nonEmptyArray")
 
         assertEquals(32.0, assertIs<TsTestValue.TsNumber>(result.values.single()).number)
@@ -50,13 +55,10 @@ class TsArrayPopIntrinsicModelTest {
     }
 
     @Test
-    fun `allocated reference array uses residual fallback`() {
-        assertUsesResidualFallback(methodName = "aliasedElement")
-    }
+    fun `reference array preserves removed element alias`() {
+        val result = analyze(methodName = "aliasedElement")
 
-    @Test
-    fun `symbolic reference array uses residual fallback`() {
-        assertUsesResidualFallback(methodName = "symbolicReferenceArray")
+        assertEquals(42.0, assertIs<TsTestValue.TsNumber>(result.values.single()).number)
     }
 
     @Test
@@ -73,57 +75,51 @@ class TsArrayPopIntrinsicModelTest {
     }
 
     @Test
-    fun `allocated reference array with symbolic write uses residual fallback`() {
-        val result = analyze(methodName = "allocatedReferenceArrayWithSymbolicWrite")
-
-        val event = result.events.single()
-        assertEquals(TsUnknownCallOutcome.PATH_STOPPED, event.outcome)
-        assertIs<TsUnknownCallDecision.ResidualFallback>(event.decision)
+    fun `array shift with arguments uses residual fallback`() {
+        assertUsesResidualFallback(methodName = "shiftWithArguments")
     }
 
     @Test
-    fun `array pop with arguments uses residual fallback`() {
-        assertUsesResidualFallback(methodName = "popWithArguments")
+    fun `fake wrapper receiver is not accepted as an array`() {
+        val state = analyzeStates(methodName = "unknownValue").single()
+        val fakeReceiver = makeFakeReceiver(state)
+
+        val execution = TsArrayShiftIntrinsicModel.apply(state, arrayShiftCall(fakeReceiver))
+
+        assertNull(execution)
     }
 
-    @Disabled("Tracked by https://github.com/UnitTestBot/usvm/issues/379")
     @Test
-    fun `symbolic reference array pop preserves fake value representations`() {
-        val states = analyzeStates(methodName = "symbolicReferenceArrayPreservesFakeValue")
-
-        assertTrue(
-            states.any { state ->
-                val result = (state.methodResult as? TsMethodResult.Success)?.value
-                result == state.ctx.mkFp(44.0, state.ctx.fp64Sort)
-            },
-            "Expected the number representation to reach return 44",
+    fun `conditional receiver containing fake wrapper is not accepted as an array`() {
+        val state = analyzeStates(methodName = "unknownValue").single()
+        val fakeReceiver = makeFakeReceiver(state)
+        val fakeType = with(state.ctx) { fakeReceiver.getFakeType(state.memory) }
+        val conditionalReceiver = state.ctx.mkIte(
+            condition = fakeType.boolTypeExpr,
+            trueBranch = fakeReceiver,
+            falseBranch = state.makeSymbolicRefUntyped(),
         )
+
+        val execution = TsArrayShiftIntrinsicModel.apply(state, arrayShiftCall(conditionalReceiver))
+
+        assertNull(execution)
     }
 
     @Test
-    fun `disabled model sends pop to configured residual fallback`() {
-        val enabledModelIds = mutableSetOf("ts.array.pop")
-        val selection = TsUnknownCallModelSelection(enabledModelIds)
-        enabledModelIds.clear()
-        val result = analyze(
+    fun `empty enabled set sends shift to configured fallback`() {
+        val disabledResult = analyze(
             methodName = "nonEmptyArray",
             tsOptions = TsOptions(
-                unknownCallProfile = TsUnknownCallProfiles.FRESH_SYMBOLIC_FOR_ALL,
-                unknownCallModels = TsUnknownCallModelSelection(enabledModelIds = emptySet()),
+                enabledUnknownCallModelIds = emptySet(),
+                unknownCallFallback = TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN,
             ),
         )
-        val selectedResult = analyze(
-            methodName = "nonEmptyArray",
-            tsOptions = TsOptions(unknownCallModels = selection),
-        )
 
-        assertEquals(listOf(TsUnknownCallOutcome.FRESH_SYMBOLIC_RETURN), result.events.map { it.outcome })
-        assertIs<TsUnknownCallDecision.ResidualFallback>(result.events.single().decision)
-        assertEquals(listOf("ts.array.pop"), selectedResult.modelIds)
+        assertEquals(listOf(TsUnknownCallOutcome.FRESH_SYMBOLIC_RETURN), disabledResult.events.map { it.outcome })
     }
 
     @Test
-    fun `compatibility dispatcher keeps the legacy pop approximation`() {
+    fun `compatibility dispatcher keeps the legacy shift approximation`() {
         val result = analyze(
             methodName = "nonEmptyArray",
             dispatcher = TsCompatibilityUnknownCallDispatcher,
@@ -164,9 +160,31 @@ class TsArrayPopIntrinsicModelTest {
         val result = analyze(methodName)
 
         assertTrue(result.values.isEmpty())
-        val event = result.events.single()
-        assertEquals(TsUnknownCallOutcome.PATH_STOPPED, event.outcome)
-        assertIs<TsUnknownCallDecision.ResidualFallback>(event.decision)
+        assertEquals(TsUnknownCallOutcome.PATH_STOPPED, result.events.single().outcome)
+    }
+
+    private fun makeFakeReceiver(state: TsState): UConcreteHeapRef {
+        val result = assertIs<TsMethodResult.Success>(state.methodResult).value
+        val fakeReceiver = assertIs<UConcreteHeapRef>(result)
+
+        assertTrue(with(state.ctx) { fakeReceiver.isFakeObject() })
+        return fakeReceiver
+    }
+
+    private fun arrayShiftCall(resolvedReceiver: UExpr<*>): TsUnknownCall {
+        val callSite = method("nonEmptyArray").cfg.stmts.single { stmt ->
+            stmt.callExpr?.callee?.name == "shift"
+        }
+        val sourceCall = assertIs<EtsInstanceCallExpr>(assertNotNull(callSite.callExpr))
+
+        return TsUnknownCall(
+            callee = sourceCall.callee,
+            receiver = TsUnknownCallValue(source = sourceCall.instance, resolved = resolvedReceiver),
+            arguments = emptyList(),
+            resultType = sourceCall.type,
+            callSite = callSite,
+            failureReason = TsUnknownCallFailureReason.PARTIAL_APPROXIMATION,
+        )
     }
 
     private fun analyzeStates(methodName: String): List<TsState> {
@@ -182,7 +200,7 @@ class TsArrayPopIntrinsicModelTest {
     }
 
     private fun method(name: String): EtsMethod = scene.projectClasses
-        .single { it.name == "ArrayPopIntrinsic" }
+        .single { it.name == "ArrayShiftIntrinsic" }
         .methods
         .single { it.name == name }
 

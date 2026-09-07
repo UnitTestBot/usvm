@@ -9,8 +9,8 @@ import org.jacodb.ets.model.EtsBooleanLiteralType
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsEnumValueType
 import org.jacodb.ets.model.EtsGenericType
-import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsLexicalEnvType
+import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsNumberLiteralType
@@ -34,6 +34,7 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.UIteExpr
 import org.usvm.USort
 import org.usvm.api.allocateConcreteRef
 import org.usvm.api.allocateStaticRef
@@ -196,6 +197,13 @@ class TsContext(
         }
 
         return sort == addressSort && this is UConcreteHeapRef && address > MAGIC_OFFSET
+    }
+
+    /** Returns whether this expression contains a fake-value wrapper as itself or as a conditional branch. */
+    fun UExpr<*>.containsFakeObject(): Boolean = when {
+        isFakeObject() -> true
+        this is UIteExpr<*> -> trueBranch.containsFakeObject() || falseBranch.containsFakeObject()
+        else -> false
     }
 
     fun UExpr<*>.toFakeObject(scope: TsStepScope): UConcreteHeapRef {

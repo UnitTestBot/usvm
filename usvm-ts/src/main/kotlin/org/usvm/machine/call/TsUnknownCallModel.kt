@@ -5,44 +5,47 @@ import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.machine.state.TsState
 
-/** Identifies the backend that executes a semantic model implementation. */
-enum class TsUnknownCallModelImplementationKind {
-    INTRINSIC,
-}
-
-/** Describes the semantic precision of a model within its declared supported domain. */
-enum class TsUnknownCallModelPrecision {
-    EXACT,
-    PARTIAL,
-}
-
-/** Documents the inputs for which a semantic model provides its declared precision. */
-data class TsUnknownCallModelSupportedDomain(
-    val id: String,
-    val description: String,
+/** Declaratively identifies the calls handled by one semantic model. */
+data class TsUnknownCallTarget(
+    val methodName: String,
+    val enclosingClassName: String? = null,
+    val failureReason: TsUnknownCallFailureReason? = null,
 ) {
     init {
-        require(id.isNotBlank()) { "Semantic model supported-domain ID must not be blank" }
-        require(description.isNotBlank()) { "Semantic model supported-domain description must not be blank" }
+        require(methodName.isNotBlank()) { "Semantic model target method name must not be blank" }
+        require(enclosingClassName == null || enclosingClassName.isNotBlank()) {
+            "Semantic model target class name must not be blank"
+        }
+    }
+
+    internal fun matches(call: TsUnknownCall): Boolean =
+        call.callee.name == methodName &&
+            (enclosingClassName == null || call.callee.enclosingClass.name == enclosingClassName) &&
+            (failureReason == null || call.failureReason == failureReason)
+
+    internal fun overlaps(other: TsUnknownCallTarget): Boolean {
+        val classNamesOverlap = enclosingClassName == null ||
+            other.enclosingClassName == null ||
+            enclosingClassName == other.enclosingClassName
+        val failureReasonsOverlap = failureReason == null ||
+            other.failureReason == null ||
+            failureReason == other.failureReason
+
+        return methodName == other.methodName && classNamesOverlap && failureReasonsOverlap
     }
 }
 
-/** Selects calls that are candidates for one semantic model without depending on its implementation backend. */
-fun interface TsUnknownCallModelMatcher {
-    fun matches(call: TsUnknownCall): Boolean
-}
+/**
+ * A semantic model selected by a stable [id] and a declarative [target].
+ *
+ * Returning `null` from [apply] means that the call is outside the model's supported input domain. The dispatcher
+ * then applies the configured fallback. A non-null execution may additionally contain a guarded residual domain.
+ */
+interface TsUnknownCallModel {
+    val id: String
+    val target: TsUnknownCallTarget
 
-/** Backend-neutral metadata used to select and audit one semantic model. */
-class TsUnknownCallModelDescriptor(
-    val id: String,
-    val matcher: TsUnknownCallModelMatcher,
-    val supportedDomain: TsUnknownCallModelSupportedDomain,
-    val precision: TsUnknownCallModelPrecision,
-    val implementationKind: TsUnknownCallModelImplementationKind,
-) {
-    init {
-        require(id.isNotBlank()) { "Semantic model ID must not be blank" }
-    }
+    fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution?
 }
 
 /** Describes how a guarded model successor completes the original call. */
@@ -58,12 +61,7 @@ sealed interface TsUnknownCallModelCompletion {
     ) : TsUnknownCallModelCompletion
 }
 
-/**
- * One guarded model successor.
- *
- * Successor guards within one execution must be pairwise disjoint. State changes and completion values are evaluated
- * only after the dispatcher has selected the corresponding successor state.
- */
+/** One guarded model successor. */
 class TsUnknownCallModelSuccessor(
     val guard: UBoolExpr,
     val completion: TsUnknownCallModelCompletion,
@@ -71,15 +69,14 @@ class TsUnknownCallModelSuccessor(
 )
 
 /**
- * A backend-neutral semantic-model execution plan.
+ * A semantic-model execution plan.
  *
- * [residualGuard] denotes the unsupported part of a partial model's domain. Together, successor guards and the
- * residual guard must partition the current call domain. The dispatcher validates disjointness and coverage before
- * applying any successor.
+ * [residualGuard] is the input domain not covered by the model. `null` means that the model completely handles every
+ * state accepted by [TsUnknownCallModel.apply].
  */
 class TsUnknownCallModelExecution(
     successors: List<TsUnknownCallModelSuccessor>,
-    val residualGuard: UBoolExpr?,
+    val residualGuard: UBoolExpr? = null,
 ) {
     val successors: List<TsUnknownCallModelSuccessor> = successors.toList()
 
@@ -88,30 +85,17 @@ class TsUnknownCallModelExecution(
     }
 }
 
-/** The result of selecting and executing a semantic model for one call. */
+/** The result of model lookup for one call. */
 sealed interface TsUnknownCallModelApplication {
-    /** A structured guarded plan produced by the selected model. */
     class Applied(
         val modelId: String,
-        val precision: TsUnknownCallModelPrecision,
         val execution: TsUnknownCallModelExecution,
     ) : TsUnknownCallModelApplication {
         init {
             require(modelId.isNotBlank()) { "Applied model ID must not be blank" }
-            require(precision != TsUnknownCallModelPrecision.EXACT || execution.residualGuard == null) {
-                "Exact semantic model $modelId must not produce a residual guard"
-            }
-            require(precision != TsUnknownCallModelPrecision.PARTIAL || execution.residualGuard != null) {
-                "Partial semantic model $modelId must produce a residual guard"
-            }
         }
     }
 
-    /** Indicates that no enabled model matched the call. */
+    /** No enabled model accepted the call. */
     data object NotApplicable : TsUnknownCallModelApplication
-}
-
-/** Selects and executes models without exposing registry or backend details to the dispatcher. */
-fun interface TsUnknownCallModelProvider {
-    fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelApplication
 }

@@ -1,14 +1,13 @@
 package org.usvm.machine.call
 
-import org.usvm.machine.call.intrinsic.TsArrayPopIntrinsicModel
-import org.usvm.machine.call.intrinsic.TsIntrinsicUnknownCallModelBackend
+import org.usvm.machine.call.intrinsic.TsArrayShiftIntrinsicModel
 
-/** The intentionally small built-in catalog enabled by default for profile-based unknown-call dispatch. */
+/** The intentionally small built-in semantic-model catalog. */
 object TsBuiltInUnknownCallModels {
-    const val ARRAY_POP_MODEL_ID: String = TsArrayPopIntrinsicModel.MODEL_ID
+    const val ARRAY_SHIFT_MODEL_ID: String = TsArrayShiftIntrinsicModel.MODEL_ID
 
-    val registry = TsUnknownCallModelRegistry(
-        registrations = listOf(TsArrayPopIntrinsicModel.registration),
-        backends = listOf(TsIntrinsicUnknownCallModelBackend),
+    fun catalog(enabledModelIds: Set<String>? = null) = TsUnknownCallModelCatalog(
+        models = listOf(TsArrayShiftIntrinsicModel),
+        enabledModelIds = enabledModelIds,
     )
 }
