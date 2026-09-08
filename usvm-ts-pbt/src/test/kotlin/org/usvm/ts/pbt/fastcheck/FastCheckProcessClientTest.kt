@@ -357,7 +357,6 @@ class FastCheckProcessClientTest {
                       }
                     }))
                 """.trimIndent(),
-                transportGraceMillis = 100,
             ) { client ->
                 val result = client.check(validRequest.copy(timeoutMillis = 100))
 
