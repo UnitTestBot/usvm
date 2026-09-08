@@ -34,6 +34,18 @@ export function nonBooleanPredicate(_value: number): number {
     return 1;
 }
 
+export function literalFalsePredicate(_value: number): false {
+    return false;
+}
+
+export function literalTruePredicate(_value: number): true {
+    return true;
+}
+
+export function neverPredicate(_value: number): never {
+    throw 'never predicate exploded';
+}
+
 export function catchesExpectedException(_value: number): boolean {
     try {
         throw 'expected';

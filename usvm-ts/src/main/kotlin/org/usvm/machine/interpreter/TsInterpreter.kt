@@ -24,6 +24,7 @@ import org.jacodb.ets.model.EtsStaticFieldRef
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsThrowStmt
+import org.jacodb.ets.model.EtsTupleType
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUndefinedType
 import org.jacodb.ets.model.EtsUnionType
@@ -45,6 +46,7 @@ import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
+import org.usvm.machine.TsEntryPointGuardResultStmt
 import org.usvm.machine.TsGraph
 import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsOptions
@@ -61,6 +63,7 @@ import org.usvm.machine.expr.handleAssignToStaticField
 import org.usvm.machine.expr.mkTruthyExpr
 import org.usvm.machine.expr.readGlobal
 import org.usvm.machine.expr.writeGlobal
+import org.usvm.machine.state.TsEntryPointGuardOutcome
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.machine.state.lastStmt
@@ -99,13 +102,19 @@ class TsInterpreter(
 ) : UInterpreter<TsState>() {
 
     private val forkBlackList: UForkBlackList<TsState, EtsStmt> = UForkBlackList.createDefault()
+    internal var stepFailed: Boolean = false
+        private set
+
+    internal fun resetStepFailure() {
+        stepFailed = false
+    }
 
     override fun step(state: TsState): StepResult<TsState> {
         val stmt = state.lastStmt
         val scope = StepScope(state, forkBlackList)
 
         val result = state.methodResult
-        if (result is TsMethodResult.TsException) {
+        if (result is TsMethodResult.TsException && stmt !is TsEntryPointGuardResultStmt) {
             // TODO catch processing
             scope.doWithState {
                 val returnSite = callStack.pop()
@@ -132,6 +141,7 @@ class TsInterpreter(
             when (stmt) {
                 is TsVirtualMethodCallStmt -> visitVirtualMethodCall(scope, stmt)
                 is TsConcreteMethodCallStmt -> visitConcreteMethodCall(scope, stmt)
+                is TsEntryPointGuardResultStmt -> visitEntryPointGuardResult(scope, stmt)
                 is EtsIfStmt -> visitIfStmt(scope, stmt)
                 is EtsReturnStmt -> visitReturnStmt(scope, stmt)
                 is EtsAssignStmt -> visitAssignStmt(scope, stmt)
@@ -146,6 +156,7 @@ class TsInterpreter(
                 }
             }
         } catch (e: Exception) {
+            stepFailed = true
             logger.error {
                 "Exception: $e\n${e.stackTrace.take(5).joinToString("\n") { "    $it" }}"
             }
@@ -153,6 +164,45 @@ class TsInterpreter(
         }
 
         return scope.stepResult()
+    }
+
+    private fun visitEntryPointGuardResult(
+        scope: TsStepScope,
+        stmt: TsEntryPointGuardResultStmt,
+    ) = with(ctx) {
+        val result = scope.calcOnState { methodResult }
+        if (result !is TsMethodResult.Success) {
+            scope.doWithState {
+                entryPointGuardActive = false
+                entryPointGuardOutcome = TsEntryPointGuardOutcome.ERROR
+                callStack.pop()
+            }
+            return@with
+        }
+        val guard = result.value.takeIf { it.sort == boolSort }?.asExpr(boolSort)
+        if (guard == null) {
+            scope.doWithState {
+                entryPointGuardActive = false
+                entryPointGuardOutcome = TsEntryPointGuardOutcome.ERROR
+                callStack.pop()
+            }
+            return@with
+        }
+
+        scope.fork(
+            condition = guard,
+            blockOnTrueState = {
+                methodResult = TsMethodResult.NoCall
+                entryPointGuardActive = false
+                entryPointGuardOutcome = TsEntryPointGuardOutcome.NONE
+                newStmt(stmt.entryPoint)
+            },
+            blockOnFalseState = {
+                entryPointGuardActive = false
+                entryPointGuardOutcome = TsEntryPointGuardOutcome.REJECTED
+                callStack.pop()
+            },
+        )
     }
 
     private fun visitVirtualMethodCall(scope: TsStepScope, stmt: TsVirtualMethodCallStmt) = with(ctx) {
@@ -708,7 +758,11 @@ class TsInterpreter(
             unknownCallDispatcher = unknownCallDispatcher,
         )
 
-    fun getInitialState(method: EtsMethod, targets: List<TsTarget>): TsState = with(ctx) {
+    fun getInitialState(
+        method: EtsMethod,
+        targets: List<TsTarget>,
+        configureState: TsState.() -> Unit = {},
+    ): TsState = with(ctx) {
         val state = TsState(
             ctx = ctx,
             ownership = MutabilityOwnership(),
@@ -742,33 +796,40 @@ class TsInterpreter(
             }
 
             val parameterType = param.type
-            if (parameterType is EtsRefType) run {
-                state.pathConstraints += mkNot(mkHeapRefEq(ref, mkTsNullValue()))
-                state.pathConstraints += mkNot(mkHeapRefEq(ref, mkUndefinedValue()))
+            if (parameterType is EtsRefType) {
+                run {
+                    state.pathConstraints += mkNot(mkHeapRefEq(ref, mkTsNullValue()))
+                    state.pathConstraints += mkNot(mkHeapRefEq(ref, mkUndefinedValue()))
 
-                if (parameterType is EtsArrayType) {
-                    state.pathConstraints += state.memory.types.evalIsSubtype(ref, parameterType)
+                    if (parameterType is EtsArrayType) {
+                        state.pathConstraints += state.memory.types.evalIsSubtype(ref, parameterType)
 
-                    val lengthLValue = mkArrayLengthLValue(ref, parameterType)
-                    val length = state.memory.read(lengthLValue).asExpr(sizeSort)
-                    state.pathConstraints += mkBvSignedGreaterOrEqualExpr(length, mkBv(0))
-                    state.pathConstraints += mkBvSignedLessOrEqualExpr(length, mkBv(options.maxArraySize))
+                        val lengthLValue = mkArrayLengthLValue(ref, parameterType)
+                        val length = state.memory.read(lengthLValue).asExpr(sizeSort)
+                        state.pathConstraints += mkBvSignedGreaterOrEqualExpr(length, mkBv(0))
+                        state.pathConstraints += mkBvSignedLessOrEqualExpr(length, mkBv(options.maxArraySize))
 
-                    return@run
+                        return@run
+                    }
+
+                    // Tuple inputs are materialized as fixed-size arrays by domain-aware initial-state configurators.
+                    if (parameterType is EtsTupleType) {
+                        return@run
+                    }
+
+                    val resolvedParameterType = graph.hierarchy.classesForType(parameterType)
+
+                    if (resolvedParameterType.isEmpty()) {
+                        logger.error("Cannot resolve class for parameter type: $parameterType")
+                        return@run // TODO should be an error
+                    }
+
+                    // Because of structural equality in TS we cannot determine the exact type
+                    // Therefore, we create information about the fields the type must consist
+                    val types = resolvedParameterType.mapNotNull { it.type.toAuxiliaryType(graph.hierarchy) }
+                    val auxiliaryType = EtsUnionType(types) // TODO error
+                    state.pathConstraints += state.memory.types.evalIsSubtype(ref, auxiliaryType)
                 }
-
-                val resolvedParameterType = graph.hierarchy.classesForType(parameterType)
-
-                if (resolvedParameterType.isEmpty()) {
-                    logger.error("Cannot resolve class for parameter type: $parameterType")
-                    return@run // TODO should be an error
-                }
-
-                // Because of structural equality in TS we cannot determine the exact type
-                // Therefore, we create information about the fields the type must consist
-                val types = resolvedParameterType.mapNotNull { it.type.toAuxiliaryType(graph.hierarchy) }
-                val auxiliaryType = EtsUnionType(types) // TODO error
-                state.pathConstraints += state.memory.types.evalIsSubtype(ref, auxiliaryType)
             }
             if (parameterType == EtsNullType) {
                 state.pathConstraints += mkHeapRefEq(ref, mkTsNullValue())
@@ -797,6 +858,8 @@ class TsInterpreter(
                 state.saveSortForLocal(idx, parameterSort)
             }
         }
+
+        state.configureState()
 
         val solver = solver<EtsType>()
         val model = solver.check(state.pathConstraints).ensureSat().model

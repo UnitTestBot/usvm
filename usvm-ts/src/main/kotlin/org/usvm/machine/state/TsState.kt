@@ -36,6 +36,13 @@ import org.usvm.targets.UTargetsSet
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.type
 
+/** Observable completion of an auxiliary entry-point guard. */
+enum class TsEntryPointGuardOutcome {
+    NONE,
+    REJECTED,
+    ERROR,
+}
+
 /**
  * [lValuesToAllocatedFakeObjects] contains records of l-values that were allocated with newly created fake objects.
  * It is important for result interpreters to be able to restore the order of fake objects allocation and
@@ -73,6 +80,12 @@ class TsState(
      * This tracks sorts for global variables that are represented as fields of dflt objects.
      */
     var dfltObjectFieldSorts: UPersistentHashMap<Pair<EtsFileSignature, String>, USort> = persistentHashMapOf(),
+
+    /** True while an auxiliary entry-point guard or one of its callees is executing. */
+    var entryPointGuardActive: Boolean = false,
+
+    /** Terminal guard outcome; [TsEntryPointGuardOutcome.NONE] also covers predicate execution. */
+    var entryPointGuardOutcome: TsEntryPointGuardOutcome = TsEntryPointGuardOutcome.NONE,
 
     /**
      * Maps string values to their corresponding heap references that were allocated for string constants.
@@ -293,6 +306,8 @@ class TsState(
             boundThis = boundThis,
             dfltObject = dfltObject,
             dfltObjectFieldSorts = dfltObjectFieldSorts,
+            entryPointGuardActive = entryPointGuardActive,
+            entryPointGuardOutcome = entryPointGuardOutcome,
             stringConstantAllocatedRefs = stringConstantAllocatedRefs,
         )
     }
