@@ -39,9 +39,6 @@ import org.usvm.util.mkRegisterStackLValue
 
 /** One symbolic input written to the mapped EtsIR stack slot. */
 data class UsvmProjectedInput(
-    val inputName: String,
-    val path: String,
-    val stackSlot: Int,
     val etsType: EtsType,
     val value: UExpr<out USort>,
 )
@@ -65,7 +62,8 @@ class UsvmDomainProjector(
             "Property input count ${inputs.size} does not match EtsIR binding count ${bindings.size}"
         }
 
-        val preparedInputs = inputs.zip(bindings).mapIndexed { index, (input, binding) ->
+        val pairedInputs = inputs.zip(bindings)
+        pairedInputs.forEachIndexed { index, (input, binding) ->
             require(input.name == binding.propertyInputName) {
                 "Property input ${input.name} does not match EtsIR binding ${binding.propertyInputName}"
             }
@@ -77,27 +75,17 @@ class UsvmDomainProjector(
                 path = path,
                 options = options,
             )
-
-            PreparedInput(input, binding, path, capability)
-        }
-        preparedInputs.forEach { prepared ->
-            require(prepared.capability.level != org.usvm.ts.pbt.backend.ProjectionLevel.UNSUPPORTED) {
-                prepared.capability.diagnostics.joinToString { diagnostic -> diagnostic.message }
+            require(capability.level != org.usvm.ts.pbt.backend.ProjectionLevel.UNSUPPORTED) {
+                capability.diagnostics.joinToString { diagnostic -> diagnostic.message }
             }
         }
 
-        val projectedInputs = preparedInputs.map { prepared ->
-            val input = prepared.input
-            val binding = prepared.binding
-            val path = prepared.path
-
-            val value = Materializer(state).materialize(input.domain, binding.parameter.type)
+        val materializer = Materializer(state)
+        val projectedInputs = pairedInputs.map { (input, binding) ->
+            val value = materializer.materialize(input.domain, binding.parameter.type)
             writeStackValue(state, binding.stackSlot, value)
 
             UsvmProjectedInput(
-                inputName = input.name,
-                path = path,
-                stackSlot = binding.stackSlot,
                 etsType = binding.parameter.type,
                 value = value,
             )
@@ -108,13 +96,6 @@ class UsvmDomainProjector(
             initialState = state.clone(),
         )
     }
-
-    private data class PreparedInput(
-        val input: PropertyInput,
-        val binding: EtsInputBinding,
-        val path: String,
-        val capability: org.usvm.ts.pbt.backend.ProjectionCapability,
-    )
 
     private inner class Materializer(private val state: TsState) {
         fun materialize(domain: PropertyDomain, etsType: EtsType): UExpr<out USort> = when (domain) {

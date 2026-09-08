@@ -73,12 +73,10 @@ class UsvmPropertyProjector(
             concreteCapability = concreteCapability,
             options = projectionOptions,
         )
-        val capabilityDiagnostics = capability.symbolic.diagnostics
         if (capability.symbolic.level == ProjectionLevel.UNSUPPORTED) {
             return result(
                 capability = capability,
                 status = UsvmPreconditionStatus.UNSUPPORTED,
-                diagnostics = capabilityDiagnostics,
             )
         }
 
@@ -86,21 +84,21 @@ class UsvmPropertyProjector(
             ?: return result(
                 capability = capability,
                 status = UsvmPreconditionStatus.ENGINE_FAILURE,
-                diagnostics = capabilityDiagnostics + diagnostic(
+                additionalDiagnostic = diagnostic(
                     code = PbtDiagnosticCode.USVM_ENGINE_FAILURE,
                     message = "An exact precondition target was unavailable after capability validation",
                     path = "precondition",
                 ),
             )
-        val execution = analyzePreconditionTarget(manifest, preconditionTarget)
 
-        return classifyPreconditionAnalysis(capability, execution)
+        return analyzePreconditionTarget(manifest, preconditionTarget, capability)
     }
 
     private fun analyzePreconditionTarget(
         manifest: PropertyManifest,
         preconditionTarget: EtsEntryPointTarget,
-    ): UsvmPreconditionExecution = TsMachine(
+        capability: UsvmPropertyProjectionCapability,
+    ): UsvmPreconditionResult = TsMachine(
         scene = scene,
         options = machineOptions,
         tsOptions = tsOptions,
@@ -119,44 +117,45 @@ class UsvmPropertyProjector(
                 )
             },
         )
-        val canResolve = !analysis.timedOut && analysis.states.isNotEmpty() && analysis.states.all { state ->
-            val methodResult = state.methodResult as? TsMethodResult.Success
-            methodResult != null && methodResult.value.sort == state.ctx.boolSort
-        }
-        val resolutions = if (canResolve) {
-            analysis.states.map(::retainTruePreconditionState)
-        } else {
-            emptyList()
-        }
 
-        UsvmPreconditionExecution(analysis, resolutions)
+        classifyPreconditionAnalysis(capability, analysis)
     }
 
     private fun classifyPreconditionAnalysis(
         capability: UsvmPropertyProjectionCapability,
-        execution: UsvmPreconditionExecution,
+        analysis: TsMachineAnalysisResult,
     ): UsvmPreconditionResult {
-        val analysis = execution.analysis
         val failure = classifyPreconditionFailure(capability, analysis)
         if (failure != null) {
             return failure
         }
 
-        val capabilityDiagnostics = capability.symbolic.diagnostics
-        val resolutions = execution.resolutions
-        if (resolutions.any { it is PreconditionStateResolution.SolverUnknown }) {
-            return result(
-                capability = capability,
-                status = UsvmPreconditionStatus.SOLVER_UNKNOWN,
-                diagnostics = capabilityDiagnostics + diagnostic(
-                    code = PbtDiagnosticCode.USVM_SOLVER_UNKNOWN,
-                    message = "The solver could not classify a precondition result",
-                    path = "precondition.result",
-                ),
-            )
-        }
-        val acceptedStates = resolutions.mapNotNull { resolution ->
-            (resolution as? PreconditionStateResolution.Accepted)?.state
+        val acceptedStates = mutableListOf<TsState>()
+        for (state in analysis.states) {
+            val methodResult = state.methodResult as TsMethodResult.Success
+            val returnValue = with(state.ctx) {
+                methodResult.value.asExpr(boolSort)
+            }
+            val acceptedState = state.clone()
+            acceptedState.pathConstraints += returnValue
+
+            when (val solverResult = acceptedState.ctx.solver<EtsType>().check(acceptedState.pathConstraints)) {
+                is USatResult -> {
+                    acceptedState.models = listOf(solverResult.model)
+                    acceptedStates += acceptedState
+                }
+
+                is UUnsatResult -> Unit
+                is UUnknownResult -> return result(
+                    capability = capability,
+                    status = UsvmPreconditionStatus.SOLVER_UNKNOWN,
+                    additionalDiagnostic = diagnostic(
+                        code = PbtDiagnosticCode.USVM_SOLVER_UNKNOWN,
+                        message = "The solver could not classify a precondition result",
+                        path = "precondition.result",
+                    ),
+                )
+            }
         }
         val status = if (acceptedStates.isEmpty()) {
             UsvmPreconditionStatus.REJECTED
@@ -168,7 +167,6 @@ class UsvmPropertyProjector(
             capability = capability,
             status = status,
             acceptedStates = acceptedStates,
-            diagnostics = capabilityDiagnostics,
         )
     }
 
@@ -176,13 +174,12 @@ class UsvmPropertyProjector(
         capability: UsvmPropertyProjectionCapability,
         analysis: TsMachineAnalysisResult,
     ): UsvmPreconditionResult? {
-        val capabilityDiagnostics = capability.symbolic.diagnostics
         val terminalStates = analysis.states
         if (terminalStates.any { state -> state.methodResult is TsMethodResult.TsException }) {
             return result(
                 capability = capability,
                 status = UsvmPreconditionStatus.PROPERTY_ERROR,
-                diagnostics = capabilityDiagnostics + diagnostic(
+                additionalDiagnostic = diagnostic(
                     code = PbtDiagnosticCode.USVM_PRECONDITION_THREW,
                     message = "The precondition has a reachable escaping exception",
                     path = "precondition",
@@ -193,7 +190,7 @@ class UsvmPropertyProjector(
             return result(
                 capability = capability,
                 status = UsvmPreconditionStatus.ENGINE_FAILURE,
-                diagnostics = capabilityDiagnostics + diagnostic(
+                additionalDiagnostic = diagnostic(
                     code = PbtDiagnosticCode.USVM_ENGINE_FAILURE,
                     message = "Precondition analysis terminated without a method result",
                     path = "precondition",
@@ -208,7 +205,7 @@ class UsvmPropertyProjector(
             return result(
                 capability = capability,
                 status = UsvmPreconditionStatus.PROPERTY_ERROR,
-                diagnostics = capabilityDiagnostics + diagnostic(
+                additionalDiagnostic = diagnostic(
                     code = PbtDiagnosticCode.USVM_PRECONDITION_RESULT_NON_BOOLEAN,
                     message = "The precondition returned a non-boolean symbolic value",
                     path = "precondition.result",
@@ -219,7 +216,7 @@ class UsvmPropertyProjector(
             return result(
                 capability = capability,
                 status = UsvmPreconditionStatus.UNSUPPORTED,
-                diagnostics = capabilityDiagnostics + diagnostic(
+                additionalDiagnostic = diagnostic(
                     code = PbtDiagnosticCode.USVM_EXECUTION_UNSUPPORTED,
                     message = "The symbolic engine encountered an unsupported precondition call",
                     path = "precondition",
@@ -230,7 +227,7 @@ class UsvmPropertyProjector(
             return result(
                 capability = capability,
                 status = UsvmPreconditionStatus.ENGINE_FAILURE,
-                diagnostics = capabilityDiagnostics + diagnostic(
+                additionalDiagnostic = diagnostic(
                     code = PbtDiagnosticCode.USVM_ENGINE_FAILURE,
                     message = "The symbolic engine could not execute every reachable precondition path",
                     path = "precondition",
@@ -241,14 +238,13 @@ class UsvmPropertyProjector(
             return result(
                 capability = capability,
                 status = UsvmPreconditionStatus.TIMEOUT,
-                diagnostics = capabilityDiagnostics,
             )
         }
         if (terminalStates.isEmpty()) {
             return result(
                 capability = capability,
                 status = UsvmPreconditionStatus.ENGINE_FAILURE,
-                diagnostics = capabilityDiagnostics + diagnostic(
+                additionalDiagnostic = diagnostic(
                     code = PbtDiagnosticCode.USVM_ENGINE_FAILURE,
                     message = "Precondition analysis produced no terminal states",
                     path = "precondition",
@@ -259,36 +255,16 @@ class UsvmPropertyProjector(
         return null
     }
 
-    private fun retainTruePreconditionState(state: TsState): PreconditionStateResolution {
-        val result = state.methodResult as TsMethodResult.Success
-        val returnValue = with(state.ctx) {
-            result.value.asExpr(boolSort)
-        }
-        val acceptedState = state.clone()
-        acceptedState.pathConstraints += returnValue
-        val solverResult = acceptedState.ctx.solver<EtsType>().check(acceptedState.pathConstraints)
-
-        return when (solverResult) {
-            is USatResult -> {
-                acceptedState.models = listOf(solverResult.model)
-                PreconditionStateResolution.Accepted(acceptedState)
-            }
-
-            is UUnsatResult -> PreconditionStateResolution.Rejected
-            is UUnknownResult -> PreconditionStateResolution.SolverUnknown
-        }
-    }
-
     private fun result(
         capability: UsvmPropertyProjectionCapability,
         status: UsvmPreconditionStatus,
-        diagnostics: List<CapabilityDiagnostic>,
         acceptedStates: List<TsState> = emptyList(),
+        additionalDiagnostic: CapabilityDiagnostic? = null,
     ) = UsvmPreconditionResult(
         capability = capability,
         status = status,
         acceptedStates = acceptedStates,
-        diagnostics = diagnostics,
+        diagnostics = capability.symbolic.diagnostics + listOfNotNull(additionalDiagnostic),
     )
 
     private fun diagnostic(code: String, message: String, path: String) = CapabilityDiagnostic(
@@ -296,15 +272,4 @@ class UsvmPropertyProjector(
         message = message,
         path = path,
     )
-}
-
-private data class UsvmPreconditionExecution(
-    val analysis: TsMachineAnalysisResult,
-    val resolutions: List<PreconditionStateResolution>,
-)
-
-private sealed interface PreconditionStateResolution {
-    data class Accepted(val state: TsState) : PreconditionStateResolution
-    data object Rejected : PreconditionStateResolution
-    data object SolverUnknown : PreconditionStateResolution
 }
