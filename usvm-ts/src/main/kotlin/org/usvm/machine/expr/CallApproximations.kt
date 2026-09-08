@@ -19,13 +19,17 @@ import org.usvm.api.memcpy
 import org.usvm.api.typeStreamOf
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.TsSizeSort
+import org.usvm.machine.call.TsUnknownCallFailureReason
+import org.usvm.machine.call.TsUnknownCallModelDispatcher
+import org.usvm.machine.call.dispatch
 import org.usvm.machine.expr.TsExprApproximationResult.Companion.from
 import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.markResolved
 import org.usvm.machine.interpreter.setResolvedValue
+import org.usvm.machine.state.lastStmt
 import org.usvm.sizeSort
 import org.usvm.types.first
-import org.usvm.types.firstOrNull
+import org.usvm.types.singleOrNull
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.resolveEtsMethods
@@ -89,7 +93,7 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
 
     val instanceType = if (instance.sort == addressSort && isAllocatedConcreteHeapRef(instance)) {
         scope.calcOnState {
-            memory.typeStreamOf(instance.asExpr(addressSort)).firstOrNull() ?: expr.instance.type
+            memory.typeStreamOf(instance.asExpr(addressSort)).singleOrNull() ?: expr.instance.type
         }
     } else {
         expr.instance.type
@@ -122,7 +126,7 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
 
         // Handle `Array.shift() method calls
         if (expr.callee.name == "shift") {
-            return from(handleArrayShift(expr, instanceType, elementSort))
+            return handleArrayShiftCall(expr, instanceType, elementSort, instance)
         }
 
         // Handle `Array.join() method calls
@@ -157,6 +161,28 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
     }
 
     return TsExprApproximationResult.NoApproximation
+}
+
+private fun TsExprResolver.handleArrayShiftCall(
+    expr: EtsInstanceCallExpr,
+    instanceType: EtsArrayType,
+    elementSort: USort,
+    resolvedReceiver: UExpr<*>,
+): TsExprApproximationResult {
+    val dispatcher = unknownCallDispatcher
+    if (dispatcher !is TsUnknownCallModelDispatcher) {
+        return from(handleArrayShift(expr, instanceType, elementSort))
+    }
+
+    dispatcher.dispatch(
+        scope,
+        expr,
+        scope.calcOnState { lastStmt },
+        failureReason = TsUnknownCallFailureReason.PARTIAL_APPROXIMATION,
+        resolvedReceiver = resolvedReceiver,
+    )
+
+    return TsExprApproximationResult.ResolveFailure
 }
 
 private fun TsExprResolver.handleValueOf(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {

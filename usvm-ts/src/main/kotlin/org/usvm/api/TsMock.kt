@@ -8,6 +8,7 @@ import org.usvm.UExpr
 import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsMethodResult
+import org.usvm.machine.state.TsState
 import org.usvm.machine.types.mkFakeValue
 
 fun mockMethodCall(
@@ -15,28 +16,38 @@ fun mockMethodCall(
     method: EtsMethodSignature,
     resultType: EtsType = method.returnType,
 ) {
+    val result = makeFreshUnknownCallResult(scope, resultType)
+
     scope.doWithState {
-        val result: UExpr<*>
-        if (resultType is EtsVoidType) {
-            result = ctx.mkUndefinedValue()
-        } else {
-            val sort = ctx.typeToSort(resultType)
-            result = when (sort) {
-                is UAddressSort -> makeSymbolicRefUntyped()
+        setMockMethodCallResult(method, result)
+    }
+}
 
-                is TsUnresolvedSort -> scope.calcOnState {
-                    mkFakeValue(
-                        scope = scope,
-                        boolValue = makeSymbolicPrimitive(ctx.boolSort),
-                        fpValue = makeSymbolicPrimitive(ctx.fp64Sort),
-                        refValue = makeSymbolicRefUntyped(),
-                    )
-                }
+/** Stores a prepared opaque result on this state without applying callee effects or exceptions. */
+internal fun TsState.setMockMethodCallResult(
+    method: EtsMethodSignature,
+    result: UExpr<*>,
+) {
+    methodResult = TsMethodResult.Success.MockedCall(result, method)
+}
 
-                else -> makeSymbolicPrimitive(sort)
-            }
-        }
+/** Creates a fresh opaque result through [scope], keeping solver models consistent with new constraints. */
+internal fun makeFreshUnknownCallResult(
+    scope: TsStepScope,
+    resultType: EtsType,
+): UExpr<*> = scope.calcOnState {
+    if (resultType is EtsVoidType) return@calcOnState ctx.mkUndefinedValue()
 
-        methodResult = TsMethodResult.Success.MockedCall(result, method)
+    when (val sort = ctx.typeToSort(resultType)) {
+        is UAddressSort -> makeSymbolicRefUntyped()
+
+        is TsUnresolvedSort -> mkFakeValue(
+            scope,
+            boolValue = makeSymbolicPrimitive(ctx.boolSort),
+            fpValue = makeSymbolicPrimitive(ctx.fp64Sort),
+            refValue = makeSymbolicRefUntyped(),
+        )
+
+        else -> makeSymbolicPrimitive(sort)
     }
 }

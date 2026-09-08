@@ -7,12 +7,6 @@ import org.usvm.machine.TsInterpreterObserver
 
 private val logger = KotlinLogging.logger {}
 
-/** Explains why a call reached the residual fallback instead of a semantic model. */
-enum class TsUnknownCallResidualReason {
-    MODEL_LOOKUP_DISABLED,
-    MODEL_NOT_APPLICABLE,
-}
-
 /** Describes the model or fallback action selected for one unknown call. */
 sealed interface TsUnknownCallDecision {
     data class ModelApplied(
@@ -25,19 +19,28 @@ sealed interface TsUnknownCallDecision {
 
     data class ResidualFallback(
         val policy: TsResidualCallPolicy,
-        val reason: TsUnknownCallResidualReason,
     ) : TsUnknownCallDecision
 }
+
+val TsUnknownCallDecision.outcome: TsUnknownCallOutcome
+    get() = when (this) {
+        is TsUnknownCallDecision.ModelApplied -> TsUnknownCallOutcome.MODEL_APPLIED
+        is TsUnknownCallDecision.ResidualFallback -> when (policy) {
+            TsResidualCallPolicy.STOP_PATH -> TsUnknownCallOutcome.PATH_STOPPED
+            TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN -> TsUnknownCallOutcome.FRESH_SYMBOLIC_RETURN
+        }
+    }
 
 /** A structured decision reported for one unknown call. */
 data class TsUnknownCallEvent(
     val callSite: EtsStmt,
     val callee: EtsMethodSignature,
     val failureReason: TsUnknownCallFailureReason,
-    val profile: TsUnknownCallProfile,
-    val outcome: TsUnknownCallOutcome,
     val decision: TsUnknownCallDecision,
-)
+) {
+    val outcome: TsUnknownCallOutcome
+        get() = decision.outcome
+}
 
 internal fun TsInterpreterObserver.onUnknownCallSafely(event: TsUnknownCallEvent) {
     runCatching { onUnknownCall(event) }

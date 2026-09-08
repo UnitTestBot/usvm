@@ -9,10 +9,10 @@ import org.usvm.StateCollectionStrategy
 import org.usvm.UMachine
 import org.usvm.UMachineOptions
 import org.usvm.api.targets.TsTarget
-import org.usvm.machine.call.TsNoUnknownCallModels
-import org.usvm.machine.call.TsProfileUnknownCallDispatcher
+import org.usvm.machine.call.TsBuiltInUnknownCallModels
+import org.usvm.machine.call.TsModelUnknownCallDispatcher
 import org.usvm.machine.call.TsUnknownCallDispatcher
-import org.usvm.machine.call.TsUnknownCallModelProvider
+import org.usvm.machine.call.TsUnknownCallModelCatalog
 import org.usvm.machine.interpreter.TsInterpreter
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
@@ -45,15 +45,25 @@ class TsMachine(
     private val machineObserver: UMachineObserver<TsState>? = null,
     observer: TsInterpreterObserver? = null,
     unknownCallDispatcher: TsUnknownCallDispatcher? = null,
-    unknownCallModelProvider: TsUnknownCallModelProvider = TsNoUnknownCallModels,
+    unknownCallModels: TsUnknownCallModelCatalog? = null,
 ) : UMachine<TsState>() {
+    private val resolvedUnknownCallModels = when {
+        unknownCallDispatcher != null -> null
+        unknownCallModels != null -> unknownCallModels
+        else -> TsBuiltInUnknownCallModels.catalog(tsOptions.enabledUnknownCallModelIds)
+    }
+
+    /** Fingerprint of the model catalog used by this machine, or `null` for a custom dispatcher. */
+    val unknownCallModelCatalogFingerprint: String?
+        get() = resolvedUnknownCallModels?.fingerprint
+
     private val graph = TsGraph(scene)
     private val typeSystem = TsTypeSystem(scene, typeOperationsTimeout = 1.seconds, graph.hierarchy)
     private val components = TsComponents(typeSystem, options)
     private val ctx = TsContext(scene, components)
-    private val resolvedUnknownCallDispatcher = unknownCallDispatcher ?: TsProfileUnknownCallDispatcher(
-        profile = tsOptions.unknownCallProfile,
-        modelProvider = unknownCallModelProvider,
+    private val resolvedUnknownCallDispatcher = unknownCallDispatcher ?: TsModelUnknownCallDispatcher(
+        models = requireNotNull(resolvedUnknownCallModels),
+        fallback = tsOptions.unknownCallFallback,
         observer = observer,
     )
     private val interpreter = TsInterpreter(
@@ -62,6 +72,7 @@ class TsMachine(
         options = tsOptions,
         observer = observer,
         unknownCallDispatcher = resolvedUnknownCallDispatcher,
+        throwExceptionOnStepFailure = options.throwExceptionOnStepFailure,
     )
     private val cfgStatistics = CfgStatisticsImpl(graph)
 
