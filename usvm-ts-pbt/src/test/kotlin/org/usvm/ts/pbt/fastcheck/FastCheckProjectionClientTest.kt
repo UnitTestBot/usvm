@@ -203,7 +203,6 @@ class FastCheckProjectionClientTest {
                 """.trimIndent(),
                 transportLimits = transportLimits(
                     maxStdoutBytes = 1_024,
-                    wallClockTimeoutMillis = 250,
                     shutdownGraceMillis = 500,
                 ),
             ) { temporaryClient ->
@@ -273,7 +272,6 @@ class FastCheckProjectionClientTest {
                     process.exit(0)
                 """.trimIndent(),
                 transportLimits = transportLimits(
-                    wallClockTimeoutMillis = 250,
                     shutdownGraceMillis = 500,
                 ),
             ) { temporaryClient ->
