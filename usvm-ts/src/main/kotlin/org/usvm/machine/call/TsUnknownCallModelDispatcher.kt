@@ -1,5 +1,6 @@
 package org.usvm.machine.call
 
+import org.usvm.UExpr
 import org.usvm.api.makeFreshUnknownCallResult
 import org.usvm.api.mockMethodCall
 import org.usvm.api.setMockMethodCallResult
@@ -8,6 +9,7 @@ import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.machine.state.newStmt
+import org.usvm.machine.types.mkFakeValue
 
 /** The externally observable effect of an unknown-call decision. */
 enum class TsUnknownCallOutcome {
@@ -83,11 +85,22 @@ class TsModelUnknownCallDispatcher(
         var modelApplied = false
         var modelEventReported = false
         var freshResidualApplied = false
-        val guardedStateChanges = application.execution.successors.map { successor ->
+        // Materializing an unresolved result adds its exactly-one constraint. Do it before forking so every
+        // successor that uses the wrapper inherits both the constraint and the refreshed solver models.
+        val preparedUnresolvedResults = application.execution.successors.map { successor ->
+            val completion = successor.completion as? TsUnknownCallModelCompletion.Unresolved
+                ?: return@map null
+
+            scope.calcOnState {
+                mkFakeValue(scope = scope, value = completion.value)
+            }
+        }
+        val guardedStateChanges = application.execution.successors.mapIndexed { index, successor ->
             successor.guard to modelStateChange(
                 call = call,
                 modelId = application.modelId,
                 successor = successor,
+                preparedUnresolvedResult = preparedUnresolvedResults[index],
                 onApplied = {
                     modelApplied = true
                     if (modelEventReported) {
@@ -106,18 +119,18 @@ class TsModelUnknownCallDispatcher(
                 newStmt(call.callSite)
                 freshResidualApplied = true
 
-                observer?.onUnknownCallSafely(
-                    event(call, TsUnknownCallDecision.ResidualFallback(TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN))
-                )
+                val decision = TsUnknownCallDecision.ResidualFallback(TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN)
+                val fallbackEvent = event(call, decision)
+                observer?.onUnknownCallSafely(fallbackEvent)
             }
         }
 
         scope.forkMulti(guardedStateChanges)
 
         if (stoppedResidualIsSatisfiable) {
-            observer?.onUnknownCallSafely(
-                event(call, TsUnknownCallDecision.ResidualFallback(TsResidualCallPolicy.STOP_PATH))
-            )
+            val decision = TsUnknownCallDecision.ResidualFallback(TsResidualCallPolicy.STOP_PATH)
+            val fallbackEvent = event(call, decision)
+            observer?.onUnknownCallSafely(fallbackEvent)
         }
 
         return when {
@@ -132,6 +145,7 @@ class TsModelUnknownCallDispatcher(
         call: TsUnknownCall,
         modelId: String,
         successor: TsUnknownCallModelSuccessor,
+        preparedUnresolvedResult: UExpr<*>?,
         onApplied: () -> Boolean,
     ): TsState.() -> Unit = {
         successor.applyStateChanges(this)
@@ -139,6 +153,14 @@ class TsModelUnknownCallDispatcher(
         when (val completion = successor.completion) {
             is TsUnknownCallModelCompletion.Normal -> {
                 val result = completion.result(this)
+                methodResult = TsMethodResult.Success.MockedCall(result, call.callee)
+                newStmt(call.callSite)
+            }
+
+            is TsUnknownCallModelCompletion.Unresolved -> {
+                val result = requireNotNull(preparedUnresolvedResult) {
+                    "Unresolved semantic-model result was not materialized"
+                }
                 methodResult = TsMethodResult.Success.MockedCall(result, call.callee)
                 newStmt(call.callSite)
             }

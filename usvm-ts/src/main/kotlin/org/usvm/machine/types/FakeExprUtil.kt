@@ -15,6 +15,9 @@ import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsState
 import org.usvm.memory.ULValue
 
+internal fun TsState.findMaterializedFakeValue(lValue: ULValue<*, *>): UConcreteHeapRef? =
+    lValuesToAllocatedFakeObjects.lastOrNull { (recordedLValue) -> recordedLValue == lValue }?.second
+
 /**
  * Creates a fresh synthetic wrapper for a TypeScript value with a not necessarily known runtime kind.
  *
@@ -83,6 +86,16 @@ fun TsState.mkFakeValue(
 
     fakeValueRef
 }
+
+fun TsState.mkFakeValue(
+    scope: TsStepScope?,
+    value: TsUnresolvedValue,
+): UConcreteHeapRef = mkFakeValue(
+    scope = scope,
+    boolValue = value.boolValue,
+    fpValue = value.fpValue,
+    refValue = value.refValue,
+)
 
 fun <T : USort> TsState.extractValue(
     value: UExpr<out USort>,

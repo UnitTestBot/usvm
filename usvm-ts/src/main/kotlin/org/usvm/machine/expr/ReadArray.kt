@@ -15,6 +15,9 @@ import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.interpreter.TsStepScope
+import org.usvm.machine.state.TsState
+import org.usvm.machine.types.TsUnresolvedValue
+import org.usvm.machine.types.findMaterializedFakeValue
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.sizeSort
 import org.usvm.types.first
@@ -127,28 +130,49 @@ fun TsContext.readArray(
     // that can hold boolean, number, and reference values.
     // We read all three types from the array and combine them into a fake object.
     return scope.calcOnState {
-        val boolArrayType = EtsArrayType(EtsBooleanType, dimensions = 1)
-        val boolLValue = mkArrayIndexLValue(boolSort, array, index, boolArrayType)
-        val bool = memory.read(boolLValue)
-
-        val numberArrayType = EtsArrayType(EtsNumberType, dimensions = 1)
-        val fpLValue = mkArrayIndexLValue(fp64Sort, array, index, numberArrayType)
-        val fp = memory.read(fpLValue)
-
         val unknownArrayType = EtsArrayType(EtsUnknownType, dimensions = 1)
         val refLValue = mkArrayIndexLValue(addressSort, array, index, unknownArrayType)
-        val ref = memory.read(refLValue)
+        val materializedValue = findMaterializedFakeValue(refLValue)
+        if (materializedValue != null) {
+            return@calcOnState materializedValue
+        }
 
-        // If the read reference is already a fake object, we can return it directly.
-        // Otherwise, we need to create a new fake object and write it back to the memory.
+        val value = readSymbolicUnresolvedArrayElement(array, index)
+
+        // Reuse an existing fake object or materialize a flat wrapper for all three payloads.
         // TODO: Think about the type constraint to get a consistent array resolution later
-        if (ref.isFakeObject()) {
-            ref
+        if (value.refValue.isFakeObject()) {
+            value.refValue
         } else {
-            val fakeObj = mkFakeValue(scope, bool, fp, ref)
+            val fakeObj = mkFakeValue(scope = scope, value = value)
             lValuesToAllocatedFakeObjects += refLValue to fakeObj
             memory.write(refLValue, fakeObj, guard = trueExpr)
             fakeObj
         }
     }
+}
+
+internal fun TsState.readSymbolicUnresolvedArrayElement(
+    array: UHeapRef,
+    index: UExpr<TsSizeSort>,
+): TsUnresolvedValue = with(ctx) {
+    check(array !is UConcreteHeapRef) { "A concrete unresolved array stores fake-value wrappers directly" }
+
+    val boolArrayType = EtsArrayType(EtsBooleanType, dimensions = 1)
+    val boolLValue = mkArrayIndexLValue(boolSort, array, index, boolArrayType)
+    val boolValue = memory.read(boolLValue)
+
+    val numberArrayType = EtsArrayType(EtsNumberType, dimensions = 1)
+    val fpLValue = mkArrayIndexLValue(fp64Sort, array, index, numberArrayType)
+    val fpValue = memory.read(fpLValue)
+
+    val unknownArrayType = EtsArrayType(EtsUnknownType, dimensions = 1)
+    val refLValue = mkArrayIndexLValue(addressSort, array, index, unknownArrayType)
+    val refValue = memory.read(refLValue)
+
+    TsUnresolvedValue(
+        boolValue = boolValue,
+        fpValue = fpValue,
+        refValue = refValue,
+    )
 }

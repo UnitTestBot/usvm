@@ -4,6 +4,7 @@ import org.jacodb.ets.model.EtsType
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.machine.state.TsState
+import org.usvm.machine.types.TsUnresolvedValue
 
 /** Declaratively identifies the calls handled by one semantic model. */
 data class TsUnknownCallTarget(
@@ -53,6 +54,11 @@ sealed interface TsUnknownCallModelCompletion {
     /** Produces a normal result on the selected successor state. */
     class Normal(
         val result: TsState.() -> UExpr<*>,
+    ) : TsUnknownCallModelCompletion
+
+    /** Produces a normal fake-wrapped result for a value whose runtime kind is unresolved. */
+    class Unresolved(
+        val value: TsUnresolvedValue,
     ) : TsUnknownCallModelCompletion
 
     /** Produces an exceptional result and its TypeScript type on the selected successor state. */

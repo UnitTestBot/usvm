@@ -60,10 +60,11 @@ The built-in catalog currently contains one model:
 
 | ID | Implementation | Accepted calls |
 | --- | --- | --- |
-| `ts.array.shift` | Kotlin intrinsic using symbolic-memory `memcpy` | Zero-argument `shift` on a definitely one-dimensional array whose element sort is known. |
+| `ts.array.shift` | Kotlin intrinsic using symbolic-memory `memcpy` | Zero-argument `shift` on a definitely one-dimensional array. |
 
-An `any`/unknown receiver, a fake-value wrapper, a non-array receiver, and an array whose element sort is unresolved do
-not become applicable merely because the method is named `shift`; they use fallback.
+An `any`/unknown receiver, a fake-value wrapper, and a non-array receiver do not become applicable merely because the
+method is named `shift`; they use fallback. A definitely-array receiver with an unresolved element sort remains
+applicable and uses the fake-value representation described below.
 
 ### `unknownCallFallback`
 
@@ -138,7 +139,7 @@ The target identifies a call family. State-dependent checks, such as the receive
 The built-in array target intentionally combines the method name with `PARTIAL_APPROXIMATION` instead of a class name.
 That failure reason is emitted only after the regular approximation path has classified the receiver as an
 `EtsArrayType`. Calls on `any`/unknown receivers reach another failure reason and cannot match this target. The model
-still validates the resolved receiver and its element sort before changing memory.
+still validates the resolved receiver and array shape before changing memory.
 
 ## Applicability and residual states
 
@@ -171,8 +172,10 @@ model on every call.
 An intrinsic directly builds guarded successors and symbolic-memory operations in Kotlin. Use it only for an operation
 that TypeScript cannot express without losing symbolic efficiency or correctness.
 
-`Array.shift` is the built-in example because shifting a symbolic array is naturally represented by one
-`memory.memcpy` operation.
+`Array.shift` is the built-in example because shifting a symbolic array is naturally represented by symbolic-memory
+`memcpy` operations. A resolved element sort uses one array region. A symbolic array with an unresolved element sort
+uses the boolean, number, and address regions that back a fake value; its removed element is materialized before
+forking so the exactly-one type constraint and updated solver models are inherited by every successor.
 
 Good intrinsic candidates include:
 

@@ -1,8 +1,12 @@
 package org.usvm.machine.call
 
+import org.jacodb.ets.model.EtsArrayType
+import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsInstanceCallExpr
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.callExpr
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
@@ -22,6 +26,8 @@ import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.util.TsTestResolver
 import org.usvm.util.getResourcePath
+import org.usvm.util.mkArrayIndexLValue
+import org.usvm.util.mkArrayLengthLValue
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -55,7 +61,7 @@ class TsArrayShiftIntrinsicModelTest {
     }
 
     @Test
-    fun `reference array preserves removed element alias`() {
+    fun `reference array preserves removed element alias and moves tail`() {
         val result = analyze(methodName = "aliasedElement")
 
         assertEquals(42.0, assertIs<TsTestValue.TsNumber>(result.values.single()).number)
@@ -84,8 +90,92 @@ class TsArrayShiftIntrinsicModelTest {
     }
 
     @Test
-    fun `symbolic unknown array uses residual fallback`() {
-        assertUsesResidualFallback(methodName = "symbolicUnknownArray")
+    fun `symbolic unknown array preserves removed element and moves all value regions`() {
+        val result = analyze(methodName = "symbolicUnknownArray")
+        val reachesExpectedResult = result.values.any { value ->
+            (value as? TsTestValue.TsNumber)?.number == 47.0
+        }
+
+        assertTrue(reachesExpectedResult)
+        assertEquals(listOf(TsUnknownCallOutcome.MODEL_APPLIED), result.events.map { it.outcome })
+    }
+
+    @Test
+    fun `symbolic unknown array copies boolean number and address regions`() {
+        val state = analyzeStates(methodName = "unknownValue").single()
+        val symbolicArray = state.makeSymbolicRefUntyped()
+
+        with(state.ctx) {
+            val zero = mkBv(0)
+            val one = mkBv(1)
+            val boolValue = trueExpr
+            val fpValue = mkFp64(17.0)
+            val refValue = state.makeSymbolicRefUntyped()
+
+            val boolArrayType = EtsArrayType(EtsBooleanType, dimensions = 1)
+            val numberArrayType = EtsArrayType(EtsNumberType, dimensions = 1)
+            val unknownArrayType = EtsArrayType(EtsUnknownType, dimensions = 1)
+
+            val lengthLValue = mkArrayLengthLValue(symbolicArray, unknownArrayType)
+            state.memory.write(lengthLValue, mkBv(2), guard = trueExpr)
+            state.memory.write(
+                mkArrayIndexLValue(boolSort, symbolicArray, one, boolArrayType),
+                boolValue,
+                guard = trueExpr,
+            )
+            state.memory.write(
+                mkArrayIndexLValue(fp64Sort, symbolicArray, one, numberArrayType),
+                fpValue,
+                guard = trueExpr,
+            )
+            state.memory.write(
+                mkArrayIndexLValue(addressSort, symbolicArray, one, unknownArrayType),
+                refValue,
+                guard = trueExpr,
+            )
+
+            val execution = assertNotNull(
+                TsArrayShiftIntrinsicModel.apply(
+                    state,
+                    arrayShiftCall(symbolicArray, methodName = "symbolicUnknownArray"),
+                )
+            )
+            val nonEmptySuccessor = execution.successors.last()
+            assertIs<TsUnknownCallModelCompletion.Unresolved>(nonEmptySuccessor.completion)
+
+            nonEmptySuccessor.applyStateChanges(state)
+
+            val shiftedBoolValue = state.memory.read(
+                mkArrayIndexLValue(boolSort, symbolicArray, zero, boolArrayType)
+            )
+            val shiftedFpValue = state.memory.read(
+                mkArrayIndexLValue(fp64Sort, symbolicArray, zero, numberArrayType)
+            )
+            val shiftedRefValue = state.memory.read(
+                mkArrayIndexLValue(addressSort, symbolicArray, zero, unknownArrayType)
+            )
+
+            assertEquals(boolValue, shiftedBoolValue)
+            assertEquals(fpValue, shiftedFpValue)
+            assertEquals(refValue, shiftedRefValue)
+            assertEquals(one, state.memory.read(lengthLValue))
+        }
+    }
+
+    @Test
+    fun `concrete unknown array shifts fake wrapped values`() {
+        val result = analyze(methodName = "mixedUnknownArray")
+
+        assertEquals(49.0, assertIs<TsTestValue.TsNumber>(result.values.single()).number)
+        assertEquals(listOf(TsUnknownCallOutcome.MODEL_APPLIED), result.events.map { it.outcome })
+    }
+
+    @Test
+    fun `empty concrete unknown array returns undefined`() {
+        val result = analyze(methodName = "emptyUnknownArray")
+
+        assertIs<TsTestValue.TsUndefined>(result.values.single())
+        assertEquals(listOf(TsUnknownCallOutcome.MODEL_APPLIED), result.events.map { it.outcome })
     }
 
     @Test
@@ -185,8 +275,11 @@ class TsArrayShiftIntrinsicModelTest {
         return fakeReceiver
     }
 
-    private fun arrayShiftCall(resolvedReceiver: UExpr<*>): TsUnknownCall {
-        val callSite = method("nonEmptyArray").cfg.stmts.single { stmt ->
+    private fun arrayShiftCall(
+        resolvedReceiver: UExpr<*>,
+        methodName: String = "nonEmptyArray",
+    ): TsUnknownCall {
+        val callSite = method(methodName).cfg.stmts.single { stmt ->
             stmt.callExpr?.callee?.name == "shift"
         }
         val sourceCall = assertIs<EtsInstanceCallExpr>(assertNotNull(callSite.callExpr))
