@@ -13,6 +13,7 @@ import org.usvm.machine.call.TsBuiltInUnknownCallModels
 import org.usvm.machine.call.TsModelUnknownCallDispatcher
 import org.usvm.machine.call.TsUnknownCallDispatcher
 import org.usvm.machine.call.TsUnknownCallModelCatalog
+import org.usvm.machine.call.deduplicateEtsFilesBySignature
 import org.usvm.machine.interpreter.TsInterpreter
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
@@ -39,7 +40,7 @@ import kotlin.time.Duration.Companion.seconds
 private val logger = KotlinLogging.logger {}
 
 class TsMachine(
-    private val scene: EtsScene,
+    scene: EtsScene,
     override val options: UMachineOptions,
     private val tsOptions: TsOptions,
     private val machineObserver: UMachineObserver<TsState>? = null,
@@ -57,10 +58,21 @@ class TsMachine(
     val unknownCallModelCatalogFingerprint: String?
         get() = resolvedUnknownCallModels?.fingerprint
 
-    private val graph = TsGraph(scene)
-    private val typeSystem = TsTypeSystem(scene, typeOperationsTimeout = 1.seconds, graph.hierarchy)
+    private val analysisScene = resolvedUnknownCallModels
+        ?.additionalSceneFiles
+        ?.takeIf { modelFiles -> modelFiles.isNotEmpty() }
+        ?.let { modelFiles ->
+            EtsScene(
+                projectFiles = (scene.projectFiles + modelFiles).deduplicateEtsFilesBySignature(),
+                sdkFiles = scene.sdkFiles,
+                projectName = scene.projectName,
+            )
+        }
+        ?: scene
+    private val graph = TsGraph(analysisScene)
+    private val typeSystem = TsTypeSystem(analysisScene, typeOperationsTimeout = 1.seconds, graph.hierarchy)
     private val components = TsComponents(typeSystem, options)
-    private val ctx = TsContext(scene, components)
+    private val ctx = TsContext(analysisScene, components)
     private val resolvedUnknownCallDispatcher = unknownCallDispatcher ?: TsModelUnknownCallDispatcher(
         models = requireNotNull(resolvedUnknownCallModels),
         fallback = tsOptions.unknownCallFallback,

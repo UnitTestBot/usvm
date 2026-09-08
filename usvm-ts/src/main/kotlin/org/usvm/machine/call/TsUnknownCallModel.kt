@@ -1,5 +1,7 @@
 package org.usvm.machine.call
 
+import org.jacodb.ets.model.EtsFile
+import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsType
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
@@ -46,6 +48,10 @@ interface TsUnknownCallModel {
     val id: String
     val target: TsUnknownCallTarget
 
+    /** EtsIR files that must be visible to the interpreter while this model is enabled. */
+    val additionalSceneFiles: List<EtsFile>
+        get() = emptyList()
+
     fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution?
 }
 
@@ -65,6 +71,14 @@ sealed interface TsUnknownCallModelCompletion {
     class Exceptional(
         val exception: TsState.() -> Pair<UExpr<*>, EtsType>,
     ) : TsUnknownCallModelCompletion
+
+    /** Enters a TypeScript model body through the normal EtsIR interpreter. */
+    class EtsIrBody(
+        val entryPoint: EtsMethod,
+        inputs: List<UExpr<*>>,
+    ) : TsUnknownCallModelCompletion {
+        val inputs: List<UExpr<*>> = inputs.toList()
+    }
 }
 
 /** One guarded model successor. */
