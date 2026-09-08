@@ -1,9 +1,11 @@
 package org.usvm.ts.pbt.model
 
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
 import org.junit.jupiter.api.Test
 import org.usvm.ts.pbt.manifest.PropertyManifestJson
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 
 class JsConcreteValueTest {
     @Test
@@ -52,5 +54,76 @@ class JsConcreteValueTest {
         val encoded = PropertyManifestJson.json.encodeToString<JsConcreteValue>(value)
 
         assertEquals(value, PropertyManifestJson.json.decodeFromString<JsConcreteValue>(encoded))
+    }
+
+    @Test
+    fun `string tags require string values`() {
+        assertFailsWith<SerializationException> {
+            PropertyManifestJson.json.decodeFromString<JsConcreteValue>("""{"kind":"string","value":123}""")
+        }
+    }
+
+    @Test
+    fun `boolean tags require Boolean values`() {
+        assertFailsWith<SerializationException> {
+            PropertyManifestJson.json.decodeFromString<JsConcreteValue>("""{"kind":"boolean","value":"true"}""")
+        }
+    }
+
+    @Test
+    fun `array tags require array elements`() {
+        assertFailsWith<SerializationException> {
+            PropertyManifestJson.json.decodeFromString<JsConcreteValue>("""{"kind":"array","elements":"[]"}""")
+        }
+    }
+
+    @Test
+    fun `number tags require string bits`() {
+        assertFailsWith<SerializationException> {
+            PropertyManifestJson.json.decodeFromString<JsConcreteValue>(
+                """{"kind":"number","value":"finite","bits":4607182418800017408}""",
+            )
+        }
+    }
+
+    @Test
+    fun `undefined tags reject unexpected fields`() {
+        assertFailsWith<SerializationException> {
+            PropertyManifestJson.json.decodeFromString<JsConcreteValue>("""{"kind":"undefined","value":null}""")
+        }
+    }
+
+    @Test
+    fun `every tagged value kind rejects unexpected fields`() {
+        val cases = listOf(
+            """{"kind":"null","extra":null}""",
+            """{"kind":"boolean","value":true,"extra":null}""",
+            """{"kind":"string","value":"value","extra":null}""",
+            """{"kind":"array","elements":[],"extra":null}""",
+            """{"kind":"number","value":"finite","bits":"3ff0000000000000","extra":null}""",
+            """{"kind":"number","value":"nan","extra":null}""",
+            """{"kind":"number","value":"positive-infinity","extra":null}""",
+            """{"kind":"number","value":"negative-infinity","extra":null}""",
+        )
+
+        cases.forEach { encoded ->
+            assertFailsWith<SerializationException> {
+                PropertyManifestJson.json.decodeFromString<JsConcreteValue>(encoded)
+            }
+        }
+    }
+
+    @Test
+    fun `finite number tags reject non-finite bit patterns`() {
+        listOf(
+            "7ff0000000000000",
+            "7ff8000000000000",
+        ).forEach { bits ->
+            assertFailsWith<SerializationException> {
+                PropertyManifestJson.json.decodeFromString<JsConcreteValue>(
+                    """{"kind":"number","value":"finite","bits":"$bits"}""",
+                )
+            }
+        }
     }
 }

@@ -10,6 +10,7 @@ tasks.register("validateProjectList") {
         // Define the expected subprojects here.
         val expectedProjects = setOf(
             project(":usvm-core"),
+            project(":usvm-detekt-rules"),
             project(":usvm-util"),
             project(":usvm-dataflow"),
             project(":usvm-sample-language"),

@@ -28,6 +28,7 @@ develocity {
 }
 
 include("usvm-core")
+include("usvm-detekt-rules")
 include("usvm-jvm")
 include("usvm-jvm:usvm-jvm-api")
 include("usvm-jvm:usvm-jvm-test-api")

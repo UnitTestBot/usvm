@@ -41,18 +41,20 @@ class FastCheckBackend(
         requireValid(validatePropertyDefinition(property))
         validateConfiguration(property, configuration)
 
-        return client.check(
-            FastCheckExecutionRequest(
-                manifest = property.toManifest(),
-                sourceRoots = sourceRoots.map(Path::toString),
-                seed = configuration.seed,
-                replayPath = configuration.replayPath,
-                numRuns = configuration.numRuns,
-                timeoutMillis = configuration.timeoutMillis,
-                examples = configuration.examples,
-                coverageRequest = configuration.coverageRequest,
-            ),
+        val manifest = property.toManifest()
+        val sourceRootPaths = sourceRoots.map(Path::toString)
+        val request = FastCheckExecutionRequest(
+            manifest = manifest,
+            sourceRoots = sourceRootPaths,
+            seed = configuration.seed,
+            replayPath = configuration.replayPath,
+            numRuns = configuration.numRuns,
+            timeoutMillis = configuration.timeoutMillis,
+            examples = configuration.examples,
+            coverageRequest = configuration.coverageRequest,
         )
+
+        return client.check(request)
     }
 
     private fun validateConfiguration(

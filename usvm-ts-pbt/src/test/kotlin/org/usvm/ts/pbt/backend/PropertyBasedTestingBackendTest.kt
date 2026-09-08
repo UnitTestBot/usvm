@@ -77,6 +77,17 @@ class PropertyBasedTestingBackendTest {
     }
 
     @Test
+    fun `failure details preserve an empty thrown value message`() {
+        val details = PropertyFailureDetails(
+            kind = PropertyFailureKind.PROPERTY,
+            errorName = "ThrownValue",
+            message = "",
+        )
+
+        assertEquals("", details.message)
+    }
+
+    @Test
     fun `result rejects negative counters and execution time`() {
         assertFailsWith<IllegalArgumentException> {
             successfulResult().copy(numShrinks = -1)

@@ -3,6 +3,7 @@ import { adapterDiagnostic } from './diagnostics.js';
 import {
   decodeJsNumber,
   decodeJsValue,
+  type JsConcreteValue,
   ProtocolError,
   protocolError,
 } from './js-value.js';
@@ -20,7 +21,7 @@ export interface ProjectionCapability {
 
 type DomainRecord = Record<string, unknown>;
 
-export function projectDomain(domain: unknown, path = 'domain'): fc.Arbitrary<unknown> {
+export function projectDomain(domain: unknown, path = 'domain'): fc.Arbitrary<JsConcreteValue> {
   requireDomainObject(domain, path);
 
   switch (domain.kind) {

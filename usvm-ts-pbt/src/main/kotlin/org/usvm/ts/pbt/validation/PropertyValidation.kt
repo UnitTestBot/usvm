@@ -262,7 +262,7 @@ private fun validateJsNumber(
     diagnostics: MutableList<ValidationDiagnostic>,
 ): Boolean {
     val valid = when (number.value) {
-        JsNumberKind.FINITE -> number.bits?.matches(FINITE_NUMBER_BITS_REGEX) == true
+        JsNumberKind.FINITE -> number.bits.isFiniteNumberBits()
         else -> number.bits == null
     }
     if (!valid) {
@@ -274,6 +274,11 @@ private fun validateJsNumber(
     }
     return valid
 }
+
+private fun String?.isFiniteNumberBits(): Boolean = this
+    ?.takeIf { bits -> bits.matches(FINITE_NUMBER_BITS_REGEX) }
+    ?.let { bits -> Double.fromBits(bits.toULong(JS_NUMBER_HEX_RADIX).toLong()).isFinite() }
+    ?: false
 
 private fun validateLengths(
     minLength: Int,
@@ -364,6 +369,7 @@ private fun diagnostic(code: String, message: String, path: String) = Validation
 )
 
 private val FINITE_NUMBER_BITS_REGEX = Regex("[0-9a-f]{16}")
+private const val JS_NUMBER_HEX_RADIX = 16
 
 // ECMAScript permits these otherwise invisible Unicode characters after the first identifier character.
 private const val ZERO_WIDTH_NON_JOINER_CODE_POINT = 0x200C

@@ -80,6 +80,30 @@ test('execution CLI exits after writing a response when user code leaves an open
   }
 });
 
+for (const replayPath of ['garbage', '0:999999:0']) {
+  test(`execution CLI reports replay path ${replayPath} as a typed protocol error`, async () => {
+    const sourceRoot = await realpath(await mkdtemp(path.join(tmpdir(), 'usvm-execution-cli-')));
+    try {
+      await writeFile(sourceRoot + '/property.ts', 'export function predicate(value: boolean) { return value; }\n');
+      const request = executionRequest(sourceRoot);
+      request.replayPath = replayPath;
+
+      const invocation = await invokeCli(JSON.stringify(request));
+      const response = JSON.parse(invocation.stdout) as ExecutionErrorResponse;
+
+      assert.equal(invocation.timedOut, false);
+      assert.equal(invocation.exitCode, 0);
+      assert.equal(invocation.stderr, '');
+      assert.equal(response.status, 'error');
+      assert.equal(response.diagnostics[0]?.kind, 'invalid-request');
+      assert.equal(response.diagnostics[0]?.code, 'protocol.replay-path.invalid');
+      assert.equal(response.diagnostics[0]?.path, 'replayPath');
+    } finally {
+      await rm(sourceRoot, { recursive: true, force: true });
+    }
+  });
+}
+
 interface ExecutionErrorResponse {
   status: string;
   diagnostics: ProtocolDiagnostic[];

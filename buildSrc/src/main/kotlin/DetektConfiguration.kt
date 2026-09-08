@@ -11,8 +11,13 @@ import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.withType
 
 fun Project.configureDetekt() {
+    val usesStrictTsRules = path in STRICT_TS_DETEKT_PROJECT_PATHS
+
     dependencies {
         detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:${detekt.toolVersion}")
+        if (usesStrictTsRules) {
+            detektPlugins(project(USVM_DETEKT_RULES_PROJECT_PATH))
+        }
     }
 
     val includes = listOf(
@@ -37,7 +42,6 @@ fun Project.configureDetekt() {
     val configFile = rootDir.resolve("detekt").resolve("config.yml")
     val tsConfigFile = rootDir.resolve("detekt").resolve("ts-config.yml")
     val reportFile = rootProject.layout.buildDirectory.file("reports/detekt/detekt.sarif")
-    val usesStrictTsRules = name in STRICT_TS_DETEKT_PROJECTS
     val configFiles = if (usesStrictTsRules) listOf(configFile, tsConfigFile) else listOf(configFile)
 
     detekt {
@@ -89,4 +93,5 @@ fun Project.configureDetekt() {
     }
 }
 
-private val STRICT_TS_DETEKT_PROJECTS = setOf("usvm-ts", "usvm-ts-pbt")
+private val STRICT_TS_DETEKT_PROJECT_PATHS = setOf(":usvm-ts", ":usvm-ts-pbt")
+private const val USVM_DETEKT_RULES_PROJECT_PATH = ":usvm-detekt-rules"

@@ -107,12 +107,12 @@ val result = backend.run(
 
 The default scope is `SOURCE_UNDER_TEST`. Available scopes are:
 
-| Scope | Files retained after source-map remapping |
-| --- | --- |
-| `SOURCE_UNDER_TEST` | Files below a source root except exact predicate and precondition modules |
-| `PROPERTY_ENTRY_POINTS` | Exact predicate and optional precondition modules |
-| `GENERATED_BACKEND_WRAPPERS` | Files in the private adapter runtime outside `node_modules` |
-| `DEPENDENCIES` | Executed files below `node_modules` |
+| Scope                        | Files retained after source-map remapping                                 |
+| ---------------------------- | ------------------------------------------------------------------------- |
+| `SOURCE_UNDER_TEST`          | Files below a source root except exact predicate and precondition modules |
+| `PROPERTY_ENTRY_POINTS`      | Exact predicate and optional precondition modules                         |
+| `GENERATED_BACKEND_WRAPPERS` | Files in the private adapter runtime outside `node_modules`               |
+| `DEPENDENCIES`               | Executed files below `node_modules`                                       |
 
 Include and exclude globs operate on original remapped paths, use `/` separators, and support `*`, `?`, and `**`.
 An empty include list retains every file in a selected scope; exclude rules always win.
@@ -136,6 +136,69 @@ Missing or malformed reports use `coverage.report.missing` and `coverage.report.
 64 MiB are rejected as invalid before they are read. JavaScript below a TypeScript source root that c8 could not
 remap produces `coverage.source-map.missing` or `coverage.source-map.invalid`; a missing packaged c8 runtime
 produces `coverage.collector.not-found`.
+
+## Property-to-EtsIR mapping
+
+`PropertyEtsMapper` combines a backend-neutral `PropertyManifest`, an `EtsScene`, and optional
+`PropertyCoverageArtifact` into one `PropertyEtsMappingArtifact` per property:
+
+```kotlin
+val mapping = PropertyEtsMapper(
+    scene = etsScene,
+    sourceRoots = sourceRoots,
+).map(
+    manifest = property.toManifest(),
+    coverage = result.coverage,
+)
+```
+
+Predicate and optional precondition exports are resolved independently, including named and bare-star TypeScript
+re-exports and extensionless `.ts`, `.ets`, `.d.ts`, and directory-index module paths. Direct function exports map
+only to file-level EtsIR methods; namespace-star exports are not treated as functions, bare-star exports do not
+forward `default`, explicit runtime exports take precedence over bare-star exports, and duplicate re-export paths
+to the same method collapse to one target. Type-alias exports do not mask bare-star runtime exports. The current
+EtsIR export model preserves `isTypeOnly` independently of the declaration kind, so type-only named and star
+re-exports do not mask a bare-star runtime fallback.
+Every resolved entry point has explicit receiver, ordered input, and result bindings. The receiver uses stack slot
+zero and property inputs follow it in manifest order. A coverage artifact for another property is rejected rather
+than combined with the manifest.
+
+Existing source roots and files are canonicalized through real paths, so symlinked frontend inputs align with
+backend coverage; an unresolvable root is `UNSUPPORTED`. Istanbul's one-based lines and zero-based columns become
+zero-based half-open ranges with UTF-16 offsets, matching TypeScript and EtsIR source spans. Recognized TypeScript
+line terminators are CRLF, lone CR, LF, Unicode line separator (`U+2028`), and Unicode paragraph separator
+(`U+2029`).
+Statement ranges are compared with `EtsSourceSpan` origins. Several normalized EtsIR statements sharing one exact
+origin remain one `EXACT` mapping with several targets; several distinct origins inside a covered range are
+`AMBIGUOUS`.
+
+Binary Istanbul branches map to `EtsIfStmt`. Arm zero is the true CFG successor and arm one is the false successor,
+as recorded by `EtsMappingProvenance`. Other branch shapes are `UNSUPPORTED`; the mapper does not guess switch,
+logical-expression, or backend-specific arm semantics.
+
+Only one EtsIR condition from one source candidate is an `EXACT` branch mapping. Multiple conditions are
+`AMBIGUOUS` even when they share one source origin, because a short-circuit expression can lower to conditions with
+different CFG semantics.
+
+The pinned c8/V8 collector reports one-arm `branch` records, which therefore remain unsupported for CFG-edge
+mapping; statement coverage from the same artifact remains usable.
+
+| Status        | Meaning                                                                                                                                             |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `EXACT`       | One source identity was established; normalized statements may produce several EtsIR targets with that shared identity.                             |
+| `AMBIGUOUS`   | Several entry points, source origins, source candidates, or branch conditions match, and every candidate is preserved.                              |
+| `UNMAPPED`    | The input is supported, but no EtsIR target matches it.                                                                                             |
+| `UNSUPPORTED` | The input cannot be interpreted safely, for example because coverage, source text, origins, coordinates, bindings, or branch shape are unsupported. |
+
+Stable mapping diagnostics include `mapping.entry-point.unmapped`, `mapping.entry-point.ambiguous`,
+`mapping.entry-point.bindings.unsupported`, `mapping.coverage.unavailable`,
+`mapping.coverage.property-id.mismatch`, `mapping.statement.unmapped`, `mapping.statement.ambiguous`,
+`mapping.branch.unmapped`, `mapping.branch.ambiguous`, `mapping.branch.shape.unsupported`,
+`mapping.branch.cfg.unsupported`,
+`mapping.source.unavailable`, `mapping.source.location.unsupported`, and
+`mapping.source-origins.unsupported`, and `mapping.source-root.unsupported`. Backend provenance is preserved
+separately from mapping provenance and
+backend diagnostics are copied without reinterpretation.
 
 ## Registries and CLI
 

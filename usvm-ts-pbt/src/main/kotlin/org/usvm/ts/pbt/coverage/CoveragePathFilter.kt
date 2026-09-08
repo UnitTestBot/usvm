@@ -1,5 +1,13 @@
 package org.usvm.ts.pbt.coverage
 
+import java.nio.file.Path
+import kotlin.io.path.invariantSeparatorsPathString
+
+internal fun normalizeCoveragePath(path: String): String = Path.of(path)
+    .toAbsolutePath()
+    .normalize()
+    .invariantSeparatorsPathString
+
 internal fun matchesCoveragePath(
     path: String,
     patterns: List<String>,
@@ -10,7 +18,7 @@ internal fun matchesCoveragePath(
         add(path)
         sourceRoots.forEach { sourceRoot ->
             if (isWithin(path, sourceRoot) && path != sourceRoot) {
-                add(path.removePrefix("$sourceRoot/"))
+                add(path.removePrefix(rootPrefix(sourceRoot)))
             }
         }
     }
@@ -74,7 +82,9 @@ private fun coverageGlobToRegex(pattern: String): Regex {
     return Regex(expression.toString())
 }
 
-internal fun isWithin(path: String, root: String): Boolean = path == root || path.startsWith("$root/")
+internal fun isWithin(path: String, root: String): Boolean = path == root || path.startsWith(rootPrefix(root))
+
+private fun rootPrefix(root: String): String = if (root.endsWith('/')) root else "$root/"
 
 private const val REGEX_SPECIAL_CHARACTERS = ".+()^$|{}[]"
 private const val DOUBLE_WILDCARD_LENGTH = 2

@@ -187,9 +187,12 @@ private class FastCheckOptionsParser : CliktCommand(name = "usvm-ts-pbt") {
     private fun buildCoverageRequest(): PropertyCoverageRequest? {
         if (!coverageEnabled) return null
 
+        val scopes = coverageScopes
+            .mapTo(hashSetOf(), ::parseCoverageScope)
+            .ifEmpty { setOf(CoverageScope.SOURCE_UNDER_TEST) }
+
         return PropertyCoverageRequest(
-            scopes = coverageScopes.mapTo(hashSetOf(), ::parseCoverageScope)
-                .ifEmpty { setOf(CoverageScope.SOURCE_UNDER_TEST) },
+            scopes = scopes,
             includePatterns = coverageIncludePatterns,
             excludePatterns = coverageExcludePatterns,
         )
