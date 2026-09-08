@@ -61,3 +61,17 @@ class TsConcreteMethodCallStmt(
         return "concrete ${callee.signature.enclosingClass.name}::${callee.name}"
     }
 }
+
+/** Resumes the original entry point only when an auxiliary boolean guard returned true. */
+class TsEntryPointGuardResultStmt(
+    val entryPoint: EtsStmt,
+) : EtsStmt {
+    override val location: EtsStmtLocation
+        get() = entryPoint.location
+
+    override fun <R> accept(visitor: EtsStmt.Visitor<R>): R {
+        error("Auxiliary instruction")
+    }
+
+    override fun toString(): String = "entry-point guard result"
+}
