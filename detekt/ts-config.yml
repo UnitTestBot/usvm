@@ -11,5 +11,15 @@ complexity:
     threshold: 4
 
 style:
+  BracesOnWhenStatements:
+    active: false
   CascadingCallWrapping:
     active: true
+
+usvm:
+  active: true
+  MultilineWhenBranchBraces:
+    active: true
+  NestedCallArguments:
+    active: true
+    excludes: [ '**/test/**' ]

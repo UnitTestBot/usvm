@@ -79,7 +79,9 @@ style:
   BracesOnIfStatements:
     active: false
   BracesOnWhenStatements:
-    active: false
+    active: true
+    singleLine: 'necessary'
+    multiLine: 'consistent'
   ForbiddenComment:
     active: false
   ForbiddenMethodCall:
@@ -110,11 +112,3 @@ style:
     allowNonStandardGrouping: false
   WildcardImport:
     active: false
-
-usvm:
-  active: true
-  MultilineWhenBranchBraces:
-    active: true
-  NestedCallArguments:
-    active: true
-    excludes: [ '**/test/**' ]
