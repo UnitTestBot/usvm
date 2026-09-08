@@ -50,13 +50,11 @@ class UsvmPropertySearcher(
             concreteCapability = concreteCapability,
             options = projectionOptions,
         )
-        val capabilityDiagnostics = capability.symbolic.diagnostics
         if (capability.symbolic.level == ProjectionLevel.UNSUPPORTED) {
             return result(
                 manifest = manifest,
                 status = UsvmPropertySearchStatus.UNSUPPORTED,
                 capability = capability,
-                diagnostics = capabilityDiagnostics,
             )
         }
 
@@ -65,36 +63,19 @@ class UsvmPropertySearcher(
                 manifest = manifest,
                 status = UsvmPropertySearchStatus.ENGINE_FAILURE,
                 capability = capability,
-                diagnostics = capabilityDiagnostics + diagnostic(
+                additionalDiagnostic = diagnostic(
                     code = PbtDiagnosticCode.USVM_ENGINE_FAILURE,
                     message = "An exact predicate target was unavailable after capability validation",
                     path = "predicate",
                 ),
             )
         val precondition = mapping.precondition?.exactTargetOrNull()
-        val execution = executeSearch(manifest, predicate, precondition)
-        val terminalFailure = classifyTerminalFailure(
-            manifest = manifest,
-            capability = capability,
-            analysis = execution.analysis,
-        )
-        if (terminalFailure != null) {
-            return terminalFailure
-        }
 
-        val violationState = execution.observer.violationStates.firstOrNull()
-            ?: return noViolationResult(
-                manifest = manifest,
-                capability = capability,
-                analysis = execution.analysis,
-                observer = execution.observer,
-            )
-
-        return violationResult(
+        return executeSearch(
             manifest = manifest,
+            predicate = predicate,
+            precondition = precondition,
             capability = capability,
-            violationState = violationState,
-            projection = execution.projection,
         )
     }
 
@@ -102,17 +83,19 @@ class UsvmPropertySearcher(
         manifest: PropertyManifest,
         predicate: EtsEntryPointTarget,
         precondition: EtsEntryPointTarget?,
-    ): UsvmSearchExecution {
+        capability: UsvmPropertyProjectionCapability,
+    ): UsvmPropertySearchResult {
         lateinit var projection: UsvmDeclaredDomainProjection
         val target = UsvmViolationTsTarget()
         val observer = UsvmViolationObserver(target)
-        val analysis = TsMachine(
+
+        return TsMachine(
             scene = scene,
             options = machineOptions,
             tsOptions = tsOptions,
             machineObserver = observer,
         ).use { machine ->
-            machine.analyzeWithMetadata(
+            val analysis = machine.analyzeWithMetadata(
                 methods = listOf(predicate.method),
                 targets = listOf(target),
                 configureInitialState = { method, state ->
@@ -130,13 +113,30 @@ class UsvmPropertySearcher(
                     }
                 },
             )
-        }
+            val terminalFailure = classifyTerminalFailure(
+                manifest = manifest,
+                capability = capability,
+                analysis = analysis,
+            )
+            if (terminalFailure != null) {
+                return@use terminalFailure
+            }
 
-        return UsvmSearchExecution(
-            analysis = analysis,
-            observer = observer,
-            projection = projection,
-        )
+            val violationState = observer.violationStates.firstOrNull()
+                ?: return@use noViolationResult(
+                    manifest = manifest,
+                    capability = capability,
+                    analysis = analysis,
+                    observer = observer,
+                )
+
+            violationResult(
+                manifest = manifest,
+                capability = capability,
+                violationState = violationState,
+                projection = projection,
+            )
+        }
     }
 
     private fun classifyTerminalFailure(
@@ -149,7 +149,6 @@ class UsvmPropertySearcher(
             return preconditionFailure
         }
 
-        val capabilityDiagnostics = capability.symbolic.diagnostics
         val predicateContractError = analysis.states.any { state ->
             val methodResult = state.methodResult as? TsMethodResult.Success
             state.entryPointGuardOutcome == TsEntryPointGuardOutcome.NONE &&
@@ -161,7 +160,7 @@ class UsvmPropertySearcher(
                 manifest = manifest,
                 status = UsvmPropertySearchStatus.PROPERTY_ERROR,
                 capability = capability,
-                diagnostics = capabilityDiagnostics + diagnostic(
+                additionalDiagnostic = diagnostic(
                     code = PbtDiagnosticCode.USVM_PREDICATE_RESULT_NON_BOOLEAN,
                     message = "The predicate returned a non-boolean symbolic value",
                     path = "predicate.result",
@@ -177,7 +176,7 @@ class UsvmPropertySearcher(
                 manifest = manifest,
                 status = UsvmPropertySearchStatus.ENGINE_FAILURE,
                 capability = capability,
-                diagnostics = capabilityDiagnostics + diagnostic(
+                additionalDiagnostic = diagnostic(
                     code = PbtDiagnosticCode.USVM_ENGINE_FAILURE,
                     message = "Predicate analysis terminated without a method result",
                     path = "predicate",
@@ -189,7 +188,7 @@ class UsvmPropertySearcher(
                 manifest = manifest,
                 status = UsvmPropertySearchStatus.UNSUPPORTED,
                 capability = capability,
-                diagnostics = capabilityDiagnostics + diagnostic(
+                additionalDiagnostic = diagnostic(
                     code = PbtDiagnosticCode.USVM_EXECUTION_UNSUPPORTED,
                     message = "The symbolic engine encountered an unsupported property call",
                     path = "predicate",
@@ -201,7 +200,7 @@ class UsvmPropertySearcher(
                 manifest = manifest,
                 status = UsvmPropertySearchStatus.ENGINE_FAILURE,
                 capability = capability,
-                diagnostics = capabilityDiagnostics + diagnostic(
+                additionalDiagnostic = diagnostic(
                     code = PbtDiagnosticCode.USVM_ENGINE_FAILURE,
                     message = "The symbolic engine could not execute every reachable property path",
                     path = "predicate",
@@ -217,7 +216,6 @@ class UsvmPropertySearcher(
         capability: UsvmPropertyProjectionCapability,
         analysis: TsMachineAnalysisResult,
     ): UsvmPropertySearchResult? {
-        val capabilityDiagnostics = capability.symbolic.diagnostics
         val preconditionError = analysis.states.firstOrNull { state ->
             state.entryPointGuardOutcome == TsEntryPointGuardOutcome.ERROR
         }
@@ -251,7 +249,7 @@ class UsvmPropertySearcher(
             manifest = manifest,
             status = status,
             capability = capability,
-            diagnostics = capabilityDiagnostics + diagnostic,
+            additionalDiagnostic = diagnostic,
         )
     }
 
@@ -261,7 +259,6 @@ class UsvmPropertySearcher(
         analysis: TsMachineAnalysisResult,
         observer: UsvmViolationObserver,
     ): UsvmPropertySearchResult {
-        val capabilityDiagnostics = capability.symbolic.diagnostics
         val predicateCompleted = analysis.states.any { state ->
             state.entryPointGuardOutcome == TsEntryPointGuardOutcome.NONE &&
                 state.methodResult is TsMethodResult.Success
@@ -276,27 +273,27 @@ class UsvmPropertySearcher(
             preconditionRejected -> UsvmPropertySearchStatus.PRECONDITION_REJECTED
             else -> UsvmPropertySearchStatus.ENGINE_FAILURE
         }
-        val diagnostics = when (status) {
-            UsvmPropertySearchStatus.SOLVER_UNKNOWN -> capabilityDiagnostics + diagnostic(
+        val additionalDiagnostic = when (status) {
+            UsvmPropertySearchStatus.SOLVER_UNKNOWN -> diagnostic(
                 code = PbtDiagnosticCode.USVM_SOLVER_UNKNOWN,
                 message = "The solver could not classify a predicate result",
                 path = "predicate.result",
             )
 
-            UsvmPropertySearchStatus.ENGINE_FAILURE -> capabilityDiagnostics + diagnostic(
+            UsvmPropertySearchStatus.ENGINE_FAILURE -> diagnostic(
                 code = PbtDiagnosticCode.USVM_ENGINE_FAILURE,
                 message = "Property search produced no classified terminal state",
                 path = "predicate",
             )
 
-            else -> capabilityDiagnostics
+            else -> null
         }
 
         return result(
             manifest = manifest,
             status = status,
             capability = capability,
-            diagnostics = diagnostics,
+            additionalDiagnostic = additionalDiagnostic,
         )
     }
 
@@ -306,7 +303,6 @@ class UsvmPropertySearcher(
         violationState: TsState,
         projection: UsvmDeclaredDomainProjection,
     ): UsvmPropertySearchResult {
-        val capabilityDiagnostics = capability.symbolic.diagnostics
         val violationTarget = classifyViolation(violationState)
         val inputs = runCatching {
             inputResolver.resolve(violationState, manifest.inputs, projection)
@@ -322,7 +318,7 @@ class UsvmPropertySearcher(
                 status = UsvmPropertySearchStatus.FAILED_INPUT_RESOLUTION,
                 target = violationTarget,
                 capability = capability,
-                diagnostics = capabilityDiagnostics + diagnostic,
+                additionalDiagnostic = diagnostic,
             )
         }
 
@@ -332,7 +328,6 @@ class UsvmPropertySearcher(
             target = violationTarget,
             inputs = inputs,
             capability = capability,
-            diagnostics = capabilityDiagnostics,
         )
     }
 
@@ -370,24 +365,18 @@ class UsvmPropertySearcher(
         manifest: PropertyManifest,
         status: UsvmPropertySearchStatus,
         capability: UsvmPropertyProjectionCapability,
-        diagnostics: List<CapabilityDiagnostic>,
         target: UsvmPropertyViolationTarget? = null,
         inputs: List<org.usvm.ts.pbt.model.JsConcreteValue>? = null,
+        additionalDiagnostic: CapabilityDiagnostic? = null,
     ) = UsvmPropertySearchResult(
         propertyId = PropertyId(manifest.propertyId),
         status = status,
         target = target,
         inputs = inputs,
         capability = capability,
-        diagnostics = diagnostics,
+        diagnostics = capability.symbolic.diagnostics + listOfNotNull(additionalDiagnostic),
     )
 }
-
-private data class UsvmSearchExecution(
-    val analysis: TsMachineAnalysisResult,
-    val observer: UsvmViolationObserver,
-    val projection: UsvmDeclaredDomainProjection,
-)
 
 private class UsvmViolationTsTarget : TsTarget(location = null)
 
