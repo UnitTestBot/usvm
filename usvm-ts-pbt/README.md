@@ -204,6 +204,31 @@ Stable mapping diagnostics include `mapping.entry-point.unmapped`, `mapping.entr
 separately from mapping provenance and
 backend diagnostics are copied without reinterpretation.
 
+## USVM projection and property search
+
+`UsvmProjectionCapabilityResolver` compares the declared domains with the exact EtsIR parameter bindings.
+Booleans, bounded integers and numbers, supported primitive constants, optionals, bounded tuples, and bounded
+arrays are projected by `UsvmDomainProjector`. Strings are an explicit over-approximation: USVM constrains their
+type and UTF-16 length but not their contents. Nested arrays, incompatible EtsIR types, and collections above
+`UsvmProjectionOptions.maxSymbolicCollectionLength` are unsupported with stable diagnostics.
+
+`UsvmPropertyProjector` executes a mapped synchronous precondition over projected inputs. It reports accepted and
+rejected domains separately; a reachable exception or non-boolean result is `PROPERTY_ERROR`, solver uncertainty is
+`SOLVER_UNKNOWN`, and async, non-exact, or unsupported residual-call execution is `UNSUPPORTED`.
+
+`UsvmPropertySearcher` evaluates the mapped precondition and predicate in one symbolic state. A false precondition
+is `PRECONDITION_REJECTED` when it excludes the complete projected domain. A precondition exception or non-boolean
+result is `PROPERTY_ERROR`. Predicate `false` and escaping predicate exceptions are `VIOLATION_REACHED`, while a
+non-boolean predicate is `PROPERTY_ERROR`. Timeout, solver uncertainty, unsupported execution, engine failure, and
+input-resolution failure retain distinct statuses and are never treated as proof or as violations.
+
+The shared fixture in `src/test/resources/properties/contract/PropertyExecutionContract.ts` is executed by both
+`FastCheckBackend` and the USVM projection/search path. It covers precondition admission, rejection, exception and
+non-boolean results, plus false, throwing, literal-boolean-typed, never-typed, and non-boolean predicates. A shared
+mutation regression also verifies that a USVM candidate is reconstructed from the input before predicate mutation
+and reproduces through fast-check. Special values, alias preservation, mutation isolation, shrinking, and replay
+remain covered at the concrete invocation boundary.
+
 ## Registries and CLI
 
 The CLI loads Kotlin property registries through `ServiceLoader`:
