@@ -17,6 +17,9 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
+private typealias KotlinBoolean = Boolean
+private typealias KotlinString = String
+
 /** Tags the finite and non-finite cases of an ECMAScript binary64 value. */
 @Serializable
 enum class JsNumberKind {
@@ -94,10 +97,10 @@ sealed interface JsConcreteValue {
     data object Null : JsConcreteValue
 
     /** Concrete JavaScript boolean value. */
-    data class Boolean(val value: kotlin.Boolean) : JsConcreteValue
+    data class Boolean(val value: KotlinBoolean) : JsConcreteValue
 
     /** Concrete JavaScript UTF-16 string value. */
-    data class String(val value: kotlin.String) : JsConcreteValue
+    data class String(val value: KotlinString) : JsConcreteValue
 
     /** Concrete JavaScript binary64 number with lossless special-value encoding. */
     data class Number(val number: JsNumber) : JsConcreteValue {

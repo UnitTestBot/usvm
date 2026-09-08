@@ -3,6 +3,7 @@ package org.usvm.ts.pbt.mapping
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.model.EtsSourceSpan
 import org.jacodb.ets.model.EtsStmt
 import org.usvm.ts.pbt.PbtDiagnosticCode
 import org.usvm.ts.pbt.backend.BranchArmCoverage
@@ -452,7 +453,7 @@ internal class EtsCoverageMapper(
             origin.endOffset <= location.end.offset
     }
 
-    private fun org.jacodb.ets.model.EtsSourceSpan.hasPath(path: String): Boolean =
+    private fun EtsSourceSpan.hasPath(path: String): Boolean =
         sourceLocations.sourcePathCandidates(fileName).any { candidate -> candidate.toString() == path }
 }
 

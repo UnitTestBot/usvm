@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test
 import org.usvm.ts.pbt.backend.CoverageScope
 import org.usvm.ts.pbt.backend.PropertyCoverageRequest
 import org.usvm.ts.pbt.backend.PropertyRunConfiguration
+import org.usvm.ts.pbt.backend.PropertyRunResult
 import org.usvm.ts.pbt.backend.PropertyRunStatus
 import org.usvm.ts.pbt.backend.SourceFileCoverage
 import org.usvm.ts.pbt.model.IntegerDomain
@@ -162,7 +163,7 @@ class FastCheckCoverageTest {
         }
     }
 
-    private fun sourceUnderTest(result: org.usvm.ts.pbt.backend.PropertyRunResult): SourceFileCoverage {
+    private fun sourceUnderTest(result: PropertyRunResult): SourceFileCoverage {
         val artifact = assertNotNull(result.coverage)
         return artifact.files.single { file -> file.path.endsWith("properties/coverage/source-under-test.ts") }
     }
