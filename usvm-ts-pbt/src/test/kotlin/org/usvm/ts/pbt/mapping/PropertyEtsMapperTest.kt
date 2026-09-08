@@ -1002,9 +1002,10 @@ class PropertyEtsUnsupportedMappingTest {
         )
 
         val artifact = mapper.map(manifest, coverage)
-
-        assertEquals(EtsMappingStatus.EXACT, artifact.coverage.statements.single().mapping.status)
+        val statementMapping = artifact.coverage.statements.single().mapping
         val branch = artifact.coverage.branches.single()
+
+        assertEquals(EtsMappingStatus.EXACT, statementMapping.status)
         assertEquals(EtsMappingStatus.UNSUPPORTED, branch.mapping.status)
         assertEquals("mapping.branch.shape.unsupported", branch.mapping.diagnostics.single().code)
         assertTrue(branch.arms.all { arm -> arm.mapping.status == EtsMappingStatus.UNSUPPORTED })

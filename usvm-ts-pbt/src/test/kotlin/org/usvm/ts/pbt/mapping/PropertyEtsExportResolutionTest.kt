@@ -285,9 +285,10 @@ class PropertyEtsExportResolutionTest {
         val mapper = mapper(*sources.toTypedArray())
 
         val artifact = mapper.map(manifest(module = "RenamedCycleEntry.ts", exportName = "predicate"))
+        val predicateTarget = artifact.predicate.targets.single()
 
         assertEquals(EtsMappingStatus.EXACT, artifact.predicate.status)
-        assertEquals("actual", artifact.predicate.targets.single().method.name)
+        assertEquals("actual", predicateTarget.method.name)
     }
 
     private fun mapper(vararg sources: Path): PropertyEtsMapper {
