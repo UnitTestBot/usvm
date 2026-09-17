@@ -245,6 +245,21 @@ useful separation is preserved: declarative receiver/argument/result positions a
 values, and condition interpretation is distinct from position resolution. The TypeScript mapper expresses this
 with EtsIR-specific binding and mapping records and has no dependency on `usvm-jvm` or the taint-analysis module.
 
+## USVM projection and property search
+
+The existing projection path configures `TsMachine`'s initial state from exact mapper bindings and declared Kotlin
+domains. The existing search path prepends a mapped synchronous precondition to the predicate entry point. Guard
+completion is explicit in `TsState`: false terminates a rejected path, while an exception or non-boolean result
+terminates an error path. Neither path can reach the predicate target.
+
+Predicate false paths are re-solved on a cloned terminal state before target propagation, so the ordinary terminal
+state is not rewritten. Predicate exceptions reach the same candidate target. Runtime non-boolean entry-point
+results are property errors regardless of their TypeScript return annotation. A residual call that stops a path is
+unsupported, while ordinary unsatisfiable path pruning is not an engine failure. Timeout, solver uncertainty,
+interpreter failure, and candidate-input resolution failure retain separate search outcomes. Candidate extraction
+reads the projected input state with the terminal model, so predicate-local array mutation does not rewrite the
+reported input.
+
 ## Process supervision
 
 `FastCheckProcessTransport` writes stdin and drains stdout and stderr concurrently. This is necessary because each
@@ -284,7 +299,9 @@ classifier because `tsx` depends on a native esbuild package.
 - Backend integration tests execute real uncompiled TypeScript through the packaged adapter, including replay,
   shrinking, explicit examples, preconditions, async predicates, and timeouts.
 - Shared contract fixtures cover precondition admission, discard and errors; predicate violations and errors;
-  special values; aliases; mutation isolation; shrinking; and replay through observable outcomes.
+  special values; aliases; mutation isolation; shrinking; and replay through observable outcomes. One focused JVM
+  conformance test executes the same classification fixture through the real FastCheck and USVM paths, including
+  literal and never return annotations and replay of a pre-mutation USVM candidate.
 - Coverage golden tests assert literal TypeScript statement and branch outcomes for successful and falsified runs,
   cross-property isolation, scope and glob filtering, and source-map/report diagnostics.
 - Mapping golden tests load stable TypeScript fixtures through the native frontend and cover predicate,
@@ -297,5 +314,5 @@ classifier because `tsx` depends on a native esbuild package.
 - Discovering properties by scanning TypeScript source roots.
 - Compiling user TypeScript as part of the PBT workflow.
 - Reimplementing generation, replay, skip accounting, or shrinking in Kotlin.
-- Constructing symbolic inputs or executing mapped properties in USVM.
+- General purity analysis, arbitrary mutable-object projection, and persistent state across property invocations.
 - Combining backend source coverage with future EtsIR replay coverage.

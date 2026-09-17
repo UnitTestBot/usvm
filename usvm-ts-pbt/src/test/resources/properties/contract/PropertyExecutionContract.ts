@@ -94,6 +94,18 @@ export async function asyncNonBooleanWhenPositivePredicate(value: number): Promi
     return value > 0 ? 42 : false;
 }
 
+export function literalFalsePredicate(_value: number): false {
+    return false;
+}
+
+export function literalTruePredicate(_value: number): true {
+    return true;
+}
+
+export function neverPredicate(_value: number): never {
+    throw 'never predicate exploded';
+}
+
 export function catchesExpectedException(_value: number): boolean {
     try {
         throw 'expected';
