@@ -14,6 +14,34 @@ export function throwingPrecondition(_value: number): boolean {
     throw 'precondition exploded';
 }
 
+export function throwingOpaquePrecondition(_value: number): boolean {
+    throw Object.create(null);
+}
+
+export async function asyncThrowingOpaquePrecondition(value: number): Promise<boolean> {
+    return throwingOpaquePrecondition(value);
+}
+
+export function throwingUnprintableErrorPrecondition(_value: number): boolean {
+    const error = new Error();
+    Object.defineProperty(error, 'message', {
+        get() { throw new Error('message getter failed'); },
+    });
+
+    throw error;
+}
+
+export async function asyncThrowingUnprintableErrorPrecondition(value: number): Promise<boolean> {
+    return throwingUnprintableErrorPrecondition(value);
+}
+
+export function throwingUnprintableNamePrecondition(_value: number): boolean {
+    const error = new Error();
+    Object.defineProperty(error, 'name', { value: Object.create(null) });
+
+    throw error;
+}
+
 export function nonBooleanPrecondition(_value: number): number {
     return 1;
 }
@@ -40,6 +68,14 @@ export function falsePredicate(_value: number): boolean {
 
 export function throwingPredicate(_value: number): boolean {
     throw 'predicate exploded';
+}
+
+export function throwingTimeoutMessagePredicate(_value: number): boolean {
+    throw new Error('Property timeout: exceeded limit of 20 milliseconds');
+}
+
+export async function asyncThrowingTimeoutMessagePredicate(value: number): Promise<boolean> {
+    return throwingTimeoutMessagePredicate(value);
 }
 
 export function assertionPredicate(_value: number): boolean {

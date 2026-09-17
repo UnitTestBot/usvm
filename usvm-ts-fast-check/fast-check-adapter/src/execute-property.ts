@@ -195,13 +195,17 @@ function classifyPreconditionError(error: unknown): ProtocolError {
 }
 
 function describeThrownValue(value: unknown): string {
-  if (value instanceof Error) {
-    const name = value.name || 'Error';
+  try {
+    if (value instanceof Error) {
+      const name = String(value.name || 'Error');
 
-    return value.message.length === 0 ? name : `${name}: ${value.message}`;
+      return value.message.length === 0 ? name : `${name}: ${value.message}`;
+    }
+
+    return `a non-Error value: ${String(value)}`;
+  } catch {
+    return 'an unprintable value';
   }
-
-  return `a non-Error value: ${String(value)}`;
 }
 
 async function checkProperty(
@@ -247,7 +251,6 @@ function buildParameters(request: FastCheckExecutionRequest): Parameters<[JsConc
 
   const parameters: Parameters<[JsConcreteValue[]]> = {
     numRuns: request.numRuns,
-    timeout: request.timeoutMillis,
     interruptAfterTimeLimit: request.timeoutMillis,
     markInterruptAsFailure: true,
     examples: decodedExamples,
@@ -285,22 +288,20 @@ function toRunResult(
 }
 
 function failureDetails(details: RunDetails<[JsConcreteValue[]]>): FastCheckFailureDetails {
-  const error = details.errorInstance;
-  const timeout = (details.interrupted && details.counterexample === null) || isFastCheckTimeout(error);
-
-  if (error instanceof Error) {
-    return {
-      kind: timeout ? 'timeout' : 'property',
-      errorName: error.name || 'Error',
-      message: error.message || 'Property execution failed',
-    };
-  }
-
-  if (timeout) {
+  if (details.interrupted && details.counterexample === null) {
     return {
       kind: 'timeout',
       errorName: 'TimeoutError',
       message: 'Property execution exceeded the configured timeout',
+    };
+  }
+
+  const error = details.errorInstance;
+  if (error instanceof Error) {
+    return {
+      kind: 'property',
+      errorName: error.name || 'Error',
+      message: error.message || 'Property execution failed',
     };
   }
 
@@ -319,17 +320,9 @@ function failureDetails(details: RunDetails<[JsConcreteValue[]]>): FastCheckFail
   };
 }
 
-function isFastCheckTimeout(error: unknown): boolean {
-  return hasFastCheckMessagePrefix(error, FAST_CHECK_TIMEOUT_PREFIX);
-}
-
+/** The pinned fast-check version exposes invalid replay paths only through a stable message prefix. */
 function isFastCheckReplayFailure(error: unknown): boolean {
-  return hasFastCheckMessagePrefix(error, FAST_CHECK_REPLAY_FAILURE_PREFIX);
-}
-
-/** The pinned fast-check version exposes these two failure categories only through stable message prefixes. */
-function hasFastCheckMessagePrefix(error: unknown, prefix: string): boolean {
-  return error instanceof Error && error.message.startsWith(prefix);
+  return error instanceof Error && error.message.startsWith(FAST_CHECK_REPLAY_FAILURE_PREFIX);
 }
 
 function validateRequest(value: unknown): FastCheckExecutionRequest {
@@ -513,4 +506,3 @@ function isSignedInt(value: unknown): value is number {
 const MAX_TIMER_DELAY_MILLIS = 2 ** 31 - 1;
 const REPLAY_PATH_PATTERN = /^\d+(?::\d+)*$/;
 const FAST_CHECK_REPLAY_FAILURE_PREFIX = 'Unable to replay,';
-const FAST_CHECK_TIMEOUT_PREFIX = 'Property timeout:';
