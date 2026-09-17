@@ -63,9 +63,11 @@ internal object PbtDiagnosticCode {
 
     const val USVM_DOMAIN_ARRAY_NESTED_UNSUPPORTED = "usvm.domain.array.nested.unsupported"
     const val USVM_DOMAIN_COLLECTION_TOO_LARGE = "usvm.domain.collection.too-large"
+    const val USVM_DOMAIN_OPTIONAL_REFERENCE_UNSUPPORTED = "usvm.domain.optional-reference.unsupported"
     const val USVM_DOMAIN_STRING_APPROXIMATE = "usvm.domain.string.approximate"
     const val USVM_DOMAIN_TYPE_UNSUPPORTED = "usvm.domain.type.unsupported"
     const val USVM_ENGINE_FAILURE = "usvm.engine.failure"
+    const val USVM_EXCEPTION_HANDLER_UNSUPPORTED = "usvm.exception-handler.unsupported"
     const val USVM_EXECUTION_UNSUPPORTED = "usvm.execution.unsupported"
     const val USVM_INPUT_BINDING_UNAVAILABLE = "usvm.input.binding.unavailable"
     const val USVM_INPUT_RESOLUTION_FAILED = "usvm.input.resolution.failed"
