@@ -18,6 +18,22 @@ export function nonBooleanPrecondition(_value: number): number {
     return 1;
 }
 
+export function throwingWhenPositivePrecondition(value: number): boolean {
+    if (value > 0) {
+        throw 'positive precondition';
+    }
+
+    return true;
+}
+
+export async function asyncThrowingWhenPositivePrecondition(value: number): Promise<boolean> {
+    if (value > 0) {
+        throw 'positive async precondition';
+    }
+
+    return true;
+}
+
 export function falsePredicate(_value: number): boolean {
     return false;
 }
@@ -32,6 +48,14 @@ export function assertionPredicate(_value: number): boolean {
 
 export function nonBooleanPredicate(_value: number): number {
     return 1;
+}
+
+export function nonBooleanWhenPositivePredicate(value: number): number | boolean {
+    return value > 0 ? 42 : false;
+}
+
+export async function asyncNonBooleanWhenPositivePredicate(value: number): Promise<number | boolean> {
+    return value > 0 ? 42 : false;
 }
 
 export function catchesExpectedException(_value: number): boolean {

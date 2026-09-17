@@ -137,6 +137,82 @@ test('reports a non-boolean predicate as an entry-point contract error', async (
   );
 });
 
+test('preserves synchronous contract errors when shrinking reaches a regular violation', async () => {
+  const cases = [
+    {
+      predicateExport: 'falsePredicate',
+      preconditionExport: 'throwingWhenPositivePrecondition',
+      expectedCode: 'entrypoint.precondition.threw',
+      expectedPath: 'manifest.precondition',
+    },
+    {
+      predicateExport: 'nonBooleanWhenPositivePredicate',
+      expectedCode: 'entrypoint.result.invalid',
+      expectedPath: 'manifest.predicate.result',
+    },
+  ];
+
+  for (const contractCase of cases) {
+    const request = contractExecutionRequest(contractCase.predicateExport, {
+      inputDomains: [{ kind: 'integer', min: 0, max: 100 }],
+      ...(contractCase.preconditionExport === undefined
+        ? {}
+        : { preconditionExport: contractCase.preconditionExport }),
+    });
+    request.examples = [[encodeJsValue(100)]];
+    request.numRuns = 1;
+
+    await assert.rejects(
+      executeProperty(request),
+      (error: unknown) => error instanceof ProtocolError
+        && error.code === contractCase.expectedCode
+        && error.path === contractCase.expectedPath,
+    );
+  }
+});
+
+test('preserves asynchronous contract errors when shrinking reaches a regular violation', async () => {
+  const cases = [
+    {
+      predicateExport: 'falsePredicate',
+      preconditionExport: 'asyncThrowingWhenPositivePrecondition',
+      preconditionExecutionKind: 'async' as const,
+      expectedCode: 'entrypoint.precondition.threw',
+      expectedPath: 'manifest.precondition',
+    },
+    {
+      predicateExport: 'asyncNonBooleanWhenPositivePredicate',
+      predicateExecutionKind: 'async' as const,
+      expectedCode: 'entrypoint.result.invalid',
+      expectedPath: 'manifest.predicate.result',
+    },
+  ];
+
+  for (const contractCase of cases) {
+    const request = contractExecutionRequest(contractCase.predicateExport, {
+      inputDomains: [{ kind: 'integer', min: 0, max: 100 }],
+      ...(contractCase.predicateExecutionKind === undefined
+        ? {}
+        : { predicateExecutionKind: contractCase.predicateExecutionKind }),
+      ...(contractCase.preconditionExport === undefined
+        ? {}
+        : { preconditionExport: contractCase.preconditionExport }),
+      ...(contractCase.preconditionExecutionKind === undefined
+        ? {}
+        : { preconditionExecutionKind: contractCase.preconditionExecutionKind }),
+    });
+    request.examples = [[encodeJsValue(100)]];
+    request.numRuns = 1;
+
+    await assert.rejects(
+      executeProperty(request),
+      (error: unknown) => error instanceof ProtocolError
+        && error.code === contractCase.expectedCode
+        && error.path === contractCase.expectedPath,
+    );
+  }
+});
+
 test('preserves positional special values through one invocation', async () => {
   const request = contractExecutionRequest('recognizesSpecialValues', {
     inputDomains: [
@@ -352,6 +428,8 @@ function executionRequest(
 
 interface ContractRequestOverrides {
   preconditionExport?: string;
+  preconditionExecutionKind?: 'sync' | 'async';
+  predicateExecutionKind?: 'sync' | 'async';
   inputDomains?: unknown[];
 }
 
@@ -361,6 +439,9 @@ function contractExecutionRequest(
 ): FastCheckExecutionRequest {
   const requestOverrides: RequestOverrides = {};
   if (overrides.inputDomains !== undefined) requestOverrides.inputDomains = overrides.inputDomains;
+  if (overrides.predicateExecutionKind !== undefined) {
+    requestOverrides.predicateExecutionKind = overrides.predicateExecutionKind;
+  }
 
   const request = executionRequest(CONTRACT_SOURCE_ROOT, predicateExport, requestOverrides);
   request.manifest.predicate.module = CONTRACT_MODULE;
@@ -369,7 +450,7 @@ function contractExecutionRequest(
     request.manifest.precondition = {
       module: CONTRACT_MODULE,
       exportName: overrides.preconditionExport,
-      executionKind: 'sync',
+      executionKind: overrides.preconditionExecutionKind ?? 'sync',
     };
   }
 
