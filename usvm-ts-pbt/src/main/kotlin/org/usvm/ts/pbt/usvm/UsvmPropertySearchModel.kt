@@ -45,6 +45,15 @@ data class UsvmPropertySearchResult(
                 require(inputs == null) { "An input-resolution failure cannot contain candidate inputs" }
             }
 
+            UsvmPropertySearchStatus.PROPERTY_ERROR,
+            UsvmPropertySearchStatus.UNSUPPORTED,
+            UsvmPropertySearchStatus.ENGINE_FAILURE,
+            -> {
+                require(inputs == null || target != null) {
+                    "Resolved candidate inputs require their reached target"
+                }
+            }
+
             else -> {
                 require(target == null) { "A result without a violation cannot contain a target" }
                 require(inputs == null) { "A result without a violation cannot contain candidate inputs" }

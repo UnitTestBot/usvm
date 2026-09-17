@@ -31,7 +31,7 @@ import kotlin.test.assertTrue
 
 class PropertyExecutionConformanceTest {
     @Test
-    fun `shared preconditions have the same concrete projection and search classification`() {
+    fun `shared preconditions have the same concrete and search classification`() {
         val cases = listOf(
             ContractCase("truePrecondition", ContractOutcome.HOLDS),
             ContractCase("falsePrecondition", ContractOutcome.PRECONDITION_REJECTED),
@@ -62,15 +62,11 @@ class PropertyExecutionConformanceTest {
             val mapping = mapper.map(manifest)
 
             val concreteOutcome = concreteOutcome(property, case.expectedBackendError)
-            val projectionOutcome = projectionOutcome(
-                projector.analyzePrecondition(manifest, mapping, exactCapability),
-            )
             val searchOutcome = searchOutcome(
                 searcher.search(manifest, mapping, exactCapability),
             )
 
             assertEquals(case.expected, concreteOutcome, "${case.exportName}: concrete")
-            assertEquals(case.expected, projectionOutcome, "${case.exportName}: projection")
             assertEquals(case.expected, searchOutcome, "${case.exportName}: search")
         }
     }
@@ -173,13 +169,6 @@ class PropertyExecutionConformanceTest {
         ContractOutcome.PROPERTY_ERROR
     }
 
-    private fun projectionOutcome(result: UsvmPreconditionResult): ContractOutcome = when (result.status) {
-        UsvmPreconditionStatus.ACCEPTED -> ContractOutcome.HOLDS
-        UsvmPreconditionStatus.REJECTED -> ContractOutcome.PRECONDITION_REJECTED
-        UsvmPreconditionStatus.PROPERTY_ERROR -> ContractOutcome.PROPERTY_ERROR
-        else -> error("Unexpected projection result: $result")
-    }
-
     private fun searchOutcome(result: UsvmPropertySearchResult): ContractOutcome = when (result.status) {
         UsvmPropertySearchStatus.VIOLATION_REACHED -> ContractOutcome.PREDICATE_VIOLATION
         UsvmPropertySearchStatus.NO_VIOLATION_REACHED -> ContractOutcome.HOLDS
@@ -242,7 +231,6 @@ class PropertyExecutionConformanceTest {
         private val fixtureDirectory = testResourcesRoot().resolve("properties/contract")
         private val backend = FastCheckBackend(sourceRoots = listOf(fixtureDirectory))
         private lateinit var mapper: PropertyEtsMapper
-        private lateinit var projector: UsvmPropertyProjector
         private lateinit var searcher: UsvmPropertySearcher
 
         @JvmStatic
@@ -256,7 +244,6 @@ class PropertyExecutionConformanceTest {
                 scene = scene,
                 sourceRoots = listOf(fixtureDirectory),
             )
-            projector = UsvmPropertyProjector(scene)
             searcher = UsvmPropertySearcher(scene)
         }
     }

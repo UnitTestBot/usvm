@@ -85,8 +85,8 @@ was reached within that search.
 - `fast-check-adapter/src/execute-property.ts` applies this contract to generation, explicit examples, replay, and
   shrinking through the existing fast-check invocation.
 - `fast-check-adapter/src/project-domain.ts` projects the declared Kotlin domains for concrete execution.
-- `UsvmPropertyProjector` and `UsvmPropertySearcher` apply this contract to the existing USVM projection and search
-  paths. `PropertyExecutionConformanceTest` runs the same TypeScript fixture through `FastCheckBackend` and USVM.
+- `UsvmPropertySearcher` applies this contract to USVM domain projection and search in one execution path.
+  `PropertyExecutionConformanceTest` runs the same TypeScript fixture through `FastCheckBackend` and USVM.
 - `src/test/resources/properties/contract/PropertyExecutionContract.ts` is the shared observable fixture for
   concrete and symbolic contract regressions.
 

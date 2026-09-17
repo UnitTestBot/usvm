@@ -81,6 +81,34 @@ class UsvmProjectionCapabilityTest {
     }
 
     @Test
+    fun `optional references and exception handlers are unsupported`() {
+        val optionalArray = resolve(
+            domain = OptionalDomain(ArrayDomain(IntegerDomain(), minLength = 1, maxLength = 1)),
+            exportName = "acceptsOptionalNumberArray",
+        )
+        val caughtDirect = resolve(IntegerDomain(), "catchesDirectThrow")
+        val caughtHelper = resolve(IntegerDomain(), "catchesHelperThrow")
+        val preconditionManifest = manifest(
+            domain = IntegerDomain(),
+            predicateExport = "acceptsNumber",
+            preconditionExport = "catchesDirectThrow",
+        )
+        val caughtPrecondition = resolver.resolve(
+            manifest = preconditionManifest,
+            mapping = mapper.map(preconditionManifest),
+            concreteCapability = exact(),
+        )
+
+        assertEquals(ProjectionLevel.UNSUPPORTED, optionalArray.symbolic.level)
+        assertEquals("usvm.domain.optional-reference.unsupported", optionalArray.symbolic.diagnostics.single().code)
+        assertEquals(ProjectionLevel.UNSUPPORTED, caughtDirect.symbolic.level)
+        assertEquals("usvm.exception-handler.unsupported", caughtDirect.symbolic.diagnostics.single().code)
+        assertEquals(ProjectionLevel.UNSUPPORTED, caughtHelper.symbolic.level)
+        assertEquals(ProjectionLevel.UNSUPPORTED, caughtPrecondition.precondition.level)
+        assertEquals("usvm.exception-handler.unsupported", caughtPrecondition.precondition.diagnostics.single().code)
+    }
+
+    @Test
     fun `reports unsupported mapping and execution boundaries without classifying property errors`() {
         val manifest = manifest(IntegerDomain(), predicateExport = "acceptsNumber")
         val mapping = mapper.map(manifest)
