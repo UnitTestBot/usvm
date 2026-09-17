@@ -91,17 +91,28 @@ private fun TsContext.assignToArrayLength(
         signed = true,
     )
     val length = convertedLength.asExpr(sizeSort)
+    val lengthLValue = mkArrayLengthLValue(array, arrayType)
+    val currentLength = scope.calcOnState {
+        memory.read(lengthLValue)
+    }
     val lengthIsIntegral = mkEq(roundTrip, fpLength)
     val lengthIsNonNegative = mkBvSignedGreaterOrEqualExpr(length, mkBv(0))
     val lengthIsWithinLimit = mkBvSignedLessOrEqualExpr(length, mkBv(maxArraySize))
+    val lengthIsNotGrowing = mkBvSignedLessOrEqualExpr(length, currentLength)
     val validLength = mkAnd(
         lengthIsIntegral,
         lengthIsNonNegative,
         lengthIsWithinLimit,
+        lengthIsNotGrowing,
     )
-    scope.assert(validLength) ?: return null
+    scope.assert(validLength) ?: run {
+        logger.warn {
+            "Unsupported array length assignment: expected an integral length in [0, current length], " +
+                "but the constraint is UNSAT: $validLength"
+        }
+        return null
+    }
 
-    val lengthLValue = mkArrayLengthLValue(array, arrayType)
     return scope.doWithState {
         memory.write(lengthLValue, length, guard = trueExpr)
     }

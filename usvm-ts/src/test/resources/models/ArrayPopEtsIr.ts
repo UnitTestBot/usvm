@@ -18,6 +18,19 @@ export class ArrayPopEtsIr {
         return values.pop()! + values.length;
     }
 
+    popThenGrow(): number {
+        const values = [10, 20];
+        values.pop();
+        values.length = 2;
+        return 50;
+    }
+
+    growFreshArray(): number {
+        const values: number[] = [];
+        values.length = 1;
+        return 51;
+    }
+
     referenceArray(): number {
         const values: ArrayElement[] = [new ArrayElement()];
         values.pop();

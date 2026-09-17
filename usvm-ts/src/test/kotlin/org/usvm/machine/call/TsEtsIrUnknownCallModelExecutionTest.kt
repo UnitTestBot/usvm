@@ -82,6 +82,12 @@ class TsEtsIrUnknownCallModelExecutionTest {
                 targetName = "recursive",
                 entryPointName = "recurse",
             ),
+            model(
+                id = "test.ets-ir.guarded",
+                targetName = "guarded",
+                entryPointName = "guarded",
+                domainGuard = TsEtsIrUnknownCallModelDomainGuard { state, _, _ -> state.ctx.falseExpr },
+            ),
         ),
     )
 
@@ -157,6 +163,16 @@ class TsEtsIrUnknownCallModelExecutionTest {
             result.events.map { it.outcome },
         )
         assertIs<TsUnknownCallDecision.ResidualFallback>(result.events.last().decision)
+    }
+
+    @Test
+    fun `model body cannot bypass dispatcher when domain guard is false`() {
+        val result = analyze(methodName = "guardedModelBodyCannotBypassDispatcher")
+
+        assertTrue(result.states.isEmpty())
+        assertTrue(result.modelIds.isEmpty())
+        assertEquals(listOf(TsUnknownCallOutcome.PATH_STOPPED), result.events.map { it.outcome })
+        assertIs<TsUnknownCallDecision.ResidualFallback>(result.events.single().decision)
     }
 
     private fun model(

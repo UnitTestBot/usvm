@@ -72,7 +72,11 @@ class TsMachine(
     private val graph = TsGraph(analysisScene)
     private val typeSystem = TsTypeSystem(analysisScene, typeOperationsTimeout = 1.seconds, graph.hierarchy)
     private val components = TsComponents(typeSystem, options)
-    private val ctx = TsContext(analysisScene, components)
+    private val ctx = TsContext(
+        scene = analysisScene,
+        components = components,
+        applicationAndSdkClasses = scene.projectAndSdkClasses,
+    )
     private val resolvedUnknownCallDispatcher = unknownCallDispatcher ?: TsModelUnknownCallDispatcher(
         models = requireNotNull(resolvedUnknownCallModels),
         fallback = tsOptions.unknownCallFallback,

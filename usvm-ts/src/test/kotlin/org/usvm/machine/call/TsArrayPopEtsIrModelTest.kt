@@ -53,6 +53,22 @@ class TsArrayPopEtsIrModelTest {
     }
 
     @Test
+    fun `array length growth after pop is unsupported`() {
+        val result = analyze(methodName = "popThenGrow")
+
+        assertTrue(result.values.isEmpty())
+        assertEquals(listOf(TsUnknownCallOutcome.MODEL_APPLIED), result.events.map { it.outcome })
+    }
+
+    @Test
+    fun `fresh array length growth is unsupported`() {
+        val result = analyze(methodName = "growFreshArray")
+
+        assertTrue(result.values.isEmpty())
+        assertTrue(result.events.isEmpty())
+    }
+
+    @Test
     fun `symbolic number array uses the source model`() {
         val result = analyze(methodName = "symbolicNumberArray")
 

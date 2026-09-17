@@ -48,4 +48,8 @@ export class EtsIrSemanticModelCalls {
     recursiveRedirection(): number {
         return ExternalModels.recursive(1);
     }
+
+    guardedModelBodyCannotBypassDispatcher(): number {
+        return guarded(-1);
+    }
 }

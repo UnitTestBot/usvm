@@ -24,6 +24,10 @@ export class EtsIrSemanticModels {
         return value;
     }
 
+    static guarded(value: number): number {
+        return value;
+    }
+
     static outer(value: number): number {
         return ExternalModels.double(value);
     }
