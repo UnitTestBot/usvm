@@ -81,11 +81,13 @@ export async function executeProperty(requestValue: unknown): Promise<FastCheckE
     ...request.manifest.inputs.map((input, index) =>
       projectDomain(input.domain, `manifest.inputs[${index}].domain`)),
   );
-  const property = buildProperty(arbitrary, predicate, precondition);
+  const contractErrors: ContractErrorState = { first: undefined };
+  const property = buildProperty(arbitrary, predicate, precondition, contractErrors);
   const parameters = buildParameters(request);
 
   const details = await checkProperty(property, parameters, request.replayPath);
 
+  if (contractErrors.first !== undefined) throw contractErrors.first;
   if (details.errorInstance instanceof ProtocolError) throw details.errorInstance;
 
   return {
@@ -102,24 +104,62 @@ function buildProperty(
   arbitrary: fc.Arbitrary<JsConcreteValue[]>,
   predicate: LoadedEntryPoint,
   precondition: LoadedEntryPoint | undefined,
+  contractErrors: ContractErrorState,
 ): fc.IProperty<[JsConcreteValue[]]> | fc.IAsyncProperty<[JsConcreteValue[]]> {
   const asynchronous = predicate.executionKind === 'async' || precondition?.executionKind === 'async';
 
   if (asynchronous) {
-    return fc.asyncProperty(arbitrary, async (values: JsConcreteValue[]): Promise<boolean> => {
-      const invocationValues = cloneArguments(values);
-      if (precondition !== undefined && !(await invokePrecondition(precondition, invocationValues))) fc.pre(false);
+    return fc.asyncProperty(arbitrary, (values: JsConcreteValue[]): Promise<boolean> => preserveAsyncContractError(
+      contractErrors,
+      async () => {
+        const invocationValues = cloneArguments(values);
+        if (precondition !== undefined && !(await invokePrecondition(precondition, invocationValues))) fc.pre(false);
 
-      return await predicate.invoke(invocationValues);
-    });
+        return await predicate.invoke(invocationValues);
+      },
+    ));
   }
 
-  return fc.property(arbitrary, (values: JsConcreteValue[]): boolean => {
-    const invocationValues = cloneArguments(values);
-    if (precondition !== undefined && !invokeSynchronousPrecondition(precondition, invocationValues)) fc.pre(false);
+  return fc.property(arbitrary, (values: JsConcreteValue[]): boolean => preserveContractError(
+    contractErrors,
+    () => {
+      const invocationValues = cloneArguments(values);
+      if (precondition !== undefined && !invokeSynchronousPrecondition(precondition, invocationValues)) fc.pre(false);
 
-    return predicate.invoke(invocationValues) as boolean;
-  });
+      return predicate.invoke(invocationValues) as boolean;
+    },
+  ));
+}
+
+interface ContractErrorState {
+  first: ProtocolError | undefined;
+}
+
+function preserveContractError<T>(state: ContractErrorState, invocation: () => T): T {
+  if (state.first !== undefined) throw state.first;
+
+  try {
+    return invocation();
+  } catch (error: unknown) {
+    if (error instanceof ProtocolError) state.first ??= error;
+
+    throw error;
+  }
+}
+
+async function preserveAsyncContractError<T>(
+  state: ContractErrorState,
+  invocation: () => Promise<T>,
+): Promise<T> {
+  if (state.first !== undefined) throw state.first;
+
+  try {
+    return await invocation();
+  } catch (error: unknown) {
+    if (error instanceof ProtocolError) state.first ??= error;
+
+    throw error;
+  }
 }
 
 async function invokePrecondition(
