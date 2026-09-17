@@ -6,6 +6,7 @@ import org.usvm.ts.pbt.backend.PropertyRunConfiguration
 import org.usvm.ts.pbt.backend.PropertyRunStatus
 import org.usvm.ts.pbt.model.ArrayDomain
 import org.usvm.ts.pbt.model.ConstantDomain
+import org.usvm.ts.pbt.model.ExecutionKind
 import org.usvm.ts.pbt.model.IntegerDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyDefinition
@@ -63,6 +64,16 @@ class PropertyExecutionContractTest {
                 expectedPath = "manifest.precondition",
             ),
             ContractErrorCase(
+                exportName = "throwingOpaquePrecondition",
+                expectedCode = "entrypoint.precondition.threw",
+                expectedPath = "manifest.precondition",
+            ),
+            ContractErrorCase(
+                exportName = "throwingUnprintableErrorPrecondition",
+                expectedCode = "entrypoint.precondition.threw",
+                expectedPath = "manifest.precondition",
+            ),
+            ContractErrorCase(
                 exportName = "nonBooleanPrecondition",
                 expectedCode = "entrypoint.result.invalid",
                 expectedPath = "manifest.precondition.result",
@@ -112,6 +123,28 @@ class PropertyExecutionContractTest {
         assertEquals(BackendErrorKind.ENTRY_POINT, error.kind)
         assertEquals("entrypoint.result.invalid", error.code)
         assertEquals("manifest.predicate.result", error.path)
+    }
+
+    @Test
+    fun `timeout-shaped predicate exceptions are property violations`() {
+        val cases = listOf(
+            "throwingTimeoutMessagePredicate" to ExecutionKind.SYNC,
+            "asyncThrowingTimeoutMessagePredicate" to ExecutionKind.ASYNC,
+        )
+
+        cases.forEach { (exportName, executionKind) ->
+            val definition = property(predicate = exportName)
+
+            val result = backend.run(
+                property = definition.copy(predicate = definition.predicate.copy(executionKind = executionKind)),
+                configuration = configuration,
+            )
+
+            assertEquals(PropertyRunStatus.FAILURE, result.status)
+            assertEquals(PropertyFailureKind.PROPERTY, result.failure?.kind)
+            assertNotNull(result.counterexample)
+            assertEquals("Property timeout: exceeded limit of 20 milliseconds", result.failure?.message)
+        }
     }
 
     @Test
