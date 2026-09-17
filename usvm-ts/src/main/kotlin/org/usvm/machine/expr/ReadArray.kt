@@ -17,7 +17,6 @@ import org.usvm.machine.TsSizeSort
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsState
 import org.usvm.machine.types.TsUnresolvedValue
-import org.usvm.machine.types.findMaterializedFakeValue
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.sizeSort
 import org.usvm.types.first
@@ -132,23 +131,16 @@ fun TsContext.readArray(
     return scope.calcOnState {
         val unknownArrayType = EtsArrayType(EtsUnknownType, dimensions = 1)
         val refLValue = mkArrayIndexLValue(addressSort, array, index, unknownArrayType)
-        val materializedValue = findMaterializedFakeValue(refLValue)
-        if (materializedValue != null) {
-            return@calcOnState materializedValue
-        }
-
         val value = readSymbolicUnresolvedArrayElement(array, index)
 
-        // Reuse an existing fake object or materialize a flat wrapper for all three payloads.
-        // TODO: Think about the type constraint to get a consistent array resolution later
-        if (value.refValue.isFakeObject()) {
-            value.refValue
-        } else {
-            val fakeObj = mkFakeValue(scope = scope, value = value)
+        // Materialize the current symbolic-memory value instead of consulting allocation history.
+        val fakeObj = mkFakeValue(scope = scope, value = value)
+        if (fakeObj != value.refValue) {
             lValuesToAllocatedFakeObjects += refLValue to fakeObj
             memory.write(refLValue, fakeObj, guard = trueExpr)
-            fakeObj
         }
+
+        fakeObj
     }
 }
 

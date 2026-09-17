@@ -92,12 +92,38 @@ class TsArrayShiftIntrinsicModelTest {
     @Test
     fun `symbolic unknown array preserves removed element and moves all value regions`() {
         val result = analyze(methodName = "symbolicUnknownArray")
-        val reachesExpectedResult = result.values.any { value ->
-            (value as? TsTestValue.TsNumber)?.number == 47.0
+        val numbers = result.values.mapNotNull { value -> (value as? TsTestValue.TsNumber)?.number }
+
+        assertEquals(setOf(0.0, 47.0), numbers.toSet())
+        assertEquals(listOf(TsUnknownCallOutcome.MODEL_APPLIED), result.events.map { it.outcome })
+    }
+
+    @Test
+    fun `shift reads the moved element from current memory`() {
+        val result = analyze(methodName = "readBeforeShift")
+        val numbers = result.values.mapNotNull { value -> (value as? TsTestValue.TsNumber)?.number }
+
+        assertEquals(setOf(0.0, 1.0, 2.0), numbers.toSet())
+    }
+
+    @Test
+    fun `array read observes a write through an aliased symbolic index`() {
+        val result = analyze(methodName = "writeThroughSymbolicIndex")
+        val numbers = result.values.mapNotNull { value -> (value as? TsTestValue.TsNumber)?.number }
+
+        assertTrue(20.0 in numbers)
+        assertTrue(10.0 !in numbers)
+    }
+
+    @Test
+    fun `current resolver observes a shifted fake wrapper`() {
+        val result = analyze(methodName = "shiftedWrittenUnknownArray")
+        val arrays = result.values.filterIsInstance<TsTestValue.TsArray<*>>()
+        val shiftedValues = arrays.mapNotNull { array ->
+            (array.values.singleOrNull() as? TsTestValue.TsNumber)?.number
         }
 
-        assertTrue(reachesExpectedResult)
-        assertEquals(listOf(TsUnknownCallOutcome.MODEL_APPLIED), result.events.map { it.outcome })
+        assertEquals(listOf(20.0), shiftedValues)
     }
 
     @Test
@@ -168,6 +194,38 @@ class TsArrayShiftIntrinsicModelTest {
 
         assertEquals(49.0, assertIs<TsTestValue.TsNumber>(result.values.single()).number)
         assertEquals(listOf(TsUnknownCallOutcome.MODEL_APPLIED), result.events.map { it.outcome })
+    }
+
+    @Test
+    fun `repeated shifts do not copy fake allocation history`() {
+        val state = analyzeStates(methodName = "unknownValue").single()
+        val symbolicArray = state.makeSymbolicRefUntyped()
+        val fakeValue = makeFakeReceiver(state)
+
+        with(state.ctx) {
+            val arrayType = EtsArrayType(EtsUnknownType, dimensions = 1)
+            val materializedElement = mkArrayIndexLValue(addressSort, symbolicArray, mkBv(19), arrayType)
+            state.lValuesToAllocatedFakeObjects += materializedElement to fakeValue
+            state.memory.write(materializedElement, fakeValue, guard = trueExpr)
+            state.memory.write(
+                mkArrayLengthLValue(symbolicArray, arrayType),
+                mkBv(20),
+                guard = trueExpr,
+            )
+            val historyBeforeShift = state.lValuesToAllocatedFakeObjects.toList()
+
+            repeat(12) {
+                val execution = assertNotNull(
+                    TsArrayShiftIntrinsicModel.apply(
+                        state,
+                        arrayShiftCall(symbolicArray, methodName = "symbolicUnknownArray"),
+                    )
+                )
+                execution.successors.last().applyStateChanges(state)
+            }
+
+            assertEquals(historyBeforeShift, state.lValuesToAllocatedFakeObjects)
+        }
     }
 
     @Test

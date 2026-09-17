@@ -273,11 +273,13 @@ open class TsTestStateResolver(
             val sort = typeToSort(type.elementType)
 
             if (sort is TsUnresolvedSort) {
-                val arrayIndexLValue = mkArrayIndexLValue(addressSort, concreteRef, index, type)
+                val resolvedArrayIndexLValue = mkArrayIndexLValue(addressSort, concreteRef, index, type)
                 val fakeObject = if (memory is UModel) {
-                    resolvedLValuesToFakeObjects.firstOrNull { it.first == arrayIndexLValue }?.second
+                    resolvedLValuesToFakeObjects.firstOrNull { it.first == resolvedArrayIndexLValue }?.second
                 } else {
-                    resolvedLValuesToFakeObjects.lastOrNull { it.first == arrayIndexLValue }?.second
+                    val currentArrayIndexLValue = mkArrayIndexLValue(addressSort, heapRef, index, type)
+                    val currentValue = evaluateInModel(memory.read(currentArrayIndexLValue))
+                    (currentValue as? UConcreteHeapRef)?.takeIf { it.isFakeObject() }
                 }
 
                 fakeObject ?: return@map TsTestValue.TsUndefined

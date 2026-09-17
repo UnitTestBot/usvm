@@ -6,6 +6,7 @@ import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.UIteExpr
 import org.usvm.USort
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.collection.field.UFieldLValue
@@ -14,9 +15,6 @@ import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsState
 import org.usvm.memory.ULValue
-
-internal fun TsState.findMaterializedFakeValue(lValue: ULValue<*, *>): UConcreteHeapRef? =
-    lValuesToAllocatedFakeObjects.lastOrNull { (recordedLValue) -> recordedLValue == lValue }?.second
 
 /**
  * Creates a fresh synthetic wrapper for a TypeScript value with a not necessarily known runtime kind.
@@ -88,14 +86,40 @@ fun TsState.mkFakeValue(
 }
 
 fun TsState.mkFakeValue(
-    scope: TsStepScope?,
+    scope: TsStepScope,
     value: TsUnresolvedValue,
-): UConcreteHeapRef = mkFakeValue(
-    scope = scope,
-    boolValue = value.boolValue,
-    fpValue = value.fpValue,
-    refValue = value.refValue,
-)
+): UConcreteHeapRef = materializeFakeValue(scope, value, value.refValue)
+
+private fun TsState.materializeFakeValue(
+    scope: TsStepScope,
+    value: TsUnresolvedValue,
+    refValue: UHeapRef,
+): UConcreteHeapRef = with(ctx) {
+    when {
+        refValue.isFakeObject() -> refValue
+
+        !refValue.containsFakeObject() -> mkFakeValue(
+            scope = scope,
+            boolValue = value.boolValue,
+            fpValue = value.fpValue,
+            refValue = refValue,
+        )
+
+        refValue is UIteExpr<*> -> {
+            val trueValue = materializeFakeValue(scope, value, refValue.trueBranch.asExpr(addressSort))
+            val falseValue = materializeFakeValue(scope, value, refValue.falseBranch.asExpr(addressSort))
+
+            iteWriteIntoFakeObject(
+                scope = scope,
+                condition = refValue.condition,
+                trueBranchValue = trueValue,
+                falseBranchValue = falseValue,
+            )
+        }
+
+        else -> error("Unsupported fake-value reference expression: $refValue")
+    }
+}
 
 fun <T : USort> TsState.extractValue(
     value: UExpr<out USort>,

@@ -11,7 +11,6 @@ import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.api.memcpy
 import org.usvm.api.typeStreamOf
-import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.call.TsUnknownCall
 import org.usvm.machine.call.TsUnknownCallFailureReason
@@ -23,8 +22,6 @@ import org.usvm.machine.call.TsUnknownCallTarget
 import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.expr.readSymbolicUnresolvedArrayElement
 import org.usvm.machine.state.TsState
-import org.usvm.machine.types.findMaterializedFakeValue
-import org.usvm.sizeSort
 import org.usvm.types.singleOrNull
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
@@ -122,13 +119,6 @@ internal object TsArrayShiftIntrinsicModel : TsUnknownCallModel {
             }
         }
 
-        val unknownArrayType = EtsArrayType(EtsUnknownType, dimensions = 1)
-        val firstElementLValue = mkArrayIndexLValue(addressSort, input.array, index, unknownArrayType)
-        val materializedFirstElement = findMaterializedFakeValue(firstElementLValue)
-        if (materializedFirstElement != null) {
-            return@with TsUnknownCallModelCompletion.Normal { materializedFirstElement }
-        }
-
         val firstElement = readSymbolicUnresolvedArrayElement(input.array, index)
         TsUnknownCallModelCompletion.Unresolved(firstElement)
     }
@@ -160,7 +150,6 @@ internal object TsArrayShiftIntrinsicModel : TsUnknownCallModel {
                 fromDst = fromDst,
                 length = length,
             )
-            shiftMaterializedFakeValues(input)
             return@with
         }
 
@@ -188,7 +177,6 @@ internal object TsArrayShiftIntrinsicModel : TsUnknownCallModel {
             fromDst = fromDst,
             length = length,
         )
-        shiftMaterializedFakeValues(input)
     }
 
     private fun TsState.copyArrayRegion(
@@ -208,41 +196,6 @@ internal object TsArrayShiftIntrinsicModel : TsUnknownCallModel {
             fromDst = fromDst,
             length = length,
         )
-    }
-
-    private fun TsState.shiftMaterializedFakeValues(input: ArrayShiftInput) = with(ctx) {
-        val arrayDescriptor = if (input.array is UConcreteHeapRef) {
-            arrayDescriptorOf(input.arrayType)
-        } else {
-            arrayDescriptorOf(EtsArrayType(EtsUnknownType, dimensions = 1))
-        }
-        val zero = mkBv(0)
-        val one = mkBv(1)
-        val shiftedValues = lValuesToAllocatedFakeObjects.mapNotNull { (lValue, fakeValue) ->
-            if (
-                lValue !is UArrayIndexLValue<*, *, *> ||
-                lValue.ref != input.array ||
-                lValue.arrayType != arrayDescriptor
-            ) {
-                return@mapNotNull null
-            }
-
-            val sourceIndex = lValue.index.asExpr(sizeSort)
-            if (sourceIndex == zero) {
-                return@mapNotNull null
-            }
-
-            val destinationIndex = mkBvSubExpr(sourceIndex, one)
-            val destinationLValue = UArrayIndexLValue(
-                addressSort,
-                input.array,
-                destinationIndex,
-                arrayDescriptor,
-            )
-            destinationLValue to fakeValue
-        }
-
-        lValuesToAllocatedFakeObjects += shiftedValues
     }
 
     private class ArrayShiftInput(

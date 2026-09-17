@@ -71,4 +71,35 @@ export class ArrayShiftIntrinsic {
         values.shift(0);
         return 48;
     }
+
+    readBeforeShift(values: any[]): number {
+        if (values.length !== 2) {
+            return 0;
+        }
+
+        values[0] = 10;
+        values.shift();
+        return values[0] === 20 ? 1 : 2;
+    }
+
+    writeThroughSymbolicIndex(values: any[], index: number): any {
+        if (values.length !== 2 || index !== 0) {
+            return 0;
+        }
+
+        values[0] = 10;
+        values[index] = 20;
+        return values[0];
+    }
+
+    shiftedWrittenUnknownArray(values: any[]): any[] {
+        if (values.length !== 2) {
+            return [];
+        }
+
+        values[0] = 10;
+        values[1] = 20;
+        values.shift();
+        return values;
+    }
 }
