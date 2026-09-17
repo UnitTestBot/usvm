@@ -113,29 +113,33 @@ class UsvmPropertySearcher(
                     }
                 },
             )
+            val violationState = observer.violationStates.firstOrNull { state ->
+                state.methodResult is TsMethodResult.Success
+            } ?: observer.violationStates.firstOrNull()
+            val candidate = violationState?.let { state ->
+                violationResult(
+                    manifest = manifest,
+                    capability = capability,
+                    violationState = state,
+                    projection = projection,
+                )
+            }
             val terminalFailure = classifyTerminalFailure(
                 manifest = manifest,
                 capability = capability,
                 analysis = analysis,
             )
             if (terminalFailure != null) {
-                return@use terminalFailure
+                return@use terminalFailure.withCandidate(candidate)
             }
 
-            val violationState = observer.violationStates.firstOrNull()
-                ?: return@use noViolationResult(
+            candidate
+                ?: noViolationResult(
                     manifest = manifest,
                     capability = capability,
                     analysis = analysis,
                     observer = observer,
                 )
-
-            violationResult(
-                manifest = manifest,
-                capability = capability,
-                violationState = violationState,
-                projection = projection,
-            )
         }
     }
 
@@ -375,6 +379,18 @@ class UsvmPropertySearcher(
         inputs = inputs,
         capability = capability,
         diagnostics = capability.symbolic.diagnostics + listOfNotNull(additionalDiagnostic),
+    )
+}
+
+private fun UsvmPropertySearchResult.withCandidate(
+    candidate: UsvmPropertySearchResult?,
+): UsvmPropertySearchResult {
+    if (candidate == null) return this
+
+    return copy(
+        target = candidate.target,
+        inputs = candidate.inputs,
+        diagnostics = (diagnostics + candidate.diagnostics).distinct(),
     )
 }
 

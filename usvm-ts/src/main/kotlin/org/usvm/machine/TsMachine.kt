@@ -11,13 +11,13 @@ import org.usvm.UMachineOptions
 import org.usvm.api.targets.TsTarget
 import org.usvm.machine.call.TsBuiltInUnknownCallModels
 import org.usvm.machine.call.TsModelUnknownCallDispatcher
-import org.usvm.machine.call.TsUnknownCall
+import org.usvm.machine.call.TsResidualCallPolicy
+import org.usvm.machine.call.TsUnknownCallDecision
 import org.usvm.machine.call.TsUnknownCallDispatcher
+import org.usvm.machine.call.TsUnknownCallEvent
 import org.usvm.machine.call.TsUnknownCallModelCatalog
-import org.usvm.machine.call.TsUnknownCallOutcome
 import org.usvm.machine.call.deduplicateEtsFilesBySignature
 import org.usvm.machine.interpreter.TsInterpreter
-import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.machine.types.TsConstructorInputGuard
@@ -105,20 +105,18 @@ class TsMachine(
         applicationAndSdkClasses = scene.projectClasses + runtimeScene.sdkClasses,
         dateNowMilliseconds = tsOptions.dateNowMilliseconds,
     )
+    private val failureTrackingUnknownCallObserver = FailureTrackingUnknownCallObserver(observer)
     private val resolvedUnknownCallDispatcher = unknownCallDispatcher ?: TsModelUnknownCallDispatcher(
         models = requireNotNull(resolvedUnknownCallModels),
         fallback = tsOptions.unknownCallFallback,
-        observer = observer,
-    )
-    private val failureTrackingUnknownCallDispatcher = FailureTrackingUnknownCallDispatcher(
-        delegate = resolvedUnknownCallDispatcher,
+        observer = failureTrackingUnknownCallObserver,
     )
     private val interpreter = TsInterpreter(
         ctx = ctx,
         graph = graph,
         options = tsOptions,
         observer = observer,
-        unknownCallDispatcher = failureTrackingUnknownCallDispatcher,
+        unknownCallDispatcher = resolvedUnknownCallDispatcher,
         throwExceptionOnStepFailure = options.throwExceptionOnStepFailure,
     )
     private val cfgStatistics = CfgStatisticsImpl(graph)
@@ -157,7 +155,7 @@ class TsMachine(
         configureInitialState: (EtsMethod, TsState) -> Unit = { _, _ -> },
     ): TsMachineAnalysisResult {
         interpreter.resetStepFailure()
-        failureTrackingUnknownCallDispatcher.reset()
+        failureTrackingUnknownCallObserver.reset()
 
         val (initialStates, unsupportedPaths) = createInitialStates(methods, targets, configureInitialState)
 
@@ -302,7 +300,7 @@ class TsMachine(
             states = statesCollector.collectedStates,
             stopReason = stopReason,
             timedOut = timedOut,
-            unsupportedCall = failureTrackingUnknownCallDispatcher.pathStopped,
+            unsupportedCall = failureTrackingUnknownCallObserver.pathStopped,
             engineFailed = interpreter.stepFailed,
             unsupportedPaths = unsupportedPaths.toList(),
         )
@@ -336,19 +334,21 @@ class TsMachine(
     }
 }
 
-private class FailureTrackingUnknownCallDispatcher(
-    private val delegate: TsUnknownCallDispatcher,
-) : TsUnknownCallDispatcher {
+private class FailureTrackingUnknownCallObserver(
+    private val delegate: TsInterpreterObserver?,
+) : TsInterpreterObserver {
     var pathStopped: Boolean = false
         private set
 
-    override fun dispatch(scope: TsStepScope, call: TsUnknownCall): TsUnknownCallOutcome {
-        val outcome = delegate.dispatch(scope, call)
-        if (outcome == TsUnknownCallOutcome.PATH_STOPPED) {
+    override fun onUnknownCall(event: TsUnknownCallEvent) {
+        val decision = event.decision
+        val stopsPath = decision is TsUnknownCallDecision.ResidualFallback &&
+            decision.policy == TsResidualCallPolicy.STOP_PATH
+        if (stopsPath) {
             pathStopped = true
         }
 
-        return outcome
+        delegate?.onUnknownCall(event)
     }
 
     fun reset() {

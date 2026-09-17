@@ -12,6 +12,7 @@ import org.usvm.ts.pbt.manifest.PropertyManifest
 import org.usvm.ts.pbt.mapping.PropertyEtsMapper
 import org.usvm.ts.pbt.model.ArrayDomain
 import org.usvm.ts.pbt.model.BooleanDomain
+import org.usvm.ts.pbt.model.ConstantDomain
 import org.usvm.ts.pbt.model.ExecutionKind
 import org.usvm.ts.pbt.model.IntegerDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
@@ -123,6 +124,46 @@ class UsvmPropertySearcherTest {
         assertEquals(UsvmPropertyViolationTarget.PREDICATE_FALSE, result.target)
         assertNull(result.inputs)
         assertTrue(result.diagnostics.any { it.code == "usvm.input.resolution.failed" })
+    }
+
+    @Test
+    fun `preserves a reached violation when another path is unsupported`() {
+        val result = search(
+            manifest(
+                predicateExport = "mixedUnsupportedProperty",
+                domain = IntegerDomain(min = 0, max = 1),
+            ),
+        )
+
+        assertEquals(UsvmPropertySearchStatus.UNSUPPORTED, result.status)
+        assertEquals(UsvmPropertyViolationTarget.PREDICATE_FALSE, result.target)
+        assertEquals(listOf(JsConcreteValue.number(0.0)), result.inputs)
+        assertTrue(result.diagnostics.any { it.code == "usvm.execution.unsupported" })
+    }
+
+    @Test
+    fun `reports exception handlers and optional collections as unsupported`() {
+        val caughtDirect = search(manifest(predicateExport = "caughtDirectProperty"))
+        val caughtHelper = search(manifest(predicateExport = "caughtHelperProperty"))
+        val optionalArray = search(
+            manifest(
+                predicateExport = "optionalArrayProperty",
+                domain = OptionalDomain(
+                    ArrayDomain(
+                        element = ConstantDomain(JsConcreteValue.number(2.0)),
+                        minLength = 1,
+                        maxLength = 1,
+                    ),
+                ),
+            ),
+        )
+
+        listOf(caughtDirect, caughtHelper).forEach { result ->
+            assertEquals(UsvmPropertySearchStatus.UNSUPPORTED, result.status)
+            assertTrue(result.diagnostics.any { it.code == "usvm.exception-handler.unsupported" })
+        }
+        assertEquals(UsvmPropertySearchStatus.UNSUPPORTED, optionalArray.status)
+        assertTrue(optionalArray.diagnostics.any { it.code == "usvm.domain.optional-reference.unsupported" })
     }
 
     @Test

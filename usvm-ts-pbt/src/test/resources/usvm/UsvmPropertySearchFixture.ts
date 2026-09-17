@@ -62,6 +62,38 @@ export function falseArrayProperty(_value: number[]): boolean {
   return false;
 }
 
+export function mixedUnsupportedProperty(value: number): boolean {
+  if (value === 0) {
+    return false;
+  }
+
+  return Math.sin(value) > 0;
+}
+
+export function caughtDirectProperty(_value: number): boolean {
+  try {
+    throw "expected";
+  } catch {
+    return true;
+  }
+}
+
+export function caughtHelperProperty(value: number): boolean {
+  try {
+    return throwingHelper(value);
+  } catch {
+    return true;
+  }
+}
+
+function throwingHelper(_value: number): boolean {
+  throw "expected";
+}
+
+export function optionalArrayProperty(value: number[] | undefined): boolean {
+  return value === undefined || value[0] === 2;
+}
+
 export function nonBooleanProperty(value: number): number {
   return value;
 }
