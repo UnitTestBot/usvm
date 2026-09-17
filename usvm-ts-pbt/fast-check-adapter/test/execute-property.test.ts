@@ -118,6 +118,47 @@ test('reports a non-boolean precondition as an entry-point contract error', asyn
   );
 });
 
+test('keeps unprintable precondition exceptions classified as execution errors', async () => {
+  const cases = [
+    { exportName: 'throwingOpaquePrecondition', executionKind: 'sync' as const },
+    { exportName: 'asyncThrowingOpaquePrecondition', executionKind: 'async' as const },
+    { exportName: 'throwingUnprintableErrorPrecondition', executionKind: 'sync' as const },
+    { exportName: 'asyncThrowingUnprintableErrorPrecondition', executionKind: 'async' as const },
+    { exportName: 'throwingUnprintableNamePrecondition', executionKind: 'sync' as const },
+  ];
+
+  for (const { exportName, executionKind } of cases) {
+    const request = contractExecutionRequest('alwaysTrue', {
+      preconditionExport: exportName,
+      preconditionExecutionKind: executionKind,
+    });
+
+    await assert.rejects(
+      executeProperty(request),
+      (error: unknown) => error instanceof ProtocolError
+        && error.code === 'entrypoint.precondition.threw'
+        && error.path === 'manifest.precondition',
+    );
+  }
+});
+
+test('keeps timeout-shaped predicate exceptions classified as property violations', async () => {
+  const cases = [
+    { exportName: 'throwingTimeoutMessagePredicate', executionKind: 'sync' as const },
+    { exportName: 'asyncThrowingTimeoutMessagePredicate', executionKind: 'async' as const },
+  ];
+
+  for (const { exportName, executionKind } of cases) {
+    const request = contractExecutionRequest(exportName, { predicateExecutionKind: executionKind });
+
+    const response = await executeProperty(request);
+
+    assert.equal(response.result.failure?.kind, 'property');
+    assert.ok(response.result.counterexample);
+    assert.equal(response.result.failure?.message, 'Property timeout: exceeded limit of 20 milliseconds');
+  }
+});
+
 test('keeps false, throwing, and assertion predicates classified as property violations', async () => {
   for (const predicateExport of ['falsePredicate', 'throwingPredicate', 'assertionPredicate']) {
     const response = await executeProperty(contractExecutionRequest(predicateExport));
@@ -296,6 +337,7 @@ test('reports asynchronous predicate timeout as a structured timeout failure', a
 
     assert.equal(response.result.status, 'failure');
     assert.equal(response.result.failure?.kind, 'timeout');
+    assert.equal(response.result.counterexample, null);
   });
 });
 
