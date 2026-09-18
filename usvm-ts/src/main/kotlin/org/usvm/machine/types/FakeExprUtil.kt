@@ -102,7 +102,7 @@ private fun TsState.materializeFakeValue(
     when {
         refValue.isFakeObject() -> refValue
 
-        !refValue.containsFakeObject() -> mkFakeValue(
+        !refValue.hasFakeValueBranch() -> mkFakeValue(
             scope = scope,
             boolValue = value.boolValue,
             fpValue = value.fpValue,

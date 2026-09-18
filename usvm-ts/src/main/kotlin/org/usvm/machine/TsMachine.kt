@@ -50,7 +50,7 @@ class TsMachine(
     private val resolvedUnknownCallModels = when {
         unknownCallDispatcher != null -> null
         unknownCallModels != null -> unknownCallModels
-        else -> TsBuiltInUnknownCallModels.catalog(tsOptions.enabledUnknownCallModelIds)
+        else -> TsBuiltInUnknownCallModels.catalog(tsOptions.unknownCallModelSelection)
     }
 
     /** Fingerprint of the model catalog used by this machine, or `null` for a custom dispatcher. */

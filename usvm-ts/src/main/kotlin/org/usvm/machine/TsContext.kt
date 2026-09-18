@@ -198,10 +198,14 @@ class TsContext(
         return sort == addressSort && this is UConcreteHeapRef && address > MAGIC_OFFSET
     }
 
-    /** Returns whether this expression contains a fake-value wrapper as itself or as a conditional branch. */
-    fun UExpr<*>.containsFakeObject(): Boolean = when {
+    /**
+     * Checks result alternatives for fake-wrapper identities. Address-region reads lift stored concrete references
+     * into ITE branches; wrappers in a guard or read key are dependencies, not possible results of the expression.
+     */
+    fun UHeapRef.hasFakeValueBranch(): Boolean = when {
         isFakeObject() -> true
-        this is UIteExpr<*> -> trueBranch.containsFakeObject() || falseBranch.containsFakeObject()
+        this is UIteExpr<*> -> trueBranch.asExpr(addressSort).hasFakeValueBranch() ||
+            falseBranch.asExpr(addressSort).hasFakeValueBranch()
         else -> false
     }
 

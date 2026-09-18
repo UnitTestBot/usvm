@@ -22,6 +22,7 @@ sealed interface TsMethodCall : EtsStmt {
     }
 }
 
+/** [instance] is an extracted payload; the receiver's branch and runtime-kind guards are already asserted. */
 class TsVirtualMethodCallStmt(
     override val call: EtsInstanceCallExpr,
     override val instance: UExpr<*>,

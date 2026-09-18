@@ -35,26 +35,30 @@ Unknown-call behavior is configured directly in `TsOptions`:
 
 ```kotlin
 TsOptions(
-    enabledUnknownCallModelIds = setOf("ts.array.shift"),
+    unknownCallModelSelection = TsUnknownCallModelSelection.Only(setOf("ts.array.shift")),
     unknownCallFallback = TsResidualCallPolicy.STOP_PATH,
 )
 ```
 
-### `enabledUnknownCallModelIds`
+### `unknownCallModelSelection`
 
 This is the only model-selection setting.
 
 | Value | Meaning |
 | --- | --- |
-| `null` | Enable every built-in model. This is the default. |
-| `emptySet()` | Disable every built-in model. |
-| `setOf("id", ...)` | Enable exactly the listed built-in model IDs. |
+| `TsUnknownCallModelSelection.All` | Enable every built-in model. This is the default. |
+| `TsUnknownCallModelSelection.Only(emptySet())` | Disable every built-in model. |
+| `TsUnknownCallModelSelection.Only(setOf("id", ...))` | Enable exactly the listed built-in model IDs. |
 
-Unknown IDs are rejected when the machine creates its immutable per-run catalog. The input set is copied at that
-point, so later mutations cannot change an active run.
+Unknown IDs are rejected when the machine creates its immutable per-run catalog. The selected models are captured at that
+point, so later mutations of the selection set cannot change an active run.
 
 Use the model's `id`, for example `ts.array.shift`. A target method name, class name, source filename, or fingerprint is
 not a model ID.
+
+Built-ins are `object` implementations of the sealed `TsBuiltInUnknownCallModel` interface in the
+`org.usvm.machine.call.intrinsic` package. Kotlin's sealed-subclass metadata discovers them automatically; adding a
+model requires no manual registry entry. Discovery and the default catalog are computed once.
 
 The built-in catalog currently contains one model:
 
@@ -133,7 +137,10 @@ TsUnknownCallTarget(
 ```
 
 Only `methodName` is required. Add `enclosingClassName` or `failureReason` when the method name alone is too broad.
-The catalog rejects overlapping enabled targets before execution, so catalog order is never a priority rule.
+The catalog indexes method names, failure reasons, and enclosing classes. Overlapping enabled targets fail while
+building that index; lookup returns either one model or no match, and never hides ambiguity. Catalog order is never
+a priority rule. IDs and their SHA-256 fingerprint are computed once; byte-length prefixes distinguish ID sequences
+such as `["ab", "c"]` and `["a", "bc"]`.
 
 The target identifies a call family. State-dependent checks, such as the receiver's symbolic runtime type, belong in
 `apply`.
@@ -176,13 +183,21 @@ An intrinsic directly builds guarded successors and symbolic-memory operations i
 that TypeScript cannot express without losing symbolic efficiency or correctness.
 
 `Array.shift` is the built-in example because shifting a symbolic array is naturally represented by symbolic-memory
-`memcpy` operations. A resolved element sort uses one array region. A symbolic array with an unresolved element sort
-copies three payload regions (boolean, number, and address) and three boolean runtime-kind selector regions.
-Selectors belong to input elements and move with their payloads, so repeated shifts preserve the constraints needed
-to reconstruct and replay the original input. Allocated unresolved arrays store fake-value wrappers in the address
-region. The removed element is materialized before forking so the exactly-one type constraint and updated solver
-models are inherited by every successor.
+`memcpy` operations. A resolved element sort uses one canonical array region. Unresolved elements use three
+payload regions (boolean, number, and address) and two boolean kind selectors. Reference kind is derived as
+`!(booleanKind || numberKind)`; the exactly-one constraint excludes both primitive selectors being true. Default
+allocated slots therefore represent references, including undefined. `Unknown[]` names the canonical reference
+storage region, not a claim that every TypeScript array has unresolved elements.
 
+`copyArrayElements` moves all five regions for unresolved arrays, including allocated arrays created by `slice` or
+`concat`. `reverse` applies the same index permutation to every region. Scalar writes store complete fake wrappers
+in the reference region, overriding older payloads and selectors. Reads and test reconstruction use the same reader.
+The removed `shift` element is materialized before forking so its kind constraint and updated solver models are
+inherited by every successor.
+
+`concat` handles arrays with compatible storage sorts and scalar elements that fit the destination. Calls requiring
+conversion between storage sorts, or runtime spreading of a fake/untyped argument, use normal call resolution and
+fallback. Existing `fill` bounds and the finite `reverse`/`fill` caps remain approximation limitations.
 Array reads, writes, length access, and `shift` use the storage type known to symbolic memory when it is unique.
 Widening a local from `number[]` to `any[]` therefore keeps the same element and length regions.
 

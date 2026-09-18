@@ -1,13 +1,18 @@
 package org.usvm.machine.call
 
-import org.usvm.machine.call.intrinsic.TsArrayShiftIntrinsicModel
+import org.usvm.machine.call.intrinsic.TsBuiltInUnknownCallModel
 
-/** The intentionally small built-in semantic-model catalog. */
+/** Discovers built-in model objects from the sealed hierarchy. */
 object TsBuiltInUnknownCallModels {
-    const val ARRAY_SHIFT_MODEL_ID: String = TsArrayShiftIntrinsicModel.MODEL_ID
+    private val models by lazy {
+        TsBuiltInUnknownCallModel::class.sealedSubclasses.map { modelClass ->
+            requireNotNull(modelClass.objectInstance) {
+                "Built-in semantic model must be an object: ${modelClass.qualifiedName}"
+            }
+        }
+    }
+    private val allModels by lazy { TsUnknownCallModelCatalog(models) }
 
-    fun catalog(enabledModelIds: Set<String>? = null) = TsUnknownCallModelCatalog(
-        models = listOf(TsArrayShiftIntrinsicModel),
-        enabledModelIds = enabledModelIds,
-    )
+    fun catalog(selection: TsUnknownCallModelSelection = TsUnknownCallModelSelection.All): TsUnknownCallModelCatalog =
+        if (selection == TsUnknownCallModelSelection.All) allModels else TsUnknownCallModelCatalog(models, selection)
 }

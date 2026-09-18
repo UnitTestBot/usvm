@@ -6,18 +6,15 @@ import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsUnknownType
 import org.usvm.UExpr
 import org.usvm.UHeapRef
-import org.usvm.collection.array.UArrayIndexLValue
-import org.usvm.isAllocatedConcreteHeapRef
+import org.usvm.api.readArrayIndex
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsSizeSort
 import org.usvm.memory.UReadOnlyMemory
-import org.usvm.util.mkArrayIndexLValue
 
 /** Kind selectors live with input elements, so copying elements also preserves their runtime types. */
 internal enum class TsUnresolvedArrayKind {
     BOOLEAN,
     NUMBER,
-    REFERENCE,
 }
 
 internal fun TsContext.readUnresolvedArrayElement(
@@ -26,26 +23,20 @@ internal fun TsContext.readUnresolvedArrayElement(
     index: UExpr<TsSizeSort>,
 ): TsUnresolvedValue {
     val unknownArrayType = EtsArrayType(EtsUnknownType, dimensions = 1)
-    val refValue = memory.read(mkArrayIndexLValue(addressSort, array, index, unknownArrayType))
-
-    // Allocated unresolved arrays store complete wrappers, including conditional writes, in the address region.
-    if (isAllocatedConcreteHeapRef(array)) {
-        return TsUnresolvedValue(
-            boolValue = falseExpr,
-            fpValue = mkFp64(0.0),
-            refValue = refValue,
-            type = EtsFakeType.mkRef(this),
-        )
-    }
-
     val boolArrayType = EtsArrayType(EtsBooleanType, dimensions = 1)
     val numberArrayType = EtsArrayType(EtsNumberType, dimensions = 1)
-    val boolKind = memory.read(UArrayIndexLValue(boolSort, array, index, TsUnresolvedArrayKind.BOOLEAN))
-    val fpKind = memory.read(UArrayIndexLValue(boolSort, array, index, TsUnresolvedArrayKind.NUMBER))
-    val refKind = memory.read(UArrayIndexLValue(boolSort, array, index, TsUnresolvedArrayKind.REFERENCE))
-    val type = EtsFakeType(boolTypeExpr = boolKind, fpTypeExpr = fpKind, refTypeExpr = refKind)
-    val boolValue = memory.read(mkArrayIndexLValue(boolSort, array, index, boolArrayType))
-    val fpValue = memory.read(mkArrayIndexLValue(fp64Sort, array, index, numberArrayType))
+    val boolKind = memory.readArrayIndex(array, index, TsUnresolvedArrayKind.BOOLEAN, boolSort)
+    val fpKind = memory.readArrayIndex(array, index, TsUnresolvedArrayKind.NUMBER, boolSort)
+    // Default allocated cells represent references (undefined), including cells written with complete fake wrappers.
+    val refKind = mkNot(mkOr(boolKind, fpKind))
+    val type = EtsFakeType(
+        boolTypeExpr = boolKind,
+        fpTypeExpr = fpKind,
+        refTypeExpr = refKind,
+    )
+    val boolValue = memory.readArrayIndex(array, index, boolArrayType, boolSort)
+    val fpValue = memory.readArrayIndex(array, index, numberArrayType, fp64Sort)
+    val refValue = memory.readArrayIndex(array, index, unknownArrayType, addressSort)
 
     return TsUnresolvedValue(
         boolValue = boolValue,

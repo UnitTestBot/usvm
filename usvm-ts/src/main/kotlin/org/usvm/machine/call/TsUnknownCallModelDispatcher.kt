@@ -1,5 +1,6 @@
 package org.usvm.machine.call
 
+import mu.KotlinLogging
 import org.usvm.UExpr
 import org.usvm.api.makeFreshUnknownCallResult
 import org.usvm.api.mockMethodCall
@@ -10,6 +11,8 @@ import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.types.mkFakeValue
+
+private val logger = KotlinLogging.logger {}
 
 /** The externally observable effect of an unknown-call decision. */
 enum class TsUnknownCallOutcome {
@@ -59,7 +62,7 @@ class TsModelUnknownCallDispatcher(
             }
         }
 
-        observer?.onUnknownCallSafely(event(call, decision))
+        reportFallback(call)
         return decision.outcome
     }
 
@@ -117,7 +120,7 @@ class TsModelUnknownCallDispatcher(
             observer?.onUnknownCallSafely(event(call, TsUnknownCallDecision.ModelApplied(application.modelId)))
         }
         if (freshResidualApplied || stoppedResidualIsSatisfiable) {
-            observer?.onUnknownCallSafely(event(call, TsUnknownCallDecision.ResidualFallback(fallback)))
+            reportFallback(call)
         }
 
         return when {
@@ -126,6 +129,14 @@ class TsModelUnknownCallDispatcher(
             stoppedResidualIsSatisfiable -> TsUnknownCallOutcome.PATH_STOPPED
             else -> error("Semantic model ${application.modelId} produced no satisfiable successor or residual state")
         }
+    }
+
+    private fun reportFallback(call: TsUnknownCall) {
+        logger.debug {
+            "Unknown call ${call.callee} at ${call.callSite.location}: " +
+                "fallback=$fallback, reason=${call.failureReason}"
+        }
+        observer?.onUnknownCallSafely(event(call, TsUnknownCallDecision.ResidualFallback(fallback)))
     }
 
     private fun modelStateChange(

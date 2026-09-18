@@ -255,7 +255,7 @@ class TsUnknownCallDispatcherTest {
     @Test
     fun `TsOptions configures one fallback without profiles`() {
         assertEquals(TsResidualCallPolicy.STOP_PATH, TsOptions().unknownCallFallback)
-        assertNull(TsOptions().enabledUnknownCallModelIds)
+        assertEquals(TsUnknownCallModelSelection.All, TsOptions().unknownCallModelSelection)
 
         assertFalse(reachesReturn("declaredMethodWithoutBodyContinues"))
         assertTrue(

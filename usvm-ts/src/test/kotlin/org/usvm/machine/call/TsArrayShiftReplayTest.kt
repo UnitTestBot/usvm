@@ -131,9 +131,301 @@ class TsArrayShiftReplayTest {
                 )
             )
         }
+        addAll(storageOperationCases())
         addAll(pairCases())
         addAll(typedCases())
     }
+
+    private fun storageOperationCases(): List<ReplayCase> = listOf(
+        ReplayCase(
+            name = "any slice() retains all runtime kinds",
+            parameters = "values: any[]",
+            maxResult = 6,
+            body = """
+                if (values.length !== 1) return 0;
+                const copy = values.slice();
+                const value = copy[0];
+                if (value === 42) return 1;
+                if (value === true) return 2;
+                if (value === false) return 3;
+                if (value === null) return 4;
+                if (value === undefined) return 5;
+                return 6;
+            """.trimIndent(),
+        ),
+        ReplayCase(
+            name = "any slice().reverse() retains all runtime kinds",
+            parameters = "values: any[]",
+            maxResult = 6,
+            body = """
+                if (values.length !== 1) return 0;
+                const copy = values.slice().reverse();
+                const value = copy[0];
+                if (value === 42) return 1;
+                if (value === true) return 2;
+                if (value === false) return 3;
+                if (value === null) return 4;
+                if (value === undefined) return 5;
+                return 6;
+            """.trimIndent(),
+        ),
+        ReplayCase(
+            name = "any sliced input mixed with appended wrapper",
+            parameters = "values: any[], index: number",
+            maxResult = 4,
+            body = """
+                if (values.length !== 1) return 0;
+                const i = Math.floor(index);
+                if (i < 0 || i > 1) return 0;
+                const copy = values.slice();
+                copy.push(true);
+                const value = copy[i];
+                if (i === 1 && value === true) return 1;
+                if (i === 0 && value === 42) return 2;
+                if (i === 0 && value === false) return 3;
+                return 4;
+            """.trimIndent(),
+        ),
+        ReplayCase(
+            name = "any copied payload moves through two shifts",
+            parameters = "values: any[]",
+            maxResult = 3,
+            body = """
+                if (values.length !== 2) return 0;
+                const copy = values.slice();
+                const first = copy.shift();
+                const second = copy.shift();
+                if (first === 42 && second === true) return 1;
+                if (first === false && second === 17) return 2;
+                return 3;
+            """.trimIndent(),
+        ),
+        ReplayCase(
+            name = "any unshift preserves unread tail and pop kind",
+            parameters = "values: any[]",
+            maxResult = 3,
+            body = """
+                if (values.length !== 1) return 0;
+                const alias = values;
+                values.unshift(true);
+                const tail = alias.pop();
+                if (alias[0] !== true || alias.length !== 1) return -1;
+                if (tail === 42) return 1;
+                if (tail === false) return 2;
+                return 3;
+            """.trimIndent(),
+        ),
+        ReplayCase(
+            name = "any reverse permutes payloads and kinds",
+            parameters = "values: any[]",
+            maxResult = 3,
+            body = """
+                if (values.length !== 2) return 0;
+                const copy = values.slice();
+                copy.reverse();
+                if (copy[0] === 42 && copy[1] === true) return 1;
+                if (copy[0] === false && copy[1] === 17) return 2;
+                return 3;
+            """.trimIndent(),
+        ),
+        ReplayCase(
+            name = "any fill overrides input kind selectors",
+            parameters = "values: any[], index: number",
+            maxResult = 4,
+            body = """
+                if (values.length !== 2) return 0;
+                const i = Math.floor(index);
+                if (i < 0 || i > 1) return 0;
+                values.fill(true, 1, 2);
+                const value = values[i];
+                if (i === 1 && value === true) return 1;
+                if (i === 0 && value === 42) return 2;
+                if (i === 0 && value === false) return 3;
+                return 4;
+            """.trimIndent(),
+        ),
+        ReplayCase(
+            name = "any concat copies unread input arrays",
+            parameters = "left: any[], right: any[]",
+            maxResult = 3,
+            body = """
+                if (left.length !== 1 || right.length !== 1) return 0;
+                const copy = left.concat(right);
+                const first = copy.shift();
+                const second = copy.shift();
+                if (first === 42 && second === true) return 1;
+                if (first === false && second === 17) return 2;
+                return 3;
+            """.trimIndent(),
+        ),
+        ReplayCase(
+            name = "any concat wraps scalar primitives",
+            parameters = "values: any[]",
+            maxResult = 3,
+            body = """
+                if (values.length !== 1) return 0;
+                const copy = values.concat(true);
+                if (copy[1] !== true) return -1;
+                if (copy[0] === 42) return 1;
+                if (copy[0] === false) return 2;
+                return 3;
+            """.trimIndent(),
+        ),
+        ReplayCase(
+            name = "any empty pop returns undefined and retains length",
+            parameters = "values: any[]",
+            maxResult = 1,
+            body = """
+                if (values.length !== 0) return 0;
+                const result = values.pop();
+                return result === undefined && values.length === 0 ? 1 : -1;
+            """.trimIndent(),
+        ),
+        ReplayCase(
+            name = "unknown slice() retains all runtime kinds",
+            parameters = "values: unknown[]",
+            maxResult = 6,
+            body = """
+                if (values.length !== 1) return 0;
+                const copy = values.slice();
+                const value = copy[0];
+                if (value === 42) return 1;
+                if (value === true) return 2;
+                if (value === false) return 3;
+                if (value === null) return 4;
+                if (value === undefined) return 5;
+                return 6;
+            """.trimIndent(),
+        ),
+        ReplayCase(
+            name = "unknown slice().reverse() retains all runtime kinds",
+            parameters = "values: unknown[]",
+            maxResult = 6,
+            body = """
+                if (values.length !== 1) return 0;
+                const copy = values.slice().reverse();
+                const value = copy[0];
+                if (value === 42) return 1;
+                if (value === true) return 2;
+                if (value === false) return 3;
+                if (value === null) return 4;
+                if (value === undefined) return 5;
+                return 6;
+            """.trimIndent(),
+        ),
+        ReplayCase(
+            name = "unknown sliced input mixed with appended wrapper",
+            parameters = "values: unknown[], index: number",
+            maxResult = 4,
+            body = """
+                if (values.length !== 1) return 0;
+                const i = Math.floor(index);
+                if (i < 0 || i > 1) return 0;
+                const copy = values.slice();
+                copy.push(true);
+                const value = copy[i];
+                if (i === 1 && value === true) return 1;
+                if (i === 0 && value === 42) return 2;
+                if (i === 0 && value === false) return 3;
+                return 4;
+            """.trimIndent(),
+        ),
+        ReplayCase(
+            name = "unknown copied payload moves through two shifts",
+            parameters = "values: unknown[]",
+            maxResult = 3,
+            body = """
+                if (values.length !== 2) return 0;
+                const copy = values.slice();
+                const first = copy.shift();
+                const second = copy.shift();
+                if (first === 42 && second === true) return 1;
+                if (first === false && second === 17) return 2;
+                return 3;
+            """.trimIndent(),
+        ),
+        ReplayCase(
+            name = "unknown unshift preserves unread tail and pop kind",
+            parameters = "values: unknown[]",
+            maxResult = 3,
+            body = """
+                if (values.length !== 1) return 0;
+                const alias = values;
+                values.unshift(true);
+                const tail = alias.pop();
+                if (alias[0] !== true || alias.length !== 1) return -1;
+                if (tail === 42) return 1;
+                if (tail === false) return 2;
+                return 3;
+            """.trimIndent(),
+        ),
+        ReplayCase(
+            name = "unknown reverse permutes payloads and kinds",
+            parameters = "values: unknown[]",
+            maxResult = 3,
+            body = """
+                if (values.length !== 2) return 0;
+                const copy = values.slice();
+                copy.reverse();
+                if (copy[0] === 42 && copy[1] === true) return 1;
+                if (copy[0] === false && copy[1] === 17) return 2;
+                return 3;
+            """.trimIndent(),
+        ),
+        ReplayCase(
+            name = "unknown fill overrides input kind selectors",
+            parameters = "values: unknown[], index: number",
+            maxResult = 4,
+            body = """
+                if (values.length !== 2) return 0;
+                const i = Math.floor(index);
+                if (i < 0 || i > 1) return 0;
+                values.fill(true, 1, 2);
+                const value = values[i];
+                if (i === 1 && value === true) return 1;
+                if (i === 0 && value === 42) return 2;
+                if (i === 0 && value === false) return 3;
+                return 4;
+            """.trimIndent(),
+        ),
+        ReplayCase(
+            name = "unknown concat copies unread input arrays",
+            parameters = "left: unknown[], right: unknown[]",
+            maxResult = 3,
+            body = """
+                if (left.length !== 1 || right.length !== 1) return 0;
+                const copy = left.concat(right);
+                const first = copy.shift();
+                const second = copy.shift();
+                if (first === 42 && second === true) return 1;
+                if (first === false && second === 17) return 2;
+                return 3;
+            """.trimIndent(),
+        ),
+        ReplayCase(
+            name = "unknown concat wraps scalar primitives",
+            parameters = "values: unknown[]",
+            maxResult = 3,
+            body = """
+                if (values.length !== 1) return 0;
+                const copy = values.concat(true);
+                if (copy[1] !== true) return -1;
+                if (copy[0] === 42) return 1;
+                if (copy[0] === false) return 2;
+                return 3;
+            """.trimIndent(),
+        ),
+        ReplayCase(
+            name = "unknown empty pop returns undefined and retains length",
+            parameters = "values: unknown[]",
+            maxResult = 1,
+            body = """
+                if (values.length !== 0) return 0;
+                const result = values.pop();
+                return result === undefined && values.length === 0 ? 1 : -1;
+            """.trimIndent(),
+        ),
+    )
 
     private fun pairCases(): List<ReplayCase> = buildList {
         val literals = listOf("42", "true", "false", "null", "undefined", "'left'")

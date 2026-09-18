@@ -259,7 +259,7 @@ class TsArrayShiftIntrinsicModelTest {
         val disabledResult = analyze(
             methodName = "nonEmptyArray",
             tsOptions = TsOptions(
-                enabledUnknownCallModelIds = emptySet(),
+                unknownCallModelSelection = TsUnknownCallModelSelection.Only(emptySet()),
                 unknownCallFallback = TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN,
             ),
         )

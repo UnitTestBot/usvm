@@ -18,22 +18,6 @@ data class TsUnknownCallTarget(
             "Semantic model target class name must not be blank"
         }
     }
-
-    internal fun matches(call: TsUnknownCall): Boolean =
-        call.callee.name == methodName &&
-            (enclosingClassName == null || call.callee.enclosingClass.name == enclosingClassName) &&
-            (failureReason == null || call.failureReason == failureReason)
-
-    internal fun overlaps(other: TsUnknownCallTarget): Boolean {
-        val classNamesOverlap = enclosingClassName == null ||
-            other.enclosingClassName == null ||
-            enclosingClassName == other.enclosingClassName
-        val failureReasonsOverlap = failureReason == null ||
-            other.failureReason == null ||
-            failureReason == other.failureReason
-
-        return methodName == other.methodName && classNamesOverlap && failureReasonsOverlap
-    }
 }
 
 /**
