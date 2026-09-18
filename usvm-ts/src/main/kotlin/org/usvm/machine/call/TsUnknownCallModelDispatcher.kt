@@ -53,6 +53,10 @@ class TsModelUnknownCallDispatcher(
         when (fallback) {
             TsResidualCallPolicy.STOP_PATH -> {
                 val falseExpr = scope.calcOnState { ctx.falseExpr }
+                logger.warn {
+                    "Stopping path for unknown call ${call.callee} at ${call.callSite.location}: " +
+                        "reason=${call.failureReason}"
+                }
                 scope.assert(falseExpr)
             }
 
@@ -114,6 +118,12 @@ class TsModelUnknownCallDispatcher(
             }
         }
 
+        if (stoppedResidualIsSatisfiable) {
+            logger.warn {
+                "Stopping residual path for unknown call ${call.callee} at ${call.callSite.location}: " +
+                    "reason=${call.failureReason}"
+            }
+        }
         scope.forkMulti(guardedStateChanges)
 
         if (modelApplied) {
@@ -132,9 +142,11 @@ class TsModelUnknownCallDispatcher(
     }
 
     private fun reportFallback(call: TsUnknownCall) {
-        logger.debug {
-            "Unknown call ${call.callee} at ${call.callSite.location}: " +
-                "fallback=$fallback, reason=${call.failureReason}"
+        if (fallback == TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN) {
+            logger.debug {
+                "Unknown call ${call.callee} at ${call.callSite.location}: " +
+                    "fallback=$fallback, reason=${call.failureReason}"
+            }
         }
         observer?.onUnknownCallSafely(event(call, TsUnknownCallDecision.ResidualFallback(fallback)))
     }
