@@ -11,46 +11,46 @@ import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.allocateConcreteRef
 import org.usvm.api.initializeArray
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.api.memcpy
-import org.usvm.api.typeStreamOf
+import org.usvm.api.readArrayIndex
+import org.usvm.getIntValue
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.TsSizeSort
+import org.usvm.machine.TsVirtualMethodCallStmt
+import org.usvm.machine.call.TsUnknownCallFailureReason
+import org.usvm.machine.call.TsUnknownCallModelDispatcher
+import org.usvm.machine.call.dispatch
 import org.usvm.machine.expr.TsExprApproximationResult.Companion.from
 import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.markResolved
 import org.usvm.machine.interpreter.setResolvedValue
+import org.usvm.machine.state.TsMethodResult
+import org.usvm.machine.state.newStmt
+import org.usvm.machine.types.TsUnresolvedArrayKind
+import org.usvm.machine.types.mkFakeValue
+import org.usvm.machine.types.readUnresolvedArrayElement
 import org.usvm.sizeSort
-import org.usvm.types.first
-import org.usvm.types.firstOrNull
+import org.usvm.util.arrayStorageType
+import org.usvm.util.copyArrayElements
+import org.usvm.util.forEachArrayPayloadRegion
+import org.usvm.util.initializeArrayKind
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.resolveEtsMethods
 
 private val logger = KotlinLogging.logger {}
 
-internal fun TsExprResolver.tryApproximateInstanceCall(
+internal fun TsExprResolver.tryApproximateGlobalInstanceCall(
     expr: EtsInstanceCallExpr,
 ): TsExprApproximationResult = with(ctx) {
     // Mock all calls to `Logger` methods
     if (expr.instance.name == "Logger") {
         return from(mkUndefinedValue())
-    }
-
-    // Mock `.toString()` method calls
-    if (expr.callee.name == "toString") {
-        if (expr.args.isNotEmpty()) {
-            logger.warn { "toString() should have no arguments, but got ${expr.args.size}" }
-        }
-        return from(mkStringConstant("I am a string", scope))
-    }
-
-    // Handle `.valueOf()` method calls
-    if (expr.callee.name == "valueOf") {
-        return from(handleValueOf(expr))
     }
 
     // Handle `Number.isNaN()` calls
@@ -84,16 +84,32 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
         }
     }
 
-    val instance = resolve(expr.instance)
-        ?: return TsExprApproximationResult.ResolveFailure
+    return TsExprApproximationResult.NoApproximation
+}
 
-    val instanceType = if (instance.sort == addressSort && isAllocatedConcreteHeapRef(instance)) {
-        scope.calcOnState {
-            memory.typeStreamOf(instance.asExpr(addressSort)).firstOrNull() ?: expr.instance.type
+internal fun TsExprResolver.tryApproximateInstanceCall(
+    stmt: TsVirtualMethodCallStmt,
+): TsExprApproximationResult = with(ctx) {
+    val expr = stmt.call
+    val instance = stmt.instance
+
+    // Mock `.toString()` method calls
+    if (expr.callee.name == "toString") {
+        if (expr.args.isNotEmpty()) {
+            logger.warn { "toString() should have no arguments, but got ${expr.args.size}" }
         }
-    } else {
-        expr.instance.type
+        return from(mkStringConstant("I am a string", scope))
     }
+
+    // Handle `.valueOf()` method calls
+    if (expr.callee.name == "valueOf") {
+        return from(handleValueOf(expr, instance))
+    }
+
+    if (instance.sort != addressSort) return TsExprApproximationResult.NoApproximation
+
+    val array = instance.asExpr(addressSort)
+    val instanceType = scope.calcOnState { arrayStorageType(array, expr.instance.type) }
 
     if (instanceType is EtsArrayType) {
         val elementSort = typeToSort(instanceType.elementType)
@@ -102,70 +118,89 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
 
         // Handle 'Array.push()' method calls
         if (expr.callee.name == "push") {
-            return from(handleArrayPush(expr, instanceType, elementSort))
+            return from(handleArrayPush(expr, instanceType, elementSort, array))
         }
 
         // Handle `Array.pop() method calls
         if (expr.callee.name == "pop") {
-            return from(handleArrayPop(expr, instanceType, elementSort))
+            return from(handleArrayPop(stmt, instanceType, elementSort, array))
         }
 
         // Handle `Array.fill() method calls
         if (expr.callee.name == "fill") {
-            return from(handleArrayFill(expr, instanceType, elementSort))
+            return from(handleArrayFill(expr, instanceType, elementSort, array))
         }
 
         // Handle `Array.unshift() method calls
         if (expr.callee.name == "unshift") {
-            return from(handleArrayUnshift(expr, instanceType, elementSort))
+            return from(handleArrayUnshift(expr, instanceType, array))
         }
 
         // Handle `Array.shift() method calls
         if (expr.callee.name == "shift") {
-            return from(handleArrayShift(expr, instanceType, elementSort))
+            return handleArrayShiftCall(stmt, instanceType, elementSort)
         }
 
         // Handle `Array.join() method calls
         if (expr.callee.name == "join") {
-            return from(handleArrayJoin(expr, instanceType, elementSort))
+            return from(handleArrayJoin(expr))
         }
 
         // Handle `Array.slice() method calls
         if (expr.callee.name == "slice") {
-            return from(handleArraySlice(expr, instanceType, elementSort))
+            return from(handleArraySlice(expr, instanceType, array))
         }
 
         // Handle `Array.concat() method calls
         if (expr.callee.name == "concat") {
-            return from(handleArrayConcat(expr, instanceType, elementSort))
+            return handleArrayConcat(stmt, instanceType, array)
         }
 
         // Handle `Array.indexOf() method calls
         if (expr.callee.name == "indexOf") {
-            return from(handleArrayIndexOf(expr, instanceType, elementSort))
+            return from(handleArrayIndexOf(expr, instanceType, elementSort, array))
         }
 
         // Handle `Array.includes() method calls
         if (expr.callee.name == "includes") {
-            return from(handleArrayIncludes(expr, instanceType, elementSort))
+            return from(handleArrayIncludes(expr))
         }
 
         // Handle `Array.reverse() method calls
         if (expr.callee.name == "reverse") {
-            return from(handleArrayReverse(expr, instanceType, elementSort))
+            return from(handleArrayReverse(expr, instanceType, array))
         }
     }
 
     return TsExprApproximationResult.NoApproximation
 }
 
-private fun TsExprResolver.handleValueOf(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
+private fun TsExprResolver.handleArrayShiftCall(
+    stmt: TsVirtualMethodCallStmt,
+    instanceType: EtsArrayType,
+    elementSort: USort,
+): TsExprApproximationResult {
+    val dispatcher = unknownCallDispatcher
+    if (dispatcher !is TsUnknownCallModelDispatcher) {
+        return from(handleArrayShift(stmt, instanceType, elementSort, stmt.instance.asExpr(ctx.addressSort)))
+    }
+
+    dispatcher.dispatch(
+        scope,
+        stmt,
+        failureReason = TsUnknownCallFailureReason.PARTIAL_APPROXIMATION,
+        resolvedReceiver = stmt.instance,
+    )
+
+    return TsExprApproximationResult.ResolveFailure
+}
+
+private fun TsExprResolver.handleValueOf(expr: EtsInstanceCallExpr, instance: UExpr<*>): UExpr<*> {
     if (expr.args.isNotEmpty()) {
         logger.warn { "valueOf() should have no arguments, but got ${expr.args.size}" }
     }
 
-    val instance = resolve(expr.instance) ?: return null
-    instance
+    return instance
 }
 
 private fun TsExprResolver.handleNumberIsNaN(expr: EtsInstanceCallExpr): UBoolExpr? = with(ctx) {
@@ -306,8 +341,8 @@ private fun TsExprResolver.handleArrayPush(
     expr: EtsInstanceCallExpr,
     arrayType: EtsArrayType,
     elementSort: USort,
+    array: UHeapRef,
 ): UExpr<*>? = with(ctx) {
-    val array = resolve(expr.instance)?.asExpr(addressSort) ?: return null
     check(expr.args.size == 1) {
         "Array.push() should have exactly one argument, but got ${expr.args.size}"
     }
@@ -364,43 +399,51 @@ private fun TsExprResolver.handleArrayPush(
  * https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array.prototype.pop
  */
 private fun TsExprResolver.handleArrayPop(
-    expr: EtsInstanceCallExpr,
+    stmt: TsVirtualMethodCallStmt,
     arrayType: EtsArrayType,
     elementSort: USort,
+    array: UHeapRef,
 ): UExpr<*>? = with(ctx) {
-    val array = resolve(expr.instance)?.asExpr(addressSort) ?: return null
-    check(expr.args.isEmpty()) {
-        "Array.pop() should have no arguments, but got ${expr.args.size}"
+    check(stmt.args.isEmpty()) {
+        "Array.pop() should have no arguments, but got ${stmt.args.size}"
     }
 
-    checkNotFake(array)
+    removeArrayElement(stmt, array, arrayType, elementSort, first = false)
+}
+
+private fun TsExprResolver.removeArrayElement(
+    stmt: TsVirtualMethodCallStmt,
+    array: UHeapRef,
+    arrayType: EtsArrayType,
+    elementSort: USort,
+    first: Boolean,
+): UExpr<*>? = with(ctx) {
+    val lengthLValue = mkArrayLengthLValue(array, arrayType)
+    val length = scope.calcOnState { memory.read(lengthLValue) }
+    val nonEmpty = mkNot(mkEq(length, mkBv(0)))
+    scope.fork(
+        nonEmpty,
+        blockOnFalseState = {
+            methodResult = TsMethodResult.Success.MockedCall(mkUndefinedValue(), stmt.call.callee)
+            newStmt(stmt.returnSite)
+        },
+    ) ?: return null
 
     scope.calcOnState {
-        // Read the length of the array
-        val lengthLValue = mkArrayLengthLValue(array, arrayType)
-        val length = memory.read(lengthLValue)
-
-        // Decrease the length of the array
-        // TODO: Only decrease the length if it is not zero.
-        //       It is not an error/exception to pop from an empty array!
-        //       If the array is empty, `pop` returns `undefined`.
         val newLength = mkBvSubExpr(length, mkBv(1))
+        val index = if (first) mkBv(0) else newLength
+        val removed = if (typeToSort(arrayType.elementType) is TsUnresolvedSort) {
+            mkFakeValue(scope, readUnresolvedArrayElement(memory, array, index))
+        } else {
+            memory.read(mkArrayIndexLValue(elementSort, array, index, arrayType))
+        }
 
-        // Read the last element of the array (to be removed)
-        val lastIndexLValue = mkArrayIndexLValue(
-            sort = elementSort,
-            ref = array,
-            index = newLength,
-            type = arrayType,
-        )
-        // TODO: If the array is empty, return `undefined` instead of the last element.
-        val removedElement = memory.read(lastIndexLValue)
-
-        // Update the length of the array (AFTER reading the last element)
+        if (first) {
+            copyArrayElements(array, array, arrayType, fromSrc = mkBv(1), fromDst = mkBv(0), length = newLength)
+        }
         memory.write(lengthLValue, newLength, guard = trueExpr)
 
-        // Return the removed element
-        removedElement
+        removed
     }
 }
 
@@ -433,12 +476,17 @@ private fun TsExprResolver.handleArrayFill(
     expr: EtsInstanceCallExpr,
     arrayType: EtsArrayType,
     elementSort: USort,
+    array: UHeapRef,
 ): UExpr<*>? = with(ctx) {
-    val array = resolve(expr.instance)?.asExpr(addressSort) ?: return null
     check(expr.args.size >= 1 && expr.args.size <= 3) {
         "Array.fill() should have 1 to 3 arguments, but got ${expr.args.size}"
     }
-    val value = resolve(expr.args[0]) ?: return null
+    val resolvedValue = resolve(expr.args[0]) ?: return null
+    val value = if (typeToSort(arrayType.elementType) is TsUnresolvedSort) {
+        resolvedValue.toFakeObject(scope)
+    } else {
+        resolvedValue
+    }
 
     // TODO: Support negative `start` and `end` indices.
     val start = if (expr.args.size > 1) {
@@ -490,7 +538,9 @@ private fun TsExprResolver.handleArrayFill(
         // Calculate the length of the range to fill
         val fillLength = mkBvSubExpr(endBv, startBv)
 
-        // TODO: check that `fillLength` is less than `ARRAY_FILL_MAX_SIZE`
+        // Concrete ranges need no unused entries in the temporary array.
+        val tempSize = getIntValue(fillLength)?.coerceIn(0, ARRAY_FILL_MAX_SIZE) ?: ARRAY_FILL_MAX_SIZE
+        // TODO: check that symbolic `fillLength` is less than `ARRAY_FILL_MAX_SIZE`.
 
         // Allocate a temporary array to hold the filled values
         val tempArray = memory.allocConcrete(descriptor)
@@ -501,7 +551,7 @@ private fun TsExprResolver.handleArrayFill(
             descriptor,
             elementSort,
             sizeSort,
-            (0 until ARRAY_FILL_MAX_SIZE).asSequence().map { value.asExpr(elementSort) }
+            (0 until tempSize).asSequence().map { value.asExpr(elementSort) }
         )
 
         // Copy the filled values to the specified range in the original array
@@ -545,51 +595,16 @@ private const val ARRAY_FILL_MAX_SIZE = 10_000
  * https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array.prototype.shift
  */
 private fun TsExprResolver.handleArrayShift(
-    expr: EtsInstanceCallExpr,
+    stmt: TsVirtualMethodCallStmt,
     arrayType: EtsArrayType,
     elementSort: USort,
+    array: UHeapRef,
 ): UExpr<*>? = with(ctx) {
-    val array = resolve(expr.instance)?.asExpr(addressSort) ?: return null
-    check(expr.args.isEmpty()) {
-        "Array.shift() should have no arguments, but got ${expr.args.size}"
+    check(stmt.args.isEmpty()) {
+        "Array.shift() should have no arguments, but got ${stmt.args.size}"
     }
 
-    scope.calcOnState {
-        // Store the first element of the array (to be removed)
-        // TODO: If the array is empty, return `undefined` instead of the first element.
-        val firstIndexLValue = mkArrayIndexLValue(
-            sort = elementSort,
-            ref = array,
-            index = mkBv(0),
-            type = arrayType,
-        )
-        val firstElement = memory.read(firstIndexLValue)
-
-        // Read the length of the array
-        val lengthLValue = mkArrayLengthLValue(array, arrayType)
-        val length = memory.read(lengthLValue)
-
-        // Decrease the length of the array
-        // TODO: Only decrease the length if it is not zero.
-        //       It is not an error/exception to shift an empty array!
-        //       If the array is empty, `shift` returns `undefined`.
-        val newLength = mkBvSubExpr(length, mkBv(1))
-        memory.write(lengthLValue, newLength, guard = trueExpr)
-
-        // Shift elements to the left
-        memory.memcpy(
-            srcRef = array,
-            dstRef = array,
-            type = arrayType,
-            elementSort = elementSort,
-            fromSrc = mkBv(1),
-            fromDst = mkBv(0),
-            length = newLength,
-        )
-
-        // Return the removed element
-        firstElement
-    }
+    removeArrayElement(stmt, array, arrayType, elementSort, first = true)
 }
 
 /**
@@ -613,9 +628,8 @@ private fun TsExprResolver.handleArrayShift(
 private fun TsExprResolver.handleArrayUnshift(
     expr: EtsInstanceCallExpr,
     arrayType: EtsArrayType,
-    elementSort: USort,
+    array: UHeapRef,
 ): UExpr<*>? = with(ctx) {
-    val array = resolve(expr.instance)?.asExpr(addressSort) ?: return null
     // TODO: support vararg
     check(expr.args.size == 1) {
         "Array.unshift() should have exactly one argument, but got ${expr.args.size}"
@@ -632,24 +646,18 @@ private fun TsExprResolver.handleArrayUnshift(
         memory.write(lengthLValue, newLength, guard = trueExpr)
 
         // Shift elements to the right
-        memory.memcpy(
+        copyArrayElements(
             srcRef = array,
             dstRef = array,
-            type = arrayType,
-            elementSort = elementSort,
+            arrayType = arrayType,
             fromSrc = mkBv(0),
             fromDst = mkBv(1),
             length = length,
         )
 
         // Write the new element to the start of the array
-        val startIndexLValue = mkArrayIndexLValue(
-            sort = elementSort,
-            ref = array,
-            index = mkBv(0),
-            type = arrayType,
-        )
-        memory.write(startIndexLValue, arg.asExpr(elementSort), guard = trueExpr)
+        assignToArrayIndex(scope, array, index = mkBv(0), expr = arg, arrayType = arrayType)
+            ?: return@calcOnState null
 
         // Return the new length of the array (as per ECMAScript spec for Array.unshift)
         mkBvToFpExpr(
@@ -683,10 +691,7 @@ private fun TsExprResolver.handleArrayUnshift(
  */
 private fun TsExprResolver.handleArrayJoin(
     expr: EtsInstanceCallExpr,
-    arrayType: EtsArrayType,
-    elementSort: USort,
 ): UExpr<*>? = with(ctx) {
-    val array = resolve(expr.instance)?.asExpr(addressSort) ?: return null
     check(expr.args.size <= 1) {
         "Array.join() should have at most one argument, but got ${expr.args.size}"
     }
@@ -727,14 +732,12 @@ private const val ARRAY_JOIN_RESULT = "joined_array_result"
 private fun TsExprResolver.handleArraySlice(
     expr: EtsInstanceCallExpr,
     arrayType: EtsArrayType,
-    elementSort: USort,
+    array: UHeapRef,
 ): UExpr<*>? = with(ctx) {
-    val array = resolve(expr.instance)?.asExpr(addressSort) ?: return null
     check(expr.args.size <= 2) {
         "Array.slice() should have at most two arguments, but got ${expr.args.size}"
     }
 
-    // TODO: Support negative `start` and `end` indices.
     val start = if (expr.args.isNotEmpty()) {
         resolve(expr.args[0]) ?: return null
     } else {
@@ -781,22 +784,33 @@ private fun TsExprResolver.handleArraySlice(
     scope.calcOnState {
         val descriptor = arrayDescriptorOf(arrayType)
 
-        // Calculate the new length of the sliced array
-        val newLength = mkBvSubExpr(endBv, startBv)
+        val length = memory.read(mkArrayLengthLValue(array, arrayType))
+        val zero = mkBv(0)
+
+        fun normalizeIndex(index: UExpr<TsSizeSort>): UExpr<TsSizeSort> {
+            val relative = mkIte(mkBvSignedLessExpr(index, zero), mkBvAddExpr(length, index), index)
+            val capped = mkIte(mkBvSignedGreaterExpr(relative, length), length, relative)
+            return mkIte(mkBvSignedLessExpr(relative, zero), zero, capped)
+        }
+
+        val from = normalizeIndex(startBv)
+        val to = normalizeIndex(endBv)
+        val newLength = mkIte(mkBvSignedLessExpr(from, to), mkBvSubExpr(to, from), zero)
 
         // Allocate a new array for the slice
         val slicedArray = memory.allocConcrete(descriptor)
 
         // Copy the specified range from the original array to the new array
-        memory.memcpy(
+        copyArrayElements(
             srcRef = array,
             dstRef = slicedArray,
-            type = descriptor,
-            elementSort = elementSort,
-            fromSrc = startBv,
+            arrayType = arrayType,
+            fromSrc = from,
             fromDst = mkBv(0),
             length = newLength,
         )
+
+        memory.write(mkArrayLengthLValue(slicedArray, arrayType), newLength, guard = trueExpr)
 
         // Return the new array containing the slice
         slicedArray
@@ -822,85 +836,75 @@ private fun TsExprResolver.handleArraySlice(
  * https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array.prototype.concat
  */
 private fun TsExprResolver.handleArrayConcat(
-    expr: EtsInstanceCallExpr,
+    stmt: TsVirtualMethodCallStmt,
     arrayType: EtsArrayType,
-    elementSort: USort,
-): UExpr<*>? = with(ctx) {
-    val array = resolve(expr.instance)?.asExpr(addressSort) ?: return null
-    check(expr.args.isNotEmpty()) {
-        "Array.concat() should have at least one argument, but got ${expr.args.size}"
+    array: UHeapRef,
+): TsExprApproximationResult = with(ctx) {
+    val elementSort = typeToSort(arrayType.elementType)
+    val arrayTypes = stmt.args.mapIndexed { index, arg ->
+        if (arg.sort == addressSort) {
+            val ref = arg.asExpr(addressSort)
+            // A fake or an untyped reference may itself contain an array; spreading requires runtime dispatch.
+            if (ref.hasFakeValueBranch()) return TsExprApproximationResult.NoApproximation
+            val type = scope.calcOnState { arrayStorageType(ref, stmt.call.args[index].type) }
+            if (typeToSort(type) is TsUnresolvedSort) return TsExprApproximationResult.NoApproximation
+            type as? EtsArrayType
+        } else {
+            null
+        }
+    }
+    if (arrayTypes.withIndex().any { (index, type) ->
+            if (type != null) {
+                typeToSort(type.elementType) != elementSort
+            } else {
+                elementSort !is TsUnresolvedSort && stmt.args[index].sort != elementSort
+            }
+        }
+    ) {
+        logger.debug { "Array.concat requires conversion between different element storage sorts" }
+        return TsExprApproximationResult.NoApproximation
     }
 
-    val args = expr.args.map { resolve(it) ?: return null }
+    from(
+        scope.calcOnState {
+            val resultArray = memory.allocConcrete(arrayDescriptorOf(arrayType))
+            val originalLength = memory.read(mkArrayLengthLValue(array, arrayType))
+            copyArrayElements(
+                srcRef = array,
+                dstRef = resultArray,
+                arrayType = arrayType,
+                fromSrc = mkBv(0),
+                fromDst = mkBv(0),
+                length = originalLength,
+            )
 
-    scope.calcOnState {
-        val descriptor = arrayDescriptorOf(arrayType)
-
-        // Allocate a new array for the concatenated result
-        val resultArray = memory.allocConcrete(descriptor)
-
-        // Read the length of the original array
-        val originalLengthLValue = mkArrayLengthLValue(array, arrayType)
-        val originalLength = memory.read(originalLengthLValue)
-
-        // Copy the original array to the result array
-        memory.memcpy(
-            srcRef = array,
-            dstRef = resultArray,
-            type = descriptor,
-            elementSort = elementSort,
-            fromSrc = mkBv(0),
-            fromDst = mkBv(0),
-            length = originalLength,
-        )
-
-        // Handle each argument in the `concat` call
-        var totalLength = originalLength
-        for (arg in args) {
-            // For array arguments, copy their elements to the result array
-            if (arg.sort == addressSort) {
-                // TODO: handle empty type stream
-                val argType = memory.typeStreamOf(arg.asExpr(addressSort)).first()
-                if (argType is EtsArrayType) {
-                    val argLengthLValue = mkArrayLengthLValue(arg.asExpr(addressSort), argType)
-                    val argLength = memory.read(argLengthLValue)
-
-                    // Copy the elements of the argument array to the result array
-                    memory.memcpy(
-                        srcRef = arg.asExpr(addressSort),
+            var totalLength = originalLength
+            stmt.args.forEachIndexed { index, arg ->
+                val argType = arrayTypes[index]
+                if (argType != null) {
+                    val ref = arg.asExpr(addressSort)
+                    val length = memory.read(mkArrayLengthLValue(ref, argType))
+                    copyArrayElements(
+                        srcRef = ref,
                         dstRef = resultArray,
-                        type = descriptor,
-                        elementSort = elementSort,
+                        arrayType = argType,
                         fromSrc = mkBv(0),
                         fromDst = totalLength,
-                        length = argLength,
+                        length = length,
                     )
-
-                    // Add the length of the argument array to the total length
-                    totalLength = mkBvAddExpr(totalLength, argLength)
-
-                    continue
+                    totalLength = mkBvAddExpr(totalLength, length)
+                } else {
+                    val newLength = mkBvAddExpr(totalLength, mkBv(1))
+                    memory.write(mkArrayLengthLValue(resultArray, arrayType), newLength, guard = trueExpr)
+                    assignToArrayIndex(scope, resultArray, totalLength, arg, arrayType) ?: return@calcOnState null
+                    totalLength = newLength
                 }
             }
+            memory.write(mkArrayLengthLValue(resultArray, arrayType), totalLength, guard = trueExpr)
 
-            // For non-array arguments, treat them as a single element
-            val newIndexLValue = mkArrayIndexLValue(
-                sort = elementSort,
-                ref = resultArray,
-                index = totalLength,
-                type = arrayType,
-            )
-            memory.write(newIndexLValue, arg.asExpr(elementSort), guard = trueExpr)
-            totalLength = mkBvAddExpr(totalLength, mkBv(1))
+            resultArray
         }
-
-        // Set the length of the result array
-        val resultLengthLValue = mkArrayLengthLValue(resultArray, arrayType)
-        memory.write(resultLengthLValue, totalLength, guard = trueExpr)
-
-        // Return the new concatenated array
-        resultArray
-    }
+    )
 }
 
 /**
@@ -926,8 +930,8 @@ private fun TsExprResolver.handleArrayIndexOf(
     expr: EtsInstanceCallExpr,
     arrayType: EtsArrayType,
     elementSort: USort,
+    array: UHeapRef,
 ): UExpr<*>? = with(ctx) {
-    val array = resolve(expr.instance)?.asExpr(addressSort) ?: return null
     check(expr.args.size == 1) {
         "Array.indexOf() should have exactly one argument, but got ${expr.args.size}"
     }
@@ -985,10 +989,7 @@ private fun TsExprResolver.handleArrayIndexOf(
  */
 private fun TsExprResolver.handleArrayIncludes(
     expr: EtsInstanceCallExpr,
-    arrayType: EtsArrayType,
-    elementSort: USort,
 ): UExpr<*>? = with(ctx) {
-    val array = resolve(expr.instance)?.asExpr(addressSort) ?: return null
     check(expr.args.size == 1) {
         "Array.includes() should have exactly one argument, but got ${expr.args.size}"
     }
@@ -1035,9 +1036,8 @@ private fun TsExprResolver.handleArrayIncludes(
 private fun TsExprResolver.handleArrayReverse(
     expr: EtsInstanceCallExpr,
     arrayType: EtsArrayType,
-    elementSort: USort,
+    array: UHeapRef,
 ): UExpr<*>? = with(ctx) {
-    val array = resolve(expr.instance)?.asExpr(addressSort) ?: return null
     check(expr.args.isEmpty()) {
         "Array.reverse() should have no arguments, but got ${expr.args.size}"
     }
@@ -1052,40 +1052,29 @@ private fun TsExprResolver.handleArrayReverse(
         val lengthLValue = mkArrayLengthLValue(array, arrayType)
         val length = memory.read(lengthLValue)
 
-        // Initialize the reversed array with symbolic elements
-        memory.initializeArray(
-            reversedArray,
-            descriptor,
-            elementSort,
-            sizeSort,
-            (0 until ARRAY_REVERSE_MAX_SIZE).asSequence().map { index ->
-                // reversedIndex := length - 1 - index
-                val reversedIndex = mkBvSubExpr(mkBvSubExpr(length, mkBv(1)), index.toBv())
-                val elementLValue = mkArrayIndexLValue(
-                    sort = elementSort,
-                    ref = array,
-                    index = reversedIndex,
-                    type = arrayType,
-                )
-                memory.read(elementLValue)
+        val reversedIndices = (0 until ARRAY_REVERSE_MAX_SIZE).map { index ->
+            mkBvSubExpr(mkBvSubExpr(length, mkBv(1)), index.toBv())
+        }
+        forEachArrayPayloadRegion(arrayType) { region, sort ->
+            val contents = reversedIndices.asSequence().map { index ->
+                memory.readArrayIndex(array, index, region, sort)
             }
-        )
+            memory.initializeArray(reversedArray, region, sort, sizeSort, contents)
+        }
+        if (typeToSort(arrayType.elementType) is TsUnresolvedSort) {
+            TsUnresolvedArrayKind.entries.forEach { kind ->
+                val contents = reversedIndices.map { index -> memory.readArrayIndex(array, index, kind, boolSort) }
+                initializeArrayKind(reversedArray, kind, contents)
+            }
+        }
 
-        //! Note: `reversedArray` is a temporary object not used outside this function,
-        //        so it is not necessary to set the "correct" length for it.
-        // Set the length of the reversed array
-        // val reversedLengthLValue = mkArrayLengthLValue(reversedArray, arrayType)
-        // memory.write(reversedLengthLValue, length, guard = trueExpr)
-
-        // Copy the reversed array back to the original array (in-place modification)
-        memory.memcpy(
+        copyArrayElements(
+            arrayType = arrayType,
             srcRef = reversedArray,
             dstRef = array,
-            type = descriptor,
-            elementSort = elementSort,
             fromSrc = mkBv(0),
             fromDst = mkBv(0),
-            length = length,
+            length = length
         )
 
         // Return the modified original array

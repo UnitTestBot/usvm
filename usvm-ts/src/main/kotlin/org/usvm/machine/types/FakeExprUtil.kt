@@ -6,6 +6,7 @@ import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.UIteExpr
 import org.usvm.USort
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.collection.field.UFieldLValue
@@ -15,11 +16,28 @@ import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsState
 import org.usvm.memory.ULValue
 
+/**
+ * Creates a fresh synthetic wrapper for a TypeScript value with a not necessarily known runtime kind.
+ *
+ * Non-null arguments initialize the corresponding boolean, number, and reference payload fields. When exactly one
+ * payload is supplied, the wrapper is constrained to that runtime kind. When multiple payloads are supplied, all
+ * three kind discriminators remain symbolic and [EtsFakeType.mkExactlyOneTypeConstraint] selects exactly one active
+ * representation. [valueType], when provided, preserves existing kind selectors instead of creating fresh ones.
+ * Callers that model a completely unknown value should supply all three payloads.
+ *
+ * The returned concrete heap reference identifies the wrapper, not its reference payload. Consumers must preserve
+ * the wrapper or explicitly constrain the appropriate discriminator before extracting a payload.
+ *
+ * [scope] may be `null` only while constructing the initial state, before solver models exist. During symbolic
+ * execution a live scope is required so that adding the exactly-one constraint also checks satisfiability and updates
+ * the state's models.
+ */
 fun TsState.mkFakeValue(
     scope: TsStepScope?, // pass `null` only in the initial state, where `scope` is not available!
     boolValue: UBoolExpr? = null,
     fpValue: UExpr<KFp64Sort>? = null,
     refValue: UHeapRef? = null,
+    valueType: EtsFakeType? = null,
 ): UConcreteHeapRef = with(ctx) {
     require(boolValue != null || fpValue != null || refValue != null) {
         "Fake object should contain at least one value"
@@ -28,20 +46,22 @@ fun TsState.mkFakeValue(
     val fakeValueRef = createFakeObjectRef()
     val address = fakeValueRef.address
 
-    val boolTypeExpr = trueExpr
-        .takeIf { boolValue != null && fpValue == null && refValue == null }
-        ?: makeSymbolicPrimitive(boolSort)
-    val fpTypeExpr = trueExpr
-        .takeIf { boolValue == null && fpValue != null && refValue == null }
-        ?: makeSymbolicPrimitive(boolSort)
-    val refTypeExpr = trueExpr
-        .takeIf { boolValue == null && fpValue == null && refValue != null }
-        ?: makeSymbolicPrimitive(boolSort)
-
-    val type = EtsFakeType(
-        boolTypeExpr = boolTypeExpr,
-        fpTypeExpr = fpTypeExpr,
-        refTypeExpr = refTypeExpr,
+    val type = valueType ?: EtsFakeType(
+        boolTypeExpr = if (boolValue != null && fpValue == null && refValue == null) {
+            trueExpr
+        } else {
+            makeSymbolicPrimitive(boolSort)
+        },
+        fpTypeExpr = if (boolValue == null && fpValue != null && refValue == null) {
+            trueExpr
+        } else {
+            makeSymbolicPrimitive(boolSort)
+        },
+        refTypeExpr = if (boolValue == null && fpValue == null && refValue != null) {
+            trueExpr
+        } else {
+            makeSymbolicPrimitive(boolSort)
+        },
     )
     memory.types.allocate(address, type)
     val constraint = type.mkExactlyOneTypeConstraint(ctx)
@@ -67,6 +87,43 @@ fun TsState.mkFakeValue(
     }
 
     fakeValueRef
+}
+
+fun TsState.mkFakeValue(
+    scope: TsStepScope,
+    value: TsUnresolvedValue,
+): UConcreteHeapRef = materializeFakeValue(scope, value, value.refValue)
+
+private fun TsState.materializeFakeValue(
+    scope: TsStepScope,
+    value: TsUnresolvedValue,
+    refValue: UHeapRef,
+): UConcreteHeapRef = with(ctx) {
+    when {
+        refValue.isFakeObject() -> refValue
+
+        !refValue.hasFakeValueBranch() -> mkFakeValue(
+            scope = scope,
+            boolValue = value.boolValue,
+            fpValue = value.fpValue,
+            refValue = refValue,
+            valueType = value.type,
+        )
+
+        refValue is UIteExpr<*> -> {
+            val trueValue = materializeFakeValue(scope, value, refValue.trueBranch.asExpr(addressSort))
+            val falseValue = materializeFakeValue(scope, value, refValue.falseBranch.asExpr(addressSort))
+
+            iteWriteIntoFakeObject(
+                scope = scope,
+                condition = refValue.condition,
+                trueBranchValue = trueValue,
+                falseBranchValue = falseValue,
+            )
+        }
+
+        else -> error("Unsupported fake-value reference expression: $refValue")
+    }
 }
 
 fun <T : USort> TsState.extractValue(

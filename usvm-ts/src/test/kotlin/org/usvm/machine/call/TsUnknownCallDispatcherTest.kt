@@ -1,6 +1,8 @@
 package org.usvm.machine.call
 
+import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
+import io.mockk.mockk
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
@@ -9,6 +11,8 @@ import org.jacodb.ets.model.EtsPtrCallExpr
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.model.EtsStringType
+import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsVoidType
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.callExpr
@@ -17,18 +21,20 @@ import org.junit.jupiter.api.Test
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
+import org.usvm.UBoolSort
 import org.usvm.UConcreteHeapRef
+import org.usvm.UExpr
 import org.usvm.UMachineOptions
-import org.usvm.api.mockMethodCall
 import org.usvm.api.targets.ReachabilityObserver
 import org.usvm.api.targets.TsReachabilityTarget
+import org.usvm.isTrue
 import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
-import org.usvm.machine.state.newStmt
+import org.usvm.solver.USatResult
 import org.usvm.util.getResourcePath
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -47,31 +53,25 @@ class TsUnknownCallDispatcherTest {
     private val fullScene = EtsScene(listOf(sourceFile))
 
     @Test
-    fun `every profile decision is reported through the interpreter observer`() {
+    fun `every model or fallback decision is reported through the interpreter observer`() {
         val cases = listOf(
             ObservationCase(
-                profile = TsUnknownCallProfiles.MODELS_THEN_STOP,
-                modelProvider = TsNoUnknownCallModels,
+                fallback = TsResidualCallPolicy.STOP_PATH,
+                models = noModels,
                 outcome = TsUnknownCallOutcome.PATH_STOPPED,
-                decision = TsUnknownCallDecision.ResidualFallback(
-                    policy = TsResidualCallPolicy.STOP_PATH,
-                    reason = TsUnknownCallResidualReason.MODEL_NOT_APPLICABLE,
-                ),
+                decision = TsUnknownCallDecision.ResidualFallback(TsResidualCallPolicy.STOP_PATH),
                 finalStateCount = 0,
             ),
             ObservationCase(
-                profile = TsUnknownCallProfiles.FRESH_SYMBOLIC_FOR_ALL,
-                modelProvider = TsNoUnknownCallModels,
+                fallback = TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN,
+                models = noModels,
                 outcome = TsUnknownCallOutcome.FRESH_SYMBOLIC_RETURN,
-                decision = TsUnknownCallDecision.ResidualFallback(
-                    policy = TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN,
-                    reason = TsUnknownCallResidualReason.MODEL_LOOKUP_DISABLED,
-                ),
+                decision = TsUnknownCallDecision.ResidualFallback(TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN),
                 finalStateCount = 1,
             ),
             ObservationCase(
-                profile = TsUnknownCallProfiles.MODELS_THEN_FRESH_SYMBOLIC,
-                modelProvider = ApplyingModelProvider,
+                fallback = TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN,
+                models = catalog(ApplyingModel),
                 outcome = TsUnknownCallOutcome.MODEL_APPLIED,
                 decision = TsUnknownCallDecision.ModelApplied(modelId = "applying-model"),
                 finalStateCount = 1,
@@ -82,17 +82,16 @@ class TsUnknownCallDispatcherTest {
             val observer = RecordingUnknownCallObserver()
             val states = analyzeAllStates(
                 methodName = "declaredMethodWithoutBodyContinues",
-                profile = case.profile,
-                modelProvider = case.modelProvider,
+                fallback = case.fallback,
+                models = case.models,
                 observer = observer,
             )
 
-            assertEquals(case.finalStateCount, states.size, case.profile.toString())
+            assertEquals(case.finalStateCount, states.size, case.fallback.toString())
             val event = observer.events.single()
             assertEquals("declaredMethodWithoutBodyContinues", event.callSite.location.method.name)
             assertEquals("external", event.callee.name)
             assertEquals(TsUnknownCallFailureReason.METHOD_BODY_UNAVAILABLE, event.failureReason)
-            assertEquals(case.profile, event.profile)
             assertEquals(case.outcome, event.outcome)
             assertEquals(case.decision, event.decision)
         }
@@ -103,8 +102,7 @@ class TsUnknownCallDispatcherTest {
         val observer = RecordingUnknownCallObserver()
         val states = analyzeAllStates(
             methodName = "modeledUnknownCallForks",
-            profile = TsUnknownCallProfiles.MODELS_THEN_STOP,
-            modelProvider = ForkingModelProvider,
+            models = catalog(ForkingModel),
             observer = observer,
         )
 
@@ -114,16 +112,29 @@ class TsUnknownCallDispatcherTest {
     }
 
     @Test
+    fun `failed fork callback does not report a completed model decision`() {
+        val observer = RecordingUnknownCallObserver()
+        val states = analyzeAllStates(
+            methodName = "modeledUnknownCallForks",
+            models = catalog(FailingSecondSuccessorModel),
+            observer = observer,
+        )
+
+        assertTrue(states.isEmpty())
+        assertTrue(observer.events.isEmpty())
+    }
+
+    @Test
     fun `throwing observer cannot change fresh or modeled exploration`() {
         val cases = listOf(
             ObservationFailureCase(
-                profile = TsUnknownCallProfiles.FRESH_SYMBOLIC_FOR_ALL,
-                modelProvider = TsNoUnknownCallModels,
+                fallback = TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN,
+                models = noModels,
                 expectedFinalStateCount = 1,
             ),
             ObservationFailureCase(
-                profile = TsUnknownCallProfiles.MODELS_THEN_STOP,
-                modelProvider = ForkingModelProvider,
+                fallback = TsResidualCallPolicy.STOP_PATH,
+                models = catalog(ForkingModel),
                 expectedFinalStateCount = 2,
                 methodName = "modeledUnknownCallForks",
             ),
@@ -132,19 +143,22 @@ class TsUnknownCallDispatcherTest {
         cases.forEach { case ->
             val states = analyzeAllStates(
                 methodName = case.methodName,
-                profile = case.profile,
-                modelProvider = case.modelProvider,
+                fallback = case.fallback,
+                models = case.models,
                 observer = ThrowingUnknownCallObserver,
             )
 
-            assertEquals(case.expectedFinalStateCount, states.size, case.profile.toString())
+            assertEquals(case.expectedFinalStateCount, states.size, case.fallback.toString())
         }
     }
 
     @Test
     fun `applied model decisions require non blank identifiers`() {
         assertFailsWith<IllegalArgumentException> {
-            TsUnknownCallModelApplication.Applied(modelId = " ")
+            TsUnknownCallModelApplication.Applied(
+                modelId = " ",
+                execution = completeExecution(),
+            )
         }
         assertFailsWith<IllegalArgumentException> {
             TsUnknownCallDecision.ModelApplied(modelId = "")
@@ -152,93 +166,102 @@ class TsUnknownCallDispatcherTest {
     }
 
     @Test
-    fun `profiles select model lookup independently from residual fallback`() {
-        val cases = listOf(
-            ProfileCase(
-                profile = TsUnknownCallProfiles.STOP_ALL,
-                withoutModel = ProfileResult(
-                    reachesReturn = false,
-                    outcome = TsUnknownCallOutcome.PATH_STOPPED,
-                ),
-                withModel = ProfileResult(
-                    reachesReturn = false,
-                    outcome = TsUnknownCallOutcome.PATH_STOPPED,
-                ),
-            ),
-            ProfileCase(
-                profile = TsUnknownCallProfiles.FRESH_SYMBOLIC_FOR_ALL,
-                withoutModel = ProfileResult(
-                    reachesReturn = true,
-                    outcome = TsUnknownCallOutcome.FRESH_SYMBOLIC_RETURN,
-                ),
-                withModel = ProfileResult(
-                    reachesReturn = true,
-                    outcome = TsUnknownCallOutcome.FRESH_SYMBOLIC_RETURN,
-                ),
-            ),
-            ProfileCase(
-                profile = TsUnknownCallProfiles.MODELS_THEN_STOP,
-                withoutModel = ProfileResult(
-                    reachesReturn = false,
-                    outcome = TsUnknownCallOutcome.PATH_STOPPED,
-                ),
-                withModel = ProfileResult(
-                    reachesReturn = true,
-                    outcome = TsUnknownCallOutcome.MODEL_APPLIED,
-                ),
-            ),
-            ProfileCase(
-                profile = TsUnknownCallProfiles.MODELS_THEN_FRESH_SYMBOLIC,
-                withoutModel = ProfileResult(
-                    reachesReturn = true,
-                    outcome = TsUnknownCallOutcome.FRESH_SYMBOLIC_RETURN,
-                ),
-                withModel = ProfileResult(
-                    reachesReturn = true,
-                    outcome = TsUnknownCallOutcome.MODEL_APPLIED,
-                ),
-            ),
-        )
-
-        cases.forEach { case ->
-            assertEquals(case.withoutModel, runProfile(case.profile, TsNoUnknownCallModels), case.profile.toString())
-            assertEquals(case.withModel, runProfile(case.profile, ApplyingModelProvider), case.profile.toString())
+    fun `model execution plans require at least one successor`() {
+        val error = assertFailsWith<IllegalArgumentException> {
+            TsUnknownCallModelExecution(
+                successors = emptyList(),
+                residualGuard = mockk(),
+            )
         }
+
+        assertEquals("A semantic model must declare at least one guarded successor", error.message)
     }
 
     @Test
-    fun `TsOptions profile configures the machine dispatcher`() {
-        assertEquals(TsUnknownCallProfiles.MODELS_THEN_STOP, TsOptions().unknownCallProfile)
-        assertTrue(TsOptions().unknownCallProfile.residualOverrides.isEmpty())
+    fun `fresh fallback preserves all fake value representations`() {
+        assertFreshResultPreservesAllFakeRepresentations(
+            fallback = TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN,
+        )
+    }
+
+    @Test
+    fun `partial residual fallback preserves all fake value representations`() {
+        assertFreshResultPreservesAllFakeRepresentations(
+            fallback = TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN,
+            models = catalog(UnsupportedPartialModel),
+        )
+    }
+
+    @Test
+    fun `partial model sends only residual domain to fresh fallback`() {
+        val observer = RecordingUnknownCallObserver()
+        val states = analyzeAllStates(
+            methodName = "modeledUnknownCallForks",
+            fallback = TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN,
+            models = catalog(SupportedTrueResidualFalseModel),
+            observer = observer,
+        )
+
+        assertEquals(2, states.size)
+        assertEquals(
+            listOf(TsUnknownCallOutcome.MODEL_APPLIED, TsUnknownCallOutcome.FRESH_SYMBOLIC_RETURN),
+            observer.events.map { it.outcome },
+        )
+    }
+
+    @Test
+    fun `partial model sends residual domain to stop fallback`() {
+        val observer = RecordingUnknownCallObserver()
+        val states = analyzeAllStates(
+            methodName = "modeledUnknownCallForks",
+            models = catalog(SupportedTrueResidualFalseModel),
+            observer = observer,
+        )
+
+        assertEquals(1, states.size)
+        assertEquals(
+            listOf(TsUnknownCallOutcome.MODEL_APPLIED, TsUnknownCallOutcome.PATH_STOPPED),
+            observer.events.map { it.outcome },
+        )
+    }
+
+    @Test
+    fun `exceptional model successor preserves exception state`() {
+        val states = analyzeAllStates(
+            methodName = "modeledUnknownCallThrows",
+            models = catalog(ExceptionalModel),
+        )
+
+        assertIs<TsMethodResult.TsException>(states.single().methodResult)
+    }
+
+    @Test
+    fun `stateful model can return an existing reference alias`() {
+        val states = analyzeAllStates(
+            methodName = "modeledUnknownCallReturnsAlias",
+            models = catalog(StatefulAliasModel),
+        )
+        val aliasReturn = method(fullScene, "modeledUnknownCallReturnsAlias")
+            .cfg
+            .stmts
+            .filterIsInstance<EtsReturnStmt>()
+            .first()
+
+        val state = states.single()
+        assertTrue(aliasReturn in state.pathNode.allStatements)
+        assertTrue(STATE_CHANGE_MARKER in state.addedArtificialLocals)
+    }
+
+    @Test
+    fun `TsOptions configures one fallback without profiles`() {
+        assertEquals(TsResidualCallPolicy.STOP_PATH, TsOptions().unknownCallFallback)
+        assertEquals(TsUnknownCallModelSelection.All, TsOptions().unknownCallModelSelection)
 
         assertFalse(reachesReturn("declaredMethodWithoutBodyContinues"))
         assertTrue(
             reachesReturn(
                 "declaredMethodWithoutBodyContinues",
-                tsOptions = TsOptions(unknownCallProfile = TsUnknownCallProfiles.FRESH_SYMBOLIC_FOR_ALL),
-            )
-        )
-    }
-
-    @Test
-    fun `explicit family override replaces the profile residual fallback`() {
-        val family = method(fullScene, "declaredMethodWithoutBodyContinues")
-            .cfg
-            .stmts
-            .mapNotNull { it.callExpr }
-            .single { it.callee.name == "external" }
-            .callee
-            .enclosingClass
-        val profile = TsUnknownCallProfiles.STOP_ALL.copy(
-            residualOverrides = mapOf(
-                family to TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN,
-            )
-        )
-
-        assertTrue(
-            reachesReturn(
-                "declaredMethodWithoutBodyContinues",
-                tsOptions = TsOptions(unknownCallProfile = profile),
+                tsOptions = TsOptions(unknownCallFallback = TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN),
             )
         )
     }
@@ -246,9 +269,9 @@ class TsUnknownCallDispatcherTest {
     @Test
     fun `fresh symbolic return uses the source call result type`() {
         val dispatcher = RecordingResultSortDispatcher(
-            TsProfileUnknownCallDispatcher(
-                TsUnknownCallProfiles.FRESH_SYMBOLIC_FOR_ALL,
-                TsNoUnknownCallModels,
+            TsModelUnknownCallDispatcher(
+                models = noModels,
+                fallback = TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN,
             )
         )
 
@@ -354,7 +377,7 @@ class TsUnknownCallDispatcherTest {
     }
 
     @Test
-    fun `descriptor keeps typed call data without eagerly resolving arguments`() {
+    fun `unknown call keeps typed data without eagerly resolving arguments`() {
         val dispatcher = RecordingUnknownCallDispatcher()
         val scene = sceneWithout("ExternalStatic")
 
@@ -369,7 +392,7 @@ class TsUnknownCallDispatcherTest {
     }
 
     @Test
-    fun `descriptor preserves source and resolved values available at dispatch`() {
+    fun `unknown call preserves source and resolved values available at dispatch`() {
         val dispatcher = RecordingUnknownCallDispatcher()
 
         assertFalse(reachesReturn("nonReferenceInstanceCallPrunes", dispatcher = dispatcher))
@@ -384,8 +407,7 @@ class TsUnknownCallDispatcherTest {
     @Test
     fun `normally executable and compatibility-approximated calls bypass unknown dispatch`() {
         val methods = listOf(
-            // The native frontend gives this call a concrete executable target despite the legacy baseline name.
-            "anyReceiverWithKnownMethodContinues",
+            "knownReceiverMethodContinues",
             "loggerCallSkipsBody",
             "toStringUsesPlaceholder",
             "valueOfReturnsReceiver",
@@ -402,6 +424,46 @@ class TsUnknownCallDispatcherTest {
     }
 
     @Test
+    fun `unknown receiver preserves primitive fallbacks and executes the reference method`() {
+        val dispatcher = RecordingUnknownCallDispatcher()
+
+        assertTrue(reachesReturn("anyReceiverWithKnownMethodContinues", dispatcher = dispatcher))
+
+        assertEquals(2, dispatcher.calls.size)
+        assertTrue(dispatcher.calls.all { it.failureReason == TsUnknownCallFailureReason.NON_REFERENCE_RECEIVER })
+        val sorts = dispatcher.calls.map { assertNotNull(it.receiver?.resolved).sort }
+        assertTrue(sorts.any { it is UBoolSort })
+        assertTrue(sorts.any { it is KFp64Sort })
+        dispatcher.calls.forEach { call ->
+            assertEquals("known", call.callee.name)
+            assertEquals("anyReceiverWithKnownMethodContinues", call.callSite.location.method.name)
+            assertEquals(call.callee, assertNotNull(call.callSite.callExpr).callee)
+        }
+    }
+
+    @Test
+    fun `partial approximation preserves resolved arguments and original call site`() {
+        val calls = mutableListOf<TsUnknownCall>()
+        var expectedArgument: UExpr<*>? = null
+        val model = object : TestModel(id = "recording-shift", methodName = "shift") {
+            override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution? {
+                calls += call
+                expectedArgument = state.ctx.mkFp64(17.0)
+                return null
+            }
+        }
+
+        assertFalse(reachesReturn("arrayShiftWithArgument", models = catalog(model)))
+
+        val call = calls.single()
+        assertEquals(assertNotNull(expectedArgument), call.arguments.single().resolved)
+        assertEquals(TsUnknownCallFailureReason.PARTIAL_APPROXIMATION, call.failureReason)
+        assertNotNull(call.receiver?.resolved)
+        assertEquals("arrayShiftWithArgument", call.callSite.location.method.name)
+        assertEquals(call.arguments.single().source, assertNotNull(call.callSite.callExpr).args.single())
+    }
+
+    @Test
     fun `pre-call allocation failures are documented dispatcher exclusions`() {
         val dispatcher = RecordingUnknownCallDispatcher()
 
@@ -410,7 +472,7 @@ class TsUnknownCallDispatcherTest {
     }
 
     @Test
-    fun `pointer descriptor pairs its source with the resolved function pointer`() {
+    fun `pointer call pairs its source with the resolved function pointer`() {
         val dispatcher = RecordingUnknownCallDispatcher()
         val pointerCall = method(fullScene, "associatedLoggingPointerContinues", className = "Log")
             .cfg
@@ -434,7 +496,7 @@ class TsUnknownCallDispatcherTest {
     }
 
     @Test
-    fun `descriptor result type comes from the source overload`() {
+    fun `unknown call result type comes from the source overload`() {
         val dispatcher = RecordingUnknownCallDispatcher()
 
         assertTrue(reachesReturn("overloadedDeclaredMethodWithoutBodyContinues", dispatcher = dispatcher))
@@ -452,17 +514,17 @@ class TsUnknownCallDispatcherTest {
         scene: EtsScene = fullScene,
         tsOptions: TsOptions = TsOptions(),
         dispatcher: TsUnknownCallDispatcher? = null,
-        modelProvider: TsUnknownCallModelProvider = TsNoUnknownCallModels,
+        models: TsUnknownCallModelCatalog = noModels,
         className: String = "CallFallbackBaseline",
     ): Boolean = returnStatement(scene, methodName, className) in
-        reachedStatements(methodName, scene, tsOptions, dispatcher, modelProvider, className)
+        reachedStatements(methodName, scene, tsOptions, dispatcher, models, className)
 
     private fun reachedStatements(
         methodName: String,
         scene: EtsScene,
         tsOptions: TsOptions,
         dispatcher: TsUnknownCallDispatcher?,
-        modelProvider: TsUnknownCallModelProvider,
+        models: TsUnknownCallModelCatalog,
         className: String,
     ): Set<EtsStmt> {
         val method = method(scene, methodName, className)
@@ -476,7 +538,7 @@ class TsUnknownCallDispatcherTest {
             tsOptions = tsOptions,
             machineObserver = ReachabilityObserver(),
             unknownCallDispatcher = dispatcher,
-            unknownCallModelProvider = modelProvider,
+            unknownCallModels = models,
         ).use { machine ->
             machine.analyze(listOf(method), listOf(initialTarget))
                 .flatMapTo(mutableSetOf()) { state -> state.pathNode.allStatements }
@@ -508,19 +570,57 @@ class TsUnknownCallDispatcherTest {
 
     private fun analyzeAllStates(
         methodName: String,
-        profile: TsUnknownCallProfile,
-        modelProvider: TsUnknownCallModelProvider = TsNoUnknownCallModels,
+        fallback: TsResidualCallPolicy = TsResidualCallPolicy.STOP_PATH,
+        models: TsUnknownCallModelCatalog = noModels,
         observer: TsInterpreterObserver? = null,
     ): List<TsState> {
         val method = method(fullScene, methodName)
         return TsMachine(
             scene = fullScene,
             options = allStatesMachineOptions,
-            tsOptions = TsOptions(unknownCallProfile = profile),
+            tsOptions = TsOptions(unknownCallFallback = fallback),
             observer = observer,
-            unknownCallModelProvider = modelProvider,
+            unknownCallModels = models,
         ).use { machine ->
             machine.analyze(listOf(method))
+        }
+    }
+
+    private fun assertFreshResultPreservesAllFakeRepresentations(
+        fallback: TsResidualCallPolicy,
+        models: TsUnknownCallModelCatalog = noModels,
+    ) {
+        val method = method(fullScene, "freshUnknownCallResult")
+        TsMachine(
+            scene = fullScene,
+            options = allStatesMachineOptions,
+            tsOptions = TsOptions(unknownCallFallback = fallback),
+            unknownCallModels = models,
+        ).use { machine ->
+            val state = machine.analyze(listOf(method)).single()
+            val result = assertIs<TsMethodResult.Success>(state.methodResult).value
+            val fakeValue = assertIs<UConcreteHeapRef>(result)
+            val fakeType = with(state.ctx) {
+                assertTrue(fakeValue.isFakeObject())
+                fakeValue.getFakeType(state.memory)
+            }
+            val discriminators = mapOf(
+                "boolean" to fakeType.boolTypeExpr,
+                "number" to fakeType.fpTypeExpr,
+                "reference" to fakeType.refTypeExpr,
+            )
+
+            discriminators.forEach { (kind, discriminator) ->
+                val constraints = state.pathConstraints.clone()
+                constraints += discriminator
+                val solverResult = state.ctx.solver<EtsType>().check(constraints)
+
+                assertIs<USatResult<*>>(solverResult, "Fresh fake result lost its $kind representation")
+            }
+
+            val exactlyOneType = fakeType.mkExactlyOneTypeConstraint(state.ctx)
+            assertTrue(state.models.isNotEmpty())
+            assertTrue(state.models.all { model -> model.eval(exactlyOneType).isTrue })
         }
     }
 
@@ -536,27 +636,6 @@ class TsUnknownCallDispatcherTest {
             }
             return TsCompatibilityUnknownCallDispatcher.dispatch(scope, call)
         }
-    }
-
-    private fun runProfile(
-        profile: TsUnknownCallProfile,
-        modelProvider: TsUnknownCallModelProvider,
-    ): ProfileResult {
-        val dispatcher = RecordingOutcomeDispatcher(TsProfileUnknownCallDispatcher(profile, modelProvider))
-        val reachesReturn = reachesReturn(
-            "declaredMethodWithoutBodyContinues",
-            dispatcher = dispatcher,
-        )
-        return ProfileResult(reachesReturn, dispatcher.outcomes.single())
-    }
-
-    private class RecordingOutcomeDispatcher(
-        private val delegate: TsUnknownCallDispatcher,
-    ) : TsUnknownCallDispatcher {
-        val outcomes = mutableListOf<TsUnknownCallOutcome>()
-
-        override fun dispatch(scope: TsStepScope, call: TsUnknownCall): TsUnknownCallOutcome =
-            delegate.dispatch(scope, call).also(outcomes::add)
     }
 
     private class RecordingResultSortDispatcher(
@@ -576,29 +655,113 @@ class TsUnknownCallDispatcherTest {
         }
     }
 
-    private object ApplyingModelProvider : TsUnknownCallModelProvider {
-        override fun apply(scope: TsStepScope, call: TsUnknownCall): TsUnknownCallModelApplication {
-            mockMethodCall(scope, call.callee, call.resultType)
-            scope.doWithState { newStmt(call.callSite) }
-            return TsUnknownCallModelApplication.Applied(modelId = "applying-model")
+    private object ApplyingModel : TestModel(id = "applying-model", methodName = "external") {
+        override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution {
+            val successor = TsUnknownCallModelSuccessor(
+                guard = state.ctx.trueExpr,
+                completion = TsUnknownCallModelCompletion.Normal { ctx.mkUndefinedValue() },
+            )
+
+            return TsUnknownCallModelExecution(successors = listOf(successor))
         }
     }
 
-    private object ForkingModelProvider : TsUnknownCallModelProvider {
-        override fun apply(scope: TsStepScope, call: TsUnknownCall): TsUnknownCallModelApplication {
+    private object ForkingModel : TestModel(id = "forking-model", methodName = "convert") {
+        override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution {
             val result = requireNotNull(call.arguments.single().resolved)
-            val condition = scope.calcOnState { result.asExpr(ctx.boolSort) }
-            val completeCall: TsState.() -> Unit = {
-                methodResult = TsMethodResult.Success.MockedCall(result, call.callee)
-                newStmt(call.callSite)
-            }
-            scope.fork(
-                condition = condition,
-                blockOnTrueState = completeCall,
-                blockOnFalseState = completeCall,
+            val condition = result.asExpr(state.ctx.boolSort)
+            val completion = TsUnknownCallModelCompletion.Normal { result }
+
+            return TsUnknownCallModelExecution(
+                successors = listOf(
+                    TsUnknownCallModelSuccessor(
+                        guard = condition,
+                        completion = completion,
+                    ),
+                    TsUnknownCallModelSuccessor(
+                        guard = state.ctx.mkNot(condition),
+                        completion = completion,
+                    ),
+                ),
             )
-            return TsUnknownCallModelApplication.Applied(modelId = "forking-model")
         }
+    }
+
+    private object FailingSecondSuccessorModel : TestModel(id = "failing-model", methodName = "convert") {
+        override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution {
+            val execution = ForkingModel.apply(state, call)
+            val (first, second) = execution.successors
+            val failingSecond = TsUnknownCallModelSuccessor(
+                guard = second.guard,
+                completion = second.completion,
+                applyStateChanges = { error("second successor failed") },
+            )
+
+            return TsUnknownCallModelExecution(successors = listOf(first, failingSecond))
+        }
+    }
+
+    private object SupportedTrueResidualFalseModel : TestModel(id = "partial-model", methodName = "convert") {
+        override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution {
+            val result = requireNotNull(call.arguments.single().resolved)
+            val condition = result.asExpr(state.ctx.boolSort)
+            val successor = TsUnknownCallModelSuccessor(
+                guard = condition,
+                completion = TsUnknownCallModelCompletion.Normal { result },
+            )
+
+            return TsUnknownCallModelExecution(
+                successors = listOf(successor),
+                residualGuard = state.ctx.mkNot(condition),
+            )
+        }
+    }
+
+    private object ExceptionalModel : TestModel(id = "exceptional-model", methodName = "fail") {
+        override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution {
+            val successor = TsUnknownCallModelSuccessor(
+                guard = state.ctx.trueExpr,
+                completion = TsUnknownCallModelCompletion.Exceptional {
+                    ctx.mkUndefinedValue() to EtsStringType
+                },
+            )
+
+            return TsUnknownCallModelExecution(successors = listOf(successor))
+        }
+    }
+
+    private object UnsupportedPartialModel : TestModel(id = "unsupported-partial-model", methodName = "value") {
+        override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution {
+            val successor = TsUnknownCallModelSuccessor(
+                guard = state.ctx.falseExpr,
+                completion = TsUnknownCallModelCompletion.Normal { ctx.mkUndefinedValue() },
+            )
+
+            return TsUnknownCallModelExecution(
+                successors = listOf(successor),
+                residualGuard = state.ctx.trueExpr,
+            )
+        }
+    }
+
+    private object StatefulAliasModel : TestModel(id = "stateful-alias-model", methodName = "identity") {
+        override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution {
+            val argument = requireNotNull(call.arguments.single().resolved)
+            val successor = TsUnknownCallModelSuccessor(
+                guard = state.ctx.trueExpr,
+                completion = TsUnknownCallModelCompletion.Normal { argument },
+                applyStateChanges = { addedArtificialLocals += STATE_CHANGE_MARKER },
+            )
+
+            return TsUnknownCallModelExecution(successors = listOf(successor))
+        }
+    }
+
+    private abstract class TestModel(
+        override val id: String,
+        methodName: String,
+    ) : TsUnknownCallModel {
+        override val target = TsUnknownCallTarget(methodName = methodName)
     }
 
     private class RecordingUnknownCallObserver : TsInterpreterObserver {
@@ -615,28 +778,17 @@ class TsUnknownCallDispatcherTest {
         }
     }
 
-    private data class ProfileCase(
-        val profile: TsUnknownCallProfile,
-        val withoutModel: ProfileResult,
-        val withModel: ProfileResult,
-    )
-
-    private data class ProfileResult(
-        val reachesReturn: Boolean,
-        val outcome: TsUnknownCallOutcome,
-    )
-
     private data class ObservationCase(
-        val profile: TsUnknownCallProfile,
-        val modelProvider: TsUnknownCallModelProvider,
+        val fallback: TsResidualCallPolicy,
+        val models: TsUnknownCallModelCatalog,
         val outcome: TsUnknownCallOutcome,
         val decision: TsUnknownCallDecision,
         val finalStateCount: Int,
     )
 
     private data class ObservationFailureCase(
-        val profile: TsUnknownCallProfile,
-        val modelProvider: TsUnknownCallModelProvider,
+        val fallback: TsResidualCallPolicy,
+        val models: TsUnknownCallModelCatalog,
         val expectedFinalStateCount: Int,
         val methodName: String = "declaredMethodWithoutBodyContinues",
     )
@@ -658,6 +810,23 @@ class TsUnknownCallDispatcherTest {
     }
 
     private companion object {
+        const val STATE_CHANGE_MARKER = "semantic-model-state-change"
+
+        val noModels = TsUnknownCallModelCatalog(emptyList())
+
+        fun catalog(vararg models: TsUnknownCallModel): TsUnknownCallModelCatalog =
+            TsUnknownCallModelCatalog(models.toList())
+
+        fun completeExecution(): TsUnknownCallModelExecution =
+            TsUnknownCallModelExecution(
+                successors = listOf(
+                    TsUnknownCallModelSuccessor(
+                        guard = mockk(),
+                        completion = TsUnknownCallModelCompletion.Normal { mockk<UExpr<*>>() },
+                    ),
+                ),
+            )
+
         val machineOptions = UMachineOptions(
             pathSelectionStrategies = listOf(PathSelectionStrategy.TARGETED),
             exceptionsPropagation = true,

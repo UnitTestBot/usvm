@@ -12,6 +12,7 @@ import org.usvm.UHeapRef
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.sizeSort
+import org.usvm.util.arrayStorageType
 import org.usvm.util.mkArrayLengthLValue
 
 // Handles reading the `length` property.
@@ -22,7 +23,8 @@ fun TsContext.readLengthProperty(
     maxArraySize: Int,
 ): UExpr<*>? {
     // Determine the array type.
-    val arrayType: EtsArrayType = when (val type = instanceLocal.type) {
+    val storageType = scope.calcOnState { arrayStorageType(instance, instanceLocal.type) }
+    val arrayType: EtsArrayType = when (val type = storageType) {
         is EtsArrayType -> type
 
         is EtsAnyType, is EtsUnknownType -> {

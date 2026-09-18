@@ -45,6 +45,7 @@ import org.usvm.machine.expr.extractInt
 import org.usvm.machine.expr.toConcreteBoolValue
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
+import org.usvm.machine.types.readUnresolvedArrayElement
 import org.usvm.memory.ULValue
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.mkSizeExpr
@@ -241,7 +242,7 @@ open class TsTestStateResolver(
             }
 
             is EtsArrayType -> {
-                resolveTsArray(concreteRef, heapRef, type)
+                resolveTsArray(heapRef, type)
             }
 
             is EtsUnknownType -> {
@@ -261,7 +262,6 @@ open class TsTestStateResolver(
     }
 
     private fun resolveTsArray(
-        concreteRef: UConcreteHeapRef,
         heapRef: UHeapRef,
         type: EtsArrayType,
     ): TsTestValue.TsArray<*> = with(ctx) {
@@ -273,38 +273,21 @@ open class TsTestStateResolver(
             val sort = typeToSort(type.elementType)
 
             if (sort is TsUnresolvedSort) {
-                val arrayIndexLValue = mkArrayIndexLValue(addressSort, concreteRef, index, type)
-                val fakeObject = if (memory is UModel) {
-                    resolvedLValuesToFakeObjects.firstOrNull { it.first == arrayIndexLValue }?.second
-                } else {
-                    resolvedLValuesToFakeObjects.lastOrNull { it.first == arrayIndexLValue }?.second
+                val value = readUnresolvedArrayElement(memory, heapRef, index)
+                val currentRef = evaluateInModel(value.refValue)
+                if (currentRef.isFakeObject()) {
+                    return@map resolveFakeObject(currentRef)
                 }
 
-                fakeObject ?: return@map TsTestValue.TsUndefined
-
-                check(fakeObject.isFakeObject())
-
-                val fakeType = fakeObject.getFakeType(finalStateMemory)
                 return@map when {
-                    model.eval(fakeType.fpTypeExpr).isTrue -> {
-                        resolveExpr(fakeObject.extractFp(finalStateMemory))
-                    }
-
-                    model.eval(fakeType.boolTypeExpr).isTrue -> {
-                        resolveExpr(fakeObject.extractBool(finalStateMemory))
-                    }
-
-                    model.eval(fakeType.refTypeExpr).isTrue -> {
-                        resolveExpr(fakeObject.extractRef(finalStateMemory))
-                    }
-
-                    else -> {
-                        error("Unsupported fake object type: $fakeType")
-                    }
+                    model.eval(value.type.fpTypeExpr).isTrue -> resolveExpr(value.fpValue)
+                    model.eval(value.type.boolTypeExpr).isTrue -> resolveExpr(value.boolValue)
+                    model.eval(value.type.refTypeExpr).isTrue -> resolveExpr(value.refValue)
+                    else -> TsTestValue.TsUndefined // An unread input element is unconstrained.
                 }
             }
 
-            require(sort is UFpSort || sort is UBoolSort) {
+            require(sort is UFpSort || sort is UBoolSort || sort is UAddressSort) {
                 "Other sorts must be resolved above, but got: $sort"
             }
 

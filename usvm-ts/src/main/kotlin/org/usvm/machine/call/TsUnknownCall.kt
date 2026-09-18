@@ -19,6 +19,8 @@ import org.usvm.machine.state.newStmt
 /**
  * A call that the regular TypeScript execution pipeline could not execute.
  *
+ * Instance receivers are normalized under their runtime-kind and conditional-reference guards before method
+ * lookup and receiver-dependent approximations. Null and undefined receivers fail at property access.
  * Frontend call resolution and the existing built-in approximations run before this boundary. A call reaches the
  * dispatcher only after one of those stages cannot continue normally. Successful compatibility approximations such
  * as `toString`, `valueOf`, `Math.floor`, and `$r` therefore remain outside this boundary until they are classified
@@ -60,12 +62,16 @@ enum class TsUnknownCallFailureReason {
     METHOD_BODY_UNAVAILABLE,
     INTERPROCEDURAL_ANALYSIS_DISABLED,
     LOGGING_CALL,
+    PARTIAL_APPROXIMATION,
 }
 
 /** Handles TypeScript calls that could not be executed by the regular call pipeline. */
 fun interface TsUnknownCallDispatcher {
     fun dispatch(scope: TsStepScope, call: TsUnknownCall): TsUnknownCallOutcome
 }
+
+/** Marks dispatchers that replace migrated compatibility approximations with semantic models. */
+interface TsUnknownCallModelDispatcher : TsUnknownCallDispatcher
 
 /** Preserves the pruning and opaque-return behavior that existed before the common dispatch boundary. */
 object TsCompatibilityUnknownCallDispatcher : TsUnknownCallDispatcher {
@@ -108,6 +114,10 @@ object TsCompatibilityUnknownCallDispatcher : TsUnknownCallDispatcher {
                 val falseExpr = scope.calcOnState { ctx.falseExpr }
                 scope.assert(falseExpr)
                 return TsUnknownCallOutcome.PATH_STOPPED
+            }
+
+            TsUnknownCallFailureReason.PARTIAL_APPROXIMATION -> {
+                error("Migrated approximations must not be sent to the compatibility dispatcher")
             }
         }
     }
@@ -152,10 +162,10 @@ internal fun TsUnknownCallDispatcher.dispatch(
     failureReason: TsUnknownCallFailureReason,
     resolvedReceiver: UExpr<*>,
 ) = dispatch(
-    scope = scope,
-    call = call.call,
-    callSite = call.returnSite,
-    failureReason = failureReason,
+    scope,
+    call.call,
+    call.returnSite,
+    failureReason,
     resolvedReceiver = resolvedReceiver,
     resolvedArguments = call.args,
 )
@@ -166,11 +176,11 @@ internal fun TsUnknownCallDispatcher.dispatch(
     failureReason: TsUnknownCallFailureReason,
     callee: EtsMethodSignature,
 ) = dispatch(
-    scope = scope,
-    call = call.call,
-    callSite = call.returnSite,
-    failureReason = failureReason,
-    callee = callee,
+    scope,
+    call.call,
+    call.returnSite,
+    failureReason,
+    callee,
     resolvedReceiver = call.resolvedReceiver,
     resolvedArguments = call.args.takeLast(call.call.args.size),
 )

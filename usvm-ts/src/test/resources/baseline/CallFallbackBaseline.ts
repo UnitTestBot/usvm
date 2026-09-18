@@ -18,6 +18,15 @@ declare class ExternalBoolean {
     static convert(value: boolean): boolean;
 }
 
+declare class ExternalAny {
+    static value(): any;
+}
+
+declare class ExternalModeledCall {
+    static identity(value: ExternalReceiver): ExternalReceiver;
+    static fail(): number;
+}
+
 class KnownReceiver {
     known(): number {
         return 1;
@@ -66,6 +75,31 @@ class CallFallbackBaseline {
 
     modeledUnknownCallForks(value: boolean): boolean {
         return ExternalBoolean.convert(value);
+    }
+
+    modeledUnknownCallReturnsAlias(receiver: ExternalReceiver): number {
+        if (ExternalModeledCall.identity(receiver) === receiver) {
+            return 122;
+        }
+        return 0;
+    }
+
+    modeledUnknownCallThrows(): number {
+        return ExternalModeledCall.fail();
+    }
+
+    freshUnknownCallResult(): any {
+        return ExternalAny.value();
+    }
+
+    knownReceiverMethodContinues(receiver: KnownReceiver): number {
+        receiver.known();
+        return 102;
+    }
+
+    arrayShiftWithArgument(): number {
+        const values = [10, 20];
+        return values.shift(17);
     }
 
     anyReceiverWithKnownMethodContinues(receiver: any): number {

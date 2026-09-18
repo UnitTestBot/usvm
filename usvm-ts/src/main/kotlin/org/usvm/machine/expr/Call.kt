@@ -1,22 +1,24 @@
 package org.usvm.machine.expr
 
 import io.ksmt.utils.asExpr
-import mu.KotlinLogging
 import org.jacodb.ets.model.EtsInstanceCallExpr
+import org.usvm.UBoolExpr
 import org.usvm.UExpr
+import org.usvm.UIteExpr
+import org.usvm.isFalse
+import org.usvm.isTrue
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsVirtualMethodCallStmt
-import org.usvm.machine.call.TsUnknownCallFailureReason
-import org.usvm.machine.call.dispatch
 import org.usvm.machine.expr.TsExprApproximationResult.NoApproximation
 import org.usvm.machine.expr.TsExprApproximationResult.ResolveFailure
 import org.usvm.machine.expr.TsExprApproximationResult.SuccessfulApproximation
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsMethodResult
+import org.usvm.machine.state.TsState
 import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.newStmt
-
-private val logger = KotlinLogging.logger {}
+import org.usvm.machine.types.extractValue
+import org.usvm.memory.splitUHeapRef
 
 internal fun TsExprResolver.handleInstanceCall(
     expr: EtsInstanceCallExpr,
@@ -36,47 +38,13 @@ internal fun TsExprResolver.handleInstanceCall(
     }
 
     // Try to approximate the call.
-    when (val result = tryApproximateInstanceCall(expr)) {
+    when (val result = tryApproximateGlobalInstanceCall(expr)) {
         is SuccessfulApproximation -> return result.expr
         is ResolveFailure -> return null
         is NoApproximation -> {}
     }
 
-    // Resolve the instance.
-    val instance = run {
-        val resolved = resolve(expr.instance) ?: return null
-        if (resolved.isFakeObject()) {
-            val fakeType = resolved.getFakeType(scope)
-            scope.assert(fakeType.refTypeExpr) ?: run {
-                logger.warn { "Calls on non-ref (fake) instance is not supported: $expr" }
-                unknownCallDispatcher.dispatch(
-                    scope = scope,
-                    call = expr,
-                    callSite = scope.calcOnState { lastStmt },
-                    failureReason = TsUnknownCallFailureReason.NON_REFERENCE_RECEIVER,
-                    resolvedReceiver = resolved,
-                )
-                return null
-            }
-            resolved.extractRef(scope)
-        } else {
-            if (resolved.sort != addressSort) {
-                logger.warn { "Calling method on non-ref instance is not yet supported: $expr" }
-                unknownCallDispatcher.dispatch(
-                    scope = scope,
-                    call = expr,
-                    callSite = scope.calcOnState { lastStmt },
-                    failureReason = TsUnknownCallFailureReason.NON_REFERENCE_RECEIVER,
-                    resolvedReceiver = resolved,
-                )
-                return null
-            }
-            resolved.asExpr(addressSort)
-        }
-    }
-
-    // Check for undefined or null property access.
-    checkUndefinedOrNullPropertyRead(scope, instance, expr.callee.name) ?: return null
+    val instance = resolve(expr.instance) ?: return null
 
     // Resolve arguments.
     val args = expr.args.map { resolve(it) ?: return null }
@@ -91,15 +59,56 @@ fun TsContext.callInstanceMethod(
     instance: UExpr<*>,
     args: List<UExpr<*>>,
 ): UExpr<*>? {
-    // Create the virtual call statement.
-    val virtualCall = TsVirtualMethodCallStmt(
-        call = call,
-        instance = instance,
-        args = args,
-        returnSite = scope.calcOnState { lastStmt },
-    )
-    scope.doWithState { newStmt(virtualCall) }
+    val returnSite = scope.calcOnState { lastStmt }
+    val alternatives = scope.calcOnState { receiverAlternatives(instance) }
+    val successors = alternatives.map { (guard, receiver) ->
+        val callStmt = TsVirtualMethodCallStmt(
+            call = call,
+            instance = receiver,
+            args = args,
+            returnSite = returnSite,
+        )
+        val advance: TsState.() -> Unit = { newStmt(callStmt) }
+        guard to advance
+    }
 
-    // Return null to indicate that we are waiting for the call to be executed.
+    if (successors.size == 1 && successors.single().first.isTrue) {
+        scope.doWithState(successors.single().second)
+    } else {
+        scope.forkMulti(successors)
+    }
+
     return null
+}
+
+/** Keeps the type constraints attached to every receiver passed to the common instance-call pipeline. */
+private fun TsState.receiverAlternatives(
+    value: UExpr<*>,
+    guard: UBoolExpr = ctx.trueExpr,
+): List<Pair<UBoolExpr, UExpr<*>>> = with(ctx) {
+    if (guard.isFalse) return emptyList()
+
+    when {
+        value.isFakeObject() -> listOf(
+            extractValue(value, boolSort, ::getIntermediateBoolLValue),
+            extractValue(value, fp64Sort, ::getIntermediateFpLValue),
+            extractValue(value, addressSort, ::getIntermediateRefLValue),
+        ).flatMap { (payload, typeGuard) ->
+            receiverAlternatives(requireNotNull(payload), mkAnd(guard, typeGuard))
+        }
+
+        value.sort == addressSort && value is UIteExpr<*> -> {
+            val refs = splitUHeapRef(
+                ref = value.asExpr(addressSort),
+                initialGuard = guard,
+                ignoreNullRefs = false,
+                collapseHeapRefs = false,
+            )
+            (refs.concreteHeapRefs + refs.symbolicHeapRef).flatMap { (ref, refGuard) ->
+                receiverAlternatives(ref, refGuard)
+            }
+        }
+
+        else -> listOf(guard to value)
+    }
 }
