@@ -255,32 +255,6 @@ class TsArrayShiftIntrinsicModelTest {
     }
 
     @Test
-    fun `fake wrapper receiver is not accepted as an array`() {
-        val state = analyzeStates(methodName = "unknownValue").single()
-        val fakeReceiver = makeFakeReceiver(state)
-
-        val execution = TsArrayShiftIntrinsicModel.apply(state, arrayShiftCall(fakeReceiver))
-
-        assertNull(execution)
-    }
-
-    @Test
-    fun `conditional receiver containing fake wrapper is not accepted as an array`() {
-        val state = analyzeStates(methodName = "unknownValue").single()
-        val fakeReceiver = makeFakeReceiver(state)
-        val fakeType = with(state.ctx) { fakeReceiver.getFakeType(state.memory) }
-        val conditionalReceiver = state.ctx.mkIte(
-            condition = fakeType.boolTypeExpr,
-            trueBranch = fakeReceiver,
-            falseBranch = state.makeSymbolicRefUntyped(),
-        )
-
-        val execution = TsArrayShiftIntrinsicModel.apply(state, arrayShiftCall(conditionalReceiver))
-
-        assertNull(execution)
-    }
-
-    @Test
     fun `empty enabled set sends shift to configured fallback`() {
         val disabledResult = analyze(
             methodName = "nonEmptyArray",

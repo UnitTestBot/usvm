@@ -35,7 +35,6 @@ import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UExpr
 import org.usvm.UInterpreter
-import org.usvm.UIteExpr
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArray
 import org.usvm.api.targets.TsTarget
@@ -52,14 +51,17 @@ import org.usvm.machine.TsVirtualMethodCallStmt
 import org.usvm.machine.call.TsUnknownCallDispatcher
 import org.usvm.machine.call.TsUnknownCallFailureReason
 import org.usvm.machine.call.dispatch
+import org.usvm.machine.expr.TsExprApproximationResult
 import org.usvm.machine.expr.TsExprResolver
 import org.usvm.machine.expr.TsUnresolvedSort
+import org.usvm.machine.expr.checkUndefinedOrNullPropertyRead
 import org.usvm.machine.expr.handleAssignToArrayIndex
 import org.usvm.machine.expr.handleAssignToInstanceField
 import org.usvm.machine.expr.handleAssignToLocal
 import org.usvm.machine.expr.handleAssignToStaticField
 import org.usvm.machine.expr.mkTruthyExpr
 import org.usvm.machine.expr.readGlobal
+import org.usvm.machine.expr.tryApproximateInstanceCall
 import org.usvm.machine.expr.writeGlobal
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
@@ -165,25 +167,39 @@ class TsInterpreter(
         val instance = stmt.instance
         val callee = stmt.call.callee
 
-        val unwrappedInstance = if (instance.isFakeObject()) {
-            // TODO support primitives calls
-            // We ignore the possibility of method call on primitives.
-            // Therefore, the fake object should be unwrapped.
-            scope.assert(instance.getFakeType(scope).refTypeExpr)
-            instance.extractRef(scope)
-        } else {
-            instance.asExpr(addressSort)
+        if (instance.sort == addressSort) {
+            checkUndefinedOrNullPropertyRead(scope, instance.asExpr(addressSort), callee.name) ?: return
         }
+
+        val resolver = exprResolverWithScope(scope)
+        when (val result = resolver.tryApproximateInstanceCall(stmt.call, instance, stmt.returnSite)) {
+            is TsExprApproximationResult.SuccessfulApproximation -> {
+                scope.doWithState {
+                    methodResult = TsMethodResult.Success.MockedCall(result.expr, callee)
+                    newStmt(stmt.returnSite)
+                }
+                return
+            }
+
+            TsExprApproximationResult.ResolveFailure -> return
+            TsExprApproximationResult.NoApproximation -> {}
+        }
+
+        if (instance.sort != addressSort) {
+            unknownCallDispatcher.dispatch(scope, stmt, Reason.NON_REFERENCE_RECEIVER, instance)
+            return
+        }
+        val receiver = instance.asExpr(addressSort)
 
         val concreteMethods: MutableList<EtsMethod> = mutableListOf()
 
-        if (isAllocatedConcreteHeapRef(unwrappedInstance)) {
-            val type = scope.calcOnState { memory.typeStreamOf(unwrappedInstance) }.single()
+        if (isAllocatedConcreteHeapRef(receiver)) {
+            val type = scope.calcOnState { memory.typeStreamOf(receiver) }.single()
             if (type is EtsClassType) {
                 val classes = graph.hierarchy.classesForType(type)
                 if (classes.isEmpty()) {
                     logger.warn { "Could not resolve class: ${type.typeName}" }
-                    unknownCallDispatcher.dispatch(scope, stmt, Reason.RECEIVER_CLASS_NOT_FOUND, unwrappedInstance)
+                    unknownCallDispatcher.dispatch(scope, stmt, Reason.RECEIVER_CLASS_NOT_FOUND, receiver)
                     return
                 }
                 if (classes.size > 1) {
@@ -203,7 +219,7 @@ class TsInterpreter(
                 logger.warn {
                     "Could not resolve method: $callee on type: $type"
                 }
-                unknownCallDispatcher.dispatch(scope, stmt, Reason.UNSUPPORTED_RECEIVER_TYPE, unwrappedInstance)
+                unknownCallDispatcher.dispatch(scope, stmt, Reason.UNSUPPORTED_RECEIVER_TYPE, receiver)
                 return
             }
         } else {
@@ -212,25 +228,25 @@ class TsInterpreter(
                 if (callee.name !in listOf("then")) {
                     logger.warn { "Could not resolve method: $callee" }
                 }
-                unknownCallDispatcher.dispatch(scope, stmt, Reason.VIRTUAL_METHOD_NOT_FOUND, unwrappedInstance)
+                unknownCallDispatcher.dispatch(scope, stmt, Reason.VIRTUAL_METHOD_NOT_FOUND, receiver)
                 return
             }
             concreteMethods += methods
         }
 
         val possibleTypes = scope.calcOnState {
-            memory.typeStreamOf(unwrappedInstance).take(scene.projectAndSdkClasses.size)
+            memory.typeStreamOf(receiver).take(scene.projectAndSdkClasses.size)
         }
 
         if (possibleTypes !is TypesResult.SuccessfulTypesResult) {
-            unknownCallDispatcher.dispatch(scope, stmt, Reason.RECEIVER_TYPE_STREAM_UNAVAILABLE, unwrappedInstance)
+            unknownCallDispatcher.dispatch(scope, stmt, Reason.RECEIVER_TYPE_STREAM_UNAVAILABLE, receiver)
             return
         }
 
         val possibleTypesSet = possibleTypes.types.toSet()
 
         if (possibleTypesSet.singleOrNull() == EtsAnyType) {
-            unknownCallDispatcher.dispatch(scope, stmt, Reason.ANY_RECEIVER, unwrappedInstance)
+            unknownCallDispatcher.dispatch(scope, stmt, Reason.ANY_RECEIVER, receiver)
             return
         }
 
@@ -270,30 +286,11 @@ class TsInterpreter(
             val type = requireNotNull(method.enclosingClass).type
 
             val constraint = scope.calcOnState {
-                val ref = stmt.instance.asExpr(addressSort)
-                    .takeIf { !it.isFakeObject() }
-                    ?: unwrappedInstance.asExpr(addressSort)
-
-                // TODO: adhoc: "expand" ITE
-                if (ref is UIteExpr<*>) {
-                    val trueBranch = ref.trueBranch
-                    val falseBranch = ref.falseBranch
-                    if (trueBranch.isFakeObject() || falseBranch.isFakeObject()) {
-                        val unwrappedTrueExpr = trueBranch.asExpr(addressSort).unwrapRefWithPathConstraint(scope)
-                        val unwrappedFalseExpr = falseBranch.asExpr(addressSort).unwrapRefWithPathConstraint(scope)
-                        return@calcOnState mkIte(
-                            condition = ref.condition,
-                            trueBranch = memory.types.evalIsSubtype(unwrappedTrueExpr, type),
-                            falseBranch = memory.types.evalIsSubtype(unwrappedFalseExpr, type),
-                        )
-                    }
-                }
-
                 // TODO mistake, should be separated into several hierarchies
                 //      or evalTypeEqual with several concrete types
                 mkAnd(
-                    memory.types.evalIsSubtype(ref, clazz),
-                    memory.types.evalIsSupertype(ref, type)
+                    memory.types.evalIsSubtype(receiver, clazz),
+                    memory.types.evalIsSupertype(receiver, type)
                 )
             }
             constraint to block
@@ -301,9 +298,9 @@ class TsInterpreter(
 
         if (conditionsWithBlocks.isEmpty()) {
             logger.warn {
-                "No suitable methods found for call: $callee with instance: $unwrappedInstance"
+                "No suitable methods found for call: $callee with instance: $receiver"
             }
-            unknownCallDispatcher.dispatch(scope, stmt, Reason.NO_SUITABLE_VIRTUAL_TARGET, unwrappedInstance)
+            unknownCallDispatcher.dispatch(scope, stmt, Reason.NO_SUITABLE_VIRTUAL_TARGET, receiver)
             return
         }
 

@@ -19,6 +19,8 @@ import org.usvm.machine.state.newStmt
 /**
  * A call that the regular TypeScript execution pipeline could not execute.
  *
+ * Instance receivers are normalized under their runtime-kind and conditional-reference guards before method
+ * lookup and receiver-dependent approximations. Null and undefined receivers fail at property access.
  * Frontend call resolution and the existing built-in approximations run before this boundary. A call reaches the
  * dispatcher only after one of those stages cannot continue normally. Successful compatibility approximations such
  * as `toString`, `valueOf`, `Math.floor`, and `$r` therefore remain outside this boundary until they are classified

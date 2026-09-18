@@ -70,7 +70,7 @@ internal object TsArrayShiftIntrinsicModel : TsUnknownCallModel {
 
         val receiver = call.receiver ?: return@with null
         val receiverValue = receiver.resolved ?: return@with null
-        if (receiverValue.sort != addressSort || receiverValue.containsFakeObject()) {
+        if (receiverValue.sort != addressSort) {
             return@with null
         }
 

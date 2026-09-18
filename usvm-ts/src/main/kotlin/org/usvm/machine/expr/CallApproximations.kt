@@ -7,10 +7,12 @@ import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsInstanceCallExpr
 import org.jacodb.ets.model.EtsMethodSignature
+import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.allocateConcreteRef
 import org.usvm.api.initializeArray
@@ -26,7 +28,6 @@ import org.usvm.machine.expr.TsExprApproximationResult.Companion.from
 import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.markResolved
 import org.usvm.machine.interpreter.setResolvedValue
-import org.usvm.machine.state.lastStmt
 import org.usvm.sizeSort
 import org.usvm.types.first
 import org.usvm.util.arrayStorageType
@@ -36,25 +37,12 @@ import org.usvm.util.resolveEtsMethods
 
 private val logger = KotlinLogging.logger {}
 
-internal fun TsExprResolver.tryApproximateInstanceCall(
+internal fun TsExprResolver.tryApproximateGlobalInstanceCall(
     expr: EtsInstanceCallExpr,
 ): TsExprApproximationResult = with(ctx) {
     // Mock all calls to `Logger` methods
     if (expr.instance.name == "Logger") {
         return from(mkUndefinedValue())
-    }
-
-    // Mock `.toString()` method calls
-    if (expr.callee.name == "toString") {
-        if (expr.args.isNotEmpty()) {
-            logger.warn { "toString() should have no arguments, but got ${expr.args.size}" }
-        }
-        return from(mkStringConstant("I am a string", scope))
-    }
-
-    // Handle `.valueOf()` method calls
-    if (expr.callee.name == "valueOf") {
-        return from(handleValueOf(expr))
     }
 
     // Handle `Number.isNaN()` calls
@@ -88,16 +76,31 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
         }
     }
 
-    val instance = resolve(expr.instance)
-        ?: return TsExprApproximationResult.ResolveFailure
+    return TsExprApproximationResult.NoApproximation
+}
 
-    val instanceType = if (instance.sort == addressSort && isAllocatedConcreteHeapRef(instance)) {
-        scope.calcOnState {
-            arrayStorageType(instance.asExpr(addressSort), expr.instance.type)
+internal fun TsExprResolver.tryApproximateInstanceCall(
+    expr: EtsInstanceCallExpr,
+    instance: UExpr<*>,
+    returnSite: EtsStmt,
+): TsExprApproximationResult = with(ctx) {
+    // Mock `.toString()` method calls
+    if (expr.callee.name == "toString") {
+        if (expr.args.isNotEmpty()) {
+            logger.warn { "toString() should have no arguments, but got ${expr.args.size}" }
         }
-    } else {
-        expr.instance.type
+        return from(mkStringConstant("I am a string", scope))
     }
+
+    // Handle `.valueOf()` method calls
+    if (expr.callee.name == "valueOf") {
+        return from(handleValueOf(expr, instance))
+    }
+
+    if (instance.sort != addressSort) return TsExprApproximationResult.NoApproximation
+
+    val array = instance.asExpr(addressSort)
+    val instanceType = scope.calcOnState { arrayStorageType(array, expr.instance.type) }
 
     if (instanceType is EtsArrayType) {
         val elementSort = typeToSort(instanceType.elementType)
@@ -106,57 +109,57 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
 
         // Handle 'Array.push()' method calls
         if (expr.callee.name == "push") {
-            return from(handleArrayPush(expr, instanceType, elementSort))
+            return from(handleArrayPush(expr, instanceType, elementSort, array))
         }
 
         // Handle `Array.pop() method calls
         if (expr.callee.name == "pop") {
-            return from(handleArrayPop(expr, instanceType, elementSort))
+            return from(handleArrayPop(expr, instanceType, elementSort, array))
         }
 
         // Handle `Array.fill() method calls
         if (expr.callee.name == "fill") {
-            return from(handleArrayFill(expr, instanceType, elementSort))
+            return from(handleArrayFill(expr, instanceType, elementSort, array))
         }
 
         // Handle `Array.unshift() method calls
         if (expr.callee.name == "unshift") {
-            return from(handleArrayUnshift(expr, instanceType, elementSort))
+            return from(handleArrayUnshift(expr, instanceType, elementSort, array))
         }
 
         // Handle `Array.shift() method calls
         if (expr.callee.name == "shift") {
-            return handleArrayShiftCall(expr, instanceType, elementSort, instance)
+            return handleArrayShiftCall(expr, instanceType, elementSort, instance, returnSite)
         }
 
         // Handle `Array.join() method calls
         if (expr.callee.name == "join") {
-            return from(handleArrayJoin(expr, instanceType, elementSort))
+            return from(handleArrayJoin(expr))
         }
 
         // Handle `Array.slice() method calls
         if (expr.callee.name == "slice") {
-            return from(handleArraySlice(expr, instanceType, elementSort))
+            return from(handleArraySlice(expr, instanceType, elementSort, array))
         }
 
         // Handle `Array.concat() method calls
         if (expr.callee.name == "concat") {
-            return from(handleArrayConcat(expr, instanceType, elementSort))
+            return from(handleArrayConcat(expr, instanceType, elementSort, array))
         }
 
         // Handle `Array.indexOf() method calls
         if (expr.callee.name == "indexOf") {
-            return from(handleArrayIndexOf(expr, instanceType, elementSort))
+            return from(handleArrayIndexOf(expr, instanceType, elementSort, array))
         }
 
         // Handle `Array.includes() method calls
         if (expr.callee.name == "includes") {
-            return from(handleArrayIncludes(expr, instanceType, elementSort))
+            return from(handleArrayIncludes(expr))
         }
 
         // Handle `Array.reverse() method calls
         if (expr.callee.name == "reverse") {
-            return from(handleArrayReverse(expr, instanceType, elementSort))
+            return from(handleArrayReverse(expr, instanceType, elementSort, array))
         }
     }
 
@@ -168,16 +171,17 @@ private fun TsExprResolver.handleArrayShiftCall(
     instanceType: EtsArrayType,
     elementSort: USort,
     resolvedReceiver: UExpr<*>,
+    returnSite: EtsStmt,
 ): TsExprApproximationResult {
     val dispatcher = unknownCallDispatcher
     if (dispatcher !is TsUnknownCallModelDispatcher) {
-        return from(handleArrayShift(expr, instanceType, elementSort))
+        return from(handleArrayShift(expr, instanceType, elementSort, resolvedReceiver.asExpr(ctx.addressSort)))
     }
 
     dispatcher.dispatch(
         scope,
         expr,
-        scope.calcOnState { lastStmt },
+        returnSite,
         failureReason = TsUnknownCallFailureReason.PARTIAL_APPROXIMATION,
         resolvedReceiver = resolvedReceiver,
     )
@@ -185,13 +189,12 @@ private fun TsExprResolver.handleArrayShiftCall(
     return TsExprApproximationResult.ResolveFailure
 }
 
-private fun TsExprResolver.handleValueOf(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
+private fun TsExprResolver.handleValueOf(expr: EtsInstanceCallExpr, instance: UExpr<*>): UExpr<*> {
     if (expr.args.isNotEmpty()) {
         logger.warn { "valueOf() should have no arguments, but got ${expr.args.size}" }
     }
 
-    val instance = resolve(expr.instance) ?: return null
-    instance
+    return instance
 }
 
 private fun TsExprResolver.handleNumberIsNaN(expr: EtsInstanceCallExpr): UBoolExpr? = with(ctx) {
@@ -332,8 +335,8 @@ private fun TsExprResolver.handleArrayPush(
     expr: EtsInstanceCallExpr,
     arrayType: EtsArrayType,
     elementSort: USort,
+    array: UHeapRef,
 ): UExpr<*>? = with(ctx) {
-    val array = resolve(expr.instance)?.asExpr(addressSort) ?: return null
     check(expr.args.size == 1) {
         "Array.push() should have exactly one argument, but got ${expr.args.size}"
     }
@@ -393,8 +396,8 @@ private fun TsExprResolver.handleArrayPop(
     expr: EtsInstanceCallExpr,
     arrayType: EtsArrayType,
     elementSort: USort,
+    array: UHeapRef,
 ): UExpr<*>? = with(ctx) {
-    val array = resolve(expr.instance)?.asExpr(addressSort) ?: return null
     check(expr.args.isEmpty()) {
         "Array.pop() should have no arguments, but got ${expr.args.size}"
     }
@@ -459,8 +462,8 @@ private fun TsExprResolver.handleArrayFill(
     expr: EtsInstanceCallExpr,
     arrayType: EtsArrayType,
     elementSort: USort,
+    array: UHeapRef,
 ): UExpr<*>? = with(ctx) {
-    val array = resolve(expr.instance)?.asExpr(addressSort) ?: return null
     check(expr.args.size >= 1 && expr.args.size <= 3) {
         "Array.fill() should have 1 to 3 arguments, but got ${expr.args.size}"
     }
@@ -574,8 +577,8 @@ private fun TsExprResolver.handleArrayShift(
     expr: EtsInstanceCallExpr,
     arrayType: EtsArrayType,
     elementSort: USort,
+    array: UHeapRef,
 ): UExpr<*>? = with(ctx) {
-    val array = resolve(expr.instance)?.asExpr(addressSort) ?: return null
     check(expr.args.isEmpty()) {
         "Array.shift() should have no arguments, but got ${expr.args.size}"
     }
@@ -640,8 +643,8 @@ private fun TsExprResolver.handleArrayUnshift(
     expr: EtsInstanceCallExpr,
     arrayType: EtsArrayType,
     elementSort: USort,
+    array: UHeapRef,
 ): UExpr<*>? = with(ctx) {
-    val array = resolve(expr.instance)?.asExpr(addressSort) ?: return null
     // TODO: support vararg
     check(expr.args.size == 1) {
         "Array.unshift() should have exactly one argument, but got ${expr.args.size}"
@@ -709,10 +712,7 @@ private fun TsExprResolver.handleArrayUnshift(
  */
 private fun TsExprResolver.handleArrayJoin(
     expr: EtsInstanceCallExpr,
-    arrayType: EtsArrayType,
-    elementSort: USort,
 ): UExpr<*>? = with(ctx) {
-    val array = resolve(expr.instance)?.asExpr(addressSort) ?: return null
     check(expr.args.size <= 1) {
         "Array.join() should have at most one argument, but got ${expr.args.size}"
     }
@@ -754,8 +754,8 @@ private fun TsExprResolver.handleArraySlice(
     expr: EtsInstanceCallExpr,
     arrayType: EtsArrayType,
     elementSort: USort,
+    array: UHeapRef,
 ): UExpr<*>? = with(ctx) {
-    val array = resolve(expr.instance)?.asExpr(addressSort) ?: return null
     check(expr.args.size <= 2) {
         "Array.slice() should have at most two arguments, but got ${expr.args.size}"
     }
@@ -851,8 +851,8 @@ private fun TsExprResolver.handleArrayConcat(
     expr: EtsInstanceCallExpr,
     arrayType: EtsArrayType,
     elementSort: USort,
+    array: UHeapRef,
 ): UExpr<*>? = with(ctx) {
-    val array = resolve(expr.instance)?.asExpr(addressSort) ?: return null
     check(expr.args.isNotEmpty()) {
         "Array.concat() should have at least one argument, but got ${expr.args.size}"
     }
@@ -952,8 +952,8 @@ private fun TsExprResolver.handleArrayIndexOf(
     expr: EtsInstanceCallExpr,
     arrayType: EtsArrayType,
     elementSort: USort,
+    array: UHeapRef,
 ): UExpr<*>? = with(ctx) {
-    val array = resolve(expr.instance)?.asExpr(addressSort) ?: return null
     check(expr.args.size == 1) {
         "Array.indexOf() should have exactly one argument, but got ${expr.args.size}"
     }
@@ -1011,10 +1011,7 @@ private fun TsExprResolver.handleArrayIndexOf(
  */
 private fun TsExprResolver.handleArrayIncludes(
     expr: EtsInstanceCallExpr,
-    arrayType: EtsArrayType,
-    elementSort: USort,
 ): UExpr<*>? = with(ctx) {
-    val array = resolve(expr.instance)?.asExpr(addressSort) ?: return null
     check(expr.args.size == 1) {
         "Array.includes() should have exactly one argument, but got ${expr.args.size}"
     }
@@ -1062,8 +1059,8 @@ private fun TsExprResolver.handleArrayReverse(
     expr: EtsInstanceCallExpr,
     arrayType: EtsArrayType,
     elementSort: USort,
+    array: UHeapRef,
 ): UExpr<*>? = with(ctx) {
-    val array = resolve(expr.instance)?.asExpr(addressSort) ?: return null
     check(expr.args.isEmpty()) {
         "Array.reverse() should have no arguments, but got ${expr.args.size}"
     }

@@ -62,9 +62,11 @@ The built-in catalog currently contains one model:
 | --- | --- | --- |
 | `ts.array.shift` | Kotlin intrinsic using symbolic-memory `memcpy` | Zero-argument `shift` on a definitely one-dimensional array. |
 
-An `any`/unknown receiver, a fake-value wrapper, and a non-array receiver do not become applicable merely because the
-method is named `shift`; they use fallback. A definitely-array receiver with an unresolved element sort remains
-applicable and uses the fake-value representation described below.
+The common instance-call pipeline splits fake-value wrappers and conditional references under their runtime-kind
+and branch guards before selecting an approximation or resolving a method. A wrapped array can therefore use the
+model, including through an `any` alias. An unknown or non-array receiver does not become an array merely because
+the method is named `shift`. A definitely-array receiver with an unresolved element sort remains applicable and uses
+the fake-value representation described below.
 
 ### `unknownCallFallback`
 
@@ -138,8 +140,9 @@ The target identifies a call family. State-dependent checks, such as the receive
 
 The built-in array target intentionally combines the method name with `PARTIAL_APPROXIMATION` instead of a class name.
 That failure reason is emitted only after the regular approximation path has classified the receiver as an
-`EtsArrayType`. Calls on `any`/unknown receivers reach another failure reason and cannot match this target. The model
-still validates the resolved receiver and array shape before changing memory.
+`EtsArrayType` using the normalized receiver's storage type. An `any` alias of a known array can satisfy that check;
+a receiver without array-type evidence cannot. The model still validates the resolved receiver and array shape
+before changing memory.
 
 ## Applicability and residual states
 
@@ -212,7 +215,14 @@ The existing `Array.shift` intrinsic remains the example for engine-only symboli
 A method name does not prove the receiver type. In particular, `value.shift()` may call a user-defined property rather
 than `Array.prototype.shift`.
 
-Use this decision rule:
+Instance calls share receiver normalization before built-in approximations and ordinary method lookup. It reuses
+`extractValue` to select a fake payload together with its kind constraint and `splitUHeapRef` to retain conditional
+reference guards. Each feasible alternative continues through the existing virtual-call statement. This preserves
+supported primitive calls such as `valueOf` and the existing `toString` approximation, while null and undefined
+receivers take the property-access exception path. Other primitive calls use `NON_REFERENCE_RECEIVER` fallback.
+Receiver normalization does not make the existing built-in approximations exact.
+
+Use this decision rule after normalization:
 
 | Receiver knowledge | Action |
 | --- | --- |
