@@ -29,14 +29,20 @@ class TsArrayShiftMatrixTest {
     lateinit var directory: Path
 
     @TestFactory
-    fun `concrete array matrix agrees with JavaScript`(): List<DynamicTest> {
+    fun `concrete array matrix agrees with JavaScript`(): List<DynamicTest> = concreteArrayMatrix(methodName = "shift")
+
+    @TestFactory
+    fun `concrete pop matrix agrees with JavaScript`(): List<DynamicTest> = concreteArrayMatrix(methodName = "pop")
+
+    private fun concreteArrayMatrix(methodName: String): List<DynamicTest> {
         val cases = concreteCases()
-        val source = directory.resolve("ArrayShiftMatrix.ts")
-        source.writeText(renderSource(cases, typed = true))
+        val source = directory.resolve("ArrayRemovalMatrix-$methodName.ts")
+        source.writeText(renderSource(cases, typed = true, methodName = methodName))
         val scene = EtsScene(listOf(loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)))
         val methods = scene.projectClasses.single { it.name == "ArrayShiftMatrix" }.methods.associateBy { it.name }
         val invocations = cases.indices.joinToString(separator = ",") { "new ArrayShiftMatrix().case$it()" }
-        val oracleSource = renderSource(cases, typed = false) + "\nconsole.log([$invocations].join('\\n'));\n"
+        val oracleSource = renderSource(cases, typed = false, methodName = methodName) +
+            "\nconsole.log([$invocations].join('\\n'));\n"
         val expected = runJavaScript(oracleSource)
 
         assertEquals(cases.size, expected.size)
@@ -62,7 +68,7 @@ class TsArrayShiftMatrixTest {
                 val actual = values.map { assertIs<TsTestValue.TsNumber>(it).number }
                 assertEquals(listOf(expected[index].toDouble()), actual)
                 assertEquals(case.shiftCount, events.size)
-                assertTrue(events.all { it.decision == TsUnknownCallDecision.ModelApplied("ts.array.shift") })
+                assertTrue(events.all { it.decision == TsUnknownCallDecision.ModelApplied("ts.array.$methodName") })
             }
         }
     }
@@ -108,7 +114,7 @@ class TsArrayShiftMatrixTest {
         }
     }
 
-    private fun renderSource(cases: List<ShiftCase>, typed: Boolean): String = buildString {
+    private fun renderSource(cases: List<ShiftCase>, typed: Boolean, methodName: String): String = buildString {
         appendLine("class ShiftElement {}")
         appendLine("class ArrayShiftMatrix {")
         cases.forEachIndexed { index, case ->
@@ -120,10 +126,15 @@ class TsArrayShiftMatrixTest {
             appendLine("const values$annotation = original;")
 
             repeat(case.shiftCount) { shift ->
-                appendLine("const removed$shift = values.shift();")
-                val value = case.values.getOrElse(shift) { "undefined" }
+                appendLine("const removed$shift = values.$methodName();")
+                val removedIndex = if (methodName == "pop") case.values.lastIndex - shift else shift
+                val value = case.values.getOrElse(removedIndex) { "undefined" }
                 appendLine("if (!(${sameValue("removed$shift", value)})) return -1;")
-                val tail = case.values.drop(shift + 1)
+                val tail = if (methodName == "pop") {
+                    case.values.dropLast(shift + 1)
+                } else {
+                    case.values.drop(shift + 1)
+                }
                 appendLine("if (original.length !== ${tail.size} || values.length !== ${tail.size}) return -2;")
                 tail.forEachIndexed { tailIndex, tailValue ->
                     appendLine("if (!(${sameValue("original[$tailIndex]", tailValue)})) return -3;")

@@ -2,16 +2,16 @@ package org.usvm.machine.call
 
 import io.mockk.mockk
 import org.jacodb.ets.model.EtsClassSignature
-import org.jacodb.ets.model.EtsMethodSignature
-import org.jacodb.ets.model.EtsStmt
-import org.jacodb.ets.model.EtsUnknownType
-import org.usvm.machine.call.intrinsic.TsArrayShiftIntrinsicModel
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsFileSignature
+import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.model.EtsUnknownType
 import org.usvm.UMachineOptions
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
+import org.usvm.machine.call.intrinsic.TsArrayShiftIntrinsicModel
 import org.usvm.machine.state.TsState
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -158,7 +158,10 @@ class TsUnknownCallModelCatalogTest {
         assertEquals(listOf("ts.array.pop", TsArrayShiftIntrinsicModel.MODEL_ID), catalog.modelIds)
         assertSame(catalog, TsBuiltInUnknownCallModels.catalog())
         assertFailsWith<UnsupportedOperationException> { (catalog.modelIds as MutableList<String>).clear() }
-        assertEquals(listOf("ts.array.pop", TsArrayShiftIntrinsicModel.MODEL_ID), TsBuiltInUnknownCallModels.catalog().modelIds)
+        assertEquals(
+            listOf("ts.array.pop", TsArrayShiftIntrinsicModel.MODEL_ID),
+            TsBuiltInUnknownCallModels.catalog().modelIds,
+        )
         assertTrue(TsBuiltInUnknownCallModels.catalog(TsUnknownCallModelSelection.Only(emptySet())).modelIds.isEmpty())
     }
 
@@ -196,6 +199,9 @@ class TsUnknownCallModelCatalogTest {
         )
 
         assertEquals(listOf(modelFile), catalog.additionalSceneFiles)
+        assertFailsWith<UnsupportedOperationException> {
+            (catalog.additionalSceneFiles as MutableList<EtsFile>).clear()
+        }
     }
 
     @Test
@@ -232,6 +238,26 @@ class TsUnknownCallModelCatalogTest {
                 tsOptions = TsOptions(),
                 unknownCallModels = catalog,
             )
+        }
+
+        assertEquals("Conflicting EtsIR files share signature @test/shared", error.message)
+    }
+
+    @Test
+    fun `SDK and model EtsIR files with the same signature are rejected`() {
+        val sdkFile = etsFile(fileName = "shared.ts")
+        val modelFile = etsFile(fileName = "shared.ts")
+        val catalog = TsUnknownCallModelCatalog(
+            models = listOf(model(id = "model", additionalSceneFiles = listOf(modelFile))),
+        )
+
+        val error = assertFailsWith<IllegalArgumentException> {
+            TsMachine(
+                scene = EtsScene(projectFiles = emptyList(), sdkFiles = listOf(sdkFile)),
+                options = UMachineOptions(),
+                tsOptions = TsOptions(),
+                unknownCallModels = catalog,
+            ).close()
         }
 
         assertEquals("Conflicting EtsIR files share signature @test/shared", error.message)

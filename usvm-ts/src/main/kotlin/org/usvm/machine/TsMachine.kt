@@ -62,8 +62,9 @@ class TsMachine(
         ?.additionalSceneFiles
         ?.takeIf { modelFiles -> modelFiles.isNotEmpty() }
         ?.let { modelFiles ->
+            val files = (scene.projectFiles + scene.sdkFiles + modelFiles).deduplicateEtsFilesBySignature()
             EtsScene(
-                projectFiles = (scene.projectFiles + modelFiles).deduplicateEtsFilesBySignature(),
+                projectFiles = files.filter { it !in scene.sdkFiles },
                 sdkFiles = scene.sdkFiles,
                 projectName = scene.projectName,
             )

@@ -65,7 +65,7 @@ The built-in catalog currently contains:
 | ID | Implementation | Accepted calls |
 | --- | --- | --- |
 | `ts.array.shift` | Kotlin intrinsic using symbolic-memory `memcpy` | Zero-argument `shift` on a definitely one-dimensional array. |
-| `ts.array.pop` | TypeScript/EtsIR body | Zero-argument `pop` on a statically proven `number[]` receiver that also satisfies the symbolic runtime type guard. |
+| `ts.array.pop` | TypeScript/EtsIR body | Zero-argument `pop` on a definitely one-dimensional array that also satisfies the symbolic runtime type guard. |
 
 The common instance-call pipeline splits fake-value wrappers and conditional references under their runtime-kind
 and branch guards before selecting an approximation or resolving a method. A wrapped array can therefore use the
@@ -151,7 +151,7 @@ The built-in array targets intentionally combine the method name with `PARTIAL_A
 That failure reason is emitted only after the regular approximation path has classified the receiver as an
 `EtsArrayType` using the normalized receiver's storage type. An `any` alias of a known array can satisfy that check;
 a receiver without array-type evidence cannot. The model still validates the resolved receiver and array shape
-before changing memory. `pop` currently accepts only arrays stored as `number[]`.
+before changing memory. Both models preserve the array's storage type, including reference and unresolved elements.
 
 ## Applicability and residual states
 
@@ -190,7 +190,7 @@ A TypeScript model is ordinary source code:
 
 ```typescript
 export class ArrayModels {
-    static pop(receiver: number[]): number | undefined {
+    static pop(receiver: any[]): any {
         const length = receiver.length;
         if (length === 0) {
             return undefined;
@@ -216,7 +216,7 @@ val model = TsEtsIrUnknownCallModel(
     id = "ts.array.pop",
     target = TsUnknownCallTarget(methodName = "pop"),
     artifact = artifact,
-    domainGuard = numberArrayGuard,
+    domainGuard = arrayGuard,
 )
 
 val catalog = TsUnknownCallModelCatalog(models = listOf(model))
@@ -224,6 +224,10 @@ val catalog = TsUnknownCallModelCatalog(models = listOf(model))
 
 The normal EtsIR interpreter executes the body. Receiver and arguments become entry-point parameters; ordinary return,
 exception, field and array writes, and reference aliases flow back through the normal call stack.
+
+Array indexing and `length` assignment use the receiver's storage type. Writing `length` supports integral values from
+zero through the current length, within the configured array-size limit. Growth remains unsupported because the
+engine does not represent newly created holes; those paths are pruned.
 
 The entry point must be static and have a non-empty body. Its parameter count must equal the resolved receiver plus
 argument count. Unresolved inputs or an arity mismatch make the model not applicable.
@@ -321,7 +325,7 @@ independently of that revision, the runner also records the artifact's content h
 hashes are not another model ID, version, compatibility setting, or part of the common model contract.
 
 EtsIR files are merged into the analysis scene by file signature. Reusing the same file object is deduplicated;
-distinct files with the same signature are rejected.
+distinct files with the same signature are rejected, including collisions with application and SDK files.
 
 ## Observation
 

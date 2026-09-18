@@ -104,6 +104,7 @@ class TsModelUnknownCallDispatcher(
         val guardedStateChanges = application.execution.successors.mapIndexed { index, successor ->
             successor.guard to modelStateChange(
                 call = call,
+                modelId = application.modelId,
                 successor = successor,
                 preparedUnresolvedResult = preparedUnresolvedResults[index],
                 onApplied = { modelApplied = true },
@@ -153,6 +154,7 @@ class TsModelUnknownCallDispatcher(
 
     private fun modelStateChange(
         call: TsUnknownCall,
+        modelId: String,
         successor: TsUnknownCallModelSuccessor,
         preparedUnresolvedResult: UExpr<*>?,
         onApplied: () -> Unit,

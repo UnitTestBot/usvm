@@ -1,6 +1,8 @@
 package org.usvm.machine.call
 
+import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsInstanceCallExpr
+import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.EtsIrProvider
@@ -16,6 +18,8 @@ import org.usvm.api.TsTestValue
 import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
+import org.usvm.machine.expr.TsSimpleValueResolver
+import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.util.TsTestResolver
@@ -53,6 +57,66 @@ class TsArrayPopEtsIrModelTest {
     }
 
     @Test
+    fun `widened and wrapped receivers retain number array storage`() {
+        for (methodName in listOf("widenedReceiver", "wrappedReceiver")) {
+            val result = analyze(methodName = methodName)
+
+            assertEquals(32.0, assertIs<TsTestValue.TsNumber>(result.values.single()).number, methodName)
+            assertEquals(listOf("ts.array.pop"), result.modelIds, methodName)
+        }
+    }
+
+    @Test
+    fun `model can be entered again after returning`() {
+        val result = analyze(methodName = "sequentialPops")
+
+        assertEquals(51.0, assertIs<TsTestValue.TsNumber>(result.values.single()).number)
+        assertEquals(listOf("ts.array.pop", "ts.array.pop"), result.modelIds)
+    }
+
+    @Test
+    fun `length assignment through aliases updates the original array`() {
+        for (methodName in listOf("shrinkThroughWidenedAlias", "shrinkThroughWrappedAlias")) {
+            val result = analyze(methodName = methodName)
+
+            assertEquals(11.0, assertIs<TsTestValue.TsNumber>(result.values.single()).number, methodName)
+        }
+    }
+
+    @Test
+    fun `negative zero is a valid zero array length`() {
+        val result = analyze(methodName = "negativeZeroLength")
+
+        assertEquals(0.0, assertIs<TsTestValue.TsNumber>(result.values.single()).number)
+    }
+
+    @Test
+    fun `unsupported length value stops without repeating the assignment`() {
+        var lengthAssignments = 0
+        val observer = object : TsInterpreterObserver {
+            override fun onAssignStatement(
+                simpleValueResolver: TsSimpleValueResolver,
+                stmt: EtsAssignStmt,
+                scope: TsStepScope,
+            ) {
+                if ((stmt.lhv as? EtsInstanceFieldRef)?.field?.name == "length") {
+                    lengthAssignments++
+                }
+            }
+        }
+
+        val states = TsMachine(
+            scene = scene,
+            options = machineOptions.copy(stepLimit = 100uL),
+            tsOptions = TsOptions(),
+            observer = observer,
+        ).use { machine -> machine.analyze(listOf(method("unsupportedLengthValue"))) }
+
+        assertTrue(states.isEmpty())
+        assertEquals(1, lengthAssignments)
+    }
+
+    @Test
     fun `array length growth after pop is unsupported`() {
         val result = analyze(methodName = "popThenGrow")
 
@@ -77,9 +141,14 @@ class TsArrayPopEtsIrModelTest {
     }
 
     @Test
-    fun `arrays outside the source model domain use fallback`() {
-        assertUsesResidualFallback(methodName = "referenceArray")
-        assertUsesResidualFallback(methodName = "symbolicUnknownArray")
+    fun `reference and unresolved arrays use the source model`() {
+        for ((methodName, expected) in listOf("referenceArray" to 42.0, "symbolicUnknownArray" to 47.0)) {
+            val result = analyze(methodName = methodName)
+
+            assertTrue(result.values.filterIsInstance<TsTestValue.TsNumber>().any { it.number == expected }, methodName)
+            assertEquals(listOf("ts.array.pop"), result.modelIds.distinct(), methodName)
+            assertTrue(result.events.all { it.outcome == TsUnknownCallOutcome.MODEL_APPLIED }, methodName)
+        }
     }
 
     @Test
@@ -87,7 +156,8 @@ class TsArrayPopEtsIrModelTest {
         val result = analyze(methodName = "unknownReceiver")
 
         assertTrue(result.modelIds.isEmpty())
-        assertEquals(listOf(TsUnknownCallOutcome.PATH_STOPPED), result.events.map { it.outcome })
+        assertTrue(result.events.isNotEmpty())
+        assertTrue(result.events.all { it.outcome == TsUnknownCallOutcome.PATH_STOPPED })
     }
 
     @Test

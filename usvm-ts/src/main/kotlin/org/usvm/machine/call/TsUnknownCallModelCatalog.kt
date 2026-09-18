@@ -43,6 +43,7 @@ class TsUnknownCallModelCatalog(
         additionalSceneFiles = selectedModels
             .flatMap(TsUnknownCallModel::additionalSceneFiles)
             .deduplicateEtsFilesBySignature()
+            .let(Collections::unmodifiableList)
     }
 
     internal fun select(call: TsUnknownCall): TsUnknownCallModel? {

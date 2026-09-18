@@ -2,7 +2,6 @@ package org.usvm.machine.call.intrinsic
 
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsArrayType
-import org.jacodb.ets.model.EtsNumberType
 import org.usvm.machine.call.TsEtsIrUnknownCallModel
 import org.usvm.machine.call.TsEtsIrUnknownCallModelDomainGuard
 import org.usvm.machine.call.TsUnknownCall
@@ -33,12 +32,13 @@ internal object TsArrayPopEtsIrModel : TsBuiltInUnknownCallModel {
             domainGuard = TsEtsIrUnknownCallModelDomainGuard { state, call, inputs ->
                 with(state.ctx) {
                     val receiver = inputs.singleOrNull()
-                    if (receiver?.sort != addressSort || receiver.containsFakeObject()) {
+                    val staticType = call.receiver?.source?.type
+                    if (staticType == null || receiver?.sort != addressSort) {
                         falseExpr
                     } else {
                         val array = receiver.asExpr(addressSort)
-                        val receiverType = state.arrayStorageType(array, call.receiver?.source?.type) as? EtsArrayType
-                        if (receiverType?.dimensions != 1 || receiverType.elementType != EtsNumberType) {
+                        val receiverType = state.arrayStorageType(array, staticType) as? EtsArrayType
+                        if (array.hasFakeValueBranch() || receiverType?.dimensions != 1) {
                             falseExpr
                         } else {
                             state.memory.types.evalIsSubtype(array, receiverType)

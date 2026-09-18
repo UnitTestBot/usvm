@@ -18,6 +18,7 @@ import org.usvm.machine.types.EtsAuxiliaryType
 import org.usvm.sizeSort
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.TsResolutionResult
+import org.usvm.util.arrayStorageType
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.resolveEtsField
@@ -51,7 +52,7 @@ internal fun TsExprResolver.handleAssignToInstanceField(
     // Check for undefined or null field access.
     checkUndefinedOrNullPropertyRead(scope, instance, field.name) ?: return null
 
-    val arrayType = instanceLocal.type as? EtsArrayType
+    val arrayType = scope.calcOnState { arrayStorageType(instance, instanceLocal.type) } as? EtsArrayType
     if (field.name == "length" && arrayType != null) {
         return assignToArrayLength(
             scope = scope,
@@ -74,6 +75,8 @@ private fun TsContext.assignToArrayLength(
     maxArraySize: Int,
 ): Unit? = with(this) {
     if (value.sort != fp64Sort) {
+        logger.warn { "Unsupported array length assignment: expected a numeric value, got ${value.sort}" }
+        scope.assert(falseExpr)
         return null
     }
 
@@ -95,7 +98,7 @@ private fun TsContext.assignToArrayLength(
     val currentLength = scope.calcOnState {
         memory.read(lengthLValue)
     }
-    val lengthIsIntegral = mkEq(roundTrip, fpLength)
+    val lengthIsIntegral = mkFpEqualExpr(roundTrip, fpLength)
     val lengthIsNonNegative = mkBvSignedGreaterOrEqualExpr(length, mkBv(0))
     val lengthIsWithinLimit = mkBvSignedLessOrEqualExpr(length, mkBv(maxArraySize))
     val lengthIsNotGrowing = mkBvSignedLessOrEqualExpr(length, currentLength)

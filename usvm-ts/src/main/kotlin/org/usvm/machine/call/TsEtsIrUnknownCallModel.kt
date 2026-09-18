@@ -16,7 +16,6 @@ import java.nio.file.Path
 import java.security.MessageDigest
 import kotlin.io.path.createTempDirectory
 import kotlin.io.path.deleteIfExists
-import kotlin.io.path.inputStream
 import kotlin.io.path.outputStream
 import kotlin.io.path.readBytes
 
@@ -71,7 +70,7 @@ internal fun loadEtsIrUnknownCallModelArtifact(
         }
 
         val irBytes = irPath.readBytes()
-        val file = irPath.inputStream().use { stream ->
+        val file = irBytes.inputStream().use { stream ->
             EtsFileDto.loadFromJson(stream).toEtsFile()
         }
         val entryPointClass = file.allClasses.singleOrNull { it.name == entryPointClassName }

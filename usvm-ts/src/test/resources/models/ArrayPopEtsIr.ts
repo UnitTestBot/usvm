@@ -18,6 +18,51 @@ export class ArrayPopEtsIr {
         return values.pop()! + values.length;
     }
 
+    widenedReceiver(): number {
+        const values = [10, 20, 30];
+        const alias: any[] = values;
+        return alias.pop() + values.length;
+    }
+
+    wrappedReceiver(): number {
+        const values = [10, 20, 30];
+        const alias: any = values;
+        return alias.pop() + values.length;
+    }
+
+    sequentialPops(): number {
+        const values = [10, 20, 30];
+        const first = values.pop()!;
+        const second = values.pop()!;
+        return first + second + values.length;
+    }
+
+    shrinkThroughWidenedAlias(): number {
+        const values = [10, 20, 30];
+        const alias: any[] = values;
+        alias.length = 1;
+        return values.length * 10 + alias.length;
+    }
+
+    shrinkThroughWrappedAlias(): number {
+        const values = [10, 20, 30];
+        const alias: any = values;
+        alias.length = 1;
+        return values.length * 10 + alias.length;
+    }
+
+    negativeZeroLength(): number {
+        const values = [10];
+        values.length = -0;
+        return values.length;
+    }
+
+    unsupportedLengthValue(): number {
+        const values = [10];
+        values.length = "0";
+        return values.length;
+    }
+
     popThenGrow(): number {
         const values = [10, 20];
         values.pop();
