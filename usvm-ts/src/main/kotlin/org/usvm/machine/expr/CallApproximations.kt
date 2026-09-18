@@ -31,12 +31,14 @@ import org.usvm.machine.interpreter.markResolved
 import org.usvm.machine.interpreter.setResolvedValue
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.newStmt
+import org.usvm.machine.types.TsUnresolvedArrayKind
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.machine.types.readUnresolvedArrayElement
 import org.usvm.sizeSort
 import org.usvm.util.arrayStorageType
 import org.usvm.util.copyArrayElements
-import org.usvm.util.forEachArrayStorageRegion
+import org.usvm.util.forEachArrayPayloadRegion
+import org.usvm.util.initializeArrayKind
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.resolveEtsMethods
@@ -1050,13 +1052,22 @@ private fun TsExprResolver.handleArrayReverse(
         val lengthLValue = mkArrayLengthLValue(array, arrayType)
         val length = memory.read(lengthLValue)
 
-        forEachArrayStorageRegion(arrayType) { region, sort ->
-            val contents = (0 until ARRAY_REVERSE_MAX_SIZE).asSequence().map { index ->
-                val reversedIndex = mkBvSubExpr(mkBvSubExpr(length, mkBv(1)), index.toBv())
-                memory.readArrayIndex(array, reversedIndex, region, sort)
+        val reversedIndices = (0 until ARRAY_REVERSE_MAX_SIZE).map { index ->
+            mkBvSubExpr(mkBvSubExpr(length, mkBv(1)), index.toBv())
+        }
+        forEachArrayPayloadRegion(arrayType) { region, sort ->
+            val contents = reversedIndices.asSequence().map { index ->
+                memory.readArrayIndex(array, index, region, sort)
             }
             memory.initializeArray(reversedArray, region, sort, sizeSort, contents)
         }
+        if (typeToSort(arrayType.elementType) is TsUnresolvedSort) {
+            TsUnresolvedArrayKind.entries.forEach { kind ->
+                val contents = reversedIndices.map { index -> memory.readArrayIndex(array, index, kind, boolSort) }
+                initializeArrayKind(reversedArray, kind, contents)
+            }
+        }
+
         copyArrayElements(
             arrayType = arrayType,
             srcRef = reversedArray,
