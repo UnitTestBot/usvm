@@ -10,7 +10,6 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.api.memcpy
-import org.usvm.api.typeStreamOf
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.call.TsUnknownCall
 import org.usvm.machine.call.TsUnknownCallFailureReason
@@ -20,9 +19,10 @@ import org.usvm.machine.call.TsUnknownCallModelExecution
 import org.usvm.machine.call.TsUnknownCallModelSuccessor
 import org.usvm.machine.call.TsUnknownCallTarget
 import org.usvm.machine.expr.TsUnresolvedSort
-import org.usvm.machine.expr.readSymbolicUnresolvedArrayElement
 import org.usvm.machine.state.TsState
-import org.usvm.types.singleOrNull
+import org.usvm.machine.types.TsUnresolvedArrayKind
+import org.usvm.machine.types.readUnresolvedArrayElement
+import org.usvm.util.arrayStorageType
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 
@@ -75,8 +75,7 @@ internal object TsArrayShiftIntrinsicModel : TsUnknownCallModel {
         }
 
         val array = receiverValue.asExpr(addressSort)
-        val arrayType = (receiver.source.type as? EtsArrayType)
-            ?: (state.memory.typeStreamOf(array).singleOrNull() as? EtsArrayType)
+        val arrayType = state.arrayStorageType(array, receiver.source.type) as? EtsArrayType
             ?: return@with null
         if (arrayType.dimensions != 1) {
             return@with null
@@ -102,24 +101,7 @@ internal object TsArrayShiftIntrinsicModel : TsUnknownCallModel {
             return@with TsUnknownCallModelCompletion.Normal { firstElement }
         }
 
-        if (input.array is UConcreteHeapRef) {
-            val firstElementLValue = mkArrayIndexLValue(
-                sort = addressSort,
-                ref = input.array,
-                index = index,
-                type = input.arrayType,
-            )
-            val firstElement = memory.read(firstElementLValue)
-
-            return@with TsUnknownCallModelCompletion.Normal {
-                check(firstElement.isFakeObject()) {
-                    "Expected fake object in concrete array with unresolved element type, got: $firstElement"
-                }
-                firstElement
-            }
-        }
-
-        val firstElement = readSymbolicUnresolvedArrayElement(input.array, index)
+        val firstElement = readUnresolvedArrayElement(memory, input.array, index)
         TsUnknownCallModelCompletion.Unresolved(firstElement)
     }
 
@@ -177,6 +159,17 @@ internal object TsArrayShiftIntrinsicModel : TsUnknownCallModel {
             fromDst = fromDst,
             length = length,
         )
+        TsUnresolvedArrayKind.entries.forEach { kind ->
+            memory.memcpy(
+                srcRef = input.array,
+                dstRef = input.array,
+                type = kind,
+                elementSort = boolSort,
+                fromSrc = fromSrc,
+                fromDst = fromDst,
+                length = length,
+            )
+        }
     }
 
     private fun TsState.copyArrayRegion(

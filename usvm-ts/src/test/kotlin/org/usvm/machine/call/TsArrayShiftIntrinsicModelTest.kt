@@ -10,6 +10,8 @@ import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.callExpr
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
@@ -18,12 +20,14 @@ import org.usvm.UExpr
 import org.usvm.UMachineOptions
 import org.usvm.api.TsTestValue
 import org.usvm.api.makeSymbolicRefUntyped
+import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.machine.call.intrinsic.TsArrayShiftIntrinsicModel
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
+import org.usvm.machine.types.TsUnresolvedArrayKind
 import org.usvm.util.TsTestResolver
 import org.usvm.util.getResourcePath
 import org.usvm.util.mkArrayIndexLValue
@@ -127,7 +131,7 @@ class TsArrayShiftIntrinsicModelTest {
     }
 
     @Test
-    fun `symbolic unknown array copies boolean number and address regions`() {
+    fun `symbolic unknown array copies payload and runtime kind regions`() {
         val state = analyzeStates(methodName = "unknownValue").single()
         val symbolicArray = state.makeSymbolicRefUntyped()
 
@@ -160,6 +164,11 @@ class TsArrayShiftIntrinsicModelTest {
                 guard = trueExpr,
             )
 
+            TsUnresolvedArrayKind.entries.forEach { kind ->
+                val selector = UArrayIndexLValue(boolSort, symbolicArray, one, kind)
+                state.memory.write(selector, mkBool(kind == TsUnresolvedArrayKind.NUMBER), guard = trueExpr)
+            }
+
             val execution = assertNotNull(
                 TsArrayShiftIntrinsicModel.apply(
                     state,
@@ -184,6 +193,10 @@ class TsArrayShiftIntrinsicModelTest {
             assertEquals(boolValue, shiftedBoolValue)
             assertEquals(fpValue, shiftedFpValue)
             assertEquals(refValue, shiftedRefValue)
+            TsUnresolvedArrayKind.entries.forEach { kind ->
+                val shiftedSelector = UArrayIndexLValue(boolSort, symbolicArray, zero, kind)
+                assertEquals(mkBool(kind == TsUnresolvedArrayKind.NUMBER), state.memory.read(shiftedSelector))
+            }
             assertEquals(one, state.memory.read(lengthLValue))
         }
     }
@@ -292,6 +305,34 @@ class TsArrayShiftIntrinsicModelTest {
         assertNull(result.catalogFingerprint)
     }
 
+    @ParameterizedTest
+    @ValueSource(
+        strings = [
+            "numberArrayThroughAnyAlias",
+            "booleanArrayThroughUnknownAlias",
+            "conditionalArray",
+            "conditionalEmptyArray",
+            "pushAfterShift",
+        ],
+    )
+    fun `aliases and mutated mixed arrays preserve values`(methodName: String) {
+        val result = analyze(methodName)
+
+        assertTrue(result.values.isNotEmpty())
+        assertEquals(setOf(1.0), result.values.map { assertIs<TsTestValue.TsNumber>(it).number }.toSet())
+        if (methodName == "conditionalArray" || methodName == "conditionalEmptyArray") {
+            assertEquals(2, result.values.size, "Both receiver choices must be explored")
+        }
+        assertTrue(result.events.all { it.outcome == TsUnknownCallOutcome.MODEL_APPLIED })
+    }
+
+    @Test
+    fun `conditional fake elements retain both possible writes`() {
+        val result = analyze(methodName = "conditionalFakeElement")
+
+        assertEquals(setOf(0.0, 1.0), result.values.map { assertIs<TsTestValue.TsNumber>(it).number }.toSet())
+    }
+
     private fun analyze(
         methodName: String,
         tsOptions: TsOptions = TsOptions(),
@@ -393,6 +434,7 @@ class TsArrayShiftIntrinsicModelTest {
             pathSelectionStrategies = listOf(PathSelectionStrategy.BFS),
             stateCollectionStrategy = StateCollectionStrategy.ALL,
             exceptionsPropagation = true,
+            throwExceptionOnStepFailure = true,
             timeout = Duration.INFINITE,
             stepsFromLastCovered = 3_500L,
             solverType = SolverType.YICES,

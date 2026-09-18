@@ -171,7 +171,6 @@ class TsContext(
             is EtsBooleanType -> EtsArrayType(EtsBooleanType, dimensions = 1)
             is EtsNumberType -> EtsArrayType(EtsNumberType, dimensions = 1)
             is EtsArrayType -> TODO("Unsupported yet: $type")
-            is EtsUnionType -> EtsArrayType(type.elementType, dimensions = 1)
             else -> EtsArrayType(EtsUnknownType, dimensions = 1)
         }
     }

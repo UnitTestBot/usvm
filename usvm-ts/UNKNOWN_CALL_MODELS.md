@@ -174,8 +174,14 @@ that TypeScript cannot express without losing symbolic efficiency or correctness
 
 `Array.shift` is the built-in example because shifting a symbolic array is naturally represented by symbolic-memory
 `memcpy` operations. A resolved element sort uses one array region. A symbolic array with an unresolved element sort
-uses the boolean, number, and address regions that back a fake value; its removed element is materialized before
-forking so the exactly-one type constraint and updated solver models are inherited by every successor.
+copies three payload regions (boolean, number, and address) and three boolean runtime-kind selector regions.
+Selectors belong to input elements and move with their payloads, so repeated shifts preserve the constraints needed
+to reconstruct and replay the original input. Allocated unresolved arrays store fake-value wrappers in the address
+region. The removed element is materialized before forking so the exactly-one type constraint and updated solver
+models are inherited by every successor.
+
+Array reads, writes, length access, and `shift` use the storage type known to symbolic memory when it is unique.
+Widening a local from `number[]` to `any[]` therefore keeps the same element and length regions.
 
 Good intrinsic candidates include:
 
@@ -233,7 +239,9 @@ to the common model contract.
 
 ## Observation
 
-Every applied model or fallback produces `TsUnknownCallEvent` through `TsInterpreterObserver.onUnknownCall`.
+Every completed model or fallback decision produces `TsUnknownCallEvent` through `TsInterpreterObserver.onUnknownCall`.
+A model event is emitted once after all satisfiable successor callbacks complete. If a callback throws, dispatch does
+not report success for the discarded step. A partially supported call may report both a model and a fallback event.
 
 - `ModelApplied(modelId)` identifies the semantic model.
 - `ResidualFallback(policy)` records the effective fallback.

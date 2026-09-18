@@ -22,7 +22,8 @@ import org.usvm.memory.ULValue
  * Non-null arguments initialize the corresponding boolean, number, and reference payload fields. When exactly one
  * payload is supplied, the wrapper is constrained to that runtime kind. When multiple payloads are supplied, all
  * three kind discriminators remain symbolic and [EtsFakeType.mkExactlyOneTypeConstraint] selects exactly one active
- * representation. Callers that model a completely unknown value should therefore supply all three payloads.
+ * representation. [valueType], when provided, preserves existing kind selectors instead of creating fresh ones.
+ * Callers that model a completely unknown value should supply all three payloads.
  *
  * The returned concrete heap reference identifies the wrapper, not its reference payload. Consumers must preserve
  * the wrapper or explicitly constrain the appropriate discriminator before extracting a payload.
@@ -36,6 +37,7 @@ fun TsState.mkFakeValue(
     boolValue: UBoolExpr? = null,
     fpValue: UExpr<KFp64Sort>? = null,
     refValue: UHeapRef? = null,
+    valueType: EtsFakeType? = null,
 ): UConcreteHeapRef = with(ctx) {
     require(boolValue != null || fpValue != null || refValue != null) {
         "Fake object should contain at least one value"
@@ -44,20 +46,22 @@ fun TsState.mkFakeValue(
     val fakeValueRef = createFakeObjectRef()
     val address = fakeValueRef.address
 
-    val boolTypeExpr = trueExpr
-        .takeIf { boolValue != null && fpValue == null && refValue == null }
-        ?: makeSymbolicPrimitive(boolSort)
-    val fpTypeExpr = trueExpr
-        .takeIf { boolValue == null && fpValue != null && refValue == null }
-        ?: makeSymbolicPrimitive(boolSort)
-    val refTypeExpr = trueExpr
-        .takeIf { boolValue == null && fpValue == null && refValue != null }
-        ?: makeSymbolicPrimitive(boolSort)
-
-    val type = EtsFakeType(
-        boolTypeExpr = boolTypeExpr,
-        fpTypeExpr = fpTypeExpr,
-        refTypeExpr = refTypeExpr,
+    val type = valueType ?: EtsFakeType(
+        boolTypeExpr = if (boolValue != null && fpValue == null && refValue == null) {
+            trueExpr
+        } else {
+            makeSymbolicPrimitive(boolSort)
+        },
+        fpTypeExpr = if (boolValue == null && fpValue != null && refValue == null) {
+            trueExpr
+        } else {
+            makeSymbolicPrimitive(boolSort)
+        },
+        refTypeExpr = if (boolValue == null && fpValue == null && refValue != null) {
+            trueExpr
+        } else {
+            makeSymbolicPrimitive(boolSort)
+        },
     )
     memory.types.allocate(address, type)
     val constraint = type.mkExactlyOneTypeConstraint(ctx)
@@ -103,6 +107,7 @@ private fun TsState.materializeFakeValue(
             boolValue = value.boolValue,
             fpValue = value.fpValue,
             refValue = refValue,
+            valueType = value.type,
         )
 
         refValue is UIteExpr<*> -> {

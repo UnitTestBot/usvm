@@ -4,22 +4,15 @@ import io.ksmt.utils.asExpr
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsArrayAccess
 import org.jacodb.ets.model.EtsArrayType
-import org.jacodb.ets.model.EtsBooleanType
-import org.jacodb.ets.model.EtsNumberType
-import org.jacodb.ets.model.EtsUnknownType
-import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
-import org.usvm.api.typeStreamOf
-import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.interpreter.TsStepScope
-import org.usvm.machine.state.TsState
-import org.usvm.machine.types.TsUnresolvedValue
 import org.usvm.machine.types.mkFakeValue
+import org.usvm.machine.types.readUnresolvedArrayElement
 import org.usvm.sizeSort
-import org.usvm.types.first
+import org.usvm.util.arrayStorageType
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 
@@ -63,12 +56,7 @@ internal fun TsExprResolver.handleArrayAccess(
         isSigned = true,
     ).asExpr(sizeSort)
 
-    // Determine the array type.
-    val arrayType = if (isAllocatedConcreteHeapRef(array)) {
-        scope.calcOnState { memory.typeStreamOf(array).first() }
-    } else {
-        value.array.type
-    }
+    val arrayType = scope.calcOnState { arrayStorageType(array, value.array.type) }
     check(arrayType is EtsArrayType) {
         "Expected EtsArrayType, got: ${value.array.type}"
     }
@@ -109,62 +97,14 @@ fun TsContext.readArray(
         return scope.calcOnState { memory.read(lValue) }
     }
 
-    // Concrete arrays with the unresolved sort should consist of fake objects only.
-    if (array is UConcreteHeapRef) {
-        // Read a fake object from the array.
-        val lValue = mkArrayIndexLValue(
-            sort = addressSort,
-            ref = array,
-            index = index,
-            type = arrayType,
-        )
-        val fake = scope.calcOnState { memory.read(lValue) }
-        check(fake.isFakeObject()) {
-            "Expected fake object in concrete array with unresolved element type, got: $fake"
-        }
-        return fake
-    }
-
-    // If the element type is unresolved, we need to create a fake object
-    // that can hold boolean, number, and reference values.
-    // We read all three types from the array and combine them into a fake object.
     return scope.calcOnState {
-        val unknownArrayType = EtsArrayType(EtsUnknownType, dimensions = 1)
-        val refLValue = mkArrayIndexLValue(addressSort, array, index, unknownArrayType)
-        val value = readSymbolicUnresolvedArrayElement(array, index)
-
-        // Materialize the current symbolic-memory value instead of consulting allocation history.
+        val value = readUnresolvedArrayElement(memory, array, index)
         val fakeObj = mkFakeValue(scope = scope, value = value)
         if (fakeObj != value.refValue) {
-            lValuesToAllocatedFakeObjects += refLValue to fakeObj
+            val refLValue = mkArrayIndexLValue(addressSort, array, index, arrayType)
             memory.write(refLValue, fakeObj, guard = trueExpr)
         }
 
         fakeObj
     }
-}
-
-internal fun TsState.readSymbolicUnresolvedArrayElement(
-    array: UHeapRef,
-    index: UExpr<TsSizeSort>,
-): TsUnresolvedValue = with(ctx) {
-    check(array !is UConcreteHeapRef) { "A concrete unresolved array stores fake-value wrappers directly" }
-
-    val boolArrayType = EtsArrayType(EtsBooleanType, dimensions = 1)
-    val boolLValue = mkArrayIndexLValue(boolSort, array, index, boolArrayType)
-    val boolValue = memory.read(boolLValue)
-
-    val numberArrayType = EtsArrayType(EtsNumberType, dimensions = 1)
-    val fpLValue = mkArrayIndexLValue(fp64Sort, array, index, numberArrayType)
-    val fpValue = memory.read(fpLValue)
-
-    val unknownArrayType = EtsArrayType(EtsUnknownType, dimensions = 1)
-    val refLValue = mkArrayIndexLValue(addressSort, array, index, unknownArrayType)
-    val refValue = memory.read(refLValue)
-
-    TsUnresolvedValue(
-        boolValue = boolValue,
-        fpValue = fpValue,
-        refValue = refValue,
-    )
 }

@@ -5,13 +5,11 @@ import org.jacodb.ets.model.EtsArrayAccess
 import org.jacodb.ets.model.EtsArrayType
 import org.usvm.UExpr
 import org.usvm.UHeapRef
-import org.usvm.api.typeStreamOf
-import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.sizeSort
-import org.usvm.types.first
+import org.usvm.util.arrayStorageType
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 
@@ -44,14 +42,7 @@ internal fun TsExprResolver.handleAssignToArrayIndex(
         isSigned = true,
     ).asExpr(sizeSort)
 
-    // Determine the array type.
-    // TODO: handle the case when `lhv.array.type` is NOT an array.
-    //  In this case, it could be created manually: `EtsArrayType(EtsUnknownType, 1)`.
-    val arrayType = if (isAllocatedConcreteHeapRef(array)) {
-        scope.calcOnState { memory.typeStreamOf(array).first() }
-    } else {
-        lhv.array.type
-    }
+    val arrayType = scope.calcOnState { arrayStorageType(array, lhv.array.type) }
     check(arrayType is EtsArrayType) {
         "Expected EtsArrayType, got: ${lhv.array.type}"
     }
@@ -106,7 +97,6 @@ fun TsContext.assignToArrayIndex(
     )
     val fakeExpr = expr.toFakeObject(scope)
     return scope.doWithState {
-        lValuesToAllocatedFakeObjects += lValue to fakeExpr
         memory.write(lValue, fakeExpr, guard = trueExpr)
     }
 }

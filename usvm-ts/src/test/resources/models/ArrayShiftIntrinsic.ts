@@ -102,4 +102,52 @@ export class ArrayShiftIntrinsic {
         values.shift();
         return values;
     }
+
+    numberArrayThroughAnyAlias(): number {
+        const original: number[] = [10, 20];
+        const values: any[] = original;
+        return values.shift() === 10 && original[0] === 20 && values.length === 1 ? 1 : 0;
+    }
+
+    booleanArrayThroughUnknownAlias(): number {
+        const original: boolean[] = [true, false];
+        const values: unknown[] = original;
+        return values.shift() === true && original[0] === false && values.length === 1 ? 1 : 0;
+    }
+
+    conditionalFakeElement(index: number): number {
+        if (index !== 0 && index !== 1) return 0;
+        const values: any[] = [10, true];
+        values[index] = 20;
+        const removed = values.shift();
+        if (index === 0) return removed === 20 && values[0] === true ? 1 : -1;
+        return removed === 10 && values[0] === 20 ? 1 : -1;
+    }
+
+    conditionalArray(flag: boolean): number {
+        const first: any[] = [10, true];
+        const second: any[] = [false, 20];
+        const values: any[] = flag ? first : second;
+        const removed = values.shift();
+        if (flag) return removed === 10 && values[0] === true && first.length === 1 && second.length === 2 ? 1 : 0;
+        return removed === false && values[0] === 20 && second.length === 1 && first.length === 2 ? 1 : 0;
+    }
+
+    conditionalEmptyArray(flag: boolean): number {
+        const first: any[] = [10, true];
+        const second: any[] = [];
+        const values: any[] = flag ? first : second;
+        const removed = values.shift();
+        if (flag) return removed === 10 && values[0] === true && first.length === 1 && second.length === 0 ? 1 : 0;
+        return removed === undefined && first.length === 2 && second.length === 0 ? 1 : 0;
+    }
+
+    pushAfterShift(): number {
+        const element = new ArrayElement();
+        const values: any[] = [10, true, element];
+        const first = values.shift();
+        values.push(null);
+        return first === 10 && values.shift() === true && values.shift() === element &&
+            values.shift() === null && values.shift() === undefined && values.length === 0 ? 1 : 0;
+    }
 }

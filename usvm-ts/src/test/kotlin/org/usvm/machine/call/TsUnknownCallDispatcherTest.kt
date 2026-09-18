@@ -110,6 +110,19 @@ class TsUnknownCallDispatcherTest {
     }
 
     @Test
+    fun `failed fork callback does not report a completed model decision`() {
+        val observer = RecordingUnknownCallObserver()
+        val states = analyzeAllStates(
+            methodName = "modeledUnknownCallForks",
+            models = catalog(FailingSecondSuccessorModel),
+            observer = observer,
+        )
+
+        assertTrue(states.isEmpty())
+        assertTrue(observer.events.isEmpty())
+    }
+
+    @Test
     fun `throwing observer cannot change fresh or modeled exploration`() {
         val cases = listOf(
             ObservationFailureCase(
@@ -630,6 +643,20 @@ class TsUnknownCallDispatcherTest {
                     ),
                 ),
             )
+        }
+    }
+
+    private object FailingSecondSuccessorModel : TestModel(id = "failing-model", methodName = "convert") {
+        override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution {
+            val execution = ForkingModel.apply(state, call)
+            val (first, second) = execution.successors
+            val failingSecond = TsUnknownCallModelSuccessor(
+                guard = second.guard,
+                completion = second.completion,
+                applyStateChanges = { error("second successor failed") },
+            )
+
+            return TsUnknownCallModelExecution(successors = listOf(first, failingSecond))
         }
     }
 

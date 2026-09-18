@@ -13,7 +13,10 @@ import org.usvm.statistics.UInterpreterObserver
 
 @Suppress("unused")
 interface TsInterpreterObserver : UInterpreterObserver {
-    /** Called after the dispatcher selects a model or fallback decision for an unknown call. */
+    /**
+     * Called after the dispatcher completes a model or fallback decision for an unknown call.
+     * A model decision is reported once after all its satisfiable successor callbacks complete.
+     */
     fun onUnknownCall(event: TsUnknownCallEvent) {
         // default empty implementation
     }

@@ -83,7 +83,6 @@ class TsModelUnknownCallDispatcher(
             scope.checkSat(residualGuard) != null
 
         var modelApplied = false
-        var modelEventReported = false
         var freshResidualApplied = false
         // Materializing an unresolved result adds its exactly-one constraint. Do it before forking so every
         // successor that uses the wrapper inherits both the constraint and the refreshed solver models.
@@ -98,18 +97,9 @@ class TsModelUnknownCallDispatcher(
         val guardedStateChanges = application.execution.successors.mapIndexed { index, successor ->
             successor.guard to modelStateChange(
                 call = call,
-                modelId = application.modelId,
                 successor = successor,
                 preparedUnresolvedResult = preparedUnresolvedResults[index],
-                onApplied = {
-                    modelApplied = true
-                    if (modelEventReported) {
-                        false
-                    } else {
-                        modelEventReported = true
-                        true
-                    }
-                },
+                onApplied = { modelApplied = true },
             )
         }.toMutableList()
 
@@ -118,19 +108,16 @@ class TsModelUnknownCallDispatcher(
                 setMockMethodCallResult(call.callee, requireNotNull(freshResidualResult))
                 newStmt(call.callSite)
                 freshResidualApplied = true
-
-                val decision = TsUnknownCallDecision.ResidualFallback(TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN)
-                val fallbackEvent = event(call, decision)
-                observer?.onUnknownCallSafely(fallbackEvent)
             }
         }
 
         scope.forkMulti(guardedStateChanges)
 
-        if (stoppedResidualIsSatisfiable) {
-            val decision = TsUnknownCallDecision.ResidualFallback(TsResidualCallPolicy.STOP_PATH)
-            val fallbackEvent = event(call, decision)
-            observer?.onUnknownCallSafely(fallbackEvent)
+        if (modelApplied) {
+            observer?.onUnknownCallSafely(event(call, TsUnknownCallDecision.ModelApplied(application.modelId)))
+        }
+        if (freshResidualApplied || stoppedResidualIsSatisfiable) {
+            observer?.onUnknownCallSafely(event(call, TsUnknownCallDecision.ResidualFallback(fallback)))
         }
 
         return when {
@@ -143,10 +130,9 @@ class TsModelUnknownCallDispatcher(
 
     private fun modelStateChange(
         call: TsUnknownCall,
-        modelId: String,
         successor: TsUnknownCallModelSuccessor,
         preparedUnresolvedResult: UExpr<*>?,
-        onApplied: () -> Boolean,
+        onApplied: () -> Unit,
     ): TsState.() -> Unit = {
         successor.applyStateChanges(this)
 
@@ -171,9 +157,7 @@ class TsModelUnknownCallDispatcher(
             }
         }
 
-        if (onApplied()) {
-            observer?.onUnknownCallSafely(event(call, TsUnknownCallDecision.ModelApplied(modelId)))
-        }
+        onApplied()
     }
 
     private fun event(

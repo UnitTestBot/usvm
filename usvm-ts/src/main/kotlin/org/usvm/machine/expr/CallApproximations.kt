@@ -29,7 +29,7 @@ import org.usvm.machine.interpreter.setResolvedValue
 import org.usvm.machine.state.lastStmt
 import org.usvm.sizeSort
 import org.usvm.types.first
-import org.usvm.types.singleOrNull
+import org.usvm.util.arrayStorageType
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.resolveEtsMethods
@@ -93,7 +93,7 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
 
     val instanceType = if (instance.sort == addressSort && isAllocatedConcreteHeapRef(instance)) {
         scope.calcOnState {
-            memory.typeStreamOf(instance.asExpr(addressSort)).singleOrNull() ?: expr.instance.type
+            arrayStorageType(instance.asExpr(addressSort), expr.instance.type)
         }
     } else {
         expr.instance.type
