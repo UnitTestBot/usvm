@@ -55,6 +55,41 @@ export class InstanceCallReceiver {
         return result.length === 1 && result[0] === 20 && values.length === 2 ? 1 : -1;
     }
 
+    wrappedSliceReversed(): number {
+        const values = [10, 20];
+        const box: any[] = [values, true];
+        const result = box[0].slice(1, 0);
+        return result.length === 0 && values.length === 2 ? 1 : -1;
+    }
+
+    wrappedSlicePastEnd(): number {
+        const values = [10, 20];
+        const box: any[] = [values, true];
+        const result = box[0].slice(1, 10);
+        return result.length === 1 && result[0] === 20 && values.length === 2 ? 1 : -1;
+    }
+
+    wrappedSlicePastStart(): number {
+        const values = [10, 20];
+        const box: any[] = [values, true];
+        const result = box[0].slice(10);
+        return result.length === 0 && values.length === 2 ? 1 : -1;
+    }
+
+    wrappedSliceNegative(): number {
+        const values = [10, 20];
+        const box: any[] = [values, true];
+        const result = box[0].slice(-10, -1);
+        return result.length === 1 && result[0] === 10 && values.length === 2 ? 1 : -1;
+    }
+
+    wrappedSliceEmpty(): number {
+        const values = [10, 20];
+        const box: any[] = [values, true];
+        const result = box[0].slice(1, 1);
+        return result.length === 0 && values.length === 2 ? 1 : -1;
+    }
+
     wrappedConcat(): number {
         const values = [10, 20];
         const box: any[] = [values, true];

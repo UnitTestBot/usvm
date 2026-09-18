@@ -758,7 +758,6 @@ private fun TsExprResolver.handleArraySlice(
         "Array.slice() should have at most two arguments, but got ${expr.args.size}"
     }
 
-    // TODO: Support negative `start` and `end` indices.
     val start = if (expr.args.isNotEmpty()) {
         resolve(expr.args[0]) ?: return null
     } else {
@@ -805,8 +804,18 @@ private fun TsExprResolver.handleArraySlice(
     scope.calcOnState {
         val descriptor = arrayDescriptorOf(arrayType)
 
-        // Calculate the new length of the sliced array
-        val newLength = mkBvSubExpr(endBv, startBv)
+        val length = memory.read(mkArrayLengthLValue(array, arrayType))
+        val zero = mkBv(0)
+
+        fun normalizeIndex(index: UExpr<TsSizeSort>): UExpr<TsSizeSort> {
+            val relative = mkIte(mkBvSignedLessExpr(index, zero), mkBvAddExpr(length, index), index)
+            val capped = mkIte(mkBvSignedGreaterExpr(relative, length), length, relative)
+            return mkIte(mkBvSignedLessExpr(relative, zero), zero, capped)
+        }
+
+        val from = normalizeIndex(startBv)
+        val to = normalizeIndex(endBv)
+        val newLength = mkIte(mkBvSignedLessExpr(from, to), mkBvSubExpr(to, from), zero)
 
         // Allocate a new array for the slice
         val slicedArray = memory.allocConcrete(descriptor)
@@ -817,7 +826,7 @@ private fun TsExprResolver.handleArraySlice(
             dstRef = slicedArray,
             type = descriptor,
             elementSort = elementSort,
-            fromSrc = startBv,
+            fromSrc = from,
             fromDst = mkBv(0),
             length = newLength,
         )

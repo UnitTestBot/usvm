@@ -444,10 +444,11 @@ class TsUnknownCallDispatcherTest {
     @Test
     fun `partial approximation preserves resolved arguments and original call site`() {
         val calls = mutableListOf<TsUnknownCall>()
+        var expectedArgument: UExpr<*>? = null
         val model = object : TestModel(id = "recording-shift", methodName = "shift") {
             override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution? {
                 calls += call
-                assertEquals(state.ctx.mkFp64(17.0), call.arguments.single().resolved)
+                expectedArgument = state.ctx.mkFp64(17.0)
                 return null
             }
         }
@@ -455,6 +456,7 @@ class TsUnknownCallDispatcherTest {
         assertFalse(reachesReturn("arrayShiftWithArgument", models = catalog(model)))
 
         val call = calls.single()
+        assertEquals(assertNotNull(expectedArgument), call.arguments.single().resolved)
         assertEquals(TsUnknownCallFailureReason.PARTIAL_APPROXIMATION, call.failureReason)
         assertNotNull(call.receiver?.resolved)
         assertEquals("arrayShiftWithArgument", call.callSite.location.method.name)
