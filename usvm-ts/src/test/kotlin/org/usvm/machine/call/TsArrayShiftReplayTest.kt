@@ -44,7 +44,9 @@ class TsArrayShiftReplayTest {
                 }
 
                 assertTrue(tests.isNotEmpty())
-                val results = tests.map { assertIs<TsTestValue.TsNumber>(it.returnValue, message = it.toString()).number }.toSet()
+                val results = tests.map {
+                    assertIs<TsTestValue.TsNumber>(it.returnValue, message = it.toString()).number
+                }.toSet()
                 assertEquals((0..case.maxResult).map { it.toDouble() }.toSet(), results)
 
                 val script = buildString {
