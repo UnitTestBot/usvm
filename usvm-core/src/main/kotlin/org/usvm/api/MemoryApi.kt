@@ -93,14 +93,14 @@ fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<ArrayType>.mems
     memsetInternal(ref, type, sort, sizeSort, contents)
 }
 
-fun <ArrayType, USizeSort : USort> UWritableMemory<ArrayType>.initializeArrayLength(
+fun <ArrayType, USizeSort : USort> UWritableMemory<*>.initializeArrayLength(
     arrayHeapRef: UConcreteHeapRef,
     type: ArrayType,
     sizeSort: USizeSort,
     count: UExpr<USizeSort>,
 ) = initializeArrayLengthInternal(arrayHeapRef, type, sizeSort, count)
 
-fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<ArrayType>.initializeArray(
+fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<*>.initializeArray(
     arrayHeapRef: UConcreteHeapRef,
     type: ArrayType,
     sort: Sort,

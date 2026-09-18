@@ -10,9 +10,9 @@ import org.usvm.machine.state.TsState
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlin.test.assertSame
-import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 class TsUnknownCallModelCatalogTest {
@@ -109,33 +109,39 @@ class TsUnknownCallModelCatalogTest {
     @Test
     fun `class and reason wildcards reject exactly overlapping targets in either ID order`() {
         val reasons = listOf(null) + TsUnknownCallFailureReason.entries
-        val classes = listOf(null, "A", "B")
-        for (leftReason in reasons) for (rightReason in reasons) {
-            for (leftClass in classes) for (rightClass in classes) {
-                val left = model(id = "a", methodName = "method", failureReason = leftReason, className = leftClass)
-                val right = model(id = "b", methodName = "method", failureReason = rightReason, className = rightClass)
-                val overlaps = (leftReason == null || rightReason == null || leftReason == rightReason) &&
-                    (leftClass == null || rightClass == null || leftClass == rightClass)
-
-                if (overlaps) {
-                    assertFailsWith<IllegalStateException> { TsUnknownCallModelCatalog(listOf(left, right)) }
-                    assertFailsWith<IllegalStateException> {
-                        TsUnknownCallModelCatalog(listOf(
-                            model(id = "b", methodName = "method", failureReason = leftReason, className = leftClass),
-                            model(id = "a", methodName = "method", failureReason = rightReason, className = rightClass),
-                        ))
-                    }
-                } else {
-                    val catalog = TsUnknownCallModelCatalog(listOf(left, right))
-                    for (reason in TsUnknownCallFailureReason.entries) for (klass in listOf("A", "B", "C")) {
-                        val expected = listOf(left, right).singleOrNull {
-                            (it.target.failureReason == null || it.target.failureReason == reason) &&
-                                (it.target.enclosingClassName == null || it.target.enclosingClassName == klass)
-                        }
-                        assertSame(expected, catalog.select(call(klass, reason)))
-                    }
-                }
+        val targets = reasons.flatMap { reason ->
+            listOf(null, "A", "B").map { klass ->
+                TsUnknownCallTarget(methodName = "method", failureReason = reason, enclosingClassName = klass)
             }
+        }
+        for (left in targets) for (right in targets) {
+            val reasonOverlaps = left.failureReason == null || right.failureReason == null ||
+                left.failureReason == right.failureReason
+            val classOverlaps = left.enclosingClassName == null || right.enclosingClassName == null ||
+                left.enclosingClassName == right.enclosingClassName
+            val models = listOf(FakeModel(id = "a", target = left), FakeModel(id = "b", target = right))
+
+            if (reasonOverlaps && classOverlaps) {
+                assertFailsWith<IllegalStateException> { TsUnknownCallModelCatalog(models) }
+                assertFailsWith<IllegalStateException> {
+                    TsUnknownCallModelCatalog(
+                        listOf(FakeModel(id = "b", target = left), FakeModel(id = "a", target = right))
+                    )
+                }
+            } else {
+                assertSelections(models)
+            }
+        }
+    }
+
+    private fun assertSelections(models: List<TsUnknownCallModel>) {
+        val catalog = TsUnknownCallModelCatalog(models)
+        for (reason in TsUnknownCallFailureReason.entries) for (klass in listOf("A", "B", "C")) {
+            val expected = models.singleOrNull {
+                (it.target.failureReason == null || it.target.failureReason == reason) &&
+                    (it.target.enclosingClassName == null || it.target.enclosingClassName == klass)
+            }
+            assertSame(expected, catalog.select(call(klass, reason)))
         }
     }
 
@@ -145,6 +151,8 @@ class TsUnknownCallModelCatalogTest {
 
         assertEquals(listOf(TsArrayShiftIntrinsicModel.MODEL_ID), catalog.modelIds)
         assertSame(catalog, TsBuiltInUnknownCallModels.catalog())
+        assertFailsWith<UnsupportedOperationException> { (catalog.modelIds as MutableList<String>).clear() }
+        assertEquals(listOf(TsArrayShiftIntrinsicModel.MODEL_ID), TsBuiltInUnknownCallModels.catalog().modelIds)
         assertTrue(TsBuiltInUnknownCallModels.catalog(TsUnknownCallModelSelection.Only(emptySet())).modelIds.isEmpty())
     }
 

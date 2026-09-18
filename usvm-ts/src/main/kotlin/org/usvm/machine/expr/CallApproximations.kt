@@ -18,7 +18,7 @@ import org.usvm.api.initializeArray
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.api.memcpy
 import org.usvm.api.readArrayIndex
-import org.usvm.api.writeArrayIndex
+import org.usvm.getIntValue
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.TsVirtualMethodCallStmt
@@ -29,7 +29,8 @@ import org.usvm.machine.expr.TsExprApproximationResult.Companion.from
 import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.markResolved
 import org.usvm.machine.interpreter.setResolvedValue
-import org.usvm.machine.types.iteWriteIntoFakeObject
+import org.usvm.machine.state.TsMethodResult
+import org.usvm.machine.state.newStmt
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.machine.types.readUnresolvedArrayElement
 import org.usvm.sizeSort
@@ -120,7 +121,7 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
 
         // Handle `Array.pop() method calls
         if (expr.callee.name == "pop") {
-            return from(handleArrayPop(expr, instanceType, elementSort, array))
+            return from(handleArrayPop(stmt, instanceType, elementSort, array))
         }
 
         // Handle `Array.fill() method calls
@@ -179,7 +180,7 @@ private fun TsExprResolver.handleArrayShiftCall(
 ): TsExprApproximationResult {
     val dispatcher = unknownCallDispatcher
     if (dispatcher !is TsUnknownCallModelDispatcher) {
-        return from(handleArrayShift(stmt.call, instanceType, elementSort, stmt.instance.asExpr(ctx.addressSort)))
+        return from(handleArrayShift(stmt, instanceType, elementSort, stmt.instance.asExpr(ctx.addressSort)))
     }
 
     dispatcher.dispatch(
@@ -396,43 +397,51 @@ private fun TsExprResolver.handleArrayPush(
  * https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array.prototype.pop
  */
 private fun TsExprResolver.handleArrayPop(
-    expr: EtsInstanceCallExpr,
+    stmt: TsVirtualMethodCallStmt,
     arrayType: EtsArrayType,
     elementSort: USort,
     array: UHeapRef,
 ): UExpr<*>? = with(ctx) {
-    check(expr.args.isEmpty()) {
-        "Array.pop() should have no arguments, but got ${expr.args.size}"
+    check(stmt.args.isEmpty()) {
+        "Array.pop() should have no arguments, but got ${stmt.args.size}"
     }
 
-    removeArrayElement(array, arrayType, elementSort, first = false)
+    removeArrayElement(stmt, array, arrayType, elementSort, first = false)
 }
 
 private fun TsExprResolver.removeArrayElement(
+    stmt: TsVirtualMethodCallStmt,
     array: UHeapRef,
     arrayType: EtsArrayType,
     elementSort: USort,
     first: Boolean,
-): UExpr<*> = with(ctx) {
+): UExpr<*>? = with(ctx) {
+    val lengthLValue = mkArrayLengthLValue(array, arrayType)
+    val length = scope.calcOnState { memory.read(lengthLValue) }
+    val nonEmpty = mkNot(mkEq(length, mkBv(0)))
+    scope.fork(
+        nonEmpty,
+        blockOnFalseState = {
+            methodResult = TsMethodResult.Success.MockedCall(mkUndefinedValue(), stmt.call.callee)
+            newStmt(stmt.returnSite)
+        },
+    ) ?: return null
+
     scope.calcOnState {
-        val lengthLValue = mkArrayLengthLValue(array, arrayType)
-        val length = memory.read(lengthLValue)
-        val empty = mkEq(length, mkBv(0))
-        val newLength = mkIte(empty, mkBv(0), mkBvSubExpr(length, mkBv(1)))
+        val newLength = mkBvSubExpr(length, mkBv(1))
         val index = if (first) mkBv(0) else newLength
         val removed = if (typeToSort(arrayType.elementType) is TsUnresolvedSort) {
             mkFakeValue(scope, readUnresolvedArrayElement(memory, array, index))
         } else {
             memory.read(mkArrayIndexLValue(elementSort, array, index, arrayType))
         }
-        val result = iteWriteIntoFakeObject(scope, empty, mkUndefinedValue(), removed)
 
         if (first) {
             copyArrayElements(array, array, arrayType, fromSrc = mkBv(1), fromDst = mkBv(0), length = newLength)
         }
         memory.write(lengthLValue, newLength, guard = trueExpr)
 
-        result
+        removed
     }
 }
 
@@ -527,7 +536,9 @@ private fun TsExprResolver.handleArrayFill(
         // Calculate the length of the range to fill
         val fillLength = mkBvSubExpr(endBv, startBv)
 
-        // TODO: check that `fillLength` is less than `ARRAY_FILL_MAX_SIZE`
+        // Concrete ranges need no unused entries in the temporary array.
+        val tempSize = getIntValue(fillLength)?.coerceIn(0, ARRAY_FILL_MAX_SIZE) ?: ARRAY_FILL_MAX_SIZE
+        // TODO: check that symbolic `fillLength` is less than `ARRAY_FILL_MAX_SIZE`.
 
         // Allocate a temporary array to hold the filled values
         val tempArray = memory.allocConcrete(descriptor)
@@ -538,7 +549,7 @@ private fun TsExprResolver.handleArrayFill(
             descriptor,
             elementSort,
             sizeSort,
-            (0 until ARRAY_FILL_MAX_SIZE).asSequence().map { value.asExpr(elementSort) }
+            (0 until tempSize).asSequence().map { value.asExpr(elementSort) }
         )
 
         // Copy the filled values to the specified range in the original array
@@ -582,16 +593,16 @@ private const val ARRAY_FILL_MAX_SIZE = 10_000
  * https://tc39.es/ecma262/multipage/indexed-collections.html#sec-array.prototype.shift
  */
 private fun TsExprResolver.handleArrayShift(
-    expr: EtsInstanceCallExpr,
+    stmt: TsVirtualMethodCallStmt,
     arrayType: EtsArrayType,
     elementSort: USort,
     array: UHeapRef,
 ): UExpr<*>? = with(ctx) {
-    check(expr.args.isEmpty()) {
-        "Array.shift() should have no arguments, but got ${expr.args.size}"
+    check(stmt.args.isEmpty()) {
+        "Array.shift() should have no arguments, but got ${stmt.args.size}"
     }
 
-    removeArrayElement(array, arrayType, elementSort, first = true)
+    removeArrayElement(stmt, array, arrayType, elementSort, first = true)
 }
 
 /**
@@ -881,8 +892,10 @@ private fun TsExprResolver.handleArrayConcat(
                     )
                     totalLength = mkBvAddExpr(totalLength, length)
                 } else {
+                    val newLength = mkBvAddExpr(totalLength, mkBv(1))
+                    memory.write(mkArrayLengthLValue(resultArray, arrayType), newLength, guard = trueExpr)
                     assignToArrayIndex(scope, resultArray, totalLength, arg, arrayType) ?: return@calcOnState null
-                    totalLength = mkBvAddExpr(totalLength, mkBv(1))
+                    totalLength = newLength
                 }
             }
             memory.write(mkArrayLengthLValue(resultArray, arrayType), totalLength, guard = trueExpr)
@@ -1038,11 +1051,11 @@ private fun TsExprResolver.handleArrayReverse(
         val length = memory.read(lengthLValue)
 
         forEachArrayStorageRegion(arrayType) { region, sort ->
-            for (index in 0 until ARRAY_REVERSE_MAX_SIZE) {
+            val contents = (0 until ARRAY_REVERSE_MAX_SIZE).asSequence().map { index ->
                 val reversedIndex = mkBvSubExpr(mkBvSubExpr(length, mkBv(1)), index.toBv())
-                val value = memory.readArrayIndex(array, reversedIndex, region, sort)
-                memory.writeArrayIndex(reversedArray, index.toBv(), region, sort, value, guard = trueExpr)
+                memory.readArrayIndex(array, reversedIndex, region, sort)
             }
+            memory.initializeArray(reversedArray, region, sort, sizeSort, contents)
         }
         copyArrayElements(
             arrayType = arrayType,

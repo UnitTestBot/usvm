@@ -4,6 +4,7 @@ import org.usvm.machine.state.TsState
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
+import java.util.Collections
 
 private const val BYTE_MASK = 0xff
 
@@ -33,7 +34,7 @@ class TsUnknownCallModelCatalog(
             }
         }.sortedBy(TsUnknownCallModel::id)
 
-        modelIds = selectedModels.map(TsUnknownCallModel::id)
+        modelIds = Collections.unmodifiableList(selectedModels.map(TsUnknownCallModel::id))
         index = indexModels(selectedModels)
         fingerprint = computeFingerprint(modelIds)
     }

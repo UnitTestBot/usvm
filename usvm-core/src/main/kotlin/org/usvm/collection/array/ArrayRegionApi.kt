@@ -32,7 +32,7 @@ internal fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<*>.mem
     setRegion(regionId, newRegion)
 }
 
-internal fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<ArrayType>.initializeArray(
+internal fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<*>.initializeArray(
     arrayHeapRef: UConcreteHeapRef,
     type: ArrayType,
     elementSort: Sort,
@@ -62,7 +62,7 @@ internal fun <ArrayType, Sort : USort, USizeSort : USort> UWritableMemory<ArrayT
     setRegion(regionId, newRegion)
 }
 
-internal fun <ArrayType, USizeSort : USort> UWritableMemory<ArrayType>.initializeArrayLength(
+internal fun <ArrayType, USizeSort : USort> UWritableMemory<*>.initializeArrayLength(
     arrayHeapRef: UConcreteHeapRef,
     type: ArrayType,
     sizeSort: USizeSort,
