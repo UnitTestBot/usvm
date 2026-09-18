@@ -7,7 +7,6 @@ import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsInstanceCallExpr
 import org.jacodb.ets.model.EtsMethodSignature
-import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.usvm.UBoolExpr
@@ -21,6 +20,7 @@ import org.usvm.api.memcpy
 import org.usvm.api.typeStreamOf
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.TsSizeSort
+import org.usvm.machine.TsVirtualMethodCallStmt
 import org.usvm.machine.call.TsUnknownCallFailureReason
 import org.usvm.machine.call.TsUnknownCallModelDispatcher
 import org.usvm.machine.call.dispatch
@@ -80,10 +80,11 @@ internal fun TsExprResolver.tryApproximateGlobalInstanceCall(
 }
 
 internal fun TsExprResolver.tryApproximateInstanceCall(
-    expr: EtsInstanceCallExpr,
-    instance: UExpr<*>,
-    returnSite: EtsStmt,
+    stmt: TsVirtualMethodCallStmt,
 ): TsExprApproximationResult = with(ctx) {
+    val expr = stmt.call
+    val instance = stmt.instance
+
     // Mock `.toString()` method calls
     if (expr.callee.name == "toString") {
         if (expr.args.isNotEmpty()) {
@@ -129,7 +130,7 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
 
         // Handle `Array.shift() method calls
         if (expr.callee.name == "shift") {
-            return handleArrayShiftCall(expr, instanceType, elementSort, instance, returnSite)
+            return handleArrayShiftCall(stmt, instanceType, elementSort)
         }
 
         // Handle `Array.join() method calls
@@ -167,23 +168,20 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
 }
 
 private fun TsExprResolver.handleArrayShiftCall(
-    expr: EtsInstanceCallExpr,
+    stmt: TsVirtualMethodCallStmt,
     instanceType: EtsArrayType,
     elementSort: USort,
-    resolvedReceiver: UExpr<*>,
-    returnSite: EtsStmt,
 ): TsExprApproximationResult {
     val dispatcher = unknownCallDispatcher
     if (dispatcher !is TsUnknownCallModelDispatcher) {
-        return from(handleArrayShift(expr, instanceType, elementSort, resolvedReceiver.asExpr(ctx.addressSort)))
+        return from(handleArrayShift(stmt.call, instanceType, elementSort, stmt.instance.asExpr(ctx.addressSort)))
     }
 
     dispatcher.dispatch(
         scope,
-        expr,
-        returnSite,
+        stmt,
         failureReason = TsUnknownCallFailureReason.PARTIAL_APPROXIMATION,
-        resolvedReceiver = resolvedReceiver,
+        resolvedReceiver = stmt.instance,
     )
 
     return TsExprApproximationResult.ResolveFailure
@@ -823,6 +821,8 @@ private fun TsExprResolver.handleArraySlice(
             fromDst = mkBv(0),
             length = newLength,
         )
+
+        memory.write(mkArrayLengthLValue(slicedArray, arrayType), newLength, guard = trueExpr)
 
         // Return the new array containing the slice
         slicedArray

@@ -92,6 +92,16 @@ class CallFallbackBaseline {
         return ExternalAny.value();
     }
 
+    knownReceiverMethodContinues(receiver: KnownReceiver): number {
+        receiver.known();
+        return 102;
+    }
+
+    arrayShiftWithArgument(): number {
+        const values = [10, 20];
+        return values.shift(17);
+    }
+
     anyReceiverWithKnownMethodContinues(receiver: any): number {
         receiver.known();
         return 102;

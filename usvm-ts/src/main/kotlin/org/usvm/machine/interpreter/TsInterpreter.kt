@@ -172,7 +172,7 @@ class TsInterpreter(
         }
 
         val resolver = exprResolverWithScope(scope)
-        when (val result = resolver.tryApproximateInstanceCall(stmt.call, instance, stmt.returnSite)) {
+        when (val result = resolver.tryApproximateInstanceCall(stmt)) {
             is TsExprApproximationResult.SuccessfulApproximation -> {
                 scope.doWithState {
                     methodResult = TsMethodResult.Success.MockedCall(result.expr, callee)

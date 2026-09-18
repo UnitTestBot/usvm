@@ -1,5 +1,6 @@
 package org.usvm.machine.call
 
+import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import io.mockk.mockk
 import org.jacodb.ets.model.EtsFile
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.Test
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
+import org.usvm.UBoolSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UMachineOptions
@@ -405,8 +407,7 @@ class TsUnknownCallDispatcherTest {
     @Test
     fun `normally executable and compatibility-approximated calls bypass unknown dispatch`() {
         val methods = listOf(
-            // The native frontend gives this call a concrete executable target despite the legacy baseline name.
-            "anyReceiverWithKnownMethodContinues",
+            "knownReceiverMethodContinues",
             "loggerCallSkipsBody",
             "toStringUsesPlaceholder",
             "valueOfReturnsReceiver",
@@ -420,6 +421,44 @@ class TsUnknownCallDispatcherTest {
             assertTrue(reachesReturn(methodName, dispatcher = dispatcher), methodName)
             assertTrue(dispatcher.calls.isEmpty(), methodName)
         }
+    }
+
+    @Test
+    fun `unknown receiver preserves primitive fallbacks and executes the reference method`() {
+        val dispatcher = RecordingUnknownCallDispatcher()
+
+        assertTrue(reachesReturn("anyReceiverWithKnownMethodContinues", dispatcher = dispatcher))
+
+        assertEquals(2, dispatcher.calls.size)
+        assertTrue(dispatcher.calls.all { it.failureReason == TsUnknownCallFailureReason.NON_REFERENCE_RECEIVER })
+        val sorts = dispatcher.calls.map { assertNotNull(it.receiver?.resolved).sort }
+        assertTrue(sorts.any { it is UBoolSort })
+        assertTrue(sorts.any { it is KFp64Sort })
+        dispatcher.calls.forEach { call ->
+            assertEquals("known", call.callee.name)
+            assertEquals("anyReceiverWithKnownMethodContinues", call.callSite.location.method.name)
+            assertEquals(call.callee, assertNotNull(call.callSite.callExpr).callee)
+        }
+    }
+
+    @Test
+    fun `partial approximation preserves resolved arguments and original call site`() {
+        val calls = mutableListOf<TsUnknownCall>()
+        val model = object : TestModel(id = "recording-shift", methodName = "shift") {
+            override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution? {
+                calls += call
+                assertEquals(state.ctx.mkFp64(17.0), call.arguments.single().resolved)
+                return null
+            }
+        }
+
+        assertFalse(reachesReturn("arrayShiftWithArgument", models = catalog(model)))
+
+        val call = calls.single()
+        assertEquals(TsUnknownCallFailureReason.PARTIAL_APPROXIMATION, call.failureReason)
+        assertNotNull(call.receiver?.resolved)
+        assertEquals("arrayShiftWithArgument", call.callSite.location.method.name)
+        assertEquals(call.arguments.single().source, assertNotNull(call.callSite.callExpr).args.single())
     }
 
     @Test
