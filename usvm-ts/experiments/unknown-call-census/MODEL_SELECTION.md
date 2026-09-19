@@ -5,8 +5,8 @@ Selection frozen on 2026-09-19 before any held-out TS Calls evaluation. This is 
 ## Evidence used
 
 - Approximation audit #368 at `303409613c30ea5dcdabc1f97ac8092d753765b1`, which audits current source `41961f7b66c30c8a2a7507c67a79396f495f4520` and historical source `3728ba45ab092422e2cb2e57ed6fe2377425b622`.
-- The frozen development manifest in `development-corpus.json` and its primary `EMPTY_FRESH` census. The post-commit local pilot attempted 79 functions from three pinned projects: 58 completed, 6 timed out, and 15 ended with a boundary tool error. It observed 768 repeated events at 41 stable sites in 23 containing functions. These counts are retained with the raw artifact and must be regenerated after transplanting the census onto the accepted integration head.
-- Stable-site prevalence rather than repeated loop-event totals. The largest repeated groups were application callback or dispatch limitations: `BSTreeKV.compare` (390 events, 3 sites), iterator `next` (122 events, 2 sites), and `Array.isArray` (102 events, 1 site). Project-defined `Stack.pop` accounted for 14 events at 3 sites; it is not the built-in `Array.pop` target. No built-in `Array.shift` site was observed.
+- The frozen development manifest in `development-corpus.json` and its primary `EMPTY_FRESH` census. The first local pilot attempted 79 functions from three pinned projects and produced 768 repeated events at 41 stable source sites. Review found that its entry-file bound also removed imported support files and that swallowed interpreter failures appeared completed. Its preserved raw artifact is preliminary diagnostic evidence, not valid prevalence or completion evidence. Corrected counts must come from the rerun on the accepted integration head.
+- The preliminary artifact identified large repeated groups such as `BSTreeKV.compare`, iterator `next`, and `Array.isArray`, but those counts require corrected rerun confirmation. Its project-defined `Stack.pop` observations were manufactured by omitting the imported `stack.ts` support file and must not be used for model selection. No new family is admitted from this preliminary artifact.
 
 The primary profile disables optional catalog models but leaves mandatory semantics and legacy pre-dispatch approximations unchanged. Therefore the census is an inventory of observed unknown-call decisions, not every approximate or unresolved call in the engine. Tool errors, timeouts, and omitted call-resolution candidate tails also limit prevalence interpretation.
 
@@ -23,7 +23,7 @@ The control set is empty. Both existing models were implemented before this cens
 
 No new model family is admitted for the pilot:
 
-- `BSTreeKV.compare` and the project `Stack` methods require application-call/callback resolution shared by every profile, not optional treatment models.
+- Application callbacks and dispatch limitations such as `BSTreeKV.compare` require shared call-resolution work, not optional treatment models.
 - Iterator `next` needs stateful iterator representation and completion/alias validation.
 - `Array.isArray` has one stable development site and still needs proven target provenance plus rank/proxy bounds.
 - The remaining scattered standard calls do not establish both prevalence and a reviewed bounded semantic contract.

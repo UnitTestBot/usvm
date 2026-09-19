@@ -8,13 +8,16 @@ import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodSignature
+import org.jacodb.ets.model.EtsNamespaceSignature
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsSourceSpan
 import org.jacodb.ets.utils.ANONYMOUS_METHOD_PREFIX
+import org.jacodb.ets.utils.EtsIrGenerationException
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.INSTANCE_INIT_METHOD_NAME
 import org.jacodb.ets.utils.STATIC_INIT_METHOD_NAME
-import org.jacodb.ets.utils.loadEtsProjectAutoConvert
+import org.jacodb.ets.utils.generateEtsIR
+import org.jacodb.ets.utils.loadEtsProjectFromIR
 import org.usvm.SolverType
 import org.usvm.UMachineOptions
 import org.usvm.machine.TsInterpreterObserver
@@ -38,6 +41,7 @@ import kotlin.io.path.exists
 import kotlin.io.path.isDirectory
 import kotlin.io.path.name
 import kotlin.io.path.pathString
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 
@@ -51,6 +55,10 @@ internal class UnknownCallCensusRunner(
         validateManifest()
         outputDirectory.createDirectories()
         val rawOutput = outputDirectory.resolve(RAW_FILE_NAME)
+        val summaryOutput = outputDirectory.resolve(SUMMARY_FILE_NAME)
+        require(!rawOutput.exists() && !summaryOutput.exists()) {
+            "Census output already contains raw.jsonl or summary.json: $outputDirectory"
+        }
 
         CensusRecordWriter(rawOutput).use { writer ->
             val startedAt = Instant.now()
@@ -75,7 +83,7 @@ internal class UnknownCallCensusRunner(
             UnknownCallCensusAggregator.summarize(lines)
         }
         Files.writeString(
-            outputDirectory.resolve(SUMMARY_FILE_NAME),
+            summaryOutput,
             censusJson.encodeToString(summary) + System.lineSeparator(),
             StandardCharsets.UTF_8,
         )
@@ -90,6 +98,7 @@ internal class UnknownCallCensusRunner(
         writer: CensusRecordWriter,
     ) {
         val projectStart = TimeSource.Monotonic.markNow()
+        val projectTimeout = manifest.limits.projectTimeoutSeconds.seconds
         val normalizedCheckoutRoot = checkoutRoot.normalize().absolute()
         val projectRoot = normalizedCheckoutRoot.resolve(project.path).normalize()
 
@@ -104,14 +113,19 @@ internal class UnknownCallCensusRunner(
                 "Project license file does not exist: ${project.licenseFile}"
             }
             validateRevision(projectRoot, project.revision)
+            validateCleanCheckout(projectRoot)
 
-            val loadedFiles = loadProjectFiles(project, projectRoot)
-            val files = selectFiles(project, loadedFiles)
+            val loadedFiles = loadProjectFiles(project, projectRoot, projectStart, projectTimeout)
+            val entryFiles = selectFiles(project, loadedFiles)
+            val sceneFiles = loadedFiles.files
+                .distinctBy { file -> requireNotNull(loadedFiles.pathsBySignature[file.signature]) }
+                .sortedBy { file -> requireNotNull(loadedFiles.pathsBySignature[file.signature]) }
             val scene = EtsScene(
-                projectFiles = files,
+                projectFiles = sceneFiles,
                 projectName = project.id,
             )
-            val methods = scene.projectClasses
+            val methods = entryFiles
+                .flatMap { it.allClasses }
                 .flatMap { it.methods }
                 .filterNot { it.cfg.stmts.isEmpty() }
                 .filterNot { it.name.startsWith(ANONYMOUS_METHOD_PREFIX) }
@@ -123,12 +137,13 @@ internal class UnknownCallCensusRunner(
 
             var rawEvents = 0
             var completedMethods = 0
+            var partialMethods = 0
             var timedOutMethods = 0
             var failedMethods = 0
             var projectTimedOut = false
 
             for (method in methods) {
-                if (projectStart.elapsedNow() >= manifest.limits.projectTimeoutSeconds.seconds) {
+                if (projectStart.elapsedNow() >= projectTimeout) {
                     projectTimedOut = true
                     break
                 }
@@ -145,6 +160,7 @@ internal class UnknownCallCensusRunner(
                 rawEvents += result.events
                 when (result.status) {
                     MethodStatus.COMPLETED -> completedMethods++
+                    MethodStatus.PARTIAL -> partialMethods++
                     MethodStatus.TIMEOUT -> timedOutMethods++
                     MethodStatus.TOOL_ERROR -> failedMethods++
                 }
@@ -155,9 +171,11 @@ internal class UnknownCallCensusRunner(
                     putCommonProjectFields(project, profile)
                     put("kind", "project_result")
                     put("status", if (projectTimedOut) "timeout" else "completed")
-                    put("filesSelected", files.size)
+                    put("sceneFiles", sceneFiles.size)
+                    put("filesSelected", entryFiles.size)
                     put("methodsSelected", methods.size)
                     put("methodsCompleted", completedMethods)
+                    put("methodsPartial", partialMethods)
                     put("methodsTimedOut", timedOutMethods)
                     put("methodsFailed", failedMethods)
                     put("rawEvents", rawEvents)
@@ -167,17 +185,30 @@ internal class UnknownCallCensusRunner(
                     }
                 }
             )
+        } catch (error: ProjectTimeoutException) {
+            writeProjectFailure(project, profile, writer, "timeout", projectStart, error)
         } catch (error: Exception) {
-            writer.write(
-                buildJsonObject {
-                    putCommonProjectFields(project, profile)
-                    put("kind", "project_result")
-                    put("status", "tool_error")
-                    put("durationMillis", projectStart.elapsedNow().inWholeMilliseconds)
-                    put("error", boundedError(error))
-                }
-            )
+            writeProjectFailure(project, profile, writer, "tool_error", projectStart, error)
         }
+    }
+
+    private fun writeProjectFailure(
+        project: UnknownCallCensusProject,
+        profile: UnknownCallCensusProfile,
+        writer: CensusRecordWriter,
+        status: String,
+        projectStart: TimeSource.Monotonic.ValueTimeMark,
+        error: Throwable,
+    ) {
+        writer.write(
+            buildJsonObject {
+                putCommonProjectFields(project, profile)
+                put("kind", "project_result")
+                put("status", status)
+                put("durationMillis", projectStart.elapsedNow().inWholeMilliseconds)
+                put("error", boundedError(error))
+            }
+        )
     }
 
     @Suppress("TooGenericExceptionCaught")
@@ -204,6 +235,7 @@ internal class UnknownCallCensusRunner(
             randomSeed = 0,
             timeout = methodTimeout,
             solverType = SolverType.YICES,
+            throwExceptionOnStepFailure = true,
         )
         val emptyModelSelection = TsUnknownCallModelSelection.Only(emptySet())
         val tsOptions = TsOptions(
@@ -214,6 +246,7 @@ internal class UnknownCallCensusRunner(
         val analysisStart = TimeSource.Monotonic.markNow()
         var status = MethodStatus.COMPLETED
         var errorText: String? = null
+        var failureCount = 0
 
         try {
             TsMachine(
@@ -222,7 +255,25 @@ internal class UnknownCallCensusRunner(
                 tsOptions = tsOptions,
                 observer = observer,
             ).use { machine ->
-                machine.analyze(methods = listOf(method))
+                try {
+                    machine.analyze(methods = listOf(method))
+                } catch (error: Exception) {
+                    status = MethodStatus.PARTIAL
+                    failureCount++
+                    errorText = boundedError(error)
+                } catch (error: NotImplementedError) {
+                    status = MethodStatus.PARTIAL
+                    failureCount++
+                    errorText = boundedError(error)
+                }
+            }
+
+            if (observer.recordingFailureCount > 0) {
+                failureCount += observer.recordingFailureCount
+                errorText = combineErrors(errorText, observer.recordingFailureMessage)
+                if (status == MethodStatus.COMPLETED) {
+                    status = MethodStatus.PARTIAL
+                }
             }
 
             if (analysisStart.elapsedNow() >= methodTimeout) {
@@ -231,6 +282,11 @@ internal class UnknownCallCensusRunner(
             }
         } catch (error: Exception) {
             status = MethodStatus.TOOL_ERROR
+            failureCount++
+            errorText = boundedError(error)
+        } catch (error: NotImplementedError) {
+            status = MethodStatus.TOOL_ERROR
+            failureCount++
             errorText = boundedError(error)
         }
 
@@ -242,6 +298,7 @@ internal class UnknownCallCensusRunner(
                 put("status", status.serializedName)
                 put("durationMillis", analysisStart.elapsedNow().inWholeMilliseconds)
                 put("rawEvents", observer.eventCount)
+                put("failureCount", failureCount)
                 errorText?.let { put("error", it) }
             }
         )
@@ -262,19 +319,47 @@ internal class UnknownCallCensusRunner(
         .map { (file, _) -> file }
         .toList()
 
-    private fun loadProjectFiles(project: UnknownCallCensusProject, projectRoot: Path): LoadedProjectFiles {
+    private fun loadProjectFiles(
+        project: UnknownCallCensusProject,
+        projectRoot: Path,
+        projectStart: TimeSource.Monotonic.ValueTimeMark,
+        projectTimeout: Duration,
+    ): LoadedProjectFiles {
         val sourceRoots = project.include.ifEmpty { listOf("") }
         val files = mutableListOf<EtsFile>()
         val pathsBySignature = hashMapOf<EtsFileSignature, String>()
 
         sourceRoots.forEach { relativePath ->
+            ensureWithinProjectTimeout(projectStart, projectTimeout)
+            val remaining = projectTimeout - projectStart.elapsedNow()
+
             val sourceRoot = projectRoot.resolve(relativePath).normalize()
-            require(sourceRoot.startsWith(projectRoot)) { "Configured source root escapes project checkout: $sourceRoot" }
+            require(sourceRoot.startsWith(projectRoot)) {
+                "Configured source root escapes project checkout: $sourceRoot"
+            }
             require(sourceRoot.isDirectory()) { "Configured source root does not exist: $sourceRoot" }
-            val loadedFiles = loadEtsProjectAutoConvert(
-                sourceRoot,
-                provider = EtsIrProvider.TS_FRONTEND,
-            ).projectFiles
+            val generatedIr = try {
+                generateEtsIR(
+                    projectPath = sourceRoot,
+                    isProject = true,
+                    loadEntrypoints = false,
+                    timeout = remaining,
+                    provider = EtsIrProvider.TS_FRONTEND,
+                )
+            } catch (error: EtsIrGenerationException) {
+                ensureWithinProjectTimeout(projectStart, projectTimeout, cause = error)
+                throw error
+            }
+            val loadedFiles = try {
+                loadEtsProjectFromIR(
+                    projectFilesPath = generatedIr,
+                    sdkFilesPath = null,
+                ).projectFiles
+            } finally {
+                generatedIr.toFile().deleteRecursively()
+            }
+
+            ensureWithinProjectTimeout(projectStart, projectTimeout)
 
             loadedFiles.forEach { file ->
                 val sourcePath = repositoryRelativeSourcePath(
@@ -292,6 +377,16 @@ internal class UnknownCallCensusRunner(
         }
 
         return LoadedProjectFiles(files = files, pathsBySignature = pathsBySignature)
+    }
+
+    private fun ensureWithinProjectTimeout(
+        projectStart: TimeSource.Monotonic.ValueTimeMark,
+        projectTimeout: Duration,
+        cause: Throwable? = null,
+    ) {
+        if (projectStart.elapsedNow() >= projectTimeout) {
+            throw ProjectTimeoutException("Project timeout reached during frontend conversion", cause)
+        }
     }
 
     private fun validateManifest() {
@@ -363,8 +458,19 @@ internal class UnknownCallCensusRunner(
         }
     }
 
-    private fun gitObject(directory: Path, ref: String): String? = runCatching {
-        val process = ProcessBuilder("git", "-C", directory.pathString, "rev-parse", ref)
+    private fun validateCleanCheckout(projectRoot: Path) {
+        val status = gitOutput(
+            directory = projectRoot,
+            arguments = listOf("status", "--porcelain=v1", "--untracked-files=normal"),
+        ) ?: error("Cannot inspect Git status for project checkout $projectRoot")
+        require(status.isBlank()) { "Project checkout has tracked or untracked changes: $projectRoot" }
+    }
+
+    private fun gitObject(directory: Path, ref: String): String? =
+        gitOutput(directory, arguments = listOf("rev-parse", ref))
+
+    private fun gitOutput(directory: Path, arguments: List<String>): String? = runCatching {
+        val process = ProcessBuilder(listOf("git", "-C", directory.pathString) + arguments)
             .redirectErrorStream(true)
             .start()
         val output = process.inputStream.bufferedReader().use { it.readText() }.trim()
@@ -395,39 +501,52 @@ private class RecordingCensusObserver(
 ) : TsInterpreterObserver {
     var eventCount: Int = 0
         private set
+    var recordingFailureCount: Int = 0
+        private set
+    var recordingFailureMessage: String? = null
+        private set
 
+    @Suppress("TooGenericExceptionCaught")
     override fun onUnknownCall(event: TsUnknownCallEvent) {
-        eventCount++
-        val containingSignature = event.callSite.location.method.signature
-        val functionId = functionId(project.id, projectRoot, containingSignature, pathsBySignature)
-        val sourceSpan = event.callSite.location.origin
-        val sourceFile = sourcePath(containingSignature, projectRoot, pathsBySignature)
-        val siteId = siteId(functionId, sourceSpan, event.callSite.location.index)
-        val decision = event.decision.serializedName
+        try {
+            val containingSignature = event.callSite.location.method.signature
+            val functionId = functionId(project.id, projectRoot, containingSignature, pathsBySignature)
+            val sourceSpan = event.callSite.location.origin
+            val sourceFile = sourcePath(containingSignature, projectRoot, pathsBySignature)
+            val siteId = siteId(functionId, sourceSpan, event.callSite.location.index)
+            val decision = event.decision.serializedName
+            val eventIndex = eventCount + 1
 
-        writer.write(
-            buildJsonObject {
-                putCommonProjectFields(project, profile)
-                put("kind", "unknown_call")
-                put("entryFunctionId", entryFunctionId)
-                put("functionId", functionId)
-                put("siteId", siteId)
-                put("sourceFile", sourceFile)
-                sourceSpan?.let { span ->
-                    put("startLine", span.startLine)
-                    put("startColumn", span.startColumn)
-                    put("endLine", span.endLine)
-                    put("endColumn", span.endColumn)
+            writer.write(
+                buildJsonObject {
+                    putCommonProjectFields(project, profile)
+                    put("kind", "unknown_call")
+                    put("entryFunctionId", entryFunctionId)
+                    put("functionId", functionId)
+                    put("siteId", siteId)
+                    put("sourceFile", sourceFile)
+                    sourceSpan?.let { span ->
+                        put("startLine", span.startLine)
+                        put("startColumn", span.startColumn)
+                        put("endLine", span.endLine)
+                        put("endColumn", span.endColumn)
+                    }
+                    put("statementIndex", event.callSite.location.index)
+                    put("calleeId", calleeId(projectRoot, event.callee, pathsBySignature))
+                    put("calleeName", event.callee.name)
+                    put("failureReason", event.failureReason.name)
+                    put("decision", decision)
+                    put("outcome", event.outcome.name)
+                    put("eventIndex", eventIndex)
                 }
-                put("statementIndex", event.callSite.location.index)
-                put("calleeId", calleeId(projectRoot, event.callee, pathsBySignature))
-                put("calleeName", event.callee.name)
-                put("failureReason", event.failureReason.name)
-                put("decision", decision)
-                put("outcome", event.outcome.name)
-                put("eventIndex", eventCount)
+            )
+            eventCount = eventIndex
+        } catch (error: Exception) {
+            recordingFailureCount++
+            if (recordingFailureMessage == null) {
+                recordingFailureMessage = "Unknown-call event recording failed: ${boundedError(error)}"
             }
-        )
+        }
     }
 }
 
@@ -435,8 +554,7 @@ internal class CensusRecordWriter(output: Path) : AutoCloseable {
     private val writer: BufferedWriter = Files.newBufferedWriter(
         output,
         StandardCharsets.UTF_8,
-        StandardOpenOption.CREATE,
-        StandardOpenOption.TRUNCATE_EXISTING,
+        StandardOpenOption.CREATE_NEW,
         StandardOpenOption.WRITE,
     )
 
@@ -452,6 +570,7 @@ internal class CensusRecordWriter(output: Path) : AutoCloseable {
 
 private enum class MethodStatus(val serializedName: String) {
     COMPLETED("completed"),
+    PARTIAL("partial"),
     TIMEOUT("timeout"),
     TOOL_ERROR("tool_error"),
 }
@@ -518,8 +637,13 @@ private fun sourcePath(
 
 private fun signatureKey(signature: EtsMethodSignature): String {
     val parameters = signature.parameters.joinToString(separator = ",") { parameter -> parameter.type.toString() }
-    return "${signature.enclosingClass.name}:${signature.name}($parameters)->${signature.returnType}"
+    val namespace = signature.enclosingClass.namespace?.qualifiedName()
+    val className = listOfNotNull(namespace, signature.enclosingClass.name).joinToString(separator = "::")
+    return "$className:${signature.name}($parameters)->${signature.returnType}"
 }
+
+private fun EtsNamespaceSignature.qualifiedName(): String =
+    listOfNotNull(namespace?.qualifiedName(), name).joinToString(separator = "::")
 
 private fun siteId(functionId: String, sourceSpan: EtsSourceSpan?, statementIndex: Int): String =
     if (sourceSpan == null) {
@@ -571,6 +695,14 @@ private fun boundedError(error: Throwable): String {
         ?.take(MAX_ERROR_LENGTH)
     return if (message.isNullOrBlank()) type else "$type: $message"
 }
+
+private fun combineErrors(primary: String?, additional: String?): String? = when {
+    primary == null -> additional
+    additional == null -> primary
+    else -> "$primary; $additional".take(MAX_ERROR_LENGTH)
+}
+
+private class ProjectTimeoutException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
 
 private const val MAX_ERROR_LENGTH = 1_000
 private const val DEFAULT_FILE_METHOD_NAME = "%dflt"

@@ -4,9 +4,10 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
 
-internal const val CENSUS_SCHEMA_VERSION = 1
+internal const val CENSUS_SCHEMA_VERSION = 2
 
 internal val censusJson = Json {
     encodeDefaults = true
@@ -60,6 +61,7 @@ internal data class UnknownCallCensusProfileSummary(
     val projects: Int,
     val functionsAnalyzed: Int,
     val functionsCompleted: Int,
+    val functionsPartial: Int,
     val functionsWithUnknownCalls: Int,
     val uniqueSites: Int,
     val rawEvents: Int,
@@ -67,6 +69,7 @@ internal data class UnknownCallCensusProfileSummary(
     val eventsByDecision: Map<String, Int>,
     val eventsByCallee: Map<String, Int>,
     val uniqueSitesByCallee: Map<String, Int>,
+    val partials: List<UnknownCallCensusIssue>,
     val timeouts: List<UnknownCallCensusIssue>,
     val errors: List<UnknownCallCensusIssue>,
 )
@@ -76,6 +79,7 @@ internal data class UnknownCallCensusIssue(
     val projectId: String,
     val functionId: String? = null,
     val message: String? = null,
+    val failureCount: Int = 0,
 )
 
 internal object UnknownCallCensusAggregator {
@@ -110,6 +114,7 @@ private class ProfileAccumulator {
     private val projects = hashSetOf<String>()
     private val functions = hashSetOf<String>()
     private val completedFunctions = hashSetOf<String>()
+    private val partialFunctions = hashSetOf<String>()
     private val functionsWithUnknownCalls = hashSetOf<String>()
     private val sites = hashSetOf<String>()
     private var rawEvents = 0
@@ -117,6 +122,7 @@ private class ProfileAccumulator {
     private val eventsByDecision = hashMapOf<String, Int>()
     private val eventsByCallee = hashMapOf<String, Int>()
     private val sitesByCallee = hashMapOf<String, MutableSet<String>>()
+    private val partials = mutableListOf<UnknownCallCensusIssue>()
     private val timeouts = mutableListOf<UnknownCallCensusIssue>()
     private val errors = mutableListOf<UnknownCallCensusIssue>()
 
@@ -146,12 +152,17 @@ private class ProfileAccumulator {
             projectId = projectId,
             functionId = functionId,
             message = record.optionalString("error"),
+            failureCount = record.optionalInt("failureCount") ?: 0,
         )
 
         projects += projectId
         functions += functionId
         when (status) {
             "completed" -> completedFunctions += functionId
+            "partial" -> {
+                partialFunctions += functionId
+                partials += issue
+            }
             "timeout" -> timeouts += issue
             "tool_error" -> errors += issue
         }
@@ -176,6 +187,7 @@ private class ProfileAccumulator {
         projects = projects.size,
         functionsAnalyzed = functions.size,
         functionsCompleted = completedFunctions.size,
+        functionsPartial = partialFunctions.size,
         functionsWithUnknownCalls = functionsWithUnknownCalls.size,
         uniqueSites = sites.size,
         rawEvents = rawEvents,
@@ -183,6 +195,7 @@ private class ProfileAccumulator {
         eventsByDecision = eventsByDecision.toSortedMap(),
         eventsByCallee = eventsByCallee.toSortedMap(),
         uniqueSitesByCallee = sitesByCallee.toSortedMap().mapValues { (_, sites) -> sites.size },
+        partials = partials.sortedWith(issueComparator),
         timeouts = timeouts.sortedWith(issueComparator),
         errors = errors.sortedWith(issueComparator),
     )
@@ -202,3 +215,5 @@ private fun JsonObject.requiredString(name: String, recordIndex: Int): String =
     optionalString(name) ?: error("Raw census record ${recordIndex + 1} has no string '$name'")
 
 private fun JsonObject.optionalString(name: String): String? = get(name)?.jsonPrimitive?.contentOrNull
+
+private fun JsonObject.optionalInt(name: String): Int? = get(name)?.jsonPrimitive?.intOrNull

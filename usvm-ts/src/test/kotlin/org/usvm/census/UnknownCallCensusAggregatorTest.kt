@@ -11,6 +11,12 @@ class UnknownCallCensusAggregatorTest {
             unknownCallRecord(siteId = "project:file:fn:1:1:1:8", failureReason = "ANY_RECEIVER"),
             unknownCallRecord(siteId = "project:file:fn:2:1:2:8", failureReason = "METHOD_BODY_UNAVAILABLE"),
             methodRecord(functionId = "project:file:fn", status = "completed"),
+            methodRecord(
+                functionId = "project:file:partial",
+                status = "partial",
+                error = "step failed",
+                failureCount = 2,
+            ),
             methodRecord(functionId = "project:file:timeout", status = "timeout", error = "Machine timeout reached"),
             methodRecord(functionId = "project:file:error", status = "tool_error", error = "frontend failed"),
             projectRecord(projectId = "project", status = "completed"),
@@ -21,8 +27,9 @@ class UnknownCallCensusAggregatorTest {
 
         val profile = requireNotNull(summary.profiles["EMPTY_FRESH"])
         assertEquals(2, profile.projects)
-        assertEquals(3, profile.functionsAnalyzed)
+        assertEquals(4, profile.functionsAnalyzed)
         assertEquals(1, profile.functionsCompleted)
+        assertEquals(1, profile.functionsPartial)
         assertEquals(1, profile.functionsWithUnknownCalls)
         assertEquals(2, profile.uniqueSites)
         assertEquals(3, profile.rawEvents)
@@ -30,6 +37,8 @@ class UnknownCallCensusAggregatorTest {
         assertEquals(mapOf("RESIDUAL_FALLBACK:FRESH_SYMBOLIC_RETURN" to 3), profile.eventsByDecision)
         assertEquals(mapOf("external:unknown" to 3), profile.eventsByCallee)
         assertEquals(mapOf("external:unknown" to 2), profile.uniqueSitesByCallee)
+        assertEquals(listOf("project:file:partial"), profile.partials.mapNotNull { it.functionId })
+        assertEquals(2, profile.partials.single().failureCount)
         assertEquals(listOf("project:file:timeout"), profile.timeouts.mapNotNull { it.functionId })
         assertEquals(2, profile.errors.size)
     }
@@ -49,17 +58,23 @@ class UnknownCallCensusAggregatorTest {
         }
     """.trimIndent()
 
-    private fun methodRecord(functionId: String, status: String, error: String? = null): String {
+    private fun methodRecord(
+        functionId: String,
+        status: String,
+        error: String? = null,
+        failureCount: Int = 0,
+    ): String {
         val errorField = error?.let { ",\"error\":\"$it\"" }.orEmpty()
         return """
             {
               "kind":"method_result",
-              "schemaVersion":1,
+              "schemaVersion":2,
               "projectId":"project",
               "projectRevision":"0000000000000000000000000000000000000000",
               "profile":"EMPTY_FRESH",
               "functionId":"$functionId",
-              "status":"$status"$errorField
+              "status":"$status",
+              "failureCount":$failureCount$errorField
             }
         """.trimIndent()
     }

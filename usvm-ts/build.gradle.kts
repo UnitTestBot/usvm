@@ -37,6 +37,7 @@ dependencies {
 tasks.register<JavaExec>("runUnknownCallCensus") {
     group = "verification"
     description = "Runs or summarizes the TypeScript unknown-call census."
+    workingDir(rootProject.projectDir)
     classpath = sourceSets.main.get().runtimeClasspath
     mainClass.set("org.usvm.census.UnknownCallCensusCliKt")
 }
