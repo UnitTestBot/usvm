@@ -276,10 +276,14 @@ internal class UnknownCallCensusRunner(
                 }
             }
 
-            if (analysisStart.elapsedNow() >= methodTimeout) {
-                status = MethodStatus.TIMEOUT
-                errorText = "Machine timeout reached"
-            }
+            val finalOutcome = methodOutcomeAfterTimeoutCheck(
+                status = status,
+                error = errorText,
+                elapsed = analysisStart.elapsedNow(),
+                timeout = methodTimeout,
+            )
+            status = finalOutcome.status
+            errorText = finalOutcome.error
         } catch (error: Exception) {
             status = MethodStatus.TOOL_ERROR
             failureCount++
@@ -568,11 +572,30 @@ internal class CensusRecordWriter(output: Path) : AutoCloseable {
     }
 }
 
-private enum class MethodStatus(val serializedName: String) {
+internal enum class MethodStatus(val serializedName: String) {
     COMPLETED("completed"),
     PARTIAL("partial"),
     TIMEOUT("timeout"),
     TOOL_ERROR("tool_error"),
+}
+
+internal data class MethodOutcome(
+    val status: MethodStatus,
+    val error: String?,
+)
+
+internal fun methodOutcomeAfterTimeoutCheck(
+    status: MethodStatus,
+    error: String?,
+    elapsed: Duration,
+    timeout: Duration,
+): MethodOutcome = if (status == MethodStatus.COMPLETED && elapsed >= timeout) {
+    MethodOutcome(
+        status = MethodStatus.TIMEOUT,
+        error = "Machine timeout reached",
+    )
+} else {
+    MethodOutcome(status = status, error = error)
 }
 
 private data class MethodRunResult(
