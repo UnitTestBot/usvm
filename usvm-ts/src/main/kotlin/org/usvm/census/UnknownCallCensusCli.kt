@@ -63,7 +63,7 @@ internal class UnknownCallCensusCli(
         outputPath.parent?.let(Files::createDirectories)
         Files.writeString(
             outputPath,
-            censusJson.encodeToString(summary) + System.lineSeparator(),
+            censusJson.encodeToString(summary) + "\n",
             StandardCharsets.UTF_8,
         )
         output.appendLine(censusJson.encodeToString(summary))

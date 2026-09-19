@@ -32,8 +32,14 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
+import java.nio.file.attribute.PosixFilePermission
+import java.nio.file.attribute.PosixFilePermissions
 import java.security.MessageDigest
 import java.time.Instant
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import kotlin.io.path.absolute
 import kotlin.io.path.createDirectories
 import kotlin.io.path.exists
@@ -41,6 +47,7 @@ import kotlin.io.path.isDirectory
 import kotlin.io.path.name
 import kotlin.io.path.pathString
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 
@@ -83,7 +90,7 @@ internal class UnknownCallCensusRunner(
         }
         Files.writeString(
             summaryOutput,
-            censusJson.encodeToString(summary) + System.lineSeparator(),
+            censusJson.encodeToString(summary) + "\n",
             StandardCharsets.UTF_8,
         )
 
@@ -98,21 +105,29 @@ internal class UnknownCallCensusRunner(
     ) {
         val projectStart = TimeSource.Monotonic.markNow()
         val projectTimeout = manifest.limits.projectTimeoutSeconds.seconds
-        val normalizedCheckoutRoot = checkoutRoot.normalize().absolute()
-        val projectRoot = normalizedCheckoutRoot.resolve(project.path).normalize()
 
         try {
-            require(projectRoot.startsWith(normalizedCheckoutRoot)) {
-                "Project checkout escapes the configured checkout root: $projectRoot"
-            }
-            require(projectRoot.isDirectory()) { "Project checkout does not exist: $projectRoot" }
-            val licenseFile = projectRoot.resolve(project.licenseFile).normalize()
-            require(licenseFile.startsWith(projectRoot)) { "Project license file escapes its checkout: $licenseFile" }
-            require(licenseFile.exists()) {
-                "Project license file does not exist: ${project.licenseFile}"
-            }
-            validateRevision(projectRoot, project.revision)
-            validateCleanCheckout(projectRoot)
+            // A checkout entry may itself be a symlink. Its validated Git repository is the provenance boundary.
+            val projectRoot = canonicalProjectCheckout(
+                checkoutRoot = checkoutRoot,
+                relativePath = project.path,
+            )
+            canonicalExistingProjectPath(
+                projectRoot = projectRoot,
+                relativePath = project.licenseFile,
+                kind = "Project license file",
+                requireDirectory = false,
+            )
+
+            validateRevision(
+                projectRoot = projectRoot,
+                expectedRevision = project.revision,
+                timeout = remainingProjectBudget(projectStart, projectTimeout, phase = "Git revision validation"),
+            )
+            validateCleanCheckout(
+                projectRoot = projectRoot,
+                timeout = remainingProjectBudget(projectStart, projectTimeout, phase = "Git status validation"),
+            )
 
             val loadedFiles = loadProjectFiles(project, projectRoot, projectStart, projectTimeout)
             val entryFiles = selectFiles(project, loadedFiles)
@@ -336,11 +351,12 @@ internal class UnknownCallCensusRunner(
             ensureWithinProjectTimeout(projectStart, projectTimeout)
             val remaining = projectTimeout - projectStart.elapsedNow()
 
-            val sourceRoot = projectRoot.resolve(relativePath).normalize()
-            require(sourceRoot.startsWith(projectRoot)) {
-                "Configured source root escapes project checkout: $sourceRoot"
-            }
-            require(sourceRoot.isDirectory()) { "Configured source root does not exist: $sourceRoot" }
+            val sourceRoot = canonicalExistingProjectPath(
+                projectRoot = projectRoot,
+                relativePath = relativePath,
+                kind = "Configured source root",
+                requireDirectory = true,
+            )
             val generatedIr = try {
                 generateEtsIR(
                     projectPath = sourceRoot,
@@ -392,6 +408,19 @@ internal class UnknownCallCensusRunner(
         }
     }
 
+    private fun remainingProjectBudget(
+        projectStart: TimeSource.Monotonic.ValueTimeMark,
+        projectTimeout: Duration,
+        phase: String,
+    ): Duration {
+        val remaining = projectTimeout - projectStart.elapsedNow()
+        if (remaining <= Duration.ZERO) {
+            throw ProjectTimeoutException("Project timeout reached during $phase")
+        }
+
+        return remaining
+    }
+
     private fun validateManifest() {
         require(manifest.schemaVersion == CENSUS_SCHEMA_VERSION) {
             "Unsupported census manifest schema ${manifest.schemaVersion}"
@@ -434,8 +463,14 @@ internal class UnknownCallCensusRunner(
         put("schemaVersion", CENSUS_SCHEMA_VERSION)
         put("startedAt", startedAt.toString())
         put("manifestSha256", sha256(Files.readAllBytes(manifestPath)))
-        put("toolRevision", gitObject(Path.of("."), ref = "HEAD") ?: "unknown")
-        put("toolTree", gitObject(Path.of("."), ref = "HEAD^{tree}") ?: "unknown")
+        put(
+            "toolRevision",
+            gitObject(Path.of("."), ref = "HEAD", timeout = RUN_METADATA_GIT_TIMEOUT) ?: "unknown",
+        )
+        put(
+            "toolTree",
+            gitObject(Path.of("."), ref = "HEAD^{tree}", timeout = RUN_METADATA_GIT_TIMEOUT) ?: "unknown",
+        )
         put("jacodbArtifact", runtimeArtifactName(EtsScene::class.java))
         put("frontendProvider", EtsIrProvider.TS_FRONTEND.name)
         put("solver", SolverType.YICES.name)
@@ -449,32 +484,70 @@ internal class UnknownCallCensusRunner(
         put("maxMethods", manifest.limits.maxMethods)
     }
 
-    private fun validateRevision(projectRoot: Path, expectedRevision: String) {
-        val actualRevision = gitObject(projectRoot, ref = "HEAD")
+    private fun validateRevision(projectRoot: Path, expectedRevision: String, timeout: Duration) {
+        val actualRevision = gitObject(
+            directory = projectRoot,
+            ref = "HEAD",
+            timeout = timeout,
+            timeoutFailure = {
+                ProjectTimeoutException("Project timeout reached during Git revision validation")
+            },
+        )
             ?: error("Cannot read Git revision for project checkout $projectRoot")
         require(actualRevision.equals(expectedRevision, ignoreCase = true)) {
             "Project checkout $projectRoot is at $actualRevision, expected $expectedRevision"
         }
     }
 
-    private fun validateCleanCheckout(projectRoot: Path) {
+    private fun validateCleanCheckout(projectRoot: Path, timeout: Duration) {
         val status = gitOutput(
             directory = projectRoot,
             arguments = listOf("status", "--porcelain=v1", "--untracked-files=normal"),
+            timeout = timeout,
+            timeoutFailure = {
+                ProjectTimeoutException("Project timeout reached during Git status validation")
+            },
         ) ?: error("Cannot inspect Git status for project checkout $projectRoot")
         require(status.isBlank()) { "Project checkout has tracked or untracked changes: $projectRoot" }
     }
 
-    private fun gitObject(directory: Path, ref: String): String? =
-        gitOutput(directory, arguments = listOf("rev-parse", ref))
+    private fun gitObject(
+        directory: Path,
+        ref: String,
+        timeout: Duration,
+        timeoutFailure: (() -> ProjectTimeoutException)? = null,
+    ): String? = gitOutput(
+        directory = directory,
+        arguments = listOf("rev-parse", ref),
+        timeout = timeout,
+        timeoutFailure = timeoutFailure,
+    )
 
-    private fun gitOutput(directory: Path, arguments: List<String>): String? = runCatching {
-        val process = ProcessBuilder(listOf("git", "-C", directory.pathString) + arguments)
-            .redirectErrorStream(true)
-            .start()
-        val output = process.inputStream.bufferedReader().use { it.readText() }.trim()
-        if (process.waitFor() == 0) output else null
-    }.getOrNull()
+    private fun gitOutput(
+        directory: Path,
+        arguments: List<String>,
+        timeout: Duration,
+        timeoutFailure: (() -> ProjectTimeoutException)? = null,
+    ): String? {
+        val result = runCatching {
+            boundedProcessOutput(
+                command = listOf("git", "-C", directory.pathString) + arguments,
+                timeout = timeout,
+                maxOutputBytes = MAX_GIT_OUTPUT_BYTES,
+            )
+        }.getOrNull() ?: return null
+
+        return when (result) {
+            is BoundedProcessOutput.Completed -> {
+                if (result.exitCode == 0 && !result.truncated) result.output.trim() else null
+            }
+
+            BoundedProcessOutput.TimedOut -> {
+                timeoutFailure?.let { throw it() }
+                null
+            }
+        }
+    }
 
     private fun sha256(bytes: ByteArray): String = MessageDigest.getInstance("SHA-256")
         .digest(bytes)
@@ -483,8 +556,158 @@ internal class UnknownCallCensusRunner(
     private companion object {
         const val RAW_FILE_NAME = "raw.jsonl"
         const val SUMMARY_FILE_NAME = "summary.json"
+        const val MAX_GIT_OUTPUT_BYTES = 64 * 1024
+        val RUN_METADATA_GIT_TIMEOUT = 10.seconds
     }
 }
+
+internal fun canonicalProjectCheckout(checkoutRoot: Path, relativePath: String): Path {
+    val canonicalCheckoutRoot = checkoutRoot.toRealPath()
+    val configuredProjectRoot = canonicalCheckoutRoot.resolve(relativePath).normalize()
+    require(configuredProjectRoot.startsWith(canonicalCheckoutRoot)) {
+        "Project checkout escapes the configured checkout root: $configuredProjectRoot"
+    }
+    require(configuredProjectRoot.isDirectory()) {
+        "Project checkout does not exist: $configuredProjectRoot"
+    }
+
+    return configuredProjectRoot.toRealPath()
+}
+
+internal fun canonicalExistingProjectPath(
+    projectRoot: Path,
+    relativePath: String,
+    kind: String,
+    requireDirectory: Boolean,
+): Path {
+    val canonicalProjectRoot = projectRoot.toRealPath()
+    val configuredPath = canonicalProjectRoot.resolve(relativePath).normalize()
+    require(configuredPath.startsWith(canonicalProjectRoot)) {
+        "$kind escapes project checkout: $configuredPath"
+    }
+    require(configuredPath.exists()) { "$kind does not exist: $relativePath" }
+    if (requireDirectory) {
+        require(configuredPath.isDirectory()) { "$kind is not a directory: $configuredPath" }
+    }
+
+    val canonicalPath = configuredPath.toRealPath()
+    require(canonicalPath.startsWith(canonicalProjectRoot)) {
+        "$kind escapes project checkout through a symbolic link: $configuredPath"
+    }
+
+    return canonicalPath
+}
+
+internal sealed interface BoundedProcessOutput {
+    data class Completed(
+        val exitCode: Int,
+        val output: String,
+        val truncated: Boolean,
+    ) : BoundedProcessOutput
+
+    data object TimedOut : BoundedProcessOutput
+}
+
+internal fun boundedProcessOutput(
+    command: List<String>,
+    timeout: Duration,
+    maxOutputBytes: Int,
+): BoundedProcessOutput {
+    require(timeout > Duration.ZERO) { "Process timeout must be positive" }
+    require(maxOutputBytes > 0) { "Process output limit must be positive" }
+
+    val outputFile = createSecureProcessOutputFile()
+    var process: Process? = null
+    try {
+        val processStart = TimeSource.Monotonic.markNow()
+        val startedProcess = ProcessBuilder(command)
+            .redirectErrorStream(true)
+            .redirectOutput(outputFile.toFile())
+            .start()
+        process = startedProcess
+        startedProcess.outputStream.close()
+
+        val remaining = timeout - processStart.elapsedNow()
+        val completed = remaining > Duration.ZERO && startedProcess.waitFor(
+            remaining.inWholeMilliseconds.coerceAtLeast(minimumValue = 1),
+            TimeUnit.MILLISECONDS,
+        )
+        if (!completed) {
+            terminateProcessTreeBestEffort(startedProcess)
+            return BoundedProcessOutput.TimedOut
+        }
+
+        val bytes = Files.newInputStream(outputFile).use { input ->
+            input.readNBytes(maxOutputBytes + 1)
+        }
+        val truncated = bytes.size > maxOutputBytes
+        val capturedBytes = if (truncated) bytes.copyOf(maxOutputBytes) else bytes
+        return BoundedProcessOutput.Completed(
+            exitCode = startedProcess.exitValue(),
+            output = capturedBytes.toString(StandardCharsets.UTF_8),
+            truncated = truncated,
+        )
+    } finally {
+        process?.takeIf(Process::isAlive)?.let(::terminateProcessTreeBestEffort)
+        runCatching { Files.deleteIfExists(outputFile) }
+    }
+}
+
+private fun createSecureProcessOutputFile(): Path {
+    val ownerOnlyPermissions = PosixFilePermissions.asFileAttribute(
+        setOf(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE),
+    )
+    return try {
+        Files.createTempFile("unknown-call-census-git-", ".output", ownerOnlyPermissions)
+    } catch (_: UnsupportedOperationException) {
+        Files.createTempFile("unknown-call-census-git-", ".output")
+    }
+}
+
+private fun terminateProcessTree(process: Process) {
+    val descendants = process.toHandle().descendants().use { handles ->
+        handles.iterator().asSequence().toList()
+    }
+    val processTree = listOf(process.toHandle()) + descendants
+    processTree.asReversed().forEach(ProcessHandle::destroy)
+
+    if (!awaitTermination(processTree, PROCESS_TERMINATION_GRACE)) {
+        processTree.asReversed()
+            .filter(ProcessHandle::isAlive)
+            .forEach(ProcessHandle::destroyForcibly)
+        awaitTermination(processTree, PROCESS_TERMINATION_GRACE)
+    }
+
+    process.waitFor(PROCESS_TERMINATION_GRACE.inWholeMilliseconds, TimeUnit.MILLISECONDS)
+}
+
+private fun terminateProcessTreeBestEffort(process: Process) {
+    try {
+        terminateProcessTree(process)
+    } catch (_: InterruptedException) {
+        Thread.currentThread().interrupt()
+        process.destroyForcibly()
+    } catch (_: Exception) {
+        process.destroyForcibly()
+    }
+}
+
+private fun awaitTermination(processes: List<ProcessHandle>, timeout: Duration): Boolean {
+    val exits = processes.map(ProcessHandle::onExit).toTypedArray()
+    return try {
+        CompletableFuture.allOf(*exits).get(timeout.inWholeMilliseconds, TimeUnit.MILLISECONDS)
+        true
+    } catch (_: TimeoutException) {
+        false
+    } catch (_: ExecutionException) {
+        false
+    } catch (_: InterruptedException) {
+        Thread.currentThread().interrupt()
+        false
+    }
+}
+
+private val PROCESS_TERMINATION_GRACE = 500.milliseconds
 
 private fun runtimeArtifactName(type: Class<*>): String = runCatching {
     Path.of(type.protectionDomain.codeSource.location.toURI()).name
