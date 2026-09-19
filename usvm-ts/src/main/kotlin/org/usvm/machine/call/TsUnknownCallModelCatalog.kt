@@ -1,12 +1,10 @@
 package org.usvm.machine.call
 
+import org.jacodb.ets.model.EtsFile
+import org.jacodb.ets.model.EtsFileSignature
 import org.usvm.machine.state.TsState
-import java.nio.ByteBuffer
-import java.nio.charset.StandardCharsets
-import java.security.MessageDigest
 import java.util.Collections
-
-private const val BYTE_MASK = 0xff
+import java.util.IdentityHashMap
 
 /** An immutable deterministic set of semantic models used by one machine run. */
 class TsUnknownCallModelCatalog(
@@ -14,9 +12,10 @@ class TsUnknownCallModelCatalog(
     selection: TsUnknownCallModelSelection = TsUnknownCallModelSelection.All,
 ) {
     private val index: Map<String, Map<TsUnknownCallFailureReason, Map<String?, TsUnknownCallModel>>>
+    private val selectedModels: List<TsUnknownCallModel>
 
     val modelIds: List<String>
-    val fingerprint: String
+    val additionalSceneFiles: List<EtsFile>
 
     init {
         val modelsById = hashMapOf<String, TsUnknownCallModel>()
@@ -25,7 +24,7 @@ class TsUnknownCallModelCatalog(
             require(modelsById.put(model.id, model) == null) { "Duplicate semantic model ID: ${model.id}" }
         }
 
-        val selectedModels = when (selection) {
+        selectedModels = when (selection) {
             TsUnknownCallModelSelection.All -> modelsById.values
             is TsUnknownCallModelSelection.Only -> {
                 val unknownIds = selection.ids.subtract(modelsById.keys)
@@ -36,7 +35,23 @@ class TsUnknownCallModelCatalog(
 
         modelIds = Collections.unmodifiableList(selectedModels.map(TsUnknownCallModel::id))
         index = indexModels(selectedModels)
-        fingerprint = computeFingerprint(modelIds)
+        additionalSceneFiles = selectedModels
+            .flatMap(TsUnknownCallModel::additionalSceneFiles)
+            .deduplicateEtsFilesBySignature()
+            .let(Collections::unmodifiableList)
+    }
+
+    internal fun materializeForMachine(): TsUnknownCallModelCatalog {
+        val materializedFiles = IdentityHashMap<EtsFile, EtsFile>()
+        val materializedModels = selectedModels.map { model ->
+            if (model is TsMachineLocalUnknownCallModel) {
+                model.materializeForMachine(materializedFiles)
+            } else {
+                model
+            }
+        }
+
+        return TsUnknownCallModelCatalog(materializedModels)
     }
 
     internal fun select(call: TsUnknownCall): TsUnknownCallModel? {
@@ -46,6 +61,10 @@ class TsUnknownCallModelCatalog(
 
     fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelApplication {
         val model = select(call) ?: return TsUnknownCallModelApplication.NotApplicable
+        if (state.isUnknownCallModelActive(model.id)) {
+            return TsUnknownCallModelApplication.NotApplicable
+        }
+
         val execution = model.apply(state, call) ?: return TsUnknownCallModelApplication.NotApplicable
 
         return TsUnknownCallModelApplication.Applied(
@@ -80,18 +99,17 @@ private fun indexModels(
     return index
 }
 
-private fun computeFingerprint(modelIds: List<String>): String {
-    val digest = MessageDigest.getInstance("SHA-256")
-    modelIds.forEach { digest.updateLengthPrefixed(it) }
+internal fun Iterable<EtsFile>.deduplicateEtsFilesBySignature(): List<EtsFile> {
+    val filesBySignature = linkedMapOf<EtsFileSignature, EtsFile>()
 
-    return digest.digest().joinToString(separator = "") { byte ->
-        "%02x".format(byte.toInt() and BYTE_MASK)
+    for (file in this) {
+        val existingFile = filesBySignature[file.signature]
+        require(existingFile == null || existingFile === file) {
+            "Conflicting EtsIR files share signature ${file.signature}"
+        }
+
+        filesBySignature.putIfAbsent(file.signature, file)
     }
-}
 
-/** Length prefixes distinguish ID sequences such as ["ab", "c"] and ["a", "bc"]. */
-private fun MessageDigest.updateLengthPrefixed(value: String) {
-    val bytes = value.toByteArray(StandardCharsets.UTF_8)
-    update(ByteBuffer.allocate(Int.SIZE_BYTES).putInt(bytes.size).array())
-    update(bytes)
+    return filesBySignature.values.toList()
 }

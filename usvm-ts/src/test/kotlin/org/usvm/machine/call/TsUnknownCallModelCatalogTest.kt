@@ -2,15 +2,20 @@ package org.usvm.machine.call
 
 import io.mockk.mockk
 import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsFile
+import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsMethodSignature
+import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsUnknownType
+import org.usvm.UMachineOptions
+import org.usvm.machine.TsMachine
+import org.usvm.machine.TsOptions
 import org.usvm.machine.call.intrinsic.TsArrayShiftIntrinsicModel
 import org.usvm.machine.state.TsState
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
@@ -76,7 +81,7 @@ class TsUnknownCallModelCatalogTest {
     }
 
     @Test
-    fun `selection and fingerprint do not depend on model order`() {
+    fun `selection does not depend on model order`() {
         val forward = listOf(
             model(id = "a", methodName = "first"),
             model(id = "b", methodName = "second"),
@@ -87,11 +92,10 @@ class TsUnknownCallModelCatalogTest {
 
         assertEquals(listOf("a", "b"), first.modelIds)
         assertEquals(first.modelIds, second.modelIds)
-        assertEquals(first.fingerprint, second.fingerprint)
     }
 
     @Test
-    fun `enabled subset is detached and changes fingerprint`() {
+    fun `enabled subset is detached from mutable selection`() {
         val mutableIds = mutableSetOf("a")
         val models = listOf(
             model(id = "a", methodName = "first"),
@@ -99,11 +103,8 @@ class TsUnknownCallModelCatalogTest {
         )
         val onlyA = TsUnknownCallModelCatalog(models, selection = TsUnknownCallModelSelection.Only(mutableIds))
         mutableIds += "b"
-        val both = TsUnknownCallModelCatalog(models)
 
         assertEquals(listOf("a"), onlyA.modelIds)
-        assertNotEquals(onlyA.fingerprint, both.fingerprint)
-        assertTrue(onlyA.fingerprint.matches(Regex("[0-9a-f]{64}")))
     }
 
     @Test
@@ -149,20 +150,21 @@ class TsUnknownCallModelCatalogTest {
     fun `built in models are discovered once and an explicit empty selection disables all`() {
         val catalog = TsBuiltInUnknownCallModels.catalog()
 
-        assertEquals(listOf(TsArrayShiftIntrinsicModel.MODEL_ID), catalog.modelIds)
+        assertEquals(listOf("ts.array.pop", TsArrayShiftIntrinsicModel.MODEL_ID), catalog.modelIds)
         assertSame(catalog, TsBuiltInUnknownCallModels.catalog())
         assertFailsWith<UnsupportedOperationException> { (catalog.modelIds as MutableList<String>).clear() }
-        assertEquals(listOf(TsArrayShiftIntrinsicModel.MODEL_ID), TsBuiltInUnknownCallModels.catalog().modelIds)
+        assertEquals(
+            listOf("ts.array.pop", TsArrayShiftIntrinsicModel.MODEL_ID),
+            TsBuiltInUnknownCallModels.catalog().modelIds,
+        )
         assertTrue(TsBuiltInUnknownCallModels.catalog(TsUnknownCallModelSelection.Only(emptySet())).modelIds.isEmpty())
     }
 
     @Test
-    fun `fingerprints preserve ID boundaries and no match remains distinct from ambiguity`() {
-        val left = TsUnknownCallModelCatalog(listOf(model(id = "ab"), model(id = "c")))
-        val right = TsUnknownCallModelCatalog(listOf(model(id = "a"), model(id = "bc")))
+    fun `unmatched call selects no model`() {
+        val catalog = TsUnknownCallModelCatalog(listOf(model(id = "known", methodName = "known")))
 
-        assertNotEquals(left.fingerprint, right.fingerprint)
-        assertNull(left.select(call(className = "A", reason = TsUnknownCallFailureReason.PARTIAL_APPROXIMATION)))
+        assertNull(catalog.select(call(className = "A", reason = TsUnknownCallFailureReason.PARTIAL_APPROXIMATION)))
     }
 
     private fun call(className: String, reason: TsUnknownCallFailureReason) = TsUnknownCall(
@@ -179,11 +181,87 @@ class TsUnknownCallModelCatalogTest {
         failureReason = reason,
     )
 
+    @Test
+    fun `same model EtsIR file object is merged once`() {
+        val modelFile = etsFile(fileName = "model.ts")
+        val catalog = TsUnknownCallModelCatalog(
+            models = listOf(
+                model(id = "a", methodName = "first", additionalSceneFiles = listOf(modelFile)),
+                model(id = "b", methodName = "second", additionalSceneFiles = listOf(modelFile)),
+            )
+        )
+
+        assertEquals(listOf(modelFile), catalog.additionalSceneFiles)
+        assertFailsWith<UnsupportedOperationException> {
+            (catalog.additionalSceneFiles as MutableList<EtsFile>).clear()
+        }
+    }
+
+    @Test
+    fun `distinct model EtsIR files with the same signature are rejected`() {
+        val first = etsFile(fileName = "model.ts")
+        val second = etsFile(fileName = "model.ts")
+
+        val error = assertFailsWith<IllegalArgumentException> {
+            TsUnknownCallModelCatalog(
+                models = listOf(
+                    model(id = "a", methodName = "first", additionalSceneFiles = listOf(first)),
+                    model(id = "b", methodName = "second", additionalSceneFiles = listOf(second)),
+                )
+            )
+        }
+
+        assertEquals("Conflicting EtsIR files share signature @test/model", error.message)
+    }
+
+    @Test
+    fun `application and model EtsIR files with the same signature are rejected`() {
+        val applicationFile = etsFile(fileName = "shared.ts")
+        val modelFile = etsFile(fileName = "shared.ts")
+        val catalog = TsUnknownCallModelCatalog(
+            models = listOf(
+                model(id = "model", additionalSceneFiles = listOf(modelFile)),
+            )
+        )
+
+        val error = assertFailsWith<IllegalArgumentException> {
+            TsMachine(
+                scene = EtsScene(projectFiles = listOf(applicationFile)),
+                options = UMachineOptions(),
+                tsOptions = TsOptions(),
+                unknownCallModels = catalog,
+            )
+        }
+
+        assertEquals("Conflicting EtsIR files share signature @test/shared", error.message)
+    }
+
+    @Test
+    fun `SDK and model EtsIR files with the same signature are rejected`() {
+        val sdkFile = etsFile(fileName = "shared.ts")
+        val modelFile = etsFile(fileName = "shared.ts")
+        val catalog = TsUnknownCallModelCatalog(
+            models = listOf(model(id = "model", additionalSceneFiles = listOf(modelFile))),
+        )
+
+        val error = assertFailsWith<IllegalArgumentException> {
+            TsMachine(
+                scene = EtsScene(projectFiles = emptyList(), sdkFiles = listOf(sdkFile)),
+                options = UMachineOptions(),
+                tsOptions = TsOptions(),
+                unknownCallModels = catalog,
+            ).close()
+        }
+
+        assertEquals("Conflicting EtsIR files share signature @test/shared", error.message)
+    }
+
     private fun model(
         id: String,
         methodName: String = "target-$id",
         failureReason: TsUnknownCallFailureReason? = null,
         className: String? = null,
+        additionalSceneFiles: List<EtsFile> = emptyList(),
     ): TsUnknownCallModel = FakeModel(
         id = id,
         target = TsUnknownCallTarget(
@@ -191,13 +269,21 @@ class TsUnknownCallModelCatalogTest {
             failureReason = failureReason,
             enclosingClassName = className,
         ),
+        additionalSceneFiles = additionalSceneFiles,
     )
 
     private class FakeModel(
         override val id: String,
         override val target: TsUnknownCallTarget,
+        override val additionalSceneFiles: List<EtsFile> = emptyList(),
     ) : TsUnknownCallModel {
         override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution =
             error("Fake model must not execute in catalog metadata tests")
     }
+
+    private fun etsFile(fileName: String): EtsFile = EtsFile(
+        signature = EtsFileSignature(projectName = "test", fileName = fileName),
+        classes = emptyList(),
+        namespaces = emptyList(),
+    )
 }
