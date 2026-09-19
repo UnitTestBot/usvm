@@ -14,6 +14,7 @@ import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
 import java.nio.file.Path
 import java.security.MessageDigest
+import java.util.IdentityHashMap
 import kotlin.io.path.createTempDirectory
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.outputStream
@@ -28,10 +29,29 @@ data class TsEtsIrUnknownCallModelArtifact(
     val entryPoint: EtsMethod,
     val sourceHash: String,
     val etsIrHash: String,
+    internal val etsIrJson: String,
 ) {
     init {
         require(sourceHash.matches(sha256Regex)) { "TypeScript model source hash must be a lowercase SHA-256" }
         require(etsIrHash.matches(sha256Regex)) { "TypeScript model EtsIR hash must be a lowercase SHA-256" }
+    }
+
+    internal fun materializeFile(): EtsFile =
+        etsIrJson.byteInputStream().use { stream ->
+            EtsFileDto.loadFromJson(stream).toEtsFile()
+        }
+
+    internal fun materializeWith(file: EtsFile): TsEtsIrUnknownCallModelArtifact {
+        val entryPointClassName = requireNotNull(entryPoint.enclosingClass) {
+            "EtsIR semantic-model entry point must belong to a class"
+        }.name
+        val materializedEntryPoint = findEntryPoint(
+            file = file,
+            entryPointClassName = entryPointClassName,
+            entryPointMethodName = entryPoint.name,
+        )
+
+        return copy(file = file, entryPoint = materializedEntryPoint)
     }
 }
 
@@ -70,25 +90,18 @@ internal fun loadEtsIrUnknownCallModelArtifact(
         }
 
         val irBytes = irPath.readBytes()
-        val file = irBytes.inputStream().use { stream ->
+        val etsIrJson = irBytes.toString(Charsets.UTF_8)
+        val file = etsIrJson.byteInputStream().use { stream ->
             EtsFileDto.loadFromJson(stream).toEtsFile()
         }
-        val entryPointClass = file.allClasses.singleOrNull { it.name == entryPointClassName }
-            ?: error("Expected one TypeScript model class named $entryPointClassName")
-        val entryPoint = entryPointClass.methods.singleOrNull { it.name == entryPointMethodName }
-            ?: error("Expected one TypeScript model entry point named $entryPointClassName::$entryPointMethodName")
-        check(entryPoint.isStatic) {
-            "TypeScript model entry point $entryPointClassName::$entryPointMethodName must be static"
-        }
-        check(entryPoint.cfg.instructions.isNotEmpty()) {
-            "TypeScript model entry point $entryPointClassName::$entryPointMethodName must have a body"
-        }
+        val entryPoint = findEntryPoint(file, entryPointClassName, entryPointMethodName)
 
         TsEtsIrUnknownCallModelArtifact(
             file = file,
             entryPoint = entryPoint,
             sourceHash = sourceBytes.sha256(),
             etsIrHash = irBytes.sha256(),
+            etsIrJson = etsIrJson,
         )
     } finally {
         irPath.deleteIfExists()
@@ -129,7 +142,7 @@ class TsEtsIrUnknownCallModel(
     override val target: TsUnknownCallTarget,
     val artifact: TsEtsIrUnknownCallModelArtifact,
     val domainGuard: TsEtsIrUnknownCallModelDomainGuard = TsEtsIrUnknownCallModelDomainGuard.ALWAYS,
-) : TsUnknownCallModel {
+) : TsUnknownCallModel, TsMachineLocalUnknownCallModel {
     override val additionalSceneFiles: List<EtsFile> = listOf(artifact.file)
 
     override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution? {
@@ -160,6 +173,20 @@ class TsEtsIrUnknownCallModel(
             residualGuard = guard.takeUnless { it == state.ctx.trueExpr }?.let(state.ctx::mkNot),
         )
     }
+
+    override fun materializeForMachine(
+        materializedFiles: IdentityHashMap<EtsFile, EtsFile>,
+    ): TsUnknownCallModel {
+        val file = materializedFiles.getOrPut(artifact.file, artifact::materializeFile)
+        val materializedArtifact = artifact.materializeWith(file)
+
+        return TsEtsIrUnknownCallModel(
+            id = id,
+            target = target,
+            artifact = materializedArtifact,
+            domainGuard = domainGuard,
+        )
+    }
 }
 
 /** Builds the symbolic input guard for one TypeScript model body. */
@@ -178,6 +205,25 @@ fun interface TsEtsIrUnknownCallModelDomainGuard {
 private fun TsUnknownCall.resolvedInputs(): List<UExpr<*>>? = buildList {
     receiver?.let { receiver -> add(receiver.resolved ?: return null) }
     arguments.forEach { argument -> add(argument.resolved ?: return null) }
+}
+
+private fun findEntryPoint(
+    file: EtsFile,
+    entryPointClassName: String,
+    entryPointMethodName: String,
+): EtsMethod {
+    val entryPointClass = file.allClasses.singleOrNull { it.name == entryPointClassName }
+        ?: error("Expected one TypeScript model class named $entryPointClassName")
+    val entryPoint = entryPointClass.methods.singleOrNull { it.name == entryPointMethodName }
+        ?: error("Expected one TypeScript model entry point named $entryPointClassName::$entryPointMethodName")
+    check(entryPoint.isStatic) {
+        "TypeScript model entry point $entryPointClassName::$entryPointMethodName must be static"
+    }
+    check(entryPoint.cfg.instructions.isNotEmpty()) {
+        "TypeScript model entry point $entryPointClassName::$entryPointMethodName must have a body"
+    }
+
+    return entryPoint
 }
 
 internal fun TsState.enterEtsIrUnknownCallModel(

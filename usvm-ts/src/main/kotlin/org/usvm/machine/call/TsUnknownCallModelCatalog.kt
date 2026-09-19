@@ -7,6 +7,7 @@ import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.util.Collections
+import java.util.IdentityHashMap
 
 private const val BYTE_MASK = 0xff
 
@@ -16,6 +17,7 @@ class TsUnknownCallModelCatalog(
     selection: TsUnknownCallModelSelection = TsUnknownCallModelSelection.All,
 ) {
     private val index: Map<String, Map<TsUnknownCallFailureReason, Map<String?, TsUnknownCallModel>>>
+    private val selectedModels: List<TsUnknownCallModel>
 
     val modelIds: List<String>
     val fingerprint: String
@@ -28,7 +30,7 @@ class TsUnknownCallModelCatalog(
             require(modelsById.put(model.id, model) == null) { "Duplicate semantic model ID: ${model.id}" }
         }
 
-        val selectedModels = when (selection) {
+        selectedModels = when (selection) {
             TsUnknownCallModelSelection.All -> modelsById.values
             is TsUnknownCallModelSelection.Only -> {
                 val unknownIds = selection.ids.subtract(modelsById.keys)
@@ -44,6 +46,19 @@ class TsUnknownCallModelCatalog(
             .flatMap(TsUnknownCallModel::additionalSceneFiles)
             .deduplicateEtsFilesBySignature()
             .let(Collections::unmodifiableList)
+    }
+
+    internal fun materializeForMachine(): TsUnknownCallModelCatalog {
+        val materializedFiles = IdentityHashMap<EtsFile, EtsFile>()
+        val materializedModels = selectedModels.map { model ->
+            if (model is TsMachineLocalUnknownCallModel) {
+                model.materializeForMachine(materializedFiles)
+            } else {
+                model
+            }
+        }
+
+        return TsUnknownCallModelCatalog(materializedModels)
     }
 
     internal fun select(call: TsUnknownCall): TsUnknownCallModel? {

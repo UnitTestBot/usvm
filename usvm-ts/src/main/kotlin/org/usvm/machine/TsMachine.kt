@@ -52,7 +52,7 @@ class TsMachine(
         unknownCallDispatcher != null -> null
         unknownCallModels != null -> unknownCallModels
         else -> TsBuiltInUnknownCallModels.catalog(tsOptions.unknownCallModelSelection)
-    }
+    }?.materializeForMachine()
 
     /** Fingerprint of the model catalog used by this machine, or `null` for a custom dispatcher. */
     val unknownCallModelCatalogFingerprint: String?

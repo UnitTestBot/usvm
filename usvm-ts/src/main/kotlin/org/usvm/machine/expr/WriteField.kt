@@ -15,6 +15,7 @@ import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.ensureStaticsInitialized
 import org.usvm.machine.types.EtsAuxiliaryType
+import org.usvm.machine.types.extractValue
 import org.usvm.sizeSort
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.TsResolutionResult
@@ -74,13 +75,17 @@ private fun TsContext.assignToArrayLength(
     value: UExpr<*>,
     maxArraySize: Int,
 ): Unit? = with(this) {
-    if (value.sort != fp64Sort) {
-        logger.warn { "Unsupported array length assignment: expected a numeric value, got ${value.sort}" }
-        scope.assert(falseExpr)
+    val (fpLength, numericTypeGuard) = scope.calcOnState {
+        with(ctx) {
+            extractValue(value, fp64Sort, ::getIntermediateFpLValue)
+        }
+    }
+    val numericTypeIsPossible = scope.assert(numericTypeGuard)
+    if (fpLength == null || numericTypeIsPossible == null) {
+        logger.warn { "Unsupported array length assignment: runtime value is not numeric (storage sort: ${value.sort})" }
         return null
     }
 
-    val fpLength = value.asExpr(fp64Sort)
     val convertedLength = mkFpToBvExpr(
         roundingMode = fpRoundingModeSortDefaultValue(),
         value = fpLength,

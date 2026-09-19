@@ -7,6 +7,7 @@ import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.machine.state.TsState
 import org.usvm.machine.types.TsUnresolvedValue
+import java.util.IdentityHashMap
 
 /** Declaratively identifies the calls handled by one semantic model. */
 data class TsUnknownCallTarget(
@@ -37,6 +38,11 @@ interface TsUnknownCallModel {
         get() = emptyList()
 
     fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution?
+}
+
+/** A model whose mutable EtsIR graph must be materialized for one machine scene. */
+internal interface TsMachineLocalUnknownCallModel : TsUnknownCallModel {
+    fun materializeForMachine(materializedFiles: IdentityHashMap<EtsFile, EtsFile>): TsUnknownCallModel
 }
 
 /** Describes how a guarded model successor completes the original call. */

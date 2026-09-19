@@ -91,6 +91,31 @@ class TsArrayPopEtsIrModelTest {
     }
 
     @Test
+    fun `proven numeric any values can shrink array length`() {
+        val result = analyze(methodName = "shrinkFromAny")
+
+        assertTrue(result.hasNumber(1.0), "Expected numeric any branch to preserve length 1: ${result.values}")
+        assertTrue(result.events.isEmpty())
+    }
+
+    @Test
+    fun `symbolic any array pop can shrink array length`() {
+        val result = analyze(methodName = "shrinkFromSymbolicAnyArray")
+
+        assertTrue(result.hasNumber(1.0), "Expected popped numeric branch to preserve length 1: ${result.values}")
+        assertEquals(listOf("ts.array.pop"), result.modelIds.distinct())
+    }
+
+    @Test
+    fun `ordinary numeric and concrete any array length controls still shrink`() {
+        for (methodName in listOf("shrinkFromNumber", "shrinkFromConcreteAnyArray")) {
+            val result = analyze(methodName = methodName)
+
+            assertTrue(result.hasNumber(1.0), "$methodName did not preserve length 1: ${result.values}")
+        }
+    }
+
+    @Test
     fun `unsupported length value stops without repeating the assignment`() {
         var lengthAssignments = 0
         val observer = object : TsInterpreterObserver {
@@ -293,6 +318,9 @@ class TsArrayPopEtsIrModelTest {
         val events: List<TsUnknownCallEvent>,
         val catalogFingerprint: String?,
     ) {
+        fun hasNumber(expected: Double): Boolean =
+            values.filterIsInstance<TsTestValue.TsNumber>().any { value -> value.number == expected }
+
         val modelIds: List<String>
             get() = events.mapNotNull { event ->
                 (event.decision as? TsUnknownCallDecision.ModelApplied)?.modelId

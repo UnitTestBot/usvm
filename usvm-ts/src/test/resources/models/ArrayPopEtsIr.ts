@@ -57,6 +57,34 @@ export class ArrayPopEtsIr {
         return values.length;
     }
 
+    shrinkFromAny(length: any): number {
+        if (length !== 1) return -1;
+        const values = [10, 20];
+        values.length = length;
+        return values.length;
+    }
+
+    shrinkFromSymbolicAnyArray(lengths: any[]): number {
+        if (lengths.length !== 1 || lengths[0] !== 1) return -1;
+        const values = [10, 20];
+        values.length = lengths.pop();
+        return values.length;
+    }
+
+    shrinkFromNumber(length: number): number {
+        if (length !== 1) return -1;
+        const values = [10, 20];
+        values.length = length;
+        return values.length;
+    }
+
+    shrinkFromConcreteAnyArray(): number {
+        const lengths: any[] = [1];
+        const values = [10, 20];
+        values.length = lengths.pop();
+        return values.length;
+    }
+
     unsupportedLengthValue(): number {
         const values = [10];
         values.length = "0";

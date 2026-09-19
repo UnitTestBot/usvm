@@ -19,6 +19,8 @@ import org.usvm.util.getResourcePath
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotSame
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration
 
@@ -173,6 +175,26 @@ class TsEtsIrUnknownCallModelExecutionTest {
         assertTrue(result.modelIds.isEmpty())
         assertEquals(listOf(TsUnknownCallOutcome.PATH_STOPPED), result.events.map { it.outcome })
         assertIs<TsUnknownCallDecision.ResidualFallback>(result.events.single().decision)
+    }
+
+    @Test
+    fun `reused catalog materializes independent model scenes with matching entry points`() {
+        assertNull(baseArtifact.file.scene)
+
+        val firstMaterialization = models.materializeForMachine()
+        val secondMaterialization = models.materializeForMachine()
+        val firstModelFile = firstMaterialization.additionalSceneFiles.single()
+        val secondModelFile = secondMaterialization.additionalSceneFiles.single()
+
+        assertNotSame(baseArtifact.file, firstModelFile)
+        assertNotSame(firstModelFile, secondModelFile)
+
+        val absoluteResult = analyze(methodName = "pureArgumentAndReturn")
+        val incrementResult = analyze(methodName = "receiverStateArgumentAndAlias")
+
+        assertEquals(42.0, assertIs<TsTestValue.TsNumber>(absoluteResult.values.single()).number)
+        assertEquals(42.0, assertIs<TsTestValue.TsNumber>(incrementResult.values.single()).number)
+        assertNull(baseArtifact.file.scene)
     }
 
     private fun model(
