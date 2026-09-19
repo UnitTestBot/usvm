@@ -78,6 +78,24 @@ export async function asyncThrowingTimeoutMessagePredicate(value: number): Promi
     return throwingTimeoutMessagePredicate(value);
 }
 
+export function throwingFastCheckBrandedPredicate(_value: number): boolean {
+    throw {
+        footprint: Symbol.for('fast-check/PreconditionFailure'),
+        interruptExecution: false,
+    };
+}
+
+export async function asyncThrowingFastCheckBrandedPredicate(value: number): Promise<boolean> {
+    return throwingFastCheckBrandedPredicate(value);
+}
+
+export function throwingHostileProxyPredicate(_value: number): boolean {
+    throw new Proxy({}, {
+        get() { throw new Error('property access failed'); },
+        getPrototypeOf() { throw new Error('prototype access failed'); },
+    });
+}
+
 export function assertionPredicate(_value: number): boolean {
     throw 'AssertionError: contract assertion';
 }
@@ -94,14 +112,6 @@ export async function asyncNonBooleanWhenPositivePredicate(value: number): Promi
     return value > 0 ? 42 : false;
 }
 
-export function catchesExpectedException(_value: number): boolean {
-    try {
-        throw 'expected';
-    } catch (error: unknown) {
-        return error === 'expected';
-    }
-}
-
 export function recognizesSpecialValues(
     missing: undefined,
     empty: null,
@@ -116,10 +126,6 @@ export function recognizesSpecialValues(
         && Number.isNaN(notANumber)
         && positiveInfinity === Number.POSITIVE_INFINITY
         && negativeInfinity === Number.NEGATIVE_INFINITY;
-}
-
-export function preservesNestedArrayAlias(values: number[][]): boolean {
-    return values.length === 2 && values[0] === values[1];
 }
 
 export function isolatesPredicateMutation(value: number[]): boolean {

@@ -6,6 +6,7 @@ import {
   type AdapterDiagnosticDescriptor,
 } from './diagnostics.js';
 import {
+  EntryPointInvocationError,
   type ExecutionKind,
   loadEntryPoint,
   type LoadedEntryPoint,
@@ -187,9 +188,11 @@ function invokeSynchronousPrecondition(
 function classifyPreconditionError(error: unknown): ProtocolError {
   if (error instanceof ProtocolError) return error;
 
+  const thrownValue = error instanceof EntryPointInvocationError ? error.thrownValue : error;
+
   return protocolError(
     adapterDiagnostic.entryPointPreconditionThrew,
-    `Property precondition threw ${describeThrownValue(error)}`,
+    `Property precondition threw ${describeThrownValue(thrownValue)}`,
     'manifest.precondition',
   );
 }
@@ -296,15 +299,6 @@ function failureDetails(details: RunDetails<[JsConcreteValue[]]>): FastCheckFail
     };
   }
 
-  const error = details.errorInstance;
-  if (error instanceof Error) {
-    return {
-      kind: 'property',
-      errorName: error.name || 'Error',
-      message: error.message || 'Property execution failed',
-    };
-  }
-
   if (details.counterexample === null) {
     return {
       kind: 'precondition-exhausted',
@@ -313,11 +307,37 @@ function failureDetails(details: RunDetails<[JsConcreteValue[]]>): FastCheckFail
     };
   }
 
+  const error = details.errorInstance instanceof EntryPointInvocationError
+    ? details.errorInstance.thrownValue
+    : details.errorInstance;
+
   return {
     kind: 'property',
-    errorName: 'ThrownValue',
-    message: String(error),
+    ...describePropertyFailure(error),
   };
+}
+
+function describePropertyFailure(value: unknown): Pick<FastCheckFailureDetails, 'errorName' | 'message'> {
+  try {
+    if (value instanceof Error) {
+      return {
+        errorName: typeof value.name === 'string' && value.name.length > 0 ? value.name : 'Error',
+        message: typeof value.message === 'string' && value.message.length > 0
+          ? value.message
+          : 'Property execution failed',
+      };
+    }
+
+    return {
+      errorName: 'ThrownValue',
+      message: String(value),
+    };
+  } catch {
+    return {
+      errorName: 'ThrownValue',
+      message: 'An unprintable value',
+    };
+  }
 }
 
 /** The pinned fast-check version exposes invalid replay paths only through a stable message prefix. */
