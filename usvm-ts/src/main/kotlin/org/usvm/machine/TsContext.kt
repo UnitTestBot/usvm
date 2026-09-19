@@ -7,6 +7,7 @@ import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanLiteralType
 import org.jacodb.ets.model.EtsBooleanType
+import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsEnumValueType
 import org.jacodb.ets.model.EtsGenericType
 import org.jacodb.ets.model.EtsLexicalEnvType
@@ -59,6 +60,7 @@ typealias TsSizeSort = UBv32Sort
 class TsContext(
     val scene: EtsScene,
     components: TsComponents,
+    internal val applicationAndSdkClasses: List<EtsClass> = scene.projectAndSdkClasses,
 ) : UContext<TsSizeSort>(components) {
     val undefinedSort: TsUndefinedSort by lazy { TsUndefinedSort(this) }
 

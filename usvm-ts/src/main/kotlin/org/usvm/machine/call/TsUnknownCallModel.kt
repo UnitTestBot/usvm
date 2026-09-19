@@ -1,10 +1,13 @@
 package org.usvm.machine.call
 
+import org.jacodb.ets.model.EtsFile
+import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsType
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.machine.state.TsState
 import org.usvm.machine.types.TsUnresolvedValue
+import java.util.IdentityHashMap
 
 /** Declaratively identifies the calls handled by one semantic model. */
 data class TsUnknownCallTarget(
@@ -30,7 +33,16 @@ interface TsUnknownCallModel {
     val id: String
     val target: TsUnknownCallTarget
 
+    /** EtsIR files that must be visible to the interpreter while this model is enabled. */
+    val additionalSceneFiles: List<EtsFile>
+        get() = emptyList()
+
     fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution?
+}
+
+/** A model whose mutable EtsIR graph must be materialized for one machine scene. */
+internal interface TsMachineLocalUnknownCallModel : TsUnknownCallModel {
+    fun materializeForMachine(materializedFiles: IdentityHashMap<EtsFile, EtsFile>): TsUnknownCallModel
 }
 
 /** Describes how a guarded model successor completes the original call. */
@@ -49,6 +61,14 @@ sealed interface TsUnknownCallModelCompletion {
     class Exceptional(
         val exception: TsState.() -> Pair<UExpr<*>, EtsType>,
     ) : TsUnknownCallModelCompletion
+
+    /** Enters a TypeScript model body through the normal EtsIR interpreter. */
+    class EtsIrBody(
+        val entryPoint: EtsMethod,
+        inputs: List<UExpr<*>>,
+    ) : TsUnknownCallModelCompletion {
+        val inputs: List<UExpr<*>> = inputs.toList()
+    }
 }
 
 /** One guarded model successor. */

@@ -95,7 +95,7 @@ private fun TsExprResolver.resolveStaticMethod(
     }
 
     // Unknown signature:
-    val methods = ctx.scene.projectAndSdkClasses
+    val methods = ctx.applicationAndSdkClasses
         .flatMap { it.methods }
         .filter { it.name == method.name }
         .canonicalizeExecutableOverloads()
