@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "experimentId": "calls-fixture-shift",
+  "toolRevision": "41961f7b66c30c8a2a7507c67a79396f495f4520",
+  "nativeFrontendRevision": "local-fixture",
+  "solver": "Z3",
+  "searchPolicy": "BFS",
+  "modelSet": {
+    "ids": ["ts.array.pop", "ts.array.shift"],
+    "catalogFingerprint": "09687a921363212c7736237f19e3978665655a45e0165da4f24f689c48439e31",
+    "sourceHash": "9f40d3abce58e3412a0206eabd9fdb0547e12c2ebd832ce48b260b3339518e26",
+    "etsIrHash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "toolRevision": "41961f7b66c30c8a2a7507c67a79396f495f4520"
+  },
+  "seeds": [42],
+  "perTargetBudgetMillis": 5000,
+  "projects": [
+    {
+      "projectId": "synthetic/calls-fixture",
+      "revision": "94edca29194e2cf4cf1c6a1cbb9848c8bda014a21c1422c12f039fcd6b95440b",
+      "sourceRoot": ".",
+      "development": true,
+      "functions": [
+        {
+          "functionId": "CallsExperimentFixture.ts::shiftTarget/1",
+          "module": "CallsExperimentFixture.ts",
+          "entryPoint": {
+            "module": "CallsExperimentFixture.ts",
+            "exportName": "shiftTarget",
+            "executionKind": "sync"
+          },
+          "inputs": [
+            {
+              "name": "value",
+              "domain": {
+                "kind": "number",
+                "min": {"value": "negative-infinity"},
+                "max": {"value": "positive-infinity"},
+                "allowNaN": true
+              }
+            }
+          ],
+          "targets": [
+            {
+              "targetId": "CallsExperimentFixture.ts::shiftTarget/1#return-one",
+              "siteId": "CallsExperimentFixture.ts:5:5-5:14::shiftTarget/1",
+              "sourcePath": "CallsExperimentFixture.ts",
+              "sourceSha256": "94edca29194e2cf4cf1c6a1cbb9848c8bda014a21c1422c12f039fcd6b95440b",
+              "startOffset": 141,
+              "endOffset": 150,
+              "start": {"line": 4, "column": 4},
+              "end": {"line": 4, "column": 13}
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

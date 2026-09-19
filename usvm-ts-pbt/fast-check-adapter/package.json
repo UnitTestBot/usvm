@@ -9,16 +9,16 @@
     "build": "tsc --project tsconfig.json",
     "pretest": "npm run build",
     "test": "npm run test:compiled",
-    "test:compiled": "node --test dist/test/entry-point.test.js dist/test/execute-property.test.js dist/test/execution-cli.test.js dist/test/js-value.test.js dist/test/process-group-shutdown.test.js dist/test/process-supervisor.test.js dist/test/project-domain.test.js dist/test/projection-cli.test.js"
+    "test:compiled": "node --test dist/test/entry-point.test.js dist/test/execute-property.test.js dist/test/execution-cli.test.js dist/test/js-value.test.js dist/test/process-group-shutdown.test.js dist/test/process-supervisor.test.js dist/test/project-domain.test.js dist/test/projection-cli.test.js dist/test/source-target-replay-cli.test.js"
   },
   "dependencies": {
     "c8": "10.1.3",
     "fast-check": "4.9.0",
+    "typescript": "5.9.2",
     "tsx": "4.23.12"
   },
   "devDependencies": {
-    "@types/node": "18.19.130",
-    "typescript": "5.9.2"
+    "@types/node": "18.19.130"
   },
   "overrides": {
     "c8": {

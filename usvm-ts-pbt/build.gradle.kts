@@ -7,6 +7,7 @@ plugins {
 }
 
 dependencies {
+    implementation(project(":usvm-core"))
     implementation(project(":usvm-ts"))
     implementation(Libs.jacodb_ets)
     implementation(Libs.clikt)
@@ -150,6 +151,15 @@ application {
 
 tasks.named<JavaExec>("run") {
     systemProperty(fastCheckRuntimeProperty, fastCheckAdapterDir.asFile.absolutePath)
+}
+
+val runCalls by tasks.registering(JavaExec::class) {
+    group = "application"
+    description = "Runs the frozen four-profile TypeScript Calls experiment."
+    mainClass.set("org.usvm.ts.pbt.calls.CallsExperimentCliKt")
+    classpath = sourceSets.main.get().runtimeClasspath
+    systemProperty(fastCheckRuntimeProperty, fastCheckAdapterDir.asFile.absolutePath)
+    dependsOn(buildFastCheckAdapter)
 }
 
 distributions {

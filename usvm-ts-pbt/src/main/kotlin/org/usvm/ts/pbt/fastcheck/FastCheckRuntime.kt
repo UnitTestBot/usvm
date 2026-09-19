@@ -12,6 +12,8 @@ internal object FastCheckRuntime {
 
     fun processSupervisorEntryPoint(): Path = locateEntryPoint(PROCESS_SUPERVISOR)
 
+    fun sourceTargetReplayEntryPoint(): Path = locateEntryPoint(SOURCE_TARGET_REPLAY_CLI)
+
     private fun locateEntryPoint(fileName: String): Path {
         val candidates = runtimeDirectories().map { runtimeDirectory ->
             runtimeDirectory.resolve(ENTRY_POINT_DIRECTORY).resolve(fileName)
@@ -49,5 +51,6 @@ internal object FastCheckRuntime {
     private const val EXECUTION_CLI = "execution-cli.js"
     private const val PROJECTION_CLI = "projection-cli.js"
     private const val PROCESS_SUPERVISOR = "process-supervisor.js"
+    private const val SOURCE_TARGET_REPLAY_CLI = "source-target-replay-cli.js"
     private const val INSTALLED_RUNTIME_DIRECTORY = "fast-check-adapter"
 }
