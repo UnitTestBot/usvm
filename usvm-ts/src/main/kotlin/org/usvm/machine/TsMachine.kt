@@ -39,6 +39,19 @@ import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
 
+/** Reason the symbolic machine stopped its most recent analysis. */
+enum class TsAnalysisStopReason {
+    EXHAUSTED,
+    TIMEOUT,
+    OTHER_LIMIT,
+}
+
+/** Collected states together with the exact machine stop reason. */
+data class TsAnalysisResult(
+    val states: List<TsState>,
+    val stopReason: TsAnalysisStopReason,
+)
+
 class TsMachine(
     scene: EtsScene,
     override val options: UMachineOptions,
@@ -92,7 +105,12 @@ class TsMachine(
     fun analyze(
         methods: List<EtsMethod>,
         targets: List<TsTarget> = emptyList(),
-    ): List<TsState> {
+    ): List<TsState> = analyzeWithOutcome(methods = methods, targets = targets).states
+
+    fun analyzeWithOutcome(
+        methods: List<EtsMethod>,
+        targets: List<TsTarget> = emptyList(),
+    ): TsAnalysisResult {
         val initialStates = mutableMapOf<EtsMethod, TsState>()
         methods.forEach { initialStates[it] = interpreter.getInitialState(it, targets) }
 
@@ -194,7 +212,15 @@ class TsMachine(
             stopStrategy = stopStrategy
         )
 
-        return statesCollector.collectedStates
+        val stopReason = when {
+            pathSelector.isEmpty() -> TsAnalysisStopReason.EXHAUSTED
+            options.timeout < kotlin.time.Duration.INFINITE && timeStatistics.runningTime > options.timeout -> {
+                TsAnalysisStopReason.TIMEOUT
+            }
+            else -> TsAnalysisStopReason.OTHER_LIMIT
+        }
+
+        return TsAnalysisResult(states = statesCollector.collectedStates, stopReason = stopReason)
     }
 
     override fun close() {

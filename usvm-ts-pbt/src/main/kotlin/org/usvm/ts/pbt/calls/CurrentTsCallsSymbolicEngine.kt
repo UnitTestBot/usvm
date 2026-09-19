@@ -158,35 +158,9 @@ internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
             MachineResult(
                 states = entryObserver.reachedStates,
                 stopReason = outcome.stopReason,
-                catalogFingerprint = machine.unknownCallModelCatalogFingerprint,
-                artifactIdentities = machine.unknownCallModelArtifactIdentities.mapValues { (_, identity) ->
-                    identity.sourceHash to identity.etsIrHash
-                },
             )
         }
         val states = analysis.states
-        val fingerprint = analysis.catalogFingerprint
-        if (fingerprint != request.expectedCatalogFingerprint) {
-            return result(
-                status = CallsSymbolicStatus.TOOL_ERROR,
-                startedAt = startedAt,
-                catalogFingerprint = fingerprint,
-                diagnostic = "Runtime model fingerprint $fingerprint does not match the frozen manifest",
-            )
-        }
-        if (request.profile.usesFrozenModels) {
-            val artifactIdentities = analysis.artifactIdentities.values.toSet()
-            val expectedIdentity = request.expectedModelSourceHash to request.expectedModelEtsIrHash
-            if (artifactIdentities != setOf(expectedIdentity)) {
-                return result(
-                    status = CallsSymbolicStatus.TOOL_ERROR,
-                    startedAt = startedAt,
-                    catalogFingerprint = fingerprint,
-                    diagnostic = "Runtime EtsIR model artifacts $artifactIdentities " +
-                        "do not match frozen artifact $expectedIdentity",
-                )
-            }
-        }
         if (states.isEmpty()) {
             val status = when (analysis.stopReason) {
                 TsAnalysisStopReason.EXHAUSTED -> CallsSymbolicStatus.UNREACHED
@@ -197,7 +171,6 @@ internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
             return result(
                 status = status,
                 startedAt = startedAt,
-                catalogFingerprint = fingerprint,
                 diagnostic = if (analysis.stopReason == TsAnalysisStopReason.OTHER_LIMIT) {
                     "Symbolic execution stopped for an unexpected non-timeout limit"
                 } else {
@@ -216,7 +189,6 @@ internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
                 status = CallsSymbolicStatus.UNREPRESENTABLE,
                 solverReached = true,
                 startedAt = startedAt,
-                catalogFingerprint = fingerprint,
                 diagnostic = "No reached state has inputs inside every frozen domain",
             )
         }
@@ -225,7 +197,6 @@ internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
             status = CallsSymbolicStatus.REACHED,
             inputs = inputs,
             startedAt = startedAt,
-            catalogFingerprint = fingerprint,
             diagnostic = "exact-source-lowering-size=${targetCandidates.size}",
         )
     }
@@ -269,13 +240,11 @@ internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
         startedAt: TimeSource.Monotonic.ValueTimeMark,
         solverReached: Boolean = status == CallsSymbolicStatus.REACHED,
         inputs: List<JsConcreteValue>? = null,
-        catalogFingerprint: String? = null,
         diagnostic: String? = null,
     ) = CallsSymbolicSearchResult(
         status = status,
         solverReached = solverReached,
         inputs = inputs,
-        catalogFingerprint = catalogFingerprint,
         elapsedMillis = startedAt.elapsedNow().inWholeMilliseconds,
         diagnostic = diagnostic,
     )
@@ -331,8 +300,6 @@ internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
     private data class MachineResult(
         val states: List<TsState>,
         val stopReason: TsAnalysisStopReason,
-        val catalogFingerprint: String?,
-        val artifactIdentities: Map<String, Pair<String, String>>,
     )
 }
 

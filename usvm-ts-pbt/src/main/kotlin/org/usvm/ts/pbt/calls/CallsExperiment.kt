@@ -31,10 +31,13 @@ internal enum class CallsExperimentProfile(
 @Serializable
 internal data class CallsModelSetIdentity(
     val ids: Set<String>,
-    val catalogFingerprint: String,
-    val sourceHash: String,
-    val etsIrHash: String,
     val toolRevision: String,
+    @SerialName("catalogFingerprint")
+    val legacyCatalogFingerprint: String? = null,
+    @SerialName("sourceHash")
+    val legacyModelSourceHash: String? = null,
+    @SerialName("etsIrHash")
+    val legacyModelEtsIrHash: String? = null,
 )
 
 @Serializable
@@ -126,9 +129,6 @@ internal data class CallsSymbolicSearchRequest(
     val target: CallsSourceTarget,
     val profile: CallsExperimentProfile,
     val frozenModelIds: Set<String>,
-    val expectedCatalogFingerprint: String,
-    val expectedModelSourceHash: String,
-    val expectedModelEtsIrHash: String,
     val expectedNativeFrontendRevision: String,
     val expectedNativeFrontendSha256: String,
     val seed: Long,
@@ -139,7 +139,6 @@ internal data class CallsSymbolicSearchResult(
     val status: CallsSymbolicStatus,
     val solverReached: Boolean = status == CallsSymbolicStatus.REACHED,
     val inputs: List<JsConcreteValue>? = null,
-    val catalogFingerprint: String? = null,
     val elapsedMillis: Long,
     val diagnostic: String? = null,
 ) {
@@ -198,7 +197,8 @@ internal data class CallsTargetResult(
     val inputExtracted: Boolean,
     val inputs: List<JsConcreteValue>? = null,
     val replayStatus: CallsReplayStatus?,
-    val catalogFingerprint: String?,
+    @SerialName("catalogFingerprint")
+    val legacyCatalogFingerprint: String? = null,
     val symbolicElapsedMillis: Long,
     val diagnostic: String? = null,
 ) : CallsRawRecord
@@ -401,13 +401,6 @@ internal class CallsExperimentRunner(
                 target = target,
                 profile = profile,
                 frozenModelIds = manifest.modelSet.ids,
-                expectedCatalogFingerprint = if (profile.usesFrozenModels) {
-                    manifest.modelSet.catalogFingerprint
-                } else {
-                    EMPTY_CATALOG_FINGERPRINT
-                },
-                expectedModelSourceHash = manifest.modelSet.sourceHash,
-                expectedModelEtsIrHash = manifest.modelSet.etsIrHash,
                 expectedNativeFrontendRevision = manifest.nativeFrontendRevision,
                 expectedNativeFrontendSha256 = manifest.nativeFrontendSha256,
                 seed = seed,
@@ -439,7 +432,6 @@ internal class CallsExperimentRunner(
             inputExtracted = symbolic.inputs != null,
             inputs = symbolic.inputs,
             replayStatus = replay?.status,
-            catalogFingerprint = symbolic.catalogFingerprint,
             symbolicElapsedMillis = symbolic.elapsedMillis,
             diagnostic = replay?.message ?: replay?.reason ?: symbolic.diagnostic,
         )
@@ -459,11 +451,6 @@ internal class CallsExperimentRunner(
             StandardOpenOption.CREATE,
             StandardOpenOption.APPEND,
         )
-    }
-
-    private companion object {
-        const val EMPTY_CATALOG_FINGERPRINT =
-            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     }
 }
 

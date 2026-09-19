@@ -85,6 +85,7 @@ class CallsExperimentTest {
         assertTrue(emptyFresh.solverReached)
         assertTrue(emptyFresh.inputExtracted)
         assertEquals(listOf(JsConcreteValue.Boolean(false)), emptyFresh.inputs)
+        assertNull(emptyFresh.legacyCatalogFingerprint)
         assertEquals(CallsReplayStatus.REJECTED, emptyFresh.replayStatus)
 
         val frozenStop = results.single { result -> result.profile == CallsExperimentProfile.FROZEN_STOP }
@@ -115,13 +116,47 @@ class CallsExperimentTest {
                 elements = listOf(JsConcreteValue.Undefined, JsConcreteValue.Null, JsConcreteValue.String("value")),
             ),
         )
-        val result = targetResult(inputs = witness)
+        val result = targetResult(
+            inputs = witness,
+            legacyCatalogFingerprint = "historical-runtime-fingerprint",
+        )
 
         val encoded = CallsExperimentJson.json.encodeToString<CallsRawRecord>(result)
         val decoded = CallsExperimentJson.json.decodeFromString<CallsRawRecord>(encoded) as CallsTargetResult
 
         assertEquals(result, decoded)
         assertEquals(witness, decoded.inputs)
+        assertEquals("historical-runtime-fingerprint", decoded.legacyCatalogFingerprint)
+    }
+
+    @Test
+    fun `historical semantic model identities decode but current manifests do not invent them`() {
+        val currentManifest = manifest(sourceRoot = ".", seeds = listOf(1L))
+        val encodedCurrent = CallsExperimentJson.encodeManifest(currentManifest)
+        assertFalse(encodedCurrent.contains("catalogFingerprint"))
+        assertFalse(encodedCurrent.contains("sourceHash"))
+        assertFalse(encodedCurrent.contains("etsIrHash"))
+
+        val historicalManifest = currentManifest.copy(
+            modelSet = currentManifest.modelSet.copy(
+                legacyCatalogFingerprint = "historical-catalog-fingerprint",
+                legacyModelSourceHash = "historical-model-source-hash",
+                legacyModelEtsIrHash = "historical-model-ets-ir-hash",
+            ),
+        )
+        val decoded = CallsExperimentJson.decodeManifest(CallsExperimentJson.encodeManifest(historicalManifest))
+        val sourceReplayHash = decoded.projects
+            .single()
+            .functions
+            .single()
+            .targets
+            .single()
+            .sourceSha256
+
+        assertEquals("historical-catalog-fingerprint", decoded.modelSet.legacyCatalogFingerprint)
+        assertEquals("historical-model-source-hash", decoded.modelSet.legacyModelSourceHash)
+        assertEquals("historical-model-ets-ir-hash", decoded.modelSet.legacyModelEtsIrHash)
+        assertEquals("source-hash", sourceReplayHash)
     }
 
     @Test
@@ -353,9 +388,6 @@ class CallsExperimentTest {
         searchPolicy = "BFS",
         modelSet = CallsModelSetIdentity(
             ids = setOf("ts.array.pop", "ts.array.shift"),
-            catalogFingerprint = "frozen-fingerprint",
-            sourceHash = "source-hash",
-            etsIrHash = "ets-ir-hash",
             toolRevision = FIXTURE_TOOL_REVISION,
         ),
         seeds = seeds,
@@ -401,7 +433,6 @@ class CallsExperimentTest {
         status = status,
         solverReached = solverReached,
         inputs = inputs,
-        catalogFingerprint = "runtime-fingerprint",
         elapsedMillis = 7L,
     )
 
@@ -426,7 +457,10 @@ class CallsExperimentTest {
         seed = seed,
     )
 
-    private fun targetResult(inputs: List<JsConcreteValue>) = CallsTargetResult(
+    private fun targetResult(
+        inputs: List<JsConcreteValue>,
+        legacyCatalogFingerprint: String? = null,
+    ) = CallsTargetResult(
         experimentId = "fixture",
         projectId = "fixture/project",
         revision = "project-revision",
@@ -441,7 +475,7 @@ class CallsExperimentTest {
         inputExtracted = true,
         inputs = inputs,
         replayStatus = CallsReplayStatus.CONFIRMED,
-        catalogFingerprint = "runtime-fingerprint",
+        legacyCatalogFingerprint = legacyCatalogFingerprint,
         symbolicElapsedMillis = 7L,
     )
 
