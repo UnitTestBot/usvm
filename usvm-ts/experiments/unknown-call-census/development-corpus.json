@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "projects": [
+    {
+      "id": "the-algorithms-typescript",
+      "repository": "https://github.com/TheAlgorithms/TypeScript.git",
+      "revision": "19b4ced86c99815f142d4a46a028f55487b8038a",
+      "path": "TheAlgorithms-TypeScript",
+      "license": "MIT",
+      "licenseFile": "LICENSE",
+      "include": [
+        "maths",
+        "search",
+        "sorts",
+        "bit_manipulation",
+        "dynamic_programming"
+      ],
+      "includeSuffixes": [
+        ".ts"
+      ],
+      "excludeSuffixes": [
+        ".test.ts",
+        ".spec.ts",
+        ".d.ts"
+      ]
+    },
+    {
+      "id": "javascript-datastructures-algorithms",
+      "repository": "https://github.com/loiane/javascript-datastructures-algorithms.git",
+      "revision": "e8ee8f9b8a07589533c4243a210d4cea7b090b10",
+      "path": "javascript-datastructures-algorithms",
+      "license": "MIT",
+      "licenseFile": "LICENSE",
+      "include": [
+        "src"
+      ],
+      "includeSuffixes": [
+        ".ts"
+      ],
+      "excludeSuffixes": [
+        ".test.ts",
+        ".spec.ts",
+        ".d.ts"
+      ]
+    },
+    {
+      "id": "typescript-collections",
+      "repository": "https://github.com/basarat/typescript-collections.git",
+      "revision": "309bb1b6955b403b212309531607b8d17df152e5",
+      "path": "typescript-collections",
+      "license": "MIT",
+      "licenseFile": "LICENSE",
+      "include": [
+        "src/lib"
+      ],
+      "includeSuffixes": [
+        ".ts"
+      ],
+      "excludeSuffixes": [
+        ".test.ts",
+        ".spec.ts",
+        ".d.ts"
+      ]
+    }
+  ],
+  "profiles": [
+    "EMPTY_FRESH"
+  ],
+  "limits": {
+    "projectTimeoutSeconds": 300,
+    "methodTimeoutSeconds": 5,
+    "maxFiles": 20,
+    "maxMethods": 40
+  }
+}

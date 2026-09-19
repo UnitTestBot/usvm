@@ -8,6 +8,7 @@ import kotlin.time.Duration
 
 plugins {
     id("usvm.kotlin-conventions")
+    kotlin("plugin.serialization") version Versions.kotlin
 }
 
 dependencies {
@@ -21,6 +22,7 @@ dependencies {
     implementation(Libs.ksmt_cvc5)
     implementation(Libs.ksmt_symfpu)
     implementation(Libs.ksmt_runner)
+    implementation(Libs.kotlinx_serialization_json)
 
     testImplementation(Libs.mockk)
     testImplementation(Libs.junit_jupiter_params)
@@ -30,6 +32,13 @@ dependencies {
     // https://mvnrepository.com/artifact/org.burningwave/core
     // Use it to export all modules to all
     testImplementation("org.burningwave:core:12.62.7")
+}
+
+tasks.register<JavaExec>("runUnknownCallCensus") {
+    group = "verification"
+    description = "Runs or summarizes the TypeScript unknown-call census."
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass.set("org.usvm.census.UnknownCallCensusCliKt")
 }
 
 val generateSdkIR by tasks.registering {
