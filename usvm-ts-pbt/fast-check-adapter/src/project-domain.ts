@@ -21,6 +21,7 @@ export interface ProjectionCapability {
 
 type DomainRecord = Record<string, unknown>;
 
+/** See [the contract](../../PROPERTY_EXECUTION_CONTRACT.md) for projection fidelity requirements. */
 export function projectDomain(domain: unknown, path = 'domain'): fc.Arbitrary<JsConcreteValue> {
   requireDomainObject(domain, path);
 
@@ -44,8 +45,19 @@ export function projectDomain(domain: unknown, path = 'domain'): fc.Arbitrary<Js
         maxLength: domain.maxLength,
       }).map((units) => units.map((unit) => String.fromCharCode(unit)).join(''));
 
-    case 'constant':
-      return fc.constant(decodeJsValue(domain.value, `${path}.value`));
+    case 'constant': {
+      const value = decodeJsValue(domain.value, `${path}.value`);
+
+      if (Array.isArray(value)) {
+        throw protocolError(
+          adapterDiagnostic.domainConstantUnsupported,
+          'Constant domains support JavaScript primitives only',
+          path,
+        );
+      }
+
+      return fc.constant(value);
+    }
 
     case 'optional': {
       const nil = decodeJsValue(domain.nil, `${path}.nil`);

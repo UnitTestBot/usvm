@@ -6,6 +6,7 @@ import {
   type AdapterDiagnosticDescriptor,
 } from './diagnostics.js';
 import {
+  EntryPointInvocationError,
   type ExecutionKind,
   loadEntryPoint,
   type LoadedEntryPoint,
@@ -37,6 +38,7 @@ export interface FastCheckExecutionRequest {
   manifest: PropertyManifestWire;
   sourceRoots: string[];
   seed?: number;
+  /** Replay follows the same invocation contract as generation and shrinking. */
   replayPath?: string;
   numRuns: number;
   timeoutMillis: number;
@@ -44,7 +46,7 @@ export interface FastCheckExecutionRequest {
 }
 
 export interface FastCheckFailureDetails {
-  kind: 'property' | 'timeout';
+  kind: 'property' | 'precondition-exhausted' | 'timeout';
   errorName: string;
   message: string;
 }
@@ -80,11 +82,13 @@ export async function executeProperty(requestValue: unknown): Promise<FastCheckE
     ...request.manifest.inputs.map((input, index) =>
       projectDomain(input.domain, `manifest.inputs[${index}].domain`)),
   );
-  const property = buildProperty(arbitrary, predicate, precondition);
+  const contractErrors: ContractErrorState = { first: undefined };
+  const property = buildProperty(arbitrary, predicate, precondition, contractErrors);
   const parameters = buildParameters(request);
 
   const details = await checkProperty(property, parameters, request.replayPath);
 
+  if (contractErrors.first !== undefined) throw contractErrors.first;
   if (details.errorInstance instanceof ProtocolError) throw details.errorInstance;
 
   return {
@@ -101,22 +105,110 @@ function buildProperty(
   arbitrary: fc.Arbitrary<JsConcreteValue[]>,
   predicate: LoadedEntryPoint,
   precondition: LoadedEntryPoint | undefined,
+  contractErrors: ContractErrorState,
 ): fc.IProperty<[JsConcreteValue[]]> | fc.IAsyncProperty<[JsConcreteValue[]]> {
   const asynchronous = predicate.executionKind === 'async' || precondition?.executionKind === 'async';
 
   if (asynchronous) {
-    return fc.asyncProperty(arbitrary, async (values: JsConcreteValue[]): Promise<boolean> => {
-      if (precondition !== undefined && !(await precondition.invoke(cloneArguments(values)))) fc.pre(false);
+    return fc.asyncProperty(arbitrary, (values: JsConcreteValue[]): Promise<boolean> => preserveAsyncContractError(
+      contractErrors,
+      async () => {
+        const invocationValues = cloneArguments(values);
+        if (precondition !== undefined && !(await invokePrecondition(precondition, invocationValues))) fc.pre(false);
 
-      return await predicate.invoke(cloneArguments(values));
-    });
+        return await predicate.invoke(invocationValues);
+      },
+    ));
   }
 
-  return fc.property(arbitrary, (values: JsConcreteValue[]): boolean => {
-    if (precondition !== undefined && !precondition.invoke(cloneArguments(values))) fc.pre(false);
+  return fc.property(arbitrary, (values: JsConcreteValue[]): boolean => preserveContractError(
+    contractErrors,
+    () => {
+      const invocationValues = cloneArguments(values);
+      if (precondition !== undefined && !invokeSynchronousPrecondition(precondition, invocationValues)) fc.pre(false);
 
-    return predicate.invoke(cloneArguments(values)) as boolean;
-  });
+      return predicate.invoke(invocationValues) as boolean;
+    },
+  ));
+}
+
+interface ContractErrorState {
+  first: ProtocolError | undefined;
+}
+
+function preserveContractError<T>(state: ContractErrorState, invocation: () => T): T {
+  if (state.first !== undefined) throw state.first;
+
+  try {
+    return invocation();
+  } catch (error: unknown) {
+    if (error instanceof ProtocolError) state.first ??= error;
+
+    throw error;
+  }
+}
+
+async function preserveAsyncContractError<T>(
+  state: ContractErrorState,
+  invocation: () => Promise<T>,
+): Promise<T> {
+  if (state.first !== undefined) throw state.first;
+
+  try {
+    return await invocation();
+  } catch (error: unknown) {
+    if (error instanceof ProtocolError) state.first ??= error;
+
+    throw error;
+  }
+}
+
+async function invokePrecondition(
+  precondition: LoadedEntryPoint,
+  values: JsConcreteValue[],
+): Promise<boolean> {
+  try {
+    return await precondition.invoke(values);
+  } catch (error: unknown) {
+    throw classifyPreconditionError(error);
+  }
+}
+
+function invokeSynchronousPrecondition(
+  precondition: LoadedEntryPoint,
+  values: JsConcreteValue[],
+): boolean {
+  try {
+    return precondition.invoke(values) as boolean;
+  } catch (error: unknown) {
+    throw classifyPreconditionError(error);
+  }
+}
+
+function classifyPreconditionError(error: unknown): ProtocolError {
+  if (error instanceof ProtocolError) return error;
+
+  const thrownValue = error instanceof EntryPointInvocationError ? error.thrownValue : error;
+
+  return protocolError(
+    adapterDiagnostic.entryPointPreconditionThrew,
+    `Property precondition threw ${describeThrownValue(thrownValue)}`,
+    'manifest.precondition',
+  );
+}
+
+function describeThrownValue(value: unknown): string {
+  try {
+    if (value instanceof Error) {
+      const name = String(value.name || 'Error');
+
+      return value.message.length === 0 ? name : `${name}: ${value.message}`;
+    }
+
+    return `a non-Error value: ${String(value)}`;
+  } catch {
+    return 'an unprintable value';
+  }
 }
 
 async function checkProperty(
@@ -139,28 +231,9 @@ async function checkProperty(
   }
 }
 
-/**
- * User callbacks must not mutate fast-check's sample, which it retains for shrinking and replay.
- * A shared clone map preserves aliases and cycles within one invocation while isolating separate invocations.
- */
+/** See [the contract](../../PROPERTY_EXECUTION_CONTRACT.md) for the invocation and isolation rules. */
 function cloneArguments(values: JsConcreteValue[]): JsConcreteValue[] {
-  return cloneArray(values, new Map());
-}
-
-function cloneArray(
-  value: JsConcreteValue[],
-  clones: Map<JsConcreteValue[], JsConcreteValue[]>,
-): JsConcreteValue[] {
-  const existing = clones.get(value);
-  if (existing !== undefined) return existing;
-
-  const clone: JsConcreteValue[] = [];
-  clones.set(value, clone);
-  for (const element of value) {
-    clone.push(Array.isArray(element) ? cloneArray(element, clones) : element);
-  }
-
-  return clone;
+  return structuredClone(values);
 }
 
 function buildParameters(request: FastCheckExecutionRequest): Parameters<[JsConcreteValue[]]> {
@@ -181,7 +254,6 @@ function buildParameters(request: FastCheckExecutionRequest): Parameters<[JsConc
 
   const parameters: Parameters<[JsConcreteValue[]]> = {
     numRuns: request.numRuns,
-    timeout: request.timeoutMillis,
     interruptAfterTimeLimit: request.timeoutMillis,
     markInterruptAsFailure: true,
     examples: decodedExamples,
@@ -219,18 +291,7 @@ function toRunResult(
 }
 
 function failureDetails(details: RunDetails<[JsConcreteValue[]]>): FastCheckFailureDetails {
-  const error = details.errorInstance;
-  const timeout = (details.interrupted && details.counterexample === null) || isFastCheckTimeout(error);
-
-  if (error instanceof Error) {
-    return {
-      kind: timeout ? 'timeout' : 'property',
-      errorName: error.name || 'Error',
-      message: error.message || 'Property execution failed',
-    };
-  }
-
-  if (timeout) {
+  if (details.interrupted && details.counterexample === null) {
     return {
       kind: 'timeout',
       errorName: 'TimeoutError',
@@ -240,30 +301,48 @@ function failureDetails(details: RunDetails<[JsConcreteValue[]]>): FastCheckFail
 
   if (details.counterexample === null) {
     return {
-      kind: 'property',
-      errorName: 'PropertyFailure',
+      kind: 'precondition-exhausted',
+      errorName: 'PreconditionExhausted',
       message: 'Property could not satisfy its precondition within the skip limit',
     };
   }
 
+  const error = details.errorInstance instanceof EntryPointInvocationError
+    ? details.errorInstance.thrownValue
+    : details.errorInstance;
+
   return {
     kind: 'property',
-    errorName: 'ThrownValue',
-    message: String(error),
+    ...describePropertyFailure(error),
   };
 }
 
-function isFastCheckTimeout(error: unknown): boolean {
-  return hasFastCheckMessagePrefix(error, FAST_CHECK_TIMEOUT_PREFIX);
+function describePropertyFailure(value: unknown): Pick<FastCheckFailureDetails, 'errorName' | 'message'> {
+  try {
+    if (value instanceof Error) {
+      return {
+        errorName: typeof value.name === 'string' && value.name.length > 0 ? value.name : 'Error',
+        message: typeof value.message === 'string' && value.message.length > 0
+          ? value.message
+          : 'Property execution failed',
+      };
+    }
+
+    return {
+      errorName: 'ThrownValue',
+      message: String(value),
+    };
+  } catch {
+    return {
+      errorName: 'ThrownValue',
+      message: 'An unprintable value',
+    };
+  }
 }
 
+/** The pinned fast-check version exposes invalid replay paths only through a stable message prefix. */
 function isFastCheckReplayFailure(error: unknown): boolean {
-  return hasFastCheckMessagePrefix(error, FAST_CHECK_REPLAY_FAILURE_PREFIX);
-}
-
-/** The pinned fast-check version exposes these two failure categories only through stable message prefixes. */
-function hasFastCheckMessagePrefix(error: unknown, prefix: string): boolean {
-  return error instanceof Error && error.message.startsWith(prefix);
+  return error instanceof Error && error.message.startsWith(FAST_CHECK_REPLAY_FAILURE_PREFIX);
 }
 
 function validateRequest(value: unknown): FastCheckExecutionRequest {
@@ -447,4 +526,3 @@ function isSignedInt(value: unknown): value is number {
 const MAX_TIMER_DELAY_MILLIS = 2 ** 31 - 1;
 const REPLAY_PATH_PATTERN = /^\d+(?::\d+)*$/;
 const FAST_CHECK_REPLAY_FAILURE_PREFIX = 'Unable to replay,';
-const FAST_CHECK_TIMEOUT_PREFIX = 'Property timeout:';
