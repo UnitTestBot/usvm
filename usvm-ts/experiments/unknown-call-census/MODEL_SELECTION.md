@@ -38,6 +38,5 @@ At accepted #380 source `3134d06515bca61ba2a357a67697ac8620b0e420` and corrected
 
 - `ArrayModels.ts` source SHA-256: `9f40d3abce58e3412a0206eabd9fdb0547e12c2ebd832ce48b260b3339518e26`.
 - `TsArrayShiftIntrinsicModel.kt` SHA-256: `ff6dd634cf660c83e203b82c927a28e88859f0bc6b9f24bec2fa97d738dc9e11`.
-- Empty catalog fingerprint: `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
 
-The corrected run used JacoDB `ddb127d9ef`, the native `TS_FRONTEND`, Yices, OpenJDK 21.0.12, Node 26.5.0, random seed 0, a 300-second project budget, a 5-second method budget, at most 20 entry files and 40 entry methods per project. The catalog fingerprint identifies only the sorted ID set. `ts.array.shift` has no EtsIR artifact. For `ts.array.pop`, the generated `etsIrHash` remains unavailable from the built-in wrapper and must not be invented.
+The corrected run used JacoDB `ddb127d9ef`, the native `TS_FRONTEND`, Yices, OpenJDK 21.0.12, Node 26.5.0, random seed 0, a 300-second project budget, a 5-second method budget, at most 20 entry files and 40 entry methods per project. Its run metadata records `unknownCallModelSelection` as `NONE`. `ts.array.shift` has no EtsIR artifact. For `ts.array.pop`, the generated `etsIrHash` remains unavailable from the built-in wrapper and must not be invented.

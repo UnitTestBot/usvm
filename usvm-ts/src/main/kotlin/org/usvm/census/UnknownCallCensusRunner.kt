@@ -23,7 +23,6 @@ import org.usvm.UMachineOptions
 import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
-import org.usvm.machine.call.TsBuiltInUnknownCallModels
 import org.usvm.machine.call.TsResidualCallPolicy
 import org.usvm.machine.call.TsUnknownCallDecision
 import org.usvm.machine.call.TsUnknownCallEvent
@@ -431,9 +430,6 @@ internal class UnknownCallCensusRunner(
     }
 
     private fun runStartRecord(startedAt: Instant): JsonObject = buildJsonObject {
-        val emptyModelSelection = TsUnknownCallModelSelection.Only(emptySet())
-        val emptyCatalogFingerprint = TsBuiltInUnknownCallModels.catalog(emptyModelSelection).fingerprint
-
         put("kind", "run_start")
         put("schemaVersion", CENSUS_SCHEMA_VERSION)
         put("startedAt", startedAt.toString())
@@ -446,7 +442,6 @@ internal class UnknownCallCensusRunner(
         put("javaVersion", System.getProperty("java.version"))
         put("randomSeed", 0)
         put("unknownCallModelSelection", "NONE")
-        put("unknownCallModelCatalogFingerprint", emptyCatalogFingerprint)
         put("legacyApproximationPolicy", "UNCHANGED")
         put("projectTimeoutSeconds", manifest.limits.projectTimeoutSeconds)
         put("methodTimeoutSeconds", manifest.limits.methodTimeoutSeconds)
