@@ -62,10 +62,13 @@ internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
         val source = request.sourceRoot.resolve(request.function.sourceFile).normalize()
         val sourceFile = loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)
         val scene = EtsScene(projectFiles = listOf(sourceFile))
+        val frontendEntryPoint = request.function.entryPoint.copy(
+            module = requireNotNull(source.fileName).toString(),
+        )
         val propertyManifest = PropertyManifest(
             propertyId = "calls.mapping",
             inputs = request.function.inputs,
-            predicate = request.function.entryPoint,
+            predicate = frontendEntryPoint,
         )
         val mapping = PropertyEtsMapper(scene = scene, sourceRoots = listOf(request.sourceRoot)).map(propertyManifest)
         if (mapping.predicate.status != EtsMappingStatus.EXACT) {
