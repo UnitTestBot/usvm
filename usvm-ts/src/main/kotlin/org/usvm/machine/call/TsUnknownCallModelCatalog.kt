@@ -3,13 +3,8 @@ package org.usvm.machine.call
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsFileSignature
 import org.usvm.machine.state.TsState
-import java.nio.ByteBuffer
-import java.nio.charset.StandardCharsets
-import java.security.MessageDigest
 import java.util.Collections
 import java.util.IdentityHashMap
-
-private const val BYTE_MASK = 0xff
 
 /** An immutable deterministic set of semantic models used by one machine run. */
 class TsUnknownCallModelCatalog(
@@ -20,7 +15,6 @@ class TsUnknownCallModelCatalog(
     private val selectedModels: List<TsUnknownCallModel>
 
     val modelIds: List<String>
-    val fingerprint: String
     val additionalSceneFiles: List<EtsFile>
 
     init {
@@ -41,7 +35,6 @@ class TsUnknownCallModelCatalog(
 
         modelIds = Collections.unmodifiableList(selectedModels.map(TsUnknownCallModel::id))
         index = indexModels(selectedModels)
-        fingerprint = computeFingerprint(modelIds)
         additionalSceneFiles = selectedModels
             .flatMap(TsUnknownCallModel::additionalSceneFiles)
             .deduplicateEtsFilesBySignature()
@@ -119,20 +112,4 @@ internal fun Iterable<EtsFile>.deduplicateEtsFilesBySignature(): List<EtsFile> {
     }
 
     return filesBySignature.values.toList()
-}
-
-private fun computeFingerprint(modelIds: List<String>): String {
-    val digest = MessageDigest.getInstance("SHA-256")
-    modelIds.forEach { digest.updateLengthPrefixed(it) }
-
-    return digest.digest().joinToString(separator = "") { byte ->
-        "%02x".format(byte.toInt() and BYTE_MASK)
-    }
-}
-
-/** Length prefixes distinguish ID sequences such as ["ab", "c"] and ["a", "bc"]. */
-private fun MessageDigest.updateLengthPrefixed(value: String) {
-    val bytes = value.toByteArray(StandardCharsets.UTF_8)
-    update(ByteBuffer.allocate(Int.SIZE_BYTES).putInt(bytes.size).array())
-    update(bytes)
 }

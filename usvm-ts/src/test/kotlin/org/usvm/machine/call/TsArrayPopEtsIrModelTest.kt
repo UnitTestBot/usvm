@@ -15,6 +15,7 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UMachineOptions
 import org.usvm.api.TsTestValue
+import org.usvm.isTrue
 import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
@@ -28,7 +29,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration
 
@@ -45,7 +45,6 @@ class TsArrayPopEtsIrModelTest {
 
         assertIs<TsTestValue.TsUndefined>(result.values.single())
         assertEquals(listOf("ts.array.pop"), result.modelIds)
-        assertTrue(assertNotNull(result.catalogFingerprint).matches(Regex("[0-9a-f]{64}")))
     }
 
     @Test
@@ -112,6 +111,30 @@ class TsArrayPopEtsIrModelTest {
             val result = analyze(methodName = methodName)
 
             assertTrue(result.hasNumber(1.0), "$methodName did not preserve length 1: ${result.values}")
+        }
+    }
+
+    @Test
+    fun `array length assertions update cached models for an unconstrained any value`() {
+        val method = method(name = "shrinkFromUnconstrainedAny")
+
+        val states = TsMachine(
+            scene = scene,
+            options = machineOptions.copy(useSoftConstraints = false),
+            tsOptions = TsOptions(),
+        ).use { machine -> machine.analyze(listOf(method)) }
+
+        assertTrue(states.isNotEmpty())
+        states.forEach { state ->
+            val constraints = state.pathConstraints.softConstraintsSourceSequence.toList()
+
+            assertTrue(constraints.isNotEmpty())
+            assertTrue(state.models.isNotEmpty())
+            assertTrue(
+                state.models.all { model ->
+                    constraints.all { constraint -> model.eval(constraint).isTrue }
+                }
+            )
         }
     }
 
@@ -225,7 +248,6 @@ class TsArrayPopEtsIrModelTest {
 
         assertEquals(32.0, assertIs<TsTestValue.TsNumber>(result.values.single()).number)
         assertTrue(result.events.isEmpty())
-        assertNull(result.catalogFingerprint)
     }
 
     private fun analyze(
@@ -249,7 +271,6 @@ class TsArrayPopEtsIrModelTest {
             AnalysisResult(
                 values = values,
                 events = observer.events.toList(),
-                catalogFingerprint = machine.unknownCallModelCatalogFingerprint,
             )
         }
     }
@@ -316,7 +337,6 @@ class TsArrayPopEtsIrModelTest {
     private data class AnalysisResult(
         val values: List<TsTestValue>,
         val events: List<TsUnknownCallEvent>,
-        val catalogFingerprint: String?,
     ) {
         fun hasNumber(expected: Double): Boolean =
             values.filterIsInstance<TsTestValue.TsNumber>().any { value -> value.number == expected }
@@ -332,6 +352,7 @@ class TsArrayPopEtsIrModelTest {
             pathSelectionStrategies = listOf(PathSelectionStrategy.BFS),
             stateCollectionStrategy = StateCollectionStrategy.ALL,
             exceptionsPropagation = true,
+            throwExceptionOnStepFailure = true,
             timeout = Duration.INFINITE,
             stepsFromLastCovered = 3_500L,
             solverType = SolverType.YICES,

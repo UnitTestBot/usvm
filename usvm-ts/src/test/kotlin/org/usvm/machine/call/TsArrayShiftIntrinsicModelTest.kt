@@ -53,7 +53,6 @@ class TsArrayShiftIntrinsicModelTest {
 
         assertIs<TsTestValue.TsUndefined>(result.values.single())
         assertEquals(listOf("ts.array.shift"), result.modelIds)
-        assertTrue(assertNotNull(result.catalogFingerprint).matches(Regex("[0-9a-f]{64}")))
     }
 
     @Test
@@ -276,7 +275,6 @@ class TsArrayShiftIntrinsicModelTest {
 
         assertEquals(32.0, assertIs<TsTestValue.TsNumber>(result.values.single()).number)
         assertTrue(result.events.isEmpty())
-        assertNull(result.catalogFingerprint)
     }
 
     @ParameterizedTest
@@ -328,7 +326,6 @@ class TsArrayShiftIntrinsicModelTest {
             AnalysisResult(
                 values = values,
                 events = observer.events.toList(),
-                catalogFingerprint = machine.unknownCallModelCatalogFingerprint,
             )
         }
     }
@@ -395,7 +392,6 @@ class TsArrayShiftIntrinsicModelTest {
     private data class AnalysisResult(
         val values: List<TsTestValue>,
         val events: List<TsUnknownCallEvent>,
-        val catalogFingerprint: String?,
     ) {
         val modelIds: List<String>
             get() = events.mapNotNull { event ->

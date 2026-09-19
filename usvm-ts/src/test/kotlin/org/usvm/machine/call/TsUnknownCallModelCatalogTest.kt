@@ -16,7 +16,6 @@ import org.usvm.machine.state.TsState
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
@@ -82,7 +81,7 @@ class TsUnknownCallModelCatalogTest {
     }
 
     @Test
-    fun `selection and fingerprint do not depend on model order`() {
+    fun `selection does not depend on model order`() {
         val forward = listOf(
             model(id = "a", methodName = "first"),
             model(id = "b", methodName = "second"),
@@ -93,11 +92,10 @@ class TsUnknownCallModelCatalogTest {
 
         assertEquals(listOf("a", "b"), first.modelIds)
         assertEquals(first.modelIds, second.modelIds)
-        assertEquals(first.fingerprint, second.fingerprint)
     }
 
     @Test
-    fun `enabled subset is detached and changes fingerprint`() {
+    fun `enabled subset is detached from mutable selection`() {
         val mutableIds = mutableSetOf("a")
         val models = listOf(
             model(id = "a", methodName = "first"),
@@ -105,11 +103,8 @@ class TsUnknownCallModelCatalogTest {
         )
         val onlyA = TsUnknownCallModelCatalog(models, selection = TsUnknownCallModelSelection.Only(mutableIds))
         mutableIds += "b"
-        val both = TsUnknownCallModelCatalog(models)
 
         assertEquals(listOf("a"), onlyA.modelIds)
-        assertNotEquals(onlyA.fingerprint, both.fingerprint)
-        assertTrue(onlyA.fingerprint.matches(Regex("[0-9a-f]{64}")))
     }
 
     @Test
@@ -166,12 +161,10 @@ class TsUnknownCallModelCatalogTest {
     }
 
     @Test
-    fun `fingerprints preserve ID boundaries and no match remains distinct from ambiguity`() {
-        val left = TsUnknownCallModelCatalog(listOf(model(id = "ab"), model(id = "c")))
-        val right = TsUnknownCallModelCatalog(listOf(model(id = "a"), model(id = "bc")))
+    fun `unmatched call selects no model`() {
+        val catalog = TsUnknownCallModelCatalog(listOf(model(id = "known", methodName = "known")))
 
-        assertNotEquals(left.fingerprint, right.fingerprint)
-        assertNull(left.select(call(className = "A", reason = TsUnknownCallFailureReason.PARTIAL_APPROXIMATION)))
+        assertNull(catalog.select(call(className = "A", reason = TsUnknownCallFailureReason.PARTIAL_APPROXIMATION)))
     }
 
     private fun call(className: String, reason: TsUnknownCallFailureReason) = TsUnknownCall(

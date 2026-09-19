@@ -85,6 +85,12 @@ export class ArrayPopEtsIr {
         return values.length;
     }
 
+    shrinkFromUnconstrainedAny(length: any): number {
+        const values = [10, 20];
+        values.length = length;
+        return values.length;
+    }
+
     unsupportedLengthValue(): number {
         const values = [10];
         values.length = "0";

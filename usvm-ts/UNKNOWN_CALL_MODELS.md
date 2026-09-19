@@ -118,7 +118,7 @@ Examples:
 - `ts.array.shift`
 - `node.buffer.copy`
 
-The ID is used for configuration, observer events, recursion prevention, and catalog fingerprints. Do not include:
+The ID is used for configuration, observer events, and recursion prevention. Do not include:
 
 - an implementation mechanism such as `intrinsic` or `ets-ir`;
 - a source or EtsIR hash;
@@ -141,8 +141,7 @@ TsUnknownCallTarget(
 Only `methodName` is required. Add `enclosingClassName` or `failureReason` when the method name alone is too broad.
 The catalog indexes method names, failure reasons, and enclosing classes. Overlapping enabled targets fail while
 building that index; lookup returns either one model or no match, and never hides ambiguity. Catalog order is never
-a priority rule. IDs and their SHA-256 fingerprint are computed once; byte-length prefixes distinguish ID sequences
-such as `["ab", "c"]` and `["a", "bc"]`.
+a priority rule. The enabled model set is frozen and sorted by ID when the catalog is built.
 
 The target identifies a call family. State-dependent checks, such as the receiver's symbolic runtime type, belong in
 `apply` or in an EtsIR model's domain guard.
@@ -312,17 +311,10 @@ lookup declines that redirection and fallback is applied instead of entering an 
 Do not implement `Array.pop` by calling `receiver.pop()` inside its own model body. Implement it through `length` and
 indexed access, as in the example above.
 
-## Artifacts and fingerprints
+## Artifacts
 
-The loader snapshots the source bytes, invokes the native JacoDB TypeScript frontend, and rejects source mutation during
-generation. The resulting artifact records source and EtsIR SHA-256 hashes for reproducibility.
-
-The catalog sorts enabled models by ID and hashes their length-prefixed IDs. Therefore model registration order does
-not affect the fingerprint and ambiguous concatenations cannot collide merely because of ID boundaries. The
-fingerprint identifies the frozen enabled model set for one run. It is not a version and must not be used as a manually
-maintained configuration value. Experiment metadata records the tool revision separately. If model source can change
-independently of that revision, the runner also records the artifact's content hashes as experiment metadata; those
-hashes are not another model ID, version, compatibility setting, or part of the common model contract.
+The loader invokes the native JacoDB TypeScript frontend and keeps an immutable EtsIR JSON snapshot. Each machine
+materializes its own EtsIR objects from that snapshot so interpreter-local state cannot leak between analyses.
 
 EtsIR files are merged into the analysis scene by file signature. Reusing the same file object is deduplicated;
 distinct files with the same signature are rejected, including collisions with application and SDK files.

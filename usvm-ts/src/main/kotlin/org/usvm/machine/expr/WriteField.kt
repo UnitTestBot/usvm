@@ -80,6 +80,7 @@ private fun TsContext.assignToArrayLength(
             extractValue(value, fp64Sort, ::getIntermediateFpLValue)
         }
     }
+    // Assertions update both path constraints and cached models through the state forker.
     val numericTypeIsPossible = scope.assert(numericTypeGuard)
     if (fpLength == null || numericTypeIsPossible == null) {
         logger.warn {

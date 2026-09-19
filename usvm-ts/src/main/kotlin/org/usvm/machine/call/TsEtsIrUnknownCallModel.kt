@@ -9,33 +9,24 @@ import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.generateEtsIR
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
+import org.usvm.isFalse
+import org.usvm.isTrue
 import org.usvm.machine.state.TsState
 import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
 import java.nio.file.Path
-import java.security.MessageDigest
 import java.util.IdentityHashMap
 import kotlin.io.path.createTempDirectory
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.outputStream
-import kotlin.io.path.readBytes
+import kotlin.io.path.readText
 
-private const val BYTE_MASK = 0xff
-private val sha256Regex = Regex("[0-9a-f]{64}")
-
-/** Reproducible native-frontend artifact for one TypeScript semantic-model entry point. */
+/** Native-frontend artifact for one TypeScript semantic-model entry point. */
 data class TsEtsIrUnknownCallModelArtifact(
     val file: EtsFile,
     val entryPoint: EtsMethod,
-    val sourceHash: String,
-    val etsIrHash: String,
     internal val etsIrJson: String,
 ) {
-    init {
-        require(sourceHash.matches(sha256Regex)) { "TypeScript model source hash must be a lowercase SHA-256" }
-        require(etsIrHash.matches(sha256Regex)) { "TypeScript model EtsIR hash must be a lowercase SHA-256" }
-    }
-
     internal fun materializeFile(): EtsFile =
         etsIrJson.byteInputStream().use { stream ->
             EtsFileDto.loadFromJson(stream).toEtsFile()
@@ -60,37 +51,17 @@ fun loadEtsIrUnknownCallModelArtifact(
     sourcePath: Path,
     entryPointClassName: String,
     entryPointMethodName: String,
-): TsEtsIrUnknownCallModelArtifact = loadEtsIrUnknownCallModelArtifact(
-    sourcePath = sourcePath,
-    entryPointClassName = entryPointClassName,
-    entryPointMethodName = entryPointMethodName,
-    generateIr = { path ->
-        generateEtsIR(
-            projectPath = path,
-            isProject = false,
-            loadEntrypoints = true,
-            useArkAnalyzerTypeInference = null,
-            provider = EtsIrProvider.TS_FRONTEND,
-        )
-    },
-)
-
-internal fun loadEtsIrUnknownCallModelArtifact(
-    sourcePath: Path,
-    entryPointClassName: String,
-    entryPointMethodName: String,
-    generateIr: (Path) -> Path,
 ): TsEtsIrUnknownCallModelArtifact {
-    val sourceBytes = sourcePath.readBytes()
-    val irPath = generateIr(sourcePath)
+    val irPath = generateEtsIR(
+        projectPath = sourcePath,
+        isProject = false,
+        loadEntrypoints = true,
+        useArkAnalyzerTypeInference = null,
+        provider = EtsIrProvider.TS_FRONTEND,
+    )
 
     return try {
-        check(sourcePath.readBytes().contentEquals(sourceBytes)) {
-            "TypeScript model source changed while generating EtsIR: $sourcePath"
-        }
-
-        val irBytes = irPath.readBytes()
-        val etsIrJson = irBytes.toString(Charsets.UTF_8)
+        val etsIrJson = irPath.readText()
         val file = etsIrJson.byteInputStream().use { stream ->
             EtsFileDto.loadFromJson(stream).toEtsFile()
         }
@@ -99,8 +70,6 @@ internal fun loadEtsIrUnknownCallModelArtifact(
         TsEtsIrUnknownCallModelArtifact(
             file = file,
             entryPoint = entryPoint,
-            sourceHash = sourceBytes.sha256(),
-            etsIrHash = irBytes.sha256(),
             etsIrJson = etsIrJson,
         )
     } finally {
@@ -156,7 +125,7 @@ class TsEtsIrUnknownCallModel(
             call = call,
             inputs = inputs,
         )
-        if (guard == state.ctx.falseExpr) {
+        if (guard.isFalse) {
             return null
         }
 
@@ -170,7 +139,7 @@ class TsEtsIrUnknownCallModel(
 
         return TsUnknownCallModelExecution(
             successors = listOf(successor),
-            residualGuard = guard.takeUnless { it == state.ctx.trueExpr }?.let(state.ctx::mkNot),
+            residualGuard = guard.takeUnless { it.isTrue }?.let(state.ctx::mkNot),
         )
     }
 
@@ -251,8 +220,3 @@ internal fun TsState.enterEtsIrUnknownCallModel(
     memory.stack.push(arguments.toTypedArray(), entryPoint.localsCount)
     newStmt(entryPoint.cfg.instructions.first())
 }
-
-private fun ByteArray.sha256(): String =
-    MessageDigest.getInstance("SHA-256")
-        .digest(this)
-        .joinToString(separator = "") { byte -> "%02x".format(byte.toInt() and BYTE_MASK) }
