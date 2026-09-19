@@ -159,6 +159,30 @@ test('keeps timeout-shaped predicate exceptions classified as property violation
   }
 });
 
+test('keeps hostile predicate exceptions classified as property violations', async () => {
+  const cases = [
+    { exportName: 'throwingOpaquePrecondition', executionKind: 'sync' as const },
+    { exportName: 'asyncThrowingOpaquePrecondition', executionKind: 'async' as const },
+    { exportName: 'throwingUnprintableErrorPrecondition', executionKind: 'sync' as const },
+    { exportName: 'asyncThrowingUnprintableErrorPrecondition', executionKind: 'async' as const },
+    { exportName: 'throwingUnprintableNamePrecondition', executionKind: 'sync' as const },
+    { exportName: 'throwingFastCheckBrandedPredicate', executionKind: 'sync' as const },
+    { exportName: 'asyncThrowingFastCheckBrandedPredicate', executionKind: 'async' as const },
+    { exportName: 'throwingHostileProxyPredicate', executionKind: 'sync' as const },
+  ];
+
+  for (const { exportName, executionKind } of cases) {
+    const request = contractExecutionRequest(exportName, { predicateExecutionKind: executionKind });
+
+    const response = await executeProperty(request);
+
+    assert.equal(response.result.failure?.kind, 'property');
+    assert.ok(response.result.counterexample);
+    assert.equal(typeof response.result.failure?.errorName, 'string');
+    assert.equal(typeof response.result.failure?.message, 'string');
+  }
+});
+
 test('keeps false, throwing, and assertion predicates classified as property violations', async () => {
   for (const predicateExport of ['falsePredicate', 'throwingPredicate', 'assertionPredicate']) {
     const response = await executeProperty(contractExecutionRequest(predicateExport));

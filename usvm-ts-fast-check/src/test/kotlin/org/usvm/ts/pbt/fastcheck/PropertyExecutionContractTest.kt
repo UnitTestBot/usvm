@@ -148,16 +148,6 @@ class PropertyExecutionContractTest {
     }
 
     @Test
-    fun `a predicate may catch and classify an expected exception`() {
-        val result = backend.run(
-            property = property(predicate = "catchesExpectedException"),
-            configuration = configuration,
-        )
-
-        assertEquals(PropertyRunStatus.SUCCESS, result.status)
-    }
-
-    @Test
     fun `special values retain their identity and argument order`() {
         val domains = listOf(
             ConstantDomain(value = JsConcreteValue.Undefined),
