@@ -10,9 +10,44 @@ fun main(args: Array<String>) {
 
     when (args.first()) {
         "run" -> runExperiment(args.drop(1))
+        "replay-witness" -> replayWitness(args.drop(1))
         "summarize" -> summarize(args.drop(1))
         else -> error(usage())
     }
+}
+
+internal fun replayWitness(args: List<String>) {
+    require(args.size == REPLAY_WITNESS_ARGUMENT_COUNT) { usage() }
+    val arguments = args.iterator()
+    val manifestArgument = arguments.next()
+    val rawArgument = arguments.next()
+    val projectId = arguments.next()
+    val functionId = arguments.next()
+    val targetId = arguments.next()
+    val profileName = arguments.next()
+    val seedText = arguments.next()
+    val manifestPath = Path.of(manifestArgument).toAbsolutePath().normalize()
+    val rawInput = Path.of(rawArgument).toAbsolutePath().normalize()
+    val selector = CallsWitnessSelector(
+        projectId = projectId,
+        functionId = functionId,
+        targetId = targetId,
+        profile = CallsExperimentProfile.valueOf(profileName),
+        seed = seedText.toLong(),
+    )
+    preflightCallsWitness(rawInput = rawInput, selector = selector)
+
+    val manifest = CallsExperimentJson.decodeManifest(Files.readString(manifestPath))
+    val result = CallsWitnessReplayer(
+        targetReplayer = OriginalTypeScriptTargetReplayer(),
+    ).replay(
+        manifest = manifest,
+        manifestDirectory = requireNotNull(manifestPath.parent),
+        rawInput = rawInput,
+        selector = selector,
+    )
+
+    println(CallsExperimentJson.json.encodeToString(result))
 }
 
 private fun runExperiment(args: List<String>) {
@@ -52,5 +87,8 @@ private fun summarize(args: List<String>) {
 private fun usage(): String = """
     Usage:
       calls run <frozen-manifest.json> <raw-directory>
+      calls replay-witness <frozen-manifest.json> <results.jsonl> <project-id> <function-id> <target-id> <profile> <seed>
       calls summarize <results.jsonl> <summary.json>
 """.trimIndent()
+
+private const val REPLAY_WITNESS_ARGUMENT_COUNT = 7

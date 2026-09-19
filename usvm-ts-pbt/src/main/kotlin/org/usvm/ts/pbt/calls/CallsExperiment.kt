@@ -196,6 +196,7 @@ internal data class CallsTargetResult(
     val symbolicStatus: CallsSymbolicStatus,
     val solverReached: Boolean,
     val inputExtracted: Boolean,
+    val inputs: List<JsConcreteValue>? = null,
     val replayStatus: CallsReplayStatus?,
     val catalogFingerprint: String?,
     val symbolicElapsedMillis: Long,
@@ -436,6 +437,7 @@ internal class CallsExperimentRunner(
             symbolicStatus = symbolic.status,
             solverReached = symbolic.solverReached,
             inputExtracted = symbolic.inputs != null,
+            inputs = symbolic.inputs,
             replayStatus = replay?.status,
             catalogFingerprint = symbolic.catalogFingerprint,
             symbolicElapsedMillis = symbolic.elapsedMillis,
@@ -465,9 +467,14 @@ internal class CallsExperimentRunner(
     }
 }
 
-internal object CallsExperimentAggregator {
+internal data class CallsValidatedRawResults(
+    val metadata: CallsRunMetadata,
+    val results: List<CallsTargetResult>,
+)
+
+internal object CallsRawResultsReader {
     @Suppress("LongMethod")
-    fun summarize(rawInput: Path): CallsExperimentSummary {
+    fun read(rawInput: Path): CallsValidatedRawResults {
         val records = Files.readAllLines(rawInput).filter(String::isNotBlank).map { line ->
             CallsExperimentJson.json.decodeFromString<CallsRawRecord>(line)
         }
@@ -528,6 +535,22 @@ internal object CallsExperimentAggregator {
             }
         }
         require(resultKeys.toSet() == expectedKeys.toSet()) { "Raw results do not match the frozen target matrix" }
+
+        return CallsValidatedRawResults(metadata = metadata, results = results)
+    }
+
+    private data class ResultKey(
+        val projectId: String,
+        val functionId: String,
+        val targetId: String,
+        val profile: CallsExperimentProfile,
+        val seed: Long,
+    )
+}
+
+internal object CallsExperimentAggregator {
+    fun summarize(rawInput: Path): CallsExperimentSummary {
+        val (metadata, results) = CallsRawResultsReader.read(rawInput)
         val byProfile = CallsExperimentProfile.entries.associateWith { profile ->
             val rows = results.filter { result -> result.profile == profile }
             val symbolicStatuses = CallsSymbolicStatus.entries.associateWith { status ->
@@ -571,12 +594,4 @@ internal object CallsExperimentAggregator {
             byProfile = byProfile,
         )
     }
-
-    private data class ResultKey(
-        val projectId: String,
-        val functionId: String,
-        val targetId: String,
-        val profile: CallsExperimentProfile,
-        val seed: Long,
-    )
 }

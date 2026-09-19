@@ -294,7 +294,7 @@ internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
             return
         }
 
-        verifyGitCheckout(frontendDirectory, expectedRevision)
+        verifyCallsGitCheckout(frontendDirectory, expectedRevision)
         val runtimeScript = frontendDirectory.resolve("dist/index.js")
         val actualSha256 = Files.readAllBytes(runtimeScript).sha256()
         require(actualSha256 == expectedSha256) {
@@ -312,30 +312,8 @@ internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
             return
         }
 
-        verifyGitCheckout(checkout, expectedRevision)
+        verifyCallsGitCheckout(checkout, expectedRevision)
         cache[checkout] = expectedRevision
-    }
-
-    private fun verifyGitCheckout(checkout: Path, expectedRevision: String) {
-        val actualRevision = runGit(checkout, "rev-parse", "HEAD").trim()
-        require(actualRevision == expectedRevision) {
-            "Checkout $checkout is at $actualRevision, expected frozen revision $expectedRevision"
-        }
-        runGit(checkout, "diff", "--quiet", "HEAD", "--")
-    }
-
-    private fun runGit(checkout: Path, vararg arguments: String): String {
-        val process = ProcessBuilder(listOf("git", "-C", checkout.toString()) + arguments)
-            .redirectErrorStream(true)
-            .start()
-        val output = process.inputStream.bufferedReader().use { reader -> reader.readText() }
-        val exitCode = process.waitFor()
-        require(exitCode == 0) {
-            val command = arguments.joinToString(separator = " ")
-            "Git $command failed for $checkout with exit $exitCode: ${output.trim()}"
-        }
-
-        return output
     }
 
     private class SourceStatementEntryObserver(
@@ -356,6 +334,28 @@ internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
         val catalogFingerprint: String?,
         val artifactIdentities: Map<String, Pair<String, String>>,
     )
+}
+
+internal fun verifyCallsGitCheckout(checkout: Path, expectedRevision: String) {
+    val actualRevision = runCallsGit(checkout, "rev-parse", "HEAD").trim()
+    require(actualRevision == expectedRevision) {
+        "Checkout $checkout is at $actualRevision, expected frozen revision $expectedRevision"
+    }
+    runCallsGit(checkout, "diff", "--quiet", "HEAD", "--")
+}
+
+private fun runCallsGit(checkout: Path, vararg arguments: String): String {
+    val process = ProcessBuilder(listOf("git", "-C", checkout.toString()) + arguments)
+        .redirectErrorStream(true)
+        .start()
+    val output = process.inputStream.bufferedReader().use { reader -> reader.readText() }
+    val exitCode = process.waitFor()
+    require(exitCode == 0) {
+        val command = arguments.joinToString(separator = " ")
+        "Git $command failed for $checkout with exit $exitCode: ${output.trim()}"
+    }
+
+    return output
 }
 
 private fun ByteArray.sha256(): String = MessageDigest.getInstance("SHA-256")

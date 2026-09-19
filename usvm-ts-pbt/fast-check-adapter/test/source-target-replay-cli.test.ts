@@ -54,6 +54,18 @@ test('retains target confirmation when the original TypeScript invocation throws
   assert.equal(response.invocation?.targetHit, true);
 });
 
+test('counts target hits from the selected invocation rather than module import', async () => {
+  const target = await statementTarget('importOnlyTarget', 'return 7;');
+
+  const importOnly = await replay({ ...baseRequest('skipsImportOnlyTarget', []), target });
+  const invoked = await replay({ ...baseRequest('importOnlyTarget', []), target });
+
+  assert.equal(importOnly.replayStatus, 'rejected');
+  assert.equal(importOnly.invocation?.targetHit, false);
+  assert.equal(invoked.replayStatus, 'confirmed');
+  assert.equal(invoked.invocation?.targetHit, true);
+});
+
 test('rejects stale source identity before executing', async () => {
   const target = await statementTarget('choose', 'return 1;');
 

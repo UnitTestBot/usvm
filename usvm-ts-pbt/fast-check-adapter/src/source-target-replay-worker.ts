@@ -30,6 +30,7 @@ async function main(): Promise<void> {
   });
   const callable = await loadCallable(request.entryPoint, request.sourceRoots, 'entryPoint');
   const inputs = request.inputs.map((value, index) => decodeJsValue(value, `inputs[${index}]`));
+  (globalThis as Record<string, unknown>)[request.hitKey] = false;
   let result: ReplayWorkerResult;
 
   try {

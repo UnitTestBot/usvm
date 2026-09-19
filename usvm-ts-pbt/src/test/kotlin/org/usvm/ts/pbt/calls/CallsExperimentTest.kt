@@ -1,6 +1,9 @@
 package org.usvm.ts.pbt.calls
 
 import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import org.usvm.ts.pbt.model.BooleanDomain
@@ -81,22 +84,171 @@ class CallsExperimentTest {
         val emptyFresh = results.single { result -> result.profile == CallsExperimentProfile.EMPTY_FRESH }
         assertTrue(emptyFresh.solverReached)
         assertTrue(emptyFresh.inputExtracted)
+        assertEquals(listOf(JsConcreteValue.Boolean(false)), emptyFresh.inputs)
         assertEquals(CallsReplayStatus.REJECTED, emptyFresh.replayStatus)
 
         val frozenStop = results.single { result -> result.profile == CallsExperimentProfile.FROZEN_STOP }
         assertTrue(frozenStop.solverReached)
         assertTrue(frozenStop.inputExtracted)
+        assertEquals(listOf(JsConcreteValue.Boolean(true)), frozenStop.inputs)
         assertEquals(CallsReplayStatus.CONFIRMED, frozenStop.replayStatus)
 
         val emptyStop = results.single { result -> result.profile == CallsExperimentProfile.EMPTY_STOP }
         assertFalse(emptyStop.solverReached)
         assertFalse(emptyStop.inputExtracted)
+        assertNull(emptyStop.inputs)
         assertNull(emptyStop.replayStatus)
 
         val frozenFresh = results.single { result -> result.profile == CallsExperimentProfile.FROZEN_FRESH }
         assertTrue(frozenFresh.solverReached)
         assertFalse(frozenFresh.inputExtracted)
+        assertNull(frozenFresh.inputs)
         assertNull(frozenFresh.replayStatus)
+    }
+
+    @Test
+    fun `target result witness uses lossless concrete value serialization`() {
+        val witness = listOf(
+            JsConcreteValue.number(-0.0),
+            JsConcreteValue.number(Double.NaN),
+            JsConcreteValue.Array(
+                elements = listOf(JsConcreteValue.Undefined, JsConcreteValue.Null, JsConcreteValue.String("value")),
+            ),
+        )
+        val result = targetResult(inputs = witness)
+
+        val encoded = CallsExperimentJson.json.encodeToString<CallsRawRecord>(result)
+        val decoded = CallsExperimentJson.json.decodeFromString<CallsRawRecord>(encoded) as CallsTargetResult
+
+        assertEquals(result, decoded)
+        assertEquals(witness, decoded.inputs)
+    }
+
+    @Test
+    fun `single witness replay uses selected stored inputs without symbolic search`(@TempDir directory: Path) {
+        val rawOutput = directory.resolve("results.jsonl")
+        val frozenManifest = manifest(sourceRoot = ".", seeds = listOf(11L))
+        CallsExperimentRunner(
+            symbolicEngine = CallsSymbolicEngine {
+                result(
+                    status = CallsSymbolicStatus.REACHED,
+                    inputs = listOf(JsConcreteValue.Boolean(true)),
+                )
+            },
+            targetReplayer = CallsTargetReplayer { _, _, _, _, _ ->
+                CallsSourceReplayResult(status = CallsReplayStatus.CONFIRMED)
+            },
+            runtimeToolRevision = FIXTURE_TOOL_REVISION,
+        ).run(
+            manifest = frozenManifest,
+            manifestDirectory = directory,
+            rawOutput = rawOutput,
+        )
+        var replayedInputs: List<JsConcreteValue>? = null
+        var replayedTarget: CallsSourceTarget? = null
+        var replayedTimeout: Long? = null
+        var verifiedCheckout: Path? = null
+        val witnessReplayer = CallsWitnessReplayer(
+            targetReplayer = CallsTargetReplayer { _, _, inputs, target, timeoutMillis ->
+                replayedInputs = inputs
+                replayedTarget = target
+                replayedTimeout = timeoutMillis
+
+                CallsSourceReplayResult(status = CallsReplayStatus.REJECTED)
+            },
+            runtimeToolRevision = FIXTURE_TOOL_REVISION,
+            verifyProjectCheckout = { checkout, expectedRevision ->
+                assertEquals("project-revision", expectedRevision)
+                verifiedCheckout = checkout
+            },
+        )
+
+        val replay = witnessReplayer.replay(
+            manifest = frozenManifest,
+            manifestDirectory = directory,
+            rawInput = rawOutput,
+            selector = selector(seed = 11L, profile = CallsExperimentProfile.FROZEN_STOP),
+        )
+
+        assertEquals(CallsReplayStatus.REJECTED, replay.status)
+        assertEquals(listOf(JsConcreteValue.Boolean(true)), replayedInputs)
+        assertEquals(frozenManifest.projects.single().functions.single().targets.single(), replayedTarget)
+        assertEquals(1_000L, replayedTimeout)
+        assertEquals(directory.toRealPath(), verifiedCheckout)
+    }
+
+    @Test
+    fun `historical extracted row without stored witness reports replay unavailable first`(@TempDir directory: Path) {
+        val rawOutput = directory.resolve("results.jsonl")
+        val frozenManifest = manifest(sourceRoot = ".", seeds = listOf(5L))
+        CallsExperimentRunner(
+            symbolicEngine = CallsSymbolicEngine {
+                result(
+                    status = CallsSymbolicStatus.REACHED,
+                    inputs = listOf(JsConcreteValue.Boolean(true)),
+                )
+            },
+            targetReplayer = CallsTargetReplayer { _, _, _, _, _ ->
+                CallsSourceReplayResult(status = CallsReplayStatus.CONFIRMED)
+            },
+            runtimeToolRevision = FIXTURE_TOOL_REVISION,
+        ).run(
+            manifest = frozenManifest,
+            manifestDirectory = directory,
+            rawOutput = rawOutput,
+        )
+        val historicalRecords = readRecords(rawOutput).map { record ->
+            when {
+                record is CallsRunMetadata -> record.copy(nativeFrontendSha256 = null)
+                record is CallsTargetResult && record.profile == CallsExperimentProfile.EMPTY_FRESH -> {
+                    record.copy(inputs = null)
+                }
+
+                else -> record
+            }
+        }
+        writeRecords(rawOutput, historicalRecords)
+        val witnessReplayer = CallsWitnessReplayer(
+            targetReplayer = CallsTargetReplayer { _, _, _, _, _ -> error("Replay must not run") },
+            runtimeToolRevision = "different-runtime-revision",
+            verifyProjectCheckout = { _, _ -> error("Checkout verification must not run") },
+        )
+
+        val error = assertFailsWith<IllegalStateException> {
+            witnessReplayer.replay(
+                manifest = frozenManifest,
+                manifestDirectory = directory,
+                rawInput = rawOutput,
+                selector = selector(seed = 5L, profile = CallsExperimentProfile.EMPTY_FRESH),
+            )
+        }
+
+        assertTrue(error.message.orEmpty().contains("historical raw artifact"))
+        assertTrue(error.message.orEmpty().contains("single-witness replay is unavailable"))
+
+        val manifestPath = directory.resolve("historical-manifest.json")
+        val manifestJson = CallsExperimentJson.json.encodeToString(frozenManifest)
+        val historicalManifest = JsonObject(
+            CallsExperimentJson.json.parseToJsonElement(manifestJson).jsonObject - "nativeFrontendSha256",
+        )
+        Files.writeString(manifestPath, historicalManifest.toString())
+
+        val cliError = assertFailsWith<IllegalStateException> {
+            replayWitness(
+                listOf(
+                    manifestPath.toString(),
+                    rawOutput.toString(),
+                    "fixture/project",
+                    "fixture.ts::predicate/1",
+                    "fixture.ts::predicate/1#return",
+                    CallsExperimentProfile.EMPTY_FRESH.name,
+                    "5",
+                ),
+            )
+        }
+
+        assertTrue(cliError.message.orEmpty().contains("historical raw artifact"))
+        assertTrue(cliError.message.orEmpty().contains("single-witness replay is unavailable"))
     }
 
     @Test
@@ -250,6 +402,42 @@ class CallsExperimentTest {
     private fun readRecords(path: Path): List<CallsRawRecord> = Files.readAllLines(path)
         .filter(String::isNotBlank)
         .map { line -> CallsExperimentJson.json.decodeFromString<CallsRawRecord>(line) }
+
+    private fun writeRecords(path: Path, records: List<CallsRawRecord>) {
+        Files.writeString(
+            path,
+            records.joinToString(separator = "\n", postfix = "\n") { record ->
+                CallsExperimentJson.json.encodeToString<CallsRawRecord>(record)
+            },
+        )
+    }
+
+    private fun selector(seed: Long, profile: CallsExperimentProfile) = CallsWitnessSelector(
+        projectId = "fixture/project",
+        functionId = "fixture.ts::predicate/1",
+        targetId = "fixture.ts::predicate/1#return",
+        profile = profile,
+        seed = seed,
+    )
+
+    private fun targetResult(inputs: List<JsConcreteValue>) = CallsTargetResult(
+        experimentId = "fixture",
+        projectId = "fixture/project",
+        revision = "project-revision",
+        development = true,
+        functionId = "fixture.ts::predicate/1",
+        targetId = "fixture.ts::predicate/1#return",
+        siteId = "fixture.ts:1:1-1:12::predicate/1",
+        profile = CallsExperimentProfile.FROZEN_STOP,
+        seed = 1L,
+        symbolicStatus = CallsSymbolicStatus.REACHED,
+        solverReached = true,
+        inputExtracted = true,
+        inputs = inputs,
+        replayStatus = CallsReplayStatus.CONFIRMED,
+        catalogFingerprint = "runtime-fingerprint",
+        symbolicElapsedMillis = 7L,
+    )
 
     private companion object {
         const val FIXTURE_TOOL_REVISION = "0000000000000000000000000000000000000001"
