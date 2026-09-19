@@ -116,12 +116,20 @@ internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
         }
 
         val method = mapping.predicate.targets.single().method
-        val targetCandidates = exactTargetCandidates(method, request.target)
-        if (targetCandidates.isEmpty()) {
+        val exactTargetCandidates = exactTargetCandidates(method, request.target)
+        if (exactTargetCandidates.isEmpty()) {
             return result(
                 status = CallsSymbolicStatus.UNMAPPED,
                 startedAt = startedAt,
                 diagnostic = "No EtsIR statement has the exact frozen source range",
+            )
+        }
+        val statementEntry = sourceStatementEntry(method, request.target)
+        if (statementEntry == null) {
+            return result(
+                status = CallsSymbolicStatus.UNSUPPORTED,
+                startedAt = startedAt,
+                diagnostic = "EtsIR origins do not prove entry before evaluation of the frozen source statement",
             )
         }
 
@@ -144,10 +152,9 @@ internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
             unknownCallModelSelection = modelSelection,
             unknownCallFallback = request.profile.fallback,
         )
-        // One source statement may lower to consecutive EtsIR instructions with the same exact source span.
-        // Observe the first instruction before it executes, matching the source replay marker
-        // inserted before the statement.
-        val entryObserver = SourceStatementEntryObserver(targetCandidates.first())
+        // Observe the unique CFG entry into the source statement's origin-contained lowering region.
+        // This matches the replay marker before statement evaluation, including nested constructor and call lowering.
+        val entryObserver = SourceStatementEntryObserver(statementEntry.statement)
         val analysis = TsMachine(
             scene = scene,
             options = machineOptions,
@@ -197,7 +204,8 @@ internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
             status = CallsSymbolicStatus.REACHED,
             inputs = inputs,
             startedAt = startedAt,
-            diagnostic = "exact-source-lowering-size=${targetCandidates.size}",
+            diagnostic = "source-statement-lowering-size=${statementEntry.loweringSize};" +
+                "exact-source-lowering-size=${exactTargetCandidates.size}",
         )
     }
 
@@ -300,6 +308,59 @@ internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
     private data class MachineResult(
         val states: List<TsState>,
         val stopReason: TsAnalysisStopReason,
+    )
+}
+
+internal data class SourceStatementEntry(
+    val statement: EtsStmt,
+    val loweringSize: Int,
+)
+
+internal fun sourceStatementEntry(method: EtsMethod, target: CallsSourceTarget): SourceStatementEntry? {
+    val loweringRegion = method.cfg.stmts.filter { statement ->
+        val origin = statement.location.origin ?: return@filter false
+        origin.startOffset >= target.startOffset && origin.endOffset <= target.endOffset
+    }
+    val loweringRegionSet = loweringRegion.toSet()
+    if (loweringRegionSet.isEmpty()) {
+        return null
+    }
+
+    val boundaryStatements = loweringRegion.filter { statement ->
+        val predecessors = method.cfg.predecessors(statement)
+        predecessors.isEmpty() || predecessors.any { predecessor -> predecessor !in loweringRegionSet }
+    }
+    val entry = boundaryStatements.singleOrNull() ?: return null
+    val outsidePredecessors = method.cfg.predecessors(entry).filter { predecessor ->
+        predecessor !in loweringRegionSet
+    }
+    val outsideOriginsAreBeforeTarget = outsidePredecessors.all { predecessor ->
+        val origin = predecessor.location.origin ?: return@all false
+        origin.endOffset <= target.startOffset
+    }
+    if (!outsideOriginsAreBeforeTarget) {
+        return null
+    }
+
+    val reachable = mutableSetOf<EtsStmt>()
+    val pending = ArrayDeque<EtsStmt>()
+    pending += entry
+    while (pending.isNotEmpty()) {
+        val statement = pending.removeFirst()
+        if (!reachable.add(statement)) {
+            continue
+        }
+
+        method.cfg.successors(statement)
+            .filterTo(pending) { successor -> successor in loweringRegionSet }
+    }
+    if (reachable.size != loweringRegionSet.size) {
+        return null
+    }
+
+    return SourceStatementEntry(
+        statement = entry,
+        loweringSize = loweringRegionSet.size,
     )
 }
 
