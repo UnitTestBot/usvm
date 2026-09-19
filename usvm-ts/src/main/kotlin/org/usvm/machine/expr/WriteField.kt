@@ -82,7 +82,9 @@ private fun TsContext.assignToArrayLength(
     }
     val numericTypeIsPossible = scope.assert(numericTypeGuard)
     if (fpLength == null || numericTypeIsPossible == null) {
-        logger.warn { "Unsupported array length assignment: runtime value is not numeric (storage sort: ${value.sort})" }
+        logger.warn {
+            "Unsupported array length assignment: runtime value is not numeric (storage sort: ${value.sort})"
+        }
         return null
     }
 
