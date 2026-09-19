@@ -170,9 +170,15 @@ class CallsExperimentTest {
             selector = selector(seed = 11L, profile = CallsExperimentProfile.FROZEN_STOP),
         )
 
+        val expectedTarget = frozenManifest.projects
+            .single()
+            .functions
+            .single()
+            .targets
+            .single()
         assertEquals(CallsReplayStatus.REJECTED, replay.status)
         assertEquals(listOf(JsConcreteValue.Boolean(true)), replayedInputs)
-        assertEquals(frozenManifest.projects.single().functions.single().targets.single(), replayedTarget)
+        assertEquals(expectedTarget, replayedTarget)
         assertEquals(1_000L, replayedTimeout)
         assertEquals(directory.toRealPath(), verifiedCheckout)
     }

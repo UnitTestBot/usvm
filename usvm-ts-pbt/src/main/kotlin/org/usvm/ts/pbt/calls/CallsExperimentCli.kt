@@ -47,7 +47,8 @@ internal fun replayWitness(args: List<String>) {
         selector = selector,
     )
 
-    println(CallsExperimentJson.json.encodeToString(result))
+    val encoded = CallsExperimentJson.json.encodeToString(result)
+    System.out.appendLine(encoded)
 }
 
 private fun runExperiment(args: List<String>) {
