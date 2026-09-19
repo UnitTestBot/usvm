@@ -163,7 +163,7 @@ class CallsExperimentTest {
                 functions = listOf(
                     CallsFunctionCase(
                         functionId = "fixture.ts::predicate/1",
-                        module = "fixture.ts",
+                        sourceFile = "fixture.ts",
                         entryPoint = TypeScriptEntryPoint(
                             module = "fixture.ts",
                             exportName = "predicate",

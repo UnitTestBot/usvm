@@ -23,7 +23,7 @@
       "functions": [
         {
           "functionId": "CallsExperimentFixture.ts::shiftTarget/1",
-          "module": "CallsExperimentFixture.ts",
+          "sourceFile": "CallsExperimentFixture.ts",
           "entryPoint": {
             "module": "CallsExperimentFixture.ts",
             "exportName": "shiftTarget",

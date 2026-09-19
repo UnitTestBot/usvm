@@ -59,7 +59,7 @@ internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
         request: CallsSymbolicSearchRequest,
         startedAt: TimeSource.Monotonic.ValueTimeMark,
     ): CallsSymbolicSearchResult {
-        val source = request.sourceRoot.resolve(request.function.module).normalize()
+        val source = request.sourceRoot.resolve(request.function.sourceFile).normalize()
         val sourceFile = loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)
         val scene = EtsScene(projectFiles = listOf(sourceFile))
         val propertyManifest = PropertyManifest(
@@ -117,6 +117,14 @@ internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
         }
         val states = analysis.first
         val fingerprint = analysis.second
+        if (fingerprint != request.expectedCatalogFingerprint) {
+            return result(
+                status = CallsSymbolicStatus.TOOL_ERROR,
+                startedAt = startedAt,
+                catalogFingerprint = fingerprint,
+                diagnostic = "Runtime model fingerprint $fingerprint does not match the frozen manifest",
+            )
+        }
         if (states.isEmpty()) {
             val status = if (startedAt.elapsedNow() >= request.budget) {
                 CallsSymbolicStatus.TIMEOUT

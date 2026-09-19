@@ -38,7 +38,7 @@ internal data class CallsModelSetIdentity(
 @Serializable
 internal data class CallsFunctionCase(
     val functionId: String,
-    val module: String,
+    val sourceFile: String,
     val entryPoint: TypeScriptEntryPoint,
     val inputs: List<PropertyInput>,
     val targets: List<CallsSourceTarget>,
@@ -72,13 +72,26 @@ internal data class CallsExperimentManifest(
         require(seeds.isNotEmpty() && seeds.distinct().size == seeds.size) { "Seeds must be non-empty and unique" }
         require(perTargetBudgetMillis > 0) { "Per-target budget must be positive" }
         require(projects.isNotEmpty()) { "At least one project is required" }
+        require(solver == "Z3") { "The frozen calls experiment requires the Z3 solver" }
+        require(searchPolicy == "BFS") { "The frozen calls experiment requires BFS search" }
+        require(toolRevision == modelSet.toolRevision) { "Tool and model-set revisions must match" }
         val functions = projects.flatMap(CallsProjectCase::functions)
         require(functions.map(CallsFunctionCase::functionId).distinct().size == functions.size) {
             "Function IDs must be unique"
         }
+        require(functions.all { function -> function.sourceFile == function.entryPoint.module }) {
+            "Function source files must match their replay entry-point modules"
+        }
         val targets = functions.flatMap(CallsFunctionCase::targets)
         require(targets.map(CallsSourceTarget::targetId).distinct().size == targets.size) {
             "Target IDs must be unique"
+        }
+        require(
+            functions.all { function ->
+                function.targets.all { target -> target.sourcePath == function.sourceFile }
+            },
+        ) {
+            "Every target must belong to its function source file"
         }
     }
 
@@ -106,6 +119,7 @@ internal data class CallsSymbolicSearchRequest(
     val target: CallsSourceTarget,
     val profile: CallsExperimentProfile,
     val frozenModelIds: Set<String>,
+    val expectedCatalogFingerprint: String,
     val seed: Long,
     val budget: Duration,
 )
@@ -297,6 +311,11 @@ internal class CallsExperimentRunner(
                 target = target,
                 profile = profile,
                 frozenModelIds = manifest.modelSet.ids,
+                expectedCatalogFingerprint = if (profile.usesFrozenModels) {
+                    manifest.modelSet.catalogFingerprint
+                } else {
+                    EMPTY_CATALOG_FINGERPRINT
+                },
                 seed = seed,
                 budget = manifest.perTargetBudgetMillis.milliseconds,
             ),
@@ -345,6 +364,11 @@ internal class CallsExperimentRunner(
             StandardOpenOption.CREATE,
             StandardOpenOption.APPEND,
         )
+    }
+
+    private companion object {
+        const val EMPTY_CATALOG_FINGERPRINT =
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     }
 }
 
