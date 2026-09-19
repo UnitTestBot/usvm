@@ -5,8 +5,9 @@ Selection frozen on 2026-09-19 before any held-out TS Calls evaluation. This is 
 ## Evidence used
 
 - Approximation audit #368 at `303409613c30ea5dcdabc1f97ac8092d753765b1`, which audits current source `41961f7b66c30c8a2a7507c67a79396f495f4520` and historical source `3728ba45ab092422e2cb2e57ed6fe2377425b622`.
-- The frozen development manifest in `development-corpus.json` and its primary `EMPTY_FRESH` census. The first local pilot attempted 79 functions from three pinned projects and produced 768 repeated events at 41 stable source sites. Review found that its entry-file bound also removed imported support files and that swallowed interpreter failures appeared completed. Its preserved raw artifact is preliminary diagnostic evidence, not valid prevalence or completion evidence. Corrected counts must come from the rerun on the accepted integration head.
-- The preliminary artifact identified large repeated groups such as `BSTreeKV.compare`, iterator `next`, and `Array.isArray`, but those counts require corrected rerun confirmation. Its project-defined `Stack.pop` observations were manufactured by omitting the imported `stack.ts` support file and must not be used for model selection. No new family is admitted from this preliminary artifact.
+- The frozen development manifest in `development-corpus.json` and its corrected primary `EMPTY_FRESH` census at tool commit `b04a8ed16410fd3c5e8bc049304f9b649c11ee48`. It attempted the same 79 entry functions from three pinned projects: 43 completed, 35 ended with explicit partial-analysis diagnostics, one timed out, and none ended with a boundary tool error. It observed 82 repeated events at 26 stable source sites in 19 containing functions. The generated and standalone-regenerated summaries are byte-identical with SHA-256 `bf52a4cf5f03f867f594990c1f458ddb1d244c01679bf3a1fd852019aa3ce145`.
+- Stable-source-site prevalence rather than repeated loop-event totals. The largest corrected groups were `BSTreeKV.compare` (24 events, 3 sites), the built-in array `pop` reached inside the restored project `Stack.pop` body (10 events, 1 site), `charAt` (7 events, 2 sites), `parseInt` (7 events, 2 sites), and callbacks (6 events, 3 sites). No built-in `Array.shift` site was observed. The high partial-analysis count limits prevalence interpretation.
+- The first local pilot attempted the same functions but produced 768 events at 41 sites. Review found that its entry-file bound removed imported support files and that swallowed interpreter failures appeared completed. Its preserved raw artifact is preliminary diagnostic evidence only; in particular, its 52 project `Stack` resolution events were harness-induced and are excluded from selection evidence.
 
 The primary profile disables optional catalog models but leaves mandatory semantics and legacy pre-dispatch approximations unchanged. Therefore the census is an inventory of observed unknown-call decisions, not every approximate or unresolved call in the engine. Tool errors, timeouts, and omitted call-resolution candidate tails also limit prevalence interpretation.
 
@@ -24,6 +25,7 @@ The control set is empty. Both existing models were implemented before this cens
 No new model family is admitted for the pilot:
 
 - Application callbacks and dispatch limitations such as `BSTreeKV.compare` require shared call-resolution work, not optional treatment models.
+- The corrected array `pop` observation confirms one development source site for the already selected mechanism. It does not retrospectively make that pre-census model census-selected.
 - Iterator `next` needs stateful iterator representation and completion/alias validation.
 - `Array.isArray` has one stable development site and still needs proven target provenance plus rank/proxy bounds.
 - The remaining scattered standard calls do not establish both prevalence and a reviewed bounded semantic contract.
@@ -32,10 +34,10 @@ This is an acceptable no-new-family result. A later family requires a separate b
 
 ## Content identity
 
-At audited source `41961f7b66c30c8a2a7507c67a79396f495f4520`:
+At accepted #380 source `3134d06515bca61ba2a357a67697ac8620b0e420` and corrected census tool tree `f9ba380951630b62ef55e7aae7d90f2fab55298b`:
 
 - `ArrayModels.ts` source SHA-256: `9f40d3abce58e3412a0206eabd9fdb0547e12c2ebd832ce48b260b3339518e26`.
 - `TsArrayShiftIntrinsicModel.kt` SHA-256: `ff6dd634cf660c83e203b82c927a28e88859f0bc6b9f24bec2fa97d738dc9e11`.
 - Empty catalog fingerprint: `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
 
-Recompute the source hashes on the accepted #380/integration head and record the exact engine commit/tree, built JAR hashes, JacoDB `ddb127d9ef`, native frontend, solver, Node and options. The catalog fingerprint identifies only the sorted ID set. `ts.array.shift` has no EtsIR artifact. For `ts.array.pop`, record the generated `etsIrHash` from the actual accepted runtime load when the downstream harness exposes it; until then it is explicitly unavailable rather than invented.
+The corrected run used JacoDB `ddb127d9ef`, the native `TS_FRONTEND`, Yices, OpenJDK 21.0.12, Node 26.5.0, random seed 0, a 300-second project budget, a 5-second method budget, at most 20 entry files and 40 entry methods per project. The catalog fingerprint identifies only the sorted ID set. `ts.array.shift` has no EtsIR artifact. For `ts.array.pop`, the generated `etsIrHash` remains unavailable from the built-in wrapper and must not be invented.
