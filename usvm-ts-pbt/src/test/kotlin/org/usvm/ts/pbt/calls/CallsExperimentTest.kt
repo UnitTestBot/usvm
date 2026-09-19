@@ -10,6 +10,7 @@ import org.usvm.ts.pbt.model.TypeScriptEntryPoint
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -33,7 +34,10 @@ class CallsExperimentTest {
                     inputs = listOf(JsConcreteValue.Boolean(true)),
                 )
 
-                CallsExperimentProfile.FROZEN_FRESH -> result(status = CallsSymbolicStatus.UNSUPPORTED)
+                CallsExperimentProfile.FROZEN_FRESH -> result(
+                    status = CallsSymbolicStatus.UNREPRESENTABLE,
+                    solverReached = true,
+                )
             }
         }
         val replayer = CallsTargetReplayer { _, _, inputs, _, _ ->
@@ -45,7 +49,11 @@ class CallsExperimentTest {
         }
         val rawOutput = directory.resolve("raw/results.jsonl")
 
-        CallsExperimentRunner(symbolicEngine = engine, targetReplayer = replayer).run(
+        CallsExperimentRunner(
+            symbolicEngine = engine,
+            targetReplayer = replayer,
+            runtimeToolRevision = FIXTURE_TOOL_REVISION,
+        ).run(
             manifest = manifest(sourceRoot = ".", seeds = listOf(1L)),
             manifestDirectory = directory,
             rawOutput = rawOutput,
@@ -54,8 +62,11 @@ class CallsExperimentTest {
         val records = readRecords(rawOutput)
         val metadata = records.filterIsInstance<CallsRunMetadata>().single()
         val results = records.filterIsInstance<CallsTargetResult>()
+        val completion = records.filterIsInstance<CallsRunCompletion>().single()
 
         assertEquals(1, metadata.commonEligibleTargets)
+        assertEquals(4, completion.resultRows)
+        assertFalse(Files.exists(rawOutput.resolveSibling("results.jsonl.partial")))
         assertEquals(
             listOf(
                 CallsExperimentProfile.EMPTY_FRESH,
@@ -81,6 +92,33 @@ class CallsExperimentTest {
         assertFalse(emptyStop.solverReached)
         assertFalse(emptyStop.inputExtracted)
         assertNull(emptyStop.replayStatus)
+
+        val frozenFresh = results.single { result -> result.profile == CallsExperimentProfile.FROZEN_FRESH }
+        assertTrue(frozenFresh.solverReached)
+        assertFalse(frozenFresh.inputExtracted)
+        assertNull(frozenFresh.replayStatus)
+    }
+
+    @Test
+    fun `aggregator rejects an interrupted raw prefix without completion`(@TempDir directory: Path) {
+        val rawOutput = directory.resolve("results.jsonl")
+        val engine = CallsSymbolicEngine { result(status = CallsSymbolicStatus.UNREACHED) }
+
+        CallsExperimentRunner(
+            symbolicEngine = engine,
+            targetReplayer = CallsTargetReplayer { _, _, _, _, _ -> error("Replay must not run") },
+            runtimeToolRevision = FIXTURE_TOOL_REVISION,
+        ).run(
+            manifest = manifest(sourceRoot = ".", seeds = listOf(0L)),
+            manifestDirectory = directory,
+            rawOutput = rawOutput,
+        )
+        val interrupted = directory.resolve("interrupted.jsonl")
+        Files.write(interrupted, Files.readAllLines(rawOutput).dropLast(1))
+
+        assertFailsWith<IllegalArgumentException> {
+            CallsExperimentAggregator.summarize(interrupted)
+        }
     }
 
     @Test
@@ -110,7 +148,11 @@ class CallsExperimentTest {
             )
         }
 
-        CallsExperimentRunner(symbolicEngine = engine, targetReplayer = replayer).run(
+        CallsExperimentRunner(
+            symbolicEngine = engine,
+            targetReplayer = replayer,
+            runtimeToolRevision = FIXTURE_TOOL_REVISION,
+        ).run(
             manifest = manifest(sourceRoot = ".", seeds = listOf(0L, 3L)),
             manifestDirectory = directory,
             rawOutput = rawOutput,
@@ -130,6 +172,11 @@ class CallsExperimentTest {
                 unsupported = 0,
                 timeouts = 2,
                 toolErrors = 0,
+                symbolicStatuses = CallsSymbolicStatus.entries.associateWith { status ->
+                    if (status == CallsSymbolicStatus.TIMEOUT) 2 else 0
+                },
+                replayStatuses = CallsReplayStatus.entries.associateWith { 0 },
+                replayNotRun = 2,
             ),
             summary.byProfile.getValue(CallsExperimentProfile.EMPTY_STOP),
         )
@@ -141,8 +188,9 @@ class CallsExperimentTest {
     private fun manifest(sourceRoot: String, seeds: List<Long>) = CallsExperimentManifest(
         schemaVersion = CallsExperimentManifest.SCHEMA_VERSION,
         experimentId = "fixture",
-        toolRevision = "tool-revision",
+        toolRevision = FIXTURE_TOOL_REVISION,
         nativeFrontendRevision = "frontend-revision",
+        nativeFrontendSha256 = "frontend-sha256",
         solver = "Z3",
         searchPolicy = "BFS",
         modelSet = CallsModelSetIdentity(
@@ -150,7 +198,7 @@ class CallsExperimentTest {
             catalogFingerprint = "frozen-fingerprint",
             sourceHash = "source-hash",
             etsIrHash = "ets-ir-hash",
-            toolRevision = "tool-revision",
+            toolRevision = FIXTURE_TOOL_REVISION,
         ),
         seeds = seeds,
         perTargetBudgetMillis = 1_000L,
@@ -189,9 +237,11 @@ class CallsExperimentTest {
 
     private fun result(
         status: CallsSymbolicStatus,
+        solverReached: Boolean = status == CallsSymbolicStatus.REACHED,
         inputs: List<JsConcreteValue>? = null,
     ) = CallsSymbolicSearchResult(
         status = status,
+        solverReached = solverReached,
         inputs = inputs,
         catalogFingerprint = "runtime-fingerprint",
         elapsedMillis = 7L,
@@ -200,4 +250,8 @@ class CallsExperimentTest {
     private fun readRecords(path: Path): List<CallsRawRecord> = Files.readAllLines(path)
         .filter(String::isNotBlank)
         .map { line -> CallsExperimentJson.json.decodeFromString<CallsRawRecord>(line) }
+
+    private companion object {
+        const val FIXTURE_TOOL_REVISION = "0000000000000000000000000000000000000001"
+    }
 }

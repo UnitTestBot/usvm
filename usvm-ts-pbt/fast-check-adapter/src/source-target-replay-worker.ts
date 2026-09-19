@@ -50,16 +50,7 @@ async function main(): Promise<void> {
   await writeFile(request.resultPath, `${JSON.stringify(result)}\n`, 'utf8');
 }
 
-main().catch(async (error: unknown) => {
-  const fallbackPath = process.argv[3];
-  if (fallbackPath !== undefined) {
-    await writeFile(fallbackPath, `${JSON.stringify({
-      invocation: 'threw',
-      targetHit: false,
-      errorName: error instanceof Error ? error.name : typeof error,
-      errorMessage: error instanceof Error ? error.message : String(error),
-    })}\n`, 'utf8');
-  }
-
-  throw error;
+main().catch((error: unknown) => {
+  process.stderr.write(`${error instanceof Error ? error.stack ?? error.message : String(error)}\n`);
+  process.exitCode = 1;
 });

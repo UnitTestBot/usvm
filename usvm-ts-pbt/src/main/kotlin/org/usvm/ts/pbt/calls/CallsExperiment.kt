@@ -11,7 +11,9 @@ import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.TypeScriptEntryPoint
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardCopyOption
 import java.nio.file.StandardOpenOption
+import java.util.Properties
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -59,6 +61,7 @@ internal data class CallsExperimentManifest(
     val experimentId: String,
     val toolRevision: String,
     val nativeFrontendRevision: String,
+    val nativeFrontendSha256: String,
     val solver: String,
     val searchPolicy: String,
     val modelSet: CallsModelSetIdentity,
@@ -74,6 +77,10 @@ internal data class CallsExperimentManifest(
         require(projects.isNotEmpty()) { "At least one project is required" }
         require(solver == "Z3") { "The frozen calls experiment requires the Z3 solver" }
         require(searchPolicy == "BFS") { "The frozen calls experiment requires BFS search" }
+        val cleanGitRevision = Regex("[0-9a-f]{40}")
+        require(toolRevision.matches(cleanGitRevision)) {
+            "Tool revision must identify a clean Git commit"
+        }
         require(toolRevision == modelSet.toolRevision) { "Tool and model-set revisions must match" }
         val functions = projects.flatMap(CallsProjectCase::functions)
         require(functions.map(CallsFunctionCase::functionId).distinct().size == functions.size) {
@@ -120,20 +127,25 @@ internal data class CallsSymbolicSearchRequest(
     val profile: CallsExperimentProfile,
     val frozenModelIds: Set<String>,
     val expectedCatalogFingerprint: String,
+    val expectedModelSourceHash: String,
+    val expectedModelEtsIrHash: String,
+    val expectedNativeFrontendRevision: String,
+    val expectedNativeFrontendSha256: String,
     val seed: Long,
     val budget: Duration,
 )
 
 internal data class CallsSymbolicSearchResult(
     val status: CallsSymbolicStatus,
+    val solverReached: Boolean = status == CallsSymbolicStatus.REACHED,
     val inputs: List<JsConcreteValue>? = null,
     val catalogFingerprint: String? = null,
     val elapsedMillis: Long,
     val diagnostic: String? = null,
 ) {
     init {
-        require(status == CallsSymbolicStatus.REACHED || inputs == null) {
-            "Only a reached source target may carry extracted inputs"
+        require(solverReached || inputs == null) {
+            "Only a solver-reached source target may carry extracted inputs"
         }
     }
 }
@@ -151,11 +163,23 @@ internal data class CallsRunMetadata(
     val experimentId: String,
     val toolRevision: String,
     val nativeFrontendRevision: String,
+    val nativeFrontendSha256: String? = null,
     val modelSet: CallsModelSetIdentity,
     val profiles: List<CallsExperimentProfile>,
     val seeds: List<Long>,
     val commonEligibleTargets: Int,
+    val targets: List<CallsRunTargetIdentity>,
 ) : CallsRawRecord
+
+@Serializable
+internal data class CallsRunTargetIdentity(
+    val projectId: String,
+    val revision: String,
+    val development: Boolean,
+    val functionId: String,
+    val targetId: String,
+    val siteId: String,
+)
 
 @Serializable
 @SerialName("target-result")
@@ -179,6 +203,13 @@ internal data class CallsTargetResult(
 ) : CallsRawRecord
 
 @Serializable
+@SerialName("run-completion")
+internal data class CallsRunCompletion(
+    val experimentId: String,
+    val resultRows: Int,
+) : CallsRawRecord
+
+@Serializable
 internal data class CallsExperimentSummary(
     val experimentId: String,
     val commonEligibleTargets: Int,
@@ -196,6 +227,9 @@ internal data class CallsProfileSummary(
     val unsupported: Int,
     val timeouts: Int,
     val toolErrors: Int,
+    val symbolicStatuses: Map<CallsSymbolicStatus, Int>,
+    val replayStatuses: Map<CallsReplayStatus, Int>,
+    val replayNotRun: Int,
 )
 
 internal object CallsExperimentJson {
@@ -213,17 +247,39 @@ internal object CallsExperimentJson {
     fun encodeManifest(manifest: CallsExperimentManifest): String = json.encodeToString(manifest)
 }
 
+internal object CallsBuildIdentity {
+    val toolRevision: String by lazy {
+        val properties = Properties()
+        val resource = checkNotNull(javaClass.getResourceAsStream("/org/usvm/ts/pbt/calls/build.properties")) {
+            "Missing calls build identity"
+        }
+        resource.use(properties::load)
+
+        checkNotNull(properties.getProperty("tool.revision")).takeIf(String::isNotBlank)
+            ?: error("Missing tool revision in calls build identity")
+    }
+}
+
 internal class CallsExperimentRunner(
     private val symbolicEngine: CallsSymbolicEngine,
     private val targetReplayer: CallsTargetReplayer,
+    private val runtimeToolRevision: String = CallsBuildIdentity.toolRevision,
 ) {
     fun run(
         manifest: CallsExperimentManifest,
         manifestDirectory: Path,
         rawOutput: Path,
     ) {
-        Files.createDirectories(requireNotNull(rawOutput.parent) { "Raw output must have a parent directory" })
-        Files.deleteIfExists(rawOutput)
+        require(manifest.toolRevision == runtimeToolRevision) {
+            "Manifest tool revision ${manifest.toolRevision} does not match running build $runtimeToolRevision"
+        }
+        require(System.getenv("ETS_FRONTEND_SCRIPT") == null) {
+            "ETS_FRONTEND_SCRIPT must be unset so the frozen native frontend runtime is used"
+        }
+        val outputDirectory = requireNotNull(rawOutput.parent) { "Raw output must have a parent directory" }
+        val partialOutput = outputDirectory.resolve("${rawOutput.fileName}.partial")
+        Files.createDirectories(outputDirectory)
+        Files.deleteIfExists(partialOutput)
         val commonEligibleTargets = manifest.projects.sumOf { project ->
             project.functions.sumOf { function -> function.targets.size }
         }
@@ -231,22 +287,55 @@ internal class CallsExperimentRunner(
             experimentId = manifest.experimentId,
             toolRevision = manifest.toolRevision,
             nativeFrontendRevision = manifest.nativeFrontendRevision,
+            nativeFrontendSha256 = manifest.nativeFrontendSha256,
             modelSet = manifest.modelSet,
             profiles = CallsExperimentProfile.entries,
             seeds = manifest.seeds,
             commonEligibleTargets = commonEligibleTargets,
+            targets = manifest.projects.flatMap { project ->
+                project.functions.flatMap { function ->
+                    function.targets.map { target ->
+                        CallsRunTargetIdentity(
+                            projectId = project.projectId,
+                            revision = project.revision,
+                            development = project.development,
+                            functionId = function.functionId,
+                            targetId = target.targetId,
+                            siteId = target.siteId,
+                        )
+                    }
+                }
+            },
         )
 
-        append(rawOutput, metadata)
+        append(partialOutput, metadata)
 
         manifest.projects.forEach { project ->
             runProject(
                 manifest = manifest,
                 manifestDirectory = manifestDirectory,
-                rawOutput = rawOutput,
+                rawOutput = partialOutput,
                 project = project,
             )
         }
+
+        val resultRows = Math.multiplyExact(
+            Math.multiplyExact(commonEligibleTargets, manifest.seeds.size),
+            CallsExperimentProfile.entries.size,
+        )
+        append(
+            partialOutput,
+            CallsRunCompletion(
+                experimentId = manifest.experimentId,
+                resultRows = resultRows,
+            ),
+        )
+        Files.move(
+            partialOutput,
+            rawOutput,
+            StandardCopyOption.ATOMIC_MOVE,
+            StandardCopyOption.REPLACE_EXISTING,
+        )
     }
 
     private fun runProject(
@@ -316,6 +405,10 @@ internal class CallsExperimentRunner(
                 } else {
                     EMPTY_CATALOG_FINGERPRINT
                 },
+                expectedModelSourceHash = manifest.modelSet.sourceHash,
+                expectedModelEtsIrHash = manifest.modelSet.etsIrHash,
+                expectedNativeFrontendRevision = manifest.nativeFrontendRevision,
+                expectedNativeFrontendSha256 = manifest.nativeFrontendSha256,
                 seed = seed,
                 budget = manifest.perTargetBudgetMillis.milliseconds,
             ),
@@ -341,7 +434,7 @@ internal class CallsExperimentRunner(
             profile = profile,
             seed = seed,
             symbolicStatus = symbolic.status,
-            solverReached = symbolic.status == CallsSymbolicStatus.REACHED,
+            solverReached = symbolic.solverReached,
             inputExtracted = symbolic.inputs != null,
             replayStatus = replay?.status,
             catalogFingerprint = symbolic.catalogFingerprint,
@@ -373,14 +466,81 @@ internal class CallsExperimentRunner(
 }
 
 internal object CallsExperimentAggregator {
+    @Suppress("LongMethod")
     fun summarize(rawInput: Path): CallsExperimentSummary {
         val records = Files.readAllLines(rawInput).filter(String::isNotBlank).map { line ->
             CallsExperimentJson.json.decodeFromString<CallsRawRecord>(line)
         }
-        val metadata = records.filterIsInstance<CallsRunMetadata>().single()
+        val metadataRows = records.filterIsInstance<CallsRunMetadata>()
+        require(metadataRows.size == 1) { "Raw results must contain exactly one metadata record" }
+        val metadata = metadataRows.single()
         val results = records.filterIsInstance<CallsTargetResult>()
+        val completionRows = records.filterIsInstance<CallsRunCompletion>()
+        require(completionRows.size == 1) { "Raw results must contain exactly one completion record" }
+        val completion = completionRows.single()
+        val expectedRows = Math.multiplyExact(
+            Math.multiplyExact(metadata.commonEligibleTargets, metadata.seeds.size),
+            metadata.profiles.size,
+        )
+        require(completion.experimentId == metadata.experimentId) { "Completion experiment ID does not match metadata" }
+        require(completion.resultRows == expectedRows) { "Completion row count does not match metadata" }
+        require(results.size == expectedRows) { "Raw result row count does not match metadata" }
+        require(metadata.targets.size == metadata.commonEligibleTargets) {
+            "Metadata target count does not match common eligible target count"
+        }
+        val targetIdentities = metadata.targets.associateBy { target ->
+            Triple(target.projectId, target.functionId, target.targetId)
+        }
+        require(targetIdentities.size == metadata.targets.size) { "Metadata contains duplicate targets" }
+        require(results.all { result -> result.experimentId == metadata.experimentId }) {
+            "Result experiment ID does not match metadata"
+        }
+        require(
+            results.all { result ->
+                val identity = targetIdentities[Triple(result.projectId, result.functionId, result.targetId)]
+                identity != null &&
+                    result.revision == identity.revision &&
+                    result.development == identity.development &&
+                    result.siteId == identity.siteId
+            },
+        ) { "Result target identity does not match metadata" }
+        val resultKeys = results.map { result ->
+            ResultKey(
+                projectId = result.projectId,
+                functionId = result.functionId,
+                targetId = result.targetId,
+                profile = result.profile,
+                seed = result.seed,
+            )
+        }
+        require(resultKeys.distinct().size == resultKeys.size) { "Raw results contain duplicate target runs" }
+        val expectedKeys = metadata.targets.flatMap { target ->
+            metadata.seeds.flatMap { seed ->
+                metadata.profiles.map { profile ->
+                    ResultKey(
+                        projectId = target.projectId,
+                        functionId = target.functionId,
+                        targetId = target.targetId,
+                        profile = profile,
+                        seed = seed,
+                    )
+                }
+            }
+        }
+        require(resultKeys.toSet() == expectedKeys.toSet()) { "Raw results do not match the frozen target matrix" }
         val byProfile = CallsExperimentProfile.entries.associateWith { profile ->
             val rows = results.filter { result -> result.profile == profile }
+            val symbolicStatuses = CallsSymbolicStatus.entries.associateWith { status ->
+                rows.count { result -> result.symbolicStatus == status }
+            }
+            val replayStatuses = CallsReplayStatus.entries.associateWith { status ->
+                rows.count { result -> result.replayStatus == status }
+            }
+            val replayNotRun = rows.count { result -> result.replayStatus == null }
+            check(symbolicStatuses.values.sum() == rows.size) { "Symbolic statuses do not reconcile with profile runs" }
+            check(replayStatuses.values.sum() + replayNotRun == rows.size) {
+                "Replay statuses do not reconcile with profile runs"
+            }
             CallsProfileSummary(
                 runs = rows.size,
                 solverReached = rows.count(CallsTargetResult::solverReached),
@@ -398,6 +558,9 @@ internal object CallsExperimentAggregator {
                     result.symbolicStatus == CallsSymbolicStatus.TOOL_ERROR ||
                         result.replayStatus == CallsReplayStatus.TOOL_ERROR
                 },
+                symbolicStatuses = symbolicStatuses,
+                replayStatuses = replayStatuses,
+                replayNotRun = replayNotRun,
             )
         }
 
@@ -408,4 +571,12 @@ internal object CallsExperimentAggregator {
             byProfile = byProfile,
         )
     }
+
+    private data class ResultKey(
+        val projectId: String,
+        val functionId: String,
+        val targetId: String,
+        val profile: CallsExperimentProfile,
+        val seed: Long,
+    )
 }

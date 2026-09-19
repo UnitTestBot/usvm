@@ -12,14 +12,14 @@ import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachineOptions
-import org.usvm.api.targets.ReachabilityObserver
-import org.usvm.api.targets.TsReachabilityTarget
+import org.usvm.machine.TsAnalysisStopReason
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.machine.call.TsUnknownCallModelSelection
 import org.usvm.machine.expr.extractDouble
 import org.usvm.machine.expr.toConcreteBoolValue
 import org.usvm.machine.state.TsState
+import org.usvm.statistics.UMachineObserver
 import org.usvm.ts.pbt.manifest.PropertyManifest
 import org.usvm.ts.pbt.mapping.EtsMappingStatus
 import org.usvm.ts.pbt.mapping.PropertyEtsMapper
@@ -28,9 +28,17 @@ import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.NumberDomain
 import org.usvm.ts.pbt.model.contains
 import org.usvm.util.mkRegisterStackLValue
+import java.nio.file.Files
+import java.nio.file.Path
+import java.security.MessageDigest
 import kotlin.time.TimeSource
 
+private const val BYTE_MASK = 0xff
+
 internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
+    private val verifiedProjects = mutableMapOf<Path, String>()
+    private var verifiedNativeFrontend: Pair<Path, String>? = null
+
     override fun search(request: CallsSymbolicSearchRequest): CallsSymbolicSearchResult {
         val startedAt = TimeSource.Monotonic.markNow()
         val unsupportedInput = request.function.inputs.firstOrNull { input ->
@@ -55,12 +63,40 @@ internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
         }
     }
 
+    @Suppress("LongMethod")
     private fun searchSupported(
         request: CallsSymbolicSearchRequest,
         startedAt: TimeSource.Monotonic.ValueTimeMark,
     ): CallsSymbolicSearchResult {
+        verifyGitCheckoutOnce(
+            checkout = request.sourceRoot,
+            expectedRevision = request.project.revision,
+            cache = verifiedProjects,
+        )
+        verifyNativeFrontendOnce(
+            expectedRevision = request.expectedNativeFrontendRevision,
+            expectedSha256 = request.expectedNativeFrontendSha256,
+        )
+
         val source = request.sourceRoot.resolve(request.function.sourceFile).normalize()
+        require(source.startsWith(request.sourceRoot)) { "Function source escapes its frozen source root" }
+        val actualSourceHash = Files.readAllBytes(source).sha256()
+        if (actualSourceHash != request.target.sourceSha256) {
+            return result(
+                status = CallsSymbolicStatus.TOOL_ERROR,
+                startedAt = startedAt,
+                diagnostic = "Source hash $actualSourceHash does not match frozen hash ${request.target.sourceSha256}",
+            )
+        }
+
         val sourceFile = loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)
+        if (sourceFile.importInfos.isNotEmpty()) {
+            return result(
+                status = CallsSymbolicStatus.UNSUPPORTED,
+                startedAt = startedAt,
+                diagnostic = "Single-file symbolic replay does not support imported project callees",
+            )
+        }
         val scene = EtsScene(projectFiles = listOf(sourceFile))
         val frontendEntryPoint = request.function.entryPoint.copy(
             module = requireNotNull(source.fileName).toString(),
@@ -100,26 +136,36 @@ internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
             randomSeed = request.seed,
             timeout = request.budget,
             solverType = SolverType.Z3,
+            stopOnCoverage = 0,
             stopOnTargetsReached = false,
+            throwExceptionOnStepFailure = true,
         )
         val tsOptions = TsOptions(
             unknownCallModelSelection = modelSelection,
             unknownCallFallback = request.profile.fallback,
         )
         // One source statement may lower to consecutive EtsIR instructions with the same exact source span.
-        // Reaching the first instruction is the stable entry point for that statement.
-        val target = TsReachabilityTarget.FinalPoint(targetCandidates.first())
+        // Observe the first instruction before it executes, matching the source replay marker
+        // inserted before the statement.
+        val entryObserver = SourceStatementEntryObserver(targetCandidates.first())
         val analysis = TsMachine(
             scene = scene,
             options = machineOptions,
             tsOptions = tsOptions,
-            machineObserver = ReachabilityObserver(),
+            machineObserver = entryObserver,
         ).use { machine ->
-            machine.analyze(methods = listOf(method), targets = listOf(target)) to
-                machine.unknownCallModelCatalogFingerprint
+            val outcome = machine.analyzeWithOutcome(methods = listOf(method))
+            MachineResult(
+                states = entryObserver.reachedStates,
+                stopReason = outcome.stopReason,
+                catalogFingerprint = machine.unknownCallModelCatalogFingerprint,
+                artifactIdentities = machine.unknownCallModelArtifactIdentities.mapValues { (_, identity) ->
+                    identity.sourceHash to identity.etsIrHash
+                },
+            )
         }
-        val states = analysis.first
-        val fingerprint = analysis.second
+        val states = analysis.states
+        val fingerprint = analysis.catalogFingerprint
         if (fingerprint != request.expectedCatalogFingerprint) {
             return result(
                 status = CallsSymbolicStatus.TOOL_ERROR,
@@ -128,17 +174,35 @@ internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
                 diagnostic = "Runtime model fingerprint $fingerprint does not match the frozen manifest",
             )
         }
+        if (request.profile.usesFrozenModels) {
+            val artifactIdentities = analysis.artifactIdentities.values.toSet()
+            val expectedIdentity = request.expectedModelSourceHash to request.expectedModelEtsIrHash
+            if (artifactIdentities != setOf(expectedIdentity)) {
+                return result(
+                    status = CallsSymbolicStatus.TOOL_ERROR,
+                    startedAt = startedAt,
+                    catalogFingerprint = fingerprint,
+                    diagnostic = "Runtime EtsIR model artifacts $artifactIdentities " +
+                        "do not match frozen artifact $expectedIdentity",
+                )
+            }
+        }
         if (states.isEmpty()) {
-            val status = if (startedAt.elapsedNow() >= request.budget) {
-                CallsSymbolicStatus.TIMEOUT
-            } else {
-                CallsSymbolicStatus.UNREACHED
+            val status = when (analysis.stopReason) {
+                TsAnalysisStopReason.EXHAUSTED -> CallsSymbolicStatus.UNREACHED
+                TsAnalysisStopReason.TIMEOUT -> CallsSymbolicStatus.TIMEOUT
+                TsAnalysisStopReason.OTHER_LIMIT -> CallsSymbolicStatus.TOOL_ERROR
             }
 
             return result(
                 status = status,
                 startedAt = startedAt,
                 catalogFingerprint = fingerprint,
+                diagnostic = if (analysis.stopReason == TsAnalysisStopReason.OTHER_LIMIT) {
+                    "Symbolic execution stopped for an unexpected non-timeout limit"
+                } else {
+                    null
+                },
             )
         }
 
@@ -150,6 +214,7 @@ internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
         if (inputs == null) {
             return result(
                 status = CallsSymbolicStatus.UNREPRESENTABLE,
+                solverReached = true,
                 startedAt = startedAt,
                 catalogFingerprint = fingerprint,
                 diagnostic = "No reached state has inputs inside every frozen domain",
@@ -202,17 +267,100 @@ internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
     private fun result(
         status: CallsSymbolicStatus,
         startedAt: TimeSource.Monotonic.ValueTimeMark,
+        solverReached: Boolean = status == CallsSymbolicStatus.REACHED,
         inputs: List<JsConcreteValue>? = null,
         catalogFingerprint: String? = null,
         diagnostic: String? = null,
     ) = CallsSymbolicSearchResult(
         status = status,
+        solverReached = solverReached,
         inputs = inputs,
         catalogFingerprint = catalogFingerprint,
         elapsedMillis = startedAt.elapsedNow().inWholeMilliseconds,
         diagnostic = diagnostic,
     )
+
+    private fun verifyNativeFrontendOnce(expectedRevision: String, expectedSha256: String) {
+        require(System.getenv("ETS_FRONTEND_SCRIPT") == null) {
+            "ETS_FRONTEND_SCRIPT must be unset so the frozen native frontend runtime is used"
+        }
+        val configuredFrontend = requireNotNull(System.getenv("ETS_FRONTEND_DIR")) {
+            "ETS_FRONTEND_DIR is required to verify the frozen native frontend revision"
+        }
+        val frontendDirectory = Path.of(configuredFrontend).toRealPath()
+        val cached = verifiedNativeFrontend
+        val expectedIdentity = "$expectedRevision:$expectedSha256"
+        if (cached == Pair(frontendDirectory, expectedIdentity)) {
+            return
+        }
+
+        verifyGitCheckout(frontendDirectory, expectedRevision)
+        val runtimeScript = frontendDirectory.resolve("dist/index.js")
+        val actualSha256 = Files.readAllBytes(runtimeScript).sha256()
+        require(actualSha256 == expectedSha256) {
+            "Native frontend runtime hash $actualSha256 does not match frozen hash $expectedSha256"
+        }
+        verifiedNativeFrontend = frontendDirectory to expectedIdentity
+    }
+
+    private fun verifyGitCheckoutOnce(
+        checkout: Path,
+        expectedRevision: String,
+        cache: MutableMap<Path, String>,
+    ) {
+        if (cache[checkout] == expectedRevision) {
+            return
+        }
+
+        verifyGitCheckout(checkout, expectedRevision)
+        cache[checkout] = expectedRevision
+    }
+
+    private fun verifyGitCheckout(checkout: Path, expectedRevision: String) {
+        val actualRevision = runGit(checkout, "rev-parse", "HEAD").trim()
+        require(actualRevision == expectedRevision) {
+            "Checkout $checkout is at $actualRevision, expected frozen revision $expectedRevision"
+        }
+        runGit(checkout, "diff", "--quiet", "HEAD", "--")
+    }
+
+    private fun runGit(checkout: Path, vararg arguments: String): String {
+        val process = ProcessBuilder(listOf("git", "-C", checkout.toString()) + arguments)
+            .redirectErrorStream(true)
+            .start()
+        val output = process.inputStream.bufferedReader().use { reader -> reader.readText() }
+        val exitCode = process.waitFor()
+        require(exitCode == 0) {
+            val command = arguments.joinToString(separator = " ")
+            "Git $command failed for $checkout with exit $exitCode: ${output.trim()}"
+        }
+
+        return output
+    }
+
+    private class SourceStatementEntryObserver(
+        private val target: EtsStmt,
+    ) : UMachineObserver<TsState> {
+        val reachedStates = mutableListOf<TsState>()
+
+        override fun onStatePeeked(state: TsState) {
+            if (state.currentStatement == target) {
+                reachedStates += state.clone()
+            }
+        }
+    }
+
+    private data class MachineResult(
+        val states: List<TsState>,
+        val stopReason: TsAnalysisStopReason,
+        val catalogFingerprint: String?,
+        val artifactIdentities: Map<String, Pair<String, String>>,
+    )
 }
+
+private fun ByteArray.sha256(): String = MessageDigest.getInstance("SHA-256")
+    .digest(this)
+    .joinToString(separator = "") { byte -> "%02x".format(byte.toInt() and BYTE_MASK) }
 
 private fun EtsMappingStatus.toSymbolicStatus(): CallsSymbolicStatus = when (this) {
     EtsMappingStatus.EXACT -> error("Exact mapping has no failure status")

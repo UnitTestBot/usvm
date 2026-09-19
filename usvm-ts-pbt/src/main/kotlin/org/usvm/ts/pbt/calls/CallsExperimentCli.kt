@@ -20,11 +20,6 @@ private fun runExperiment(args: List<String>) {
     val manifestPath = Path.of(args[0]).toAbsolutePath().normalize()
     val rawDirectory = Path.of(args[1]).toAbsolutePath().normalize()
     val manifest = CallsExperimentJson.decodeManifest(Files.readString(manifestPath))
-    Files.createDirectories(rawDirectory)
-    Files.writeString(
-        rawDirectory.resolve("manifest.json"),
-        CallsExperimentJson.encodeManifest(manifest) + "\n",
-    )
 
     CallsExperimentRunner(
         symbolicEngine = CurrentTsCallsSymbolicEngine(),
@@ -33,6 +28,10 @@ private fun runExperiment(args: List<String>) {
         manifest = manifest,
         manifestDirectory = requireNotNull(manifestPath.parent),
         rawOutput = rawDirectory.resolve("results.jsonl"),
+    )
+    Files.writeString(
+        rawDirectory.resolve("manifest.json"),
+        CallsExperimentJson.encodeManifest(manifest) + "\n",
     )
 }
 

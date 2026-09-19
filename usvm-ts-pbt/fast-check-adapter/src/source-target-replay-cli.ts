@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
-import { lstat, mkdir, mkdtemp, readFile, readdir, realpath, rm, stat, symlink, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readFile, readdir, realpath, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -38,6 +38,7 @@ interface WorkerResult {
 interface ProcessResult {
   exitCode: number | null;
   timedOut: boolean;
+  stderrOverflow: boolean;
   stderr: string;
 }
 
@@ -116,6 +117,10 @@ async function main(): Promise<void> {
     const execution = await runProcess(process.execPath, [workerPath, workerRequestPath], request.timeoutMillis);
     if (execution.timedOut) {
       writeResponse({ status: 'ok', replayStatus: 'timeout', invocation: null });
+      return;
+    }
+    if (execution.stderrOverflow) {
+      writeResponse({ status: 'error', replayStatus: 'tool-error', message: 'worker stderr exceeded 65536 bytes' });
       return;
     }
     if (execution.exitCode !== 0) {
@@ -213,8 +218,7 @@ async function createOverlay(
     for (const entry of entries) {
       if (entry === segment) continue;
       const original = path.join(sourceDirectory, entry);
-      const kind = (await lstat(original)).isDirectory() ? 'dir' : 'file';
-      await symlink(original, path.join(overlayDirectory, entry), kind);
+      await mirrorOverlayEntry(original, path.join(overlayDirectory, entry));
     }
     if (last) {
       await writeFile(path.join(overlayDirectory, segment), instrumentedSource, 'utf8');
@@ -226,35 +230,55 @@ async function createOverlay(
   }
 }
 
+async function mirrorOverlayEntry(original: string, overlay: string): Promise<void> {
+  const kind = (await stat(original)).isDirectory() ? 'dir' : 'file';
+  if (process.platform === 'win32') {
+    if (kind === 'dir') {
+      await symlink(original, overlay, 'junction');
+    } else {
+      await copyFile(original, overlay);
+    }
+    return;
+  }
+
+  await symlink(original, overlay, kind);
+}
+
 async function runProcess(executable: string, args: string[], timeoutMillis: number): Promise<ProcessResult> {
-  const detached = process.platform !== 'win32';
-  const child = spawn(executable, args, { detached, stdio: ['ignore', 'ignore', 'pipe'] });
-  let stderr = '';
-  child.stderr.setEncoding('utf8');
-  child.stderr.on('data', (chunk: string) => { stderr += chunk; });
+  const child = spawn(executable, args, { stdio: ['ignore', 'ignore', 'pipe'] });
+  const stderrChunks: Buffer[] = [];
+  let stderrBytes = 0;
+  let stderrOverflow = false;
+  child.stderr.on('data', (chunk: Buffer) => {
+    if (stderrOverflow) return;
+
+    stderrBytes += chunk.length;
+    if (stderrBytes > MAX_WORKER_STDERR_BYTES) {
+      stderrOverflow = true;
+      child.kill('SIGTERM');
+      return;
+    }
+
+    stderrChunks.push(chunk);
+  });
 
   return await new Promise((resolve, reject) => {
     let timedOut = false;
+    let forceKillTimer: NodeJS.Timeout | undefined;
     const timer = setTimeout(() => {
       timedOut = true;
-      terminate(child.pid, detached, 'SIGTERM');
-      setTimeout(() => terminate(child.pid, detached, 'SIGKILL'), 250).unref();
+      child.kill('SIGTERM');
+      forceKillTimer = setTimeout(() => child.kill('SIGKILL'), WORKER_SHUTDOWN_GRACE_MILLIS);
+      forceKillTimer.unref();
     }, timeoutMillis);
     child.once('error', reject);
     child.once('close', (exitCode) => {
       clearTimeout(timer);
-      resolve({ exitCode, timedOut, stderr });
+      if (forceKillTimer !== undefined) clearTimeout(forceKillTimer);
+      const stderr = Buffer.concat(stderrChunks).toString('utf8');
+      resolve({ exitCode, timedOut, stderrOverflow, stderr });
     });
   });
-}
-
-function terminate(pid: number | undefined, detached: boolean, signal: NodeJS.Signals): void {
-  if (pid === undefined) return;
-  try {
-    process.kill(detached ? -pid : pid, signal);
-  } catch (error: unknown) {
-    if (!(error instanceof Error && 'code' in error && (error as NodeJS.ErrnoException).code === 'ESRCH')) throw error;
-  }
 }
 
 async function requireFile(filePath: string, description: string): Promise<void> {
@@ -275,3 +299,6 @@ main().catch((error: unknown) => {
   writeResponse({ status: 'error', replayStatus: 'tool-error', message: error instanceof Error ? error.message : String(error) });
   process.exitCode = 1;
 });
+
+const MAX_WORKER_STDERR_BYTES = 64 * 1024;
+const WORKER_SHUTDOWN_GRACE_MILLIS = 250;
