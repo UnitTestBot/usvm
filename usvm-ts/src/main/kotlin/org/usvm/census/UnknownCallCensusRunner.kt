@@ -28,12 +28,12 @@ import org.usvm.machine.call.TsUnknownCallDecision
 import org.usvm.machine.call.TsUnknownCallEvent
 import org.usvm.machine.call.TsUnknownCallModelSelection
 import java.io.BufferedWriter
+import java.io.IOException
+import java.io.InputStream
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
-import java.nio.file.attribute.PosixFilePermission
-import java.nio.file.attribute.PosixFilePermissions
 import java.security.MessageDigest
 import java.time.Instant
 import java.util.concurrent.CompletableFuture
@@ -616,16 +616,25 @@ internal fun boundedProcessOutput(
     require(timeout > Duration.ZERO) { "Process timeout must be positive" }
     require(maxOutputBytes > 0) { "Process output limit must be positive" }
 
-    val outputFile = createSecureProcessOutputFile()
     var process: Process? = null
+    var outputReader: Thread? = null
     try {
         val processStart = TimeSource.Monotonic.markNow()
         val startedProcess = ProcessBuilder(command)
             .redirectErrorStream(true)
-            .redirectOutput(outputFile.toFile())
             .start()
         process = startedProcess
         startedProcess.outputStream.close()
+
+        val outputCollector = BoundedOutputCollector(maxOutputBytes)
+        val startedOutputReader = Thread(
+            { outputCollector.drain(startedProcess.inputStream) },
+            "unknown-call-census-output-reader",
+        ).apply {
+            isDaemon = true
+            start()
+        }
+        outputReader = startedOutputReader
 
         val remaining = timeout - processStart.elapsedNow()
         val completed = remaining > Duration.ZERO && startedProcess.waitFor(
@@ -634,34 +643,98 @@ internal fun boundedProcessOutput(
         )
         if (!completed) {
             terminateProcessTreeBestEffort(startedProcess)
+            closeProcessOutputBestEffort(startedProcess)
+            joinBestEffort(startedOutputReader, PROCESS_TERMINATION_GRACE)
             return BoundedProcessOutput.TimedOut
         }
 
-        val bytes = Files.newInputStream(outputFile).use { input ->
-            input.readNBytes(maxOutputBytes + 1)
+        val outputRead = joinWithinTimeout(
+            thread = startedOutputReader,
+            timeout = timeout - processStart.elapsedNow(),
+        )
+        if (!outputRead) {
+            closeProcessOutputBestEffort(startedProcess)
+            joinBestEffort(startedOutputReader, PROCESS_TERMINATION_GRACE)
+            return BoundedProcessOutput.TimedOut
         }
-        val truncated = bytes.size > maxOutputBytes
-        val capturedBytes = if (truncated) bytes.copyOf(maxOutputBytes) else bytes
+
+        outputCollector.failure?.let { throw it }
         return BoundedProcessOutput.Completed(
             exitCode = startedProcess.exitValue(),
-            output = capturedBytes.toString(StandardCharsets.UTF_8),
-            truncated = truncated,
+            output = outputCollector.output(),
+            truncated = outputCollector.truncated,
         )
     } finally {
         process?.takeIf(Process::isAlive)?.let(::terminateProcessTreeBestEffort)
-        runCatching { Files.deleteIfExists(outputFile) }
+        process?.let(::closeProcessOutputBestEffort)
+        outputReader?.takeIf(Thread::isAlive)?.let { reader ->
+            joinBestEffort(reader, PROCESS_TERMINATION_GRACE)
+        }
     }
 }
 
-private fun createSecureProcessOutputFile(): Path {
-    val ownerOnlyPermissions = PosixFilePermissions.asFileAttribute(
-        setOf(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE),
-    )
-    return try {
-        Files.createTempFile("unknown-call-census-git-", ".output", ownerOnlyPermissions)
-    } catch (_: UnsupportedOperationException) {
-        Files.createTempFile("unknown-call-census-git-", ".output")
+private class BoundedOutputCollector(private val maxOutputBytes: Int) {
+    private val retainedOutput = ByteArray(maxOutputBytes)
+    private var retainedBytes = 0
+
+    var truncated: Boolean = false
+        private set
+
+    var failure: Exception? = null
+        private set
+
+    fun drain(input: InputStream) {
+        val buffer = ByteArray(PROCESS_OUTPUT_BUFFER_BYTES)
+        try {
+            input.use {
+                var readBytes = it.read(buffer)
+                while (readBytes >= 0) {
+                    retain(buffer, readBytes)
+                    readBytes = it.read(buffer)
+                }
+            }
+        } catch (error: IOException) {
+            failure = error
+        }
     }
+
+    private fun retain(buffer: ByteArray, readBytes: Int) {
+        val retainedFromChunk = minOf(readBytes, maxOutputBytes - retainedBytes)
+        if (retainedFromChunk > 0) {
+            buffer.copyInto(
+                destination = retainedOutput,
+                destinationOffset = retainedBytes,
+                endIndex = retainedFromChunk,
+            )
+            retainedBytes += retainedFromChunk
+        }
+        if (retainedFromChunk < readBytes) {
+            truncated = true
+        }
+    }
+
+    fun output(): String = retainedOutput.copyOf(retainedBytes).toString(StandardCharsets.UTF_8)
+}
+
+private fun joinWithinTimeout(thread: Thread, timeout: Duration): Boolean {
+    if (timeout <= Duration.ZERO) {
+        return !thread.isAlive
+    }
+
+    thread.join(timeout.inWholeMilliseconds.coerceAtLeast(minimumValue = 1))
+    return !thread.isAlive
+}
+
+private fun joinBestEffort(thread: Thread, timeout: Duration) {
+    try {
+        joinWithinTimeout(thread, timeout)
+    } catch (_: InterruptedException) {
+        Thread.currentThread().interrupt()
+    }
+}
+
+private fun closeProcessOutputBestEffort(process: Process) {
+    runCatching { process.inputStream.close() }
 }
 
 private fun terminateProcessTree(process: Process) {
@@ -708,6 +781,7 @@ private fun awaitTermination(processes: List<ProcessHandle>, timeout: Duration):
 }
 
 private val PROCESS_TERMINATION_GRACE = 500.milliseconds
+private const val PROCESS_OUTPUT_BUFFER_BYTES = 8 * 1024
 
 private fun runtimeArtifactName(type: Class<*>): String = runCatching {
     Path.of(type.protectionDomain.codeSource.location.toURI()).name

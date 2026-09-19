@@ -6,10 +6,12 @@ import kotlin.io.path.createTempDirectory
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 
 class UnknownCallCensusRunnerTest {
     @Test
@@ -75,27 +77,52 @@ class UnknownCallCensusRunnerTest {
     }
 
     @Test
-    fun `bounded process output reports truncation`() {
+    fun `bounded process output drains excess while producer remains alive`() {
         val result = boundedProcessOutput(
-            command = listOf("sh", "-c", "printf 1234567890"),
-            timeout = 2.seconds,
+            command = listOf(
+                "sh",
+                "-c",
+                "yes 1234567890 | head -n 20000; sleep 0.1; printf done",
+            ),
+            timeout = 5.seconds,
             maxOutputBytes = 5,
         )
 
         val completed = assertIs<BoundedProcessOutput.Completed>(result)
+        assertEquals(0, completed.exitCode)
         assertEquals("12345", completed.output)
         assertTrue(completed.truncated)
     }
 
     @Test
     fun `bounded process output times out and reaps the process`() {
-        val result = boundedProcessOutput(
-            command = listOf("sh", "-c", "sleep 30"),
-            timeout = 100.milliseconds,
-            maxOutputBytes = 1_024,
-        )
+        val temporaryRoot = createTempDirectory("census-process-test-")
+        try {
+            val childPidFile = temporaryRoot.resolve("child.pid")
+            val start = TimeSource.Monotonic.markNow()
+            val result = boundedProcessOutput(
+                command = listOf(
+                    "sh",
+                    "-c",
+                    "sleep 30 & child=\$!; printf %s \"\$child\" > \"\$1\"; wait",
+                    "census-timeout-test",
+                    childPidFile.toString(),
+                ),
+                timeout = 500.milliseconds,
+                maxOutputBytes = 1_024,
+            )
 
-        assertEquals(BoundedProcessOutput.TimedOut, result)
+            assertEquals(BoundedProcessOutput.TimedOut, result)
+            assertTrue(start.elapsedNow() < 3.seconds)
+
+            val childPid = Files.readString(childPidFile).toLong()
+            val childIsAlive = ProcessHandle.of(childPid)
+                .map(ProcessHandle::isAlive)
+                .orElse(false)
+            assertFalse(childIsAlive)
+        } finally {
+            temporaryRoot.toFile().deleteRecursively()
+        }
     }
 
     @Test
