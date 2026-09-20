@@ -209,9 +209,13 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         artifact = artifact(methodName),
         domainGuard = domainGuard,
         inputAdapter = inputAdapter,
-        requiredModelIds = when (methodName) {
-            "charAt" -> setOf(PRIMITIVE_LENGTH_ID, PRIMITIVE_CODE_UNIT_AT_ID, PRIMITIVE_FROM_CODE_UNIT_ID)
-            else -> setOf(PRIMITIVE_LENGTH_ID, PRIMITIVE_CODE_UNIT_AT_ID)
+        requiredModelIds = buildSet {
+            add(MATH_FLOOR_MODEL_ID)
+            add(PRIMITIVE_LENGTH_ID)
+            add(PRIMITIVE_CODE_UNIT_AT_ID)
+            if (methodName == "charAt") {
+                add(PRIMITIVE_FROM_CODE_UNIT_ID)
+            }
         },
     )
 
@@ -390,4 +394,5 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
     private const val PRIMITIVE_LENGTH_ID = "ts.string.primitive.length"
     private const val PRIMITIVE_CODE_UNIT_AT_ID = "ts.string.primitive.codeUnitAt"
     private const val PRIMITIVE_FROM_CODE_UNIT_ID = "ts.string.primitive.fromCodeUnit"
+    private const val MATH_FLOOR_MODEL_ID = "ts.math.floor"
 }
