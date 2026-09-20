@@ -261,6 +261,20 @@ export class DateModels {
         return DateModels.setHours(receiver, argumentCount, hours, minutes, seconds, milliseconds);
     }
 
+    static setUTCMilliseconds(receiver: DateValue, milliseconds: number): number {
+        return DateModels.setMilliseconds(receiver, milliseconds);
+    }
+
+    static setUTCMinutes(
+        receiver: DateValue,
+        argumentCount: number,
+        minutes: number,
+        seconds: number,
+        milliseconds: number,
+    ): number {
+        return DateModels.setMinutes(receiver, argumentCount, minutes, seconds, milliseconds);
+    }
+
     static setUTCMonth(receiver: DateValue, argumentCount: number, month: number, date: number): number {
         return DateModels.setMonth(receiver, argumentCount, month, date);
     }

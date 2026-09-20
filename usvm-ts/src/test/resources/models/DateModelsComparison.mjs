@@ -102,6 +102,8 @@ const setterCases = [
     ["setMonth", [-13, 40], (date, args) => date.setUTCMonth(...args), (date, args) => DateModels.setMonth(date, args.length, ...args, 0)],
     ["setSeconds", [-61, 2_000], (date, args) => date.setUTCSeconds(...args), (date, args) => DateModels.setSeconds(date, args.length, ...args, 0)],
     ["setTime", [-1.9], (date, args) => date.setTime(...args), (date, args) => DateModels.setTime(date, ...args)],
+    ["setUTCMilliseconds", [-1], (date, args) => date.setUTCMilliseconds(...args), (date, args) => DateModels.setUTCMilliseconds(date, ...args)],
+    ["setUTCMinutes", [61, -2, 1_001], (date, args) => date.setUTCMinutes(...args), (date, args) => DateModels.setUTCMinutes(date, args.length, ...args, 0, 0)],
 ];
 
 for (const timestamp of [-1, 0, 951_827_696_789]) {

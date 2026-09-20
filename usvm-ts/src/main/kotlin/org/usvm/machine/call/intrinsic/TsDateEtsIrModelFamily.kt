@@ -70,6 +70,8 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             add(instanceModel("set-utc-date", "setUTCDate", consumedArgs = 1))
             add(instanceArityModel("set-utc-full-year", "setUTCFullYear", "setUTCFullYear", minArgs = 1, maxArgs = 3))
             add(instanceArityModel("set-utc-hours", "setUTCHours", "setUTCHours", minArgs = 1, maxArgs = 4))
+            add(instanceModel("set-utc-milliseconds", "setUTCMilliseconds", consumedArgs = 1))
+            add(instanceArityModel("set-utc-minutes", "setUTCMinutes", "setUTCMinutes", minArgs = 1, maxArgs = 3))
             add(instanceArityModel("set-utc-month", "setUTCMonth", "setUTCMonth", minArgs = 1, maxArgs = 2))
             add(instanceArityModel("set-utc-seconds", "setUTCSeconds", "setUTCSeconds", minArgs = 1, maxArgs = 2))
         }
