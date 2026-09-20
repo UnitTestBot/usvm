@@ -48,7 +48,7 @@ This is the only model-selection setting.
 | --- | --- |
 | `TsUnknownCallModelSelection.All` | Enable every built-in model. This is the default. |
 | `TsUnknownCallModelSelection.Only(emptySet())` | Disable every built-in model. |
-| `TsUnknownCallModelSelection.Only(setOf("id", ...))` | Enable exactly the listed built-in model IDs. |
+| `TsUnknownCallModelSelection.Only(setOf("id", ...))` | Enable the listed built-in model IDs and their declared dependencies. |
 
 Unknown IDs are rejected when the machine creates its immutable per-run catalog. The selected models are captured at that
 point, so later mutations of the selection set cannot change an active run.
@@ -56,16 +56,33 @@ point, so later mutations of the selection set cannot change an active run.
 Use the model's `id`, for example `ts.array.pop`. A target method name, class name, source filename, or artifact hash is
 not a model ID.
 
-Built-ins are `object` implementations of the sealed `TsBuiltInUnknownCallModel` interface in the
-`org.usvm.machine.call.intrinsic` package. Kotlin's sealed-subclass metadata discovers them automatically; adding a
-model requires no manual registry entry. Discovery and the default catalog are computed once.
+Built-ins are singleton models or families implementing the sealed `TsBuiltInUnknownCallModel` interface in the
+`org.usvm.machine.call.intrinsic` package. Kotlin's sealed-subclass metadata discovers them automatically; a family
+supplies its parameterized models without a separate registry. Discovery and the default catalog are computed once.
 
-The built-in catalog currently contains:
+The built-in catalog contains 62 public API names, plus three internal String storage primitives:
 
 | ID | Implementation | Accepted calls |
 | --- | --- | --- |
 | `ts.array.shift` | Kotlin intrinsic using symbolic-memory `memcpy` | Zero-argument `shift` on a definitely one-dimensional array. |
 | `ts.array.pop` | TypeScript/EtsIR body | Zero-argument `pop` on a definitely one-dimensional array that also satisfies the symbolic runtime type guard. |
+| `ts.array.includes`, `ts.array.indexOf`, `ts.array.lastIndexOf` | TypeScript/EtsIR bodies | One-dimensional arrays and numeric positions, with the missing-slot exclusions below. |
+| `ts.string.charAt`, `ts.string.charCodeAt`, `ts.string.includes`, `ts.string.indexOf`, `ts.string.lastIndexOf`, `ts.string.startsWith`, `ts.string.endsWith` | TypeScript/EtsIR bodies | Initialized concrete strings; numeric positions. `charAt` requires a concrete position. |
+| `ts.math.abs`, `ts.math.ceil`, `ts.math.floor`, `ts.math.max`, `ts.math.min`, `ts.math.round`, `ts.math.sqrt`, `ts.math.trunc` | Kotlin FP primitives | Numeric arguments; dynamic coercions use fallback. |
+| `ts.number.isFinite`, `ts.number.isInteger`, `ts.number.isNaN`, `ts.number.isSafeInteger` | Kotlin FP/type primitives | Non-coercing Number predicates, including runtime-kind guards. |
+| `ts.date.*` (38 IDs) | TypeScript/EtsIR bodies | Numeric Date construction, `UTC`, fixed-clock `now`, getters, setters, `valueOf`, and source `toISOString`; see the Date boundary below. |
+
+Matching standard calls are assumed to refer to genuine builtins. Monkey patching and prototype replacement are
+outside this experiment; no runtime provenance protocol is imposed. Receiver and argument checks establish the
+memory representation and supported input domain.
+
+The September 2026 corpus census contains 22,769 call/constructor sites. Its 49-API shortlist accounts for 1,026
+sites: Number/Math (275), new Array/String searches (130), existing pop/shift (52), and Date (569). Every shortlisted
+API name has a catalog entry. Eleven adjacent APIs add 280 census sites; `setUTCMinutes` and `setUTCMilliseconds`
+complete the numeric UTC setter family but have no sites in this census. These 1,306 associated sites are
+an inventory count, **not executed or replay-confirmed coverage**: imports, input representation, fallback domains,
+and other unsupported operations can still prevent execution. The wider research inventory contains 271
+unambiguous standard/host API names over 7,720 sites; most are not implemented by this catalog.
 
 The common instance-call pipeline splits fake-value wrappers and conditional references under their runtime-kind
 and branch guards before selecting an approximation or resolving a method. A wrapped array can therefore use the
@@ -291,18 +308,19 @@ In contrast, `Array.pop` is expressed as the TypeScript body shown above.
 
 The built-in Date family keeps Gregorian calendar arithmetic, component overflow, leap years, and TimeClip in
 `DateModels.ts`. Kotlin only routes calls, injects the experiment clock, and exposes the model's numeric timestamp
-slot on a Date receiver.
+slot on a Date receiver. Calendar division and truncation use the declared `ts.math.floor` dependency.
 
 The current experiment has these explicit limits:
 
-- local getters, setters, and numeric component constructors use UTC, so `getTimezoneOffset()` returns zero and DST
-  behavior is outside the model domain;
+- local getters, setters, and numeric component constructors use UTC; `getTimezoneOffset()` returns zero for valid
+  dates and NaN for invalid dates. DST behavior is outside the model domain;
 - `Date.now()` and `new Date()` require `TsOptions.dateNowMilliseconds`; one fixed value is reused throughout the
   analysis, and both calls use fallback when it is absent;
 - one-argument construction supports numeric timestamps only; string parsing and copying another Date are outside
   the model domain;
 - symbolic string formatting is not claimed: `toISOString()` is a source implementation for supported concrete
-  execution, while symbolic string conversion remains subject to the engine's string limitations.
+  execution, while symbolic string conversion remains subject to the engine's string limitations. Invalid ISO
+  formatting reaches the unsupported nested `RangeError` constructor and the configured fallback.
 
 Good intrinsic candidates include:
 
