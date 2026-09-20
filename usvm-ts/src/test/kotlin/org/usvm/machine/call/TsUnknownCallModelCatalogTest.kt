@@ -154,6 +154,7 @@ class TsUnknownCallModelCatalogTest {
         val expectedModelIds = listOf(
             "ts.array.includes",
             "ts.array.indexOf",
+            "ts.array.lastIndexOf",
             "ts.array.pop",
             TsArrayShiftIntrinsicModel.MODEL_ID,
             TsNumericIntrinsicModelFamily.MATH_ABS_ID,
@@ -169,11 +170,15 @@ class TsUnknownCallModelCatalogTest {
             TsNumericIntrinsicModelFamily.NUMBER_IS_NAN_ID,
             TsNumericIntrinsicModelFamily.NUMBER_IS_SAFE_INTEGER_ID,
             "ts.string.charAt",
+            "ts.string.charCodeAt",
+            "ts.string.endsWith",
             "ts.string.includes",
             "ts.string.indexOf",
+            "ts.string.lastIndexOf",
             "ts.string.primitive.codeUnitAt",
             "ts.string.primitive.fromCodeUnit",
             "ts.string.primitive.length",
+            "ts.string.startsWith",
         )
 
         assertEquals(expectedModelIds, catalog.modelIds)

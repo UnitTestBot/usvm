@@ -50,6 +50,91 @@ export class StringModels {
         return StringModels.indexOf(receiver, searchString, position) !== -1;
     }
 
+    static charCodeAt(receiver: string, index: number): number {
+        const length = StringModelPrimitives.length(receiver);
+        const integerIndex = StringModels.normalizeCharIndex(index, length);
+        if (integerIndex < 0 || integerIndex >= length) {
+            return NaN;
+        }
+
+        return StringModelPrimitives.codeUnitAt(receiver, integerIndex);
+    }
+
+    static startsWith(receiver: string, searchString: string, position: number): boolean {
+        const length = StringModelPrimitives.length(receiver);
+        const searchLength = StringModelPrimitives.length(searchString);
+        const start = StringModels.normalizePosition(position, length);
+        if (start + searchLength > length) {
+            return false;
+        }
+
+        let searchIndex = 0;
+        while (searchIndex < searchLength) {
+            if (
+                StringModelPrimitives.codeUnitAt(receiver, start + searchIndex) !==
+                StringModelPrimitives.codeUnitAt(searchString, searchIndex)
+            ) {
+                return false;
+            }
+
+            searchIndex++;
+        }
+
+        return true;
+    }
+
+    static endsWith(receiver: string, searchString: string, endPosition: number): boolean {
+        const length = StringModelPrimitives.length(receiver);
+        const searchLength = StringModelPrimitives.length(searchString);
+        const end = StringModels.normalizePosition(endPosition, length);
+        const start = end - searchLength;
+        if (start < 0) {
+            return false;
+        }
+
+        let searchIndex = 0;
+        while (searchIndex < searchLength) {
+            if (
+                StringModelPrimitives.codeUnitAt(receiver, start + searchIndex) !==
+                StringModelPrimitives.codeUnitAt(searchString, searchIndex)
+            ) {
+                return false;
+            }
+
+            searchIndex++;
+        }
+
+        return true;
+    }
+
+    static lastIndexOf(receiver: string, searchString: string, position: number): number {
+        const length = StringModelPrimitives.length(receiver);
+        const searchLength = StringModelPrimitives.length(searchString);
+        let index = StringModels.normalizeLastPosition(position, length);
+        if (index + searchLength > length) {
+            index = length - searchLength;
+        }
+
+        while (index >= 0) {
+            let searchIndex = 0;
+            while (
+                searchIndex < searchLength &&
+                StringModelPrimitives.codeUnitAt(receiver, index + searchIndex) ===
+                    StringModelPrimitives.codeUnitAt(searchString, searchIndex)
+            ) {
+                searchIndex++;
+            }
+
+            if (searchIndex === searchLength) {
+                return index;
+            }
+
+            index--;
+        }
+
+        return -1;
+    }
+
     private static normalizeCharIndex(value: number, length: number): number {
         if (value !== value) {
             return 0;
@@ -83,6 +168,23 @@ export class StringModels {
         }
 
         if (value === Infinity || value >= length) {
+            return length;
+        }
+
+        if (value === -Infinity || value <= 0) {
+            return 0;
+        }
+
+        let integer = 0;
+        while (integer + 1 <= value) {
+            integer++;
+        }
+
+        return integer;
+    }
+
+    private static normalizeLastPosition(value: number, length: number): number {
+        if (value !== value || value === Infinity || value >= length) {
             return length;
         }
 

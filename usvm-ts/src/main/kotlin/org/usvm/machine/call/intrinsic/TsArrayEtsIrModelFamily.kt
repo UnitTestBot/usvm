@@ -1,11 +1,14 @@
 package org.usvm.machine.call.intrinsic
 
+import io.ksmt.expr.KFp64Value
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsArrayType
+import org.usvm.UExpr
 import org.usvm.machine.call.TsEtsIrUnknownCallModel
 import org.usvm.machine.call.TsEtsIrUnknownCallModelArtifact
 import org.usvm.machine.call.TsEtsIrUnknownCallModelDomainGuard
 import org.usvm.machine.call.TsEtsIrUnknownCallModelInputAdapter
+import org.usvm.machine.call.TsUnknownCall
 import org.usvm.machine.call.TsUnknownCallFailureReason
 import org.usvm.machine.call.TsUnknownCallModel
 import org.usvm.machine.call.TsUnknownCallTarget
@@ -35,10 +38,16 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             } else {
                 val array = receiver.asExpr(addressSort)
                 val receiverType = state.arrayStorageType(array, staticType) as? EtsArrayType
-                // Array storage has no presence bit yet, so indexOf(undefined) cannot distinguish a hole.
-                val searchesForUndefined = call.callee.name == "indexOf" &&
-                    inputs.getOrNull(1) == mkUndefinedValue()
-                if (array.hasFakeValueBranch() || receiverType?.dimensions != 1 || searchesForUndefined) {
+                val searchElement = inputs.getOrNull(1)
+                // Array storage has no presence bit. Its typed defaults must not turn holes into matches.
+                val searchesForTypedDefault = searchElement == falseExpr ||
+                    (searchElement is KFp64Value && searchElement.value == 0.0)
+                val searchesForUndefined = call.callee.name in setOf("indexOf", "lastIndexOf") &&
+                    searchElement == mkUndefinedValue()
+                if (
+                    array.hasFakeValueBranch() || receiverType?.dimensions != 1 ||
+                    searchesForTypedDefault || searchesForUndefined
+                ) {
                     falseExpr
                 } else {
                     state.memory.types.evalIsSubtype(array, receiverType)
@@ -47,14 +56,29 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         }
     }
 
-    private val optionalFromIndexAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call, inputs ->
-        when {
-            call.arguments.size == 1 -> inputs + state.ctx.mkFp64(0.0)
-            call.arguments.size == 2 && inputs.last() == state.ctx.mkUndefinedValue() ->
-                inputs.dropLast(1) + state.ctx.mkFp64(0.0)
+    private val optionalFromIndexAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call ->
+        call.resolvedInstanceInputs()?.let { inputs ->
+            when {
+                call.arguments.size == 1 -> inputs + state.ctx.mkFp64(0.0)
+                call.arguments.size == 2 && inputs.last() == state.ctx.mkUndefinedValue() ->
+                    inputs.dropLast(1) + state.ctx.mkFp64(0.0)
 
-            call.arguments.size == 2 && inputs.last().sort == state.ctx.fp64Sort -> inputs
-            else -> null
+                call.arguments.size == 2 && inputs.last().sort == state.ctx.fp64Sort -> inputs
+                else -> null
+            }
+        }
+    }
+
+    private val optionalLastIndexAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call ->
+        call.resolvedInstanceInputs()?.let { inputs ->
+            when {
+                call.arguments.size == 1 -> inputs + state.ctx.mkFpInf(signBit = false, state.ctx.fp64Sort)
+                call.arguments.size == 2 && inputs.last() == state.ctx.mkUndefinedValue() ->
+                    inputs.dropLast(1) + state.ctx.mkFp64(0.0)
+
+                call.arguments.size == 2 && inputs.last().sort == state.ctx.fp64Sort -> inputs
+                else -> null
+            }
         }
     }
 
@@ -73,6 +97,11 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                 id = "ts.array.includes",
                 methodName = "includes",
                 inputAdapter = optionalFromIndexAdapter,
+            ),
+            sourceModel(
+                id = "ts.array.lastIndexOf",
+                methodName = "lastIndexOf",
+                inputAdapter = optionalLastIndexAdapter,
             ),
         )
     }
@@ -101,5 +130,12 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             .single { it.name == methodName }
 
         return artifact.copy(entryPoint = entryPoint)
+    }
+
+    private fun TsUnknownCall.resolvedInstanceInputs(): List<UExpr<*>>? {
+        val resolvedReceiver = receiver?.resolved ?: return null
+        val resolvedArguments = arguments.map { argument -> argument.resolved ?: return null }
+
+        return listOf(resolvedReceiver) + resolvedArguments
     }
 }
