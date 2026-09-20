@@ -118,3 +118,91 @@ export function unsupportedAbsDomain(): number {
     // @ts-expect-error Domain fallback deliberately supplies a non-number.
     return Math.abs(true);
 }
+
+export function floorNegativeFraction(): number {
+    return Math.floor(-1.25);
+}
+
+export function floorNegativeZero(): number {
+    return Math.floor(-0);
+}
+
+export function floorInfinity(): number {
+    return Math.floor(1 / 0);
+}
+
+export function truncNegativeFraction(): number {
+    return Math.trunc(-1.75);
+}
+
+export function truncNegativeSmall(): number {
+    return Math.trunc(-0.25);
+}
+
+export function truncNaN(): number {
+    return Math.trunc(0 / 0);
+}
+
+export function sqrtFour(): number {
+    return Math.sqrt(4);
+}
+
+export function sqrtNegative(): number {
+    return Math.sqrt(-1);
+}
+
+export function sqrtNegativeZero(): number {
+    return Math.sqrt(-0);
+}
+
+export function sqrtInfinity(): number {
+    return Math.sqrt(1 / 0);
+}
+
+export function finiteNumber(): boolean {
+    return Number.isFinite(42);
+}
+
+export function finiteNaN(): boolean {
+    return Number.isFinite(0 / 0);
+}
+
+export function finiteInfinity(): boolean {
+    return Number.isFinite(1 / 0);
+}
+
+export function finiteBoolean(): boolean {
+    return Number.isFinite(true);
+}
+
+export function nanNaN(): boolean {
+    return Number.isNaN(0 / 0);
+}
+
+export function nanNumber(): boolean {
+    return Number.isNaN(42);
+}
+
+export function nanBoolean(): boolean {
+    return Number.isNaN(true);
+}
+
+export function safeIntegerMaximum(): boolean {
+    return Number.isSafeInteger(9007199254740991);
+}
+
+export function safeIntegerAboveMaximum(): boolean {
+    return Number.isSafeInteger(9007199254740992);
+}
+
+export function safeIntegerFraction(): boolean {
+    return Number.isSafeInteger(1.5);
+}
+
+export function safeIntegerInfinity(): boolean {
+    return Number.isSafeInteger(1 / 0);
+}
+
+export function safeIntegerBoolean(): boolean {
+    return Number.isSafeInteger(true);
+}

@@ -141,6 +141,72 @@ class TsNumericIntrinsicModelsTest {
         assertEquals(listOf(TsUnknownCallOutcome.PATH_STOPPED), result.events.map { event -> event.outcome })
     }
 
+    @Test
+    fun `adjacent Math models preserve special values`() {
+        val expected = linkedMapOf(
+            "floorNegativeFraction" to numberToken(-2.0),
+            "floorNegativeZero" to numberToken(-0.0),
+            "floorInfinity" to numberToken(Double.POSITIVE_INFINITY),
+            "truncNegativeFraction" to numberToken(-1.0),
+            "truncNegativeSmall" to numberToken(-0.0),
+            "truncNaN" to NAN,
+            "sqrtFour" to numberToken(2.0),
+            "sqrtNegative" to NAN,
+            "sqrtNegativeZero" to numberToken(-0.0),
+            "sqrtInfinity" to numberToken(Double.POSITIVE_INFINITY),
+        )
+
+        val result = analyze(expected.keys.toList())
+
+        expected.forEach { (methodName, expectedToken) ->
+            val actual = assertIs<TsTestValue.TsNumber>(result.values.getValue(methodName).single()).number
+
+            assertEquals(expectedToken, numberToken(actual), methodName)
+        }
+        assertEquals(
+            setOf(
+                TsNumericIntrinsicModelFamily.MATH_FLOOR_ID,
+                TsNumericIntrinsicModelFamily.MATH_TRUNC_ID,
+                TsNumericIntrinsicModelFamily.MATH_SQRT_ID,
+            ),
+            result.modelIds.toSet(),
+        )
+    }
+
+    @Test
+    fun `adjacent Number predicates handle special and non number values`() {
+        val expected = linkedMapOf(
+            "finiteNumber" to true,
+            "finiteNaN" to false,
+            "finiteInfinity" to false,
+            "finiteBoolean" to false,
+            "nanNaN" to true,
+            "nanNumber" to false,
+            "nanBoolean" to false,
+            "safeIntegerMaximum" to true,
+            "safeIntegerAboveMaximum" to false,
+            "safeIntegerFraction" to false,
+            "safeIntegerInfinity" to false,
+            "safeIntegerBoolean" to false,
+        )
+
+        val result = analyze(expected.keys.toList())
+
+        expected.forEach { (methodName, expectedValue) ->
+            val actual = assertIs<TsTestValue.TsBoolean>(result.values.getValue(methodName).single()).value
+
+            assertEquals(expectedValue, actual, methodName)
+        }
+        assertEquals(
+            setOf(
+                TsNumericIntrinsicModelFamily.NUMBER_IS_FINITE_ID,
+                TsNumericIntrinsicModelFamily.NUMBER_IS_NAN_ID,
+                TsNumericIntrinsicModelFamily.NUMBER_IS_SAFE_INTEGER_ID,
+            ),
+            result.modelIds.toSet(),
+        )
+    }
+
     private fun analyze(
         methodNames: List<String>,
         tsOptions: TsOptions = TsOptions(),
