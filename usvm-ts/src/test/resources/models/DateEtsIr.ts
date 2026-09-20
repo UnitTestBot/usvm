@@ -1,0 +1,36 @@
+// @ts-nocheck
+// noinspection JSUnusedGlobalSymbols
+
+export class DateEtsIr {
+    fixedClock(): number {
+        return Date.now() - new Date().getTime();
+    }
+
+    epochYear(): number {
+        return new Date(0).getUTCFullYear();
+    }
+
+    isoEpoch(): string {
+        return new Date(0).toISOString();
+    }
+
+    leapDay(): number {
+        const date = new Date(Date.UTC(2000, 1, 29, 12, 34, 56, 789));
+        return date.getUTCMonth() * 100 + date.getUTCDate();
+    }
+
+    overflow(): number {
+        const date = new Date(Date.UTC(2024, -1, 0, 25, -1, 0, 0));
+        return date.getUTCFullYear() * 10_000 + (date.getUTCMonth() + 1) * 100 + date.getUTCDate();
+    }
+
+    setter(): number {
+        const date = new Date(0);
+        const timestamp = date.setUTCFullYear(2000, 1, 29);
+        return timestamp + date.getUTCDate();
+    }
+
+    symbolicRoundTrip(timestamp: number): number {
+        return new Date(timestamp).valueOf();
+    }
+}
