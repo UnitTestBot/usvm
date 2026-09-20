@@ -4,13 +4,17 @@ import io.ksmt.utils.asExpr
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
+import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsStaticFieldRef
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.api.typeStreamOf
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsRuntimeFeatureLimitationReason
 import org.usvm.machine.interpreter.TsStepScope
@@ -18,6 +22,7 @@ import org.usvm.machine.interpreter.ensureStaticsInitialized
 import org.usvm.machine.types.EtsAuxiliaryType
 import org.usvm.machine.types.extractValue
 import org.usvm.sizeSort
+import org.usvm.types.singleOrNull
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.TsResolutionResult
 import org.usvm.util.arrayStorageType
@@ -147,10 +152,29 @@ fun TsContext.assignToInstanceField(
     // Unwrap to get non-fake reference.
     val unwrappedInstance = instance.unwrapRef(scope)
 
-    val etsField = resolveEtsField(instanceLocal, field, hierarchy)
+    val isUnresolvedErrorField = field.isUnresolvedErrorField()
+    val candidateErrorStorageField = field.errorModelStorageField()
+    val concreteRuntimeType = (unwrappedInstance as? UConcreteHeapRef)
+        ?.takeIf { candidateErrorStorageField != null }
+        ?.let { concreteInstance ->
+            scope.calcOnState { memory.typeStreamOf(concreteInstance).singleOrNull() }
+        }
+    val errorStorageField = candidateErrorStorageField.takeIf {
+        concreteRuntimeType == EtsClassType(signature = builtInErrorSignature)
+    }
+    val isModelStorageField = field.isModelStorageField() || errorStorageField != null
+    val etsField = when {
+        errorStorageField != null -> TsResolutionResult.Empty
+        isUnresolvedErrorField -> resolveEtsField(
+            instance = instanceLocal,
+            field = field.copy(enclosingClass = EtsClassSignature.UNKNOWN),
+            hierarchy = hierarchy,
+        )
+        else -> resolveEtsField(instanceLocal, field, hierarchy)
+    }
     // If we access some field, we expect that the object must have this field.
     // It is not always true for TS, but we decided to process it so.
-    if (!field.isModelStorageField()) {
+    if (!isModelStorageField) {
         val supertype = EtsAuxiliaryType(properties = setOf(field.name))
         val propertyExists = scope.calcOnState { memory.types.evalIsSubtype(unwrappedInstance, supertype) }
         // The assertion is required to update models before the write.
@@ -159,7 +183,7 @@ fun TsContext.assignToInstanceField(
 
     // Determine the field sort.
     val sort = when (etsField) {
-        is TsResolutionResult.Empty -> unresolvedSort
+        is TsResolutionResult.Empty -> if (errorStorageField != null) addressSort else unresolvedSort
         is TsResolutionResult.Unique -> typeToSort(etsField.property.type)
         is TsResolutionResult.Ambiguous -> unresolvedSort
     }
@@ -169,11 +193,11 @@ fun TsContext.assignToInstanceField(
     return scope.doWithState {
         if (sort is TsUnresolvedSort) {
             val fakeObject = expr.toFakeObject(scope)
-            val lValue = mkFieldLValue(addressSort, unwrappedInstance, field)
+            val lValue = mkFieldLValue(addressSort, unwrappedInstance, field.name)
             lValuesToAllocatedFakeObjects += lValue to fakeObject
             memory.write(lValue, fakeObject, guard = trueExpr)
         } else {
-            val lValue = mkFieldLValue(sort, unwrappedInstance, field)
+            val lValue = mkFieldLValue(sort, unwrappedInstance, errorStorageField ?: field.name)
             if (lValue.sort != expr.sort) {
                 if (expr.isFakeObject()) {
                     val lhvType = instanceLocal.type
@@ -206,9 +230,7 @@ fun TsContext.assignToInstanceField(
 
 private fun EtsFieldSignature.isModelStorageField(): Boolean = when (enclosingClass.name) {
     "DateValue" -> name == "timestamp"
-    "ErrorValue" -> {
-        enclosingClass.file.fileName == "ErrorModels.ts" && (name == "name" || name == "message")
-    }
+    "ErrorValue" -> isErrorModelStorageDefinitionField()
     else -> false
 }
 

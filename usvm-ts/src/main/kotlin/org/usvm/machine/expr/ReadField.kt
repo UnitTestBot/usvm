@@ -71,11 +71,16 @@ fun TsContext.readField(
     checkNotFake(instance)
 
     val isUnresolvedErrorField = field.isUnresolvedErrorField()
-    val isErrorModelStorageField = isUnresolvedErrorField && instance is UConcreteHeapRef && scope.calcOnState {
-        memory.typeStreamOf(instance).singleOrNull() == EtsClassType(
-            signature = EtsClassSignature.UNKNOWN.copy(name = "Error"),
-        )
+    val candidateErrorStorageField = field.errorModelStorageField()
+    val concreteRuntimeType = (instance as? UConcreteHeapRef)
+        ?.takeIf { candidateErrorStorageField != null }
+        ?.let { concreteInstance ->
+            scope.calcOnState { memory.typeStreamOf(concreteInstance).singleOrNull() }
+        }
+    val errorStorageField = candidateErrorStorageField.takeIf {
+        concreteRuntimeType == EtsClassType(signature = builtInErrorSignature)
     }
+    val isErrorModelStorageField = errorStorageField != null
     val etsField = when {
         isErrorModelStorageField -> TsResolutionResult.Empty
         isUnresolvedErrorField -> resolveEtsField(
@@ -120,7 +125,7 @@ fun TsContext.readField(
 
     // If the field type is known, we can read it directly.
     if (sort !is TsUnresolvedSort) {
-        val lValue = mkFieldLValue(sort, instance, field)
+        val lValue = mkFieldLValue(sort, instance, errorStorageField ?: field.name)
         return scope.calcOnState { memory.read(lValue) }
     }
 
@@ -149,14 +154,9 @@ fun TsContext.readField(
 
 private fun EtsFieldSignature.isModelStorageField(): Boolean = when (enclosingClass.name) {
     "DateValue" -> name == "timestamp"
-    "ErrorValue" -> {
-        enclosingClass.file.fileName == "ErrorModels.ts" && (name == "name" || name == "message")
-    }
+    "ErrorValue" -> isErrorModelStorageDefinitionField()
     else -> false
 }
-
-private fun EtsFieldSignature.isUnresolvedErrorField(): Boolean =
-    enclosingClass == EtsClassSignature.UNKNOWN.copy(name = "Error") && (name == "name" || name == "message")
 
 internal fun TsExprResolver.handleStaticFieldRef(
     value: EtsStaticFieldRef,
