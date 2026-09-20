@@ -9,7 +9,6 @@ import org.jacodb.ets.model.EtsStringType
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.api.evalTypeEquals
-import org.usvm.api.initializeArray
 import org.usvm.machine.call.TsEtsIrUnknownCallModel
 import org.usvm.machine.call.TsEtsIrUnknownCallModelArtifact
 import org.usvm.machine.call.TsEtsIrUnknownCallModelDomainGuard
@@ -309,39 +308,14 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         state: TsState,
         inputs: List<UExpr<*>>,
     ): TsUnknownCallModelExecution? = with(state.ctx) {
-        val code = inputs.singleOrNull()?.takeIf { it.sort == fp64Sort }?.asExpr(fp64Sort) ?: return null
+        val code = inputs.singleOrNull() as? KFp64Value ?: return null
 
         TsUnknownCallModelExecution(
             successors = listOf(
                 TsUnknownCallModelSuccessor(
                     guard = trueExpr,
                     completion = TsUnknownCallModelCompletion.Normal {
-                        if (code is KFp64Value) {
-                            return@Normal mkInitializedStringConstant(code.value.toInt().toChar().toString())
-                        }
-
-                        val codeUnit = ctx.mkFpToBvExpr(
-                            roundingMode = ctx.fpRoundingModeSortDefaultValue(),
-                            value = code,
-                            bvSize = ctx.bv16Sort.sizeBits.toInt(),
-                            isSigned = false,
-                        ).asExpr(ctx.bv16Sort)
-                        val result = memory.allocConcrete(EtsStringType)
-                        val characters = memory.allocConcrete(characterArrayType.elementType)
-                        memory.initializeArray(
-                            arrayHeapRef = characters,
-                            type = ctx.arrayDescriptorOf(characterArrayType),
-                            sort = ctx.bv16Sort,
-                            sizeSort = ctx.sizeSort,
-                            contents = sequenceOf(codeUnit),
-                        )
-                        memory.write(
-                            mkFieldLValue(ctx.addressSort, result, "value"),
-                            characters,
-                            guard = ctx.trueExpr,
-                        )
-
-                        result
+                        mkInitializedStringConstant(code.value.toInt().toChar().toString())
                     },
                 )
             ),
