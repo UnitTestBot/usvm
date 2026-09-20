@@ -12,6 +12,7 @@ import org.usvm.UMachineOptions
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.machine.call.intrinsic.TsArrayShiftIntrinsicModel
+import org.usvm.machine.call.intrinsic.TsNumericIntrinsicModelFamily
 import org.usvm.machine.state.TsState
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -150,11 +151,22 @@ class TsUnknownCallModelCatalogTest {
     fun `built in models are discovered once and an explicit empty selection disables all`() {
         val catalog = TsBuiltInUnknownCallModels.catalog()
 
-        assertEquals(listOf("ts.array.pop", TsArrayShiftIntrinsicModel.MODEL_ID), catalog.modelIds)
+        val expectedModelIds = listOf(
+            "ts.array.pop",
+            TsArrayShiftIntrinsicModel.MODEL_ID,
+            TsNumericIntrinsicModelFamily.MATH_ABS_ID,
+            TsNumericIntrinsicModelFamily.MATH_CEIL_ID,
+            TsNumericIntrinsicModelFamily.MATH_MAX_ID,
+            TsNumericIntrinsicModelFamily.MATH_MIN_ID,
+            TsNumericIntrinsicModelFamily.MATH_ROUND_ID,
+            TsNumericIntrinsicModelFamily.NUMBER_IS_INTEGER_ID,
+        )
+
+        assertEquals(expectedModelIds, catalog.modelIds)
         assertSame(catalog, TsBuiltInUnknownCallModels.catalog())
         assertFailsWith<UnsupportedOperationException> { (catalog.modelIds as MutableList<String>).clear() }
         assertEquals(
-            listOf("ts.array.pop", TsArrayShiftIntrinsicModel.MODEL_ID),
+            expectedModelIds,
             TsBuiltInUnknownCallModels.catalog().modelIds,
         )
         assertTrue(TsBuiltInUnknownCallModels.catalog(TsUnknownCallModelSelection.Only(emptySet())).modelIds.isEmpty())
