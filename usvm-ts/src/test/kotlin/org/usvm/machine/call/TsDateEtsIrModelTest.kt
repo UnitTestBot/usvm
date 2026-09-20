@@ -51,6 +51,19 @@ class TsDateEtsIrModelTest {
     }
 
     @Test
+    fun `UTC distinguishes omitted arguments from explicit undefined`() {
+        assertNaN(methodName = "utcNoArguments")
+        assertNaN(methodName = "utcUndefinedYear")
+        assertNumber(methodName = "utcYearOnly", expected = 1_577_836_800_000.0)
+        assertNaN(methodName = "utcExplicitUndefined")
+    }
+
+    @Test
+    fun `timezone offset of an invalid Date is NaN`() {
+        assertNaN(methodName = "invalidTimezoneOffset")
+    }
+
+    @Test
     fun `concrete ISO formatting executes through the source model`() {
         val method = method("isoEpoch")
         val value = TsTestResolver().resolve(method, analyze(method).single()).returnValue
@@ -82,6 +95,13 @@ class TsDateEtsIrModelTest {
         val values = analyze(method).map { state -> TsTestResolver().resolve(method, state).returnValue }
 
         assertEquals(expected, assertIs<TsTestValue.TsNumber>(values.single()).number)
+    }
+
+    private fun assertNaN(methodName: String) {
+        val method = method(methodName)
+        val values = analyze(method).map { state -> TsTestResolver().resolve(method, state).returnValue }
+
+        assertTrue(assertIs<TsTestValue.TsNumber>(values.single()).number.isNaN())
     }
 
     private fun analyze(

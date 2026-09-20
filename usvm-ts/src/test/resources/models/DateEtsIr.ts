@@ -24,6 +24,26 @@ export class DateEtsIr {
         return date.getUTCFullYear() * 10_000 + (date.getUTCMonth() + 1) * 100 + date.getUTCDate();
     }
 
+    utcNoArguments(): number {
+        return Date.UTC();
+    }
+
+    utcUndefinedYear(): number {
+        return Date.UTC(undefined);
+    }
+
+    utcYearOnly(): number {
+        return Date.UTC(2020);
+    }
+
+    utcExplicitUndefined(): number {
+        return Date.UTC(2020, undefined);
+    }
+
+    invalidTimezoneOffset(): number {
+        return new Date(NaN).getTimezoneOffset();
+    }
+
     setter(): number {
         const date = new Date(0);
         const timestamp = date.setUTCFullYear(2000, 1, 29);

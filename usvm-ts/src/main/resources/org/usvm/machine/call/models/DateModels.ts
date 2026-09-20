@@ -86,13 +86,13 @@ export class DateModels {
         seconds: number,
         milliseconds: number,
     ): number {
-        if (argumentCount < 2) {
+        if (argumentCount < 1) {
             return NaN;
         }
 
         return DateModels.makeDate(
             DateModels.normalizeConstructorYear(year),
-            month,
+            argumentCount >= 2 ? month : 0,
             argumentCount >= 3 ? date : 1,
             argumentCount >= 4 ? hours : 0,
             argumentCount >= 5 ? minutes : 0,
@@ -141,8 +141,8 @@ export class DateModels {
         return receiver.timestamp;
     }
 
-    static getTimezoneOffset(_receiver: DateValue): number {
-        return 0;
+    static getTimezoneOffset(receiver: DateValue): number {
+        return DateModels.isInvalid(receiver.timestamp) ? NaN : 0;
     }
 
     static getUTCDate(receiver: DateValue): number {
