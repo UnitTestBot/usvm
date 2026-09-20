@@ -111,11 +111,17 @@ class TsEtsIrUnknownCallModel(
     override val target: TsUnknownCallTarget,
     val artifact: TsEtsIrUnknownCallModelArtifact,
     val domainGuard: TsEtsIrUnknownCallModelDomainGuard = TsEtsIrUnknownCallModelDomainGuard.ALWAYS,
+    val inputAdapter: TsEtsIrUnknownCallModelInputAdapter = TsEtsIrUnknownCallModelInputAdapter.IDENTITY,
 ) : TsUnknownCallModel, TsMachineLocalUnknownCallModel {
     override val additionalSceneFiles: List<EtsFile> = listOf(artifact.file)
 
     override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution? {
-        val inputs = call.resolvedInputs() ?: return null
+        val resolvedInputs = call.resolvedInputs() ?: return null
+        val inputs = inputAdapter.adapt(
+            state = state,
+            call = call,
+            resolvedInputs = resolvedInputs,
+        ) ?: return null
         if (inputs.size != artifact.entryPoint.parameters.size) {
             return null
         }
@@ -154,7 +160,21 @@ class TsEtsIrUnknownCallModel(
             target = target,
             artifact = materializedArtifact,
             domainGuard = domainGuard,
+            inputAdapter = inputAdapter,
         )
+    }
+}
+
+/** Adapts resolved call inputs to the parameters of a TypeScript model entry point. */
+fun interface TsEtsIrUnknownCallModelInputAdapter {
+    fun adapt(
+        state: TsState,
+        call: TsUnknownCall,
+        resolvedInputs: List<UExpr<*>>,
+    ): List<UExpr<*>>?
+
+    companion object {
+        val IDENTITY = TsEtsIrUnknownCallModelInputAdapter { _, _, resolvedInputs -> resolvedInputs }
     }
 }
 
