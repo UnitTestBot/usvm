@@ -39,6 +39,9 @@ class TsErrorEtsIrModelTest {
         val expected = mapOf(
             "name" to "Error",
             "message" to "expected message",
+            "overwrittenName" to "CustomError",
+            "overwrittenMessage" to "after",
+            "anyErrorMessage" to "aliased message",
         )
 
         expected.forEach { (methodName, expectedValue) ->
@@ -66,6 +69,31 @@ class TsErrorEtsIrModelTest {
         val actual = assertIs<TsTestValue.TsNumber>(result.values.single()).number
 
         assertEquals(17.0, actual)
+        assertTrue(result.modelIds.isEmpty())
+    }
+
+    @Test
+    fun `Error model storage does not affect ordinary any field resolution`() {
+        listOf("anyForeignNameComparison", "anyForeignMessageComparison").forEach { methodName ->
+            val result = analyze(scene = builtInScene, className = "ErrorEtsIr", methodName = methodName)
+            val actual = result.values.map { value -> assertIs<TsTestValue.TsNumber>(value).number }
+
+            assertEquals(listOf(1.0), actual, methodName)
+            assertTrue(result.modelIds.isEmpty(), methodName)
+        }
+    }
+
+    @Test
+    fun `callback Error message remains residual`() {
+        val result = analyze(scene = builtInScene, className = "ErrorEtsIr", methodName = "callbackMessage")
+
+        assertTrue(result.states.isEmpty())
+        assertEquals(
+            listOf(TsResidualCallPolicy.STOP_PATH),
+            result.events.mapNotNull { event ->
+                (event.decision as? TsUnknownCallDecision.ResidualFallback)?.policy
+            },
+        )
         assertTrue(result.modelIds.isEmpty())
     }
 

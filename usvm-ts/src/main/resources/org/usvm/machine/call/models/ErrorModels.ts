@@ -1,12 +1,13 @@
 export class ErrorValue {
-    name: string;
-    message: string;
+    // Keep model storage out of unresolved user-property lookup.
+    __usvmErrorName: string;
+    __usvmErrorMessage: string;
 }
 
 export class ErrorModels {
     static construct(receiver: ErrorValue, message: string): ErrorValue {
-        receiver.name = "Error";
-        receiver.message = message;
+        receiver.__usvmErrorName = "Error";
+        receiver.__usvmErrorMessage = message;
         return receiver;
     }
 }
