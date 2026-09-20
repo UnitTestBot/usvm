@@ -1,4 +1,4 @@
-package org.usvm.ts.pbt.calls
+package org.usvm.ts.calls
 
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json

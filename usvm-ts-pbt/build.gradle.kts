@@ -7,7 +7,6 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":usvm-core"))
     implementation(project(":usvm-ts"))
     implementation(Libs.jacodb_ets)
     implementation(Libs.clikt)
@@ -22,9 +21,6 @@ val fastCheckAdapterPackageLock = fastCheckAdapterDir.file("package-lock.json")
 val fastCheckRuntimeProperty = "org.usvm.ts.pbt.fastcheck.runtime"
 val generatedFastCheckRuntimeMetadataDirectory = layout.buildDirectory.dir(
     "generated/resources/fastCheckRuntimeMetadata",
-)
-val generatedCallsBuildMetadataDirectory = layout.buildDirectory.dir(
-    "generated/resources/callsBuildMetadata",
 )
 val hostOperatingSystem = System.getProperty("os.name").lowercase()
 val hostPlatform = when {
@@ -74,39 +70,12 @@ val generateFastCheckRuntimeMetadata = tasks.register("generateFastCheckRuntimeM
     }
 }
 
-val callsToolRevision = providers.exec {
-    workingDir(rootProject.projectDir)
-    commandLine("git", "rev-parse", "HEAD")
-}.standardOutput.asText.map(String::trim)
-val callsToolStatus = providers.exec {
-    workingDir(rootProject.projectDir)
-    commandLine("git", "status", "--porcelain", "--untracked-files=all")
-}.standardOutput.asText.map(String::trim)
-
-val generateCallsBuildMetadata = tasks.register("generateCallsBuildMetadata") {
-    inputs.property("toolRevision", callsToolRevision)
-    inputs.property("toolStatus", callsToolStatus)
-    outputs.dir(generatedCallsBuildMetadataDirectory)
-
-    doLast {
-        val revision = callsToolRevision.get()
-        val buildIdentity = if (callsToolStatus.get().isBlank()) revision else "$revision-dirty"
-        val metadataFile = generatedCallsBuildMetadataDirectory.get()
-            .file("org/usvm/ts/pbt/calls/build.properties")
-            .asFile
-        metadataFile.parentFile.mkdirs()
-        metadataFile.writeText("tool.revision=$buildIdentity\n", Charsets.UTF_8)
-    }
-}
-
 sourceSets.main {
     resources.srcDir(generatedFastCheckRuntimeMetadataDirectory)
-    resources.srcDir(generatedCallsBuildMetadataDirectory)
 }
 
 tasks.processResources {
     dependsOn(generateFastCheckRuntimeMetadata)
-    dependsOn(generateCallsBuildMetadata)
 }
 
 val installFastCheckAdapter = tasks.register<Exec>("installFastCheckAdapter") {
@@ -181,15 +150,6 @@ application {
 
 tasks.named<JavaExec>("run") {
     systemProperty(fastCheckRuntimeProperty, fastCheckAdapterDir.asFile.absolutePath)
-}
-
-val runCalls by tasks.registering(JavaExec::class) {
-    group = "application"
-    description = "Runs the frozen four-profile TypeScript Calls experiment."
-    mainClass.set("org.usvm.ts.pbt.calls.CallsExperimentCliKt")
-    classpath = sourceSets.main.get().runtimeClasspath
-    systemProperty(fastCheckRuntimeProperty, fastCheckAdapterDir.asFile.absolutePath)
-    dependsOn(buildFastCheckAdapter)
 }
 
 distributions {

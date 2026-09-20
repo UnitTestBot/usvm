@@ -1,6 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises';
-import { loadCallable, type TypeScriptEntryPointReference } from './entry-point.js';
-import { decodeJsValue, type TaggedJsValue } from './js-value.js';
+import { loadCallable, type TypeScriptEntryPointReference } from './calls-entry-point.js';
+import { decodeJsValue, type TaggedJsValue } from './calls-js-value.js';
 
 interface ReplayWorkerRequest {
   sourceRoots: string[];

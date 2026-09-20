@@ -1,9 +1,7 @@
-package org.usvm.ts.pbt.calls
+package org.usvm.ts.calls
 
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.jsonObject
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import org.usvm.ts.pbt.model.BooleanDomain
@@ -85,7 +83,6 @@ class CallsExperimentTest {
         assertTrue(emptyFresh.solverReached)
         assertTrue(emptyFresh.inputExtracted)
         assertEquals(listOf(JsConcreteValue.Boolean(false)), emptyFresh.inputs)
-        assertNull(emptyFresh.legacyCatalogFingerprint)
         assertEquals(CallsReplayStatus.REJECTED, emptyFresh.replayStatus)
 
         val frozenStop = results.single { result -> result.profile == CallsExperimentProfile.FROZEN_STOP }
@@ -116,47 +113,13 @@ class CallsExperimentTest {
                 elements = listOf(JsConcreteValue.Undefined, JsConcreteValue.Null, JsConcreteValue.String("value")),
             ),
         )
-        val result = targetResult(
-            inputs = witness,
-            legacyCatalogFingerprint = "historical-runtime-fingerprint",
-        )
+        val result = targetResult(inputs = witness)
 
         val encoded = CallsExperimentJson.json.encodeToString<CallsRawRecord>(result)
         val decoded = CallsExperimentJson.json.decodeFromString<CallsRawRecord>(encoded) as CallsTargetResult
 
         assertEquals(result, decoded)
         assertEquals(witness, decoded.inputs)
-        assertEquals("historical-runtime-fingerprint", decoded.legacyCatalogFingerprint)
-    }
-
-    @Test
-    fun `historical semantic model identities decode but current manifests do not invent them`() {
-        val currentManifest = manifest(sourceRoot = ".", seeds = listOf(1L))
-        val encodedCurrent = CallsExperimentJson.encodeManifest(currentManifest)
-        assertFalse(encodedCurrent.contains("catalogFingerprint"))
-        assertFalse(encodedCurrent.contains("sourceHash"))
-        assertFalse(encodedCurrent.contains("etsIrHash"))
-
-        val historicalManifest = currentManifest.copy(
-            modelSet = currentManifest.modelSet.copy(
-                legacyCatalogFingerprint = "historical-catalog-fingerprint",
-                legacyModelSourceHash = "historical-model-source-hash",
-                legacyModelEtsIrHash = "historical-model-ets-ir-hash",
-            ),
-        )
-        val decoded = CallsExperimentJson.decodeManifest(CallsExperimentJson.encodeManifest(historicalManifest))
-        val sourceReplayHash = decoded.projects
-            .single()
-            .functions
-            .single()
-            .targets
-            .single()
-            .sourceSha256
-
-        assertEquals("historical-catalog-fingerprint", decoded.modelSet.legacyCatalogFingerprint)
-        assertEquals("historical-model-source-hash", decoded.modelSet.legacyModelSourceHash)
-        assertEquals("historical-model-ets-ir-hash", decoded.modelSet.legacyModelEtsIrHash)
-        assertEquals("source-hash", sourceReplayHash)
     }
 
     @Test
@@ -240,12 +203,13 @@ class CallsExperimentTest {
         )
         val historicalRecords = readRecords(rawOutput).map { record ->
             when {
-                record is CallsRunMetadata -> record.copy(nativeFrontendSha256 = null)
                 record is CallsTargetResult && record.profile == CallsExperimentProfile.EMPTY_FRESH -> {
                     record.copy(inputs = null)
                 }
 
-                else -> record
+                else -> {
+                    record
+                }
             }
         }
         writeRecords(rawOutput, historicalRecords)
@@ -268,11 +232,7 @@ class CallsExperimentTest {
         assertTrue(error.message.orEmpty().contains("single-witness replay is unavailable"))
 
         val manifestPath = directory.resolve("historical-manifest.json")
-        val manifestJson = CallsExperimentJson.json.encodeToString(frozenManifest)
-        val historicalManifest = JsonObject(
-            CallsExperimentJson.json.parseToJsonElement(manifestJson).jsonObject - "nativeFrontendSha256",
-        )
-        Files.writeString(manifestPath, historicalManifest.toString())
+        Files.writeString(manifestPath, CallsExperimentJson.encodeManifest(frozenManifest))
 
         val cliError = assertFailsWith<IllegalStateException> {
             replayWitness(
@@ -383,7 +343,6 @@ class CallsExperimentTest {
         experimentId = "fixture",
         toolRevision = FIXTURE_TOOL_REVISION,
         nativeFrontendRevision = "frontend-revision",
-        nativeFrontendSha256 = "frontend-sha256",
         solver = "Z3",
         searchPolicy = "BFS",
         modelSet = CallsModelSetIdentity(
@@ -412,7 +371,6 @@ class CallsExperimentTest {
                                 targetId = "fixture.ts::predicate/1#return",
                                 siteId = "fixture.ts:1:1-1:12::predicate/1",
                                 sourcePath = "fixture.ts",
-                                sourceSha256 = "source-hash",
                                 startOffset = 0,
                                 endOffset = 11,
                                 start = CallsSourcePosition(line = 0, column = 0),
@@ -457,10 +415,7 @@ class CallsExperimentTest {
         seed = seed,
     )
 
-    private fun targetResult(
-        inputs: List<JsConcreteValue>,
-        legacyCatalogFingerprint: String? = null,
-    ) = CallsTargetResult(
+    private fun targetResult(inputs: List<JsConcreteValue>) = CallsTargetResult(
         experimentId = "fixture",
         projectId = "fixture/project",
         revision = "project-revision",
@@ -475,7 +430,6 @@ class CallsExperimentTest {
         inputExtracted = true,
         inputs = inputs,
         replayStatus = CallsReplayStatus.CONFIRMED,
-        legacyCatalogFingerprint = legacyCatalogFingerprint,
         symbolicElapsedMillis = 7L,
     )
 

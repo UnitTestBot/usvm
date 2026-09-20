@@ -1,12 +1,12 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { copyFile, mkdir, mkdtemp, readFile, readdir, realpath, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
-import type { TypeScriptEntryPointReference } from './entry-point.js';
-import type { TaggedJsValue } from './js-value.js';
+import type { TypeScriptEntryPointReference } from './calls-entry-point.js';
+import type { TaggedJsValue } from './calls-js-value.js';
 
 interface SourcePosition {
   line: number;
@@ -19,7 +19,6 @@ interface ReplayRequest {
   inputs: TaggedJsValue[];
   target: {
     sourcePath: string;
-    sourceSha256: string;
     startOffset: number;
     endOffset: number;
     start: SourcePosition;
@@ -56,12 +55,6 @@ async function main(): Promise<void> {
 
   try {
     const target = await resolveTarget(request);
-    const actualHash = createHash('sha256').update(target.source, 'utf8').digest('hex');
-    if (actualHash !== request.target.sourceSha256) {
-      writeResponse({ status: 'ok', replayStatus: 'unmapped', reason: 'source-hash-mismatch', invocation: null });
-      return;
-    }
-
     const sourceFile = ts.createSourceFile(
       target.absolutePath,
       target.source,

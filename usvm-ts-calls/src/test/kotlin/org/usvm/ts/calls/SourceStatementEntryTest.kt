@@ -1,4 +1,4 @@
-package org.usvm.ts.pbt.calls
+package org.usvm.ts.calls
 
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsReturnStmt
@@ -98,7 +98,6 @@ class SourceStatementEntryTest {
             targetId = "test-target",
             siteId = "test-site",
             sourcePath = "SourceStatementEntryFixture.ts",
-            sourceSha256 = "unused",
             startOffset = startOffset,
             endOffset = endOffset,
             start = source.positionAt(startOffset),

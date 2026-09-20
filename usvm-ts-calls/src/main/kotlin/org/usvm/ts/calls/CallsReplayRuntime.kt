@@ -1,14 +1,10 @@
-package org.usvm.ts.pbt.fastcheck
+package org.usvm.ts.calls
 
-import org.usvm.ts.pbt.PbtDiagnosticCode
 import java.nio.file.Files
 import java.nio.file.Path
 
-/** Locates the private fast-check runtime in development and installed distributions. */
-internal object FastCheckRuntime {
-    fun executionEntryPoint(): Path = locateEntryPoint(EXECUTION_CLI)
-
-    fun projectionEntryPoint(): Path = locateEntryPoint(PROJECTION_CLI)
+internal object CallsReplayRuntime {
+    fun sourceTargetReplayEntryPoint(): Path = locateEntryPoint(SOURCE_TARGET_REPLAY_CLI)
 
     fun processSupervisorEntryPoint(): Path = locateEntryPoint(PROCESS_SUPERVISOR)
 
@@ -18,11 +14,7 @@ internal object FastCheckRuntime {
         }
 
         return candidates.firstOrNull(Files::isRegularFile)
-            ?: throw PbtBackendException(
-                kind = BackendErrorKind.INVALID_REQUEST,
-                code = PbtDiagnosticCode.BACKEND_RUNTIME_NOT_FOUND,
-                message = "Cannot locate built fast-check adapter; checked $candidates",
-            )
+            ?: error("Cannot locate built TS Calls source replay adapter; checked $candidates")
     }
 
     private fun runtimeDirectories(): List<Path> = listOfNotNull(
@@ -37,17 +29,16 @@ internal object FastCheckRuntime {
         ?.normalize()
 
     private fun installedRuntimeDirectory(): Path? {
-        val location = FastCheckRuntime::class.java.protectionDomain.codeSource?.location ?: return null
+        val location = CallsReplayRuntime::class.java.protectionDomain.codeSource?.location ?: return null
         val codePath = runCatching { Path.of(location.toURI()) }.getOrNull() ?: return null
         val libraryDirectory = if (Files.isDirectory(codePath)) codePath else codePath.parent ?: return null
 
         return libraryDirectory.resolve(INSTALLED_RUNTIME_DIRECTORY)
     }
 
-    private const val RUNTIME_DIRECTORY_PROPERTY = "org.usvm.ts.pbt.fastcheck.runtime"
+    private const val RUNTIME_DIRECTORY_PROPERTY = "org.usvm.ts.calls.replay.runtime"
     private const val ENTRY_POINT_DIRECTORY = "dist/src"
-    private const val EXECUTION_CLI = "execution-cli.js"
-    private const val PROJECTION_CLI = "projection-cli.js"
+    private const val SOURCE_TARGET_REPLAY_CLI = "source-target-replay-cli.js"
     private const val PROCESS_SUPERVISOR = "process-supervisor.js"
-    private const val INSTALLED_RUNTIME_DIRECTORY = "fast-check-adapter"
+    private const val INSTALLED_RUNTIME_DIRECTORY = "source-replay-adapter"
 }

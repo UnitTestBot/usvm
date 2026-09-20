@@ -1,0 +1,24 @@
+{
+  "name": "@usvm/ts-calls-source-replay-adapter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "clean": "node --input-type=module --eval \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true })\"",
+    "prebuild": "npm run clean",
+    "build": "tsc --project tsconfig.json",
+    "pretest": "npm run build",
+    "test": "npm run test:compiled",
+    "test:compiled": "node --test dist/test/source-target-replay-cli.test.js"
+  },
+  "dependencies": {
+    "typescript": "5.9.2",
+    "tsx": "4.23.12"
+  },
+  "devDependencies": {
+    "@types/node": "18.19.130"
+  },
+  "engines": {
+    "node": ">=18.18.0"
+  }
+}

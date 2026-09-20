@@ -1,4 +1,4 @@
-package org.usvm.ts.pbt.calls
+package org.usvm.ts.calls
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -32,12 +32,6 @@ internal enum class CallsExperimentProfile(
 internal data class CallsModelSetIdentity(
     val ids: Set<String>,
     val toolRevision: String,
-    @SerialName("catalogFingerprint")
-    val legacyCatalogFingerprint: String? = null,
-    @SerialName("sourceHash")
-    val legacyModelSourceHash: String? = null,
-    @SerialName("etsIrHash")
-    val legacyModelEtsIrHash: String? = null,
 )
 
 @Serializable
@@ -64,7 +58,6 @@ internal data class CallsExperimentManifest(
     val experimentId: String,
     val toolRevision: String,
     val nativeFrontendRevision: String,
-    val nativeFrontendSha256: String,
     val solver: String,
     val searchPolicy: String,
     val modelSet: CallsModelSetIdentity,
@@ -130,7 +123,6 @@ internal data class CallsSymbolicSearchRequest(
     val profile: CallsExperimentProfile,
     val frozenModelIds: Set<String>,
     val expectedNativeFrontendRevision: String,
-    val expectedNativeFrontendSha256: String,
     val seed: Long,
     val budget: Duration,
 )
@@ -162,7 +154,6 @@ internal data class CallsRunMetadata(
     val experimentId: String,
     val toolRevision: String,
     val nativeFrontendRevision: String,
-    val nativeFrontendSha256: String? = null,
     val modelSet: CallsModelSetIdentity,
     val profiles: List<CallsExperimentProfile>,
     val seeds: List<Long>,
@@ -197,8 +188,6 @@ internal data class CallsTargetResult(
     val inputExtracted: Boolean,
     val inputs: List<JsConcreteValue>? = null,
     val replayStatus: CallsReplayStatus?,
-    @SerialName("catalogFingerprint")
-    val legacyCatalogFingerprint: String? = null,
     val symbolicElapsedMillis: Long,
     val diagnostic: String? = null,
 ) : CallsRawRecord
@@ -251,7 +240,7 @@ internal object CallsExperimentJson {
 internal object CallsBuildIdentity {
     val toolRevision: String by lazy {
         val properties = Properties()
-        val resource = checkNotNull(javaClass.getResourceAsStream("/org/usvm/ts/pbt/calls/build.properties")) {
+        val resource = checkNotNull(javaClass.getResourceAsStream("/org/usvm/ts/calls/build.properties")) {
             "Missing calls build identity"
         }
         resource.use(properties::load)
@@ -288,7 +277,6 @@ internal class CallsExperimentRunner(
             experimentId = manifest.experimentId,
             toolRevision = manifest.toolRevision,
             nativeFrontendRevision = manifest.nativeFrontendRevision,
-            nativeFrontendSha256 = manifest.nativeFrontendSha256,
             modelSet = manifest.modelSet,
             profiles = CallsExperimentProfile.entries,
             seeds = manifest.seeds,
@@ -402,7 +390,6 @@ internal class CallsExperimentRunner(
                 profile = profile,
                 frozenModelIds = manifest.modelSet.ids,
                 expectedNativeFrontendRevision = manifest.nativeFrontendRevision,
-                expectedNativeFrontendSha256 = manifest.nativeFrontendSha256,
                 seed = seed,
                 budget = manifest.perTargetBudgetMillis.milliseconds,
             ),

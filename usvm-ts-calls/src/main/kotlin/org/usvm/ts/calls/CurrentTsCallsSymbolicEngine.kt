@@ -1,4 +1,4 @@
-package org.usvm.ts.pbt.calls
+package org.usvm.ts.calls
 
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsBooleanType
@@ -28,12 +28,8 @@ import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.NumberDomain
 import org.usvm.ts.pbt.model.contains
 import org.usvm.util.mkRegisterStackLValue
-import java.nio.file.Files
 import java.nio.file.Path
-import java.security.MessageDigest
 import kotlin.time.TimeSource
-
-private const val BYTE_MASK = 0xff
 
 internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
     private val verifiedProjects = mutableMapOf<Path, String>()
@@ -73,21 +69,10 @@ internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
             expectedRevision = request.project.revision,
             cache = verifiedProjects,
         )
-        verifyNativeFrontendOnce(
-            expectedRevision = request.expectedNativeFrontendRevision,
-            expectedSha256 = request.expectedNativeFrontendSha256,
-        )
+        verifyNativeFrontendOnce(expectedRevision = request.expectedNativeFrontendRevision)
 
         val source = request.sourceRoot.resolve(request.function.sourceFile).normalize()
         require(source.startsWith(request.sourceRoot)) { "Function source escapes its frozen source root" }
-        val actualSourceHash = Files.readAllBytes(source).sha256()
-        if (actualSourceHash != request.target.sourceSha256) {
-            return result(
-                status = CallsSymbolicStatus.TOOL_ERROR,
-                startedAt = startedAt,
-                diagnostic = "Source hash $actualSourceHash does not match frozen hash ${request.target.sourceSha256}",
-            )
-        }
 
         val sourceFile = loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)
         if (sourceFile.importInfos.isNotEmpty()) {
@@ -233,7 +218,9 @@ internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
                     JsConcreteValue.Boolean(value)
                 }
 
-                else -> error("Unsupported scalar parameter type: ${parameter.type}")
+                else -> {
+                    error("Unsupported scalar parameter type: ${parameter.type}")
+                }
             }
         }
     }
@@ -252,7 +239,7 @@ internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
         diagnostic = diagnostic,
     )
 
-    private fun verifyNativeFrontendOnce(expectedRevision: String, expectedSha256: String) {
+    private fun verifyNativeFrontendOnce(expectedRevision: String) {
         require(System.getenv("ETS_FRONTEND_SCRIPT") == null) {
             "ETS_FRONTEND_SCRIPT must be unset so the frozen native frontend runtime is used"
         }
@@ -261,17 +248,12 @@ internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
         }
         val frontendDirectory = Path.of(configuredFrontend).toRealPath()
         val cached = verifiedNativeFrontend
-        val expectedIdentity = "$expectedRevision:$expectedSha256"
+        val expectedIdentity = expectedRevision
         if (cached == Pair(frontendDirectory, expectedIdentity)) {
             return
         }
 
         verifyCallsGitCheckout(frontendDirectory, expectedRevision)
-        val runtimeScript = frontendDirectory.resolve("dist/index.js")
-        val actualSha256 = Files.readAllBytes(runtimeScript).sha256()
-        require(actualSha256 == expectedSha256) {
-            "Native frontend runtime hash $actualSha256 does not match frozen hash $expectedSha256"
-        }
         verifiedNativeFrontend = frontendDirectory to expectedIdentity
     }
 
@@ -380,10 +362,6 @@ private fun runCallsGit(checkout: Path, vararg arguments: String): String {
 
     return output
 }
-
-private fun ByteArray.sha256(): String = MessageDigest.getInstance("SHA-256")
-    .digest(this)
-    .joinToString(separator = "") { byte -> "%02x".format(byte.toInt() and BYTE_MASK) }
 
 private fun EtsMappingStatus.toSymbolicStatus(): CallsSymbolicStatus = when (this) {
     EtsMappingStatus.EXACT -> error("Exact mapping has no failure status")

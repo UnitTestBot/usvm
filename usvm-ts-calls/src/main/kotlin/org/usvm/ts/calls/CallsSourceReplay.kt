@@ -1,12 +1,9 @@
-package org.usvm.ts.pbt.calls
+package org.usvm.ts.calls
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
-import org.usvm.ts.pbt.fastcheck.FastCheckProcessTransport
-import org.usvm.ts.pbt.fastcheck.FastCheckRuntime
-import org.usvm.ts.pbt.fastcheck.FastCheckTransportException
 import org.usvm.ts.pbt.manifest.PropertyManifestJson
 import org.usvm.ts.pbt.model.ExecutionKind
 import org.usvm.ts.pbt.model.JsConcreteValue
@@ -48,7 +45,6 @@ internal data class CallsSourceTarget(
     val targetId: String,
     val siteId: String,
     val sourcePath: String,
-    val sourceSha256: String,
     val startOffset: Int,
     val endOffset: Int,
     val start: CallsSourcePosition,
@@ -83,7 +79,6 @@ private data class CallsSourceReplayRequest(
 @Serializable
 private data class CallsSourceTargetWire(
     val sourcePath: String,
-    val sourceSha256: String,
     val startOffset: Int,
     val endOffset: Int,
     val start: CallsSourcePosition,
@@ -112,7 +107,7 @@ internal fun interface CallsTargetReplayer {
 internal class OriginalTypeScriptTargetReplayer(
     private val nodeExecutable: String = "node",
 ) : CallsTargetReplayer {
-    private val transport = FastCheckProcessTransport(
+    private val transport = CallsProcessTransport(
         nodeExecutable = nodeExecutable,
         maxRequestBytes = MAX_REQUEST_BYTES,
         maxStdoutBytes = MAX_STDOUT_BYTES,
@@ -136,7 +131,6 @@ internal class OriginalTypeScriptTargetReplayer(
             inputs = inputs,
             target = CallsSourceTargetWire(
                 sourcePath = target.sourcePath,
-                sourceSha256 = target.sourceSha256,
                 startOffset = target.startOffset,
                 endOffset = target.endOffset,
                 start = target.start,
@@ -145,7 +139,7 @@ internal class OriginalTypeScriptTargetReplayer(
             timeoutMillis = timeoutMillis,
         )
         val encoded = PropertyManifestJson.json.encodeToString(request)
-        val replayEntryPoint = FastCheckRuntime.sourceTargetReplayEntryPoint().toString()
+        val replayEntryPoint = CallsReplayRuntime.sourceTargetReplayEntryPoint().toString()
 
         val output = try {
             transport.invoke(
@@ -155,7 +149,7 @@ internal class OriginalTypeScriptTargetReplayer(
                 reportedTimeoutMillis = timeoutMillis,
                 description = "original TypeScript source-target replay",
             )
-        } catch (error: FastCheckTransportException) {
+        } catch (error: CallsTransportException) {
             val status = if (error.code.endsWith("timeout")) {
                 CallsReplayStatus.TIMEOUT
             } else {

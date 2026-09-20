@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -19,7 +18,6 @@ interface ReplayResponse {
 
 interface StatementTarget {
   sourcePath: string;
-  sourceSha256: string;
   startOffset: number;
   endOffset: number;
   start: { line: number; column: number };
@@ -66,19 +64,6 @@ test('counts target hits from the selected invocation rather than module import'
   assert.equal(invoked.invocation?.targetHit, true);
 });
 
-test('rejects stale source identity before executing', async () => {
-  const target = await statementTarget('choose', 'return 1;');
-
-  const response = await replay({
-    ...baseRequest('choose'),
-    target: { ...target, sourceSha256: '0'.repeat(64) },
-  });
-
-  assert.equal(response.replayStatus, 'unmapped');
-  assert.equal(response.reason, 'source-hash-mismatch');
-  assert.equal(response.invocation, null);
-});
-
 function baseRequest(exportName: string, inputs = [numberValue(1)]): Record<string, unknown> {
   return {
     sourceRoots: [path.dirname(fixturePath)],
@@ -112,7 +97,6 @@ async function statementTarget(functionName: string, text: string): Promise<Stat
 
   return {
     sourcePath: path.basename(fixturePath),
-    sourceSha256: createHash('sha256').update(source, 'utf8').digest('hex'),
     startOffset,
     endOffset,
     start: { line: start.line, column: start.character },

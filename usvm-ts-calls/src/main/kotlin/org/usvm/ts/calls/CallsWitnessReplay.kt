@@ -1,4 +1,4 @@
-package org.usvm.ts.pbt.calls
+package org.usvm.ts.calls
 
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.contains
@@ -106,9 +106,6 @@ internal class CallsWitnessReplayer(
         }
         require(metadata.nativeFrontendRevision == manifest.nativeFrontendRevision) {
             "Raw native frontend revision does not match the frozen manifest"
-        }
-        require(metadata.nativeFrontendSha256 == manifest.nativeFrontendSha256) {
-            "Raw native frontend runtime hash does not match the frozen manifest"
         }
         require(metadata.modelSet == manifest.modelSet) {
             "Raw model-set identity does not match the frozen manifest"

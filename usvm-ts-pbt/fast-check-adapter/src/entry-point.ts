@@ -19,11 +19,6 @@ export interface LoadedEntryPoint {
   invoke(args: JsConcreteValue[]): boolean | Promise<boolean>;
 }
 
-export interface LoadedCallable {
-  executionKind: ExecutionKind;
-  invoke(args: JsConcreteValue[]): unknown | Promise<unknown>;
-}
-
 type EntryPointFunction = (...args: JsConcreteValue[]) => unknown;
 
 export async function loadEntryPoint(
@@ -31,20 +26,6 @@ export async function loadEntryPoint(
   sourceRoots: string[],
   referencePath: string,
 ): Promise<LoadedEntryPoint> {
-  const callable = await loadCallable(reference, sourceRoots, referencePath);
-
-  return {
-    executionKind: callable.executionKind,
-    invoke: buildBooleanInvocation(callable, referencePath),
-  };
-}
-
-/** Loads an original TypeScript export without imposing property-result semantics. */
-export async function loadCallable(
-  reference: TypeScriptEntryPointReference,
-  sourceRoots: string[],
-  referencePath: string,
-): Promise<LoadedCallable> {
   const modulePath = await resolveModule(reference.module, sourceRoots, referencePath);
   const moduleNamespace = await importTypeScriptModule(modulePath, referencePath);
 
@@ -69,7 +50,7 @@ export async function loadCallable(
 
   return {
     executionKind: reference.executionKind,
-    invoke: buildRawInvocation(entryPoint, reference.executionKind, referencePath),
+    invoke: buildInvocation(entryPoint, reference.executionKind, referencePath),
   };
 }
 
@@ -195,13 +176,13 @@ async function importTypeScriptModule(
   }
 }
 
-function buildRawInvocation(
+function buildInvocation(
   entryPoint: EntryPointFunction,
   executionKind: ExecutionKind,
   referencePath: string,
-): (args: JsConcreteValue[]) => unknown | Promise<unknown> {
+): (args: JsConcreteValue[]) => boolean | Promise<boolean> {
   if (executionKind === 'sync') {
-    return (args: JsConcreteValue[]): unknown => {
+    return (args: JsConcreteValue[]): boolean => {
       const result = entryPoint(...args);
 
       if (isThenable(result)) {
@@ -213,11 +194,11 @@ function buildRawInvocation(
         );
       }
 
-      return result;
+      return requireBoolean(result, referencePath);
     };
   }
 
-  return async (args: JsConcreteValue[]): Promise<unknown> => {
+  return async (args: JsConcreteValue[]): Promise<boolean> => {
     const result = entryPoint(...args);
 
     if (!isThenable(result)) {
@@ -228,20 +209,8 @@ function buildRawInvocation(
       );
     }
 
-    return await result;
+    return requireBoolean(await result, referencePath);
   };
-}
-
-function buildBooleanInvocation(
-  callable: LoadedCallable,
-  referencePath: string,
-): (args: JsConcreteValue[]) => boolean | Promise<boolean> {
-  if (callable.executionKind === 'sync') {
-    return (args: JsConcreteValue[]): boolean => requireBoolean(callable.invoke(args), referencePath);
-  }
-
-  return async (args: JsConcreteValue[]): Promise<boolean> =>
-    requireBoolean(await callable.invoke(args), referencePath);
 }
 
 function requireBoolean(result: unknown, referencePath: string): boolean {
