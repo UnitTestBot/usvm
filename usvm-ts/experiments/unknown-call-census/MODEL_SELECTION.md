@@ -1,15 +1,15 @@
 # Finite development model selection
 
-Selection frozen on 2026-09-19 before any held-out TS Calls evaluation. This is a development decision for a small pilot, not evidence that the selected models improve coverage.
+Selection was frozen on 2026-09-19 before any held-out TS Calls evaluation. This is a development decision from a three-project pilot, not evidence that the selected models improve coverage.
 
 ## Evidence used
 
 - Approximation audit #368 at `303409613c30ea5dcdabc1f97ac8092d753765b1`, which audits current source `41961f7b66c30c8a2a7507c67a79396f495f4520` and historical source `3728ba45ab092422e2cb2e57ed6fe2377425b622`.
-- The frozen development manifest in `development-corpus.json` and its corrected primary `EMPTY_FRESH` census at tool commit `b04a8ed16410fd3c5e8bc049304f9b649c11ee48`. It attempted the same 79 entry functions from three pinned projects: 43 completed, 35 ended with explicit partial-analysis diagnostics, one timed out, and none ended with a boundary tool error. It observed 82 repeated events at 26 stable source sites in 19 containing functions. The generated and standalone-regenerated summaries are byte-identical with SHA-256 `bf52a4cf5f03f867f594990c1f458ddb1d244c01679bf3a1fd852019aa3ce145`.
-- Stable-source-site prevalence rather than repeated loop-event totals. The largest corrected groups were `BSTreeKV.compare` (24 events, 3 sites), the built-in array `pop` reached inside the restored project `Stack.pop` body (10 events, 1 site), `charAt` (7 events, 2 sites), `parseInt` (7 events, 2 sites), and callbacks (6 events, 3 sites). No built-in `Array.shift` site was observed. The high partial-analysis count limits prevalence interpretation.
-- The first local pilot attempted the same functions but produced 768 events at 41 sites. Review found that its entry-file bound removed imported support files and that swallowed interpreter failures appeared completed. Its preserved raw artifact is preliminary diagnostic evidence only; in particular, its 52 project `Stack` resolution events were harness-induced and are excluded from selection evidence.
+- The frozen development manifest in `development-corpus.json` and the primary `EMPTY_FRESH` census at tool commit `c1e07845c393374f743220dfe7febb4bc208c3b4`, tree `bc524f2b9ba451b378db1bce362722a7b534c931`. It analyzed 97 entry functions from three pinned projects: 45 completed, 36 ended with explicit partial-analysis diagnostics, 16 reached the 30-second method timeout, and none ended with a boundary tool error. It observed 7,002 repeated events at 36 stable source sites in 26 containing functions.
+- The sample covered 11 source files in TheAlgorithms/TypeScript, 37 in javascript-datastructures-algorithms, and 14 in typescript-collections. Stable sites were distributed 9, 7, and 20 across those projects. This replaces the obsolete lexicographic/BFS run, whose result is diagnostic only and is excluded from selection evidence.
+- Stable-source-site prevalence rather than repeated loop-event totals. The largest groups were iterator `Symbol.iterator` and `next` (4 sites each), `Error` construction (4), `Object.keys` (3), iterator `has` (3), and the project callback `Heap.compare` (3). Built-in array `pop` occurred at one source site; no built-in `Array.shift` site was observed. The 1,918 repeated `pop` events and 3,630 repeated `FactoryDictionary.defaultFactoryFunction` events arise from repeated exploration and must not be read as independent prevalence observations.
 
-The primary profile disables optional catalog models but leaves mandatory semantics and legacy pre-dispatch approximations unchanged. Therefore the census is an inventory of observed unknown-call decisions, not every approximate or unresolved call in the engine. Tool errors, timeouts, and omitted call-resolution candidate tails also limit prevalence interpretation.
+The primary profile disables optional catalog models but leaves mandatory semantics and legacy pre-dispatch approximations unchanged. Therefore the census is an inventory of observed unknown-call decisions, not every approximate or unresolved call in the engine. The 36 partial analyses, 16 timeouts, three-project scope, and omitted call-resolution candidate tails limit prevalence interpretation. Additional development projects must be pinned before their results are inspected; held-out projects remain separate and cannot influence model selection.
 
 ## Decision
 
@@ -34,9 +34,11 @@ This is an acceptable no-new-family result. A later family requires a separate b
 
 ## Content identity
 
-At accepted #380 source `3134d06515bca61ba2a357a67697ac8620b0e420` and corrected census tool tree `f9ba380951630b62ef55e7aae7d90f2fab55298b`:
+At accepted #380 source `3134d06515bca61ba2a357a67697ac8620b0e420`:
 
 - `ArrayModels.ts` source SHA-256: `9f40d3abce58e3412a0206eabd9fdb0547e12c2ebd832ce48b260b3339518e26`.
 - `TsArrayShiftIntrinsicModel.kt` SHA-256: `ff6dd634cf660c83e203b82c927a28e88859f0bc6b9f24bec2fa97d738dc9e11`.
 
-The corrected run used JacoDB `ddb127d9ef`, the native `TS_FRONTEND`, Yices, OpenJDK 21.0.12, Node 26.5.0, random seed 0, a 300-second project budget, a 5-second method budget, at most 20 entry files and 40 entry methods per project. Its run metadata records `unknownCallModelSelection` as `NONE`. `ts.array.shift` has no EtsIR artifact. For `ts.array.pop`, the generated `etsIrHash` remains unavailable from the built-in wrapper and must not be invented.
+The accepted run used JacoDB `ddb127d9ef`, the native `TS_FRONTEND`, Yices, OpenJDK 21.0.12, Node 26.5.0, random seed 0, `CLOSEST_TO_UNCOVERED_RANDOM`, no coverage-based early stop, a 900-second project budget, and a 30-second method budget. A class qualified when it had at least one ordinary method with at least eight IR statements. Up to 40 classes and 40 methods were selected per project by stable seeded ranks and class round-robin. The raw artifact SHA-256 is `a091dff2d393e131a83e76cc71af51dd38dcd821e2e01ee007cfe8aa56ab6c08`; the generated and standalone-regenerated summaries are byte-identical with SHA-256 `7c59fbfa09af54de1e74ed65f4c762629013688d109305a970b421ee32781d00`; the manifest SHA-256 is `4adba5861339782e1f514f01525561a67aa9f01a6abe914b3d371ff77e1c1bbb`.
+
+Run metadata records `unknownCallModelSelection` as `NONE`. `ts.array.shift` has no EtsIR artifact. For `ts.array.pop`, the generated `etsIrHash` remains unavailable from the built-in wrapper and must not be invented.
