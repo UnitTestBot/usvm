@@ -76,6 +76,11 @@ class TsDateEtsIrModelTest {
     }
 
     @Test
+    fun `UTC minute and millisecond setters execute through source models`() {
+        assertNumber(methodName = "utcMinuteSetters", expected = 7_318_000.0)
+    }
+
+    @Test
     fun `concrete ISO formatting executes through the source model`() {
         val method = method("isoEpoch")
         val value = TsTestResolver().resolve(method, analyze(method).single()).returnValue

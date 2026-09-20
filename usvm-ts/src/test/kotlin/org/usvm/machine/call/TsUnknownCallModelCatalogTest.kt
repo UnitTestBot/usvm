@@ -210,7 +210,7 @@ class TsUnknownCallModelCatalogTest {
         assertTrue(catalog.modelIds.containsAll(expectedModelIds))
         assertTrue("ts.date.constructor" in catalog.modelIds)
         assertTrue("ts.date.now" in catalog.modelIds)
-        assertEquals(expected = 36, actual = catalog.modelIds.count { it.startsWith("ts.date.") })
+        assertEquals(expected = 38, actual = catalog.modelIds.count { it.startsWith("ts.date.") })
         assertEquals(catalog.modelIds.distinct().sorted(), catalog.modelIds)
         assertSame(catalog, TsBuiltInUnknownCallModels.catalog())
         assertFailsWith<UnsupportedOperationException> { (catalog.modelIds as MutableList<String>).clear() }

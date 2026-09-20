@@ -62,6 +62,13 @@ export class DateEtsIr {
         return date.getTime();
     }
 
+    utcMinuteSetters(): number {
+        const date = new Date(0);
+        const minutesTimestamp = date.setUTCMinutes(61, -2, 1_001);
+        const millisecondsTimestamp = date.setUTCMilliseconds(-1);
+        return minutesTimestamp + millisecondsTimestamp;
+    }
+
     setter(): number {
         const date = new Date(0);
         const timestamp = date.setUTCFullYear(2000, 1, 29);
