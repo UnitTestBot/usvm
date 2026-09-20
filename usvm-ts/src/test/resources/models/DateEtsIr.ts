@@ -52,6 +52,16 @@ export class DateEtsIr {
         return new Date(Date.UTC(2024, 0, 1.9)).getUTCDate();
     }
 
+    anyAliasValueOf(): number {
+        const date: any = new Date(123);
+        return date.valueOf();
+    }
+
+    anyAliasGetTime(): number {
+        const date: any = new Date(456);
+        return date.getTime();
+    }
+
     setter(): number {
         const date = new Date(0);
         const timestamp = date.setUTCFullYear(2000, 1, 29);

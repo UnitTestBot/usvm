@@ -70,6 +70,12 @@ class TsDateEtsIrModelTest {
     }
 
     @Test
+    fun `Date calls through any aliases use the Date model`() {
+        assertNumber(methodName = "anyAliasValueOf", expected = 123.0)
+        assertNumber(methodName = "anyAliasGetTime", expected = 456.0)
+    }
+
+    @Test
     fun `concrete ISO formatting executes through the source model`() {
         val method = method("isoEpoch")
         val value = TsTestResolver().resolve(method, analyze(method).single()).returnValue
