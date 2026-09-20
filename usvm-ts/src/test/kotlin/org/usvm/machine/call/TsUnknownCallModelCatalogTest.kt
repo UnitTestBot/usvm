@@ -12,6 +12,7 @@ import org.usvm.UMachineOptions
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.machine.call.intrinsic.TsArrayShiftIntrinsicModel
+import org.usvm.machine.call.intrinsic.TsErrorEtsIrModelFamily
 import org.usvm.machine.call.intrinsic.TsNumericIntrinsicModelFamily
 import org.usvm.machine.state.TsState
 import kotlin.test.Test
@@ -209,6 +210,7 @@ class TsUnknownCallModelCatalogTest {
 
         assertTrue(catalog.modelIds.containsAll(expectedModelIds))
         assertTrue("ts.date.constructor" in catalog.modelIds)
+        assertTrue(TsErrorEtsIrModelFamily.CONSTRUCTOR_ID in catalog.modelIds)
         assertTrue("ts.date.now" in catalog.modelIds)
         assertEquals(expected = 38, actual = catalog.modelIds.count { it.startsWith("ts.date.") })
         assertEquals(catalog.modelIds.distinct().sorted(), catalog.modelIds)

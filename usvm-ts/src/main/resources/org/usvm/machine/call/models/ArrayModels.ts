@@ -1,9 +1,14 @@
 declare class ArrayModelPrimitives {
     static grow(receiver: any[], length: number): void;
+    static allocate(length: number): any[];
     static allocateLike(receiver: any[], length: number): any[];
 }
 
 export class ArrayModels {
+    static fromLength(length: number): any[] {
+        return ArrayModelPrimitives.allocate(length);
+    }
+
     static pop(receiver: any[]): any {
         const length = receiver.length;
         if (length === 0) {

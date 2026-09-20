@@ -78,6 +78,12 @@ internal fun TsExprResolver.handleAssignToArrayIndex(
                 detail = "array index write would grow beyond the current length",
             )
         },
+        onUnsupportedElementKind = {
+            reportRuntimeFeatureLimitation(
+                reason = TsRuntimeFeatureLimitationReason.ARRAY_ELEMENT_KIND_WRITE,
+                detail = "array storage cannot represent the assigned runtime value kind",
+            )
+        },
     )
 }
 
@@ -88,6 +94,7 @@ fun TsContext.assignToArrayIndex(
     expr: UExpr<*>,
     arrayType: EtsArrayType,
     onUnsupportedGrowth: (() -> Unit)? = null,
+    onUnsupportedElementKind: (() -> Unit)? = null,
 ): Unit? {
     checkNotFake(array)
 
@@ -114,6 +121,22 @@ fun TsContext.assignToArrayIndex(
 
     // If the element sort is known, write directly.
     if (elementSort !is TsUnresolvedSort) {
+        val (payload, kindGuard) = if (expr.isFakeObject()) {
+            val type = expr.getFakeType(scope)
+            when (elementSort) {
+                boolSort -> expr.extractBool(scope) to type.boolTypeExpr
+                fp64Sort -> expr.extractFp(scope) to type.fpTypeExpr
+                addressSort -> expr.extractRef(scope) to type.refTypeExpr
+                else -> error("Unsupported array element sort: $elementSort")
+            }
+        } else {
+            expr to mkBool(expr.sort == elementSort)
+        }
+        if (scope.checkSat(mkNot(kindGuard)) != null) {
+            onUnsupportedElementKind?.invoke()
+        }
+        scope.assert(kindGuard) ?: return null
+
         val lValue = mkArrayIndexLValue(
             sort = elementSort,
             ref = array,
@@ -121,7 +144,7 @@ fun TsContext.assignToArrayIndex(
             type = arrayType,
         )
         return scope.doWithState {
-            memory.write(lValue, expr.asExpr(elementSort), guard = trueExpr)
+            memory.write(lValue, payload.asExpr(elementSort), guard = trueExpr)
         }
     }
 

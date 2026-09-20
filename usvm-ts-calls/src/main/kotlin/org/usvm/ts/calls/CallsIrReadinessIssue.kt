@@ -2,6 +2,7 @@ package org.usvm.ts.calls
 
 import org.jacodb.ets.model.EtsAddExpr
 import org.jacodb.ets.model.EtsEntity
+import org.jacodb.ets.model.EtsExpExpr
 import org.jacodb.ets.model.EtsFieldRef
 import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsFunctionType
@@ -11,7 +12,11 @@ import org.jacodb.ets.model.EtsNumberConstant
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsRawEntity
 import org.jacodb.ets.model.EtsRawStmt
+import org.jacodb.ets.model.EtsStaticFieldRef
 import org.jacodb.ets.model.EtsStringType
+import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
+import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
+import org.jacodb.ets.utils.STATIC_INIT_METHOD_NAME
 import org.jacodb.ets.utils.getDeclaredLocals
 import org.jacodb.ets.utils.getOperands
 import org.usvm.machine.TsGraph
@@ -42,6 +47,8 @@ internal fun callsIrReadinessIssue(
 
         currentMethod.sameFileCallees(graph = graph, sourceFile = sourceFile)
             .forEach(pending::addLast)
+        currentMethod.sameFileStaticInitializers(graph = graph, sourceFile = sourceFile)
+            .forEach(pending::addLast)
     }
 
     return null
@@ -57,6 +64,23 @@ private fun EtsMethod.sameFileCallees(
             .asSequence()
     }
     .filter { callee -> callee.signature.enclosingClass.file == sourceFile }
+
+private fun EtsMethod.sameFileStaticInitializers(
+    graph: TsGraph,
+    sourceFile: EtsFileSignature,
+): Sequence<EtsMethod> = cfg.stmts.asSequence()
+    .flatMap { it.walkEntities().asSequence() }
+    .filterIsInstance<EtsStaticFieldRef>()
+    .map { it.field.enclosingClass }
+    .filter { it.file == sourceFile }
+    .distinct()
+    .mapNotNull { signature ->
+        val owner = graph.cp.projectClasses.singleOrNull { it.signature == signature } ?: return@mapNotNull null
+        owner.methods.singleOrNull { it.name == STATIC_INIT_METHOD_NAME }
+            ?: owner.takeIf { it.name == DEFAULT_ARK_CLASS_NAME }
+                ?.methods
+                ?.singleOrNull { it.name == DEFAULT_ARK_METHOD_NAME }
+    }
 
 private fun EtsMethod.irReadinessIssue(
     source: String,
@@ -101,6 +125,13 @@ private fun EtsMethod.irReadinessIssue(
         return issue(
             reasonCode = CallsSymbolicPreflightReasonCode.PROTOTYPE_ACCESS_UNSUPPORTED,
             diagnostic = "Reachable EtsIR accesses a prototype property in $name",
+        )
+    }
+
+    if (entities.any { it is EtsExpExpr }) {
+        return issue(
+            reasonCode = CallsSymbolicPreflightReasonCode.EXPONENTIATION_UNSUPPORTED,
+            diagnostic = "Reachable EtsIR contains unsupported exponentiation in $name",
         )
     }
 
