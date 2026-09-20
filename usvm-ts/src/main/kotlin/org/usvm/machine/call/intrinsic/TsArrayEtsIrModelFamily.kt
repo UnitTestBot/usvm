@@ -120,6 +120,7 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         artifact = artifact(methodName),
         domainGuard = arrayDomain,
         inputAdapter = inputAdapter,
+        requiredModelIds = setOf(MATH_FLOOR_MODEL_ID).takeUnless { methodName == "pop" }.orEmpty(),
     )
 
     private fun artifact(methodName: String): TsEtsIrUnknownCallModelArtifact {
@@ -138,4 +139,6 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
 
         return listOf(resolvedReceiver) + resolvedArguments
     }
+
+    private const val MATH_FLOOR_MODEL_ID = "ts.math.floor"
 }

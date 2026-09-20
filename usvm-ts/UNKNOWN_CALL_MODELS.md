@@ -99,6 +99,7 @@ Every model implements `TsUnknownCallModel`:
 interface TsUnknownCallModel {
     val id: String
     val target: TsUnknownCallTarget
+    val requiredModelIds: Set<String>
 
     fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution?
 }
@@ -127,6 +128,10 @@ The ID is used for configuration, observer events, and recursion prevention. Do 
 
 Keep the same ID when an equivalent model moves from Kotlin to TypeScript.
 
+Selecting models with `TsUnknownCallModelSelection.Only` expands `requiredModelIds` transitively and sorts the final
+catalog by ID. This keeps a high-level source model usable when it calls helper models. Missing dependency IDs are
+rejected while building the catalog; an explicitly empty selection remains empty.
+
 ### Choosing a target
 
 `TsUnknownCallTarget` matches stable call metadata declaratively:
@@ -146,11 +151,11 @@ a priority rule. The enabled model set is frozen and sorted by ID when the catal
 The target identifies a call family. State-dependent checks, such as the receiver's symbolic runtime type, belong in
 `apply` or in an EtsIR model's domain guard.
 
-The built-in array targets intentionally combine the method name with `PARTIAL_APPROXIMATION` instead of a class name.
-That failure reason is emitted only after the regular approximation path has classified the receiver as an
-`EtsArrayType` using the normalized receiver's storage type. An `any` alias of a known array can satisfy that check;
-a receiver without array-type evidence cannot. The model still validates the resolved receiver and array shape
-before changing memory. Both models preserve the array's storage type, including reference and unresolved elements.
+The built-in array targets combine the method name with `PARTIAL_APPROXIMATION`. Array and String methods with the
+same name also use a canonical enclosing class at this boundary. The failure reason is emitted only after the regular
+approximation path has classified the normalized receiver by its storage type. An `any` alias of a known array can
+satisfy that check; a receiver without array-type evidence cannot. The model still validates the resolved receiver
+and array shape before changing memory.
 
 ## Applicability and residual states
 
@@ -228,8 +233,22 @@ Array indexing and `length` assignment use the receiver's storage type. Writing 
 zero through the current length, within the configured array-size limit. Growth remains unsupported because the
 engine does not represent newly created holes; those paths are pruned.
 
-The entry point must be static and have a non-empty body. Its parameter count must equal the resolved receiver plus
-argument count. Unresolved inputs or an arity mismatch make the model not applicable.
+`Array.pop`, `indexOf`, `includes`, and `lastIndexOf` share one source-model family. Search offsets accept numbers and
+the standard omitted or explicit-`undefined` defaults; other dynamic coercions use fallback. Array memory has no slot
+presence bit, so a hole can look like a typed default. Searches for `0` or `false` therefore use fallback, as do
+`indexOf(undefined)` and `lastIndexOf(undefined)`. `includes(undefined)` remains sound because both a hole and an
+explicit `undefined` are matches. Position normalization depends on `ts.math.floor`.
+
+The String source family implements `charAt`, `charCodeAt`, `indexOf`, `lastIndexOf`, `includes`, `startsWith`, and
+`endsWith`. Its TypeScript algorithms depend on atomic length, UTF-16 code-unit read, and one-code-unit construction
+models, plus `ts.math.floor` for positions. Current symbolic String parameters do not initialize backing character
+storage, so receivers and search strings must be initialized concrete constants. `charAt` also requires a concrete
+index because a dynamically constructed one-code-unit String does not yet participate in value-based String equality.
+Numeric-result and predicate methods can still use symbolic numeric positions over concrete strings.
+
+The entry point must be static and have a non-empty body. After its input adapter handles optional arguments or drops
+non-semantic namespace receivers, its parameter count must equal the adapted input count. Unresolved required inputs
+or an arity mismatch make the model not applicable.
 
 The domain guard has three useful outcomes:
 
@@ -304,6 +323,9 @@ type guard.
 
 Unknown calls made inside a TypeScript model body use the same catalog and fallback as the original program. This lets
 source models compose with other source models and intrinsics.
+
+Declare every nested semantic-model call in `requiredModelIds`. A selection containing only the high-level API then
+expands to its helpers before the machine scene is materialized.
 
 The state tracks each active model ID together with its call-stack depth. If the same model would redirect recursively,
 lookup declines that redirection and fallback is applied instead of entering an infinite loop.
