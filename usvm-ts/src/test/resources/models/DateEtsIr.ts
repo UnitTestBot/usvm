@@ -44,6 +44,14 @@ export class DateEtsIr {
         return new Date(NaN).getTimezoneOffset();
     }
 
+    fractionalTimestamps(): number {
+        return new Date(1.9).getTime() * 10 + new Date(-1.9).getTime();
+    }
+
+    fractionalUtcDay(): number {
+        return new Date(Date.UTC(2024, 0, 1.9)).getUTCDate();
+    }
+
     setter(): number {
         const date = new Date(0);
         const timestamp = date.setUTCFullYear(2000, 1, 29);

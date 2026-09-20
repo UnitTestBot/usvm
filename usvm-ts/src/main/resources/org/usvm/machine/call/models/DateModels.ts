@@ -478,8 +478,9 @@ export class DateModels {
             return value;
         }
 
-        const remainder = value % 1;
-        return value - remainder;
+        return value < 0
+            ? -DateModels.floorDiv(-value, 1)
+            : DateModels.floorDiv(value, 1);
     }
 
     private static floorDiv(dividend: number, divisor: number): number {

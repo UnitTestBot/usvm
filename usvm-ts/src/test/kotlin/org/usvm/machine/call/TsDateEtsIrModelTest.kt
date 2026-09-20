@@ -64,6 +64,12 @@ class TsDateEtsIrModelTest {
     }
 
     @Test
+    fun `Date truncates fractional timestamps and components toward zero`() {
+        assertNumber(methodName = "fractionalTimestamps", expected = 9.0)
+        assertNumber(methodName = "fractionalUtcDay", expected = 1.0)
+    }
+
+    @Test
     fun `concrete ISO formatting executes through the source model`() {
         val method = method("isoEpoch")
         val value = TsTestResolver().resolve(method, analyze(method).single()).returnValue
