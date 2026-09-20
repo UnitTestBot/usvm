@@ -99,12 +99,29 @@ class TsDateEtsIrModelTest {
         val states = analyze(method)
 
         assertTrue(states.isNotEmpty())
-        val allResultsAreNumbers = states.all { state ->
-            val result = assertIs<TsTestValue.TsNumber>(TsTestResolver().resolve(method, state).returnValue)
-            result.number.isFinite() || result.number.isNaN()
+        val tests = states.map { state -> TsTestResolver().resolve(method, state) }
+        tests.forEach { test ->
+            val timestamp = assertIs<TsTestValue.TsNumber>(test.before.parameters.single()).number
+            val actual = assertIs<TsTestValue.TsNumber>(test.returnValue).number
+            val expected = if (!timestamp.isFinite() || timestamp < -MAX_DATE_TIME || timestamp > MAX_DATE_TIME) {
+                Double.NaN
+            } else {
+                timestamp.toLong().toDouble()
+            }
+
+            if (expected.isNaN()) {
+                assertTrue(actual.isNaN(), "TimeClip($timestamp) must be NaN, got $actual")
+            } else {
+                assertEquals(expected, actual, "TimeClip($timestamp)")
+            }
         }
 
-        assertTrue(allResultsAreNumbers)
+        assertTrue(tests.any { test ->
+            assertIs<TsTestValue.TsNumber>(test.returnValue).number.isNaN()
+        })
+        assertTrue(tests.any { test ->
+            assertIs<TsTestValue.TsNumber>(test.returnValue).number.isFinite()
+        })
     }
 
     private fun assertNumber(methodName: String, expected: Double) {
@@ -136,6 +153,8 @@ class TsDateEtsIrModelTest {
         .single { it.name == name }
 
     private companion object {
+        const val MAX_DATE_TIME = 8_640_000_000_000_000.0
+
         val machineOptions = UMachineOptions(
             pathSelectionStrategies = listOf(PathSelectionStrategy.BFS),
             stateCollectionStrategy = StateCollectionStrategy.ALL,

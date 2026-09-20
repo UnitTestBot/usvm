@@ -56,24 +56,92 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                 "toISOString",
                 "valueOf",
             )) {
-                add(instanceModel(methodName, methodName, consumedArgs = 0))
+                add(instanceModel(idSuffix = methodName, methodName = methodName, consumedArgs = 0))
             }
 
-            add(instanceModel("set-date", "setDate", consumedArgs = 1))
-            add(instanceArityModel("set-full-year", "setFullYear", "setFullYear", minArgs = 1, maxArgs = 3))
-            add(instanceArityModel("set-hours", "setHours", "setHours", minArgs = 1, maxArgs = 4))
-            add(instanceModel("set-milliseconds", "setMilliseconds", consumedArgs = 1))
-            add(instanceArityModel("set-minutes", "setMinutes", "setMinutes", minArgs = 1, maxArgs = 3))
-            add(instanceArityModel("set-month", "setMonth", "setMonth", minArgs = 1, maxArgs = 2))
-            add(instanceArityModel("set-seconds", "setSeconds", "setSeconds", minArgs = 1, maxArgs = 2))
-            add(instanceModel("set-time", "setTime", consumedArgs = 1))
-            add(instanceModel("set-utc-date", "setUTCDate", consumedArgs = 1))
-            add(instanceArityModel("set-utc-full-year", "setUTCFullYear", "setUTCFullYear", minArgs = 1, maxArgs = 3))
-            add(instanceArityModel("set-utc-hours", "setUTCHours", "setUTCHours", minArgs = 1, maxArgs = 4))
-            add(instanceModel("set-utc-milliseconds", "setUTCMilliseconds", consumedArgs = 1))
-            add(instanceArityModel("set-utc-minutes", "setUTCMinutes", "setUTCMinutes", minArgs = 1, maxArgs = 3))
-            add(instanceArityModel("set-utc-month", "setUTCMonth", "setUTCMonth", minArgs = 1, maxArgs = 2))
-            add(instanceArityModel("set-utc-seconds", "setUTCSeconds", "setUTCSeconds", minArgs = 1, maxArgs = 2))
+            add(instanceModel(idSuffix = "set-date", methodName = "setDate", consumedArgs = 1))
+            add(instanceArityModel(
+                idSuffix = "set-full-year",
+                methodName = "setFullYear",
+                entryPointName = "setFullYear",
+                minArgs = 1,
+                maxArgs = 3,
+            ))
+            add(instanceArityModel(
+                idSuffix = "set-hours",
+                methodName = "setHours",
+                entryPointName = "setHours",
+                minArgs = 1,
+                maxArgs = 4,
+            ))
+            add(instanceModel(
+                idSuffix = "set-milliseconds",
+                methodName = "setMilliseconds",
+                consumedArgs = 1,
+            ))
+            add(instanceArityModel(
+                idSuffix = "set-minutes",
+                methodName = "setMinutes",
+                entryPointName = "setMinutes",
+                minArgs = 1,
+                maxArgs = 3,
+            ))
+            add(instanceArityModel(
+                idSuffix = "set-month",
+                methodName = "setMonth",
+                entryPointName = "setMonth",
+                minArgs = 1,
+                maxArgs = 2,
+            ))
+            add(instanceArityModel(
+                idSuffix = "set-seconds",
+                methodName = "setSeconds",
+                entryPointName = "setSeconds",
+                minArgs = 1,
+                maxArgs = 2,
+            ))
+            add(instanceModel(idSuffix = "set-time", methodName = "setTime", consumedArgs = 1))
+            add(instanceModel(idSuffix = "set-utc-date", methodName = "setUTCDate", consumedArgs = 1))
+            add(instanceArityModel(
+                idSuffix = "set-utc-full-year",
+                methodName = "setUTCFullYear",
+                entryPointName = "setUTCFullYear",
+                minArgs = 1,
+                maxArgs = 3,
+            ))
+            add(instanceArityModel(
+                idSuffix = "set-utc-hours",
+                methodName = "setUTCHours",
+                entryPointName = "setUTCHours",
+                minArgs = 1,
+                maxArgs = 4,
+            ))
+            add(instanceModel(
+                idSuffix = "set-utc-milliseconds",
+                methodName = "setUTCMilliseconds",
+                consumedArgs = 1,
+            ))
+            add(instanceArityModel(
+                idSuffix = "set-utc-minutes",
+                methodName = "setUTCMinutes",
+                entryPointName = "setUTCMinutes",
+                minArgs = 1,
+                maxArgs = 3,
+            ))
+            add(instanceArityModel(
+                idSuffix = "set-utc-month",
+                methodName = "setUTCMonth",
+                entryPointName = "setUTCMonth",
+                minArgs = 1,
+                maxArgs = 2,
+            ))
+            add(instanceArityModel(
+                idSuffix = "set-utc-seconds",
+                methodName = "setUTCSeconds",
+                entryPointName = "setUTCSeconds",
+                minArgs = 1,
+                maxArgs = 2,
+            ))
         }
     }
 
@@ -174,21 +242,7 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         methodName = methodName,
         entryPointName = entryPointName,
         domainGuard = instanceGuard(minArgs = minArgs, numericArgs = maxArgs),
-        inputAdapter = arityAdapter(hasReceiver = true, maxArgs = maxArgs),
-    )
-
-    private fun staticArityModel(
-        idSuffix: String,
-        methodName: String,
-        entryPointName: String,
-        minArgs: Int,
-        maxArgs: Int,
-    ): TsUnknownCallModel = model(
-        idSuffix = idSuffix,
-        methodName = methodName,
-        entryPointName = entryPointName,
-        domainGuard = numericGuard(minArgs = minArgs, numericArgs = maxArgs),
-        inputAdapter = staticArityAdapter(maxArgs = maxArgs),
+        inputAdapter = arityAdapter(maxArgs = maxArgs),
     )
 
     private fun model(
@@ -240,35 +294,16 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         }
     }
 
-    private fun arityAdapter(
-        hasReceiver: Boolean,
-        maxArgs: Int,
-    ) = TsEtsIrUnknownCallModelInputAdapter { state, call ->
+    private fun arityAdapter(maxArgs: Int) = TsEtsIrUnknownCallModelInputAdapter { state, call ->
         with(state.ctx) {
-            val receiver = if (hasReceiver) {
-                listOf(call.receiver?.resolved ?: return@TsEtsIrUnknownCallModelInputAdapter null)
-            } else {
-                emptyList()
-            }
+            val receiver = call.receiver?.resolved ?: return@TsEtsIrUnknownCallModelInputAdapter null
             val arguments = call.resolvedArguments(maxArgs)?.toMutableList()
                 ?: return@TsEtsIrUnknownCallModelInputAdapter null
             while (arguments.size < maxArgs) {
                 arguments += mkFp64(0.0)
             }
 
-            receiver + mkFp64(call.arguments.size.toDouble()) + arguments
-        }
-    }
-
-    private fun staticArityAdapter(maxArgs: Int) = TsEtsIrUnknownCallModelInputAdapter { state, call ->
-        with(state.ctx) {
-            val arguments = call.resolvedArguments(maxArgs)?.toMutableList()
-                ?: return@TsEtsIrUnknownCallModelInputAdapter null
-            while (arguments.size < maxArgs) {
-                arguments += mkFp64(0.0)
-            }
-
-            listOf(mkFp64(call.arguments.size.toDouble())) + arguments
+            listOf(receiver, mkFp64(call.arguments.size.toDouble())) + arguments
         }
     }
 
