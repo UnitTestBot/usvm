@@ -60,88 +60,112 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             }
 
             add(instanceModel(idSuffix = "set-date", methodName = "setDate", consumedArgs = 1))
-            add(instanceArityModel(
-                idSuffix = "set-full-year",
-                methodName = "setFullYear",
-                entryPointName = "setFullYear",
-                minArgs = 1,
-                maxArgs = 3,
-            ))
-            add(instanceArityModel(
-                idSuffix = "set-hours",
-                methodName = "setHours",
-                entryPointName = "setHours",
-                minArgs = 1,
-                maxArgs = 4,
-            ))
-            add(instanceModel(
-                idSuffix = "set-milliseconds",
-                methodName = "setMilliseconds",
-                consumedArgs = 1,
-            ))
-            add(instanceArityModel(
-                idSuffix = "set-minutes",
-                methodName = "setMinutes",
-                entryPointName = "setMinutes",
-                minArgs = 1,
-                maxArgs = 3,
-            ))
-            add(instanceArityModel(
-                idSuffix = "set-month",
-                methodName = "setMonth",
-                entryPointName = "setMonth",
-                minArgs = 1,
-                maxArgs = 2,
-            ))
-            add(instanceArityModel(
-                idSuffix = "set-seconds",
-                methodName = "setSeconds",
-                entryPointName = "setSeconds",
-                minArgs = 1,
-                maxArgs = 2,
-            ))
+            add(
+                instanceArityModel(
+                    idSuffix = "set-full-year",
+                    methodName = "setFullYear",
+                    entryPointName = "setFullYear",
+                    minArgs = 1,
+                    maxArgs = 3,
+                )
+            )
+            add(
+                instanceArityModel(
+                    idSuffix = "set-hours",
+                    methodName = "setHours",
+                    entryPointName = "setHours",
+                    minArgs = 1,
+                    maxArgs = 4,
+                )
+            )
+            add(
+                instanceModel(
+                    idSuffix = "set-milliseconds",
+                    methodName = "setMilliseconds",
+                    consumedArgs = 1,
+                )
+            )
+            add(
+                instanceArityModel(
+                    idSuffix = "set-minutes",
+                    methodName = "setMinutes",
+                    entryPointName = "setMinutes",
+                    minArgs = 1,
+                    maxArgs = 3,
+                )
+            )
+            add(
+                instanceArityModel(
+                    idSuffix = "set-month",
+                    methodName = "setMonth",
+                    entryPointName = "setMonth",
+                    minArgs = 1,
+                    maxArgs = 2,
+                )
+            )
+            add(
+                instanceArityModel(
+                    idSuffix = "set-seconds",
+                    methodName = "setSeconds",
+                    entryPointName = "setSeconds",
+                    minArgs = 1,
+                    maxArgs = 2,
+                )
+            )
             add(instanceModel(idSuffix = "set-time", methodName = "setTime", consumedArgs = 1))
             add(instanceModel(idSuffix = "set-utc-date", methodName = "setUTCDate", consumedArgs = 1))
-            add(instanceArityModel(
-                idSuffix = "set-utc-full-year",
-                methodName = "setUTCFullYear",
-                entryPointName = "setUTCFullYear",
-                minArgs = 1,
-                maxArgs = 3,
-            ))
-            add(instanceArityModel(
-                idSuffix = "set-utc-hours",
-                methodName = "setUTCHours",
-                entryPointName = "setUTCHours",
-                minArgs = 1,
-                maxArgs = 4,
-            ))
-            add(instanceModel(
-                idSuffix = "set-utc-milliseconds",
-                methodName = "setUTCMilliseconds",
-                consumedArgs = 1,
-            ))
-            add(instanceArityModel(
-                idSuffix = "set-utc-minutes",
-                methodName = "setUTCMinutes",
-                entryPointName = "setUTCMinutes",
-                minArgs = 1,
-                maxArgs = 3,
-            ))
-            add(instanceArityModel(
-                idSuffix = "set-utc-month",
-                methodName = "setUTCMonth",
-                entryPointName = "setUTCMonth",
-                minArgs = 1,
-                maxArgs = 2,
-            ))
-            add(instanceArityModel(
-                idSuffix = "set-utc-seconds",
-                methodName = "setUTCSeconds",
-                entryPointName = "setUTCSeconds",
-                minArgs = 1,
-                maxArgs = 2,
-            ))
+            add(
+                instanceArityModel(
+                    idSuffix = "set-utc-full-year",
+                    methodName = "setUTCFullYear",
+                    entryPointName = "setUTCFullYear",
+                    minArgs = 1,
+                    maxArgs = 3,
+                )
+            )
+            add(
+                instanceArityModel(
+                    idSuffix = "set-utc-hours",
+                    methodName = "setUTCHours",
+                    entryPointName = "setUTCHours",
+                    minArgs = 1,
+                    maxArgs = 4,
+                )
+            )
+            add(
+                instanceModel(
+                    idSuffix = "set-utc-milliseconds",
+                    methodName = "setUTCMilliseconds",
+                    consumedArgs = 1,
+                )
+            )
+            add(
+                instanceArityModel(
+                    idSuffix = "set-utc-minutes",
+                    methodName = "setUTCMinutes",
+                    entryPointName = "setUTCMinutes",
+                    minArgs = 1,
+                    maxArgs = 3,
+                )
+            )
+            add(
+                instanceArityModel(
+                    idSuffix = "set-utc-month",
+                    methodName = "setUTCMonth",
+                    entryPointName = "setUTCMonth",
+                    minArgs = 1,
+                    maxArgs = 2,
+                )
+            )
+            add(
+                instanceArityModel(
+                    idSuffix = "set-utc-seconds",
+                    methodName = "setUTCSeconds",
+                    entryPointName = "setUTCSeconds",
+                    minArgs = 1,
+                    maxArgs = 2,
+                )
+            )
         }
     }
 
