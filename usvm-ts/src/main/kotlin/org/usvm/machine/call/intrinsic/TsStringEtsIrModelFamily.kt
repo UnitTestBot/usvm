@@ -48,8 +48,9 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         call.resolvedInstanceInputs()?.let { inputs ->
             when {
                 call.arguments.isEmpty() -> inputs + state.ctx.mkFp64(0.0)
-                call.arguments.size == 1 && inputs.last() == state.ctx.mkUndefinedValue() ->
+                call.arguments.size == 1 && inputs.last() == state.ctx.mkUndefinedValue() -> {
                     inputs.dropLast(1) + state.ctx.mkFp64(0.0)
+                }
 
                 call.arguments.size == 1 && inputs.last().sort == state.ctx.fp64Sort -> inputs
                 else -> null
@@ -60,12 +61,14 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
     private val optionalPositionAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call ->
         call.resolvedInstanceInputs()?.let { inputs ->
             when {
-                call.arguments.size == 1 && inputs.last().sort == state.ctx.addressSort ->
+                call.arguments.size == 1 && inputs.last().sort == state.ctx.addressSort -> {
                     inputs + state.ctx.mkFp64(0.0)
+                }
 
                 call.arguments.size == 2 && inputs[1].sort == state.ctx.addressSort &&
-                    inputs.last() == state.ctx.mkUndefinedValue() ->
+                    inputs.last() == state.ctx.mkUndefinedValue() -> {
                     inputs.dropLast(1) + state.ctx.mkFp64(0.0)
+                }
 
                 call.arguments.size == 2 && inputs[1].sort == state.ctx.addressSort &&
                     inputs.last().sort == state.ctx.fp64Sort -> inputs
@@ -78,12 +81,14 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
     private val optionalEndPositionAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call ->
         call.resolvedInstanceInputs()?.let { inputs ->
             when {
-                call.arguments.size == 1 && inputs.last().sort == state.ctx.addressSort ->
+                call.arguments.size == 1 && inputs.last().sort == state.ctx.addressSort -> {
                     inputs + state.ctx.mkFpInf(signBit = false, state.ctx.fp64Sort)
+                }
 
                 call.arguments.size == 2 && inputs[1].sort == state.ctx.addressSort &&
-                    inputs.last() == state.ctx.mkUndefinedValue() ->
+                    inputs.last() == state.ctx.mkUndefinedValue() -> {
                     inputs.dropLast(1) + state.ctx.mkFpInf(signBit = false, state.ctx.fp64Sort)
+                }
 
                 call.arguments.size == 2 && inputs[1].sort == state.ctx.addressSort &&
                     inputs.last().sort == state.ctx.fp64Sort -> inputs
@@ -109,10 +114,11 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         with(state.ctx) {
             val receiver = inputs.getOrNull(0)
             val searchString = inputs.getOrNull(1)
-            if (
-                receiver !is UConcreteHeapRef || searchString !is UConcreteHeapRef ||
-                getStringConstantValue(receiver) == null || getStringConstantValue(searchString) == null
-            ) {
+            val receiverIsConstant = receiver is UConcreteHeapRef && getStringConstantValue(receiver) != null
+            val searchStringIsConstant =
+                searchString is UConcreteHeapRef && getStringConstantValue(searchString) != null
+
+            if (!receiverIsConstant || !searchStringIsConstant) {
                 falseExpr
             } else {
                 mkAnd(
@@ -309,16 +315,15 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         inputs: List<UExpr<*>>,
     ): TsUnknownCallModelExecution? = with(state.ctx) {
         val code = inputs.singleOrNull() as? KFp64Value ?: return null
+        val successor = TsUnknownCallModelSuccessor(
+            guard = trueExpr,
+            completion = TsUnknownCallModelCompletion.Normal {
+                mkInitializedStringConstant(code.value.toInt().toChar().toString())
+            },
+        )
 
         TsUnknownCallModelExecution(
-            successors = listOf(
-                TsUnknownCallModelSuccessor(
-                    guard = trueExpr,
-                    completion = TsUnknownCallModelCompletion.Normal {
-                        mkInitializedStringConstant(code.value.toInt().toChar().toString())
-                    },
-                )
-            ),
+            successors = listOf(successor),
         )
     }
 
@@ -326,15 +331,17 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         state: TsState,
         guard: org.usvm.UBoolExpr,
         result: UExpr<*>,
-    ): TsUnknownCallModelExecution = TsUnknownCallModelExecution(
-        successors = listOf(
-            TsUnknownCallModelSuccessor(
-                guard = guard,
-                completion = TsUnknownCallModelCompletion.Normal { result },
-            )
-        ),
-        residualGuard = guard.takeUnless { it == state.ctx.trueExpr }?.let(state.ctx::mkNot),
-    )
+    ): TsUnknownCallModelExecution {
+        val successor = TsUnknownCallModelSuccessor(
+            guard = guard,
+            completion = TsUnknownCallModelCompletion.Normal { result },
+        )
+
+        return TsUnknownCallModelExecution(
+            successors = listOf(successor),
+            residualGuard = guard.takeUnless { it == state.ctx.trueExpr }?.let(state.ctx::mkNot),
+        )
+    }
 
     private fun TsUnknownCall.resolvedInstanceInputs(): List<UExpr<*>>? {
         val resolvedReceiver = receiver?.resolved ?: return null

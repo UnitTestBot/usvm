@@ -41,21 +41,30 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                 val searchRef = searchElement
                     ?.takeIf { it.sort == addressSort }
                     ?.asExpr(addressSort)
-                if (array.hasFakeValueBranch() || receiverType?.dimensions != 1 || searchRef?.hasFakeValueBranch() == true) {
+                if (
+                    array.hasFakeValueBranch() || receiverType?.dimensions != 1 ||
+                    searchRef?.hasFakeValueBranch() == true
+                ) {
                     falseExpr
                 } else {
                     val elementSort = typeToSort(receiverType.elementType)
                     val excludesMissingSlot = when {
                         searchElement == mkUndefinedValue() &&
-                            (call.callee.name in setOf("indexOf", "lastIndexOf") ||
-                                elementSort == fp64Sort || elementSort == boolSort) -> falseExpr
+                            (
+                                call.callee.name in setOf("indexOf", "lastIndexOf") ||
+                                    elementSort == fp64Sort || elementSort == boolSort
+                                ) -> falseExpr
 
-                        elementSort == fp64Sort && searchElement?.sort == fp64Sort -> mkNot(
-                            mkFpEqualExpr(searchElement.asExpr(fp64Sort), mkFp64(0.0))
-                        )
+                        elementSort == fp64Sort && searchElement?.sort == fp64Sort -> {
+                            val searchNumber = searchElement.asExpr(fp64Sort)
+                            val zero = mkFp64(0.0)
 
-                        elementSort == boolSort && searchElement?.sort == boolSort ->
+                            mkNot(mkFpEqualExpr(searchNumber, zero))
+                        }
+
+                        elementSort == boolSort && searchElement?.sort == boolSort -> {
                             searchElement.asExpr(boolSort)
+                        }
 
                         else -> trueExpr
                     }
@@ -73,8 +82,9 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         call.resolvedInstanceInputs()?.let { inputs ->
             when {
                 call.arguments.size == 1 -> inputs + state.ctx.mkFp64(0.0)
-                call.arguments.size == 2 && inputs.last() == state.ctx.mkUndefinedValue() ->
+                call.arguments.size == 2 && inputs.last() == state.ctx.mkUndefinedValue() -> {
                     inputs.dropLast(1) + state.ctx.mkFp64(0.0)
+                }
 
                 call.arguments.size == 2 && inputs.last().sort == state.ctx.fp64Sort -> inputs
                 else -> null
@@ -86,8 +96,9 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         call.resolvedInstanceInputs()?.let { inputs ->
             when {
                 call.arguments.size == 1 -> inputs + state.ctx.mkFpInf(signBit = false, state.ctx.fp64Sort)
-                call.arguments.size == 2 && inputs.last() == state.ctx.mkUndefinedValue() ->
+                call.arguments.size == 2 && inputs.last() == state.ctx.mkUndefinedValue() -> {
                     inputs.dropLast(1) + state.ctx.mkFp64(0.0)
+                }
 
                 call.arguments.size == 2 && inputs.last().sort == state.ctx.fp64Sort -> inputs
                 else -> null
@@ -123,18 +134,22 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         id: String,
         methodName: String,
         inputAdapter: TsEtsIrUnknownCallModelInputAdapter = TsEtsIrUnknownCallModelInputAdapter.IDENTITY,
-    ): TsUnknownCallModel = TsEtsIrUnknownCallModel(
-        id = id,
-        target = TsUnknownCallTarget(
+    ): TsUnknownCallModel {
+        val target = TsUnknownCallTarget(
             methodName = methodName,
             enclosingClassName = "Array".takeUnless { methodName == "pop" },
             failureReason = TsUnknownCallFailureReason.PARTIAL_APPROXIMATION,
-        ),
-        artifact = artifact(methodName),
-        domainGuard = arrayDomain,
-        inputAdapter = inputAdapter,
-        requiredModelIds = setOf(MATH_FLOOR_MODEL_ID).takeUnless { methodName == "pop" }.orEmpty(),
-    )
+        )
+
+        return TsEtsIrUnknownCallModel(
+            id = id,
+            target = target,
+            artifact = artifact(methodName),
+            domainGuard = arrayDomain,
+            inputAdapter = inputAdapter,
+            requiredModelIds = setOf(MATH_FLOOR_MODEL_ID).takeUnless { methodName == "pop" }.orEmpty(),
+        )
+    }
 
     private fun artifact(methodName: String): TsEtsIrUnknownCallModelArtifact {
         val artifact = baseArtifact
