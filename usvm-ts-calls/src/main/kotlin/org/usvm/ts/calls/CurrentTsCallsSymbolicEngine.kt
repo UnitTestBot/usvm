@@ -30,9 +30,12 @@ import org.usvm.util.mkRegisterStackLValue
 import java.nio.file.Path
 import kotlin.time.TimeSource
 
-internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
+internal class CurrentTsCallsSymbolicEngine(
+    private val environment: (String) -> String? = System::getenv,
+    private val bundledNativeFrontendRevision: String = CallsBuildIdentity.nativeFrontendRevision,
+) : CallsSymbolicEngine {
     private val verifiedProjects = mutableMapOf<Path, String>()
-    private var verifiedNativeFrontend: Pair<Path, String>? = null
+    private var verifiedNativeFrontendIdentity: String? = null
 
     override fun search(request: CallsSymbolicSearchRequest): CallsSymbolicSearchResult {
         val startedAt = TimeSource.Monotonic.markNow()
@@ -238,22 +241,34 @@ internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
         diagnostic = diagnostic,
     )
 
-    private fun verifyNativeFrontendOnce(expectedRevision: String) {
-        require(System.getenv("ETS_FRONTEND_SCRIPT") == null) {
+    internal fun verifyNativeFrontendOnce(expectedRevision: String) {
+        val configuredScript = environment("ETS_FRONTEND_SCRIPT")
+        require(configuredScript == null) {
             "ETS_FRONTEND_SCRIPT must be unset so the frozen native frontend runtime is used"
         }
-        val configuredFrontend = requireNotNull(System.getenv("ETS_FRONTEND_DIR")) {
+        if (expectedRevision.startsWith(BUNDLED_FRONTEND_PREFIX)) {
+            require(environment("ETS_FRONTEND_DIR") == null) {
+                "ETS_FRONTEND_DIR must be unset when the bundled native frontend is selected"
+            }
+            require(expectedRevision == bundledNativeFrontendRevision) {
+                "Bundled native frontend revision $expectedRevision does not match running build " +
+                    bundledNativeFrontendRevision
+            }
+            verifiedNativeFrontendIdentity = expectedRevision
+            return
+        }
+
+        val configuredFrontend = requireNotNull(environment("ETS_FRONTEND_DIR")) {
             "ETS_FRONTEND_DIR is required to verify the frozen native frontend revision"
         }
         val frontendDirectory = Path.of(configuredFrontend).toRealPath()
-        val cached = verifiedNativeFrontend
-        val expectedIdentity = expectedRevision
-        if (cached == Pair(frontendDirectory, expectedIdentity)) {
+        val expectedIdentity = "$frontendDirectory@$expectedRevision"
+        if (verifiedNativeFrontendIdentity == expectedIdentity) {
             return
         }
 
         verifyCallsGitCheckout(frontendDirectory, expectedRevision)
-        verifiedNativeFrontend = frontendDirectory to expectedIdentity
+        verifiedNativeFrontendIdentity = expectedIdentity
     }
 
     private fun verifyGitCheckoutOnce(
@@ -285,6 +300,10 @@ internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
         val states: List<TsState>,
         val stopReason: TsAnalysisStopReason,
     )
+
+    private companion object {
+        const val BUNDLED_FRONTEND_PREFIX: String = "bundled:"
+    }
 }
 
 internal data class SourceStatementEntry(
