@@ -14,20 +14,9 @@ dependencies {
     testImplementation(Libs.logback)
 }
 
-val replayAdapterDir = layout.projectDirectory.dir("source-replay-adapter")
-val replayAdapterPackageJson = replayAdapterDir.file("package.json")
-val replayAdapterPackageLock = replayAdapterDir.file("package-lock.json")
-val replayRuntimeProperty = "org.usvm.ts.calls.replay.runtime"
+val fastCheckAdapterDir = project(":usvm-ts-pbt").layout.projectDirectory.dir("fast-check-adapter")
+val fastCheckRuntimeProperty = "org.usvm.ts.pbt.fastcheck.runtime"
 val generatedBuildMetadataDirectory = layout.buildDirectory.dir("generated/resources/callsBuildMetadata")
-val hostOperatingSystem = System.getProperty("os.name").lowercase()
-val hostPlatform = when {
-    hostOperatingSystem.contains("mac") -> "darwin"
-    hostOperatingSystem.contains("linux") -> "linux"
-    hostOperatingSystem.contains("windows") -> "win32"
-    else -> error("Unsupported source replay operating system: $hostOperatingSystem")
-}
-val npmExecutable = if (hostPlatform == "win32") "npm.cmd" else "npm"
-
 val toolRevision = providers.exec {
     workingDir(rootProject.projectDir)
     commandLine("git", "rev-parse", "HEAD")
@@ -61,41 +50,9 @@ tasks.processResources {
     dependsOn(generateBuildMetadata)
 }
 
-val installReplayAdapter = tasks.register<Exec>("installReplayAdapter") {
-    workingDir(replayAdapterDir)
-    commandLine(npmExecutable, "ci", "--ignore-scripts")
-    inputs.files(replayAdapterPackageJson, replayAdapterPackageLock)
-    outputs.dir(replayAdapterDir.dir("node_modules"))
-}
-
-val buildReplayAdapter = tasks.register<Exec>("buildReplayAdapter") {
-    dependsOn(installReplayAdapter)
-    workingDir(replayAdapterDir)
-    commandLine(npmExecutable, "run", "build")
-    inputs.files(replayAdapterPackageJson, replayAdapterPackageLock, replayAdapterDir.file("tsconfig.json"))
-    inputs.dir(replayAdapterDir.dir("src"))
-    inputs.dir(replayAdapterDir.dir("test"))
-    outputs.dir(replayAdapterDir.dir("dist"))
-}
-
-val testReplayAdapter = tasks.register<Exec>("testReplayAdapter") {
-    dependsOn(buildReplayAdapter)
-    workingDir(replayAdapterDir)
-    commandLine(npmExecutable, "run", "test:compiled")
-    inputs.dir(replayAdapterDir.dir("dist"))
-}
-
 tasks.test {
-    dependsOn(buildReplayAdapter)
-    systemProperty(replayRuntimeProperty, replayAdapterDir.asFile.absolutePath)
-}
-
-tasks.check {
-    dependsOn(testReplayAdapter)
-}
-
-tasks.clean {
-    delete(replayAdapterDir.dir("dist"))
+    dependsOn(":usvm-ts-pbt:buildFastCheckAdapter")
+    systemProperty(fastCheckRuntimeProperty, fastCheckAdapterDir.asFile.absolutePath)
 }
 
 application {
@@ -104,15 +61,15 @@ application {
 }
 
 tasks.named<JavaExec>("run") {
-    systemProperty(replayRuntimeProperty, replayAdapterDir.asFile.absolutePath)
-    dependsOn(buildReplayAdapter)
+    dependsOn(":usvm-ts-pbt:buildFastCheckAdapter")
+    systemProperty(fastCheckRuntimeProperty, fastCheckAdapterDir.asFile.absolutePath)
 }
 
 distributions {
     main {
         contents {
-            into("lib/source-replay-adapter") {
-                from(replayAdapterDir)
+            into("lib/fast-check-adapter") {
+                from(fastCheckAdapterDir)
                 include("dist/src/**")
                 include("node_modules/**")
                 include("package.json")
@@ -123,6 +80,6 @@ distributions {
 
 listOf("startScripts", "installDist", "distZip", "distTar").forEach { taskName ->
     tasks.named(taskName) {
-        dependsOn(buildReplayAdapter)
+        dependsOn(":usvm-ts-pbt:buildFastCheckAdapter")
     }
 }
