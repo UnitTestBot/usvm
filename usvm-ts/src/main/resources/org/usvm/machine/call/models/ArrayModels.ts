@@ -97,17 +97,6 @@ export class ArrayModels {
             return -length;
         }
 
-        let integer = 0;
-        if (fromIndex > 0) {
-            while (integer + 1 <= fromIndex) {
-                integer++;
-            }
-        } else {
-            while (integer - 1 >= fromIndex) {
-                integer--;
-            }
-        }
-
-        return integer;
+        return fromIndex < 0 ? -Math.floor(-fromIndex) : Math.floor(fromIndex);
     }
 }

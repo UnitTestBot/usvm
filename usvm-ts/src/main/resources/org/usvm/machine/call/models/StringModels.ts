@@ -148,18 +148,7 @@ export class StringModels {
             return -length;
         }
 
-        let integer = 0;
-        if (value > 0) {
-            while (integer + 1 <= value) {
-                integer++;
-            }
-        } else {
-            while (integer - 1 >= value) {
-                integer--;
-            }
-        }
-
-        return integer;
+        return value < 0 ? -Math.floor(-value) : Math.floor(value);
     }
 
     private static normalizePosition(value: number, length: number): number {
@@ -175,12 +164,7 @@ export class StringModels {
             return 0;
         }
 
-        let integer = 0;
-        while (integer + 1 <= value) {
-            integer++;
-        }
-
-        return integer;
+        return Math.floor(value);
     }
 
     private static normalizeLastPosition(value: number, length: number): number {
@@ -192,11 +176,6 @@ export class StringModels {
             return 0;
         }
 
-        let integer = 0;
-        while (integer + 1 <= value) {
-            integer++;
-        }
-
-        return integer;
+        return Math.floor(value);
     }
 }
