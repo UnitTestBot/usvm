@@ -121,6 +121,27 @@ class TsSequenceEtsIrModelTest {
     }
 
     @Test
+    fun `selecting charAt also enables its primitives`() {
+        val result = analyze(
+            methodName = "stringCharAtHandlesBounds",
+            tsOptions = TsOptions(
+                unknownCallModelSelection = TsUnknownCallModelSelection.Only(setOf("ts.string.charAt")),
+            ),
+        )
+
+        assertEquals("b", assertIs<TsTestValue.TsString>(result.values.single()).value)
+        assertEquals(
+            setOf(
+                "ts.string.charAt",
+                "ts.string.primitive.codeUnitAt",
+                "ts.string.primitive.fromCodeUnit",
+                "ts.string.primitive.length",
+            ),
+            result.modelIds.toSet(),
+        )
+    }
+
+    @Test
     fun `string indexOf handles offsets and empty search`() {
         val result = analyze(methodName = "stringIndexOfHandlesOffsetsAndEmptySearch")
 
@@ -188,14 +209,17 @@ class TsSequenceEtsIrModelTest {
         assertTrue("ts.string.lastIndexOf" in result.modelIds)
     }
 
-    private fun analyze(methodName: String): AnalysisResult {
+    private fun analyze(
+        methodName: String,
+        tsOptions: TsOptions = TsOptions(),
+    ): AnalysisResult {
         val method = method(methodName)
         val observer = RecordingUnknownCallObserver()
 
         return TsMachine(
             scene = scene,
             options = machineOptions,
-            tsOptions = TsOptions(),
+            tsOptions = tsOptions,
             observer = observer,
         ).use { machine ->
             val states = machine.analyze(listOf(method))

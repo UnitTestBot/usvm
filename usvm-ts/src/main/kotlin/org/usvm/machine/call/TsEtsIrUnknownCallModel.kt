@@ -112,8 +112,10 @@ class TsEtsIrUnknownCallModel(
     val artifact: TsEtsIrUnknownCallModelArtifact,
     val domainGuard: TsEtsIrUnknownCallModelDomainGuard = TsEtsIrUnknownCallModelDomainGuard.ALWAYS,
     val inputAdapter: TsEtsIrUnknownCallModelInputAdapter = TsEtsIrUnknownCallModelInputAdapter.IDENTITY,
+    requiredModelIds: Set<String> = emptySet(),
 ) : TsUnknownCallModel, TsMachineLocalUnknownCallModel {
     override val additionalSceneFiles: List<EtsFile> = listOf(artifact.file)
+    override val requiredModelIds: Set<String> = requiredModelIds.toSet()
 
     override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution? {
         val inputs = inputAdapter.adapt(
@@ -159,6 +161,7 @@ class TsEtsIrUnknownCallModel(
             artifact = materializedArtifact,
             domainGuard = domainGuard,
             inputAdapter = inputAdapter,
+            requiredModelIds = requiredModelIds,
         )
     }
 }
