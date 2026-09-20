@@ -45,30 +45,52 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         )
     }
 
-    private val optionalIndexAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call, inputs ->
-        when {
-            call.arguments.isEmpty() -> inputs + state.ctx.mkFp64(0.0)
-            call.arguments.size == 1 && inputs.last() == state.ctx.mkUndefinedValue() ->
-                inputs.dropLast(1) + state.ctx.mkFp64(0.0)
+    private val optionalIndexAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call ->
+        call.resolvedInstanceInputs()?.let { inputs ->
+            when {
+                call.arguments.isEmpty() -> inputs + state.ctx.mkFp64(0.0)
+                call.arguments.size == 1 && inputs.last() == state.ctx.mkUndefinedValue() ->
+                    inputs.dropLast(1) + state.ctx.mkFp64(0.0)
 
-            call.arguments.size == 1 && inputs.last().sort == state.ctx.fp64Sort -> inputs
-            else -> null
+                call.arguments.size == 1 && inputs.last().sort == state.ctx.fp64Sort -> inputs
+                else -> null
+            }
         }
     }
 
-    private val optionalPositionAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call, inputs ->
-        when {
-            call.arguments.size == 1 && inputs.last().sort == state.ctx.addressSort ->
-                inputs + state.ctx.mkFp64(0.0)
+    private val optionalPositionAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call ->
+        call.resolvedInstanceInputs()?.let { inputs ->
+            when {
+                call.arguments.size == 1 && inputs.last().sort == state.ctx.addressSort ->
+                    inputs + state.ctx.mkFp64(0.0)
 
-            call.arguments.size == 2 && inputs[1].sort == state.ctx.addressSort &&
-                inputs.last() == state.ctx.mkUndefinedValue() ->
-                inputs.dropLast(1) + state.ctx.mkFp64(0.0)
+                call.arguments.size == 2 && inputs[1].sort == state.ctx.addressSort &&
+                    inputs.last() == state.ctx.mkUndefinedValue() ->
+                    inputs.dropLast(1) + state.ctx.mkFp64(0.0)
 
-            call.arguments.size == 2 && inputs[1].sort == state.ctx.addressSort &&
-                inputs.last().sort == state.ctx.fp64Sort -> inputs
+                call.arguments.size == 2 && inputs[1].sort == state.ctx.addressSort &&
+                    inputs.last().sort == state.ctx.fp64Sort -> inputs
 
-            else -> null
+                else -> null
+            }
+        }
+    }
+
+    private val optionalEndPositionAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call ->
+        call.resolvedInstanceInputs()?.let { inputs ->
+            when {
+                call.arguments.size == 1 && inputs.last().sort == state.ctx.addressSort ->
+                    inputs + state.ctx.mkFpInf(signBit = false, state.ctx.fp64Sort)
+
+                call.arguments.size == 2 && inputs[1].sort == state.ctx.addressSort &&
+                    inputs.last() == state.ctx.mkUndefinedValue() ->
+                    inputs.dropLast(1) + state.ctx.mkFpInf(signBit = false, state.ctx.fp64Sort)
+
+                call.arguments.size == 2 && inputs[1].sort == state.ctx.addressSort &&
+                    inputs.last().sort == state.ctx.fp64Sort -> inputs
+
+                else -> null
+            }
         }
     }
 
@@ -102,13 +124,21 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         }
     }
 
+    private val receiverAndConcreteIndexDomain = TsEtsIrUnknownCallModelDomainGuard { state, call, inputs ->
+        if (inputs.getOrNull(1) !is KFp64Value) {
+            state.ctx.falseExpr
+        } else {
+            receiverDomain.evaluate(state, call, inputs)
+        }
+    }
+
     override val models: List<TsUnknownCallModel> by lazy {
         listOf(
             sourceModel(
                 id = "ts.string.charAt",
                 methodName = "charAt",
                 inputAdapter = optionalIndexAdapter,
-                domainGuard = receiverDomain,
+                domainGuard = receiverAndConcreteIndexDomain,
             ),
             sourceModel(
                 id = "ts.string.indexOf",
@@ -120,6 +150,30 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                 id = "ts.string.includes",
                 methodName = "includes",
                 inputAdapter = optionalPositionAdapter,
+                domainGuard = receiverAndSearchDomain,
+            ),
+            sourceModel(
+                id = "ts.string.charCodeAt",
+                methodName = "charCodeAt",
+                inputAdapter = optionalIndexAdapter,
+                domainGuard = receiverDomain,
+            ),
+            sourceModel(
+                id = "ts.string.startsWith",
+                methodName = "startsWith",
+                inputAdapter = optionalPositionAdapter,
+                domainGuard = receiverAndSearchDomain,
+            ),
+            sourceModel(
+                id = "ts.string.endsWith",
+                methodName = "endsWith",
+                inputAdapter = optionalEndPositionAdapter,
+                domainGuard = receiverAndSearchDomain,
+            ),
+            sourceModel(
+                id = "ts.string.lastIndexOf",
+                methodName = "lastIndexOf",
+                inputAdapter = optionalEndPositionAdapter,
                 domainGuard = receiverAndSearchDomain,
             ),
             primitiveModel(
@@ -299,6 +353,13 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         ),
         residualGuard = guard.takeUnless { it == state.ctx.trueExpr }?.let(state.ctx::mkNot),
     )
+
+    private fun TsUnknownCall.resolvedInstanceInputs(): List<UExpr<*>>? {
+        val resolvedReceiver = receiver?.resolved ?: return null
+        val resolvedArguments = arguments.map { argument -> argument.resolved ?: return null }
+
+        return listOf(resolvedReceiver) + resolvedArguments
+    }
 
     private class StringPrimitiveModel(
         methodName: String,

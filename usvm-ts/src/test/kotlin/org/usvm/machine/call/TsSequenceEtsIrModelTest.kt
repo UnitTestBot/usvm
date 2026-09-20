@@ -44,6 +44,14 @@ class TsSequenceEtsIrModelTest {
     }
 
     @Test
+    fun `typed default searches fall back without array presence metadata`() {
+        val result = analyze(methodName = "numericDefaultSearchFallsBack")
+
+        assertTrue(result.values.isEmpty())
+        assertEquals(TsUnknownCallOutcome.PATH_STOPPED, result.events.last().outcome)
+    }
+
+    @Test
     fun `array offsets normalize fractions and NaN`() {
         val result = analyze(methodName = "arrayOffsetsAreNormalized")
 
@@ -63,6 +71,29 @@ class TsSequenceEtsIrModelTest {
         val result = analyze(methodName = "arrayExplicitUndefinedOffset")
 
         assertEquals(0.0, assertIs<TsTestValue.TsNumber>(result.values.single()).number)
+    }
+
+    @Test
+    fun `array lastIndexOf searches backward from normalized offsets`() {
+        val result = analyze(methodName = "arrayLastIndexOfHandlesOffsets")
+
+        assertEquals(199.0, assertIs<TsTestValue.TsNumber>(result.values.single()).number)
+        assertTrue("ts.array.lastIndexOf" in result.modelIds)
+    }
+
+    @Test
+    fun `array lastIndexOf distinguishes omitted and undefined offsets`() {
+        val result = analyze(methodName = "arrayLastIndexOfExplicitUndefined")
+
+        assertEquals(0.0, assertIs<TsTestValue.TsNumber>(result.values.single()).number)
+    }
+
+    @Test
+    fun `numeric holes do not match zero`() {
+        val result = analyze(methodName = "numericHoleDoesNotMatchZero")
+
+        assertTrue(result.values.isEmpty())
+        assertEquals(TsUnknownCallOutcome.PATH_STOPPED, result.events.last().outcome)
     }
 
     @Test
@@ -123,6 +154,38 @@ class TsSequenceEtsIrModelTest {
         assertTrue(3.0 in numbers, "Expected second match for positions 2 or 3: $numbers")
         assertTrue(-1.0 in numbers, "Expected no match after the last occurrence: $numbers")
         assertTrue("ts.string.indexOf" in result.modelIds)
+    }
+
+    @Test
+    fun `symbolic charAt falls back until string value equality is modeled`() {
+        val result = analyze(methodName = "symbolicCharAt")
+
+        assertTrue(result.values.isEmpty())
+        assertEquals(TsUnknownCallOutcome.PATH_STOPPED, result.events.last().outcome)
+    }
+
+    @Test
+    fun `string charCodeAt returns code units and NaN out of bounds`() {
+        val result = analyze(methodName = "stringCharCodeAtHandlesBounds")
+
+        assertEquals(91.0, assertIs<TsTestValue.TsNumber>(result.values.single()).number)
+        assertTrue("ts.string.charCodeAt" in result.modelIds)
+    }
+
+    @Test
+    fun `string startsWith and endsWith honor positions`() {
+        val result = analyze(methodName = "stringStartsAndEndsWithHandlePositions")
+
+        assertTrue(assertIs<TsTestValue.TsBoolean>(result.values.single()).value)
+        assertTrue(setOf("ts.string.startsWith", "ts.string.endsWith").all(result.modelIds::contains))
+    }
+
+    @Test
+    fun `string lastIndexOf searches backward and matches empty suffix`() {
+        val result = analyze(methodName = "stringLastIndexOfHandlesPositions")
+
+        assertEquals(315.0, assertIs<TsTestValue.TsNumber>(result.values.single()).number)
+        assertTrue("ts.string.lastIndexOf" in result.modelIds)
     }
 
     private fun analyze(methodName: String): AnalysisResult {

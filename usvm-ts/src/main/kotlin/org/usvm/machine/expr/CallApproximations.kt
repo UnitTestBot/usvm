@@ -192,9 +192,9 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
             return handleArrayConcat(stmt, instanceType, array)
         }
 
-        // Handle `Array.indexOf() method calls
-        if (expr.callee.name == "indexOf") {
-            return handleArrayIndexOfCall(stmt, instanceType, elementSort, array)
+        // Handle Array search and indexed access method calls.
+        if (expr.callee.name in setOf("indexOf", "lastIndexOf")) {
+            return handleArrayIndexSearchCall(stmt, instanceType, elementSort, array)
         }
 
         // Handle `Array.includes() method calls
@@ -208,7 +208,16 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
         }
     }
 
-    if (instanceType is EtsStringType && expr.callee.name in setOf("charAt", "indexOf", "includes")) {
+    val modeledStringMethods = setOf(
+        "charAt",
+        "charCodeAt",
+        "endsWith",
+        "includes",
+        "indexOf",
+        "lastIndexOf",
+        "startsWith",
+    )
+    if (instanceType is EtsStringType && expr.callee.name in modeledStringMethods) {
         val dispatcher = unknownCallDispatcher
         if (dispatcher !is TsUnknownCallModelDispatcher) {
             return TsExprApproximationResult.NoApproximation
@@ -230,7 +239,7 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
     return TsExprApproximationResult.NoApproximation
 }
 
-private fun TsExprResolver.handleArrayIndexOfCall(
+private fun TsExprResolver.handleArrayIndexSearchCall(
     stmt: TsVirtualMethodCallStmt,
     instanceType: EtsArrayType,
     elementSort: USort,
@@ -238,6 +247,10 @@ private fun TsExprResolver.handleArrayIndexOfCall(
 ): TsExprApproximationResult {
     val dispatcher = unknownCallDispatcher
     if (dispatcher !is TsUnknownCallModelDispatcher) {
+        if (stmt.call.callee.name != "indexOf") {
+            return TsExprApproximationResult.NoApproximation
+        }
+
         return from(handleArrayIndexOf(stmt.call, instanceType, elementSort, array))
     }
 

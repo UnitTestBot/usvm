@@ -11,7 +11,11 @@ export class SequenceEtsIr {
     }
 
     arrayIncludesUsesSameValueZero(): boolean {
-        return [NaN].includes(NaN) && ![NaN].includes(0);
+        return [NaN].includes(NaN);
+    }
+
+    numericDefaultSearchFallsBack(): boolean {
+        return [0].includes(0);
     }
 
     arrayOffsetsAreNormalized(): number {
@@ -27,6 +31,22 @@ export class SequenceEtsIr {
 
     arrayExplicitUndefinedOffset(): number {
         return [1].indexOf(1, undefined);
+    }
+
+    arrayLastIndexOfHandlesOffsets(): number {
+        const values = [1, 2, 1];
+        return values.lastIndexOf(1) * 100
+            + values.lastIndexOf(1, -2) * 10
+            + values.lastIndexOf(1, -Infinity);
+    }
+
+    arrayLastIndexOfExplicitUndefined(): number {
+        return [1, 2, 1].lastIndexOf(1, undefined);
+    }
+
+    numericHoleDoesNotMatchZero(): number {
+        const values = new Array<number>(1);
+        return values.indexOf(0);
     }
 
     explicitUndefinedArrayIncludesUndefined(): boolean {
@@ -62,5 +82,27 @@ export class SequenceEtsIr {
         if (position === 2) return "ababa".indexOf("ba", position);
         if (position === 4) return "ababa".indexOf("ba", position);
         return -100;
+    }
+
+    symbolicCharAt(position: number): string {
+        return "abc".charAt(position);
+    }
+
+    stringCharCodeAtHandlesBounds(): number {
+        const outside = "AZ".charCodeAt(2);
+        return "AZ".charCodeAt(1) + (outside !== outside ? 1 : 0);
+    }
+
+    stringStartsAndEndsWithHandlePositions(): boolean {
+        return "abc".startsWith("b", 1)
+            && "abc".startsWith("", Infinity)
+            && "abc".endsWith("b", 2)
+            && "abc".endsWith("c", undefined);
+    }
+
+    stringLastIndexOfHandlesPositions(): number {
+        return "ababa".lastIndexOf("ba") * 100
+            + "ababa".lastIndexOf("ba", 2) * 10
+            + "ababa".lastIndexOf("", Infinity);
     }
 }

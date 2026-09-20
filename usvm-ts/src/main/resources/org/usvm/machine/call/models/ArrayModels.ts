@@ -65,6 +65,25 @@ export class ArrayModels {
         return false;
     }
 
+    static lastIndexOf(receiver: any[], searchElement: any, fromIndex: number): number {
+        const length = receiver.length;
+        if (length === 0 || fromIndex === -Infinity) {
+            return -1;
+        }
+
+        const start = ArrayModels.normalizeRelativeIndex(fromIndex, length);
+        let index = start >= length ? length - 1 : (start >= 0 ? start : length + start);
+        while (index >= 0) {
+            if (receiver[index] === searchElement) {
+                return index;
+            }
+
+            index--;
+        }
+
+        return -1;
+    }
+
     private static normalizeRelativeIndex(fromIndex: number, length: number): number {
         if (fromIndex !== fromIndex) {
             return 0;
