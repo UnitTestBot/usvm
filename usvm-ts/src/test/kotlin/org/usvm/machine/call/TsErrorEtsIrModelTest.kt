@@ -61,11 +61,16 @@ class TsErrorEtsIrModelTest {
     }
 
     @Test
-    fun `Error typed field read does not reinterpret a user object as model storage`() {
-        val result = analyze(scene = builtInScene, className = "ErrorEtsIr", methodName = "castUserObjectName")
-        val actual = assertIs<TsTestValue.TsNumber>(result.values.single()).number
+    fun `callback Error message remains residual`() {
+        val result = analyze(scene = builtInScene, className = "ErrorEtsIr", methodName = "callbackMessage")
 
-        assertEquals(17.0, actual)
+        assertTrue(result.states.isEmpty())
+        assertEquals(
+            listOf(TsResidualCallPolicy.STOP_PATH),
+            result.events.mapNotNull { event ->
+                (event.decision as? TsUnknownCallDecision.ResidualFallback)?.policy
+            },
+        )
         assertTrue(result.modelIds.isEmpty())
     }
 

@@ -63,7 +63,7 @@ internal object TsErrorEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                     if (receiver.hasFakeValueBranch() || receiverRuntimeType != builtinErrorType) {
                         return@TsEtsIrUnknownCallModelDomainGuard falseExpr
                     }
-                    if (message.hasFakeValueBranch()) {
+                    if (message.hasFakeValueBranch() || state.associatedFunction.containsKey(message)) {
                         return@TsEtsIrUnknownCallModelDomainGuard falseExpr
                     }
 

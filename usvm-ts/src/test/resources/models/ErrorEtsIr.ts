@@ -1,7 +1,3 @@
-class OtherWithNumericName {
-    name: number = 17;
-}
-
 export class ErrorEtsIr {
     static name(): string {
         return new Error("expected message").name;
@@ -15,8 +11,7 @@ export class ErrorEtsIr {
         throw new Error("expected message");
     }
 
-    static castUserObjectName(): number {
-        const value = new OtherWithNumericName();
-        return (value as unknown as Error).name as unknown as number;
+    static callbackMessage(): string {
+        return new Error((() => "x") as any).message;
     }
 }

@@ -142,7 +142,9 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
     private val receiverDomain = TsEtsIrUnknownCallModelDomainGuard { state, _, inputs ->
         with(state.ctx) {
             val receiver = inputs.firstOrNull()
-            if (receiver !is UConcreteHeapRef || receiver.hasFakeValueBranch()) {
+            if (receiver !is UConcreteHeapRef || receiver.hasFakeValueBranch() ||
+                state.associatedFunction.containsKey(receiver)
+            ) {
                 falseExpr
             } else {
                 state.memory.types.evalTypeEquals(receiver, EtsStringType)
@@ -154,8 +156,10 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         with(state.ctx) {
             val receiver = inputs.getOrNull(0)
             val searchString = inputs.getOrNull(1)
-            val receiverIsConstant = receiver is UConcreteHeapRef && !receiver.hasFakeValueBranch()
-            val searchStringIsConstant = searchString is UConcreteHeapRef && !searchString.hasFakeValueBranch()
+            val receiverIsConstant = receiver is UConcreteHeapRef && !receiver.hasFakeValueBranch() &&
+                !state.associatedFunction.containsKey(receiver)
+            val searchStringIsConstant = searchString is UConcreteHeapRef && !searchString.hasFakeValueBranch() &&
+                !state.associatedFunction.containsKey(searchString)
 
             if (!receiverIsConstant || !searchStringIsConstant) {
                 falseExpr
@@ -175,7 +179,9 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
     private val replaceAllDomain = TsEtsIrUnknownCallModelDomainGuard { state, _, inputs ->
         with(state.ctx) {
             val strings = inputs.filterIsInstance<UConcreteHeapRef>()
-            if (strings.size != REPLACE_ALL_INPUT_COUNT || strings.any { it.hasFakeValueBranch() }) {
+            if (strings.size != REPLACE_ALL_INPUT_COUNT ||
+                strings.any { it.hasFakeValueBranch() || state.associatedFunction.containsKey(it) }
+            ) {
                 falseExpr
             } else {
                 val guards = strings.map { state.memory.types.evalTypeEquals(it, EtsStringType) }
