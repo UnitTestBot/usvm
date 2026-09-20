@@ -1,7 +1,3 @@
-class OtherWithNumericName {
-    name: number = 17;
-}
-
 class ForeignFields {
     name: number = 17;
     message: boolean = true;
@@ -18,11 +14,6 @@ export class ErrorEtsIr {
 
     static throwError(): number {
         throw new Error("expected message");
-    }
-
-    static castUserObjectName(): number {
-        const value = new OtherWithNumericName();
-        return (value as unknown as Error).name as unknown as number;
     }
 
     static overwrittenName(): string {

@@ -31,4 +31,12 @@ export class StringReplaceAllEtsIr {
     numericReplacementIsResidual(): string {
         return "abc".replaceAll("a", 1);
     }
+
+    callbackReplacementIsResidual(): string {
+        return "aa".replaceAll("a", (match: string) => match);
+    }
+
+    callableSearchIsResidual(): string {
+        return "aa".replaceAll((match: string) => match, "x");
+    }
 }

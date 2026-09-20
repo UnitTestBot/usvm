@@ -48,7 +48,14 @@ class TsStringReplaceAllEtsIrModelTest {
 
     @Test
     fun `non string arguments remain explicit residual calls`() {
-        for (methodName in listOf("numericSearchIsResidual", "numericReplacementIsResidual")) {
+        val cases = listOf(
+            "numericSearchIsResidual",
+            "numericReplacementIsResidual",
+            "callbackReplacementIsResidual",
+            "callableSearchIsResidual",
+        )
+
+        for (methodName in cases) {
             val (values, events) = analyze(methodName)
 
             assertTrue(values.isEmpty(), methodName)
