@@ -143,10 +143,12 @@ fun TsContext.assignToInstanceField(
     val etsField = resolveEtsField(instanceLocal, field, hierarchy)
     // If we access some field, we expect that the object must have this field.
     // It is not always true for TS, but we decided to process it so.
-    val supertype = EtsAuxiliaryType(properties = setOf(field.name))
-    // assert is required to update models
-    scope.doWithState {
-        scope.assert(memory.types.evalIsSubtype(unwrappedInstance, supertype))
+    if (!field.isDateModelTimestamp()) {
+        val supertype = EtsAuxiliaryType(properties = setOf(field.name))
+        // assert is required to update models
+        scope.doWithState {
+            scope.assert(memory.types.evalIsSubtype(unwrappedInstance, supertype))
+        }
     }
 
     // Determine the field sort.
@@ -195,6 +197,9 @@ fun TsContext.assignToInstanceField(
         }
     }
 }
+
+private fun EtsFieldSignature.isDateModelTimestamp(): Boolean =
+    enclosingClass.name == "DateValue" && name == "timestamp"
 
 internal fun TsExprResolver.handleAssignToStaticField(
     lhv: EtsStaticFieldRef,

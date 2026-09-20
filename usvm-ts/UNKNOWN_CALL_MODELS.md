@@ -284,6 +284,23 @@ Widening a local from `number[]` to `any[]` therefore keeps the same element and
 
 In contrast, `Array.pop` is expressed as the TypeScript body shown above.
 
+### Date experiment boundary
+
+The built-in Date family keeps Gregorian calendar arithmetic, component overflow, leap years, and TimeClip in
+`DateModels.ts`. Kotlin only routes calls, injects the experiment clock, and exposes the model's numeric timestamp
+slot on a Date receiver.
+
+The current experiment has these explicit limits:
+
+- local getters, setters, and numeric component constructors use UTC, so `getTimezoneOffset()` returns zero and DST
+  behavior is outside the model domain;
+- `Date.now()` and `new Date()` require `TsOptions.dateNowMilliseconds`; one fixed value is reused throughout the
+  analysis, and both calls use fallback when it is absent;
+- one-argument construction supports numeric timestamps only; string parsing and copying another Date are outside
+  the model domain;
+- symbolic string formatting is not claimed: `toISOString()` is a source implementation for supported concrete
+  execution, while symbolic string conversion remains subject to the engine's string limitations.
+
 Good intrinsic candidates include:
 
 - bulk symbolic-memory copy or fill;

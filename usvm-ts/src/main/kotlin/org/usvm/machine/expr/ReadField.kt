@@ -83,13 +83,15 @@ fun TsContext.readField(
         is TsResolutionResult.Ambiguous -> unresolvedSort
     }
 
-    scope.doWithState {
-        // If we accessed some field, we make an assumption that
-        // this field should present in the object.
-        // That's not true in the common case for TS, but that's the decision we made.
-        val auxiliaryType = EtsAuxiliaryType(properties = setOf(field.name))
-        // assert is required to update models
-        scope.assert(memory.types.evalIsSubtype(instance, auxiliaryType))
+    if (!field.isDateModelTimestamp()) {
+        scope.doWithState {
+            // If we accessed some field, we make an assumption that
+            // this field should present in the object.
+            // That's not true in the common case for TS, but that's the decision we made.
+            val auxiliaryType = EtsAuxiliaryType(properties = setOf(field.name))
+            // assert is required to update models
+            scope.assert(memory.types.evalIsSubtype(instance, auxiliaryType))
+        }
     }
 
     // If the field type is known, we can read it directly.
@@ -120,6 +122,9 @@ fun TsContext.readField(
         }
     }
 }
+
+private fun EtsFieldSignature.isDateModelTimestamp(): Boolean =
+    enclosingClass.name == "DateValue" && name == "timestamp"
 
 internal fun TsExprResolver.handleStaticFieldRef(
     value: EtsStaticFieldRef,
