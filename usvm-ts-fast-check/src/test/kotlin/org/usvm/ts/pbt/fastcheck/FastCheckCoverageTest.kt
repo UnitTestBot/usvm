@@ -206,12 +206,12 @@ class FastCheckCoverageTest {
 
         fun adapterEntryPoint(): Path = locateFile(
             "fast-check-adapter/dist/src/execution-cli.js",
-            "usvm-ts-pbt/fast-check-adapter/dist/src/execution-cli.js",
+            "usvm-ts-fast-check/fast-check-adapter/dist/src/execution-cli.js",
         )
 
         fun sourceRoot(): Path = locateDirectory(
             "src/test/resources",
-            "usvm-ts-pbt/src/test/resources",
+            "usvm-ts-fast-check/src/test/resources",
         )
 
         fun locateFile(vararg candidates: String): Path = candidates

@@ -2,7 +2,7 @@ package org.usvm.ts.pbt.fastcheck
 
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
-import org.usvm.ts.pbt.PbtDiagnosticCode
+import org.usvm.ts.pbt.FastCheckDiagnosticCode
 import org.usvm.ts.pbt.manifest.PropertyManifestJson
 import org.usvm.ts.pbt.model.contains
 import java.nio.file.Path
@@ -93,12 +93,12 @@ class FastCheckProjectionClient private constructor(
 
     private fun processFailure(output: FastCheckProcessOutput): Nothing =
         throw FastCheckProjectionException(
-            code = PbtDiagnosticCode.BACKEND_PROCESS_FAILED,
+            code = FastCheckDiagnosticCode.BACKEND_PROCESS_FAILED,
             message = "fast-check adapter exited with code ${output.exitCode}: ${output.stderr.trim()}",
         )
 
     private fun emptyResponse(): Nothing = throw FastCheckProjectionException(
-        code = PbtDiagnosticCode.BACKEND_RESPONSE_EMPTY,
+        code = FastCheckDiagnosticCode.BACKEND_RESPONSE_EMPTY,
         message = "fast-check adapter returned an empty response",
     )
 
@@ -106,7 +106,7 @@ class FastCheckProjectionClient private constructor(
         PropertyManifestJson.json.decodeFromString(stdout)
     } catch (error: IllegalArgumentException) {
         throw FastCheckProjectionException(
-            code = PbtDiagnosticCode.BACKEND_RESPONSE_INVALID,
+            code = FastCheckDiagnosticCode.BACKEND_RESPONSE_INVALID,
             message = "fast-check adapter returned invalid JSON: ${error.message}",
             cause = error,
         )
@@ -152,7 +152,7 @@ class FastCheckProjectionClient private constructor(
     private fun validateRequest(request: FastCheckProjectionRequest) {
         if (request.numSamples !in 1..MAX_SAMPLES || request.domains.isEmpty()) {
             throw FastCheckProjectionException(
-                code = PbtDiagnosticCode.PROTOCOL_REQUEST_INVALID,
+                code = FastCheckDiagnosticCode.PROTOCOL_REQUEST_INVALID,
                 message = "Request requires domains and numSamples in 1..$MAX_SAMPLES",
                 path = "request",
             )
@@ -161,7 +161,7 @@ class FastCheckProjectionClient private constructor(
 
     private fun invalidResponse(message: String, path: String? = null): Nothing =
         throw FastCheckProjectionException(
-            code = PbtDiagnosticCode.BACKEND_RESPONSE_INVALID,
+            code = FastCheckDiagnosticCode.BACKEND_RESPONSE_INVALID,
             message = message,
             path = path,
         )

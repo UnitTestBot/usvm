@@ -1,6 +1,6 @@
 package org.usvm.ts.pbt.fastcheck
 
-import org.usvm.ts.pbt.PbtDiagnosticCode
+import org.usvm.ts.pbt.FastCheckDiagnosticCode
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.io.InputStream
@@ -99,7 +99,7 @@ internal class FastCheckProcessTransport(
     private fun requireRequestWithinLimit(request: String, description: String) {
         if (request.toByteArray(Charsets.UTF_8).size > maxRequestBytes) {
             fail(
-                code = PbtDiagnosticCode.BACKEND_REQUEST_TOO_LARGE,
+                code = FastCheckDiagnosticCode.BACKEND_REQUEST_TOO_LARGE,
                 message = "$description request exceeds $maxRequestBytes bytes",
             )
         }
@@ -116,14 +116,14 @@ internal class FastCheckProcessTransport(
                 process.inputStream.readBounded(maxStdoutBytes, stream = "stdout")
             },
             operation = "reading $description stdout",
-            failureCode = PbtDiagnosticCode.BACKEND_PROCESS_READ_FAILED,
+            failureCode = FastCheckDiagnosticCode.BACKEND_PROCESS_READ_FAILED,
         )
         val stderr = ProcessIoTask(
             future = executor.submit<String> {
                 process.errorStream.readBounded(maxStderrBytes, stream = "stderr")
             },
             operation = "reading $description stderr",
-            failureCode = PbtDiagnosticCode.BACKEND_PROCESS_READ_FAILED,
+            failureCode = FastCheckDiagnosticCode.BACKEND_PROCESS_READ_FAILED,
         )
         val writer = ProcessIoTask(
             future = executor.submit<Unit> {
@@ -132,7 +132,7 @@ internal class FastCheckProcessTransport(
                 }
             },
             operation = "writing the $description request",
-            failureCode = PbtDiagnosticCode.BACKEND_PROCESS_WRITE_FAILED,
+            failureCode = FastCheckDiagnosticCode.BACKEND_PROCESS_WRITE_FAILED,
         )
 
         return ProcessIoTasks(stdout = stdout, stderr = stderr, writer = writer)
@@ -158,7 +158,7 @@ internal class FastCheckProcessTransport(
             } catch (error: InterruptedException) {
                 Thread.currentThread().interrupt()
                 fail(
-                    code = PbtDiagnosticCode.BACKEND_PROCESS_INTERRUPTED,
+                    code = FastCheckDiagnosticCode.BACKEND_PROCESS_INTERRUPTED,
                     message = "Interrupted while waiting for the $description",
                     cause = error,
                 )
@@ -221,7 +221,7 @@ internal class FastCheckProcessTransport(
     }
 
     private fun processStartFailure(description: String, error: IOException): Nothing = fail(
-        code = PbtDiagnosticCode.BACKEND_PROCESS_START_FAILED,
+        code = FastCheckDiagnosticCode.BACKEND_PROCESS_START_FAILED,
         message = "Failed to start $description: ${error.message}",
         cause = error,
     )
@@ -296,7 +296,7 @@ internal class FastCheckProcessTransport(
     }
 
     private fun timeout(description: String, reportedTimeoutMillis: Long): Nothing = fail(
-        code = PbtDiagnosticCode.BACKEND_PROCESS_TIMEOUT,
+        code = FastCheckDiagnosticCode.BACKEND_PROCESS_TIMEOUT,
         message = "$description exceeded the $reportedTimeoutMillis ms timeout",
     )
 
@@ -354,7 +354,7 @@ private data class ProcessIoTask<T>(
     } catch (error: InterruptedException) {
         Thread.currentThread().interrupt()
         throw FastCheckTransportException(
-            code = PbtDiagnosticCode.BACKEND_PROCESS_INTERRUPTED,
+            code = FastCheckDiagnosticCode.BACKEND_PROCESS_INTERRUPTED,
             message = "Interrupted while $operation",
             cause = error,
         )
@@ -362,7 +362,7 @@ private data class ProcessIoTask<T>(
         val cause = error.cause ?: error
         if (cause is ProcessOutputLimitExceeded) {
             throw FastCheckTransportException(
-                code = PbtDiagnosticCode.BACKEND_RESPONSE_TOO_LARGE,
+                code = FastCheckDiagnosticCode.BACKEND_RESPONSE_TOO_LARGE,
                 message = "$description ${cause.stream} exceeds ${cause.limit} bytes",
                 cause = cause,
             )

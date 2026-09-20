@@ -4,7 +4,7 @@ import org.usvm.ts.pbt.PbtDiagnosticCode
 import org.usvm.ts.pbt.backend.CoverageDiagnostic
 
 /** Raw V8 evidence replaces the less precise source-map guesses made from the final Istanbul report. */
-internal fun mergeCoverageDiagnostics(
+fun mergeCoverageDiagnostics(
     finalDiagnostics: List<CoverageDiagnostic>,
     rawDiagnostics: List<CoverageDiagnostic>,
 ): List<CoverageDiagnostic> {

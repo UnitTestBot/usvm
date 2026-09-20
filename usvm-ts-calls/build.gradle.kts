@@ -7,6 +7,7 @@ plugins {
 dependencies {
     implementation(project(":usvm-core"))
     implementation(project(":usvm-ts"))
+    implementation(project(":usvm-ts-fast-check"))
     implementation(project(":usvm-ts-pbt"))
     implementation(Libs.jacodb_ets)
     implementation(Libs.kotlinx_serialization_json)
@@ -14,7 +15,7 @@ dependencies {
     testImplementation(Libs.logback)
 }
 
-val fastCheckAdapterDir = project(":usvm-ts-pbt").layout.projectDirectory.dir("fast-check-adapter")
+val fastCheckAdapterDir = project(":usvm-ts-fast-check").layout.projectDirectory.dir("fast-check-adapter")
 val fastCheckRuntimeProperty = "org.usvm.ts.pbt.fastcheck.runtime"
 val generatedBuildMetadataDirectory = layout.buildDirectory.dir("generated/resources/callsBuildMetadata")
 val toolRevision = providers.exec {
@@ -51,7 +52,7 @@ tasks.processResources {
 }
 
 tasks.test {
-    dependsOn(":usvm-ts-pbt:buildFastCheckAdapter")
+    dependsOn(":usvm-ts-fast-check:buildFastCheckAdapter")
     systemProperty(fastCheckRuntimeProperty, fastCheckAdapterDir.asFile.absolutePath)
 }
 
@@ -61,7 +62,7 @@ application {
 }
 
 tasks.named<JavaExec>("run") {
-    dependsOn(":usvm-ts-pbt:buildFastCheckAdapter")
+    dependsOn(":usvm-ts-fast-check:buildFastCheckAdapter")
     systemProperty(fastCheckRuntimeProperty, fastCheckAdapterDir.asFile.absolutePath)
 }
 
@@ -80,6 +81,6 @@ distributions {
 
 listOf("startScripts", "installDist", "distZip", "distTar").forEach { taskName ->
     tasks.named(taskName) {
-        dependsOn(":usvm-ts-pbt:buildFastCheckAdapter")
+        dependsOn(":usvm-ts-fast-check:buildFastCheckAdapter")
     }
 }

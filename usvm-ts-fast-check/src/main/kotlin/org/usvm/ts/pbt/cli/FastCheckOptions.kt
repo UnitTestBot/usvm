@@ -11,7 +11,7 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.int
 import com.github.ajalt.clikt.parameters.types.long
 import com.github.ajalt.clikt.parameters.types.path
-import org.usvm.ts.pbt.PbtDiagnosticCode
+import org.usvm.ts.pbt.FastCheckDiagnosticCode
 import org.usvm.ts.pbt.backend.CoverageScope
 import org.usvm.ts.pbt.backend.PropertyCoverageRequest
 import org.usvm.ts.pbt.backend.PropertyRunConfiguration
@@ -54,14 +54,14 @@ internal fun parseCliOptions(args: Array<String>): CliParseResult {
         CliParseResult.Help(parser.getFormattedHelp(help).orEmpty())
     } catch (error: CliktError) {
         throw CliUsageException(
-            code = PbtDiagnosticCode.CLI_ARGUMENT_INVALID,
+            code = FastCheckDiagnosticCode.CLI_ARGUMENT_INVALID,
             message = error.message ?: "Invalid command line arguments",
             cause = error,
         )
     }
 }
 
-private class FastCheckOptionsParser : CliktCommand(name = "usvm-ts-pbt") {
+private class FastCheckOptionsParser : CliktCommand(name = "usvm-ts-fast-check") {
     private val sourceRoots by option(
         "--source-root",
         help = "TypeScript source root; repeat for multiple roots",
@@ -146,7 +146,7 @@ private class FastCheckOptionsParser : CliktCommand(name = "usvm-ts-pbt") {
     private fun requireSourceRoots() {
         if (sourceRoots.isEmpty()) {
             throw CliUsageException(
-                code = PbtDiagnosticCode.CLI_SOURCE_ROOT_REQUIRED,
+                code = FastCheckDiagnosticCode.CLI_SOURCE_ROOT_REQUIRED,
                 message = "At least one --source-root is required",
                 path = "sourceRoot",
             )
@@ -156,7 +156,7 @@ private class FastCheckOptionsParser : CliktCommand(name = "usvm-ts-pbt") {
     private fun requirePositiveRunControls() {
         if (numRuns <= 0) {
             throw CliUsageException(
-                code = PbtDiagnosticCode.CLI_NUM_RUNS_INVALID,
+                code = FastCheckDiagnosticCode.CLI_NUM_RUNS_INVALID,
                 message = "--num-runs must be positive",
                 path = "numRuns",
             )
@@ -164,7 +164,7 @@ private class FastCheckOptionsParser : CliktCommand(name = "usvm-ts-pbt") {
 
         if (timeoutMillis !in 1..PropertyRunConfiguration.MAX_TIMEOUT_MILLIS) {
             throw CliUsageException(
-                code = PbtDiagnosticCode.CLI_TIMEOUT_INVALID,
+                code = FastCheckDiagnosticCode.CLI_TIMEOUT_INVALID,
                 message = "--timeout-ms must be in 1..${PropertyRunConfiguration.MAX_TIMEOUT_MILLIS}",
                 path = "timeoutMillis",
             )
@@ -177,7 +177,7 @@ private class FastCheckOptionsParser : CliktCommand(name = "usvm-ts-pbt") {
             coverageExcludePatterns.isNotEmpty()
         if (!coverageEnabled && hasCoverageDetails) {
             throw CliUsageException(
-                code = PbtDiagnosticCode.CLI_COVERAGE_REQUIRED,
+                code = FastCheckDiagnosticCode.CLI_COVERAGE_REQUIRED,
                 message = "Coverage scope and path rules require --coverage",
                 path = "coverage",
             )
@@ -205,7 +205,7 @@ private fun parseCoverageScope(value: String): CoverageScope = when (value) {
     "generated-backend-wrappers" -> CoverageScope.GENERATED_BACKEND_WRAPPERS
     "dependencies" -> CoverageScope.DEPENDENCIES
     else -> throw CliUsageException(
-        code = PbtDiagnosticCode.CLI_COVERAGE_SCOPE_INVALID,
+        code = FastCheckDiagnosticCode.CLI_COVERAGE_SCOPE_INVALID,
         message = "Unknown coverage scope $value",
         path = "coverageScope",
     )
@@ -215,7 +215,7 @@ private fun parsePropertyId(value: String): PropertyId = try {
     PropertyId(value)
 } catch (error: IllegalArgumentException) {
     throw CliUsageException(
-        code = PbtDiagnosticCode.CLI_PROPERTY_INVALID,
+        code = FastCheckDiagnosticCode.CLI_PROPERTY_INVALID,
         message = error.message.orEmpty(),
         path = "property",
         cause = error,

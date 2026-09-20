@@ -18,7 +18,7 @@ import java.util.stream.Collectors
 import kotlin.io.path.invariantSeparatorsPathString
 
 /** Reads bounded raw V8 source-map caches that c8 does not retain in its final Istanbul report. */
-internal fun inspectRawV8SourceMapDiagnostics(
+fun inspectRawV8SourceMapDiagnostics(
     rawDirectory: Path,
     sourceRoots: List<String>,
     maxReportFiles: Int = MAX_RAW_V8_REPORT_FILES,

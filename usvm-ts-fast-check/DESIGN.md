@@ -1,11 +1,13 @@
 # Kotlin–TypeScript fast-check integration
 
-This document describes the internal boundary between Kotlin and the private Node adapter. For the public property
-API and CLI examples, see [README.md](README.md).
+This document describes the `usvm-ts-fast-check` boundary between Kotlin and the private Node adapter. The
+backend-neutral property, coverage, and mapping contracts live in `usvm-ts-pbt`. For public backend and CLI
+examples, see [README.md](README.md).
 
 ## Design goals
 
-- Kotlin owns property definitions, validation, registries, orchestration, and public results.
+- `usvm-ts-pbt` owns property definitions, validation, registries, coverage decoding, mapping, and public results.
+- `usvm-ts-fast-check` owns FastCheck orchestration and runtime packaging.
 - Node is a thin adapter around fast-check and direct TypeScript loading.
 - Per-property source coverage is an optional backend capability collected by Kotlin through an isolated c8 run.
 - A backend-neutral Kotlin mapping layer connects manifests and source coverage to EtsIR without changing the
@@ -72,7 +74,7 @@ separate Istanbul report after a valid response. Backend identity belongs to `co
 
 Kotlin validates trusted model objects and examples early so callers get local errors. Node validates the decoded
 JSON again because the process boundary must not trust malformed input. Diagnostic codes have one owner per
-language: `PbtDiagnosticCode.kt` for Kotlin and `diagnostics.ts` for Node. Node also sends the diagnostic category,
+language: `FastCheckDiagnosticCode.kt` for Kotlin and `diagnostics.ts` for Node. Node also sends the diagnostic category,
 so Kotlin never infers error meaning from code prefixes.
 
 ## One property run

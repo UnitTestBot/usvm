@@ -23,6 +23,7 @@ tasks.register("validateProjectList") {
             project(":usvm-python"),
             project(":usvm-ts"),
             project(":usvm-ts-calls"),
+            project(":usvm-ts-fast-check"),
             project(":usvm-ts-pbt"),
             project(":usvm-ts-dataflow"),
         )

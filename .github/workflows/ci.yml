@@ -188,7 +188,7 @@ jobs:
           node-version: 22
 
       - name: Run TS PBT integration baseline
-        run: env -u ARKANALYZER_DIR ETS_IR_PROVIDER=ts-frontend ./gradlew :usvm-ts-pbt:check
+        run: env -u ARKANALYZER_DIR ETS_IR_PROVIDER=ts-frontend ./gradlew :usvm-ts-pbt:check :usvm-ts-fast-check:check
 
   lint:
     runs-on: ubuntu-latest
