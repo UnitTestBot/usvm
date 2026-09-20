@@ -150,7 +150,7 @@ fun TsContext.assignToInstanceField(
     val etsField = resolveEtsField(instanceLocal, field, hierarchy)
     // If we access some field, we expect that the object must have this field.
     // It is not always true for TS, but we decided to process it so.
-    if (!field.isDateModelTimestamp()) {
+    if (!field.isModelStorageField()) {
         val supertype = EtsAuxiliaryType(properties = setOf(field.name))
         val propertyExists = scope.calcOnState { memory.types.evalIsSubtype(unwrappedInstance, supertype) }
         // The assertion is required to update models before the write.
@@ -204,8 +204,13 @@ fun TsContext.assignToInstanceField(
     }
 }
 
-private fun EtsFieldSignature.isDateModelTimestamp(): Boolean =
-    enclosingClass.name == "DateValue" && name == "timestamp"
+private fun EtsFieldSignature.isModelStorageField(): Boolean = when (enclosingClass.name) {
+    "DateValue" -> name == "timestamp"
+    "ErrorValue" -> {
+        enclosingClass.file.fileName == "ErrorModels.ts" && (name == "name" || name == "message")
+    }
+    else -> false
+}
 
 internal fun TsExprResolver.handleAssignToStaticField(
     lhv: EtsStaticFieldRef,

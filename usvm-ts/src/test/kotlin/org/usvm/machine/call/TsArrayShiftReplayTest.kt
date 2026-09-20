@@ -153,9 +153,65 @@ class TsArrayShiftReplayTest {
                 """.trimIndent(),
             )
         )
+        addAll(assertionAndWriteCases())
         addAll(storageOperationCases())
         addAll(pairCases())
         addAll(typedCases())
+    }
+
+    private fun assertionAndWriteCases(): List<ReplayCase> = buildList {
+        add(
+            ReplayCase(
+                name = "number type assertions preserve runtime values",
+                parameters = "value: number",
+                maxResult = 1,
+                body = """
+                    if (value !== 42) return 0;
+                    const asserted = value as unknown as string;
+                    return typeof asserted === 'number' && asserted === 42 ? 1 : -1;
+                """.trimIndent(),
+            )
+        )
+        add(
+            ReplayCase(
+                name = "boolean type assertions do not convert to numbers",
+                parameters = "value: boolean",
+                maxResult = 1,
+                body = """
+                    if (!value) return 0;
+                    const asserted = value as unknown as number;
+                    return typeof asserted === 'boolean' && asserted === true ? 1 : -1;
+                """.trimIndent(),
+            )
+        )
+        add(
+            ReplayCase(
+                name = "truthy wrapped number retains its runtime kind through assertion and write",
+                parameters = "values: number[]",
+                maxResult = 2,
+                body = """
+                    if (values.length !== 1) return 0;
+                    const item = values[0];
+                    if (!item) return 1;
+                    const asserted = item as unknown as number;
+                    const output = [0];
+                    output[0] = asserted;
+                    return output[0] === item ? 2 : -1;
+                """.trimIndent(),
+            )
+        )
+        add(
+            ReplayCase(
+                name = "typed array copies preserve wrapped numbers including NaN",
+                parameters = "values: number[]",
+                maxResult = 1,
+                body = """
+                    if (values.length !== 2) return 0;
+                    values[0] = values[1];
+                    return values[0] === values[1] || values[0] !== values[0] ? 1 : -1;
+                """.trimIndent(),
+            )
+        )
     }
 
     private fun storageOperationCases(): List<ReplayCase> = listOf("any", "unknown").flatMap { type ->

@@ -21,6 +21,8 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
+private const val ERROR_CONSTRUCTOR_MODEL_ID: String = "ts.error.constructor"
+
 @Suppress("LargeClass")
 class CurrentTsCallsSymbolicEngineTest {
     @TempDir
@@ -587,6 +589,51 @@ class CurrentTsCallsSymbolicEngineTest {
     }
 
     @Test
+    fun `preflight rejects exponentiation before scheduling profiles`() {
+        val fixture = fixture(
+            source = """
+                export function cubeRoot(value: number): boolean {
+                  if (value ** (1 / 3) === 2) {
+                    return true;
+                  }
+                  return false;
+                }
+            """.trimIndent(),
+            exportName = "cubeRoot",
+            inputs = listOf(PropertyInput(name = "value", domain = NumberDomain())),
+            targetStatement = "return true;",
+        )
+
+        val result = fixture.preflight()
+
+        assertEquals(CallsSymbolicPreflightStatus.UNSUPPORTED, result.status)
+        assertEquals(CallsSymbolicPreflightReasonCode.EXPONENTIATION_UNSUPPORTED, result.reasonCode)
+    }
+
+    @Test
+    fun `preflight checks a global regex initializer reached by a static field read`() {
+        val fixture = fixture(
+            source = """
+                export const pattern = /abc/;
+                export function matches(value: string): boolean {
+                  if (pattern.test(value)) {
+                    return true;
+                  }
+                  return false;
+                }
+            """.trimIndent(),
+            exportName = "matches",
+            inputs = listOf(PropertyInput(name = "value", domain = StringDomain())),
+            targetStatement = "return true;",
+        )
+
+        val result = fixture.preflight()
+
+        assertEquals(CallsSymbolicPreflightStatus.UNSUPPORTED, result.status)
+        assertEquals(CallsSymbolicPreflightReasonCode.REGEX_LITERAL_UNSUPPORTED, result.reasonCode)
+    }
+
+    @Test
     fun `initializes captured Math for modeled arrow search and replay`() {
         val fixture = fixture(
             source = """
@@ -724,6 +771,46 @@ class CurrentTsCallsSymbolicEngineTest {
         fixture.assertReplayConfirmed(inputs)
     }
 
+    @Test
+    fun `Error constructor model reaches throw and native replay preserves the exception`() {
+        val fixture = fixture(
+            source = """
+                export function rejectsZero(value: number): boolean {
+                  if (value === 0) {
+                    throw new Error('expected message');
+                  }
+                  return false;
+                }
+            """.trimIndent(),
+            exportName = "rejectsZero",
+            inputs = listOf(PropertyInput(name = "value", domain = NumberDomain())),
+            targetStatement = "throw new Error('expected message');",
+        )
+        val unknownCalls = mutableListOf<TsUnknownCallEvent>()
+
+        val result = fixture.search(
+            modelIds = setOf(ERROR_CONSTRUCTOR_MODEL_ID),
+            unknownCallEventSink = unknownCalls::add,
+        )
+
+        val inputs = assertNotNull(result.inputs, "$result; unknownCalls=$unknownCalls")
+        assertTrue(assertIs<JsConcreteValue.Number>(inputs.single()).toDouble() == 0.0)
+        assertEquals(
+            listOf(ERROR_CONSTRUCTOR_MODEL_ID),
+            unknownCalls.mapNotNull { event ->
+                (event.decision as? TsUnknownCallDecision.ModelApplied)?.modelId
+            },
+            unknownCalls.toString(),
+        )
+
+        val replay = fixture.replay(inputs)
+        assertEquals(CallsReplayStatus.CONFIRMED, replay.status, replay.toString())
+        assertEquals("threw", replay.invocation?.invocation)
+        assertEquals(true, replay.invocation?.targetHit)
+        assertEquals("Error", replay.invocation?.errorName)
+        assertEquals("expected message", replay.invocation?.errorMessage)
+    }
+
     private fun fixture(
         source: String,
         exportName: String,
@@ -836,15 +923,18 @@ class CurrentTsCallsSymbolicEngineTest {
         )
 
         fun assertReplayConfirmed(inputs: List<JsConcreteValue>) {
-            val replay = OriginalTypeScriptTargetReplayer().replay(
+            val replay = replay(inputs)
+
+            assertEquals(CallsReplayStatus.CONFIRMED, replay.status, replay.toString())
+        }
+
+        fun replay(inputs: List<JsConcreteValue>): CallsSourceReplayResult =
+            OriginalTypeScriptTargetReplayer().replay(
                 sourceRoots = listOf(sourceRoot),
                 entryPoint = function.entryPoint,
                 inputs = inputs,
                 target = target,
                 timeoutMillis = 10_000L,
             )
-
-            assertEquals(CallsReplayStatus.CONFIRMED, replay.status, replay.toString())
-        }
     }
 }

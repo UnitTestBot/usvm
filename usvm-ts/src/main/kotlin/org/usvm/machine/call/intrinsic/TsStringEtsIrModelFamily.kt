@@ -34,6 +34,7 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
     private const val CLASS_NAME = "StringModels"
     private const val PRIMITIVES_CLASS_NAME = "StringModelPrimitives"
     private const val RESOURCE_NAME = "/org/usvm/machine/call/models/StringModels.ts"
+    private const val REPLACE_ALL_INPUT_COUNT = 3
 
     private val characterArrayType = EtsArrayType(EtsNumberType, dimensions = 1)
 
@@ -167,6 +168,22 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         }
     }
 
+    private val replaceAllAdapter = TsEtsIrUnknownCallModelInputAdapter { _, call ->
+        if (call.arguments.size == 2) call.resolvedInstanceInputs() else null
+    }
+
+    private val replaceAllDomain = TsEtsIrUnknownCallModelDomainGuard { state, _, inputs ->
+        with(state.ctx) {
+            val strings = inputs.filterIsInstance<UConcreteHeapRef>()
+            if (strings.size != REPLACE_ALL_INPUT_COUNT || strings.any { it.hasFakeValueBranch() }) {
+                falseExpr
+            } else {
+                val guards = strings.map { state.memory.types.evalTypeEquals(it, EtsStringType) }
+                mkAnd(guards)
+            }
+        }
+    }
+
     private val asciiReceiverDomain = TsEtsIrUnknownCallModelDomainGuard { state, call, inputs ->
         with(state.ctx) {
             val receiverGuard = receiverDomain.evaluate(state, call, inputs)
@@ -261,6 +278,12 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                 domainGuard = receiverDomain,
             ),
             sourceModel(
+                id = "ts.string.replaceAll",
+                methodName = "replaceAll",
+                inputAdapter = replaceAllAdapter,
+                domainGuard = replaceAllDomain,
+            ),
+            sourceModel(
                 id = "ts.string.trim",
                 methodName = "trim",
                 inputAdapter = noArgumentsAdapter,
@@ -332,10 +355,10 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             add(MATH_FLOOR_MODEL_ID)
             add(PRIMITIVE_LENGTH_ID)
             add(PRIMITIVE_CODE_UNIT_AT_ID)
-            if (methodName in setOf("charAt", "toUpperCase", "toLowerCase")) {
+            if (methodName in setOf("charAt", "toUpperCase", "toLowerCase", "replaceAll")) {
                 add(PRIMITIVE_FROM_CODE_UNIT_ID)
             }
-            if (methodName in setOf("slice", "substring", "trim", "trimStart", "trimEnd")) {
+            if (methodName in setOf("slice", "substring", "trim", "trimStart", "trimEnd", "replaceAll")) {
                 add(PRIMITIVE_COPY_RANGE_ID)
             }
         },
