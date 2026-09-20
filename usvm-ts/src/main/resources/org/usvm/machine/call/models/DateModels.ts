@@ -492,15 +492,11 @@ export class DateModels {
             return value;
         }
 
-        return value < 0
-            ? -DateModels.floorDiv(-value, 1)
-            : DateModels.floorDiv(value, 1);
+        return value < 0 ? -Math.floor(-value) : Math.floor(value);
     }
 
     private static floorDiv(dividend: number, divisor: number): number {
-        const remainder = dividend % divisor;
-        const quotient = (dividend - remainder) / divisor;
-        return remainder < 0 ? quotient - 1 : quotient;
+        return Math.floor(dividend / divisor);
     }
 
     private static mod(dividend: number, divisor: number): number {
