@@ -76,6 +76,13 @@ export class DateEtsIr {
     }
 
     symbolicRoundTrip(timestamp: number): number {
+        if (timestamp === 123.9) {
+            return new Date(timestamp).valueOf();
+        }
+        if (timestamp === -123.9) {
+            return new Date(timestamp).valueOf();
+        }
+
         return new Date(timestamp).valueOf();
     }
 }
