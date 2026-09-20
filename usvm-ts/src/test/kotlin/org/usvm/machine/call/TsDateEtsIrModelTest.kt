@@ -116,12 +116,16 @@ class TsDateEtsIrModelTest {
             }
         }
 
-        assertTrue(tests.any { test ->
-            assertIs<TsTestValue.TsNumber>(test.returnValue).number.isNaN()
-        })
-        assertTrue(tests.any { test ->
-            assertIs<TsTestValue.TsNumber>(test.returnValue).number.isFinite()
-        })
+        assertTrue(
+            tests.any { test ->
+                assertIs<TsTestValue.TsNumber>(test.returnValue).number.isNaN()
+            }
+        )
+        assertTrue(
+            tests.any { test ->
+                assertIs<TsTestValue.TsNumber>(test.returnValue).number.isFinite()
+            }
+        )
     }
 
     private fun assertNumber(methodName: String, expected: Double) {
