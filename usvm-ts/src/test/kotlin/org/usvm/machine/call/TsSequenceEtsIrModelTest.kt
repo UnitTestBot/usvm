@@ -1,0 +1,184 @@
+package org.usvm.machine.call
+
+import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.utils.EtsIrProvider
+import org.jacodb.ets.utils.loadEtsFileAutoConvert
+import org.usvm.PathSelectionStrategy
+import org.usvm.SolverType
+import org.usvm.StateCollectionStrategy
+import org.usvm.UMachineOptions
+import org.usvm.api.TsTestValue
+import org.usvm.machine.TsInterpreterObserver
+import org.usvm.machine.TsMachine
+import org.usvm.machine.TsOptions
+import org.usvm.util.TsTestResolver
+import org.usvm.util.getResourcePath
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlin.test.assertTrue
+import kotlin.time.Duration
+
+class TsSequenceEtsIrModelTest {
+    private val sourceFile = loadEtsFileAutoConvert(
+        getResourcePath("/models/SequenceEtsIr.ts"),
+        provider = EtsIrProvider.TS_FRONTEND,
+    )
+    private val scene = EtsScene(listOf(sourceFile))
+
+    @Test
+    fun `array indexOf uses strict equality and offsets`() {
+        val result = analyze(methodName = "arrayIndexOfUsesStrictEqualityAndOffsets")
+
+        assertEquals(-681.0, assertIs<TsTestValue.TsNumber>(result.values.single()).number)
+        assertEquals(listOf("ts.array.indexOf"), result.modelIds.distinct())
+    }
+
+    @Test
+    fun `array includes uses SameValueZero`() {
+        val result = analyze(methodName = "arrayIncludesUsesSameValueZero")
+
+        assertTrue(assertIs<TsTestValue.TsBoolean>(result.values.single()).value)
+        assertEquals(listOf("ts.array.includes"), result.modelIds.distinct())
+    }
+
+    @Test
+    fun `array offsets normalize fractions and NaN`() {
+        val result = analyze(methodName = "arrayOffsetsAreNormalized")
+
+        assertEquals(131.0, assertIs<TsTestValue.TsNumber>(result.values.single()).number)
+        assertEquals(setOf("ts.array.includes", "ts.array.indexOf"), result.modelIds.toSet())
+    }
+
+    @Test
+    fun `empty arrays do not match`() {
+        val result = analyze(methodName = "emptyArraysDoNotMatch")
+
+        assertTrue(assertIs<TsTestValue.TsBoolean>(result.values.single()).value)
+    }
+
+    @Test
+    fun `explicit undefined uses the default array offset`() {
+        val result = analyze(methodName = "arrayExplicitUndefinedOffset")
+
+        assertEquals(0.0, assertIs<TsTestValue.TsNumber>(result.values.single()).number)
+    }
+
+    @Test
+    fun `array includes finds explicit undefined`() {
+        val result = analyze(methodName = "explicitUndefinedArrayIncludesUndefined")
+
+        assertTrue(assertIs<TsTestValue.TsBoolean>(result.values.single()).value)
+    }
+
+    @Test
+    fun `array indexOf rejects undefined search when slot presence is unavailable`() {
+        val result = analyze(methodName = "explicitUndefinedArrayIndexOfUndefined")
+
+        assertTrue(result.values.isEmpty())
+        assertEquals(TsUnknownCallOutcome.PATH_STOPPED, result.events.last().outcome)
+    }
+
+    @Test
+    fun `string charAt handles in-range and out-of-range indexes`() {
+        val result = analyze(methodName = "stringCharAtHandlesBounds")
+
+        assertEquals("b", assertIs<TsTestValue.TsString>(result.values.single()).value)
+        assertTrue("ts.string.charAt" in result.modelIds)
+        assertTrue(result.events.all { it.outcome == TsUnknownCallOutcome.MODEL_APPLIED })
+    }
+
+    @Test
+    fun `string indexOf handles offsets and empty search`() {
+        val result = analyze(methodName = "stringIndexOfHandlesOffsetsAndEmptySearch")
+
+        assertEquals(330.0, assertIs<TsTestValue.TsNumber>(result.values.single()).number)
+        assertTrue("ts.string.indexOf" in result.modelIds)
+        assertTrue(result.events.all { it.outcome == TsUnknownCallOutcome.MODEL_APPLIED })
+    }
+
+    @Test
+    fun `string includes handles NaN and infinity positions`() {
+        val result = analyze(methodName = "stringIncludesHandlesNaNPosition")
+
+        assertTrue(assertIs<TsTestValue.TsBoolean>(result.values.single()).value)
+        assertTrue("ts.string.includes" in result.modelIds)
+        assertTrue(result.events.all { it.outcome == TsUnknownCallOutcome.MODEL_APPLIED })
+    }
+
+    @Test
+    fun `explicit undefined uses default string positions`() {
+        val result = analyze(methodName = "stringExplicitUndefinedPositions")
+
+        assertEquals(1.0, assertIs<TsTestValue.TsNumber>(result.values.single()).number)
+    }
+
+    @Test
+    fun `symbolic string position explores exact matches`() {
+        val result = analyze(methodName = "stringSymbolicPosition")
+        val numbers = result.values.filterIsInstance<TsTestValue.TsNumber>().map { it.number }.toSet()
+
+        assertTrue(1.0 in numbers, "Expected first match for positions at or before 1: $numbers")
+        assertTrue(3.0 in numbers, "Expected second match for positions 2 or 3: $numbers")
+        assertTrue(-1.0 in numbers, "Expected no match after the last occurrence: $numbers")
+        assertTrue("ts.string.indexOf" in result.modelIds)
+    }
+
+    private fun analyze(methodName: String): AnalysisResult {
+        val method = method(methodName)
+        val observer = RecordingUnknownCallObserver()
+
+        return TsMachine(
+            scene = scene,
+            options = machineOptions,
+            tsOptions = TsOptions(),
+            observer = observer,
+        ).use { machine ->
+            val states = machine.analyze(listOf(method))
+            val values = states.map { state -> TsTestResolver().resolve(method, state).returnValue }
+
+            AnalysisResult(
+                values = values,
+                events = observer.events.toList(),
+            )
+        }
+    }
+
+    private fun method(name: String): EtsMethod = scene.projectClasses
+        .single { it.name == "SequenceEtsIr" }
+        .methods
+        .single { it.name == name }
+
+    private class RecordingUnknownCallObserver : TsInterpreterObserver {
+        val events = mutableListOf<TsUnknownCallEvent>()
+
+        override fun onUnknownCall(event: TsUnknownCallEvent) {
+            events += event
+        }
+    }
+
+    private data class AnalysisResult(
+        val values: List<TsTestValue>,
+        val events: List<TsUnknownCallEvent>,
+    ) {
+        val modelIds: List<String>
+            get() = events.mapNotNull { event ->
+                (event.decision as? TsUnknownCallDecision.ModelApplied)?.modelId
+            }
+    }
+
+    private companion object {
+        val machineOptions = UMachineOptions(
+            pathSelectionStrategies = listOf(PathSelectionStrategy.BFS),
+            stateCollectionStrategy = StateCollectionStrategy.ALL,
+            exceptionsPropagation = true,
+            throwExceptionOnStepFailure = true,
+            timeout = Duration.INFINITE,
+            stepsFromLastCovered = 20_000L,
+            solverType = SolverType.YICES,
+            solverTimeout = Duration.INFINITE,
+            typeOperationsTimeout = Duration.INFINITE,
+        )
+    }
+}
