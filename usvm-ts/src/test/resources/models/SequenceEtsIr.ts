@@ -48,6 +48,15 @@ export class SequenceEtsIr {
         return [1].lastIndexOf(1, -2);
     }
 
+    arraySearchReturnsPositiveZero(): number {
+        const first = [1].indexOf(1, -0);
+        const last = [1].lastIndexOf(1, -0.9);
+        let result = 0;
+        if (1 / first === Infinity) result += 1;
+        if (1 / last === Infinity) result += 2;
+        return result;
+    }
+
     numericHoleDoesNotMatchZero(): number {
         const values = new Array<number>(1);
         return values.indexOf(0);

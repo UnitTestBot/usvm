@@ -74,6 +74,9 @@ export class ArrayModels {
         let start = fromIndex !== fromIndex ? 0 : fromIndex;
         if (start !== Infinity) {
             start = start < 0 ? -Math.floor(-start) : Math.floor(start);
+            if (start === 0) {
+                start = 0;
+            }
         }
         if (start < -length) {
             return -1;
@@ -104,6 +107,7 @@ export class ArrayModels {
             return -length;
         }
 
-        return fromIndex < 0 ? -Math.floor(-fromIndex) : Math.floor(fromIndex);
+        const integer = fromIndex < 0 ? -Math.floor(-fromIndex) : Math.floor(fromIndex);
+        return integer === 0 ? 0 : integer;
     }
 }

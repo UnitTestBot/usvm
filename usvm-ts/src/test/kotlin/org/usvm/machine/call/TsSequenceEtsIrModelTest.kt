@@ -32,7 +32,7 @@ class TsSequenceEtsIrModelTest {
         val result = analyze(methodName = "arrayIndexOfUsesStrictEqualityAndOffsets")
 
         assertEquals(-681.0, assertIs<TsTestValue.TsNumber>(result.values.single()).number)
-        assertEquals(listOf("ts.array.indexOf"), result.modelIds.distinct())
+        assertEquals(listOf("ts.array.indexOf", "ts.math.floor"), result.modelIds.distinct())
     }
 
     @Test
@@ -40,7 +40,7 @@ class TsSequenceEtsIrModelTest {
         val result = analyze(methodName = "arrayIncludesUsesSameValueZero")
 
         assertTrue(assertIs<TsTestValue.TsBoolean>(result.values.single()).value)
-        assertEquals(listOf("ts.array.includes"), result.modelIds.distinct())
+        assertEquals(listOf("ts.array.includes", "ts.math.floor"), result.modelIds.distinct())
     }
 
     @Test
@@ -56,7 +56,7 @@ class TsSequenceEtsIrModelTest {
         val result = analyze(methodName = "arrayOffsetsAreNormalized")
 
         assertEquals(131.0, assertIs<TsTestValue.TsNumber>(result.values.single()).number)
-        assertEquals(setOf("ts.array.includes", "ts.array.indexOf"), result.modelIds.toSet())
+        assertEquals(setOf("ts.array.includes", "ts.array.indexOf", "ts.math.floor"), result.modelIds.toSet())
     }
 
     @Test
@@ -93,6 +93,13 @@ class TsSequenceEtsIrModelTest {
         val result = analyze(methodName = "arrayLastIndexOfBeforeStart")
 
         assertEquals(-1.0, assertIs<TsTestValue.TsNumber>(result.values.single()).number)
+    }
+
+    @Test
+    fun `array searches canonicalize negative zero results`() {
+        val result = analyze(methodName = "arraySearchReturnsPositiveZero")
+
+        assertEquals(3.0, assertIs<TsTestValue.TsNumber>(result.values.single()).number)
     }
 
     @Test
@@ -158,6 +165,7 @@ class TsSequenceEtsIrModelTest {
         assertEquals(
             setOf(
                 "ts.string.charAt",
+                "ts.math.floor",
                 "ts.string.primitive.codeUnitAt",
                 "ts.string.primitive.fromCodeUnit",
                 "ts.string.primitive.length",
