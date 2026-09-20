@@ -23,39 +23,61 @@ internal object TsNumericIntrinsicModelFamily : TsBuiltInUnknownCallModelFamily 
     const val NUMBER_IS_INTEGER_ID: String = "ts.number.isInteger"
 
     override val models: List<TsUnknownCallModel> = listOf(
-        NumericIntrinsicModel(MATH_ABS_ID, "abs") { state, call ->
-            unaryMathCall(state, call) { value -> state.ctx.mkFpAbsExpr(value) }
-        },
-        NumericIntrinsicModel(MATH_CEIL_ID, "ceil") { state, call ->
-            unaryMathCall(state, call) { value ->
-                with(state.ctx) {
-                    mkFpRoundToIntegralExpr(
-                        roundingMode = mkFpRoundingModeExpr(KFpRoundingMode.RoundTowardPositive),
-                        value = value,
-                    )
+        NumericIntrinsicModel(
+            id = MATH_ABS_ID,
+            methodName = "abs",
+            implementation = { state, call ->
+                unaryMathCall(state, call) { value -> state.ctx.mkFpAbsExpr(value) }
+            },
+        ),
+        NumericIntrinsicModel(
+            id = MATH_CEIL_ID,
+            methodName = "ceil",
+            implementation = { state, call ->
+                unaryMathCall(state, call) { value ->
+                    with(state.ctx) {
+                        mkFpRoundToIntegralExpr(
+                            roundingMode = mkFpRoundingModeExpr(KFpRoundingMode.RoundTowardPositive),
+                            value = value,
+                        )
+                    }
                 }
-            }
-        },
-        NumericIntrinsicModel(MATH_MAX_ID, "max") { state, call ->
-            variadicMathCall(
-                state = state,
-                call = call,
-                identity = Double.NEGATIVE_INFINITY,
-                combine = state::mathMax,
-            )
-        },
-        NumericIntrinsicModel(MATH_MIN_ID, "min") { state, call ->
-            variadicMathCall(
-                state = state,
-                call = call,
-                identity = Double.POSITIVE_INFINITY,
-                combine = state::mathMin,
-            )
-        },
-        NumericIntrinsicModel(MATH_ROUND_ID, "round") { state, call ->
-            unaryMathCall(state, call, state::mathRound)
-        },
-        NumericIntrinsicModel(NUMBER_IS_INTEGER_ID, "isInteger", ::numberIsInteger),
+            },
+        ),
+        NumericIntrinsicModel(
+            id = MATH_MAX_ID,
+            methodName = "max",
+            implementation = { state, call ->
+                variadicMathCall(
+                    state = state,
+                    call = call,
+                    identity = Double.NEGATIVE_INFINITY,
+                    combine = state::mathMax,
+                )
+            },
+        ),
+        NumericIntrinsicModel(
+            id = MATH_MIN_ID,
+            methodName = "min",
+            implementation = { state, call ->
+                variadicMathCall(
+                    state = state,
+                    call = call,
+                    identity = Double.POSITIVE_INFINITY,
+                    combine = state::mathMin,
+                )
+            },
+        ),
+        NumericIntrinsicModel(
+            id = MATH_ROUND_ID,
+            methodName = "round",
+            implementation = { state, call -> unaryMathCall(state, call, state::mathRound) },
+        ),
+        NumericIntrinsicModel(
+            id = NUMBER_IS_INTEGER_ID,
+            methodName = "isInteger",
+            implementation = ::numberIsInteger,
+        ),
     )
 }
 
@@ -71,10 +93,11 @@ private class NumericIntrinsicModel(
 }
 
 private fun numberIsInteger(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution? {
-    if (!call.hasGlobalOwner("Number") || call.arguments.size != 1) {
+    if (!call.hasGlobalOwner("Number")) {
         return null
     }
-    val value = call.arguments.single().resolved ?: return null
+    val value = call.arguments.firstOrNull()?.resolved
+        ?: return state.normalExecution(state.ctx.falseExpr)
     val result = with(state.ctx) {
         if (value.isFakeObject()) {
             val type = value.getFakeType(state.memory)
@@ -99,10 +122,11 @@ private fun unaryMathCall(
     call: TsUnknownCall,
     operation: (UExpr<KFp64Sort>) -> UExpr<KFp64Sort>,
 ): TsUnknownCallModelExecution? {
-    if (!call.hasGlobalOwner("Math") || call.arguments.size != 1) {
+    if (!call.hasGlobalOwner("Math")) {
         return null
     }
-    val argument = call.arguments.single().resolved ?: return null
+    val argument = call.arguments.firstOrNull()?.resolved
+        ?: return state.normalExecution(state.ctx.mkFp(Double.NaN, state.ctx.fp64Sort))
     if (argument.sort != state.ctx.fp64Sort) {
         return null
     }
