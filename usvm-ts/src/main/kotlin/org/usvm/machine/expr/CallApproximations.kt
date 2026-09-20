@@ -57,12 +57,13 @@ internal fun TsExprResolver.tryApproximateGlobalInstanceCall(
     // Handle `Number` calls.
     if (expr.instance.name == "Number") {
         when (expr.callee.name) {
-            "isInteger" -> {
+            "isFinite", "isInteger", "isSafeInteger" -> {
                 return tryDispatchNumericBuiltin(expr)
                     ?: TsExprApproximationResult.NoApproximation
             }
 
-            "isNaN" -> return from(handleNumberIsNaN(expr))
+            "isNaN" -> return tryDispatchNumericBuiltin(expr)
+                ?: from(handleNumberIsNaN(expr))
         }
     }
 
@@ -86,12 +87,13 @@ internal fun TsExprResolver.tryApproximateGlobalInstanceCall(
     // Handle `Math` method calls.
     if (expr.instance.name == "Math") {
         when (expr.callee.name) {
-            "abs", "ceil", "max", "min", "round" -> {
+            "abs", "ceil", "max", "min", "round", "sqrt", "trunc" -> {
                 return tryDispatchNumericBuiltin(expr)
                     ?: TsExprApproximationResult.NoApproximation
             }
 
-            "floor" -> return from(handleMathFloor(expr))
+            "floor" -> return tryDispatchNumericBuiltin(expr)
+                ?: from(handleMathFloor(expr))
         }
     }
 

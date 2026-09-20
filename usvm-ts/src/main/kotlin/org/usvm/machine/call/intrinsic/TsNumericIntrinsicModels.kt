@@ -4,6 +4,7 @@ import io.ksmt.expr.KFpRoundingMode
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsLocal
+import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.machine.call.TsUnknownCall
 import org.usvm.machine.call.TsUnknownCallFailureReason
@@ -17,10 +18,16 @@ import org.usvm.machine.state.TsState
 internal object TsNumericIntrinsicModelFamily : TsBuiltInUnknownCallModelFamily {
     const val MATH_ABS_ID: String = "ts.math.abs"
     const val MATH_CEIL_ID: String = "ts.math.ceil"
+    const val MATH_FLOOR_ID: String = "ts.math.floor"
     const val MATH_MAX_ID: String = "ts.math.max"
     const val MATH_MIN_ID: String = "ts.math.min"
     const val MATH_ROUND_ID: String = "ts.math.round"
+    const val MATH_SQRT_ID: String = "ts.math.sqrt"
+    const val MATH_TRUNC_ID: String = "ts.math.trunc"
+    const val NUMBER_IS_FINITE_ID: String = "ts.number.isFinite"
     const val NUMBER_IS_INTEGER_ID: String = "ts.number.isInteger"
+    const val NUMBER_IS_NAN_ID: String = "ts.number.isNaN"
+    const val NUMBER_IS_SAFE_INTEGER_ID: String = "ts.number.isSafeInteger"
 
     override val models: List<TsUnknownCallModel> = listOf(
         NumericIntrinsicModel(
@@ -43,6 +50,11 @@ internal object TsNumericIntrinsicModelFamily : TsBuiltInUnknownCallModelFamily 
                     }
                 }
             },
+        ),
+        NumericIntrinsicModel(
+            id = MATH_FLOOR_ID,
+            methodName = "floor",
+            implementation = roundingMathCall(roundingMode = KFpRoundingMode.RoundTowardNegative),
         ),
         NumericIntrinsicModel(
             id = MATH_MAX_ID,
@@ -74,9 +86,46 @@ internal object TsNumericIntrinsicModelFamily : TsBuiltInUnknownCallModelFamily 
             implementation = { state, call -> unaryMathCall(state, call, state::mathRound) },
         ),
         NumericIntrinsicModel(
+            id = MATH_SQRT_ID,
+            methodName = "sqrt",
+            implementation = { state, call ->
+                unaryMathCall(state, call) { value ->
+                    state.ctx.mkFpSqrtExpr(state.ctx.fpRoundingModeSortDefaultValue(), value)
+                }
+            },
+        ),
+        NumericIntrinsicModel(
+            id = MATH_TRUNC_ID,
+            methodName = "trunc",
+            implementation = roundingMathCall(roundingMode = KFpRoundingMode.RoundTowardZero),
+        ),
+        NumericIntrinsicModel(
+            id = NUMBER_IS_FINITE_ID,
+            methodName = "isFinite",
+            implementation = { state, call ->
+                numberPredicate(state, call) { value ->
+                    with(state.ctx) {
+                        mkAnd(mkFpIsNaNExpr(value).not(), mkFpIsInfiniteExpr(value).not())
+                    }
+                }
+            },
+        ),
+        NumericIntrinsicModel(
             id = NUMBER_IS_INTEGER_ID,
             methodName = "isInteger",
-            implementation = ::numberIsInteger,
+            implementation = { state, call -> numberPredicate(state, call, state::isInteger) },
+        ),
+        NumericIntrinsicModel(
+            id = NUMBER_IS_NAN_ID,
+            methodName = "isNaN",
+            implementation = { state, call ->
+                numberPredicate(state, call) { value -> state.ctx.mkFpIsNaNExpr(value) }
+            },
+        ),
+        NumericIntrinsicModel(
+            id = NUMBER_IS_SAFE_INTEGER_ID,
+            methodName = "isSafeInteger",
+            implementation = { state, call -> numberPredicate(state, call, state::isSafeInteger) },
         ),
     )
 }
@@ -92,7 +141,11 @@ private class NumericIntrinsicModel(
         implementation(state, call)
 }
 
-private fun numberIsInteger(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution? {
+private fun numberPredicate(
+    state: TsState,
+    call: TsUnknownCall,
+    predicate: (UExpr<KFp64Sort>) -> UBoolExpr,
+): TsUnknownCallModelExecution? {
     if (!call.hasGlobalOwner("Number")) {
         return null
     }
@@ -101,15 +154,28 @@ private fun numberIsInteger(state: TsState, call: TsUnknownCall): TsUnknownCallM
     val result = with(state.ctx) {
         if (value.isFakeObject()) {
             val type = value.getFakeType(state.memory)
-            mkAnd(type.fpTypeExpr, state.isInteger(value.extractFp(state.memory)))
+            mkAnd(type.fpTypeExpr, predicate(value.extractFp(state.memory)))
         } else if (value.sort == fp64Sort) {
-            state.isInteger(value.asExpr(fp64Sort))
+            predicate(value.asExpr(fp64Sort))
         } else {
             falseExpr
         }
     }
 
     return state.normalExecution(result)
+}
+
+private fun roundingMathCall(
+    roundingMode: KFpRoundingMode,
+): (TsState, TsUnknownCall) -> TsUnknownCallModelExecution? = { state, call ->
+    unaryMathCall(state, call) { value ->
+        with(state.ctx) {
+            mkFpRoundToIntegralExpr(
+                roundingMode = mkFpRoundingModeExpr(roundingMode),
+                value = value,
+            )
+        }
+    }
 }
 
 private fun numericTarget(methodName: String) = TsUnknownCallTarget(
@@ -181,6 +247,13 @@ private fun TsState.isInteger(value: UExpr<KFp64Sort>) = with(ctx) {
         mkFpIsNaNExpr(value).not(),
         mkFpIsInfiniteExpr(value).not(),
         mkFpEqualExpr(value, truncated),
+    )
+}
+
+private fun TsState.isSafeInteger(value: UExpr<KFp64Sort>) = with(ctx) {
+    mkAnd(
+        isInteger(value),
+        mkFpLessOrEqualExpr(mkFpAbsExpr(value), mkFp(MAX_SAFE_INTEGER, fp64Sort)),
     )
 }
 
@@ -259,3 +332,5 @@ private fun TsState.mathRound(value: UExpr<KFp64Sort>): UExpr<KFp64Sort> = with(
 
     mkIte(preserveInput, value, signedRounded)
 }
+
+private const val MAX_SAFE_INTEGER: Double = 9_007_199_254_740_991.0
