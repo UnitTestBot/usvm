@@ -8,7 +8,6 @@ import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
-import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachineOptions
@@ -124,12 +123,12 @@ internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
             TsUnknownCallModelSelection.Only(emptySet())
         }
         val machineOptions = UMachineOptions(
-            pathSelectionStrategies = listOf(PathSelectionStrategy.BFS),
+            pathSelectionStrategies = listOf(CALLS_PATH_SELECTION_STRATEGY),
             stateCollectionStrategy = StateCollectionStrategy.REACHED_TARGET,
             randomSeed = request.seed,
             timeout = request.budget,
             solverType = SolverType.Z3,
-            stopOnCoverage = 0,
+            stopOnCoverage = CALLS_STOP_ON_COVERAGE,
             stopOnTargetsReached = false,
             throwExceptionOnStepFailure = true,
         )

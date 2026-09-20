@@ -18,6 +18,18 @@ import kotlin.test.assertTrue
 
 class CallsExperimentTest {
     @Test
+    fun `manifest rejects breadth first search`() {
+        val accepted = manifest(sourceRoot = ".", seeds = listOf(17L))
+
+        assertEquals(CALLS_PATH_SELECTION_STRATEGY.name, accepted.searchPolicy)
+        val error = assertFailsWith<IllegalArgumentException> {
+            accepted.copy(searchPolicy = "BFS")
+        }
+
+        assertTrue(error.message.orEmpty().contains(CALLS_PATH_SELECTION_STRATEGY.name))
+    }
+
+    @Test
     fun `runner rotates profiles and records symbolic and replay outcomes separately`(@TempDir directory: Path) {
         val requests = mutableListOf<CallsSymbolicSearchRequest>()
         val engine = CallsSymbolicEngine { request ->
@@ -344,7 +356,7 @@ class CallsExperimentTest {
         toolRevision = FIXTURE_TOOL_REVISION,
         nativeFrontendRevision = "frontend-revision",
         solver = "Z3",
-        searchPolicy = "BFS",
+        searchPolicy = CALLS_PATH_SELECTION_STRATEGY.name,
         modelSet = CallsModelSetIdentity(
             ids = setOf("ts.array.pop", "ts.array.shift"),
             toolRevision = FIXTURE_TOOL_REVISION,

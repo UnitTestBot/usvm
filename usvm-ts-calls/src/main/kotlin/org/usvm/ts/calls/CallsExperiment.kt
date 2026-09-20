@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.usvm.PathSelectionStrategy
 import org.usvm.machine.call.TsResidualCallPolicy
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyInput
@@ -16,6 +17,9 @@ import java.nio.file.StandardOpenOption
 import java.util.Properties
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+
+internal val CALLS_PATH_SELECTION_STRATEGY = PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM
+internal const val CALLS_STOP_ON_COVERAGE = 0
 
 @Serializable
 internal enum class CallsExperimentProfile(
@@ -72,7 +76,9 @@ internal data class CallsExperimentManifest(
         require(perTargetBudgetMillis > 0) { "Per-target budget must be positive" }
         require(projects.isNotEmpty()) { "At least one project is required" }
         require(solver == "Z3") { "The frozen calls experiment requires the Z3 solver" }
-        require(searchPolicy == "BFS") { "The frozen calls experiment requires BFS search" }
+        require(searchPolicy == CALLS_PATH_SELECTION_STRATEGY.name) {
+            "The frozen calls experiment requires ${CALLS_PATH_SELECTION_STRATEGY.name} search"
+        }
         val cleanGitRevision = Regex("[0-9a-f]{40}")
         require(toolRevision.matches(cleanGitRevision)) {
             "Tool revision must identify a clean Git commit"
