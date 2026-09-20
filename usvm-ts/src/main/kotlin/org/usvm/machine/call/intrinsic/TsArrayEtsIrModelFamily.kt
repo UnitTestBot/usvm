@@ -1,6 +1,5 @@
 package org.usvm.machine.call.intrinsic
 
-import io.ksmt.expr.KFp64Value
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsArrayType
 import org.usvm.UExpr
@@ -39,18 +38,32 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                 val array = receiver.asExpr(addressSort)
                 val receiverType = state.arrayStorageType(array, staticType) as? EtsArrayType
                 val searchElement = inputs.getOrNull(1)
-                // Array storage has no presence bit. Its typed defaults must not turn holes into matches.
-                val searchesForTypedDefault = searchElement == falseExpr ||
-                    (searchElement is KFp64Value && searchElement.value == 0.0)
-                val searchesForUndefined = call.callee.name in setOf("indexOf", "lastIndexOf") &&
-                    searchElement == mkUndefinedValue()
-                if (
-                    array.hasFakeValueBranch() || receiverType?.dimensions != 1 ||
-                    searchesForTypedDefault || searchesForUndefined
-                ) {
+                val searchRef = searchElement
+                    ?.takeIf { it.sort == addressSort }
+                    ?.asExpr(addressSort)
+                if (array.hasFakeValueBranch() || receiverType?.dimensions != 1 || searchRef?.hasFakeValueBranch() == true) {
                     falseExpr
                 } else {
-                    state.memory.types.evalIsSubtype(array, receiverType)
+                    val elementSort = typeToSort(receiverType.elementType)
+                    val excludesMissingSlot = when {
+                        searchElement == mkUndefinedValue() &&
+                            (call.callee.name in setOf("indexOf", "lastIndexOf") ||
+                                elementSort == fp64Sort || elementSort == boolSort) -> falseExpr
+
+                        elementSort == fp64Sort && searchElement?.sort == fp64Sort -> mkNot(
+                            mkFpEqualExpr(searchElement.asExpr(fp64Sort), mkFp64(0.0))
+                        )
+
+                        elementSort == boolSort && searchElement?.sort == boolSort ->
+                            searchElement.asExpr(boolSort)
+
+                        else -> trueExpr
+                    }
+
+                    mkAnd(
+                        state.memory.types.evalIsSubtype(array, receiverType),
+                        excludesMissingSlot,
+                    )
                 }
             }
         }

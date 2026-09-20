@@ -71,7 +71,14 @@ export class ArrayModels {
             return -1;
         }
 
-        const start = ArrayModels.normalizeRelativeIndex(fromIndex, length);
+        let start = fromIndex !== fromIndex ? 0 : fromIndex;
+        if (start !== Infinity) {
+            start = start < 0 ? -Math.floor(-start) : Math.floor(start);
+        }
+        if (start < -length) {
+            return -1;
+        }
+
         let index = start >= length ? length - 1 : (start >= 0 ? start : length + start);
         while (index >= 0) {
             if (receiver[index] === searchElement) {

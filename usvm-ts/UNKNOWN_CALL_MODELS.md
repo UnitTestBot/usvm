@@ -236,8 +236,11 @@ engine does not represent newly created holes; those paths are pruned.
 `Array.pop`, `indexOf`, `includes`, and `lastIndexOf` share one source-model family. Search offsets accept numbers and
 the standard omitted or explicit-`undefined` defaults; other dynamic coercions use fallback. Array memory has no slot
 presence bit, so a hole can look like a typed default. Searches for `0` or `false` therefore use fallback, as do
-`indexOf(undefined)` and `lastIndexOf(undefined)`. `includes(undefined)` remains sound because both a hole and an
-explicit `undefined` are matches. Position normalization depends on `ts.math.floor`.
+`indexOf(undefined)` and `lastIndexOf(undefined)`. `includes(undefined)` is accepted only for address or unresolved
+storage; numeric and boolean storage use fallback because their holes currently read as typed defaults. Symbolic
+numeric and boolean search values use a guarded model branch outside the typed default and residual fallback on the
+unsupported default. Fake-wrapped dynamic search values use fallback. Position normalization depends on
+`ts.math.floor`.
 
 The String source family implements `charAt`, `charCodeAt`, `indexOf`, `lastIndexOf`, `includes`, `startsWith`, and
 `endsWith`. Its TypeScript algorithms depend on atomic length, UTF-16 code-unit read, and one-code-unit construction
