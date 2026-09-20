@@ -30,6 +30,7 @@ import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.markResolved
 import org.usvm.machine.interpreter.setResolvedValue
 import org.usvm.machine.state.TsMethodResult
+import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.types.TsUnresolvedArrayKind
 import org.usvm.machine.types.mkFakeValue
@@ -53,10 +54,15 @@ internal fun TsExprResolver.tryApproximateGlobalInstanceCall(
         return from(mkUndefinedValue())
     }
 
-    // Handle `Number.isNaN()` calls
+    // Handle `Number` calls.
     if (expr.instance.name == "Number") {
-        if (expr.callee.name == "isNaN") {
-            return from(handleNumberIsNaN(expr))
+        when (expr.callee.name) {
+            "isInteger" -> {
+                tryDispatchNumericBuiltin(expr)?.let { return it }
+                return from(handleNumberIsInteger(expr))
+            }
+
+            "isNaN" -> return from(handleNumberIsNaN(expr))
         }
     }
 
@@ -77,14 +83,43 @@ internal fun TsExprResolver.tryApproximateGlobalInstanceCall(
         }
     }
 
-    // Handle `Math` method calls
+    // Handle `Math` method calls.
     if (expr.instance.name == "Math") {
-        if (expr.callee.name == "floor") {
-            return from(handleMathFloor(expr))
+        when (expr.callee.name) {
+            "abs", "ceil", "max", "min", "round" -> {
+                tryDispatchNumericBuiltin(expr)?.let { return it }
+                return from(handleMathNumeric(expr))
+            }
+
+            "floor" -> return from(handleMathFloor(expr))
         }
     }
 
     return TsExprApproximationResult.NoApproximation
+}
+
+private fun TsExprResolver.tryDispatchNumericBuiltin(
+    expr: EtsInstanceCallExpr,
+): TsExprApproximationResult? {
+    val dispatcher = unknownCallDispatcher
+    if (dispatcher !is TsUnknownCallModelDispatcher) {
+        return null
+    }
+    val resolvedArguments = buildList {
+        for (argument in expr.args) {
+            add(resolve(argument) ?: return TsExprApproximationResult.ResolveFailure)
+        }
+    }
+
+    dispatcher.dispatch(
+        scope = scope,
+        call = expr,
+        callSite = scope.calcOnState { lastStmt },
+        failureReason = TsUnknownCallFailureReason.PARTIAL_APPROXIMATION,
+        resolvedArguments = resolvedArguments,
+    )
+
+    return TsExprApproximationResult.ResolveFailure
 }
 
 internal fun TsExprResolver.tryApproximateInstanceCall(
@@ -246,6 +281,102 @@ private fun TsExprResolver.handleNumberIsNaN(expr: EtsInstanceCallExpr): UBoolEx
         mkFpIsNaNExpr(arg.asExpr(fp64Sort))
     } else {
         mkFalse()
+    }
+}
+
+private fun TsExprResolver.handleNumberIsInteger(expr: EtsInstanceCallExpr): UBoolExpr? = with(ctx) {
+    check(expr.args.size == 1) {
+        "Number.isInteger() should have exactly one argument, but got ${expr.args.size}"
+    }
+    val arg = resolve(expr.args.single()) ?: return null
+
+    fun isInteger(value: UExpr<io.ksmt.sort.KFp64Sort>): UBoolExpr {
+        val truncated = mkFpRoundToIntegralExpr(
+            roundingMode = mkFpRoundingModeExpr(KFpRoundingMode.RoundTowardZero),
+            value = value,
+        )
+        return mkAnd(
+            mkFpIsNaNExpr(value).not(),
+            mkFpIsInfiniteExpr(value).not(),
+            mkFpEqualExpr(value, truncated),
+        )
+    }
+
+    if (arg.isFakeObject()) {
+        val fakeType = arg.getFakeType(scope)
+        val value = arg.extractFp(scope)
+        return mkAnd(fakeType.fpTypeExpr, isInteger(value))
+    }
+
+    if (arg.sort == fp64Sort) {
+        isInteger(arg.asExpr(fp64Sort))
+    } else {
+        falseExpr
+    }
+}
+
+private fun TsExprResolver.handleMathNumeric(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {
+    val args = expr.args.map { argument ->
+        val value = resolve(argument) ?: return null
+        if (value.sort != fp64Sort) {
+            logger.warn { "Unsupported argument sort for Math.${expr.callee.name}(): ${value.sort}" }
+            return null
+        }
+
+        value.asExpr(fp64Sort)
+    }
+
+    when (expr.callee.name) {
+        "abs" -> {
+            check(args.size == 1) { "Math.abs() should have exactly one argument, but got ${args.size}" }
+            mkFpAbsExpr(args.single())
+        }
+
+        "ceil" -> {
+            check(args.size == 1) { "Math.ceil() should have exactly one argument, but got ${args.size}" }
+            mkFpRoundToIntegralExpr(
+                roundingMode = mkFpRoundingModeExpr(KFpRoundingMode.RoundTowardPositive),
+                value = args.single(),
+            )
+        }
+
+        "min" -> args.fold(mkFp(Double.POSITIVE_INFINITY, fp64Sort).asExpr(fp64Sort)) { left, right ->
+            mkFpMinExpr(left, right)
+        }
+
+        "max" -> args.fold(mkFp(Double.NEGATIVE_INFINITY, fp64Sort).asExpr(fp64Sort)) { left, right ->
+            mkFpMaxExpr(left, right)
+        }
+
+        "round" -> {
+            check(args.size == 1) { "Math.round() should have exactly one argument, but got ${args.size}" }
+            val value = args.single()
+            val roundingMode = fpRoundingModeSortDefaultValue()
+            val floor = mkFpRoundToIntegralExpr(
+                roundingMode = mkFpRoundingModeExpr(KFpRoundingMode.RoundTowardNegative),
+                value = value,
+            )
+            val fraction = mkFpSubExpr(roundingMode, value, floor)
+            val rounded = mkIte(
+                mkFpLessExpr(fraction, mkFp(0.5, fp64Sort)),
+                floor,
+                mkFpAddExpr(roundingMode, floor, mkFp(1.0, fp64Sort)),
+            )
+            val signedRounded = mkIte(
+                mkAnd(mkFpIsNegativeExpr(value), mkFpIsZeroExpr(rounded)),
+                mkFp(-0.0, fp64Sort),
+                rounded,
+            )
+            val preserveInput = mkOr(
+                mkFpIsNaNExpr(value),
+                mkFpIsInfiniteExpr(value),
+                mkFpIsZeroExpr(value),
+            )
+
+            mkIte(preserveInput, value, signedRounded)
+        }
+
+        else -> error("Unsupported Math numeric builtin: ${expr.callee.name}")
     }
 }
 
