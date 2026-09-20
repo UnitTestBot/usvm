@@ -171,18 +171,13 @@ internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
         if (states.isEmpty()) {
             val status = when (analysis.stopReason) {
                 TsAnalysisStopReason.EXHAUSTED -> CallsSymbolicStatus.UNREACHED
-                TsAnalysisStopReason.TIMEOUT -> CallsSymbolicStatus.TIMEOUT
-                TsAnalysisStopReason.OTHER_LIMIT -> CallsSymbolicStatus.TOOL_ERROR
+                // The machine options above disable every stop condition except the per-target timeout.
+                TsAnalysisStopReason.STOPPED -> CallsSymbolicStatus.TIMEOUT
             }
 
             return result(
                 status = status,
                 startedAt = startedAt,
-                diagnostic = if (analysis.stopReason == TsAnalysisStopReason.OTHER_LIMIT) {
-                    "Symbolic execution stopped for an unexpected non-timeout limit"
-                } else {
-                    null
-                },
             )
         }
 

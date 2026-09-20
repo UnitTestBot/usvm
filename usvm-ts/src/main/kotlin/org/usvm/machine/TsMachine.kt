@@ -39,14 +39,13 @@ import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
 
-/** Reason the symbolic machine stopped its most recent analysis. */
+/** Whether symbolic analysis exhausted its paths or a configured strategy stopped it. */
 enum class TsAnalysisStopReason {
     EXHAUSTED,
-    TIMEOUT,
-    OTHER_LIMIT,
+    STOPPED,
 }
 
-/** Collected states together with the exact machine stop reason. */
+/** Collected states together with the machine completion kind. */
 data class TsAnalysisResult(
     val states: List<TsState>,
     val stopReason: TsAnalysisStopReason,
@@ -165,7 +164,6 @@ class TsMachine(
         }
 
         val stepsStatistics = StepsStatistics<EtsMethod, TsState>()
-
         val stopStrategy = object : StopStrategy {
             val strategy = createStopStrategy(
                 options,
@@ -212,12 +210,10 @@ class TsMachine(
             stopStrategy = stopStrategy
         )
 
-        val stopReason = when {
-            pathSelector.isEmpty() -> TsAnalysisStopReason.EXHAUSTED
-            options.timeout < kotlin.time.Duration.INFINITE && timeStatistics.runningTime > options.timeout -> {
-                TsAnalysisStopReason.TIMEOUT
-            }
-            else -> TsAnalysisStopReason.OTHER_LIMIT
+        val stopReason = if (pathSelector.isEmpty()) {
+            TsAnalysisStopReason.EXHAUSTED
+        } else {
+            TsAnalysisStopReason.STOPPED
         }
 
         return TsAnalysisResult(states = statesCollector.collectedStates, stopReason = stopReason)
