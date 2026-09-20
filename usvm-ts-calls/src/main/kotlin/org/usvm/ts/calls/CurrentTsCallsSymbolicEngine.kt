@@ -11,17 +11,21 @@ import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.machine.TsAnalysisStopReason
+import org.usvm.machine.TsGraph
 import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
+import org.usvm.machine.TsRuntimeFeatureLimitationEvent
 import org.usvm.machine.call.TsUnknownCallEvent
 import org.usvm.machine.call.TsUnknownCallModelSelection
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.statistics.UMachineObserver
+import org.usvm.ts.pbt.fastcheck.TypeScriptCompletedReturnTargetKind
 import org.usvm.ts.pbt.fastcheck.TypeScriptSourceInspector
 import org.usvm.ts.pbt.manifest.PropertyManifest
 import org.usvm.ts.pbt.mapping.EtsInputBinding
+import org.usvm.ts.pbt.mapping.EtsLexicalEnvironmentBinding
 import org.usvm.ts.pbt.mapping.EtsMappingStatus
 import org.usvm.ts.pbt.mapping.PropertyEtsMapper
 import org.usvm.ts.pbt.model.JsConcreteValue
@@ -52,6 +56,13 @@ internal enum class CallsSymbolicPreflightReasonCode {
     ENTRY_MAPPING_UNMAPPED,
     ENTRY_MAPPING_AMBIGUOUS,
     LEXICAL_CAPTURE_UNSUPPORTED,
+    LEXICAL_ENVIRONMENT_UNSUPPORTED,
+    DESTRUCTURING_UNSUPPORTED,
+    SPREAD_UNSUPPORTED,
+    REGEX_LITERAL_UNSUPPORTED,
+    RAW_ENTITY_UNSUPPORTED,
+    PROTOTYPE_ACCESS_UNSUPPORTED,
+    SYMBOLIC_NUMBER_TO_STRING_UNSUPPORTED,
     TARGET_ORIGIN_UNMAPPED,
     TARGET_ORIGIN_UNSUPPORTED,
     FRONTEND_OR_PREFLIGHT_ERROR,
@@ -149,8 +160,12 @@ internal class CurrentTsCallsSymbolicEngine(
         val symbolicInputs = CallsSymbolicInputs(
             inputs = request.function.inputs,
             bindings = prepared.inputBindings,
+            lexicalEnvironment = prepared.lexicalEnvironment,
         )
-        val interpreterObserver = request.unknownCallEventSink?.let(::UnknownCallEventSinkObserver)
+        val interpreterObserver = UnknownCallEventSinkObserver(
+            sink = request.unknownCallEventSink,
+            runtimeLimitationSink = request.runtimeLimitationEventSink,
+        )
         val analysis = TsMachine(
             scene = scene,
             options = machineOptions,
@@ -169,14 +184,24 @@ internal class CurrentTsCallsSymbolicEngine(
         val states = analysis.states
         if (states.isEmpty()) {
             val status = when (analysis.stopReason) {
-                TsAnalysisStopReason.EXHAUSTED -> CallsSymbolicStatus.UNREACHED
+                TsAnalysisStopReason.EXHAUSTED -> {
+                    if (interpreterObserver.runtimeLimitations.isEmpty()) {
+                        CallsSymbolicStatus.UNREACHED
+                    } else {
+                        CallsSymbolicStatus.RUNTIME_LIMITATION
+                    }
+                }
                 // The machine options above disable every stop condition except the per-target timeout.
-                TsAnalysisStopReason.STOPPED -> CallsSymbolicStatus.TIMEOUT
+                TsAnalysisStopReason.STOPPED -> {
+                    CallsSymbolicStatus.TIMEOUT
+                }
             }
 
             return result(
                 status = status,
                 startedAt = startedAt,
+                diagnostic = interpreterObserver.runtimeLimitations.takeIf { it.isNotEmpty() }
+                    ?.joinToString(prefix = "Runtime feature limitations: "),
             )
         }
 
@@ -299,6 +324,18 @@ internal class CurrentTsCallsSymbolicEngine(
         }
 
         val method = mappedTarget.method
+        callsIrReadinessIssue(
+            method = method,
+            graph = TsGraph(scene),
+            source = sourceText,
+            admittedLexicalEnvironment = lexicalEnvironment?.parameter?.type as? EtsLexicalEnvType,
+        )?.let { issue ->
+            return CallsTargetPreparation.Rejected(
+                status = CallsSymbolicStatus.UNSUPPORTED,
+                reasonCode = issue.reasonCode,
+                diagnostic = issue.diagnostic,
+            )
+        }
         val exactTargetCandidates = exactTargetCandidates(method, request.target)
         val targetObservation = when (request.target.mode) {
             CallsSourceTargetMode.ENTRY -> {
@@ -322,17 +359,24 @@ internal class CurrentTsCallsSymbolicEngine(
             }
 
             CallsSourceTargetMode.COMPLETED_RETURN -> {
+                val completedReturnTargetKind = TypeScriptSourceInspector.completedReturnTargetKind(
+                    source = source,
+                    exportName = request.function.entryPoint.exportName,
+                    startOffset = request.target.startOffset,
+                    endOffset = request.target.endOffset,
+                    expressionStartOffset = request.target.returnExpressionStartOffset,
+                    expressionEndOffset = request.target.returnExpressionEndOffset,
+                ) ?: return CallsTargetPreparation.Rejected(
+                    status = CallsSymbolicStatus.UNSUPPORTED,
+                    reasonCode = CallsSymbolicPreflightReasonCode.TARGET_ORIGIN_UNSUPPORTED,
+                    diagnostic = "TypeScript AST does not identify the requested completed return",
+                )
                 val returnStatement = completedReturnCandidate(
                     method = method,
                     target = request.target,
                     exactTargetCandidates = exactTargetCandidates,
                     allowsUniqueOriginlessReturn = {
-                        TypeScriptSourceInspector.isExportedExpressionArrowBody(
-                            source = source,
-                            exportName = request.function.entryPoint.exportName,
-                            startOffset = request.target.startOffset,
-                            endOffset = request.target.endOffset,
-                        )
+                        completedReturnTargetKind == TypeScriptCompletedReturnTargetKind.EXPRESSION_ARROW
                     },
                 ) ?: return CallsTargetPreparation.Rejected(
                     status = CallsSymbolicStatus.UNSUPPORTED,
@@ -348,6 +392,7 @@ internal class CurrentTsCallsSymbolicEngine(
             scene = scene,
             method = method,
             inputBindings = mappedTarget.bindings.inputs,
+            lexicalEnvironment = mappedTarget.bindings.lexicalEnvironment,
             targetObservation = targetObservation,
             exactTargetCandidateCount = exactTargetCandidates.size,
         )
@@ -499,6 +544,7 @@ internal class CurrentTsCallsSymbolicEngine(
             val scene: EtsScene,
             val method: EtsMethod,
             val inputBindings: List<EtsInputBinding>,
+            val lexicalEnvironment: EtsLexicalEnvironmentBinding?,
             val targetObservation: SourceTargetObservation,
             val exactTargetCandidateCount: Int,
         ) : CallsTargetPreparation
@@ -562,10 +608,18 @@ internal class CurrentTsCallsSymbolicEngine(
     }
 
     private class UnknownCallEventSinkObserver(
-        private val sink: (TsUnknownCallEvent) -> Unit,
+        private val sink: ((TsUnknownCallEvent) -> Unit)?,
+        private val runtimeLimitationSink: ((TsRuntimeFeatureLimitationEvent) -> Unit)?,
     ) : TsInterpreterObserver {
+        val runtimeLimitations = linkedSetOf<String>()
+
         override fun onUnknownCall(event: TsUnknownCallEvent) {
-            sink(event)
+            sink?.invoke(event)
+        }
+
+        override fun onRuntimeFeatureLimitation(event: TsRuntimeFeatureLimitationEvent) {
+            runtimeLimitations += event.reason.name
+            runtimeLimitationSink?.invoke(event)
         }
     }
 
@@ -580,11 +634,19 @@ internal class CurrentTsCallsSymbolicEngine(
         val SUPPORTED_BUILTIN_CAPTURES: Set<String> = setOf(
             "Array",
             "Boolean",
+            "Date",
             "Error",
+            "Infinity",
+            "Map",
             "Math",
+            "NaN",
             "Number",
             "Object",
+            "RangeError",
+            "Set",
             "String",
+            "TypeError",
+            "isNaN",
         )
     }
 }

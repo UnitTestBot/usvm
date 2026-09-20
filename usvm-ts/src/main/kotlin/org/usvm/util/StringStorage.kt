@@ -64,10 +64,11 @@ private fun TsState.stringLengthBound(string: UHeapRef): StringLengthBound? = wi
             falseBranch = fallback,
         )
     }
+    val trackedStringGuards = trackedStrings.map { (tracked, _) -> mkHeapRefEq(string, tracked) }
     StringLengthBound(
         representative = representative,
         maxLength = trackedStrings.maxOf { it.value },
-        isTrackedString = mkOr(trackedStrings.map { (tracked, _) -> mkHeapRefEq(string, tracked) }),
+        isTrackedString = mkOr(trackedStringGuards),
     )
 }
 
@@ -105,13 +106,16 @@ internal fun TsState.stringValueEqualsOrNull(
     val rightCharacters = stringCharacters(rightBound.representative)
     val leftLength = memory.read(mkArrayLengthLValue(leftCharacters, STRING_CHARACTER_ARRAY_TYPE))
     val rightLength = memory.read(mkArrayLengthLValue(rightCharacters, STRING_CHARACTER_ARRAY_TYPE))
+    val zeroLength = mkBv(0)
+    val leftMaximumLength = mkBv(leftBound.maxLength)
+    val rightMaximumLength = mkBv(rightBound.maxLength)
     val lengthIsValid = mkAnd(
         leftBound.isTrackedString,
-        mkBvSignedGreaterOrEqualExpr(leftLength, mkBv(0)),
-        mkBvSignedLessOrEqualExpr(leftLength, mkBv(leftBound.maxLength)),
+        mkBvSignedGreaterOrEqualExpr(leftLength, zeroLength),
+        mkBvSignedLessOrEqualExpr(leftLength, leftMaximumLength),
         rightBound.isTrackedString,
-        mkBvSignedGreaterOrEqualExpr(rightLength, mkBv(0)),
-        mkBvSignedLessOrEqualExpr(rightLength, mkBv(rightBound.maxLength)),
+        mkBvSignedGreaterOrEqualExpr(rightLength, zeroLength),
+        mkBvSignedLessOrEqualExpr(rightLength, rightMaximumLength),
     )
     val lengthsAreEqual = mkEq(leftLength, rightLength)
     val charactersAreEqual = (0 until maxOf(leftBound.maxLength, rightBound.maxLength)).map { index ->

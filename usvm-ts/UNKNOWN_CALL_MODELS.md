@@ -60,14 +60,19 @@ Built-ins are singleton models or families implementing the sealed `TsBuiltInUnk
 `org.usvm.machine.call.intrinsic` package. Kotlin's sealed-subclass metadata discovers them automatically; a family
 supplies its parameterized models without a separate registry. Discovery and the default catalog are computed once.
 
-The built-in catalog contains 62 public API names, plus three internal String storage primitives:
+The built-in catalog includes the following public APIs and their internal storage primitives. Enumerate
+`TsBuiltInUnknownCallModels.catalog().modelIds` for the exact IDs in a build.
 
 | ID | Implementation | Accepted calls |
 | --- | --- | --- |
 | `ts.array.shift` | Kotlin intrinsic using symbolic-memory `memcpy` | Zero-argument `shift` on a definitely one-dimensional array. |
+| `ts.array.isArray` | Kotlin runtime-type primitive | The genuine global Array predicate, including null, undefined and fake-value wrappers. |
 | `ts.array.pop` | TypeScript/EtsIR body | Zero-argument `pop` on a definitely one-dimensional array that also satisfies the symbolic runtime type guard. |
 | `ts.array.includes`, `ts.array.indexOf`, `ts.array.lastIndexOf` | TypeScript/EtsIR bodies | One-dimensional arrays and numeric positions, with the missing-slot exclusions below. |
-| `ts.string.charAt`, `ts.string.charCodeAt`, `ts.string.includes`, `ts.string.indexOf`, `ts.string.lastIndexOf`, `ts.string.startsWith`, `ts.string.endsWith` | TypeScript/EtsIR bodies | Initialized concrete strings; numeric positions. `charAt` requires a concrete position. |
+| `ts.array.push`, `ts.array.fill`, `ts.array.reverse`, `ts.array.unshift`, `ts.array.slice`, `ts.array.concat` | TypeScript/EtsIR bodies with storage growth/allocation primitives | One-dimensional arrays with length/result at most 16. Push/unshift accept up to three arguments; resolved-sort arrays require matching element sorts, while mixed arrays retain runtime value kinds. Concat accepts one same-type array. Except push, these operations require a current dense-array proof. |
+| `ts.string.charAt`, `ts.string.charCodeAt`, `ts.string.includes`, `ts.string.indexOf`, `ts.string.lastIndexOf`, `ts.string.startsWith`, `ts.string.endsWith` | TypeScript/EtsIR bodies | Strings in initialized UTF-16 storage, including symbolic code units and numeric positions. |
+| `ts.string.slice`, `ts.string.substring`, `ts.string.trim`, `ts.string.trimStart`, `ts.string.trimEnd` | TypeScript/EtsIR bodies | UTF-16 range copying; substring clamps/swaps bounds, and trim uses the ECMAScript whitespace set. |
+| `ts.string.toLowerCase`, `ts.string.toUpperCase` | TypeScript/EtsIR bodies | ASCII strings of at most 16 code units; other strings use residual fallback. |
 | `ts.math.abs`, `ts.math.ceil`, `ts.math.floor`, `ts.math.max`, `ts.math.min`, `ts.math.round`, `ts.math.sqrt`, `ts.math.trunc` | Kotlin FP primitives | Numeric arguments; dynamic coercions use fallback. |
 | `ts.number.isFinite`, `ts.number.isInteger`, `ts.number.isNaN`, `ts.number.isSafeInteger` | Kotlin FP/type primitives | Non-coercing Number predicates, including runtime-kind guards. |
 | `ts.date.*` (38 IDs) | TypeScript/EtsIR bodies | Numeric Date construction, `UTC`, fixed-clock `now`, getters, setters, `valueOf`, and source `toISOString`; see the Date boundary below. |
@@ -89,6 +94,22 @@ and branch guards before selecting an approximation or resolving a method. A wra
 model, including through an `any` alias. An unknown or non-array receiver does not become an array merely because
 the method is named `shift`. A definitely-array receiver with an unresolved element sort remains applicable and uses
 the fake-value representation described below.
+
+Dense input proofs retain snapshots of the array length and element storage regions. A later write invalidates the
+proof conservatively, including writes to another array sharing a region. Consequently, a chain of individually
+modeled array methods can still use fallback after its first mutation or copy.
+
+### Runtime limitations and experimental outcomes
+
+`TsInterpreterObserver.onRuntimeFeatureLimitation` records feasible paths stopped by bounded array storage, such as
+named-property writes or unsupported length growth. These events are separate from unknown-call model decisions.
+The Calls runner writes them synchronously and reports `RUNTIME_LIMITATION` when search exhausts after such a stop
+without reaching the target. An actual timeout remains `TIMEOUT`; a reached target still requires original-source replay.
+
+Calls preflight checks input binding, source/IR target mapping and known unsupported IR features before choosing a
+model/fallback profile. Excluded functions remain in the corpus support ledger. Comparative runs use a frozen common
+target set; failures discovered after that freeze remain scheduled failures. The analysis budget is 30 seconds per
+target and seed; JVM/frontend startup and original-source replay have separate recorded limits.
 
 ### `unknownCallFallback`
 

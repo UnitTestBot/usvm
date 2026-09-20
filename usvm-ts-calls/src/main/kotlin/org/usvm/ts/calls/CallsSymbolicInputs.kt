@@ -6,12 +6,17 @@ import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
+import org.jacodb.ets.model.EtsLexicalEnvType
+import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUnclearRefType
 import org.usvm.UBoolExpr
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
+import org.usvm.api.allocateConcreteRef
 import org.usvm.api.initializeArrayLength
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.machine.TsContext
@@ -23,6 +28,7 @@ import org.usvm.machine.state.TsState
 import org.usvm.model.UModelBase
 import org.usvm.sizeSort
 import org.usvm.ts.pbt.mapping.EtsInputBinding
+import org.usvm.ts.pbt.mapping.EtsLexicalEnvironmentBinding
 import org.usvm.ts.pbt.model.ArrayDomain
 import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
@@ -52,6 +58,7 @@ internal fun callsSymbolicInputPreflight(inputs: List<PropertyInput>): String? {
 internal class CallsSymbolicInputs(
     inputs: List<PropertyInput>,
     bindings: List<EtsInputBinding>,
+    private val lexicalEnvironment: EtsLexicalEnvironmentBinding?,
 ) {
     private val boundInputs: List<Pair<PropertyInput, EtsInputBinding>>
     private var snapshots: List<CallsInputSnapshot>? = null
@@ -70,15 +77,22 @@ internal class CallsSymbolicInputs(
 
     fun initialize(state: TsState) {
         check(snapshots == null) { "Calls symbolic inputs were initialized more than once" }
-        snapshots = boundInputs.map { (input, binding) ->
+        lexicalEnvironment?.let(state::initializeLexicalEnvironment)
+        val initializedSnapshots = boundInputs.map { (input, binding) ->
             state.initializeInput(
                 stackSlot = binding.stackSlot,
                 domain = input.domain,
             )
         }
+        initializedSnapshots.filterIsInstance<ArrayInputSnapshot>().forEach { snapshot ->
+            snapshot.markDenseInput(state)
+        }
+        snapshots = initializedSnapshots
     }
 
     fun sortOverride(ctx: TsContext, stackSlot: Int): USort? {
+        if (lexicalEnvironment?.stackSlot == stackSlot) return ctx.addressSort
+
         val domain = boundInputs.singleOrNull { (_, binding) -> binding.stackSlot == stackSlot }?.first?.domain
             ?: return null
 
@@ -98,6 +112,48 @@ internal class CallsSymbolicInputs(
 
         return initializedSnapshots.map { snapshot -> snapshot.resolve(model) }
     }
+}
+
+private fun TsState.initializeLexicalEnvironment(binding: EtsLexicalEnvironmentBinding): Unit = with(ctx) {
+    val environmentType = binding.parameter.type as? EtsLexicalEnvType
+        ?: error("Mapped lexical environment does not have a lexical-environment type")
+    val environmentRef = allocateConcreteRef()
+    for (captured in environmentType.closures) {
+        initializeBuiltinCapture(captured = captured, environmentRef = environmentRef)
+    }
+    memory.write(
+        mkRegisterStackLValue(addressSort, binding.stackSlot),
+        environmentRef.asExpr(addressSort),
+        guard = trueExpr,
+    )
+    saveSortForLocal(binding.stackSlot, addressSort)
+}
+
+private fun TsState.initializeBuiltinCapture(
+    captured: EtsLocal,
+    environmentRef: UConcreteHeapRef,
+): Unit = with(ctx) {
+    val value = when (captured.name) {
+        "Infinity" -> mkFpInf(signBit = false, sort = fp64Sort)
+        "NaN" -> mkFp64NaN()
+        else -> memory.allocConcrete(
+            EtsUnclearRefType(
+                name = captured.name,
+                typeParameters = emptyList(),
+            ),
+        ).asExpr(addressSort)
+    }
+    val expectedSort = typeToSort(captured.type).let { sort ->
+        if (sort == unresolvedSort) addressSort else sort
+    }
+    require(value.sort == expectedSort) {
+        "Builtin capture ${captured.name} has sort ${value.sort}, expected $expectedSort"
+    }
+    memory.write(
+        mkFieldLValue(expectedSort, environmentRef, captured.name),
+        value.asExpr(expectedSort),
+        guard = trueExpr,
+    )
 }
 
 private fun TsState.initializeInput(
@@ -241,9 +297,12 @@ private fun TsState.initializeArrayInput(
         guard = trueExpr,
     )
     saveSortForLocal(stackSlot, addressSort)
-    markDenseInputArray(array = arrayRef, type = runtimeType)
-
-    ArrayInputSnapshot(length = length, elements = elements)
+    ArrayInputSnapshot(
+        length = length,
+        elements = elements,
+        arrayRef = arrayRef,
+        runtimeType = runtimeType,
+    )
 }
 
 private fun TsState.constrainLength(
@@ -308,7 +367,13 @@ private data class StringInputSnapshot(
 private data class ArrayInputSnapshot(
     val length: UExpr<TsSizeSort>,
     val elements: List<CallsInputSnapshot>,
+    val arrayRef: UConcreteHeapRef,
+    val runtimeType: EtsArrayType,
 ) : CallsInputSnapshot {
+    fun markDenseInput(state: TsState) {
+        state.markDenseInputArray(array = arrayRef, type = runtimeType)
+    }
+
     override fun resolve(model: UModelBase<EtsType>): JsConcreteValue {
         val concreteLength = model.eval(length).extractInt()
         require(concreteLength in 0..elements.size) { "Resolved array length is outside its symbolic domain" }

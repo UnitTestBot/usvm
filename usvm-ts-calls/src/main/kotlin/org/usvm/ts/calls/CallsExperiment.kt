@@ -6,6 +6,7 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.usvm.PathSelectionStrategy
+import org.usvm.machine.TsRuntimeFeatureLimitationEvent
 import org.usvm.machine.call.TsResidualCallPolicy
 import org.usvm.machine.call.TsUnknownCallEvent
 import org.usvm.ts.pbt.model.JsConcreteValue
@@ -116,6 +117,7 @@ internal enum class CallsSymbolicStatus {
     UNREACHED,
     UNREPRESENTABLE,
     UNSUPPORTED,
+    RUNTIME_LIMITATION,
     TIMEOUT,
     TOOL_ERROR,
     UNMAPPED,
@@ -133,6 +135,7 @@ internal data class CallsSymbolicSearchRequest(
     val seed: Long,
     val budget: Duration,
     val unknownCallEventSink: ((TsUnknownCallEvent) -> Unit)? = null,
+    val runtimeLimitationEventSink: ((TsRuntimeFeatureLimitationEvent) -> Unit)? = null,
 )
 
 internal data class CallsSymbolicSearchResult(
@@ -401,7 +404,7 @@ internal class CallsExperimentRunner(
         target: CallsSourceTarget,
         seed: Long,
         profile: CallsExperimentProfile,
-        appendUnknownCall: (CallsUnknownCallRecord) -> Unit,
+        appendUnknownCall: (CallsRawRecord) -> Unit,
     ): CallsTargetResult {
         val request = CallsSymbolicSearchRequest(
             sourceRoot = sourceRoot,
@@ -417,6 +420,10 @@ internal class CallsExperimentRunner(
         val symbolic = symbolicEngine.search(
             request.copy(
                 unknownCallEventSink = callsUnknownCallEventSink(
+                    cell = request.cellIdentity(experimentId = manifest.experimentId),
+                    appendAndFlush = appendUnknownCall,
+                ),
+                runtimeLimitationEventSink = callsRuntimeLimitationEventSink(
                     cell = request.cellIdentity(experimentId = manifest.experimentId),
                     appendAndFlush = appendUnknownCall,
                 ),

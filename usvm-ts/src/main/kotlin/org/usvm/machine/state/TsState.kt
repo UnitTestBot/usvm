@@ -29,8 +29,8 @@ import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.TsFunction
 import org.usvm.memory.ULValue
-import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.memory.UMemory
+import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.model.UModelBase
 import org.usvm.sizeSort
 import org.usvm.targets.UTargetsSet
@@ -324,6 +324,7 @@ class TsState(
         get() = methodResult is TsMethodResult.TsException
 }
 
+/** Storage snapshots used to invalidate the dense-input guarantee after writes. */
 data class TsDenseInputArray(
     val type: EtsArrayType,
     val lengthRegion: UReadOnlyMemoryRegion<*, *>,

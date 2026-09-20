@@ -39,7 +39,13 @@ class TsArrayShiftReplayTest {
             DynamicTest.dynamicTest(case.name) {
                 val method = methods.getValue("case$index")
 
-                val tests = TsMachine(scene, options = machineOptions, tsOptions = TsOptions()).use { machine ->
+                val dispatcher = TsCompatibilityUnknownCallDispatcher.takeIf { case.compatibility }
+                val tests = TsMachine(
+                    scene = scene,
+                    options = machineOptions,
+                    tsOptions = TsOptions(),
+                    unknownCallDispatcher = dispatcher,
+                ).use { machine ->
                     machine.analyze(listOf(method)).map { state -> TsTestResolver().resolve(method, state) }
                 }
 
@@ -154,7 +160,7 @@ class TsArrayShiftReplayTest {
 
     private fun storageOperationCases(): List<ReplayCase> = listOf("any", "unknown").flatMap { type ->
         copyCases(type) + mutationCases(type) + concatCases(type)
-    }
+    }.map { case -> case.copy(name = "compatibility storage: ${case.name}", compatibility = true) }
 
     private fun copyCases(type: String): List<ReplayCase> = listOf(
         ReplayCase(
@@ -464,6 +470,7 @@ class TsArrayShiftReplayTest {
         val parameters: String,
         val maxResult: Int,
         val body: String,
+        val compatibility: Boolean = false,
     )
 
     private companion object {

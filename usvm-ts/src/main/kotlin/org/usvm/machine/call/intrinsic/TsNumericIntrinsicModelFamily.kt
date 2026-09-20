@@ -3,7 +3,6 @@ package org.usvm.machine.call.intrinsic
 import io.ksmt.expr.KFpRoundingMode
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
-import org.jacodb.ets.model.EtsLocal
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.machine.call.TsUnknownCall
@@ -13,6 +12,7 @@ import org.usvm.machine.call.TsUnknownCallModelCompletion
 import org.usvm.machine.call.TsUnknownCallModelExecution
 import org.usvm.machine.call.TsUnknownCallModelSuccessor
 import org.usvm.machine.call.TsUnknownCallTarget
+import org.usvm.machine.call.hasBuiltinGlobalOwner
 import org.usvm.machine.state.TsState
 
 internal object TsNumericIntrinsicModelFamily : TsBuiltInUnknownCallModelFamily {
@@ -209,6 +209,13 @@ private fun unaryMathCall(
     }
     val argument = call.arguments.firstOrNull()?.resolved
         ?: return state.normalExecution(state.ctx.mkFp(Double.NaN, state.ctx.fp64Sort))
+    with(state.ctx) {
+        if (argument.isFakeObject()) {
+            val numberGuard = argument.getFakeType(state.memory).fpTypeExpr
+            val result = operation(argument.extractFp(state.memory))
+            return state.normalExecution(result, guard = numberGuard)
+        }
+    }
     if (argument.sort != state.ctx.fp64Sort) {
         return null
     }
@@ -240,17 +247,23 @@ private fun variadicMathCall(
 }
 
 private fun TsUnknownCall.hasGlobalOwner(expectedName: String): Boolean {
-    val owner = receiver?.source as? EtsLocal ?: return false
-    return owner.name == expectedName
+    val owner = receiver?.source ?: return false
+    return hasBuiltinGlobalOwner(owner = owner, callee = callee, expectedName = expectedName)
 }
 
-private fun TsState.normalExecution(result: UExpr<*>): TsUnknownCallModelExecution = with(ctx) {
+private fun TsState.normalExecution(
+    result: UExpr<*>,
+    guard: UBoolExpr = ctx.trueExpr,
+): TsUnknownCallModelExecution = with(ctx) {
     val successor = TsUnknownCallModelSuccessor(
-        guard = trueExpr,
+        guard = guard,
         completion = TsUnknownCallModelCompletion.Normal { result },
     )
 
-    TsUnknownCallModelExecution(successors = listOf(successor))
+    TsUnknownCallModelExecution(
+        successors = listOf(successor),
+        residualGuard = guard.takeUnless { it == trueExpr }?.let(::mkNot),
+    )
 }
 
 private fun TsState.isInteger(value: UExpr<KFp64Sort>) = with(ctx) {

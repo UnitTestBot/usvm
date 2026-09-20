@@ -211,11 +211,28 @@ class TsSequenceEtsIrModelTest {
     }
 
     @Test
-    fun `symbolic charAt falls back until string value equality is modeled`() {
-        val result = analyze(methodName = "symbolicCharAt")
+    fun `symbolic charAt preserves selected UTF16 content`() {
+        val result = analyze(methodName = "symbolicCharAtMatches")
 
-        assertTrue(result.values.isEmpty())
-        assertEquals(TsUnknownCallOutcome.PATH_STOPPED, result.events.last().outcome)
+        assertTrue(result.values.isNotEmpty())
+        assertTrue(result.values.all { assertIs<TsTestValue.TsBoolean>(it).value })
+        assertTrue("ts.string.charAt" in result.modelIds)
+    }
+
+    @Test
+    fun `substring swaps clamped bounds and preserves surrogate code units`() {
+        val result = analyze(methodName = "stringSubstringBounds")
+
+        assertTrue(assertIs<TsTestValue.TsBoolean>(result.values.single()).value)
+        assertTrue("ts.string.substring" in result.modelIds)
+    }
+
+    @Test
+    fun `trim recognizes ECMAScript whitespace and preserves interior and non whitespace`() {
+        val result = analyze(methodName = "stringTrimWhitespace")
+
+        assertTrue(assertIs<TsTestValue.TsBoolean>(result.values.single()).value)
+        assertTrue(setOf("ts.string.trim", "ts.string.trimStart", "ts.string.trimEnd").all(result.modelIds::contains))
     }
 
     @Test
