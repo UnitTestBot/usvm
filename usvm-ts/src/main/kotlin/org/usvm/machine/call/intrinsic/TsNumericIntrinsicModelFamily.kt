@@ -29,104 +29,120 @@ internal object TsNumericIntrinsicModelFamily : TsBuiltInUnknownCallModelFamily 
     const val NUMBER_IS_NAN_ID: String = "ts.number.isNaN"
     const val NUMBER_IS_SAFE_INTEGER_ID: String = "ts.number.isSafeInteger"
 
+    private val mathAbsModel = NumericIntrinsicModel(
+        id = MATH_ABS_ID,
+        methodName = "abs",
+        implementation = { state, call ->
+            unaryMathCall(state, call) { value -> state.ctx.mkFpAbsExpr(value) }
+        },
+    )
+    private val mathCeilModel = NumericIntrinsicModel(
+        id = MATH_CEIL_ID,
+        methodName = "ceil",
+        implementation = { state, call ->
+            unaryMathCall(state, call) { value ->
+                with(state.ctx) {
+                    mkFpRoundToIntegralExpr(
+                        roundingMode = mkFpRoundingModeExpr(KFpRoundingMode.RoundTowardPositive),
+                        value = value,
+                    )
+                }
+            }
+        },
+    )
+    private val mathFloorModel = NumericIntrinsicModel(
+        id = MATH_FLOOR_ID,
+        methodName = "floor",
+        implementation = roundingMathCall(roundingMode = KFpRoundingMode.RoundTowardNegative),
+    )
+    private val mathMaxModel = NumericIntrinsicModel(
+        id = MATH_MAX_ID,
+        methodName = "max",
+        implementation = { state, call ->
+            variadicMathCall(
+                state = state,
+                call = call,
+                identity = Double.NEGATIVE_INFINITY,
+                combine = state::mathMax,
+            )
+        },
+    )
+    private val mathMinModel = NumericIntrinsicModel(
+        id = MATH_MIN_ID,
+        methodName = "min",
+        implementation = { state, call ->
+            variadicMathCall(
+                state = state,
+                call = call,
+                identity = Double.POSITIVE_INFINITY,
+                combine = state::mathMin,
+            )
+        },
+    )
+    private val mathRoundModel = NumericIntrinsicModel(
+        id = MATH_ROUND_ID,
+        methodName = "round",
+        implementation = { state, call -> unaryMathCall(state, call, state::mathRound) },
+    )
+    private val mathSqrtModel = NumericIntrinsicModel(
+        id = MATH_SQRT_ID,
+        methodName = "sqrt",
+        implementation = { state, call ->
+            unaryMathCall(state, call) { value ->
+                state.ctx.mkFpSqrtExpr(state.ctx.fpRoundingModeSortDefaultValue(), value)
+            }
+        },
+    )
+    private val mathTruncModel = NumericIntrinsicModel(
+        id = MATH_TRUNC_ID,
+        methodName = "trunc",
+        implementation = roundingMathCall(roundingMode = KFpRoundingMode.RoundTowardZero),
+    )
+    private val numberIsFiniteModel = NumericIntrinsicModel(
+        id = NUMBER_IS_FINITE_ID,
+        methodName = "isFinite",
+        implementation = { state, call ->
+            numberPredicate(state, call) { value ->
+                with(state.ctx) {
+                    val isNotNaN = mkFpIsNaNExpr(value).not()
+                    val isNotInfinite = mkFpIsInfiniteExpr(value).not()
+
+                    mkAnd(isNotNaN, isNotInfinite)
+                }
+            }
+        },
+    )
+    private val numberIsIntegerModel = NumericIntrinsicModel(
+        id = NUMBER_IS_INTEGER_ID,
+        methodName = "isInteger",
+        implementation = { state, call -> numberPredicate(state, call, state::isInteger) },
+    )
+    private val numberIsNaNModel = NumericIntrinsicModel(
+        id = NUMBER_IS_NAN_ID,
+        methodName = "isNaN",
+        implementation = { state, call ->
+            numberPredicate(state, call) { value -> state.ctx.mkFpIsNaNExpr(value) }
+        },
+    )
+    private val numberIsSafeIntegerModel = NumericIntrinsicModel(
+        id = NUMBER_IS_SAFE_INTEGER_ID,
+        methodName = "isSafeInteger",
+        implementation = { state, call -> numberPredicate(state, call, state::isSafeInteger) },
+    )
+
     override val models: List<TsUnknownCallModel> = listOf(
-        NumericIntrinsicModel(
-            id = MATH_ABS_ID,
-            methodName = "abs",
-            implementation = { state, call ->
-                unaryMathCall(state, call) { value -> state.ctx.mkFpAbsExpr(value) }
-            },
-        ),
-        NumericIntrinsicModel(
-            id = MATH_CEIL_ID,
-            methodName = "ceil",
-            implementation = { state, call ->
-                unaryMathCall(state, call) { value ->
-                    with(state.ctx) {
-                        mkFpRoundToIntegralExpr(
-                            roundingMode = mkFpRoundingModeExpr(KFpRoundingMode.RoundTowardPositive),
-                            value = value,
-                        )
-                    }
-                }
-            },
-        ),
-        NumericIntrinsicModel(
-            id = MATH_FLOOR_ID,
-            methodName = "floor",
-            implementation = roundingMathCall(roundingMode = KFpRoundingMode.RoundTowardNegative),
-        ),
-        NumericIntrinsicModel(
-            id = MATH_MAX_ID,
-            methodName = "max",
-            implementation = { state, call ->
-                variadicMathCall(
-                    state = state,
-                    call = call,
-                    identity = Double.NEGATIVE_INFINITY,
-                    combine = state::mathMax,
-                )
-            },
-        ),
-        NumericIntrinsicModel(
-            id = MATH_MIN_ID,
-            methodName = "min",
-            implementation = { state, call ->
-                variadicMathCall(
-                    state = state,
-                    call = call,
-                    identity = Double.POSITIVE_INFINITY,
-                    combine = state::mathMin,
-                )
-            },
-        ),
-        NumericIntrinsicModel(
-            id = MATH_ROUND_ID,
-            methodName = "round",
-            implementation = { state, call -> unaryMathCall(state, call, state::mathRound) },
-        ),
-        NumericIntrinsicModel(
-            id = MATH_SQRT_ID,
-            methodName = "sqrt",
-            implementation = { state, call ->
-                unaryMathCall(state, call) { value ->
-                    state.ctx.mkFpSqrtExpr(state.ctx.fpRoundingModeSortDefaultValue(), value)
-                }
-            },
-        ),
-        NumericIntrinsicModel(
-            id = MATH_TRUNC_ID,
-            methodName = "trunc",
-            implementation = roundingMathCall(roundingMode = KFpRoundingMode.RoundTowardZero),
-        ),
-        NumericIntrinsicModel(
-            id = NUMBER_IS_FINITE_ID,
-            methodName = "isFinite",
-            implementation = { state, call ->
-                numberPredicate(state, call) { value ->
-                    with(state.ctx) {
-                        mkAnd(mkFpIsNaNExpr(value).not(), mkFpIsInfiniteExpr(value).not())
-                    }
-                }
-            },
-        ),
-        NumericIntrinsicModel(
-            id = NUMBER_IS_INTEGER_ID,
-            methodName = "isInteger",
-            implementation = { state, call -> numberPredicate(state, call, state::isInteger) },
-        ),
-        NumericIntrinsicModel(
-            id = NUMBER_IS_NAN_ID,
-            methodName = "isNaN",
-            implementation = { state, call ->
-                numberPredicate(state, call) { value -> state.ctx.mkFpIsNaNExpr(value) }
-            },
-        ),
-        NumericIntrinsicModel(
-            id = NUMBER_IS_SAFE_INTEGER_ID,
-            methodName = "isSafeInteger",
-            implementation = { state, call -> numberPredicate(state, call, state::isSafeInteger) },
-        ),
+        mathAbsModel,
+        mathCeilModel,
+        mathFloorModel,
+        mathMaxModel,
+        mathMinModel,
+        mathRoundModel,
+        mathSqrtModel,
+        mathTruncModel,
+        numberIsFiniteModel,
+        numberIsIntegerModel,
+        numberIsNaNModel,
+        numberIsSafeIntegerModel,
     )
 }
 
@@ -251,9 +267,13 @@ private fun TsState.isInteger(value: UExpr<KFp64Sort>) = with(ctx) {
 }
 
 private fun TsState.isSafeInteger(value: UExpr<KFp64Sort>) = with(ctx) {
+    val absoluteValue = mkFpAbsExpr(value)
+    val maxSafeInteger = mkFp(MAX_SAFE_INTEGER, fp64Sort)
+    val isInSafeRange = mkFpLessOrEqualExpr(absoluteValue, maxSafeInteger)
+
     mkAnd(
         isInteger(value),
-        mkFpLessOrEqualExpr(mkFpAbsExpr(value), mkFp(MAX_SAFE_INTEGER, fp64Sort)),
+        isInSafeRange,
     )
 }
 
@@ -262,24 +282,20 @@ private fun TsState.mathMin(
     right: UExpr<KFp64Sort>,
 ): UExpr<KFp64Sort> = with(ctx) {
     val zero = mkFp(0.0, fp64Sort)
-    val negativeZero = mkFp(-0.0, fp64Sort)
-    val eitherNegative = mkOr(mkFpIsNegativeExpr(left), mkFpIsNegativeExpr(right))
+    val negativeZero = mkFp(NEGATIVE_ZERO, fp64Sort)
+    val leftIsNegative = mkFpIsNegativeExpr(left)
+    val rightIsNegative = mkFpIsNegativeExpr(right)
+    val eitherNegative = mkOr(leftIsNegative, rightIsNegative)
     val signedZero = mkIte(eitherNegative, negativeZero, zero)
-    val bothZero = mkAnd(mkFpIsZeroExpr(left), mkFpIsZeroExpr(right))
+    val leftIsZero = mkFpIsZeroExpr(left)
+    val rightIsZero = mkFpIsZeroExpr(right)
+    val bothZero = mkAnd(leftIsZero, rightIsZero)
+    val equalResult = mkIte(bothZero, signedZero, left)
+    val rightLessResult = mkIte(mkFpLessExpr(right, left), right, equalResult)
+    val leftLessResult = mkIte(mkFpLessExpr(left, right), left, rightLessResult)
+    val rightNaNResult = mkIte(mkFpIsNaNExpr(right), right, leftLessResult)
 
-    mkIte(
-        mkFpIsNaNExpr(left),
-        left,
-        mkIte(
-            mkFpIsNaNExpr(right),
-            right,
-            mkIte(
-                mkFpLessExpr(left, right),
-                left,
-                mkIte(mkFpLessExpr(right, left), right, mkIte(bothZero, signedZero, left)),
-            ),
-        ),
-    )
+    mkIte(mkFpIsNaNExpr(left), left, rightNaNResult)
 }
 
 private fun TsState.mathMax(
@@ -287,24 +303,20 @@ private fun TsState.mathMax(
     right: UExpr<KFp64Sort>,
 ): UExpr<KFp64Sort> = with(ctx) {
     val zero = mkFp(0.0, fp64Sort)
-    val negativeZero = mkFp(-0.0, fp64Sort)
-    val eitherPositive = mkOr(mkFpIsPositiveExpr(left), mkFpIsPositiveExpr(right))
+    val negativeZero = mkFp(NEGATIVE_ZERO, fp64Sort)
+    val leftIsPositive = mkFpIsPositiveExpr(left)
+    val rightIsPositive = mkFpIsPositiveExpr(right)
+    val eitherPositive = mkOr(leftIsPositive, rightIsPositive)
     val signedZero = mkIte(eitherPositive, zero, negativeZero)
-    val bothZero = mkAnd(mkFpIsZeroExpr(left), mkFpIsZeroExpr(right))
+    val leftIsZero = mkFpIsZeroExpr(left)
+    val rightIsZero = mkFpIsZeroExpr(right)
+    val bothZero = mkAnd(leftIsZero, rightIsZero)
+    val equalResult = mkIte(bothZero, signedZero, left)
+    val rightGreaterResult = mkIte(mkFpGreaterExpr(right, left), right, equalResult)
+    val leftGreaterResult = mkIte(mkFpGreaterExpr(left, right), left, rightGreaterResult)
+    val rightNaNResult = mkIte(mkFpIsNaNExpr(right), right, leftGreaterResult)
 
-    mkIte(
-        mkFpIsNaNExpr(left),
-        left,
-        mkIte(
-            mkFpIsNaNExpr(right),
-            right,
-            mkIte(
-                mkFpGreaterExpr(left, right),
-                left,
-                mkIte(mkFpGreaterExpr(right, left), right, mkIte(bothZero, signedZero, left)),
-            ),
-        ),
-    )
+    mkIte(mkFpIsNaNExpr(left), left, rightNaNResult)
 }
 
 private fun TsState.mathRound(value: UExpr<KFp64Sort>): UExpr<KFp64Sort> = with(ctx) {
@@ -314,16 +326,16 @@ private fun TsState.mathRound(value: UExpr<KFp64Sort>): UExpr<KFp64Sort> = with(
         value = value,
     )
     val fraction = mkFpSubExpr(roundingMode, value, floor)
-    val rounded = mkIte(
-        mkFpLessExpr(fraction, mkFp(0.5, fp64Sort)),
-        floor,
-        mkFpAddExpr(roundingMode, floor, mkFp(1.0, fp64Sort)),
-    )
-    val signedRounded = mkIte(
-        mkAnd(mkFpIsNegativeExpr(value), mkFpIsZeroExpr(rounded)),
-        mkFp(-0.0, fp64Sort),
-        rounded,
-    )
+    val half = mkFp(ROUNDING_THRESHOLD, fp64Sort)
+    val useFloor = mkFpLessExpr(fraction, half)
+    val increment = mkFp(ROUNDING_INCREMENT, fp64Sort)
+    val incrementedFloor = mkFpAddExpr(roundingMode, floor, increment)
+    val rounded = mkIte(useFloor, floor, incrementedFloor)
+    val isNegative = mkFpIsNegativeExpr(value)
+    val roundedIsZero = mkFpIsZeroExpr(rounded)
+    val returnsNegativeZero = mkAnd(isNegative, roundedIsZero)
+    val negativeZero = mkFp(NEGATIVE_ZERO, fp64Sort)
+    val signedRounded = mkIte(returnsNegativeZero, negativeZero, rounded)
     val preserveInput = mkOr(
         mkFpIsNaNExpr(value),
         mkFpIsInfiniteExpr(value),
@@ -334,3 +346,6 @@ private fun TsState.mathRound(value: UExpr<KFp64Sort>): UExpr<KFp64Sort> = with(
 }
 
 private const val MAX_SAFE_INTEGER: Double = 9_007_199_254_740_991.0
+private const val NEGATIVE_ZERO: Double = -0.0
+private const val ROUNDING_THRESHOLD: Double = 0.5
+private const val ROUNDING_INCREMENT: Double = 1.0
