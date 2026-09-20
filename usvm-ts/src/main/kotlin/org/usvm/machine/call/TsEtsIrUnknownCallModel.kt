@@ -116,11 +116,9 @@ class TsEtsIrUnknownCallModel(
     override val additionalSceneFiles: List<EtsFile> = listOf(artifact.file)
 
     override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution? {
-        val resolvedInputs = call.resolvedInputs() ?: return null
         val inputs = inputAdapter.adapt(
             state = state,
             call = call,
-            resolvedInputs = resolvedInputs,
         ) ?: return null
         if (inputs.size != artifact.entryPoint.parameters.size) {
             return null
@@ -170,11 +168,10 @@ fun interface TsEtsIrUnknownCallModelInputAdapter {
     fun adapt(
         state: TsState,
         call: TsUnknownCall,
-        resolvedInputs: List<UExpr<*>>,
     ): List<UExpr<*>>?
 
     companion object {
-        val IDENTITY = TsEtsIrUnknownCallModelInputAdapter { _, _, resolvedInputs -> resolvedInputs }
+        val IDENTITY = TsEtsIrUnknownCallModelInputAdapter { _, call -> call.resolvedInputs() }
     }
 }
 
