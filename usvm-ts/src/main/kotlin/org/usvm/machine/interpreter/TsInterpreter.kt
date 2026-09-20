@@ -34,6 +34,7 @@ import org.jacodb.ets.utils.callExpr
 import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UExpr
+import org.usvm.USort
 import org.usvm.UInterpreter
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArray
@@ -712,7 +713,12 @@ class TsInterpreter(
             unknownCallDispatcher = unknownCallDispatcher,
         )
 
-    fun getInitialState(method: EtsMethod, targets: List<TsTarget>): TsState = with(ctx) {
+    fun getInitialState(
+        method: EtsMethod,
+        targets: List<TsTarget>,
+        configure: (TsState) -> Unit = {},
+        parameterSortOverride: (Int) -> USort? = { null },
+    ): TsState = with(ctx) {
         val state = TsState(
             ctx = ctx,
             ownership = MutabilityOwnership(),
@@ -739,6 +745,11 @@ class TsInterpreter(
 
         method.parameters.forEachIndexed { i, param ->
             val idx = i + 1 // +1 because 0 is reserved for `this`
+            val overriddenSort = parameterSortOverride(idx)
+            if (overriddenSort != null) {
+                state.saveSortForLocal(idx, overriddenSort)
+                return@forEachIndexed
+            }
 
             val ref by lazy {
                 val lValue = mkRegisterStackLValue(addressSort, idx)
@@ -801,6 +812,8 @@ class TsInterpreter(
                 state.saveSortForLocal(idx, parameterSort)
             }
         }
+
+        configure(state)
 
         val solver = solver<EtsType>()
         val model = solver.check(state.pathConstraints).ensureSat().model

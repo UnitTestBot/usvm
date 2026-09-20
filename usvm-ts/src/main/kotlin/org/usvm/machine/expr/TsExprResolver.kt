@@ -89,6 +89,7 @@ import org.usvm.api.allocateConcreteRef
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArrayLength
 import org.usvm.api.makeSymbolicPrimitive
+import org.usvm.api.typeStreamOf
 import org.usvm.dataflow.ts.infer.tryGetKnownType
 import org.usvm.dataflow.ts.util.type
 import org.usvm.isAllocatedConcreteHeapRef
@@ -116,11 +117,13 @@ import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.sizeSort
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.SymbolResolutionResult
+import org.usvm.util.concatStrings
 import org.usvm.util.isResolved
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
 import org.usvm.util.resolveEtsMethods
 import org.usvm.util.resolveImportInfo
+import org.usvm.types.singleOrNull
 
 private val logger = KotlinLogging.logger {}
 
@@ -580,13 +583,32 @@ class TsExprResolver(
         if (expr.type == EtsStringType) {
             return resolveAfterResolved(expr.left, expr.right) { lhs, rhs ->
                 val lhsString = concreteStringValue(lhs)
-                    ?: error("Symbolic string concatenation is not supported for left operand: $lhs")
                 val rhsString = concreteStringValue(rhs)
-                    ?: error("Symbolic string concatenation is not supported for right operand: $rhs")
-                ctx.mkStringConstant(lhsString + rhsString, scope)
+                if (lhsString != null && rhsString != null) {
+                    return@resolveAfterResolved ctx.mkStringConstant(lhsString + rhsString, scope)
+                }
+
+                val lhsRef = stringStorageRef(lhs)
+                    ?: error("String concatenation is not supported for left operand: $lhs")
+                val rhsRef = stringStorageRef(rhs)
+                    ?: error("String concatenation is not supported for right operand: $rhs")
+                scope.calcOnState { concatStrings(lhsRef, rhsRef) }
             }
         }
         return resolveBinaryOperator(TsBinaryOperator.Add, expr)
+    }
+
+    private fun stringStorageRef(value: UExpr<*>): UHeapRef? = with(ctx) {
+        if (value.sort == addressSort) {
+            val ref = value.asExpr(addressSort)
+            val type = scope.calcOnState { memory.typeStreamOf(ref).singleOrNull() }
+            if (type is EtsStringType) {
+                return ref
+            }
+        }
+
+        val concrete = concreteStringValue(value) ?: return null
+        mkStringConstant(concrete, scope)
     }
 
     private fun concreteStringValue(value: UExpr<*>): String? = with(ctx) {
