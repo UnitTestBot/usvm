@@ -209,6 +209,10 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         artifact = artifact(methodName),
         domainGuard = domainGuard,
         inputAdapter = inputAdapter,
+        requiredModelIds = when (methodName) {
+            "charAt" -> setOf(PRIMITIVE_LENGTH_ID, PRIMITIVE_CODE_UNIT_AT_ID, PRIMITIVE_FROM_CODE_UNIT_ID)
+            else -> setOf(PRIMITIVE_LENGTH_ID, PRIMITIVE_CODE_UNIT_AT_ID)
+        },
     )
 
     private fun artifact(methodName: String): TsEtsIrUnknownCallModelArtifact {
@@ -382,4 +386,8 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             return implementation(state, inputs)
         }
     }
+
+    private const val PRIMITIVE_LENGTH_ID = "ts.string.primitive.length"
+    private const val PRIMITIVE_CODE_UNIT_AT_ID = "ts.string.primitive.codeUnitAt"
+    private const val PRIMITIVE_FROM_CODE_UNIT_ID = "ts.string.primitive.fromCodeUnit"
 }
