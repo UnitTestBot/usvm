@@ -26,7 +26,7 @@ import org.usvm.machine.TsVirtualMethodCallStmt
 import org.usvm.machine.call.TsUnknownCallFailureReason
 import org.usvm.machine.call.TsUnknownCallModelDispatcher
 import org.usvm.machine.call.dispatch
-import org.usvm.machine.call.hasDateReceiver
+import org.usvm.machine.call.isDateReceiver
 import org.usvm.machine.expr.TsExprApproximationResult.Companion.from
 import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.markResolved
@@ -141,8 +141,11 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
     }
 
     // Handle `.valueOf()` method calls
-    if (expr.callee.name == "valueOf" && !expr.hasDateReceiver()) {
-        return from(handleValueOf(expr, instance))
+    if (expr.callee.name == "valueOf") {
+        val receiverIsDate = scope.calcOnState { isDateReceiver(expr, instance) }
+        if (!receiverIsDate) {
+            return from(handleValueOf(expr, instance))
+        }
     }
 
     if (instance.sort != addressSort) return TsExprApproximationResult.NoApproximation

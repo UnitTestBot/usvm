@@ -1,5 +1,6 @@
 package org.usvm.machine.call
 
+import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsCallExpr
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsClassType
@@ -13,11 +14,14 @@ import org.jacodb.ets.model.EtsValue
 import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.usvm.UExpr
 import org.usvm.api.mockMethodCall
+import org.usvm.api.typeStreamOf
 import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsVirtualMethodCallStmt
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsMethodResult
+import org.usvm.machine.state.TsState
 import org.usvm.machine.state.newStmt
+import org.usvm.types.singleOrNull
 
 /**
  * A call that the regular TypeScript execution pipeline could not execute.
@@ -144,7 +148,10 @@ internal fun TsUnknownCallDispatcher.dispatch(
         is EtsPtrCallExpr -> call.ptr
         else -> null
     }
-    val normalizedCallee = call.canonicalizeDateCallee(callee)
+    val receiverIsDate = (call as? EtsInstanceCallExpr)?.let { instanceCall ->
+        scope.calcOnState { isDateReceiver(instanceCall, resolvedReceiver) }
+    } ?: false
+    val normalizedCallee = call.canonicalizeDateCallee(callee, receiverIsDate)
     val unknownCall = TsUnknownCall(
         callee = normalizedCallee,
         receiver = receiverSource?.let { TsUnknownCallValue(it, resolvedReceiver) },
@@ -166,13 +173,30 @@ internal fun EtsInstanceCallExpr.hasDateReceiver(): Boolean =
         else -> false
     }
 
-private fun EtsCallExpr.canonicalizeDateCallee(callee: EtsMethodSignature): EtsMethodSignature {
+internal fun TsState.isDateReceiver(
+    call: EtsInstanceCallExpr,
+    receiver: UExpr<*>?,
+): Boolean {
+    if (call.hasDateReceiver()) {
+        return true
+    }
+    if (receiver?.sort != ctx.addressSort) {
+        return false
+    }
+
+    val runtimeType = memory.typeStreamOf(receiver.asExpr(ctx.addressSort)).singleOrNull()
+    return (runtimeType as? EtsClassType)?.signature?.name == "Date"
+}
+
+private fun EtsCallExpr.canonicalizeDateCallee(
+    callee: EtsMethodSignature,
+    receiverIsDate: Boolean,
+): EtsMethodSignature {
     if (callee.enclosingClass.name == "Date") {
         return callee
     }
 
-    val instanceCall = this as? EtsInstanceCallExpr ?: return callee
-    if (!instanceCall.hasDateReceiver()) {
+    if (!receiverIsDate) {
         return callee
     }
 
