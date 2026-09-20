@@ -39,6 +39,18 @@ import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
 
+/** Whether symbolic analysis exhausted its paths or a configured strategy stopped it. */
+enum class TsAnalysisStopReason {
+    EXHAUSTED,
+    STOPPED,
+}
+
+/** Collected states together with the machine completion kind. */
+data class TsAnalysisResult(
+    val states: List<TsState>,
+    val stopReason: TsAnalysisStopReason,
+)
+
 class TsMachine(
     scene: EtsScene,
     override val options: UMachineOptions,
@@ -92,7 +104,12 @@ class TsMachine(
     fun analyze(
         methods: List<EtsMethod>,
         targets: List<TsTarget> = emptyList(),
-    ): List<TsState> {
+    ): List<TsState> = analyzeWithOutcome(methods = methods, targets = targets).states
+
+    fun analyzeWithOutcome(
+        methods: List<EtsMethod>,
+        targets: List<TsTarget> = emptyList(),
+    ): TsAnalysisResult {
         val initialStates = mutableMapOf<EtsMethod, TsState>()
         methods.forEach { initialStates[it] = interpreter.getInitialState(it, targets) }
 
@@ -147,7 +164,6 @@ class TsMachine(
         }
 
         val stepsStatistics = StepsStatistics<EtsMethod, TsState>()
-
         val stopStrategy = object : StopStrategy {
             val strategy = createStopStrategy(
                 options,
@@ -194,7 +210,13 @@ class TsMachine(
             stopStrategy = stopStrategy
         )
 
-        return statesCollector.collectedStates
+        val stopReason = if (pathSelector.isEmpty()) {
+            TsAnalysisStopReason.EXHAUSTED
+        } else {
+            TsAnalysisStopReason.STOPPED
+        }
+
+        return TsAnalysisResult(states = statesCollector.collectedStates, stopReason = stopReason)
     }
 
     override fun close() {

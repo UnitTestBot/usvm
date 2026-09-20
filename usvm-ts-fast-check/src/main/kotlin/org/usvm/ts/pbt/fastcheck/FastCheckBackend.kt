@@ -1,6 +1,6 @@
 package org.usvm.ts.pbt.fastcheck
 
-import org.usvm.ts.pbt.PbtDiagnosticCode
+import org.usvm.ts.pbt.FastCheckDiagnosticCode
 import org.usvm.ts.pbt.backend.PropertyBasedTestingBackend
 import org.usvm.ts.pbt.backend.PropertyCoverageCapability
 import org.usvm.ts.pbt.backend.PropertyRunConfiguration
@@ -71,7 +71,7 @@ class FastCheckBackend(
         configuration.examples.forEachIndexed { index, example ->
             if (example.size != property.inputs.size) {
                 throw invalidRequest(
-                    code = PbtDiagnosticCode.BACKEND_EXAMPLES_ARITY,
+                    code = FastCheckDiagnosticCode.BACKEND_EXAMPLES_ARITY,
                     message = "Explicit example $index has ${example.size} values, expected ${property.inputs.size}",
                     property = property,
                     path = "examples[$index]",
@@ -89,7 +89,7 @@ class FastCheckBackend(
 
                 if (value !in property.inputs[valueIndex].domain) {
                     throw invalidRequest(
-                        code = PbtDiagnosticCode.BACKEND_EXAMPLES_DOMAIN,
+                        code = FastCheckDiagnosticCode.BACKEND_EXAMPLES_DOMAIN,
                         message = "Explicit example does not belong to the declared input domain",
                         property = property,
                         path = path,
@@ -106,7 +106,7 @@ class FastCheckBackend(
     ) {
         if (value is JsConcreteValue.Number && !hasValidEncoding(value)) {
             throw invalidRequest(
-                code = PbtDiagnosticCode.BACKEND_EXAMPLES_VALUE_INVALID,
+                code = FastCheckDiagnosticCode.BACKEND_EXAMPLES_VALUE_INVALID,
                 message = "Explicit example contains an invalid tagged JavaScript number",
                 property = property,
                 path = path,
@@ -151,7 +151,7 @@ class FastCheckBackend(
             if (sourceRoots.isEmpty()) {
                 throw PbtBackendException(
                     kind = BackendErrorKind.INVALID_REQUEST,
-                    code = PbtDiagnosticCode.SOURCE_ROOT_INVALID,
+                    code = FastCheckDiagnosticCode.SOURCE_ROOT_INVALID,
                     message = "At least one TypeScript source root is required",
                     path = "sourceRoots",
                 )
@@ -165,7 +165,7 @@ class FastCheckBackend(
                 if (!Files.isDirectory(realPath)) {
                     throw PbtBackendException(
                         kind = BackendErrorKind.INVALID_REQUEST,
-                        code = PbtDiagnosticCode.SOURCE_ROOT_INVALID,
+                        code = FastCheckDiagnosticCode.SOURCE_ROOT_INVALID,
                         message = "TypeScript source root is not a directory: $sourceRoot",
                         path = "sourceRoots[$index]",
                     )
@@ -174,7 +174,7 @@ class FastCheckBackend(
         } catch (error: IOException) {
             throw PbtBackendException(
                 kind = BackendErrorKind.INVALID_REQUEST,
-                code = PbtDiagnosticCode.SOURCE_ROOT_INVALID,
+                code = FastCheckDiagnosticCode.SOURCE_ROOT_INVALID,
                 message = "Cannot resolve TypeScript source root $sourceRoot: ${error.message}",
                 path = "sourceRoots[$index]",
                 cause = error,

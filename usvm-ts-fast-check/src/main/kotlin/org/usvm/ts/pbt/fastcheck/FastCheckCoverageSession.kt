@@ -1,6 +1,6 @@
 package org.usvm.ts.pbt.fastcheck
 
-import org.usvm.ts.pbt.PbtDiagnosticCode
+import org.usvm.ts.pbt.FastCheckDiagnosticCode
 import org.usvm.ts.pbt.backend.CoverageScope
 import org.usvm.ts.pbt.backend.PropertyRunResult
 import org.usvm.ts.pbt.coverage.CoverageArtifactException
@@ -130,7 +130,7 @@ internal class FastCheckCoverageSession private constructor(
             if (!Files.isRegularFile(c8EntryPoint)) {
                 failPreparation(
                     request = request,
-                    code = PbtDiagnosticCode.COVERAGE_COLLECTOR_NOT_FOUND,
+                    code = FastCheckDiagnosticCode.COVERAGE_COLLECTOR_NOT_FOUND,
                     message = "Cannot locate c8 ${FastCheckRuntimeMetadata.coverageCollector.version} " +
                         "in the fast-check adapter runtime",
                     path = c8EntryPoint.toString(),
@@ -149,7 +149,7 @@ internal class FastCheckCoverageSession private constructor(
         }
 
         private fun createWorkspace(c8EntryPoint: Path, adapterRoot: Path): CoverageWorkspace {
-            val root = Files.createTempDirectory("usvm-ts-pbt-coverage-")
+            val root = Files.createTempDirectory("usvm-ts-fast-check-coverage-")
 
             try {
                 val configPath = Files.writeString(root.resolve("c8-config.json"), "{}")
@@ -177,7 +177,7 @@ internal class FastCheckCoverageSession private constructor(
             } catch (error: IOException) {
                 failPreparation(
                     request = request,
-                    code = PbtDiagnosticCode.COVERAGE_RUNTIME_VERSION_UNAVAILABLE,
+                    code = FastCheckDiagnosticCode.COVERAGE_RUNTIME_VERSION_UNAVAILABLE,
                     message = "Cannot query the Node.js runtime version: ${error.message}",
                     cause = error,
                 )
@@ -191,7 +191,7 @@ internal class FastCheckCoverageSession private constructor(
                 if (process.exitValue() != 0 || version.isBlank()) {
                     failPreparation(
                         request = request,
-                        code = PbtDiagnosticCode.COVERAGE_RUNTIME_VERSION_UNAVAILABLE,
+                        code = FastCheckDiagnosticCode.COVERAGE_RUNTIME_VERSION_UNAVAILABLE,
                         message = "Cannot query the Node.js runtime version",
                     )
                 }
@@ -211,7 +211,7 @@ internal class FastCheckCoverageSession private constructor(
                 Thread.currentThread().interrupt()
                 failPreparation(
                     request = request,
-                    code = PbtDiagnosticCode.BACKEND_PROCESS_INTERRUPTED,
+                    code = FastCheckDiagnosticCode.BACKEND_PROCESS_INTERRUPTED,
                     message = "Interrupted while querying the Node.js runtime version",
                     kind = BackendErrorKind.PROCESS_FAILURE,
                     cause = error,
@@ -221,7 +221,7 @@ internal class FastCheckCoverageSession private constructor(
                 process.destroyForcibly()
                 failPreparation(
                     request = request,
-                    code = PbtDiagnosticCode.COVERAGE_RUNTIME_VERSION_UNAVAILABLE,
+                    code = FastCheckDiagnosticCode.COVERAGE_RUNTIME_VERSION_UNAVAILABLE,
                     message = "Timed out while querying the Node.js runtime version",
                 )
             }
@@ -234,7 +234,7 @@ internal class FastCheckCoverageSession private constructor(
             if (major == null || minor == null) {
                 failPreparation(
                     request = request,
-                    code = PbtDiagnosticCode.COVERAGE_RUNTIME_VERSION_UNAVAILABLE,
+                    code = FastCheckDiagnosticCode.COVERAGE_RUNTIME_VERSION_UNAVAILABLE,
                     message = "Cannot parse the Node.js runtime version: $version",
                 )
             }
@@ -245,7 +245,7 @@ internal class FastCheckCoverageSession private constructor(
             if (!supported) {
                 failPreparation(
                     request = request,
-                    code = PbtDiagnosticCode.COVERAGE_RUNTIME_UNSUPPORTED,
+                    code = FastCheckDiagnosticCode.COVERAGE_RUNTIME_UNSUPPORTED,
                     message = "Coverage requires Node.js 18.18 or newer; found $version",
                 )
             }

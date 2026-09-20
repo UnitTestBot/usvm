@@ -2,7 +2,7 @@ package org.usvm.ts.pbt.fastcheck
 
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
-import org.usvm.ts.pbt.PbtDiagnosticCode
+import org.usvm.ts.pbt.FastCheckDiagnosticCode
 import org.usvm.ts.pbt.backend.PropertyRunResult
 import org.usvm.ts.pbt.manifest.PropertyManifestJson
 import org.usvm.ts.pbt.model.PropertyId
@@ -79,7 +79,7 @@ internal class FastCheckProcessClient(
         if (encodedRequest.toByteArray(Charsets.UTF_8).size > MAX_REQUEST_BYTES) {
             throw backendError(
                 kind = BackendErrorKind.INVALID_REQUEST,
-                code = PbtDiagnosticCode.BACKEND_REQUEST_TOO_LARGE,
+                code = FastCheckDiagnosticCode.BACKEND_REQUEST_TOO_LARGE,
                 message = "fast-check request exceeds $MAX_REQUEST_BYTES bytes",
                 request = request,
             )
@@ -97,7 +97,7 @@ internal class FastCheckProcessClient(
 
             throw backendError(
                 kind = BackendErrorKind.PROCESS_FAILURE,
-                code = PbtDiagnosticCode.BACKEND_PROCESS_FAILED,
+                code = FastCheckDiagnosticCode.BACKEND_PROCESS_FAILED,
                 message = "fast-check adapter exited with code ${output.exitCode}: $detail",
                 request = request,
             )
@@ -106,7 +106,7 @@ internal class FastCheckProcessClient(
         if (output.stdout.isBlank()) {
             throw backendError(
                 kind = BackendErrorKind.PROTOCOL_ERROR,
-                code = PbtDiagnosticCode.BACKEND_RESPONSE_EMPTY,
+                code = FastCheckDiagnosticCode.BACKEND_RESPONSE_EMPTY,
                 message = "fast-check adapter returned an empty response",
                 request = request,
             )
@@ -121,7 +121,7 @@ internal class FastCheckProcessClient(
     } catch (error: IllegalArgumentException) {
         throw backendError(
             kind = BackendErrorKind.PROTOCOL_ERROR,
-            code = PbtDiagnosticCode.BACKEND_RESPONSE_INVALID,
+            code = FastCheckDiagnosticCode.BACKEND_RESPONSE_INVALID,
             message = "fast-check adapter returned invalid JSON: ${error.message}",
             request = request,
             cause = error,
@@ -179,7 +179,7 @@ internal class FastCheckProcessClient(
         } catch (error: IllegalArgumentException) {
             throw backendError(
                 kind = BackendErrorKind.PROTOCOL_ERROR,
-                code = PbtDiagnosticCode.BACKEND_RESPONSE_INVALID,
+                code = FastCheckDiagnosticCode.BACKEND_RESPONSE_INVALID,
                 message = "fast-check result property ID is invalid: ${error.message}",
                 request = request,
                 cause = error,
@@ -199,7 +199,7 @@ internal class FastCheckProcessClient(
         request: FastCheckExecutionRequest,
     ): PbtBackendException = backendError(
         kind = BackendErrorKind.PROTOCOL_ERROR,
-        code = PbtDiagnosticCode.BACKEND_RESPONSE_INVALID,
+        code = FastCheckDiagnosticCode.BACKEND_RESPONSE_INVALID,
         message = message,
         request = request,
     )
@@ -230,8 +230,8 @@ internal class FastCheckProcessClient(
 }
 
 private fun FastCheckTransportException.backendErrorKind(): BackendErrorKind = when (code) {
-    PbtDiagnosticCode.BACKEND_REQUEST_TOO_LARGE -> BackendErrorKind.INVALID_REQUEST
-    PbtDiagnosticCode.BACKEND_RESPONSE_TOO_LARGE -> BackendErrorKind.PROTOCOL_ERROR
-    PbtDiagnosticCode.BACKEND_PROCESS_TIMEOUT -> BackendErrorKind.TIMEOUT
+    FastCheckDiagnosticCode.BACKEND_REQUEST_TOO_LARGE -> BackendErrorKind.INVALID_REQUEST
+    FastCheckDiagnosticCode.BACKEND_RESPONSE_TOO_LARGE -> BackendErrorKind.PROTOCOL_ERROR
+    FastCheckDiagnosticCode.BACKEND_PROCESS_TIMEOUT -> BackendErrorKind.TIMEOUT
     else -> BackendErrorKind.PROCESS_FAILURE
 }

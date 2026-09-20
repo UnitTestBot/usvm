@@ -1,10 +1,11 @@
 # USVM TypeScript property-based testing
 
-`usvm-ts-pbt` is the Kotlin-owned integration layer for concrete property-based testing backends and USVM.
-Kotlin defines each property once; fast-check is the first concrete backend.
+`usvm-ts-pbt` is the backend-neutral Kotlin layer between property-based testing backends and USVM. It owns the
+property model, validation, registries, coverage contracts and decoders, and property-to-EtsIR mapping. The first
+concrete backend lives in [`usvm-ts-fast-check`](../usvm-ts-fast-check/README.md).
 
-See [DESIGN.md](DESIGN.md) for component responsibilities, Kotlin–TypeScript data flow, process supervision, and
-runtime packaging.
+See [`usvm-ts-fast-check/DESIGN.md`](../usvm-ts-fast-check/DESIGN.md) for the FastCheck process boundary and runtime
+packaging.
 
 ## Kotlin property model
 
@@ -219,7 +220,7 @@ Register the provider in
 provider JAR on the application classpath, then run:
 
 ```shell
-java -cp '/opt/usvm-ts-pbt/lib/*:/workspace/example-properties.jar' \
+java -cp '/opt/usvm-ts-fast-check/lib/*:/workspace/example-properties.jar' \
   org.usvm.ts.pbt.cli.FastCheckCliKt \
   --source-root /workspace/packages/core/src \
   --registry example \
@@ -248,11 +249,11 @@ Requires JDK 11, Node.js 18.18 or newer, npm, and the repository Gradle wrapper.
 The private distribution pins c8 10.1.3 because it supports the module's Node 18 floor.
 
 ```shell
-npm ci --prefix usvm-ts-pbt/fast-check-adapter --ignore-scripts
-npm test --prefix usvm-ts-pbt/fast-check-adapter
+npm ci --prefix usvm-ts-fast-check/fast-check-adapter --ignore-scripts
+npm test --prefix usvm-ts-fast-check/fast-check-adapter
 
 env -u ARKANALYZER_DIR ETS_IR_PROVIDER=ts-frontend \
-  ./gradlew --no-daemon :usvm-ts-pbt:check
+  ./gradlew --no-daemon :usvm-ts-pbt:check :usvm-ts-fast-check:check
 ```
 
 To substitute a local JacoDB checkout, add `-PuseLocalJacodb=/absolute/path/to/jacodb` to the Gradle command.

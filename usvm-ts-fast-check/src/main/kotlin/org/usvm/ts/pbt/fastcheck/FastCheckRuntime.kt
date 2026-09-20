@@ -1,6 +1,6 @@
 package org.usvm.ts.pbt.fastcheck
 
-import org.usvm.ts.pbt.PbtDiagnosticCode
+import org.usvm.ts.pbt.FastCheckDiagnosticCode
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -20,7 +20,7 @@ internal object FastCheckRuntime {
         return candidates.firstOrNull(Files::isRegularFile)
             ?: throw PbtBackendException(
                 kind = BackendErrorKind.INVALID_REQUEST,
-                code = PbtDiagnosticCode.BACKEND_RUNTIME_NOT_FOUND,
+                code = FastCheckDiagnosticCode.BACKEND_RUNTIME_NOT_FOUND,
                 message = "Cannot locate built fast-check adapter; checked $candidates",
             )
     }
