@@ -62,6 +62,21 @@ const componentCases = [
     [275760, 8, 13],
 ];
 
+const utcBoundaryCases = [
+    [],
+    [undefined],
+    [2020],
+    [2020, undefined],
+];
+
+for (const arguments_ of utcBoundaryCases) {
+    assert.deepEqual(
+        DateModels.utc(arguments_.length, ...arguments_, 0, 0, 0, 0, 0, 0, 0),
+        Date.UTC(...arguments_),
+        `UTC(${arguments_.join(",")})`,
+    );
+}
+
 for (const arguments_ of componentCases) {
     assert.deepEqual(
         modeled(...arguments_).timestamp,
@@ -100,5 +115,11 @@ for (const timestamp of [-62_167_219_200_000, -1, 0, 253_402_300_799_999]) {
     const receiver = modeled(timestamp);
     assert.equal(DateModels.toISOString(receiver), new Date(timestamp).toISOString());
 }
+
+assert.deepEqual(
+    DateModels.getTimezoneOffset(modeled(NaN)),
+    new Date(NaN).getTimezoneOffset(),
+    "getTimezoneOffset(NaN)",
+);
 
 console.log("DateModels comparison passed");

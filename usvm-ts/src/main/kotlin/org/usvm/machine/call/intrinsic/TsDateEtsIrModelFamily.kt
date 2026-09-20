@@ -31,7 +31,7 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
     override val models: List<TsUnknownCallModel> by lazy {
         buildList {
             add(constructorModel())
-            add(staticArityModel("utc", "UTC", "utc", minArgs = 0, maxArgs = 7))
+            add(utcModel())
             add(nowModel())
 
             for (methodName in listOf(
@@ -112,6 +112,34 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         inputAdapter = TsEtsIrUnknownCallModelInputAdapter { state, _ ->
             with(state.ctx) {
                 listOf(mkFp64(dateNowMilliseconds ?: return@TsEtsIrUnknownCallModelInputAdapter null))
+            }
+        },
+    )
+
+    private fun utcModel(): TsUnknownCallModel = model(
+        idSuffix = "utc",
+        methodName = "UTC",
+        entryPointName = "utc",
+        domainGuard = TsEtsIrUnknownCallModelDomainGuard { state, call, _ ->
+            if (call.hasNumericOrUndefinedArguments(maxArgs = MAX_CONSTRUCTOR_ARGUMENTS, state = state)) {
+                state.ctx.trueExpr
+            } else {
+                state.ctx.falseExpr
+            }
+        },
+        inputAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call ->
+            with(state.ctx) {
+                val arguments = call.arguments.take(MAX_CONSTRUCTOR_ARGUMENTS).map { argument ->
+                    when (val resolved = argument.resolved ?: return@TsEtsIrUnknownCallModelInputAdapter null) {
+                        mkUndefinedValue() -> mkFp64NaN()
+                        else -> resolved
+                    }
+                }.toMutableList()
+                while (arguments.size < MAX_CONSTRUCTOR_ARGUMENTS) {
+                    arguments += mkFp64(0.0)
+                }
+
+                listOf(mkFp64(call.arguments.size.toDouble())) + arguments
             }
         },
     )
@@ -257,6 +285,16 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         }
 
         return arguments.take(numericArgs).all { argument -> argument.resolved?.sort == state.ctx.fp64Sort }
+    }
+
+    private fun TsUnknownCall.hasNumericOrUndefinedArguments(
+        maxArgs: Int,
+        state: TsState,
+    ): Boolean = with(state.ctx) {
+        arguments.take(maxArgs).all { argument ->
+            val resolved = argument.resolved
+            resolved?.sort == fp64Sort || resolved == mkUndefinedValue()
+        }
     }
 
     private fun TsEtsIrUnknownCallModelArtifact.withEntryPoint(methodName: String): TsEtsIrUnknownCallModelArtifact {
