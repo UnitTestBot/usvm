@@ -11,6 +11,10 @@ declare class ExternalModels {
 }
 
 export class EtsIrSemanticModelCalls {
+    namespaceReceiverCanBeIgnored(): number {
+        return Math.abs(-2);
+    }
+
     pureArgumentAndReturn(): number {
         return ExternalModels.absolute(-42);
     }
