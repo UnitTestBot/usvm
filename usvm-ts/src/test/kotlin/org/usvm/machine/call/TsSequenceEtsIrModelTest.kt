@@ -89,11 +89,36 @@ class TsSequenceEtsIrModelTest {
     }
 
     @Test
+    fun `array lastIndexOf stops before indexes below negative length`() {
+        val result = analyze(methodName = "arrayLastIndexOfBeforeStart")
+
+        assertEquals(-1.0, assertIs<TsTestValue.TsNumber>(result.values.single()).number)
+    }
+
+    @Test
     fun `numeric holes do not match zero`() {
         val result = analyze(methodName = "numericHoleDoesNotMatchZero")
 
         assertTrue(result.values.isEmpty())
         assertEquals(TsUnknownCallOutcome.PATH_STOPPED, result.events.last().outcome)
+    }
+
+    @Test
+    fun `numeric holes reject includes undefined without presence metadata`() {
+        val result = analyze(methodName = "numericHoleDoesNotIncludeUndefined")
+
+        assertTrue(result.values.isEmpty())
+        assertEquals(TsUnknownCallOutcome.PATH_STOPPED, result.events.last().outcome)
+    }
+
+    @Test
+    fun `symbolic typed-default search uses residual fallback`() {
+        val result = analyze(methodName = "numericHoleWithSymbolicSearch")
+
+        assertTrue(result.values.isNotEmpty())
+        assertTrue(result.values.all { value -> !assertIs<TsTestValue.TsBoolean>(value).value })
+        assertTrue(result.events.any { it.outcome == TsUnknownCallOutcome.MODEL_APPLIED })
+        assertTrue(result.events.any { it.outcome == TsUnknownCallOutcome.PATH_STOPPED })
     }
 
     @Test

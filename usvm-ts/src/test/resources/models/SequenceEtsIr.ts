@@ -44,9 +44,23 @@ export class SequenceEtsIr {
         return [1, 2, 1].lastIndexOf(1, undefined);
     }
 
+    arrayLastIndexOfBeforeStart(): number {
+        return [1].lastIndexOf(1, -2);
+    }
+
     numericHoleDoesNotMatchZero(): number {
         const values = new Array<number>(1);
         return values.indexOf(0);
+    }
+
+    numericHoleDoesNotIncludeUndefined(): boolean {
+        const values = new Array<number>(1);
+        return values.includes(undefined);
+    }
+
+    numericHoleWithSymbolicSearch(value: number): boolean {
+        const values = new Array<number>(1);
+        return values.includes(value);
     }
 
     explicitUndefinedArrayIncludesUndefined(): boolean {
