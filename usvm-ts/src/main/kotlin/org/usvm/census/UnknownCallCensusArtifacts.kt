@@ -20,6 +20,7 @@ internal data class UnknownCallCensusManifest(
     val schemaVersion: Int,
     val projects: List<UnknownCallCensusProject>,
     val profiles: List<UnknownCallCensusProfile> = listOf(UnknownCallCensusProfile.EMPTY_FRESH),
+    val randomSeed: Long = 0,
     val limits: UnknownCallCensusLimits = UnknownCallCensusLimits(),
 )
 
@@ -46,8 +47,10 @@ internal enum class UnknownCallCensusProfile {
 internal data class UnknownCallCensusLimits(
     val projectTimeoutSeconds: Long = 300,
     val methodTimeoutSeconds: Long = 10,
-    val maxFiles: Int = 100,
+    val maxClasses: Int = 100,
     val maxMethods: Int = 1_000,
+    val minMethodsPerClass: Int = 1,
+    val minStatementsPerMethod: Int = 1,
 )
 
 @Serializable

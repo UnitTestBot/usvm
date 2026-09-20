@@ -4,6 +4,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsMethod
@@ -12,12 +13,14 @@ import org.jacodb.ets.model.EtsNamespaceSignature
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsSourceSpan
 import org.jacodb.ets.utils.ANONYMOUS_METHOD_PREFIX
+import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
 import org.jacodb.ets.utils.EtsIrGenerationException
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.INSTANCE_INIT_METHOD_NAME
 import org.jacodb.ets.utils.STATIC_INIT_METHOD_NAME
 import org.jacodb.ets.utils.generateEtsIR
 import org.jacodb.ets.utils.loadEtsProjectFromIR
+import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.UMachineOptions
 import org.usvm.machine.TsInterpreterObserver
@@ -130,7 +133,7 @@ internal class UnknownCallCensusRunner(
             )
 
             val loadedFiles = loadProjectFiles(project, projectRoot, projectStart, projectTimeout)
-            val entryFiles = selectFiles(project, loadedFiles)
+            val selection = selectMethods(project, projectRoot, loadedFiles)
             val sceneFiles = loadedFiles.files
                 .distinctBy { file -> requireNotNull(loadedFiles.pathsBySignature[file.signature]) }
                 .sortedBy { file -> requireNotNull(loadedFiles.pathsBySignature[file.signature]) }
@@ -138,16 +141,7 @@ internal class UnknownCallCensusRunner(
                 projectFiles = sceneFiles,
                 projectName = project.id,
             )
-            val methods = entryFiles
-                .flatMap { it.allClasses }
-                .flatMap { it.methods }
-                .filterNot { it.cfg.stmts.isEmpty() }
-                .filterNot { it.name.startsWith(ANONYMOUS_METHOD_PREFIX) }
-                .filterNot { it.name == DEFAULT_FILE_METHOD_NAME }
-                .filterNot { it.name == INSTANCE_INIT_METHOD_NAME }
-                .filterNot { it.name == STATIC_INIT_METHOD_NAME }
-                .sortedBy { functionId(project.id, projectRoot, it.signature, loadedFiles.pathsBySignature) }
-                .take(manifest.limits.maxMethods)
+            val methods = selection.methods
 
             var rawEvents = 0
             var completedMethods = 0
@@ -186,7 +180,9 @@ internal class UnknownCallCensusRunner(
                     put("kind", "project_result")
                     put("status", if (projectTimedOut) "timeout" else "completed")
                     put("sceneFiles", sceneFiles.size)
-                    put("filesSelected", entryFiles.size)
+                    put("candidateFiles", selection.candidateFiles)
+                    put("eligibleClasses", selection.eligibleClasses)
+                    put("classesSelected", selection.selectedClasses)
                     put("methodsSelected", methods.size)
                     put("methodsCompleted", completedMethods)
                     put("methodsPartial", partialMethods)
@@ -246,7 +242,9 @@ internal class UnknownCallCensusRunner(
         )
         val methodTimeout = manifest.limits.methodTimeoutSeconds.seconds
         val machineOptions = UMachineOptions(
-            randomSeed = 0,
+            pathSelectionStrategies = listOf(CENSUS_PATH_SELECTION_STRATEGY),
+            randomSeed = manifest.randomSeed,
+            stopOnCoverage = CENSUS_STOP_ON_COVERAGE,
             timeout = methodTimeout,
             solverType = SolverType.YICES,
             throwExceptionOnStepFailure = true,
@@ -324,18 +322,82 @@ internal class UnknownCallCensusRunner(
         return MethodRunResult(status = status, events = observer.eventCount)
     }
 
-    private fun selectFiles(
+    private fun selectMethods(
         project: UnknownCallCensusProject,
+        projectRoot: Path,
         loadedFiles: LoadedProjectFiles,
-    ): List<EtsFile> = loadedFiles.files.asSequence()
-        .map { file -> file to requireNotNull(loadedFiles.pathsBySignature[file.signature]) }
-        .filter { (_, fileName) -> project.includeSuffixes.any(fileName::endsWith) }
-        .filterNot { (_, fileName) -> project.excludeSuffixes.any(fileName::endsWith) }
-        .distinctBy { (_, fileName) -> fileName }
-        .sortedBy { (_, fileName) -> fileName }
-        .take(manifest.limits.maxFiles)
-        .map { (file, _) -> file }
-        .toList()
+    ): SelectedMethods {
+        val candidateFiles = loadedFiles.files.asSequence()
+            .map { file -> file to requireNotNull(loadedFiles.pathsBySignature[file.signature]) }
+            .filter { (_, fileName) -> project.includeSuffixes.any(fileName::endsWith) }
+            .filterNot { (_, fileName) -> project.excludeSuffixes.any(fileName::endsWith) }
+            .distinctBy { (_, fileName) -> fileName }
+            .sortedBy { (_, fileName) -> fileName }
+            .map { (file, _) -> file }
+            .toList()
+
+        val eligibleClasses = candidateFiles
+            .flatMap { file -> file.allClasses }
+            .map { clazz ->
+                val classId = classId(project.id, projectRoot, clazz.signature, loadedFiles.pathsBySignature)
+                val methods = clazz.methods
+                    .asSequence()
+                    .filterNot { method -> method.cfg.stmts.isEmpty() }
+                    .filterNot { method -> method.name.startsWith(ANONYMOUS_METHOD_PREFIX) }
+                    .filterNot { method -> method.name == DEFAULT_ARK_METHOD_NAME }
+                    .filterNot { method -> method.name == INSTANCE_INIT_METHOD_NAME }
+                    .filterNot { method -> method.name == STATIC_INIT_METHOD_NAME }
+                    .sortedWith(
+                        compareBy(
+                            { method ->
+                                stableSelectionRank(
+                                    seed = manifest.randomSeed,
+                                    identity = functionId(
+                                        project.id,
+                                        projectRoot,
+                                        method.signature,
+                                        loadedFiles.pathsBySignature,
+                                    ),
+                                )
+                            },
+                            { method ->
+                                functionId(
+                                    project.id,
+                                    projectRoot,
+                                    method.signature,
+                                    loadedFiles.pathsBySignature,
+                                )
+                            },
+                        )
+                    )
+                    .toList()
+
+                SelectedClass(classId = classId, methods = methods)
+            }
+            .filter { selectedClass ->
+                selectedClass.methods.count { method ->
+                    method.cfg.stmts.size >= manifest.limits.minStatementsPerMethod
+                } >= manifest.limits.minMethodsPerClass
+            }
+
+        val selectedClasses = eligibleClasses
+            .sortedWith(
+                compareBy(
+                    { selectedClass -> stableSelectionRank(manifest.randomSeed, selectedClass.classId) },
+                    SelectedClass::classId,
+                )
+            )
+            .take(manifest.limits.maxClasses)
+        val selectedMethods = roundRobin(selectedClasses.map(SelectedClass::methods))
+            .take(manifest.limits.maxMethods)
+
+        return SelectedMethods(
+            candidateFiles = candidateFiles.size,
+            eligibleClasses = eligibleClasses.size,
+            selectedClasses = selectedClasses.size,
+            methods = selectedMethods,
+        )
+    }
 
     private fun loadProjectFiles(
         project: UnknownCallCensusProject,
@@ -435,8 +497,10 @@ internal class UnknownCallCensusRunner(
         }
         require(manifest.limits.projectTimeoutSeconds > 0) { "Project timeout must be positive" }
         require(manifest.limits.methodTimeoutSeconds > 0) { "Method timeout must be positive" }
-        require(manifest.limits.maxFiles > 0) { "File limit must be positive" }
+        require(manifest.limits.maxClasses > 0) { "Class limit must be positive" }
         require(manifest.limits.maxMethods > 0) { "Method limit must be positive" }
+        require(manifest.limits.minMethodsPerClass > 0) { "Minimum methods per class must be positive" }
+        require(manifest.limits.minStatementsPerMethod > 0) { "Minimum statements per method must be positive" }
         val fullGitRevision = Regex("[0-9a-fA-F]{40}")
         manifest.projects.forEach { project ->
             require(project.id.isNotBlank()) { "Census project ID must not be blank" }
@@ -475,13 +539,17 @@ internal class UnknownCallCensusRunner(
         put("frontendProvider", EtsIrProvider.TS_FRONTEND.name)
         put("solver", SolverType.YICES.name)
         put("javaVersion", System.getProperty("java.version"))
-        put("randomSeed", 0)
+        put("pathSelectionStrategy", CENSUS_PATH_SELECTION_STRATEGY.name)
+        put("randomSeed", manifest.randomSeed)
+        put("stopOnCoverage", CENSUS_STOP_ON_COVERAGE)
         put("unknownCallModelSelection", "NONE")
         put("legacyApproximationPolicy", "UNCHANGED")
         put("projectTimeoutSeconds", manifest.limits.projectTimeoutSeconds)
         put("methodTimeoutSeconds", manifest.limits.methodTimeoutSeconds)
-        put("maxFiles", manifest.limits.maxFiles)
+        put("maxClasses", manifest.limits.maxClasses)
         put("maxMethods", manifest.limits.maxMethods)
+        put("minMethodsPerClass", manifest.limits.minMethodsPerClass)
+        put("minStatementsPerMethod", manifest.limits.minStatementsPerMethod)
     }
 
     private fun validateRevision(projectRoot: Path, expectedRevision: String, timeout: Duration) {
@@ -548,10 +616,6 @@ internal class UnknownCallCensusRunner(
             }
         }
     }
-
-    private fun sha256(bytes: ByteArray): String = MessageDigest.getInstance("SHA-256")
-        .digest(bytes)
-        .joinToString(separator = "") { byte -> "%02x".format(byte) }
 
     private companion object {
         const val RAW_FILE_NAME = "raw.jsonl"
@@ -900,6 +964,18 @@ private data class LoadedProjectFiles(
     val pathsBySignature: Map<EtsFileSignature, String>,
 )
 
+private data class SelectedClass(
+    val classId: String,
+    val methods: List<EtsMethod>,
+)
+
+private data class SelectedMethods(
+    val candidateFiles: Int,
+    val eligibleClasses: Int,
+    val selectedClasses: Int,
+    val methods: List<EtsMethod>,
+)
+
 private val UnknownCallCensusProfile.fallback: TsResidualCallPolicy
     get() = when (this) {
         UnknownCallCensusProfile.EMPTY_FRESH -> TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN
@@ -934,6 +1010,18 @@ private fun functionId(
     return "$projectId:$sourceFile:${signatureKey(signature)}"
 }
 
+private fun classId(
+    projectId: String,
+    projectRoot: Path,
+    signature: EtsClassSignature,
+    pathsBySignature: Map<EtsFileSignature, String>,
+): String {
+    val sourceFile = sourcePath(signature.file, projectRoot, pathsBySignature)
+    val namespace = signature.namespace?.qualifiedName()
+    val className = listOfNotNull(namespace, signature.name).joinToString(separator = "::")
+    return "$projectId:$sourceFile:$className"
+}
+
 private fun calleeId(
     projectRoot: Path,
     signature: EtsMethodSignature,
@@ -947,8 +1035,14 @@ private fun sourcePath(
     signature: EtsMethodSignature,
     projectRoot: Path,
     pathsBySignature: Map<EtsFileSignature, String>,
-): String = pathsBySignature[signature.enclosingClass.file]
-    ?: normalizedSourcePath(signature.enclosingClass.file.fileName, projectRoot)
+): String = sourcePath(signature.enclosingClass.file, projectRoot, pathsBySignature)
+
+private fun sourcePath(
+    signature: EtsFileSignature,
+    projectRoot: Path,
+    pathsBySignature: Map<EtsFileSignature, String>,
+): String = pathsBySignature[signature]
+    ?: normalizedSourcePath(signature.fileName, projectRoot)
 
 private fun signatureKey(signature: EtsMethodSignature): String {
     val parameters = signature.parameters.joinToString(separator = ",") { parameter -> parameter.type.toString() }
@@ -1002,6 +1096,23 @@ private fun repositoryRelativeSourcePath(
 
 private fun String.normalizedSeparators(): String = replace('\\', '/')
 
+internal fun stableSelectionRank(seed: Long, identity: String): String = sha256(
+    "$seed\u0000$identity".toByteArray(StandardCharsets.UTF_8)
+)
+
+internal fun <T> roundRobin(groups: List<List<T>>): List<T> {
+    val maxGroupSize = groups.maxOfOrNull(List<T>::size) ?: return emptyList()
+    return buildList {
+        repeat(maxGroupSize) { index ->
+            groups.forEach { group -> group.getOrNull(index)?.let(::add) }
+        }
+    }
+}
+
+private fun sha256(bytes: ByteArray): String = MessageDigest.getInstance("SHA-256")
+    .digest(bytes)
+    .joinToString(separator = "") { byte -> "%02x".format(byte) }
+
 private fun boundedError(error: Throwable): String {
     val type = error::class.qualifiedName ?: error::class.simpleName ?: "Throwable"
     val message = error.message
@@ -1020,5 +1131,6 @@ private fun combineErrors(primary: String?, additional: String?): String? = when
 private class ProjectTimeoutException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
 
 private const val MAX_ERROR_LENGTH = 1_000
-private const val DEFAULT_FILE_METHOD_NAME = "%dflt"
+private const val CENSUS_STOP_ON_COVERAGE = 0
+private val CENSUS_PATH_SELECTION_STRATEGY = PathSelectionStrategy.CLOSEST_TO_UNCOVERED_RANDOM
 private val JVM_IDENTITY_SUFFIX = Regex("@[0-9a-fA-F]{6,16}")

@@ -150,4 +150,25 @@ class UnknownCallCensusRunnerTest {
         assertEquals(MethodStatus.TIMEOUT, outcome.status)
         assertEquals("Machine timeout reached", outcome.error)
     }
+
+    @Test
+    fun `stable selection rank is reproducible and seed dependent`() {
+        val rank = stableSelectionRank(seed = 0, identity = "project:file:Class")
+
+        assertEquals(rank, stableSelectionRank(seed = 0, identity = "project:file:Class"))
+        assertTrue(rank != stableSelectionRank(seed = 1, identity = "project:file:Class"))
+    }
+
+    @Test
+    fun `round robin selects across classes before taking later methods`() {
+        val methodsByClass = listOf(
+            listOf("a1", "a2", "a3"),
+            listOf("b1"),
+            listOf("c1", "c2"),
+        )
+
+        val methods = roundRobin(methodsByClass)
+
+        assertEquals(listOf("a1", "b1", "c1", "a2", "c2", "a3"), methods)
+    }
 }

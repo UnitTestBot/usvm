@@ -66,10 +66,13 @@
   "profiles": [
     "EMPTY_FRESH"
   ],
+  "randomSeed": 0,
   "limits": {
-    "projectTimeoutSeconds": 300,
-    "methodTimeoutSeconds": 5,
-    "maxFiles": 20,
-    "maxMethods": 40
+    "projectTimeoutSeconds": 900,
+    "methodTimeoutSeconds": 30,
+    "maxClasses": 40,
+    "maxMethods": 40,
+    "minMethodsPerClass": 1,
+    "minStatementsPerMethod": 8
   }
 }
