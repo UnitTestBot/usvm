@@ -5,8 +5,6 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStmt
-import org.jacodb.ets.utils.EtsIrProvider
-import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachineOptions
@@ -52,6 +50,7 @@ internal enum class CallsSymbolicPreflightStatus {
 internal enum class CallsSymbolicPreflightReasonCode {
     INPUT_DOMAIN_UNSUPPORTED,
     IMPORTED_CALLEES_UNSUPPORTED,
+    TOP_LEVEL_INITIALIZATION_UNSUPPORTED,
     ENTRY_MAPPING_UNSUPPORTED,
     ENTRY_MAPPING_UNMAPPED,
     ENTRY_MAPPING_AMBIGUOUS,
@@ -87,6 +86,7 @@ internal class CurrentTsCallsSymbolicEngine(
 ) : CallsSymbolicEngine {
     private val verifiedProjects = mutableMapOf<Path, String>()
     private val preparedTargets = mutableMapOf<CallsSymbolicPreflightRequest, CallsTargetPreparation>()
+    private val loadedSources = mutableMapOf<Pair<Path, String>, CallsSourceProject>()
     private var verifiedNativeFrontendIdentity: String? = null
 
     override fun search(request: CallsSymbolicSearchRequest): CallsSymbolicSearchResult {
@@ -273,18 +273,21 @@ internal class CurrentTsCallsSymbolicEngine(
             )
         }
 
-        val sourceFile = loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)
-        if (sourceFile.importInfos.isNotEmpty()) {
+        val loaded = loadedSources.getOrPut(request.sourceRoot to request.function.sourceFile) {
+            loadCallsSourceProject(sourceRoot = request.sourceRoot, source = source)
+        }
+        if (loaded is CallsSourceProject.Unsupported) {
             return CallsTargetPreparation.Rejected(
                 status = CallsSymbolicStatus.UNSUPPORTED,
-                reasonCode = CallsSymbolicPreflightReasonCode.IMPORTED_CALLEES_UNSUPPORTED,
-                diagnostic = "Single-file symbolic replay does not support imported project callees",
+                reasonCode = loaded.issue.reasonCode,
+                diagnostic = loaded.issue.diagnostic,
             )
         }
 
-        val scene = EtsScene(projectFiles = listOf(sourceFile))
+        loaded as CallsSourceProject.Loaded
+        val scene = loaded.scene
         val frontendEntryPoint = request.function.entryPoint.copy(
-            module = requireNotNull(source.fileName).toString(),
+            module = loaded.entryModule,
         )
         val propertyManifest = PropertyManifest(
             propertyId = "calls.mapping",
@@ -328,7 +331,7 @@ internal class CurrentTsCallsSymbolicEngine(
         callsIrReadinessIssue(
             method = method,
             graph = TsGraph(scene),
-            source = sourceText,
+            sourceByFile = loaded.sourceByFile,
             admittedLexicalEnvironment = lexicalEnvironment?.parameter?.type as? EtsLexicalEnvType,
         )?.let { issue ->
             return CallsTargetPreparation.Rejected(

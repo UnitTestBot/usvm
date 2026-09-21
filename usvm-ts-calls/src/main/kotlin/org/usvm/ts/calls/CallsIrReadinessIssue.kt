@@ -29,10 +29,9 @@ internal data class CallsIrReadinessIssue(
 internal fun callsIrReadinessIssue(
     method: EtsMethod,
     graph: TsGraph,
-    source: String,
+    sourceByFile: Map<EtsFileSignature, String>,
     admittedLexicalEnvironment: EtsLexicalEnvType?,
 ): CallsIrReadinessIssue? {
-    val sourceFile = method.signature.enclosingClass.file
     val pending = ArrayDeque<EtsMethod>().apply { addLast(method) }
     val visited = hashSetOf<EtsMethod>()
 
@@ -41,38 +40,38 @@ internal fun callsIrReadinessIssue(
         if (!visited.add(currentMethod)) continue
 
         currentMethod.irReadinessIssue(
-            source = source,
+            source = sourceByFile.getValue(currentMethod.signature.enclosingClass.file),
             admittedLexicalEnvironment = admittedLexicalEnvironment,
         )?.let { issue -> return issue }
 
-        currentMethod.sameFileCallees(graph = graph, sourceFile = sourceFile)
+        currentMethod.projectCallees(graph = graph, sourceFiles = sourceByFile.keys)
             .forEach(pending::addLast)
-        currentMethod.sameFileStaticInitializers(graph = graph, sourceFile = sourceFile)
+        currentMethod.projectStaticInitializers(graph = graph, sourceFiles = sourceByFile.keys)
             .forEach(pending::addLast)
     }
 
     return null
 }
 
-private fun EtsMethod.sameFileCallees(
+private fun EtsMethod.projectCallees(
     graph: TsGraph,
-    sourceFile: EtsFileSignature,
+    sourceFiles: Set<EtsFileSignature>,
 ): Sequence<EtsMethod> = cfg.stmts.asSequence()
     .flatMap { statement ->
         runCatching { graph.callees(statement).toList() }
             .getOrDefault(emptyList())
             .asSequence()
     }
-    .filter { callee -> callee.signature.enclosingClass.file == sourceFile }
+    .filter { callee -> callee.signature.enclosingClass.file in sourceFiles }
 
-private fun EtsMethod.sameFileStaticInitializers(
+private fun EtsMethod.projectStaticInitializers(
     graph: TsGraph,
-    sourceFile: EtsFileSignature,
+    sourceFiles: Set<EtsFileSignature>,
 ): Sequence<EtsMethod> = cfg.stmts.asSequence()
     .flatMap { it.walkEntities().asSequence() }
     .filterIsInstance<EtsStaticFieldRef>()
     .map { it.field.enclosingClass }
-    .filter { it.file == sourceFile }
+    .filter { it.file in sourceFiles }
     .distinct()
     .mapNotNull { signature ->
         val owner = graph.cp.projectClasses.singleOrNull { it.signature == signature } ?: return@mapNotNull null
