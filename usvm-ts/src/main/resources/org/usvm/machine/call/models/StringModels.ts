@@ -5,7 +5,55 @@ declare class StringModelPrimitives {
     static copyRange(receiver: string, start: number, end: number): string;
 }
 
+declare class ArrayModelPrimitives {
+    static allocateStrings(length: number): string[];
+    static truncateDense(receiver: string[], length: number): string[];
+}
+
 export class StringModels {
+    static split(receiver: string, separator: string, limit: number, omitted: boolean): string[] {
+        const result = ArrayModelPrimitives.allocateStrings(16);
+        // The adapter supplies an exact uint32 limit, including the omitted default.
+        if (limit === 0) return ArrayModelPrimitives.truncateDense(result, 0);
+        if (omitted) {
+            result[0] = receiver;
+            return ArrayModelPrimitives.truncateDense(result, 1);
+        }
+
+        const length = StringModelPrimitives.length(receiver);
+        const separatorLength = StringModelPrimitives.length(separator);
+        let count = 0;
+        if (separatorLength === 0) {
+            while (count < length && count < limit) {
+                result[count] = StringModelPrimitives.copyRange(receiver, count, count + 1);
+                count++;
+            }
+            return ArrayModelPrimitives.truncateDense(result, count);
+        }
+
+        let start = 0;
+        let position = 0;
+        while (position + separatorLength <= length) {
+            let offset = 0;
+            while (offset < separatorLength &&
+                StringModelPrimitives.codeUnitAt(receiver, position + offset) ===
+                    StringModelPrimitives.codeUnitAt(separator, offset)) {
+                offset++;
+            }
+            if (offset === separatorLength) {
+                result[count] = StringModelPrimitives.copyRange(receiver, start, position);
+                count++;
+                if (count === limit) return ArrayModelPrimitives.truncateDense(result, count);
+                position += separatorLength;
+                start = position;
+            } else {
+                position++;
+            }
+        }
+        result[count] = StringModelPrimitives.copyRange(receiver, start, length);
+        return ArrayModelPrimitives.truncateDense(result, count + 1);
+    }
+
     static charAt(receiver: string, index: number): string {
         const length = StringModelPrimitives.length(receiver);
         const integerIndex = StringModels.normalizeCharIndex(index, length);

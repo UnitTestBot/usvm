@@ -318,6 +318,18 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         listOf(
             arrayConstructorModel,
             sourceModel(
+                id = "ts.array.join",
+                methodName = "join",
+                inputAdapter = TsDenseArrayModelSupport.joinAdapter,
+                domainGuard = TsDenseArrayModelSupport.joinDomain,
+            ),
+            sourceModel(
+                id = "ts.array.reduce",
+                methodName = "reduce",
+                inputAdapter = TsDenseArrayModelSupport.reduceAdapter,
+                domainGuard = TsDenseArrayModelSupport.denseReceiverDomain,
+            ),
+            sourceModel(
                 id = "ts.array.pop",
                 methodName = "pop",
             ),
@@ -352,7 +364,7 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                 id = "ts.array.reverse",
                 methodName = "reverse",
                 inputAdapter = noArgumentsAdapter,
-                domainGuard = denseReceiverDomain,
+                domainGuard = TsDenseArrayModelSupport.denseReceiverDomain,
             ),
             sourceModel(
                 id = "ts.array.unshift",
@@ -408,6 +420,11 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             domainGuard = domainGuard,
             inputAdapter = inputAdapter,
             requiredModelIds = buildSet {
+                if (methodName == "join") add("ts.array.primitive.elementString")
+                if (methodName == "reduce") {
+                    add("ts.array.primitive.requireDense")
+                    add("ts.typeError.constructor")
+                }
                 if (methodName in setOf("indexOf", "includes", "lastIndexOf", "fill", "reverse", "slice")) {
                     add(MATH_FLOOR_MODEL_ID)
                 }
@@ -515,6 +532,7 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         val successor = TsUnknownCallModelSuccessor(
             guard = guard,
             completion = TsUnknownCallModelCompletion.Normal {
+                denseInputArrays.remove(receiver)
                 state.memory.write(
                     mkArrayLengthLValue(receiver, arrayType),
                     length,

@@ -130,6 +130,7 @@ private fun TsContext.assignToArrayLength(
     }
 
     return scope.doWithState {
+        if (length != currentLength) denseInputArrays.remove(array)
         memory.write(lengthLValue, length, guard = trueExpr)
     }
 }
