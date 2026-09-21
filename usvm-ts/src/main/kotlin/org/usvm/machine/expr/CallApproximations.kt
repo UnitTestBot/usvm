@@ -80,7 +80,7 @@ internal fun TsExprResolver.tryApproximateGlobalInstanceCall(
     // Handle `Number` calls.
     if (hasBuiltinGlobalOwner(owner = expr.instance, callee = expr.callee, expectedName = "Number")) {
         when (expr.callee.name) {
-            "isFinite", "isInteger", "isSafeInteger" -> {
+            "isFinite", "isInteger", "isSafeInteger", "parseFloat" -> {
                 return tryDispatchNumericBuiltin(expr)
                     ?: TsExprApproximationResult.NoApproximation
             }

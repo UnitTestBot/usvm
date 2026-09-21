@@ -24,6 +24,7 @@ import org.usvm.util.TsTestResolver
 import org.usvm.util.getResourcePath
 import org.usvm.util.markDenseInputArray
 import org.usvm.util.mkRegisterStackLValue
+import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -88,6 +89,44 @@ class TsGapModelsTest {
     }
 
     @Test
+    fun `parseFloat accepts longest decimal prefix and exact rounding`() {
+        val result = analyze(methodName = "parseFloatEdges")
+
+        assertTrue(assertIs<TsTestValue.TsBoolean>(result.values.single()).value)
+        assertTrue("ts.number.parseFloat" in result.modelIds)
+        assertTrue(result.events.all { it.outcome == TsUnknownCallOutcome.MODEL_APPLIED })
+    }
+
+    @Test
+    fun `parseFloat large decimal remains residual`() {
+        val result = analyze(methodName = "parseFloatUnsupported")
+
+        assertTrue(result.values.isEmpty())
+        assertTrue("ts.number.parseFloat" in result.modelIds)
+        assertTrue(result.events.any { it.outcome == TsUnknownCallOutcome.PATH_STOPPED })
+    }
+
+    @Test
+    fun `source algorithms agree with native JavaScript`() {
+        val script = getResourcePath("/models/GapModelsDifferential.mjs")
+        val sourceDirectory = getResourcePath("/org/usvm/machine/call/models/StringModels.ts").parent
+        val process = ProcessBuilder(
+            "node",
+            "--experimental-strip-types",
+            script.toString(),
+            sourceDirectory.toString(),
+        )
+            .redirectErrorStream(true)
+            .start()
+
+        val completed = process.waitFor(30, TimeUnit.SECONDS)
+        if (!completed) process.destroyForcibly()
+        assertTrue(completed, "Node differential cases timed out")
+        val output = process.inputStream.bufferedReader().readText()
+        assertEquals(0, process.exitValue(), output)
+    }
+
+    @Test
     fun `join preserves nullish elements separators and booleans`() {
         val strings = analyze(methodName = "joinDefault", denseInputs = listOf(listOf("a", null, "b")))
         val booleans = analyze(methodName = "joinBooleans", denseInputs = listOf(listOf(true, false)))
@@ -99,7 +138,7 @@ class TsGapModelsTest {
 
     @Test
     fun `callable coercions go residual without querying absent heap types`() {
-        for (name in listOf("joinCallable", "splitCallable")) {
+        for (name in listOf("parseFloatCallable", "joinCallable", "splitCallable")) {
             val result = analyze(methodName = name)
 
             assertTrue(result.values.isEmpty(), name)
