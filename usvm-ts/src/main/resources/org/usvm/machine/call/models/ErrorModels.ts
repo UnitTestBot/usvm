@@ -5,6 +5,12 @@ export class ErrorValue {
 }
 
 export class ErrorModels {
+    static constructTypeError(receiver: ErrorValue, message: string): ErrorValue {
+        receiver.__usvmErrorName = "TypeError";
+        receiver.__usvmErrorMessage = message;
+        return receiver;
+    }
+
     static construct(receiver: ErrorValue, message: string): ErrorValue {
         receiver.__usvmErrorName = "Error";
         receiver.__usvmErrorMessage = message;

@@ -3,6 +3,7 @@ package org.usvm.machine.expr
 import io.ksmt.utils.asExpr
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsArrayType
+import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLocal
