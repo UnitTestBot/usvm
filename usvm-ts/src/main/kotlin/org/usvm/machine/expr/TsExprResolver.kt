@@ -89,12 +89,16 @@ import org.usvm.api.allocateConcreteRef
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArrayLength
 import org.usvm.api.makeSymbolicPrimitive
+import org.usvm.api.typeStreamOf
 import org.usvm.dataflow.ts.infer.tryGetKnownType
 import org.usvm.dataflow.ts.util.type
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
+import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsOptions
+import org.usvm.machine.TsRuntimeFeatureLimitationEvent
+import org.usvm.machine.TsRuntimeFeatureLimitationReason
 import org.usvm.machine.call.TsUnknownCallDispatcher
 import org.usvm.machine.call.TsUnknownCallFailureReason
 import org.usvm.machine.call.dispatch
@@ -114,8 +118,10 @@ import org.usvm.machine.state.newStmt
 import org.usvm.machine.types.EtsNominalType
 import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.sizeSort
+import org.usvm.types.singleOrNull
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.SymbolResolutionResult
+import org.usvm.util.concatStrings
 import org.usvm.util.isResolved
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
@@ -138,6 +144,7 @@ private const val ECMASCRIPT_BITWISE_INTEGER_SIZE = 32
  * and `x << 37` is equivalent to `x << 5`.
  */
 private const val ECMASCRIPT_BITWISE_SHIFT_MASK = 0b11111
+private const val UNKNOWN_SIGNATURE_COMPONENT = "%unk"
 
 private enum class UpdateOperator {
     INCREMENT,
@@ -150,6 +157,7 @@ class TsExprResolver(
     internal val options: TsOptions,
     internal val hierarchy: EtsHierarchy,
     internal val unknownCallDispatcher: TsUnknownCallDispatcher,
+    internal val observer: TsInterpreterObserver?,
 ) : EtsEntity.Visitor<UExpr<out USort>?> {
 
     val simpleValueResolver: TsSimpleValueResolver =
@@ -157,6 +165,20 @@ class TsExprResolver(
 
     fun resolve(expr: EtsEntity): UExpr<out USort>? {
         return expr.accept(this)
+    }
+
+    internal fun reportRuntimeFeatureLimitation(
+        reason: TsRuntimeFeatureLimitationReason,
+        detail: String,
+    ) {
+        val statement = scope.calcOnState { lastStmt }
+        observer?.onRuntimeFeatureLimitation(
+            TsRuntimeFeatureLimitationEvent(
+                statement = statement,
+                reason = reason,
+                detail = detail,
+            )
+        )
     }
 
     private fun resolveUnaryOperator(
@@ -307,13 +329,8 @@ class TsExprResolver(
         val arg = resolve(expr.arg) ?: return null
         val numericArg = mkNumericExpr(arg, scope)
 
-        // Convert to 32-bit integer, perform bitwise NOT, then convert back to number
-        val bvArg = mkFpToBvExpr(
-            roundingMode = fpRoundingModeSortDefaultValue(),
-            value = numericArg.asExpr(fp64Sort),
-            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
-            isSigned = true
-        )
+        // Convert to the total ECMAScript 32-bit pattern, perform bitwise NOT, then convert back to number.
+        val bvArg = mkEcmaScriptToUint32(numericArg.asExpr(fp64Sort))
         val notResult = mkBvNotExpr(bvArg)
 
         return mkBvToFpExpr(
@@ -324,46 +341,8 @@ class TsExprResolver(
         )
     }
 
-    override fun visit(expr: EtsCastExpr): UExpr<*>? = with(ctx) {
-        val resolvedExpr = resolve(expr.arg) ?: return@with null
-        return when (resolvedExpr.sort) {
-            fp64Sort -> {
-                logger.error("Unsupported cast from fp ${expr.arg} to ${expr.type}")
-                TODO("Not yet implemented https://github.com/UnitTestBot/usvm/issues/299")
-            }
-
-            boolSort -> {
-                logger.error("Unsupported cast from boolean ${expr.arg} to ${expr.type}")
-                TODO("Not yet implemented https://github.com/UnitTestBot/usvm/issues/299")
-            }
-
-            addressSort -> {
-                scope.calcOnState {
-                    val instance = resolvedExpr.asExpr(addressSort)
-
-                    if (instance.isFakeObject()) {
-                        val fakeType = instance.getFakeType(scope)
-                        pathConstraints += fakeType.refTypeExpr
-                        val refValue = instance.extractRef(scope)
-                        pathConstraints += memory.types.evalIsSubtype(refValue, expr.type)
-                        return@calcOnState instance
-                    }
-
-                    if (expr.type !is EtsRefType) {
-                        logger.error("Unsupported cast from non-ref ${expr.arg} to ${expr.type}")
-                        TODO("Not supported yet https://github.com/UnitTestBot/usvm/issues/299")
-                    }
-
-                    pathConstraints += memory.types.evalIsSubtype(instance, expr.type)
-                    instance
-                }
-            }
-
-            else -> {
-                error("Unsupported cast from ${expr.arg} to ${expr.type}")
-            }
-        }
-    }
+    // TypeScript assertions are erased; they neither convert nor constrain the runtime value.
+    override fun visit(expr: EtsCastExpr): UExpr<*>? = resolve(expr.arg)
 
     override fun visit(expr: EtsTypeOfExpr): UExpr<out USort>? = with(ctx) {
         val arg = resolve(expr.arg) ?: return null
@@ -580,13 +559,43 @@ class TsExprResolver(
         if (expr.type == EtsStringType) {
             return resolveAfterResolved(expr.left, expr.right) { lhs, rhs ->
                 val lhsString = concreteStringValue(lhs)
-                    ?: error("Symbolic string concatenation is not supported for left operand: $lhs")
                 val rhsString = concreteStringValue(rhs)
-                    ?: error("Symbolic string concatenation is not supported for right operand: $rhs")
-                ctx.mkStringConstant(lhsString + rhsString, scope)
+                if (lhsString != null && rhsString != null) {
+                    return@resolveAfterResolved ctx.mkStringConstant(lhsString + rhsString, scope)
+                }
+
+                val lhsRef = stringStorageRef(lhs)
+                    ?: error("String concatenation is not supported for left operand: $lhs")
+                val rhsRef = stringStorageRef(rhs)
+                    ?: error("String concatenation is not supported for right operand: $rhs")
+                scope.calcOnState { concatStrings(lhsRef, rhsRef) }
             }
         }
         return resolveBinaryOperator(TsBinaryOperator.Add, expr)
+    }
+
+    private fun stringStorageRef(value: UExpr<*>): UHeapRef? = with(ctx) {
+        if (value is UIteExpr<*>) {
+            val trueBranch = stringStorageRef(value.trueBranch) ?: return null
+            val falseBranch = stringStorageRef(value.falseBranch) ?: return null
+
+            return mkIte(value.condition, trueBranch, falseBranch)
+        }
+
+        val concrete = concreteStringValue(value)
+        if (concrete != null && (value == mkTsNullValue() || value == mkUndefinedValue())) {
+            return mkStringConstant(concrete, scope)
+        }
+
+        if (value.sort == addressSort) {
+            val ref = value.asExpr(addressSort)
+            val type = scope.calcOnState { memory.typeStreamOf(ref).singleOrNull() }
+            if (type is EtsStringType) {
+                return ref
+            }
+        }
+
+        concrete?.let { mkStringConstant(it, scope) }
     }
 
     private fun concreteStringValue(value: UExpr<*>): String? = with(ctx) {
@@ -638,18 +647,8 @@ class TsExprResolver(
         val rightNum = mkNumericExpr(right, scope)
 
         // Convert to 32-bit integers, perform bitwise AND, then convert back
-        val leftBv = mkFpToBvExpr(
-            roundingMode = fpRoundingModeSortDefaultValue(),
-            value = leftNum.asExpr(fp64Sort),
-            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
-            isSigned = true,
-        )
-        val rightBv = mkFpToBvExpr(
-            roundingMode = fpRoundingModeSortDefaultValue(),
-            value = rightNum.asExpr(fp64Sort),
-            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
-            isSigned = true,
-        )
+        val leftBv = mkEcmaScriptToUint32(leftNum.asExpr(fp64Sort))
+        val rightBv = mkEcmaScriptToUint32(rightNum.asExpr(fp64Sort))
         val result = mkBvAndExpr(leftBv, rightBv)
 
         return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), result, signed = true)
@@ -663,18 +662,8 @@ class TsExprResolver(
         val rightNum = mkNumericExpr(right, scope)
 
         // Convert to 32-bit integers, perform bitwise OR, then convert back
-        val leftBv = mkFpToBvExpr(
-            roundingMode = fpRoundingModeSortDefaultValue(),
-            value = leftNum.asExpr(fp64Sort),
-            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
-            isSigned = true,
-        )
-        val rightBv = mkFpToBvExpr(
-            roundingMode = fpRoundingModeSortDefaultValue(),
-            value = rightNum.asExpr(fp64Sort),
-            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
-            isSigned = true,
-        )
+        val leftBv = mkEcmaScriptToUint32(leftNum.asExpr(fp64Sort))
+        val rightBv = mkEcmaScriptToUint32(rightNum.asExpr(fp64Sort))
         val result = mkBvOrExpr(leftBv, rightBv)
 
         return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), result, signed = true)
@@ -688,18 +677,8 @@ class TsExprResolver(
         val rightNum = mkNumericExpr(right, scope)
 
         // Convert to 32-bit integers, perform bitwise XOR, then convert back
-        val leftBv = mkFpToBvExpr(
-            roundingMode = fpRoundingModeSortDefaultValue(),
-            value = leftNum.asExpr(fp64Sort),
-            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
-            isSigned = true,
-        )
-        val rightBv = mkFpToBvExpr(
-            roundingMode = fpRoundingModeSortDefaultValue(),
-            value = rightNum.asExpr(fp64Sort),
-            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
-            isSigned = true,
-        )
+        val leftBv = mkEcmaScriptToUint32(leftNum.asExpr(fp64Sort))
+        val rightBv = mkEcmaScriptToUint32(rightNum.asExpr(fp64Sort))
         val result = mkBvXorExpr(leftBv, rightBv)
 
         return mkBvToFpExpr(fp64Sort, fpRoundingModeSortDefaultValue(), result, signed = true)
@@ -713,18 +692,8 @@ class TsExprResolver(
         val rightNum = mkNumericExpr(right, scope)
 
         // Convert to 32-bit integers and perform left shift
-        val leftBv = mkFpToBvExpr(
-            roundingMode = fpRoundingModeSortDefaultValue(),
-            value = leftNum.asExpr(fp64Sort),
-            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
-            isSigned = true,
-        )
-        val rightBv = mkFpToBvExpr(
-            roundingMode = fpRoundingModeSortDefaultValue(),
-            value = rightNum.asExpr(fp64Sort),
-            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
-            isSigned = true,
-        )
+        val leftBv = mkEcmaScriptToUint32(leftNum.asExpr(fp64Sort))
+        val rightBv = mkEcmaScriptToUint32(rightNum.asExpr(fp64Sort))
 
         // Mask the shift amount to 5 bits (0-31) as per JavaScript spec
         val shiftAmount = mkBvAndExpr(
@@ -744,18 +713,8 @@ class TsExprResolver(
         val rightNum = mkNumericExpr(right, scope)
 
         // Convert to 32-bit integers and perform signed right shift
-        val leftBv = mkFpToBvExpr(
-            roundingMode = fpRoundingModeSortDefaultValue(),
-            value = leftNum.asExpr(fp64Sort),
-            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
-            isSigned = true,
-        )
-        val rightBv = mkFpToBvExpr(
-            roundingMode = fpRoundingModeSortDefaultValue(),
-            value = rightNum.asExpr(fp64Sort),
-            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
-            isSigned = true,
-        )
+        val leftBv = mkEcmaScriptToUint32(leftNum.asExpr(fp64Sort))
+        val rightBv = mkEcmaScriptToUint32(rightNum.asExpr(fp64Sort))
 
         // Mask the shift amount to 5 bits (0-31)
         val shiftAmount = mkBvAndExpr(
@@ -780,18 +739,8 @@ class TsExprResolver(
         val rightNum = mkNumericExpr(right, scope)
 
         // Convert to 32-bit integers and perform unsigned right shift
-        val leftBv = mkFpToBvExpr(
-            roundingMode = fpRoundingModeSortDefaultValue(),
-            value = leftNum.asExpr(fp64Sort),
-            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
-            isSigned = true,
-        )
-        val rightBv = mkFpToBvExpr(
-            roundingMode = fpRoundingModeSortDefaultValue(),
-            value = rightNum.asExpr(fp64Sort),
-            bvSize = ECMASCRIPT_BITWISE_INTEGER_SIZE,
-            isSigned = true,
-        )
+        val leftBv = mkEcmaScriptToUint32(leftNum.asExpr(fp64Sort))
+        val rightBv = mkEcmaScriptToUint32(rightNum.asExpr(fp64Sort))
 
         // Mask the shift amount to 5 bits (0-31)
         val shiftAmount = mkBvAndExpr(
@@ -957,12 +906,19 @@ class TsExprResolver(
 
                     val callee = scope.calcOnState { associatedFunction[ptr] }
                     if (callee == null) {
+                        val resolvedArguments = if (expr.isBuiltInArrayConstructor()) {
+                            val argument = resolve(expr.args.single()) ?: return null
+                            listOf(argument)
+                        } else {
+                            List(expr.args.size) { null }
+                        }
                         unknownCallDispatcher.dispatch(
                             scope = scope,
                             call = expr,
                             callSite = scope.calcOnState { lastStmt },
                             failureReason = TsUnknownCallFailureReason.POINTER_TARGET_NOT_FOUND,
                             resolvedReceiver = ptr,
+                            resolvedArguments = resolvedArguments,
                         )
                         return null
                     }
@@ -992,6 +948,26 @@ class TsExprResolver(
                 null
             }
         }
+    }
+
+    private fun EtsPtrCallExpr.isBuiltInArrayConstructor(): Boolean {
+        if (callee.name != "Array" || ptr.name != "Array" || args.size != 1) {
+            return false
+        }
+
+        val signature = (ptr.type as? EtsFunctionType)?.signature ?: return false
+        val parameter = signature.parameters.singleOrNull() ?: return false
+        val returnType = signature.returnType as? EtsArrayType ?: return false
+        val signatureFile = signature.enclosingClass.file
+
+        return signatureFile.projectName == UNKNOWN_SIGNATURE_COMPONENT &&
+            signatureFile.fileName == UNKNOWN_SIGNATURE_COMPONENT &&
+            signature.name.isEmpty() &&
+            parameter.type == EtsNumberType &&
+            parameter.isOptional &&
+            !parameter.isRest &&
+            returnType.elementType == EtsAnyType &&
+            returnType.dimensions == 1
     }
 
     private fun EtsPtrCallExpr.isBuiltInNumberConverter(): Boolean {
@@ -1092,33 +1068,25 @@ class TsExprResolver(
                 TODO()
             }
 
-            val bvSize = mkFpToBvExpr(
-                roundingMode = fpRoundingModeSortDefaultValue(),
-                value = size.asExpr(fp64Sort),
-                bvSize = 32,
-                isSigned = true,
-            )
-
-            val condition = mkAnd(
-                mkEq(
-                    mkBvToFpExpr(
-                        sort = fp64Sort,
-                        roundingMode = fpRoundingModeSortDefaultValue(),
-                        value = bvSize,
-                        signed = true,
-                    ),
-                    size.asExpr(fp64Sort)
-                ),
-                mkAnd(
-                    mkBvSignedLessOrEqualExpr(mkBv(0), bvSize.asExpr(bv32Sort)),
-                    mkBvSignedLessOrEqualExpr(bvSize.asExpr(bv32Sort), mkBv(Int.MAX_VALUE))
-                )
-            )
+            val fpSize = size.asExpr(fp64Sort)
+            val validLength = mkValidArrayLength(fpSize)
 
             scope.fork(
-                condition,
-                blockOnFalseState = { throwException("Invalid array size: ${size.asExpr(fp64Sort)}") }
-            )
+                validLength,
+                blockOnFalseState = { throwException("RangeError: Invalid array length: $fpSize") },
+            ) ?: return@calcOnState null
+
+            val maximumSupportedLength = mkFp64(options.maxArraySize.toDouble())
+            val withinModelCapacity = mkFpLessOrEqualExpr(fpSize, maximumSupportedLength)
+            if (scope.checkSat(mkNot(withinModelCapacity)) != null) {
+                reportRuntimeFeatureLimitation(
+                    reason = TsRuntimeFeatureLimitationReason.ARRAY_LENGTH_CAPACITY,
+                    detail = "new Array length exceeds model capacity: $fpSize",
+                )
+            }
+            scope.assert(withinModelCapacity) ?: return@calcOnState null
+
+            val bvSize = mkFpToUint32AfterValidation(fpSize, validLength)
 
             if (arrayType.elementType is EtsArrayType) {
                 TODO("Multidimensional arrays are not supported yet, https://github.com/UnitTestBot/usvm/issues/287")
@@ -1126,7 +1094,7 @@ class TsExprResolver(
 
             val descriptor = arrayDescriptorOf(arrayType)
             val address = memory.allocConcrete(descriptor)
-            memory.initializeArrayLength(address, descriptor, sizeSort, bvSize)
+            memory.initializeArrayLength(address, descriptor, sizeSort, bvSize.asExpr(sizeSort))
 
             address
         }

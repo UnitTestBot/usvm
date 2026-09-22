@@ -9,12 +9,17 @@ import org.usvm.ts.pbt.backend.PropertyRunConfiguration
 import org.usvm.ts.pbt.backend.PropertyRunStatus
 import org.usvm.ts.pbt.fastcheck.FastCheckBackend
 import org.usvm.ts.pbt.fastcheck.PbtBackendException
+import org.usvm.ts.pbt.fastcheck.TypeScriptSourceInspector
+import org.usvm.ts.pbt.model.ArrayDomain
+import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.ConstantDomain
 import org.usvm.ts.pbt.model.ExecutionKind
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyDefinition
+import org.usvm.ts.pbt.model.PropertyDomain
 import org.usvm.ts.pbt.model.PropertyId
 import org.usvm.ts.pbt.model.PropertyInput
+import org.usvm.ts.pbt.model.TupleDomain
 import org.usvm.ts.pbt.model.TypeScriptEntryPoint
 import java.nio.file.Files
 import java.nio.file.LinkOption
@@ -53,6 +58,12 @@ internal data class CallsSourcePosition(
 )
 
 @Serializable
+internal enum class CallsSourceTargetMode {
+    ENTRY,
+    COMPLETED_RETURN,
+}
+
+@Serializable
 internal data class CallsSourceTarget(
     val targetId: String,
     val siteId: String,
@@ -61,7 +72,21 @@ internal data class CallsSourceTarget(
     val endOffset: Int,
     val start: CallsSourcePosition,
     val end: CallsSourcePosition,
-)
+    val mode: CallsSourceTargetMode = CallsSourceTargetMode.ENTRY,
+    val returnExpressionStartOffset: Int? = null,
+    val returnExpressionEndOffset: Int? = null,
+) {
+    init {
+        require((returnExpressionStartOffset == null) == (returnExpressionEndOffset == null)) {
+            "Return expression offsets must be both present or both absent"
+        }
+        if (mode == CallsSourceTargetMode.ENTRY) {
+            require(returnExpressionStartOffset == null) {
+                "Entry targets must not declare return expression offsets"
+            }
+        }
+    }
+}
 
 @Serializable
 internal data class CallsSourceReplayResult(
@@ -131,14 +156,21 @@ internal class OriginalTypeScriptTargetReplayer : CallsTargetReplayer {
         val resolved = resolveTarget(sourceRoots = sourceRoots, sourcePath = target.sourcePath)
         val source = Files.readString(resolved.source)
         requireTargetCoordinates(source = source, target = target)
+        val marker = "__usvm_source_target_${UUID.randomUUID().toString().replace('-', '_')}"
+        val instrumented = instrumentSource(
+            sourcePath = resolved.source,
+            source = source,
+            exportName = entryPoint.exportName,
+            target = target,
+            marker = marker,
+        ) ?: return CallsSourceReplayResult(
+            status = CallsReplayStatus.UNMAPPED,
+            reason = "TypeScript AST does not identify the requested completed return",
+        )
         val workspace = Files.createTempDirectory("usvm-ts-calls-replay-")
 
         return try {
             val overlayRoot = workspace.resolve("source-overlay")
-            val marker = "__usvm_source_target_${UUID.randomUUID().toString().replace('-', '_')}"
-            val markerStatement = ";(globalThis as Record<string, unknown>)[${jsString(marker)}] = true;\n"
-            val instrumented = source.substring(0, target.startOffset) + markerStatement +
-                source.substring(target.startOffset)
             createOverlay(
                 sourceRoot = resolved.sourceRoot,
                 overlayRoot = overlayRoot,
@@ -154,6 +186,7 @@ internal class OriginalTypeScriptTargetReplayer : CallsTargetReplayer {
                     exportName = entryPoint.exportName,
                     marker = marker,
                     resultPath = resultPath,
+                    targetMode = target.mode,
                 ),
             )
             val replayRoots = sourceRoots.mapIndexed { index, root ->
@@ -163,7 +196,7 @@ internal class OriginalTypeScriptTargetReplayer : CallsTargetReplayer {
             val property = PropertyDefinition(
                 id = PropertyId("calls.source-target-replay"),
                 inputs = replayInputs.mapIndexed { index, value ->
-                    PropertyInput(name = "input$index", domain = ConstantDomain(value))
+                    PropertyInput(name = "input$index", domain = value.exactReplayDomain())
                 },
                 predicate = TypeScriptEntryPoint(module = wrapperName, exportName = REPLAY_EXPORT),
             )
@@ -225,14 +258,33 @@ internal class OriginalTypeScriptTargetReplayer : CallsTargetReplayer {
     }
 
     private fun requireTargetCoordinates(source: String, target: CallsSourceTarget) {
-        require(target.startOffset in 0..source.length && target.endOffset in target.startOffset..source.length) {
-            "Target offsets are outside the source file"
+        val diagnostic = callsTargetCoordinateDiagnostic(source = source, target = target)
+        require(diagnostic == null) { requireNotNull(diagnostic) }
+    }
+
+    private fun instrumentSource(
+        sourcePath: Path,
+        source: String,
+        exportName: String,
+        target: CallsSourceTarget,
+        marker: String,
+    ): String? = when (target.mode) {
+        CallsSourceTargetMode.ENTRY -> {
+            val markerStatement = ";(globalThis as Record<string, unknown>)[${jsString(marker)}] = true;\n"
+
+            source.substring(0, target.startOffset) + markerStatement + source.substring(target.startOffset)
         }
-        require(sourcePositionAt(source = source, offset = target.startOffset) == target.start) {
-            "Target start coordinate does not match its source offset"
-        }
-        require(sourcePositionAt(source = source, offset = target.endOffset) == target.end) {
-            "Target end coordinate does not match its source offset"
+
+        CallsSourceTargetMode.COMPLETED_RETURN -> {
+            TypeScriptSourceInspector.instrumentCompletedReturn(
+                source = sourcePath,
+                exportName = exportName,
+                startOffset = target.startOffset,
+                endOffset = target.endOffset,
+                expressionStartOffset = target.returnExpressionStartOffset,
+                expressionEndOffset = target.returnExpressionEndOffset,
+                marker = marker,
+            )
         }
     }
 
@@ -291,6 +343,7 @@ internal class OriginalTypeScriptTargetReplayer : CallsTargetReplayer {
         exportName: String,
         marker: String,
         resultPath: Path,
+        targetMode: CallsSourceTargetMode,
     ): String = """
         import { writeFileSync } from 'node:fs';
         import * as targetModule from ${jsString("./$sourcePath")};
@@ -318,7 +371,9 @@ internal class OriginalTypeScriptTargetReplayer : CallsTargetReplayer {
             invocation = 'threw';
             caught = error;
           }
-          const targetHit = (globalThis as Record<string, unknown>)[${jsString(marker)}] === true;
+          const targetObserved = (globalThis as Record<string, unknown>)[${jsString(marker)}] === true;
+          const targetHit = targetObserved &&
+            (${targetMode == CallsSourceTargetMode.ENTRY} || invocation === 'returned');
           const output: Record<string, unknown> = { invocation, targetHit };
           if (invocation === 'threw') {
             output.errorName = caught instanceof Error ? caught.name : typeof caught;
@@ -342,6 +397,41 @@ internal class OriginalTypeScriptTargetReplayer : CallsTargetReplayer {
     private companion object {
         const val REPLAY_EXPORT = "replaySourceTarget"
     }
+}
+
+private fun JsConcreteValue.exactReplayDomain(): PropertyDomain = when (this) {
+    is JsConcreteValue.Array -> if (elements.isEmpty()) {
+        ArrayDomain(element = BooleanDomain, minLength = 0, maxLength = 0)
+    } else {
+        TupleDomain(elements.map { element -> element.exactReplayDomain() })
+    }
+
+    else -> ConstantDomain(this)
+}
+
+internal fun callsTargetCoordinateDiagnostic(source: String, target: CallsSourceTarget): String? {
+    if (target.startOffset !in source.indices || target.endOffset !in 1..source.length) {
+        return "Target offsets are outside the frozen source"
+    }
+    if (target.startOffset >= target.endOffset) {
+        return "Target source range must be non-empty"
+    }
+    if (sourcePositionAt(source = source, offset = target.startOffset) != target.start) {
+        return "Target start coordinate does not match its frozen source offset"
+    }
+    if (sourcePositionAt(source = source, offset = target.endOffset) != target.end) {
+        return "Target end coordinate does not match its frozen source offset"
+    }
+
+    val expressionStart = target.returnExpressionStartOffset
+    val expressionEnd = target.returnExpressionEndOffset
+    if (expressionStart != null && expressionEnd != null &&
+        (expressionStart < target.startOffset || expressionStart >= expressionEnd || expressionEnd > target.endOffset)
+    ) {
+        return "Return expression offsets must identify a non-empty range inside the source target"
+    }
+
+    return null
 }
 
 internal fun sourcePositionAt(source: String, offset: Int): CallsSourcePosition {

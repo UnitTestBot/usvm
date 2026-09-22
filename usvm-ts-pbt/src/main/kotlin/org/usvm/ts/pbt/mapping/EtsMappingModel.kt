@@ -96,6 +96,12 @@ data class EtsReceiverBinding(
     val type: EtsType,
 )
 
+/** Preserves the frontend's hidden lexical-environment parameter separately from source arguments. */
+data class EtsLexicalEnvironmentBinding(
+    val parameter: EtsMethodParameter,
+    val stackSlot: Int,
+)
+
 /** Connects one ordered property input to the corresponding EtsIR parameter and stack slot. */
 data class EtsInputBinding(
     val propertyInputName: String,
@@ -113,6 +119,7 @@ data class EtsEntryPointBindings(
     val receiver: EtsReceiverBinding,
     val inputs: List<EtsInputBinding>,
     val result: EtsResultBinding,
+    val lexicalEnvironment: EtsLexicalEnvironmentBinding? = null,
 )
 
 /** Resolved EtsIR method and its property-facing symbolic bindings. */

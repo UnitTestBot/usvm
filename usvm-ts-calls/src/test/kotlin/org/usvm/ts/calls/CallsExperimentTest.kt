@@ -2,8 +2,14 @@ package org.usvm.ts.calls
 
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
+import org.jacodb.ets.utils.EtsIrProvider
+import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
+import org.usvm.machine.call.TsResidualCallPolicy
+import org.usvm.machine.call.TsUnknownCallDecision
+import org.usvm.machine.call.TsUnknownCallEvent
+import org.usvm.machine.call.TsUnknownCallFailureReason
 import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyInput
@@ -17,6 +23,82 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class CallsExperimentTest {
+    @Test
+    fun `runner persists call events before search returns without counting them as results`(@TempDir directory: Path) {
+        val source = Path.of(checkNotNull(javaClass.getResource("/calls/SourceTargetReplayFixture.ts")).toURI())
+        val file = loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)
+        val method = file.allClasses.flatMap { cls -> cls.methods }
+            .single { candidate -> candidate.name == "completesReturnExpression" }
+        val callSite = method.cfg.stmts.first { statement -> statement.location.origin != null }
+        val rawOutput = directory.resolve("results.jsonl")
+        val partialOutput = directory.resolve("results.jsonl.partial")
+        val event = TsUnknownCallEvent(
+            callSite = callSite,
+            callee = method.signature,
+            failureReason = TsUnknownCallFailureReason.METHOD_BODY_UNAVAILABLE,
+            decision = TsUnknownCallDecision.ResidualFallback(policy = TsResidualCallPolicy.STOP_PATH),
+        )
+        val engine = CallsSymbolicEngine { request ->
+            checkNotNull(request.unknownCallEventSink).invoke(event)
+            val appended = readRecords(partialOutput).last() as CallsUnknownCallRecord
+            assertEquals(request.profile, appended.cell.profile)
+            assertEquals(1, appended.eventIndex)
+
+            result(status = CallsSymbolicStatus.UNREACHED)
+        }
+
+        CallsExperimentRunner(
+            symbolicEngine = engine,
+            targetReplayer = CallsTargetReplayer { _, _, _, _, _ -> error("No witness to replay") },
+            runtimeToolRevision = FIXTURE_TOOL_REVISION,
+        ).run(
+            manifest = manifest(sourceRoot = ".", seeds = listOf(17L)),
+            manifestDirectory = directory,
+            rawOutput = rawOutput,
+        )
+
+        val records = readRecords(rawOutput)
+        assertEquals(4, records.filterIsInstance<CallsUnknownCallRecord>().size)
+        assertEquals(4, CallsExperimentAggregator.summarize(rawOutput).resultRows)
+    }
+
+    @Test
+    fun `legacy source target defaults to entry mode`() {
+        val encoded = """
+            {
+              "targetId": "target",
+              "siteId": "site",
+              "sourcePath": "fixture.ts",
+              "startOffset": 0,
+              "endOffset": 6,
+              "start": { "line": 0, "column": 0 },
+              "end": { "line": 0, "column": 6 }
+            }
+        """.trimIndent()
+
+        val target = CallsExperimentJson.json.decodeFromString<CallsSourceTarget>(encoded)
+
+        assertEquals(CallsSourceTargetMode.ENTRY, target.mode)
+        assertNull(target.returnExpressionStartOffset)
+        assertNull(target.returnExpressionEndOffset)
+    }
+
+    @Test
+    fun `completed return target preserves explicit expression offsets`() {
+        val entryTarget = manifest(sourceRoot = ".", seeds = listOf(17L))
+            .projects.single().functions.single().targets.single()
+        val completedReturn = entryTarget.copy(
+            mode = CallsSourceTargetMode.COMPLETED_RETURN,
+            returnExpressionStartOffset = 7,
+            returnExpressionEndOffset = 10,
+        )
+
+        val encoded = CallsExperimentJson.json.encodeToString(completedReturn)
+        val decoded = CallsExperimentJson.json.decodeFromString<CallsSourceTarget>(encoded)
+
+        assertEquals(completedReturn, decoded)
+    }
+
     @Test
     fun `manifest rejects breadth first search`() {
         val accepted = manifest(sourceRoot = ".", seeds = listOf(17L))

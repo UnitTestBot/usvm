@@ -1,5 +1,7 @@
 package org.usvm.util
 
+import io.ksmt.expr.KBitVec16Value
+import io.ksmt.expr.KBitVec32Value
 import io.ksmt.expr.KFpValue
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsArrayType
@@ -309,8 +311,27 @@ open class TsTestStateResolver(
     private fun resolveAllocatedString(
         ref: UConcreteHeapRef,
     ): TsTestValue.TsString {
-        val value = ctx.getStringConstantValue(ref) ?: run {
-            error("String constant not found for ref: $ref")
+        ctx.getStringConstantValue(ref)?.let { value ->
+            return TsTestValue.TsString(value)
+        }
+
+        val charactersExpr = finalStateMemory.read(mkFieldLValue(ctx.addressSort, ref, "value"))
+        val characters = evaluateInModel(charactersExpr) as UConcreteHeapRef
+        val lengthExpr = finalStateMemory.read(mkArrayLengthLValue(characters, STRING_CHARACTER_ARRAY_TYPE))
+        val length = (model.eval(lengthExpr) as KBitVec32Value).intValue
+        val value = buildString(length) {
+            repeat(length) { index ->
+                val codeUnitExpr = finalStateMemory.read(
+                    mkArrayIndexLValue(
+                        sort = ctx.bv16Sort,
+                        ref = characters,
+                        index = ctx.mkSizeExpr(index),
+                        type = STRING_CHARACTER_ARRAY_TYPE,
+                    )
+                )
+                val codeUnit = (model.eval(codeUnitExpr) as KBitVec16Value).shortValue.toInt() and 0xffff
+                append(codeUnit.toChar())
+            }
         }
         return TsTestValue.TsString(value)
     }

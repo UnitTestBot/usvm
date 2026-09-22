@@ -8,6 +8,7 @@ import org.usvm.CoverageZone
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachine
 import org.usvm.UMachineOptions
+import org.usvm.USort
 import org.usvm.api.targets.TsTarget
 import org.usvm.machine.call.TsBuiltInUnknownCallModels
 import org.usvm.machine.call.TsModelUnknownCallDispatcher
@@ -59,6 +60,8 @@ class TsMachine(
     observer: TsInterpreterObserver? = null,
     unknownCallDispatcher: TsUnknownCallDispatcher? = null,
     unknownCallModels: TsUnknownCallModelCatalog? = null,
+    private val initialStateConfigurator: (TsState) -> Unit = {},
+    private val initialParameterSortOverride: (TsContext, Int) -> USort? = { _, _ -> null },
 ) : UMachine<TsState>() {
     private val resolvedUnknownCallModels = when {
         unknownCallDispatcher != null -> null
@@ -85,6 +88,7 @@ class TsMachine(
         scene = analysisScene,
         components = components,
         applicationAndSdkClasses = scene.projectAndSdkClasses,
+        dateNowMilliseconds = tsOptions.dateNowMilliseconds,
     )
     private val resolvedUnknownCallDispatcher = unknownCallDispatcher ?: TsModelUnknownCallDispatcher(
         models = requireNotNull(resolvedUnknownCallModels),
@@ -111,7 +115,14 @@ class TsMachine(
         targets: List<TsTarget> = emptyList(),
     ): TsAnalysisResult {
         val initialStates = mutableMapOf<EtsMethod, TsState>()
-        methods.forEach { initialStates[it] = interpreter.getInitialState(it, targets) }
+        methods.forEach { method ->
+            initialStates[method] = interpreter.getInitialState(
+                method = method,
+                targets = targets,
+                configure = initialStateConfigurator,
+                parameterSortOverride = { stackSlot -> initialParameterSortOverride(ctx, stackSlot) },
+            )
+        }
 
         val methodsToTrackCoverage =
             when (options.coverageZone) {

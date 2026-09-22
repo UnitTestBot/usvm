@@ -30,6 +30,7 @@ import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.TsFunction
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemory
+import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.model.UModelBase
 import org.usvm.sizeSort
 import org.usvm.targets.UTargetsSet
@@ -81,6 +82,8 @@ class TsState(
      * for identical string values.
      */
     var stringConstantAllocatedRefs: UPersistentHashMap<String, UConcreteHeapRef> = persistentHashMapOf(),
+    internal val stringMaxLengths: MutableMap<UConcreteHeapRef, Int> = mutableMapOf(),
+    internal val denseInputArrays: MutableMap<UConcreteHeapRef, TsDenseInputArray> = mutableMapOf(),
     private val activeUnknownCallModels: MutableList<Pair<String, Int>> = mutableListOf(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
     ctx = ctx,
@@ -273,6 +276,7 @@ class TsState(
             ref
         }
         stringConstantAllocatedRefs = updated
+        stringMaxLengths[result] = value.length
         result
     }
 
@@ -310,6 +314,8 @@ class TsState(
             dfltObject = dfltObject,
             dfltObjectFieldSorts = dfltObjectFieldSorts,
             stringConstantAllocatedRefs = stringConstantAllocatedRefs,
+            stringMaxLengths = stringMaxLengths.toMutableMap(),
+            denseInputArrays = denseInputArrays.toMutableMap(),
             activeUnknownCallModels = activeUnknownCallModels.toMutableList(),
         )
     }
@@ -317,3 +323,10 @@ class TsState(
     override val isExceptional: Boolean
         get() = methodResult is TsMethodResult.TsException
 }
+
+/** Storage snapshots used to invalidate the dense-input guarantee after writes. */
+data class TsDenseInputArray(
+    val type: EtsArrayType,
+    val lengthRegion: UReadOnlyMemoryRegion<*, *>,
+    val elementRegion: UReadOnlyMemoryRegion<*, *>,
+)

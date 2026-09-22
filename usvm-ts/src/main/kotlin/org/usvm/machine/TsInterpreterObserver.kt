@@ -4,6 +4,7 @@ import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsCallExpr
 import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsReturnStmt
+import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsThrowStmt
 import org.usvm.UBoolExpr
 import org.usvm.machine.call.TsUnknownCallEvent
@@ -18,6 +19,11 @@ interface TsInterpreterObserver : UInterpreterObserver {
      * A model decision is reported once after all its satisfiable successor callbacks complete.
      */
     fun onUnknownCall(event: TsUnknownCallEvent) {
+        // default empty implementation
+    }
+
+    /** Called when a feasible path is intentionally stopped at a bounded runtime feature. */
+    fun onRuntimeFeatureLimitation(event: TsRuntimeFeatureLimitationEvent) {
         // default empty implementation
     }
 
@@ -73,4 +79,21 @@ interface TsInterpreterObserver : UInterpreterObserver {
     ) {
         // default empty implementation
     }
+}
+
+/** A feasible execution path stopped because the runtime model deliberately omits [reason]. */
+data class TsRuntimeFeatureLimitationEvent(
+    val statement: EtsStmt,
+    val reason: TsRuntimeFeatureLimitationReason,
+    val detail: String,
+)
+
+/** Stable identifiers for bounded runtime features reported by [TsRuntimeFeatureLimitationEvent]. */
+enum class TsRuntimeFeatureLimitationReason {
+    ARRAY_NAMED_PROPERTY_READ,
+    ARRAY_NAMED_PROPERTY_WRITE,
+    ARRAY_INDEX_GROWTH,
+    ARRAY_ELEMENT_KIND_WRITE,
+    ARRAY_LENGTH_CAPACITY,
+    ARRAY_LENGTH_GROWTH,
 }

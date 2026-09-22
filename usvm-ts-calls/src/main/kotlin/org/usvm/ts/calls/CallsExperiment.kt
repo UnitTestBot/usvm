@@ -6,7 +6,9 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.usvm.PathSelectionStrategy
+import org.usvm.machine.TsRuntimeFeatureLimitationEvent
 import org.usvm.machine.call.TsResidualCallPolicy
+import org.usvm.machine.call.TsUnknownCallEvent
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.TypeScriptEntryPoint
@@ -115,6 +117,7 @@ internal enum class CallsSymbolicStatus {
     UNREACHED,
     UNREPRESENTABLE,
     UNSUPPORTED,
+    RUNTIME_LIMITATION,
     TIMEOUT,
     TOOL_ERROR,
     UNMAPPED,
@@ -131,6 +134,8 @@ internal data class CallsSymbolicSearchRequest(
     val expectedNativeFrontendRevision: String,
     val seed: Long,
     val budget: Duration,
+    val unknownCallEventSink: ((TsUnknownCallEvent) -> Unit)? = null,
+    val runtimeLimitationEventSink: ((TsRuntimeFeatureLimitationEvent) -> Unit)? = null,
 )
 
 internal data class CallsSymbolicSearchResult(
@@ -175,6 +180,7 @@ internal data class CallsRunTargetIdentity(
     val functionId: String,
     val targetId: String,
     val siteId: String,
+    val targetMode: CallsSourceTargetMode = CallsSourceTargetMode.ENTRY,
 )
 
 @Serializable
@@ -187,6 +193,7 @@ internal data class CallsTargetResult(
     val functionId: String,
     val targetId: String,
     val siteId: String,
+    val targetMode: CallsSourceTargetMode = CallsSourceTargetMode.ENTRY,
     val profile: CallsExperimentProfile,
     val seed: Long,
     val symbolicStatus: CallsSymbolicStatus,
@@ -244,15 +251,24 @@ internal object CallsExperimentJson {
 }
 
 internal object CallsBuildIdentity {
-    val toolRevision: String by lazy {
+    private val properties: Properties by lazy {
         val properties = Properties()
         val resource = checkNotNull(javaClass.getResourceAsStream("/org/usvm/ts/calls/build.properties")) {
             "Missing calls build identity"
         }
         resource.use(properties::load)
 
+        properties
+    }
+
+    val toolRevision: String by lazy {
         checkNotNull(properties.getProperty("tool.revision")).takeIf(String::isNotBlank)
             ?: error("Missing tool revision in calls build identity")
+    }
+
+    val nativeFrontendRevision: String by lazy {
+        checkNotNull(properties.getProperty("native.frontend.revision")).takeIf(String::isNotBlank)
+            ?: error("Missing native frontend revision in calls build identity")
     }
 }
 
@@ -297,6 +313,7 @@ internal class CallsExperimentRunner(
                             functionId = function.functionId,
                             targetId = target.targetId,
                             siteId = target.siteId,
+                            targetMode = target.mode,
                         )
                     }
                 }
@@ -370,6 +387,7 @@ internal class CallsExperimentRunner(
                         target = target,
                         seed = seed,
                         profile = profile,
+                        appendUnknownCall = { event -> append(rawOutput, event) },
                     )
 
                     append(rawOutput, result)
@@ -386,18 +404,29 @@ internal class CallsExperimentRunner(
         target: CallsSourceTarget,
         seed: Long,
         profile: CallsExperimentProfile,
+        appendUnknownCall: (CallsRawRecord) -> Unit,
     ): CallsTargetResult {
+        val request = CallsSymbolicSearchRequest(
+            sourceRoot = sourceRoot,
+            project = project,
+            function = function,
+            target = target,
+            profile = profile,
+            frozenModelIds = manifest.modelSet.ids,
+            expectedNativeFrontendRevision = manifest.nativeFrontendRevision,
+            seed = seed,
+            budget = manifest.perTargetBudgetMillis.milliseconds,
+        )
         val symbolic = symbolicEngine.search(
-            CallsSymbolicSearchRequest(
-                sourceRoot = sourceRoot,
-                project = project,
-                function = function,
-                target = target,
-                profile = profile,
-                frozenModelIds = manifest.modelSet.ids,
-                expectedNativeFrontendRevision = manifest.nativeFrontendRevision,
-                seed = seed,
-                budget = manifest.perTargetBudgetMillis.milliseconds,
+            request.copy(
+                unknownCallEventSink = callsUnknownCallEventSink(
+                    cell = request.cellIdentity(experimentId = manifest.experimentId),
+                    appendAndFlush = appendUnknownCall,
+                ),
+                runtimeLimitationEventSink = callsRuntimeLimitationEventSink(
+                    cell = request.cellIdentity(experimentId = manifest.experimentId),
+                    appendAndFlush = appendUnknownCall,
+                ),
             ),
         )
         val replay = symbolic.inputs?.let { inputs ->
@@ -418,6 +447,7 @@ internal class CallsExperimentRunner(
             functionId = function.functionId,
             targetId = target.targetId,
             siteId = target.siteId,
+            targetMode = target.mode,
             profile = profile,
             seed = seed,
             symbolicStatus = symbolic.status,
@@ -488,7 +518,8 @@ internal object CallsRawResultsReader {
                 identity != null &&
                     result.revision == identity.revision &&
                     result.development == identity.development &&
-                    result.siteId == identity.siteId
+                    result.siteId == identity.siteId &&
+                    result.targetMode == identity.targetMode
             },
         ) { "Result target identity does not match metadata" }
         val resultKeys = results.map { result ->

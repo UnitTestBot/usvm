@@ -3,20 +3,24 @@ package org.usvm.machine.expr
 import io.ksmt.utils.asExpr
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsArrayType
-import org.jacodb.ets.model.EtsBooleanType
+import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLocal
-import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsStaticFieldRef
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.api.typeStreamOf
 import org.usvm.machine.TsContext
+import org.usvm.machine.TsRuntimeFeatureLimitationReason
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.ensureStaticsInitialized
 import org.usvm.machine.types.EtsAuxiliaryType
 import org.usvm.machine.types.extractValue
 import org.usvm.sizeSort
+import org.usvm.types.singleOrNull
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.TsResolutionResult
 import org.usvm.util.arrayStorageType
@@ -61,6 +65,7 @@ internal fun TsExprResolver.handleAssignToInstanceField(
             arrayType = arrayType,
             value = expr,
             maxArraySize = options.maxArraySize,
+            onFeatureLimitation = ::reportRuntimeFeatureLimitation,
         )
     }
 
@@ -74,6 +79,7 @@ private fun TsContext.assignToArrayLength(
     arrayType: EtsArrayType,
     value: UExpr<*>,
     maxArraySize: Int,
+    onFeatureLimitation: (TsRuntimeFeatureLimitationReason, String) -> Unit,
 ): Unit? = with(this) {
     val (fpLength, numericTypeGuard) = scope.calcOnState {
         with(ctx) {
@@ -89,37 +95,41 @@ private fun TsContext.assignToArrayLength(
         return null
     }
 
-    val convertedLength = mkFpToBvExpr(
-        roundingMode = fpRoundingModeSortDefaultValue(),
-        value = fpLength,
-        bvSize = 32,
-        isSigned = true,
-    )
-    val roundTrip = mkBvToFpExpr(
-        sort = fp64Sort,
-        roundingMode = fpRoundingModeSortDefaultValue(),
-        value = convertedLength,
-        signed = true,
-    )
-    val length = convertedLength.asExpr(sizeSort)
+    val validJsLength = mkValidArrayLength(fpLength)
+    scope.fork(
+        validJsLength,
+        blockOnFalseState = { throwException("RangeError: Invalid array length: $fpLength") },
+    ) ?: return null
+
+    val maximumSupportedLength = mkFp64(maxArraySize.toDouble())
+    val withinModelCapacity = mkFpLessOrEqualExpr(fpLength, maximumSupportedLength)
+    if (scope.checkSat(mkNot(withinModelCapacity)) != null) {
+        onFeatureLimitation(
+            TsRuntimeFeatureLimitationReason.ARRAY_LENGTH_CAPACITY,
+            "assigned array length exceeds model capacity: $fpLength",
+        )
+    }
+    scope.assert(withinModelCapacity) ?: run {
+        logger.warn { "Unsupported array length assignment beyond model capacity: $fpLength" }
+        return null
+    }
+
+    val length = mkFpToUint32AfterValidation(fpLength, validJsLength).asExpr(sizeSort)
     val lengthLValue = mkArrayLengthLValue(array, arrayType)
     val currentLength = scope.calcOnState {
         memory.read(lengthLValue)
     }
-    val lengthIsIntegral = mkFpEqualExpr(roundTrip, fpLength)
-    val lengthIsNonNegative = mkBvSignedGreaterOrEqualExpr(length, mkBv(0))
-    val lengthIsWithinLimit = mkBvSignedLessOrEqualExpr(length, mkBv(maxArraySize))
     val lengthIsNotGrowing = mkBvSignedLessOrEqualExpr(length, currentLength)
-    val validLength = mkAnd(
-        lengthIsIntegral,
-        lengthIsNonNegative,
-        lengthIsWithinLimit,
-        lengthIsNotGrowing,
-    )
-    scope.assert(validLength) ?: run {
+    if (scope.checkSat(mkNot(lengthIsNotGrowing)) != null) {
+        onFeatureLimitation(
+            TsRuntimeFeatureLimitationReason.ARRAY_LENGTH_GROWTH,
+            "assigned array length would grow beyond the current length",
+        )
+    }
+    scope.assert(lengthIsNotGrowing) ?: run {
         logger.warn {
-            "Unsupported array length assignment: expected an integral length in [0, current length], " +
-                "but the constraint is UNSAT: $validLength"
+            "Unsupported array length growth: expected length at most the current length, " +
+                "but the constraint is UNSAT: $lengthIsNotGrowing"
         }
         return null
     }
@@ -136,64 +146,85 @@ fun TsContext.assignToInstanceField(
     field: EtsFieldSignature,
     expr: UExpr<*>,
     hierarchy: EtsHierarchy,
-) {
+): Unit? {
     // Unwrap to get non-fake reference.
     val unwrappedInstance = instance.unwrapRef(scope)
 
-    val etsField = resolveEtsField(instanceLocal, field, hierarchy)
+    val isUnresolvedErrorField = field.isUnresolvedErrorField()
+    val candidateErrorStorageField = field.errorModelStorageField()
+    val concreteRuntimeType = (unwrappedInstance as? UConcreteHeapRef)
+        ?.takeIf { candidateErrorStorageField != null }
+        ?.let { concreteInstance ->
+            scope.calcOnState { memory.typeStreamOf(concreteInstance).singleOrNull() }
+        }
+    val errorStorageField = candidateErrorStorageField.takeIf {
+        concreteRuntimeType == EtsClassType(signature = builtInErrorSignature)
+    }
+    val isModelStorageField = field.isModelStorageField() || errorStorageField != null
+    val etsField = when {
+        errorStorageField != null -> TsResolutionResult.Empty
+        isUnresolvedErrorField -> resolveEtsField(
+            instance = instanceLocal,
+            field = field.copy(enclosingClass = EtsClassSignature.UNKNOWN),
+            hierarchy = hierarchy,
+        )
+        else -> resolveEtsField(instanceLocal, field, hierarchy)
+    }
     // If we access some field, we expect that the object must have this field.
     // It is not always true for TS, but we decided to process it so.
-    val supertype = EtsAuxiliaryType(properties = setOf(field.name))
-    // assert is required to update models
-    scope.doWithState {
-        scope.assert(memory.types.evalIsSubtype(unwrappedInstance, supertype))
+    if (!isModelStorageField) {
+        val supertype = EtsAuxiliaryType(properties = setOf(field.name))
+        val propertyExists = scope.calcOnState { memory.types.evalIsSubtype(unwrappedInstance, supertype) }
+        // The assertion is required to update models before the write.
+        scope.assert(propertyExists) ?: return null
     }
 
     // Determine the field sort.
     val sort = when (etsField) {
-        is TsResolutionResult.Empty -> unresolvedSort
+        is TsResolutionResult.Empty -> if (errorStorageField != null) addressSort else unresolvedSort
         is TsResolutionResult.Unique -> typeToSort(etsField.property.type)
         is TsResolutionResult.Ambiguous -> unresolvedSort
     }
 
     // If the field type is unknown, we create a fake object for the expr and assign it.
-    // Otherwise, assign expr directly.
-    scope.doWithState {
-        if (sort is TsUnresolvedSort) {
+    if (sort is TsUnresolvedSort) {
+        return scope.doWithState {
             val fakeObject = expr.toFakeObject(scope)
-            val lValue = mkFieldLValue(addressSort, unwrappedInstance, field)
+            val lValue = mkFieldLValue(addressSort, unwrappedInstance, field.name)
             lValuesToAllocatedFakeObjects += lValue to fakeObject
             memory.write(lValue, fakeObject, guard = trueExpr)
-        } else {
-            val lValue = mkFieldLValue(sort, unwrappedInstance, field)
-            if (lValue.sort != expr.sort) {
-                if (expr.isFakeObject()) {
-                    val lhvType = instanceLocal.type
-                    val value = when (lhvType) {
-                        is EtsBooleanType -> {
-                            pathConstraints += expr.getFakeType(scope).boolTypeExpr
-                            expr.extractBool(scope)
-                        }
-
-                        is EtsNumberType -> {
-                            pathConstraints += expr.getFakeType(scope).fpTypeExpr
-                            expr.extractFp(scope)
-                        }
-
-                        else -> {
-                            pathConstraints += expr.getFakeType(scope).refTypeExpr
-                            expr.extractRef(scope)
-                        }
-                    }
-                    memory.write(lValue, value.asExpr(lValue.sort), guard = trueExpr)
-                } else {
-                    TODO("Support enums fields")
-                }
-            } else {
-                memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
-            }
         }
     }
+
+    val lValue = mkFieldLValue(sort, unwrappedInstance, errorStorageField ?: field.name)
+    val payload = if (lValue.sort != expr.sort) {
+        if (expr.isFakeObject()) {
+            val type = expr.getFakeType(scope)
+            val (fakePayload, kindGuard) = when (lValue.sort) {
+                boolSort -> expr.extractBool(scope) to type.boolTypeExpr
+                fp64Sort -> expr.extractFp(scope) to type.fpTypeExpr
+                addressSort -> expr.extractRef(scope) to type.refTypeExpr
+                else -> error("Unsupported field sort: ${lValue.sort}")
+            }
+            scope.assert(kindGuard) ?: return null
+
+            fakePayload
+        } else {
+            TODO("Support enums fields")
+        }
+    } else {
+        expr
+    }
+
+    return scope.doWithState {
+        memory.write(lValue, payload.asExpr(lValue.sort), guard = trueExpr)
+    }
+}
+
+private fun EtsFieldSignature.isModelStorageField(): Boolean = when (enclosingClass.name) {
+    "DateValue" -> name == "timestamp"
+    "ErrorValue" -> isErrorModelStorageDefinitionField()
+    else -> false
 }
 
 internal fun TsExprResolver.handleAssignToStaticField(
