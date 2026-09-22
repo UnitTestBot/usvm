@@ -575,6 +575,18 @@ class TsExprResolver(
     }
 
     private fun stringStorageRef(value: UExpr<*>): UHeapRef? = with(ctx) {
+        if (value is UIteExpr<*>) {
+            val trueBranch = stringStorageRef(value.trueBranch) ?: return null
+            val falseBranch = stringStorageRef(value.falseBranch) ?: return null
+
+            return mkIte(value.condition, trueBranch, falseBranch)
+        }
+
+        val concrete = concreteStringValue(value)
+        if (concrete != null && (value == mkTsNullValue() || value == mkUndefinedValue())) {
+            return mkStringConstant(concrete, scope)
+        }
+
         if (value.sort == addressSort) {
             val ref = value.asExpr(addressSort)
             val type = scope.calcOnState { memory.typeStreamOf(ref).singleOrNull() }
@@ -583,8 +595,7 @@ class TsExprResolver(
             }
         }
 
-        val concrete = concreteStringValue(value) ?: return null
-        mkStringConstant(concrete, scope)
+        concrete?.let { mkStringConstant(it, scope) }
     }
 
     private fun concreteStringValue(value: UExpr<*>): String? = with(ctx) {

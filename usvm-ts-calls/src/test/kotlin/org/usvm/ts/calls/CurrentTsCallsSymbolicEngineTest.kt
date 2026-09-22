@@ -55,6 +55,46 @@ class CurrentTsCallsSymbolicEngineTest {
     }
 
     @Test
+    fun `fresh unknown string index branches remain executable and extractable`() {
+        val alphabet = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ~!@#${'$'}%^&*_-+=|:.><?/'"
+        val fixture = fixture(
+            source = """
+                export function encodeNum(n: number): string {
+                    const enc = "$alphabet";
+                    const base = enc.length;
+                    let ret = '';
+                    do {
+                        ret += enc[n % base];
+                        n = Math.floor(n / base);
+                    } while (n >= 1);
+                    return ret;
+                }
+
+                let nUid = 0;
+
+                export function uid(): string {
+                    return encodeNum(nUid++);
+                }
+            """.trimIndent(),
+            exportName = "uid",
+            inputs = emptyList(),
+            targetStatement = "return encodeNum(nUid++);",
+            targetMode = CallsSourceTargetMode.COMPLETED_RETURN,
+            returnExpression = "encodeNum(nUid++)",
+        )
+        val unknownCalls = mutableListOf<TsUnknownCallEvent>()
+
+        val result = fixture.search(
+            modelIds = emptySet(),
+            profile = CallsExperimentProfile.EMPTY_FRESH,
+            unknownCallEventSink = unknownCalls::add,
+        )
+
+        assertEquals(CallsSymbolicStatus.REACHED, result.status, "$result; unknownCalls=$unknownCalls")
+        assertEquals(emptyList(), result.inputs)
+    }
+
+    @Test
     fun `bundled frontend accepts only the revision baked into the running build`() {
         val engine = CurrentTsCallsSymbolicEngine(
             environment = emptyMap<String, String>()::get,
@@ -904,6 +944,7 @@ class CurrentTsCallsSymbolicEngineTest {
 
         fun search(
             modelIds: Set<String>,
+            profile: CallsExperimentProfile = CallsExperimentProfile.FROZEN_STOP,
             unknownCallEventSink: ((TsUnknownCallEvent) -> Unit)? = null,
             runtimeLimitationEventSink: ((TsRuntimeFeatureLimitationEvent) -> Unit)? = null,
         ): CallsSymbolicSearchResult = engine.search(
@@ -912,7 +953,7 @@ class CurrentTsCallsSymbolicEngineTest {
                 project = project,
                 function = function,
                 target = target,
-                profile = CallsExperimentProfile.FROZEN_STOP,
+                profile = profile,
                 frozenModelIds = modelIds,
                 expectedNativeFrontendRevision = "bundled:test",
                 seed = 0,
