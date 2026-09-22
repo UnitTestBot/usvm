@@ -3,13 +3,11 @@ package org.usvm.machine.expr
 import io.ksmt.utils.asExpr
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsArrayType
-import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLocal
-import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsStaticFieldRef
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
@@ -189,42 +187,37 @@ fun TsContext.assignToInstanceField(
     }
 
     // If the field type is unknown, we create a fake object for the expr and assign it.
-    // Otherwise, assign expr directly.
-    return scope.doWithState {
-        if (sort is TsUnresolvedSort) {
+    if (sort is TsUnresolvedSort) {
+        return scope.doWithState {
             val fakeObject = expr.toFakeObject(scope)
             val lValue = mkFieldLValue(addressSort, unwrappedInstance, field.name)
             lValuesToAllocatedFakeObjects += lValue to fakeObject
             memory.write(lValue, fakeObject, guard = trueExpr)
-        } else {
-            val lValue = mkFieldLValue(sort, unwrappedInstance, errorStorageField ?: field.name)
-            if (lValue.sort != expr.sort) {
-                if (expr.isFakeObject()) {
-                    val lhvType = instanceLocal.type
-                    val value = when (lhvType) {
-                        is EtsBooleanType -> {
-                            pathConstraints += expr.getFakeType(scope).boolTypeExpr
-                            expr.extractBool(scope)
-                        }
-
-                        is EtsNumberType -> {
-                            pathConstraints += expr.getFakeType(scope).fpTypeExpr
-                            expr.extractFp(scope)
-                        }
-
-                        else -> {
-                            pathConstraints += expr.getFakeType(scope).refTypeExpr
-                            expr.extractRef(scope)
-                        }
-                    }
-                    memory.write(lValue, value.asExpr(lValue.sort), guard = trueExpr)
-                } else {
-                    TODO("Support enums fields")
-                }
-            } else {
-                memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
-            }
         }
+    }
+
+    val lValue = mkFieldLValue(sort, unwrappedInstance, errorStorageField ?: field.name)
+    val payload = if (lValue.sort != expr.sort) {
+        if (expr.isFakeObject()) {
+            val type = expr.getFakeType(scope)
+            val (fakePayload, kindGuard) = when (lValue.sort) {
+                boolSort -> expr.extractBool(scope) to type.boolTypeExpr
+                fp64Sort -> expr.extractFp(scope) to type.fpTypeExpr
+                addressSort -> expr.extractRef(scope) to type.refTypeExpr
+                else -> error("Unsupported field sort: ${lValue.sort}")
+            }
+            scope.assert(kindGuard) ?: return null
+
+            fakePayload
+        } else {
+            TODO("Support enums fields")
+        }
+    } else {
+        expr
+    }
+
+    return scope.doWithState {
+        memory.write(lValue, payload.asExpr(lValue.sort), guard = trueExpr)
     }
 }
 
