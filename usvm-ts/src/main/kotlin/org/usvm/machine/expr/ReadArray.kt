@@ -62,8 +62,12 @@ internal fun TsExprResolver.handleArrayAccess(
     if (storageType is EtsStringType) {
         return readStringIndex(scope, array, index.value, index.isNumeric)
     }
-    check(storageType is EtsArrayType) {
-        "Expected EtsArrayType, got: ${value.array.type}"
+    if (storageType !is EtsArrayType) {
+        reportRuntimeFeatureLimitation(
+            reason = TsRuntimeFeatureLimitationReason.ARRAY_STORAGE_TYPE,
+            detail = "indexed read requires supported array storage: static=${value.array.type}, storage=$storageType",
+        )
+        return null
     }
 
     val indexIsSupported = mkAnd(

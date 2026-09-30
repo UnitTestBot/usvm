@@ -1,6 +1,7 @@
 package org.usvm.api
 
 import org.jacodb.ets.model.EtsMethodSignature
+import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsVoidType
 import org.usvm.UAddressSort
@@ -35,19 +36,28 @@ internal fun TsState.setMockMethodCallResult(
 internal fun makeFreshUnknownCallResult(
     scope: TsStepScope,
     resultType: EtsType,
-): UExpr<*> = scope.calcOnState {
-    if (resultType is EtsVoidType) return@calcOnState ctx.mkUndefinedValue()
+): UExpr<*> {
+    if (resultType is EtsStringType) {
+        // String operations need a typed reference to access symbolic character storage.
+        return requireNotNull(scope.makeSymbolicRef(EtsStringType)) {
+            "A fresh string result must admit the string type"
+        }
+    }
 
-    when (val sort = ctx.typeToSort(resultType)) {
-        is UAddressSort -> makeSymbolicRefUntyped()
+    return scope.calcOnState {
+        if (resultType is EtsVoidType) return@calcOnState ctx.mkUndefinedValue()
 
-        is TsUnresolvedSort -> mkFakeValue(
-            scope,
-            boolValue = makeSymbolicPrimitive(ctx.boolSort),
-            fpValue = makeSymbolicPrimitive(ctx.fp64Sort),
-            refValue = makeSymbolicRefUntyped(),
-        )
+        when (val sort = ctx.typeToSort(resultType)) {
+            is UAddressSort -> makeSymbolicRefUntyped()
 
-        else -> makeSymbolicPrimitive(sort)
+            is TsUnresolvedSort -> mkFakeValue(
+                scope,
+                boolValue = makeSymbolicPrimitive(ctx.boolSort),
+                fpValue = makeSymbolicPrimitive(ctx.fp64Sort),
+                refValue = makeSymbolicRefUntyped(),
+            )
+
+            else -> makeSymbolicPrimitive(sort)
+        }
     }
 }

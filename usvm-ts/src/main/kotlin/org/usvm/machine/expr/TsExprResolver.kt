@@ -3,6 +3,7 @@ package org.usvm.machine.expr
 import io.ksmt.expr.KFp64Value
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
+import kotlinx.serialization.json.JsonPrimitive
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsAddExpr
 import org.jacodb.ets.model.EtsAndExpr
@@ -57,6 +58,7 @@ import org.jacodb.ets.model.EtsPostIncExpr
 import org.jacodb.ets.model.EtsPreDecExpr
 import org.jacodb.ets.model.EtsPreIncExpr
 import org.jacodb.ets.model.EtsPtrCallExpr
+import org.jacodb.ets.model.EtsRawEntity
 import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsRemExpr
 import org.jacodb.ets.model.EtsRightShiftExpr
@@ -578,13 +580,26 @@ class TsExprResolver(
                 }
 
                 val lhsRef = stringStorageRef(lhs)
-                    ?: error("String concatenation is not supported for left operand: $lhs")
+                    ?: return@resolveAfterResolved stopUnsupportedStringConcatOperand(side = "left", value = lhs)
                 val rhsRef = stringStorageRef(rhs)
-                    ?: error("String concatenation is not supported for right operand: $rhs")
+                    ?: return@resolveAfterResolved stopUnsupportedStringConcatOperand(side = "right", value = rhs)
                 scope.calcOnState { concatStrings(lhsRef, rhsRef) }
             }
         }
         return resolveBinaryOperator(TsBinaryOperator.Add, expr)
+    }
+
+    private fun stopUnsupportedStringConcatOperand(
+        side: String,
+        value: UExpr<*>,
+    ): UExpr<out USort>? = with(ctx) {
+        reportRuntimeFeatureLimitation(
+            reason = TsRuntimeFeatureLimitationReason.STRING_CONCAT_OPERAND_CONVERSION,
+            detail = "Cannot convert $side operand to string: $value",
+        )
+        scope.assert(falseExpr)
+
+        null
     }
 
     private fun stringStorageRef(value: UExpr<*>): UHeapRef? = with(ctx) {
@@ -1012,8 +1027,32 @@ class TsExprResolver(
     override fun visit(value: EtsStaticFieldRef): UExpr<*>? = handleStaticFieldRef(value)
 
     override fun visit(value: EtsCaughtExceptionRef): UExpr<out USort>? {
-        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        error("Not supported $value")
+        reportRuntimeFeatureLimitation(
+            reason = TsRuntimeFeatureLimitationReason.CAUGHT_EXCEPTION_VALUE,
+            detail = "Caught exception value cannot be modeled: $value",
+        )
+        scope.assert(ctx.falseExpr)
+
+        return null
+    }
+
+    override fun visit(value: EtsRawEntity): UExpr<out USort>? {
+        val kindName = when (val raw = value.extra["kindName"]) {
+            is JsonPrimitive -> raw.content
+            is String -> raw
+            else -> null
+        }
+        if (value.kind != "UnsupportedValue" || kindName != "RegularExpressionLiteral") {
+            error("Cannot handle EtsRawEntity: $value")
+        }
+
+        reportRuntimeFeatureLimitation(
+            reason = TsRuntimeFeatureLimitationReason.REGULAR_EXPRESSION_LITERAL,
+            detail = "Regular expression literal is not modeled: $value",
+        )
+        scope.assert(ctx.falseExpr)
+
+        return null
     }
 
     override fun visit(value: EtsGlobalRef): UExpr<out USort>? {
@@ -1060,8 +1099,10 @@ class TsExprResolver(
 
         if (expr.type.typeName == "Number") {
             val clazz = scene.sdkClasses.filter { it.name == "Number" }.maxByOrNull { it.methods.size }
-                ?: error("No Number class found in SDK")
-            return@with scope.calcOnState { memory.allocConcrete(clazz.type) }
+            // The allocation itself does not execute the Number constructor. If the SDK class is
+            // absent, retain the IR type and let the following constructor call use the residual
+            // call policy instead of treating the missing SDK declaration as a tool failure.
+            return@with scope.calcOnState { memory.allocConcrete(clazz?.type ?: resolvedType) }
         }
 
         scope.calcOnState { memory.allocConcrete(resolvedType) }

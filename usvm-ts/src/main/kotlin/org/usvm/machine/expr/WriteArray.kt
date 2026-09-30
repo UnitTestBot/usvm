@@ -22,11 +22,18 @@ internal fun TsExprResolver.handleAssignToArrayIndex(
     expr: UExpr<*>,
 ): Unit? = with(ctx) {
     // Resolve the array.
-    val resolvedArray = resolve(lhv.array) ?: return null
-    check(resolvedArray.sort == addressSort) {
-        "Expected address sort for array, got: ${resolvedArray.sort}"
+    val array = run {
+        val resolved = resolve(lhv.array) ?: return null
+        if (resolved.isFakeObject()) {
+            scope.assert(resolved.getFakeType(scope).refTypeExpr) ?: return null
+            resolved.extractRef(scope)
+        } else {
+            check(resolved.sort == addressSort) {
+                "Expected address sort for array, got: ${resolved.sort}"
+            }
+            resolved.asExpr(addressSort)
+        }
     }
-    val array = resolvedArray.asExpr(addressSort)
 
     handleAssignToArrayIndex(lhv, expr, array)
 }
@@ -62,8 +69,12 @@ internal fun TsExprResolver.handleAssignToArrayIndex(
     val bvIndex = mkFpToUint32AfterValidation(index.value, indexIsSupported).asExpr(sizeSort)
 
     val arrayType = scope.calcOnState { arrayStorageType(array, lhv.array.type) }
-    check(arrayType is EtsArrayType) {
-        "Expected EtsArrayType, got: ${lhv.array.type}"
+    if (arrayType !is EtsArrayType) {
+        reportRuntimeFeatureLimitation(
+            reason = TsRuntimeFeatureLimitationReason.ARRAY_STORAGE_TYPE,
+            detail = "indexed write requires supported array storage: static=${lhv.array.type}, storage=$arrayType",
+        )
+        return null
     }
 
     return assignToArrayIndex(
