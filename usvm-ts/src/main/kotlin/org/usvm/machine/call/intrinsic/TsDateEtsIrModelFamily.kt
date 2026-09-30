@@ -1,8 +1,14 @@
 package org.usvm.machine.call.intrinsic
 
 import io.ksmt.utils.asExpr
+import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsFunctionType
+import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.usvm.UExpr
+import org.usvm.api.typeStreamOf
 import org.usvm.machine.call.TsEtsIrUnknownCallModel
 import org.usvm.machine.call.TsEtsIrUnknownCallModelArtifact
 import org.usvm.machine.call.TsEtsIrUnknownCallModelDomainGuard
@@ -12,12 +18,15 @@ import org.usvm.machine.call.TsUnknownCallModel
 import org.usvm.machine.call.TsUnknownCallTarget
 import org.usvm.machine.call.loadBundledEtsIrUnknownCallModelArtifact
 import org.usvm.machine.state.TsState
+import org.usvm.types.singleOrNull
 
 /** Numeric `Date` API family implemented by an ordinary TypeScript source body. */
 internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
     private const val DATE_CLASS = "Date"
     private const val MAX_CONSTRUCTOR_ARGUMENTS = 7
     private const val RESOURCE = "/org/usvm/machine/call/models/DateModels.ts"
+    private val builtinDateSignature = EtsClassSignature.UNKNOWN.copy(name = DATE_CLASS)
+    private val builtinDateType = EtsClassType(signature = builtinDateSignature)
 
     private val artifact by lazy {
         loadBundledEtsIrUnknownCallModelArtifact(
@@ -215,7 +224,9 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         methodName = "UTC",
         entryPointName = "utc",
         domainGuard = TsEtsIrUnknownCallModelDomainGuard { state, call, _ ->
-            if (call.hasNumericOrUndefinedArguments(maxArgs = MAX_CONSTRUCTOR_ARGUMENTS, state = state)) {
+            if (call.hasBuiltinDateStaticOwner() &&
+                call.hasNumericOrUndefinedArguments(maxArgs = MAX_CONSTRUCTOR_ARGUMENTS, state = state)
+            ) {
                 state.ctx.trueExpr
             } else {
                 state.ctx.falseExpr
@@ -295,7 +306,7 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             val receiver = call.receiver
             val receiverValue = receiver?.resolved
             if (
-                call.callee.enclosingClass.name != DATE_CLASS ||
+                call.callee.enclosingClass != builtinDateSignature ||
                 receiverValue?.sort != addressSort ||
                 receiverValue.asExpr(addressSort).hasFakeValueBranch()
             ) {
@@ -303,7 +314,12 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             } else if (!call.hasNumericArguments(minArgs = minArgs, numericArgs = numericArgs, state = state)) {
                 falseExpr
             } else {
-                trueExpr
+                val runtimeType = state.memory.typeStreamOf(receiverValue.asExpr(addressSort)).singleOrNull()
+                if (runtimeType == builtinDateType) {
+                    trueExpr
+                } else {
+                    falseExpr
+                }
             }
         }
     }
@@ -312,11 +328,25 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         minArgs: Int,
         numericArgs: Int,
     ) = TsEtsIrUnknownCallModelDomainGuard { state, call, _ ->
-        if (call.hasNumericArguments(minArgs = minArgs, numericArgs = numericArgs, state = state)) {
+        if (call.hasBuiltinDateStaticOwner() &&
+            call.hasNumericArguments(minArgs = minArgs, numericArgs = numericArgs, state = state)
+        ) {
             state.ctx.trueExpr
         } else {
             state.ctx.falseExpr
         }
+    }
+
+    private fun TsUnknownCall.hasBuiltinDateStaticOwner(): Boolean {
+        if (callee.enclosingClass != builtinDateSignature) return false
+
+        val owner = receiver?.source as? EtsLocal ?: return false
+        val ownerType = owner.type as? EtsFunctionType ?: return false
+        return owner.name == DATE_CLASS &&
+            ownerType.signature.enclosingClass == EtsClassSignature.UNKNOWN &&
+            ownerType.signature.name.isEmpty() &&
+            ownerType.signature.parameters.isEmpty() &&
+            ownerType.signature.returnType == EtsStringType
     }
 
     private fun arityAdapter(maxArgs: Int) = TsEtsIrUnknownCallModelInputAdapter { state, call ->
