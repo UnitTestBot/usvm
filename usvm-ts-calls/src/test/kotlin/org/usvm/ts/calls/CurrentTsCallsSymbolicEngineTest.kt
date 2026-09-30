@@ -146,7 +146,11 @@ class CurrentTsCallsSymbolicEngineTest {
 
         val second = fixture.preflight(project = fixture.project.copy(revision = nextRevision))
 
-        assertEquals(CallsSymbolicPreflightReasonCode.IMPORTED_CALLEES_UNSUPPORTED, second.reasonCode, second.toString())
+        assertEquals(
+            CallsSymbolicPreflightReasonCode.IMPORTED_CALLEES_UNSUPPORTED,
+            second.reasonCode,
+            second.toString(),
+        )
     }
 
     @Test
