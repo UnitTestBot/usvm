@@ -11,6 +11,7 @@ import org.usvm.ts.pbt.model.JsNumberKind
 import org.usvm.ts.pbt.model.PropertyDefinition
 import org.usvm.ts.pbt.model.accepts
 import org.usvm.ts.pbt.model.contains
+import org.usvm.ts.pbt.observation.PropertyObservationRequest
 import org.usvm.ts.pbt.validation.requireValid
 import org.usvm.ts.pbt.validation.validatePropertyDefinition
 import java.io.IOException
@@ -52,6 +53,7 @@ class FastCheckBackend(
             numRuns = configuration.numRuns,
             timeoutMillis = configuration.timeoutMillis,
             examples = configuration.examples,
+            observationRequest = configuration.observationRequest,
             coverageRequest = configuration.coverageRequest,
         )
 
@@ -63,6 +65,45 @@ class FastCheckBackend(
         configuration: PropertyRunConfiguration,
     ) {
         validateExamples(property, configuration)
+        configuration.observationRequest?.let { validateObservationRequest(property, it) }
+    }
+
+    private fun validateObservationRequest(property: PropertyDefinition, request: PropertyObservationRequest) {
+        val validLimits = request.maxInvocations in 1..MAX_OBSERVED_INVOCATIONS &&
+            request.maxPointsPerInvocation in 1..MAX_OBSERVED_POINTS &&
+            request.maxArrayElements in 1..MAX_OBSERVED_ARRAY_ELEMENTS &&
+            request.maxBytes in MIN_OBSERVED_BYTES..MAX_OBSERVED_BYTES
+        val sourceByModule = request.sources.associateBy { it.module }
+        val allSourcesPresent = property.predicate.module in sourceByModule &&
+            request.points.all { point -> point.source.module in sourceByModule }
+        val allPointsBound = request.points.all { point ->
+            property.assertions.any { assertion ->
+                assertion.id == point.assertionId && assertion.testedCall == point.callSite &&
+                    assertion.operands.any { operand ->
+                        operand.id == point.operandId && operand.source == point.source
+                    }
+            }
+        }
+        val allInputIndexesValid = request.points.all { point ->
+            if (point.kind == org.usvm.ts.pbt.observation.ObservationPointKind.ARGUMENT) {
+                point.inputIndex in property.inputs.indices
+            } else {
+                point.inputIndex == null
+            }
+        }
+        val hashesValid = request.sources.all { source -> source.sha256.matches(SHA256_REGEX) }
+
+        val validRequest = validLimits && request.points.isNotEmpty() && allSourcesPresent &&
+            allPointsBound && allInputIndexesValid && hashesValid
+
+        if (!validRequest) {
+            throw invalidRequest(
+                code = FastCheckDiagnosticCode.BACKEND_OBSERVATION_INVALID,
+                message = "Observation request has invalid limits, source hashes, or assertion bindings",
+                property = property,
+                path = "observationRequest",
+            )
+        }
     }
 
     private fun validateExamples(
@@ -160,6 +201,12 @@ class FastCheckBackend(
         const val FAST_CHECK_BACKEND_ID = "fast-check"
 
         private val FINITE_NUMBER_BITS_REGEX = Regex("[0-9a-f]{16}")
+        private val SHA256_REGEX = Regex("[0-9a-f]{64}")
+        private const val MAX_OBSERVED_INVOCATIONS = 64
+        private const val MAX_OBSERVED_POINTS = 8
+        private const val MAX_OBSERVED_ARRAY_ELEMENTS = 64
+        private const val MAX_OBSERVED_BYTES = 65_536
+        private const val MIN_OBSERVED_BYTES = 1024
 
         private fun canonicalizeSourceRoots(sourceRoots: List<Path>): List<Path> {
             if (sourceRoots.isEmpty()) {

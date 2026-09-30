@@ -15,57 +15,119 @@ data class PropertyObservationPoint(
     val source: PropertySourcePoint,
     val callSite: PropertySourcePoint,
     val kind: ObservationPointKind,
+    val inputIndex: Int? = null,
 )
 
+/** Location and role of a recorded operand value. */
 @Serializable
 enum class ObservationPointKind {
-    @SerialName("argument") ARGUMENT,
-    @SerialName("return") RETURN,
-    @SerialName("intermediate") INTERMEDIATE,
-    @SerialName("pre") PRE,
-    @SerialName("post") POST,
+    @SerialName("argument")
+    ARGUMENT,
+
+    @SerialName("return")
+    RETURN,
+
+    @SerialName("intermediate")
+    INTERMEDIATE,
+
+    @SerialName("pre")
+    PRE,
+
+    @SerialName("post")
+    POST,
 }
 
+/** Whether a value could be represented within the observation bounds. */
 @Serializable
 enum class ObservationValueStatus {
-    @SerialName("captured") CAPTURED,
-    @SerialName("unsupported") UNSUPPORTED,
-    @SerialName("truncated") TRUNCATED,
+    @SerialName("captured")
+    CAPTURED,
+
+    @SerialName("unsupported")
+    UNSUPPORTED,
+
+    @SerialName("truncated")
+    TRUNCATED,
 }
 
+/** Runtime that produced the observed invocation. */
 @Serializable
 enum class ObservationOrigin {
-    @SerialName("fast-check") FAST_CHECK,
+    @SerialName("fast-check")
+    FAST_CHECK,
+
+    @SerialName("solver")
+    SOLVER,
+
+    @SerialName("returned-seed")
+    RETURNED_SEED,
+
+    @SerialName("returned-neighborhood")
+    RETURNED_NEIGHBORHOOD,
 }
 
+/** Fast-check activity that produced the invocation input. */
 @Serializable
 enum class ObservationPhase {
-    @SerialName("generation") GENERATION,
-    @SerialName("explicit") EXPLICIT,
-    @SerialName("shrink") SHRINK,
-    @SerialName("replay") REPLAY,
-    @SerialName("unknown") UNKNOWN,
+    @SerialName("generation")
+    GENERATION,
+
+    @SerialName("explicit")
+    EXPLICIT,
+
+    @SerialName("shrink")
+    SHRINK,
+
+    @SerialName("replay")
+    REPLAY,
+
+    @SerialName("unknown")
+    UNKNOWN,
 }
 
+/** Precondition result for an observed invocation. */
 @Serializable
 enum class ObservationAdmission {
-    @SerialName("admitted") ADMITTED,
-    @SerialName("rejected") REJECTED,
-    @SerialName("threw") THREW,
+    @SerialName("pending")
+    PENDING,
+
+    @SerialName("admitted")
+    ADMITTED,
+
+    @SerialName("rejected")
+    REJECTED,
+
+    @SerialName("threw")
+    THREW,
 }
 
+/** Predicate result for an observed invocation. */
 @Serializable
 enum class ObservationOutcome {
-    @SerialName("holds") HOLDS,
-    @SerialName("false") FALSE,
-    @SerialName("threw") THREW,
-    @SerialName("skipped") SKIPPED,
+    @SerialName("pending")
+    PENDING,
+
+    @SerialName("holds")
+    HOLDS,
+
+    @SerialName("false")
+    FALSE,
+
+    @SerialName("threw")
+    THREW,
+
+    @SerialName("skipped")
+    SKIPPED,
 }
 
+/** Verification status of executable build provenance. */
 @Serializable
 enum class ObservationBuildStatus {
-    @SerialName("unverified") UNVERIFIED,
-    @SerialName("verified") VERIFIED,
+    @SerialName("unverified")
+    UNVERIFIED,
+
+    @SerialName("verified")
+    VERIFIED,
 }
 
 /** Exact bytes of a selected module, not a claim about transitive imports or transpilation. */
@@ -105,6 +167,7 @@ data class PropertyPointEvent(
     val kind: ObservationPointKind,
     val occurrence: Int,
     val eventOrdinal: Int,
+    val inputIndex: Int? = null,
     val value: PropertyObservationValue,
 )
 

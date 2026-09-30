@@ -79,6 +79,29 @@ JSON again because the process boundary must not trust malformed input. Diagnost
 language: `FastCheckDiagnosticCode.kt` for Kotlin and `diagnostics.ts` for Node. Node also sends the diagnostic category,
 so Kotlin never infers error meaning from code prefixes.
 
+## Bounded property observations
+
+`PropertyRunConfiguration.observationRequest` opts into one observation artifact on the run result. Each requested
+point names an assertion operand and its call site. The adapter records each callback invocation's original input,
+precondition admission, predicate outcome, and phase. `invocation.input` is captured automatically at the callback
+boundary. Named argument, return, intermediate, pre, and post operand points need explicit
+`observePoint(id, value)` hook in the selected TypeScript source. The hook returns the same value. Repeated hits at one
+static point have zero-based `occurrence` values and invocation-local `eventOrdinal` values.
+
+The request bounds invocations (at most 64), points per invocation (at most 8), array elements (at most 64), and
+artifact bytes (at most 65,536). Dropped invocations and points are counted. A snapshot refuses proxies, accessors,
+sparse arrays, nonstandard array prototypes, extra array properties, aliases, cycles, unsupported object types, and
+arrays beyond the declared depth or element bound. Such values have an explicit `unsupported` status rather than a
+fabricated concrete value. Byte-limited values have `truncated` status. Snapshot time is reported as
+`captureTimeMillis`; it measures capture work, not end-to-end runtime overhead.
+
+Before importing the predicate, the adapter checks SHA-256 bytes of every selected source module in the request.
+`verifiedSources` identifies only those selected modules. The build status remains `unverified`: the adapter does not
+verify transpiled output, the loader, or transitive imports. Observation phases come from fast-check arbitrary
+generation and shrink calls, explicit example identity, and replay requests. An `unknown` phase must not be treated
+as a fresh independent sample. Observation is empirical and does not make an assertion sound or prove that a
+recorded point is semantically relevant to a failure.
+
 ## One property run
 
 ```mermaid

@@ -7,6 +7,7 @@ import org.usvm.ts.pbt.backend.PropertyCoverageRequest
 import org.usvm.ts.pbt.backend.PropertyRunResult
 import org.usvm.ts.pbt.manifest.PropertyManifest
 import org.usvm.ts.pbt.model.JsConcreteValue
+import org.usvm.ts.pbt.observation.PropertyObservationRequest
 
 @Serializable
 internal data class FastCheckExecutionRequest(
@@ -17,6 +18,7 @@ internal data class FastCheckExecutionRequest(
     val numRuns: Int,
     val timeoutMillis: Long,
     val examples: List<List<JsConcreteValue>> = emptyList(),
+    val observationRequest: PropertyObservationRequest? = null,
     @Transient
     val coverageRequest: PropertyCoverageRequest? = null,
 )

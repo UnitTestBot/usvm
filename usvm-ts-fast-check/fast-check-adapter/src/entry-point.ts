@@ -1,4 +1,5 @@
-import { realpath, stat } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { readFile, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { tsImport } from 'tsx/esm/api';
@@ -59,6 +60,23 @@ export async function loadEntryPoint(
     executionKind: reference.executionKind,
     invoke: buildInvocation(entryPoint, reference.executionKind, referencePath),
   };
+}
+
+/** Verifies one selected source module's exact bytes before importing user code. */
+export async function verifySourceHash(
+  module: string,
+  expectedSha256: string,
+  sourceRoots: string[],
+): Promise<void> {
+  const modulePath = await resolveModule(module, sourceRoots, 'observationRequest.sources');
+  const actual = createHash('sha256').update(await readFile(modulePath)).digest('hex');
+  if (actual !== expectedSha256) {
+    throw protocolError(
+      adapterDiagnostic.entryPointSourceHashMismatch,
+      `Selected TypeScript source changed: ${module}`,
+      'observationRequest.sources',
+    );
+  }
 }
 
 async function resolveModule(
