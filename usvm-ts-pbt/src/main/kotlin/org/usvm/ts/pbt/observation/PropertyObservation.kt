@@ -1,5 +1,6 @@
 package org.usvm.ts.pbt.observation
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyId
@@ -13,7 +14,59 @@ data class PropertyObservationPoint(
     val operandId: String,
     val source: PropertySourcePoint,
     val callSite: PropertySourcePoint,
+    val kind: ObservationPointKind,
 )
+
+@Serializable
+enum class ObservationPointKind {
+    @SerialName("argument") ARGUMENT,
+    @SerialName("return") RETURN,
+    @SerialName("intermediate") INTERMEDIATE,
+    @SerialName("pre") PRE,
+    @SerialName("post") POST,
+}
+
+@Serializable
+enum class ObservationValueStatus {
+    @SerialName("captured") CAPTURED,
+    @SerialName("unsupported") UNSUPPORTED,
+    @SerialName("truncated") TRUNCATED,
+}
+
+@Serializable
+enum class ObservationOrigin {
+    @SerialName("fast-check") FAST_CHECK,
+}
+
+@Serializable
+enum class ObservationPhase {
+    @SerialName("generation") GENERATION,
+    @SerialName("explicit") EXPLICIT,
+    @SerialName("shrink") SHRINK,
+    @SerialName("replay") REPLAY,
+    @SerialName("unknown") UNKNOWN,
+}
+
+@Serializable
+enum class ObservationAdmission {
+    @SerialName("admitted") ADMITTED,
+    @SerialName("rejected") REJECTED,
+    @SerialName("threw") THREW,
+}
+
+@Serializable
+enum class ObservationOutcome {
+    @SerialName("holds") HOLDS,
+    @SerialName("false") FALSE,
+    @SerialName("threw") THREW,
+    @SerialName("skipped") SKIPPED,
+}
+
+@Serializable
+enum class ObservationBuildStatus {
+    @SerialName("unverified") UNVERIFIED,
+    @SerialName("verified") VERIFIED,
+}
 
 /** Exact bytes of a selected module, not a claim about transitive imports or transpilation. */
 @Serializable
@@ -36,7 +89,7 @@ data class PropertyObservationRequest(
 /** A value unavailable to observation remains distinct from JavaScript null or undefined. */
 @Serializable
 data class PropertyObservationValue(
-    val status: String,
+    val status: ObservationValueStatus,
     val value: JsConcreteValue? = null,
     val reason: String? = null,
 )
@@ -49,6 +102,9 @@ data class PropertyPointEvent(
     val operandId: String,
     val source: PropertySourcePoint,
     val callSite: PropertySourcePoint,
+    val kind: ObservationPointKind,
+    val occurrence: Int,
+    val eventOrdinal: Int,
     val value: PropertyObservationValue,
 )
 
@@ -58,11 +114,11 @@ data class PropertyInvocationObservation(
     val invocationId: Int,
     val parentInvocationId: Int? = null,
     val callSite: PropertySourcePoint? = null,
-    val origin: String,
-    val phase: String,
+    val origin: ObservationOrigin,
+    val phase: ObservationPhase,
     val input: PropertyObservationValue,
-    val admission: String,
-    val outcome: String,
+    val admission: ObservationAdmission,
+    val outcome: ObservationOutcome,
     val points: List<PropertyPointEvent>,
 )
 
@@ -72,7 +128,7 @@ data class PropertyObservationArtifact(
     val propertyId: PropertyId,
     val runId: String,
     val verifiedSources: List<PropertyObservationSource>,
-    val buildStatus: String,
+    val buildStatus: ObservationBuildStatus,
     val invocations: List<PropertyInvocationObservation>,
     val droppedInvocations: Int,
     val droppedPoints: Int,
