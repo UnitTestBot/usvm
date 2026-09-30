@@ -5,6 +5,7 @@ import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsField
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsType
 import org.usvm.UConcreteHeapRef
 import org.usvm.UHeapRef
 import org.usvm.api.typeStreamOf
@@ -16,6 +17,10 @@ import org.usvm.util.TsResolutionResult
 import org.usvm.util.resolveEtsField
 
 internal val builtInErrorSignature = EtsClassSignature.UNKNOWN.copy(name = "Error")
+private val builtInErrorSignatures = setOf(builtInErrorSignature, EtsClassSignature.UNKNOWN.copy(name = "TypeError"))
+
+internal fun EtsType?.isModeledErrorType(): Boolean =
+    this is EtsClassType && signature in builtInErrorSignatures
 
 internal const val ERROR_NAME_STORAGE_FIELD = "__usvmErrorName"
 internal const val ERROR_MESSAGE_STORAGE_FIELD = "__usvmErrorMessage"
@@ -26,10 +31,10 @@ internal fun EtsFieldSignature.isErrorModelStorageDefinitionField(): Boolean =
         (name == ERROR_NAME_STORAGE_FIELD || name == ERROR_MESSAGE_STORAGE_FIELD)
 
 internal fun EtsFieldSignature.isUnresolvedErrorField(): Boolean =
-    enclosingClass == builtInErrorSignature && (name == "name" || name == "message")
+    enclosingClass in builtInErrorSignatures && (name == "name" || name == "message")
 
 internal fun EtsFieldSignature.errorModelStorageField(): String? {
-    if (enclosingClass != builtInErrorSignature && enclosingClass != EtsClassSignature.UNKNOWN) {
+    if (enclosingClass !in builtInErrorSignatures && enclosingClass != EtsClassSignature.UNKNOWN) {
         return null
     }
 
@@ -60,7 +65,7 @@ internal fun TsContext.resolveModelStorageField(
             scope.calcOnState { memory.typeStreamOf(concreteInstance).singleOrNull() }
         }
     val storageField = candidateStorageField.takeIf {
-        runtimeType == EtsClassType(signature = builtInErrorSignature)
+        runtimeType.isModeledErrorType()
     }
     val etsField = when {
         storageField != null -> TsResolutionResult.Empty

@@ -48,7 +48,26 @@ import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.resolveEtsMethods
 
 private val logger = KotlinLogging.logger {}
-private val legacyArrayMethods = setOf("concat", "fill", "join", "push", "reverse", "slice", "unshift")
+private val legacyArrayMethods = setOf("concat", "fill", "join", "push", "reduce", "reverse", "slice", "unshift")
+
+private val modeledStringMethods = setOf(
+    "split",
+    "replaceAll",
+    "substring",
+    "trim",
+    "trimStart",
+    "trimEnd",
+    "charAt",
+    "charCodeAt",
+    "endsWith",
+    "includes",
+    "indexOf",
+    "lastIndexOf",
+    "slice",
+    "startsWith",
+    "toLowerCase",
+    "toUpperCase",
+)
 
 internal fun TsExprResolver.tryApproximateGlobalInstanceCall(
     expr: EtsInstanceCallExpr,
@@ -61,7 +80,7 @@ internal fun TsExprResolver.tryApproximateGlobalInstanceCall(
     // Handle `Number` calls.
     if (hasBuiltinGlobalOwner(owner = expr.instance, callee = expr.callee, expectedName = "Number")) {
         when (expr.callee.name) {
-            "isFinite", "isInteger", "isSafeInteger" -> {
+            "isFinite", "isInteger", "isSafeInteger", "parseFloat" -> {
                 return tryDispatchNumericBuiltin(expr)
                     ?: TsExprApproximationResult.NoApproximation
             }
@@ -226,23 +245,6 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
         }
     }
 
-    val modeledStringMethods = setOf(
-        "replaceAll",
-        "substring",
-        "trim",
-        "trimStart",
-        "trimEnd",
-        "charAt",
-        "charCodeAt",
-        "endsWith",
-        "includes",
-        "indexOf",
-        "lastIndexOf",
-        "slice",
-        "startsWith",
-        "toLowerCase",
-        "toUpperCase",
-    )
     if (instanceType is EtsStringType && expr.callee.name in modeledStringMethods) {
         val dispatcher = unknownCallDispatcher
         if (dispatcher !is TsUnknownCallModelDispatcher) {

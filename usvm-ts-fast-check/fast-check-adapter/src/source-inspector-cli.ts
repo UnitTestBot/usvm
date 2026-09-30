@@ -1,5 +1,14 @@
 import { readFileSync } from 'node:fs'
 import ts from 'typescript'
+import { inspectLocalSourceClosure } from './local-source-closure.js'
+
+if (process.argv[2] === 'inspect-local-closure') {
+  const root = process.argv[3]
+  const entry = process.argv[4]
+  if (!root || !entry) throw new Error('Expected project root and entry source')
+  process.stdout.write(JSON.stringify(inspectLocalSourceClosure(root, entry)))
+  process.exit(0)
+}
 
 const INSPECT_COMPLETED_RETURN = 'inspect-completed-return'
 const INSTRUMENT_COMPLETED_RETURN = 'instrument-completed-return'

@@ -327,6 +327,7 @@ class TsState(
 /** Storage snapshots used to invalidate the dense-input guarantee after writes. */
 data class TsDenseInputArray(
     val type: EtsArrayType,
+    val length: UExpr<org.usvm.machine.TsSizeSort>,
     val lengthRegion: UReadOnlyMemoryRegion<*, *>,
     val elementRegion: UReadOnlyMemoryRegion<*, *>,
 )

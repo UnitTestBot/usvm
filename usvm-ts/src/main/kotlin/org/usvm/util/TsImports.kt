@@ -103,15 +103,20 @@ private fun EtsScene.resolveRelativePath(currentFile: EtsFile, importPath: Strin
         normalizeRelativePath("$currentDir/$importPath")
     }
 
-    val foundFile = (projectFiles + sdkFiles).find { file ->
-        val fileName = file.signature.fileName
-        fileName == targetPath ||
+    val files = projectFiles + sdkFiles
+    val exactFile = files.find { it.signature.fileName == targetPath }
+    val foundFile = exactFile ?: if (targetPath.endsWith(".js")) {
+        files.find { it.signature.fileName == targetPath.removeSuffix(".js") + ".ts" }
+    } else {
+        files.find { file ->
+            val fileName = file.signature.fileName
             fileName == "$targetPath.ts" ||
-            fileName == "$targetPath.ets" ||
-            fileName == "$targetPath.d.ts" ||
-            fileName == "$targetPath/index.ts" ||
-            fileName == "$targetPath/index.ets" ||
-            fileName == "$targetPath/index.d.ts"
+                fileName == "$targetPath.ets" ||
+                fileName == "$targetPath.d.ts" ||
+                fileName == "$targetPath/index.ts" ||
+                fileName == "$targetPath/index.ets" ||
+                fileName == "$targetPath/index.d.ts"
+        }
     }
 
     return if (foundFile != null) {

@@ -21,6 +21,7 @@ import org.usvm.machine.call.TsUnknownCallModelExecution
 import org.usvm.machine.call.TsUnknownCallModelSuccessor
 import org.usvm.machine.call.TsUnknownCallTarget
 import org.usvm.machine.call.loadBundledEtsIrUnknownCallModelArtifact
+import org.usvm.machine.expr.mkEcmaScriptToUint32
 import org.usvm.machine.state.TsState
 import org.usvm.sizeSort
 import org.usvm.util.copyStringRange
@@ -35,6 +36,8 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
     private const val PRIMITIVES_CLASS_NAME = "StringModelPrimitives"
     private const val RESOURCE_NAME = "/org/usvm/machine/call/models/StringModels.ts"
     private const val REPLACE_ALL_INPUT_COUNT = 3
+    private const val DEFAULT_SPLIT_LIMIT = 4_294_967_295.0
+    private const val MAX_SPLIT_INPUT_LENGTH = 15
 
     private val characterArrayType = EtsArrayType(EtsNumberType, dimensions = 1)
 
@@ -139,6 +142,41 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         }
     }
 
+    private val splitAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call ->
+        with(state.ctx) {
+            val inputs = call.resolvedInstanceInputs() ?: return@TsEtsIrUnknownCallModelInputAdapter null
+            if (call.arguments.size > 2) return@TsEtsIrUnknownCallModelInputAdapter null
+            val separator = inputs.getOrNull(1)
+            val omitted = separator == null || separator == mkUndefinedValue()
+            val limit = inputs.getOrNull(2)
+            val numericLimit = limit?.takeIf { it.sort == fp64Sort }?.asExpr(fp64Sort)
+            val convertedLimit = when {
+                limit == null || limit == mkUndefinedValue() -> mkFp64(DEFAULT_SPLIT_LIMIT)
+                numericLimit != null -> mkBvToFpExpr(
+                    sort = fp64Sort,
+                    roundingMode = fpRoundingModeSortDefaultValue(),
+                    value = mkEcmaScriptToUint32(numericLimit),
+                    signed = false,
+                )
+                else -> return@TsEtsIrUnknownCallModelInputAdapter null
+            }
+            val search = if (omitted) state.mkInitializedStringConstant("") else requireNotNull(separator)
+            listOf(inputs.first(), search, convertedLimit, mkBool(omitted))
+        }
+    }
+
+    private val splitDomain = TsEtsIrUnknownCallModelDomainGuard { state, call, inputs ->
+        with(state.ctx) {
+            val stringsGuard = receiverAndSearchDomain.evaluate(state, call, inputs)
+            val receiver = inputs.first() as? UConcreteHeapRef
+                ?: return@TsEtsIrUnknownCallModelDomainGuard falseExpr
+            val characters = state.memory.read(mkFieldLValue(addressSort, receiver, "value"))
+            val length = state.memory.read(mkArrayLengthLValue(characters, characterArrayType))
+            // At most length + 1 fields fit into the shared bounded array capacity.
+            mkAnd(stringsGuard, mkBvSignedLessOrEqualExpr(length, mkBv(MAX_SPLIT_INPUT_LENGTH)))
+        }
+    }
+
     private val receiverDomain = TsEtsIrUnknownCallModelDomainGuard { state, _, inputs ->
         with(state.ctx) {
             val receiver = inputs.firstOrNull()
@@ -229,6 +267,12 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
 
     override val models: List<TsUnknownCallModel> by lazy {
         listOf(
+            sourceModel(
+                id = "ts.string.split",
+                methodName = "split",
+                inputAdapter = splitAdapter,
+                domainGuard = splitDomain,
+            ),
             sourceModel(
                 id = "ts.string.charAt",
                 methodName = "charAt",
@@ -358,13 +402,17 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         domainGuard = domainGuard,
         inputAdapter = inputAdapter,
         requiredModelIds = buildSet {
+            if (methodName == "split") {
+                add("ts.array.primitive.allocateStrings")
+                add("ts.array.primitive.truncateDense")
+            }
             add(MATH_FLOOR_MODEL_ID)
             add(PRIMITIVE_LENGTH_ID)
             add(PRIMITIVE_CODE_UNIT_AT_ID)
             if (methodName in setOf("charAt", "toUpperCase", "toLowerCase", "replaceAll")) {
                 add(PRIMITIVE_FROM_CODE_UNIT_ID)
             }
-            if (methodName in setOf("slice", "substring", "trim", "trimStart", "trimEnd", "replaceAll")) {
+            if (methodName in setOf("slice", "substring", "trim", "trimStart", "trimEnd", "replaceAll", "split")) {
                 add(PRIMITIVE_COPY_RANGE_ID)
             }
         },

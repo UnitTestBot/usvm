@@ -1,6 +1,15 @@
 package org.usvm.ts.pbt.fastcheck
 
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import java.nio.file.Path
+
+@Serializable
+data class TypeScriptLocalSourceClosure(
+    val files: List<String>,
+    val reasonCode: String? = null,
+    val diagnostic: String? = null,
+)
 
 enum class TypeScriptCompletedReturnTargetKind {
     EXPRESSION_ARROW,
@@ -9,6 +18,20 @@ enum class TypeScriptCompletedReturnTargetKind {
 
 /** Exact TypeScript-AST validation and instrumentation for completed-return source targets. */
 object TypeScriptSourceInspector {
+    fun localSourceClosure(sourceRoot: Path, source: Path): TypeScriptLocalSourceClosure {
+        val output = invokeCommand(
+            command = listOf(
+                "node",
+                FastCheckRuntime.sourceInspectorEntryPoint().toString(),
+                "inspect-local-closure",
+                sourceRoot.toString(),
+                source.toString(),
+            ),
+            nodeExecutable = "node",
+        )
+        return Json.decodeFromString<TypeScriptLocalSourceClosure>(output)
+    }
+
     fun completedReturnTargetKind(
         source: Path,
         exportName: String,
@@ -93,6 +116,10 @@ object TypeScriptSourceInspector {
             add(expressionEndOffset?.toString() ?: MISSING_OFFSET)
             if (marker != null) add(marker)
         }
+        return invokeCommand(command = command, nodeExecutable = nodeExecutable)
+    }
+
+    private fun invokeCommand(command: List<String>, nodeExecutable: String): String {
         val output = FastCheckProcessTransport(
             nodeExecutable = nodeExecutable,
             maxRequestBytes = MAX_REQUEST_BYTES,

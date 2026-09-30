@@ -403,6 +403,19 @@ class TsExprResolver(
         // The delete operator removes a property from an object and returns true/false
         // For property access like "delete obj.prop", we need to handle EtsInstanceFieldRef
         when (val operand = expr.arg) {
+            is EtsArrayAccess -> {
+                // Do not execute a callback past deletion with a stale payload, including on
+                // exceptional exits that would bypass a model's post-callback density guard.
+                resolve(operand.array) ?: return null
+                resolve(operand.index) ?: return null
+                reportRuntimeFeatureLimitation(
+                    reason = TsRuntimeFeatureLimitationReason.ARRAY_ELEMENT_DELETE,
+                    detail = "array deletion requires slot-presence storage",
+                )
+                scope.assert(falseExpr)
+                null
+            }
+
             is EtsInstanceFieldRef -> {
                 val instance = resolve(operand.instance)?.asExpr(addressSort) ?: return null
 

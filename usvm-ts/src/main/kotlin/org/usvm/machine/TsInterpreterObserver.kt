@@ -90,6 +90,7 @@ data class TsRuntimeFeatureLimitationEvent(
 
 /** Stable identifiers for bounded runtime features reported by [TsRuntimeFeatureLimitationEvent]. */
 enum class TsRuntimeFeatureLimitationReason {
+    ARRAY_ELEMENT_DELETE,
     ARRAY_NAMED_PROPERTY_READ,
     ARRAY_NAMED_PROPERTY_WRITE,
     ARRAY_INDEX_GROWTH,

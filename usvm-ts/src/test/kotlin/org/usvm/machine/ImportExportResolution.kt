@@ -139,6 +139,53 @@ class ImportExportResolutionTest {
 
     // Test symbol resolution for default imports
     @Test
+    fun `JavaScript specifier resolves the TypeScript source when emitted JavaScript is absent`() {
+        val source = createMockFile(
+            signature = EtsFileSignature("TestProject", "src/utils/value.ts"),
+            exports = emptyList(),
+        )
+        val project = EtsScene(projectFiles = listOf(currentFile, source))
+
+        val result = project.resolveImport(currentFile, "../utils/value.js")
+
+        assertEquals(source, assertIs<ImportResolutionResult.Success>(result).file)
+    }
+
+    @Test
+    fun `JavaScript specifier never resolves a doubly suffixed TypeScript path`() {
+        val source = createMockFile(
+            signature = EtsFileSignature("TestProject", "src/utils/value.ts"),
+            exports = emptyList(),
+        )
+        val unrelated = createMockFile(
+            signature = EtsFileSignature("TestProject", "src/utils/value.js.ts"),
+            exports = emptyList(),
+        )
+        val project = EtsScene(projectFiles = listOf(currentFile, unrelated, source))
+
+        val result = project.resolveImport(currentFile, "../utils/value.js")
+
+        assertEquals(source, assertIs<ImportResolutionResult.Success>(result).file)
+    }
+
+    @Test
+    fun `JavaScript specifier prefers exact source over a TypeScript alternative`() {
+        val typescript = createMockFile(
+            signature = EtsFileSignature("TestProject", "src/utils/value.ts"),
+            exports = emptyList(),
+        )
+        val javascript = createMockFile(
+            signature = EtsFileSignature("TestProject", "src/utils/value.js"),
+            exports = emptyList(),
+        )
+        val project = EtsScene(projectFiles = listOf(currentFile, typescript, javascript))
+
+        val result = project.resolveImport(currentFile, "../utils/value.js")
+
+        assertEquals(javascript, assertIs<ImportResolutionResult.Success>(result).file)
+    }
+
+    @Test
     @DisplayName("Test default import symbol resolution")
     fun testDefaultImportResolution() {
         // Import a default symbol:

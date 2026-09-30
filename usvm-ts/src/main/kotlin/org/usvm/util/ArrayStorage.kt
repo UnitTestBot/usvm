@@ -88,8 +88,10 @@ fun TsState.markDenseInputArray(
 
     val lengthRegionId = UArrayLengthsRegionId<EtsType, TsSizeSort>(sizeSort, descriptor)
     val elementRegionId = UArrayRegionId<EtsType, USort, TsSizeSort>(descriptor, elementSort)
+    val length = memory.read(mkArrayLengthLValue(array, type))
     denseInputArrays[array] = TsDenseInputArray(
         type = type,
+        length = length,
         lengthRegion = memory.getRegion(lengthRegionId),
         elementRegion = memory.getRegion(elementRegionId),
     )
@@ -112,4 +114,13 @@ internal fun TsState.isUnmodifiedDenseInputArray(
 
     memory.getRegion(lengthRegionId) === snapshot.lengthRegion &&
         memory.getRegion(elementRegionId) === snapshot.elementRegion
+}
+
+/** In-range value writes preserve density; length changes and deletions do not. */
+internal fun TsState.hasDenseArrayShape(array: UConcreteHeapRef, type: EtsArrayType): Boolean = with(ctx) {
+    val snapshot = denseInputArrays[array] ?: return false
+    if (snapshot.type != type) return false
+
+    // Other arrays share the region but cannot change this receiver's density.
+    memory.read(mkArrayLengthLValue(array, type)) == snapshot.length
 }

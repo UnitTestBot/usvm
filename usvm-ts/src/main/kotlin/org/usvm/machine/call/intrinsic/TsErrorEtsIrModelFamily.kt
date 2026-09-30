@@ -33,27 +33,37 @@ internal object TsErrorEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
     }
 
     override val models: List<TsUnknownCallModel> by lazy {
-        listOf(constructorModel())
+        listOf(
+            constructorModel(errorClass = ERROR_CLASS, modelId = CONSTRUCTOR_ID, methodName = "construct"),
+            constructorModel(
+                errorClass = "TypeError",
+                modelId = "ts.typeError.constructor",
+                methodName = "constructTypeError",
+            ),
+        )
     }
 
-    private fun constructorModel(): TsUnknownCallModel {
+    private fun constructorModel(errorClass: String, modelId: String, methodName: String): TsUnknownCallModel {
         val target = TsUnknownCallTarget(
             methodName = CONSTRUCTOR_NAME,
-            enclosingClassName = ERROR_CLASS,
+            enclosingClassName = errorClass,
             failureReason = TsUnknownCallFailureReason.RECEIVER_CLASS_NOT_FOUND,
         )
 
+        val entryPoint = artifact.file.allClasses.single { it.name == "ErrorModels" }
+            .methods
+            .single { it.name == methodName }
         return TsEtsIrUnknownCallModel(
-            id = CONSTRUCTOR_ID,
+            id = modelId,
             target = target,
-            artifact = artifact,
+            artifact = artifact.copy(entryPoint = entryPoint),
             domainGuard = TsEtsIrUnknownCallModelDomainGuard { state, call, inputs ->
                 with(state.ctx) {
                     val receiver = inputs.getOrNull(0) as? UConcreteHeapRef
                         ?: return@TsEtsIrUnknownCallModelDomainGuard falseExpr
                     val message = inputs.getOrNull(1) as? UConcreteHeapRef
                         ?: return@TsEtsIrUnknownCallModelDomainGuard falseExpr
-                    val builtinSignature = EtsClassSignature.UNKNOWN.copy(name = ERROR_CLASS)
+                    val builtinSignature = EtsClassSignature.UNKNOWN.copy(name = errorClass)
                     val builtinErrorType = EtsClassType(signature = builtinSignature)
                     val receiverRuntimeType = state.memory.typeStreamOf(receiver).single()
 
