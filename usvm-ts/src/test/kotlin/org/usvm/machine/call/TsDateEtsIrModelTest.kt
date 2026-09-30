@@ -76,6 +76,34 @@ class TsDateEtsIrModelTest {
     }
 
     @Test
+    fun `Date model does not accept a foreign receiver cast to Date`() {
+        assertTrue(analyze(method("castForeignReceiver")).isEmpty())
+    }
+
+    @Test
+    fun `Date model does not replace an unavailable user Date static method`() {
+        val shadowFile = loadEtsFileAutoConvert(
+            getResourcePath("/models/DateShadowEtsIr.ts"),
+            provider = EtsIrProvider.TS_FRONTEND,
+        )
+        val shadowScene = EtsScene(listOf(shadowFile))
+        val method = shadowScene.projectClasses
+            .single { it.name == "DateShadowEtsIr" }
+            .methods
+            .single { it.name == "call" }
+
+        val states = TsMachine(
+            scene = shadowScene,
+            options = machineOptions,
+            tsOptions = TsOptions(),
+        ).use { machine ->
+            machine.analyze(listOf(method))
+        }
+
+        assertTrue(states.isEmpty())
+    }
+
+    @Test
     fun `UTC minute and millisecond setters execute through source models`() {
         assertNumber(methodName = "utcMinuteSetters", expected = 7_318_000.0)
     }
