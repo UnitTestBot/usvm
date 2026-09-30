@@ -21,7 +21,7 @@ export interface ProjectionCapability {
 
 type DomainRecord = Record<string, unknown>;
 
-/** See [the contract](../../PROPERTY_EXECUTION_CONTRACT.md) for projection fidelity requirements. */
+/** See [the contract](../../../usvm-ts-pbt/PROPERTY_EXECUTION_CONTRACT.md) for projection fidelity requirements. */
 export function projectDomain(domain: unknown, path = 'domain'): fc.Arbitrary<JsConcreteValue> {
   requireDomainObject(domain, path);
 

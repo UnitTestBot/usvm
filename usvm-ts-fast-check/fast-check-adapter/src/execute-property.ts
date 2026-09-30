@@ -231,7 +231,7 @@ async function checkProperty(
   }
 }
 
-/** See [the contract](../../PROPERTY_EXECUTION_CONTRACT.md) for the invocation and isolation rules. */
+/** See [the contract](../../../usvm-ts-pbt/PROPERTY_EXECUTION_CONTRACT.md) for the invocation and isolation rules. */
 function cloneArguments(values: JsConcreteValue[]): JsConcreteValue[] {
   return structuredClone(values);
 }
