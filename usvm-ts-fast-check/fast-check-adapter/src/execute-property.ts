@@ -20,11 +20,25 @@ import {
   protocolError,
   type TaggedJsValue,
 } from './js-value.js';
-import { projectDomain } from './project-domain.js';
+import { buildPropertyArbitrary } from './property-arbitrary.js';
 
 export interface PropertyManifestInput {
   name: string;
   domain: unknown;
+  generatorId?: string;
+}
+
+export interface PropertySourcePointWire {
+  module: string;
+  line: number;
+  column: number;
+}
+
+export interface PropertyAssertionWire {
+  id: string;
+  source: PropertySourcePointWire;
+  testedCall?: PropertySourcePointWire;
+  operands: Array<{ id: string; source: PropertySourcePointWire }>;
 }
 
 export interface PropertyManifestWire {
@@ -32,6 +46,14 @@ export interface PropertyManifestWire {
   inputs: PropertyManifestInput[];
   predicate: TypeScriptEntryPointReference;
   precondition?: TypeScriptEntryPointReference;
+  assertions?: PropertyAssertionWire[];
+  sourceIdentity?: { sourceSha256: string; buildSha256: string; buildScope: string };
+  generator?: {
+    id: string;
+    kind: 'array-index';
+    arrayInputIndex: number;
+    indexInputIndex: number;
+  };
 }
 
 export interface FastCheckExecutionRequest {
@@ -78,10 +100,7 @@ export async function executeProperty(requestValue: unknown): Promise<FastCheckE
     ? undefined
     : await loadEntryPoint(request.manifest.precondition, request.sourceRoots, 'manifest.precondition');
 
-  const arbitrary = fc.tuple(
-    ...request.manifest.inputs.map((input, index) =>
-      projectDomain(input.domain, `manifest.inputs[${index}].domain`)),
-  );
+  const arbitrary = buildPropertyArbitrary(request.manifest);
   const contractErrors: ContractErrorState = { first: undefined };
   const property = buildProperty(arbitrary, predicate, precondition, contractErrors);
   const parameters = buildParameters(request);
@@ -248,6 +267,17 @@ function buildParameters(request: FastCheckExecutionRequest): Parameters<[JsConc
 
     const values = example.map((value, valueIndex) =>
       decodeJsValue(value, `examples[${exampleIndex}][${valueIndex}]`));
+    if (request.manifest.generator !== undefined) {
+      const [array, index] = values;
+      if (!Array.isArray(array) || typeof index !== 'number' || !Number.isInteger(index)
+        || index < 0 || index >= array.length) {
+        throw protocolError(
+          adapterDiagnostic.protocolExamplesInvalid,
+          'Explicit example violates declared joint generator support',
+          `examples[${exampleIndex}]`,
+        );
+      }
+    }
 
     return [values];
   });
@@ -457,7 +487,16 @@ function validateManifest(value: unknown): PropertyManifestWire {
       );
     }
 
-    return { name: input.name, domain: input.domain };
+    const validatedInput: PropertyManifestInput = { name: input.name, domain: input.domain };
+    if (input.generatorId !== undefined) {
+      if (typeof input.generatorId !== 'string' || input.generatorId.length === 0) {
+        throw protocolError(adapterDiagnostic.protocolManifestInputInvalid, 'Invalid generator ID', `manifest.inputs[${index}].generatorId`);
+      }
+
+      validatedInput.generatorId = input.generatorId;
+    }
+
+    return validatedInput;
   });
 
   const validated: PropertyManifestWire = {
@@ -470,7 +509,86 @@ function validateManifest(value: unknown): PropertyManifestWire {
     validated.precondition = validateEntryPoint(manifest.precondition, 'manifest.precondition');
   }
 
+  if (manifest.generator !== undefined) {
+    const generator = requireRecord(
+      manifest.generator,
+      adapterDiagnostic.protocolManifestInvalid,
+      'Generator must be an object',
+      'manifest.generator',
+    );
+    const validGenerator = typeof generator.id === 'string' && generator.id.length > 0
+      && generator.kind === 'array-index'
+      && generator.arrayInputIndex === 0 && generator.indexInputIndex === 1
+      && inputs.length === 2;
+    if (!validGenerator) {
+      throw protocolError(adapterDiagnostic.protocolManifestInvalid, 'Invalid joint generator', 'manifest.generator');
+    }
+
+    validated.generator = generator as unknown as NonNullable<PropertyManifestWire['generator']>;
+  }
+
+  if (manifest.assertions !== undefined) {
+    if (!Array.isArray(manifest.assertions)) {
+      throw protocolError(adapterDiagnostic.protocolManifestInvalid, 'Assertions must be an array', 'manifest.assertions');
+    }
+
+    validated.assertions = manifest.assertions.map((value: unknown, index: number) =>
+      validateAssertion(value, `manifest.assertions[${index}]`));
+  }
+
+  if (manifest.sourceIdentity !== undefined) {
+    const identity = requireRecord(manifest.sourceIdentity, adapterDiagnostic.protocolManifestInvalid,
+      'Source identity must be an object', 'manifest.sourceIdentity');
+    if (typeof identity.sourceSha256 !== 'string' || typeof identity.buildSha256 !== 'string'
+      || typeof identity.buildScope !== 'string') {
+      throw protocolError(adapterDiagnostic.protocolManifestInvalid, 'Invalid source identity', 'manifest.sourceIdentity');
+    }
+
+    validated.sourceIdentity = {
+      sourceSha256: identity.sourceSha256,
+      buildSha256: identity.buildSha256,
+      buildScope: identity.buildScope,
+    };
+  }
+
   return validated;
+}
+
+function validateAssertion(value: unknown, path: string): PropertyAssertionWire {
+  const assertion = requireRecord(value, adapterDiagnostic.protocolManifestInvalid, 'Assertion must be an object', path);
+  if (typeof assertion.id !== 'string' || !Array.isArray(assertion.operands)) {
+    throw protocolError(adapterDiagnostic.protocolManifestInvalid, 'Invalid assertion identity or operands', path);
+  }
+
+  const operands = assertion.operands.map((value: unknown, index: number) => {
+    const operandPath = `${path}.operands[${index}]`;
+    const operand = requireRecord(value, adapterDiagnostic.protocolManifestInvalid, 'Operand must be an object', operandPath);
+    if (typeof operand.id !== 'string') {
+      throw protocolError(adapterDiagnostic.protocolManifestInvalid, 'Invalid operand ID', operandPath);
+    }
+
+    return { id: operand.id, source: validateSourcePoint(operand.source, `${operandPath}.source`) };
+  });
+  const result: PropertyAssertionWire = {
+    id: assertion.id,
+    source: validateSourcePoint(assertion.source, `${path}.source`),
+    operands,
+  };
+  if (assertion.testedCall !== undefined) {
+    result.testedCall = validateSourcePoint(assertion.testedCall, `${path}.testedCall`);
+  }
+
+  return result;
+}
+
+function validateSourcePoint(value: unknown, path: string): PropertySourcePointWire {
+  const point = requireRecord(value, adapterDiagnostic.protocolManifestInvalid, 'Source point must be an object', path);
+  if (typeof point.module !== 'string' || !Number.isInteger(point.line) || !Number.isInteger(point.column)
+    || (point.line as number) < 1 || (point.column as number) < 1) {
+    throw protocolError(adapterDiagnostic.protocolManifestInvalid, 'Invalid source point', path);
+  }
+
+  return { module: point.module, line: point.line as number, column: point.column as number };
 }
 
 function validateEntryPoint(value: unknown, entryPath: string): TypeScriptEntryPointReference {

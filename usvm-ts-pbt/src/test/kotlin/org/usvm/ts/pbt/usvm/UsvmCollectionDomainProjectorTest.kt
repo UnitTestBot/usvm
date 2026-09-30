@@ -18,6 +18,7 @@ import org.usvm.machine.state.TsState
 import org.usvm.ts.pbt.manifest.PropertyManifest
 import org.usvm.ts.pbt.mapping.PropertyEtsMapper
 import org.usvm.ts.pbt.model.ArrayDomain
+import org.usvm.ts.pbt.model.ArrayIndexGenerator
 import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.IntegerDomain
 import org.usvm.ts.pbt.model.PropertyDomain
@@ -55,6 +56,44 @@ class UsvmCollectionDomainProjectorTest {
         assertTrue(acceptsTuple(domain, number = 4.0, boolean = false, length = 2))
         assertFalse(acceptsTuple(domain, number = 1.0, boolean = true, length = 2))
         assertFalse(acceptsTuple(domain, number = 3.0, boolean = true, length = 1))
+    }
+
+    @Test
+    fun `joint array index support constrains symbolic index by actual length`() {
+        val generator = ArrayIndexGenerator(id = "array.valid-index", arrayInputIndex = 0, indexInputIndex = 1)
+        val manifest = PropertyManifest(
+            propertyId = "usvm.collection.index",
+            inputs = listOf(
+                PropertyInput("values", ArrayDomain(IntegerDomain(0, 2), minLength = 1, maxLength = 2)),
+                PropertyInput("index", IntegerDomain(min = 0, max = 1)),
+            ),
+            predicate = TypeScriptEntryPoint(module = "UsvmCapabilityFixture.ts", exportName = "acceptsArrayIndex"),
+            generator = generator,
+        )
+        val target = mapper.map(manifest).predicate.targets.single()
+
+        fun accepts(length: Int, index: Int) = runCatchingAnalyze(target.method) { state ->
+            val projection = projector.configure(
+                state = state,
+                inputs = manifest.inputs,
+                bindings = target.bindings.inputs,
+                generator = generator,
+            )
+
+            with(state.ctx) {
+                val array = projection.inputs[0].value.asExpr(addressSort)
+                val projectedLength = state.memory.read(
+                    mkArrayLengthLValue(array, EtsArrayType(EtsNumberType, dimensions = 1)),
+                )
+                val projectedIndex = projection.inputs[1].value.asExpr(fp64Sort)
+
+                state.pathConstraints += mkEq(projectedLength, mkBv(length))
+                state.pathConstraints += mkEq(projectedIndex, mkFp(index.toDouble(), fp64Sort))
+            }
+        }
+
+        assertTrue(accepts(length = 2, index = 1))
+        assertFalse(accepts(length = 1, index = 1))
     }
 
     @Test

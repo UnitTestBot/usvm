@@ -9,6 +9,7 @@ import org.usvm.ts.pbt.manifest.toManifest
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.JsNumberKind
 import org.usvm.ts.pbt.model.PropertyDefinition
+import org.usvm.ts.pbt.model.accepts
 import org.usvm.ts.pbt.model.contains
 import org.usvm.ts.pbt.validation.requireValid
 import org.usvm.ts.pbt.validation.validatePropertyDefinition
@@ -96,6 +97,19 @@ class FastCheckBackend(
                     )
                 }
             }
+
+            validateJointExample(property, example, index)
+        }
+    }
+
+    private fun validateJointExample(property: PropertyDefinition, example: List<JsConcreteValue>, index: Int) {
+        if (property.generator?.accepts(example) == false) {
+            throw invalidRequest(
+                code = FastCheckDiagnosticCode.BACKEND_EXAMPLES_DOMAIN,
+                message = "Explicit example violates the declared joint generator support",
+                property = property,
+                path = "examples[$index]",
+            )
         }
     }
 

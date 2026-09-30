@@ -24,6 +24,7 @@ import org.usvm.machine.types.mkFakeValue
 import org.usvm.sizeSort
 import org.usvm.ts.pbt.mapping.EtsInputBinding
 import org.usvm.ts.pbt.model.ArrayDomain
+import org.usvm.ts.pbt.model.ArrayIndexGenerator
 import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.ConstantDomain
 import org.usvm.ts.pbt.model.IntegerDomain
@@ -35,6 +36,7 @@ import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.StringDomain
 import org.usvm.ts.pbt.model.TupleDomain
 import org.usvm.util.mkArrayIndexLValue
+import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkRegisterStackLValue
 
 /** One symbolic input written to the mapped EtsIR stack slot. */
@@ -57,6 +59,7 @@ class UsvmDomainProjector(
         state: TsState,
         inputs: List<PropertyInput>,
         bindings: List<EtsInputBinding>,
+        generator: ArrayIndexGenerator? = null,
     ): UsvmDeclaredDomainProjection {
         require(inputs.size == bindings.size) {
             "Property input count ${inputs.size} does not match EtsIR binding count ${bindings.size}"
@@ -89,6 +92,25 @@ class UsvmDomainProjector(
                 etsType = binding.parameter.type,
                 value = value,
             )
+        }
+
+        if (generator != null) {
+            require(generator.arrayInputIndex == 0 && generator.indexInputIndex == 1)
+
+            val array = projectedInputs[generator.arrayInputIndex].value.asExpr(state.ctx.addressSort)
+            val arrayType = bindings[generator.arrayInputIndex].parameter.type as EtsArrayType
+            val index = projectedInputs[generator.indexInputIndex].value.asExpr(state.ctx.fp64Sort)
+            val length = state.memory.read(mkArrayLengthLValue(array, arrayType)).asExpr(state.ctx.sizeSort)
+            with(state.ctx) {
+                val lengthAsNumber = mkBvToFpExpr(
+                    sort = fp64Sort,
+                    roundingMode = fpRoundingModeSortDefaultValue(),
+                    value = length.cast(),
+                    signed = true,
+                )
+
+                state.pathConstraints += mkFpLessExpr(index, lengthAsNumber)
+            }
         }
 
         return UsvmDeclaredDomainProjection(

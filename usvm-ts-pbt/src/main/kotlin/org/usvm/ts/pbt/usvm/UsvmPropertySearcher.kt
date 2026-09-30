@@ -104,6 +104,7 @@ class UsvmPropertySearcher(
                         state = state,
                         inputs = manifest.inputs,
                         bindings = predicate.bindings.inputs,
+                        generator = manifest.generator,
                     )
                     if (precondition != null) {
                         state.prependBooleanEntryPointGuard(
