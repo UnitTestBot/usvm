@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "manifestId": "ts-pbt-core-development-v1",
+  "role": "development-only; curated cases are functional demonstrations, not independent empirical projects",
+  "selectionFrozenBeforeComparativeRuns": true,
+  "caseIds": [
+    "es-toolkit-chunk-correct",
+    "fast-check-unique-correct",
+    "fast-check-unique-controlled-fault",
+    "curated-parity-seven-controlled-fault",
+    "curated-absolute-passing-refutation",
+    "curated-constant-no-benefit"
+  ],
+  "sources": {
+    "es-toolkit": {
+      "revision": "4504e985a433fe1e348d803a233b2c02d41e4b3c",
+      "license": "MIT; Copyright (c) 2024 Viva Republica, Inc.",
+      "licenseUrl": "https://github.com/toss/es-toolkit/blob/4504e985a433fe1e348d803a233b2c02d41e4b3c/LICENSE",
+      "oracleUrl": "https://github.com/toss/es-toolkit/blob/4504e985a433fe1e348d803a233b2c02d41e4b3c/src/array/chunk.spec.ts",
+      "implementationUrl": "https://github.com/toss/es-toolkit/blob/4504e985a433fe1e348d803a233b2c02d41e4b3c/src/array/chunk.ts"
+    },
+    "fast-check": {
+      "revision": "85eeab9e87c9d37e66cc7819260e3df1e72305ae",
+      "license": "MIT; Copyright (c) 2017 Nicolas DUBIEN",
+      "licenseUrl": "https://github.com/dubzzz/fast-check/blob/85eeab9e87c9d37e66cc7819260e3df1e72305ae/LICENSE",
+      "oracleUrl": "https://github.com/dubzzz/fast-check/blob/85eeab9e87c9d37e66cc7819260e3df1e72305ae/packages/fast-check/test/arbitraries/ArrayArbitrary.spec.ts"
+    },
+    "curated": {
+      "revision": "this-manifest-commit",
+      "license": "repository Apache-2.0"
+    }
+  },
+  "cases": [
+    {
+      "id": "es-toolkit-chunk-correct",
+      "project": "es-toolkit",
+      "family": "chunk-order-and-shape",
+      "kind": "real-original-property/correct-implementation",
+      "module": "esToolkitChunk.ts",
+      "oracleExport": "originalChunkOracle",
+      "implementationExport": "chunk",
+      "originalGenerator": "fc.array(fc.integer()), fc.integer({min:1,max:50})",
+      "pilotGenerator": "fc.array(fc.integer({min:0,max:10}), {maxLength:8}), fc.integer({min:1,max:8})",
+      "declaredSupport": "dense integer arrays length 0..8, entries 0..10; integer size 1..8",
+      "originalOracle": "chunks.flat() deep-equals array; every non-last chunk has length size; every chunk has length >0 and <=size",
+      "adaptation": "Two finite input bounds; Vitest assertions translated to the same three boolean checks; generic implementation specialized to number[]. Estimated manual edit: 19 lines of oracle glue, 0 changed assertions.",
+      "expectedCapability": "Concrete native fast-check; direct symbolic array projection and exact branch mapping require separate #395/#382 admission. Do not count unsupported mode as pass."
+    },
+    {
+      "id": "fast-check-unique-correct",
+      "project": "fast-check",
+      "family": "collection-uniqueness",
+      "kind": "real-original-property/correct-implementation",
+      "module": "uniqueArray.ts",
+      "oracleExport": "correctUniqueProperty",
+      "implementationExport": "removeDuplicates",
+      "originalGenerator": "fc.array(fc.integer()) in upstream biasIts('integer', fc.integer())",
+      "pilotGenerator": "fc.array(fc.integer({min:0,max:10}), {maxLength:8})",
+      "declaredSupport": "dense integer arrays length 0..8, entries 0..10",
+      "originalOracle": "expect(filtered).toHaveLength(new Set(filtered).size)",
+      "adaptation": "Bounded generator; Vitest length assertion expressed as boolean equality. Estimated manual edit: 6 lines of oracle glue, 0 changed assertions.",
+      "expectedCapability": "Concrete native fast-check; Set and array alias semantics need explicit #395 capability check for symbolic modes."
+    },
+    {
+      "id": "fast-check-unique-controlled-fault",
+      "project": "fast-check",
+      "family": "collection-uniqueness",
+      "kind": "source-authored-controlled-fault; not real library defect; same analysis unit as fast-check-unique-correct",
+      "module": "uniqueArray.ts",
+      "oracleExport": "identityUniqueProperty",
+      "implementationExport": "removeDuplicatesIdentity",
+      "mutation": "Replace Set-based deduplication with [...values], exactly the upstream suite's deliberately faulty removeDuplicates.",
+      "witness": "[0,0] yields length 2 while Set size is 1",
+      "expectedCapability": "Concrete native fast-check; same conditional symbolic limits as sibling correct case."
+    },
+    {
+      "id": "curated-parity-seven-controlled-fault",
+      "project": "curated",
+      "family": "scalar-input-output-relation",
+      "kind": "constructed-saturated-coverage-fault; not empirical independent project",
+      "module": "numericRelations.ts",
+      "oracleExport": "mutantAdvanceProperty",
+      "implementationExport": "advanceMutantSeven",
+      "pilotGenerator": "fc.integer({min:-16,max:16})",
+      "declaredSupport": "integer -16..16",
+      "mutation": "Add Math.trunc(1/(Math.abs(input-7)+1)) to correct input+1, producing an extra 1 only at seven over the declared support.",
+      "witness": "input 7: output 9 has same parity as 7 and violates the original parity-change oracle; input 6 passes",
+      "expectedCapability": "Branchless fixture candidate for coverage plateau; exact runtime branch traces and symbolic Math support must be checked before calling coverage saturated or eligible."
+    },
+    {
+      "id": "curated-absolute-passing-refutation",
+      "project": "curated",
+      "family": "scalar-guarded-behavior",
+      "kind": "constructed-passing-hypothesis-refutation",
+      "module": "numericRelations.ts",
+      "oracleExport": "absoluteValueProperty",
+      "pilotGenerator": "fc.integer({min:-16,max:16})",
+      "declaredSupport": "integer -16..16",
+      "hypothesis": "output === input, if inferred from nonnegative observations only; never a declared fact",
+      "witness": "input -1 refutes the hypothesis, while original output >= 0 property passes",
+      "expectedCapability": "Concrete native fast-check; useful feedback depends on observed seed pattern and #397/#398, not guaranteed by this fixture."
+    },
+    {
+      "id": "curated-constant-no-benefit",
+      "project": "curated",
+      "family": "scalar-constant",
+      "kind": "constructed-misleading/no-benefit-control",
+      "module": "numericRelations.ts",
+      "oracleExport": "constantZeroProperty",
+      "pilotGenerator": "fc.integer({min:-16,max:16})",
+      "declaredSupport": "integer -16..16",
+      "hypothesis": "output === 0 is true but offers no oracle fault or new output behavior",
+      "expectedCapability": "Concrete native fast-check; retain even if feedback costs time without gain."
+    }
+  ],
+  "excludedInventory": [
+    {
+      "id": "false-float-round-trip",
+      "module": "numericRelations.ts",
+      "reason": "(x/3)*3 === x is false under JavaScript floating-point semantics (e.g. 1.8 gives 1.7999999999999998); a counterexample is a false specification, not an implementation defect. Keep as semantic diagnostic, not a fault count."
+    },
+    {
+      "id": "upstream-fast-check-unbiased-control",
+      "reason": "The source suite's unbiased distribution assertion is a probabilistic test of generator bias, not the deduplication oracle; distribution controls belong in generator experiments, not this core case."
+    }
+  ]
+}
