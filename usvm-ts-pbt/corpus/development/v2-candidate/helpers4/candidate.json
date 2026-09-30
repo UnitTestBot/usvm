@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "caseId": "helpers4-is-nonempty-original-property",
+  "status": "development-v2-candidate; concrete validated; direct symbolic execution unverified",
+  "source": {
+    "project": "helpers4/typescript",
+    "revision": "9deb33a6f6cdab3c03404217aa8e87626930733e",
+    "license": "LGPL-3.0-or-later; Copyright (C) 2025 baxyz",
+    "implementationUrl": "https://github.com/helpers4/typescript/blob/9deb33a6f6cdab3c03404217aa8e87626930733e/helpers/array/isNonEmpty.ts",
+    "implementationGitBlob": "c49099d8b4d1afb4bf16e24512742416ce1fd197",
+    "suiteUrl": "https://github.com/helpers4/typescript/blob/9deb33a6f6cdab3c03404217aa8e87626930733e/helpers/array/isNonEmpty.spec.ts",
+    "suiteGitBlob": "1b9a049b26eb562471baa6f3c0fb5964d99f6b28"
+  },
+  "family": "array-length-predicate",
+  "originalGenerator": "fc.array(fc.anything(), { minLength: 1 })",
+  "originalOracle": "expect(isNonEmpty(arr)).toBe(true)",
+  "boundedGenerator": "fc.array(fc.integer({ min: -16, max: 16 }), { minLength: 1, maxLength: 8 })",
+  "boundedSupport": "dense integer arrays, length 1..8, entries -16..16",
+  "operations": ["null/undefined comparison", "array.length", "integer comparison", "boolean conjunction"],
+  "correctImplementation": "unchanged pinned upstream isNonEmpty.ts; type-predicate annotation retained",
+  "faultClass": "none; correct/control case only",
+  "adaptation": "One additional bounded-subset test file, no modified original source or assertion; time and #395 registration annotation effort not measured",
+  "nativeConcrete": "original 3 tests plus bounded subset 1 test passed with locked fast-check 4.9.0 and Vitest 3.2.4",
+  "directSymbolicCapability": "unverified; do not include in common supported denominator until EtsIR mapping, execution and original-runtime replay pass",
+  "excludedFromCore": ["original fc.anything support outside dense numeric arrays", "original second assertion using arr[0] and toBeDefined, pending separate capability check"]
+}
