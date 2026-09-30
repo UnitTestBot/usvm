@@ -20,7 +20,7 @@ import {
   protocolError,
   type TaggedJsValue,
 } from './js-value.js';
-import { buildPropertyArbitrary } from './property-arbitrary.js';
+import { buildPropertyArbitrary, validateJointGenerator } from './property-arbitrary.js';
 
 export interface PropertyManifestInput {
   name: string;
@@ -525,6 +525,7 @@ function validateManifest(value: unknown): PropertyManifestWire {
     }
 
     validated.generator = generator as unknown as NonNullable<PropertyManifestWire['generator']>;
+    validateJointGenerator(validated);
   }
 
   if (manifest.assertions !== undefined) {

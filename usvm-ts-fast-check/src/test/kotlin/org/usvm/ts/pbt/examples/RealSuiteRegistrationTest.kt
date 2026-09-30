@@ -59,12 +59,13 @@ class RealSuiteRegistrationTest {
         assertEquals("fast-check.array-bias.unique", manifest.propertyId)
         assertEquals("no-duplicates", manifest.assertions.single().id)
         assertEquals(
-            listOf("filtered-length", "set-size"),
+            listOf("filtered-array", "expected-set-size"),
             manifest.assertions.single().operands.map(PropertyOperand::id),
         )
         assertEquals(sourceHash, manifest.sourceIdentity?.sourceSha256)
         assertEquals(PropertyRunStatus.FAILURE, failed.status)
         assertEquals(PropertyFailureKind.PROPERTY, failed.failure?.kind)
+        assertEquals("AssertionError", failed.failure?.errorName)
         assertNotNull(failed.counterexample)
         assertEquals(PropertyRunStatus.SUCCESS, passed.status)
     }
@@ -82,16 +83,16 @@ class RealSuiteRegistrationTest {
         assertions = listOf(
             PropertyAssertion(
                 id = "no-duplicates",
-                source = PropertySourcePoint(module = MODULE, line = 14, column = 5),
-                testedCall = PropertySourcePoint(module = MODULE, line = 13, column = 22),
+                source = PropertySourcePoint(module = MODULE, line = 18, column = 5),
+                testedCall = PropertySourcePoint(module = MODULE, line = 17, column = 22),
                 operands = listOf(
                     PropertyOperand(
-                        id = "filtered-length",
-                        source = PropertySourcePoint(module = MODULE, line = 14, column = 12),
+                        id = "filtered-array",
+                        source = PropertySourcePoint(module = MODULE, line = 18, column = 12),
                     ),
                     PropertyOperand(
-                        id = "set-size",
-                        source = PropertySourcePoint(module = MODULE, line = 14, column = 34),
+                        id = "expected-set-size",
+                        source = PropertySourcePoint(module = MODULE, line = 18, column = 34),
                     ),
                 ),
             ),
