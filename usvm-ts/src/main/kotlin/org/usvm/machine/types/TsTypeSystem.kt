@@ -70,6 +70,10 @@ class TsTypeSystem(
         // "never" is the universal subtype: never can be assigned to any type.
         if (unwrappedType is EtsNeverType) return true
 
+        // A fake type describes a wrapper with a symbolic runtime kind. It does not establish
+        // a TypeScript subtype relation; callers must handle the unsupported branch explicitly.
+        if (unwrappedType is EtsFakeType || unwrappedSupertype is EtsFakeType) return false
+
         // When "never" is in supertype position, only never <: never.
         if (unwrappedSupertype is EtsNeverType) return type is EtsNeverType
 
@@ -163,10 +167,6 @@ class TsTypeSystem(
         }
 
         // Class and structural types
-
-        require(unwrappedType !is EtsFakeType && unwrappedSupertype !is EtsFakeType) {
-            "Fake types should not occur in type constraints"
-        }
 
         if (unwrappedSupertype is EtsAuxiliaryType && unwrappedType is EtsAuxiliaryType) {
             return unwrappedType.properties.all { it in unwrappedSupertype.properties }

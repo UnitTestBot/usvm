@@ -9,6 +9,7 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.makeSymbolicPrimitive
+import org.usvm.api.typeStreamOf
 import org.usvm.isFalse
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsSizeSort
@@ -17,6 +18,7 @@ import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.machine.types.EtsFakeType
 import org.usvm.machine.types.ExprWithTypeConstraint
+import org.usvm.types.TypesResult
 import org.usvm.types.single
 import org.usvm.util.boolToFp
 import org.usvm.util.refOrStringTruthy
@@ -29,6 +31,11 @@ fun TsContext.checkNotFake(expr: UExpr<*>) {
     require(!expr.isFakeObject()) {
         "Fake object handling should be done outside of this function"
     }
+}
+
+internal fun TsContext.hasFakeReceiverType(scope: TsStepScope, receiver: UHeapRef): Boolean {
+    val types = scope.calcOnState { memory.typeStreamOf(receiver).take(2) }
+    return types is TypesResult.SuccessfulTypesResult && types.types.any { it is EtsFakeType }
 }
 
 fun TsContext.mkTruthyExpr(

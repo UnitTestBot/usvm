@@ -1,5 +1,6 @@
 package org.usvm.machine.types
 
+import io.mockk.mockk
 import org.jacodb.ets.model.EtsClassImpl
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsFieldImpl
@@ -9,12 +10,33 @@ import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.Test
+import org.usvm.machine.TsContext
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.type
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
 class TsTypeSystemTest {
+    @Test
+    fun `synthetic wrapper does not satisfy structural type constraints`() {
+        val scene = EtsScene(projectFiles = emptyList())
+        val context = TsContext(scene = scene, components = mockk())
+        val typeSystem = TsTypeSystem(
+            scene = scene,
+            typeOperationsTimeout = 1.seconds,
+            hierarchy = EtsHierarchy(scene),
+        )
+        val fakeType = EtsFakeType.mkRef(context)
+        val structuralType = EtsAuxiliaryType(properties = setOf("style"))
+
+        val fakeHasProperty = typeSystem.isSupertype(structuralType, fakeType)
+        val propertyHasFakeType = typeSystem.isSupertype(fakeType, structuralType)
+
+        assertFalse(fakeHasProperty)
+        assertFalse(propertyHasFakeType)
+    }
+
     @Test
     fun `auxiliary type is a subtype of a class containing its properties`() {
         val fileSignature = EtsFileSignature(projectName = "test", fileName = "types.ts")
