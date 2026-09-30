@@ -4,12 +4,102 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { tsImport } from 'tsx/esm/api';
 import { encodeJsValue, ProtocolError } from '../src/js-value.js';
 import {
   executeProperty,
   type FastCheckExecutionRequest,
   type FastCheckRunResult,
 } from '../src/execute-property.js';
+
+test('pinned fast-check callback shim preserves length assertion outcomes on bounded arrays', async () => {
+  const fixture = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    '../../../src/test/resources/properties/real/ArrayArbitraryProperty.ts',
+  );
+  const property = await tsImport(fixture, import.meta.url) as {
+    AssertionError: new (message: string) => Error;
+    expect(values: number[]): { toHaveLength(expected: number): void };
+    originalUniqueAssertion(values: number[]): void;
+    originalUniqueOracle(values: number[]): boolean;
+  };
+  const cases = [[], [0], [0, 1], [1, 1], [0, 1, 0], [10, 9, 8, 7], [10, 10, 10, 10]];
+
+  for (const values of cases) {
+    const expected = values.length === new Set(values).size;
+
+    if (expected) {
+      assert.equal(property.originalUniqueAssertion(values), undefined);
+      assert.equal(property.originalUniqueOracle(values), true);
+    } else {
+      assert.throws(() => property.originalUniqueAssertion(values), property.AssertionError);
+      assert.throws(() => property.originalUniqueOracle(values), property.AssertionError);
+    }
+  }
+});
+
+test('assertion shim evaluates expected operand before reading actual length and preserves thrown values', async () => {
+  const fixture = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    '../../../src/test/resources/properties/real/ArrayArbitraryProperty.ts',
+  );
+  const property = await tsImport(fixture, import.meta.url) as {
+    expect(values: number[]): { toHaveLength(expected: number): void };
+  };
+  const order: string[] = [];
+  const value = {
+    get length(): number {
+      order.push('actual');
+      return 1;
+    },
+  } as number[];
+  const expected = (): number => {
+    order.push('expected');
+    return 1;
+  };
+
+  property.expect(value).toHaveLength(expected());
+
+  assert.deepEqual(order, ['expected', 'actual']);
+
+  const thrown = new Error('length getter');
+  const throwing = {
+    get length(): number {
+      throw thrown;
+    },
+  } as number[];
+
+  assert.throws(() => property.expect(throwing).toHaveLength(1), (error) => error === thrown);
+});
+
+test('rejects array-index manifests that conflict with declared input domains before sampling', async () => {
+  await withPropertyModule(async (sourceRoot) => {
+    const array = (minLength: number, maxLength: number) => ({
+      kind: 'array',
+      element: { kind: 'integer', min: 0, max: 1 },
+      minLength,
+      maxLength,
+    });
+    const invalidDomains = [
+      [array(1, 3), { kind: 'integer', min: 99, max: 99 }],
+      [array(0, 3), { kind: 'integer', min: 0, max: 2 }],
+      [array(1, 33), { kind: 'integer', min: 0, max: 32 }],
+    ];
+
+    for (const inputDomains of invalidDomains) {
+      const request = executionRequest(sourceRoot, 'alwaysTrue', { inputDomains });
+      request.manifest.generator = {
+        id: 'values.valid-index',
+        kind: 'array-index',
+        arrayInputIndex: 0,
+        indexInputIndex: 1,
+      };
+
+      await assert.rejects(executeProperty(request), (error: unknown) =>
+        error instanceof ProtocolError && error.path === 'manifest.generator');
+    }
+  });
+});
 
 test('executes a synchronous TypeScript predicate with deterministic success details', async () => {
   await withPropertyModule(async (sourceRoot) => {

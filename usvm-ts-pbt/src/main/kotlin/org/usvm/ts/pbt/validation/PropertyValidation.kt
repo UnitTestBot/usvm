@@ -3,6 +3,7 @@ package org.usvm.ts.pbt.validation
 import org.usvm.ts.pbt.PbtDiagnosticCode
 import org.usvm.ts.pbt.manifest.PropertyManifest
 import org.usvm.ts.pbt.model.ArrayDomain
+import org.usvm.ts.pbt.model.ArrayIndexGenerator
 import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.ConstantDomain
 import org.usvm.ts.pbt.model.IntegerDomain
@@ -11,9 +12,12 @@ import org.usvm.ts.pbt.model.JsNumber
 import org.usvm.ts.pbt.model.JsNumberKind
 import org.usvm.ts.pbt.model.NumberDomain
 import org.usvm.ts.pbt.model.OptionalDomain
+import org.usvm.ts.pbt.model.PropertyAssertion
 import org.usvm.ts.pbt.model.PropertyDefinition
 import org.usvm.ts.pbt.model.PropertyDomain
 import org.usvm.ts.pbt.model.PropertyInput
+import org.usvm.ts.pbt.model.PropertySourceIdentity
+import org.usvm.ts.pbt.model.PropertySourcePoint
 import org.usvm.ts.pbt.model.StringDomain
 import org.usvm.ts.pbt.model.TupleDomain
 import org.usvm.ts.pbt.model.TypeScriptEntryPoint
@@ -48,6 +52,9 @@ fun validatePropertyDefinition(definition: PropertyDefinition): PropertyValidati
     inputs = definition.inputs,
     predicate = definition.predicate,
     precondition = definition.precondition,
+    assertions = definition.assertions,
+    generator = definition.generator,
+    sourceIdentity = definition.sourceIdentity,
 )
 
 fun validatePropertyManifest(manifest: PropertyManifest): PropertyValidationResult {
@@ -56,6 +63,9 @@ fun validatePropertyManifest(manifest: PropertyManifest): PropertyValidationResu
         inputs = manifest.inputs,
         predicate = manifest.predicate,
         precondition = manifest.precondition,
+        assertions = manifest.assertions,
+        generator = manifest.generator,
+        sourceIdentity = manifest.sourceIdentity,
     )
 }
 
@@ -70,6 +80,9 @@ private fun validateProperty(
     inputs: List<PropertyInput>,
     predicate: TypeScriptEntryPoint,
     precondition: TypeScriptEntryPoint?,
+    assertions: List<PropertyAssertion>,
+    generator: ArrayIndexGenerator?,
+    sourceIdentity: PropertySourceIdentity?,
 ): PropertyValidationResult {
     val diagnostics = mutableListOf<ValidationDiagnostic>()
     if (!isCanonicalPropertyId(propertyId)) {
@@ -104,12 +117,99 @@ private fun validateProperty(
                 path = path,
             )
         }
+        if (input.generatorId != null && !isCanonicalPropertyId(input.generatorId)) {
+            diagnostics += diagnostic(
+                PbtDiagnosticCode.PROPERTY_GENERATOR_INVALID,
+                "Invalid generator ID",
+                "$path.generatorId",
+            )
+        }
         validateDomain(input.domain, "$path.domain", diagnostics)
     }
 
     validateEntryPoint(predicate, "predicate", diagnostics)
     precondition?.let { validateEntryPoint(it, "precondition", diagnostics) }
+    validateAssertions(assertions, diagnostics)
+    generator?.let { validateGenerator(it, inputs, diagnostics) }
+    sourceIdentity?.let { validateSourceIdentity(it, diagnostics) }
     return diagnostics.toResult()
+}
+
+private fun validateAssertions(
+    assertions: List<PropertyAssertion>,
+    diagnostics: MutableList<ValidationDiagnostic>,
+) {
+    val seen = mutableSetOf<String>()
+    assertions.forEachIndexed { index, assertion ->
+        val path = "assertions[$index]"
+        if (!isCanonicalPropertyId(assertion.id) || !seen.add(assertion.id)) {
+            diagnostics += diagnostic(
+                PbtDiagnosticCode.PROPERTY_ASSERTION_INVALID,
+                "Assertion ID is invalid or repeated",
+                "$path.id",
+            )
+        }
+
+        validateSourcePoint(assertion.source, "$path.source", diagnostics)
+        assertion.testedCall?.let { validateSourcePoint(it, "$path.testedCall", diagnostics) }
+        val operands = mutableSetOf<String>()
+        assertion.operands.forEachIndexed { operandIndex, operand ->
+            val operandPath = "$path.operands[$operandIndex]"
+            if (!isCanonicalPropertyId(operand.id) || !operands.add(operand.id)) {
+                diagnostics += diagnostic(
+                    PbtDiagnosticCode.PROPERTY_ASSERTION_INVALID,
+                    "Operand ID is invalid or repeated",
+                    "$operandPath.id",
+                )
+            }
+            validateSourcePoint(operand.source, "$operandPath.source", diagnostics)
+        }
+    }
+}
+
+private fun validateSourcePoint(
+    point: PropertySourcePoint,
+    path: String,
+    diagnostics: MutableList<ValidationDiagnostic>,
+) {
+    if (!isProjectRelativePosixPath(point.module) || point.line < 1 || point.column < 1) {
+        diagnostics += diagnostic(PbtDiagnosticCode.PROPERTY_SOURCE_INVALID, "Invalid source point", path)
+    }
+}
+
+private fun validateGenerator(
+    generator: ArrayIndexGenerator,
+    inputs: List<PropertyInput>,
+    diagnostics: MutableList<ValidationDiagnostic>,
+) {
+    val array = inputs.getOrNull(generator.arrayInputIndex)?.domain as? ArrayDomain
+    val index = inputs.getOrNull(generator.indexInputIndex)?.domain as? IntegerDomain
+    val valid = generator.kind == "array-index" && isCanonicalPropertyId(generator.id) &&
+        inputs.size == 2 && generator.arrayInputIndex == 0 && generator.indexInputIndex == 1 &&
+        array != null && array.minLength >= 1 && array.maxLength <= MAX_DIRECT_ARRAY_LENGTH &&
+        index != null && index.min == 0 && index.max == array.maxLength - 1
+    if (!valid) {
+        diagnostics += diagnostic(
+            PbtDiagnosticCode.PROPERTY_GENERATOR_INVALID,
+            "Array-index construction requires a nonempty bounded array followed by its valid index range",
+            "generator",
+        )
+    }
+}
+
+private fun validateSourceIdentity(
+    identity: PropertySourceIdentity,
+    diagnostics: MutableList<ValidationDiagnostic>,
+) {
+    if (!identity.sourceSha256.matches(SHA256_REGEX) ||
+        !identity.buildSha256.matches(SHA256_REGEX) || identity.buildScope.isBlank()
+    ) {
+        diagnostics += diagnostic(
+            PbtDiagnosticCode.PROPERTY_SOURCE_INVALID,
+            "Expected lowercase SHA-256 hashes",
+            "sourceIdentity",
+        )
+    }
 }
 
 private fun validateDomain(
@@ -369,6 +469,8 @@ private fun diagnostic(code: String, message: String, path: String) = Validation
 )
 
 private val FINITE_NUMBER_BITS_REGEX = Regex("[0-9a-f]{16}")
+private val SHA256_REGEX = Regex("[0-9a-f]{64}")
+private const val MAX_DIRECT_ARRAY_LENGTH = 32
 private const val JS_NUMBER_HEX_RADIX = 16
 
 // ECMAScript permits these otherwise invisible Unicode characters after the first identifier character.

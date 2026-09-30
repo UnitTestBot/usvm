@@ -46,6 +46,9 @@ internal object PbtDiagnosticCode {
     const val USVM_SOLVER_UNKNOWN = "usvm.solver.unknown"
 
     const val PROPERTY_ID_INVALID = "property.id.invalid"
+    const val PROPERTY_ASSERTION_INVALID = "property.assertion.invalid"
+    const val PROPERTY_GENERATOR_INVALID = "property.generator.invalid"
+    const val PROPERTY_SOURCE_INVALID = "property.source.invalid"
     const val PROPERTY_INPUTS_EMPTY = "property.inputs.empty"
     const val INPUT_NAME_DUPLICATE = "input.name.duplicate"
     const val INPUT_NAME_INVALID = "input.name.invalid"
