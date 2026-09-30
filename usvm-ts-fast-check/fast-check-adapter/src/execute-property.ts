@@ -9,6 +9,7 @@ import {
   EntryPointInvocationError,
   type ExecutionKind,
   loadEntryPoint,
+  verifySourceHash,
   type LoadedEntryPoint,
   type TypeScriptEntryPointReference,
 } from './entry-point.js';
@@ -20,7 +21,14 @@ import {
   protocolError,
   type TaggedJsValue,
 } from './js-value.js';
-import { buildPropertyArbitrary, validateJointGenerator } from './property-arbitrary.js';
+import { buildPropertyArbitrary, PhaseTrackingArbitrary, validateJointGenerator } from './property-arbitrary.js';
+import {
+  installObservationHook,
+  ObservationRecorder,
+  type ObservationArtifact,
+  type ObservationPointRequest,
+  type ObservationRequest,
+} from './observe-property.js';
 
 export interface PropertyManifestInput {
   name: string;
@@ -65,6 +73,7 @@ export interface FastCheckExecutionRequest {
   numRuns: number;
   timeoutMillis: number;
   examples: TaggedJsValue[][];
+  observationRequest?: ObservationRequest;
 }
 
 export interface FastCheckFailureDetails {
@@ -84,6 +93,7 @@ export interface FastCheckRunResult {
   numShrinks: number;
   failure: FastCheckFailureDetails | null;
   executionTimeMillis: number;
+  observations?: ObservationArtifact;
 }
 
 export interface FastCheckExecutionSuccess {
@@ -95,15 +105,30 @@ export async function executeProperty(requestValue: unknown): Promise<FastCheckE
   const request = validateRequest(requestValue);
   const startedAt = performance.now();
 
+  if (request.observationRequest !== undefined) {
+    for (const source of request.observationRequest.sources) {
+      await verifySourceHash(source.module, source.sha256, request.sourceRoots);
+    }
+    installObservationHook();
+  }
+
   const predicate = await loadEntryPoint(request.manifest.predicate, request.sourceRoots, 'manifest.predicate');
   const precondition = request.manifest.precondition === undefined
     ? undefined
     : await loadEntryPoint(request.manifest.precondition, request.sourceRoots, 'manifest.precondition');
 
-  const arbitrary = buildPropertyArbitrary(request.manifest);
   const contractErrors: ContractErrorState = { first: undefined };
-  const property = buildProperty(arbitrary, predicate, precondition, contractErrors);
-  const parameters = buildParameters(request);
+  const recorder = request.observationRequest === undefined
+    ? undefined
+    : new ObservationRecorder(request.manifest.propertyId, request.observationRequest);
+  const baseArbitrary = buildPropertyArbitrary(request.manifest);
+  const tracker = recorder === undefined ? undefined : new PhaseTrackingArbitrary(baseArbitrary);
+  const arbitrary = tracker ?? baseArbitrary;
+  const phaseOf = (values: JsConcreteValue[]) => request.replayPath === undefined
+    ? tracker?.phaseOf(values) ?? 'unknown'
+    : 'replay';
+  const property = buildProperty(arbitrary, predicate, precondition, contractErrors, recorder, phaseOf);
+  const parameters = buildParameters(request, tracker);
 
   const details = await checkProperty(property, parameters, request.replayPath);
 
@@ -116,6 +141,7 @@ export async function executeProperty(requestValue: unknown): Promise<FastCheckE
       request.manifest.propertyId,
       details,
       Math.max(0, Math.round(performance.now() - startedAt)),
+      recorder?.result,
     ),
   };
 }
@@ -125,6 +151,8 @@ function buildProperty(
   predicate: LoadedEntryPoint,
   precondition: LoadedEntryPoint | undefined,
   contractErrors: ContractErrorState,
+  recorder: ObservationRecorder | undefined,
+  phaseOf: (values: JsConcreteValue[]) => 'generation' | 'explicit' | 'shrink' | 'replay' | 'unknown',
 ): fc.IProperty<[JsConcreteValue[]]> | fc.IAsyncProperty<[JsConcreteValue[]]> {
   const asynchronous = predicate.executionKind === 'async' || precondition?.executionKind === 'async';
 
@@ -132,10 +160,10 @@ function buildProperty(
     return fc.asyncProperty(arbitrary, (values: JsConcreteValue[]): Promise<boolean> => preserveAsyncContractError(
       contractErrors,
       async () => {
-        const invocationValues = cloneArguments(values);
-        if (precondition !== undefined && !(await invokePrecondition(precondition, invocationValues))) fc.pre(false);
+        const result = await invokePropertyOnce(values, predicate, precondition, recorder, phaseOf(values));
+        if (result === null) fc.pre(false);
 
-        return await predicate.invoke(invocationValues);
+        return result;
       },
     ));
   }
@@ -143,12 +171,72 @@ function buildProperty(
   return fc.property(arbitrary, (values: JsConcreteValue[]): boolean => preserveContractError(
     contractErrors,
     () => {
-      const invocationValues = cloneArguments(values);
-      if (precondition !== undefined && !invokeSynchronousPrecondition(precondition, invocationValues)) fc.pre(false);
+      const result = invokePropertyOnce(values, predicate, precondition, recorder, phaseOf(values)) as boolean | null;
+      if (result === null) fc.pre(false);
 
-      return predicate.invoke(invocationValues) as boolean;
+      return result;
     },
   ));
+}
+
+/** One invocation boundary; #353 exact replay uses the same shape after integration. */
+function invokePropertyOnce(
+  values: JsConcreteValue[],
+  predicate: LoadedEntryPoint,
+  precondition: LoadedEntryPoint | undefined,
+  recorder: ObservationRecorder | undefined,
+  phase: 'generation' | 'explicit' | 'shrink' | 'replay' | 'unknown',
+): boolean | null | Promise<boolean | null> {
+  const invocationValues = cloneArguments(values);
+  const invoke = (): boolean | null | Promise<boolean | null> => {
+    if (predicate.executionKind === 'async' || precondition?.executionKind === 'async') {
+      return (async () => {
+        try {
+          if (precondition !== undefined && !(await invokePrecondition(precondition, invocationValues))) {
+            recorder?.finish('rejected', 'skipped');
+
+            return null;
+          }
+        } catch (error: unknown) {
+          recorder?.finish('threw', 'threw');
+          throw error;
+        }
+
+        try {
+          const result = await predicate.invoke(invocationValues);
+          recorder?.finish('admitted', result ? 'holds' : 'false');
+
+          return result;
+        } catch (error: unknown) {
+          recorder?.finish('admitted', 'threw');
+          throw error;
+        }
+      })();
+    }
+
+    try {
+      if (precondition !== undefined && !invokeSynchronousPrecondition(precondition, invocationValues)) {
+        recorder?.finish('rejected', 'skipped');
+
+        return null;
+      }
+    } catch (error: unknown) {
+      recorder?.finish('threw', 'threw');
+      throw error;
+    }
+
+    try {
+      const result = predicate.invoke(invocationValues) as boolean;
+      recorder?.finish('admitted', result ? 'holds' : 'false');
+
+      return result;
+    } catch (error: unknown) {
+      recorder?.finish('admitted', 'threw');
+      throw error;
+    }
+  };
+
+  return recorder === undefined ? invoke() : recorder.run(values, phase, invoke);
 }
 
 interface ContractErrorState {
@@ -255,7 +343,10 @@ function cloneArguments(values: JsConcreteValue[]): JsConcreteValue[] {
   return structuredClone(values);
 }
 
-function buildParameters(request: FastCheckExecutionRequest): Parameters<[JsConcreteValue[]]> {
+function buildParameters(
+  request: FastCheckExecutionRequest,
+  tracker: PhaseTrackingArbitrary | undefined,
+): Parameters<[JsConcreteValue[]]> {
   const decodedExamples = request.examples.map((example, exampleIndex): [JsConcreteValue[]] => {
     if (example.length !== request.manifest.inputs.length) {
       throw protocolError(
@@ -267,6 +358,7 @@ function buildParameters(request: FastCheckExecutionRequest): Parameters<[JsConc
 
     const values = example.map((value, valueIndex) =>
       decodeJsValue(value, `examples[${exampleIndex}][${valueIndex}]`));
+    tracker?.markExplicit(values);
     if (request.manifest.generator !== undefined) {
       const [array, index] = values;
       if (!Array.isArray(array) || typeof index !== 'number' || !Number.isInteger(index)
@@ -299,6 +391,7 @@ function toRunResult(
   propertyId: string,
   details: RunDetails<[JsConcreteValue[]]>,
   executionTimeMillis: number,
+  observations: ObservationArtifact | undefined,
 ): FastCheckRunResult {
   const counterexampleValues = details.counterexample?.[0];
   const counterexample = counterexampleValues === undefined
@@ -306,7 +399,7 @@ function toRunResult(
     : counterexampleValues.map(encodeJsValue);
   const failure = details.failed ? failureDetails(details) : null;
 
-  return {
+  const result: FastCheckRunResult = {
     propertyId,
     status: details.failed ? 'failure' : 'success',
     seed: details.seed,
@@ -318,6 +411,9 @@ function toRunResult(
     failure,
     executionTimeMillis,
   };
+  if (observations !== undefined) result.observations = observations;
+
+  return result;
 }
 
 function failureDetails(details: RunDetails<[JsConcreteValue[]]>): FastCheckFailureDetails {
@@ -446,6 +542,9 @@ function validateRequest(value: unknown): FastCheckExecutionRequest {
 
   if (request.seed !== undefined) validated.seed = request.seed as number;
   if (request.replayPath !== undefined) validated.replayPath = request.replayPath as string;
+  if (request.observationRequest !== undefined) {
+    validated.observationRequest = validateObservationRequest(request.observationRequest, manifest);
+  }
 
   return validated;
 }
@@ -590,6 +689,89 @@ function validateSourcePoint(value: unknown, path: string): PropertySourcePointW
   }
 
   return { module: point.module, line: point.line as number, column: point.column as number };
+}
+
+function validateObservationRequest(value: unknown, manifest: PropertyManifestWire): ObservationRequest {
+  const request = requireRecord(value, adapterDiagnostic.protocolRequestInvalid,
+    'Observation request must be an object', 'observationRequest');
+  const validLimits = Number.isInteger(request.maxInvocations) && (request.maxInvocations as number) >= 1
+    && (request.maxInvocations as number) <= 64
+    && Number.isInteger(request.maxPointsPerInvocation) && (request.maxPointsPerInvocation as number) >= 1
+    && (request.maxPointsPerInvocation as number) <= 8
+    && Number.isInteger(request.maxArrayElements) && (request.maxArrayElements as number) >= 1
+    && (request.maxArrayElements as number) <= 64
+    && Number.isInteger(request.maxBytes) && (request.maxBytes as number) >= 1024
+    && (request.maxBytes as number) <= 65_536;
+  if (!validLimits || !Array.isArray(request.points) || !Array.isArray(request.sources)) {
+    throw protocolError(adapterDiagnostic.protocolRequestInvalid, 'Invalid observation bounds', 'observationRequest');
+  }
+
+  const sources = request.sources.map((value: unknown, index: number) => {
+    const source = requireRecord(value, adapterDiagnostic.protocolRequestInvalid,
+      'Observation source must be an object', `observationRequest.sources[${index}]`);
+    if (typeof source.module !== 'string' || typeof source.sha256 !== 'string'
+      || !/^[0-9a-f]{64}$/.test(source.sha256)) {
+      throw protocolError(adapterDiagnostic.protocolRequestInvalid, 'Invalid source hash', `observationRequest.sources[${index}]`);
+    }
+
+    return { module: source.module, sha256: source.sha256 };
+  });
+  const points = request.points.map((value: unknown, index: number) => {
+    const path = `observationRequest.points[${index}]`;
+    const point = requireRecord(value, adapterDiagnostic.protocolRequestInvalid, 'Point must be an object', path);
+    if (typeof point.id !== 'string' || typeof point.assertionId !== 'string'
+      || typeof point.operandId !== 'string'
+      || !['argument', 'return', 'intermediate', 'pre', 'post'].includes(point.kind as string)) {
+      throw protocolError(adapterDiagnostic.protocolRequestInvalid, 'Invalid point identity', path);
+    }
+
+    const validatedPoint: ObservationPointRequest = {
+      id: point.id,
+      assertionId: point.assertionId,
+      operandId: point.operandId,
+      source: validateSourcePoint(point.source, `${path}.source`),
+      callSite: validateSourcePoint(point.callSite, `${path}.callSite`),
+      kind: point.kind as ObservationPointRequest['kind'],
+    };
+    if (point.kind === 'argument') {
+      if (!Number.isInteger(point.inputIndex) || (point.inputIndex as number) < 0
+        || (point.inputIndex as number) >= manifest.inputs.length) {
+        throw protocolError(adapterDiagnostic.protocolRequestInvalid, 'Invalid argument index', `${path}.inputIndex`);
+      }
+      validatedPoint.inputIndex = point.inputIndex as number;
+    } else if (point.inputIndex !== undefined) {
+      throw protocolError(adapterDiagnostic.protocolRequestInvalid, 'Only argument points may name an input index', path);
+    }
+
+    return validatedPoint;
+  });
+  const uniqueSources = new Set(sources.map((source) => source.module));
+  const uniquePoints = new Set(points.map((point) => point.id));
+  const allSourcesPresent = uniqueSources.has(manifest.predicate.module)
+    && points.every((point) => uniqueSources.has(point.source.module));
+  const allPointsBound = points.every((point) => manifest.assertions?.some((assertion) =>
+    assertion.id === point.assertionId && samePoint(assertion.testedCall, point.callSite)
+      && assertion.operands.some((operand) =>
+        operand.id === point.operandId && samePoint(operand.source, point.source))) ?? false);
+  if (points.length === 0 || uniquePoints.size !== points.length || uniqueSources.size !== sources.length
+    || !allSourcesPresent || !allPointsBound) {
+    throw protocolError(adapterDiagnostic.protocolRequestInvalid,
+      'Observation points must bind to declared assertion operands and selected source hashes', 'observationRequest');
+  }
+
+  return {
+    points,
+    sources,
+    maxInvocations: request.maxInvocations as number,
+    maxPointsPerInvocation: request.maxPointsPerInvocation as number,
+    maxArrayElements: request.maxArrayElements as number,
+    maxBytes: request.maxBytes as number,
+  };
+}
+
+function samePoint(left: PropertySourcePointWire | undefined, right: PropertySourcePointWire): boolean {
+  return left !== undefined && left.module === right.module
+    && left.line === right.line && left.column === right.column;
 }
 
 function validateEntryPoint(value: unknown, entryPath: string): TypeScriptEntryPointReference {

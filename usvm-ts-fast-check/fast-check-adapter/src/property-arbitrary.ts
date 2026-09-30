@@ -26,6 +26,45 @@ export function buildPropertyArbitrary(manifest: PropertyManifestWire): fc.Arbit
   });
 }
 
+/** Tracks fast-check's own generate/shrink calls by value identity, including cloned values. */
+export class PhaseTrackingArbitrary extends fc.Arbitrary<JsConcreteValue[]> {
+  private readonly phases = new WeakMap<JsConcreteValue[], 'generation' | 'shrink'>();
+  private readonly explicit = new WeakSet<JsConcreteValue[]>();
+
+  constructor(private readonly delegate: fc.Arbitrary<JsConcreteValue[]>) {
+    super();
+  }
+
+  markExplicit(values: JsConcreteValue[]): void {
+    this.explicit.add(values);
+  }
+
+  phaseOf(values: JsConcreteValue[]): 'generation' | 'shrink' | 'explicit' | 'unknown' {
+    return this.phases.get(values) ?? (this.explicit.has(values) ? 'explicit' : 'unknown');
+  }
+
+  generate(mrng: fc.Random, biasFactor: number | undefined): fc.Value<JsConcreteValue[]> {
+    return this.tag(this.delegate.generate(mrng, biasFactor), 'generation');
+  }
+
+  canShrinkWithoutContext(value: unknown): value is JsConcreteValue[] {
+    return this.delegate.canShrinkWithoutContext(value);
+  }
+
+  shrink(value: JsConcreteValue[], context: unknown): fc.Stream<fc.Value<JsConcreteValue[]>> {
+    return this.delegate.shrink(value, context).map((entry) => this.tag(entry, 'shrink'));
+  }
+
+  private tag(entry: fc.Value<JsConcreteValue[]>, phase: 'generation' | 'shrink'): fc.Value<JsConcreteValue[]> {
+    return new fc.Value(entry.value_, entry.context, () => {
+      const values = entry.value;
+      this.phases.set(values, phase);
+
+      return values;
+    });
+  }
+}
+
 /** Checks the declared domains before a dependent arbitrary can sample outside either one. */
 export function validateJointGenerator(manifest: PropertyManifestWire): void {
   const generator = manifest.generator;
