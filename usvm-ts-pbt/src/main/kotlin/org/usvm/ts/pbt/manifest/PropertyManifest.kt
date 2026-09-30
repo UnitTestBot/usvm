@@ -4,8 +4,11 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.usvm.ts.pbt.model.ArrayIndexGenerator
+import org.usvm.ts.pbt.model.PropertyAssertion
 import org.usvm.ts.pbt.model.PropertyDefinition
 import org.usvm.ts.pbt.model.PropertyInput
+import org.usvm.ts.pbt.model.PropertySourceIdentity
 import org.usvm.ts.pbt.model.TypeScriptEntryPoint
 import org.usvm.ts.pbt.validation.requireValid
 import org.usvm.ts.pbt.validation.validatePropertyDefinition
@@ -22,6 +25,9 @@ data class PropertyManifest(
     val inputs: List<PropertyInput>,
     val predicate: TypeScriptEntryPoint,
     val precondition: TypeScriptEntryPoint? = null,
+    val assertions: List<PropertyAssertion> = emptyList(),
+    val generator: ArrayIndexGenerator? = null,
+    val sourceIdentity: PropertySourceIdentity? = null,
 )
 
 fun PropertyDefinition.toManifest(): PropertyManifest {
@@ -31,6 +37,9 @@ fun PropertyDefinition.toManifest(): PropertyManifest {
         inputs = inputs,
         predicate = predicate,
         precondition = precondition,
+        assertions = assertions,
+        generator = generator,
+        sourceIdentity = sourceIdentity,
     )
 }
 

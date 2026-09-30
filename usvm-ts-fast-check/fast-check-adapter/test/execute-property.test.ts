@@ -4,12 +4,37 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { tsImport } from 'tsx/esm/api';
 import { encodeJsValue, ProtocolError } from '../src/js-value.js';
 import {
   executeProperty,
   type FastCheckExecutionRequest,
   type FastCheckRunResult,
 } from '../src/execute-property.js';
+
+test('pinned fast-check callback shim preserves length assertion outcomes on bounded arrays', async () => {
+  const fixture = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    '../../../src/test/resources/properties/real/ArrayArbitraryProperty.ts',
+  );
+  const property = await tsImport(fixture, import.meta.url) as {
+    originalUniqueAssertion(values: number[]): void;
+    originalUniqueOracle(values: number[]): boolean;
+  };
+  const cases = [[], [0], [0, 1], [1, 1], [0, 1, 0], [10, 9, 8, 7], [10, 10, 10, 10]];
+
+  for (const values of cases) {
+    const expected = values.length === new Set(values).size;
+
+    if (expected) {
+      assert.equal(property.originalUniqueAssertion(values), undefined);
+      assert.equal(property.originalUniqueOracle(values), true);
+    } else {
+      assert.throws(() => property.originalUniqueAssertion(values), /Expected length/);
+      assert.throws(() => property.originalUniqueOracle(values), /Expected length/);
+    }
+  }
+});
 
 test('executes a synchronous TypeScript predicate with deterministic success details', async () => {
   await withPropertyModule(async (sourceRoot) => {

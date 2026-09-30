@@ -17,3 +17,7 @@ export function divisionRoundTrip(dividend: number, divisor: number): boolean {
 export function reverseTwicePreservesValues(values: number[]): boolean {
     return [...values].reverse().reverse().every((value, index) => value === values[index]);
 }
+
+export function indexedValueIsPresent(values: number[], index: number): boolean {
+    return values[index] !== undefined;
+}

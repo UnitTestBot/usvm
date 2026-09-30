@@ -35,6 +35,9 @@ data class PropertyDefinition(
     val inputs: List<PropertyInput>,
     val predicate: TypeScriptEntryPoint,
     val precondition: TypeScriptEntryPoint? = null,
+    val assertions: List<PropertyAssertion> = emptyList(),
+    val generator: ArrayIndexGenerator? = null,
+    val sourceIdentity: PropertySourceIdentity? = null,
 )
 
 /**
@@ -47,6 +50,7 @@ data class PropertyDefinition(
 data class PropertyInput(
     val name: String,
     val domain: PropertyDomain,
+    val generatorId: String? = null,
 )
 
 /**

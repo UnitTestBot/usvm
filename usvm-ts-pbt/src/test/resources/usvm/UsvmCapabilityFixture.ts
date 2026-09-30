@@ -26,6 +26,10 @@ export function acceptsNumberArray(value: number[]): boolean {
   return value.length > 0;
 }
 
+export function acceptsArrayIndex(values: number[], index: number): boolean {
+  return values[index] === values[index];
+}
+
 export function acceptsOptionalNumberArray(value: number[] | undefined): boolean {
   return value === undefined || value.length > 0;
 }
