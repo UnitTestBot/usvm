@@ -11,6 +11,7 @@ dependencies {
     implementation(Libs.clikt)
     implementation(Libs.kotlinx_serialization_json)
 
+    testImplementation(Libs.jacodb_ets)
     testImplementation(Libs.logback)
 }
 
