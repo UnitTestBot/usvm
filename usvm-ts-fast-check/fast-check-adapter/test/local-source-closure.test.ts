@@ -50,6 +50,23 @@ for (const [name, entry, helper, expected] of [
   })
 }
 
+for (const [name, declaration] of [
+  ['constant', 'export declare const helper: () => number;'],
+  ['function', 'export declare function helper(): number;'],
+  ['class', 'export declare class helper { value(): number; }'],
+] as const) {
+  test(`local closure rejects ambient runtime ${name} exports`, () => {
+    workspace({
+      'entry.ts': "import { helper } from './helper'; export function entry() { return helper(); }",
+      'helper.ts': declaration,
+    }, root => {
+      const result = inspectLocalSourceClosure(root, path.join(root, 'entry.ts'))
+      assert.equal(result.reasonCode, 'IMPORTED_CALLEES_UNSUPPORTED')
+      assert.match(result.diagnostic!, /Ambient runtime declaration/)
+    })
+  })
+}
+
 test('local closure rejects ambiguous extensionless imports', () => {
   workspace({
     'entry.ts': "import './helper';",

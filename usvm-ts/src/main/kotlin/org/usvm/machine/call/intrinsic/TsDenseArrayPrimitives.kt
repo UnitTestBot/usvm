@@ -29,7 +29,6 @@ import org.usvm.util.mkArrayLengthLValue
 
 /** Memory and primitive-value operations used by the source split/join/reduce algorithms. */
 internal object TsDenseArrayPrimitives : TsBuiltInUnknownCallModelFamily {
-    private const val CAPACITY = 16
     private val stringsType = EtsArrayType(EtsStringType, dimensions = 1)
 
     override val models: List<TsUnknownCallModel> = listOf(
@@ -42,7 +41,7 @@ internal object TsDenseArrayPrimitives : TsBuiltInUnknownCallModelFamily {
     private fun allocateStrings(state: TsState, inputs: List<UExpr<*>>): TsUnknownCallModelExecution? =
         with(state.ctx) {
             // All capacity slots are initialized, so subsequent in-range writes preserve density.
-            if (inputs.single() != mkFp64(CAPACITY.toDouble())) return null
+            if (inputs.single() != mkFp64(SOURCE_ARRAY_MODEL_CAPACITY.toDouble())) return null
             execution(guard = trueExpr) {
                 val descriptor = ctx.arrayDescriptorOf(stringsType)
                 val array = memory.allocConcrete(stringsType)
@@ -52,7 +51,7 @@ internal object TsDenseArrayPrimitives : TsBuiltInUnknownCallModelFamily {
                     type = descriptor,
                     sort = ctx.addressSort,
                     sizeSort = ctx.sizeSort,
-                    contents = List(CAPACITY) { empty }.asSequence(),
+                    contents = List(SOURCE_ARRAY_MODEL_CAPACITY) { empty }.asSequence(),
                 )
                 markDenseInputArray(array = array, type = stringsType)
                 array

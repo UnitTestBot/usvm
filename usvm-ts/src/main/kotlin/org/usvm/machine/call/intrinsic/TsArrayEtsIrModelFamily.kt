@@ -8,7 +8,6 @@ import org.jacodb.ets.model.EtsFunctionType
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsUnknownType
-import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.api.initializeArray
@@ -41,7 +40,6 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
     private const val CLASS_NAME = "ArrayModels"
     private const val PRIMITIVES_CLASS_NAME = "ArrayModelPrimitives"
     private const val RESOURCE_NAME = "/org/usvm/machine/call/models/ArrayModels.ts"
-    private const val MAX_SOURCE_ARRAY_LENGTH = 16
     private const val MAX_VARIADIC_ARGUMENTS = 3
     private const val MAX_FILL_ARGUMENTS = 3
 
@@ -116,7 +114,7 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             return@TsEtsIrUnknownCallModelDomainGuard state.ctx.falseExpr
         }
 
-        state.boundedArrayGuard(array, arrayType, maximumLength = MAX_SOURCE_ARRAY_LENGTH - arguments.size)
+        state.boundedArrayGuard(array, arrayType, maximumLength = SOURCE_ARRAY_MODEL_CAPACITY - arguments.size)
     }
 
     private val fillDomain = TsEtsIrUnknownCallModelDomainGuard { state, call, inputs ->
@@ -131,7 +129,7 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             return@TsEtsIrUnknownCallModelDomainGuard state.ctx.falseExpr
         }
 
-        state.boundedArrayGuard(array, arrayType, maximumLength = MAX_SOURCE_ARRAY_LENGTH)
+        state.boundedArrayGuard(array, arrayType, maximumLength = SOURCE_ARRAY_MODEL_CAPACITY)
     }
 
     private val denseReceiverDomain = TsEtsIrUnknownCallModelDomainGuard { state, call, inputs ->
@@ -141,7 +139,7 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             return@TsEtsIrUnknownCallModelDomainGuard state.ctx.falseExpr
         }
 
-        state.boundedArrayGuard(array, arrayType, maximumLength = MAX_SOURCE_ARRAY_LENGTH)
+        state.boundedArrayGuard(array, arrayType, maximumLength = SOURCE_ARRAY_MODEL_CAPACITY)
     }
 
     private val unshiftDomain = TsEtsIrUnknownCallModelDomainGuard { state, call, inputs ->
@@ -157,7 +155,7 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             return@TsEtsIrUnknownCallModelDomainGuard state.ctx.falseExpr
         }
 
-        state.boundedArrayGuard(array, arrayType, maximumLength = MAX_SOURCE_ARRAY_LENGTH - arguments.size)
+        state.boundedArrayGuard(array, arrayType, maximumLength = SOURCE_ARRAY_MODEL_CAPACITY - arguments.size)
     }
 
     private val concatDomain = TsEtsIrUnknownCallModelDomainGuard { state, call, inputs ->
@@ -183,15 +181,15 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             val firstIsBounded = state.boundedArrayGuard(
                 array,
                 arrayType,
-                maximumLength = MAX_SOURCE_ARRAY_LENGTH,
+                maximumLength = SOURCE_ARRAY_MODEL_CAPACITY,
             )
             val secondIsBounded = state.boundedArrayGuard(
                 other,
                 otherType,
-                maximumLength = MAX_SOURCE_ARRAY_LENGTH,
+                maximumLength = SOURCE_ARRAY_MODEL_CAPACITY,
             )
             val resultLength = mkBvAddExpr(firstLength, secondLength)
-            val maximumResultLength = mkBv(MAX_SOURCE_ARRAY_LENGTH)
+            val maximumResultLength = mkBv(SOURCE_ARRAY_MODEL_CAPACITY)
             val resultFits = mkBvSignedLessOrEqualExpr(resultLength, maximumResultLength)
             mkAnd(
                 firstIsBounded,
@@ -448,20 +446,6 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         return artifact.copy(entryPoint = entryPoint)
     }
 
-    private fun TsState.concreteArray(
-        call: TsUnknownCall,
-        inputs: List<UExpr<*>>,
-    ): Pair<UConcreteHeapRef, EtsArrayType>? {
-        val receiver = inputs.firstOrNull() as? UConcreteHeapRef ?: return null
-        if (with(ctx) { receiver.hasFakeValueBranch() }) return null
-
-        val staticType = call.receiver?.source?.type ?: return null
-        val arrayType = arrayStorageType(receiver, staticType) as? EtsArrayType ?: return null
-        if (arrayType.dimensions != 1) return null
-
-        return receiver to arrayType
-    }
-
     private fun TsState.argumentsMatchArrayType(
         arrayType: EtsArrayType,
         arguments: List<UExpr<*>>,
@@ -471,21 +455,6 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             argument.sort == elementSort &&
                 (argument.sort != addressSort || !argument.asExpr(addressSort).hasFakeValueBranch())
         }
-    }
-
-    private fun TsState.boundedArrayGuard(
-        array: UConcreteHeapRef,
-        arrayType: EtsArrayType,
-        maximumLength: Int,
-    ): UBoolExpr = with(ctx) {
-        val length = memory.read(mkArrayLengthLValue(array, arrayType))
-        val minimumLength = mkBv(0)
-        val maximumLengthExpr = mkBv(maximumLength)
-        mkAnd(
-            memory.types.evalIsSubtype(array, arrayType),
-            mkBvSignedGreaterOrEqualExpr(length, minimumLength),
-            mkBvSignedLessOrEqualExpr(length, maximumLengthExpr),
-        )
     }
 
     private fun primitiveModel(
@@ -522,7 +491,7 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         )
         val receiverMatchesType = state.memory.types.evalIsSubtype(receiver, arrayType)
         val minimumLength = mkBv(0)
-        val maximumLength = mkBv(MAX_SOURCE_ARRAY_LENGTH)
+        val maximumLength = mkBv(SOURCE_ARRAY_MODEL_CAPACITY)
         val guard = mkAnd(
             receiverMatchesType,
             mkFpEqualExpr(roundTrip, fpLength),
@@ -557,7 +526,7 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             ?.asExpr(fp64Sort)
             ?: return null
         val validLength = mkValidArrayLength(fpLength)
-        val maximumLength = mkFp64(MAX_SOURCE_ARRAY_LENGTH.toDouble())
+        val maximumLength = mkFp64(SOURCE_ARRAY_MODEL_CAPACITY.toDouble())
         val withinModelCapacity = mkFpLessOrEqualExpr(
             fpLength,
             maximumLength,
@@ -572,7 +541,7 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             completion = TsUnknownCallModelCompletion.Normal {
                 val descriptor = arrayDescriptorOf(arrayType)
                 val result = memory.allocConcrete(descriptor)
-                val undefinedSlots = List(MAX_SOURCE_ARRAY_LENGTH) { mkUndefinedValue() }
+                val undefinedSlots = List(SOURCE_ARRAY_MODEL_CAPACITY) { mkUndefinedValue() }
                 memory.initializeArray(
                     arrayHeapRef = result,
                     type = descriptor,
@@ -584,7 +553,7 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                     initializeArrayKind(
                         array = result,
                         kind = kind,
-                        values = List(MAX_SOURCE_ARRAY_LENGTH) { falseExpr },
+                        values = List(SOURCE_ARRAY_MODEL_CAPACITY) { falseExpr },
                     )
                 }
                 memory.initializeArrayLength(
@@ -620,7 +589,7 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         ).asExpr(sizeSort)
         val receiverMatchesType = state.memory.types.evalIsSubtype(receiver, arrayType)
         val minimumLength = mkBv(0)
-        val maximumLength = mkBv(MAX_SOURCE_ARRAY_LENGTH)
+        val maximumLength = mkBv(SOURCE_ARRAY_MODEL_CAPACITY)
         val guard = mkAnd(
             receiverMatchesType,
             mkBvSignedGreaterOrEqualExpr(length, minimumLength),
@@ -645,13 +614,6 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             successors = listOf(successor),
             residualGuard = guard.takeUnless { it == trueExpr }?.let(::mkNot),
         )
-    }
-
-    private fun TsUnknownCall.resolvedInstanceInputs(): List<UExpr<*>>? {
-        val resolvedReceiver = receiver?.resolved ?: return null
-        val resolvedArguments = arguments.map { argument -> argument.resolved ?: return null }
-
-        return listOf(resolvedReceiver) + resolvedArguments
     }
 
     private fun TsUnknownCall.hasGlobalArrayConstructorShape(): Boolean {

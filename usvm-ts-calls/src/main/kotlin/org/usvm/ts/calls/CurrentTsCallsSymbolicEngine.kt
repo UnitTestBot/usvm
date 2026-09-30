@@ -86,7 +86,7 @@ internal class CurrentTsCallsSymbolicEngine(
 ) : CallsSymbolicEngine {
     private val verifiedProjects = mutableMapOf<Path, String>()
     private val preparedTargets = mutableMapOf<CallsSymbolicPreflightRequest, CallsTargetPreparation>()
-    private val loadedSources = mutableMapOf<Pair<Path, String>, CallsSourceProject>()
+    private val loadedSources = mutableMapOf<LoadedSourceKey, CallsSourceProject>()
     private var verifiedNativeFrontendIdentity: String? = null
 
     override fun search(request: CallsSymbolicSearchRequest): CallsSymbolicSearchResult {
@@ -231,7 +231,9 @@ internal class CurrentTsCallsSymbolicEngine(
     }
 
     private fun prepareSafely(request: CallsSymbolicPreflightRequest): CallsTargetPreparation {
-        preparedTargets[request]?.let { preparation -> return preparation }
+        preparedTargets[request]?.takeIf {
+            verifiedProjects[request.sourceRoot] == request.project.revision
+        }?.let { preparation -> return preparation }
 
         val preparation = runCatching { prepare(request) }.getOrElse { error ->
             CallsTargetPreparation.Rejected(
@@ -273,7 +275,12 @@ internal class CurrentTsCallsSymbolicEngine(
             )
         }
 
-        val loaded = loadedSources.getOrPut(request.sourceRoot to request.function.sourceFile) {
+        val sourceKey = LoadedSourceKey(
+            sourceRoot = request.sourceRoot,
+            sourceFile = request.function.sourceFile,
+            revision = request.project.revision,
+        )
+        val loaded = loadedSources.getOrPut(sourceKey) {
             loadCallsSourceProject(sourceRoot = request.sourceRoot, source = source)
         }
         if (loaded is CallsSourceProject.Unsupported) {
@@ -542,6 +549,12 @@ internal class CurrentTsCallsSymbolicEngine(
         verifyCallsGitCheckout(checkout, expectedRevision)
         cache[checkout] = expectedRevision
     }
+
+    private data class LoadedSourceKey(
+        val sourceRoot: Path,
+        val sourceFile: String,
+        val revision: String,
+    )
 
     private sealed interface CallsTargetPreparation {
         data class Eligible(

@@ -66,6 +66,9 @@ export function inspectLocalSourceClosure(rootPath: string, entryPath: string): 
         if (!statement.isTypeOnly) {
           return reject('IMPORTED_CALLEES_UNSUPPORTED', `Import assignment in ${relative}`)
         }
+      } else if (isAmbientRuntimeDeclaration(statement)) {
+        return reject('IMPORTED_CALLEES_UNSUPPORTED',
+          `Ambient runtime declaration in ${relative} at offset ${statement.getStart(source)}`)
       } else if (!safeModuleStatement(statement, source)) {
         return reject('TOP_LEVEL_INITIALIZATION_UNSUPPORTED',
           `Unsupported module initialization in ${relative} at offset ${statement.getStart(source)}`)
@@ -168,6 +171,12 @@ function hasDependencyCycle(dependencies: Map<string, string[]>): boolean {
     return false
   }
   return [...dependencies.keys()].some(visit)
+}
+
+function isAmbientRuntimeDeclaration(statement: ts.Statement): boolean {
+  if (!ts.isVariableStatement(statement) && !ts.isFunctionDeclaration(statement)
+    && !ts.isClassDeclaration(statement) && !ts.isEnumDeclaration(statement)) return false
+  return statement.modifiers?.some(modifier => modifier.kind === ts.SyntaxKind.DeclareKeyword) ?? false
 }
 
 function safeModuleStatement(statement: ts.Statement, source: ts.SourceFile): boolean {

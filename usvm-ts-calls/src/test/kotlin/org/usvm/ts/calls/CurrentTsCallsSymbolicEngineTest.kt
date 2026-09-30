@@ -127,6 +127,29 @@ class CurrentTsCallsSymbolicEngineTest {
     }
 
     @Test
+    fun `source closure is reloaded after checkout revision changes`() {
+        val fixture = importedFixture(
+            exportName = "revisionSensitive",
+            dependency = "export function helper(value: string): boolean { return true; }",
+        )
+        val first = fixture.preflight()
+
+        assertEquals(CallsSymbolicPreflightStatus.ELIGIBLE, first.status, first.toString())
+
+        Files.writeString(
+            fixture.sourceRoot.resolve("helper.ts"),
+            "export function replacement(value: string): boolean { return true; }",
+        )
+        runGit(fixture.sourceRoot, "add", "helper.ts")
+        runGit(fixture.sourceRoot, "commit", "-m", "replace helper")
+        val nextRevision = runGit(fixture.sourceRoot, "rev-parse", "HEAD").trim()
+
+        val second = fixture.preflight(project = fixture.project.copy(revision = nextRevision))
+
+        assertEquals(CallsSymbolicPreflightReasonCode.IMPORTED_CALLEES_UNSUPPORTED, second.reasonCode, second.toString())
+    }
+
+    @Test
     fun `bundled frontend accepts only the revision baked into the running build`() {
         val engine = CurrentTsCallsSymbolicEngine(
             environment = emptyMap<String, String>()::get,
@@ -1138,7 +1161,7 @@ class CurrentTsCallsSymbolicEngineTest {
             bundledNativeFrontendRevision = "bundled:test",
         )
 
-        fun preflight(): CallsSymbolicPreflightResult = engine.preflight(
+        fun preflight(project: CallsProjectCase = this.project): CallsSymbolicPreflightResult = engine.preflight(
             CallsSymbolicPreflightRequest(
                 sourceRoot = sourceRoot,
                 project = project,

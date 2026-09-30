@@ -15,16 +15,16 @@ import org.usvm.util.arrayStorageType
 import org.usvm.util.hasDenseArrayShape
 import org.usvm.util.mkArrayLengthLValue
 
-internal object TsDenseArrayModelSupport {
-    private const val MAX_SOURCE_ARRAY_LENGTH = 16
+internal const val SOURCE_ARRAY_MODEL_CAPACITY = 16
 
+internal object TsDenseArrayModelSupport {
     val denseReceiverDomain = TsEtsIrUnknownCallModelDomainGuard { state, call, inputs ->
         val (array, arrayType) = state.concreteArray(call, inputs)
             ?: return@TsEtsIrUnknownCallModelDomainGuard state.ctx.falseExpr
         if (!state.hasDenseArrayShape(array, arrayType)) {
             return@TsEtsIrUnknownCallModelDomainGuard state.ctx.falseExpr
         }
-        state.boundedArrayGuard(array, arrayType, maximumLength = MAX_SOURCE_ARRAY_LENGTH)
+        state.boundedArrayGuard(array, arrayType, maximumLength = SOURCE_ARRAY_MODEL_CAPACITY)
     }
 
     val joinAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call ->
@@ -65,40 +65,40 @@ internal object TsDenseArrayModelSupport {
             state.ctx.mkBool(call.arguments.size == 2),
         )
     }
+}
 
-    private fun TsState.concreteArray(
-        call: TsUnknownCall,
-        inputs: List<UExpr<*>>,
-    ): Pair<UConcreteHeapRef, EtsArrayType>? {
-        val receiver = inputs.firstOrNull() as? UConcreteHeapRef ?: return null
-        if (with(ctx) { receiver.hasFakeValueBranch() }) return null
+internal fun TsState.concreteArray(
+    call: TsUnknownCall,
+    inputs: List<UExpr<*>>,
+): Pair<UConcreteHeapRef, EtsArrayType>? {
+    val receiver = inputs.firstOrNull() as? UConcreteHeapRef ?: return null
+    if (with(ctx) { receiver.hasFakeValueBranch() }) return null
 
-        val staticType = call.receiver?.source?.type ?: return null
-        val arrayType = arrayStorageType(receiver, staticType) as? EtsArrayType ?: return null
-        if (arrayType.dimensions != 1) return null
+    val staticType = call.receiver?.source?.type ?: return null
+    val arrayType = arrayStorageType(receiver, staticType) as? EtsArrayType ?: return null
+    if (arrayType.dimensions != 1) return null
 
-        return receiver to arrayType
-    }
+    return receiver to arrayType
+}
 
-    private fun TsState.boundedArrayGuard(
-        array: UConcreteHeapRef,
-        arrayType: EtsArrayType,
-        maximumLength: Int,
-    ): UBoolExpr = with(ctx) {
-        val length = memory.read(mkArrayLengthLValue(array, arrayType))
-        val minimumLength = mkBv(0)
-        val maximumLengthExpr = mkBv(maximumLength)
-        mkAnd(
-            memory.types.evalIsSubtype(array, arrayType),
-            mkBvSignedGreaterOrEqualExpr(length, minimumLength),
-            mkBvSignedLessOrEqualExpr(length, maximumLengthExpr),
-        )
-    }
+internal fun TsState.boundedArrayGuard(
+    array: UConcreteHeapRef,
+    arrayType: EtsArrayType,
+    maximumLength: Int,
+): UBoolExpr = with(ctx) {
+    val length = memory.read(mkArrayLengthLValue(array, arrayType))
+    val minimumLength = mkBv(0)
+    val maximumLengthExpr = mkBv(maximumLength)
+    mkAnd(
+        memory.types.evalIsSubtype(array, arrayType),
+        mkBvSignedGreaterOrEqualExpr(length, minimumLength),
+        mkBvSignedLessOrEqualExpr(length, maximumLengthExpr),
+    )
+}
 
-    private fun TsUnknownCall.resolvedInstanceInputs(): List<UExpr<*>>? {
-        val resolvedReceiver = receiver?.resolved ?: return null
-        val resolvedArguments = arguments.map { argument -> argument.resolved ?: return null }
+internal fun TsUnknownCall.resolvedInstanceInputs(): List<UExpr<*>>? {
+    val resolvedReceiver = receiver?.resolved ?: return null
+    val resolvedArguments = arguments.map { argument -> argument.resolved ?: return null }
 
-        return listOf(resolvedReceiver) + resolvedArguments
-    }
+    return listOf(resolvedReceiver) + resolvedArguments
 }
