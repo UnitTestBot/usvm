@@ -29,8 +29,8 @@ class NumberWithoutSdkTest {
 
     @Test
     fun `missing Number SDK class leaves constructor call residual`() {
-        val method = scene.projectClasses.single { it.name == "NumberWithoutSdk" }
-            .methods.single { it.name == "construct" }
+        val clazz = scene.projectClasses.single { it.name == "NumberWithoutSdk" }
+        val method = clazz.methods.single { it.name == "construct" }
         val observer = RecordingObserver()
 
         val states = TsMachine(
@@ -43,11 +43,13 @@ class NumberWithoutSdkTest {
             observer = observer,
         ).use { machine -> machine.analyze(listOf(method)) }
 
-        assertTrue(states.isNotEmpty())
-        assertTrue(observer.events.any { event ->
+        val freshReturnObserved = observer.events.any { event ->
             event.callee.name == CONSTRUCTOR_NAME &&
                 event.outcome == TsUnknownCallOutcome.FRESH_SYMBOLIC_RETURN
-        })
+        }
+
+        assertTrue(states.isNotEmpty())
+        assertTrue(freshReturnObserved)
     }
 
     private class RecordingObserver : TsInterpreterObserver {

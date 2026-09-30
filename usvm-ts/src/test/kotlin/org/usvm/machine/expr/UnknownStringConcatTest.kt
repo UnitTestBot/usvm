@@ -55,8 +55,8 @@ class UnknownStringConcatTest {
     }
 
     private fun analyze(methodName: String, observer: RecordingObserver): List<TsState> {
-        val method = scene.projectClasses.single { it.name == "UnknownStringConcat" }
-            .methods.single { it.name == methodName }
+        val clazz = scene.projectClasses.single { it.name == "UnknownStringConcat" }
+        val method = clazz.methods.single { it.name == methodName }
 
         return TsMachine(
             scene = scene,

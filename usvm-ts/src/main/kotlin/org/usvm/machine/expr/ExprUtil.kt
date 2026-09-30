@@ -14,8 +14,8 @@ import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.api.typeStreamOf
 import org.usvm.isFalse
 import org.usvm.machine.TsContext
-import org.usvm.machine.TsSizeSort
 import org.usvm.machine.TsRuntimeFeatureLimitationReason
+import org.usvm.machine.TsSizeSort
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState

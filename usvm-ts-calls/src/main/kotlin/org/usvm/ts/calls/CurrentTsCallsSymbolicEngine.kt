@@ -630,6 +630,7 @@ internal class CurrentTsCallsSymbolicEngine(
         private val runtimeLimitationSink: ((TsRuntimeFeatureLimitationEvent) -> Unit)?,
     ) : TsInterpreterObserver {
         val runtimeLimitations = linkedSetOf<String>()
+
         // Keep one telemetry record per unsupported storage and statement in this analysis.
         private val reportedArrayStorageLimitations = hashSetOf<Pair<EtsStmt, String>>()
 
