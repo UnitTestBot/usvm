@@ -5,14 +5,17 @@ import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsStringType
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
+import org.usvm.USymbolicHeapRef
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.api.typeStreamOf
 import org.usvm.isFalse
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsSizeSort
+import org.usvm.machine.TsRuntimeFeatureLimitationReason
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
@@ -33,9 +36,18 @@ fun TsContext.checkNotFake(expr: UExpr<*>) {
     }
 }
 
-internal fun TsContext.hasFakeReceiverType(scope: TsStepScope, receiver: UHeapRef): Boolean {
+internal fun TsContext.fieldReceiverLimitation(
+    scope: TsStepScope,
+    receiver: UHeapRef,
+): TsRuntimeFeatureLimitationReason? {
+    if (receiver !is UConcreteHeapRef && receiver !is USymbolicHeapRef) {
+        return TsRuntimeFeatureLimitationReason.CONDITIONAL_FIELD_RECEIVER
+    }
+
     val types = scope.calcOnState { memory.typeStreamOf(receiver).take(2) }
-    return types is TypesResult.SuccessfulTypesResult && types.types.any { it is EtsFakeType }
+    return TsRuntimeFeatureLimitationReason.FAKE_FIELD_RECEIVER_TYPE.takeIf {
+        types is TypesResult.SuccessfulTypesResult && types.types.any { it is EtsFakeType }
+    }
 }
 
 fun TsContext.mkTruthyExpr(

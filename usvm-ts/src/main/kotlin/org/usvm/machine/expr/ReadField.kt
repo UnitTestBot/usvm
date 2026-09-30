@@ -9,7 +9,6 @@ import org.jacodb.ets.model.EtsStaticFieldRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.machine.TsContext
-import org.usvm.machine.TsRuntimeFeatureLimitationReason
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.ensureStaticsInitialized
 import org.usvm.machine.types.EtsAuxiliaryType
@@ -47,10 +46,11 @@ internal fun TsExprResolver.handleInstanceFieldRef(
     // Check for undefined or null property access.
     checkUndefinedOrNullPropertyRead(scope, instance, propertyName = value.field.name) ?: return null
 
-    if (hasFakeReceiverType(scope, instance)) {
+    val receiverLimitation = fieldReceiverLimitation(scope, instance)
+    if (receiverLimitation != null) {
         reportRuntimeFeatureLimitation(
-            reason = TsRuntimeFeatureLimitationReason.FAKE_FIELD_RECEIVER_TYPE,
-            detail = "Field read requires an unresolved synthetic receiver: ${value.field.name}",
+            reason = receiverLimitation,
+            detail = "Field read requires an unsupported receiver: ${value.field.name}",
         )
         scope.assert(falseExpr)
         return null

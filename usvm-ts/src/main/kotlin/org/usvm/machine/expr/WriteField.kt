@@ -51,10 +51,11 @@ internal fun TsExprResolver.handleAssignToInstanceField(
     // Check for undefined or null field access.
     checkUndefinedOrNullPropertyRead(scope, instance, field.name) ?: return null
 
-    if (hasFakeReceiverType(scope, instance)) {
+    val receiverLimitation = fieldReceiverLimitation(scope, instance)
+    if (receiverLimitation != null) {
         reportRuntimeFeatureLimitation(
-            reason = TsRuntimeFeatureLimitationReason.FAKE_FIELD_RECEIVER_TYPE,
-            detail = "Field write requires an unresolved synthetic receiver: ${field.name}",
+            reason = receiverLimitation,
+            detail = "Field write requires an unsupported receiver: ${field.name}",
         )
         scope.assert(falseExpr)
         return null
