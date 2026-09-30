@@ -82,12 +82,12 @@ was reached within that search.
 
 ## Implementation and regression points
 
-- `fast-check-adapter/src/execute-property.ts` applies this contract to generation, explicit examples, replay, and
+- `usvm-ts-fast-check/fast-check-adapter/src/execute-property.ts` applies this contract to generation, explicit examples, replay, and
   shrinking through the existing fast-check invocation.
-- `fast-check-adapter/src/project-domain.ts` projects the declared Kotlin domains for concrete execution.
+- `usvm-ts-fast-check/fast-check-adapter/src/project-domain.ts` projects the declared Kotlin domains for concrete execution.
 - `UsvmPropertySearcher` applies this contract to USVM domain projection and search in one execution path.
   `PropertyExecutionConformanceTest` runs the same TypeScript fixture through `FastCheckBackend` and USVM.
-- `src/test/resources/properties/contract/PropertyExecutionContract.ts` is the shared observable fixture for
+- `usvm-ts-fast-check/src/test/resources/properties/contract/PropertyExecutionContract.ts` is the shared observable fixture for
   concrete and symbolic contract regressions.
 
 Replay remains ordinary concrete execution with the reported seed and path. It does not introduce a separate

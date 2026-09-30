@@ -222,7 +222,8 @@ input-resolution failure retain distinct statuses and are never treated as proof
 inputs remain attached when another explored path ends with unsupported execution or an engine failure. TypeScript
 exception handlers are unsupported until the symbolic interpreter can preserve catch semantics.
 
-The shared fixture in `src/test/resources/properties/contract/PropertyExecutionContract.ts` is executed by both
+The shared fixture in `usvm-ts-fast-check/src/test/resources/properties/contract/PropertyExecutionContract.ts` is
+executed by both
 `FastCheckBackend` and the single USVM search path. It covers precondition admission, rejection, exception and
 non-boolean results, plus false, throwing, literal-boolean-typed, never-typed, and non-boolean predicates. A shared
 mutation regression also verifies that a USVM candidate is reconstructed from the input before predicate mutation

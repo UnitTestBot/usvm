@@ -801,38 +801,40 @@ class TsInterpreter(
             }
 
             val parameterType = param.type
-            if (parameterType is EtsRefType) run {
-                state.pathConstraints += mkNot(mkHeapRefEq(ref, mkTsNullValue()))
-                state.pathConstraints += mkNot(mkHeapRefEq(ref, mkUndefinedValue()))
+            if (parameterType is EtsRefType) {
+                run {
+                    state.pathConstraints += mkNot(mkHeapRefEq(ref, mkTsNullValue()))
+                    state.pathConstraints += mkNot(mkHeapRefEq(ref, mkUndefinedValue()))
 
-                if (parameterType is EtsArrayType) {
-                    state.pathConstraints += state.memory.types.evalIsSubtype(ref, parameterType)
+                    if (parameterType is EtsArrayType) {
+                        state.pathConstraints += state.memory.types.evalIsSubtype(ref, parameterType)
 
-                    val lengthLValue = mkArrayLengthLValue(ref, parameterType)
-                    val length = state.memory.read(lengthLValue).asExpr(sizeSort)
-                    state.pathConstraints += mkBvSignedGreaterOrEqualExpr(length, mkBv(0))
-                    state.pathConstraints += mkBvSignedLessOrEqualExpr(length, mkBv(options.maxArraySize))
+                        val lengthLValue = mkArrayLengthLValue(ref, parameterType)
+                        val length = state.memory.read(lengthLValue).asExpr(sizeSort)
+                        state.pathConstraints += mkBvSignedGreaterOrEqualExpr(length, mkBv(0))
+                        state.pathConstraints += mkBvSignedLessOrEqualExpr(length, mkBv(options.maxArraySize))
 
-                    return@run
+                        return@run
+                    }
+
+                    // Tuple inputs are materialized as fixed-size arrays by domain-aware initial-state configurators.
+                    if (parameterType is EtsTupleType) {
+                        return@run
+                    }
+
+                    val resolvedParameterType = graph.hierarchy.classesForType(parameterType)
+
+                    if (resolvedParameterType.isEmpty()) {
+                        logger.error("Cannot resolve class for parameter type: $parameterType")
+                        return@run // TODO should be an error
+                    }
+
+                    // Because of structural equality in TS we cannot determine the exact type
+                    // Therefore, we create information about the fields the type must consist
+                    val types = resolvedParameterType.mapNotNull { it.type.toAuxiliaryType(graph.hierarchy) }
+                    val auxiliaryType = EtsUnionType(types) // TODO error
+                    state.pathConstraints += state.memory.types.evalIsSubtype(ref, auxiliaryType)
                 }
-
-                // Tuple inputs are materialized as fixed-size arrays by domain-aware initial-state configurators.
-                if (parameterType is EtsTupleType) {
-                    return@run
-                }
-
-                val resolvedParameterType = graph.hierarchy.classesForType(parameterType)
-
-                if (resolvedParameterType.isEmpty()) {
-                    logger.error("Cannot resolve class for parameter type: $parameterType")
-                    return@run // TODO should be an error
-                }
-
-                // Because of structural equality in TS we cannot determine the exact type
-                // Therefore, we create information about the fields the type must consist
-                val types = resolvedParameterType.mapNotNull { it.type.toAuxiliaryType(graph.hierarchy) }
-                val auxiliaryType = EtsUnionType(types) // TODO error
-                state.pathConstraints += state.memory.types.evalIsSubtype(ref, auxiliaryType)
             }
             if (parameterType == EtsNullType) {
                 state.pathConstraints += mkHeapRefEq(ref, mkTsNullValue())
