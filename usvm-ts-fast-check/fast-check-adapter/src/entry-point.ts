@@ -19,6 +19,13 @@ export interface LoadedEntryPoint {
   invoke(args: JsConcreteValue[]): boolean | Promise<boolean>;
 }
 
+/** Keeps user-thrown values distinct from adapter contract errors across external runners. */
+export class EntryPointInvocationError extends Error {
+  constructor(readonly thrownValue: unknown) {
+    super('Property entry point threw');
+  }
+}
+
 type EntryPointFunction = (...args: JsConcreteValue[]) => unknown;
 
 export async function loadEntryPoint(
@@ -183,7 +190,7 @@ function buildInvocation(
 ): (args: JsConcreteValue[]) => boolean | Promise<boolean> {
   if (executionKind === 'sync') {
     return (args: JsConcreteValue[]): boolean => {
-      const result = entryPoint(...args);
+      const result = invokeEntryPoint(entryPoint, args);
 
       if (isThenable(result)) {
         void Promise.resolve(result).catch(() => undefined);
@@ -199,7 +206,7 @@ function buildInvocation(
   }
 
   return async (args: JsConcreteValue[]): Promise<boolean> => {
-    const result = entryPoint(...args);
+    const result = invokeEntryPoint(entryPoint, args);
 
     if (!isThenable(result)) {
       throw protocolError(
@@ -209,8 +216,24 @@ function buildInvocation(
       );
     }
 
-    return requireBoolean(await result, referencePath);
+    return requireBoolean(await resolveEntryPoint(result), referencePath);
   };
+}
+
+function invokeEntryPoint(entryPoint: EntryPointFunction, args: JsConcreteValue[]): unknown {
+  try {
+    return entryPoint(...args);
+  } catch (error: unknown) {
+    throw new EntryPointInvocationError(error);
+  }
+}
+
+async function resolveEntryPoint(result: PromiseLike<unknown>): Promise<unknown> {
+  try {
+    return await result;
+  } catch (error: unknown) {
+    throw new EntryPointInvocationError(error);
+  }
 }
 
 function requireBoolean(result: unknown, referencePath: string): boolean {

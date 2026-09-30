@@ -77,6 +77,35 @@ class PropertyBasedTestingBackendTest {
     }
 
     @Test
+    fun `property violation requires a counterexample`() {
+        assertFailsWith<IllegalArgumentException> {
+            successfulResult().copy(
+                status = PropertyRunStatus.FAILURE,
+                failure = PropertyFailureDetails(
+                    kind = PropertyFailureKind.PROPERTY,
+                    errorName = "PropertyFailure",
+                    message = "predicate returned false",
+                ),
+            )
+        }
+    }
+
+    @Test
+    fun `non-violation failure rejects a counterexample`() {
+        assertFailsWith<IllegalArgumentException> {
+            successfulResult().copy(
+                status = PropertyRunStatus.FAILURE,
+                counterexample = listOf(JsConcreteValue.Boolean(false)),
+                failure = PropertyFailureDetails(
+                    kind = PropertyFailureKind.PRECONDITION_EXHAUSTED,
+                    errorName = "PreconditionExhausted",
+                    message = "discard budget exhausted",
+                ),
+            )
+        }
+    }
+
+    @Test
     fun `failure details preserve an empty thrown value message`() {
         val details = PropertyFailureDetails(
             kind = PropertyFailureKind.PROPERTY,

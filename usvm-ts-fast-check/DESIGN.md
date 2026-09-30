@@ -12,6 +12,8 @@ examples, see [README.md](README.md).
 - Per-property source coverage is an optional backend capability collected by Kotlin through an isolated c8 run.
 - A backend-neutral Kotlin mapping layer connects manifests and source coverage to EtsIR without changing the
   declarative property model.
+- One [property execution contract](../usvm-ts-pbt/PROPERTY_EXECUTION_CONTRACT.md) defines concrete, replay, projection, and
+  symbolic-search semantics.
 - The JSON exchange is one request and one response from the same packaged distribution; it has no persistence or
   compatibility negotiation.
 - Failures are typed without exposing runtime-dependent Node stack traces.
@@ -113,12 +115,11 @@ sequenceDiagram
     Backend-->>Caller: PropertyRunResult
 ```
 
-Input order is preserved from `PropertyDefinition.inputs` to the positional TypeScript arguments. If either the
-predicate or precondition is asynchronous, the adapter uses `fc.asyncProperty`; otherwise it uses `fc.property`.
-A false precondition becomes `fc.pre(false)`, leaving skip accounting to fast-check.
-Each callback receives its own recursive clone of the generated arguments. This keeps predicate and precondition
-mutations from changing fast-check's retained sample or leaking from one callback into the other during shrinking
-and replay, while preserving aliases and cycles within one invocation.
+The normative behavior is defined by the [property execution contract](../usvm-ts-pbt/PROPERTY_EXECUTION_CONTRACT.md).
+Mechanically, input order is preserved from `PropertyDefinition.inputs` to positional TypeScript arguments. If
+either entry point is asynchronous, the adapter uses `fc.asyncProperty`; otherwise it uses `fc.property`. A false
+precondition becomes `fc.pre(false)`, leaving skip accounting to fast-check. One `structuredClone` isolates each
+fast-check invocation; the precondition and predicate then receive that same clone in sequence.
 
 ## Results, errors, and timeouts
 
@@ -127,8 +128,9 @@ flowchart TD
     Check[Property execution] --> Held{Outcome}
     Held -->|held| Success[SUCCESS result]
     Held -->|falsified| Failure[FAILURE result with counterexample]
+    Held -->|discard budget exhausted| Discarded[FAILURE with PRECONDITION_EXHAUSTED]
     Held -->|fast-check timeout| TimeoutResult[FAILURE result with timeout details]
-    Held -->|typed adapter error| Diagnostic[Error response with explicit category]
+    Held -->|precondition or typed adapter error| Diagnostic[Error response with explicit category]
     Diagnostic --> Exception[PbtBackendException]
     Held -->|unexpected Node failure| Exit[Non-zero exit or invalid response]
     Exit --> Transport[PROCESS_FAILURE or PROTOCOL_ERROR]
@@ -136,9 +138,9 @@ flowchart TD
     Kill --> HardTimeout[TIMEOUT exception]
 ```
 
-Falsification and a timeout cleanly reported by fast-check are completed property results. Invalid input,
-entry-point failures, process failures, malformed responses, and the JVM hard timeout are infrastructure
-exceptions.
+Falsification, discard-budget exhaustion, and a timeout cleanly reported by fast-check are completed results with
+distinct failure kinds. Only falsification is a candidate property violation. Invalid input, entry-point contract
+failures, process failures, malformed responses, and the JVM hard timeout are infrastructure exceptions.
 
 Coverage collection failures use the separate `COVERAGE` infrastructure category. Stable diagnostics distinguish
 an unsupported backend or Node runtime, unavailable runtime version, missing collector, missing or malformed
@@ -283,6 +285,8 @@ classifier because `tsx` depends on a native esbuild package.
   fast-check: startup failure, non-zero exit, malformed output, explicit diagnostic categories, and hard timeout.
 - Backend integration tests execute real uncompiled TypeScript through the packaged adapter, including replay,
   shrinking, explicit examples, preconditions, async predicates, and timeouts.
+- Shared contract fixtures cover precondition admission, discard and errors; predicate violations and errors;
+  special values; aliases; mutation isolation; shrinking; and replay through observable outcomes.
 - Coverage golden tests assert literal TypeScript statement and branch outcomes for successful and falsified runs,
   cross-property isolation, scope and glob filtering, and source-map/report diagnostics.
 - Mapping golden tests load stable TypeScript fixtures through the native frontend and cover predicate,
