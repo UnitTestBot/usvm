@@ -25,6 +25,7 @@ internal object FastCheckDiagnosticCode {
     const val BACKEND_EXAMPLES_ARITY = "backend.examples.arity"
     const val BACKEND_EXAMPLES_DOMAIN = "backend.examples.domain"
     const val BACKEND_EXAMPLES_VALUE_INVALID = "backend.examples.value.invalid"
+    const val BACKEND_OBSERVATION_INVALID = "backend.observation.invalid"
     const val BACKEND_PROCESS_FAILED = "backend.process.failed"
     const val BACKEND_PROCESS_INTERRUPTED = "backend.process.interrupted"
     const val BACKEND_PROCESS_READ_FAILED = "backend.process.read.failed"

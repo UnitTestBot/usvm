@@ -13,8 +13,10 @@ export function expect<T>(value: T[]): { toHaveLength(expected: number): void } 
 }
 
 export function originalUniqueAssertion(arr: number[]): void {
+    observePoint('input-array', arr);
     const removeDuplicates = (values: number[]) => [...values];
     const filtered = removeDuplicates(arr);
+    observePoint('filtered-array', filtered);
     expect(filtered).toHaveLength(new Set(filtered).size);
 }
 
@@ -25,9 +27,17 @@ export function originalUniqueOracle(values: number[]): boolean {
 }
 
 export function correctUniqueOracle(values: number[]): boolean {
+    observePoint('input-array', values);
     const filtered = [...new Set(values)];
+    observePoint('filtered-array', filtered);
 
     expect(filtered).toHaveLength(new Set(filtered).size);
 
     return true;
+}
+
+function observePoint<T>(id: string, value: T): T {
+    const hook = (globalThis as Record<symbol, unknown>)[Symbol.for('org.usvm.ts.pbt.observe')];
+
+    return typeof hook === 'function' ? (hook as (pointId: string, value: T) => T)(id, value) : value;
 }
