@@ -13,9 +13,7 @@ export function buildPropertyArbitrary(manifest: PropertyManifestWire): fc.Arbit
       projectDomain(input.domain, `manifest.inputs[${index}].domain`)));
   }
 
-  if (generator.kind !== 'array-index' || generator.arrayInputIndex !== 0 || generator.indexInputIndex !== 1) {
-    throw protocolError(adapterDiagnostic.protocolManifestInvalid, 'Unsupported joint generator', 'manifest.generator');
-  }
+  validateJointGenerator(manifest);
 
   const array = projectDomain(manifest.inputs[0]?.domain, 'manifest.inputs[0].domain');
 
@@ -26,4 +24,36 @@ export function buildPropertyArbitrary(manifest: PropertyManifestWire): fc.Arbit
 
     return fc.integer({ min: 0, max: value.length - 1 }).map((index): JsConcreteValue[] => [value, index]);
   });
+}
+
+/** Checks the declared domains before a dependent arbitrary can sample outside either one. */
+export function validateJointGenerator(manifest: PropertyManifestWire): void {
+  const generator = manifest.generator;
+  if (generator === undefined) return;
+
+  const arrayDomain = manifest.inputs[0]?.domain;
+  const indexDomain = manifest.inputs[1]?.domain;
+  const array = asRecord(arrayDomain);
+  const index = asRecord(indexDomain);
+  const valid = generator.kind === 'array-index'
+    && generator.arrayInputIndex === 0 && generator.indexInputIndex === 1
+    && manifest.inputs.length === 2
+    && array?.kind === 'array' && Number.isInteger(array.minLength) && Number.isInteger(array.maxLength)
+    && (array.minLength as number) >= 1 && (array.maxLength as number) <= 32
+    && (array.minLength as number) <= (array.maxLength as number)
+    && index?.kind === 'integer' && index.min === 0
+    && index.max === (array.maxLength as number) - 1;
+  if (!valid) {
+    throw protocolError(
+      adapterDiagnostic.protocolManifestInvalid,
+      'Array-index generator requires a nonempty bounded array and index domain 0..maxLength-1',
+      'manifest.generator',
+    );
+  }
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
 }
