@@ -2,27 +2,21 @@ package org.usvm.machine.expr
 
 import io.ksmt.utils.asExpr
 import mu.KotlinLogging
-import org.jacodb.ets.model.EtsClassSignature
-import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsStaticFieldRef
-import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
-import org.usvm.api.typeStreamOf
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.ensureStaticsInitialized
 import org.usvm.machine.types.EtsAuxiliaryType
 import org.usvm.machine.types.mkFakeValue
-import org.usvm.types.singleOrNull
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.TsResolutionResult
 import org.usvm.util.createFakeField
 import org.usvm.util.mkFieldLValue
-import org.usvm.util.resolveEtsField
 
 private val logger = KotlinLogging.logger {}
 
@@ -70,27 +64,13 @@ fun TsContext.readField(
 ): UExpr<*>? {
     checkNotFake(instance)
 
-    val isUnresolvedErrorField = field.isUnresolvedErrorField()
-    val candidateErrorStorageField = field.errorModelStorageField()
-    val concreteRuntimeType = (instance as? UConcreteHeapRef)
-        ?.takeIf { candidateErrorStorageField != null }
-        ?.let { concreteInstance ->
-            scope.calcOnState { memory.typeStreamOf(concreteInstance).singleOrNull() }
-        }
-    val errorStorageField = candidateErrorStorageField.takeIf {
-        concreteRuntimeType == EtsClassType(signature = builtInErrorSignature)
-    }
-    val isErrorModelStorageField = errorStorageField != null
-    val etsField = when {
-        isErrorModelStorageField -> TsResolutionResult.Empty
-        isUnresolvedErrorField -> resolveEtsField(
-            instance = instanceLocal,
-            field = field.copy(enclosingClass = EtsClassSignature.UNKNOWN),
-            hierarchy = hierarchy,
-        )
-        else -> resolveEtsField(instanceLocal, field, hierarchy)
-    }
-    val isModelStorageField = field.isModelStorageField() || isErrorModelStorageField
+    val (errorStorageField, etsField, isModelStorageField) = resolveModelStorageField(
+        scope = scope,
+        instanceLocal = instanceLocal,
+        instance = instance,
+        field = field,
+        hierarchy = hierarchy,
+    )
     val sort = when (etsField) {
         is TsResolutionResult.Empty -> {
             if (!isModelStorageField) {
@@ -150,12 +130,6 @@ fun TsContext.readField(
             fakeObj
         }
     }
-}
-
-private fun EtsFieldSignature.isModelStorageField(): Boolean = when (enclosingClass.name) {
-    "DateValue" -> name == "timestamp"
-    "ErrorValue" -> isErrorModelStorageDefinitionField()
-    else -> false
 }
 
 internal fun TsExprResolver.handleStaticFieldRef(
