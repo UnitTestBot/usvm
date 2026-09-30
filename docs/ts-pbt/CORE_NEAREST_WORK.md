@@ -21,6 +21,7 @@ The supplied private 2026 Go/gopter + usvm-go thesis is **not redistributed** he
 | Assertion focus adds value beyond generic invariants | Focused versus unfocused inference, equal vocabulary/target budget and controlled target ordering. | Planned contrast only. |
 | Observed relations add value beyond coverage/templates/output novelty | Coverage-only, observation-independent templates and output-novelty controls on the same eligible cases and budget. | Planned contrast only. |
 | Extensions add value | End-to-end #400–#403 enable/disable comparisons on their supported strata after the core checkpoint. | Out of this early checkpoint. |
-| Any bounded symbolic conclusion is sound | Precisely stated support, guards, context and solver assumptions plus original-runtime replay; finite unsuccessful search is no proof. | No proof claim. |
+| A concrete witness is valid | Original-runtime replay of that exact input against the original predicate, with admissibility and execution outcome recorded. This confirms the witness only. | No witness from a search campaign yet. |
+| Any bounded symbolic conclusion is sound | A separate argument for the model, supported semantics, binding/guards, solver assumptions and bounded scope; replay cannot establish general soundness or completeness, and finite unsuccessful search proves no property. | No proof claim or proof argument. |
 
 The final ledger must link each empirical statement to a pinned implementation revision, corpus manifest, raw run IDs and table-regeneration command. #405 may report a negative or inconclusive pilot without turning functional completion into an improvement claim. No manuscript or external publication is in this PR.
