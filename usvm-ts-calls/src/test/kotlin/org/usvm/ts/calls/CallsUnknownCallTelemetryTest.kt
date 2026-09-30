@@ -4,6 +4,8 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
+import org.usvm.machine.TsRuntimeFeatureLimitationEvent
+import org.usvm.machine.TsRuntimeFeatureLimitationReason
 import org.usvm.machine.call.TsResidualCallPolicy
 import org.usvm.machine.call.TsUnknownCallDecision
 import org.usvm.machine.call.TsUnknownCallEvent
@@ -17,6 +19,54 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 class CallsUnknownCallTelemetryTest {
+    @Test
+    fun `observer records array storage limitation once per statement and detail`() {
+        val source = resourcePath("/calls/SourceTargetReplayFixture.ts")
+        val file = loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)
+        val method = file.allClasses.flatMap { cls -> cls.methods }
+            .single { candidate -> candidate.name == "completesReturnExpression" }
+        val statements = method.cfg.stmts.take(2)
+        val records = mutableListOf<TsRuntimeFeatureLimitationEvent>()
+        val observer = CurrentTsCallsSymbolicEngine.UnknownCallEventSinkObserver(
+            sink = null,
+            runtimeLimitationSink = records::add,
+        )
+        val arrayStorage = TsRuntimeFeatureLimitationEvent(
+            statement = statements[0],
+            reason = TsRuntimeFeatureLimitationReason.ARRAY_STORAGE_TYPE,
+            detail = "storage=Uint8Array",
+        )
+        val otherStorage = arrayStorage.copy(detail = "storage=Uint16Array")
+        val otherStatement = arrayStorage.copy(statement = statements[1])
+        val otherReason = arrayStorage.copy(reason = TsRuntimeFeatureLimitationReason.ARRAY_NAMED_PROPERTY_READ)
+
+        // Repeated callbacks represent different states reaching the same unsupported access.
+        observer.onRuntimeFeatureLimitation(arrayStorage)
+        observer.onRuntimeFeatureLimitation(arrayStorage)
+        observer.onRuntimeFeatureLimitation(otherStorage)
+        observer.onRuntimeFeatureLimitation(otherStatement)
+        observer.onRuntimeFeatureLimitation(otherReason)
+        observer.onRuntimeFeatureLimitation(otherReason)
+
+        assertEquals(
+            listOf(arrayStorage, otherStorage, otherStatement, otherReason, otherReason),
+            records,
+        )
+        assertEquals(
+            setOf("ARRAY_STORAGE_TYPE", "ARRAY_NAMED_PROPERTY_READ"),
+            observer.runtimeLimitations,
+        )
+
+        val nextAnalysisRecords = mutableListOf<TsRuntimeFeatureLimitationEvent>()
+        val nextAnalysis = CurrentTsCallsSymbolicEngine.UnknownCallEventSinkObserver(
+            sink = null,
+            runtimeLimitationSink = nextAnalysisRecords::add,
+        )
+        nextAnalysis.onRuntimeFeatureLimitation(arrayStorage)
+
+        assertEquals(listOf(arrayStorage), nextAnalysisRecords)
+    }
+
     @Test
     fun `sink converts unknown call events into ordered serializable cell records`() {
         val source = resourcePath("/calls/SourceTargetReplayFixture.ts")
