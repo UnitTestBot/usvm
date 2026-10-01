@@ -1,5 +1,7 @@
 package org.usvm.machine.call
 
+import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.EtsIrProvider
@@ -58,9 +60,19 @@ class TsErrorEtsIrModelTest {
         val result = analyze(scene = builtInScene, className = "ErrorEtsIr", methodName = "throwError")
 
         assertEquals(1, result.states.size)
-        assertIs<TsMethodResult.TsException>(result.states.single().methodResult)
+        val exception = assertIs<TsMethodResult.TsException>(result.states.single().methodResult)
+        assertEquals(EtsClassType(EtsClassSignature.UNKNOWN.copy(name = "Error")), exception.type)
         assertEquals(listOf(TsErrorEtsIrModelFamily.CONSTRUCTOR_ID), result.modelIds)
         assertTrue(result.values.single() is TsTestValue.TsException)
+    }
+
+    @Test
+    fun `modeled TypeError retains its type when thrown`() {
+        val result = analyze(scene = builtInScene, className = "ErrorEtsIr", methodName = "throwTypeError")
+
+        val exception = assertIs<TsMethodResult.TsException>(result.states.single().methodResult)
+        assertEquals(EtsClassType(EtsClassSignature.UNKNOWN.copy(name = "TypeError")), exception.type)
+        assertEquals(listOf("ts.typeError.constructor"), result.modelIds)
     }
 
     @Test

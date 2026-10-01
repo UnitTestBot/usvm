@@ -53,6 +53,7 @@ fun loadEtsIrUnknownCallModelArtifact(
     entryPointMethodName: String,
 ): TsEtsIrUnknownCallModelArtifact {
     val irPath = generateEtsIR(
+        keepPartialOutputOnFailure = false,
         projectPath = sourcePath,
         isProject = false,
         loadEntrypoints = true,
