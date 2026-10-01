@@ -10,6 +10,8 @@ import org.usvm.ts.pbt.backend.SourceFileCoverage
 import org.usvm.ts.pbt.fastcheck.FastCheckBackend
 import org.usvm.ts.pbt.fastcheck.TypeScriptSourceInspector
 import org.usvm.ts.pbt.model.JsConcreteValue
+import org.usvm.ts.pbt.model.BooleanDomain
+import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.PropertyDefinition
 import org.usvm.ts.pbt.model.PropertyId
 import org.usvm.ts.pbt.model.TypeScriptEntryPoint
@@ -46,6 +48,7 @@ internal class OriginalTypeScriptCoverageReplayer(
     private val overlayRoot = workspace.resolve("source-overlay")
     private val observationPath = workspace.resolve("observation.json")
     private val wrapperName = ".usvm-coverage-${UUID.randomUUID()}.ts"
+    private val usesSentinel = function.inputs.isEmpty()
     private val allowedFiles: Set<String>
     private val backend: FastCheckBackend
 
@@ -74,6 +77,7 @@ internal class OriginalTypeScriptCoverageReplayer(
                     sourceFile = function.sourceFile,
                     exportName = function.entryPoint.exportName,
                     observationPath = observationPath,
+                    dropSentinel = usesSentinel,
                 ),
             )
             backend = FastCheckBackend(sourceRoots = listOf(overlayRoot, this.sourceRoot))
@@ -92,14 +96,18 @@ internal class OriginalTypeScriptCoverageReplayer(
         val result = backend.run(
             property = PropertyDefinition(
                 id = PropertyId("calls.coverage.replay"),
-                inputs = function.inputs,
+                inputs = if (usesSentinel) {
+                    listOf(PropertyInput(name = "__usvmCoverageSentinel", domain = BooleanDomain))
+                } else {
+                    function.inputs
+                },
                 predicate = TypeScriptEntryPoint(module = wrapperName, exportName = "coverageProbe"),
             ),
             configuration = PropertyRunConfiguration(
                 seed = 0,
                 numRuns = 1,
                 timeoutMillis = timeoutMillis,
-                examples = listOf(inputs),
+                examples = listOf(if (usesSentinel) listOf(JsConcreteValue.Boolean(true)) else inputs),
                 coverageRequest = PropertyCoverageRequest(scopes = setOf(CoverageScope.SOURCE_UNDER_TEST)),
             ),
         )
@@ -184,10 +192,16 @@ private fun collectHits(
 private fun org.usvm.ts.pbt.backend.SourceRange.stableKey(): String =
     "${start.line}:${start.column}-${end.line}:${end.column}"
 
-private fun coverageWrapper(sourceFile: String, exportName: String, observationPath: Path): String {
+private fun coverageWrapper(
+    sourceFile: String,
+    exportName: String,
+    observationPath: Path,
+    dropSentinel: Boolean,
+): String {
     val moduleName = CallsExperimentJson.json.encodeToUtf8SafeString("./$sourceFile")
     val exportKey = CallsExperimentJson.json.encodeToUtf8SafeString(exportName)
     val outputPath = CallsExperimentJson.json.encodeToUtf8SafeString(observationPath.toString())
+    val sentinelExpression = if (dropSentinel) "args.slice(1)" else "args"
 
     return """
         import { writeFileSync } from 'node:fs';
@@ -215,10 +229,11 @@ private fun coverageWrapper(sourceFile: String, exportName: String, observationP
         }
 
         export function coverageProbe(...args: unknown[]): boolean {
+          const actualArgs = $sentinelExpression;
           let completion: 'RETURNED' | 'THREW' = 'RETURNED';
           let errorName: string | undefined;
           try {
-            const result = callable(...args);
+            const result = callable(...actualArgs);
             if (result !== null && (typeof result === 'object' || typeof result === 'function')
               && typeof (result as { then?: unknown }).then === 'function') {
               throw new Error('Synchronous coverage export returned an awaitable value');
@@ -227,7 +242,7 @@ private fun coverageWrapper(sourceFile: String, exportName: String, observationP
             completion = 'THREW';
             errorName = error instanceof Error ? error.name : typeof error;
           }
-          writeFileSync($outputPath, JSON.stringify({ inputs: args.map(encodeValue), completion, errorName }), 'utf8');
+          writeFileSync($outputPath, JSON.stringify({ inputs: actualArgs.map(encodeValue), completion, errorName }), 'utf8');
 
           return true;
         }

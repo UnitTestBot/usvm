@@ -77,6 +77,25 @@ class CallsCoverageExperimentTest {
         assertTrue(replay.coveredStatementKeys.isNotEmpty())
     }
 
+    @Test
+    fun `coverage replay accepts an entry function with no inputs`() {
+        val fixture = fixture(
+            source = "export function constant(): number { return 42; }",
+            exportName = "constant",
+            inputs = emptyList(),
+        )
+
+        val replay = OriginalTypeScriptCoverageReplayer(
+            sourceRoot = fixture.sourceRoot,
+            function = fixture.function,
+        ).use { replayer ->
+            replayer.replay(inputs = emptyList(), timeoutMillis = 20_000L)
+        }
+
+        assertEquals(CallsCoverageCompletion.RETURNED, replay.completion)
+        assertTrue(replay.coveredStatementKeys.isNotEmpty())
+    }
+
     private fun coverageRequest(
         fixture: CoverageFixture,
         onCandidate: (CallsCoverageCandidate) -> Unit,
