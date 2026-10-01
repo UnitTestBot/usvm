@@ -12,22 +12,34 @@ import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.machine.types.mkFakeValue
+import org.usvm.solver.USatResult
+import org.usvm.solver.UUnknownResult
+import org.usvm.solver.UUnsatResult
 
 fun mockMethodCall(
     scope: TsStepScope,
     method: EtsMethodSignature,
     resultType: EtsType = method.returnType,
-) {
+): Boolean {
     val prepared = prepareFreshUnknownCallResult(scope, resultType)
     prepared.admissibilityGuard?.let { guard ->
-        requireNotNull(scope.assert(guard)) {
-            "A fresh string result must admit the string type"
+        val state = scope.calcOnState { this }
+        if (scope.assert(guard) == null) {
+            val constraints = state.pathConstraints.clone()
+            constraints += guard
+
+            when (state.ctx.solver<EtsType>().check(constraints)) {
+                is UUnsatResult -> return false
+                is UUnknownResult -> error("Solver could not decide fresh string type for $method")
+                is USatResult -> error("Fresh string type was satisfiable after its fork failed for $method")
+            }
         }
     }
 
     scope.doWithState {
         setMockMethodCallResult(method, prepared.value)
     }
+    return true
 }
 
 /** Stores a prepared opaque result on this state without applying callee effects or exceptions. */

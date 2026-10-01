@@ -105,7 +105,9 @@ object TsCompatibilityUnknownCallDispatcher : TsUnknownCallDispatcher {
             TsUnknownCallFailureReason.INTERPROCEDURAL_ANALYSIS_DISABLED,
             TsUnknownCallFailureReason.LOGGING_CALL,
             -> {
-                mockMethodCall(scope, call.callee)
+                if (!mockMethodCall(scope, call.callee)) {
+                    return TsUnknownCallOutcome.PATH_STOPPED
+                }
                 scope.doWithState { newStmt(call.callSite) }
                 return TsUnknownCallOutcome.FRESH_SYMBOLIC_RETURN
             }

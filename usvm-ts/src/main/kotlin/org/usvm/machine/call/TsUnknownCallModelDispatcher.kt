@@ -61,7 +61,9 @@ class TsModelUnknownCallDispatcher(
             }
 
             TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN -> {
-                mockMethodCall(scope, call.callee, call.resultType)
+                if (!mockMethodCall(scope, call.callee, call.resultType)) {
+                    return TsUnknownCallOutcome.PATH_STOPPED
+                }
                 scope.doWithState { newStmt(call.callSite) }
             }
         }
