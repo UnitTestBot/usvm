@@ -1,10 +1,13 @@
 package org.usvm.util
 
+import io.ksmt.expr.KBitVec16Value
+import io.ksmt.sort.KBv16Sort
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsStringType
+import org.jacodb.ets.model.EtsType
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
@@ -13,10 +16,50 @@ import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArrayLength
 import org.usvm.api.memcpy
 import org.usvm.machine.TsSizeSort
+import org.usvm.machine.expr.extractInt
 import org.usvm.machine.state.TsState
+import org.usvm.model.UModelBase
 import org.usvm.sizeSort
 
 internal val STRING_CHARACTER_ARRAY_TYPE = EtsArrayType(EtsNumberType, dimensions = 1)
+private const val UTF16_CODE_UNIT_MASK = 0xffff
+
+/** Builds a bounded string in the engine's UTF-16 layout, constraining its length to the supplied capacity. */
+fun TsState.mkStringFromCodeUnits(
+    length: UExpr<TsSizeSort>,
+    codeUnits: List<UExpr<KBv16Sort>>,
+): UConcreteHeapRef = with(ctx) {
+    pathConstraints += mkBvSignedGreaterOrEqualExpr(length, mkBv(0))
+    pathConstraints += mkBvSignedLessOrEqualExpr(length, mkBv(codeUnits.size))
+    val (string, characters) = allocateString(length = length, maxLength = codeUnits.size)
+    codeUnits.forEachIndexed { index, unit ->
+        val position = mkBv(index)
+        memory.write(
+            mkArrayIndexLValue(bv16Sort, characters, position, STRING_CHARACTER_ARRAY_TYPE),
+            unit,
+            guard = mkBvSignedLessExpr(position, length),
+        )
+    }
+
+    string
+}
+
+/** Reads a bounded string from current memory under [model]; returns null for untracked, nonconstant refs. */
+fun TsState.resolveStringFromModel(model: UModelBase<EtsType>, ref: UConcreteHeapRef): String? = with(ctx) {
+    val maxLength = stringMaxLengths[ref] ?: return@with getStringConstantValue(ref)
+    val characters = stringCharacters(ref)
+    val length = model.eval(stringLength(ref)).extractInt()
+    require(length in 0..maxLength) { "Resolved string length $length exceeds its stored bounds" }
+
+    buildString(length) {
+        repeat(length) { index ->
+            val slot = mkArrayIndexLValue(bv16Sort, characters, mkBv(index), STRING_CHARACTER_ARRAY_TYPE)
+            val unit = memory.read(slot)
+            val resolved = model.eval(unit) as KBitVec16Value
+            append((resolved.shortValue.toInt() and UTF16_CODE_UNIT_MASK).toChar())
+        }
+    }
+}
 
 internal fun TsState.stringCharacters(receiver: UHeapRef): UHeapRef = with(ctx) {
     memory.read(mkFieldLValue(addressSort, receiver, "value")).asExpr(addressSort)

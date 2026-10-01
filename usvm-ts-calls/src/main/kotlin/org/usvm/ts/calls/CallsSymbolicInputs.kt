@@ -9,7 +9,6 @@ import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsLexicalEnvType
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsNumberType
-import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUnclearRefType
 import org.usvm.UBoolExpr
@@ -37,10 +36,10 @@ import org.usvm.ts.pbt.model.PropertyDomain
 import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.StringDomain
 import org.usvm.util.markDenseInputArray
-import org.usvm.util.markStringMaxLength
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
+import org.usvm.util.mkStringFromCodeUnits
 
 internal fun PropertyDomain.isSupportedCallsSymbolicDomain(): Boolean = when (this) {
     BooleanDomain, is NumberDomain, is StringDomain -> true
@@ -202,39 +201,11 @@ private fun TsState.initializeStringInput(
     stackSlot: Int,
     domain: StringDomain,
 ): StringInputSnapshot = with(ctx) {
-    val stringRef = memory.allocConcrete(EtsStringType)
-    val characterArrayType = EtsArrayType(EtsNumberType, dimensions = 1)
-    val descriptor = arrayDescriptorOf(characterArrayType)
-    val charactersRef = memory.allocConcrete(descriptor)
     val length: UExpr<TsSizeSort> = makeSymbolicPrimitive(sizeSort)
     val codeUnits: List<UExpr<KBv16Sort>> = List(domain.maxLength) { makeSymbolicPrimitive(bv16Sort) }
 
     constrainLength(length = length, minLength = domain.minLength, maxLength = domain.maxLength)
-    memory.initializeArrayLength(
-        arrayHeapRef = charactersRef,
-        type = descriptor,
-        sizeSort = sizeSort,
-        count = length,
-    )
-    codeUnits.forEachIndexed { index, codeUnit ->
-        val liveIndex = mkBvSignedLessExpr(mkBv(index), length)
-        memory.write(
-            mkArrayIndexLValue(
-                sort = bv16Sort,
-                ref = charactersRef,
-                index = mkBv(index),
-                type = characterArrayType,
-            ),
-            codeUnit,
-            guard = liveIndex,
-        )
-    }
-    memory.write(
-        mkFieldLValue(addressSort, stringRef, "value"),
-        charactersRef.asExpr(addressSort),
-        guard = trueExpr,
-    )
-    markStringMaxLength(string = stringRef, maxLength = domain.maxLength)
+    val stringRef = mkStringFromCodeUnits(length = length, codeUnits = codeUnits)
     memory.write(
         mkRegisterStackLValue(addressSort, stackSlot),
         stringRef.asExpr(addressSort),

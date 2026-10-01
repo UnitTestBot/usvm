@@ -3,7 +3,6 @@ package org.usvm.ts.calls
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.usvm.PathSelectionStrategy
 import org.usvm.machine.TsRuntimeFeatureLimitationEvent
@@ -12,6 +11,7 @@ import org.usvm.machine.call.TsUnknownCallEvent
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.TypeScriptEntryPoint
+import org.usvm.ts.pbt.model.encodeToUtf8SafeString
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
@@ -247,7 +247,7 @@ internal object CallsExperimentJson {
 
     fun decodeManifest(value: String): CallsExperimentManifest = json.decodeFromString(value)
 
-    fun encodeManifest(manifest: CallsExperimentManifest): String = json.encodeToString(manifest)
+    fun encodeManifest(manifest: CallsExperimentManifest): String = json.encodeToUtf8SafeString(manifest)
 }
 
 internal object CallsBuildIdentity {
@@ -470,7 +470,7 @@ internal class CallsExperimentRunner(
     private fun append(path: Path, record: CallsRawRecord) {
         Files.writeString(
             path,
-            CallsExperimentJson.json.encodeToString<CallsRawRecord>(record) + "\n",
+            CallsExperimentJson.json.encodeToUtf8SafeString<CallsRawRecord>(record) + "\n",
             StandardOpenOption.CREATE,
             StandardOpenOption.APPEND,
         )

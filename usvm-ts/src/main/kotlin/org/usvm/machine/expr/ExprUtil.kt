@@ -46,7 +46,7 @@ internal fun TsContext.fieldReceiverLimitation(
 
     val types = scope.calcOnState { memory.typeStreamOf(receiver).take(2) }
     return TsRuntimeFeatureLimitationReason.FAKE_FIELD_RECEIVER_TYPE.takeIf {
-        types is TypesResult.SuccessfulTypesResult && types.types.any { it is EtsFakeType }
+        types is TypesResult.SuccessfulTypesResult && types.types.any { type -> type is EtsFakeType }
     }
 }
 

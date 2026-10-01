@@ -11,6 +11,26 @@ import kotlin.test.assertNotNull
 
 class CallsSourceReplayTest {
     @Test
+    fun `original source replay preserves an isolated UTF-16 surrogate`() {
+        val fixture = fixture()
+        val target = fixture.target(functionName = "isolatedSurrogate", statement = "return 13;")
+
+        val surrogate = fixture.replay(
+            exportName = "isolatedSurrogate",
+            inputs = listOf(JsConcreteValue.String("\ud800")),
+            target = target,
+        )
+        val replacement = fixture.replay(
+            exportName = "isolatedSurrogate",
+            inputs = listOf(JsConcreteValue.String("?")),
+            target = target,
+        )
+
+        assertEquals(CallsReplayStatus.CONFIRMED, surrogate.status, surrogate.toString())
+        assertEquals(CallsReplayStatus.REJECTED, replacement.status, replacement.toString())
+    }
+
+    @Test
     fun `confirms only the exact source statement reached by original TypeScript`() {
         val fixture = fixture()
         val taken = fixture.target(functionName = "inlineChoose", statement = "return 1;")
