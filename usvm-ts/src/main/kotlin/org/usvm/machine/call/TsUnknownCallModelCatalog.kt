@@ -2,6 +2,7 @@ package org.usvm.machine.call
 
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsFileSignature
+import org.usvm.machine.call.intrinsic.TsDateEtsIrModelFamily
 import org.usvm.machine.state.TsState
 import java.util.Collections
 import java.util.IdentityHashMap
@@ -74,13 +75,29 @@ class TsUnknownCallModelCatalog(
         return candidates[call.callee.enclosingClass.name] ?: candidates[null]
     }
 
+    internal fun hasTarget(
+        methodName: String,
+        enclosingClassName: String,
+        failureReason: TsUnknownCallFailureReason,
+        allowUnqualifiedTarget: Boolean,
+    ): Boolean {
+        val candidates = index[methodName]?.get(failureReason) ?: return false
+        return enclosingClassName in candidates || (allowUnqualifiedTarget && null in candidates)
+    }
+
     fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelApplication {
-        val model = select(call) ?: return TsUnknownCallModelApplication.NotApplicable
+        val directModel = select(call)
+        val modelCall = if (directModel == null) {
+            TsDateEtsIrModelFamily.canonicalModelCall(state, call) ?: call
+        } else {
+            call
+        }
+        val model = directModel ?: select(modelCall) ?: return TsUnknownCallModelApplication.NotApplicable
         if (state.isUnknownCallModelActive(model.id)) {
             return TsUnknownCallModelApplication.NotApplicable
         }
 
-        val execution = model.apply(state, call) ?: return TsUnknownCallModelApplication.NotApplicable
+        val execution = model.apply(state, modelCall) ?: return TsUnknownCallModelApplication.NotApplicable
 
         return TsUnknownCallModelApplication.Applied(
             modelId = model.id,

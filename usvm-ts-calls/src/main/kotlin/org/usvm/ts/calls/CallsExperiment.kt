@@ -276,6 +276,7 @@ internal class CallsExperimentRunner(
     private val symbolicEngine: CallsSymbolicEngine,
     private val targetReplayer: CallsTargetReplayer,
     private val runtimeToolRevision: String = CallsBuildIdentity.toolRevision,
+    private val eventRecordWriter: ((Path, CallsRawRecord) -> Unit)? = null,
 ) {
     fun run(
         manifest: CallsExperimentManifest,
@@ -387,7 +388,10 @@ internal class CallsExperimentRunner(
                         target = target,
                         seed = seed,
                         profile = profile,
-                        appendUnknownCall = { event -> append(rawOutput, event) },
+                        appendUnknownCall = { event ->
+                            val writer = eventRecordWriter
+                            if (writer == null) append(rawOutput, event) else writer(rawOutput, event)
+                        },
                     )
 
                     append(rawOutput, result)
@@ -417,18 +421,22 @@ internal class CallsExperimentRunner(
             seed = seed,
             budget = manifest.perTargetBudgetMillis.milliseconds,
         )
+        val eventWrites = CallsEventWriteTracker()
+        val unknownCallSink = callsUnknownCallEventSink(
+            cell = request.cellIdentity(experimentId = manifest.experimentId),
+            appendAndFlush = appendUnknownCall,
+        )
+        val runtimeLimitationSink = callsRuntimeLimitationEventSink(
+            cell = request.cellIdentity(experimentId = manifest.experimentId),
+            appendAndFlush = appendUnknownCall,
+        )
         val symbolic = symbolicEngine.search(
             request.copy(
-                unknownCallEventSink = callsUnknownCallEventSink(
-                    cell = request.cellIdentity(experimentId = manifest.experimentId),
-                    appendAndFlush = appendUnknownCall,
-                ),
-                runtimeLimitationEventSink = callsRuntimeLimitationEventSink(
-                    cell = request.cellIdentity(experimentId = manifest.experimentId),
-                    appendAndFlush = appendUnknownCall,
-                ),
+                unknownCallEventSink = eventWrites.track(unknownCallSink),
+                runtimeLimitationEventSink = eventWrites.track(runtimeLimitationSink),
             ),
         )
+        eventWrites.requireComplete()
         val replay = symbolic.inputs?.let { inputs ->
             targetReplayer.replay(
                 sourceRoots = listOf(sourceRoot),
@@ -474,6 +482,23 @@ internal class CallsExperimentRunner(
             StandardOpenOption.CREATE,
             StandardOpenOption.APPEND,
         )
+    }
+}
+
+private class CallsEventWriteTracker {
+    private var firstFailure: Throwable? = null
+
+    fun <T> track(sink: (T) -> Unit): (T) -> Unit = { event ->
+        runCatching { sink(event) }.getOrElse { error ->
+            if (firstFailure == null) firstFailure = error
+            throw error
+        }
+    }
+
+    fun requireComplete() {
+        firstFailure?.let { error ->
+            throw IllegalStateException("Could not persist a Calls event", error)
+        }
     }
 }
 

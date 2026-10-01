@@ -11,6 +11,13 @@ export function throwsAtTarget(): never {
   throw new Error('expected');
 }
 
+export function checksArgumentCount(): number {
+  if (arguments.length !== 0) {
+    return 1;
+  }
+  return 0;
+}
+
 export function importOnlyTarget(): number {
   return 7;
 }

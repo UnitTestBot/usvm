@@ -6,6 +6,8 @@ import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFunctionType
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsStringType
+import org.jacodb.ets.model.EtsUnclearRefType
+import org.jacodb.ets.model.EtsValue
 import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.usvm.UExpr
 import org.usvm.api.typeStreamOf
@@ -27,6 +29,51 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
     private const val RESOURCE = "/org/usvm/machine/call/models/DateModels.ts"
     private val builtinDateSignature = EtsClassSignature.UNKNOWN.copy(name = DATE_CLASS)
     private val builtinDateType = EtsClassType(signature = builtinDateSignature)
+    private val getterNames = listOf(
+        "getDate",
+        "getDay",
+        "getFullYear",
+        "getHours",
+        "getMilliseconds",
+        "getMinutes",
+        "getMonth",
+        "getSeconds",
+        "getTime",
+        "getTimezoneOffset",
+        "getUTCDate",
+        "getUTCDay",
+        "getUTCFullYear",
+        "getUTCHours",
+        "getUTCMilliseconds",
+        "getUTCMinutes",
+        "getUTCMonth",
+        "getUTCSeconds",
+        "toISOString",
+        "valueOf",
+    )
+
+    /** Normalize only model lookup; residual calls and observation retain the frontend signature. */
+    internal fun canonicalModelCall(state: TsState, call: TsUnknownCall): TsUnknownCall? {
+        if (call.callee.enclosingClass.name == DATE_CLASS) return null
+
+        val receiverValue = call.receiver ?: return null
+        if (!isDateReceiver(state, receiverValue.source, receiverValue.resolved)) return null
+
+        return call.copy(callee = call.callee.copy(enclosingClass = builtinDateSignature))
+    }
+
+    internal fun isDateReceiver(state: TsState, source: EtsValue, receiver: UExpr<*>?): Boolean {
+        val sourceLooksDate = (source as? EtsLocal)?.name == DATE_CLASS || when (val type = source.type) {
+            is EtsClassType -> type.signature.name == DATE_CLASS
+            is EtsUnclearRefType -> type.typeName == DATE_CLASS
+            else -> false
+        }
+        if (sourceLooksDate) return true
+        if (receiver?.sort != state.ctx.addressSort) return false
+
+        val runtimeType = state.memory.typeStreamOf(receiver.asExpr(state.ctx.addressSort)).singleOrNull()
+        return (runtimeType as? EtsClassType)?.signature?.name == DATE_CLASS
+    }
 
     private val artifact by lazy {
         loadBundledEtsIrUnknownCallModelArtifact(
@@ -43,28 +90,7 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             add(utcModel())
             add(nowModel())
 
-            for (methodName in listOf(
-                "getDate",
-                "getDay",
-                "getFullYear",
-                "getHours",
-                "getMilliseconds",
-                "getMinutes",
-                "getMonth",
-                "getSeconds",
-                "getTime",
-                "getTimezoneOffset",
-                "getUTCDate",
-                "getUTCDay",
-                "getUTCFullYear",
-                "getUTCHours",
-                "getUTCMilliseconds",
-                "getUTCMinutes",
-                "getUTCMonth",
-                "getUTCSeconds",
-                "toISOString",
-                "valueOf",
-            )) {
+            for (methodName in getterNames) {
                 add(instanceModel(idSuffix = methodName, methodName = methodName, consumedArgs = 0))
             }
 
@@ -195,14 +221,15 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                 while (arguments.size < MAX_CONSTRUCTOR_ARGUMENTS) {
                     arguments += mkFp64(0.0)
                 }
-                val argumentCount = mkFp64(call.arguments.size.toDouble())
-                val clock = mkFp64(nowMilliseconds ?: 0.0)
+                val providedArgumentCount = mkFp64(call.arguments.size.toDouble())
+                val fallbackClock = mkFp64(nowMilliseconds ?: 0.0)
 
-                listOf(
-                    receiver,
-                    argumentCount,
-                    clock,
-                ) + arguments
+                buildList {
+                    add(receiver)
+                    add(providedArgumentCount)
+                    add(fallbackClock)
+                    addAll(arguments)
+                }
             }
         },
     )

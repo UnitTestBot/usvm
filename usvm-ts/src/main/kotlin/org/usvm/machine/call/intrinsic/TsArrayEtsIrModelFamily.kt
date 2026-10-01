@@ -10,6 +10,7 @@ import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsUnknownType
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
+import org.usvm.UHeapRef
 import org.usvm.api.initializeArray
 import org.usvm.api.initializeArrayLength
 import org.usvm.machine.call.TsEtsIrUnknownCallModel
@@ -52,59 +53,74 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         )
     }
 
-    private val arrayDomain = TsEtsIrUnknownCallModelDomainGuard { state, call, inputs ->
-        with(state.ctx) {
-            val receiver = inputs.firstOrNull()
-            val staticType = call.receiver?.source?.type
-            if (staticType == null || receiver?.sort != addressSort) {
-                falseExpr
-            } else {
-                val array = receiver.asExpr(addressSort)
-                val receiverType = state.arrayStorageType(array, staticType) as? EtsArrayType
+    // A guard states when the source model agrees with JavaScript. Other states use the residual policy.
+    private val arrayReceiverGuard = TsEtsIrUnknownCallModelDomainGuard { state, call, inputs ->
+        val (array, arrayType) = state.arrayReceiver(call, inputs)
+            ?: return@TsEtsIrUnknownCallModelDomainGuard state.ctx.falseExpr
+
+        state.memory.types.evalIsSubtype(array, arrayType)
+    }
+
+    private val indexSearchGuard = missingSlotSearchGuard(skipUndefinedHoles = true)
+    private val includesSearchGuard = missingSlotSearchGuard(skipUndefinedHoles = false)
+
+    private fun missingSlotSearchGuard(skipUndefinedHoles: Boolean): TsEtsIrUnknownCallModelDomainGuard {
+        return TsEtsIrUnknownCallModelDomainGuard { state, call, inputs ->
+            with(state.ctx) {
+                val (array, arrayType) = state.arrayReceiver(call, inputs)
+                    ?: return@TsEtsIrUnknownCallModelDomainGuard falseExpr
+
                 val searchElement = inputs.getOrNull(1)
-                val searchRef = searchElement
-                    ?.takeIf { it.sort == addressSort }
-                    ?.asExpr(addressSort)
-                if (
-                    array.hasFakeValueBranch() || receiverType?.dimensions != 1 ||
-                    searchRef?.hasFakeValueBranch() == true
-                ) {
-                    falseExpr
-                } else {
-                    val elementSort = typeToSort(receiverType.elementType)
-                    val hasNoMissingSlots = array is UConcreteHeapRef &&
-                        state.isUnmodifiedDenseInputArray(array, receiverType)
-                    val excludesMissingSlot = when {
-                        searchElement == mkUndefinedValue() &&
-                            (
-                                call.callee.name in setOf("indexOf", "lastIndexOf") ||
-                                    elementSort == fp64Sort || elementSort == boolSort
-                                ) -> mkBool(hasNoMissingSlots)
+                val searchRef = searchElement?.takeIf { it.sort == addressSort }?.asExpr(addressSort)
+                if (searchRef?.hasFakeValueBranch() == true) {
+                    return@TsEtsIrUnknownCallModelDomainGuard falseExpr
+                }
 
-                        elementSort == fp64Sort && searchElement?.sort == fp64Sort -> {
-                            val searchNumber = searchElement.asExpr(fp64Sort)
-                            val zero = mkFp64(0.0)
+                val elementSort = typeToSort(arrayType.elementType)
+                val hasNoMissingSlots = array is UConcreteHeapRef &&
+                    state.isUnmodifiedDenseInputArray(array, arrayType)
 
-                            mkOr(mkBool(hasNoMissingSlots), mkNot(mkFpEqualExpr(searchNumber, zero)))
-                        }
-
-                        elementSort == boolSort && searchElement?.sort == boolSort -> {
-                            mkOr(mkBool(hasNoMissingSlots), searchElement.asExpr(boolSort))
-                        }
-
-                        else -> trueExpr
+                // Sparse slots are absent in JavaScript, but typed storage can read them as zero or false.
+                // indexOf/lastIndexOf skip holes when searching for undefined; includes sees holes as undefined.
+                val missingSlotGuard = when {
+                    searchElement == mkUndefinedValue() &&
+                        (skipUndefinedHoles || elementSort == fp64Sort || elementSort == boolSort) -> {
+                        mkBool(hasNoMissingSlots)
                     }
 
-                    mkAnd(
-                        state.memory.types.evalIsSubtype(array, receiverType),
-                        excludesMissingSlot,
-                    )
+                    elementSort == fp64Sort && searchElement?.sort == fp64Sort -> {
+                        val searchNumber = searchElement.asExpr(fp64Sort)
+                        mkOr(mkBool(hasNoMissingSlots), mkNot(mkFpEqualExpr(searchNumber, mkFp64(0.0))))
+                    }
+
+                    elementSort == boolSort && searchElement?.sort == boolSort -> {
+                        mkOr(mkBool(hasNoMissingSlots), searchElement.asExpr(boolSort))
+                    }
+
+                    else -> trueExpr
                 }
+
+                mkAnd(state.memory.types.evalIsSubtype(array, arrayType), missingSlotGuard)
             }
         }
     }
 
-    private val pushDomain = TsEtsIrUnknownCallModelDomainGuard { state, call, inputs ->
+    private fun TsState.arrayReceiver(
+        call: TsUnknownCall,
+        inputs: List<UExpr<*>>,
+    ): Pair<UHeapRef, EtsArrayType>? = with(ctx) {
+        val receiver = inputs.firstOrNull()
+            ?.takeIf { it.sort == addressSort }
+            ?.asExpr(addressSort)
+            ?: return null
+        val staticType = call.receiver?.source?.type ?: return null
+        val arrayType = arrayStorageType(receiver, staticType) as? EtsArrayType ?: return null
+        if (receiver.hasFakeValueBranch() || arrayType.dimensions != 1) return null
+
+        receiver to arrayType
+    }
+
+    private val pushGuard = TsEtsIrUnknownCallModelDomainGuard { state, call, inputs ->
         val (array, arrayType) = state.concreteArray(call, inputs)
             ?: return@TsEtsIrUnknownCallModelDomainGuard state.ctx.falseExpr
         val arguments = call.arguments.map { argument ->
@@ -117,22 +133,24 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         state.boundedArrayGuard(array, arrayType, maximumLength = SOURCE_ARRAY_MODEL_CAPACITY - arguments.size)
     }
 
-    private val fillDomain = TsEtsIrUnknownCallModelDomainGuard { state, call, inputs ->
+    private val fillGuard = TsEtsIrUnknownCallModelDomainGuard { state, call, inputs ->
         val (array, arrayType) = state.concreteArray(call, inputs)
             ?: return@TsEtsIrUnknownCallModelDomainGuard state.ctx.falseExpr
         val value = call.arguments.firstOrNull()?.resolved
             ?: return@TsEtsIrUnknownCallModelDomainGuard state.ctx.falseExpr
-        val valueMatchesArrayType = state.argumentsMatchArrayType(arrayType, listOf(value))
-        val fillsWholeArray = call.arguments.size == 1
-        val hasKnownSlotValues = fillsWholeArray || state.isUnmodifiedDenseInputArray(array, arrayType)
-        if (!valueMatchesArrayType || !hasKnownSlotValues) {
+        if (!state.argumentsMatchArrayType(arrayType, listOf(value))) {
+            return@TsEtsIrUnknownCallModelDomainGuard state.ctx.falseExpr
+        }
+
+        // A whole-array fill overwrites holes. A range fill must preserve slots outside its range.
+        if (call.arguments.size != 1 && !state.isUnmodifiedDenseInputArray(array, arrayType)) {
             return@TsEtsIrUnknownCallModelDomainGuard state.ctx.falseExpr
         }
 
         state.boundedArrayGuard(array, arrayType, maximumLength = SOURCE_ARRAY_MODEL_CAPACITY)
     }
 
-    private val denseReceiverDomain = TsEtsIrUnknownCallModelDomainGuard { state, call, inputs ->
+    private val denseInputGuard = TsEtsIrUnknownCallModelDomainGuard { state, call, inputs ->
         val (array, arrayType) = state.concreteArray(call, inputs)
             ?: return@TsEtsIrUnknownCallModelDomainGuard state.ctx.falseExpr
         if (!state.isUnmodifiedDenseInputArray(array, arrayType)) {
@@ -142,7 +160,7 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         state.boundedArrayGuard(array, arrayType, maximumLength = SOURCE_ARRAY_MODEL_CAPACITY)
     }
 
-    private val unshiftDomain = TsEtsIrUnknownCallModelDomainGuard { state, call, inputs ->
+    private val unshiftGuard = TsEtsIrUnknownCallModelDomainGuard { state, call, inputs ->
         val (array, arrayType) = state.concreteArray(call, inputs)
             ?: return@TsEtsIrUnknownCallModelDomainGuard state.ctx.falseExpr
         val arguments = call.arguments.map { argument ->
@@ -158,7 +176,7 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         state.boundedArrayGuard(array, arrayType, maximumLength = SOURCE_ARRAY_MODEL_CAPACITY - arguments.size)
     }
 
-    private val concatDomain = TsEtsIrUnknownCallModelDomainGuard { state, call, inputs ->
+    private val concatGuard = TsEtsIrUnknownCallModelDomainGuard { state, call, inputs ->
         val (array, arrayType) = state.concreteArray(call, inputs)
             ?: return@TsEtsIrUnknownCallModelDomainGuard state.ctx.falseExpr
         val other = inputs.getOrNull(1) as? UConcreteHeapRef
@@ -335,51 +353,54 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                 id = "ts.array.indexOf",
                 methodName = "indexOf",
                 inputAdapter = optionalFromIndexAdapter,
+                domainGuard = indexSearchGuard,
             ),
             sourceModel(
                 id = "ts.array.includes",
                 methodName = "includes",
                 inputAdapter = optionalFromIndexAdapter,
+                domainGuard = includesSearchGuard,
             ),
             sourceModel(
                 id = "ts.array.lastIndexOf",
                 methodName = "lastIndexOf",
                 inputAdapter = optionalLastIndexAdapter,
+                domainGuard = indexSearchGuard,
             ),
             sourceModel(
                 id = "ts.array.push",
                 methodName = "push",
                 inputAdapter = variadicMutationAdapter,
-                domainGuard = pushDomain,
+                domainGuard = pushGuard,
             ),
             sourceModel(
                 id = "ts.array.fill",
                 methodName = "fill",
                 inputAdapter = fillAdapter,
-                domainGuard = fillDomain,
+                domainGuard = fillGuard,
             ),
             sourceModel(
                 id = "ts.array.reverse",
                 methodName = "reverse",
                 inputAdapter = noArgumentsAdapter,
-                domainGuard = TsDenseArrayModelSupport.denseReceiverDomain,
+                domainGuard = denseInputGuard,
             ),
             sourceModel(
                 id = "ts.array.unshift",
                 methodName = "unshift",
                 inputAdapter = variadicMutationAdapter,
-                domainGuard = unshiftDomain,
+                domainGuard = unshiftGuard,
             ),
             sourceModel(
                 id = "ts.array.slice",
                 methodName = "slice",
                 inputAdapter = sliceAdapter,
-                domainGuard = denseReceiverDomain,
+                domainGuard = denseInputGuard,
             ),
             sourceModel(
                 id = "ts.array.concat",
                 methodName = "concat",
-                domainGuard = concatDomain,
+                domainGuard = concatGuard,
             ),
             primitiveModel(
                 methodName = "grow",
@@ -403,7 +424,7 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         id: String,
         methodName: String,
         inputAdapter: TsEtsIrUnknownCallModelInputAdapter = TsEtsIrUnknownCallModelInputAdapter.IDENTITY,
-        domainGuard: TsEtsIrUnknownCallModelDomainGuard = arrayDomain,
+        domainGuard: TsEtsIrUnknownCallModelDomainGuard = arrayReceiverGuard,
     ): TsUnknownCallModel {
         val target = TsUnknownCallTarget(
             methodName = methodName,
@@ -461,8 +482,10 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         methodName: String,
         arity: Int,
         implementation: (TsState, List<UExpr<*>>) -> TsUnknownCallModelExecution?,
-    ): TsUnknownCallModel = ArrayPrimitiveModel(
+    ): TsUnknownCallModel = TsPrimitiveUnknownCallModel(
+        idPrefix = "ts.array.primitive",
         methodName = methodName,
+        enclosingClassName = PRIMITIVES_CLASS_NAME,
         arity = arity,
         implementation = implementation,
     )
@@ -635,28 +658,6 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             ownerReturnType.dimensions == 1 &&
             callReturnType.elementType == EtsAnyType &&
             callReturnType.dimensions == 1
-    }
-
-    private class ArrayPrimitiveModel(
-        methodName: String,
-        private val arity: Int,
-        private val implementation: (TsState, List<UExpr<*>>) -> TsUnknownCallModelExecution?,
-    ) : TsUnknownCallModel {
-        override val id: String = "ts.array.primitive.$methodName"
-        override val target = TsUnknownCallTarget(
-            methodName = methodName,
-            enclosingClassName = PRIMITIVES_CLASS_NAME,
-            failureReason = TsUnknownCallFailureReason.METHOD_BODY_UNAVAILABLE,
-        )
-
-        override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution? {
-            if (call.receiver != null || call.arguments.size != arity) {
-                return null
-            }
-
-            val inputs = call.arguments.map { argument -> argument.resolved ?: return null }
-            return implementation(state, inputs)
-        }
     }
 
     private const val MATH_FLOOR_MODEL_ID = "ts.math.floor"

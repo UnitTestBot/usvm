@@ -187,6 +187,7 @@ internal class OriginalTypeScriptTargetReplayer : CallsTargetReplayer {
                     marker = marker,
                     resultPath = resultPath,
                     targetMode = target.mode,
+                    sourceArgumentCount = inputs.size,
                 ),
             )
             val replayRoots = sourceRoots.mapIndexed { index, root ->
@@ -344,6 +345,7 @@ internal class OriginalTypeScriptTargetReplayer : CallsTargetReplayer {
         marker: String,
         resultPath: Path,
         targetMode: CallsSourceTargetMode,
+        sourceArgumentCount: Int,
     ): String = """
         import { writeFileSync } from 'node:fs';
         import * as targetModule from ${jsString("./$sourcePath")};
@@ -361,7 +363,7 @@ internal class OriginalTypeScriptTargetReplayer : CallsTargetReplayer {
           let invocation: 'returned' | 'threw' = 'returned';
           let caught: unknown;
           try {
-            const result = callable(...args);
+            const result = callable(...args.slice(0, $sourceArgumentCount));
             if (result !== null && (typeof result === 'object' || typeof result === 'function')
               && typeof (result as { then?: unknown }).then === 'function') {
               void Promise.resolve(result).catch(() => undefined);

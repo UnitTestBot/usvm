@@ -23,11 +23,12 @@ import org.usvm.getIntValue
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.TsVirtualMethodCallStmt
+import org.usvm.machine.call.TsBuiltInUnknownCallModels
 import org.usvm.machine.call.TsUnknownCallFailureReason
 import org.usvm.machine.call.TsUnknownCallModelDispatcher
 import org.usvm.machine.call.dispatch
 import org.usvm.machine.call.hasBuiltinGlobalOwner
-import org.usvm.machine.call.isDateReceiver
+import org.usvm.machine.call.intrinsic.TsDateEtsIrModelFamily
 import org.usvm.machine.expr.TsExprApproximationResult.Companion.from
 import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.markResolved
@@ -48,26 +49,6 @@ import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.resolveEtsMethods
 
 private val logger = KotlinLogging.logger {}
-private val legacyArrayMethods = setOf("concat", "fill", "join", "push", "reduce", "reverse", "slice", "unshift")
-
-private val modeledStringMethods = setOf(
-    "split",
-    "replaceAll",
-    "substring",
-    "trim",
-    "trimStart",
-    "trimEnd",
-    "charAt",
-    "charCodeAt",
-    "endsWith",
-    "includes",
-    "indexOf",
-    "lastIndexOf",
-    "slice",
-    "startsWith",
-    "toLowerCase",
-    "toUpperCase",
-)
 
 internal fun TsExprResolver.tryApproximateGlobalInstanceCall(
     expr: EtsInstanceCallExpr,
@@ -168,7 +149,13 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
 
     // Handle `.valueOf()` method calls
     if (expr.callee.name == "valueOf") {
-        val receiverIsDate = scope.calcOnState { isDateReceiver(expr, instance) }
+        val receiverIsDate = scope.calcOnState {
+            TsDateEtsIrModelFamily.isDateReceiver(
+                state = this,
+                source = expr.instance,
+                receiver = instance,
+            )
+        }
         if (!receiverIsDate) {
             return from(handleValueOf(expr, instance))
         }
@@ -184,7 +171,15 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
             .takeIf { it !is TsUnresolvedSort }
             ?: addressSort
 
-        if (expr.callee.name in legacyArrayMethods && unknownCallDispatcher is TsUnknownCallModelDispatcher) {
+        val usesModelDispatcher = unknownCallDispatcher is TsUnknownCallModelDispatcher
+        val modeledArrayCall = usesModelDispatcher && TsBuiltInUnknownCallModels.hasPartialApproximationModel(
+            methodName = expr.callee.name,
+            enclosingClassName = "Array",
+            allowUnqualifiedTarget = true,
+        )
+
+        // join has no source model yet; the model run intentionally sends it to the residual policy.
+        if (modeledArrayCall || (usesModelDispatcher && expr.callee.name == "join")) {
             dispatchArrayModel(stmt)
             return TsExprApproximationResult.ResolveFailure
         }
@@ -245,12 +240,13 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
         }
     }
 
-    if (instanceType is EtsStringType && expr.callee.name in modeledStringMethods) {
-        val dispatcher = unknownCallDispatcher
-        if (dispatcher !is TsUnknownCallModelDispatcher) {
-            return TsExprApproximationResult.NoApproximation
-        }
-
+    val dispatcher = unknownCallDispatcher
+    if (instanceType is EtsStringType && dispatcher is TsUnknownCallModelDispatcher &&
+        TsBuiltInUnknownCallModels.hasPartialApproximationModel(
+            methodName = expr.callee.name,
+            enclosingClassName = "String",
+        )
+    ) {
         dispatcher.dispatch(
             scope = scope,
             call = stmt.call,
