@@ -18,6 +18,10 @@ declare class ExternalBoolean {
     static convert(value: boolean): boolean;
 }
 
+declare class ExternalString {
+    static convert(value: boolean): string;
+}
+
 declare class ExternalAny {
     static value(): any;
 }
@@ -75,6 +79,10 @@ class CallFallbackBaseline {
 
     modeledUnknownCallForks(value: boolean): boolean {
         return ExternalBoolean.convert(value);
+    }
+
+    modeledStringCallForks(value: boolean): string {
+        return ExternalString.convert(value);
     }
 
     modeledUnknownCallReturnsAlias(receiver: ExternalReceiver): number {

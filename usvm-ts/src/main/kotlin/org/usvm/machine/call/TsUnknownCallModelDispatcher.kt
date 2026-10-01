@@ -2,8 +2,8 @@ package org.usvm.machine.call
 
 import mu.KotlinLogging
 import org.usvm.UExpr
-import org.usvm.api.makeFreshUnknownCallResult
 import org.usvm.api.mockMethodCall
+import org.usvm.api.prepareFreshUnknownCallResult
 import org.usvm.api.setMockMethodCallResult
 import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.interpreter.TsStepScope
@@ -76,12 +76,12 @@ class TsModelUnknownCallDispatcher(
         application: TsUnknownCallModelApplication.Applied,
     ): TsUnknownCallOutcome {
         val residualGuard = application.execution.residualGuard
-        // Creating an unresolved value may add fake-value constraints. Do it before forking so the residual clone
-        // inherits both the constraints and their solver models.
+        // Create the value before forking. A string's type guard is applied only to the residual
+        // branch below, so an infeasible fresh string cannot discard a modeled successor.
         val freshResidualResult = if (
             residualGuard != null && fallback == TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN
         ) {
-            makeFreshUnknownCallResult(scope, call.resultType)
+            prepareFreshUnknownCallResult(scope, call.resultType)
         } else {
             null
         }
@@ -112,8 +112,12 @@ class TsModelUnknownCallDispatcher(
         }.toMutableList()
 
         if (residualGuard != null && fallback == TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN) {
-            guardedStateChanges += residualGuard to {
-                setMockMethodCallResult(call.callee, requireNotNull(freshResidualResult))
+            val prepared = requireNotNull(freshResidualResult)
+            val guardedResidual = prepared.admissibilityGuard?.let { admissibilityGuard ->
+                scope.calcOnState { ctx.mkAnd(residualGuard, admissibilityGuard) }
+            } ?: residualGuard
+            guardedStateChanges += guardedResidual to {
+                setMockMethodCallResult(call.callee, prepared.value)
                 newStmt(call.callSite)
                 freshResidualApplied = true
             }

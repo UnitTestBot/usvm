@@ -5,6 +5,7 @@ import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsVoidType
 import org.usvm.UAddressSort
+import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.interpreter.TsStepScope
@@ -17,10 +18,15 @@ fun mockMethodCall(
     method: EtsMethodSignature,
     resultType: EtsType = method.returnType,
 ) {
-    val result = makeFreshUnknownCallResult(scope, resultType)
+    val prepared = prepareFreshUnknownCallResult(scope, resultType)
+    prepared.admissibilityGuard?.let { guard ->
+        requireNotNull(scope.assert(guard)) {
+            "A fresh string result must admit the string type"
+        }
+    }
 
     scope.doWithState {
-        setMockMethodCallResult(method, result)
+        setMockMethodCallResult(method, prepared.value)
     }
 }
 
@@ -32,19 +38,25 @@ internal fun TsState.setMockMethodCallResult(
     methodResult = TsMethodResult.Success.MockedCall(result, method)
 }
 
-/** Creates a fresh opaque result through [scope], keeping solver models consistent with new constraints. */
-internal fun makeFreshUnknownCallResult(
+internal data class PreparedFreshUnknownCallResult(
+    val value: UExpr<*>,
+    val admissibilityGuard: UBoolExpr? = null,
+)
+
+/** Prepares a fresh opaque result; callers must apply [PreparedFreshUnknownCallResult.admissibilityGuard]. */
+internal fun prepareFreshUnknownCallResult(
     scope: TsStepScope,
     resultType: EtsType,
-): UExpr<*> {
+): PreparedFreshUnknownCallResult {
     if (resultType is EtsStringType) {
-        // String operations need a typed reference to access symbolic character storage.
-        return requireNotNull(scope.makeSymbolicRef(EtsStringType)) {
-            "A fresh string result must admit the string type"
-        }
+        // The type guard belongs only to the branch using this result. Asserting it before a
+        // partial model forks could discard satisfiable model successors.
+        val ref = scope.calcOnState { makeSymbolicRefUntyped() }
+        val guard = scope.calcOnState { memory.types.evalTypeEquals(ref, EtsStringType) }
+        return PreparedFreshUnknownCallResult(value = ref, admissibilityGuard = guard)
     }
 
-    return scope.calcOnState {
+    val value = scope.calcOnState {
         if (resultType is EtsVoidType) return@calcOnState ctx.mkUndefinedValue()
 
         when (val sort = ctx.typeToSort(resultType)) {
@@ -60,4 +72,5 @@ internal fun makeFreshUnknownCallResult(
             else -> makeSymbolicPrimitive(sort)
         }
     }
+    return PreparedFreshUnknownCallResult(value = value)
 }
