@@ -35,6 +35,7 @@ import org.usvm.StepResult
 import org.usvm.StepScope
 import org.usvm.UExpr
 import org.usvm.UInterpreter
+import org.usvm.USort
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArray
 import org.usvm.api.targets.TsTarget
@@ -78,7 +79,6 @@ import org.usvm.types.TypesResult
 import org.usvm.types.first
 import org.usvm.types.single
 import org.usvm.util.executableOverloadImplementation
-import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
@@ -527,32 +527,8 @@ class TsInterpreter(
                         "Expected address sort for the array, got: ${array.sort}"
                     }
                     val arrayRef = array.asExpr(addressSort)
-                    val resolvedIndex = exprResolver.resolve(lhv.index) ?: return null
-                    val index = resolvedIndex.asExpr(fp64Sort)
-                    val bvIndex = mkFpToBvExpr(
-                        roundingMode = fpRoundingModeSortDefaultValue(),
-                        value = index,
-                        bvSize = 32,
-                        isSigned = true,
-                    ).asExpr(sizeSort)
-                    val arrayType = if (isAllocatedConcreteHeapRef(array)) {
-                        scope.calcOnState { memory.typeStreamOf(array).first() }
-                    } else {
-                        lhv.array.type
-                    }
-                    check(arrayType is EtsArrayType) {
-                        "Expected EtsArrayType, got: ${lhv.array.type}"
-                    }
-                    val elementSort = typeToSort(arrayType.elementType)
-                    val elementLValue = mkArrayIndexLValue(
-                        sort = elementSort,
-                        ref = arrayRef,
-                        index = bvIndex.asExpr(sizeSort),
-                        type = arrayType,
-                    )
-                    scope.doWithState {
-                        memory.write(elementLValue, expr.cast(), guard = trueExpr)
-                    }
+
+                    exprResolver.handleAssignToArrayIndex(lhv, expr, arrayRef)
                 }
             }
 
@@ -710,9 +686,15 @@ class TsInterpreter(
             options = options,
             hierarchy = graph.hierarchy,
             unknownCallDispatcher = unknownCallDispatcher,
+            observer = observer,
         )
 
-    fun getInitialState(method: EtsMethod, targets: List<TsTarget>): TsState = with(ctx) {
+    fun getInitialState(
+        method: EtsMethod,
+        targets: List<TsTarget>,
+        configure: (TsState) -> Unit = {},
+        parameterSortOverride: (Int) -> USort? = { null },
+    ): TsState = with(ctx) {
         val state = TsState(
             ctx = ctx,
             ownership = MutabilityOwnership(),
@@ -739,6 +721,11 @@ class TsInterpreter(
 
         method.parameters.forEachIndexed { i, param ->
             val idx = i + 1 // +1 because 0 is reserved for `this`
+            val overriddenSort = parameterSortOverride(idx)
+            if (overriddenSort != null) {
+                state.saveSortForLocal(idx, overriddenSort)
+                return@forEachIndexed
+            }
 
             val ref by lazy {
                 val lValue = mkRegisterStackLValue(addressSort, idx)
@@ -801,6 +788,8 @@ class TsInterpreter(
                 state.saveSortForLocal(idx, parameterSort)
             }
         }
+
+        configure(state)
 
         val solver = solver<EtsType>()
         val model = solver.check(state.pathConstraints).ensureSat().model

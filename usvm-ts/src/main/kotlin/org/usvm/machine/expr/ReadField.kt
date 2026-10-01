@@ -17,7 +17,6 @@ import org.usvm.util.EtsHierarchy
 import org.usvm.util.TsResolutionResult
 import org.usvm.util.createFakeField
 import org.usvm.util.mkFieldLValue
-import org.usvm.util.resolveEtsField
 
 private val logger = KotlinLogging.logger {}
 
@@ -62,19 +61,28 @@ fun TsContext.readField(
     instance: UHeapRef,
     field: EtsFieldSignature,
     hierarchy: EtsHierarchy,
-): UExpr<*> {
+): UExpr<*>? {
     checkNotFake(instance)
 
-    val sort = when (val etsField = resolveEtsField(instanceLocal, field, hierarchy)) {
+    val (errorStorageField, etsField, isModelStorageField) = resolveModelStorageField(
+        scope = scope,
+        instanceLocal = instanceLocal,
+        instance = instance,
+        field = field,
+        hierarchy = hierarchy,
+    )
+    val sort = when (etsField) {
         is TsResolutionResult.Empty -> {
-            if (field.name !in listOf("i", "LogLevel")) {
-                logger.warn { "Field $field not found, creating fake field" }
+            if (!isModelStorageField) {
+                if (field.name !in listOf("i", "LogLevel")) {
+                    logger.warn { "Field $field not found, creating fake field" }
+                }
+                // If we didn't find any real fields, let's create a fake one.
+                // It is possible due to mistakes in the IR or if the field was added explicitly
+                // in the code.
+                // Probably, the right behaviour here is to fork the state.
+                instance.createFakeField(scope, field.name)
             }
-            // If we didn't find any real fields, let's create a fake one.
-            // It is possible due to mistakes in the IR or if the field was added explicitly
-            // in the code.
-            // Probably, the right behaviour here is to fork the state.
-            instance.createFakeField(scope, field.name)
             addressSort
         }
 
@@ -83,18 +91,21 @@ fun TsContext.readField(
         is TsResolutionResult.Ambiguous -> unresolvedSort
     }
 
-    scope.doWithState {
-        // If we accessed some field, we make an assumption that
-        // this field should present in the object.
-        // That's not true in the common case for TS, but that's the decision we made.
-        val auxiliaryType = EtsAuxiliaryType(properties = setOf(field.name))
-        // assert is required to update models
-        scope.assert(memory.types.evalIsSubtype(instance, auxiliaryType))
+    if (!isModelStorageField) {
+        val fieldExists = scope.calcOnState {
+            // If we accessed some field, we make an assumption that
+            // this field should present in the object.
+            // That's not true in the common case for TS, but that's the decision we made.
+            val auxiliaryType = EtsAuxiliaryType(properties = setOf(field.name))
+            memory.types.evalIsSubtype(instance, auxiliaryType)
+        }
+        // A failed assertion stops this step; do not access its state afterward.
+        scope.assert(fieldExists) ?: return null
     }
 
     // If the field type is known, we can read it directly.
     if (sort !is TsUnresolvedSort) {
-        val lValue = mkFieldLValue(sort, instance, field)
+        val lValue = mkFieldLValue(sort, instance, errorStorageField ?: field.name)
         return scope.calcOnState { memory.read(lValue) }
     }
 

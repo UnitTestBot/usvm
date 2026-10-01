@@ -36,7 +36,8 @@ class TsInstanceCallReceiverTest {
         val methods = scene.projectClasses.single { it.name == "InstanceCallReceiver" }.methods.associateBy { it.name }
 
         return cases.map { case ->
-            DynamicTest.dynamicTest(case.method) {
+            val label = if (case.compatibility) "compatibility receiver: ${case.method}" else case.method
+            DynamicTest.dynamicTest(label) {
                 val method = methods.getValue(case.method)
                 val events = mutableListOf<TsUnknownCallEvent>()
                 val observer = object : TsInterpreterObserver {
@@ -45,7 +46,13 @@ class TsInstanceCallReceiverTest {
                     }
                 }
 
-                val tests = TsMachine(scene, options = machineOptions, tsOptions = TsOptions(), observer = observer)
+                val tests = TsMachine(
+                    scene = scene,
+                    options = machineOptions,
+                    tsOptions = TsOptions(),
+                    observer = observer,
+                    unknownCallDispatcher = TsCompatibilityUnknownCallDispatcher.takeIf { case.compatibility },
+                )
                     .use { machine ->
                         machine.analyze(listOf(method)).map { state -> TsTestResolver().resolve(method, state) }
                     }
@@ -125,30 +132,31 @@ class TsInstanceCallReceiverTest {
         val method: String,
         val results: Set<Double>,
         val throws: Boolean = false,
+        val compatibility: Boolean = false,
     )
 
     private companion object {
         val cases = listOf(
             Case(method = "wrappedShift", results = setOf(1.0)),
             Case(method = "wrappedPop", results = setOf(1.0)),
-            Case(method = "wrappedPush", results = setOf(1.0)),
-            Case(method = "wrappedReverse", results = setOf(1.0)),
-            Case(method = "wrappedFill", results = setOf(1.0)),
-            Case(method = "wrappedUnshift", results = setOf(1.0)),
-            Case(method = "wrappedSlice", results = setOf(1.0)),
-            Case(method = "wrappedSliceReversed", results = setOf(1.0)),
-            Case(method = "wrappedSlicePastEnd", results = setOf(1.0)),
-            Case(method = "wrappedSlicePastStart", results = setOf(1.0)),
-            Case(method = "wrappedSliceNegative", results = setOf(1.0)),
-            Case(method = "wrappedSliceEmpty", results = setOf(1.0)),
-            Case(method = "wrappedConcat", results = setOf(1.0)),
+            Case(method = "wrappedPush", results = setOf(1.0), compatibility = true),
+            Case(method = "wrappedReverse", results = setOf(1.0), compatibility = true),
+            Case(method = "wrappedFill", results = setOf(1.0), compatibility = true),
+            Case(method = "wrappedUnshift", results = setOf(1.0), compatibility = true),
+            Case(method = "wrappedSlice", results = setOf(1.0), compatibility = true),
+            Case(method = "wrappedSliceReversed", results = setOf(1.0), compatibility = true),
+            Case(method = "wrappedSlicePastEnd", results = setOf(1.0), compatibility = true),
+            Case(method = "wrappedSlicePastStart", results = setOf(1.0), compatibility = true),
+            Case(method = "wrappedSliceNegative", results = setOf(1.0), compatibility = true),
+            Case(method = "wrappedSliceEmpty", results = setOf(1.0), compatibility = true),
+            Case(method = "wrappedConcat", results = setOf(1.0), compatibility = true),
             Case(method = "wrappedUserMethod", results = setOf(1.0)),
             Case(method = "customShift", results = setOf(1.0)),
             Case(method = "conditionalArrays", results = setOf(0.0, 1.0)),
             Case(method = "conditionalEmptyArray", results = setOf(0.0, 1.0)),
             Case(method = "arrayOrUserMethod", results = setOf(0.0, 1.0)),
             Case(method = "primitiveValueOf", results = setOf(0.0, 1.0)),
-            Case(method = "primitiveToString", results = setOf(0.0, 1.0)),
+            Case(method = "primitiveToString", results = setOf(0.0, 1.0), compatibility = true),
             Case(method = "constrainedFake", results = setOf(0.0, 1.0, 2.0)),
             Case(method = "nullableReceiver", results = setOf(0.0, 1.0), throws = true),
             Case(method = "undefinedReceiver", results = setOf(0.0, 1.0), throws = true),

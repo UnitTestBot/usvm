@@ -14,11 +14,14 @@ import org.usvm.USort
 import org.usvm.api.memcpy
 import org.usvm.collection.array.UArrayRegion
 import org.usvm.collection.array.UArrayRegionId
+import org.usvm.collection.array.length.UArrayLengthsRegionId
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.expr.TsUnresolvedSort
+import org.usvm.machine.state.TsDenseInputArray
 import org.usvm.machine.state.TsState
 import org.usvm.machine.types.TsUnresolvedArrayKind
+import org.usvm.sizeSort
 
 /** Enumerates payload regions independently of whether an array was allocated or came from the input. */
 internal inline fun TsContext.forEachArrayPayloadRegion(arrayType: EtsArrayType, action: (EtsType, USort) -> Unit) {
@@ -72,4 +75,41 @@ internal fun TsState.initializeArrayKind(
         ownership = memory.ownership,
     )
     memory.setRegion(regionId, initialized)
+}
+
+/** Records that every slot below the current input length has an initialized value. */
+fun TsState.markDenseInputArray(
+    array: UConcreteHeapRef,
+    type: EtsArrayType,
+) = with(ctx) {
+    val descriptor = arrayDescriptorOf(type)
+    val elementSort = typeToSort(type.elementType)
+    require(elementSort !is TsUnresolvedSort) { "A dense input array needs a concrete element sort" }
+
+    val lengthRegionId = UArrayLengthsRegionId<EtsType, TsSizeSort>(sizeSort, descriptor)
+    val elementRegionId = UArrayRegionId<EtsType, USort, TsSizeSort>(descriptor, elementSort)
+    denseInputArrays[array] = TsDenseInputArray(
+        type = type,
+        lengthRegion = memory.getRegion(lengthRegionId),
+        elementRegion = memory.getRegion(elementRegionId),
+    )
+}
+
+/** Returns true only while neither the recorded length nor payload region has changed. */
+internal fun TsState.isUnmodifiedDenseInputArray(
+    array: UConcreteHeapRef,
+    type: EtsArrayType,
+): Boolean = with(ctx) {
+    val snapshot = denseInputArrays[array] ?: return false
+    if (snapshot.type != type) return false
+
+    val descriptor = arrayDescriptorOf(type)
+    val elementSort = typeToSort(type.elementType)
+    if (elementSort is TsUnresolvedSort) return false
+
+    val lengthRegionId = UArrayLengthsRegionId<EtsType, TsSizeSort>(sizeSort, descriptor)
+    val elementRegionId = UArrayRegionId<EtsType, USort, TsSizeSort>(descriptor, elementSort)
+
+    memory.getRegion(lengthRegionId) === snapshot.lengthRegion &&
+        memory.getRegion(elementRegionId) === snapshot.elementRegion
 }

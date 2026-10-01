@@ -48,7 +48,7 @@ This is the only model-selection setting.
 | --- | --- |
 | `TsUnknownCallModelSelection.All` | Enable every built-in model. This is the default. |
 | `TsUnknownCallModelSelection.Only(emptySet())` | Disable every built-in model. |
-| `TsUnknownCallModelSelection.Only(setOf("id", ...))` | Enable exactly the listed built-in model IDs. |
+| `TsUnknownCallModelSelection.Only(setOf("id", ...))` | Enable the listed built-in model IDs and their declared dependencies. |
 
 Unknown IDs are rejected when the machine creates its immutable per-run catalog. The selected models are captured at that
 point, so later mutations of the selection set cannot change an active run.
@@ -56,22 +56,67 @@ point, so later mutations of the selection set cannot change an active run.
 Use the model's `id`, for example `ts.array.pop`. A target method name, class name, source filename, or artifact hash is
 not a model ID.
 
-Built-ins are `object` implementations of the sealed `TsBuiltInUnknownCallModel` interface in the
-`org.usvm.machine.call.intrinsic` package. Kotlin's sealed-subclass metadata discovers them automatically; adding a
-model requires no manual registry entry. Discovery and the default catalog are computed once.
+Built-ins are singleton models or families implementing the sealed `TsBuiltInUnknownCallModel` interface in the
+`org.usvm.machine.call.intrinsic` package. Kotlin's sealed-subclass metadata discovers them automatically; a family
+supplies its parameterized models without a separate registry. Discovery and the default catalog are computed once.
 
-The built-in catalog currently contains:
+The built-in catalog includes the following public APIs and their internal storage primitives. Enumerate
+`TsBuiltInUnknownCallModels.catalog().modelIds` for the exact IDs in a build.
 
 | ID | Implementation | Accepted calls |
 | --- | --- | --- |
 | `ts.array.shift` | Kotlin intrinsic using symbolic-memory `memcpy` | Zero-argument `shift` on a definitely one-dimensional array. |
+| `ts.array.isArray` | Kotlin runtime-type primitive | The genuine global Array predicate, including null, undefined and fake-value wrappers. |
+| `ts.array.fromLength` | TypeScript/EtsIR body with a heap-allocation primitive | Genuine callable `Array(length)` with one numeric argument. Valid lengths up to 16 allocate holes that read as `undefined`; larger valid lengths use fallback. |
 | `ts.array.pop` | TypeScript/EtsIR body | Zero-argument `pop` on a definitely one-dimensional array that also satisfies the symbolic runtime type guard. |
+| `ts.array.includes`, `ts.array.indexOf`, `ts.array.lastIndexOf` | TypeScript/EtsIR bodies | One-dimensional arrays and numeric positions, with the missing-slot exclusions below. |
+| `ts.array.push`, `ts.array.fill`, `ts.array.reverse`, `ts.array.unshift`, `ts.array.slice`, `ts.array.concat` | TypeScript/EtsIR bodies with storage growth/allocation primitives | One-dimensional arrays with length/result at most 16. Push/unshift accept up to three arguments; resolved-sort arrays require matching element sorts, while mixed arrays retain runtime value kinds. Concat accepts one same-type array. Except push and full-range `fill(value)`, these operations require a current dense-array proof. |
+| `ts.string.charAt`, `ts.string.charCodeAt`, `ts.string.includes`, `ts.string.indexOf`, `ts.string.lastIndexOf`, `ts.string.startsWith`, `ts.string.endsWith` | TypeScript/EtsIR bodies | Strings in initialized UTF-16 storage, including symbolic code units and numeric positions. |
+| `ts.string.slice`, `ts.string.substring`, `ts.string.trim`, `ts.string.trimStart`, `ts.string.trimEnd` | TypeScript/EtsIR bodies | UTF-16 range copying; substring clamps/swaps bounds, and trim uses the ECMAScript whitespace set. |
+| `ts.string.replaceAll` | TypeScript/EtsIR body | String receiver, string search and string replacement; non-overlapping UTF-16 matches, empty search and ECMAScript dollar substitutions for a dollar sign, the match, its prefix and its suffix. RegExp, callbacks and argument coercions use fallback. |
+| `ts.string.toLowerCase`, `ts.string.toUpperCase` | TypeScript/EtsIR bodies | ASCII strings of at most 16 code units; other strings use residual fallback. |
+| `ts.math.abs`, `ts.math.ceil`, `ts.math.floor`, `ts.math.max`, `ts.math.min`, `ts.math.round`, `ts.math.sqrt`, `ts.math.trunc` | Kotlin FP primitives | Numeric arguments; dynamic coercions use fallback. |
+| `ts.number.isFinite`, `ts.number.isInteger`, `ts.number.isNaN`, `ts.number.isSafeInteger` | Kotlin FP/type primitives | Non-coercing Number predicates, including runtime-kind guards. |
+| `ts.error.constructor` | TypeScript/EtsIR body | Genuine `new Error(message)` with one string argument; initializes `name` and `message`. Other arities, coercions, subclasses, `cause` and stack inspection are outside this model. |
+| `ts.date.*` (38 IDs) | TypeScript/EtsIR bodies | Numeric Date construction, `UTC`, fixed-clock `now`, getters, setters, `valueOf`, and source `toISOString`; see the Date boundary below. |
+
+Matching standard calls are assumed to refer to genuine builtins. Monkey patching and prototype replacement are
+outside this experiment; no runtime provenance protocol is imposed. Receiver and argument checks establish the
+memory representation and supported input domain.
+
+The September 2026 corpus census contains 22,769 call/constructor sites. Its 49-API shortlist accounts for 1,026
+sites: Number/Math (275), new Array/String searches (130), existing pop/shift (52), and Date (569). Every shortlisted
+API name has a catalog entry. Eleven adjacent APIs add 280 census sites; `setUTCMinutes` and `setUTCMilliseconds`
+complete the numeric UTC setter family but have no sites in this census. These 1,306 associated sites are
+an inventory count, **not executed or replay-confirmed coverage**: imports, input representation, fallback domains,
+and other unsupported operations can still prevent execution. The wider research inventory contains 271
+unambiguous standard/host API names over 7,720 sites; most are not implemented by this catalog.
 
 The common instance-call pipeline splits fake-value wrappers and conditional references under their runtime-kind
 and branch guards before selecting an approximation or resolving a method. A wrapped array can therefore use the
 model, including through an `any` alias. An unknown or non-array receiver does not become an array merely because
 the method is named `shift`. A definitely-array receiver with an unresolved element sort remains applicable and uses
 the fake-value representation described below.
+
+Dense input proofs retain snapshots of the array length and element storage regions. A later write invalidates the
+proof conservatively, including writes to another array sharing a region. Consequently, a chain of individually
+modeled array methods can still use fallback after its first mutation or copy.
+
+### Runtime limitations and experimental outcomes
+
+`TsInterpreterObserver.onRuntimeFeatureLimitation` records feasible paths stopped by bounded array storage, such as
+named-property access, unsupported length growth, or assigning a runtime kind absent from a typed array's storage.
+Reads may return an element or `undefined`; subsequent numeric operations and typed writes preserve that runtime-kind
+guard. TypeScript `as` and angle-bracket assertions are erased and never change a value or constrain its runtime kind.
+These events are separate from unknown-call model decisions.
+The Calls runner writes them synchronously and reports `RUNTIME_LIMITATION` when search exhausts after such a stop
+without reaching the target. An actual timeout remains `TIMEOUT`; a reached target still requires original-source replay.
+
+Calls preflight checks input binding, source/IR target mapping and known unsupported IR features before choosing a
+model/fallback profile. Excluded functions remain in the corpus support ledger. Comparative runs use a frozen common
+target set; failures discovered after that freeze remain scheduled failures. The analysis budget is 30 seconds per
+target, profile and seed; JVM/frontend startup and original-source replay have separate recorded limits. Readiness
+traverses reachable same-file callees and the initializers triggered by their static-field accesses.
 
 ### `unknownCallFallback`
 
@@ -99,6 +144,7 @@ Every model implements `TsUnknownCallModel`:
 interface TsUnknownCallModel {
     val id: String
     val target: TsUnknownCallTarget
+    val requiredModelIds: Set<String>
 
     fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution?
 }
@@ -127,6 +173,10 @@ The ID is used for configuration, observer events, and recursion prevention. Do 
 
 Keep the same ID when an equivalent model moves from Kotlin to TypeScript.
 
+Selecting models with `TsUnknownCallModelSelection.Only` expands `requiredModelIds` transitively and sorts the final
+catalog by ID. This keeps a high-level source model usable when it calls helper models. Missing dependency IDs are
+rejected while building the catalog; an explicitly empty selection remains empty.
+
 ### Choosing a target
 
 `TsUnknownCallTarget` matches stable call metadata declaratively:
@@ -146,11 +196,11 @@ a priority rule. The enabled model set is frozen and sorted by ID when the catal
 The target identifies a call family. State-dependent checks, such as the receiver's symbolic runtime type, belong in
 `apply` or in an EtsIR model's domain guard.
 
-The built-in array targets intentionally combine the method name with `PARTIAL_APPROXIMATION` instead of a class name.
-That failure reason is emitted only after the regular approximation path has classified the receiver as an
-`EtsArrayType` using the normalized receiver's storage type. An `any` alias of a known array can satisfy that check;
-a receiver without array-type evidence cannot. The model still validates the resolved receiver and array shape
-before changing memory. Both models preserve the array's storage type, including reference and unresolved elements.
+The built-in array targets combine the method name with `PARTIAL_APPROXIMATION`. Array and String methods with the
+same name also use a canonical enclosing class at this boundary. The failure reason is emitted only after the regular
+approximation path has classified the normalized receiver by its storage type. An `any` alias of a known array can
+satisfy that check; a receiver without array-type evidence cannot. The model still validates the resolved receiver
+and array shape before changing memory.
 
 ## Applicability and residual states
 
@@ -228,8 +278,25 @@ Array indexing and `length` assignment use the receiver's storage type. Writing 
 zero through the current length, within the configured array-size limit. Growth remains unsupported because the
 engine does not represent newly created holes; those paths are pruned.
 
-The entry point must be static and have a non-empty body. Its parameter count must equal the resolved receiver plus
-argument count. Unresolved inputs or an arity mismatch make the model not applicable.
+`Array.pop`, `indexOf`, `includes`, and `lastIndexOf` share one source-model family. Search offsets accept numbers and
+the standard omitted or explicit-`undefined` defaults; other dynamic coercions use fallback. Array memory has no slot
+presence bit, so a hole can look like a typed default. Searches for `0` or `false` therefore use fallback, as do
+`indexOf(undefined)` and `lastIndexOf(undefined)`. `includes(undefined)` is accepted only for address or unresolved
+storage; numeric and boolean storage use fallback because their holes currently read as typed defaults. Symbolic
+numeric and boolean search values use a guarded model branch outside the typed default and residual fallback on the
+unsupported default. Fake-wrapped dynamic search values use fallback. Position normalization depends on
+`ts.math.floor`.
+
+The String source family implements `charAt`, `charCodeAt`, `indexOf`, `lastIndexOf`, `includes`, `startsWith`, and
+`endsWith`. Its TypeScript algorithms depend on atomic length, UTF-16 code-unit read, and one-code-unit construction
+models, plus `ts.math.floor` for positions. Current symbolic String parameters do not initialize backing character
+storage, so receivers and search strings must be initialized concrete constants. `charAt` also requires a concrete
+index because a dynamically constructed one-code-unit String does not yet participate in value-based String equality.
+Numeric-result and predicate methods can still use symbolic numeric positions over concrete strings.
+
+The entry point must be static and have a non-empty body. After its input adapter handles optional arguments or drops
+non-semantic namespace receivers, its parameter count must equal the adapted input count. Unresolved required inputs
+or an arity mismatch make the model not applicable.
 
 The domain guard has three useful outcomes:
 
@@ -264,6 +331,24 @@ Array reads, writes, length access, and `shift` use the storage type known to sy
 Widening a local from `number[]` to `any[]` therefore keeps the same element and length regions.
 
 In contrast, `Array.pop` is expressed as the TypeScript body shown above.
+
+### Date experiment boundary
+
+The built-in Date family keeps Gregorian calendar arithmetic, component overflow, leap years, and TimeClip in
+`DateModels.ts`. Kotlin only routes calls, injects the experiment clock, and exposes the model's numeric timestamp
+slot on a Date receiver. Calendar division and truncation use the declared `ts.math.floor` dependency.
+
+The current experiment has these explicit limits:
+
+- local getters, setters, and numeric component constructors use UTC; `getTimezoneOffset()` returns zero for valid
+  dates and NaN for invalid dates. DST behavior is outside the model domain;
+- `Date.now()` and `new Date()` require `TsOptions.dateNowMilliseconds`; one fixed value is reused throughout the
+  analysis, and both calls use fallback when it is absent;
+- one-argument construction supports numeric timestamps only; string parsing and copying another Date are outside
+  the model domain;
+- symbolic string formatting is not claimed: `toISOString()` is a source implementation for supported concrete
+  execution, while symbolic string conversion remains subject to the engine's string limitations. Invalid ISO
+  formatting reaches the unsupported nested `RangeError` constructor and the configured fallback.
 
 Good intrinsic candidates include:
 
@@ -304,6 +389,9 @@ type guard.
 
 Unknown calls made inside a TypeScript model body use the same catalog and fallback as the original program. This lets
 source models compose with other source models and intrinsics.
+
+Declare every nested semantic-model call in `requiredModelIds`. A selection containing only the high-level API then
+expands to its helpers before the machine scene is materialized.
 
 The state tracks each active model ID together with its call-stack depth. If the same model would redirect recursively,
 lookup declines that redirection and fallback is applied instead of entering an infinite loop.

@@ -141,19 +141,18 @@ internal fun TsUnknownCallDispatcher.dispatch(
         is EtsPtrCallExpr -> call.ptr
         else -> null
     }
-    return dispatch(
-        scope,
-        TsUnknownCall(
-            callee = callee,
-            receiver = receiverSource?.let { TsUnknownCallValue(it, resolvedReceiver) },
-            arguments = call.args.zip(resolvedArguments) { source, resolved ->
-                TsUnknownCallValue(source, resolved)
-            },
-            resultType = call.type,
-            callSite = callSite,
-            failureReason = failureReason,
-        ),
+    val unknownCall = TsUnknownCall(
+        callee = callee,
+        receiver = receiverSource?.let { TsUnknownCallValue(it, resolvedReceiver) },
+        arguments = call.args.zip(resolvedArguments) { source, resolved ->
+            TsUnknownCallValue(source, resolved)
+        },
+        resultType = call.type,
+        callSite = callSite,
+        failureReason = failureReason,
     )
+
+    return dispatch(scope, unknownCall)
 }
 
 internal fun TsUnknownCallDispatcher.dispatch(

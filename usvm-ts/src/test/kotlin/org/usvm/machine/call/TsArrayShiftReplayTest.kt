@@ -39,7 +39,13 @@ class TsArrayShiftReplayTest {
             DynamicTest.dynamicTest(case.name) {
                 val method = methods.getValue("case$index")
 
-                val tests = TsMachine(scene, options = machineOptions, tsOptions = TsOptions()).use { machine ->
+                val dispatcher = TsCompatibilityUnknownCallDispatcher.takeIf { case.compatibility }
+                val tests = TsMachine(
+                    scene = scene,
+                    options = machineOptions,
+                    tsOptions = TsOptions(),
+                    unknownCallDispatcher = dispatcher,
+                ).use { machine ->
                     machine.analyze(listOf(method)).map { state -> TsTestResolver().resolve(method, state) }
                 }
 
@@ -147,14 +153,70 @@ class TsArrayShiftReplayTest {
                 """.trimIndent(),
             )
         )
+        addAll(assertionAndWriteCases())
         addAll(storageOperationCases())
         addAll(pairCases())
         addAll(typedCases())
     }
 
+    private fun assertionAndWriteCases(): List<ReplayCase> = buildList {
+        add(
+            ReplayCase(
+                name = "number type assertions preserve runtime values",
+                parameters = "value: number",
+                maxResult = 1,
+                body = """
+                    if (value !== 42) return 0;
+                    const asserted = value as unknown as string;
+                    return typeof asserted === 'number' && asserted === 42 ? 1 : -1;
+                """.trimIndent(),
+            )
+        )
+        add(
+            ReplayCase(
+                name = "boolean type assertions do not convert to numbers",
+                parameters = "value: boolean",
+                maxResult = 1,
+                body = """
+                    if (!value) return 0;
+                    const asserted = value as unknown as number;
+                    return typeof asserted === 'boolean' && asserted === true ? 1 : -1;
+                """.trimIndent(),
+            )
+        )
+        add(
+            ReplayCase(
+                name = "truthy wrapped number retains its runtime kind through assertion and write",
+                parameters = "values: number[]",
+                maxResult = 2,
+                body = """
+                    if (values.length !== 1) return 0;
+                    const item = values[0];
+                    if (!item) return 1;
+                    const asserted = item as unknown as number;
+                    const output = [0];
+                    output[0] = asserted;
+                    return output[0] === item ? 2 : -1;
+                """.trimIndent(),
+            )
+        )
+        add(
+            ReplayCase(
+                name = "typed array copies preserve wrapped numbers including NaN",
+                parameters = "values: number[]",
+                maxResult = 1,
+                body = """
+                    if (values.length !== 2) return 0;
+                    values[0] = values[1];
+                    return values[0] === values[1] || values[0] !== values[0] ? 1 : -1;
+                """.trimIndent(),
+            )
+        )
+    }
+
     private fun storageOperationCases(): List<ReplayCase> = listOf("any", "unknown").flatMap { type ->
         copyCases(type) + mutationCases(type) + concatCases(type)
-    }
+    }.map { case -> case.copy(name = "compatibility storage: ${case.name}", compatibility = true) }
 
     private fun copyCases(type: String): List<ReplayCase> = listOf(
         ReplayCase(
@@ -464,6 +526,7 @@ class TsArrayShiftReplayTest {
         val parameters: String,
         val maxResult: Int,
         val body: String,
+        val compatibility: Boolean = false,
     )
 
     private companion object {

@@ -7,6 +7,7 @@ import mu.KotlinLogging
 import org.usvm.UAddressSort
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.UIteExpr
@@ -18,6 +19,7 @@ import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.types.ExprWithTypeConstraint
 import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.util.boolToFp
+import org.usvm.util.refOrStringValueEquals
 
 private val logger = KotlinLogging.logger {}
 
@@ -392,7 +394,7 @@ sealed interface TsBinaryOperator {
             return mkOr(
                 mkAnd(lhsIsUndefined, rhsIsNull),
                 mkAnd(lhsIsNull, rhsIsUndefined),
-                mkHeapRefEq(lhs, rhs)
+                scope.calcOnState { refOrStringValueEquals(lhs, rhs) },
             )
         }
 
@@ -557,7 +559,7 @@ sealed interface TsBinaryOperator {
             rhs: UHeapRef,
             scope: TsStepScope,
         ): UBoolExpr {
-            return mkHeapRefEq(lhs, rhs)
+            return scope.calcOnState { refOrStringValueEquals(lhs, rhs) }
         }
 
         override fun TsContext.resolveFakeObject(
@@ -567,93 +569,55 @@ sealed interface TsBinaryOperator {
         ): UBoolExpr {
             check(lhs.isFakeObject() || rhs.isFakeObject())
 
-            var lhsValue: UExpr<*> = lhs
-            var rhsValue: UExpr<*> = rhs
+            if (lhs.isFakeObject() && rhs.isFakeObject()) {
+                val lhsType = lhs.getFakeType(scope)
+                val rhsType = rhs.getFakeType(scope)
+                val boolValuesEqual = onBool(lhs.extractBool(scope), rhs.extractBool(scope), scope)
+                val fpValuesEqual = onFp(lhs.extractFp(scope), rhs.extractFp(scope), scope)
+                val refValuesEqual = onRef(lhs.extractRef(scope), rhs.extractRef(scope), scope)
+                val boolMatch = mkAnd(lhsType.boolTypeExpr, rhsType.boolTypeExpr, boolValuesEqual)
+                val fpMatch = mkAnd(lhsType.fpTypeExpr, rhsType.fpTypeExpr, fpValuesEqual)
+                val refMatch = mkAnd(lhsType.refTypeExpr, rhsType.refTypeExpr, refValuesEqual)
 
-            val typeConstraint = when {
-                lhs.isFakeObject() && rhs.isFakeObject() -> {
-                    val lhsType = lhs.getFakeType(scope)
-                    val rhsType = rhs.getFakeType(scope)
-                    mkAnd(
-                        lhsType.boolTypeExpr eq rhsType.boolTypeExpr,
-                        lhsType.fpTypeExpr eq rhsType.fpTypeExpr,
-                        // TODO support type equality
-                        lhsType.refTypeExpr eq rhsType.refTypeExpr,
-                    )
-                }
-
-                lhs.isFakeObject() -> {
-                    val lhsType = lhs.getFakeType(scope)
-                    when (rhs.sort) {
-                        boolSort -> {
-                            lhsValue = lhs.extractBool(scope)
-                            lhsType.boolTypeExpr
-                        }
-
-                        fp64Sort -> {
-                            lhsValue = lhs.extractFp(scope)
-                            lhsType.fpTypeExpr
-                        }
-
-                        // TODO support type equality
-                        addressSort -> {
-                            lhsValue = lhs.extractRef(scope)
-                            lhsType.refTypeExpr
-                        }
-
-                        else -> error("Unsupported sort ${rhs.sort}")
-                    }
-                }
-
-                rhs.isFakeObject() -> {
-                    val rhsType = rhs.getFakeType(scope)
-                    when (lhs.sort) {
-                        boolSort -> {
-                            rhsValue = rhs.extractBool(scope)
-                            rhsType.boolTypeExpr
-                        }
-
-                        fp64Sort -> {
-                            rhsValue = rhs.extractFp(scope)
-                            rhsType.fpTypeExpr
-                        }
-
-                        // TODO support type equality
-                        addressSort -> {
-                            rhsValue = rhs.extractRef(scope)
-                            rhsType.refTypeExpr
-                        }
-
-                        else -> error("Unsupported sort ${lhs.sort}")
-                    }
-                }
-
-                else -> {
-                    error("Should not be called")
-                }
+                return mkOr(boolMatch, fpMatch, refMatch)
             }
 
-            check(!lhsValue.isFakeObject()) { "Nested fake objects are not supported" }
-            check(!rhsValue.isFakeObject()) { "Nested fake objects are not supported" }
-
-            // Note: this is the case 'ref === ref',
-            // which should be `true` only if both have the same reference.
-            // It is not correct to delegate to `Eq.resolve` in this case,
-            // since `==` treats `null == undefined`, while `null !== undefined`.
-            if (lhsValue.sort == addressSort && rhsValue.sort == addressSort) {
-                val left = lhsValue.asExpr(addressSort)
-                val right = rhsValue.asExpr(addressSort)
-                return mkAnd(
-                    typeConstraint,
-                    mkHeapRefEq(left, right)
-                )
+            return if (lhs.isFakeObject()) {
+                compareFakeWithConcrete(lhs, rhs, scope)
+            } else {
+                check(rhs.isFakeObject())
+                compareFakeWithConcrete(rhs, lhs, scope)
             }
+        }
 
-            val looseEqualityConstraint = with(Eq) {
-                resolve(lhsValue, rhsValue, scope)?.asExpr(boolSort) ?: error("Should not be encountered")
+        private fun TsContext.compareFakeWithConcrete(
+            wrapped: UConcreteHeapRef,
+            concrete: UExpr<*>,
+            scope: TsStepScope,
+        ): UBoolExpr {
+            val type = wrapped.getFakeType(scope)
+            return when (concrete.sort) {
+                boolSort -> {
+                    val payload = wrapped.extractBool(scope)
+                    val equal = onBool(payload, concrete.asExpr(boolSort), scope)
+                    mkAnd(type.boolTypeExpr, equal)
+                }
+
+                fp64Sort -> {
+                    val payload = wrapped.extractFp(scope)
+                    val equal = onFp(payload, concrete.asExpr(fp64Sort), scope)
+                    mkAnd(type.fpTypeExpr, equal)
+                }
+
+                addressSort -> {
+                    val payload = wrapped.extractRef(scope)
+                    check(!payload.isFakeObject()) { "Nested fake objects are not supported" }
+                    val equal = onRef(payload, concrete.asExpr(addressSort), scope)
+                    mkAnd(type.refTypeExpr, equal)
+                }
+
+                else -> error("Unsupported sort ${concrete.sort}")
             }
-
-            return mkAnd(typeConstraint, looseEqualityConstraint)
         }
 
         override fun TsContext.internalResolve(

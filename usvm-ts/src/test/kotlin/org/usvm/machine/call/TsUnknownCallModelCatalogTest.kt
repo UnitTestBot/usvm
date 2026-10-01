@@ -12,6 +12,8 @@ import org.usvm.UMachineOptions
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.machine.call.intrinsic.TsArrayShiftIntrinsicModel
+import org.usvm.machine.call.intrinsic.TsErrorEtsIrModelFamily
+import org.usvm.machine.call.intrinsic.TsNumericIntrinsicModelFamily
 import org.usvm.machine.state.TsState
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -78,6 +80,32 @@ class TsUnknownCallModelCatalogTest {
         }
 
         assertEquals("Unknown semantic model IDs: missing", error.message)
+    }
+
+    @Test
+    fun `selection includes transitive model dependencies`() {
+        val catalog = TsUnknownCallModelCatalog(
+            models = listOf(
+                model(id = "entry", requiredModelIds = setOf("helper")),
+                model(id = "helper", requiredModelIds = setOf("primitive")),
+                model(id = "primitive"),
+                model(id = "unrelated"),
+            ),
+            selection = TsUnknownCallModelSelection.Only(setOf("entry")),
+        )
+
+        assertEquals(listOf("entry", "helper", "primitive"), catalog.modelIds)
+    }
+
+    @Test
+    fun `missing model dependency is rejected`() {
+        val error = assertFailsWith<IllegalArgumentException> {
+            TsUnknownCallModelCatalog(
+                models = listOf(model(id = "entry", requiredModelIds = setOf("missing"))),
+            )
+        }
+
+        assertEquals("Semantic model entry requires unknown model IDs: missing", error.message)
     }
 
     @Test
@@ -150,13 +178,45 @@ class TsUnknownCallModelCatalogTest {
     fun `built in models are discovered once and an explicit empty selection disables all`() {
         val catalog = TsBuiltInUnknownCallModels.catalog()
 
-        assertEquals(listOf("ts.array.pop", TsArrayShiftIntrinsicModel.MODEL_ID), catalog.modelIds)
+        val expectedModelIds = listOf(
+            "ts.array.includes",
+            "ts.array.indexOf",
+            "ts.array.lastIndexOf",
+            "ts.array.pop",
+            TsArrayShiftIntrinsicModel.MODEL_ID,
+            TsNumericIntrinsicModelFamily.MATH_ABS_ID,
+            TsNumericIntrinsicModelFamily.MATH_CEIL_ID,
+            TsNumericIntrinsicModelFamily.MATH_FLOOR_ID,
+            TsNumericIntrinsicModelFamily.MATH_MAX_ID,
+            TsNumericIntrinsicModelFamily.MATH_MIN_ID,
+            TsNumericIntrinsicModelFamily.MATH_ROUND_ID,
+            TsNumericIntrinsicModelFamily.MATH_SQRT_ID,
+            TsNumericIntrinsicModelFamily.MATH_TRUNC_ID,
+            TsNumericIntrinsicModelFamily.NUMBER_IS_FINITE_ID,
+            TsNumericIntrinsicModelFamily.NUMBER_IS_INTEGER_ID,
+            TsNumericIntrinsicModelFamily.NUMBER_IS_NAN_ID,
+            TsNumericIntrinsicModelFamily.NUMBER_IS_SAFE_INTEGER_ID,
+            "ts.string.charAt",
+            "ts.string.charCodeAt",
+            "ts.string.endsWith",
+            "ts.string.includes",
+            "ts.string.indexOf",
+            "ts.string.lastIndexOf",
+            "ts.string.primitive.codeUnitAt",
+            "ts.string.primitive.fromCodeUnit",
+            "ts.string.primitive.length",
+            "ts.string.startsWith",
+        )
+
+        assertTrue(catalog.modelIds.containsAll(expectedModelIds))
+        assertTrue("ts.date.constructor" in catalog.modelIds)
+        assertTrue(TsErrorEtsIrModelFamily.CONSTRUCTOR_ID in catalog.modelIds)
+        assertTrue("ts.date.now" in catalog.modelIds)
+        assertEquals(expected = 38, actual = catalog.modelIds.count { it.startsWith("ts.date.") })
+        assertEquals(catalog.modelIds.distinct().sorted(), catalog.modelIds)
         assertSame(catalog, TsBuiltInUnknownCallModels.catalog())
         assertFailsWith<UnsupportedOperationException> { (catalog.modelIds as MutableList<String>).clear() }
-        assertEquals(
-            listOf("ts.array.pop", TsArrayShiftIntrinsicModel.MODEL_ID),
-            TsBuiltInUnknownCallModels.catalog().modelIds,
-        )
+        assertEquals(catalog.modelIds, TsBuiltInUnknownCallModels.catalog().modelIds)
         assertTrue(TsBuiltInUnknownCallModels.catalog(TsUnknownCallModelSelection.Only(emptySet())).modelIds.isEmpty())
     }
 
@@ -262,6 +322,7 @@ class TsUnknownCallModelCatalogTest {
         failureReason: TsUnknownCallFailureReason? = null,
         className: String? = null,
         additionalSceneFiles: List<EtsFile> = emptyList(),
+        requiredModelIds: Set<String> = emptySet(),
     ): TsUnknownCallModel = FakeModel(
         id = id,
         target = TsUnknownCallTarget(
@@ -270,12 +331,14 @@ class TsUnknownCallModelCatalogTest {
             enclosingClassName = className,
         ),
         additionalSceneFiles = additionalSceneFiles,
+        requiredModelIds = requiredModelIds,
     )
 
     private class FakeModel(
         override val id: String,
         override val target: TsUnknownCallTarget,
         override val additionalSceneFiles: List<EtsFile> = emptyList(),
+        override val requiredModelIds: Set<String> = emptySet(),
     ) : TsUnknownCallModel {
         override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution =
             error("Fake model must not execute in catalog metadata tests")

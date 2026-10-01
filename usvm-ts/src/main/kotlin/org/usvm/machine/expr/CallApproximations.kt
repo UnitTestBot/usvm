@@ -7,6 +7,7 @@ import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsInstanceCallExpr
 import org.jacodb.ets.model.EtsMethodSignature
+import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.usvm.UBoolExpr
@@ -22,14 +23,18 @@ import org.usvm.getIntValue
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.TsVirtualMethodCallStmt
+import org.usvm.machine.call.TsBuiltInUnknownCallModels
 import org.usvm.machine.call.TsUnknownCallFailureReason
 import org.usvm.machine.call.TsUnknownCallModelDispatcher
 import org.usvm.machine.call.dispatch
+import org.usvm.machine.call.hasBuiltinGlobalOwner
+import org.usvm.machine.call.intrinsic.TsDateEtsIrModelFamily
 import org.usvm.machine.expr.TsExprApproximationResult.Companion.from
 import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.markResolved
 import org.usvm.machine.interpreter.setResolvedValue
 import org.usvm.machine.state.TsMethodResult
+import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.types.TsUnresolvedArrayKind
 import org.usvm.machine.types.mkFakeValue
@@ -53,10 +58,16 @@ internal fun TsExprResolver.tryApproximateGlobalInstanceCall(
         return from(mkUndefinedValue())
     }
 
-    // Handle `Number.isNaN()` calls
-    if (expr.instance.name == "Number") {
-        if (expr.callee.name == "isNaN") {
-            return from(handleNumberIsNaN(expr))
+    // Handle `Number` calls.
+    if (hasBuiltinGlobalOwner(owner = expr.instance, callee = expr.callee, expectedName = "Number")) {
+        when (expr.callee.name) {
+            "isFinite", "isInteger", "isSafeInteger" -> {
+                return tryDispatchNumericBuiltin(expr)
+                    ?: TsExprApproximationResult.NoApproximation
+            }
+
+            "isNaN" -> return tryDispatchNumericBuiltin(expr)
+                ?: from(handleNumberIsNaN(expr))
         }
     }
 
@@ -77,14 +88,44 @@ internal fun TsExprResolver.tryApproximateGlobalInstanceCall(
         }
     }
 
-    // Handle `Math` method calls
-    if (expr.instance.name == "Math") {
-        if (expr.callee.name == "floor") {
-            return from(handleMathFloor(expr))
+    // Handle `Math` method calls.
+    if (hasBuiltinGlobalOwner(owner = expr.instance, callee = expr.callee, expectedName = "Math")) {
+        when (expr.callee.name) {
+            "abs", "ceil", "max", "min", "round", "sqrt", "trunc" -> {
+                return tryDispatchNumericBuiltin(expr)
+                    ?: TsExprApproximationResult.NoApproximation
+            }
+
+            "floor" -> return tryDispatchNumericBuiltin(expr)
+                ?: from(handleMathFloor(expr))
         }
     }
 
     return TsExprApproximationResult.NoApproximation
+}
+
+private fun TsExprResolver.tryDispatchNumericBuiltin(
+    expr: EtsInstanceCallExpr,
+): TsExprApproximationResult? {
+    val dispatcher = unknownCallDispatcher
+    if (dispatcher !is TsUnknownCallModelDispatcher) {
+        return null
+    }
+    val resolvedArguments = buildList {
+        for (argument in expr.args) {
+            add(resolve(argument) ?: return TsExprApproximationResult.ResolveFailure)
+        }
+    }
+
+    dispatcher.dispatch(
+        scope = scope,
+        call = expr,
+        callSite = scope.calcOnState { lastStmt },
+        failureReason = TsUnknownCallFailureReason.PARTIAL_APPROXIMATION,
+        resolvedArguments = resolvedArguments,
+    )
+
+    return TsExprApproximationResult.ResolveFailure
 }
 
 internal fun TsExprResolver.tryApproximateInstanceCall(
@@ -95,6 +136,11 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
 
     // Mock `.toString()` method calls
     if (expr.callee.name == "toString") {
+        if (unknownCallDispatcher is TsUnknownCallModelDispatcher) {
+            dispatchLegacyInstanceCall(stmt)
+            return TsExprApproximationResult.ResolveFailure
+        }
+
         if (expr.args.isNotEmpty()) {
             logger.warn { "toString() should have no arguments, but got ${expr.args.size}" }
         }
@@ -103,7 +149,16 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
 
     // Handle `.valueOf()` method calls
     if (expr.callee.name == "valueOf") {
-        return from(handleValueOf(expr, instance))
+        val receiverIsDate = scope.calcOnState {
+            TsDateEtsIrModelFamily.isDateReceiver(
+                state = this,
+                source = expr.instance,
+                receiver = instance,
+            )
+        }
+        if (!receiverIsDate) {
+            return from(handleValueOf(expr, instance))
+        }
     }
 
     if (instance.sort != addressSort) return TsExprApproximationResult.NoApproximation
@@ -115,6 +170,19 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
         val elementSort = typeToSort(instanceType.elementType)
             .takeIf { it !is TsUnresolvedSort }
             ?: addressSort
+
+        val usesModelDispatcher = unknownCallDispatcher is TsUnknownCallModelDispatcher
+        val modeledArrayCall = usesModelDispatcher && TsBuiltInUnknownCallModels.hasPartialApproximationModel(
+            methodName = expr.callee.name,
+            enclosingClassName = "Array",
+            allowUnqualifiedTarget = true,
+        )
+
+        // join has no source model yet; the model run intentionally sends it to the residual policy.
+        if (modeledArrayCall || (usesModelDispatcher && expr.callee.name == "join")) {
+            dispatchArrayModel(stmt)
+            return TsExprApproximationResult.ResolveFailure
+        }
 
         // Handle 'Array.push()' method calls
         if (expr.callee.name == "push") {
@@ -156,14 +224,14 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
             return handleArrayConcat(stmt, instanceType, array)
         }
 
-        // Handle `Array.indexOf() method calls
-        if (expr.callee.name == "indexOf") {
-            return from(handleArrayIndexOf(expr, instanceType, elementSort, array))
+        // Handle Array search and indexed access method calls.
+        if (expr.callee.name in setOf("indexOf", "lastIndexOf")) {
+            return handleArrayIndexSearchCall(stmt, instanceType, elementSort, array)
         }
 
         // Handle `Array.includes() method calls
         if (expr.callee.name == "includes") {
-            return from(handleArrayIncludes(expr))
+            return handleArrayIncludesCall(stmt)
         }
 
         // Handle `Array.reverse() method calls
@@ -172,8 +240,85 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
         }
     }
 
+    val dispatcher = unknownCallDispatcher
+    if (instanceType is EtsStringType && dispatcher is TsUnknownCallModelDispatcher &&
+        TsBuiltInUnknownCallModels.hasPartialApproximationModel(
+            methodName = expr.callee.name,
+            enclosingClassName = "String",
+        )
+    ) {
+        dispatcher.dispatch(
+            scope = scope,
+            call = stmt.call,
+            callSite = stmt.returnSite,
+            failureReason = TsUnknownCallFailureReason.PARTIAL_APPROXIMATION,
+            callee = stmt.call.callee.withEnclosingClassName("String"),
+            resolvedReceiver = stmt.instance,
+            resolvedArguments = stmt.args,
+        )
+
+        return TsExprApproximationResult.ResolveFailure
+    }
+
     return TsExprApproximationResult.NoApproximation
 }
+
+private fun TsExprResolver.handleArrayIndexSearchCall(
+    stmt: TsVirtualMethodCallStmt,
+    instanceType: EtsArrayType,
+    elementSort: USort,
+    array: UHeapRef,
+): TsExprApproximationResult {
+    val dispatcher = unknownCallDispatcher
+    if (dispatcher !is TsUnknownCallModelDispatcher) {
+        if (stmt.call.callee.name != "indexOf") {
+            return TsExprApproximationResult.NoApproximation
+        }
+
+        return from(handleArrayIndexOf(stmt.call, instanceType, elementSort, array))
+    }
+
+    dispatchArrayModel(stmt)
+    return TsExprApproximationResult.ResolveFailure
+}
+
+private fun TsExprResolver.handleArrayIncludesCall(
+    stmt: TsVirtualMethodCallStmt,
+): TsExprApproximationResult {
+    val dispatcher = unknownCallDispatcher
+    if (dispatcher !is TsUnknownCallModelDispatcher) {
+        return from(handleArrayIncludes(stmt.call))
+    }
+
+    dispatchArrayModel(stmt)
+    return TsExprApproximationResult.ResolveFailure
+}
+
+private fun TsExprResolver.dispatchArrayModel(stmt: TsVirtualMethodCallStmt) {
+    unknownCallDispatcher.dispatch(
+        scope = scope,
+        call = stmt.call,
+        callSite = stmt.returnSite,
+        failureReason = TsUnknownCallFailureReason.PARTIAL_APPROXIMATION,
+        callee = stmt.call.callee.withEnclosingClassName("Array"),
+        resolvedReceiver = stmt.instance,
+        resolvedArguments = stmt.args,
+    )
+}
+
+private fun TsExprResolver.dispatchLegacyInstanceCall(stmt: TsVirtualMethodCallStmt) {
+    unknownCallDispatcher.dispatch(
+        scope = scope,
+        call = stmt.call,
+        callSite = stmt.returnSite,
+        failureReason = TsUnknownCallFailureReason.PARTIAL_APPROXIMATION,
+        resolvedReceiver = stmt.instance,
+        resolvedArguments = stmt.args,
+    )
+}
+
+private fun EtsMethodSignature.withEnclosingClassName(name: String): EtsMethodSignature =
+    copy(enclosingClass = enclosingClass.copy(name = name))
 
 private fun TsExprResolver.handleArrayPopCall(
     stmt: TsVirtualMethodCallStmt,

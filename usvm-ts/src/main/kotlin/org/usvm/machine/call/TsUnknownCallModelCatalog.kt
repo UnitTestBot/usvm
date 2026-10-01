@@ -2,6 +2,7 @@ package org.usvm.machine.call
 
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsFileSignature
+import org.usvm.machine.call.intrinsic.TsDateEtsIrModelFamily
 import org.usvm.machine.state.TsState
 import java.util.Collections
 import java.util.IdentityHashMap
@@ -23,13 +24,28 @@ class TsUnknownCallModelCatalog(
             require(model.id.isNotBlank()) { "Semantic model ID must not be blank" }
             require(modelsById.put(model.id, model) == null) { "Duplicate semantic model ID: ${model.id}" }
         }
+        modelsById.values.forEach { model ->
+            val missingDependencies = model.requiredModelIds.subtract(modelsById.keys)
+            require(missingDependencies.isEmpty()) {
+                "Semantic model ${model.id} requires unknown model IDs: ${missingDependencies.sorted().joinToString()}"
+            }
+        }
 
         selectedModels = when (selection) {
             TsUnknownCallModelSelection.All -> modelsById.values
             is TsUnknownCallModelSelection.Only -> {
                 val unknownIds = selection.ids.subtract(modelsById.keys)
                 require(unknownIds.isEmpty()) { "Unknown semantic model IDs: ${unknownIds.sorted().joinToString()}" }
-                selection.ids.map(modelsById::getValue)
+                val expandedIds = linkedSetOf<String>()
+                fun addWithDependencies(id: String) {
+                    if (!expandedIds.add(id)) {
+                        return
+                    }
+
+                    modelsById.getValue(id).requiredModelIds.sorted().forEach(::addWithDependencies)
+                }
+                selection.ids.sorted().forEach(::addWithDependencies)
+                expandedIds.map(modelsById::getValue)
             }
         }.sortedBy(TsUnknownCallModel::id)
 
@@ -59,13 +75,29 @@ class TsUnknownCallModelCatalog(
         return candidates[call.callee.enclosingClass.name] ?: candidates[null]
     }
 
+    internal fun hasTarget(
+        methodName: String,
+        enclosingClassName: String,
+        failureReason: TsUnknownCallFailureReason,
+        allowUnqualifiedTarget: Boolean,
+    ): Boolean {
+        val candidates = index[methodName]?.get(failureReason) ?: return false
+        return enclosingClassName in candidates || (allowUnqualifiedTarget && null in candidates)
+    }
+
     fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelApplication {
-        val model = select(call) ?: return TsUnknownCallModelApplication.NotApplicable
+        val directModel = select(call)
+        val modelCall = if (directModel == null) {
+            TsDateEtsIrModelFamily.canonicalModelCall(state, call) ?: call
+        } else {
+            call
+        }
+        val model = directModel ?: select(modelCall) ?: return TsUnknownCallModelApplication.NotApplicable
         if (state.isUnknownCallModelActive(model.id)) {
             return TsUnknownCallModelApplication.NotApplicable
         }
 
-        val execution = model.apply(state, call) ?: return TsUnknownCallModelApplication.NotApplicable
+        val execution = model.apply(state, modelCall) ?: return TsUnknownCallModelApplication.NotApplicable
 
         return TsUnknownCallModelApplication.Applied(
             modelId = model.id,
