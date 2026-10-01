@@ -71,6 +71,7 @@ import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.parametersWithThisCount
 import org.usvm.machine.state.returnValue
+import org.usvm.machine.types.EtsFakeType
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.machine.types.toAuxiliaryType
 import org.usvm.sizeSort
@@ -249,6 +250,11 @@ class TsInterpreter(
 
         if (possibleTypesSet.singleOrNull() == EtsAnyType) {
             unknownCallDispatcher.dispatch(scope, stmt, Reason.ANY_RECEIVER, receiver)
+            return
+        }
+
+        if (possibleTypesSet.any { it is EtsFakeType }) {
+            unknownCallDispatcher.dispatch(scope, stmt, Reason.UNSUPPORTED_RECEIVER_TYPE, receiver)
             return
         }
 

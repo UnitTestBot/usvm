@@ -25,6 +25,7 @@ import org.usvm.UBoolSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UMachineOptions
+import org.usvm.api.evalTypeEquals
 import org.usvm.api.targets.ReachabilityObserver
 import org.usvm.api.targets.TsReachabilityTarget
 import org.usvm.isTrue
@@ -207,6 +208,30 @@ class TsUnknownCallDispatcherTest {
             listOf(TsUnknownCallOutcome.MODEL_APPLIED, TsUnknownCallOutcome.FRESH_SYMBOLIC_RETURN),
             observer.events.map { it.outcome },
         )
+    }
+
+    @Test
+    fun `partial string model keeps modeled and typed fresh successors`() {
+        val observer = RecordingUnknownCallObserver()
+
+        val states = analyzeAllStates(
+            methodName = "modeledStringCallForks",
+            fallback = TsResidualCallPolicy.FRESH_SYMBOLIC_RETURN,
+            models = catalog(PartialStringModel),
+            observer = observer,
+        )
+
+        assertEquals(2, states.size)
+        assertEquals(
+            listOf(TsUnknownCallOutcome.MODEL_APPLIED, TsUnknownCallOutcome.FRESH_SYMBOLIC_RETURN),
+            observer.events.map { it.outcome },
+        )
+        states.forEach { state ->
+            val result = assertIs<TsMethodResult.Success>(state.methodResult).value
+            val isString = state.memory.types.evalTypeEquals(result.asExpr(state.ctx.addressSort), EtsStringType)
+            assertTrue(state.models.isNotEmpty())
+            assertTrue(state.models.all { model -> model.eval(isString).isTrue })
+        }
     }
 
     @Test
@@ -717,6 +742,25 @@ class TsUnknownCallDispatcherTest {
         }
     }
 
+    private object PartialStringModel : TestModel(
+        id = "partial-string-model",
+        methodName = "convert",
+        enclosingClassName = "ExternalString",
+    ) {
+        override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution {
+            val condition = requireNotNull(call.arguments.single().resolved).asExpr(state.ctx.boolSort)
+            val successor = TsUnknownCallModelSuccessor(
+                guard = condition,
+                completion = TsUnknownCallModelCompletion.Normal { mkInitializedStringConstant("modeled") },
+            )
+
+            return TsUnknownCallModelExecution(
+                successors = listOf(successor),
+                residualGuard = state.ctx.mkNot(condition),
+            )
+        }
+    }
+
     private object ExceptionalModel : TestModel(id = "exceptional-model", methodName = "fail") {
         override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution {
             val successor = TsUnknownCallModelSuccessor(
@@ -760,8 +804,9 @@ class TsUnknownCallDispatcherTest {
     private abstract class TestModel(
         override val id: String,
         methodName: String,
+        enclosingClassName: String? = null,
     ) : TsUnknownCallModel {
-        override val target = TsUnknownCallTarget(methodName = methodName)
+        override val target = TsUnknownCallTarget(methodName = methodName, enclosingClassName = enclosingClassName)
     }
 
     private class RecordingUnknownCallObserver : TsInterpreterObserver {

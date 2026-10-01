@@ -19,6 +19,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 private const val ERROR_CONSTRUCTOR_MODEL_ID: String = "ts.error.constructor"
@@ -92,6 +93,65 @@ class CurrentTsCallsSymbolicEngineTest {
 
         assertEquals(CallsSymbolicStatus.REACHED, result.status, "$result; unknownCalls=$unknownCalls")
         assertEquals(emptyList(), result.inputs)
+    }
+
+    @Test
+    fun `partial array join with fresh string residual does not fail search`() {
+        val fixture = fixture(
+            source = """
+                export function lineWrap(text: string, MAX: number = 15): string[] {
+                  const lines: string[] = []
+
+                  const segments = text.split(' ')
+
+                  const l = segments.length
+
+                  let line_segments: string[] = []
+                  let line_segments_char_count = 0
+
+                  for (let i = 0; i < l; i++) {
+                    const segment = segments[i]
+                    const segment_l = segment.length
+
+                    if (line_segments_char_count + line_segments.length - 1 + segment_l > MAX) {
+                      lines.push(line_segments.join(' '))
+                      line_segments = []
+                      line_segments_char_count = 0
+                    }
+
+                    line_segments.push(segment)
+                    line_segments_char_count += segment_l
+                  }
+
+                  if (line_segments.length > 0) {
+                    lines.push(line_segments.join(' '))
+                  }
+
+                  return lines
+                }
+            """.trimIndent(),
+            exportName = "lineWrap",
+            inputs = listOf(
+                PropertyInput(name = "text", domain = StringDomain(maxLength = 10)),
+                PropertyInput(name = "MAX", domain = NumberDomain()),
+            ),
+            targetStatement = "return lines",
+            targetMode = CallsSourceTargetMode.COMPLETED_RETURN,
+            returnExpression = "lines",
+            sourceFileName = "src/spec/lineWrap.ts",
+        )
+        val unknownCalls = mutableListOf<TsUnknownCallEvent>()
+
+        val result = fixture.search(
+            modelIds = setOf("ts.string.split", "ts.array.join", "ts.array.push"),
+            profile = CallsExperimentProfile.FROZEN_FRESH,
+            unknownCallEventSink = unknownCalls::add,
+            seed = 29,
+            budget = 30.seconds,
+        )
+
+        assertTrue(result.status != CallsSymbolicStatus.TOOL_ERROR, result.toString())
+        assertTrue(unknownCalls.any { it.callee.name == "join" }, "Array.join was not exercised")
     }
 
     @Test
@@ -1180,6 +1240,8 @@ class CurrentTsCallsSymbolicEngineTest {
             profile: CallsExperimentProfile = CallsExperimentProfile.FROZEN_STOP,
             unknownCallEventSink: ((TsUnknownCallEvent) -> Unit)? = null,
             runtimeLimitationEventSink: ((TsRuntimeFeatureLimitationEvent) -> Unit)? = null,
+            seed: Long = 0,
+            budget: Duration = 10.seconds,
         ): CallsSymbolicSearchResult = engine.search(
             CallsSymbolicSearchRequest(
                 sourceRoot = sourceRoot,
@@ -1189,8 +1251,8 @@ class CurrentTsCallsSymbolicEngineTest {
                 profile = profile,
                 frozenModelIds = modelIds,
                 expectedNativeFrontendRevision = "bundled:test",
-                seed = 0,
-                budget = 10.seconds,
+                seed = seed,
+                budget = budget,
                 unknownCallEventSink = unknownCallEventSink,
                 runtimeLimitationEventSink = runtimeLimitationEventSink,
             )

@@ -46,9 +46,25 @@ internal fun TsExprResolver.handleInstanceFieldRef(
     // Check for undefined or null property access.
     checkUndefinedOrNullPropertyRead(scope, instance, propertyName = value.field.name) ?: return null
 
+    val receiverLimitation = fieldReceiverLimitation(scope, instance)
+    if (receiverLimitation != null) {
+        reportRuntimeFeatureLimitation(
+            reason = receiverLimitation,
+            detail = "Field read requires an unsupported receiver: ${value.field.name}",
+        )
+        scope.assert(falseExpr)
+        return null
+    }
+
     // Handle reading "length" property.
     if (value.field.name == "length") {
-        return readLengthProperty(scope, instanceLocal, instance, options.maxArraySize)
+        return readLengthProperty(
+            scope = scope,
+            instanceLocal = instanceLocal,
+            instance = instance,
+            maxArraySize = options.maxArraySize,
+            onFeatureLimitation = ::reportRuntimeFeatureLimitation,
+        )
     }
 
     // Read the field.

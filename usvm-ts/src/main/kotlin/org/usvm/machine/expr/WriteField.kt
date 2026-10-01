@@ -51,6 +51,16 @@ internal fun TsExprResolver.handleAssignToInstanceField(
     // Check for undefined or null field access.
     checkUndefinedOrNullPropertyRead(scope, instance, field.name) ?: return null
 
+    val receiverLimitation = fieldReceiverLimitation(scope, instance)
+    if (receiverLimitation != null) {
+        reportRuntimeFeatureLimitation(
+            reason = receiverLimitation,
+            detail = "Field write requires an unsupported receiver: ${field.name}",
+        )
+        scope.assert(falseExpr)
+        return null
+    }
+
     val arrayType = scope.calcOnState { arrayStorageType(instance, instanceLocal.type) } as? EtsArrayType
     if (field.name == "length" && arrayType != null) {
         return assignToArrayLength(

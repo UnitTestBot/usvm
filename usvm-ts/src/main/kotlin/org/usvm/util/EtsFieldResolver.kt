@@ -24,7 +24,8 @@ fun TsContext.resolveEtsField(
     if (field.enclosingClass.name != UNKNOWN_CLASS_NAME) {
         val classes = hierarchy.classesForType(EtsClassType(field.enclosingClass))
         if (classes.isEmpty()) {
-            error("Cannot resolve class ${field.enclosingClass.name}")
+            logger.warn { "Cannot resolve class ${field.enclosingClass.name} for field ${field.name}" }
+            return TsResolutionResult.Empty
         }
         if (classes.size > 1) {
             error("Multiple classes with name ${field.enclosingClass.name}")

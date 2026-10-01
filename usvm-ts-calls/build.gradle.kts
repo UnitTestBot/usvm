@@ -26,11 +26,13 @@ val toolStatus = providers.exec {
     workingDir(rootProject.projectDir)
     commandLine("git", "status", "--porcelain", "--untracked-files=all")
 }.standardOutput.asText.map(String::trim)
+val nativeFrontendRevision = providers.gradleProperty("nativeFrontendRevision")
+    .orElse("bundled:${Versions.jacodb}")
 
 val generateBuildMetadata = tasks.register("generateBuildMetadata") {
     inputs.property("toolRevision", toolRevision)
     inputs.property("toolStatus", toolStatus)
-    inputs.property("jacodbVersion", Versions.jacodb)
+    inputs.property("nativeFrontendRevision", nativeFrontendRevision)
     outputs.dir(generatedBuildMetadataDirectory)
 
     doLast {
@@ -42,7 +44,7 @@ val generateBuildMetadata = tasks.register("generateBuildMetadata") {
         metadataFile.parentFile.mkdirs()
         metadataFile.writeText(
             "tool.revision=$buildIdentity\n" +
-                "native.frontend.revision=bundled:${Versions.jacodb}\n",
+                "native.frontend.revision=${nativeFrontendRevision.get()}\n",
             Charsets.UTF_8,
         )
     }

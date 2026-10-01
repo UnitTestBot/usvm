@@ -14,6 +14,7 @@ import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.machine.TsRuntimeFeatureLimitationEvent
+import org.usvm.machine.TsRuntimeFeatureLimitationReason
 import org.usvm.machine.call.TsUnknownCallEvent
 import org.usvm.machine.call.TsUnknownCallModelSelection
 import org.usvm.machine.state.TsMethodResult
@@ -149,6 +150,7 @@ internal class CurrentTsCallsSymbolicEngine(
             stateCollectionStrategy = StateCollectionStrategy.REACHED_TARGET,
             randomSeed = request.seed,
             timeout = request.budget,
+            solverTimeout = request.budget,
             solverType = SolverType.Z3,
             stopOnCoverage = CALLS_STOP_ON_COVERAGE,
             stopOnTargetsReached = false,
@@ -624,11 +626,14 @@ internal class CurrentTsCallsSymbolicEngine(
         }
     }
 
-    private class UnknownCallEventSinkObserver(
+    internal class UnknownCallEventSinkObserver(
         private val sink: ((TsUnknownCallEvent) -> Unit)?,
         private val runtimeLimitationSink: ((TsRuntimeFeatureLimitationEvent) -> Unit)?,
     ) : TsInterpreterObserver {
         val runtimeLimitations = linkedSetOf<String>()
+
+        // Keep one telemetry record per unsupported storage and statement in this analysis.
+        private val reportedArrayStorageLimitations = hashSetOf<Pair<EtsStmt, String>>()
 
         override fun onUnknownCall(event: TsUnknownCallEvent) {
             sink?.invoke(event)
@@ -636,7 +641,11 @@ internal class CurrentTsCallsSymbolicEngine(
 
         override fun onRuntimeFeatureLimitation(event: TsRuntimeFeatureLimitationEvent) {
             runtimeLimitations += event.reason.name
-            runtimeLimitationSink?.invoke(event)
+            if (event.reason != TsRuntimeFeatureLimitationReason.ARRAY_STORAGE_TYPE ||
+                reportedArrayStorageLimitations.add(event.statement to event.detail)
+            ) {
+                runtimeLimitationSink?.invoke(event)
+            }
         }
     }
 
