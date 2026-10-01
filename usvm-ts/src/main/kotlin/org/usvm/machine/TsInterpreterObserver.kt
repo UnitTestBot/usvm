@@ -2,6 +2,7 @@ package org.usvm.machine
 
 import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsCallExpr
+import org.jacodb.ets.model.EtsCallStmt
 import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsStmt
@@ -35,11 +36,29 @@ interface TsInterpreterObserver : UInterpreterObserver {
         // default empty implementation
     }
 
+    /** Called only after an assignment writes its value, before execution advances. */
+    fun onAssignmentCompleted(
+        simpleValueResolver: TsSimpleValueResolver,
+        stmt: EtsAssignStmt,
+        scope: TsStepScope,
+    ) {
+        // default empty implementation
+    }
+
     // TODO on entry point
 
     fun onCallWithUnresolvedArguments(
         simpleValueResolver: TsSimpleValueResolver,
         expr: EtsCallExpr,
+        scope: TsStepScope,
+    ) {
+        // default empty implementation
+    }
+
+    /** Called before a standalone call is executed, while its arguments still denote the current state. */
+    fun onCallStatement(
+        simpleValueResolver: TsSimpleValueResolver,
+        stmt: EtsCallStmt,
         scope: TsStepScope,
     ) {
         // default empty implementation

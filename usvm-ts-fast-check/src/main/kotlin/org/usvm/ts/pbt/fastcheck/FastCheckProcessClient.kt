@@ -1,11 +1,11 @@
 package org.usvm.ts.pbt.fastcheck
 
 import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToString
 import org.usvm.ts.pbt.FastCheckDiagnosticCode
 import org.usvm.ts.pbt.backend.PropertyRunResult
 import org.usvm.ts.pbt.manifest.PropertyManifestJson
 import org.usvm.ts.pbt.model.PropertyId
+import org.usvm.ts.pbt.model.encodeToUtf8SafeString
 import java.nio.file.Path
 
 /** Encodes one execution request and validates the private fast-check adapter response. */
@@ -74,7 +74,7 @@ internal class FastCheckProcessClient(
     }
 
     private fun encodeRequest(request: FastCheckExecutionRequest): String {
-        val encodedRequest = PropertyManifestJson.json.encodeToString(request)
+        val encodedRequest = PropertyManifestJson.json.encodeToUtf8SafeString(request)
 
         if (encodedRequest.toByteArray(Charsets.UTF_8).size > MAX_REQUEST_BYTES) {
             throw backendError(

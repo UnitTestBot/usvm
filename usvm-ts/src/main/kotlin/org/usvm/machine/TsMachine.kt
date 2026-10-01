@@ -12,7 +12,10 @@ import org.usvm.USort
 import org.usvm.api.targets.TsTarget
 import org.usvm.machine.call.TsBuiltInUnknownCallModels
 import org.usvm.machine.call.TsModelUnknownCallDispatcher
+import org.usvm.machine.call.TsResidualCallPolicy
+import org.usvm.machine.call.TsUnknownCallDecision
 import org.usvm.machine.call.TsUnknownCallDispatcher
+import org.usvm.machine.call.TsUnknownCallEvent
 import org.usvm.machine.call.TsUnknownCallModelCatalog
 import org.usvm.machine.call.deduplicateEtsFilesBySignature
 import org.usvm.machine.interpreter.TsInterpreter
@@ -50,6 +53,17 @@ enum class TsAnalysisStopReason {
 data class TsAnalysisResult(
     val states: List<TsState>,
     val stopReason: TsAnalysisStopReason,
+)
+
+/** Analysis-wide observations; collected states alone do not prove that every path completed. */
+data class TsMachineAnalysisResult(
+    val states: List<TsState>,
+    val stopReason: TsAnalysisStopReason,
+    val timedOut: Boolean,
+    /** A STOP_PATH residual decision observed from the machine-owned model dispatcher. */
+    val unsupportedCall: Boolean,
+    val engineFailed: Boolean,
+    val runtimeLimited: Boolean,
 )
 
 class TsMachine(
@@ -90,16 +104,17 @@ class TsMachine(
         applicationAndSdkClasses = scene.projectAndSdkClasses,
         dateNowMilliseconds = tsOptions.dateNowMilliseconds,
     )
+    private val analysisObserver = AnalysisTrackingObserver(observer ?: object : TsInterpreterObserver {})
     private val resolvedUnknownCallDispatcher = unknownCallDispatcher ?: TsModelUnknownCallDispatcher(
         models = requireNotNull(resolvedUnknownCallModels),
         fallback = tsOptions.unknownCallFallback,
-        observer = observer,
+        observer = analysisObserver,
     )
     private val interpreter = TsInterpreter(
         ctx = ctx,
         graph = graph,
         options = tsOptions,
-        observer = observer,
+        observer = analysisObserver,
         unknownCallDispatcher = resolvedUnknownCallDispatcher,
         throwExceptionOnStepFailure = options.throwExceptionOnStepFailure,
     )
@@ -110,19 +125,34 @@ class TsMachine(
         targets: List<TsTarget> = emptyList(),
     ): List<TsState> = analyzeWithOutcome(methods = methods, targets = targets).states
 
+    fun analyze(
+        methods: List<EtsMethod>,
+        targets: List<TsTarget> = emptyList(),
+        configureInitialState: (EtsMethod, TsState) -> Unit,
+    ): List<TsState> = analyzeWithMetadata(methods, targets, configureInitialState).states
+
     fun analyzeWithOutcome(
         methods: List<EtsMethod>,
         targets: List<TsTarget> = emptyList(),
     ): TsAnalysisResult {
-        val initialStates = mutableMapOf<EtsMethod, TsState>()
-        methods.forEach { method ->
-            initialStates[method] = interpreter.getInitialState(
-                method = method,
-                targets = targets,
-                configure = initialStateConfigurator,
-                parameterSortOverride = { stackSlot -> initialParameterSortOverride(ctx, stackSlot) },
-            )
-        }
+        val result = analyzeWithMetadata(methods = methods, targets = targets)
+        return TsAnalysisResult(states = result.states, stopReason = result.stopReason)
+    }
+
+    /**
+     * The constructor configurator runs before [configureInitialState], both before the initial solver query.
+     * A caller-supplied dispatcher owns its telemetry; [TsMachineAnalysisResult.unsupportedCall] only tracks
+     * residual decisions made by this machine's default dispatcher. Runtime limitations are tracked separately.
+     */
+    fun analyzeWithMetadata(
+        methods: List<EtsMethod>,
+        targets: List<TsTarget> = emptyList(),
+        configureInitialState: (EtsMethod, TsState) -> Unit = { _, _ -> },
+    ): TsMachineAnalysisResult {
+        interpreter.resetStepFailure()
+        analysisObserver.reset()
+
+        val initialStates = createInitialStates(methods, targets, configureInitialState)
 
         val methodsToTrackCoverage =
             when (options.coverageZone) {
@@ -175,6 +205,7 @@ class TsMachine(
         }
 
         val stepsStatistics = StepsStatistics<EtsMethod, TsState>()
+        var timedOut = false
         val stopStrategy = object : StopStrategy {
             val strategy = createStopStrategy(
                 options,
@@ -186,7 +217,15 @@ class TsMachine(
             )
 
             override fun shouldStop(): Boolean {
+                if (options.timeout <= kotlin.time.Duration.ZERO) {
+                    timedOut = true
+                    return true
+                }
+
                 val result = strategy.shouldStop()
+                if (result && timeStatistics.runningTime >= options.timeout) {
+                    timedOut = true
+                }
 
                 if (result) {
                     logger.warn { "Stop strategy finished execution: ${strategy.stopReason()}" }
@@ -227,10 +266,60 @@ class TsMachine(
             TsAnalysisStopReason.STOPPED
         }
 
-        return TsAnalysisResult(states = statesCollector.collectedStates, stopReason = stopReason)
+        return TsMachineAnalysisResult(
+            states = statesCollector.collectedStates,
+            stopReason = stopReason,
+            timedOut = timedOut,
+            unsupportedCall = analysisObserver.pathStopped,
+            engineFailed = interpreter.stepFailed,
+            runtimeLimited = analysisObserver.runtimeLimited,
+        )
+    }
+
+    private fun createInitialStates(
+        methods: List<EtsMethod>,
+        targets: List<TsTarget>,
+        configureInitialState: (EtsMethod, TsState) -> Unit,
+    ): Map<EtsMethod, TsState> = methods.associateWith { method ->
+        interpreter.getInitialState(
+            method = method,
+            targets = targets,
+            configure = { state ->
+                initialStateConfigurator(state)
+                configureInitialState(method, state)
+            },
+            parameterSortOverride = { stackSlot -> initialParameterSortOverride(ctx, stackSlot) },
+        )
     }
 
     override fun close() {
         components.close()
+    }
+}
+
+private class AnalysisTrackingObserver(
+    private val delegate: TsInterpreterObserver,
+) : TsInterpreterObserver by delegate {
+    var pathStopped: Boolean = false
+        private set
+    var runtimeLimited: Boolean = false
+        private set
+
+    override fun onUnknownCall(event: TsUnknownCallEvent) {
+        val decision = event.decision
+        if (decision is TsUnknownCallDecision.ResidualFallback && decision.policy == TsResidualCallPolicy.STOP_PATH) {
+            pathStopped = true
+        }
+        delegate.onUnknownCall(event)
+    }
+
+    override fun onRuntimeFeatureLimitation(event: TsRuntimeFeatureLimitationEvent) {
+        runtimeLimited = true
+        delegate.onRuntimeFeatureLimitation(event)
+    }
+
+    fun reset() {
+        pathStopped = false
+        runtimeLimited = false
     }
 }

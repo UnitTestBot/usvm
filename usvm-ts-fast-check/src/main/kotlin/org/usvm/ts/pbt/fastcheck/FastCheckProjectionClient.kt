@@ -1,10 +1,10 @@
 package org.usvm.ts.pbt.fastcheck
 
 import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToString
 import org.usvm.ts.pbt.FastCheckDiagnosticCode
 import org.usvm.ts.pbt.manifest.PropertyManifestJson
 import org.usvm.ts.pbt.model.contains
+import org.usvm.ts.pbt.model.encodeToUtf8SafeString
 import java.nio.file.Path
 
 /** Limits for one projection request to the private Node adapter. */
@@ -55,7 +55,7 @@ class FastCheckProjectionClient private constructor(
     fun sample(request: FastCheckProjectionRequest): FastCheckProjectionResponse {
         validateRequest(request)
 
-        val encodedRequest = PropertyManifestJson.json.encodeToString(request)
+        val encodedRequest = PropertyManifestJson.json.encodeToUtf8SafeString(request)
         val output = invokeAdapter(encodedRequest)
         val response = decodeResponse(output)
 

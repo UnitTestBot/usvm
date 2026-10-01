@@ -2,11 +2,11 @@ package org.usvm.ts.pbt.manifest
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.usvm.ts.pbt.model.PropertyDefinition
 import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.TypeScriptEntryPoint
+import org.usvm.ts.pbt.model.encodeToUtf8SafeString
 import org.usvm.ts.pbt.validation.requireValid
 import org.usvm.ts.pbt.validation.validatePropertyDefinition
 import org.usvm.ts.pbt.validation.validatePropertyManifest
@@ -46,7 +46,7 @@ object PropertyManifestJson {
 
     fun encode(manifest: PropertyManifest): String {
         requireValid(validatePropertyManifest(manifest))
-        return json.encodeToString(manifest)
+        return json.encodeToUtf8SafeString(manifest)
     }
 
     fun decode(value: String): PropertyManifest = json.decodeFromString<PropertyManifest>(value)
