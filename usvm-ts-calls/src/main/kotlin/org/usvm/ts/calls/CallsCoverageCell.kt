@@ -2,6 +2,7 @@ package org.usvm.ts.calls
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
+import org.usvm.SolverType
 import org.usvm.ts.pbt.model.encodeToUtf8SafeString
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
@@ -35,6 +36,7 @@ internal data class CallsCoverageCellIdentity(
     val toolRevision: String,
     val nativeFrontendRevision: String,
     val sourceManifest: String,
+    val solver: String,
     val projectIndex: Int,
     val functionIndex: Int,
     val profile: CallsExperimentProfile,
@@ -77,6 +79,7 @@ internal fun runCoverageUniverse(args: List<String>) {
     require(args.size == 4) { "coverage-universe requires 4 arguments" }
     val manifestPath = Path.of(args[0]).toRealPath()
     val manifest = CallsExperimentJson.decodeManifest(Files.readString(manifestPath))
+    validateCoverageManifestBuild(manifest)
     val projectIndex = args[1].toInt()
     val functionIndex = args[2].toInt()
     val output = Path.of(args[3]).toAbsolutePath().normalize()
@@ -111,6 +114,7 @@ internal fun runCoverageCell(args: List<String>) {
     val cellStarted = TimeSource.Monotonic.markNow()
     val manifestPath = Path.of(args[0]).toRealPath()
     val manifest = CallsExperimentJson.decodeManifest(Files.readString(manifestPath))
+    validateCoverageManifestBuild(manifest)
     val projectIndex = args[1].toInt()
     val functionIndex = args[2].toInt()
     val profile = CallsExperimentProfile.valueOf(args[3])
@@ -142,10 +146,11 @@ internal fun runCoverageCell(args: List<String>) {
     }
 
     val identity = CallsCoverageCellIdentity(
-        schemaVersion = 1,
+        schemaVersion = 2,
         toolRevision = CallsBuildIdentity.toolRevision,
         nativeFrontendRevision = CallsBuildIdentity.nativeFrontendRevision,
         sourceManifest = manifestPath.toString(),
+        solver = manifest.solver,
         projectIndex = projectIndex,
         functionIndex = functionIndex,
         profile = profile,
@@ -185,6 +190,7 @@ internal fun runCoverageCell(args: List<String>) {
             seed = seed,
             budget = budgetMillis.milliseconds,
             solverQueryLimit = solverLimitMillis.milliseconds,
+            solverType = SolverType.valueOf(manifest.solver),
             candidateCap = candidateCap,
             onCandidate = { candidate -> appendDurably(candidatePath, encode(candidate)) },
         )
@@ -254,6 +260,15 @@ internal fun runCoverageCell(args: List<String>) {
     )
     atomicWrite(output.resolve("result.json"), encode(result))
     println(encode(result))
+}
+
+private fun validateCoverageManifestBuild(manifest: CallsExperimentManifest) {
+    require(manifest.toolRevision == CallsBuildIdentity.toolRevision) {
+        "Coverage manifest tool revision differs from the running build"
+    }
+    require(manifest.nativeFrontendRevision == CallsBuildIdentity.nativeFrontendRevision) {
+        "Coverage manifest frontend revision differs from the running build"
+    }
 }
 
 private inline fun <reified T> readLines(path: Path): List<T> = if (Files.exists(path)) {

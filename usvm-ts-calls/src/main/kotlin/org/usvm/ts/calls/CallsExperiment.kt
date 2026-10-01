@@ -77,7 +77,7 @@ internal data class CallsExperimentManifest(
         require(seeds.isNotEmpty() && seeds.distinct().size == seeds.size) { "Seeds must be non-empty and unique" }
         require(perTargetBudgetMillis > 0) { "Per-target budget must be positive" }
         require(projects.isNotEmpty()) { "At least one project is required" }
-        require(solver == "Z3") { "The frozen calls experiment requires the Z3 solver" }
+        require(solver == "Z3" || solver == "YICES") { "Unsupported calls experiment solver: $solver" }
         require(searchPolicy == CALLS_PATH_SELECTION_STRATEGY.name) {
             "The frozen calls experiment requires ${CALLS_PATH_SELECTION_STRATEGY.name} search"
         }
@@ -283,6 +283,7 @@ internal class CallsExperimentRunner(
         manifestDirectory: Path,
         rawOutput: Path,
     ) {
+        require(manifest.solver == "Z3") { "The historical target experiment requires Z3" }
         require(manifest.toolRevision == runtimeToolRevision) {
             "Manifest tool revision ${manifest.toolRevision} does not match running build $runtimeToolRevision"
         }
