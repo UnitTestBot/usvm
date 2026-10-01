@@ -39,6 +39,7 @@ internal class FastCheckProcessTransport(
     private val maxStdoutBytes: Int,
     private val maxStderrBytes: Int,
     private val shutdownGraceMillis: Long,
+    private val useProcessSupervisor: Boolean = true,
 ) {
     init {
         require(maxRequestBytes > 0) { "Maximum request size must be positive" }
@@ -91,7 +92,7 @@ internal class FastCheckProcessTransport(
             tasks.all.forEach { task -> task.cancel() }
             terminate(managedProcess, deadlineNanos)
             closeStreams(managedProcess.process)
-            runCatching { Files.deleteIfExists(managedProcess.processGroupFile) }
+            managedProcess.processGroupFile?.let { file -> runCatching { Files.deleteIfExists(file) } }
             executor.shutdownNow()
         }
     }
@@ -193,6 +194,16 @@ internal class FastCheckProcessTransport(
         supervisedCommand: List<String>,
         description: String,
     ): SupervisedProcessHandle {
+        if (!useProcessSupervisor) {
+            val process = try {
+                ProcessBuilder(supervisedCommand).start()
+            } catch (error: IOException) {
+                processStartFailure(description, error)
+            }
+
+            return SupervisedProcessHandle(process = process, processGroupFile = null)
+        }
+
         val processGroupFile = try {
             Files.createTempFile(PROCESS_GROUP_FILE_PREFIX, ".pid")
         } catch (error: IOException) {
@@ -228,6 +239,13 @@ internal class FastCheckProcessTransport(
 
     private fun terminate(managedProcess: SupervisedProcessHandle, deadlineNanos: Long) {
         val process = managedProcess.process
+        if (managedProcess.processGroupFile == null) {
+            process.toHandle().descendants().forEach { child -> child.destroyForcibly() }
+            if (process.isAlive) process.destroyForcibly()
+            awaitProcessExit(process, deadlineNanos)
+            return
+        }
+
         if (!process.isAlive) {
             forceTerminateOwnedProcessGroup(managedProcess.processGroupFile, deadlineNanos)
             return
@@ -274,6 +292,15 @@ internal class FastCheckProcessTransport(
     }
 
     private fun awaitProcessExit(process: Process, deadlineNanos: Long): Boolean {
+        val wasInterrupted = Thread.interrupted()
+        try {
+            return pollProcessExit(process, deadlineNanos)
+        } finally {
+            if (wasInterrupted) Thread.currentThread().interrupt()
+        }
+    }
+
+    private fun pollProcessExit(process: Process, deadlineNanos: Long): Boolean {
         while (process.isAlive) {
             val waitMillis = minOf(remainingMillis(deadlineNanos), PROCESS_POLL_MILLIS)
             if (waitMillis == 0L) return false
@@ -318,7 +345,7 @@ internal class FastCheckProcessTransport(
 
 private data class SupervisedProcessHandle(
     val process: Process,
-    val processGroupFile: Path,
+    val processGroupFile: Path?,
 )
 
 private data class ProcessIoTasks(
