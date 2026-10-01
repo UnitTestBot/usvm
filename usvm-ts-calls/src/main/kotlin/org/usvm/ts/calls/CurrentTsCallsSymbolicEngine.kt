@@ -40,6 +40,28 @@ internal data class CallsSymbolicPreflightRequest(
     val expectedNativeFrontendRevision: String,
 )
 
+internal data class CallsFunctionPreflightRequest(
+    val sourceRoot: Path,
+    val project: CallsProjectCase,
+    val function: CallsFunctionCase,
+    val expectedNativeFrontendRevision: String,
+)
+
+internal sealed interface CallsFunctionPreparation {
+    data class Eligible(
+        val scene: EtsScene,
+        val method: EtsMethod,
+        val inputBindings: List<EtsInputBinding>,
+        val lexicalEnvironment: EtsLexicalEnvironmentBinding?,
+    ) : CallsFunctionPreparation
+
+    data class Rejected(
+        val status: CallsSymbolicStatus,
+        val reasonCode: CallsSymbolicPreflightReasonCode,
+        val diagnostic: String,
+    ) : CallsFunctionPreparation
+}
+
 internal enum class CallsSymbolicPreflightStatus {
     ELIGIBLE,
     UNSUPPORTED,
@@ -86,6 +108,7 @@ internal class CurrentTsCallsSymbolicEngine(
     private val bundledNativeFrontendRevision: String = CallsBuildIdentity.nativeFrontendRevision,
 ) : CallsSymbolicEngine {
     private val verifiedProjects = mutableMapOf<Path, String>()
+    private val preparedFunctions = mutableMapOf<CallsFunctionPreflightRequest, CallsFunctionPreparation>()
     private val preparedTargets = mutableMapOf<CallsSymbolicPreflightRequest, CallsTargetPreparation>()
     private val loadedSources = mutableMapOf<LoadedSourceKey, CallsSourceProject>()
     private var verifiedNativeFrontendIdentity: String? = null
@@ -129,6 +152,122 @@ internal class CurrentTsCallsSymbolicEngine(
                 diagnostic = preparation.diagnostic,
             )
         }
+
+    internal fun prepareFunction(request: CallsFunctionPreflightRequest): CallsFunctionPreparation {
+        preparedFunctions[request]?.takeIf {
+            verifiedProjects[request.sourceRoot] == request.project.revision
+        }?.let { return it }
+
+        val preparation = runCatching { prepareFunctionSupported(request) }.getOrElse { error ->
+            CallsFunctionPreparation.Rejected(
+                status = CallsSymbolicStatus.TOOL_ERROR,
+                reasonCode = CallsSymbolicPreflightReasonCode.FRONTEND_OR_PREFLIGHT_ERROR,
+                diagnostic = error.message ?: error::class.java.name,
+            )
+        }
+        preparedFunctions[request] = preparation
+
+        return preparation
+    }
+
+    @Suppress("LongMethod")
+    private fun prepareFunctionSupported(request: CallsFunctionPreflightRequest): CallsFunctionPreparation {
+        callsSymbolicInputPreflight(request.function.inputs)?.let { diagnostic ->
+            return CallsFunctionPreparation.Rejected(
+                status = CallsSymbolicStatus.UNSUPPORTED,
+                reasonCode = CallsSymbolicPreflightReasonCode.INPUT_DOMAIN_UNSUPPORTED,
+                diagnostic = diagnostic,
+            )
+        }
+
+        verifyGitCheckoutOnce(
+            checkout = request.sourceRoot,
+            expectedRevision = request.project.revision,
+            cache = verifiedProjects,
+        )
+        verifyNativeFrontendOnce(expectedRevision = request.expectedNativeFrontendRevision)
+
+        val source = request.sourceRoot.resolve(request.function.sourceFile).normalize()
+        require(source.startsWith(request.sourceRoot)) { "Function source escapes its frozen source root" }
+
+        val sourceKey = LoadedSourceKey(
+            sourceRoot = request.sourceRoot,
+            sourceFile = request.function.sourceFile,
+            revision = request.project.revision,
+        )
+        val loaded = loadedSources.getOrPut(sourceKey) {
+            loadCallsSourceProject(sourceRoot = request.sourceRoot, source = source)
+        }
+        if (loaded is CallsSourceProject.Unsupported) {
+            return CallsFunctionPreparation.Rejected(
+                status = CallsSymbolicStatus.UNSUPPORTED,
+                reasonCode = loaded.issue.reasonCode,
+                diagnostic = loaded.issue.diagnostic,
+            )
+        }
+
+        loaded as CallsSourceProject.Loaded
+        val scene = loaded.scene
+        val frontendEntryPoint = request.function.entryPoint.copy(module = loaded.entryModule)
+        val propertyManifest = PropertyManifest(
+            propertyId = "calls.coverage.mapping",
+            inputs = request.function.inputs,
+            predicate = frontendEntryPoint,
+        )
+        val mapping = PropertyEtsMapper(scene = scene, sourceRoots = listOf(request.sourceRoot)).map(propertyManifest)
+        if (mapping.predicate.status != EtsMappingStatus.EXACT) {
+            return CallsFunctionPreparation.Rejected(
+                status = mapping.predicate.status.toSymbolicStatus(),
+                reasonCode = mapping.predicate.status.toPreflightReasonCode(),
+                diagnostic = mapping.predicate.diagnostics.joinToString { diagnostic -> diagnostic.message },
+            )
+        }
+
+        val mappedTarget = mapping.predicate.targets.single()
+        val lexicalEnvironment = mappedTarget.bindings.lexicalEnvironment
+        if (lexicalEnvironment != null && lexicalEnvironment.parameter.type !is EtsLexicalEnvType) {
+            return CallsFunctionPreparation.Rejected(
+                status = CallsSymbolicStatus.UNSUPPORTED,
+                reasonCode = CallsSymbolicPreflightReasonCode.LEXICAL_CAPTURE_UNSUPPORTED,
+                diagnostic = "Mapped lexical environment does not have a lexical-environment type",
+            )
+        }
+
+        val unsupportedCaptures = (lexicalEnvironment?.parameter?.type as? EtsLexicalEnvType)
+            ?.closures
+            ?.map { closure -> closure.name }
+            ?.filterNot { closure -> closure in SUPPORTED_BUILTIN_CAPTURES }
+            .orEmpty()
+        if (unsupportedCaptures.isNotEmpty()) {
+            return CallsFunctionPreparation.Rejected(
+                status = CallsSymbolicStatus.UNSUPPORTED,
+                reasonCode = CallsSymbolicPreflightReasonCode.LEXICAL_CAPTURE_UNSUPPORTED,
+                diagnostic = "Symbolic entry point has unsupported runtime captures: " +
+                    unsupportedCaptures.joinToString(),
+            )
+        }
+
+        val method = mappedTarget.method
+        callsIrReadinessIssue(
+            method = method,
+            graph = TsGraph(scene),
+            sourceByFile = loaded.sourceByFile,
+            admittedLexicalEnvironment = lexicalEnvironment?.parameter?.type as? EtsLexicalEnvType,
+        )?.let { issue ->
+            return CallsFunctionPreparation.Rejected(
+                status = CallsSymbolicStatus.UNSUPPORTED,
+                reasonCode = issue.reasonCode,
+                diagnostic = issue.diagnostic,
+            )
+        }
+
+        return CallsFunctionPreparation.Eligible(
+            scene = scene,
+            method = method,
+            inputBindings = mappedTarget.bindings.inputs,
+            lexicalEnvironment = lexicalEnvironment,
+        )
+    }
 
     @Suppress("LongMethod")
     private fun searchSupported(
