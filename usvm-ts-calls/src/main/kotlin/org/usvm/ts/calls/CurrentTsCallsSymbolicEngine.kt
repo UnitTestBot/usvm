@@ -86,7 +86,7 @@ internal class CurrentTsCallsSymbolicEngine(
     private val bundledNativeFrontendRevision: String = CallsBuildIdentity.nativeFrontendRevision,
 ) : CallsSymbolicEngine {
     private val verifiedProjects = mutableMapOf<Path, String>()
-    private val preparedTargets = mutableMapOf<CallsSymbolicPreflightRequest, CallsTargetPreparation>()
+    private var preparedTarget: Pair<CallsSymbolicPreflightRequest, CallsTargetPreparation>? = null
     private var verifiedNativeFrontendIdentity: String? = null
 
     override fun search(request: CallsSymbolicSearchRequest): CallsSymbolicSearchResult {
@@ -231,7 +231,8 @@ internal class CurrentTsCallsSymbolicEngine(
     }
 
     private fun prepareSafely(request: CallsSymbolicPreflightRequest): CallsTargetPreparation {
-        preparedTargets[request]?.let { preparation -> return preparation }
+        preparedTarget?.takeIf { (cachedRequest, _) -> cachedRequest == request }
+            ?.let { (_, preparation) -> return preparation }
 
         val preparation = runCatching { prepare(request) }.getOrElse { error ->
             CallsTargetPreparation.Rejected(
@@ -240,7 +241,9 @@ internal class CurrentTsCallsSymbolicEngine(
                 diagnostic = error.message ?: error::class.java.name,
             )
         }
-        preparedTargets[request] = preparation
+        if (preparation !is CallsTargetPreparation.Rejected || preparation.status != CallsSymbolicStatus.TOOL_ERROR) {
+            preparedTarget = request to preparation
+        }
 
         return preparation
     }

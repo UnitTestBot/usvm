@@ -154,6 +154,35 @@ class CurrentTsCallsSymbolicEngineTest {
     }
 
     @Test
+    fun `preflight retries a transient tool error for the same target`() {
+        val fixture = fixture(
+            source = "export function answer(): number { return 42; }",
+            exportName = "answer",
+            inputs = emptyList(),
+            targetStatement = "return 42;",
+        )
+        val environment = mutableMapOf("ETS_FRONTEND_DIR" to "/unused/frontend")
+        val engine = CurrentTsCallsSymbolicEngine(
+            environment = environment::get,
+            bundledNativeFrontendRevision = "bundled:test",
+        )
+        val request = CallsSymbolicPreflightRequest(
+            sourceRoot = fixture.sourceRoot,
+            project = fixture.project,
+            function = fixture.function,
+            target = fixture.target,
+            expectedNativeFrontendRevision = "bundled:test",
+        )
+
+        val first = engine.preflight(request)
+        environment.clear()
+        val second = engine.preflight(request)
+
+        assertEquals(CallsSymbolicPreflightStatus.TOOL_ERROR, first.status)
+        assertTrue(second.status != CallsSymbolicPreflightStatus.TOOL_ERROR, second.toString())
+    }
+
+    @Test
     fun `extracts nonempty generic number array containing zero and replays source`() {
         val fixture = fixture(
             source = """

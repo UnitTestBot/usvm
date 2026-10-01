@@ -178,7 +178,12 @@ export class DateModels {
     }
 
     static setDate(receiver: DateValue, date: number): number {
-        return DateModels.setDateFields(receiver, 1, date, 0, 0);
+        if (DateModels.isInvalid(receiver.timestamp)) {
+            return DateModels.invalidate(receiver);
+        }
+
+        const current = DateModels.parts(receiver.timestamp);
+        return DateModels.replaceDate(receiver, current.year, current.month, date, current);
     }
 
     static setFullYear(
@@ -206,11 +211,26 @@ export class DateModels {
         seconds: number,
         milliseconds: number,
     ): number {
-        return DateModels.setTimeFields(receiver, argumentCount, hours, minutes, seconds, milliseconds, 0);
+        if (DateModels.isInvalid(receiver.timestamp)) {
+            return DateModels.invalidate(receiver);
+        }
+
+        const current = DateModels.parts(receiver.timestamp);
+        const nextMinutes = argumentCount >= 2 ? minutes : current.minutes;
+        const nextSeconds = argumentCount >= 3 ? seconds : current.seconds;
+        const nextMilliseconds = argumentCount >= 4 ? milliseconds : current.milliseconds;
+        return DateModels.replaceTime(receiver, current, hours, nextMinutes, nextSeconds, nextMilliseconds);
     }
 
     static setMilliseconds(receiver: DateValue, milliseconds: number): number {
-        return DateModels.setTimeFields(receiver, 4, 0, 0, 0, milliseconds, 3);
+        if (DateModels.isInvalid(receiver.timestamp)) {
+            return DateModels.invalidate(receiver);
+        }
+
+        const current = DateModels.parts(receiver.timestamp);
+        return DateModels.replaceTime(
+            receiver, current, current.hours, current.minutes, current.seconds, milliseconds,
+        );
     }
 
     static setMinutes(
@@ -220,15 +240,36 @@ export class DateModels {
         seconds: number,
         milliseconds: number,
     ): number {
-        return DateModels.setTimeFields(receiver, argumentCount + 1, 0, minutes, seconds, milliseconds, 1);
+        if (DateModels.isInvalid(receiver.timestamp)) {
+            return DateModels.invalidate(receiver);
+        }
+
+        const current = DateModels.parts(receiver.timestamp);
+        const nextSeconds = argumentCount >= 2 ? seconds : current.seconds;
+        const nextMilliseconds = argumentCount >= 3 ? milliseconds : current.milliseconds;
+        return DateModels.replaceTime(receiver, current, current.hours, minutes, nextSeconds, nextMilliseconds);
     }
 
     static setMonth(receiver: DateValue, argumentCount: number, month: number, date: number): number {
-        return DateModels.setDateFields(receiver, argumentCount + 1, 0, month, date);
+        if (DateModels.isInvalid(receiver.timestamp)) {
+            return DateModels.invalidate(receiver);
+        }
+
+        const current = DateModels.parts(receiver.timestamp);
+        const nextDate = argumentCount >= 2 ? date : current.date;
+        return DateModels.replaceDate(receiver, current.year, month, nextDate, current);
     }
 
     static setSeconds(receiver: DateValue, argumentCount: number, seconds: number, milliseconds: number): number {
-        return DateModels.setTimeFields(receiver, argumentCount + 2, 0, 0, seconds, milliseconds, 2);
+        if (DateModels.isInvalid(receiver.timestamp)) {
+            return DateModels.invalidate(receiver);
+        }
+
+        const current = DateModels.parts(receiver.timestamp);
+        const nextMilliseconds = argumentCount >= 2 ? milliseconds : current.milliseconds;
+        return DateModels.replaceTime(
+            receiver, current, current.hours, current.minutes, seconds, nextMilliseconds,
+        );
     }
 
     static setTime(receiver: DateValue, timestamp: number): number {
@@ -302,58 +343,22 @@ export class DateModels {
         return receiver.timestamp;
     }
 
-    private static setDateFields(
+    private static replaceTime(
         receiver: DateValue,
-        argumentCount: number,
-        first: number,
-        second: number,
-        third: number,
-    ): number {
-        if (DateModels.isInvalid(receiver.timestamp)) {
-            return DateModels.invalidate(receiver);
-        }
-
-        const current = DateModels.parts(receiver.timestamp);
-        if (argumentCount === 1) {
-            return DateModels.replaceDate(receiver, current.year, current.month, first, current);
-        }
-
-        return DateModels.replaceDate(
-            receiver,
-            current.year,
-            second,
-            argumentCount >= 3 ? third : current.date,
-            current,
-        );
-    }
-
-    private static setTimeFields(
-        receiver: DateValue,
-        argumentCount: number,
+        current: DateParts,
         hours: number,
         minutes: number,
         seconds: number,
         milliseconds: number,
-        firstField: number,
     ): number {
-        if (DateModels.isInvalid(receiver.timestamp)) {
-            return DateModels.invalidate(receiver);
-        }
-
-        const current = DateModels.parts(receiver.timestamp);
-        const nextHours = firstField === 0 ? hours : current.hours;
-        const nextMinutes = firstField <= 1 && argumentCount >= 2 ? minutes : current.minutes;
-        const nextSeconds = firstField <= 2 && argumentCount >= 3 ? seconds : current.seconds;
-        const nextMilliseconds = argumentCount >= 4 ? milliseconds : current.milliseconds;
-
         receiver.timestamp = DateModels.makeDate(
             current.year,
             current.month,
             current.date,
-            nextHours,
-            nextMinutes,
-            nextSeconds,
-            nextMilliseconds,
+            hours,
+            minutes,
+            seconds,
+            milliseconds,
         );
         return receiver.timestamp;
     }
