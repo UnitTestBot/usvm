@@ -63,6 +63,42 @@ class CallsExperimentTest {
     }
 
     @Test
+    fun `runner does not publish completion after an observer write failure`(@TempDir directory: Path) {
+        val source = Path.of(checkNotNull(javaClass.getResource("/calls/SourceTargetReplayFixture.ts")).toURI())
+        val file = loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)
+        val method = file.allClasses.flatMap { cls -> cls.methods }
+            .single { candidate -> candidate.name == "completesReturnExpression" }
+        val callSite = method.cfg.stmts.first { statement -> statement.location.origin != null }
+        val event = TsUnknownCallEvent(
+            callSite = callSite,
+            callee = method.signature,
+            failureReason = TsUnknownCallFailureReason.METHOD_BODY_UNAVAILABLE,
+            decision = TsUnknownCallDecision.ResidualFallback(policy = TsResidualCallPolicy.STOP_PATH),
+        )
+        val engine = CallsSymbolicEngine { request ->
+            runCatching { checkNotNull(request.unknownCallEventSink).invoke(event) }
+            result(status = CallsSymbolicStatus.UNREACHED)
+        }
+        val rawOutput = directory.resolve("results.jsonl")
+
+        val failure = assertFailsWith<IllegalStateException> {
+            CallsExperimentRunner(
+                symbolicEngine = engine,
+                targetReplayer = CallsTargetReplayer { _, _, _, _, _ -> error("No witness to replay") },
+                runtimeToolRevision = FIXTURE_TOOL_REVISION,
+                eventRecordWriter = { _, _ -> error("Event write failed") },
+            ).run(
+                manifest = manifest(sourceRoot = ".", seeds = listOf(17L)),
+                manifestDirectory = directory,
+                rawOutput = rawOutput,
+            )
+        }
+
+        assertTrue(failure.message.orEmpty().contains("Calls event"))
+        assertFalse(Files.exists(rawOutput))
+    }
+
+    @Test
     fun `legacy source target defaults to entry mode`() {
         val encoded = """
             {

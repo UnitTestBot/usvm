@@ -432,8 +432,10 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         methodName: String,
         arity: Int,
         implementation: (TsState, List<UExpr<*>>) -> TsUnknownCallModelExecution?,
-    ): TsUnknownCallModel = StringPrimitiveModel(
+    ): TsUnknownCallModel = TsPrimitiveUnknownCallModel(
+        idPrefix = "ts.string.primitive",
         methodName = methodName,
+        enclosingClassName = PRIMITIVES_CLASS_NAME,
         arity = arity,
         implementation = implementation,
     )
@@ -584,28 +586,6 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         val resolvedArguments = arguments.map { argument -> argument.resolved ?: return null }
 
         return listOf(resolvedReceiver) + resolvedArguments
-    }
-
-    private class StringPrimitiveModel(
-        methodName: String,
-        private val arity: Int,
-        private val implementation: (TsState, List<UExpr<*>>) -> TsUnknownCallModelExecution?,
-    ) : TsUnknownCallModel {
-        override val id: String = "ts.string.primitive.$methodName"
-        override val target = TsUnknownCallTarget(
-            methodName = methodName,
-            enclosingClassName = PRIMITIVES_CLASS_NAME,
-            failureReason = TsUnknownCallFailureReason.METHOD_BODY_UNAVAILABLE,
-        )
-
-        override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution? {
-            if (call.receiver != null || call.arguments.size != arity) {
-                return null
-            }
-
-            val inputs = call.arguments.map { argument -> argument.resolved ?: return null }
-            return implementation(state, inputs)
-        }
     }
 
     private const val PRIMITIVE_LENGTH_ID = "ts.string.primitive.length"
