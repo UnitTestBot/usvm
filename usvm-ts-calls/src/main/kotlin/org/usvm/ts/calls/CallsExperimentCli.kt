@@ -10,6 +10,7 @@ fun main(args: Array<String>) {
 
     when (args.first()) {
         "run" -> runExperiment(args.drop(1))
+        "coverage-universe" -> runCoverageUniverse(args.drop(1))
         "coverage-cell" -> runCoverageCell(args.drop(1))
         "replay-witness" -> replayWitness(args.drop(1))
         "summarize" -> summarize(args.drop(1))
@@ -89,7 +90,8 @@ private fun summarize(args: List<String>) {
 private fun usage(): String = """
     Usage:
       calls run <frozen-manifest.json> <raw-directory>
-      calls coverage-cell <source-manifest.json> <project-index> <function-index> <profile> <seed> <output-directory> <budget-ms> <solver-limit-ms> <candidate-cap>
+      calls coverage-universe <source-manifest.json> <project-index> <function-index> <output-directory>
+      calls coverage-cell <source-manifest.json> <project-index> <function-index> <profile> <seed> <output-directory> <budget-ms> <solver-limit-ms> <candidate-cap> <universe.json>
       calls replay-witness <frozen-manifest.json> <results.jsonl> <project-id> <function-id> <target-id> <profile> <seed>
       calls summarize <results.jsonl> <summary.json>
 """.trimIndent()

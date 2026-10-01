@@ -22,6 +22,7 @@ import kotlin.time.TimeSource
 @Serializable
 internal data class CallsCoverageCandidate(
     val emittedAtMillis: Long,
+    val emittedAtStep: Long,
     val inputs: List<JsConcreteValue>,
     val newSymbolicStatements: Int,
     val completion: CallsCoverageCompletion,
@@ -49,6 +50,7 @@ internal data class CallsCoverageSearchResult(
     val status: CallsCoverageSearchStatus,
     val candidates: List<CallsCoverageCandidate>,
     val selectedStates: Int,
+    val executedSteps: Long,
     val extractionFailures: List<String>,
     val candidateCapReached: Boolean,
     val preparationElapsedMillis: Long,
@@ -99,6 +101,7 @@ internal class CurrentTsCallsCoverageEngine(
                 status = preparation.status.toCoverageStatus(),
                 candidates = emptyList(),
                 selectedStates = 0,
+                executedSteps = 0,
                 extractionFailures = emptyList(),
                 candidateCapReached = false,
                 preparationElapsedMillis = preparationElapsedMillis,
@@ -170,6 +173,7 @@ internal class CurrentTsCallsCoverageEngine(
             status = status,
             candidates = candidates,
             selectedStates = observer.selectedStates,
+            executedSteps = observer.executedSteps,
             extractionFailures = extractionFailures,
             candidateCapReached = observer.capReached,
             preparationElapsedMillis = preparationElapsedMillis,
@@ -200,6 +204,13 @@ private class CompletedCoverageCandidateObserver(
 
     var capReached: Boolean = false
         private set
+
+    var executedSteps: Long = 0
+        private set
+
+    override fun onState(parent: TsState, forks: Sequence<TsState>) {
+        executedSteps++
+    }
 
     override fun onStateTerminated(state: TsState, stateReachable: Boolean) {
         if (!stateReachable) return
@@ -232,6 +243,7 @@ private class CompletedCoverageCandidateObserver(
             if (inputKeys.add(key)) {
                 CallsCoverageCandidate(
                     emittedAtMillis = searchStarted.elapsedNow().inWholeMilliseconds,
+                    emittedAtStep = executedSteps,
                     inputs = inputs,
                     newSymbolicStatements = newStatements,
                     completion = completion,
