@@ -1,4 +1,5 @@
 import { adapterDiagnostic } from './diagnostics.js';
+import { stringifyProtocolJson } from './protocol-json.js';
 import { executeProperty, type FastCheckExecutionSuccess } from './execute-property.js';
 import { ProtocolError, protocolError } from './js-value.js';
 import type { ProtocolDiagnostic } from './js-value.js';
@@ -59,7 +60,7 @@ function protocolErrorResponse(error: ProtocolError): FastCheckExecutionFailure 
 }
 
 async function writeResponse(response: FastCheckExecutionSuccess | FastCheckExecutionFailure): Promise<void> {
-  const document = `${JSON.stringify(response)}\n`;
+  const document = `${stringifyProtocolJson(response)}\n`;
 
   await new Promise<void>((resolve, reject) => {
     writeProtocolOutput(document, (error?: Error | null) => {

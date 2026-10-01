@@ -193,19 +193,21 @@ class FastCheckBackendTest {
         assertEquals(BackendErrorKind.INVALID_REQUEST, error.kind)
         assertEquals("backend.examples.arity", error.code)
 
-        val invalidNumber = JsConcreteValue.Number(
-            JsNumber(value = JsNumberKind.FINITE, bits = "invalid"),
-        )
-        val encodingError = assertFailsWith<PbtBackendException> {
-            missingNodeBackend.run(
-                property = property(predicate = "alwaysTrue"),
-                configuration = configuration.copy(examples = listOf(listOf(invalidNumber))),
+        for (bits in listOf("invalid", "7ff0000000000000", "fff0000000000000", "7ff8000000000000")) {
+            val invalidNumber = JsConcreteValue.Number(
+                JsNumber(value = JsNumberKind.FINITE, bits = bits),
             )
-        }
+            val encodingError = assertFailsWith<PbtBackendException> {
+                missingNodeBackend.run(
+                    property = property(predicate = "alwaysTrue"),
+                    configuration = configuration.copy(examples = listOf(listOf(invalidNumber))),
+                )
+            }
 
-        assertEquals(BackendErrorKind.INVALID_REQUEST, encodingError.kind)
-        assertEquals("backend.examples.value.invalid", encodingError.code)
-        assertEquals("examples[0][0]", encodingError.path)
+            assertEquals(BackendErrorKind.INVALID_REQUEST, encodingError.kind)
+            assertEquals("backend.examples.value.invalid", encodingError.code)
+            assertEquals("examples[0][0]", encodingError.path)
+        }
     }
 
     @Test
