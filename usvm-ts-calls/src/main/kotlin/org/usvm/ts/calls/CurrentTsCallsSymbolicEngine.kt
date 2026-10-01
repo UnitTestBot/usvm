@@ -150,6 +150,7 @@ internal class CurrentTsCallsSymbolicEngine(
             stateCollectionStrategy = StateCollectionStrategy.REACHED_TARGET,
             randomSeed = request.seed,
             timeout = request.budget,
+            solverTimeout = request.budget,
             solverType = SolverType.Z3,
             stopOnCoverage = CALLS_STOP_ON_COVERAGE,
             stopOnTargetsReached = false,
