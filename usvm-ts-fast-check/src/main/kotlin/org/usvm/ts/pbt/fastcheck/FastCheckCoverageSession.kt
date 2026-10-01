@@ -1,13 +1,19 @@
 package org.usvm.ts.pbt.fastcheck
 
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.decodeFromString
 import org.usvm.ts.pbt.FastCheckDiagnosticCode
+import org.usvm.ts.pbt.backend.BranchCoverage
+import org.usvm.ts.pbt.backend.CoverageDiagnostic
 import org.usvm.ts.pbt.backend.CoverageScope
+import org.usvm.ts.pbt.backend.PropertyCoverageArtifact
 import org.usvm.ts.pbt.backend.PropertyRunResult
 import org.usvm.ts.pbt.coverage.CoverageArtifactException
 import org.usvm.ts.pbt.coverage.IstanbulCoverageContext
 import org.usvm.ts.pbt.coverage.decodeIstanbulCoverageReport
 import org.usvm.ts.pbt.coverage.inspectRawV8SourceMapDiagnostics
 import org.usvm.ts.pbt.coverage.mergeCoverageDiagnostics
+import org.usvm.ts.pbt.manifest.PropertyManifestJson
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -68,7 +74,15 @@ internal class FastCheckCoverageSession private constructor(
                 rawDiagnostics = rawDiagnostics,
             )
 
-            finalArtifact.copy(diagnostics = diagnostics)
+            val branchReport = if (finalArtifact.files.isEmpty()) {
+                RawBranchReport(files = emptyList(), diagnostics = emptyList())
+            } else {
+                convertBranches()
+            }
+            appendExactBranches(
+                artifact = finalArtifact.copy(diagnostics = diagnostics),
+                report = branchReport,
+            )
         } catch (error: CoverageArtifactException) {
             fail(
                 code = error.diagnostic.code,
@@ -95,6 +109,71 @@ internal class FastCheckCoverageSession private constructor(
 
         return paths
     }
+
+    private fun convertBranches(): RawBranchReport {
+        val converter = workspace.adapterRoot.resolve("dist/src/coverage-branches.js")
+        val transport = FastCheckProcessTransport(
+            nodeExecutable = nodeExecutable,
+            maxRequestBytes = 1,
+            maxStdoutBytes = MAX_BRANCH_REPORT_BYTES,
+            maxStderrBytes = MAX_BRANCH_ERROR_BYTES,
+            shutdownGraceMillis = BRANCH_SHUTDOWN_GRACE_MILLIS,
+        )
+        val output = try {
+            transport.invoke(
+                command = listOf(nodeExecutable, converter.toString(), workspace.rawDirectory.toString()) +
+                    request.sourceRoots,
+                request = "",
+                timeoutMillis = BRANCH_CONVERSION_TIMEOUT_MILLIS,
+                reportedTimeoutMillis = BRANCH_CONVERSION_TIMEOUT_MILLIS,
+                description = "TypeScript branch converter",
+            )
+        } catch (error: FastCheckTransportException) {
+            return unsupportedBranches("Cannot convert TypeScript branches: ${error.message}")
+        }
+        if (output.exitCode != 0) {
+            return unsupportedBranches("TypeScript branch conversion failed: ${output.stderr.trim()}")
+        }
+
+        return runCatching {
+            PropertyManifestJson.json.decodeFromString<RawBranchReport>(output.stdout)
+        }.getOrElse { error ->
+            unsupportedBranches("Cannot read TypeScript branch coverage: ${error.message}")
+        }
+    }
+
+    private fun appendExactBranches(
+        artifact: PropertyCoverageArtifact,
+        report: RawBranchReport,
+    ): PropertyCoverageArtifact {
+        val exactByPath = report.files.associate { file -> file.path to file.branches }
+        val retainedPaths = artifact.files.mapTo(hashSetOf()) { file -> file.path }
+        val files = artifact.files.map { file ->
+            val nextId = (file.branches.maxOfOrNull(BranchCoverage::branchId) ?: -1) + 1
+            val exactBranches = exactByPath[file.path].orEmpty().mapIndexed { index, branch ->
+                branch.copy(branchId = nextId + index)
+            }
+
+            file.copy(branches = file.branches + exactBranches)
+        }
+
+        return artifact.copy(
+            files = files,
+            diagnostics = artifact.diagnostics + report.diagnostics.filter { diagnostic ->
+                diagnostic.path == null || diagnostic.path in retainedPaths
+            },
+        )
+    }
+
+    private fun unsupportedBranches(message: String) = RawBranchReport(
+        files = emptyList(),
+        diagnostics = listOf(
+            CoverageDiagnostic(
+                code = "coverage.branch.unsupported",
+                message = message,
+            ),
+        ),
+    )
 
     override fun close() {
         workspace.root.toFile().deleteRecursively()
@@ -270,11 +349,27 @@ internal class FastCheckCoverageSession private constructor(
         )
 
         private const val NODE_VERSION_TIMEOUT_MILLIS = 5_000L
+        private const val BRANCH_CONVERSION_TIMEOUT_MILLIS = 10_000L
+        private const val BRANCH_SHUTDOWN_GRACE_MILLIS = 500L
+        private const val MAX_BRANCH_REPORT_BYTES = 10_000_000
+        private const val MAX_BRANCH_ERROR_BYTES = 1_000
         private const val MINIMUM_NODE_MAJOR_VERSION = 18
         private const val MINIMUM_NODE_MINOR_VERSION = 18
         private val NODE_VERSION_PATTERN = Regex("""^v(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$""")
     }
 }
+
+@Serializable
+private data class RawBranchReport(
+    val files: List<RawBranchFile>,
+    val diagnostics: List<CoverageDiagnostic>,
+)
+
+@Serializable
+private data class RawBranchFile(
+    val path: String,
+    val branches: List<BranchCoverage>,
+)
 
 private data class CoverageWorkspace(
     val root: Path,
