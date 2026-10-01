@@ -43,7 +43,10 @@ class CallsCoverageExperimentTest {
         assertEquals(2, search.candidates.map { it.inputs }.distinct().size, search.toString())
         assertTrue(search.candidates.all { candidate -> candidate.emittedAtMillis <= search.searchElapsedMillis })
         assertTrue(search.executedSteps > 0)
+        assertTrue(search.stepsWithinBudget in 1..search.executedSteps)
         assertTrue(search.candidates.all { candidate -> candidate.emittedAtStep in 1..search.executedSteps })
+        assertTrue(search.machineSetupElapsedMillis >= 0)
+        assertTrue(search.machineTeardownElapsedMillis >= 0)
 
         val (universe, replayed) = OriginalTypeScriptCoverageReplayer(
             sourceRoot = fixture.sourceRoot,
