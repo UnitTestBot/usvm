@@ -325,6 +325,7 @@ internal class UnknownCallCensusRunner(
             )
             val generatedIr = try {
                 generateEtsIR(
+                    keepPartialOutputOnFailure = false,
                     projectPath = sourceRoot,
                     isProject = true,
                     loadEntrypoints = false,

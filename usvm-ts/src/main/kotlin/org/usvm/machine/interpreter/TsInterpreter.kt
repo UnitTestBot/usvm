@@ -33,6 +33,7 @@ import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
 import org.jacodb.ets.utils.callExpr
 import org.usvm.StepResult
 import org.usvm.StepScope
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UInterpreter
 import org.usvm.USort
@@ -60,6 +61,7 @@ import org.usvm.machine.expr.handleAssignToArrayIndex
 import org.usvm.machine.expr.handleAssignToInstanceField
 import org.usvm.machine.expr.handleAssignToLocal
 import org.usvm.machine.expr.handleAssignToStaticField
+import org.usvm.machine.expr.isModeledErrorType
 import org.usvm.machine.expr.mkTruthyExpr
 import org.usvm.machine.expr.readGlobal
 import org.usvm.machine.expr.tryApproximateInstanceCall
@@ -79,6 +81,7 @@ import org.usvm.targets.UTargetsSet
 import org.usvm.types.TypesResult
 import org.usvm.types.first
 import org.usvm.types.single
+import org.usvm.types.singleOrNull
 import org.usvm.util.executableOverloadImplementation
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
@@ -663,10 +666,10 @@ class TsInterpreter(
         if (exception != null) {
             val exceptionType: EtsType = when (exception.sort) {
                 ctx.addressSort -> {
-                    // If it's an object reference, try to determine its type
-                    val ref = exception.asExpr(ctx.addressSort)
-                    // For now, assume it's a generic error type
-                    EtsStringType // TODO: improve type detection
+                    val ref = exception as? UConcreteHeapRef
+                    val runtimeType = ref?.let { scope.calcOnState { memory.typeStreamOf(it).singleOrNull() } }
+                    runtimeType?.takeIf { it.isModeledErrorType() }
+                        ?: EtsStringType // TODO: improve type detection for other object exceptions
                 }
 
                 ctx.fp64Sort -> EtsNumberType

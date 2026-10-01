@@ -14,6 +14,7 @@ internal class IstanbulSourceFileDecoder(
     file: JsonObject,
     private val path: String,
     reportKey: String,
+    private val checkBudget: () -> Unit = {},
 ) {
     private val coveragePath = "coverage[$reportKey]"
     private val fileJson = IstanbulJsonValue(file, coveragePath)
@@ -47,6 +48,7 @@ internal class IstanbulSourceFileDecoder(
         )
 
         return coverageMap.ids.map { statementId ->
+            checkBudget()
             val location = coverageMap.location(statementId).asRange()
             val hitCount = coverageMap.hitCount(statementId).asHitCount()
 
@@ -65,6 +67,7 @@ internal class IstanbulSourceFileDecoder(
         )
 
         return coverageMap.ids.map { functionId ->
+            checkBudget()
             decodeFunction(
                 functionId = functionId,
                 coverageMap = coverageMap,
@@ -100,6 +103,7 @@ internal class IstanbulSourceFileDecoder(
         )
 
         return coverageMap.ids.map { branchId ->
+            checkBudget()
             decodeBranch(
                 branchId = branchId,
                 coverageMap = coverageMap,
@@ -118,6 +122,7 @@ internal class IstanbulSourceFileDecoder(
         val type = branchJson.requiredString(name = "type")
         val location = branchJson.required(name = "loc").asRange()
         val arms = branchArms.locations.indices.map { armIndex ->
+            checkBudget()
             BranchArmCoverage(
                 location = branchArms.location(armIndex).asRange(),
                 hits = branchArms.hitCount(armIndex).asHitCount(),
@@ -171,7 +176,10 @@ internal class IstanbulSourceFileDecoder(
             )
         }
 
-        val ids = locations.keys.map(::parseCoverageId).sorted()
+        val ids = locations.keys.map { id ->
+            checkBudget()
+            parseCoverageId(id)
+        }.sorted()
 
         return CoverageMap(
             ids = ids,

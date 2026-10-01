@@ -61,6 +61,22 @@ test('tagged finite numbers require exactly sixteen lowercase hexadecimal digits
   }
 });
 
+test('finite tags reject nonfinite bit patterns at the tagged input boundary', () => {
+  for (const bits of ['7ff0000000000000', 'fff0000000000000', '7ff8000000000000']) {
+    assert.throws(
+      () => decodeJsValue({ kind: 'number', value: 'finite', bits }),
+      /js-number\.encoding\.invalid/,
+    );
+    assert.throws(
+      () => decodeJsValue({
+        kind: 'array',
+        elements: [{ kind: 'array', elements: [{ kind: 'number', value: 'finite', bits }] }],
+      }),
+      /js-number\.encoding\.invalid/,
+    );
+  }
+});
+
 test('unknown tagged value kinds are rejected explicitly', () => {
   assert.throws(() => decodeJsValue({ kind: 'symbol' }), /js-value\.kind\.unknown/);
 });

@@ -14,6 +14,7 @@ import java.nio.file.Path
 /** Selects relevant report entries and assembles the coverage artifact for one property run. */
 internal class IstanbulCoverageDecoder(
     private val context: IstanbulCoverageContext,
+    private val checkBudget: () -> Unit = {},
 ) {
     private val sourceRoots = context.sourceRoots.map(::normalizeCoveragePath)
     private val propertyEntryPoints = context.propertyEntryPointPaths
@@ -36,6 +37,7 @@ internal class IstanbulCoverageDecoder(
     ): List<SourceFileCoverage> {
         val decodedFiles = buildList {
             for ((reportKey, reportEntry) in report) {
+                checkBudget()
                 val decodedFile = decodeFile(reportKey, reportEntry, diagnostics)
                 if (decodedFile != null) {
                     add(decodedFile)
@@ -71,6 +73,7 @@ internal class IstanbulCoverageDecoder(
             file = fileObject,
             path = path,
             reportKey = reportKey,
+            checkBudget = checkBudget,
         )
 
         return decoder.decode()

@@ -7,7 +7,6 @@ import org.usvm.ts.pbt.backend.PropertyRunConfiguration
 import org.usvm.ts.pbt.backend.PropertyRunResult
 import org.usvm.ts.pbt.manifest.toManifest
 import org.usvm.ts.pbt.model.JsConcreteValue
-import org.usvm.ts.pbt.model.JsNumberKind
 import org.usvm.ts.pbt.model.PropertyDefinition
 import org.usvm.ts.pbt.model.contains
 import org.usvm.ts.pbt.validation.requireValid
@@ -104,7 +103,7 @@ class FastCheckBackend(
         value: JsConcreteValue,
         path: String,
     ) {
-        if (value is JsConcreteValue.Number && !hasValidEncoding(value)) {
+        if (value is JsConcreteValue.Number && !value.number.hasValidEncoding()) {
             throw invalidRequest(
                 code = FastCheckDiagnosticCode.BACKEND_EXAMPLES_VALUE_INVALID,
                 message = "Explicit example contains an invalid tagged JavaScript number",
@@ -124,11 +123,6 @@ class FastCheckBackend(
         }
     }
 
-    private fun hasValidEncoding(value: JsConcreteValue.Number): Boolean = when (value.number.value) {
-        JsNumberKind.FINITE -> value.number.bits?.matches(FINITE_NUMBER_BITS_REGEX) == true
-        else -> value.number.bits == null
-    }
-
     private fun invalidRequest(
         code: String,
         message: String,
@@ -144,8 +138,6 @@ class FastCheckBackend(
 
     companion object {
         const val FAST_CHECK_BACKEND_ID = "fast-check"
-
-        private val FINITE_NUMBER_BITS_REGEX = Regex("[0-9a-f]{16}")
 
         private fun canonicalizeSourceRoots(sourceRoots: List<Path>): List<Path> {
             if (sourceRoots.isEmpty()) {

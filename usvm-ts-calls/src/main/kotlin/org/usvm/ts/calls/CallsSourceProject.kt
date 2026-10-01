@@ -1,10 +1,12 @@
 package org.usvm.ts.calls
 
+import org.jacodb.ets.dto.EtsFileDto
+import org.jacodb.ets.dto.toEtsFile
+import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.generateEtsIR
-import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.jacodb.ets.utils.loadEtsProjectFromIR
 import org.usvm.ts.pbt.fastcheck.TypeScriptSourceInspector
 import java.nio.file.Files
@@ -35,7 +37,7 @@ internal fun loadCallsSourceProject(sourceRoot: Path, source: Path): CallsSource
     val entryModule = sourceRoot.relativize(source).toString()
     require(entryModule in closure.files) { "Dependency closure does not contain its entry source" }
     if (closure.files.size == 1) {
-        val entry = loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)
+        val entry = loadSingleCallsSource(source)
         return CallsSourceProject.Loaded(
             scene = EtsScene(projectFiles = listOf(entry)),
             entryModule = source.fileName.toString(),
@@ -58,6 +60,7 @@ internal fun loadCallsSourceProject(sourceRoot: Path, source: Path): CallsSource
             Files.copy(sourceRoot.resolve(relative), copy)
         }
         val generatedIr = generateEtsIR(
+            keepPartialOutputOnFailure = false,
             projectPath = temporaryProject,
             isProject = true,
             loadEntrypoints = false,
@@ -85,5 +88,20 @@ internal fun loadCallsSourceProject(sourceRoot: Path, source: Path): CallsSource
         return CallsSourceProject.Loaded(scene = scene, entryModule = entryModule, sourceByFile = sourceByFile)
     } finally {
         temporaryProject.toFile().deleteRecursively()
+    }
+}
+
+private fun loadSingleCallsSource(source: Path): EtsFile {
+    val generatedIr = generateEtsIR(
+        keepPartialOutputOnFailure = false,
+        projectPath = source,
+        useArkAnalyzerTypeInference = 1,
+        provider = EtsIrProvider.TS_FRONTEND,
+    )
+
+    return try {
+        Files.newInputStream(generatedIr).use { stream -> EtsFileDto.loadFromJson(stream).toEtsFile() }
+    } finally {
+        Files.deleteIfExists(generatedIr)
     }
 }

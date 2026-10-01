@@ -1,5 +1,6 @@
 package org.usvm.ts.pbt.coverage
 
+import kotlinx.serialization.json.jsonObject
 import org.junit.jupiter.api.Test
 import org.usvm.ts.pbt.backend.CoverageCollectorIdentity
 import org.usvm.ts.pbt.backend.CoverageScope
@@ -9,6 +10,7 @@ import java.nio.ByteBuffer
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
+import java.util.concurrent.TimeUnit
 import kotlin.io.path.absolute
 import kotlin.io.path.createTempDirectory
 import kotlin.io.path.createTempFile
@@ -16,6 +18,7 @@ import kotlin.io.path.deleteIfExists
 import kotlin.io.path.writeText
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 
 class IstanbulCoverageReportTest {
     @Test
@@ -139,6 +142,67 @@ class IstanbulCoverageReportTest {
     }
 
     @Test
+    fun `dense legal report near the strict limit observes an expired deadline`() {
+        val report = createTempFile(suffix = ".json")
+        val statements = 30_000
+
+        try {
+            val statementMap = (0 until statements).joinToString(separator = ",") { id ->
+                "\"$id\":{\"start\":{\"line\":1,\"column\":0},\"end\":{\"line\":1,\"column\":1}}"
+            }
+            val hits = (0 until statements).joinToString(separator = ",") { id -> "\"$id\":1" }
+            val prefix = "{\"/workspace/src/math.ts\":{\"path\":\"/workspace/src/math.ts\"," +
+                "\"statementMap\":{$statementMap},\"fnMap\":{},\"branchMap\":{}," +
+                "\"s\":{$hits},\"f\":{},\"b\":{}}}"
+            val padding = (STRICT_REPORT_LIMIT_BYTES - prefix.toByteArray().size - 1).toInt()
+            assertTrue(padding > 0)
+            report.writeText(prefix + " ".repeat(padding))
+            assertEquals(STRICT_REPORT_LIMIT_BYTES - 1, Files.size(report))
+
+            val startedAt = System.nanoTime()
+            var deadline = 0L
+            var checkpoints = 0
+            assertFailsWith<TestDeadlineExpired> {
+                decodeIstanbulCoverageReport(
+                    reportPath = report,
+                    context = context(),
+                    maxReportBytes = STRICT_REPORT_LIMIT_BYTES,
+                    checkBudget = {
+                        if (deadline == 0L) deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(5)
+                        checkpoints++
+                        if (System.nanoTime() >= deadline) throw TestDeadlineExpired()
+                    },
+                )
+            }
+            val elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt)
+
+            assertTrue(checkpoints >= 2)
+            assertTrue(elapsedMillis >= 5)
+        } finally {
+            report.deleteIfExists()
+        }
+    }
+
+    @Test
+    fun `Istanbul entry iteration checks the deadline within one retained file`() {
+        val report = IstanbulCoverageReportReader.read(goldenReport())
+        val file = report.getValue("/workspace/src/math.ts").jsonObject
+        var checkpoints = 0
+        val decoder = IstanbulSourceFileDecoder(
+            file = file,
+            path = "/workspace/src/math.ts",
+            reportKey = "/workspace/src/math.ts",
+            checkBudget = {
+                checkpoints++
+                if (checkpoints == 2) throw TestDeadlineExpired()
+            },
+        )
+
+        assertFailsWith<TestDeadlineExpired> { decoder.decode() }
+        assertEquals(2, checkpoints)
+    }
+
+    @Test
     fun `generated JavaScript with an unusable map reports an invalid source map`() {
         val directory = createTempDirectory("invalid-source-map-")
         try {
@@ -202,5 +266,8 @@ class IstanbulCoverageReportTest {
 
     private companion object {
         const val TEST_COVERAGE_REPORT_LIMIT_BYTES = 64L * 1024 * 1024
+        const val STRICT_REPORT_LIMIT_BYTES = 4L * 1024 * 1024
     }
+
+    private class TestDeadlineExpired : RuntimeException()
 }

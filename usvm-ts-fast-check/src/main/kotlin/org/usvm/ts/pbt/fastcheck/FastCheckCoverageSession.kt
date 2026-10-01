@@ -17,7 +17,6 @@ import org.usvm.ts.pbt.manifest.PropertyManifestJson
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
-import java.util.concurrent.TimeUnit
 
 /** Prepared c8 invocation and the temporary artifacts produced by one property run. */
 internal class FastCheckCoverageSession private constructor(
@@ -251,59 +250,46 @@ internal class FastCheckCoverageSession private constructor(
             nodeExecutable: String,
             request: FastCheckExecutionRequest,
         ): String {
-            val process = try {
-                ProcessBuilder(nodeExecutable, "--version").start()
-            } catch (error: IOException) {
+            val transport = FastCheckProcessTransport(
+                nodeExecutable = nodeExecutable,
+                maxRequestBytes = 1,
+                maxStdoutBytes = MAX_VERSION_OUTPUT_BYTES,
+                maxStderrBytes = MAX_VERSION_OUTPUT_BYTES,
+                shutdownGraceMillis = VERSION_SHUTDOWN_GRACE_MILLIS,
+                useProcessSupervisor = false,
+            )
+            val output = try {
+                transport.invoke(
+                    command = listOf(nodeExecutable, "--version"),
+                    request = "",
+                    timeoutMillis = NODE_VERSION_TIMEOUT_MILLIS,
+                    reportedTimeoutMillis = NODE_VERSION_TIMEOUT_MILLIS,
+                    description = "Node.js version probe",
+                )
+            } catch (error: FastCheckTransportException) {
+                val interrupted = error.code == FastCheckDiagnosticCode.BACKEND_PROCESS_INTERRUPTED
                 failPreparation(
                     request = request,
-                    code = FastCheckDiagnosticCode.COVERAGE_RUNTIME_VERSION_UNAVAILABLE,
+                    code = if (interrupted) {
+                        error.code
+                    } else {
+                        FastCheckDiagnosticCode.COVERAGE_RUNTIME_VERSION_UNAVAILABLE
+                    },
                     message = "Cannot query the Node.js runtime version: ${error.message}",
+                    kind = if (interrupted) BackendErrorKind.PROCESS_FAILURE else BackendErrorKind.COVERAGE,
                     cause = error,
                 )
             }
-
-            try {
-                awaitNodeVersion(process, request)
-                val version = process.inputStream.bufferedReader(Charsets.UTF_8).use { input ->
-                    input.readLine().orEmpty().trim()
-                }
-                if (process.exitValue() != 0 || version.isBlank()) {
-                    failPreparation(
-                        request = request,
-                        code = FastCheckDiagnosticCode.COVERAGE_RUNTIME_VERSION_UNAVAILABLE,
-                        message = "Cannot query the Node.js runtime version",
-                    )
-                }
-
-                return requireSupportedNodeVersion(version, request)
-            } finally {
-                runCatching { process.outputStream.close() }
-                runCatching { process.inputStream.close() }
-                runCatching { process.errorStream.close() }
-            }
-        }
-
-        private fun awaitNodeVersion(process: Process, request: FastCheckExecutionRequest) {
-            val completed = try {
-                process.waitFor(NODE_VERSION_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
-            } catch (error: InterruptedException) {
-                Thread.currentThread().interrupt()
-                failPreparation(
-                    request = request,
-                    code = FastCheckDiagnosticCode.BACKEND_PROCESS_INTERRUPTED,
-                    message = "Interrupted while querying the Node.js runtime version",
-                    kind = BackendErrorKind.PROCESS_FAILURE,
-                    cause = error,
-                )
-            }
-            if (!completed) {
-                process.destroyForcibly()
+            val version = output.stdout.trim()
+            if (output.exitCode != 0 || version.isBlank()) {
                 failPreparation(
                     request = request,
                     code = FastCheckDiagnosticCode.COVERAGE_RUNTIME_VERSION_UNAVAILABLE,
-                    message = "Timed out while querying the Node.js runtime version",
+                    message = "Cannot query the Node.js runtime version",
                 )
             }
+
+            return requireSupportedNodeVersion(version, request)
         }
 
         private fun requireSupportedNodeVersion(version: String, request: FastCheckExecutionRequest): String {
@@ -349,6 +335,8 @@ internal class FastCheckCoverageSession private constructor(
         )
 
         private const val NODE_VERSION_TIMEOUT_MILLIS = 5_000L
+        private const val VERSION_SHUTDOWN_GRACE_MILLIS = 100L
+        private const val MAX_VERSION_OUTPUT_BYTES = 1_000
         private const val BRANCH_CONVERSION_TIMEOUT_MILLIS = 10_000L
         private const val BRANCH_SHUTDOWN_GRACE_MILLIS = 500L
         private const val MAX_BRANCH_REPORT_BYTES = 10_000_000

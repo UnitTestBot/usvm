@@ -46,6 +46,17 @@ data class JsNumber(
     val value: JsNumberKind,
     val bits: String? = null,
 ) {
+    /** Whether this tag can represent exactly the encoded ECMAScript binary64 value. */
+    fun hasValidEncoding(): Boolean = when (value) {
+        JsNumberKind.FINITE -> {
+            bits?.takeIf { it.matches(FINITE_NUMBER_BITS_REGEX) }
+                ?.let { Double.fromBits(it.toULong(JS_NUMBER_HEX_RADIX).toLong()).isFinite() }
+                ?: false
+        }
+
+        else -> bits == null
+    }
+
     fun toDouble(): Double = when (value) {
         JsNumberKind.FINITE -> Double.fromBits(
             requireNotNull(bits) { "A finite JavaScript number requires IEEE-754 bits" }
@@ -289,8 +300,7 @@ private fun JsonObject.requiredFiniteBits(): String {
         throw SerializationException("Finite JsConcreteValue requires sixteen lowercase hexadecimal bits")
     }
 
-    val number = Double.fromBits(bits.toULong(JS_NUMBER_HEX_RADIX).toLong())
-    if (!number.isFinite()) {
+    if (!JsNumber(value = JsNumberKind.FINITE, bits = bits).hasValidEncoding()) {
         throw SerializationException("Finite JsConcreteValue requires finite IEEE-754 bits")
     }
 

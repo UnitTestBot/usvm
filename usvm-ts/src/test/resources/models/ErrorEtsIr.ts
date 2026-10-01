@@ -16,6 +16,10 @@ export class ErrorEtsIr {
         throw new Error("expected message");
     }
 
+    static throwTypeError(): number {
+        throw new TypeError("expected type error");
+    }
+
     static overwrittenName(): string {
         const error = new Error("expected message");
         error.name = "CustomError";
