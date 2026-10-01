@@ -33,6 +33,7 @@ export function inspectLocalSourceClosure(rootPath: string, entryPath: string): 
 
     const source = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true)
     sources.set(file, source)
+    const emittedModules = runtimeModuleSpecifiers(source)
     const edges: string[] = []
     dependencies.set(file, edges)
     const imports: string[] = []
@@ -48,6 +49,8 @@ export function inspectLocalSourceClosure(rootPath: string, entryPath: string): 
         if (!ts.isStringLiteral(statement.moduleSpecifier)) {
           return reject('IMPORTED_CALLEES_UNSUPPORTED', `Nonliteral module specifier in ${relative}`)
         }
+        if (!emittedModules.has(statement.moduleSpecifier.text)
+          && importedBindingsUsedOnlyAsTypes(statement, source)) continue
         imports.push(statement.moduleSpecifier.text)
         ranges.push({ start: statement.getStart(source), end: statement.end })
       } else if (ts.isExportDeclaration(statement)) {
@@ -55,6 +58,8 @@ export function inspectLocalSourceClosure(rootPath: string, entryPath: string): 
         if (statement.exportClause && ts.isNamedExports(statement.exportClause)
           && statement.exportClause.elements.length > 0
           && statement.exportClause.elements.every(element => element.isTypeOnly)) continue
+        if (statement.moduleSpecifier && ts.isStringLiteral(statement.moduleSpecifier)
+          && !emittedModules.has(statement.moduleSpecifier.text)) continue
         ranges.push({ start: statement.getStart(source), end: statement.end })
         if (statement.moduleSpecifier) {
           if (!ts.isStringLiteral(statement.moduleSpecifier)) {
@@ -154,6 +159,51 @@ export function inspectLocalSourceClosure(rootPath: string, entryPath: string): 
   }
 
   return { files: [...files].sort() }
+}
+
+function runtimeModuleSpecifiers(source: ts.SourceFile): Set<string> {
+  const emitted = ts.transpileModule(source.text, {
+    fileName: source.fileName,
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext },
+  }).outputText
+  const javascript = ts.createSourceFile(`${source.fileName}.js`, emitted, ts.ScriptTarget.ES2022, true, ts.ScriptKind.JS)
+  const specifiers = new Set<string>()
+  for (const statement of javascript.statements) {
+    if ((ts.isImportDeclaration(statement) || ts.isExportDeclaration(statement))
+      && statement.moduleSpecifier && ts.isStringLiteral(statement.moduleSpecifier)) {
+      specifiers.add(statement.moduleSpecifier.text)
+    }
+  }
+  return specifiers
+}
+
+function importedBindingsUsedOnlyAsTypes(statement: ts.ImportDeclaration, source: ts.SourceFile): boolean {
+  const clause = statement.importClause
+  if (!clause) return false
+
+  const names: string[] = []
+  if (clause.name) names.push(clause.name.text)
+  if (clause.namedBindings && ts.isNamedImports(clause.namedBindings)) {
+    names.push(...clause.namedBindings.elements.map(element => element.name.text))
+  } else if (clause.namedBindings && ts.isNamespaceImport(clause.namedBindings)) {
+    names.push(clause.namedBindings.name.text)
+  }
+  if (names.length === 0) return false
+
+  const typeUses = new Set<string>()
+  const valueUses = new Set<string>()
+  const visit = (node: ts.Node): void => {
+    if (ts.isImportDeclaration(node)) return
+    if (ts.isIdentifier(node) && names.includes(node.text)) {
+      let ancestor: ts.Node | undefined = node.parent
+      while (ancestor && ancestor !== source && !ts.isTypeNode(ancestor)) ancestor = ancestor.parent
+      if (ancestor && ts.isTypeNode(ancestor)) typeUses.add(node.text)
+      else valueUses.add(node.text)
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(source)
+  return names.every(name => typeUses.has(name) && !valueUses.has(name))
 }
 
 function hasDependencyCycle(dependencies: Map<string, string[]>): boolean {

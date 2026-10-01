@@ -42,17 +42,79 @@ class CallsCoverageExperimentTest {
         assertEquals(search.candidates, emitted)
         assertEquals(2, search.candidates.map { it.inputs }.distinct().size, search.toString())
         assertTrue(search.candidates.all { candidate -> candidate.emittedAtMillis <= search.searchElapsedMillis })
+        assertTrue(search.executedSteps > 0)
+        assertTrue(search.stepsWithinBudget in 1..search.executedSteps)
+        assertTrue(search.candidates.all { candidate -> candidate.emittedAtStep in 1..search.executedSteps })
+        assertTrue(search.machineSetupElapsedMillis >= 0)
+        assertTrue(search.machineTeardownElapsedMillis >= 0)
 
-        val replayed = OriginalTypeScriptCoverageReplayer(
+        val (universe, replayed) = OriginalTypeScriptCoverageReplayer(
             sourceRoot = fixture.sourceRoot,
             function = fixture.function,
         ).use { replayer ->
-            search.candidates.map { candidate ->
+            val universe = replayer.probeUniverse(timeoutMillis = 20_000L)
+            val replayed = search.candidates.map { candidate ->
                 replayer.replay(inputs = candidate.inputs, timeoutMillis = 20_000L)
             }
+            universe to replayed
         }
         assertEquals(2, replayed.flatMap { it.coveredIfArmKeys }.toSet().size, replayed.toString())
         assertTrue(replayed.all { replay -> replay.coveredStatementKeys.isNotEmpty() })
+        assertTrue(replayed.all { replay -> replay.coveredStatementKeys.size < universe.supportedStatementKeys.size })
+        assertTrue(universe.supportedStatementKeys.containsAll(replayed.flatMap { it.coveredStatementKeys }))
+        assertEquals(universe.supportedStatementKeys, replayed.flatMap { it.coveredStatementKeys }.toSet())
+        assertTrue(universe.probeElapsedMillis >= 0)
+    }
+
+    @Test
+    fun `coverage universe has a denominator without invoking the entry function`() {
+        val fixture = fixture(
+            source = """
+                export function neverRun(flag: boolean): boolean {
+                  if (flag) throw new Error('The probe must not invoke this function');
+                  return false;
+                }
+            """.trimIndent(),
+            exportName = "neverRun",
+            inputs = listOf(PropertyInput(name = "flag", domain = BooleanDomain)),
+        )
+
+        val universe = OriginalTypeScriptCoverageReplayer(
+            sourceRoot = fixture.sourceRoot,
+            function = fixture.function,
+        ).use { replayer -> replayer.probeUniverse(timeoutMillis = 20_000L) }
+
+        assertTrue(universe.supportedStatementKeys.isNotEmpty())
+        assertTrue(universe.supportedStatementKeys.size >= 4, universe.toString())
+        assertEquals(setOf("Fixture.ts"), universe.sourceFiles)
+    }
+
+    @Test
+    fun `coverage universe includes the complete local runtime source closure`() {
+        val fixture = fixture(
+            source = """
+                import { choose } from './Helper';
+                export function classify(flag: boolean): number { return choose(flag); }
+            """.trimIndent(),
+            exportName = "classify",
+            inputs = listOf(PropertyInput(name = "flag", domain = BooleanDomain)),
+            additionalSources = mapOf(
+                "Helper.ts" to """
+                    export function choose(flag: boolean): number {
+                      if (flag) return 1;
+                      return 2;
+                    }
+                """.trimIndent(),
+            ),
+        )
+
+        val universe = OriginalTypeScriptCoverageReplayer(
+            sourceRoot = fixture.sourceRoot,
+            function = fixture.function,
+        ).use { replayer -> replayer.probeUniverse(timeoutMillis = 20_000L) }
+
+        assertEquals(setOf("Fixture.ts", "Helper.ts"), universe.sourceFiles)
+        assertTrue(universe.supportedStatementKeys.any { key -> key.startsWith("Helper.ts:") })
     }
 
     @Test
@@ -118,9 +180,15 @@ class CallsCoverageExperimentTest {
         bundledNativeFrontendRevision = "bundled:test",
     )
 
-    private fun fixture(source: String, exportName: String, inputs: List<PropertyInput>): CoverageFixture {
+    private fun fixture(
+        source: String,
+        exportName: String,
+        inputs: List<PropertyInput>,
+        additionalSources: Map<String, String> = emptyMap(),
+    ): CoverageFixture {
         val sourceRoot = Files.createDirectory(directory.resolve(exportName))
         Files.writeString(sourceRoot.resolve("Fixture.ts"), source)
+        additionalSources.forEach { (name, contents) -> Files.writeString(sourceRoot.resolve(name), contents) }
         runGit(sourceRoot, "init")
         runGit(sourceRoot, "config", "user.name", "USVM Tests")
         runGit(sourceRoot, "config", "user.email", "usvm@example.test")

@@ -38,6 +38,14 @@ internal data class CallsCoverageReplayResult(
     val replayElapsedMillis: Long,
 )
 
+@Serializable
+internal data class CallsCoverageUniverse(
+    val supportedStatementKeys: Set<String>,
+    val sourceFiles: Set<String>,
+    val diagnostics: List<String>,
+    val probeElapsedMillis: Long,
+)
+
 /** Replays one generated input in a fresh Node.js process and checks its exact transport value. */
 internal class OriginalTypeScriptCoverageReplayer(
     sourceRoot: Path,
@@ -85,6 +93,58 @@ internal class OriginalTypeScriptCoverageReplayer(
             deleteWorkspace()
             throw error
         }
+    }
+
+    fun probeUniverse(timeoutMillis: Long): CallsCoverageUniverse {
+        require(timeoutMillis > 0)
+
+        val started = TimeSource.Monotonic.markNow()
+        val result = backend.run(
+            property = PropertyDefinition(
+                id = PropertyId("calls.coverage.universe"),
+                inputs = listOf(PropertyInput(name = "__usvmCoverageSentinel", domain = BooleanDomain)),
+                predicate = TypeScriptEntryPoint(module = wrapperName, exportName = "coverageUniverseProbe"),
+            ),
+            configuration = PropertyRunConfiguration(
+                seed = 0,
+                numRuns = 1,
+                timeoutMillis = timeoutMillis,
+                examples = listOf(listOf(JsConcreteValue.Boolean(true))),
+                coverageRequest = PropertyCoverageRequest(
+                    scopes = setOf(CoverageScope.SOURCE_UNDER_TEST),
+                    includePatterns = allowedFiles.sorted(),
+                    includeUnexecutedSources = true,
+                ),
+            ),
+        )
+        val elapsedMillis = started.elapsedNow().inWholeMilliseconds
+        require(result.status == PropertyRunStatus.SUCCESS && result.numRuns == 1) {
+            "Coverage universe probe did not complete once: $result"
+        }
+
+        val coverage = requireNotNull(result.coverage) { "Coverage universe probe produced no c8 artifact" }
+        val statements = linkedSetOf<String>()
+        val sourceFiles = linkedSetOf<String>()
+        coverage.files.forEach { file ->
+            val relative = relativeSourcePath(file.path) ?: return@forEach
+            if (relative !in allowedFiles) return@forEach
+
+            sourceFiles += relative
+            file.statements.forEach { statement ->
+                statements += "$relative:statement:${statement.location.stableKey()}"
+            }
+        }
+        require(sourceFiles == allowedFiles) {
+            "Coverage universe omitted local source files: ${allowedFiles - sourceFiles}"
+        }
+        require(statements.isNotEmpty()) { "Coverage universe has no source statements" }
+
+        return CallsCoverageUniverse(
+            supportedStatementKeys = statements,
+            sourceFiles = sourceFiles,
+            diagnostics = coverage.diagnostics.map { diagnostic -> "${diagnostic.code}: ${diagnostic.message}" },
+            probeElapsedMillis = elapsedMillis,
+        )
     }
 
     fun replay(inputs: List<JsConcreteValue>, timeoutMillis: Long): CallsCoverageReplayResult {
@@ -244,6 +304,10 @@ private fun coverageWrapper(
           }
           writeFileSync($outputPath, JSON.stringify({ inputs: actualArgs.map(encodeValue), completion, errorName }), 'utf8');
 
+          return true;
+        }
+
+        export function coverageUniverseProbe(_sentinel: boolean): boolean {
           return true;
         }
     """.trimIndent() + "\n"
