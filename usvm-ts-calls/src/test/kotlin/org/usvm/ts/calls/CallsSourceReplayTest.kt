@@ -11,6 +11,23 @@ import kotlin.test.assertNotNull
 
 class CallsSourceReplayTest {
     @Test
+    fun `replays a zero-input export without the FastCheck placeholder`() {
+        val fixture = fixture()
+        val zeroArguments = fixture.target(functionName = "checksArgumentCount", statement = "return 0;")
+        val extraArgument = fixture.target(functionName = "checksArgumentCount", statement = "return 1;")
+
+        val reached = fixture.replay(exportName = "checksArgumentCount", inputs = emptyList(), target = zeroArguments)
+        val notReached = fixture.replay(
+            exportName = "checksArgumentCount",
+            inputs = emptyList(),
+            target = extraArgument,
+        )
+
+        assertEquals(CallsReplayStatus.CONFIRMED, reached.status, reached.toString())
+        assertEquals(CallsReplayStatus.REJECTED, notReached.status, notReached.toString())
+    }
+
+    @Test
     fun `confirms only the exact source statement reached by original TypeScript`() {
         val fixture = fixture()
         val taken = fixture.target(functionName = "inlineChoose", statement = "return 1;")
