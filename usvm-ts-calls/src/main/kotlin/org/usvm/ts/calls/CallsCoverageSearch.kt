@@ -74,6 +74,7 @@ internal data class CallsCoverageSearchRequest(
     val seed: Long,
     val budget: Duration,
     val solverQueryLimit: Duration,
+    val solverType: SolverType,
     val candidateCap: Int,
     val onCandidate: (CallsCoverageCandidate) -> Unit = {},
 ) {
@@ -149,7 +150,7 @@ internal class CurrentTsCallsCoverageEngine(
             randomSeed = request.seed,
             timeout = request.budget,
             solverTimeout = request.solverQueryLimit,
-            solverType = SolverType.Z3,
+            solverType = request.solverType,
             stopOnCoverage = CALLS_STOP_ON_COVERAGE,
             stopOnTargetsReached = false,
             throwExceptionOnStepFailure = true,

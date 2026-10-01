@@ -1,6 +1,7 @@
 package org.usvm.ts.calls
 
 import org.junit.jupiter.api.io.TempDir
+import org.usvm.SolverType
 import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyInput
@@ -64,6 +65,29 @@ class CallsCoverageExperimentTest {
         assertTrue(universe.supportedStatementKeys.containsAll(replayed.flatMap { it.coveredStatementKeys }))
         assertEquals(universe.supportedStatementKeys, replayed.flatMap { it.coveredStatementKeys }.toSet())
         assertTrue(universe.probeElapsedMillis >= 0)
+    }
+
+    @Test
+    fun `coverage search can use Yices for both symbolic branches`() {
+        val fixture = fixture(
+            source = """
+                export function classify(flag: boolean): number {
+                  if (flag) return 1;
+                  return 2;
+                }
+            """.trimIndent(),
+            exportName = "classify",
+            inputs = listOf(PropertyInput(name = "flag", domain = BooleanDomain)),
+        )
+        val emitted = mutableListOf<CallsCoverageCandidate>()
+
+        val search = CurrentTsCallsCoverageEngine(testSourceEngine()).search(
+            request = coverageRequest(fixture, onCandidate = emitted::add, solverType = SolverType.YICES),
+        )
+
+        assertEquals(CallsCoverageSearchStatus.EXHAUSTED, search.status, search.toString())
+        assertEquals(2, search.candidates.size)
+        assertEquals(search.candidates, emitted)
     }
 
     @Test
@@ -161,6 +185,7 @@ class CallsCoverageExperimentTest {
     private fun coverageRequest(
         fixture: CoverageFixture,
         onCandidate: (CallsCoverageCandidate) -> Unit,
+        solverType: SolverType = SolverType.Z3,
     ) = CallsCoverageSearchRequest(
         sourceRoot = fixture.sourceRoot,
         project = fixture.project,
@@ -171,6 +196,7 @@ class CallsCoverageExperimentTest {
         seed = 17,
         budget = 10.seconds,
         solverQueryLimit = 2.seconds,
+        solverType = solverType,
         candidateCap = 8,
         onCandidate = onCandidate,
     )
