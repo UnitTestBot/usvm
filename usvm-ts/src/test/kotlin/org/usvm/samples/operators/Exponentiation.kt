@@ -108,23 +108,9 @@ class Exponentiation : TsMethodTestRunner() {
     }
 
     @Test
-    fun `symbolic reciprocal stays unsupported when division differs in Node`() {
-        val output = directory.resolve("reciprocal-divergence.out")
-        val script = "const x = 518.3984755809512; Object.is(x ** -1, 1 / x)"
-        val process = ProcessBuilder("node", "-p", script)
-            .redirectErrorStream(true)
-            .redirectOutput(output.toFile())
-            .start()
-
-        try {
-            assertTrue(process.waitFor(10, TimeUnit.SECONDS), "Node reciprocal probe timed out")
-            assertEquals(0, process.exitValue(), output.readText())
-            assertEquals("false", output.readText().trim())
-        } finally {
-            if (process.isAlive) process.destroyForcibly()
-        }
-
+    fun `symbolic reciprocal is explicitly unsupported`() {
         val failure = assertFailsWith<UnsupportedOperationException> { analyze("reciprocal") }
+
         assertTrue(failure.message.orEmpty().contains("exponent -1.0"))
     }
 

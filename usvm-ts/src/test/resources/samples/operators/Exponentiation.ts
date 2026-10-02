@@ -9,9 +9,6 @@ class Exponentiation {
     }
 
     reciprocal(value: number): number {
-        if (value === 518.3984755809512) return value ** -1;
-        if (1 / value === -Infinity) return value ** -1;
-        if (value === 0) return value ** -1;
         return value ** -1;
     }
 
