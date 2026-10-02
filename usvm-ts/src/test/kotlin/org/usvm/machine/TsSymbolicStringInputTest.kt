@@ -24,6 +24,13 @@ class TsSymbolicStringInputTest {
     @TempDir
     lateinit var directory: Path
 
+    private val machineOptions = UMachineOptions(
+        pathSelectionStrategies = listOf(PathSelectionStrategy.BFS),
+        solverType = SolverType.YICES,
+        solverTimeout = Duration.INFINITE,
+        typeOperationsTimeout = Duration.INFINITE,
+    )
+
     @Test
     fun `symbolic string witnesses replay including empty and nonempty values`() {
         val source = getResourcePath("/models/SymbolicStringInput.ts")
@@ -31,14 +38,7 @@ class TsSymbolicStringInputTest {
         val methods = scene.projectClasses.single { it.name == "SymbolicStringInput" }.methods
             .filter { it.name in setOf("identity", "lengthOne", "literal", "literalLength") }
             .associateBy { it.name }
-        val options = UMachineOptions(
-            pathSelectionStrategies = listOf(PathSelectionStrategy.BFS),
-            solverType = SolverType.YICES,
-            solverTimeout = Duration.INFINITE,
-            typeOperationsTimeout = Duration.INFINITE,
-        )
-
-        val tests = TsMachine(scene, options = options, tsOptions = TsOptions()).use { machine ->
+        val tests = TsMachine(scene, options = machineOptions, tsOptions = TsOptions()).use { machine ->
             methods.mapValues { (_, method) ->
                 machine.analyze(listOf(method)).map { state -> TsTestResolver().resolve(method, state) }
             }
@@ -94,8 +94,84 @@ class TsSymbolicStringInputTest {
                 }
             }
         }
-        val replay = directory.resolve("replay.ts")
-        val output = directory.resolve("replay.out")
+        assertReplay(script, name = "basic-strings")
+    }
+
+    @Test
+    fun `string backing cannot alias an input number array`() {
+        val source = getResourcePath("/models/SymbolicStringInput.ts")
+        val scene = EtsScene(listOf(loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)))
+        val method = scene.projectClasses.single { it.name == "SymbolicStringInput" }
+            .methods.single { it.name == "independentArrayLength" }
+
+        val tests = TsMachine(scene, options = machineOptions, tsOptions = TsOptions()).use { machine ->
+            machine.analyze(listOf(method)).map { state -> TsTestResolver().resolve(method, state) }
+        }
+
+        assertTrue(tests.isNotEmpty())
+        assertEquals(setOf(0.0, 2.0), tests.map { test ->
+            assertIs<TsTestValue.TsNumber>(test.returnValue).number
+        }.toSet())
+
+        val script = buildString {
+            appendLine(source.readText())
+            tests.forEachIndexed { index, test ->
+                val input = assertIs<TsTestValue.TsString>(test.before.parameters[0]).value
+                val array = assertIs<TsTestValue.TsArray<*>>(test.before.parameters[1])
+                val elements = array.values.joinToString { value ->
+                    assertIs<TsTestValue.TsNumber>(value).number.toString()
+                }
+                val expected = assertIs<TsTestValue.TsNumber>(test.returnValue).number
+
+                appendLine("if (new SymbolicStringInput().independentArrayLength(${jsString(input)}, [$elements]) !== $expected) {")
+                appendLine("  throw Error('array alias witness $index');")
+                appendLine("}")
+            }
+        }
+        assertReplay(script, name = "array-isolation")
+    }
+
+    @Test
+    fun `configured string bound is shared with concrete test extraction`() {
+        val source = getResourcePath("/models/SymbolicStringInput.ts")
+        val scene = EtsScene(listOf(loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)))
+        val method = scene.projectClasses.single { it.name == "SymbolicStringInput" }
+            .methods.single { it.name == "lengthIs10001" }
+        val maxStringLength = 10_001
+
+        val tests = TsMachine(
+            scene,
+            options = machineOptions,
+            tsOptions = TsOptions(maxArraySize = maxStringLength),
+        ).use { machine ->
+            machine.analyze(listOf(method)).map { state -> TsTestResolver().resolve(method, state) }
+        }
+
+        assertEquals(setOf(0.0, 1.0), tests.map { test ->
+            assertIs<TsTestValue.TsNumber>(test.returnValue).number
+        }.toSet())
+        val longWitness = tests.single { test ->
+            assertIs<TsTestValue.TsNumber>(test.returnValue).number == 1.0
+        }
+        assertEquals(maxStringLength, assertIs<TsTestValue.TsString>(longWitness.before.parameters.single()).value.length)
+
+        val script = buildString {
+            appendLine(source.readText())
+            tests.forEachIndexed { index, test ->
+                val input = assertIs<TsTestValue.TsString>(test.before.parameters.single()).value
+                val expected = assertIs<TsTestValue.TsNumber>(test.returnValue).number
+
+                appendLine("if (new SymbolicStringInput().lengthIs10001(${jsString(input)}) !== $expected) {")
+                appendLine("  throw Error('string bound witness $index');")
+                appendLine("}")
+            }
+        }
+        assertReplay(script, name = "string-bound")
+    }
+
+    private fun assertReplay(script: String, name: String) {
+        val replay = directory.resolve("$name.ts")
+        val output = directory.resolve("$name.out")
         replay.writeText(script)
 
         val process = ProcessBuilder("node", "--experimental-strip-types", replay.toString())
@@ -103,8 +179,8 @@ class TsSymbolicStringInputTest {
             .redirectOutput(output.toFile())
             .start()
         try {
-            assertTrue(process.waitFor(10, TimeUnit.SECONDS), "String witness replay timed out")
-            assertEquals(0, process.exitValue(), "${output.readText()}\n$script")
+            assertTrue(process.waitFor(10, TimeUnit.SECONDS), "$name replay timed out")
+            assertEquals(0, process.exitValue(), "${output.readText()}\n${script.take(1000)}")
         } finally {
             if (process.isAlive) process.destroyForcibly()
         }

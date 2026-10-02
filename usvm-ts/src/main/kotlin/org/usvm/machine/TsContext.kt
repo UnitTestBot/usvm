@@ -17,6 +17,7 @@ import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsNumberLiteralType
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsParameterRef
+import org.jacodb.ets.model.EtsRawType
 import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStringLiteralType
@@ -65,6 +66,9 @@ class TsContext(
     val undefinedSort: TsUndefinedSort by lazy { TsUndefinedSort(this) }
 
     val unresolvedSort: TsUnresolvedSort = TsUnresolvedSort(this)
+
+    /** Array storage for UTF-16 code units; ordinary TypeScript arrays never use this region. */
+    internal val stringBackingArrayDescriptor: EtsType = EtsRawType(kind = "usvm.ts.string.backing")
 
     val voidSort: TsVoidSort by lazy { TsVoidSort(this) }
     val voidValue: TsVoidValue by lazy { TsVoidValue(this) }

@@ -1,5 +1,6 @@
 package org.usvm.util
 
+import io.ksmt.sort.KBv16Sort
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsField
 import org.jacodb.ets.model.EtsFieldSignature
@@ -74,6 +75,19 @@ fun mkArrayLengthLValue(
 ): UArrayLengthLValue<EtsType, TsSizeSort> = with(ref.tctx) {
     val descriptor = arrayDescriptorOf(type)
     return UArrayLengthLValue(ref, descriptor, sizeSort)
+}
+
+internal fun mkStringBackingLengthLValue(
+    ref: UHeapRef,
+): UArrayLengthLValue<EtsType, TsSizeSort> = with(ref.tctx) {
+    UArrayLengthLValue(ref, stringBackingArrayDescriptor, sizeSort)
+}
+
+internal fun mkStringBackingElementLValue(
+    ref: UHeapRef,
+    index: UExpr<TsSizeSort>,
+): UArrayIndexLValue<EtsType, KBv16Sort, TsSizeSort> = with(ref.tctx) {
+    UArrayIndexLValue(bv16Sort, ref, index, stringBackingArrayDescriptor)
 }
 
 fun <Sort : USort> mkRegisterStackLValue(

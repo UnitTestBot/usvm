@@ -64,8 +64,8 @@ class TsTestResolver {
 
         prepareForResolve(state)
 
-        val beforeMemoryScope = MemoryScope(this, model, memory, method, resolvedLValuesToFakeObjects)
-        val afterMemoryScope = MemoryScope(this, model, memory, method, resolvedLValuesToFakeObjects)
+        val beforeMemoryScope = MemoryScope(this, model, memory, method, resolvedLValuesToFakeObjects, state.maxStringLength)
+        val afterMemoryScope = MemoryScope(this, model, memory, method, resolvedLValuesToFakeObjects, state.maxStringLength)
 
         val result = when (val res = state.methodResult) {
             is TsMethodResult.NoCall -> {
@@ -159,7 +159,8 @@ class TsTestResolver {
         finalStateMemory: UReadOnlyMemory<EtsType>,
         method: EtsMethod,
         resolvedLValuesToFakeObjects: List<Pair<ULValue<*, *>, UConcreteHeapRef>>,
-    ) : TsTestStateResolver(ctx, model, finalStateMemory, method, resolvedLValuesToFakeObjects) {
+        maxStringLength: Int,
+    ) : TsTestStateResolver(ctx, model, finalStateMemory, method, resolvedLValuesToFakeObjects, maxStringLength) {
         fun resolveState(): TsParametersState {
             val thisInstance = resolveThisInstance()
             val parameters = resolveParameters()
@@ -175,6 +176,7 @@ open class TsTestStateResolver(
     private val finalStateMemory: UReadOnlyMemory<EtsType>,
     val method: EtsMethod,
     val resolvedLValuesToFakeObjects: List<Pair<ULValue<*, *>, UConcreteHeapRef>>,
+    val maxStringLength: Int,
 ) {
     fun resolveLValue(
         lValue: ULValue<*, *>,
@@ -320,14 +322,13 @@ open class TsTestStateResolver(
             return TsTestValue.TsString("")
         }
 
-        val charsType = EtsArrayType(EtsNumberType, dimensions = 1)
-        val lengthLValue = mkArrayLengthLValue(charsRef, charsType)
+        val lengthLValue = mkStringBackingLengthLValue(charsRef)
         val length = evaluateInModel(stringMemory.read(lengthLValue)).extractInt()
-        require(length in 0..MAX_STRING_LENGTH) { "Unsupported symbolic string length: $length" }
+        require(length in 0..maxStringLength) { "Unsupported symbolic string length: $length" }
 
         val value = buildString(length) {
             repeat(length) { index ->
-                val elementLValue = mkArrayIndexLValue(bv16Sort, charsRef, mkSizeExpr(index), charsType)
+                val elementLValue = mkStringBackingElementLValue(charsRef, mkSizeExpr(index))
                 val element = evaluateInModel(stringMemory.read(elementLValue)) as KBitVec16Value
                 append(element.shortValue.toInt().toChar())
             }
@@ -421,10 +422,6 @@ open class TsTestStateResolver(
             EtsVoidType -> TODO()
             else -> error("Unexpected type: $type")
         }
-    }
-
-    private companion object {
-        const val MAX_STRING_LENGTH = 10_000
     }
 
     private fun resolveClass(

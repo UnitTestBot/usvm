@@ -82,6 +82,7 @@ import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
+import org.usvm.util.mkStringBackingLengthLValue
 import org.usvm.util.resolveEtsMethods
 import org.usvm.util.type
 import org.usvm.utils.ensureSat
@@ -743,6 +744,7 @@ class TsInterpreter(
             ctx = ctx,
             ownership = MutabilityOwnership(),
             entrypoint = method,
+            maxStringLength = options.maxArraySize,
             targets = UTargetsSet.from(targets),
         )
 
@@ -820,7 +822,7 @@ class TsInterpreter(
                 state.pathConstraints += mkNot(mkHeapRefEq(charsRef, mkUndefinedValue()))
                 state.pathConstraints += state.memory.types.evalTypeEquals(charsRef, charsType)
 
-                val lengthLValue = mkArrayLengthLValue(charsRef, charsType)
+                val lengthLValue = mkStringBackingLengthLValue(charsRef)
                 val length = state.memory.read(lengthLValue).asExpr(sizeSort)
                 state.pathConstraints += mkBvSignedGreaterOrEqualExpr(length, mkBv(0))
                 state.pathConstraints += mkBvSignedLessOrEqualExpr(length, mkBv(options.maxArraySize))

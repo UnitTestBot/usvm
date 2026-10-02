@@ -5,17 +5,20 @@ import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsLocal
-import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsStringType
+import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUnknownType
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.collection.array.length.UArrayLengthLValue
 import org.usvm.machine.TsContext
+import org.usvm.machine.TsSizeSort
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.sizeSort
 import org.usvm.util.arrayStorageType
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
+import org.usvm.util.mkStringBackingLengthLValue
 
 // Handles reading the `length` property.
 fun TsContext.readLengthProperty(
@@ -43,8 +46,7 @@ fun TsContext.readLengthProperty(
 
             return readArrayLength(
                 scope = scope,
-                array = charsRef,
-                arrayType = EtsArrayType(EtsNumberType, dimensions = 1),
+                lengthLValue = mkStringBackingLengthLValue(charsRef),
                 maxArraySize = maxArraySize,
             )
         }
@@ -53,23 +55,23 @@ fun TsContext.readLengthProperty(
     }
 
     // Read the length of the array.
-    return readArrayLength(scope, instance, arrayType, maxArraySize)
+    return readArrayLength(
+        scope = scope,
+        lengthLValue = mkArrayLengthLValue(instance, arrayType),
+        maxArraySize = maxArraySize,
+    )
 }
 
 // Reads the length of the array and returns it as a fp64 expression.
 fun TsContext.readArrayLength(
     scope: TsStepScope,
-    array: UHeapRef,
-    arrayType: EtsArrayType,
+    lengthLValue: UArrayLengthLValue<EtsType, TsSizeSort>,
     maxArraySize: Int,
 ): UExpr<KFp64Sort>? {
-    checkNotFake(array)
+    checkNotFake(lengthLValue.ref)
 
     // Read the length of the array.
-    val length = scope.calcOnState {
-        val lengthLValue = mkArrayLengthLValue(array, arrayType)
-        memory.read(lengthLValue)
-    }
+    val length = scope.calcOnState { memory.read(lengthLValue) }
 
     // Check that the length is within the allowed bounds.
     ensureLengthBounds(scope, length, maxArraySize) ?: return null
