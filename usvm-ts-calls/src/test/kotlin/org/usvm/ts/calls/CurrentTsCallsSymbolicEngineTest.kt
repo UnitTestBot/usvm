@@ -55,6 +55,78 @@ class CurrentTsCallsSymbolicEngineTest {
     }
 
     @Test
+    fun `fresh unknown string index branches remain executable and extractable`() {
+        val alphabet = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ~!@#${'$'}%^&*_-+=|:.><?/'"
+        val fixture = fixture(
+            source = """
+                export function encodeNum(n: number): string {
+                    const enc = "$alphabet";
+                    const base = enc.length;
+                    let ret = '';
+                    do {
+                        ret += enc[n % base];
+                        n = Math.floor(n / base);
+                    } while (n >= 1);
+                    return ret;
+                }
+
+                let nUid = 0;
+
+                export function uid(): string {
+                    return encodeNum(nUid++);
+                }
+            """.trimIndent(),
+            exportName = "uid",
+            inputs = emptyList(),
+            targetStatement = "return encodeNum(nUid++);",
+            targetMode = CallsSourceTargetMode.COMPLETED_RETURN,
+            returnExpression = "encodeNum(nUid++)",
+        )
+        val unknownCalls = mutableListOf<TsUnknownCallEvent>()
+
+        val result = fixture.search(
+            modelIds = emptySet(),
+            profile = CallsExperimentProfile.EMPTY_FRESH,
+            unknownCallEventSink = unknownCalls::add,
+        )
+
+        assertEquals(CallsSymbolicStatus.REACHED, result.status, "$result; unknownCalls=$unknownCalls")
+        assertEquals(emptyList(), result.inputs)
+    }
+
+    @Test
+    fun `fresh array element can be assigned to numeric object field`() {
+        val returnExpression = "{ major: parts[0] || 0, minor: parts[1] || 0, patch: parts[2] || 0 }"
+        val targetStatement = "return $returnExpression;"
+        val fixture = fixture(
+            source = """
+                export function parseVersion(version: string): {
+                  major: number;
+                  minor: number;
+                  patch: number;
+                } {
+                  const parts = version.replace('v', '').split('.').map(Number);
+                  $targetStatement
+                }
+            """.trimIndent(),
+            exportName = "parseVersion",
+            inputs = listOf(PropertyInput(name = "version", domain = StringDomain())),
+            targetStatement = targetStatement,
+            targetMode = CallsSourceTargetMode.COMPLETED_RETURN,
+            returnExpression = returnExpression,
+        )
+
+        val result = fixture.search(
+            modelIds = emptySet(),
+            profile = CallsExperimentProfile.EMPTY_FRESH,
+        )
+
+        assertEquals(CallsSymbolicStatus.REACHED, result.status, result.toString())
+        val inputs = assertNotNull(result.inputs, result.toString())
+        fixture.assertReplayConfirmed(inputs)
+    }
+
+    @Test
     fun `bundled frontend accepts only the revision baked into the running build`() {
         val engine = CurrentTsCallsSymbolicEngine(
             environment = emptyMap<String, String>()::get,
@@ -79,6 +151,35 @@ class CurrentTsCallsSymbolicEngineTest {
         assertFailsWith<IllegalArgumentException> {
             engine.verifyNativeFrontendOnce(expectedRevision = "bundled:published-jacodb")
         }
+    }
+
+    @Test
+    fun `preflight retries a transient tool error for the same target`() {
+        val fixture = fixture(
+            source = "export function answer(): number { return 42; }",
+            exportName = "answer",
+            inputs = emptyList(),
+            targetStatement = "return 42;",
+        )
+        val environment = mutableMapOf("ETS_FRONTEND_DIR" to "/unused/frontend")
+        val engine = CurrentTsCallsSymbolicEngine(
+            environment = environment::get,
+            bundledNativeFrontendRevision = "bundled:test",
+        )
+        val request = CallsSymbolicPreflightRequest(
+            sourceRoot = fixture.sourceRoot,
+            project = fixture.project,
+            function = fixture.function,
+            target = fixture.target,
+            expectedNativeFrontendRevision = "bundled:test",
+        )
+
+        val first = engine.preflight(request)
+        environment.clear()
+        val second = engine.preflight(request)
+
+        assertEquals(CallsSymbolicPreflightStatus.TOOL_ERROR, first.status)
+        assertTrue(second.status != CallsSymbolicPreflightStatus.TOOL_ERROR, second.toString())
     }
 
     @Test
@@ -904,6 +1005,7 @@ class CurrentTsCallsSymbolicEngineTest {
 
         fun search(
             modelIds: Set<String>,
+            profile: CallsExperimentProfile = CallsExperimentProfile.FROZEN_STOP,
             unknownCallEventSink: ((TsUnknownCallEvent) -> Unit)? = null,
             runtimeLimitationEventSink: ((TsRuntimeFeatureLimitationEvent) -> Unit)? = null,
         ): CallsSymbolicSearchResult = engine.search(
@@ -912,7 +1014,7 @@ class CurrentTsCallsSymbolicEngineTest {
                 project = project,
                 function = function,
                 target = target,
-                profile = CallsExperimentProfile.FROZEN_STOP,
+                profile = profile,
                 frozenModelIds = modelIds,
                 expectedNativeFrontendRevision = "bundled:test",
                 seed = 0,

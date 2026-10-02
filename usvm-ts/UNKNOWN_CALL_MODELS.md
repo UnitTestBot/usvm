@@ -56,9 +56,9 @@ point, so later mutations of the selection set cannot change an active run.
 Use the model's `id`, for example `ts.array.pop`. A target method name, class name, source filename, or artifact hash is
 not a model ID.
 
-Built-ins are `object` implementations of the sealed `TsBuiltInUnknownCallModel` interface in the
-`org.usvm.machine.call.intrinsic` package. Kotlin's sealed-subclass metadata discovers them automatically; adding a
-model requires no manual registry entry. Discovery and the default catalog are computed once.
+Built-ins are singleton models or families implementing the sealed `TsBuiltInUnknownCallModel` interface in the
+`org.usvm.machine.call.intrinsic` package. Kotlin's sealed-subclass metadata discovers them automatically; a family
+supplies its parameterized models without a separate registry. Discovery and the default catalog are computed once.
 
 The built-in catalog includes the following public APIs and their internal storage primitives. Enumerate
 `TsBuiltInUnknownCallModels.catalog().modelIds` for the exact IDs in a build.
@@ -296,8 +296,7 @@ Numeric-result and predicate methods can still use symbolic numeric positions ov
 
 The entry point must be static and have a non-empty body. After its input adapter handles optional arguments or drops
 non-semantic namespace receivers, its parameter count must equal the adapted input count. Unresolved required inputs
-or an arity mismatch make the model not applicable. An `inputAdapter` can resolve inputs directly from the raw call,
-including omitted optional arguments. It returns `null` if a required input cannot be resolved.
+or an arity mismatch make the model not applicable.
 
 The domain guard has three useful outcomes:
 
@@ -337,18 +336,19 @@ In contrast, `Array.pop` is expressed as the TypeScript body shown above.
 
 The built-in Date family keeps Gregorian calendar arithmetic, component overflow, leap years, and TimeClip in
 `DateModels.ts`. Kotlin only routes calls, injects the experiment clock, and exposes the model's numeric timestamp
-slot on a Date receiver.
+slot on a Date receiver. Calendar division and truncation use the declared `ts.math.floor` dependency.
 
 The current experiment has these explicit limits:
 
-- local getters, setters, and numeric component constructors use UTC, so `getTimezoneOffset()` returns zero and DST
-  behavior is outside the model domain;
+- local getters, setters, and numeric component constructors use UTC; `getTimezoneOffset()` returns zero for valid
+  dates and NaN for invalid dates. DST behavior is outside the model domain;
 - `Date.now()` and `new Date()` require `TsOptions.dateNowMilliseconds`; one fixed value is reused throughout the
   analysis, and both calls use fallback when it is absent;
 - one-argument construction supports numeric timestamps only; string parsing and copying another Date are outside
   the model domain;
 - symbolic string formatting is not claimed: `toISOString()` is a source implementation for supported concrete
-  execution, while symbolic string conversion remains subject to the engine's string limitations.
+  execution, while symbolic string conversion remains subject to the engine's string limitations. Invalid ISO
+  formatting reaches the unsupported nested `RangeError` constructor and the configured fallback.
 
 Good intrinsic candidates include:
 

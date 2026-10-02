@@ -1,8 +1,16 @@
 package org.usvm.machine.call.intrinsic
 
 import io.ksmt.utils.asExpr
+import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsFunctionType
+import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsStringType
+import org.jacodb.ets.model.EtsUnclearRefType
+import org.jacodb.ets.model.EtsValue
 import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.usvm.UExpr
+import org.usvm.api.typeStreamOf
 import org.usvm.machine.call.TsEtsIrUnknownCallModel
 import org.usvm.machine.call.TsEtsIrUnknownCallModelArtifact
 import org.usvm.machine.call.TsEtsIrUnknownCallModelDomainGuard
@@ -12,12 +20,60 @@ import org.usvm.machine.call.TsUnknownCallModel
 import org.usvm.machine.call.TsUnknownCallTarget
 import org.usvm.machine.call.loadBundledEtsIrUnknownCallModelArtifact
 import org.usvm.machine.state.TsState
+import org.usvm.types.singleOrNull
 
 /** Numeric `Date` API family implemented by an ordinary TypeScript source body. */
 internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
     private const val DATE_CLASS = "Date"
     private const val MAX_CONSTRUCTOR_ARGUMENTS = 7
     private const val RESOURCE = "/org/usvm/machine/call/models/DateModels.ts"
+    private val builtinDateSignature = EtsClassSignature.UNKNOWN.copy(name = DATE_CLASS)
+    private val builtinDateType = EtsClassType(signature = builtinDateSignature)
+    private val getterNames = listOf(
+        "getDate",
+        "getDay",
+        "getFullYear",
+        "getHours",
+        "getMilliseconds",
+        "getMinutes",
+        "getMonth",
+        "getSeconds",
+        "getTime",
+        "getTimezoneOffset",
+        "getUTCDate",
+        "getUTCDay",
+        "getUTCFullYear",
+        "getUTCHours",
+        "getUTCMilliseconds",
+        "getUTCMinutes",
+        "getUTCMonth",
+        "getUTCSeconds",
+        "toISOString",
+        "valueOf",
+    )
+
+    /** Normalize only model lookup; residual calls and observation retain the frontend signature. */
+    internal fun canonicalModelCall(state: TsState, call: TsUnknownCall): TsUnknownCall? {
+        if (call.callee.enclosingClass.name == DATE_CLASS) return null
+
+        val receiverValue = call.receiver ?: return null
+        if (!isDateReceiver(state, receiverValue.source, receiverValue.resolved)) return null
+
+        return call.copy(callee = call.callee.copy(enclosingClass = builtinDateSignature))
+    }
+
+    internal fun isDateReceiver(state: TsState, source: EtsValue, receiver: UExpr<*>?): Boolean {
+        val sourceLooksDate = (source as? EtsLocal)?.name == DATE_CLASS || when (val type = source.type) {
+            is EtsClassType -> type.signature.name == DATE_CLASS
+            is EtsUnclearRefType -> type.typeName == DATE_CLASS
+            else -> false
+        }
+        if (sourceLooksDate) return true
+        if (receiver?.sort != state.ctx.addressSort) return false
+
+        val runtimeType = state.memory.typeStreamOf(receiver.asExpr(state.ctx.addressSort)).singleOrNull()
+        return (runtimeType as? EtsClassType)?.signature?.name == DATE_CLASS
+    }
 
     private val artifact by lazy {
         loadBundledEtsIrUnknownCallModelArtifact(
@@ -34,28 +90,7 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             add(utcModel())
             add(nowModel())
 
-            for (methodName in listOf(
-                "getDate",
-                "getDay",
-                "getFullYear",
-                "getHours",
-                "getMilliseconds",
-                "getMinutes",
-                "getMonth",
-                "getSeconds",
-                "getTime",
-                "getTimezoneOffset",
-                "getUTCDate",
-                "getUTCDay",
-                "getUTCFullYear",
-                "getUTCHours",
-                "getUTCMilliseconds",
-                "getUTCMinutes",
-                "getUTCMonth",
-                "getUTCSeconds",
-                "toISOString",
-                "valueOf",
-            )) {
+            for (methodName in getterNames) {
                 add(instanceModel(idSuffix = methodName, methodName = methodName, consumedArgs = 0))
             }
 
@@ -186,14 +221,15 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                 while (arguments.size < MAX_CONSTRUCTOR_ARGUMENTS) {
                     arguments += mkFp64(0.0)
                 }
-                val argumentCount = mkFp64(call.arguments.size.toDouble())
-                val clock = mkFp64(nowMilliseconds ?: 0.0)
+                val providedArgumentCount = mkFp64(call.arguments.size.toDouble())
+                val fallbackClock = mkFp64(nowMilliseconds ?: 0.0)
 
-                listOf(
-                    receiver,
-                    argumentCount,
-                    clock,
-                ) + arguments
+                buildList {
+                    add(receiver)
+                    add(providedArgumentCount)
+                    add(fallbackClock)
+                    addAll(arguments)
+                }
             }
         },
     )
@@ -215,7 +251,9 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         methodName = "UTC",
         entryPointName = "utc",
         domainGuard = TsEtsIrUnknownCallModelDomainGuard { state, call, _ ->
-            if (call.hasNumericOrUndefinedArguments(maxArgs = MAX_CONSTRUCTOR_ARGUMENTS, state = state)) {
+            if (call.hasBuiltinDateStaticOwner() &&
+                call.hasNumericOrUndefinedArguments(maxArgs = MAX_CONSTRUCTOR_ARGUMENTS, state = state)
+            ) {
                 state.ctx.trueExpr
             } else {
                 state.ctx.falseExpr
@@ -295,7 +333,7 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             val receiver = call.receiver
             val receiverValue = receiver?.resolved
             if (
-                call.callee.enclosingClass.name != DATE_CLASS ||
+                call.callee.enclosingClass != builtinDateSignature ||
                 receiverValue?.sort != addressSort ||
                 receiverValue.asExpr(addressSort).hasFakeValueBranch()
             ) {
@@ -303,7 +341,12 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             } else if (!call.hasNumericArguments(minArgs = minArgs, numericArgs = numericArgs, state = state)) {
                 falseExpr
             } else {
-                trueExpr
+                val runtimeType = state.memory.typeStreamOf(receiverValue.asExpr(addressSort)).singleOrNull()
+                if (runtimeType == builtinDateType) {
+                    trueExpr
+                } else {
+                    falseExpr
+                }
             }
         }
     }
@@ -312,11 +355,25 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         minArgs: Int,
         numericArgs: Int,
     ) = TsEtsIrUnknownCallModelDomainGuard { state, call, _ ->
-        if (call.hasNumericArguments(minArgs = minArgs, numericArgs = numericArgs, state = state)) {
+        if (call.hasBuiltinDateStaticOwner() &&
+            call.hasNumericArguments(minArgs = minArgs, numericArgs = numericArgs, state = state)
+        ) {
             state.ctx.trueExpr
         } else {
             state.ctx.falseExpr
         }
+    }
+
+    private fun TsUnknownCall.hasBuiltinDateStaticOwner(): Boolean {
+        if (callee.enclosingClass != builtinDateSignature) return false
+
+        val owner = receiver?.source as? EtsLocal ?: return false
+        val ownerType = owner.type as? EtsFunctionType ?: return false
+        return owner.name == DATE_CLASS &&
+            ownerType.signature.enclosingClass == EtsClassSignature.UNKNOWN &&
+            ownerType.signature.name.isEmpty() &&
+            ownerType.signature.parameters.isEmpty() &&
+            ownerType.signature.returnType == EtsStringType
     }
 
     private fun arityAdapter(maxArgs: Int) = TsEtsIrUnknownCallModelInputAdapter { state, call ->

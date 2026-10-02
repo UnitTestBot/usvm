@@ -3,12 +3,14 @@ package org.usvm.machine.call
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.EtsIrProvider
+import org.jacodb.ets.utils.callExpr
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.usvm.PathSelectionStrategy
 import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.api.TsTestValue
+import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.util.TsTestResolver
@@ -16,6 +18,7 @@ import org.usvm.util.getResourcePath
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration
 
@@ -73,6 +76,62 @@ class TsDateEtsIrModelTest {
     fun `Date calls through any aliases use the Date model`() {
         assertNumber(methodName = "anyAliasValueOf", expected = 123.0)
         assertNumber(methodName = "anyAliasGetTime", expected = 456.0)
+    }
+
+    @Test
+    fun `Date alias model observation keeps the frontend callee`() {
+        val method = method("anyAliasGetTime")
+        val sourceCall = assertNotNull(
+            method.cfg.stmts.single { stmt -> stmt.callExpr?.callee?.name == "getTime" }.callExpr
+        )
+        val events = mutableListOf<TsUnknownCallEvent>()
+        val observer = object : TsInterpreterObserver {
+            override fun onUnknownCall(event: TsUnknownCallEvent) {
+                events += event
+            }
+        }
+
+        val states = TsMachine(
+            scene = scene,
+            options = machineOptions,
+            tsOptions = TsOptions(),
+            observer = observer,
+        ).use { machine -> machine.analyze(listOf(method)) }
+
+        assertTrue(states.isNotEmpty())
+        val dateEvents = events.filter { event ->
+            (event.decision as? TsUnknownCallDecision.ModelApplied)?.modelId == "ts.date.getTime"
+        }
+        assertTrue(dateEvents.isNotEmpty())
+        assertTrue(dateEvents.all { event -> event.callee == sourceCall.callee })
+    }
+
+    @Test
+    fun `Date model does not accept a foreign receiver cast to Date`() {
+        assertTrue(analyze(method("castForeignReceiver")).isEmpty())
+    }
+
+    @Test
+    fun `Date model does not replace an unavailable user Date static method`() {
+        val shadowFile = loadEtsFileAutoConvert(
+            getResourcePath("/models/DateShadowEtsIr.ts"),
+            provider = EtsIrProvider.TS_FRONTEND,
+        )
+        val shadowScene = EtsScene(listOf(shadowFile))
+        val method = shadowScene.projectClasses
+            .single { it.name == "DateShadowEtsIr" }
+            .methods
+            .single { it.name == "call" }
+
+        val states = TsMachine(
+            scene = shadowScene,
+            options = machineOptions,
+            tsOptions = TsOptions(),
+        ).use { machine ->
+            machine.analyze(listOf(method))
+        }
+
+        assertTrue(states.isEmpty())
     }
 
     @Test

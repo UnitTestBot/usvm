@@ -4,6 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsNamespaceSignature
+import org.jacodb.ets.model.EtsStmt
 import org.usvm.machine.TsRuntimeFeatureLimitationEvent
 import org.usvm.machine.call.TsResidualCallPolicy
 import org.usvm.machine.call.TsUnknownCallDecision
@@ -90,21 +91,10 @@ internal fun callsRuntimeLimitationEventSink(
     var eventIndex = 0
     return { event ->
         eventIndex++
-        val location = event.statement.location
-        val origin = location.origin
-        val containingMethod = location.method.signature
-        val callSite = CallsUnknownCallSite(
-            sourcePath = containingMethod.enclosingClass.file.fileName,
-            statementIndex = location.index,
-            startOffset = origin?.startOffset,
-            endOffset = origin?.endOffset,
-            start = origin?.let { CallsSourcePosition(line = it.startLine, column = it.startColumn) },
-            end = origin?.let { CallsSourcePosition(line = it.endLine, column = it.endColumn) },
-        )
         val record = CallsRuntimeLimitationRecord(
             cell = cell,
             eventIndex = eventIndex,
-            callSite = callSite,
+            callSite = event.statement.toCallsUnknownCallSite(),
             reason = event.reason.name,
             detail = event.detail,
         )
@@ -130,21 +120,12 @@ internal fun CallsExperimentCellIdentity.unknownCallRecord(
     event: TsUnknownCallEvent,
     eventIndex: Int,
 ): CallsUnknownCallRecord {
-    val containingMethod = event.callSite.location.method.signature
-    val origin = event.callSite.location.origin
     val decision = event.decision
 
     return CallsUnknownCallRecord(
         cell = this,
         eventIndex = eventIndex,
-        callSite = CallsUnknownCallSite(
-            sourcePath = containingMethod.enclosingClass.file.fileName,
-            statementIndex = event.callSite.location.index,
-            startOffset = origin?.startOffset,
-            endOffset = origin?.endOffset,
-            start = origin?.let { span -> CallsSourcePosition(line = span.startLine, column = span.startColumn) },
-            end = origin?.let { span -> CallsSourcePosition(line = span.endLine, column = span.endColumn) },
-        ),
+        callSite = event.callSite.toCallsUnknownCallSite(),
         callee = event.callee.toCallsUnknownCallCallee(),
         failureReason = event.failureReason.name,
         decision = when (decision) {
@@ -154,6 +135,21 @@ internal fun CallsExperimentCellIdentity.unknownCallRecord(
         outcome = event.outcome.name,
         modelId = (decision as? TsUnknownCallDecision.ModelApplied)?.modelId,
         residualPolicy = (decision as? TsUnknownCallDecision.ResidualFallback)?.policy?.serializedName,
+    )
+}
+
+private fun EtsStmt.toCallsUnknownCallSite(): CallsUnknownCallSite {
+    val stmtLocation = location
+    val origin = stmtLocation.origin
+    val containingMethod = stmtLocation.method.signature
+
+    return CallsUnknownCallSite(
+        sourcePath = containingMethod.enclosingClass.file.fileName,
+        statementIndex = stmtLocation.index,
+        startOffset = origin?.startOffset,
+        endOffset = origin?.endOffset,
+        start = origin?.let { CallsSourcePosition(line = it.startLine, column = it.startColumn) },
+        end = origin?.let { CallsSourcePosition(line = it.endLine, column = it.endColumn) },
     )
 }
 
