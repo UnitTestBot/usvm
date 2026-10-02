@@ -69,22 +69,21 @@ internal object TsArrayIsArrayIntrinsicModel : TsBuiltInUnknownCallModel {
     }
 
     private fun TsState.isNonNullArrayReference(reference: UHeapRef): UBoolExpr = with(ctx) {
+        val isUndefined = mkEq(reference, mkUndefinedValue())
+        val isNull = mkEq(reference, mkTsNullValue())
         mkAnd(
-            mkNot(mkEq(reference, mkUndefinedValue())),
-            mkNot(mkEq(reference, mkTsNullValue())),
+            mkNot(isUndefined),
+            mkNot(isNull),
             memory.types.evalIsSubtype(reference, anyArrayType),
         )
     }
 
     private fun TsState.normalExecution(result: UExpr<*>): TsUnknownCallModelExecution = with(ctx) {
-        TsUnknownCallModelExecution(
-            successors = listOf(
-                TsUnknownCallModelSuccessor(
-                    guard = trueExpr,
-                    completion = TsUnknownCallModelCompletion.Normal { result },
-                )
-            )
+        val successor = TsUnknownCallModelSuccessor(
+            guard = trueExpr,
+            completion = TsUnknownCallModelCompletion.Normal { result },
         )
+        TsUnknownCallModelExecution(successors = listOf(successor))
     }
 
     private const val UNKNOWN_SIGNATURE_COMPONENT: String = "%unk"
