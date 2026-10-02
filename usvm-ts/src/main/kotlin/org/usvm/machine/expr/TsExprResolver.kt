@@ -18,7 +18,9 @@ import org.jacodb.ets.model.EtsBitXorExpr
 import org.jacodb.ets.model.EtsBooleanConstant
 import org.jacodb.ets.model.EtsCastExpr
 import org.jacodb.ets.model.EtsCaughtExceptionRef
+import org.jacodb.ets.model.EtsClassCategory
 import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsClosureFieldRef
 import org.jacodb.ets.model.EtsConstant
 import org.jacodb.ets.model.EtsDeleteExpr
@@ -117,6 +119,7 @@ import org.usvm.sizeSort
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.SymbolResolutionResult
 import org.usvm.util.arrayStorageType
+import org.usvm.util.getAllMethods
 import org.usvm.util.isResolved
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
@@ -434,16 +437,9 @@ class TsExprResolver(
                     throw UnsupportedOperationException("Deleting a property of an input object is not supported")
                 }
 
-                if (operand.field.name in OBJECT_PROTOTYPE_PROPERTIES) {
-                    throw UnsupportedOperationException(
-                        "Deleting '${operand.field.name}' requires unsupported Object.prototype lookup"
-                    )
-                }
-
-                if (operand.field.name == "length" &&
-                    scope.calcOnState { arrayStorageType(instance, operand.instance.type) is EtsArrayType }
-                ) {
-                    throw UnsupportedOperationException("Deleting Array.length is not supported")
+                val prototypeFallback = prototypeFallbackReason(instance, operand)
+                if (prototypeFallback != null) {
+                    throw UnsupportedOperationException(prototypeFallback)
                 }
 
                 scope.doWithState {
@@ -458,6 +454,31 @@ class TsExprResolver(
                 throw UnsupportedOperationException("Deleting ${operand::class.simpleName} is not supported")
             }
         }
+    }
+
+    private fun prototypeFallbackReason(instance: UHeapRef, operand: EtsInstanceFieldRef): String? {
+        val name = operand.field.name
+        if (name in OBJECT_PROTOTYPE_PROPERTIES) {
+            return "Deleting '$name' requires unsupported Object.prototype lookup"
+        }
+
+        val receiverType = scope.calcOnState { arrayStorageType(instance, operand.instance.type) }
+        if (receiverType is EtsArrayType) {
+            if (name == "length") {
+                return "Deleting Array.length is not supported"
+            }
+
+            return "Deleting a named Array property requires unsupported Array.prototype lookup"
+        }
+
+        if (receiverType !is EtsClassType) return null
+
+        val inheritedMethod = hierarchy.classesForType(receiverType)
+            .asSequence()
+            .filter { clazz -> clazz.category != EtsClassCategory.OBJECT }
+            .flatMap { clazz -> clazz.getAllMethods(hierarchy).asSequence() }
+            .any { method -> !method.isStatic && method.name == name }
+        return if (inheritedMethod) "Deleting '$name' requires unsupported class prototype method lookup" else null
     }
 
     override fun visit(expr: EtsVoidExpr): UExpr<out USort>? = with(ctx) {

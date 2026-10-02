@@ -1,6 +1,14 @@
 // @ts-nocheck
 // noinspection JSUnusedGlobalSymbols
 
+class DeleteMethodSubject {
+    ownValue: number = 5;
+
+    method(): number {
+        return 7;
+    }
+}
+
 class DeleteProperty {
     readAfterDelete(value: number): number | undefined {
         const object: { x?: number } = { x: value };
@@ -66,5 +74,29 @@ class DeleteProperty {
         const object = { toString: 1 };
         delete object.toString;
         return object.toString === undefined ? 1 : 0;
+    }
+
+    deletePrototypeMethod(): number {
+        const instance = new DeleteMethodSubject();
+        delete instance.method;
+        return instance.method === undefined ? 1 : 0;
+    }
+
+    deleteClassOwnField(): number {
+        const instance = new DeleteMethodSubject();
+        delete instance.ownValue;
+        return instance.ownValue === undefined ? 1 : 0;
+    }
+
+    deleteObjectLiteralMethod(): number {
+        const object = { method(): number { return 7; } };
+        delete object.method;
+        return object.method === undefined ? 1 : 0;
+    }
+
+    deleteArrayPrototypeMethod(): number {
+        const values = [1, 2];
+        delete values.push;
+        return values.push === undefined ? 1 : 0;
     }
 }
