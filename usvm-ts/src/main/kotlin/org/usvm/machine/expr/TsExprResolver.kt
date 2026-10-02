@@ -114,6 +114,7 @@ import org.usvm.machine.state.newStmt
 import org.usvm.machine.types.EtsNominalType
 import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.sizeSort
+import org.usvm.types.singleOrNull
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.SymbolResolutionResult
 import org.usvm.util.isResolved
@@ -376,6 +377,17 @@ class TsExprResolver(
         }
         if (arg.sort == addressSort) {
             val ref = arg.asExpr(addressSort)
+            val isKnownFunction = scope.calcOnState {
+                val unwrappedRef = ref.unwrapRefWithPathConstraint(scope)
+                unwrappedRef is UConcreteHeapRef && (
+                    associatedFunction[unwrappedRef] != null ||
+                        memory.types.getTypeStream(unwrappedRef).singleOrNull() is EtsFunctionType
+                    )
+            }
+            if (isKnownFunction) {
+                return mkStringConstant("function", scope)
+            }
+
             return mkIte(
                 condition = mkHeapRefEq(ref, mkTsNullValue()),
                 trueBranch = mkStringConstant("object", scope),
