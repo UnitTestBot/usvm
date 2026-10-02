@@ -25,6 +25,11 @@ class InOperator {
         return "x" in obj ? -1 : 1;
     }
 
+    hasOwnConstructorMethod(value: number): number {
+        const obj = { constructor() {} };
+        return "constructor" in obj ? 1 : -1;
+    }
+
     hasAddedProperty(value: number): number {
         const obj: { x?: number } = {};
         obj.x = value;
@@ -64,6 +69,17 @@ class InOperator {
         const obj = {};
         obj.__proto__ = { inherited: 1 };
         return "inherited" in obj;
+    }
+
+    deletedToStringExposesPrototype(): boolean {
+        const obj = { toString: 1 };
+        delete obj.toString;
+        return "toString" in obj;
+    }
+
+    inheritedConstructor(): boolean {
+        const obj = {};
+        return "constructor" in obj;
     }
 
     hasSymbolicKey(key: string): boolean {

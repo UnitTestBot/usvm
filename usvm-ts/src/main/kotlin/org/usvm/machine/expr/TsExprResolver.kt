@@ -83,7 +83,6 @@ import org.jacodb.ets.model.EtsValue
 import org.jacodb.ets.model.EtsVoidExpr
 import org.jacodb.ets.model.EtsYieldExpr
 import org.jacodb.ets.utils.ANONYMOUS_METHOD_PREFIX
-import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
 import org.jacodb.ets.utils.getDeclaredLocals
 import org.usvm.UConcreteHeapRef
@@ -100,6 +99,7 @@ import org.usvm.api.typeStreamOf
 import org.usvm.dataflow.ts.infer.tryGetKnownType
 import org.usvm.dataflow.ts.util.type
 import org.usvm.isAllocatedConcreteHeapRef
+import org.usvm.isFalse
 import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsOptions
@@ -1069,16 +1069,15 @@ class TsExprResolver(
         }
 
         // The EtsIR object-literal class records its own properties, including those with undefined values.
-        val ownPropertyNames = objectClass.fields.map { it.name } +
-            objectClass.methods.filter { it.name != CONSTRUCTOR_NAME }.map { it.name }
+        val ownPropertyNames = objectClass.fields.map { it.name } + objectClass.methods.map { it.name }
 
         val hasOwnProperty = propertyName in ownPropertyNames ||
             scope.calcOnState { (obj to propertyName) in writtenConcreteFields }
-        if (!hasOwnProperty && propertyName in OBJECT_PROTOTYPE_PROPERTIES) {
+        val deleted = scope.calcOnState { memory.read(deletedFieldLValue(obj, propertyName)) }
+        if (propertyName in OBJECT_PROTOTYPE_PROPERTIES && (!hasOwnProperty || !deleted.isFalse)) {
             throw UnsupportedOperationException("Prototype lookup for '$propertyName' in 'in' is not supported")
         }
 
-        val deleted = scope.calcOnState { memory.read(deletedFieldLValue(obj, propertyName)) }
         if (hasOwnProperty) mkNot(deleted) else mkFalse()
     }
 
