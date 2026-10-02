@@ -204,21 +204,13 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         }
     }
 
-    private val receiverAndConcreteIndexDomain = TsEtsIrUnknownCallModelDomainGuard { state, call, inputs ->
-        if (inputs.getOrNull(1) !is KFp64Value) {
-            state.ctx.falseExpr
-        } else {
-            receiverDomain.evaluate(state, call, inputs)
-        }
-    }
-
     override val models: List<TsUnknownCallModel> by lazy {
         listOf(
             sourceModel(
                 id = "ts.string.charAt",
                 methodName = "charAt",
                 inputAdapter = optionalIndexAdapter,
-                domainGuard = receiverAndConcreteIndexDomain,
+                domainGuard = receiverDomain,
             ),
             sourceModel(
                 id = "ts.string.indexOf",
@@ -260,6 +252,30 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                 id = "ts.string.slice",
                 methodName = "slice",
                 inputAdapter = sliceAdapter,
+                domainGuard = receiverDomain,
+            ),
+            sourceModel(
+                id = "ts.string.substring",
+                methodName = "substring",
+                inputAdapter = sliceAdapter,
+                domainGuard = receiverDomain,
+            ),
+            sourceModel(
+                id = "ts.string.trim",
+                methodName = "trim",
+                inputAdapter = noArgumentsAdapter,
+                domainGuard = receiverDomain,
+            ),
+            sourceModel(
+                id = "ts.string.trimStart",
+                methodName = "trimStart",
+                inputAdapter = noArgumentsAdapter,
+                domainGuard = receiverDomain,
+            ),
+            sourceModel(
+                id = "ts.string.trimEnd",
+                methodName = "trimEnd",
+                inputAdapter = noArgumentsAdapter,
                 domainGuard = receiverDomain,
             ),
             sourceModel(
@@ -319,7 +335,7 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             if (methodName in setOf("charAt", "toUpperCase", "toLowerCase")) {
                 add(PRIMITIVE_FROM_CODE_UNIT_ID)
             }
-            if (methodName == "slice") {
+            if (methodName in setOf("slice", "substring", "trim", "trimStart", "trimEnd")) {
                 add(PRIMITIVE_COPY_RANGE_ID)
             }
         },
