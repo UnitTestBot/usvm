@@ -20,6 +20,11 @@ class InOperator {
         return 1;
     }
 
+    lacksOptionalProperty(value: number): number {
+        const obj: { x?: number } = {};
+        return "x" in obj ? -1 : 1;
+    }
+
     hasAddedProperty(value: number): number {
         const obj: { x?: number } = {};
         obj.x = value;
@@ -52,6 +57,12 @@ class InOperator {
 
     inheritedThroughPrototypeInitializer(): boolean {
         const obj = { __proto__: { inherited: 1 } };
+        return "inherited" in obj;
+    }
+
+    inheritedThroughAssignedPrototype(): boolean {
+        const obj = {};
+        obj.__proto__ = { inherited: 1 };
         return "inherited" in obj;
     }
 

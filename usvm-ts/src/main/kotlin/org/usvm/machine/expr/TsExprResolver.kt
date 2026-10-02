@@ -947,10 +947,11 @@ class TsExprResolver(
             ?.takeIf { it.category == EtsClassCategory.OBJECT }
             ?: throw UnsupportedOperationException("The 'in' operator requires an object literal: $objectType")
 
-        // EtsIR records { __proto__: value } as a field, though it changes the prototype.
-        // Its effect can change the presence of any property, not only "__proto__".
-        if (objectClass.fields.any { it.name == "__proto__" }) {
-            throw UnsupportedOperationException("Object literal prototype initialization in 'in' is not supported")
+        // EtsIR records { __proto__: value } and later writes as ordinary fields,
+        // though either can change the prototype and presence of inherited properties.
+        val prototypeWasAssigned = scope.calcOnState { (obj to "__proto__") in writtenConcreteFields }
+        if (objectClass.fields.any { it.name == "__proto__" } || prototypeWasAssigned) {
+            throw UnsupportedOperationException("Object literal prototype mutation in 'in' is not supported")
         }
         if (propertyName == "__proto__") {
             throw UnsupportedOperationException("Prototype lookup for '__proto__' in 'in' is not supported")
