@@ -153,22 +153,6 @@ private const val ECMASCRIPT_BITWISE_INTEGER_SIZE = 32
  */
 private const val ECMASCRIPT_BITWISE_SHIFT_MASK = 0b11111
 
-// Prototype lookup is not modeled. These keys must not be reported as absent on an object literal.
-private val OBJECT_PROTOTYPE_PROPERTIES = setOf(
-    "__defineGetter__",
-    "__defineSetter__",
-    "__lookupGetter__",
-    "__lookupSetter__",
-    "__proto__",
-    "constructor",
-    "hasOwnProperty",
-    "isPrototypeOf",
-    "propertyIsEnumerable",
-    "toLocaleString",
-    "toString",
-    "valueOf",
-)
-
 private enum class UpdateOperator {
     INCREMENT,
     DECREMENT,
