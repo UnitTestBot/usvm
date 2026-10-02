@@ -8,6 +8,8 @@ import org.usvm.StateCollectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.api.TsTest
 import org.usvm.api.TsTestValue
+import org.usvm.machine.TsAnalysisResult
+import org.usvm.machine.TsAnalysisStopReason
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.util.TsMethodTestRunner
@@ -34,8 +36,12 @@ class Exponentiation : TsMethodTestRunner() {
     @Test
     fun `supported symbolic powers replay in Node`() {
         for (methodName in listOf("square", "squareRoot")) {
-            val tests = analyze(methodName)
+            val outcome = analyzeWithDefaultFailureHandling(methodName)
+            val method = getMethod(methodName)
+            val tests = outcome.states.map { state -> TsTestResolver().resolve(method, state) }
 
+            assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
+            assertTrue(outcome.unsupportedPaths.isEmpty(), "$methodName: ${outcome.unsupportedPaths}")
             assertTrue(tests.isNotEmpty(), "No results for $methodName")
             if (methodName == "square") {
                 assertTrue(tests.any { test ->
@@ -115,6 +121,27 @@ class Exponentiation : TsMethodTestRunner() {
     }
 
     @Test
+    fun `unsupported powers remain visible in ordinary analysis outcome`() {
+        val cases = mapOf(
+            "symbolicExponent" to "Symbolic exponentiation exponent",
+            "unsupportedFractional" to "Symbolic exponentiation with exponent 1.5",
+            "reciprocal" to "Symbolic exponentiation with exponent -1.0",
+            "stringBase" to "outside the supported Number conversion model",
+        )
+
+        for ((methodName, expectedReason) in cases) {
+            val outcome = analyzeWithDefaultFailureHandling(methodName)
+
+            assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason, methodName)
+            assertTrue(outcome.states.isEmpty(), "$methodName yielded a completed state")
+            assertTrue(
+                outcome.unsupportedPaths.any { reason -> expectedReason in reason },
+                "$methodName: ${outcome.unsupportedPaths}",
+            )
+        }
+    }
+
+    @Test
     fun `unsupported string conversion is explicit`() {
         val failure = assertFailsWith<UnsupportedOperationException> { analyze("stringBase") }
 
@@ -126,6 +153,15 @@ class Exponentiation : TsMethodTestRunner() {
 
         return TsMachine(scene = scene, options = machineOptions, tsOptions = TsOptions()).use { machine ->
             machine.analyze(methods = listOf(method)).map { state -> TsTestResolver().resolve(method, state) }
+        }
+    }
+
+    private fun analyzeWithDefaultFailureHandling(methodName: String): TsAnalysisResult {
+        val method = getMethod(methodName)
+        val options = machineOptions.copy(throwExceptionOnStepFailure = false)
+
+        return TsMachine(scene = scene, options = options, tsOptions = TsOptions()).use { machine ->
+            machine.analyzeWithOutcome(methods = listOf(method))
         }
     }
 
