@@ -11,6 +11,7 @@ import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsStaticFieldRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.ensureStaticsInitialized
@@ -192,6 +193,10 @@ fun TsContext.assignToInstanceField(
             } else {
                 memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
             }
+        }
+
+        if (isAllocatedConcreteHeapRef(unwrappedInstance)) {
+            memory.write(deletedFieldLValue(unwrappedInstance, field), falseExpr, guard = trueExpr)
         }
     }
 }
