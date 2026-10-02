@@ -89,6 +89,8 @@ class TsState(
     var boundedStringBackingRefs: Set<UHeapRef> = emptySet(),
     /** Unresolved reference payloads that may acquire string backing after type refinement. */
     var symbolicStringCandidates: Set<UHeapRef> = emptySet(),
+    /** Exception delivered to the current catch block, before its binding is initialized. */
+    var caughtException: UExpr<*>? = null,
     var unsupportedReason: String? = null,
     private val activeUnknownCallModels: MutableList<Pair<String, Int>> = mutableListOf(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
@@ -326,6 +328,7 @@ class TsState(
             stringConstantAllocatedRefs = stringConstantAllocatedRefs,
             boundedStringBackingRefs = boundedStringBackingRefs,
             symbolicStringCandidates = symbolicStringCandidates,
+            caughtException = caughtException,
             unsupportedReason = unsupportedReason,
             activeUnknownCallModels = activeUnknownCallModels.toMutableList(),
         )
