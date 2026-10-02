@@ -48,7 +48,7 @@ This is the only model-selection setting.
 | --- | --- |
 | `TsUnknownCallModelSelection.All` | Enable every built-in model. This is the default. |
 | `TsUnknownCallModelSelection.Only(emptySet())` | Disable every built-in model. |
-| `TsUnknownCallModelSelection.Only(setOf("id", ...))` | Enable exactly the listed built-in model IDs. |
+| `TsUnknownCallModelSelection.Only(setOf("id", ...))` | Enable the listed built-in model IDs and their declared dependencies. |
 
 Unknown IDs are rejected when the machine creates its immutable per-run catalog. The selected models are captured at that
 point, so later mutations of the selection set cannot change an active run.

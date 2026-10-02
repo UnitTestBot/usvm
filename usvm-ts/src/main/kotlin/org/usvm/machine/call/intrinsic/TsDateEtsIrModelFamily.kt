@@ -284,6 +284,7 @@ internal object TsDateEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         artifact = artifact.withEntryPoint(entryPointName),
         domainGuard = domainGuard,
         inputAdapter = inputAdapter,
+        requiredModelIds = setOf("ts.math.floor"),
     )
 
     private fun instanceGuard(
