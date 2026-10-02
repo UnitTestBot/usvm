@@ -650,21 +650,23 @@ class TsExprResolver(
                 val concreteExponent = (exponent as? KFp64Value)?.value
                     ?: throw UnsupportedOperationException("Symbolic exponentiation exponent is not supported: $expr")
 
+                // More powers cannot be expanded to FP arithmetic: x ** -1 can differ from 1 / x.
                 when (concreteExponent) {
                     0.0 -> mkFp64(value = 1.0)
                     1.0 -> base
                     2.0 -> mkFpMulExpr(fpRoundingModeSortDefaultValue(), base, base)
-                    -1.0 -> mkFpDivExpr(fpRoundingModeSortDefaultValue(), mkFp64(value = 1.0), base)
                     SQUARE_ROOT_EXPONENT -> {
-                        // Number::exponentiate maps either signed zero to +0 for a non-integral exponent.
+                        // Number::exponentiate maps either signed zero and -Infinity to positive results here.
                         val positiveZero = mkFp64(value = 0.0)
                         val isZero = mkFpEqualExpr(base, positiveZero)
+                        val isNegativeInfinity = mkFpEqualExpr(base, mkFp64(value = Double.NEGATIVE_INFINITY))
                         val squareRoot = mkFpSqrtExpr(fpRoundingModeSortDefaultValue(), base)
+                        val ordinaryResult = mkIte(isZero, positiveZero, squareRoot)
 
                         mkIte(
-                            condition = isZero,
-                            trueBranch = positiveZero,
-                            falseBranch = squareRoot,
+                            condition = isNegativeInfinity,
+                            trueBranch = mkFp64(value = Double.POSITIVE_INFINITY),
+                            falseBranch = ordinaryResult,
                         )
                     }
                     else -> throw UnsupportedOperationException(

@@ -33,7 +33,7 @@ class Exponentiation : TsMethodTestRunner() {
 
     @Test
     fun `supported symbolic powers replay in Node`() {
-        for (methodName in listOf("square", "reciprocal", "squareRoot")) {
+        for (methodName in listOf("square", "squareRoot")) {
             val tests = analyze(methodName)
 
             assertTrue(tests.isNotEmpty(), "No results for $methodName")
@@ -44,14 +44,17 @@ class Exponentiation : TsMethodTestRunner() {
                     input == 3.0 && result == 9.0
                 }, "The generated square(3) witness is missing")
             }
-            if (methodName == "reciprocal" || methodName == "squareRoot") {
+            if (methodName == "squareRoot") {
                 assertTrue(tests.any { test ->
                     val input = assertIs<TsTestValue.TsNumber>(test.before.parameters.single()).number
                     val result = assertIs<TsTestValue.TsNumber>(test.returnValue).number
-                    input.toRawBits() == (-0.0).toRawBits() &&
-                        (methodName == "reciprocal" && result == Double.NEGATIVE_INFINITY ||
-                            methodName == "squareRoot" && result.toRawBits() == 0.0.toRawBits())
+                    input.toRawBits() == (-0.0).toRawBits() && result.toRawBits() == 0.0.toRawBits()
                 }, "The generated signed-zero witness is missing for $methodName")
+                assertTrue(tests.any { test ->
+                    val input = assertIs<TsTestValue.TsNumber>(test.before.parameters.single()).number
+                    val result = assertIs<TsTestValue.TsNumber>(test.returnValue).number
+                    input == Double.NEGATIVE_INFINITY && result == Double.POSITIVE_INFINITY
+                }, "The generated negative-infinity witness is missing for $methodName")
             }
 
             replay(methodName, tests)
@@ -102,6 +105,27 @@ class Exponentiation : TsMethodTestRunner() {
 
             assertTrue(failure.message.orEmpty().contains("Symbolic exponentiation"))
         }
+    }
+
+    @Test
+    fun `symbolic reciprocal stays unsupported when division differs in Node`() {
+        val output = directory.resolve("reciprocal-divergence.out")
+        val script = "const x = 518.3984755809512; Object.is(x ** -1, 1 / x)"
+        val process = ProcessBuilder("node", "-p", script)
+            .redirectErrorStream(true)
+            .redirectOutput(output.toFile())
+            .start()
+
+        try {
+            assertTrue(process.waitFor(10, TimeUnit.SECONDS), "Node reciprocal probe timed out")
+            assertEquals(0, process.exitValue(), output.readText())
+            assertEquals("false", output.readText().trim())
+        } finally {
+            if (process.isAlive) process.destroyForcibly()
+        }
+
+        val failure = assertFailsWith<UnsupportedOperationException> { analyze("reciprocal") }
+        assertTrue(failure.message.orEmpty().contains("exponent -1.0"))
     }
 
     @Test
