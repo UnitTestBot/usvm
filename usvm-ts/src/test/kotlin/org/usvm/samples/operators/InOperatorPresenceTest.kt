@@ -36,6 +36,7 @@ class InOperatorPresenceTest : TsMethodTestRunner() {
             "hasPresentNumberProperty",
             "hasUndefinedProperty",
             "lacksProperty",
+            "lacksOptionalProperty",
             "hasAddedProperty",
             "lacksDeletedProperty",
             "hasRestoredProperty",
@@ -101,6 +102,7 @@ class InOperatorPresenceTest : TsMethodTestRunner() {
             "testInOperatorObjectAfterDelete",
             "specialPrototypeInitializer",
             "inheritedThroughPrototypeInitializer",
+            "inheritedThroughAssignedPrototype",
         )
 
         methods.forEach { methodName ->
@@ -112,8 +114,8 @@ class InOperatorPresenceTest : TsMethodTestRunner() {
             assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason, methodName)
             assertTrue(outcome.states.isEmpty(), methodName)
             assertTrue(outcome.unsupportedPaths.isNotEmpty(), methodName)
-            if (methodName.endsWith("PrototypeInitializer")) {
-                assertTrue(outcome.unsupportedPaths.any { "prototype initialization" in it },
+            if (methodName.endsWith("PrototypeInitializer") || methodName == "inheritedThroughAssignedPrototype") {
+                assertTrue(outcome.unsupportedPaths.any { "prototype mutation" in it },
                     "${outcome.unsupportedPaths}")
             }
         }
@@ -170,7 +172,8 @@ class InOperatorPresenceTest : TsMethodTestRunner() {
         val output = directory.resolve("specialPrototypeInitializer.out")
         script.writeText(source + "\n" +
             "if (new InOperator().specialPrototypeInitializer() !== false) throw Error('null prototype');\n" +
-            "if (new InOperator().inheritedThroughPrototypeInitializer() !== true) throw Error('inherited');\n")
+            "if (new InOperator().inheritedThroughPrototypeInitializer() !== true) throw Error('inherited');\n" +
+            "if (new InOperator().inheritedThroughAssignedPrototype() !== true) throw Error('assigned prototype');\n")
 
         val process = ProcessBuilder("node", "--experimental-strip-types", script.toString())
             .redirectErrorStream(true)
