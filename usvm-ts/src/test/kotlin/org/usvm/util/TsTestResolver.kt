@@ -1,5 +1,6 @@
 package org.usvm.util
 
+import io.ksmt.expr.KBitVec16Value
 import io.ksmt.expr.KFpValue
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsArrayType
@@ -250,11 +251,7 @@ open class TsTestStateResolver(
             }
 
             is EtsStringType -> {
-                if (isAllocatedConcreteHeapRef(concreteRef)) {
-                    resolveAllocatedString(concreteRef)
-                } else {
-                    TsTestValue.TsString("String construction is not yet implemented")
-                }
+                resolveString(heapRef, concreteRef)
             }
 
             else -> error("Unexpected type: $type")
@@ -306,13 +303,32 @@ open class TsTestStateResolver(
         return TsTestValue.TsArray(values)
     }
 
-    private fun resolveAllocatedString(
-        ref: UConcreteHeapRef,
-    ): TsTestValue.TsString {
-        val value = ctx.getStringConstantValue(ref) ?: run {
-            error("String constant not found for ref: $ref")
+    private fun resolveString(
+        heapRef: UHeapRef,
+        concreteRef: UConcreteHeapRef,
+    ): TsTestValue.TsString = with(ctx) {
+        getStringConstantValue(concreteRef)?.let { return TsTestValue.TsString(it) }
+
+        val valueLValue = mkFieldLValue(addressSort, heapRef, field = "value")
+        val charsRef = evaluateInModel(memory.read(valueLValue)) as UConcreteHeapRef
+        if (charsRef.address == 0) {
+            return TsTestValue.TsString("")
         }
-        return TsTestValue.TsString(value)
+
+        val charsType = EtsArrayType(EtsNumberType, dimensions = 1)
+        val lengthLValue = mkArrayLengthLValue(charsRef, charsType)
+        val length = evaluateInModel(memory.read(lengthLValue)).extractInt()
+        require(length in 0..MAX_STRING_LENGTH) { "Unsupported symbolic string length: $length" }
+
+        val value = buildString(length) {
+            repeat(length) { index ->
+                val elementLValue = mkArrayIndexLValue(bv16Sort, charsRef, mkSizeExpr(index), charsType)
+                val element = evaluateInModel(memory.read(elementLValue)) as KBitVec16Value
+                append(element.shortValue.toInt().toChar())
+            }
+        }
+
+        TsTestValue.TsString(value)
     }
 
     fun resolveThisInstance(): TsTestValue {
@@ -396,10 +412,14 @@ open class TsTestStateResolver(
             is EtsLiteralType -> TODO()
             EtsNullType -> TODO()
             EtsNeverType -> TODO()
-            EtsStringType -> TsTestValue.TsString("String construction is not yet implemented")
+            EtsStringType -> error("String values must be resolved from heap references")
             EtsVoidType -> TODO()
             else -> error("Unexpected type: $type")
         }
+    }
+
+    private companion object {
+        const val MAX_STRING_LENGTH = 10_000
     }
 
     private fun resolveClass(

@@ -5,6 +5,7 @@ import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsUnknownType
 import org.usvm.UExpr
@@ -14,6 +15,7 @@ import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.sizeSort
 import org.usvm.util.arrayStorageType
 import org.usvm.util.mkArrayLengthLValue
+import org.usvm.util.mkFieldLValue
 
 // Handles reading the `length` property.
 fun TsContext.readLengthProperty(
@@ -34,8 +36,17 @@ fun TsContext.readLengthProperty(
         }
 
         is EtsStringType -> {
-            // Strings are treated as arrays of characters (represented as strings).
-            EtsArrayType(EtsStringType, dimensions = 1)
+            val charsRef = scope.calcOnState {
+                val valueLValue = mkFieldLValue(addressSort, instance, field = "value")
+                memory.read(valueLValue)
+            }
+
+            return readArrayLength(
+                scope = scope,
+                array = charsRef,
+                arrayType = EtsArrayType(EtsNumberType, dimensions = 1),
+                maxArraySize = maxArraySize,
+            )
         }
 
         else -> error("Expected EtsArrayType, EtsAnyType or EtsUnknownType, but got: $type")
