@@ -64,8 +64,22 @@ class TsTestResolver {
 
         prepareForResolve(state)
 
-        val beforeMemoryScope = MemoryScope(this, model, memory, method, resolvedLValuesToFakeObjects, state.maxStringLength)
-        val afterMemoryScope = MemoryScope(this, model, memory, method, resolvedLValuesToFakeObjects, state.maxStringLength)
+        val beforeMemoryScope = MemoryScope(
+            this,
+            model,
+            memory,
+            method,
+            resolvedLValuesToFakeObjects,
+            state.maxStringLength
+        )
+        val afterMemoryScope = MemoryScope(
+            this,
+            model,
+            memory,
+            method,
+            resolvedLValuesToFakeObjects,
+            state.maxStringLength
+        )
 
         val result = when (val res = state.methodResult) {
             is TsMethodResult.NoCall -> {

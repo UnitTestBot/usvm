@@ -53,15 +53,22 @@ class TsSymbolicStringInputTest {
         }
 
         val lengthTests = tests.getValue("lengthOne")
-        assertEquals(setOf(0.0, 1.0), lengthTests.map { test ->
-            assertIs<TsTestValue.TsNumber>(test.returnValue).number
-        }.toSet())
-        assertTrue(lengthTests.any { test ->
-            assertIs<TsTestValue.TsString>(test.before.parameters.single()).value.isEmpty()
-        })
-        assertTrue(lengthTests.any { test ->
-            assertIs<TsTestValue.TsString>(test.before.parameters.single()).value.isNotEmpty()
-        })
+        assertEquals(
+            setOf(0.0, 1.0),
+            lengthTests.map { test ->
+                assertIs<TsTestValue.TsNumber>(test.returnValue).number
+            }.toSet()
+        )
+        assertTrue(
+            lengthTests.any { test ->
+                assertIs<TsTestValue.TsString>(test.before.parameters.single()).value.isEmpty()
+            }
+        )
+        assertTrue(
+            lengthTests.any { test ->
+                assertIs<TsTestValue.TsString>(test.before.parameters.single()).value.isNotEmpty()
+            }
+        )
 
         val literalTests = tests.getValue("literal")
         assertTrue(literalTests.isNotEmpty())
@@ -102,16 +109,20 @@ class TsSymbolicStringInputTest {
         val source = getResourcePath("/models/SymbolicStringInput.ts")
         val scene = EtsScene(listOf(loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)))
         val method = scene.projectClasses.single { it.name == "SymbolicStringInput" }
-            .methods.single { it.name == "independentArrayLength" }
+            .methods
+            .single { it.name == "independentArrayLength" }
 
         val tests = TsMachine(scene, options = machineOptions, tsOptions = TsOptions()).use { machine ->
             machine.analyze(listOf(method)).map { state -> TsTestResolver().resolve(method, state) }
         }
 
         assertTrue(tests.isNotEmpty())
-        assertEquals(setOf(0.0, 2.0), tests.map { test ->
-            assertIs<TsTestValue.TsNumber>(test.returnValue).number
-        }.toSet())
+        assertEquals(
+            setOf(0.0, 2.0),
+            tests.map { test ->
+                assertIs<TsTestValue.TsNumber>(test.returnValue).number
+            }.toSet()
+        )
 
         val script = buildString {
             appendLine(source.readText())
@@ -122,8 +133,11 @@ class TsSymbolicStringInputTest {
                     assertIs<TsTestValue.TsNumber>(value).number.toString()
                 }
                 val expected = assertIs<TsTestValue.TsNumber>(test.returnValue).number
+                val encodedInput = jsString(input)
 
-                appendLine("if (new SymbolicStringInput().independentArrayLength(${jsString(input)}, [$elements]) !== $expected) {")
+                appendLine(
+                    "if (new SymbolicStringInput().independentArrayLength($encodedInput, [$elements]) !== $expected) {"
+                )
                 appendLine("  throw Error('array alias witness $index');")
                 appendLine("}")
             }
@@ -136,7 +150,8 @@ class TsSymbolicStringInputTest {
         val source = getResourcePath("/models/SymbolicStringInput.ts")
         val scene = EtsScene(listOf(loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)))
         val method = scene.projectClasses.single { it.name == "SymbolicStringInput" }
-            .methods.single { it.name == "lengthIs10001" }
+            .methods
+            .single { it.name == "lengthIs10001" }
         val maxStringLength = 10_001
 
         val tests = TsMachine(
@@ -147,13 +162,19 @@ class TsSymbolicStringInputTest {
             machine.analyze(listOf(method)).map { state -> TsTestResolver().resolve(method, state) }
         }
 
-        assertEquals(setOf(0.0, 1.0), tests.map { test ->
-            assertIs<TsTestValue.TsNumber>(test.returnValue).number
-        }.toSet())
+        assertEquals(
+            setOf(0.0, 1.0),
+            tests.map { test ->
+                assertIs<TsTestValue.TsNumber>(test.returnValue).number
+            }.toSet()
+        )
         val longWitness = tests.single { test ->
             assertIs<TsTestValue.TsNumber>(test.returnValue).number == 1.0
         }
-        assertEquals(maxStringLength, assertIs<TsTestValue.TsString>(longWitness.before.parameters.single()).value.length)
+        assertEquals(
+            maxStringLength,
+            assertIs<TsTestValue.TsString>(longWitness.before.parameters.single()).value.length
+        )
 
         val script = buildString {
             appendLine(source.readText())
