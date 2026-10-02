@@ -7,6 +7,7 @@ import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsInstanceCallExpr
 import org.jacodb.ets.model.EtsMethodSignature
+import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.usvm.UBoolExpr
@@ -193,14 +194,14 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
             return handleArrayConcat(stmt, instanceType, array)
         }
 
-        // Handle `Array.indexOf() method calls
-        if (expr.callee.name == "indexOf") {
-            return from(handleArrayIndexOf(expr, instanceType, elementSort, array))
+        // Handle Array search and indexed access method calls.
+        if (expr.callee.name in setOf("indexOf", "lastIndexOf")) {
+            return handleArrayIndexSearchCall(stmt, instanceType, elementSort, array)
         }
 
         // Handle `Array.includes() method calls
         if (expr.callee.name == "includes") {
-            return from(handleArrayIncludes(expr))
+            return handleArrayIncludesCall(stmt)
         }
 
         // Handle `Array.reverse() method calls
@@ -209,8 +210,82 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
         }
     }
 
+    val modeledStringMethods = setOf(
+        "charAt",
+        "charCodeAt",
+        "endsWith",
+        "includes",
+        "indexOf",
+        "lastIndexOf",
+        "startsWith",
+    )
+    if (instanceType is EtsStringType && expr.callee.name in modeledStringMethods) {
+        val dispatcher = unknownCallDispatcher
+        if (dispatcher !is TsUnknownCallModelDispatcher) {
+            return TsExprApproximationResult.NoApproximation
+        }
+
+        dispatcher.dispatch(
+            scope = scope,
+            call = stmt.call,
+            callSite = stmt.returnSite,
+            failureReason = TsUnknownCallFailureReason.PARTIAL_APPROXIMATION,
+            callee = stmt.call.callee.withEnclosingClassName("String"),
+            resolvedReceiver = stmt.instance,
+            resolvedArguments = stmt.args,
+        )
+
+        return TsExprApproximationResult.ResolveFailure
+    }
+
     return TsExprApproximationResult.NoApproximation
 }
+
+private fun TsExprResolver.handleArrayIndexSearchCall(
+    stmt: TsVirtualMethodCallStmt,
+    instanceType: EtsArrayType,
+    elementSort: USort,
+    array: UHeapRef,
+): TsExprApproximationResult {
+    val dispatcher = unknownCallDispatcher
+    if (dispatcher !is TsUnknownCallModelDispatcher) {
+        if (stmt.call.callee.name != "indexOf") {
+            return TsExprApproximationResult.NoApproximation
+        }
+
+        return from(handleArrayIndexOf(stmt.call, instanceType, elementSort, array))
+    }
+
+    dispatchArrayModel(stmt)
+    return TsExprApproximationResult.ResolveFailure
+}
+
+private fun TsExprResolver.handleArrayIncludesCall(
+    stmt: TsVirtualMethodCallStmt,
+): TsExprApproximationResult {
+    val dispatcher = unknownCallDispatcher
+    if (dispatcher !is TsUnknownCallModelDispatcher) {
+        return from(handleArrayIncludes(stmt.call))
+    }
+
+    dispatchArrayModel(stmt)
+    return TsExprApproximationResult.ResolveFailure
+}
+
+private fun TsExprResolver.dispatchArrayModel(stmt: TsVirtualMethodCallStmt) {
+    unknownCallDispatcher.dispatch(
+        scope = scope,
+        call = stmt.call,
+        callSite = stmt.returnSite,
+        failureReason = TsUnknownCallFailureReason.PARTIAL_APPROXIMATION,
+        callee = stmt.call.callee.withEnclosingClassName("Array"),
+        resolvedReceiver = stmt.instance,
+        resolvedArguments = stmt.args,
+    )
+}
+
+private fun EtsMethodSignature.withEnclosingClassName(name: String): EtsMethodSignature =
+    copy(enclosingClass = enclosingClass.copy(name = name))
 
 private fun TsExprResolver.handleArrayPopCall(
     stmt: TsVirtualMethodCallStmt,
