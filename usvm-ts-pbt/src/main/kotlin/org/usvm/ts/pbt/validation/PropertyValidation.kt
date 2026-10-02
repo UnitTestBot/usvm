@@ -10,6 +10,7 @@ import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.JsNumber
 import org.usvm.ts.pbt.model.JsNumberKind
 import org.usvm.ts.pbt.model.NumberDomain
+import org.usvm.ts.pbt.model.ObjectDomain
 import org.usvm.ts.pbt.model.OptionalDomain
 import org.usvm.ts.pbt.model.PropertyDefinition
 import org.usvm.ts.pbt.model.PropertyDomain
@@ -148,7 +149,7 @@ private fun validateDomain(
         }
 
         is ConstantDomain -> {
-            if (domain.value is JsConcreteValue.Array) {
+            if (domain.value is JsConcreteValue.Array || domain.value is JsConcreteValue.Object) {
                 diagnostics += diagnostic(
                     code = PbtDiagnosticCode.DOMAIN_CONSTANT_UNSUPPORTED,
                     message = "Constant domains support JavaScript primitives only",
@@ -192,6 +193,19 @@ private fun validateDomain(
                 diagnostics = diagnostics,
             )
             validateDomain(domain.element, "$path.element", diagnostics)
+        }
+
+        is ObjectDomain -> {
+            if (domain.fields.size > MAX_OBJECT_FIELDS || domain.fields.keys.any { it in UNSAFE_OBJECT_KEYS }) {
+                diagnostics += diagnostic(
+                    code = PbtDiagnosticCode.DOMAIN_OBJECT_FIELDS,
+                    message = "Object domain has too many fields or an unsafe property name",
+                    path = path,
+                )
+            }
+            domain.fields.forEach { (name, fieldDomain) ->
+                validateDomain(fieldDomain, "$path.fields.$name", diagnostics)
+            }
         }
     }
 }
@@ -254,7 +268,15 @@ private fun validateJsConcreteValue(
             validateJsConcreteValue(element, "$path.elements[$index]", diagnostics)
         }
     }
+    if (value is JsConcreteValue.Object) {
+        value.fields.forEach { (name, fieldValue) ->
+            validateJsConcreteValue(fieldValue, "$path.fields.$name", diagnostics)
+        }
+    }
 }
+
+private const val MAX_OBJECT_FIELDS = 32
+private val UNSAFE_OBJECT_KEYS = setOf("__proto__", "constructor", "prototype")
 
 private fun validateJsNumber(
     number: JsNumber,

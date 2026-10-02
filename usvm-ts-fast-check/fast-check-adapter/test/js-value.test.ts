@@ -43,6 +43,14 @@ test('tagged JavaScript primitives round trip without losing semantics', () => {
         && value[0] === undefined
         && Object.is(value[1], -0),
     },
+    {
+      tagged: {
+        kind: 'object',
+        fields: { score: { kind: 'number', value: 'finite', bits: '8000000000000000' } },
+      },
+      matches: (value) => value !== null && typeof value === 'object'
+        && !Array.isArray(value) && Object.is(value.score, -0),
+    },
   ];
 
   for (const { tagged, matches } of cases) {

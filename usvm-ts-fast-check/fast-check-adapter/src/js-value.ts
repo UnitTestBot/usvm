@@ -10,7 +10,8 @@ export type JsConcreteValue =
   | boolean
   | string
   | number
-  | JsConcreteValue[];
+  | JsConcreteValue[]
+  | { [key: string]: JsConcreteValue };
 
 export type TaggedJsNumber =
   | { value: 'finite'; bits: string }
@@ -24,7 +25,8 @@ export type TaggedJsValue =
   | { kind: 'boolean'; value: boolean }
   | { kind: 'string'; value: string }
   | ({ kind: 'number' } & TaggedJsNumber)
-  | { kind: 'array'; elements: TaggedJsValue[] };
+  | { kind: 'array'; elements: TaggedJsValue[] }
+  | { kind: 'object'; fields: Record<string, TaggedJsValue> };
 
 export interface ProtocolDiagnostic {
   kind: AdapterDiagnosticKind;
@@ -92,6 +94,20 @@ export function decodeJsValue(value: unknown, path = 'value'): JsConcreteValue {
       return value.elements.map((element: unknown, index: number) =>
         decodeJsValue(element, `${path}.elements[${index}]`));
 
+    case 'object': {
+      const fields = value.fields;
+      if (fields === null || typeof fields !== 'object' || Array.isArray(fields)) {
+        throw protocolError(adapterDiagnostic.jsValueObjectInvalid, 'Object value must contain fields', path);
+      }
+
+      const entries = Object.entries(fields).map(([name, field]) => {
+        requireSafeObjectKey(name, `${path}.fields.${name}`);
+        return [name, decodeJsValue(field, `${path}.fields.${name}`)] as const;
+      });
+
+      return Object.fromEntries(entries);
+    }
+
     default:
       throw protocolError(
         adapterDiagnostic.jsValueKindUnknown,
@@ -108,12 +124,27 @@ export function encodeJsValue(value: unknown): TaggedJsValue {
   if (typeof value === 'string') return { kind: 'string', value };
   if (typeof value === 'number') return { kind: 'number', ...encodeJsNumber(value) };
   if (Array.isArray(value)) return { kind: 'array', elements: value.map(encodeJsValue) };
+  if (typeof value === 'object' && value !== null &&
+    (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null)) {
+    const fields = Object.fromEntries(Object.entries(value).map(([name, field]) => {
+      requireSafeObjectKey(name, `value.fields.${name}`);
+      return [name, encodeJsValue(field)];
+    }));
+
+    return { kind: 'object', fields };
+  }
 
   throw protocolError(
     adapterDiagnostic.jsValueTypeUnsupported,
     `Unsupported JavaScript value type: ${typeof value}`,
     'value',
   );
+}
+
+function requireSafeObjectKey(name: string, path: string): void {
+  if (['__proto__', 'constructor', 'prototype'].includes(name)) {
+    throw protocolError(adapterDiagnostic.jsValueObjectInvalid, 'Unsupported object property name', path);
+  }
 }
 
 export function decodeJsNumber(taggedNumber: unknown, path = 'number'): number {

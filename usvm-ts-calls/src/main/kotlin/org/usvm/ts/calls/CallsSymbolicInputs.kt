@@ -9,6 +9,8 @@ import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsLexicalEnvType
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsNumberType
+import org.jacodb.ets.model.EtsRefType
+import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUnclearRefType
 import org.usvm.UBoolExpr
@@ -32,9 +34,12 @@ import org.usvm.ts.pbt.model.ArrayDomain
 import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.NumberDomain
+import org.usvm.ts.pbt.model.ObjectDomain
 import org.usvm.ts.pbt.model.PropertyDomain
 import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.StringDomain
+import org.usvm.util.EtsHierarchy
+import org.usvm.util.getAllFields
 import org.usvm.util.markDenseInputArray
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkFieldLValue
@@ -44,6 +49,7 @@ import org.usvm.util.mkStringFromCodeUnits
 internal fun PropertyDomain.isSupportedCallsSymbolicDomain(): Boolean = when (this) {
     BooleanDomain, is NumberDomain, is StringDomain -> true
     is ArrayDomain -> element == BooleanDomain || element is NumberDomain
+    is ObjectDomain -> fields.values.all { it.isSupportedCallsSymbolicDomain() }
     else -> false
 }
 
@@ -53,6 +59,48 @@ internal fun callsSymbolicInputPreflight(inputs: List<PropertyInput>): String? {
 
     return "Unsupported symbolic input domain for ${unsupportedInput.name}: ${unsupportedInput.domain}"
 }
+
+internal fun callsSymbolicInputTypePreflight(
+    inputs: List<PropertyInput>,
+    bindings: List<EtsInputBinding>,
+    scene: EtsScene,
+): String? {
+    val hierarchy = EtsHierarchy(scene)
+    val bindingsByName = bindings.associateBy(EtsInputBinding::propertyInputName)
+
+    return inputs.firstNotNullOfOrNull { input ->
+        val parameterType = bindingsByName[input.name]?.parameter?.type
+            ?: return@firstNotNullOfOrNull "Missing EtsIR binding for symbolic input ${input.name}"
+        input.domain.objectTypeDiagnostic(parameterType, input.name, hierarchy)
+    }
+}
+
+private fun PropertyDomain.objectTypeDiagnostic(
+    type: EtsType?,
+    path: String,
+    hierarchy: EtsHierarchy,
+): String? {
+    if (this !is ObjectDomain) return null
+
+    val objectType = type as? EtsRefType
+        ?: return "Object domain at $path requires a reference-typed EtsIR value: $type"
+
+    return fields.entries.firstNotNullOfOrNull { (name, fieldDomain) ->
+        if (fieldDomain !is ObjectDomain) return@firstNotNullOfOrNull null
+
+        val fieldType = objectFieldType(objectType, name, hierarchy)
+            ?: return@firstNotNullOfOrNull "Cannot resolve EtsIR type of object field $path.$name in $objectType"
+        fieldDomain.objectTypeDiagnostic(fieldType, "$path.$name", hierarchy)
+    }
+}
+
+private fun objectFieldType(type: EtsRefType, name: String, hierarchy: EtsHierarchy): EtsType? =
+    hierarchy.classesForType(type)
+        .flatMap { clazz -> clazz.getAllFields(hierarchy) }
+        .filter { field -> field.name == name }
+        .distinctBy { field -> field.signature }
+        .singleOrNull()
+        ?.type
 
 internal class CallsSymbolicInputs(
     inputs: List<PropertyInput>,
@@ -77,15 +125,16 @@ internal class CallsSymbolicInputs(
     fun initialize(state: TsState) {
         check(snapshots == null) { "Calls symbolic inputs were initialized more than once" }
         lexicalEnvironment?.let(state::initializeLexicalEnvironment)
+        val hierarchy = EtsHierarchy(state.ctx.scene)
         val initializedSnapshots = boundInputs.map { (input, binding) ->
             state.initializeInput(
                 stackSlot = binding.stackSlot,
                 domain = input.domain,
+                parameterType = binding.parameter.type,
+                hierarchy = hierarchy,
             )
         }
-        initializedSnapshots.filterIsInstance<ArrayInputSnapshot>().forEach { snapshot ->
-            snapshot.markDenseInput(state)
-        }
+        initializedSnapshots.forEach { snapshot -> snapshot.markDenseInputs(state) }
         snapshots = initializedSnapshots
     }
 
@@ -99,7 +148,7 @@ internal class CallsSymbolicInputs(
             when (domain) {
                 BooleanDomain -> boolSort
                 is NumberDomain -> fp64Sort
-                is StringDomain, is ArrayDomain -> addressSort
+                is StringDomain, is ArrayDomain, is ObjectDomain -> addressSort
                 else -> null
             }
         }
@@ -158,37 +207,53 @@ private fun TsState.initializeBuiltinCapture(
 private fun TsState.initializeInput(
     stackSlot: Int,
     domain: PropertyDomain,
+    parameterType: EtsType,
+    hierarchy: EtsHierarchy,
 ): CallsInputSnapshot = with(ctx) {
+    val initialized = initializeValue(domain = domain, parameterType = parameterType, hierarchy = hierarchy)
+    memory.write(
+        mkRegisterStackLValue(initialized.sort, stackSlot),
+        initialized.value.asExpr(initialized.sort),
+        guard = trueExpr,
+    )
+    saveSortForLocal(stackSlot, initialized.sort)
+
+    initialized.snapshot
+}
+
+private data class InitializedCallsValue(
+    val sort: USort,
+    val value: UExpr<*>,
+    val snapshot: CallsInputSnapshot,
+)
+
+private fun TsState.initializeValue(
+    domain: PropertyDomain,
+    parameterType: EtsType?,
+    hierarchy: EtsHierarchy,
+): InitializedCallsValue = with(ctx) {
     when (domain) {
         BooleanDomain -> {
             val value: UBoolExpr = makeSymbolicPrimitive(boolSort)
-            memory.write(
-                mkRegisterStackLValue(boolSort, stackSlot),
-                value.asExpr(boolSort),
-                guard = trueExpr,
-            )
-            saveSortForLocal(stackSlot, boolSort)
-            BooleanInputSnapshot(value)
+            InitializedCallsValue(boolSort, value, BooleanInputSnapshot(value))
         }
 
         is NumberDomain -> {
             val value: UExpr<KFp64Sort> = makeSymbolicPrimitive(fp64Sort)
             pathConstraints += numberDomainConstraint(value, domain)
-            memory.write(
-                mkRegisterStackLValue(fp64Sort, stackSlot),
-                value.asExpr(fp64Sort),
-                guard = trueExpr,
-            )
-            saveSortForLocal(stackSlot, fp64Sort)
-            NumberInputSnapshot(value)
+            InitializedCallsValue(fp64Sort, value, NumberInputSnapshot(value))
         }
 
         is StringDomain -> {
-            initializeStringInput(stackSlot = stackSlot, domain = domain)
+            initializeStringValue(domain)
         }
 
         is ArrayDomain -> {
-            initializeArrayInput(stackSlot = stackSlot, domain = domain)
+            initializeArrayValue(domain = domain, hierarchy = hierarchy)
+        }
+
+        is ObjectDomain -> {
+            initializeObjectValue(domain = domain, parameterType = parameterType, hierarchy = hierarchy)
         }
 
         else -> {
@@ -197,29 +262,50 @@ private fun TsState.initializeInput(
     }
 }
 
-private fun TsState.initializeStringInput(
-    stackSlot: Int,
+private fun TsState.initializeObjectValue(
+    domain: ObjectDomain,
+    parameterType: EtsType?,
+    hierarchy: EtsHierarchy,
+): InitializedCallsValue = with(ctx) {
+    val runtimeType = parameterType as? EtsRefType
+        ?: error("Object domain requires a reference-typed EtsIR parameter: $parameterType")
+    val objectRef = memory.allocConcrete(runtimeType)
+    val fields = domain.fields.mapValues { (name, fieldDomain) ->
+        val fieldType = when (fieldDomain) {
+            is ObjectDomain -> objectFieldType(runtimeType, name, hierarchy)
+                ?: error("Cannot resolve EtsIR type of object field $name in $runtimeType")
+
+            else -> null
+        }
+        val initialized = initializeValue(domain = fieldDomain, parameterType = fieldType, hierarchy = hierarchy)
+
+        memory.write(
+            mkFieldLValue(initialized.sort, objectRef, name),
+            initialized.value.asExpr(initialized.sort),
+            guard = trueExpr,
+        )
+        initialized.snapshot
+    }
+
+    InitializedCallsValue(addressSort, objectRef, ObjectInputSnapshot(fields))
+}
+
+private fun TsState.initializeStringValue(
     domain: StringDomain,
-): StringInputSnapshot = with(ctx) {
+): InitializedCallsValue = with(ctx) {
     val length: UExpr<TsSizeSort> = makeSymbolicPrimitive(sizeSort)
     val codeUnits: List<UExpr<KBv16Sort>> = List(domain.maxLength) { makeSymbolicPrimitive(bv16Sort) }
 
     constrainLength(length = length, minLength = domain.minLength, maxLength = domain.maxLength)
     val stringRef = mkStringFromCodeUnits(length = length, codeUnits = codeUnits)
-    memory.write(
-        mkRegisterStackLValue(addressSort, stackSlot),
-        stringRef.asExpr(addressSort),
-        guard = trueExpr,
-    )
-    saveSortForLocal(stackSlot, addressSort)
 
-    StringInputSnapshot(length = length, codeUnits = codeUnits)
+    InitializedCallsValue(addressSort, stringRef, StringInputSnapshot(length = length, codeUnits = codeUnits))
 }
 
-private fun TsState.initializeArrayInput(
-    stackSlot: Int,
+private fun TsState.initializeArrayValue(
     domain: ArrayDomain,
-): ArrayInputSnapshot = with(ctx) {
+    hierarchy: EtsHierarchy,
+): InitializedCallsValue = with(ctx) {
     val runtimeType = when (domain.element) {
         BooleanDomain -> EtsArrayType(EtsBooleanType, dimensions = 1)
         is NumberDomain -> EtsArrayType(EtsNumberType, dimensions = 1)
@@ -236,44 +322,27 @@ private fun TsState.initializeArrayInput(
         sizeSort = sizeSort,
         count = length,
     )
-    val elements = when (val elementDomain = domain.element) {
-        BooleanDomain -> List(domain.maxLength) { index ->
-            val value = makeSymbolicPrimitive(boolSort)
-            val liveIndex = mkBvSignedLessExpr(mkBv(index), length)
-            memory.write(
-                mkArrayIndexLValue(boolSort, arrayRef, mkBv(index), runtimeType),
-                value,
-                guard = liveIndex,
-            )
-            BooleanInputSnapshot(value)
-        }
-
-        is NumberDomain -> List(domain.maxLength) { index ->
-            val value = makeSymbolicPrimitive(fp64Sort)
-            val liveIndex = mkBvSignedLessExpr(mkBv(index), length)
-            pathConstraints += numberDomainConstraint(value, elementDomain)
-            memory.write(
-                mkArrayIndexLValue(fp64Sort, arrayRef, mkBv(index), runtimeType),
-                value,
-                guard = liveIndex,
-            )
-            NumberInputSnapshot(value)
-        }
-
-        else -> error("Unsupported calls symbolic array element domain: $elementDomain")
+    val elements = List(domain.maxLength) { index ->
+        val initialized = initializeValue(
+            domain = domain.element,
+            parameterType = runtimeType.elementType,
+            hierarchy = hierarchy,
+        )
+        val liveIndex = mkBvSignedLessExpr(mkBv(index), length)
+        memory.write(
+            mkArrayIndexLValue(initialized.sort, arrayRef, mkBv(index), runtimeType),
+            initialized.value.asExpr(initialized.sort),
+            guard = liveIndex,
+        )
+        initialized.snapshot
     }
-    memory.write(
-        mkRegisterStackLValue(addressSort, stackSlot),
-        arrayRef.asExpr(addressSort),
-        guard = trueExpr,
-    )
-    saveSortForLocal(stackSlot, addressSort)
-    ArrayInputSnapshot(
+    val snapshot = ArrayInputSnapshot(
         length = length,
         elements = elements,
         arrayRef = arrayRef,
         runtimeType = runtimeType,
     )
+    InitializedCallsValue(addressSort, arrayRef, snapshot)
 }
 
 private fun TsState.constrainLength(
@@ -301,6 +370,8 @@ private fun TsState.numberDomainConstraint(
 
 private sealed interface CallsInputSnapshot {
     fun resolve(model: UModelBase<EtsType>): JsConcreteValue
+
+    fun markDenseInputs(state: TsState) {}
 }
 
 private data class BooleanInputSnapshot(
@@ -341,8 +412,9 @@ private data class ArrayInputSnapshot(
     val arrayRef: UConcreteHeapRef,
     val runtimeType: EtsArrayType,
 ) : CallsInputSnapshot {
-    fun markDenseInput(state: TsState) {
+    override fun markDenseInputs(state: TsState) {
         state.markDenseInputArray(array = arrayRef, type = runtimeType)
+        elements.forEach { element -> element.markDenseInputs(state) }
     }
 
     override fun resolve(model: UModelBase<EtsType>): JsConcreteValue {
@@ -351,6 +423,17 @@ private data class ArrayInputSnapshot(
 
         return JsConcreteValue.Array(elements.take(concreteLength).map { element -> element.resolve(model) })
     }
+}
+
+private data class ObjectInputSnapshot(
+    val fields: Map<String, CallsInputSnapshot>,
+) : CallsInputSnapshot {
+    override fun markDenseInputs(state: TsState) {
+        fields.values.forEach { field -> field.markDenseInputs(state) }
+    }
+
+    override fun resolve(model: UModelBase<EtsType>): JsConcreteValue =
+        JsConcreteValue.Object(fields.mapValues { (_, snapshot) -> snapshot.resolve(model) })
 }
 
 private const val UTF16_CODE_UNIT_MASK = 0xffff

@@ -285,11 +285,22 @@ private fun coverageWrapper(
             return { kind: 'number', value: 'finite', bits };
           }
           if (Array.isArray(value)) return { kind: 'array', elements: value.map(encodeValue) };
+          if (value !== null && typeof value === 'object' &&
+              (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null)) {
+            const fields = Object.fromEntries(Object.entries(value).map(([name, field]) => {
+              if (['__proto__', 'constructor', 'prototype'].includes(name)) {
+                throw new Error('Unsupported replay object property name');
+              }
+              return [name, encodeValue(field)];
+            }));
+            return { kind: 'object', fields };
+          }
           throw new Error('Unsupported replay argument type');
         }
 
         export function coverageProbe(...args: unknown[]): boolean {
           const actualArgs = $sentinelExpression;
+          const encodedInputs = actualArgs.map(encodeValue);
           let completion: 'RETURNED' | 'THREW' = 'RETURNED';
           let errorName: string | undefined;
           try {
@@ -302,7 +313,7 @@ private fun coverageWrapper(
             completion = 'THREW';
             errorName = error instanceof Error ? error.name : typeof error;
           }
-          writeFileSync($outputPath, JSON.stringify({ inputs: actualArgs.map(encodeValue), completion, errorName }), 'utf8');
+          writeFileSync($outputPath, JSON.stringify({ inputs: encodedInputs, completion, errorName }), 'utf8');
 
           return true;
         }

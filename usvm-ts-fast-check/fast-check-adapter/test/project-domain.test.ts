@@ -78,6 +78,16 @@ interface ProjectionCase {
 
 const projectionCases: ProjectionCase[] = [
   {
+    name: 'plain object',
+    domain: { kind: 'object', fields: { score: { kind: 'integer', min: 0, max: 3 }, enabled: { kind: 'boolean' } } },
+    matches: (value) => {
+      if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
+      const fields = value as Record<string, unknown>;
+      return typeof fields.enabled === 'boolean' && typeof fields.score === 'number'
+        && fields.score >= 0 && fields.score <= 3;
+    },
+  },
+  {
     name: 'boolean',
     domain: { kind: 'boolean' },
     matches: (value) => typeof value === 'boolean',
@@ -142,15 +152,15 @@ test('fast-check capability is exact for supported recursive domains', () => {
 });
 
 test('unknown domain kinds are rejected and reported as unsupported', () => {
-  assert.throws(() => projectDomain({ kind: 'object' }), /domain\.kind\.unknown/);
+  assert.throws(() => projectDomain({ kind: 'symbol' }), /domain\.kind\.unknown/);
 
   assert.deepEqual(
-    projectionCapability({ kind: 'object' }, 'inputs[0].domain'),
+    projectionCapability({ kind: 'symbol' }, 'inputs[0].domain'),
     {
       level: 'unsupported',
       diagnostics: [{
         code: 'domain.kind.unknown',
-        message: 'Unknown property domain kind: object',
+        message: 'Unknown property domain kind: symbol',
         path: 'inputs[0].domain',
       }],
     },

@@ -7,8 +7,10 @@ import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.machine.TsAnalysisStopReason
+import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
+import org.usvm.machine.TsRuntimeFeatureLimitationEvent
 import org.usvm.machine.call.TsUnknownCallModelSelection
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
@@ -61,6 +63,7 @@ internal data class CallsCoverageSearchResult(
     val unsupportedCall: Boolean = false,
     val engineFailed: Boolean = false,
     val runtimeLimited: Boolean = false,
+    val runtimeLimitationReasons: List<String> = emptyList(),
     val diagnostic: String? = null,
 )
 
@@ -144,6 +147,12 @@ internal class CurrentTsCallsCoverageEngine(
         } else {
             TsUnknownCallModelSelection.Only(emptySet())
         }
+        val runtimeLimitationReasons = linkedSetOf<String>()
+        val interpreterObserver = object : TsInterpreterObserver {
+            override fun onRuntimeFeatureLimitation(event: TsRuntimeFeatureLimitationEvent) {
+                runtimeLimitationReasons += event.reason.name
+            }
+        }
         val machineOptions = UMachineOptions(
             pathSelectionStrategies = listOf(CALLS_PATH_SELECTION_STRATEGY),
             stateCollectionStrategy = StateCollectionStrategy.COVERED_NEW,
@@ -163,6 +172,7 @@ internal class CurrentTsCallsCoverageEngine(
                     unknownCallModelSelection = modelSelection,
                     unknownCallFallback = request.profile.fallback,
                 ),
+                observer = interpreterObserver,
                 initialStateConfigurator = symbolicInputs::initialize,
                 initialParameterSortOverride = symbolicInputs::sortOverride,
                 machineObserver = observer,
@@ -195,6 +205,7 @@ internal class CurrentTsCallsCoverageEngine(
             unsupportedCall = outcome?.unsupportedCall == true,
             engineFailed = outcome?.engineFailed == true,
             runtimeLimited = outcome?.runtimeLimited == true,
+            runtimeLimitationReasons = runtimeLimitationReasons.toList(),
             diagnostic = machineResult.exceptionOrNull()?.let { error -> error.message ?: error::class.java.name },
         )
     }
