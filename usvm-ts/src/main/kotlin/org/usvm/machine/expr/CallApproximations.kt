@@ -30,6 +30,7 @@ import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.markResolved
 import org.usvm.machine.interpreter.setResolvedValue
 import org.usvm.machine.state.TsMethodResult
+import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.types.TsUnresolvedArrayKind
 import org.usvm.machine.types.mkFakeValue
@@ -53,10 +54,16 @@ internal fun TsExprResolver.tryApproximateGlobalInstanceCall(
         return from(mkUndefinedValue())
     }
 
-    // Handle `Number.isNaN()` calls
+    // Handle `Number` calls.
     if (expr.instance.name == "Number") {
-        if (expr.callee.name == "isNaN") {
-            return from(handleNumberIsNaN(expr))
+        when (expr.callee.name) {
+            "isFinite", "isInteger", "isSafeInteger" -> {
+                return tryDispatchNumericBuiltin(expr)
+                    ?: TsExprApproximationResult.NoApproximation
+            }
+
+            "isNaN" -> return tryDispatchNumericBuiltin(expr)
+                ?: from(handleNumberIsNaN(expr))
         }
     }
 
@@ -77,14 +84,44 @@ internal fun TsExprResolver.tryApproximateGlobalInstanceCall(
         }
     }
 
-    // Handle `Math` method calls
+    // Handle `Math` method calls.
     if (expr.instance.name == "Math") {
-        if (expr.callee.name == "floor") {
-            return from(handleMathFloor(expr))
+        when (expr.callee.name) {
+            "abs", "ceil", "max", "min", "round", "sqrt", "trunc" -> {
+                return tryDispatchNumericBuiltin(expr)
+                    ?: TsExprApproximationResult.NoApproximation
+            }
+
+            "floor" -> return tryDispatchNumericBuiltin(expr)
+                ?: from(handleMathFloor(expr))
         }
     }
 
     return TsExprApproximationResult.NoApproximation
+}
+
+private fun TsExprResolver.tryDispatchNumericBuiltin(
+    expr: EtsInstanceCallExpr,
+): TsExprApproximationResult? {
+    val dispatcher = unknownCallDispatcher
+    if (dispatcher !is TsUnknownCallModelDispatcher) {
+        return null
+    }
+    val resolvedArguments = buildList {
+        for (argument in expr.args) {
+            add(resolve(argument) ?: return TsExprApproximationResult.ResolveFailure)
+        }
+    }
+
+    dispatcher.dispatch(
+        scope = scope,
+        call = expr,
+        callSite = scope.calcOnState { lastStmt },
+        failureReason = TsUnknownCallFailureReason.PARTIAL_APPROXIMATION,
+        resolvedArguments = resolvedArguments,
+    )
+
+    return TsExprApproximationResult.ResolveFailure
 }
 
 internal fun TsExprResolver.tryApproximateInstanceCall(
