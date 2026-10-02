@@ -80,6 +80,7 @@ import org.jacodb.ets.model.EtsValue
 import org.jacodb.ets.model.EtsVoidExpr
 import org.jacodb.ets.model.EtsYieldExpr
 import org.jacodb.ets.utils.ANONYMOUS_METHOD_PREFIX
+import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
 import org.jacodb.ets.utils.getDeclaredLocals
 import org.usvm.UConcreteHeapRef
@@ -90,7 +91,7 @@ import org.usvm.USort
 import org.usvm.api.allocateConcreteRef
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArrayLength
-import org.usvm.api.makeSymbolicPrimitive
+import org.usvm.api.typeStreamOf
 import org.usvm.dataflow.ts.infer.tryGetKnownType
 import org.usvm.dataflow.ts.util.type
 import org.usvm.isAllocatedConcreteHeapRef
@@ -116,6 +117,7 @@ import org.usvm.machine.state.newStmt
 import org.usvm.machine.types.EtsNominalType
 import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.sizeSort
+import org.usvm.types.TypesResult
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.SymbolResolutionResult
 import org.usvm.util.arrayStorageType
@@ -142,6 +144,22 @@ private const val ECMASCRIPT_BITWISE_INTEGER_SIZE = 32
  * and `x << 37` is equivalent to `x << 5`.
  */
 private const val ECMASCRIPT_BITWISE_SHIFT_MASK = 0b11111
+
+// Prototype lookup is not modeled. These keys must not be reported as absent on an object literal.
+private val OBJECT_PROTOTYPE_PROPERTIES = setOf(
+    "__defineGetter__",
+    "__defineSetter__",
+    "__lookupGetter__",
+    "__lookupSetter__",
+    "__proto__",
+    "constructor",
+    "hasOwnProperty",
+    "isPrototypeOf",
+    "propertyIsEnumerable",
+    "toLocaleString",
+    "toString",
+    "valueOf",
+)
 
 private enum class UpdateOperator {
     INCREMENT,
@@ -900,19 +918,51 @@ class TsExprResolver(
 
     override fun visit(expr: EtsInExpr): UExpr<out USort>? = with(ctx) {
         val property = resolve(expr.left) ?: return null
-        val obj = resolve(expr.right)?.asExpr(addressSort) ?: return null
+        val resolvedObject = resolve(expr.right) ?: return null
+        if (resolvedObject.sort != addressSort) {
+            throw UnsupportedOperationException(
+                "The right operand of 'in' is not modeled as an object: $resolvedObject"
+            )
+        }
+        val obj = resolvedObject.asExpr(addressSort)
 
-        // Check for null/undefined access
         checkUndefinedOrNullPropertyRead(scope, obj, propertyName = "<in>") ?: return null
 
-        logger.warn {
-            "The 'in' operator is supported yet, the result may not be accurate"
+        val hasExecutedDelete = scope.calcOnState { hasExecutedDelete }
+        if (hasExecutedDelete) {
+            throw UnsupportedOperationException("The 'in' operator after delete requires property deletion semantics")
+        }
+        if (expr.right is EtsLocal && expr.right.type is EtsArrayType) {
+            throw UnsupportedOperationException("The 'in' operator for arrays requires element presence semantics")
+        }
+        if (!isAllocatedConcreteHeapRef(obj)) {
+            throw UnsupportedOperationException(
+                "The 'in' operator for symbolic object references is not supported: $obj"
+            )
         }
 
-        // For now, just return a symbolic boolean (that can be true or false)
-        scope.calcOnState {
-            makeSymbolicPrimitive(boolSort)
+        val propertyName = concreteStringValue(property)
+            ?: throw UnsupportedOperationException("Symbolic property keys in 'in' are not supported: $property")
+
+        val objectTypes = scope.calcOnState { memory.typeStreamOf(obj).take(2) }
+        val objectType = (objectTypes as? TypesResult.SuccessfulTypesResult)?.types?.singleOrNull() as? EtsClassType
+            ?: throw UnsupportedOperationException("The 'in' operator requires an object literal: $obj")
+        val objectClass = hierarchy.classesForType(objectType).singleOrNull()
+            ?.takeIf { it.category == EtsClassCategory.OBJECT }
+            ?: throw UnsupportedOperationException("The 'in' operator requires an object literal: $objectType")
+
+        // The EtsIR object-literal class records its own properties, including those with undefined values.
+        val ownPropertyNames = objectClass.fields.map { it.name } +
+            objectClass.methods.filter { it.name != CONSTRUCTOR_NAME }.map { it.name }
+
+        if (propertyName in ownPropertyNames) {
+            return mkTrue()
         }
+        if (propertyName in OBJECT_PROTOTYPE_PROPERTIES) {
+            throw UnsupportedOperationException("Prototype lookup for '$propertyName' in 'in' is not supported")
+        }
+
+        mkFalse()
     }
 
     override fun visit(expr: EtsInstanceOfExpr): UExpr<out USort>? = with(ctx) {

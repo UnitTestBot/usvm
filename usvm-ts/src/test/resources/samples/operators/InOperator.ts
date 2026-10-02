@@ -2,6 +2,33 @@
 // noinspection JSUnusedGlobalSymbols
 
 class InOperator {
+    hasPresentNumberProperty(value: number): number {
+        const obj = { x: value };
+        if ("x" in obj) return 1;
+        return -1;
+    }
+
+    hasUndefinedProperty(value: number): number {
+        const obj = { x: undefined, y: value };
+        if ("x" in obj) return 1;
+        return -1;
+    }
+
+    lacksProperty(value: number): number {
+        const obj = { x: value };
+        if ("missing" in obj) return -1;
+        return 1;
+    }
+
+    hasSymbolicKey(key: string): boolean {
+        const obj = { x: 1 };
+        return key in obj;
+    }
+
+    hasInputProperty(obj: { x: number }): boolean {
+        return "x" in obj;
+    }
+
     testInOperatorObject(): number {
         let obj = { x: 42, y: undefined };
 
