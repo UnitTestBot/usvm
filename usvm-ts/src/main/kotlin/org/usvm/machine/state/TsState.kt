@@ -90,6 +90,7 @@ class TsState(
     /** Unresolved reference payloads that may acquire string backing after type refinement. */
     var symbolicStringCandidates: Set<UHeapRef> = emptySet(),
     var unsupportedReason: String? = null,
+    var writtenConcreteFields: Set<Pair<UHeapRef, String>> = emptySet(),
     private val activeUnknownCallModels: MutableList<Pair<String, Int>> = mutableListOf(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
     ctx = ctx,
@@ -327,6 +328,7 @@ class TsState(
             boundedStringBackingRefs = boundedStringBackingRefs,
             symbolicStringCandidates = symbolicStringCandidates,
             unsupportedReason = unsupportedReason,
+            writtenConcreteFields = writtenConcreteFields,
             activeUnknownCallModels = activeUnknownCallModels.toMutableList(),
         )
     }
