@@ -111,7 +111,8 @@ class TsInterpreter(
         val result = state.methodResult
         if (result is TsMethodResult.TsException) {
             scope.doWithState {
-                val catcher = stmt.location.method.cfg.catchers(stmt).singleOrNull()
+                val catchers = stmt.location.method.cfg.catchers(stmt)
+                val catcher = catchers.singleOrNull()
                 if (catcher != null) {
                     caughtException = result.value
                     methodResult = TsMethodResult.NoCall
