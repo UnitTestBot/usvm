@@ -139,6 +139,8 @@ private const val ECMASCRIPT_BITWISE_INTEGER_SIZE = 32
  */
 private const val ECMASCRIPT_BITWISE_SHIFT_MASK = 0b11111
 
+private const val SQUARE_ROOT_EXPONENT = 0.5
+
 private enum class UpdateOperator {
     INCREMENT,
     DECREMENT,
@@ -626,8 +628,51 @@ class TsExprResolver(
     }
 
     override fun visit(expr: EtsExpExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+        return resolveAfterResolved(expr.left, expr.right) { left, right ->
+            with(ctx) {
+                for (operand in listOf(left, right)) {
+                    val supportedPrimitive = operand.sort == fp64Sort || operand.sort == boolSort ||
+                        operand == mkTsNullValue() || operand == mkUndefinedValue()
+                    if (!supportedPrimitive) {
+                        throw UnsupportedOperationException(
+                            "Exponentiation operand outside the supported Number conversion model: $operand"
+                        )
+                    }
+                }
+
+                val base = mkNumericExpr(left, scope)
+                val exponent = mkNumericExpr(right, scope)
+
+                if (base is KFp64Value && exponent is KFp64Value) {
+                    return@with mkFp64(value = Math.pow(base.value, exponent.value))
+                }
+
+                val concreteExponent = (exponent as? KFp64Value)?.value
+                    ?: throw UnsupportedOperationException("Symbolic exponentiation exponent is not supported: $expr")
+
+                when (concreteExponent) {
+                    0.0 -> mkFp64(value = 1.0)
+                    1.0 -> base
+                    2.0 -> mkFpMulExpr(fpRoundingModeSortDefaultValue(), base, base)
+                    -1.0 -> mkFpDivExpr(fpRoundingModeSortDefaultValue(), mkFp64(value = 1.0), base)
+                    SQUARE_ROOT_EXPONENT -> {
+                        // Number::exponentiate maps either signed zero to +0 for a non-integral exponent.
+                        val positiveZero = mkFp64(value = 0.0)
+                        val isZero = mkFpEqualExpr(base, positiveZero)
+                        val squareRoot = mkFpSqrtExpr(fpRoundingModeSortDefaultValue(), base)
+
+                        mkIte(
+                            condition = isZero,
+                            trueBranch = positiveZero,
+                            falseBranch = squareRoot,
+                        )
+                    }
+                    else -> throw UnsupportedOperationException(
+                        "Symbolic exponentiation with exponent $concreteExponent is not supported: $expr"
+                    )
+                }
+            }
+        }
     }
 
     override fun visit(expr: EtsBitAndExpr): UExpr<out USort>? = with(ctx) {
