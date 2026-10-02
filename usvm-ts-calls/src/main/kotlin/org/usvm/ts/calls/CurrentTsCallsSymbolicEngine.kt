@@ -224,6 +224,18 @@ internal class CurrentTsCallsSymbolicEngine(
         }
 
         val mappedTarget = mapping.predicate.targets.single()
+        callsSymbolicInputTypePreflight(
+            inputs = request.function.inputs,
+            bindings = mappedTarget.bindings.inputs,
+            scene = scene,
+        )?.let { diagnostic ->
+            return CallsFunctionPreparation.Rejected(
+                status = CallsSymbolicStatus.UNSUPPORTED,
+                reasonCode = CallsSymbolicPreflightReasonCode.INPUT_DOMAIN_UNSUPPORTED,
+                diagnostic = diagnostic,
+            )
+        }
+
         val lexicalEnvironment = mappedTarget.bindings.lexicalEnvironment
         if (lexicalEnvironment != null && lexicalEnvironment.parameter.type !is EtsLexicalEnvType) {
             return CallsFunctionPreparation.Rejected(
@@ -453,6 +465,18 @@ internal class CurrentTsCallsSymbolicEngine(
         }
 
         val mappedTarget = mapping.predicate.targets.single()
+        callsSymbolicInputTypePreflight(
+            inputs = request.function.inputs,
+            bindings = mappedTarget.bindings.inputs,
+            scene = scene,
+        )?.let { diagnostic ->
+            return CallsTargetPreparation.Rejected(
+                status = CallsSymbolicStatus.UNSUPPORTED,
+                reasonCode = CallsSymbolicPreflightReasonCode.INPUT_DOMAIN_UNSUPPORTED,
+                diagnostic = diagnostic,
+            )
+        }
+
         val lexicalEnvironment = mappedTarget.bindings.lexicalEnvironment
         if (lexicalEnvironment != null && lexicalEnvironment.parameter.type !is EtsLexicalEnvType) {
             return CallsTargetPreparation.Rejected(

@@ -63,6 +63,68 @@ class CurrentTsCallsSymbolicEngineTest {
     }
 
     @Test
+    fun `nested object and array fields have symbolic values and exact source replay`() {
+        val fixture = fixture(
+            source = """
+                export function accepts(input: { details: { score: number }; scores: number[] }): boolean {
+                  if (input.details.score > 5 && input.scores.length > 0 && input.scores[0] > 3) return true;
+                  return false;
+                }
+            """.trimIndent(),
+            exportName = "accepts",
+            inputs = listOf(
+                PropertyInput(
+                    name = "input",
+                    domain = ObjectDomain(
+                        fields = mapOf(
+                            "details" to ObjectDomain(fields = mapOf("score" to NumberDomain())),
+                            "scores" to ArrayDomain(element = NumberDomain(), minLength = 1, maxLength = 2),
+                        ),
+                    ),
+                ),
+            ),
+            targetStatement = "return true;",
+        )
+
+        val result = fixture.search(modelIds = emptySet())
+        val inputs = assertNotNull(result.inputs, result.toString())
+        val input = assertIs<JsConcreteValue.Object>(inputs.single())
+        val details = assertIs<JsConcreteValue.Object>(input.fields.getValue("details"))
+        val scores = assertIs<JsConcreteValue.Array>(input.fields.getValue("scores"))
+
+        assertTrue(assertIs<JsConcreteValue.Number>(details.fields.getValue("score")).toDouble() > 5)
+        assertTrue(assertIs<JsConcreteValue.Number>(scores.elements.first()).toDouble() > 3)
+        fixture.assertReplayConfirmed(inputs)
+    }
+
+    @Test
+    fun `nested object domain with non-object EtsIR field is rejected before search`() {
+        val fixture = fixture(
+            source = """
+                export function accepts(input: { details: number }): boolean {
+                  return true;
+                }
+            """.trimIndent(),
+            exportName = "accepts",
+            inputs = listOf(
+                PropertyInput(
+                    name = "input",
+                    domain = ObjectDomain(
+                        fields = mapOf("details" to ObjectDomain(fields = mapOf("score" to NumberDomain()))),
+                    ),
+                ),
+            ),
+            targetStatement = "return true;",
+        )
+
+        val preflight = fixture.preflight()
+
+        assertEquals(CallsSymbolicPreflightStatus.UNSUPPORTED, preflight.status)
+        assertEquals(CallsSymbolicPreflightReasonCode.INPUT_DOMAIN_UNSUPPORTED, preflight.reasonCode)
+        assertTrue(preflight.diagnostic.orEmpty().contains("input.details"), preflight.toString())
+    }
+
+    @Test
     fun `object argument can pass through constructor and stored callback`() {
         val fixture = fixture(
             source = """
