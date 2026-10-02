@@ -1,6 +1,9 @@
 package org.usvm.ts.calls
 
 import org.junit.jupiter.api.io.TempDir
+import org.usvm.machine.TsRuntimeFeatureLimitationEvent
+import org.usvm.machine.TsRuntimeFeatureLimitationReason
+import org.usvm.machine.call.TsUnknownCallDecision
 import org.usvm.machine.call.TsUnknownCallEvent
 import org.usvm.ts.pbt.model.ArrayDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
@@ -18,9 +21,36 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
+@Suppress("LargeClass")
 class CurrentTsCallsSymbolicEngineTest {
     @TempDir
     lateinit var directory: Path
+
+    @Test
+    fun `runtime limitation is reported instead of an unreached target`() {
+        val fixture = fixture(
+            source = """
+                export function writesNamedProperty(value: number): boolean {
+                  const values = [1];
+                  values[0.5] = value;
+                  return true;
+                }
+            """.trimIndent(),
+            exportName = "writesNamedProperty",
+            inputs = listOf(PropertyInput(name = "value", domain = NumberDomain())),
+            targetStatement = "return true;",
+        )
+        val limitations = mutableListOf<TsRuntimeFeatureLimitationEvent>()
+
+        val result = fixture.search(
+            modelIds = emptySet(),
+            runtimeLimitationEventSink = limitations::add,
+        )
+
+        assertEquals(CallsSymbolicStatus.RUNTIME_LIMITATION, result.status, result.toString())
+        assertEquals(TsRuntimeFeatureLimitationReason.ARRAY_NAMED_PROPERTY_WRITE, limitations.single().reason)
+        assertTrue(result.diagnostic.orEmpty().contains("ARRAY_NAMED_PROPERTY_WRITE"))
+    }
 
     @Test
     fun `bundled frontend accepts only the revision baked into the running build`() {
@@ -110,7 +140,7 @@ class CurrentTsCallsSymbolicEngineTest {
             unknownCallEventSink = unknownCalls::add,
         )
 
-        val inputs = assertNotNull(result.inputs, result.toString())
+        val inputs = assertNotNull(result.inputs, "$result; unknownCalls=$unknownCalls")
         assertTrue(assertIs<JsConcreteValue.Array>(inputs[0]).elements.isNotEmpty())
         assertTrue(assertIs<JsConcreteValue.Number>(inputs[1]).toDouble().isNaN())
         assertTrue(unknownCalls.isNotEmpty())
@@ -233,6 +263,40 @@ class CurrentTsCallsSymbolicEngineTest {
     }
 
     @Test
+    fun `completed return rejects a partial ordinary return expression`() {
+        val fixture = fixture(
+            source = "export function increment(value: number): number { return value + 1; }",
+            exportName = "increment",
+            inputs = listOf(PropertyInput(name = "value", domain = NumberDomain())),
+            targetStatement = "1",
+            targetMode = CallsSourceTargetMode.COMPLETED_RETURN,
+            returnExpression = "1",
+        )
+
+        val preflight = fixture.preflight()
+
+        assertEquals(CallsSymbolicPreflightStatus.UNSUPPORTED, preflight.status)
+        assertEquals(CallsSymbolicPreflightReasonCode.TARGET_ORIGIN_UNSUPPORTED, preflight.reasonCode)
+    }
+
+    @Test
+    fun `completed return accepts a module-local arrow exported by clause`() {
+        val expression = "value > 0"
+        val fixture = fixture(
+            source = "const aliasedArrow = (value: number): boolean => $expression; export { aliasedArrow };",
+            exportName = "aliasedArrow",
+            inputs = listOf(PropertyInput(name = "value", domain = NumberDomain())),
+            targetStatement = expression,
+            targetMode = CallsSourceTargetMode.COMPLETED_RETURN,
+            returnExpression = expression,
+        )
+
+        val preflight = fixture.preflight()
+
+        assertEquals(CallsSymbolicPreflightStatus.ELIGIBLE, preflight.status, preflight.toString())
+    }
+
+    @Test
     fun `preflight rejects source coordinates that do not match offsets`() {
         val fixture = fixture(
             source = "export function identity(value: number): number { return value; }",
@@ -291,6 +355,342 @@ class CurrentTsCallsSymbolicEngineTest {
         assertEquals(CallsSymbolicPreflightStatus.UNSUPPORTED, result.status)
         assertEquals(CallsSymbolicPreflightReasonCode.LEXICAL_CAPTURE_UNSUPPORTED, result.reasonCode)
         assertTrue(result.diagnostic.orEmpty().contains("threshold"))
+    }
+
+    @Test
+    fun `accepts genuine builtin lexical captures before search`() {
+        val fixture = fixture(
+            source = """
+                export const usesBuiltinGlobals = (value: number): boolean => {
+                  const map = new Map<number, Set<number>>([[value, new Set([value])]]);
+                  const errors = [new Error(), new RangeError(), new TypeError()];
+                  if (Date.now() >= 0 || value === Infinity || value === NaN || isNaN(value)) {
+                    return true;
+                  }
+                  return map.size === errors.length;
+                };
+            """.trimIndent(),
+            exportName = "usesBuiltinGlobals",
+            inputs = listOf(PropertyInput(name = "value", domain = NumberDomain())),
+            targetStatement = "return true;",
+        )
+
+        val result = fixture.preflight()
+
+        assertEquals(CallsSymbolicPreflightStatus.ELIGIBLE, result.status, result.toString())
+    }
+
+    @Test
+    fun `preflight rejects regex raw entities with a stable reason`() {
+        val fixture = fixture(
+            source = """
+                export function containsA(value: string): boolean {
+                  if (/a/.test(value)) {
+                    return true;
+                  }
+                  return false;
+                }
+            """.trimIndent(),
+            exportName = "containsA",
+            inputs = listOf(PropertyInput(name = "value", domain = StringDomain(maxLength = 3))),
+            targetStatement = "return true;",
+        )
+
+        val result = fixture.preflight()
+
+        assertEquals(CallsSymbolicPreflightStatus.UNSUPPORTED, result.status)
+        assertEquals(CallsSymbolicPreflightReasonCode.REGEX_LITERAL_UNSUPPORTED, result.reasonCode, result.toString())
+    }
+
+    @Test
+    fun `preflight rejects regex raw entities in a reachable same-file helper`() {
+        val fixture = fixture(
+            source = """
+                function helper(): boolean {
+                  return /x/.test("x");
+                }
+
+                export function callsHelper(value: number): boolean {
+                  return helper() && value > 0;
+                }
+            """.trimIndent(),
+            exportName = "callsHelper",
+            inputs = listOf(PropertyInput(name = "value", domain = NumberDomain())),
+            targetStatement = "return helper() && value > 0;",
+        )
+
+        val result = fixture.preflight()
+
+        assertEquals(CallsSymbolicPreflightStatus.UNSUPPORTED, result.status)
+        assertEquals(CallsSymbolicPreflightReasonCode.REGEX_LITERAL_UNSUPPORTED, result.reasonCode, result.toString())
+    }
+
+    @Test
+    fun `preflight ignores regex raw entities in an unreachable same-file helper`() {
+        val fixture = fixture(
+            source = """
+                function unusedHelper(): boolean {
+                  return /x/.test("x");
+                }
+
+                export function ignoresHelper(value: number): boolean {
+                  if (value > 0) {
+                    return true;
+                  }
+                  return false;
+                }
+            """.trimIndent(),
+            exportName = "ignoresHelper",
+            inputs = listOf(PropertyInput(name = "value", domain = NumberDomain())),
+            targetStatement = "return true;",
+        )
+
+        val result = fixture.preflight()
+
+        assertEquals(CallsSymbolicPreflightStatus.ELIGIBLE, result.status, result.toString())
+    }
+
+    @Test
+    fun `preflight rejects spread raw entities with a stable reason`() {
+        val fixture = fixture(
+            source = """
+                export function copies(values: number[]): boolean {
+                  const copy = [...values];
+                  if (copy.length > 0) {
+                    return true;
+                  }
+                  return false;
+                }
+            """.trimIndent(),
+            exportName = "copies",
+            inputs = listOf(
+                PropertyInput(
+                    name = "values",
+                    domain = ArrayDomain(element = NumberDomain(), maxLength = 3),
+                ),
+            ),
+            targetStatement = "return true;",
+        )
+
+        val result = fixture.preflight()
+
+        assertEquals(CallsSymbolicPreflightStatus.UNSUPPORTED, result.status)
+        assertEquals(CallsSymbolicPreflightReasonCode.SPREAD_UNSUPPORTED, result.reasonCode, result.toString())
+    }
+
+    @Test
+    fun `preflight rejects destructuring raw entities with a stable reason`() {
+        val fixture = fixture(
+            source = """
+                export function readsHead(values: number[]): boolean {
+                  const [head, ...tail] = values;
+                  if (head === 1 && tail.length >= 0) {
+                    return true;
+                  }
+                  return false;
+                }
+            """.trimIndent(),
+            exportName = "readsHead",
+            inputs = listOf(
+                PropertyInput(
+                    name = "values",
+                    domain = ArrayDomain(element = NumberDomain(), maxLength = 3),
+                ),
+            ),
+            targetStatement = "return true;",
+        )
+
+        val result = fixture.preflight()
+
+        assertEquals(CallsSymbolicPreflightStatus.UNSUPPORTED, result.status)
+        assertEquals(CallsSymbolicPreflightReasonCode.DESTRUCTURING_UNSUPPORTED, result.reasonCode, result.toString())
+    }
+
+    @Test
+    fun `preflight rejects nested runtime lexical environments`() {
+        val fixture = fixture(
+            source = """
+                export function invokesClosure(value: number): boolean {
+                  const predicate = () => value > 0;
+                  if (predicate()) {
+                    return true;
+                  }
+                  return false;
+                }
+            """.trimIndent(),
+            exportName = "invokesClosure",
+            inputs = listOf(PropertyInput(name = "value", domain = NumberDomain())),
+            targetStatement = "return true;",
+        )
+
+        val result = fixture.preflight()
+
+        assertEquals(CallsSymbolicPreflightStatus.UNSUPPORTED, result.status)
+        assertEquals(
+            CallsSymbolicPreflightReasonCode.LEXICAL_ENVIRONMENT_UNSUPPORTED,
+            result.reasonCode,
+            result.toString(),
+        )
+    }
+
+    @Test
+    fun `preflight rejects prototype property access`() {
+        val fixture = fixture(
+            source = """
+                export function readsPrototype(): boolean {
+                  if (Object.prototype !== undefined) {
+                    return true;
+                  }
+                  return false;
+                }
+            """.trimIndent(),
+            exportName = "readsPrototype",
+            inputs = emptyList(),
+            targetStatement = "return true;",
+        )
+
+        val result = fixture.preflight()
+
+        assertEquals(CallsSymbolicPreflightStatus.UNSUPPORTED, result.status)
+        assertEquals(
+            CallsSymbolicPreflightReasonCode.PROTOTYPE_ACCESS_UNSUPPORTED,
+            result.reasonCode,
+            result.toString(),
+        )
+    }
+
+    @Test
+    fun `preflight rejects symbolic number to string conversion`() {
+        val fixture = fixture(
+            source = """
+                export function formatsValue(value: number): boolean {
+                  const text = "value=" + value;
+                  if (text.length > 0) {
+                    return true;
+                  }
+                  return false;
+                }
+            """.trimIndent(),
+            exportName = "formatsValue",
+            inputs = listOf(PropertyInput(name = "value", domain = NumberDomain())),
+            targetStatement = "return true;",
+        )
+
+        val result = fixture.preflight()
+
+        assertEquals(CallsSymbolicPreflightStatus.UNSUPPORTED, result.status)
+        assertEquals(
+            CallsSymbolicPreflightReasonCode.SYMBOLIC_NUMBER_TO_STRING_UNSUPPORTED,
+            result.reasonCode,
+            result.toString(),
+        )
+    }
+
+    @Test
+    fun `initializes captured Math for modeled arrow search and replay`() {
+        val fixture = fixture(
+            source = """
+                export const floorsToThree = (value: number): boolean => {
+                  if (Math.floor(value) === 3) {
+                    return true;
+                  }
+                  return false;
+                };
+            """.trimIndent(),
+            exportName = "floorsToThree",
+            inputs = listOf(PropertyInput(name = "value", domain = NumberDomain())),
+            targetStatement = "return true;",
+        )
+        val unknownCalls = mutableListOf<TsUnknownCallEvent>()
+
+        val result = fixture.search(
+            modelIds = setOf("ts.math.floor"),
+            unknownCallEventSink = unknownCalls::add,
+        )
+
+        val inputs = assertNotNull(result.inputs, "$result; unknownCalls=$unknownCalls")
+        val value = assertIs<JsConcreteValue.Number>(inputs.single()).toDouble()
+        assertEquals(3.0, kotlin.math.floor(value))
+        assertTrue(
+            unknownCalls.any { event ->
+                (event.decision as? TsUnknownCallDecision.ModelApplied)?.modelId == "ts.math.floor"
+            },
+        )
+        fixture.assertReplayConfirmed(inputs)
+    }
+
+    @Test
+    fun `initializes captured Number for modeled arrow search and replay`() {
+        val fixture = fixture(
+            source = """
+                export const isIntegerThree = (value: number): boolean => {
+                  if (Number.isInteger(value) && value > 2 && value < 4) {
+                    return true;
+                  }
+                  return false;
+                };
+            """.trimIndent(),
+            exportName = "isIntegerThree",
+            inputs = listOf(PropertyInput(name = "value", domain = NumberDomain())),
+            targetStatement = "return true;",
+        )
+        val unknownCalls = mutableListOf<TsUnknownCallEvent>()
+
+        val result = fixture.search(
+            modelIds = setOf("ts.number.isInteger"),
+            unknownCallEventSink = unknownCalls::add,
+        )
+
+        val inputs = assertNotNull(result.inputs, "$result; unknownCalls=$unknownCalls")
+        assertEquals(3.0, assertIs<JsConcreteValue.Number>(inputs.single()).toDouble())
+        assertTrue(
+            unknownCalls.any { event ->
+                (event.decision as? TsUnknownCallDecision.ModelApplied)?.modelId == "ts.number.isInteger"
+            },
+        )
+        fixture.assertReplayConfirmed(inputs)
+    }
+
+    @Test
+    fun `does not model user defined Math and Number receivers`() {
+        val fixture = fixture(
+            source = """
+                class UserMath {
+                  floor(value: number): number {
+                    return value + 1;
+                  }
+                }
+
+                class UserNumber {
+                  isInteger(value: number): boolean {
+                    return value === 2;
+                  }
+                }
+
+                export function usesShadowedGlobals(value: number): boolean {
+                  const Math = new UserMath();
+                  const Number = new UserNumber();
+                  if (Math.floor(value) === 3 && Number.isInteger(value)) {
+                    return true;
+                  }
+                  return false;
+                }
+            """.trimIndent(),
+            exportName = "usesShadowedGlobals",
+            inputs = listOf(PropertyInput(name = "value", domain = NumberDomain())),
+            targetStatement = "return true;",
+        )
+        val unknownCalls = mutableListOf<TsUnknownCallEvent>()
+
+        val result = fixture.search(
+            modelIds = setOf("ts.math.floor", "ts.number.isInteger"),
+            unknownCallEventSink = unknownCalls::add,
+        )
+
+        val inputs = assertNotNull(result.inputs, "$result; unknownCalls=$unknownCalls")
+        assertEquals(2.0, assertIs<JsConcreteValue.Number>(inputs.single()).toDouble())
+        assertTrue(unknownCalls.none { event -> event.decision is TsUnknownCallDecision.ModelApplied })
+        fixture.assertReplayConfirmed(inputs)
     }
 
     @Test
@@ -418,6 +818,7 @@ class CurrentTsCallsSymbolicEngineTest {
         fun search(
             modelIds: Set<String>,
             unknownCallEventSink: ((TsUnknownCallEvent) -> Unit)? = null,
+            runtimeLimitationEventSink: ((TsRuntimeFeatureLimitationEvent) -> Unit)? = null,
         ): CallsSymbolicSearchResult = engine.search(
             CallsSymbolicSearchRequest(
                 sourceRoot = sourceRoot,
@@ -430,6 +831,7 @@ class CurrentTsCallsSymbolicEngineTest {
                 seed = 0,
                 budget = 10.seconds,
                 unknownCallEventSink = unknownCallEventSink,
+                runtimeLimitationEventSink = runtimeLimitationEventSink,
             )
         )
 

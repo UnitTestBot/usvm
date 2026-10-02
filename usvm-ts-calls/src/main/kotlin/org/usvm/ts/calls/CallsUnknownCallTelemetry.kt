@@ -4,6 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsNamespaceSignature
+import org.usvm.machine.TsRuntimeFeatureLimitationEvent
 import org.usvm.machine.call.TsResidualCallPolicy
 import org.usvm.machine.call.TsUnknownCallDecision
 import org.usvm.machine.call.TsUnknownCallEvent
@@ -69,6 +70,45 @@ internal data class CallsUnknownCallRecord(
         require((decision == CallsUnknownCallDecisionKind.RESIDUAL_FALLBACK) == (residualPolicy != null)) {
             "Exactly a residual-fallback decision must carry a residual policy"
         }
+    }
+}
+
+@Serializable
+@SerialName("runtime-limitation")
+internal data class CallsRuntimeLimitationRecord(
+    val cell: CallsExperimentCellIdentity,
+    val eventIndex: Int,
+    val callSite: CallsUnknownCallSite,
+    val reason: String,
+    val detail: String,
+) : CallsRawRecord
+
+internal fun callsRuntimeLimitationEventSink(
+    cell: CallsExperimentCellIdentity,
+    appendAndFlush: (CallsRuntimeLimitationRecord) -> Unit,
+): (TsRuntimeFeatureLimitationEvent) -> Unit {
+    var eventIndex = 0
+    return { event ->
+        eventIndex++
+        val location = event.statement.location
+        val origin = location.origin
+        val containingMethod = location.method.signature
+        val callSite = CallsUnknownCallSite(
+            sourcePath = containingMethod.enclosingClass.file.fileName,
+            statementIndex = location.index,
+            startOffset = origin?.startOffset,
+            endOffset = origin?.endOffset,
+            start = origin?.let { CallsSourcePosition(line = it.startLine, column = it.startColumn) },
+            end = origin?.let { CallsSourcePosition(line = it.endLine, column = it.endColumn) },
+        )
+        val record = CallsRuntimeLimitationRecord(
+            cell = cell,
+            eventIndex = eventIndex,
+            callSite = callSite,
+            reason = event.reason.name,
+            detail = event.detail,
+        )
+        appendAndFlush(record)
     }
 }
 
