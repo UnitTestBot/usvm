@@ -4,6 +4,8 @@ import io.ksmt.utils.asExpr
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
+import org.jacodb.ets.model.EtsClassCategory
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLocal
@@ -11,12 +13,15 @@ import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsStaticFieldRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.api.typeStreamOf
+import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.ensureStaticsInitialized
 import org.usvm.machine.types.EtsAuxiliaryType
 import org.usvm.machine.types.extractValue
 import org.usvm.sizeSort
+import org.usvm.types.TypesResult
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.TsResolutionResult
 import org.usvm.util.arrayStorageType
@@ -141,12 +146,22 @@ fun TsContext.assignToInstanceField(
     val unwrappedInstance = instance.unwrapRef(scope)
 
     val etsField = resolveEtsField(instanceLocal, field, hierarchy)
-    // If we access some field, we expect that the object must have this field.
-    // It is not always true for TS, but we decided to process it so.
-    val supertype = EtsAuxiliaryType(properties = setOf(field.name))
-    // assert is required to update models
-    scope.doWithState {
-        scope.assert(memory.types.evalIsSubtype(unwrappedInstance, supertype))
+    val isObjectLiteral = if (isAllocatedConcreteHeapRef(unwrappedInstance)) {
+        val types = scope.calcOnState { memory.typeStreamOf(unwrappedInstance).take(2) }
+        val type = (types as? TypesResult.SuccessfulTypesResult)?.types?.singleOrNull() as? EtsClassType
+        type?.let { hierarchy.classesForType(it).singleOrNull()?.category == EtsClassCategory.OBJECT } == true
+    } else {
+        false
+    }
+
+    // An object literal can acquire a new own property after creation. Requiring its
+    // allocation type to declare the field would reject that valid JavaScript write.
+    if (!isObjectLiteral) {
+        val supertype = EtsAuxiliaryType(properties = setOf(field.name))
+        // assert is required to update models
+        scope.doWithState {
+            scope.assert(memory.types.evalIsSubtype(unwrappedInstance, supertype))
+        }
     }
 
     // Determine the field sort.
@@ -195,6 +210,9 @@ fun TsContext.assignToInstanceField(
         }
 
         memory.write(deletedFieldLValue(unwrappedInstance, field), falseExpr, guard = trueExpr)
+        if (isAllocatedConcreteHeapRef(unwrappedInstance)) {
+            writtenConcreteFields = writtenConcreteFields + (unwrappedInstance to field.name)
+        }
     }
 }
 

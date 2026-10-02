@@ -1039,10 +1039,6 @@ class TsExprResolver(
 
         checkUndefinedOrNullPropertyRead(scope, obj, propertyName = "<in>") ?: return null
 
-        val hasExecutedDelete = scope.calcOnState { hasExecutedDelete }
-        if (hasExecutedDelete) {
-            throw UnsupportedOperationException("The 'in' operator after delete requires property deletion semantics")
-        }
         if (expr.right is EtsLocal && expr.right.type is EtsArrayType) {
             throw UnsupportedOperationException("The 'in' operator for arrays requires element presence semantics")
         }
@@ -1062,18 +1058,27 @@ class TsExprResolver(
             ?.takeIf { it.category == EtsClassCategory.OBJECT }
             ?: throw UnsupportedOperationException("The 'in' operator requires an object literal: $objectType")
 
+        // EtsIR records { __proto__: value } as a field, though it changes the prototype.
+        // Its effect can change the presence of any property, not only "__proto__".
+        if (objectClass.fields.any { it.name == "__proto__" }) {
+            throw UnsupportedOperationException("Object literal prototype initialization in 'in' is not supported")
+        }
+        if (propertyName == "__proto__") {
+            throw UnsupportedOperationException("Prototype lookup for '__proto__' in 'in' is not supported")
+        }
+
         // The EtsIR object-literal class records its own properties, including those with undefined values.
         val ownPropertyNames = objectClass.fields.map { it.name } +
             objectClass.methods.filter { it.name != CONSTRUCTOR_NAME }.map { it.name }
 
-        if (propertyName in ownPropertyNames) {
-            return mkTrue()
-        }
-        if (propertyName in OBJECT_PROTOTYPE_PROPERTIES) {
+        val hasOwnProperty = propertyName in ownPropertyNames ||
+            scope.calcOnState { (obj to propertyName) in writtenConcreteFields }
+        if (!hasOwnProperty && propertyName in OBJECT_PROTOTYPE_PROPERTIES) {
             throw UnsupportedOperationException("Prototype lookup for '$propertyName' in 'in' is not supported")
         }
 
-        mkFalse()
+        val deleted = scope.calcOnState { memory.read(deletedFieldLValue(obj, propertyName)) }
+        if (hasOwnProperty) mkNot(deleted) else mkFalse()
     }
 
     override fun visit(expr: EtsInstanceOfExpr): UExpr<out USort>? = with(ctx) {
