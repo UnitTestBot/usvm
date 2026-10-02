@@ -74,7 +74,6 @@ class TypeOf : TsMethodTestRunner() {
         )
     }
 
-    @Disabled("Functions are not supported yet")
     @Test
     fun `test typeOfFunction`() {
         val method = getMethod("typeOfFunction")
@@ -147,7 +146,7 @@ class TypeOf : TsMethodTestRunner() {
         )
     }
 
-    @Disabled("Functions are not supported yet")
+    @Disabled("Function-typed parameters are unsupported during initial-state construction")
     @Test
     fun `test typeOfInputFunction`() {
         val method = getMethod("typeOfInputFunction")
