@@ -83,4 +83,9 @@ internal val OBJECT_PROTOTYPE_PROPERTIES = setOf(
 internal fun TsContext.deletedFieldLValue(
     instance: UHeapRef,
     field: EtsFieldSignature,
-): DeletedFieldLValue = DeletedFieldLValue(boolSort, instance, field.name)
+): DeletedFieldLValue = deletedFieldLValue(instance, field.name)
+
+internal fun TsContext.deletedFieldLValue(
+    instance: UHeapRef,
+    fieldName: String,
+): DeletedFieldLValue = DeletedFieldLValue(boolSort, instance, fieldName)
