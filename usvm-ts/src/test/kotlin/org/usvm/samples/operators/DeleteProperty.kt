@@ -1,15 +1,18 @@
 package org.usvm.samples.operators
 
 import org.jacodb.ets.model.EtsScene
+import org.usvm.StateCollectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.api.TsTestValue
 import org.usvm.machine.TsAnalysisStopReason
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.util.TsMethodTestRunner
+import org.usvm.util.TsTestResolver
 import org.usvm.util.eq
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.time.Duration
 
@@ -108,5 +111,49 @@ class DeleteProperty : TsMethodTestRunner() {
             { result -> result eq 1 },
             invariants = arrayOf({ result -> result eq 1 }),
         )
+    }
+
+    @Test
+    fun `conditional delete preserves both read outcomes`() {
+        val method = getMethod("readAfterConditionalDelete")
+        val options = UMachineOptions(
+            stateCollectionStrategy = StateCollectionStrategy.ALL,
+            stopOnCoverage = 0,
+            timeout = Duration.INFINITE,
+        )
+
+        val analysis = TsMachine(scene, options, TsOptions()).use { machine ->
+            machine.analyzeWithOutcome(methods = listOf(method))
+        }
+        val tests = analysis.states.map { state -> TsTestResolver().resolve(method, state) }
+
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, analysis.stopReason)
+        assertTrue(analysis.unsupportedPaths.isEmpty(), "${analysis.unsupportedPaths}")
+        assertEquals(setOf(false, true), tests.map { test ->
+            assertIs<TsTestValue.TsBoolean>(test.before.parameters.single()).value
+        }.toSet())
+        tests.forEach { test ->
+            val shouldDelete = assertIs<TsTestValue.TsBoolean>(test.before.parameters.single()).value
+            val result = assertIs<TsTestValue.TsNumber>(test.returnValue).number.toInt()
+            assertEquals(if (shouldDelete) 1 else 2, result, "$test")
+        }
+    }
+
+    @Test
+    fun `deleting a property of an input object reports unsupported outcome`() {
+        val method = getMethod("deleteInput")
+        val options = UMachineOptions(
+            stateCollectionStrategy = StateCollectionStrategy.ALL,
+            stopOnCoverage = 0,
+            timeout = Duration.INFINITE,
+        )
+
+        val analysis = TsMachine(scene, options, TsOptions()).use { machine ->
+            machine.analyzeWithOutcome(methods = listOf(method))
+        }
+
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, analysis.stopReason)
+        assertTrue(analysis.states.isEmpty())
+        assertTrue(analysis.unsupportedPaths.any { "Deleting a property of an input object" in it })
     }
 }

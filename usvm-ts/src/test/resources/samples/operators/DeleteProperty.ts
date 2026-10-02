@@ -47,4 +47,18 @@ class DeleteProperty {
         const result = delete object.x;
         return result === true && object.x === undefined ? 1 : 0;
     }
+
+    readAfterConditionalDelete(shouldDelete: boolean): number {
+        const object: { x?: number } = { x: 5 };
+        if (shouldDelete) {
+            delete object.x;
+        }
+
+        return object.x === undefined ? 1 : 2;
+    }
+
+    deleteInput(object: { x?: number }): number {
+        delete object.x;
+        return 1;
+    }
 }
