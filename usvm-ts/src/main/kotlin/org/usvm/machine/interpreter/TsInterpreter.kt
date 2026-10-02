@@ -110,11 +110,17 @@ class TsInterpreter(
 
         val result = state.methodResult
         if (result is TsMethodResult.TsException) {
-            // TODO catch processing
             scope.doWithState {
+                val catcher = stmt.location.method.cfg.catchers(stmt).singleOrNull()
+                if (catcher != null) {
+                    caughtException = result.value
+                    methodResult = TsMethodResult.NoCall
+                    newStmt(catcher)
+                    return@doWithState
+                }
+
                 leaveUnknownCallModelIfReturning()
                 val returnSite = callStack.pop()
-
                 if (callStack.isNotEmpty()) {
                     memory.stack.pop()
                     popLocalToSortStack()
@@ -699,37 +705,16 @@ class TsInterpreter(
 
         observer?.onThrowStatement(exprResolver.simpleValueResolver, stmt, scope)
 
-        val exception = exprResolver.resolve(stmt.exception)
-
-        // Pop the call stack to return to the caller
-        scope.doWithState {
-            memory.stack.pop()
+        val exception = exprResolver.resolve(stmt.exception) ?: return
+        val exceptionType: EtsType = when (exception.sort) {
+            ctx.addressSort -> EtsStringType // TODO: improve object type detection
+            ctx.fp64Sort -> EtsNumberType
+            ctx.boolSort -> EtsBooleanType
+            else -> EtsStringType
         }
 
-        if (exception != null) {
-            val exceptionType: EtsType = when (exception.sort) {
-                ctx.addressSort -> {
-                    // If it's an object reference, try to determine its type
-                    val ref = exception.asExpr(ctx.addressSort)
-                    // For now, assume it's a generic error type
-                    EtsStringType // TODO: improve type detection
-                }
-
-                ctx.fp64Sort -> EtsNumberType
-
-                ctx.boolSort -> EtsBooleanType
-
-                else -> EtsStringType
-            }
-
-            scope.doWithState {
-                methodResult = TsMethodResult.TsException(exception, exceptionType)
-            }
-        } else {
-            scope.doWithState {
-                // If we couldn't resolve the exception value, throw a generic exception
-                methodResult = TsMethodResult.TsException(ctx.mkUndefinedValue(), EtsStringType)
-            }
+        scope.doWithState {
+            methodResult = TsMethodResult.TsException(exception, exceptionType)
         }
     }
 
