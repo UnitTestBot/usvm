@@ -28,6 +28,7 @@ internal object PbtDiagnosticCode {
     const val INPUT_NAME_DUPLICATE = "input.name.duplicate"
     const val INPUT_NAME_INVALID = "input.name.invalid"
     const val DOMAIN_ARRAY_LENGTH = "domain.array.length"
+    const val DOMAIN_OBJECT_FIELDS = "domain.object.fields"
     const val DOMAIN_CONSTANT_UNSUPPORTED = "domain.constant.unsupported"
     const val DOMAIN_INTEGER_BOUNDS = "domain.integer.bounds"
     const val DOMAIN_NUMBER_BOUND_NAN = "domain.number.bound.nan"

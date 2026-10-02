@@ -227,6 +227,34 @@ class TsInterpreter(
                     val cls = classes.single()
                     val suitableMethods = cls.methods.filter { it.name == callee.name }
                     concreteMethods += suitableMethods
+
+                    if (suitableMethods.isEmpty() && cls.fields.any { it.name == callee.name }) {
+                        val field = mkFieldLValue(addressSort, receiver, callee.name)
+                        val functionRef = scope.calcOnState { memory.read(field) }
+                        val function = if (isAllocatedConcreteHeapRef(functionRef)) {
+                            scope.calcOnState { associatedFunction[functionRef] }
+                        } else {
+                            null
+                        }
+
+                        if (function != null) {
+                            val resolvedArgs = buildList {
+                                function.closure?.let(::add)
+                                addAll(stmt.args)
+                            }
+                            val concreteCall = TsConcreteMethodCallStmt(
+                                callee = function.method,
+                                call = stmt.call,
+                                resolvedReceiver = functionRef,
+                                instance = function.thisInstance ?: mkUndefinedValue(),
+                                args = resolvedArgs,
+                                returnSite = stmt.returnSite,
+                            )
+
+                            scope.doWithState { newStmt(concreteCall) }
+                            return
+                        }
+                    }
                 }
             } else {
                 logger.warn {

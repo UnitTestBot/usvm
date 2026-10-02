@@ -9,6 +9,7 @@ import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsLexicalEnvType
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsNumberType
+import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUnclearRefType
 import org.usvm.UBoolExpr
@@ -32,6 +33,7 @@ import org.usvm.ts.pbt.model.ArrayDomain
 import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.NumberDomain
+import org.usvm.ts.pbt.model.ObjectDomain
 import org.usvm.ts.pbt.model.PropertyDomain
 import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.StringDomain
@@ -44,6 +46,7 @@ import org.usvm.util.mkStringFromCodeUnits
 internal fun PropertyDomain.isSupportedCallsSymbolicDomain(): Boolean = when (this) {
     BooleanDomain, is NumberDomain, is StringDomain -> true
     is ArrayDomain -> element == BooleanDomain || element is NumberDomain
+    is ObjectDomain -> fields.values.all { it == BooleanDomain || it is NumberDomain || it is StringDomain }
     else -> false
 }
 
@@ -81,6 +84,7 @@ internal class CallsSymbolicInputs(
             state.initializeInput(
                 stackSlot = binding.stackSlot,
                 domain = input.domain,
+                parameterType = binding.parameter.type,
             )
         }
         initializedSnapshots.filterIsInstance<ArrayInputSnapshot>().forEach { snapshot ->
@@ -99,7 +103,7 @@ internal class CallsSymbolicInputs(
             when (domain) {
                 BooleanDomain -> boolSort
                 is NumberDomain -> fp64Sort
-                is StringDomain, is ArrayDomain -> addressSort
+                is StringDomain, is ArrayDomain, is ObjectDomain -> addressSort
                 else -> null
             }
         }
@@ -158,6 +162,7 @@ private fun TsState.initializeBuiltinCapture(
 private fun TsState.initializeInput(
     stackSlot: Int,
     domain: PropertyDomain,
+    parameterType: EtsType,
 ): CallsInputSnapshot = with(ctx) {
     when (domain) {
         BooleanDomain -> {
@@ -191,10 +196,60 @@ private fun TsState.initializeInput(
             initializeArrayInput(stackSlot = stackSlot, domain = domain)
         }
 
+        is ObjectDomain -> {
+            initializeObjectInput(stackSlot = stackSlot, domain = domain, parameterType = parameterType)
+        }
+
         else -> {
             error("Unsupported calls symbolic domain: $domain")
         }
     }
+}
+
+private fun TsState.initializeObjectInput(
+    stackSlot: Int,
+    domain: ObjectDomain,
+    parameterType: EtsType,
+): ObjectInputSnapshot = with(ctx) {
+    val runtimeType = parameterType as? EtsRefType
+        ?: error("Object domain requires a reference-typed EtsIR parameter: $parameterType")
+    val objectRef = memory.allocConcrete(runtimeType)
+    val fields = domain.fields.mapValues { (name, fieldDomain) ->
+        val (sort, value, snapshot) = when (fieldDomain) {
+            BooleanDomain -> {
+                val symbolic = makeSymbolicPrimitive(boolSort)
+                Triple(boolSort, symbolic, BooleanInputSnapshot(symbolic))
+            }
+
+            is NumberDomain -> {
+                val symbolic = makeSymbolicPrimitive(fp64Sort)
+                pathConstraints += numberDomainConstraint(symbolic, fieldDomain)
+                Triple(fp64Sort, symbolic, NumberInputSnapshot(symbolic))
+            }
+
+            is StringDomain -> {
+                val length = makeSymbolicPrimitive(sizeSort)
+                val codeUnits = List(fieldDomain.maxLength) { makeSymbolicPrimitive(bv16Sort) }
+                constrainLength(length, fieldDomain.minLength, fieldDomain.maxLength)
+                val symbolic = mkStringFromCodeUnits(length = length, codeUnits = codeUnits)
+                Triple(addressSort, symbolic, StringInputSnapshot(length, codeUnits))
+            }
+
+            else -> error("Unsupported symbolic object field domain: $fieldDomain")
+        }
+
+        memory.write(mkFieldLValue(sort, objectRef, name), value.asExpr(sort), guard = trueExpr)
+        snapshot
+    }
+
+    memory.write(
+        mkRegisterStackLValue(addressSort, stackSlot),
+        objectRef.asExpr(addressSort),
+        guard = trueExpr,
+    )
+    saveSortForLocal(stackSlot, addressSort)
+
+    ObjectInputSnapshot(fields)
 }
 
 private fun TsState.initializeStringInput(
@@ -351,6 +406,13 @@ private data class ArrayInputSnapshot(
 
         return JsConcreteValue.Array(elements.take(concreteLength).map { element -> element.resolve(model) })
     }
+}
+
+private data class ObjectInputSnapshot(
+    val fields: Map<String, CallsInputSnapshot>,
+) : CallsInputSnapshot {
+    override fun resolve(model: UModelBase<EtsType>): JsConcreteValue =
+        JsConcreteValue.Object(fields.mapValues { (_, snapshot) -> snapshot.resolve(model) })
 }
 
 private const val UTF16_CODE_UNIT_MASK = 0xffff

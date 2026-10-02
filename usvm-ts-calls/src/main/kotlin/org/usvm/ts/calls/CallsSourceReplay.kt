@@ -14,6 +14,7 @@ import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.ConstantDomain
 import org.usvm.ts.pbt.model.ExecutionKind
 import org.usvm.ts.pbt.model.JsConcreteValue
+import org.usvm.ts.pbt.model.ObjectDomain
 import org.usvm.ts.pbt.model.PropertyDefinition
 import org.usvm.ts.pbt.model.PropertyDomain
 import org.usvm.ts.pbt.model.PropertyId
@@ -407,6 +408,8 @@ private fun JsConcreteValue.exactReplayDomain(): PropertyDomain = when (this) {
     } else {
         TupleDomain(elements.map { element -> element.exactReplayDomain() })
     }
+
+    is JsConcreteValue.Object -> ObjectDomain(fields.mapValues { (_, value) -> value.exactReplayDomain() })
 
     else -> ConstantDomain(this)
 }

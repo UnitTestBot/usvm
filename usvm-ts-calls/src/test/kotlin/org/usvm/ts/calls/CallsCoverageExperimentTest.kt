@@ -4,6 +4,8 @@ import org.junit.jupiter.api.io.TempDir
 import org.usvm.SolverType
 import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
+import org.usvm.ts.pbt.model.NumberDomain
+import org.usvm.ts.pbt.model.ObjectDomain
 import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.StringDomain
 import org.usvm.ts.pbt.model.TypeScriptEntryPoint
@@ -158,6 +160,32 @@ class CallsCoverageExperimentTest {
                 timeoutMillis = 20_000L,
             )
         }
+
+        assertEquals(CallsCoverageCompletion.RETURNED, replay.completion)
+        assertTrue(replay.coveredStatementKeys.isNotEmpty())
+    }
+
+    @Test
+    fun `coverage replay compares the object before the source mutates it`() {
+        val fixture = fixture(
+            source = """
+                export function increment(input: { score: number }): number {
+                  input.score += 1;
+                  return input.score;
+                }
+            """.trimIndent(),
+            exportName = "increment",
+            inputs = listOf(PropertyInput(
+                name = "input",
+                domain = ObjectDomain(mapOf("score" to NumberDomain())),
+            )),
+        )
+        val inputs = listOf(JsConcreteValue.Object(mapOf("score" to JsConcreteValue.number(3.0))))
+
+        val replay = OriginalTypeScriptCoverageReplayer(
+            sourceRoot = fixture.sourceRoot,
+            function = fixture.function,
+        ).use { replayer -> replayer.replay(inputs = inputs, timeoutMillis = 20_000L) }
 
         assertEquals(CallsCoverageCompletion.RETURNED, replay.completion)
         assertTrue(replay.coveredStatementKeys.isNotEmpty())

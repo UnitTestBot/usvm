@@ -71,6 +71,11 @@ data class ArrayDomain(
     val maxLength: Int = DEFAULT_MAX_ARRAY_LENGTH,
 ) : PropertyDomain
 
+/** Plain JavaScript object with an exact, fixed set of own data properties. */
+@Serializable
+@SerialName("object")
+data class ObjectDomain(val fields: Map<String, PropertyDomain>) : PropertyDomain
+
 /** Returns whether [value] belongs to this domain, including recursive tuple and array constraints. */
 operator fun PropertyDomain.contains(value: JsConcreteValue): Boolean = when (this) {
     BooleanDomain -> value is JsConcreteValue.Boolean
@@ -89,6 +94,12 @@ operator fun PropertyDomain.contains(value: JsConcreteValue): Boolean = when (th
         value is JsConcreteValue.Array &&
             value.elements.size in minLength..maxLength &&
             value.elements.all { elementValue -> elementValue in element }
+    }
+
+    is ObjectDomain -> {
+        value is JsConcreteValue.Object &&
+            value.fields.keys == fields.keys &&
+            fields.all { (name, domain) -> value.fields.getValue(name) in domain }
     }
 }
 

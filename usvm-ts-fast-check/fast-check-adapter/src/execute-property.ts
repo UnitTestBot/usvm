@@ -144,21 +144,26 @@ async function checkProperty(
  * A shared clone map preserves aliases and cycles within one invocation while isolating separate invocations.
  */
 function cloneArguments(values: JsConcreteValue[]): JsConcreteValue[] {
-  return cloneArray(values, new Map());
+  return cloneValue(values, new Map()) as JsConcreteValue[];
 }
 
-function cloneArray(
-  value: JsConcreteValue[],
-  clones: Map<JsConcreteValue[], JsConcreteValue[]>,
-): JsConcreteValue[] {
+function cloneValue(value: JsConcreteValue, clones: Map<object, JsConcreteValue>): JsConcreteValue {
+  if (value === null || typeof value !== 'object') return value;
+
   const existing = clones.get(value);
   if (existing !== undefined) return existing;
 
-  const clone: JsConcreteValue[] = [];
-  clones.set(value, clone);
-  for (const element of value) {
-    clone.push(Array.isArray(element) ? cloneArray(element, clones) : element);
+  if (Array.isArray(value)) {
+    const clone: JsConcreteValue[] = [];
+    clones.set(value, clone);
+    for (const element of value) clone.push(cloneValue(element, clones));
+
+    return clone;
   }
+
+  const clone: Record<string, JsConcreteValue> = Object.create(Object.getPrototypeOf(value));
+  clones.set(value, clone);
+  for (const [name, field] of Object.entries(value)) clone[name] = cloneValue(field, clones);
 
   return clone;
 }

@@ -6,8 +6,10 @@ import org.usvm.machine.TsRuntimeFeatureLimitationReason
 import org.usvm.machine.call.TsUnknownCallDecision
 import org.usvm.machine.call.TsUnknownCallEvent
 import org.usvm.ts.pbt.model.ArrayDomain
+import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.NumberDomain
+import org.usvm.ts.pbt.model.ObjectDomain
 import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.StringDomain
 import org.usvm.ts.pbt.model.TypeScriptEntryPoint
@@ -28,6 +30,75 @@ private const val ERROR_CONSTRUCTOR_MODEL_ID: String = "ts.error.constructor"
 class CurrentTsCallsSymbolicEngineTest {
     @TempDir
     lateinit var directory: Path
+
+    @Test
+    fun `plain object argument has symbolic fields and exact source replay`() {
+        val fixture = fixture(
+            source = """
+                export interface Input { score: number; enabled: boolean }
+
+                export function accepts(input: Input): boolean {
+                  if (input.score > 5 && input.enabled) return true;
+                  return false;
+                }
+            """.trimIndent(),
+            exportName = "accepts",
+            inputs = listOf(PropertyInput(
+                name = "input",
+                domain = ObjectDomain(mapOf(
+                    "score" to NumberDomain(),
+                    "enabled" to BooleanDomain,
+                )),
+            )),
+            targetStatement = "return true;",
+        )
+
+        val result = fixture.search(modelIds = emptySet())
+        val inputs = assertNotNull(result.inputs, result.toString())
+        val input = assertIs<JsConcreteValue.Object>(inputs.single())
+
+        assertTrue(assertIs<JsConcreteValue.Number>(input.fields.getValue("score")).toDouble() > 5)
+        assertEquals(JsConcreteValue.Boolean(true), input.fields.getValue("enabled"))
+        fixture.assertReplayConfirmed(inputs)
+    }
+
+    @Test
+    fun `object argument can pass through constructor and stored callback`() {
+        val fixture = fixture(
+            source = """
+                class Mapper {
+                  private callback: (value: number) => number;
+
+                  constructor() {
+                    this.callback = (value: number) => value + 1;
+                  }
+
+                  map(value: number): number {
+                    return this.callback(value);
+                  }
+                }
+
+                export function accepts(input: { score: number }): boolean {
+                  const mapper = new Mapper();
+                  if (mapper.map(input.score) > 5) return true;
+                  return false;
+                }
+            """.trimIndent(),
+            exportName = "accepts",
+            inputs = listOf(PropertyInput(
+                name = "input",
+                domain = ObjectDomain(mapOf("score" to NumberDomain())),
+            )),
+            targetStatement = "return true;",
+        )
+
+        val result = fixture.search(modelIds = emptySet())
+        val inputs = assertNotNull(result.inputs, result.toString())
+        val input = assertIs<JsConcreteValue.Object>(inputs.single())
+
+        assertTrue(assertIs<JsConcreteValue.Number>(input.fields.getValue("score")).toDouble() > 4)
+        fixture.assertReplayConfirmed(inputs)
+    }
 
     @Test
     fun `runtime limitation is reported instead of an unreached target`() {
