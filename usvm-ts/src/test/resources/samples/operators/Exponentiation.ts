@@ -24,6 +24,10 @@ class Exponentiation {
         return 9 ** 0.5;
     }
 
+    unmodeledConcreteFractional(): number {
+        return 0.1 ** 0.7;
+    }
+
     nanToZero(): number {
         return (0 / 0) ** 0;
     }
@@ -32,12 +36,20 @@ class Exponentiation {
         return (-0) ** -1;
     }
 
+    positiveZeroToMinusOne(): number {
+        return 0 ** -1;
+    }
+
     negativeInfinitySquared(): number {
         return (-1 / 0) ** 2;
     }
 
     negativeOneInfinite(): number {
         return (-1) ** (1 / 0);
+    }
+
+    negativeOneNegativeInfinite(): number {
+        return (-1) ** (-1 / 0);
     }
 
     negativeFractional(): number {
