@@ -20,6 +20,41 @@ class InOperator {
         return 1;
     }
 
+    hasAddedProperty(value: number): number {
+        const obj: { x?: number } = {};
+        obj.x = value;
+        return "x" in obj ? 1 : -1;
+    }
+
+    lacksDeletedProperty(value: number): number {
+        const obj = { x: value };
+        delete obj.x;
+        return "x" in obj ? -1 : 1;
+    }
+
+    hasRestoredProperty(value: number): number {
+        const obj = { x: value };
+        delete obj.x;
+        obj.x = value;
+        return "x" in obj ? 1 : -1;
+    }
+
+    conditionalDelete(shouldDelete: boolean): number {
+        const obj = { x: 1 };
+        if (shouldDelete) delete obj.x;
+        return "x" in obj ? 1 : 0;
+    }
+
+    specialPrototypeInitializer(): boolean {
+        const obj = { __proto__: null };
+        return "__proto__" in obj;
+    }
+
+    inheritedThroughPrototypeInitializer(): boolean {
+        const obj = { __proto__: { inherited: 1 } };
+        return "inherited" in obj;
+    }
+
     hasSymbolicKey(key: string): boolean {
         const obj = { x: 1 };
         return key in obj;

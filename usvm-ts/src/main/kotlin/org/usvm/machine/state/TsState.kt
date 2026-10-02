@@ -324,9 +324,9 @@ class TsState(
             dfltObject = dfltObject,
             dfltObjectFieldSorts = dfltObjectFieldSorts,
             stringConstantAllocatedRefs = stringConstantAllocatedRefs,
-    boundedStringBackingRefs = boundedStringBackingRefs,
-    unsupportedReason = unsupportedReason,
-    writtenConcreteFields = writtenConcreteFields,
+            boundedStringBackingRefs = boundedStringBackingRefs,
+            unsupportedReason = unsupportedReason,
+            writtenConcreteFields = writtenConcreteFields,
             activeUnknownCallModels = activeUnknownCallModels.toMutableList(),
         )
     }
