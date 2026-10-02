@@ -9,6 +9,7 @@ import org.usvm.ts.pbt.backend.PropertyRunConfiguration
 import org.usvm.ts.pbt.backend.PropertyRunStatus
 import org.usvm.ts.pbt.fastcheck.FastCheckBackend
 import org.usvm.ts.pbt.fastcheck.PbtBackendException
+import org.usvm.ts.pbt.fastcheck.TypeScriptSourceInspector
 import org.usvm.ts.pbt.model.ArrayDomain
 import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.ConstantDomain
@@ -155,12 +156,21 @@ internal class OriginalTypeScriptTargetReplayer : CallsTargetReplayer {
         val resolved = resolveTarget(sourceRoots = sourceRoots, sourcePath = target.sourcePath)
         val source = Files.readString(resolved.source)
         requireTargetCoordinates(source = source, target = target)
+        val marker = "__usvm_source_target_${UUID.randomUUID().toString().replace('-', '_')}"
+        val instrumented = instrumentSource(
+            sourcePath = resolved.source,
+            source = source,
+            exportName = entryPoint.exportName,
+            target = target,
+            marker = marker,
+        ) ?: return CallsSourceReplayResult(
+            status = CallsReplayStatus.UNMAPPED,
+            reason = "TypeScript AST does not identify the requested completed return",
+        )
         val workspace = Files.createTempDirectory("usvm-ts-calls-replay-")
 
         return try {
             val overlayRoot = workspace.resolve("source-overlay")
-            val marker = "__usvm_source_target_${UUID.randomUUID().toString().replace('-', '_')}"
-            val instrumented = instrumentSource(source = source, target = target, marker = marker)
             createOverlay(
                 sourceRoot = resolved.sourceRoot,
                 overlayRoot = overlayRoot,
@@ -253,10 +263,12 @@ internal class OriginalTypeScriptTargetReplayer : CallsTargetReplayer {
     }
 
     private fun instrumentSource(
+        sourcePath: Path,
         source: String,
+        exportName: String,
         target: CallsSourceTarget,
         marker: String,
-    ): String = when (target.mode) {
+    ): String? = when (target.mode) {
         CallsSourceTargetMode.ENTRY -> {
             val markerStatement = ";(globalThis as Record<string, unknown>)[${jsString(marker)}] = true;\n"
 
@@ -264,23 +276,15 @@ internal class OriginalTypeScriptTargetReplayer : CallsTargetReplayer {
         }
 
         CallsSourceTargetMode.COMPLETED_RETURN -> {
-            val expressionStart = target.returnExpressionStartOffset
-            val expressionEnd = target.returnExpressionEndOffset
-            if (expressionStart == null || expressionEnd == null) {
-                val markerStatement = ";(globalThis as Record<string, unknown>)[${jsString(marker)}] = true;\n"
-
-                source.substring(0, target.startOffset) + markerStatement + source.substring(target.startOffset)
-            } else {
-                val expression = source.substring(expressionStart, expressionEnd)
-                val wrappedExpression = """
-                    ((__usvm_completed_value: any) => {
-                      (globalThis as Record<string, unknown>)[${jsString(marker)}] = true;
-                      return __usvm_completed_value;
-                    })($expression)
-                """.trimIndent()
-
-                source.substring(0, expressionStart) + wrappedExpression + source.substring(expressionEnd)
-            }
+            TypeScriptSourceInspector.instrumentCompletedReturn(
+                source = sourcePath,
+                exportName = exportName,
+                startOffset = target.startOffset,
+                endOffset = target.endOffset,
+                expressionStartOffset = target.returnExpressionStartOffset,
+                expressionEndOffset = target.returnExpressionEndOffset,
+                marker = marker,
+            )
         }
     }
 

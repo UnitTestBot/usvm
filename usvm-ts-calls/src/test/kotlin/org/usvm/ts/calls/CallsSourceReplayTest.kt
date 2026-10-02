@@ -134,6 +134,104 @@ class CallsSourceReplayTest {
         assertEquals(true, replay.invocation?.targetHit)
     }
 
+    @Test
+    fun `completed bare return preserves an untaken unbraced branch`() {
+        val fixture = fixture()
+        val target = fixture.target(
+            functionName = "bareConditionalCompletedReturn",
+            statement = "return;",
+            mode = CallsSourceTargetMode.COMPLETED_RETURN,
+        )
+
+        val replay = fixture.replay(
+            exportName = "bareConditionalCompletedReturn",
+            inputs = listOf(number(-1.0)),
+            target = target,
+        )
+
+        assertEquals(CallsReplayStatus.REJECTED, replay.status, replay.toString())
+        assertEquals(false, replay.invocation?.targetHit)
+    }
+
+    @Test
+    fun `completed return ignores a recursive child hit`() {
+        val fixture = fixture()
+        val target = fixture.target(
+            functionName = "recursiveCompletedReturn",
+            statement = "return 11;",
+            mode = CallsSourceTargetMode.COMPLETED_RETURN,
+            returnExpression = "11",
+        )
+
+        val replay = fixture.replay(
+            exportName = "recursiveCompletedReturn",
+            inputs = listOf(number(-1.0)),
+            target = target,
+        )
+
+        assertEquals(CallsReplayStatus.REJECTED, replay.status, replay.toString())
+        assertEquals(false, replay.invocation?.targetHit)
+    }
+
+    @Test
+    fun `completed return rejects a partial expression target`() {
+        val fixture = fixture()
+        val target = fixture.target(
+            functionName = "partialCaughtReturn",
+            statement = "value",
+            mode = CallsSourceTargetMode.COMPLETED_RETURN,
+            returnExpression = "value",
+        )
+
+        val replay = fixture.replay(
+            exportName = "partialCaughtReturn",
+            inputs = listOf(number(-1.0)),
+            target = target,
+        )
+
+        assertEquals(CallsReplayStatus.UNMAPPED, replay.status, replay.toString())
+    }
+
+    @Test
+    fun `completed return rejects when a finally return overrides it`() {
+        val fixture = fixture()
+        val target = fixture.target(
+            functionName = "finallyOverridesCompletedReturn",
+            statement = "return 11;",
+            mode = CallsSourceTargetMode.COMPLETED_RETURN,
+            returnExpression = "11",
+        )
+
+        val replay = fixture.replay(
+            exportName = "finallyOverridesCompletedReturn",
+            inputs = emptyList(),
+            target = target,
+        )
+
+        assertEquals(CallsReplayStatus.REJECTED, replay.status, replay.toString())
+        assertEquals(false, replay.invocation?.targetHit)
+    }
+
+    @Test
+    fun `completed return rejects when finally breaks to implicit fallthrough`() {
+        val fixture = fixture()
+        val target = fixture.target(
+            functionName = "finallyBreaksCompletedReturn",
+            statement = "return 11;",
+            mode = CallsSourceTargetMode.COMPLETED_RETURN,
+            returnExpression = "11",
+        )
+
+        val replay = fixture.replay(
+            exportName = "finallyBreaksCompletedReturn",
+            inputs = emptyList(),
+            target = target,
+        )
+
+        assertEquals(CallsReplayStatus.REJECTED, replay.status, replay.toString())
+        assertEquals(false, replay.invocation?.targetHit)
+    }
+
     private fun fixture(): Fixture {
         val sourcePath = resourcePath("/calls/SourceTargetReplayFixture.ts")
 
@@ -164,8 +262,12 @@ class CallsSourceReplayTest {
             returnExpression: String? = null,
         ): CallsSourceTarget {
             val functionStart = source.indexOf("function $functionName")
-            val startOffset = source.indexOf(statement, startIndex = functionStart)
-            check(functionStart >= 0 && startOffset >= 0) { "Missing $statement in $functionName" }
+            check(functionStart >= 0) { "Missing function $functionName" }
+            val functionBodyStart = source.indexOf('{', startIndex = functionStart)
+            val startOffset = source.indexOf(statement, startIndex = functionBodyStart)
+            check(functionBodyStart >= 0 && startOffset >= 0) {
+                "Missing $statement in $functionName"
+            }
             val endOffset = startOffset + statement.length
             val returnExpressionStartOffset = returnExpression?.let { expression ->
                 source.indexOf(expression, startIndex = startOffset).also { expressionStart ->
