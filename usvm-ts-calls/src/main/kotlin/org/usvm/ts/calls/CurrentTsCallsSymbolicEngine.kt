@@ -1,9 +1,8 @@
 package org.usvm.ts.calls
 
-import io.ksmt.utils.asExpr
-import org.jacodb.ets.model.EtsBooleanType
+import org.jacodb.ets.model.EtsLexicalEnvType
 import org.jacodb.ets.model.EtsMethod
-import org.jacodb.ets.model.EtsNumberType
+import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.utils.EtsIrProvider
@@ -12,46 +11,90 @@ import org.usvm.SolverType
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.machine.TsAnalysisStopReason
+import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
+import org.usvm.machine.call.TsUnknownCallEvent
 import org.usvm.machine.call.TsUnknownCallModelSelection
-import org.usvm.machine.expr.extractDouble
-import org.usvm.machine.expr.toConcreteBoolValue
+import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.statistics.UMachineObserver
+import org.usvm.ts.pbt.fastcheck.TypeScriptSourceInspector
 import org.usvm.ts.pbt.manifest.PropertyManifest
+import org.usvm.ts.pbt.mapping.EtsInputBinding
 import org.usvm.ts.pbt.mapping.EtsMappingStatus
 import org.usvm.ts.pbt.mapping.PropertyEtsMapper
-import org.usvm.ts.pbt.model.BooleanDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
-import org.usvm.ts.pbt.model.NumberDomain
 import org.usvm.ts.pbt.model.contains
-import org.usvm.util.mkRegisterStackLValue
 import java.nio.file.Path
 import kotlin.time.TimeSource
+
+internal data class CallsSymbolicPreflightRequest(
+    val sourceRoot: Path,
+    val project: CallsProjectCase,
+    val function: CallsFunctionCase,
+    val target: CallsSourceTarget,
+    val expectedNativeFrontendRevision: String,
+)
+
+internal enum class CallsSymbolicPreflightStatus {
+    ELIGIBLE,
+    UNSUPPORTED,
+    UNMAPPED,
+    AMBIGUOUS,
+    TOOL_ERROR,
+}
+
+internal enum class CallsSymbolicPreflightReasonCode {
+    INPUT_DOMAIN_UNSUPPORTED,
+    IMPORTED_CALLEES_UNSUPPORTED,
+    ENTRY_MAPPING_UNSUPPORTED,
+    ENTRY_MAPPING_UNMAPPED,
+    ENTRY_MAPPING_AMBIGUOUS,
+    LEXICAL_CAPTURE_UNSUPPORTED,
+    TARGET_ORIGIN_UNMAPPED,
+    TARGET_ORIGIN_UNSUPPORTED,
+    FRONTEND_OR_PREFLIGHT_ERROR,
+}
+
+internal data class CallsSymbolicPreflightResult(
+    val status: CallsSymbolicPreflightStatus,
+    val reasonCode: CallsSymbolicPreflightReasonCode? = null,
+    val diagnostic: String? = null,
+) {
+    init {
+        require((status == CallsSymbolicPreflightStatus.ELIGIBLE) == (reasonCode == null)) {
+            "Eligible preflight has no exclusion reason; rejected preflight has exactly one"
+        }
+    }
+}
 
 internal class CurrentTsCallsSymbolicEngine(
     private val environment: (String) -> String? = System::getenv,
     private val bundledNativeFrontendRevision: String = CallsBuildIdentity.nativeFrontendRevision,
 ) : CallsSymbolicEngine {
     private val verifiedProjects = mutableMapOf<Path, String>()
+    private val preparedTargets = mutableMapOf<CallsSymbolicPreflightRequest, CallsTargetPreparation>()
     private var verifiedNativeFrontendIdentity: String? = null
 
     override fun search(request: CallsSymbolicSearchRequest): CallsSymbolicSearchResult {
         val startedAt = TimeSource.Monotonic.markNow()
-        val unsupportedInput = request.function.inputs.firstOrNull { input ->
-            input.domain != BooleanDomain && input.domain !is NumberDomain
-        }
-        if (unsupportedInput != null) {
+        val preflightRequest = request.toPreflightRequest()
+        val preparation = prepareSafely(preflightRequest)
+        if (preparation is CallsTargetPreparation.Rejected) {
             return result(
-                status = CallsSymbolicStatus.UNSUPPORTED,
+                status = preparation.status,
                 startedAt = startedAt,
-                diagnostic = "Only boolean and number input domains are supported; found ${unsupportedInput.domain}",
+                diagnostic = preparation.diagnostic,
             )
         }
 
         return runCatching {
-            searchSupported(request = request, startedAt = startedAt)
+            searchSupported(
+                request = request,
+                startedAt = startedAt,
+                prepared = preparation as CallsTargetPreparation.Eligible,
+            )
         }.getOrElse { error ->
             result(
                 status = CallsSymbolicStatus.TOOL_ERROR,
@@ -61,64 +104,28 @@ internal class CurrentTsCallsSymbolicEngine(
         }
     }
 
+    fun preflight(request: CallsSymbolicPreflightRequest): CallsSymbolicPreflightResult =
+        when (val preparation = prepareSafely(request)) {
+            is CallsTargetPreparation.Eligible -> CallsSymbolicPreflightResult(
+                status = CallsSymbolicPreflightStatus.ELIGIBLE,
+            )
+
+            is CallsTargetPreparation.Rejected -> CallsSymbolicPreflightResult(
+                status = preparation.status.toPreflightStatus(),
+                reasonCode = preparation.reasonCode,
+                diagnostic = preparation.diagnostic,
+            )
+        }
+
     @Suppress("LongMethod")
     private fun searchSupported(
         request: CallsSymbolicSearchRequest,
         startedAt: TimeSource.Monotonic.ValueTimeMark,
+        prepared: CallsTargetPreparation.Eligible,
     ): CallsSymbolicSearchResult {
-        verifyGitCheckoutOnce(
-            checkout = request.sourceRoot,
-            expectedRevision = request.project.revision,
-            cache = verifiedProjects,
-        )
-        verifyNativeFrontendOnce(expectedRevision = request.expectedNativeFrontendRevision)
-
-        val source = request.sourceRoot.resolve(request.function.sourceFile).normalize()
-        require(source.startsWith(request.sourceRoot)) { "Function source escapes its frozen source root" }
-
-        val sourceFile = loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)
-        if (sourceFile.importInfos.isNotEmpty()) {
-            return result(
-                status = CallsSymbolicStatus.UNSUPPORTED,
-                startedAt = startedAt,
-                diagnostic = "Single-file symbolic replay does not support imported project callees",
-            )
-        }
-        val scene = EtsScene(projectFiles = listOf(sourceFile))
-        val frontendEntryPoint = request.function.entryPoint.copy(
-            module = requireNotNull(source.fileName).toString(),
-        )
-        val propertyManifest = PropertyManifest(
-            propertyId = "calls.mapping",
-            inputs = request.function.inputs,
-            predicate = frontendEntryPoint,
-        )
-        val mapping = PropertyEtsMapper(scene = scene, sourceRoots = listOf(request.sourceRoot)).map(propertyManifest)
-        if (mapping.predicate.status != EtsMappingStatus.EXACT) {
-            return result(
-                status = mapping.predicate.status.toSymbolicStatus(),
-                startedAt = startedAt,
-                diagnostic = mapping.predicate.diagnostics.joinToString { diagnostic -> diagnostic.message },
-            )
-        }
-
-        val method = mapping.predicate.targets.single().method
-        val exactTargetCandidates = exactTargetCandidates(method, request.target)
-        if (exactTargetCandidates.isEmpty()) {
-            return result(
-                status = CallsSymbolicStatus.UNMAPPED,
-                startedAt = startedAt,
-                diagnostic = "No EtsIR statement has the exact frozen source range",
-            )
-        }
-        val statementEntry = sourceStatementEntry(method, request.target)
-        if (statementEntry == null) {
-            return result(
-                status = CallsSymbolicStatus.UNSUPPORTED,
-                startedAt = startedAt,
-                diagnostic = "EtsIR origins do not prove entry before evaluation of the frozen source statement",
-            )
-        }
+        val scene = prepared.scene
+        val method = prepared.method
+        val targetObserver = prepared.targetObservation.createObserver(method)
 
         val modelSelection = if (request.profile.usesFrozenModels) {
             TsUnknownCallModelSelection.Only(request.frozenModelIds)
@@ -139,18 +146,23 @@ internal class CurrentTsCallsSymbolicEngine(
             unknownCallModelSelection = modelSelection,
             unknownCallFallback = request.profile.fallback,
         )
-        // Observe the unique CFG entry into the source statement's origin-contained lowering region.
-        // This matches the replay marker before statement evaluation, including nested constructor and call lowering.
-        val entryObserver = SourceStatementEntryObserver(statementEntry.statement)
+        val symbolicInputs = CallsSymbolicInputs(
+            inputs = request.function.inputs,
+            bindings = prepared.inputBindings,
+        )
+        val interpreterObserver = request.unknownCallEventSink?.let(::UnknownCallEventSinkObserver)
         val analysis = TsMachine(
             scene = scene,
             options = machineOptions,
             tsOptions = tsOptions,
-            machineObserver = entryObserver,
+            initialStateConfigurator = symbolicInputs::initialize,
+            initialParameterSortOverride = symbolicInputs::sortOverride,
+            machineObserver = targetObserver,
+            observer = interpreterObserver,
         ).use { machine ->
             val outcome = machine.analyzeWithOutcome(methods = listOf(method))
             MachineResult(
-                states = entryObserver.reachedStates,
+                states = targetObserver.reachedStates,
                 stopReason = outcome.stopReason,
             )
         }
@@ -169,7 +181,7 @@ internal class CurrentTsCallsSymbolicEngine(
         }
 
         val inputs = states.asSequence()
-            .map { state -> resolveScalarInputs(state, method) }
+            .map(symbolicInputs::resolve)
             .firstOrNull { candidate ->
                 candidate.zip(request.function.inputs).all { (value, input) -> value in input.domain }
             }
@@ -186,8 +198,158 @@ internal class CurrentTsCallsSymbolicEngine(
             status = CallsSymbolicStatus.REACHED,
             inputs = inputs,
             startedAt = startedAt,
-            diagnostic = "source-statement-lowering-size=${statementEntry.loweringSize};" +
-                "exact-source-lowering-size=${exactTargetCandidates.size}",
+            diagnostic = "source-target-mode=${request.target.mode};" +
+                "source-statement-lowering-size=${targetObserver.loweringSize};" +
+                "exact-source-lowering-size=${prepared.exactTargetCandidateCount}",
+        )
+    }
+
+    private fun prepareSafely(request: CallsSymbolicPreflightRequest): CallsTargetPreparation {
+        preparedTargets[request]?.let { preparation -> return preparation }
+
+        val preparation = runCatching { prepare(request) }.getOrElse { error ->
+            CallsTargetPreparation.Rejected(
+                status = CallsSymbolicStatus.TOOL_ERROR,
+                reasonCode = CallsSymbolicPreflightReasonCode.FRONTEND_OR_PREFLIGHT_ERROR,
+                diagnostic = error.message ?: error::class.java.name,
+            )
+        }
+        preparedTargets[request] = preparation
+
+        return preparation
+    }
+
+    @Suppress("LongMethod")
+    private fun prepare(request: CallsSymbolicPreflightRequest): CallsTargetPreparation {
+        callsSymbolicInputPreflight(request.function.inputs)?.let { diagnostic ->
+            return CallsTargetPreparation.Rejected(
+                status = CallsSymbolicStatus.UNSUPPORTED,
+                reasonCode = CallsSymbolicPreflightReasonCode.INPUT_DOMAIN_UNSUPPORTED,
+                diagnostic = diagnostic,
+            )
+        }
+
+        verifyGitCheckoutOnce(
+            checkout = request.sourceRoot,
+            expectedRevision = request.project.revision,
+            cache = verifiedProjects,
+        )
+        verifyNativeFrontendOnce(expectedRevision = request.expectedNativeFrontendRevision)
+
+        val source = request.sourceRoot.resolve(request.function.sourceFile).normalize()
+        require(source.startsWith(request.sourceRoot)) { "Function source escapes its frozen source root" }
+        val sourceText = java.nio.file.Files.readString(source)
+        callsTargetCoordinateDiagnostic(source = sourceText, target = request.target)?.let { diagnostic ->
+            return CallsTargetPreparation.Rejected(
+                status = CallsSymbolicStatus.UNMAPPED,
+                reasonCode = CallsSymbolicPreflightReasonCode.TARGET_ORIGIN_UNMAPPED,
+                diagnostic = diagnostic,
+            )
+        }
+
+        val sourceFile = loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)
+        if (sourceFile.importInfos.isNotEmpty()) {
+            return CallsTargetPreparation.Rejected(
+                status = CallsSymbolicStatus.UNSUPPORTED,
+                reasonCode = CallsSymbolicPreflightReasonCode.IMPORTED_CALLEES_UNSUPPORTED,
+                diagnostic = "Single-file symbolic replay does not support imported project callees",
+            )
+        }
+
+        val scene = EtsScene(projectFiles = listOf(sourceFile))
+        val frontendEntryPoint = request.function.entryPoint.copy(
+            module = requireNotNull(source.fileName).toString(),
+        )
+        val propertyManifest = PropertyManifest(
+            propertyId = "calls.mapping",
+            inputs = request.function.inputs,
+            predicate = frontendEntryPoint,
+        )
+        val mapping = PropertyEtsMapper(scene = scene, sourceRoots = listOf(request.sourceRoot)).map(propertyManifest)
+        if (mapping.predicate.status != EtsMappingStatus.EXACT) {
+            return CallsTargetPreparation.Rejected(
+                status = mapping.predicate.status.toSymbolicStatus(),
+                reasonCode = mapping.predicate.status.toPreflightReasonCode(),
+                diagnostic = mapping.predicate.diagnostics.joinToString { diagnostic -> diagnostic.message },
+            )
+        }
+
+        val mappedTarget = mapping.predicate.targets.single()
+        val lexicalEnvironment = mappedTarget.bindings.lexicalEnvironment
+        if (lexicalEnvironment != null && lexicalEnvironment.parameter.type !is EtsLexicalEnvType) {
+            return CallsTargetPreparation.Rejected(
+                status = CallsSymbolicStatus.UNSUPPORTED,
+                reasonCode = CallsSymbolicPreflightReasonCode.LEXICAL_CAPTURE_UNSUPPORTED,
+                diagnostic = "Mapped lexical environment does not have a lexical-environment type",
+            )
+        }
+
+        val unsupportedCaptures = (lexicalEnvironment?.parameter?.type as? EtsLexicalEnvType)
+            ?.closures
+            ?.map { closure -> closure.name }
+            ?.filterNot { closure -> closure in SUPPORTED_BUILTIN_CAPTURES }
+            .orEmpty()
+        if (unsupportedCaptures.isNotEmpty()) {
+            return CallsTargetPreparation.Rejected(
+                status = CallsSymbolicStatus.UNSUPPORTED,
+                reasonCode = CallsSymbolicPreflightReasonCode.LEXICAL_CAPTURE_UNSUPPORTED,
+                diagnostic = "Symbolic entry point has unsupported runtime captures: " +
+                    unsupportedCaptures.joinToString(),
+            )
+        }
+
+        val method = mappedTarget.method
+        val exactTargetCandidates = exactTargetCandidates(method, request.target)
+        val targetObservation = when (request.target.mode) {
+            CallsSourceTargetMode.ENTRY -> {
+                if (exactTargetCandidates.isEmpty()) {
+                    return CallsTargetPreparation.Rejected(
+                        status = CallsSymbolicStatus.UNMAPPED,
+                        reasonCode = CallsSymbolicPreflightReasonCode.TARGET_ORIGIN_UNMAPPED,
+                        diagnostic = "No EtsIR statement has the exact frozen source range",
+                    )
+                }
+
+                val statementEntry = sourceStatementEntry(method, request.target)
+                    ?: return CallsTargetPreparation.Rejected(
+                        status = CallsSymbolicStatus.UNSUPPORTED,
+                        reasonCode = CallsSymbolicPreflightReasonCode.TARGET_ORIGIN_UNSUPPORTED,
+                        diagnostic = "EtsIR origins do not prove entry before evaluation " +
+                            "of the frozen source statement",
+                    )
+
+                SourceTargetObservation.Entry(statementEntry)
+            }
+
+            CallsSourceTargetMode.COMPLETED_RETURN -> {
+                val returnStatement = completedReturnCandidate(
+                    method = method,
+                    target = request.target,
+                    exactTargetCandidates = exactTargetCandidates,
+                    allowsUniqueOriginlessReturn = {
+                        TypeScriptSourceInspector.isExportedExpressionArrowBody(
+                            source = source,
+                            exportName = request.function.entryPoint.exportName,
+                            startOffset = request.target.startOffset,
+                            endOffset = request.target.endOffset,
+                        )
+                    },
+                ) ?: return CallsTargetPreparation.Rejected(
+                    status = CallsSymbolicStatus.UNSUPPORTED,
+                    reasonCode = CallsSymbolicPreflightReasonCode.TARGET_ORIGIN_UNSUPPORTED,
+                    diagnostic = "EtsIR does not identify one requested return statement",
+                )
+
+                SourceTargetObservation.CompletedReturn(returnStatement)
+            }
+        }
+
+        return CallsTargetPreparation.Eligible(
+            scene = scene,
+            method = method,
+            inputBindings = mappedTarget.bindings.inputs,
+            targetObservation = targetObservation,
+            exactTargetCandidateCount = exactTargetCandidates.size,
         )
     }
 
@@ -202,29 +364,77 @@ internal class CurrentTsCallsSymbolicEngine(
                 origin.endColumn == target.end.column
         }
 
-    private fun resolveScalarInputs(state: TsState, method: EtsMethod): List<JsConcreteValue> = with(state.ctx) {
-        val model = state.models.single()
+    private fun completedReturnCandidate(
+        method: EtsMethod,
+        target: CallsSourceTarget,
+        exactTargetCandidates: List<EtsStmt>,
+        allowsUniqueOriginlessReturn: () -> Boolean,
+    ): EtsReturnStmt? {
+        val exactReturns = exactTargetCandidates.filterIsInstance<EtsReturnStmt>()
+        if (exactReturns.isNotEmpty()) {
+            return exactReturns.singleOrNull()
+        }
 
-        method.parameters.mapIndexed { index, parameter ->
-            val stackIndex = index + 1
-            when (parameter.type) {
-                EtsNumberType -> {
-                    val lValue = mkRegisterStackLValue(fp64Sort, stackIndex)
-                    val value = model.eval(state.memory.read(lValue).asExpr(fp64Sort)).extractDouble()
-                    JsConcreteValue.number(value)
-                }
+        val expressionStart = target.returnExpressionStartOffset ?: return null
+        val expressionEnd = target.returnExpressionEndOffset ?: return null
+        val targetIsExpression = target.startOffset == expressionStart && target.endOffset == expressionEnd
+        if (!targetIsExpression) {
+            return null
+        }
 
-                EtsBooleanType -> {
-                    val lValue = mkRegisterStackLValue(boolSort, stackIndex)
-                    val value = model.eval(state.memory.read(lValue).asExpr(boolSort)).toConcreteBoolValue()
-                    JsConcreteValue.Boolean(value)
-                }
-
-                else -> {
-                    error("Unsupported scalar parameter type: ${parameter.type}")
-                }
+        val containingReturns = method.cfg.stmts.filterIsInstance<EtsReturnStmt>().filter { statement ->
+            val origin = statement.location.origin ?: return@filter false
+            origin.startOffset <= expressionStart && origin.endOffset >= expressionEnd
+        }
+        val smallestContainingRange = containingReturns.minOfOrNull { statement ->
+            val origin = requireNotNull(statement.location.origin)
+            origin.endOffset - origin.startOffset
+        }
+        if (smallestContainingRange != null) {
+            val smallestReturns = containingReturns.filter { statement ->
+                val origin = requireNotNull(statement.location.origin)
+                origin.endOffset - origin.startOffset == smallestContainingRange
+            }
+            if (smallestReturns.isNotEmpty()) {
+                return smallestReturns.singleOrNull()
             }
         }
+
+        val containingStatements = method.cfg.stmts.filter { statement ->
+            val origin = statement.location.origin ?: return@filter false
+            origin.startOffset <= expressionStart && origin.endOffset >= expressionEnd
+        }
+        val smallestStatementRange = containingStatements.minOfOrNull { statement ->
+            val origin = requireNotNull(statement.location.origin)
+            origin.endOffset - origin.startOffset
+        } ?: return if (allowsUniqueOriginlessReturn()) {
+            method.cfg.stmts.filterIsInstance<EtsReturnStmt>().singleOrNull()
+        } else {
+            null
+        }
+        val anchors = containingStatements.filter { statement ->
+            val origin = requireNotNull(statement.location.origin)
+            origin.endOffset - origin.startOffset == smallestStatementRange
+        }
+
+        val reachableReturns = mutableSetOf<EtsReturnStmt>()
+        val visited = mutableSetOf<EtsStmt>()
+        val pending = ArrayDeque<EtsStmt>()
+        pending.addAll(anchors)
+        while (pending.isNotEmpty()) {
+            val statement = pending.removeFirst()
+            if (!visited.add(statement)) {
+                continue
+            }
+            if (statement is EtsReturnStmt) {
+                reachableReturns += statement
+                continue
+            }
+
+            pending.addAll(method.cfg.successors(statement))
+        }
+
+        return reachableReturns.singleOrNull()
     }
 
     private fun result(
@@ -284,15 +494,78 @@ internal class CurrentTsCallsSymbolicEngine(
         cache[checkout] = expectedRevision
     }
 
+    private sealed interface CallsTargetPreparation {
+        data class Eligible(
+            val scene: EtsScene,
+            val method: EtsMethod,
+            val inputBindings: List<EtsInputBinding>,
+            val targetObservation: SourceTargetObservation,
+            val exactTargetCandidateCount: Int,
+        ) : CallsTargetPreparation
+
+        data class Rejected(
+            val status: CallsSymbolicStatus,
+            val reasonCode: CallsSymbolicPreflightReasonCode,
+            val diagnostic: String,
+        ) : CallsTargetPreparation
+    }
+
+    private sealed interface SourceTargetObservation {
+        fun createObserver(method: EtsMethod): SourceTargetObserver
+
+        data class Entry(val entry: SourceStatementEntry) : SourceTargetObservation {
+            override fun createObserver(method: EtsMethod): SourceTargetObserver =
+                SourceStatementEntryObserver(entry)
+        }
+
+        data class CompletedReturn(val statement: EtsReturnStmt) : SourceTargetObservation {
+            override fun createObserver(method: EtsMethod): SourceTargetObserver =
+                SourceCompletedReturnObserver(method = method, target = statement)
+        }
+    }
+
+    private interface SourceTargetObserver : UMachineObserver<TsState> {
+        val reachedStates: List<TsState>
+        val loweringSize: Int
+    }
+
     private class SourceStatementEntryObserver(
-        private val target: EtsStmt,
-    ) : UMachineObserver<TsState> {
-        val reachedStates = mutableListOf<TsState>()
+        private val target: SourceStatementEntry,
+    ) : SourceTargetObserver {
+        override val reachedStates = mutableListOf<TsState>()
+        override val loweringSize: Int = target.loweringSize
 
         override fun onStatePeeked(state: TsState) {
-            if (state.currentStatement == target) {
+            if (state.currentStatement == target.statement) {
                 reachedStates += state.clone()
             }
+        }
+    }
+
+    private class SourceCompletedReturnObserver(
+        private val method: EtsMethod,
+        private val target: EtsReturnStmt,
+    ) : SourceTargetObserver {
+        override val reachedStates = mutableListOf<TsState>()
+        override val loweringSize: Int = 1
+
+        override fun onState(state: TsState, forks: Sequence<TsState>) {
+            sequenceOf(state).plus(forks)
+                .filter { candidate -> candidate.currentStatement == target }
+                .filter { candidate -> candidate.callStack.isEmpty() }
+                .filter { candidate ->
+                    val result = candidate.methodResult
+                    result is TsMethodResult.Success.RegularCall && result.method == method
+                }
+                .mapTo(reachedStates) { candidate -> candidate.clone() }
+        }
+    }
+
+    private class UnknownCallEventSinkObserver(
+        private val sink: (TsUnknownCallEvent) -> Unit,
+    ) : TsInterpreterObserver {
+        override fun onUnknownCall(event: TsUnknownCallEvent) {
+            sink(event)
         }
     }
 
@@ -303,7 +576,33 @@ internal class CurrentTsCallsSymbolicEngine(
 
     private companion object {
         const val BUNDLED_FRONTEND_PREFIX: String = "bundled:"
+
+        val SUPPORTED_BUILTIN_CAPTURES: Set<String> = setOf(
+            "Array",
+            "Boolean",
+            "Error",
+            "Math",
+            "Number",
+            "Object",
+            "String",
+        )
     }
+}
+
+private fun CallsSymbolicSearchRequest.toPreflightRequest() = CallsSymbolicPreflightRequest(
+    sourceRoot = sourceRoot,
+    project = project,
+    function = function,
+    target = target,
+    expectedNativeFrontendRevision = expectedNativeFrontendRevision,
+)
+
+private fun CallsSymbolicStatus.toPreflightStatus(): CallsSymbolicPreflightStatus = when (this) {
+    CallsSymbolicStatus.UNSUPPORTED -> CallsSymbolicPreflightStatus.UNSUPPORTED
+    CallsSymbolicStatus.UNMAPPED -> CallsSymbolicPreflightStatus.UNMAPPED
+    CallsSymbolicStatus.AMBIGUOUS -> CallsSymbolicPreflightStatus.AMBIGUOUS
+    CallsSymbolicStatus.TOOL_ERROR -> CallsSymbolicPreflightStatus.TOOL_ERROR
+    else -> error("Symbolic execution status $this is not a preflight result")
 }
 
 internal data class SourceStatementEntry(
@@ -386,4 +685,11 @@ private fun EtsMappingStatus.toSymbolicStatus(): CallsSymbolicStatus = when (thi
     EtsMappingStatus.AMBIGUOUS -> CallsSymbolicStatus.AMBIGUOUS
     EtsMappingStatus.UNMAPPED -> CallsSymbolicStatus.UNMAPPED
     EtsMappingStatus.UNSUPPORTED -> CallsSymbolicStatus.UNSUPPORTED
+}
+
+private fun EtsMappingStatus.toPreflightReasonCode(): CallsSymbolicPreflightReasonCode = when (this) {
+    EtsMappingStatus.EXACT -> error("Exact mapping has no exclusion reason")
+    EtsMappingStatus.AMBIGUOUS -> CallsSymbolicPreflightReasonCode.ENTRY_MAPPING_AMBIGUOUS
+    EtsMappingStatus.UNMAPPED -> CallsSymbolicPreflightReasonCode.ENTRY_MAPPING_UNMAPPED
+    EtsMappingStatus.UNSUPPORTED -> CallsSymbolicPreflightReasonCode.ENTRY_MAPPING_UNSUPPORTED
 }
