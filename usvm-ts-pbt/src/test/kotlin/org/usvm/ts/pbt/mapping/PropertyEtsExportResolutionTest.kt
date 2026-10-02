@@ -3,8 +3,8 @@ package org.usvm.ts.pbt.mapping
 import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsFunctionType
-import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsLexicalEnvType
+import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStaticFieldRef
 import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME

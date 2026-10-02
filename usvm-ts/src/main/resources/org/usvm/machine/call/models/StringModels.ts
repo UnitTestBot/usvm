@@ -107,6 +107,66 @@ export class StringModels {
         return StringModelPrimitives.copyRange(receiver, 0, end);
     }
 
+    static replaceAll(receiver: string, search: string, replacement: string): string {
+        const length = StringModelPrimitives.length(receiver);
+        const searchLength = StringModelPrimitives.length(search);
+        let result = "";
+        let endOfLastMatch = 0;
+        let position = 0;
+        while (position + searchLength <= length) {
+            let offset = 0;
+            while (offset < searchLength &&
+                StringModelPrimitives.codeUnitAt(receiver, position + offset) ===
+                    StringModelPrimitives.codeUnitAt(search, offset)) {
+                offset++;
+            }
+            if (offset === searchLength) {
+                result += StringModelPrimitives.copyRange(receiver, endOfLastMatch, position);
+                result += StringModels.substitution(receiver, search, replacement, position);
+                endOfLastMatch = position + searchLength;
+                position = endOfLastMatch + (searchLength === 0 ? 1 : 0);
+            } else {
+                position++;
+            }
+        }
+        return result + StringModelPrimitives.copyRange(receiver, endOfLastMatch, length);
+    }
+    private static substitution(receiver: string, search: string, replacement: string, position: number): string {
+        const replacementLength = StringModelPrimitives.length(replacement);
+        let result = "";
+        let index = 0;
+        while (index < replacementLength) {
+            const code = StringModelPrimitives.codeUnitAt(replacement, index);
+            if (code === 36 && index + 1 < replacementLength) {
+                const next = StringModelPrimitives.codeUnitAt(replacement, index + 1);
+                if (next === 36) {
+                    result += "$";
+                    index += 2;
+                    continue;
+                }
+                if (next === 38) {
+                    result += search;
+                    index += 2;
+                    continue;
+                }
+                if (next === 96) {
+                    result += StringModelPrimitives.copyRange(receiver, 0, position);
+                    index += 2;
+                    continue;
+                }
+                if (next === 39) {
+                    const matchEnd = position + StringModelPrimitives.length(search);
+                    result += StringModelPrimitives.copyRange(receiver, matchEnd, StringModelPrimitives.length(receiver));
+                    index += 2;
+                    continue;
+                }
+            }
+            result += StringModelPrimitives.fromCodeUnit(code);
+            index++;
+        }
+        return result;
+    }
+
     private static isWhitespace(codeUnit: number): boolean {
         return (codeUnit >= 0x09 && codeUnit <= 0x0d)
             || codeUnit === 0x20 || codeUnit === 0xa0 || codeUnit === 0x1680

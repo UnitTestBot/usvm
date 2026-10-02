@@ -227,6 +227,7 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
     }
 
     val modeledStringMethods = setOf(
+        "replaceAll",
         "substring",
         "trim",
         "trimStart",

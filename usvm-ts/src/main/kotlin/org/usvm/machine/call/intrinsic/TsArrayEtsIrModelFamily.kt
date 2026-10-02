@@ -2,11 +2,16 @@ package org.usvm.machine.call.intrinsic
 
 import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
+import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayType
+import org.jacodb.ets.model.EtsFunctionType
+import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsUnknownType
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
+import org.usvm.api.initializeArray
 import org.usvm.api.initializeArrayLength
 import org.usvm.machine.call.TsEtsIrUnknownCallModel
 import org.usvm.machine.call.TsEtsIrUnknownCallModelArtifact
@@ -21,9 +26,13 @@ import org.usvm.machine.call.TsUnknownCallModelSuccessor
 import org.usvm.machine.call.TsUnknownCallTarget
 import org.usvm.machine.call.loadBundledEtsIrUnknownCallModelArtifact
 import org.usvm.machine.expr.TsUnresolvedSort
+import org.usvm.machine.expr.mkFpToUint32AfterValidation
+import org.usvm.machine.expr.mkValidArrayLength
 import org.usvm.machine.state.TsState
+import org.usvm.machine.types.TsUnresolvedArrayKind
 import org.usvm.sizeSort
 import org.usvm.util.arrayStorageType
+import org.usvm.util.initializeArrayKind
 import org.usvm.util.isUnmodifiedDenseInputArray
 import org.usvm.util.mkArrayLengthLValue
 
@@ -116,8 +125,9 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         val value = call.arguments.firstOrNull()?.resolved
             ?: return@TsEtsIrUnknownCallModelDomainGuard state.ctx.falseExpr
         val valueMatchesArrayType = state.argumentsMatchArrayType(arrayType, listOf(value))
-        val isDenseInput = state.isUnmodifiedDenseInputArray(array, arrayType)
-        if (!valueMatchesArrayType || !isDenseInput) {
+        val fillsWholeArray = call.arguments.size == 1
+        val hasKnownSlotValues = fillsWholeArray || state.isUnmodifiedDenseInputArray(array, arrayType)
+        if (!valueMatchesArrayType || !hasKnownSlotValues) {
             return@TsEtsIrUnknownCallModelDomainGuard state.ctx.falseExpr
         }
 
@@ -282,8 +292,31 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         if (call.arguments.isEmpty()) call.resolvedInstanceInputs() else null
     }
 
+    private val arrayConstructorAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call ->
+        if (!call.hasGlobalArrayConstructorShape() || call.arguments.size != 1) {
+            return@TsEtsIrUnknownCallModelInputAdapter null
+        }
+
+        val length = call.arguments.single().resolved
+            ?.takeIf { value -> value.sort == state.ctx.fp64Sort }
+            ?: return@TsEtsIrUnknownCallModelInputAdapter null
+        listOf(length)
+    }
+
     override val models: List<TsUnknownCallModel> by lazy {
+        val arrayConstructorModel = TsEtsIrUnknownCallModel(
+            id = ARRAY_FROM_LENGTH_ID,
+            target = TsUnknownCallTarget(
+                methodName = "Array",
+                failureReason = TsUnknownCallFailureReason.POINTER_TARGET_NOT_FOUND,
+            ),
+            artifact = artifact("fromLength"),
+            inputAdapter = arrayConstructorAdapter,
+            requiredModelIds = setOf(PRIMITIVE_ALLOCATE_ID),
+        )
+
         listOf(
+            arrayConstructorModel,
             sourceModel(
                 id = "ts.array.pop",
                 methodName = "pop",
@@ -342,6 +375,11 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                 methodName = "grow",
                 arity = 2,
                 implementation = ::growArray,
+            ),
+            primitiveModel(
+                methodName = "allocate",
+                arity = 1,
+                implementation = ::allocateArray,
             ),
             primitiveModel(
                 methodName = "allocateLike",
@@ -492,6 +530,60 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         )
     }
 
+    private fun allocateArray(
+        state: TsState,
+        inputs: List<UExpr<*>>,
+    ): TsUnknownCallModelExecution? = with(state.ctx) {
+        val fpLength = inputs.singleOrNull()
+            ?.takeIf { value -> value.sort == fp64Sort }
+            ?.asExpr(fp64Sort)
+            ?: return null
+        val validLength = mkValidArrayLength(fpLength)
+        val maximumLength = mkFp64(MAX_SOURCE_ARRAY_LENGTH.toDouble())
+        val withinModelCapacity = mkFpLessOrEqualExpr(
+            fpLength,
+            maximumLength,
+        )
+        val supportedLength = mkAnd(validLength, withinModelCapacity)
+        val length = mkFpToUint32AfterValidation(fpLength, validLength).asExpr(sizeSort)
+        val arrayType = EtsArrayType(EtsUnknownType, dimensions = 1)
+
+        // The model covers only valid, bounded one-number lengths. All other inputs remain residual.
+        val validSuccessor = TsUnknownCallModelSuccessor(
+            guard = supportedLength,
+            completion = TsUnknownCallModelCompletion.Normal {
+                val descriptor = arrayDescriptorOf(arrayType)
+                val result = memory.allocConcrete(descriptor)
+                val undefinedSlots = List(MAX_SOURCE_ARRAY_LENGTH) { mkUndefinedValue() }
+                memory.initializeArray(
+                    arrayHeapRef = result,
+                    type = descriptor,
+                    sort = addressSort,
+                    sizeSort = sizeSort,
+                    contents = undefinedSlots.asSequence(),
+                )
+                TsUnresolvedArrayKind.entries.forEach { kind ->
+                    initializeArrayKind(
+                        array = result,
+                        kind = kind,
+                        values = List(MAX_SOURCE_ARRAY_LENGTH) { falseExpr },
+                    )
+                }
+                memory.initializeArrayLength(
+                    arrayHeapRef = result,
+                    type = descriptor,
+                    sizeSort = sizeSort,
+                    count = length,
+                )
+                result
+            },
+        )
+        TsUnknownCallModelExecution(
+            successors = listOf(validSuccessor),
+            residualGuard = mkNot(supportedLength),
+        )
+    }
+
     private fun allocateArrayLike(
         state: TsState,
         inputs: List<UExpr<*>>,
@@ -544,6 +636,27 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         return listOf(resolvedReceiver) + resolvedArguments
     }
 
+    private fun TsUnknownCall.hasGlobalArrayConstructorShape(): Boolean {
+        val owner = receiver?.source as? EtsLocal ?: return false
+        val ownerSignature = (owner.type as? EtsFunctionType)?.signature ?: return false
+        val ownerParameter = ownerSignature.parameters.singleOrNull() ?: return false
+        val ownerReturnType = ownerSignature.returnType as? EtsArrayType ?: return false
+        val callReturnType = resultType as? EtsArrayType ?: return false
+        val signatureFile = ownerSignature.enclosingClass.file
+
+        return owner.name == "Array" &&
+            signatureFile.projectName == UNKNOWN_SIGNATURE_COMPONENT &&
+            signatureFile.fileName == UNKNOWN_SIGNATURE_COMPONENT &&
+            ownerSignature.name.isEmpty() &&
+            ownerParameter.type == EtsNumberType &&
+            ownerParameter.isOptional &&
+            !ownerParameter.isRest &&
+            ownerReturnType.elementType == EtsAnyType &&
+            ownerReturnType.dimensions == 1 &&
+            callReturnType.elementType == EtsAnyType &&
+            callReturnType.dimensions == 1
+    }
+
     private class ArrayPrimitiveModel(
         methodName: String,
         private val arity: Int,
@@ -567,6 +680,9 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
     }
 
     private const val MATH_FLOOR_MODEL_ID = "ts.math.floor"
+    private const val ARRAY_FROM_LENGTH_ID = "ts.array.fromLength"
     private const val PRIMITIVE_GROW_ID = "ts.array.primitive.grow"
+    private const val PRIMITIVE_ALLOCATE_ID = "ts.array.primitive.allocate"
     private const val PRIMITIVE_ALLOCATE_LIKE_ID = "ts.array.primitive.allocateLike"
+    private const val UNKNOWN_SIGNATURE_COMPONENT = "%unk"
 }
