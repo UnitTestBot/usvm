@@ -4,6 +4,7 @@ import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsFunctionType
 import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsLexicalEnvType
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStaticFieldRef
 import org.jacodb.ets.utils.DEFAULT_ARK_CLASS_NAME
@@ -18,9 +19,65 @@ import org.usvm.ts.pbt.model.TypeScriptEntryPoint
 import org.usvm.ts.pbt.testResourcePath
 import java.nio.file.Path
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class PropertyEtsExportResolutionTest {
+    @Test
+    fun `exported arrow binds source input after its hidden builtin capture`() {
+        val source = testResourcePath("/mapping/exports/CapturedBuiltinArrow.ts")
+        val mapper = mapper(source)
+
+        val artifact = mapper.map(
+            manifest(module = source.fileName.toString(), exportName = "usesCapturedBuiltins"),
+        )
+
+        assertEquals(EtsMappingStatus.EXACT, artifact.predicate.status)
+        val target = artifact.predicate.targets.single()
+        val lexicalEnvironment = assertNotNull(target.bindings.lexicalEnvironment)
+        val hiddenCapture = lexicalEnvironment.parameter
+        val captureType = hiddenCapture.type as EtsLexicalEnvType
+        val input = target.bindings.inputs.single()
+        assertEquals(0, hiddenCapture.index)
+        assertEquals(1, lexicalEnvironment.stackSlot)
+        assertEquals(listOf("Number", "Error"), captureType.closures.map { closure -> closure.name })
+        assertEquals("value", input.parameter.name)
+        assertEquals(1, input.parameter.index)
+        assertEquals(2, input.stackSlot)
+    }
+
+    @Test
+    fun `arbitrary captured runtime value remains explicit in lexical environment binding`() {
+        val source = testResourcePath("/mapping/exports/CapturedBuiltinArrow.ts")
+        val mapper = mapper(source)
+
+        val artifact = mapper.map(
+            manifest(module = source.fileName.toString(), exportName = "capturesModuleValue"),
+        )
+
+        assertEquals(EtsMappingStatus.EXACT, artifact.predicate.status)
+        val bindings = artifact.predicate.targets.single().bindings
+        val lexicalEnvironment = assertNotNull(bindings.lexicalEnvironment)
+        val captureType = lexicalEnvironment.parameter.type as EtsLexicalEnvType
+        assertEquals(listOf("threshold"), captureType.closures.map { closure -> closure.name })
+        assertEquals(1, lexicalEnvironment.stackSlot)
+        assertEquals(2, bindings.inputs.single().stackSlot)
+    }
+
+    @Test
+    fun `hidden builtin capture does not conceal unmatched source parameters`() {
+        val source = testResourcePath("/mapping/exports/CapturedBuiltinArrow.ts")
+        val mapper = mapper(source)
+
+        val artifact = mapper.map(
+            manifest(module = source.fileName.toString(), exportName = "capturedBuiltinsWithTwoInputs"),
+        )
+
+        assertEquals(EtsMappingStatus.UNSUPPORTED, artifact.predicate.status)
+        assertEquals(emptyList(), artifact.predicate.targets)
+        assertEquals("mapping.entry-point.bindings.unsupported", artifact.predicate.diagnostics.single().code)
+    }
+
     @Test
     fun `named default declaration resolves only through the default export name`() {
         val source = testResourcePath("/mapping/exports/NamedDefaultDeclaration.ts")
