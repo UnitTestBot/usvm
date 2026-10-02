@@ -59,7 +59,6 @@ class TsMachine(
     observer: TsInterpreterObserver? = null,
     unknownCallDispatcher: TsUnknownCallDispatcher? = null,
     unknownCallModels: TsUnknownCallModelCatalog? = null,
-    private val initialStateConfigurator: (TsState) -> Unit = {},
 ) : UMachine<TsState>() {
     private val resolvedUnknownCallModels = when {
         unknownCallDispatcher != null -> null
@@ -112,13 +111,7 @@ class TsMachine(
         targets: List<TsTarget> = emptyList(),
     ): TsAnalysisResult {
         val initialStates = mutableMapOf<EtsMethod, TsState>()
-        methods.forEach { method ->
-            initialStates[method] = interpreter.getInitialState(
-                method = method,
-                targets = targets,
-                configure = initialStateConfigurator,
-            )
-        }
+        methods.forEach { initialStates[it] = interpreter.getInitialState(it, targets) }
 
         val methodsToTrackCoverage =
             when (options.coverageZone) {

@@ -738,11 +738,7 @@ class TsInterpreter(
             unknownCallDispatcher = unknownCallDispatcher,
         )
 
-    fun getInitialState(
-        method: EtsMethod,
-        targets: List<TsTarget>,
-        configure: (TsState) -> Unit = {},
-    ): TsState = with(ctx) {
+    fun getInitialState(method: EtsMethod, targets: List<TsTarget>): TsState = with(ctx) {
         val state = TsState(
             ctx = ctx,
             ownership = MutabilityOwnership(),
@@ -831,8 +827,6 @@ class TsInterpreter(
                 state.saveSortForLocal(idx, parameterSort)
             }
         }
-
-        configure(state)
 
         val solver = solver<EtsType>()
         val model = solver.check(state.pathConstraints).ensureSat().model

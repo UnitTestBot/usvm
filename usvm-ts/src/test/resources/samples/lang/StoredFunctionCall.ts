@@ -24,23 +24,4 @@ class StoredFunctionCall {
         };
         return subject.call(1);
     }
-
-    static inheritedField(subject: DerivedStoredFunctionCall): number {
-        subject.callback = () => 7;
-        return subject.call();
-    }
-}
-
-class BaseStoredFunctionCall {
-    callback: () => number;
-
-    constructor() {
-        this.callback = () => 7;
-    }
-}
-
-class DerivedStoredFunctionCall extends BaseStoredFunctionCall {
-    call(): number {
-        return this.callback();
-    }
 }
