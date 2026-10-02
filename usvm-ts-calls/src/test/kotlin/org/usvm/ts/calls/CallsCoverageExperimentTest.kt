@@ -93,6 +93,28 @@ class CallsCoverageExperimentTest {
     }
 
     @Test
+    fun `coverage search reports the concrete runtime limitation reason`() {
+        val fixture = fixture(
+            source = """
+                export function writesNamedProperty(value: number): boolean {
+                  const values = [1];
+                  values[0.5] = value;
+                  return true;
+                }
+            """.trimIndent(),
+            exportName = "writesNamedProperty",
+            inputs = listOf(PropertyInput(name = "value", domain = NumberDomain())),
+        )
+
+        val search = CurrentTsCallsCoverageEngine(testSourceEngine()).search(
+            request = coverageRequest(fixture, onCandidate = {}),
+        )
+
+        assertTrue(search.runtimeLimited, search.toString())
+        assertTrue("ARRAY_NAMED_PROPERTY_WRITE" in search.runtimeLimitationReasons, search.toString())
+    }
+
+    @Test
     fun `coverage universe has a denominator without invoking the entry function`() {
         val fixture = fixture(
             source = """
