@@ -61,6 +61,7 @@ class TsContext(
     val scene: EtsScene,
     components: TsComponents,
     internal val applicationAndSdkClasses: List<EtsClass> = scene.projectAndSdkClasses,
+    internal val dateNowMilliseconds: Double? = null,
 ) : UContext<TsSizeSort>(components) {
     val undefinedSort: TsUndefinedSort by lazy { TsUndefinedSort(this) }
 

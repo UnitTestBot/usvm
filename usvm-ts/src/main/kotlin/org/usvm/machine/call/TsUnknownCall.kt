@@ -1,20 +1,27 @@
 package org.usvm.machine.call
 
+import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsCallExpr
+import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsInstanceCallExpr
 import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsPtrCallExpr
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUnclearRefType
 import org.jacodb.ets.model.EtsValue
 import org.jacodb.ets.utils.CONSTRUCTOR_NAME
 import org.usvm.UExpr
 import org.usvm.api.mockMethodCall
+import org.usvm.api.typeStreamOf
 import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsVirtualMethodCallStmt
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsMethodResult
+import org.usvm.machine.state.TsState
 import org.usvm.machine.state.newStmt
+import org.usvm.types.singleOrNull
 
 /**
  * A call that the regular TypeScript execution pipeline could not execute.
@@ -141,19 +148,59 @@ internal fun TsUnknownCallDispatcher.dispatch(
         is EtsPtrCallExpr -> call.ptr
         else -> null
     }
-    return dispatch(
-        scope,
-        TsUnknownCall(
-            callee = callee,
-            receiver = receiverSource?.let { TsUnknownCallValue(it, resolvedReceiver) },
-            arguments = call.args.zip(resolvedArguments) { source, resolved ->
-                TsUnknownCallValue(source, resolved)
-            },
-            resultType = call.type,
-            callSite = callSite,
-            failureReason = failureReason,
-        ),
+    val receiverIsDate = (call as? EtsInstanceCallExpr)?.let { instanceCall ->
+        scope.calcOnState { isDateReceiver(instanceCall, resolvedReceiver) }
+    } ?: false
+    val normalizedCallee = call.canonicalizeDateCallee(callee, receiverIsDate)
+    val unknownCall = TsUnknownCall(
+        callee = normalizedCallee,
+        receiver = receiverSource?.let { TsUnknownCallValue(it, resolvedReceiver) },
+        arguments = call.args.zip(resolvedArguments) { source, resolved ->
+            TsUnknownCallValue(source, resolved)
+        },
+        resultType = call.type,
+        callSite = callSite,
+        failureReason = failureReason,
     )
+
+    return dispatch(scope, unknownCall)
+}
+
+internal fun EtsInstanceCallExpr.hasDateReceiver(): Boolean =
+    instance.name == "Date" || when (val type = instance.type) {
+        is EtsClassType -> type.signature.name == "Date"
+        is EtsUnclearRefType -> type.typeName == "Date"
+        else -> false
+    }
+
+internal fun TsState.isDateReceiver(
+    call: EtsInstanceCallExpr,
+    receiver: UExpr<*>?,
+): Boolean {
+    if (call.hasDateReceiver()) {
+        return true
+    }
+    if (receiver?.sort != ctx.addressSort) {
+        return false
+    }
+
+    val runtimeType = memory.typeStreamOf(receiver.asExpr(ctx.addressSort)).singleOrNull()
+    return (runtimeType as? EtsClassType)?.signature?.name == "Date"
+}
+
+private fun EtsCallExpr.canonicalizeDateCallee(
+    callee: EtsMethodSignature,
+    receiverIsDate: Boolean,
+): EtsMethodSignature {
+    if (callee.enclosingClass.name == "Date") {
+        return callee
+    }
+
+    if (!receiverIsDate) {
+        return callee
+    }
+
+    return callee.copy(enclosingClass = EtsClassSignature.UNKNOWN.copy(name = "Date"))
 }
 
 internal fun TsUnknownCallDispatcher.dispatch(
