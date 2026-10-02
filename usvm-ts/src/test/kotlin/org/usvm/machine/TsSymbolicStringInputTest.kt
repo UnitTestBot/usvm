@@ -29,7 +29,7 @@ class TsSymbolicStringInputTest {
         val source = getResourcePath("/models/SymbolicStringInput.ts")
         val scene = EtsScene(listOf(loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)))
         val methods = scene.projectClasses.single { it.name == "SymbolicStringInput" }.methods
-            .filter { it.name in setOf("identity", "lengthOne", "literal") }
+            .filter { it.name in setOf("identity", "lengthOne", "literal", "literalLength") }
             .associateBy { it.name }
         val options = UMachineOptions(
             pathSelectionStrategies = listOf(PathSelectionStrategy.BFS),
@@ -49,7 +49,7 @@ class TsSymbolicStringInputTest {
         identityTests.forEach { test ->
             val input = assertIs<TsTestValue.TsString>(test.before.parameters.single()).value
             val result = assertIs<TsTestValue.TsString>(test.returnValue).value
-            assertEquals(input, result)
+            assertEquals(input, result, message = test.toString())
         }
 
         val lengthTests = tests.getValue("lengthOne")
@@ -67,6 +67,12 @@ class TsSymbolicStringInputTest {
         assertTrue(literalTests.isNotEmpty())
         literalTests.forEach { test ->
             assertEquals("A\u0000\u03a9\uD83D\uDE00", assertIs<TsTestValue.TsString>(test.returnValue).value)
+        }
+
+        val literalLengthTests = tests.getValue("literalLength")
+        assertTrue(literalLengthTests.isNotEmpty())
+        literalLengthTests.forEach { test ->
+            assertEquals(5.0, assertIs<TsTestValue.TsNumber>(test.returnValue).number)
         }
 
         val script = buildString {

@@ -309,21 +309,26 @@ open class TsTestStateResolver(
     ): TsTestValue.TsString = with(ctx) {
         getStringConstantValue(concreteRef)?.let { return TsTestValue.TsString(it) }
 
-        val valueLValue = mkFieldLValue(addressSort, heapRef, field = "value")
-        val charsRef = evaluateInModel(memory.read(valueLValue)) as UConcreteHeapRef
+        // Symbolic strings have no mutable value field in the final state. Resolve
+        // their backing array from the model in both before and after snapshots.
+        val allocated = isAllocatedConcreteHeapRef(concreteRef)
+        val stringMemory = if (allocated) finalStateMemory else model
+        val stringRef = if (allocated) heapRef else concreteRef
+        val valueLValue = mkFieldLValue(addressSort, stringRef, field = "value")
+        val charsRef = evaluateInModel(stringMemory.read(valueLValue)) as UConcreteHeapRef
         if (charsRef.address == 0) {
             return TsTestValue.TsString("")
         }
 
         val charsType = EtsArrayType(EtsNumberType, dimensions = 1)
         val lengthLValue = mkArrayLengthLValue(charsRef, charsType)
-        val length = evaluateInModel(memory.read(lengthLValue)).extractInt()
+        val length = evaluateInModel(stringMemory.read(lengthLValue)).extractInt()
         require(length in 0..MAX_STRING_LENGTH) { "Unsupported symbolic string length: $length" }
 
         val value = buildString(length) {
             repeat(length) { index ->
                 val elementLValue = mkArrayIndexLValue(bv16Sort, charsRef, mkSizeExpr(index), charsType)
-                val element = evaluateInModel(memory.read(elementLValue)) as KBitVec16Value
+                val element = evaluateInModel(stringMemory.read(elementLValue)) as KBitVec16Value
                 append(element.shortValue.toInt().toChar())
             }
         }

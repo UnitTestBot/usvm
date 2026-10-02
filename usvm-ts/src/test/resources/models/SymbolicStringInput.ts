@@ -10,4 +10,8 @@ class SymbolicStringInput {
     literal(): string {
         return "A\u0000\u03a9\uD83D\uDE00";
     }
+
+    literalLength(): number {
+        return "A\u0000\u03a9\uD83D\uDE00".length;
+    }
 }
