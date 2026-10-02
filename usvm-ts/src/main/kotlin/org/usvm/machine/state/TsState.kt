@@ -94,6 +94,7 @@ class TsState(
     /** Exception delivered to the current catch block, before its binding is initialized. */
     var caughtException: UExpr<*>? = null,
     var unsupportedReason: String? = null,
+    var writtenConcreteFields: Set<Pair<UHeapRef, String>> = emptySet(),
     private val activeUnknownCallModels: MutableList<Pair<String, Int>> = mutableListOf(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
     ctx = ctx,
@@ -333,6 +334,7 @@ class TsState(
             symbolicStringCandidates = symbolicStringCandidates,
             caughtException = caughtException,
             unsupportedReason = unsupportedReason,
+            writtenConcreteFields = writtenConcreteFields,
             activeUnknownCallModels = activeUnknownCallModels.toMutableList(),
         )
     }
