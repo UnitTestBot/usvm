@@ -61,4 +61,10 @@ class DeleteProperty {
         delete object.x;
         return 1;
     }
+
+    deleteOwnToString(): number {
+        const object = { toString: 1 };
+        delete object.toString;
+        return object.toString === undefined ? 1 : 0;
+    }
 }

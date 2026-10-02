@@ -156,4 +156,22 @@ class DeleteProperty : TsMethodTestRunner() {
         assertTrue(analysis.states.isEmpty())
         assertTrue(analysis.unsupportedPaths.any { "Deleting a property of an input object" in it })
     }
+
+    @Test
+    fun `deleting an own property with a prototype fallback reports unsupported outcome`() {
+        val method = getMethod("deleteOwnToString")
+        val options = UMachineOptions(
+            stateCollectionStrategy = StateCollectionStrategy.ALL,
+            stopOnCoverage = 0,
+            timeout = Duration.INFINITE,
+        )
+
+        val analysis = TsMachine(scene, options, TsOptions()).use { machine ->
+            machine.analyzeWithOutcome(methods = listOf(method))
+        }
+
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, analysis.stopReason)
+        assertTrue(analysis.states.isEmpty())
+        assertTrue(analysis.unsupportedPaths.any { "Object.prototype lookup" in it })
+    }
 }

@@ -433,6 +433,13 @@ class TsExprResolver(
                 if (!isAllocatedConcreteHeapRef(instance)) {
                     throw UnsupportedOperationException("Deleting a property of an input object is not supported")
                 }
+
+                if (operand.field.name in OBJECT_PROTOTYPE_PROPERTIES) {
+                    throw UnsupportedOperationException(
+                        "Deleting '${operand.field.name}' requires unsupported Object.prototype lookup"
+                    )
+                }
+
                 if (operand.field.name == "length" &&
                     scope.calcOnState { arrayStorageType(instance, operand.instance.type) is EtsArrayType }
                 ) {
