@@ -196,6 +196,32 @@ class TsInterpreter(
         val concreteMethods: MutableList<EtsMethod> = mutableListOf()
 
         if (isAllocatedConcreteHeapRef(receiver)) {
+            val field = mkFieldLValue(addressSort, receiver, callee.name)
+            val functionRef = scope.calcOnState { memory.read(field) }
+            val function = if (isAllocatedConcreteHeapRef(functionRef)) {
+                scope.calcOnState { associatedFunction[functionRef] }
+            } else {
+                null
+            }
+
+            if (function != null) {
+                val resolvedArgs = buildList {
+                    function.closure?.let(::add)
+                    addAll(stmt.args)
+                }
+                val concreteCall = TsConcreteMethodCallStmt(
+                    callee = function.method,
+                    call = stmt.call,
+                    resolvedReceiver = functionRef,
+                    instance = function.thisInstance ?: receiver,
+                    args = resolvedArgs,
+                    returnSite = stmt.returnSite,
+                )
+
+                scope.doWithState { newStmt(concreteCall) }
+                return
+            }
+
             val type = scope.calcOnState { memory.typeStreamOf(receiver) }.single()
             if (type is EtsClassType) {
                 val classes = graph.hierarchy.classesForType(type)
@@ -712,7 +738,11 @@ class TsInterpreter(
             unknownCallDispatcher = unknownCallDispatcher,
         )
 
-    fun getInitialState(method: EtsMethod, targets: List<TsTarget>): TsState = with(ctx) {
+    fun getInitialState(
+        method: EtsMethod,
+        targets: List<TsTarget>,
+        configure: (TsState) -> Unit = {},
+    ): TsState = with(ctx) {
         val state = TsState(
             ctx = ctx,
             ownership = MutabilityOwnership(),
@@ -801,6 +831,8 @@ class TsInterpreter(
                 state.saveSortForLocal(idx, parameterSort)
             }
         }
+
+        configure(state)
 
         val solver = solver<EtsType>()
         val model = solver.check(state.pathConstraints).ensureSat().model
