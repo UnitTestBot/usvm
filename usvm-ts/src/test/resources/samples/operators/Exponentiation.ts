@@ -9,12 +9,14 @@ class Exponentiation {
     }
 
     reciprocal(value: number): number {
+        if (value === 518.3984755809512) return value ** -1;
         if (1 / value === -Infinity) return value ** -1;
         if (value === 0) return value ** -1;
         return value ** -1;
     }
 
     squareRoot(value: number): number {
+        if (value === -Infinity) return value ** 0.5;
         if (1 / value === -Infinity) return value ** 0.5;
         if (value === 9) return value ** 0.5;
         if (value === -1) return value ** 0.5;
