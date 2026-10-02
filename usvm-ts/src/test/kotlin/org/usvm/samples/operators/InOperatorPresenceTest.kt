@@ -37,6 +37,7 @@ class InOperatorPresenceTest : TsMethodTestRunner() {
             "hasUndefinedProperty",
             "lacksProperty",
             "lacksOptionalProperty",
+            "hasOwnConstructorMethod",
             "hasAddedProperty",
             "lacksDeletedProperty",
             "hasRestoredProperty",
@@ -103,6 +104,8 @@ class InOperatorPresenceTest : TsMethodTestRunner() {
             "specialPrototypeInitializer",
             "inheritedThroughPrototypeInitializer",
             "inheritedThroughAssignedPrototype",
+            "deletedToStringExposesPrototype",
+            "inheritedConstructor",
         )
 
         methods.forEach { methodName ->
@@ -116,6 +119,10 @@ class InOperatorPresenceTest : TsMethodTestRunner() {
             assertTrue(outcome.unsupportedPaths.isNotEmpty(), methodName)
             if (methodName.endsWith("PrototypeInitializer") || methodName == "inheritedThroughAssignedPrototype") {
                 assertTrue(outcome.unsupportedPaths.any { "prototype mutation" in it },
+                    "${outcome.unsupportedPaths}")
+            }
+            if (methodName == "deletedToStringExposesPrototype" || methodName == "inheritedConstructor") {
+                assertTrue(outcome.unsupportedPaths.any { "Prototype lookup" in it },
                     "${outcome.unsupportedPaths}")
             }
         }
@@ -173,7 +180,9 @@ class InOperatorPresenceTest : TsMethodTestRunner() {
         script.writeText(source + "\n" +
             "if (new InOperator().specialPrototypeInitializer() !== false) throw Error('null prototype');\n" +
             "if (new InOperator().inheritedThroughPrototypeInitializer() !== true) throw Error('inherited');\n" +
-            "if (new InOperator().inheritedThroughAssignedPrototype() !== true) throw Error('assigned prototype');\n")
+            "if (new InOperator().inheritedThroughAssignedPrototype() !== true) throw Error('assigned prototype');\n" +
+            "if (new InOperator().deletedToStringExposesPrototype() !== true) throw Error('revealed prototype');\n" +
+            "if (new InOperator().inheritedConstructor() !== true) throw Error('inherited constructor');\n")
 
         val process = ProcessBuilder("node", "--experimental-strip-types", script.toString())
             .redirectErrorStream(true)
