@@ -122,7 +122,7 @@ class InOperatorPresenceTest : TsMethodTestRunner() {
                     "${outcome.unsupportedPaths}")
             }
             if (methodName == "deletedToStringExposesPrototype" || methodName == "inheritedConstructor") {
-                assertTrue(outcome.unsupportedPaths.any { "Prototype lookup" in it },
+                assertTrue(outcome.unsupportedPaths.any { it.contains("prototype lookup", ignoreCase = true) },
                     "${outcome.unsupportedPaths}")
             }
         }
