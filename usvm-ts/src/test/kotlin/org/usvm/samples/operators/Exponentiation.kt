@@ -80,12 +80,32 @@ class Exponentiation : TsMethodTestRunner() {
     }
 
     @Test
+    fun `unmodeled concrete fractional power is unsupported and runs in Node`() {
+        val outcome = analyzeWithDefaultFailureHandling("unmodeledConcreteFractional")
+
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
+        assertTrue(outcome.states.isEmpty())
+        assertTrue(outcome.unsupportedPaths.any { "exponent 0.7" in it })
+
+        val source = javaClass.getResourceAsStream(resource)?.bufferedReader()?.use { it.readText() }
+            ?: error("Missing $resource")
+        val script = buildString {
+            appendLine(source)
+            appendLine("const actual = new Exponentiation().unmodeledConcreteFractional();")
+            appendLine("if (!Object.is(actual, 0.1 ** 0.7)) throw Error('Node replay mismatch');")
+        }
+        runNode("unmodeledConcreteFractional.ts", script)
+    }
+
+    @Test
     fun `concrete Number edge cases replay in Node`() {
         val cases = mapOf(
             "nanToZero" to 1.0,
             "negativeZeroToMinusOne" to Double.NEGATIVE_INFINITY,
+            "positiveZeroToMinusOne" to Double.POSITIVE_INFINITY,
             "negativeInfinitySquared" to Double.POSITIVE_INFINITY,
             "negativeOneInfinite" to Double.NaN,
+            "negativeOneNegativeInfinite" to Double.NaN,
             "negativeFractional" to Double.NaN,
         )
 
@@ -109,7 +129,7 @@ class Exponentiation : TsMethodTestRunner() {
         for (methodName in listOf("symbolicExponent", "unsupportedFractional")) {
             val failure = assertFailsWith<UnsupportedOperationException> { analyze(methodName) }
 
-            assertTrue(failure.message.orEmpty().contains("Symbolic exponentiation"))
+            assertTrue(failure.message.orEmpty().contains("exponentiation"))
         }
     }
 
@@ -124,8 +144,8 @@ class Exponentiation : TsMethodTestRunner() {
     fun `unsupported powers remain visible in ordinary analysis outcome`() {
         val cases = mapOf(
             "symbolicExponent" to "Symbolic exponentiation exponent",
-            "unsupportedFractional" to "Symbolic exponentiation with exponent 1.5",
-            "reciprocal" to "Symbolic exponentiation with exponent -1.0",
+            "unsupportedFractional" to "Number exponentiation with exponent 1.5",
+            "reciprocal" to "Number exponentiation with exponent -1.0",
             "stringBase" to "outside the supported Number conversion model",
         )
 
@@ -168,9 +188,7 @@ class Exponentiation : TsMethodTestRunner() {
     private fun replay(methodName: String, tests: List<TsTest>) {
         val source = javaClass.getResourceAsStream(resource)?.bufferedReader()?.use { it.readText() }
             ?: error("Missing $resource")
-        val script = directory.resolve("$methodName.ts")
-        val output = directory.resolve("$methodName.out")
-        script.writeText(buildString {
+        val script = buildString {
             appendLine(source)
             tests.forEachIndexed { index, test ->
                 val args = test.before.parameters.map { value ->
@@ -183,7 +201,15 @@ class Exponentiation : TsMethodTestRunner() {
                         "throw Error('Replay mismatch at result $index');"
                 )
             }
-        })
+        }
+
+        runNode("$methodName.ts", script)
+    }
+
+    private fun runNode(scriptName: String, source: String) {
+        val script = directory.resolve(scriptName)
+        val output = directory.resolve("$scriptName.out")
+        script.writeText(source)
 
         val process = ProcessBuilder("node", "--experimental-strip-types", script.toString())
             .redirectErrorStream(true)
