@@ -121,6 +121,7 @@ import org.usvm.sizeSort
 import org.usvm.types.singleOrNull
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.SymbolResolutionResult
+import org.usvm.util.arrayStorageType
 import org.usvm.util.isResolved
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
@@ -435,38 +436,37 @@ class TsExprResolver(
     }
 
     override fun visit(expr: EtsDeleteExpr): UExpr<out USort>? = with(ctx) {
-        logger.warn {
-            "delete operator is not fully supported, the result may not be accurate"
-        }
-
-        // The delete operator removes a property from an object and returns true/false
-        // For property access like "delete obj.prop", we need to handle EtsInstanceFieldRef
         when (val operand = expr.arg) {
             is EtsInstanceFieldRef -> {
-                val instance = resolve(operand.instance)?.asExpr(addressSort) ?: return null
-
-                // Check for null/undefined access
-                checkUndefinedOrNullPropertyRead(scope, instance, operand.field.name) ?: return null
-
-                // For now, we simulate deletion by setting the property to undefined
-                // This is a simplification of the real semantics but sufficient for basic cases
-                // TODO: This is incorrect for cases that the existing field is not of sort Address.
-                //       In such case, the "overwriting" the field value with undefined does nothing
-                //       to the actual number/boolean/string value inside the field,
-                //       [if only we read the field using that "other" sort].
-                val fieldLValue = mkFieldLValue(addressSort, instance, operand.field)
-                scope.doWithState {
-                    memory.write(fieldLValue, mkUndefinedValue(), guard = trueExpr)
+                val resolved = resolve(operand.instance) ?: return null
+                val instance = if (resolved.isFakeObject()) {
+                    scope.assert(resolved.getFakeType(scope).refTypeExpr) ?: return null
+                    resolved.extractRef(scope)
+                } else {
+                    resolved.asExpr(addressSort)
                 }
 
-                // The delete operator returns true in most cases for property deletion
+                checkUndefinedOrNullPropertyRead(scope, instance, operand.field.name) ?: return null
+
+                if (!isAllocatedConcreteHeapRef(instance)) {
+                    throw UnsupportedOperationException("Deleting a property of an input object is not supported")
+                }
+                if (operand.field.name == "length" &&
+                    scope.calcOnState { arrayStorageType(instance, operand.instance.type) is EtsArrayType }
+                ) {
+                    throw UnsupportedOperationException("Deleting Array.length is not supported")
+                }
+
+                scope.doWithState {
+                    memory.write(deletedFieldLValue(instance, operand.field), trueExpr, guard = trueExpr)
+                }
+
                 mkTrue()
             }
 
             else -> {
-                // For other operands (like variables), delete typically returns true without effect
-                resolve(operand) ?: return null // Evaluate for potential side effects
-                mkTrue()
+                resolve(operand) ?: return null
+                throw UnsupportedOperationException("Deleting ${operand::class.simpleName} is not supported")
             }
         }
     }
