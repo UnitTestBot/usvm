@@ -47,6 +47,7 @@ import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.resolveEtsMethods
 
 private val logger = KotlinLogging.logger {}
+private val legacyArrayMethods = setOf("concat", "fill", "join", "push", "reverse", "slice", "unshift")
 
 internal fun TsExprResolver.tryApproximateGlobalInstanceCall(
     expr: EtsInstanceCallExpr,
@@ -134,6 +135,11 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
 
     // Mock `.toString()` method calls
     if (expr.callee.name == "toString") {
+        if (unknownCallDispatcher is TsUnknownCallModelDispatcher) {
+            dispatchLegacyInstanceCall(stmt)
+            return TsExprApproximationResult.ResolveFailure
+        }
+
         if (expr.args.isNotEmpty()) {
             logger.warn { "toString() should have no arguments, but got ${expr.args.size}" }
         }
@@ -157,6 +163,11 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
         val elementSort = typeToSort(instanceType.elementType)
             .takeIf { it !is TsUnresolvedSort }
             ?: addressSort
+
+        if (expr.callee.name in legacyArrayMethods && unknownCallDispatcher is TsUnknownCallModelDispatcher) {
+            dispatchArrayModel(stmt)
+            return TsExprApproximationResult.ResolveFailure
+        }
 
         // Handle 'Array.push()' method calls
         if (expr.callee.name == "push") {
@@ -221,7 +232,10 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
         "includes",
         "indexOf",
         "lastIndexOf",
+        "slice",
         "startsWith",
+        "toLowerCase",
+        "toUpperCase",
     )
     if (instanceType is EtsStringType && expr.callee.name in modeledStringMethods) {
         val dispatcher = unknownCallDispatcher
@@ -283,6 +297,17 @@ private fun TsExprResolver.dispatchArrayModel(stmt: TsVirtualMethodCallStmt) {
         callSite = stmt.returnSite,
         failureReason = TsUnknownCallFailureReason.PARTIAL_APPROXIMATION,
         callee = stmt.call.callee.withEnclosingClassName("Array"),
+        resolvedReceiver = stmt.instance,
+        resolvedArguments = stmt.args,
+    )
+}
+
+private fun TsExprResolver.dispatchLegacyInstanceCall(stmt: TsVirtualMethodCallStmt) {
+    unknownCallDispatcher.dispatch(
+        scope = scope,
+        call = stmt.call,
+        callSite = stmt.returnSite,
+        failureReason = TsUnknownCallFailureReason.PARTIAL_APPROXIMATION,
         resolvedReceiver = stmt.instance,
         resolvedArguments = stmt.args,
     )

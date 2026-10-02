@@ -18,6 +18,7 @@ import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.types.ExprWithTypeConstraint
 import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.util.boolToFp
+import org.usvm.util.refOrStringValueEquals
 
 private val logger = KotlinLogging.logger {}
 
@@ -392,7 +393,7 @@ sealed interface TsBinaryOperator {
             return mkOr(
                 mkAnd(lhsIsUndefined, rhsIsNull),
                 mkAnd(lhsIsNull, rhsIsUndefined),
-                mkHeapRefEq(lhs, rhs)
+                scope.calcOnState { refOrStringValueEquals(lhs, rhs) },
             )
         }
 
@@ -557,7 +558,7 @@ sealed interface TsBinaryOperator {
             rhs: UHeapRef,
             scope: TsStepScope,
         ): UBoolExpr {
-            return mkHeapRefEq(lhs, rhs)
+            return scope.calcOnState { refOrStringValueEquals(lhs, rhs) }
         }
 
         override fun TsContext.resolveFakeObject(
@@ -645,7 +646,7 @@ sealed interface TsBinaryOperator {
                 val right = rhsValue.asExpr(addressSort)
                 return mkAnd(
                     typeConstraint,
-                    mkHeapRefEq(left, right)
+                    onRef(left, right, scope),
                 )
             }
 
