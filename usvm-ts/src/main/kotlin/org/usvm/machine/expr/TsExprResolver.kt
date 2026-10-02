@@ -656,7 +656,17 @@ class TsExprResolver(
                 val exponent = mkNumericExpr(right, scope)
 
                 if (base is KFp64Value && exponent is KFp64Value) {
-                    return@with mkFp64(value = Math.pow(base.value, exponent.value))
+                    // JVM Math.pow and JavaScript ** can differ by one ULP for ordinary finite powers.
+                    // Only these discrete edge cases have runtime-independent Number results.
+                    if (base.value == 0.0 && exponent.value == -1.0) {
+                        val isNegativeZero = base.value.toRawBits() < 0
+                        val result = if (isNegativeZero) Double.NEGATIVE_INFINITY else Double.POSITIVE_INFINITY
+                        return@with mkFp64(value = result)
+                    }
+
+                    if (base.value == -1.0 && exponent.value.isInfinite()) {
+                        return@with mkFp64NaN()
+                    }
                 }
 
                 val concreteExponent = (exponent as? KFp64Value)?.value
@@ -682,7 +692,7 @@ class TsExprResolver(
                         )
                     }
                     else -> throw UnsupportedOperationException(
-                        "Symbolic exponentiation with exponent $concreteExponent is not supported: $expr"
+                        "Number exponentiation with exponent $concreteExponent is not modeled: $expr"
                     )
                 }
             }
