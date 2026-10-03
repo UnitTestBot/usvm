@@ -12,11 +12,7 @@ import org.usvm.machine.TsOptions
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.TsTestResolver
-import org.usvm.util.getResourcePath
 import java.nio.file.Path
-import java.util.concurrent.TimeUnit
-import kotlin.io.path.readText
-import kotlin.io.path.writeText
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
@@ -205,101 +201,53 @@ class InOperatorPresenceTest : TsMethodTestRunner() {
     }
 
     private fun replay(methodName: String, values: List<Double>) {
-        val source = getResourcePath(tsPath).readText()
-        val script = directory.resolve("$methodName.ts")
-        val output = directory.resolve("$methodName.out")
-        script.writeText(buildString {
-            appendLine(source)
+        val assertions = buildString {
             values.forEachIndexed { index, value ->
                 appendLine("if (new InOperator().$methodName($value) !== 1) throw Error('state $index');")
             }
-        })
+        }
 
-        val process = ProcessBuilder("node", "--experimental-strip-types", script.toString())
-            .redirectErrorStream(true)
-            .redirectOutput(output.toFile())
-            .start()
-
-        assertTrue(process.waitFor(30, TimeUnit.SECONDS), "Node replay timed out: $methodName")
-        assertEquals(0, process.exitValue(), output.readText())
+        replayInOperatorScript(directory, tsPath, methodName, assertions)
     }
 
     private fun replayConditional(values: List<Boolean>) {
-        val source = getResourcePath(tsPath).readText()
-        val script = directory.resolve("conditionalDelete.ts")
-        val output = directory.resolve("conditionalDelete.out")
-        script.writeText(buildString {
-            appendLine(source)
+        val assertions = buildString {
             values.forEachIndexed { index, value ->
                 appendLine(
                     "if (new InOperator().conditionalDelete($value) !== ${if (value) 0 else 1}) " +
                         "throw Error('state $index');"
                 )
             }
-        })
+        }
 
-        val process = ProcessBuilder("node", "--experimental-strip-types", script.toString())
-            .redirectErrorStream(true)
-            .redirectOutput(output.toFile())
-            .start()
-
-        assertTrue(process.waitFor(30, TimeUnit.SECONDS), "Node replay timed out: conditionalDelete")
-        assertEquals(0, process.exitValue(), output.readText())
+        replayInOperatorScript(directory, tsPath, scriptName = "conditionalDelete", assertions = assertions)
     }
 
     private fun replayRead(methodName: String, values: List<Double>) {
-        val source = getResourcePath(tsPath).readText()
-        val script = directory.resolve("$methodName.ts")
-        val output = directory.resolve("$methodName.out")
-        script.writeText(buildString {
-            appendLine(source)
+        val assertions = buildString {
             values.forEachIndexed { index, value ->
                 appendLine("if (new InOperator().$methodName($value) !== $value) throw Error('state $index');")
             }
-        })
+        }
 
-        val process = ProcessBuilder("node", "--experimental-strip-types", script.toString())
-            .redirectErrorStream(true)
-            .redirectOutput(output.toFile())
-            .start()
-
-        assertTrue(process.waitFor(30, TimeUnit.SECONDS), "Node replay timed out: $methodName")
-        assertEquals(0, process.exitValue(), output.readText())
+        replayInOperatorScript(directory, tsPath, methodName, assertions)
     }
 
     private fun replayNoArguments(methodName: String, expected: Int) {
-        val source = getResourcePath(tsPath).readText()
-        val script = directory.resolve("$methodName.ts")
-        val output = directory.resolve("$methodName.out")
-        script.writeText(source + "\nif (new InOperator().$methodName() !== $expected) throw Error('$methodName');\n")
+        val assertions = "if (new InOperator().$methodName() !== $expected) throw Error('$methodName');\n"
 
-        val process = ProcessBuilder("node", "--experimental-strip-types", script.toString())
-            .redirectErrorStream(true)
-            .redirectOutput(output.toFile())
-            .start()
-
-        assertTrue(process.waitFor(30, TimeUnit.SECONDS), "Node replay timed out: $methodName")
-        assertEquals(0, process.exitValue(), output.readText())
+        replayInOperatorScript(directory, tsPath, methodName, assertions)
     }
 
     private fun replayPrototypeInitializer() {
-        val source = getResourcePath(tsPath).readText()
-        val script = directory.resolve("specialPrototypeInitializer.ts")
-        val output = directory.resolve("specialPrototypeInitializer.out")
-        script.writeText(source + "\n" +
+        val assertions =
             "if (new InOperator().specialPrototypeInitializer() !== false) throw Error('null prototype');\n" +
             "if (new InOperator().inheritedThroughPrototypeInitializer() !== true) throw Error('inherited');\n" +
             "if (new InOperator().inheritedThroughAssignedPrototype() !== true) throw Error('assigned prototype');\n" +
             "if (new InOperator().deletedToStringExposesPrototype() !== true) throw Error('revealed prototype');\n" +
-            "if (new InOperator().inheritedConstructor() !== true) throw Error('inherited constructor');\n")
+            "if (new InOperator().inheritedConstructor() !== true) throw Error('inherited constructor');\n"
 
-        val process = ProcessBuilder("node", "--experimental-strip-types", script.toString())
-            .redirectErrorStream(true)
-            .redirectOutput(output.toFile())
-            .start()
-
-        assertTrue(process.waitFor(30, TimeUnit.SECONDS), "Node replay timed out: specialPrototypeInitializer")
-        assertEquals(0, process.exitValue(), output.readText())
+        replayInOperatorScript(directory, tsPath, scriptName = "specialPrototypeInitializer", assertions = assertions)
     }
 
     private val machineOptions = UMachineOptions(
