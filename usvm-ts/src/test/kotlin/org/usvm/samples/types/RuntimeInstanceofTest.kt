@@ -434,6 +434,44 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
     }
 
     @Test
+    fun `inherited generic fields have explicit unsupported outcomes`() {
+        val methods = listOf("inheritedGenericConstructorParameter", "inheritedGenericNumberParameter")
+
+        methods.forEach { methodName ->
+            val outcome = analyze(methodName)
+
+            assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason, methodName)
+            assertTrue(outcome.states.isEmpty(), "$methodName: ${outcome.states}")
+            assertTrue(outcome.unsupportedPaths.any { "Unresolved inherited generic" in it },
+                "$methodName: ${outcome.unsupportedPaths}")
+        }
+
+        replay(listOf(
+            "const holder = new InstanceInheritedGenericConstructor(); holder.ctor = InstanceA; " +
+                "if (new RuntimeInstanceof().inheritedGenericConstructorParameter(holder) !== true) " +
+                "throw Error('inherited generic');",
+            "const numberHolder = new InstanceInheritedGenericNumber(); numberHolder.ctor = 1; " +
+                "if (new RuntimeInstanceof().inheritedGenericNumberParameter(numberHolder) !== true) " +
+                "throw Error('inherited generic number');",
+        ))
+    }
+
+    @Test
+    fun `concrete inherited number field remains supported`() {
+        val outcome = analyze("inheritedConcreteNumberParameter")
+
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
+        assertTrue(outcome.unsupportedPaths.isEmpty(), "${outcome.unsupportedPaths}")
+        assertTrue(outcome.states.isNotEmpty())
+
+        replay(listOf(
+            "const holder = new InstanceInheritedConcreteNumber(); holder.value = 1; " +
+                "if (new RuntimeInstanceof().inheritedConcreteNumberParameter(holder) !== true) " +
+                "throw Error('inherited concrete number');",
+        ))
+    }
+
+    @Test
     fun `unsupported constructor input does not hide another entrypoint`() {
         val methods = listOf("constructorParameter", "directConstructor")
             .map { getMethod(methodName = it, className = "RuntimeInstanceof") }
