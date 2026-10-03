@@ -279,6 +279,8 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
     fun `custom hasInstance is explicitly unsupported`() {
         val custom = analyze("customHasInstance")
         val inherited = analyze("inheritedHasInstance")
+        val customField = analyze(methodName = "customHasInstanceField")
+        val inheritedField = analyze(methodName = "inheritedHasInstanceField")
 
         assertEquals(TsAnalysisStopReason.EXHAUSTED, custom.stopReason)
         assertTrue(custom.states.isEmpty())
@@ -288,10 +290,22 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
         assertTrue(inherited.states.isEmpty())
         assertTrue(inherited.unsupportedPaths.any { "Symbol.hasInstance" in it }, "${inherited.unsupportedPaths}")
 
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, customField.stopReason)
+        assertTrue(customField.states.isEmpty())
+        assertTrue(customField.unsupportedPaths.any { "Symbol.hasInstance" in it }, "${customField.unsupportedPaths}")
+
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, inheritedField.stopReason)
+        assertTrue(inheritedField.states.isEmpty())
+        assertTrue(inheritedField.unsupportedPaths.any { "Symbol.hasInstance" in it }, "${inheritedField.unsupportedPaths}")
+
         replay(listOf(
             "if (new RuntimeInstanceof().customHasInstance() !== false) throw Error('custom hasInstance');",
             "if (new RuntimeInstanceof().inheritedHasInstance(new InstanceHasInstanceChild()) !== false) " +
                 "throw Error('inherited hasInstance');",
+            "if (new RuntimeInstanceof().customHasInstanceField() !== false) " +
+                "throw Error('field hasInstance');",
+            "if (new RuntimeInstanceof().inheritedHasInstanceField(new InstanceHasInstanceFieldChild()) !== false) " +
+                "throw Error('inherited field hasInstance');",
         ))
     }
 
