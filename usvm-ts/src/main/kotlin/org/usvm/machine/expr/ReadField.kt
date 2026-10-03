@@ -2,22 +2,17 @@ package org.usvm.machine.expr
 
 import io.ksmt.utils.asExpr
 import mu.KotlinLogging
-import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsStaticFieldRef
-import org.jacodb.ets.model.EtsUnionType
 import org.usvm.UExpr
 import org.usvm.UHeapRef
-import org.usvm.api.typeStreamOf
-import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.ensureStaticsInitialized
 import org.usvm.machine.types.EtsAuxiliaryType
 import org.usvm.machine.types.mkFakeValue
-import org.usvm.types.singleOrNull
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.TsResolutionResult
 import org.usvm.util.createFakeField
@@ -85,24 +80,13 @@ fun TsContext.readField(
 
         is TsResolutionResult.Unique -> typeToSort(etsField.property.type)
 
-        is TsResolutionResult.Ambiguous -> {
-            // Dynamic `new` retains a union result type even after allocating a specific class.
-            // Keep the existing any-typed field representation for unrelated objects.
-            val runtimeType = if (instanceLocal?.type is EtsUnionType && isAllocatedConcreteHeapRef(instance)) {
-                scope.calcOnState { memory.typeStreamOf(instance).singleOrNull() }
-            } else {
-                null
-            }
-            val runtimeClass = (runtimeType as? EtsClassType)?.let { type ->
-                scene.projectAndSdkClasses.singleOrNull { it.signature == type.signature }
-            }
-            val runtimeFields = runtimeClass?.let { clazz ->
-                val ancestors = hierarchy.getAncestors(clazz)
-                etsField.properties.filter { it.declaringClass in ancestors }
-            }
-
-            runtimeFields?.singleOrNull()?.let { typeToSort(it.type) } ?: unresolvedSort
-        }
+        is TsResolutionResult.Ambiguous -> resolveAmbiguousFieldSort(
+            scope = scope,
+            instanceLocal = instanceLocal,
+            instance = instance,
+            fields = etsField.properties,
+            hierarchy = hierarchy,
+        )
     }
 
     scope.doWithState {
