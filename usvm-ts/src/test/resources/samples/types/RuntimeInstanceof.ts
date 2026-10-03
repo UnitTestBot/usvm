@@ -186,6 +186,18 @@ class RuntimeInstanceof {
     inheritedConstructorParameter(holder: InstanceInheritedHolder): boolean {
         return typeof holder.ctor === "function";
     }
+
+    inheritedGenericConstructorParameter(holder: InstanceInheritedGenericConstructor): boolean {
+        return typeof holder.ctor === "function";
+    }
+
+    inheritedGenericNumberParameter(holder: InstanceInheritedGenericNumber): boolean {
+        return typeof holder.ctor === "number";
+    }
+
+    inheritedConcreteNumberParameter(holder: InstanceInheritedConcreteNumber): boolean {
+        return holder.value === 1;
+    }
 }
 
 type InstanceConstructorAlias = typeof InstanceA | typeof InstanceB;
@@ -199,6 +211,11 @@ class InstanceRecursiveHolder {
 }
 class InstanceConstructorBase { ctor!: typeof InstanceA; }
 class InstanceInheritedHolder extends InstanceConstructorBase {}
+class InstanceGenericConstructorBase<T> { ctor!: T; }
+class InstanceInheritedGenericConstructor extends InstanceGenericConstructorBase<typeof InstanceA> {}
+class InstanceInheritedGenericNumber extends InstanceGenericConstructorBase<number> {}
+class InstanceConcreteNumberBase { value!: number; }
+class InstanceInheritedConcreteNumber extends InstanceConcreteNumberBase {}
 class InstanceParent {}
 class InstanceChild extends InstanceParent { childMarker: number = 1; }
 class InstanceCustom {
