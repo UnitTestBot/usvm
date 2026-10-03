@@ -973,9 +973,14 @@ class TsExprResolver(
             ?: return resolveNonConstructorInstanceofRight(constructorRef)
         val clazz = scene.projectAndSdkClasses.singleOrNull { it.signature == signature }
             ?: throw UnsupportedOperationException("Unknown instanceof class: $signature")
-        val hasComputedStaticMethod = hierarchy.getAncestors(clazz)
-            .any { ancestor -> ancestor.methods.any { it.name == "%computed" && it.modifiers.isStatic } }
-        if (hasComputedStaticMethod) {
+        val hasPotentialCustomHasInstance = hierarchy.getAncestors(clazz).any { ancestor ->
+            ancestor.methods.any { method ->
+                method.modifiers.isStatic && (method.name == "%computed" || method.name == "Symbol.hasInstance")
+            } || ancestor.fields.any { field ->
+                field.modifiers.isStatic && (field.name == "%computed" || field.name == "Symbol.hasInstance")
+            }
+        }
+        if (hasPotentialCustomHasInstance) {
             throw UnsupportedOperationException("Custom Symbol.hasInstance may override instanceof for $signature")
         }
 
