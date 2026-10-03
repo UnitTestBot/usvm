@@ -358,6 +358,82 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
     }
 
     @Test
+    fun `constructor arrays have an explicit unsupported outcome`() {
+        val methods = listOf("constructorArrayParameter", "constructorNestedArrayParameter")
+
+        methods.forEach { methodName ->
+            val outcome = analyze(methodName)
+
+            assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason, methodName)
+            assertTrue(outcome.states.isEmpty(), "$methodName: ${outcome.states}")
+            assertTrue(outcome.unsupportedPaths.any { "Constructor-typed parameter" in it },
+                "$methodName: ${outcome.unsupportedPaths}")
+        }
+
+        replay(listOf(
+            "if (new RuntimeInstanceof().constructorArrayParameter([InstanceA]) !== true) throw Error('array');",
+            "if (new RuntimeInstanceof().constructorNestedArrayParameter([[InstanceA]]) !== true) " +
+                "throw Error('nested array');",
+        ))
+    }
+
+    @Test
+    fun `constructor tuple has an explicit unsupported outcome`() {
+        val outcome = analyze("constructorTupleParameter")
+
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
+        assertTrue(outcome.states.isEmpty())
+        assertTrue(outcome.unsupportedPaths.any { "Constructor-typed parameter" in it },
+            "${outcome.unsupportedPaths}")
+
+        replay(listOf(
+            "if (new RuntimeInstanceof().constructorTupleParameter([InstanceA]) !== true) throw Error('tuple');"
+        ))
+    }
+
+    @Test
+    fun `constructor value in class type argument has an explicit unsupported outcome`() {
+        val outcome = analyze("constructorBoxParameter")
+
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
+        assertTrue(outcome.states.isEmpty(), "${outcome.states}")
+        assertTrue(outcome.unsupportedPaths.any { "Constructor-typed parameter" in it },
+            "${outcome.unsupportedPaths}")
+
+        replay(listOf(
+            "const box = new InstanceConstructorBox(); box.value = InstanceA; " +
+                "if (new RuntimeInstanceof().constructorBoxParameter(box) !== true) throw Error('box');",
+        ))
+    }
+
+    @Test
+    fun `constructor values in object fields have explicit unsupported outcomes`() {
+        val methods = listOf(
+            "structuralConstructorParameter",
+            "recursiveConstructorParameter",
+            "inheritedConstructorParameter",
+        )
+
+        methods.forEach { methodName ->
+            val outcome = analyze(methodName)
+
+            assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason, methodName)
+            assertTrue(outcome.states.isEmpty(), "$methodName: ${outcome.states}")
+            assertTrue(outcome.unsupportedPaths.any { "Constructor-typed parameter" in it },
+                "$methodName: ${outcome.unsupportedPaths}")
+        }
+
+        replay(listOf(
+            "if (new RuntimeInstanceof().structuralConstructorParameter({ ctor: InstanceA }) !== true) " +
+                "throw Error('structural');",
+            "const holder = new InstanceRecursiveHolder(); holder.ctor = InstanceA; " +
+                "if (new RuntimeInstanceof().recursiveConstructorParameter(holder) !== true) throw Error('recursive');",
+            "const inherited = new InstanceInheritedHolder(); inherited.ctor = InstanceA; " +
+                "if (new RuntimeInstanceof().inheritedConstructorParameter(inherited) !== true) throw Error('inherited');",
+        ))
+    }
+
+    @Test
     fun `unsupported constructor input does not hide another entrypoint`() {
         val methods = listOf("constructorParameter", "directConstructor")
             .map { getMethod(methodName = it, className = "RuntimeInstanceof") }
