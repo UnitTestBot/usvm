@@ -10,12 +10,11 @@ import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.TsTestResolver
+import org.usvm.util.assertNodeReplay
 import org.usvm.util.eq
 import org.usvm.util.getResourcePath
 import java.nio.file.Path
-import java.util.concurrent.TimeUnit
 import kotlin.io.path.readText
-import kotlin.io.path.writeText
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -231,19 +230,11 @@ class DeleteProperty : TsMethodTestRunner() {
             appendLine("if (new DeleteProperty().deleteClassOwnField() !== 1) throw Error('own field');")
             appendLine("if (new DeleteProperty().deleteObjectLiteralMethod() !== 1) throw Error('own method');")
         }
-        val replay = directory.resolve("delete-prototype-method.ts")
-        val output = directory.resolve("delete-prototype-method.out")
-        replay.writeText(script)
-
-        val process = ProcessBuilder("node", "--experimental-strip-types", replay.toString())
-            .redirectErrorStream(true)
-            .redirectOutput(output.toFile())
-            .start()
-        try {
-            assertTrue(process.waitFor(10, TimeUnit.SECONDS), "Node replay timed out")
-            assertEquals(0, process.exitValue(), output.readText())
-        } finally {
-            if (process.isAlive) process.destroyForcibly()
-        }
+        assertNodeReplay(
+            source = script,
+            directory = directory,
+            name = "delete-prototype-method",
+            timeoutMessage = "Node replay timed out",
+        )
     }
 }
