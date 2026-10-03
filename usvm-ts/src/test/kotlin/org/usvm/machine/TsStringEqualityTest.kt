@@ -54,15 +54,26 @@ class TsStringEqualityTest : TsMethodTestRunner() {
             "looselyNotEqualsOther" to { args -> if (args[0] != args[1]) 1 else 2 },
         )
 
+        val twoParameterMethods = setOf(
+            "equalsOther",
+            "equalsAtLengthOne",
+            "looselyEqualsOther",
+            "looselyNotEqualsOther",
+        )
+
         expected.forEach { (name, expectedResult) ->
             val method = getMethod(methodName = name, className = "StringEquality")
-            if (name == "equalsOther" || name == "equalsAtLengthOne" ||
-                name == "looselyEqualsOther" || name == "looselyNotEqualsOther") {
+
+            if (name in twoParameterMethods) {
                 val results = if (name == "equalsAtLengthOne") listOf(1, 2, 3) else listOf(1, 2)
                 discoverProperties<TsTestValue.TsString, TsTestValue.TsString, TsTestValue.TsNumber>(
                     method = method,
                     *results.map { expectedNumber ->
-                        { left: TsTestValue.TsString, right: TsTestValue.TsString, result: TsTestValue.TsNumber ->
+                        {
+                                left: TsTestValue.TsString,
+                                right: TsTestValue.TsString,
+                                result: TsTestValue.TsNumber,
+                            ->
                             result.number == expectedNumber.toDouble() &&
                                 result.number == expectedResult(listOf(left.value, right.value)).toDouble()
                         }
