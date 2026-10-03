@@ -33,6 +33,14 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
     @Test
     fun `dynamic constructor value selects both outcomes`() {
         val method = getMethod(methodName = "dynamicConstructor", className = "RuntimeInstanceof")
+
+        discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsNumber>(
+            method = method,
+            { input, result -> input.value && result.number == 1.0 },
+            { input, result -> !input.value && result.number == 0.0 },
+            invariants = arrayOf({ input, result -> result.number == (if (input.value) 1.0 else 0.0) }),
+        )
+
         val outcome = analyze("dynamicConstructor")
 
         assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
@@ -55,6 +63,9 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
     @Test
     fun `returned class value keeps constructor identity`() {
         val method = getMethod(methodName = "returnedConstructor", className = "RuntimeInstanceof")
+
+        discoverConstant("returnedConstructor", expected = 1.0)
+
         val outcome = analyze("returnedConstructor")
 
         assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
@@ -74,6 +85,14 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
     @Test
     fun `typeof recognizes constructor values stored in a local`() {
         val method = getMethod(methodName = "aliasedClassTypeof", className = "RuntimeInstanceof")
+
+        discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsNumber>(
+            method = method,
+            { input, result -> input.value && result.number == 1.0 },
+            { input, result -> !input.value && result.number == 1.0 },
+            invariants = arrayOf({ _, result -> result.number == 1.0 }),
+        )
+
         val outcome = analyze("aliasedClassTypeof")
 
         assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
@@ -107,6 +126,9 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
 
         expected.forEach { (methodName, expectedResult) ->
             val method = getMethod(methodName = methodName, className = "RuntimeInstanceof")
+
+            discoverConstant(methodName, expected = expectedResult)
+
             val outcome = analyze(methodName)
 
             assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason, methodName)
@@ -130,6 +152,9 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
 
         methods.forEach { methodName ->
             val method = getMethod(methodName = methodName, className = "RuntimeInstanceof")
+
+            discoverConstant(methodName, expected = 0.0)
+
             val outcome = analyze(methodName)
 
             assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason, methodName)
@@ -150,6 +175,14 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
     @Test
     fun `any receiver can contain an instance of the checked class`() {
         val method = getMethod(methodName = "anyLeft", className = "RuntimeInstanceof")
+
+        discoverProperties<TsTestValue, TsTestValue.TsNumber>(
+            method = method,
+            { _, result -> result.number == 0.0 },
+            { _, result -> result.number == 1.0 },
+            invariants = arrayOf({ _, result -> result.number == 0.0 || result.number == 1.0 }),
+        )
+
         val outcome = analyze("anyLeft")
 
         assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
@@ -189,6 +222,17 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
 
         methods.forEach { methodName ->
             val method = getMethod(methodName = methodName, className = "RuntimeInstanceof")
+            if (methodName == "constructorAliasLeft") {
+                discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsNumber>(
+                    method = method,
+                    { input, result -> input.value && result.number == 0.0 },
+                    { input, result -> !input.value && result.number == 0.0 },
+                    invariants = arrayOf({ _, result -> result.number == 0.0 }),
+                )
+            } else {
+                discoverConstant(methodName, expected = 0.0)
+            }
+
             val outcome = analyze(methodName)
 
             assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason, methodName)
@@ -221,6 +265,13 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
     @Test
     fun `subclass instance belongs to declared parent constructor`() {
         val method = getMethod(methodName = "inheritedConstructor", className = "RuntimeInstanceof")
+
+        discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
+            method = method,
+            { _, result -> result.number == 1.0 },
+            invariants = arrayOf({ _, result -> result.number == 1.0 }),
+        )
+
         val outcome = analyze("inheritedConstructor")
 
         assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
@@ -470,7 +521,7 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
     }
 
     @Test
-    fun `concrete inherited number field remains supported`() {
+    fun `concrete inherited number input is not excluded by the constructor guard`() {
         val outcome = analyze("inheritedConcreteNumberParameter")
 
         assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
@@ -496,6 +547,14 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
         assertTrue(outcome.unsupportedPaths.any { "constructorParameter" in it }, "${outcome.unsupportedPaths}")
         assertTrue(outcome.states.isNotEmpty())
         outcome.states.forEach { state -> assertIs<TsMethodResult.Success>(state.methodResult) }
+    }
+
+    private fun discoverConstant(methodName: String, expected: Double) {
+        discoverProperties<TsTestValue.TsNumber>(
+            method = getMethod(methodName = methodName, className = "RuntimeInstanceof"),
+            { result -> result.number == expected },
+            invariants = arrayOf({ result -> result.number == expected }),
+        )
     }
 
     private fun analyze(methodName: String) = TsMachine(scene, options = machineOptions, tsOptions = TsOptions()).use { machine ->
