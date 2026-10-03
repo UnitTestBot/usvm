@@ -135,6 +135,14 @@ class RuntimeInstanceof {
         return instance instanceof InstanceHasInstanceChild;
     }
 
+    customHasInstanceField(): boolean {
+        return new InstanceCustomField() instanceof InstanceCustomField;
+    }
+
+    inheritedHasInstanceField(instance: InstanceHasInstanceFieldChild): boolean {
+        return instance instanceof InstanceHasInstanceFieldChild;
+    }
+
     constructorParameter(ctor: typeof InstanceA): boolean {
         return new InstanceA() instanceof ctor;
     }
@@ -229,3 +237,10 @@ class InstanceHasInstanceParent {
     }
 }
 class InstanceHasInstanceChild extends InstanceHasInstanceParent { hasInstanceChildMarker: number = 1; }
+class InstanceCustomField {
+    static [Symbol.hasInstance] = (_value: unknown): boolean => false;
+}
+class InstanceHasInstanceFieldParent {
+    static [Symbol.hasInstance] = (_value: unknown): boolean => false;
+}
+class InstanceHasInstanceFieldChild extends InstanceHasInstanceFieldParent { hasInstanceFieldChildMarker: number = 1; }
