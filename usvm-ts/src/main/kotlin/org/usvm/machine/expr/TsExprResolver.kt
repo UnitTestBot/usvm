@@ -18,7 +18,10 @@ import org.jacodb.ets.model.EtsBitXorExpr
 import org.jacodb.ets.model.EtsBooleanConstant
 import org.jacodb.ets.model.EtsCastExpr
 import org.jacodb.ets.model.EtsCaughtExceptionRef
+import org.jacodb.ets.model.EtsClassCategory
 import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsClassValueRef
 import org.jacodb.ets.model.EtsClosureFieldRef
 import org.jacodb.ets.model.EtsConstant
 import org.jacodb.ets.model.EtsDeleteExpr
@@ -89,9 +92,11 @@ import org.usvm.api.allocateConcreteRef
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArrayLength
 import org.usvm.api.makeSymbolicPrimitive
+import org.usvm.api.typeStreamOf
 import org.usvm.dataflow.ts.infer.tryGetKnownType
 import org.usvm.dataflow.ts.util.type
 import org.usvm.isAllocatedConcreteHeapRef
+import org.usvm.machine.TS_TYPE_ERROR_TYPE
 import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsOptions
@@ -114,6 +119,7 @@ import org.usvm.machine.state.newStmt
 import org.usvm.machine.types.EtsNominalType
 import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.sizeSort
+import org.usvm.types.TypesResult
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.SymbolResolutionResult
 import org.usvm.util.isResolved
@@ -207,6 +213,8 @@ class TsExprResolver(
     override fun visit(value: EtsLocal): UExpr<out USort>? {
         return simpleValueResolver.visit(value)
     }
+
+    override fun visit(value: EtsClassValueRef): UExpr<out USort> = ctx.classConstructorRef(value.signature)
 
     override fun visit(value: EtsParameterRef): UExpr<out USort>? {
         return simpleValueResolver.visit(value)
@@ -326,6 +334,11 @@ class TsExprResolver(
 
     override fun visit(expr: EtsCastExpr): UExpr<*>? = with(ctx) {
         val resolvedExpr = resolve(expr.arg) ?: return@with null
+        if (resolvedExpr is UConcreteHeapRef && classConstructorSignature(resolvedExpr) != null) {
+            // TypeScript assertions do not change the identity of a constructor at runtime.
+            return@with resolvedExpr
+        }
+
         return when (resolvedExpr.sort) {
             fp64Sort -> {
                 logger.error("Unsupported cast from fp ${expr.arg} to ${expr.type}")
@@ -375,45 +388,47 @@ class TsExprResolver(
             return mkStringConstant("boolean", scope)
         }
         if (arg.sort == addressSort) {
-            val ref = arg.asExpr(addressSort)
-            return mkIte(
-                condition = mkHeapRefEq(ref, mkTsNullValue()),
-                trueBranch = mkStringConstant("object", scope),
-                falseBranch = mkIte(
-                    condition = mkHeapRefEq(ref, mkUndefinedValue()),
-                    trueBranch = mkStringConstant("undefined", scope),
-                    falseBranch = mkIte(
-                        condition = scope.calcOnState {
-                            val unwrappedRef = ref.unwrapRefWithPathConstraint(scope)
-
-                            // TODO: adhoc: "expand" ITE
-                            if (unwrappedRef is UIteExpr<*>) {
-                                val trueBranch = unwrappedRef.trueBranch
-                                val falseBranch = unwrappedRef.falseBranch
-                                if (trueBranch.isFakeObject() || falseBranch.isFakeObject()) {
-                                    val unwrappedTrueExpr =
-                                        trueBranch.asExpr(addressSort).unwrapRefWithPathConstraint(scope)
-                                    val unwrappedFalseExpr =
-                                        falseBranch.asExpr(addressSort).unwrapRefWithPathConstraint(scope)
-                                    return@calcOnState mkIte(
-                                        condition = unwrappedRef.condition,
-                                        trueBranch = memory.types.evalTypeEquals(unwrappedTrueExpr, EtsStringType),
-                                        falseBranch = memory.types.evalTypeEquals(unwrappedFalseExpr, EtsStringType),
-                                    )
-                                }
-                            }
-
-                            memory.types.evalTypeEquals(unwrappedRef, EtsStringType)
-                        },
-                        trueBranch = mkStringConstant("string", scope),
-                        falseBranch = mkStringConstant("object", scope),
-                    )
-                )
-            )
+            return resolveReferenceTypeof(arg.asExpr(addressSort))
         }
 
         logger.error { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
+    }
+
+    private fun resolveReferenceTypeof(ref: UHeapRef): UExpr<out USort> = with(ctx) {
+        val functionValue = mkStringConstant("function", scope)
+        if (ref is UConcreteHeapRef && classConstructorSignature(ref) != null) return functionValue
+
+        val objectValue = mkStringConstant("object", scope)
+        val stringValue = mkStringConstant("string", scope)
+        val undefinedValue = mkStringConstant("undefined", scope)
+
+        val isClassConstructor = classConstructorRefs()
+            .map { constructorRef -> mkHeapRefEq(ref, constructorRef) }
+            .let { matches -> if (matches.isEmpty()) falseExpr else mkOr(matches) }
+        val isString = scope.calcOnState {
+            val unwrappedRef = ref.unwrapRefWithPathConstraint(scope)
+            val ite = unwrappedRef as? UIteExpr<*>
+
+            // TODO: adhoc: "expand" ITE
+            if (ite != null && (ite.trueBranch.isFakeObject() || ite.falseBranch.isFakeObject())) {
+                val unwrappedTrueExpr = ite.trueBranch.asExpr(addressSort).unwrapRefWithPathConstraint(scope)
+                val unwrappedFalseExpr = ite.falseBranch.asExpr(addressSort).unwrapRefWithPathConstraint(scope)
+                mkIte(
+                    condition = ite.condition,
+                    trueBranch = memory.types.evalTypeEquals(unwrappedTrueExpr, EtsStringType),
+                    falseBranch = memory.types.evalTypeEquals(unwrappedFalseExpr, EtsStringType),
+                )
+            } else {
+                memory.types.evalTypeEquals(unwrappedRef, EtsStringType)
+            }
+        }
+        val isUndefined = mkHeapRefEq(ref, mkUndefinedValue())
+        val isNull = mkHeapRefEq(ref, mkTsNullValue())
+        val objectOrString = mkIte(isString, stringValue, objectValue)
+        val objectOrFunction = mkIte(isClassConstructor, functionValue, objectOrString)
+        val notNull = mkIte(isUndefined, undefinedValue, objectOrFunction)
+        mkIte(isNull, objectValue, notNull)
     }
 
     override fun visit(expr: EtsDeleteExpr): UExpr<out USort>? = with(ctx) {
@@ -888,12 +903,125 @@ class TsExprResolver(
     }
 
     override fun visit(expr: EtsInstanceOfExpr): UExpr<out USort>? = with(ctx) {
-        val arg = resolve(expr.arg)?.asExpr(addressSort) ?: return null
-        val checkType = expr.checkType as? EtsRefType ?: return falseExpr
+        val arg = resolve(expr.arg) ?: return null
+        val checkValue = expr.checkValue
 
-        scope.calcOnState {
-            memory.types.evalIsSubtype(arg, EtsNominalType(checkType))
+        val checkType = if (checkValue == null) {
+            // Legacy EtsIR contains only a static target. New frontend IR always evaluates the RHS.
+            expr.checkType as? EtsRefType
+                ?: return falseExpr
+        } else {
+            resolveInstanceofConstructor(checkValue) ?: return null
         }
+
+        if (arg.sort != addressSort || arg == mkUndefinedValue() || arg == mkTsNullValue()) return falseExpr
+        if (arg is UConcreteHeapRef && classConstructorSignature(arg) != null) {
+            if (checkType is EtsClassType && scene.projectClasses.any { it.signature == checkType.signature }) {
+                return falseExpr
+            }
+
+            throw UnsupportedOperationException(
+                "instanceof on a class constructor against an SDK or unknown class is not modeled"
+            )
+        }
+
+        if (arg.isFakeObject()) {
+            val fakeType = arg.getFakeType(scope)
+            val refValue = arg.extractRef(scope)
+            val isInstance = scope.calcOnState {
+                memory.types.evalIsSubtype(refValue, EtsNominalType(checkType))
+            }
+
+            return mkAnd(
+                fakeType.refTypeExpr,
+                mkHeapRefEq(refValue, mkTsNullValue()).not(),
+                mkHeapRefEq(refValue, mkUndefinedValue()).not(),
+                isInstance,
+            )
+        }
+
+        val objectRef = arg.asExpr(addressSort)
+        if (isAllocatedConcreteHeapRef(objectRef) && checkType is EtsClassType) {
+            val objectTypes = scope.calcOnState { memory.typeStreamOf(objectRef).take(2) }
+            val objectType = (objectTypes as? TypesResult.SuccessfulTypesResult)?.types?.singleOrNull() as? EtsClassType
+            if (objectType != null) {
+                val objectClass = hierarchy.classesForType(objectType).singleOrNull()
+                    ?: throw UnsupportedOperationException("Unknown instanceof receiver class: $objectType")
+                val constructorClass = hierarchy.classesForType(checkType).singleOrNull()
+                    ?: throw UnsupportedOperationException("Unknown instanceof constructor class: $checkType")
+                return mkBool(constructorClass in hierarchy.getAncestors(objectClass))
+            }
+        }
+
+        scope.calcOnState { memory.types.evalIsSubtype(objectRef, EtsNominalType(checkType)) }
+    }
+
+    private fun resolveInstanceofConstructor(checkValue: EtsEntity): EtsClassType? = with(ctx) {
+        val constructor = resolve(checkValue) ?: return null
+        if (constructor.sort == fp64Sort || constructor.sort == boolSort) return throwInstanceofTypeError()
+        if (constructor == mkTsNullValue() || constructor == mkUndefinedValue()) return throwInstanceofTypeError()
+
+        if (constructor.sort != addressSort || constructor.isFakeObject()) {
+            throw UnsupportedOperationException("Unresolved instanceof RHS callability is not modeled")
+        }
+
+        val constructorRef = constructor as? UConcreteHeapRef
+            ?: throw UnsupportedOperationException("Symbolic instanceof constructor identity is not modeled")
+        if (getStringConstantValue(constructorRef) != null) return throwInstanceofTypeError()
+
+        val signature = classConstructorSignature(constructorRef)
+            ?: return resolveNonConstructorInstanceofRight(constructorRef)
+        val clazz = scene.projectAndSdkClasses.singleOrNull { it.signature == signature }
+            ?: throw UnsupportedOperationException("Unknown instanceof class: $signature")
+        val hasPotentialCustomHasInstance = hierarchy.getAncestors(clazz).any { ancestor ->
+            ancestor.methods.any { method ->
+                method.modifiers.isStatic && (method.name == "%computed" || method.name == "Symbol.hasInstance")
+            } || ancestor.fields.any { field ->
+                field.modifiers.isStatic && (field.name == "%computed" || field.name == "Symbol.hasInstance")
+            }
+        }
+        if (hasPotentialCustomHasInstance) {
+            throw UnsupportedOperationException("Custom Symbol.hasInstance may override instanceof for $signature")
+        }
+
+        EtsClassType(signature)
+    }
+
+    private fun resolveNonConstructorInstanceofRight(ref: UConcreteHeapRef): Nothing? = with(ctx) {
+        val objectTypes = if (isAllocatedConcreteHeapRef(ref)) {
+            scope.calcOnState { memory.typeStreamOf(ref).take(n = 2) }
+        } else {
+            null
+        }
+        val objectType = (objectTypes as? TypesResult.SuccessfulTypesResult)?.types?.singleOrNull()
+        if (objectType == EtsStringType) return throwInstanceofTypeError()
+
+        val objectClass = (objectType as? EtsClassType)?.let { type ->
+            scene.projectClasses.singleOrNull { it.signature == type.signature }
+        }
+        if (objectClass != null) {
+            // Computed members may include Symbol.hasInstance, so their instances need a separate model.
+            val ordinaryObject = objectClass.category == EtsClassCategory.CLASS ||
+                objectClass.category == EtsClassCategory.OBJECT
+            val hasComputedMember = hierarchy.getAncestors(objectClass).any { ancestor ->
+                ancestor.methods.any { it.name == "%computed" || it.name == "Symbol.hasInstance" } ||
+                    ancestor.fields.any { it.name == "%computed" || it.name == "Symbol.hasInstance" }
+            }
+            val isFunction = scope.calcOnState { associatedFunction[ref] != null }
+
+            if (ordinaryObject && !hasComputedMember && !isFunction) return throwInstanceofTypeError()
+        }
+
+        throw UnsupportedOperationException("Unknown instanceof constructor value: $ref")
+    }
+
+    private fun throwInstanceofTypeError(): Nothing? {
+        scope.doWithState {
+            val exception = memory.allocConcrete(TS_TYPE_ERROR_TYPE)
+            methodResult = TsMethodResult.TsException(exception, TS_TYPE_ERROR_TYPE)
+        }
+
+        return null
     }
 
     // endregion
@@ -1310,6 +1438,8 @@ class TsSimpleValueResolver(
     override fun visit(value: EtsThis): UExpr<out USort>? {
         return resolveLocal(value)
     }
+
+    override fun visit(value: EtsClassValueRef): UExpr<out USort> = ctx.classConstructorRef(value.signature)
 
     override fun visit(value: EtsConstant): UExpr<out USort> = with(ctx) {
         logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
