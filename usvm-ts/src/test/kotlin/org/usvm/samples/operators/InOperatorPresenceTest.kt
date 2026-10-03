@@ -94,6 +94,34 @@ class InOperatorPresenceTest : TsMethodTestRunner() {
     }
 
     @Test
+    fun `added field remains readable after presence check`() {
+        val methodName = "readsAddedProperty"
+        val method = getMethod(methodName = methodName, className = "InOperator")
+        val options = machineOptions.copy(throwExceptionOnStepFailure = true)
+        val outcome = TsMachine(scene, options = options, tsOptions = TsOptions()).use { machine ->
+            machine.analyzeWithOutcome(methods = listOf(method))
+        }
+
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
+        assertTrue(outcome.unsupportedPaths.isEmpty(), "${outcome.unsupportedPaths}")
+        assertTrue(outcome.states.isNotEmpty(), "Expected a successful read of the written field")
+        val tests = outcome.states.map { state ->
+            assertIs<TsMethodResult.Success>(state.methodResult)
+            TsTestResolver().resolve(method, state)
+        }
+
+        tests.forEach { test ->
+            val input = assertIs<TsTestValue.TsNumber>(test.before.parameters.single()).number
+            val result = assertIs<TsTestValue.TsNumber>(test.returnValue).number
+            assertEquals(input, result)
+        }
+
+        replayRead(methodName, tests.map { test ->
+            assertIs<TsTestValue.TsNumber>(test.before.parameters.single()).number
+        })
+    }
+
+    @Test
     fun `unmodeled keys arrays and prototypes have explicit unsupported outcomes`() {
         val methods = listOf(
             "hasSymbolicKey",
@@ -170,6 +198,26 @@ class InOperatorPresenceTest : TsMethodTestRunner() {
             .start()
 
         assertTrue(process.waitFor(30, TimeUnit.SECONDS), "Node replay timed out: conditionalDelete")
+        assertEquals(0, process.exitValue(), output.readText())
+    }
+
+    private fun replayRead(methodName: String, values: List<Double>) {
+        val source = getResourcePath(tsPath).readText()
+        val script = directory.resolve("$methodName.ts")
+        val output = directory.resolve("$methodName.out")
+        script.writeText(buildString {
+            appendLine(source)
+            values.forEachIndexed { index, value ->
+                appendLine("if (new InOperator().$methodName($value) !== $value) throw Error('state $index');")
+            }
+        })
+
+        val process = ProcessBuilder("node", "--experimental-strip-types", script.toString())
+            .redirectErrorStream(true)
+            .redirectOutput(output.toFile())
+            .start()
+
+        assertTrue(process.waitFor(30, TimeUnit.SECONDS), "Node replay timed out: $methodName")
         assertEquals(0, process.exitValue(), output.readText())
     }
 

@@ -36,6 +36,13 @@ class InOperator {
         return "x" in obj ? 1 : -1;
     }
 
+    readsAddedProperty(value: number): number {
+        const obj = {};
+        obj.x = value;
+        if (!("x" in obj)) return -1;
+        return obj.x;
+    }
+
     lacksDeletedProperty(value: number): number {
         const obj = { x: value };
         delete obj.x;

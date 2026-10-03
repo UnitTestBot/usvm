@@ -96,13 +96,16 @@ fun TsContext.readField(
         is TsResolutionResult.Ambiguous -> unresolvedSort
     }
 
-    scope.doWithState {
-        // If we accessed some field, we make an assumption that
-        // this field should present in the object.
-        // That's not true in the common case for TS, but that's the decision we made.
-        val auxiliaryType = EtsAuxiliaryType(properties = setOf(field.name))
-        // assert is required to update models
-        scope.assert(memory.types.evalIsSubtype(instance, auxiliaryType))
+    val wasWritten = isAllocatedConcreteHeapRef(instance) &&
+        scope.calcOnState { (instance to field.name) in writtenConcreteFields }
+    if (!wasWritten) {
+        scope.doWithState {
+            // A read of a field that has not been written still follows the
+            // existing structural type assumption.
+            val auxiliaryType = EtsAuxiliaryType(properties = setOf(field.name))
+            // assert is required to update models
+            scope.assert(memory.types.evalIsSubtype(instance, auxiliaryType))
+        }
     }
 
     // If the field type is known, we can read it directly.
