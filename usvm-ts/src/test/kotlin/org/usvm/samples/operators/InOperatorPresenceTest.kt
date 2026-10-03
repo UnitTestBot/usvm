@@ -12,6 +12,7 @@ import org.usvm.machine.TsOptions
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.TsTestResolver
+import org.usvm.util.eq
 import java.nio.file.Path
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -41,6 +42,13 @@ class InOperatorPresenceTest : TsMethodTestRunner() {
 
         methods.forEach { methodName ->
             val method = getMethod(methodName = methodName, className = "InOperator")
+
+            discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
+                method = method,
+                { _, result -> result eq 1 },
+                invariants = arrayOf({ _, result -> result eq 1 }),
+            )
+
             val outcome = TsMachine(scene, options = machineOptions, tsOptions = TsOptions()).use { machine ->
                 machine.analyzeWithOutcome(methods = listOf(method))
             }
@@ -65,6 +73,14 @@ class InOperatorPresenceTest : TsMethodTestRunner() {
     @Test
     fun `conditional deletion preserves both presence outcomes`() {
         val method = getMethod(methodName = "conditionalDelete", className = "InOperator")
+
+        discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsNumber>(
+            method = method,
+            { shouldDelete, result -> shouldDelete.value && (result eq 0) },
+            { shouldDelete, result -> !shouldDelete.value && (result eq 1) },
+            invariants = arrayOf({ shouldDelete, result -> result eq (if (shouldDelete.value) 0 else 1) }),
+        )
+
         val outcome = TsMachine(scene, options = machineOptions, tsOptions = TsOptions()).use { machine ->
             machine.analyzeWithOutcome(methods = listOf(method))
         }
@@ -93,6 +109,13 @@ class InOperatorPresenceTest : TsMethodTestRunner() {
     fun `added field remains readable after presence check`() {
         val methodName = "readsAddedProperty"
         val method = getMethod(methodName = methodName, className = "InOperator")
+
+        discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
+            method = method,
+            { input, result -> result eq input },
+            invariants = arrayOf({ input, result -> result eq input }),
+        )
+
         val options = machineOptions.copy(throwExceptionOnStepFailure = true)
         val outcome = TsMachine(scene, options = options, tsOptions = TsOptions()).use { machine ->
             machine.analyzeWithOutcome(methods = listOf(method))
@@ -121,6 +144,13 @@ class InOperatorPresenceTest : TsMethodTestRunner() {
     fun `absent optional field reads as undefined after negative presence check`() {
         val methodName = "readsMissingOptionalAfterIn"
         val method = getMethod(methodName = methodName, className = "InOperator")
+
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { result -> result eq 1 },
+            invariants = arrayOf({ result -> result eq 1 }),
+        )
+
         val options = machineOptions.copy(throwExceptionOnStepFailure = true)
         val outcome = TsMachine(scene, options = options, tsOptions = TsOptions()).use { machine ->
             machine.analyzeWithOutcome(methods = listOf(method))
@@ -144,6 +174,13 @@ class InOperatorPresenceTest : TsMethodTestRunner() {
     fun `block scoped top level write updates field presence`() {
         val methodName = "readsBlockScopedResult"
         val method = getMethod(methodName = methodName, className = "InOperator")
+
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { result -> result eq 7 },
+            invariants = arrayOf({ result -> result eq 7 }),
+        )
+
         val options = machineOptions.copy(throwExceptionOnStepFailure = true)
         val outcome = TsMachine(scene, options = options, tsOptions = TsOptions()).use { machine ->
             machine.analyzeWithOutcome(methods = listOf(method))
