@@ -18,7 +18,9 @@ import org.jacodb.ets.model.EtsBitXorExpr
 import org.jacodb.ets.model.EtsBooleanConstant
 import org.jacodb.ets.model.EtsCastExpr
 import org.jacodb.ets.model.EtsCaughtExceptionRef
+import org.jacodb.ets.model.EtsClassCategory
 import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsClosureFieldRef
 import org.jacodb.ets.model.EtsConstant
 import org.jacodb.ets.model.EtsDeleteExpr
@@ -116,6 +118,8 @@ import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.sizeSort
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.SymbolResolutionResult
+import org.usvm.util.arrayStorageType
+import org.usvm.util.getAllMethods
 import org.usvm.util.isResolved
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
@@ -417,40 +421,64 @@ class TsExprResolver(
     }
 
     override fun visit(expr: EtsDeleteExpr): UExpr<out USort>? = with(ctx) {
-        logger.warn {
-            "delete operator is not fully supported, the result may not be accurate"
-        }
-
-        // The delete operator removes a property from an object and returns true/false
-        // For property access like "delete obj.prop", we need to handle EtsInstanceFieldRef
         when (val operand = expr.arg) {
             is EtsInstanceFieldRef -> {
-                val instance = resolve(operand.instance)?.asExpr(addressSort) ?: return null
-
-                // Check for null/undefined access
-                checkUndefinedOrNullPropertyRead(scope, instance, operand.field.name) ?: return null
-
-                // For now, we simulate deletion by setting the property to undefined
-                // This is a simplification of the real semantics but sufficient for basic cases
-                // TODO: This is incorrect for cases that the existing field is not of sort Address.
-                //       In such case, the "overwriting" the field value with undefined does nothing
-                //       to the actual number/boolean/string value inside the field,
-                //       [if only we read the field using that "other" sort].
-                val fieldLValue = mkFieldLValue(addressSort, instance, operand.field)
-                scope.doWithState {
-                    memory.write(fieldLValue, mkUndefinedValue(), guard = trueExpr)
+                val resolved = resolve(operand.instance) ?: return null
+                val instance = if (resolved.isFakeObject()) {
+                    scope.assert(resolved.getFakeType(scope).refTypeExpr) ?: return null
+                    resolved.extractRef(scope)
+                } else {
+                    resolved.asExpr(addressSort)
                 }
 
-                // The delete operator returns true in most cases for property deletion
+                checkUndefinedOrNullPropertyRead(scope, instance, operand.field.name) ?: return null
+
+                if (!isAllocatedConcreteHeapRef(instance)) {
+                    throw UnsupportedOperationException("Deleting a property of an input object is not supported")
+                }
+
+                val prototypeFallback = prototypeFallbackReason(instance, operand)
+                if (prototypeFallback != null) {
+                    throw UnsupportedOperationException(prototypeFallback)
+                }
+
+                scope.doWithState {
+                    memory.write(deletedFieldLValue(instance, operand.field), trueExpr, guard = trueExpr)
+                }
+
                 mkTrue()
             }
 
             else -> {
-                // For other operands (like variables), delete typically returns true without effect
-                resolve(operand) ?: return null // Evaluate for potential side effects
-                mkTrue()
+                resolve(operand) ?: return null
+                throw UnsupportedOperationException("Deleting ${operand::class.simpleName} is not supported")
             }
         }
+    }
+
+    private fun prototypeFallbackReason(instance: UHeapRef, operand: EtsInstanceFieldRef): String? {
+        val name = operand.field.name
+        if (name in OBJECT_PROTOTYPE_PROPERTIES) {
+            return "Deleting '$name' requires unsupported Object.prototype lookup"
+        }
+
+        val receiverType = scope.calcOnState { arrayStorageType(instance, operand.instance.type) }
+        if (receiverType is EtsArrayType) {
+            if (name == "length") {
+                return "Deleting Array.length is not supported"
+            }
+
+            return "Deleting a named Array property requires unsupported Array.prototype lookup"
+        }
+
+        if (receiverType !is EtsClassType) return null
+
+        val inheritedMethod = hierarchy.classesForType(receiverType)
+            .asSequence()
+            .filter { clazz -> clazz.category != EtsClassCategory.OBJECT }
+            .flatMap { clazz -> clazz.getAllMethods(hierarchy).asSequence() }
+            .any { method -> !method.isStatic && method.name == name }
+        return if (inheritedMethod) "Deleting '$name' requires unsupported class prototype method lookup" else null
     }
 
     override fun visit(expr: EtsVoidExpr): UExpr<out USort>? = with(ctx) {

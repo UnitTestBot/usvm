@@ -8,10 +8,14 @@ import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsStaticFieldRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.isAllocatedConcreteHeapRef
+import org.usvm.isFalse
+import org.usvm.isTrue
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.ensureStaticsInitialized
 import org.usvm.machine.types.EtsAuxiliaryType
+import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.TsResolutionResult
@@ -65,6 +69,15 @@ fun TsContext.readField(
 ): UExpr<*> {
     checkNotFake(instance)
 
+    // Deletion of input references is not modeled. Reading their marker would introduce
+    // an unconstrained extra outcome even in programs that never use `delete`.
+    val deleted = if (isAllocatedConcreteHeapRef(instance)) {
+        scope.calcOnState { memory.read(deletedFieldLValue(instance, field)) }
+    } else {
+        falseExpr
+    }
+    if (deleted.isTrue) return mkUndefinedValue()
+
     val sort = when (val etsField = resolveEtsField(instanceLocal, field, hierarchy)) {
         is TsResolutionResult.Empty -> {
             if (field.name !in listOf("i", "LogLevel")) {
@@ -93,32 +106,41 @@ fun TsContext.readField(
     }
 
     // If the field type is known, we can read it directly.
-    if (sort !is TsUnresolvedSort) {
+    val value = if (sort !is TsUnresolvedSort) {
         val lValue = mkFieldLValue(sort, instance, field)
-        return scope.calcOnState { memory.read(lValue) }
-    }
+        scope.calcOnState { memory.read(lValue) }
+    } else {
+        scope.calcOnState {
+            // If the field type is unknown, we create a fake object.
+            val boolLValue = mkFieldLValue(boolSort, instance, field)
+            val fpLValue = mkFieldLValue(fp64Sort, instance, field)
+            val refLValue = mkFieldLValue(addressSort, instance, field)
 
-    // If the field type is unknown, we create a fake object.
-    return scope.calcOnState {
-        val boolLValue = mkFieldLValue(boolSort, instance, field)
-        val fpLValue = mkFieldLValue(fp64Sort, instance, field)
-        val refLValue = mkFieldLValue(addressSort, instance, field)
+            val bool = memory.read(boolLValue)
+            val fp = memory.read(fpLValue)
+            val ref = memory.read(refLValue)
 
-        val bool = memory.read(boolLValue)
-        val fp = memory.read(fpLValue)
-        val ref = memory.read(refLValue)
-
-        // If a fake object is already created and assigned to the field,
-        // there is no need to recreate another one.
-        if (ref.isFakeObject()) {
-            ref
-        } else {
-            val fakeObj = mkFakeValue(scope, bool, fp, ref)
-            lValuesToAllocatedFakeObjects += refLValue to fakeObj
-            memory.write(refLValue, fakeObj, guard = trueExpr)
-            fakeObj
+            // If a fake object is already created and assigned to the field,
+            // there is no need to recreate another one.
+            if (ref.isFakeObject()) {
+                ref
+            } else {
+                val fakeObj = mkFakeValue(scope, bool, fp, ref)
+                lValuesToAllocatedFakeObjects += refLValue to fakeObj
+                memory.write(refLValue, fakeObj, guard = trueExpr)
+                fakeObj
+            }
         }
     }
+
+    if (deleted.isFalse) return value
+
+    return iteWriteIntoFakeObject(
+        scope = scope,
+        condition = deleted,
+        trueBranchValue = mkUndefinedValue(),
+        falseBranchValue = value,
+    )
 }
 
 internal fun TsExprResolver.handleStaticFieldRef(
