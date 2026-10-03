@@ -78,6 +78,9 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
             "directConstructor" to 1.0,
             "castConstructor" to 1.0,
             "nonNullConstructor" to 1.0,
+            "anyConstructor" to 1.0,
+            "unknownConstructor" to 1.0,
+            "objectConstructor" to 1.0,
             "unrelatedConstructor" to 0.0,
             "classTypeof" to 1.0,
             "primitiveLeft" to 0.0,
@@ -99,6 +102,29 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
 
         replay(expected.map { (methodName, expectedResult) ->
             "if (new RuntimeInstanceof().$methodName() !== ${expectedResult.toInt()}) throw Error('$methodName');"
+        })
+    }
+
+    @Test
+    fun `nullish left operands are not class instances`() {
+        val methods = listOf("undefinedLeft", "nullLeft")
+
+        methods.forEach { methodName ->
+            val method = getMethod(methodName = methodName, className = "RuntimeInstanceof")
+            val outcome = analyze(methodName)
+
+            assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason, methodName)
+            assertTrue(outcome.unsupportedPaths.isEmpty(), "$methodName: ${outcome.unsupportedPaths}")
+            assertTrue(outcome.states.isNotEmpty(), methodName)
+            outcome.states.forEach { state ->
+                assertIs<TsMethodResult.Success>(state.methodResult)
+                val test = TsTestResolver().resolve(method, state)
+                assertEquals(0.0, assertIs<TsTestValue.TsNumber>(test.returnValue).number, methodName)
+            }
+        }
+
+        replay(methods.map { methodName ->
+            "if (new RuntimeInstanceof().$methodName() !== 0) throw Error('$methodName');"
         })
     }
 
