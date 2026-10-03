@@ -68,6 +68,53 @@ export class StringModels {
         return StringModelPrimitives.copyRange(receiver, from, to < from ? from : to);
     }
 
+    static substring(receiver: string, start: number, end: number): string {
+        const length = StringModelPrimitives.length(receiver);
+        const from = StringModels.normalizePosition(start, length);
+        const to = StringModels.normalizePosition(end, length);
+        return from <= to
+            ? StringModelPrimitives.copyRange(receiver, from, to)
+            : StringModelPrimitives.copyRange(receiver, to, from);
+    }
+
+    static trim(receiver: string): string {
+        const length = StringModelPrimitives.length(receiver);
+        let start = 0;
+        let end = length;
+        while (start < end && StringModels.isWhitespace(StringModelPrimitives.codeUnitAt(receiver, start))) {
+            start++;
+        }
+        while (end > start && StringModels.isWhitespace(StringModelPrimitives.codeUnitAt(receiver, end - 1))) {
+            end--;
+        }
+        return StringModelPrimitives.copyRange(receiver, start, end);
+    }
+
+    static trimStart(receiver: string): string {
+        const length = StringModelPrimitives.length(receiver);
+        let start = 0;
+        while (start < length && StringModels.isWhitespace(StringModelPrimitives.codeUnitAt(receiver, start))) {
+            start++;
+        }
+        return StringModelPrimitives.copyRange(receiver, start, length);
+    }
+
+    static trimEnd(receiver: string): string {
+        let end = StringModelPrimitives.length(receiver);
+        while (end > 0 && StringModels.isWhitespace(StringModelPrimitives.codeUnitAt(receiver, end - 1))) {
+            end--;
+        }
+        return StringModelPrimitives.copyRange(receiver, 0, end);
+    }
+
+    private static isWhitespace(codeUnit: number): boolean {
+        return (codeUnit >= 0x09 && codeUnit <= 0x0d)
+            || codeUnit === 0x20 || codeUnit === 0xa0 || codeUnit === 0x1680
+            || (codeUnit >= 0x2000 && codeUnit <= 0x200a)
+            || codeUnit === 0x2028 || codeUnit === 0x2029 || codeUnit === 0x202f
+            || codeUnit === 0x205f || codeUnit === 0x3000 || codeUnit === 0xfeff;
+    }
+
     static toUpperCase(receiver: string): string {
         const length = StringModelPrimitives.length(receiver);
         let result = "";

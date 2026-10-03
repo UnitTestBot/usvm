@@ -111,6 +111,27 @@ export class SequenceEtsIr {
         return "abc".charAt(position);
     }
 
+    symbolicCharAtMatches(position: number): boolean {
+        if (position !== 0 && position !== 1) return true;
+        return "ab".charAt(position) === (position === 0 ? "a" : "b");
+    }
+
+    stringSubstringBounds(): boolean {
+        return "abc".substring(2, 1) === "b"
+            && "abc".substring(NaN, Infinity) === "abc"
+            && "abc".substring(-Infinity, -1) === ""
+            && "abc".substring(1.9, undefined) === "bc"
+            && "\ud83d\ude00".substring(1, 0).charCodeAt(0) === 0xd83d;
+    }
+
+    stringTrimWhitespace(): boolean {
+        return "\u0009\u000a\u000b\u000c\u000d\u0020\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000\ufeff".trim() === ""
+            && " \ud83d\ude00 x \u00a0".trim() === "\ud83d\ude00 x"
+            && " \u0085\u180e\u200b ".trim() === "\u0085\u180e\u200b"
+            && " \tvalue \n".trimStart() === "value \n"
+            && " \tvalue \n".trimEnd() === " \tvalue";
+    }
+
     stringCharCodeAtHandlesBounds(): number {
         const outside = "AZ".charCodeAt(2);
         return "AZ".charCodeAt(1) + (outside !== outside ? 1 : 0);
