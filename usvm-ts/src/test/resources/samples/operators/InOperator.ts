@@ -1,7 +1,18 @@
 // @ts-nocheck
 // noinspection JSUnusedGlobalSymbols
 
+let blockScopedResult = 0;
+{
+    let obj = {};
+    obj.x = 7;
+    blockScopedResult = "x" in obj ? 7 : 0;
+}
+
 class InOperator {
+    readsBlockScopedResult(): number {
+        return blockScopedResult;
+    }
+
     hasPresentNumberProperty(value: number): number {
         const obj = { x: value };
         if ("x" in obj) return 1;
