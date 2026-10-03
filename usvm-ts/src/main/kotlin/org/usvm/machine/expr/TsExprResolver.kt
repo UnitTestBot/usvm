@@ -21,6 +21,7 @@ import org.jacodb.ets.model.EtsCaughtExceptionRef
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsClassValueRef
+import org.jacodb.ets.model.EtsClassValueType
 import org.jacodb.ets.model.EtsClosureFieldRef
 import org.jacodb.ets.model.EtsConstant
 import org.jacodb.ets.model.EtsDeleteExpr
@@ -332,6 +333,14 @@ class TsExprResolver(
 
     override fun visit(expr: EtsCastExpr): UExpr<*>? = with(ctx) {
         val resolvedExpr = resolve(expr.arg) ?: return@with null
+        if (resolvedExpr is UConcreteHeapRef &&
+            classConstructorSignature(resolvedExpr) != null &&
+            expr.type is EtsClassValueType
+        ) {
+            // TypeScript assertions do not change the identity of a constructor at runtime.
+            return@with resolvedExpr
+        }
+
         return when (resolvedExpr.sort) {
             fp64Sort -> {
                 logger.error("Unsupported cast from fp ${expr.arg} to ${expr.type}")
@@ -920,7 +929,9 @@ class TsExprResolver(
                 ?: throw UnsupportedOperationException("Unknown instanceof constructor value: $constructorRef")
             val clazz = scene.projectAndSdkClasses.singleOrNull { it.signature == signature }
                 ?: throw UnsupportedOperationException("Unknown instanceof class: $signature")
-            if (clazz.methods.any { it.name == "%computed" && it.modifiers.isStatic }) {
+            val hasComputedStaticMethod = hierarchy.getAncestors(clazz)
+                .any { ancestor -> ancestor.methods.any { it.name == "%computed" && it.modifiers.isStatic } }
+            if (hasComputedStaticMethod) {
                 throw UnsupportedOperationException("Custom Symbol.hasInstance may override instanceof for $signature")
             }
 

@@ -1,6 +1,7 @@
 package org.usvm.machine
 
 import mu.KotlinLogging
+import org.jacodb.ets.model.EtsClassValueType
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStmt
@@ -113,12 +114,15 @@ class TsMachine(
         methods: List<EtsMethod>,
         targets: List<TsTarget> = emptyList(),
     ): TsAnalysisResult {
-        val initialStates = mutableMapOf<EtsMethod, TsState>()
-        methods.forEach { initialStates[it] = interpreter.getInitialState(it, targets) }
+        val (initialStates, unsupportedPaths) = createInitialStates(methods, targets)
+
+        if (initialStates.isEmpty()) {
+            return TsAnalysisResult(emptyList(), TsAnalysisStopReason.EXHAUSTED, unsupportedPaths.toList())
+        }
 
         val methodsToTrackCoverage =
             when (options.coverageZone) {
-                CoverageZone.METHOD, CoverageZone.TRANSITIVE -> methods.toHashSet()
+                CoverageZone.METHOD, CoverageZone.TRANSITIVE -> initialStates.keys.toHashSet()
                 CoverageZone.CLASS -> TODO("Unsupported yet")
             }
 
@@ -157,8 +161,6 @@ class TsMachine(
 
         val observers = mutableListOf<UMachineObserver<TsState>>(coverageStatistics)
         observers.add(statesCollector)
-        val unsupportedPaths = mutableSetOf<String>()
-
         if (tsOptions.enableVisualization) {
             observers += TsStateVisualizer()
         }
@@ -196,7 +198,7 @@ class TsMachine(
         if (logger.isInfoEnabled) {
             observers.add(
                 StatisticsByMethodPrinter(
-                    getMethods = { methods },
+                    getMethods = { initialStates.keys.toList() },
                     print = logger::info,
                     getMethodSignature = { it.humanReadableSignature },
                     coverageStatistics = coverageStatistics,
@@ -240,6 +242,26 @@ class TsMachine(
             stopReason = stopReason,
             unsupportedPaths = unsupportedPaths.toList(),
         )
+    }
+
+    private fun createInitialStates(
+        methods: List<EtsMethod>,
+        targets: List<TsTarget>,
+    ): Pair<Map<EtsMethod, TsState>, MutableSet<String>> {
+        val initialStates = mutableMapOf<EtsMethod, TsState>()
+        val unsupportedPaths = mutableSetOf<String>()
+
+        methods.forEach { method ->
+            val constructorParameter = method.parameters.firstOrNull { it.type is EtsClassValueType }
+            if (constructorParameter != null) {
+                unsupportedPaths += "Constructor-typed parameter '${constructorParameter.name}' " +
+                    "in ${method.humanReadableSignature} is not modeled"
+            } else {
+                initialStates[method] = interpreter.getInitialState(method, targets)
+            }
+        }
+
+        return initialStates to unsupportedPaths
     }
 
     override fun close() {
