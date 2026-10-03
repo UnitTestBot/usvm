@@ -13,11 +13,10 @@ import org.usvm.machine.TsOptions
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.TsTestResolver
+import org.usvm.util.assertNodeReplay
 import org.usvm.util.getResourcePath
 import java.nio.file.Path
-import java.util.concurrent.TimeUnit
 import kotlin.io.path.readText
-import kotlin.io.path.writeText
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
@@ -504,20 +503,17 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
     }
 
     private fun replay(assertions: List<String>) {
-        val script = directory.resolve("runtime-instanceof.ts")
-        val output = directory.resolve("runtime-instanceof.out")
-        script.writeText(buildString {
+        val source = buildString {
             appendLine(getResourcePath(tsPath).readText())
             assertions.forEach(::appendLine)
-        })
+        }
 
-        val process = ProcessBuilder("node", "--experimental-strip-types", script.toString())
-            .redirectErrorStream(true)
-            .redirectOutput(output.toFile())
-            .start()
-
-        assertTrue(process.waitFor(30, TimeUnit.SECONDS), "Node replay timed out")
-        assertEquals(0, process.exitValue(), output.readText())
+        assertNodeReplay(
+            source = source,
+            directory = directory,
+            name = "runtime-instanceof",
+            timeoutMessage = "Node replay timed out",
+        )
     }
 
     private val machineOptions = UMachineOptions(
