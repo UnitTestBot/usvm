@@ -33,6 +33,14 @@ class RuntimeNewTest : TsMethodTestRunner() {
     fun `conditional constructor call selects class and executes its constructor`() {
         for (methodName in listOf("dynamicCall", "inlineConditional", "localAlias")) {
             val method = getMethod(methodName = methodName, className = "RuntimeNew")
+
+            discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsNumber>(
+                method = method,
+                { input, result -> input.value && result.number == 1.0 },
+                { input, result -> !input.value && result.number == 0.0 },
+                invariants = arrayOf({ input, result -> result.number == (if (input.value) 1.0 else 0.0) }),
+            )
+
             val outcome = analyze(methodName)
 
             assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason, methodName)
@@ -66,6 +74,16 @@ class RuntimeNewTest : TsMethodTestRunner() {
     @Test
     fun `field read uses the selected class when a constructor union has common property names`() {
         val numberMethod = getMethod(methodName = "valueFromEither", className = "RuntimeNew")
+
+        withOptions(options = options.copy(stateCollectionStrategy = StateCollectionStrategy.ALL, stopOnCoverage = 0)) {
+            discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsNumber>(
+                method = numberMethod,
+                { input, result -> input.value && result.number == 7.0 },
+                { input, result -> !input.value && result.number == 7.0 },
+                invariants = arrayOf({ _, result -> result.number == 7.0 }),
+            )
+        }
+
         val numberOutcome = analyze("valueFromEither")
 
         assertEquals(TsAnalysisStopReason.EXHAUSTED, numberOutcome.stopReason)
@@ -80,6 +98,14 @@ class RuntimeNewTest : TsMethodTestRunner() {
         assertEquals(setOf(false, true), numberCases.toSet())
 
         val sortMethod = getMethod(methodName = "fieldSortByRuntimeClass", className = "RuntimeNew")
+
+        discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsBoolean>(
+            method = sortMethod,
+            { input, result -> input.value && result.value },
+            { input, result -> !input.value && result.value },
+            invariants = arrayOf({ _, result -> result.value }),
+        )
+
         val sortOutcome = analyze("fieldSortByRuntimeClass")
 
         assertEquals(TsAnalysisStopReason.EXHAUSTED, sortOutcome.stopReason)
@@ -104,6 +130,15 @@ class RuntimeNewTest : TsMethodTestRunner() {
     fun `field writes and aliases use the selected class`() {
         for (methodName in listOf("writeToEither", "writeThroughAlias")) {
             val method = getMethod(methodName = methodName, className = "RuntimeNew")
+            val expected = if (methodName == "writeToEither") 5.0 else 11.0
+
+            discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsNumber>(
+                method = method,
+                { input, result -> input.value && result.number == expected },
+                { input, result -> !input.value && result.number == expected },
+                invariants = arrayOf({ _, result -> result.number == expected }),
+            )
+
             val outcome = analyze(methodName)
 
             assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason, methodName)
@@ -113,7 +148,6 @@ class RuntimeNewTest : TsMethodTestRunner() {
                 val test = TsTestResolver().resolve(method, state)
                 val input = assertIs<TsTestValue.TsBoolean>(test.before.parameters.single()).value
                 val actual = assertIs<TsTestValue.TsNumber>(test.returnValue).number
-                val expected = if (methodName == "writeToEither") 5.0 else 11.0
                 assertEquals(expected, actual, "$methodName($input)")
                 input to actual
             }
@@ -130,6 +164,14 @@ class RuntimeNewTest : TsMethodTestRunner() {
     fun `field writes respect the selected runtime field sort`() {
         val methodName = "writeFieldWithDifferentRuntimeSort"
         val method = getMethod(methodName = methodName, className = "RuntimeNew")
+
+        discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsBoolean>(
+            method = method,
+            { input, result -> input.value && result.value },
+            { input, result -> !input.value && result.value },
+            invariants = arrayOf({ _, result -> result.value }),
+        )
+
         val outcome = analyze(methodName)
 
         assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
@@ -202,6 +244,14 @@ class RuntimeNewTest : TsMethodTestRunner() {
     @Test
     fun `selected constructor executes exactly once`() {
         val method = getMethod(methodName = "constructorCalledOnce", className = "RuntimeNew")
+
+        discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsBoolean>(
+            method = method,
+            { input, result -> input.value && result.value },
+            { input, result -> !input.value && result.value },
+            invariants = arrayOf({ _, result -> result.value }),
+        )
+
         val outcome = analyze("constructorCalledOnce")
 
         assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
@@ -288,6 +338,13 @@ class RuntimeNewTest : TsMethodTestRunner() {
 
     private fun assertSingleNumberResult(methodName: String, expected: Double) {
         val method = getMethod(methodName = methodName, className = "RuntimeNew")
+
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { result -> result.number == expected },
+            invariants = arrayOf({ result -> result.number == expected }),
+        )
+
         val outcome = analyze(methodName)
 
         assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
