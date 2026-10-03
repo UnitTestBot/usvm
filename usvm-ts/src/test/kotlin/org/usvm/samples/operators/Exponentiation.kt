@@ -34,8 +34,27 @@ class Exponentiation : TsMethodTestRunner() {
     @Test
     fun `supported symbolic powers replay in Node`() {
         for (methodName in listOf("square", "squareRoot")) {
-            val outcome = analyzeWithDefaultFailureHandling(methodName)
             val method = getMethod(methodName)
+
+            if (methodName == "square") {
+                discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
+                    method = method,
+                    { input, result -> input.number == 3.0 && result.number == 9.0 },
+                )
+            } else {
+                discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
+                    method = method,
+                    { input, result ->
+                        input.number.toRawBits() == (-0.0).toRawBits() &&
+                            result.number.toRawBits() == 0.0.toRawBits()
+                    },
+                    { input, result ->
+                        input.number == Double.NEGATIVE_INFINITY && result.number == Double.POSITIVE_INFINITY
+                    },
+                )
+            }
+
+            val outcome = analyzeWithDefaultFailureHandling(methodName)
             val tests = outcome.states.map { state -> TsTestResolver().resolve(method, state) }
 
             assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
@@ -67,6 +86,13 @@ class Exponentiation : TsMethodTestRunner() {
 
     @Test
     fun `constant fractional power is evaluated`() {
+        val method = getMethod("constantFractional")
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method,
+            { result -> result.number == 3.0 },
+            invariants = arrayOf({ result -> result.number == 3.0 }),
+        )
+
         val tests = analyze("constantFractional")
 
         assertTrue(tests.isNotEmpty())
@@ -113,6 +139,16 @@ class Exponentiation : TsMethodTestRunner() {
         )
 
         for ((methodName, expected) in cases) {
+            val method = getMethod(methodName)
+            val matchesExpected: (TsTestValue.TsNumber) -> Boolean = { result ->
+                result.number.toRawBits() == expected.toRawBits() || (result.number.isNaN() && expected.isNaN())
+            }
+            discoverProperties<TsTestValue.TsNumber>(
+                method = method,
+                matchesExpected,
+                invariants = arrayOf(matchesExpected),
+            )
+
             val tests = analyze(methodName)
 
             assertTrue(tests.isNotEmpty(), "No result for $methodName")
