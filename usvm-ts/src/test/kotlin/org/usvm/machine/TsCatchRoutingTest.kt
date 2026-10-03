@@ -13,11 +13,10 @@ import org.usvm.api.TsTest
 import org.usvm.api.TsTestValue
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.util.TsTestResolver
+import org.usvm.util.assertNodeReplay
 import org.usvm.util.getResourcePath
 import java.nio.file.Path
-import java.util.concurrent.TimeUnit
 import kotlin.io.path.readText
-import kotlin.io.path.writeText
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
@@ -100,19 +99,11 @@ class TsCatchRoutingTest {
                 }
             }
         }
-        val replay = directory.resolve("catch-routing.ts")
-        val output = directory.resolve("catch-routing.out")
-        replay.writeText(script)
-
-        val process = ProcessBuilder("node", "--experimental-strip-types", replay.toString())
-            .redirectErrorStream(true)
-            .redirectOutput(output.toFile())
-            .start()
-        try {
-            assertTrue(process.waitFor(10, TimeUnit.SECONDS), "Node replay timed out")
-            assertEquals(0, process.exitValue(), output.readText())
-        } finally {
-            if (process.isAlive) process.destroyForcibly()
-        }
+        assertNodeReplay(
+            source = script,
+            directory = directory,
+            name = "catch-routing",
+            timeoutMessage = "Node replay timed out",
+        )
     }
 }
