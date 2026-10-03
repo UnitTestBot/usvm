@@ -8,6 +8,7 @@ import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanLiteralType
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsClass
+import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsEnumValueType
 import org.jacodb.ets.model.EtsGenericType
 import org.jacodb.ets.model.EtsLexicalEnvType
@@ -90,6 +91,18 @@ class TsContext(
 
     // String constant caching at context level
     private val stringConstants: MutableMap<String, UConcreteHeapRef> = mutableMapOf()
+
+    private val classConstructorRefs: MutableMap<EtsClassSignature, UConcreteHeapRef> = mutableMapOf()
+    private val constructorSignatures: MutableMap<UConcreteHeapRef, EtsClassSignature> = mutableMapOf()
+
+    fun classConstructorRef(signature: EtsClassSignature): UConcreteHeapRef =
+        classConstructorRefs.getOrPut(signature) {
+            allocateStaticRef().also { constructorSignatures[it] = signature }
+        }
+
+    fun classConstructorSignature(ref: UConcreteHeapRef): EtsClassSignature? = constructorSignatures[ref]
+
+    fun classConstructorRefs(): Collection<UConcreteHeapRef> = classConstructorRefs.values
 
     /**
      * Reverse mapping from heap references to their original string constant values.
