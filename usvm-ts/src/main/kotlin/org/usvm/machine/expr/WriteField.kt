@@ -3,11 +3,9 @@ package org.usvm.machine.expr
 import io.ksmt.utils.asExpr
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsArrayType
-import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLocal
-import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsStaticFieldRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
@@ -153,7 +151,34 @@ fun TsContext.assignToInstanceField(
     val sort = when (etsField) {
         is TsResolutionResult.Empty -> unresolvedSort
         is TsResolutionResult.Unique -> typeToSort(etsField.property.type)
-        is TsResolutionResult.Ambiguous -> unresolvedSort
+        is TsResolutionResult.Ambiguous -> resolveAmbiguousFieldSort(
+            scope = scope,
+            instanceLocal = instanceLocal,
+            instance = unwrappedInstance,
+            fields = etsField.properties,
+            hierarchy = hierarchy,
+        )
+    }
+
+    if (sort !is TsUnresolvedSort && expr.isFakeObject()) {
+        val fakeType = scope.calcOnState { expr.getFakeType(scope) }
+        val compatibleType = when (sort) {
+            boolSort -> fakeType.boolTypeExpr
+            fp64Sort -> fakeType.fpTypeExpr
+            addressSort -> fakeType.refTypeExpr
+            else -> error("Unsupported field sort: $sort")
+        }
+
+        scope.fork(
+            compatibleType,
+            blockOnFalseState = {
+                terminateAsUnsupported(reason = "Assignment changes runtime sort of field '${field.name}'")
+            },
+        ) ?: return
+    }
+
+    if (sort !is TsUnresolvedSort && expr.sort != sort && !expr.isFakeObject()) {
+        throw UnsupportedOperationException("Assignment changes runtime sort of field '${field.name}'")
     }
 
     // If the field type is unknown, we create a fake object for the expr and assign it.
@@ -167,28 +192,14 @@ fun TsContext.assignToInstanceField(
         } else {
             val lValue = mkFieldLValue(sort, unwrappedInstance, field)
             if (lValue.sort != expr.sort) {
-                if (expr.isFakeObject()) {
-                    val lhvType = instanceLocal.type
-                    val value = when (lhvType) {
-                        is EtsBooleanType -> {
-                            pathConstraints += expr.getFakeType(scope).boolTypeExpr
-                            expr.extractBool(scope)
-                        }
-
-                        is EtsNumberType -> {
-                            pathConstraints += expr.getFakeType(scope).fpTypeExpr
-                            expr.extractFp(scope)
-                        }
-
-                        else -> {
-                            pathConstraints += expr.getFakeType(scope).refTypeExpr
-                            expr.extractRef(scope)
-                        }
-                    }
-                    memory.write(lValue, value.asExpr(lValue.sort), guard = trueExpr)
-                } else {
-                    TODO("Support enums fields")
+                check(expr.isFakeObject())
+                val value = when (sort) {
+                    boolSort -> expr.extractBool(scope)
+                    fp64Sort -> expr.extractFp(scope)
+                    addressSort -> expr.extractRef(scope)
+                    else -> error("Unsupported field sort: $sort")
                 }
+                memory.write(lValue, value.asExpr(lValue.sort), guard = trueExpr)
             } else {
                 memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
             }

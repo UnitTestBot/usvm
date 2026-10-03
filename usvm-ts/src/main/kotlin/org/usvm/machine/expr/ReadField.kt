@@ -80,7 +80,13 @@ fun TsContext.readField(
 
         is TsResolutionResult.Unique -> typeToSort(etsField.property.type)
 
-        is TsResolutionResult.Ambiguous -> unresolvedSort
+        is TsResolutionResult.Ambiguous -> resolveAmbiguousFieldSort(
+            scope = scope,
+            instanceLocal = instanceLocal,
+            instance = instance,
+            fields = etsField.properties,
+            hierarchy = hierarchy,
+        )
     }
 
     scope.doWithState {
