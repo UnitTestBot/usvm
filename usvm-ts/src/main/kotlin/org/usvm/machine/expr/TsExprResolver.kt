@@ -22,7 +22,6 @@ import org.jacodb.ets.model.EtsClassCategory
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsClassValueRef
-import org.jacodb.ets.model.EtsClassValueType
 import org.jacodb.ets.model.EtsClosureFieldRef
 import org.jacodb.ets.model.EtsConstant
 import org.jacodb.ets.model.EtsDeleteExpr
@@ -402,10 +401,7 @@ class TsExprResolver(
 
     override fun visit(expr: EtsCastExpr): UExpr<*>? = with(ctx) {
         val resolvedExpr = resolve(expr.arg) ?: return@with null
-        if (resolvedExpr is UConcreteHeapRef &&
-            classConstructorSignature(resolvedExpr) != null &&
-            expr.type is EtsClassValueType
-        ) {
+        if (resolvedExpr is UConcreteHeapRef && classConstructorSignature(resolvedExpr) != null) {
             // TypeScript assertions do not change the identity of a constructor at runtime.
             return@with resolvedExpr
         }
@@ -1199,7 +1195,7 @@ class TsExprResolver(
             EtsClassType(signature)
         }
 
-        if (arg.sort != addressSort) return falseExpr
+        if (arg.sort != addressSort || arg == mkUndefinedValue() || arg == mkTsNullValue()) return falseExpr
         val objectRef = arg.asExpr(addressSort)
         if (isAllocatedConcreteHeapRef(objectRef) && checkType is EtsClassType) {
             val objectTypes = scope.calcOnState { memory.typeStreamOf(objectRef).take(2) }
