@@ -62,7 +62,7 @@ fun TsContext.readField(
     instance: UHeapRef,
     field: EtsFieldSignature,
     hierarchy: EtsHierarchy,
-): UExpr<*> {
+): UExpr<*>? {
     checkNotFake(instance)
 
     val sort = when (val etsField = resolveEtsField(instanceLocal, field, hierarchy)) {
@@ -84,14 +84,15 @@ fun TsContext.readField(
     }
 
     if (!field.isDateModelTimestamp()) {
-        scope.doWithState {
+        val fieldExists = scope.calcOnState {
             // If we accessed some field, we make an assumption that
             // this field should present in the object.
             // That's not true in the common case for TS, but that's the decision we made.
             val auxiliaryType = EtsAuxiliaryType(properties = setOf(field.name))
-            // assert is required to update models
-            scope.assert(memory.types.evalIsSubtype(instance, auxiliaryType))
+            memory.types.evalIsSubtype(instance, auxiliaryType)
         }
+        // A failed assertion stops this step; do not access its state afterward.
+        scope.assert(fieldExists) ?: return null
     }
 
     // If the field type is known, we can read it directly.

@@ -26,6 +26,7 @@ import org.usvm.machine.TsVirtualMethodCallStmt
 import org.usvm.machine.call.TsUnknownCallFailureReason
 import org.usvm.machine.call.TsUnknownCallModelDispatcher
 import org.usvm.machine.call.dispatch
+import org.usvm.machine.call.hasBuiltinGlobalOwner
 import org.usvm.machine.call.isDateReceiver
 import org.usvm.machine.expr.TsExprApproximationResult.Companion.from
 import org.usvm.machine.interpreter.PromiseState
@@ -58,7 +59,7 @@ internal fun TsExprResolver.tryApproximateGlobalInstanceCall(
     }
 
     // Handle `Number` calls.
-    if (expr.instance.name == "Number") {
+    if (hasBuiltinGlobalOwner(owner = expr.instance, callee = expr.callee, expectedName = "Number")) {
         when (expr.callee.name) {
             "isFinite", "isInteger", "isSafeInteger" -> {
                 return tryDispatchNumericBuiltin(expr)
@@ -88,7 +89,7 @@ internal fun TsExprResolver.tryApproximateGlobalInstanceCall(
     }
 
     // Handle `Math` method calls.
-    if (expr.instance.name == "Math") {
+    if (hasBuiltinGlobalOwner(owner = expr.instance, callee = expr.callee, expectedName = "Math")) {
         when (expr.callee.name) {
             "abs", "ceil", "max", "min", "round", "sqrt", "trunc" -> {
                 return tryDispatchNumericBuiltin(expr)
@@ -226,6 +227,10 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
     }
 
     val modeledStringMethods = setOf(
+        "substring",
+        "trim",
+        "trimStart",
+        "trimEnd",
         "charAt",
         "charCodeAt",
         "endsWith",

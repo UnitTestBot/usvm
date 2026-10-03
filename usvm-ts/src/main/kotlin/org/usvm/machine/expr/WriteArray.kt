@@ -1,17 +1,21 @@
 package org.usvm.machine.expr
 
 import io.ksmt.utils.asExpr
+import mu.KotlinLogging
 import org.jacodb.ets.model.EtsArrayAccess
 import org.jacodb.ets.model.EtsArrayType
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.machine.TsContext
+import org.usvm.machine.TsRuntimeFeatureLimitationReason
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.sizeSort
 import org.usvm.util.arrayStorageType
 import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
+
+private val logger = KotlinLogging.logger {}
 
 internal fun TsExprResolver.handleAssignToArrayIndex(
     lhv: EtsArrayAccess,
@@ -24,30 +28,57 @@ internal fun TsExprResolver.handleAssignToArrayIndex(
     }
     val array = resolvedArray.asExpr(addressSort)
 
+    handleAssignToArrayIndex(lhv, expr, array)
+}
+
+internal fun TsExprResolver.handleAssignToArrayIndex(
+    lhv: EtsArrayAccess,
+    expr: UExpr<*>,
+    array: UHeapRef,
+): Unit? = with(ctx) {
     // Check for undefined or null array access.
     checkUndefinedOrNullPropertyRead(scope, array, propertyName = "[]") ?: return null
 
     // Resolve the index.
     val resolvedIndex = resolve(lhv.index) ?: return null
-    check(resolvedIndex.sort == fp64Sort) {
-        "Expected fp64 sort for index, got: ${resolvedIndex.sort}"
-    }
-    val index = resolvedIndex.asExpr(fp64Sort)
+    val index = extractNumericArrayIndex(scope, resolvedIndex)
 
-    // Convert the index to a bit-vector.
-    val bvIndex = mkFpToBvExpr(
-        roundingMode = fpRoundingModeSortDefaultValue(),
-        value = index,
-        bvSize = 32,
-        isSigned = true,
-    ).asExpr(sizeSort)
+    val indexIsSupported = mkAnd(
+        index.isNumeric,
+        mkValidArrayIndexProperty(
+            value = index.value,
+            maximumSupportedIndex = options.maxArraySize,
+        ),
+    )
+    if (scope.checkSat(mkNot(indexIsSupported)) != null) {
+        logger.warn { "Unsupported named array property write for key: $resolvedIndex" }
+        reportRuntimeFeatureLimitation(
+            reason = TsRuntimeFeatureLimitationReason.ARRAY_NAMED_PROPERTY_WRITE,
+            detail = "property key is not a supported numeric array index: $resolvedIndex",
+        )
+    }
+    scope.assert(indexIsSupported) ?: return null
+
+    val bvIndex = mkFpToUint32AfterValidation(index.value, indexIsSupported).asExpr(sizeSort)
 
     val arrayType = scope.calcOnState { arrayStorageType(array, lhv.array.type) }
     check(arrayType is EtsArrayType) {
         "Expected EtsArrayType, got: ${lhv.array.type}"
     }
 
-    return assignToArrayIndex(scope, array, bvIndex, expr, arrayType)
+    return assignToArrayIndex(
+        scope = scope,
+        array = array,
+        index = bvIndex,
+        expr = expr,
+        arrayType = arrayType,
+        onUnsupportedGrowth = {
+            reportRuntimeFeatureLimitation(
+                reason = TsRuntimeFeatureLimitationReason.ARRAY_INDEX_GROWTH,
+                detail = "array index write would grow beyond the current length",
+            )
+        },
+    )
 }
 
 fun TsContext.assignToArrayIndex(
@@ -56,6 +87,7 @@ fun TsContext.assignToArrayIndex(
     index: UExpr<TsSizeSort>,
     expr: UExpr<*>,
     arrayType: EtsArrayType,
+    onUnsupportedGrowth: (() -> Unit)? = null,
 ): Unit? {
     checkNotFake(array)
 
@@ -69,9 +101,14 @@ fun TsContext.assignToArrayIndex(
     //  However, we decided to forbid this behavior in our model for simplicity.
     //  Instead, we only allow writing to existing indices.
 
-    // Check for out-of-bounds access.
-    checkNegativeIndexRead(scope, index) ?: return null
-    checkReadingInRange(scope, index, length) ?: return null
+    val indexIsNonNegative = mkBvSignedGreaterOrEqualExpr(index, mkBv(0))
+    val indexIsBelowLength = mkBvSignedLessExpr(index, length)
+    val indexIsInRange = mkAnd(indexIsNonNegative, indexIsBelowLength)
+    if (scope.checkSat(mkNot(indexIsInRange)) != null) {
+        logger.warn { "Unsupported array growth through index write: index=$index, length=$length" }
+        onUnsupportedGrowth?.invoke()
+    }
+    scope.assert(indexIsInRange) ?: return null
 
     val elementSort = typeToSort(arrayType.elementType)
 
