@@ -145,18 +145,20 @@ fun TsContext.assignToInstanceField(
     // Unwrap to get non-fake reference.
     val unwrappedInstance = instance.unwrapRef(scope)
 
-    val etsField = resolveEtsField(instanceLocal, field, hierarchy)
-    val isObjectLiteral = if (isAllocatedConcreteHeapRef(unwrappedInstance)) {
+    val objectLiteralClass = if (isAllocatedConcreteHeapRef(unwrappedInstance)) {
         val types = scope.calcOnState { memory.typeStreamOf(unwrappedInstance).take(2) }
         val type = (types as? TypesResult.SuccessfulTypesResult)?.types?.singleOrNull() as? EtsClassType
-        type?.let { hierarchy.classesForType(it).singleOrNull()?.category == EtsClassCategory.OBJECT } == true
+        type?.let { hierarchy.classesForType(it).singleOrNull() }
+            ?.takeIf { it.category == EtsClassCategory.OBJECT }
     } else {
-        false
+        null
     }
+    val declaredObjectLiteralField = objectLiteralClass?.fields?.singleOrNull { it.name == field.name }
+    val newObjectLiteralField = objectLiteralClass != null && declaredObjectLiteralField == null
 
     // An object literal can acquire a new own property after creation. Requiring its
     // allocation type to declare the field would reject that valid JavaScript write.
-    if (!isObjectLiteral) {
+    if (objectLiteralClass == null) {
         val supertype = EtsAuxiliaryType(properties = setOf(field.name))
         // assert is required to update models
         scope.doWithState {
@@ -165,10 +167,18 @@ fun TsContext.assignToInstanceField(
     }
 
     // Determine the field sort.
-    val sort = when (etsField) {
-        is TsResolutionResult.Empty -> unresolvedSort
-        is TsResolutionResult.Unique -> typeToSort(etsField.property.type)
-        is TsResolutionResult.Ambiguous -> unresolvedSort
+    val sort = when {
+        declaredObjectLiteralField != null -> typeToSort(declaredObjectLiteralField.type)
+        newObjectLiteralField -> {
+            // The receiver has no declared field. A scene-wide same-name field is unrelated.
+            expr.sort
+        }
+
+        else -> when (val etsField = resolveEtsField(instanceLocal, field, hierarchy)) {
+            is TsResolutionResult.Empty -> unresolvedSort
+            is TsResolutionResult.Unique -> typeToSort(etsField.property.type)
+            is TsResolutionResult.Ambiguous -> unresolvedSort
+        }
     }
 
     // If the field type is unknown, we create a fake object for the expr and assign it.
@@ -212,6 +222,9 @@ fun TsContext.assignToInstanceField(
         if (isAllocatedConcreteHeapRef(unwrappedInstance)) {
             memory.write(deletedFieldLValue(unwrappedInstance, field), falseExpr, guard = trueExpr)
             writtenConcreteFields = writtenConcreteFields + (unwrappedInstance to field.name)
+            if (newObjectLiteralField) {
+                saveObjectLiteralFieldSort(unwrappedInstance, field.name, sort)
+            }
         }
     }
 }
