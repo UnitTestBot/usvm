@@ -2,13 +2,20 @@ package org.usvm.machine
 
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsAliasType
+import org.jacodb.ets.model.EtsArrayType
+import org.jacodb.ets.model.EtsClass
+import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsClassValueType
+import org.jacodb.ets.model.EtsFileSignature
 import org.jacodb.ets.model.EtsGenericType
 import org.jacodb.ets.model.EtsIntersectionType
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.model.EtsTupleType
 import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUnclearRefType
 import org.jacodb.ets.model.EtsUnionType
 import org.usvm.CoverageZone
 import org.usvm.StateCollectionStrategy
@@ -255,11 +262,12 @@ class TsMachine(
     ): Pair<Map<EtsMethod, TsState>, MutableSet<String>> {
         val initialStates = mutableMapOf<EtsMethod, TsState>()
         val unsupportedPaths = mutableSetOf<String>()
+        val classesBySignature = analysisScene.projectAndSdkClasses.associateBy { it.signature }
 
         methods.forEach { method ->
             val genericParameters = method.typeParameters.filterIsInstance<EtsGenericType>().associateBy { it.typeName }
             val constructorParameter = method.parameters.firstOrNull {
-                it.type.containsConstructorValue(genericParameters)
+                it.type.containsConstructorValue(genericParameters, classesBySignature)
             }
             if (constructorParameter != null) {
                 unsupportedPaths += "Constructor-typed parameter '${constructorParameter.name}' " +
@@ -279,20 +287,104 @@ class TsMachine(
 
 private fun EtsType.containsConstructorValue(
     genericParameters: Map<String, EtsGenericType>,
+    classesBySignature: Map<EtsClassSignature, EtsClass>,
     visitedGenerics: Set<String> = emptySet(),
+    visitedClasses: Set<EtsClassSignature> = emptySet(),
 ): Boolean = when (this) {
     is EtsClassValueType -> true
-    is EtsUnionType -> types.any { it.containsConstructorValue(genericParameters, visitedGenerics) }
-    is EtsIntersectionType -> types.any { it.containsConstructorValue(genericParameters, visitedGenerics) }
-    is EtsAliasType -> originalType.containsConstructorValue(genericParameters, visitedGenerics)
+    is EtsUnionType -> types.any {
+        it.containsConstructorValue(genericParameters, classesBySignature, visitedGenerics, visitedClasses)
+    }
+    is EtsIntersectionType -> types.any {
+        it.containsConstructorValue(genericParameters, classesBySignature, visitedGenerics, visitedClasses)
+    }
+    is EtsTupleType -> types.any {
+        it.containsConstructorValue(genericParameters, classesBySignature, visitedGenerics, visitedClasses)
+    }
+    is EtsArrayType -> elementType.containsConstructorValue(
+        genericParameters,
+        classesBySignature,
+        visitedGenerics,
+        visitedClasses,
+    )
+    is EtsClassType -> containsConstructorValueInClass(
+        genericParameters,
+        classesBySignature,
+        visitedGenerics,
+        visitedClasses,
+    )
+    is EtsUnclearRefType -> typeParameters.any {
+        it.containsConstructorValue(genericParameters, classesBySignature, visitedGenerics, visitedClasses)
+    }
+    is EtsAliasType -> originalType.containsConstructorValue(
+        genericParameters,
+        classesBySignature,
+        visitedGenerics,
+        visitedClasses,
+    )
     is EtsGenericType -> {
         if (typeName in visitedGenerics) {
             false
         } else {
             val declaration = genericParameters[typeName]
             listOfNotNull(constraint, defaultType, declaration?.constraint, declaration?.defaultType)
-                .any { it.containsConstructorValue(genericParameters, visitedGenerics + typeName) }
+                .any {
+                    it.containsConstructorValue(
+                        genericParameters,
+                        classesBySignature,
+                        visitedGenerics + typeName,
+                        visitedClasses,
+                    )
+                }
         }
     }
     else -> false
+}
+
+private fun EtsClassType.containsConstructorValueInClass(
+    genericParameters: Map<String, EtsGenericType>,
+    classesBySignature: Map<EtsClassSignature, EtsClass>,
+    visitedGenerics: Set<String>,
+    visitedClasses: Set<EtsClassSignature>,
+): Boolean {
+    val constructorInTypeArguments = typeParameters.any {
+        it.containsConstructorValue(genericParameters, classesBySignature, visitedGenerics, visitedClasses)
+    }
+    if (constructorInTypeArguments) {
+        return true
+    }
+
+    if (signature in visitedClasses) {
+        return false
+    }
+
+    val clazz = classesBySignature[signature] ?: return false
+    val nextVisitedClasses = visitedClasses + signature
+    val constructorInFields = clazz.fields.any { field ->
+        !field.modifiers.isStatic && field.type.containsConstructorValue(
+            genericParameters,
+            classesBySignature,
+            visitedGenerics,
+            nextVisitedClasses,
+        )
+    }
+    if (constructorInFields) {
+        return true
+    }
+
+    val superClass = clazz.superClass ?: return false
+    val superClasses = if (superClass.file == EtsFileSignature.UNKNOWN) {
+        classesBySignature.values.filter { it.name == superClass.name }
+    } else {
+        listOfNotNull(classesBySignature[superClass])
+    }
+
+    return superClasses.any { parent ->
+        EtsClassType(parent.signature).containsConstructorValue(
+            genericParameters,
+            classesBySignature,
+            visitedGenerics,
+            nextVisitedClasses,
+        )
+    }
 }
