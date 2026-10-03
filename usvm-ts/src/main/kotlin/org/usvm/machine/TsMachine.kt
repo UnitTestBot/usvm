@@ -1,10 +1,15 @@
 package org.usvm.machine
 
 import mu.KotlinLogging
+import org.jacodb.ets.model.EtsAliasType
 import org.jacodb.ets.model.EtsClassValueType
+import org.jacodb.ets.model.EtsGenericType
+import org.jacodb.ets.model.EtsIntersectionType
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStmt
+import org.jacodb.ets.model.EtsType
+import org.jacodb.ets.model.EtsUnionType
 import org.usvm.CoverageZone
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachine
@@ -252,7 +257,10 @@ class TsMachine(
         val unsupportedPaths = mutableSetOf<String>()
 
         methods.forEach { method ->
-            val constructorParameter = method.parameters.firstOrNull { it.type is EtsClassValueType }
+            val genericParameters = method.typeParameters.filterIsInstance<EtsGenericType>().associateBy { it.typeName }
+            val constructorParameter = method.parameters.firstOrNull {
+                it.type.containsConstructorValue(genericParameters)
+            }
             if (constructorParameter != null) {
                 unsupportedPaths += "Constructor-typed parameter '${constructorParameter.name}' " +
                     "in ${method.humanReadableSignature} is not modeled"
@@ -267,4 +275,24 @@ class TsMachine(
     override fun close() {
         components.close()
     }
+}
+
+private fun EtsType.containsConstructorValue(
+    genericParameters: Map<String, EtsGenericType>,
+    visitedGenerics: Set<String> = emptySet(),
+): Boolean = when (this) {
+    is EtsClassValueType -> true
+    is EtsUnionType -> types.any { it.containsConstructorValue(genericParameters, visitedGenerics) }
+    is EtsIntersectionType -> types.any { it.containsConstructorValue(genericParameters, visitedGenerics) }
+    is EtsAliasType -> originalType.containsConstructorValue(genericParameters, visitedGenerics)
+    is EtsGenericType -> {
+        if (typeName in visitedGenerics) {
+            false
+        } else {
+            val declaration = genericParameters[typeName]
+            listOfNotNull(constraint, defaultType, declaration?.constraint, declaration?.defaultType)
+                .any { it.containsConstructorValue(genericParameters, visitedGenerics + typeName) }
+        }
+    }
+    else -> false
 }
