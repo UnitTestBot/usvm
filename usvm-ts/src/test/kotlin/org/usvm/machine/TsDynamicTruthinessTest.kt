@@ -88,6 +88,10 @@ class TsDynamicTruthinessTest {
                 assertTrue(analysis.unsupportedPaths.isEmpty(), "$name: ${analysis.unsupportedPaths}")
             } else if (name == "anyObjectTruthy") {
                 assertTrue(
+                    unsupportedWitnesses.isNotEmpty(),
+                    "$name did not classify its unbacked string witness separately",
+                )
+                assertTrue(
                     witnesses.any { witness ->
                         witness.before.parameters.single() is TsTestValue.TsClass &&
                             assertIs<TsTestValue.TsNumber>(witness.returnValue).number == 1.0
@@ -98,9 +102,6 @@ class TsDynamicTruthinessTest {
                 assertTrue(UNBACKED_STRING_REASON in analysis.unsupportedPaths, "$name: ${analysis.unsupportedPaths}")
             }
             assertTrue(witnesses.isNotEmpty(), "$name produced no supported witnesses")
-            if (name != "anyObjectTruthy") {
-                assertTrue(unsupportedWitnesses.isEmpty(), "$name: $unsupportedWitnesses")
-            }
         }
 
         val script = buildString {
