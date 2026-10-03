@@ -90,12 +90,15 @@ private fun TsContext.resolveField(
 
     val wasWritten = isAllocatedConcreteHeapRef(instance) &&
         scope.calcOnState { (instance to field.name) in writtenConcreteFields }
-    if (isAllocatedConcreteHeapRef(instance) && !wasWritten) {
+    val objectClass = if (isAllocatedConcreteHeapRef(instance)) {
         val types = scope.calcOnState { memory.typeStreamOf(instance).take(n = 2) }
         val type = (types as? TypesResult.SuccessfulTypesResult)?.types?.singleOrNull() as? EtsClassType
-        val objectClass = type?.let { hierarchy.classesForType(it).singleOrNull() }
+        type?.let { hierarchy.classesForType(it).singleOrNull() }
             ?.takeIf { it.category == EtsClassCategory.OBJECT }
-
+    } else {
+        null
+    }
+    if (isAllocatedConcreteHeapRef(instance) && !wasWritten) {
         if (objectClass != null &&
             objectClass.fields.none { it.name == field.name } &&
             objectClass.methods.none { it.name == field.name }
@@ -112,24 +115,33 @@ private fun TsContext.resolveField(
         }
     }
 
-    val resolvedField = resolveEtsField(instanceLocal, field, hierarchy)
-    val sort = when (resolvedField) {
-        is TsResolutionResult.Empty -> {
-            if (field.name !in listOf("i", "LogLevel")) {
-                logger.warn { "Field $field not found, creating fake field" }
-            }
-            // If we didn't find any real fields, let's create a fake one.
-            // It is possible due to mistakes in the IR or if the field was added explicitly
-            // in the code.
-            // Probably, the right behaviour here is to fork the state.
-            instance.createFakeField(scope, field.name)
-            addressSort
-        }
-
-        is TsResolutionResult.Unique -> typeToSort(resolvedField.property.type)
-
-        is TsResolutionResult.Ambiguous -> unresolvedSort
+    val writtenObjectLiteralSort = if (wasWritten) {
+        scope.calcOnState { writtenObjectLiteralFieldSorts[instance to field.name] }
+    } else {
+        null
     }
+    val declaredObjectLiteralSort = objectClass?.fields
+        ?.singleOrNull { it.name == field.name }
+        ?.let { typeToSort(it.type) }
+    val resolvedField = resolveEtsField(instanceLocal, field, hierarchy)
+    val sort = writtenObjectLiteralSort ?: declaredObjectLiteralSort
+        ?: when (resolvedField) {
+            is TsResolutionResult.Empty -> {
+                if (field.name !in listOf("i", "LogLevel")) {
+                    logger.warn { "Field $field not found, creating fake field" }
+                }
+                // If we didn't find any real fields, let's create a fake one.
+                // It is possible due to mistakes in the IR or if the field was added explicitly
+                // in the code.
+                // Probably, the right behaviour here is to fork the state.
+                instance.createFakeField(scope, field.name)
+                addressSort
+            }
+
+            is TsResolutionResult.Unique -> typeToSort(resolvedField.property.type)
+
+            is TsResolutionResult.Ambiguous -> unresolvedSort
+        }
 
     if (!wasWritten) {
         val fieldExists = scope.calcOnState {
