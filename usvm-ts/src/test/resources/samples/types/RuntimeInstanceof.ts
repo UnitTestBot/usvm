@@ -10,6 +10,14 @@ class RuntimeInstanceof {
         return new InstanceA() instanceof InstanceA ? 1 : 0;
     }
 
+    castConstructor(): number {
+        return new InstanceA() instanceof (InstanceA as typeof InstanceA) ? 1 : 0;
+    }
+
+    nonNullConstructor(): number {
+        return new InstanceA() instanceof InstanceA! ? 1 : 0;
+    }
+
     inheritedConstructor(instance: InstanceChild): number {
         return instance instanceof InstanceParent ? 1 : 0;
     }
@@ -39,6 +47,14 @@ class RuntimeInstanceof {
     customHasInstance(): boolean {
         return new InstanceCustom() instanceof InstanceCustom;
     }
+
+    inheritedHasInstance(instance: InstanceHasInstanceChild): boolean {
+        return instance instanceof InstanceHasInstanceChild;
+    }
+
+    constructorParameter(ctor: typeof InstanceA): boolean {
+        return new InstanceA() instanceof ctor;
+    }
 }
 
 class InstanceA {}
@@ -50,3 +66,9 @@ class InstanceCustom {
         return false;
     }
 }
+class InstanceHasInstanceParent {
+    static [Symbol.hasInstance](_value: unknown): boolean {
+        return false;
+    }
+}
+class InstanceHasInstanceChild extends InstanceHasInstanceParent { hasInstanceChildMarker: number = 1; }

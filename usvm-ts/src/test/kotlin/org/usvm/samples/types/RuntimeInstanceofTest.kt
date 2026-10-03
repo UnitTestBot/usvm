@@ -76,6 +76,8 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
     fun `direct and inherited checks use declared class identity`() {
         val expected = mapOf(
             "directConstructor" to 1.0,
+            "castConstructor" to 1.0,
+            "nonNullConstructor" to 1.0,
             "unrelatedConstructor" to 0.0,
             "classTypeof" to 1.0,
             "primitiveLeft" to 0.0,
@@ -87,7 +89,7 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
 
             assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason, methodName)
             assertTrue(outcome.unsupportedPaths.isEmpty(), "$methodName: ${outcome.unsupportedPaths}")
-            assertTrue(outcome.states.isNotEmpty(), methodName)
+            assertTrue(outcome.states.isNotEmpty(), "$methodName: ${outcome.unsupportedPaths}")
             outcome.states.forEach { state ->
                 assertIs<TsMethodResult.Success>(state.methodResult, methodName)
                 val test = TsTestResolver().resolve(method, state)
@@ -123,6 +125,7 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
     fun `non callable RHS and custom hasInstance are explicitly unsupported`() {
         val nonCallable = analyze("nonCallableRight")
         val custom = analyze("customHasInstance")
+        val inherited = analyze("inheritedHasInstance")
 
         assertEquals(TsAnalysisStopReason.EXHAUSTED, nonCallable.stopReason)
         assertTrue(nonCallable.states.isEmpty())
@@ -132,12 +135,47 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
         assertTrue(custom.states.isEmpty())
         assertTrue(custom.unsupportedPaths.any { "Symbol.hasInstance" in it }, "${custom.unsupportedPaths}")
 
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, inherited.stopReason)
+        assertTrue(inherited.states.isEmpty())
+        assertTrue(inherited.unsupportedPaths.any { "Symbol.hasInstance" in it }, "${inherited.unsupportedPaths}")
+
         replay(listOf(
             "let typeError = false; try { new RuntimeInstanceof().nonCallableRight(); } " +
                 "catch (error) { typeError = error instanceof TypeError; } " +
                 "if (!typeError) throw Error('TypeError');",
             "if (new RuntimeInstanceof().customHasInstance() !== false) throw Error('custom hasInstance');",
+            "if (new RuntimeInstanceof().inheritedHasInstance(new InstanceHasInstanceChild()) !== false) " +
+                "throw Error('inherited hasInstance');",
         ))
+    }
+
+    @Test
+    fun `constructor typed input has an explicit unsupported outcome`() {
+        val outcome = analyze("constructorParameter")
+
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
+        assertTrue(outcome.states.isEmpty())
+        assertTrue(outcome.unsupportedPaths.any { "Constructor-typed parameter" in it },
+            "${outcome.unsupportedPaths}")
+
+        replay(listOf(
+            "if (new RuntimeInstanceof().constructorParameter(InstanceA) !== true) throw Error('A input');",
+            "if (new RuntimeInstanceof().constructorParameter(InstanceB) !== false) throw Error('B input');",
+        ))
+    }
+
+    @Test
+    fun `unsupported constructor input does not hide another entrypoint`() {
+        val methods = listOf("constructorParameter", "directConstructor")
+            .map { getMethod(methodName = it, className = "RuntimeInstanceof") }
+        val outcome = TsMachine(scene, options = machineOptions, tsOptions = TsOptions()).use { machine ->
+            machine.analyzeWithOutcome(methods = methods)
+        }
+
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
+        assertTrue(outcome.unsupportedPaths.any { "constructorParameter" in it }, "${outcome.unsupportedPaths}")
+        assertTrue(outcome.states.isNotEmpty())
+        outcome.states.forEach { state -> assertIs<TsMethodResult.Success>(state.methodResult) }
     }
 
     private fun analyze(methodName: String) = TsMachine(scene, options = machineOptions, tsOptions = TsOptions()).use { machine ->
