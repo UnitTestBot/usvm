@@ -98,4 +98,44 @@ class Exceptions : TsMethodTestRunner() {
             },
         )
     }
+
+    @Test
+    fun `conditional catch only handles the throwing path`() {
+        val method = getMethod("conditionalCatch")
+
+        discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
+            method = method,
+            { value, result -> (value eq 0) && (result eq 2) },
+            { value, result -> !(value eq 0) && (result eq 1) },
+            invariants = arrayOf(
+                { value, result -> if (value eq 0) result eq 2 else result eq 1 },
+            ),
+        )
+    }
+
+    @Test
+    fun `catch binding receives the thrown number`() {
+        val method = getMethod("caughtValue")
+
+        discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
+            method = method,
+            { value, result -> result eq (value.number + 1.0) },
+            invariants = arrayOf(
+                { value, result -> result eq (value.number + 1.0) },
+            ),
+        )
+    }
+
+    @Test
+    fun `nested catch uses the nearest handler`() {
+        val method = getMethod("nestedCatch")
+
+        discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
+            method = method,
+            { value, result -> result eq (value.number + 1.0) },
+            invariants = arrayOf(
+                { value, result -> result eq (value.number + 1.0) },
+            ),
+        )
+    }
 }

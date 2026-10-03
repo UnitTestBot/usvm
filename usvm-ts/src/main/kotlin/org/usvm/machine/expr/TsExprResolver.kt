@@ -1023,8 +1023,8 @@ class TsExprResolver(
     override fun visit(value: EtsStaticFieldRef): UExpr<*>? = handleStaticFieldRef(value)
 
     override fun visit(value: EtsCaughtExceptionRef): UExpr<out USort>? {
-        logger.warn { "visit(${value::class.simpleName}) is not implemented yet" }
-        error("Not supported $value")
+        return scope.calcOnState { caughtException }
+            ?: throw UnsupportedOperationException("Caught exception value is unavailable")
     }
 
     override fun visit(value: EtsGlobalRef): UExpr<out USort>? {
