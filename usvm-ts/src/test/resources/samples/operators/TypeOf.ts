@@ -1,6 +1,10 @@
 // @ts-nocheck
 // noinspection JSUnusedGlobalSymbols
 
+function namedCallable(): number {
+    return 1;
+}
+
 class TypeOf {
     typeOfString(): string {
         let x = "hello";
@@ -41,6 +45,33 @@ class TypeOf {
         let x = function () {
         };
         return typeof x; // "function"
+    }
+
+    typeOfArrow(): string {
+        return typeof (() => 1);
+    }
+
+    typeOfFunctionExpression(): string {
+        return typeof function () { return 1; };
+    }
+
+    typeOfStoredArrow(flag: boolean): string {
+        const callable = () => flag ? 1 : 0;
+        return typeof callable;
+    }
+
+    typeOfCallableInObject(): string {
+        const holder = { callable: () => 1 };
+        return typeof holder.callable;
+    }
+
+    typeOfNamedFunction(): string {
+        return typeof namedCallable;
+    }
+
+    typeOfConditionalCallable(flag: boolean): string {
+        const value = flag ? (() => 1) : {};
+        return typeof value;
     }
 
     typeOfInputString(x: string): string {
