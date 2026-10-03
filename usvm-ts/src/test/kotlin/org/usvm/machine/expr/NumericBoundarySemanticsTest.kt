@@ -16,7 +16,7 @@ import org.usvm.machine.TsRuntimeFeatureLimitationEvent
 import org.usvm.machine.TsRuntimeFeatureLimitationReason
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
-import org.usvm.util.TsTestResolver
+import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.getResourcePath
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -24,12 +24,12 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.time.Duration
 
-class NumericBoundarySemanticsTest {
+class NumericBoundarySemanticsTest : TsMethodTestRunner() {
     private val sourceFile = loadEtsFileAutoConvert(
         getResourcePath("/models/NumericBoundarySemantics.ts"),
         provider = EtsIrProvider.TS_FRONTEND,
     )
-    private val scene = EtsScene(listOf(sourceFile))
+    override val scene = EtsScene(listOf(sourceFile))
 
     @Test
     fun `bitwise operators use total ECMAScript int32 conversion`() {
@@ -49,14 +49,14 @@ class NumericBoundarySemanticsTest {
         )
 
         expectedResults.forEach { (methodName, expected) ->
-            assertEquals(expected, singleNumber(methodName), methodName)
+            discoverNumber(methodName, expected)
         }
     }
 
     @Test
     fun `missing numeric array properties return undefined without integer coercion`() {
-        assertEquals(63.0, singleNumber("missingNumericArrayProperties"))
-        assertEquals(11.0, singleNumber("negativeZeroArrayIndex"))
+        discoverNumber("missingNumericArrayProperties", expected = 63.0)
+        discoverNumber("negativeZeroArrayIndex", expected = 11.0)
     }
 
     @Test
@@ -74,13 +74,16 @@ class NumericBoundarySemanticsTest {
             assertTrue(analyze(methodName, observer).isEmpty(), methodName)
             assertEquals(reason, observer.limitations.single().reason, methodName)
         }
-        assertEquals(7.0, singleNumber("negativeZeroArrayWrite"))
+        discoverNumber("negativeZeroArrayWrite", expected = 7.0)
     }
 
     @Test
     fun `chained array indexes preserve numeric and undefined branches`() {
-        assertEquals(22.0, singleNumber("chainedArrayRead"))
-        assertIs<TsTestValue.TsUndefined>(singleValue("chainedMissingArrayRead"))
+        discoverNumber("chainedArrayRead", expected = 22.0)
+        discoverProperties<TsTestValue.TsUndefined>(
+            method = method("chainedMissingArrayRead"),
+            { result -> result == TsTestValue.TsUndefined },
+        )
     }
 
     @Test
@@ -104,11 +107,11 @@ class NumericBoundarySemanticsTest {
 
     @Test
     fun `numeric string indexes address UTF16 code units without coercion`() {
-        assertEquals("A", singleString("stringZeroIndex"))
-        assertEquals("A", singleString("stringNegativeZeroIndex"))
-        assertEquals("\uD83D", singleString("stringHighSurrogateIndex"))
-        assertEquals("\uDE00", singleString("stringLowSurrogateIndex"))
-        assertEquals(31.0, singleNumber("missingNumericStringProperties"))
+        discoverString("stringZeroIndex", expected = "A")
+        discoverString("stringNegativeZeroIndex", expected = "A")
+        discoverString("stringHighSurrogateIndex", expected = "\uD83D")
+        discoverString("stringLowSurrogateIndex", expected = "\uDE00")
+        discoverNumber("missingNumericStringProperties", expected = 31.0)
     }
 
     @Test
@@ -147,27 +150,24 @@ class NumericBoundarySemanticsTest {
 
     @Test
     fun `negative zero is a valid array length`() {
-        assertEquals(0.0, singleNumber("newArrayNegativeZero"))
-        assertEquals(0.0, singleNumber("assignNegativeZeroLength"))
+        discoverNumber("newArrayNegativeZero", expected = 0.0)
+        discoverNumber("assignNegativeZeroLength", expected = 0.0)
     }
 
-    private fun singleNumber(methodName: String): Double {
-        val result = singleValue(methodName)
-
-        return assertIs<TsTestValue.TsNumber>(result).number
+    private fun discoverNumber(methodName: String, expected: Double) {
+        discoverProperties<TsTestValue.TsNumber>(
+            method = method(methodName),
+            { result -> result.number == expected },
+            invariants = arrayOf({ result -> result.number == expected }),
+        )
     }
 
-    private fun singleString(methodName: String): String {
-        val result = singleValue(methodName)
-
-        return assertIs<TsTestValue.TsString>(result).value
-    }
-
-    private fun singleValue(methodName: String): TsTestValue {
-        val method = method(methodName)
-        val state = analyze(method).single()
-
-        return TsTestResolver().resolve(method, state).returnValue
+    private fun discoverString(methodName: String, expected: String) {
+        discoverProperties<TsTestValue.TsString>(
+            method = method(methodName),
+            { result -> result.value == expected },
+            invariants = arrayOf({ result -> result.value == expected }),
+        )
     }
 
     private fun analyze(
