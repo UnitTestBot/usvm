@@ -192,29 +192,14 @@ fun TsContext.assignToInstanceField(
         } else {
             val lValue = mkFieldLValue(sort, unwrappedInstance, field)
             if (lValue.sort != expr.sort) {
-                if (expr.isFakeObject()) {
-                    val value = when (sort) {
-                        boolSort -> {
-                            pathConstraints += expr.getFakeType(scope).boolTypeExpr
-                            expr.extractBool(scope)
-                        }
-
-                        fp64Sort -> {
-                            pathConstraints += expr.getFakeType(scope).fpTypeExpr
-                            expr.extractFp(scope)
-                        }
-
-                        addressSort -> {
-                            pathConstraints += expr.getFakeType(scope).refTypeExpr
-                            expr.extractRef(scope)
-                        }
-
-                        else -> error("Unsupported field sort: $sort")
-                    }
-                    memory.write(lValue, value.asExpr(lValue.sort), guard = trueExpr)
-                } else {
-                    error("Incompatible field value should have been marked unsupported")
+                check(expr.isFakeObject())
+                val value = when (sort) {
+                    boolSort -> expr.extractBool(scope)
+                    fp64Sort -> expr.extractFp(scope)
+                    addressSort -> expr.extractRef(scope)
+                    else -> error("Unsupported field sort: $sort")
                 }
+                memory.write(lValue, value.asExpr(lValue.sort), guard = trueExpr)
             } else {
                 memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
             }
