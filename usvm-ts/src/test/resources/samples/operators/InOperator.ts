@@ -54,6 +54,12 @@ class InOperator {
         return obj.x;
     }
 
+    readsMissingOptionalAfterIn(): number {
+        const obj: { x?: number } = {};
+        if ("x" in obj) return 0;
+        return obj.x === undefined ? 1 : -1;
+    }
+
     lacksDeletedProperty(value: number): number {
         const obj = { x: value };
         delete obj.x;

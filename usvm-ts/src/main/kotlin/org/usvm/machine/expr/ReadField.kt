@@ -2,12 +2,15 @@ package org.usvm.machine.expr
 
 import io.ksmt.utils.asExpr
 import mu.KotlinLogging
+import org.jacodb.ets.model.EtsClassCategory
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsStaticFieldRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.api.typeStreamOf
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isFalse
 import org.usvm.isTrue
@@ -17,6 +20,7 @@ import org.usvm.machine.interpreter.ensureStaticsInitialized
 import org.usvm.machine.types.EtsAuxiliaryType
 import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.machine.types.mkFakeValue
+import org.usvm.types.TypesResult
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.TsResolutionResult
 import org.usvm.util.createFakeField
@@ -78,6 +82,30 @@ fun TsContext.readField(
     }
     if (deleted.isTrue) return mkUndefinedValue()
 
+    val wasWritten = isAllocatedConcreteHeapRef(instance) &&
+        scope.calcOnState { (instance to field.name) in writtenConcreteFields }
+    if (isAllocatedConcreteHeapRef(instance) && !wasWritten) {
+        val types = scope.calcOnState { memory.typeStreamOf(instance).take(n = 2) }
+        val type = (types as? TypesResult.SuccessfulTypesResult)?.types?.singleOrNull() as? EtsClassType
+        val objectClass = type?.let { hierarchy.classesForType(it).singleOrNull() }
+            ?.takeIf { it.category == EtsClassCategory.OBJECT }
+
+        if (objectClass != null &&
+            objectClass.fields.none { it.name == field.name } &&
+            objectClass.methods.none { it.name == field.name }
+        ) {
+            val prototypeWasAssigned = scope.calcOnState { (instance to "__proto__") in writtenConcreteFields }
+            if (objectClass.fields.any { it.name == "__proto__" } ||
+                prototypeWasAssigned || field.name in OBJECT_PROTOTYPE_PROPERTIES
+            ) {
+                throw UnsupportedOperationException("Reading '${field.name}' requires unsupported prototype lookup")
+            }
+
+            // This object literal has neither an initial own field nor a later write.
+            return mkUndefinedValue()
+        }
+    }
+
     val sort = when (val etsField = resolveEtsField(instanceLocal, field, hierarchy)) {
         is TsResolutionResult.Empty -> {
             if (field.name !in listOf("i", "LogLevel")) {
@@ -96,8 +124,6 @@ fun TsContext.readField(
         is TsResolutionResult.Ambiguous -> unresolvedSort
     }
 
-    val wasWritten = isAllocatedConcreteHeapRef(instance) &&
-        scope.calcOnState { (instance to field.name) in writtenConcreteFields }
     if (!wasWritten) {
         scope.doWithState {
             // A read of a field that has not been written still follows the

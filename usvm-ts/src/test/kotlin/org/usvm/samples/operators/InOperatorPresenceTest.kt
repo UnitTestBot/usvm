@@ -122,6 +122,29 @@ class InOperatorPresenceTest : TsMethodTestRunner() {
     }
 
     @Test
+    fun `absent optional field reads as undefined after negative presence check`() {
+        val methodName = "readsMissingOptionalAfterIn"
+        val method = getMethod(methodName = methodName, className = "InOperator")
+        val options = machineOptions.copy(throwExceptionOnStepFailure = true)
+        val outcome = TsMachine(scene, options = options, tsOptions = TsOptions()).use { machine ->
+            machine.analyzeWithOutcome(methods = listOf(method))
+        }
+
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
+        assertTrue(outcome.unsupportedPaths.isEmpty(), "${outcome.unsupportedPaths}")
+        assertTrue(outcome.states.isNotEmpty(), "Expected a successful read of undefined")
+        val tests = outcome.states.map { state ->
+            assertIs<TsMethodResult.Success>(state.methodResult)
+            TsTestResolver().resolve(method, state)
+        }
+        tests.forEach { test ->
+            assertEquals(1.0, assertIs<TsTestValue.TsNumber>(test.returnValue).number)
+        }
+
+        replayNoArguments(methodName, expected = 1)
+    }
+
+    @Test
     fun `block scoped top level write updates field presence`() {
         val methodName = "readsBlockScopedResult"
         val method = getMethod(methodName = methodName, className = "InOperator")
