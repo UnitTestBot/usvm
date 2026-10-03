@@ -12,6 +12,7 @@ import org.usvm.UMachineOptions
 import org.usvm.api.TsTest
 import org.usvm.api.TsTestValue
 import org.usvm.machine.state.TsMethodResult
+import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.TsTestResolver
 import org.usvm.util.TsUnsupportedWitnessException
 import org.usvm.util.assertNodeReplay
@@ -24,13 +25,13 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.time.Duration
 
-class TsStringEqualityTest {
+class TsStringEqualityTest : TsMethodTestRunner() {
     @TempDir
     lateinit var directory: Path
 
     private val source = getResourcePath("/models/StringEquality.ts")
-    private val scene = EtsScene(listOf(loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)))
-    private val options = UMachineOptions(
+    override val scene = EtsScene(listOf(loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)))
+    private val analysisOptions = UMachineOptions(
         pathSelectionStrategies = listOf(PathSelectionStrategy.BFS),
         solverType = SolverType.YICES,
         solverTimeout = Duration.INFINITE,
@@ -52,6 +53,36 @@ class TsStringEqualityTest {
             "looselyEqualsOther" to { args -> if (args[0] == args[1]) 1 else 2 },
             "looselyNotEqualsOther" to { args -> if (args[0] != args[1]) 1 else 2 },
         )
+
+        expected.forEach { (name, expectedResult) ->
+            val method = getMethod(methodName = name, className = "StringEquality")
+            if (name == "equalsOther" || name == "equalsAtLengthOne" ||
+                name == "looselyEqualsOther" || name == "looselyNotEqualsOther") {
+                val results = if (name == "equalsAtLengthOne") listOf(1, 2, 3) else listOf(1, 2)
+                discoverProperties<TsTestValue.TsString, TsTestValue.TsString, TsTestValue.TsNumber>(
+                    method = method,
+                    *results.map { expectedNumber ->
+                        { left: TsTestValue.TsString, right: TsTestValue.TsString, result: TsTestValue.TsNumber ->
+                            result.number == expectedNumber.toDouble() &&
+                                result.number == expectedResult(listOf(left.value, right.value)).toDouble()
+                        }
+                    }.toTypedArray(),
+                    invariants = arrayOf({ left, right, result ->
+                        result.number == expectedResult(listOf(left.value, right.value)).toDouble()
+                    }),
+                )
+            } else {
+                discoverProperties<TsTestValue.TsString, TsTestValue.TsNumber>(
+                    method = method,
+                    { input, result -> result.number == 1.0 && expectedResult(listOf(input.value)) == 1 },
+                    { input, result -> result.number == 2.0 && expectedResult(listOf(input.value)) == 2 },
+                    invariants = arrayOf({ input, result ->
+                        result.number == expectedResult(listOf(input.value)).toDouble()
+                    }),
+                )
+            }
+        }
+
         val tests = expected.mapValues { (name, _) -> analyze(name) }
 
         tests.forEach { (name, generated) ->
@@ -68,6 +99,12 @@ class TsStringEqualityTest {
 
     @Test
     fun `null and undefined strict and loose equality remain distinct`() {
+        discoverProperties<TsTestValue.TsNumber>(
+            method = getMethod(methodName = "nullAndUndefined", className = "StringEquality"),
+            { result -> result.number == 2.0 },
+            invariants = arrayOf({ result -> result.number == 2.0 }),
+        )
+
         val tests = mapOf("nullAndUndefined" to analyze("nullAndUndefined"))
 
         assertEquals(setOf(2), tests.getValue("nullAndUndefined").map(::resultNumber).toSet())
@@ -77,6 +114,12 @@ class TsStringEqualityTest {
 
     @Test
     fun `default string bound can compare two symbolic inputs`() {
+        discoverProperties<TsTestValue.TsString, TsTestValue.TsString, TsTestValue.TsNumber>(
+            method = getMethod(methodName = "equalsOther", className = "StringEquality"),
+            { left, right, result -> left.value == right.value && result.number == 1.0 },
+            { left, right, result -> left.value != right.value && result.number == 2.0 },
+        )
+
         val tests = analyze("equalsOther", maxStringLength = 1_000)
 
         assertEquals(setOf(1, 2), tests.map(::resultNumber).toSet())
@@ -92,7 +135,7 @@ class TsStringEqualityTest {
                 .single { it.name == name }
             val analysis = TsMachine(
                 scene,
-                options = options.copy(stateCollectionStrategy = StateCollectionStrategy.ALL),
+                options = analysisOptions.copy(stateCollectionStrategy = StateCollectionStrategy.ALL),
                 tsOptions = TsOptions(maxArraySize = 4),
             ).use { machine ->
                 machine.analyzeWithOutcome(listOf(method))
@@ -115,7 +158,7 @@ class TsStringEqualityTest {
             .single { it.name == "equalsAnyStrings" }
         val ordinaryStates = TsMachine(
             scene,
-            options = options,
+            options = analysisOptions,
             tsOptions = TsOptions(maxArraySize = 4),
         ).use { machine ->
             machine.analyze(listOf(method))
@@ -131,7 +174,7 @@ class TsStringEqualityTest {
             .single { it.name == "looselyEqualsDynamicStrings" }
         val analysis = TsMachine(
             scene,
-            options = options.copy(stateCollectionStrategy = StateCollectionStrategy.ALL),
+            options = analysisOptions.copy(stateCollectionStrategy = StateCollectionStrategy.ALL),
             tsOptions = TsOptions(maxArraySize = 4),
         ).use { machine ->
             machine.analyzeWithOutcome(listOf(method))
@@ -161,7 +204,7 @@ class TsStringEqualityTest {
             .single { it.name == "equalsAnyDirect" }
         val analysis = TsMachine(
             scene,
-            options = options.copy(collectedStatesLimit = 1),
+            options = analysisOptions.copy(collectedStatesLimit = 1),
             tsOptions = TsOptions(maxArraySize = 4),
         ).use { machine ->
             machine.analyzeWithOutcome(listOf(method))
@@ -184,7 +227,7 @@ class TsStringEqualityTest {
             .single { it.name == name }
         val analysis = TsMachine(
             scene,
-            options = options,
+            options = analysisOptions,
             tsOptions = TsOptions(maxArraySize = maxStringLength),
         ).use { machine ->
             machine.analyzeWithOutcome(listOf(method))
