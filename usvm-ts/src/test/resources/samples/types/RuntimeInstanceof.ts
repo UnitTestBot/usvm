@@ -158,12 +158,47 @@ class RuntimeInstanceof {
     genericConstructorParameter<T extends typeof InstanceA>(ctor: T): boolean {
         return typeof ctor === "function";
     }
+
+    constructorTupleParameter(ctors: [typeof InstanceA]): boolean {
+        return new InstanceA() instanceof ctors[0];
+    }
+
+    constructorArrayParameter(ctors: (typeof InstanceA)[]): boolean {
+        return ctors.length === 1 && new InstanceA() instanceof ctors[0];
+    }
+
+    constructorNestedArrayParameter(ctors: (typeof InstanceA)[][]): boolean {
+        return new InstanceA() instanceof ctors[0][0];
+    }
+
+    constructorBoxParameter(box: InstanceConstructorBox<typeof InstanceA>): boolean {
+        return typeof box.value === "function";
+    }
+
+    structuralConstructorParameter(holder: { ctor: typeof InstanceA }): boolean {
+        return typeof holder.ctor === "function";
+    }
+
+    recursiveConstructorParameter(holder: InstanceRecursiveHolder): boolean {
+        return typeof holder.ctor === "function";
+    }
+
+    inheritedConstructorParameter(holder: InstanceInheritedHolder): boolean {
+        return typeof holder.ctor === "function";
+    }
 }
 
 type InstanceConstructorAlias = typeof InstanceA | typeof InstanceB;
 
 class InstanceA {}
 class InstanceB {}
+class InstanceConstructorBox<T> { value!: T; }
+class InstanceRecursiveHolder {
+    next?: InstanceRecursiveHolder;
+    ctor!: typeof InstanceA;
+}
+class InstanceConstructorBase { ctor!: typeof InstanceA; }
+class InstanceInheritedHolder extends InstanceConstructorBase {}
 class InstanceParent {}
 class InstanceChild extends InstanceParent { childMarker: number = 1; }
 class InstanceCustom {
