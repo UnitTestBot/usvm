@@ -18,6 +18,18 @@ class RuntimeInstanceof {
         return new InstanceA() instanceof InstanceA! ? 1 : 0;
     }
 
+    anyConstructor(): number {
+        return new InstanceA() instanceof (InstanceA as any) ? 1 : 0;
+    }
+
+    unknownConstructor(): number {
+        return new InstanceA() instanceof (InstanceA as unknown as typeof InstanceA) ? 1 : 0;
+    }
+
+    objectConstructor(): number {
+        return new InstanceA() instanceof (InstanceA as object as typeof InstanceA) ? 1 : 0;
+    }
+
     inheritedConstructor(instance: InstanceChild): number {
         return instance instanceof InstanceParent ? 1 : 0;
     }
@@ -37,6 +49,16 @@ class RuntimeInstanceof {
 
     primitiveLeft(): number {
         return 42 instanceof InstanceA ? 1 : 0;
+    }
+
+    undefinedLeft(): number {
+        const value: any = undefined;
+        return value instanceof InstanceA ? 1 : 0;
+    }
+
+    nullLeft(): number {
+        const value: any = null;
+        return value instanceof InstanceA ? 1 : 0;
     }
 
     nonCallableRight(): boolean {
