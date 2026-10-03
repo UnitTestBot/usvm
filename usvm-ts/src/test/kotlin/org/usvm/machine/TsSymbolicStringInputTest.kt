@@ -10,6 +10,7 @@ import org.usvm.SolverType
 import org.usvm.UMachineOptions
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsTestResolver
+import org.usvm.util.TsUnsupportedWitnessException
 import org.usvm.util.assertNodeReplay
 import org.usvm.util.getResourcePath
 import org.usvm.util.jsString
@@ -207,6 +208,61 @@ class TsSymbolicStringInputTest {
             name = "string-bound",
             timeoutMessage = "string-bound replay timed out",
             failureContext = script.take(REPLAY_FAILURE_CONTEXT_LIMIT),
+        )
+    }
+
+    @Test
+    fun `string inferred from any without backing cannot become an empty witness`() {
+        val source = getResourcePath("/models/SymbolicStringInput.ts")
+        val scene = EtsScene(listOf(loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)))
+        val method = scene.projectClasses.single { it.name == "SymbolicStringInput" }
+            .methods
+            .single { it.name == "anyStringLength" }
+
+        val states = TsMachine(scene, options = machineOptions, tsOptions = TsOptions()).use { machine ->
+            machine.analyze(listOf(method))
+        }
+
+        assertTrue(states.isNotEmpty())
+        val resolutions = states.map { state -> runCatching { TsTestResolver().resolve(method, state) } }
+        val unsupported = resolutions.mapNotNull { it.exceptionOrNull() }
+        assertTrue(
+            unsupported.isNotEmpty(),
+            "Expected an unbacked symbolic string: $resolutions",
+        )
+        unsupported.forEach { failure ->
+            assertIs<TsUnsupportedWitnessException>(failure)
+            assertTrue("missing backing array" in failure.message.orEmpty(), failure.toString())
+        }
+
+        val supported = resolutions.mapNotNull { it.getOrNull() }
+        assertTrue(supported.isNotEmpty())
+        val script = buildString {
+            appendLine(source.readText())
+            appendLine("if (new SymbolicStringInput().anyStringLength(\"\") !== 2) throw Error('empty string');")
+            appendLine("if (new SymbolicStringInput().anyStringLength(\"x\") !== 1) throw Error('one-char string');")
+            supported.forEachIndexed { index, test ->
+                val input = when (val value = test.before.parameters.single()) {
+                    TsTestValue.TsUndefined -> "undefined"
+                    TsTestValue.TsNull -> "null"
+                    is TsTestValue.TsBoolean -> value.value.toString()
+                    is TsTestValue.TsNumber -> value.number.toString()
+                    is TsTestValue.TsString -> jsString(value.value)
+                    else -> error("Unexpected input for anyStringLength: $value")
+                }
+                val expected = assertIs<TsTestValue.TsNumber>(test.returnValue).number
+
+                appendLine("if (new SymbolicStringInput().anyStringLength($input) !== $expected) {")
+                appendLine("  throw Error('any string witness $index');")
+                appendLine("}")
+            }
+        }
+
+        assertNodeReplay(
+            source = script,
+            directory = directory,
+            name = "any-string",
+            timeoutMessage = "any-string replay timed out",
         )
     }
 }

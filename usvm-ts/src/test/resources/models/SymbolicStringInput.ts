@@ -4,6 +4,8 @@ class SymbolicStringInput {
     }
 
     lengthOne(value: string): number {
+        if (value.length === 0) return 0;
+
         return value.length === 1 ? 1 : 0;
     }
 
@@ -24,5 +26,11 @@ class SymbolicStringInput {
 
     lengthIs10001(value: string): number {
         return value.length === 10001 ? 1 : 0;
+    }
+
+    anyStringLength(value: any): number {
+        if (typeof value !== "string") return 0;
+
+        return value.length === 1 ? 1 : 2;
     }
 }

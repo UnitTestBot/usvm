@@ -55,6 +55,9 @@ import org.usvm.model.UModelBase
 import org.usvm.sizeSort
 import org.usvm.types.first
 
+/** A satisfying state lacks the modeled data needed to emit a concrete witness. */
+class TsUnsupportedWitnessException(message: String) : IllegalStateException(message)
+
 class TsTestResolver {
     private val resolvedLValuesToFakeObjects: MutableList<Pair<ULValue<*, *>, UConcreteHeapRef>> = mutableListOf()
 
@@ -333,7 +336,7 @@ open class TsTestStateResolver(
         val valueLValue = mkFieldLValue(addressSort, stringRef, field = "value")
         val charsRef = evaluateInModel(stringMemory.read(valueLValue)) as UConcreteHeapRef
         if (charsRef.address == 0) {
-            return TsTestValue.TsString("")
+            throw TsUnsupportedWitnessException("Symbolic string is missing backing array: $concreteRef")
         }
 
         val lengthLValue = mkStringBackingLengthLValue(charsRef)
