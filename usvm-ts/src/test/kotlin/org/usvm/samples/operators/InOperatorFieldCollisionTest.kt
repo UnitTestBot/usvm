@@ -12,11 +12,7 @@ import org.usvm.machine.TsOptions
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.TsTestResolver
-import org.usvm.util.getResourcePath
 import java.nio.file.Path
-import java.util.concurrent.TimeUnit
-import kotlin.io.path.readText
-import kotlin.io.path.writeText
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
@@ -57,21 +53,12 @@ class InOperatorFieldCollisionTest : TsMethodTestRunner() {
             }
         }
 
-        val script = directory.resolve("field-collision.ts")
-        val output = directory.resolve("field-collision.out")
-        script.writeText(buildString {
-            appendLine(getResourcePath(tsPath).readText())
+        val assertions = buildString {
             methods.forEach { methodName ->
                 appendLine("if (new Probe().$methodName() !== 7) throw Error('$methodName');")
             }
-        })
+        }
 
-        val process = ProcessBuilder("node", "--experimental-strip-types", script.toString())
-            .redirectErrorStream(true)
-            .redirectOutput(output.toFile())
-            .start()
-
-        assertTrue(process.waitFor(30, TimeUnit.SECONDS), "Node replay timed out")
-        assertEquals(0, process.exitValue(), output.readText())
+        replayInOperatorScript(directory, tsPath, scriptName = "field-collision", assertions = assertions)
     }
 }
