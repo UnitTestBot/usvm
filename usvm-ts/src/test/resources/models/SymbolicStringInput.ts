@@ -137,6 +137,13 @@ class SymbolicStringInput {
         return 0;
     }
 
+    anyObjectTruthy(value: any): number {
+        if (typeof value === "object" && value !== null) {
+            if (value) return 1;
+        }
+        return 0;
+    }
+
     objectTruthy(value: { x: number }): number {
         if (value) return 1;
         return 0;
