@@ -84,6 +84,73 @@ class TypeOf : TsMethodTestRunner() {
     }
 
     @Test
+    fun `test typeOfArrow`() {
+        val method = getMethod("typeOfArrow")
+
+        discoverProperties<TsTestValue.TsString>(
+            method = method,
+            { r -> r.value == "function" },
+            invariants = arrayOf({ r -> r.value == "function" }),
+        )
+    }
+
+    @Test
+    fun `test typeOfFunctionExpression`() {
+        val method = getMethod("typeOfFunctionExpression")
+
+        discoverProperties<TsTestValue.TsString>(
+            method = method,
+            { r -> r.value == "function" },
+            invariants = arrayOf({ r -> r.value == "function" }),
+        )
+    }
+
+    @Test
+    fun `test typeOfStoredArrow`() {
+        val method = getMethod("typeOfStoredArrow")
+
+        discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsString>(
+            method = method,
+            { _, r -> r.value == "function" },
+            invariants = arrayOf({ _, r -> r.value == "function" }),
+        )
+    }
+
+    @Test
+    fun `test typeOfCallableInObject`() {
+        val method = getMethod("typeOfCallableInObject")
+
+        discoverProperties<TsTestValue.TsString>(
+            method = method,
+            { r -> r.value == "function" },
+            invariants = arrayOf({ r -> r.value == "function" }),
+        )
+    }
+
+    @Test
+    fun `test typeOfNamedFunction`() {
+        val method = getMethod("typeOfNamedFunction")
+
+        discoverProperties<TsTestValue.TsString>(
+            method = method,
+            { r -> r.value == "function" },
+            invariants = arrayOf({ r -> r.value == "function" }),
+        )
+    }
+
+    @Test
+    fun `test typeOfConditionalCallable`() {
+        val method = getMethod("typeOfConditionalCallable")
+
+        discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsString>(
+            method = method,
+            { flag, r -> flag.value && r.value == "function" },
+            { flag, r -> !flag.value && r.value == "object" },
+            invariants = arrayOf({ flag, r -> r.value == if (flag.value) "function" else "object" }),
+        )
+    }
+
+    @Test
     fun `test typeOfInputString`() {
         val method = getMethod("typeOfInputString")
         discoverProperties<TsTestValue.TsString, TsTestValue.TsString>(
