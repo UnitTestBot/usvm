@@ -87,6 +87,8 @@ class TsState(
      * String literals are recognized separately through [TsContext.getStringConstantValue].
      */
     var boundedStringBackingRefs: Set<UHeapRef> = emptySet(),
+    /** Unresolved reference payloads that may acquire string backing after type refinement. */
+    var symbolicStringCandidates: Set<UHeapRef> = emptySet(),
     var unsupportedReason: String? = null,
     private val activeUnknownCallModels: MutableList<Pair<String, Int>> = mutableListOf(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
@@ -324,6 +326,7 @@ class TsState(
             dfltObjectFieldSorts = dfltObjectFieldSorts,
             stringConstantAllocatedRefs = stringConstantAllocatedRefs,
             boundedStringBackingRefs = boundedStringBackingRefs,
+            symbolicStringCandidates = symbolicStringCandidates,
             unsupportedReason = unsupportedReason,
             activeUnknownCallModels = activeUnknownCallModels.toMutableList(),
         )

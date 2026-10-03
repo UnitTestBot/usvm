@@ -52,6 +52,33 @@ class StringEquality {
         return left == right ? 1 : 2;
     }
 
+    refinedStringLength(left: any): number {
+        if (typeof left !== "string") return 3;
+
+        return left.length === 1 ? 1 : 2;
+    }
+
+    refinedStringAlias(left: unknown): number {
+        const alias = left;
+        if (typeof left !== "string") return 3;
+
+        return (alias as string).length === 1 ? 1 : 2;
+    }
+
+    refinedStringUnused(left: any): number {
+        if (typeof left !== "string") return 3;
+
+        return 1;
+    }
+
+    refinedStringNullish(left: any): number {
+        if (left === null) return 4;
+        if (left === undefined) return 5;
+        if (typeof left !== "string") return 3;
+
+        return left.length === 1 ? 1 : 2;
+    }
+
     nullAndUndefined(): number {
         return null === undefined ? 1 : null == undefined ? 2 : 3;
     }

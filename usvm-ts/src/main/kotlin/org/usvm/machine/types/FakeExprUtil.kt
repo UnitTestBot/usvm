@@ -14,6 +14,7 @@ import org.usvm.machine.IntermediateLValueField
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.state.TsState
+import org.usvm.machine.state.trackSymbolicStringCandidate
 import org.usvm.memory.ULValue
 
 /**
@@ -82,6 +83,8 @@ fun TsState.mkFakeValue(
     }
 
     if (refValue != null) {
+        trackSymbolicStringCandidate(refValue)
+
         val refLValue = ctx.getIntermediateRefLValue(address)
         memory.write(refLValue, refValue, guard = ctx.trueExpr)
     }

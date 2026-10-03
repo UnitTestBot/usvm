@@ -4,6 +4,7 @@ import io.ksmt.sort.KBv16Sort
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsField
 import org.jacodb.ets.model.EtsFieldSignature
+import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
@@ -28,7 +29,7 @@ internal fun TsState.arrayStorageType(ref: UHeapRef, staticType: EtsType): EtsTy
     if (ref !is UConcreteHeapRef && ref !is USymbolicHeapRef) return staticType
 
     val memoryType = memory.typeStreamOf(ref).singleOrNull()
-    return if (memoryType is EtsArrayType || isAllocatedConcreteHeapRef(ref)) {
+    return if (memoryType is EtsArrayType || memoryType == EtsStringType || isAllocatedConcreteHeapRef(ref)) {
         memoryType ?: staticType
     } else {
         staticType

@@ -1,5 +1,6 @@
 package org.usvm.machine
 
+import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
@@ -11,6 +12,7 @@ import org.usvm.StateCollectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.api.TsTest
 import org.usvm.api.TsTestValue
+import org.usvm.machine.expr.extractDouble
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.TsTestResolver
@@ -139,11 +141,27 @@ class TsStringEqualityTest : TsMethodTestRunner() {
     }
 
     @Test
-    fun `any and unknown string alternatives are explicit unsupported paths`() {
+    fun `refined any and unknown strings produce replayable equality witnesses`() {
         val generated = listOf("equalsAnyStrings", "equalsUnknownStrings").associateWith { name ->
-            val method = scene.projectClasses.single { it.name == "StringEquality" }
-                .methods
-                .single { it.name == name }
+            val method = getMethod(methodName = name, className = "StringEquality")
+            val expectedResult: (TsTestValue, TsTestValue.TsString) -> Int = { left, right ->
+                if (left is TsTestValue.TsString) {
+                    if (left.value == right.value) 1 else 2
+                } else {
+                    3
+                }
+            }
+
+            discoverProperties<TsTestValue, TsTestValue.TsString, TsTestValue.TsNumber>(
+                method = method,
+                { left, right, result -> result.number == 1.0 && expectedResult(left, right) == 1 },
+                { left, right, result -> result.number == 2.0 && expectedResult(left, right) == 2 },
+                { left, right, result -> result.number == 3.0 && expectedResult(left, right) == 3 },
+                invariants = arrayOf({ left, right, result ->
+                    result.number == expectedResult(left, right).toDouble()
+                }),
+            )
+
             val analysis = TsMachine(
                 scene,
                 options = analysisOptions.copy(stateCollectionStrategy = StateCollectionStrategy.ALL),
@@ -153,10 +171,16 @@ class TsStringEqualityTest : TsMethodTestRunner() {
             }
 
             assertEquals(TsAnalysisStopReason.EXHAUSTED, analysis.stopReason, name)
-            assertTrue(analysis.unsupportedPaths.any { "modeled string backing" in it }, name)
+            assertTrue(analysis.unsupportedPaths.isEmpty(), name)
             val tests = analysis.states.map { state -> TsTestResolver().resolve(method, state) }
             assertTrue(tests.isNotEmpty(), name)
-            assertTrue(tests.all { resultNumber(it) == 3 }, "$name: $tests")
+            assertEquals(setOf(1, 2, 3), tests.map(::resultNumber).toSet(), name)
+            tests.forEach { test ->
+                val left = test.before.parameters[0]
+                val right = assertIs<TsTestValue.TsString>(test.before.parameters[1])
+
+                assertEquals(expectedResult(left, right), resultNumber(test), "$name: $test")
+            }
 
             tests
         }
@@ -175,11 +199,57 @@ class TsStringEqualityTest : TsMethodTestRunner() {
             machine.analyze(listOf(method))
         }
         val ordinaryTests = ordinaryStates.map { state -> TsTestResolver().resolve(method, state) }
-        assertTrue(ordinaryTests.none { resultNumber(it) in setOf(1, 2) })
+        assertEquals(setOf(1, 2, 3), ordinaryTests.map(::resultNumber).toSet())
     }
 
     @Test
-    fun `two unmodeled string references do not yield equality witnesses`() {
+    fun `refinement prepares backing before length alias reads and unused string results`() {
+        val expected = mapOf<String, (TsTestValue) -> Int>(
+            "refinedStringLength" to { input ->
+                if (input is TsTestValue.TsString) {
+                    if (input.value.length == 1) 1 else 2
+                } else {
+                    3
+                }
+            },
+            "refinedStringAlias" to { input ->
+                if (input is TsTestValue.TsString) {
+                    if (input.value.length == 1) 1 else 2
+                } else {
+                    3
+                }
+            },
+            "refinedStringUnused" to { input -> if (input is TsTestValue.TsString) 1 else 3 },
+            "refinedStringNullish" to { input ->
+                when (input) {
+                    TsTestValue.TsNull -> 4
+                    TsTestValue.TsUndefined -> 5
+                    is TsTestValue.TsString -> if (input.value.length == 1) 1 else 2
+                    else -> 3
+                }
+            },
+        )
+        val generated = expected.mapValues { (name, expectedResult) ->
+            val tests = analyze(name)
+            val expectedResults = when (name) {
+                "refinedStringUnused" -> setOf(1, 3)
+                "refinedStringNullish" -> setOf(1, 2, 3, 4, 5)
+                else -> setOf(1, 2, 3)
+            }
+
+            assertEquals(expectedResults, tests.map(::resultNumber).toSet(), name)
+            tests.forEach { test ->
+                assertEquals(expectedResult(test.before.parameters[0]), resultNumber(test), "$name: $test")
+            }
+
+            tests
+        }
+
+        replayDynamic(generated)
+    }
+
+    @Test
+    fun `two refined dynamic strings produce replayable equality witnesses`() {
         val method = scene.projectClasses.single { it.name == "StringEquality" }
             .methods
             .single { it.name == "looselyEqualsDynamicStrings" }
@@ -192,20 +262,37 @@ class TsStringEqualityTest : TsMethodTestRunner() {
         }
 
         assertEquals(TsAnalysisStopReason.EXHAUSTED, analysis.stopReason)
-        assertTrue(analysis.unsupportedPaths.any { "modeled string backing" in it })
+        assertTrue(analysis.unsupportedPaths.isEmpty())
         val unsupportedWitnesses = mutableListOf<TsUnsupportedWitnessException>()
         val tests = analysis.states.mapNotNull { state ->
             try {
                 TsTestResolver().resolve(method, state)
             } catch (failure: TsUnsupportedWitnessException) {
+                // An input left unrefined by the early return may still have no string model.
+                val result = assertIs<TsMethodResult.Success>(state.methodResult).value
+                val number = state.models.first().eval(result.asExpr(state.ctx.fp64Sort)).extractDouble()
+                assertEquals(3.0, number, "A refined string branch must have a replayable witness")
+
                 unsupportedWitnesses += failure
                 null
             }
         }
 
-        assertTrue(unsupportedWitnesses.isNotEmpty(), "Expected an unbacked string witness")
         assertTrue(unsupportedWitnesses.all { "missing backing array" in it.message.orEmpty() })
-        assertTrue(tests.none { resultNumber(it) in setOf(1, 2) }, "$tests")
+        assertEquals(setOf(1, 2, 3), tests.map(::resultNumber).toSet())
+        tests.forEach { test ->
+            val left = test.before.parameters[0]
+            val right = test.before.parameters[1]
+            val expected = if (left is TsTestValue.TsString && right is TsTestValue.TsString) {
+                if (left.value == right.value) 1 else 2
+            } else {
+                3
+            }
+
+            assertEquals(expected, resultNumber(test), "$test")
+        }
+
+        replayDynamic(mapOf("looselyEqualsDynamicStrings" to tests))
     }
 
     @Test
@@ -284,10 +371,9 @@ class TsStringEqualityTest : TsMethodTestRunner() {
             appendLine(source.readText())
             tests.forEach { (name, generated) ->
                 generated.forEachIndexed { index, test ->
-                    val left = jsDynamic(test.before.parameters[0])
-                    val right = jsString(assertIs<TsTestValue.TsString>(test.before.parameters[1]).value)
+                    val args = test.before.parameters.joinToString(transform = ::jsDynamic)
 
-                    appendLine("if (new StringEquality().$name($left, $right) !== ${resultNumber(test)}) {")
+                    appendLine("if (new StringEquality().$name($args) !== ${resultNumber(test)}) {")
                     appendLine("  throw Error('$name witness $index');")
                     appendLine("}")
                 }
@@ -303,6 +389,7 @@ class TsStringEqualityTest : TsMethodTestRunner() {
     }
 
     private fun jsDynamic(value: TsTestValue): String = when (value) {
+        is TsTestValue.TsString -> jsString(value.value)
         is TsTestValue.TsBoolean -> value.value.toString()
         is TsTestValue.TsNumber -> value.number.toString()
         TsTestValue.TsNull -> "null"

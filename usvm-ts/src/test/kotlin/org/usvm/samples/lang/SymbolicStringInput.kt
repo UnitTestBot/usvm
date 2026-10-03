@@ -47,6 +47,29 @@ class SymbolicStringInput : TsMethodTestRunner() {
     }
 
     @Test
+    fun `string inferred from any preserves all length outcomes`() {
+        val method = getMethod(methodName = "anyStringLength")
+
+        discoverProperties<TsTestValue, TsTestValue.TsNumber>(
+            method = method,
+            { input, result -> input !is TsTestValue.TsString && result.number == 0.0 },
+            { input, result -> input is TsTestValue.TsString && input.value.length == 1 && result.number == 1.0 },
+            { input, result -> input is TsTestValue.TsString && input.value.length != 1 && result.number == 2.0 },
+            invariants = arrayOf(
+                { input, result ->
+                    val expected = when {
+                        input !is TsTestValue.TsString -> 0.0
+                        input.value.length == 1 -> 1.0
+                        else -> 2.0
+                    }
+
+                    result.number == expected
+                },
+            ),
+        )
+    }
+
+    @Test
     fun `literal preserves NUL non-ASCII and a surrogate pair`() {
         val method = getMethod(methodName = "literal")
 
