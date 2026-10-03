@@ -2,14 +2,20 @@ package org.usvm.machine.expr
 
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
+import org.jacodb.ets.model.EtsStringLiteralType
 import org.jacodb.ets.model.EtsStringType
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.UIteExpr
 import org.usvm.USort
+import org.usvm.USymbolicHeapRef
+import org.usvm.api.allocateConcreteRef
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.isFalse
+import org.usvm.isTrue
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.interpreter.TsStepScope
@@ -18,7 +24,10 @@ import org.usvm.machine.state.TsState
 import org.usvm.machine.types.EtsFakeType
 import org.usvm.machine.types.ExprWithTypeConstraint
 import org.usvm.types.single
+import org.usvm.types.singleOrNull
 import org.usvm.util.boolToFp
+import org.usvm.util.mkFieldLValue
+import org.usvm.util.mkStringBackingLengthLValue
 
 fun TsContext.checkNotFake(expr: UExpr<*>) {
     require(!expr.isFakeObject()) {
@@ -30,6 +39,49 @@ fun TsContext.mkTruthyExpr(
     expr: UExpr<out USort>,
     scope: TsStepScope,
 ): UBoolExpr = scope.calcOnState {
+    // `any` is assignable both to and from string, so a type-relation query cannot identify
+    // a materialized string. Inspect the concrete type stream before reading its backing array.
+    fun definitelyString(ref: UHeapRef): UBoolExpr = when (ref) {
+        is UConcreteHeapRef, is USymbolicHeapRef -> {
+            val type = memory.types.getTypeStream(ref).singleOrNull()
+            if (type is EtsStringType || type is EtsStringLiteralType) mkTrue() else mkFalse()
+        }
+
+        is UIteExpr<*> -> {
+            val trueRef = ref.trueBranch.asExpr(addressSort)
+            val falseRef = ref.falseBranch.asExpr(addressSort)
+            val trueIsString = definitelyString(trueRef)
+            val falseIsString = definitelyString(falseRef)
+
+            mkIte(ref.condition, trueIsString, falseIsString)
+        }
+
+        else -> mkFalse()
+    }
+
+    fun referenceTruthy(ref: UHeapRef): UBoolExpr {
+        val nonNullish = mkAnd(
+            mkHeapRefEq(ref, mkTsNullValue()).not(),
+            mkHeapRefEq(ref, mkUndefinedValue()).not(),
+        )
+        if (nonNullish.isFalse) return mkFalse()
+
+        val isString = definitelyString(ref)
+        if (isString.isFalse) return nonNullish
+
+        val charsRef = memory.read(mkFieldLValue(addressSort, ref, field = "value"))
+        val readableCharsRef = if (isString.isTrue) {
+            charsRef
+        } else {
+            // Other objects need no backing array. Keep the array-region read away from their null field value.
+            mkIte(isString, charsRef, allocateConcreteRef())
+        }
+        val length = memory.read(mkStringBackingLengthLValue(readableCharsRef))
+        val stringIsNonEmpty = mkNot(mkEq(length, mkBv(0)))
+
+        return mkAnd(nonNullish, mkImplies(isString, stringIsNonEmpty))
+    }
+
     if (expr.isFakeObject()) {
         val falseBranchGround = makeSymbolicPrimitive(boolSort)
 
@@ -63,10 +115,7 @@ fun TsContext.mkTruthyExpr(
             val value = memory.read(getIntermediateRefLValue(expr.address))
             conjuncts += ExprWithTypeConstraint(
                 constraint = possibleType.refTypeExpr,
-                expr = mkAnd(
-                    mkHeapRefEq(value, mkTsNullValue()).not(),
-                    mkHeapRefEq(value, mkUndefinedValue()).not(),
-                )
+                expr = referenceTruthy(value)
             )
         }
 
@@ -74,12 +123,7 @@ fun TsContext.mkTruthyExpr(
             mkIte(condition, value, acc)
         }
     } else {
-        // TODO: simply convert `expr` to bool by implementing ToBoolean(arg):
-        //  if arg is Boolean : return arg
-        //  if arg is undefined | null | +0f | -0f | NaN | 0 | "" : return false
-        //  else return true // non-negative numbers, any living objects, non-empty strings, etc
-        //  (https://tc39.es/ecma262/#sec-toboolean)
-        //  This conversion might be useful in other places as well, not just for truthy in ifs.
+        // ECMAScript ToBoolean (https://tc39.es/ecma262/#sec-toboolean).
 
         when (expr.sort) {
             boolSort -> expr.asExpr(boolSort)
@@ -89,10 +133,7 @@ fun TsContext.mkTruthyExpr(
                 mkFpIsNaNExpr(expr.asExpr(fp64Sort)).not()
             )
 
-            addressSort -> mkAnd(
-                mkHeapRefEq(expr.asExpr(addressSort), mkTsNullValue()).not(),
-                mkHeapRefEq(expr.asExpr(addressSort), mkUndefinedValue()).not(),
-            )
+            addressSort -> referenceTruthy(expr.asExpr(addressSort))
 
             else -> TODO("Unsupported sort: ${expr.sort}")
         }
