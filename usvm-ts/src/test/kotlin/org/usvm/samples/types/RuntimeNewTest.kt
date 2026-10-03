@@ -102,6 +102,105 @@ class RuntimeNewTest : TsMethodTestRunner() {
     }
 
     @Test
+    fun `field writes and aliases use the selected class`() {
+        for (methodName in listOf("writeToEither", "writeThroughAlias")) {
+            val method = getMethod(methodName = methodName, className = "RuntimeNew")
+            val outcome = analyze(methodName)
+
+            assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason, methodName)
+            assertTrue(outcome.unsupportedPaths.isEmpty(), "$methodName: ${outcome.unsupportedPaths}")
+            val cases = outcome.states.map { state ->
+                assertIs<TsMethodResult.Success>(state.methodResult)
+                val test = TsTestResolver().resolve(method, state)
+                val input = assertIs<TsTestValue.TsBoolean>(test.before.parameters.single()).value
+                val actual = assertIs<TsTestValue.TsNumber>(test.returnValue).number
+                val expected = if (methodName == "writeToEither") 5.0 else 11.0
+                assertEquals(expected, actual, "$methodName($input)")
+                input to actual
+            }
+            assertEquals(setOf(false, true), cases.map { it.first }.toSet(), methodName)
+
+            replay(cases.map { (input, actual) ->
+                "if (new RuntimeNew().$methodName($input) !== ${actual.toInt()}) " +
+                    "throw Error('$methodName($input)');"
+            })
+        }
+    }
+
+    @Test
+    fun `field writes respect the selected runtime field sort`() {
+        val methodName = "writeFieldWithDifferentRuntimeSort"
+        val method = getMethod(methodName = methodName, className = "RuntimeNew")
+        val outcome = analyze(methodName)
+
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
+        assertTrue(outcome.unsupportedPaths.isEmpty(), "${outcome.unsupportedPaths}")
+        val cases = outcome.states.map { state ->
+            assertIs<TsMethodResult.Success>(state.methodResult)
+            val test = TsTestResolver().resolve(method, state)
+            val input = assertIs<TsTestValue.TsBoolean>(test.before.parameters.single()).value
+            assertTrue(assertIs<TsTestValue.TsBoolean>(test.returnValue).value)
+            input
+        }
+        assertEquals(setOf(false, true), cases.toSet())
+
+        replay(cases.map { input ->
+            "if (new RuntimeNew().$methodName($input) !== true) throw Error('$methodName($input)');"
+        })
+    }
+
+    @Test
+    fun `runtime field sort change is reported as unsupported`() {
+        val methodName = "writeIncompatibleRuntimeField"
+        val method = getMethod(methodName = methodName, className = "RuntimeNew")
+        val outcome = analyze(methodName)
+
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
+        assertTrue(outcome.unsupportedPaths.any { "Assignment changes runtime sort" in it },
+            "${outcome.unsupportedPaths}")
+        val cases = outcome.states.map { state ->
+            assertIs<TsMethodResult.Success>(state.methodResult)
+            val test = TsTestResolver().resolve(method, state)
+            val input = assertIs<TsTestValue.TsBoolean>(test.before.parameters.single()).value
+            assertTrue(assertIs<TsTestValue.TsBoolean>(test.returnValue).value)
+            input
+        }
+        assertEquals(setOf(false), cases.toSet())
+
+        replay(listOf(
+            "if (new RuntimeNew().$methodName(false) !== true) throw Error('supported field sort');",
+            "if (new RuntimeNew().$methodName(true) !== true) throw Error('unsupported field sort');",
+        ))
+    }
+
+    @Test
+    fun `incompatible alternatives of a union field value are reported as unsupported`() {
+        val methodName = "writePossiblyIncompatibleRuntimeField"
+        val method = getMethod(methodName = methodName, className = "RuntimeNew")
+        val outcome = analyze(methodName)
+
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
+        assertTrue(outcome.unsupportedPaths.any { "Assignment changes runtime sort" in it },
+            "${outcome.unsupportedPaths}")
+        val cases = outcome.states.map { state ->
+            assertIs<TsMethodResult.Success>(state.methodResult)
+            val test = TsTestResolver().resolve(method, state)
+            val input = test.before.parameters.map { assertIs<TsTestValue.TsBoolean>(it).value }
+            assertEquals(2, input.size)
+            assertTrue(assertIs<TsTestValue.TsBoolean>(test.returnValue).value)
+            input
+        }
+        assertEquals(setOf(listOf(true, false), listOf(false, true)), cases.toSet())
+
+        replay(listOf(
+            "if (new RuntimeNew().$methodName(true, false) !== true) throw Error('numeric field');",
+            "if (new RuntimeNew().$methodName(false, true) !== true) throw Error('string field');",
+            "if (new RuntimeNew().$methodName(true, true) !== true) throw Error('numeric type change');",
+            "if (new RuntimeNew().$methodName(false, false) !== true) throw Error('string type change');",
+        ))
+    }
+
+    @Test
     fun `selected constructor executes exactly once`() {
         val method = getMethod(methodName = "constructorCalledOnce", className = "RuntimeNew")
         val outcome = analyze("constructorCalledOnce")

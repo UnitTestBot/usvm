@@ -17,7 +17,6 @@ import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUnclearRefType
 import org.jacodb.ets.model.EtsUndefinedType
-import org.jacodb.ets.model.EtsUnionType
 import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
@@ -26,7 +25,6 @@ import org.usvm.USort
 import org.usvm.USymbolicHeapRef
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.makeSymbolicRefUntyped
-import org.usvm.api.typeStreamOf
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isFalse
 import org.usvm.isTrue
@@ -41,7 +39,6 @@ import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.machine.types.requiresConstructorWitness
 import org.usvm.machine.types.toAuxiliaryType
-import org.usvm.types.singleOrNull
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.TsResolutionResult
 import org.usvm.util.arrayStorageType
@@ -182,24 +179,13 @@ private fun TsContext.resolvedFieldSort(
     hierarchy: EtsHierarchy,
 ): USort = when (resolved) {
     is TsResolutionResult.Unique -> typeToSort(resolved.property.type)
-    is TsResolutionResult.Ambiguous -> {
-        // A dynamic constructor retains a union result type after allocating a concrete class.
-        val hasConcreteUnionReceiver = instanceLocal?.type is EtsUnionType && isAllocatedConcreteHeapRef(instance)
-        val runtimeType = if (hasConcreteUnionReceiver) {
-            scope.calcOnState { memory.typeStreamOf(instance).singleOrNull() }
-        } else {
-            null
-        }
-        val runtimeClass = (runtimeType as? EtsClassType)?.let { type ->
-            scene.projectAndSdkClasses.singleOrNull { it.signature == type.signature }
-        }
-        val runtimeFields = runtimeClass?.let { clazz ->
-            val ancestors = hierarchy.getAncestors(clazz)
-            resolved.properties.filter { it.declaringClass in ancestors }
-        }
-
-        runtimeFields?.singleOrNull()?.let { typeToSort(it.type) } ?: unresolvedSort
-    }
+    is TsResolutionResult.Ambiguous -> resolveAmbiguousFieldSort(
+        scope = scope,
+        instanceLocal = instanceLocal,
+        instance = instance,
+        fields = resolved.properties,
+        hierarchy = hierarchy,
+    )
     TsResolutionResult.Empty -> {
         if (field.name !in listOf("i", "LogLevel")) {
             logger.warn { "Field $field not found, creating fake field" }

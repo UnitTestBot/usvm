@@ -1,5 +1,6 @@
 class NewA {
     value: number;
+    onlyA: number = 1;
 
     constructor(value: number) {
         this.value = value;
@@ -8,6 +9,7 @@ class NewA {
 
 class NewB {
     value: number;
+    onlyB: number = 2;
 
     constructor(value: number) {
         this.value = value;
@@ -72,6 +74,37 @@ class RuntimeNew {
     fieldSortByRuntimeClass(useNumber: boolean): boolean {
         const value = new (useNumber ? NewA : NewText)(7);
         return useNumber ? value.value === 7 : value.value === "seven";
+    }
+
+    writeToEither(useA: boolean): number {
+        const value = new (useA ? NewA : NewB)(7);
+        value.value = 5;
+        return value.value;
+    }
+
+    writeThroughAlias(useA: boolean): number {
+        const value = new (useA ? NewA : NewB)(7);
+        const alias = value;
+        alias.value = 11;
+        return value.value;
+    }
+
+    writeFieldWithDifferentRuntimeSort(useNumber: boolean): boolean {
+        const value = new (useNumber ? NewA : NewText)(7);
+        value.value = useNumber ? 9 : "nine";
+        return useNumber ? value.value === 9 : value.value === "nine";
+    }
+
+    writeIncompatibleRuntimeField(useNumber: boolean): boolean {
+        const value = new (useNumber ? NewA : NewText)(7);
+        value.value = "changed";
+        return value.value === "changed";
+    }
+
+    writePossiblyIncompatibleRuntimeField(useNumber: boolean, writeString: boolean): boolean {
+        const value = new (useNumber ? NewA : NewText)(7);
+        value.value = writeString ? "changed" : 9;
+        return writeString ? value.value === "changed" : value.value === 9;
     }
 
     constructorCalledOnce(useA: boolean): boolean {
