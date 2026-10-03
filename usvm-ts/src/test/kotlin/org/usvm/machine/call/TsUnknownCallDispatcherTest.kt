@@ -28,6 +28,7 @@ import org.usvm.UMachineOptions
 import org.usvm.api.targets.ReachabilityObserver
 import org.usvm.api.targets.TsReachabilityTarget
 import org.usvm.isTrue
+import org.usvm.machine.TsAnalysisStopReason
 import org.usvm.machine.TsInterpreterObserver
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
@@ -51,6 +52,38 @@ class TsUnknownCallDispatcherTest {
         provider = EtsIrProvider.TS_FRONTEND,
     )
     private val fullScene = EtsScene(listOf(sourceFile))
+
+    @Test
+    fun `unsupported model exception is reported without a successful state`() {
+        val method = method(fullScene, "declaredMethodWithoutBodyContinues")
+        val dispatcher = TsUnknownCallDispatcher { _, _ ->
+            throw UnsupportedOperationException("The call model is not implemented")
+        }
+
+        val outcome = TsMachine(
+            scene = fullScene,
+            options = allStatesMachineOptions,
+            tsOptions = TsOptions(),
+            unknownCallDispatcher = dispatcher,
+        ).use { machine ->
+            machine.analyzeWithOutcome(methods = listOf(method))
+        }
+
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
+        assertTrue(outcome.states.isEmpty())
+        assertEquals(listOf("The call model is not implemented"), outcome.unsupportedPaths)
+
+        assertFailsWith<UnsupportedOperationException> {
+            TsMachine(
+                scene = fullScene,
+                options = allStatesMachineOptions.copy(throwExceptionOnStepFailure = true),
+                tsOptions = TsOptions(),
+                unknownCallDispatcher = dispatcher,
+            ).use { machine ->
+                machine.analyzeWithOutcome(methods = listOf(method))
+            }
+        }
+    }
 
     @Test
     fun `every model or fallback decision is reported through the interpreter observer`() {

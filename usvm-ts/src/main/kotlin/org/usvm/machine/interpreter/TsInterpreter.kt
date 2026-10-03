@@ -151,6 +151,18 @@ class TsInterpreter(
                     }
                 }
             }
+        } catch (e: UnsupportedOperationException) {
+            if (throwExceptionOnStepFailure) {
+                throw e
+            }
+
+            val reason = e.message?.takeIf(String::isNotBlank) ?: "Unsupported TypeScript operation"
+            state.terminateAsUnsupported(reason)
+
+            return StepResult(
+                forkedStates = scope.stepResult().forkedStates,
+                originalStateAlive = true,
+            )
         } catch (e: Exception) {
             if (throwExceptionOnStepFailure) {
                 throw e
@@ -826,6 +838,7 @@ class TsInterpreter(
                 val length = state.memory.read(lengthLValue).asExpr(sizeSort)
                 state.pathConstraints += mkBvSignedGreaterOrEqualExpr(length, mkBv(0))
                 state.pathConstraints += mkBvSignedLessOrEqualExpr(length, mkBv(options.maxArraySize))
+                state.boundedStringBackingRefs += ref
             }
 
             val parameterSort = typeToSort(parameterType)

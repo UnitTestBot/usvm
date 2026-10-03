@@ -49,6 +49,8 @@ enum class TsAnalysisStopReason {
 data class TsAnalysisResult(
     val states: List<TsState>,
     val stopReason: TsAnalysisStopReason,
+    /** Reasons for satisfiable paths excluded by an explicit engine model bound. */
+    val unsupportedPaths: List<String>,
 )
 
 class TsMachine(
@@ -101,6 +103,7 @@ class TsMachine(
     )
     private val cfgStatistics = CfgStatisticsImpl(graph)
 
+    /** Returns supported states only. Call [analyzeWithOutcome] to inspect excluded unsupported paths. */
     fun analyze(
         methods: List<EtsMethod>,
         targets: List<TsTarget> = emptyList(),
@@ -154,6 +157,7 @@ class TsMachine(
 
         val observers = mutableListOf<UMachineObserver<TsState>>(coverageStatistics)
         observers.add(statesCollector)
+        val unsupportedPaths = mutableSetOf<String>()
 
         if (tsOptions.enableVisualization) {
             observers += TsStateVisualizer()
@@ -202,10 +206,25 @@ class TsMachine(
             )
         }
 
+        val supportedObserver = CompositeUMachineObserver(observers)
+        val outcomeObserver = object : UMachineObserver<TsState> by supportedObserver {
+            override fun onStateTerminated(state: TsState, stateReachable: Boolean) {
+                val unsupportedReason = state.unsupportedReason
+                if (unsupportedReason != null) {
+                    if (stateReachable) {
+                        unsupportedPaths += unsupportedReason
+                    }
+                    return
+                }
+
+                supportedObserver.onStateTerminated(state, stateReachable)
+            }
+        }
+
         run(
             interpreter,
             pathSelector,
-            observer = CompositeUMachineObserver(observers),
+            observer = outcomeObserver,
             isStateTerminated = { state -> state.callStack.isEmpty() },
             stopStrategy = stopStrategy
         )
@@ -216,7 +235,11 @@ class TsMachine(
             TsAnalysisStopReason.STOPPED
         }
 
-        return TsAnalysisResult(states = statesCollector.collectedStates, stopReason = stopReason)
+        return TsAnalysisResult(
+            states = statesCollector.collectedStates,
+            stopReason = stopReason,
+            unsupportedPaths = unsupportedPaths.toList(),
+        )
     }
 
     override fun close() {
