@@ -958,8 +958,8 @@ class TsExprResolver(
 
     private fun resolveInstanceofConstructor(checkValue: EtsEntity): EtsClassType? = with(ctx) {
         val constructor = resolve(checkValue) ?: return null
-        if (constructor.sort == fp64Sort || constructor.sort == boolSort) return throwInstanceofTypeError()
-        if (constructor == mkTsNullValue() || constructor == mkUndefinedValue()) return throwInstanceofTypeError()
+        if (constructor.sort == fp64Sort || constructor.sort == boolSort) return throwTypeError()
+        if (constructor == mkTsNullValue() || constructor == mkUndefinedValue()) return throwTypeError()
 
         if (constructor.sort != addressSort || constructor.isFakeObject()) {
             throw UnsupportedOperationException("Unresolved instanceof RHS callability is not modeled")
@@ -967,7 +967,7 @@ class TsExprResolver(
 
         val constructorRef = constructor as? UConcreteHeapRef
             ?: throw UnsupportedOperationException("Symbolic instanceof constructor identity is not modeled")
-        if (getStringConstantValue(constructorRef) != null) return throwInstanceofTypeError()
+        if (getStringConstantValue(constructorRef) != null) return throwTypeError()
 
         val signature = classConstructorSignature(constructorRef)
             ?: return resolveNonConstructorInstanceofRight(constructorRef)
@@ -994,7 +994,7 @@ class TsExprResolver(
             null
         }
         val objectType = (objectTypes as? TypesResult.SuccessfulTypesResult)?.types?.singleOrNull()
-        if (objectType == EtsStringType) return throwInstanceofTypeError()
+        if (objectType == EtsStringType) return throwTypeError()
 
         val objectClass = (objectType as? EtsClassType)?.let { type ->
             scene.projectClasses.singleOrNull { it.signature == type.signature }
@@ -1009,13 +1009,13 @@ class TsExprResolver(
             }
             val isFunction = scope.calcOnState { associatedFunction[ref] != null }
 
-            if (ordinaryObject && !hasComputedMember && !isFunction) return throwInstanceofTypeError()
+            if (ordinaryObject && !hasComputedMember && !isFunction) return throwTypeError()
         }
 
         throw UnsupportedOperationException("Unknown instanceof constructor value: $ref")
     }
 
-    private fun throwInstanceofTypeError(): Nothing? {
+    private fun throwTypeError(): Nothing? {
         scope.doWithState {
             val exception = memory.allocConcrete(TS_TYPE_ERROR_TYPE)
             methodResult = TsMethodResult.TsException(exception, TS_TYPE_ERROR_TYPE)
@@ -1181,6 +1181,8 @@ class TsExprResolver(
     // region OTHER
 
     override fun visit(expr: EtsNewExpr): UExpr<out USort>? = with(ctx) {
+        expr.constructorValue?.let { return@with constructRuntimeClass(it) }
+
         // Try to resolve the concrete type if possible.
         // Otherwise, create an object with UnclearRefType
         val resolvedType = if (expr.type.isResolved()) {
@@ -1204,6 +1206,45 @@ class TsExprResolver(
         }
 
         scope.calcOnState { memory.allocConcrete(resolvedType) }
+    }
+
+    private fun constructRuntimeClass(constructorValue: EtsValue): UExpr<out USort>? = with(ctx) {
+        val constructor = resolve(constructorValue) ?: return@with null
+        if (constructor.sort == fp64Sort || constructor.sort == boolSort) return@with throwTypeError()
+        if (constructor == mkTsNullValue() || constructor == mkUndefinedValue()) return@with throwTypeError()
+
+        if (constructor.sort != addressSort || constructor.isFakeObject()) {
+            throw UnsupportedOperationException("Unresolved new constructor callability is not modeled")
+        }
+
+        val constructorRef = constructor as? UConcreteHeapRef
+            ?: throw UnsupportedOperationException("Symbolic new constructor identity is not modeled")
+        if (getStringConstantValue(constructorRef) != null) return@with throwTypeError()
+
+        val signature = classConstructorSignature(constructorRef)
+            ?: return@with resolveNonConstructorNew(constructorRef)
+        val clazz = scene.projectClasses.singleOrNull { it.signature == signature }
+            ?: throw UnsupportedOperationException("Unknown new project class: $signature")
+
+        scope.calcOnState { memory.allocConcrete(clazz.type) }
+    }
+
+    private fun resolveNonConstructorNew(ref: UConcreteHeapRef): Nothing? = with(ctx) {
+        val objectTypes = if (isAllocatedConcreteHeapRef(ref)) {
+            scope.calcOnState { memory.typeStreamOf(ref).take(n = 2) }
+        } else {
+            null
+        }
+        val objectType = (objectTypes as? TypesResult.SuccessfulTypesResult)?.types?.singleOrNull()
+        val objectClass = (objectType as? EtsClassType)?.let { type ->
+            scene.projectClasses.singleOrNull { it.signature == type.signature }
+        }
+        val isOrdinaryInstance = objectClass?.category == EtsClassCategory.CLASS ||
+            objectClass?.category == EtsClassCategory.OBJECT
+        val isFunction = scope.calcOnState { associatedFunction[ref] != null }
+        if (isOrdinaryInstance && !isFunction) return@with throwTypeError()
+
+        throw UnsupportedOperationException("Unknown new constructor value: $ref")
     }
 
     override fun visit(expr: EtsNewArrayExpr): UExpr<out USort>? = with(ctx) {
