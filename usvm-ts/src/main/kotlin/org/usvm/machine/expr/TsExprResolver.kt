@@ -18,6 +18,7 @@ import org.jacodb.ets.model.EtsBitXorExpr
 import org.jacodb.ets.model.EtsBooleanConstant
 import org.jacodb.ets.model.EtsCastExpr
 import org.jacodb.ets.model.EtsCaughtExceptionRef
+import org.jacodb.ets.model.EtsClassCategory
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsClassValueRef
@@ -95,6 +96,7 @@ import org.usvm.api.typeStreamOf
 import org.usvm.dataflow.ts.infer.tryGetKnownType
 import org.usvm.dataflow.ts.util.type
 import org.usvm.isAllocatedConcreteHeapRef
+import org.usvm.machine.TS_TYPE_ERROR_TYPE
 import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsOptions
@@ -909,29 +911,7 @@ class TsExprResolver(
             expr.checkType as? EtsRefType
                 ?: return falseExpr
         } else {
-            val constructor = resolve(checkValue) ?: return null
-            if (constructor.sort != addressSort ||
-                constructor == mkTsNullValue() ||
-                constructor == mkUndefinedValue()
-            ) {
-                throw UnsupportedOperationException(
-                    "Non-callable instanceof RHS requires a TypeError object, which is not modeled"
-                )
-            }
-
-            val constructorRef = constructor as? UConcreteHeapRef
-                ?: throw UnsupportedOperationException("Symbolic instanceof constructor identity is not modeled")
-            val signature = classConstructorSignature(constructorRef)
-                ?: throw UnsupportedOperationException("Unknown instanceof constructor value: $constructorRef")
-            val clazz = scene.projectAndSdkClasses.singleOrNull { it.signature == signature }
-                ?: throw UnsupportedOperationException("Unknown instanceof class: $signature")
-            val hasComputedStaticMethod = hierarchy.getAncestors(clazz)
-                .any { ancestor -> ancestor.methods.any { it.name == "%computed" && it.modifiers.isStatic } }
-            if (hasComputedStaticMethod) {
-                throw UnsupportedOperationException("Custom Symbol.hasInstance may override instanceof for $signature")
-            }
-
-            EtsClassType(signature)
+            resolveInstanceofConstructor(checkValue) ?: return null
         }
 
         if (arg.sort != addressSort || arg == mkUndefinedValue() || arg == mkTsNullValue()) return falseExpr
@@ -974,6 +954,69 @@ class TsExprResolver(
         }
 
         scope.calcOnState { memory.types.evalIsSubtype(objectRef, EtsNominalType(checkType)) }
+    }
+
+    private fun resolveInstanceofConstructor(checkValue: EtsEntity): EtsClassType? = with(ctx) {
+        val constructor = resolve(checkValue) ?: return null
+        if (constructor.sort == fp64Sort || constructor.sort == boolSort) return throwInstanceofTypeError()
+        if (constructor == mkTsNullValue() || constructor == mkUndefinedValue()) return throwInstanceofTypeError()
+
+        if (constructor.sort != addressSort || constructor.isFakeObject()) {
+            throw UnsupportedOperationException("Unresolved instanceof RHS callability is not modeled")
+        }
+
+        val constructorRef = constructor as? UConcreteHeapRef
+            ?: throw UnsupportedOperationException("Symbolic instanceof constructor identity is not modeled")
+        if (getStringConstantValue(constructorRef) != null) return throwInstanceofTypeError()
+
+        val signature = classConstructorSignature(constructorRef)
+            ?: return resolveNonConstructorInstanceofRight(constructorRef)
+        val clazz = scene.projectAndSdkClasses.singleOrNull { it.signature == signature }
+            ?: throw UnsupportedOperationException("Unknown instanceof class: $signature")
+        val hasComputedStaticMethod = hierarchy.getAncestors(clazz)
+            .any { ancestor -> ancestor.methods.any { it.name == "%computed" && it.modifiers.isStatic } }
+        if (hasComputedStaticMethod) {
+            throw UnsupportedOperationException("Custom Symbol.hasInstance may override instanceof for $signature")
+        }
+
+        EtsClassType(signature)
+    }
+
+    private fun resolveNonConstructorInstanceofRight(ref: UConcreteHeapRef): Nothing? = with(ctx) {
+        val objectTypes = if (isAllocatedConcreteHeapRef(ref)) {
+            scope.calcOnState { memory.typeStreamOf(ref).take(n = 2) }
+        } else {
+            null
+        }
+        val objectType = (objectTypes as? TypesResult.SuccessfulTypesResult)?.types?.singleOrNull()
+        if (objectType == EtsStringType) return throwInstanceofTypeError()
+
+        val objectClass = (objectType as? EtsClassType)?.let { type ->
+            scene.projectClasses.singleOrNull { it.signature == type.signature }
+        }
+        if (objectClass != null) {
+            // Computed members may include Symbol.hasInstance, so their instances need a separate model.
+            val ordinaryObject = objectClass.category == EtsClassCategory.CLASS ||
+                objectClass.category == EtsClassCategory.OBJECT
+            val hasComputedMember = hierarchy.getAncestors(objectClass).any { ancestor ->
+                ancestor.methods.any { it.name == "%computed" || it.name == "Symbol.hasInstance" } ||
+                    ancestor.fields.any { it.name == "%computed" || it.name == "Symbol.hasInstance" }
+            }
+            val isFunction = scope.calcOnState { associatedFunction[ref] != null }
+
+            if (ordinaryObject && !hasComputedMember && !isFunction) return throwInstanceofTypeError()
+        }
+
+        throw UnsupportedOperationException("Unknown instanceof constructor value: $ref")
+    }
+
+    private fun throwInstanceofTypeError(): Nothing? {
+        scope.doWithState {
+            val exception = memory.allocConcrete(TS_TYPE_ERROR_TYPE)
+            methodResult = TsMethodResult.TsException(exception, TS_TYPE_ERROR_TYPE)
+        }
+
+        return null
     }
 
     // endregion

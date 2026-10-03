@@ -39,6 +39,7 @@ import org.usvm.collection.field.UFieldLValue
 import org.usvm.isAllocated
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isTrue
+import org.usvm.machine.TS_TYPE_ERROR_TYPE
 import org.usvm.machine.TsContext
 import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.expr.extractDouble
@@ -143,6 +144,15 @@ class TsTestResolver {
             try {
                 // Dispatch based on the exception type, similar to string const resolution
                 when (res.type) {
+                    TS_TYPE_ERROR_TYPE -> {
+                        val concreteRef = evaluateInModel(res.value) as? UConcreteHeapRef
+                        check(concreteRef != null && isAllocatedConcreteHeapRef(concreteRef))
+
+                        TsTestValue.TsException.ObjectException(
+                            TsTestValue.TsClass(name = "TypeError", properties = emptyMap())
+                        )
+                    }
+
                     is EtsStringType -> {
                         val concreteRef = evaluateInModel(res.value) as? UConcreteHeapRef
                         if (concreteRef != null && isAllocatedConcreteHeapRef(concreteRef)) {
