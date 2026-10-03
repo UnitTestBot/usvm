@@ -14,10 +14,8 @@ import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.TsTestResolver
+import org.usvm.util.assertNodeReplay
 import java.nio.file.Path
-import java.util.concurrent.TimeUnit
-import kotlin.io.path.readText
-import kotlin.io.path.writeText
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -94,7 +92,12 @@ class Exponentiation : TsMethodTestRunner() {
             appendLine("const actual = new Exponentiation().unmodeledConcreteFractional();")
             appendLine("if (!Object.is(actual, 0.1 ** 0.7)) throw Error('Node replay mismatch');")
         }
-        runNode("unmodeledConcreteFractional.ts", script)
+        assertNodeReplay(
+            source = script,
+            directory = directory,
+            name = "unmodeledConcreteFractional",
+            timeoutMessage = "Node replay timed out",
+        )
     }
 
     @Test
@@ -203,25 +206,12 @@ class Exponentiation : TsMethodTestRunner() {
             }
         }
 
-        runNode("$methodName.ts", script)
-    }
-
-    private fun runNode(scriptName: String, source: String) {
-        val script = directory.resolve(scriptName)
-        val output = directory.resolve("$scriptName.out")
-        script.writeText(source)
-
-        val process = ProcessBuilder("node", "--experimental-strip-types", script.toString())
-            .redirectErrorStream(true)
-            .redirectOutput(output.toFile())
-            .start()
-
-        try {
-            assertTrue(process.waitFor(10, TimeUnit.SECONDS), "Node replay timed out")
-            assertEquals(0, process.exitValue(), output.readText())
-        } finally {
-            if (process.isAlive) process.destroyForcibly()
-        }
+        assertNodeReplay(
+            source = script,
+            directory = directory,
+            name = methodName,
+            timeoutMessage = "Node replay timed out",
+        )
     }
 
     private fun jsNumber(value: Double): String = when {
