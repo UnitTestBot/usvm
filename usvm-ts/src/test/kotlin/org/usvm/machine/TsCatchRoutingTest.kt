@@ -12,6 +12,7 @@ import org.usvm.UMachineOptions
 import org.usvm.api.TsTest
 import org.usvm.api.TsTestValue
 import org.usvm.machine.state.TsMethodResult
+import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.TsTestResolver
 import org.usvm.util.assertNodeReplay
 import org.usvm.util.getResourcePath
@@ -22,13 +23,13 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.time.Duration
 
-class TsCatchRoutingTest {
+class TsCatchRoutingTest : TsMethodTestRunner() {
     @TempDir
     lateinit var directory: Path
 
     private val source = getResourcePath("/samples/lang/Exceptions.ts")
-    private val scene = EtsScene(listOf(loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)))
-    private val options = UMachineOptions(
+    override val scene = EtsScene(listOf(loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)))
+    private val analysisOptions = UMachineOptions(
         pathSelectionStrategies = listOf(PathSelectionStrategy.BFS),
         solverType = SolverType.YICES,
         solverTimeout = Duration.INFINITE,
@@ -40,6 +41,23 @@ class TsCatchRoutingTest {
 
     @Test
     fun `catch paths retain the thrown value and replay in Node`() {
+        val conditionalCatch = getMethod(methodName = "conditionalCatch", className = "Exceptions")
+        discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
+            method = conditionalCatch,
+            { input, result -> input.number == 0.0 && result.number == 2.0 },
+            { input, result -> input.number != 0.0 && result.number == 1.0 },
+            invariants = arrayOf({ input, result -> result.number == (if (input.number == 0.0) 2.0 else 1.0) }),
+        )
+
+        for (name in listOf("caughtValue", "nestedCatch", "catchesCall", "rethrowToOuter")) {
+            val method = getMethod(methodName = name, className = "Exceptions")
+            discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
+                method = method,
+                { input, result -> result.number == input.number + 1.0 },
+                invariants = arrayOf({ input, result -> result.number == input.number + 1.0 }),
+            )
+        }
+
         val tests = listOf("conditionalCatch", "caughtValue", "nestedCatch", "catchesCall", "rethrowToOuter")
             .associateWith(::analyze)
 
@@ -68,7 +86,7 @@ class TsCatchRoutingTest {
             .single { it.name == name }
         val result = TsMachine(
             scene = scene,
-            options = options,
+            options = analysisOptions,
             tsOptions = TsOptions(),
         ).use { machine ->
             machine.analyzeWithOutcome(methods = listOf(method))
