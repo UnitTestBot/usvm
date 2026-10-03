@@ -129,6 +129,42 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
     }
 
     @Test
+    fun `any receiver can contain an instance of the checked class`() {
+        val method = getMethod(methodName = "anyLeft", className = "RuntimeInstanceof")
+        val outcome = analyze("anyLeft")
+
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
+        assertTrue(outcome.unsupportedPaths.isEmpty(), "${outcome.unsupportedPaths}")
+        val cases = outcome.states.map { state ->
+            assertIs<TsMethodResult.Success>(state.methodResult)
+            val test = TsTestResolver().resolve(method, state)
+            val input = test.before.parameters.single()
+            val actual = assertIs<TsTestValue.TsNumber>(test.returnValue).number
+            input to actual
+        }
+        assertEquals(setOf(0.0, 1.0), cases.map { it.second }.toSet(), "$cases")
+
+        val generatedAssertions = cases.mapIndexed { index, (input, actual) ->
+            val argument = when (input) {
+                is TsTestValue.TsClass -> "new ${input.name}()"
+                is TsTestValue.TsBoolean -> input.value.toString()
+                is TsTestValue.TsNumber -> input.number.toString()
+                TsTestValue.TsNull -> "null"
+                TsTestValue.TsUndefined -> "undefined"
+                else -> error("Cannot replay generated instanceof input: $input")
+            }
+
+            "if (new RuntimeInstanceof().anyLeft($argument) !== ${actual.toInt()}) " +
+                "throw Error('generated instanceof case $index');"
+        }
+        replay(generatedAssertions + listOf(
+            "if (new RuntimeInstanceof().anyLeft(new InstanceA()) !== 1) throw Error('A instance');",
+            "if (new RuntimeInstanceof().anyLeft(new InstanceB()) !== 0) throw Error('B instance');",
+            "if (new RuntimeInstanceof().anyLeft(42) !== 0) throw Error('primitive');",
+        ))
+    }
+
+    @Test
     fun `subclass instance belongs to declared parent constructor`() {
         val method = getMethod(methodName = "inheritedConstructor", className = "RuntimeInstanceof")
         val outcome = analyze("inheritedConstructor")

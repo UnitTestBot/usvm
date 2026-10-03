@@ -51,6 +51,10 @@ class RuntimeInstanceof {
         return 42 instanceof InstanceA ? 1 : 0;
     }
 
+    anyLeft(value: any): number {
+        return value instanceof InstanceA ? 1 : 0;
+    }
+
     undefinedLeft(): number {
         const value: any = undefined;
         return value instanceof InstanceA ? 1 : 0;

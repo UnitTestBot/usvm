@@ -935,6 +935,21 @@ class TsExprResolver(
         }
 
         if (arg.sort != addressSort || arg == mkUndefinedValue() || arg == mkTsNullValue()) return falseExpr
+        if (arg.isFakeObject()) {
+            val fakeType = arg.getFakeType(scope)
+            val refValue = arg.extractRef(scope)
+            val isInstance = scope.calcOnState {
+                memory.types.evalIsSubtype(refValue, EtsNominalType(checkType))
+            }
+
+            return mkAnd(
+                fakeType.refTypeExpr,
+                mkHeapRefEq(refValue, mkTsNullValue()).not(),
+                mkHeapRefEq(refValue, mkUndefinedValue()).not(),
+                isInstance,
+            )
+        }
+
         val objectRef = arg.asExpr(addressSort)
         if (isAllocatedConcreteHeapRef(objectRef) && checkType is EtsClassType) {
             val objectTypes = scope.calcOnState { memory.typeStreamOf(objectRef).take(2) }
