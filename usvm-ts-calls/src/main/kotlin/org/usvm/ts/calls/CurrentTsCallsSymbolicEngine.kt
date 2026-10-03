@@ -149,19 +149,29 @@ internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
             MachineResult(
                 states = entryObserver.reachedStates,
                 stopReason = outcome.stopReason,
+                unsupportedPaths = outcome.unsupportedPaths,
             )
         }
         val states = analysis.states
         if (states.isEmpty()) {
             val status = when (analysis.stopReason) {
-                TsAnalysisStopReason.EXHAUSTED -> CallsSymbolicStatus.UNREACHED
+                TsAnalysisStopReason.EXHAUSTED -> {
+                    if (analysis.unsupportedPaths.isEmpty()) {
+                        CallsSymbolicStatus.UNREACHED
+                    } else {
+                        CallsSymbolicStatus.UNSUPPORTED
+                    }
+                }
                 // The machine options above disable every stop condition except the per-target timeout.
-                TsAnalysisStopReason.STOPPED -> CallsSymbolicStatus.TIMEOUT
+                TsAnalysisStopReason.STOPPED -> {
+                    CallsSymbolicStatus.TIMEOUT
+                }
             }
 
             return result(
                 status = status,
                 startedAt = startedAt,
+                diagnostic = analysis.unsupportedPaths.joinToString().ifEmpty { null },
             )
         }
 
@@ -284,6 +294,7 @@ internal class CurrentTsCallsSymbolicEngine : CallsSymbolicEngine {
     private data class MachineResult(
         val states: List<TsState>,
         val stopReason: TsAnalysisStopReason,
+        val unsupportedPaths: List<String>,
     )
 }
 
