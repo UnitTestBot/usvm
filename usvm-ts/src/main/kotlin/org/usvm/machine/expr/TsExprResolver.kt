@@ -90,10 +90,11 @@ import org.usvm.USort
 import org.usvm.api.allocateConcreteRef
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArrayLength
-import org.usvm.api.makeSymbolicPrimitive
+import org.usvm.api.typeStreamOf
 import org.usvm.dataflow.ts.infer.tryGetKnownType
 import org.usvm.dataflow.ts.util.type
 import org.usvm.isAllocatedConcreteHeapRef
+import org.usvm.isFalse
 import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsOptions
@@ -116,6 +117,7 @@ import org.usvm.machine.state.newStmt
 import org.usvm.machine.types.EtsNominalType
 import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.sizeSort
+import org.usvm.types.TypesResult
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.SymbolResolutionResult
 import org.usvm.util.arrayStorageType
@@ -900,19 +902,56 @@ class TsExprResolver(
 
     override fun visit(expr: EtsInExpr): UExpr<out USort>? = with(ctx) {
         val property = resolve(expr.left) ?: return null
-        val obj = resolve(expr.right)?.asExpr(addressSort) ?: return null
+        val resolvedObject = resolve(expr.right) ?: return null
+        if (resolvedObject.sort != addressSort) {
+            throw UnsupportedOperationException(
+                "The right operand of 'in' is not modeled as an object: $resolvedObject"
+            )
+        }
+        val obj = resolvedObject.asExpr(addressSort)
 
-        // Check for null/undefined access
         checkUndefinedOrNullPropertyRead(scope, obj, propertyName = "<in>") ?: return null
 
-        logger.warn {
-            "The 'in' operator is supported yet, the result may not be accurate"
+        if (expr.right is EtsLocal && expr.right.type is EtsArrayType) {
+            throw UnsupportedOperationException("The 'in' operator for arrays requires element presence semantics")
+        }
+        if (!isAllocatedConcreteHeapRef(obj)) {
+            throw UnsupportedOperationException(
+                "The 'in' operator for symbolic object references is not supported: $obj"
+            )
         }
 
-        // For now, just return a symbolic boolean (that can be true or false)
-        scope.calcOnState {
-            makeSymbolicPrimitive(boolSort)
+        val propertyName = concreteStringValue(property)
+            ?: throw UnsupportedOperationException("Symbolic property keys in 'in' are not supported: $property")
+
+        val objectTypes = scope.calcOnState { memory.typeStreamOf(obj).take(2) }
+        val objectType = (objectTypes as? TypesResult.SuccessfulTypesResult)?.types?.singleOrNull() as? EtsClassType
+            ?: throw UnsupportedOperationException("The 'in' operator requires an object literal: $obj")
+        val objectClass = hierarchy.classesForType(objectType).singleOrNull()
+            ?.takeIf { it.category == EtsClassCategory.OBJECT }
+            ?: throw UnsupportedOperationException("The 'in' operator requires an object literal: $objectType")
+
+        // EtsIR records { __proto__: value } and later writes as ordinary fields,
+        // though either can change the prototype and presence of inherited properties.
+        val prototypeWasAssigned = scope.calcOnState { (obj to "__proto__") in writtenConcreteFields }
+        if (objectClass.fields.any { it.name == "__proto__" } || prototypeWasAssigned) {
+            throw UnsupportedOperationException("Object literal prototype mutation in 'in' is not supported")
         }
+        if (propertyName == "__proto__") {
+            throw UnsupportedOperationException("Prototype lookup for '__proto__' in 'in' is not supported")
+        }
+
+        // The EtsIR object-literal class records its own properties, including those with undefined values.
+        val ownPropertyNames = objectClass.fields.map { it.name } + objectClass.methods.map { it.name }
+
+        val hasOwnProperty = propertyName in ownPropertyNames ||
+            scope.calcOnState { (obj to propertyName) in writtenConcreteFields }
+        val deleted = scope.calcOnState { memory.read(deletedFieldLValue(obj, propertyName)) }
+        if (propertyName in OBJECT_PROTOTYPE_PROPERTIES && (!hasOwnProperty || !deleted.isFalse)) {
+            throw UnsupportedOperationException("Prototype lookup for '$propertyName' in 'in' is not supported")
+        }
+
+        if (hasOwnProperty) mkNot(deleted) else mkFalse()
     }
 
     override fun visit(expr: EtsInstanceOfExpr): UExpr<out USort>? = with(ctx) {

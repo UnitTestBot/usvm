@@ -2,12 +2,15 @@ package org.usvm.machine.expr
 
 import io.ksmt.utils.asExpr
 import mu.KotlinLogging
+import org.jacodb.ets.model.EtsClassCategory
+import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsStaticFieldRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.api.typeStreamOf
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isFalse
 import org.usvm.isTrue
@@ -17,6 +20,7 @@ import org.usvm.machine.interpreter.ensureStaticsInitialized
 import org.usvm.machine.types.EtsAuxiliaryType
 import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.machine.types.mkFakeValue
+import org.usvm.types.TypesResult
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.TsResolutionResult
 import org.usvm.util.createFakeField
@@ -78,31 +82,68 @@ fun TsContext.readField(
     }
     if (deleted.isTrue) return mkUndefinedValue()
 
-    val sort = when (val etsField = resolveEtsField(instanceLocal, field, hierarchy)) {
-        is TsResolutionResult.Empty -> {
-            if (field.name !in listOf("i", "LogLevel")) {
-                logger.warn { "Field $field not found, creating fake field" }
+    val wasWritten = isAllocatedConcreteHeapRef(instance) &&
+        scope.calcOnState { (instance to field.name) in writtenConcreteFields }
+    val objectClass = if (isAllocatedConcreteHeapRef(instance)) {
+        val types = scope.calcOnState { memory.typeStreamOf(instance).take(n = 2) }
+        val type = (types as? TypesResult.SuccessfulTypesResult)?.types?.singleOrNull() as? EtsClassType
+        type?.let { hierarchy.classesForType(it).singleOrNull() }
+            ?.takeIf { it.category == EtsClassCategory.OBJECT }
+    } else {
+        null
+    }
+    if (isAllocatedConcreteHeapRef(instance) && !wasWritten) {
+        if (objectClass != null &&
+            objectClass.fields.none { it.name == field.name } &&
+            objectClass.methods.none { it.name == field.name }
+        ) {
+            val prototypeWasAssigned = scope.calcOnState { (instance to "__proto__") in writtenConcreteFields }
+            if (objectClass.fields.any { it.name == "__proto__" } ||
+                prototypeWasAssigned || field.name in OBJECT_PROTOTYPE_PROPERTIES
+            ) {
+                throw UnsupportedOperationException("Reading '${field.name}' requires unsupported prototype lookup")
             }
-            // If we didn't find any real fields, let's create a fake one.
-            // It is possible due to mistakes in the IR or if the field was added explicitly
-            // in the code.
-            // Probably, the right behaviour here is to fork the state.
-            instance.createFakeField(scope, field.name)
-            addressSort
+
+            // This object literal has neither an initial own field nor a later write.
+            return mkUndefinedValue()
         }
-
-        is TsResolutionResult.Unique -> typeToSort(etsField.property.type)
-
-        is TsResolutionResult.Ambiguous -> unresolvedSort
     }
 
-    scope.doWithState {
-        // If we accessed some field, we make an assumption that
-        // this field should present in the object.
-        // That's not true in the common case for TS, but that's the decision we made.
-        val auxiliaryType = EtsAuxiliaryType(properties = setOf(field.name))
-        // assert is required to update models
-        scope.assert(memory.types.evalIsSubtype(instance, auxiliaryType))
+    val writtenObjectLiteralSort = if (wasWritten) {
+        scope.calcOnState { writtenObjectLiteralFieldSorts[instance to field.name] }
+    } else {
+        null
+    }
+    val declaredObjectLiteralSort = objectClass?.fields
+        ?.singleOrNull { it.name == field.name }
+        ?.let { typeToSort(it.type) }
+    val sort = writtenObjectLiteralSort ?: declaredObjectLiteralSort
+        ?: when (val etsField = resolveEtsField(instanceLocal, field, hierarchy)) {
+            is TsResolutionResult.Empty -> {
+                if (field.name !in listOf("i", "LogLevel")) {
+                    logger.warn { "Field $field not found, creating fake field" }
+                }
+                // If we didn't find any real fields, let's create a fake one.
+                // It is possible due to mistakes in the IR or if the field was added explicitly
+                // in the code.
+                // Probably, the right behaviour here is to fork the state.
+                instance.createFakeField(scope, field.name)
+                addressSort
+            }
+
+            is TsResolutionResult.Unique -> typeToSort(etsField.property.type)
+
+            is TsResolutionResult.Ambiguous -> unresolvedSort
+        }
+
+    if (!wasWritten) {
+        scope.doWithState {
+            // A read of a field that has not been written still follows the
+            // existing structural type assumption.
+            val auxiliaryType = EtsAuxiliaryType(properties = setOf(field.name))
+            // assert is required to update models
+            scope.assert(memory.types.evalIsSubtype(instance, auxiliaryType))
+        }
     }
 
     // If the field type is known, we can read it directly.

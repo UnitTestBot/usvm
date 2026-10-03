@@ -88,6 +88,8 @@ class TsState(
      */
     var boundedStringBackingRefs: Set<UHeapRef> = emptySet(),
     var unsupportedReason: String? = null,
+    var writtenConcreteFields: Set<Pair<UHeapRef, String>> = emptySet(),
+    var writtenObjectLiteralFieldSorts: UPersistentHashMap<Pair<UHeapRef, String>, USort> = persistentHashMapOf(),
     private val activeUnknownCallModels: MutableList<Pair<String, Int>> = mutableListOf(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
     ctx = ctx,
@@ -124,6 +126,10 @@ class TsState(
         val localToSort = localToSortStack.last()
         val updated = localToSort.put(idx, sort, ownership)
         localToSortStack[localToSortStack.lastIndex] = updated
+    }
+
+    fun saveObjectLiteralFieldSort(ref: UHeapRef, fieldName: String, sort: USort) {
+        writtenObjectLiteralFieldSorts = writtenObjectLiteralFieldSorts.put(ref to fieldName, sort, ownership)
     }
 
     fun pushLocalToSortStack() {
@@ -325,6 +331,8 @@ class TsState(
             stringConstantAllocatedRefs = stringConstantAllocatedRefs,
             boundedStringBackingRefs = boundedStringBackingRefs,
             unsupportedReason = unsupportedReason,
+            writtenConcreteFields = writtenConcreteFields,
+            writtenObjectLiteralFieldSorts = writtenObjectLiteralFieldSorts,
             activeUnknownCallModels = activeUnknownCallModels.toMutableList(),
         )
     }
