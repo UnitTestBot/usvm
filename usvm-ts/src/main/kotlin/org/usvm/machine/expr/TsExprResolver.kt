@@ -133,6 +133,7 @@ import org.usvm.machine.state.newStmt
 import org.usvm.machine.types.EtsNominalType
 import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.sizeSort
+import org.usvm.types.TypesResult
 import org.usvm.types.singleOrNull
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.SymbolResolutionResult
@@ -1479,6 +1480,8 @@ class TsExprResolver(
     // region OTHER
 
     override fun visit(expr: EtsNewExpr): UExpr<out USort>? = with(ctx) {
+        expr.constructorValue?.let { return@with constructRuntimeClass(it) }
+
         // Try to resolve the concrete type if possible.
         // Otherwise, create an object with UnclearRefType
         val resolvedType = if (expr.type.isResolved()) {
@@ -1502,6 +1505,45 @@ class TsExprResolver(
         }
 
         scope.calcOnState { memory.allocConcrete(resolvedType) }
+    }
+
+    private fun constructRuntimeClass(constructorValue: EtsValue): UExpr<out USort>? = with(ctx) {
+        val constructor = resolve(constructorValue) ?: return@with null
+        if (constructor.sort == fp64Sort || constructor.sort == boolSort) return@with throwTypeError()
+        if (constructor == mkTsNullValue() || constructor == mkUndefinedValue()) return@with throwTypeError()
+
+        if (constructor.sort != addressSort || constructor.isFakeObject()) {
+            throw UnsupportedOperationException("Unresolved new constructor callability is not modeled")
+        }
+
+        val constructorRef = constructor as? UConcreteHeapRef
+            ?: throw UnsupportedOperationException("Symbolic new constructor identity is not modeled")
+        if (getStringConstantValue(constructorRef) != null) return@with throwTypeError()
+
+        val signature = classConstructorSignature(constructorRef)
+            ?: return@with resolveNonConstructorNew(constructorRef)
+        val clazz = scene.projectClasses.singleOrNull { it.signature == signature }
+            ?: throw UnsupportedOperationException("Unknown new project class: $signature")
+
+        scope.calcOnState { memory.allocConcrete(clazz.type) }
+    }
+
+    private fun resolveNonConstructorNew(ref: UConcreteHeapRef): Nothing? = with(ctx) {
+        val objectTypes = if (isAllocatedConcreteHeapRef(ref)) {
+            scope.calcOnState { memory.typeStreamOf(ref).take(n = 2) }
+        } else {
+            null
+        }
+        val objectType = (objectTypes as? TypesResult.SuccessfulTypesResult)?.types?.singleOrNull()
+        val objectClass = (objectType as? EtsClassType)?.let { type ->
+            scene.projectClasses.singleOrNull { it.signature == type.signature }
+        }
+        val isOrdinaryInstance = objectClass?.category == EtsClassCategory.CLASS ||
+            objectClass?.category == EtsClassCategory.OBJECT
+        val isFunction = scope.calcOnState { associatedFunction[ref] != null }
+        if (isOrdinaryInstance && !isFunction) return@with throwTypeError()
+
+        throw UnsupportedOperationException("Unknown new constructor value: $ref")
     }
 
     override fun visit(expr: EtsNewArrayExpr): UExpr<out USort>? = with(ctx) {
