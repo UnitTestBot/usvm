@@ -122,6 +122,29 @@ class InOperatorPresenceTest : TsMethodTestRunner() {
     }
 
     @Test
+    fun `block scoped top level write updates field presence`() {
+        val methodName = "readsBlockScopedResult"
+        val method = getMethod(methodName = methodName, className = "InOperator")
+        val options = machineOptions.copy(throwExceptionOnStepFailure = true)
+        val outcome = TsMachine(scene, options = options, tsOptions = TsOptions()).use { machine ->
+            machine.analyzeWithOutcome(methods = listOf(method))
+        }
+
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
+        assertTrue(outcome.unsupportedPaths.isEmpty(), "${outcome.unsupportedPaths}")
+        assertTrue(outcome.states.isNotEmpty(), "Expected the module initializer to complete")
+        val tests = outcome.states.map { state ->
+            assertIs<TsMethodResult.Success>(state.methodResult)
+            TsTestResolver().resolve(method, state)
+        }
+        tests.forEach { test ->
+            assertEquals(7.0, assertIs<TsTestValue.TsNumber>(test.returnValue).number)
+        }
+
+        replayNoArguments(methodName, expected = 7)
+    }
+
+    @Test
     fun `unmodeled keys arrays and prototypes have explicit unsupported outcomes`() {
         val methods = listOf(
             "hasSymbolicKey",
@@ -211,6 +234,21 @@ class InOperatorPresenceTest : TsMethodTestRunner() {
                 appendLine("if (new InOperator().$methodName($value) !== $value) throw Error('state $index');")
             }
         })
+
+        val process = ProcessBuilder("node", "--experimental-strip-types", script.toString())
+            .redirectErrorStream(true)
+            .redirectOutput(output.toFile())
+            .start()
+
+        assertTrue(process.waitFor(30, TimeUnit.SECONDS), "Node replay timed out: $methodName")
+        assertEquals(0, process.exitValue(), output.readText())
+    }
+
+    private fun replayNoArguments(methodName: String, expected: Int) {
+        val source = getResourcePath(tsPath).readText()
+        val script = directory.resolve("$methodName.ts")
+        val output = directory.resolve("$methodName.out")
+        script.writeText(source + "\nif (new InOperator().$methodName() !== $expected) throw Error('$methodName');\n")
 
         val process = ProcessBuilder("node", "--experimental-strip-types", script.toString())
             .redirectErrorStream(true)
