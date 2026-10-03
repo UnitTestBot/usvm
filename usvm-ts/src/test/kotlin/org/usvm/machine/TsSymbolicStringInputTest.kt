@@ -10,15 +10,17 @@ import org.usvm.SolverType
 import org.usvm.UMachineOptions
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsTestResolver
+import org.usvm.util.assertNodeReplay
 import org.usvm.util.getResourcePath
+import org.usvm.util.jsString
 import java.nio.file.Path
-import java.util.concurrent.TimeUnit
 import kotlin.io.path.readText
-import kotlin.io.path.writeText
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.time.Duration
+
+private const val REPLAY_FAILURE_CONTEXT_LIMIT = 1000
 
 class TsSymbolicStringInputTest {
     @TempDir
@@ -101,7 +103,13 @@ class TsSymbolicStringInputTest {
                 }
             }
         }
-        assertReplay(script, name = "basic-strings")
+        assertNodeReplay(
+            source = script,
+            directory = directory,
+            name = "basic-strings",
+            timeoutMessage = "basic-strings replay timed out",
+            failureContext = script.take(REPLAY_FAILURE_CONTEXT_LIMIT),
+        )
     }
 
     @Test
@@ -142,7 +150,13 @@ class TsSymbolicStringInputTest {
                 appendLine("}")
             }
         }
-        assertReplay(script, name = "array-isolation")
+        assertNodeReplay(
+            source = script,
+            directory = directory,
+            name = "array-isolation",
+            timeoutMessage = "array-isolation replay timed out",
+            failureContext = script.take(REPLAY_FAILURE_CONTEXT_LIMIT),
+        )
     }
 
     @Test
@@ -187,29 +201,12 @@ class TsSymbolicStringInputTest {
                 appendLine("}")
             }
         }
-        assertReplay(script, name = "string-bound")
+        assertNodeReplay(
+            source = script,
+            directory = directory,
+            name = "string-bound",
+            timeoutMessage = "string-bound replay timed out",
+            failureContext = script.take(REPLAY_FAILURE_CONTEXT_LIMIT),
+        )
     }
-
-    private fun assertReplay(script: String, name: String) {
-        val replay = directory.resolve("$name.ts")
-        val output = directory.resolve("$name.out")
-        replay.writeText(script)
-
-        val process = ProcessBuilder("node", "--experimental-strip-types", replay.toString())
-            .redirectErrorStream(true)
-            .redirectOutput(output.toFile())
-            .start()
-        try {
-            assertTrue(process.waitFor(10, TimeUnit.SECONDS), "$name replay timed out")
-            assertEquals(0, process.exitValue(), "${output.readText()}\n${script.take(1000)}")
-        } finally {
-            if (process.isAlive) process.destroyForcibly()
-        }
-    }
-
-    private fun jsString(value: String): String = value.map { "\\u%04x".format(it.code) }.joinToString(
-        separator = "",
-        prefix = "\"",
-        postfix = "\"",
-    )
 }
