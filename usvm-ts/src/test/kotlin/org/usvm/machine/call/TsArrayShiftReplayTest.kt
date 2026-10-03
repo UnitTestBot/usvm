@@ -14,9 +14,9 @@ import org.usvm.api.TsTestValue
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
 import org.usvm.util.TsTestResolver
+import org.usvm.util.assertNodeReplay
+import org.usvm.util.jsString
 import java.nio.file.Path
-import java.util.concurrent.TimeUnit
-import kotlin.io.path.readText
 import kotlin.io.path.writeText
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -64,7 +64,12 @@ class TsArrayShiftReplayTest {
                         appendLine("}")
                     }
                 }
-                assertReplay(script, index)
+                assertNodeReplay(
+                    source = script,
+                    directory = directory,
+                    name = "replay$index",
+                    timeoutMessage = "Replay timed out",
+                )
             }
         }
     }
@@ -434,29 +439,6 @@ class TsArrayShiftReplayTest {
             "${jsString(it.key)}: ${jsValue(it.value)}"
         }
         else -> error("Unsupported replay value: $value")
-    }
-
-    private fun jsString(value: String): String = value.map { "\\u%04x".format(it.code) }.joinToString(
-        separator = "",
-        prefix = "\"",
-        postfix = "\"",
-    )
-
-    private fun assertReplay(source: String, index: Int) {
-        val script = directory.resolve("replay$index.ts")
-        val output = directory.resolve("replay$index.out")
-        script.writeText(source)
-        val process = ProcessBuilder("node", "--experimental-strip-types", script.toString())
-            .redirectErrorStream(true)
-            .redirectOutput(output.toFile())
-            .start()
-
-        try {
-            assertTrue(process.waitFor(10, TimeUnit.SECONDS), "Replay timed out")
-            assertEquals(0, process.exitValue(), "${output.readText()}\n$source")
-        } finally {
-            if (process.isAlive) process.destroyForcibly()
-        }
     }
 
     private data class ReplayCase(

@@ -1,6 +1,5 @@
 package org.usvm.machine.state
 
-import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBlockCfg
 import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsFile
@@ -48,6 +47,7 @@ class TsState(
     ctx: TsContext,
     ownership: MutabilityOwnership,
     override val entrypoint: EtsMethod,
+    val maxStringLength: Int,
     callStack: UCallStack<EtsMethod, EtsStmt> = UCallStack(),
     pathConstraints: UPathConstraints<EtsType> = UPathConstraints(ctx, ownership),
     memory: UMemory<EtsType, EtsMethod> = UMemory(ctx, ownership, pathConstraints.typeConstraints),
@@ -254,20 +254,17 @@ class TsState(
             memory.types.allocate(ref.address, EtsStringType)
 
             // Initialize char array
-            val valueType = EtsArrayType(EtsNumberType, dimensions = 1)
-            val descriptor = ctx.arrayDescriptorOf(valueType)
-
-            val charArray = memory.allocConcrete(valueType.elementType)
+            val charArray = memory.allocConcrete(EtsNumberType)
             memory.initializeArray(
                 arrayHeapRef = charArray,
-                type = descriptor,
+                type = stringBackingArrayDescriptor,
                 sort = bv16Sort,
                 sizeSort = sizeSort,
                 contents = value.asSequence().map { mkBv(it.code, bv16Sort) },
             )
 
             // Write char array to `ref.value`
-            val valueLValue = mkFieldLValue(addressSort, ref, "value")
+            val valueLValue = mkFieldLValue(addressSort, ref, field = "value")
             memory.write(valueLValue, charArray, guard = trueExpr)
 
             ref
@@ -289,6 +286,7 @@ class TsState(
             ctx = ctx,
             ownership = cloneOwnership,
             entrypoint = entrypoint,
+            maxStringLength = maxStringLength,
             callStack = callStack.clone(),
             pathConstraints = clonedConstraints,
             memory = memory.clone(clonedConstraints.typeConstraints, newThisOwnership, cloneOwnership),

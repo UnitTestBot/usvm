@@ -1,5 +1,6 @@
 package org.usvm.util
 
+import io.ksmt.expr.KBitVec16Value
 import io.ksmt.expr.KFpValue
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsArrayType
@@ -54,6 +55,9 @@ import org.usvm.model.UModelBase
 import org.usvm.sizeSort
 import org.usvm.types.first
 
+/** A satisfying state lacks the modeled data needed to emit a concrete witness. */
+class TsUnsupportedWitnessException(message: String) : IllegalStateException(message)
+
 class TsTestResolver {
     private val resolvedLValuesToFakeObjects: MutableList<Pair<ULValue<*, *>, UConcreteHeapRef>> = mutableListOf()
 
@@ -63,8 +67,22 @@ class TsTestResolver {
 
         prepareForResolve(state)
 
-        val beforeMemoryScope = MemoryScope(this, model, memory, method, resolvedLValuesToFakeObjects)
-        val afterMemoryScope = MemoryScope(this, model, memory, method, resolvedLValuesToFakeObjects)
+        val beforeMemoryScope = MemoryScope(
+            this,
+            model,
+            memory,
+            method,
+            resolvedLValuesToFakeObjects,
+            state.maxStringLength
+        )
+        val afterMemoryScope = MemoryScope(
+            this,
+            model,
+            memory,
+            method,
+            resolvedLValuesToFakeObjects,
+            state.maxStringLength
+        )
 
         val result = when (val res = state.methodResult) {
             is TsMethodResult.NoCall -> {
@@ -158,7 +176,8 @@ class TsTestResolver {
         finalStateMemory: UReadOnlyMemory<EtsType>,
         method: EtsMethod,
         resolvedLValuesToFakeObjects: List<Pair<ULValue<*, *>, UConcreteHeapRef>>,
-    ) : TsTestStateResolver(ctx, model, finalStateMemory, method, resolvedLValuesToFakeObjects) {
+        maxStringLength: Int,
+    ) : TsTestStateResolver(ctx, model, finalStateMemory, method, resolvedLValuesToFakeObjects, maxStringLength) {
         fun resolveState(): TsParametersState {
             val thisInstance = resolveThisInstance()
             val parameters = resolveParameters()
@@ -174,6 +193,7 @@ open class TsTestStateResolver(
     private val finalStateMemory: UReadOnlyMemory<EtsType>,
     val method: EtsMethod,
     val resolvedLValuesToFakeObjects: List<Pair<ULValue<*, *>, UConcreteHeapRef>>,
+    val maxStringLength: Int,
 ) {
     fun resolveLValue(
         lValue: ULValue<*, *>,
@@ -250,11 +270,7 @@ open class TsTestStateResolver(
             }
 
             is EtsStringType -> {
-                if (isAllocatedConcreteHeapRef(concreteRef)) {
-                    resolveAllocatedString(concreteRef)
-                } else {
-                    TsTestValue.TsString("String construction is not yet implemented")
-                }
+                resolveString(heapRef, concreteRef)
             }
 
             else -> error("Unexpected type: $type")
@@ -306,13 +322,36 @@ open class TsTestStateResolver(
         return TsTestValue.TsArray(values)
     }
 
-    private fun resolveAllocatedString(
-        ref: UConcreteHeapRef,
-    ): TsTestValue.TsString {
-        val value = ctx.getStringConstantValue(ref) ?: run {
-            error("String constant not found for ref: $ref")
+    private fun resolveString(
+        heapRef: UHeapRef,
+        concreteRef: UConcreteHeapRef,
+    ): TsTestValue.TsString = with(ctx) {
+        getStringConstantValue(concreteRef)?.let { return TsTestValue.TsString(it) }
+
+        // Symbolic strings have no mutable value field in the final state. Resolve
+        // their backing array from the model in both before and after snapshots.
+        val allocated = isAllocatedConcreteHeapRef(concreteRef)
+        val stringMemory = if (allocated) finalStateMemory else model
+        val stringRef = if (allocated) heapRef else concreteRef
+        val valueLValue = mkFieldLValue(addressSort, stringRef, field = "value")
+        val charsRef = evaluateInModel(stringMemory.read(valueLValue)) as UConcreteHeapRef
+        if (charsRef.address == 0) {
+            throw TsUnsupportedWitnessException("Symbolic string is missing backing array: $concreteRef")
         }
-        return TsTestValue.TsString(value)
+
+        val lengthLValue = mkStringBackingLengthLValue(charsRef)
+        val length = evaluateInModel(stringMemory.read(lengthLValue)).extractInt()
+        require(length in 0..maxStringLength) { "Unsupported symbolic string length: $length" }
+
+        val value = buildString(length) {
+            repeat(length) { index ->
+                val elementLValue = mkStringBackingElementLValue(charsRef, mkSizeExpr(index))
+                val element = evaluateInModel(stringMemory.read(elementLValue)) as KBitVec16Value
+                append(element.shortValue.toInt().toChar())
+            }
+        }
+
+        TsTestValue.TsString(value)
     }
 
     fun resolveThisInstance(): TsTestValue {
@@ -396,7 +435,7 @@ open class TsTestStateResolver(
             is EtsLiteralType -> TODO()
             EtsNullType -> TODO()
             EtsNeverType -> TODO()
-            EtsStringType -> TsTestValue.TsString("String construction is not yet implemented")
+            EtsStringType -> error("String values must be resolved from heap references")
             EtsVoidType -> TODO()
             else -> error("Unexpected type: $type")
         }
