@@ -126,4 +126,19 @@ class SymbolicStringInput {
 
         return value.length === 1 ? 1 : 2;
     }
+
+    anyTruthy(value: any): number {
+        if (value) return 1;
+        return 0;
+    }
+
+    anyNegated(value: any): number {
+        if (!value) return 1;
+        return 0;
+    }
+
+    objectTruthy(value: { x: number }): number {
+        if (value) return 1;
+        return 0;
+    }
 }

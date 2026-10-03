@@ -13,6 +13,7 @@ import org.usvm.UIteExpr
 import org.usvm.USort
 import org.usvm.USymbolicHeapRef
 import org.usvm.api.allocateConcreteRef
+import org.usvm.api.evalTypeEquals
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.isFalse
 import org.usvm.isTrue
@@ -38,20 +39,24 @@ fun TsContext.checkNotFake(expr: UExpr<*>) {
 fun TsContext.mkTruthyExpr(
     expr: UExpr<out USort>,
     scope: TsStepScope,
-): UBoolExpr = scope.calcOnState {
+): UBoolExpr? = scope.calcOnState {
     // `any` is assignable both to and from string, so a type-relation query cannot identify
     // a materialized string. Inspect the concrete type stream before reading its backing array.
-    fun definitelyString(ref: UHeapRef): UBoolExpr = when (ref) {
+    fun stringTypeCondition(ref: UHeapRef): UBoolExpr = when (ref) {
         is UConcreteHeapRef, is USymbolicHeapRef -> {
             val type = memory.types.getTypeStream(ref).singleOrNull()
-            if (type is EtsStringType || type is EtsStringLiteralType) mkTrue() else mkFalse()
+            if (type is EtsStringType || type is EtsStringLiteralType) {
+                mkTrue()
+            } else {
+                memory.types.evalTypeEquals(ref, EtsStringType)
+            }
         }
 
         is UIteExpr<*> -> {
             val trueRef = ref.trueBranch.asExpr(addressSort)
             val falseRef = ref.falseBranch.asExpr(addressSort)
-            val trueIsString = definitelyString(trueRef)
-            val falseIsString = definitelyString(falseRef)
+            val trueIsString = stringTypeCondition(trueRef)
+            val falseIsString = stringTypeCondition(falseRef)
 
             mkIte(ref.condition, trueIsString, falseIsString)
         }
@@ -59,15 +64,43 @@ fun TsContext.mkTruthyExpr(
         else -> mkFalse()
     }
 
-    fun referenceTruthy(ref: UHeapRef): UBoolExpr {
+    fun hasStringBacking(ref: UHeapRef): UBoolExpr = when (ref) {
+        is UConcreteHeapRef -> {
+            if (getStringConstantValue(ref) != null || ref in boundedStringBackingRefs) mkTrue() else mkFalse()
+        }
+
+        is USymbolicHeapRef -> {
+            if (ref in boundedStringBackingRefs) mkTrue() else mkFalse()
+        }
+
+        is UIteExpr<*> -> {
+            val trueRef = ref.trueBranch.asExpr(addressSort)
+            val falseRef = ref.falseBranch.asExpr(addressSort)
+
+            mkIte(ref.condition, hasStringBacking(trueRef), hasStringBacking(falseRef))
+        }
+
+        else -> mkFalse()
+    }
+
+    fun referenceTruthy(ref: UHeapRef, activeGuard: UBoolExpr): UBoolExpr? {
         val nonNullish = mkAnd(
             mkHeapRefEq(ref, mkTsNullValue()).not(),
             mkHeapRefEq(ref, mkUndefinedValue()).not(),
         )
         if (nonNullish.isFalse) return mkFalse()
 
-        val isString = definitelyString(ref)
+        val isString = stringTypeCondition(ref)
         if (isString.isFalse) return nonNullish
+
+        val backedString = hasStringBacking(ref)
+        val unsupportedString = mkAnd(activeGuard, nonNullish, isString, mkNot(backedString))
+        if (!unsupportedString.isFalse) {
+            scope.fork(mkNot(unsupportedString), blockOnFalseState = {
+                terminateAsUnsupported(reason = "Truthiness needs a modeled string backing for dynamic references")
+            }) ?: return null
+        }
+        if (backedString.isFalse) return nonNullish
 
         val charsRef = memory.read(mkFieldLValue(addressSort, ref, field = "value"))
         val readableCharsRef = if (isString.isTrue) {
@@ -113,9 +146,11 @@ fun TsContext.mkTruthyExpr(
 
         if (!possibleType.refTypeExpr.isFalse) {
             val value = memory.read(getIntermediateRefLValue(expr.address))
+            val refTruthy = referenceTruthy(value, activeGuard = possibleType.refTypeExpr)
+                ?: return@calcOnState null
             conjuncts += ExprWithTypeConstraint(
                 constraint = possibleType.refTypeExpr,
-                expr = referenceTruthy(value)
+                expr = refTruthy
             )
         }
 
@@ -133,7 +168,7 @@ fun TsContext.mkTruthyExpr(
                 mkFpIsNaNExpr(expr.asExpr(fp64Sort)).not()
             )
 
-            addressSort -> referenceTruthy(expr.asExpr(addressSort))
+            addressSort -> referenceTruthy(expr.asExpr(addressSort), activeGuard = trueExpr)
 
             else -> TODO("Unsupported sort: ${expr.sort}")
         }
