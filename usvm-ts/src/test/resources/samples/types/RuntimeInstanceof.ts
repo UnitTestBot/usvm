@@ -6,6 +6,15 @@ class RuntimeInstanceof {
         return new InstanceA() instanceof ctor ? 1 : 0;
     }
 
+    constructorValue(): typeof InstanceA {
+        return InstanceA;
+    }
+
+    returnedConstructor(): number {
+        const ctor = this.constructorValue();
+        return new InstanceA() instanceof ctor && typeof ctor === "function" ? 1 : 0;
+    }
+
     directConstructor(): number {
         return new InstanceA() instanceof InstanceA ? 1 : 0;
     }
@@ -84,6 +93,40 @@ class RuntimeInstanceof {
         return new InstanceA() instanceof ctor;
     }
 
+    booleanRight(): boolean {
+        const ctor: any = true;
+        return new InstanceA() instanceof ctor;
+    }
+
+    stringRight(): boolean {
+        const ctor: any = "not a constructor";
+        return new InstanceA() instanceof ctor;
+    }
+
+    nullRight(): boolean {
+        const ctor: any = null;
+        return new InstanceA() instanceof ctor;
+    }
+
+    undefinedRight(): boolean {
+        const ctor: any = undefined;
+        return new InstanceA() instanceof ctor;
+    }
+
+    objectRight(): boolean {
+        const ctor: any = {};
+        return new InstanceA() instanceof ctor;
+    }
+
+    classInstanceRight(): boolean {
+        const ctor: any = new InstanceB();
+        return new InstanceA() instanceof ctor;
+    }
+
+    unresolvedRight(ctor: any): boolean {
+        return new InstanceA() instanceof ctor;
+    }
+
     customHasInstance(): boolean {
         return new InstanceCustom() instanceof InstanceCustom;
     }
@@ -95,7 +138,29 @@ class RuntimeInstanceof {
     constructorParameter(ctor: typeof InstanceA): boolean {
         return new InstanceA() instanceof ctor;
     }
+
+    constructorUnionParameter(ctor: typeof InstanceA | typeof InstanceB): boolean {
+        return typeof ctor === "function";
+    }
+
+    nullableConstructorParameter(ctor: typeof InstanceA | null): boolean {
+        return ctor === null || typeof ctor === "function";
+    }
+
+    constructorAliasParameter(ctor: InstanceConstructorAlias): boolean {
+        return typeof ctor === "function";
+    }
+
+    constructorIntersectionParameter(ctor: typeof InstanceA & { marker?: number }): boolean {
+        return typeof ctor === "function";
+    }
+
+    genericConstructorParameter<T extends typeof InstanceA>(ctor: T): boolean {
+        return typeof ctor === "function";
+    }
 }
+
+type InstanceConstructorAlias = typeof InstanceA | typeof InstanceB;
 
 class InstanceA {}
 class InstanceB {}

@@ -6,6 +6,7 @@ import org.junit.jupiter.api.io.TempDir
 import org.usvm.StateCollectionStrategy
 import org.usvm.UMachineOptions
 import org.usvm.api.TsTestValue
+import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.TsAnalysisStopReason
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
@@ -50,6 +51,25 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
         replay(cases.map { (input, actual) ->
             "if (new RuntimeInstanceof().dynamicConstructor($input) !== ${actual.toInt()}) throw Error('dynamic $input');"
         })
+    }
+
+    @Test
+    fun `returned class value keeps constructor identity`() {
+        val method = getMethod(methodName = "returnedConstructor", className = "RuntimeInstanceof")
+        val outcome = analyze("returnedConstructor")
+
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
+        assertTrue(outcome.unsupportedPaths.isEmpty(), "${outcome.unsupportedPaths}")
+        assertTrue(outcome.states.isNotEmpty())
+        outcome.states.forEach { state ->
+            assertIs<TsMethodResult.Success>(state.methodResult)
+            val test = TsTestResolver().resolve(method, state)
+            assertEquals(1.0, assertIs<TsTestValue.TsNumber>(test.returnValue).number)
+        }
+
+        replay(listOf(
+            "if (new RuntimeInstanceof().returnedConstructor() !== 1) throw Error('returned constructor');"
+        ))
     }
 
     @Test
@@ -219,14 +239,46 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
     }
 
     @Test
-    fun `non callable RHS and custom hasInstance are explicitly unsupported`() {
-        val nonCallable = analyze("nonCallableRight")
+    fun `non callable RHS throws a TypeError object`() {
+        val methods = listOf(
+            "nonCallableRight",
+            "booleanRight",
+            "stringRight",
+            "nullRight",
+            "undefinedRight",
+            "objectRight",
+            "classInstanceRight",
+        )
+
+        methods.forEach { methodName ->
+            val method = getMethod(methodName = methodName, className = "RuntimeInstanceof")
+            val outcome = analyze(methodName)
+
+            assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason, methodName)
+            assertTrue(outcome.unsupportedPaths.isEmpty(), "$methodName: ${outcome.unsupportedPaths}")
+            assertTrue(outcome.states.isNotEmpty(), methodName)
+            outcome.states.forEach { state ->
+                val exception = assertIs<TsMethodResult.TsException>(state.methodResult)
+                assertEquals("TypeError", exception.type.typeName)
+                assertTrue(isAllocatedConcreteHeapRef(exception.value))
+
+                val test = TsTestResolver().resolve(method, state)
+                val objectException = assertIs<TsTestValue.TsException.ObjectException>(test.returnValue)
+                assertEquals("TypeError", assertIs<TsTestValue.TsClass>(objectException.value).name)
+            }
+        }
+
+        replay(methods.map { methodName ->
+            "let caught$methodName = false; try { new RuntimeInstanceof().$methodName(); } " +
+                "catch (error) { caught$methodName = error instanceof TypeError; } " +
+                "if (!caught$methodName) throw Error('$methodName TypeError');"
+        })
+    }
+
+    @Test
+    fun `custom hasInstance is explicitly unsupported`() {
         val custom = analyze("customHasInstance")
         val inherited = analyze("inheritedHasInstance")
-
-        assertEquals(TsAnalysisStopReason.EXHAUSTED, nonCallable.stopReason)
-        assertTrue(nonCallable.states.isEmpty())
-        assertTrue(nonCallable.unsupportedPaths.any { "TypeError" in it }, "${nonCallable.unsupportedPaths}")
 
         assertEquals(TsAnalysisStopReason.EXHAUSTED, custom.stopReason)
         assertTrue(custom.states.isEmpty())
@@ -237,12 +289,26 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
         assertTrue(inherited.unsupportedPaths.any { "Symbol.hasInstance" in it }, "${inherited.unsupportedPaths}")
 
         replay(listOf(
-            "let typeError = false; try { new RuntimeInstanceof().nonCallableRight(); } " +
-                "catch (error) { typeError = error instanceof TypeError; } " +
-                "if (!typeError) throw Error('TypeError');",
             "if (new RuntimeInstanceof().customHasInstance() !== false) throw Error('custom hasInstance');",
             "if (new RuntimeInstanceof().inheritedHasInstance(new InstanceHasInstanceChild()) !== false) " +
                 "throw Error('inherited hasInstance');",
+        ))
+    }
+
+    @Test
+    fun `symbolic RHS stays explicitly unsupported until callability is modeled`() {
+        val outcome = analyze("unresolvedRight")
+
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
+        assertTrue(outcome.states.isEmpty())
+        assertTrue(outcome.unsupportedPaths.any { "Unresolved instanceof RHS callability" in it },
+            "${outcome.unsupportedPaths}")
+
+        replay(listOf(
+            "if (new RuntimeInstanceof().unresolvedRight(InstanceA) !== true) throw Error('callable RHS');",
+            "let threwTypeError = false; try { new RuntimeInstanceof().unresolvedRight(42); } " +
+                "catch (error) { threwTypeError = error instanceof TypeError; } " +
+                "if (!threwTypeError) throw Error('non-callable RHS');",
         ))
     }
 
@@ -258,6 +324,36 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
         replay(listOf(
             "if (new RuntimeInstanceof().constructorParameter(InstanceA) !== true) throw Error('A input');",
             "if (new RuntimeInstanceof().constructorParameter(InstanceB) !== false) throw Error('B input');",
+        ))
+    }
+
+    @Test
+    fun `constructor containing input types have explicit unsupported outcomes`() {
+        val methods = listOf(
+            "constructorUnionParameter",
+            "nullableConstructorParameter",
+            "constructorAliasParameter",
+            "constructorIntersectionParameter",
+            "genericConstructorParameter",
+        )
+
+        methods.forEach { methodName ->
+            val outcome = analyze(methodName)
+
+            assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason, methodName)
+            assertTrue(outcome.states.isEmpty(), "$methodName: ${outcome.states}")
+            assertTrue(outcome.unsupportedPaths.any { "Constructor-typed parameter" in it },
+                "$methodName: ${outcome.unsupportedPaths}")
+        }
+
+        replay(listOf(
+            "if (new RuntimeInstanceof().constructorUnionParameter(InstanceA) !== true) throw Error('union A');",
+            "if (new RuntimeInstanceof().constructorUnionParameter(InstanceB) !== true) throw Error('union B');",
+            "if (new RuntimeInstanceof().nullableConstructorParameter(null) !== true) throw Error('nullable null');",
+            "if (new RuntimeInstanceof().nullableConstructorParameter(InstanceA) !== true) throw Error('nullable A');",
+            "if (new RuntimeInstanceof().constructorAliasParameter(InstanceA) !== true) throw Error('alias');",
+            "if (new RuntimeInstanceof().constructorIntersectionParameter(InstanceA) !== true) throw Error('intersection');",
+            "if (new RuntimeInstanceof().genericConstructorParameter(InstanceA) !== true) throw Error('generic');",
         ))
     }
 
