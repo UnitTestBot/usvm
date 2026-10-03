@@ -124,6 +124,14 @@ class DeleteProperty : TsMethodTestRunner() {
     @Test
     fun `conditional delete preserves both read outcomes`() {
         val method = getMethod("readAfterConditionalDelete")
+
+        discoverProperties<TsTestValue.TsBoolean, TsTestValue.TsNumber>(
+            method = method,
+            { shouldDelete, result -> shouldDelete.value && (result eq 1) },
+            { shouldDelete, result -> !shouldDelete.value && (result eq 2) },
+            invariants = arrayOf({ shouldDelete, result -> result eq (if (shouldDelete.value) 1 else 2) }),
+        )
+
         val options = UMachineOptions(
             stateCollectionStrategy = StateCollectionStrategy.ALL,
             stopOnCoverage = 0,
