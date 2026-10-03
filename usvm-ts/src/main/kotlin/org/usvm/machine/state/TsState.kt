@@ -81,6 +81,13 @@ class TsState(
      * for identical string values.
      */
     var stringConstantAllocatedRefs: UPersistentHashMap<String, UConcreteHeapRef> = persistentHashMapOf(),
+    /**
+     * References whose string backing and length bound have been modeled.
+     * A new symbolic string producer must register its reference here after creating the backing model.
+     * String literals are recognized separately through [TsContext.getStringConstantValue].
+     */
+    var boundedStringBackingRefs: Set<UHeapRef> = emptySet(),
+    var unsupportedReason: String? = null,
     private val activeUnknownCallModels: MutableList<Pair<String, Int>> = mutableListOf(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
     ctx = ctx,
@@ -93,6 +100,14 @@ class TsState(
     forkPoints = forkPoints,
     targets = targets,
 ) {
+    /** Terminates a satisfiable path that the TypeScript model cannot execute soundly. */
+    fun terminateAsUnsupported(reason: String) {
+        require(reason.isNotBlank())
+
+        unsupportedReason = reason
+        while (callStack.isNotEmpty()) callStack.pop()
+    }
+
     fun getSortForLocal(idx: Int): USort? {
         val localToSort = localToSortStack.last()
         return localToSort[idx]
@@ -308,6 +323,8 @@ class TsState(
             dfltObject = dfltObject,
             dfltObjectFieldSorts = dfltObjectFieldSorts,
             stringConstantAllocatedRefs = stringConstantAllocatedRefs,
+            boundedStringBackingRefs = boundedStringBackingRefs,
+            unsupportedReason = unsupportedReason,
             activeUnknownCallModels = activeUnknownCallModels.toMutableList(),
         )
     }
