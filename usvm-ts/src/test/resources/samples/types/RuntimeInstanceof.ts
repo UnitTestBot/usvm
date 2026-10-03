@@ -55,6 +55,20 @@ class RuntimeInstanceof {
         return value instanceof InstanceA ? 1 : 0;
     }
 
+    constructorLeft(): number {
+        return InstanceA instanceof InstanceA ? 1 : 0;
+    }
+
+    constructorAliasLeft(useA: boolean): number {
+        const ctor = useA ? InstanceA : InstanceB;
+        return ctor instanceof InstanceA ? 1 : 0;
+    }
+
+    anyConstructorLeft(): number {
+        const value: any = InstanceA;
+        return value instanceof InstanceA ? 1 : 0;
+    }
+
     undefinedLeft(): number {
         const value: any = undefined;
         return value instanceof InstanceA ? 1 : 0;

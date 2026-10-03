@@ -935,6 +935,16 @@ class TsExprResolver(
         }
 
         if (arg.sort != addressSort || arg == mkUndefinedValue() || arg == mkTsNullValue()) return falseExpr
+        if (arg is UConcreteHeapRef && classConstructorSignature(arg) != null) {
+            if (checkType is EtsClassType && scene.projectClasses.any { it.signature == checkType.signature }) {
+                return falseExpr
+            }
+
+            throw UnsupportedOperationException(
+                "instanceof on a class constructor against an SDK or unknown class is not modeled"
+            )
+        }
+
         if (arg.isFakeObject()) {
             val fakeType = arg.getFakeType(scope)
             val refValue = arg.extractRef(scope)

@@ -165,6 +165,41 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
     }
 
     @Test
+    fun `class constructor values are not instances of project classes`() {
+        val methods = listOf("constructorLeft", "constructorAliasLeft", "anyConstructorLeft")
+
+        methods.forEach { methodName ->
+            val method = getMethod(methodName = methodName, className = "RuntimeInstanceof")
+            val outcome = analyze(methodName)
+
+            assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason, methodName)
+            assertTrue(outcome.unsupportedPaths.isEmpty(), "$methodName: ${outcome.unsupportedPaths}")
+            assertTrue(outcome.states.isNotEmpty(), methodName)
+
+            val tests = outcome.states.map { state ->
+                assertIs<TsMethodResult.Success>(state.methodResult, methodName)
+                val test = TsTestResolver().resolve(method, state)
+                assertEquals(0.0, assertIs<TsTestValue.TsNumber>(test.returnValue).number, methodName)
+                test
+            }
+
+            if (methodName == "constructorAliasLeft") {
+                val inputs = tests.map { test ->
+                    assertIs<TsTestValue.TsBoolean>(test.before.parameters.single()).value
+                }
+                assertEquals(setOf(false, true), inputs.toSet())
+            }
+        }
+
+        replay(listOf(
+            "if (new RuntimeInstanceof().constructorLeft() !== 0) throw Error('direct ctor LHS');",
+            "if (new RuntimeInstanceof().constructorAliasLeft(true) !== 0) throw Error('A ctor LHS');",
+            "if (new RuntimeInstanceof().constructorAliasLeft(false) !== 0) throw Error('B ctor LHS');",
+            "if (new RuntimeInstanceof().anyConstructorLeft() !== 0) throw Error('any ctor LHS');",
+        ))
+    }
+
+    @Test
     fun `subclass instance belongs to declared parent constructor`() {
         val method = getMethod(methodName = "inheritedConstructor", className = "RuntimeInstanceof")
         val outcome = analyze("inheritedConstructor")
