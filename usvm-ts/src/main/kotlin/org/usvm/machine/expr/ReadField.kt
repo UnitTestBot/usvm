@@ -102,12 +102,15 @@ private fun TsContext.resolveField(
         is TsResolutionResult.Ambiguous -> unresolvedSort
     }
 
-    val fieldExists = scope.calcOnState {
-        // We assume a field accessed by the program is present, even though TS permits absent fields.
-        val auxiliaryType = EtsAuxiliaryType(properties = setOf(field.name))
-        memory.types.evalIsSubtype(instance, auxiliaryType)
+    val wasWritten = isAllocatedConcreteHeapRef(instance) &&
+        scope.calcOnState { (instance to field.name) in writtenConcreteFields }
+    if (!wasWritten) {
+        val fieldExists = scope.calcOnState {
+            val auxiliaryType = EtsAuxiliaryType(properties = setOf(field.name))
+            memory.types.evalIsSubtype(instance, auxiliaryType)
+        }
+        scope.assert(fieldExists) ?: return null
     }
-    scope.assert(fieldExists) ?: return null
 
     val value = readField(scope, instance, field, sort)
     val materializedValue = if (resolvedField !is TsResolutionResult.Unique || sort is TsUnresolvedSort) {
