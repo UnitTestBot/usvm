@@ -71,6 +71,27 @@ class StringEquality {
         return 1;
     }
 
+    refinedStringValueFieldUnused(box: { value: any }): number {
+        const selected = box.value;
+        if (typeof selected !== "string") return 3;
+
+        return 1;
+    }
+
+    refinedStringValueFieldLength(box: { value: any }): number {
+        const selected = box.value;
+        if (typeof selected !== "string") return 3;
+
+        return selected.length === 1 ? 1 : 2;
+    }
+
+    equalsRefinedStringValueField(box: { value: any }, other: string): number {
+        const selected = box.value;
+        if (typeof selected !== "string") return 3;
+
+        return selected === other ? 1 : 2;
+    }
+
     refinedStringNullish(left: any): number {
         if (left === null) return 4;
         if (left === undefined) return 5;

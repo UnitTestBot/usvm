@@ -15,7 +15,7 @@ import org.usvm.api.typeStreamOf
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.solver.UUnsatResult
 import org.usvm.types.singleOrNull
-import org.usvm.util.mkFieldLValue
+import org.usvm.util.mkStringBackingLValue
 import org.usvm.util.mkStringBackingLengthLValue
 
 /** Recording a possible string adds no constraints or backing fields. */
@@ -32,7 +32,7 @@ internal fun TsState.trackSymbolicStringCandidate(ref: UHeapRef) {
 
 /** The same input reference and field are used for typed inputs and later type refinements. */
 internal fun TsState.symbolicStringBackingConstraint(ref: UHeapRef): UBoolExpr = with(ctx) {
-    val charsRef = memory.read(mkFieldLValue(addressSort, ref, field = "value"))
+    val charsRef = memory.read(mkStringBackingLValue(ref))
     val charsType = EtsArrayType(EtsNumberType, dimensions = 1)
     val length = memory.read(mkStringBackingLengthLValue(charsRef))
 

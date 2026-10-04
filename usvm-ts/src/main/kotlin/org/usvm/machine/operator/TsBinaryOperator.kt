@@ -24,8 +24,8 @@ import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.types.ExprWithTypeConstraint
 import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.util.boolToFp
-import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkStringBackingElementLValue
+import org.usvm.util.mkStringBackingLValue
 import org.usvm.util.mkStringBackingLengthLValue
 
 private val logger = KotlinLogging.logger {}
@@ -74,8 +74,8 @@ private fun TsContext.stringValueEquals(
     }
 
     val comparison = scope.calcOnState {
-        val lhsChars = memory.read(mkFieldLValue(addressSort, lhs, field = "value"))
-        val rhsChars = memory.read(mkFieldLValue(addressSort, rhs, field = "value"))
+        val lhsChars = memory.read(mkStringBackingLValue(lhs))
+        val rhsChars = memory.read(mkStringBackingLValue(rhs))
         val lhsLength = memory.read(mkStringBackingLengthLValue(lhsChars))
         val rhsLength = memory.read(mkStringBackingLengthLValue(rhsChars))
 

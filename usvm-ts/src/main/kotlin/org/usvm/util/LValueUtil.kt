@@ -6,6 +6,7 @@ import org.jacodb.ets.model.EtsField
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
+import org.usvm.UAddressSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
@@ -83,6 +84,12 @@ internal fun mkStringBackingLengthLValue(
 ): UArrayLengthLValue<EtsType, TsSizeSort> = with(ref.tctx) {
     UArrayLengthLValue(ref, stringBackingArrayDescriptor, sizeSort)
 }
+
+private object StringBackingField
+
+/** Internal string contents never share a field region with TypeScript properties. */
+internal fun mkStringBackingLValue(ref: UHeapRef): UFieldLValue<*, UAddressSort> =
+    UFieldLValue(ref.tctx.addressSort, ref, StringBackingField)
 
 internal fun mkStringBackingElementLValue(
     ref: UHeapRef,

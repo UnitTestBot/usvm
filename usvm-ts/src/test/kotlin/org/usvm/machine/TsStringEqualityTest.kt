@@ -249,6 +249,86 @@ class TsStringEqualityTest : TsMethodTestRunner() {
     }
 
     @Test
+    fun `refinement of a value field preserves both branches without unsupported paths`() {
+        val method = getMethod(methodName = "refinedStringValueFieldUnused", className = "StringEquality")
+        val defaultOptions = analysisOptions.copy(
+            stateCollectionStrategy = StateCollectionStrategy.ALL,
+            stopOnCoverage = 0,
+            throwExceptionOnStepFailure = false,
+        )
+
+        withOptions(options = defaultOptions) {
+            discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
+                method = method,
+                { box, result -> box.properties["value"] is TsTestValue.TsString && result.number == 1.0 },
+                { box, result -> box.properties["value"] !is TsTestValue.TsString && result.number == 3.0 },
+                invariants = arrayOf({ box, result ->
+                    val expected = if (box.properties["value"] is TsTestValue.TsString) 1.0 else 3.0
+
+                    result.number == expected
+                }),
+            )
+        }
+
+        val analysis = TsMachine(
+            scene,
+            options = defaultOptions,
+            tsOptions = TsOptions(maxArraySize = 4),
+        ).use { machine ->
+            machine.analyzeWithOutcome(listOf(method))
+        }
+
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, analysis.stopReason)
+        assertTrue(analysis.unsupportedPaths.isEmpty())
+    }
+
+    @Test
+    fun `refined value fields produce replayable length and equality witnesses`() {
+        val lengthMethod = getMethod(methodName = "refinedStringValueFieldLength", className = "StringEquality")
+        val lengthResult: (TsTestValue.TsClass) -> Double = { box ->
+            val selected = box.properties["value"]
+
+            if (selected is TsTestValue.TsString) {
+                if (selected.value.length == 1) 1.0 else 2.0
+            } else {
+                3.0
+            }
+        }
+
+        discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
+            method = lengthMethod,
+            { box, result -> result.number == 1.0 && lengthResult(box) == 1.0 },
+            { box, result -> result.number == 2.0 && lengthResult(box) == 2.0 },
+            { box, result -> result.number == 3.0 && lengthResult(box) == 3.0 },
+            invariants = arrayOf({ box, result -> result.number == lengthResult(box) }),
+        )
+
+        val equalityMethod = getMethod(methodName = "equalsRefinedStringValueField", className = "StringEquality")
+        val equalityResult: (TsTestValue.TsClass, TsTestValue.TsString) -> Double = { box, other ->
+            val selected = box.properties["value"]
+
+            if (selected is TsTestValue.TsString) {
+                if (selected.value == other.value) 1.0 else 2.0
+            } else {
+                3.0
+            }
+        }
+
+        discoverProperties<TsTestValue.TsClass, TsTestValue.TsString, TsTestValue.TsNumber>(
+            method = equalityMethod,
+            { box, other, result -> result.number == 1.0 && equalityResult(box, other) == 1.0 },
+            { box, other, result -> result.number == 2.0 && equalityResult(box, other) == 2.0 },
+            { box, other, result -> result.number == 3.0 && equalityResult(box, other) == 3.0 },
+            invariants = arrayOf({ box, other, result -> result.number == equalityResult(box, other) }),
+        )
+
+        val generated = listOf("refinedStringValueFieldLength", "equalsRefinedStringValueField")
+            .associateWith { name -> analyze(name) }
+
+        replayDynamic(generated)
+    }
+
+    @Test
     fun `two refined dynamic strings produce replayable equality witnesses`() {
         val method = scene.projectClasses.single { it.name == "StringEquality" }
             .methods
@@ -394,7 +474,9 @@ class TsStringEqualityTest : TsMethodTestRunner() {
         is TsTestValue.TsNumber -> value.number.toString()
         TsTestValue.TsNull -> "null"
         TsTestValue.TsUndefined -> "undefined"
-        is TsTestValue.TsClass -> "{}"
+        is TsTestValue.TsClass -> value.properties.entries.joinToString(prefix = "{", postfix = "}") { (name, field) ->
+            "${jsString(name)}: ${jsDynamic(field)}"
+        }
         is TsTestValue.TsArray<*> -> "[]"
         else -> error("Unexpected string alternative: $value")
     }

@@ -32,7 +32,7 @@ import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase
 import org.usvm.sizeSort
 import org.usvm.targets.UTargetsSet
-import org.usvm.util.mkFieldLValue
+import org.usvm.util.mkStringBackingLValue
 import org.usvm.util.type
 
 /**
@@ -280,9 +280,8 @@ class TsState(
                 contents = value.asSequence().map { mkBv(it.code, bv16Sort) },
             )
 
-            // Write char array to `ref.value`
-            val valueLValue = mkFieldLValue(addressSort, ref, field = "value")
-            memory.write(valueLValue, charArray, guard = trueExpr)
+            val backingLValue = mkStringBackingLValue(ref)
+            memory.write(backingLValue, charArray, guard = trueExpr)
 
             ref
         }
