@@ -17,27 +17,27 @@ sealed interface TsUnaryOperator {
     fun TsContext.resolveBool(
         arg: UBoolExpr,
         scope: TsStepScope,
-    ): UExpr<out USort>
+    ): UExpr<out USort>?
 
     fun TsContext.resolveFp(
         arg: UExpr<KFp64Sort>,
         scope: TsStepScope,
-    ): UExpr<out USort>
+    ): UExpr<out USort>?
 
     fun TsContext.resolveRef(
         arg: UExpr<UAddressSort>,
         scope: TsStepScope,
-    ): UExpr<out USort>
+    ): UExpr<out USort>?
 
     fun TsContext.resolveFake(
         arg: UConcreteHeapRef,
         scope: TsStepScope,
-    ): UExpr<out USort>
+    ): UExpr<out USort>?
 
     fun TsContext.resolve(
         arg: UExpr<out USort>,
         scope: TsStepScope,
-    ): UExpr<out USort> {
+    ): UExpr<out USort>? {
         if (arg.isFakeObject()) {
             return resolveFake(arg, scope)
         }
@@ -60,22 +60,25 @@ sealed interface TsUnaryOperator {
         override fun TsContext.resolveFp(
             arg: UExpr<KFp64Sort>,
             scope: TsStepScope,
-        ): UBoolExpr {
-            return mkNot(mkTruthyExpr(arg, scope))
+        ): UBoolExpr? {
+            val truthy = mkTruthyExpr(arg, scope) ?: return null
+            return mkNot(truthy)
         }
 
         override fun TsContext.resolveRef(
             arg: UExpr<UAddressSort>,
             scope: TsStepScope,
-        ): UBoolExpr {
-            return mkNot(mkTruthyExpr(arg, scope))
+        ): UBoolExpr? {
+            val truthy = mkTruthyExpr(arg, scope) ?: return null
+            return mkNot(truthy)
         }
 
         override fun TsContext.resolveFake(
             arg: UConcreteHeapRef,
             scope: TsStepScope,
-        ): UBoolExpr {
-            return mkNot(mkTruthyExpr(arg, scope))
+        ): UBoolExpr? {
+            val truthy = mkTruthyExpr(arg, scope) ?: return null
+            return mkNot(truthy)
         }
     }
 

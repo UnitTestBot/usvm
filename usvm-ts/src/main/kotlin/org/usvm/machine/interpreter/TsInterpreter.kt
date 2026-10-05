@@ -464,7 +464,7 @@ class TsInterpreter(
             expr.asExpr(ctx.boolSort)
         } else {
             ctx.mkTruthyExpr(expr, scope)
-        }
+        } ?: return
 
         observer?.onIfStatementWithResolvedCondition(simpleValueResolver, stmt, boolExpr, scope)
 

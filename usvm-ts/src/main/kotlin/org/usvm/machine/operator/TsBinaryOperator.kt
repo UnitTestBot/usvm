@@ -1098,7 +1098,7 @@ sealed interface TsBinaryOperator {
             lhs: UExpr<KFp64Sort>,
             rhs: UExpr<KFp64Sort>,
             scope: TsStepScope,
-        ): UExpr<*> {
+        ): UExpr<*>? {
             return internalResolve(lhs, rhs, scope)
         }
 
@@ -1106,7 +1106,7 @@ sealed interface TsBinaryOperator {
             lhs: UHeapRef,
             rhs: UHeapRef,
             scope: TsStepScope,
-        ): UExpr<*> {
+        ): UExpr<*>? {
             return internalResolve(lhs, rhs, scope)
         }
 
@@ -1114,11 +1114,11 @@ sealed interface TsBinaryOperator {
             lhs: UExpr<*>,
             rhs: UExpr<*>,
             scope: TsStepScope,
-        ): UExpr<*> {
+        ): UExpr<*>? {
             check(lhs.isFakeObject() || rhs.isFakeObject())
 
+            val lhsTruthyExpr = mkTruthyExpr(lhs, scope) ?: return null
             return scope.calcOnState {
-                val lhsTruthyExpr = mkTruthyExpr(lhs, scope)
                 iteWriteIntoFakeObject(scope, lhsTruthyExpr, rhs, lhs)
             }
         }
@@ -1127,10 +1127,10 @@ sealed interface TsBinaryOperator {
             lhs: UExpr<*>,
             rhs: UExpr<*>,
             scope: TsStepScope,
-        ): UExpr<*> {
+        ): UExpr<*>? {
             check(!lhs.isFakeObject() && !rhs.isFakeObject())
 
-            val lhsTruthyExpr = mkTruthyExpr(lhs, scope)
+            val lhsTruthyExpr = mkTruthyExpr(lhs, scope) ?: return null
             return scope.calcOnState {
                 iteWriteIntoFakeObject(scope, lhsTruthyExpr, rhs, lhs)
             }
@@ -1150,7 +1150,7 @@ sealed interface TsBinaryOperator {
             lhs: UExpr<KFp64Sort>,
             rhs: UExpr<KFp64Sort>,
             scope: TsStepScope,
-        ): UExpr<*> {
+        ): UExpr<*>? {
             return internalResolve(lhs, rhs, scope)
         }
 
@@ -1158,7 +1158,7 @@ sealed interface TsBinaryOperator {
             lhs: UHeapRef,
             rhs: UHeapRef,
             scope: TsStepScope,
-        ): UExpr<*> {
+        ): UExpr<*>? {
             return internalResolve(lhs, rhs, scope)
         }
 
@@ -1166,10 +1166,10 @@ sealed interface TsBinaryOperator {
             lhs: UExpr<*>,
             rhs: UExpr<*>,
             scope: TsStepScope,
-        ): UExpr<*> {
+        ): UExpr<*>? {
             check(lhs.isFakeObject() || rhs.isFakeObject())
 
-            val lhsTruthyExpr = mkTruthyExpr(lhs, scope)
+            val lhsTruthyExpr = mkTruthyExpr(lhs, scope) ?: return null
             return iteWriteIntoFakeObject(scope, lhsTruthyExpr, lhs, rhs)
         }
 
@@ -1177,10 +1177,10 @@ sealed interface TsBinaryOperator {
             lhs: UExpr<*>,
             rhs: UExpr<*>,
             scope: TsStepScope,
-        ): UExpr<*> {
+        ): UExpr<*>? {
             check(!lhs.isFakeObject() && !rhs.isFakeObject())
 
-            val lhsTruthyExpr = mkTruthyExpr(lhs, scope)
+            val lhsTruthyExpr = mkTruthyExpr(lhs, scope) ?: return null
             return iteWriteIntoFakeObject(scope, lhsTruthyExpr, lhs, rhs)
         }
     }
