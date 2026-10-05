@@ -32,7 +32,7 @@ import org.usvm.memory.UMemory
 import org.usvm.model.UModelBase
 import org.usvm.sizeSort
 import org.usvm.targets.UTargetsSet
-import org.usvm.util.mkFieldLValue
+import org.usvm.util.mkStringBackingLValue
 import org.usvm.util.type
 
 /**
@@ -81,6 +81,15 @@ class TsState(
      * for identical string values.
      */
     var stringConstantAllocatedRefs: UPersistentHashMap<String, UConcreteHeapRef> = persistentHashMapOf(),
+    /**
+     * References whose string backing and length bound have been modeled.
+     * A new symbolic string producer must register its reference here after creating the backing model.
+     * String literals are recognized separately through [TsContext.getStringConstantValue].
+     */
+    var boundedStringBackingRefs: Set<UHeapRef> = emptySet(),
+    /** Unresolved reference payloads that may acquire string backing after type refinement. */
+    var symbolicStringCandidates: Set<UHeapRef> = emptySet(),
+    var unsupportedReason: String? = null,
     private val activeUnknownCallModels: MutableList<Pair<String, Int>> = mutableListOf(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
     ctx = ctx,
@@ -93,6 +102,14 @@ class TsState(
     forkPoints = forkPoints,
     targets = targets,
 ) {
+    /** Terminates a satisfiable path that the TypeScript model cannot execute soundly. */
+    fun terminateAsUnsupported(reason: String) {
+        require(reason.isNotBlank())
+
+        unsupportedReason = reason
+        while (callStack.isNotEmpty()) callStack.pop()
+    }
+
     fun getSortForLocal(idx: Int): USort? {
         val localToSort = localToSortStack.last()
         return localToSort[idx]
@@ -263,9 +280,8 @@ class TsState(
                 contents = value.asSequence().map { mkBv(it.code, bv16Sort) },
             )
 
-            // Write char array to `ref.value`
-            val valueLValue = mkFieldLValue(addressSort, ref, field = "value")
-            memory.write(valueLValue, charArray, guard = trueExpr)
+            val backingLValue = mkStringBackingLValue(ref)
+            memory.write(backingLValue, charArray, guard = trueExpr)
 
             ref
         }
@@ -308,6 +324,9 @@ class TsState(
             dfltObject = dfltObject,
             dfltObjectFieldSorts = dfltObjectFieldSorts,
             stringConstantAllocatedRefs = stringConstantAllocatedRefs,
+            boundedStringBackingRefs = boundedStringBackingRefs,
+            symbolicStringCandidates = symbolicStringCandidates,
+            unsupportedReason = unsupportedReason,
             activeUnknownCallModels = activeUnknownCallModels.toMutableList(),
         )
     }

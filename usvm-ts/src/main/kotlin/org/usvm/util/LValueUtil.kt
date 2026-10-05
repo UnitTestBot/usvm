@@ -4,7 +4,9 @@ import io.ksmt.sort.KBv16Sort
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsField
 import org.jacodb.ets.model.EtsFieldSignature
+import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsType
+import org.usvm.UAddressSort
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
@@ -28,7 +30,7 @@ internal fun TsState.arrayStorageType(ref: UHeapRef, staticType: EtsType): EtsTy
     if (ref !is UConcreteHeapRef && ref !is USymbolicHeapRef) return staticType
 
     val memoryType = memory.typeStreamOf(ref).singleOrNull()
-    return if (memoryType is EtsArrayType || isAllocatedConcreteHeapRef(ref)) {
+    return if (memoryType is EtsArrayType || memoryType == EtsStringType || isAllocatedConcreteHeapRef(ref)) {
         memoryType ?: staticType
     } else {
         staticType
@@ -82,6 +84,12 @@ internal fun mkStringBackingLengthLValue(
 ): UArrayLengthLValue<EtsType, TsSizeSort> = with(ref.tctx) {
     UArrayLengthLValue(ref, stringBackingArrayDescriptor, sizeSort)
 }
+
+private object StringBackingField
+
+/** Internal string contents never share a field region with TypeScript properties. */
+internal fun mkStringBackingLValue(ref: UHeapRef): UFieldLValue<*, UAddressSort> =
+    UFieldLValue(ref.tctx.addressSort, ref, StringBackingField)
 
 internal fun mkStringBackingElementLValue(
     ref: UHeapRef,

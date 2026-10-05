@@ -69,7 +69,9 @@ import org.usvm.machine.state.lastStmt
 import org.usvm.machine.state.localsCount
 import org.usvm.machine.state.newStmt
 import org.usvm.machine.state.parametersWithThisCount
+import org.usvm.machine.state.prepareRefinedStringBackings
 import org.usvm.machine.state.returnValue
+import org.usvm.machine.state.symbolicStringBackingConstraint
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.machine.types.toAuxiliaryType
 import org.usvm.sizeSort
@@ -82,7 +84,6 @@ import org.usvm.util.mkArrayIndexLValue
 import org.usvm.util.mkArrayLengthLValue
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
-import org.usvm.util.mkStringBackingLengthLValue
 import org.usvm.util.resolveEtsMethods
 import org.usvm.util.type
 import org.usvm.utils.ensureSat
@@ -135,6 +136,8 @@ class TsInterpreter(
         //  if no call, visit
 
         try {
+            scope.prepareRefinedStringBackings() ?: return scope.stepResult()
+
             when (stmt) {
                 is TsVirtualMethodCallStmt -> visitVirtualMethodCall(scope, stmt)
                 is TsConcreteMethodCallStmt -> visitConcreteMethodCall(scope, stmt)
@@ -151,6 +154,18 @@ class TsInterpreter(
                     }
                 }
             }
+        } catch (e: UnsupportedOperationException) {
+            if (throwExceptionOnStepFailure) {
+                throw e
+            }
+
+            val reason = e.message?.takeIf(String::isNotBlank) ?: "Unsupported TypeScript operation"
+            state.terminateAsUnsupported(reason)
+
+            return StepResult(
+                forkedStates = scope.stepResult().forkedStates,
+                originalStateAlive = true,
+            )
         } catch (e: Exception) {
             if (throwExceptionOnStepFailure) {
                 throw e
@@ -814,18 +829,8 @@ class TsInterpreter(
 
                 state.pathConstraints += state.memory.types.evalTypeEquals(ref, EtsStringType)
 
-                // String constants store UTF-16 code units in their `value` array.
-                // Give symbolic inputs the same backing representation and bound its length.
-                val charsType = EtsArrayType(EtsNumberType, dimensions = 1)
-                val valueLValue = mkFieldLValue(addressSort, ref, field = "value")
-                val charsRef = state.memory.read(valueLValue).asExpr(addressSort)
-                state.pathConstraints += mkNot(mkHeapRefEq(charsRef, mkUndefinedValue()))
-                state.pathConstraints += state.memory.types.evalTypeEquals(charsRef, charsType)
-
-                val lengthLValue = mkStringBackingLengthLValue(charsRef)
-                val length = state.memory.read(lengthLValue).asExpr(sizeSort)
-                state.pathConstraints += mkBvSignedGreaterOrEqualExpr(length, mkBv(0))
-                state.pathConstraints += mkBvSignedLessOrEqualExpr(length, mkBv(options.maxArraySize))
+                state.pathConstraints += state.symbolicStringBackingConstraint(ref)
+                state.boundedStringBackingRefs += ref
             }
 
             val parameterSort = typeToSort(parameterType)

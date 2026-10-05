@@ -328,13 +328,13 @@ open class TsTestStateResolver(
     ): TsTestValue.TsString = with(ctx) {
         getStringConstantValue(concreteRef)?.let { return TsTestValue.TsString(it) }
 
-        // Symbolic strings have no mutable value field in the final state. Resolve
+        // Symbolic strings have no mutable backing field in the final state. Resolve
         // their backing array from the model in both before and after snapshots.
         val allocated = isAllocatedConcreteHeapRef(concreteRef)
         val stringMemory = if (allocated) finalStateMemory else model
         val stringRef = if (allocated) heapRef else concreteRef
-        val valueLValue = mkFieldLValue(addressSort, stringRef, field = "value")
-        val charsRef = evaluateInModel(stringMemory.read(valueLValue)) as UConcreteHeapRef
+        val backingLValue = mkStringBackingLValue(stringRef)
+        val charsRef = evaluateInModel(stringMemory.read(backingLValue)) as UConcreteHeapRef
         if (charsRef.address == 0) {
             throw TsUnsupportedWitnessException("Symbolic string is missing backing array: $concreteRef")
         }

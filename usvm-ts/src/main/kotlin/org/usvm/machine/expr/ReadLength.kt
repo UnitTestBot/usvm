@@ -17,7 +17,7 @@ import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.sizeSort
 import org.usvm.util.arrayStorageType
 import org.usvm.util.mkArrayLengthLValue
-import org.usvm.util.mkFieldLValue
+import org.usvm.util.mkStringBackingLValue
 import org.usvm.util.mkStringBackingLengthLValue
 
 // Handles reading the `length` property.
@@ -40,8 +40,7 @@ fun TsContext.readLengthProperty(
 
         is EtsStringType -> {
             val charsRef = scope.calcOnState {
-                val valueLValue = mkFieldLValue(addressSort, instance, field = "value")
-                memory.read(valueLValue)
+                memory.read(mkStringBackingLValue(instance))
             }
 
             return readArrayLength(
