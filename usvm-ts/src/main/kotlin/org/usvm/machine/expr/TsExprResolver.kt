@@ -65,9 +65,11 @@ import org.jacodb.ets.model.EtsStaticFieldRef
 import org.jacodb.ets.model.EtsStrictEqExpr
 import org.jacodb.ets.model.EtsStrictNotEqExpr
 import org.jacodb.ets.model.EtsStringConstant
+import org.jacodb.ets.model.EtsStringLiteralType
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsSubExpr
 import org.jacodb.ets.model.EtsThis
+import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsTypeOfExpr
 import org.jacodb.ets.model.EtsUnaryExpr
 import org.jacodb.ets.model.EtsUnaryPlusExpr
@@ -89,6 +91,7 @@ import org.usvm.api.allocateConcreteRef
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArrayLength
 import org.usvm.api.makeSymbolicPrimitive
+import org.usvm.api.memcpy
 import org.usvm.dataflow.ts.infer.tryGetKnownType
 import org.usvm.dataflow.ts.util.type
 import org.usvm.isAllocatedConcreteHeapRef
@@ -120,6 +123,8 @@ import org.usvm.util.SymbolResolutionResult
 import org.usvm.util.isResolved
 import org.usvm.util.mkFieldLValue
 import org.usvm.util.mkRegisterStackLValue
+import org.usvm.util.mkStringBackingLValue
+import org.usvm.util.mkStringBackingLengthLValue
 import org.usvm.util.resolveEtsMethods
 import org.usvm.util.resolveImportInfo
 
@@ -592,13 +597,90 @@ class TsExprResolver(
         if (expr.type == EtsStringType) {
             return resolveAfterResolved(expr.left, expr.right) { lhs, rhs ->
                 val lhsString = concreteStringValue(lhs)
-                    ?: error("Symbolic string concatenation is not supported for left operand: $lhs")
                 val rhsString = concreteStringValue(rhs)
-                    ?: error("Symbolic string concatenation is not supported for right operand: $rhs")
-                ctx.mkStringConstant(lhsString + rhsString, scope)
+                if (lhsString != null && rhsString != null) {
+                    return@resolveAfterResolved ctx.mkStringConstant(lhsString + rhsString, scope)
+                }
+
+                val left = stringOperand(lhs, expr.left.type)
+                val right = stringOperand(rhs, expr.right.type)
+
+                with(ctx) {
+                    val leftChars = scope.calcOnState {
+                        memory.read(mkStringBackingLValue(left))
+                    }
+                    val rightChars = scope.calcOnState {
+                        memory.read(mkStringBackingLValue(right))
+                    }
+                    val leftLength = scope.calcOnState {
+                        memory.read(mkStringBackingLengthLValue(leftChars))
+                    }
+                    val rightLength = scope.calcOnState {
+                        memory.read(mkStringBackingLengthLValue(rightChars))
+                    }
+                    val resultLength = mkBvAddExpr(leftLength, rightLength)
+
+                    val nonNegative = mkBvSignedGreaterOrEqualExpr(resultLength, mkBv(0))
+                    val withinMaximum = mkBvSignedLessOrEqualExpr(resultLength, mkBv(options.maxArraySize))
+                    val resultWithinBound = mkAnd(nonNegative, withinMaximum)
+                    scope.fork(resultWithinBound, blockOnFalseState = {
+                        terminateAsUnsupported(
+                            reason = "String concatenation result exceeds the configured length bound " +
+                                options.maxArraySize,
+                        )
+                    }) ?: return@resolveAfterResolved null
+
+                    scope.calcOnState {
+                        val result = memory.allocConcrete(EtsStringType)
+                        val resultChars = memory.allocConcrete(EtsArrayType(EtsNumberType, dimensions = 1))
+                        memory.write(
+                            mkStringBackingLValue(result),
+                            resultChars,
+                            guard = trueExpr,
+                        )
+                        memory.write(mkStringBackingLengthLValue(resultChars), resultLength, guard = trueExpr)
+                        boundedStringBackingRefs += result
+
+                        memory.memcpy(
+                            srcRef = leftChars,
+                            dstRef = resultChars,
+                            type = stringBackingArrayDescriptor,
+                            elementSort = bv16Sort,
+                            fromSrc = mkBv(0),
+                            fromDst = mkBv(0),
+                            length = leftLength,
+                        )
+                        memory.memcpy(
+                            srcRef = rightChars,
+                            dstRef = resultChars,
+                            type = stringBackingArrayDescriptor,
+                            elementSort = bv16Sort,
+                            fromSrc = mkBv(0),
+                            fromDst = leftLength,
+                            length = rightLength,
+                        )
+
+                        result
+                    }
+                }
             }
         }
         return resolveBinaryOperator(TsBinaryOperator.Add, expr)
+    }
+
+    private fun stringOperand(value: UExpr<*>, type: EtsType): UHeapRef = with(ctx) {
+        concreteStringValue(value)?.let { return mkStringConstant(it, scope) }
+
+        val isStringType = type is EtsStringType || type is EtsStringLiteralType
+        if (!isStringType || value.sort != addressSort || value.isFakeObject()) {
+            throw UnsupportedOperationException("Unsupported string concatenation operand: $type, $value")
+        }
+        val ref = value.asExpr(addressSort)
+        if (scope.calcOnState { ref !in boundedStringBackingRefs }) {
+            throw UnsupportedOperationException("String concatenation needs a modeled string backing for $ref")
+        }
+
+        ref
     }
 
     private fun concreteStringValue(value: UExpr<*>): String? = with(ctx) {
