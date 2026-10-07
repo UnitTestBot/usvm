@@ -16,7 +16,6 @@
 
 package org.usvm.dataflow.ifds
 
-import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
 interface Producer<T> {
@@ -87,7 +86,6 @@ class NonBlockingQueue<T> {
     var head: Node<T>? = null
         private set
     val tail: AtomicReference<Node<T>> = AtomicReference(head)
-    val size: AtomicInteger = AtomicInteger(0)
 
     fun add(element: T) {
         val node = Node(element)
@@ -101,7 +99,6 @@ class NonBlockingQueue<T> {
         } else {
             head = node
         }
-        size.incrementAndGet()
     }
 }
 
@@ -118,12 +115,12 @@ class ConcurrentProducer<T> : Producer<T> {
 
         events.add(event)
 
-        try {
-            for (consumer in currentConsumers) {
-                consumer.consume(event)
-            }
-        } finally {
-            check(consumers.compareAndSet(null, currentConsumers))
+        // Publication and subscription stay atomic; callbacks remain synchronous
+        // but may publish summaries or subscribe without holding this lock.
+        check(consumers.compareAndSet(null, currentConsumers))
+
+        for (consumer in currentConsumers) {
+            consumer.consume(event)
         }
     }
 
