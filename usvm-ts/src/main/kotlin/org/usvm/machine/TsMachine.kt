@@ -87,6 +87,7 @@ class TsMachine(
         scene = analysisScene,
         components = components,
         applicationAndSdkClasses = scene.projectAndSdkClasses,
+        dateNowMilliseconds = tsOptions.dateNowMilliseconds,
     )
     private val resolvedUnknownCallDispatcher = unknownCallDispatcher ?: TsModelUnknownCallDispatcher(
         models = requireNotNull(resolvedUnknownCallModels),

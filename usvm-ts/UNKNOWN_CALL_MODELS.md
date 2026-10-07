@@ -48,7 +48,7 @@ This is the only model-selection setting.
 | --- | --- |
 | `TsUnknownCallModelSelection.All` | Enable every built-in model. This is the default. |
 | `TsUnknownCallModelSelection.Only(emptySet())` | Disable every built-in model. |
-| `TsUnknownCallModelSelection.Only(setOf("id", ...))` | Enable exactly the listed built-in model IDs. |
+| `TsUnknownCallModelSelection.Only(setOf("id", ...))` | Enable the listed built-in model IDs and their declared dependencies. |
 
 Unknown IDs are rejected when the machine creates its immutable per-run catalog. The selected models are captured at that
 point, so later mutations of the selection set cannot change an active run.
@@ -251,7 +251,8 @@ Numeric-result and predicate methods can still use symbolic numeric positions ov
 
 The entry point must be static and have a non-empty body. After its input adapter handles optional arguments or drops
 non-semantic namespace receivers, its parameter count must equal the adapted input count. Unresolved required inputs
-or an arity mismatch make the model not applicable.
+or an arity mismatch make the model not applicable. An `inputAdapter` can resolve inputs directly from the raw call,
+including omitted optional arguments. It returns `null` if a required input cannot be resolved.
 
 The domain guard has three useful outcomes:
 
@@ -286,6 +287,23 @@ Array reads, writes, length access, and `shift` use the storage type known to sy
 Widening a local from `number[]` to `any[]` therefore keeps the same element and length regions.
 
 In contrast, `Array.pop` is expressed as the TypeScript body shown above.
+
+### Date experiment boundary
+
+The built-in Date family keeps Gregorian calendar arithmetic, component overflow, leap years, and TimeClip in
+`DateModels.ts`. Kotlin only routes calls, injects the experiment clock, and exposes the model's numeric timestamp
+slot on a Date receiver.
+
+The current experiment has these explicit limits:
+
+- local getters, setters, and numeric component constructors use UTC, so `getTimezoneOffset()` returns zero and DST
+  behavior is outside the model domain;
+- `Date.now()` and `new Date()` require `TsOptions.dateNowMilliseconds`; one fixed value is reused throughout the
+  analysis, and both calls use fallback when it is absent;
+- one-argument construction supports numeric timestamps only; string parsing and copying another Date are outside
+  the model domain;
+- symbolic string formatting is not claimed: `toISOString()` is a source implementation for supported concrete
+  execution, while symbolic string conversion remains subject to the engine's string limitations.
 
 Good intrinsic candidates include:
 
