@@ -84,7 +84,10 @@ private fun TsContext.stringValueEquals(
             rhsChars = rhsChars,
             lhsLength = lhsLength,
             rhsLength = rhsLength,
-            maxLength = maxStringLength,
+            maxLength = maxOf(
+                boundedStringBackingRefs[lhs] ?: maxStringLength,
+                boundedStringBackingRefs[rhs] ?: maxStringLength,
+            ),
         )
     }
 
@@ -117,7 +120,7 @@ private fun TsContext.stringValueEquals(
         boundedLengths,
     )
     scope.fork(supported, blockOnFalseState = {
-        terminateAsUnsupported(reason = "String equality requires symbolic string length in 0..$maxStringLength")
+        terminateAsUnsupported(reason = "String equality requires symbolic string length in 0..${comparison.maxLength}")
     }) ?: return null
 
     // Known literals supply a tighter comparison bound; all other string lengths are constrained above.

@@ -19,6 +19,11 @@ import org.usvm.machine.types.EtsFakeType
 import org.usvm.machine.types.ExprWithTypeConstraint
 import org.usvm.types.single
 import org.usvm.util.boolToFp
+import org.usvm.util.refOrStringTruthy
+
+private fun TsState.refTruthyExpr(ref: UHeapRef): UBoolExpr = with(ctx) {
+    refOrStringTruthy(ref)
+}
 
 fun TsContext.checkNotFake(expr: UExpr<*>) {
     require(!expr.isFakeObject()) {
@@ -63,10 +68,7 @@ fun TsContext.mkTruthyExpr(
             val value = memory.read(getIntermediateRefLValue(expr.address))
             conjuncts += ExprWithTypeConstraint(
                 constraint = possibleType.refTypeExpr,
-                expr = mkAnd(
-                    mkHeapRefEq(value, mkTsNullValue()).not(),
-                    mkHeapRefEq(value, mkUndefinedValue()).not(),
-                )
+                expr = refTruthyExpr(value),
             )
         }
 
@@ -89,10 +91,7 @@ fun TsContext.mkTruthyExpr(
                 mkFpIsNaNExpr(expr.asExpr(fp64Sort)).not()
             )
 
-            addressSort -> mkAnd(
-                mkHeapRefEq(expr.asExpr(addressSort), mkTsNullValue()).not(),
-                mkHeapRefEq(expr.asExpr(addressSort), mkUndefinedValue()).not(),
-            )
+            addressSort -> refTruthyExpr(expr.asExpr(addressSort))
 
             else -> TODO("Unsupported sort: ${expr.sort}")
         }

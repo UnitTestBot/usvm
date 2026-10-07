@@ -1,5 +1,6 @@
 package org.usvm.machine.state
 
+import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBlockCfg
 import org.jacodb.ets.model.EtsClass
 import org.jacodb.ets.model.EtsFile
@@ -29,6 +30,7 @@ import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.TsFunction
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemory
+import org.usvm.memory.UReadOnlyMemoryRegion
 import org.usvm.model.UModelBase
 import org.usvm.sizeSort
 import org.usvm.targets.UTargetsSet
@@ -82,14 +84,15 @@ class TsState(
      */
     var stringConstantAllocatedRefs: UPersistentHashMap<String, UConcreteHeapRef> = persistentHashMapOf(),
     /**
-     * References whose string backing and length bound have been modeled.
+     * Maps references with modeled string backing to their maximum length.
      * A new symbolic string producer must register its reference here after creating the backing model.
      * String literals are recognized separately through [TsContext.getStringConstantValue].
      */
-    var boundedStringBackingRefs: Set<UHeapRef> = emptySet(),
+    var boundedStringBackingRefs: Map<UHeapRef, Int> = emptyMap(),
     /** Unresolved reference payloads that may acquire string backing after type refinement. */
     var symbolicStringCandidates: Set<UHeapRef> = emptySet(),
     var unsupportedReason: String? = null,
+    internal val denseInputArrays: MutableMap<UConcreteHeapRef, TsDenseInputArray> = mutableMapOf(),
     private val activeUnknownCallModels: MutableList<Pair<String, Int>> = mutableListOf(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
     ctx = ctx,
@@ -286,6 +289,7 @@ class TsState(
             ref
         }
         stringConstantAllocatedRefs = updated
+        boundedStringBackingRefs += result to value.length
         result
     }
 
@@ -327,6 +331,7 @@ class TsState(
             boundedStringBackingRefs = boundedStringBackingRefs,
             symbolicStringCandidates = symbolicStringCandidates,
             unsupportedReason = unsupportedReason,
+            denseInputArrays = denseInputArrays.toMutableMap(),
             activeUnknownCallModels = activeUnknownCallModels.toMutableList(),
         )
     }
@@ -334,3 +339,10 @@ class TsState(
     override val isExceptional: Boolean
         get() = methodResult is TsMethodResult.TsException
 }
+
+/** Snapshot of the storage regions that establish dense input-array contents. */
+data class TsDenseInputArray(
+    val type: EtsArrayType,
+    val lengthRegion: UReadOnlyMemoryRegion<*, *>,
+    val elementRegion: UReadOnlyMemoryRegion<*, *>,
+)

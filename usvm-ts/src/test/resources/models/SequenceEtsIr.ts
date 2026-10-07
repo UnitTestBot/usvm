@@ -128,4 +128,99 @@ export class SequenceEtsIr {
             + "ababa".lastIndexOf("ba", 2) * 10
             + "ababa".lastIndexOf("", Infinity);
     }
+
+    stringSlicePreservesUtf16(): string {
+        return "A😀Z".slice(1, 3);
+    }
+
+    stringModelsUseValueEquality(): boolean {
+        const whole = "abc".slice(0);
+        const independent = "abc".slice(0);
+        const empty = "abc".slice(0, 0);
+
+        return whole === "abc"
+            && whole == "abc"
+            && whole === independent
+            && empty === ""
+            && empty === "x".slice(1)
+            && empty !== "a"
+            && whole + "d" === "abcd";
+    }
+
+    stringEqualityPreservesReferenceIdentity(): boolean {
+        const alias: number[] = [1];
+        return alias === alias && alias !== [1];
+    }
+
+    stringValueEqualityThroughAny(): boolean {
+        const whole: any = "abc".slice(0);
+        const empty: any = "abc".slice(0, 0);
+        return whole === "abc" && whole == "abc" && empty === "";
+    }
+
+    stringTruthinessUsesLength(): boolean {
+        const empty = "abc".slice(0, 0);
+        const nonEmpty = "abc".slice(0, 1);
+        return !empty && !"" && !!nonEmpty;
+    }
+
+    nonStringTruthinessDoesNotReadStringStorage(): boolean {
+        const object = { value: 1 };
+        const array: number[] = [];
+        return !undefined && !null && !!object && !!array;
+    }
+
+    mixedObjectEqualityDoesNotReadStringStorage(index: number): boolean {
+        if (index !== 0 && index !== 1) return true;
+        const dummy = "x";
+        const values: any[] = [{}, {}];
+        return values[index] !== "";
+    }
+
+    stringCapitalizeAscii(): string {
+        const value = "hELLO";
+        return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+    }
+
+    stringCapitalizeEmpty(): string {
+        const value = "";
+        return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+    }
+
+    stringCapitalizeNonAscii(): string {
+        const value = "éCOLE";
+        return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+    }
+
+    legacyArrayPush(): number {
+        return [1].push(2);
+    }
+
+    legacyArrayFill(): number[] {
+        return [1].fill(2);
+    }
+
+    legacyArrayUnshift(): number {
+        return [1].unshift(2);
+    }
+
+    legacyArrayJoin(): string {
+        return [1, 2].join("-");
+    }
+
+    legacyArraySlice(): number[] {
+        return [1, 2].slice(1);
+    }
+
+    legacyArrayConcat(): number[] {
+        return [1].concat([2]);
+    }
+
+    legacyArrayReverse(): number[] {
+        return [1, 2].reverse();
+    }
+
+    legacyArrayToString(): string {
+        return [1, 2].toString();
+    }
 }
