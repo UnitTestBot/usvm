@@ -7,8 +7,10 @@ import org.jacodb.ets.model.EtsExportInfo
 import org.jacodb.ets.model.EtsExportType
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsFunctionType
+import org.jacodb.ets.model.EtsLexicalEnvType
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsMethodParameter
 import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStaticFieldRef
@@ -49,7 +51,8 @@ internal class EtsEntryPointResolver(
         val hasAmbiguousResolution = hasAmbiguousCandidateResolution || hasAmbiguousSourceResolution
         val entryPointName = "${entryPoint.module}#${entryPoint.exportName}"
 
-        if (methods.any { method -> method.parameters.size != manifest.inputs.size }) {
+        val methodsWithBindings = methods.map { method -> method to method.bindingParameters() }
+        if (methodsWithBindings.any { (_, parameters) -> parameters.inputs.size != manifest.inputs.size }) {
             val diagnostic = EtsMappingDiagnostic(
                 code = PbtDiagnosticCode.MAPPING_ENTRY_POINT_BINDINGS_UNSUPPORTED,
                 message = "Property inputs do not match EtsIR parameters for ${entryPoint.exportName}",
@@ -63,10 +66,13 @@ internal class EtsEntryPointResolver(
             )
         }
 
-        val targets = methods.map { method ->
+        val targets = methodsWithBindings.map { (method, parameters) ->
             EtsEntryPointTarget(
                 method = method,
-                bindings = method.bindingsFor(manifest),
+                bindings = method.bindingsFor(
+                    manifest = manifest,
+                    parameters = parameters,
+                ),
             )
         }
 
@@ -231,16 +237,32 @@ internal class EtsEntryPointResolver(
         return modulePaths.any(filePaths::contains)
     }
 
-    private fun EtsMethod.bindingsFor(manifest: PropertyManifest): EtsEntryPointBindings {
+    private fun EtsMethod.bindingParameters(): EtsBindingParameters {
+        // The frontend lifts arrow-function captures into one leading lexical-environment parameter.
+        // It is not a source argument; the interpreter recognizes the same parameter by its semantic type.
+        val hiddenClosure = parameters.firstOrNull()?.takeIf { parameter ->
+            parameter.type is EtsLexicalEnvType
+        }
+
+        return EtsBindingParameters(
+            lexicalEnvironment = hiddenClosure,
+            inputs = if (hiddenClosure == null) parameters else parameters.drop(1),
+        )
+    }
+
+    private fun EtsMethod.bindingsFor(
+        manifest: PropertyManifest,
+        parameters: EtsBindingParameters,
+    ): EtsEntryPointBindings {
         val receiverType = EtsClassType(
             signature = signature.enclosingClass,
             typeParameters = requireNotNull(enclosingClass).typeParameters,
         )
-        val inputBindings = manifest.inputs.zip(parameters).mapIndexed { index, (input, parameter) ->
+        val inputBindings = manifest.inputs.zip(parameters.inputs).map { (input, parameter) ->
             EtsInputBinding(
                 propertyInputName = input.name,
                 parameter = parameter,
-                stackSlot = index + RECEIVER_STACK_SLOTS,
+                stackSlot = parameter.index + RECEIVER_STACK_SLOTS,
             )
         }
 
@@ -251,9 +273,20 @@ internal class EtsEntryPointResolver(
             ),
             inputs = inputBindings,
             result = EtsResultBinding(type = returnType),
+            lexicalEnvironment = parameters.lexicalEnvironment?.let { parameter ->
+                EtsLexicalEnvironmentBinding(
+                    parameter = parameter,
+                    stackSlot = parameter.index + RECEIVER_STACK_SLOTS,
+                )
+            },
         )
     }
 }
+
+private data class EtsBindingParameters(
+    val lexicalEnvironment: EtsMethodParameter?,
+    val inputs: List<EtsMethodParameter>,
+)
 
 private data class ExportResolutionStep(
     val file: EtsFile,
