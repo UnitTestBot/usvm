@@ -23,13 +23,28 @@ class TsUnknownCallModelCatalog(
             require(model.id.isNotBlank()) { "Semantic model ID must not be blank" }
             require(modelsById.put(model.id, model) == null) { "Duplicate semantic model ID: ${model.id}" }
         }
+        modelsById.values.forEach { model ->
+            val missingDependencies = model.requiredModelIds.subtract(modelsById.keys)
+            require(missingDependencies.isEmpty()) {
+                "Semantic model ${model.id} requires unknown model IDs: ${missingDependencies.sorted().joinToString()}"
+            }
+        }
 
         selectedModels = when (selection) {
             TsUnknownCallModelSelection.All -> modelsById.values
             is TsUnknownCallModelSelection.Only -> {
                 val unknownIds = selection.ids.subtract(modelsById.keys)
                 require(unknownIds.isEmpty()) { "Unknown semantic model IDs: ${unknownIds.sorted().joinToString()}" }
-                selection.ids.map(modelsById::getValue)
+                val expandedIds = linkedSetOf<String>()
+                fun addWithDependencies(id: String) {
+                    if (!expandedIds.add(id)) {
+                        return
+                    }
+
+                    modelsById.getValue(id).requiredModelIds.sorted().forEach(::addWithDependencies)
+                }
+                selection.ids.sorted().forEach(::addWithDependencies)
+                expandedIds.map(modelsById::getValue)
             }
         }.sortedBy(TsUnknownCallModel::id)
 
