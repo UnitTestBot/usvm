@@ -112,15 +112,15 @@ class TsEtsIrUnknownCallModel(
     val artifact: TsEtsIrUnknownCallModelArtifact,
     val domainGuard: TsEtsIrUnknownCallModelDomainGuard = TsEtsIrUnknownCallModelDomainGuard.ALWAYS,
     val inputAdapter: TsEtsIrUnknownCallModelInputAdapter = TsEtsIrUnknownCallModelInputAdapter.IDENTITY,
+    requiredModelIds: Set<String> = emptySet(),
 ) : TsUnknownCallModel, TsMachineLocalUnknownCallModel {
     override val additionalSceneFiles: List<EtsFile> = listOf(artifact.file)
+    override val requiredModelIds: Set<String> = requiredModelIds.toSet()
 
     override fun apply(state: TsState, call: TsUnknownCall): TsUnknownCallModelExecution? {
-        val resolvedInputs = call.resolvedInputs() ?: return null
         val inputs = inputAdapter.adapt(
             state = state,
             call = call,
-            resolvedInputs = resolvedInputs,
         ) ?: return null
         if (inputs.size != artifact.entryPoint.parameters.size) {
             return null
@@ -161,6 +161,7 @@ class TsEtsIrUnknownCallModel(
             artifact = materializedArtifact,
             domainGuard = domainGuard,
             inputAdapter = inputAdapter,
+            requiredModelIds = requiredModelIds,
         )
     }
 }
@@ -170,11 +171,10 @@ fun interface TsEtsIrUnknownCallModelInputAdapter {
     fun adapt(
         state: TsState,
         call: TsUnknownCall,
-        resolvedInputs: List<UExpr<*>>,
     ): List<UExpr<*>>?
 
     companion object {
-        val IDENTITY = TsEtsIrUnknownCallModelInputAdapter { _, _, resolvedInputs -> resolvedInputs }
+        val IDENTITY = TsEtsIrUnknownCallModelInputAdapter { _, call -> call.resolvedInputs() }
     }
 }
 
