@@ -165,7 +165,8 @@ private fun TsContext.resolveDeclaredField(
         (resolvedField as? TsResolutionResult.Unique)?.property?.type
     }
 
-    if (!wasWritten) {
+    val requiresDeclaredPresence = !wasWritten && !field.isDateModelTimestamp()
+    if (requiresDeclaredPresence) {
         val fieldExists = scope.calcOnState {
             memory.types.evalIsSubtype(instance, EtsAuxiliaryType(properties = setOf(field.name)))
         }
@@ -445,3 +446,6 @@ private val NATIVE_TYPED_ARRAY_NAMES = setOf(
     "Int8Array", "Uint8Array", "Uint8ClampedArray", "Int16Array", "Uint16Array",
     "Int32Array", "Uint32Array", "Float32Array", "Float64Array", "BigInt64Array", "BigUint64Array",
 )
+
+private fun EtsFieldSignature.isDateModelTimestamp(): Boolean =
+    enclosingClass.name == "DateValue" && enclosingClass.file.fileName == "DateModels.ts" && name == "timestamp"

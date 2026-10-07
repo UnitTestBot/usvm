@@ -184,7 +184,8 @@ fun TsContext.assignToInstanceField(
 
     // An object literal can acquire a new own property after creation. Requiring its
     // allocation type to declare the field would reject that valid JavaScript write.
-    if (objectLiteralClass == null) {
+    val requiresDeclaredPresence = objectLiteralClass == null && !field.isDateModelTimestamp()
+    if (requiresDeclaredPresence) {
         val fieldExists = scope.calcOnState {
             val supertype = EtsAuxiliaryType(properties = setOf(field.name))
             memory.types.evalIsSubtype(unwrappedInstance, supertype)
@@ -313,3 +314,6 @@ fun TsContext.assignToStaticField(
         }
     }
 }
+
+private fun EtsFieldSignature.isDateModelTimestamp(): Boolean =
+    enclosingClass.name == "DateValue" && enclosingClass.file.fileName == "DateModels.ts" && name == "timestamp"
