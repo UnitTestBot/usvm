@@ -17,8 +17,7 @@ import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.sizeSort
 import org.usvm.util.arrayStorageType
 import org.usvm.util.mkArrayLengthLValue
-import org.usvm.util.mkStringBackingLValue
-import org.usvm.util.mkStringBackingLengthLValue
+import org.usvm.util.stringLength
 
 // Handles reading the `length` property.
 fun TsContext.readLengthProperty(
@@ -29,6 +28,19 @@ fun TsContext.readLengthProperty(
 ): UExpr<*>? {
     // Determine the array type.
     val storageType = scope.calcOnState { arrayStorageType(instance, instanceLocal.type) }
+    if (storageType is EtsStringType) {
+        val length = scope.calcOnState { stringLength(instance) }
+        val lengthBound = scope.calcOnState { boundedStringBackingRefs[instance] ?: maxArraySize }
+        ensureLengthBounds(scope, length, lengthBound) ?: return null
+
+        return mkBvToFpExpr(
+            sort = fp64Sort,
+            roundingMode = fpRoundingModeSortDefaultValue(),
+            value = length.asExpr(sizeSort),
+            signed = true,
+        )
+    }
+
     val arrayType: EtsArrayType = when (val type = storageType) {
         is EtsArrayType -> type
 
@@ -36,18 +48,6 @@ fun TsContext.readLengthProperty(
             // If the type is not an array, and explicitly unknown,
             // we represent it is an array with unknown element type.
             EtsArrayType(EtsUnknownType, dimensions = 1)
-        }
-
-        is EtsStringType -> {
-            val charsRef = scope.calcOnState {
-                memory.read(mkStringBackingLValue(instance))
-            }
-
-            return readArrayLength(
-                scope = scope,
-                lengthLValue = mkStringBackingLengthLValue(charsRef),
-                maxArraySize = maxArraySize,
-            )
         }
 
         else -> error("Expected EtsArrayType, EtsAnyType or EtsUnknownType, but got: $type")

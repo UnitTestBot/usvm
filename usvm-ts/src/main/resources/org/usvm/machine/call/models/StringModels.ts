@@ -2,6 +2,7 @@ declare class StringModelPrimitives {
     static length(receiver: string): number;
     static codeUnitAt(receiver: string, index: number): number;
     static fromCodeUnit(codeUnit: number): string;
+    static copyRange(receiver: string, start: number, end: number): string;
 }
 
 export class StringModels {
@@ -58,6 +59,43 @@ export class StringModels {
         }
 
         return StringModelPrimitives.codeUnitAt(receiver, integerIndex);
+    }
+
+    static slice(receiver: string, start: number, end: number): string {
+        const length = StringModelPrimitives.length(receiver);
+        const from = StringModels.normalizeSliceIndex(start, length);
+        const to = StringModels.normalizeSliceIndex(end, length);
+        return StringModelPrimitives.copyRange(receiver, from, to < from ? from : to);
+    }
+
+    static toUpperCase(receiver: string): string {
+        const length = StringModelPrimitives.length(receiver);
+        let result = "";
+        let index = 0;
+        while (index < length) {
+            let codeUnit = StringModelPrimitives.codeUnitAt(receiver, index);
+            if (codeUnit >= 0x61 && codeUnit <= 0x7a) {
+                codeUnit -= 0x20;
+            }
+            result += StringModelPrimitives.fromCodeUnit(codeUnit);
+            index++;
+        }
+        return result;
+    }
+
+    static toLowerCase(receiver: string): string {
+        const length = StringModelPrimitives.length(receiver);
+        let result = "";
+        let index = 0;
+        while (index < length) {
+            let codeUnit = StringModelPrimitives.codeUnitAt(receiver, index);
+            if (codeUnit >= 0x41 && codeUnit <= 0x5a) {
+                codeUnit += 0x20;
+            }
+            result += StringModelPrimitives.fromCodeUnit(codeUnit);
+            index++;
+        }
+        return result;
     }
 
     static startsWith(receiver: string, searchString: string, position: number): boolean {
@@ -177,5 +215,23 @@ export class StringModels {
         }
 
         return Math.floor(value);
+    }
+
+    private static normalizeSliceIndex(value: number, length: number): number {
+        if (value !== value) {
+            return 0;
+        }
+        if (value === Infinity) {
+            return length;
+        }
+        if (value === -Infinity) {
+            return 0;
+        }
+
+        const integer = value < 0 ? -Math.floor(-value) : Math.floor(value);
+        if (integer < 0) {
+            return integer + length < 0 ? 0 : integer + length;
+        }
+        return integer > length ? length : integer;
     }
 }

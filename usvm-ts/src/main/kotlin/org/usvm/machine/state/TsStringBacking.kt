@@ -72,7 +72,7 @@ internal fun TsStepScope.prepareRefinedStringBackings(): Unit? {
         val backingConstraint = calcOnState { symbolicStringBackingConstraint(ref) }
         assert(backingConstraint) ?: return null
         doWithState {
-            boundedStringBackingRefs += ref
+            boundedStringBackingRefs += ref to maxStringLength
             symbolicStringCandidates -= ref
         }
     }
