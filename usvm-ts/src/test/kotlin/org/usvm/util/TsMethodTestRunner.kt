@@ -42,6 +42,8 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
 
     protected abstract val scene: EtsScene
 
+    protected open val tsOptions: TsOptions = TsOptions()
+
     protected fun loadScene(
         resourcePath: String,
         useArkAnalyzerTypeInference: Boolean = false,
@@ -361,11 +363,10 @@ abstract class TsMethodTestRunner : TestRunner<TsTest, EtsMethod, EtsType?, TsMe
     }
 
     override val runner: (EtsMethod, UMachineOptions) -> List<TsTest> = { method, options ->
-        val tsMachineOptions = TsOptions()
         TsMachine(
             scene,
             options,
-            tsMachineOptions,
+            tsOptions,
             unknownCallDispatcher = TsCompatibilityUnknownCallDispatcher,
         ).use { machine ->
             val states = machine.analyze(listOf(method))

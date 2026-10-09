@@ -40,17 +40,21 @@ import org.usvm.isAllocated
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isTrue
 import org.usvm.machine.TsContext
+import org.usvm.machine.expr.TrackedObjectProperty
 import org.usvm.machine.expr.TsUnresolvedSort
+import org.usvm.machine.expr.deletedFieldLValue
 import org.usvm.machine.expr.extractDouble
 import org.usvm.machine.expr.extractInt
+import org.usvm.machine.expr.initialPropertyPresenceLValue
+import org.usvm.machine.expr.readInputPropertyValue
 import org.usvm.machine.expr.toConcreteBoolValue
+import org.usvm.machine.expr.writtenPropertyLValue
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.machine.state.TsState
 import org.usvm.machine.types.readUnresolvedArrayElement
 import org.usvm.memory.ULValue
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.mkSizeExpr
-import org.usvm.model.UModel
 import org.usvm.model.UModelBase
 import org.usvm.sizeSort
 import org.usvm.types.first
@@ -73,7 +77,8 @@ class TsTestResolver {
             memory,
             method,
             resolvedLValuesToFakeObjects,
-            state.maxStringLength
+            state.maxStringLength,
+            propertyState = state,
         )
         val afterMemoryScope = MemoryScope(
             this,
@@ -81,7 +86,8 @@ class TsTestResolver {
             memory,
             method,
             resolvedLValuesToFakeObjects,
-            state.maxStringLength
+            state.maxStringLength,
+            propertyState = state,
         )
 
         val result = when (val res = state.methodResult) {
@@ -177,7 +183,16 @@ class TsTestResolver {
         method: EtsMethod,
         resolvedLValuesToFakeObjects: List<Pair<ULValue<*, *>, UConcreteHeapRef>>,
         maxStringLength: Int,
-    ) : TsTestStateResolver(ctx, model, finalStateMemory, method, resolvedLValuesToFakeObjects, maxStringLength) {
+        propertyState: TsState,
+    ) : TsTestStateResolver(
+        ctx = ctx,
+        model = model,
+        finalStateMemory = finalStateMemory,
+        method = method,
+        resolvedLValuesToFakeObjects = resolvedLValuesToFakeObjects,
+        maxStringLength = maxStringLength,
+        propertyState = propertyState,
+    ) {
         fun resolveState(): TsParametersState {
             val thisInstance = resolveThisInstance()
             val parameters = resolveParameters()
@@ -194,7 +209,10 @@ open class TsTestStateResolver(
     val method: EtsMethod,
     val resolvedLValuesToFakeObjects: List<Pair<ULValue<*, *>, UConcreteHeapRef>>,
     val maxStringLength: Int,
+    private val propertyState: TsState? = null,
 ) {
+    private val resolvedClasses = hashMapOf<UConcreteHeapRef, TsTestValue.TsClass>()
+
     fun resolveLValue(
         lValue: ULValue<*, *>,
     ): TsTestValue {
@@ -236,6 +254,7 @@ open class TsTestStateResolver(
         heapRef: UExpr<UAddressSort>,
     ): TsTestValue {
         val concreteRef = evaluateInModel(heapRef) as UConcreteHeapRef
+        if (with(ctx) { concreteRef.isFakeObject() }) return resolveFakeObject(concreteRef)
 
         if (concreteRef.address == 0) {
             return TsTestValue.TsUndefined
@@ -487,6 +506,8 @@ open class TsTestStateResolver(
         concreteRef: UConcreteHeapRef,
         heapRef: UHeapRef,
     ): TsTestValue.TsClass = with(ctx) {
+        resolvedClasses[concreteRef]?.let { return it }
+
         val type = if (concreteRef.isAllocated) {
             finalStateMemory.typeStreamOf(concreteRef).first()
         } else {
@@ -494,43 +515,100 @@ open class TsTestStateResolver(
         }
         check(type is EtsRefType) { "Expected EtsRefType, but got $type" }
         val clazz = resolveClass(type)
-        val properties = clazz.fields
-            .filterNot { field ->
-                field as EtsFieldImpl
-                field.modifiers.isStatic
-            }
-            .associate { field ->
-                val sort = typeToSort(field.type)
-                if (sort == unresolvedSort) {
-                    val lValue = mkFieldLValue(addressSort, heapRef, field.signature)
+        val properties = linkedMapOf<String, TsTestValue>()
+        val result = TsTestValue.TsClass(clazz.name, properties)
+        resolvedClasses[concreteRef] = result
 
-                    val fakeObject = if (memory is UModel) {
-                        resolvedLValuesToFakeObjects.firstOrNull { it.first == lValue }?.second
-                    } else {
-                        resolvedLValuesToFakeObjects.lastOrNull { it.first == lValue }?.second
-                    }
-
-                    if (fakeObject != null) {
-                        val obj = resolveFakeObject(fakeObject)
-                        field.name to obj
-                    } else {
-                        val fieldExpr = finalStateMemory.read(lValue) as? UConcreteHeapRef
-                            ?: error("UnresolvedSort should be represented by a fake object instance")
-                        // TODO check values if fieldExpr is correct here
-                        //      Probably we have to pass fieldExpr as symbolic value and something as a concrete one
-                        val obj = resolveExpr(fieldExpr)
-                        field.name to obj
-                    }
-                } else {
-                    val lValue = mkFieldLValue(sort, concreteRef.asExpr(addressSort), field.signature)
-                    val fieldExpr = memory.read(lValue)
-                    // TODO check values if fieldExpr is correct here
-                    //      Probably we have to pass fieldExpr as symbolic value and something as a concrete one
-                    val obj = resolveExpr(fieldExpr)
-                    field.name to obj
-                }
+        val tracked = propertyState?.trackedObjectProperties.orEmpty()
+            .filter { evaluateInModel(it.instance) == concreteRef }
+            .groupBy { it.name }
+        val declaredFields = clazz.fields.filterNot { (it as EtsFieldImpl).modifiers.isStatic }
+        declaredFields.forEach { field ->
+            if (field.name in tracked) return@forEach
+            if ((field as EtsFieldImpl).isOptional && !concreteRef.isAllocated) return@forEach
+            if (resolveMode == ResolveMode.CURRENT &&
+                model.eval(finalStateMemory.read(deletedFieldLValue(heapRef, field.name))).isTrue
+            ) {
+                return@forEach
             }
-        TsTestValue.TsClass(clazz.name, properties)
+
+            properties[field.name] = resolveObjectField(concreteRef, heapRef, field.name, field.type)
+        }
+        tracked.forEach { (name, entries) ->
+            val entry = entries.firstOrNull { it.declaredType != null } ?: entries.first()
+            resolveTrackedProperty(concreteRef, entry)?.let { properties[name] = it }
+        }
+        if (resolveMode == ResolveMode.CURRENT) applyConcreteWrites(properties, concreteRef, heapRef)
+
+        result
+    }
+
+    private fun resolveTrackedProperty(ref: UConcreteHeapRef, entry: TrackedObjectProperty): TsTestValue? = with(ctx) {
+        val name = entry.name
+        val propertyRef = entry.instance
+        val initialPresence = model.eval(model.read(initialPropertyPresenceLValue(ref, name))).isTrue
+        val written = resolveMode == ResolveMode.CURRENT &&
+            model.eval(finalStateMemory.read(writtenPropertyLValue(propertyRef, name))).isTrue
+        val deleted = resolveMode == ResolveMode.CURRENT &&
+            model.eval(finalStateMemory.read(deletedFieldLValue(propertyRef, name))).isTrue
+        if ((!initialPresence && !written) || deleted) return null
+
+        val declaredType = entry.declaredType
+        val sort = declaredType?.let { typeToSort(it) } ?: unresolvedSort
+        if (!written && sort !is TsUnresolvedSort && !entry.optional) {
+            return resolveObjectField(ref, ref, name, declaredType!!, initial = true)
+        }
+
+        val valueMemory = if (written) finalStateMemory else model
+        val valueRef = if (written) propertyRef else ref
+        val value = readInputPropertyValue(valueMemory, valueRef, name, written)
+        when {
+            model.eval(value.type.boolTypeExpr).isTrue -> resolveExpr(value.boolValue)
+            model.eval(value.type.fpTypeExpr).isTrue -> resolveExpr(value.fpValue)
+            model.eval(value.type.refTypeExpr).isTrue -> resolveExpr(value.refValue)
+            else -> TsTestValue.TsUndefined // A property whose value was never read is unconstrained.
+        }
+    }
+
+    private fun applyConcreteWrites(
+        properties: MutableMap<String, TsTestValue>,
+        ref: UConcreteHeapRef,
+        heapRef: UHeapRef,
+    ) = with(ctx) {
+        propertyState?.writtenConcreteFields.orEmpty().filter { it.first == ref }.forEach { (_, name) ->
+            if (model.eval(finalStateMemory.read(deletedFieldLValue(heapRef, name))).isTrue) {
+                properties.remove(name)
+            } else if (name !in properties) {
+                val sort = propertyState?.writtenObjectLiteralFieldSorts?.get(ref to name) ?: addressSort
+                properties[name] = resolveLValue(mkFieldLValue(sort, heapRef, name))
+            }
+        }
+    }
+
+    private fun resolveObjectField(
+        ref: UConcreteHeapRef,
+        heapRef: UHeapRef,
+        name: String,
+        type: EtsType,
+        initial: Boolean = false,
+    ): TsTestValue = with(ctx) {
+        val sort = typeToSort(type)
+        val valueMemory = if (initial) model else memory
+        val valueRef = if (initial || resolveMode == ResolveMode.MODEL) ref else heapRef
+        if (sort !is TsUnresolvedSort) {
+            return resolveExpr(valueMemory.read(mkFieldLValue(sort, valueRef, name)))
+        }
+
+        val lValue = mkFieldLValue(addressSort, ref, name)
+        val fakeObject = if (resolveMode == ResolveMode.MODEL) {
+            resolvedLValuesToFakeObjects.firstOrNull { it.first == lValue }?.second
+        } else {
+            resolvedLValuesToFakeObjects.lastOrNull { it.first == lValue }?.second
+        }
+        if (fakeObject != null) return resolveFakeObject(fakeObject)
+
+        // Unread fields can be concretized to undefined. Evaluating also recognizes symbolic wrapper branches.
+        resolveExpr(valueMemory.read(mkFieldLValue(addressSort, valueRef, name)))
     }
 
     internal var resolveMode: ResolveMode = ResolveMode.ERROR

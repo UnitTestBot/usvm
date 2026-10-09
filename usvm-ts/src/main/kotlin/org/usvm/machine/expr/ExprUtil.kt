@@ -10,6 +10,7 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.UIteExpr
+import org.usvm.UNullRef
 import org.usvm.UOrExpr
 import org.usvm.USort
 import org.usvm.USymbolicHeapRef
@@ -40,6 +41,8 @@ fun TsContext.checkNotFake(expr: UExpr<*>) {
 // `any` is assignable both to and from string, so a type-relation query cannot identify
 // a materialized string. Inspect the concrete type stream before reading its backing array.
 private fun TsState.stringTypeCondition(ref: UHeapRef): UBoolExpr = with(ctx) {
+    if (ref is UNullRef) return@with falseExpr
+
     when (ref) {
         is UConcreteHeapRef, is USymbolicHeapRef -> {
             val type = memory.types.getTypeStream(ref).singleOrNull()

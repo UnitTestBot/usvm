@@ -17,17 +17,24 @@ import org.usvm.memory.UUpdateNode
 import org.usvm.memory.key.UHeapRefKeyInfo
 import org.usvm.uctx
 
+internal enum class ObjectPropertyEvent {
+    DELETED,
+    WRITTEN,
+}
+
 /** Separate from value storage: a deleted property has no value in any sort. */
 internal data class DeletedFieldLValue(
     override val sort: UBoolSort,
     override val key: UHeapRef,
     val name: String,
+    val event: ObjectPropertyEvent = ObjectPropertyEvent.DELETED,
 ) : ULValue<UHeapRef, UBoolSort> {
-    override val memoryRegionId: UMemoryRegionId<UHeapRef, UBoolSort> = DeletedFieldRegionId(name, sort)
+    override val memoryRegionId: UMemoryRegionId<UHeapRef, UBoolSort> = DeletedFieldRegionId(name, event, sort)
 }
 
 private data class DeletedFieldRegionId(
     val name: String,
+    val event: ObjectPropertyEvent,
     override val sort: UBoolSort,
 ) : UMemoryRegionId<UHeapRef, UBoolSort> {
     override fun emptyRegion(): UMemoryRegion<UHeapRef, UBoolSort> = DeletedFieldRegion(sort)
@@ -89,3 +96,8 @@ internal fun TsContext.deletedFieldLValue(
     instance: UHeapRef,
     fieldName: String,
 ): DeletedFieldLValue = DeletedFieldLValue(boolSort, instance, fieldName)
+
+internal fun TsContext.writtenPropertyLValue(
+    instance: UHeapRef,
+    fieldName: String,
+): DeletedFieldLValue = DeletedFieldLValue(boolSort, instance, fieldName, event = ObjectPropertyEvent.WRITTEN)

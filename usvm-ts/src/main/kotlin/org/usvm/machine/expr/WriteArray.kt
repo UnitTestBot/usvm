@@ -3,6 +3,9 @@ package org.usvm.machine.expr
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsArrayAccess
 import org.jacodb.ets.model.EtsArrayType
+import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsFieldSignature
+import org.jacodb.ets.model.EtsUnknownType
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.machine.TsContext
@@ -22,13 +25,33 @@ internal fun TsExprResolver.handleAssignToArrayIndex(
     check(resolvedArray.sort == addressSort) {
         "Expected address sort for array, got: ${resolvedArray.sort}"
     }
-    val array = resolvedArray.asExpr(addressSort)
+    val array = if (resolvedArray.isFakeObject()) {
+        scope.assert(resolvedArray.getFakeType(scope).refTypeExpr) ?: return null
+        resolvedArray.extractRef(scope)
+    } else {
+        resolvedArray.asExpr(addressSort)
+    }
 
     // Check for undefined or null array access.
     checkUndefinedOrNullPropertyRead(scope, array, propertyName = "[]") ?: return null
 
     // Resolve the index.
     val resolvedIndex = resolve(lhv.index) ?: return null
+    val receiverType = scope.calcOnState { arrayStorageType(array, lhv.array.type) }
+    val propertyName = concreteStringValue(resolvedIndex)
+    if (propertyName != null && receiverType !is EtsArrayType) {
+        val field = EtsFieldSignature(
+            name = propertyName,
+            enclosingClass = EtsClassSignature.UNKNOWN,
+            type = EtsUnknownType,
+        )
+        assignToInstanceField(scope, lhv.array, array, field, expr, hierarchy)
+        return Unit
+    }
+    if (receiverType !is EtsArrayType) {
+        throw UnsupportedOperationException("Symbolic object property keys are not supported")
+    }
+
     check(resolvedIndex.sort == fp64Sort) {
         "Expected fp64 sort for index, got: ${resolvedIndex.sort}"
     }

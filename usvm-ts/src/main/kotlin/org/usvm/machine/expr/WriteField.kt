@@ -39,7 +39,7 @@ internal fun TsExprResolver.handleAssignToInstanceField(
     val field = lhv.field
 
     // Resolve the instance.
-    val instance: UHeapRef = run {
+    val rawInstance: UHeapRef = run {
         val resolved = resolve(instanceLocal) ?: return null
         if (resolved.isFakeObject()) {
             scope.assert(resolved.getFakeType(scope).refTypeExpr) ?: run {
@@ -56,7 +56,8 @@ internal fun TsExprResolver.handleAssignToInstanceField(
     }
 
     // Check for undefined or null field access.
-    checkUndefinedOrNullPropertyRead(scope, instance, field.name) ?: return null
+    checkUndefinedOrNullPropertyRead(scope, rawInstance, field.name) ?: return null
+    val instance = resolvePropertyReceiver(scope, rawInstance) ?: return null
 
     val arrayType = scope.calcOnState { arrayStorageType(instance, instanceLocal.type) } as? EtsArrayType
     if (field.name == "length" && arrayType != null) {
@@ -143,7 +144,13 @@ fun TsContext.assignToInstanceField(
     hierarchy: EtsHierarchy,
 ) {
     // Unwrap to get non-fake reference.
-    val unwrappedInstance = instance.unwrapRef(scope)
+    val unwrappedInstance = resolvePropertyReceiver(scope, instance.unwrapRef(scope)) ?: return
+
+    if (!isAllocatedConcreteHeapRef(unwrappedInstance) && instanceLocal.type !is EtsArrayType) {
+        trackInputProperty(scope, unwrappedInstance, instanceLocal, field.name, hierarchy) ?: return
+        writeInputPropertyValue(scope, unwrappedInstance, field.name, expr)
+        return
+    }
 
     val objectLiteralClass = if (isAllocatedConcreteHeapRef(unwrappedInstance)) {
         val types = scope.calcOnState { memory.typeStreamOf(unwrappedInstance).take(2) }
