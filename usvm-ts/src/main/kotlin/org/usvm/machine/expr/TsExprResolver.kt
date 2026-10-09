@@ -451,10 +451,6 @@ class TsExprResolver(
 
                 checkUndefinedOrNullPropertyRead(scope, instance, operand.field.name) ?: return null
 
-                if (!isAllocatedConcreteHeapRef(instance)) {
-                    throw UnsupportedOperationException("Deleting a property of an input object is not supported")
-                }
-
                 val prototypeFallback = prototypeFallbackReason(instance, operand)
                 if (prototypeFallback != null) {
                     throw UnsupportedOperationException(prototypeFallback)
@@ -467,9 +463,23 @@ class TsExprResolver(
                 mkTrue()
             }
 
-            else -> {
+            is EtsCastExpr -> visit(EtsDeleteExpr(arg = operand.arg))
+
+            is EtsArrayAccess,
+            is EtsStaticFieldRef,
+            is EtsLocal,
+            is EtsParameterRef,
+            is EtsGlobalRef,
+            is EtsClosureFieldRef,
+            is EtsCaughtExceptionRef,
+            -> {
                 resolve(operand) ?: return null
                 throw UnsupportedOperationException("Deleting ${operand::class.simpleName} is not supported")
+            }
+
+            else -> {
+                resolve(operand) ?: return null
+                mkTrue()
             }
         }
     }

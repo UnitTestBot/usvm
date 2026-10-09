@@ -13,6 +13,7 @@ import org.usvm.util.TsTestResolver
 import org.usvm.util.assertNodeReplay
 import org.usvm.util.eq
 import org.usvm.util.getResourcePath
+import org.usvm.util.jsString
 import java.nio.file.Path
 import kotlin.io.path.readText
 import kotlin.test.Test
@@ -179,8 +180,84 @@ class DeleteProperty : TsMethodTestRunner() {
     }
 
     @Test
-    fun `deleting a property of an input object reports unsupported outcome`() {
-        val method = getMethod("deleteInput")
+    fun `deleting a property of an input object reads as undefined`() {
+        discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
+            method = getMethod("deleteInput"),
+            { _, result -> result eq 1 },
+            invariants = arrayOf({ _, result -> result eq 1 }),
+        )
+    }
+
+    @Test
+    fun `input property is not marked deleted before any delete`() {
+        discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
+            method = getMethod("untouchedInput"),
+            { _, result -> result eq 1 },
+            invariants = arrayOf({ _, result -> result eq 1 }),
+        )
+    }
+
+    @Test
+    fun `input alias observes delete and reassignment restores the field`() {
+        for (name in listOf("deleteInputAlias", "restoreInput")) {
+            discoverProperties<TsTestValue.TsClass, TsTestValue.TsNumber>(
+                method = getMethod(name),
+                { _, result -> result eq 1 },
+                invariants = arrayOf({ _, result -> result eq 1 }),
+            )
+        }
+    }
+
+    @Test
+    fun `conditional input deletion preserves both paths`() {
+        discoverProperties<TsTestValue.TsClass, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
+            method = getMethod("conditionalDeleteInput"),
+            { _, shouldDelete, result -> shouldDelete.value && (result eq 1) },
+            { _, shouldDelete, result -> !shouldDelete.value && (result eq 2) },
+            invariants = arrayOf({ _, shouldDelete, result -> result eq (if (shouldDelete.value) 1 else 2) }),
+        )
+    }
+
+    @Test
+    fun `delete affects aliased inputs and preserves a distinct receiver`() {
+        discoverProperties<TsTestValue.TsClass, TsTestValue.TsClass, TsTestValue.TsNumber>(
+            method = getMethod("deletePossiblyAliasedInputs"),
+            { _, _, result -> result eq 1 },
+            { _, _, result -> result eq 2 },
+            invariants = arrayOf({ _, _, result -> (result eq 1) || (result eq 2) }),
+        )
+    }
+
+    @Test
+    fun `deleting a value expression returns true`() {
+        discoverProperties<TsTestValue.TsNumber, TsTestValue.TsBoolean>(
+            method = getMethod("deleteValueExpression"),
+            { _, result -> result.value },
+            invariants = arrayOf({ _, result -> result.value }),
+        )
+    }
+
+    @Test
+    fun `deleting an assignment expression preserves its side effect`() {
+        discoverProperties<TsTestValue.TsNumber>(
+            method = getMethod("deleteAssignmentExpression"),
+            { result -> result eq 1 },
+            invariants = arrayOf({ result -> result eq 1 }),
+        )
+    }
+
+    @Test
+    fun `type assertion on a value preserves delete semantics`() {
+        discoverProperties<TsTestValue.TsNumber>(
+            method = getMethod("deleteCastedValue"),
+            { result -> result eq 1 },
+            invariants = arrayOf({ result -> result eq 1 }),
+        )
+    }
+
+    @Test
+    fun `type assertion losing a property reference reports unsupported`() {
+        val method = getMethod("deleteCastedField")
         val options = UMachineOptions(
             stateCollectionStrategy = StateCollectionStrategy.ALL,
             stopOnCoverage = 0,
@@ -193,7 +270,53 @@ class DeleteProperty : TsMethodTestRunner() {
 
         assertEquals(TsAnalysisStopReason.EXHAUSTED, analysis.stopReason)
         assertTrue(analysis.states.isEmpty())
-        assertTrue(analysis.unsupportedPaths.any { "Deleting a property of an input object" in it })
+        assertTrue(analysis.unsupportedPaths.any { "Deleting EtsLocal" in it })
+    }
+
+    @Test
+    fun `input deletion and value operand witnesses replay in Node`() {
+        val names = listOf(
+            "deleteInput", "untouchedInput", "deleteInputAlias", "restoreInput", "conditionalDeleteInput",
+            "deleteValueExpression", "deleteAssignmentExpression", "deleteCastedValue",
+        )
+        val options = UMachineOptions(stateCollectionStrategy = StateCollectionStrategy.ALL, stopOnCoverage = 0)
+        val tests = names.associateWith { name -> runner(getMethod(name), options) }
+
+        fun serialize(value: TsTestValue): String = when (value) {
+            is TsTestValue.TsClass -> value.properties.entries.joinToString(prefix = "{", postfix = "}") { (name, field) ->
+                "${jsString(name)}: ${serialize(field)}"
+            }
+
+            is TsTestValue.TsNumber -> value.number.toString()
+            is TsTestValue.TsBoolean -> value.value.toString()
+            is TsTestValue.TsString -> jsString(value.value)
+            TsTestValue.TsUndefined -> "undefined"
+            else -> error("Unsupported replay value: $value")
+        }
+
+        val script = buildString {
+            appendLine(getResourcePath("/samples/operators/DeleteProperty.ts").readText())
+            tests.forEach { (name, generated) ->
+                assertTrue(generated.isNotEmpty(), "$name produced no witnesses")
+
+                generated.forEachIndexed { index, test ->
+                    val arguments = test.before.parameters.joinToString { value -> serialize(value) }
+                    val expected = serialize(test.returnValue)
+
+                    appendLine("if (new DeleteProperty().$name($arguments) !== $expected) {")
+                    appendLine("  throw Error('$name witness $index');")
+                    appendLine("}")
+                }
+            }
+        }
+
+        assertNodeReplay(
+            source = script,
+            directory = directory,
+            name = "delete-input-witnesses",
+            timeoutMessage = "Input deletion replay timed out",
+            failureContext = script.take(n = 1000),
+        )
     }
 
     @Test

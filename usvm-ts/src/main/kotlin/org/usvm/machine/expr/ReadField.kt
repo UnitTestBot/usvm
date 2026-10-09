@@ -17,7 +17,6 @@ import org.usvm.USort
 import org.usvm.USymbolicHeapRef
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.makeSymbolicRefUntyped
-import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isFalse
 import org.usvm.isTrue
 import org.usvm.machine.TsContext
@@ -81,13 +80,7 @@ private fun TsContext.resolveField(
 ): UExpr<*>? {
     checkNotFake(instance)
 
-    // Deletion of input references is not modeled. Reading their marker would introduce
-    // an unconstrained extra outcome even in programs that never use `delete`.
-    val deleted = if (isAllocatedConcreteHeapRef(instance)) {
-        scope.calcOnState { memory.read(deletedFieldLValue(instance, field)) }
-    } else {
-        falseExpr
-    }
+    val deleted = scope.calcOnState { memory.read(deletedFieldLValue(instance, field)) }
     if (deleted.isTrue) return mkUndefinedValue()
 
     val resolvedField = resolveEtsField(instanceLocal, field, hierarchy)
@@ -117,7 +110,9 @@ private fun TsContext.resolveField(
     scope.assert(fieldExists) ?: return null
 
     val value = readField(scope, instance, field, sort)
-    val materializedValue = if (resolvedField is TsResolutionResult.Unique && sort !is TsUnresolvedSort) {
+    val materializedValue = if (resolvedField !is TsResolutionResult.Unique || sort is TsUnresolvedSort) {
+        value
+    } else {
         val maxStringLength = scope.calcOnState { maxStringLength }
         when (val fieldType = resolvedField.property.type) {
             is EtsStringLiteralType -> materializeTypedStringField(
@@ -130,8 +125,6 @@ private fun TsContext.resolveField(
             is EtsStringType -> materializeTypedStringField(scope, value.asExpr(addressSort), maxStringLength)
             else -> value
         } ?: return null
-    } else {
-        value
     }
 
     if (deleted.isFalse) return materializedValue

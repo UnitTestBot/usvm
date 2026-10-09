@@ -86,7 +86,72 @@ class DeleteProperty {
 
     deleteInput(object: { x?: number }): number {
         delete object.x;
-        return 1;
+        return object.x === undefined ? 1 : 0;
+    }
+
+    untouchedInput(object: { x: boolean }): number {
+        return object.x === undefined ? 0 : 1;
+    }
+
+    deleteInputAlias(object: { x?: number }): number {
+        const alias = object;
+        delete alias.x;
+
+        return object.x === undefined ? 1 : 0;
+    }
+
+    restoreInput(object: { x?: number }): number {
+        delete object.x;
+        if (object.x !== undefined) return 0;
+
+        object.x = 7;
+        return object.x === 7 ? 1 : 0;
+    }
+
+    conditionalDeleteInput(object: { x: boolean }, shouldDelete: boolean): number {
+        const original = object.x;
+        if (shouldDelete) {
+            delete object.x;
+        }
+
+        if (shouldDelete) return object.x === undefined ? 1 : 0;
+        return object.x === original ? 2 : 0;
+    }
+
+    deletePossiblyAliasedInputs(first: { x: boolean }, second: { x: boolean }): number {
+        if (first === second) {
+            delete first.x;
+            return second.x === undefined ? 1 : 0;
+        }
+
+        const original = second.x;
+        delete first.x;
+        return second.x === original ? 2 : 0;
+    }
+
+    deleteValueExpression(value: number): boolean {
+        return delete (value + 1);
+    }
+
+    deleteAssignmentExpression(): number {
+        const object = { value: 0 };
+        const result = delete (object.value = 1);
+
+        return result === true && object.value === 1 ? 1 : 0;
+    }
+
+    deleteCastedField(): number {
+        const object = { value: 1 };
+        delete (object.value as any);
+
+        return object.value === undefined ? 1 : 0;
+    }
+
+    deleteCastedValue(): number {
+        const object = { value: 0 };
+        const result = delete ((object.value = 1) as number);
+
+        return result === true && object.value === 1 ? 1 : 0;
     }
 
     deleteOwnToString(): number {
