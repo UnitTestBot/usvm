@@ -60,6 +60,7 @@ class SampleCoverageTest {
         org.usvm.samples.globals.GlobalsTest::class.java,
         org.usvm.samples.objects.ObjectsTest::class.java,
         org.usvm.samples.pointers.PointersTest::class.java,
+        org.usvm.samples.pointers.PointerRegressionTest::class.java,
         org.usvm.samples.strings.NamedStringsTest::class.java,
         org.usvm.samples.strings.StringConstraintsTest::class.java,
         org.usvm.samples.strings.StringRegressionTest::class.java,
@@ -67,6 +68,7 @@ class SampleCoverageTest {
         org.usvm.samples.types.InterfacesTest::class.java,
         org.usvm.samples.types.NamedTypesTest::class.java,
         org.usvm.samples.types.StructsTest::class.java,
+        org.usvm.samples.types.ValueRegressionTest::class.java,
         org.usvm.samples.unsupported.GoUnsupportedTest::class.java,
     )
 }

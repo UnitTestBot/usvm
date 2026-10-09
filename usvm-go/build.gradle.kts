@@ -57,17 +57,27 @@ val compileGoReplay by tasks.registering(Exec::class) {
     commandLine("go", "test", "-c", "-o", generatedGo.get().file("native-replay.test").asFile.absolutePath, "./regressions")
 }
 
+val compileGoExamplesReplay by tasks.registering(Exec::class) {
+    group = "verification"
+    description = "Compiles native replay for generated collection and pointer inputs."
+    workingDir(layout.projectDirectory.dir("src/main/go"))
+    environment("GOTOOLCHAIN", "go1.22.3")
+    inputs.files(goSources)
+    outputs.file(generatedGo.map { it.file("native-examples-replay.test") })
+    commandLine("go", "test", "-c", "-o", generatedGo.get().file("native-examples-replay.test").asFile.absolutePath, "./examples")
+}
+
 tasks.withType<Test>().configureEach {
     systemProperty("usvm.go.generatedDir", generatedGo.get().asFile.absolutePath)
     timeout.set(Duration.ofMinutes(15))
 }
 
 tasks.test {
-    dependsOn(generateGoIr, generateGoRegressions, generateGoOracle, compileGoReplay)
+    dependsOn(generateGoIr, generateGoRegressions, generateGoOracle, compileGoReplay, compileGoExamplesReplay)
 }
 
 tasks.named<Test>("manualTest") {
-    dependsOn(generateGoIr)
+    dependsOn(generateGoIr, compileGoExamplesReplay)
 }
 
 tasks.withType<Detekt>().configureEach {

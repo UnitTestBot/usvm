@@ -15,9 +15,14 @@ import org.jacodb.go.api.GoInst
 import org.jacodb.go.api.GoMethod
 import org.jacodb.go.api.GoParameter
 import org.jacodb.go.api.GoType
+import org.jacodb.go.api.InterfaceType
+import org.jacodb.go.api.MapType
 import org.jacodb.go.api.NamedType
+import org.jacodb.go.api.NullType
 import org.jacodb.go.api.PointerType
+import org.jacodb.go.api.SignatureType
 import org.jacodb.go.api.SliceType
+import org.jacodb.go.api.StructType
 import org.usvm.GoCall
 import org.usvm.GoContext
 import org.usvm.GoTarget
@@ -38,7 +43,6 @@ import org.usvm.constraints.UPathConstraints
 import org.usvm.memory.ULValue
 import org.usvm.memory.UMemory
 import org.usvm.memory.URegisterStackLValue
-import org.usvm.memory.allocateGoArray
 import org.usvm.memory.allocateGoArrayInitialized
 import org.usvm.memory.writeGoArrayLength
 import org.usvm.merging.MutableMergeGuard
@@ -230,12 +234,22 @@ class GoState(
         }
 
         parameters.forEachIndexed { i, parameter ->
-            when (val type = parameter.type) {
+            val parameterType = parameter.type as GoType
+            val value = memory.read(URegisterStackLValue(typeToSort(parameterType), i))
+            pathConstraints += valueShape(value, parameterType)
+
+            when (val type = parameterType.underlying()) {
                 is ArrayType -> {
                     val ref = memory.read(URegisterStackLValue(addressSort, i)).asExpr(addressSort)
                     memory.writeGoArrayLength(ref, mkSizeExpr(type.len.toInt()), type, sizeSort)
                 }
             }
+        }
+
+        parameters.forEachIndexed { index, parameter ->
+            val type = parameter.type as GoType
+            val lvalue = URegisterStackLValue(typeToSort(type), index)
+            memory.write(lvalue, copyValue(memory.read(lvalue), type).asExpr(lvalue.sort), trueExpr)
         }
 
         freeVariables.forEachIndexed { i, variable ->
@@ -254,6 +268,10 @@ class GoState(
                 deref(pointer.falseBranch, sort).asExpr(sort)
             )
         }
+        data.pointerConversions[pointer]?.let { conversion ->
+            val value = deref(conversion.source, ctx.typeToSort(conversion.sourceType))
+            return reinterpretValue(value, conversion.sourceType, conversion.targetType)
+        }
         val target = data.pointerTargets[pointer]
         return if (target != null) memory.read(target) else memory.readField(pointer, 0, sort)
     }
@@ -268,12 +286,48 @@ class GoState(
             storeGuarded(pointer.falseBranch, rvalue, ctx.mkAnd(guard, ctx.mkNot(pointer.condition)))
             return
         }
+        data.pointerConversions[pointer]?.let { conversion ->
+            val value = reinterpretValue(rvalue, conversion.targetType, conversion.sourceType)
+            storeGuarded(conversion.source, value, guard)
+            return
+        }
         val target = data.pointerTargets[pointer]
         if (target != null) {
             memory.write(target.withSort(rvalue.sort), rvalue.asExpr(rvalue.sort), guard)
         } else {
             memory.writeField(pointer, 0, rvalue.sort, rvalue.asExpr(rvalue.sort), guard)
         }
+    }
+
+    internal fun convertPointer(source: UHeapRef, sourceType: GoType, targetType: GoType): UHeapRef {
+        val pointer = memory.allocConcrete(PointerType(targetType))
+        memory.writeField(
+            ref = pointer,
+            field = 1,
+            sort = ctx.bv32Sort,
+            value = ctx.mkBv(POINTER_FIELD, ctx.bv32Sort),
+            guard = ctx.trueExpr
+        )
+        data.pointerConversions[pointer] = GoPointerConversion(source, sourceType, targetType)
+        return ctx.mkIte(ctx.mkHeapRefEq(source, ctx.nullRef), ctx.nullRef, pointer)
+    }
+
+    internal fun canonicalPointer(reference: UHeapRef): UHeapRef = when (reference) {
+        is KIteExpr -> ctx.mkIte(
+            reference.condition,
+            canonicalPointer(reference.trueBranch),
+            canonicalPointer(reference.falseBranch),
+        )
+        else -> data.pointerConversions[reference]?.let { canonicalPointer(it.source) } ?: reference
+    }
+
+    private fun reinterpretValue(value: UExpr<out USort>, sourceType: GoType, targetType: GoType): UExpr<out USort> {
+        val payload = if (sourceType is NamedType) {
+            unbox(value.asExpr(ctx.addressSort), ctx.typeToSort(sourceType.underlying()))
+        } else {
+            value
+        }
+        return if (targetType is NamedType) box(payload, targetType) else payload
     }
 
     fun isPointer(pointer: UHeapRef): UExpr<UBoolSort> {
@@ -319,7 +373,13 @@ class GoState(
     fun mkPointer(type: GoType, lvalue: ULValue<*, *>): UExpr<out USort> {
         data.pointerTargets.entries.firstOrNull { it.value == lvalue }?.let { return it.key }
         val pointer = memory.allocConcrete(PointerType(type))
-        memory.writeField(pointer, 1, ctx.bv32Sort, ctx.mkBv(POINTER_FIELD, ctx.bv32Sort), ctx.trueExpr)
+        memory.writeField(
+            ref = pointer,
+            field = 1,
+            sort = ctx.bv32Sort,
+            value = ctx.mkBv(POINTER_FIELD, ctx.bv32Sort),
+            guard = ctx.trueExpr
+        )
         data.pointerTargets[pointer] = lvalue
         return pointer
     }
@@ -343,21 +403,24 @@ class GoState(
         )
     }
 
-    private fun sampleValue(type: GoType): UExpr<out USort> = when (type) {
+    fun sampleValue(type: GoType): UExpr<out USort> = when (type) {
         is ArrayType -> {
             val sort = ctx.typeToSort(type.elementType)
             val contents = Array(type.len.toInt()) { sampleValue(type.elementType).asExpr(sort) }.asSequence()
             memory.allocateGoArrayInitialized(type, sort, ctx.sizeSort, contents)
         }
 
-        is SliceType -> {
-            memory.allocateGoArray(type, ctx.sizeSort, ctx.mkSizeExpr(0))
+        is SliceType, is MapType, is PointerType, is InterfaceType, is SignatureType, is NullType -> {
+            ctx.nullRef
+        }
+        is StructType -> {
+            mkTuple(type, fields = type.fields.orEmpty().map(::sampleValue).toTypedArray())
         }
         is BasicType -> {
-            ctx.typeToSort(type).sampleUValue()
+            if (type == GoBasicTypes.STRING) mkString("") else ctx.typeToSort(type).sampleUValue()
         }
         is NamedType -> {
-            box(sampleValue(type.underlyingType), type)
+            if (type.underlying() is InterfaceType) ctx.nullRef else box(sampleValue(type.underlyingType), type)
         }
         else -> {
             memory.allocConcrete(type)

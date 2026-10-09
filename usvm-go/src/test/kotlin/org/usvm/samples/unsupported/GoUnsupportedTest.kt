@@ -28,6 +28,13 @@ class GoUnsupportedTest : GoMethodTestRunner(fixture = "regressions") {
         message = "two symbolic lengths"
     )
 
+    @Test
+    @GoSample(method = "oversizedResolvedSlice", fixture = "regressions")
+    fun oversizedSlicesAreRejectedWithoutTruncation() = assertUnsupported(
+        method = "oversizedResolvedSlice",
+        message = "within size limit"
+    )
+
     private fun assertUnsupported(method: String, message: String) {
         val error = assertThrows<UnsupportedOperationException> { runner(method, options) }
         assertTrue(error.message.orEmpty().contains(message), error.message)

@@ -81,6 +81,7 @@ import org.jacodb.go.api.GoUnaryExpr
 import org.jacodb.go.api.GoValue
 import org.jacodb.go.api.GoVar
 import org.jacodb.go.api.GoXorExpr
+import org.jacodb.go.api.InterfaceType
 import org.jacodb.go.api.MapType
 import org.jacodb.go.api.NamedType
 import org.jacodb.go.api.NullType
@@ -130,6 +131,8 @@ import org.usvm.operator.GoUnaryOperator
 import org.usvm.operator.mkNarrow
 import org.usvm.state.GoMethodResult
 import org.usvm.state.GoState.Companion.POINTER_FIELD
+import org.usvm.state.copyValue
+import org.usvm.state.valueShape
 import org.usvm.statistics.ApplicationGraph
 import org.usvm.type.GoBasicTypes
 import org.usvm.type.underlying
@@ -163,17 +166,10 @@ class GoExprVisitor(
             return result.value
         }
 
-        val args = expr.args.let { if (expr.callee == null) it else listOf(func) + it }
-        val method = when {
-            expr.callee != null -> {
-                val instance = func.accept(this).asExpr(ctx.addressSort)
-                val type = scope.calcOnState {
-                    scope.assert(memory.types.evalIsSubtype(instance, func.type)) ?: throw GoStepAbort()
-                    memory.typeStreamOf(instance).first()
-                }
-                program.findMethod(expr.location, "(${type.typeName}).${checkNotNull(expr.callee).name}")
-            }
+        if (expr.callee != null) return callInterface(expr, func)
 
+        val args = expr.args
+        val method = when {
             func is GoFunction -> {
                 program.findMethod(expr.location, func.metName)
             }
@@ -199,11 +195,72 @@ class GoExprVisitor(
 
         val parameters = args.map { it.accept(this) }.toTypedArray()
         val call = GoCall(method, applicationGraph.entryPoints(method).first())
+        parameters.forEachIndexed { index, value ->
+            val parameterType = method.parameters[index].type as GoType
+            scope.assert(scope.calcOnState { valueShape(value, parameterType) }) ?: throw GoStepAbort()
+        }
         ctx.setMethodInfo(method, parameters)
 
         scope.doWithState {
             addCall(call, currentStatement)
         }
+        return ctx.noValue
+    }
+
+    private fun callInterface(expr: GoCallExpr, receiver: GoValue): UExpr<out USort> {
+        val instance = receiver.accept(this).asExpr(ctx.addressSort)
+        checkNotNull(instance) ?: throw GoStepAbort()
+        val args = expr.args.map { it.accept(this) }
+        val name = checkNotNull(expr.callee).name
+        val typeSystem = ctx.typeSystem<GoType>()
+        val types = program.types.values.distinct().filter {
+            typeSystem.isInstantiable(it) && typeSystem.isSupertype(receiver.type, it)
+        }
+        val cases = mutableListOf<Pair<UExpr<UBoolSort>, org.usvm.state.GoState.() -> Unit>>()
+
+        for (type in types) {
+            val typeMatches = scope.calcOnState {
+                ctx.mkAnd(memory.types.evalIsSubtype(instance, type), memory.types.evalIsSupertype(instance, type))
+            }
+            if (scope.checkSat(typeMatches) == null) continue
+
+            val methods = program.findPackage(expr.location.method.packageName).methods
+            val receiverName = if (type is PointerType) "*${type.baseType.typeName}" else type.typeName
+            val direct = methods.firstOrNull { it.metName == "($receiverName).$name" }
+            val pointerType = type as? PointerType
+            val method = direct ?: methods.firstOrNull { it.metName == "(${pointerType?.baseType?.typeName}).$name" }
+                ?: return unsupportedExpr("interface receiver method ${type.typeName}.$name")
+            val payload = if (type is NamedType) {
+                instance
+            } else {
+                scope.calcOnState { unbox(instance, ctx.typeToSort(type)) }
+            }
+            val fallback = direct == null && pointerType != null
+            val isNil = ctx.mkHeapRefEq(payload.asExpr(ctx.addressSort), ctx.nullRef)
+            if (fallback) {
+                cases += ctx.mkAnd(typeMatches, isNil) to { panic("nil pointer receiver") }
+            }
+            val value = if (fallback) {
+                scope.calcOnState { deref(payload.asExpr(ctx.addressSort), ctx.addressSort) }
+            } else {
+                payload
+            }
+            val shape = scope.calcOnState { valueShape(value, method.parameters.first().type as GoType) }
+            val receiverShape = scope.calcOnState { valueShape(payload, type) }
+            val argumentShapes = args.mapIndexed { index, argument ->
+                scope.calcOnState { valueShape(argument, method.parameters[index + 1].type as GoType) }
+            }
+            val condition = ctx.mkAnd(
+                listOf(typeMatches, shape, receiverShape, if (fallback) ctx.mkNot(isNil) else ctx.trueExpr) +
+                    argumentShapes
+            )
+            cases += condition to {
+                ctx.setMethodInfo(method, (listOf(value) + args).toTypedArray())
+                addCall(GoCall(method, applicationGraph.entryPoints(method).first()), currentStatement)
+            }
+        }
+
+        scope.forkMulti(cases)
         return ctx.noValue
     }
 
@@ -362,9 +419,8 @@ class GoExprVisitor(
     override fun visitGoMakeInterfaceExpr(expr: GoMakeInterfaceExpr): UExpr<out USort> {
         val type = expr.value.type
         val operand = expr.value.accept(this)
-        val isNamedScalar = type is NamedType && ctx.typeToSort(type.underlying()) != ctx.addressSort
-        val payload = if (isNamedScalar) unboxNamedPrimitive(operand, type) else operand
-        val value = box(payload, type)
+        val payload = if (type is NamedType) unboxNamedPrimitive(operand, type) else operand
+        val value = scope.calcOnState { box(copyValue(payload, type.underlying()), type) }
         scope.doWithState {
             scope.assert(memory.types.evalIsSubtype(value, expr.type)) ?: throw GoStepAbort()
         }
@@ -398,7 +454,7 @@ class GoExprVisitor(
 
         checkLength(length) ?: throw GoStepAbort()
         checkLength(capacity) ?: throw GoStepAbort()
-        checkIndexOutOfBounds(length, ctx.mkSizeAddExpr(capacity, ctx.mkSizeExpr(1))) ?: throw GoStepAbort()
+        checkSliceBound(length, capacity) ?: throw GoStepAbort()
 
         return scope.calcOnState {
             val type = expr.type.underlying()
@@ -427,9 +483,9 @@ class GoExprVisitor(
         checkNegativeIndex(low) ?: throw GoStepAbort()
         checkNegativeIndex(high) ?: throw GoStepAbort()
         checkNegativeIndex(limit) ?: throw GoStepAbort()
-        checkIndexOutOfBounds(low, ctx.mkSizeAddExpr(high, ctx.mkSizeExpr(1))) ?: throw GoStepAbort()
-        checkIndexOutOfBounds(high, ctx.mkSizeAddExpr(limit, ctx.mkSizeExpr(1))) ?: throw GoStepAbort()
-        checkIndexOutOfBounds(limit, ctx.mkSizeAddExpr(view.capacity, ctx.mkSizeExpr(1))) ?: throw GoStepAbort()
+        checkSliceBound(low, high) ?: throw GoStepAbort()
+        checkSliceBound(high, limit) ?: throw GoStepAbort()
+        checkSliceBound(limit, view.capacity) ?: throw GoStepAbort()
 
         val result = scope.calcOnState {
             val reference = memory.allocateGoArray(expr.type.underlying(), ctx.sizeSort, count)
@@ -473,8 +529,10 @@ class GoExprVisitor(
         }
 
         val pointer = expr.instance.accept(this).asExpr(ctx.addressSort)
-        val struct = deref(pointer, ctx.addressSort)
-        checkNotNull(struct) ?: throw GoStepAbort()
+        val baseType = (expr.instance.type.underlying() as PointerType).baseType
+        val value = deref(pointer, ctx.addressSort)
+        scope.assert(scope.calcOnState { valueShape(value, baseType) }) ?: throw GoStepAbort()
+        val struct = unboxNamedRef(value, baseType)
 
         val fieldType = (expr.type as PointerType).baseType
         val fieldLValue = UFieldLValue(ctx.typeToSort(fieldType), struct, expr.field)
@@ -482,8 +540,9 @@ class GoExprVisitor(
     }
 
     override fun visitGoFieldExpr(expr: GoFieldExpr): UExpr<out USort> {
-        val struct = expr.instance.accept(this).asExpr(ctx.addressSort)
-        checkNotNull(struct) ?: throw GoStepAbort()
+        val value = expr.instance.accept(this).asExpr(ctx.addressSort)
+        scope.assert(scope.calcOnState { valueShape(value, expr.instance.type) }) ?: throw GoStepAbort()
+        val struct = unboxNamedRef(value, expr.instance.type)
         return scope.calcOnState {
             memory.readField(struct, expr.field, ctx.typeToSort(expr.type))
         }
@@ -648,77 +707,32 @@ class GoExprVisitor(
     }
 
     override fun visitGoTypeAssertExpr(expr: GoTypeAssertExpr): UExpr<out USort> {
-        val x = expr.instance.accept(this)
-
-        val assertType = expr.assertType.let { if (it is TupleType) it.types[0] else it }
-        val assertSort = ctx.typeToSort(assertType)
-        val underlyingSort = ctx.typeToSort(assertType.underlying())
-        if (underlyingSort is UBvSort || underlyingSort is UFpSort || underlyingSort == ctx.boolSort) {
-            return scalarTypeAssertion(x.asExpr(ctx.addressSort), assertType, commaOk = expr.type is TupleType)
-        }
-
+        val reference = expr.instance.accept(this).asExpr(ctx.addressSort)
+        val type = expr.assertType.let { if (it is TupleType) it.types[0] else it }
         val commaOk = expr.type is TupleType
-        val tupleType = TupleType(listOf(assertType, GoBasicTypes.BOOL))
-
-        val ite: (UHeapRef, UExpr<out USort>, UExpr<out USort>) -> UExpr<out USort> = { ref, ok, fail ->
-            scope.calcOnState {
-                return@calcOnState ctx.mkIte(
-                    memory.types.evalIsSupertype(ref, assertType),
-                    trueBranch = { ok.asExpr(ok.sort) },
-                    falseBranch = { fail.asExpr(fail.sort).also { if (!commaOk) panic("type assertion failed") } }
-                )
-            }
-        }
-
-        val xAddr = x.asExpr(ctx.addressSort)
-        checkNotNull(xAddr) ?: throw GoStepAbort()
-        val unboxedValue = unbox(xAddr, assertSort)
-
-        return scope.calcOnState {
-            val sample = if (assertSort == ctx.addressSort) {
-                ctx.nullRef
-            } else {
-                assertSort.sampleUValue().asExpr(
-                    assertSort
-                )
-            }
-            if (commaOk) {
-                mkTuple(tupleType, ite(xAddr, unboxedValue, sample), ite(xAddr, ctx.trueExpr, ctx.falseExpr))
-            } else {
-                ite(xAddr, unboxedValue, sample)
-            }
-        }
-    }
-
-    private fun scalarTypeAssertion(reference: UHeapRef, type: GoType, commaOk: Boolean): UExpr<out USort> {
-        val valueSort = ctx.typeToSort(type.underlying())
+        val zero = scope.calcOnState { sampleValue(type) }
         val isNil = ctx.mkHeapRefEq(reference, ctx.nullRef)
-        val boxed = ctx.mkIte(
-            isNil,
-            trueBranch = { box(valueSort.sampleUValue(), type) },
-            falseBranch = { reference }
-        )
-        // Every non-nil interface value is boxed, independently of whether its dynamic type matches.
+        val boxed = ctx.mkIte(isNil, trueBranch = { box(zero, type) }, falseBranch = { reference })
         scope.assert(isBoxed(boxed)) ?: throw GoStepAbort()
+
         val matches = scope.calcOnState {
             ctx.mkAnd(ctx.mkNot(isNil), memory.types.evalIsSupertype(boxed, type))
         }
-        val value = if (type is NamedType) {
+        val value = if (type is NamedType || type.underlying() is InterfaceType) {
             boxed
         } else {
-            scope.calcOnState { unbox(boxed, valueSort) }
+            scope.calcOnState { unbox(boxed, ctx.typeToSort(type)) }
         }
 
         if (!commaOk) {
             scope.fork(matches, blockOnFalseState = { panic("type assertion failed") }) ?: throw GoStepAbort()
+            scope.assert(scope.calcOnState { valueShape(value, type) }) ?: throw GoStepAbort()
             return value
         }
 
-        val zero = tryBox(valueSort.sampleUValue(), type)
         val result = ctx.mkIte(matches, value.asExpr(value.sort), zero.asExpr(value.sort))
-        return scope.calcOnState {
-            mkTuple(TupleType(listOf(type, GoBasicTypes.BOOL)), result, matches)
-        }
+        scope.assert(scope.calcOnState { valueShape(result, type) }) ?: throw GoStepAbort()
+        return scope.calcOnState { mkTuple(TupleType(listOf(type, GoBasicTypes.BOOL)), result, matches) }
     }
 
     override fun visitGoExtractExpr(expr: GoExtractExpr): UExpr<out USort> {
@@ -824,7 +838,14 @@ class GoExprVisitor(
         return tryBox(mkFp(value.value, fp64Sort), value.type)
     }
 
-    override fun visitGoNullConstant(value: GoNullConstant): UExpr<out USort> = ctx.nullRef
+    override fun visitGoNullConstant(value: GoNullConstant): UExpr<out USort> {
+        val type = value.type.underlying()
+        return if (type is ArrayType || type is org.jacodb.go.api.StructType) {
+            scope.calcOnState { sampleValue(value.type) }
+        } else {
+            ctx.nullRef
+        }
+    }
 
     override fun visitGoStringConstant(value: GoStringConstant): UExpr<out USort> {
         return scope.calcOnState {
@@ -839,21 +860,16 @@ class GoExprVisitor(
     }
 
     fun unboxNamedRef(expr: UHeapRef, type: GoType): UHeapRef {
-        if (type !is NamedType) {
+        if (type !is NamedType || type.underlying() is InterfaceType) {
             return expr
         }
 
-        if (type.underlying() !is MapType) {
-            return unbox(expr, ctx.typeToSort(type.underlying())).asExpr(ctx.addressSort)
-        }
-
-        // Named maps may be nil, while every non-nil reference must carry the boxing tag.
+        scope.assert(scope.calcOnState { valueShape(expr, type) }) ?: throw GoStepAbort()
         val boxed = ctx.mkIte(
             ctx.mkHeapRefEq(expr, ctx.nullRef),
             trueBranch = { box(ctx.nullRef, type) },
             falseBranch = { expr }
         )
-        scope.assert(isBoxed(boxed)) ?: throw GoStepAbort()
 
         return scope.calcOnState { unbox(boxed, ctx.addressSort).asExpr(ctx.addressSort) }
     }
@@ -881,8 +897,9 @@ class GoExprVisitor(
         val isEquality = expr is GoEqlExpr || expr is GoNeqExpr
         val hasNilOperand = expr.lhv is GoNullConstant || expr.rhv is GoNullConstant
         val bothReferences = lhv.sort == ctx.addressSort && rhv.sort == ctx.addressSort
-        if (isEquality && hasNilOperand && bothReferences) {
-            val equal = ctx.mkHeapRefEq(lhv.asExpr(ctx.addressSort), rhv.asExpr(ctx.addressSort))
+        val pointerOperands = expr.lhv.type.underlying() is PointerType || expr.rhv.type.underlying() is PointerType
+        if (isEquality && bothReferences && (hasNilOperand || pointerOperands)) {
+            val equal = referenceEquals(lhv.asExpr(ctx.addressSort), rhv.asExpr(ctx.addressSort))
             return if (expr is GoEqlExpr) equal else ctx.mkNot(equal)
         }
 
@@ -1053,7 +1070,7 @@ class GoExprVisitor(
 
     private fun <Sort : USort> deref(expr: UExpr<out USort>, sort: Sort): UExpr<Sort> = with(ctx) {
         val pointer = expr.asExpr(addressSort)
-        checkIsPointer(pointer) ?: throw GoStepAbort()
+        scope.assert(ctx.mkOr(ctx.mkHeapRefEq(pointer, nullRef), isPointer(pointer))) ?: throw GoStepAbort()
         checkNotNull(pointer) ?: throw GoStepAbort()
         return scope.calcOnState {
             deref(pointer, sort).asExpr(sort)
@@ -1086,13 +1103,13 @@ class GoExprVisitor(
     }
 
     private fun unboxNamedPrimitive(expr: UExpr<out USort>, type: GoType): UExpr<out USort> {
-        if (type !is NamedType) {
+        if (type !is NamedType || type.underlying() is InterfaceType) {
             return expr
         }
 
         val sort = ctx.typeToSort(type.underlying())
         if (sort == ctx.addressSort) {
-            return unbox(expr.asExpr(ctx.addressSort), sort)
+            return unboxNamedRef(expr.asExpr(ctx.addressSort), type)
         }
         ensureNamedScalar(expr, type)
 
@@ -1100,18 +1117,21 @@ class GoExprVisitor(
     }
 
     private fun tryBox(expr: UExpr<out USort>, targetType: GoType): UExpr<out USort> {
-        return if (targetType is NamedType) box(expr, targetType) else expr
+        return if (targetType is NamedType && targetType.underlying() !is InterfaceType) box(expr, targetType) else expr
     }
 
     private fun index(name: String): Int {
         return name.substring(1).toInt() + ctx.localVariableOffset(scope.calcOnState { lastEnteredMethod })
     }
 
-    private fun checkIndexOutOfBounds(index: UExpr<USizeSort>, length: UExpr<USizeSort>): Unit? = with(ctx) {
-        scope.fork(mkSizeLtExpr(index, length), blockOnFalseState = {
-            panic("index out of bounds")
-        })
+    private fun referenceEquals(left: UHeapRef, right: UHeapRef): UExpr<UBoolSort> = scope.calcOnState {
+        ctx.mkHeapRefEq(canonicalPointer(left), canonicalPointer(right))
     }
+
+    private fun checkSliceBound(bound: UExpr<USizeSort>, limit: UExpr<USizeSort>): Unit? =
+        scope.fork(ctx.mkSizeLeExpr(bound, limit), blockOnFalseState = {
+            panic("slice bounds out of range")
+        })
 
     private fun checkNegativeIndex(value: UExpr<USizeSort>): Unit? = with(ctx) {
         scope.fork(mkSizeGeExpr(value, mkSizeExpr(0)), blockOnFalseState = {
@@ -1131,10 +1151,6 @@ class GoExprVisitor(
             panic("length of the slice is less than the length of the array")
         })
     }
-
-    private fun checkIsPointer(obj: UHeapRef): Unit? = scope.fork(isPointer(obj), blockOnFalseState = {
-        panic("not a pointer")
-    })
 
     private fun checkIsBoxed(obj: UHeapRef): Unit? = scope.fork(isBoxed(obj), blockOnFalseState = {
         panic("not a boxed value")
@@ -1388,17 +1404,8 @@ class GoExprVisitor(
             }
 
             is PointerType -> {
-                ctx.mkIte(
-                    ctx.mkHeapRefEq(value.asExpr(ctx.addressSort), ctx.nullRef),
-                    trueBranch = { ctx.nullRef },
-                    falseBranch = {
-                        val basePointerType = (baseType as PointerType).baseType
-                        val baseValue = deref(value.asExpr(ctx.addressSort), ctx.typeToSort(basePointerType))
-                        val targetPointerType = targetType.baseType
-                        val targetValue = changeType(baseValue, basePointerType, targetPointerType)
-                        scope.calcOnState { mkPointer(targetPointerType, targetValue) }
-                    }
-                )
+                val sourceType = (baseType.underlying() as PointerType).baseType
+                scope.calcOnState { convertPointer(value.asExpr(ctx.addressSort), sourceType, targetType.baseType) }
             }
 
             else -> {

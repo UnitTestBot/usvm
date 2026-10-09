@@ -6,6 +6,7 @@ import io.ksmt.expr.KBitVec64Value
 import io.ksmt.expr.KBitVec8Value
 import io.ksmt.expr.KFp32Value
 import io.ksmt.expr.KFp64Value
+import io.ksmt.expr.KIteExpr
 import io.ksmt.sort.KBoolSort
 import io.ksmt.sort.KBv16Sort
 import io.ksmt.sort.KBv32Sort
@@ -28,13 +29,14 @@ import org.jacodb.go.api.SliceType
 import org.jacodb.go.api.StructType
 import org.jacodb.go.api.TupleType
 import org.usvm.GoContext
-import org.usvm.NULL_ADDRESS
 import org.usvm.UAddressSort
+import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
 import org.usvm.UBvSort
 import org.usvm.UExpr
 import org.usvm.UFpSort
 import org.usvm.UHeapRef
+import org.usvm.USizeSort
 import org.usvm.USort
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapAnyKey
 import org.usvm.api.readField
@@ -46,19 +48,23 @@ import org.usvm.collection.set.primitive.USetEntryLValue
 import org.usvm.collection.set.primitive.setEntries
 import org.usvm.collection.set.ref.URefSetEntryLValue
 import org.usvm.collection.set.ref.refSetEntries
-import org.usvm.interpreter.GoInterpreter.Companion.logger
+import org.usvm.collections.immutable.internal.MutabilityOwnership
+import org.usvm.constraints.UPathConstraints
 import org.usvm.isTrue
 import org.usvm.memory.ULValue
-import org.usvm.memory.URegisterStackLValue
+import org.usvm.memory.UMemory
 import org.usvm.memory.UWritableMemory
 import org.usvm.memory.arrayView
 import org.usvm.memory.key.USizeExprKeyInfo
 import org.usvm.memory.readGoArrayIndex
 import org.usvm.mkSizeAddExpr
 import org.usvm.mkSizeExpr
+import org.usvm.mkSizeGeExpr
+import org.usvm.mkSizeLeExpr
 import org.usvm.model.UModelBase
 import org.usvm.sampleUValue
 import org.usvm.sizeSort
+import org.usvm.solver.USatResult
 import org.usvm.state.GoMethodResult
 import org.usvm.state.GoState
 import org.usvm.type.GoBasicTypes
@@ -73,16 +79,46 @@ import kotlin.random.nextULong
 class GoTestInterpreter(
     private val ctx: GoContext,
 ) {
-    fun resolve(state: GoState, method: GoMethod): ProgramExecutionResult = with(ctx) {
-        val model = state.models.first()
+    fun resolve(state: GoState, method: GoMethod): ProgramExecutionResult {
+        var model = state.models.first()
+        val boundedConstraints by lazy { state.clone().pathConstraints }
+        val bounds = mutableSetOf<UBoolExpr>()
 
-        val inputScope = MemoryScope(ctx, state, model, model)
+        repeat(MAX_MODEL_REFINEMENTS) {
+            try {
+                return resolveWithModel(state, method, model)
+            } catch (limit: MaterializationBoundException) {
+                if (!bounds.add(limit.bound)) {
+                    throw UnsupportedOperationException("Cannot materialize Go model within size limit")
+                }
+                model = refineModel(boundedConstraints, limit.bound)
+            }
+        }
+        throw UnsupportedOperationException("Go model size refinement limit exceeded")
+    }
+
+    private fun refineModel(constraints: UPathConstraints<GoType>, bound: UBoolExpr): UModelBase<GoType> {
+        constraints += bound
+        val result = ctx.solver<GoType>().check(constraints)
+        return (result as? USatResult)?.model ?: throw UnsupportedOperationException(
+            "Cannot materialize Go model within size limit: $result"
+        )
+    }
+
+    private fun resolveWithModel(
+        state: GoState,
+        method: GoMethod,
+        model: UModelBase<GoType>,
+    ): ProgramExecutionResult = with(ctx) {
+        // Keep input reads symbolic so size refinement can re-solve them without using the mutated heap.
+        val inputMemory = UMemory<GoType, GoMethod>(ctx, MutabilityOwnership(), state.pathConstraints.typeConstraints)
+        val inputScope = MemoryScope(ctx, state, model, inputMemory)
         val outputScope = MemoryScope(ctx, state, model, state.memory)
 
         val inputValues = List(method.parameters.size) { idx ->
             val type = method.parameters[idx].type as GoType
             val sort = typeToSort(type)
-            val expr = model.read(URegisterStackLValue(sort, idx))
+            val expr = mkRegisterReading(idx, sort)
             inputScope.convertExpr(expr, type)
         }
         val inputModel = InputModel(inputValues)
@@ -93,7 +129,7 @@ class GoTestInterpreter(
                 // Scalar arguments are passed by value; local assignments cannot change the caller's value.
                 inputValues[index]
             } else {
-                val original = model.read(URegisterStackLValue(typeToSort(type), index))
+                val original = mkRegisterReading(index, typeToSort(type))
                 outputScope.convertExpr(original, type)
             }
         }
@@ -162,7 +198,7 @@ class GoTestInterpreter(
 
         private fun resolveReference(reference: UHeapRef, baseType: GoType): Any? {
             val type = baseType.underlying()
-            if (baseType is NamedType) return resolveBoxed(reference, type)
+            if (baseType is NamedType && type !is InterfaceType) return resolveBoxed(reference, type)
             return when (type) {
                 GoBasicTypes.STRING -> {
                     resolveString(reference, type)
@@ -219,14 +255,26 @@ class GoTestInterpreter(
 
         fun resolveSize(expr: UExpr<out USort>) = (model.eval(expr) as KBitVec32Value).numberValue
 
+        private fun resolveLength(expr: UExpr<USizeSort>): Int {
+            val length = resolveSize(expr)
+            if (length !in 0..MAX_ARRAY_LENGTH) {
+                val bound = ctx.mkAnd(
+                    ctx.mkSizeGeExpr(expr, ctx.mkSizeExpr(0)),
+                    ctx.mkSizeLeExpr(expr, ctx.mkSizeExpr(MAX_ARRAY_LENGTH))
+                )
+                throw MaterializationBoundException(bound)
+            }
+            return length
+        }
+
         fun resolveString(string: UHeapRef, arrayType: GoType): String = with(ctx) {
-            if (string == mkConcreteHeapRef(NULL_ADDRESS) || string == nullRef) {
+            if (model.eval(string) == model.nullRef) {
                 return ""
             }
 
-            val view = state.arrayView(string, arrayType)
+            val view = state.arrayView(string, arrayType, sourceMemory = memory)
             val lengthUExpr = view.length
-            val length = clipArrayLength(resolveSize(lengthUExpr))
+            val length = resolveLength(lengthUExpr)
 
             val buffer = ByteBuffer.allocate(length * Byte.SIZE_BYTES)
             for (i in 0..<length) {
@@ -246,12 +294,15 @@ class GoTestInterpreter(
         }
 
         fun resolveArray(array: UHeapRef, arrayType: GoType, len: Long, elementType: GoType): List<Any?>? = with(ctx) {
-            if (array == mkConcreteHeapRef(NULL_ADDRESS) || array == nullRef) {
+            if (model.eval(array) == model.nullRef) {
                 return null
             }
 
-            val view = state.arrayView(array, arrayType)
-            val length = clipArrayLength(len.toInt())
+            val view = state.arrayView(array, arrayType, sourceMemory = memory)
+            if (len !in 0..MAX_ARRAY_LENGTH.toLong()) {
+                throw UnsupportedOperationException("Cannot materialize Go array of length $len")
+            }
+            val length = len.toInt()
             val sort = typeToSort(elementType)
             return List(length) { idx ->
                 val element = memory.readGoArrayIndex(
@@ -265,13 +316,13 @@ class GoTestInterpreter(
         }
 
         fun resolveSlice(slice: UHeapRef, sliceType: GoType, elementType: GoType): List<Any?>? = with(ctx) {
-            if (slice == mkConcreteHeapRef(NULL_ADDRESS) || slice == nullRef) {
+            if (model.eval(slice) == model.nullRef) {
                 return null
             }
 
-            val view = state.arrayView(slice, sliceType)
+            val view = state.arrayView(slice, sliceType, sourceMemory = memory)
             val lengthUExpr = view.length
-            val length = clipArrayLength(resolveSize(lengthUExpr))
+            val length = resolveLength(lengthUExpr)
             val sort = typeToSort(elementType)
             return List(length) { idx ->
                 val offset = view.offset
@@ -290,7 +341,7 @@ class GoTestInterpreter(
         fun resolveMap(map: UHeapRef, mapType: GoType, keyType: GoType, valueType: GoType): Map<Any?, Any?>? = with(
             ctx
         ) {
-            if (map == mkConcreteHeapRef(NULL_ADDRESS) || map == nullRef) {
+            if (model.eval(map) == model.nullRef) {
                 return null
             }
 
@@ -301,7 +352,7 @@ class GoTestInterpreter(
 
             val addToMap: (MutableMap<Any?, Any?>, Set<ULValue<*, UBoolSort>>) -> Unit = { m, s ->
                 m.putAll(
-                    s.associate { entry ->
+                    s.mapNotNull { entry ->
                         val key = when (entry) {
                             is URefSetEntryLValue<*> -> {
                                 entry.setElement
@@ -314,6 +365,13 @@ class GoTestInterpreter(
                             }
                         }
 
+                        val membership = if (isRefSet) {
+                            URefSetEntryLValue(map, key.asExpr(addressSort), mapType)
+                        } else {
+                            USetEntryLValue(keySort, map, key.asExpr(keySort), mapType, USizeExprKeyInfo())
+                        }
+                        if (!resolveBool(memory.read(membership))) return@mapNotNull null
+
                         val lvalue = if (isRefSet) {
                             URefMapEntryLValue(valueSort, map, key.asExpr(addressSort), mapType)
                         } else {
@@ -321,22 +379,22 @@ class GoTestInterpreter(
                         }
                         val value = memory.read(lvalue)
                         convertExpr(key, keyType) to convertExpr(value, valueType)
-                    }
+                    }.toMap()
                 )
             }
-            val getEntries: (UHeapRef) -> Set<ULValue<*, UBoolSort>> = {
+            val getEntries: (UWritableMemory<GoType>, UHeapRef) -> Set<ULValue<*, UBoolSort>> = { source, ref ->
                 if (isRefSet) {
-                    memory.refSetEntries(it, mapType)
+                    source.refSetEntries(ref, mapType)
                 } else {
-                    memory.setEntries(it, mapType, keySort, USizeExprKeyInfo())
+                    source.setEntries(ref, mapType, keySort, USizeExprKeyInfo())
                 }.entries
             }
 
-            val length = clipArrayLength(resolveSize(memory.read(UMapLengthLValue(map, mapType, sizeSort))))
+            val length = resolveLength(memory.read(UMapLengthLValue(map, mapType, sizeSort)))
 
             val result = mutableMapOf<Any?, Any?>()
-            getEntries(map).also { addToMap(result, it) }
-            getEntries(model.eval(map)).also { addToMap(result, it) }
+            getEntries(memory, map).also { addToMap(result, it) }
+            getEntries(model, model.eval(map)).also { addToMap(result, it) }
 
             if (length > result.size) {
                 val diff = length - result.size
@@ -356,7 +414,7 @@ class GoTestInterpreter(
         }
 
         fun resolveTuple(tuple: UHeapRef, tupleType: TupleType): List<Any?>? = with(ctx) {
-            if (tuple == mkConcreteHeapRef(NULL_ADDRESS) || tuple == nullRef) {
+            if (model.eval(tuple) == model.nullRef) {
                 return null
             }
 
@@ -367,7 +425,7 @@ class GoTestInterpreter(
         }
 
         fun resolveStruct(struct: UHeapRef, structType: StructType): Map<String, Any?>? = with(ctx) {
-            if (struct == mkConcreteHeapRef(NULL_ADDRESS) || struct == nullRef) {
+            if (model.eval(struct) == model.nullRef) {
                 return null
             }
 
@@ -380,11 +438,15 @@ class GoTestInterpreter(
         }
 
         fun resolveInterface(iface: UHeapRef): Any? = with(ctx) {
-            if (iface == mkConcreteHeapRef(NULL_ADDRESS) || iface == nullRef) {
+            if (model.eval(iface) == model.nullRef) {
                 return null
             }
 
-            val type = memory.typeStreamOf(iface).first()
+            val type = if (org.usvm.isAllocatedConcreteHeapRef(iface)) {
+                state.memory.typeStreamOf(iface).first()
+            } else {
+                model.typeStreamOf(model.eval(iface)).first()
+            }
             val index = 0
             val value = if (type is NamedType) {
                 convertExpr(iface, type)
@@ -395,7 +457,15 @@ class GoTestInterpreter(
         }
 
         fun resolvePointer(pointer: UHeapRef, baseType: GoType): Any? = with(ctx) {
-            if (pointer == mkConcreteHeapRef(NULL_ADDRESS) || pointer == nullRef) {
+            if (pointer is KIteExpr) {
+                val branch = if (resolveBool(pointer.condition)) pointer.trueBranch else pointer.falseBranch
+                return resolvePointer(branch, baseType)
+            }
+            state.data.pointerConversions[pointer]?.let { conversion ->
+                return resolvePointer(conversion.source, conversion.sourceType)
+            }
+
+            if (model.eval(pointer) == model.nullRef) {
                 return null
             }
 
@@ -414,7 +484,7 @@ class GoTestInterpreter(
         }
 
         fun resolveBoxed(value: UHeapRef, type: GoType): Any? = with(ctx) {
-            if (value == mkConcreteHeapRef(NULL_ADDRESS) || value == nullRef) {
+            if (model.eval(value) == model.nullRef) {
                 return null
             }
 
@@ -423,26 +493,12 @@ class GoTestInterpreter(
         }
     }
 
-    companion object {
-        fun clipArrayLength(length: Int): Int =
-            when {
-                length in 0..MAX_ARRAY_LENGTH -> {
-                    length
-                }
-
-                length > MAX_ARRAY_LENGTH -> {
-                    logger.warn { "Array length exceeds $MAX_ARRAY_LENGTH: $length" }
-                    MAX_ARRAY_LENGTH
-                }
-
-                else -> {
-                    logger.warn { "Negative array length: $length" }
-                    0
-                }
-            }
-
-        private const val MAX_ARRAY_LENGTH = 10_000
+    private companion object {
+        const val MAX_ARRAY_LENGTH = 10_000
+        const val MAX_MODEL_REFINEMENTS = 32
     }
+
+    private class MaterializationBoundException(val bound: UBoolExpr) : RuntimeException()
 }
 
 sealed interface ProgramExecutionResult

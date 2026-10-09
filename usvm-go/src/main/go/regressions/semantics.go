@@ -437,3 +437,110 @@ func symbolicNamedInterfaceRoundTrip(value namedNumber) namedNumber {
 	var boxed any = value
 	return boxed.(namedNumber)
 }
+
+func nilPointerConversion() bool {
+	var value *int64
+	return (*namedNumber)(value) == nil
+}
+
+func pointerConversionAlias() int64 {
+	value := int64(3)
+	alias := (*namedNumber)(&value)
+	*alias = 8
+	value += 2
+	return int64(*alias) + value
+}
+
+func pointerConversionRoundTrip() bool {
+	value := int64(3)
+	pointer := &value
+	return (*int64)((*namedNumber)(pointer)) == pointer
+}
+
+func namedPointerConversionAlias() int64 {
+	value := namedNumber(3)
+	alias := (*int64)(&value)
+	*alias = 8
+	value += 2
+	return *alias + int64(value)
+}
+
+type valueRecord struct{ number int }
+
+type nestedValueRecord struct{ record valueRecord }
+
+func structValueCopy() int {
+	original := valueRecord{number: 3}
+	copied := original
+	copied.number = 8
+	return original.number + copied.number
+}
+
+func nestedStructValueCopy() int {
+	original := nestedValueRecord{record: valueRecord{number: 3}}
+	copied := original
+	copied.record.number = 8
+	return original.record.number + copied.record.number
+}
+
+func arrayValueCopy() int {
+	original := [2]int{3, 4}
+	copied := original
+	copied[0] = 8
+	return original[0] + copied[0]
+}
+
+func structArgumentCopy() int {
+	original := valueRecord{number: 3}
+	result := func(value valueRecord) int {
+		value.number = 8
+		return value.number
+	}(original)
+	return original.number + result
+}
+
+func arrayArgumentCopy() int {
+	original := [2]int{3, 4}
+	result := func(value [2]int) int {
+		value[0] = 8
+		return value[0]
+	}(original)
+	return original[0] + result
+}
+
+func interfaceStructCopy() int {
+	original := valueRecord{number: 3}
+	var boxed any = original
+	original.number = 8
+	return boxed.(valueRecord).number + original.number
+}
+
+func nilStructAssertionZero() int {
+	var boxed any
+	value, _ := boxed.(valueRecord)
+	return value.number
+}
+
+func typedNilPointerAssertion() bool {
+	var value *valueRecord
+	var boxed any = value
+	result, ok := boxed.(*valueRecord)
+	return ok && result == nil && boxed != nil
+}
+
+func nilStructAssertionOk() bool {
+	var boxed any
+	_, ok := boxed.(valueRecord)
+	return ok
+}
+
+func pointerToInterfaceDoesNotImplement() bool {
+	var value *error
+	var boxed any = value
+	_, ok := boxed.(error)
+	return ok
+}
+
+func oversizedResolvedSlice(_ int) []int {
+	return make([]int, 10001)
+}

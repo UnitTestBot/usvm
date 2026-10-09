@@ -40,10 +40,6 @@ class GoInterpreter(
         val initOwnership = MutabilityOwnership()
         val state = GoState(ctx, initOwnership, method, targets = UTargetsSet.from(targets))
 
-        val solver = solver<GoType>()
-        val model = (solver.check(state.pathConstraints) as USatResult).model
-        state.models = listOf(model)
-
         for (global in program.globals) {
             var type = global.type
             var ref = mkConcreteHeapRef(NULL_ADDRESS)
@@ -72,6 +68,9 @@ class GoInterpreter(
             state.addCall(GoCall(m, applicationGraph.entryPoints(m).first()), previousEntrypoint)
             previousEntrypoint = m.blocks[0].instructions[0]
         }
+
+        val model = (solver<GoType>().check(state.pathConstraints) as USatResult).model
+        state.models = listOf(model)
 
         return state
     }

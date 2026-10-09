@@ -33,6 +33,7 @@ import org.usvm.interpreter.GoStepAbort
 import org.usvm.interpreter.GoStepScope
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.memory.key.USizeExprKeyInfo
+import org.usvm.state.copyValue
 import org.usvm.statistics.ApplicationGraph
 import org.usvm.type.underlying
 
@@ -130,7 +131,7 @@ class GoInstVisitor(
         }
         val rvalue = inst.rhv.accept(exprVisitor)
         scope.doWithState {
-            store(pointer, rvalue)
+            store(pointer, copyValue(rvalue, inst.rhv.type))
         }
 
         return next(inst)

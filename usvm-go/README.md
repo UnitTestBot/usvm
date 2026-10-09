@@ -56,11 +56,17 @@ retain structured values and interface dynamic types; these snapshots do not pre
 object identity or the complete alias graph. Function parameters remain mocked: the
 `call` example checks that mock contract, rather than replaying an actual function body.
 
-The thematic `*RegressionTest` classes retain comparisons against native Go for 66
-zero-argument scalar/panic cases. Branch, slice-alias and named-number/interface
-checks also replay seven generated concrete inputs in a native Go executable. Native scalar comparisons currently use textual representations; native
-panic comparisons check occurrence, while symbolic sample expectations may also check
-the payload. Native replay does not yet support arbitrary collection/struct inputs.
+The thematic `*RegressionTest` classes compare results with native Go for **80
+zero-argument scalar/panic cases**. Branch, slice-alias and named-number/interface
+checks replay seven generated concrete inputs in a native Go executable.
+`GoExamplesReplayTest` additionally replays generated array, slice, pointer and object
+inputs against the original example functions, checking return values, panic occurrence
+and argument snapshots after execution. The manual map test replays the original
+`mapLoopLen` function in the same way. Replay supports these explicitly registered
+methods; it does not reconstruct arbitrary alias graphs or function inputs.
+
+Native scalar comparisons use textual representations. Native panic comparisons check
+occurrence, while symbolic sample expectations may also check the payload.
 
 The five slow examples remain manual and bounded:
 
@@ -71,43 +77,38 @@ The five slow examples remain manual and bounded:
 The nonterminating `loopInfinite` example expects no completed executions within the
 analysis budget. The remaining manual examples and `panicRecoverComplex` permit partial
 instruction coverage but still enforce their semantic expectations.
+`assertCreatureFailNoComma` also permits partial instruction coverage: its `Person` to
+`Building` assertion always panics, so the following return is unreachable. Every
+collected execution must still satisfy its panic expectation.
 
-The stronger symbolic expectations expose unresolved input-model and semantic defects.
-They are kept as failing tests, without disabled tests or expected-failure wrappers.
-The current local run has **181 default tests: 138 passed, 43 failed**, plus
-**5 manual tests: 3 passed, 2 failed**, with no skipped tests. Detekt on Go main/test
-sources and the project-list check pass. Failures are grouped as follows:
+The current local validation passes **201 default tests** and **5 manual tests**, with
+no failures or skipped tests. Detekt on Go main/test sources, `validateProjectList`
+and `git diff --check` pass. These counts describe a bounded local run, not an exhaustive
+proof or a count of independent semantics supported.
 
-| Test package | Default failures |
-| --- | ---: |
-| `collections.slices` | 20 |
-| `types` | 11 |
-| `collections.maps` | 0 |
-| `objects` | 4 |
-| `strings` | 4 |
-| `algorithms` | 2 |
-| `arrays` | 1 |
-| `pointers` | 1 |
+The reproduced defects are now covered by symbolic expectations and selected native
+comparisons:
 
-The manual failures are `canVisitAllRooms` and `mapLoopLen`. Counts are local-run observations, not a
-count of independent bugs or an exhaustive list; budgeted symbolic exploration and
-model materialization may affect which witnesses are collected. This draft integration
-requires those failures to be resolved before merging.
-
-Nine previously failing default map tests now pass. New native regressions check
-nil-map lookup, comma-ok, deletion, range and assignment panic with integer keys/values,
-including lookup/deletion/range on named maps. A symbolic comma-ok regression requires
-witnesses for nil maps, absent keys and present keys, with input-dependent values.
-The two constant nil-map range tests permit partial instruction coverage because their
-loop bodies are unreachable; they still require exactly one native-matching execution.
-
-All 34 arithmetic/named-number tests now pass. Sixteen new regressions cover
-non-nil named scalar inputs, unary operators and argument snapshots, numeric
-interface assertions/round trips, unsigned integer-to-float conversion, finite
-representable float-to-integer truncation, and exact float-literal export.
-Twelve compare constant results with native Go; four have symbolic expectations.
-The interface round-trip test also replays two generated inputs and checks that
-passing a numeric argument by value preserves its original snapshot.
+- Nil-map lookup, comma-ok, deletion, range and assignment panic, including named maps.
+  Absent comma-ok lookups return zero. Integer keys/values have native regressions; a
+  symbolic test requires nil, absent-key and present-key witnesses.
+- Named scalars, unary operators, interface assertions, argument snapshots, unsigned
+  integer-to-float conversion, finite representable float-to-integer truncation and
+  exact float-literal export. All 34 arithmetic/named-number tests pass.
+- Input shapes and snapshots for arrays, structs, named values, interfaces, maps and
+  slices; valid representation tags are constraints rather than artificial Go panics.
+- Array/struct copying on assignment, calls and interface boxing, including nested
+  structs. Native regressions check that changing a copy preserves the original.
+- Pointer conversions preserve nil and a shared pointee. Native regressions check
+  aliasing in both conversion directions and round-trip equality.
+- Comma-ok assertions produce composite zero values; failed non-comma assertions panic.
+  Interface calls explore admissible concrete receivers and typed nil pointer panics.
+  Pointers to interfaces do not acquire the interface's methods.
+- Model resolution refines oversized collection witnesses within the same path constraints.
+  If no witness fits the materialization limit, resolution reports unsupported rather
+  than truncating the value and presenting it as a successful concrete result.
+- Slice bounds use direct comparisons without overflowing `limit + 1`. The map-iteration
+  expectation follows the source's zero-initialized keys, independently checked by replay.
 
 `generateGoImports` can export the import examples for investigation. The original
 import/standard-library exploratory factories depended on manually prepared dumps;
@@ -135,12 +136,15 @@ support. In particular:
   validated; such results may depend on the Go target.
 - Collection sizes use a nonnegative BV32 domain; symbolic sizes are restricted to
   that domain. Input slices currently model capacity as length, and materialized
-  array/slice/string models are capped at 10,000 elements.
+  array/slice/string/map models must fit 10,000 elements for concrete resolution.
+  Oversized models are re-solved within the same path; paths requiring larger values
+  or exceeding the refinement budget are reported as unsupported.
 - Unknown external calls and function parameters retain the prototype's mocking
   behavior. `GoFunctionReference` identifies a function input that cannot be replayed.
-- General array/struct value-copy behavior, pointer/interface equality, reference
-  map keys and zero values for composite/named map values need further semantic
-  validation. Nil-map regressions currently cover integer keys/values.
+- Selected array/struct copies and scalar-pointer conversions have native validation.
+  General pointer/interface identity and equality, reference map keys, and zero values
+  for composite/named map values still need broader validation. Nil-map regressions
+  currently cover integer keys/values.
 - Package loading, standard-library integration and arbitrary repository workflows
   have not been validated end to end. Instruction coverage alone is not a semantic
   correctness check.

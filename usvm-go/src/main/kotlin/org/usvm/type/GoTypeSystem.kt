@@ -7,10 +7,8 @@ import org.jacodb.go.api.InterfaceType
 import org.jacodb.go.api.MapType
 import org.jacodb.go.api.NamedType
 import org.jacodb.go.api.PointerType
-import org.jacodb.go.api.SignatureType
 import org.jacodb.go.api.SliceType
 import org.jacodb.go.api.StructType
-import org.jacodb.go.api.TupleType
 import org.usvm.types.USupportTypeStream
 import org.usvm.types.UTypeStream
 import org.usvm.types.UTypeSystem
@@ -39,15 +37,7 @@ class GoTypeSystem(
             isInstantiable(type.underlyingType)
         }
         is PointerType -> {
-            isInstantiable(type.baseType)
-        }
-        else -> {
-            false
-        }
-    }
-
-    override fun isFinal(type: GoType): Boolean = when (type) {
-        is BasicType, is ArrayType, is SliceType, is MapType, is PointerType, is SignatureType, is TupleType -> {
+            // A pointer value is valid even when its pointee is an interface or a recursive pointer type.
             true
         }
         else -> {
@@ -55,21 +45,17 @@ class GoTypeSystem(
         }
     }
 
-    override fun hasCommonSubtype(type: GoType, types: Collection<GoType>): Boolean = when (type) {
-        is BasicType, is ArrayType, is SliceType, is MapType, is PointerType, is SignatureType, is TupleType -> {
-            types.isEmpty()
-        }
-        is InterfaceType -> {
-            types.none { !isFinal(it) }
-        }
-        is NamedType -> {
-            hasCommonSubtype(type.underlyingType, types)
-        }
-        is StructType -> {
-            types.all { it is InterfaceType || isSupertype(it, type) }
-        }
-        else -> {
-            false
+    override fun isFinal(type: GoType): Boolean = when (type) {
+        is InterfaceType -> false
+        is NamedType -> type.underlying() !is InterfaceType
+        else -> true
+    }
+
+    override fun hasCommonSubtype(type: GoType, types: Collection<GoType>): Boolean {
+        if (isFinal(type)) return types.all { isSupertype(it, type) }
+
+        return findSubtypes(type).any { candidate ->
+            isInstantiable(candidate) && types.all { isSupertype(it, candidate) }
         }
     }
 
@@ -99,7 +85,7 @@ class GoTypeSystem(
             impl.methods.containsAll(iface.methods)
         }
         impl is PointerType -> {
-            implements(iface, impl.baseType)
+            impl.baseType.underlying() !is InterfaceType && implements(iface, impl.baseType)
         }
         else -> {
             false
