@@ -46,6 +46,9 @@ class InterfacesTest : GoMethodTestRunner() {
     @Test
     @GoSample(method = "assertCreatureFailNoComma")
     fun assertCreatureFailNoComma() {
+        // The return after this guaranteed failing assertion is unreachable in Go.
+        machineOptions = machineOptions.copy(failOnNotFullCoverage = false)
+
         checkDiscoveredProperties(
             method = "assertCreatureFailNoComma",
             analysisResultsNumberMatcher = ignoreNumberOfAnalysisResults,

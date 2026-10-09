@@ -17,12 +17,16 @@ internal data class GoArrayView(
     val capacity: UExpr<USizeSort>,
 )
 
-internal fun GoState.arrayView(reference: UHeapRef, type: GoType): GoArrayView {
+internal fun GoState.arrayView(
+    reference: UHeapRef,
+    type: GoType,
+    sourceMemory: UReadOnlyMemory<GoType> = memory,
+): GoArrayView {
     data.arrayViews[reference]?.let { return it }
 
     if (reference is KIteExpr) {
-        val positive = arrayView(reference.trueBranch, type)
-        val negative = arrayView(reference.falseBranch, type)
+        val positive = arrayView(reference.trueBranch, type, sourceMemory)
+        val negative = arrayView(reference.falseBranch, type, sourceMemory)
         check(positive.storageType == negative.storageType) { "Array view storage types differ" }
         return GoArrayView(
             ctx.mkIte(reference.condition, positive.backing, negative.backing),
@@ -37,7 +41,7 @@ internal fun GoState.arrayView(reference: UHeapRef, type: GoType): GoArrayView {
     val length = ctx.mkIte(
         ctx.mkHeapRefEq(reference, ctx.nullRef),
         trueBranch = { zero },
-        falseBranch = { memory.readGoArrayLength(reference, type, ctx.sizeSort) },
+        falseBranch = { sourceMemory.readGoArrayLength(reference, type, ctx.sizeSort) },
     )
     return GoArrayView(reference, type.arrayStorageType(), offset = zero, length = length, capacity = length)
 }

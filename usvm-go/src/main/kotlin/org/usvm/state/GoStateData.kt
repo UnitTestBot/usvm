@@ -1,6 +1,7 @@
 package org.usvm.state
 
 import org.jacodb.go.api.GoMethod
+import org.jacodb.go.api.GoType
 import org.usvm.GoCall
 import org.usvm.UHeapRef
 import org.usvm.memory.GoArrayView
@@ -19,6 +20,8 @@ class GoStateData(
 
     internal val pointerTargets: MutableMap<UHeapRef, ULValue<*, *>> = hashMapOf()
 
+    internal val pointerConversions: MutableMap<UHeapRef, GoPointerConversion> = hashMapOf()
+
     private val deferredCalls: MutableMap<GoMethod, ArrayDeque<GoCall>> = hashMapOf()
 
     val flowStatus: GoFlowStatus
@@ -32,6 +35,7 @@ class GoStateData(
 
     fun clone(): GoStateData = GoStateData(clonedFlowStack()).also {
         it.pointerTargets.putAll(pointerTargets)
+        it.pointerConversions.putAll(pointerConversions)
         it.arrayViews.putAll(arrayViews)
         for ((method, calls) in deferredCalls) {
             calls.forEach { call -> it.addDeferredCall(method, call) }
@@ -43,7 +47,8 @@ class GoStateData(
         val otherCalls = other.deferredCalls.mapValues { it.value.toList() }
         val sameCalls = thisCalls == otherCalls
         if (flowStack.toList() != other.flowStack.toList() || !sameCalls ||
-            arrayViews != other.arrayViews || pointerTargets != other.pointerTargets
+            arrayViews != other.arrayViews || pointerTargets != other.pointerTargets ||
+            pointerConversions != other.pointerConversions
         ) {
             return null
         }
@@ -56,3 +61,9 @@ class GoStateData(
         return newStack
     }
 }
+
+internal data class GoPointerConversion(
+    val source: UHeapRef,
+    val sourceType: GoType,
+    val targetType: GoType,
+)
