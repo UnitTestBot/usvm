@@ -471,7 +471,8 @@ type Named struct {
 
 type Pointer struct {
 	CommonType `yaml:"-,inline"`
-	Elem       string `yaml:"elem" json:"elem"`
+	Elem       string   `yaml:"elem" json:"elem"`
+	Methods    []string `yaml:"methods,omitempty" json:"methods,omitempty"`
 }
 
 type Signature struct {

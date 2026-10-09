@@ -94,11 +94,13 @@ func (p *Package) AddType(typ types.Type) {
 			p.Members = append(p.Members, p.PackMember(f))
 		}
 		p.AddType(t.Underlying())
+		p.AddType(types.NewPointer(t))
 	case *types.Pointer:
 		common.Type = PointerType
 		p.Types[name] = Pointer{
 			CommonType: common,
 			Elem:       t.Elem().String(),
+			Methods:    p.PackMethods(t),
 		}
 		p.AddType(t.Elem())
 	case *types.Signature:
@@ -632,10 +634,11 @@ func (p *Package) PackValueIdx(in ssa.Value, _ int) Value {
 	return p.PackValue(in)
 }
 
-func (p *Package) PackMethods(in WithMethods) []string {
-	methods := make([]string, 0)
-	for i := 0; i < in.NumMethods(); i++ {
-		method := in.Method(i)
+func (p *Package) PackMethods(in types.Type) []string {
+	methodSet := types.NewMethodSet(in)
+	methods := make([]string, 0, methodSet.Len())
+	for i := 0; i < methodSet.Len(); i++ {
+		method := methodSet.At(i).Obj()
 		signature := method.Type().(*types.Signature)
 		methods = append(methods, method.Name()+p.PackMethodParams(signature.Params())+p.PackMethodResults(signature.Results()))
 	}

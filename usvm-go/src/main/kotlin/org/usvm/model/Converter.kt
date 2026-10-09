@@ -139,7 +139,16 @@ class Converter private constructor() {
         val globals = pkg.members.filterIsInstance<Member.Global>().map { global ->
             GoGlobal(global.index, global.name, getType(global.goType))
         }
-        return GoPackage(pkg.name, methods, globals, typesMap.toMap(), intSize = pkg.intSize)
+        val methodSets = pkg.types.values.mapNotNull { type ->
+            val declaredMethods = when (type) {
+                is Type.Named -> type.methods
+                is Type.Pointer -> type.methods
+                is Type.Interface -> type.methods
+                else -> return@mapNotNull null
+            }
+            getType(type.name) to declaredMethods
+        }.toMap()
+        return GoPackage(pkg.name, methods, globals, typesMap.toMap(), intSize = pkg.intSize, methodSets = methodSets)
     }
 
     private fun unpack(index: Int, param: Value): GoParameter {
@@ -735,7 +744,7 @@ class Converter private constructor() {
     private fun getType(type: String): GoType = typesMap.getValue(type)
 
     private fun functionAlias(name: String): GoFunction {
-        return GoFunction(OpaqueType(name), emptyList(), name, emptyList(), "", emptyList(), emptyList())
+        return GoFunction(OpaqueType(name), emptyList(), name, emptyList(), packageName = "", emptyList(), emptyList())
     }
 
     private fun unsupportedInstruction(parent: GoMethod): GoInst {

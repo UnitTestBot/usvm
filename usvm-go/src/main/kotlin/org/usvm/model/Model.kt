@@ -599,6 +599,7 @@ sealed interface Type {
     data class Pointer(
         override val name: String,
         val elem: String,
+        val methods: List<String> = emptyList(),
     ) : Type
 
     @Serializable

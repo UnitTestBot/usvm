@@ -17,6 +17,7 @@ import kotlin.time.Duration
 class GoTypeSystem(
     override val typeOperationsTimeout: Duration,
     val types: Collection<GoType>,
+    private val methodSets: Map<GoType, List<String>>,
 ) : UTypeSystem<GoType> {
     private val goAnyType = InterfaceType(emptyList(), "any")
     private val topTypeStream by lazy { USupportTypeStream.from(this, goAnyType) }
@@ -60,7 +61,8 @@ class GoTypeSystem(
     }
 
     override fun isSupertype(supertype: GoType, type: GoType): Boolean = when {
-        supertype == type -> {
+        // JacoDB pointer type names omit "*", so equal names alone do not establish Go type identity.
+        supertype::class == type::class && supertype == type -> {
             true
         }
         supertype is NamedType && supertype.underlyingType is InterfaceType -> {
@@ -82,10 +84,10 @@ class GoTypeSystem(
             true
         }
         impl is NamedType -> {
-            impl.methods.containsAll(iface.methods)
+            methodSets.getValue(impl).containsAll(iface.methods)
         }
         impl is PointerType -> {
-            impl.baseType.underlying() !is InterfaceType && implements(iface, impl.baseType)
+            impl.baseType.underlying() !is InterfaceType && methodSets.getValue(impl).containsAll(iface.methods)
         }
         else -> {
             false

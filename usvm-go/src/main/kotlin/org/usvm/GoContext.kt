@@ -27,19 +27,12 @@ class GoContext(
     private val methodInfo: MutableMap<GoMethod, GoMethodInfo> = hashMapOf()
     private val globals: MutableMap<GoGlobal, UExpr<out USort>> = hashMapOf()
 
-    fun getMethodInfo(method: GoMethod) = methodInfo.getValue(method)
-
-    fun setMethodInfo(method: GoMethod) {
+    fun getMethodInfo(method: GoMethod): GoMethodInfo = methodInfo.getOrPut(method) {
         val localsCount = method.blocks.flatMap { it.instructions }.filterIsInstance<GoAssignInst>().size
-        val argumentsCount = method.parameters.size
-
-        setMethodInfo(method, GoMethodInfo(localsCount, argumentsCount, emptyArray()))
-    }
-
-    fun setMethodInfo(method: GoMethod, parameters: Array<UExpr<out USort>>) {
-        val localsCount = method.blocks.flatMap { it.instructions }.filterIsInstance<GoAssignInst>().size
-        val freeVariablesCount = getFreeVariablesCount(method)
-        setMethodInfo(method, GoMethodInfo(localsCount + freeVariablesCount, parameters.size, parameters))
+        GoMethodInfo(
+            variablesCount = localsCount + getFreeVariablesCount(method),
+            argumentsCount = method.parameters.size,
+        )
     }
 
     fun addGlobal(global: GoGlobal, expr: UExpr<out USort>) {
@@ -97,11 +90,7 @@ class GoContext(
         }
     }
 
-    private fun setMethodInfo(method: GoMethod, info: GoMethodInfo) {
-        methodInfo[method] = info
-    }
-
-    private fun getArgsCount(method: GoMethod): Int = methodInfo.getValue(method).argumentsCount
+    private fun getArgsCount(method: GoMethod): Int = getMethodInfo(method).argumentsCount
 
     private fun getFreeVariablesCount(method: GoMethod): Int = when (method) {
         is GoFunction -> {

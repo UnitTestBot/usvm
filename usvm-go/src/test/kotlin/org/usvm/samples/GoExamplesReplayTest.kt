@@ -1,6 +1,5 @@
 package org.usvm.samples
 
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
@@ -16,10 +15,9 @@ import mu.KotlinLogging
 import org.junit.jupiter.api.Test
 import org.usvm.generatedGoFile
 import org.usvm.interpreter.GoPointer
-import java.nio.file.Files
-import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.seconds
 
 class GoExamplesReplayTest : GoMethodTestRunner() {
     @Test
@@ -46,7 +44,7 @@ internal object GoExamplesReplay {
     private val logger = KotlinLogging.logger {}
 
     fun replay(method: String, executions: List<GoExecution>) {
-        assertTrue(executions.isNotEmpty(), "Replay needs generated inputs")
+        assertTrue(executions.isNotEmpty(), message = "Replay needs generated inputs")
         val request = buildJsonObject {
             put("method", method)
             put(
@@ -55,50 +53,35 @@ internal object GoExamplesReplay {
             )
         }
 
-        val replayFile = Files.createTempFile("usvm-go-examples-replay-", ".json").toFile()
-        val logFile = Files.createTempFile("usvm-go-examples-replay-", ".log").toFile()
-        try {
-            replayFile.writeText(request.toString())
-            val builder = ProcessBuilder(
-                generatedGoFile("native-examples-replay.test").path,
-                "-test.run=^TestReplayExamples$"
-            ).redirectErrorStream(true).redirectOutput(logFile)
-            builder.environment()["USVM_GO_REPLAY_FILE"] = replayFile.path
-            val process = builder.start()
-            try {
-                assertTrue(process.waitFor(10, TimeUnit.SECONDS), "Native replay timed out")
-                assertEquals(expected = 0, actual = process.exitValue(), message = logFile.readText())
-            } finally {
-                process.destroyForcibly()
-            }
+        val nativeResults = replayWithNativeGo(
+            executable = generatedGoFile("native-examples-replay.test"),
+            testName = "TestReplayExamples",
+            request = request,
+            timeout = 10.seconds,
+        ).jsonArray
 
-            val nativeResults = Json.parseToJsonElement(replayFile.readText()).jsonArray
-            assertEquals(executions.size, nativeResults.size)
-            executions.zip(nativeResults).forEachIndexed { index, (execution, native) ->
-                val result = native.jsonObject
+        assertEquals(executions.size, nativeResults.size)
+        executions.zip(nativeResults).forEachIndexed { index, (execution, native) ->
+            val result = native.jsonObject
+            assertEquals(
+                expected = execution.result.isPanic,
+                actual = result.getValue("isPanic").jsonPrimitive.boolean,
+                message = "$method witness $index panic"
+            )
+            if (execution.result.isSuccess) {
                 assertEquals(
-                    expected = execution.result.isPanic,
-                    actual = result.getValue("isPanic").jsonPrimitive.boolean,
-                    message = "$method witness $index panic"
-                )
-                if (execution.result.isSuccess) {
-                    assertEquals(
-                        expected = toJson(execution.result.value),
-                        actual = result.getValue("value"),
-                        message = "$method witness $index result"
-                    )
-                }
-                assertEquals(
-                    expected = toJson(execution.argumentsAfter),
-                    actual = result.getValue("argumentsAfter"),
-                    message = "$method witness $index arguments after"
+                    expected = toJson(execution.result.value),
+                    actual = result.getValue("value"),
+                    message = "$method witness $index result"
                 )
             }
-            logger.info { "Replayed ${executions.size} generated inputs for $method with native Go" }
-        } finally {
-            replayFile.delete()
-            logFile.delete()
+            assertEquals(
+                expected = toJson(execution.argumentsAfter),
+                actual = result.getValue("argumentsAfter"),
+                message = "$method witness $index arguments after"
+            )
         }
+        logger.info { "Replayed ${executions.size} generated inputs for $method with native Go" }
     }
 
     private fun toJson(value: Any?): JsonElement = when (value) {

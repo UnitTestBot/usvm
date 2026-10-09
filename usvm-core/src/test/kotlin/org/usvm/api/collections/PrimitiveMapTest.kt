@@ -42,8 +42,8 @@ class PrimitiveMapTest : SymbolicCollectionTestBase() {
     @Test
     fun symbolicKeyEqualityControlsSize() = scope.doWithState {
         val map = mkSymbolicObjectMap(mapType)
-        val first = ctx.mkRegisterReading(0, ctx.bv32Sort)
-        val second = ctx.mkRegisterReading(1, ctx.bv32Sort)
+        val first = ctx.mkRegisterReading(idx = 0, sort = ctx.bv32Sort)
+        val second = ctx.mkRegisterReading(idx = 1, sort = ctx.bv32Sort)
         val keyInfo = USizeExprKeyInfo<UBv32Sort>()
 
         symbolicPrimitiveMapPut(map, first, ctx.mkBv(1), mapType, keyInfo)

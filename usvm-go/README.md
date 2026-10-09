@@ -56,9 +56,9 @@ retain structured values and interface dynamic types; these snapshots do not pre
 object identity or the complete alias graph. Function parameters remain mocked: the
 `call` example checks that mock contract, rather than replaying an actual function body.
 
-The thematic `*RegressionTest` classes compare results with native Go for **80
-zero-argument scalar/panic cases**. Branch, slice-alias and named-number/interface
-checks replay seven generated concrete inputs in a native Go executable.
+The thematic `*RegressionTest` classes compare results with native Go for **108
+zero-argument scalar/panic cases**. Branch, slice-alias, named-number/interface and
+composite-copy checks replay 19 generated concrete inputs in a native Go executable.
 `GoExamplesReplayTest` additionally replays generated array, slice, pointer and object
 inputs against the original example functions, checking return values, panic occurrence
 and argument snapshots after execution. The manual map test replays the original
@@ -81,7 +81,7 @@ instruction coverage but still enforce their semantic expectations.
 `Building` assertion always panics, so the following return is unreachable. Every
 collected execution must still satisfy its panic expectation.
 
-The current local validation passes **201 default tests** and **5 manual tests**, with
+The current local validation passes **237 default tests** and **5 manual tests**, with
 no failures or skipped tests. Detekt on Go main/test sources, `validateProjectList`
 and `git diff --check` pass. These counts describe a bounded local run, not an exhaustive
 proof or a count of independent semantics supported.
@@ -90,25 +90,35 @@ The reproduced defects are now covered by symbolic expectations and selected nat
 comparisons:
 
 - Nil-map lookup, comma-ok, deletion, range and assignment panic, including named maps.
-  Absent comma-ok lookups return zero. Integer keys/values have native regressions; a
-  symbolic test requires nil, absent-key and present-key witnesses.
+  Absent lookups return type-specific zero values, including structs, arrays and named
+  scalars. Map insertion and lookup copy struct/array values. Integer keys/values have
+  native regressions; a symbolic test requires nil, absent-key and present-key witnesses.
 - Named scalars, unary operators, interface assertions, argument snapshots, unsigned
   integer-to-float conversion, finite representable float-to-integer truncation and
   exact float-literal export. All 34 arithmetic/named-number tests pass.
 - Input shapes and snapshots for arrays, structs, named values, interfaces, maps and
   slices; valid representation tags are constraints rather than artificial Go panics.
-- Array/struct copying on assignment, calls and interface boxing, including nested
-  structs. Native regressions check that changing a copy preserves the original.
+- Array/struct copying on assignment, calls, interface boxing, map insertion/lookup,
+  `copy` and `append`, including nested structs. Native regressions check independent
+  value fields and shared pointees inside copied structs. Composite slice copies read
+  a source snapshot and advance one element per machine step, supporting overlapping
+  ranges and symbolic lengths within the normal analysis budgets.
+- Deferred calls capture arguments when registered and keep a separate defer stack for
+  each invocation. Native regressions cover repeated calls, value arguments and recursion.
 - Pointer conversions preserve nil and a shared pointee. Native regressions check
   aliasing in both conversion directions and round-trip equality.
 - Comma-ok assertions produce composite zero values; failed non-comma assertions panic.
   Interface calls explore admissible concrete receivers and typed nil pointer panics.
-  Pointers to interfaces do not acquire the interface's methods.
+  Value and pointer method sets are exported separately; a value does not acquire
+  pointer-receiver methods. Pointers to interfaces do not acquire interface methods.
+  Named nilable values compare their payload with nil, including failed assertions.
 - Model resolution refines oversized collection witnesses within the same path constraints.
   If no witness fits the materialization limit, resolution reports unsupported rather
   than truncating the value and presenting it as a successful concrete result.
-- Slice bounds use direct comparisons without overflowing `limit + 1`. The map-iteration
-  expectation follows the source's zero-initialized keys, independently checked by replay.
+- Slice bounds use direct comparisons without overflowing `limit + 1`; narrow signed
+  indices must be nonnegative before widening. Stores through nil pointers panic.
+  The map-iteration expectation follows the source's zero-initialized keys, independently
+  checked by replay.
 
 `generateGoImports` can export the import examples for investigation. The original
 import/standard-library exploratory factories depended on manually prepared dumps;
@@ -142,9 +152,9 @@ support. In particular:
 - Unknown external calls and function parameters retain the prototype's mocking
   behavior. `GoFunctionReference` identifies a function input that cannot be replayed.
 - Selected array/struct copies and scalar-pointer conversions have native validation.
-  General pointer/interface identity and equality, reference map keys, and zero values
-  for composite/named map values still need broader validation. Nil-map regressions
-  currently cover integer keys/values.
+  General pointer/interface identity and equality and reference map keys still need
+  broader validation. Map-zero regressions cover selected struct, array and named scalar
+  values; nil-map regressions currently cover integer keys/values.
 - Package loading, standard-library integration and arbitrary repository workflows
   have not been validated end to end. Instruction coverage alone is not a semantic
   correctness check.

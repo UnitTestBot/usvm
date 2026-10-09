@@ -38,7 +38,7 @@ class GoMachine(
     override val options: UMachineOptions,
     private val customOptions: GoMachineOptions,
 ) : UMachine<GoState>() {
-    private val typeSystem = GoTypeSystem(options.typeOperationsTimeout, program.types.values)
+    private val typeSystem = GoTypeSystem(options.typeOperationsTimeout, program.types.values, program.methodSets)
     private val applicationGraph = GoApplicationGraph()
     private val components = GoComponents(typeSystem, options)
     private val ctx = GoContext(components, intSize = program.intSize)

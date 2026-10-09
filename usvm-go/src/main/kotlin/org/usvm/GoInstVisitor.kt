@@ -107,12 +107,11 @@ class GoInstVisitor(
         val name = (inst.func.accept(exprVisitor) as KConst).toString()
         val method = program.findMethod(inst.location, name)
 
-        val parameters = inst.args.map { it.accept(exprVisitor) }.toTypedArray()
-        val call = GoCall(method, applicationGraph.entryPoints(method).first())
-        ctx.setMethodInfo(method, parameters)
+        val parameters = inst.args.map { it.accept(exprVisitor) }
 
         scope.doWithState {
-            data.addDeferredCall(lastEnteredMethod, call)
+            val call = createCall(method, applicationGraph.entryPoints(method).first(), parameters)
+            data.addDeferredCall(call)
         }
         return next(inst)
     }
@@ -123,12 +122,8 @@ class GoInstVisitor(
 
     override fun visitGoStoreInst(inst: GoStoreInst): GoInst {
         val pointer = inst.lhv.accept(exprVisitor).asExpr(ctx.addressSort)
-        if (pointer is UNullRef) {
-            return scope.calcOnState {
-                panic("null pointer dereference")
-                next(inst)
-            }
-        }
+        val nonNil = ctx.mkNot(ctx.mkHeapRefEq(pointer, ctx.nullRef))
+        scope.fork(nonNil, blockOnFalseState = { panic("null pointer dereference") }) ?: throw GoStepAbort()
         val rvalue = inst.rhv.accept(exprVisitor)
         scope.doWithState {
             store(pointer, copyValue(rvalue, inst.rhv.type))
@@ -162,7 +157,8 @@ class GoInstVisitor(
 
             val keyIsNew = ctx.mkNot(memory.read(mapContainsLValue))
 
-            memory.write(mapEntryLValue, value.asExpr(value.sort), ctx.trueExpr)
+            val copiedValue = copyValue(value, inst.value.type)
+            memory.write(mapEntryLValue, copiedValue.asExpr(value.sort), ctx.trueExpr)
             memory.write(mapContainsLValue, ctx.trueExpr, ctx.trueExpr)
 
             val updatedSize = ctx.mkSizeAddExpr(currentSize, ctx.mkSizeExpr(1))
