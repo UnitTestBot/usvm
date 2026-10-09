@@ -11,7 +11,28 @@ class Other {
     x: boolean = false;
 }
 
+class OtherString {
+    shadowedNumber: string = "unrelated";
+}
+
 class Probe {
+    numericFieldWithStringCollision(): number {
+        const obj = {};
+        obj.shadowedNumber = 7;
+        return "shadowedNumber" in obj ? obj.shadowedNumber : 0;
+    }
+
+    writtenStringField(): number {
+        const obj = {};
+        obj.y = "1234567";
+        return "y" in obj ? obj.y.length : 0;
+    }
+
+    declaredStringField(): number {
+        const obj = { y: "1234567" };
+        return "y" in obj ? obj.y.length : 0;
+    }
+
     run(): number {
         return result;
     }
