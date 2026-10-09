@@ -111,10 +111,6 @@ class InOperator {
         return key in obj;
     }
 
-    hasInputProperty(obj: { x: number }): boolean {
-        return "x" in obj;
-    }
-
     testInOperatorObject(): number {
         let obj = { x: 42, y: undefined };
 
