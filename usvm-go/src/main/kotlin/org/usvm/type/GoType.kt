@@ -9,7 +9,6 @@ import io.ksmt.sort.KSortVisitor
 import org.jacodb.go.api.BasicType
 import org.jacodb.go.api.GoType
 import org.jacodb.go.api.NamedType
-import org.jacodb.go.api.SliceType
 import org.usvm.GoContext
 import org.usvm.UExpr
 import org.usvm.USort
@@ -57,14 +56,18 @@ object GoBasicTypes {
     val UINTPTR = BasicType(GoTypes.UINTPTR)
     val FLOAT32 = BasicType(GoTypes.FLOAT32)
     val FLOAT64 = BasicType(GoTypes.FLOAT64)
-    val STRING = SliceType(UINT8)
+    val STRING = BasicType("string")
     val RUNE = BasicType(GoTypes.RUNE)
     val UNSAFE_POINTER = BasicType(GoTypes.UNSAFE_POINTER)
 }
 
 fun GoType.underlying(): GoType = when (this) {
-    is NamedType -> this.underlyingType.underlying()
-    else -> this
+    is NamedType -> {
+        this.underlyingType.underlying()
+    }
+    else -> {
+        this
+    }
 }
 
 class GoVoidSort(ctx: GoContext) : USort(ctx) {

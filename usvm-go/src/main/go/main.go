@@ -9,6 +9,7 @@ import (
 )
 
 var (
+	outputDir     = flag.String("output-dir", "out", "Directory for serialized SSA packages")
 	packageName   = flag.String("packageName", "usvm/examples", "Full package name")
 	enableTracing = flag.Bool("enable-tracing", false, "Enables tracing via Logf")
 
@@ -47,7 +48,7 @@ func main() {
 	CheckError(err)
 
 	if !*dryRun {
-		ssaInfo.Write()
+		ssaInfo.Write(*outputDir)
 	}
 
 	log.Printf("Done! Took %.3f seconds\n", time.Since(now).Seconds())

@@ -23,6 +23,7 @@ import org.jacodb.go.api.MapType
 import org.jacodb.go.api.NamedType
 import org.jacodb.go.api.NullType
 import org.jacodb.go.api.PointerType
+import org.jacodb.go.api.SignatureType
 import org.jacodb.go.api.SliceType
 import org.jacodb.go.api.StructType
 import org.jacodb.go.api.TupleType
@@ -34,8 +35,6 @@ import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapAnyKey
-import org.usvm.api.readArrayIndex
-import org.usvm.api.readArrayLength
 import org.usvm.api.readField
 import org.usvm.api.typeStreamOf
 import org.usvm.collection.map.length.UMapLengthLValue
@@ -50,7 +49,10 @@ import org.usvm.isTrue
 import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.memory.UWritableMemory
+import org.usvm.memory.arrayView
 import org.usvm.memory.key.USizeExprKeyInfo
+import org.usvm.memory.readGoArrayIndex
+import org.usvm.mkSizeAddExpr
 import org.usvm.mkSizeExpr
 import org.usvm.model.UModelBase
 import org.usvm.sampleUValue
@@ -102,43 +104,91 @@ class GoTestInterpreter(
         private val model: UModelBase<GoType>,
         private val memory: UWritableMemory<GoType>,
     ) {
-        fun convertExpr(expr: UExpr<out USort>, baseType: GoType): Any = when (expr.sort) {
-            is GoVoidSort -> ""
-            is KBoolSort -> resolveBool(expr)
-            is KBv8Sort -> resolveBv8(expr)
-            is KBv16Sort -> resolveBv16(expr)
-            is KBv32Sort -> resolveBv32(expr).let { if (baseType == GoBasicTypes.RUNE) Char(it) else it }
-            is KBv64Sort -> resolveBv64(expr)
-            is KFp32Sort -> resolveFp32(expr)
-            is KFp64Sort -> resolveFp64(expr)
-            is UAddressSort -> when (expr.sort) {
-                ctx.addressSort -> {
-                    val h = expr.asExpr(ctx.addressSort)
-                    val named = baseType is NamedType
-                    val prefix = if (named) (baseType as NamedType).name + ": " else ""
-                    prefix + when (val type = baseType.underlying()) {
-                        GoBasicTypes.STRING -> if (named) resolveBoxed(h, type) else resolveString(h, type)
-                        is BasicType -> resolveBoxed(h, type)
-                        is ArrayType -> {
-                            if (named) resolveBoxed(h, type) else resolveArray(h, type, type.len, type.elementType)
-                        }
-                        is SliceType -> if (named) resolveBoxed(h, type) else resolveSlice(h, type, type.elementType)
-                        is MapType -> {
-                            if (named) resolveBoxed(h, type) else resolveMap(h, type, type.keyType, type.valueType)
-                        }
-                        is TupleType -> resolveTuple(h, type)
-                        is StructType -> if (named) resolveBoxed(h, type) else resolveStruct(h, type)
-                        is InterfaceType -> resolveInterface(h)
-                        is NullType -> null
-                        is PointerType -> resolvePointer(h, type.baseType)
-                        else -> Any()
-                    }
+        fun convertExpr(expr: UExpr<out USort>, baseType: GoType): Any? = when (expr.sort) {
+            is GoVoidSort -> {
+                ""
+            }
+            is KBoolSort -> {
+                resolveBool(expr)
+            }
+            is KBv8Sort -> {
+                val value = resolveBv8(expr)
+                if (baseType == GoBasicTypes.UINT8) value.toUByte() else value
+            }
+            is KBv16Sort -> {
+                val value = resolveBv16(expr)
+                if (baseType == GoBasicTypes.UINT16) value.toUShort() else value
+            }
+            is KBv32Sort -> {
+                val value = resolveBv32(expr)
+                when (baseType) {
+                    GoBasicTypes.UINT, GoBasicTypes.UINT32, GoBasicTypes.UINTPTR -> value.toUInt()
+                    GoBasicTypes.RUNE -> Char(value)
+                    else -> value
                 }
-
-                else -> Any()
+            }
+            is KBv64Sort -> {
+                val value = resolveBv64(expr)
+                val unsigned = baseType == GoBasicTypes.UINT ||
+                    baseType == GoBasicTypes.UINT64 || baseType == GoBasicTypes.UINTPTR
+                if (unsigned) value.toULong() else value
+            }
+            is KFp32Sort -> {
+                resolveFp32(expr)
+            }
+            is KFp64Sort -> {
+                resolveFp64(expr)
+            }
+            is UAddressSort -> {
+                resolveReference(expr.asExpr(ctx.addressSort), baseType)
             }
 
-            else -> Any()
+            else -> {
+                Any()
+            }
+        }
+
+        private fun resolveReference(reference: UHeapRef, baseType: GoType): Any? {
+            val type = baseType.underlying()
+            if (baseType is NamedType) return resolveBoxed(reference, type)
+            return when (type) {
+                GoBasicTypes.STRING -> {
+                    resolveString(reference, type)
+                }
+                is BasicType -> {
+                    resolveBoxed(reference, type)
+                }
+                is ArrayType -> {
+                    resolveArray(reference, type, type.len, type.elementType)
+                }
+                is SliceType -> {
+                    resolveSlice(reference, type, type.elementType)
+                }
+                is MapType -> {
+                    resolveMap(reference, type, type.keyType, type.valueType)
+                }
+                is TupleType -> {
+                    resolveTuple(reference, type)
+                }
+                is StructType -> {
+                    resolveStruct(reference, type)
+                }
+                is InterfaceType -> {
+                    resolveInterface(reference)
+                }
+                is NullType -> {
+                    null
+                }
+                is PointerType -> {
+                    resolvePointer(reference, type.baseType)
+                }
+                is SignatureType -> {
+                    GoFunctionReference(reference.toString())
+                }
+                else -> {
+                    error("Cannot resolve Go type: $type")
+                }
+            }
         }
 
         fun resolveBool(expr: UExpr<out USort>) = model.eval(expr).asExpr(ctx.boolSort).isTrue
@@ -162,13 +212,19 @@ class GoTestInterpreter(
                 return ""
             }
 
-            val lengthUExpr = memory.readArrayLength(string, arrayType, sizeSort)
+            val view = state.arrayView(string, arrayType)
+            val lengthUExpr = view.length
             val length = clipArrayLength(resolveSize(lengthUExpr))
 
             val buffer = ByteBuffer.allocate(length * Byte.SIZE_BYTES)
             for (i in 0..<length) {
-                val element = memory.readArrayIndex(string, mkSizeExpr(i), arrayType, bv8Sort)
-                val byte = convertExpr(element, GoBasicTypes.UINT8) as Byte
+                val element = memory.readGoArrayIndex(
+                    view.backing,
+                    ctx.mkSizeAddExpr(view.offset, mkSizeExpr(i)),
+                    view.storageType,
+                    bv8Sort
+                )
+                val byte = resolveBv8(element)
                 buffer.put(byte)
             }
 
@@ -182,10 +238,16 @@ class GoTestInterpreter(
                 return null
             }
 
+            val view = state.arrayView(array, arrayType)
             val length = clipArrayLength(len.toInt())
             val sort = typeToSort(elementType)
             return List(length) { idx ->
-                val element = memory.readArrayIndex(array, mkSizeExpr(idx), arrayType, sort)
+                val element = memory.readGoArrayIndex(
+                    view.backing,
+                    mkBvAddExpr(view.offset, mkSizeExpr(idx)),
+                    view.storageType,
+                    sort
+                )
                 convertExpr(element, elementType)
             }
         }
@@ -195,21 +257,27 @@ class GoTestInterpreter(
                 return null
             }
 
-            val lengthUExpr = memory.readArrayLength(slice, sliceType, sizeSort)
+            val view = state.arrayView(slice, sliceType)
+            val lengthUExpr = view.length
             val length = clipArrayLength(resolveSize(lengthUExpr))
             val sort = typeToSort(elementType)
             return List(length) { idx ->
-                val element = memory.readArrayIndex(slice, mkSizeExpr(idx), sliceType, sort)
+                val offset = view.offset
+                val index = ctx.mkBvAddExpr(offset, mkSizeExpr(idx))
+                val element = memory.readGoArrayIndex(
+                    view.backing,
+                    index,
+                    view.storageType,
+                    sort
+                )
                 convertExpr(element, elementType)
             }
         }
 
-        fun resolveMap(
-            map: UHeapRef,
-            mapType: GoType,
-            keyType: GoType,
-            valueType: GoType,
-        ): Map<Any?, Any?>? = with(ctx) {
+        @Suppress("NestedBlockDepth") // Resolves both primitive and reference map regions.
+        fun resolveMap(map: UHeapRef, mapType: GoType, keyType: GoType, valueType: GoType): Map<Any?, Any?>? = with(
+            ctx
+        ) {
             if (map == mkConcreteHeapRef(NULL_ADDRESS) || map == nullRef) {
                 return null
             }
@@ -221,21 +289,29 @@ class GoTestInterpreter(
             val isRefSet = keySort == addressSort
 
             val addToMap: (MutableMap<Any?, Any?>, Set<ULValue<*, UBoolSort>>) -> Unit = { m, s ->
-                m.putAll(s.associate { entry ->
-                    val key = when (entry) {
-                        is URefSetEntryLValue<*> -> entry.setElement
-                        is USetEntryLValue<*, *, *> -> entry.setElement
-                        else -> throw IllegalStateException()
-                    }
+                m.putAll(
+                    s.associate { entry ->
+                        val key = when (entry) {
+                            is URefSetEntryLValue<*> -> {
+                                entry.setElement
+                            }
+                            is USetEntryLValue<*, *, *> -> {
+                                entry.setElement
+                            }
+                            else -> {
+                                error("Inconsistent Go interpreter state")
+                            }
+                        }
 
-                    val lvalue = if (isRefSet) {
-                        URefMapEntryLValue(valueSort, map, key.asExpr(addressSort), mapType)
-                    } else {
-                        UMapEntryLValue(keySort, valueSort, map, key.asExpr(keySort), mapType, USizeExprKeyInfo())
+                        val lvalue = if (isRefSet) {
+                            URefMapEntryLValue(valueSort, map, key.asExpr(addressSort), mapType)
+                        } else {
+                            UMapEntryLValue(keySort, valueSort, map, key.asExpr(keySort), mapType, USizeExprKeyInfo())
+                        }
+                        val value = memory.read(lvalue)
+                        convertExpr(key, keyStorageType) to convertExpr(value, valueType)
                     }
-                    val value = memory.read(lvalue)
-                    convertExpr(key, keyStorageType) to convertExpr(value, valueType)
-                })
+                )
             }
             val getEntries: (UHeapRef) -> Set<ULValue<*, UBoolSort>> = {
                 if (isRefSet) {
@@ -285,9 +361,10 @@ class GoTestInterpreter(
             }
 
             return structType.fields?.mapIndexed { idx, type -> idx to type }?.associate {
-                val (index, fieldType) = it
-                val fieldValue = memory.readField(struct, index, typeToSort(fieldType))
-                Pair("field$index", convertExpr(fieldValue, fieldType))
+                Pair(
+                    "field${it.first}",
+                    convertExpr(memory.readField(struct, it.first, typeToSort(it.second)), it.second)
+                )
             }
         }
 
@@ -307,12 +384,21 @@ class GoTestInterpreter(
             }
 
             val index = 0
-            val expr = memory.readField(pointer, index, ctx.typeToSort(baseType))
+            val target = state.data.pointerTargets[pointer]
+            val expr = if (target == null) {
+                memory.readField(
+                    pointer,
+                    index,
+                    ctx.typeToSort(baseType)
+                )
+            } else {
+                memory.read(target)
+            }
             return "&" + convertExpr(expr, baseType)
         }
 
         fun resolveBoxed(value: UHeapRef, type: GoType): Any? = with(ctx) {
-            if (value == mkConcreteHeapRef(NULL_ADDRESS)) {
+            if (value == mkConcreteHeapRef(NULL_ADDRESS) || value == nullRef) {
                 return null
             }
 
@@ -324,7 +410,9 @@ class GoTestInterpreter(
     companion object {
         fun clipArrayLength(length: Int): Int =
             when {
-                length in 0..MAX_ARRAY_LENGTH -> length
+                length in 0..MAX_ARRAY_LENGTH -> {
+                    length
+                }
 
                 length > MAX_ARRAY_LENGTH -> {
                     logger.warn { "Array length exceeds $MAX_ARRAY_LENGTH: $length" }
@@ -344,7 +432,7 @@ class GoTestInterpreter(
 sealed interface ProgramExecutionResult
 
 class InputModel(
-    private val arguments: List<Any?>,
+    val arguments: List<Any?>,
 ) {
     override fun toString(): String {
         return buildString {
@@ -356,7 +444,7 @@ class InputModel(
 }
 
 class OutputModel(
-    private val returnExpr: Any?,
+    val returnExpr: Any?,
 ) {
     override fun toString(): String {
         return buildString {
@@ -368,8 +456,8 @@ class OutputModel(
 }
 
 class SuccessfulExecutionResult(
-    private val inputModel: InputModel,
-    private val outputModel: OutputModel,
+    val inputModel: InputModel,
+    val outputModel: OutputModel,
 ) : ProgramExecutionResult {
     override fun toString(): String {
         return buildString {
@@ -385,7 +473,7 @@ class SuccessfulExecutionResult(
 }
 
 class UnsuccessfulExecutionResult(
-    private val inputModel: InputModel,
+    val inputModel: InputModel,
     private val result: Any?,
 ) : ProgramExecutionResult {
     override fun toString(): String {
@@ -449,7 +537,9 @@ class RNG(
             { random.nextDouble() }
         }
 
-        else -> throw IllegalStateException()
+        else -> {
+            error("Inconsistent Go interpreter state")
+        }
     }
 
     fun generateUniqueMapKey(map: Map<Any?, Any?>): Any? {
@@ -463,3 +553,6 @@ class RNG(
         return null
     }
 }
+
+/** A function supplied to a mocked call; it cannot currently be replayed as a concrete Go function. */
+data class GoFunctionReference(val expression: String)

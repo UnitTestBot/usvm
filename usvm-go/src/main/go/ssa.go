@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"go/token"
+	"go/types"
 	"io"
 	"log"
 	"os"
@@ -30,6 +31,7 @@ type SSA struct {
 
 	program  *ssa.Program
 	packages []*ssa.Package
+	intSize  int
 }
 
 func NewSSA(packageName string, cfg Config) (*SSA, error) {
@@ -69,6 +71,7 @@ func NewSSA(packageName string, cfg Config) (*SSA, error) {
 		output:   os.Stdout,
 		program:  program,
 		packages: program.AllPackages(),
+		intSize:  int(initialPackages[0].TypesSizes.Sizeof(types.Typ[types.Int]) * 8),
 	}
 
 	if cfg.DumpSSA {
@@ -86,22 +89,23 @@ func NewSSA(packageName string, cfg Config) (*SSA, error) {
 	return s, nil
 }
 
-func (s *SSA) Write() {
+func (s *SSA) Write(outputDir string) {
 	for _, pkg := range s.packages {
 		now := time.Now()
-		s.writePackage(pkg)
+		s.writePackage(pkg, outputDir)
 		log.Printf("%s serialized! Took %.3f seconds\n", pkg.String(), time.Since(now).Seconds())
 	}
 }
 
-func (s *SSA) writePackage(p *ssa.Package) {
+func (s *SSA) writePackage(p *ssa.Package, outputDir string) {
 	for _, ext := range []string{".yaml", ".json"} {
-		CheckError(os.MkdirAll(OutputDir, os.ModePerm))
-		output, err := os.Create(path.Join(OutputDir, strings.ReplaceAll(p.Pkg.Path(), "/", "_")+ext))
+		CheckError(os.MkdirAll(outputDir, os.ModePerm))
+		output, err := os.Create(path.Join(outputDir, strings.ReplaceAll(p.Pkg.Path(), "/", "_")+ext))
 		CheckError(err)
 
 		buf := &bytes.Buffer{}
 		pkg := PackPackage(p)
+		pkg.IntSize = s.intSize
 		if ext == ".yaml" {
 			CheckError(yaml.NewEncoder(buf).Encode(pkg))
 		} else {

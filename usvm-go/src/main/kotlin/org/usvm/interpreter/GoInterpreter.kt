@@ -33,6 +33,9 @@ class GoInterpreter(
     private val applicationGraph: ApplicationGraph<GoMethod, GoInst>,
     private var forkBlackList: UForkBlackList<GoState, GoInst> = UForkBlackList.createDefault(),
 ) : UInterpreter<GoState>() {
+    internal val unsupportedOperations: MutableList<UnsupportedOperationException> = mutableListOf()
+
+    @Suppress("NestedBlockDepth") // Initializes pointer chains for package globals.
     fun getInitialState(method: GoMethod, targets: List<GoTarget> = emptyList()): GoState = with(ctx) {
         val initOwnership = MutabilityOwnership()
         val state = GoState(ctx, initOwnership, method, targets = UTargetsSet.from(targets))
@@ -49,7 +52,7 @@ class GoInterpreter(
                 type = type.baseType
                 depth++
             }
-            for (i in 0 until depth) {
+            repeat(depth) {
                 ref = if (ref.address != NULL_ADDRESS) {
                     state.mkPointer(type, ref)
                 } else {
@@ -64,7 +67,7 @@ class GoInterpreter(
         setMethodInfo(method)
         state.addCall(GoCall(method, entrypoint))
         var previousEntrypoint = entrypoint
-        for (m in program.findInitMethods(method.packageName)+program.findOsInitMethods()) {
+        for (m in program.findInitMethods(method.packageName) + program.findOsInitMethods()) {
             setMethodInfo(m)
             state.addCall(GoCall(m, applicationGraph.entryPoints(m).first()), previousEntrypoint)
             previousEntrypoint = m.blocks[0].instructions[0]
@@ -81,9 +84,16 @@ class GoInterpreter(
 
         logger.debug("State {}: Step: {}", state.id, inst)
 
-        val nextInst = next(state, inst, instVisitor)
-        if (nextInst !is GoNullInst) {
-            state.newInst(nextInst)
+        try {
+            val nextInst = next(state, inst, instVisitor)
+            if (nextInst !is GoNullInst) {
+                state.newInst(nextInst)
+            }
+        } catch (_: GoStepAbort) {
+            // The scope already records the surviving panic or forked states.
+        } catch (error: UnsupportedOperationException) {
+            unsupportedOperations += error
+            throw error
         }
         return scope.stepResult()
     }
@@ -91,7 +101,9 @@ class GoInterpreter(
     private fun next(state: GoState, inst: GoInst, instVisitor: GoInstVisitor): GoInst {
         val method = state.lastEnteredMethod
         return when (state.data.flowStatus) {
-            GoFlowStatus.NORMAL -> inst.accept(instVisitor)
+            GoFlowStatus.NORMAL -> {
+                inst.accept(instVisitor)
+            }
             GoFlowStatus.DEFER -> {
                 val deferred = state.data.getDeferredCalls(method)
                 if (deferred.isEmpty()) {
@@ -108,7 +120,9 @@ class GoInterpreter(
                     state.data.flowStack.removeLast()
                     val function = method as GoFunction
                     function.setRecover()
-                    return function.recover!!.instructions.first()
+                    return checkNotNull(
+                        function.recover
+                    ) { "Recovered function has no recovery block" }.instructions.first()
                 }
 
                 if (state.data.getDeferredCalls(method).isEmpty()) {

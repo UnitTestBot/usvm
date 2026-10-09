@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"go/constant"
 	"go/types"
 	"log"
@@ -167,10 +168,7 @@ func (p *Package) PackMember(in ssa.Member) Member {
 		common.Type = NamedConstMember
 		return NamedConst{
 			CommonMember: common,
-			Value: NamedConstValue{
-				Type:  member.Value.Type().String(),
-				Value: member.Value.Value.String(),
-			},
+			Value:        packConstant(member.Value.Type().String(), member.Value.Value),
 		}
 	case *ssa.Global:
 		p.AddType(member.Type())
@@ -352,8 +350,8 @@ func (p *Package) PackInstruction(in ssa.Instruction, index int) Instruction {
 	case *ssa.Slice:
 		var (
 			low  ssa.Value = ssa.NewConst(constant.MakeInt64(0), types.Typ[types.Int])
-			high ssa.Value = ssa.NewConst(constant.MakeInt64(-1), types.Typ[types.Int])
-			mx   ssa.Value = ssa.NewConst(constant.MakeInt64(-1), types.Typ[types.Int])
+			high ssa.Value = ssa.NewConst(nil, types.Typ[types.UntypedNil])
+			mx   ssa.Value = ssa.NewConst(nil, types.Typ[types.UntypedNil])
 		)
 		if inst.Low != nil {
 			low = inst.Low
@@ -590,16 +588,9 @@ func (p *Package) PackValue(in ssa.Value) Value {
 	switch value := in.(type) {
 	case *ssa.Const:
 		common.Type = ConstValue
-		v := "nil"
-		if value.Value != nil {
-			v = value.Value.String()
-		}
 		return Const{
 			CommonValue: common,
-			Value: NamedConstValue{
-				Type:  value.Type().String(),
-				Value: v,
-			},
+			Value:       packConstant(value.Type().String(), value.Value),
 		}
 	case *ssa.Global:
 		common.Type = GlobalValue
@@ -715,4 +706,17 @@ type Typed interface {
 type WithMethods interface {
 	NumMethods() int
 	Method(i int) *types.Func
+}
+
+func packConstant(typeName string, value constant.Value) NamedConstValue {
+	result := NamedConstValue{Type: typeName, Value: "nil"}
+	if value == nil {
+		return result
+	}
+	result.Value = value.String()
+	if value.Kind() == constant.String {
+		encoded := base64.StdEncoding.EncodeToString([]byte(constant.StringVal(value)))
+		result.Bytes = &encoded
+	}
+	return result
 }

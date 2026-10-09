@@ -79,6 +79,7 @@ type Package struct {
 	Name    string          `yaml:"name" json:"name"`
 	Members []Member        `yaml:"members" json:"members"`
 	Types   map[string]Type `yaml:"types" json:"types"`
+	IntSize int             `yaml:"int_size" json:"int_size"`
 
 	program *ssa.Program
 }
@@ -105,8 +106,9 @@ type NamedConst struct {
 }
 
 type NamedConstValue struct {
-	Type  string `yaml:"type" json:"type"`
-	Value string `yaml:"value" json:"value"`
+	Bytes *string `yaml:"bytes,omitempty" json:"bytes,omitempty"`
+	Type  string  `yaml:"type" json:"type"`
+	Value string  `yaml:"value" json:"value"`
 }
 
 type MemberGlobal struct {

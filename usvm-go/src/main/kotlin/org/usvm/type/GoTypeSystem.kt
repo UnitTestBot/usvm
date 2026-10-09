@@ -32,40 +32,77 @@ class GoTypeSystem(
     }
 
     override fun isInstantiable(type: GoType): Boolean = when (type) {
-        is StructType, is MapType, is SliceType, is ArrayType, is BasicType -> true
-        is NamedType -> isInstantiable(type.underlyingType)
-        is PointerType -> isInstantiable(type.baseType)
-        else -> false
+        is StructType, is MapType, is SliceType, is ArrayType, is BasicType -> {
+            true
+        }
+        is NamedType -> {
+            isInstantiable(type.underlyingType)
+        }
+        is PointerType -> {
+            isInstantiable(type.baseType)
+        }
+        else -> {
+            false
+        }
     }
 
     override fun isFinal(type: GoType): Boolean = when (type) {
-        is BasicType, is ArrayType, is SliceType, is MapType, is PointerType, is SignatureType, is TupleType -> true
-        else -> false
+        is BasicType, is ArrayType, is SliceType, is MapType, is PointerType, is SignatureType, is TupleType -> {
+            true
+        }
+        else -> {
+            false
+        }
     }
 
     override fun hasCommonSubtype(type: GoType, types: Collection<GoType>): Boolean = when (type) {
         is BasicType, is ArrayType, is SliceType, is MapType, is PointerType, is SignatureType, is TupleType -> {
             types.isEmpty()
         }
-        is InterfaceType -> types.none { !isFinal(it) }
-        is NamedType -> hasCommonSubtype(type.underlyingType, types)
-        is StructType -> types.all { it is InterfaceType || isSupertype(it, type) }
-        else -> false
+        is InterfaceType -> {
+            types.none { !isFinal(it) }
+        }
+        is NamedType -> {
+            hasCommonSubtype(type.underlyingType, types)
+        }
+        is StructType -> {
+            types.all { it is InterfaceType || isSupertype(it, type) }
+        }
+        else -> {
+            false
+        }
     }
 
     override fun isSupertype(supertype: GoType, type: GoType): Boolean = when {
-        supertype == type -> true
-        supertype is NamedType && supertype.underlyingType is InterfaceType -> {
-            isSupertype(supertype.underlyingType, type)
+        supertype == type -> {
+            true
         }
-        supertype is InterfaceType -> implements(supertype, type)
-        else -> false
+        supertype is NamedType && supertype.underlyingType is InterfaceType -> {
+            isSupertype(
+                supertype.underlyingType,
+                type
+            )
+        }
+        supertype is InterfaceType -> {
+            implements(supertype, type)
+        }
+        else -> {
+            false
+        }
     }
 
     private fun implements(iface: InterfaceType, impl: GoType): Boolean = when {
-        iface.methods.isEmpty() -> true
-        impl is NamedType -> impl.methods.containsAll(iface.methods)
-        impl is PointerType -> implements(iface, impl.baseType)
-        else -> false
+        iface.methods.isEmpty() -> {
+            true
+        }
+        impl is NamedType -> {
+            impl.methods.containsAll(iface.methods)
+        }
+        impl is PointerType -> {
+            implements(iface, impl.baseType)
+        }
+        else -> {
+            false
+        }
     }
 }

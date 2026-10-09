@@ -3,16 +3,6 @@ package main
 import (
 	"io"
 	"log"
-	"path"
-	"path/filepath"
-	"runtime"
-)
-
-var (
-	_, filename, _, _ = runtime.Caller(0)
-
-	Root      = filepath.Dir(filename)
-	OutputDir = path.Join(Root, filepath.Dir("../../../out/"))
 )
 
 func CheckClose(c io.Closer) {

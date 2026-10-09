@@ -24,15 +24,11 @@ class GoApplicationGraph : ApplicationGraph<GoMethod, GoInst> {
             return emptySequence()
         }
         val callExpr = node.callExpr
-        return sequenceOf(callExpr.callee!!)
+        return listOfNotNull(callExpr.callee).asSequence()
     }
 
     override fun callers(method: GoMethod): Sequence<GoInst> {
-        var res = listOf<GoInst>()
-        for (block in method.blocks) {
-            res = listOf(res, block.instructions).flatten()
-        }
-        return res.asSequence()
+        return method.blocks.asSequence().flatMap { it.instructions }
     }
 
     override fun entryPoints(method: GoMethod): Sequence<GoInst> {

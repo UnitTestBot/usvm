@@ -1,121 +1,46 @@
 package org.usvm
 
-import org.jacodb.go.api.GoMethod
 import org.junit.jupiter.api.DynamicTest
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.TestFactory
 import org.usvm.model.Converter
 import org.usvm.model.Parser
-import java.nio.file.Files
-import java.nio.file.Paths
-import java.util.stream.Collectors
-import kotlin.io.path.extension
-import kotlin.io.path.pathString
-import kotlin.system.measureTimeMillis
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
+/** Coverage and execution smoke tests; scalar semantics are checked by GoSemanticRegressionTest. */
 class JacoDbTest {
     @TestFactory
-    fun jacodbTestLong(): Collection<DynamicTest> {
-        val pkg = Converter.unpack(Parser().deserialize("out/usvm_examples.json"))
+    fun fastSamples(): Collection<DynamicTest> = samples(slow = false)
+
+    @Tag("manual")
+    @TestFactory
+    fun slowSamples(): Collection<DynamicTest> = samples(slow = true)
+
+    private fun samples(slow: Boolean): Collection<DynamicTest> {
+        val pkg = Converter.unpack(Parser().deserialize(generatedGoFile("examples/usvm_examples.json").path))
         val program = GoProgram(listOf(pkg))
-
-        return methods(pkg).filter { it.metName in longMethods }.map { method ->
+        val options = UMachineOptions(
+            pathSelectionStrategies = listOf(PathSelectionStrategy.FORK_DEPTH),
+            coverageZone = CoverageZone.TRANSITIVE,
+            exceptionsPropagation = true,
+            timeout = (if (slow) 30 else 5).seconds,
+            solverTimeout = 2.seconds,
+            typeOperationsTimeout = 2.seconds,
+        )
+        val customOptions = GoMachineOptions(
+            failOnNotFullCoverage = true,
+            uncoveredMethods = listOf("panicRecoverComplex"),
+        )
+        return pkg.methods.filter { '$' !in it.metName && (it.metName in slowMethods) == slow }.map { method ->
             DynamicTest.dynamicTest(method.metName) {
                 GoMachine(program, options, customOptions).use { machine ->
-                    analyzeAndLog(machine, pkg, method.metName)
+                    val results = machine.analyzeAndResolve(pkg, method.metName)
+                    assertTrue(results.isNotEmpty(), "No complete execution for ${method.metName}")
                 }
             }
         }
     }
 
-    @TestFactory
-    fun jacodbTestFast(): Collection<DynamicTest> {
-        val pkg = Converter.unpack(Parser().deserialize("out/usvm_examples.json"))
-        val program = GoProgram(listOf(pkg))
-
-        return methods(pkg)
-            .filter { it.metName !in longMethods }
-            .let { if (whitelist.isEmpty()) it else it.filter { m -> m.metName in whitelist } }
-            .map { method ->
-                DynamicTest.dynamicTest(method.metName) {
-                    GoMachine(program, options, customOptions).use { machine ->
-                        analyzeAndLog(machine, pkg, method.metName)
-                    }
-                }
-            }
-    }
-
-    @TestFactory
-    fun jacodbTestImports(): Collection<DynamicTest> {
-        val packages = Files.list(Paths.get("out")).use { paths ->
-            paths.filter { path -> path.extension != "yaml" }
-                .map { Converter.unpack(Parser().deserialize(it.pathString)) }
-                .collect(Collectors.toList())
-        }
-        val program = GoProgram(packages)
-        val pkg = program.findPackage("usvm/examples/imports")
-
-        return methods(pkg).filter { it.metName !in longMethods }.map { method ->
-            DynamicTest.dynamicTest(method.metName) {
-                GoMachine(program, options, customOptions).use { machine ->
-                    analyzeAndLog(machine, pkg, method.metName)
-                }
-            }
-        }
-    }
-
-    @TestFactory
-    fun jacodbTestStdStrings(): Collection<DynamicTest> {
-        val packages = Files.list(Paths.get("out")).use { paths ->
-            paths.filter { path -> path.extension != "yaml" }
-                .map { Converter.unpack(Parser().deserialize(it.pathString)) }
-                .collect(Collectors.toList())
-        }
-        val program = GoProgram(packages)
-        val pkg = program.findPackage("flag")
-
-        return methods(pkg).filter { it.metName !in longMethods }.map { method ->
-            DynamicTest.dynamicTest(method.metName) {
-                GoMachine(program, options, customOptions).use { machine ->
-                    analyzeAndLog(machine, pkg, method.metName)
-                }
-            }
-        }
-    }
-
-    private fun analyzeAndLog(machine: GoMachine, pkg: GoPackage, methodName: String) {
-        val elapsedMillis = measureTimeMillis {
-            val result = machine.analyzeAndResolve(pkg, methodName)
-            logger.info { result }
-        }
-        logger.info { "Analysis took $elapsedMillis ms" }
-    }
-
-    private fun methods(pkg: GoPackage): List<GoMethod> = pkg.methods.filter { !it.metName.contains('$') }
-
-    private val options: UMachineOptions = UMachineOptions(
-        pathSelectionStrategies = listOf(PathSelectionStrategy.FORK_DEPTH),
-        coverageZone = CoverageZone.TRANSITIVE,
-        exceptionsPropagation = true,
-        timeout = 30.seconds,
-        stepsFromLastCovered = 1_000_000L,
-        solverTimeout = 5.seconds,
-        typeOperationsTimeout = 5.seconds,
-    )
-
-    private val customOptions: GoMachineOptions = GoMachineOptions(
-        failOnNotFullCoverage = false,
-        uncoveredMethods = listOf("panicRecoverComplex"),
-    )
-
-    private val longMethods = arrayOf("loopInfinite", "loopInner", "loopCollatz", "mapLoopLen", "canVisitAllRooms")
-
-    private val whitelist = arrayOf<String>(
-//        "sliceCustomAppend"
-//        "appendErrorStrings"
-//        "(usvm/examples.Person).WithName"
-//        "sliceCustomAppend"
-//        "shiftErrorToString"
-//        "mapCustomDeleteSimple"
-    )
+    private val slowMethods = setOf("loopInfinite", "loopInner", "loopCollatz", "mapLoopLen", "canVisitAllRooms")
 }

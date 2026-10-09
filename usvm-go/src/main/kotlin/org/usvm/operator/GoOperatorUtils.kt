@@ -15,11 +15,13 @@ private val intSizeBits = Int.SIZE_BITS.toUInt()
 internal fun UExpr<out USort>.wideTo32BitsIfNeeded(signed: Boolean): UExpr<out USort> =
     with(ctx) {
         when (val sort = sort) {
-            boolSort -> mkIte(
-                this@wideTo32BitsIfNeeded as UExpr<KBoolSort>,
-                mkBv(1, intSizeBits),
-                mkBv(0, intSizeBits)
-            )
+            boolSort -> {
+                mkIte(
+                    this@wideTo32BitsIfNeeded as UExpr<KBoolSort>,
+                    mkBv(1, intSizeBits),
+                    mkBv(0, intSizeBits)
+                )
+            }
 
             is UBvSort -> {
                 if (sort.sizeBits < intSizeBits) {
@@ -29,8 +31,12 @@ internal fun UExpr<out USort>.wideTo32BitsIfNeeded(signed: Boolean): UExpr<out U
                 }
             }
 
-            is UFpSort -> this@wideTo32BitsIfNeeded
-            else -> error("Unexpected sort: $sort")
+            is UFpSort -> {
+                this@wideTo32BitsIfNeeded
+            }
+            else -> {
+                error("Unexpected sort: $sort")
+            }
         }
     }
 

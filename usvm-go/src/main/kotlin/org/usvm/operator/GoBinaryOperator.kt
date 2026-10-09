@@ -1,6 +1,5 @@
 package org.usvm.operator
 
-import io.ksmt.utils.asExpr
 import io.ksmt.utils.cast
 import org.usvm.GoContext
 import org.usvm.UAddressSort
@@ -10,7 +9,6 @@ import org.usvm.UExpr
 import org.usvm.UFpSort
 import org.usvm.USort
 import org.usvm.type.goCtx
-import org.usvm.uctx
 
 sealed class GoBinaryOperator(
     val onBool: GoContext.(UExpr<UBoolSort>, UExpr<UBoolSort>) -> UExpr<out USort> = shouldNotBeCalled,
@@ -59,18 +57,21 @@ sealed class GoBinaryOperator(
     )
 
     data object Shl : GoBinaryOperator(
-        onBv = { arg, shift -> mkBvShiftLeftExpr(arg, normalizeBvShift(shift)) }
+        onBv = { arg, shift -> mkBvShiftLeftExpr(arg, shift) }
     )
 
     class Shr(signed: Boolean) : GoBinaryOperator(
         onBv = { arg, shift ->
-            if (signed) mkBvArithShiftRightExpr(arg, normalizeBvShift(shift))
-            else mkBvLogicalShiftRightExpr(arg, normalizeBvShift(shift))
+            if (signed) {
+                mkBvArithShiftRightExpr(arg, shift)
+            } else {
+                mkBvLogicalShiftRightExpr(arg, shift)
+            }
         }
     )
 
     data object AndNot : GoBinaryOperator(
-        onBv = { lhs, rhs -> mkBvAndExpr(lhs, mkBvNegationExpr(rhs)) }
+        onBv = { lhs, rhs -> mkBvAndExpr(lhs, mkBvNotExpr(rhs)) }
     )
 
     data object Eql : GoBinaryOperator(
@@ -112,33 +113,29 @@ sealed class GoBinaryOperator(
         val rhsSort = rhs.sort
 
         return when {
-            lhsSort != rhsSort -> error("Expressions sorts mismatch: $lhsSort, $rhsSort")
-            lhsSort is UBoolSort -> lhs.goCtx.onBool(lhs.cast(), rhs.cast())
-            lhsSort is UBvSort -> lhs.goCtx.onBv(lhs.cast(), rhs.cast())
-            lhsSort is UFpSort -> lhs.goCtx.onFp(lhs.cast(), rhs.cast())
-            lhsSort is UAddressSort -> lhs.goCtx.onAddress(lhs.cast(), rhs.cast())
-            else -> error("Unexpected sorts: $lhsSort, $rhsSort")
+            lhsSort != rhsSort -> {
+                error("Expressions sorts mismatch: $lhsSort, $rhsSort")
+            }
+            lhsSort is UBoolSort -> {
+                lhs.goCtx.onBool(lhs.cast(), rhs.cast())
+            }
+            lhsSort is UBvSort -> {
+                lhs.goCtx.onBv(lhs.cast(), rhs.cast())
+            }
+            lhsSort is UFpSort -> {
+                lhs.goCtx.onFp(lhs.cast(), rhs.cast())
+            }
+            lhsSort is UAddressSort -> {
+                lhs.goCtx.onAddress(lhs.cast(), rhs.cast())
+            }
+            else -> {
+                error("Unexpected sorts: $lhsSort, $rhsSort")
+            }
         }
     }
 
     companion object {
         private val shouldNotBeCalled: GoContext.(UExpr<out USort>, UExpr<out USort>) -> UExpr<out USort> =
             { _, _ -> error("Should not be called") }
-
-        internal fun <T : UBvSort> normalizeBvShift(shift: UExpr<T>): UExpr<T> = with(shift.uctx) {
-            return when (shift.sort) {
-                bv32Sort -> {
-                    val mask = mkBv(31) // 0b11111
-                    mkBvAndExpr(shift.asExpr(bv32Sort), mask).asExpr(shift.sort)
-                }
-
-                bv64Sort -> {
-                    val mask = mkBv(63L) // 0b111111
-                    mkBvAndExpr(shift.asExpr(bv64Sort), mask).asExpr(shift.sort)
-                }
-
-                else -> error("Incorrect bv shift: $shift")
-            }
-        }
     }
 }

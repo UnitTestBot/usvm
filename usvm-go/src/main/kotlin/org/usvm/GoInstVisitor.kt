@@ -29,6 +29,7 @@ import org.usvm.collection.map.primitive.UMapEntryLValue
 import org.usvm.collection.map.ref.URefMapEntryLValue
 import org.usvm.collection.set.primitive.USetEntryLValue
 import org.usvm.collection.set.ref.URefSetEntryLValue
+import org.usvm.interpreter.GoStepAbort
 import org.usvm.interpreter.GoStepScope
 import org.usvm.memory.URegisterStackLValue
 import org.usvm.memory.key.USizeExprKeyInfo
@@ -63,12 +64,18 @@ class GoInstVisitor(
     override fun visitGoReturnInst(inst: GoReturnInst): GoInst {
         scope.doWithState {
             when (inst.returnValues.size) {
-                0 -> returnValue(ctx.voidValue, NullType())
-                1 -> returnValue(inst.returnValues[0].accept(exprVisitor), inst.returnValues[0].type)
+                0 -> {
+                    returnValue(ctx.voidValue, NullType())
+                }
+                1 -> {
+                    returnValue(inst.returnValues[0].accept(exprVisitor), inst.returnValues[0].type)
+                }
                 else -> {
                     val type = TupleType(inst.returnValues.map { it.type })
-                    val fields = inst.returnValues.map { it.accept(exprVisitor) }.toTypedArray()
-                    returnValue(mkTuple(type, fields = fields), type)
+                    returnValue(
+                        mkTuple(type, fields = inst.returnValues.map { it.accept(exprVisitor) }.toTypedArray()),
+                        type
+                    )
                 }
             }
         }
@@ -136,8 +143,8 @@ class GoInstVisitor(
         val value = inst.value.accept(exprVisitor)
         val isRefKey = key.sort == ctx.addressSort
 
-        exprVisitor.checkNotNull(map) ?: throw IllegalStateException()
-        scope.ensureObjectMapSizeCorrect(map, type) ?: throw IllegalStateException()
+        exprVisitor.checkNotNull(map) ?: throw GoStepAbort()
+        scope.ensureObjectMapSizeCorrect(map, type) ?: throw GoStepAbort()
 
         scope.doWithState {
             val mapContainsLValue = if (isRefKey) {
@@ -152,15 +159,13 @@ class GoInstVisitor(
             }
             val currentSize = symbolicObjectMapSize(map, type)
 
+            val keyIsNew = ctx.mkNot(memory.read(mapContainsLValue))
+
             memory.write(mapEntryLValue, value.asExpr(value.sort), ctx.trueExpr)
             memory.write(mapContainsLValue, ctx.trueExpr, ctx.trueExpr)
 
             val updatedSize = ctx.mkSizeAddExpr(currentSize, ctx.mkSizeExpr(1))
-            memory.write(
-                UMapLengthLValue(map, type, ctx.sizeSort),
-                updatedSize,
-                ctx.mkNot(memory.read(mapContainsLValue)),
-            )
+            memory.write(UMapLengthLValue(map, type, ctx.sizeSort), updatedSize, keyIsNew)
         }
 
         return next(inst)

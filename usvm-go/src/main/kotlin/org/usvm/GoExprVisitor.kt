@@ -100,27 +100,31 @@ import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapMergeInto
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapRemove
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapSize
 import org.usvm.api.collection.PrimitiveMapCollectionApi.symbolicPrimitiveMapAnyKey
+import org.usvm.api.collection.PrimitiveMapCollectionApi.symbolicPrimitiveMapCopyIntoEmpty
 import org.usvm.api.collection.PrimitiveMapCollectionApi.symbolicPrimitiveMapGet
-import org.usvm.api.collection.PrimitiveMapCollectionApi.symbolicPrimitiveMapMergeInto
 import org.usvm.api.collection.PrimitiveMapCollectionApi.symbolicPrimitiveMapRemove
-import org.usvm.api.memcpy
-import org.usvm.api.readArrayIndex
-import org.usvm.api.readArrayLength
 import org.usvm.api.readField
 import org.usvm.api.refSetContainsElement
 import org.usvm.api.setContainsElement
 import org.usvm.api.typeStreamOf
-import org.usvm.api.writeArrayIndex
 import org.usvm.api.writeField
 import org.usvm.collection.array.UArrayIndexLValue
 import org.usvm.collection.field.UFieldLValue
 import org.usvm.collection.map.length.UMapLengthLValue
 import org.usvm.collection.map.primitive.UMapEntryLValue
 import org.usvm.collection.map.ref.URefMapEntryLValue
+import org.usvm.interpreter.GoStepAbort
 import org.usvm.interpreter.GoStepScope
+import org.usvm.memory.GoArrayView
 import org.usvm.memory.ULValue
 import org.usvm.memory.URegisterStackLValue
+import org.usvm.memory.allocateGoArray
+import org.usvm.memory.arrayStorageType
+import org.usvm.memory.arrayView
+import org.usvm.memory.copyGoArray
 import org.usvm.memory.key.USizeExprKeyInfo
+import org.usvm.memory.readGoArrayIndex
+import org.usvm.memory.readGoArrayLength
 import org.usvm.operator.GoBinaryOperator
 import org.usvm.operator.GoUnaryOperator
 import org.usvm.operator.mkNarrow
@@ -131,9 +135,11 @@ import org.usvm.type.GoBasicTypes
 import org.usvm.type.mapKeyStorageType
 import org.usvm.type.underlying
 import org.usvm.types.first
+import org.usvm.util.hasUnsupportedInstructions
 import org.usvm.util.isInit
-import org.usvm.memory.allocateGoArray as allocateArray
+import java.util.Base64
 
+@Suppress("LargeClass") // One visitor implements the SSA expression interface.
 class GoExprVisitor(
     private val ctx: GoContext,
     private val program: GoProgram,
@@ -163,19 +169,30 @@ class GoExprVisitor(
             expr.callee != null -> {
                 val instance = func.accept(this).asExpr(ctx.addressSort)
                 val type = scope.calcOnState {
-                    scope.assert(memory.types.evalIsSubtype(instance, func.type)) ?: throw IllegalStateException()
+                    scope.assert(memory.types.evalIsSubtype(instance, func.type)) ?: throw GoStepAbort()
                     memory.typeStreamOf(instance).first()
                 }
-                program.findMethod(expr.location, "(${type.typeName}).${expr.callee!!.name}")
+                program.findMethod(expr.location, "(${type.typeName}).${checkNotNull(expr.callee).name}")
             }
 
-            func is GoFunction -> program.findMethod(expr.location, func.metName)
-            func is GoVar -> scope.calcOnState {
-                val functionRef = memory.read(URegisterStackLValue(ctx.addressSort, index(func.name))) as KConst
-                program.findMethod(expr.location, functionRef.decl.name)
+            func is GoFunction -> {
+                program.findMethod(expr.location, func.metName)
+            }
+            func is GoVar -> {
+                scope.calcOnState {
+                    program.findMethod(
+                        expr.location,
+                        (memory.read(URegisterStackLValue(ctx.addressSort, index(func.name))) as KConst).decl.name,
+                    )
+                }
             }
 
-            else -> throw UnknownFunctionException(func.toString())
+            else -> {
+                throw UnknownFunctionException(func.toString())
+            }
+        }
+        if (method.hasUnsupportedInstructions()) {
+            return unsupportedExpr("method ${method.metName} contains unsupported instructions")
         }
         if (method.blocks.isEmpty()) {
             return mockCall(expr, method)
@@ -200,7 +217,7 @@ class GoExprVisitor(
         val lastBlock = scope.calcOnState {
             var node = pathNode
             while (node.statement.location.index == currentBlock) {
-                node = node.parent!!
+                node = checkNotNull(node.parent) { "Phi has no predecessor in the execution path" }
             }
             node.statement.location.index
         }
@@ -266,34 +283,42 @@ class GoExprVisitor(
 
     override fun visitGoConvertExpr(expr: GoConvertExpr): UExpr<out USort> {
         val value = expr.operand.accept(this)
-        return when (val type = expr.type) {
-            GoBasicTypes.UNSAFE_POINTER -> ctx.mkBv(-1L)
-            GoBasicTypes.STRING -> {
-                val sliceType = expr.operand.type as SliceType
-                when (sliceType.elementType) {
-                    GoBasicTypes.RUNE -> ctx.nullRef // TODO
-                    GoBasicTypes.UINT8 -> value
-                    else -> throw IllegalStateException("only []rune and []int can be converted to string")
-                }
+        val sourceType = expr.operand.type.underlying()
+        val targetType = expr.type.underlying()
+        if (sourceType == GoBasicTypes.STRING || targetType == GoBasicTypes.STRING) {
+            val sliceType = (if (sourceType == GoBasicTypes.STRING) targetType else sourceType) as? SliceType
+            if (sliceType?.elementType != GoBasicTypes.UINT8) {
+                return unsupportedExpr("string conversions other than []byte")
             }
-
-            is PointerType -> mkPointer(type)
-            else -> {
-                when (expr.operand.type) {
-                    GoBasicTypes.UNSAFE_POINTER -> tryBox(ctx.mkBv(-1L), expr.type)
-                    GoBasicTypes.STRING -> {
-                        val sliceType = type as SliceType
-                        when (sliceType.elementType) {
-                            GoBasicTypes.RUNE -> ctx.nullRef // TODO
-                            GoBasicTypes.UINT8 -> value
-                            else -> throw IllegalStateException("string can be converted only to []rune and []int")
-                        }
-                    }
-
-                    else -> ctx.mkPrimitiveCast(value, ctx.typeToSort(type))
-                }
+            val source = unboxNamedRef(value.asExpr(ctx.addressSort), expr.operand.type)
+            return scope.calcOnState {
+                val view = arrayView(source, sourceType)
+                val destination = memory.allocateGoArray(targetType, ctx.sizeSort, view.length)
+                memory.copyGoArray(
+                    view.backing,
+                    destination,
+                    view.storageType,
+                    ctx.bv8Sort,
+                    view.offset,
+                    ctx.mkSizeExpr(0),
+                    view.length
+                )
+                tryBox(destination, expr.type)
             }
         }
+        val unsafeConversion = sourceType == GoBasicTypes.UNSAFE_POINTER || targetType == GoBasicTypes.UNSAFE_POINTER
+        if (unsafeConversion || targetType is PointerType) {
+            return unsupportedExpr("unsafe pointer conversion")
+        }
+        val operand = unboxNamedPrimitive(value, expr.operand.type)
+        val targetSort = ctx.typeToSort(targetType)
+        val converted = if (operand.sort is UBvSort && targetSort is UBvSort) {
+            val signed = !(sourceType as BasicType).typeName.startsWith("uint")
+            bv(operand).mkNarrow(targetSort.sizeBits.toInt(), signed = signed)
+        } else {
+            ctx.mkPrimitiveCast(operand, targetSort)
+        }
+        return tryBox(converted, expr.type)
     }
 
     override fun visitGoMultiConvertExpr(expr: GoMultiConvertExpr): UExpr<out USort> {
@@ -308,30 +333,14 @@ class GoExprVisitor(
     override fun visitGoSliceToArrayPointerExpr(expr: GoSliceToArrayPointerExpr): UExpr<out USort> {
         val slice = unboxNamedRef(expr.operand.accept(this).asExpr(ctx.addressSort), expr.operand.type)
         val sliceType = expr.operand.type.underlying() as SliceType
-        val sliceLength = scope.calcOnState { memory.readArrayLength(slice, sliceType, ctx.sizeSort) }
-
+        val view = scope.calcOnState { arrayView(slice, sliceType) }
         val arrayType = (expr.type as PointerType).baseType.underlying() as ArrayType
         val arrayLength = ctx.mkSizeExpr(arrayType.len.toInt())
-
-        checkLength(sliceLength) ?: throw IllegalStateException()
-        checkNotNull(slice) ?: throw IllegalStateException()
-        checkSliceToArrayPointerLength(sliceLength, arrayLength) ?: throw IllegalStateException()
+        checkSliceToArrayPointerLength(view.length, arrayLength) ?: throw GoStepAbort()
 
         return scope.calcOnState {
-            val array = memory.allocateArray(arrayType, ctx.sizeSort, arrayLength)
-            for (i in 0 until arrayType.len) {
-                val idx = ctx.mkSizeExpr(i.toInt())
-                val element = memory.readArrayIndex(slice, idx, sliceType, ctx.typeToSort(sliceType.elementType))
-                memory.writeArrayIndex(
-                    array,
-                    idx,
-                    arrayType,
-                    ctx.typeToSort(arrayType.elementType),
-                    element,
-                    ctx.trueExpr,
-                )
-            }
-
+            val array = memory.allocateGoArray(arrayType, ctx.sizeSort, arrayLength)
+            data.arrayViews[array] = view.copy(length = arrayLength, capacity = arrayLength)
             tryBox(mkPointer(arrayType, array), expr.type)
         }
     }
@@ -339,7 +348,7 @@ class GoExprVisitor(
     override fun visitGoMakeInterfaceExpr(expr: GoMakeInterfaceExpr): UExpr<out USort> {
         val value = box(expr.value.accept(this@GoExprVisitor), expr.value.type)
         scope.doWithState {
-            scope.assert(memory.types.evalIsSubtype(value, expr.type)) ?: throw IllegalStateException()
+            scope.assert(memory.types.evalIsSubtype(value, expr.type)) ?: throw GoStepAbort()
         }
 
         return value
@@ -350,14 +359,12 @@ class GoExprVisitor(
     }
 
     override fun visitGoMakeMapExpr(expr: GoMakeMapExpr): UExpr<out USort> {
-        val reserve = expr.reserve.accept(this).asExpr(ctx.sizeSort)
         val mapType = expr.type.underlying()
 
-        checkLength(reserve) ?: throw IllegalStateException()
 
         return scope.calcOnState {
             val ref = memory.allocConcrete(mapType)
-            memory.write(UMapLengthLValue(ref, mapType, ctx.sizeSort), reserve, ctx.trueExpr)
+            memory.write(UMapLengthLValue(ref, mapType, ctx.sizeSort), ctx.mkSizeExpr(0), ctx.trueExpr)
             tryBox(ref.asExpr(ctx.addressSort), expr.type)
         }
     }
@@ -368,59 +375,75 @@ class GoExprVisitor(
     }
 
     override fun visitGoMakeSliceExpr(expr: GoMakeSliceExpr): UExpr<out USort> {
-        val len = expr.len.accept(this).asExpr(ctx.sizeSort)
+        val length = collectionSize(expr.len)
+        val capacity = collectionSize(expr.cap)
 
-        checkLength(len) ?: throw IllegalStateException()
+        checkLength(length) ?: throw GoStepAbort()
+        checkLength(capacity) ?: throw GoStepAbort()
+        checkIndexOutOfBounds(length, ctx.mkSizeAddExpr(capacity, ctx.mkSizeExpr(1))) ?: throw GoStepAbort()
 
         return scope.calcOnState {
-            tryBox(memory.allocateArray(expr.type.underlying(), ctx.sizeSort, len), expr.type)
+            val type = expr.type.underlying()
+            val backing = memory.allocateGoArray(type, ctx.sizeSort, capacity)
+            val slice = memory.allocateGoArray(type, ctx.sizeSort, length)
+            data.arrayViews[slice] = GoArrayView(
+                backing, type.arrayStorageType(), offset = ctx.mkSizeExpr(0), length = length, capacity = capacity,
+            )
+            tryBox(slice, expr.type)
         }
     }
 
     override fun visitGoSliceExpr(expr: GoSliceExpr): UExpr<out USort> {
         val boxedArray = expr.array.accept(this).asExpr(ctx.addressSort)
-        val unboxedArray = unboxNamedRef(boxedArray, expr.array.type)
-        val array = if (isPointerConcrete(unboxedArray)) deref(unboxedArray, ctx.addressSort) else unboxedArray
+        val array = unboxNamedRef(boxedArray, expr.array.type).let {
+            if (isPointerConcrete(it)) deref(it, ctx.addressSort) else it
+        }
         val arrayType = expr.array.type.let { if (it is PointerType) it.baseType else it }.underlying()
-        val sliceType = expr.type.underlying()
-        val length = scope.calcOnState { memory.readArrayLength(array, arrayType, ctx.sizeSort) }
-        val low = expr.low.accept(this).asExpr(ctx.sizeSort)
-        val suppliedHigh = expr.high.accept(this)
-        val hasDefaultHigh = suppliedHigh is KBitVec32Value && suppliedHigh.intValue == -1
-        val high = (if (hasDefaultHigh) length else suppliedHigh).asExpr(ctx.sizeSort)
+        val view = scope.calcOnState { arrayView(array, arrayType) }
+        val low = collectionSize(expr.low)
+        val high = sliceBound(expr.high, view.length)
+        val limit = sliceBound(expr.max, view.capacity)
         val count = ctx.mkSizeSubExpr(high, low)
-        val elementType = when (arrayType) {
-            is ArrayType -> arrayType.elementType
-            is SliceType -> arrayType.elementType
-            GoBasicTypes.STRING -> GoBasicTypes.UINT8
-            else -> throw IllegalStateException("illegal type for collection")
+
+        checkLength(view.length) ?: throw GoStepAbort()
+        checkNegativeIndex(low) ?: throw GoStepAbort()
+        checkNegativeIndex(high) ?: throw GoStepAbort()
+        checkNegativeIndex(limit) ?: throw GoStepAbort()
+        checkIndexOutOfBounds(low, ctx.mkSizeAddExpr(high, ctx.mkSizeExpr(1))) ?: throw GoStepAbort()
+        checkIndexOutOfBounds(high, ctx.mkSizeAddExpr(limit, ctx.mkSizeExpr(1))) ?: throw GoStepAbort()
+        checkIndexOutOfBounds(limit, ctx.mkSizeAddExpr(view.capacity, ctx.mkSizeExpr(1))) ?: throw GoStepAbort()
+
+        val result = scope.calcOnState {
+            val reference = memory.allocateGoArray(expr.type.underlying(), ctx.sizeSort, count)
+            data.arrayViews[reference] = view.copy(
+                offset = ctx.mkSizeAddExpr(view.offset, low),
+                length = count,
+                capacity = ctx.mkSizeSubExpr(limit, low),
+            )
+            reference
         }
-        val elementSort = ctx.typeToSort(elementType)
+        val slice = ctx.mkIte(ctx.mkHeapRefEq(array, ctx.nullRef), ctx.nullRef, result)
+        return tryBox(slice, expr.type)
+    }
 
-        checkLength(length) ?: throw IllegalStateException()
-        checkNotNull(array) ?: throw IllegalStateException()
-        checkNegativeIndex(low) ?: throw IllegalStateException()
-        checkNegativeIndex(high) ?: throw IllegalStateException()
-        checkIndexOutOfBounds(low, ctx.mkSizeAddExpr(high, ctx.mkSizeExpr(1))) ?: throw IllegalStateException()
-        checkIndexOutOfBounds(high, ctx.mkSizeAddExpr(length, ctx.mkSizeExpr(1))) ?: throw IllegalStateException()
+    private fun sliceBound(value: GoValue, default: UExpr<USizeSort>): UExpr<USizeSort> {
+        return if (value is GoNullConstant) default else collectionSize(value)
+    }
 
-        return scope.calcOnState {
-            val result = memory.allocateArray(sliceType, ctx.sizeSort, count)
-            when (arrayType) {
-                is ArrayType -> {
-                    val tempArray = memory.allocateArray(sliceType, ctx.sizeSort, count)
-                    for (i in 0 until arrayType.len) {
-                        val idx = ctx.mkSizeExpr(i.toInt())
-                        val element = memory.readArrayIndex(array, idx, arrayType, elementSort)
-                        memory.writeArrayIndex(tempArray, idx, sliceType, elementSort, element, ctx.trueExpr)
-                    }
-                    memory.memcpy(tempArray, result, sliceType, elementSort, low, ctx.mkSizeExpr(0), count)
-                }
-
-                else -> memory.memcpy(array, result, sliceType, elementSort, low, ctx.mkSizeExpr(0), count)
-            }
-            tryBox(result, expr.type)
+    private fun collectionSize(value: GoValue): UExpr<USizeSort> {
+        val original = bv(unboxNamedPrimitive(value.accept(this), value.type))
+        val unsigned = (value.type.underlying() as BasicType).typeName.startsWith("uint")
+        if (!unsigned) {
+            scope.fork(ctx.mkBvSignedGreaterOrEqualExpr(original, ctx.mkBv(0, original.sort)), blockOnFalseState = {
+                panic("negative length or slice bound")
+            }) ?: throw GoStepAbort()
         }
+        // Collection memory uses BV32 sizes; restrict symbolic sizes to its representable domain.
+        if (original.sort.sizeBits > Int.SIZE_BITS.toUInt()) {
+            scope.assert(ctx.mkBvUnsignedLessOrEqualExpr(original, ctx.mkBv(Int.MAX_VALUE.toLong(), original.sort)))
+                ?: throw GoStepAbort()
+        }
+        return original.mkNarrow(Int.SIZE_BITS, signed = false).asExpr(ctx.sizeSort)
     }
 
     override fun visitGoFieldAddrExpr(expr: GoFieldAddrExpr): UExpr<out USort> {
@@ -433,35 +456,33 @@ class GoExprVisitor(
 
         val pointer = expr.instance.accept(this).asExpr(ctx.addressSort)
         val struct = deref(pointer, ctx.addressSort)
-        checkNotNull(struct) ?: throw IllegalStateException()
+        checkNotNull(struct) ?: throw GoStepAbort()
 
-            val fieldType = (expr.type as PointerType).baseType
-            val fieldLValue = UFieldLValue(ctx.typeToSort(fieldType), struct, expr.field)
-            return mkPointer(fieldType, fieldLValue)
+        val fieldType = (expr.type as PointerType).baseType
+        val fieldLValue = UFieldLValue(ctx.typeToSort(fieldType), struct, expr.field)
+        return mkPointer(fieldType, fieldLValue)
     }
 
     override fun visitGoFieldExpr(expr: GoFieldExpr): UExpr<out USort> {
         val struct = expr.instance.accept(this).asExpr(ctx.addressSort)
-        checkNotNull(struct) ?: throw IllegalStateException()
+        checkNotNull(struct) ?: throw GoStepAbort()
         return scope.calcOnState {
             memory.readField(struct, expr.field, ctx.typeToSort(expr.type))
         }
     }
 
     override fun visitGoIndexAddrExpr(expr: GoIndexAddrExpr): UExpr<out USort> {
-        val (array, index) = visitIndexExpr(expr.instance, expr.index)
-        val arrayType = expr.instance.type.let { if (it is PointerType) it.baseType else it }.underlying()
+        val (view, index) = visitIndexExpr(expr.instance, expr.index)
 
         val elementType = (expr.type as PointerType).baseType
-        val elementLValue = UArrayIndexLValue(ctx.typeToSort(elementType), array, index, arrayType)
+        val elementLValue = UArrayIndexLValue(ctx.typeToSort(elementType), view.backing, index, view.storageType)
         return mkPointer(elementType, elementLValue)
     }
 
     override fun visitGoIndexExpr(expr: GoIndexExpr): UExpr<out USort> {
-        val (array, index) = visitIndexExpr(expr.instance, expr.index)
-        val arrayType = expr.instance.type.let { if (it is PointerType) it.baseType else it }.underlying()
+        val (view, index) = visitIndexExpr(expr.instance, expr.index)
         return scope.calcOnState {
-            memory.readArrayIndex(array, index, arrayType, ctx.typeToSort(expr.type))
+            memory.readGoArrayIndex(view.backing, index, view.storageType, ctx.typeToSort(expr.type))
         }
     }
 
@@ -474,8 +495,8 @@ class GoExprVisitor(
         val commaOk = expr.commaOk
         val valueSort = ctx.typeToSort(mapType.valueType)
 
-        checkNotNull(map) ?: throw IllegalStateException()
-        scope.ensureObjectMapSizeCorrect(map, mapType) ?: throw IllegalStateException()
+        checkNotNull(map) ?: throw GoStepAbort()
+        scope.ensureObjectMapSizeCorrect(map, mapType) ?: throw GoStepAbort()
 
         val contains = scope.calcOnState {
             if (isRefKey) {
@@ -508,9 +529,15 @@ class GoExprVisitor(
     override fun visitGoRangeExpr(expr: GoRangeExpr): UExpr<out USort> {
         val collection = expr.instance.accept(this).asExpr(ctx.addressSort).let {
             when (val type = expr.instance.type.underlying()) {
-                is MapType -> copyMap(it, type)
-                GoBasicTypes.STRING -> it
-                else -> throw IllegalStateException("illegal type for range")
+                is MapType -> {
+                    copyMap(it, type)
+                }
+                GoBasicTypes.STRING -> {
+                    it
+                }
+                else -> {
+                    error("illegal type for range")
+                }
             }
         }
         return scope.calcOnState {
@@ -531,11 +558,11 @@ class GoExprVisitor(
             when (val collectionType = tupleType.types[0].underlying()) {
                 GoBasicTypes.STRING -> {
                     val index = memory.readField(iter, 1, ctx.sizeSort)
-                    val char = memory.readArrayIndex(collection, index, collectionType, ctx.bv8Sort)
-                    val length = memory.readArrayLength(collection, collectionType, ctx.sizeSort)
+                    val char = memory.readGoArrayIndex(collection, index, collectionType, ctx.bv8Sort)
+                    val length = memory.readGoArrayLength(collection, collectionType, ctx.sizeSort)
                     val ok = ctx.mkAnd(notNull, ctx.mkBvSignedLessExpr(index, length))
 
-                    checkLength(length) ?: throw IllegalStateException()
+                    checkLength(length) ?: throw GoStepAbort()
 
                     memory.writeField(iter, 1, ctx.sizeSort, ctx.mkBvAddExpr(index, ctx.mkSizeExpr(1)), ctx.trueExpr)
                     mkTuple(
@@ -547,7 +574,7 @@ class GoExprVisitor(
                 }
 
                 is MapType -> {
-                    scope.ensureObjectMapSizeCorrect(collection, collectionType) ?: throw IllegalStateException()
+                    scope.ensureObjectMapSizeCorrect(collection, collectionType) ?: throw GoStepAbort()
 
                     val length = symbolicObjectMapSize(collection, collectionType)
                     val ok = ctx.mkAnd(notNull, ctx.mkBvSignedGreaterExpr(length, ctx.mkBv(0)))
@@ -584,7 +611,9 @@ class GoExprVisitor(
                     )
                 }
 
-                else -> throw IllegalStateException("invalid collection type in next expr")
+                else -> {
+                    error("invalid collection type in next expr")
+                }
             }
         }
     }
@@ -609,7 +638,7 @@ class GoExprVisitor(
         }
 
         val xAddr = x.asExpr(ctx.addressSort)
-        checkNotNull(xAddr) ?: throw IllegalStateException()
+        checkNotNull(xAddr) ?: throw GoStepAbort()
         val unboxedValue = unbox(xAddr, assertSort)
 
         return scope.calcOnState {
@@ -642,8 +671,9 @@ class GoExprVisitor(
 
     override fun visitGoFreeVar(expr: GoFreeVar): UExpr<out USort> {
         return scope.calcOnState {
-            val registerIndex = expr.index + ctx.freeVariableOffset(lastEnteredMethod)
-            memory.read(URegisterStackLValue(ctx.typeToSort(expr.type), registerIndex))
+            memory.read(
+                URegisterStackLValue(ctx.typeToSort(expr.type), expr.index + ctx.freeVariableOffset(lastEnteredMethod))
+            )
         }
     }
 
@@ -678,7 +708,7 @@ class GoExprVisitor(
     }
 
     override fun visitGoInt(value: GoInt): UExpr<out USort> = with(ctx) {
-        return tryBox(mkBv(value.value.toInt()), value.type)
+        return tryBox(mkBv(value.value.toLong(), typeToSort(value.type.underlying()) as UBvSort), value.type)
     }
 
     override fun visitGoInt8(value: GoInt8): UExpr<out USort> = with(ctx) {
@@ -698,7 +728,7 @@ class GoExprVisitor(
     }
 
     override fun visitGoUInt(value: GoUInt): UExpr<out USort> = with(ctx) {
-        return tryBox(mkBv(value.value.toInt()), value.type)
+        return tryBox(mkBv(value.value.toLong(), typeToSort(value.type.underlying()) as UBvSort), value.type)
     }
 
     override fun visitGoUInt8(value: GoUInt8): UExpr<out USort> = with(ctx) {
@@ -710,7 +740,7 @@ class GoExprVisitor(
     }
 
     override fun visitGoUInt32(value: GoUInt32): UExpr<out USort> = with(ctx) {
-        return tryBox(mkBv(value.value.toInt()), value.type)
+        return tryBox(mkBv(value.value.toLong(), typeToSort(value.type.underlying()) as UBvSort), value.type)
     }
 
     override fun visitGoUInt64(value: GoUInt64): UExpr<out USort> = with(ctx) {
@@ -729,7 +759,7 @@ class GoExprVisitor(
 
     override fun visitGoStringConstant(value: GoStringConstant): UExpr<out USort> {
         return scope.calcOnState {
-            tryBox(mkString(value.value), value.type)
+            tryBox(mkString(Base64.getDecoder().decode(value.value)), value.type)
         }
     }
 
@@ -747,39 +777,101 @@ class GoExprVisitor(
         return unbox(expr, ctx.typeToSort(type.underlying())).asExpr(ctx.addressSort)
     }
 
+    @Suppress("ThrowsCount") // Failed scope checks stop this hop.
     private fun visitGoBinaryExpr(expr: GoBinaryExpr): UExpr<out USort> {
-        val bothStrings = expr.lhv.type.underlying() == GoBasicTypes.STRING &&
-            expr.rhv.type.underlying() == GoBasicTypes.STRING
-        if (bothStrings) {
-            return tryBox(appendArray(expr.lhv, expr.rhv), expr.type)
+        if (expr.lhv.type.underlying() == GoBasicTypes.STRING && expr.rhv.type.underlying() == GoBasicTypes.STRING) {
+            return if (expr is GoAddExpr) {
+                tryBox(appendArray(expr.lhv, expr.rhv), expr.type)
+            } else {
+                compareStrings(expr)
+            }
         }
 
         val lhv = expr.lhv.accept(this)
         val rhv = expr.rhv.accept(this)
 
-        val signed = expr.lhv.type.underlying() is BasicType && !expr.lhv.type.underlying().typeName.startsWith("ui")
+        val isEquality = expr is GoEqlExpr || expr is GoNeqExpr
+        val hasNilOperand = expr.lhv is GoNullConstant || expr.rhv is GoNullConstant
+        val bothReferences = lhv.sort == ctx.addressSort && rhv.sort == ctx.addressSort
+        if (isEquality && hasNilOperand && bothReferences) {
+            val equal = ctx.mkHeapRefEq(lhv.asExpr(ctx.addressSort), rhv.asExpr(ctx.addressSort))
+            return if (expr is GoEqlExpr) equal else ctx.mkNot(equal)
+        }
+
+        val operandType = expr.lhv.type.underlying()
+        val signed = operandType is BasicType && !operandType.typeName.startsWith("ui")
         val lhs = unboxNamedPrimitive(lhv, expr.lhv.type)
         val rhs = unboxNamedPrimitive(rhv, expr.rhv.type)
+        if ((expr is GoDivExpr || expr is GoModExpr) && rhs.sort is UBvSort) {
+            scope.fork(ctx.mkNot(ctx.mkEq(bv(rhs), ctx.mkBv(0, bv(rhs).sort))), blockOnFalseState = {
+                panic("integer divide by zero")
+            }) ?: throw GoStepAbort()
+        }
+        val isShift = expr is GoShrExpr || expr is GoShlExpr
+        val signedShift = isShift && !(expr.rhv.type.underlying() as BasicType).typeName.startsWith("uint")
+        if (signedShift) {
+            val count = bv(rhs)
+            scope.fork(ctx.mkBvSignedGreaterOrEqualExpr(count, ctx.mkBv(0, count.sort)), blockOnFalseState = {
+                panic("negative shift amount")
+            }) ?: throw GoStepAbort()
+        }
+
         val result = when (expr) {
-            is GoAddExpr -> GoBinaryOperator.Add
-            is GoSubExpr -> GoBinaryOperator.Sub
-            is GoMulExpr -> GoBinaryOperator.Mul
-            is GoDivExpr -> GoBinaryOperator.Div(signed)
-            is GoModExpr -> GoBinaryOperator.Mod(signed)
-            is GoAndExpr -> GoBinaryOperator.And
-            is GoOrExpr -> GoBinaryOperator.Or
-            is GoXorExpr -> GoBinaryOperator.Xor
-            is GoShlExpr -> GoBinaryOperator.Shl
-            is GoShrExpr -> GoBinaryOperator.Shr(signed)
-            is GoAndNotExpr -> GoBinaryOperator.AndNot
-            is GoEqlExpr -> GoBinaryOperator.Eql
-            is GoLssExpr -> GoBinaryOperator.Lss(signed)
-            is GoGtrExpr -> GoBinaryOperator.Gtr(signed)
-            is GoNeqExpr -> GoBinaryOperator.Neq
-            is GoLeqExpr -> GoBinaryOperator.Leq(signed)
-            is GoGeqExpr -> GoBinaryOperator.Geq(signed)
-            else -> throw UnknownBinaryOperationException(expr.toString())
-        }(lhs, normalize(lhs, rhs, expr, signed))
+            is GoAddExpr -> {
+                GoBinaryOperator.Add
+            }
+            is GoSubExpr -> {
+                GoBinaryOperator.Sub
+            }
+            is GoMulExpr -> {
+                GoBinaryOperator.Mul
+            }
+            is GoDivExpr -> {
+                GoBinaryOperator.Div(signed)
+            }
+            is GoModExpr -> {
+                GoBinaryOperator.Mod(signed)
+            }
+            is GoAndExpr -> {
+                GoBinaryOperator.And
+            }
+            is GoOrExpr -> {
+                GoBinaryOperator.Or
+            }
+            is GoXorExpr -> {
+                GoBinaryOperator.Xor
+            }
+            is GoShlExpr -> {
+                GoBinaryOperator.Shl
+            }
+            is GoShrExpr -> {
+                GoBinaryOperator.Shr(signed)
+            }
+            is GoAndNotExpr -> {
+                GoBinaryOperator.AndNot
+            }
+            is GoEqlExpr -> {
+                GoBinaryOperator.Eql
+            }
+            is GoLssExpr -> {
+                GoBinaryOperator.Lss(signed)
+            }
+            is GoGtrExpr -> {
+                GoBinaryOperator.Gtr(signed)
+            }
+            is GoNeqExpr -> {
+                GoBinaryOperator.Neq
+            }
+            is GoLeqExpr -> {
+                GoBinaryOperator.Leq(signed)
+            }
+            is GoGeqExpr -> {
+                GoBinaryOperator.Geq(signed)
+            }
+            else -> {
+                throw UnknownBinaryOperationException(expr.toString())
+            }
+        }(lhs, normalize(lhs, rhs, expr))
 
         if (expr.type is NamedType) {
             return box(result, expr.type)
@@ -790,43 +882,57 @@ class GoExprVisitor(
     private fun visitGoUnaryExpr(expr: GoUnaryExpr): UExpr<out USort> {
         val x = expr.value.accept(this)
         return when (expr) {
-            is GoUnArrowExpr -> throw UnsupportedUnaryOperationException("channel operations")
-            is GoUnXorExpr, is GoUnNotExpr, is GoUnSubExpr -> GoUnaryOperator.Neg(x)
-            is GoUnMulExpr -> deref(x, ctx.typeToSort(expr.type))
-            else -> throw UnknownUnaryOperationException(expr.toString())
-        }
-    }
-
-    private fun visitIndexExpr(instance: GoValue, idx: GoValue): Pair<UHeapRef, UExpr<USizeSort>> {
-        val unboxedArray = unboxNamedRef(instance.accept(this).asExpr(ctx.addressSort), instance.type)
-        val array = if (isPointerConcrete(unboxedArray)) deref(unboxedArray, ctx.addressSort) else unboxedArray
-        val arrayType = instance.type.let { if (it is PointerType) it.baseType else it }.underlying()
-        val indexValue = bv(unboxNamedPrimitive(idx.accept(this), idx.type))
-        val index = indexValue.mkNarrow(Int.SIZE_BITS, signed = false).asExpr(ctx.sizeSort)
-        val length = scope.calcOnState { memory.readArrayLength(array, arrayType, ctx.sizeSort) }
-
-        checkLength(length) ?: throw IllegalStateException()
-        checkNotNull(array) ?: throw IllegalStateException()
-        checkNegativeIndex(index) ?: throw IllegalStateException()
-        checkIndexOutOfBounds(index, length) ?: throw IllegalStateException()
-
-        return array to index
-    }
-
-    private fun normalize(
-        lhs: UExpr<out USort>,
-        rhs: UExpr<out USort>,
-        goExpr: GoBinaryExpr,
-        signed: Boolean,
-    ): UExpr<out USort> = with(ctx) {
-        when (goExpr) {
-            is GoShrExpr -> {
-                val differentWidths = bv(lhs).sort.sizeBits != bv(rhs).sort.sizeBits
-                if (differentWidths) bv(rhs).mkNarrow(Long.SIZE_BITS, signed).asExpr(bv64Sort) else rhs
+            is GoUnArrowExpr -> {
+                throw UnsupportedUnaryOperationException("channel operations")
             }
-            else -> rhs
+            is GoUnXorExpr -> {
+                GoUnaryOperator.Complement(x)
+            }
+            is GoUnNotExpr, is GoUnSubExpr -> {
+                GoUnaryOperator.Neg(x)
+            }
+            is GoUnMulExpr -> {
+                deref(x, ctx.typeToSort(expr.type))
+            }
+            else -> {
+                throw UnknownUnaryOperationException(expr.toString())
+            }
         }
     }
+
+    private fun visitIndexExpr(instance: GoValue, idx: GoValue): Pair<GoArrayView, UExpr<USizeSort>> {
+        val array = unboxNamedRef(instance.accept(this).asExpr(ctx.addressSort), instance.type).let {
+            if (isPointerConcrete(it)) deref(it, ctx.addressSort) else it
+        }
+        val arrayType = instance.type.let { if (it is PointerType) it.baseType else it }.underlying()
+        val originalIndex = bv(unboxNamedPrimitive(idx.accept(this), idx.type))
+        val view = scope.calcOnState { arrayView(array, arrayType) }
+        val width = maxOf(originalIndex.sort.sizeBits, view.length.sort.sizeBits).toInt()
+        val fullIndex = originalIndex.mkNarrow(width, signed = false)
+        val fullLength = bv(view.length).mkNarrow(width, signed = false)
+        scope.fork(ctx.mkBvUnsignedLessExpr(fullIndex, fullLength), blockOnFalseState = {
+            panic("index out of bounds")
+        }) ?: throw GoStepAbort()
+        val index = toSizeExpr(originalIndex)
+
+        return view to ctx.mkSizeAddExpr(view.offset, index)
+    }
+
+    private fun normalize(lhs: UExpr<out USort>, rhs: UExpr<out USort>, goExpr: GoBinaryExpr): UExpr<out USort> = with(
+        ctx
+    ) {
+        if (goExpr !is GoShrExpr && goExpr !is GoShlExpr) return rhs
+
+        val valueSort = bv(lhs).sort
+        val count = bv(rhs)
+        val width = mkBv(valueSort.sizeBits.toLong(), count.sort)
+        val tooLarge = mkBvUnsignedGreaterOrEqualExpr(count, width)
+        val normalized = mkPrimitiveCast(count, valueSort).asExpr(valueSort)
+        mkIte(tooLarge, mkBv(valueSort.sizeBits.toLong(), valueSort), normalized)
+    }
+
+    private fun toSizeExpr(expr: UExpr<out USort>): UExpr<USizeSort> =
+        ctx.mkPrimitiveCast(expr, ctx.sizeSort).asExpr(ctx.sizeSort)
 
     private fun bv(expr: UExpr<out USort>): UExpr<UBvSort> {
         return expr.asExpr(expr.sort as UBvSort)
@@ -861,8 +967,8 @@ class GoExprVisitor(
 
     private fun <Sort : USort> deref(expr: UExpr<out USort>, sort: Sort): UExpr<Sort> = with(ctx) {
         val pointer = expr.asExpr(addressSort)
-        checkIsPointer(pointer) ?: throw IllegalStateException()
-        checkNotNull(pointer) ?: throw IllegalStateException()
+        checkIsPointer(pointer) ?: throw GoStepAbort()
+        checkNotNull(pointer) ?: throw GoStepAbort()
         return scope.calcOnState {
             deref(pointer, sort).asExpr(sort)
         }
@@ -875,8 +981,8 @@ class GoExprVisitor(
     }
 
     private fun unbox(expr: UHeapRef, sort: USort): UExpr<out USort> {
-        checkIsBoxed(expr) ?: throw IllegalStateException()
-        checkNotNull(expr) ?: throw IllegalStateException()
+        checkIsBoxed(expr) ?: throw GoStepAbort()
+        checkNotNull(expr) ?: throw GoStepAbort()
         return scope.calcOnState {
             unbox(expr, sort)
         }
@@ -924,7 +1030,7 @@ class GoExprVisitor(
 
     private fun checkSliceToArrayPointerLength(
         sliceLength: UExpr<USizeSort>,
-        arrayLength: UExpr<USizeSort>
+        arrayLength: UExpr<USizeSort>,
     ): Unit? = with(ctx) {
         scope.fork(mkSizeGeExpr(sliceLength, arrayLength), blockOnFalseState = {
             panic("length of the slice is less than the length of the array")
@@ -939,25 +1045,36 @@ class GoExprVisitor(
         panic("not a boxed value")
     })
 
+    @Suppress("ThrowsCount") // Failed scope checks stop this hop.
     private fun callBuiltin(method: GoBuiltin, args: List<GoValue>, returnType: GoType): UExpr<out USort> {
         return when (method.name) {
-            "append" -> tryBox(appendArray(args[0], args[1]), returnType)
+            "append" -> {
+                tryBox(appendArray(args[0], args[1]), returnType)
+            }
             "copy" -> {
-                val src = unboxNamedRef(args[1].accept(this).asExpr(ctx.addressSort), args[1].type)
-                val dst = unboxNamedRef(args[0].accept(this).asExpr(ctx.addressSort), args[0].type)
+                val source = unboxNamedRef(args[1].accept(this).asExpr(ctx.addressSort), args[1].type)
+                val destination = unboxNamedRef(args[0].accept(this).asExpr(ctx.addressSort), args[0].type)
                 val sliceType = args[0].type.underlying() as SliceType
-                val elementSort = ctx.typeToSort(sliceType.elementType)
-
-                return scope.calcOnState {
-                    val srcLength = memory.readArrayLength(src, sliceType, ctx.sizeSort)
-                    val dstLength = memory.readArrayLength(dst, sliceType, ctx.sizeSort)
-                    checkLength(srcLength) ?: throw IllegalStateException()
-                    checkLength(dstLength) ?: throw IllegalStateException()
-                    val numCopied = ctx.mkIte(ctx.mkSizeLtExpr(srcLength, dstLength), srcLength, dstLength)
-
-                    memory.memcpy(src, dst, sliceType, elementSort, ctx.mkSizeExpr(0), ctx.mkSizeExpr(0), numCopied)
-                    numCopied
+                val count = scope.calcOnState {
+                    val sourceView = arrayView(source, args[1].type)
+                    val destinationView = arrayView(destination, args[0].type)
+                    val copied = ctx.mkIte(
+                        ctx.mkSizeLtExpr(sourceView.length, destinationView.length),
+                        sourceView.length,
+                        destinationView.length
+                    )
+                    memory.copyGoArray(
+                        sourceView.backing,
+                        destinationView.backing,
+                        sourceView.storageType,
+                        ctx.typeToSort(sliceType.elementType),
+                        sourceView.offset,
+                        destinationView.offset,
+                        copied
+                    )
+                    copied
                 }
+                ctx.mkPrimitiveCast(count, ctx.typeToSort(returnType))
             }
 
             "delete" -> {
@@ -966,7 +1083,7 @@ class GoExprVisitor(
                 val mapType = args[0].type.underlying() as MapType
                 val keySort = ctx.typeToSort(mapType.keyType.mapKeyStorageType())
 
-                scope.ensureObjectMapSizeCorrect(map, mapType) ?: throw IllegalStateException()
+                scope.ensureObjectMapSizeCorrect(map, mapType) ?: throw GoStepAbort()
                 scope.doWithState {
                     if (keySort == ctx.addressSort) {
                         symbolicObjectMapRemove(map, key.asExpr(ctx.addressSort), mapType)
@@ -981,29 +1098,35 @@ class GoExprVisitor(
                 val arg = args[0]
                 val collection = unboxNamedRef(arg.accept(this).asExpr(ctx.addressSort), arg.type)
 
-                return ctx.mkIte(
-                    ctx.mkNot(ctx.mkHeapRefEq(collection, ctx.nullRef)),
-                    trueBranch = {
-                        scope.calcOnState {
-                            when (val type = arg.type.underlying()) {
-                                is ArrayType, is SliceType, is BasicType -> {
-                                    val length = memory.readArrayLength(collection, type, ctx.sizeSort)
-                                    checkLength(length) ?: throw IllegalStateException()
-                                    length
-                                }
+                return ctx.mkPrimitiveCast(
+                    ctx.mkIte(
+                        ctx.mkNot(ctx.mkHeapRefEq(collection, ctx.nullRef)),
+                        trueBranch = {
+                            scope.calcOnState {
+                                when (val type = arg.type.underlying()) {
+                                    is ArrayType, is SliceType, is BasicType -> {
+                                        val view = arrayView(collection, type)
+                                        val size = if (method.name == "cap") view.capacity else view.length
+                                        checkLength(size) ?: throw GoStepAbort()
+                                        size
+                                    }
 
-                                is MapType -> {
-                                    scope.ensureObjectMapSizeCorrect(collection, type) ?: throw IllegalStateException()
-                                    symbolicObjectMapSize(collection, type)
-                                }
+                                    is MapType -> {
+                                        scope.ensureObjectMapSizeCorrect(collection, type) ?: throw GoStepAbort()
+                                        symbolicObjectMapSize(collection, type)
+                                    }
 
-                                else -> throw IllegalStateException()
+                                    else -> {
+                                        error("Inconsistent Go interpreter state")
+                                    }
+                                }
                             }
-                        }
-                    },
-                    falseBranch = {
-                        ctx.mkSizeExpr(0)
-                    },
+                        },
+                        falseBranch = {
+                            ctx.mkSizeExpr(0)
+                        },
+                    ),
+                    ctx.typeToSort(returnType)
                 )
             }
 
@@ -1015,11 +1138,15 @@ class GoExprVisitor(
                 }
             }
 
-            "recover" -> scope.calcOnState {
-                recover()
+            "recover" -> {
+                scope.calcOnState {
+                    recover()
+                }
             }
 
-            else -> ctx.nullRef
+            else -> {
+                unsupportedExpr("builtin ${method.name}")
+            }
         }
     }
 
@@ -1027,8 +1154,8 @@ class GoExprVisitor(
         srcMap: UHeapRef,
         mapType: MapType,
     ): UHeapRef = with(ctx) {
-        checkNotNull(srcMap) ?: throw IllegalStateException()
-        scope.ensureObjectMapSizeCorrect(srcMap, mapType) ?: throw IllegalStateException()
+        checkNotNull(srcMap) ?: throw GoStepAbort()
+        scope.ensureObjectMapSizeCorrect(srcMap, mapType) ?: throw GoStepAbort()
 
         val keySort = typeToSort(mapType.keyType.mapKeyStorageType())
         val valueSort = typeToSort(mapType.valueType)
@@ -1038,45 +1165,116 @@ class GoExprVisitor(
             if (isRefSet) {
                 symbolicObjectMapMergeInto(destMap, srcMap, mapType, valueSort)
             } else {
-                symbolicPrimitiveMapMergeInto(destMap, srcMap, mapType, keySort, valueSort, USizeExprKeyInfo())
+                symbolicPrimitiveMapCopyIntoEmpty(destMap, srcMap, mapType, keySort, valueSort, USizeExprKeyInfo())
             }
             destMap
         }
     }
 
+    private fun compareStrings(expr: GoBinaryExpr): UExpr<UBoolSort> {
+        val left = unboxNamedRef(expr.lhv.accept(this).asExpr(ctx.addressSort), expr.lhv.type)
+        val right = unboxNamedRef(expr.rhv.accept(this).asExpr(ctx.addressSort), expr.rhv.type)
+        return scope.calcOnState {
+            val leftView = arrayView(left, GoBasicTypes.STRING)
+            val rightView = arrayView(right, GoBasicTypes.STRING)
+            val bound = (leftView.length as? KBitVec32Value)?.intValue
+                ?: (rightView.length as? KBitVec32Value)?.intValue
+                ?: throw UnsupportedOperationException("String comparison with two symbolic lengths is not supported")
+            require(bound >= 0) { "Negative string length" }
+            var equalPrefix: UExpr<UBoolSort> = ctx.trueExpr
+            var less: UExpr<UBoolSort> = ctx.falseExpr
+            for (index in 0 until bound) {
+                val position = ctx.mkSizeExpr(index)
+                val inBoth = ctx.mkAnd(
+                    ctx.mkSizeLtExpr(position, leftView.length),
+                    ctx.mkSizeLtExpr(position, rightView.length)
+                )
+                val leftByte = memory.readGoArrayIndex(
+                    leftView.backing,
+                    ctx.mkSizeAddExpr(leftView.offset, position),
+                    leftView.storageType,
+                    ctx.bv8Sort
+                )
+                val rightByte = memory.readGoArrayIndex(
+                    rightView.backing,
+                    ctx.mkSizeAddExpr(rightView.offset, position),
+                    rightView.storageType,
+                    ctx.bv8Sort
+                )
+                less = ctx.mkOr(less, ctx.mkAnd(equalPrefix, inBoth, ctx.mkBvUnsignedLessExpr(leftByte, rightByte)))
+                equalPrefix = ctx.mkAnd(equalPrefix, ctx.mkOr(ctx.mkNot(inBoth), ctx.mkEq(leftByte, rightByte)))
+            }
+            less = ctx.mkOr(less, ctx.mkAnd(equalPrefix, ctx.mkSizeLtExpr(leftView.length, rightView.length)))
+            val equal = ctx.mkAnd(equalPrefix, ctx.mkEq(leftView.length, rightView.length))
+            when (expr) {
+                is GoEqlExpr -> {
+                    equal
+                }
+                is GoNeqExpr -> {
+                    ctx.mkNot(equal)
+                }
+                is GoLssExpr -> {
+                    less
+                }
+                is GoLeqExpr -> {
+                    ctx.mkOr(less, equal)
+                }
+                is GoGtrExpr -> {
+                    ctx.mkNot(ctx.mkOr(less, equal))
+                }
+                is GoGeqExpr -> {
+                    ctx.mkNot(less)
+                }
+                else -> {
+                    error("Unsupported string operation: $expr")
+                }
+            }
+        }
+    }
+
     private fun appendArray(sliceValue: GoValue, appendValue: GoValue): UExpr<out USort> {
         val slice = unboxNamedRef(sliceValue.accept(this).asExpr(ctx.addressSort), sliceValue.type)
-        val append = unboxNamedRef(appendValue.accept(this).asExpr(ctx.addressSort), appendValue.type)
-        val sliceType = sliceValue.type.underlying()
-
-        val elementSort = if (sliceType == GoBasicTypes.STRING) {
-            ctx.bv8Sort
-        } else {
-            ctx.typeToSort((sliceType as SliceType).elementType)
-        }
+        val appended = unboxNamedRef(appendValue.accept(this).asExpr(ctx.addressSort), appendValue.type)
+        val type = sliceValue.type.underlying()
+        val isString = type == GoBasicTypes.STRING
+        val elementSort = if (isString) ctx.bv8Sort else ctx.typeToSort((type as SliceType).elementType)
         val zero = ctx.mkSizeExpr(0)
-
         return scope.calcOnState {
-            val sliceLength = ctx.mkIte(
-                ctx.mkHeapRefEq(slice, ctx.nullRef),
-                { zero },
-                { memory.readArrayLength(slice, sliceType, ctx.sizeSort) }
+            val view = arrayView(slice, type)
+            val appendedView = arrayView(appended, appendValue.type)
+            val length = ctx.mkSizeAddExpr(view.length, appendedView.length)
+            checkLength(length) ?: throw GoStepAbort()
+            val newBacking = memory.allocateGoArray(type, ctx.sizeSort, length)
+            memory.copyGoArray(view.backing, newBacking, view.storageType, elementSort, view.offset, zero, view.length)
+            memory.copyGoArray(
+                appendedView.backing,
+                newBacking,
+                view.storageType,
+                elementSort,
+                appendedView.offset,
+                view.length,
+                appendedView.length
             )
-            val appendLength = ctx.mkIte(
-                ctx.mkHeapRefEq(append, ctx.nullRef),
-                { zero },
-                { memory.readArrayLength(append, sliceType, ctx.sizeSort) }
+            if (isString) return@calcOnState newBacking
+
+            val reuse = ctx.mkSizeLeExpr(length, view.capacity)
+            val backing = ctx.mkIte(reuse, view.backing, newBacking)
+            val offset = ctx.mkIte(reuse, view.offset, zero)
+            memory.copyGoArray(
+                appendedView.backing,
+                backing,
+                view.storageType,
+                elementSort,
+                appendedView.offset,
+                ctx.mkSizeAddExpr(offset, view.length),
+                appendedView.length
             )
-            checkLength(sliceLength) ?: throw IllegalStateException()
-            checkLength(appendLength) ?: throw IllegalStateException()
-
-            val length = ctx.mkSizeAddExpr(sliceLength, appendLength)
-            val out = memory.allocateArray(sliceType, ctx.sizeSort, length)
-
-            memory.memcpy(slice, out, sliceType, elementSort, zero, zero, sliceLength)
-            memory.memcpy(append, out, sliceType, elementSort, zero, sliceLength, appendLength)
-
-            out
+            val header = memory.allocateGoArray(type, ctx.sizeSort, length)
+            data.arrayViews[header] = GoArrayView(
+                backing, view.storageType, offset = offset,
+                length = length, capacity = ctx.mkIte(reuse, view.capacity, length)
+            )
+            header
         }
     }
 
@@ -1084,8 +1282,12 @@ class GoExprVisitor(
         return when (targetType) {
             is NamedType -> {
                 when (baseType) {
-                    is NamedType -> box(unbox(value.asExpr(ctx.addressSort), ctx.typeToSort(baseType)), targetType)
-                    else -> box(value, targetType)
+                    is NamedType -> {
+                        box(unbox(value.asExpr(ctx.addressSort), ctx.typeToSort(baseType)), targetType)
+                    }
+                    else -> {
+                        box(value, targetType)
+                    }
                 }
             }
 
@@ -1110,22 +1312,38 @@ class GoExprVisitor(
     }
 
     private fun mockCall(expr: GoCallExpr, func: GoValue): UExpr<out USort> {
-        val funcName = when(func) {
-            is GoParameter -> func.name
-            is GoFunction  -> func.name
-            else -> "unnamed"
+        val funcName = when (func) {
+            is GoParameter -> {
+                func.name
+            }
+            is GoFunction -> {
+                func.name
+            }
+            else -> {
+                "unnamed"
+            }
         }
         val signature = func.type as SignatureType
         val returnType = when (signature.results.types.size) {
-            0 -> NullType()
-            1 -> signature.results.types[0]
-            else -> signature.results
+            0 -> {
+                NullType()
+            }
+            1 -> {
+                signature.results.types[0]
+            }
+            else -> {
+                signature.results
+            }
         }
         val method = GoFunction(signature, emptyList(), funcName, emptyList(), "", emptyList(), emptyList())
         val mockSort = ctx.typeToSort(returnType)
         val mockValue = scope.calcOnState {
-            val arguments = expr.args.map { it.accept(this@GoExprVisitor) }.asSequence()
-            memory.mocker.call(method, arguments, mockSort, memory.ownership)
+            memory.mocker.call(
+                method,
+                expr.args.map { it.accept(this@GoExprVisitor) }.asSequence(),
+                mockSort,
+                memory.ownership
+            )
         }
         if (mockSort == ctx.addressSort) {
             val constraint = scope.calcOnState {

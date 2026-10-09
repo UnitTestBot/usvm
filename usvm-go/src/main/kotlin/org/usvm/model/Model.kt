@@ -8,6 +8,7 @@ data class Package(
     val name: String,
     val members: List<Member>,
     val types: Map<String, Type>,
+    @SerialName("int_size") val intSize: Int,
 )
 
 @Serializable
@@ -55,6 +56,7 @@ sealed interface Member {
 
 @Serializable
 data class NamedConstValue(
+    val bytes: String? = null,
     val type: String,
     val value: String,
 )
