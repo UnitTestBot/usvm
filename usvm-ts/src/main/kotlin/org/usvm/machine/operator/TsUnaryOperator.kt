@@ -8,6 +8,7 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.machine.TsContext
+import org.usvm.machine.expr.ensureTruthinessSupported
 import org.usvm.machine.expr.mkNumericExpr
 import org.usvm.machine.expr.mkTruthyExpr
 import org.usvm.machine.interpreter.TsStepScope
@@ -17,27 +18,27 @@ sealed interface TsUnaryOperator {
     fun TsContext.resolveBool(
         arg: UBoolExpr,
         scope: TsStepScope,
-    ): UExpr<out USort>
+    ): UExpr<out USort>?
 
     fun TsContext.resolveFp(
         arg: UExpr<KFp64Sort>,
         scope: TsStepScope,
-    ): UExpr<out USort>
+    ): UExpr<out USort>?
 
     fun TsContext.resolveRef(
         arg: UExpr<UAddressSort>,
         scope: TsStepScope,
-    ): UExpr<out USort>
+    ): UExpr<out USort>?
 
     fun TsContext.resolveFake(
         arg: UConcreteHeapRef,
         scope: TsStepScope,
-    ): UExpr<out USort>
+    ): UExpr<out USort>?
 
     fun TsContext.resolve(
         arg: UExpr<out USort>,
         scope: TsStepScope,
-    ): UExpr<out USort> {
+    ): UExpr<out USort>? {
         if (arg.isFakeObject()) {
             return resolveFake(arg, scope)
         }
@@ -61,21 +62,28 @@ sealed interface TsUnaryOperator {
             arg: UExpr<KFp64Sort>,
             scope: TsStepScope,
         ): UBoolExpr {
-            return mkNot(mkTruthyExpr(arg, scope))
+            val truthy = mkTruthyExpr(arg, scope)
+            return mkNot(truthy)
         }
 
         override fun TsContext.resolveRef(
             arg: UExpr<UAddressSort>,
             scope: TsStepScope,
-        ): UBoolExpr {
-            return mkNot(mkTruthyExpr(arg, scope))
+        ): UBoolExpr? {
+            val truthy = mkTruthyExpr(arg, scope)
+            scope.ensureTruthinessSupported(arg) ?: return null
+
+            return mkNot(truthy)
         }
 
         override fun TsContext.resolveFake(
             arg: UConcreteHeapRef,
             scope: TsStepScope,
-        ): UBoolExpr {
-            return mkNot(mkTruthyExpr(arg, scope))
+        ): UBoolExpr? {
+            val truthy = mkTruthyExpr(arg, scope)
+            scope.ensureTruthinessSupported(arg) ?: return null
+
+            return mkNot(truthy)
         }
     }
 

@@ -12,6 +12,7 @@ import org.usvm.UNullRef
 import org.usvm.USymbolicHeapRef
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.typeStreamOf
+import org.usvm.machine.expr.mkNotNullOrUndefined
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.solver.UUnsatResult
 import org.usvm.types.singleOrNull
@@ -58,10 +59,7 @@ internal fun TsStepScope.prepareRefinedStringBackings(): Unit? {
             val alternative = clone()
             val stringCondition = with(ctx) {
                 val stringType = memory.types.evalTypeEquals(ref, EtsStringType)
-                val nonNull = mkNot(mkHeapRefEq(ref, mkTsNullValue()))
-                val defined = mkNot(mkHeapRefEq(ref, mkUndefinedValue()))
-
-                mkAnd(stringType, nonNull, defined)
+                mkAnd(stringType, mkNotNullOrUndefined(ref))
             }
             alternative.pathConstraints += ctx.mkNot(stringCondition)
 

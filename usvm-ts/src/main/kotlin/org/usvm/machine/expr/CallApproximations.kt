@@ -255,7 +255,10 @@ private fun TsExprResolver.handleBooleanConstructor(expr: EtsInstanceCallExpr): 
     }
     val arg = resolve(expr.args.single()) ?: return null
 
-    mkTruthyExpr(arg, scope)
+    val truthy = mkTruthyExpr(arg, scope)
+    scope.ensureTruthinessSupported(arg) ?: return null
+
+    truthy
 }
 
 private fun TsExprResolver.handlePromiseConstructor(expr: EtsInstanceCallExpr): UExpr<*>? = with(ctx) {

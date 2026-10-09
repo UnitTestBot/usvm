@@ -2,14 +2,22 @@ package org.usvm.machine.expr
 
 import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
+import org.jacodb.ets.model.EtsStringLiteralType
 import org.jacodb.ets.model.EtsStringType
 import org.usvm.UBoolExpr
 import org.usvm.UBoolSort
+import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.UIteExpr
+import org.usvm.UOrExpr
 import org.usvm.USort
+import org.usvm.USymbolicHeapRef
+import org.usvm.api.allocateConcreteRef
+import org.usvm.api.evalTypeEquals
 import org.usvm.api.makeSymbolicPrimitive
 import org.usvm.isFalse
+import org.usvm.isTrue
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsSizeSort
 import org.usvm.machine.interpreter.TsStepScope
@@ -18,7 +26,10 @@ import org.usvm.machine.state.TsState
 import org.usvm.machine.types.EtsFakeType
 import org.usvm.machine.types.ExprWithTypeConstraint
 import org.usvm.types.single
+import org.usvm.types.singleOrNull
 import org.usvm.util.boolToFp
+import org.usvm.util.mkStringBackingLValue
+import org.usvm.util.mkStringBackingLengthLValue
 
 fun TsContext.checkNotFake(expr: UExpr<*>) {
     require(!expr.isFakeObject()) {
@@ -26,6 +37,103 @@ fun TsContext.checkNotFake(expr: UExpr<*>) {
     }
 }
 
+// `any` is assignable both to and from string, so a type-relation query cannot identify
+// a materialized string. Inspect the concrete type stream before reading its backing array.
+private fun TsState.stringTypeCondition(ref: UHeapRef): UBoolExpr = with(ctx) {
+    when (ref) {
+        is UConcreteHeapRef, is USymbolicHeapRef -> {
+            val type = memory.types.getTypeStream(ref).singleOrNull()
+            if (type is EtsStringType || type is EtsStringLiteralType) {
+                mkTrue()
+            } else {
+                memory.types.evalTypeEquals(ref, EtsStringType)
+            }
+        }
+
+        is UIteExpr<*> -> {
+            val trueRef = ref.trueBranch.asExpr(addressSort)
+            val falseRef = ref.falseBranch.asExpr(addressSort)
+            val trueIsString = stringTypeCondition(trueRef)
+            val falseIsString = stringTypeCondition(falseRef)
+
+            mkIte(ref.condition, trueIsString, falseIsString)
+        }
+
+        else -> mkFalse()
+    }
+}
+
+private fun TsState.hasStringBacking(ref: UHeapRef): UBoolExpr = with(ctx) {
+    when (ref) {
+        is UConcreteHeapRef -> {
+            if (getStringConstantValue(ref) != null || ref in boundedStringBackingRefs) mkTrue() else mkFalse()
+        }
+
+        is USymbolicHeapRef -> {
+            if (ref in boundedStringBackingRefs) mkTrue() else mkFalse()
+        }
+
+        is UIteExpr<*> -> {
+            val trueRef = ref.trueBranch.asExpr(addressSort)
+            val falseRef = ref.falseBranch.asExpr(addressSort)
+
+            mkIte(ref.condition, hasStringBacking(trueRef), hasStringBacking(falseRef))
+        }
+
+        else -> mkFalse()
+    }
+}
+
+private fun TsState.referenceTruthy(ref: UHeapRef): UBoolExpr = with(ctx) {
+    val nonNullish = mkNotNullOrUndefined(ref)
+    if (nonNullish.isFalse) return@with mkFalse()
+
+    val isString = stringTypeCondition(ref)
+    if (isString.isFalse) return@with nonNullish
+
+    val backedString = hasStringBacking(ref)
+    if (backedString.isFalse) return@with nonNullish
+
+    val charsRef = memory.read(mkStringBackingLValue(ref))
+    val readableBacking = mkAnd(isString, backedString)
+    val readableCharsRef = if (readableBacking.isTrue) {
+        charsRef
+    } else {
+        // Other objects need no backing array. Keep the array-region read away from their null field value.
+        mkIte(readableBacking, charsRef, allocateConcreteRef())
+    }
+    val length = memory.read(mkStringBackingLengthLValue(readableCharsRef))
+    val stringIsNonEmpty = mkNot(mkEq(length, mkBv(0)))
+
+    mkAnd(nonNullish, mkImplies(isString, stringIsNonEmpty))
+}
+
+/** Validate the execution path separately from constructing its boolean expression. */
+fun TsStepScope.ensureTruthinessSupported(expr: UExpr<out USort>): Unit? {
+    val unsupportedString = calcOnState {
+        with(ctx) {
+            val (ref, activeGuard) = when {
+                expr.isFakeObject() -> {
+                    val type = expr.getFakeType(memory)
+                    memory.read(getIntermediateRefLValue(expr.address)) to type.refTypeExpr
+                }
+
+                expr.sort == addressSort -> expr.asExpr(addressSort) to trueExpr
+                else -> return@calcOnState falseExpr
+            }
+
+            mkAnd(activeGuard, mkNotNullOrUndefined(ref), stringTypeCondition(ref), mkNot(hasStringBacking(ref)))
+        }
+    }
+    if (unsupportedString.isFalse) return Unit
+
+    val supported = calcOnState { ctx.mkNot(unsupportedString) }
+    return fork(supported, blockOnFalseState = {
+        terminateAsUnsupported(reason = "Truthiness needs a modeled string backing for dynamic references")
+    })
+}
+
+/** Construct a condition; call [ensureTruthinessSupported] before executing with it. */
 fun TsContext.mkTruthyExpr(
     expr: UExpr<out USort>,
     scope: TsStepScope,
@@ -61,12 +169,10 @@ fun TsContext.mkTruthyExpr(
 
         if (!possibleType.refTypeExpr.isFalse) {
             val value = memory.read(getIntermediateRefLValue(expr.address))
+            val refTruthy = referenceTruthy(value)
             conjuncts += ExprWithTypeConstraint(
                 constraint = possibleType.refTypeExpr,
-                expr = mkAnd(
-                    mkHeapRefEq(value, mkTsNullValue()).not(),
-                    mkHeapRefEq(value, mkUndefinedValue()).not(),
-                )
+                expr = refTruthy
             )
         }
 
@@ -74,12 +180,7 @@ fun TsContext.mkTruthyExpr(
             mkIte(condition, value, acc)
         }
     } else {
-        // TODO: simply convert `expr` to bool by implementing ToBoolean(arg):
-        //  if arg is Boolean : return arg
-        //  if arg is undefined | null | +0f | -0f | NaN | 0 | "" : return false
-        //  else return true // non-negative numbers, any living objects, non-empty strings, etc
-        //  (https://tc39.es/ecma262/#sec-toboolean)
-        //  This conversion might be useful in other places as well, not just for truthy in ifs.
+        // ECMAScript ToBoolean (https://tc39.es/ecma262/#sec-toboolean).
 
         when (expr.sort) {
             boolSort -> expr.asExpr(boolSort)
@@ -89,10 +190,7 @@ fun TsContext.mkTruthyExpr(
                 mkFpIsNaNExpr(expr.asExpr(fp64Sort)).not()
             )
 
-            addressSort -> mkAnd(
-                mkHeapRefEq(expr.asExpr(addressSort), mkTsNullValue()).not(),
-                mkHeapRefEq(expr.asExpr(addressSort), mkUndefinedValue()).not(),
-            )
+            addressSort -> referenceTruthy(expr.asExpr(addressSort))
 
             else -> TODO("Unsupported sort: ${expr.sort}")
         }
@@ -173,10 +271,7 @@ fun TsContext.mkNullishExpr(
         // If it represents a primitive type (bool/number), it's never nullish.
         return mkIte(
             condition = fakeType.refTypeExpr,
-            trueBranch = mkOr(
-                mkHeapRefEq(ref, mkTsNullValue()),
-                mkHeapRefEq(ref, mkUndefinedValue())
-            ),
+            trueBranch = mkIsNullOrUndefined(ref),
             falseBranch = mkFalse(),
         )
     }
@@ -184,10 +279,7 @@ fun TsContext.mkNullishExpr(
     // Regular reference is nullish if it is either null or undefined
     if (expr.sort == addressSort) {
         val ref = expr.asExpr(addressSort)
-        return mkOr(
-            mkHeapRefEq(ref, mkTsNullValue()),
-            mkHeapRefEq(ref, mkUndefinedValue())
-        )
+        return mkIsNullOrUndefined(ref)
     }
 
     // Non-reference types (numbers, booleans, strings) are never nullish
@@ -199,16 +291,22 @@ fun TsState.throwException(reason: String) {
     methodResult = TsMethodResult.TsException(ref, EtsStringType)
 }
 
+fun TsContext.mkIsNullOrUndefined(ref: UHeapRef): UBoolExpr {
+    checkNotFake(ref)
+
+    val isNull = mkHeapRefEq(ref, mkTsNullValue())
+    val isUndefined = mkHeapRefEq(ref, mkUndefinedValue())
+    return mkOr(isNull, isUndefined)
+}
+
 fun TsContext.mkNotNullOrUndefined(ref: UHeapRef): UBoolExpr {
-    require(!ref.isFakeObject()) {
-        "Fake object handling should be done outside of this function"
+    val isNullOrUndefined = mkIsNullOrUndefined(ref)
+
+    // Preserve the explicit disequalities when this expression is composed into path guards.
+    return when (isNullOrUndefined) {
+        is UOrExpr -> mkAnd(isNullOrUndefined.args.map(::mkNot))
+        else -> mkNot(isNullOrUndefined)
     }
-    return mkNot(
-        mkOr(
-            mkHeapRefEq(ref, mkTsNullValue()),
-            mkHeapRefEq(ref, mkUndefinedValue())
-        )
-    )
 }
 
 fun TsContext.checkUndefinedOrNullPropertyRead(
