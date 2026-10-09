@@ -1,0 +1,188 @@
+package regressions
+
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"testing"
+)
+
+func TestNativeOracle(t *testing.T) {
+	cases := map[string]func() any{
+		"compositePointerFieldsRemainShared": func() any { return compositePointerFieldsRemainShared() },
+		"deferredArguments":                  func() any { return deferredArguments() },
+		"repeatedDeferArguments":             func() any { return repeatedDeferArguments() },
+		"deferredStructArgument":             func() any { return deferredStructArgument() },
+		"recursiveDeferredArguments":         func() any { return recursiveDeferredArguments() },
+		"interfaceAssertion":                 func() any { return interfaceAssertion() },
+		"interfaceAssertionNoComma":          func() any { return interfaceAssertionNoComma() },
+		"pointerInterfaceCall":               func() any { return pointerInterfaceCall() },
+		"valueHasPointerMethods":             func() any { return valueHasPointerMethods() },
+		"mapStructCopy":                      func() any { return mapStructCopy() },
+		"mapArrayCopy":                       func() any { return mapArrayCopy() },
+		"mapLookupStructCopy":                func() any { return mapLookupStructCopy() },
+		"missingStructLookup":                func() any { return missingStructLookup() },
+		"missingNamedLookup":                 func() any { return missingNamedLookup() },
+		"missingArrayLookup":                 func() any { return missingArrayLookup() },
+		"missingStructLookupComma":           func() any { return missingStructLookupComma() },
+		"namedMapAssertionZero":              func() any { return namedMapAssertionZero() },
+		"sliceStructCopy":                    func() any { return sliceStructCopy() },
+		"appendStructCopy":                   func() any { return appendStructCopy() },
+		"sliceArrayCopy":                     func() any { return sliceArrayCopy() },
+		"appendArrayCopy":                    func() any { return appendArrayCopy() },
+		"overlapCompositeCopy":               func() any { return overlapCompositeCopy() },
+		"appendCompositeReuse":               func() any { return appendCompositeReuse() },
+		"appendCompositeAllocate":            func() any { return appendCompositeAllocate() },
+		"narrowSignedIndex":                  func() any { return narrowSignedIndex() },
+		"negativeInt16Index":                 func() any { return negativeInt16Index() },
+		"namedSliceAssertionZero":            func() any { return namedSliceAssertionZero() },
+		"namedPointerAssertionZero":          func() any { return namedPointerAssertionZero() },
+		"namedNegation":                      func() any { return namedNegation() },
+		"namedComplement":                    func() any { return namedComplement() },
+		"namedBooleanNot":                    func() any { return namedBooleanNot() },
+		"unsignedToFloat64":                  func() any { return unsignedToFloat64() },
+		"unsignedToFloat32":                  func() any { return unsignedToFloat32() },
+		"floatToInt8":                        func() any { return floatToInt8() },
+		"floatToUint8":                       func() any { return floatToUint8() },
+		"floatToInt16":                       func() any { return floatToInt16() },
+		"floatToUint16":                      func() any { return floatToUint16() },
+		"namedInterfaceAssert":               func() any { return namedInterfaceAssert() },
+		"nilScalarAssertion":                 func() any { return nilScalarAssertion() },
+		"failedNamedAssertionZero":           func() any { return failedNamedAssertionZero() },
+		"nilMapLookupComma":                  func() any { return nilMapLookupComma() },
+		"nilMapDelete":                       func() any { return nilMapDelete() },
+		"nilMapAssignment":                   func() any { return nilMapAssignment() },
+		"nilNamedMapLookup":                  func() any { return nilNamedMapLookup() },
+		"nilNamedMapDelete":                  func() any { return nilNamedMapDelete() },
+		"missingMapLookupCommaValue":         func() any { return missingMapLookupCommaValue() },
+		"nilMapRange":                        func() any { return nilMapRange() },
+		"nilNamedMapRange":                   func() any { return nilNamedMapRange() },
+		"nilMapLookup":                       func() any { return nilMapLookup() },
+		"unsignedResultWidth":                func() any { return unsignedResultWidth() },
+		"shiftByBitWidth":                    func() any { return shiftByBitWidth() },
+		"bitwiseComplement":                  func() any { return bitwiseComplement() },
+		"bitwiseAndNot":                      func() any { return bitwiseAndNot() },
+		"nativeIntWidth":                     func() any { return nativeIntWidth() },
+		"sliceCapacity":                      func() any { return sliceCapacity() },
+		"mapHintLength":                      func() any { return mapHintLength() },
+		"mapInsertLength":                    func() any { return mapInsertLength() },
+		"sliceAlias":                         func() any { return sliceAlias() },
+		"stringEquality":                     func() any { return stringEquality() },
+		"stringInequality":                   func() any { return stringInequality() },
+		"stringLengthDifference":             func() any { return stringLengthDifference() },
+		"stringOrdering":                     func() any { return stringOrdering() },
+		"stringPrefixOrdering":               func() any { return stringPrefixOrdering() },
+		"emptyStringEquality":                func() any { return emptyStringEquality() },
+		"stringConcatenation":                func() any { return stringConcatenation() },
+		"stringBytesCopy":                    func() any { return stringBytesCopy() },
+		"bytesStringCopy":                    func() any { return bytesStringCopy() },
+		"sliceOffsetAlias":                   func() any { return sliceOffsetAlias() },
+		"sliceFullCapacity":                  func() any { return sliceFullCapacity() },
+		"sliceCopyOffset":                    func() any { return sliceCopyOffset() },
+		"sliceCopyString":                    func() any { return sliceCopyString() },
+		"sliceAppendReuse":                   func() any { return sliceAppendReuse() },
+		"sliceAppendAllocate":                func() any { return sliceAppendAllocate() },
+		"sliceAppendOffset":                  func() any { return sliceAppendOffset() },
+		"sliceArrayPointerAlias":             func() any { return sliceArrayPointerAlias() },
+		"nilSliceLength":                     func() any { return nilSliceLength() },
+		"nilSliceAppend":                     func() any { return nilSliceAppend() },
+		"mapOverwriteLength":                 func() any { return mapOverwriteLength() },
+		"mapDeleteLength":                    func() any { return mapDeleteLength() },
+		"bitwiseAndOr":                       func() any { return bitwiseAndOr() },
+		"oversizedShiftCount":                func() any { return oversizedShiftCount() },
+		"signedRightShift":                   func() any { return signedRightShift() },
+		"unsignedRightShift":                 func() any { return unsignedRightShift() },
+		"nativeIntOverflow":                  func() any { return nativeIntOverflow() },
+		"unsignedWidening":                   func() any { return unsignedWidening() },
+		"oversizedIndex":                     func() any { return oversizedIndex() },
+		"negativeIndex":                      func() any { return negativeIndex() },
+		"negativeShift":                      func() any { return negativeShift() },
+		"divideByZero":                       func() any { return divideByZero() },
+		"remainderByZero":                    func() any { return remainderByZero() },
+		"utf8StringLength":                   func() any { return utf8StringLength() },
+		"unsignedSliceLength":                func() any { return unsignedSliceLength() },
+		"narrowIndex":                        func() any { return narrowIndex() },
+		"negativeSliceHigh":                  func() any { return negativeSliceHigh() },
+		"nilPointerConversion":               func() any { return nilPointerConversion() },
+		"pointerConversionAlias":             func() any { return pointerConversionAlias() },
+		"pointerConversionRoundTrip":         func() any { return pointerConversionRoundTrip() },
+		"namedPointerConversionAlias":        func() any { return namedPointerConversionAlias() },
+		"structValueCopy":                    func() any { return structValueCopy() },
+		"nestedStructValueCopy":              func() any { return nestedStructValueCopy() },
+		"arrayValueCopy":                     func() any { return arrayValueCopy() },
+		"structArgumentCopy":                 func() any { return structArgumentCopy() },
+		"arrayArgumentCopy":                  func() any { return arrayArgumentCopy() },
+		"interfaceStructCopy":                func() any { return interfaceStructCopy() },
+		"nilStructAssertionZero":             func() any { return nilStructAssertionZero() },
+		"typedNilPointerAssertion":           func() any { return typedNilPointerAssertion() },
+		"nilStructAssertionOk":               func() any { return nilStructAssertionOk() },
+		"pointerToInterfaceDoesNotImplement": func() any { return pointerToInterfaceDoesNotImplement() },
+	}
+	results := make(map[string]string, len(cases))
+
+	for name, run := range cases {
+		results[name] = captureNativeResult(run)
+	}
+
+	output := os.Getenv("USVM_GO_ORACLE_FILE")
+	if output == "" {
+		t.Logf("Native Go results: %v", results)
+		return
+	}
+
+	data, err := json.Marshal(results)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(output, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestReplaySymbolicInputs(t *testing.T) {
+	filename := os.Getenv("USVM_GO_REPLAY_FILE")
+	if filename == "" {
+		t.Skip("No symbolic inputs supplied")
+	}
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var inputs []int
+	if err := json.Unmarshal(data, &inputs); err != nil {
+		t.Fatal(err)
+	}
+	outputs := make([]int, len(inputs))
+	for index, input := range inputs {
+		switch os.Getenv("USVM_GO_REPLAY_METHOD") {
+		case "symbolicBranch":
+			outputs[index] = symbolicBranch(input)
+		case "symbolicSliceAlias":
+			outputs[index] = symbolicSliceAlias(input)
+		case "symbolicCompositeCopy":
+			outputs[index] = symbolicCompositeCopy(input)
+		case "symbolicCompositeAppend":
+			outputs[index] = symbolicCompositeAppend(input)
+		case "symbolicNamedInterfaceRoundTrip":
+			outputs[index] = int(symbolicNamedInterfaceRoundTrip(namedNumber(input)))
+		default:
+			t.Fatal("Unknown replay method")
+		}
+	}
+	data, err = json.Marshal(outputs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filename, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func captureNativeResult(run func() any) (result string) {
+	defer func() {
+		if recover() != nil {
+			result = "panic"
+		}
+	}()
+	return fmt.Sprint(run())
+}
