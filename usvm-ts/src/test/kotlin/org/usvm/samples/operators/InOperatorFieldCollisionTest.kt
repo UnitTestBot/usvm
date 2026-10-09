@@ -12,6 +12,7 @@ import org.usvm.machine.TsOptions
 import org.usvm.machine.state.TsMethodResult
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.TsTestResolver
+import org.usvm.util.eq
 import java.nio.file.Path
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -25,6 +26,29 @@ class InOperatorFieldCollisionTest : TsMethodTestRunner() {
     private val tsPath = "/samples/operators/InOperatorFieldCollision.ts"
 
     override val scene: EtsScene = loadScene(tsPath)
+
+    @Test
+    fun `string field collisions preserve the actual object literal field type`() {
+        val methods = listOf("numericFieldWithStringCollision", "writtenStringField", "declaredStringField")
+
+        methods.forEach { methodName ->
+            val method = getMethod(methodName = methodName, className = "Probe")
+
+            discoverProperties<TsTestValue.TsNumber>(
+                method = method,
+                { result -> result eq 7 },
+                invariants = arrayOf({ result -> result eq 7 }),
+            )
+        }
+
+        val assertions = buildString {
+            methods.forEach { methodName ->
+                appendLine("if (new Probe().$methodName() !== 7) throw Error('$methodName');")
+            }
+        }
+
+        replayInOperatorScript(directory, tsPath, scriptName = "string-field-collision", assertions = assertions)
+    }
 
     @Test
     fun `new own field ignores unrelated declared field sort`() {

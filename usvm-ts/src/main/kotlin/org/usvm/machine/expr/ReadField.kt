@@ -120,9 +120,8 @@ private fun TsContext.resolveField(
     } else {
         null
     }
-    val declaredObjectLiteralSort = objectClass?.fields
-        ?.singleOrNull { it.name == field.name }
-        ?.let { typeToSort(it.type) }
+    val declaredObjectLiteralField = objectClass?.fields?.singleOrNull { it.name == field.name }
+    val declaredObjectLiteralSort = declaredObjectLiteralField?.let { typeToSort(it.type) }
     val resolvedField = resolveEtsField(instanceLocal, field, hierarchy)
     val sort = writtenObjectLiteralSort ?: declaredObjectLiteralSort
         ?: when (resolvedField) {
@@ -151,12 +150,18 @@ private fun TsContext.resolveField(
         scope.assert(fieldExists) ?: return null
     }
 
+    val fieldType = if (objectClass != null) {
+        declaredObjectLiteralField?.type
+    } else {
+        (resolvedField as? TsResolutionResult.Unique)?.property?.type
+    }
+
     val value = readField(scope, instance, field, sort)
-    val materializedValue = if (resolvedField !is TsResolutionResult.Unique || sort is TsUnresolvedSort) {
+    val materializedValue = if (sort is TsUnresolvedSort) {
         value
     } else {
         val maxStringLength = scope.calcOnState { maxStringLength }
-        when (val fieldType = resolvedField.property.type) {
+        when (fieldType) {
             is EtsStringLiteralType -> materializeTypedStringField(
                 scope = scope,
                 value = value.asExpr(addressSort),
