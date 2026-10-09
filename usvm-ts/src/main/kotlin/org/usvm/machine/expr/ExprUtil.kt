@@ -41,6 +41,8 @@ fun TsContext.checkNotFake(expr: UExpr<*>) {
 // `any` is assignable both to and from string, so a type-relation query cannot identify
 // a materialized string. Inspect the concrete type stream before reading its backing array.
 private fun TsState.stringTypeCondition(ref: UHeapRef): UBoolExpr = with(ctx) {
+    if (ref is UNullRef) return@with falseExpr
+
     when (ref) {
         is UNullRef -> mkFalse()
 

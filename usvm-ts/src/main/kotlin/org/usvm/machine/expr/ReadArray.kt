@@ -4,6 +4,9 @@ import io.ksmt.utils.asExpr
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsArrayAccess
 import org.jacodb.ets.model.EtsArrayType
+import org.jacodb.ets.model.EtsClassSignature
+import org.jacodb.ets.model.EtsFieldSignature
+import org.jacodb.ets.model.EtsUnknownType
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.machine.TsContext
@@ -43,6 +46,20 @@ internal fun TsExprResolver.handleArrayAccess(
 
     // Resolve the index.
     val resolvedIndex = resolve(value.index) ?: return null
+    val receiverType = scope.calcOnState { arrayStorageType(array, value.array.type) }
+    val propertyName = concreteStringValue(resolvedIndex)
+    if (propertyName != null && receiverType !is EtsArrayType) {
+        val field = EtsFieldSignature(
+            name = propertyName,
+            enclosingClass = EtsClassSignature.UNKNOWN,
+            type = EtsUnknownType,
+        )
+        return resolveField(scope, value.array, array, field, hierarchy)
+    }
+    if (receiverType !is EtsArrayType) {
+        throw UnsupportedOperationException("Symbolic object property keys are not supported")
+    }
+
     check(resolvedIndex.sort == fp64Sort) {
         "Expected fp64 sort for index, got: ${resolvedIndex.sort}"
     }

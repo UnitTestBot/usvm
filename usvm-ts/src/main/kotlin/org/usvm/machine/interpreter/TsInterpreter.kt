@@ -792,6 +792,7 @@ class TsInterpreter(
             ownership = MutabilityOwnership(),
             entrypoint = method,
             maxStringLength = options.maxArraySize,
+            inputPropertyPresence = options.inputPropertyPresence,
             targets = UTargetsSet.from(targets),
         )
 

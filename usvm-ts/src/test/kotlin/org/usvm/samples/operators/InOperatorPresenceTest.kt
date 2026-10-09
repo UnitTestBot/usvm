@@ -204,7 +204,6 @@ class InOperatorPresenceTest : TsMethodTestRunner() {
     fun `unmodeled keys arrays and prototypes have explicit unsupported outcomes`() {
         val methods = listOf(
             "hasSymbolicKey",
-            "hasInputProperty",
             "testInOperatorObject",
             "testInOperatorArray",
             "testInOperatorObjectAfterDelete",
