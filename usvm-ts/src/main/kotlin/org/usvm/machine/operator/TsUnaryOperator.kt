@@ -8,6 +8,7 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.USort
 import org.usvm.machine.TsContext
+import org.usvm.machine.expr.ensureTruthinessSupported
 import org.usvm.machine.expr.mkNumericExpr
 import org.usvm.machine.expr.mkTruthyExpr
 import org.usvm.machine.interpreter.TsStepScope
@@ -60,8 +61,8 @@ sealed interface TsUnaryOperator {
         override fun TsContext.resolveFp(
             arg: UExpr<KFp64Sort>,
             scope: TsStepScope,
-        ): UBoolExpr? {
-            val truthy = mkTruthyExpr(arg, scope) ?: return null
+        ): UBoolExpr {
+            val truthy = mkTruthyExpr(arg, scope)
             return mkNot(truthy)
         }
 
@@ -69,7 +70,9 @@ sealed interface TsUnaryOperator {
             arg: UExpr<UAddressSort>,
             scope: TsStepScope,
         ): UBoolExpr? {
-            val truthy = mkTruthyExpr(arg, scope) ?: return null
+            val truthy = mkTruthyExpr(arg, scope)
+            scope.ensureTruthinessSupported(arg) ?: return null
+
             return mkNot(truthy)
         }
 
@@ -77,7 +80,9 @@ sealed interface TsUnaryOperator {
             arg: UConcreteHeapRef,
             scope: TsStepScope,
         ): UBoolExpr? {
-            val truthy = mkTruthyExpr(arg, scope) ?: return null
+            val truthy = mkTruthyExpr(arg, scope)
+            scope.ensureTruthinessSupported(arg) ?: return null
+
             return mkNot(truthy)
         }
     }

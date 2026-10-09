@@ -55,10 +55,12 @@ import org.usvm.machine.expr.TsExprApproximationResult
 import org.usvm.machine.expr.TsExprResolver
 import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.expr.checkUndefinedOrNullPropertyRead
+import org.usvm.machine.expr.ensureTruthinessSupported
 import org.usvm.machine.expr.handleAssignToArrayIndex
 import org.usvm.machine.expr.handleAssignToInstanceField
 import org.usvm.machine.expr.handleAssignToLocal
 import org.usvm.machine.expr.handleAssignToStaticField
+import org.usvm.machine.expr.mkNotNullOrUndefined
 import org.usvm.machine.expr.mkTruthyExpr
 import org.usvm.machine.expr.readGlobal
 import org.usvm.machine.expr.tryApproximateInstanceCall
@@ -464,7 +466,9 @@ class TsInterpreter(
             expr.asExpr(ctx.boolSort)
         } else {
             ctx.mkTruthyExpr(expr, scope)
-        } ?: return
+        }
+
+        scope.ensureTruthinessSupported(expr) ?: return
 
         observer?.onIfStatementWithResolvedCondition(simpleValueResolver, stmt, boolExpr, scope)
 
@@ -774,8 +778,7 @@ class TsInterpreter(
         val thisInstanceRef = mkRegisterStackLValue(addressSort, thisIdx)
         val thisRef = state.memory.read(thisInstanceRef).asExpr(addressSort)
 
-        state.pathConstraints += mkNot(mkHeapRefEq(thisRef, mkTsNullValue()))
-        state.pathConstraints += mkNot(mkHeapRefEq(thisRef, mkUndefinedValue()))
+        state.pathConstraints += mkNotNullOrUndefined(thisRef)
 
         // TODO not equal but subtype for abstract/interfaces
         state.pathConstraints += state.memory.types.evalTypeEquals(thisRef, method.enclosingClass!!.type)
@@ -789,9 +792,10 @@ class TsInterpreter(
             }
 
             val parameterType = param.type
-            if (parameterType is EtsRefType) run {
-                state.pathConstraints += mkNot(mkHeapRefEq(ref, mkTsNullValue()))
-                state.pathConstraints += mkNot(mkHeapRefEq(ref, mkUndefinedValue()))
+            run {
+                if (parameterType !is EtsRefType) return@run
+
+                state.pathConstraints += mkNotNullOrUndefined(ref)
 
                 if (parameterType is EtsArrayType) {
                     state.pathConstraints += state.memory.types.evalIsSubtype(ref, parameterType)
@@ -824,8 +828,7 @@ class TsInterpreter(
                 state.pathConstraints += mkHeapRefEq(ref, mkUndefinedValue())
             }
             if (parameterType == EtsStringType) {
-                state.pathConstraints += mkNot(mkHeapRefEq(ref, mkTsNullValue()))
-                state.pathConstraints += mkNot(mkHeapRefEq(ref, mkUndefinedValue()))
+                state.pathConstraints += mkNotNullOrUndefined(ref)
 
                 state.pathConstraints += state.memory.types.evalTypeEquals(ref, EtsStringType)
 

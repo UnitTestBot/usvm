@@ -13,6 +13,7 @@ import org.jacodb.ets.model.EtsStringType
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.USort
 import org.usvm.USymbolicHeapRef
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.makeSymbolicRefUntyped
@@ -64,10 +65,10 @@ internal fun TsExprResolver.handleInstanceFieldRef(
     }
 
     // Read the field.
-    return readField(scope, instanceLocal, instance, value.field, hierarchy)
+    return resolveField(scope, instanceLocal, instance, value.field, hierarchy)
 }
 
-fun TsContext.readField(
+private fun TsContext.resolveField(
     scope: TsStepScope,
     instanceLocal: EtsLocal?,
     instance: UHeapRef,
@@ -95,39 +96,40 @@ fun TsContext.readField(
         is TsResolutionResult.Ambiguous -> unresolvedSort
     }
 
-    scope.doWithState {
-        // If we accessed some field, we make an assumption that
-        // this field should present in the object.
-        // That's not true in the common case for TS, but that's the decision we made.
+    val fieldExists = scope.calcOnState {
+        // We assume a field accessed by the program is present, even though TS permits absent fields.
         val auxiliaryType = EtsAuxiliaryType(properties = setOf(field.name))
-        // assert is required to update models
-        scope.assert(memory.types.evalIsSubtype(instance, auxiliaryType))
+        memory.types.evalIsSubtype(instance, auxiliaryType)
     }
+    scope.assert(fieldExists) ?: return null
 
-    // If the field type is known, we can read it directly.
+    val value = readField(scope, instance, field, sort)
+    if (resolvedField !is TsResolutionResult.Unique || sort is TsUnresolvedSort) return value
+
+    val maxStringLength = scope.calcOnState { maxStringLength }
+    return when (val fieldType = resolvedField.property.type) {
+        is EtsStringLiteralType -> materializeTypedStringField(
+            scope = scope,
+            value = value.asExpr(addressSort),
+            literal = fieldType.value,
+            maxStringLength = maxStringLength,
+        )
+
+        is EtsStringType -> materializeTypedStringField(scope, value.asExpr(addressSort), maxStringLength)
+        else -> value
+    }
+}
+
+/** Reading a field always produces a value; path validation belongs to [resolveField]. */
+private fun TsContext.readField(
+    scope: TsStepScope,
+    instance: UHeapRef,
+    field: EtsFieldSignature,
+    sort: USort,
+): UExpr<*> {
     if (sort !is TsUnresolvedSort) {
         val lValue = mkFieldLValue(sort, instance, field)
-        val value = scope.calcOnState { memory.read(lValue) }
-        if (resolvedField is TsResolutionResult.Unique) {
-            when (val fieldType = resolvedField.property.type) {
-                is EtsStringLiteralType -> {
-                    val maxStringLength = scope.calcOnState { maxStringLength }
-                    return materializeTypedStringField(
-                        scope = scope,
-                        value = value.asExpr(addressSort),
-                        literal = fieldType.value,
-                        maxStringLength = maxStringLength,
-                    )
-                }
-
-                is EtsStringType -> {
-                    val maxStringLength = scope.calcOnState { maxStringLength }
-                    return materializeTypedStringField(scope, value.asExpr(addressSort), maxStringLength)
-                }
-            }
-        }
-
-        return value
+        return scope.calcOnState { memory.read(lValue) }
     }
 
     // If the field type is unknown, we create a fake object.
@@ -175,35 +177,35 @@ private fun TsContext.materializeTypedStringField(
     }
 
     val stringRef = scope.calcOnState { makeSymbolicRefUntyped() }
-    scope.assert(mkHeapRefEq(stringRef, value)) ?: return null
-    scope.assert(mkNot(mkHeapRefEq(stringRef, mkTsNullValue()))) ?: return null
-    scope.assert(mkNot(mkHeapRefEq(stringRef, mkUndefinedValue()))) ?: return null
-    scope.assert(scope.calcOnState { memory.types.evalTypeEquals(stringRef, EtsStringType) }) ?: return null
-
-    val charsRef = scope.calcOnState {
-        val valueLValue = mkStringBackingLValue(stringRef)
-        memory.read(valueLValue)
-    }
-    val charsType = EtsArrayType(EtsNumberType, dimensions = 1)
-    scope.assert(mkNot(mkHeapRefEq(charsRef, mkTsNullValue()))) ?: return null
-    scope.assert(mkNot(mkHeapRefEq(charsRef, mkUndefinedValue()))) ?: return null
-    scope.assert(scope.calcOnState { memory.types.evalTypeEquals(charsRef, charsType) }) ?: return null
-
-    val length = scope.calcOnState { memory.read(mkStringBackingLengthLValue(charsRef)) }
-    if (literal == null) {
-        val lengthIsNonNegative = mkBvSignedGreaterOrEqualExpr(length, mkBv(0))
-        val lengthIsWithinLimit = mkBvSignedLessOrEqualExpr(length, mkBv(maxStringLength))
-        scope.assert(mkAnd(lengthIsNonNegative, lengthIsWithinLimit)) ?: return null
-    } else {
-        // A literal type fixes both the UTF-16 length and every code unit.
-        scope.assert(mkEq(length, mkBv(literal.length))) ?: return null
-        for ((index, character) in literal.withIndex()) {
-            val element = scope.calcOnState {
-                memory.read(mkStringBackingElementLValue(charsRef, mkBv(index)))
+    val constraints = scope.calcOnState {
+        val charsRef = memory.read(mkStringBackingLValue(stringRef))
+        val charsType = EtsArrayType(EtsNumberType, dimensions = 1)
+        val length = memory.read(mkStringBackingLengthLValue(charsRef))
+        val stringType = memory.types.evalTypeEquals(stringRef, EtsStringType)
+        val backingType = memory.types.evalTypeEquals(charsRef, charsType)
+        val contents = if (literal == null) {
+            val nonnegativeLength = mkBvSignedGreaterOrEqualExpr(length, mkBv(0))
+            val boundedLength = mkBvSignedLessOrEqualExpr(length, mkBv(maxStringLength))
+            mkAnd(nonnegativeLength, boundedLength)
+        } else {
+            // A literal type fixes both the UTF-16 length and every code unit.
+            val characters = literal.mapIndexed { index, character ->
+                val element = memory.read(mkStringBackingElementLValue(charsRef, mkBv(index)))
+                mkEq(element, mkBv(character.code, bv16Sort))
             }
-            scope.assert(mkEq(element, mkBv(character.code, bv16Sort))) ?: return null
+            mkAnd(mkEq(length, mkBv(literal.length)), mkAnd(characters))
         }
+
+        mkAnd(
+            mkHeapRefEq(stringRef, value),
+            mkNotNullOrUndefined(stringRef),
+            stringType,
+            mkNotNullOrUndefined(charsRef),
+            backingType,
+            contents,
+        )
     }
+    scope.assert(constraints) ?: return null
 
     scope.doWithState { boundedStringBackingRefs += stringRef }
 
@@ -233,5 +235,5 @@ fun TsContext.readStaticField(
     val instance = scope.calcOnState { getStaticInstance(clazz) }
 
     // Read the field.
-    return readField(scope, null, instance, field, hierarchy)
+    return resolveField(scope, null, instance, field, hierarchy)
 }

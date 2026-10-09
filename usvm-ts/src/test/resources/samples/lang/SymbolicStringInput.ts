@@ -125,6 +125,16 @@ class SymbolicStringInput {
         return 0;
     }
 
+    anyAnd(value: any): number {
+        if (value && true) return 1;
+        return 0;
+    }
+
+    anyOr(value: any): number {
+        if (value || false) return 1;
+        return 0;
+    }
+
     anyNegated(value: any): number {
         if (!value) return 1;
         return 0;

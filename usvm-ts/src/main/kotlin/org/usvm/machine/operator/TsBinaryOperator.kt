@@ -18,6 +18,8 @@ import org.usvm.isFalse
 import org.usvm.isTrue
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsSizeSort
+import org.usvm.machine.expr.ensureTruthinessSupported
+import org.usvm.machine.expr.mkIsNullOrUndefined
 import org.usvm.machine.expr.mkNumericExpr
 import org.usvm.machine.expr.mkTruthyExpr
 import org.usvm.machine.interpreter.TsStepScope
@@ -57,8 +59,8 @@ private fun TsContext.stringValueEquals(
     // An alias of a known literal has that literal's value without reading a symbolic backing array.
     val knownLiteralAlias = if (lhsConstant != null || rhsConstant != null) sameReference else falseExpr
     val notBothStrings = mkNot(bothStrings)
-    val lhsNullish = mkOr(mkHeapRefEq(lhs, mkTsNullValue()), mkHeapRefEq(lhs, mkUndefinedValue()))
-    val rhsNullish = mkOr(mkHeapRefEq(rhs, mkTsNullValue()), mkHeapRefEq(rhs, mkUndefinedValue()))
+    val lhsNullish = mkIsNullOrUndefined(lhs)
+    val rhsNullish = mkIsNullOrUndefined(rhs)
     if (missingBacking) {
         val supportedWithoutBacking = mkOr(
             mkNot(activeGuard),
@@ -1117,7 +1119,9 @@ sealed interface TsBinaryOperator {
         ): UExpr<*>? {
             check(lhs.isFakeObject() || rhs.isFakeObject())
 
-            val lhsTruthyExpr = mkTruthyExpr(lhs, scope) ?: return null
+            val lhsTruthyExpr = mkTruthyExpr(lhs, scope)
+            scope.ensureTruthinessSupported(lhs) ?: return null
+
             return scope.calcOnState {
                 iteWriteIntoFakeObject(scope, lhsTruthyExpr, rhs, lhs)
             }
@@ -1130,7 +1134,9 @@ sealed interface TsBinaryOperator {
         ): UExpr<*>? {
             check(!lhs.isFakeObject() && !rhs.isFakeObject())
 
-            val lhsTruthyExpr = mkTruthyExpr(lhs, scope) ?: return null
+            val lhsTruthyExpr = mkTruthyExpr(lhs, scope)
+            scope.ensureTruthinessSupported(lhs) ?: return null
+
             return scope.calcOnState {
                 iteWriteIntoFakeObject(scope, lhsTruthyExpr, rhs, lhs)
             }
@@ -1169,7 +1175,9 @@ sealed interface TsBinaryOperator {
         ): UExpr<*>? {
             check(lhs.isFakeObject() || rhs.isFakeObject())
 
-            val lhsTruthyExpr = mkTruthyExpr(lhs, scope) ?: return null
+            val lhsTruthyExpr = mkTruthyExpr(lhs, scope)
+            scope.ensureTruthinessSupported(lhs) ?: return null
+
             return iteWriteIntoFakeObject(scope, lhsTruthyExpr, lhs, rhs)
         }
 
@@ -1180,7 +1188,9 @@ sealed interface TsBinaryOperator {
         ): UExpr<*>? {
             check(!lhs.isFakeObject() && !rhs.isFakeObject())
 
-            val lhsTruthyExpr = mkTruthyExpr(lhs, scope) ?: return null
+            val lhsTruthyExpr = mkTruthyExpr(lhs, scope)
+            scope.ensureTruthinessSupported(lhs) ?: return null
+
             return iteWriteIntoFakeObject(scope, lhsTruthyExpr, lhs, rhs)
         }
     }

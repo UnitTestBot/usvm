@@ -49,7 +49,7 @@ class TsDynamicTruthinessTest : TsMethodTestRunner() {
             invariants = arrayOf({ _, result -> result.number == 1.0 }),
         )
 
-        val names = setOf("anyTruthy", "anyNegated", "anyObjectTruthy", "objectTruthy")
+        val names = setOf("anyTruthy", "anyNegated", "anyAnd", "anyOr", "anyObjectTruthy", "objectTruthy")
         val methods = scene.projectClasses.single { it.name == "SymbolicStringInput" }.methods
             .filter { it.name in names }
             .associateBy { it.name }

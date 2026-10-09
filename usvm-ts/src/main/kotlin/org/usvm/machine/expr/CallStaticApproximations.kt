@@ -50,5 +50,9 @@ private fun TsExprResolver.handleBooleanConverter(expr: EtsStaticCallExpr): UExp
         "Boolean() should have exactly one argument, but got ${expr.args.size}"
     }
     val arg = resolve(expr.args.single()) ?: return null
-    return mkTruthyExpr(arg, scope)
+
+    val truthy = mkTruthyExpr(arg, scope)
+    scope.ensureTruthinessSupported(arg) ?: return null
+
+    return truthy
 }
