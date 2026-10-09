@@ -9,6 +9,34 @@ import (
 
 func TestNativeOracle(t *testing.T) {
 	cases := map[string]func() any{
+		"compositePointerFieldsRemainShared": func() any { return compositePointerFieldsRemainShared() },
+		"deferredArguments":                  func() any { return deferredArguments() },
+		"repeatedDeferArguments":             func() any { return repeatedDeferArguments() },
+		"deferredStructArgument":             func() any { return deferredStructArgument() },
+		"recursiveDeferredArguments":         func() any { return recursiveDeferredArguments() },
+		"interfaceAssertion":                 func() any { return interfaceAssertion() },
+		"interfaceAssertionNoComma":          func() any { return interfaceAssertionNoComma() },
+		"pointerInterfaceCall":               func() any { return pointerInterfaceCall() },
+		"valueHasPointerMethods":             func() any { return valueHasPointerMethods() },
+		"mapStructCopy":                      func() any { return mapStructCopy() },
+		"mapArrayCopy":                       func() any { return mapArrayCopy() },
+		"mapLookupStructCopy":                func() any { return mapLookupStructCopy() },
+		"missingStructLookup":                func() any { return missingStructLookup() },
+		"missingNamedLookup":                 func() any { return missingNamedLookup() },
+		"missingArrayLookup":                 func() any { return missingArrayLookup() },
+		"missingStructLookupComma":           func() any { return missingStructLookupComma() },
+		"namedMapAssertionZero":              func() any { return namedMapAssertionZero() },
+		"sliceStructCopy":                    func() any { return sliceStructCopy() },
+		"appendStructCopy":                   func() any { return appendStructCopy() },
+		"sliceArrayCopy":                     func() any { return sliceArrayCopy() },
+		"appendArrayCopy":                    func() any { return appendArrayCopy() },
+		"overlapCompositeCopy":               func() any { return overlapCompositeCopy() },
+		"appendCompositeReuse":               func() any { return appendCompositeReuse() },
+		"appendCompositeAllocate":            func() any { return appendCompositeAllocate() },
+		"narrowSignedIndex":                  func() any { return narrowSignedIndex() },
+		"negativeInt16Index":                 func() any { return negativeInt16Index() },
+		"namedSliceAssertionZero":            func() any { return namedSliceAssertionZero() },
+		"namedPointerAssertionZero":          func() any { return namedPointerAssertionZero() },
 		"namedNegation":                      func() any { return namedNegation() },
 		"namedComplement":                    func() any { return namedComplement() },
 		"namedBooleanNot":                    func() any { return namedBooleanNot() },
@@ -131,6 +159,10 @@ func TestReplaySymbolicInputs(t *testing.T) {
 			outputs[index] = symbolicBranch(input)
 		case "symbolicSliceAlias":
 			outputs[index] = symbolicSliceAlias(input)
+		case "symbolicCompositeCopy":
+			outputs[index] = symbolicCompositeCopy(input)
+		case "symbolicCompositeAppend":
+			outputs[index] = symbolicCompositeAppend(input)
 		case "symbolicNamedInterfaceRoundTrip":
 			outputs[index] = int(symbolicNamedInterfaceRoundTrip(namedNumber(input)))
 		default:

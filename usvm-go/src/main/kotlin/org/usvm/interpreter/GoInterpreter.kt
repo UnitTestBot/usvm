@@ -22,6 +22,7 @@ import org.usvm.forkblacklists.UForkBlackList
 import org.usvm.solver.USatResult
 import org.usvm.state.GoFlowStatus
 import org.usvm.state.GoState
+import org.usvm.state.advanceArrayValueCopy
 import org.usvm.statistics.ApplicationGraph
 import org.usvm.targets.UTargetsSet
 
@@ -60,11 +61,9 @@ class GoInterpreter(
         }
 
         val entrypoint = method.blocks[0].instructions[0]
-        setMethodInfo(method)
         state.addCall(GoCall(method, entrypoint))
         var previousEntrypoint = entrypoint
         for (m in program.findInitMethods(method.packageName) + program.findOsInitMethods()) {
-            setMethodInfo(m)
             state.addCall(GoCall(m, applicationGraph.entryPoints(m).first()), previousEntrypoint)
             previousEntrypoint = m.blocks[0].instructions[0]
         }
@@ -78,6 +77,11 @@ class GoInterpreter(
     override fun step(state: GoState): StepResult<GoState> {
         val inst = state.currentStatement
         val scope = GoStepScope(state, forkBlackList)
+        if (state.data.pendingArrayCopy != null) {
+            advanceArrayValueCopy(scope)
+            return scope.stepResult()
+        }
+
         val exprVisitor = GoExprVisitor(ctx, program, scope, applicationGraph)
         val instVisitor = GoInstVisitor(ctx, program, scope, exprVisitor, applicationGraph)
 
@@ -104,7 +108,7 @@ class GoInterpreter(
                 inst.accept(instVisitor)
             }
             GoFlowStatus.DEFER -> {
-                val deferred = state.data.getDeferredCalls(method)
+                val deferred = state.data.getDeferredCalls()
                 if (deferred.isEmpty()) {
                     state.data.flowStack.removeLast()
                     return next(state, inst, instVisitor)
@@ -124,7 +128,7 @@ class GoInterpreter(
                     ) { "Recovered function has no recovery block" }.instructions.first()
                 }
 
-                if (state.data.getDeferredCalls(method).isEmpty()) {
+                if (state.data.getDeferredCalls().isEmpty()) {
                     state.handlePanic()
                     return GoNullInst(method)
                 }

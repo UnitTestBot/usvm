@@ -89,6 +89,7 @@ import org.jacodb.go.api.NullType
 import org.jacodb.go.api.PointerType
 import org.jacodb.go.api.SignatureType
 import org.jacodb.go.api.SliceType
+import org.jacodb.go.api.StructType
 import org.jacodb.go.api.TupleType
 import org.usvm.api.UnknownBinaryOperationException
 import org.usvm.api.UnknownFunctionException
@@ -130,6 +131,8 @@ import org.usvm.memory.readGoArrayLength
 import org.usvm.operator.GoBinaryOperator
 import org.usvm.operator.GoUnaryOperator
 import org.usvm.operator.mkNarrow
+import org.usvm.state.GoArrayCopyOperation
+import org.usvm.state.GoArrayValueCopy
 import org.usvm.state.GoMethodResult
 import org.usvm.state.GoState.Companion.POINTER_FIELD
 import org.usvm.state.copyValue
@@ -195,15 +198,13 @@ class GoExprVisitor(
             return mockCall(expr, method)
         }
 
-        val parameters = args.map { it.accept(this) }.toTypedArray()
-        val call = GoCall(method, applicationGraph.entryPoints(method).first())
+        val parameters = args.map { it.accept(this) }
         parameters.forEachIndexed { index, value ->
             val parameterType = method.parameters[index].type as GoType
             scope.assert(scope.calcOnState { valueShape(value, parameterType) }) ?: throw GoStepAbort()
         }
-        ctx.setMethodInfo(method, parameters)
-
         scope.doWithState {
+            val call = createCall(method, applicationGraph.entryPoints(method).first(), parameters)
             addCall(call, currentStatement)
         }
         return ctx.noValue
@@ -257,8 +258,8 @@ class GoExprVisitor(
                     argumentShapes
             )
             cases += condition to {
-                ctx.setMethodInfo(method, (listOf(value) + args).toTypedArray())
-                addCall(GoCall(method, applicationGraph.entryPoints(method).first()), currentStatement)
+                val call = createCall(method, applicationGraph.entryPoints(method).first(), listOf(value) + args)
+                addCall(call, currentStatement)
             }
         }
 
@@ -437,7 +438,6 @@ class GoExprVisitor(
     override fun visitGoMakeMapExpr(expr: GoMakeMapExpr): UExpr<out USort> {
         val mapType = expr.type.underlying()
 
-
         return scope.calcOnState {
             val ref = memory.allocConcrete(mapType)
             memory.write(UMapLengthLValue(ref, mapType, ctx.sizeSort), ctx.mkSizeExpr(0), ctx.trueExpr)
@@ -591,8 +591,8 @@ class GoExprVisitor(
         }
         val value = ctx.mkIte(
             contains,
-            trueBranch = { scope.calcOnState { memory.read(lvalue).asExpr(valueSort) } },
-            falseBranch = { valueSort.sampleUValue() }
+            trueBranch = { scope.calcOnState { copyValue(memory.read(lvalue), mapType.valueType).asExpr(valueSort) } },
+            falseBranch = { scope.calcOnState { sampleValue(mapType.valueType).asExpr(valueSort) } }
         )
 
         return scope.calcOnState {
@@ -711,7 +711,12 @@ class GoExprVisitor(
         scope.assert(isBoxed(boxed)) ?: throw GoStepAbort()
 
         val matches = scope.calcOnState {
-            ctx.mkAnd(ctx.mkNot(isNil), memory.types.evalIsSupertype(boxed, type))
+            val typeMatches = if (type.underlying() is InterfaceType) {
+                memory.types.evalIsSubtype(boxed, type)
+            } else {
+                memory.types.evalIsSupertype(boxed, type)
+            }
+            ctx.mkAnd(ctx.mkNot(isNil), typeMatches)
         }
         val value = if (type is NamedType || type.underlying() is InterfaceType) {
             boxed
@@ -894,12 +899,14 @@ class GoExprVisitor(
         val bothReferences = lhv.sort == ctx.addressSort && rhv.sort == ctx.addressSort
         val pointerOperands = expr.lhv.type.underlying() is PointerType || expr.rhv.type.underlying() is PointerType
         if (isEquality && bothReferences && (hasNilOperand || pointerOperands)) {
-            val equal = referenceEquals(lhv.asExpr(ctx.addressSort), rhv.asExpr(ctx.addressSort))
+            val left = unboxNamedRef(lhv.asExpr(ctx.addressSort), expr.lhv.type)
+            val right = unboxNamedRef(rhv.asExpr(ctx.addressSort), expr.rhv.type)
+            val equal = referenceEquals(left, right)
             return if (expr is GoEqlExpr) equal else ctx.mkNot(equal)
         }
 
         val operandType = expr.lhv.type.underlying()
-        val signed = operandType is BasicType && !operandType.typeName.startsWith("ui")
+        val signed = operandType is BasicType && !operandType.typeName.startsWith("uint")
         val lhs = unboxNamedPrimitive(lhv, expr.lhv.type)
         val rhs = unboxNamedPrimitive(rhv, expr.rhv.type)
         if ((expr is GoDivExpr || expr is GoModExpr) && rhs.sort is UBvSort) {
@@ -1005,6 +1012,12 @@ class GoExprVisitor(
         val arrayType = instance.type.let { if (it is PointerType) it.baseType else it }.underlying()
         val originalIndex = bv(unboxNamedPrimitive(idx.accept(this), idx.type))
         val view = scope.calcOnState { arrayView(array, arrayType) }
+        val signed = !(idx.type.underlying() as BasicType).typeName.startsWith("uint")
+        if (signed) {
+            val nonnegative = ctx.mkBvSignedGreaterOrEqualExpr(originalIndex, ctx.mkBv(0, originalIndex.sort))
+            scope.fork(nonnegative, blockOnFalseState = { panic("index out of bounds") }) ?: throw GoStepAbort()
+        }
+
         val width = maxOf(originalIndex.sort.sizeBits, view.length.sort.sizeBits).toInt()
         val fullIndex = originalIndex.mkNarrow(width, signed = false)
         val fullLength = bv(view.length).mkNarrow(width, signed = false)
@@ -1161,34 +1174,18 @@ class GoExprVisitor(
 
     @Suppress("ThrowsCount") // Failed scope checks stop this hop.
     private fun callBuiltin(method: GoBuiltin, args: List<GoValue>, returnType: GoType): UExpr<out USort> {
+        val completed = scope.calcOnState {
+            data.builtinResult?.also { data.builtinResult = null }
+        }
+        if (completed != null) return tryBox(completed, returnType)
+
         return when (method.name) {
             "append" -> {
-                tryBox(appendArray(args[0], args[1]), returnType)
+                val result = appendArray(args[0], args[1])
+                if (result == ctx.noValue) result else tryBox(result, returnType)
             }
             "copy" -> {
-                val source = unboxNamedRef(args[1].accept(this).asExpr(ctx.addressSort), args[1].type)
-                val destination = unboxNamedRef(args[0].accept(this).asExpr(ctx.addressSort), args[0].type)
-                val sliceType = args[0].type.underlying() as SliceType
-                val count = scope.calcOnState {
-                    val sourceView = arrayView(source, args[1].type)
-                    val destinationView = arrayView(destination, args[0].type)
-                    val copied = ctx.mkIte(
-                        ctx.mkSizeLtExpr(sourceView.length, destinationView.length),
-                        sourceView.length,
-                        destinationView.length
-                    )
-                    memory.copyGoArray(
-                        sourceView.backing,
-                        destinationView.backing,
-                        sourceView.storageType,
-                        ctx.typeToSort(sliceType.elementType),
-                        sourceView.offset,
-                        destinationView.offset,
-                        copied
-                    )
-                    copied
-                }
-                ctx.mkPrimitiveCast(count, ctx.typeToSort(returnType))
+                copyArray(args, returnType)
             }
 
             "delete" -> {
@@ -1261,6 +1258,40 @@ class GoExprVisitor(
 
             else -> {
                 unsupportedExpr("builtin ${method.name}")
+            }
+        }
+    }
+
+    private fun copyArray(args: List<GoValue>, returnType: GoType): UExpr<out USort> {
+        val source = unboxNamedRef(args[1].accept(this).asExpr(ctx.addressSort), args[1].type)
+        val destination = unboxNamedRef(args[0].accept(this).asExpr(ctx.addressSort), args[0].type)
+        val elementType = (args[0].type.underlying() as SliceType).elementType
+
+        return scope.calcOnState {
+            val sourceView = arrayView(source, args[1].type)
+            val destinationView = arrayView(destination, args[0].type)
+            val count = ctx.mkIte(
+                ctx.mkSizeLtExpr(sourceView.length, destinationView.length),
+                sourceView.length,
+                destinationView.length,
+            )
+            val result = ctx.mkPrimitiveCast(count, ctx.typeToSort(returnType))
+
+            if (elementType.underlying() is StructType || elementType.underlying() is ArrayType) {
+                val copy = GoArrayValueCopy(sourceView, destinationView, count, elementType)
+                data.pendingArrayCopy = GoArrayCopyOperation(clone(), listOf(copy), result)
+                ctx.noValue
+            } else {
+                memory.copyGoArray(
+                    sourceView.backing,
+                    destinationView.backing,
+                    sourceView.storageType,
+                    ctx.typeToSort(elementType),
+                    sourceView.offset,
+                    destinationView.offset,
+                    count,
+                )
+                result
             }
         }
     }
@@ -1347,6 +1378,38 @@ class GoExprVisitor(
         }
     }
 
+    private fun appendCompositeArray(
+        view: GoArrayView,
+        appendedView: GoArrayView,
+        type: GoType,
+        elementType: GoType,
+        newBacking: UHeapRef,
+        length: UExpr<USizeSort>,
+    ): UExpr<out USort> = scope.calcOnState {
+        val zero = ctx.mkSizeExpr(0)
+        val reuse = ctx.mkSizeLeExpr(length, view.capacity)
+        val backing = ctx.mkIte(reuse, view.backing, newBacking)
+        val offset = ctx.mkIte(reuse, view.offset, zero)
+        val header = memory.allocateGoArray(type, ctx.sizeSort, length)
+        val resultView = GoArrayView(
+            backing,
+            view.storageType,
+            offset,
+            length,
+            ctx.mkIte(reuse, view.capacity, length),
+        )
+        data.arrayViews[header] = resultView
+        val newView = GoArrayView(newBacking, view.storageType, zero, length, length)
+        val appendedOffset = ctx.mkSizeAddExpr(offset, view.length)
+        val copies = listOf(
+            GoArrayValueCopy(view, newView, view.length, elementType),
+            GoArrayValueCopy(appendedView, newView.copy(offset = view.length), appendedView.length, elementType),
+            GoArrayValueCopy(appendedView, resultView.copy(offset = appendedOffset), appendedView.length, elementType),
+        )
+        data.pendingArrayCopy = GoArrayCopyOperation(clone(), copies, header)
+        ctx.noValue
+    }
+
     private fun appendArray(sliceValue: GoValue, appendValue: GoValue): UExpr<out USort> {
         val slice = unboxNamedRef(sliceValue.accept(this).asExpr(ctx.addressSort), sliceValue.type)
         val appended = unboxNamedRef(appendValue.accept(this).asExpr(ctx.addressSort), appendValue.type)
@@ -1360,6 +1423,19 @@ class GoExprVisitor(
             val length = ctx.mkSizeAddExpr(view.length, appendedView.length)
             checkLength(length) ?: throw GoStepAbort()
             val newBacking = memory.allocateGoArray(type, ctx.sizeSort, length)
+            val elementType = (type as? SliceType)?.elementType
+            val copiesValues = elementType?.underlying() is StructType || elementType?.underlying() is ArrayType
+            if (copiesValues) {
+                return@calcOnState appendCompositeArray(
+                    view,
+                    appendedView,
+                    type,
+                    checkNotNull(elementType),
+                    newBacking,
+                    length,
+                )
+            }
+
             memory.copyGoArray(view.backing, newBacking, view.storageType, elementSort, view.offset, zero, view.length)
             memory.copyGoArray(
                 appendedView.backing,
@@ -1441,7 +1517,8 @@ class GoExprVisitor(
                 signature.results
             }
         }
-        val method = GoFunction(signature, emptyList(), funcName, emptyList(), "", emptyList(), emptyList())
+        val method =
+            GoFunction(signature, emptyList(), funcName, emptyList(), packageName = "", emptyList(), emptyList())
         val mockSort = ctx.typeToSort(returnType)
         val mockValue = scope.calcOnState {
             memory.mocker.call(

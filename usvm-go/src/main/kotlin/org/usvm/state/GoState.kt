@@ -164,6 +164,7 @@ class GoState(
     fun returnValue(valueToReturn: UExpr<out USort>, type: GoType) {
         val returnFromMethod = lastEnteredMethod
         val returnSite = callStack.pop()
+        data.popDeferredFrame()
         if (callStack.isNotEmpty()) {
             memory.stack.pop()
         }
@@ -183,6 +184,7 @@ class GoState(
         require(methodResult is GoMethodResult.Panic)
 
         val returnSite = callStack.pop()
+        data.popDeferredFrame()
         if (callStack.isNotEmpty()) {
             memory.stack.pop()
         }
@@ -212,13 +214,16 @@ class GoState(
         data.flowStack.add(GoFlowStatus.DEFER)
     }
 
+    fun createCall(method: GoMethod, entrypoint: GoInst, arguments: List<UExpr<out USort>>): GoCall {
+        val copiedArguments = arguments.mapIndexed { index, value ->
+            copyValue(value, method.parameters[index].type as GoType)
+        }
+        val freeVariables = (method as? GoFunction)?.freeVars.orEmpty().map(::findParam)
+        return GoCall(method, entrypoint, copiedArguments, freeVariables)
+    }
+
     fun addCall(call: GoCall, returnInst: GoInst? = null) = with(ctx) {
         val methodInfo = getMethodInfo(call.method)
-        val freeVariables = mutableListOf<UExpr<out USort>>().also {
-            if (call.method is GoFunction) {
-                call.method.freeVars.forEach { variable -> it.add(findParam(variable)) }
-            }
-        }
         val parameters = mutableListOf<GoParameter>().also {
             if (call.method is GoFunction) {
                 it.addAll(call.method.parameters)
@@ -227,10 +232,11 @@ class GoState(
 
         data.flowStack.add(GoFlowStatus.NORMAL)
         callStack.push(call.method, returnInst)
-        if (methodInfo.arguments.isEmpty()) {
+        data.pushDeferredFrame()
+        if (call.arguments == null) {
             memory.stack.push(methodInfo.argumentsCount, methodInfo.variablesCount)
         } else {
-            memory.stack.push(methodInfo.arguments, methodInfo.variablesCount)
+            memory.stack.push(call.arguments.toTypedArray(), methodInfo.variablesCount)
         }
 
         parameters.forEachIndexed { i, parameter ->
@@ -246,13 +252,15 @@ class GoState(
             }
         }
 
-        parameters.forEachIndexed { index, parameter ->
-            val type = parameter.type as GoType
-            val lvalue = URegisterStackLValue(typeToSort(type), index)
-            memory.write(lvalue, copyValue(memory.read(lvalue), type).asExpr(lvalue.sort), trueExpr)
+        if (call.arguments == null) {
+            parameters.forEachIndexed { index, parameter ->
+                val type = parameter.type as GoType
+                val lvalue = URegisterStackLValue(typeToSort(type), index)
+                memory.write(lvalue, copyValue(memory.read(lvalue), type).asExpr(lvalue.sort), trueExpr)
+            }
         }
 
-        freeVariables.forEachIndexed { i, variable ->
+        call.freeVariables.forEachIndexed { i, variable ->
             val lvalue = URegisterStackLValue(variable.sort, i + freeVariableOffset(call.method))
             memory.write(lvalue, variable.asExpr(variable.sort), trueExpr)
         }
@@ -439,7 +447,6 @@ class GoState(
             stack.pop()
             registers.pop()
         }
-
 
         error("param not found")
     }
