@@ -56,7 +56,7 @@ retain structured values and interface dynamic types; these snapshots do not pre
 object identity or the complete alias graph. Function parameters remain mocked: the
 `call` example checks that mock contract, rather than replaying an actual function body.
 
-The thematic `*RegressionTest` classes retain comparisons against native Go for 46
+The thematic `*RegressionTest` classes retain comparisons against native Go for 54
 zero-argument scalar/panic cases. `SymbolicBranchTest` and `SymbolicSliceAliasTest` also
 check input-dependent properties, then replay five generated concrete inputs in a native
 Go executable. Native scalar comparisons currently use textual representations; native
@@ -75,7 +75,7 @@ instruction coverage but still enforce their semantic expectations.
 
 The stronger symbolic expectations expose unresolved input-model and semantic defects.
 They are kept as failing tests, without disabled tests or expected-failure wrappers.
-The current local run has **156 default tests: 102 passed, 54 failed**, plus
+The current local run has **165 default tests: 120 passed, 45 failed**, plus
 **5 manual tests: 3 passed, 2 failed**, with no skipped tests. Detekt on Go main/test
 sources and the project-list check pass. Failures are grouped as follows:
 
@@ -83,7 +83,7 @@ sources and the project-list check pass. Failures are grouped as follows:
 | --- | ---: |
 | `collections.slices` | 20 |
 | `types` | 13 |
-| `collections.maps` | 9 |
+| `collections.maps` | 0 |
 | `objects` | 4 |
 | `strings` | 4 |
 | `algorithms` | 2 |
@@ -93,10 +93,14 @@ sources and the project-list check pass. Failures are grouped as follows:
 The manual failures are `canVisitAllRooms` and `mapLoopLen`. Counts are local-run observations, not a
 count of independent bugs or an exhaustive list; budgeted symbolic exploration and
 model materialization may affect which witnesses are collected. This draft integration
-requires those failures to be resolved before merging. A concrete
-native comparison is `nilMapLookup`: Go returns zero for a missing key in a nil map,
-while USVM currently produces panic. This diagnostic permits partial instruction
-coverage to expose the value/panic mismatch; it still requires one matching execution.
+requires those failures to be resolved before merging.
+
+Nine previously failing default map tests now pass. New native regressions check
+nil-map lookup, comma-ok, deletion, range and assignment panic with integer keys/values,
+including lookup/deletion/range on named maps. A symbolic comma-ok regression requires
+witnesses for nil maps, absent keys and present keys, with input-dependent values.
+The two constant nil-map range tests permit partial instruction coverage because their
+loop bodies are unreachable; they still require exactly one native-matching execution.
 
 `generateGoImports` can export the import examples for investigation. The original
 import/standard-library exploratory factories depended on manually prepared dumps;
@@ -124,8 +128,8 @@ support. In particular:
 - Unknown external calls and function parameters retain the prototype's mocking
   behavior. `GoFunctionReference` identifies a function input that cannot be replayed.
 - General array/struct value-copy behavior, pointer/interface equality, reference
-  map keys and nil-map operations need further semantic validation. The native
-  regression suite does not claim coverage of these areas.
+  map keys and zero values for composite/named map values need further semantic
+  validation. Nil-map regressions currently cover integer keys/values.
 - Package loading, standard-library integration and arbitrary repository workflows
   have not been validated end to end. Instruction coverage alone is not a semantic
   correctness check.
