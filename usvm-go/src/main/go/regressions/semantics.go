@@ -280,3 +280,8 @@ func unsignedResultWidth() uint64 {
 	value := uint64(0xffffffffffffffff)
 	return value
 }
+
+func nilMapLookup() int {
+	var values map[int]int
+	return values[7]
+}
