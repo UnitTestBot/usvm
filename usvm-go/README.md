@@ -21,24 +21,82 @@ The test task generates SSA JSON and the native oracle under `usvm-go/build/gene
 No checked-in dumps or pre-existing `out` directory are required. Tests have finite
 machine/solver timeouts, close machines, and are bounded by a 15-minute Gradle timeout.
 
-`GoSemanticRegressionTest` compares zero-argument scalar results and panic outcomes
-with a native Go execution. It also asks USVM for branch witnesses, then executes
-those concrete inputs in Go, including a write through an aliased slice after a fork.
-The scalar cases cover shifts, bit operations, native integer width and unsigned
-widening, slice length/capacity, aliasing, copy/append, array pointers, map size,
-string byte content/order/conversion, and selected panic paths.
+## Test organization and symbolic expectations
 
-`GoUnsupportedTest` checks that goroutines and comparison of two strings with
-symbolic lengths produce explicit unsupported results. `JacoDbTest` retains the
-98 fast prototype examples as execution/coverage smoke checks; these do not assert
-native output values. `panicRecoverComplex` remains an explicit partial-coverage
-exception. `ModelTest` checks SSA JSON round-tripping.
+Tests follow the Java frontend's `TestRunner` pattern under `org.usvm.samples`:
 
-The five slow prototype examples are manual and bounded:
+- `arithmetic`, `arrays`, `collections.maps`, `collections.slices`, `strings`;
+- `controlflow`, `calls`, `exceptions`, `globals`, `objects`, `pointers`, `types`, `algorithms`;
+- `unsupported`, `serialization`, and `runner` for infrastructure contracts.
+
+All 103 original examples have explicit tests, including the five manual examples.
+`SampleCoverageTest` checks that every exported method is registered exactly once,
+and that each zero-argument regression has an independently generated native oracle.
+
+`GoMethodTestRunner` reuses the shared `TestRunner` with `checkDiscoveredProperties`
+and `checkMatches`. Expectations relate resolved symbolic inputs to results, for example:
+
+```kotlin
+checkDiscoveredProperties(
+    method = "max2",
+    analysisResultsNumberMatcher = eq(count = 2),
+    { a: Number, b: Number, result: GoResult -> a.toLong() > b.toLong() && result.long == a.toLong() },
+    { a: Number, b: Number, result: GoResult -> a.toLong() <= b.toLong() && result.long == b.toLong() },
+)
+```
+
+Every expected property must be discovered, and every collected execution must satisfy
+at least one supplied expectation. `checkMatches` additionally requires a one-to-one
+match between executions and expectations. The runner collects all terminated states,
+with a 100-state limit and finite timeouts; these limits do not prove exhaustive analysis.
+
+`GoResult` distinguishes success from panic and exposes the panic payload. Mutation
+checks can inspect argument snapshots before and after execution. Pointers and interfaces
+retain structured values and interface dynamic types; these snapshots do not preserve
+object identity or the complete alias graph. Function parameters remain mocked: the
+`call` example checks that mock contract, rather than replaying an actual function body.
+
+The thematic `*RegressionTest` classes retain comparisons against native Go for 46
+zero-argument scalar/panic cases. `SymbolicBranchTest` and `SymbolicSliceAliasTest` also
+check input-dependent properties, then replay five generated concrete inputs in a native
+Go executable. Native scalar comparisons currently use textual representations; native
+panic comparisons check occurrence, while symbolic sample expectations may also check
+the payload. Native replay does not yet support arbitrary collection/struct inputs.
+
+The five slow examples remain manual and bounded:
 
 ```sh
 ./gradlew :usvm-go:manualTest --configure-on-demand
 ```
+
+The nonterminating `loopInfinite` example expects no completed executions within the
+analysis budget. The remaining manual examples and `panicRecoverComplex` permit partial
+instruction coverage but still enforce their semantic expectations.
+
+The stronger symbolic expectations expose unresolved input-model and semantic defects.
+They are kept as failing tests, without disabled tests or expected-failure wrappers.
+The current local run has **156 default tests: 102 passed, 54 failed**, plus
+**5 manual tests: 3 passed, 2 failed**, with no skipped tests. Detekt on Go main/test
+sources and the project-list check pass. Failures are grouped as follows:
+
+| Test package | Default failures |
+| --- | ---: |
+| `collections.slices` | 20 |
+| `types` | 13 |
+| `collections.maps` | 9 |
+| `objects` | 4 |
+| `strings` | 4 |
+| `algorithms` | 2 |
+| `arrays` | 1 |
+| `pointers` | 1 |
+
+The manual failures are `canVisitAllRooms` and `mapLoopLen`. Counts are local-run observations, not a
+count of independent bugs or an exhaustive list; budgeted symbolic exploration and
+model materialization may affect which witnesses are collected. This draft integration
+requires those failures to be resolved before merging. A concrete
+native comparison is `nilMapLookup`: Go returns zero for a missing key in a nil map,
+while USVM currently produces panic. This diagnostic permits partial instruction
+coverage to expose the value/panic mismatch; it still requires one matching execution.
 
 `generateGoImports` can export the import examples for investigation. The original
 import/standard-library exploratory factories depended on manually prepared dumps;

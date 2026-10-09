@@ -72,4 +72,5 @@ tasks.named<Test>("manualTest") {
 
 tasks.withType<Detekt>().configureEach {
     ignoreFailures = false
+    setExcludes(listOf("**/resources/**", "**/build/**", "**/generated/**"))
 }

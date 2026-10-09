@@ -9,6 +9,7 @@ import (
 
 func TestNativeOracle(t *testing.T) {
 	cases := map[string]func() any{
+		"nilMapLookup":           func() any { return nilMapLookup() },
 		"unsignedResultWidth":    func() any { return unsignedResultWidth() },
 		"shiftByBitWidth":        func() any { return shiftByBitWidth() },
 		"bitwiseComplement":      func() any { return bitwiseComplement() },

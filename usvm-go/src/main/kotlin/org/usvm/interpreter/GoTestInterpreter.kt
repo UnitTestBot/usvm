@@ -85,14 +85,19 @@ class GoTestInterpreter(
             inputScope.convertExpr(expr, type)
         }
         val inputModel = InputModel(inputValues)
+        val argumentsAfter = List(method.parameters.size) { index ->
+            val type = method.parameters[index].type as GoType
+            val original = model.read(URegisterStackLValue(typeToSort(type), index))
+            outputScope.convertExpr(original, type)
+        }
 
         return if (state.isExceptional) {
             val panic = state.methodResult as GoMethodResult.Panic
-            UnsuccessfulExecutionResult(inputModel, outputScope.convertExpr(panic.value, panic.type))
+            UnsuccessfulExecutionResult(inputModel, outputScope.convertExpr(panic.value, panic.type), argumentsAfter)
         } else {
             val result = state.methodResult as GoMethodResult.Success
             val expr = result.let { outputScope.convertExpr(it.value, it.type) }
-            val outputModel = OutputModel(expr)
+            val outputModel = OutputModel(expr, argumentsAfter)
 
             SuccessfulExecutionResult(inputModel, outputModel)
         }
@@ -375,7 +380,7 @@ class GoTestInterpreter(
 
             val type = memory.typeStreamOf(iface).first()
             val index = 0
-            return convertExpr(memory.readField(iface, index, typeToSort(type)), type)
+            return GoInterfaceValue(type, convertExpr(memory.readField(iface, index, typeToSort(type)), type))
         }
 
         fun resolvePointer(pointer: UHeapRef, baseType: GoType): Any? = with(ctx) {
@@ -394,7 +399,7 @@ class GoTestInterpreter(
             } else {
                 memory.read(target)
             }
-            return "&" + convertExpr(expr, baseType)
+            return GoPointer(convertExpr(expr, baseType))
         }
 
         fun resolveBoxed(value: UHeapRef, type: GoType): Any? = with(ctx) {
@@ -445,6 +450,7 @@ class InputModel(
 
 class OutputModel(
     val returnExpr: Any?,
+    val argumentsAfter: List<Any?>,
 ) {
     override fun toString(): String {
         return buildString {
@@ -474,7 +480,8 @@ class SuccessfulExecutionResult(
 
 class UnsuccessfulExecutionResult(
     val inputModel: InputModel,
-    private val result: Any?,
+    val panicValue: Any?,
+    val argumentsAfter: List<Any?>,
 ) : ProgramExecutionResult {
     override fun toString(): String {
         return buildString {
@@ -483,7 +490,7 @@ class UnsuccessfulExecutionResult(
             appendLine("----------------------------------------------------------------")
             appendLine(inputModel.toString())
             appendLine("----------------------------------------------------------------")
-            appendLine(result)
+            appendLine(panicValue)
             appendLine("================================================================")
         }
     }
@@ -556,3 +563,11 @@ class RNG(
 
 /** A function supplied to a mocked call; it cannot currently be replayed as a concrete Go function. */
 data class GoFunctionReference(val expression: String)
+
+data class GoPointer(val value: Any?) {
+    override fun toString(): String = "&$value"
+}
+
+data class GoInterfaceValue(val type: GoType, val value: Any?) {
+    override fun toString(): String = value.toString()
+}
