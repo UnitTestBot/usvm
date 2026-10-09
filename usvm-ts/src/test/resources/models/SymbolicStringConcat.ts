@@ -15,6 +15,14 @@ class SymbolicStringConcat {
         return value + "!";
     }
 
+    appendLogicalAnd(value: string): string {
+        return (value && "a") + "!";
+    }
+
+    prependLogicalAnd(value: string): string {
+        return "!" + (value && "a");
+    }
+
     prepend(value: string): string {
         return "\u03a9" + value;
     }

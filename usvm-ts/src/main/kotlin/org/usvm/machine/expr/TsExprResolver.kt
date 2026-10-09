@@ -74,6 +74,7 @@ import org.jacodb.ets.model.EtsTypeOfExpr
 import org.jacodb.ets.model.EtsUnaryExpr
 import org.jacodb.ets.model.EtsUnaryPlusExpr
 import org.jacodb.ets.model.EtsUndefinedConstant
+import org.jacodb.ets.model.EtsUnionType
 import org.jacodb.ets.model.EtsUnknownType
 import org.jacodb.ets.model.EtsUnsignedRightShiftExpr
 import org.jacodb.ets.model.EtsValue
@@ -671,8 +672,7 @@ class TsExprResolver(
     private fun stringOperand(value: UExpr<*>, type: EtsType): UHeapRef = with(ctx) {
         concreteStringValue(value)?.let { return mkStringConstant(it, scope) }
 
-        val isStringType = type is EtsStringType || type is EtsStringLiteralType
-        if (!isStringType || value.sort != addressSort || value.isFakeObject()) {
+        if (!isStringOperandType(type) || value.sort != addressSort || value.isFakeObject()) {
             throw UnsupportedOperationException("Unsupported string concatenation operand: $type, $value")
         }
         val ref = value.asExpr(addressSort)
@@ -681,6 +681,12 @@ class TsExprResolver(
         }
 
         ref
+    }
+
+    private fun isStringOperandType(type: EtsType): Boolean = when (type) {
+        is EtsStringType, is EtsStringLiteralType -> true
+        is EtsUnionType -> type.types.isNotEmpty() && type.types.all(::isStringOperandType)
+        else -> false
     }
 
     private fun concreteStringValue(value: UExpr<*>): String? = with(ctx) {

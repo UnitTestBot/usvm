@@ -113,6 +113,41 @@ class TsSymbolicStringConcatTest : TsMethodTestRunner() {
     }
 
     @Test
+    fun `string union operands concatenate and replay both logical branches`() {
+        val methods = mapOf(
+            "appendLogicalAnd" to { value: String -> (if (value.isEmpty()) "" else "a") + "!" },
+            "prependLogicalAnd" to { value: String -> "!" + (if (value.isEmpty()) "" else "a") },
+        )
+        for ((name, expected) in methods) {
+            discoverProperties<TsTestValue.TsString, TsTestValue.TsString>(
+                method = method(name),
+                { input, result -> input.value.isEmpty() && result.value == expected(input.value) },
+                { input, result -> input.value.isNotEmpty() && result.value == expected(input.value) },
+                invariants = arrayOf({ input, result -> result.value == expected(input.value) }),
+            )
+        }
+
+        val tests = TsMachine(scene, options = machineOptions, tsOptions = TsOptions(maxArraySize = 8)).use { machine ->
+            methods.keys.associateWith { name ->
+                val method = method(name)
+                val analysis = machine.analyzeWithOutcome(listOf(method))
+                assertEquals(TsAnalysisStopReason.EXHAUSTED, analysis.stopReason)
+                assertTrue(analysis.unsupportedPaths.isEmpty(), "$name: ${analysis.unsupportedPaths}")
+
+                analysis.states.map { state -> TsTestResolver().resolve(method, state) }
+            }
+        }
+
+        for ((name, generated) in tests) {
+            val inputs = generated.map { test -> assertIs<TsTestValue.TsString>(test.before.parameters.single()).value }
+            assertTrue(inputs.any { it.isEmpty() }, "No empty-input witness for $name")
+            assertTrue(inputs.any { it.isNotEmpty() }, "No nonempty-input witness for $name")
+        }
+
+        replay(tests, source.readText())
+    }
+
+    @Test
     fun `concatenation result respects the witness length bound`() {
         val source = getResourcePath("/models/SymbolicStringConcat.ts")
         val scene = EtsScene(listOf(loadEtsFileAutoConvert(source, provider = EtsIrProvider.TS_FRONTEND)))
