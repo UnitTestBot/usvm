@@ -6,6 +6,7 @@ import (
 	"go/types"
 	"log"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/samber/lo"
@@ -168,7 +169,7 @@ func (p *Package) PackMember(in ssa.Member) Member {
 		common.Type = NamedConstMember
 		return NamedConst{
 			CommonMember: common,
-			Value:        packConstant(member.Value.Type().String(), member.Value.Value),
+			Value:        packConstant(member.Value.Type(), member.Value.Value),
 		}
 	case *ssa.Global:
 		p.AddType(member.Type())
@@ -590,7 +591,7 @@ func (p *Package) PackValue(in ssa.Value) Value {
 		common.Type = ConstValue
 		return Const{
 			CommonValue: common,
-			Value:       packConstant(value.Type().String(), value.Value),
+			Value:       packConstant(value.Type(), value.Value),
 		}
 	case *ssa.Global:
 		common.Type = GlobalValue
@@ -701,12 +702,23 @@ type WithMethods interface {
 	Method(i int) *types.Func
 }
 
-func packConstant(typeName string, value constant.Value) NamedConstValue {
-	result := NamedConstValue{Type: typeName, Value: "nil"}
+func packConstant(typ types.Type, value constant.Value) NamedConstValue {
+	result := NamedConstValue{Type: typ.String(), Value: "nil"}
 	if value == nil {
 		return result
 	}
 	result.Value = value.String()
+	if basic, ok := typ.Underlying().(*types.Basic); ok {
+		switch basic.Kind() {
+		case types.Float32:
+			number, _ := constant.Float32Val(value)
+			result.Value = strconv.FormatFloat(float64(number), 'g', -1, 32)
+		case types.Float64, types.UntypedFloat:
+			number, _ := constant.Float64Val(value)
+			result.Value = strconv.FormatFloat(number, 'g', -1, 64)
+		}
+	}
+
 	if value.Kind() == constant.String {
 		encoded := base64.StdEncoding.EncodeToString([]byte(constant.StringVal(value)))
 		result.Bytes = &encoded

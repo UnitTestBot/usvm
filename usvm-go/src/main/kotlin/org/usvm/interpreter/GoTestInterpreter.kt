@@ -31,7 +31,9 @@ import org.usvm.GoContext
 import org.usvm.NULL_ADDRESS
 import org.usvm.UAddressSort
 import org.usvm.UBoolSort
+import org.usvm.UBvSort
 import org.usvm.UExpr
+import org.usvm.UFpSort
 import org.usvm.UHeapRef
 import org.usvm.USort
 import org.usvm.api.collection.ObjectMapCollectionApi.symbolicObjectMapAnyKey
@@ -86,8 +88,14 @@ class GoTestInterpreter(
         val inputModel = InputModel(inputValues)
         val argumentsAfter = List(method.parameters.size) { index ->
             val type = method.parameters[index].type as GoType
-            val original = model.read(URegisterStackLValue(typeToSort(type), index))
-            outputScope.convertExpr(original, type)
+            val valueSort = typeToSort(type.underlying())
+            if (valueSort is UBvSort || valueSort is UFpSort || valueSort == boolSort) {
+                // Scalar arguments are passed by value; local assignments cannot change the caller's value.
+                inputValues[index]
+            } else {
+                val original = model.read(URegisterStackLValue(typeToSort(type), index))
+                outputScope.convertExpr(original, type)
+            }
         }
 
         return if (state.isExceptional) {
@@ -378,7 +386,12 @@ class GoTestInterpreter(
 
             val type = memory.typeStreamOf(iface).first()
             val index = 0
-            return GoInterfaceValue(type, convertExpr(memory.readField(iface, index, typeToSort(type)), type))
+            val value = if (type is NamedType) {
+                convertExpr(iface, type)
+            } else {
+                convertExpr(memory.readField(iface, index, typeToSort(type)), type)
+            }
+            return GoInterfaceValue(type, value)
         }
 
         fun resolvePointer(pointer: UHeapRef, baseType: GoType): Any? = with(ctx) {

@@ -56,10 +56,9 @@ retain structured values and interface dynamic types; these snapshots do not pre
 object identity or the complete alias graph. Function parameters remain mocked: the
 `call` example checks that mock contract, rather than replaying an actual function body.
 
-The thematic `*RegressionTest` classes retain comparisons against native Go for 54
-zero-argument scalar/panic cases. `SymbolicBranchTest` and `SymbolicSliceAliasTest` also
-check input-dependent properties, then replay five generated concrete inputs in a native
-Go executable. Native scalar comparisons currently use textual representations; native
+The thematic `*RegressionTest` classes retain comparisons against native Go for 66
+zero-argument scalar/panic cases. Branch, slice-alias and named-number/interface
+checks also replay seven generated concrete inputs in a native Go executable. Native scalar comparisons currently use textual representations; native
 panic comparisons check occurrence, while symbolic sample expectations may also check
 the payload. Native replay does not yet support arbitrary collection/struct inputs.
 
@@ -75,14 +74,14 @@ instruction coverage but still enforce their semantic expectations.
 
 The stronger symbolic expectations expose unresolved input-model and semantic defects.
 They are kept as failing tests, without disabled tests or expected-failure wrappers.
-The current local run has **165 default tests: 120 passed, 45 failed**, plus
+The current local run has **181 default tests: 138 passed, 43 failed**, plus
 **5 manual tests: 3 passed, 2 failed**, with no skipped tests. Detekt on Go main/test
 sources and the project-list check pass. Failures are grouped as follows:
 
 | Test package | Default failures |
 | --- | ---: |
 | `collections.slices` | 20 |
-| `types` | 13 |
+| `types` | 11 |
 | `collections.maps` | 0 |
 | `objects` | 4 |
 | `strings` | 4 |
@@ -102,13 +101,22 @@ witnesses for nil maps, absent keys and present keys, with input-dependent value
 The two constant nil-map range tests permit partial instruction coverage because their
 loop bodies are unreachable; they still require exactly one native-matching execution.
 
+All 34 arithmetic/named-number tests now pass. Sixteen new regressions cover
+non-nil named scalar inputs, unary operators and argument snapshots, numeric
+interface assertions/round trips, unsigned integer-to-float conversion, finite
+representable float-to-integer truncation, and exact float-literal export.
+Twelve compare constant results with native Go; four have symbolic expectations.
+The interface round-trip test also replays two generated inputs and checks that
+passing a numeric argument by value preserves its original snapshot.
+
 `generateGoImports` can export the import examples for investigation. The original
 import/standard-library exploratory factories depended on manually prepared dumps;
 they are not included in the default suite.
 
 ## Representation and boundaries
 
-The exporter records the target `int` width and raw string bytes. Arrays and slices
+The exporter records the target `int` width, raw string bytes, and floating-point
+constants with enough digits to reproduce their float32/float64 values. Arrays and slices
 share storage by element type. Slice headers record backing storage, offset, length
 and capacity; `copy` and `append` operate on these views. Go pointers to fields or
 array elements are frontend-local metadata, without changing core expression
@@ -122,6 +130,9 @@ support. In particular:
 - String comparison requires at least one concrete length. Rune conversion and
   complete UTF-8 string iteration are not implemented. Resolved strings are decoded
   as UTF-8, so arbitrary invalid byte sequences are not preserved in result text.
+- Numeric conversion regressions cover finite, representable float-to-integer
+  inputs. NaN, infinity and out-of-range float-to-integer results have not been
+  validated; such results may depend on the Go target.
 - Collection sizes use a nonnegative BV32 domain; symbolic sizes are restricted to
   that domain. Input slices currently model capacity as length, and materialized
   array/slice/string models are capped at 10,000 elements.

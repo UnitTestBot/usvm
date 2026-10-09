@@ -2,6 +2,7 @@ package org.usvm
 
 import io.ksmt.expr.KBitVec32Value
 import io.ksmt.expr.KConst
+import io.ksmt.expr.KFpRoundingMode
 import io.ksmt.utils.asExpr
 import org.jacodb.go.api.ArrayType
 import org.jacodb.go.api.BasicType
@@ -310,11 +311,26 @@ class GoExprVisitor(
         }
         val operand = unboxNamedPrimitive(value, expr.operand.type)
         val targetSort = ctx.typeToSort(targetType)
-        val converted = if (operand.sort is UBvSort && targetSort is UBvSort) {
-            val signed = !(sourceType as BasicType).typeName.startsWith("uint")
-            bv(operand).mkNarrow(targetSort.sizeBits.toInt(), signed = signed)
-        } else {
-            ctx.mkPrimitiveCast(operand, targetSort)
+        val sourceSigned = sourceType is BasicType && !sourceType.typeName.startsWith("uint")
+        val converted = when {
+            operand.sort is UBvSort && targetSort is UBvSort -> {
+                bv(operand).mkNarrow(targetSort.sizeBits.toInt(), signed = sourceSigned)
+            }
+            operand.sort is UBvSort && targetSort is UFpSort -> {
+                ctx.mkBvToFpExpr(targetSort, ctx.fpRoundingModeSortDefaultValue(), bv(operand), signed = sourceSigned)
+            }
+            operand.sort is UFpSort && targetSort is UBvSort -> {
+                val targetSigned = !(targetType as BasicType).typeName.startsWith("uint")
+                ctx.mkFpToBvExpr(
+                    ctx.mkFpRoundingModeExpr(KFpRoundingMode.RoundTowardZero),
+                    operand.asExpr(operand.sort as UFpSort),
+                    targetSort.sizeBits.toInt(),
+                    isSigned = targetSigned
+                )
+            }
+            else -> {
+                ctx.mkPrimitiveCast(operand, targetSort)
+            }
         }
         return tryBox(converted, expr.type)
     }
@@ -344,7 +360,11 @@ class GoExprVisitor(
     }
 
     override fun visitGoMakeInterfaceExpr(expr: GoMakeInterfaceExpr): UExpr<out USort> {
-        val value = box(expr.value.accept(this@GoExprVisitor), expr.value.type)
+        val type = expr.value.type
+        val operand = expr.value.accept(this)
+        val isNamedScalar = type is NamedType && ctx.typeToSort(type.underlying()) != ctx.addressSort
+        val payload = if (isNamedScalar) unboxNamedPrimitive(operand, type) else operand
+        val value = box(payload, type)
         scope.doWithState {
             scope.assert(memory.types.evalIsSubtype(value, expr.type)) ?: throw GoStepAbort()
         }
@@ -632,6 +652,10 @@ class GoExprVisitor(
 
         val assertType = expr.assertType.let { if (it is TupleType) it.types[0] else it }
         val assertSort = ctx.typeToSort(assertType)
+        val underlyingSort = ctx.typeToSort(assertType.underlying())
+        if (underlyingSort is UBvSort || underlyingSort is UFpSort || underlyingSort == ctx.boolSort) {
+            return scalarTypeAssertion(x.asExpr(ctx.addressSort), assertType, commaOk = expr.type is TupleType)
+        }
 
         val commaOk = expr.type is TupleType
         val tupleType = TupleType(listOf(assertType, GoBasicTypes.BOOL))
@@ -666,6 +690,37 @@ class GoExprVisitor(
         }
     }
 
+    private fun scalarTypeAssertion(reference: UHeapRef, type: GoType, commaOk: Boolean): UExpr<out USort> {
+        val valueSort = ctx.typeToSort(type.underlying())
+        val isNil = ctx.mkHeapRefEq(reference, ctx.nullRef)
+        val boxed = ctx.mkIte(
+            isNil,
+            trueBranch = { box(valueSort.sampleUValue(), type) },
+            falseBranch = { reference }
+        )
+        // Every non-nil interface value is boxed, independently of whether its dynamic type matches.
+        scope.assert(isBoxed(boxed)) ?: throw GoStepAbort()
+        val matches = scope.calcOnState {
+            ctx.mkAnd(ctx.mkNot(isNil), memory.types.evalIsSupertype(boxed, type))
+        }
+        val value = if (type is NamedType) {
+            boxed
+        } else {
+            scope.calcOnState { unbox(boxed, valueSort) }
+        }
+
+        if (!commaOk) {
+            scope.fork(matches, blockOnFalseState = { panic("type assertion failed") }) ?: throw GoStepAbort()
+            return value
+        }
+
+        val zero = tryBox(valueSort.sampleUValue(), type)
+        val result = ctx.mkIte(matches, value.asExpr(value.sort), zero.asExpr(value.sort))
+        return scope.calcOnState {
+            mkTuple(TupleType(listOf(type, GoBasicTypes.BOOL)), result, matches)
+        }
+    }
+
     override fun visitGoExtractExpr(expr: GoExtractExpr): UExpr<out USort> {
         val tuple = expr.instance.accept(this).asExpr(ctx.addressSort)
 
@@ -689,9 +744,12 @@ class GoExprVisitor(
     }
 
     override fun visitGoParameter(expr: GoParameter): UExpr<out USort> {
-        return scope.calcOnState {
+        val value = scope.calcOnState {
             memory.read(URegisterStackLValue(ctx.typeToSort(expr.type), expr.index))
         }
+        ensureNamedScalar(value, expr.type)
+
+        return value
     }
 
     override fun visitGoConst(expr: GoConst): UExpr<out USort> {
@@ -910,24 +968,22 @@ class GoExprVisitor(
     }
 
     private fun visitGoUnaryExpr(expr: GoUnaryExpr): UExpr<out USort> {
-        val x = expr.value.accept(this)
-        return when (expr) {
-            is GoUnArrowExpr -> {
-                throw UnsupportedUnaryOperationException("channel operations")
-            }
-            is GoUnXorExpr -> {
-                GoUnaryOperator.Complement(x)
-            }
-            is GoUnNotExpr, is GoUnSubExpr -> {
-                GoUnaryOperator.Neg(x)
-            }
-            is GoUnMulExpr -> {
-                deref(x, ctx.typeToSort(expr.type))
-            }
-            else -> {
-                throw UnknownUnaryOperationException(expr.toString())
-            }
+        val value = expr.value.accept(this)
+        if (expr is GoUnArrowExpr) {
+            throw UnsupportedUnaryOperationException("channel operations")
         }
+        if (expr is GoUnMulExpr) {
+            return deref(value, ctx.typeToSort(expr.type))
+        }
+
+        val operand = unboxNamedPrimitive(value, expr.value.type)
+        val result = when (expr) {
+            is GoUnXorExpr -> GoUnaryOperator.Complement(operand)
+            is GoUnNotExpr, is GoUnSubExpr -> GoUnaryOperator.Neg(operand)
+            else -> throw UnknownUnaryOperationException(expr.toString())
+        }
+
+        return tryBox(result, expr.type)
     }
 
     private fun visitIndexExpr(instance: GoValue, idx: GoValue): Pair<GoArrayView, UExpr<USizeSort>> {
@@ -1018,12 +1074,29 @@ class GoExprVisitor(
         }
     }
 
+    private fun ensureNamedScalar(value: UExpr<out USort>, type: GoType) {
+        if (type !is NamedType || ctx.typeToSort(type.underlying()) == ctx.addressSort) {
+            return
+        }
+
+        // Named numeric/boolean values cannot be nil; boxing tags are representation constraints.
+        val reference = value.asExpr(ctx.addressSort)
+        scope.assert(ctx.mkNot(ctx.mkHeapRefEq(reference, ctx.nullRef))) ?: throw GoStepAbort()
+        scope.assert(isBoxed(reference)) ?: throw GoStepAbort()
+    }
+
     private fun unboxNamedPrimitive(expr: UExpr<out USort>, type: GoType): UExpr<out USort> {
         if (type !is NamedType) {
             return expr
         }
 
-        return unbox(expr.asExpr(ctx.addressSort), ctx.typeToSort(type.underlying()))
+        val sort = ctx.typeToSort(type.underlying())
+        if (sort == ctx.addressSort) {
+            return unbox(expr.asExpr(ctx.addressSort), sort)
+        }
+        ensureNamedScalar(expr, type)
+
+        return scope.calcOnState { unbox(expr.asExpr(ctx.addressSort), sort) }
     }
 
     private fun tryBox(expr: UExpr<out USort>, targetType: GoType): UExpr<out USort> {
