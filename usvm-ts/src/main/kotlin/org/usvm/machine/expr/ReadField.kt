@@ -17,10 +17,13 @@ import org.usvm.USort
 import org.usvm.USymbolicHeapRef
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.makeSymbolicRefUntyped
+import org.usvm.isFalse
+import org.usvm.isTrue
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.ensureStaticsInitialized
 import org.usvm.machine.types.EtsAuxiliaryType
+import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.TsResolutionResult
@@ -77,6 +80,9 @@ private fun TsContext.resolveField(
 ): UExpr<*>? {
     checkNotFake(instance)
 
+    val deleted = scope.calcOnState { memory.read(deletedFieldLValue(instance, field)) }
+    if (deleted.isTrue) return mkUndefinedValue()
+
     val resolvedField = resolveEtsField(instanceLocal, field, hierarchy)
     val sort = when (resolvedField) {
         is TsResolutionResult.Empty -> {
@@ -104,20 +110,31 @@ private fun TsContext.resolveField(
     scope.assert(fieldExists) ?: return null
 
     val value = readField(scope, instance, field, sort)
-    if (resolvedField !is TsResolutionResult.Unique || sort is TsUnresolvedSort) return value
+    val materializedValue = if (resolvedField !is TsResolutionResult.Unique || sort is TsUnresolvedSort) {
+        value
+    } else {
+        val maxStringLength = scope.calcOnState { maxStringLength }
+        when (val fieldType = resolvedField.property.type) {
+            is EtsStringLiteralType -> materializeTypedStringField(
+                scope = scope,
+                value = value.asExpr(addressSort),
+                literal = fieldType.value,
+                maxStringLength = maxStringLength,
+            )
 
-    val maxStringLength = scope.calcOnState { maxStringLength }
-    return when (val fieldType = resolvedField.property.type) {
-        is EtsStringLiteralType -> materializeTypedStringField(
-            scope = scope,
-            value = value.asExpr(addressSort),
-            literal = fieldType.value,
-            maxStringLength = maxStringLength,
-        )
-
-        is EtsStringType -> materializeTypedStringField(scope, value.asExpr(addressSort), maxStringLength)
-        else -> value
+            is EtsStringType -> materializeTypedStringField(scope, value.asExpr(addressSort), maxStringLength)
+            else -> value
+        } ?: return null
     }
+
+    if (deleted.isFalse) return materializedValue
+
+    return iteWriteIntoFakeObject(
+        scope = scope,
+        condition = deleted,
+        trueBranchValue = mkUndefinedValue(),
+        falseBranchValue = materializedValue,
+    )
 }
 
 /** Reading a field always produces a value; path validation belongs to [resolveField]. */

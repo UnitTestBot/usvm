@@ -193,6 +193,8 @@ fun TsContext.assignToInstanceField(
                 memory.write(lValue, expr.asExpr(lValue.sort), guard = trueExpr)
             }
         }
+
+        memory.write(deletedFieldLValue(unwrappedInstance, field), falseExpr, guard = trueExpr)
     }
 }
 
