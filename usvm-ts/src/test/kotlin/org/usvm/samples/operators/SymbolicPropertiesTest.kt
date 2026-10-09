@@ -1,41 +1,17 @@
 package org.usvm.samples.operators
 
-import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.io.TempDir
-import org.usvm.StateCollectionStrategy
-import org.usvm.UMachineOptions
-import org.usvm.api.TsTest
 import org.usvm.api.TsTestValue
 import org.usvm.machine.TsAnalysisStopReason
 import org.usvm.machine.TsInputPropertyPresence
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
-import org.usvm.machine.state.TsMethodResult
-import org.usvm.util.TsMethodTestRunner
-import org.usvm.util.TsTestResolver
 import org.usvm.util.eq
-import org.usvm.util.jsString
-import java.nio.file.Path
-import java.util.IdentityHashMap
 import kotlin.test.assertEquals
-import kotlin.test.assertIs
 import kotlin.test.assertTrue
-import kotlin.time.Duration
 
-open class SymbolicPropertiesTest : TsMethodTestRunner() {
-    @TempDir
-    lateinit var directory: Path
-
-    private val sourcePath = "/samples/operators/SymbolicProperties.ts"
-    override val scene: EtsScene = loadScene(sourcePath)
+class SymbolicPropertiesTest : PropertyTestRunner("/samples/operators/SymbolicProperties.ts") {
     override val tsOptions: TsOptions = TsOptions(maxArraySize = 8)
-    private val machineOptions = UMachineOptions(
-        stateCollectionStrategy = StateCollectionStrategy.ALL,
-        stopOnCoverage = 0,
-        timeout = Duration.INFINITE,
-        throwExceptionOnStepFailure = true,
-    )
 
     @Test
     fun `required fields exist and optional or unknown fields have both initial possibilities`() {
@@ -81,7 +57,6 @@ open class SymbolicPropertiesTest : TsMethodTestRunner() {
                 { _, flag, result -> !flag.value && result eq falseResult },
                 invariants = arrayOf({ _, flag, result -> result eq if (flag.value) trueResult else falseResult }),
             )
-            replay(name, analyze(name))
         }
     }
 
@@ -96,7 +71,6 @@ open class SymbolicPropertiesTest : TsMethodTestRunner() {
                 { _, _, result -> result eq 1 },
                 invariants = arrayOf({ _, _, result -> result eq 0 || result eq 1 }),
             )
-            replay(name, analyze(name))
         }
     }
 
@@ -111,7 +85,6 @@ open class SymbolicPropertiesTest : TsMethodTestRunner() {
             { _, value, result -> value.number.isNaN() && result eq -1 },
             invariants = arrayOf({ _, value, result -> result eq if (value.number.isNaN()) -1 else 1 }),
         )
-        replay(name, analyze(name))
     }
 
     @Test
@@ -124,7 +97,6 @@ open class SymbolicPropertiesTest : TsMethodTestRunner() {
                 { _, _, result -> result eq 1 },
                 invariants = arrayOf({ _, _, result -> result eq 1 }),
             )
-            replay(name, analyze(name))
         }
     }
 
@@ -146,7 +118,6 @@ open class SymbolicPropertiesTest : TsMethodTestRunner() {
                     if (name == "returnsWrittenObject") "fresh" in result.properties else "x" !in result.properties
                 }),
             )
-            replay(name, analyze(name))
         }
     }
 
@@ -154,7 +125,7 @@ open class SymbolicPropertiesTest : TsMethodTestRunner() {
     fun `symbolic keys and inherited prototype names remain explicit unsupported outcomes`() {
         listOf("symbolicKey", "prototypeName").forEach { name ->
             val method = getMethod(methodName = name, className = "SymbolicProperties")
-            val options = machineOptions.copy(throwExceptionOnStepFailure = false)
+            val options = options.copy(throwExceptionOnStepFailure = false)
             val outcome = TsMachine(scene, options = options, tsOptions = tsOptions).use {
                 it.analyzeWithOutcome(methods = listOf(method))
             }
@@ -165,97 +136,21 @@ open class SymbolicPropertiesTest : TsMethodTestRunner() {
         }
     }
 
-    protected fun checkSingleInput(name: String, expected: Set<Int>) {
+    private fun checkSingleInput(name: String, expected: Set<Int>) {
         val method = getMethod(methodName = name, className = "SymbolicProperties")
         val matchers: Array<(TsTestValue, TsTestValue.TsNumber) -> Boolean> = expected.map { number ->
             { _: TsTestValue, result: TsTestValue.TsNumber -> result eq number }
         }.toTypedArray()
-
-        val tests = analyze(name)
 
         discoverProperties(
             method = method,
             analysisResultMatchers = matchers,
             invariants = arrayOf({ _: TsTestValue, result: TsTestValue.TsNumber -> result.number.toInt() in expected }),
         )
-        replay(name, tests)
-    }
-
-    private fun analyze(name: String): List<TsTest> {
-        val method = getMethod(methodName = name, className = "SymbolicProperties")
-        val outcome = TsMachine(scene, options = machineOptions, tsOptions = tsOptions).use {
-            it.analyzeWithOutcome(methods = listOf(method))
-        }
-
-        assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason, name)
-        assertTrue(outcome.unsupportedPaths.isEmpty(), "$name: ${outcome.unsupportedPaths}")
-        assertTrue(outcome.states.isNotEmpty(), name)
-        return outcome.states.map { state ->
-            assertIs<TsMethodResult.Success>(state.methodResult, name)
-            TsTestResolver().resolve(method, state)
-        }
-    }
-
-    private fun replay(name: String, tests: List<TsTest>) {
-        val assertions = buildString {
-            tests.forEachIndexed { index, test ->
-                appendLine("{")
-                val serializer = ReplayObjects(this)
-                val args = test.before.parameters.map { serializer.value(it) }
-                appendLine("const actual = new SymbolicProperties().$name(${args.joinToString()});")
-                val expected = serializer.value(test.returnValue)
-                appendLine("if (!same(actual, $expected)) throw Error('$name result $index');")
-                test.after.parameters.forEachIndexed { argIndex, after ->
-                    val expectedAfter = serializer.value(after)
-                    appendLine("if (!same(${args[argIndex]}, $expectedAfter)) throw Error('$name input $argIndex state $index');")
-                }
-                appendLine("}")
-            }
-        }
-        val equals = """
-            function same(a, b) {
-                if (Object.is(a, b)) return true;
-                if (a === null || b === null || typeof a !== 'object' || typeof b !== 'object') return false;
-                const ka = Object.keys(a), kb = Object.keys(b);
-                return ka.length === kb.length && ka.every(k => Object.hasOwn(b, k) && same(a[k], b[k]));
-            }
-        """.trimIndent()
-
-        replayInOperatorScript(directory, sourcePath, name, "$equals\n$assertions")
-    }
-
-    private class ReplayObjects(private val script: StringBuilder) {
-        private val objects = IdentityHashMap<TsTestValue, String>()
-
-        fun value(value: TsTestValue): String = when (value) {
-            is TsTestValue.TsBoolean -> value.value.toString()
-            is TsTestValue.TsNumber -> when {
-                value.number.isNaN() -> "NaN"
-                value.number == Double.POSITIVE_INFINITY -> "Infinity"
-                value.number == Double.NEGATIVE_INFINITY -> "-Infinity"
-                else -> value.number.toString()
-            }
-            is TsTestValue.TsString -> jsString(value.value)
-            TsTestValue.TsUndefined -> "undefined"
-            TsTestValue.TsNull -> "null"
-            is TsTestValue.TsClass -> objects[value] ?: run {
-                val ref = "obj${objects.size}"
-                objects[value] = ref
-                script.appendLine("const $ref = {};")
-                value.properties.forEach { (key, field) ->
-                    val payload = value(field)
-                    script.appendLine("Object.defineProperty($ref, ${jsString(key)}, {value: $payload, writable: true, enumerable: true, configurable: true});")
-                }
-                ref
-            }
-            is TsTestValue.TsArray<*> -> "[${value.values.joinToString { value(it) }}]"
-            else -> error("Unsupported replay value: $value")
-        }
     }
 }
 
-class SymbolicPropertyPresenceModesTest : TsMethodTestRunner() {
-    override val scene: EtsScene = loadScene("/samples/operators/SymbolicProperties.ts")
+class SymbolicPropertyPresenceModesTest : PropertyTestRunner("/samples/operators/SymbolicProperties.ts") {
     private var policy = TsInputPropertyPresence.DECLARED_FIELDS
     override val tsOptions: TsOptions get() = TsOptions(inputPropertyPresence = policy)
 
