@@ -39,6 +39,39 @@ jobs:
           path: '**/build/reports/'
           retention-days: 1
 
+  ci-go:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22.3'
+          cache-dependency-path: usvm-go/src/main/go/go.sum
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run Go regression tests and lint
+        run: ./gradlew :usvm-go:check :usvm-go:detektMain :usvm-go:detektTest --configure-on-demand
+
+      - name: Upload Gradle reports
+        if: (!cancelled())
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-reports-go
+          path: '**/build/reports/'
+          retention-days: 1
+
   ci-jvm:
     runs-on: ubuntu-24.04
     steps:
