@@ -285,3 +285,69 @@ func nilMapLookup() int {
 	var values map[int]int
 	return values[7]
 }
+
+func nilMapLookupComma() bool {
+	var values map[int]int
+	_, ok := values[7]
+	return ok
+}
+
+func nilMapDelete() int {
+	var values map[int]int
+	delete(values, 7)
+	return len(values)
+}
+
+func nilMapAssignment() int {
+	var values map[int]int
+	values[7] = 42
+	return values[7]
+}
+
+type namedMap map[int]int
+
+func nilNamedMapLookup() int {
+	var values namedMap
+	return values[7]
+}
+
+func nilNamedMapDelete() int {
+	var values namedMap
+	delete(values, 7)
+	return len(values)
+}
+
+func missingMapLookupCommaValue() int {
+	values := map[int]int{7: 42}
+	value, _ := values[8]
+	return value
+}
+
+func symbolicMapLookupComma(values map[int]int, key int) (int, bool) {
+	value, ok := values[key]
+	if values == nil {
+		return value, ok
+	}
+	if ok {
+		return value, true
+	}
+	return value, false
+}
+
+func nilMapRange() int {
+	var values map[int]int
+	iterations := 0
+	for range values {
+		iterations++
+	}
+	return iterations
+}
+
+func nilNamedMapRange() int {
+	var values namedMap
+	iterations := 0
+	for range values {
+		iterations++
+	}
+	return iterations
+}

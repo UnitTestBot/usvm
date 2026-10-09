@@ -485,15 +485,15 @@ class GoExprVisitor(
     }
 
     override fun visitGoLookupExpr(expr: GoLookupExpr): UExpr<out USort> {
-        val map = unboxNamedRef(expr.instance.accept(this).asExpr(ctx.addressSort), expr.instance.type)
         val mapType = expr.instance.type.underlying() as MapType
+        val reference = unboxNamedRef(expr.instance.accept(this).asExpr(ctx.addressSort), expr.instance.type)
+        val map = mapOrEmpty(reference, mapType)
         val key = expr.index.accept(this)
 
         val isRefKey = key.sort == ctx.addressSort
         val commaOk = expr.commaOk
         val valueSort = ctx.typeToSort(mapType.valueType)
 
-        checkNotNull(map) ?: throw GoStepAbort()
         scope.ensureObjectMapSizeCorrect(map, mapType) ?: throw GoStepAbort()
 
         val contains = scope.calcOnState {
@@ -508,13 +508,17 @@ class GoExprVisitor(
         } else {
             UMapEntryLValue(key.sort, valueSort, map, key.asExpr(key.sort), mapType, USizeExprKeyInfo())
         }
-        val rvalue = scope.calcOnState { memory.read(lvalue).asExpr(valueSort) }
+        val value = ctx.mkIte(
+            contains,
+            trueBranch = { scope.calcOnState { memory.read(lvalue).asExpr(valueSort) } },
+            falseBranch = { valueSort.sampleUValue() }
+        )
 
         return scope.calcOnState {
             if (commaOk) {
-                mkTuple(TupleType(listOf(mapType.valueType, GoBasicTypes.BOOL)), rvalue, contains)
+                mkTuple(TupleType(listOf(mapType.valueType, GoBasicTypes.BOOL)), value, contains)
             } else {
-                ctx.mkIte(contains, { rvalue }, { rvalue.sort.sampleUValue() })
+                value
             }
         }
     }
@@ -528,7 +532,7 @@ class GoExprVisitor(
         val collection = expr.instance.accept(this).asExpr(ctx.addressSort).let {
             when (val type = expr.instance.type.underlying()) {
                 is MapType -> {
-                    copyMap(it, type)
+                    copyMap(unboxNamedRef(it, expr.instance.type), type)
                 }
                 GoBasicTypes.STRING -> {
                     it
@@ -781,8 +785,27 @@ class GoExprVisitor(
             return expr
         }
 
-        return unbox(expr, ctx.typeToSort(type.underlying())).asExpr(ctx.addressSort)
+        if (type.underlying() !is MapType) {
+            return unbox(expr, ctx.typeToSort(type.underlying())).asExpr(ctx.addressSort)
+        }
+
+        // Named maps may be nil, while every non-nil reference must carry the boxing tag.
+        val boxed = ctx.mkIte(
+            ctx.mkHeapRefEq(expr, ctx.nullRef),
+            trueBranch = { box(ctx.nullRef, type) },
+            falseBranch = { expr }
+        )
+        scope.assert(isBoxed(boxed)) ?: throw GoStepAbort()
+
+        return scope.calcOnState { unbox(boxed, ctx.addressSort).asExpr(ctx.addressSort) }
     }
+
+    private fun mapOrEmpty(map: UHeapRef, type: MapType): UHeapRef = ctx.mkIte(
+        ctx.mkHeapRefEq(map, ctx.nullRef),
+        // Core map operations require a non-nil reference; this temporary map does not escape.
+        trueBranch = { scope.calcOnState { mkSymbolicObjectMap(type) } },
+        falseBranch = { map }
+    )
 
     @Suppress("ThrowsCount") // Failed scope checks stop this hop.
     private fun visitGoBinaryExpr(expr: GoBinaryExpr): UExpr<out USort> {
@@ -1077,9 +1100,10 @@ class GoExprVisitor(
             }
 
             "delete" -> {
-                val map = unboxNamedRef(args[0].accept(this).asExpr(ctx.addressSort), args[0].type)
+                val reference = unboxNamedRef(args[0].accept(this).asExpr(ctx.addressSort), args[0].type)
                 val key = args[1].accept(this)
                 val mapType = args[0].type.underlying() as MapType
+                val map = mapOrEmpty(reference, mapType)
                 val keySort = ctx.typeToSort(mapType.keyType)
 
                 scope.ensureObjectMapSizeCorrect(map, mapType) ?: throw GoStepAbort()
@@ -1153,8 +1177,8 @@ class GoExprVisitor(
         srcMap: UHeapRef,
         mapType: MapType,
     ): UHeapRef = with(ctx) {
-        checkNotNull(srcMap) ?: throw GoStepAbort()
-        scope.ensureObjectMapSizeCorrect(srcMap, mapType) ?: throw GoStepAbort()
+        val source = mapOrEmpty(srcMap, mapType)
+        scope.ensureObjectMapSizeCorrect(source, mapType) ?: throw GoStepAbort()
 
         val keySort = typeToSort(mapType.keyType)
         val valueSort = typeToSort(mapType.valueType)
@@ -1162,9 +1186,9 @@ class GoExprVisitor(
         return scope.calcOnState {
             val destMap = mkSymbolicObjectMap(mapType)
             if (isRefSet) {
-                symbolicObjectMapMergeInto(destMap, srcMap, mapType, valueSort)
+                symbolicObjectMapMergeInto(destMap, source, mapType, valueSort)
             } else {
-                symbolicPrimitiveMapCopyIntoEmpty(destMap, srcMap, mapType, keySort, valueSort, USizeExprKeyInfo())
+                symbolicPrimitiveMapCopyIntoEmpty(destMap, source, mapType, keySort, valueSort, USizeExprKeyInfo())
             }
             destMap
         }
