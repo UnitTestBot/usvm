@@ -10,6 +10,7 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.UIteExpr
+import org.usvm.UOrExpr
 import org.usvm.USort
 import org.usvm.USymbolicHeapRef
 import org.usvm.api.allocateConcreteRef
@@ -299,12 +300,13 @@ fun TsContext.mkIsNullOrUndefined(ref: UHeapRef): UBoolExpr {
 }
 
 fun TsContext.mkNotNullOrUndefined(ref: UHeapRef): UBoolExpr {
-    checkNotFake(ref)
+    val isNullOrUndefined = mkIsNullOrUndefined(ref)
 
-    val isNull = mkHeapRefEq(ref, mkTsNullValue())
-    val isUndefined = mkHeapRefEq(ref, mkUndefinedValue())
     // Preserve the explicit disequalities when this expression is composed into path guards.
-    return mkAnd(mkNot(isNull), mkNot(isUndefined))
+    return when (isNullOrUndefined) {
+        is UOrExpr -> mkAnd(isNullOrUndefined.args.map(::mkNot))
+        else -> mkNot(isNullOrUndefined)
+    }
 }
 
 fun TsContext.checkUndefinedOrNullPropertyRead(
