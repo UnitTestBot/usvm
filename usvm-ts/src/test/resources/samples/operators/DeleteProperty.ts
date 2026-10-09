@@ -65,6 +65,25 @@ class DeleteProperty {
         return object.x === undefined ? 1 : 2;
     }
 
+    deleteAndRestoreString(value: string): number {
+        const object: { value: string } = { value };
+        delete object.value;
+        if (object.value !== undefined) return 0;
+
+        object.value = value;
+        return object.value === value ? 1 : 0;
+    }
+
+    conditionalDeleteString(value: string, shouldDelete: boolean): number {
+        const object: { value: string } = { value };
+        if (shouldDelete) {
+            delete object.value;
+        }
+
+        if (shouldDelete) return object.value === undefined ? 1 : 0;
+        return object.value === value ? 2 : 0;
+    }
+
     deleteInput(object: { x?: number }): number {
         delete object.x;
         return 1;

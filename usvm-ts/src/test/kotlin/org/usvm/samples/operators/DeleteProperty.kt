@@ -156,6 +156,29 @@ class DeleteProperty : TsMethodTestRunner() {
     }
 
     @Test
+    fun `typed string property can be deleted and restored`() {
+        val method = getMethod("deleteAndRestoreString")
+
+        discoverProperties<TsTestValue.TsString, TsTestValue.TsNumber>(
+            method = method,
+            { _, result -> result eq 1 },
+            invariants = arrayOf({ _, result -> result eq 1 }),
+        )
+    }
+
+    @Test
+    fun `conditional string delete preserves the untouched value`() {
+        val method = getMethod("conditionalDeleteString")
+
+        discoverProperties<TsTestValue.TsString, TsTestValue.TsBoolean, TsTestValue.TsNumber>(
+            method = method,
+            { _, shouldDelete, result -> shouldDelete.value && (result eq 1) },
+            { _, shouldDelete, result -> !shouldDelete.value && (result eq 2) },
+            invariants = arrayOf({ _, shouldDelete, result -> result eq (if (shouldDelete.value) 1 else 2) }),
+        )
+    }
+
+    @Test
     fun `deleting a property of an input object reports unsupported outcome`() {
         val method = getMethod("deleteInput")
         val options = UMachineOptions(
