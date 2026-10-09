@@ -9,6 +9,18 @@ import (
 
 func TestNativeOracle(t *testing.T) {
 	cases := map[string]func() any{
+		"namedNegation":              func() any { return namedNegation() },
+		"namedComplement":            func() any { return namedComplement() },
+		"namedBooleanNot":            func() any { return namedBooleanNot() },
+		"unsignedToFloat64":          func() any { return unsignedToFloat64() },
+		"unsignedToFloat32":          func() any { return unsignedToFloat32() },
+		"floatToInt8":                func() any { return floatToInt8() },
+		"floatToUint8":               func() any { return floatToUint8() },
+		"floatToInt16":               func() any { return floatToInt16() },
+		"floatToUint16":              func() any { return floatToUint16() },
+		"namedInterfaceAssert":       func() any { return namedInterfaceAssert() },
+		"nilScalarAssertion":         func() any { return nilScalarAssertion() },
+		"failedNamedAssertionZero":   func() any { return failedNamedAssertionZero() },
 		"nilMapLookupComma":          func() any { return nilMapLookupComma() },
 		"nilMapDelete":               func() any { return nilMapDelete() },
 		"nilMapAssignment":           func() any { return nilMapAssignment() },
@@ -105,6 +117,8 @@ func TestReplaySymbolicInputs(t *testing.T) {
 			outputs[index] = symbolicBranch(input)
 		case "symbolicSliceAlias":
 			outputs[index] = symbolicSliceAlias(input)
+		case "symbolicNamedInterfaceRoundTrip":
+			outputs[index] = int(symbolicNamedInterfaceRoundTrip(namedNumber(input)))
 		default:
 			t.Fatal("Unknown replay method")
 		}

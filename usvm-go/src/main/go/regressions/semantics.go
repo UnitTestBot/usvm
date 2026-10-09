@@ -351,3 +351,89 @@ func nilNamedMapRange() int {
 	}
 	return iterations
 }
+
+type namedNumber int64
+type namedByte uint8
+type namedBool bool
+
+func namedNegation() int64 {
+	value := namedNumber(7)
+	return int64(-value)
+}
+
+func namedComplement() uint8 {
+	value := namedByte(15)
+	return uint8(^value)
+}
+
+func namedBooleanNot() bool {
+	value := namedBool(true)
+	return bool(!value)
+}
+
+func unsignedToFloat64() bool {
+	value := uint64(0xffffffffffffffff)
+	return float64(value) == 0x1p64
+}
+
+func unsignedToFloat32() bool {
+	value := uint32(0xffffffff)
+	return float32(value) == 0x1p32
+}
+
+func floatToInt8() int8 {
+	value := -123.75
+	return int8(value)
+}
+
+func floatToUint8() uint8 {
+	value := 200.75
+	return uint8(value)
+}
+
+func floatToInt16() int16 {
+	value := -12345.99999
+	return int16(value)
+}
+
+func floatToUint16() uint16 {
+	value := 60000.75
+	return uint16(value)
+}
+
+func symbolicNamedNegation(value namedNumber) namedNumber {
+	return -value
+}
+
+func symbolicNamedComplement(value namedByte) namedByte {
+	return ^value
+}
+
+func symbolicNamedIdentity(value namedNumber) namedNumber {
+	return value
+}
+
+func namedInterfaceAssert() int64 {
+	var value any = namedNumber(7)
+	return int64(value.(namedNumber))
+}
+
+func nilScalarAssertion() bool {
+	var value any
+	_, ok := value.(namedNumber)
+	return ok
+}
+
+func failedNamedAssertionZero() int64 {
+	var input any = int64(7)
+	value, _ := input.(namedNumber)
+	return int64(value)
+}
+
+func symbolicNamedInterfaceRoundTrip(value namedNumber) namedNumber {
+	if value == 0 {
+		return 0
+	}
+	var boxed any = value
+	return boxed.(namedNumber)
+}
