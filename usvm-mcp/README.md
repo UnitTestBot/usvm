@@ -13,13 +13,16 @@ hypotheses formulated by the LLM.
 
 1. **JDK 11+** — the MCP Kotlin SDK requires JVM 11 (the rest of USVM targets 1.8;
    this leaf module overrides the target).
-2. **Node.js** — used by ArkAnalyzer to convert TypeScript into ETS IR.
-3. **ArkAnalyzer** — a built checkout, pointed to by the `ARKANALYZER_DIR` environment variable:
+2. **Node.js** — used by the TypeScript frontend bundled with JacoDB to convert TypeScript into ETS IR.
+
+The bundled frontend is selected by default and needs no ArkAnalyzer checkout.
+To use the legacy ArkAnalyzer provider, build a checkout and select it explicitly:
 
    ```bash
    git clone https://gitee.com/openharmony-sig/arkanalyzer
    cd arkanalyzer && npm install && npm run build
    export ARKANALYZER_DIR=$(pwd)
+   export ETS_IR_PROVIDER=arkanalyzer
    ```
 
 ## Build and run
@@ -35,15 +38,13 @@ The server speaks MCP over **stdio**: stdout carries JSON-RPC, all logging goes 
 
 ```bash
 claude mcp add usvm \
-  -e ARKANALYZER_DIR=/path/to/arkanalyzer \
   -- /path/to/usvm/usvm-mcp/build/install/usvm-mcp/bin/usvm-mcp
 ```
 
 ### Connect from MCP Inspector (debugging)
 
 ```bash
-ARKANALYZER_DIR=/path/to/arkanalyzer \
-  npx @modelcontextprotocol/inspector usvm-mcp/build/install/usvm-mcp/bin/usvm-mcp
+npx @modelcontextprotocol/inspector usvm-mcp/build/install/usvm-mcp/bin/usvm-mcp
 ```
 
 ### Run from Gradle (debugging)

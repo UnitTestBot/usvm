@@ -2,6 +2,7 @@ package org.usvm.mcp.scene
 
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.loadEtsFileAutoConvert
 import org.usvm.mcp.McpToolException
 import java.nio.file.Files
@@ -15,9 +16,9 @@ private val logger = KotlinLogging.logger {}
 /**
  * Loads and caches [EtsScene]s built from single `.ts` files.
  *
- * Conversion `.ts -> ETS IR` is delegated to ArkAnalyzer (an external
- * node.js tool, see [loadEtsFileAutoConvert]) and is expensive, so scenes
- * are cached in memory, keyed by the real path and invalidated by mtime.
+ * Conversion `.ts -> ETS IR` uses the selected JacoDB frontend, with the bundled
+ * TypeScript frontend as the default. Scenes are cached in memory, keyed by the
+ * real path and invalidated by mtime.
  */
 class SceneCache {
 
@@ -32,17 +33,27 @@ class SceneCache {
         if (cached != null && cached.mtime == mtime) {
             return cached.scene
         }
-        checkArkAnalyzerAvailable()
-        logger.info { "Converting $path to ETS IR via ArkAnalyzer..." }
+        val provider = EtsIrProvider.default()
+        if (provider == EtsIrProvider.ARKANALYZER) {
+            checkArkAnalyzerAvailable()
+        }
+
+        val setupHint = when (provider) {
+            EtsIrProvider.TS_FRONTEND -> "Check that Node.js is installed."
+            EtsIrProvider.ARKANALYZER ->
+                "Check that ArkAnalyzer is built (ARKANALYZER_DIR must point to a checkout " +
+                    "with 'npm install && npm run build' done)."
+        }
+
+        logger.info { "Converting $path to ETS IR with $provider..." }
         val etsFile = try {
             // Type inference gives the machine precise `number`/`boolean` types,
             // significantly reducing spurious paths caused by untyped values.
-            loadEtsFileAutoConvert(path, useArkAnalyzerTypeInference = 1)
+            loadEtsFileAutoConvert(path, useArkAnalyzerTypeInference = 1, provider = provider)
         } catch (@Suppress("TooGenericExceptionCaught") e: Throwable) {
             throw McpToolException(
-                "Failed to convert '$path' to ETS IR via ArkAnalyzer: ${e.message}. " +
-                    "Check that the file is valid TypeScript and that ArkAnalyzer is built " +
-                    "(ARKANALYZER_DIR must point to a checkout with 'npm install && npm run build' done)."
+                "Failed to convert '$path' to ETS IR with $provider: ${e.message}. " +
+                    "Check that the file is valid TypeScript. $setupHint"
             )
         }
         val scene = EtsScene(listOf(etsFile))
