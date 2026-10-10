@@ -153,7 +153,8 @@ class ImportExportResolutionTest {
         assertIs<SymbolResolutionResult.Success>(result)
         assertTrue(result.exportInfo.isDefaultExport)
         assertEquals("default", result.exportInfo.name)
-        assertEquals("Helper", result.exportInfo.originalName)
+        assertEquals(expected = "default", actual = result.exportInfo.originalName)
+        assertEquals(expected = "Helper", actual = result.exportInfo.nameBeforeAs)
         assertEquals(EtsExportType.CLASS, result.exportInfo.type)
     }
 
@@ -319,7 +320,8 @@ class ImportExportResolutionTest {
         val result = scene.resolveImportInfo(currentFile, importInfo)
         assertIs<SymbolResolutionResult.Success>(result)
         assertEquals("default", result.exportInfo.name)
-        assertEquals("Helper", result.exportInfo.originalName)
+        assertEquals(expected = "default", actual = result.exportInfo.originalName)
+        assertEquals(expected = "Helper", actual = result.exportInfo.nameBeforeAs)
     }
 
     @Test
