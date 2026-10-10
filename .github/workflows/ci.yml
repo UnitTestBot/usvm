@@ -6,6 +6,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: read
+
 env:
   JAVA: 11
   JAVA_DISTRIBUTION: zulu
