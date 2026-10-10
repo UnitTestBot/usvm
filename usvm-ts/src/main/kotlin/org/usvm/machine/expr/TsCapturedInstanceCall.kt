@@ -152,7 +152,7 @@ private fun originalReceiver(local: EtsLocal, assignments: List<EtsAssignStmt>):
 
 /** Builtin objects handled by existing approximations have no input heap object to dereference. */
 private fun isImplicitModeledGlobal(source: EtsLocal, callee: EtsMethodSignature, method: EtsMethod): Boolean {
-    if (source.type.isBuiltinGlobalType("Math") || source.type.isBuiltinGlobalType("Number")) return true
+    if (source.type.isBuiltinGlobalType(expectedName = "Math") || source.type.isBuiltinGlobalType(expectedName = "Number")) return true
 
     val modeled = when (source.name) {
         "Logger" -> true
