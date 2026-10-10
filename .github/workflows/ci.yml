@@ -156,7 +156,7 @@ jobs:
           npm run build
 
       - name: Run TS tests
-        run: ./gradlew :usvm-ts:check :usvm-ts-dataflow:check
+        run: env ETS_IR_PROVIDER=arkanalyzer ./gradlew :usvm-ts:check :usvm-ts-dataflow:check
 
       - name: Upload Gradle reports
         if: (!cancelled())
