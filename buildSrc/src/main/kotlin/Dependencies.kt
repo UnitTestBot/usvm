@@ -6,7 +6,7 @@ object Versions {
     const val clikt = "5.0.0"
     const val detekt = "1.23.7"
     const val ini4j = "0.5.4"
-    const val jacodb = "7a2cda3bfd9175ba11a60e47ff4a32e6e3e209e2"
+    const val jacodb = "147d3b2797b693755c1d09fc28047ba43577a609"
     const val juliet = "1.3.2"
     const val junit = "5.9.3"
     const val kotlin = "2.1.0"
