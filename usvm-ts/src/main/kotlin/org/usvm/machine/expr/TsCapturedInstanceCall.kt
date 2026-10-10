@@ -6,7 +6,10 @@ import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsInstanceCallExpr
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLocal
+import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsPtrCallExpr
+import org.jacodb.ets.model.EtsUnclearRefType
 import org.jacodb.ets.utils.callExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
@@ -41,8 +44,12 @@ internal fun TsExprResolver.tryCaptureInstanceCall(
         return TsExprApproximationResult.NoApproximation
     }
 
+    val priorAssignments = method.cfg.stmts.takeWhile { it !== assignment }.filterIsInstance<EtsAssignStmt>()
+    val source = originalReceiver(requireNotNull(call.receiver), priorAssignments)
+    val implicitGlobal = isImplicitModeledGlobal(source, call.callee, method)
     val receiver = resolve(field.instance) ?: return TsExprApproximationResult.ResolveFailure
     val reference = when {
+        implicitGlobal -> null
         receiver.isFakeObject() -> receiver.extractRef(scope)
         receiver.sort == addressSort -> receiver.asExpr(addressSort)
         else -> null
@@ -64,12 +71,15 @@ internal fun TsExprResolver.tryCaptureInstanceCall(
         }
     }
 
-    val priorAssignments = method.cfg.stmts.takeWhile { it !== assignment }.filterIsInstance<EtsAssignStmt>()
-    val source = originalReceiver(requireNotNull(call.receiver), priorAssignments)
     val pointer = allocateConcreteRef()
     scope.doWithState {
         capturedInstanceCalls = capturedInstanceCalls.put(
-            pointer, TsCapturedInstanceCall(receiver = receiver, sourceReceiver = source), ownership,
+            pointer,
+            TsCapturedInstanceCall(
+                receiver = receiver,
+                sourceReceiver = if (implicitGlobal) source else field.instance,
+            ),
+            ownership,
         )
     }
     TsExprApproximationResult.SuccessfulApproximation(pointer)
@@ -125,4 +135,19 @@ private fun originalReceiver(local: EtsLocal, assignments: List<EtsAssignStmt>):
         current = source
     }
     return if (current in visited) local else current
+}
+
+/** Builtin objects handled by existing approximations have no input heap object to dereference. */
+private fun isImplicitModeledGlobal(source: EtsLocal, callee: EtsMethodSignature, method: EtsMethod): Boolean {
+    val modeled = when (source.name) {
+        "Logger" -> true
+        "Number" -> callee.name == "isNaN"
+        "Promise" -> callee.name in listOf("resolve", "reject")
+        "Math" -> callee.name == "floor"
+        else -> false
+    }
+    if (!modeled || source.type !is EtsUnclearRefType) return false
+
+    return method.parameters.none { it.name == source.name } &&
+        method.cfg.stmts.filterIsInstance<EtsAssignStmt>().none { it.lhv == source }
 }

@@ -1,9 +1,9 @@
 package org.usvm.machine.call
 
 import org.jacodb.ets.model.EtsAssignStmt
-import org.jacodb.ets.model.EtsInstanceCallExpr
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsMethod
+import org.jacodb.ets.model.EtsPtrCallExpr
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.callExpr
@@ -297,11 +297,11 @@ class TsArrayPopEtsIrModelTest {
         val callSite = method("nonEmptyArray").cfg.stmts.single { stmt ->
             stmt.callExpr?.callee?.name == "pop"
         }
-        val sourceCall = assertIs<EtsInstanceCallExpr>(assertNotNull(callSite.callExpr))
+        val sourceCall = assertIs<EtsPtrCallExpr>(assertNotNull(callSite.callExpr))
 
         return TsUnknownCall(
             callee = sourceCall.callee,
-            receiver = TsUnknownCallValue(source = sourceCall.instance, resolved = resolvedReceiver),
+            receiver = TsUnknownCallValue(source = assertNotNull(sourceCall.receiver), resolved = resolvedReceiver),
             arguments = emptyList(),
             resultType = sourceCall.type,
             callSite = callSite,

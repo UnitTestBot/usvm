@@ -1,6 +1,12 @@
 // @ts-nocheck
 // noinspection JSUnusedGlobalSymbols
 
+class ShadowMath {
+    floor(ignored: number): number {
+        return 7;
+    }
+}
+
 class CapturedMethodCalls {
     value = 3;
 
@@ -17,6 +23,11 @@ class CapturedMethodCalls {
         const receiver = new CapturedMethodCalls();
         receiver.value = 3;
         return receiver.read(receiver.replace());
+    }
+
+    shadowedBuiltinClassMethod(): number {
+        const Math = new ShadowMath();
+        return Math.floor(5);
     }
 
     callbackSelectedBeforeArgument(): number {

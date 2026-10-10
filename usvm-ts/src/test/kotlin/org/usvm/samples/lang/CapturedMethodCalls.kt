@@ -19,6 +19,15 @@ class CapturedMethodCalls : TsMethodTestRunner() {
     }
 
     @Test
+    fun `a local class instance named Math executes its own method`() {
+        discoverProperties<TsTestValue.TsNumber>(
+            method = getMethod("shadowedBuiltinClassMethod"),
+            { result -> result eq 7 },
+            invariants = arrayOf({ result -> result eq 7 }),
+        )
+    }
+
+    @Test
     fun `callback selection precedes an argument replacing the callback`() {
         discoverProperties<TsTestValue.TsNumber>(
             method = getMethod("callbackSelectedBeforeArgument"),
