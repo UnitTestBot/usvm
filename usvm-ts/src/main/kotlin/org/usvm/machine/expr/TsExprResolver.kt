@@ -8,6 +8,7 @@ import org.jacodb.ets.model.EtsAndExpr
 import org.jacodb.ets.model.EtsAnyType
 import org.jacodb.ets.model.EtsArrayAccess
 import org.jacodb.ets.model.EtsArrayType
+import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsAwaitExpr
 import org.jacodb.ets.model.EtsBinaryExpr
 import org.jacodb.ets.model.EtsBitAndExpr
@@ -71,6 +72,7 @@ import org.jacodb.ets.model.EtsStringLiteralType
 import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsSubExpr
 import org.jacodb.ets.model.EtsThis
+import org.jacodb.ets.model.EtsToNumericExpr
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsTypeOfExpr
 import org.jacodb.ets.model.EtsUnaryExpr
@@ -282,6 +284,11 @@ class TsExprResolver(
         return mkNumericExpr(arg, scope)
     }
 
+    override fun visit(expr: EtsToNumericExpr): UExpr<out USort>? = with(ctx) {
+        val arg = resolve(expr.arg) ?: return null
+        return mkNumericExpr(arg, scope)
+    }
+
     override fun visit(expr: EtsPostIncExpr): UExpr<out USort>? {
         return resolveUpdateExpression(expr.arg, UpdateOperator.INCREMENT, returnOldValue = true)
     }
@@ -310,6 +317,15 @@ class TsExprResolver(
             UpdateOperator.INCREMENT -> mkFpAddExpr(fpRoundingModeSortDefaultValue(), oldNumericValue, one)
             UpdateOperator.DECREMENT -> mkFpSubExpr(fpRoundingModeSortDefaultValue(), oldNumericValue, one)
         }
+
+        // The native frontend saves ToNumeric's result and writes the source target
+        // in a separate assignment. Mutating that snapshot would corrupt postfix results.
+        val numericSnapshot = target is EtsLocal && scope.calcOnState {
+            lastEnteredMethod.cfg.stmts.any { stmt ->
+                stmt is EtsAssignStmt && stmt.lhv == target && stmt.rhv is EtsToNumericExpr
+            }
+        }
+        if (numericSnapshot) return updatedValue
 
         when (target) {
             is EtsLocal -> handleAssignToLocal(target, updatedValue)

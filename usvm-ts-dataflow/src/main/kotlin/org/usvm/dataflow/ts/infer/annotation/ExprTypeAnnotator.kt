@@ -61,6 +61,7 @@ import org.jacodb.ets.model.EtsStrictEqExpr
 import org.jacodb.ets.model.EtsStrictNotEqExpr
 import org.jacodb.ets.model.EtsSubExpr
 import org.jacodb.ets.model.EtsTypeOfExpr
+import org.jacodb.ets.model.EtsToNumericExpr
 import org.jacodb.ets.model.EtsUnaryPlusExpr
 import org.jacodb.ets.model.EtsUnsignedRightShiftExpr
 import org.jacodb.ets.model.EtsValue
@@ -129,6 +130,10 @@ class ExprTypeAnnotator(
     )
 
     override fun visit(expr: EtsUnaryPlusExpr) = expr.copy(
+        arg = annotate(expr.arg)
+    )
+
+    override fun visit(expr: EtsToNumericExpr) = expr.copy(
         arg = annotate(expr.arg)
     )
 
