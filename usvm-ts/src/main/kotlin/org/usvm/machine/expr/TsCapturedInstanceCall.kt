@@ -3,6 +3,7 @@ package org.usvm.machine.expr
 import io.ksmt.utils.asExpr
 import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsFunctionType
 import org.jacodb.ets.model.EtsInstanceCallExpr
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLocal
@@ -71,13 +72,15 @@ internal fun TsExprResolver.tryCaptureInstanceCall(
         }
     }
 
+    // Logger's compatibility approximation deliberately matches the source variable name.
+    val approximationReceiver = if (implicitGlobal || source.name == "Logger") source else field.instance
     val pointer = allocateConcreteRef()
     scope.doWithState {
         capturedInstanceCalls = capturedInstanceCalls.put(
             pointer,
             TsCapturedInstanceCall(
                 receiver = receiver,
-                sourceReceiver = if (implicitGlobal) source else field.instance,
+                sourceReceiver = approximationReceiver,
             ),
             ownership,
         )
@@ -146,7 +149,9 @@ private fun isImplicitModeledGlobal(source: EtsLocal, callee: EtsMethodSignature
         "Math" -> callee.name == "floor"
         else -> false
     }
-    if (!modeled || source.type !is EtsUnclearRefType) return false
+    val globalType = source.type is EtsUnclearRefType ||
+        (source.name == "Number" && source.type is EtsFunctionType)
+    if (!modeled || !globalType) return false
 
     return method.parameters.none { it.name == source.name } &&
         method.cfg.stmts.filterIsInstance<EtsAssignStmt>().none { it.lhv == source }
