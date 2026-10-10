@@ -62,12 +62,12 @@ class JcStaticFieldDecoder<Sort : USort>(
 class JcStaticFieldModel<Sort : USort>(
     private val model: UModelEvaluator<*>,
     private val translatedFields: Map<JcField, UExpr<Sort>>,
-    private val translator: UExprTranslator<*, *>
+    private val translator: UExprTranslator<*, *>,
 ) : UReadOnlyMemoryRegion<JcStaticFieldLValue<Sort>, Sort> {
     override fun read(key: JcStaticFieldLValue<Sort>): UExpr<Sort> {
         val translated = translatedFields[key.field]
             ?: translator.translate(
-                key.sort.jctx.mkStaticFieldReading(key.memoryRegionId as JcStaticFieldRegionId, key.field, key.sort)
+                key.sort.jctx.mkStaticFieldReading(key.memoryRegionId, key.field, key.sort)
             )
         return model.evalAndComplete(translated)
     }
