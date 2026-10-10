@@ -161,6 +161,10 @@ jobs:
         run: env -u ARKANALYZER_DIR ETS_IR_PROVIDER=ts-frontend ./gradlew :usvm-ts-pbt:check :usvm-ts-fast-check:check
 
   lint:
+    permissions:
+      contents: read
+      packages: read
+      security-events: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
