@@ -113,7 +113,7 @@ internal fun TsExprResolver.handleCapturedInstanceCall(
         call = instanceCall,
         instance = captured.receiver,
         args = args,
-        originalCall = call,
+        originalCall = call.copy(receiver = captured.sourceReceiver),
         targetCaptured = true,
     )
 }
