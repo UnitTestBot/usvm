@@ -1,6 +1,7 @@
 package org.usvm.machine.expr
 
 import io.ksmt.utils.asExpr
+import org.jacodb.ets.model.EtsCallExpr
 import org.jacodb.ets.model.EtsInstanceCallExpr
 import org.usvm.UBoolExpr
 import org.usvm.UExpr
@@ -58,6 +59,8 @@ fun TsContext.callInstanceMethod(
     call: EtsInstanceCallExpr,
     instance: UExpr<*>,
     args: List<UExpr<*>>,
+    originalCall: EtsCallExpr = call,
+    targetCaptured: Boolean = false,
 ): UExpr<*>? {
     val returnSite = scope.calcOnState { lastStmt }
     val alternatives = scope.calcOnState { receiverAlternatives(instance) }
@@ -67,6 +70,8 @@ fun TsContext.callInstanceMethod(
             instance = receiver,
             args = args,
             returnSite = returnSite,
+            originalCall = originalCall,
+            targetCaptured = targetCaptured,
         )
         val advance: TsState.() -> Unit = { newStmt(callStmt) }
         guard to advance

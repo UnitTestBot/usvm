@@ -25,6 +25,7 @@ import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.collections.immutable.persistentHashMapOf
 import org.usvm.constraints.UPathConstraints
 import org.usvm.machine.TsContext
+import org.usvm.machine.expr.TsCapturedInstanceCall
 import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.TsFunction
 import org.usvm.memory.ULValue
@@ -65,6 +66,7 @@ class TsState(
     var promiseExecutor: UPersistentHashMap<UConcreteHeapRef, EtsMethod> = persistentHashMapOf(),
     var methodToRef: UPersistentHashMap<EtsMethod, UConcreteHeapRef> = persistentHashMapOf(),
     var associatedFunction: UPersistentHashMap<UConcreteHeapRef, TsFunction> = persistentHashMapOf(),
+    var capturedInstanceCalls: UPersistentHashMap<UConcreteHeapRef, TsCapturedInstanceCall> = persistentHashMapOf(),
     var boundThis: UPersistentHashMap<UConcreteHeapRef, UHeapRef> = persistentHashMapOf(),
     var dfltObject: UPersistentHashMap<EtsFileSignature, UConcreteHeapRef> = persistentHashMapOf(),
 
@@ -320,6 +322,7 @@ class TsState(
             promiseExecutor = promiseExecutor,
             methodToRef = methodToRef,
             associatedFunction = associatedFunction,
+            capturedInstanceCalls = capturedInstanceCalls,
             boundThis = boundThis,
             dfltObject = dfltObject,
             dfltObjectFieldSorts = dfltObjectFieldSorts,

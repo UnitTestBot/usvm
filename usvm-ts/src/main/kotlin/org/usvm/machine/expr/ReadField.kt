@@ -39,6 +39,12 @@ private val logger = KotlinLogging.logger {}
 internal fun TsExprResolver.handleInstanceFieldRef(
     value: EtsInstanceFieldRef,
 ): UExpr<*>? = with(ctx) {
+    when (val captured = tryCaptureInstanceCall(value)) {
+        is TsExprApproximationResult.SuccessfulApproximation -> return captured.expr
+        TsExprApproximationResult.ResolveFailure -> return null
+        TsExprApproximationResult.NoApproximation -> {}
+    }
+
     val instanceLocal = value.instance
 
     // Resolve the instance.

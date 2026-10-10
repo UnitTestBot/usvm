@@ -11,6 +11,9 @@ import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsCallStmt
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsClosureFieldRef
+import org.jacodb.ets.model.EtsCopyDataPropertiesStmt
+import org.jacodb.ets.model.EtsDefineAccessorStmt
+import org.jacodb.ets.model.EtsDefineDataPropertyStmt
 import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLValue
@@ -19,6 +22,7 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsNopStmt
 import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsNumberType
+import org.jacodb.ets.model.EtsPropertyRef
 import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsStaticFieldRef
@@ -61,7 +65,9 @@ import org.usvm.machine.expr.handleAssignToArrayIndex
 import org.usvm.machine.expr.handleAssignToClosureField
 import org.usvm.machine.expr.handleAssignToInstanceField
 import org.usvm.machine.expr.handleAssignToLocal
+import org.usvm.machine.expr.handleAssignToProperty
 import org.usvm.machine.expr.handleAssignToStaticField
+import org.usvm.machine.expr.handleDefineDataProperty
 import org.usvm.machine.expr.mkNotNullOrUndefined
 import org.usvm.machine.expr.mkTruthyExpr
 import org.usvm.machine.expr.readGlobal
@@ -148,6 +154,10 @@ class TsInterpreter(
                 is EtsIfStmt -> visitIfStmt(scope, stmt)
                 is EtsReturnStmt -> visitReturnStmt(scope, stmt)
                 is EtsAssignStmt -> visitAssignStmt(scope, stmt)
+                is EtsDefineDataPropertyStmt -> visitDefineDataProperty(scope, stmt)
+                is EtsDefineAccessorStmt, is EtsCopyDataPropertiesStmt -> {
+                    throw UnsupportedOperationException("Unsupported frontend statement: $stmt")
+                }
                 is EtsCallStmt -> visitCallStmt(scope, stmt)
                 is EtsThrowStmt -> visitThrowStmt(scope, stmt)
                 is EtsNopStmt -> visitNopStmt(scope, stmt)
@@ -217,8 +227,8 @@ class TsInterpreter(
 
         if (isAllocatedConcreteHeapRef(receiver)) {
             val field = mkFieldLValue(addressSort, receiver, callee.name)
-            val functionRef = scope.calcOnState { memory.read(field) }
-            val function = if (isAllocatedConcreteHeapRef(functionRef)) {
+            val functionRef = if (stmt.targetCaptured) null else scope.calcOnState { memory.read(field) }
+            val function = if (functionRef != null && isAllocatedConcreteHeapRef(functionRef)) {
                 scope.calcOnState { associatedFunction[functionRef] }
             } else {
                 null
@@ -231,7 +241,7 @@ class TsInterpreter(
                 }
                 val concreteCall = TsConcreteMethodCallStmt(
                     callee = function.method,
-                    call = stmt.call,
+                    call = stmt.originalCall,
                     resolvedReceiver = functionRef,
                     instance = function.thisInstance ?: receiver,
                     args = resolvedArgs,
@@ -526,6 +536,10 @@ class TsInterpreter(
                 exprResolver.handleAssignToArrayIndex(lhv, expr)
             }
 
+            is EtsPropertyRef -> {
+                exprResolver.handleAssignToProperty(lhv, expr)
+            }
+
             is EtsClosureFieldRef -> {
                 exprResolver.handleAssignToClosureField(lhv, expr)
             }
@@ -550,6 +564,10 @@ class TsInterpreter(
         val exprResolver = exprResolverWithScope(scope)
         val file = scope.calcOnState { lastEnteredMethod.enclosingClass!!.declaringFile!! }
         when (lhv) {
+            is EtsPropertyRef -> {
+                exprResolver.handleAssignToProperty(lhv, expr)
+            }
+
             is EtsClosureFieldRef -> {
                 exprResolver.handleAssignToClosureField(lhv, expr)
             }
@@ -641,6 +659,12 @@ class TsInterpreter(
                 error("LHV of type ${lhv::class.java} is not supported in %dflt::%dflt: $lhv")
             }
         }
+    }
+
+    private fun visitDefineDataProperty(scope: TsStepScope, stmt: EtsDefineDataPropertyStmt) {
+        exprResolverWithScope(scope).handleDefineDataProperty(stmt) ?: return
+        val nextStmt = stmt.nextStmt ?: return
+        scope.doWithState { newStmt(nextStmt) }
     }
 
     private fun visitAssignStmt(scope: TsStepScope, stmt: EtsAssignStmt) = with(ctx) {

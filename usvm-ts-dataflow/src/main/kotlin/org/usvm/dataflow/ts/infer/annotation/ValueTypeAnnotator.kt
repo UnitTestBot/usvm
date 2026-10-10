@@ -21,6 +21,7 @@ import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsParameterRef
+import org.jacodb.ets.model.EtsPropertyRef
 import org.jacodb.ets.model.EtsStaticFieldRef
 import org.jacodb.ets.model.EtsThis
 import org.jacodb.ets.model.EtsType
@@ -61,6 +62,11 @@ class ValueTypeAnnotator(
         val indexInferred = value.index.accept(this)
         return EtsArrayAccess(arrayInferred, indexInferred, arrayType.elementType)
     }
+
+    override fun visit(value: EtsPropertyRef): EtsPropertyRef = value.copy(
+        instance = visit(value.instance),
+        key = value.key.accept(this),
+    )
 
     // TODO: discuss (labeled with (Q))
     override fun visit(value: EtsInstanceFieldRef): EtsValue {

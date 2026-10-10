@@ -2,7 +2,6 @@ package org.usvm.baseline
 
 import org.jacodb.ets.model.EtsCallExpr
 import org.jacodb.ets.model.EtsFile
-import org.jacodb.ets.model.EtsInstanceCallExpr
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsPtrCallExpr
 import org.jacodb.ets.model.EtsReturnStmt
@@ -23,6 +22,7 @@ import org.usvm.machine.call.TsCompatibilityUnknownCallDispatcher
 import org.usvm.util.getResourcePath
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration
 
@@ -68,7 +68,9 @@ class CallFallbackBaselineTest {
 
     @Test
     fun `an instance call on a non-reference value prunes the state`() {
-        assertIs<EtsInstanceCallExpr>(callExpression("nonReferenceInstanceCallPrunes"))
+        val call = assertIs<EtsPtrCallExpr>(callExpression("nonReferenceInstanceCallPrunes"))
+        assertNotNull(call.receiver)
+
         assertFalse(reachesReturn("nonReferenceInstanceCallPrunes"))
     }
 

@@ -54,14 +54,16 @@ import org.jacodb.ets.model.EtsPreDecExpr
 import org.jacodb.ets.model.EtsPreIncExpr
 import org.jacodb.ets.model.EtsPtrCallExpr
 import org.jacodb.ets.model.EtsRemExpr
+import org.jacodb.ets.model.EtsRequireObjectCoercibleExpr
 import org.jacodb.ets.model.EtsRightShiftExpr
 import org.jacodb.ets.model.EtsScene
 import org.jacodb.ets.model.EtsStaticCallExpr
 import org.jacodb.ets.model.EtsStrictEqExpr
 import org.jacodb.ets.model.EtsStrictNotEqExpr
 import org.jacodb.ets.model.EtsSubExpr
-import org.jacodb.ets.model.EtsTypeOfExpr
 import org.jacodb.ets.model.EtsToNumericExpr
+import org.jacodb.ets.model.EtsToPropertyKeyExpr
+import org.jacodb.ets.model.EtsTypeOfExpr
 import org.jacodb.ets.model.EtsUnaryPlusExpr
 import org.jacodb.ets.model.EtsUnsignedRightShiftExpr
 import org.jacodb.ets.model.EtsValue
@@ -134,6 +136,14 @@ class ExprTypeAnnotator(
     )
 
     override fun visit(expr: EtsToNumericExpr) = expr.copy(
+        arg = annotate(expr.arg)
+    )
+
+    override fun visit(expr: EtsToPropertyKeyExpr) = expr.copy(
+        arg = annotate(expr.arg)
+    )
+
+    override fun visit(expr: EtsRequireObjectCoercibleExpr) = expr.copy(
         arg = annotate(expr.arg)
     )
 
@@ -298,6 +308,6 @@ class ExprTypeAnnotator(
     override fun visit(expr: EtsPtrCallExpr): EtsExpr {
         val ptrInferred = annotate(expr.ptr)
         val argsInferred = expr.args.map { annotate(it) }
-        return expr.copy(ptr = ptrInferred, args = argsInferred)
+        return expr.copy(ptr = ptrInferred, receiver = expr.receiver?.let(::annotate), args = argsInferred)
     }
 }

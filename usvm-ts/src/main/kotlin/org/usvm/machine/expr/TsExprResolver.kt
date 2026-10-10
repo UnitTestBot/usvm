@@ -58,10 +58,12 @@ import org.jacodb.ets.model.EtsPostDecExpr
 import org.jacodb.ets.model.EtsPostIncExpr
 import org.jacodb.ets.model.EtsPreDecExpr
 import org.jacodb.ets.model.EtsPreIncExpr
+import org.jacodb.ets.model.EtsPropertyRef
 import org.jacodb.ets.model.EtsPtrCallExpr
 import org.jacodb.ets.model.EtsRawEntity
 import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsRemExpr
+import org.jacodb.ets.model.EtsRequireObjectCoercibleExpr
 import org.jacodb.ets.model.EtsRightShiftExpr
 import org.jacodb.ets.model.EtsStaticCallExpr
 import org.jacodb.ets.model.EtsStaticFieldRef
@@ -73,6 +75,7 @@ import org.jacodb.ets.model.EtsStringType
 import org.jacodb.ets.model.EtsSubExpr
 import org.jacodb.ets.model.EtsThis
 import org.jacodb.ets.model.EtsToNumericExpr
+import org.jacodb.ets.model.EtsToPropertyKeyExpr
 import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsTypeOfExpr
 import org.jacodb.ets.model.EtsUnaryExpr
@@ -101,6 +104,7 @@ import org.usvm.api.memcpy
 import org.usvm.dataflow.ts.infer.tryGetKnownType
 import org.usvm.dataflow.ts.util.type
 import org.usvm.isAllocatedConcreteHeapRef
+import org.usvm.isTrue
 import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsOptions
@@ -289,6 +293,35 @@ class TsExprResolver(
         return mkNumericExpr(arg, scope)
     }
 
+    override fun visit(expr: EtsToPropertyKeyExpr): UExpr<out USort>? = with(ctx) {
+        var value = resolve(expr.arg) ?: return null
+        if (value.isFakeObject()) {
+            val type = value.getFakeType(scope)
+            value = when {
+                type.boolTypeExpr.isTrue -> value.extractBool(scope)
+                type.fpTypeExpr.isTrue -> value.extractFp(scope)
+                type.refTypeExpr.isTrue -> value.extractRef(scope)
+                else -> throw UnsupportedOperationException("Symbolic property key conversion: ${expr.arg}")
+            }
+        }
+        val key = concreteStringValue(value)
+            ?: throw UnsupportedOperationException("Unmodeled property key conversion: ${expr.arg}")
+        mkStringConstant(key, scope)
+    }
+
+    override fun visit(expr: EtsRequireObjectCoercibleExpr): UExpr<out USort>? = with(ctx) {
+        val value = resolve(expr.arg) ?: return null
+        if (value.sort == addressSort) {
+            val reference = if (value.isFakeObject()) value.extractRef(scope) else value.asExpr(addressSort)
+            val referenceGuard = if (value.isFakeObject()) value.getFakeType(scope).refTypeExpr else trueExpr
+            val valid = mkOr(mkNot(referenceGuard), mkNotNullOrUndefined(reference))
+            scope.fork(valid, blockOnFalseState = {
+                throwException("Cannot convert null or undefined to object")
+            }) ?: return null
+        }
+        value
+    }
+
     override fun visit(expr: EtsPostIncExpr): UExpr<out USort>? {
         return resolveUpdateExpression(expr.arg, UpdateOperator.INCREMENT, returnOldValue = true)
     }
@@ -320,7 +353,7 @@ class TsExprResolver(
 
         // The native frontend saves ToNumeric's result and writes the source target
         // in a separate assignment. Mutating that snapshot would corrupt postfix results.
-        val numericSnapshot = target is EtsLocal && scope.calcOnState {
+        val numericSnapshot = target is EtsLocal && target.name.startsWith("%") && scope.calcOnState {
             lastEnteredMethod.cfg.stmts.any { stmt ->
                 stmt is EtsAssignStmt && stmt.lhv == target && stmt.rhv is EtsToNumericExpr
             }
@@ -1083,7 +1116,9 @@ class TsExprResolver(
             }
 
             is TsMethodResult.NoCall -> {
-                val ptr = resolve(expr.ptr) ?: return null
+                val ptr = resolveCallPointer(expr.ptr) ?: return null
+                val captured = (ptr as? UConcreteHeapRef)?.let { scope.calcOnState { capturedInstanceCalls[it] } }
+                if (captured != null) return handleCapturedInstanceCall(expr, captured)
 
                 if (isAllocatedConcreteHeapRef(ptr)) {
                     // Handle 'resolve' and 'reject' function call
@@ -1144,7 +1179,9 @@ class TsExprResolver(
                         callee = callee.method,
                         call = expr,
                         resolvedReceiver = ptr,
-                        instance = callee.thisInstance ?: ctx.mkUndefinedValue(),
+                        instance = callee.thisInstance
+                            ?: expr.receiver?.let { resolve(it)?.asExpr(addressSort) ?: return null }
+                            ?: ctx.mkUndefinedValue(),
                         args = resolvedArgs,
                         returnSite = scope.calcOnState { lastStmt },
                     )
@@ -1187,6 +1224,8 @@ class TsExprResolver(
     // region ACCESS
 
     override fun visit(value: EtsArrayAccess): UExpr<*>? = handleArrayAccess(value)
+
+    override fun visit(value: EtsPropertyRef): UExpr<*>? = handlePropertyRef(value)
 
     override fun visit(value: EtsInstanceFieldRef): UExpr<*>? = handleInstanceFieldRef(value)
 
