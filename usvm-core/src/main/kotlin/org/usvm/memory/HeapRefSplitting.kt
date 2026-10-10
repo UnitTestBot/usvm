@@ -127,6 +127,7 @@ inline fun <R> foldHeapRef(
             val (concreteHeapRefs, symbolicHeapRefs) = splitUHeapRef(
                 ref,
                 initialGuard,
+                ignoreNullRefs = ignoreNullRefs,
                 collapseHeapRefs = collapseHeapRefs,
                 staticIsConcrete = staticIsConcrete
             )

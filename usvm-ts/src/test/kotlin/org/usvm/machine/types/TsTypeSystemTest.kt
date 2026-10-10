@@ -1,20 +1,52 @@
 package org.usvm.machine.types
 
+import org.jacodb.ets.model.EtsAnyType
+import org.jacodb.ets.model.EtsArrayType
+import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsClassImpl
 import org.jacodb.ets.model.EtsClassSignature
 import org.jacodb.ets.model.EtsFieldImpl
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsFile
 import org.jacodb.ets.model.EtsFileSignature
+import org.jacodb.ets.model.EtsNullType
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsScene
+import org.jacodb.ets.model.EtsStringType
+import org.jacodb.ets.model.EtsTupleType
+import org.jacodb.ets.model.EtsUndefinedType
+import org.jacodb.ets.model.EtsUnknownType
 import org.junit.jupiter.api.Test
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.type
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
 class TsTypeSystemTest {
+    @Test
+    fun `runtime object constraint accepts references and excludes primitive or unresolved types`() {
+        val scene = EtsScene(projectFiles = emptyList())
+        val typeSystem = TsTypeSystem(scene, typeOperationsTimeout = 1.seconds, hierarchy = EtsHierarchy(scene))
+        val references = listOf(
+            EtsHierarchy.OBJECT_CLASS,
+            EtsArrayType(EtsNumberType, dimensions = 1),
+            EtsTupleType(emptyList()),
+        )
+        val nonObjects = listOf(
+            EtsStringType,
+            EtsNumberType,
+            EtsBooleanType,
+            EtsNullType,
+            EtsUndefinedType,
+            EtsAnyType,
+            EtsUnknownType,
+        )
+
+        references.forEach { assertTrue(typeSystem.isSupertype(EtsObjectType, it), it.typeName) }
+        nonObjects.forEach { assertFalse(typeSystem.isSupertype(EtsObjectType, it), it.typeName) }
+    }
+
     @Test
     fun `auxiliary type is a subtype of a class containing its properties`() {
         val fileSignature = EtsFileSignature(projectName = "test", fileName = "types.ts")

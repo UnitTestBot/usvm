@@ -11,6 +11,7 @@ import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsStaticFieldRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.ensureStaticsInitialized
@@ -34,7 +35,7 @@ internal fun TsExprResolver.handleAssignToInstanceField(
     val field = lhv.field
 
     // Resolve the instance.
-    val instance: UHeapRef = run {
+    val rawInstance: UHeapRef = run {
         val resolved = resolve(instanceLocal) ?: return null
         if (resolved.isFakeObject()) {
             scope.assert(resolved.getFakeType(scope).refTypeExpr) ?: run {
@@ -51,7 +52,8 @@ internal fun TsExprResolver.handleAssignToInstanceField(
     }
 
     // Check for undefined or null field access.
-    checkUndefinedOrNullPropertyRead(scope, instance, field.name) ?: return null
+    checkUndefinedOrNullPropertyRead(scope, rawInstance, field.name) ?: return null
+    val instance = resolveHeapRef(scope, rawInstance) ?: return null
 
     val arrayType = scope.calcOnState { arrayStorageType(instance, instanceLocal.type) } as? EtsArrayType
     if (field.name == "length" && arrayType != null) {
@@ -138,22 +140,41 @@ fun TsContext.assignToInstanceField(
     hierarchy: EtsHierarchy,
 ) {
     // Unwrap to get non-fake reference.
-    val unwrappedInstance = instance.unwrapRef(scope)
+    val unwrappedInstance = resolveHeapRef(scope, instance.unwrapRef(scope)) ?: return
 
-    val etsField = resolveEtsField(instanceLocal, field, hierarchy)
-    // If we access some field, we expect that the object must have this field.
-    // It is not always true for TS, but we decided to process it so.
-    val supertype = EtsAuxiliaryType(properties = setOf(field.name))
-    // assert is required to update models
-    scope.doWithState {
-        scope.assert(memory.types.evalIsSubtype(unwrappedInstance, supertype))
+    if (!isAllocatedConcreteHeapRef(unwrappedInstance) && instanceLocal.type !is EtsArrayType) {
+        trackInputProperty(scope, unwrappedInstance, instanceLocal, field.name, hierarchy) ?: return
+        writeInputPropertyValue(scope, unwrappedInstance, field.name, expr)
+        return
+    }
+
+    val objectLiteralClass = objectLiteralClass(scope, unwrappedInstance, hierarchy)
+    val declaredObjectLiteralField = objectLiteralClass?.fields?.singleOrNull { it.name == field.name }
+    val newObjectLiteralField = objectLiteralClass != null && declaredObjectLiteralField == null
+
+    // An object literal can acquire a new own property after creation. Requiring its
+    // allocation type to declare the field would reject that valid JavaScript write.
+    if (objectLiteralClass == null) {
+        val fieldExists = scope.calcOnState {
+            val supertype = EtsAuxiliaryType(properties = setOf(field.name))
+            memory.types.evalIsSubtype(unwrappedInstance, supertype)
+        }
+        scope.assert(fieldExists) ?: return
     }
 
     // Determine the field sort.
-    val sort = when (etsField) {
-        is TsResolutionResult.Empty -> unresolvedSort
-        is TsResolutionResult.Unique -> typeToSort(etsField.property.type)
-        is TsResolutionResult.Ambiguous -> unresolvedSort
+    val sort = when {
+        declaredObjectLiteralField != null -> typeToSort(declaredObjectLiteralField.type)
+        newObjectLiteralField -> {
+            // The receiver has no declared field. A scene-wide same-name field is unrelated.
+            expr.sort
+        }
+
+        else -> when (val etsField = resolveEtsField(instanceLocal, field, hierarchy)) {
+            is TsResolutionResult.Empty -> unresolvedSort
+            is TsResolutionResult.Unique -> typeToSort(etsField.property.type)
+            is TsResolutionResult.Ambiguous -> unresolvedSort
+        }
     }
 
     // If the field type is unknown, we create a fake object for the expr and assign it.
@@ -195,6 +216,12 @@ fun TsContext.assignToInstanceField(
         }
 
         memory.write(deletedFieldLValue(unwrappedInstance, field), falseExpr, guard = trueExpr)
+        if (isAllocatedConcreteHeapRef(unwrappedInstance)) {
+            writtenConcreteFields = writtenConcreteFields + (unwrappedInstance to field.name)
+            if (newObjectLiteralField) {
+                saveObjectLiteralFieldSort(unwrappedInstance, field.name, sort)
+            }
+        }
     }
 }
 

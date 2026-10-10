@@ -25,6 +25,8 @@ import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.collections.immutable.persistentHashMapOf
 import org.usvm.constraints.UPathConstraints
 import org.usvm.machine.TsContext
+import org.usvm.machine.TsInputPropertyPresence
+import org.usvm.machine.expr.TrackedObjectProperty
 import org.usvm.machine.interpreter.PromiseState
 import org.usvm.machine.interpreter.TsFunction
 import org.usvm.memory.ULValue
@@ -48,6 +50,7 @@ class TsState(
     ownership: MutabilityOwnership,
     override val entrypoint: EtsMethod,
     val maxStringLength: Int,
+    val inputPropertyPresence: TsInputPropertyPresence = TsInputPropertyPresence.DECLARED_FIELDS,
     callStack: UCallStack<EtsMethod, EtsStmt> = UCallStack(),
     pathConstraints: UPathConstraints<EtsType> = UPathConstraints(ctx, ownership),
     memory: UMemory<EtsType, EtsMethod> = UMemory(ctx, ownership, pathConstraints.typeConstraints),
@@ -90,6 +93,9 @@ class TsState(
     /** Unresolved reference payloads that may acquire string backing after type refinement. */
     var symbolicStringCandidates: Set<UHeapRef> = emptySet(),
     var unsupportedReason: String? = null,
+    var trackedObjectProperties: Set<TrackedObjectProperty> = emptySet(),
+    var writtenConcreteFields: Set<Pair<UHeapRef, String>> = emptySet(),
+    var writtenObjectLiteralFieldSorts: UPersistentHashMap<Pair<UHeapRef, String>, USort> = persistentHashMapOf(),
     private val activeUnknownCallModels: MutableList<Pair<String, Int>> = mutableListOf(),
 ) : UState<EtsType, EtsMethod, EtsStmt, TsContext, TsTarget, TsState>(
     ctx = ctx,
@@ -126,6 +132,10 @@ class TsState(
         val localToSort = localToSortStack.last()
         val updated = localToSort.put(idx, sort, ownership)
         localToSortStack[localToSortStack.lastIndex] = updated
+    }
+
+    fun saveObjectLiteralFieldSort(ref: UHeapRef, fieldName: String, sort: USort) {
+        writtenObjectLiteralFieldSorts = writtenObjectLiteralFieldSorts.put(ref to fieldName, sort, ownership)
     }
 
     fun pushLocalToSortStack() {
@@ -303,6 +313,7 @@ class TsState(
             ownership = cloneOwnership,
             entrypoint = entrypoint,
             maxStringLength = maxStringLength,
+            inputPropertyPresence = inputPropertyPresence,
             callStack = callStack.clone(),
             pathConstraints = clonedConstraints,
             memory = memory.clone(clonedConstraints.typeConstraints, newThisOwnership, cloneOwnership),
@@ -327,6 +338,9 @@ class TsState(
             boundedStringBackingRefs = boundedStringBackingRefs,
             symbolicStringCandidates = symbolicStringCandidates,
             unsupportedReason = unsupportedReason,
+            trackedObjectProperties = trackedObjectProperties,
+            writtenConcreteFields = writtenConcreteFields,
+            writtenObjectLiteralFieldSorts = writtenObjectLiteralFieldSorts,
             activeUnknownCallModels = activeUnknownCallModels.toMutableList(),
         )
     }

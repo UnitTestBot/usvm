@@ -10,6 +10,7 @@ import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.UIteExpr
+import org.usvm.UNullRef
 import org.usvm.UOrExpr
 import org.usvm.USort
 import org.usvm.USymbolicHeapRef
@@ -31,6 +32,27 @@ import org.usvm.util.boolToFp
 import org.usvm.util.mkStringBackingLValue
 import org.usvm.util.mkStringBackingLengthLValue
 
+/**
+ * Select one leaf reference for operations that depend on its allocation or storage type.
+ * The model only orders the branches: fork schedules the other feasible branch at the same statement.
+ */
+internal fun TsContext.resolveHeapRef(scope: TsStepScope, ref: UHeapRef): UHeapRef? {
+    var receiver = ref
+    while (receiver is UIteExpr<*>) {
+        val conditional = receiver
+        val takeTrueBranch = scope.calcOnState { models.first().eval(conditional.condition).isTrue }
+        val branchCondition = if (takeTrueBranch) conditional.condition else mkNot(conditional.condition)
+        scope.fork(branchCondition) ?: return null
+
+        receiver = if (takeTrueBranch) {
+            conditional.trueBranch.asExpr(addressSort)
+        } else {
+            conditional.falseBranch.asExpr(addressSort)
+        }
+    }
+    return receiver
+}
+
 fun TsContext.checkNotFake(expr: UExpr<*>) {
     require(!expr.isFakeObject()) {
         "Fake object handling should be done outside of this function"
@@ -40,6 +62,8 @@ fun TsContext.checkNotFake(expr: UExpr<*>) {
 // `any` is assignable both to and from string, so a type-relation query cannot identify
 // a materialized string. Inspect the concrete type stream before reading its backing array.
 private fun TsState.stringTypeCondition(ref: UHeapRef): UBoolExpr = with(ctx) {
+    if (ref is UNullRef) return@with falseExpr
+
     when (ref) {
         is UConcreteHeapRef, is USymbolicHeapRef -> {
             val type = memory.types.getTypeStream(ref).singleOrNull()

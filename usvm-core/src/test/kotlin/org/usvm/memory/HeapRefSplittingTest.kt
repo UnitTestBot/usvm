@@ -12,23 +12,23 @@ import org.usvm.UAddressSort
 import org.usvm.UBv32SizeExprProvider
 import org.usvm.UBv32Sort
 import org.usvm.UComponents
+import org.usvm.UConcreteHeapRef
 import org.usvm.UContext
 import org.usvm.UIteExpr
 import org.usvm.USizeSort
-import org.usvm.UConcreteHeapRef
 import org.usvm.api.allocateConcreteRef
 import org.usvm.api.initializeArrayLength
+import org.usvm.api.memcpy
 import org.usvm.api.readArrayIndex
 import org.usvm.api.readField
 import org.usvm.api.writeArrayIndex
 import org.usvm.api.writeField
 import org.usvm.collection.field.UInputFieldReading
-import org.usvm.sizeSort
-import org.usvm.mkSizeExpr
-import org.usvm.api.memcpy
 import org.usvm.collections.immutable.internal.MutabilityOwnership
 import org.usvm.constraints.UEqualityConstraints
 import org.usvm.constraints.UTypeConstraints
+import org.usvm.mkSizeExpr
+import org.usvm.sizeSort
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
@@ -97,6 +97,25 @@ class HeapRefSplittingTest {
         assertSame(value, res.trueBranch)
         val reading = assertIs<UInputFieldReading<Field, UBv32Sort>>(res.falseBranch)
         assertEquals(!cond, reading.collection.updates.single().guard)
+    }
+
+    @Test
+    fun `conditional null payloads round trip through input fields and arrays`() = with(ctx) {
+        val receiver = mkRegisterReading(idx = 0, sort = addressSort)
+        val payload = mkRegisterReading(idx = 1, sort = addressSort)
+        val array = allocateConcreteRef()
+        val condition by boolSort
+        val index = mkSizeExpr(0)
+        val alternatives = listOf(mkIte(condition, payload, nullRef), mkIte(condition, nullRef, payload))
+        val field = "nullablePayload"
+
+        alternatives.forEach { value ->
+            heap.writeField(receiver, field, addressSort, value, guard = trueExpr)
+            heap.writeArrayIndex(array, index, arrayDescr.first, arrayDescr.second, value, guard = trueExpr)
+
+            assertEquals(value, heap.readField(receiver, field, addressSort))
+            assertEquals(value, heap.readArrayIndex(array, index, arrayDescr.first, arrayDescr.second))
+        }
     }
 
     @Test
