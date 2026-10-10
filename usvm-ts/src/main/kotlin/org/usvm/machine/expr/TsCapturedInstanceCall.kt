@@ -21,6 +21,7 @@ import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isTrue
 import org.usvm.machine.call.isBuiltinArrayConstructor
 import org.usvm.machine.call.isBuiltinGlobalType
+import org.usvm.machine.call.isBuiltinDateGlobalType
 import org.usvm.machine.state.lastStmt
 import org.usvm.util.getAllFields
 import org.usvm.util.mkFieldLValue
@@ -158,6 +159,8 @@ private fun isImplicitModeledGlobal(source: EtsLocal, callee: EtsMethodSignature
     ) {
         return true
     }
+
+    if (source.type.isBuiltinDateGlobalType()) return true
 
     val modeled = when (source.name) {
         "Logger" -> true
