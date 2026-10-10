@@ -10,6 +10,7 @@ import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsMethodSignature
 import org.jacodb.ets.model.EtsPtrCallExpr
+import org.jacodb.ets.model.EtsRequireObjectCoercibleExpr
 import org.jacodb.ets.model.EtsUnclearRefType
 import org.jacodb.ets.utils.callExpr
 import org.usvm.UConcreteHeapRef
@@ -134,7 +135,11 @@ private fun originalReceiver(local: EtsLocal, assignments: List<EtsAssignStmt>):
     var current = local
     while (current.name.startsWith("%") && visited.add(current)) {
         val definition = assignments.lastOrNull { it.lhv == current } ?: return current
-        val source = definition.rhv as? EtsLocal ?: return current
+        val source = when (val value = definition.rhv) {
+            is EtsLocal -> value
+            is EtsRequireObjectCoercibleExpr -> value.arg as? EtsLocal
+            else -> null
+        } ?: return current
         current = source
     }
     return if (current in visited) local else current
