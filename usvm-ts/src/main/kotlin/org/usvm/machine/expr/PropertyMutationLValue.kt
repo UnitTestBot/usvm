@@ -17,31 +17,31 @@ import org.usvm.memory.UUpdateNode
 import org.usvm.memory.key.UHeapRefKeyInfo
 import org.usvm.uctx
 
-internal enum class ObjectPropertyEvent {
+internal enum class PropertyMutationKind {
     DELETED,
     WRITTEN,
 }
 
-/** Separate from value storage: a deleted property has no value in any sort. */
-internal data class DeletedFieldLValue(
+/** Execution-time mutation markers, separate from initial presence and stored values. */
+internal data class PropertyMutationLValue(
     override val sort: UBoolSort,
     override val key: UHeapRef,
     val name: String,
-    val event: ObjectPropertyEvent = ObjectPropertyEvent.DELETED,
+    val kind: PropertyMutationKind,
 ) : ULValue<UHeapRef, UBoolSort> {
-    override val memoryRegionId: UMemoryRegionId<UHeapRef, UBoolSort> = DeletedFieldRegionId(name, event, sort)
+    override val memoryRegionId: UMemoryRegionId<UHeapRef, UBoolSort> = PropertyMutationRegionId(name, kind, sort)
 }
 
-private data class DeletedFieldRegionId(
+private data class PropertyMutationRegionId(
     val name: String,
-    val event: ObjectPropertyEvent,
+    val kind: PropertyMutationKind,
     override val sort: UBoolSort,
 ) : UMemoryRegionId<UHeapRef, UBoolSort> {
-    override fun emptyRegion(): UMemoryRegion<UHeapRef, UBoolSort> = DeletedFieldRegion(sort)
+    override fun emptyRegion(): UMemoryRegion<UHeapRef, UBoolSort> = PropertyMutationRegion(sort)
 }
 
-/** The marker records execution events, so input references also start with no deletion. */
-private class DeletedFieldRegion(
+/** No write or deletion has occurred before execution, even on a symbolic input reference. */
+private class PropertyMutationRegion(
     private val sort: UBoolSort,
     private val updates: USymbolicCollectionUpdates<UHeapRef, UBoolSort> = UFlatUpdates(UHeapRefKeyInfo),
 ) : UMemoryRegion<UHeapRef, UBoolSort> {
@@ -68,36 +68,20 @@ private class DeletedFieldRegion(
         value: UExpr<UBoolSort>,
         guard: UBoolExpr,
         ownership: MutabilityOwnership,
-    ): UMemoryRegion<UHeapRef, UBoolSort> = DeletedFieldRegion(sort, updates.write(key, value, guard))
+    ): UMemoryRegion<UHeapRef, UBoolSort> = PropertyMutationRegion(sort, updates.write(key, value, guard))
 }
-
-// Reading these names after deleting an own property requires Object.prototype lookup.
-internal val OBJECT_PROTOTYPE_PROPERTIES = setOf(
-    "__defineGetter__",
-    "__defineSetter__",
-    "__lookupGetter__",
-    "__lookupSetter__",
-    "__proto__",
-    "constructor",
-    "hasOwnProperty",
-    "isPrototypeOf",
-    "propertyIsEnumerable",
-    "toLocaleString",
-    "toString",
-    "valueOf",
-)
 
 internal fun TsContext.deletedFieldLValue(
     instance: UHeapRef,
     field: EtsFieldSignature,
-): DeletedFieldLValue = deletedFieldLValue(instance, field.name)
+): PropertyMutationLValue = deletedFieldLValue(instance, field.name)
 
 internal fun TsContext.deletedFieldLValue(
     instance: UHeapRef,
     fieldName: String,
-): DeletedFieldLValue = DeletedFieldLValue(boolSort, instance, fieldName)
+): PropertyMutationLValue = PropertyMutationLValue(boolSort, instance, fieldName, kind = PropertyMutationKind.DELETED)
 
 internal fun TsContext.writtenPropertyLValue(
     instance: UHeapRef,
     fieldName: String,
-): DeletedFieldLValue = DeletedFieldLValue(boolSort, instance, fieldName, event = ObjectPropertyEvent.WRITTEN)
+): PropertyMutationLValue = PropertyMutationLValue(boolSort, instance, fieldName, kind = PropertyMutationKind.WRITTEN)
