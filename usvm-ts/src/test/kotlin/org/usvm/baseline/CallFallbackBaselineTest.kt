@@ -7,7 +7,6 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsPtrCallExpr
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsScene
-import org.jacodb.ets.model.EtsStaticCallExpr
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.callExpr
@@ -154,8 +153,29 @@ class CallFallbackBaselineTest {
 
     @Test
     fun `resource lookup is approximated before entering its body`() {
-        assertIs<EtsStaticCallExpr>(callExpression("resourceLookupSkipsBody"))
-        assertTrue(reachesReturn("resourceLookupSkipsBody"))
+        assertPointerCall("resourceLookupSkipsBody")
+        val statements = reachedStatements("resourceLookupSkipsBody")
+
+        assertTrue(returnStatement(fullScene, "resourceLookupSkipsBody") in statements)
+        assertFalse(method(fullScene, "\$r", className = "%dflt").cfg.stmts.first() in statements)
+    }
+
+    @Test
+    fun `retained resource lookup aliases are approximated after binding replacement`() {
+        assertTrue(reachesReturn("resourceAliasSkipsBody"))
+    }
+
+    @Test
+    fun `resource binding replacement executes the selected replacement body`() {
+        val statements = reachedStatements("resourceBindingReplacementRunsBody")
+
+        assertTrue(returnStatement(fullScene, "resourceBindingReplacementRunsBody") in statements)
+        assertTrue(returnStatement(fullScene, "resourceReplacement", className = "%dflt") in statements)
+    }
+
+    @Test
+    fun `resource lookup evaluates its argument before approximation`() {
+        assertTrue(reachesReturn("resourceLookupEvaluatesArgument"))
     }
 
     private fun reachesReturn(
@@ -186,8 +206,15 @@ class CallFallbackBaselineTest {
         }
     }
 
-    private fun returnStatement(scene: EtsScene, methodName: String): EtsReturnStmt =
-        method(scene, methodName).cfg.stmts.filterIsInstance<EtsReturnStmt>().single()
+    private fun returnStatement(
+        scene: EtsScene,
+        methodName: String,
+        className: String = "CallFallbackBaseline",
+    ): EtsReturnStmt = method(
+        scene = scene,
+        methodName = methodName,
+        className = className,
+    ).cfg.stmts.filterIsInstance<EtsReturnStmt>().single()
 
     private fun assertPointerCall(methodName: String) {
         assertIs<EtsPtrCallExpr>(callExpression(methodName))

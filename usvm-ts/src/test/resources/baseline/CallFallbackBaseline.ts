@@ -66,6 +66,16 @@ function $r(resource: string): any {
     throw "resource lookup must be approximated";
 }
 
+function resourceReplacement(resource: string): number {
+    return 124;
+}
+
+let resourceArgumentEvaluated = 0;
+function resourceArgument(): string {
+    resourceArgumentEvaluated = 1;
+    return "app.string.name";
+}
+
 class CallFallbackBaseline {
     declaredMethodWithoutBodyContinues(): number {
         const receiver = new ExternalReceiver();
@@ -214,6 +224,26 @@ class CallFallbackBaseline {
     resourceLookupSkipsBody(): number {
         $r("app.string.name");
         return 117;
+    }
+
+    resourceAliasSkipsBody(): number {
+        const alias = $r;
+        $r = resourceReplacement;
+        alias("app.string.name");
+        return 123;
+    }
+
+    resourceBindingReplacementRunsBody(): number {
+        $r = resourceReplacement;
+        if ($r("app.string.name") === 124) return 124;
+        throw "replacement must execute its actual body";
+    }
+
+    resourceLookupEvaluatesArgument(): number {
+        resourceArgumentEvaluated = 0;
+        $r(resourceArgument());
+        if (resourceArgumentEvaluated === 1) return 125;
+        throw "resource argument must be evaluated";
     }
 
     known(): number {

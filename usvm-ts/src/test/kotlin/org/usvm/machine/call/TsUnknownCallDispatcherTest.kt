@@ -446,6 +446,9 @@ class TsUnknownCallDispatcherTest {
             "valueOfReturnsReceiver",
             "mathFloorRoundsTowardNegativeInfinity",
             "resourceLookupSkipsBody",
+            "resourceAliasSkipsBody",
+            "resourceBindingReplacementRunsBody",
+            "resourceLookupEvaluatesArgument",
         )
 
         methods.forEach { methodName ->

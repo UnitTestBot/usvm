@@ -10,6 +10,7 @@ import org.jacodb.ets.model.EtsAssignStmt
 import org.jacodb.ets.model.EtsBooleanType
 import org.jacodb.ets.model.EtsCallStmt
 import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsClosureFieldRef
 import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLValue
@@ -57,6 +58,7 @@ import org.usvm.machine.expr.TsUnresolvedSort
 import org.usvm.machine.expr.checkUndefinedOrNullPropertyRead
 import org.usvm.machine.expr.ensureTruthinessSupported
 import org.usvm.machine.expr.handleAssignToArrayIndex
+import org.usvm.machine.expr.handleAssignToClosureField
 import org.usvm.machine.expr.handleAssignToInstanceField
 import org.usvm.machine.expr.handleAssignToLocal
 import org.usvm.machine.expr.handleAssignToStaticField
@@ -524,6 +526,10 @@ class TsInterpreter(
                 exprResolver.handleAssignToArrayIndex(lhv, expr)
             }
 
+            is EtsClosureFieldRef -> {
+                exprResolver.handleAssignToClosureField(lhv, expr)
+            }
+
             is EtsInstanceFieldRef -> {
                 exprResolver.handleAssignToInstanceField(lhv, expr)
             }
@@ -544,6 +550,10 @@ class TsInterpreter(
         val exprResolver = exprResolverWithScope(scope)
         val file = scope.calcOnState { lastEnteredMethod.enclosingClass!!.declaringFile!! }
         when (lhv) {
+            is EtsClosureFieldRef -> {
+                exprResolver.handleAssignToClosureField(lhv, expr)
+            }
+
             is EtsLocal -> {
                 val name = lhv.name
                 if (name.startsWith("%") || name.startsWith("_tmp") || name == "this") {

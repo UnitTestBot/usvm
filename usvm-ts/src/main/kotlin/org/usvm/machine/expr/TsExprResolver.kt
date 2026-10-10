@@ -2,7 +2,6 @@ package org.usvm.machine.expr
 
 import io.ksmt.expr.KFp64Value
 import io.ksmt.utils.asExpr
-import io.ksmt.utils.cast
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsAddExpr
 import org.jacodb.ets.model.EtsAndExpr
@@ -59,6 +58,7 @@ import org.jacodb.ets.model.EtsPostIncExpr
 import org.jacodb.ets.model.EtsPreDecExpr
 import org.jacodb.ets.model.EtsPreIncExpr
 import org.jacodb.ets.model.EtsPtrCallExpr
+import org.jacodb.ets.model.EtsRawEntity
 import org.jacodb.ets.model.EtsRefType
 import org.jacodb.ets.model.EtsRemExpr
 import org.jacodb.ets.model.EtsRightShiftExpr
@@ -84,6 +84,7 @@ import org.jacodb.ets.model.EtsVoidExpr
 import org.jacodb.ets.model.EtsYieldExpr
 import org.jacodb.ets.utils.ANONYMOUS_METHOD_PREFIX
 import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
+import org.jacodb.ets.utils.NAMED_FUNCTION_REFERENCE_PREFIX
 import org.jacodb.ets.utils.getDeclaredLocals
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
@@ -168,6 +169,14 @@ class TsExprResolver(
 
     fun resolve(expr: EtsEntity): UExpr<out USort>? {
         return expr.accept(this)
+    }
+
+    override fun visit(value: EtsRawEntity): Nothing {
+        if (value.kind == "UnsupportedValue") {
+            throw UnsupportedOperationException("Unsupported frontend value: $value")
+        }
+
+        error("Cannot handle ${value::class.java.simpleName}: $value")
     }
 
     private fun resolveUnaryOperator(
@@ -305,6 +314,7 @@ class TsExprResolver(
         when (target) {
             is EtsLocal -> handleAssignToLocal(target, updatedValue)
             is EtsArrayAccess -> handleAssignToArrayIndex(target, updatedValue)
+            is EtsClosureFieldRef -> handleAssignToClosureField(target, updatedValue)
             is EtsInstanceFieldRef -> handleAssignToInstanceField(target, updatedValue)
             is EtsStaticFieldRef -> handleAssignToStaticField(target, updatedValue)
             else -> error("Increment and decrement require an assignable target, got: $target")
@@ -386,56 +396,55 @@ class TsExprResolver(
             return mkStringConstant("boolean", scope)
         }
         if (arg.sort == addressSort) {
-            val ref = arg.asExpr(addressSort)
-            val isKnownFunction = scope.calcOnState {
-                val unwrappedRef = ref.unwrapRefWithPathConstraint(scope)
-                unwrappedRef is UConcreteHeapRef && (
-                    associatedFunction[unwrappedRef] != null ||
-                        memory.types.getTypeStream(unwrappedRef).singleOrNull() is EtsFunctionType
-                    )
-            }
-            if (isKnownFunction) {
-                return mkStringConstant("function", scope)
-            }
-
-            return mkIte(
-                condition = mkHeapRefEq(ref, mkTsNullValue()),
-                trueBranch = mkStringConstant("object", scope),
-                falseBranch = mkIte(
-                    condition = mkHeapRefEq(ref, mkUndefinedValue()),
-                    trueBranch = mkStringConstant("undefined", scope),
-                    falseBranch = mkIte(
-                        condition = scope.calcOnState {
-                            val unwrappedRef = ref.unwrapRefWithPathConstraint(scope)
-
-                            // TODO: adhoc: "expand" ITE
-                            if (unwrappedRef is UIteExpr<*>) {
-                                val trueBranch = unwrappedRef.trueBranch
-                                val falseBranch = unwrappedRef.falseBranch
-                                if (trueBranch.isFakeObject() || falseBranch.isFakeObject()) {
-                                    val unwrappedTrueExpr =
-                                        trueBranch.asExpr(addressSort).unwrapRefWithPathConstraint(scope)
-                                    val unwrappedFalseExpr =
-                                        falseBranch.asExpr(addressSort).unwrapRefWithPathConstraint(scope)
-                                    return@calcOnState mkIte(
-                                        condition = unwrappedRef.condition,
-                                        trueBranch = memory.types.evalTypeEquals(unwrappedTrueExpr, EtsStringType),
-                                        falseBranch = memory.types.evalTypeEquals(unwrappedFalseExpr, EtsStringType),
-                                    )
-                                }
-                            }
-
-                            memory.types.evalTypeEquals(unwrappedRef, EtsStringType)
-                        },
-                        trueBranch = mkStringConstant("string", scope),
-                        falseBranch = mkStringConstant("object", scope),
-                    )
-                )
-            )
+            return resolveReferenceTypeof(arg.asExpr(addressSort))
         }
 
         logger.error { "visit(${expr::class.simpleName}) is not implemented yet" }
         error("Not supported $expr")
+    }
+
+    private fun resolveReferenceTypeof(ref: UHeapRef): UHeapRef = with(ctx) {
+        if (ref.isFakeObject()) {
+            val type = ref.getFakeType(scope)
+            val numberValue = mkStringConstant(value = "number", scope = scope)
+            val booleanValue = mkStringConstant(value = "boolean", scope = scope)
+            val referenceValue = resolveReferenceTypeof(ref.extractRef(scope))
+            val nonNumberValue = mkIte(type.boolTypeExpr, booleanValue, referenceValue)
+            return mkIte(type.fpTypeExpr, numberValue, nonNumberValue)
+        }
+        if (ref is UIteExpr<*>) {
+            val trueBranch = ref.trueBranch.asExpr(addressSort)
+            val falseBranch = ref.falseBranch.asExpr(addressSort)
+            val trueValue = resolveReferenceTypeof(trueBranch)
+            val falseValue = resolveReferenceTypeof(falseBranch)
+            return mkIte(
+                condition = ref.condition,
+                trueBranch = trueValue,
+                falseBranch = falseValue,
+            )
+        }
+
+        val functionValue = mkStringConstant("function", scope)
+        val isKnownFunction = scope.calcOnState {
+            ref is UConcreteHeapRef && (
+                associatedFunction[ref] != null ||
+                    memory.types.getTypeStream(ref).singleOrNull() is EtsFunctionType
+                )
+        }
+        if (isKnownFunction) return functionValue
+
+        val objectValue = mkStringConstant("object", scope)
+        val stringValue = mkStringConstant("string", scope)
+        val undefinedValue = mkStringConstant("undefined", scope)
+
+        val isString = scope.calcOnState {
+            memory.types.evalTypeEquals(ref, EtsStringType)
+        }
+        val isUndefined = mkHeapRefEq(ref, mkUndefinedValue())
+        val isNull = mkHeapRefEq(ref, mkTsNullValue())
+        val objectOrString = mkIte(isString, stringValue, objectValue)
+        val notNull = mkIte(isUndefined, undefinedValue, objectOrString)
+        mkIte(isNull, objectValue, notNull)
     }
 
     override fun visit(expr: EtsDeleteExpr): UExpr<out USort>? = with(ctx) {
@@ -1108,6 +1117,13 @@ class TsExprResolver(
                         callee.closure?.let(::add)
                         expr.args.mapTo(this) { resolve(it) ?: return null }
                     }
+
+                    when (val approximation = tryApproximateResolvedFunctionCall(callee.method)) {
+                        is TsExprApproximationResult.SuccessfulApproximation -> return approximation.expr
+                        TsExprApproximationResult.ResolveFailure -> return null
+                        TsExprApproximationResult.NoApproximation -> {}
+                    }
+
                     val concreteCall = TsConcreteMethodCallStmt(
                         callee = callee.method,
                         call = expr,
@@ -1301,10 +1317,7 @@ class TsSimpleValueResolver(
             val obj = allocateConcreteRef()
             for (captured in type.closures) {
                 val resolvedCaptured = resolveLocal(captured) ?: return null
-                val lValue = mkFieldLValue(resolvedCaptured.sort, obj, captured.name)
-                scope.doWithState {
-                    memory.write(lValue, resolvedCaptured.cast(), guard = trueExpr)
-                }
+                assignToClosureField(scope, obj, captured.name, captured.type, resolvedCaptured) ?: return null
             }
             return obj
         }
@@ -1394,6 +1407,21 @@ class TsSimpleValueResolver(
         }
         if (local.name == "Infinity") {
             return ctx.mkFpInf(false, ctx.fp64Sort)
+        }
+
+        if (local.name.startsWith(NAMED_FUNCTION_REFERENCE_PREFIX)) {
+            val signature = (local.type as? EtsFunctionType)?.signature
+            val methods = ctx.scene.projectAndSdkClasses
+                .filter { it.signature == signature?.enclosingClass }
+                .flatMap { it.methods }
+                .filter { it.signature == signature && it.cfg.stmts.isNotEmpty() }
+            if (methods.size != 1) {
+                logger.error { "Cannot resolve named function reference: $local" }
+                scope.assert(ctx.mkFalse())
+                return null
+            }
+
+            return scope.calcOnState { getMethodRef(methods.single(), closure = null) }
         }
 
         if (local.name.startsWith(ANONYMOUS_METHOD_PREFIX)) {

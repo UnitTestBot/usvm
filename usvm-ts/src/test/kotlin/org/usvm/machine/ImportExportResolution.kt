@@ -37,7 +37,7 @@ class ImportExportResolutionTest {
             signature = EtsFileSignature("TestProject", "src/utils/helper.ets"),
             exports = listOf(
                 // Default export:
-                //  export default class Helper {}
+                //  class Helper {}; export default Helper;
                 EtsExportInfo(
                     "default",
                     EtsExportType.CLASS,
@@ -143,7 +143,7 @@ class ImportExportResolutionTest {
     fun testDefaultImportResolution() {
         // Import a default symbol:
         //  import Helper from '../utils/helper';
-        //  export default Helper;  (in helper.ets)
+        //  export default Helper; (snapshot stored as "default" in helper.ets)
         val result = scene.resolveSymbol(
             currentFile = currentFile,
             importPath = "../utils/helper",
@@ -153,8 +153,29 @@ class ImportExportResolutionTest {
         assertIs<SymbolResolutionResult.Success>(result)
         assertTrue(result.exportInfo.isDefaultExport)
         assertEquals("default", result.exportInfo.name)
-        assertEquals("Helper", result.exportInfo.originalName)
+        assertEquals("default", result.exportInfo.originalName)
+        assertEquals("Helper", result.exportInfo.nameBeforeAs)
         assertEquals(EtsExportType.CLASS, result.exportInfo.type)
+    }
+
+    @Test
+    fun `default alias retains the source storage while snapshot default uses its own field`() {
+        val liveExportFile = createMockFile(
+            signature = targetFile1.signature,
+            exports = listOf(EtsExportInfo(name = "default", type = EtsExportType.CLASS, nameBeforeAs = "Helper")),
+        )
+        val liveScene = EtsScene(projectFiles = listOf(currentFile, liveExportFile))
+
+        val result = liveScene.resolveSymbol(
+            currentFile = currentFile,
+            importPath = "../utils/helper",
+            symbolName = "Helper",
+            importType = EtsImportType.DEFAULT,
+        )
+
+        assertIs<SymbolResolutionResult.Success>(result)
+        assertTrue(result.exportInfo.isDefaultExport)
+        assertEquals("Helper", result.exportInfo.originalName)
     }
 
     @Test
@@ -315,11 +336,12 @@ class ImportExportResolutionTest {
             from = "../utils/helper",
         )
 
-        // export default class Helper {}  (in helper.ets)
+        // class Helper {}; export default Helper; (in helper.ets)
         val result = scene.resolveImportInfo(currentFile, importInfo)
         assertIs<SymbolResolutionResult.Success>(result)
         assertEquals("default", result.exportInfo.name)
-        assertEquals("Helper", result.exportInfo.originalName)
+        assertEquals("default", result.exportInfo.originalName)
+        assertEquals("Helper", result.exportInfo.nameBeforeAs)
     }
 
     @Test
