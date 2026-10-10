@@ -6,6 +6,7 @@ import org.jacodb.ets.model.EtsBinaryExpr
 import org.jacodb.ets.model.EtsCallExpr
 import org.jacodb.ets.model.EtsCallStmt
 import org.jacodb.ets.model.EtsCastExpr
+import org.jacodb.ets.model.EtsDefineDataPropertyStmt
 import org.jacodb.ets.model.EtsEntity
 import org.jacodb.ets.model.EtsIfStmt
 import org.jacodb.ets.model.EtsInstanceCallExpr
@@ -14,6 +15,7 @@ import org.jacodb.ets.model.EtsInstanceOfExpr
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsParameterRef
+import org.jacodb.ets.model.EtsPtrCallExpr
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsThrowStmt
@@ -60,6 +62,7 @@ class LiveVariablesImpl(
 
         private fun EtsCallExpr.used(): List<String> = when (this) {
             is EtsInstanceCallExpr -> listOf(instance.name) + args.flatMap { it.used() }
+            is EtsPtrCallExpr -> ptr.used() + receiver?.used().orEmpty() + args.flatMap { it.used() }
             else -> args.flatMap { it.used() }
         }
     }
@@ -76,9 +79,8 @@ class LiveVariablesImpl(
             if (stmt is EtsAssignStmt) {
                 when (val lhv = stmt.lhv) {
                     is EtsLocal -> {
-                        val lhvIndex = indexOfName.size
+                        val lhvIndex = indexOfName.getOrPut(lhv.name) { indexOfName.size }
                         definedAtStmt[stmt.location.index] = lhvIndex
-                        indexOfName[lhv.name] = lhvIndex
                     }
                 }
             }
@@ -90,6 +92,7 @@ class LiveVariablesImpl(
             emptyBitSet().apply {
                 val usedLocals = when (stmt) {
                     is EtsAssignStmt -> stmt.lhv.used() + stmt.rhv.used()
+                    is EtsDefineDataPropertyStmt -> stmt.target.used() + stmt.key.used() + stmt.value.used()
                     is EtsCallStmt -> stmt.expr.used()
                     is EtsReturnStmt -> stmt.returnValue?.used().orEmpty()
                     is EtsIfStmt -> stmt.condition.used()
@@ -105,7 +108,7 @@ class LiveVariablesImpl(
         while (queue.isNotEmpty()) {
             val stmt = queue.removeFirst()
 
-            val aliveHere = usedAtStmt[stmt.location.index]
+            val aliveHere = usedAtStmt[stmt.location.index].copy()
 
             for (succ in method.cfg.successors(stmt)) {
                 val transferFromSucc = aliveAtStmt[succ.location.index].copy()
