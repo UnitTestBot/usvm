@@ -150,6 +150,8 @@ private const val ECMASCRIPT_BITWISE_INTEGER_SIZE = 32
  */
 private const val ECMASCRIPT_BITWISE_SHIFT_MASK = 0b11111
 
+private const val SQUARE_ROOT_EXPONENT = 0.5
+
 private enum class UpdateOperator {
     INCREMENT,
     DECREMENT,
@@ -764,8 +766,63 @@ class TsExprResolver(
     }
 
     override fun visit(expr: EtsExpExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+        return resolveAfterResolved(expr.left, expr.right) { left, right ->
+            with(ctx) {
+                for (operand in listOf(left, right)) {
+                    val supportedPrimitive = operand.sort == fp64Sort || operand.sort == boolSort ||
+                        operand == mkTsNullValue() || operand == mkUndefinedValue()
+                    if (!supportedPrimitive) {
+                        throw UnsupportedOperationException(
+                            "Exponentiation operand outside the supported Number conversion model: $operand"
+                        )
+                    }
+                }
+
+                val base = mkNumericExpr(left, scope)
+                val exponent = mkNumericExpr(right, scope)
+
+                if (base is KFp64Value && exponent is KFp64Value) {
+                    // JVM Math.pow and JavaScript ** can differ by one ULP for ordinary finite powers.
+                    // Only these discrete edge cases have runtime-independent Number results.
+                    if (base.value == 0.0 && exponent.value == -1.0) {
+                        val isNegativeZero = base.value.toRawBits() < 0
+                        val result = if (isNegativeZero) Double.NEGATIVE_INFINITY else Double.POSITIVE_INFINITY
+                        return@with mkFp64(value = result)
+                    }
+
+                    if (base.value == -1.0 && exponent.value.isInfinite()) {
+                        return@with mkFp64NaN()
+                    }
+                }
+
+                val concreteExponent = (exponent as? KFp64Value)?.value
+                    ?: throw UnsupportedOperationException("Symbolic exponentiation exponent is not supported: $expr")
+
+                // More powers cannot be expanded to FP arithmetic: x ** -1 can differ from 1 / x.
+                when (concreteExponent) {
+                    0.0 -> mkFp64(value = 1.0)
+                    1.0 -> base
+                    2.0 -> mkFpMulExpr(fpRoundingModeSortDefaultValue(), base, base)
+                    SQUARE_ROOT_EXPONENT -> {
+                        // Number::exponentiate maps either signed zero and -Infinity to positive results here.
+                        val positiveZero = mkFp64(value = 0.0)
+                        val isZero = mkFpEqualExpr(base, positiveZero)
+                        val isNegativeInfinity = mkFpEqualExpr(base, mkFp64(value = Double.NEGATIVE_INFINITY))
+                        val squareRoot = mkFpSqrtExpr(fpRoundingModeSortDefaultValue(), base)
+                        val ordinaryResult = mkIte(isZero, positiveZero, squareRoot)
+
+                        mkIte(
+                            condition = isNegativeInfinity,
+                            trueBranch = mkFp64(value = Double.POSITIVE_INFINITY),
+                            falseBranch = ordinaryResult,
+                        )
+                    }
+                    else -> throw UnsupportedOperationException(
+                        "Number exponentiation with exponent $concreteExponent is not modeled: $expr"
+                    )
+                }
+            }
+        }
     }
 
     override fun visit(expr: EtsBitAndExpr): UExpr<out USort>? = with(ctx) {
