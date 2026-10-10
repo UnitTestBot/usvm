@@ -30,6 +30,7 @@ val toolStatus = providers.exec {
 val generateBuildMetadata = tasks.register("generateBuildMetadata") {
     inputs.property("toolRevision", toolRevision)
     inputs.property("toolStatus", toolStatus)
+    inputs.property("jacodbVersion", Versions.jacodb)
     outputs.dir(generatedBuildMetadataDirectory)
 
     doLast {
@@ -39,7 +40,11 @@ val generateBuildMetadata = tasks.register("generateBuildMetadata") {
             .file("org/usvm/ts/calls/build.properties")
             .asFile
         metadataFile.parentFile.mkdirs()
-        metadataFile.writeText("tool.revision=$buildIdentity\n", Charsets.UTF_8)
+        metadataFile.writeText(
+            "tool.revision=$buildIdentity\n" +
+                "native.frontend.revision=bundled:${Versions.jacodb}\n",
+            Charsets.UTF_8,
+        )
     }
 }
 
