@@ -1,10 +1,15 @@
 import { realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { tsImport } from 'tsx/esm/api';
+import { register as registerCommonJs } from 'tsx/cjs/api';
+import { register } from 'tsx/esm/api';
 import { adapterDiagnostic } from './diagnostics.js';
 import type { JsConcreteValue } from './js-value.js';
 import { ProtocolError, protocolError } from './js-value.js';
+
+// Adapter requests have process-local module state. Register once so nested TypeScript imports use the same loader.
+registerCommonJs();
+register();
 
 export type ExecutionKind = 'sync' | 'async';
 
@@ -169,7 +174,7 @@ async function importTypeScriptModule(
   referencePath: string,
 ): Promise<Record<string, unknown>> {
   try {
-    return await tsImport(pathToFileURL(modulePath).href, import.meta.url) as Record<string, unknown>;
+    return await import(pathToFileURL(modulePath).href) as Record<string, unknown>;
   } catch (error: unknown) {
     if (error instanceof ProtocolError) throw error;
 

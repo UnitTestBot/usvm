@@ -30,6 +30,24 @@ test('loads and invokes a TypeScript function directly from a source root', asyn
   });
 });
 
+test('loads nested extensionless TypeScript imports without changing the project module format', async () => {
+  await withWorkspace(async (workspace) => {
+    await mkdir(path.join(workspace, 'helpers'));
+    await writeFile(path.join(workspace, 'helpers', 'index.ts'), 'export const positive = (value: number): boolean => value > 0;');
+    await writeFile(path.join(workspace, 'target.ts'), 'import { positive } from "./helpers/index"; export { positive };');
+    await writeFile(path.join(workspace, 'wrapper.mts'), 'import { positive } from "./target.ts"; export const predicate = positive;');
+
+    const loaded = await loadEntryPoint(
+      { module: 'wrapper.mts', exportName: 'predicate', executionKind: 'sync' },
+      [workspace],
+      'predicate',
+    );
+
+    assert.equal(loaded.invoke([1]), true);
+    assert.equal(loaded.invoke([-1]), false);
+  });
+});
+
 test('loads and invokes an asynchronous TypeScript function', async () => {
   await withWorkspace(async (workspace) => {
     const sourceRoot = path.join(workspace, 'src');
