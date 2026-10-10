@@ -282,7 +282,8 @@ class TsInterpreter(
         }
 
         val possibleTypes = scope.calcOnState {
-            memory.typeStreamOf(receiver).take(scene.projectAndSdkClasses.size)
+            // The type stream also contains the default Object type when no SDK Object is in the scene.
+            memory.typeStreamOf(receiver).take(scene.projectAndSdkClasses.size + 1)
         }
 
         if (possibleTypes !is TypesResult.SuccessfulTypesResult) {

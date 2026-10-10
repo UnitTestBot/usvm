@@ -86,7 +86,6 @@ import org.jacodb.ets.model.EtsYieldExpr
 import org.jacodb.ets.utils.ANONYMOUS_METHOD_PREFIX
 import org.jacodb.ets.utils.DEFAULT_ARK_METHOD_NAME
 import org.jacodb.ets.utils.getDeclaredLocals
-import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
@@ -96,11 +95,9 @@ import org.usvm.api.allocateConcreteRef
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.initializeArrayLength
 import org.usvm.api.memcpy
-import org.usvm.api.typeStreamOf
 import org.usvm.dataflow.ts.infer.tryGetKnownType
 import org.usvm.dataflow.ts.util.type
 import org.usvm.isAllocatedConcreteHeapRef
-import org.usvm.isFalse
 import org.usvm.machine.TsConcreteMethodCallStmt
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsOptions
@@ -123,8 +120,6 @@ import org.usvm.machine.state.newStmt
 import org.usvm.machine.types.EtsNominalType
 import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.sizeSort
-import org.usvm.solver.UUnsatResult
-import org.usvm.types.TypesResult
 import org.usvm.types.singleOrNull
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.SymbolResolutionResult
@@ -436,7 +431,7 @@ class TsExprResolver(
                 }
 
                 checkUndefinedOrNullPropertyRead(scope, rawInstance, operand.field.name) ?: return null
-                val instance = resolvePropertyReceiver(scope, rawInstance) ?: return null
+                val instance = resolveHeapRef(scope, rawInstance) ?: return null
 
                 val prototypeFallback = prototypeFallbackReason(instance, operand)
                 if (prototypeFallback != null) {
@@ -644,8 +639,8 @@ class TsExprResolver(
                     return@resolveAfterResolved ctx.mkStringConstant(lhsString + rhsString, scope)
                 }
 
-                val left = stringOperand(lhs, expr.left.type)
-                val right = stringOperand(rhs, expr.right.type)
+                val left = stringOperand(lhs, expr.left.type) ?: return null
+                val right = stringOperand(rhs, expr.right.type) ?: return null
 
                 with(ctx) {
                     val leftChars = scope.calcOnState {
@@ -710,47 +705,28 @@ class TsExprResolver(
         return resolveBinaryOperator(TsBinaryOperator.Add, expr)
     }
 
-    private fun stringOperand(value: UExpr<*>, type: EtsType): UHeapRef = with(ctx) {
+    private fun stringOperand(value: UExpr<*>, type: EtsType): UHeapRef? = with(ctx) {
         val operand = value.extractSingleValueFromFakeObjectOrNull(scope) ?: if (value.isFakeObject()) {
             val referenceKind = value.getFakeType(scope).refTypeExpr
-            if (!isInfeasible(mkNot(referenceKind))) {
-                throw UnsupportedOperationException("Unsupported string concatenation operand: $type, $value")
-            }
+            scope.fork(referenceKind, blockOnFalseState = {
+                terminateAsUnsupported(reason = "Unsupported string concatenation operand: $type, $value")
+            }) ?: return null
             value.extractRef(scope)
         } else {
             value
         }
         concreteStringValue(operand)?.let { return mkStringConstant(it, scope) }
-
         if (!isStringOperandType(type) || operand.sort != addressSort) {
             throw UnsupportedOperationException("Unsupported string concatenation operand: $type, $operand")
         }
 
-        modeledStringOperand(operand.asExpr(addressSort), activeGuard = trueExpr)
-    }
-
-    private fun modeledStringOperand(ref: UHeapRef, activeGuard: UBoolExpr): UHeapRef = with(ctx) {
-        if (isInfeasible(activeGuard)) return mkStringConstant("", scope)
+        // Resolve a conditional field payload through the same forker used for property and array receivers.
+        val ref = resolveHeapRef(scope, operand.asExpr(addressSort)) ?: return null
         concreteStringValue(ref)?.let { return mkStringConstant(it, scope) }
-
-        if (ref is UIteExpr<*>) {
-            val trueGuard = mkAnd(activeGuard, ref.condition)
-            val falseGuard = mkAnd(activeGuard, mkNot(ref.condition))
-            val trueValue = modeledStringOperand(ref.trueBranch.asExpr(addressSort), trueGuard)
-            val falseValue = modeledStringOperand(ref.falseBranch.asExpr(addressSort), falseGuard)
-            return mkIte(ref.condition, trueValue, falseValue)
-        }
         if (scope.calcOnState { ref !in boundedStringBackingRefs }) {
             throw UnsupportedOperationException("String concatenation needs a modeled string backing for $ref")
         }
-
         ref
-    }
-
-    private fun isInfeasible(guard: UBoolExpr): Boolean = scope.calcOnState {
-        val guardedState = clone()
-        guardedState.pathConstraints += guard
-        ctx.solver<EtsType>().check(guardedState.pathConstraints) is UUnsatResult
     }
 
     private fun isStringOperandType(type: EtsType): Boolean = when (type) {
@@ -1056,7 +1032,7 @@ class TsExprResolver(
         }
 
         checkUndefinedOrNullPropertyRead(scope, rawObject, propertyName = "<in>") ?: return null
-        val obj = resolvePropertyReceiver(scope, rawObject) ?: return null
+        val obj = resolveHeapRef(scope, rawObject) ?: return null
 
         if (expr.right is EtsLocal && expr.right.type is EtsArrayType) {
             throw UnsupportedOperationException("The 'in' operator for arrays requires element presence semantics")
@@ -1070,32 +1046,15 @@ class TsExprResolver(
             return inputPropertyPresence(scope, obj, propertyName, initial)
         }
 
-        val objectTypes = scope.calcOnState { memory.typeStreamOf(obj).take(2) }
-        val objectType = (objectTypes as? TypesResult.SuccessfulTypesResult)?.types?.singleOrNull() as? EtsClassType
+        val objectClass = objectLiteralClass(scope, obj, hierarchy)
             ?: throw UnsupportedOperationException("The 'in' operator requires an object literal: $obj")
-        val objectClass = hierarchy.classesForType(objectType).singleOrNull()
-            ?.takeIf { it.category == EtsClassCategory.OBJECT }
-            ?: throw UnsupportedOperationException("The 'in' operator requires an object literal: $objectType")
+        scope.ensureNoPrototypeMutation(obj, objectClass)
 
-        // EtsIR records { __proto__: value } and later writes as ordinary fields,
-        // though either can change the prototype and presence of inherited properties.
-        val prototypeWasAssigned = scope.calcOnState { (obj to "__proto__") in writtenConcreteFields }
-        if (objectClass.fields.any { it.name == "__proto__" } || prototypeWasAssigned) {
-            throw UnsupportedOperationException("Object literal prototype mutation in 'in' is not supported")
-        }
-        if (propertyName == "__proto__") {
-            throw UnsupportedOperationException("Prototype lookup for '__proto__' in 'in' is not supported")
-        }
-
-        // The EtsIR object-literal class records its own properties, including those with undefined values.
-        val ownPropertyNames = objectClass.fields.map { it.name } + objectClass.methods.map { it.name }
-
-        val hasOwnProperty = propertyName in ownPropertyNames ||
-            scope.calcOnState { (obj to propertyName) in writtenConcreteFields }
+        // Presence depends on own declarations and writes, never on the payload's value.
+        val wasWritten = scope.calcOnState { (obj to propertyName) in writtenConcreteFields }
+        val hasOwnProperty = objectClass.hasOwnProperty(propertyName) || wasWritten
         val deleted = scope.calcOnState { memory.read(deletedFieldLValue(obj, propertyName)) }
-        if (propertyName in OBJECT_PROTOTYPE_PROPERTIES && (!hasOwnProperty || !deleted.isFalse)) {
-            throw UnsupportedOperationException("Prototype lookup for '$propertyName' in 'in' is not supported")
-        }
+        ensureOwnPropertyLookup(propertyName, hasOwnProperty, deleted)
 
         if (hasOwnProperty) mkNot(deleted) else mkFalse()
     }

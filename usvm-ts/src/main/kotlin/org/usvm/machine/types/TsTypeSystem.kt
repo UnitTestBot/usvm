@@ -52,6 +52,9 @@ class TsTypeSystem(
         val unwrappedSupertype = unwrapAlias(supertype)
         val unwrappedType = unwrapAlias(type)
 
+        // Runtime object checks exclude primitive and nullish values, independently of TS assignability.
+        if (unwrappedSupertype == EtsObjectType) return unwrappedType is EtsRefType
+
         // In JS/TS, any reference type inherits from Object
         if (unwrappedSupertype is EtsClassType
             && unwrappedSupertype.signature == EtsHierarchy.OBJECT_CLASS.signature
@@ -217,6 +220,7 @@ class TsTypeSystem(
     override fun hasCommonSubtype(type: EtsType, types: Collection<EtsType>): Boolean {
         val t = unwrapAlias(type)
         return when (t) {
+            EtsObjectType -> true
             is EtsNominalType -> true
             is EtsAuxiliaryType -> true  // structural types can always be refined
             is EtsPrimitiveType -> types.isEmpty() // primitive has no subtypes, so only when no other constraints
@@ -283,6 +287,8 @@ class TsTypeSystem(
                     .map { it.type }
                     .plus(sequenceOf(EtsNumberType, EtsBooleanType, EtsStringType))
             }
+
+            EtsObjectType -> scene.projectAndSdkClasses.asSequence().map { it.type }
 
             is EtsAuxiliaryType -> {
                 scene.projectAndSdkClasses

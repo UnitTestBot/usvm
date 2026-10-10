@@ -17,10 +17,11 @@ import org.usvm.isFalse
 import org.usvm.machine.TsContext
 import org.usvm.machine.TsInputPropertyPresence
 import org.usvm.machine.interpreter.TsStepScope
-import org.usvm.machine.types.EtsAuxiliaryType
 import org.usvm.machine.types.EtsFakeType
+import org.usvm.machine.types.EtsObjectType
 import org.usvm.machine.types.TsUnresolvedValue
 import org.usvm.machine.types.extractValue
+import org.usvm.machine.types.iteUnresolvedValue
 import org.usvm.memory.UReadOnlyMemory
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.getAllMethods
@@ -71,10 +72,9 @@ internal fun TsContext.trackInputProperty(
     val unsupported = inputPropertyUnsupportedReason(local, name, hierarchy)
     if (unsupported != null) throw UnsupportedOperationException(unsupported)
 
-    // Empty structural capability selects ordinary object references, without requiring any named field.
-    // Primitives use the reference sort internally too, but cannot receive mutable own properties.
+    // Reference-sort payloads also contain strings; only runtime objects can receive own fields.
     val objectReceiver = scope.calcOnState {
-        memory.types.evalIsSubtype(instance, EtsAuxiliaryType(properties = emptySet()))
+        memory.types.evalIsSubtype(instance, EtsObjectType)
     }
     scope.assert(objectReceiver) ?: return null
 
@@ -89,7 +89,8 @@ internal fun TsContext.trackInputProperty(
         TsInputPropertyPresence.ASSUME_ABSENT -> false
     }
     if (assumedPresence != null) {
-        scope.assert(if (assumedPresence) initial else mkNot(initial)) ?: return null
+        val presenceConstraint = if (assumedPresence) initial else mkNot(initial)
+        scope.assert(presenceConstraint) ?: return null
     }
 
     scope.doWithState {
@@ -184,15 +185,5 @@ internal fun TsContext.currentInputPropertyValue(
     if (written.isFalse) return initial
 
     val value = readInputPropertyValue(memory, instance, name, written = true)
-    val type = EtsFakeType(
-        boolTypeExpr = mkIte(written, value.type.boolTypeExpr, initial.type.boolTypeExpr),
-        fpTypeExpr = mkIte(written, value.type.fpTypeExpr, initial.type.fpTypeExpr),
-        refTypeExpr = mkIte(written, value.type.refTypeExpr, initial.type.refTypeExpr),
-    )
-    return TsUnresolvedValue(
-        boolValue = mkIte(written, value.boolValue, initial.boolValue),
-        fpValue = mkIte(written, value.fpValue, initial.fpValue),
-        refValue = mkIte(written, value.refValue, initial.refValue),
-        type = type,
-    )
+    return iteUnresolvedValue(written, value, initial)
 }

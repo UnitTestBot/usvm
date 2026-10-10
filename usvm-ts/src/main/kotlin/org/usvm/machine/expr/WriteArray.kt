@@ -25,7 +25,7 @@ internal fun TsExprResolver.handleAssignToArrayIndex(
     check(resolvedArray.sort == addressSort) {
         "Expected address sort for array, got: ${resolvedArray.sort}"
     }
-    val array = if (resolvedArray.isFakeObject()) {
+    val rawArray = if (resolvedArray.isFakeObject()) {
         scope.assert(resolvedArray.getFakeType(scope).refTypeExpr) ?: return null
         resolvedArray.extractRef(scope)
     } else {
@@ -33,7 +33,8 @@ internal fun TsExprResolver.handleAssignToArrayIndex(
     }
 
     // Check for undefined or null array access.
-    checkUndefinedOrNullPropertyRead(scope, array, propertyName = "[]") ?: return null
+    checkUndefinedOrNullPropertyRead(scope, rawArray, propertyName = "[]") ?: return null
+    val array = resolveHeapRef(scope, rawArray) ?: return null
 
     // Resolve the index.
     val resolvedIndex = resolve(lhv.index) ?: return null
@@ -65,12 +66,7 @@ internal fun TsExprResolver.handleAssignToArrayIndex(
         isSigned = true,
     ).asExpr(sizeSort)
 
-    val arrayType = scope.calcOnState { arrayStorageType(array, lhv.array.type) }
-    check(arrayType is EtsArrayType) {
-        "Expected EtsArrayType, got: ${lhv.array.type}"
-    }
-
-    return assignToArrayIndex(scope, array, bvIndex, expr, arrayType)
+    return assignToArrayIndex(scope, array, bvIndex, expr, receiverType)
 }
 
 fun TsContext.assignToArrayIndex(

@@ -3,8 +3,8 @@ package org.usvm.machine.expr
 import io.ksmt.utils.asExpr
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsArrayType
-import org.jacodb.ets.model.EtsClassCategory
 import org.jacodb.ets.model.EtsClassType
+import org.jacodb.ets.model.EtsField
 import org.jacodb.ets.model.EtsFieldImpl
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsInstanceFieldRef
@@ -14,8 +14,10 @@ import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsStaticFieldRef
 import org.jacodb.ets.model.EtsStringLiteralType
 import org.jacodb.ets.model.EtsStringType
+import org.jacodb.ets.model.EtsType
 import org.jacodb.ets.model.EtsUnclearRefType
 import org.jacodb.ets.model.EtsUndefinedType
+import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.UHeapRef
@@ -23,7 +25,6 @@ import org.usvm.USort
 import org.usvm.USymbolicHeapRef
 import org.usvm.api.evalTypeEquals
 import org.usvm.api.makeSymbolicRefUntyped
-import org.usvm.api.typeStreamOf
 import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.isFalse
 import org.usvm.isTrue
@@ -33,10 +34,10 @@ import org.usvm.machine.interpreter.ensureStaticsInitialized
 import org.usvm.machine.types.EtsAuxiliaryType
 import org.usvm.machine.types.EtsFakeType
 import org.usvm.machine.types.TsUnresolvedValue
+import org.usvm.machine.types.iteUnresolvedValue
 import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.machine.types.mkFakeValue
 import org.usvm.machine.types.toAuxiliaryType
-import org.usvm.types.TypesResult
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.TsResolutionResult
 import org.usvm.util.arrayStorageType
@@ -74,7 +75,7 @@ internal fun TsExprResolver.handleInstanceFieldRef(
     // TODO: consider moving this to 'readField'
     // Check for undefined or null property access.
     checkUndefinedOrNullPropertyRead(scope, rawInstance, propertyName = value.field.name) ?: return null
-    val instance = resolvePropertyReceiver(scope, rawInstance) ?: return null
+    val instance = resolveHeapRef(scope, rawInstance) ?: return null
 
     // Handle reading "length" property.
     if (value.field.name == "length") {
@@ -96,110 +97,95 @@ internal fun TsContext.resolveField(
     hierarchy: EtsHierarchy,
 ): UExpr<*>? {
     checkNotFake(instance)
+    val receiver = resolveHeapRef(scope, instance) ?: return null
 
-    val receiver = resolvePropertyReceiver(scope, instance) ?: return null
-    if (receiver != instance) return resolveField(scope, instanceLocal, receiver, field, hierarchy)
-
-    if (!isAllocatedConcreteHeapRef(instance) && instanceLocal?.type !is EtsArrayType) {
-        return resolveInputField(scope, instanceLocal, instance, field, hierarchy)
+    // Input fields have symbolic initial presence. Allocations use their declaration and later writes.
+    return if (!isAllocatedConcreteHeapRef(receiver) && instanceLocal?.type !is EtsArrayType) {
+        resolveInputField(scope, instanceLocal, receiver, field, hierarchy)
+    } else {
+        resolveDeclaredField(scope, instanceLocal, receiver, field, hierarchy)
     }
+}
 
+private fun TsContext.resolveDeclaredField(
+    scope: TsStepScope,
+    local: EtsLocal?,
+    instance: UHeapRef,
+    field: EtsFieldSignature,
+    hierarchy: EtsHierarchy,
+): UExpr<*>? {
     val deleted = scope.calcOnState { memory.read(deletedFieldLValue(instance, field)) }
     if (deleted.isTrue) return mkUndefinedValue()
 
-    val wasWritten = isAllocatedConcreteHeapRef(instance) &&
-        scope.calcOnState { (instance to field.name) in writtenConcreteFields }
-    val objectClass = if (isAllocatedConcreteHeapRef(instance)) {
-        val types = scope.calcOnState { memory.typeStreamOf(instance).take(n = 2) }
-        val type = (types as? TypesResult.SuccessfulTypesResult)?.types?.singleOrNull() as? EtsClassType
-        type?.let { hierarchy.classesForType(it).singleOrNull() }
-            ?.takeIf { it.category == EtsClassCategory.OBJECT }
-    } else {
-        null
-    }
-    if (isAllocatedConcreteHeapRef(instance) && !wasWritten) {
-        if (objectClass != null &&
-            objectClass.fields.none { it.name == field.name } &&
-            objectClass.methods.none { it.name == field.name }
-        ) {
-            val prototypeWasAssigned = scope.calcOnState { (instance to "__proto__") in writtenConcreteFields }
-            if (objectClass.fields.any { it.name == "__proto__" } ||
-                prototypeWasAssigned || field.name in OBJECT_PROTOTYPE_PROPERTIES
-            ) {
-                throw UnsupportedOperationException("Reading '${field.name}' requires unsupported prototype lookup")
-            }
-
-            // This object literal has neither an initial own field nor a later write.
-            return mkUndefinedValue()
-        }
+    // A literal's own declarations, rather than scene-wide same-name fields, determine its initial storage.
+    val objectClass = objectLiteralClass(scope, instance, hierarchy)
+    val wasWritten = scope.calcOnState { (instance to field.name) in writtenConcreteFields }
+    if (objectClass != null && !wasWritten && !objectClass.hasOwnProperty(field.name)) {
+        scope.ensureMissingPropertyHasNoPrototype(instance, objectClass, field.name)
+        return mkUndefinedValue()
     }
 
-    val writtenObjectLiteralSort = if (wasWritten) {
-        scope.calcOnState { writtenObjectLiteralFieldSorts[instance to field.name] }
-    } else {
-        null
-    }
-    val declaredObjectLiteralField = objectClass?.fields?.singleOrNull { it.name == field.name }
-    val declaredObjectLiteralSort = declaredObjectLiteralField?.let { typeToSort(it.type) }
-    val resolvedField = resolveEtsField(instanceLocal, field, hierarchy)
-    val sort = writtenObjectLiteralSort ?: declaredObjectLiteralSort
-        ?: when (resolvedField) {
-            is TsResolutionResult.Empty -> {
-                if (field.name !in listOf("i", "LogLevel")) {
-                    logger.warn { "Field $field not found, creating fake field" }
-                }
-                // If we didn't find any real fields, let's create a fake one.
-                // It is possible due to mistakes in the IR or if the field was added explicitly
-                // in the code.
-                // Probably, the right behaviour here is to fork the state.
-                instance.createFakeField(scope, field.name)
-                addressSort
-            }
-
-            is TsResolutionResult.Unique -> typeToSort(resolvedField.property.type)
-
-            is TsResolutionResult.Ambiguous -> unresolvedSort
-        }
-
-    if (!wasWritten) {
-        val fieldExists = scope.calcOnState {
-            val auxiliaryType = EtsAuxiliaryType(properties = setOf(field.name))
-            memory.types.evalIsSubtype(instance, auxiliaryType)
-        }
-        scope.assert(fieldExists) ?: return null
-    }
-
-    val fieldType = if (objectClass != null) {
-        declaredObjectLiteralField?.type
+    val declaredLiteralField = objectClass?.fields?.singleOrNull { it.name == field.name }
+    val resolvedField = resolveEtsField(local, field, hierarchy)
+    val writtenSort = scope.calcOnState { writtenObjectLiteralFieldSorts[instance to field.name] }
+    val declaredLiteralSort = declaredLiteralField?.let { typeToSort(it.type) }
+    val sort = writtenSort ?: declaredLiteralSort ?: resolvedFieldSort(scope, instance, field, resolvedField)
+    val declaredType = if (objectClass != null) {
+        declaredLiteralField?.type
     } else {
         (resolvedField as? TsResolutionResult.Unique)?.property?.type
     }
 
-    val value = readField(scope, instance, field, sort)
-    val materializedValue = if (sort is TsUnresolvedSort) {
-        value
-    } else {
-        val maxStringLength = scope.calcOnState { maxStringLength }
-        when (fieldType) {
-            is EtsStringLiteralType -> materializeTypedStringField(
-                scope = scope,
-                value = value.asExpr(addressSort),
-                literal = fieldType.value,
-                maxStringLength = maxStringLength,
-            )
-
-            is EtsStringType -> materializeTypedStringField(scope, value.asExpr(addressSort), maxStringLength)
-            else -> value
-        } ?: return null
+    if (!wasWritten) {
+        val fieldExists = scope.calcOnState {
+            memory.types.evalIsSubtype(instance, EtsAuxiliaryType(properties = setOf(field.name)))
+        }
+        scope.assert(fieldExists) ?: return null
     }
 
-    if (deleted.isFalse) return materializedValue
+    val storedValue = readField(scope, instance, field, sort)
+    val value = materializeFieldValue(scope, storedValue, sort, declaredType) ?: return null
+    if (deleted.isFalse) return value
 
+    // Conditional deletion yields undefined on the deleted branch, while preserving the stored runtime kind.
     return iteWriteIntoFakeObject(
         scope = scope,
         condition = deleted,
         trueBranchValue = mkUndefinedValue(),
-        falseBranchValue = materializedValue,
+        falseBranchValue = value,
+    )
+}
+
+private fun TsContext.resolvedFieldSort(
+    scope: TsStepScope,
+    instance: UHeapRef,
+    field: EtsFieldSignature,
+    resolved: TsResolutionResult<EtsField>,
+): USort = when (resolved) {
+    is TsResolutionResult.Unique -> typeToSort(resolved.property.type)
+    is TsResolutionResult.Ambiguous -> unresolvedSort
+    TsResolutionResult.Empty -> {
+        if (field.name !in listOf("i", "LogLevel")) {
+            logger.warn { "Field $field not found, creating fake field" }
+        }
+        instance.createFakeField(scope, field.name)
+        addressSort
+    }
+}
+
+private fun TsContext.materializeFieldValue(
+    scope: TsStepScope,
+    value: UExpr<*>,
+    sort: USort,
+    type: EtsType?,
+): UExpr<*>? {
+    if (sort is TsUnresolvedSort || (type !is EtsStringType && type !is EtsStringLiteralType)) return value
+
+    return materializeTypedStringField(
+        scope = scope,
+        value = value.asExpr(addressSort),
+        maxStringLength = scope.calcOnState { maxStringLength },
+        literal = (type as? EtsStringLiteralType)?.value,
     )
 }
 
@@ -212,80 +198,77 @@ private fun TsContext.resolveInputField(
 ): UExpr<*>? {
     val initialPresence = trackInputProperty(scope, instance, local, field.name, hierarchy) ?: return null
     val present = inputPropertyPresence(scope, instance, field.name, initialPresence)
-    val declared = declaredInputField(local, field.name, hierarchy)
-    val sort = declared?.let { typeToSort(it.type) } ?: unresolvedSort
-    val raw = scope.calcOnState { readInputPropertyValue(memory, instance, field.name, written = false) }
-    val optional = (declared as? EtsFieldImpl)?.isOptional == true
-    val initialType = if (sort is TsUnresolvedSort || optional) {
-        raw.type
-    } else {
-        EtsFakeType(
-            boolTypeExpr = if (sort == boolSort) trueExpr else falseExpr,
-            fpTypeExpr = if (sort == fp64Sort) trueExpr else falseExpr,
-            refTypeExpr = if (sort == addressSort) trueExpr else falseExpr,
-        )
-    }
     val written = scope.calcOnState { memory.read(writtenPropertyLValue(instance, field.name)) }
     val activeInitial = mkAnd(present, mkNot(written))
-    scope.assert(mkImplies(activeInitial, initialType.mkExactlyOneTypeConstraint(this))) ?: return null
-    // Kind selectors live on the input reference, so reads through differently typed aliases agree.
-    if (sort !is TsUnresolvedSort) {
-        val expectedKind = when (sort) {
-            boolSort -> raw.type.boolTypeExpr
-            fp64Sort -> raw.type.fpTypeExpr
-            else -> raw.type.refTypeExpr
-        }
-        val undefinedValue = mkHeapRefEq(raw.refValue, mkUndefinedValue())
-        val undefinedKind = mkAnd(raw.type.refTypeExpr, undefinedValue)
-        val allowedKind = if (optional) mkOr(expectedKind, undefinedKind) else expectedKind
-        val exactlyOne = raw.type.mkExactlyOneTypeConstraint(this)
-        val typedValue = mkAnd(allowedKind, exactlyOne)
-        scope.assert(mkImplies(activeInitial, typedValue)) ?: return null
-    }
 
-    val referenceConstraint = when (val type = declared?.type) {
-        is EtsClassType -> scope.calcOnState {
-            val auxiliary = type.toAuxiliaryType(hierarchy)
-            val classConstraint = auxiliary?.let { memory.types.evalIsSubtype(raw.refValue, it) } ?: trueExpr
-            mkAnd(mkNotNullOrUndefined(raw.refValue), classConstraint)
-        }
-        is EtsNullType -> mkHeapRefEq(raw.refValue, mkTsNullValue())
-        is EtsUndefinedType -> mkHeapRefEq(raw.refValue, mkUndefinedValue())
+    // Annotation constraints apply only while the initial field value is visible, before a write or deletion.
+    val declared = declaredInputField(local, field.name, hierarchy)
+    val rawInitial = scope.calcOnState { readInputPropertyValue(memory, instance, field.name, written = false) }
+    val initial = prepareInitialInputField(scope, rawInitial, declared, activeInitial, hierarchy) ?: return null
+    val current = scope.calcOnState { currentInputPropertyValue(memory, instance, field.name, initial) }
+
+    // Missing and present-but-undefined are distinct states; both read as an undefined reference value.
+    val undefined = current.copy(refValue = mkUndefinedValue(), type = EtsFakeType.mkRef(this))
+    val value = iteUnresolvedValue(present, current, undefined)
+    return scope.calcOnState { mkFakeValue(scope, value) }
+}
+
+private fun TsContext.prepareInitialInputField(
+    scope: TsStepScope,
+    value: TsUnresolvedValue,
+    field: EtsField?,
+    activeInitial: UBoolExpr,
+    hierarchy: EtsHierarchy,
+): TsUnresolvedValue? {
+    val optional = (field as? EtsFieldImpl)?.isOptional == true
+    val sort = field?.let { typeToSort(it.type) } ?: unresolvedSort
+    val expectedKind = when (sort) {
+        boolSort -> value.type.boolTypeExpr
+        fp64Sort -> value.type.fpTypeExpr
+        addressSort -> value.type.refTypeExpr
         else -> trueExpr
     }
-    val initialIsDefined = mkNot(mkHeapRefEq(raw.refValue, mkUndefinedValue()))
-    val activeReference = if (optional) mkAnd(activeInitial, initialIsDefined) else activeInitial
-    scope.assert(mkImplies(activeReference, referenceConstraint)) ?: return null
+    val isUndefined = mkHeapRefEq(value.refValue, mkUndefinedValue())
+    val undefinedKind = mkAnd(value.type.refTypeExpr, isUndefined)
+    val allowedKind = if (optional) mkOr(expectedKind, undefinedKind) else expectedKind
+    val exactlyOneKind = value.type.mkExactlyOneTypeConstraint(this)
+    val initialKindConstraint = mkImplies(activeInitial, mkAnd(allowedKind, exactlyOneKind))
+    // Use the selectors stored on the input reference, so differently typed aliases agree.
+    scope.assert(initialKindConstraint) ?: return null
 
-    val initialRef = when (val type = declared?.type) {
-        is EtsStringType, is EtsStringLiteralType -> {
-            val stringRef = materializeTypedStringField(
-                scope = scope,
-                value = raw.refValue,
-                maxStringLength = scope.calcOnState { maxStringLength },
-                literal = (type as? EtsStringLiteralType)?.value,
-                activeGuard = activeReference,
-            ) ?: return null
-            if (optional) mkIte(initialIsDefined, stringRef, mkUndefinedValue()) else stringRef
-        }
-        else -> raw.refValue
+    // Optional references may be undefined even when the field exists.
+    val activeReference = if (optional) mkAnd(activeInitial, mkNot(isUndefined)) else activeInitial
+    val referenceConstraint = initialReferenceConstraint(scope, value.refValue, field?.type, hierarchy)
+    val activeReferenceConstraint = mkImplies(activeReference, referenceConstraint)
+    scope.assert(activeReferenceConstraint) ?: return null
+
+    if (field?.type !is EtsStringType && field?.type !is EtsStringLiteralType) return value
+
+    val stringRef = materializeTypedStringField(
+        scope = scope,
+        value = value.refValue,
+        maxStringLength = scope.calcOnState { maxStringLength },
+        literal = (field.type as? EtsStringLiteralType)?.value,
+        activeGuard = activeReference,
+    ) ?: return null
+    val initialRef = if (optional) mkIte(isUndefined, mkUndefinedValue(), stringRef) else stringRef
+    return value.copy(refValue = initialRef)
+}
+
+private fun TsContext.initialReferenceConstraint(
+    scope: TsStepScope,
+    ref: UHeapRef,
+    type: EtsType?,
+    hierarchy: EtsHierarchy,
+): UBoolExpr = when (type) {
+    is EtsClassType -> scope.calcOnState {
+        val auxiliary = type.toAuxiliaryType(hierarchy)
+        val classConstraint = auxiliary?.let { memory.types.evalIsSubtype(ref, it) } ?: trueExpr
+        mkAnd(mkNotNullOrUndefined(ref), classConstraint)
     }
-    val initial = raw.copy(refValue = initialRef, type = initialType)
-    val current = scope.calcOnState { currentInputPropertyValue(memory, instance, field.name, initial) }
-    // An absent property is undefined, independently of all inactive payloads and kind selectors.
-    val absent = mkNot(present)
-    val boolKind = mkAnd(present, current.type.boolTypeExpr)
-    val numberKind = mkAnd(present, current.type.fpTypeExpr)
-    val refKind = mkOr(absent, current.type.refTypeExpr)
-    val currentType = EtsFakeType(boolKind, numberKind, refKind)
-    val refValue = mkIte(present, current.refValue, mkUndefinedValue())
-    val value = TsUnresolvedValue(
-        boolValue = current.boolValue,
-        fpValue = current.fpValue,
-        refValue = refValue,
-        type = currentType,
-    )
-    return scope.calcOnState { mkFakeValue(scope, value) }
+    is EtsNullType -> mkHeapRefEq(ref, mkTsNullValue())
+    is EtsUndefinedType -> mkHeapRefEq(ref, mkUndefinedValue())
+    else -> trueExpr
 }
 
 /** Reading a field always produces a value; path validation belongs to [resolveField]. */
@@ -328,7 +311,7 @@ private fun TsContext.materializeTypedStringField(
     value: UHeapRef,
     maxStringLength: Int,
     literal: String? = null,
-    activeGuard: org.usvm.UBoolExpr = trueExpr,
+    activeGuard: UBoolExpr = trueExpr,
 ): UHeapRef? {
     // A prior write may have supplied an allocated literal or an already materialized string.
     // Keep its original reference so its existing backing array remains authoritative.
@@ -339,7 +322,8 @@ private fun TsContext.materializeTypedStringField(
         return value
     }
     if (literal != null && literal.length > maxStringLength) {
-        scope.fork(mkNot(activeGuard), blockOnFalseState = {
+        val initialValueIsInactive = mkNot(activeGuard)
+        scope.fork(initialValueIsInactive, blockOnFalseState = {
             terminateAsUnsupported(reason = "Literal string field exceeds configured string length $maxStringLength")
         }) ?: return null
         return value
@@ -374,7 +358,8 @@ private fun TsContext.materializeTypedStringField(
             contents,
         )
     }
-    scope.assert(mkImplies(activeGuard, constraints)) ?: return null
+    val activeStringConstraints = mkImplies(activeGuard, constraints)
+    scope.assert(activeStringConstraints) ?: return null
 
     scope.doWithState { boundedStringBackingRefs += stringRef }
 

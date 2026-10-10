@@ -25,7 +25,7 @@ internal fun TsExprResolver.handleArrayAccess(
     value: EtsArrayAccess,
 ): UExpr<*>? = with(ctx) {
     // Resolve the array.
-    val array = run {
+    val rawArray = run {
         val resolved = resolve(value.array) ?: return null
         if (resolved.isFakeObject()) {
             scope.assert(resolved.getFakeType(scope).refTypeExpr) ?: run {
@@ -42,7 +42,8 @@ internal fun TsExprResolver.handleArrayAccess(
     }
 
     // Check for undefined or null array access.
-    checkUndefinedOrNullPropertyRead(scope, array, propertyName = "[]") ?: return null
+    checkUndefinedOrNullPropertyRead(scope, rawArray, propertyName = "[]") ?: return null
+    val array = resolveHeapRef(scope, rawArray) ?: return null
 
     // Resolve the index.
     val resolvedIndex = resolve(value.index) ?: return null
@@ -73,13 +74,8 @@ internal fun TsExprResolver.handleArrayAccess(
         isSigned = true,
     ).asExpr(sizeSort)
 
-    val arrayType = scope.calcOnState { arrayStorageType(array, value.array.type) }
-    check(arrayType is EtsArrayType) {
-        "Expected EtsArrayType, got: ${value.array.type}"
-    }
-
     // Read the array element.
-    readArray(scope, array, bvIndex, arrayType)
+    readArray(scope, array, bvIndex, receiverType)
 }
 
 fun TsContext.readArray(
