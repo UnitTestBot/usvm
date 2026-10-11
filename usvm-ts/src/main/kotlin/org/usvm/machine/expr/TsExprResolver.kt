@@ -1535,6 +1535,8 @@ class TsExprResolver(
             null
         }
         val objectType = (objectTypes as? TypesResult.SuccessfulTypesResult)?.types?.singleOrNull()
+        if (objectType == EtsStringType) return@with throwTypeError()
+
         val objectClass = (objectType as? EtsClassType)?.let { type ->
             scene.projectClasses.singleOrNull { it.signature == type.signature }
         }

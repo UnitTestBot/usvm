@@ -130,6 +130,28 @@ class RuntimeNew {
         return value instanceof NewA ? 1 : 0;
     }
 
+    caughtNonConstructable(): number {
+        try {
+            const selected: any = 42;
+            new selected();
+            return 0;
+        } catch {
+            return 1;
+        }
+    }
+
+    caughtNonConstructableString(value: string): number {
+        if (value.length !== 1) return 0;
+
+        try {
+            const selected: any = value + "b";
+            new selected();
+            return 0;
+        } catch {
+            return 1;
+        }
+    }
+
     nonConstructableObject(): number {
         const selected: any = new NewA(7);
         const value = new selected();

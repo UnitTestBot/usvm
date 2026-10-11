@@ -299,6 +299,35 @@ class RuntimeNewTest : TsMethodTestRunner() {
     }
 
     @Test
+    fun `non constructable values reach the catch block`() {
+        discoverProperties<TsTestValue.TsNumber>(
+            method = getMethod(methodName = "caughtNonConstructable", className = "RuntimeNew"),
+            { result -> result.number == 1.0 },
+            invariants = arrayOf({ result -> result.number == 1.0 }),
+        )
+
+        val stringOutcome = analyze(methodName = "caughtNonConstructableString")
+
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, stringOutcome.stopReason)
+        assertTrue(stringOutcome.unsupportedPaths.isEmpty(), "${stringOutcome.unsupportedPaths}")
+
+        discoverProperties<TsTestValue.TsString, TsTestValue.TsNumber>(
+            method = getMethod(methodName = "caughtNonConstructableString", className = "RuntimeNew"),
+            { input, result -> input.value.length == 1 && result.number == 1.0 },
+            { input, result -> input.value.length != 1 && result.number == 0.0 },
+            invariants = arrayOf({ input, result ->
+                val expected = if (input.value.length == 1) 1.0 else 0.0
+                result.number == expected
+            }),
+        )
+
+        replay(listOf(
+            "if (new RuntimeNew().caughtNonConstructable() !== 1) throw Error('caught numeric TypeError');",
+            "if (new RuntimeNew().caughtNonConstructableString('a') !== 1) throw Error('caught string TypeError');"
+        ))
+    }
+
+    @Test
     fun `unmodeled constructor identity is explicitly unsupported`() {
         val method = getMethod(methodName = "symbolicConstructor", className = "RuntimeNew")
         val outcome = TsMachine(scene, options = machineOptions, tsOptions = TsOptions()).use { machine ->
