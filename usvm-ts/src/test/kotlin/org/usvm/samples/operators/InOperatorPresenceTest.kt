@@ -108,9 +108,16 @@ class InOperatorPresenceTest : PropertyTestRunner("/samples/operators/InOperator
             assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason, methodName)
             assertTrue(outcome.states.isEmpty(), methodName)
             assertTrue(outcome.unsupportedPaths.isNotEmpty(), methodName)
-            if (methodName.endsWith("PrototypeInitializer") || methodName == "inheritedThroughAssignedPrototype") {
-                assertTrue(outcome.unsupportedPaths.any { "prototype mutation" in it },
-                    "${outcome.unsupportedPaths}")
+            val isPrototypeInitializer = methodName.endsWith("PrototypeInitializer")
+            val mutatesPrototype = isPrototypeInitializer || methodName == "inheritedThroughAssignedPrototype"
+            if (mutatesPrototype) {
+                val rejectedByInterpreter = outcome.unsupportedPaths.any { "prototype mutation" in it }
+                // The native frontend rejects special __proto__ initializers before interpreter execution.
+                val rejectedByFrontend = isPrototypeInitializer && outcome.unsupportedPaths.any {
+                    it.startsWith("Unsupported frontend value: UnsupportedValue") &&
+                        "\"kindName\":\"ObjectLiteralExpression\"" in it && "__proto__" in it
+                }
+                assertTrue(rejectedByInterpreter || rejectedByFrontend, "${outcome.unsupportedPaths}")
             }
             if (methodName == "deletedToStringExposesPrototype" || methodName == "inheritedConstructor") {
                 assertTrue(outcome.unsupportedPaths.any { it.contains("prototype lookup", ignoreCase = true) },

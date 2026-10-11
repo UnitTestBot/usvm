@@ -537,29 +537,17 @@ class TsInterpreter(
     ): Unit? {
         val exprResolver = exprResolverWithScope(scope)
         return when (lhv) {
-            is EtsLocal -> {
-                exprResolver.handleAssignToLocal(lhv, expr)
-            }
+            is EtsLocal -> exprResolver.handleAssignToLocal(lhv, expr)
 
-            is EtsArrayAccess -> {
-                exprResolver.handleAssignToArrayIndex(lhv, expr)
-            }
+            is EtsArrayAccess -> exprResolver.handleAssignToArrayIndex(lhv, expr)
 
-            is EtsPropertyRef -> {
-                exprResolver.handleAssignToProperty(lhv, expr)
-            }
+            is EtsPropertyRef -> exprResolver.handleAssignToProperty(lhv, expr)
 
-            is EtsClosureFieldRef -> {
-                exprResolver.handleAssignToClosureField(lhv, expr)
-            }
+            is EtsClosureFieldRef -> exprResolver.handleAssignToClosureField(lhv, expr)
 
-            is EtsInstanceFieldRef -> {
-                exprResolver.handleAssignToInstanceField(lhv, expr)
-            }
+            is EtsInstanceFieldRef -> exprResolver.handleAssignToInstanceField(lhv, expr)
 
-            is EtsStaticFieldRef -> {
-                exprResolver.handleAssignToStaticField(lhv, expr)
-            }
+            is EtsStaticFieldRef -> exprResolver.handleAssignToStaticField(lhv, expr)
 
             else -> TODO("Not yet implemented")
         }

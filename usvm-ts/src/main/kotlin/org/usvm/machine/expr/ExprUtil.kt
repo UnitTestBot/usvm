@@ -33,8 +33,14 @@ import org.usvm.util.mkStringBackingLValue
 import org.usvm.util.mkStringBackingLengthLValue
 
 /**
- * Select one leaf reference for operations that depend on its allocation or storage type.
- * The model only orders the branches: fork schedules the other feasible branch at the same statement.
+ * Resolve a conditional reference before inspecting its allocation type or runtime metadata.
+ * Guarded property writes and aliases can produce `ite(condition, writtenRef, initialRef)`;
+ * array storage selection, object-literal lookup, and string backing checks need an individual reference.
+ * Ordinary symbolic memory reads already handle conditional references and do not need this helper.
+ *
+ * The cached model only chooses which branch continues now. [TsStepScope.fork] constrains that
+ * branch and schedules the other feasible branch at the same statement, preserving both outcomes.
+ * Nested conditionals are resolved in the same way; a non-conditional reference is returned unchanged.
  */
 internal fun TsContext.resolveHeapRef(scope: TsStepScope, ref: UHeapRef): UHeapRef? {
     var receiver = ref
@@ -62,8 +68,6 @@ fun TsContext.checkNotFake(expr: UExpr<*>) {
 // `any` is assignable both to and from string, so a type-relation query cannot identify
 // a materialized string. Inspect the concrete type stream before reading its backing array.
 private fun TsState.stringTypeCondition(ref: UHeapRef): UBoolExpr = with(ctx) {
-    if (ref is UNullRef) return@with falseExpr
-
     when (ref) {
         is UNullRef -> mkFalse()
 

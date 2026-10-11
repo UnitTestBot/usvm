@@ -526,6 +526,11 @@ class TsExprResolver(
                 mkTrue()
             }
 
+            is EtsPropertyRef -> {
+                val normalized = normalizePropertyRef(operand) ?: return null
+                visit(EtsDeleteExpr(arg = normalized))
+            }
+
             is EtsCastExpr -> visit(EtsDeleteExpr(arg = operand.arg))
 
             is EtsArrayAccess -> {
