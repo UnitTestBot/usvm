@@ -9,6 +9,7 @@ class Exponentiation {
     }
 
     reciprocal(value: number): number {
+        if (1 / value === -Infinity) return value ** -1;
         return value ** -1;
     }
 
@@ -57,7 +58,46 @@ class Exponentiation {
     }
 
     symbolicExponent(value: number, exponent: number): number {
-        return value ** exponent;
+        const result = value ** exponent;
+        if (exponent === 0) return result;
+        if (exponent === 1) return result;
+        if (exponent === 2) return result;
+        if (exponent === 0.5) {
+            if (value === 9) return result;
+            return result;
+        }
+        return result;
+    }
+
+    numberOrBooleanBase(value: number | boolean): number {
+        if (value === 3) return value ** 2;
+        if (value === true) return value ** 2;
+        if (value === false) return value ** 2;
+        return value ** 2;
+    }
+
+    numberOrBooleanExponent(exponent: number | boolean): number {
+        if (exponent === 2) return 3 ** exponent;
+        if (exponent === true) return 3 ** exponent;
+        if (exponent === false) return 3 ** exponent;
+        return 3 ** exponent;
+    }
+
+    mixedBase(value: any): number {
+        if (value === 3) return value ** 2;
+        if (value === true) return value ** 2;
+        if (value === false) return value ** 2;
+        if (value === null) return value ** 2;
+        if (value === undefined) return value ** 2;
+        return value ** 2;
+    }
+
+    mixedExponent(exponent: any): number {
+        if (exponent === 2) return 3 ** exponent;
+        if (exponent === true) return 3 ** exponent;
+        if (exponent === false) return 3 ** exponent;
+        if (exponent === null) return 3 ** exponent;
+        return 3 ** exponent;
     }
 
     unsupportedFractional(value: number): number {

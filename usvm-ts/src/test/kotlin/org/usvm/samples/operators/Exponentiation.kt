@@ -32,6 +32,78 @@ class Exponentiation : TsMethodTestRunner() {
     override val scene: EtsScene = loadScene(resource)
 
     @Test
+    fun `number and boolean fake bases retain their active payload`() {
+        for (methodName in listOf("numberOrBooleanBase", "mixedBase")) {
+            val method = getMethod(methodName)
+
+            discoverProperties<TsTestValue, TsTestValue.TsNumber>(
+                method = method,
+                { input, result -> input is TsTestValue.TsNumber && input.number == 3.0 && result.number == 9.0 },
+                { input, result -> input is TsTestValue.TsBoolean && input.value && result.number == 1.0 },
+                { input, result -> input is TsTestValue.TsBoolean && !input.value && result.number == 0.0 },
+                invariants = arrayOf({ input, result ->
+                    val number = primitiveNumber(input)
+                    sameNumber(result.number, number * number)
+                }),
+            )
+
+            replay(methodName, analyze(methodName))
+        }
+    }
+
+    @Test
+    fun `number and boolean fake exponents use the supported power cases`() {
+        for (methodName in listOf("numberOrBooleanExponent", "mixedExponent")) {
+            val method = getMethod(methodName)
+
+            discoverProperties<TsTestValue, TsTestValue.TsNumber>(
+                method = method,
+                { input, result -> input is TsTestValue.TsNumber && input.number == 2.0 && result.number == 9.0 },
+                { input, result -> input is TsTestValue.TsBoolean && input.value && result.number == 3.0 },
+                { input, result -> input is TsTestValue.TsBoolean && !input.value && result.number == 1.0 },
+            )
+
+            replay(methodName, analyze(methodName))
+        }
+    }
+
+    @Test
+    fun `symbolic exponent selects a supported power under path constraints`() {
+        val method = getMethod("symbolicExponent")
+
+        discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber, TsTestValue.TsNumber>(
+            method = method,
+            { _, exponent, result -> exponent.number == 0.0 && result.number == 1.0 },
+            { input, exponent, result -> exponent.number == 1.0 && sameNumber(input.number, result.number) },
+            { input, exponent, result -> exponent.number == 2.0 && sameNumber(input.number * input.number, result.number) },
+            { input, exponent, result -> input.number == 9.0 && exponent.number == 0.5 && result.number == 3.0 },
+        )
+
+        replay("symbolicExponent", analyze("symbolicExponent"))
+    }
+
+    @Test
+    fun `fake null and undefined payloads use Number conversion`() {
+        val baseMethod = getMethod("mixedBase")
+
+        discoverProperties<TsTestValue, TsTestValue.TsNumber>(
+            method = baseMethod,
+            { input, result -> input == TsTestValue.TsNull && sameNumber(result.number, expected = 0.0) },
+            { input, result -> input == TsTestValue.TsUndefined && result.number.isNaN() },
+        )
+
+        val exponentMethod = getMethod("mixedExponent")
+
+        discoverProperties<TsTestValue, TsTestValue.TsNumber>(
+            method = exponentMethod,
+            { input, result -> input == TsTestValue.TsNull && result.number == 1.0 },
+        )
+
+        replay("mixedBase", analyze("mixedBase"))
+        replay("mixedExponent", analyze("mixedExponent"))
+    }
+
+    @Test
     fun `supported symbolic powers replay in Node`() {
         for (methodName in listOf("square", "squareRoot")) {
             val method = getMethod(methodName)
@@ -164,27 +236,34 @@ class Exponentiation : TsMethodTestRunner() {
     }
 
     @Test
-    fun `unsupported symbolic powers are explicit`() {
-        for (methodName in listOf("symbolicExponent", "unsupportedFractional")) {
-            val failure = assertFailsWith<UnsupportedOperationException> { analyze(methodName) }
+    fun `unmodeled fixed power is explicit`() {
+        val failure = assertFailsWith<UnsupportedOperationException> { analyze("unsupportedFractional") }
 
-            assertTrue(failure.message.orEmpty().contains("exponentiation"))
-        }
+        assertTrue(failure.message.orEmpty().contains("exponentiation"))
     }
 
     @Test
-    fun `symbolic reciprocal is explicitly unsupported`() {
-        val failure = assertFailsWith<UnsupportedOperationException> { analyze("reciprocal") }
+    fun `zero reciprocals are modeled while ordinary reciprocals stay unsupported`() {
+        val method = getMethod("reciprocal")
 
-        assertTrue(failure.message.orEmpty().contains("exponent -1.0"))
+        discoverProperties<TsTestValue.TsNumber, TsTestValue.TsNumber>(
+            method = method,
+            { input, result -> sameNumber(input.number, expected = 0.0) && result.number == Double.POSITIVE_INFINITY },
+            { input, result -> sameNumber(input.number, expected = -0.0) && result.number == Double.NEGATIVE_INFINITY },
+            invariants = arrayOf({ input, _ -> input.number == 0.0 }),
+        )
+
+        val outcome = analyzeWithDefaultFailureHandling("reciprocal")
+
+        assertTrue(outcome.states.isNotEmpty())
+        assertTrue(outcome.unsupportedPaths.any { "exponent -1.0" in it })
+        replay("reciprocal", analyze("reciprocal"))
     }
 
     @Test
     fun `unsupported powers remain visible in ordinary analysis outcome`() {
         val cases = mapOf(
-            "symbolicExponent" to "Symbolic exponentiation exponent",
             "unsupportedFractional" to "Number exponentiation with exponent 1.5",
-            "reciprocal" to "Number exponentiation with exponent -1.0",
             "stringBase" to "outside the supported Number conversion model",
         )
 
@@ -197,6 +276,23 @@ class Exponentiation : TsMethodTestRunner() {
                 outcome.unsupportedPaths.any { reason -> expectedReason in reason },
                 "$methodName: ${outcome.unsupportedPaths}",
             )
+        }
+    }
+
+    @Test
+    fun `symbolic powers and fake conversions retain unsupported alternatives`() {
+        val cases = mapOf(
+            "symbolicExponent" to "Number exponentiation with exponent",
+            "mixedBase" to "outside the supported Number conversion model",
+            "mixedExponent" to "outside the supported Number conversion model",
+        )
+
+        for ((methodName, expectedReason) in cases) {
+            val outcome = analyzeWithDefaultFailureHandling(methodName)
+
+            assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason, methodName)
+            assertTrue(outcome.states.isNotEmpty(), "$methodName lost supported states")
+            assertTrue(outcome.unsupportedPaths.any { expectedReason in it }, "$methodName: ${outcome.unsupportedPaths}")
         }
     }
 
@@ -231,8 +327,13 @@ class Exponentiation : TsMethodTestRunner() {
             appendLine(source)
             tests.forEachIndexed { index, test ->
                 val args = test.before.parameters.map { value ->
-                    val number = assertIs<TsTestValue.TsNumber>(value).number
-                    jsNumber(number)
+                    when (value) {
+                        is TsTestValue.TsNumber -> jsNumber(value.number)
+                        is TsTestValue.TsBoolean -> value.value.toString()
+                        TsTestValue.TsNull -> "null"
+                        TsTestValue.TsUndefined -> "undefined"
+                        else -> error("Unmodeled replay input: $value")
+                    }
                 }.joinToString()
                 val expected = assertIs<TsTestValue.TsNumber>(test.returnValue).number
                 appendLine(
@@ -257,6 +358,17 @@ class Exponentiation : TsMethodTestRunner() {
         value == 0.0 && value.toRawBits() == (-0.0).toRawBits() -> "-0"
         else -> value.toString()
     }
+
+    private fun primitiveNumber(value: TsTestValue): Double = when (value) {
+        is TsTestValue.TsNumber -> value.number
+        is TsTestValue.TsBoolean -> if (value.value) 1.0 else 0.0
+        TsTestValue.TsNull -> 0.0
+        TsTestValue.TsUndefined -> Double.NaN
+        else -> error("Unmodeled Number conversion: $value")
+    }
+
+    private fun sameNumber(actual: Double, expected: Double): Boolean =
+        actual.toRawBits() == expected.toRawBits() || (actual.isNaN() && expected.isNaN())
 
     private companion object {
         val machineOptions = UMachineOptions(
