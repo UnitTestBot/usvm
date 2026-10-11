@@ -93,6 +93,16 @@ class RuntimeInstanceof {
         return new InstanceA() instanceof ctor;
     }
 
+    caughtNonCallableRight(): number {
+        try {
+            const ctor: any = 42;
+            new InstanceA() instanceof ctor;
+            return 0;
+        } catch {
+            return 1;
+        }
+    }
+
     booleanRight(): boolean {
         const ctor: any = true;
         return new InstanceA() instanceof ctor;

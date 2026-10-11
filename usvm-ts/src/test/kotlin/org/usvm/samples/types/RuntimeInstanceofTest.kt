@@ -326,6 +326,15 @@ class RuntimeInstanceofTest : TsMethodTestRunner() {
     }
 
     @Test
+    fun `non callable RHS TypeError reaches the catch block`() {
+        discoverConstant(methodName = "caughtNonCallableRight", expected = 1.0)
+
+        replay(listOf(
+            "if (new RuntimeInstanceof().caughtNonCallableRight() !== 1) throw Error('caught TypeError');"
+        ))
+    }
+
+    @Test
     fun `custom hasInstance is explicitly unsupported`() {
         val custom = analyze("customHasInstance")
         val inherited = analyze("inheritedHasInstance")

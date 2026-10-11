@@ -130,8 +130,8 @@ import org.usvm.machine.state.newStmt
 import org.usvm.machine.types.EtsNominalType
 import org.usvm.machine.types.iteWriteIntoFakeObject
 import org.usvm.sizeSort
-import org.usvm.types.singleOrNull
 import org.usvm.types.TypesResult
+import org.usvm.types.singleOrNull
 import org.usvm.util.EtsHierarchy
 import org.usvm.util.SymbolResolutionResult
 import org.usvm.util.arrayStorageType
@@ -485,9 +485,11 @@ class TsExprResolver(
         }
 
         val functionValue = mkStringConstant("function", scope)
+        val isClassConstructor = ref is UConcreteHeapRef && classConstructorSignature(ref) != null
+        if (isClassConstructor) return functionValue
+
         val isKnownFunction = scope.calcOnState {
             ref is UConcreteHeapRef && (
-                classConstructorSignature(ref) != null ||
                 associatedFunction[ref] != null ||
                     memory.types.getTypeStream(ref).singleOrNull() is EtsFunctionType
                 )

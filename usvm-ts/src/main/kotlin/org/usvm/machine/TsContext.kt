@@ -102,8 +102,6 @@ class TsContext(
 
     fun classConstructorSignature(ref: UConcreteHeapRef): EtsClassSignature? = constructorSignatures[ref]
 
-    fun classConstructorRefs(): Collection<UConcreteHeapRef> = classConstructorRefs.values
-
     /**
      * Reverse mapping from heap references to their original string constant values.
      * This is used during test resolution to retrieve the actual string content when
