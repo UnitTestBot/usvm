@@ -822,8 +822,17 @@ class TsExprResolver(
     }
 
     override fun visit(expr: EtsExpExpr): UExpr<out USort>? {
-        logger.warn { "visit(${expr::class.simpleName}) is not implemented yet" }
-        error("Not supported $expr")
+        return resolveAfterResolved(expr.left, expr.right) { left, right ->
+            with(ctx) {
+                val unsupportedReason = "Exponentiation operand outside the supported Number conversion model"
+                val base = mkNumberPrimitiveExpr(left, scope, unsupportedReason = unsupportedReason)
+                    ?: return@with null
+                val exponent = mkNumberPrimitiveExpr(right, scope, unsupportedReason = unsupportedReason)
+                    ?: return@with null
+
+                mkNumberExponentiationExpr(base, exponent, scope)
+            }
+        }
     }
 
     override fun visit(expr: EtsBitAndExpr): UExpr<out USort>? = with(ctx) {
