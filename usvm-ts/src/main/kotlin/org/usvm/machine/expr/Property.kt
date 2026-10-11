@@ -16,7 +16,9 @@ import org.usvm.UExpr
 import org.usvm.util.arrayStorageType
 
 internal fun TsExprResolver.handlePropertyRef(value: EtsPropertyRef): UExpr<*>? {
-    return when (val normalized = normalizePropertyRef(value) ?: return null) {
+    val normalized = normalizePropertyRef(value) ?: return null
+
+    return when (normalized) {
         is EtsArrayAccess -> handleArrayAccess(normalized)
         is EtsInstanceFieldRef -> handleInstanceFieldRef(normalized)
         else -> error("Unexpected normalized property: $normalized")
@@ -24,7 +26,9 @@ internal fun TsExprResolver.handlePropertyRef(value: EtsPropertyRef): UExpr<*>? 
 }
 
 internal fun TsExprResolver.handleAssignToProperty(value: EtsPropertyRef, expr: UExpr<*>): Unit? {
-    return when (val normalized = normalizePropertyRef(value) ?: return null) {
+    val normalized = normalizePropertyRef(value) ?: return null
+
+    return when (normalized) {
         is EtsArrayAccess -> handleAssignToArrayIndex(normalized, expr)
         is EtsInstanceFieldRef -> handleAssignToInstanceField(normalized, expr)
         else -> error("Unexpected normalized property: $normalized")

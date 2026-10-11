@@ -42,7 +42,11 @@ internal fun TsExprResolver.tryCaptureInstanceCall(
 
     // Actual callback fields keep their value, including non-callable values.
     val owners = hierarchy.classesForType(EtsClassType(field.field.enclosingClass))
-    if (owners.any { owner -> owner.getAllFields(hierarchy).any { it.name == field.field.name } }) {
+    val hasDeclaredField = owners.any { owner ->
+        owner.getAllFields(hierarchy).any { it.name == field.field.name }
+    }
+
+    if (hasDeclaredField) {
         return TsExprApproximationResult.NoApproximation
     }
 
