@@ -1,5 +1,6 @@
 package org.usvm.machine.expr
 
+import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsStaticCallExpr
 import org.jacodb.ets.model.EtsValue
 import org.usvm.UExpr
@@ -21,6 +22,15 @@ internal fun TsExprResolver.tryApproximateStaticCall(
     // Handle `Boolean(...)` calls
     if (expr.callee.name == "Boolean") {
         return from(handleBooleanConverter(expr))
+    }
+
+    return TsExprApproximationResult.NoApproximation
+}
+
+internal fun TsExprResolver.tryApproximateResolvedFunctionCall(method: EtsMethod): TsExprApproximationResult {
+    // Match the selected function, not its mutable source binding or alias name.
+    if (method.name == "\$r") {
+        return from(handleR())
     }
 
     return TsExprApproximationResult.NoApproximation

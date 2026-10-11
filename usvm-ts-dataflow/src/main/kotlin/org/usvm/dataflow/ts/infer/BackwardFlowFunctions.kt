@@ -76,13 +76,13 @@ class BackwardFlowFunctions(
             this != null && base is AccessPathBase.Const && accesses.isEmpty()
     }
 
-    private fun sequentZero(current: EtsStmt): List<BackwardTypeDomainFact> {
-        if (current is EtsReturnStmt) {
+    private fun sequentZero(stmt: EtsStmt): List<BackwardTypeDomainFact> {
+        if (stmt is EtsReturnStmt) {
             // Case `return x`
             // ∅ |= x:unknown
-            val returnValue = current.returnValue ?: return listOf(Zero)
+            val returnValue = stmt.returnValue ?: return listOf(Zero)
             val type = if (doAddKnownTypes) {
-                val knownType = returnValue.tryGetKnownType(current.location.method)
+                val knownType = returnValue.tryGetKnownType(stmt.location.method)
                 EtsTypeFact.from(knownType).fixAnyToUnknown()
             } else {
                 EtsTypeFact.UnknownEtsTypeFact
@@ -90,7 +90,7 @@ class BackwardFlowFunctions(
             return listOf(Zero, TypedVariable(returnValue.toPath(), type))
         }
 
-        if (current !is EtsAssignStmt) return listOf(Zero)
+        val current = stmt.dataflowAssignment() ?: return listOf(Zero)
 
         val lhv = current.lhv.toPath()
         val rhv = current.rhv.toPathOrNull()
@@ -160,8 +160,8 @@ class BackwardFlowFunctions(
         return result
     }
 
-    private fun sequentTypedVariable(current: EtsStmt, fact: TypedVariable): List<TypedVariable> {
-        if (current !is EtsAssignStmt) return emptyList()
+    private fun sequentTypedVariable(stmt: EtsStmt, fact: TypedVariable): List<TypedVariable> {
+        val current = stmt.dataflowAssignment() ?: return emptyList()
 
         val lhv = current.lhv.toPath()
         val rhv = current.rhv.toPathOrNull()
@@ -260,9 +260,9 @@ class BackwardFlowFunctions(
 
         val callExpr = callStatement.callExpr ?: error("No call")
 
-        if (callExpr is EtsInstanceCallExpr) {
-            val instance = callExpr.instance
-            val methodPath = instance.toPath() + FieldAccessor(callExpr.callee.name)
+        val receiver = callExpr.instanceReceiver()
+        if (receiver != null) {
+            val methodPath = receiver.toPath() + FieldAccessor(callExpr.callee.name)
             result += TypedVariable(methodPath, EtsTypeFact.FunctionEtsTypeFact)
         }
 
@@ -344,12 +344,8 @@ class BackwardFlowFunctions(
 
         when (fact.variable.base) {
             is AccessPathBase.This -> {
-                if (callExpr !is EtsInstanceCallExpr) {
-                    return emptyList()
-                }
-
-                val instance = callExpr.instance
-                val instancePath = instance.toPath()
+                val receiver = callExpr.instanceReceiver() ?: return emptyList()
+                val instancePath = receiver.toPath()
                 return listOf(TypedVariable(instancePath + tail, fact.type))
             }
 

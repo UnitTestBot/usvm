@@ -81,7 +81,7 @@ test('command exit removes descendants that retain inherited pipes', { timeout: 
     assert.notEqual(childPidText, processGroupPidText);
     assert.equal(await supervisorExit, 0);
 
-    assert.equal(isProcessAlive(childPid), false);
+    await assertProcessExited(childPid);
   } finally {
     supervisor.kill('SIGKILL');
     if (childPid !== undefined) terminateProcess(childPid);
@@ -143,6 +143,15 @@ function isMissingFile(error: unknown): boolean {
   return error instanceof Error
     && 'code' in error
     && error.code === 'ENOENT';
+}
+
+async function assertProcessExited(pid: number): Promise<void> {
+  const deadline = Date.now() + 2_000;
+
+  // A group-owner close event does not establish that every SIGKILL recipient has been reaped by the OS.
+  while (isProcessAlive(pid) && Date.now() < deadline) await delay(10);
+
+  assert.equal(isProcessAlive(pid), false, `Descendant ${pid} remains alive after process-group cleanup`);
 }
 
 function isProcessAlive(pid: number): boolean {

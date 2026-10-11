@@ -18,6 +18,7 @@ import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsNewArrayExpr
 import org.jacodb.ets.model.EtsNewExpr
 import org.jacodb.ets.model.EtsParameterRef
+import org.jacodb.ets.model.EtsPtrCallExpr
 import org.jacodb.ets.model.EtsStaticFieldRef
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.model.EtsThis
@@ -180,10 +181,8 @@ class StmtAliasInfoImpl(
         }
     }
 
-    internal fun applyStmt(stmt: EtsStmt): StmtAliasInfoImpl {
-        if (stmt !is EtsAssignStmt) {
-            return this
-        }
+    internal fun applyStmt(statement: EtsStmt): StmtAliasInfoImpl {
+        val stmt = statement.dataflowAssignment() ?: return this
         return when (val rhv = stmt.rhv) {
             is EtsParameterRef -> {
                 val alloc = method.allocationMap[Allocation.Arg(rhv.index)]
@@ -428,6 +427,13 @@ class MethodAliasInfoImpl(
                 newString(entity.callee.name)
                 entity.args.forEach { initEntity(it) }
             }
+
+            is EtsPtrCallExpr -> {
+                initEntity(entity.ptr)
+                entity.receiver?.let { initEntity(it) }
+                newString(entity.callee.name)
+                entity.args.forEach { initEntity(it) }
+            }
         }
     }
 
@@ -435,7 +441,8 @@ class MethodAliasInfoImpl(
         newAllocation(Allocation.This)
         newBase(AccessPathBase.This)
 
-        for (stmt in method.cfg.stmts) {
+        for (statement in method.cfg.stmts) {
+            val stmt = statement.dataflowAssignment() ?: statement
             when (stmt) {
                 is EtsAssignStmt -> {
                     initEntity(stmt.lhv)

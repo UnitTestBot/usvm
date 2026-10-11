@@ -4,7 +4,6 @@ on:
   push:
     branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]
   workflow_dispatch:
 
 env:
@@ -121,43 +120,8 @@ jobs:
         with:
           node-version: 22
 
-      - name: Configure /etc/hosts
-        run: cat .github/extra/hosts | sudo tee -a /etc/hosts
-
-      - name: Set up ArkAnalyzer
-        run: |
-          REPO_URL="https://gitcode.com/Lipen/arkanalyzer.git"
-          DEST_DIR="arkanalyzer"
-          MAX_RETRIES=10
-          RETRY_DELAY=3  # Delay between retries in seconds  
-          BRANCH="neo/2025-09-03"
-
-          for ((i=1; i<=MAX_RETRIES; i++)); do
-              git clone --depth=1 --branch $BRANCH $REPO_URL $DEST_DIR && break
-              echo "Clone failed, retrying in $RETRY_DELAY seconds..."
-              sleep "$RETRY_DELAY"
-          done
-
-          if [[ $i -gt $MAX_RETRIES ]]; then
-              echo "Failed to clone the repository after $MAX_RETRIES attempts."
-              exit 1
-          else
-              echo "Repository cloned successfully."
-          fi
-
-          echo "ARKANALYZER_DIR=$(realpath $DEST_DIR)" >> $GITHUB_ENV
-          cd $DEST_DIR
-
-          # ArkAnalyzer's bundled TypeScript 4.9 cannot parse syntax from the
-          # latest floating @types/node, so pin a compatible major before the
-          # single install. A second install would prune the postinstall-only
-          # ohos-typescript package because it is absent from package.json.
-          npm pkg set 'devDependencies.@types/node=18'
-          npm install
-          npm run build
-
       - name: Run TS tests
-        run: ./gradlew :usvm-ts:check :usvm-ts-dataflow:check
+        run: env -u ARKANALYZER_DIR ETS_IR_PROVIDER=ts-frontend ./gradlew :usvm-ts:check :usvm-ts-dataflow:check :usvm-ts-calls:check
 
       - name: Upload Gradle reports
         if: (!cancelled())

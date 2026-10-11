@@ -10,7 +10,6 @@ import org.jacodb.ets.model.EtsBooleanConstant
 import org.jacodb.ets.model.EtsCastExpr
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsFieldRef
-import org.jacodb.ets.model.EtsInstanceCallExpr
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsNegExpr
@@ -179,8 +178,8 @@ class ForwardFlowFunctions(
         }
     }
 
-    private fun sequentZero(current: EtsStmt): List<ForwardTypeDomainFact> {
-        if (current !is EtsAssignStmt) return listOf(Zero)
+    private fun sequentZero(stmt: EtsStmt): List<ForwardTypeDomainFact> {
+        val current = stmt.dataflowAssignment() ?: return listOf(Zero)
 
         val lhv = current.lhv.toPath()
         val result = mutableListOf<ForwardTypeDomainFact>(Zero)
@@ -283,8 +282,8 @@ class ForwardFlowFunctions(
         return result
     }
 
-    private fun sequentFact(current: EtsStmt, fact: TypedVariable): List<TypedVariable> {
-        if (current !is EtsAssignStmt) return listOf(fact)
+    private fun sequentFact(stmt: EtsStmt, fact: TypedVariable): List<TypedVariable> {
+        val current = stmt.dataflowAssignment() ?: return listOf(fact)
 
         val lhv = current.lhv.toPath()
 
@@ -582,8 +581,9 @@ class ForwardFlowFunctions(
 
         val callExpr = callStatement.callExpr ?: error("No call")
 
-        if (callExpr is EtsInstanceCallExpr) {
-            val instance = callExpr.instance.toPath()
+        val receiver = callExpr.instanceReceiver()
+        if (receiver != null) {
+            val instance = receiver.toPath()
             if (fact.variable.base == instance.base) {
                 val path = AccessPath(AccessPathBase.This, fact.variable.accesses)
                 result += TypedVariable(path, fact.type)
@@ -623,11 +623,8 @@ class ForwardFlowFunctions(
         when (factVariableBase) {
             is AccessPathBase.This -> {
                 // Drop facts on This if the call was static
-                if (callExpr !is EtsInstanceCallExpr) {
-                    return emptyList()
-                }
-
-                val instance = callExpr.instance.toPath()
+                val receiver = callExpr.instanceReceiver() ?: return emptyList()
+                val instance = receiver.toPath()
                 check(instance.accesses.isEmpty())
 
                 val path = AccessPath(instance.base, fact.variable.accesses)

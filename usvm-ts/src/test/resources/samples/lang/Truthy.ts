@@ -2,6 +2,27 @@
 // noinspection JSUnusedGlobalSymbols
 
 class Truthy {
+    storedNumberTruthy(): number {
+        const values: unknown[] = [7];
+        const value = values[0];
+        if (!value) return -1;
+        return value === 7 ? 1 : -2;
+    }
+
+    storedBooleanTruthy(): number {
+        const values: unknown[] = [true];
+        const value = values[0];
+        if (!value) return -1;
+        return value === true ? 1 : -2;
+    }
+
+    storedPrimitivesFalsy(): number {
+        const values: unknown[] = [0, false];
+        if (values[0]) return -1;
+        if (values[1]) return -2;
+        return 1;
+    }
+
     arrayTruthy(): number {
         if (![]) return -1; // unreachable
         if (![0]) return -2; // unreachable

@@ -4,7 +4,6 @@ import io.ksmt.sort.KFp64Sort
 import io.ksmt.utils.asExpr
 import io.mockk.mockk
 import org.jacodb.ets.model.EtsFile
-import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsPtrCallExpr
@@ -432,7 +431,8 @@ class TsUnknownCallDispatcherTest {
 
         val call = dispatcher.calls.single()
         val receiver = assertNotNull(call.receiver)
-        assertEquals("receiver", assertIs<EtsLocal>(receiver.source).name)
+        val sourceCall = assertIs<EtsPtrCallExpr>(assertNotNull(call.callSite.callExpr))
+        assertEquals(assertNotNull(sourceCall.receiver), receiver.source)
         assertNotNull(receiver.resolved)
         assertTrue(call.arguments.isEmpty())
     }
@@ -446,6 +446,9 @@ class TsUnknownCallDispatcherTest {
             "valueOfReturnsReceiver",
             "mathFloorRoundsTowardNegativeInfinity",
             "resourceLookupSkipsBody",
+            "resourceAliasSkipsBody",
+            "resourceBindingReplacementRunsBody",
+            "resourceLookupEvaluatesArgument",
         )
 
         methods.forEach { methodName ->

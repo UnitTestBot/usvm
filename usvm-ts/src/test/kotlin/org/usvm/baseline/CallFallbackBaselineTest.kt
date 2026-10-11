@@ -2,12 +2,10 @@ package org.usvm.baseline
 
 import org.jacodb.ets.model.EtsCallExpr
 import org.jacodb.ets.model.EtsFile
-import org.jacodb.ets.model.EtsInstanceCallExpr
 import org.jacodb.ets.model.EtsMethod
 import org.jacodb.ets.model.EtsPtrCallExpr
 import org.jacodb.ets.model.EtsReturnStmt
 import org.jacodb.ets.model.EtsScene
-import org.jacodb.ets.model.EtsStaticCallExpr
 import org.jacodb.ets.model.EtsStmt
 import org.jacodb.ets.utils.EtsIrProvider
 import org.jacodb.ets.utils.callExpr
@@ -24,6 +22,7 @@ import org.usvm.machine.call.TsCompatibilityUnknownCallDispatcher
 import org.usvm.util.getResourcePath
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration
 
@@ -69,7 +68,9 @@ class CallFallbackBaselineTest {
 
     @Test
     fun `an instance call on a non-reference value prunes the state`() {
-        assertIs<EtsInstanceCallExpr>(callExpression("nonReferenceInstanceCallPrunes"))
+        val call = assertIs<EtsPtrCallExpr>(callExpression("nonReferenceInstanceCallPrunes"))
+        assertNotNull(call.receiver)
+
         assertFalse(reachesReturn("nonReferenceInstanceCallPrunes"))
     }
 
@@ -154,8 +155,29 @@ class CallFallbackBaselineTest {
 
     @Test
     fun `resource lookup is approximated before entering its body`() {
-        assertIs<EtsStaticCallExpr>(callExpression("resourceLookupSkipsBody"))
-        assertTrue(reachesReturn("resourceLookupSkipsBody"))
+        assertPointerCall("resourceLookupSkipsBody")
+        val statements = reachedStatements("resourceLookupSkipsBody")
+
+        assertTrue(returnStatement(fullScene, "resourceLookupSkipsBody") in statements)
+        assertFalse(method(fullScene, "\$r", className = "%dflt").cfg.stmts.first() in statements)
+    }
+
+    @Test
+    fun `retained resource lookup aliases are approximated after binding replacement`() {
+        assertTrue(reachesReturn("resourceAliasSkipsBody"))
+    }
+
+    @Test
+    fun `resource binding replacement executes the selected replacement body`() {
+        val statements = reachedStatements("resourceBindingReplacementRunsBody")
+
+        assertTrue(returnStatement(fullScene, "resourceBindingReplacementRunsBody") in statements)
+        assertTrue(returnStatement(fullScene, "resourceReplacement", className = "%dflt") in statements)
+    }
+
+    @Test
+    fun `resource lookup evaluates its argument before approximation`() {
+        assertTrue(reachesReturn("resourceLookupEvaluatesArgument"))
     }
 
     private fun reachesReturn(
@@ -186,8 +208,15 @@ class CallFallbackBaselineTest {
         }
     }
 
-    private fun returnStatement(scene: EtsScene, methodName: String): EtsReturnStmt =
-        method(scene, methodName).cfg.stmts.filterIsInstance<EtsReturnStmt>().single()
+    private fun returnStatement(
+        scene: EtsScene,
+        methodName: String,
+        className: String = "CallFallbackBaseline",
+    ): EtsReturnStmt = method(
+        scene = scene,
+        methodName = methodName,
+        className = className,
+    ).cfg.stmts.filterIsInstance<EtsReturnStmt>().single()
 
     private fun assertPointerCall(methodName: String) {
         assertIs<EtsPtrCallExpr>(callExpression(methodName))

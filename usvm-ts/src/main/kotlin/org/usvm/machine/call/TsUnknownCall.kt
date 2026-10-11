@@ -138,7 +138,7 @@ internal fun TsUnknownCallDispatcher.dispatch(
 
     val receiverSource = when (call) {
         is EtsInstanceCallExpr -> call.instance
-        is EtsPtrCallExpr -> call.ptr
+        is EtsPtrCallExpr -> call.receiver ?: call.ptr
         else -> null
     }
     return dispatch(
@@ -163,7 +163,7 @@ internal fun TsUnknownCallDispatcher.dispatch(
     resolvedReceiver: UExpr<*>,
 ) = dispatch(
     scope,
-    call.call,
+    call.originalCall,
     call.returnSite,
     failureReason,
     resolvedReceiver = resolvedReceiver,

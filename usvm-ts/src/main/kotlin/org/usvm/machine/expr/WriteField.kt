@@ -4,13 +4,16 @@ import io.ksmt.utils.asExpr
 import mu.KotlinLogging
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsBooleanType
+import org.jacodb.ets.model.EtsClosureFieldRef
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsStaticFieldRef
+import org.jacodb.ets.model.EtsType
 import org.usvm.UExpr
 import org.usvm.UHeapRef
+import org.usvm.isAllocatedConcreteHeapRef
 import org.usvm.machine.TsContext
 import org.usvm.machine.interpreter.TsStepScope
 import org.usvm.machine.interpreter.ensureStaticsInitialized
@@ -25,6 +28,36 @@ import org.usvm.util.mkFieldLValue
 import org.usvm.util.resolveEtsField
 
 private val logger = KotlinLogging.logger {}
+
+internal fun TsExprResolver.handleAssignToClosureField(
+    lhv: EtsClosureFieldRef,
+    expr: UExpr<*>,
+): Unit? = with(ctx) {
+    val instance = resolve(lhv.base) ?: return null
+    assignToClosureField(scope, instance.asExpr(addressSort), lhv.fieldName, lhv.type, expr)
+}
+
+internal fun TsContext.assignToClosureField(
+    scope: TsStepScope,
+    instance: UHeapRef,
+    fieldName: String,
+    fieldType: EtsType,
+    expr: UExpr<*>,
+): Unit? {
+    check(isAllocatedConcreteHeapRef(instance)) {
+        "Closure object should be a concrete heap reference, but got $instance"
+    }
+
+    val declaredSort = typeToSort(fieldType)
+    val sort = if (declaredSort == unresolvedSort) addressSort else declaredSort
+    val lValue = mkFieldLValue(sort, instance, fieldName)
+    val fakeObject = if (declaredSort == unresolvedSort) expr.toFakeObject(scope) else null
+    val value = fakeObject ?: expr
+    return scope.doWithState {
+        if (fakeObject != null) lValuesToAllocatedFakeObjects += lValue to fakeObject
+        memory.write(lValue, value.asExpr(sort), guard = trueExpr)
+    }
+}
 
 internal fun TsExprResolver.handleAssignToInstanceField(
     lhv: EtsInstanceFieldRef,

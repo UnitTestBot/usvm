@@ -25,6 +25,33 @@ class Truthy : TsMethodTestRunner() {
     override val scene: EtsScene = loadScene(tsPath)
 
     @Test
+    fun `a stored number remains truthy`() {
+        discoverProperties<TsTestValue.TsNumber>(
+            method = getMethod("storedNumberTruthy"),
+            { result -> result eq 1 },
+            invariants = arrayOf({ result -> result eq 1 }),
+        )
+    }
+
+    @Test
+    fun `a stored boolean remains truthy`() {
+        discoverProperties<TsTestValue.TsNumber>(
+            method = getMethod("storedBooleanTruthy"),
+            { result -> result eq 1 },
+            invariants = arrayOf({ result -> result eq 1 }),
+        )
+    }
+
+    @Test
+    fun `stored zero and false remain falsy`() {
+        discoverProperties<TsTestValue.TsNumber>(
+            method = getMethod("storedPrimitivesFalsy"),
+            { result -> result eq 1 },
+            invariants = arrayOf({ result -> result eq 1 }),
+        )
+    }
+
+    @Test
     fun `test arrayTruthy`() {
         val method = getMethod("arrayTruthy")
         discoverProperties<TsTestValue.TsNumber>(

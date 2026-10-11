@@ -40,4 +40,31 @@ class Increment : TsMethodTestRunner() {
             { result -> result eq 10 },
         )
     }
+
+    @Test
+    fun `post increment converts a boolean before preserving the old numeric value`() {
+        discoverProperties<TsTestValue.TsNumber>(
+            method = getMethod("postIncrementBoolean"),
+            { result -> result eq 12 },
+            invariants = arrayOf({ result -> result eq 12 }),
+        )
+    }
+
+    @Test
+    fun `post decrement converts null and writes the decremented numeric value`() {
+        discoverProperties<TsTestValue.TsNumber>(
+            method = getMethod("postDecrementNull"),
+            { result -> result eq -1 },
+            invariants = arrayOf({ result -> result eq -1 }),
+        )
+    }
+
+    @Test
+    fun `post increment writes the field while preserving the old numeric value`() {
+        discoverProperties<TsTestValue.TsNumber>(
+            method = getMethod("postIncrementField"),
+            { result -> result eq 12 },
+            invariants = arrayOf({ result -> result eq 12 }),
+        )
+    }
 }

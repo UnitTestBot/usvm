@@ -28,6 +28,8 @@ class TsVirtualMethodCallStmt(
     override val instance: UExpr<*>,
     override val args: List<UExpr<*>>,
     override val returnSite: EtsStmt,
+    val originalCall: EtsCallExpr = call,
+    val targetCaptured: Boolean = false,
 ) : TsMethodCall {
     override val resolvedReceiver: UExpr<*>
         get() = instance
@@ -39,7 +41,7 @@ class TsVirtualMethodCallStmt(
     fun toConcrete(callee: EtsMethod): TsConcreteMethodCallStmt {
         return TsConcreteMethodCallStmt(
             callee = callee,
-            call = call,
+            call = originalCall,
             resolvedReceiver = resolvedReceiver,
             instance = instance,
             args = args,

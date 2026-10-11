@@ -146,7 +146,7 @@ internal class OriginalTypeScriptTargetReplayer : CallsTargetReplayer {
                 instrumentedSource = instrumented,
             )
             val resultPath = workspace.resolve("invocation.json")
-            val wrapperName = ".usvm-source-replay-${UUID.randomUUID()}.ts"
+            val wrapperName = ".usvm-source-replay-${UUID.randomUUID()}.mts"
             Files.writeString(
                 overlayRoot.resolve(wrapperName),
                 replayWrapper(

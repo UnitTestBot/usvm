@@ -169,8 +169,8 @@ class Bitwise : TsMethodTestRunner() {
                 (a eq -1) && (b eq 1) && (r eq 2147483647)
             },
             { a, b, r ->
-                // x >>> 0 = x
-                (b eq 0) && (r eq a)
+                // -1 >>> 0 = ToUint32(-1) = 4294967295
+                (a eq -1) && (b eq 0) && (r eq 4294967295.0)
             },
             invariants = arrayOf(
                 // TODO: implement TS behaviour for unsigned right shift
