@@ -5,7 +5,6 @@ import mu.KotlinLogging
 import org.jacodb.ets.model.EtsArrayType
 import org.jacodb.ets.model.EtsClassType
 import org.jacodb.ets.model.EtsField
-import org.jacodb.ets.model.EtsFieldImpl
 import org.jacodb.ets.model.EtsFieldSignature
 import org.jacodb.ets.model.EtsInstanceFieldRef
 import org.jacodb.ets.model.EtsLocal
@@ -208,7 +207,7 @@ private fun TsContext.resolveInputField(
     val activeInitial = mkAnd(present, mkNot(written))
 
     // Annotation constraints apply only while the initial field value is visible, before a write or deletion.
-    val declared = declaredInputField(local, field.name, hierarchy)
+    val declared = declaredInputProperty(local, field.name, hierarchy)
     val rawInitial = scope.calcOnState { readInputPropertyValue(memory, instance, field.name, written = false) }
     val initial = prepareInitialInputField(scope, rawInitial, declared, activeInitial, hierarchy) ?: return null
     val current = scope.calcOnState { currentInputPropertyValue(memory, instance, field.name, initial) }
@@ -222,12 +221,12 @@ private fun TsContext.resolveInputField(
 private fun TsContext.prepareInitialInputField(
     scope: TsStepScope,
     value: TsUnresolvedValue,
-    field: EtsField?,
+    declaration: InputPropertyDeclaration?,
     activeInitial: UBoolExpr,
     hierarchy: EtsHierarchy,
 ): TsUnresolvedValue? {
-    val optional = (field as? EtsFieldImpl)?.isOptional == true
-    val sort = field?.let { typeToSort(it.type) } ?: unresolvedSort
+    val optional = declaration?.optional == true
+    val sort = declaration?.let { typeToSort(it.type) } ?: unresolvedSort
     val expectedKind = when (sort) {
         boolSort -> value.type.boolTypeExpr
         fp64Sort -> value.type.fpTypeExpr
@@ -244,17 +243,17 @@ private fun TsContext.prepareInitialInputField(
 
     // Optional references may be undefined even when the field exists.
     val activeReference = if (optional) mkAnd(activeInitial, mkNot(isUndefined)) else activeInitial
-    val referenceConstraint = initialReferenceConstraint(scope, value.refValue, field?.type, hierarchy)
+    val referenceConstraint = initialReferenceConstraint(scope, value.refValue, declaration?.type, hierarchy)
     val activeReferenceConstraint = mkImplies(activeReference, referenceConstraint)
     scope.assert(activeReferenceConstraint) ?: return null
 
-    if (field?.type !is EtsStringType && field?.type !is EtsStringLiteralType) return value
+    if (declaration?.type !is EtsStringType && declaration?.type !is EtsStringLiteralType) return value
 
     val stringRef = materializeTypedStringField(
         scope = scope,
         value = value.refValue,
         maxStringLength = scope.calcOnState { maxStringLength },
-        literal = (field.type as? EtsStringLiteralType)?.value,
+        literal = (declaration.type as? EtsStringLiteralType)?.value,
         activeGuard = activeReference,
     ) ?: return null
     val initialRef = if (optional) mkIte(isUndefined, mkUndefinedValue(), stringRef) else stringRef

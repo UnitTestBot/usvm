@@ -14,7 +14,69 @@ class PropertyChild extends PropertyBase {
     redeclared: string;
 }
 
+interface SharedPropertyDeclaration {
+    shared: number;
+    text: string;
+    optional?: string;
+}
+
+class SharedPropertyBase {
+    shared: number;
+    text: string;
+    optional?: string;
+}
+
+class MultiplePropertyDeclarations extends SharedPropertyBase implements SharedPropertyDeclaration {
+}
+
+interface OtherSharedPropertyDeclaration {
+    shared: number;
+}
+
+interface MultipleInterfaceDeclarations extends SharedPropertyDeclaration, OtherSharedPropertyDeclaration {
+}
+
+interface OptionalPropertyContract {
+    shared?: number;
+    text?: string;
+}
+
+class RequiredPropertyImplementation extends SharedPropertyBase implements OptionalPropertyContract {
+}
+
 class SymbolicProperties {
+    multiplePropertyDeclarations(obj: MultiplePropertyDeclarations): number {
+        if (!("shared" in obj)) return -1;
+        return typeof obj.shared === "number" ? 1 : -2;
+    }
+
+    multipleStringDeclarations(obj: MultiplePropertyDeclarations): number {
+        if (obj.text.length > 6) return 2;
+
+        const joined = obj.text + "!";
+        return "text" in obj && joined.length === obj.text.length + 1 ? 1 : -1;
+    }
+
+    multipleOptionalDeclarations(obj: MultiplePropertyDeclarations): number {
+        if (!("optional" in obj)) return obj.optional === undefined ? 0 : -1;
+        if (obj.optional === undefined) return 3;
+        return typeof obj.optional === "string" ? 1 : -2;
+    }
+
+    multipleInterfaceDeclarations(obj: MultipleInterfaceDeclarations): number {
+        if (!("shared" in obj)) return -1;
+        return typeof obj.shared === "number" ? 1 : -2;
+    }
+
+    classFieldOverridesInterfaceContract(obj: RequiredPropertyImplementation): number {
+        if (!("shared" in obj) || !("text" in obj)) return -1;
+        if (typeof obj.shared !== "number") return -2;
+        if (obj.text.length > 6) return 2;
+
+        const joined = obj.text + "!";
+        return joined.length === obj.text.length + 1 ? 1 : -3;
+    }
+
     inheritedFields(obj: PropertyChild): number {
         return "inherited" in obj && "redeclared" in obj && obj.redeclared !== undefined ? 1 : -1;
     }
@@ -168,6 +230,57 @@ class SymbolicProperties {
         a.fresh = "alias";
         if (a !== b) return 0;
         return "fresh" in b && b.fresh === "alias" && b.fresh.length === 5 ? 1 : -1;
+    }
+
+    aliasStringConcat(a: { text: string }, b: { text: string }): number {
+        if (b.text.length > 6) return 2;
+
+        a.text = "a";
+        const joined = b.text + "!";
+        if (a === b) return joined === "a!" ? 1 : -1;
+        return joined === b.text + "!" && joined.length === b.text.length + 1 ? 0 : -2;
+    }
+
+    nestedAliasStringConcat(a: { text: string }, b: { text: string }, c: { text: string }): number {
+        if (c.text.length > 6) return 4;
+
+        a.text = "a";
+        b.text = "bb";
+        const joined = c.text + "!";
+        if (c === a && c === b) return joined === "bb!" ? 3 : -3;
+        if (c === b) return joined === "bb!" ? 2 : -2;
+        if (c === a) return joined === "a!" ? 1 : -1;
+        return joined === c.text + "!" && joined.length === c.text.length + 1 ? 0 : -4;
+    }
+
+    bothOperandsAliasStringConcat(a: { text: string }, b: { text: string }, c: { text: string }): number {
+        a.text = "a";
+        b.text = "b";
+        c.text = "c";
+
+        const joined = a.text + b.text;
+        if (a === b && a === c) return joined === "cc" ? 4 : -4;
+        if (a === b) return joined === "bb" ? 3 : -3;
+        if (a === c) return joined === "cb" ? 2 : -2;
+        if (b === c) return joined === "ac" ? 1 : -1;
+        return joined === "ab" ? 0 : -5;
+    }
+
+    mixedKindStringConcat(a: { text: string }, b: { text: string }, value: number): number {
+        if (b.text.length > 6) return 2;
+
+        a.text = value;
+        const joined = b.text + "!";
+        return joined.length === b.text.length + 1 ? 1 : -1;
+    }
+
+    optionalStringConcat(obj: { text?: string }): number {
+        if (!("text" in obj)) return obj.text === undefined ? 0 : -1;
+        if (obj.text === undefined) return 3;
+        if (obj.text.length > 6) return 2;
+
+        const joined = obj.text + "!";
+        return joined.length === obj.text.length + 1 ? 1 : -2;
     }
 
     aliasObjectChange(a: Object, b: Object): number {

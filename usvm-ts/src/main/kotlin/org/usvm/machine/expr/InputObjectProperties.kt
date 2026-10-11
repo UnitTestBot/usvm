@@ -1,8 +1,8 @@
 package org.usvm.machine.expr
 
 import org.jacodb.ets.model.EtsArrayType
+import org.jacodb.ets.model.EtsClassCategory
 import org.jacodb.ets.model.EtsClassType
-import org.jacodb.ets.model.EtsField
 import org.jacodb.ets.model.EtsFieldImpl
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsType
@@ -44,22 +44,38 @@ private fun <S : USort> propertyLValue(sort: S, ref: UHeapRef, name: String, slo
 internal fun TsContext.initialPropertyPresenceLValue(ref: UHeapRef, name: String): UFieldLValue<*, UBoolSort> =
     propertyLValue(boolSort, ref, name, PropertySlot.INITIAL_PRESENCE, written = false)
 
-/** Resolve only the receiver's declaration, never an unrelated same-name field in the scene. */
-internal fun declaredInputField(local: EtsLocal?, name: String, hierarchy: EtsHierarchy): EtsField? {
+internal data class InputPropertyDeclaration(val type: EtsType, val optional: Boolean)
+
+/** Resolve receiver-local metadata; independent declarations must agree on type and optionality. */
+internal fun declaredInputProperty(
+    local: EtsLocal?,
+    name: String,
+    hierarchy: EtsHierarchy,
+): InputPropertyDeclaration? {
     val type = local?.type
     if (type !is EtsClassType && type !is EtsUnclearRefType) return null
 
-    val fields = hierarchy.classesForType(type).flatMap { receiver ->
-        val owners = hierarchy.getAncestors(receiver).filter { owner ->
+    val declarations = hierarchy.classesForType(type).map { receiver ->
+        val fieldOwners = hierarchy.getAncestors(receiver).filter { owner ->
             owner.fields.any { !it.isStatic && it.name == name }
         }
+        // A class field defines the value even when an implemented interface has a weaker contract.
+        val classOwners = fieldOwners.filter { it.category != EtsClassCategory.INTERFACE }
+        val owners = classOwners.ifEmpty { fieldOwners }
+
         // A redeclaration shadows the ancestor's type and optional flag.
         val nearestOwners = owners.filter { owner ->
             owners.none { descendant -> owner != descendant && owner in hierarchy.getAncestors(descendant) }
         }
         nearestOwners.flatMap { owner -> owner.fields.filter { !it.isStatic && it.name == name } }
+            .map { field ->
+                InputPropertyDeclaration(field.type, optional = (field as? EtsFieldImpl)?.isOptional == true)
+            }
+            .distinct()
+            .singleOrNull()
     }
-    return fields.distinctBy { it.signature }.singleOrNull()
+    // An unresolved receiver may denote several classes. Keep metadata only when every candidate agrees.
+    return declarations.distinct().singleOrNull()
 }
 
 internal fun TsContext.trackInputProperty(
@@ -78,11 +94,11 @@ internal fun TsContext.trackInputProperty(
     }
     scope.assert(objectReceiver) ?: return null
 
-    val field = declaredInputField(local, name, hierarchy)
+    val declaration = declaredInputProperty(local, name, hierarchy)
     val initial = scope.calcOnState { memory.read(initialPropertyPresenceLValue(instance, name)) }
     val assumedPresence = when (scope.calcOnState { inputPropertyPresence }) {
         TsInputPropertyPresence.DECLARED_FIELDS -> {
-            if (field != null && (field as? EtsFieldImpl)?.isOptional != true) true else null
+            if (declaration != null && !declaration.optional) true else null
         }
         TsInputPropertyPresence.SYMBOLIC -> null
         TsInputPropertyPresence.ASSUME_PRESENT -> true
@@ -94,8 +110,8 @@ internal fun TsContext.trackInputProperty(
     }
 
     scope.doWithState {
-        val optional = (field as? EtsFieldImpl)?.isOptional == true
-        trackedObjectProperties += TrackedObjectProperty(instance, name, field?.type, optional = optional)
+        val optional = declaration?.optional == true
+        trackedObjectProperties += TrackedObjectProperty(instance, name, declaration?.type, optional = optional)
     }
     return initial
 }

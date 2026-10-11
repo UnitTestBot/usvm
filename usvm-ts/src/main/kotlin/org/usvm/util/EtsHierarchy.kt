@@ -36,9 +36,7 @@ class EtsHierarchy(private val scene: EtsScene) {
                     if (classes.isEmpty()) return@generateSequence null
 
                     val result = classes.flatMap { current ->
-                        val superClassSignature = current.superClass ?: return@generateSequence null
-
-                        val superClasses = resolveClassesBySignature(superClassSignature)
+                        val superClasses = current.superClass?.let { resolveClassesBySignature(it) }.orEmpty()
                         val interfaces = current.implementedInterfaces
 
                         val resolvedInterfaces = interfaces.flatMap { resolveClassesBySignature(it) }

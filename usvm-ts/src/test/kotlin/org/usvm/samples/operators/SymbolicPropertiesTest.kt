@@ -6,8 +6,11 @@ import org.usvm.machine.TsAnalysisStopReason
 import org.usvm.machine.TsInputPropertyPresence
 import org.usvm.machine.TsMachine
 import org.usvm.machine.TsOptions
+import org.usvm.machine.state.TsMethodResult
+import org.usvm.util.TsTestResolver
 import org.usvm.util.eq
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class SymbolicPropertiesTest : PropertyTestRunner("/samples/operators/SymbolicProperties.ts") {
@@ -23,6 +26,15 @@ class SymbolicPropertiesTest : PropertyTestRunner("/samples/operators/SymbolicPr
         checkSingleInput(name = "absentRead", expected = setOf(1, 2))
         checkSingleInput(name = "readsUnknown", expected = setOf(0, 1, 2, 3))
         checkSingleInput(name = "comparesUnknownValues", expected = setOf(0, 1, 2))
+    }
+
+    @Test
+    fun `equivalent declarations from a superclass and interface retain field metadata`() {
+        checkSingleInput(name = "multiplePropertyDeclarations", expected = setOf(1))
+        checkSingleInput(name = "multipleStringDeclarations", expected = setOf(1, 2))
+        checkSingleInput(name = "multipleOptionalDeclarations", expected = setOf(0, 1, 3))
+        checkSingleInput(name = "multipleInterfaceDeclarations", expected = setOf(1))
+        checkSingleInput(name = "classFieldOverridesInterfaceContract", expected = setOf(1, 2))
     }
 
     @Test
@@ -72,6 +84,75 @@ class SymbolicPropertiesTest : PropertyTestRunner("/samples/operators/SymbolicPr
                 invariants = arrayOf({ _, _, result -> result eq 0 || result eq 1 }),
             )
         }
+    }
+
+    @Test
+    fun `string concatenation preserves both aliased and distinct receiver paths`() {
+        val method = getMethod(methodName = "aliasStringConcat", className = "SymbolicProperties")
+
+        discoverProperties<TsTestValue, TsTestValue, TsTestValue.TsNumber>(
+            method = method,
+            { _, _, result -> result eq 0 },
+            { _, _, result -> result eq 1 },
+            { _, _, result -> result eq 2 },
+            invariants = arrayOf({ _, _, result -> result.number.toInt() in setOf(0, 1, 2) }),
+        )
+    }
+
+    @Test
+    fun `string concatenation preserves nested alias branches and the last write`() {
+        val method = getMethod(methodName = "nestedAliasStringConcat", className = "SymbolicProperties")
+
+        discoverProperties<TsTestValue, TsTestValue, TsTestValue, TsTestValue.TsNumber>(
+            method = method,
+            { _, _, _, result -> result eq 0 },
+            { _, _, _, result -> result eq 1 },
+            { _, _, _, result -> result eq 2 },
+            { _, _, _, result -> result eq 3 },
+            { _, _, _, result -> result eq 4 },
+            invariants = arrayOf({ _, _, _, result -> result.number.toInt() in setOf(0, 1, 2, 3, 4) }),
+        )
+    }
+
+    @Test
+    fun `string concatenation resolves conditional references in both operands`() {
+        val method = getMethod(methodName = "bothOperandsAliasStringConcat", className = "SymbolicProperties")
+
+        discoverProperties<TsTestValue, TsTestValue, TsTestValue, TsTestValue.TsNumber>(
+            method = method,
+            { _, _, _, result -> result eq 0 },
+            { _, _, _, result -> result eq 1 },
+            { _, _, _, result -> result eq 2 },
+            { _, _, _, result -> result eq 3 },
+            { _, _, _, result -> result eq 4 },
+            invariants = arrayOf({ _, _, _, result -> result.number.toInt() in setOf(0, 1, 2, 3, 4) }),
+        )
+    }
+
+    @Test
+    fun `string concatenation ignores infeasible absent and undefined payload branches`() {
+        checkSingleInput(name = "optionalStringConcat", expected = setOf(0, 1, 2, 3))
+    }
+
+    @Test
+    fun `unsupported numeric concatenation leaves the feasible string path available`() {
+        val method = getMethod(methodName = "mixedKindStringConcat", className = "SymbolicProperties")
+        val outcome = TsMachine(scene, options = options, tsOptions = tsOptions).use {
+            it.analyzeWithOutcome(methods = listOf(method))
+        }
+
+        assertEquals(TsAnalysisStopReason.EXHAUSTED, outcome.stopReason)
+        assertTrue(outcome.unsupportedPaths.isNotEmpty())
+        assertTrue(outcome.unsupportedPaths.all { it.startsWith("Unsupported string concatenation operand:") })
+
+        val tests = outcome.states.map { state ->
+            assertIs<TsMethodResult.Success>(state.methodResult)
+            TsTestResolver().resolve(method, state)
+        }
+        val results = tests.map { assertIs<TsTestValue.TsNumber>(it.returnValue).number }.toSet()
+
+        assertEquals(setOf(1.0, 2.0), results)
+        replay(method, tests)
     }
 
     @Test

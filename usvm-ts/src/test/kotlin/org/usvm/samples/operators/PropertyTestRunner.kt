@@ -59,7 +59,7 @@ abstract class PropertyTestRunner(protected val sourcePath: String) : TsMethodTe
         tests
     }
 
-    private fun replay(method: EtsMethod, tests: List<TsTest>) {
+    protected fun replay(method: EtsMethod, tests: List<TsTest>) {
         val assertions = buildString {
             tests.forEachIndexed { index, test ->
                 appendLine("{")
