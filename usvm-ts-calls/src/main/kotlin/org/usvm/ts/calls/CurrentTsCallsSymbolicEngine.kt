@@ -819,7 +819,7 @@ internal fun verifyCallsGitCheckout(checkout: Path, expectedRevision: String) {
     runCallsGit(checkout, "diff", "--quiet", "HEAD", "--")
 }
 
-private fun runCallsGit(checkout: Path, vararg arguments: String): String {
+internal fun runCallsGit(checkout: Path, vararg arguments: String): String {
     val process = ProcessBuilder(listOf("git", "-C", checkout.toString()) + arguments)
         .redirectErrorStream(true)
         .start()

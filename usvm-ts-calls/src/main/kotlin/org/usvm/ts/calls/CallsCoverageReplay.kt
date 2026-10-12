@@ -8,6 +8,7 @@ import org.usvm.ts.pbt.backend.PropertyRunConfiguration
 import org.usvm.ts.pbt.backend.PropertyRunStatus
 import org.usvm.ts.pbt.backend.SourceFileCoverage
 import org.usvm.ts.pbt.fastcheck.FastCheckBackend
+import org.usvm.ts.pbt.fastcheck.FastCheckRuntime
 import org.usvm.ts.pbt.fastcheck.TypeScriptSourceInspector
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.BooleanDomain
@@ -198,6 +199,9 @@ private fun coverageWrapper(
     observationPath: Path,
     dropSentinel: Boolean,
 ): String {
+    val protocolModule = CallsExperimentJson.json.encodeToUtf8SafeString(
+        FastCheckRuntime.protocolJsonModule().toUri().toString(),
+    )
     val moduleName = CallsExperimentJson.json.encodeToUtf8SafeString("./$sourceFile")
     val exportKey = CallsExperimentJson.json.encodeToUtf8SafeString(exportName)
     val outputPath = CallsExperimentJson.json.encodeToUtf8SafeString(observationPath.toString())
@@ -205,6 +209,7 @@ private fun coverageWrapper(
 
     return """
         import { writeFileSync } from 'node:fs';
+        import { stringifyProtocolJson } from $protocolModule;
         import * as targetModule from $moduleName;
 
         const callable = targetModule[$exportKey];
@@ -230,6 +235,7 @@ private fun coverageWrapper(
 
         export function coverageProbe(...args: unknown[]): boolean {
           const actualArgs = $sentinelExpression;
+          const encodedInputs = actualArgs.map(encodeValue);
           let completion: 'RETURNED' | 'THREW' = 'RETURNED';
           let errorName: string | undefined;
           try {
@@ -242,7 +248,7 @@ private fun coverageWrapper(
             completion = 'THREW';
             errorName = error instanceof Error ? error.name : typeof error;
           }
-          writeFileSync($outputPath, JSON.stringify({ inputs: actualArgs.map(encodeValue), completion, errorName }), 'utf8');
+          writeFileSync($outputPath, stringifyProtocolJson({ inputs: encodedInputs, completion, errorName }), 'utf8');
 
           return true;
         }

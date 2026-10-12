@@ -2,6 +2,8 @@ package org.usvm.ts.calls
 
 import org.junit.jupiter.api.io.TempDir
 import org.usvm.ts.pbt.model.BooleanDomain
+import org.usvm.ts.pbt.model.ArrayDomain
+import org.usvm.ts.pbt.model.NumberDomain
 import org.usvm.ts.pbt.model.JsConcreteValue
 import org.usvm.ts.pbt.model.PropertyInput
 import org.usvm.ts.pbt.model.StringDomain
@@ -72,6 +74,61 @@ class CallsCoverageExperimentTest {
                 timeoutMillis = 20_000L,
             )
         }
+
+        assertEquals(CallsCoverageCompletion.RETURNED, replay.completion)
+        assertTrue(replay.coveredStatementKeys.isNotEmpty())
+    }
+
+    @Test
+    fun `coverage replay records array input before mutation`() {
+        val fixture = fixture(
+            source = "export function replace(values: number[]): number { values[0] = 2; return values[0]; }",
+            exportName = "replace",
+            inputs = listOf(PropertyInput(
+                name = "values",
+                domain = ArrayDomain(element = NumberDomain(), minLength = 1, maxLength = 1),
+            )),
+        )
+        val inputs = listOf(JsConcreteValue.Array(listOf(JsConcreteValue.number(1.0))))
+
+        val replay = OriginalTypeScriptCoverageReplayer(
+            sourceRoot = fixture.sourceRoot,
+            function = fixture.function,
+        ).use { replayer -> replayer.replay(inputs = inputs, timeoutMillis = 20_000L) }
+
+        assertEquals(CallsCoverageCompletion.RETURNED, replay.completion)
+        assertTrue(replay.coveredStatementKeys.isNotEmpty())
+    }
+
+    @Test
+    fun `coverage observation does not invoke inherited protocol serializers`() {
+        val fixture = fixture(
+            source = """
+                export function replace(values: number[]): number {
+                  Object.defineProperty(Object.prototype, 'toJSON', {
+                    configurable: true,
+                    value() { throw new Error('Object serializer must not run'); },
+                  });
+                  Object.defineProperty(Array.prototype, 'toJSON', {
+                    configurable: true,
+                    value() { throw new Error('Array serializer must not run'); },
+                  });
+                  values[0] = 2;
+                  return values[0];
+                }
+            """.trimIndent(),
+            exportName = "replace",
+            inputs = listOf(PropertyInput(
+                name = "values",
+                domain = ArrayDomain(element = NumberDomain(), minLength = 1, maxLength = 1),
+            )),
+        )
+        val inputs = listOf(JsConcreteValue.Array(listOf(JsConcreteValue.number(1.0))))
+
+        val replay = OriginalTypeScriptCoverageReplayer(
+            sourceRoot = fixture.sourceRoot,
+            function = fixture.function,
+        ).use { replayer -> replayer.replay(inputs = inputs, timeoutMillis = 20_000L) }
 
         assertEquals(CallsCoverageCompletion.RETURNED, replay.completion)
         assertTrue(replay.coveredStatementKeys.isNotEmpty())
