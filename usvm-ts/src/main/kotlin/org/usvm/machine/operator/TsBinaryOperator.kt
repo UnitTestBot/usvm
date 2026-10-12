@@ -152,6 +152,19 @@ private fun TsContext.referenceOrStringValueEquals(
     scope: TsStepScope,
     activeGuard: UBoolExpr = trueExpr,
 ): UBoolExpr? {
+    if (lhs is UIteExpr<*>) {
+        val trueGuard = mkAnd(activeGuard, lhs.condition)
+        val falseGuard = mkAnd(activeGuard, mkNot(lhs.condition))
+        val trueResult = referenceOrStringValueEquals(lhs.trueBranch.asExpr(addressSort), rhs, scope, trueGuard)
+            ?: return null
+        val falseResult = referenceOrStringValueEquals(lhs.falseBranch.asExpr(addressSort), rhs, scope, falseGuard)
+            ?: return null
+        return mkIte(lhs.condition, trueResult, falseResult)
+    }
+    if (rhs is UIteExpr<*>) {
+        return referenceOrStringValueEquals(rhs, lhs, scope, activeGuard)
+    }
+
     val sameReference = mkHeapRefEq(lhs, rhs)
     if (sameReference.isTrue) return trueExpr
 
@@ -787,96 +800,43 @@ sealed interface TsBinaryOperator {
         ): UBoolExpr? {
             check(lhs.isFakeObject() || rhs.isFakeObject())
 
-            var lhsValue: UExpr<*> = lhs
-            var rhsValue: UExpr<*> = rhs
+            if (lhs.isFakeObject() && rhs.isFakeObject()) {
+                val leftType = lhs.getFakeType(scope)
+                val rightType = rhs.getFakeType(scope)
+                val boolGuard = mkAnd(leftType.boolTypeExpr, rightType.boolTypeExpr)
+                val numberGuard = mkAnd(leftType.fpTypeExpr, rightType.fpTypeExpr)
+                val refGuard = mkAnd(leftType.refTypeExpr, rightType.refTypeExpr)
+                val referenceActive = mkAnd(activeGuard, refGuard)
 
-            val typeConstraint = when {
-                lhs.isFakeObject() && rhs.isFakeObject() -> {
-                    val lhsType = lhs.getFakeType(scope)
-                    val rhsType = rhs.getFakeType(scope)
-                    mkAnd(
-                        lhsType.boolTypeExpr eq rhsType.boolTypeExpr,
-                        lhsType.fpTypeExpr eq rhsType.fpTypeExpr,
-                        // TODO support type equality
-                        lhsType.refTypeExpr eq rhsType.refTypeExpr,
-                    )
-                }
-
-                lhs.isFakeObject() -> {
-                    val lhsType = lhs.getFakeType(scope)
-                    when (rhs.sort) {
-                        boolSort -> {
-                            lhsValue = lhs.extractBool(scope)
-                            lhsType.boolTypeExpr
-                        }
-
-                        fp64Sort -> {
-                            lhsValue = lhs.extractFp(scope)
-                            lhsType.fpTypeExpr
-                        }
-
-                        // TODO support type equality
-                        addressSort -> {
-                            lhsValue = lhs.extractRef(scope)
-                            lhsType.refTypeExpr
-                        }
-
-                        else -> error("Unsupported sort ${rhs.sort}")
-                    }
-                }
-
-                rhs.isFakeObject() -> {
-                    val rhsType = rhs.getFakeType(scope)
-                    when (lhs.sort) {
-                        boolSort -> {
-                            rhsValue = rhs.extractBool(scope)
-                            rhsType.boolTypeExpr
-                        }
-
-                        fp64Sort -> {
-                            rhsValue = rhs.extractFp(scope)
-                            rhsType.fpTypeExpr
-                        }
-
-                        // TODO support type equality
-                        addressSort -> {
-                            rhsValue = rhs.extractRef(scope)
-                            rhsType.refTypeExpr
-                        }
-
-                        else -> error("Unsupported sort ${lhs.sort}")
-                    }
-                }
-
-                else -> {
-                    error("Should not be called")
-                }
+                val boolEqual = onBool(lhs.extractBool(scope), rhs.extractBool(scope), scope)
+                val numberEqual = onFp(lhs.extractFp(scope), rhs.extractFp(scope), scope)
+                val refEqual = onRefWithGuard(lhs.extractRef(scope), rhs.extractRef(scope), scope, referenceActive)
+                    ?: return null
+                return mkOr(mkAnd(boolGuard, boolEqual), mkAnd(numberGuard, numberEqual), mkAnd(refGuard, refEqual))
             }
 
-            check(!lhsValue.isFakeObject()) { "Nested fake objects are not supported" }
-            check(!rhsValue.isFakeObject()) { "Nested fake objects are not supported" }
-
-            // Note: this is the case 'ref === ref',
-            // which should be `true` only if both have the same reference.
-            // It is not correct to delegate to `Eq.resolve` in this case,
-            // since `==` treats `null == undefined`, while `null !== undefined`.
-            if (lhsValue.sort == addressSort && rhsValue.sort == addressSort) {
-                val left = lhsValue.asExpr(addressSort)
-                val right = rhsValue.asExpr(addressSort)
-                val lhsRefGuard = if (lhs.isFakeObject()) lhs.getFakeType(scope).refTypeExpr else trueExpr
-                val rhsRefGuard = if (rhs.isFakeObject()) rhs.getFakeType(scope).refTypeExpr else trueExpr
-                val refComparisonGuard = mkAnd(activeGuard, typeConstraint, lhsRefGuard, rhsRefGuard)
-                return mkAnd(
-                    typeConstraint,
-                    onRefWithGuard(left, right, scope, refComparisonGuard) ?: return null
-                )
+            val fake = if (lhs.isFakeObject()) lhs else rhs
+            val ordinary = if (lhs.isFakeObject()) rhs else lhs
+            check(fake.isFakeObject())
+            val type = fake.getFakeType(scope)
+            return when (ordinary.sort) {
+                boolSort -> {
+                    val equal = onBool(fake.extractBool(scope), ordinary.asExpr(boolSort), scope)
+                    mkAnd(type.boolTypeExpr, equal)
+                }
+                fp64Sort -> {
+                    val equal = onFp(fake.extractFp(scope), ordinary.asExpr(fp64Sort), scope)
+                    mkAnd(type.fpTypeExpr, equal)
+                }
+                addressSort -> {
+                    val referenceActive = mkAnd(activeGuard, type.refTypeExpr)
+                    val fakeRef = fake.extractRef(scope)
+                    val ordinaryRef = ordinary.asExpr(addressSort)
+                    val equal = onRefWithGuard(fakeRef, ordinaryRef, scope, referenceActive) ?: return null
+                    mkAnd(type.refTypeExpr, equal)
+                }
+                else -> error("Unsupported strict equality sort: ${ordinary.sort}")
             }
-
-            val looseEqualityConstraint = with(Eq) {
-                resolve(lhsValue, rhsValue, scope, activeGuard)?.asExpr(boolSort) ?: return null
-            }
-
-            return mkAnd(typeConstraint, looseEqualityConstraint)
         }
 
         override fun TsContext.internalResolve(

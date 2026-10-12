@@ -3,6 +3,7 @@ package org.usvm.samples.types
 import org.jacodb.ets.model.EtsScene
 import org.junit.jupiter.api.RepeatedTest
 import org.junit.jupiter.api.Test
+import org.usvm.StateCollectionStrategy
 import org.usvm.api.TsTestValue
 import org.usvm.util.TsMethodTestRunner
 import org.usvm.util.eq
@@ -66,62 +67,39 @@ class TypeStream : TsMethodTestRunner() {
     }
 
     @RepeatedTest(10, failureThreshold = 1)
-    fun `use unique field`() {
-        val method = getMethod("useUniqueField")
-        discoverProperties<TsTestValue, TsTestValue>(
-            method = method,
-            { x, r ->
-                x as TsTestValue.TsClass
-                r as TsTestValue.TsNumber
-                (r eq 1) && x.name == "FirstChild"
-            },
-            invariants = arrayOf(
-                { x, _ ->
-                    if (x is TsTestValue.TsClass) {
-                        x.name == "FirstChild"
-                    } else true
-                },
-                { _, r ->
-                    if (r is TsTestValue.TsNumber) {
-                        r eq 1
-                    } else true
-                },
-            )
-        )
+    fun `reading an undeclared unique field does not narrow the nominal receiver type`() {
+        checkDynamicFieldRead(methodName = "useUniqueField")
     }
 
     @RepeatedTest(10, failureThreshold = 1)
-    fun `use non unique field`() {
-        val method = getMethod("useNonUniqueField")
-        discoverProperties<TsTestValue, TsTestValue>(
-            method = method,
-            { x, r ->
-                x as TsTestValue.TsClass
-                r as TsTestValue.TsNumber
-                (r eq 1) && x.name == "FirstChild"
-            },
-            { x, r ->
-                x as TsTestValue.TsClass
-                r as TsTestValue.TsNumber
-                (r eq 2) && x.name == "SecondChild"
-            },
-            { x, r ->
-                x as TsTestValue.TsClass
-                r as TsTestValue.TsNumber
-                (r eq 3) && x.name == "Parent"
-            },
-            invariants = arrayOf(
-                { _, r ->
+    fun `reading a shared field preserves every compatible nominal receiver type`() {
+        checkDynamicFieldRead(methodName = "useNonUniqueField")
+    }
+
+    private fun checkDynamicFieldRead(methodName: String) {
+        val method = getMethod(methodName)
+        val exhaustive = options.copy(stateCollectionStrategy = StateCollectionStrategy.ALL, stopOnCoverage = 0)
+
+        withOptions(exhaustive) {
+            discoverProperties<TsTestValue, TsTestValue>(
+                method = method,
+                { x, r -> x is TsTestValue.TsClass && x.name == "FirstChild" && r is TsTestValue.TsNumber && r eq 1 },
+                { x, r -> x is TsTestValue.TsClass && x.name == "SecondChild" && r is TsTestValue.TsNumber && r eq 2 },
+                { x, r -> x is TsTestValue.TsClass && x.name == "Parent" && r is TsTestValue.TsNumber && r eq 3 },
+                { x, r -> x == TsTestValue.TsUndefined && r is TsTestValue.TsException },
+                invariants = arrayOf({ x, r ->
                     if (r is TsTestValue.TsNumber) {
-                        r.number in listOf(1.0, 2.0, 3.0)
-                    } else true
-                },
-                { _, r ->
-                    if (r is TsTestValue.TsNumber) {
-                        r neq -1
-                    } else true
-                },
+                        x is TsTestValue.TsClass && when (x.name) {
+                            "FirstChild" -> r eq 1
+                            "SecondChild" -> r eq 2
+                            "Parent" -> r eq 3
+                            else -> false
+                        }
+                    } else {
+                        (x == TsTestValue.TsUndefined || x == TsTestValue.TsNull) && r is TsTestValue.TsException
+                    }
+                }),
             )
-        )
+        }
     }
 }

@@ -32,6 +32,33 @@ import org.usvm.util.boolToFp
 import org.usvm.util.mkStringBackingLValue
 import org.usvm.util.mkStringBackingLengthLValue
 
+/**
+ * Resolve a conditional reference before inspecting its allocation type or runtime metadata.
+ * Guarded property writes and aliases can produce `ite(condition, writtenRef, initialRef)`;
+ * array storage selection, object-literal lookup, and string backing checks need an individual reference.
+ * Ordinary symbolic memory reads already handle conditional references and do not need this helper.
+ *
+ * The cached model only chooses which branch continues now. [TsStepScope.fork] constrains that
+ * branch and schedules the other feasible branch at the same statement, preserving both outcomes.
+ * Nested conditionals are resolved in the same way; a non-conditional reference is returned unchanged.
+ */
+internal fun TsContext.resolveHeapRef(scope: TsStepScope, ref: UHeapRef): UHeapRef? {
+    var receiver = ref
+    while (receiver is UIteExpr<*>) {
+        val conditional = receiver
+        val takeTrueBranch = scope.calcOnState { models.first().eval(conditional.condition).isTrue }
+        val branchCondition = if (takeTrueBranch) conditional.condition else mkNot(conditional.condition)
+        scope.fork(branchCondition) ?: return null
+
+        receiver = if (takeTrueBranch) {
+            conditional.trueBranch.asExpr(addressSort)
+        } else {
+            conditional.falseBranch.asExpr(addressSort)
+        }
+    }
+    return receiver
+}
+
 fun TsContext.checkNotFake(expr: UExpr<*>) {
     require(!expr.isFakeObject()) {
         "Fake object handling should be done outside of this function"

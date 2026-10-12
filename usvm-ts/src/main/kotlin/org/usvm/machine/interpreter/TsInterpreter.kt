@@ -59,6 +59,7 @@ import org.usvm.machine.call.dispatch
 import org.usvm.machine.expr.TsExprApproximationResult
 import org.usvm.machine.expr.TsExprResolver
 import org.usvm.machine.expr.TsUnresolvedSort
+import org.usvm.machine.expr.assignToInstanceField
 import org.usvm.machine.expr.checkUndefinedOrNullPropertyRead
 import org.usvm.machine.expr.ensureTruthinessSupported
 import org.usvm.machine.expr.handleAssignToArrayIndex
@@ -300,7 +301,8 @@ class TsInterpreter(
         }
 
         val possibleTypes = scope.calcOnState {
-            memory.typeStreamOf(receiver).take(scene.projectAndSdkClasses.size)
+            // The type stream also contains the default Object type when no SDK Object is in the scene.
+            memory.typeStreamOf(receiver).take(scene.projectAndSdkClasses.size + 1)
         }
 
         if (possibleTypes !is TypesResult.SuccessfulTypesResult) {
@@ -535,29 +537,17 @@ class TsInterpreter(
     ): Unit? {
         val exprResolver = exprResolverWithScope(scope)
         return when (lhv) {
-            is EtsLocal -> {
-                exprResolver.handleAssignToLocal(lhv, expr)
-            }
+            is EtsLocal -> exprResolver.handleAssignToLocal(lhv, expr)
 
-            is EtsArrayAccess -> {
-                exprResolver.handleAssignToArrayIndex(lhv, expr)
-            }
+            is EtsArrayAccess -> exprResolver.handleAssignToArrayIndex(lhv, expr)
 
-            is EtsPropertyRef -> {
-                exprResolver.handleAssignToProperty(lhv, expr)
-            }
+            is EtsPropertyRef -> exprResolver.handleAssignToProperty(lhv, expr)
 
-            is EtsClosureFieldRef -> {
-                exprResolver.handleAssignToClosureField(lhv, expr)
-            }
+            is EtsClosureFieldRef -> exprResolver.handleAssignToClosureField(lhv, expr)
 
-            is EtsInstanceFieldRef -> {
-                exprResolver.handleAssignToInstanceField(lhv, expr)
-            }
+            is EtsInstanceFieldRef -> exprResolver.handleAssignToInstanceField(lhv, expr)
 
-            is EtsStaticFieldRef -> {
-                exprResolver.handleAssignToStaticField(lhv, expr)
-            }
+            is EtsStaticFieldRef -> exprResolver.handleAssignToStaticField(lhv, expr)
 
             else -> TODO("Not yet implemented")
         }
@@ -651,10 +641,17 @@ class TsInterpreter(
                     check(instance.sort == addressSort) {
                         "Expected address sort for the instance, got: ${instance.sort}"
                     }
-                    val fieldLValue = mkFieldLValue(expr.sort, instance.asExpr(addressSort), lhv.field)
-                    scope.doWithState {
-                        memory.write(fieldLValue, expr.cast(), guard = trueExpr)
-                    }
+                    val instanceRef = instance.asExpr(addressSort)
+                    checkUndefinedOrNullPropertyRead(scope, instanceRef, propertyName = lhv.field.name) ?: return null
+
+                    assignToInstanceField(
+                        scope = scope,
+                        instanceLocal = lhv.instance,
+                        instance = instanceRef,
+                        field = lhv.field,
+                        expr = expr,
+                        hierarchy = exprResolver.hierarchy,
+                    )
                 }
             }
 
@@ -784,6 +781,7 @@ class TsInterpreter(
             ownership = MutabilityOwnership(),
             entrypoint = method,
             maxStringLength = options.maxArraySize,
+            inputPropertyPresence = options.inputPropertyPresence,
             targets = UTargetsSet.from(targets),
         )
 
