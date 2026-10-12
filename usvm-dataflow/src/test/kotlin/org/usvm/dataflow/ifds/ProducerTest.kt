@@ -119,4 +119,46 @@ class ProducerTest {
         }
     }
 
+    @Test
+    fun `sync subscription during a callback replays the current event once`() {
+        val producer = SyncProducer<Int>()
+        val received = mutableListOf<Int>()
+        producer.subscribe { event ->
+            if (event == 1) producer.subscribe { received += it }
+        }
+
+        producer.produce(event = 1)
+        producer.produce(event = 2)
+
+        assertEquals(listOf(1, 2), received)
+    }
+
+    @Test
+    fun `sync replay includes events produced by its callback`() {
+        val producer = SyncProducer<Int>()
+        val received = mutableListOf<Int>()
+        producer.produce(event = 1)
+
+        producer.subscribe { event ->
+            received += event
+            if (event == 1) producer.produce(event = 2)
+        }
+        producer.produce(event = 3)
+
+        assertEquals(listOf(1, 2, 3), received)
+    }
+
+    @Test
+    fun `sync recursive publication retains publication order in replay`() {
+        val producer = SyncProducer<Int>()
+        val replayed = mutableListOf<Int>()
+        producer.subscribe { event ->
+            if (event == 1) producer.produce(event = 2)
+        }
+
+        producer.produce(event = 1)
+        producer.subscribe { replayed += it }
+
+        assertEquals(listOf(1, 2), replayed)
+    }
 }

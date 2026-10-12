@@ -62,10 +62,12 @@ class SyncProducer<T> : Producer<T> {
 
     @Synchronized
     override fun produce(event: T) {
-        for (consumer in consumers) {
+        events.add(event)
+        val currentConsumers = consumers.toList()
+
+        for (consumer in currentConsumers) {
             consumer.consume(event)
         }
-        events.add(event)
     }
 
     @Synchronized
@@ -73,9 +75,12 @@ class SyncProducer<T> : Producer<T> {
         if (consumer.isCancelled()) return
         consumers.removeAll { it.isCancelled() }
 
-        for (event in events) {
+        var nextEventIndex = 0
+        while (nextEventIndex < events.size) {
+            val event = events[nextEventIndex++]
             consumer.consume(event)
         }
+
         if (!consumer.isCancelled()) consumers.add(consumer)
     }
 }
