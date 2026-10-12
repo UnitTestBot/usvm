@@ -8,7 +8,6 @@ import org.jacodb.ets.model.EtsFunctionType
 import org.jacodb.ets.model.EtsLocal
 import org.jacodb.ets.model.EtsNumberType
 import org.jacodb.ets.model.EtsUnknownType
-import org.usvm.UBoolExpr
 import org.usvm.UConcreteHeapRef
 import org.usvm.UExpr
 import org.usvm.api.initializeArray
@@ -33,6 +32,7 @@ import org.usvm.machine.types.TsUnresolvedArrayKind
 import org.usvm.sizeSort
 import org.usvm.util.arrayStorageType
 import org.usvm.util.componentType
+import org.usvm.util.hasDenseArrayShape
 import org.usvm.util.initializeArrayKind
 import org.usvm.util.isUnmodifiedDenseInputArray
 import org.usvm.util.mkArrayLengthLValue
@@ -143,7 +143,7 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
     private val denseReceiverDomain = TsEtsIrUnknownCallModelDomainGuard { state, call, inputs ->
         val (array, arrayType) = state.concreteArray(call, inputs)
             ?: return@TsEtsIrUnknownCallModelDomainGuard state.ctx.falseExpr
-        if (!state.isUnmodifiedDenseInputArray(array, arrayType)) {
+        if (!state.hasDenseArrayShape(array, arrayType)) {
             return@TsEtsIrUnknownCallModelDomainGuard state.ctx.falseExpr
         }
 
@@ -331,6 +331,18 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         listOf(
             arrayConstructorModel,
             sourceModel(
+                id = "ts.array.join",
+                methodName = "join",
+                inputAdapter = TsDenseArrayModelSupport.joinAdapter,
+                domainGuard = TsDenseArrayModelSupport.joinDomain,
+            ),
+            sourceModel(
+                id = "ts.array.reduce",
+                methodName = "reduce",
+                inputAdapter = TsDenseArrayModelSupport.reduceAdapter,
+                domainGuard = TsDenseArrayModelSupport.denseReceiverDomain,
+            ),
+            sourceModel(
                 id = "ts.array.pop",
                 methodName = "pop",
                 inputAdapter = receiverOnlyAdapter,
@@ -386,6 +398,16 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                 domainGuard = concatDomain,
             ),
             primitiveModel(
+                methodName = "elementString",
+                arity = 1,
+                implementation = TsDenseArrayPrimitives::elementString,
+            ),
+            primitiveModel(
+                methodName = "requireDense",
+                arity = 1,
+                implementation = TsDenseArrayPrimitives::requireDense,
+            ),
+            primitiveModel(
                 methodName = "grow",
                 arity = 2,
                 implementation = ::growArray,
@@ -422,6 +444,11 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             domainGuard = domainGuard,
             inputAdapter = inputAdapter,
             requiredModelIds = buildSet {
+                if (methodName == "join") add("ts.array.primitive.elementString")
+                if (methodName == "reduce") {
+                    add("ts.array.primitive.requireDense")
+                    add("ts.typeError.constructor")
+                }
                 if (methodName in setOf("indexOf", "includes", "lastIndexOf", "fill", "reverse", "slice")) {
                     add(MATH_FLOOR_MODEL_ID)
                 }
@@ -443,35 +470,6 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             .single { it.name == methodName }
 
         return artifact.copy(entryPoint = entryPoint)
-    }
-
-    private fun TsState.concreteArray(
-        call: TsUnknownCall,
-        inputs: List<UExpr<*>>,
-    ): Pair<UConcreteHeapRef, EtsArrayType>? {
-        val receiver = inputs.firstOrNull() as? UConcreteHeapRef ?: return null
-        if (with(ctx) { receiver.hasFakeValueBranch() }) return null
-
-        val staticType = call.receiver?.source?.type ?: return null
-        val arrayType = arrayStorageType(receiver, staticType) as? EtsArrayType ?: return null
-        if (arrayType.dimensions != 1) return null
-
-        return receiver to arrayType
-    }
-
-    private fun TsState.boundedArrayGuard(
-        array: UConcreteHeapRef,
-        arrayType: EtsArrayType,
-        maximumLength: Int,
-    ): UBoolExpr = with(ctx) {
-        val length = memory.read(mkArrayLengthLValue(array, arrayType))
-        val minimumLength = mkBv(0)
-        val maximumLengthExpr = mkBv(maximumLength)
-        mkAnd(
-            memory.types.evalIsSubtype(array, arrayType),
-            mkBvSignedGreaterOrEqualExpr(length, minimumLength),
-            mkBvSignedLessOrEqualExpr(length, maximumLengthExpr),
-        )
     }
 
     private fun primitiveModel(

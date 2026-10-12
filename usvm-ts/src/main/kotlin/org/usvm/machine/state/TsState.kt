@@ -382,6 +382,7 @@ class TsState(
 /** Snapshot of the regions that establish dense Calls input-array contents. */
 data class TsDenseInputArray(
     val type: EtsArrayType,
+    val length: UExpr<org.usvm.machine.TsSizeSort>,
     val lengthRegion: UReadOnlyMemoryRegion<*, *>,
     val elementRegion: UReadOnlyMemoryRegion<*, *>,
 )

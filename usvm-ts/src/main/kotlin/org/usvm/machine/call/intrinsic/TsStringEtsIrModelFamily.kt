@@ -18,6 +18,7 @@ import org.usvm.machine.call.TsUnknownCallModelSuccessor
 import org.usvm.machine.call.TsUnknownCallTarget
 import org.usvm.machine.call.loadBundledEtsIrUnknownCallModelArtifact
 import org.usvm.machine.call.resolvedInstanceInputs
+import org.usvm.machine.expr.mkEcmaScriptToUint32
 import org.usvm.machine.state.TsState
 import org.usvm.sizeSort
 import org.usvm.util.mkStringBackingElementLValue
@@ -31,6 +32,7 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
     private const val PRIMITIVES_CLASS_NAME = "StringModelPrimitives"
     private const val RESOURCE_NAME = "/org/usvm/machine/call/models/StringModels.ts"
     private const val REPLACE_ALL_INPUT_COUNT = 3
+    private const val DEFAULT_SPLIT_LIMIT = 4294967295.0
 
     private val baseArtifact by lazy {
         loadBundledEtsIrUnknownCallModelArtifact(
@@ -165,6 +167,44 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         }
     }
 
+    private val splitAdapter = TsEtsIrUnknownCallModelInputAdapter { state, call ->
+        with(state.ctx) {
+            val inputs = call.resolvedInstanceInputs(maxArgumentCount = 2)
+                ?: return@TsEtsIrUnknownCallModelInputAdapter null
+            val separator = inputs.getOrNull(1)
+            val omitted = separator == null || separator == mkUndefinedValue()
+            val limit = inputs.getOrNull(2)
+            val numericLimit = limit?.takeIf { it.sort == fp64Sort }?.asExpr(fp64Sort)
+            val convertedLimit = when {
+                limit == null || limit == mkUndefinedValue() -> mkFp64(DEFAULT_SPLIT_LIMIT)
+                numericLimit != null -> mkBvToFpExpr(
+                    sort = fp64Sort,
+                    roundingMode = fpRoundingModeSortDefaultValue(),
+                    value = mkEcmaScriptToUint32(numericLimit),
+                    signed = false,
+                )
+                else -> return@TsEtsIrUnknownCallModelInputAdapter null
+            }
+            val search = if (omitted) state.mkInitializedStringConstant("") else requireNotNull(separator)
+            listOf(inputs.first(), search, convertedLimit, mkBool(omitted))
+        }
+    }
+
+    private val splitDomain = TsEtsIrUnknownCallModelDomainGuard { state, call, inputs ->
+        with(state.ctx) {
+            val stringsGuard = receiverAndSearchDomain.evaluate(state, call, inputs)
+            if (stringsGuard == falseExpr) return@TsEtsIrUnknownCallModelDomainGuard falseExpr
+
+            val receiver = inputs.first().asExpr(addressSort)
+            val characters = state.memory.read(mkStringBackingLValue(receiver))
+            val length = state.memory.read(mkStringBackingLengthLValue(characters))
+            val boundedResult = mkBvSignedLessOrEqualExpr(length, mkBv(SOURCE_ARRAY_MODEL_CAPACITY - 1))
+            val zeroLimit = mkFpEqualExpr(inputs[2].asExpr(fp64Sort), mkFp64(0.0))
+            val omittedSeparator = inputs[3].asExpr(boolSort)
+            mkAnd(stringsGuard, mkOr(boundedResult, zeroLimit, omittedSeparator))
+        }
+    }
+
     private val asciiReceiverDomain = TsEtsIrUnknownCallModelDomainGuard { state, call, inputs ->
         with(state.ctx) {
             val receiverGuard = receiverDomain.evaluate(state, call, inputs)
@@ -202,6 +242,12 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
 
     override val models: List<TsUnknownCallModel> by lazy {
         listOf(
+            sourceModel(
+                id = "ts.string.split",
+                methodName = "split",
+                inputAdapter = splitAdapter,
+                domainGuard = splitDomain,
+            ),
             sourceModel(
                 id = "ts.string.charAt",
                 methodName = "charAt",
@@ -292,6 +338,16 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
                 inputAdapter = receiverOnlyAdapter,
                 domainGuard = asciiReceiverDomain,
             ),
+            arrayPrimitiveModel(
+                methodName = "allocateStrings",
+                arity = 1,
+                implementation = TsDenseArrayPrimitives::allocateStrings,
+            ),
+            arrayPrimitiveModel(
+                methodName = "truncateDense",
+                arity = 2,
+                implementation = TsDenseArrayPrimitives::truncateDense,
+            ),
             primitiveModel(
                 methodName = "codeUnitAt",
                 arity = 2,
@@ -321,6 +377,10 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         domainGuard = domainGuard,
         inputAdapter = inputAdapter,
         requiredModelIds = buildSet {
+            if (methodName == "split") {
+                add("ts.array.primitive.allocateStrings")
+                add("ts.array.primitive.truncateDense")
+            }
             val convertsCase = methodName in setOf("toUpperCase", "toLowerCase")
             if (convertsCase) {
                 add(PRIMITIVE_CODE_UNIT_AT_ID)
@@ -358,6 +418,25 @@ internal object TsStringEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
         enclosingClassName = PRIMITIVES_CLASS_NAME,
         arity = arity,
         helperClassSignature = { primitiveClassSignature },
+        sourceClassSignature = { baseArtifact.entryPoint.signature.enclosingClass },
+        owningModelIds = { sourceModelIds },
+        implementation = implementation,
+    )
+
+    private val arrayPrimitiveClassSignature by lazy {
+        baseArtifact.file.allClasses.single { it.name == "ArrayModelPrimitives" }.signature
+    }
+
+    private fun arrayPrimitiveModel(
+        methodName: String,
+        arity: Int,
+        implementation: (TsState, List<UExpr<*>>) -> TsUnknownCallModelExecution?,
+    ): TsUnknownCallModel = TsPrimitiveUnknownCallModel(
+        idPrefix = "ts.array.primitive",
+        methodName = methodName,
+        enclosingClassName = "ArrayModelPrimitives",
+        arity = arity,
+        helperClassSignature = { arrayPrimitiveClassSignature },
         sourceClassSignature = { baseArtifact.entryPoint.signature.enclosingClass },
         owningModelIds = { sourceModelIds },
         implementation = implementation,

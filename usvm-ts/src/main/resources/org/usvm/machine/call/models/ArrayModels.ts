@@ -2,9 +2,44 @@ declare class ArrayModelPrimitives {
     static grow(receiver: any[], length: number): void;
     static allocate(length: number): any[];
     static allocateLike(receiver: any[], length: number): any[];
+    static elementString(value: any): string;
+    static requireDense(receiver: any[]): void;
 }
 
 export class ArrayModels {
+    static join(receiver: any[], separator: string): string {
+        const length = receiver.length;
+        let result = "";
+        let index = 0;
+        while (index < length) {
+            if (index !== 0) result += separator;
+            result += ArrayModelPrimitives.elementString(receiver[index]);
+            index++;
+        }
+        return result;
+    }
+
+    static reduce(receiver: any[], callback: (acc: any, current: any, index: number, array: any[]) => any,
+                  initial: any, hasInitial: boolean): any {
+        const length = receiver.length;
+        if (length === 0 && !hasInitial) throw new TypeError("Reduce of empty array with no initial value");
+
+        let accumulator = initial;
+        let index = 0;
+        if (!hasInitial) {
+            accumulator = receiver[0];
+            index = 1;
+        }
+        while (index < length) {
+            accumulator = callback(accumulator, receiver[index], index, receiver);
+            // Element mutation is supported. Structural mutation/deletion remains residual
+            // until the engine can represent HasProperty for holes after arbitrary callbacks.
+            ArrayModelPrimitives.requireDense(receiver);
+            index++;
+        }
+        return accumulator;
+    }
+
     static fromLength(length: number): any[] {
         return ArrayModelPrimitives.allocate(length);
     }

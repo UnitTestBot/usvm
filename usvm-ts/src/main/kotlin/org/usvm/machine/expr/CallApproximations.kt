@@ -182,8 +182,7 @@ internal fun TsExprResolver.tryApproximateInstanceCall(
             allowUnqualifiedTarget = true,
         )
 
-        // join has no source model yet; the model run intentionally sends it to the residual policy.
-        if (modeledArrayCall || (usesModelDispatcher && expr.callee.name == "join")) {
+        if (modeledArrayCall) {
             dispatchArrayModel(stmt)
             return TsExprApproximationResult.ResolveFailure
         }
