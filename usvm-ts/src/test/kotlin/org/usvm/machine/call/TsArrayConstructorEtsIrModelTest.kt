@@ -146,7 +146,10 @@ class TsArrayConstructorEtsIrModelTest {
         val values: List<TsTestValue>,
         val events: List<TsUnknownCallEvent>,
     ) {
-        fun singleNumber(): Double = assertIs<TsTestValue.TsNumber>(values.single()).number
+        fun singleNumber(): Double {
+            assertEquals(1, values.size, "Unknown call events: $events")
+            return assertIs<TsTestValue.TsNumber>(values.single()).number
+        }
 
         val modelIds: List<String>
             get() = events.mapNotNull { event ->

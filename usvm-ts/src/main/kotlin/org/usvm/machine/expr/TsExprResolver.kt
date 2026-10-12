@@ -1357,12 +1357,26 @@ class TsExprResolver(
                     )
                     scope.doWithState { newStmt(concreteCall) }
                 } else {
+                    val builtinArrayConstructor = expr.isBuiltInArrayConstructor()
+                    val failureReason = if (builtinArrayConstructor) {
+                        TsUnknownCallFailureReason.POINTER_TARGET_NOT_FOUND
+                    } else {
+                        TsUnknownCallFailureReason.NON_REFERENCE_POINTER
+                    }
+                    val resolvedArguments = if (builtinArrayConstructor) {
+                        val argument = resolve(expr.args.single()) ?: return null
+                        listOf(argument)
+                    } else {
+                        List(expr.args.size) { null }
+                    }
+
                     unknownCallDispatcher.dispatch(
                         scope = scope,
                         call = expr,
                         callSite = scope.calcOnState { lastStmt },
-                        failureReason = TsUnknownCallFailureReason.NON_REFERENCE_POINTER,
+                        failureReason = failureReason,
                         resolvedReceiver = ptr,
+                        resolvedArguments = resolvedArguments,
                     )
                 }
 

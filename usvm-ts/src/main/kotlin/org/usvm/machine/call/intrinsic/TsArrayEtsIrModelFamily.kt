@@ -561,7 +561,7 @@ internal object TsArrayEtsIrModelFamily : TsBuiltInUnknownCallModelFamily {
             guard = supportedLength,
             completion = TsUnknownCallModelCompletion.Normal {
                 val descriptor = arrayDescriptorOf(arrayType)
-                val result = memory.allocConcrete(descriptor)
+                val result = memory.allocConcrete(arrayType)
                 val undefinedSlots = List(MAX_SOURCE_ARRAY_LENGTH) { mkUndefinedValue() }
                 memory.initializeArray(
                     arrayHeapRef = result,
