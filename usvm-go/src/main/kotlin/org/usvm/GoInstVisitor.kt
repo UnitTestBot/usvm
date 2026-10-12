@@ -20,6 +20,7 @@ import org.jacodb.go.api.GoRunDefersInst
 import org.jacodb.go.api.GoSendInst
 import org.jacodb.go.api.GoStoreInst
 import org.jacodb.go.api.GoVar
+import org.jacodb.go.api.MapType
 import org.jacodb.go.api.NullType
 import org.jacodb.go.api.TupleType
 import org.usvm.api.collection.ObjectMapCollectionApi.ensureObjectMapSizeCorrect
@@ -138,9 +139,20 @@ class GoInstVisitor(
         val key = exprVisitor.resolveMapKey(inst.key)
         val value = inst.value.accept(exprVisitor)
         val isRefKey = key.sort == ctx.addressSort
+        val mapType = type as MapType
+        val canMatch = exprVisitor.mapKeyCanMatch(key, mapType.keyType)
 
         exprVisitor.checkNotNull(map) ?: throw GoStepAbort()
         scope.ensureObjectMapSizeCorrect(map, type) ?: throw GoStepAbort()
+        val previousMembership = scope.calcOnState {
+            if (isRefKey) {
+                memory.read(URefSetEntryLValue(map, key.asExpr(ctx.addressSort), type))
+            } else {
+                memory.read(USetEntryLValue(key.sort, map, key.asExpr(key.sort), type, USizeExprKeyInfo()))
+            }
+        }
+        // A NaN insertion needs a fresh entry even when the map came from the input model.
+        scope.assert(ctx.mkOr(canMatch, ctx.mkNot(previousMembership))) ?: throw GoStepAbort()
 
         scope.doWithState {
             val mapContainsLValue = if (isRefKey) {
@@ -155,7 +167,7 @@ class GoInstVisitor(
             }
             val currentSize = symbolicObjectMapSize(map, type)
 
-            val keyIsNew = ctx.mkNot(memory.read(mapContainsLValue))
+            val keyIsNew = ctx.mkNot(ctx.mkAnd(canMatch, memory.read(mapContainsLValue)))
 
             val copiedValue = copyValue(value, inst.value.type)
             memory.write(mapEntryLValue, copiedValue.asExpr(value.sort), ctx.trueExpr)

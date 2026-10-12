@@ -70,6 +70,7 @@ import org.usvm.state.GoState
 import org.usvm.type.GoBasicTypes
 import org.usvm.type.GoVoidSort
 import org.usvm.type.mapKeyStorageType
+import org.usvm.type.needsMapKeyRepresentative
 import org.usvm.type.underlying
 import org.usvm.types.first
 import java.nio.ByteBuffer
@@ -347,11 +348,37 @@ class GoTestInterpreter(
             }
 
             val keyStorageType = keyType.mapKeyStorageType()
-            val keySort = typeToSort(keyStorageType)
+            val keySort = mapKeySort(keyType)
             val valueSort = typeToSort(valueType)
 
             val isRefSet = keySort == addressSort
 
+            val keyScope = MemoryScope(ctx, state, model, state.memory)
+            val usesRepresentatives = keyType.needsMapKeyRepresentative()
+            val forbiddenKeys = mutableSetOf<Any?>()
+            val seenRepresentatives = mutableSetOf<UHeapRef>()
+            val seenValueKeys = mutableSetOf<Any?>()
+            val decodeKey: (UExpr<out USort>) -> Any? = { key ->
+                val value = if (usesRepresentatives) {
+                    val reference = key.asExpr(addressSort)
+                    val known = state.data.mapKeyRepresentatives[keyType].orEmpty().firstOrNull {
+                        model.eval(it.reference) == model.eval(reference) && resolveBool(it.guard)
+                    }
+                    if (known != null) {
+                        keyScope.convertExpr(known.snapshot, keyType)
+                    } else {
+                        convertExpr(memory.readField(reference, 0, typeToSort(keyType)), keyType)
+                    }
+                } else {
+                    convertExpr(key, keyStorageType)
+                }
+                // Go equates signed zeros; JVM boxed floating-point keys do not.
+                when {
+                    value is Double && value == 0.0 -> 0.0
+                    value is Float && value == 0.0f -> 0.0f
+                    else -> value
+                }
+            }
             val addToMap: (MutableMap<Any?, Any?>, Set<ULValue<*, UBoolSort>>) -> Unit = { m, s ->
                 m.putAll(
                     s.mapNotNull { entry ->
@@ -372,7 +399,22 @@ class GoTestInterpreter(
                         } else {
                             USetEntryLValue(keySort, map, key.asExpr(keySort), mapType, USizeExprKeyInfo())
                         }
-                        if (!resolveBool(memory.read(membership))) return@mapNotNull null
+                        val decodedKey = decodeKey(key)
+                        if (!resolveBool(memory.read(membership))) {
+                            forbiddenKeys += decodedKey
+                            return@mapNotNull null
+                        }
+                        if (usesRepresentatives) {
+                            val concrete = model.eval(key.asExpr(addressSort))
+                            if (!seenRepresentatives.add(concrete)) return@mapNotNull null
+                            val distinctValueKey = seenValueKeys.add(decodedKey)
+                            if (!distinctValueKey) {
+                                throw UnsupportedOperationException(
+                                    "Go map has distinct representatives with JVM-equal keys ($keyType); " +
+                                        "duplicate NaN or pointer identities cannot be represented by a JVM Map",
+                                )
+                            }
+                        }
 
                         val lvalue = if (isRefSet) {
                             URefMapEntryLValue(valueSort, map, key.asExpr(addressSort), mapType)
@@ -380,7 +422,7 @@ class GoTestInterpreter(
                             UMapEntryLValue(keySort, valueSort, map, key.asExpr(keySort), mapType, USizeExprKeyInfo())
                         }
                         val value = memory.read(lvalue)
-                        convertExpr(key, keyStorageType) to convertExpr(value, valueType)
+                        decodedKey to convertExpr(value, valueType)
                     }.toMap()
                 )
             }
@@ -400,12 +442,21 @@ class GoTestInterpreter(
 
             if (length > result.size) {
                 val diff = length - result.size
-                val rng = if (isRefSet) null else RNG(keyStorageType as BasicType)
+                val underlyingKey = keyType.underlying()
+                val floatingKey = underlyingKey == GoBasicTypes.FLOAT32 || underlyingKey == GoBasicTypes.FLOAT64
+                val stringKey = underlyingKey == GoBasicTypes.STRING
+                val canGenerateKey = !isRefSet || floatingKey || stringKey
+                val rng = if (canGenerateKey) RNG(underlyingKey as BasicType) else null
+                if (usesRepresentatives && !canGenerateKey) {
+                    throw UnsupportedOperationException("Go value-key map has unmaterialized symbolic entries ($keyType)")
+                }
                 for (i in 0 until diff) {
-                    val key = if (isRefSet) {
+                    val key = if (isRefSet && !canGenerateKey) {
                         convertExpr(state.symbolicObjectMapAnyKey(map, mapType), keyType)
                     } else {
-                        requireNotNull(rng).generateUniqueMapKey(result)
+                        val excluded = result.toMutableMap()
+                        forbiddenKeys.forEach { excluded[it] = null }
+                        requireNotNull(rng).generateUniqueMapKey(excluded)
                     }
                     val value = convertExpr(valueSort.sampleUValue(), valueType)
                     result[key] = value
@@ -603,6 +654,10 @@ class RNG(
 
         GoBasicTypes.UINT64, GoBasicTypes.UINTPTR -> {
             { random.nextULong() }
+        }
+
+        GoBasicTypes.STRING -> {
+            { random.nextLong().toString() }
         }
 
         GoBasicTypes.FLOAT32 -> {

@@ -2,6 +2,7 @@ package org.usvm.state
 
 import org.jacodb.go.api.GoType
 import org.usvm.GoCall
+import org.usvm.UBoolExpr
 import org.usvm.UExpr
 import org.usvm.UHeapRef
 import org.usvm.USort
@@ -22,6 +23,9 @@ class GoStateData(
     internal val pointerTargets: MutableMap<UHeapRef, ULValue<*, *>> = hashMapOf()
 
     internal val pointerConversions: MutableMap<UHeapRef, GoPointerConversion> = hashMapOf()
+
+    // Lists are replaced on append, so cloned states never share mutable key histories.
+    internal val mapKeyRepresentatives: MutableMap<GoType, List<GoMapKeyRepresentative>> = hashMapOf()
 
     internal var pendingArrayCopy: GoArrayCopyOperation? = null
     internal var builtinResult: UExpr<out USort>? = null
@@ -49,6 +53,7 @@ class GoStateData(
         it.pointerTargets.putAll(pointerTargets)
         it.pointerConversions.putAll(pointerConversions)
         it.arrayViews.putAll(arrayViews)
+        it.mapKeyRepresentatives.putAll(mapKeyRepresentatives)
         it.pendingArrayCopy = pendingArrayCopy
         it.builtinResult = builtinResult
         deferredCalls.forEach { calls -> it.deferredCalls.addLast(ArrayDeque(calls)) }
@@ -63,7 +68,7 @@ class GoStateData(
 
         if (flowStack.toList() != other.flowStack.toList() || !sameCalls ||
             arrayViews != other.arrayViews || pointerTargets != other.pointerTargets ||
-            pointerConversions != other.pointerConversions
+            pointerConversions != other.pointerConversions || mapKeyRepresentatives != other.mapKeyRepresentatives
         ) {
             return null
         }
@@ -81,4 +86,10 @@ internal data class GoPointerConversion(
     val source: UHeapRef,
     val sourceType: GoType,
     val targetType: GoType,
+)
+
+internal data class GoMapKeyRepresentative(
+    val reference: UHeapRef,
+    val snapshot: UExpr<out USort>,
+    val guard: UBoolExpr,
 )

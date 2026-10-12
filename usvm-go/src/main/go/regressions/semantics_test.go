@@ -9,6 +9,18 @@ import (
 
 func TestNativeOracle(t *testing.T) {
 	cases := map[string]func() any{
+		"floatMapZeroLookup":                         func() any { return floatMapZeroLookup() },
+		"floatMapZeroOverwrite":                      func() any { return floatMapZeroOverwrite() },
+		"floatMapZeroDelete":                         func() any { return floatMapZeroDelete() },
+		"namedFloatMapZeroLookup":                    func() any { return namedFloatMapZeroLookup() },
+		"floatMapNaNLookup":                          func() any { return floatMapNaNLookup() },
+		"floatMapNaNRange":                           func() any { return floatMapNaNRange() },
+		"stringMapValueLookup":                       func() any { return stringMapValueLookup() },
+		"namedStringMapValueLookup":                  func() any { return namedStringMapValueLookup() },
+		"arrayMapKeySnapshot":                        func() any { return arrayMapKeySnapshot() },
+		"structMapValueLookup":                       func() any { return structMapValueLookup() },
+		"arrayMapRangeKeyCopy":                       func() any { return arrayMapRangeKeyCopy() },
+		"interfaceMapValueLookup":                    func() any { return interfaceMapValueLookup() },
 		"namedScalarMapLookup":                       func() any { return namedScalarMapLookup() },
 		"namedScalarMapOverwrite":                    func() any { return namedScalarMapOverwrite() },
 		"namedScalarMapDelete":                       func() any { return namedScalarMapDelete() },

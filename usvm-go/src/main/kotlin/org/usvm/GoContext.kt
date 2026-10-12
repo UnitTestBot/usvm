@@ -13,6 +13,8 @@ import org.usvm.operator.GoUnaryOperator
 import org.usvm.type.GoBasicTypes
 import org.usvm.type.GoVoidSort
 import org.usvm.type.GoVoidValue
+import org.usvm.type.mapKeyStorageType
+import org.usvm.type.needsMapKeyRepresentative
 
 class GoContext(
     components: UComponents<GoType, USizeSort>,
@@ -44,6 +46,9 @@ class GoContext(
     fun freeVariableOffset(method: GoMethod) = getArgsCount(method)
 
     fun localVariableOffset(method: GoMethod) = getArgsCount(method) + getFreeVariablesCount(method)
+
+    internal fun mapKeySort(type: GoType): USort =
+        if (type.needsMapKeyRepresentative()) addressSort else typeToSort(type.mapKeyStorageType())
 
     fun typeToSort(type: GoType): USort = when (type) {
         is BasicType -> {

@@ -116,6 +116,7 @@ import org.usvm.collection.field.UFieldLValue
 import org.usvm.collection.map.length.UMapLengthLValue
 import org.usvm.collection.map.primitive.UMapEntryLValue
 import org.usvm.collection.map.ref.URefMapEntryLValue
+import org.usvm.collection.set.ref.URefSetEntryLValue
 import org.usvm.interpreter.GoStepAbort
 import org.usvm.interpreter.GoStepScope
 import org.usvm.memory.GoArrayView
@@ -134,6 +135,7 @@ import org.usvm.operator.mkNarrow
 import org.usvm.state.GoArrayCopyOperation
 import org.usvm.state.GoArrayValueCopy
 import org.usvm.state.GoMethodResult
+import org.usvm.state.GoMapKeyRepresentative
 import org.usvm.state.GoState.Companion.POINTER_FIELD
 import org.usvm.state.copyValue
 import org.usvm.state.decodeUtf8Rune
@@ -141,6 +143,7 @@ import org.usvm.state.valueShape
 import org.usvm.statistics.ApplicationGraph
 import org.usvm.type.GoBasicTypes
 import org.usvm.type.mapKeyStorageType
+import org.usvm.type.needsMapKeyRepresentative
 import org.usvm.type.underlying
 import org.usvm.types.first
 import org.usvm.util.hasUnsupportedInstructions
@@ -578,13 +581,14 @@ class GoExprVisitor(
 
         scope.ensureObjectMapSizeCorrect(map, mapType) ?: throw GoStepAbort()
 
-        val contains = scope.calcOnState {
+        val canMatch = mapKeyCanMatch(key, mapType.keyType)
+        val contains = ctx.mkAnd(canMatch, scope.calcOnState {
             if (isRefKey) {
                 memory.refSetContainsElement(map, key.asExpr(ctx.addressSort), mapType)
             } else {
                 memory.setContainsElement(map, key, mapType, USizeExprKeyInfo())
             }
-        }
+        })
         val lvalue = if (isRefKey) {
             URefMapEntryLValue(valueSort, map, key.asExpr(ctx.addressSort), mapType)
         } else {
@@ -662,7 +666,7 @@ class GoExprVisitor(
         val original = scope.calcOnState { memory.readField(iter, 2, ctx.addressSort) }
         val length = scope.calcOnState { symbolicObjectMapSize(remaining, type) }
         val hasNext = ctx.mkSizeGtExpr(length, ctx.mkSizeExpr(0))
-        val keySort = ctx.typeToSort(type.keyType.mapKeyStorageType())
+        val keySort = ctx.mapKeySort(type.keyType)
         val valueSort = ctx.typeToSort(type.valueType)
         val isReferenceKey = keySort == ctx.addressSort
         val key = scope.calcOnState {
@@ -670,6 +674,22 @@ class GoExprVisitor(
                 symbolicObjectMapAnyKey(remaining, type)
             } else {
                 symbolicPrimitiveMapAnyKey(remaining, type, keySort, USizeExprKeyInfo())
+            }
+        }
+        if (type.keyType.needsMapKeyRepresentative()) {
+            val snapshot = scope.calcOnState {
+                copyValue(unbox(key.asExpr(ctx.addressSort), ctx.typeToSort(type.keyType)), type.keyType)
+            }
+            val previous = scope.calcOnState { data.mapKeyRepresentatives[type.keyType].orEmpty() }
+            for (entry in previous) {
+                val active = ctx.mkAnd(hasNext, entry.guard)
+                val equal = valuesEqual(snapshot, entry.snapshot, type.keyType, guard = active)
+                val sameRepresentative = ctx.mkHeapRefEq(key.asExpr(ctx.addressSort), entry.reference)
+                scope.assert(ctx.mkOr(ctx.mkNot(ctx.mkAnd(active, equal)), sameRepresentative)) ?: throw GoStepAbort()
+            }
+            scope.doWithState {
+                data.mapKeyRepresentatives[type.keyType] = previous +
+                    GoMapKeyRepresentative(key.asExpr(ctx.addressSort), snapshot, guard = hasNext)
             }
         }
         val wasPresent = scope.calcOnState {
@@ -703,7 +723,12 @@ class GoExprVisitor(
             mkTuple(
                 TupleType(listOf(GoBasicTypes.BOOL, type.keyType, type.valueType)),
                 hasNext,
-                if (isReferenceKey) key else tryBox(key, type.keyType),
+                if (type.keyType.needsMapKeyRepresentative()) {
+                    val snapshot = unbox(key.asExpr(ctx.addressSort), ctx.typeToSort(type.keyType))
+                    copyValue(snapshot, type.keyType)
+                } else {
+                    tryBox(key, type.keyType)
+                },
                 ctx.mkIte(
                     hasNext,
                     trueBranch = { copyValue(value, type.valueType).asExpr(valueSort) },
@@ -1144,10 +1169,33 @@ class GoExprVisitor(
 
     internal fun resolveMapKey(value: GoExpr): UExpr<out USort> {
         val key = value.accept(this)
-        val storageType = value.type.mapKeyStorageType()
-        if (storageType == value.type) return key
+        val type = value.type
+        if (!type.needsMapKeyRepresentative()) {
+            val storageType = type.mapKeyStorageType()
+            return if (storageType == type) key else unboxNamedPrimitive(key, type)
+        }
 
-        return unboxNamedPrimitive(key, value.type)
+        val snapshot = scope.calcOnState { copyValue(key, type) }
+        // This also checks the runtime comparability of interface keys in an empty map.
+        valuesEqual(snapshot, snapshot, type, guard = ctx.trueExpr)
+        val previous = scope.calcOnState { data.mapKeyRepresentatives[type].orEmpty() }
+        val fresh = scope.calcOnState { mkTuple(type, snapshot) }
+        var representative: UHeapRef = fresh
+        for (entry in previous.asReversed()) {
+            val equal = ctx.mkAnd(entry.guard, valuesEqual(snapshot, entry.snapshot, type, guard = entry.guard))
+            representative = ctx.mkIte(equal, entry.reference, representative)
+        }
+        scope.doWithState {
+            data.mapKeyRepresentatives[type] = previous + GoMapKeyRepresentative(fresh, snapshot, guard = ctx.trueExpr)
+        }
+        return representative
+    }
+
+    internal fun mapKeyCanMatch(key: UExpr<out USort>, type: GoType): UBoolExpr {
+        if (!type.needsMapKeyRepresentative()) return ctx.trueExpr
+
+        val snapshot = scope.calcOnState { unbox(key.asExpr(ctx.addressSort), ctx.typeToSort(type)) }
+        return valuesEqual(snapshot, snapshot, type, guard = ctx.trueExpr)
     }
 
     private fun tryBox(expr: UExpr<out USort>, targetType: GoType): UExpr<out USort> {
@@ -1211,12 +1259,21 @@ class GoExprVisitor(
                 val key = resolveMapKey(args[1])
                 val mapType = args[0].type.underlying() as MapType
                 val map = mapOrEmpty(reference, mapType)
-                val keySort = ctx.typeToSort(mapType.keyType.mapKeyStorageType())
+                val keySort = ctx.mapKeySort(mapType.keyType)
 
                 scope.ensureObjectMapSizeCorrect(map, mapType) ?: throw GoStepAbort()
+                val canMatch = mapKeyCanMatch(key, mapType.keyType)
                 scope.doWithState {
                     if (keySort == ctx.addressSort) {
-                        symbolicObjectMapRemove(map, key.asExpr(ctx.addressSort), mapType)
+                        val membership = URefSetEntryLValue(map, key.asExpr(ctx.addressSort), mapType)
+                        val wasPresent = ctx.mkAnd(canMatch, memory.read(membership))
+                        val length = symbolicObjectMapSize(map, mapType)
+                        memory.write(membership, ctx.falseExpr, canMatch)
+                        memory.write(
+                            UMapLengthLValue(map, mapType, ctx.sizeSort),
+                            ctx.mkSizeSubExpr(length, ctx.mkSizeExpr(1)),
+                            wasPresent,
+                        )
                     } else {
                         symbolicPrimitiveMapRemove(map, key.asExpr(keySort), mapType, USizeExprKeyInfo())
                     }
@@ -1321,7 +1378,7 @@ class GoExprVisitor(
         val source = mapOrEmpty(srcMap, mapType)
         scope.ensureObjectMapSizeCorrect(source, mapType) ?: throw GoStepAbort()
 
-        val keySort = typeToSort(mapType.keyType.mapKeyStorageType())
+        val keySort = mapKeySort(mapType.keyType)
         val valueSort = typeToSort(mapType.valueType)
         val isRefSet = keySort == addressSort
         return scope.calcOnState {

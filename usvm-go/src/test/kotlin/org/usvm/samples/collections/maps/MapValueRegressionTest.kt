@@ -9,6 +9,54 @@ import org.usvm.test.util.checkers.eq
 
 class MapValueRegressionTest : GoNativeTestRunner() {
     @Test
+    @GoSample(method = "floatMapZeroLookup", fixture = "regressions")
+    fun floatMapZeroLookup() = checkNative(method = "floatMapZeroLookup")
+
+    @Test
+    @GoSample(method = "floatMapZeroOverwrite", fixture = "regressions")
+    fun floatMapZeroOverwrite() = checkNative(method = "floatMapZeroOverwrite")
+
+    @Test
+    @GoSample(method = "floatMapZeroDelete", fixture = "regressions")
+    fun floatMapZeroDelete() = checkNative(method = "floatMapZeroDelete")
+
+    @Test
+    @GoSample(method = "namedFloatMapZeroLookup", fixture = "regressions")
+    fun namedFloatMapZeroLookup() = checkNative(method = "namedFloatMapZeroLookup")
+
+    @Test
+    @GoSample(method = "floatMapNaNLookup", fixture = "regressions")
+    fun floatMapNaNLookup() = checkNative(method = "floatMapNaNLookup")
+
+    @Test
+    @GoSample(method = "floatMapNaNRange", fixture = "regressions")
+    fun floatMapNaNRange() = checkNative(method = "floatMapNaNRange")
+
+    @Test
+    @GoSample(method = "stringMapValueLookup", fixture = "regressions")
+    fun stringMapValueLookup() = checkNative(method = "stringMapValueLookup")
+
+    @Test
+    @GoSample(method = "namedStringMapValueLookup", fixture = "regressions")
+    fun namedStringMapValueLookup() = checkNative(method = "namedStringMapValueLookup")
+
+    @Test
+    @GoSample(method = "arrayMapKeySnapshot", fixture = "regressions")
+    fun arrayMapKeySnapshot() = checkNative(method = "arrayMapKeySnapshot")
+
+    @Test
+    @GoSample(method = "structMapValueLookup", fixture = "regressions")
+    fun structMapValueLookup() = checkNative(method = "structMapValueLookup")
+
+    @Test
+    @GoSample(method = "arrayMapRangeKeyCopy", fixture = "regressions")
+    fun arrayMapRangeKeyCopy() = checkNative(method = "arrayMapRangeKeyCopy")
+
+    @Test
+    @GoSample(method = "interfaceMapValueLookup", fixture = "regressions")
+    fun interfaceMapValueLookup() = checkNative(method = "interfaceMapValueLookup")
+
+    @Test
     @GoSample(method = "namedScalarMapLookup", fixture = "regressions")
     fun namedScalarMapLookup() = checkNative(method = "namedScalarMapLookup")
 
